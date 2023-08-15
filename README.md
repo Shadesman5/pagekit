@@ -139,7 +139,7 @@ You can [install Node dependencies, build the front-end components](#node) and r
 Clone Repository
 
 ```
-$ git clone git@github.com:uatrend/pagekit.git project-folder
+$ git clone git@github.com:Shadesman5/pagekit.git project-folder
 $ cd project-folder
 ```
 
