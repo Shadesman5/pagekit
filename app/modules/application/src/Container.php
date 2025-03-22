@@ -116,6 +116,7 @@ class Container implements \ArrayAccess
      *
      * @throws \InvalidArgumentException
      */
+    #[\ReturnTypeWillChange]
     public function offsetGet($name)
     {
         if (!array_key_exists($name, $this->values)) {

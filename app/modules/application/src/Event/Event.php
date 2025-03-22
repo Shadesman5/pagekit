@@ -125,11 +125,12 @@ class Event implements EventInterface, \ArrayAccess
     }
 
     /**
-     * Gets a parameter.
+     * Gets a parameter or an object.
      *
      * @param  string $name
      * @return mixed
      */
+    #[\ReturnTypeWillChange]
     public function offsetGet($name)
     {
         return isset($this->parameters[$name]) ? $this->parameters[$name] : null;

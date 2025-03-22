@@ -113,7 +113,7 @@ trait NodeModelTrait
 
         // Update children's paths
         if ($id && $path != $node->path) {
-            $db->executeUpdate(
+            $db->executeStatement(
                 'UPDATE '.self::getMetadata()->getTable()
                 .' SET path = REPLACE ('.$db->getDatabasePlatform()->getConcatExpression($db->quote('//'), 'path').", {$db->quote('//' . $node->path)}, {$db->quote($path)})"
                 .' WHERE path LIKE '.$db->quote($node->path.'//%'));

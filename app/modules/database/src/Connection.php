@@ -163,6 +163,7 @@ class Connection extends BaseConnection
     /**
      * @{inheritdoc}
      */
+    #[\ReturnTypeWillChange]
     public function executeQuery($query, array $params = [], $types = [], QueryCacheProfile $qcp = null): ResultStatement
     {
         return parent::executeQuery($this->replacePrefix($query), $params, $types, $qcp);
@@ -171,9 +172,9 @@ class Connection extends BaseConnection
     /**
      * @{inheritdoc}
      */
-    public function executeUpdate($query, array $params = [], array $types = []): int
+    public function executeStatement($query, array $params = [], array $types = []): int
     {
-        return parent::executeUpdate($this->replacePrefix($query), $params, $types);
+        return parent::executeStatement($this->replacePrefix($query), $params, $types);
     }
 
     /**

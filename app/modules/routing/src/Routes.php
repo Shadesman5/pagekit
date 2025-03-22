@@ -2,7 +2,7 @@
 
 namespace Pagekit\Routing;
 
-class Routes implements \IteratorAggregate, ResourceInterface
+class Routes implements \Serializable, \IteratorAggregate, ResourceInterface
 {
     protected array $routes = [];
 
@@ -150,6 +150,27 @@ class Routes implements \IteratorAggregate, ResourceInterface
     {
         list($this->routes, $this->aliases) = unserialize($serialized);
     }
+
+    /**
+     * Serializes the routes.
+     *
+     * @return array
+     */
+    public function __serialize(): array
+    {
+        return $this->routes;
+    }
+
+    /**
+     * Unserializes the routes.
+     *
+     * @param array $data
+     */
+    public function __unserialize(array $data): void
+    {
+        $this->routes = $data;
+    }
+
 
     /**
      * Creates a route from array definition.

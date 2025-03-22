@@ -122,6 +122,7 @@ abstract class Asset implements AssetInterface, \ArrayAccess
      * @param string $name  The option name
      * @param mixed  $value The option value
      */
+    #[\ReturnTypeWillChange]
     public function offsetSet($name, $value)
     {
         $this->options[$name] = $value;
@@ -134,6 +135,7 @@ abstract class Asset implements AssetInterface, \ArrayAccess
      *
      * @return mixed The option value
      */
+    #[\ReturnTypeWillChange]
     public function offsetGet($name)
     {
         return isset($this->options[$name]) ? $this->options[$name] : null;
@@ -156,6 +158,7 @@ abstract class Asset implements AssetInterface, \ArrayAccess
      *
      * @param string $name The option name
      */
+    #[\ReturnTypeWillChange]
     public function offsetUnset($name)
     {
         unset($this->options[$name]);

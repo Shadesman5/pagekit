@@ -630,7 +630,7 @@ class QueryBuilder
         if ($type == 'select') {
             return $this->connection->executeQuery($sql, $this->params, $this->guessParamTypes($this->params));
         } else {
-            return $this->connection->executeUpdate($sql, $this->params, $this->guessParamTypes($this->params));
+            return $this->connection->executeStatement($sql, $this->params, $this->guessParamTypes($this->params));
         }
     }
 

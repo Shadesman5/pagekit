@@ -50,7 +50,7 @@ class HttpKernel implements HttpKernelInterface
      */
     public function isMasterRequest(): bool
     {
-        return $this->getRequest() === $this->stack->getMasterRequest();
+        return $this->getRequest() === $this->stack->getMainRequest();
     }
 
     /**

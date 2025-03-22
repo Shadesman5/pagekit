@@ -1,9 +1,9 @@
 # Pagekit
 
-[![Symfony](https://img.shields.io/badge/symfony-5.1.7-blue)](https://github.com/symfony/symfony)
+[![Symfony](https://img.shields.io/badge/symfony-5.4-blue)](https://github.com/symfony/symfony)
 [![Vue](https://img.shields.io/badge/vue-2.6.12-green)](https://github.com/vuejs/vue)
 [![UIkit](https://img.shields.io/badge/uikit-3.5.8-blue)](https://github.com/uikit/uikit)
-[![Build Status](https://travis-ci.org/uatrend/pagekit.svg?branch=develop)](https://travis-ci.org/uatrend/pagekit)
+[![Build Status](https://travis-ci.org/cssailing/pagekit.svg?branch=develop)](https://travis-ci.org/cssailing/pagekit)
 [![Discord](https://img.shields.io/badge/chat-on%20discord-7289da.svg)](https://discord.gg/e7Kw47E)
 
 <details>
@@ -107,26 +107,34 @@ This is an updated build Pagekit CMS (for developers).
 Build includes the following updated components:
 
 - Pagekit CMS 1.0.18
+- [uatrend/pagekit:develop](https://github.com/uatrend/pagekit/tree/develop) branch - update to support PHP 7.4
 - Blog extension
 - [Admin theme](#theme)
 - Theme One
 - Demo content
 
-Download the latest [build](https://github.com/uatrend/pagekit/releases) or [install from source](#install) before installation.  
+
+Download the latest code, [install from source](#install) before installation.  
 The installation procedure is the same as in the official [documentation](https://pagekit.com/docs/getting-started/installation).
 
 Marketplace functionality like install, update and remove works the same like in original version.
+
 **Note!** Before enabling extensions, update them for compatibility. Debug mode and debug panel work the same as in the main version.
 
 ------
 
 ## Major changes:
 
-- Required PHP Version - 7.4+
+- Required PHP Version - 7.4+, support for PHP 8.0, 8.1, 8.2
+- Required MySQL Version - 5.7+, support for MySQL 8.4
+- Required Node Version - 14.0+, support for Node 16.0, 18.0
+- Required Composer Version - 2.0+
+- Required Yarn Version - 1.22.0+
+- Used Symfony 5.4 framework
 - Used UIkit 3 and Vue 2 frameworks
 - Updated Symfony and Composer frameworks
-- [Updated Composer dependencies](https://github.com/uatrend/pagekit/blob/develop/composer.json)
-- [Updated Node dependencies](https://github.com/uatrend/pagekit/blob/develop/package.json)
+- [Updated Composer dependencies](https://github.com/cssailing/pagekit/blob/develop/composer.json)
+- [Updated Node dependencies](https://github.com/cssailing/pagekit/blob/develop/package.json)
 - Updated PHP core components
 - Updated Javascript core components
 
@@ -139,7 +147,7 @@ You can [install Node dependencies, build the front-end components](#node) and r
 Clone Repository
 
 ```
-$ git clone git@github.com:uatrend/pagekit.git project-folder
+$ git clone git@github.com:cssailing/pagekit.git project-folder
 $ cd project-folder
 ```
 
@@ -151,9 +159,26 @@ $ composer install
 
 <a name="node"></a>Install Node dependencies
 
+> if Node Version > node@14, run 
+
+```bash
+export NODE_OPTIONS=--openssl-legacy-provider 
+```
+
+then
+
 ```
 $ yarn install
 ```
+
+## Docker run
+
+```
+$ docker-compose up -d
+```
+> Open http://localhost:8080 in your browser for the site
+
+> Open http://localhost:8080/admin in your browser for phpmyadmin
 
 ## <a name="scripts"></a>Scripts
 
@@ -298,5 +323,8 @@ Adding side menu items through PHP - ```$view->$data()```
 
 ------
 
-Thanks to Yootheme and developers!  
-Feel free to ask any questions - I will answer as much as possible.
+## Thanks
+
+Thanks to Yootheme and developers! 
+ 
+Thanks to [uatrend](https://github.com/uatrend/) !

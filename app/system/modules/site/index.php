@@ -23,7 +23,7 @@ return [
         'page' => [
             'name' => '@page',
             'label' => 'Page',
-            'controller' => 'Pagekit\\Site\\Controller\\PageController::indexAction'
+            'controller' => 'Pagekit\\Site\\Controller\\PageController'
         ]
 
     ],

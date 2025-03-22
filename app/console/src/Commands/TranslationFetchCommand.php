@@ -51,7 +51,7 @@ class TranslationFetchCommand extends Command
 
             if($to = $this->getPath($resource)) {
 
-                $this->info("[${resource}] Moving languages files to: ".$to);
+                $this->info("[{$resource}] Moving languages files to: ".$to);
                 exec(sprintf('rsync -av %s %s', $from, $to));
 
             } else {

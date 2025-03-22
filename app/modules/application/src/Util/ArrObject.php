@@ -2,7 +2,8 @@
 
 namespace Pagekit\Util;
 
-use Pagekit\Util\ArrObject;
+// Removed the self-referencing use statement
+// use Pagekit\Util\ArrObject;
 
 class ArrObject implements \ArrayAccess, \Countable, \JsonSerializable
 {
@@ -174,6 +175,7 @@ class ArrObject implements \ArrayAccess, \Countable, \JsonSerializable
      *
      * @see get()
      */
+    #[\ReturnTypeWillChange]
     public function offsetGet($key)
     {
         return $this->get($key);
