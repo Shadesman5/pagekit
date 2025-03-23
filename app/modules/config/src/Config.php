@@ -181,6 +181,7 @@ class Config implements \ArrayAccess, \Countable, \JsonSerializable
      *
      * @see get()
      */
+    #[\ReturnTypeWillChange]
     public function offsetGet($key)
     {
         return $this->get($key);
