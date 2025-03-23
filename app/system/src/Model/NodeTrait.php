@@ -177,6 +177,7 @@ trait NodeTrait
     /**
      * {@inheritdoc}
      */
+    #[\ReturnTypeWillChange]
     public function getIterator()
     {
         return new \ArrayIterator($this->children);
@@ -185,6 +186,7 @@ trait NodeTrait
     /**
      * {@inheritdoc}
      */
+    #[\ReturnTypeWillChange]
     public function count()
     {
         return count($this->children);

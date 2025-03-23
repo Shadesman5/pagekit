@@ -58,6 +58,7 @@ class DatabaseSessionHandler implements \SessionHandlerInterface
     /**
      * {@inheritdoc}
      */
+    #[\ReturnTypeWillChange]
     public function gc($lifetime): bool
     {
         try {
@@ -72,6 +73,7 @@ class DatabaseSessionHandler implements \SessionHandlerInterface
     /**
      * {@inheritdoc}
      */
+    #[\ReturnTypeWillChange]
     public function read($id)
     {
         try {
