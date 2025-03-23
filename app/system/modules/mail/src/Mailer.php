@@ -2,110 +2,111 @@
 
 namespace Pagekit\Mail;
 
-use Swift_RfcComplianceException;
-use Swift_SmtpTransport;
-use Swift_SpoolTransport;
-use Swift_Transport;
-use Swift_TransportException;
+use Symfony\Component\Mailer\Envelope;
+use Symfony\Component\Mailer\Mailer as SymfonyMailer;
+use Symfony\Component\Mailer\Transport\TransportInterface;
+use Symfony\Component\Mime\Email;
+use Symfony\Component\Mime\Address;
 
-class Mailer implements MailerInterface
+class Mailer
 {
     /**
-     * The Swift Transport instance.
+     * @var TransportInterface
      */
-    protected \Swift_Transport $trans;
+    protected $transport;
 
     /**
-     * The Swift Spool Transport instance.
+     * @var array
      */
-    protected \Swift_SpoolTransport $queue;
+    protected $plugins = [];
 
     /**
-     * Create a new Mailer instance.
+     * Constructor.
      *
-     * @param Swift_Transport      $trans
-     * @param Swift_SpoolTransport $queue
+     * @param TransportInterface $transport
      */
-    public function __construct(Swift_Transport $trans, Swift_SpoolTransport $queue)
+    public function __construct(TransportInterface $transport)
     {
-        $this->trans = $trans;
-        $this->queue = $queue;
+        $this->transport = $transport;
     }
 
     /**
-     * {@inheritdoc}
+     * Creates a new message instance.
+     *
+     * @return Email
      */
-    public function create($subject = null, $body = null, $to = null, $from = null): object
+    public function create()
     {
-        $message = new Message($subject, $body);
-
-        if ($to !== null) {
-            $message->setTo($to);
-        }
-
-        if ($from !== null) {
-            $message->setFrom($from);
-        }
-
-        return $message->setMailer($this);
+        return new Email();
     }
 
     /**
-     * {@inheritdoc}
+     * Sends an email message.
+     *
+     * @param  Email $message
+     * @return bool
      */
-    public function send($message, &$errors = null): int
+    public function send(Email $message)
     {
-        $errors = (array) $errors;
-
-        if (!$this->trans->isStarted()) {
-            $this->trans->start();
+        foreach ($this->plugins as $plugin) {
+            $plugin->beforeSend($message);
         }
 
-        $sent = 0;
+        $mailer = new SymfonyMailer($this->transport);
+        $mailer->send($message);
 
+        foreach ($this->plugins as $plugin) {
+            $plugin->afterSend($message);
+        }
+
+        return true;
+    }
+
+    /**
+     * Registers a plugin.
+     *
+     * @param  MailerPluginInterface $plugin
+     * @return self
+     */
+    public function registerPlugin(MailerInterface $plugin)
+    {
+        $this->plugins[] = $plugin;
+
+        return $this;
+    }
+    
+    /**
+     * Tests the SMTP connection.
+     *
+     * @return bool|string True if connection successful, error message otherwise
+     */
+    public function testSmtpConnection()
+    {
         try {
-            $sent = $this->trans->send($message, $errors);
-        } catch (Swift_RfcComplianceException $e) {
-            foreach (array_keys($message->getTo()) as $address) {
-                $errors[] = $address;
+            // Create a test email
+            $email = new Email();
+            $email->subject('Test Connection')
+                  ->text('This is a test email to verify SMTP connection.')
+                  ->to('test@example.com')
+                  ->from('test@example.com');
+            
+            // Instead of calling ping(), we'll use a reflection trick to access the transport
+            $reflectionClass = new \ReflectionClass($this->transport);
+            $reflectionProperty = $reflectionClass->getProperty('stream');
+            $reflectionProperty->setAccessible(true);
+            
+            // Just try to get the stream - this will attempt to connect
+            // If there's no connection error, we're good
+            if ($this->transport instanceof \Symfony\Component\Mailer\Transport\Smtp\SmtpTransport) {
+                $this->transport->start();
+                $this->transport->stop();
             }
+            
+            return true;
+        } catch (\Symfony\Component\Mailer\Exception\TransportExceptionInterface $e) {
+            return $e->getMessage();
+        } catch (\Exception $e) {
+            return $e->getMessage();
         }
-
-        return $sent;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function queue($message, &$errors = null): int
-    {
-        return $this->queue->send($message, $errors);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function registerPlugin($plugin): void
-    {
-        $this->trans->registerPlugin($plugin);
-    }
-
-    /**
-     * Test smtp connection with given settings.
-     *
-     * @param  string  $host
-     * @param  integer $port
-     * @param  string  $username
-     * @param  string  $password
-     * @param  string  $encryption
-     * @throws Swift_TransportException
-     */
-    public function testSmtpConnection($host = 'localhost', $port = 25, $username = '', $password = '', $encryption = null): void
-    {
-        (new Swift_SmtpTransport($host, $port))
-            ->setUsername($username)
-            ->setPassword($password)
-            ->setEncryption($encryption)
-            ->start();
     }
 }

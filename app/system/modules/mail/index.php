@@ -2,9 +2,13 @@
 
 use Pagekit\Mail\Mailer;
 use Pagekit\Mail\Plugin\ImpersonatePlugin;
+use Symfony\Component\Mailer\Transport\Dsn;
+use Symfony\Component\Mailer\Transport\TransportInterface;
+use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
+use Symfony\Component\Mailer\Transport\SendmailTransport;
+use Symfony\Component\Mailer\Transport\TransportFactory;
 
 return [
-
     'name' => 'system/mail',
 
     'main' => function ($app) {
@@ -13,62 +17,38 @@ return [
 
             $app['mailer.initialized'] = true;
 
-            $mailer = new Mailer($app['swift.transport'], $app['swift.spooltransport']);
+            $mailer = new Mailer($app['mailer.transport']);
             $mailer->registerPlugin(new ImpersonatePlugin($this->config['from_address'], $this->config['from_name']));
 
             return $mailer;
         };
 
         $app['mailer.initialized'] = false;
+        $app['mailer.transport'] = function ($app) {
+            $driver = $this->config['driver'];
 
-        $app['swift.transport'] = function ($app) {
-
-            if ('smtp' == $this->config['driver']) {
-
-                $transport = new Swift_Transport_EsmtpTransport(
-                    $app['swift.transport.buffer'],
-                    [$app['swift.transport.authhandler']],
-                    $app['swift.transport.eventdispatcher']
+            if ($driver === 'smtp') {
+                $transport = new EsmtpTransport(
+                    $this->config['host'],
+                    $this->config['port'],
+                    $this->config['encryption'] === 'ssl'
                 );
 
-                $transport->setHost($this->config['host']);
-                $transport->setPort($this->config['port']);
-                $transport->setUsername($this->config['username']);
-                $transport->setPassword($this->config['password']);
-                $transport->setEncryption($this->config['encryption']);
-                $transport->setAuthMode($this->config['auth_mode']);
+                if ($this->config['username']) {
+                    $transport->setUsername($this->config['username']);
+                    $transport->setPassword($this->config['password']);
+                }
 
                 return $transport;
             }
 
-            if ('mail' == $this->config['driver']) {
-                // Deprecated Swift_MailTransport since 6.0
-                // configure SwiftMailer to use Sendmail https://www.texelate.co.uk/blog/how-to-configure-swiftmailer-to-use-sendmail
-
-                $sendMailPath = ini_get('sendmail_path');
-
-                // If not set or available default to what Swift recommend
-                $sendMailPath = ($sendMailPath === false || $sendMailPath === '') ? '/usr/sbin/sendmail -bs' : $sendMailPath;
-
-                return new \Swift_SendmailTransport($sendMailPath);
+            if ($driver === 'mail') {
+                $sendMailPath = ini_get('sendmail_path') ?: '/usr/sbin/sendmail -bs';
+                return new SendmailTransport($sendMailPath);
             }
-
-            throw new \InvalidArgumentException('Invalid mail driver.');
+            
+            throw new \InvalidArgumentException(sprintf('Unsupported mail driver: %s', $driver));
         };
-
-        $app['swift.transport.buffer'] = fn() => new Swift_Transport_StreamBuffer(new Swift_StreamFilters_StringReplacementFilterFactory);
-
-        $app['swift.transport.authhandler'] = fn() => new Swift_Transport_Esmtp_AuthHandler([
-            new Swift_Transport_Esmtp_Auth_CramMd5Authenticator,
-            new Swift_Transport_Esmtp_Auth_LoginAuthenticator,
-            new Swift_Transport_Esmtp_Auth_PlainAuthenticator,
-        ]);
-
-        $app['swift.transport.eventdispatcher'] = fn() => new Swift_Events_SimpleEventDispatcher;
-
-        $app['swift.spool'] = fn() => new Swift_MemorySpool;
-
-        $app['swift.spooltransport'] = fn($app) => new Swift_SpoolTransport($app['swift.spool']);
 
     },
 
@@ -81,24 +61,11 @@ return [
     'routes' => [
 
         '/system' => [
-            'name' => '@system',
-            'controller' => 'Pagekit\\Mail\\Controller\\MailController'
+            'name' => '@system', 'controller' => 'Pagekit\\Mail\\Controller\\MailController'
         ]
 
     ],
-
     'events' => [
-
-        'terminate' => function () use ($app) {
-
-            if ($app['mailer.initialized']) {
-                try {
-                    $app['swift.spooltransport']->getSpool()->flushQueue($app['swift.transport']);
-                } catch (\Exception $e) {
-                }
-            }
-
-        },
 
         'view.system:modules/settings/views/settings' => function ($event, $view) use ($app) {
             $view->data('$mail', ['ssl' => extension_loaded('openssl')]);
@@ -107,7 +74,6 @@ return [
         }
 
     ],
-
     'config' => [
 
         'driver' => 'mail',
@@ -119,7 +85,6 @@ return [
         'auth_mode' => null,
         'from_name' => null,
         'from_address' => null
-
     ]
 
 ];

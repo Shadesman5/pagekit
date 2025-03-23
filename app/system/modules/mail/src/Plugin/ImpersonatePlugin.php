@@ -2,10 +2,21 @@
 
 namespace Pagekit\Mail\Plugin;
 
-class ImpersonatePlugin implements \Swift_Events_SendListener
+use Pagekit\Mail\MailerInterface;
+use Symfony\Component\Mime\Email;
+use Symfony\Component\Mime\Address;
+
+class ImpersonatePlugin implements MailerInterface
 {
-    protected string $address;
-    protected string $name;
+    /**
+     * @var string
+     */
+    protected $address;
+
+    /**
+     * @var string
+     */
+    protected $name;
 
     /**
      * Constructor.
@@ -13,28 +24,31 @@ class ImpersonatePlugin implements \Swift_Events_SendListener
      * @param string $address
      * @param string $name
      */
-    public function __construct($address, $name)
+    public function __construct($address = null, $name = null)
     {
         $this->address = $address;
-        $this->name    = $name;
+        $this->name = $name;
     }
 
     /**
-     * Invoked immediately before the Message is sent.
-     *
-     * @param \Swift_Events_SendEvent $event
+     * {@inheritdoc}
      */
-    public function beforeSendPerformed(\Swift_Events_SendEvent $event): void
+    public function beforeSend(Email $message)
     {
-        $event->getMessage()->setFrom($this->address, $this->name);
+        if ($this->address && !$message->getFrom()) {
+            if ($this->name) {
+                $message->from(new Address($this->address, $this->name));
+            } else {
+                $message->from($this->address);
+            }
+        }
     }
 
     /**
-     * Invoked immediately after the Message is sent.
-     *
-     * @param \Swift_Events_SendEvent $event
+     * {@inheritdoc}
      */
-    public function sendPerformed(\Swift_Events_SendEvent $event): void
+    public function afterSend(Email $message)
     {
+        // No action needed after sending
     }
 }

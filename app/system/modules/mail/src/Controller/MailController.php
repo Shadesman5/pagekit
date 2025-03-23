@@ -35,17 +35,21 @@ class MailController
     public function emailAction($option = []): array
     {
         try {
-
             $config = Arr::merge(App::module('system/mail')->config(), $option);
-
-            $response['success'] = (bool) App::mailer()->create(__('Test email!'), __('Testemail'), $config['from_address'])->send();
-            $response['message'] = $response['success'] ? __('Mail successfully sent!') : __('Mail delivery failed!');
+            
+            $mailer = App::mailer();
+            $email = $mailer->create()
+                ->subject(__('Test email!'))
+                ->text(__('Testemail'))
+                ->from($config['from_address'])
+                ->to($config['from_address']); // Send to the same address as the from address
+                
+            $mailer->send($email);
+            
+            return ['success' => true, 'message' => __('Mail successfully sent!')];
 
         } catch (\Exception $e) {
-
-            $response = ['success' => false, 'message' => sprintf(__('Mail delivery failed! (%s)'), $e->getMessage())];
+            return ['success' => false, 'message' => sprintf(__('Mail delivery failed! (%s)'), $e->getMessage())];
         }
-
-        return $response;
     }
 }

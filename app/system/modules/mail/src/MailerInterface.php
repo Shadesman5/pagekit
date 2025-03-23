@@ -2,38 +2,21 @@
 
 namespace Pagekit\Mail;
 
+use Symfony\Component\Mime\Email;
+
 interface MailerInterface
 {
     /**
-     * Creates a new message instance.
+     * Called before the message is sent.
      *
-     * @param  string $subject
-     * @param  string $body
-     * @param  mixed  $to
-     * @param  mixed  $from
+     * @param Email $message
      */
-    public function create($subject = null, $body = null, $to = null, $from = null): object;
+    public function beforeSend(Email $message);
 
     /**
-     * Sends the given message.
+     * Called after the message is sent.
      *
-     * @param  mixed $message
-     * @param  array $errors
+     * @param Email $message
      */
-    public function send($message, &$errors = []): int;
-
-    /**
-     * Queues the given message and send it later.
-     *
-     * @param  mixed $message
-     * @param  array $errors
-     */
-    public function queue($message, &$errors = []): int;
-
-    /**
-     * Registers a plugin.
-     *
-     * @param object $plugin
-     */
-    public function registerPlugin($plugin);
+    public function afterSend(Email $message);
 }

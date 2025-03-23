@@ -2,16 +2,17 @@
 
 namespace Pagekit\Mail;
 
-use Pagekit\Mail\MailerInterface;
-use Pagekit\Mail\Message;
-use Swift_Attachment;
-use Swift_Image;
-use Swift_Message;
-use Swift_Mime_Attachment;
+use Symfony\Component\Mime\Header\UnstructuredHeader;
+use Symfony\Component\Mime\Part\DataPart;
+use Symfony\Component\Mime\Part\File; 
+use Symfony\Component\Mime\Address;
+use Symfony\Component\Mime\Email;
 
-class Message extends Swift_Message implements MessageInterface
+class Message extends Email implements MessageInterface
 {
     protected ?MailerInterface $mailer = null;
+
+    protected array $embeded = [];
 
     /**
      * {@inheritdoc}
@@ -34,15 +35,15 @@ class Message extends Swift_Message implements MessageInterface
     /**
      * {@inheritdoc}
      */
-    public function send(&$errors = null): int
+    public function send(?array &$errors = null)
     {
-        return $this->mailer->send($this, $errors);
+       return $this->mailer->send($this, $errors);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function queue(&$errors = null): int
+    public function queue(&$errors = null)
     {
         return $this->mailer->queue($this, $errors);
     }
@@ -54,9 +55,15 @@ class Message extends Swift_Message implements MessageInterface
      * @param  string $name
      * @param  string $mime
      */
-    public function attachFile($file, $name = null, $mime = null): Message
+    public function attachFile(string $file, ?string $name = null, ?string $mime = null): self
     {
-		return $this->prepareAttachment(Swift_Attachment::fromPath($file), $name, $mime);
+        $filePart = new File($file, $name, $mime);
+
+        $this->addPart($filePart);
+
+        return $this;
+        
+        
     }
 
     /**
@@ -66,9 +73,12 @@ class Message extends Swift_Message implements MessageInterface
      * @param  string $name
      * @param  string $mime
      */
-    public function attachData($data, $name, $mime = null): Message
+    public function attachData(string $data, string $name, ?string $mime = null): self
     {
-        return $this->prepareAttachment(Swift_Attachment::newInstance($data, $name), null, $mime);
+        $dataPart = new DataPart($data, $name, $mime);
+        $this->addPart($dataPart);
+        return $this;
+        
     }
 
     /**
@@ -77,48 +87,62 @@ class Message extends Swift_Message implements MessageInterface
      * @param  string $file
      * @param  string $cid
      */
-    public function embedFile($file, $cid = null): string
+    public function embedFile(string $file, ?string $cid = null): string
     {
-        $attachment = Swift_Image::fromPath($file);
-
-        if ($cid) {
-            $attachment->setId(strpos($cid, 'cid:') === 0 ? $cid : 'cid:'.$cid);
-        }
-
-        return $this->embed($attachment);
+        $filePart = new File($file);
+        $contentId = $cid ?? md5_file($file).'@pagekit';
+        $filePart->getPreparedHeaders()->setHeaderBody('Content-ID', '<'.$contentId.'>');
+        
+        $this->embeded[] = $filePart;
+        $this->addPart($filePart);
+        return  'cid:'.$contentId;
     }
 
     /**
      * Embeds in-memory data in the message and get the CID.
      *
-     * @param  string $data
-     * @param  string $name
-     * @param  string $contentType
+     * @param  string      $data
+     * @param  string      $name
+     * @param  string|null $contentType
+     * @return string
      */
-    public function embedData($data, $name, $contentType = null): string
+    public function embedData(string $data, string $name, ?string $contentType = null): string
     {
-		return $this->embed(Swift_Image::newInstance($data, $name, $contentType));
+        $dataPart = new DataPart($data, $name, $contentType);
+        $contentId = md5($data).'@pagekit';
+        $dataPart->getPreparedHeaders()->setHeaderBody('Content-ID', '<'.$contentId.'>');
+        $this->embeded[] = $dataPart;
+        $this->addPart($dataPart);
+        return 'cid:'.$contentId;
     }
 
-	/**
-  * Prepare and attach the given attachment.
-  *
-  * @param  Swift_Mime_Attachment $attachment
-  * @param  string                $name
-  * @param  string                $mime
-  */
- protected function prepareAttachment(Swift_Mime_Attachment $attachment, $name = null, $mime = null): self
-	{
-		if (null !== $mime) {
-			$attachment->setContentType($mime);
-		}
+    /**
+     * Adds a header to the message
+     *
+     * @param string $name
+     * @param string $value
+     * @return self
+     */
+    public function addHeader(string $name, string $value): self
+    {
+        $this->getHeaders()->add(new UnstructuredHeader($name, $value));
 
-		if (null !== $name) {
-			$attachment->setFilename($name);
-		}
+        return $this;
+    }
 
-		$this->attach($attachment);
+    public function getParts(): array
+    {
+        return array_merge(parent::getParts(),$this->embeded);
+    }
 
-		return $this;
-	}
+    /**
+     * @deprecated
+     */
+    public function __call($name, $arguments)
+    {
+        if (method_exists($this, $name)) {
+            return call_user_func_array([$this, $name], $arguments);
+        }
+        return null;
+    }
 }
