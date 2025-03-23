@@ -5,7 +5,7 @@ namespace Pagekit\Kernel\Event;
 use Pagekit\Event\EventSubscriberInterface;
 use Pagekit\Kernel\Exception\HttpException;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Debug\Exception\FlattenException;
+use Symfony\Component\ErrorHandler\Exception\FlattenException;
 use Symfony\Component\HttpFoundation\Request;
 
 class ExceptionListener implements EventSubscriberInterface
