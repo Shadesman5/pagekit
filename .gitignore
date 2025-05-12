@@ -13,11 +13,17 @@
 /app/installer/assets/css/*
 /app/system/modules/theme/css/*
 /app/system/modules/theme/js/theme.js
+/app/system/modules/theme/assets/css/theme.css
+# Ignore database and logs
+/docker/logs/*
+/docker/mysql/data/*
+/docker/redis/*
 # /packages/*
 /pagekit*.zip
 /pagekit.db
 /config.php
 /yarn.lock
+/composer.lock
 /package-lock.json
 node_modules
 .DS_Store

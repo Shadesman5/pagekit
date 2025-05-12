@@ -104,9 +104,11 @@
 
 This is an updated build Pagekit CMS (for developers).
 
+> Features: need to be updated mail function to sent mail
+
 Build includes the following updated components:
 
-- Pagekit CMS 1.0.18
+- Pagekit CMS 1.0.25
 - [uatrend/pagekit:develop](https://github.com/uatrend/pagekit/tree/develop) branch - update to support PHP 7.4
 - Blog extension
 - [Admin theme](#theme)
@@ -125,7 +127,7 @@ Marketplace functionality like install, update and remove works the same like in
 
 ## Major changes:
 
-- Required PHP Version - 7.4+, support for PHP 8.0, 8.1, 8.2
+- Required PHP Version - 7.4+, support for PHP 8.0, 8.1, 8.2, 8.3, 8.4
 - Required MySQL Version - 5.7+, support for MySQL 8.4
 - Required Node Version - 14.0+, support for Node 16.0, 18.0
 - Required Composer Version - 2.0+

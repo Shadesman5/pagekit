@@ -47,7 +47,7 @@ class Application extends Container
      *
      * @param Request $request
      */
-    public function run(Request $request = null): void
+    public function run(?Request $request = null): void
     {
         if ($request === null) {
             $request = Request::createFromGlobals();
