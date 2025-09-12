@@ -1,0 +1,45 @@
+{
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit"
+    },
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    },
+    "[vue]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    },
+    "[php]": {
+        "editor.defaultFormatter": "junstyle.php-cs-fixer",
+        "editor.formatOnSave": true
+    },
+    "[json]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "php-cs-fixer.rules": "@PSR2",
+    "php-cs-fixer.config": ".php-cs-fixer.php",
+    "php-cs-fixer.executablePath": "php-cs-fixer",
+    "eslint.validate": [
+        "javascript",
+        "vue"
+    ],
+    "emmet.includeLanguages": {
+        "vue": "html"
+    },
+    "files.associations": {
+        "*.vue": "vue"
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/app/vendor": true,
+        "**/app/assets": true,
+        "**/*.min.js": true,
+        "**/*.min.css": true
+    },
+    "files.exclude": {
+        "**/node_modules": true,
+        "**/app/vendor": true
+    }
+}
