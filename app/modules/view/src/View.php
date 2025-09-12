@@ -35,7 +35,7 @@ class View
      * @param EventDispatcherInterface $events
      * @param EngineInterface          $engine
      */
-    public function __construct(EventDispatcherInterface $events = null, EngineInterface $engine = null)
+    public function __construct(?EventDispatcherInterface $events = null, ?EngineInterface $engine = null)
     {
         $this->events = $events ?: new PrefixEventDispatcher('view.');
         $this->engine = $engine ?: new DelegatingEngine();
@@ -75,7 +75,8 @@ class View
      * @param  string $name
      * @return mixed
      */
-    public function __get($name) {
+    public function __get($name)
+    {
         return isset($this->globals[$name]) ? $this->globals[$name] : null;
     }
 

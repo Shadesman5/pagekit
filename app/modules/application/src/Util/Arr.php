@@ -226,7 +226,7 @@ class Arr
      * @param  array $keys
      * @param  bool  $include
      */
-    public static function extract(array $data, array $keys = null, $include = true): array
+    public static function extract(array $data, ?array $keys = null, $include = true): array
     {
         if (!$keys) {
             return $data;

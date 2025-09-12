@@ -15,7 +15,7 @@ interface NodeInterface extends \IteratorAggregate, \Countable
      *
      * @throws \InvalidArgumentException
      */
-    public function setParent(NodeInterface $parent = null): self;
+    public function setParent(?NodeInterface $parent = null): self;
 
     /**
      * Checks for child nodes.

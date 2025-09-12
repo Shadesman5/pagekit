@@ -14,7 +14,7 @@ class PrefixEventDispatcher implements EventDispatcherInterface
      * @param  string                   $prefix
      * @param  EventDispatcherInterface $events
      */
-    public function __construct($prefix, EventDispatcherInterface $events = null)
+    public function __construct($prefix, ?EventDispatcherInterface $events = null)
     {
         $this->prefix = $prefix;
         $this->events = $events ?: new EventDispatcher();

@@ -22,7 +22,7 @@ trait NodeTrait
     /**
      * {@inheritdoc}
      */
-    public function setParent(NodeInterface $parent = null): NodeInterface
+    public function setParent(?NodeInterface $parent = null): NodeInterface
     {
         if ($parent === $this) {
             throw new \InvalidArgumentException('A node cannot have itself as a parent');
@@ -66,7 +66,7 @@ trait NodeTrait
      */
     public function add(NodeInterface $node): NodeInterface
     {
-         $this->children[$node->hashCode()] = $node->setParent($this);
+        $this->children[$node->hashCode()] = $node->setParent($this);
 
         return $this;
     }
@@ -136,7 +136,7 @@ trait NodeTrait
         $node = isset($this->children[$hash]) ? $this->children[$hash] : null;
 
         if (!$node && $recursive) {
-            foreach($this->getChildren() as $n) {
+            foreach ($this->getChildren() as $n) {
                 if ($child = $n->findChild($hash, $recursive)) {
                     return $child;
                 }

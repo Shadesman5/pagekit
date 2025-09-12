@@ -378,7 +378,7 @@ class QueryBuilder
      * @param  array $params
      * @return array|self
      */
-    public function params(array $params = null)
+    public function params(?array $params = null)
     {
         if ($params === null) {
             return $this->params;

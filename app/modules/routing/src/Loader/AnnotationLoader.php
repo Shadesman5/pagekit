@@ -24,7 +24,7 @@ class AnnotationLoader implements LoaderInterface
      *
      * @param Reader $reader
      */
-    public function __construct(Reader $reader = null)
+    public function __construct(?Reader $reader = null)
     {
         $this->reader = $reader;
     }

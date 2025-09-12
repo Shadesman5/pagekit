@@ -31,7 +31,7 @@ class AssetManager implements \IteratorAggregate
      * @param AssetFactory $factory
      * @param string       $cache
      */
-    public function __construct(AssetFactory $factory = null, $cache = null)
+    public function __construct(?AssetFactory $factory = null, $cache = null)
     {
         $this->factory    = $factory ?: new AssetFactory;
         $this->registered = new AssetCollection;
@@ -91,7 +91,7 @@ class AssetManager implements \IteratorAggregate
     {
         unset($this->queue[$name]);
 
-        foreach($this->lazy as &$dependencies) {
+        foreach ($this->lazy as &$dependencies) {
             if (false !== $index = array_search($name, $dependencies)) {
                 unset($dependencies[$index]);
             }
@@ -237,7 +237,7 @@ class AssetManager implements \IteratorAggregate
         unset($unresolved[$name]);
 
         if (isset($this->lazy[$name])) {
-            foreach($this->lazy[$name] as $dependency) {
+            foreach ($this->lazy[$name] as $dependency) {
                 if ($d = $this->registered->get($dependency)) {
                     $this->resolveDependencies($d, $resolved, $unresolved);
                 }

@@ -60,7 +60,7 @@ class Node implements NodeInterface, \JsonSerializable
         return App::url($this->link, [], $referenceType);
     }
 
-    public function isAccessible(User $user = null): bool
+    public function isAccessible(?User $user = null): bool
     {
         return $this->status && $this->hasAccess($user ?: App::user());
     }

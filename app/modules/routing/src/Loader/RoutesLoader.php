@@ -20,7 +20,7 @@ class RoutesLoader implements LoaderInterface
      * @param EventDispatcherInterface $events
      * @param AnnotationLoader         $loader
      */
-    public function __construct(EventDispatcherInterface $events, AnnotationLoader $loader = null)
+    public function __construct(EventDispatcherInterface $events, ?AnnotationLoader $loader = null)
     {
         $this->events = $events;
         $this->loader = $loader ?: new AnnotationLoader();
@@ -81,7 +81,8 @@ class RoutesLoader implements LoaderInterface
 
             foreach ($this->loader->load($controller) as $r) {
 
-                $this->addRoute($r
+                $this->addRoute(
+                    $r
                     ->setName(trim("{$route->getName()}/{$r->getName()}", "/"))
                     ->setPath(rtrim($route->getPath().$r->getPath(), '/'))
                     ->addDefaults($route->getDefaults())
@@ -90,6 +91,7 @@ class RoutesLoader implements LoaderInterface
 
             }
 
-        } catch (\InvalidArgumentException $e) {}
+        } catch (\InvalidArgumentException $e) {
+        }
     }
 }

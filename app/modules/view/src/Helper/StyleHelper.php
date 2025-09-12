@@ -14,7 +14,7 @@ class StyleHelper implements HelperInterface, \IteratorAggregate
      *
      * @param AssetManager $styles
      */
-    public function __construct(AssetManager $styles = null)
+    public function __construct(?AssetManager $styles = null)
     {
         $this->styles = $styles ?: new AssetManager();
     }

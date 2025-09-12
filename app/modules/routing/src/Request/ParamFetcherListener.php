@@ -13,7 +13,7 @@ class ParamFetcherListener implements EventSubscriberInterface
      *
      * @param ParamFetcherInterface $paramFetcher
      */
-    public function __construct(ParamFetcherInterface $paramFetcher = null)
+    public function __construct(?ParamFetcherInterface $paramFetcher = null)
     {
         $this->paramFetcher = $paramFetcher ?: new ParamFetcher;
     }

@@ -17,7 +17,7 @@ class ControllerListener implements EventSubscriberInterface
      * @param ControllerResolver $resolver
      * @param LoggerInterface    $logger
      */
-    public function __construct(ControllerResolver $resolver, LoggerInterface $logger = null)
+    public function __construct(ControllerResolver $resolver, ?LoggerInterface $logger = null)
     {
         $this->resolver = $resolver;
         $this->logger   = $logger;

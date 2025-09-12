@@ -18,7 +18,7 @@ class ParamFetcher implements ParamFetcherInterface
      *
      * @param  FilterManager  $filterManager
      */
-    public function __construct(FilterManager $filterManager = null)
+    public function __construct(?FilterManager $filterManager = null)
     {
         $this->filterManager = $filterManager ?: new FilterManager;
     }
@@ -88,7 +88,7 @@ class ParamFetcher implements ParamFetcherInterface
                     $value = (array) $value;
                     $filter = $this->filterManager->get(str_replace('[]', '', $type), $options);
 
-                    array_walk($value, function(&$val) use ($filter, $name) {
+                    array_walk($value, function (&$val) use ($filter, $name) {
 
                         if (is_array($val)) {
                             throw new \RuntimeException(sprintf("Query parameter cannot be a nested array.", $name));

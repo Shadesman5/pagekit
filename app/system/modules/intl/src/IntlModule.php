@@ -159,7 +159,7 @@ class IntlModule extends Module
      * @param string              $locale
      * @param TranslatorInterface $translator
      */
-    public function loadLocale($locale, TranslatorInterface $translator = null): void
+    public function loadLocale($locale, ?TranslatorInterface $translator = null): void
     {
         $translator = $translator ?: App::translator();
 
@@ -193,7 +193,7 @@ class IntlModule extends Module
             $tree = [];
             $data = $this->getGeneric('territoryContainment');
 
-            $build = function($code, &$tree) use (&$build, $data) {
+            $build = function ($code, &$tree) use (&$build, $data) {
 
                 $tree[$code] = [];
 

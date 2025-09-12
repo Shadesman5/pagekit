@@ -33,7 +33,8 @@ class FilterManager
      *
      * @param array $defaults
      */
-    public function __construct(array $defaults = null) {
+    public function __construct(?array $defaults = null)
+    {
         if (null !== $defaults) {
             $this->defaults = $defaults;
         }

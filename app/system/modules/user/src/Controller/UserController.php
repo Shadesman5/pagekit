@@ -125,7 +125,7 @@ class UserController
      *
      * @param  User $user
      */
-    protected function getRoles(User $user = null): array
+    protected function getRoles(?User $user = null): array
     {
         $roles = [];
         $self  = $user && $user->id === App::user()->id;

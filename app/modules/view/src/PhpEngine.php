@@ -20,7 +20,7 @@ class PhpEngine extends BasePhpEngine
     /**
      * {@inheritdoc}
      */
-    public function __construct(TemplateNameParserInterface $parser = null, LoaderInterface $loader = null, array $helpers = [])
+    public function __construct(?TemplateNameParserInterface $parser = null, ?LoaderInterface $loader = null, array $helpers = [])
     {
         $parser = $parser ?: new TemplateNameParser();
         $loader = $loader ?: new FilesystemLoader([]);

@@ -26,7 +26,7 @@ class EntityManager
      * @param  MetadataManager          $metadata
      * @param  EventDispatcherInterface $events
      */
-    public function __construct(Connection $connection, MetadataManager $metadata, EventDispatcherInterface $events = null)
+    public function __construct(Connection $connection, MetadataManager $metadata, ?EventDispatcherInterface $events = null)
     {
         $this->connection = $connection;
         $this->metadata   = $metadata;

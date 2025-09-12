@@ -20,7 +20,7 @@ class CaptchaListener implements EventSubscriberInterface
      *
      * @param Reader $reader
      */
-    public function __construct(Reader $reader = null)
+    public function __construct(?Reader $reader = null)
     {
         $this->reader = $reader;
     }
@@ -76,7 +76,9 @@ class CaptchaListener implements EventSubscriberInterface
             return false;
         }, $routes));
 
-        $scripts->register('captcha-config', sprintf('var $captcha = %s;', json_encode([
+        $scripts->register('captcha-config', sprintf(
+            'var $captcha = %s;',
+            json_encode([
                 'grecaptcha' => App::module('system/captcha')->config('recaptcha_sitekey'),
                 'routes' => $routes
             ])

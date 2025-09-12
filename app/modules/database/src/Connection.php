@@ -45,7 +45,7 @@ class Connection extends BaseConnection
      * @param Configuration $config
      * @param EventManager  $eventManager
      */
-    public function __construct(array $params, Driver $driver, Configuration $config = null, EventManager $eventManager = null)
+    public function __construct(array $params, Driver $driver, ?Configuration $config = null, ?EventManager $eventManager = null)
     {
         if (!isset($params['defaultTableOptions'])) {
             $params['defaultTableOptions'] = [];
@@ -164,7 +164,7 @@ class Connection extends BaseConnection
      * @{inheritdoc}
      */
     #[\ReturnTypeWillChange]
-    public function executeQuery($query, array $params = [], $types = [], QueryCacheProfile $qcp = null): ResultStatement
+    public function executeQuery($query, array $params = [], $types = [], ?QueryCacheProfile $qcp = null): ResultStatement
     {
         return parent::executeQuery($this->replacePrefix($query), $params, $types, $qcp);
     }

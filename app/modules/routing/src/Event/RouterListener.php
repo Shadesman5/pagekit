@@ -23,7 +23,7 @@ class RouterListener implements EventSubscriberInterface
      * @param  LoggerInterface|null                        $logger
      * @throws \InvalidArgumentException
      */
-    public function __construct($matcher, LoggerInterface $logger = null)
+    public function __construct($matcher, ?LoggerInterface $logger = null)
     {
         if (!$matcher instanceof UrlMatcherInterface && !$matcher instanceof RequestMatcherInterface) {
             throw new \InvalidArgumentException('Matcher must either implement UrlMatcherInterface or RequestMatcherInterface.');

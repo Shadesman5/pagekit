@@ -18,7 +18,7 @@ class TwigLoader extends \Twig\Loader\FilesystemLoader
      * @param FilesystemLoader            $loader
      * @param TemplateNameParserInterface $parser
      */
-    public function __construct(FilesystemLoader $loader, TemplateNameParserInterface $parser = null)
+    public function __construct(FilesystemLoader $loader, ?TemplateNameParserInterface $parser = null)
     {
         parent::__construct([]);
 

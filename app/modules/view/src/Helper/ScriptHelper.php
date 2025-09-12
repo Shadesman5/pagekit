@@ -14,7 +14,7 @@ class ScriptHelper implements HelperInterface, \IteratorAggregate
      *
      * @param AssetManager $scripts
      */
-    public function __construct(AssetManager $scripts = null)
+    public function __construct(?AssetManager $scripts = null)
     {
         $this->scripts = $scripts ?: new AssetManager();
     }
