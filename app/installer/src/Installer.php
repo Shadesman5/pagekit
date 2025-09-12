@@ -12,7 +12,6 @@ use Pagekit\Installer\Package\PackageScripts;
 use Pagekit\Util\Arr;
 use Symfony\Component\Console\Output\NullOutput;
 
-
 class Installer
 {
 
@@ -132,7 +131,7 @@ class Installer
             $packageManager = new PackageManager(new NullOutput());
             foreach (glob($this->app->get('path.packages') . '/*/*/composer.json') as $package) {
                 $package = $this->app->package()->load($package);
-                if ($package->get('type') === 'pagekit-extension' || $package->get('type') === 'pagekit-theme' ) {
+                if ($package->get('type') === 'pagekit-extension' || $package->get('type') === 'pagekit-theme') {
                     $packageManager->enable($package);
                 }
             }
