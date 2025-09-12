@@ -12,10 +12,10 @@ class Event extends BaseEvent
     /**
      * Constructor.
      *
-     * @param string $name	 
+     * @param string $name
      * @param UserInterface $user
      */
-    public function __construct($name, UserInterface $user = null)
+    public function __construct($name, ?UserInterface $user = null)
     {
         parent::__construct($name);
 
