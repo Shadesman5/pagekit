@@ -112,7 +112,7 @@ class MenuHelper extends Helper
 
         foreach ($nodes as $node) {
 
-            $depth = substr_count($node->path, '/');
+            $depth = substr_count($node->path ?? '', '/');
             $parent = isset($nodes[$node->parent_id]) ? $nodes[$node->parent_id] : null;
 
             $node->set('active', 0 === strpos($path, $node->path.'/'));
