@@ -12,6 +12,7 @@ use Pagekit\User\Model\User;
 /**
  * @Entity(tableClass="@system_node")
  */
+#[\AllowDynamicProperties]
 class Node implements NodeInterface, \JsonSerializable
 {
     use AccessModelTrait, DataModelTrait, NodeModelTrait, NodeTrait;

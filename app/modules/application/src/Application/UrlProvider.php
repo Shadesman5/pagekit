@@ -105,7 +105,7 @@ class UrlProvider
      */
     public function get($path = '', $parameters = [], $referenceType = UrlGenerator::ABSOLUTE_PATH)
     {
-        if (0 === strpos($path, '@')) {
+        if (0 === strpos($path ?? '', '@')) {
             return $this->getRoute($path, $parameters, $referenceType);
         }
 
@@ -115,7 +115,7 @@ class UrlProvider
             return $path;
         }
 
-        return $this->base($referenceType).'/'.ltrim($path, '/');
+        return $this->base($referenceType).'/'.ltrim($path ?? '', '/');
     }
 
     /**
@@ -173,9 +173,9 @@ class UrlProvider
      */
     protected function parseQuery($url, $parameters = [])
     {
-        if ($query = substr(strstr($url, '?'), 1)) {
+        if ($query = substr(strstr($url ?? '', '?'), 1)) {
             parse_str($query, $params);
-            $url = strstr($url, '?', true);
+            $url = strstr($url ?? '', '?', true);
             $parameters = array_replace($parameters, $params);
         }
 
