@@ -19,7 +19,7 @@ class Type extends Module implements TypeInterface
     /**
      * {@inheritdoc}
      */
-    public function jsonSerialize()
+    public function jsonSerialize(): mixed
     {
         return $this->get(['name', 'label']);
     }
