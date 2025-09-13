@@ -2,18 +2,18 @@ const { VueLoaderPlugin } = require('vue-loader');
 const path = require('path');
 
 module.exports = [
-
     {
         mode: 'production',
         entry: {
-            "settings": "./app/views/settings.js",
-            "link": "./app/components/link.vue",
-            "dashboard": "./app/components/dashboard.vue",
-            "widget": "./app/components/widget.vue"
+            settings: './app/views/settings.js',
+            'admin-index': './app/views/admin/index.js',
+            link: './app/components/link.vue',
+            dashboard: './app/components/dashboard.vue',
+            widget: './app/components/widget.vue'
         },
         output: {
             path: path.resolve(__dirname, './app/bundle'),
-            filename: "[name].js"
+            filename: '[name].js'
         },
         module: {
             rules: [
@@ -34,9 +34,6 @@ module.exports = [
                 vue$: 'vue/dist/vue.esm.js'
             }
         },
-        plugins: [
-            new VueLoaderPlugin()
-        ]
+        plugins: [new VueLoaderPlugin()]
     }
-
 ];

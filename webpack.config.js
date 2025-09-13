@@ -10,7 +10,7 @@ exports = [];
 
 // Configuration mode
 const args = { p: true, mode: 'production', 'env.production': true };
-const mode = _.some(args, (value, arg) => (_.get(argv, arg) === value)) ? 'production' : 'development';
+const mode = _.some(args, (value, arg) => _.get(argv, arg) === value) ? 'production' : 'development';
 
 // Define defaults for all webpack.config.js
 const defaults = {
@@ -45,26 +45,30 @@ const ignore = [
 ];
 
 // Process
-glob.sync('{app/modules/**,app/installer/**,app/system/**,packages/**}/webpack.config.js', { ignore }).forEach((file) => {
+glob.sync('{app/modules/**,app/installer/**,app/system/**,packages/**}/webpack.config.js', { ignore }).forEach(file => {
     const dir = path.join(__dirname, path.dirname(file));
-    exports = exports.concat(require(`./${file}`).map((config) => make(dir, config))); // eslint-disable-line import/no-dynamic-require, global-require
+    exports = exports.concat(require(`./${file}`).map(config => make(dir, config))); // eslint-disable-line import/no-dynamic-require, global-require
 });
 
 // Make each webpack.config.js
 function make(dir, config) {
     const plugins = _.get(config, 'plugins') || [];
     const rules = _.get(config, 'module.rules') || [];
-    const isPluginExist = (plugin) => !!plugins.filter((plg) => (plg.constructor.name === plugin.constructor.name)).length;
-    const isLoaderExist = (loader) => !!rules.filter((e) => (e.use === loader || e.use.indexOf(loader) !== -1)).length;
+    const isPluginExist = plugin => !!plugins.filter(plg => plg.constructor.name === plugin.constructor.name).length;
+    const isLoaderExist = loader =>
+        !!rules.filter(e => e.use === loader || (e.use && e.use.indexOf(loader) !== -1)).length;
 
     // Merge with defaults
-    config = _.merge({
-        mode,
-        context: dir,
-        output: { path: dir },
-        resolve: defaults.resolve,
-        externals: defaults.externals
-    }, config);
+    config = _.merge(
+        {
+            mode,
+            context: dir,
+            output: { path: dir },
+            resolve: defaults.resolve,
+            externals: defaults.externals
+        },
+        config
+    );
 
     // Default rules to first
     _.set(config, 'module.rules', _.concat([], defaults.module.rules, rules));
