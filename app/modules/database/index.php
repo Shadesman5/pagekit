@@ -29,9 +29,9 @@ $config = [
             return $dbs;
         };
 
-        $app['db'] = fn($app) => $app['dbs'][$this->config['default']];
+        $app['db'] = fn ($app) => $app['dbs'][$this->config['default']];
 
-        $app['db.em'] = fn($app) => new EntityManager($app['db'], $app['db.metas'], $app['db.events']);
+        $app['db.em'] = fn ($app) => new EntityManager($app['db'], $app['db.metas'], $app['db.events']);
 
         $app['db.metas'] = function ($app) {
 
@@ -42,9 +42,9 @@ $config = [
             return $manager;
         };
 
-        $app['db.events'] = fn($app) => new PrefixEventDispatcher('model.', $app['events']);
+        $app['db.events'] = fn ($app) => new PrefixEventDispatcher('model.', $app['events']);
 
-        $app['db.debug_stack'] = fn() => new DebugStack();
+        $app['db.debug_stack'] = fn () => new DebugStack();
 
         Type::overrideType(Type::SIMPLE_ARRAY, '\Pagekit\Database\Types\SimpleArrayType');
         Type::overrideType(Type::JSON_ARRAY, '\Pagekit\Database\Types\JsonArrayType');
@@ -85,7 +85,7 @@ $config = [
                 'driverOptions' => [
                     'userDefinedFunctions' => [
                         'REGEXP' => [
-                            'callback' => fn($pattern, $subject) => preg_match("/$pattern/", $subject),
+                            'callback' => fn ($pattern, $subject) => preg_match("/$pattern/", $subject ?? ''),
                             'numArgs' => 2
                         ]
                     ]
