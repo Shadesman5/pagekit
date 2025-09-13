@@ -1,6 +1,6 @@
 # Changelog 2025
 
-## PHP 8.4 Compatibility (September 12, 2025)
+## Pagekit 1.0.26 - PHP 8.4 Compatibility (September 12, 2025)
 
 ### Added
 - Development tools configuration (`.editorconfig`, `.php-cs-fixer.php`, `.prettierrc`, `.vscode/settings.json`)
