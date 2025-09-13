@@ -2,7 +2,6 @@ import Comment from './comment.vue';
 import Reply from './reply.vue';
 
 const Comments = {
-
     el: '#comments',
 
     name: 'comments',
@@ -29,15 +28,19 @@ const Comments = {
         </div>`,
 
     data() {
-        return _.extend({
-            post: {},
-            tree: {},
-            comments: [],
-            messages: [],
-            count: 0,
-            replyForm: false,
-            root: this
-        }, window.$comments);
+        return _.extend(
+            {
+                post: {},
+                tree: {},
+                comments: [],
+                messages: [],
+                count: 0,
+                replyForm: false,
+                root: this,
+                config: {}
+            },
+            window.$comments
+        );
     },
 
     beforeCreate() {},
@@ -46,13 +49,15 @@ const Comments = {
         this.load();
     },
 
-    mounted() {
-
-    },
+    mounted() {},
 
     methods: {
-
         load() {
+            if (!this.config || !this.config.post) {
+                console.warn('Comments: config or config.post not available');
+                return Promise.resolve();
+            }
+
             return this.$http.get('api/blog/comment{/id}', { params: { post: this.config.post } }).then(function (res) {
                 const { data } = res;
 
@@ -89,7 +94,7 @@ const Comments = {
                 data() {
                     return {
                         config: parent.config,
-                        parent: parent.comment && parent.comment.id || 0
+                        parent: (parent.comment && parent.comment.id) || 0
                     };
                 }
             });
@@ -97,7 +102,6 @@ const Comments = {
             this.replyForm = instance.$mount();
             parent.$refs.reply.appendChild(this.replyForm.$el);
         }
-
     },
 
     components: {
