@@ -27,7 +27,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
      * @param Stopwatch                $stopwatch
      * @param LoggerInterface          $logger
      */
-    public function __construct(EventDispatcherInterface $dispatcher, Stopwatch $stopwatch, LoggerInterface $logger = null)
+    public function __construct(EventDispatcherInterface $dispatcher, Stopwatch $stopwatch, ?LoggerInterface $logger = null)
     {
         $this->dispatcher = $dispatcher;
         $this->stopwatch = $stopwatch;

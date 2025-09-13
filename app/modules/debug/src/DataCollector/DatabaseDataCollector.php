@@ -16,7 +16,7 @@ class DatabaseDataCollector extends DoctrineCollector
      * @param Connection $connection
      * @param DebugStack $debugStack
      */
-    public function __construct(Connection $connection, DebugStack $debugStack = null)
+    public function __construct(Connection $connection, ?DebugStack $debugStack = null)
     {
         $this->connection = $connection;
         $this->debugStack = $debugStack;

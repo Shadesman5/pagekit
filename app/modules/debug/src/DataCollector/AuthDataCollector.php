@@ -15,7 +15,7 @@ class AuthDataCollector implements DataCollectorInterface
      *
      * @param Auth $auth
      */
-    public function __construct(Auth $auth = null)
+    public function __construct(?Auth $auth = null)
     {
         $this->auth = $auth;
     }

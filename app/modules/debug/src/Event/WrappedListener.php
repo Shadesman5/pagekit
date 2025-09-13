@@ -21,7 +21,7 @@ class WrappedListener
     protected Stopwatch $stopwatch;
     protected ?EventDispatcherInterface $dispatcher = null;
 
-    public function __construct($listener, $name, $priority, Stopwatch $stopwatch, EventDispatcherInterface $dispatcher = null)
+    public function __construct($listener, $name, $priority, Stopwatch $stopwatch, ?EventDispatcherInterface $dispatcher = null)
     {
         $this->listener = $listener;
         $this->name = $name;
