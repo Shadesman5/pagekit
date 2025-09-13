@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" id="icon-hello" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 width="50px" height="50px" viewBox="0 0 50 50" enable-background="new 0 0 50 50" xml:space="preserve">
+<linearGradient id="SVGID_1_" gradientUnits="userSpaceOnUse" x1="541.6738" y1="-1212.6953" x2="541.2441" y2="-1262.9667" gradientTransform="matrix(1 0 0 -1 -517.9805 -1034.8799)">
+	<stop  offset="0" style="stop-color:#333333"/>
+	<stop  offset="1" style="stop-color:#070707"/>
+</linearGradient>
+<circle fill="url(#SVGID_1_)" cx="25" cy="25" r="24"/>
+<polygon fill="#FFFFFF" points="32,16 32,35 31,35 31,26 19,26 19,35 18,35 18,16 19,16 19,25 31,25 31,16 "/>
+</svg>
