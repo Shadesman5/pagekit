@@ -81,20 +81,28 @@ class PackageController
      */
     public function enableAction($name): array
     {
+        $handler = $this->errorHandler($name);
 
-        if (!$package = App::package($name)) {
-            App::abort(400, __('Unable to find "%name%".', ['%name%' => $name]));
+        try {
+            if (!$package = App::package($name)) {
+                App::abort(400, __('Unable to find "%name%".', ['%name%' => $name]));
+            }
+
+            App::module()->load($package->get('module'));
+
+            if (!$module = App::module($package->get('module'))) {
+                App::abort(400, __('Unable to enable "%name%".', ['%name%' => $package->get('title')]));
+            }
+
+            $this->manager->enable($package);
+
+            return ['message' => 'success'];
+        } finally {
+            // Restore original error handlers
+            if ($handler) {
+                $handler();
+            }
         }
-
-        App::module()->load($package->get('module'));
-
-        if (!$module = App::module($package->get('module'))) {
-            App::abort(400, __('Unable to enable "%name%".', ['%name%' => $package->get('title')]));
-        }
-
-        $this->manager->enable($package);
-
-        return ['message' => 'success'];
     }
 
     /**
@@ -232,5 +240,70 @@ class PackageController
         }
 
         App::abort(400, __('Can\'t load json file from package.'));
+    }
+
+    /**
+     * @param  string $name
+     * @return callable|null
+     */
+    protected function errorHandler($name): ?callable
+    {
+        // Store original error reporting level
+        $originalErrorReporting = error_reporting();
+        
+        // Disable error display temporarily
+        ini_set('display_errors', 0);
+        
+        // Set error handler that converts errors to exceptions
+        $originalErrorHandler = set_error_handler(function ($severity, $message, $file, $line) use ($name) {
+            // Only handle errors that would normally be fatal
+            if ($severity & (E_ERROR | E_CORE_ERROR | E_COMPILE_ERROR | E_RECOVERABLE_ERROR)) {
+                // Clean output buffer
+                while (ob_get_level()) {
+                    ob_get_clean();
+                }
+
+                $errorMessage = __('Unable to activate "%name%".<br>A fatal error occured.', ['%name%' => $name]);
+                
+                if (App::debug()) {
+                    $errorMessage .= '<br><br>' . sprintf('%s in %s on line %d', $message, $file, $line);
+                }
+
+                // Send JSON response
+                App::response()->json($errorMessage, 500)->send();
+                exit;
+            }
+            
+            // For other errors, return false to let PHP handle them normally
+            return false;
+        });
+
+        // Set exception handler for uncaught exceptions
+        $originalExceptionHandler = set_exception_handler(function ($exception) use ($name) {
+            while (ob_get_level()) {
+                ob_get_clean();
+            }
+
+            $message = __('Unable to activate "%name%".<br>A fatal error occured.', ['%name%' => $name]);
+
+            if (App::debug()) {
+                $message .= '<br><br>' . $exception->getMessage();
+            }
+
+            App::response()->json($message, 500)->send();
+            exit;
+        });
+
+        // Return a function to restore original handlers
+        return function () use ($originalErrorHandler, $originalExceptionHandler, $originalErrorReporting) {
+            if ($originalErrorHandler !== null) {
+                set_error_handler($originalErrorHandler);
+            }
+            if ($originalExceptionHandler !== null) {
+                set_exception_handler($originalExceptionHandler);
+            }
+            error_reporting($originalErrorReporting);
+            ini_set('display_errors', 1);
+        };
     }
 }
