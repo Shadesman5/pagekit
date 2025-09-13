@@ -13,6 +13,7 @@
 - Fixed string functions null parameter deprecations (`strpos`, `strstr`, `ltrim`, `substr_count`)
 - Fixed UrlGenerator cache template for PHP 8.4 compatibility
 - Fixed dynamic property creation warnings
+- **Fixed PackageController error handling compatibility with Symfony ErrorHandler** - Replaced deprecated `App::exception()` API with native PHP error handlers to resolve "exception_handler is not defined" errors when enabling extensions. The new implementation provides proper error catching during module activation with clean JSON error responses and debug information display.
 
 ### Changed
 - Updated `.gitignore` to exclude build artifacts
