@@ -70,6 +70,9 @@ class Post implements \JsonSerializable
      */
     public $comments;
 
+    /** @var bool */
+    public $readmore = false;
+
     protected static array $properties = [
         'author' => 'getAuthor',
         'published' => 'isPublished',
@@ -111,7 +114,7 @@ class Post implements \JsonSerializable
         return $this->status === self::STATUS_PUBLISHED && $this->date < new \DateTime;
     }
 
-    public function isAccessible(User $user = null): bool
+    public function isAccessible(?User $user = null): bool
     {
         return $this->isPublished() && $this->hasAccess($user ?: App::user());
     }
@@ -126,7 +129,7 @@ class Post implements \JsonSerializable
         ];
 
         if ($this->comments) {
-            $data['comments_pending'] = count(array_filter($this->comments, fn($comment) => $comment->status == Comment::STATUS_PENDING));
+            $data['comments_pending'] = count(array_filter($this->comments, fn ($comment) => $comment->status == Comment::STATUS_PENDING));
         }
 
         return $this->toArray($data);
