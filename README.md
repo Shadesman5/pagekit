@@ -108,7 +108,7 @@ This is an updated build Pagekit CMS (for developers).
 
 Build includes the following updated components:
 
-- Pagekit CMS 1.0.25
+- Pagekit CMS 1.0.27
 - [uatrend/pagekit:develop](https://github.com/uatrend/pagekit/tree/develop) branch - update to support PHP 7.4
 - Blog extension
 - [Admin theme](#theme)

@@ -1,5 +1,12 @@
 # Changelog 2025
 
+## Pagekit 1.0.27 - Login Fix (September 15, 2025)
+
+### Fixed
+- **Fixed modal login retry mechanism for CSRF errors** - Implemented automatic retry when session expires during login process. Users no longer need to click the login button twice when their session has expired. The system now automatically handles CSRF token refresh and retries the login request transparently.
+
+---
+
 ## Pagekit 1.0.26 - PHP 8.4 Compatibility (September 12, 2025)
 
 ### Added
