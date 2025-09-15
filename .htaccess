@@ -18,6 +18,46 @@
     Options -Indexes
 </IfModule>
 
+# Security Headers
+<IfModule mod_headers.c>
+    # HSTS
+    Header always set Strict-Transport-Security "max-age=31556926; includeSubDomains; preload"
+    
+    # X-Content-Type-Options
+    Header always set X-Content-Type-Options "nosniff"
+    
+    # X-XSS-Protection
+    Header always set X-XSS-Protection "1; mode=block"
+    
+    # X-Frame-Options
+    Header always set X-Frame-Options "SAMEORIGIN"
+    
+    # Referrer Policy
+    Header always set Referrer-Policy "origin-when-cross-origin"
+    
+    # Permissions Policy
+    Header always set Permissions-Policy "accelerometer=(), camera=(), microphone=(), geolocation=(), usb=(), gyroscope=(), magnetometer=(), midi=(), ambient-light-sensor=()"
+    
+    # Remove X-Powered-By
+    Header unset X-Powered-By
+    
+    # Cookie Security
+    Header always edit Set-Cookie ^(.*)$ "$1; HttpOnly; Secure; SameSite=Lax"
+    
+    # Content Security Policy for Pagekit (DSGVO-konform)
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self';"
+</IfModule>
+
+# Additional file protection
+<FilesMatch "\.(htaccess|htpasswd|ini|log|sh|inc|bak)$">
+    Require all denied
+</FilesMatch>
+
+# Prevent access to backup files
+<FilesMatch "\.(bak|backup|old|orig|save|swp|tmp)$">
+    Require all denied
+</FilesMatch>
+
 # URL rewrites
 <IfModule mod_rewrite.c>
     RewriteEngine On
@@ -31,17 +71,18 @@
     # RewriteRule ^ https://www.%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
     # Redirect requests to access the site without the 'www.' prefix
-    # RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
-    # RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
+    RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+    RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
 
     # Redirect requests to access the site with HTTPS
-    # RewriteCond %{HTTPS} off
-    # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R]
+    RewriteCond %{HTTPS} off
+    RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 
     # Rewrite request to use the index.php
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^ index.php [L]
+
 
     <IfModule mod_env.c>
         SetEnv HTTP_MOD_REWRITE On
@@ -111,12 +152,7 @@
     ExpiresByType text/html               "access plus 0 seconds"
     ExpiresByType text/plain              "access plus 0 seconds"
 
-    # Use expires far in the future for css and javascript because Pagekit uses filenames to break the cache
+    # Use expires far in the future for css and javascript because GasTTropia uses filenames to break the cache
     ExpiresByType text/css                "access plus 1 year"
     ExpiresByType application/javascript  "access plus 1 year"
-</IfModule>
-
-# Avoid PHP 5.6 deprecated $HTTP_RAW_POST_DATA warnings
-<IfModule mod_php5.c>
-    php_value always_populate_raw_post_data -1
 </IfModule>
