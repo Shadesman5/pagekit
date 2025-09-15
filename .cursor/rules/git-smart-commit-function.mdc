@@ -1,0 +1,81 @@
+# Git Smart Commit Function
+
+## Implementation Logic:
+
+```javascript
+async function smartCommit() {
+  // 1. Check git status
+  const status = await runCommand('git status --porcelain');
+  const files = parseGitStatus(status);
+  
+  if (files.length === 0) {
+    return "No changes to commit";
+  }
+  
+  // 2. Analyze and group files
+  const groups = groupFilesByType(files);
+  
+  // 3. Create commits based on groups (max 50 chars)
+  if (groups.length === 1 || files.length <= 3) {
+    // Single commit
+    const message = generateCommitMessage(groups[0]);
+    await runCommand(`git add .`);
+    await runCommand(`git commit -m "${message}"`);
+  } else {
+    // Multiple commits
+    for (const group of groups) {
+      const message = generateCommitMessage(group);
+      await runCommand(`git add ${group.files.join(' ')}`);
+      await runCommand(`git commit -m "${message}"`);
+    }
+  }
+  
+  // 4. Push to origin develop
+  await runCommand('git push origin develop');
+  
+  return `Successfully committed ${files.length} files in ${groups.length} commit(s)`;
+}
+
+function groupFilesByType(files) {
+  const groups = {};
+  
+  files.forEach(file => {
+    const type = getFileType(file);
+    if (!groups[type]) groups[type] = [];
+    groups[type].push(file);
+  });
+  
+  return Object.values(groups);
+}
+
+function getFileType(file) {
+  if (file.includes('config.php')) return 'config';
+  if (file.includes('CHANGELOG')) return 'changelog';
+  if (file.includes('.bowerrc') || file.includes('.htaccess')) return 'deployment';
+  if (file.includes('.php')) return 'php';
+  if (file.includes('.js') || file.includes('.vue')) return 'frontend';
+  if (file.includes('.md')) return 'docs';
+  return 'other';
+}
+
+function generateCommitMessage(group) {
+  const types = {
+    'config': 'Fix: Update configuration',
+    'changelog': 'Update: Changelog documentation',
+    'deployment': 'Add: Deployment files',
+    'php': 'Fix: PHP code improvements',
+    'frontend': 'Update: Frontend components',
+    'docs': 'Update: Documentation',
+    'other': 'Update: Project files'
+  };
+  
+  return types[group[0].type] || 'Update: Project files';
+}
+```
+
+## Usage:
+Type `@push` and the system will automatically:
+1. Analyze your changes
+2. Create appropriate commits
+3. Push to origin/develop
+4. Show summary

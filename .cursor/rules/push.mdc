@@ -1,0 +1,4 @@
+---
+description: 1) Check git status to see what files are changed, 2) Analyze changes to group related files logically, 3) Create smart commits with max 50 characters per commit message, 4) Push to origin/develop. Single commit if ≤3 files OR all changes are related. Multiple commits if >3 files AND different types. Group by: file type, feature area, or change purpose. Message format: Type: Brief description (max 50 chars). Examples: Fix: Update version to 1.0.26, Add: Missing .bowerrc file, Update: Changelog for release, Fix: PHP compatibility issues. Process: git status → analyze changes → group related files → create commit messages → git add → git commit → git push origin develop → show summary
+alwaysApply: false
+---
