@@ -15,7 +15,7 @@
         <?php endif ?>
 
 
-        <?php foreach($params->get('position.customizable') as $name) : ?>
+        <?php foreach ($params->get('position.customizable') as $name) : ?>
             <?php if ($view->position()->exists($name) || ($name === 'main' && !$params['content_hide'])) : ?>
                 <?= $view->position($name, 'section.php', ['name' => $name, 'options' => $params->get('positions.'.$name)]) ?>
             <?php endif; ?>
