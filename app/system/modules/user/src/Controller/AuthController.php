@@ -20,9 +20,9 @@ class AuthController
             $redirect = App::url(App::config('system/user')['login_redirect']);
         }
 
-		if (App::user()->isAuthenticated()) {
+        if (App::user()->isAuthenticated()) {
             return $this->redirect($redirect);
-		}
+        }
 
         return [
             '$view' => [
@@ -54,7 +54,6 @@ class AuthController
     public function authenticateAction($credentials, $remember = false, $redirect = '')
     {
         try {
-
             if (!App::csrf()->validate()) {
                 throw new CsrfException(__('Invalid token. Please try again.'));
             }

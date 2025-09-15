@@ -31,9 +31,9 @@ function Install(Vue) {
 
     Vue.config.debug = false;
     Vue.cache = Vue.prototype.$cache = Cache(config.url); // eslint-disable-line no-multi-assign
-    Vue.session = Vue.prototype.$session = Cache('session', // eslint-disable-line no-multi-assign
+    Vue.session = Vue.prototype.$session = Cache(
+        'session', // eslint-disable-line no-multi-assign
         {
-
             load(name) {
                 if (Vue.cache.get('_session') !== Vue.cache.get('_csrf')) {
                     Vue.cache.remove(name);
@@ -46,8 +46,8 @@ function Install(Vue) {
             store(name, data) {
                 return Vue.cache.set(name, data);
             }
-
-        });
+        }
+    );
 
     /**
      * Libraries
@@ -110,7 +110,7 @@ function Install(Vue) {
     Vue.url.current = Vue.url.parse(window.location.href);
 
     Vue.ready = function (fn) {
-        if ((fn !== null) && (typeof fn === 'object')) {
+        if (fn !== null && typeof fn === 'object') {
             const options = fn;
 
             fn = function () {
@@ -124,7 +124,10 @@ function Install(Vue) {
             fn();
         };
 
-        if (document.readyState === 'complete' || document.readyState !== 'loading' && !document.documentElement.doScroll) {
+        if (
+            document.readyState === 'complete' ||
+            (document.readyState !== 'loading' && !document.documentElement.doScroll)
+        ) {
             fn();
         } else {
             document.addEventListener('DOMContentLoaded', handle);

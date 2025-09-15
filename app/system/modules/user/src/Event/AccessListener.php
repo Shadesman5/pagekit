@@ -78,7 +78,8 @@ class AccessListener implements EventSubscriberInterface
      */
     public function onAuthorize(AuthorizeEvent $event): void
     {
-        if (strpos(App::request()->get('redirect'), App::url('@system', [], true)) === 0 && !$event->getUser()->hasAccess('system: access admin area')) {
+        $redirect = App::request()->get('redirect');
+        if ($redirect && strpos($redirect, App::url('@system', [], true)) === 0 && !$event->getUser()->hasAccess('system: access admin area')) {
             throw new AuthException(__('You do not have access to the administration area of this site.'));
         }
     }

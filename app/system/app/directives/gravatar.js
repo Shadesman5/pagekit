@@ -3,7 +3,6 @@ import md5 from 'blueimp-md5';
 const mutex = {};
 
 export default {
-
     params: ['colored'],
 
     bind(el, value, vnode) {
@@ -22,17 +21,21 @@ export default {
         // load image url from cache if exists
 
         if (cache.get(key)) {
-            if (cache.get(key) === el.src) { return; }
+            if (cache.get(key) === el.src) {
+                return;
+            }
             el.setAttribute('src', cache.get(key));
             return;
         }
 
-        if (value.def.draw(name, size, colored) === el.src) { return; }
+        if (value.def.draw(name, size, colored) === el.src) {
+            return;
+        }
 
         el.setAttribute('src', value.def.draw(name, size, colored));
 
         if (!mutex[key]) {
-            mutex[key] = new Vue.Promise(((resolve) => {
+            mutex[key] = new Vue.Promise(resolve => {
                 const img = new Image();
                 if (img.crossOrigin !== undefined) {
                     img.crossOrigin = 'anonymous';
@@ -50,10 +53,10 @@ export default {
                 }
 
                 img.src = url;
-            }));
+            });
         }
 
-        mutex[key].then((uri) => {
+        mutex[key].then(uri => {
             el.setAttribute('src', uri || cache.get(key));
             return url;
         });
@@ -64,8 +67,26 @@ export default {
         size = size || 60;
 
         const colours = [
-            '#1abc9c', '#2ecc71', '#3498db', '#9b59b6', '#34495e', '#16a085', '#27ae60', '#2980b9', '#8e44ad', '#2c3e50',
-            '#f1c40f', '#e67e22', '#e74c3c', '#ecf0f1', '#95a5a6', '#f39c12', '#d35400', '#c0392b', '#bdc3c7', '#7f8c8d'
+            '#1abc9c',
+            '#2ecc71',
+            '#3498db',
+            '#9b59b6',
+            '#34495e',
+            '#16a085',
+            '#27ae60',
+            '#2980b9',
+            '#8e44ad',
+            '#2c3e50',
+            '#f1c40f',
+            '#e67e22',
+            '#e74c3c',
+            '#ecf0f1',
+            '#95a5a6',
+            '#f39c12',
+            '#d35400',
+            '#c0392b',
+            '#bdc3c7',
+            '#7f8c8d'
         ];
 
         const nameSplit = String(name).toUpperCase().split(' ');
@@ -105,5 +126,4 @@ export default {
 
         return dataURI;
     }
-
 };

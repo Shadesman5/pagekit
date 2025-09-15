@@ -1,5 +1,5 @@
 export default function (Vue) {
-    Vue.http.interceptors.unshift((request) => {
+    Vue.http.interceptors.unshift(request => {
         if (!request.crossOrigin) {
             request.headers.set('X-XSRF-TOKEN', Vue.cache.get('_csrf'));
         }
