@@ -1,4 +1,0 @@
----
-description: Pagekit Context Rules - Apply when working with specific technologies or implementing features. Primary source: Pagekit Original Documentation as reference; Modernization: Update old code examples with modern technologies; Evolution: Compatibility requirements can be adjusted as needed; Always base new implementations on Pagekit documentation patterns; PHP Versions: Currently 7.4 to 8.4, flexibly adjustable as needed; Databases: MySQL 8.4 and SQLite 3 (selectable during installation); Frontend: Vue.js 2.6 and UIkit 3.5; Build Tools: Yarn 1.22, Composer 2, Webpack 4; Future-proofing: Requirements can be adjusted when needed; Use Vue.js 2.6 patterns and best practices; Follow UIkit 3.5 component structure
-alwaysApply: false
----

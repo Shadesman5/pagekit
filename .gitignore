@@ -36,6 +36,6 @@ node_modules
 .idea
 app/system/modules/theme/assets/css/theme.css
 
-.cursor/
+.cursor/**/*
 dependency-analysis.md
 test-results.txt
