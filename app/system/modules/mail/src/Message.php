@@ -35,17 +35,31 @@ class Message extends Email implements MessageInterface
     /**
      * {@inheritdoc}
      */
-    public function send(?array &$errors = null)
+    public function send(&$errors = null): int
     {
-       return $this->mailer->send($this, $errors);
+        if (!$this->mailer) {
+            throw new \RuntimeException('No mailer instance set. Call setMailer() first.');
+        }
+       
+        try {
+            $this->mailer->send($this);
+            return 1;
+        } catch (\Exception $e) {
+            if ($errors !== null) {
+                $errors[] = $e->getMessage();
+            }
+            return 0;
+        }
     }
 
     /**
      * {@inheritdoc}
      */
-    public function queue(&$errors = null)
+    public function queue(&$errors = null): int
     {
-        return $this->mailer->queue($this, $errors);
+        // For now, just delegate to send since we don't have a queue implementation
+        // This can be extended later to add actual queuing functionality
+        return $this->send($errors);
     }
 
     /**
