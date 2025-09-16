@@ -1,11 +1,33 @@
 # Changelog 2025
 
-## Pagekit 1.0.27 - Documentation Improvements (September 16, 2025)
+## Pagekit 1.0.27 - Symfony Mailer Migration & Comprehensive Tests (September 15-16, 2025)
+
+### Changed
+
+-   **Completed Swift Mailer to Symfony Mailer 5.4 migration** - Fully migrated email system from deprecated Swift Mailer to modern Symfony Mailer 5.4. All email functionality now uses Symfony's modern mail component with improved performance and maintainability
+
+### Added
+
+-   **Comprehensive mail system test suite** - Added 42 tests covering all mail functionality including unit tests for Mailer, Message, and Plugin classes, plus integration tests for complete email workflows
+-   **SMTP connection testing functionality** - Added test connection feature in admin panel to verify SMTP settings before saving
+-   **Mail plugin system** - Implemented extensible plugin architecture for mail processing with ImpersonatePlugin as default implementation
+-   **Enhanced error handling** - Improved error reporting and exception handling throughout the mail system
 
 ### Fixed
 
--   **Fixed email_address typo in test configuration** - Corrected `email_adress` to `email_address` in phpunit.xml.dist and all related test files for proper test configuration variable naming
--   **Improved markdown formatting in MAIL_MIGRATION.md** - Applied standard markdown formatting with consistent bullet point spacing and structure for better readability
+-   **MailController SMTP test parameter handling** - Fixed parameter mismatch between controller and mailer for SMTP connection testing
+-   **Message::send() error handling** - Corrected return values and error collection in message sending methods
+-   **Missing EsmtpTransport import** - Added missing Symfony Mailer transport imports
+-   **Email address typo in test configuration** - Corrected `email_adress` to `email_address` in phpunit.xml.dist and all related test files
+-   **Improved markdown formatting** - Applied standard markdown formatting with consistent bullet point spacing in documentation files
+
+### Technical Details
+
+-   No Swift Mailer references remaining in codebase
+-   Full compatibility with Symfony Mailer 5.4
+-   Maintains backward compatibility with existing mail configuration
+-   Support for SMTP and Sendmail transports
+-   Extensible plugin architecture for custom mail processing
 
 ---
 
