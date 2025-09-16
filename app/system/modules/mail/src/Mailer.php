@@ -5,6 +5,7 @@ namespace Pagekit\Mail;
 use Symfony\Component\Mailer\Envelope;
 use Symfony\Component\Mailer\Mailer as SymfonyMailer;
 use Symfony\Component\Mailer\Transport\TransportInterface;
+use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\Address;
 
@@ -76,30 +77,41 @@ class Mailer
     }
     
     /**
-     * Tests the SMTP connection.
+     * Tests the SMTP connection with given parameters.
      *
+     * @param string|null $host
+     * @param int|null $port
+     * @param string|null $username
+     * @param string|null $password
+     * @param string|null $encryption
      * @return bool|string True if connection successful, error message otherwise
      */
-    public function testSmtpConnection()
+    public function testSmtpConnection($host = null, $port = null, $username = null, $password = null, $encryption = null)
     {
         try {
-            // Create a test email
-            $email = new Email();
-            $email->subject('Test Connection')
-                  ->text('This is a test email to verify SMTP connection.')
-                  ->to('test@example.com')
-                  ->from('test@example.com');
-            
-            // Instead of calling ping(), we'll use a reflection trick to access the transport
-            $reflectionClass = new \ReflectionClass($this->transport);
-            $reflectionProperty = $reflectionClass->getProperty('stream');
-            $reflectionProperty->setAccessible(true);
-            
-            // Just try to get the stream - this will attempt to connect
-            // If there's no connection error, we're good
-            if ($this->transport instanceof \Symfony\Component\Mailer\Transport\Smtp\SmtpTransport) {
-                $this->transport->start();
-                $this->transport->stop();
+            // Use provided parameters or fall back to current transport
+            if ($host !== null) {
+                // Create a temporary transport with the provided parameters
+                $testTransport = new EsmtpTransport(
+                    $host,
+                    $port ?: 25,
+                    $encryption === 'ssl'
+                );
+                
+                if ($username) {
+                    $testTransport->setUsername($username);
+                    $testTransport->setPassword($password);
+                }
+                
+                // Test the temporary transport
+                $testTransport->start();
+                $testTransport->stop();
+            } else {
+                // Test current transport
+                if ($this->transport instanceof \Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport) {
+                    $this->transport->start();
+                    $this->transport->stop();
+                }
             }
             
             return true;
