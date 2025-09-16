@@ -35,3 +35,7 @@ node_modules
 .DS_Store
 .idea
 app/system/modules/theme/assets/css/theme.css
+
+.cursor/**/*
+dependency-analysis.md
+test-results.txt

@@ -1,0 +1,6 @@
+*.css
+*.less
+/node_modules
+**/*/languages/**
+**/*/tmp/**
+/app/vendor
