@@ -127,7 +127,7 @@ Marketplace functionality like install, update and remove works the same like in
 
 ## Major changes:
 
-- Required PHP Version - 7.4+, support for PHP 8.0, 8.1, 8.2, 8.3, 8.4
+- Required PHP Version - 8.2+, support for PHP 8.2, 8.3, 8.4
 - Required MySQL Version - 5.7+, support for MySQL 8.4
 - Required Node Version - 14.0+, support for Node 16.0, 18.0
 - Required Composer Version - 2.0+

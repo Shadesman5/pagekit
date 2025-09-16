@@ -1,5 +1,25 @@
 # Changelog 2025
 
+## Pagekit 1.0.28 - PHPUnit 11 Upgrade & PHP 8.2+ Requirement (September 16, 2025)
+
+### Changed
+
+- **Upgraded PHPUnit to version 11.x** - Modernized test suite to use PHPUnit 11 for improved testing capabilities and PHP 8.4 compatibility
+- **Increased minimum PHP version to 8.2** - Updated minimum PHP requirement from 7.4 to 8.2 for better performance, security, and modern language features
+- **Updated phpunit.xml.dist configuration** - Migrated to PHPUnit 11 XML schema with modern configuration options including coverage configuration and strict test settings
+
+### Fixed
+
+- **Fixed deprecated PHPUnit methods** - Replaced `setMethods()` with `onlyMethods()` in mock builder for PHPUnit 11 compatibility
+
+### Updated
+
+- **Updated composer.json requirements** - Changed PHP requirement to ^8.2 and PHPUnit to ^11.0
+- **Updated installer requirements check** - Updated PagekitRequirements::REQUIRED_PHP_VERSION to 8.2.0
+- **Updated index.php version check** - Changed minimum PHP version check from 7.3 to 8.2
+
+---
+
 ## Pagekit 1.0.27 - Login Fix & Security Improvements (September 15, 2025)
 
 ### Fixed
