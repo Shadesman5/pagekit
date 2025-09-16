@@ -223,7 +223,7 @@ class MailIntegrationTest extends TestCase
     public function testActualEmailSending(): void
     {
         // Skip this test if email configuration is not available
-        if (!($GLOBALS['email_adress'] ?? false) || !($GLOBALS['email_to'] ?? false)) {
+        if (!($GLOBALS['email_address'] ?? false) || !($GLOBALS['email_to'] ?? false)) {
             $this->markTestSkipped('Email send configuration not available');
         }
 
@@ -242,7 +242,7 @@ class MailIntegrationTest extends TestCase
         
         $message = new Message();
         $message->setMailer($mailer);
-        $message->from($GLOBALS['email_adress'])
+        $message->from($GLOBALS['email_address'])
                 ->to($GLOBALS['email_to'])
                 ->subject('Pagekit Mail System Test - ' . date('Y-m-d H:i:s'))
                 ->html('<h1>Test Email</h1><p>This is a test email from Pagekit mail system.</p>')
