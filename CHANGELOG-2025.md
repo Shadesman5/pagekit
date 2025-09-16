@@ -1,5 +1,14 @@
 # Changelog 2025
 
+## Pagekit 1.0.27 - Documentation Improvements (September 16, 2025)
+
+### Fixed
+
+-   **Fixed email_address typo in test configuration** - Corrected `email_adress` to `email_address` in phpunit.xml.dist and all related test files for proper test configuration variable naming
+-   **Improved markdown formatting in MAIL_MIGRATION.md** - Applied standard markdown formatting with consistent bullet point spacing and structure for better readability
+
+---
+
 ## Pagekit 1.0.27 - Login Fix & Security Improvements (September 15, 2025)
 
 ### Fixed
