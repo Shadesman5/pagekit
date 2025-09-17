@@ -1,5 +1,11 @@
 # Changelog 2025
 
+## Pagekit 1.0.28 - Version Bump (September 17, 2025)
+
+### Changed
+
+-   Bump version to 1.0.28
+
 ## Pagekit 1.0.28 - PHPUnit 11 Upgrade & PHP 8.2+ Requirement (September 16, 2025)
 
 ### Changed

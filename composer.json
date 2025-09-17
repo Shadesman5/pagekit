@@ -1,10 +1,13 @@
 {
     "name": "pagekit/pagekit",
     "title": "Pagekit",
-    "version": "1.0.27",
+    "version": "1.0.28",
     "type": "project",
     "description": "The Pagekit CMS",
-    "keywords": ["cms", "pagekit"],
+    "keywords": [
+        "cms",
+        "pagekit"
+    ],
     "homepage": "http://pagekit.com",
     "license": "MIT",
     "authors": [
