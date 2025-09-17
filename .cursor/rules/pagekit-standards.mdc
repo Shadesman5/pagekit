@@ -1,0 +1,4 @@
+---
+description: Pagekit Project Standards - Always apply PSR-2 coding standard for PHP-CS-Fixer; Always use explicit nullable parameters: ?Type $param = null instead of Type $param = null; Define properties explicitly instead of dynamic creation; Use Symfony ErrorHandler instead of deprecated App::exception() API; Check null parameters for string functions: strpos, strstr, ltrim, substr_count; Replace ReflectionParameter::getClass() with getType(); Always run yarn compile-js after JavaScript changes; Only edit source files (.js/.vue), never compiled .bundle.js files; Test all modules after changes (Frontend, Backend, API); Keep debug logs visible for context and error diagnosis; Document all fixes in CHANGELOG-2025.md; Use short commit messages (max. 50 chars) with detailed changelog descriptions
+alwaysApply: true
+---

@@ -1,0 +1,79 @@
+PHPUnit 9.6.26 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.2.12
+Configuration: phpunit.xml.dist
+Warning:       Your XML configuration validates against a deprecated schema.
+Suggestion:    Migrate your XML configuration using "--migrate-configuration"!
+
+..............................FFFF..F............................ 65 / 83 ( 78%)
+..................                                                83 / 83 (100%)
+
+Time: 00:00.250, Memory: 8.00 MB
+
+There were 5 failures:
+
+1) Pagekit\Filesystem\Tests\LocatorTest::testGet with data set #0 ('Fixtures', 'C:\Projekte\pagekit\app\modul...xtures', true)
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'C:\Projekte\pagekit\app\modules\filesystem\src\Tests/Fixtures'
++'C:/Projekte/pagekit/app/modules/filesystem/src/Tests/Fixtures'
+
+C:\Projekte\pagekit\app\modules\filesystem\src\Tests\LocatorTest.php:26
+
+2) Pagekit\Filesystem\Tests\LocatorTest::testGet with data set #1 ('/Fixtures', 'C:\Projekte\pagekit\app\modul...xtures', true)
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'C:\Projekte\pagekit\app\modules\filesystem\src\Tests/Fixtures'
++'C:/Projekte/pagekit/app/modules/filesystem/src/Tests/Fixtures'
+
+C:\Projekte\pagekit\app\modules\filesystem\src\Tests\LocatorTest.php:26
+
+3) Pagekit\Filesystem\Tests\LocatorTest::testGet with data set #2 ('Fixtures/file1.txt', 'C:\Projekte\pagekit\app\modul...e1.txt', true)
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'C:\Projekte\pagekit\app\modules\filesystem\src\Tests/Fixtures/file1.txt'
++'C:/Projekte/pagekit/app/modules/filesystem/src/Tests/Fixtures/file1.txt'
+
+C:\Projekte\pagekit\app\modules\filesystem\src\Tests\LocatorTest.php:26
+
+4) Pagekit\Filesystem\Tests\LocatorTest::testGet with data set #3 ('/Fixtures/file1.txt', 'C:\Projekte\pagekit\app\modul...e1.txt', true)
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'C:\Projekte\pagekit\app\modules\filesystem\src\Tests/Fixtures/file1.txt'
++'C:/Projekte/pagekit/app/modules/filesystem/src/Tests/Fixtures/file1.txt'
+
+C:\Projekte\pagekit\app\modules\filesystem\src\Tests\LocatorTest.php:26
+
+5) Pagekit\Filesystem\Tests\LocatorTest::testPathOverride
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'C:\Projekte\pagekit\app\modules\filesystem\src\Tests\LocatorTest.php'
++'C:/Projekte/pagekit/app/modules/filesystem/src/Tests/LocatorTest.php'
+
+C:\Projekte\pagekit\app\modules\filesystem\src\Tests\LocatorTest.php:51
+
+FAILURES!
+Tests: 83, Assertions: 180, Failures: 5.
+
+Remaining self deprecation notices (38)
+
+  37x: Creation of dynamic property Pagekit\Filesystem\StreamWrapper::$context is deprecated
+    15x in StreamAdapterTest::testDeleteDir from Pagekit\Filesystem\Tests\Adapter
+    9x in StreamAdapterTest::testCopyDir from Pagekit\Filesystem\Tests\Adapter
+    6x in StreamAdapterTest::testDeleteFile from Pagekit\Filesystem\Tests\Adapter
+    4x in StreamAdapterTest::testCopyFile from Pagekit\Filesystem\Tests\Adapter
+    3x in StreamAdapterTest::testDeleteFileNotFound from Pagekit\Filesystem\Tests\Adapter
+
+  1x: strlen(): Passing null to parameter #1 ($string) of type string is deprecated
+    1x in FileTest::testGetUrlExternal from Pagekit\Filesystem\Tests
+

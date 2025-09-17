@@ -2,9 +2,15 @@
 
 ## Pagekit 1.0.28 - Version Bump (September 17, 2025)
 
+### Added
+
+-   Docker: Add containerized development setup
+-   Chore: Add dev tools and update gitignore
+
 ### Changed
 
 -   Bump version to 1.0.28
+-   Docs: Modernize README.md with current system
 
 ## Pagekit 1.0.28 - PHPUnit 11 Upgrade & PHP 8.2+ Requirement (September 16, 2025)
 
