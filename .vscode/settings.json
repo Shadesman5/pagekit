@@ -29,7 +29,8 @@
         "vue": "html"
     },
     "files.associations": {
-        "*.vue": "vue"
+        "*.vue": "vue",
+        ".htaccess": "apache"
     },
     "search.exclude": {
         "**/node_modules": true,
@@ -41,5 +42,8 @@
     "files.exclude": {
         "**/node_modules": true,
         "**/app/vendor": true
+    },
+    "[apache]": {
+        "editor.formatOnSave": false
     }
 }
