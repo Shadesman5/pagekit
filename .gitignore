@@ -14,13 +14,8 @@
 /app/system/modules/theme/css/*
 /app/system/modules/theme/js/theme.js
 /app/system/modules/theme/assets/css/theme.css
-# Ignore database and logs
+# Ignore database and logs  
 /docker/**/*
-docker-compose.yml
-docker.env
-Dockerfile
-.dockerignore
-DOCKER.md
 /docker/logs/*
 /docker/mysql/data/*
 /docker/redis/*
@@ -34,8 +29,5 @@ DOCKER.md
 node_modules
 .DS_Store
 .idea
+# remove Temporary
 app/system/modules/theme/assets/css/theme.css
-
-.cursor/**/*
-dependency-analysis.md
-test-results.txt
