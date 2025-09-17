@@ -9,7 +9,7 @@
 
 ### Changed
 
--   Bump version to 1.0.28
+-   Bump version to 1.0.28 (little fix)
 -   Docs: Modernize README.md with current system
 
 ## Pagekit 1.0.28 - PHPUnit 11 Upgrade & PHP 8.2+ Requirement (September 16, 2025)
@@ -23,21 +23,14 @@
 ### Fixed
 
 -   **Fixed deprecated PHPUnit methods** - Replaced `setMethods()` with `onlyMethods()` in mock builder for PHPUnit 11 compatibility
+-   **Fixed email_address typo in test configuration** - Corrected `email_adress` to `email_address` in phpunit.xml.dist and all related test files for proper test configuration variable naming
+-   **Improved markdown formatting in MAIL_MIGRATION.md** - Applied standard markdown formatting with consistent bullet point spacing and structure for better readability
 
 ### Updated
 
 -   **Updated composer.json requirements** - Changed PHP requirement to ^8.2 and PHPUnit to ^11.0
 -   **Updated installer requirements check** - Updated PagekitRequirements::REQUIRED_PHP_VERSION to 8.2.0
 -   **Updated index.php version check** - Changed minimum PHP version check from 7.3 to 8.2
-
----
-
-## Pagekit 1.0.27 - Documentation Improvements (September 16, 2025)
-
-### Fixed
-
--   **Fixed email_address typo in test configuration** - Corrected `email_adress` to `email_address` in phpunit.xml.dist and all related test files for proper test configuration variable naming
--   **Improved markdown formatting in MAIL_MIGRATION.md** - Applied standard markdown formatting with consistent bullet point spacing and structure for better readability
 
 ---
 
