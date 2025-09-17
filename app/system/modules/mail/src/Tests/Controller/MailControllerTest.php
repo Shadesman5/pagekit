@@ -86,12 +86,12 @@ class MailControllerTest extends TestCase
     public function testEmailActionWithConfiguration(): void
     {
         // Skip this test if email configuration is not available
-        if (!($GLOBALS['email_adress'] ?? false)) {
+        if (!($GLOBALS['email_address'] ?? false)) {
             $this->markTestSkipped('Email test configuration not available');
         }
 
         $options = [
-            'from_address' => $GLOBALS['email_adress']
+            'from_address' => $GLOBALS['email_address']
         ];
 
         // This would require proper application context setup

@@ -158,7 +158,7 @@ class ConfigManagerTest extends TestCase
         $mock = $this
             ->getMockBuilder('Pagekit\Database\Connection')
             ->disableOriginalConstructor()
-            ->setMethods(
+            ->onlyMethods(
                 [
                     'fetchAssoc',
                     'fetchAll',

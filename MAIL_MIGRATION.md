@@ -8,39 +8,42 @@ Die Migration von Swift Mailer zu Symfony Mailer in Pagekit CMS wurde erfolgreic
 
 ✅ **VOLLSTÄNDIG ABGESCHLOSSEN**
 
-- ✅ Symfony Mailer ist bereits in composer.json konfiguriert
-- ✅ Vollständige Mailer-Implementation vorhanden (`app/system/modules/mail/`)
-- ✅ Keine Swift Mailer Referenzen gefunden
-- ✅ Funktionsfähige E-Mail-Funktionalität in Registrierung/Benutzermodul
-- ✅ Plugin-System für Mailer-Erweiterungen implementiert
-- ✅ SMTP-Verbindungstests verfügbar
+-   ✅ Symfony Mailer ist bereits in composer.json konfiguriert
+-   ✅ Vollständige Mailer-Implementation vorhanden (`app/system/modules/mail/`)
+-   ✅ Keine Swift Mailer Referenzen gefunden
+-   ✅ Funktionsfähige E-Mail-Funktionalität in Registrierung/Benutzermodul
+-   ✅ Plugin-System für Mailer-Erweiterungen implementiert
+-   ✅ SMTP-Verbindungstests verfügbar
 
 ## Durchgeführte Verbesserungen
 
 ### 1. Behobene Implementierungsfehler
 
-- **MailController::smtpAction()** - Korrigierte Parameter-Übergabe an `testSmtpConnection()`
-- **Mailer::testSmtpConnection()** - Erweitert um flexible Parameter-Unterstützung
-- **Message::send()/queue()** - Verbesserte Fehlerbehandlung und Rückgabewerte
-- **Import-Statements** - Fehlende EsmtpTransport-Import hinzugefügt
+-   **MailController::smtpAction()** - Korrigierte Parameter-Übergabe an `testSmtpConnection()`
+-   **Mailer::testSmtpConnection()** - Erweitert um flexible Parameter-Unterstützung
+-   **Message::send()/queue()** - Verbesserte Fehlerbehandlung und Rückgabewerte
+-   **Import-Statements** - Fehlende EsmtpTransport-Import hinzugefügt
 
 ### 2. Umfassende Testabdeckung erstellt
 
 #### Unit Tests
-- `MailerTest.php` - Kern-Mailer-Funktionalität
-- `MessageTest.php` - Message-Klassen und Anhänge
-- `ImpersonatePluginTest.php` - Plugin-Funktionalität
 
-#### Integration Tests  
-- `MailControllerTest.php` - Controller-Funktionalität
-- `MailIntegrationTest.php` - Vollständige E-Mail-Workflows
+-   `MailerTest.php` - Kern-Mailer-Funktionalität
+-   `MessageTest.php` - Message-Klassen und Anhänge
+-   `ImpersonatePluginTest.php` - Plugin-Funktionalität
+
+#### Integration Tests
+
+-   `MailControllerTest.php` - Controller-Funktionalität
+-   `MailIntegrationTest.php` - Vollständige E-Mail-Workflows
 
 #### Test Coverage
-- **Mailer-Klasse**: Transport-Erstellung, Plugin-System, SMTP-Tests
-- **Message-Klasse**: E-Mail-Erstellung, Anhänge, Einbettungen, Header
-- **Plugin-System**: ImpersonatePlugin, Before/After-Send-Hooks
-- **Controller**: SMTP-Verbindungstests, E-Mail-Versand
-- **Integration**: Komplette Workflows, Fehlerbehandlung, Netzwerk-Tests
+
+-   **Mailer-Klasse**: Transport-Erstellung, Plugin-System, SMTP-Tests
+-   **Message-Klasse**: E-Mail-Erstellung, Anhänge, Einbettungen, Header
+-   **Plugin-System**: ImpersonatePlugin, Before/After-Send-Hooks
+-   **Controller**: SMTP-Verbindungstests, E-Mail-Versand
+-   **Integration**: Komplette Workflows, Fehlerbehandlung, Netzwerk-Tests
 
 ## Aktuelle Architektur
 
@@ -49,7 +52,7 @@ app/system/modules/mail/
 ├── index.php                 # Modul-Konfiguration, DI-Container Setup
 ├── src/
 │   ├── Mailer.php           # Haupt-Mailer-Klasse (Symfony Wrapper)
-│   ├── Message.php          # Erweiterte Email-Klasse mit Pagekit-Features  
+│   ├── Message.php          # Erweiterte Email-Klasse mit Pagekit-Features
 │   ├── MessageInterface.php # Interface für Message-Funktionalität
 │   ├── MailerInterface.php  # Plugin-Interface
 │   ├── Controller/
@@ -67,6 +70,7 @@ app/system/modules/mail/
 ## Verwendung im System
 
 ### E-Mail-Versand
+
 ```php
 // In Controllern (z.B. RegistrationController)
 $mail = App::mailer()->create();
@@ -77,13 +81,15 @@ $mail->setTo($user->email)
 ```
 
 ### SMTP-Konfiguration
-- **Transport**: EsmtpTransport (SMTP) oder SendmailTransport (mail())
-- **Konfiguration**: Über Admin-Panel konfigurierbar
-- **Verbindungstest**: Verfügbar über MailController
+
+-   **Transport**: EsmtpTransport (SMTP) oder SendmailTransport (mail())
+-   **Konfiguration**: Über Admin-Panel konfigurierbar
+-   **Verbindungstest**: Verfügbar über MailController
 
 ### Plugin-System
-- **ImpersonatePlugin**: Setzt Standard-Absender wenn keiner definiert
-- **Erweiterbar**: Plugin-Interface für weitere Funktionalität
+
+-   **ImpersonatePlugin**: Setzt Standard-Absender wenn keiner definiert
+-   **Erweiterbar**: Plugin-Interface für weitere Funktionalität
 
 ## Tests ausführen
 
@@ -93,13 +99,13 @@ phpunit app/system/modules/mail/src/Tests/
 
 # Nur Unit Tests
 phpunit app/system/modules/mail/src/Tests/MailerTest.php
-phpunit app/system/modules/mail/src/Tests/MessageTest.php  
+phpunit app/system/modules/mail/src/Tests/MessageTest.php
 phpunit app/system/modules/mail/src/Tests/Plugin/ImpersonatePluginTest.php
 
 # Nur Integration Tests
 phpunit app/system/modules/mail/src/Tests/Integration/MailIntegrationTest.php
 
-# Mit Netzwerk-Tests (SMTP-Server erforderlich)  
+# Mit Netzwerk-Tests (SMTP-Server erforderlich)
 phpunit --group network app/system/modules/mail/src/Tests/
 ```
 
@@ -109,7 +115,7 @@ In `phpunit.xml.dist` sind E-Mail-Test-Parameter vorkonfiguriert:
 
 ```xml
 <!-- uncomment, otherwise email won't be tested-->
-<var name="email_adress" value=""/>
+<var name="email_address" value=""/>
 <var name="email_to" value=""/>
 <var name="email_smtp_host" value=""/>
 <var name="email_smtp_port" value=""/>
@@ -122,10 +128,10 @@ In `phpunit.xml.dist` sind E-Mail-Test-Parameter vorkonfiguriert:
 
 ✅ **Die Swift Mailer zu Symfony Mailer Migration ist vollständig abgeschlossen.**
 
-- Keine weiteren Migrations-Arbeiten erforderlich
-- Vollständige Testabdeckung implementiert
-- Implementierungsfehler behoben
-- System ist produktionsbereit
+-   Keine weiteren Migrations-Arbeiten erforderlich
+-   Vollständige Testabdeckung implementiert
+-   Implementierungsfehler behoben
+-   System ist produktionsbereit
 
 ## Nächste Schritte (Optional)
 

@@ -1,32 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
-<phpunit
-    backupGlobals               = "false"
-    backupStaticAttributes      = "false"
-    colors                      = "true"
-    convertErrorsToExceptions   = "true"
-    convertNoticesToExceptions  = "true"
-    convertWarningsToExceptions = "true"
-    processIsolation            = "false"
-    stopOnFailure               = "false"
-	bootstrap					= "./app/modules/application/src/Tests/bootstrap.php">
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="./app/modules/application/src/Tests/bootstrap.php"
+         cacheResultFile="tmp/cache/.phpunit.result.cache"
+         colors="true"
+         beStrictAboutOutputDuringTests="true"
+         beStrictAboutTodoAnnotatedTests="true"
+         processIsolation="false"
+         stopOnFailure="false"
+         failOnWarning="true"
+         failOnRisky="true">
 
     <testsuites>
         <testsuite name="Pagekit Tests">
-    		<directory>./app/modules/*/src/</directory>
-            <directory>./app/system/modules/*/src/</directory>
+            <directory>./app/modules/*/src/Tests</directory>
+            <directory>./app/system/modules/*/src/Tests</directory>
         </testsuite>
     </testsuites>
 
-    <filter>
-        <whitelist>
-            <exclude>
-                <directory>./app/vendor/</directory>
-                <directory>./*/src/*/Tests/</directory>
-                <directory>./*/src/Tests</directory>
-            </exclude>
-        </whitelist>
-    </filter>
+    <coverage>
+        <include>
+            <directory suffix=".php">./app</directory>
+        </include>
+        <exclude>
+            <directory>./app/vendor</directory>
+            <directory>./app/*/src/Tests</directory>
+            <directory>./app/*/src/*/Tests</directory>
+        </exclude>
+    </coverage>
 
     <php>
         <!-- "Real" test database -->
@@ -48,7 +49,7 @@
         <var name="tmpdb_port" value="3306"/>
 
         <!-- uncomment, otherwise email won't be tested-->
-        <var name="email_adress" value=""/>
+        <var name="email_address" value=""/>
         <var name="email_to" value=""/>
         <var name="email_smtp_host" value=""/>
         <var name="email_smtp_port" value=""/>
