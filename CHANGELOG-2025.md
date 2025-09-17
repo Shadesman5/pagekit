@@ -4,19 +4,50 @@
 
 ### Changed
 
-- **Upgraded PHPUnit to version 11.x** - Modernized test suite to use PHPUnit 11 for improved testing capabilities and PHP 8.4 compatibility
-- **Increased minimum PHP version to 8.2** - Updated minimum PHP requirement from 7.4 to 8.2 for better performance, security, and modern language features
-- **Updated phpunit.xml.dist configuration** - Migrated to PHPUnit 11 XML schema with modern configuration options including coverage configuration and strict test settings
+-   **Upgraded PHPUnit to version 11.x** - Modernized test suite to use PHPUnit 11 for improved testing capabilities and PHP 8.4 compatibility
+-   **Increased minimum PHP version to 8.2** - Updated minimum PHP requirement from 7.4 to 8.2 for better performance, security, and modern language features
+-   **Updated phpunit.xml.dist configuration** - Migrated to PHPUnit 11 XML schema with modern configuration options including coverage configuration and strict test settings
 
 ### Fixed
 
-- **Fixed deprecated PHPUnit methods** - Replaced `setMethods()` with `onlyMethods()` in mock builder for PHPUnit 11 compatibility
+-   **Fixed deprecated PHPUnit methods** - Replaced `setMethods()` with `onlyMethods()` in mock builder for PHPUnit 11 compatibility
 
 ### Updated
 
-- **Updated composer.json requirements** - Changed PHP requirement to ^8.2 and PHPUnit to ^11.0
-- **Updated installer requirements check** - Updated PagekitRequirements::REQUIRED_PHP_VERSION to 8.2.0
-- **Updated index.php version check** - Changed minimum PHP version check from 7.3 to 8.2
+-   **Updated composer.json requirements** - Changed PHP requirement to ^8.2 and PHPUnit to ^11.0
+-   **Updated installer requirements check** - Updated PagekitRequirements::REQUIRED_PHP_VERSION to 8.2.0
+-   **Updated index.php version check** - Changed minimum PHP version check from 7.3 to 8.2
+
+---
+
+## Pagekit 1.0.27 - Symfony Mailer Migration & Comprehensive Tests (September 15-16, 2025)
+
+### Changed
+
+-   **Completed Swift Mailer to Symfony Mailer 5.4 migration** - Fully migrated email system from deprecated Swift Mailer to modern Symfony Mailer 5.4. All email functionality now uses Symfony's modern mail component with improved performance and maintainability
+
+### Added
+
+-   **Comprehensive mail system test suite** - Added 42 tests covering all mail functionality including unit tests for Mailer, Message, and Plugin classes, plus integration tests for complete email workflows
+-   **SMTP connection testing functionality** - Added test connection feature in admin panel to verify SMTP settings before saving
+-   **Mail plugin system** - Implemented extensible plugin architecture for mail processing with ImpersonatePlugin as default implementation
+-   **Enhanced error handling** - Improved error reporting and exception handling throughout the mail system
+
+### Fixed
+
+-   **MailController SMTP test parameter handling** - Fixed parameter mismatch between controller and mailer for SMTP connection testing
+-   **Message::send() error handling** - Corrected return values and error collection in message sending methods
+-   **Missing EsmtpTransport import** - Added missing Symfony Mailer transport imports
+-   **Email address typo in test configuration** - Corrected `email_adress` to `email_address` in phpunit.xml.dist and all related test files
+-   **Improved markdown formatting** - Applied standard markdown formatting with consistent bullet point spacing in documentation files
+
+### Technical Details
+
+-   No Swift Mailer references remaining in codebase
+-   Full compatibility with Symfony Mailer 5.4
+-   Maintains backward compatibility with existing mail configuration
+-   Support for SMTP and Sendmail transports
+-   Extensible plugin architecture for custom mail processing
 
 ---
 

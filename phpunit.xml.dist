@@ -49,7 +49,7 @@
         <var name="tmpdb_port" value="3306"/>
 
         <!-- uncomment, otherwise email won't be tested-->
-        <var name="email_adress" value=""/>
+        <var name="email_address" value=""/>
         <var name="email_to" value=""/>
         <var name="email_smtp_host" value=""/>
         <var name="email_smtp_port" value=""/>
