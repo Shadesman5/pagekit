@@ -1,13 +1,14 @@
-# Pagekit
+# Pagekit CMS - Modernized
 
+[![PHP](https://img.shields.io/badge/php-8.2%2B-blue)](https://www.php.net/)
 [![Symfony](https://img.shields.io/badge/symfony-5.4-blue)](https://github.com/symfony/symfony)
 [![Vue](https://img.shields.io/badge/vue-2.6.12-green)](https://github.com/vuejs/vue)
 [![UIkit](https://img.shields.io/badge/uikit-3.5.8-blue)](https://github.com/uikit/uikit)
-[![Build Status](https://travis-ci.org/cssailing/pagekit.svg?branch=develop)](https://travis-ci.org/cssailing/pagekit)
-[![Discord](https://img.shields.io/badge/chat-on%20discord-7289da.svg)](https://discord.gg/e7Kw47E)
+[![MySQL](https://img.shields.io/badge/mysql-8.4-orange)](https://www.mysql.com/)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 <details>
-<summary>Preview summary</summary>
+<summary>Screenshots</summary>
 <table>
     <tbody>
         <tr>
@@ -97,182 +98,205 @@
         </tr>
     </tbody>
 </table>
-
 </details>
 
-[Homepage](http://pagekit.com) - Official home page.
+## About
 
-This is an updated build Pagekit CMS (for developers).
+This is a modernized version of Pagekit CMS, extensively updated for contemporary web development practices. The system has been thoroughly upgraded to support the latest PHP versions, modern frameworks, and improved development workflows.
 
-> Features: need to be updated mail function to sent mail
+### Key Features
 
-Build includes the following updated components:
+-   **Modern PHP Support**: PHP 8.2 to 8.4 compatibility with modern coding standards
+-   **Advanced Frontend**: Vue.js 2.6 with UIkit 3.5 for responsive, modern interfaces
+-   **Flexible Database**: Support for both MySQL 8.4 and SQLite 3
+-   **Developer-Friendly**: Full Docker development environment with hot-reloading
+-   **Built-in Extensions**: Blog, Admin Theme, Theme One, and Demo Content included
+-   **Mobile-Optimized**: Responsive design across all devices
 
-- Pagekit CMS 1.0.27
-- [uatrend/pagekit:develop](https://github.com/uatrend/pagekit/tree/develop) branch - update to support PHP 7.4
-- Blog extension
-- [Admin theme](#theme)
-- Theme One
-- Demo content
+### What's Included
 
+-   **Blog Extension**: Full-featured blogging system
+-   **Admin Theme**: Modern UIkit 3 based administration interface
+-   **Theme One**: Responsive frontend theme
+-   **Demo Content**: Sample data for quick setup
 
-Download the latest code, [install from source](#install) before installation.  
-The installation procedure is the same as in the official [documentation](https://pagekit.com/docs/getting-started/installation).
+---
 
-Marketplace functionality like install, update and remove works the same like in original version.
+## Major Changes
 
-**Note!** Before enabling extensions, update them for compatibility. Debug mode and debug panel work the same as in the main version.
+-   **PHP Version**: Minimum PHP 8.2+ (supports PHP 8.2, 8.3, 8.4)
+-   **Database Support**: MySQL 8.4+ and SQLite 3
+-   **Node.js**: Minimum Node 18+ for development
+-   **Composer**: Version 2.0+ required
+-   **Yarn**: Version 1.22+ required
+-   **Framework Updates**: Symfony 5.4 components with modern architecture
+-   **Frontend Modernization**: Vue.js 2.6 and UIkit 3.5 (jQuery completely removed)
+-   **Build Tools**: Webpack 4 with optimized development workflow
+-   **Extension Compatibility**: Legacy extensions and themes require complete rewrite for new system
+-   **Docker Support**: Complete containerized development environment
 
-------
+**Important Note**: Original Pagekit extensions and themes are **not compatible** with this modernized version and must be completely rewritten to work with the new architecture.
 
-## Major changes:
+## System Requirements
 
-- Required PHP Version - 8.2+, support for PHP 8.2, 8.3, 8.4
-- Required MySQL Version - 5.7+, support for MySQL 8.4
-- Required Node Version - 14.0+, support for Node 16.0, 18.0
-- Required Composer Version - 2.0+
-- Required Yarn Version - 1.22.0+
-- Used Symfony 5.4 framework
-- Used UIkit 3 and Vue 2 frameworks
-- Updated Symfony and Composer frameworks
-- [Updated Composer dependencies](https://github.com/cssailing/pagekit/blob/develop/composer.json)
-- [Updated Node dependencies](https://github.com/cssailing/pagekit/blob/develop/package.json)
-- Updated PHP core components
-- Updated Javascript core components
+### Minimum Requirements
 
-Removed jQuery from all scripts. UIkit functions are used instead. Several bugs that are present in the original assembly have been fixed, some styles have been changed for ease of use. The mobile version has remained the same with minor changes.
+-   **PHP**: 8.2 or higher (supports 8.2, 8.3, 8.4)
+-   **MySQL**: 8.4+ or **SQLite**: 3.x (selectable during installation)
+-   **Node.js**: 18+ (for development)
+-   **Composer**: 2.0+
+-   **Yarn**: 1.22+
 
-## <a name="install"></a>Install from source
+### Recommended Development Environment
 
-You can [install Node dependencies, build the front-end components](#node) and run [scripts](#scripts) via [yarn](https://yarnpkg.com/).
+-   **Docker**: Latest version with Docker Compose
+-   **Git**: For version control
+-   **Modern Browser**: Chrome, Firefox, Safari, Edge
 
-Clone Repository
+## Installation
 
-```
-$ git clone git@github.com:cssailing/pagekit.git project-folder
-$ cd project-folder
-```
+### Quick Start with Docker (Recommended)
 
-Install PHP dependencies
+1. **Clone the repository**
 
-```
-$ composer install
-```
+    ```bash
+    git clone https://github.com/Shadesman5/pagekit.git
+    cd pagekit
+    ```
 
-<a name="node"></a>Install Node dependencies
+2. **Start with Docker**
 
-> if Node Version > node@14, run 
+    ```bash
+    # With MySQL (default)
+    docker-compose up -d
+
+    # SQLite only (lightweight)
+    docker-compose --profile sqlite up -d web node
+    ```
+
+3. **Access the application**
+    - **Website**: http://localhost:8080
+    - **Admin Panel**: http://localhost:8080/admin
+    - **phpMyAdmin**: http://localhost:8081 (MySQL only)
+
+### Manual Installation
+
+1. **Install PHP dependencies**
+
+    ```bash
+    composer install
+    ```
+
+2. **Install Node.js dependencies**
+
+    ```bash
+    yarn install
+    ```
+
+3. **Build frontend assets**
+
+    ```bash
+    yarn compile-js --mode=production
+    yarn compile-less
+    ```
+
+4. **Set up web server**
+    - Configure Apache/Nginx to serve the project root
+    - Ensure mod_rewrite is enabled (Apache)
+    - Set appropriate file permissions
+
+## Development
+
+### Docker Development Environment
+
+The Docker setup provides a complete development environment with:
+
+-   **PHP 8.4** with Apache and all required extensions
+-   **MySQL 8.4** with phpMyAdmin
+-   **Node.js 18** with Yarn 1.22 for frontend development
+-   **Hot-reloading** for both PHP and frontend assets
+
+### Frontend Development
+
+**Watch mode for development:**
 
 ```bash
-export NODE_OPTIONS=--openssl-legacy-provider 
+# JavaScript/Vue files
+yarn watch-js
+
+# LESS/CSS files
+yarn watch-less
+
+# Watch everything simultaneously
+yarn watch-all
 ```
 
-then
+**Production builds:**
 
-```
-$ yarn install
-```
-
-## Docker run
-
-```
-$ docker-compose up -d
-```
-> Open http://localhost:8080 in your browser for the site
-
-> Open http://localhost:8080/admin in your browser for phpmyadmin
-
-## <a name="scripts"></a>Scripts
-
-Javascript watch or compile:
-
-```
-$ yarn watch-js
-$ yarn compile-js
+```bash
+yarn compile-js --mode=production
+yarn compile-less
 ```
 
-To build in production mode:
+**Code quality:**
 
-```
-$ yarn compile-js --mode=production
-```
+```bash
+# ESLint checking
+yarn lint
 
-LESS watch or compile:
-
-```
-$ yarn watch-less
-$ yarn compile-less
+# ESLint with auto-fixing
+yarn lint-watch
 ```
 
-JS/LESS watch at the same time:
+### Database Configuration
 
-```
-$ yarn watch-all
-```
+**Docker (Automatic):**
 
-ESlint lint or watch ```*.js/*.vue``` files:
+-   **MySQL Host**: mysql (internal) / localhost:3306 (external)
+-   **Database**: pagekit
+-   **Username**: pagekit
+-   **Password**: pagekit
 
-```
-$ yarn lint
-$ yarn lint-watch
-```
+**Manual Setup:**
 
-CLDR locale data:
+-   Create a MySQL database or use SQLite
+-   Configure database settings during web-based installation
 
-```
-$ yarn cldr
-```
+## Architecture
 
-Copying required assets:
+### Backend
 
-```
-$ yarn assets
-```
+-   **Framework**: Symfony 5.4 components
+-   **Architecture**: Modular system with clean separation of concerns
+-   **Database**: Doctrine ORM with migration support
+-   **Authentication**: User management and permission system
 
-## <a name="theme"></a>Admin theme
+### Frontend
 
-Theme is fully compatible with **UIkit 3**.
-Reworked scripts, layout and colors. Added side and top menus with dropdowns. Removed unused styles.
+-   **JavaScript Framework**: Vue.js 2.6 with modern component patterns
+-   **CSS Framework**: UIkit 3.5 for responsive design
+-   **Build Tools**: Webpack 4 with optimized production builds
+-   **Code Quality**: ESLint with Vue.js specific rules
 
-For individual markup of each page, added a class page in the body tag automatically generated through PHP.
+### Admin Theme
 
-For example, body class for dashboard page looks like:
+The admin interface has been completely modernized:
 
-```html
-<body class=“dashboard”>
-```
-and for system Settings:
+-   **UIkit 3** integration throughout
+-   **Responsive design** for all screen sizes
+-   **Modern iconography** with UIkit icons
+-   **Improved UX** with better navigation and workflows
+-   **Enhanced menu system** with dropdowns and better organization
 
-```html
-<body class=“system-settings”>
-```
+#### Theme Plugin System
 
-## Theme icons
-```uikit-icons.js``` are now used for Pagekit icons. 
+The theme system allows programmatic configuration of buttons, dropdowns, pagination and search forms. Each page gets an auto-generated class in the body tag for individual styling.
 
-## Editor Settings
-
-You can choose the default editor in the system settings: 	
-- HTML Editor 
-- Tinymce (with split mode option)
-- Codemirror
-
-Moved all editors dependencies to ```editor/assets``` folder.
-
-## Theme Plugin
-
-(added to core ```/app/system/app/lib/theme.js```)
-
-Ability to programmatically configure the buttons, dropdown lists, pagination and search form in the top menu for each component used (see code).
-
-Example: dashboard - ```index.js```
+**Example: Dashboard Component (`index.js`)**
 
 ```javascript
 name: 'dashboard',
-
 mixins: [Theme.Mixins.Helper],
-
-...
 
 theme: {
     hideEls: '#dashboard > div:first-child > div:last-child',
@@ -300,7 +324,7 @@ theme: {
 }
 ```
 
-Adding side menu items through PHP - ```$view->$data()```
+**Adding sidebar menu items via PHP:**
 
 ```php
 'view.data' => function ($event, $data) use ($app) {
@@ -323,10 +347,104 @@ Adding side menu items through PHP - ```$view->$data()```
 }
 ```
 
-------
+### Editor Options
 
-## Thanks
+Multiple editor choices available in system settings:
 
-Thanks to Yootheme and developers! 
- 
-Thanks to [uatrend](https://github.com/uatrend/) !
+-   **HTML Editor**: Simple WYSIWYG editing
+-   **TinyMCE**: Advanced rich text editor with split-view mode
+-   **CodeMirror**: Syntax-highlighted code editor for developers
+
+## Development Tools
+
+### Available Scripts
+
+```bash
+# Development
+yarn watch-all                          # Watch JS and LESS files
+yarn watch-js                           # Watch JavaScript/Vue files only
+yarn watch-less                         # Watch LESS/CSS files only
+
+# Production
+yarn compile-js --mode=production       # Build JavaScript for production
+yarn compile-less                       # Build CSS for production
+yarn install                            # Full production build
+
+# Utilities
+yarn lint                               # Check code quality
+yarn cldr                               # Update locale data
+yarn assets                             # Copy static assets
+```
+
+### Docker Commands
+
+```bash
+# Container management
+docker-compose up -d           # Start all services
+docker-compose down            # Stop all services
+docker-compose down -v         # Stop and remove volumes
+
+# Development
+docker-compose logs -f web     # View web server logs
+docker-compose exec web bash   # Access PHP container
+docker-compose exec node sh    # Access Node.js container
+
+# Database
+docker-compose exec web composer install    # Install PHP dependencies
+docker-compose exec node yarn install       # Install Node dependencies
+```
+
+## Extensions & Themes
+
+**Important**: The original Pagekit marketplace is no longer functional as the API was deactivated. This modernized version currently includes:
+
+-   **Built-in Blog Extension**: Full-featured blogging system
+-   **Modern Admin Theme**: UIkit 3 based administration interface
+-   **Theme One**: Responsive frontend theme
+-   **Demo Content**: Sample data for testing
+
+### Extension Development
+
+-   **Complete Rewrite Required**: Original Pagekit extensions and themes do **not work** with this modernized system
+-   **Modern Architecture**: Extensions must be built from scratch using current PHP 8.2+ standards
+-   **Theme System**: Full theming support with modern tooling and developer APIs
+-   **Hooks & Filters**: Extensive customization capabilities for developers
+
+**Note**: A new marketplace system needs to be developed from the ground up to replace the original functionality.
+
+## Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Follow PSR coding standards
+4. Include tests for new functionality
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Credits
+
+This modernized version builds upon the work of many contributors:
+
+-   **[YOOtheme](https://yootheme.com/)**: Original creators of Pagekit CMS
+-   **[@uatrend](https://github.com/uatrend/pagekit)**: Major modernization efforts with UIkit 3, Vue.js 2, and PHP 7.4+ support
+-   **[@cssailing](https://github.com/cssailing/pagekit)**: Version updates, dependency management, and system improvements
+-   **[Vue.js](https://vuejs.org/)**, **[Symfony](https://symfony.com/)**, and **[UIkit](https://getuikit.com/)** teams for their excellent frameworks
+-   **Community contributors**: All developers who have contributed to the modernization efforts
+
+**Special Thanks**: This project exists thanks to the foundational work by **[@uatrend](https://github.com/uatrend)** and **[@cssailing](https://github.com/cssailing)**, which made seamless continuation and further development possible.
+
+## Documentation & Support
+
+-   **Documentation**: Currently being updated. For reference, see the original [Pagekit Documentation](https://github.com/pagekit/docs)
+-   **Issues**: Report bugs via GitHub Issues
+-   **Discussions**: Use GitHub Discussions for questions and feature requests
+-   **Migration Guide**: Documentation for upgrading from legacy Pagekit versions is in development
+
+---
+
+**Note**: This is a modernized version with significant improvements. Please review the upgrade guide before migrating from older Pagekit versions.
