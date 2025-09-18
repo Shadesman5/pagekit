@@ -4,6 +4,7 @@ namespace Pagekit\Debug\DataCollector;
 
 use DebugBar\DataCollector\DataCollectorInterface;
 use Monolog\Handler\AbstractHandler;
+use Monolog\LogRecord;
 
 class LogDataCollector extends AbstractHandler implements DataCollectorInterface
 {
@@ -12,20 +13,18 @@ class LogDataCollector extends AbstractHandler implements DataCollectorInterface
     /**
      * {@inheritdoc}
      */
-    public function handle(array $record): bool
+    public function handle(LogRecord $record): bool
     {
-        if ($record['level'] < $this->level) {
+        if ($record->level->value < $this->level->value) {
             return false;
         }
 
-        $keys = [
-            'message',
-            'level',
-            'level_name',
-            'channel'
+        $this->messages[] = [
+            'message' => $record->message,
+            'level' => $record->level->value,
+            'level_name' => $record->level->name,
+            'channel' => $record->channel
         ];
-
-        $this->messages[] = array_intersect_key($record, array_flip($keys));
 
         return true;
     }
