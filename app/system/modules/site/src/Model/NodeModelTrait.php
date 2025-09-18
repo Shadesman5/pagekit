@@ -128,7 +128,7 @@ trait NodeModelTrait
                     ->from('@system_node')
                     ->where(['parent_id' => $node->parent_id])
                     ->execute()
-                    ->fetchColumn();
+                    ->fetchOne();
         }
     }
 
