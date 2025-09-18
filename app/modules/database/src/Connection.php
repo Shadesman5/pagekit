@@ -166,7 +166,7 @@ class Connection extends BaseConnection
     /**
      * @{inheritdoc}
      */
-    public function prepare(string $sql): Statement
+    public function prepare($sql): Statement
     {
         return parent::prepare($this->replacePrefix($sql));
     }
@@ -174,7 +174,7 @@ class Connection extends BaseConnection
     /**
      * @{inheritdoc}
      */
-    public function exec(string $sql): int
+    public function exec($sql): int
     {
         return parent::executeStatement($this->replacePrefix($sql));
     }
@@ -182,7 +182,7 @@ class Connection extends BaseConnection
     /**
      * @{inheritdoc}
      */
-    public function executeQuery(string $sql, array $params = [], $types = [], ?QueryCacheProfile $qcp = null): Result
+    public function executeQuery($sql, array $params = [], $types = [], ?QueryCacheProfile $qcp = null): Result
     {
         return parent::executeQuery($this->replacePrefix($sql), $params, $types, $qcp);
     }
@@ -190,7 +190,7 @@ class Connection extends BaseConnection
     /**
      * @{inheritdoc}
      */
-    public function executeStatement(string $sql, array $params = [], array $types = []): int
+    public function executeStatement($sql, array $params = [], array $types = []): int
     {
         return parent::executeStatement($this->replacePrefix($sql), $params, $types);
     }
