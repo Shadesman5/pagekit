@@ -31,14 +31,20 @@ This document tracks the critical security patches applied to the Pagekit CMS de
   - Changed `Comparator::compareSchemas()` from static to instance method
   - **CRITICAL FIX**: Removed type hints from SQL parameters (`string $sql` → `$sql`) 
     for DBAL 3.x compatibility with SQLite and other drivers
+  - Replaced all deprecated PDO fetch constants:
+    - `fetch(\PDO::FETCH_ASSOC)` → `fetchAssociative()`
+    - `fetchColumn()` → `fetchOne()`
 - **Files Modified**:
   - `/app/modules/database/src/Connection.php`
   - `/app/modules/database/src/Query/QueryBuilder.php`
   - `/app/modules/database/src/Utility.php`
+  - `/app/modules/database/src/ORM/EntityManager.php`
   - `/app/modules/database/src/ORM/Relation/ManyToMany.php`
   - `/app/modules/config/src/ConfigManager.php`
   - `/app/system/modules/site/src/Model/NodeModelTrait.php`
+  - `/app/system/modules/user/src/Model/RoleModelTrait.php`
   - `/app/modules/session/src/Handler/DatabaseSessionHandler.php`
+  - `/app/modules/auth/src/Handler/DatabaseHandler.php`
   - `/packages/pagekit/blog/src/Model/PostModelTrait.php`
   - `/packages/pagekit/blog/src/Controller/BlogController.php`
 
@@ -47,9 +53,11 @@ This document tracks the critical security patches applied to the Pagekit CMS de
 - **Updated Version**: 3.9.0
 - **Reason**: Major version upgrade for security and modern PHP support
 - **Breaking Changes Addressed**:
-  - Updated handler methods to use `LogRecord` instead of `array`
-  - Modified level comparisons to use `$record->level->value`
-  - Updated record property access to use object notation
+  - **CRITICAL FIX**: Handler methods now support both `array` (for compatibility) 
+    and `LogRecord` (Monolog 3.x) with runtime type checking
+  - Modified level comparisons to use `$record->level->value` for LogRecord
+  - Updated record property access to use object notation for LogRecord
+  - Maintains backward compatibility with array format
 - **Files Modified**:
   - `/app/modules/log/src/Handler/DebugBarHandler.php`
   - `/app/modules/debug/src/DataCollector/LogDataCollector.php`
