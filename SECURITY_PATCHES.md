@@ -29,7 +29,8 @@ This document tracks the critical security patches applied to the Pagekit CMS de
     - `fetchAll(\PDO::FETCH_COLUMN)` → `fetchFirstColumn()`
     - `fetchAll(\PDO::FETCH_NUM)` → `fetchAllNumeric()`
   - Changed `Comparator::compareSchemas()` from static to instance method
-  - Updated method signatures to use strict types (string $sql)
+  - **CRITICAL FIX**: Removed type hints from SQL parameters (`string $sql` → `$sql`) 
+    for DBAL 3.x compatibility with SQLite and other drivers
 - **Files Modified**:
   - `/app/modules/database/src/Connection.php`
   - `/app/modules/database/src/Query/QueryBuilder.php`
