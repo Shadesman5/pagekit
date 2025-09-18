@@ -1,5 +1,11 @@
 # Changelog 2025
 
+## Pagekit 1.0.28 - Development Setup Enhancement (September 18, 2025)
+
+### Added
+
+-   Config: Add Docker setup scripts & env template
+
 ## Pagekit 1.0.28 - Version Bump (September 17, 2025)
 
 ### Added
