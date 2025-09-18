@@ -68,9 +68,13 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # Create ubuntu user for development
 RUN useradd -m -s /bin/bash ubuntu
 
-# Copy helper scripts before switching user
-COPY --chown=ubuntu:ubuntu .cursor/*.sh /home/ubuntu/.cursor/
-RUN chmod +x /home/ubuntu/.cursor/*.sh
+# Create .cursor directory and helper scripts
+RUN mkdir -p /home/ubuntu/.cursor \
+    && echo '#!/bin/bash\n# Pagekit installation helper script\necho "Installing Pagekit dependencies..."\nif [ -f "composer.json" ]; then\n    composer install --no-dev --optimize-autoloader\nfi\nif [ -f "package.json" ]; then\n    yarn install\n    yarn compile-js\nfi\necho "Installation completed!"' > /home/ubuntu/.cursor/install.sh \
+    && echo '#!/bin/bash\n# Pagekit modernization helper script\necho "Running Pagekit modernization tasks..."\n# Add your modernization commands here\necho "Modernization helper ready!"' > /home/ubuntu/.cursor/modernize-helper.sh \
+    && echo '#!/bin/bash\n# Pagekit startup script\necho "Starting Pagekit development environment..."\ncd /workspace\n# Run any startup tasks here\nexec "$@"' > /home/ubuntu/.cursor/start.sh \
+    && chown -R ubuntu:ubuntu /home/ubuntu/.cursor \
+    && chmod +x /home/ubuntu/.cursor/*.sh
 
 # Switch to ubuntu user
 USER ubuntu
