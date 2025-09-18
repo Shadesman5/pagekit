@@ -73,7 +73,31 @@
             "Pagekit\\System\\": "app/system/src",
             "Pagekit\\Config\\": "app/modules/config/src",
             "Pagekit\\Console\\": "app/console/src",
-            "Pagekit\\Migration\\": "app/modules/migration/src"
+            "Pagekit\\Migration\\": "app/modules/migration/src",
+            "Pagekit\\Auth\\": "app/modules/auth/src",
+            "Pagekit\\Cookie\\": "app/modules/cookie/src",
+            "Pagekit\\Database\\": "app/modules/database/src",
+            "Pagekit\\Debug\\": "app/modules/debug/src",
+            "Pagekit\\Feed\\": "app/modules/feed/src",
+            "Pagekit\\Filesystem\\": "app/modules/filesystem/src",
+            "Pagekit\\Filter\\": "app/modules/filter/src",
+            "Pagekit\\Kernel\\": "app/modules/kernel/src",
+            "Pagekit\\Log\\": "app/modules/log/src",
+            "Pagekit\\Markdown\\": "app/modules/markdown/src",
+            "Pagekit\\Routing\\": "app/modules/routing/src",
+            "Pagekit\\Session\\": "app/modules/session/src",
+            "Pagekit\\View\\": "app/modules/view/src",
+            "Pagekit\\Mail\\": "app/system/modules/mail/src",
+            "Pagekit\\Site\\": "app/system/modules/site/src",
+            "Pagekit\\User\\": "app/system/modules/user/src",
+            "Pagekit\\Info\\": "app/system/modules/info/src",
+            "Pagekit\\Package\\": "app/system/modules/package/src",
+            "Pagekit\\Theme\\": "app/system/modules/theme/src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Pagekit\\Tests\\": "tests/"
         }
     },
     "config": {

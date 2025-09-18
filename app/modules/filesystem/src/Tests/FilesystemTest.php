@@ -7,7 +7,7 @@ use Pagekit\Tests\FileUtil;
 use Pagekit\Filesystem\Adapter\FileAdapter;
 use Pagekit\Filesystem\Filesystem;
 
-class FileTest extends TestCase
+class FilesystemTest extends TestCase
 {
     use FileUtil;
 

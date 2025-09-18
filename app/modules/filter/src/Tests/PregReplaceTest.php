@@ -56,7 +56,7 @@ class PregReplaceTest extends TestCase
         $this->assertSame($this->filter->filter($in), $out);
     }
 
-    public function provider(): array
+    public static function provider(): array
     {
         return [
             ['/foo/i', '', 'Foobar', 'bar'],
