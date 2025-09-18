@@ -466,7 +466,7 @@ class QueryBuilder
      */
     public function first($columns = ['*'])
     {
-        return $this->limit(1)->execute($columns)->fetch(PDO::FETCH_ASSOC);
+        return $this->limit(1)->execute($columns)->fetchAssociative();
     }
 
     /**
