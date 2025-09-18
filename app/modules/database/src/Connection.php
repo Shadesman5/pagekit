@@ -3,7 +3,7 @@
 namespace Pagekit\Database;
 
 use Doctrine\DBAL\Statement;
-use Doctrine\DBAL\Driver\ResultStatement;
+use Doctrine\DBAL\Result;
 use Pagekit\Database\Query\QueryBuilder;
 use Doctrine\Common\EventManager;
 use Doctrine\DBAL\Cache\QueryCacheProfile;
@@ -128,7 +128,16 @@ class Connection extends BaseConnection
      */
     public function fetchObject($statement, array $params = [], $class = 'stdClass', $args = [])
     {
-        return $this->executeQuery($statement, $params)->fetchObject($class, $args);
+        $result = $this->executeQuery($statement, $params);
+        $row = $result->fetchAssociative();
+        if ($row === false) {
+            return false;
+        }
+        $object = new $class(...$args);
+        foreach ($row as $key => $value) {
+            $object->$key = $value;
+        }
+        return $object;
     }
 
     /**
@@ -141,40 +150,49 @@ class Connection extends BaseConnection
      */
     public function fetchAllObjects($statement, array $params = [], $class = 'stdClass', $args = []): array
     {
-        return $this->executeQuery($statement, $params)->fetchAll(\PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE, $class, $args);
+        $result = $this->executeQuery($statement, $params);
+        $rows = $result->fetchAllAssociative();
+        $objects = [];
+        foreach ($rows as $row) {
+            $object = new $class(...$args);
+            foreach ($row as $key => $value) {
+                $object->$key = $value;
+            }
+            $objects[] = $object;
+        }
+        return $objects;
     }
 
     /**
      * @{inheritdoc}
      */
-    public function prepare($statement): Statement
+    public function prepare(string $sql): Statement
     {
-        return parent::prepare($this->replacePrefix($statement));
+        return parent::prepare($this->replacePrefix($sql));
     }
 
     /**
      * @{inheritdoc}
      */
-    public function exec($statement): int
+    public function exec(string $sql): int
     {
-        return parent::exec($this->replacePrefix($statement));
+        return parent::executeStatement($this->replacePrefix($sql));
     }
 
     /**
      * @{inheritdoc}
      */
-    #[\ReturnTypeWillChange]
-    public function executeQuery($query, array $params = [], $types = [], ?QueryCacheProfile $qcp = null): ResultStatement
+    public function executeQuery(string $sql, array $params = [], $types = [], ?QueryCacheProfile $qcp = null): Result
     {
-        return parent::executeQuery($this->replacePrefix($query), $params, $types, $qcp);
+        return parent::executeQuery($this->replacePrefix($sql), $params, $types, $qcp);
     }
 
     /**
      * @{inheritdoc}
      */
-    public function executeStatement($query, array $params = [], array $types = []): int
+    public function executeStatement(string $sql, array $params = [], array $types = []): int
     {
-        return parent::executeStatement($this->replacePrefix($query), $params, $types);
+        return parent::executeStatement($this->replacePrefix($sql), $params, $types);
     }
 
     /**

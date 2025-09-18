@@ -1,69 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
-         bootstrap="./app/modules/application/src/Tests/bootstrap.php"
-         cacheResultFile="tmp/cache/.phpunit.result.cache"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.0/phpunit.xsd"
+         bootstrap="app/vendor/autoload.php"
          colors="true"
-         beStrictAboutOutputDuringTests="true"
-         beStrictAboutTodoAnnotatedTests="true"
-         processIsolation="false"
-         stopOnFailure="false"
-         failOnWarning="true"
-         failOnRisky="true">
-
+         cacheDirectory=".phpunit.cache"
+         testdox="true"
+>
     <testsuites>
-        <testsuite name="Pagekit Tests">
-            <directory>./app/modules/*/src/Tests</directory>
-            <directory>./app/system/modules/*/src/Tests</directory>
+        <testsuite name="Pagekit Test Suite">
+            <directory>app/modules/*/src/Tests</directory>
+            <directory>app/system/modules/*/src/Tests</directory>
         </testsuite>
     </testsuites>
 
-    <coverage>
+    <source>
         <include>
-            <directory suffix=".php">./app</directory>
+            <directory suffix=".php">app/modules</directory>
+            <directory suffix=".php">app/system</directory>
+            <directory suffix=".php">app/console</directory>
         </include>
         <exclude>
-            <directory>./app/vendor</directory>
-            <directory>./app/*/src/Tests</directory>
-            <directory>./app/*/src/*/Tests</directory>
+            <directory>app/modules/*/src/Tests</directory>
+            <directory>app/system/modules/*/src/Tests</directory>
+            <directory>app/vendor</directory>
         </exclude>
-    </coverage>
+    </source>
 
     <php>
-        <!-- "Real" test database -->
-        <!-- uncomment, otherwise sqlite memory runs -->
-        <!-- <var name="db_type" value="pdo_mysql"/>
-        <var name="db_host" value="localhost" />
-        <var name="db_username" value="root" />
-        <var name="db_password" value="" />
-        <var name="db_name" value="doctrine_tests" />
-        <var name="db_port" value="3306"/>  -->
-        <!-- <var name="db_event_subscribers" value="Doctrine\DBAL\Event\Listeners\OracleSessionInit"> -->
-
-        <!-- Database for temporary connections (i.e. to drop/create the main database) -->
-        <var name="tmpdb_type" value="pdo_mysql"/>
-        <var name="tmpdb_host" value="localhost" />
-        <var name="tmpdb_username" value="root" />
-        <var name="tmpdb_password" value="" />
-        <var name="tmpdb_name" value="doctrine_tests_tmp" />
-        <var name="tmpdb_port" value="3306"/>
-
-        <!-- uncomment, otherwise email won't be tested-->
-        <var name="email_address" value=""/>
-        <var name="email_to" value=""/>
-        <var name="email_smtp_host" value=""/>
-        <var name="email_smtp_port" value=""/>
-        <var name="email_smtp_encryption" value=""/>
-        <var name="email_smtp_user" value=""/>
-        <var name="email_smtp_password" value=""/>
-
-        <!-- uncomment, otherwise ftp won't be tested-->
-        <var name="ftp_host" value="localhost"/>
-        <var name="ftp_port" value="21"/>
-        <var name="ftp_user" value="anonymous"/>
-        <var name="ftp_pass" value=""/>
-        <var name="ftp_passive" value="false"/>
-        <var name="ftp_mode" value="FTP_ASCII"/> <!-- FTP_ASCII or FTP_BINARY-->
+        <env name="APP_ENV" value="test"/>
+        <env name="APP_DEBUG" value="1"/>
     </php>
-
 </phpunit>

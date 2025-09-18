@@ -3,7 +3,7 @@
 namespace Pagekit\Database\Query;
 
 use Closure;
-use Doctrine\DBAL\Driver\Statement;
+use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Platforms\MySqlPlatform;
 use Doctrine\DBAL\Types\Type;
 use Pagekit\Database\Connection;
@@ -455,7 +455,7 @@ class QueryBuilder
      */
     public function get($columns = ['*']): array
     {
-        return $this->execute($columns)->fetchAll();
+        return $this->execute($columns)->fetchAllAssociative();
     }
 
     /**
@@ -547,7 +547,7 @@ class QueryBuilder
      *
      * @param  mixed $columns
      */
-    public function execute($columns = ['*']): Statement
+    public function execute($columns = ['*']): Result
     {
         if (empty($this->parts['select'])) {
             $this->select($columns);

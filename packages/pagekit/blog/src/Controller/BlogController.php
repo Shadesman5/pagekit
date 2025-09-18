@@ -73,13 +73,13 @@ class BlogController
                 ->where(['id' => Role::ROLE_ADMINISTRATOR])
                 ->whereInSet('permissions', ['blog: manage all posts', 'blog: manage own posts'], false, 'OR')
                 ->execute('id')
-                ->fetchAll(\PDO::FETCH_COLUMN);
+                ->fetchFirstColumn();
 
             $authors = App::db()->createQueryBuilder()
                 ->from('@system_user')
                 ->whereInSet('roles', $roles)
                 ->execute('id, username')
-                ->fetchAll();
+                ->fetchAllAssociative();
 
             return [
                 '$view' => [

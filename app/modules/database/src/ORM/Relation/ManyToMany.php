@@ -49,9 +49,15 @@ class ManyToMany extends Relation
         $this->initRelation($entities, []);
 
         $keys    = $this->getKeys($entities);
-        $mapping = $this->manager->getConnection()
+        $result = $this->manager->getConnection()
             ->executeQuery("SELECT {$this->keyThroughFrom}, {$this->keyThroughTo} FROM {$this->tableThrough} WHERE {$this->keyThroughFrom} IN (".implode(", ", $keys).")")
-            ->fetchAll(\PDO::FETCH_GROUP | \PDO::FETCH_COLUMN);
+            ->fetchAllNumeric();
+        
+        // Manually group by first column, values from second column
+        $mapping = [];
+        foreach ($result as $row) {
+            $mapping[$row[0]][] = $row[1];
+        }
 
         $table = $this->tableThrough;
         $to    = $this->keyThroughTo;
