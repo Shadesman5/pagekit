@@ -29,4 +29,8 @@ node_modules
 .DS_Store
 .idea
 # Ignore development/migration documentation
-/migration-docs/
+/migration-docs/**
+
+# Ignore environment files with secrets
+docker.env
+.env

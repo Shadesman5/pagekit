@@ -1,0 +1,4 @@
+---
+description: Enhanced Push with README Detection - All features from original push.mdc PLUS: 1) Check git status on CURRENT ACTIVE branch. 2) Before creating commits, scan for README-affecting changes: composer.json (PHP version) → README badges/requirements; package.json (Vue/UIkit versions) → README dependencies; Dockerfile (base image) → README system requirements; docker-compose.yml → README installation instructions. 3) If README updates needed, create commit "Docs: Sync README with [specific changes]" BEFORE other commits. 4) Create smart commits for remaining changes (max 50 chars). 5) Update CHANGELOG-2025.md with ALL commits including README update. 6) Continue with original workflow: push to dev-integration, handle PR, merge, cleanup. This ensures documentation stays synchronized with code changes automatically.
+alwaysApply: false
+---

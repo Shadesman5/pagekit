@@ -74,12 +74,12 @@ Dieser strategische Plan führt Pagekit CMS von der aktuellen Legacy-Basis zu ei
 
 ### Schritt 1.2: Test-Suite modernisieren
 
--   **Status**: 🚧 IN ARBEIT
+-   **Status**: ✅ ABGESCHLOSSEN
 -   **Branch**: `feature/phpunit-11-upgrade`
 -   **Ziel**: PHPUnit 9.6 → 11.x
 -   **Voraussetzung**: PHP 8.2+ (siehe Hinweis)
 
-**🔴 WICHTIG**: PHPUnit 11 benötigt PHP 8.2+. Daher muss zuerst:
+**✅ WICHTIG**: PHPUnit 11 benötigt PHP 8.2+. Daher muss zuerst:
 
 1. PHP Minimum Version auf 8.2 anheben
 2. Dann PHPUnit aktualisieren
@@ -144,7 +144,7 @@ SUCCESS CRITERIA:
 
 ### Schritt 1.3: Kritische Abhängigkeiten patchen
 
--   **Status**: ⏳ Ausstehend
+-   **Status**: 🚧 In Arbeit
 -   **Branch**: `feature/security-patches`
 -   **Priorität**: Nach PHPUnit-Update
 

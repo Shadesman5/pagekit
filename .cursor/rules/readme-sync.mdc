@@ -1,0 +1,5 @@
+---
+description: README Auto-Sync - Automatically updates README.md when relevant changes are detected. Monitors: 1) composer.json for PHP version, package updates; 2) package.json for frontend dependencies; 3) docker-compose.yml for infrastructure changes; 4) Dockerfile for system requirements. When changes are detected: a) Analyze which README sections need updates (System Requirements, Major Changes, etc.); b) Update the specific sections with new information; c) Keep badges in sync with actual versions; d) Create a commit "Docs: Update README.md with latest system changes". Trigger this rule after major dependency updates, PHP version changes, or infrastructure modifications. Works alongside push.mdc for comprehensive documentation updates.
+alwaysApply: false
+globs: composer.json,package.json,docker-compose.yml,Dockerfile,.htaccess
+---
