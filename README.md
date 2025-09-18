@@ -164,7 +164,24 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
     cd pagekit
     ```
 
-2. **Start with Docker**
+2. **Setup secure environment**
+
+    ```bash
+    # Windows (PowerShell)
+    .\docker-setup.ps1
+
+    # Linux/Mac
+    chmod +x docker-setup.sh
+    ./docker-setup.sh
+    ```
+
+    This script will:
+
+    - Generate secure passwords automatically
+    - Create a `docker.env` file with your configuration
+    - Ensure sensitive data is not committed to git
+
+3. **Start with Docker**
 
     ```bash
     # With MySQL (default)
@@ -174,7 +191,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
     docker-compose --profile sqlite up -d web node
     ```
 
-3. **Access the application**
+4. **Access the application**
     - **Website**: http://localhost:8080
     - **Admin Panel**: http://localhost:8080/admin
     - **phpMyAdmin**: http://localhost:8081 (MySQL only)
@@ -411,6 +428,24 @@ docker-compose exec node yarn install       # Install Node dependencies
 -   **Hooks & Filters**: Extensive customization capabilities for developers
 
 **Note**: A new marketplace system needs to be developed from the ground up to replace the original functionality.
+
+## Security Best Practices
+
+### Docker Environment Security
+
+1. **Never commit environment files**: The `docker.env` file contains sensitive passwords and should never be committed to version control. It's automatically added to `.gitignore`.
+
+2. **Use the setup scripts**: Always use the provided setup scripts (`docker-setup.ps1` for Windows or `docker-setup.sh` for Linux/Mac) to generate secure passwords automatically.
+
+3. **Production deployment**:
+
+    - Generate new, strong passwords for production environments
+    - Use environment-specific configuration files
+    - Enable HTTPS/SSL certificates
+    - Disable debug mode (`APP_DEBUG=false`)
+    - Use proper firewall rules to restrict database access
+
+4. **Regular updates**: Keep all Docker images and dependencies up to date for security patches.
 
 ## Contributing
 
