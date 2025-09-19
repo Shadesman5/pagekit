@@ -44,6 +44,19 @@ return [
 
             if ($driver === 'mail') {
                 $sendMailPath = ini_get('sendmail_path') ?: '/usr/sbin/sendmail -bs';
+                
+                // Fix for Windows/Mailpit: Ensure sendmail path has proper flags
+                if ($sendMailPath && !preg_match('/\s+-(bs|t)(\s|$)/', $sendMailPath)) {
+                    // If no valid flags are present, append -t flag
+                    if (strpos($sendMailPath, 'mailpit') !== false || stripos(PHP_OS, 'WIN') === 0) {
+                        // For Mailpit or Windows systems, use -t flag
+                        $sendMailPath .= ' -t';
+                    } else {
+                        // For Unix-like systems, default to -bs
+                        $sendMailPath .= ' -bs';
+                    }
+                }
+                
                 return new SendmailTransport($sendMailPath);
             }
             
