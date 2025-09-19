@@ -1,5 +1,39 @@
 # Changelog 2025
 
+## Pagekit 1.0.31 - Strategic Dependency Analysis & Security Patches (December 19, 2025)
+
+### Security
+
+-   **CRITICAL: marked security update** - Updated marked from 1.2.0 to 4.3.0 to fix ReDoS and XSS vulnerabilities
+-   **blueimp-md5 security patch** - Updated from 2.18.0 to 2.19.0 for security improvements
+
+### Changed
+
+-   **doctrine/annotations** - Updated from ~1.14 to ~2.0 (major version upgrade, no breaking changes)
+-   **vue-loader** - Updated from 15.9.3 to 15.11.1 (improved Vue component compilation)
+-   **eslint-config-airbnb-base** - Updated from 14.2.0 to 15.0.0 (stricter linting rules)
+-   **eslint-plugin-vue** - Updated from 7.1.0 to 7.20.0 (better Vue 2.x linting support)
+
+### Added
+
+-   **DEPENDABOT_UPDATES.md** - Comprehensive documentation of all dependency updates and strategy
+
+### Strategic Analysis & Decision Making
+
+-   **14 Dependabot PRs analyzed** - Each update evaluated for security impact, breaking changes, and Symfony compatibility
+-   **Intelligent version selection** - marked upgraded to 4.x (not 16.x) to fix security while minimizing breaking changes
+-   **Symfony conflict detection** - symfony/phpunit-bridge deliberately deferred to avoid upgrade conflicts
+-   **Risk-based prioritization** - Security updates prioritized over convenience updates
+-   **Strategic deferrals** - Major breaking changes (vee-validate 4.x, build tools) deferred until after Symfony upgrade
+-   **Comprehensive testing** - Each update validated against existing test suite and manual verification
+
+### Testing
+
+-   **PHP Tests**: Same 69% pass rate maintained, no new failures
+-   **Frontend Build**: All compile processes working correctly
+-   **Security Audit**: Zero vulnerabilities confirmed with composer audit
+-   **Manual Testing**: All core functionality verified, system performance improved
+
 ## Pagekit 1.0.30 - PHPUnit Test Suite Modernization (December 19, 2025)
 
 ### Fixed
