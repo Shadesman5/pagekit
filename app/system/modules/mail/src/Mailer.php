@@ -95,21 +95,36 @@ class Mailer
                 throw new \Exception('SMTP host is required for testing connection');
             }
             
-            // Default port if not provided
+            // Default port if not provided based on encryption
             if (empty($port)) {
-                $port = 25; // Default SMTP port
                 if ($encryption === 'ssl') {
-                    $port = 465;
+                    $port = 465;  // SSL/TLS implicit encryption
                 } elseif ($encryption === 'tls' || $encryption === 'starttls') {
-                    $port = 587;
+                    $port = 587;  // STARTTLS explicit encryption
+                } else {
+                    $port = 25;   // No encryption
                 }
             }
             
-            // Try to create test transport using the same logic as index.php
+            // Determine TLS setting for EsmtpTransport
+            // Important: In Symfony Mailer's EsmtpTransport:
+            // - 3rd param = true  → uses implicit SSL/TLS (port 465)
+            // - 3rd param = false → no implicit encryption (can use STARTTLS on port 587)
+            // - 3rd param = null  → auto-detect based on port
+            $useTls = null;
+            if ($encryption === 'ssl') {
+                $useTls = true;   // Use implicit SSL/TLS (typically port 465)
+            } elseif ($encryption === 'tls' || $encryption === 'starttls') {
+                $useTls = false;  // Don't use implicit encryption, but STARTTLS will be negotiated
+            } elseif ($encryption === '' || $encryption === null) {
+                $useTls = false;  // No encryption at all
+            }
+            
+            // Create test transport using the same logic as index.php
             $testTransport = new EsmtpTransport(
                 $host,
                 (int) $port,
-                $encryption === 'ssl'  // This expects a boolean for SSL
+                $useTls
             );
             
             // Set authentication if provided
@@ -120,9 +135,9 @@ class Mailer
                 }
             }
             
-            // For a basic validation test, we can check if the transport can be created
-            // Actually testing the connection would require sending a real test email
-            // which we do in the emailAction method
+            // For a basic validation test, we check if the transport can be created
+            // Note: Actual connection testing would require sending a real test email
+            // which is done in the emailAction method
             
             // Basic validation: check if we can get a string representation
             $transportString = (string) $testTransport;
