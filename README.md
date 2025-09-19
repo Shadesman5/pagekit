@@ -111,6 +111,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 -   **Advanced Frontend**: Vue.js 2.6 with UIkit 3.5 for responsive, modern interfaces
 -   **Flexible Database**: Support for both MySQL 8.4 and SQLite 3 with Doctrine DBAL 3.10+
 -   **Modern Logging**: Monolog 3.9+ with enhanced performance and debugging capabilities
+-   **Secure Dependencies**: Latest security patches applied (marked 4.3+, doctrine/annotations 2.0+)
 -   **Developer-Friendly**: Full Docker development environment with hot-reloading
 -   **Built-in Extensions**: Blog, Admin Theme, Theme One, and Demo Content included
 -   **Mobile-Optimized**: Responsive design across all devices
