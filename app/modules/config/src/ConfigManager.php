@@ -117,7 +117,11 @@ class ConfigManager implements \IteratorAggregate
     protected function fetch($name)
     {
         if ($this->cache === null) {
-            $this->cache = $this->connection->executeQuery("SELECT name, value FROM {$this->table}")->fetchAll(\PDO::FETCH_COLUMN | \PDO::FETCH_UNIQUE);
+            $result = $this->connection->executeQuery("SELECT name, value FROM {$this->table}")->fetchAllNumeric();
+            $this->cache = [];
+            foreach ($result as $row) {
+                $this->cache[$row[0]] = $row[1];
+            }
         }
 
         if (isset($this->cache[$name]) && $values = @json_decode($this->cache[$name], true)) {

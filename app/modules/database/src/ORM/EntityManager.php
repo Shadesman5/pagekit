@@ -90,7 +90,8 @@ class EntityManager
             return false;
         }
 
-        return (bool) $this->connection->fetchColumn('SELECT 1 FROM '.$metadata->getTable().' WHERE '.$identifier.'='.$this->connection->quote($metadata->getValue($entity, $identifier, true)));
+        $result = $this->connection->executeQuery('SELECT 1 FROM '.$metadata->getTable().' WHERE '.$identifier.'='.$this->connection->quote($metadata->getValue($entity, $identifier, true)));
+        return (bool) $result->fetchOne();
     }
 
     /**
@@ -190,7 +191,7 @@ class EntityManager
      */
     public function hydrateOne($statement, Metadata $metadata)
     {
-        if ($row = $statement->fetch(\PDO::FETCH_ASSOC)) {
+        if ($row = $statement->fetchAssociative()) {
             return $this->load($metadata, $row, true, true);
         }
 
@@ -209,7 +210,7 @@ class EntityManager
         $result     = [];
         $identifier = $metadata->getIdentifier();
 
-        while ($row = $statement->fetch(\PDO::FETCH_ASSOC)) {
+        while ($row = $statement->fetchAssociative()) {
             $entity = $this->load($metadata, $row, true, true);
             $result[$metadata->getValue($entity, $identifier)] = $entity;
         }

@@ -239,7 +239,8 @@ class Utility
      * Migrates the database.
      */
     public function migrate(): void {
-        $diff = Comparator::compareSchemas($this->manager->createSchema(), $this->schema);
+        $comparator = new Comparator();
+        $diff = $comparator->compareSchemas($this->manager->createSchema(), $this->schema);
 
         foreach ($diff->toSaveSql($this->connection->getDatabasePlatform()) as $query) {
             $this->connection->executeQuery($query);

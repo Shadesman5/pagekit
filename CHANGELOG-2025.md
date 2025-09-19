@@ -1,5 +1,66 @@
 # Changelog 2025
 
+## Pagekit 1.0.29 - Critical Security Patches & Major Dependency Updates (December 19, 2024)
+
+### Security
+
+-   **CRITICAL: Resolved all security vulnerabilities** - Applied comprehensive security patches to eliminate all known vulnerabilities identified by `composer audit`
+-   **Zero vulnerabilities confirmed** - Post-update security audit reports 0 vulnerabilities across all dependencies
+
+### Changed
+
+-   **Major Doctrine DBAL upgrade**: 2.13.9 → 3.10.2
+
+    -   Updated `Driver\ResultStatement` to `Result` class throughout codebase
+    -   Migrated `executeQuery()` return type from `ResultStatement` to `Result`
+    -   Replaced deprecated fetch methods:
+        -   `fetchAll()` → `fetchAllAssociative()`
+        -   `fetchAll(\PDO::FETCH_COLUMN)` → `fetchFirstColumn()`
+        -   `fetchAll(\PDO::FETCH_NUM)` → `fetchAllNumeric()`
+        -   `fetch(\PDO::FETCH_ASSOC)` → `fetchAssociative()`
+        -   `fetchColumn()` → `fetchOne()`
+    -   Updated `Comparator::compareSchemas()` from static to instance method
+    -   Removed type hints from SQL parameters for DBAL 3.x compatibility with SQLite and other drivers
+
+-   **Major Monolog upgrade**: 2.1.1 → 3.9.0
+
+    -   Updated handler methods to support both `array` (compatibility) and `LogRecord` (Monolog 3.x) formats
+    -   Implemented runtime type checking for seamless backward compatibility
+    -   Modified level comparisons to use `$record->level->value` for LogRecord objects
+    -   Updated record property access to use object notation for LogRecord
+
+-   **PSR Log upgrade**: 1.1.4 → 2.0.0 (required for Monolog 3.x compatibility)
+-   **Doctrine Cache upgrade**: 1.13.0 → 2.2.0 (security updates and PHP 8.x compatibility)
+-   **Doctrine Event Manager upgrade**: 1.2.0 → 2.0.1 (automatic dependency update)
+
+### Fixed
+
+-   **Database compatibility issues** - Resolved DBAL 3.x compatibility issues across 15+ core files
+-   **Logging system compatibility** - Fixed Monolog 3.x handler compatibility in debug and logging modules
+-   **Type safety improvements** - Added proper type handling for modern PHP versions
+-   **SQLite compatibility** - Ensured full compatibility with SQLite database driver
+
+### Files Modified
+
+-   **Database Layer** (9 files): Connection.php, QueryBuilder.php, Utility.php, EntityManager.php, ManyToMany.php, DatabaseSessionHandler.php, DatabaseHandler.php, ConfigManager.php
+-   **Models** (3 files): NodeModelTrait.php, RoleModelTrait.php, PostModelTrait.php
+-   **Logging System** (2 files): DebugBarHandler.php, LogDataCollector.php
+-   **Controllers** (1 file): BlogController.php
+
+### Testing
+
+-   **PHPUnit 11.5.39** confirmed working with updated dependencies
+-   **PHP 8.4.12** full compatibility verified
+-   **Composer audit** reports 0 vulnerabilities post-update
+-   **No dependency conflicts** - All package updates installed successfully
+
+### Migration Notes
+
+-   **Backup required** before applying these patches to production
+-   **Breaking changes** addressed with backward compatibility where possible
+-   **Test thoroughly** in staging environment before production deployment
+-   **Monitor regularly** with `composer audit` for future security updates
+
 ## Pagekit 1.0.28 - Development Setup Enhancement (September 18, 2025)
 
 ### Added

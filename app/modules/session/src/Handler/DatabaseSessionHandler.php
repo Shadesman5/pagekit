@@ -78,7 +78,7 @@ class DatabaseSessionHandler implements \SessionHandlerInterface
     {
         try {
 
-            $data = $this->connection->executeQuery("SELECT data FROM {$this->table} WHERE id = :id", ['id' => $id])->fetchAll(\PDO::FETCH_NUM);
+            $data = $this->connection->executeQuery("SELECT data FROM {$this->table} WHERE id = :id", ['id' => $id])->fetchAllNumeric();
 
             if ($data) {
                 return base64_decode($data[0][0]);
