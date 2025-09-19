@@ -26,7 +26,7 @@ class LocatorTest extends TestCase
         $this->assertSame($result, $this->locator->get($path));
     }
 
-    public function dataGetPaths(): array
+    public static function dataGetPaths(): array
     {
         $fixtures = __DIR__.'/Fixtures';
 

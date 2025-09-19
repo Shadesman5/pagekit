@@ -6,6 +6,7 @@ use PHPUnit\Framework\TestCase;
 use Pagekit\Database\Connection;
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Driver;
+use Doctrine\DBAL\DriverManager;
 
 class ConnectionTest extends TestCase
 {
@@ -13,16 +14,19 @@ class ConnectionTest extends TestCase
 
     public function setUp(): void
     {
-        // Create a mock connection for testing
+        // Create a mock driver for testing
+        $driver = $this->createMock(Driver::class);
+        
         $params = [
             'driver' => 'pdo_sqlite',
-            'memory' => true
+            'memory' => true,
+            'prefix' => 'pk_'
         ];
         
         $config = new Configuration();
         
-        // Create connection
-        $this->connection = new Connection($params, null, $config);
+        // Create connection with mock driver
+        $this->connection = new Connection($params, $driver, $config);
     }
 
     public function tearDown(): void

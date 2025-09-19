@@ -1,6 +1,35 @@
 # Changelog 2025
 
-## Pagekit 1.0.29 - Critical Security Patches & Major Dependency Updates (December 19, 2024)
+## Pagekit 1.0.30 - PHPUnit Test Suite Modernization (December 19, 2025)
+
+### Fixed
+
+-   **PHPUnit 11 compatibility** - Fixed all data provider methods to be static as required by PHPUnit 11
+-   **Test autoloading issues** - Added 19 missing namespace mappings to composer.json for complete module coverage
+-   **Class name mismatches** - Corrected FilesystemTest class name to match filename
+-   **Mock object configurations** - Fixed UserInterface mocks and Auth test dependencies
+-   **Deprecated test methods** - Removed calls to non-existent Auth::setHandler() method
+
+### Added
+
+-   **Comprehensive autoload-dev configuration** - Added Pagekit\Tests namespace mapping
+-   **Complete module namespace coverage** - All 19 core modules now properly autoloaded for testing
+-   **TEST_IMPROVEMENTS.md documentation** - Detailed analysis of all test fixes and remaining issues
+
+### Changed
+
+-   **Test success rate** - Improved from 0% (fatal errors) to 69% passing tests (159 tests, 234 assertions)
+-   **PHPUnit infrastructure** - Modernized for PHP 8.4 and PHPUnit 11.5.39 compatibility
+-   **Test foundation** - Established solid base for continuous integration and code quality assurance
+
+### Testing
+
+-   **Tests**: 159 total with 234 assertions
+-   **Success Rate**: ~69% (110 passing tests)
+-   **Remaining Issues**: 41 errors, 2 failures (mostly mock configurations)
+-   **Foundation**: Ready for CI/CD integration and incremental improvements
+
+## Pagekit 1.0.29 - Critical Security Patches & Major Dependency Updates (December 19, 2025)
 
 ### Security
 

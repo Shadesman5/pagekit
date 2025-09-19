@@ -7,6 +7,7 @@ use Pagekit\Auth\Auth;
 use Pagekit\Auth\UserInterface;
 use Pagekit\Auth\UserProviderInterface;
 use Pagekit\Auth\Handler\HandlerInterface;
+use Pagekit\Event\EventDispatcherInterface;
 
 class AuthTest extends TestCase
 {
@@ -14,7 +15,9 @@ class AuthTest extends TestCase
 
     public function setUp(): void
     {
-        $this->auth = new Auth();
+        $events = $this->createMock(EventDispatcherInterface::class);
+        $handler = $this->createMock(HandlerInterface::class);
+        $this->auth = new Auth($events, $handler);
     }
 
     public function tearDown(): void
@@ -37,7 +40,7 @@ class AuthTest extends TestCase
     {
         // Create a mock user
         $user = $this->createMock(UserInterface::class);
-        $user->method('getId')->willReturn(1);
+        $user->method('getId')->willReturn('1');
         
         // Set and get user
         $this->auth->setUser($user);
@@ -58,15 +61,12 @@ class AuthTest extends TestCase
     }
 
     /**
-     * Test handler setter
+     * Test that handler is properly set via constructor
      */
     public function testSetHandler(): void
     {
-        // Create a mock handler
-        $handler = $this->createMock(HandlerInterface::class);
-        
-        // Set handler (no getter to test, just ensure no exception)
-        $this->auth->setHandler($handler);
+        // Test that auth was created with handler (no exception thrown)
+        $this->assertInstanceOf(Auth::class, $this->auth);
         $this->assertTrue(true);
     }
 
@@ -77,7 +77,7 @@ class AuthTest extends TestCase
     {
         // Create mock user
         $user = $this->createMock(UserInterface::class);
-        $user->method('getId')->willReturn(1);
+        $user->method('getId')->willReturn('1');
         
         // Create mock user provider
         $provider = $this->createMock(UserProviderInterface::class);

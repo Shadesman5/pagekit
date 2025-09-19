@@ -39,7 +39,7 @@ class PathTest extends TestCase
         }
     }
 
-    public function dataPaths(): array
+    public static function dataPaths(): array
     {
         return [
             ['dir/file.txt', ['root' => '', 'path' => 'dir/file.txt', 'dirname' => 'dir', 'pathname' => 'dir/file.txt', 'protocol' => 'file']],

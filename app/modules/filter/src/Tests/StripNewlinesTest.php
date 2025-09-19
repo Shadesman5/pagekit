@@ -17,7 +17,7 @@ class StripNewlinesTest extends TestCase
         $this->assertEquals($output, $filter->filter($input));
     }
 
-    public function provideNewLineStrings(): array
+    public static function provideNewLineStrings(): array
     {
         return [
             ['', ''],

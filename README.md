@@ -392,6 +392,11 @@ yarn compile-js --mode=production       # Build JavaScript for production
 yarn compile-less                       # Build CSS for production
 yarn install                            # Full production build
 
+# Testing
+./app/vendor/bin/phpunit                 # Run PHPUnit test suite (159 tests)
+./app/vendor/bin/phpunit --testdox       # Run tests with detailed output
+./app/vendor/bin/phpunit --coverage-html coverage/  # Generate code coverage
+
 # Utilities
 yarn lint                               # Check code quality
 yarn cldr                               # Update locale data
