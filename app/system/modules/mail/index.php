@@ -28,10 +28,24 @@ return [
             $driver = $this->config['driver'];
 
             if ($driver === 'smtp') {
+                // Determine TLS setting based on encryption type
+                // Important: In Symfony Mailer's EsmtpTransport:
+                // - 3rd param = true  → uses implicit SSL/TLS (port 465)
+                // - 3rd param = false → no implicit encryption (but STARTTLS can be negotiated on port 587)
+                // - 3rd param = null  → auto-detect based on port
+                $useTls = null;
+                if ($this->config['encryption'] === 'ssl') {
+                    $useTls = true;   // Use implicit SSL/TLS (typically port 465)
+                } elseif ($this->config['encryption'] === 'tls' || $this->config['encryption'] === 'starttls') {
+                    $useTls = false;  // Don't use implicit encryption, STARTTLS will be negotiated
+                } elseif (empty($this->config['encryption'])) {
+                    $useTls = false;  // No encryption at all
+                }
+                
                 $transport = new EsmtpTransport(
                     $this->config['host'],
                     $this->config['port'],
-                    $this->config['encryption'] === 'ssl'
+                    $useTls
                 );
 
                 if ($this->config['username']) {
@@ -44,6 +58,19 @@ return [
 
             if ($driver === 'mail') {
                 $sendMailPath = ini_get('sendmail_path') ?: '/usr/sbin/sendmail -bs';
+                
+                // Fix for Windows/Mailpit: Ensure sendmail path has proper flags
+                if ($sendMailPath && !preg_match('/\s+-(bs|t)(\s|$)/', $sendMailPath)) {
+                    // If no valid flags are present, append -t flag
+                    if (strpos($sendMailPath, 'mailpit') !== false || stripos(PHP_OS, 'WIN') === 0) {
+                        // For Mailpit or Windows systems, use -t flag
+                        $sendMailPath .= ' -t';
+                    } else {
+                        // For Unix-like systems, default to -bs
+                        $sendMailPath .= ' -bs';
+                    }
+                }
+                
                 return new SendmailTransport($sendMailPath);
             }
             

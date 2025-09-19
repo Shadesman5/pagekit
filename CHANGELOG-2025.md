@@ -1,6 +1,44 @@
 # Changelog 2025
 
-## Pagekit 1.0.31 - Strategic Dependency Analysis & Security Patches (December 19, 2025)
+## Pagekit 1.0.32 - Mail System Sendmail Fix & Windows Compatibility (September 19, 2025)
+
+### Fixed
+
+-   **Sendmail path processing for Windows systems** - Fixed sendmail command flags issue on Windows systems with Mailpit/Laragon. The system now automatically appends required `-t` or `-bs` flags to sendmail paths that don't include them, resolving "Unsupported sendmail command flags" errors.
+
+-   **SMTP connection test validation** - Improved parameter validation in SMTP connection testing to prevent 500 Internal Server Error when testing with empty or incomplete configuration. Now shows clear error message "SMTP host is required for connection testing" instead of attempting connection with null values.
+
+### Added
+
+-   **Automatic flag detection for sendmail paths** - Added intelligent detection and appending of required sendmail flags:
+
+    -   Windows/Mailpit systems: Automatically appends `-t` flag
+    -   Unix-like systems: Automatically appends `-bs` flag
+    -   Only adds flags when missing, preserves existing valid configurations
+
+-   **Enhanced SMTP test error handling** - Added proper validation for empty SMTP parameters with clear error messages for better user experience in admin panel.
+
+-   **MAIL_SENDMAIL_FIX.md documentation** - Comprehensive documentation of the sendmail fix including test cases, affected systems, and backward compatibility notes.
+
+### Testing
+
+-   **Sendmail Transport Tests** - Added comprehensive test coverage for sendmail path processing including Mailpit path validation and various sendmail configurations
+-   **SMTP Parameter Validation Tests** - Added tests for empty and partial SMTP configuration handling
+-   **Manual Testing Verified** - Confirmed fix works on Windows systems with Laragon/Mailpit and various sendmail configurations
+
+### Backward Compatibility
+
+-   ✅ **Fully backward compatible** - Existing configurations continue to work without changes
+-   ✅ **No breaking changes** - Only adds missing flags, doesn't modify valid existing paths
+-   ✅ **Cross-platform support** - Works on Windows, Linux, and macOS systems
+
+### Affected Systems
+
+-   Windows development environments with Laragon/XAMPP/WAMP
+-   Systems using Mailpit for local mail testing
+-   Any system where sendmail_path doesn't include required flags
+
+## Pagekit 1.0.31 - Strategic Dependency Analysis & Security Patches (September 19, 2025)
 
 ### Security
 
@@ -34,7 +72,7 @@
 -   **Security Audit**: Zero vulnerabilities confirmed with composer audit
 -   **Manual Testing**: All core functionality verified, system performance improved
 
-## Pagekit 1.0.30 - PHPUnit Test Suite Modernization (December 19, 2025)
+## Pagekit 1.0.30 - PHPUnit Test Suite Modernization (September 19, 2025)
 
 ### Fixed
 
@@ -63,7 +101,7 @@
 -   **Remaining Issues**: 41 errors, 2 failures (mostly mock configurations)
 -   **Foundation**: Ready for CI/CD integration and incremental improvements
 
-## Pagekit 1.0.29 - Critical Security Patches & Major Dependency Updates (December 19, 2025)
+## Pagekit 1.0.29 - Critical Security Patches & Major Dependency Updates (September 19, 2025)
 
 ### Security
 
