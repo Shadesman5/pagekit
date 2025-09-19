@@ -50,9 +50,17 @@ class MailController
             $mailer = App::mailer();
             $email = $mailer->create()
                 ->subject(__('Test email!'))
-                ->text(__('Testemail'))
-                ->from($config['from_address'])
-                ->to($config['from_address']); // Send to the same address as the from address
+                ->text(__('Testemail'));
+                
+            // Set from address with optional name
+            if (!empty($config['from_name'])) {
+                $email->from(new \Symfony\Component\Mime\Address($config['from_address'], $config['from_name']));
+            } else {
+                $email->from($config['from_address']);
+            }
+            
+            // Send to the same address as the from address
+            $email->to($config['from_address']);
                 
             $mailer->send($email);
             
