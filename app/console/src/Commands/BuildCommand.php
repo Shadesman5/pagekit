@@ -61,7 +61,12 @@ class BuildCommand extends Command
 
         $this->line(sprintf('Starting: webpack'));
 
-        exec('node_modules/.bin/webpack -p');
+        // Cross-platform webpack execution
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            exec('yarn compile-js --mode=production 2>NUL');
+        } else {
+            exec('node_modules/.bin/webpack -p');
+        }
 
         $this->line(sprintf('Building Package.'));
 
@@ -74,18 +79,20 @@ class BuildCommand extends Command
         }
 
         foreach ($finder as $file) {
-            $zip->addFile($file->getPathname(), $file->getRelativePathname());
+            // Normalize path separators for cross-platform compatibility
+            $relativePath = str_replace('\\', '/', $file->getRelativePathname());
+            $zip->addFile($file->getPathname(), $relativePath);
         }
 
         $zip->addFile("{$path}/.bowerrc", '.bowerrc');
         $zip->addFile("{$path}/.htaccess", '.htaccess');
 
         $zip->addEmptyDir('tmp/');
-        $zip->addEmptyDir('tmp/cache');
-        $zip->addEmptyDir('tmp/temp');
-        $zip->addEmptyDir('tmp/logs');
-        $zip->addEmptyDir('tmp/sessions');
-        $zip->addEmptyDir('tmp/packages');
+        $zip->addEmptyDir('tmp/cache/');
+        $zip->addEmptyDir('tmp/temp/');
+        $zip->addEmptyDir('tmp/logs/');
+        $zip->addEmptyDir('tmp/sessions/');
+        $zip->addEmptyDir('tmp/packages/');
 
         $zip->close();
 
