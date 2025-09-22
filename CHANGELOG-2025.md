@@ -1,5 +1,36 @@
 # Changelog 2025
 
+## Pagekit 1.0.33 - Doctrine Dependencies Rollback & System Stability (September 22, 2025)
+
+### Fixed
+
+-   **System stability restored** - Rolled back problematic Doctrine dependency updates that were causing system failures and breaking changes
+-   **Database operations working** - Restored full database functionality after major version conflicts
+
+### Changed
+
+-   **doctrine/annotations** - Rolled back from ~2.0 to ~1.14 (major version downgrade due to breaking changes)
+-   **doctrine/dbal** - Rolled back from ^3.8 to ~2.13 (major version downgrade due to breaking changes)
+-   **doctrine/cache** - Rolled back from ^2.2 to ~1.13 (major version downgrade due to breaking changes)
+
+### Technical Details
+
+-   **Breaking changes identified** - Doctrine DBAL 2→3 migration introduced incompatible API changes that were not properly tested
+-   **System functionality restored** - All core Pagekit features now working correctly with stable Doctrine versions
+-   **Strategic decision** - Rollback necessary to maintain system stability while preparing proper migration strategy
+
+### Migration Strategy
+
+-   **Next steps planned** - Doctrine Annotations will be migrated to PHP 8 Attributes first
+-   **Proper upgrade path** - After annotations migration, Doctrine packages will be updated with proper compatibility testing
+-   **Incremental approach** - Breaking changes will be addressed systematically rather than in bulk updates
+
+### Affected Systems
+
+-   All Pagekit installations that experienced system failures after Doctrine updates
+-   Development environments where database operations were broken
+-   Production systems requiring immediate stability restoration
+
 ## Pagekit 1.0.32 - Mail System Sendmail Fix & Windows Compatibility (September 19, 2025)
 
 ### Fixed
