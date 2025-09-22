@@ -24,7 +24,7 @@
         "doctrine/cache": "^2.2",
         "paragonie/random-lib": "~2.0.1",
         "paragonie/sodium_compat": "~1.21",
-        "php-debugbar/php-debugbar": "~1.23",
+        "php-debugbar/php-debugbar": "~2.2",
         "monolog/monolog": "^3.7",
         "nikic/php-parser": "~5.4",
         "psr/log": "^2.0",
