@@ -23,7 +23,7 @@
         "doctrine/dbal": "~2.13",
         "doctrine/cache": "~1.13",
         "paragonie/random-lib": "~2.0.1",
-        "paragonie/sodium_compat": "~1.21",
+        "paragonie/sodium_compat": "~2.2",
         "php-debugbar/php-debugbar": "~1.23",
         "monolog/monolog": "^3.7",
         "nikic/php-parser": "~5.4",
