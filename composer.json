@@ -28,7 +28,7 @@
         "monolog/monolog": "^3.7",
         "nikic/php-parser": "~5.4",
         "psr/log": "^2.0",
-        "psr/cache": "~1",
+        "psr/cache": "~3",
         "symfony/mailer": "~5.4",
         "symfony/error-handler": "~5.4",
         "symfony/finder": "~5.4",
