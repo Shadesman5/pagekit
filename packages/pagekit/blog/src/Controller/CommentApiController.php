@@ -77,7 +77,9 @@ class CommentApiController
             $order = [1 => 'created', 2 => App::module('blog')->config('comments.order')];
         }
 
-        $comments = $query->related(['post' => fn($query) => $query->related('comments')])->related('user')->orderBy($order[1], $order[2])->get();
+        $comments = $query->related(['post' => function($query) {
+            return $query->related('comments');
+        }])->related('user')->orderBy($order[1], $order[2])->get();
 
         $posts = [];
 
