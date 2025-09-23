@@ -154,13 +154,11 @@ return [
     'events' => [
 
         'boot' => function ($event, $app) {
-            error_log("Blog module boot event triggered");
             $app->subscribe(
                 new RouteListener,
                 new PostListener(),
                 new ReadmorePlugin
             );
-            error_log("Blog module subscribers registered");
         },
 
         'view.scripts' => function ($event, $scripts) {

@@ -1,10 +1,4 @@
-<?php 
-error_log("Blog posts.php view loaded");
-error_log("Number of posts to display: " . count($posts));
-error_log("Total pages: " . $total);
-error_log("Current page: " . $page);
-$view->script('posts', 'blog:app/bundle/posts.js', 'vue');
-?>
+<?php $view->script('posts', 'blog:app/bundle/posts.js', 'vue') ?>
 
 <?php foreach ($posts as $post) : ?>
 <article class="uk-article">
