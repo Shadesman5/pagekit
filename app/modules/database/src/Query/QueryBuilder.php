@@ -6,6 +6,7 @@ use Closure;
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Platforms\MySqlPlatform;
 use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use Pagekit\Database\Connection;
 use Pagekit\Database\Query\QueryBuilder;
 use PDO;
@@ -455,18 +456,7 @@ class QueryBuilder
      */
     public function get($columns = ['*']): array
     {
-        try {
-            error_log("QueryBuilder::get called with columns: " . json_encode($columns));
-            $result = $this->execute($columns);
-            error_log("QueryBuilder::get - execute returned: " . get_class($result));
-            $data = $result->fetchAllAssociative();
-            error_log("QueryBuilder::get - fetchAllAssociative returned " . count($data) . " rows");
-            return $data;
-        } catch (\Throwable $e) {
-            error_log("ERROR in QueryBuilder::get: " . $e->getMessage());
-            error_log("Stack trace: " . $e->getTraceAsString());
-            throw $e;
-        }
+        return $this->execute($columns)->fetchAllAssociative();
     }
 
     /**
@@ -545,14 +535,7 @@ class QueryBuilder
     {
         $select  = $this->getPart('select');
         
-        try {
-            error_log("QueryBuilder::aggregate called - function: $function, column: $column");
-            $results = $this->setPart('select', sprintf('%s(%s) AS aggregate', strtoupper($function), $column))->get();
-            error_log("QueryBuilder::aggregate results: " . json_encode($results));
-        } catch (\Exception $e) {
-            error_log("ERROR in QueryBuilder::aggregate: " . $e->getMessage());
-            throw $e;
-        }
+        $results = $this->setPart('select', sprintf('%s(%s) AS aggregate', strtoupper($function), $column))->get();
 
         $this->setPart('select', $select);
 
@@ -575,20 +558,11 @@ class QueryBuilder
      */
     public function execute($columns = ['*']): Result
     {
-        try {
-            error_log("QueryBuilder::execute called");
-            if (empty($this->parts['select'])) {
-                $this->select($columns);
-            }
-            error_log("QueryBuilder::execute - calling executeQuery");
-            $result = $this->executeQuery();
-            error_log("QueryBuilder::execute - executeQuery returned: " . (is_object($result) ? get_class($result) : gettype($result)));
-            return $result;
-        } catch (\Throwable $e) {
-            error_log("ERROR in QueryBuilder::execute: " . $e->getMessage());
-            error_log("Stack trace: " . $e->getTraceAsString());
-            throw $e;
+        if (empty($this->parts['select'])) {
+            $this->select($columns);
         }
+
+        return $this->executeQuery();
     }
 
     /**
@@ -649,38 +623,23 @@ class QueryBuilder
      */
     protected function executeQuery($type = 'select')
     {
-        try {
-            error_log("QueryBuilder::executeQuery called - type: $type");
-            
-            switch ($type) {
-                case 'update':
-                    $sql = $this->getSQLForUpdate();
-                    break;
+        switch ($type) {
+            case 'update':
+                $sql = $this->getSQLForUpdate();
+                break;
 
-                case 'delete':
-                    $sql = $this->getSQLForDelete();
-                    break;
+            case 'delete':
+                $sql = $this->getSQLForDelete();
+                break;
 
-                default:
-                    $sql = $this->getSQLForSelect();
-            }
-            
-            error_log("QueryBuilder::executeQuery - SQL: " . $sql);
-            error_log("QueryBuilder::executeQuery - params: " . json_encode($this->params));
+            default:
+                $sql = $this->getSQLForSelect();
+        }
 
-            if ($type == 'select') {
-                $result = $this->connection->executeQuery($sql, $this->params, $this->guessParamTypes($this->params));
-                error_log("QueryBuilder::executeQuery - executeQuery returned: " . get_class($result));
-                return $result;
-            } else {
-                $result = $this->connection->executeStatement($sql, $this->params, $this->guessParamTypes($this->params));
-                error_log("QueryBuilder::executeQuery - executeStatement returned: " . $result);
-                return $result;
-            }
-        } catch (\Throwable $e) {
-            error_log("ERROR in QueryBuilder::executeQuery: " . $e->getMessage());
-            error_log("SQL was: " . ($sql ?? 'not generated'));
-            throw $e;
+        if ($type == 'select') {
+            return $this->connection->executeQuery($sql, $this->params, $this->guessParamTypes($this->params));
+        } else {
+            return $this->connection->executeStatement($sql, $this->params, $this->guessParamTypes($this->params));
         }
     }
 
@@ -768,8 +727,8 @@ class QueryBuilder
         $types = [];
         foreach ($params as $key => $param) {
             if ($param instanceof \DateTimeInterface) {
-                // DBAL 2.10.2 - Make sure that the $types array has the same keys $params. https://github.com/doctrine/dbal/pull/3894
-                $types[$key] = Type::DATETIME;
+                // DBAL 3.x: Use Types::DATETIME_MUTABLE instead of Type::DATETIME
+                $types[$key] = Types::DATETIME_MUTABLE;
             }
         }
         return $types;
