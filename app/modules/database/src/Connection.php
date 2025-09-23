@@ -84,8 +84,13 @@ class Connection extends BaseConnection
         
         // Register custom type mappings after connection is established
         if ($result && !$this->_typeMappingsRegistered) {
-            $this->registerCustomTypeMappings();
-            $this->_typeMappingsRegistered = true;
+            try {
+                $platform = parent::getDatabasePlatform();
+                $this->registerCustomTypeMappings($platform);
+                $this->_typeMappingsRegistered = true;
+            } catch (\Exception $e) {
+                // Connection might not be ready yet
+            }
         }
         
         return $result;
@@ -101,7 +106,7 @@ class Connection extends BaseConnection
         
         // Register type mappings if not already done
         if (!$this->_typeMappingsRegistered && $this->isConnected()) {
-            $this->registerCustomTypeMappings();
+            $this->registerCustomTypeMappings($platform);
             $this->_typeMappingsRegistered = true;
         }
         
@@ -110,11 +115,16 @@ class Connection extends BaseConnection
     
     /**
      * Register custom type mappings for DBAL 3.x compatibility.
+     * 
+     * @param \Doctrine\DBAL\Platforms\AbstractPlatform|null $platform
      */
-    protected function registerCustomTypeMappings(): void
+    protected function registerCustomTypeMappings($platform = null): void
     {
         try {
-            $platform = $this->getDatabasePlatform();
+            // Use provided platform or get it from parent (avoiding recursion)
+            if ($platform === null) {
+                $platform = parent::getDatabasePlatform();
+            }
             
             // Map database types to our custom Doctrine types
             $platform->registerDoctrineTypeMapping('json', 'json_array');
