@@ -1,75 +1,75 @@
 # Changelog 2025
 
-## Pagekit 1.0.36 - PSR-11 Container Compatibility (September 14, 2025)
+## Pagekit 1.0.36 - PSR-11 Container Compatibility (September 24, 2025)
 
 ### Added
 
-- **PSR-11 Container Compatibility** - Implemented PSR-11 ContainerInterface support
-  - Added `getService()` and `hasService()` methods for PSR-11 compliance
-  - Created `Psr11Adapter` class that fully implements ContainerInterface
-  - Added `getPsr11Adapter()` method to get PSR-11 compliant adapter
-  - Created PSR-11 exception classes: `NotFoundException` and `ContainerException`
+-   **PSR-11 Container Compatibility** - Implemented PSR-11 ContainerInterface support
+    -   Added `getService()` and `hasService()` methods for PSR-11 compliance
+    -   Created `Psr11Adapter` class that fully implements ContainerInterface
+    -   Added `getPsr11Adapter()` method to get PSR-11 compliant adapter
+    -   Created PSR-11 exception classes: `NotFoundException` and `ContainerException`
 
 ### Changed
 
-- **Container Architecture** - Modernized container to support PSR-11 standard
-  - PSR-11 methods renamed to avoid PHP naming conflicts (getService/hasService instead of get/has)
-  - Static method handling via `__callStatic()` magic method
-  - Full backward compatibility maintained - all existing code works unchanged
+-   **Container Architecture** - Modernized container to support PSR-11 standard
+    -   PSR-11 methods renamed to avoid PHP naming conflicts (getService/hasService instead of get/has)
+    -   Static method handling via `__callStatic()` magic method
+    -   Full backward compatibility maintained - all existing code works unchanged
 
 ### Technical Details
 
-- **No Breaking Changes** - All existing static calls (`App::get()`, `App::has()`, `App::db()`) continue to work
-- **ArrayAccess Compatibility** - Existing ArrayAccess interface fully maintained
-- **Test Coverage** - Added 25 comprehensive tests for PSR-11 compliance
-- **Documentation** - Complete migration guide in PSR11_CONTAINER_MIGRATION.md
+-   **No Breaking Changes** - All existing static calls (`App::get()`, `App::has()`, `App::db()`) continue to work
+-   **ArrayAccess Compatibility** - Existing ArrayAccess interface fully maintained
+-   **Test Coverage** - Added 25 comprehensive tests for PSR-11 compliance
+-   **Documentation** - Complete migration guide in PSR11_CONTAINER_MIGRATION.md
 
 ## Pagekit 1.0.35 - Doctrine DBAL 3.x Update (September 23, 2025)
 
 ### Changed
 
-- **doctrine/dbal** - Updated from 2.13 to 3.8 (major version update for better performance and modern PHP support)
-- **Debug Module** - Replaced deprecated SQLLogger with new Middleware-based SQL logging system
-- **Database Layer** - Full compatibility with DBAL 3.x APIs and methods
-- **Custom Types** - Updated JsonArrayType and SimpleArrayType for DBAL 3.x compatibility
+-   **doctrine/dbal** - Updated from 2.13 to 3.8 (major version update for better performance and modern PHP support)
+-   **Debug Module** - Replaced deprecated SQLLogger with new Middleware-based SQL logging system
+-   **Database Layer** - Full compatibility with DBAL 3.x APIs and methods
+-   **Custom Types** - Updated JsonArrayType and SimpleArrayType for DBAL 3.x compatibility
 
 ### Added
 
-- **DebugMiddleware System** - New middleware-based SQL logging for debug bar
-  - `DebugMiddleware` - Main middleware for SQL logging
-  - `DebugLogger` - PSR-3 compatible logger for collecting queries
-  - `DebugDriver` - Driver wrapper for debug logging
-  - `DebugConnection` - Connection wrapper for query tracking
-  - `DebugStatement` - Statement wrapper for parameter binding tracking
+-   **DebugMiddleware System** - New middleware-based SQL logging for debug bar
+    -   `DebugMiddleware` - Main middleware for SQL logging
+    -   `DebugLogger` - PSR-3 compatible logger for collecting queries
+    -   `DebugDriver` - Driver wrapper for debug logging
+    -   `DebugConnection` - Connection wrapper for query tracking
+    -   `DebugStatement` - Statement wrapper for parameter binding tracking
 
 ### Fixed
 
-- **Type Constants** - Fixed deprecated Type constants (SIMPLE_ARRAY, JSON_ARRAY, DATETIME)
-- **Custom Type Registration** - Fixed infinite recursion in type registration
-- **WrapperClass Compatibility** - Fixed middleware integration with custom Connection class
-- **Debug Bar** - SQL queries now properly displayed with parameters and execution times
-- **Method Signatures** - Updated all method signatures for DBAL 3.x compatibility
-- **Arrow Functions** - Replaced all arrow functions (fn) with regular anonymous functions for compatibility
-- **SQL Aggregate Queries** - Added missing AS keyword in COUNT() queries
-- **DateTime Type Mapping** - Replaced Type::DATETIME with Types::DATETIME_MUTABLE
-- **Blog Extension** - Fixed 500 error in blog frontend caused by DBAL type constants
-- **Widget Position Management** - Fixed widget position not being saved or loaded correctly
-- **Widget Theme Properties** - Fixed null reference errors in widget theme settings
-- **PHP 8.2+ Deprecations** - Added #[\AllowDynamicProperties] attribute to Widget model
-- **Widget Edit View** - Fixed JavaScript error handling and scope issues
+-   **Type Constants** - Fixed deprecated Type constants (SIMPLE_ARRAY, JSON_ARRAY, DATETIME)
+-   **Custom Type Registration** - Fixed infinite recursion in type registration
+-   **WrapperClass Compatibility** - Fixed middleware integration with custom Connection class
+-   **Debug Bar** - SQL queries now properly displayed with parameters and execution times
+-   **Method Signatures** - Updated all method signatures for DBAL 3.x compatibility
+-   **Arrow Functions** - Replaced all arrow functions (fn) with regular anonymous functions for compatibility
+-   **SQL Aggregate Queries** - Added missing AS keyword in COUNT() queries
+-   **DateTime Type Mapping** - Replaced Type::DATETIME with Types::DATETIME_MUTABLE
+-   **Blog Extension** - Fixed 500 error in blog frontend caused by DBAL type constants
+-   **Widget Position Management** - Fixed widget position not being saved or loaded correctly
+-   **Widget Theme Properties** - Fixed null reference errors in widget theme settings
+-   **PHP 8.2+ Deprecations** - Added #[\AllowDynamicProperties] attribute to Widget model
+-   **Widget Edit View** - Fixed JavaScript error handling and scope issues
 
 ### Technical Details
 
-- **DBAL 3.x Compatibility** - All database operations updated for DBAL 3.x
-- **Middleware Pattern** - Implemented DBAL 3.x middleware pattern for SQL logging
-- **PSR-3 Compliance** - Debug logger implements PSR-3 LoggerInterface
-- **Backward Compatibility** - Deprecated DebugStack class kept for compatibility
-- **Performance** - Improved query logging performance with middleware approach
-- **Manual Middleware Wrapping** - Implemented workaround for DBAL 3.x limitation with wrapperClass
-- **Query Builder Updates** - Fixed guessParamTypes() method for DateTime handling
-- **Node System** - Fixed route registration issues caused by arrow functions
-- **Widget System** - Complete overhaul of widget position management and theme property handling
-- **PHP 8.2+ Compatibility** - Resolved all deprecation warnings with proper attribute usage
+-   **DBAL 3.x Compatibility** - All database operations updated for DBAL 3.x
+-   **Middleware Pattern** - Implemented DBAL 3.x middleware pattern for SQL logging
+-   **PSR-3 Compliance** - Debug logger implements PSR-3 LoggerInterface
+-   **Backward Compatibility** - Deprecated DebugStack class kept for compatibility
+-   **Performance** - Improved query logging performance with middleware approach
+-   **Manual Middleware Wrapping** - Implemented workaround for DBAL 3.x limitation with wrapperClass
+-   **Query Builder Updates** - Fixed guessParamTypes() method for DateTime handling
+-   **Node System** - Fixed route registration issues caused by arrow functions
+-   **Widget System** - Complete overhaul of widget position management and theme property handling
+-   **PHP 8.2+ Compatibility** - Resolved all deprecation warnings with proper attribute usage
 
 ## Pagekit 1.0.34 - Safe Dependency Updates (September 23, 2025)
 
