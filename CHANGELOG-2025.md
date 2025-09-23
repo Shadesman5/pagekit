@@ -1,5 +1,35 @@
 # Changelog 2025
 
+## Pagekit 1.0.35 - Doctrine DBAL 3.x Update (September 23, 2025)
+
+### Changed
+
+- **doctrine/dbal** - Updated from 2.13 to 3.10.2 (major version update for better performance and modern PHP support)
+- **Debug Module** - Replaced deprecated SQLLogger with new Middleware-based SQL logging system
+- **Database Layer** - Full compatibility with DBAL 3.x APIs and methods
+
+### Added
+
+- **DebugMiddleware System** - New middleware-based SQL logging for debug bar
+  - `DebugMiddleware` - Main middleware for SQL logging
+  - `DebugLogger` - PSR-3 compatible logger for collecting queries
+  - `DebugDriver` - Driver wrapper for debug logging
+  - `DebugConnection` - Connection wrapper for query tracking
+  - `DebugStatement` - Statement wrapper for parameter binding tracking
+
+### Technical Details
+
+- **DBAL 3.x Compatibility** - All database operations updated for DBAL 3.x
+- **Middleware Pattern** - Implemented DBAL 3.x middleware pattern for SQL logging
+- **PSR-3 Compliance** - Debug logger implements PSR-3 LoggerInterface
+- **Backward Compatibility** - Deprecated DebugStack class kept for compatibility
+- **Performance** - Improved query logging performance with middleware approach
+
+### Known Issues
+
+- Some PHPUnit test mocks need updating (not related to DBAL functionality)
+- doctrine/cache remains on 1.13 (requires PSR-6 migration in future update)
+
 ## Pagekit 1.0.34 - Safe Dependency Updates (September 23, 2025)
 
 ### Changed
