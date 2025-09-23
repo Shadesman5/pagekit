@@ -38,6 +38,9 @@ $config = [
                         // Enable logging only if debugbar is active
                         $logger->enabled = isset($app['debugbar']);
                         
+                        // Debug output
+                        error_log("Creating debug middleware - debugbar exists: " . (isset($app['debugbar']) ? 'yes' : 'no') . ", logger enabled: " . ($logger->enabled ? 'yes' : 'no'));
+                        
                         // Create middleware with logger
                         $middleware = new \Pagekit\Debug\Middleware\DebugMiddleware($logger);
                         
