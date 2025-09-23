@@ -2,6 +2,19 @@
 
 namespace Pagekit\Application\Traits;
 
+/**
+ * Provides static access to the container instance.
+ * 
+ * Note: Static methods has(), get(), set(), and remove() have been removed
+ * to avoid conflicts with PSR-11 non-static methods in the Container class.
+ * 
+ * Use getInstance() to access the container and then call PSR-11 methods:
+ * - Application::getInstance()->has($id)
+ * - Application::getInstance()->get($id)
+ * 
+ * Or use the ArrayAccess interface for backward compatibility:
+ * - Application::getInstance()[$id]
+ */
 trait StaticTrait
 {
     protected static $instance;
@@ -14,48 +27,6 @@ trait StaticTrait
     public static function getInstance()
     {
         return static::$instance;
-    }
-
-    /**
-     * Checks if a parameter or service is defined.
-     *
-     * @param  string $name
-     */
-    public static function has($name): bool
-    {
-        return static::$instance->offsetExists($name);
-    }
-
-    /**
-     * Gets a parameter or service.
-     *
-     * @param  string $name
-     * @return mixed
-     */
-    public static function get($name)
-    {
-        return static::$instance->offsetGet($name);
-    }
-
-    /**
-     * Sets a parameter or service.
-     *
-     * @param string $name
-     * @param mixed  $value
-     */
-    public static function set($name, $value): void
-    {
-        static::$instance->offsetSet($name, $value);
-    }
-
-    /**
-     * Removes a parameter or service.
-     *
-     * @param string $name
-     */
-    public static function remove($name): void
-    {
-        static::$instance->offsetUnset($name);
     }
 
     /**

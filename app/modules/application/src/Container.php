@@ -2,7 +2,11 @@
 
 namespace Pagekit;
 
-class Container implements \ArrayAccess
+use Pagekit\Container\ContainerException;
+use Pagekit\Container\NotFoundException;
+use Psr\Container\ContainerInterface;
+
+class Container implements \ArrayAccess, ContainerInterface
 {
     protected array $values = [];
 
@@ -96,6 +100,40 @@ class Container implements \ArrayAccess
     public function keys(): array
     {
         return array_keys($this->values);
+    }
+
+    /**
+     * PSR-11: Finds an entry of the container by its identifier and returns it.
+     *
+     * @param string $id Identifier of the entry to look for.
+     *
+     * @throws NotFoundExceptionInterface  No entry was found for this identifier.
+     * @throws ContainerExceptionInterface Error while retrieving the entry.
+     *
+     * @return mixed Entry.
+     */
+    public function get(string $id)
+    {
+        try {
+            return $this->offsetGet($id);
+        } catch (\InvalidArgumentException $e) {
+            throw new NotFoundException($e->getMessage(), $e->getCode(), $e);
+        } catch (\Exception $e) {
+            throw new ContainerException(sprintf('Error while retrieving "%s"', $id), 0, $e);
+        }
+    }
+
+    /**
+     * PSR-11: Returns true if the container can return an entry for the given identifier.
+     * Returns false otherwise.
+     *
+     * @param string $id Identifier of the entry to look for.
+     *
+     * @return bool
+     */
+    public function has(string $id): bool
+    {
+        return $this->offsetExists($id);
     }
 
     /**
