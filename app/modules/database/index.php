@@ -2,6 +2,7 @@
 
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use Pagekit\Database\ORM\EntityManager;
 use Pagekit\Database\ORM\Loader\AnnotationLoader;
 use Pagekit\Database\ORM\MetadataManager;
@@ -60,8 +61,8 @@ $config = [
             return new DebugMiddleware($logger);
         };
 
-        Type::overrideType(Type::SIMPLE_ARRAY, '\Pagekit\Database\Types\SimpleArrayType');
-        Type::overrideType(Type::JSON_ARRAY, '\Pagekit\Database\Types\JsonArrayType');
+        Type::overrideType(Types::SIMPLE_ARRAY, '\Pagekit\Database\Types\SimpleArrayType');
+        Type::overrideType(Types::JSON, '\Pagekit\Database\Types\JsonArrayType');
     },
 
     'autoload' => [
