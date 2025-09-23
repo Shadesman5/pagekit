@@ -56,7 +56,7 @@ class DebugConnection extends AbstractConnectionMiddleware
     /**
      * {@inheritdoc}
      */
-    public function exec(string $sql): int|string
+    public function exec(string $sql): int
     {
         $this->logger->startQuery($sql);
         
