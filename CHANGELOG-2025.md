@@ -1,5 +1,29 @@
 # Changelog 2025
 
+## Pagekit 1.0.36 - PSR-11 Container Compatibility (September 14, 2025)
+
+### Added
+
+- **PSR-11 Container Compatibility** - Implemented PSR-11 ContainerInterface support
+  - Added `getService()` and `hasService()` methods for PSR-11 compliance
+  - Created `Psr11Adapter` class that fully implements ContainerInterface
+  - Added `getPsr11Adapter()` method to get PSR-11 compliant adapter
+  - Created PSR-11 exception classes: `NotFoundException` and `ContainerException`
+
+### Changed
+
+- **Container Architecture** - Modernized container to support PSR-11 standard
+  - PSR-11 methods renamed to avoid PHP naming conflicts (getService/hasService instead of get/has)
+  - Static method handling via `__callStatic()` magic method
+  - Full backward compatibility maintained - all existing code works unchanged
+
+### Technical Details
+
+- **No Breaking Changes** - All existing static calls (`App::get()`, `App::has()`, `App::db()`) continue to work
+- **ArrayAccess Compatibility** - Existing ArrayAccess interface fully maintained
+- **Test Coverage** - Added 25 comprehensive tests for PSR-11 compliance
+- **Documentation** - Complete migration guide in PSR11_CONTAINER_MIGRATION.md
+
 ## Pagekit 1.0.35 - Doctrine DBAL 3.x Update (September 23, 2025)
 
 ### Changed

@@ -133,6 +133,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 -   **Composer**: Version 2.0+ required
 -   **Yarn**: Version 1.22+ required
 -   **Framework Updates**: Symfony 5.4 components with modern architecture
+-   **PSR Standards**: PSR-11 Container compatibility implemented
 -   **Security Updates**: All dependencies updated to secure versions (0 vulnerabilities confirmed)
 -   **Database Layer**: Doctrine DBAL 3.8+ with modern query methods and enhanced compatibility
 -   **Logging System**: Monolog 3.9+ with improved performance and PHP 8.4 support
