@@ -59,8 +59,11 @@ return [
             }
 
             if (isset($app['db'])) {
-                $app['db']->getConfiguration()->setSQLLogger($app['db.debug_stack']);
-                $app['debugbar']->addCollector(new DatabaseDataCollector($app['db'], $app['db.debug_stack']));
+                // DBAL 3.x uses middleware instead of SQLLogger
+                if (isset($app['db.debug_middleware'])) {
+                    $logger = $app['db.debug_middleware']->getLogger();
+                    $app['debugbar']->addCollector(new DatabaseDataCollector($app['db'], $logger));
+                }
             }
 
             if (isset($app['log.debug'])) {

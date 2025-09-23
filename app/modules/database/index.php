@@ -1,12 +1,14 @@
 <?php
 
 use Doctrine\DBAL\DriverManager;
-use Doctrine\DBAL\Logging\DebugStack;
 use Doctrine\DBAL\Types\Type;
 use Pagekit\Database\ORM\EntityManager;
 use Pagekit\Database\ORM\Loader\AnnotationLoader;
 use Pagekit\Database\ORM\MetadataManager;
 use Pagekit\Event\PrefixEventDispatcher;
+use Pagekit\Debug\Middleware\DebugMiddleware;
+use Pagekit\Debug\Middleware\DebugLogger;
+use Symfony\Component\Stopwatch\Stopwatch;
 
 $config = [
 
@@ -18,12 +20,19 @@ $config = [
             'wrapperClass' => 'Pagekit\Database\Connection'
         ];
 
-        $app['dbs'] = function () use ($default) {
+        $app['dbs'] = function ($app) use ($default) {
 
             $dbs = [];
 
             foreach ($this->config['connections'] as $name => $params) {
-                $dbs[$name] = DriverManager::getConnection(array_replace($default, $params));
+                $connectionParams = array_replace($default, $params);
+                
+                // Add debug middleware for DBAL 3.x if debug module is enabled
+                if (isset($app['db.debug_middleware'])) {
+                    $connectionParams['middlewares'] = [$app['db.debug_middleware']];
+                }
+                
+                $dbs[$name] = DriverManager::getConnection($connectionParams);
             }
 
             return $dbs;
@@ -44,7 +53,12 @@ $config = [
 
         $app['db.events'] = fn ($app) => new PrefixEventDispatcher('model.', $app['events']);
 
-        $app['db.debug_stack'] = fn () => new DebugStack();
+        // DBAL 3.x: Use middleware instead of DebugStack for SQL logging
+        $app['db.debug_middleware'] = function ($app) {
+            $stopwatch = isset($app['debugbar.stopwatch']) ? $app['debugbar.stopwatch'] : null;
+            $logger = new DebugLogger($stopwatch);
+            return new DebugMiddleware($logger);
+        };
 
         Type::overrideType(Type::SIMPLE_ARRAY, '\Pagekit\Database\Types\SimpleArrayType');
         Type::overrideType(Type::JSON_ARRAY, '\Pagekit\Database\Types\JsonArrayType');

@@ -2,50 +2,41 @@
 
 namespace Pagekit\Database\Logging;
 
-use Doctrine\DBAL\Logging\DebugStack as BaseDebugStack;
 use Symfony\Component\Stopwatch\Stopwatch;
 
-class DebugStack extends BaseDebugStack
+/**
+ * @deprecated Since DBAL 3.x migration. Use Pagekit\Debug\Middleware\DebugMiddleware instead.
+ * 
+ * This class is kept for backward compatibility but is no longer used.
+ * DBAL 3.x uses a middleware-based approach for SQL logging.
+ */
+class DebugStack
 {
     protected ?string $callstack = null;
-
     protected ?Stopwatch $stopwatch = null;
+    public bool $enabled = true;
+    public array $queries = [];
+    protected ?int $currentQuery = null;
 
     public function __construct(Stopwatch $stopwatch = null)
     {
         $this->stopwatch = $stopwatch;
+        trigger_error('DebugStack is deprecated. Use Pagekit\Debug\Middleware\DebugMiddleware instead.', E_USER_DEPRECATED);
     }
 
     /**
-     * {@inheritdoc}
+     * @deprecated
      */
     public function startQuery($sql, array $params = null, array $types = null): void
     {
-        if ($this->enabled) {
-            $e = new \Exception;
-            $this->callstack = $e->getTraceAsString();
-        }
-
-        if (null !== $this->stopwatch) {
-            $this->stopwatch->start('doctrine');
-        }
-
-        parent::startQuery($sql, $params, $types);
+        // No-op for compatibility
     }
 
     /**
-     * {@inheritdoc}
+     * @deprecated
      */
     public function stopQuery(): void
     {
-        parent::stopQuery();
-
-        if (null !== $this->stopwatch) {
-            $this->stopwatch->stop('doctrine');
-        }
-        
-        if ($this->enabled) {
-            $this->queries[$this->currentQuery]['callstack'] = $this->callstack;
-        }
+        // No-op for compatibility
     }
 }
