@@ -63,9 +63,11 @@ $config = [
                 // DBAL 3.x Bug: Middlewares are ignored when using wrapperClass
                 // We need to manually wrap the driver before creating the connection
                 if (isset($connectionParams['middlewares']) && !empty($connectionParams['middlewares'])) {
-                    // Get the base driver
-                    $driverOptions = $connectionParams['driverOptions'] ?? [];
-                    $driver = (new \Doctrine\DBAL\DriverManager())->getDriver($connectionParams);
+                    // First create the connection normally to get the driver
+                    $tempConnection = DriverManager::getConnection($connectionParams);
+                    
+                    // Get the driver from the connection
+                    $driver = $tempConnection->getDriver();
                     
                     // Apply middlewares manually
                     foreach ($connectionParams['middlewares'] as $middleware) {
@@ -73,15 +75,18 @@ $config = [
                         error_log("Manually wrapped driver with middleware: " . get_class($driver));
                     }
                     
-                    // Create configuration
-                    $config = new \Doctrine\DBAL\Configuration();
+                    // Get configuration from temp connection
+                    $config = $tempConnection->getConfiguration();
                     
-                    // Create connection with wrapped driver
+                    // Create new connection with wrapped driver
                     $connection = new $connectionParams['wrapperClass'](
                         $connectionParams,
                         $driver,
                         $config
                     );
+                    
+                    // Close temp connection
+                    $tempConnection->close();
                     
                     $dbs[$name] = $connection;
                 } else {
