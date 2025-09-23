@@ -83,13 +83,15 @@ const WidgetTheme = {
 
     computed: {
         options() {
-            return this.widget.theme;
+            return this.widget.theme || {};
         }
     },
 
     created() {
-        if (!this.options.title_size || !_.filter(this.heading, (title, value) => value === this.options.title_size).length) {
-            this.options.title_size = 'uk-h3';
+        this.$set(this.widget, 'theme', this.widget.theme || {});
+        
+        if (!this.widget.theme.title_size || !_.filter(this.heading, (title, value) => value === this.widget.theme.title_size).length) {
+            this.$set(this.widget.theme, 'title_size', 'uk-h3');
         }
     }
 };

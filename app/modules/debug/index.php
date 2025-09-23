@@ -59,8 +59,33 @@ return [
             }
 
             if (isset($app['db'])) {
-                $app['db']->getConfiguration()->setSQLLogger($app['db.debug_stack']);
-                $app['debugbar']->addCollector(new DatabaseDataCollector($app['db'], $app['db.debug_stack']));
+                // DBAL 3.x uses middleware instead of SQLLogger
+                try {
+                    // Check if logger exists (created during connection setup)
+                    if (isset($app['db.debug_logger'])) {
+                        $logger = $app['db.debug_logger'];
+                        // Logger is always enabled in DBAL 3.x (middleware requirement)
+                        // Set stopwatch if available
+                        if (isset($app['debugbar.stopwatch']) && $logger->stopwatch === null) {
+                            $logger->stopwatch = $app['debugbar.stopwatch'];
+                        }
+                        $app['debugbar']->addCollector(new DatabaseDataCollector($app['db'], $logger));
+                    } elseif (isset($app['db.debug_middleware'])) {
+                        // Fallback: try to get logger from middleware
+                        $middleware = $app['db.debug_middleware'];
+                        $logger = $middleware->getLogger();
+                        if (isset($app['debugbar.stopwatch']) && $logger->stopwatch === null) {
+                            $logger->stopwatch = $app['debugbar.stopwatch'];
+                        }
+                        $app['debugbar']->addCollector(new DatabaseDataCollector($app['db'], $logger));
+                    } else {
+                        // Last fallback: Create collector without logger
+                        $app['debugbar']->addCollector(new DatabaseDataCollector($app['db'], null));
+                    }
+                } catch (\Exception $e) {
+                    // If all fails, create collector without logger
+                    $app['debugbar']->addCollector(new DatabaseDataCollector($app['db'], null));
+                }
             }
 
             if (isset($app['log.debug'])) {

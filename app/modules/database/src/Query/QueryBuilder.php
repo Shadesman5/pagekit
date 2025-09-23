@@ -6,6 +6,7 @@ use Closure;
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Platforms\MySqlPlatform;
 use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use Pagekit\Database\Connection;
 use Pagekit\Database\Query\QueryBuilder;
 use PDO;
@@ -533,13 +534,21 @@ class QueryBuilder
     public function aggregate($function, $column)
     {
         $select  = $this->getPart('select');
-        $results = $this->setPart('select', sprintf('%s(%s) aggregate', strtoupper($function), $column))->get();
+        
+        $results = $this->setPart('select', sprintf('%s(%s) AS aggregate', strtoupper($function), $column))->get();
 
         $this->setPart('select', $select);
 
-        if ($results) {
+        if ($results && isset($results[0]['aggregate'])) {
             return $results[0]['aggregate'];
         }
+        
+        // Fallback for case-sensitive databases
+        if ($results && isset($results[0]['AGGREGATE'])) {
+            return $results[0]['AGGREGATE'];
+        }
+        
+        return 0;
     }
 
     /**
@@ -718,8 +727,8 @@ class QueryBuilder
         $types = [];
         foreach ($params as $key => $param) {
             if ($param instanceof \DateTimeInterface) {
-                // DBAL 2.10.2 - Make sure that the $types array has the same keys $params. https://github.com/doctrine/dbal/pull/3894
-                $types[$key] = Type::DATETIME;
+                // DBAL 3.x: Use Types::DATETIME_MUTABLE instead of Type::DATETIME
+                $types[$key] = Types::DATETIME_MUTABLE;
             }
         }
         return $types;

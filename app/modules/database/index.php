@@ -1,8 +1,8 @@
 <?php
 
 use Doctrine\DBAL\DriverManager;
-use Doctrine\DBAL\Logging\DebugStack;
 use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use Pagekit\Database\ORM\EntityManager;
 use Pagekit\Database\ORM\Loader\AnnotationLoader;
 use Pagekit\Database\ORM\MetadataManager;
@@ -18,12 +18,72 @@ $config = [
             'wrapperClass' => 'Pagekit\Database\Connection'
         ];
 
-        $app['dbs'] = function () use ($default) {
+        $app['dbs'] = function ($app) use ($default) {
 
             $dbs = [];
 
             foreach ($this->config['connections'] as $name => $params) {
-                $dbs[$name] = DriverManager::getConnection(array_replace($default, $params));
+                $connectionParams = array_replace($default, $params);
+                
+                // DBAL 3.x: Always create debug middleware - it will collect queries when enabled
+                if (class_exists('Pagekit\Debug\Middleware\DebugMiddleware') && 
+                    class_exists('Pagekit\Debug\Middleware\DebugLogger')) {
+                    
+                    try {
+                        // Create logger - ALWAYS ENABLED to ensure queries are captured
+                        $stopwatch = null; // Will be set later if debugbar is active
+                        $logger = new \Pagekit\Debug\Middleware\DebugLogger($stopwatch);
+                        
+                        // ALWAYS enable logging - we'll filter later when displaying
+                        $logger->enabled = true;
+                        
+                        
+                        // Create middleware with logger
+                        $middleware = new \Pagekit\Debug\Middleware\DebugMiddleware($logger);
+                        
+                        // Add to connection params (required for DBAL 3.x)
+                        $connectionParams['middlewares'] = [$middleware];
+                        
+                        // Store reference for later use by debugbar
+                        $app['db.debug_middleware'] = $middleware;
+                        $app['db.debug_logger'] = $logger;
+                    } catch (\Exception $e) {
+                        // If middleware creation fails, continue without it
+                    }
+                }
+                
+                // DBAL 3.x Bug: Middlewares are ignored when using wrapperClass
+                // We need to manually wrap the driver before creating the connection
+                if (isset($connectionParams['middlewares']) && !empty($connectionParams['middlewares'])) {
+                    // First create the connection normally to get the driver
+                    $tempConnection = DriverManager::getConnection($connectionParams);
+                    
+                    // Get the driver from the connection
+                    $driver = $tempConnection->getDriver();
+                    
+                    // Apply middlewares manually
+                    foreach ($connectionParams['middlewares'] as $middleware) {
+                        $driver = $middleware->wrap($driver);
+                    }
+                    
+                    // Get configuration from temp connection
+                    $config = $tempConnection->getConfiguration();
+                    
+                    // Create new connection with wrapped driver
+                    $connection = new $connectionParams['wrapperClass'](
+                        $connectionParams,
+                        $driver,
+                        $config
+                    );
+                    
+                    // Close temp connection
+                    $tempConnection->close();
+                    
+                    $dbs[$name] = $connection;
+                } else {
+                    // Fallback to standard creation
+                    $dbs[$name] = DriverManager::getConnection($connectionParams);
+                }
             }
 
             return $dbs;
@@ -44,10 +104,17 @@ $config = [
 
         $app['db.events'] = fn ($app) => new PrefixEventDispatcher('model.', $app['events']);
 
-        $app['db.debug_stack'] = fn () => new DebugStack();
+        // Note: db.debug_middleware is now created inline in the dbs factory above
+        // This ensures it's available when the connection is created
 
-        Type::overrideType(Type::SIMPLE_ARRAY, '\Pagekit\Database\Types\SimpleArrayType');
-        Type::overrideType(Type::JSON_ARRAY, '\Pagekit\Database\Types\JsonArrayType');
+        // Override existing types
+        Type::overrideType(Types::SIMPLE_ARRAY, '\Pagekit\Database\Types\SimpleArrayType');
+        Type::overrideType(Types::JSON, '\Pagekit\Database\Types\JsonArrayType');
+        
+        // Register json_array as a custom type for backward compatibility
+        if (!Type::hasType('json_array')) {
+            Type::addType('json_array', '\Pagekit\Database\Types\JsonArrayType');
+        }
     },
 
     'autoload' => [

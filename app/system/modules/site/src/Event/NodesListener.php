@@ -17,10 +17,11 @@ class NodesListener implements EventSubscriberInterface
         $frontpage = $site->config('frontpage');
         $nodes     = Node::findAll(true);
 
-        uasort($nodes, fn($a, $b) => strcmp(substr_count($a->path, '/'), substr_count($b->path, '/')) * -1);
+        uasort($nodes, function($a, $b) {
+            return strcmp(substr_count($a->path, '/'), substr_count($b->path, '/')) * -1;
+        });
 
         foreach ($nodes as $node) {
-
             if ($node->status !== 1 || !$type = $site->getType($node->type)) {
                 continue;
             }
@@ -47,7 +48,9 @@ class NodesListener implements EventSubscriberInterface
         if ($frontpage && isset($nodes[$frontpage])) {
             App::routes()->alias('/', $nodes[$frontpage]->link);
         } else {
-            App::routes()->get('/', fn() => __('No Frontpage assigned.'));
+            App::routes()->get('/', function() { 
+                return __('No Frontpage assigned.'); 
+            });
         }
     }
 

@@ -109,7 +109,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 -   **Modern PHP Support**: PHP 8.2 to 8.4 compatibility with modern coding standards
 -   **Enterprise Security**: Zero vulnerabilities with latest security patches applied
 -   **Advanced Frontend**: Vue.js 2.6 with UIkit 3.5 for responsive, modern interfaces
--   **Flexible Database**: Support for both MySQL 8.4 and SQLite 3 with Doctrine DBAL 3.10+
+-   **Flexible Database**: Support for both MySQL 8.4 and SQLite 3 with Doctrine DBAL 3.8+
 -   **Modern Logging**: Monolog 3.9+ with enhanced performance and debugging capabilities
 -   **Secure Dependencies**: Latest security patches applied (marked 4.3+, doctrine/annotations 2.0+)
 -   **Developer-Friendly**: Full Docker development environment with hot-reloading
@@ -134,7 +134,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 -   **Yarn**: Version 1.22+ required
 -   **Framework Updates**: Symfony 5.4 components with modern architecture
 -   **Security Updates**: All dependencies updated to secure versions (0 vulnerabilities confirmed)
--   **Database Layer**: Doctrine DBAL 3.10+ with modern query methods and enhanced compatibility
+-   **Database Layer**: Doctrine DBAL 3.8+ with modern query methods and enhanced compatibility
 -   **Logging System**: Monolog 3.9+ with improved performance and PHP 8.4 support
 -   **Frontend Modernization**: Vue.js 2.6 and UIkit 3.5 (jQuery completely removed)
 -   **Build Tools**: Webpack 4 with optimized development workflow

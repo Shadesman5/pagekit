@@ -128,20 +128,26 @@ const WidgetEdit = {
             this.$resource('api/site/widget{/id}').save({ id: this.widget.id }, { widget: this.widget }).then(function (res) {
                 const { data } = res;
 
-                this.$trigger('saved:widget');
+                vm.$trigger('saved:widget');
 
-                if (!this.widget.id) {
-                    window.history.replaceState({}, '', this.$url.route('admin/site/widget/edit', { id: data.widget.id }));
+                if (data && data.widget) {
+                    if (!vm.widget.id) {
+                        window.history.replaceState({}, '', vm.$url.route('admin/site/widget/edit', { id: data.widget.id }));
+                    }
+
+                    vm.$set(vm, 'widget', data.widget);
+                    vm.$notify('Widget saved.');
+                } else {
+                    console.error('Invalid response from server:', data);
+                    vm.$notify('Widget saved but response was invalid.', 'warning');
                 }
-
-                this.$set(this, 'widget', data.widget);
-
-                this.$notify('Widget saved.');
+                
                 setTimeout(() => {
                     vm.processing = false;
                 }, 500);
             }, function (res) {
-                this.$notify(res.data, 'danger');
+                vm.$notify(res.data || 'An error occurred', 'danger');
+                vm.processing = false;
             });
         },
 

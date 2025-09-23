@@ -20,10 +20,24 @@ class InfoHelper
         $info                  = [];
         $info['php']           = php_uname();
 
-        if ($pdo = App::db()->getWrappedConnection() and $pdo instanceof PDOConnection) {
-            $info['dbdriver']  = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
-            $info['dbversion'] = $pdo->getAttribute(\PDO::ATTR_SERVER_VERSION);
-            $info['dbclient']  = $pdo->getAttribute(\PDO::ATTR_CLIENT_VERSION);
+        try {
+            // DBAL 3.x compatibility: getNativeConnection() replaces getWrappedConnection()
+            $connection = App::db()->getNativeConnection();
+            if ($connection instanceof \PDO || $connection instanceof PDOConnection) {
+                $info['dbdriver']  = $connection->getAttribute(\PDO::ATTR_DRIVER_NAME);
+                $info['dbversion'] = $connection->getAttribute(\PDO::ATTR_SERVER_VERSION);
+                $info['dbclient']  = $connection->getAttribute(\PDO::ATTR_CLIENT_VERSION);
+            } else {
+                // Fallback for non-PDO connections
+                $info['dbdriver']  = App::db()->getDriver()->getName();
+                $info['dbversion'] = 'Unknown';
+                $info['dbclient']  = 'Unknown';
+            }
+        } catch (\Exception $e) {
+            // If database is not connected
+            $info['dbdriver']  = 'Not connected';
+            $info['dbversion'] = 'N/A';
+            $info['dbclient']  = 'N/A';
         }
 
         $info['phpversion']    = phpversion();

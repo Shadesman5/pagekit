@@ -36,6 +36,11 @@ class Connection extends BaseConnection
      * The regex for parsing SQL query parts.
      */
     protected array $regex;
+    
+    /**
+     * Flag to track if type mappings have been registered.
+     */
+    protected bool $_typeMappingsRegistered = false;
 
     /**
      * Initializes a new instance of the Connection class.
@@ -68,6 +73,66 @@ class Connection extends BaseConnection
         ];
 
         parent::__construct($params, $driver, $config, $eventManager);
+    }
+    
+    /**
+     * {@inheritdoc}
+     */
+    public function connect(): bool
+    {
+        $result = parent::connect();
+        
+        // Register custom type mappings after connection is established
+        if ($result && !$this->_typeMappingsRegistered) {
+            try {
+                $platform = parent::getDatabasePlatform();
+                $this->registerCustomTypeMappings($platform);
+                $this->_typeMappingsRegistered = true;
+            } catch (\Exception $e) {
+                // Connection might not be ready yet
+            }
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Ensure type mappings are registered when getting the platform.
+     * {@inheritdoc}
+     */
+    public function getDatabasePlatform(): \Doctrine\DBAL\Platforms\AbstractPlatform
+    {
+        $platform = parent::getDatabasePlatform();
+        
+        // Register type mappings if not already done
+        if (!$this->_typeMappingsRegistered && $this->isConnected()) {
+            $this->registerCustomTypeMappings($platform);
+            $this->_typeMappingsRegistered = true;
+        }
+        
+        return $platform;
+    }
+    
+    /**
+     * Register custom type mappings for DBAL 3.x compatibility.
+     * 
+     * @param \Doctrine\DBAL\Platforms\AbstractPlatform|null $platform
+     */
+    protected function registerCustomTypeMappings($platform = null): void
+    {
+        try {
+            // Use provided platform or get it from parent (avoiding recursion)
+            if ($platform === null) {
+                $platform = parent::getDatabasePlatform();
+            }
+            
+            // Map database types to our custom Doctrine types
+            $platform->registerDoctrineTypeMapping('json', 'json_array');
+            $platform->registerDoctrineTypeMapping('json_array', 'json_array');
+            $platform->registerDoctrineTypeMapping('simple_array', 'simple_array');
+        } catch (\Exception $e) {
+            // Silently fail if platform is not available yet
+        }
     }
 
     /**
