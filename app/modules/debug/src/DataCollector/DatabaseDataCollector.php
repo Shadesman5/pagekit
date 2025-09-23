@@ -38,7 +38,7 @@ class DatabaseDataCollector extends DataCollector implements Renderable
                     'sql' => $query['sql'],
                     'params' => $query['params'] ?? [],
                     'duration' => $query['executionMS'] ?? 0,
-                    'duration_str' => $this->formatDuration($query['executionMS'] ?? 0),
+                    'duration_str' => $this->formatQueryDuration($query['executionMS'] ?? 0),
                     'memory' => 0,
                     'memory_str' => '0B',
                     'is_success' => true,
@@ -55,7 +55,7 @@ class DatabaseDataCollector extends DataCollector implements Renderable
             'nb_statements' => count($queries),
             'nb_failed_statements' => 0,
             'accumulated_duration' => $totalTime,
-            'accumulated_duration_str' => $this->formatDuration($totalTime),
+            'accumulated_duration_str' => $this->formatQueryDuration($totalTime),
             'memory_usage' => 0,
             'memory_usage_str' => '0B',
             'statements' => $queries,
@@ -91,9 +91,12 @@ class DatabaseDataCollector extends DataCollector implements Renderable
     }
 
     /**
-     * Format duration in milliseconds to a readable string.
+     * Format query duration in milliseconds to a readable string.
+     * 
+     * @param float $ms Duration in milliseconds
+     * @return string Formatted duration string
      */
-    public function formatDuration(float $ms): string
+    protected function formatQueryDuration(float $ms): string
     {
         if ($ms < 1) {
             return round($ms * 1000) . 'μs';
