@@ -25,21 +25,20 @@ $config = [
             foreach ($this->config['connections'] as $name => $params) {
                 $connectionParams = array_replace($default, $params);
                 
-                // DBAL 3.x: Always create debug middleware but only enable when debugbar is active
-                // This ensures middleware is available at connection creation time
+                // DBAL 3.x: Always create debug middleware - it will collect queries when enabled
                 if (class_exists('Pagekit\Debug\Middleware\DebugMiddleware') && 
                     class_exists('Pagekit\Debug\Middleware\DebugLogger')) {
                     
                     try {
-                        // Create logger (will be enabled/disabled based on debugbar presence)
-                        $stopwatch = isset($app['debugbar.stopwatch']) ? $app['debugbar.stopwatch'] : null;
+                        // Create logger - ALWAYS ENABLED to ensure queries are captured
+                        $stopwatch = null; // Will be set later if debugbar is active
                         $logger = new \Pagekit\Debug\Middleware\DebugLogger($stopwatch);
                         
-                        // Enable logging only if debugbar is active
-                        $logger->enabled = isset($app['debugbar']);
+                        // ALWAYS enable logging - we'll filter later when displaying
+                        $logger->enabled = true;
                         
                         // Debug output
-                        error_log("Creating debug middleware - debugbar exists: " . (isset($app['debugbar']) ? 'yes' : 'no') . ", logger enabled: " . ($logger->enabled ? 'yes' : 'no'));
+                        error_log("Creating debug middleware - always enabled for DBAL 3.x");
                         
                         // Create middleware with logger
                         $middleware = new \Pagekit\Debug\Middleware\DebugMiddleware($logger);

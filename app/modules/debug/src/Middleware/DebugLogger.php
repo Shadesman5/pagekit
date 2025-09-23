@@ -30,7 +30,7 @@ class DebugLogger implements LoggerInterface
     /**
      * Stopwatch for performance profiling.
      */
-    protected ?Stopwatch $stopwatch = null;
+    public ?Stopwatch $stopwatch = null;
 
     /**
      * Whether logging is enabled.

@@ -64,14 +64,19 @@ return [
                     // Check if logger exists (created during connection setup)
                     if (isset($app['db.debug_logger'])) {
                         $logger = $app['db.debug_logger'];
-                        // Enable logging now that debugbar is active
-                        $logger->enabled = true;
+                        // Logger is always enabled in DBAL 3.x (middleware requirement)
+                        // Set stopwatch if available
+                        if (isset($app['debugbar.stopwatch']) && $logger->stopwatch === null) {
+                            $logger->stopwatch = $app['debugbar.stopwatch'];
+                        }
                         $app['debugbar']->addCollector(new DatabaseDataCollector($app['db'], $logger));
                     } elseif (isset($app['db.debug_middleware'])) {
                         // Fallback: try to get logger from middleware
                         $middleware = $app['db.debug_middleware'];
                         $logger = $middleware->getLogger();
-                        $logger->enabled = true;
+                        if (isset($app['debugbar.stopwatch']) && $logger->stopwatch === null) {
+                            $logger->stopwatch = $app['debugbar.stopwatch'];
+                        }
                         $app['debugbar']->addCollector(new DatabaseDataCollector($app['db'], $logger));
                     } else {
                         // Last fallback: Create collector without logger
