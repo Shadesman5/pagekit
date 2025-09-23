@@ -31,19 +31,47 @@ class SiteController
     public function indexAction($page = 1): array
     {
         error_log("Blog SiteController::indexAction called - page: $page");
-        $query = Post::where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime])->where(function($query) { 
-            return $query->where('roles IS NULL')->whereInSet('roles', App::user()->roles, false, 'OR');
-        })->related('user');
+        
+        try {
+            error_log("Creating Post query...");
+            $query = Post::where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime]);
+            error_log("Base query created");
+            
+            $query = $query->where(function($query) { 
+                error_log("Adding role filter...");
+                return $query->where('roles IS NULL')->whereInSet('roles', App::user()->roles, false, 'OR');
+            });
+            error_log("Role filter added");
+            
+            $query = $query->related('user');
+            error_log("User relation added");
+        } catch (\Exception $e) {
+            error_log("ERROR in query building: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            throw $e;
+        }
 
         if (!$limit = $this->blog->config('posts.posts_per_page')) {
             $limit = 10;
         }
+        error_log("Posts per page limit: $limit");
 
-        $count = $query->count('id');
-        $total = ceil($count / $limit);
-        $page = max(1, min($total, $page));
-
-        $query->offset(($page - 1) * $limit)->limit($limit)->orderBy('date', 'DESC');
+        try {
+            error_log("Counting posts...");
+            $count = $query->count('id');
+            error_log("Total posts count: $count");
+            
+            $total = ceil($count / $limit);
+            $page = max(1, min($total, $page));
+            error_log("Pagination - Total pages: $total, Current page: $page");
+            
+            $query->offset(($page - 1) * $limit)->limit($limit)->orderBy('date', 'DESC');
+            error_log("Query prepared with offset and limit");
+        } catch (\Exception $e) {
+            error_log("ERROR in count/pagination: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            throw $e;
+        }
 
         error_log("Blog: About to fetch posts from database");
         $posts = $query->get();
@@ -54,22 +82,31 @@ class SiteController
             $post->content = App::content()->applyPlugins($post->content, ['post' => $post, 'markdown' => $post->get('markdown'), 'readmore' => true]);
         }
 
-        return [
-            '$view' => [
-                'title' => __('Blog'),
-                'name' => 'blog/posts.php',
-                'link:feed' => [
-                    'rel' => 'alternate',
-                    'href' => App::url('@blog/feed'),
-                    'title' => App::module('system/site')->config('title'),
-                    'type' => App::feed()->create($this->blog->config('feed.type'))->getMIMEType()
-                ]
-            ],
-            'blog' => $this->blog,
-            'posts' => $posts,
-            'total' => $total,
-            'page' => $page
-        ];
+        try {
+            error_log("Preparing return array...");
+            $result = [
+                '$view' => [
+                    'title' => __('Blog'),
+                    'name' => 'blog/posts.php',
+                    'link:feed' => [
+                        'rel' => 'alternate',
+                        'href' => App::url('@blog/feed'),
+                        'title' => App::module('system/site')->config('title'),
+                        'type' => App::feed()->create($this->blog->config('feed.type'))->getMIMEType()
+                    ]
+                ],
+                'blog' => $this->blog,
+                'posts' => $posts,
+                'total' => $total,
+                'page' => $page
+            ];
+            error_log("Return array prepared successfully");
+            return $result;
+        } catch (\Exception $e) {
+            error_log("ERROR in return preparation: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            throw $e;
+        }
     }
 
     /**
