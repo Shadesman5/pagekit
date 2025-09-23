@@ -87,6 +87,10 @@ This document tracks the migration from Doctrine DBAL 2.13 to 3.x and all relate
 - Updated DatabaseDataCollector to work with new middleware system
 - Updated debug module configuration to use middleware instead of SQLLogger
 - Deprecated old DebugStack class for backward compatibility
+- Fixed Type constants: Changed from Type::SIMPLE_ARRAY to Types::SIMPLE_ARRAY
+- Fixed Type constants: Changed from Type::JSON_ARRAY to Types::JSON
+- Updated JsonArrayType to extend JsonType instead of deprecated JsonArrayType
+- Updated method signatures for DBAL 3.x compatibility
 - All core database operations are working with DBAL 3.x
 
 ## Known Issues
