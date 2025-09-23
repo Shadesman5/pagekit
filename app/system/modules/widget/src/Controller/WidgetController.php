@@ -40,6 +40,17 @@ class WidgetController
         } elseif (!$widget = Widget::find($id)) {
             App::abort(404, 'Widget not found.');
         }
+        
+        // Find and set the widget's position if it exists
+        if ($widget->id) {
+            $positions = App::position()->all();
+            foreach ($positions as $position) {
+                if (in_array($widget->id, $position['assigned'])) {
+                    $widget->position = $position['name'];
+                    break;
+                }
+            }
+        }
 
         return [
             '$view' => [
