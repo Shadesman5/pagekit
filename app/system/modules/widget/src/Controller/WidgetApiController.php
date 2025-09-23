@@ -23,6 +23,8 @@ class WidgetApiController
 
             foreach ($position['assigned'] as $id) {
                 if (isset($widgets[$id])) {
+                    // Set the position property on the widget
+                    $widgets[$id]->position = $position['name'];
                     $position['widgets'][] = $widgets[$id];
                     unset($widgets[$id]);
                 }
@@ -39,6 +41,15 @@ class WidgetApiController
     {
         if (!$widget = Widget::find($id)) {
             App::abort(404, 'Widget not found.');
+        }
+        
+        // Find and set the widget's position
+        $positions = App::position()->all();
+        foreach ($positions as $position) {
+            if (in_array($id, $position['assigned'])) {
+                $widget->position = $position['name'];
+                break;
+            }
         }
 
         return $widget;
@@ -70,8 +81,16 @@ class WidgetApiController
         if (empty($data['title'])) {
             App::abort(400, 'Widget title empty.');
         }
+        
+        // Extract position before saving (it's not a database field)
+        $position = isset($data['position']) ? $data['position'] : null;
 
         $widget->save($data);
+        
+        // Set position property after save for the event handler
+        if ($position !== null) {
+            $widget->position = $position;
+        }
 
         return ['message' => 'success', 'widget' => $widget, 'data' => $data];
     }
