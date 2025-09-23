@@ -25,29 +25,31 @@ $config = [
             foreach ($this->config['connections'] as $name => $params) {
                 $connectionParams = array_replace($default, $params);
                 
-                // Add debug middleware for DBAL 3.x if debug module is enabled
-                // Initialize middlewares array
-                $connectionParams['middlewares'] = [];
-                
-                // Check if debug module is loaded and middleware is available
-                try {
-                    if (isset($app['debugbar']) && class_exists('Pagekit\Debug\Middleware\DebugMiddleware')) {
-                        // Create debug middleware inline to ensure it's properly initialized
+                // DBAL 3.x: Always create debug middleware but only enable when debugbar is active
+                // This ensures middleware is available at connection creation time
+                if (class_exists('Pagekit\Debug\Middleware\DebugMiddleware') && 
+                    class_exists('Pagekit\Debug\Middleware\DebugLogger')) {
+                    
+                    try {
+                        // Create logger (will be enabled/disabled based on debugbar presence)
                         $stopwatch = isset($app['debugbar.stopwatch']) ? $app['debugbar.stopwatch'] : null;
-                        $debugLoggerClass = 'Pagekit\Debug\Middleware\DebugLogger';
-                        $debugMiddlewareClass = 'Pagekit\Debug\Middleware\DebugMiddleware';
+                        $logger = new \Pagekit\Debug\Middleware\DebugLogger($stopwatch);
                         
-                        if (class_exists($debugLoggerClass) && class_exists($debugMiddlewareClass)) {
-                            $logger = new $debugLoggerClass($stopwatch);
-                            $middleware = new $debugMiddlewareClass($logger);
-                            $connectionParams['middlewares'][] = $middleware;
-                            
-                            // Store reference for later use
-                            $app['db.debug_middleware'] = $middleware;
-                        }
+                        // Enable logging only if debugbar is active
+                        $logger->enabled = isset($app['debugbar']);
+                        
+                        // Create middleware with logger
+                        $middleware = new \Pagekit\Debug\Middleware\DebugMiddleware($logger);
+                        
+                        // Add to connection params (required for DBAL 3.x)
+                        $connectionParams['middlewares'] = [$middleware];
+                        
+                        // Store reference for later use by debugbar
+                        $app['db.debug_middleware'] = $middleware;
+                        $app['db.debug_logger'] = $logger;
+                    } catch (\Exception $e) {
+                        // If middleware creation fails, continue without it
                     }
-                } catch (\Exception $e) {
-                    // Silently fail if debug middleware is not available
                 }
                 
                 $dbs[$name] = DriverManager::getConnection($connectionParams);

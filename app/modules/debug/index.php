@@ -60,15 +60,25 @@ return [
 
             if (isset($app['db'])) {
                 // DBAL 3.x uses middleware instead of SQLLogger
-                // Force initialization of debug middleware
                 try {
-                    if (isset($app['db.debug_middleware'])) {
+                    // Check if logger exists (created during connection setup)
+                    if (isset($app['db.debug_logger'])) {
+                        $logger = $app['db.debug_logger'];
+                        // Enable logging now that debugbar is active
+                        $logger->enabled = true;
+                        $app['debugbar']->addCollector(new DatabaseDataCollector($app['db'], $logger));
+                    } elseif (isset($app['db.debug_middleware'])) {
+                        // Fallback: try to get logger from middleware
                         $middleware = $app['db.debug_middleware'];
                         $logger = $middleware->getLogger();
+                        $logger->enabled = true;
                         $app['debugbar']->addCollector(new DatabaseDataCollector($app['db'], $logger));
+                    } else {
+                        // Last fallback: Create collector without logger
+                        $app['debugbar']->addCollector(new DatabaseDataCollector($app['db'], null));
                     }
                 } catch (\Exception $e) {
-                    // Fallback: Create collector without logger
+                    // If all fails, create collector without logger
                     $app['debugbar']->addCollector(new DatabaseDataCollector($app['db'], null));
                 }
             }
