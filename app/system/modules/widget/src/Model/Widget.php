@@ -27,4 +27,16 @@ class Widget implements \JsonSerializable
 
     /** @Column(type="simple_array") */
     public $nodes = [];
+    
+    /** 
+     * Widget position (stored in data)
+     * @var string|null
+     */
+    public ?string $position = null;
+    
+    /** 
+     * Widget theme settings (stored in data)
+     * @var array|null
+     */
+    public ?array $theme = null;
 }
