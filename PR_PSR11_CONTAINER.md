@@ -25,20 +25,13 @@ This PR makes the Pagekit Container fully PSR-11 compatible, implementing the st
 
 ## Breaking Changes
 
-Minor: Static methods `Application::has()`, `Application::get()`, `Application::set()`, and `Application::remove()` have been removed to avoid conflicts with PSR-11 non-static methods.
+None - Full backward compatibility maintained!
 
-**Migration:**
-```php
-// Before:
-$service = Application::get('service.name');
-
-// After:
-$service = Application::getInstance()->get('service.name');
-// Or using ArrayAccess (still works):
-$service = Application::getInstance()['service.name'];
-```
-
-Only 2 files in the codebase were affected and have been updated.
+The implementation was adjusted to avoid PHP method naming conflicts:
+- PSR-11 methods renamed to `getService()` and `hasService()`
+- Created `Psr11Adapter` class for full PSR-11 compliance
+- Static calls like `App::get()`, `App::has()` continue to work via `__callStatic()`
+- All existing code continues to work without changes
 
 ## Testing
 
