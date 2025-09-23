@@ -1,7 +1,7 @@
 {
     "name": "pagekit/pagekit",
     "title": "Pagekit",
-    "version": "1.0.33",
+    "version": "1.0.34",
     "type": "project",
     "description": "The Pagekit CMS",
     "keywords": [
@@ -18,15 +18,15 @@
     ],
     "require": {
         "php": "^8.2",
-        "composer/composer": "~2.2",
+        "composer/composer": "^2.8",
         "doctrine/annotations": "~1.14",
         "doctrine/dbal": "~2.13",
         "doctrine/cache": "~1.13",
         "paragonie/random-lib": "~2.0.1",
-        "paragonie/sodium_compat": "~1.21",
-        "php-debugbar/php-debugbar": "~1.23",
+        "paragonie/sodium_compat": "^2.0",
+        "php-debugbar/php-debugbar": "^1.23.3",
         "monolog/monolog": "^3.7",
-        "nikic/php-parser": "~5.4",
+        "nikic/php-parser": "^5.4",
         "psr/log": "^2.0",
         "psr/cache": "~1",
         "symfony/mailer": "~5.4",
@@ -45,7 +45,7 @@
         "symfony/service-contracts": "~2.5",
         "symfony/templating": "~5.4",
         "symfony/translation": "~5.4",
-        "twig/twig": "~3.11.3",
+        "twig/twig": "^3.14",
         "symfony/twig-bridge": "~5.4"
     },
     "require-dev": {

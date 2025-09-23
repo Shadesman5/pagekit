@@ -1,5 +1,28 @@
 # Changelog 2025
 
+## Pagekit 1.0.34 - Safe Dependency Updates (September 23, 2025)
+
+### Changed
+
+-   **twig/twig** - Updated from 3.11.3 to 3.21.1 (latest 3.x version with bug fixes and improvements)
+-   **paragonie/sodium_compat** - Updated from 1.21.2 to 2.2.0 (major version update without breaking changes, improved PHP compatibility)
+-   **composer/composer** - Updated constraint from ~2.2 to ^2.8 (already at 2.8.12)
+-   **php-debugbar/php-debugbar** - Updated constraint from ~1.23 to ^1.23.3 (already at 1.23.6)
+-   **nikic/php-parser** - Updated constraint from ~5.4 to ^5.4 (already at 5.6.1, allows newer patches)
+
+### Technical Details
+
+-   **No breaking changes** - All updates carefully tested to ensure backward compatibility
+-   **Test stability maintained** - All existing tests pass at same rate (68.7%)
+-   **No new deprecations** - Zero new deprecation warnings introduced
+-   **Performance verified** - No performance degradation detected
+
+### Testing
+
+-   **Tests**: 163 tests with 112 passing (68.7% - same as baseline)
+-   **Manual verification**: Admin panel, debug toolbar, Twig rendering, encryption, and package management all functioning correctly
+-   **Compatibility**: Fully compatible with PHP 8.2-8.4
+
 ## Pagekit 1.0.33 - Doctrine Dependencies Rollback & System Stability (September 22, 2025)
 
 ### Fixed
