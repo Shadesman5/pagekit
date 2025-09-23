@@ -4,10 +4,11 @@ namespace Pagekit\Debug\DataCollector;
 
 use DebugBar\DataCollector\DataCollector;
 use DebugBar\DataCollector\Renderable;
+use DebugBar\DataCollector\AssetProvider;
 use Pagekit\Database\Connection;
 use Pagekit\Debug\Middleware\DebugLogger;
 
-class DatabaseDataCollector extends DataCollector implements Renderable
+class DatabaseDataCollector extends DataCollector implements Renderable, AssetProvider
 {
     protected Connection $connection;
     protected ?DebugLogger $logger;
@@ -32,35 +33,49 @@ class DatabaseDataCollector extends DataCollector implements Renderable
         $queries = [];
         $totalTime = 0;
 
-        if ($this->logger !== null) {
-            foreach ($this->logger->queries as $query) {
+        if ($this->logger !== null && !empty($this->logger->queries)) {
+            foreach ($this->logger->queries as $q) {
+                $params = $q['params'] ?? [];
                 $queries[] = [
-                    'sql' => $query['sql'],
-                    'params' => $query['params'] ?? [],
-                    'duration' => $query['executionMS'] ?? 0,
-                    'duration_str' => $this->formatQueryDuration($query['executionMS'] ?? 0),
-                    'memory' => 0,
-                    'memory_str' => '0B',
-                    'is_success' => true,
-                    'error_code' => null,
-                    'error_message' => null
+                    'sql' => $q['sql'],
+                    'params' => (object) $this->formatParameters($params),
+                    'duration' => $q['executionMS'] ?? 0,
+                    'duration_str' => $this->formatQueryDuration($q['executionMS'] ?? 0)
                 ];
-                $totalTime += $query['executionMS'] ?? 0;
+                $totalTime += $q['executionMS'] ?? 0;
             }
         }
 
-        $driver = $this->connection->getDriver()->getName();
-
         return [
             'nb_statements' => count($queries),
-            'nb_failed_statements' => 0,
             'accumulated_duration' => $totalTime,
             'accumulated_duration_str' => $this->formatQueryDuration($totalTime),
-            'memory_usage' => 0,
-            'memory_usage_str' => '0B',
-            'statements' => $queries,
-            'driver' => $driver
+            'statements' => $queries
         ];
+    }
+    
+    /**
+     * Format parameters for display
+     * 
+     * @param array $params
+     * @return array
+     */
+    protected function formatParameters(array $params): array
+    {
+        return array_map(function ($param) {
+            if (is_string($param)) {
+                return htmlentities($param, ENT_QUOTES, 'UTF-8', false);
+            } elseif (is_array($param)) {
+                return '[' . implode(', ', $this->formatParameters($param)) . ']';
+            } elseif (is_numeric($param)) {
+                return strval($param);
+            } elseif ($param instanceof \DateTimeInterface) {
+                return $param->format('Y-m-d H:i:s');
+            } elseif (is_object($param)) {
+                return json_encode($param);
+            }
+            return $param ?: '';
+        }, $params);
     }
 
     /**
@@ -78,7 +93,7 @@ class DatabaseDataCollector extends DataCollector implements Renderable
     {
         return [
             'database' => [
-                'icon' => 'database',
+                'icon' => 'inbox',
                 'widget' => 'PhpDebugBar.Widgets.SQLQueriesWidget',
                 'map' => 'database',
                 'default' => '[]'
@@ -87,6 +102,17 @@ class DatabaseDataCollector extends DataCollector implements Renderable
                 'map' => 'database.nb_statements',
                 'default' => 0
             ]
+        ];
+    }
+    
+    /**
+     * {@inheritdoc}
+     */
+    public function getAssets(): array
+    {
+        return [
+            'css' => 'widgets/sqlqueries/widget.css',
+            'js' => 'widgets/sqlqueries/widget.js'
         ];
     }
 
