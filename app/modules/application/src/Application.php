@@ -70,4 +70,5 @@ class Application extends Container
     {
         return PHP_SAPI == 'cli';
     }
+
 }
