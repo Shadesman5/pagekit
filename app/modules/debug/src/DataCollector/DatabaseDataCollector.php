@@ -93,7 +93,7 @@ class DatabaseDataCollector extends DataCollector implements Renderable
     /**
      * Format duration in milliseconds to a readable string.
      */
-    protected function formatDuration(float $ms): string
+    public function formatDuration(float $ms): string
     {
         if ($ms < 1) {
             return round($ms * 1000) . 'μs';
