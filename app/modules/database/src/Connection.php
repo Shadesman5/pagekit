@@ -52,6 +52,12 @@ class Connection extends BaseConnection
      */
     public function __construct(array $params, Driver $driver, ?Configuration $config = null, ?EventManager $eventManager = null)
     {
+        // Debug: Check if driver has middleware
+        error_log("Connection::__construct - Driver class: " . get_class($driver));
+        if (method_exists($driver, 'getWrappedDriver')) {
+            error_log("  Driver appears to be wrapped (has getWrappedDriver method)");
+        }
+        
         if (!isset($params['defaultTableOptions'])) {
             $params['defaultTableOptions'] = [];
         }

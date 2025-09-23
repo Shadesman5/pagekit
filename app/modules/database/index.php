@@ -46,6 +46,10 @@ $config = [
                         // Add to connection params (required for DBAL 3.x)
                         $connectionParams['middlewares'] = [$middleware];
                         
+                        // Debug: Verify middleware is in params
+                        error_log("Middleware added to connection params: " . (isset($connectionParams['middlewares']) ? 'YES' : 'NO'));
+                        error_log("Number of middlewares: " . count($connectionParams['middlewares']));
+                        
                         // Store reference for later use by debugbar
                         $app['db.debug_middleware'] = $middleware;
                         $app['db.debug_logger'] = $logger;
@@ -54,7 +58,9 @@ $config = [
                     }
                 }
                 
+                error_log("Creating connection with params: " . json_encode(array_keys($connectionParams)));
                 $dbs[$name] = DriverManager::getConnection($connectionParams);
+                error_log("Connection created: " . get_class($dbs[$name]));
             }
 
             return $dbs;
