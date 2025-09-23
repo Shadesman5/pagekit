@@ -40,13 +40,13 @@ This document tracks the safe minor version updates performed on Pagekit depende
 - **Notes**: Successfully updated to latest 3.x version 
 
 ### 3. paragonie/sodium_compat
-- **Previous Version**: ~1.21
-- **Updated To**: ^2.0
+- **Previous Version**: ~1.21 (1.21.2)
+- **Updated To**: ^2.0 (2.2.0)
 - **Reason**: Major version with improved compatibility
-- **Breaking Changes**: To be verified
-- **Test Status**: ✅ Pending
-- **Encryption Tests**: Pending
-- **Notes**: 
+- **Breaking Changes**: None detected
+- **Test Status**: ✅ Passed (no regression)
+- **Encryption Tests**: ✅ Passed (sodium functions available)
+- **Notes**: Major version update without breaking changes 
 
 ### 4. php-debugbar/php-debugbar
 - **Previous Version**: ~1.23
