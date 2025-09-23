@@ -26,10 +26,25 @@ $config = [
                 $connectionParams = array_replace($default, $params);
                 
                 // Add debug middleware for DBAL 3.x if debug module is enabled
+                // Initialize middlewares array
+                $connectionParams['middlewares'] = [];
+                
                 // Check if debug module is loaded and middleware is available
                 try {
-                    if (isset($app['debugbar']) && isset($app['db.debug_middleware'])) {
-                        $connectionParams['middlewares'] = [$app['db.debug_middleware']];
+                    if (isset($app['debugbar']) && class_exists('Pagekit\Debug\Middleware\DebugMiddleware')) {
+                        // Create debug middleware inline to ensure it's properly initialized
+                        $stopwatch = isset($app['debugbar.stopwatch']) ? $app['debugbar.stopwatch'] : null;
+                        $debugLoggerClass = 'Pagekit\Debug\Middleware\DebugLogger';
+                        $debugMiddlewareClass = 'Pagekit\Debug\Middleware\DebugMiddleware';
+                        
+                        if (class_exists($debugLoggerClass) && class_exists($debugMiddlewareClass)) {
+                            $logger = new $debugLoggerClass($stopwatch);
+                            $middleware = new $debugMiddlewareClass($logger);
+                            $connectionParams['middlewares'][] = $middleware;
+                            
+                            // Store reference for later use
+                            $app['db.debug_middleware'] = $middleware;
+                        }
                     }
                 } catch (\Exception $e) {
                     // Silently fail if debug middleware is not available
@@ -56,17 +71,8 @@ $config = [
 
         $app['db.events'] = fn ($app) => new PrefixEventDispatcher('model.', $app['events']);
 
-        // DBAL 3.x: Use middleware instead of DebugStack for SQL logging
-        // Only create if we have the necessary classes available
-        if (class_exists('Pagekit\Debug\Middleware\DebugMiddleware') && class_exists('Pagekit\Debug\Middleware\DebugLogger')) {
-            $app['db.debug_middleware'] = function ($app) {
-                $stopwatch = isset($app['debugbar.stopwatch']) ? $app['debugbar.stopwatch'] : null;
-                $debugLoggerClass = 'Pagekit\Debug\Middleware\DebugLogger';
-                $debugMiddlewareClass = 'Pagekit\Debug\Middleware\DebugMiddleware';
-                $logger = new $debugLoggerClass($stopwatch);
-                return new $debugMiddlewareClass($logger);
-            };
-        }
+        // Note: db.debug_middleware is now created inline in the dbs factory above
+        // This ensures it's available when the connection is created
 
         // Override existing types
         Type::overrideType(Types::SIMPLE_ARRAY, '\Pagekit\Database\Types\SimpleArrayType');
