@@ -68,6 +68,22 @@ class Connection extends BaseConnection
         ];
 
         parent::__construct($params, $driver, $config, $eventManager);
+        
+        // Register custom type mappings for database introspection
+        $this->registerCustomTypeMappings();
+    }
+    
+    /**
+     * Register custom type mappings for DBAL 3.x compatibility.
+     */
+    protected function registerCustomTypeMappings(): void
+    {
+        $platform = $this->getDatabasePlatform();
+        
+        // Map database types to our custom Doctrine types
+        $platform->registerDoctrineTypeMapping('json', 'json_array');
+        $platform->registerDoctrineTypeMapping('json_array', 'json_array');
+        $platform->registerDoctrineTypeMapping('simple_array', 'simple_array');
     }
 
     /**

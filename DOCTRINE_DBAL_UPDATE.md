@@ -24,6 +24,12 @@ This document tracks the migration from Doctrine DBAL 2.13 to 3.x and all relate
 - `execute()` method behavior changed
 - Return types are now stricter
 
+### 5. Type System Changes
+- `Type::JSON_ARRAY` constant removed → Use `Types::JSON`
+- `Type::SIMPLE_ARRAY` → `Types::SIMPLE_ARRAY`
+- `JsonArrayType` base class removed → Extend `JsonType` instead
+- Custom type registration required for backward compatibility
+
 ## Files Affected
 
 ### Core Database Module
@@ -90,6 +96,9 @@ This document tracks the migration from Doctrine DBAL 2.13 to 3.x and all relate
 - Fixed Type constants: Changed from Type::SIMPLE_ARRAY to Types::SIMPLE_ARRAY
 - Fixed Type constants: Changed from Type::JSON_ARRAY to Types::JSON
 - Updated JsonArrayType to extend JsonType instead of deprecated JsonArrayType
+- Registered 'json_array' as custom type for backward compatibility
+- Added platform type mappings for database introspection
+- Implemented registerCustomTypeMappings() in Connection class
 - Updated method signatures for DBAL 3.x compatibility
 - All core database operations are working with DBAL 3.x
 

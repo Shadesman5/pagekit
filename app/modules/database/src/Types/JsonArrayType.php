@@ -4,10 +4,14 @@ namespace Pagekit\Database\Types;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\JsonType;
+use Doctrine\DBAL\Types\ConversionException;
 
 /**
  * JSON array type for DBAL 3.x compatibility.
  * Replaces the deprecated JsonArrayType from DBAL 2.x.
+ * 
+ * This type ensures backward compatibility with the old json_array type
+ * while using the modern JSON type infrastructure from DBAL 3.x.
  */
 class JsonArrayType extends JsonType
 {
@@ -44,6 +48,23 @@ class JsonArrayType extends JsonType
      */
     public function getName(): string
     {
-        return 'json';
+        return 'json_array';
+    }
+    
+    /**
+     * {@inheritdoc}
+     */
+    public function requiresSQLCommentHint(AbstractPlatform $platform): bool
+    {
+        return true;
+    }
+    
+    /**
+     * {@inheritdoc}
+     */
+    public function getSQLDeclaration(array $column, AbstractPlatform $platform): string
+    {
+        // Use the parent JSON type's SQL declaration
+        return parent::getSQLDeclaration($column, $platform);
     }
 }
