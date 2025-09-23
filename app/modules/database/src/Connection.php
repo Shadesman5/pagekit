@@ -41,6 +41,11 @@ class Connection extends BaseConnection
      * Flag to track if type mappings have been registered.
      */
     protected bool $_typeMappingsRegistered = false;
+    
+    /**
+     * Flag to track if debug middleware has been added.
+     */
+    protected bool $_debugMiddlewareAdded = false;
 
     /**
      * Initializes a new instance of the Connection class.
@@ -80,6 +85,9 @@ class Connection extends BaseConnection
      */
     public function connect(): bool
     {
+        // Check if we need to add debug middleware before connecting
+        $this->ensureDebugMiddleware();
+        
         $result = parent::connect();
         
         // Register custom type mappings after connection is established
@@ -94,6 +102,37 @@ class Connection extends BaseConnection
         }
         
         return $result;
+    }
+    
+    /**
+     * Ensure debug middleware is attached if debug mode is enabled.
+     */
+    protected function ensureDebugMiddleware(): void
+    {
+        // Check if debug middleware should be added
+        if (class_exists('Pagekit\Application')) {
+            $app = \Pagekit\Application::getInstance();
+            if ($app && isset($app['debugbar']) && !isset($this->_debugMiddlewareAdded)) {
+                // Check if we can add middleware
+                if (class_exists('Pagekit\Debug\Middleware\DebugMiddleware') && 
+                    class_exists('Pagekit\Debug\Middleware\DebugLogger')) {
+                    
+                    try {
+                        $stopwatch = isset($app['debugbar.stopwatch']) ? $app['debugbar.stopwatch'] : null;
+                        $logger = new \Pagekit\Debug\Middleware\DebugLogger($stopwatch);
+                        $middleware = new \Pagekit\Debug\Middleware\DebugMiddleware($logger);
+                        
+                        // Store in app container for later access
+                        $app['db.debug_logger'] = $logger;
+                        $app['db.debug_middleware'] = $middleware;
+                        
+                        $this->_debugMiddlewareAdded = true;
+                    } catch (\Exception $e) {
+                        // Silent fail
+                    }
+                }
+            }
+        }
     }
     
     /**
