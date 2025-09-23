@@ -7,9 +7,6 @@ use Pagekit\Database\ORM\EntityManager;
 use Pagekit\Database\ORM\Loader\AnnotationLoader;
 use Pagekit\Database\ORM\MetadataManager;
 use Pagekit\Event\PrefixEventDispatcher;
-use Pagekit\Debug\Middleware\DebugMiddleware;
-use Pagekit\Debug\Middleware\DebugLogger;
-use Symfony\Component\Stopwatch\Stopwatch;
 
 $config = [
 
@@ -29,8 +26,13 @@ $config = [
                 $connectionParams = array_replace($default, $params);
                 
                 // Add debug middleware for DBAL 3.x if debug module is enabled
-                if (isset($app['db.debug_middleware'])) {
-                    $connectionParams['middlewares'] = [$app['db.debug_middleware']];
+                // Check if debug module is loaded and middleware is available
+                try {
+                    if (isset($app['debugbar']) && isset($app['db.debug_middleware'])) {
+                        $connectionParams['middlewares'] = [$app['db.debug_middleware']];
+                    }
+                } catch (\Exception $e) {
+                    // Silently fail if debug middleware is not available
                 }
                 
                 $dbs[$name] = DriverManager::getConnection($connectionParams);
@@ -55,11 +57,16 @@ $config = [
         $app['db.events'] = fn ($app) => new PrefixEventDispatcher('model.', $app['events']);
 
         // DBAL 3.x: Use middleware instead of DebugStack for SQL logging
-        $app['db.debug_middleware'] = function ($app) {
-            $stopwatch = isset($app['debugbar.stopwatch']) ? $app['debugbar.stopwatch'] : null;
-            $logger = new DebugLogger($stopwatch);
-            return new DebugMiddleware($logger);
-        };
+        // Only create if we have the necessary classes available
+        if (class_exists('Pagekit\Debug\Middleware\DebugMiddleware') && class_exists('Pagekit\Debug\Middleware\DebugLogger')) {
+            $app['db.debug_middleware'] = function ($app) {
+                $stopwatch = isset($app['debugbar.stopwatch']) ? $app['debugbar.stopwatch'] : null;
+                $debugLoggerClass = 'Pagekit\Debug\Middleware\DebugLogger';
+                $debugMiddlewareClass = 'Pagekit\Debug\Middleware\DebugMiddleware';
+                $logger = new $debugLoggerClass($stopwatch);
+                return new $debugMiddlewareClass($logger);
+            };
+        }
 
         // Override existing types
         Type::overrideType(Types::SIMPLE_ARRAY, '\Pagekit\Database\Types\SimpleArrayType');

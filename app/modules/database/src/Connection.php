@@ -83,12 +83,29 @@ class Connection extends BaseConnection
         $result = parent::connect();
         
         // Register custom type mappings after connection is established
-        if ($result && !isset($this->_typeMappingsRegistered)) {
+        if ($result && !$this->_typeMappingsRegistered) {
             $this->registerCustomTypeMappings();
             $this->_typeMappingsRegistered = true;
         }
         
         return $result;
+    }
+    
+    /**
+     * Ensure type mappings are registered when getting the platform.
+     * {@inheritdoc}
+     */
+    public function getDatabasePlatform(): \Doctrine\DBAL\Platforms\AbstractPlatform
+    {
+        $platform = parent::getDatabasePlatform();
+        
+        // Register type mappings if not already done
+        if (!$this->_typeMappingsRegistered && $this->isConnected()) {
+            $this->registerCustomTypeMappings();
+            $this->_typeMappingsRegistered = true;
+        }
+        
+        return $platform;
     }
     
     /**
