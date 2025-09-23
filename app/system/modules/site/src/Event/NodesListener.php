@@ -13,15 +13,21 @@ class NodesListener implements EventSubscriberInterface
      */
     public function onRequest(): void
     {
+        error_log("NodesListener::onRequest called - registering node routes");
         $site      = App::module('system/site');
         $frontpage = $site->config('frontpage');
         $nodes     = Node::findAll(true);
+        error_log("Found " . count($nodes) . " nodes to register");
 
-        uasort($nodes, fn($a, $b) => strcmp(substr_count($a->path, '/'), substr_count($b->path, '/')) * -1);
+        uasort($nodes, function($a, $b) {
+            return strcmp(substr_count($a->path, '/'), substr_count($b->path, '/')) * -1;
+        });
 
         foreach ($nodes as $node) {
+            error_log("Processing node: " . $node->title . " (type: " . $node->type . ", path: " . $node->path . ", status: " . $node->status . ")");
 
             if ($node->status !== 1 || !$type = $site->getType($node->type)) {
+                error_log("  Skipping node - status not active or type not found");
                 continue;
             }
 
@@ -35,6 +41,7 @@ class NodesListener implements EventSubscriberInterface
             } elseif ($node->get('redirect')) {
                 App::routes()->redirect($node->path, $node->get('redirect'), $type['defaults']);
             } elseif ($type['controller']) {
+                error_log("  Adding route for node: controller=" . $type['controller'] . ", path=" . $type['path']);
                 App::routes()->add($type);
             }
 
@@ -47,7 +54,9 @@ class NodesListener implements EventSubscriberInterface
         if ($frontpage && isset($nodes[$frontpage])) {
             App::routes()->alias('/', $nodes[$frontpage]->link);
         } else {
-            App::routes()->get('/', fn() => __('No Frontpage assigned.'));
+            App::routes()->get('/', function() { 
+                return __('No Frontpage assigned.'); 
+            });
         }
     }
 

@@ -13,7 +13,10 @@ class RouteListener implements EventSubscriberInterface
      */
     public function onAppRequest(): void
     {
-        App::router()->setOption('blog.permalink', UrlResolver::getPermalink());
+        error_log("RouteListener::onAppRequest called");
+        $permalink = UrlResolver::getPermalink();
+        error_log("Blog permalink format: " . ($permalink ?: 'none'));
+        App::router()->setOption('blog.permalink', $permalink);
     }
 
     /**
@@ -21,8 +24,11 @@ class RouteListener implements EventSubscriberInterface
      */
     public function onConfigureRoute($event, $route): void
     {
+        error_log("RouteListener::onConfigureRoute called for route: " . $route->getName());
         if ($route->getName() == '@blog/id' && UrlResolver::getPermalink()) {
-            App::routes()->alias(dirname($route->getPath()).'/'.ltrim(UrlResolver::getPermalink(), '/'), '@blog/id', ['_resolver' => 'Pagekit\Blog\UrlResolver']);
+            $alias = dirname($route->getPath()).'/'.ltrim(UrlResolver::getPermalink(), '/');
+            error_log("Creating route alias: $alias -> @blog/id");
+            App::routes()->alias($alias, '@blog/id', ['_resolver' => 'Pagekit\Blog\UrlResolver']);
         }
     }
 

@@ -15,7 +15,13 @@ class SiteController
      */
     public function __construct()
     {
+        error_log("Blog SiteController::__construct called");
         $this->blog = App::module('blog');
+        if (!$this->blog) {
+            error_log("ERROR: Blog module not found in SiteController!");
+        } else {
+            error_log("Blog module loaded successfully");
+        }
     }
 
     /**
@@ -24,6 +30,7 @@ class SiteController
      */
     public function indexAction($page = 1): array
     {
+        error_log("Blog SiteController::indexAction called - page: $page");
         $query = Post::where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime])->where(function($query) { 
             return $query->where('roles IS NULL')->whereInSet('roles', App::user()->roles, false, 'OR');
         })->related('user');
@@ -38,7 +45,11 @@ class SiteController
 
         $query->offset(($page - 1) * $limit)->limit($limit)->orderBy('date', 'DESC');
 
-        foreach ($posts = $query->get() as $post) {
+        error_log("Blog: About to fetch posts from database");
+        $posts = $query->get();
+        error_log("Blog: Found " . count($posts) . " posts");
+        
+        foreach ($posts as $post) {
             $post->excerpt = App::content()->applyPlugins($post->excerpt, ['post' => $post, 'markdown' => $post->get('markdown')]);
             $post->content = App::content()->applyPlugins($post->content, ['post' => $post, 'markdown' => $post->get('markdown'), 'readmore' => true]);
         }
