@@ -20,11 +20,15 @@
 
 ### Fixed
 
-- **Type Constants** - Fixed deprecated Type constants (SIMPLE_ARRAY, JSON_ARRAY)
+- **Type Constants** - Fixed deprecated Type constants (SIMPLE_ARRAY, JSON_ARRAY, DATETIME)
 - **Custom Type Registration** - Fixed infinite recursion in type registration
 - **WrapperClass Compatibility** - Fixed middleware integration with custom Connection class
 - **Debug Bar** - SQL queries now properly displayed with parameters and execution times
 - **Method Signatures** - Updated all method signatures for DBAL 3.x compatibility
+- **Arrow Functions** - Replaced all arrow functions (fn) with regular anonymous functions for compatibility
+- **SQL Aggregate Queries** - Added missing AS keyword in COUNT() queries
+- **DateTime Type Mapping** - Replaced Type::DATETIME with Types::DATETIME_MUTABLE
+- **Blog Extension** - Fixed 500 error in blog frontend caused by DBAL type constants
 
 ### Technical Details
 
@@ -34,10 +38,8 @@
 - **Backward Compatibility** - Deprecated DebugStack class kept for compatibility
 - **Performance** - Improved query logging performance with middleware approach
 - **Manual Middleware Wrapping** - Implemented workaround for DBAL 3.x limitation with wrapperClass
-
-### Known Issues
-
-- Blog extension frontend shows 500 error (unrelated to DBAL update, to be fixed separately)
+- **Query Builder Updates** - Fixed guessParamTypes() method for DateTime handling
+- **Node System** - Fixed route registration issues caused by arrow functions
 
 ## Pagekit 1.0.34 - Safe Dependency Updates (September 23, 2025)
 
