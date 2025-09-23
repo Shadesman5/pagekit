@@ -9,6 +9,7 @@ use Pagekit\User\Model\AccessModelTrait;
 /**
  * @Entity(tableClass="@system_widget")
  */
+#[\AllowDynamicProperties]
 class Widget implements \JsonSerializable
 {
     use AccessModelTrait, DataModelTrait, ModelTrait;
