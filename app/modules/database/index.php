@@ -59,7 +59,36 @@ $config = [
                 }
                 
                 error_log("Creating connection with params: " . json_encode(array_keys($connectionParams)));
-                $dbs[$name] = DriverManager::getConnection($connectionParams);
+                
+                // DBAL 3.x Bug: Middlewares are ignored when using wrapperClass
+                // We need to manually wrap the driver before creating the connection
+                if (isset($connectionParams['middlewares']) && !empty($connectionParams['middlewares'])) {
+                    // Get the base driver
+                    $driverOptions = $connectionParams['driverOptions'] ?? [];
+                    $driver = (new \Doctrine\DBAL\DriverManager())->getDriver($connectionParams);
+                    
+                    // Apply middlewares manually
+                    foreach ($connectionParams['middlewares'] as $middleware) {
+                        $driver = $middleware->wrap($driver);
+                        error_log("Manually wrapped driver with middleware: " . get_class($driver));
+                    }
+                    
+                    // Create configuration
+                    $config = new \Doctrine\DBAL\Configuration();
+                    
+                    // Create connection with wrapped driver
+                    $connection = new $connectionParams['wrapperClass'](
+                        $connectionParams,
+                        $driver,
+                        $config
+                    );
+                    
+                    $dbs[$name] = $connection;
+                } else {
+                    // Fallback to standard creation
+                    $dbs[$name] = DriverManager::getConnection($connectionParams);
+                }
+                
                 error_log("Connection created: " . get_class($dbs[$name]));
             }
 
