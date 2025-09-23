@@ -19,6 +19,7 @@ class DebugConnection extends AbstractConnectionMiddleware
     {
         parent::__construct($connection);
         $this->logger = $logger;
+        error_log("DebugConnection created - logger enabled: " . ($logger->enabled ? 'yes' : 'no'));
     }
 
     /**
@@ -26,6 +27,7 @@ class DebugConnection extends AbstractConnectionMiddleware
      */
     public function prepare(string $sql): Statement
     {
+        error_log("DebugConnection::prepare called - SQL: " . substr($sql, 0, 50));
         return new DebugStatement(
             parent::prepare($sql),
             $this->logger,
@@ -38,6 +40,7 @@ class DebugConnection extends AbstractConnectionMiddleware
      */
     public function query(string $sql): Result
     {
+        error_log("DebugConnection::query called - SQL: " . substr($sql, 0, 50));
         $this->logger->startQuery($sql);
         
         try {
