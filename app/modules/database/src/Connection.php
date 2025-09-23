@@ -36,6 +36,11 @@ class Connection extends BaseConnection
      * The regex for parsing SQL query parts.
      */
     protected array $regex;
+    
+    /**
+     * Flag to track if type mappings have been registered.
+     */
+    protected bool $_typeMappingsRegistered = false;
 
     /**
      * Initializes a new instance of the Connection class.
@@ -68,9 +73,22 @@ class Connection extends BaseConnection
         ];
 
         parent::__construct($params, $driver, $config, $eventManager);
+    }
+    
+    /**
+     * {@inheritdoc}
+     */
+    public function connect(): bool
+    {
+        $result = parent::connect();
         
-        // Register custom type mappings for database introspection
-        $this->registerCustomTypeMappings();
+        // Register custom type mappings after connection is established
+        if ($result && !isset($this->_typeMappingsRegistered)) {
+            $this->registerCustomTypeMappings();
+            $this->_typeMappingsRegistered = true;
+        }
+        
+        return $result;
     }
     
     /**
@@ -78,12 +96,16 @@ class Connection extends BaseConnection
      */
     protected function registerCustomTypeMappings(): void
     {
-        $platform = $this->getDatabasePlatform();
-        
-        // Map database types to our custom Doctrine types
-        $platform->registerDoctrineTypeMapping('json', 'json_array');
-        $platform->registerDoctrineTypeMapping('json_array', 'json_array');
-        $platform->registerDoctrineTypeMapping('simple_array', 'simple_array');
+        try {
+            $platform = $this->getDatabasePlatform();
+            
+            // Map database types to our custom Doctrine types
+            $platform->registerDoctrineTypeMapping('json', 'json_array');
+            $platform->registerDoctrineTypeMapping('json_array', 'json_array');
+            $platform->registerDoctrineTypeMapping('simple_array', 'simple_array');
+        } catch (\Exception $e) {
+            // Silently fail if platform is not available yet
+        }
     }
 
     /**
