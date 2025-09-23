@@ -29,6 +29,10 @@
 - **SQL Aggregate Queries** - Added missing AS keyword in COUNT() queries
 - **DateTime Type Mapping** - Replaced Type::DATETIME with Types::DATETIME_MUTABLE
 - **Blog Extension** - Fixed 500 error in blog frontend caused by DBAL type constants
+- **Widget Position Management** - Fixed widget position not being saved or loaded correctly
+- **Widget Theme Properties** - Fixed null reference errors in widget theme settings
+- **PHP 8.2+ Deprecations** - Added #[\AllowDynamicProperties] attribute to Widget model
+- **Widget Edit View** - Fixed JavaScript error handling and scope issues
 
 ### Technical Details
 
@@ -40,6 +44,8 @@
 - **Manual Middleware Wrapping** - Implemented workaround for DBAL 3.x limitation with wrapperClass
 - **Query Builder Updates** - Fixed guessParamTypes() method for DateTime handling
 - **Node System** - Fixed route registration issues caused by arrow functions
+- **Widget System** - Complete overhaul of widget position management and theme property handling
+- **PHP 8.2+ Compatibility** - Resolved all deprecation warnings with proper attribute usage
 
 ## Pagekit 1.0.34 - Safe Dependency Updates (September 23, 2025)
 
