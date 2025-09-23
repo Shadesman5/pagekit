@@ -98,7 +98,7 @@ class DebugLogger implements LoggerInterface
     /**
      * Stop logging the current query.
      */
-    public function stopQuery(float $elapsed = null): void
+    public function stopQuery(?float $elapsed = null): void
     {
         if (!$this->enabled || $this->currentQuery === null) {
             return;
