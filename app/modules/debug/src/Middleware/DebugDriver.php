@@ -17,7 +17,6 @@ class DebugDriver extends AbstractDriverMiddleware
     {
         parent::__construct($driver);
         $this->logger = $logger;
-        error_log("DebugDriver created - wrapping driver: " . get_class($driver));
     }
 
     /**
@@ -25,7 +24,6 @@ class DebugDriver extends AbstractDriverMiddleware
      */
     public function connect(array $params): ConnectionInterface
     {
-        error_log("DebugDriver::connect called - creating DebugConnection");
         $connection = parent::connect($params);
         return new DebugConnection($connection, $this->logger);
     }

@@ -37,18 +37,12 @@ $config = [
                         // ALWAYS enable logging - we'll filter later when displaying
                         $logger->enabled = true;
                         
-                        // Debug output
-                        error_log("Creating debug middleware - always enabled for DBAL 3.x");
                         
                         // Create middleware with logger
                         $middleware = new \Pagekit\Debug\Middleware\DebugMiddleware($logger);
                         
                         // Add to connection params (required for DBAL 3.x)
                         $connectionParams['middlewares'] = [$middleware];
-                        
-                        // Debug: Verify middleware is in params
-                        error_log("Middleware added to connection params: " . (isset($connectionParams['middlewares']) ? 'YES' : 'NO'));
-                        error_log("Number of middlewares: " . count($connectionParams['middlewares']));
                         
                         // Store reference for later use by debugbar
                         $app['db.debug_middleware'] = $middleware;
@@ -57,8 +51,6 @@ $config = [
                         // If middleware creation fails, continue without it
                     }
                 }
-                
-                error_log("Creating connection with params: " . json_encode(array_keys($connectionParams)));
                 
                 // DBAL 3.x Bug: Middlewares are ignored when using wrapperClass
                 // We need to manually wrap the driver before creating the connection
@@ -72,7 +64,6 @@ $config = [
                     // Apply middlewares manually
                     foreach ($connectionParams['middlewares'] as $middleware) {
                         $driver = $middleware->wrap($driver);
-                        error_log("Manually wrapped driver with middleware: " . get_class($driver));
                     }
                     
                     // Get configuration from temp connection
@@ -93,8 +84,6 @@ $config = [
                     // Fallback to standard creation
                     $dbs[$name] = DriverManager::getConnection($connectionParams);
                 }
-                
-                error_log("Connection created: " . get_class($dbs[$name]));
             }
 
             return $dbs;

@@ -73,8 +73,6 @@ class DebugLogger implements LoggerInterface
     public function startQuery(string $sql, ?array $params = null, ?array $types = null): void
     {
         // Debug: Log to error log to verify this is being called
-        error_log("DebugLogger::startQuery called - enabled: " . ($this->enabled ? 'yes' : 'no') . ", SQL: " . substr($sql, 0, 50));
-        
         if (!$this->enabled) {
             return;
         }
