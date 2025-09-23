@@ -31,13 +31,13 @@ This document tracks the safe minor version updates performed on Pagekit depende
 - **Notes**: Already at latest 2.x version 
 
 ### 2. twig/twig
-- **Previous Version**: ~3.11.3
-- **Updated To**: ^3.14
+- **Previous Version**: ~3.11.3 (3.11.3)
+- **Updated To**: ^3.14 (3.21.1)
 - **Reason**: Minor version updates with bug fixes
 - **Breaking Changes**: None
-- **Test Status**: ✅ Pending
+- **Test Status**: ✅ Passed (no regression)
 - **Deprecation Warnings**: None
-- **Notes**: 
+- **Notes**: Successfully updated to latest 3.x version 
 
 ### 3. paragonie/sodium_compat
 - **Previous Version**: ~1.21

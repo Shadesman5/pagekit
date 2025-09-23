@@ -45,7 +45,7 @@
         "symfony/service-contracts": "~2.5",
         "symfony/templating": "~5.4",
         "symfony/translation": "~5.4",
-        "twig/twig": "~3.11.3",
+        "twig/twig": "^3.14",
         "symfony/twig-bridge": "~5.4"
     },
     "require-dev": {
