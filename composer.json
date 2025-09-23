@@ -18,7 +18,7 @@
     ],
     "require": {
         "php": "^8.2",
-        "composer/composer": "~2.2",
+        "composer/composer": "^2.8",
         "doctrine/annotations": "~1.14",
         "doctrine/dbal": "~2.13",
         "doctrine/cache": "~1.13",
