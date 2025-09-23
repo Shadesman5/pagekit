@@ -533,13 +533,28 @@ class QueryBuilder
     public function aggregate($function, $column)
     {
         $select  = $this->getPart('select');
-        $results = $this->setPart('select', sprintf('%s(%s) aggregate', strtoupper($function), $column))->get();
+        
+        try {
+            error_log("QueryBuilder::aggregate called - function: $function, column: $column");
+            $results = $this->setPart('select', sprintf('%s(%s) AS aggregate', strtoupper($function), $column))->get();
+            error_log("QueryBuilder::aggregate results: " . json_encode($results));
+        } catch (\Exception $e) {
+            error_log("ERROR in QueryBuilder::aggregate: " . $e->getMessage());
+            throw $e;
+        }
 
         $this->setPart('select', $select);
 
-        if ($results) {
+        if ($results && isset($results[0]['aggregate'])) {
             return $results[0]['aggregate'];
         }
+        
+        // Fallback for case-sensitive databases
+        if ($results && isset($results[0]['AGGREGATE'])) {
+            return $results[0]['AGGREGATE'];
+        }
+        
+        return 0;
     }
 
     /**
