@@ -4,9 +4,10 @@
 
 ### Changed
 
-- **doctrine/dbal** - Updated from 2.13 to 3.10.2 (major version update for better performance and modern PHP support)
+- **doctrine/dbal** - Updated from 2.13 to 3.8 (major version update for better performance and modern PHP support)
 - **Debug Module** - Replaced deprecated SQLLogger with new Middleware-based SQL logging system
 - **Database Layer** - Full compatibility with DBAL 3.x APIs and methods
+- **Custom Types** - Updated JsonArrayType and SimpleArrayType for DBAL 3.x compatibility
 
 ### Added
 
@@ -17,6 +18,14 @@
   - `DebugConnection` - Connection wrapper for query tracking
   - `DebugStatement` - Statement wrapper for parameter binding tracking
 
+### Fixed
+
+- **Type Constants** - Fixed deprecated Type constants (SIMPLE_ARRAY, JSON_ARRAY)
+- **Custom Type Registration** - Fixed infinite recursion in type registration
+- **WrapperClass Compatibility** - Fixed middleware integration with custom Connection class
+- **Debug Bar** - SQL queries now properly displayed with parameters and execution times
+- **Method Signatures** - Updated all method signatures for DBAL 3.x compatibility
+
 ### Technical Details
 
 - **DBAL 3.x Compatibility** - All database operations updated for DBAL 3.x
@@ -24,11 +33,11 @@
 - **PSR-3 Compliance** - Debug logger implements PSR-3 LoggerInterface
 - **Backward Compatibility** - Deprecated DebugStack class kept for compatibility
 - **Performance** - Improved query logging performance with middleware approach
+- **Manual Middleware Wrapping** - Implemented workaround for DBAL 3.x limitation with wrapperClass
 
 ### Known Issues
 
-- Some PHPUnit test mocks need updating (not related to DBAL functionality)
-- doctrine/cache remains on 1.13 (requires PSR-6 migration in future update)
+- Blog extension frontend shows 500 error (unrelated to DBAL update, to be fixed separately)
 
 ## Pagekit 1.0.34 - Safe Dependency Updates (September 23, 2025)
 
