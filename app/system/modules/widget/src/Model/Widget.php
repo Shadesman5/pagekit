@@ -36,7 +36,7 @@ class Widget implements \JsonSerializable
     
     /** 
      * Widget theme settings (stored in data)
-     * @var array|null
+     * @var array
      */
-    public ?array $theme = null;
+    public array $theme = [];
 }

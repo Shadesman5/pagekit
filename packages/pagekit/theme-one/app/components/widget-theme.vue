@@ -83,13 +83,29 @@ const WidgetTheme = {
 
     computed: {
         options() {
+            // Initialize theme object if it doesn't exist
+            if (!this.widget.theme) {
+                this.$set(this.widget, 'theme', {});
+            }
             return this.widget.theme;
         }
     },
 
     created() {
-        if (!this.options.title_size || !_.filter(this.heading, (title, value) => value === this.options.title_size).length) {
-            this.options.title_size = 'uk-h3';
+        // Ensure theme object exists
+        if (!this.widget.theme) {
+            this.$set(this.widget, 'theme', {
+                title_size: 'uk-h3',
+                title_hide: false,
+                alignment: false,
+                html_class: '',
+                panel: ''
+            });
+        }
+        
+        // Set default title size if not set or invalid
+        if (!this.widget.theme.title_size || !_.filter(this.heading, (title, value) => value === this.widget.theme.title_size).length) {
+            this.$set(this.widget.theme, 'title_size', 'uk-h3');
         }
     }
 };
