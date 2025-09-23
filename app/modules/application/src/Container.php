@@ -4,9 +4,9 @@ namespace Pagekit;
 
 use Pagekit\Container\ContainerException;
 use Pagekit\Container\NotFoundException;
-use Psr\Container\ContainerInterface;
+use Pagekit\Container\Psr11Adapter;
 
-class Container implements \ArrayAccess, ContainerInterface
+class Container implements \ArrayAccess
 {
     protected array $values = [];
 
@@ -103,7 +103,18 @@ class Container implements \ArrayAccess, ContainerInterface
     }
 
     /**
-     * PSR-11: Finds an entry of the container by its identifier and returns it.
+     * Gets a PSR-11 compatible adapter for this container.
+     * 
+     * @return Psr11Adapter
+     */
+    public function getPsr11Adapter(): Psr11Adapter
+    {
+        return new Psr11Adapter($this);
+    }
+
+    /**
+     * PSR-11 Compatible: Finds an entry of the container by its identifier and returns it.
+     * Named getService() to avoid conflict with static get() method.
      *
      * @param string $id Identifier of the entry to look for.
      *
@@ -112,7 +123,7 @@ class Container implements \ArrayAccess, ContainerInterface
      *
      * @return mixed Entry.
      */
-    public function get(string $id)
+    public function getService(string $id)
     {
         try {
             return $this->offsetGet($id);
@@ -124,14 +135,14 @@ class Container implements \ArrayAccess, ContainerInterface
     }
 
     /**
-     * PSR-11: Returns true if the container can return an entry for the given identifier.
-     * Returns false otherwise.
+     * PSR-11 Compatible: Returns true if the container can return an entry for the given identifier.
+     * Named hasService() to avoid conflict with static has() method.
      *
      * @param string $id Identifier of the entry to look for.
      *
      * @return bool
      */
-    public function has(string $id): bool
+    public function hasService(string $id): bool
     {
         return $this->offsetExists($id);
     }

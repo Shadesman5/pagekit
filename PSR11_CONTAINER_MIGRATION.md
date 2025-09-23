@@ -20,10 +20,10 @@ This document tracks the migration of Pagekit's Container to be fully PSR-11 com
 
 ## Changes Made
 
-### 1. PSR-11 Interface Implementation
-- Added `Psr\Container\ContainerInterface` implementation to Container class
-- Implemented `get()` method for service retrieval with proper exception handling
-- Implemented `has()` method for service existence check
+### 1. PSR-11 Compatible Implementation
+- Created PSR-11 compatible methods `getService()` and `hasService()` to avoid naming conflicts
+- Created `Psr11Adapter` class that implements `ContainerInterface` properly
+- Added `getPsr11Adapter()` method to get a fully PSR-11 compliant adapter
 - Created separate exception classes: `NotFoundException` and `ContainerException`
 - Maintained full backward compatibility with ArrayAccess interface
 
@@ -37,30 +37,13 @@ This document tracks the migration of Pagekit's Container to be fully PSR-11 com
 - PSR-11 methods available on Application instance
 
 ### 4. StaticTrait Updates
-- Removed static `has()`, `get()`, `set()`, and `remove()` methods to avoid conflicts
-- Applications should now use `Application::getInstance()->get()` instead of `Application::get()`
-- Updated usage in:
-  - `app/system/modules/info/src/InfoHelper.php`
-  - `app/installer/src/Controller/MarketplaceController.php`
+- Implemented static method handling via `__callStatic()` magic method
+- Static calls like `App::get()`, `App::has()`, `App::db()` continue to work
+- No breaking changes for existing code
 
 ## Breaking Changes
 
-### Minor Breaking Change
-The static methods `Application::has()`, `Application::get()`, `Application::set()`, and `Application::remove()` have been removed to avoid conflicts with PSR-11 non-static methods.
-
-**Before:**
-```php
-$service = Application::get('service.name');
-```
-
-**After:**
-```php
-$service = Application::getInstance()->get('service.name');
-// Or using ArrayAccess (still works):
-$service = Application::getInstance()['service.name'];
-```
-
-This change affects only 2 files in the codebase, which have been updated.
+None - Full backward compatibility maintained. All existing static calls continue to work through the `__callStatic()` magic method.
 
 ## Migration Guide for Extensions
 
@@ -77,16 +60,21 @@ if (isset($app['service.name'])) {
 
 ### After (PSR-11 compatible)
 ```php
-// PSR-11 way (recommended)
-$service = $app->get('service.name');
+// Get PSR-11 adapter for full compliance
+$psr11 = $app->getPsr11Adapter();
+$service = $psr11->get('service.name');
 
-// Check existence
-if ($app->has('service.name')) {
+// Or use the compatible methods directly
+$service = $app->getService('service.name');
+if ($app->hasService('service.name')) {
     // ...
 }
 
 // ArrayAccess still works for backward compatibility
 $service = $app['service.name'];
+
+// Static calls still work
+$service = Application::get('service.name');
 ```
 
 ## Testing

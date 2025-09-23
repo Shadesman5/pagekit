@@ -61,10 +61,10 @@ class InfoHelper
         // -TODO-
 
         $directories = [
-            App::getInstance()->get('path.storage'),
-            App::getInstance()->get('path.temp'),
-            App::getInstance()->get('path.packages'),
-            App::getInstance()->get('config.file')
+            App::get('path.storage'),
+            App::get('path.temp'),
+            App::get('path.packages'),
+            App::get('config.file')
         ];
 
         $result = [];
