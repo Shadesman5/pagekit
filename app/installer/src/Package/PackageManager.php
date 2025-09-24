@@ -138,24 +138,33 @@ class PackageManager
 
             App::trigger('package.enable', [$package]);
 
-            if (!$current = App::config('system')->get('packages.' . $previousPackageConfig->get('module'))) {
+            // During installation, config service might not be available
+            $app = App::getInstance();
+            if ($app && isset($app['config'])) {
+                if (!$current = App::config('system')->get('packages.' . $previousPackageConfig->get('module'))) {
+                    $current = $this->doInstall($package);
+                }
+
+                $scripts = $this->getScripts($package, $current);
+                if ($scripts->hasUpdates()) {
+                    $scripts->update();
+                }
+
+                $version = $this->getVersion($package);
+                App::config('system')->set('packages.' . $package->get('module'), $version);
+
+                $scripts->enable();
+
+                if ($package->getType() == 'pagekit-theme') {
+                    App::config('system')->set('site.theme', $package->get('module'));
+                } elseif ($package->getType() == 'pagekit-extension') {
+                    App::config('system')->push('extensions', $package->get('module'));
+                }
+            } else {
+                // During installation, just run basic enable without config updates
                 $current = $this->doInstall($package);
-            }
-
-            $scripts = $this->getScripts($package, $current);
-            if ($scripts->hasUpdates()) {
-                $scripts->update();
-            }
-
-            $version = $this->getVersion($package);
-            App::config('system')->set('packages.' . $package->get('module'), $version);
-
-            $scripts->enable();
-
-            if ($package->getType() == 'pagekit-theme') {
-                App::config('system')->set('site.theme', $package->get('module'));
-            } elseif ($package->getType() == 'pagekit-extension') {
-                App::config('system')->push('extensions', $package->get('module'));
+                $scripts = $this->getScripts($package, $current);
+                $scripts->enable();
             }
         }
     }
@@ -203,7 +212,11 @@ class PackageManager
         $this->getScripts($package)->install();
         $version = $this->getVersion($package);
 
-        App::config('system')->set('packages.' . $package->get('module'), $version);
+        // Only update config if available (not during initial installation)
+        $app = App::getInstance();
+        if ($app && isset($app['config'])) {
+            App::config('system')->set('packages.' . $package->get('module'), $version);
+        }
 
         return $version;
     }
