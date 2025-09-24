@@ -10,7 +10,7 @@ use Symfony\Component\Mailer\Transport;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\Address;
 
-class Mailer
+class Mailer implements MailerInterface
 {
     /**
      * @var TransportInterface
