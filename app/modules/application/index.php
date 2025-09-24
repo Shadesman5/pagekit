@@ -19,6 +19,12 @@ return [
 
         $app['response'] = fn($app) => new Response($app['url']);
 
+        // Symfony 6.4 Event System Compatibility Layer
+        // Only used when Symfony components explicitly need it
+        $app['symfony.event_dispatcher'] = function($app) {
+            return new \Pagekit\Event\SymfonyEventDispatcherBridge($app['events']);
+        };
+
         // use Symfony\Component\ErrorHandler\ErrorHandler instead.
         // $app['exception'] = ExceptionHandler::register($app['debug']);
 

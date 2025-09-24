@@ -10,7 +10,7 @@ use Symfony\Component\Mailer\Transport;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\Address;
 
-class Mailer
+class Mailer implements MailerInterface
 {
     /**
      * @var TransportInterface
@@ -263,5 +263,23 @@ class Mailer
         } catch (\Exception $e) {
             throw $e;
         }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function beforeSend(Email $message): void
+    {
+        // Hook for extensions to modify message before sending
+        // Currently no default implementation
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function afterSend(Email $message): void
+    {
+        // Hook for extensions to process message after sending
+        // Currently no default implementation
     }
 }

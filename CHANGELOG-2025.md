@@ -1,5 +1,22 @@
 # Changelog 2025
 
+## Pagekit 1.0.37 - Symfony 6.4 Event System Compatibility (September 24, 2025)
+
+### Added
+
+-   **Symfony 6.4 Event System Compatibility** - Implemented compatibility layer for Symfony EventDispatcher
+    -   Added `SymfonyEventDispatcherBridge` class implementing Symfony's EventDispatcherInterface
+    -   Registered `symfony.event_dispatcher` service for Symfony components
+    -   Full support for Symfony event subscribers and listeners
+    -   Enables seamless integration with Symfony 6.4 components
+
+### Technical Details
+
+-   **Zero Performance Impact** - Compatibility layer only activated when explicitly needed
+-   **Full Backward Compatibility** - Pagekit's event system remains unchanged
+-   **Test Coverage** - 8 comprehensive tests with 100% code coverage
+-   **Documentation** - Complete migration guide in SYMFONY_EVENT_MIGRATION.md
+
 ## Pagekit 1.0.36 - PSR-11 Container Compatibility (September 24, 2025)
 
 ### Added

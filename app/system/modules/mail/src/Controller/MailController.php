@@ -4,6 +4,7 @@ namespace Pagekit\Mail\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Util\Arr;
+use function Pagekit\__;
 
 /**
  * @Access("system: access settings", admin=true)
