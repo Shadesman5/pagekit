@@ -64,7 +64,9 @@ return [
             return $options;
         };
 
-        $app['csrf'] = fn($app) => new SessionCsrfProvider($app['session']);
+        $app['csrf'] = function ($app) {
+            return new SessionCsrfProvider($app['session']);
+        };
 
     },
 
