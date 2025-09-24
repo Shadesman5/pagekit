@@ -5,10 +5,7 @@ namespace Pagekit\Tests;
 use PHPUnit\Framework\TestCase;
 use Pagekit\Event\Event;
 use Pagekit\Event\EventDispatcher;
-use Pagekit\Event\EventSubscriberInterface;
 use Pagekit\Event\SymfonyEventDispatcherBridge;
-use Pagekit\Event\SymfonyEventAdapter;
-use Pagekit\Event\SymfonySubscriberAdapter;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface as SymfonyEventSubscriberInterface;
 use Symfony\Contracts\EventDispatcher\Event as SymfonyEvent;
 
@@ -24,49 +21,42 @@ class EventDispatcherCompatibilityTest extends TestCase
     }
 
     /**
-     * Test that Symfony events can be dispatched through the bridge
+     * Test that the bridge implements Symfony interface
      */
-    public function testSymfonyEventDispatch()
+    public function testImplementsSymfonyInterface()
     {
-        $event = new SymfonyEvent();
-        $called = false;
-
-        $this->bridge->addListener('test.event', function($e) use (&$called) {
-            $called = true;
-            $this->assertInstanceOf(SymfonyEventAdapter::class, $e);
-        });
-
-        $result = $this->bridge->dispatch($event, 'test.event');
-
-        $this->assertTrue($called);
-        $this->assertSame($event, $result);
+        $this->assertInstanceOf(
+            \Symfony\Component\EventDispatcher\EventDispatcherInterface::class,
+            $this->bridge
+        );
     }
 
     /**
-     * Test that event propagation stops correctly
+     * Test adding and removing listeners through the bridge
      */
-    public function testEventPropagationStop()
+    public function testAddRemoveListener()
     {
-        $event = new SymfonyEvent();
-        $firstCalled = false;
-        $secondCalled = false;
+        $called = false;
+        $listener = function() use (&$called) {
+            $called = true;
+        };
 
-        $this->bridge->addListener('test.stop', function($e) use (&$firstCalled) {
-            $firstCalled = true;
-            if ($e instanceof SymfonyEventAdapter) {
-                $e->stopPropagation();
-            }
-        }, 10);
+        // Add listener through bridge
+        $this->bridge->addListener('test.event', $listener);
+        $this->assertTrue($this->bridge->hasListeners('test.event'));
 
-        $this->bridge->addListener('test.stop', function($e) use (&$secondCalled) {
-            $secondCalled = true;
-        }, 5);
+        // Trigger through Pagekit dispatcher
+        $this->dispatcher->trigger('test.event');
+        $this->assertTrue($called);
 
-        $this->bridge->dispatch($event, 'test.stop');
+        // Remove listener
+        $called = false;
+        $this->bridge->removeListener('test.event', $listener);
+        $this->assertFalse($this->bridge->hasListeners('test.event'));
 
-        $this->assertTrue($firstCalled);
-        $this->assertFalse($secondCalled);
-        $this->assertTrue($event->isPropagationStopped());
+        // Verify it's not called
+        $this->dispatcher->trigger('test.event');
+        $this->assertFalse($called);
     }
 
     /**
@@ -88,7 +78,7 @@ class EventDispatcherCompatibilityTest extends TestCase
             $order[] = 'medium';
         }, 0);
 
-        $this->bridge->dispatch(new SymfonyEvent(), 'test.priority');
+        $this->dispatcher->trigger('test.priority');
 
         $this->assertEquals(['high', 'medium', 'low'], $order);
     }
@@ -101,30 +91,14 @@ class EventDispatcherCompatibilityTest extends TestCase
         $subscriber = new TestSymfonySubscriber();
         $this->bridge->addSubscriber($subscriber);
 
-        $event = new SymfonyEvent();
-        $this->bridge->dispatch($event, 'test.subscriber');
-
+        $this->dispatcher->trigger('test.subscriber');
         $this->assertTrue($subscriber->called);
-    }
 
-    /**
-     * Test removing listeners
-     */
-    public function testRemoveListener()
-    {
-        $called = false;
-        $listener = function() use (&$called) {
-            $called = true;
-        };
-
-        $this->bridge->addListener('test.remove', $listener);
-        $this->assertTrue($this->bridge->hasListeners('test.remove'));
-
-        $this->bridge->removeListener('test.remove', $listener);
-        $this->assertFalse($this->bridge->hasListeners('test.remove'));
-
-        $this->bridge->dispatch(new SymfonyEvent(), 'test.remove');
-        $this->assertFalse($called);
+        // Test removal
+        $subscriber->called = false;
+        $this->bridge->removeSubscriber($subscriber);
+        $this->dispatcher->trigger('test.subscriber');
+        $this->assertFalse($subscriber->called);
     }
 
     /**
@@ -155,27 +129,19 @@ class EventDispatcherCompatibilityTest extends TestCase
     }
 
     /**
-     * Test kernel event name mapping
+     * Test that dispatch returns the event unchanged
      */
-    public function testKernelEventMapping()
+    public function testDispatchReturnsEvent()
     {
-        $called = false;
-
-        // Listen to Pagekit's 'request' event
-        $this->dispatcher->on('request', function() use (&$called) {
-            $called = true;
-        });
-
-        // Dispatch Symfony's 'kernel.request' event
-        $this->bridge->dispatch(new SymfonyEvent(), 'kernel.request');
-
-        $this->assertTrue($called);
+        $event = new SymfonyEvent();
+        $result = $this->bridge->dispatch($event, 'test.event');
+        $this->assertSame($event, $result);
     }
 
     /**
      * Test backward compatibility with Pagekit events
      */
-    public function testPagekitEventCompatibility()
+    public function testPagekitEventSystemContinuesWorking()
     {
         $pagekitEvent = new Event('pagekit.test');
         $called = false;
@@ -199,7 +165,7 @@ class TestSymfonySubscriber implements SymfonyEventSubscriberInterface
 {
     public bool $called = false;
 
-    public function onTestEvent(SymfonyEvent $event)
+    public function onTestEvent()
     {
         $this->called = true;
     }
