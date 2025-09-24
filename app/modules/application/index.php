@@ -19,6 +19,16 @@ return [
 
         $app['response'] = fn($app) => new Response($app['url']);
 
+        // Symfony 6.4 Event System Compatibility
+        $app['symfony.event_dispatcher'] = function($app) {
+            return new \Pagekit\Event\SymfonyEventDispatcherBridge($app['events']);
+        };
+
+        // Symfony 6.4 HttpKernel Compatibility
+        $app['symfony.kernel'] = function($app) {
+            return new \Pagekit\Kernel\SymfonyKernelAdapter($app['kernel'], $app['events']);
+        };
+
         // use Symfony\Component\ErrorHandler\ErrorHandler instead.
         // $app['exception'] = ExceptionHandler::register($app['debug']);
 
