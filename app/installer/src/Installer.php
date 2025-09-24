@@ -45,34 +45,24 @@ class Installer
         $message = '';
 
         try {
-            error_log("check(): Starting database check");
 
             try {
 
                 if (!$this->config) {
-                    error_log("check(): No config file, merging module configs");
                     foreach ($config as $name => $values) {
-                        error_log("check(): Processing config for module: $name");
                         if ($module = $this->app->module($name)) {
-                            error_log("check(): Module $name found, merging config");
                             $module->config = Arr::merge($module->config, $values);
                         } else {
-                            error_log("check(): Module $name not found");
                         }
                     }
                 }
 
-                error_log("check(): Attempting database connection");
                 $this->app->db()->connect();
-                error_log("check(): Database connected successfully");
 
-                error_log("check(): Checking if tables exist");
                 if ($this->app->db()->getUtility()->tableExists('@system_config')) {
-                    error_log("check(): Tables exist");
                     $status = 'tables-exist';
                     $message = __('Existing Pagekit installation detected. Choose different table prefix?');
                 } else {
-                    error_log("check(): No tables found");
                     $status = 'no-tables';
                 }
 
@@ -89,8 +79,6 @@ class Installer
         } catch (\Exception $e) {
             
             // Debug: Log the actual error
-            error_log("Installer check() exception: " . $e->getMessage());
-            error_log("Exception trace: " . $e->getTraceAsString());
 
             $message = $e->getMessage(); // Show the actual error for debugging
             
@@ -104,9 +92,7 @@ class Installer
 
     public function install($config = [], $option = [], $user = []): array
     {
-        error_log("install(): Starting installation");
         $status = $this->check($config);
-        error_log("install(): check() returned status: " . $status['status'] . ", message: " . $status['message']);
         $message = $status['message'];
         $status = $status['status'];
 
@@ -117,7 +103,6 @@ class Installer
         }
 
         try {
-            error_log("install(): Checking status: $status");
 
             if ('no-connection' == $status) {
                 $this->app->abort(400, __('No database connection.'));
@@ -127,9 +112,7 @@ class Installer
                 $this->app->abort(400, $message);
             }
 
-            error_log("install(): Loading package scripts");
             $scripts = new PackageScripts($this->app->path().'/app/system/scripts.php');
-            error_log("install(): Running install scripts");
             $scripts->install();
 
             $this->app->db()->insert('@system_user', [
@@ -148,34 +131,25 @@ class Installer
                 $this->app->config()->set($name, $this->app->config($name)->merge($values));
             }
 
-            error_log("install(): Creating PackageManager");
             try {
                 $packageManager = new PackageManager(new NullOutput());
             } catch (\Exception $e) {
-                error_log("install(): Error creating PackageManager: " . $e->getMessage());
                 throw new \Exception("Error creating PackageManager: " . $e->getMessage(), 0, $e);
             }
             
-            error_log("install(): Looking for packages in: " . $this->app['path.packages']);
             foreach (glob($this->app['path.packages'] . '/*/*/composer.json') as $package) {
-                error_log("install(): Loading package: $package");
                 try {
                     $package = $this->app['package']->load($package);
                 } catch (\Exception $e) {
-                    error_log("install(): Error loading package: " . $e->getMessage());
                     continue;
                 }
                 if ($package->get('type') === 'pagekit-extension' || $package->get('type') === 'pagekit-theme') {
-                    error_log("install(): Enabling package: " . $package->getName());
                     try {
                         $packageManager->enable($package);
                     } catch (\Exception $e) {
-                        error_log("install(): Error enabling package: " . $e->getMessage());
-                        error_log("install(): Stack trace: " . $e->getTraceAsString());
                     }
                 }
             }
-            error_log("install(): All packages processed");
 
             if (!$demo_content) {
                 if (file_exists(__DIR__.'/../install.php')) {
