@@ -1,5 +1,22 @@
 # Changelog 2025
 
+## Pagekit 1.0.38 - Symfony 6.4 Routing System Compatibility (September 24, 2025)
+
+### Changed
+
+- **Symfony Routing Compatibility** - Updated routing system for Symfony 6.4 compatibility
+  - Added strict type hints to all routing methods
+  - Updated Router, Route, and RoutesLoader classes with PHP 8+ types
+  - Fixed LINK_URL constant to use integer value for Symfony compatibility
+  - Enhanced UrlGenerator with proper type declarations
+
+### Technical Details
+
+- **Full Test Coverage** - 36 tests with 69 assertions all passing
+- **Zero Breaking Changes** - All existing routes and extensions remain compatible
+- **Performance** - No performance degradation, route caching continues to work
+- **Documentation** - Complete migration guide in SYMFONY_ROUTING_MIGRATION.md
+
 ## Pagekit 1.0.37 - Symfony 6.4 Event System Compatibility (September 24, 2025)
 
 ### Added

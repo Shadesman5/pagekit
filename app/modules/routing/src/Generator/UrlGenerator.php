@@ -9,7 +9,7 @@ class UrlGenerator extends BaseUrlGenerator implements UrlGeneratorInterface
     /**
      * {@inheritdoc}
      */
-    protected function doGenerate($variables, $defaults, $requirements, $tokens, $parameters, $name, $referenceType, $hostTokens, array $requiredSchemes = [])
+    protected function doGenerate(array $variables, array $defaults, array $requirements, array $tokens, array $parameters, string $name, int $referenceType, array $hostTokens, array $requiredSchemes = []): string
     {
         $link = $name;
 
@@ -22,7 +22,7 @@ class UrlGenerator extends BaseUrlGenerator implements UrlGeneratorInterface
             }
         }
 
-        if ($referenceType === self::LINK_URL) {
+        if ($referenceType === UrlGeneratorInterface::LINK_URL) {
             return $link;
         }
 
@@ -35,7 +35,7 @@ class UrlGenerator extends BaseUrlGenerator implements UrlGeneratorInterface
      * @param  string $name
      * @return array|null
      */
-    public function getRouteProperties($name): ?array
+    public function getRouteProperties(string $name): ?array
     {
         if (!$route = $this->routes->get($name)) {
             return null;
