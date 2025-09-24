@@ -17,6 +17,10 @@
 -   **Performance** - No performance degradation, route caching continues to work
 -   **Documentation** - Complete migration guide in SYMFONY_ROUTING_MIGRATION.md
 
+### Cleanup
+
+-   **Cleanup: Remove outdated migration docs** - Removed completed migration documentation files that are no longer needed
+
 ## Pagekit 1.0.37 - Symfony 6.4 Event System Compatibility (September 24, 2025)
 
 ### Added
