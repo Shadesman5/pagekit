@@ -159,12 +159,23 @@ class Installer
             error_log("install(): Looking for packages in: " . $this->app['path.packages']);
             foreach (glob($this->app['path.packages'] . '/*/*/composer.json') as $package) {
                 error_log("install(): Loading package: $package");
-                $package = $this->app['package']->load($package);
+                try {
+                    $package = $this->app['package']->load($package);
+                } catch (\Exception $e) {
+                    error_log("install(): Error loading package: " . $e->getMessage());
+                    continue;
+                }
                 if ($package->get('type') === 'pagekit-extension' || $package->get('type') === 'pagekit-theme') {
                     error_log("install(): Enabling package: " . $package->getName());
-                    $packageManager->enable($package);
+                    try {
+                        $packageManager->enable($package);
+                    } catch (\Exception $e) {
+                        error_log("install(): Error enabling package: " . $e->getMessage());
+                        error_log("install(): Stack trace: " . $e->getTraceAsString());
+                    }
                 }
             }
+            error_log("install(): All packages processed");
 
             if (!$demo_content) {
                 if (file_exists(__DIR__.'/../install.php')) {
@@ -183,7 +194,7 @@ class Installer
                     $configuration->set($key, $value);
                 }
 
-                $configuration->set('system.secret', $this->app->get('auth.random')->generateString(64));
+                $configuration->set('system.secret', $this->app['auth.random']->generateString(64));
 
                 if (!file_put_contents($this->configFile, $configuration->dump())) {
 
