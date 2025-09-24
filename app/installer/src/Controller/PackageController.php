@@ -40,7 +40,7 @@ class PackageController
                 'name' => 'installer:views/themes.php'
             ],
             '$data' => [
-                'api' => App::get('system.api'),
+                'api' => App::getInstance() ? App::getInstance()['system.api'] : 'https://pagekit.com',
                 'packages' => $packages
             ]
         ];
@@ -70,7 +70,7 @@ class PackageController
                 'name' => 'installer:views/extensions.php'
             ],
             '$data' => [
-                'api' => App::get('system.api'),
+                'api' => App::getInstance() ? App::getInstance()['system.api'] : 'https://pagekit.com',
                 'packages' => $packages
             ]
         ];
@@ -148,7 +148,8 @@ class PackageController
 
         $filename = str_replace('/', '-', $package->getName()) . '-' . $package->get('version') . '.zip';
 
-        $file->move(App::get('path') . '/tmp/packages', $filename);
+        $path = App::getInstance() ? App::getInstance()['path'] : realpath(__DIR__ . '/../../../..');
+        $file->move($path . '/tmp/packages', $filename);
 
         return compact('package');
     }

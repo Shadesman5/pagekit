@@ -80,6 +80,11 @@ return [
 
         'request' => [function ($event, $request) use ($app) {
 
+            // Skip session initialization in CLI context
+            if ($app->inConsole()) {
+                return;
+            }
+
             if (!isset($app['session.options']['cookie_path'])) {
                 $app['session.storage']->setOptions(['cookie_path' => $request->getBasePath() ?: '/']);
             }

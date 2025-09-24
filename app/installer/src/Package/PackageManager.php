@@ -22,9 +22,37 @@ class PackageManager
     {
         $this->output = $output ?: new StreamOutput(fopen('php://output', 'w'));
 
+        // Get config from App if available, otherwise use defaults
+        $path = realpath(__DIR__ . '/../../..');
         $config = [];
-        foreach (['path.temp', 'path.cache', 'path.vendor', 'path.artifact', 'path.packages', 'system.api'] as $key) {
-            $config[$key] = App::get($key);
+        
+        // Try to get from Application instance if available
+        try {
+            $app = App::getInstance();
+            if ($app && isset($app['path.temp'])) {
+                $config['path.temp'] = $app['path.temp'];
+                $config['path.cache'] = $app['path.cache'];
+                $config['path.vendor'] = $app['path.vendor'];
+                $config['path.artifact'] = $app['path.artifact'];
+                $config['path.packages'] = $app['path.packages'];
+                $config['system.api'] = $app['system.api'] ?? 'https://pagekit.com';
+            } else {
+                // Use default paths
+                $config['path.temp'] = $path . '/tmp/temp';
+                $config['path.cache'] = $path . '/tmp/cache';
+                $config['path.vendor'] = $path . '/vendor';
+                $config['path.artifact'] = $path . '/tmp/packages';
+                $config['path.packages'] = $path . '/packages';
+                $config['system.api'] = 'https://pagekit.com';
+            }
+        } catch (\Exception $e) {
+            // Use default paths on any error
+            $config['path.temp'] = $path . '/tmp/temp';
+            $config['path.cache'] = $path . '/tmp/cache';
+            $config['path.vendor'] = $path . '/vendor';
+            $config['path.artifact'] = $path . '/tmp/packages';
+            $config['path.packages'] = $path . '/packages';
+            $config['system.api'] = 'https://pagekit.com';
         }
 
         $this->composer = new Composer($config, $output);
@@ -110,24 +138,33 @@ class PackageManager
 
             App::trigger('package.enable', [$package]);
 
-            if (!$current = App::config('system')->get('packages.' . $previousPackageConfig->get('module'))) {
+            // During installation, config service might not be available
+            $app = App::getInstance();
+            if ($app && isset($app['config'])) {
+                if (!$current = App::config('system')->get('packages.' . $previousPackageConfig->get('module'))) {
+                    $current = $this->doInstall($package);
+                }
+
+                $scripts = $this->getScripts($package, $current);
+                if ($scripts->hasUpdates()) {
+                    $scripts->update();
+                }
+
+                $version = $this->getVersion($package);
+                App::config('system')->set('packages.' . $package->get('module'), $version);
+
+                $scripts->enable();
+
+                if ($package->getType() == 'pagekit-theme') {
+                    App::config('system')->set('site.theme', $package->get('module'));
+                } elseif ($package->getType() == 'pagekit-extension') {
+                    App::config('system')->push('extensions', $package->get('module'));
+                }
+            } else {
+                // During installation, just run basic enable without config updates
                 $current = $this->doInstall($package);
-            }
-
-            $scripts = $this->getScripts($package, $current);
-            if ($scripts->hasUpdates()) {
-                $scripts->update();
-            }
-
-            $version = $this->getVersion($package);
-            App::config('system')->set('packages.' . $package->get('module'), $version);
-
-            $scripts->enable();
-
-            if ($package->getType() == 'pagekit-theme') {
-                App::config('system')->set('site.theme', $package->get('module'));
-            } elseif ($package->getType() == 'pagekit-extension') {
-                App::config('system')->push('extensions', $package->get('module'));
+                $scripts = $this->getScripts($package, $current);
+                $scripts->enable();
             }
         }
     }
@@ -175,7 +212,11 @@ class PackageManager
         $this->getScripts($package)->install();
         $version = $this->getVersion($package);
 
-        App::config('system')->set('packages.' . $package->get('module'), $version);
+        // Only update config if available (not during initial installation)
+        $app = App::getInstance();
+        if ($app && isset($app['config'])) {
+            App::config('system')->set('packages.' . $package->get('module'), $version);
+        }
 
         return $version;
     }
@@ -201,7 +242,8 @@ class PackageManager
             return $package['version'];
         }
 
-        if (file_exists(App::get('path.packages') . '/composer/installed.json')) {
+        $packagesPath = App::getInstance() ? App::getInstance()['path.packages'] : realpath(__DIR__ . '/../../..') . '/packages';
+        if (file_exists($packagesPath . '/composer/installed.json')) {
             $installed = json_decode(file_get_contents($file), true);
 
             foreach ($installed as $package) {

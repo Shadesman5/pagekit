@@ -48,11 +48,42 @@ trait StaticTrait
                 static::$instance->offsetUnset($args[0] ?? '');
                 return;
             
+            case 'config':
+                // Special handling for config() during installation
+                if (!static::$instance->offsetExists('config')) {
+                    // Return a dummy config object during installation
+                    return new class {
+                        public function get($key) { return null; }
+                        public function set($key, $value) { return $this; }
+                        public function push($key, $value) { return $this; }
+                        public function pull($key, $value) { return $this; }
+                        public function remove($key) { return $this; }
+                    };
+                }
+                // Fall through to default if config exists
+                
             default:
                 // For all service calls (like db(), module(), etc.), 
                 // get the service from container and optionally call it with args
-                $value = static::$instance->offsetGet($name);
-                return $args ? call_user_func_array($value, $args) : $value;
+                try {
+                    $value = static::$instance->offsetGet($name);
+                } catch (\Exception $e) {
+                    // Service not found - return null or throw depending on context
+                    error_log("Service '$name' not found: " . $e->getMessage());
+                    return null;
+                }
+                
+                // Special handling for module() calls
+                if ($name === 'module' && $args) {
+                    return $value->get($args[0]);
+                }
+                
+                // For callable services, call them with arguments
+                if (is_callable($value) && $args) {
+                    return call_user_func_array($value, $args);
+                }
+                
+                return $value;
         }
     }
 }

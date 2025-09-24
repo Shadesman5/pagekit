@@ -39,7 +39,19 @@ class Container implements \ArrayAccess
      */
     public function __call($name, $args)
     {
-        return $args ? call_user_func_array($this->offsetGet($name), $args) : $this->offsetGet($name);
+        $value = $this->offsetGet($name);
+        
+        // Special handling for module() calls
+        if ($name === 'module' && $args && is_object($value) && method_exists($value, 'get')) {
+            return $value->get($args[0]);
+        }
+        
+        // For callable values, call them with arguments
+        if (is_callable($value) && $args) {
+            return call_user_func_array($value, $args);
+        }
+        
+        return $value;
     }
 
     /**

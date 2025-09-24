@@ -35,7 +35,7 @@ class Application extends BaseApplication
         }
     }
 
-    public function run(InputInterface $input = null, OutputInterface $output = null): int
+    public function run(?InputInterface $input = null, ?OutputInterface $output = null): int
     {
         $code = parent::run($input, $output);
 

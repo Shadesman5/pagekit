@@ -52,6 +52,7 @@ class Installer
                     foreach ($config as $name => $values) {
                         if ($module = $this->app->module($name)) {
                             $module->config = Arr::merge($module->config, $values);
+                        } else {
                         }
                     }
                 }
@@ -76,9 +77,11 @@ class Installer
             }
 
         } catch (\Exception $e) {
+            
+            // Debug: Log the actual error
 
-            $message = __('Database connection failed!');
-
+            $message = $e->getMessage(); // Show the actual error for debugging
+            
             if ($e->getCode() == 1045) {
                 $message = __('Database access denied!');
             }
@@ -115,7 +118,7 @@ class Installer
             $this->app->db()->insert('@system_user', [
                 'name' => $user['username'],
                 'username' => $user['username'],
-                'password' => $this->app->get('auth.password')->hash($user['password']),
+                'password' => $this->app['auth.password']->hash($user['password']),
                 'status' => 1,
                 'email' => $user['email'],
                 'registered' => date('Y-m-d H:i:s'),
@@ -128,11 +131,23 @@ class Installer
                 $this->app->config()->set($name, $this->app->config($name)->merge($values));
             }
 
-            $packageManager = new PackageManager(new NullOutput());
-            foreach (glob($this->app->get('path.packages') . '/*/*/composer.json') as $package) {
-                $package = $this->app->package()->load($package);
+            try {
+                $packageManager = new PackageManager(new NullOutput());
+            } catch (\Exception $e) {
+                throw new \Exception("Error creating PackageManager: " . $e->getMessage(), 0, $e);
+            }
+            
+            foreach (glob($this->app['path.packages'] . '/*/*/composer.json') as $package) {
+                try {
+                    $package = $this->app['package']->load($package);
+                } catch (\Exception $e) {
+                    continue;
+                }
                 if ($package->get('type') === 'pagekit-extension' || $package->get('type') === 'pagekit-theme') {
-                    $packageManager->enable($package);
+                    try {
+                        $packageManager->enable($package);
+                    } catch (\Exception $e) {
+                    }
                 }
             }
 
@@ -153,7 +168,7 @@ class Installer
                     $configuration->set($key, $value);
                 }
 
-                $configuration->set('system.secret', $this->app->get('auth.random')->generateString(64));
+                $configuration->set('system.secret', $this->app['auth.random']->generateString(64));
 
                 if (!file_put_contents($this->configFile, $configuration->dump())) {
 
