@@ -37,7 +37,7 @@ class Middleware
      * @param callable $callback
      * @param int      $priority
      */
-    public function before($name, $callback, $priority): void
+    public function before(string $name, callable $callback, int $priority = 0): void
     {
         $this->events->on('before'.$name, $callback, $priority);
     }
@@ -49,7 +49,7 @@ class Middleware
      * @param callable $callback
      * @param int      $priority
      */
-    public function after($name, $callback, $priority): void
+    public function after(string $name, callable $callback, int $priority = 0): void
     {
         $this->events->on('after'.$name, $callback, $priority);
     }

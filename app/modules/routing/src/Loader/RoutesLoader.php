@@ -63,7 +63,7 @@ class RoutesLoader implements LoaderInterface
      *
      * @param Route $route
      */
-    protected function addRoute($route): void
+    protected function addRoute(Route $route): void
     {
         $this->routes->add($route->getName(), $route);
         $this->events->trigger('route.configure', [$route, $this->routes]);
@@ -75,7 +75,7 @@ class RoutesLoader implements LoaderInterface
      * @param Route  $route
      * @param string $controller
      */
-    protected function addController($route, $controller): void
+    protected function addController(Route $route, string $controller): void
     {
         try {
 
