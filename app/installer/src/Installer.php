@@ -128,8 +128,12 @@ class Installer
                 $this->app->config()->set($name, $this->app->config($name)->merge($values));
             }
 
-            $packageManager = new PackageManager(new NullOutput());
-            foreach (glob($this->app->get('path.packages') . '/*/*/composer.json') as $package) {
+            try {
+                $packageManager = new PackageManager(new NullOutput());
+            } catch (\Exception $e) {
+                throw new \Exception("Error creating PackageManager: " . $e->getMessage(), 0, $e);
+            }
+            foreach (glob($this->app['path.packages'] . '/*/*/composer.json') as $package) {
                 $package = $this->app->package()->load($package);
                 if ($package->get('type') === 'pagekit-extension' || $package->get('type') === 'pagekit-theme') {
                     $packageManager->enable($package);

@@ -19,7 +19,7 @@ class UpdateController
                 'name' => 'installer:views/update.php'
             ],
             '$data' => [
-                'api' => App::get('system.api'),
+                'api' => App::getInstance() ? App::getInstance()['system.api'] : 'https://pagekit.com',
                 'version' => App::version(),
                 'channel' => 'stable'
             ]
@@ -31,7 +31,8 @@ class UpdateController
      */
     public function downloadAction($url): array
     {
-        $file = tempnam(App::get('path.temp'), 'update_');
+        $tempPath = App::getInstance() ? App::getInstance()['path.temp'] : sys_get_temp_dir();
+        $file = tempnam($tempPath, 'update_');
         App::session()->set('system.update', $file);
 
         if (!file_put_contents($file, @fopen($url, 'r'))) {
