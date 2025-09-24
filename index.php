@@ -31,7 +31,7 @@ $config = array(
     'system.api'    => 'https://pagekit.com'
 );
 
-if (!$config['config.file']) {
+if (!$config['config.file'] || !file_exists($config['config.file'])) {
     $env = 'installer';
 }
 

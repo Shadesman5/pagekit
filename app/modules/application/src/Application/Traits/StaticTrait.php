@@ -52,7 +52,18 @@ trait StaticTrait
                 // For all service calls (like db(), module(), etc.), 
                 // get the service from container and optionally call it with args
                 $value = static::$instance->offsetGet($name);
-                return $args ? call_user_func_array($value, $args) : $value;
+                
+                // Special handling for module() calls
+                if ($name === 'module' && $args) {
+                    return $value->get($args[0]);
+                }
+                
+                // For callable services, call them with arguments
+                if (is_callable($value) && $args) {
+                    return call_user_func_array($value, $args);
+                }
+                
+                return $value;
         }
     }
 }

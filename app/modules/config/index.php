@@ -10,7 +10,7 @@ return [
 
         $app['config'] = fn($app) => new ConfigManager($app['db'], $this->config);
 
-        if ($app['config.file']) {
+        if ($app['config.file'] && file_exists($app['config.file'])) {
             $app['module']->addLoader(function ($module) use ($app) {
 
                 if ($app['config']->has($module['name'])) {
