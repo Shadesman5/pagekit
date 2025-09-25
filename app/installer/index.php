@@ -8,13 +8,6 @@ return [
     'name' => 'installer',
 
     'main' => function ($app) {
-        
-        // Debug logging
-        error_log("=== INSTALLER MODULE MAIN ===");
-        if (isset($_SERVER['REQUEST_URI'])) {
-            error_log("Request URI: " . $_SERVER['REQUEST_URI']);
-            error_log("Request Method: " . $_SERVER['REQUEST_METHOD']);
-        }
 
         $app['package'] = fn($app) => (new PackageFactory())->addPath($app['path'].'/packages/*/*/composer.json');
 
@@ -28,21 +21,29 @@ return [
 
             });
 
+            // Main installer route
             $app['routes']->add([
                 'path' => '/installer',
                 'name' => '@installer',
                 'controller' => 'Pagekit\Installer\Controller\InstallerController'
             ]);
+            
+            // Explicit routes for installer actions (Symfony 6.4 compatibility)
+            $app['routes']->add([
+                'path' => '/installer/check',
+                'name' => '@installer/check',
+                'controller' => 'Pagekit\Installer\Controller\InstallerController::checkAction',
+                'methods' => ['POST']
+            ]);
+            
+            $app['routes']->add([
+                'path' => '/installer/install',
+                'name' => '@installer/install',
+                'controller' => 'Pagekit\Installer\Controller\InstallerController::installAction',
+                'methods' => ['POST']
+            ]);
 
             $app->on('request', function ($event, $request) use ($app) {
-                
-                // Debug: Log every request to installer
-                if (strpos($request->getPathInfo(), '/installer') !== false) {
-                    error_log("=== INSTALLER REQUEST EVENT ===");
-                    error_log("Path: " . $request->getPathInfo());
-                    error_log("Method: " . $request->getMethod());
-                    error_log("Content-Type: " . $request->headers->get('Content-Type', 'not set'));
-                }
 
                 $locale = $request->get('locale') ?: $app['request']->getPreferredLanguage();
                 $available = $app->module('system/intl')->getAvailableLanguages();

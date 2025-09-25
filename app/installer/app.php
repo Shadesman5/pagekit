@@ -34,23 +34,4 @@ $app['module']->addLoader(new ConfigLoader(require $path.'/app/system/config.php
 $app['module']->addLoader(new ConfigLoader(require __DIR__.'/config.php'));
 $app['module']->load('installer');
 
-// Add global exception handler for debugging
-$app->on('exception', function($event, $request, $exception) {
-    $log = "=== INSTALLER EXCEPTION ===\n";
-    $log .= "Exception: " . get_class($exception) . "\n";
-    $log .= "Message: " . $exception->getMessage() . "\n";
-    $log .= "File: " . $exception->getFile() . ":" . $exception->getLine() . "\n";
-    $log .= "Stack trace: " . $exception->getTraceAsString() . "\n";
-    
-    error_log($log);
-    file_put_contents('/workspace/installer_exception.log', $log, FILE_APPEND);
-});
-
-try {
-    $app->run();
-} catch (\Throwable $e) {
-    error_log("=== INSTALLER FATAL ERROR ===");
-    error_log("Error: " . $e->getMessage());
-    error_log("File: " . $e->getFile() . ":" . $e->getLine());
-    throw $e;
-}
+$app->run();
