@@ -7,6 +7,7 @@ use Pagekit\Auth\Auth;
 use Pagekit\Auth\Exception\AuthException;
 use Pagekit\Auth\Exception\BadCredentialsException;
 use Pagekit\Session\Csrf\Exception\CsrfException;
+use function Pagekit\__;
 
 class AuthController
 {

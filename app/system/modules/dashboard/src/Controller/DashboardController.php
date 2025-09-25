@@ -4,6 +4,7 @@ namespace Pagekit\Dashboard\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Module\Module;
+use function Pagekit\__;
 
 /**
  * @Access(admin=true)

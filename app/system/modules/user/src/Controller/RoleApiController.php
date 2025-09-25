@@ -4,6 +4,7 @@ namespace Pagekit\User\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\User\Model\Role;
+use function Pagekit\__;
 
 /**
  * @Access("user: manage user permissions")

@@ -5,6 +5,7 @@ namespace Pagekit\User\Controller;
 use Pagekit\Application as App;
 use Pagekit\Application\Exception;
 use Pagekit\User\Model\User;
+use function Pagekit\__;
 
 class ProfileController
 {

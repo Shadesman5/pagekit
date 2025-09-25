@@ -4,6 +4,7 @@ namespace Pagekit\Widget\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Widget\Model\Widget;
+use function Pagekit\__;
 
 /**
  * @Access("system: manage widgets")

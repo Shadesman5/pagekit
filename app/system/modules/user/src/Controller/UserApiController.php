@@ -6,6 +6,7 @@ use Pagekit\Application as App;
 use Pagekit\Application\Exception;
 use Pagekit\User\Model\Role;
 use Pagekit\User\Model\User;
+use function Pagekit\__;
 
 /**
  * @Access("user: manage users")

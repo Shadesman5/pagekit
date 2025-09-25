@@ -4,6 +4,7 @@ namespace Pagekit\Site\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Site\Model\Node;
+use function Pagekit\__;
 
 /**
  * @Access("site: manage site")

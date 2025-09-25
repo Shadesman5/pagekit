@@ -5,6 +5,7 @@ namespace Pagekit\Finder\Controller;
 use Pagekit\Application as App;
 use Pagekit\Finder\Event\FileAccessEvent;
 use Pagekit\Kernel\Exception\ForbiddenException;
+use function Pagekit\__;
 
 class FinderController
 {

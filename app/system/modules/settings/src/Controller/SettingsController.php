@@ -4,6 +4,7 @@ namespace Pagekit\System\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Config\Config;
+use function Pagekit\__;
 
 /**
  * @Access("system: access settings", admin=true)
