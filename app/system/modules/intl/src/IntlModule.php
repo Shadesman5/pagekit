@@ -19,6 +19,10 @@ class IntlModule extends Module
      */
     public function main(App $app): void
     {
+        // Load translation functions
+        require_once __DIR__ . '/../functions.php';
+        require_once __DIR__ . '/../functions-pagekit.php';
+        
         $app['translator'] = function () {
 
             $translator = new Translator($this->getLocale());

@@ -6,6 +6,7 @@ use Pagekit\Application as App;
 use Pagekit\Config\Config;
 use Pagekit\Kernel\Exception\ConflictException;
 use Pagekit\Site\Model\Node;
+use function Pagekit\__;
 
 /**
  * @Access("site: manage site")
@@ -68,7 +69,7 @@ class MenuApiController
 
             $this->config->remove('menus.'.$oldId);
 
-            Node::where(['menu = :old'], [':old' => $oldId])->update(['menu' => $id]);
+            Node::where(['menu = :old'], ['old' => $oldId])->update(['menu' => $id]);
         }
 
         $this->config->merge(['menus' => [$id => compact('id', 'label')]]);
