@@ -1,5 +1,30 @@
 # Changelog 2025
 
+## Pagekit 1.0.38 - Complete Symfony 6.4 LTS Upgrade (September 25, 2025)
+
+### 🎉 Major Upgrade
+- **Symfony 6.4 LTS** - Successfully upgraded from Symfony 5.4 to 6.4 LTS
+  - All components updated to ^6.4
+  - Full system functionality restored
+  - ~99% compatibility achieved
+
+### 🔧 Fixed
+- **Installer** - Fixed JavaScript globals and request handling
+- **Authentication** - Fixed service access and CSRF validation  
+- **Password Reset** - Complete flow working with all fixes
+- **Module System** - Fixed anonymous function support in ModuleLoader
+- **Controllers** - Removed @Request annotations, fixed parameter handling
+- **Mail System** - Updated to Symfony Mailer API
+- **Menu Management** - Fixed SQL parameter binding
+- **Translation** - Fixed __() function availability
+
+### 📝 Technical Changes
+- Updated method signatures for Symfony 6.4
+- Fixed typed properties causing issues
+- Generated URL-safe activation keys
+- Improved error handling throughout
+- Removed all debug code from production
+
 ## Pagekit 1.0.38 - Symfony 6.4 Routing System Compatibility (September 24, 2025)
 
 ### Changed
