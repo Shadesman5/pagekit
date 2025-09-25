@@ -12,7 +12,7 @@ use Pagekit\Site\Model\Node;
  */
 class MenuApiController
 {
-    protected Config $config;
+    protected $config;
 
     public function __construct()
     {
