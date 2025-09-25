@@ -12,13 +12,9 @@ if ($failed = $requirements->getFailedRequirements()) {
     exit;
 }
 
-// Enable debug mode with error logging
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-ini_set('error_log', '/workspace/php_errors.log');
-ini_set('log_errors', 1);
-
-$config['application.debug'] = true;
+// Debug mode temporarily disabled
+// ini_set('display_errors', 1);
+// error_reporting(E_ALL);
 
 $app = new App($config);
 $app['autoloader'] = $loader;

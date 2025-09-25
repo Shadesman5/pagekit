@@ -1,9 +1,11 @@
 
-=== checkAction called at 2025-09-25 02:04:51 ===
+=== checkAction called at 2025-09-25 02:16:57 ===
+Server: PHP/8.4.12 (Development Server)
+PHP: 8.4.12
 REQUEST DETAILS:
 Array
 (
-    [timestamp] => 2025-09-25 02:04:51
+    [timestamp] => 2025-09-25 02:16:57
     [method] => POST
     [uri] => /index.php/installer/check
     [content_type] => application/json
@@ -14,7 +16,7 @@ Array
         (
             [host] => Array
                 (
-                    [0] => pagekit.test
+                    [0] => localhost:8000
                 )
 
             [user-agent] => Array
@@ -30,11 +32,6 @@ Array
             [content-type] => Array
                 (
                     [0] => application/json
-                )
-
-            [x-forwarded-proto] => Array
-                (
-                    [0] => https
                 )
 
             [content-length] => Array

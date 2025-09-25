@@ -35,14 +35,14 @@ class InstallerController
         ];
     }
 
-    /**
-     * @Route("/check", methods={"POST"})
-     */
     public function checkAction(): array
     {
-        // Comprehensive logging
+        // Simple logging that always works
         $logFile = '/workspace/installer_debug.log';
-        file_put_contents($logFile, "\n=== checkAction called at " . date('Y-m-d H:i:s') . " ===\n", FILE_APPEND);
+        $log = "\n=== checkAction called at " . date('Y-m-d H:i:s') . " ===\n";
+        $log .= "Server: " . ($_SERVER['SERVER_SOFTWARE'] ?? 'unknown') . "\n";
+        $log .= "PHP: " . PHP_VERSION . "\n";
+        file_put_contents($logFile, $log, FILE_APPEND);
         
         try {
             // Always get params from request directly
@@ -126,9 +126,6 @@ class InstallerController
         }
     }
 
-    /**
-     * @Route("/install", methods={"POST"})
-     */
     public function installAction(): array
     {
         // Always get params from request directly
