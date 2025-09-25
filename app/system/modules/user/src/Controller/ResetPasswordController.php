@@ -103,15 +103,9 @@ class ResetPasswordController
      */
     public function confirmAction()
     {
-        $logFile = __DIR__ . '/../../../../../../confirm_debug.log';
-        file_put_contents($logFile, date('Y-m-d H:i:s') . " - confirmAction started\n", FILE_APPEND);
-        
-        try {
-            // Get parameters from request (Symfony 6.4 compatibility)
-            $app = App::getInstance();
-            $request = isset($app['request']) ? $app['request'] : \Symfony\Component\HttpFoundation\Request::createFromGlobals();
-            
-            file_put_contents($logFile, "Request method: " . $request->getMethod() . "\n", FILE_APPEND);
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $app = App::getInstance();
+        $request = isset($app['request']) ? $app['request'] : \Symfony\Component\HttpFoundation\Request::createFromGlobals();
         
         // For GET requests (clicking the link), get key from query string
         // For POST requests (submitting new password), get from POST data
@@ -153,8 +147,6 @@ class ResetPasswordController
         }
         
         $data = $session->get('activation');
-        file_put_contents($logFile, "Session data: " . json_encode($data) . "\n", FILE_APPEND);
-        file_put_contents($logFile, "Activation key from request: " . $activation . "\n", FILE_APPEND);
         
         // For POST requests, if session is empty, try to find user by key again
         if ($request->isMethod('POST') && !$data && $activation) {
@@ -164,12 +156,10 @@ class ResetPasswordController
                     'user' => $user->id
                 ];
                 $session->set('activation', $data);
-                file_put_contents($logFile, "Session recreated from database\n", FILE_APPEND);
             }
         }
         
         if (!$data || $data['key'] != $activation) {
-            file_put_contents($logFile, "Key validation failed\n", FILE_APPEND);
             App::abort(400, __('Invalid key.'));
         }
 
@@ -178,15 +168,12 @@ class ResetPasswordController
         }
 
         if ('POST' === $request->getMethod()) {
-            file_put_contents($logFile, "POST request detected\n", FILE_APPEND);
 
             try {
 
                 if (!App::csrf()->validate()) {
-                    file_put_contents($logFile, "CSRF validation failed\n", FILE_APPEND);
                     throw new Exception(__('Invalid token. Please try again.'));
                 }
-                file_put_contents($logFile, "CSRF validation passed\n", FILE_APPEND);
 
                 if (empty($password)) {
                     throw new Exception(__('Enter password.'));
@@ -222,13 +209,6 @@ class ResetPasswordController
             'activation' => $activation,
             'error' => isset($error) ? $error : ''
         ];
-        
-        } catch (\Throwable $e) {
-            file_put_contents($logFile, "ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
-            file_put_contents($logFile, "File: " . $e->getFile() . " Line: " . $e->getLine() . "\n", FILE_APPEND);
-            file_put_contents($logFile, "Trace:\n" . $e->getTraceAsString() . "\n", FILE_APPEND);
-            throw $e;
-        }
     }
 
 }
