@@ -100,8 +100,10 @@ class PhpEngine
      */
     protected function evaluate($template, array $parameters = []): string|false
     {
-        $this->current = $template;
-        $this->parents[$this->current] = null;
+        // Convert template to string for use as key
+        $templateKey = is_object($template) ? spl_object_hash($template) : (string) $template;
+        $this->current = $templateKey;
+        $this->parents[$templateKey] = null;
         
         // Add globals to parameters
         $parameters = array_replace($this->globals, $parameters);
