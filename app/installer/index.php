@@ -8,6 +8,13 @@ return [
     'name' => 'installer',
 
     'main' => function ($app) {
+        
+        // Debug logging
+        error_log("=== INSTALLER MODULE MAIN ===");
+        if (isset($_SERVER['REQUEST_URI'])) {
+            error_log("Request URI: " . $_SERVER['REQUEST_URI']);
+            error_log("Request Method: " . $_SERVER['REQUEST_METHOD']);
+        }
 
         $app['package'] = fn($app) => (new PackageFactory())->addPath($app['path'].'/packages/*/*/composer.json');
 
@@ -28,6 +35,14 @@ return [
             ]);
 
             $app->on('request', function ($event, $request) use ($app) {
+                
+                // Debug: Log every request to installer
+                if (strpos($request->getPathInfo(), '/installer') !== false) {
+                    error_log("=== INSTALLER REQUEST EVENT ===");
+                    error_log("Path: " . $request->getPathInfo());
+                    error_log("Method: " . $request->getMethod());
+                    error_log("Content-Type: " . $request->headers->get('Content-Type', 'not set'));
+                }
 
                 $locale = $request->get('locale') ?: $app['request']->getPreferredLanguage();
                 $available = $app->module('system/intl')->getAvailableLanguages();
