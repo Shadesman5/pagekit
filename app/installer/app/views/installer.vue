@@ -261,7 +261,15 @@ const Installer = {
 
         resource(action, body) {
             const url = window.$pagekit && window.$pagekit.url ? window.$pagekit.url : '';
-            return this.$http.post(`${url}/installer/${action}`, body);
+            const fullUrl = `${url}/installer/${action}`;
+            console.log('Installer API call:', {
+                action,
+                url,
+                fullUrl,
+                '$pagekit': window.$pagekit,
+                body
+            });
+            return this.$http.post(fullUrl, body);
         },
 
         gotoStep(step) {
