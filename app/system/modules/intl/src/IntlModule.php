@@ -21,7 +21,7 @@ class IntlModule extends Module
     {
         // Load translation functions
         require_once __DIR__ . '/../functions.php';
-        require_once __DIR__ . '/../functions-pagekit.php';
+        require_once __DIR__ . '/../functions-pagekit-namespace.php';
         
         $app['translator'] = function () {
 
