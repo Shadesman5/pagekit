@@ -148,23 +148,16 @@ class DashboardController
     }
 
     /**
-     * @Route("/weather", methods="POST")
+     * @Route("/weather", methods="GET")
      */
     public function weatherAction()
     {
         // Get parameters from request (Symfony 6.4 compatibility)
         $request = App::request();
         
-        $data = $request->request->all()['data'] ?? [];
-        $action = $request->request->get('action', '');
-        
-        if ($request->getContent()) {
-            $json = json_decode($request->getContent(), true);
-            if ($json) {
-                $data = $json['data'] ?? $data;
-                $action = $json['action'] ?? $action;
-            }
-        }
+        // Weather widget uses GET parameters
+        $data = $request->query->all()['data'] ?? [];
+        $action = $request->query->get('action', '');
         
         $url = $this->api;
 

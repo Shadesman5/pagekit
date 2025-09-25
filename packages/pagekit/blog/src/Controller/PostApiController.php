@@ -13,10 +13,14 @@ class PostApiController
 {
     /**
      * @Route("/", methods="GET")
-     * @Request({"filter": "array", "page":"int"})
      */
-    public function indexAction($filter = [], $page = 0): array
+    public function indexAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        $filter = $request->query->all()['filter'] ?? [];
+        $page = (int) $request->query->get('page', 0);
+        
         $query  = Post::query();
         $filter = array_merge(array_fill_keys(['status', 'search', 'author', 'order', 'limit'], ''), $filter);
 
@@ -67,10 +71,25 @@ class PostApiController
     /**
      * @Route("/", methods="POST")
      * @Route("/{id}", methods="POST", requirements={"id"="\d+"})
-     * @Request({"post": "array", "id": "int"}, csrf=true)
      */
-    public function saveAction($data, $id = 0): array
+    public function saveAction($id = 0, $data = null): array
     {
+        // Get parameters from request if not provided (Symfony 6.4 compatibility)
+        if ($data === null) {
+            $request = App::request();
+            
+            $data = $request->request->all()['post'] ?? [];
+            if (empty($data) && $request->getContent()) {
+                $json = json_decode($request->getContent(), true);
+                $data = $json['post'] ?? [];
+            }
+        }
+        
+        // Get id from route or data
+        if (!$id && isset($data['id'])) {
+            $id = (int) $data['id'];
+        }
+        
         if (!$id || !$post = Post::find($id)) {
 
             if ($id) {
@@ -101,10 +120,14 @@ class PostApiController
 
     /**
      * @Route("/{id}", methods="DELETE", requirements={"id"="\d+"})
-     * @Request({"id": "int"}, csrf=true)
      */
-    public function deleteAction($id): array
+    public function deleteAction($id = 0): array
     {
+        // Get id from route if not provided (Symfony 6.4 compatibility)
+        if (!$id) {
+            $id = (int) App::request()->get('id', 0);
+        }
+        
         if ($post = Post::find($id)) {
 
             if(!App::user()->hasAccess('blog: manage all posts') && !App::user()->hasAccess('blog: manage own posts') && $post->user_id !== App::user()->id) {
@@ -118,11 +141,19 @@ class PostApiController
     }
 
     /**
-     * @Route(methods="POST")
-     * @Request({"ids": "int[]"}, csrf=true)
+     * @Route("/copy", methods="POST")
      */
-    public function copyAction($ids = []): array
+    public function copyAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        $ids = $request->request->all()['ids'] ?? [];
+        if (empty($ids) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $ids = $json['ids'] ?? [];
+        }
+        
         foreach ($ids as $id) {
             if ($post = Post::find((int) $id)) {
                 if(!App::user()->hasAccess('blog: manage all posts') && !App::user()->hasAccess('blog: manage own posts') && $post->user_id !== App::user()->id) {
@@ -144,12 +175,21 @@ class PostApiController
 
     /**
      * @Route("/bulk", methods="POST")
-     * @Request({"posts": "array"}, csrf=true)
      */
-    public function bulkSaveAction($posts = []): array
+    public function bulkSaveAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        $posts = $request->request->all()['posts'] ?? [];
+        if (empty($posts) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $posts = $json['posts'] ?? [];
+        }
+        
         foreach ($posts as $data) {
-            $this->saveAction($data, isset($data['id']) ? $data['id'] : 0);
+            $id = isset($data['id']) ? $data['id'] : 0;
+            $this->saveAction($id, $data);
         }
 
         return ['message' => 'success'];
@@ -157,10 +197,18 @@ class PostApiController
 
     /**
      * @Route("/bulk", methods="DELETE")
-     * @Request({"ids": "array"}, csrf=true)
      */
-    public function bulkDeleteAction($ids = []): array
+    public function bulkDeleteAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        $ids = $request->request->all()['ids'] ?? [];
+        if (empty($ids) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $ids = $json['ids'] ?? [];
+        }
+        
         foreach (array_filter($ids) as $id) {
             $this->deleteAction($id);
         }
