@@ -12,6 +12,8 @@
 
     <v-input :view="view" :type="hidePassword ? 'password' : 'text'" placeholder="<?= __('New Password') ?>" name="password" :rules="{required:true, regex:/^.{6,}$/}" message="Password cannot be blank and must be 6 characters or longer."></v-input>
 
+    <input type="hidden" name="key" value="<?= $activation ?>">
+
     <div class="uk-margin">
         <button class="uk-button uk-button-primary uk-button-large uk-width-1-1" @click.prevent="submit"><?= __('Confirm') ?></button>
     </div>

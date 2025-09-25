@@ -6,6 +6,7 @@ use Pagekit\Application as App;
 use Pagekit\Application\Exception;
 use Pagekit\User\Model\Role;
 use Pagekit\User\Model\User;
+use function Pagekit\__;
 
 /**
  * @Access("user: manage users")
@@ -14,10 +15,15 @@ class UserApiController
 {
     /**
      * @Route("/", methods="GET")
-     * @Request({"filter": "array", "page":"int", "limit":"int"})
      */
-    public function indexAction($filter = [], $page = 0, $limit = 0): array
+    public function indexAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        $filter = $request->query->all()['filter'] ?? [];
+        $page = (int) $request->query->get('page', 0);
+        $limit = (int) $request->query->get('limit', 0);
+        
         $query  = User::query();
         $filter = array_merge(array_fill_keys(['status', 'search', 'role', 'order', 'access'], ''), $filter);
         extract($filter, EXTR_SKIP);
@@ -69,11 +75,12 @@ class UserApiController
         return compact('users', 'pages', 'count');
     }
 
-    /**
-     * @Request({"filter": "array"})
-     */
-    public function countAction($filter = []): array
+    public function countAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        $filter = $request->query->all()['filter'] ?? [];
+        
         $query  = User::query();
         $filter = array_merge(array_fill_keys(['status', 'search', 'role', 'order', 'access'], ''), (array)$filter);
         extract($filter, EXTR_SKIP);
@@ -129,10 +136,27 @@ class UserApiController
     /**
      * @Route("/", methods="POST")
      * @Route("/{id}", methods="POST", requirements={"id"="\d+"})
-     * @Request({"user": "array", "password", "id": "int"}, csrf=true)
      */
-    public function saveAction($data, $password = null, $id = 0)
+    public function saveAction($id = 0)
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        // Get user data from POST or JSON body
+        $data = $request->request->all()['user'] ?? [];
+        $password = $request->request->get('password');
+        
+        if (empty($data) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $data = $json['user'] ?? [];
+            $password = $json['password'] ?? $password;
+        }
+        
+        // Get id from route if not provided
+        if (!$id) {
+            $id = (int) ($request->request->get('id') ?? $request->get('id', 0));
+        }
+        
         try {
 
             // is new ?
@@ -172,7 +196,7 @@ class UserApiController
                     throw new Exception(__('Invalid Password.'));
                 }
 
-                $user->password = App::get('auth.password')->hash($password);
+                $user->password = App::getInstance()['auth.password']->hash($password);
             }
 
             $key    = array_search(Role::ROLE_ADMINISTRATOR, @$data['roles'] ?: []);
@@ -197,10 +221,14 @@ class UserApiController
 
     /**
      * @Route("/{id}", methods="DELETE", requirements={"id"="\d+"})
-     * @Request({"id": "int"}, csrf=true)
      */
-    public function deleteAction($id): array
+    public function deleteAction($id = 0): array
     {
+        // Get id from route if not provided (Symfony 6.4 compatibility)
+        if (!$id) {
+            $id = (int) App::request()->get('id', 0);
+        }
+        
         if (App::user()->id == $id) {
             App::abort(400, __('Unable to delete yourself.'));
         }
@@ -218,12 +246,31 @@ class UserApiController
 
     /**
      * @Route("/bulk", methods="POST")
-     * @Request({"users": "array"}, csrf=true)
      */
-    public function bulkSaveAction($users = []): array
+    public function bulkSaveAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        // Get users data from POST or JSON body
+        $users = $request->request->all()['users'] ?? [];
+        if (empty($users) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $users = $json['users'] ?? [];
+        }
+        
         foreach ($users as $data) {
-            $this->saveAction($data, null, isset($data['id']) ? $data['id'] : 0);
+            // Temporarily set the data in request for saveAction
+            $id = isset($data['id']) ? $data['id'] : 0;
+            $password = $data['password'] ?? null;
+            
+            // Create a new request with the user data
+            $request->request->set('user', $data);
+            if ($password) {
+                $request->request->set('password', $password);
+            }
+            
+            $this->saveAction($id);
         }
 
         return ['message' => 'success'];
@@ -231,10 +278,19 @@ class UserApiController
 
     /**
      * @Route("/bulk", methods="DELETE")
-     * @Request({"ids": "array"}, csrf=true)
      */
-    public function bulkDeleteAction($ids = []): array
+    public function bulkDeleteAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        // Get ids from POST/DELETE body or JSON
+        $ids = $request->request->all()['ids'] ?? [];
+        if (empty($ids) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $ids = $json['ids'] ?? [];
+        }
+        
         foreach (array_filter($ids) as $id) {
             $this->deleteAction($id);
         }

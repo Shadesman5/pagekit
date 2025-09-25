@@ -10,10 +10,19 @@ use Pagekit\Application as App;
 class CacheController
 {
     /**
-     * @Request({"caches": "array"}, csrf=true)
+     * @Route("/clear", methods="POST")
      */
-    public function clearAction($caches): array
+    public function clearAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        $caches = $request->request->all()['caches'] ?? [];
+        if (empty($caches) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $caches = $json['caches'] ?? [];
+        }
+        
         App::module('system/cache')->clearCache($caches);
 
         return ['message' => 'success'];

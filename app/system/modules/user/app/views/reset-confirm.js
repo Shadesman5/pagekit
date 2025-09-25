@@ -22,11 +22,16 @@ const ResetConfirm = {
 
     methods: {
 
-        async valid() {
+        async submit() {
             const isValid = await this.$refs.resetform.validate();
             if (isValid) {
                 this.$el.submit();
             }
+        },
+
+        // Keep old method for compatibility
+        async valid() {
+            return this.submit();
         }
 
     },

@@ -1,7 +1,7 @@
 # Pagekit CMS - Modernized
 
 [![PHP](https://img.shields.io/badge/php-8.2%2B-blue)](https://www.php.net/)
-[![Symfony](https://img.shields.io/badge/symfony-5.4-blue)](https://github.com/symfony/symfony)
+[![Symfony](https://img.shields.io/badge/symfony-6.4-blue)](https://github.com/symfony/symfony)
 [![Vue](https://img.shields.io/badge/vue-2.6.12-green)](https://github.com/vuejs/vue)
 [![UIkit](https://img.shields.io/badge/uikit-3.5.8-blue)](https://github.com/uikit/uikit)
 [![MySQL](https://img.shields.io/badge/mysql-8.4-orange)](https://www.mysql.com/)
@@ -132,7 +132,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 -   **Node.js**: Minimum Node 18+ for development
 -   **Composer**: Version 2.0+ required
 -   **Yarn**: Version 1.22+ required
--   **Framework Updates**: Symfony 5.4 components with modern architecture
+-   **Framework Updates**: Symfony 6.4 LTS components with modern architecture
 -   **PSR Standards**: PSR-11 Container compatibility implemented
 -   **Security Updates**: All dependencies updated to secure versions (0 vulnerabilities confirmed)
 -   **Database Layer**: Doctrine DBAL 3.8+ with modern query methods and enhanced compatibility

@@ -4,6 +4,7 @@ namespace Pagekit\System\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Config\Config;
+use function Pagekit\__;
 
 /**
  * @Access("system: access settings", admin=true)
@@ -21,10 +22,22 @@ class SettingsController
     }
 
     /**
-     * @Request({"config": "array", "options": "array"}, csrf=true)
+     * @Route("/save", methods="POST")
      */
-    public function saveAction($values = [], $options = []): array
+    public function saveAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        // Get config and options from POST or JSON body
+        $values = $request->request->all()['config'] ?? [];
+        $options = $request->request->all()['options'] ?? [];
+        
+        if ((empty($values) && empty($options)) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $values = $json['config'] ?? [];
+            $options = $json['options'] ?? [];
+        }
         $config = new Config;
         $config->merge(include $file = App::get('config.file'));
 
@@ -35,7 +48,7 @@ class SettingsController
         file_put_contents($file, $config->dump());
 
         foreach ($options as $module => $value) {
-            $this->configAction($module, $value);
+            App::config()->set($module, array_replace(App::config($module)->toArray(), $value));
         }
 
         if (function_exists('opcache_invalidate')) {
@@ -46,10 +59,24 @@ class SettingsController
     }
 
     /**
-     * @Request({"name", "config": "array"}, csrf=true)
+     * @Route("/config", methods="POST")
      */
-    public function configAction($name, $config = []): array
+    public function configAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        // Get name and config from POST or JSON body
+        $name = $request->request->get('name', '');
+        $config = $request->request->all()['config'] ?? [];
+        
+        if ($request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            if ($json) {
+                $name = $json['name'] ?? $name;
+                $config = $json['config'] ?? $config;
+            }
+        }
         App::config()->set($name, array_replace(App::config($name)->toArray(), $config));
 
         return ['message' => 'success'];

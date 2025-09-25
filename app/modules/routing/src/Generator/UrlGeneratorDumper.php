@@ -87,7 +87,7 @@ EOF;
     private function generateGenerateMethod(): string
     {
         return <<<EOF
-    public function generate(\$name, \$parameters = [], \$referenceType = self::ABSOLUTE_PATH)
+    public function generate(string \$name, array \$parameters = [], int \$referenceType = self::ABSOLUTE_PATH): string
     {
         if (!isset(self::\$declaredRoutes[\$name])) {
             throw new RouteNotFoundException(sprintf('Unable to generate a URL for the named route "%s" as such route does not exist.', \$name));

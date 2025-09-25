@@ -4,6 +4,7 @@ namespace Pagekit\Dashboard\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Module\Module;
+use function Pagekit\__;
 
 /**
  * @Access(admin=true)
@@ -44,10 +45,18 @@ class DashboardController
     }
 
     /**
-     * @Request({"widgets": "array"}, csrf=true)
+     * @Route("/savewidgets", methods="POST")
      */
-    public function saveWidgetsAction($widgets = []): array
+    public function saveWidgetsAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        $widgets = $request->request->all()['widgets'] ?? [];
+        if (empty($widgets) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $widgets = $json['widgets'] ?? [];
+        }
 
         $widgets = array_replace($this->dashboard->getWidgets(), $widgets);
 
@@ -60,10 +69,25 @@ class DashboardController
     /**
      * @Route("/", methods="POST")
      * @Route("/{id}", methods="POST", requirements={"id"="\w+"})
-     * @Request({"id", "widget": "array"}, csrf=true)
      */
-    public function saveAction($id = 0, $widget = [])
+    public function saveAction($id = 0)
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        if (!$id) {
+            $id = $request->request->get('id', 0);
+        }
+        
+        $widget = $request->request->all()['widget'] ?? [];
+        if (empty($widget) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $widget = $json['widget'] ?? [];
+            if (!$id && isset($json['id'])) {
+                $id = $json['id'];
+            }
+        }
+        
         if ($new = !$id) {
             $id = uniqid();
         }
@@ -77,10 +101,14 @@ class DashboardController
 
     /**
      * @Route("/{id}", methods="DELETE", requirements={"id"="\w+"})
-     * @Request({"id"}, csrf=true)
      */
-    public function deleteAction($id): array
+    public function deleteAction($id = null): array
     {
+        // Get id from route if not provided (Symfony 6.4 compatibility)
+        if (!$id) {
+            $id = App::request()->get('id');
+        }
+        
         $widgets = $this->dashboard->getWidgets();
 
         unset($widgets[$id]);
@@ -91,10 +119,19 @@ class DashboardController
     }
 
     /**
-     * @Request({"order": "array"}, csrf=true)
+     * @Route("/reorder", methods="POST")
      */
-    public function reorderAction($order = []): array
+    public function reorderAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        $order = $request->request->all()['order'] ?? [];
+        if (empty($order) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $order = $json['order'] ?? [];
+        }
+        
         $widgets = $this->dashboard->getWidgets();
         $reordered = [];
 
@@ -112,10 +149,17 @@ class DashboardController
     }
 
     /**
-     * @Request({"data": "array", "action": "string",})
+     * @Route("/weather", methods="GET")
      */
-    public function weatherAction($data, $action)
+    public function weatherAction()
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        // Weather widget uses GET parameters
+        $data = $request->query->all()['data'] ?? [];
+        $action = $request->query->get('action', '');
+        
         $url = $this->api;
 
         if ($action === 'weather') {

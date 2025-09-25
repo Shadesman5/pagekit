@@ -260,7 +260,17 @@ const Installer = {
     methods: {
 
         resource(action, body) {
-            return this.$http.post(`installer/${action}`, body);
+            // Force reload $pagekit from window object
+            const pagekit = window.$pagekit || {};
+            const url = pagekit.url || '/index.php';
+            const fullUrl = `${url}/installer/${action}`;
+            
+            // Don't add CSRF for installer - no session yet
+            // if (pagekit.csrf) {
+            //     body.csrf = pagekit.csrf;
+            // }
+            
+            return this.$http.post(fullUrl, body);
         },
 
         gotoStep(step) {

@@ -17,7 +17,7 @@ class AuthorizationListener implements EventSubscriberInterface
      */
     public function onSystemInit(): void
     {
-        App::auth()->setUserProvider(new UserProvider(App::get('auth.password')));
+        App::auth()->setUserProvider(new UserProvider(App::getInstance()['auth.password']));
     }
 
     /**

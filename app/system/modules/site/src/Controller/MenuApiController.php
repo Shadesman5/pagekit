@@ -6,13 +6,14 @@ use Pagekit\Application as App;
 use Pagekit\Config\Config;
 use Pagekit\Kernel\Exception\ConflictException;
 use Pagekit\Site\Model\Node;
+use function Pagekit\__;
 
 /**
  * @Access("site: manage site")
  */
 class MenuApiController
 {
-    protected Config $config;
+    protected $config;
 
     public function __construct()
     {
@@ -41,12 +42,20 @@ class MenuApiController
 
     /**
      * @Route("/", methods="POST")
-     * @Request({"menu":"array"}, csrf=true)
      */
-    public function saveAction($menu): array
+    public function saveAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        $menu = $request->request->all()['menu'] ?? [];
+        if (empty($menu) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $menu = $json['menu'] ?? [];
+        }
+        
         $oldId = isset($menu['id']) ? trim($menu['id']) : null;
-        $label = trim($menu['label']);
+        $label = isset($menu['label']) ? trim($menu['label']) : '';
 
         if (!$id = App::filter($label, 'slugify')) {
             App::abort(400, __('Invalid id.'));
@@ -60,24 +69,38 @@ class MenuApiController
 
             $this->config->remove('menus.'.$oldId);
 
-            Node::where(['menu = :old'], [':old' => $oldId])->update(['menu' => $id]);
+            Node::where(['menu = :old'], ['old' => $oldId])->update(['menu' => $id]);
         }
 
         $this->config->merge(['menus' => [$id => compact('id', 'label')]]);
 
-        App::menu()->assign($id, $menu['positions']);
+        // Assign positions if provided
+        if (isset($menu['positions'])) {
+            App::menu()->assign($id, $menu['positions']);
+        }
 
         return ['message' => 'success', 'menu' => $menu];
     }
 
     /**
      * @Route("/{id}", methods="DELETE")
-     * @Request({"id"}, csrf=true)
      */
-    public function deleteAction($id): array
+    public function deleteAction($id = null): array
     {
+        // Get id from route if not provided (Symfony 6.4 compatibility)
+        if (!$id) {
+            $id = App::request()->attributes->get('id');
+            if (!$id) {
+                $id = App::request()->get('id');
+            }
+        }
+        
+        if (!$id) {
+            throw new \Exception('Menu ID is required');
+        }
+        
         App::config('system/site')->remove('menus.'.$id);
-        Node::where(['menu = :id'], [':id' => $id])->update(['menu' => 'trash', 'status' => 0]);
+        Node::where(['menu = :id'], ['id' => $id])->update(['menu' => 'trash', 'status' => 0]);
 
         return ['message' => 'success'];
     }

@@ -7,6 +7,7 @@ use Pagekit\Auth\Auth;
 use Pagekit\Auth\Exception\AuthException;
 use Pagekit\Auth\Exception\BadCredentialsException;
 use Pagekit\Session\Csrf\Exception\CsrfException;
+use function Pagekit\__;
 
 class AuthController
 {
@@ -36,10 +37,14 @@ class AuthController
 
     /**
      * @Route(defaults={"_maintenance" = true})
-     * @Request({"redirect": "string"})
      */
-    public function logoutAction($redirect = '')
+    public function logoutAction($redirect = null)
     {
+        // Get redirect from request if not provided
+        if ($redirect === null) {
+            $redirect = App::request()->get('redirect', '');
+        }
+        
         if (($event = App::auth()->logout()) && $event->hasResponse()) {
             return $event->getResponse();
         }
@@ -49,11 +54,28 @@ class AuthController
 
     /**
      * @Route(methods="POST", defaults={"_maintenance" = true})
-     * @Request({"credentials": "array", "remember_me": "boolean", "redirect": "string"})
      */
-    public function authenticateAction($credentials, $remember = false, $redirect = '')
+    public function authenticateAction()
     {
         try {
+            // Get parameters directly from request (no @Request annotation)
+            $request = App::request();
+            
+            // Get from POST data (Symfony 6.4 compatibility)
+            $credentials = $request->request->all()['credentials'] ?? [];
+            $remember = (bool) ($request->request->get('remember_me') ?? false);
+            $redirect = $request->request->get('redirect') ?? '';
+            
+            // If empty, try JSON body
+            if (empty($credentials) && $request->getContent()) {
+                $data = json_decode($request->getContent(), true);
+                if ($data) {
+                    $credentials = $data['credentials'] ?? [];
+                    $remember = $data['remember_me'] ?? false;
+                    $redirect = $data['redirect'] ?? '';
+                }
+            }
+            
             if (!App::csrf()->validate()) {
                 throw new CsrfException(__('Invalid token. Please try again.'));
             }

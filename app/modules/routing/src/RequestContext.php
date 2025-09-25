@@ -10,7 +10,7 @@ class RequestContext extends BaseContext
     /**
      * {@inheritdoc}
      */
-    public function fromRequest(Request $request): self
+    public function fromRequest(Request $request): static
     {
         parent::fromRequest($request);
 

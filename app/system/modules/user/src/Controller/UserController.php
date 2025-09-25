@@ -5,6 +5,7 @@ namespace Pagekit\User\Controller;
 use Pagekit\Application as App;
 use Pagekit\User\Model\Role;
 use Pagekit\User\Model\User;
+use function Pagekit\__;
 
 /**
  * @Access(admin=true)

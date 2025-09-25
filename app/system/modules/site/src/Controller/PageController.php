@@ -4,6 +4,7 @@ namespace Pagekit\Site\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Site\Model\Page;
+use function Pagekit\__;
 
 class PageController
 {

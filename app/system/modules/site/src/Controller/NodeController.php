@@ -5,6 +5,7 @@ namespace Pagekit\Site\Controller;
 use Pagekit\Application as App;
 use Pagekit\Site\Model\Node;
 use Pagekit\User\Model\Role;
+use function Pagekit\__;
 
 class NodeController
 {

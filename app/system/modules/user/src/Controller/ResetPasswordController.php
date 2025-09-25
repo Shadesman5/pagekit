@@ -5,6 +5,7 @@ namespace Pagekit\User\Controller;
 use Pagekit\Application as App;
 use Pagekit\Application\Exception;
 use Pagekit\User\Model\User;
+use function Pagekit\__;
 
 class ResetPasswordController
 {
@@ -25,10 +26,20 @@ class ResetPasswordController
     }
 
     /**
-     * @Request({"email"})
+     * @Route("/request", methods="POST")
      */
-    public function requestAction($email)
+    public function requestAction()
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $app = App::getInstance();
+        $request = isset($app['request']) ? $app['request'] : \Symfony\Component\HttpFoundation\Request::createFromGlobals();
+        $email = $request->request->get('email', '');
+        
+        if (empty($email) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $email = $json['email'] ?? '';
+        }
+        
         try {
 
             if (App::user()->isAuthenticated()) {
@@ -51,16 +62,18 @@ class ResetPasswordController
                 throw new Exception(__('Your account has not been activated or is blocked.'));
             }
 
-            $key = App::get('auth.random')->generateString(32);
+            // Generate URL-safe key (no special chars like /)
+            $key = bin2hex(random_bytes(16)); // 32 chars, URL-safe
             $url = App::url('@user/resetpassword/confirm', compact('key'), 0);
 
             try {
 
                 $mail = App::mailer()->create();
-                $mail->setTo($user->email)
-                    ->setSubject(__('Reset password for %site%.', ['%site%' => App::module('system/site')->config('title')]))
-                    ->setBody(App::view('system/user:mails/reset.php', compact('user', 'url', 'mail')), 'text/html')
-                    ->send();
+                $mail->to($user->email)
+                    ->subject(__('Reset password for %site%.', ['%site%' => App::module('system/site')->config('title')]))
+                    ->html(App::view('system/user:mails/reset.php', compact('user', 'url', 'mail')));
+                
+                App::mailer()->send($mail);
 
             } catch (\Exception $e) {
                 throw new Exception(__('Unable to send confirmation link.'));
@@ -85,13 +98,38 @@ class ResetPasswordController
     }
 
     /**
-     * @Request({"key", "password"})
+     * @Route("/confirm", methods="GET")
+     * @Route("/confirm", methods="POST")
      */
-    public function confirmAction($activation = '', $password = '')
+    public function confirmAction()
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $app = App::getInstance();
+        $request = isset($app['request']) ? $app['request'] : \Symfony\Component\HttpFoundation\Request::createFromGlobals();
+        
+        // For GET requests (clicking the link), get key from query string
+        // For POST requests (submitting new password), get from POST data
+        if ($request->isMethod('GET')) {
+            $activation = $request->query->get('key', '');
+            $password = '';
+        } else {
+            $activation = $request->request->get('key', '');
+            $password = $request->request->get('password', '');
+            
+            if ($request->getContent()) {
+                $json = json_decode($request->getContent(), true);
+                if ($json) {
+                    $activation = $json['key'] ?? $activation;
+                    $password = $json['password'] ?? $password;
+                }
+            }
+        }
+        
         if ($activation and $user = User::where(compact('activation'))->first()) {
 
-            App::session()->set('activation', [
+            $app = App::getInstance();
+            $session = $app['session'];
+            $session->set('activation', [
                 'key' => $activation,
                 'user' => $user->id,
             ]);
@@ -100,7 +138,28 @@ class ResetPasswordController
             $user->save();
         }
 
-        if (!$data = App::session()->get('activation') or $data['key'] != $activation) {
+        $app = App::getInstance();
+        $session = $app['session'];
+        
+        // Ensure session is started
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+        
+        $data = $session->get('activation');
+        
+        // For POST requests, if session is empty, try to find user by key again
+        if ($request->isMethod('POST') && !$data && $activation) {
+            if ($user = User::where(compact('activation'))->first()) {
+                $data = [
+                    'key' => $activation,
+                    'user' => $user->id
+                ];
+                $session->set('activation', $data);
+            }
+        }
+        
+        if (!$data || $data['key'] != $activation) {
             App::abort(400, __('Invalid key.'));
         }
 
@@ -108,7 +167,7 @@ class ResetPasswordController
             App::abort(400, __('Your account has not been activated or is blocked.'));
         }
 
-        if ('POST' === App::request()->getMethod()) {
+        if ('POST' === $request->getMethod()) {
 
             try {
 
@@ -125,10 +184,14 @@ class ResetPasswordController
                 }
 
                 $user->activation = null;
-                $user->password = App::get('auth.password')->hash($password);
+                $user->password = App::getInstance()['auth.password']->hash($password);
                 $user->save();
 
-                App::session()->remove('activation');
+                $session->remove('activation');
+                
+                // Login the user (optional - can be removed if not needed)
+                // App::auth()->login($user);
+                
                 App::message()->success(__('Your password has been reset.'));
 
                 return App::redirect('@user/login');

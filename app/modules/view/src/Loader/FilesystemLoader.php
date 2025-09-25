@@ -5,6 +5,7 @@ namespace Pagekit\View\Loader;
 use Pagekit\Filesystem\Locator;
 use Symfony\Component\Templating\Loader\LoaderInterface;
 use Symfony\Component\Templating\Storage\FileStorage;
+use Symfony\Component\Templating\Storage\Storage;
 use Symfony\Component\Templating\TemplateReferenceInterface;
 
 class FilesystemLoader implements LoaderInterface
@@ -24,7 +25,7 @@ class FilesystemLoader implements LoaderInterface
     /**
      * {@inheritdoc}
      */
-    public function load(TemplateReferenceInterface $template)
+    public function load(TemplateReferenceInterface $template): Storage|false
     {
         if (!strpos($template, ':') && $file = $this->locator->get("views:{$template}")) {
             return new FileStorage($file);

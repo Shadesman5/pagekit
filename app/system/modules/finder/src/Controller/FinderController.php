@@ -5,14 +5,15 @@ namespace Pagekit\Finder\Controller;
 use Pagekit\Application as App;
 use Pagekit\Finder\Event\FileAccessEvent;
 use Pagekit\Kernel\Exception\ForbiddenException;
+use function Pagekit\__;
 
 class FinderController
 {
-    /**
-     * @Request({"path"})
-     */
-    public function indexAction($path): array
+    public function indexAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $path = App::request()->get('path', '');
+        
         if (!$dir = $this->getPath()) {
             return $this->error(__('Invalid path.'));
         }
@@ -56,10 +57,20 @@ class FinderController
     }
 
     /**
-     * @Request({"name"}, csrf=true)
+     * @Route("/createfolder", methods="POST")
      */
-    public function createFolderAction($name): array
+    public function createFolderAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        // Get name from POST or JSON body
+        $name = $request->request->get('name', '');
+        if (empty($name) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $name = $json['name'] ?? '';
+        }
+        
         if (!$this->isValidFilename($name)) {
             return $this->error(__('Invalid file name.'));
         }
@@ -89,10 +100,23 @@ class FinderController
     }
 
     /**
-     * @Request({"oldname", "newname"}, csrf=true)
+     * @Route("/rename", methods="POST")
      */
-    public function renameAction($oldname, $newname): array
+    public function renameAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        // Get parameters from POST or JSON body
+        $oldname = $request->request->get('oldname', '');
+        $newname = $request->request->get('newname', '');
+        
+        if ((empty($oldname) || empty($newname)) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $oldname = $json['oldname'] ?? $oldname;
+            $newname = $json['newname'] ?? $newname;
+        }
+        
         if (!$this->isValidFilename($newname)) {
             return $this->error(__('Invalid file name.'));
         }
@@ -113,10 +137,20 @@ class FinderController
     }
 
     /**
-     * @Request({"names": "array"}, csrf=true)
+     * @Route("/removefiles", methods="POST")
      */
-    public function removeFilesAction($names): array
+    public function removeFilesAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        // Get names from POST or JSON body
+        $names = $request->request->all()['names'] ?? [];
+        if (empty($names) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $names = $json['names'] ?? [];
+        }
+        
         foreach ($names as $name) {
 
             if (!$path = $this->getPath($name)) {
@@ -141,7 +175,7 @@ class FinderController
     }
 
     /**
-     * @Request(csrf=true)
+     * @Route("/upload", methods="POST")
      */
     public function uploadAction(): array
     {

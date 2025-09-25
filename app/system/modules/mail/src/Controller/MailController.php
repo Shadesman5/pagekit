@@ -12,10 +12,19 @@ use function Pagekit\__;
 class MailController
 {
     /**
-     * @Request({"option": "array"}, csrf=true)
+     * @Route("/smtp", methods="POST")
      */
-    public function smtpAction($option = []): array
+    public function smtpAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        $option = $request->request->all()['option'] ?? [];
+        if (empty($option) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $option = $json['option'] ?? [];
+        }
+        
         try {
             // Validate that we have at least the required SMTP parameters
             if (empty($option['host'])) {
@@ -41,10 +50,19 @@ class MailController
     /**
      * Note: If the mailer is accessed prior to this controller action, this will possibly test the wrong mailer
      *
-     * @Request({"option": "array"}, csrf=true)
+     * @Route("/email", methods="POST")
      */
-    public function emailAction($option = []): array
+    public function emailAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        $option = $request->request->all()['option'] ?? [];
+        if (empty($option) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $option = $json['option'] ?? [];
+        }
+        
         try {
             $config = Arr::merge(App::module('system/mail')->config(), $option);
             
