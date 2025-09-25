@@ -188,6 +188,14 @@ class PhpEngine
      */
     public function escape($value, $context = 'html'): string
     {
+        // Handle null values (PHP 8.1+ compatibility)
+        if ($value === null) {
+            return '';
+        }
+        
+        // Convert to string if needed
+        $value = (string) $value;
+        
         if ($context === 'html') {
             return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, $this->charset);
         }
