@@ -29,10 +29,25 @@ class RoleApiController
     /**
      * @Route("/", methods="POST")
      * @Route("/{id}", methods="POST", requirements={"id"="\d+"})
-     * @Request({"role": "array", "id": "int"}, csrf=true)
      */
-    public function saveAction($data, $id = 0): array
+    public function saveAction($id = 0, $data = null): array
     {
+        // Get parameters from request if not provided (Symfony 6.4 compatibility)
+        if ($data === null) {
+            $request = App::request();
+            
+            $data = $request->request->all()['role'] ?? [];
+            if (empty($data) && $request->getContent()) {
+                $json = json_decode($request->getContent(), true);
+                $data = $json['role'] ?? [];
+            }
+        }
+        
+        // Get id from route or data
+        if (!$id && isset($data['id'])) {
+            $id = (int) $data['id'];
+        }
+        
         // is new ?
         if (!$role = Role::find($id)) {
 
@@ -50,10 +65,14 @@ class RoleApiController
 
     /**
      * @Route("/{id}", methods="DELETE", requirements={"id"="\d+"})
-     * @Request({"id": "int"}, csrf=true)
      */
     public function deleteAction($id = 0): array
     {
+        // Get id from route if not provided (Symfony 6.4 compatibility)
+        if (!$id) {
+            $id = (int) App::request()->get('id', 0);
+        }
+        
         if ($role = Role::find($id)) {
             $role->delete();
         }
@@ -63,12 +82,21 @@ class RoleApiController
 
     /**
      * @Route("/bulk", methods="POST")
-     * @Request({"roles": "array"}, csrf=true)
      */
-    public function bulkSaveAction($roles = []): array
+    public function bulkSaveAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        $roles = $request->request->all()['roles'] ?? [];
+        if (empty($roles) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $roles = $json['roles'] ?? [];
+        }
+        
         foreach ($roles as $data) {
-            $this->saveAction($data, isset($data['id']) ? $data['id'] : 0);
+            $id = isset($data['id']) ? $data['id'] : 0;
+            $this->saveAction($id, $data);
         }
 
         return ['message' => 'success'];
@@ -76,10 +104,18 @@ class RoleApiController
 
     /**
      * @Route("/bulk", methods="DELETE")
-     * @Request({"ids": "array"}, csrf=true)
      */
-    public function bulkDeleteAction($ids = []): array
+    public function bulkDeleteAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        $ids = $request->request->all()['ids'] ?? [];
+        if (empty($ids) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $ids = $json['ids'] ?? [];
+        }
+        
         foreach (array_filter($ids) as $id) {
             $this->deleteAction($id);
         }

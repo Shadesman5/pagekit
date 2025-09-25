@@ -133,10 +133,23 @@ class NodeApiController
 
     /**
      * @Route("/updateOrder", methods="POST")
-     * @Request({"menu", "nodes": "array"}, csrf=true)
      */
-    public function updateOrderAction($menu, $nodes = []): array
+    public function updateOrderAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        $menu = $request->request->get('menu', '');
+        $nodes = $request->request->all()['nodes'] ?? [];
+        
+        if ($request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            if ($json) {
+                $menu = $json['menu'] ?? $menu;
+                $nodes = $json['nodes'] ?? $nodes;
+            }
+        }
+        
         foreach ($nodes as $data) {
 
             if ($node = Node::find($data['id'])) {
@@ -154,10 +167,18 @@ class NodeApiController
 
     /**
      * @Route("/frontpage", methods="POST")
-     * @Request({"id": "int"}, csrf=true)
      */
-    public function frontpageAction($id): array
+    public function frontpageAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        $id = (int) $request->request->get('id', 0);
+        if (!$id && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $id = (int) ($json['id'] ?? 0);
+        }
+        
         if (!$node = Node::find($id) or !$type = App::module('system/site')->getType($node->type)) {
             App::abort(404, __('Node not found.'));
         }

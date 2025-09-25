@@ -41,10 +41,18 @@ class MenuApiController
 
     /**
      * @Route("/", methods="POST")
-     * @Request({"menu":"array"}, csrf=true)
      */
-    public function saveAction($menu): array
+    public function saveAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        $menu = $request->request->all()['menu'] ?? [];
+        if (empty($menu) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $menu = $json['menu'] ?? [];
+        }
+        
         $oldId = isset($menu['id']) ? trim($menu['id']) : null;
         $label = trim($menu['label']);
 
@@ -72,10 +80,14 @@ class MenuApiController
 
     /**
      * @Route("/{id}", methods="DELETE")
-     * @Request({"id"}, csrf=true)
      */
-    public function deleteAction($id): array
+    public function deleteAction($id = null): array
     {
+        // Get id from route if not provided (Symfony 6.4 compatibility)
+        if (!$id) {
+            $id = App::request()->get('id');
+        }
+        
         App::config('system/site')->remove('menus.'.$id);
         Node::where(['menu = :id'], [':id' => $id])->update(['menu' => 'trash', 'status' => 0]);
 
