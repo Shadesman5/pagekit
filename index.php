@@ -39,7 +39,7 @@ if (PHP_SAPI == 'cli') {
     $env = 'console';
 }
 
-// Debug logging for installer
+// Debug logging for installer (using relative paths)
 if ($env === 'installer' && isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/installer') !== false) {
     $log = date('Y-m-d H:i:s') . " - Installer request detected\n";
     $log .= "  ENV: $env\n";

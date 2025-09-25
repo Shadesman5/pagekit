@@ -37,8 +37,8 @@ class InstallerController
 
     public function checkAction(): array
     {
-        // Simple logging that always works
-        $logFile = '/workspace/installer_debug.log';
+        // Simple logging that always works (using relative path)
+        $logFile = dirname(__DIR__, 3) . '/installer_debug.log';
         $log = "\n=== checkAction called at " . date('Y-m-d H:i:s') . " ===\n";
         $log .= "Server: " . ($_SERVER['SERVER_SOFTWARE'] ?? 'unknown') . "\n";
         $log .= "PHP: " . PHP_VERSION . "\n";
