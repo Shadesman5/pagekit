@@ -1,5 +1,0 @@
-2025-09-25 02:20:37 - Installer request detected
-  ENV: installer
-  URI: /index.php/installer/check
-  Method: POST
-  User-Agent: curl/8.14.1
