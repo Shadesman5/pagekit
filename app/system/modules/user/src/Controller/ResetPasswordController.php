@@ -189,8 +189,16 @@ class ResetPasswordController
         
         } catch (\Throwable $e) {
             // Log error for debugging
-            error_log("ResetPasswordController::confirmAction error: " . $e->getMessage());
-            error_log("File: " . $e->getFile() . " Line: " . $e->getLine());
+            $errorMsg = "ResetPasswordController::confirmAction error: " . $e->getMessage();
+            $errorMsg .= " | File: " . basename($e->getFile()) . " Line: " . $e->getLine();
+            error_log($errorMsg);
+            
+            // Write to file for debugging
+            file_put_contents(__DIR__ . '/../../../../../../reset_error.log', 
+                date('Y-m-d H:i:s') . " - " . $errorMsg . "\n" . $e->getTraceAsString() . "\n\n", 
+                FILE_APPEND
+            );
+            
             throw $e;
         }
     }
