@@ -103,9 +103,15 @@ class ResetPasswordController
      */
     public function confirmAction()
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $app = App::getInstance();
-        $request = isset($app['request']) ? $app['request'] : \Symfony\Component\HttpFoundation\Request::createFromGlobals();
+        $logFile = __DIR__ . '/../../../../../../confirm_debug.log';
+        file_put_contents($logFile, date('Y-m-d H:i:s') . " - confirmAction started\n", FILE_APPEND);
+        
+        try {
+            // Get parameters from request (Symfony 6.4 compatibility)
+            $app = App::getInstance();
+            $request = isset($app['request']) ? $app['request'] : \Symfony\Component\HttpFoundation\Request::createFromGlobals();
+            
+            file_put_contents($logFile, "Request method: " . $request->getMethod() . "\n", FILE_APPEND);
         
         // For GET requests (clicking the link), get key from query string
         // For POST requests (submitting new password), get from POST data
@@ -149,12 +155,15 @@ class ResetPasswordController
         }
 
         if ('POST' === $request->getMethod()) {
+            file_put_contents($logFile, "POST request detected\n", FILE_APPEND);
 
             try {
 
                 if (!App::csrf()->validate()) {
+                    file_put_contents($logFile, "CSRF validation failed\n", FILE_APPEND);
                     throw new Exception(__('Invalid token. Please try again.'));
                 }
+                file_put_contents($logFile, "CSRF validation passed\n", FILE_APPEND);
 
                 if (empty($password)) {
                     throw new Exception(__('Enter password.'));
@@ -190,6 +199,13 @@ class ResetPasswordController
             'activation' => $activation,
             'error' => isset($error) ? $error : ''
         ];
+        
+        } catch (\Throwable $e) {
+            file_put_contents($logFile, "ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
+            file_put_contents($logFile, "File: " . $e->getFile() . " Line: " . $e->getLine() . "\n", FILE_APPEND);
+            file_put_contents($logFile, "Trace:\n" . $e->getTraceAsString() . "\n", FILE_APPEND);
+            throw $e;
+        }
     }
 
 }
