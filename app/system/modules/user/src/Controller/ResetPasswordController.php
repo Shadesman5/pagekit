@@ -127,7 +127,9 @@ class ResetPasswordController
         
         if ($activation and $user = User::where(compact('activation'))->first()) {
 
-            App::session()->set('activation', [
+            $app = App::getInstance();
+            $session = $app['session'];
+            $session->set('activation', [
                 'key' => $activation,
                 'user' => $user->id,
             ]);
@@ -136,7 +138,9 @@ class ResetPasswordController
             $user->save();
         }
 
-        if (!$data = App::session()->get('activation') or $data['key'] != $activation) {
+        $app = App::getInstance();
+        $session = $app['session'];
+        if (!$data = $session->get('activation') or $data['key'] != $activation) {
             App::abort(400, __('Invalid key.'));
         }
 
@@ -144,7 +148,7 @@ class ResetPasswordController
             App::abort(400, __('Your account has not been activated or is blocked.'));
         }
 
-        if ('POST' === App::request()->getMethod()) {
+        if ('POST' === $request->getMethod()) {
 
             try {
 
@@ -164,7 +168,11 @@ class ResetPasswordController
                 $user->password = App::getInstance()['auth.password']->hash($password);
                 $user->save();
 
-                App::session()->remove('activation');
+                $session->remove('activation');
+                
+                // Login the user (optional - can be removed if not needed)
+                // App::auth()->login($user);
+                
                 App::message()->success(__('Your password has been reset.'));
 
                 return App::redirect('@user/login');
