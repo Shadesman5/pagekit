@@ -39,4 +39,14 @@ if (PHP_SAPI == 'cli') {
     $env = 'console';
 }
 
+// Debug logging for installer
+if ($env === 'installer' && isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/installer') !== false) {
+    $log = date('Y-m-d H:i:s') . " - Installer request detected\n";
+    $log .= "  ENV: $env\n";
+    $log .= "  URI: " . $_SERVER['REQUEST_URI'] . "\n";
+    $log .= "  Method: " . $_SERVER['REQUEST_METHOD'] . "\n";
+    $log .= "  User-Agent: " . ($_SERVER['HTTP_USER_AGENT'] ?? 'not set') . "\n";
+    file_put_contents('/workspace/installer_index.log', $log, FILE_APPEND);
+}
+
 require_once "$path/app/$env/app.php";

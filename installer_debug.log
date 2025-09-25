@@ -1,17 +1,17 @@
 
-=== checkAction called at 2025-09-25 02:16:57 ===
+=== checkAction called at 2025-09-25 02:20:37 ===
 Server: PHP/8.4.12 (Development Server)
 PHP: 8.4.12
 REQUEST DETAILS:
 Array
 (
-    [timestamp] => 2025-09-25 02:16:57
+    [timestamp] => 2025-09-25 02:20:37
     [method] => POST
     [uri] => /index.php/installer/check
     [content_type] => application/json
     [user_agent] => curl/8.14.1
-    [raw_content] => {"config":{"database":{"connections":{"sqlite":{"prefix":"pk_"}},"default":"sqlite"}},"locale":"de_DE"}
-    [content_length] => 103
+    [raw_content] => {}
+    [content_length] => 2
     [headers] => Array
         (
             [host] => Array
@@ -36,7 +36,7 @@ Array
 
             [content-length] => Array
                 (
-                    [0] => 103
+                    [0] => 2
                 )
 
             [mod-rewrite] => Array
@@ -50,49 +50,16 @@ Array
 DECODED DATA:
 Array
 (
-    [config] => Array
-        (
-            [database] => Array
-                (
-                    [connections] => Array
-                        (
-                            [sqlite] => Array
-                                (
-                                    [prefix] => pk_
-                                )
-
-                        )
-
-                    [default] => sqlite
-                )
-
-        )
-
-    [locale] => de_DE
 )
-Using config from data[config]
+No config or database found in data
 Final config:
 Array
 (
-    [database] => Array
-        (
-            [connections] => Array
-                (
-                    [sqlite] => Array
-                        (
-                            [prefix] => pk_
-                        )
-
-                )
-
-            [default] => sqlite
-        )
-
 )
 Calling installer->check...
 Result from installer->check:
 Array
 (
     [status] => tables-exist
-    [message] => Bestehende Pagekit Installation gefunden. Anderes Tabellen Präfix wählen?
+    [message] => Existing Pagekit installation detected. Choose different table prefix?
 )
