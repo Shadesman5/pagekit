@@ -3,14 +3,13 @@
 namespace Pagekit\View\Loader;
 
 use Pagekit\Filesystem\Locator;
-use Symfony\Component\Templating\Loader\LoaderInterface;
-use Symfony\Component\Templating\Storage\FileStorage;
-use Symfony\Component\Templating\Storage\Storage;
-use Symfony\Component\Templating\TemplateReferenceInterface;
 
+/**
+ * Filesystem Template Loader - Independent from Symfony
+ */
 class FilesystemLoader implements LoaderInterface
 {
-    protected \Pagekit\Filesystem\Locator $locator;
+    protected Locator $locator;
 
     /**
      * Constructor.
@@ -25,30 +24,49 @@ class FilesystemLoader implements LoaderInterface
     /**
      * {@inheritdoc}
      */
-    public function load(TemplateReferenceInterface $template): Storage|false
+    public function load(string $name): array|false
     {
-        if (!strpos($template, ':') && $file = $this->locator->get("views:{$template}")) {
-            return new FileStorage($file);
-        } elseif ($file = $this->locator->get($template)) {
-            return new FileStorage($file);
+        $template = is_string($name) ? $name : ($name['name'] ?? '');
+        
+        // Try to locate the template file
+        $file = null;
+        
+        if (!strpos($template, ':')) {
+            // Try views: prefix first
+            $file = $this->locator->get("views:{$template}");
         }
-
-        return false;
+        
+        if (!$file) {
+            // Try direct path
+            $file = $this->locator->get($template);
+        }
+        
+        if (!$file || !file_exists($file)) {
+            return false;
+        }
+        
+        return [
+            'name' => $template,
+            'path' => $file,
+            'content' => null // We use path, not content
+        ];
     }
 
     /**
      * {@inheritdoc}
      */
-    public function isFresh(TemplateReferenceInterface $template, $time): bool
+    public function isFresh(string $name, int $time): bool
     {
-        if (false === $storage = $this->load($template)) {
+        $storage = $this->load($name);
+        
+        if ($storage === false || !isset($storage['path'])) {
             return false;
         }
-
-        if (!is_readable((string) $storage)) {
+        
+        if (!is_readable($storage['path'])) {
             return false;
         }
-
-        return filemtime((string) $storage) < $time;
+        
+        return filemtime($storage['path']) < $time;
     }
 }
