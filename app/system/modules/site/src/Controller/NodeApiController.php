@@ -12,10 +12,12 @@ class NodeApiController
 {
     /**
      * @Route("/", methods="GET")
-     * @Request({"menu"})
      */
-    public function indexAction($menu = false): array
+    public function indexAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $menu = App::request()->query->get('menu', false);
+        
         $query = Node::query();
 
         if (is_string($menu)) {
@@ -40,10 +42,26 @@ class NodeApiController
     /**
      * @Route("/", methods="POST")
      * @Route("/{id}", methods="POST", requirements={"id"="\d+"})
-     * @Request({"node": "array", "id": "int"}, csrf=true)
      */
-    public function saveAction($data, $id = 0): array
+    public function saveAction($id = 0, $data = null): array
     {
+        // Get parameters from request if not provided (Symfony 6.4 compatibility)
+        if ($data === null) {
+            $request = App::request();
+            
+            // Get node data from POST or JSON body
+            $data = $request->request->all()['node'] ?? [];
+            if (empty($data) && $request->getContent()) {
+                $json = json_decode($request->getContent(), true);
+                $data = $json['node'] ?? $json ?? [];
+            }
+        }
+        
+        // Get id from route or data
+        if (!$id && isset($data['id'])) {
+            $id = (int) $data['id'];
+        }
+        
         if (!$node = Node::find($id)) {
             $node = Node::create();
             unset($data['id']);
@@ -78,12 +96,23 @@ class NodeApiController
 
     /**
      * @Route("/bulk", methods="POST")
-     * @Request({"nodes": "array"}, csrf=true)
      */
-    public function bulkSaveAction($nodes = []): array
+    public function bulkSaveAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        // Get nodes data from POST or JSON body
+        $nodes = $request->request->all()['nodes'] ?? [];
+        if (empty($nodes) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $nodes = $json['nodes'] ?? [];
+        }
+        
         foreach ($nodes as $data) {
-            $this->saveAction($data, isset($data['id']) ? $data['id'] : 0);
+            // Call saveAction with each node's id and data
+            $id = isset($data['id']) ? $data['id'] : 0;
+            $this->saveAction($id, $data);
         }
 
         return ['message' => 'success'];

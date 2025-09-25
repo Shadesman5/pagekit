@@ -26,3 +26,6 @@
 [Thu Sep 25 03:24:30 2025] Redirect: /admin
 [Thu Sep 25 03:24:30 2025] [::1]:55474 [302]: POST /index.php/user/authenticate
 [Thu Sep 25 03:24:30 2025] [::1]:55474 Closing
+[Thu Sep 25 03:33:13 2025] [::1]:40718 Accepted
+[Thu Sep 25 03:33:13 2025] [::1]:40718 [500]: GET /index.php/api/user?filter%5Border%5D=registered+DESC&limit=12
+[Thu Sep 25 03:33:13 2025] [::1]:40718 Closing
