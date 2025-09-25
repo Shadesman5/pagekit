@@ -6,7 +6,7 @@ use Pagekit\Session\Csrf\Provider\CsrfProviderInterface;
 
 class TokenHelper extends Helper
 {
-    protected \Pagekit\Session\Csrf\Provider\CsrfProviderInterface $provider;
+    protected $provider;
 
     /**
      * Constructor.
