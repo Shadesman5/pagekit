@@ -36,10 +36,14 @@ class AuthController
 
     /**
      * @Route(defaults={"_maintenance" = true})
-     * @Request({"redirect": "string"})
      */
-    public function logoutAction($redirect = '')
+    public function logoutAction($redirect = null)
     {
+        // Get redirect from request if not provided
+        if ($redirect === null) {
+            $redirect = App::request()->get('redirect', '');
+        }
+        
         if (($event = App::auth()->logout()) && $event->hasResponse()) {
             return $event->getResponse();
         }
@@ -49,37 +53,19 @@ class AuthController
 
     /**
      * @Route(methods="POST", defaults={"_maintenance" = true})
-     * @Request({"credentials": "array", "remember_me": "boolean", "redirect": "string"})
      */
-    public function authenticateAction($credentials = null, $remember = null, $redirect = null)
+    public function authenticateAction()
     {
-        // Debug logging
-        $logFile = dirname(__DIR__, 5) . '/auth_debug.log';
-        file_put_contents($logFile, "\n=== authenticateAction called ===\n", FILE_APPEND);
-        file_put_contents($logFile, "Initial params: " . json_encode([
-            'credentials' => $credentials,
-            'remember' => $remember,
-            'redirect' => $redirect
-        ]) . "\n", FILE_APPEND);
-        
         try {
-            // Symfony 6.4 compatibility: Always get parameters from request
+            // Get parameters directly from request (no @Request annotation)
             $request = App::request();
-            file_put_contents($logFile, "Request content: " . $request->getContent() . "\n", FILE_APPEND);
-            file_put_contents($logFile, "POST data: " . json_encode($request->request->all()) . "\n", FILE_APPEND);
             
-            // Try to get from POST data first
-            if ($credentials === null) {
-                $credentials = $request->request->get('credentials', []);
-            }
-            if ($remember === null) {
-                $remember = (bool) $request->request->get('remember_me', false);
-            }
-            if ($redirect === null) {
-                $redirect = $request->request->get('redirect', '');
-            }
+            // Get from POST data (Symfony 6.4 compatibility)
+            $credentials = $request->request->all()['credentials'] ?? [];
+            $remember = (bool) ($request->request->get('remember_me') ?? false);
+            $redirect = $request->request->get('redirect') ?? '';
             
-            // If still empty, try JSON body
+            // If empty, try JSON body
             if (empty($credentials) && $request->getContent()) {
                 $data = json_decode($request->getContent(), true);
                 if ($data) {
@@ -88,12 +74,6 @@ class AuthController
                     $redirect = $data['redirect'] ?? '';
                 }
             }
-            
-            file_put_contents($logFile, "Final params: " . json_encode([
-                'credentials' => $credentials,
-                'remember' => $remember,
-                'redirect' => $redirect
-            ]) . "\n", FILE_APPEND);
             
             if (!App::csrf()->validate()) {
                 throw new CsrfException(__('Invalid token. Please try again.'));

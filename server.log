@@ -1,1 +1,28 @@
-[Thu Sep 25 00:34:36 2025] Failed to listen on localhost:8000 (reason: Address already in use)
+[Thu Sep 25 03:23:45 2025] PHP 8.4.12 Development Server (http://localhost:8000) started
+[Thu Sep 25 03:23:52 2025] [::1]:56174 Accepted
+[Thu Sep 25 03:23:52 2025] === AuthController::authenticateAction reached ===
+[Thu Sep 25 03:23:52 2025] Request method: POST
+[Thu Sep 25 03:23:52 2025] Request content type: application/x-www-form-urlencoded
+[Thu Sep 25 03:23:52 2025] General Exception: Expected a scalar value as a 2nd argument to "Symfony\Component\HttpFoundation\InputBag::get()", "array" given.
+[Thu Sep 25 03:23:52 2025] Stack trace: #0 /workspace/app/system/modules/user/src/Controller/AuthController.php(69): Symfony\Component\HttpFoundation\InputBag->get('credentials', Array)
+#1 [internal function]: Pagekit\User\Controller\AuthController->authenticateAction()
+#2 /workspace/app/modules/kernel/src/Controller/ControllerListener.php(54): call_user_func_array(Array, Array)
+#3 [internal function]: Pagekit\Kernel\Controller\ControllerListener->executeController(Object(Pagekit\Kernel\Event\ControllerEvent), Object(Symfony\Component\HttpFoundation\Request))
+#4 /workspace/app/modules/application/src/Event/EventDispatcher.php(110): call_user_func_array(Array, Array)
+#5 /workspace/app/modules/kernel/src/HttpKernel.php(136): Pagekit\Event\EventDispatcher->trigger(Object(Pagekit\Kernel\Event\ControllerEvent), Array)
+#6 /workspace/app/modules/kernel/src/HttpKernel.php(68): Pagekit\Kernel\HttpKernel->handleController()
+#7 /workspace/app/modules/application/src/Application.php(60): Pagekit\Kernel\HttpKernel->handle(Object(Symfony\Component\HttpFoundation\Request))
+#8 /workspace/app/system/app.php(28): Pagekit\Application->run()
+#9 /workspace/index.php(42): require_once('/workspace/app/...')
+#10 {main}
+[Thu Sep 25 03:23:52 2025] [::1]:56174 [500]: POST /index.php/user/authenticate
+[Thu Sep 25 03:23:52 2025] [::1]:56174 Closing
+[Thu Sep 25 03:24:30 2025] [::1]:55474 Accepted
+[Thu Sep 25 03:24:30 2025] === AuthController::authenticateAction reached ===
+[Thu Sep 25 03:24:30 2025] Request method: POST
+[Thu Sep 25 03:24:30 2025] Request content type: application/x-www-form-urlencoded
+[Thu Sep 25 03:24:30 2025] Credentials: {"username":"admin","password":"admin123"}
+[Thu Sep 25 03:24:30 2025] Remember: false
+[Thu Sep 25 03:24:30 2025] Redirect: /admin
+[Thu Sep 25 03:24:30 2025] [::1]:55474 [302]: POST /index.php/user/authenticate
+[Thu Sep 25 03:24:30 2025] [::1]:55474 Closing
