@@ -260,7 +260,8 @@ const Installer = {
     methods: {
 
         resource(action, body) {
-            return this.$http.post(`installer/${action}`, body);
+            const url = window.$pagekit && window.$pagekit.url ? window.$pagekit.url : '';
+            return this.$http.post(`${url}/installer/${action}`, body);
         },
 
         gotoStep(step) {
