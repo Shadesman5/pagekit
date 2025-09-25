@@ -30,4 +30,12 @@ class PhpEngineAdapter implements EngineInterface
     {
         return $this->engine->supports($name);
     }
+    
+    /**
+     * Get the underlying PhpEngine instance
+     */
+    public function getEngine(): PhpEngine
+    {
+        return $this->engine;
+    }
 }

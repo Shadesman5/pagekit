@@ -156,6 +156,14 @@ class PhpEngine
     }
     
     /**
+     * Adds a global parameter.
+     */
+    public function addGlobal($name, $value): void
+    {
+        $this->globals[$name] = $value;
+    }
+    
+    /**
      * Sets a helper.
      */
     public function addHelper($helper): void
