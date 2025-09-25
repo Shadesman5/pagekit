@@ -54,7 +54,7 @@ class MenuApiController
         }
         
         $oldId = isset($menu['id']) ? trim($menu['id']) : null;
-        $label = trim($menu['label']);
+        $label = isset($menu['label']) ? trim($menu['label']) : '';
 
         if (!$id = App::filter($label, 'slugify')) {
             App::abort(400, __('Invalid id.'));

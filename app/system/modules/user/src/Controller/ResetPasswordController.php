@@ -25,10 +25,19 @@ class ResetPasswordController
     }
 
     /**
-     * @Request({"email"})
+     * @Route("/request", methods="POST")
      */
-    public function requestAction($email)
+    public function requestAction()
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        $email = $request->request->get('email', '');
+        
+        if (empty($email) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $email = $json['email'] ?? '';
+        }
+        
         try {
 
             if (App::user()->isAuthenticated()) {
@@ -85,10 +94,23 @@ class ResetPasswordController
     }
 
     /**
-     * @Request({"key", "password"})
+     * @Route("/confirm", methods="POST")
      */
-    public function confirmAction($activation = '', $password = '')
+    public function confirmAction()
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        $activation = $request->request->get('key', '');
+        $password = $request->request->get('password', '');
+        
+        if ($request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            if ($json) {
+                $activation = $json['key'] ?? $activation;
+                $password = $json['password'] ?? $password;
+            }
+        }
+        
         if ($activation and $user = User::where(compact('activation'))->first()) {
 
             App::session()->set('activation', [
