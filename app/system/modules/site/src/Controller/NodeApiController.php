@@ -67,7 +67,11 @@ class NodeApiController
             unset($data['id']);
         }
 
-        if (!$data['slug'] = App::filter($data['slug'] ?: $data['title'], 'slugify')) {
+        // Generate slug from title if not provided
+        $slug = isset($data['slug']) ? $data['slug'] : '';
+        $title = isset($data['title']) ? $data['title'] : '';
+        
+        if (!$data['slug'] = App::filter($slug ?: $title, 'slugify')) {
             App::abort(400, __('Invalid slug.'));
         }
 
@@ -78,10 +82,14 @@ class NodeApiController
 
     /**
      * @Route("/{id}", methods="DELETE", requirements={"id"="\d+"})
-     * @Request({"id": "int"}, csrf=true)
      */
-    public function deleteAction($id): array
+    public function deleteAction($id = 0): array
     {
+        // Get id from route if not provided (Symfony 6.4 compatibility)
+        if (!$id) {
+            $id = (int) App::request()->get('id', 0);
+        }
+        
         if ($node = Node::find($id)) {
 
             if ($type = App::module('system/site')->getType($node->type) and isset($type['protected']) and $type['protected']) {
@@ -120,10 +128,19 @@ class NodeApiController
 
     /**
      * @Route("/bulk", methods="DELETE")
-     * @Request({"ids": "array"}, csrf=true)
      */
-    public function bulkDeleteAction($ids = []): array
+    public function bulkDeleteAction(): array
     {
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $request = App::request();
+        
+        // Get ids from POST/DELETE body or JSON
+        $ids = $request->request->all()['ids'] ?? [];
+        if (empty($ids) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $ids = $json['ids'] ?? [];
+        }
+        
         foreach (array_filter($ids) as $id) {
             $this->deleteAction($id);
         }

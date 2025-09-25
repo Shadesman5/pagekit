@@ -73,7 +73,10 @@ class MenuApiController
 
         $this->config->merge(['menus' => [$id => compact('id', 'label')]]);
 
-        App::menu()->assign($id, $menu['positions']);
+        // Assign positions if provided
+        if (isset($menu['positions'])) {
+            App::menu()->assign($id, $menu['positions']);
+        }
 
         return ['message' => 'success', 'menu' => $menu];
     }
