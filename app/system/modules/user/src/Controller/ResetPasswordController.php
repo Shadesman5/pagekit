@@ -146,7 +146,30 @@ class ResetPasswordController
 
         $app = App::getInstance();
         $session = $app['session'];
-        if (!$data = $session->get('activation') or $data['key'] != $activation) {
+        
+        // Ensure session is started
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+        
+        $data = $session->get('activation');
+        file_put_contents($logFile, "Session data: " . json_encode($data) . "\n", FILE_APPEND);
+        file_put_contents($logFile, "Activation key from request: " . $activation . "\n", FILE_APPEND);
+        
+        // For POST requests, if session is empty, try to find user by key again
+        if ($request->isMethod('POST') && !$data && $activation) {
+            if ($user = User::where(compact('activation'))->first()) {
+                $data = [
+                    'key' => $activation,
+                    'user' => $user->id
+                ];
+                $session->set('activation', $data);
+                file_put_contents($logFile, "Session recreated from database\n", FILE_APPEND);
+            }
+        }
+        
+        if (!$data || $data['key'] != $activation) {
+            file_put_contents($logFile, "Key validation failed\n", FILE_APPEND);
             App::abort(400, __('Invalid key.'));
         }
 
