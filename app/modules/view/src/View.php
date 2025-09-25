@@ -187,26 +187,37 @@ class View
      */
     public function render($name, array $parameters = []): ?string
     {
+        error_log("[VIEW DEBUG] render() called with name: $name");
+        error_log("[VIEW DEBUG] Parameters: " . json_encode(array_keys($parameters)));
+        error_log("[VIEW DEBUG] Globals: " . json_encode(array_keys($this->globals)));
+        
         $event = new ViewEvent('render', $name);
         $event->setParameters(array_replace($this->globals, end($this->parameters) ?: [], $parameters));
 
+        error_log("[VIEW DEBUG] Triggering event for: $name");
         $this->events->trigger($event, [$this]);
 
         if (!$event->isPropagationStopped()) {
             $name = preg_replace('/\.php$/i', '', $name);
+            error_log("[VIEW DEBUG] Triggering event again for cleaned name: $name");
             $this->events->trigger($event->setName($name), [$this]);
         }
 
         $result = $event->getResult();
         $params = $this->parameters[] = $event->getParameters();
+        
+        error_log("[VIEW DEBUG] Event result: " . ($result !== null ? 'HAS RESULT' : 'NULL'));
 
         if ($result === null) {
             $template = $event->getTemplate();
+            error_log("[VIEW DEBUG] Attempting to render template: $template");
             
             // Render the template with our engine (PhpEngine or Twig)
             try {
                 $result = $this->engine->render($template, $params);
+                error_log("[VIEW DEBUG] Template rendered successfully");
             } catch (\Exception $e) {
+                error_log("[VIEW DEBUG] Template rendering failed: " . $e->getMessage());
                 // Template rendering failed
                 throw new \RuntimeException(sprintf('Failed to render template "%s": %s', $template, $e->getMessage()), 0, $e);
             }
@@ -214,6 +225,7 @@ class View
 
         array_pop($this->parameters);
 
+        error_log("[VIEW DEBUG] render() returning result length: " . strlen($result ?? ''));
         return $result;
     }
 }
