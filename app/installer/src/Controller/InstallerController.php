@@ -110,14 +110,19 @@ class InstallerController
         } catch (\Throwable $e) {
             file_put_contents($logFile, "EXCEPTION: " . $e->getMessage() . "\n", FILE_APPEND);
             file_put_contents($logFile, "Stack trace:\n" . $e->getTraceAsString() . "\n", FILE_APPEND);
-            // Return error for debugging
-            return [
+            
+            // Log to Apache/Nginx error log as well
+            error_log("InstallerController::checkAction Exception: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            
+            // Return a proper JSON error response
+            header('Content-Type: application/json');
+            http_response_code(500);
+            echo json_encode([
                 'error' => true,
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
-            ];
+                'message' => 'Installation check failed: ' . $e->getMessage()
+            ]);
+            exit;
         }
     }
 
