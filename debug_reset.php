@@ -11,8 +11,25 @@ try {
         $config = require __DIR__ . '/config.php';
     }
     
-    $app = new Pagekit\Application($config);
-    $app->boot();
+    // Initialize app properly like in index.php
+    date_default_timezone_set('UTC');
+    $env = 'system';
+    $path = __DIR__;
+    $config = array_merge([
+        'path'          => $path,
+        'path.packages' => $path.'/packages',
+        'path.storage'  => $path.'/storage',
+        'path.temp'     => $path.'/tmp/temp',
+        'path.cache'    => $path.'/tmp/cache',
+        'path.logs'     => $path.'/tmp/logs',
+        'path.vendor'   => $path.'/vendor',
+        'path.artifact' => $path.'/tmp/packages',
+        'config.file'   => realpath($path.'/config.php'),
+        'system.api'    => 'https://pagekit.com'
+    ], $config);
+    
+    // Load the app properly
+    require_once "$path/app/$env/app.php";
     
     echo "<h1>Debug Password Reset Confirm</h1>";
     
@@ -20,7 +37,7 @@ try {
     $request = \Symfony\Component\HttpFoundation\Request::createFromGlobals();
     $key = $request->query->get('key', 'no-key-provided');
     
-    echo "<p>Key from URL: <code>$key</code></p>";
+    echo "<p>Key from URL: <code>[hidden]</code></p>";
     
     // Check if user exists with this key
     $db = $app['db'];
