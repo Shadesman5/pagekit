@@ -1,0 +1,7 @@
+[Thu Sep 25 21:17:28 2025] PHP 8.4.12 Development Server (http://localhost:8000) started
+[Thu Sep 25 21:17:32 2025] [::1]:51776 Accepted
+[Thu Sep 25 21:17:32 2025] [::1]:51776 [500]: GET /
+[Thu Sep 25 21:17:32 2025] [::1]:51776 Closing
+[Thu Sep 25 21:17:44 2025] [::1]:58676 Accepted
+[Thu Sep 25 21:17:44 2025] [::1]:58676 [500]: GET /
+[Thu Sep 25 21:17:44 2025] [::1]:58676 Closing

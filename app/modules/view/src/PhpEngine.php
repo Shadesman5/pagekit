@@ -2,59 +2,218 @@
 
 namespace Pagekit\View;
 
-use Symfony\Component\Templating\Loader\FilesystemLoader;
-use Symfony\Component\Templating\Loader\LoaderInterface;
-use Symfony\Component\Templating\PhpEngine as BasePhpEngine;
-use Symfony\Component\Templating\Storage\FileStorage;
-use Symfony\Component\Templating\Storage\Storage;
-use Symfony\Component\Templating\Storage\StringStorage;
-use Symfony\Component\Templating\TemplateNameParser;
-use Symfony\Component\Templating\TemplateNameParserInterface;
-
-class PhpEngine extends BasePhpEngine
+/**
+ * PHP Template Engine - Independent from Symfony Templating Component
+ * 
+ * This is a minimal implementation to support existing PHP templates
+ * while we migrate to Twig for new templates.
+ */
+class PhpEngine
 {
-    protected $result;
-    protected ?Storage $template = null;
-    protected ?array $parameters = null;
-
+    protected $helpers = [];
+    protected $globals = [];
+    protected $current;
+    protected $parents = [];
+    protected $stack = [];
+    protected $charset = 'UTF-8';
+    protected $cache = [];
+    protected $loader;
+    protected $parser;
+    
     /**
-     * {@inheritdoc}
+     * Constructor.
      */
-    public function __construct(?TemplateNameParserInterface $parser = null, ?LoaderInterface $loader = null, array $helpers = [])
+    public function __construct($parser = null, $loader = null, array $helpers = [])
     {
-        $parser = $parser ?: new TemplateNameParser();
-        $loader = $loader ?: new FilesystemLoader([]);
-
-        parent::__construct($parser, $loader, $helpers);
+        // We don't really need these anymore but keep for compatibility
+        $this->parser = $parser;
+        $this->loader = $loader;
+        
+        foreach ($helpers as $helper) {
+            $this->addHelper($helper);
+        }
     }
-
+    
     /**
-     * {@inheritdoc}
+     * Renders a template.
      */
-    protected function evaluate(Storage $template, array $parameters = []): string|false
+    public function render($name, array $parameters = []): string
     {
-        $this->result = false;
-        $this->template = $template;
-        $this->parameters = $parameters;
-
-        unset($template, $parameters);
-
-        if (isset($this->parameters['this'])) {
-            throw new \InvalidArgumentException('Invalid parameter (this)');
+        return $this->evaluate($this->load($name), $parameters);
+    }
+    
+    /**
+     * Returns true if the template exists.
+     */
+    public function exists($name): bool
+    {
+        try {
+            $storage = $this->load($name);
+            return $storage !== false;
+        } catch (\Exception $e) {
+            return false;
         }
-
-        extract($this->parameters, EXTR_SKIP);
-
-        if ($this->template instanceof FileStorage) {
-            ob_start();
-            require $this->template;
-            $this->result = ob_get_clean();
-        } elseif ($this->template instanceof StringStorage) {
-            ob_start();
-            eval('; ?>'.$this->template.'<?php ;');
-            $this->result = ob_get_clean();
+    }
+    
+    /**
+     * Returns true if this engine supports the given template.
+     */
+    public function supports($name): bool
+    {
+        if (is_string($name)) {
+            // Support .php files
+            return str_ends_with($name, '.php');
         }
-
-        return $this->result;
+        return true; // Support all for backward compatibility
+    }
+    
+    /**
+     * Loads a template.
+     */
+    protected function load($name)
+    {
+        // For backward compatibility with Storage objects
+        if (is_object($name)) {
+            return $name;
+        }
+        
+        // Simple file storage implementation
+        return new class($name) {
+            private $template;
+            
+            public function __construct($template) {
+                $this->template = $template;
+            }
+            
+            public function getTemplate() {
+                return $this->template;
+            }
+            
+            public function __toString() {
+                return $this->template;
+            }
+        };
+    }
+    
+    /**
+     * Evaluates a template.
+     */
+    protected function evaluate($template, array $parameters = []): string|false
+    {
+        $this->current = $template;
+        $this->parents[$this->current] = null;
+        
+        // Add globals to parameters
+        $parameters = array_replace($this->globals, $parameters);
+        
+        // Add helpers
+        foreach ($this->helpers as $name => $helper) {
+            $parameters[$name] = $helper;
+        }
+        
+        // Start output buffering
+        ob_start();
+        
+        // Extract variables
+        extract($parameters, EXTR_SKIP);
+        
+        try {
+            // Handle different storage types
+            if (is_object($template)) {
+                $templatePath = (string) $template;
+                
+                // Check if it's a file path
+                if (file_exists($templatePath)) {
+                    require $templatePath;
+                } else {
+                    // Treat as string template
+                    eval('?>' . $templatePath);
+                }
+            } elseif (is_string($template)) {
+                if (file_exists($template)) {
+                    require $template;
+                } else {
+                    eval('?>' . $template);
+                }
+            }
+            
+            return ob_get_clean();
+            
+        } catch (\Exception $e) {
+            ob_end_clean();
+            throw $e;
+        }
+    }
+    
+    /**
+     * Sets a helper.
+     */
+    public function addHelper($helper): void
+    {
+        $this->helpers[$helper->getName()] = $helper;
+    }
+    
+    /**
+     * Gets a helper.
+     */
+    public function get($name)
+    {
+        if (!isset($this->helpers[$name])) {
+            throw new \InvalidArgumentException(sprintf('The helper "%s" is not defined.', $name));
+        }
+        
+        return $this->helpers[$name];
+    }
+    
+    /**
+     * Returns true if the helper is defined.
+     */
+    public function has($name): bool
+    {
+        return isset($this->helpers[$name]);
+    }
+    
+    /**
+     * Escapes a string by using the current charset.
+     */
+    public function escape($value, $context = 'html'): string
+    {
+        if ($context === 'html') {
+            return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, $this->charset);
+        }
+        
+        return $value;
+    }
+    
+    /**
+     * Sets the charset to use.
+     */
+    public function setCharset($charset): void
+    {
+        $this->charset = $charset;
+    }
+    
+    /**
+     * Gets the current charset.
+     */
+    public function getCharset(): string
+    {
+        return $this->charset;
+    }
+    
+    /**
+     * Adds a global variable.
+     */
+    public function addGlobal($name, $value): void
+    {
+        $this->globals[$name] = $value;
+    }
+    
+    /**
+     * Returns the assigned globals.
+     */
+    public function getGlobals(): array
+    {
+        return $this->globals;
     }
 }

@@ -7,26 +7,44 @@ use Pagekit\Filesystem\Locator;
 /**
  * Filesystem Template Loader - Independent from Symfony
  */
-class FilesystemLoader implements LoaderInterface
+class FilesystemLoader
 {
-    protected Locator $locator;
+    protected ?Locator $locator;
 
     /**
      * Constructor.
      *
-     * @param Locator $locator
+     * @param Locator|null $locator
      */
-    public function __construct(Locator $locator)
+    public function __construct(?Locator $locator = null)
     {
         $this->locator = $locator;
     }
 
     /**
-     * {@inheritdoc}
+     * Loads a template.
      */
-    public function load(string $name): array|false
+    public function load($template)
     {
-        $template = is_string($name) ? $name : ($name['name'] ?? '');
+        // Handle TemplateReference objects for backward compatibility
+        if (is_object($template) && method_exists($template, '__toString')) {
+            $template = (string) $template;
+        }
+        
+        if (!$this->locator) {
+            // Return a simple file storage
+            return new class($template) {
+                private $path;
+                
+                public function __construct($path) {
+                    $this->path = $path;
+                }
+                
+                public function __toString() {
+                    return $this->path;
+                }
+            };
+        }
         
         // Try to locate the template file
         $file = null;
@@ -41,32 +59,41 @@ class FilesystemLoader implements LoaderInterface
             $file = $this->locator->get($template);
         }
         
-        if (!$file || !file_exists($file)) {
+        if (!$file) {
             return false;
         }
         
-        return [
-            'name' => $template,
-            'path' => $file,
-            'content' => null // We use path, not content
-        ];
+        // Return a simple file storage object
+        return new class($file) {
+            private $path;
+            
+            public function __construct($path) {
+                $this->path = $path;
+            }
+            
+            public function __toString() {
+                return $this->path;
+            }
+        };
     }
 
     /**
-     * {@inheritdoc}
+     * Returns true if the template is still fresh.
      */
-    public function isFresh(string $name, int $time): bool
+    public function isFresh($template, $time): bool
     {
-        $storage = $this->load($name);
+        $storage = $this->load($template);
         
-        if ($storage === false || !isset($storage['path'])) {
+        if ($storage === false) {
             return false;
         }
         
-        if (!is_readable($storage['path'])) {
+        $path = (string) $storage;
+        
+        if (!is_readable($path)) {
             return false;
         }
         
-        return filemtime($storage['path']) < $time;
+        return filemtime($path) < $time;
     }
 }
