@@ -45,12 +45,22 @@ class InstallerController
             if (empty($config)) {
                 $app = App::getInstance();
                 $request = $app['request'];
+                
+                // Debug logging
+                error_log('=== InstallerController::checkAction ===');
+                error_log('Request Method: ' . $request->getMethod());
+                error_log('Content-Type: ' . $request->headers->get('Content-Type'));
+                error_log('Raw Content: ' . $request->getContent());
+                
                 $data = json_decode($request->getContent(), true) ?: [];
+                
+                error_log('Decoded data: ' . json_encode($data));
                 
                 // Handle both wrapped and unwrapped data
                 if (isset($data['config'])) {
                     $config = $data['config'];
-                } else {
+                    error_log('Using config from data[config]');
+                } else if (isset($data['database'])) {
                     // Convert flat structure to expected nested structure
                     $database = $data['database'] ?? 'mysql';
                     unset($data['database']);
@@ -67,6 +77,10 @@ class InstallerController
                     if (isset($data['locale'])) {
                         $config['locale'] = $data['locale'];
                     }
+                    error_log('Transformed flat structure to nested');
+                } else {
+                    error_log('No config or database found in data');
+                    $config = [];
                 }
             }
             
