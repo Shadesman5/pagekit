@@ -1,9 +1,15 @@
-=== checkAction called ===
+
+=== checkAction called at 2025-09-25 01:53:50 ===
+REQUEST DETAILS:
 Array
 (
+    [timestamp] => 2025-09-25 01:53:50
     [method] => POST
+    [uri] => /index.php/installer/check
     [content_type] => application/json
+    [user_agent] => curl/8.14.1
     [raw_content] => {"config":{"database":{"connections":{"sqlite":{"prefix":"pk_"}},"default":"sqlite"}},"locale":"de_DE"}
+    [content_length] => 103
     [headers] => Array
         (
             [host] => Array
@@ -38,4 +44,53 @@ Array
 
         )
 
+)
+DECODED DATA:
+Array
+(
+    [config] => Array
+        (
+            [database] => Array
+                (
+                    [connections] => Array
+                        (
+                            [sqlite] => Array
+                                (
+                                    [prefix] => pk_
+                                )
+
+                        )
+
+                    [default] => sqlite
+                )
+
+        )
+
+    [locale] => de_DE
+)
+Using config from data[config]
+Final config:
+Array
+(
+    [database] => Array
+        (
+            [connections] => Array
+                (
+                    [sqlite] => Array
+                        (
+                            [prefix] => pk_
+                        )
+
+                )
+
+            [default] => sqlite
+        )
+
+)
+Calling installer->check...
+Result from installer->check:
+Array
+(
+    [status] => tables-exist
+    [message] => Bestehende Pagekit Installation gefunden. Anderes Tabellen Präfix wählen?
 )

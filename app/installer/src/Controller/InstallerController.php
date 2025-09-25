@@ -40,31 +40,42 @@ class InstallerController
      */
     public function checkAction(): array
     {
-        // Log that we reached the controller
-        file_put_contents('/workspace/installer_debug.log', "=== checkAction called ===\n", FILE_APPEND);
+        // Comprehensive logging
+        $logFile = '/workspace/installer_debug.log';
+        file_put_contents($logFile, "\n=== checkAction called at " . date('Y-m-d H:i:s') . " ===\n", FILE_APPEND);
         
         try {
             // Always get params from request directly
             $app = App::getInstance();
             $request = $app['request'];
-                
-                // Debug logging to file
-                $debug = [
-                    'method' => $request->getMethod(),
-                    'content_type' => $request->headers->get('Content-Type'),
-                    'raw_content' => $request->getContent(),
-                    'headers' => $request->headers->all()
-                ];
-                file_put_contents('/workspace/installer_debug.log', print_r($debug, true), FILE_APPEND);
-                
-                $data = json_decode($request->getContent(), true) ?: [];
-                
-                error_log('Decoded data: ' . json_encode($data));
+            
+            // Log ALL request details
+            $debug = [
+                'timestamp' => date('Y-m-d H:i:s'),
+                'method' => $request->getMethod(),
+                'uri' => $request->getRequestUri(),
+                'content_type' => $request->headers->get('Content-Type'),
+                'user_agent' => $request->headers->get('User-Agent'),
+                'raw_content' => $request->getContent(),
+                'content_length' => strlen($request->getContent()),
+                'headers' => $request->headers->all()
+            ];
+            file_put_contents($logFile, "REQUEST DETAILS:\n" . print_r($debug, true), FILE_APPEND);
+            
+            $data = json_decode($request->getContent(), true);
+            
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                $error = "JSON decode error: " . json_last_error_msg();
+                file_put_contents($logFile, "ERROR: $error\n", FILE_APPEND);
+                throw new \Exception($error);
+            }
+            
+            file_put_contents($logFile, "DECODED DATA:\n" . print_r($data, true), FILE_APPEND);
                 
                 // Handle both wrapped and unwrapped data
                 if (isset($data['config'])) {
                     $config = $data['config'];
-                    error_log('Using config from data[config]');
+                    file_put_contents($logFile, "Using config from data[config]\n", FILE_APPEND);
                 } else if (isset($data['database'])) {
                     // Convert flat structure to expected nested structure
                     $database = $data['database'] ?? 'mysql';
@@ -82,14 +93,23 @@ class InstallerController
                     if (isset($data['locale'])) {
                         $config['locale'] = $data['locale'];
                     }
-                    error_log('Transformed flat structure to nested');
+                    file_put_contents($logFile, "Transformed flat structure to nested\n", FILE_APPEND);
                 } else {
-                    error_log('No config or database found in data');
+                    file_put_contents($logFile, "No config or database found in data\n", FILE_APPEND);
                     $config = [];
                 }
             
-            return $this->installer->check($config);
+            file_put_contents($logFile, "Final config:\n" . print_r($config, true), FILE_APPEND);
+            file_put_contents($logFile, "Calling installer->check...\n", FILE_APPEND);
+            
+            $result = $this->installer->check($config);
+            
+            file_put_contents($logFile, "Result from installer->check:\n" . print_r($result, true), FILE_APPEND);
+            
+            return $result;
         } catch (\Throwable $e) {
+            file_put_contents($logFile, "EXCEPTION: " . $e->getMessage() . "\n", FILE_APPEND);
+            file_put_contents($logFile, "Stack trace:\n" . $e->getTraceAsString() . "\n", FILE_APPEND);
             // Return error for debugging
             return [
                 'error' => true,

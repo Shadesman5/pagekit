@@ -270,15 +270,28 @@ const Installer = {
             //     body.csrf = pagekit.csrf;
             // }
             
-            console.log('Installer API call:', {
-                action,
-                url,
-                fullUrl,
-                '$pagekit': window.$pagekit,
-                'pagekit': pagekit,
-                body
-            });
-            return this.$http.post(fullUrl, body);
+            console.log('=== Installer API Request ===');
+            console.log('Action:', action);
+            console.log('URL:', fullUrl);
+            console.log('$pagekit object:', window.$pagekit);
+            console.log('Request body:', JSON.stringify(body, null, 2));
+            
+            return this.$http.post(fullUrl, body).then(
+                response => {
+                    console.log('=== API Response Success ===');
+                    console.log('Status:', response.status);
+                    console.log('Data:', response.data);
+                    return response;
+                },
+                error => {
+                    console.error('=== API Response Error ===');
+                    console.error('Status:', error.status);
+                    console.error('Status Text:', error.statusText);
+                    console.error('Response Body:', error.body);
+                    console.error('Full error:', error);
+                    throw error;
+                }
+            );
         },
 
         gotoStep(step) {
