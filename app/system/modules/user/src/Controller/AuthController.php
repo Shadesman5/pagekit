@@ -51,9 +51,17 @@ class AuthController
      * @Route(methods="POST", defaults={"_maintenance" = true})
      * @Request({"credentials": "array", "remember_me": "boolean", "redirect": "string"})
      */
-    public function authenticateAction($credentials, $remember = false, $redirect = '')
+    public function authenticateAction($credentials = [], $remember = false, $redirect = '')
     {
         try {
+            // Symfony 6.4 compatibility: Get parameters from request if not provided
+            if (empty($credentials)) {
+                $request = App::request();
+                $credentials = $request->request->get('credentials', []);
+                $remember = $request->request->get('remember_me', false);
+                $redirect = $request->request->get('redirect', '');
+            }
+            
             if (!App::csrf()->validate()) {
                 throw new CsrfException(__('Invalid token. Please try again.'));
             }
