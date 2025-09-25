@@ -37,21 +37,27 @@ class InstallerController
 
     /**
      * @Route("/check", methods={"POST"})
-     * @Request({"config": "array"})
+     * @Request({"config": "array"}, csrf=true)
      */
     public function checkAction($config = []): array
     {
+        // Log that we reached the controller
+        file_put_contents('/workspace/installer_debug.log', "=== checkAction called ===\n", FILE_APPEND);
+        
         try {
             // Fallback if annotation doesn't work
             if (empty($config)) {
                 $app = App::getInstance();
                 $request = $app['request'];
                 
-                // Debug logging
-                error_log('=== InstallerController::checkAction ===');
-                error_log('Request Method: ' . $request->getMethod());
-                error_log('Content-Type: ' . $request->headers->get('Content-Type'));
-                error_log('Raw Content: ' . $request->getContent());
+                // Debug logging to file
+                $debug = [
+                    'method' => $request->getMethod(),
+                    'content_type' => $request->headers->get('Content-Type'),
+                    'raw_content' => $request->getContent(),
+                    'headers' => $request->headers->all()
+                ];
+                file_put_contents('/workspace/installer_debug.log', print_r($debug, true), FILE_APPEND);
                 
                 $data = json_decode($request->getContent(), true) ?: [];
                 
@@ -100,7 +106,7 @@ class InstallerController
 
     /**
      * @Route("/install", methods={"POST"})
-     * @Request({"config": "array", "option": "array", "user": "array"})
+     * @Request({"config": "array", "option": "array", "user": "array"}, csrf=true)
      */
     public function installAction($config = [], $option = [], $user = []): array
     {
