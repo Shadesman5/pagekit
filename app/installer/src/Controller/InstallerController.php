@@ -37,18 +37,16 @@ class InstallerController
 
     /**
      * @Route("/check", methods={"POST"})
-     * @Request({"config": "array"}, csrf=true)
      */
-    public function checkAction($config = []): array
+    public function checkAction(): array
     {
         // Log that we reached the controller
         file_put_contents('/workspace/installer_debug.log', "=== checkAction called ===\n", FILE_APPEND);
         
         try {
-            // Fallback if annotation doesn't work
-            if (empty($config)) {
-                $app = App::getInstance();
-                $request = $app['request'];
+            // Always get params from request directly
+            $app = App::getInstance();
+            $request = $app['request'];
                 
                 // Debug logging to file
                 $debug = [
@@ -89,7 +87,6 @@ class InstallerController
                     error_log('No config or database found in data');
                     $config = [];
                 }
-            }
             
             return $this->installer->check($config);
         } catch (\Throwable $e) {
@@ -106,14 +103,12 @@ class InstallerController
 
     /**
      * @Route("/install", methods={"POST"})
-     * @Request({"config": "array", "option": "array", "user": "array"}, csrf=true)
      */
-    public function installAction($config = [], $option = [], $user = []): array
+    public function installAction(): array
     {
-        // Fallback if annotation doesn't work
-        if (empty($config) && empty($option) && empty($user)) {
-            $app = App::getInstance();
-            $request = $app['request'];
+        // Always get params from request directly
+        $app = App::getInstance();
+        $request = $app['request'];
             $data = json_decode($request->getContent(), true) ?: [];
             
             // Extract database config
@@ -150,7 +145,6 @@ class InstallerController
                 'password' => $data['password'] ?? '',
                 'email' => $data['email'] ?? ''
             ];
-        }
         
         return $this->installer->install($config, $option, $user);
     }

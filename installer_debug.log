@@ -1,0 +1,41 @@
+=== checkAction called ===
+Array
+(
+    [method] => POST
+    [content_type] => application/json
+    [raw_content] => {"config":{"database":{"connections":{"sqlite":{"prefix":"pk_"}},"default":"sqlite"}},"locale":"de_DE"}
+    [headers] => Array
+        (
+            [host] => Array
+                (
+                    [0] => localhost:8000
+                )
+
+            [user-agent] => Array
+                (
+                    [0] => curl/8.14.1
+                )
+
+            [accept] => Array
+                (
+                    [0] => */*
+                )
+
+            [content-type] => Array
+                (
+                    [0] => application/json
+                )
+
+            [content-length] => Array
+                (
+                    [0] => 103
+                )
+
+            [mod-rewrite] => Array
+                (
+                    [0] => Off
+                )
+
+        )
+
+)

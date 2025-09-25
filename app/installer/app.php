@@ -12,6 +12,12 @@ if ($failed = $requirements->getFailedRequirements()) {
     exit;
 }
 
+// Enable debug mode
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+$config['application.debug'] = true;
+
 $app = new App($config);
 $app['autoloader'] = $loader;
 
