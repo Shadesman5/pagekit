@@ -46,7 +46,21 @@ if ($env === 'installer' && isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['R
     $log .= "  URI: " . $_SERVER['REQUEST_URI'] . "\n";
     $log .= "  Method: " . $_SERVER['REQUEST_METHOD'] . "\n";
     $log .= "  User-Agent: " . ($_SERVER['HTTP_USER_AGENT'] ?? 'not set') . "\n";
-    file_put_contents('/workspace/installer_index.log', $log, FILE_APPEND);
+    file_put_contents(__DIR__ . '/installer_index.log', $log, FILE_APPEND);
 }
 
-require_once "$path/app/$env/app.php";
+try {
+    file_put_contents(__DIR__ . '/installer_index.log', "About to require: $path/app/$env/app.php\n", FILE_APPEND);
+    require_once "$path/app/$env/app.php";
+    file_put_contents(__DIR__ . '/installer_index.log', "Successfully required app.php\n", FILE_APPEND);
+} catch (\Throwable $e) {
+    file_put_contents(__DIR__ . '/installer_index.log', "FATAL ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
+    file_put_contents(__DIR__ . '/installer_index.log', "Stack: " . $e->getTraceAsString() . "\n", FILE_APPEND);
+    
+    // Show error in browser
+    header('Content-Type: text/plain');
+    echo "FATAL ERROR in index.php:\n";
+    echo $e->getMessage() . "\n";
+    echo "File: " . $e->getFile() . ":" . $e->getLine() . "\n";
+    exit;
+}
