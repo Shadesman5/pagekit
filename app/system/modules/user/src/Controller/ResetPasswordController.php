@@ -31,7 +31,8 @@ class ResetPasswordController
     public function requestAction()
     {
         // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        $app = App::getInstance();
+        $request = isset($app['request']) ? $app['request'] : \Symfony\Component\HttpFoundation\Request::createFromGlobals();
         $email = $request->request->get('email', '');
         
         if (empty($email) && $request->getContent()) {
@@ -101,15 +102,9 @@ class ResetPasswordController
      */
     public function confirmAction()
     {
-        try {
-            // Get parameters from request (Symfony 6.4 compatibility)
-            $app = App::getInstance();
-            $request = isset($app['request']) ? $app['request'] : null;
-            
-            // Fallback to global request if not in container
-            if (!$request) {
-                $request = \Symfony\Component\HttpFoundation\Request::createFromGlobals();
-            }
+        // Get parameters from request (Symfony 6.4 compatibility)
+        $app = App::getInstance();
+        $request = isset($app['request']) ? $app['request'] : \Symfony\Component\HttpFoundation\Request::createFromGlobals();
         
         // For GET requests (clicking the link), get key from query string
         // For POST requests (submitting new password), get from POST data
@@ -186,21 +181,6 @@ class ResetPasswordController
             'activation' => $activation,
             'error' => isset($error) ? $error : ''
         ];
-        
-        } catch (\Throwable $e) {
-            // Log error for debugging
-            $errorMsg = "ResetPasswordController::confirmAction error: " . $e->getMessage();
-            $errorMsg .= " | File: " . basename($e->getFile()) . " Line: " . $e->getLine();
-            error_log($errorMsg);
-            
-            // Write to file for debugging
-            file_put_contents(__DIR__ . '/../../../../../../reset_error.log', 
-                date('Y-m-d H:i:s') . " - " . $errorMsg . "\n" . $e->getTraceAsString() . "\n\n", 
-                FILE_APPEND
-            );
-            
-            throw $e;
-        }
     }
 
 }
