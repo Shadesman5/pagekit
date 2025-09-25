@@ -1,6 +1,6 @@
 # Changelog 2025
 
-## Pagekit 1.0.38 - Complete Symfony 6.4 LTS Upgrade (September 25, 2025)
+## Pagekit 1.0.39 - Complete Symfony 6.4 LTS Upgrade (September 25, 2025)
 
 ### 🎉 Major Upgrade
 - **Symfony 6.4 LTS** - Successfully upgraded from Symfony 5.4 to 6.4 LTS
