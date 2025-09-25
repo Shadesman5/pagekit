@@ -138,6 +138,20 @@ return [
 
     ],
 
+    'events' => [
+
+        'view.data' => function ($event, $view) use ($app) {
+            // Set $pagekit variable for installer JavaScript
+            if ($app['module']['installer']->config('enabled')) {
+                $view->data('$pagekit', [
+                    'url' => rtrim($app['request']->getSchemeAndHttpHost() . $app['request']->getBaseUrl(), '/') . '/index.php',
+                    'csrf' => $app['csrf']->generate()
+                ]);
+            }
+        }
+
+    ],
+
     'config' => [
 
         'enabled' => false,
