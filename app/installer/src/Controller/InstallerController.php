@@ -131,44 +131,34 @@ class InstallerController
         // Always get params from request directly
         $app = App::getInstance();
         $request = $app['request'];
-            $data = json_decode($request->getContent(), true) ?: [];
-            
-            // Extract database config
-            $database = $data['database'] ?? 'mysql';
-            $dbConfig = [
-                'host' => $data['host'] ?? '',
-                'user' => $data['user'] ?? '',
-                'password' => $data['password'] ?? '',
-                'dbname' => $data['dbname'] ?? '',
-                'prefix' => $data['prefix'] ?? 'pk_'
-            ];
-            
-            $config = [
-                'database' => [
-                    'default' => $database,
-                    'connections' => [
-                        $database => $dbConfig
-                    ]
-                ]
-            ];
-            
-            if (isset($data['locale'])) {
-                $config['locale'] = $data['locale'];
-            }
-            
-            // Extract options
-            $option = [
-                'title' => $data['title'] ?? 'Pagekit'
-            ];
-            
-            // Extract user data
-            $user = [
-                'username' => $data['username'] ?? '',
-                'password' => $data['password'] ?? '',
-                'email' => $data['email'] ?? ''
-            ];
+        $data = json_decode($request->getContent(), true) ?: [];
         
-        return $this->installer->install($config, $option, $user);
+        // Log the received data for debugging
+        $logFile = dirname(__DIR__, 3) . '/installer_debug.log';
+        file_put_contents($logFile, "\n=== installAction called ===\n", FILE_APPEND);
+        file_put_contents($logFile, "Received data: " . json_encode($data, JSON_PRETTY_PRINT) . "\n", FILE_APPEND);
+        
+        // The frontend already sends the correct structure
+        $config = $data['config'] ?? [];
+        $option = $data['option'] ?? [];
+        $user = $data['user'] ?? [];
+        
+        // Add locale if present
+        if (isset($data['locale']) && !isset($config['locale'])) {
+            $config['locale'] = $data['locale'];
+        }
+        
+        file_put_contents($logFile, "Config: " . json_encode($config, JSON_PRETTY_PRINT) . "\n", FILE_APPEND);
+        file_put_contents($logFile, "Option: " . json_encode($option, JSON_PRETTY_PRINT) . "\n", FILE_APPEND);
+        file_put_contents($logFile, "User: " . json_encode($user, JSON_PRETTY_PRINT) . "\n", FILE_APPEND);
+        
+        try {
+            return $this->installer->install($config, $option, $user);
+        } catch (\Throwable $e) {
+            file_put_contents($logFile, "Install ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
+            file_put_contents($logFile, "Stack: " . $e->getTraceAsString() . "\n", FILE_APPEND);
+            throw $e;
+        }
     }
 
 }
