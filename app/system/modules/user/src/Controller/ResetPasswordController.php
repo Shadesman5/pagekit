@@ -96,20 +96,28 @@ class ResetPasswordController
     }
 
     /**
-     * @Route("/confirm", methods="POST")
+     * @Route("/confirm", methods="GET|POST")
      */
     public function confirmAction()
     {
         // Get parameters from request (Symfony 6.4 compatibility)
         $request = App::request();
-        $activation = $request->request->get('key', '');
-        $password = $request->request->get('password', '');
         
-        if ($request->getContent()) {
-            $json = json_decode($request->getContent(), true);
-            if ($json) {
-                $activation = $json['key'] ?? $activation;
-                $password = $json['password'] ?? $password;
+        // For GET requests (clicking the link), get key from query string
+        // For POST requests (submitting new password), get from POST data
+        if ($request->isMethod('GET')) {
+            $activation = $request->query->get('key', '');
+            $password = '';
+        } else {
+            $activation = $request->request->get('key', '');
+            $password = $request->request->get('password', '');
+            
+            if ($request->getContent()) {
+                $json = json_decode($request->getContent(), true);
+                if ($json) {
+                    $activation = $json['key'] ?? $activation;
+                    $password = $json['password'] ?? $password;
+                }
             }
         }
         
