@@ -51,16 +51,49 @@ class AuthController
      * @Route(methods="POST", defaults={"_maintenance" = true})
      * @Request({"credentials": "array", "remember_me": "boolean", "redirect": "string"})
      */
-    public function authenticateAction($credentials = [], $remember = false, $redirect = '')
+    public function authenticateAction($credentials = null, $remember = null, $redirect = null)
     {
+        // Debug logging
+        $logFile = dirname(__DIR__, 5) . '/auth_debug.log';
+        file_put_contents($logFile, "\n=== authenticateAction called ===\n", FILE_APPEND);
+        file_put_contents($logFile, "Initial params: " . json_encode([
+            'credentials' => $credentials,
+            'remember' => $remember,
+            'redirect' => $redirect
+        ]) . "\n", FILE_APPEND);
+        
         try {
-            // Symfony 6.4 compatibility: Get parameters from request if not provided
-            if (empty($credentials)) {
-                $request = App::request();
+            // Symfony 6.4 compatibility: Always get parameters from request
+            $request = App::request();
+            file_put_contents($logFile, "Request content: " . $request->getContent() . "\n", FILE_APPEND);
+            file_put_contents($logFile, "POST data: " . json_encode($request->request->all()) . "\n", FILE_APPEND);
+            
+            // Try to get from POST data first
+            if ($credentials === null) {
                 $credentials = $request->request->get('credentials', []);
-                $remember = $request->request->get('remember_me', false);
+            }
+            if ($remember === null) {
+                $remember = (bool) $request->request->get('remember_me', false);
+            }
+            if ($redirect === null) {
                 $redirect = $request->request->get('redirect', '');
             }
+            
+            // If still empty, try JSON body
+            if (empty($credentials) && $request->getContent()) {
+                $data = json_decode($request->getContent(), true);
+                if ($data) {
+                    $credentials = $data['credentials'] ?? [];
+                    $remember = $data['remember_me'] ?? false;
+                    $redirect = $data['redirect'] ?? '';
+                }
+            }
+            
+            file_put_contents($logFile, "Final params: " . json_encode([
+                'credentials' => $credentials,
+                'remember' => $remember,
+                'redirect' => $redirect
+            ]) . "\n", FILE_APPEND);
             
             if (!App::csrf()->validate()) {
                 throw new CsrfException(__('Invalid token. Please try again.'));
