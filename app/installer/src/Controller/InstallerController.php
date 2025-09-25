@@ -36,6 +36,7 @@ class InstallerController
     }
 
     /**
+     * @Route("/check", methods={"POST"})
      * @Request({"config": "array"})
      */
     public function checkAction($config = []): array
@@ -98,6 +99,7 @@ class InstallerController
     }
 
     /**
+     * @Route("/install", methods={"POST"})
      * @Request({"config": "array", "option": "array", "user": "array"})
      */
     public function installAction($config = [], $option = [], $user = []): array

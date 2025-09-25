@@ -264,6 +264,12 @@ const Installer = {
             const pagekit = window.$pagekit || {};
             const url = pagekit.url || '/index.php';
             const fullUrl = `${url}/installer/${action}`;
+            
+            // Add CSRF token to body
+            if (pagekit.csrf) {
+                body.csrf = pagekit.csrf;
+            }
+            
             console.log('Installer API call:', {
                 action,
                 url,
