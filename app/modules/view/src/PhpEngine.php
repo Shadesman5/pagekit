@@ -31,7 +31,7 @@ class PhpEngine extends BasePhpEngine
     /**
      * {@inheritdoc}
      */
-    protected function evaluate(Storage $template, array $parameters = [])
+    protected function evaluate(Storage $template, array $parameters = []): string|false
     {
         $this->result = false;
         $this->template = $template;

@@ -81,18 +81,28 @@ class AnnotationLoader implements LoaderInterface
      */
     protected function addRoute(array &$routes, \ReflectionClass $class, \ReflectionMethod $method, $annotation, $globals): void
     {
-        $name = $annotation->getName() ?: $this->getDefaultRouteName($method);
-        $path = $annotation->getPath() ?: $this->getDefaultRoutePath($method);
+        // Handle uninitialized properties in Symfony 6.4
+        // Safe getter helper function
+        $safeGet = function($method, $default = null) use ($annotation) {
+            try {
+                return $annotation->$method() ?: $default;
+            } catch (\Error $e) {
+                return $default;
+            }
+        };
+        
+        $name = $safeGet('getName', $this->getDefaultRouteName($method));
+        $path = $safeGet('getPath', $this->getDefaultRoutePath($method));
 
         $routes[] = (new Route(rtrim($globals['path'].$path, '/')))
             ->setName($globals['name'].'/'.$name)
-            ->setDefaults(array_replace($globals['defaults'], $annotation->getDefaults(), ['_controller' => $class->name.'::'.$method->name]))
-            ->setRequirements(array_replace($globals['requirements'], $annotation->getRequirements()))
-            ->setOptions(array_replace($globals['options'], $annotation->getOptions()))
-            ->setHost($annotation->getHost() ?: $globals['host'])
-            ->setSchemes(array_replace($globals['schemes'], $annotation->getSchemes()))
-            ->setMethods(array_replace($globals['methods'], $annotation->getMethods()))
-            ->setCondition($annotation->getCondition() ?: $globals['condition']);
+            ->setDefaults(array_replace($globals['defaults'], $safeGet('getDefaults', []), ['_controller' => $class->name.'::'.$method->name]))
+            ->setRequirements(array_replace($globals['requirements'], $safeGet('getRequirements', [])))
+            ->setOptions(array_replace($globals['options'], $safeGet('getOptions', [])))
+            ->setHost($safeGet('getHost', $globals['host']))
+            ->setSchemes(array_replace($globals['schemes'], $safeGet('getSchemes', [])))
+            ->setMethods(array_replace($globals['methods'], $safeGet('getMethods', [])))
+            ->setCondition($safeGet('getCondition', $globals['condition']));
     }
 
     /**
@@ -115,8 +125,12 @@ class AnnotationLoader implements LoaderInterface
         if ($annotation = $this->getAnnotationReader()->getClassAnnotation($class, $this->routeAnnotation)) {
             foreach (array_keys($globals) as $option) {
                 $method = 'get'.ucfirst($option);
-                if (null !== $value = $annotation->$method()) {
-                    $globals[$option] = $value;
+                try {
+                    if (null !== $value = $annotation->$method()) {
+                        $globals[$option] = $value;
+                    }
+                } catch (\Error $e) {
+                    // Property not initialized, skip
                 }
             }
         }
