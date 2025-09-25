@@ -260,13 +260,16 @@ const Installer = {
     methods: {
 
         resource(action, body) {
-            const url = window.$pagekit && window.$pagekit.url ? window.$pagekit.url : '';
+            // Force reload $pagekit from window object
+            const pagekit = window.$pagekit || {};
+            const url = pagekit.url || '/index.php';
             const fullUrl = `${url}/installer/${action}`;
             console.log('Installer API call:', {
                 action,
                 url,
                 fullUrl,
                 '$pagekit': window.$pagekit,
+                'pagekit': pagekit,
                 body
             });
             return this.$http.post(fullUrl, body);
