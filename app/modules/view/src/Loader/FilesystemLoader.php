@@ -49,14 +49,12 @@ class FilesystemLoader
         // Try to locate the template file
         $file = null;
         
-        if (!strpos($template, ':')) {
-            // Try views: prefix first
-            $file = $this->locator->get("views:{$template}");
-        }
+        // First try direct path (handles namespaced paths like system/theme:views/login.php)
+        $file = $this->locator->get($template);
         
-        if (!$file) {
-            // Try direct path
-            $file = $this->locator->get($template);
+        // If not found and no namespace, try with views: prefix
+        if (!$file && strpos($template, ':') === false) {
+            $file = $this->locator->get("views:{$template}");
         }
         
         if (!$file) {

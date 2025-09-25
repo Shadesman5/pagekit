@@ -77,7 +77,15 @@ class PhpEngine
             return $name;
         }
         
-        // Simple file storage implementation
+        // Use the loader if available
+        if ($this->loader) {
+            $storage = $this->loader->load($name);
+            if ($storage !== false) {
+                return $storage;
+            }
+        }
+        
+        // Fallback: Simple file storage implementation
         return new class($name) {
             private $template;
             
