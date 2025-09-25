@@ -64,11 +64,11 @@ class RegistrationController
                 'name' => @$data['name'],
                 'username' => @$data['username'],
                 'email' => @$data['email'],
-                'password' => App::get('auth.password')->hash($password),
+                'password' => App::getInstance()['auth.password']->hash($password),
                 'status' => User::STATUS_BLOCKED
             ]);
 
-            $token = App::get('auth.random')->generateString(32);
+            $token = App::getInstance()['auth.random']->generateString(32);
             $admin = $this->module->config('registration') == 'approval';
 
             if ($verify = $this->module->config('require_verification') or $admin) {
@@ -118,7 +118,7 @@ class RegistrationController
         }
 
         if ($this->module->config('registration') === 'approval' && $user->status === User::STATUS_BLOCKED && $verifying) {
-            $user->activation = App::get('auth.random')->generateString(32);
+            $user->activation = App::getInstance()['auth.random']->generateString(32);
             $this->sendApproveMail($user);
             $message = __('Your email has been verified. Once an administrator approves your account, you will be notified by email.');
         } else {

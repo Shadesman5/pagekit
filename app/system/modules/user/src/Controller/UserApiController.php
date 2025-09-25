@@ -196,7 +196,7 @@ class UserApiController
                     throw new Exception(__('Invalid Password.'));
                 }
 
-                $user->password = App::get('auth.password')->hash($password);
+                $user->password = App::getInstance()['auth.password']->hash($password);
             }
 
             $key    = array_search(Role::ROLE_ADMINISTRATOR, @$data['roles'] ?: []);

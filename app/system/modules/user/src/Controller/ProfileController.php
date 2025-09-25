@@ -56,7 +56,7 @@ class ProfileController
                     throw new Exception(__('Invalid Password.'));
                 }
 
-                $user->password = App::get('auth.password')->hash($password);
+                $user->password = App::getInstance()['auth.password']->hash($password);
             }
 
             if (@$data['email'] != $user->email) {

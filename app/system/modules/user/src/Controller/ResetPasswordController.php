@@ -61,16 +61,17 @@ class ResetPasswordController
                 throw new Exception(__('Your account has not been activated or is blocked.'));
             }
 
-            $key = App::get('auth.random')->generateString(32);
+            $key = App::getInstance()['auth.random']->generateString(32);
             $url = App::url('@user/resetpassword/confirm', compact('key'), 0);
 
             try {
 
                 $mail = App::mailer()->create();
-                $mail->setTo($user->email)
-                    ->setSubject(__('Reset password for %site%.', ['%site%' => App::module('system/site')->config('title')]))
-                    ->setBody(App::view('system/user:mails/reset.php', compact('user', 'url', 'mail')), 'text/html')
-                    ->send();
+                $mail->to($user->email)
+                    ->subject(__('Reset password for %site%.', ['%site%' => App::module('system/site')->config('title')]))
+                    ->html(App::view('system/user:mails/reset.php', compact('user', 'url', 'mail')));
+                
+                App::mailer()->send($mail);
 
             } catch (\Exception $e) {
                 throw new Exception(__('Unable to send confirmation link.'));
@@ -148,7 +149,7 @@ class ResetPasswordController
                 }
 
                 $user->activation = null;
-                $user->password = App::get('auth.password')->hash($password);
+                $user->password = App::getInstance()['auth.password']->hash($password);
                 $user->save();
 
                 App::session()->remove('activation');
