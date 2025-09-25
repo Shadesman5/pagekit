@@ -98,7 +98,7 @@ class ResetPasswordController
     }
 
     /**
-     * @Route("/confirm", methods="GET|POST")
+     * @Route("/confirm")
      */
     public function confirmAction()
     {
