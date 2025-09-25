@@ -68,7 +68,8 @@ class RegistrationController
                 'status' => User::STATUS_BLOCKED
             ]);
 
-            $token = App::getInstance()['auth.random']->generateString(32);
+            // Generate URL-safe token
+            $token = bin2hex(random_bytes(16)); // 32 chars, URL-safe
             $admin = $this->module->config('registration') == 'approval';
 
             if ($verify = $this->module->config('require_verification') or $admin) {
@@ -118,7 +119,8 @@ class RegistrationController
         }
 
         if ($this->module->config('registration') === 'approval' && $user->status === User::STATUS_BLOCKED && $verifying) {
-            $user->activation = App::getInstance()['auth.random']->generateString(32);
+            // Generate URL-safe activation key
+            $user->activation = bin2hex(random_bytes(16)); // 32 chars, URL-safe
             $this->sendApproveMail($user);
             $message = __('Your email has been verified. Once an administrator approves your account, you will be notified by email.');
         } else {

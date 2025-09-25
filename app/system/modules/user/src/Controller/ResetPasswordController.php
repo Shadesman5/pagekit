@@ -61,7 +61,8 @@ class ResetPasswordController
                 throw new Exception(__('Your account has not been activated or is blocked.'));
             }
 
-            $key = App::getInstance()['auth.random']->generateString(32);
+            // Generate URL-safe key (no special chars like /)
+            $key = bin2hex(random_bytes(16)); // 32 chars, URL-safe
             $url = App::url('@user/resetpassword/confirm', compact('key'), 0);
 
             try {
