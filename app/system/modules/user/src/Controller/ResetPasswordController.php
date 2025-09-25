@@ -101,8 +101,15 @@ class ResetPasswordController
      */
     public function confirmAction()
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        try {
+            // Get parameters from request (Symfony 6.4 compatibility)
+            $app = App::getInstance();
+            $request = isset($app['request']) ? $app['request'] : null;
+            
+            // Fallback to global request if not in container
+            if (!$request) {
+                $request = \Symfony\Component\HttpFoundation\Request::createFromGlobals();
+            }
         
         // For GET requests (clicking the link), get key from query string
         // For POST requests (submitting new password), get from POST data
@@ -179,6 +186,13 @@ class ResetPasswordController
             'activation' => $activation,
             'error' => isset($error) ? $error : ''
         ];
+        
+        } catch (\Throwable $e) {
+            // Log error for debugging
+            error_log("ResetPasswordController::confirmAction error: " . $e->getMessage());
+            error_log("File: " . $e->getFile() . " Line: " . $e->getLine());
+            throw $e;
+        }
     }
 
 }
