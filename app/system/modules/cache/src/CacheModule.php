@@ -51,20 +51,14 @@ class CacheModule extends Module
                 $cache = new ArrayAdapter();
                 break;
 
-            case 'apc':
             case 'apcu':
                 // Check if APCu is available
-                if (!function_exists('apcu_fetch')) {
-                    // Fallback to array cache if APCu not available
-                    $cache = new ArrayAdapter();
+                if (!function_exists('apcu_fetch') || !ini_get('apc.enabled')) {
+                    // Fallback to phpfile cache if APCu not available
+                    $cache = new PhpFilesAdapter($config['path'] ?? '');
                 } else {
                     $cache = new ApcuAdapter('', 0);
                 }
-                break;
-
-            case 'xcache':
-                // XCache is deprecated, use filesystem instead
-                $cache = new FilesystemAdapter($config['path'] ?? '');
                 break;
 
             case 'file':
@@ -77,6 +71,13 @@ class CacheModule extends Module
 
             case 'null':
                 $cache = new NullAdapter();
+                break;
+
+            // Handle legacy configurations
+            case 'apc':
+            case 'xcache':
+                // Silently fallback to phpfile for legacy configurations
+                $cache = new PhpFilesAdapter($config['path'] ?? '');
                 break;
 
             default:
@@ -100,21 +101,12 @@ class CacheModule extends Module
      */
     public static function supports($name = null)
     {
-        $supports = ['phpfile', 'array', 'file'];
+        // Only modern cache options
+        $supports = ['file', 'phpfile', 'array'];
 
-        // Check for APCu support (modern)
-        if (function_exists('apcu_fetch')) {
-            $supports[] = 'apc';
+        // Check for APCu support (modern memory cache)
+        if (function_exists('apcu_fetch') && ini_get('apc.enabled')) {
             $supports[] = 'apcu';
-        }
-        // Legacy APC check
-        elseif (extension_loaded('apc') && class_exists('\APCIterator') && (!extension_loaded('apcu') || version_compare(phpversion('apcu'), '4.0.2', '>='))) {
-            $supports[] = 'apc';
-        }
-
-        // XCache is deprecated but keep for backward compatibility
-        if (extension_loaded('xcache') && ini_get('xcache.var_size')) {
-            $supports[] = 'xcache';
         }
 
         return $name? in_array($name, $supports) : $supports;
