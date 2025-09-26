@@ -54,7 +54,7 @@ class CacheModule extends Module
      */
     protected function createPsr6Cache(array $config): CacheInterface
     {
-        switch ($config['storage']) {
+            switch ($config['storage']) {
             case 'array':
                 $cache = new ArrayAdapter();
                 break;
@@ -96,7 +96,7 @@ class CacheModule extends Module
         if ($prefix = isset($config['prefix']) ? $config['prefix'] : false) {
             $cache->setNamespace($prefix);
         }
-
+        
         return $cache;
     }
 

@@ -57,12 +57,15 @@ class Psr6Adapter implements CacheInterface
      */
     protected function getNamespacedId(string $id): string
     {
+        // PSR-6 doesn't allow certain characters in keys
+        // Replace reserved characters: {}()/\@:
+        $safeId = str_replace([':', '\\', '/', '@', '{', '}', '(', ')'], '_', $id);
+        
         if ($this->namespace) {
-            // PSR-6 doesn't allow certain characters in keys
             $safeNamespace = str_replace([':', '\\', '/', '@', '{', '}', '(', ')'], '_', $this->namespace);
-            return $safeNamespace . '.' . $id;
+            return $safeNamespace . '.' . $safeId;
         }
-        return $id;
+        return $safeId;
     }
 
     /**
