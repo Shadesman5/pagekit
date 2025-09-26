@@ -42,6 +42,12 @@ class PhpEngine
         error_log("[PHPENGINE DEBUG] render() called with name: $name");
         error_log("[PHPENGINE DEBUG] Parameters keys: " . json_encode(array_keys($parameters)));
         $loaded = $this->load($name);
+        
+        if ($loaded === false) {
+            error_log("[PHPENGINE DEBUG] Template not found: $name");
+            throw new \RuntimeException(sprintf('Unable to load template "%s"', $name));
+        }
+        
         error_log("[PHPENGINE DEBUG] Template loaded: " . (is_object($loaded) ? get_class($loaded) : gettype($loaded)));
         $result = $this->evaluate($loaded, $parameters);
         error_log("[PHPENGINE DEBUG] Template evaluated, result length: " . strlen($result));
@@ -54,8 +60,23 @@ class PhpEngine
     public function exists($name): bool
     {
         try {
-            $storage = $this->load($name);
-            return $storage !== false;
+            // For backward compatibility with Storage objects
+            if (is_object($name)) {
+                return true;
+            }
+            
+            // Use the loader if available
+            if ($this->loader) {
+                $storage = $this->loader->load($name);
+                return $storage !== false;
+            }
+            
+            // Without a loader, check if it's a file
+            if (is_string($name) && file_exists($name)) {
+                return true;
+            }
+            
+            return false;
         } catch (\Exception $e) {
             return false;
         }
@@ -95,25 +116,32 @@ class PhpEngine
                 return $storage;
             }
             error_log("[PHPENGINE DEBUG] Loader returned false");
+            // Return false if loader couldn't find it
+            return false;
         }
         
-        error_log("[PHPENGINE DEBUG] Creating fallback storage for: $name");
-        // Fallback: Simple file storage implementation
-        return new class($name) {
-            private $template;
-            
-            public function __construct($template) {
-                $this->template = $template;
-            }
-            
-            public function getTemplate() {
-                return $this->template;
-            }
-            
-            public function __toString() {
-                return $this->template;
-            }
-        };
+        // Without a loader, check if it's a direct file path
+        if (file_exists($name)) {
+            error_log("[PHPENGINE DEBUG] Creating storage for existing file: $name");
+            return new class($name) {
+                private $template;
+                
+                public function __construct($template) {
+                    $this->template = $template;
+                }
+                
+                public function getTemplate() {
+                    return $this->template;
+                }
+                
+                public function __toString() {
+                    return $this->template;
+                }
+            };
+        }
+        
+        error_log("[PHPENGINE DEBUG] Template not found: $name");
+        return false;
     }
     
     /**
