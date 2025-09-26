@@ -54,7 +54,7 @@ Note: All system modules now use PSR-6 through backward compatibility layer
 - [x] Remove old cache classes (FilesystemCache.php, PhpFileCache.php)
 - [x] Update CacheModule to use PSR-6 exclusively
 - [x] Update documentation
-- [ ] Remove doctrine/cache dependency from composer.json (optional - kept for extensions)
+- [x] Remove doctrine/cache dependency from composer.json
 
 ## API Changes
 
