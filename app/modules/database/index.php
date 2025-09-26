@@ -97,6 +97,7 @@ $config = [
 
             $manager = new MetadataManager($app['db'], $app['db.events']);
             $manager->setLoader(new AnnotationLoader);
+            // Cache now supports both doctrine/cache and PSR-6 interfaces
             $manager->setCache($app['cache.phpfile']);
 
             return $manager;

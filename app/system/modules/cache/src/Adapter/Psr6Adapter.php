@@ -4,13 +4,15 @@ namespace Pagekit\Cache\Adapter;
 
 use Doctrine\Common\Cache\CacheProvider;
 use Psr\Cache\CacheItemPoolInterface;
+use Psr\Cache\CacheItemInterface;
 use Symfony\Component\Cache\CacheItem;
 
 /**
  * PSR-6 to Doctrine Cache Adapter
  * Provides backward compatibility for existing code using doctrine/cache
+ * Also implements PSR-6 interface for direct PSR-6 usage
  */
-class Psr6Adapter extends CacheProvider
+class Psr6Adapter extends CacheProvider implements CacheItemPoolInterface
 {
     /**
      * @var CacheItemPoolInterface
@@ -187,5 +189,79 @@ class Psr6Adapter extends CacheProvider
     public function getNamespace(): string
     {
         return $this->namespace;
+    }
+
+    // PSR-6 CacheItemPoolInterface methods
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getItem(string $key): CacheItemInterface
+    {
+        return $this->pool->getItem($this->getNamespacedId($key));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getItems(array $keys = []): iterable
+    {
+        return $this->pool->getItems(array_map([$this, 'getNamespacedId'], $keys));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function hasItem(string $key): bool
+    {
+        return $this->pool->hasItem($this->getNamespacedId($key));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function clear(): bool
+    {
+        return $this->pool->clear();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function deleteItem(string $key): bool
+    {
+        return $this->pool->deleteItem($this->getNamespacedId($key));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function deleteItems(array $keys): bool
+    {
+        return $this->pool->deleteItems(array_map([$this, 'getNamespacedId'], $keys));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function save(CacheItemInterface $item): bool
+    {
+        return $this->pool->save($item);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function saveDeferred(CacheItemInterface $item): bool
+    {
+        return $this->pool->saveDeferred($item);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function commit(): bool
+    {
+        return $this->pool->commit();
     }
 }

@@ -20,7 +20,8 @@ class UrlResolver implements ParamsResolverInterface
      */
     public function __construct()
     {
-        $this->cacheEntries = App::cache()->fetch(self::CACHE_KEY) ?: [];
+        $cacheItem = App::cache()->getItem(self::CACHE_KEY);
+        $this->cacheEntries = $cacheItem->isHit() ? $cacheItem->get() : [];
     }
 
     /**
@@ -95,7 +96,9 @@ class UrlResolver implements ParamsResolverInterface
     public function __destruct()
     {
         if ($this->cacheDirty) {
-            App::cache()->save(self::CACHE_KEY, $this->cacheEntries);
+            $cacheItem = App::cache()->getItem(self::CACHE_KEY);
+            $cacheItem->set($this->cacheEntries);
+            App::cache()->save($cacheItem);
         }
     }
 
