@@ -39,18 +39,13 @@ class PhpEngine
      */
     public function render($name, array $parameters = []): string
     {
-        error_log("[PHPENGINE DEBUG] render() called with name: $name");
-        error_log("[PHPENGINE DEBUG] Parameters keys: " . json_encode(array_keys($parameters)));
         $loaded = $this->load($name);
         
         if ($loaded === false) {
-            error_log("[PHPENGINE DEBUG] Template not found: $name");
             throw new \RuntimeException(sprintf('Unable to load template "%s"', $name));
         }
         
-        error_log("[PHPENGINE DEBUG] Template loaded: " . (is_object($loaded) ? get_class($loaded) : gettype($loaded)));
         $result = $this->evaluate($loaded, $parameters);
-        error_log("[PHPENGINE DEBUG] Template evaluated, result length: " . strlen($result));
         return $result;
     }
     
@@ -99,30 +94,23 @@ class PhpEngine
      */
     protected function load($name)
     {
-        error_log("[PHPENGINE DEBUG] load() called with: " . (is_object($name) ? get_class($name) : $name));
-        
         // For backward compatibility with Storage objects
         if (is_object($name)) {
-            error_log("[PHPENGINE DEBUG] Name is object, returning as-is");
             return $name;
         }
         
         // Use the loader if available
         if ($this->loader) {
-            error_log("[PHPENGINE DEBUG] Using loader to load: $name");
             $storage = $this->loader->load($name);
             if ($storage !== false) {
-                error_log("[PHPENGINE DEBUG] Loader returned storage");
                 return $storage;
             }
-            error_log("[PHPENGINE DEBUG] Loader returned false");
             // Return false if loader couldn't find it
             return false;
         }
         
         // Without a loader, check if it's a direct file path
         if (file_exists($name)) {
-            error_log("[PHPENGINE DEBUG] Creating storage for existing file: $name");
             return new class($name) {
                 private $template;
                 
@@ -140,7 +128,6 @@ class PhpEngine
             };
         }
         
-        error_log("[PHPENGINE DEBUG] Template not found: $name");
         return false;
     }
     
@@ -149,8 +136,6 @@ class PhpEngine
      */
     protected function evaluate($template, array $parameters = []): string|false
     {
-        error_log("[PHPENGINE DEBUG] evaluate() called");
-        
         // Convert template to string for use as key
         $templateKey = is_object($template) ? spl_object_hash($template) : (string) $template;
         $this->current = $templateKey;
@@ -158,7 +143,6 @@ class PhpEngine
         
         // Add globals to parameters
         $parameters = array_replace($this->globals, $parameters);
-        error_log("[PHPENGINE DEBUG] Parameters after globals: " . json_encode(array_keys($parameters)));
         
         // Add helpers
         foreach ($this->helpers as $name => $helper) {
@@ -170,40 +154,30 @@ class PhpEngine
         
         // Extract variables
         extract($parameters, EXTR_SKIP);
-        error_log("[PHPENGINE DEBUG] Variables extracted, view exists: " . (isset($view) ? 'YES' : 'NO'));
         
         try {
             // Handle different storage types
             if (is_object($template)) {
                 $templatePath = (string) $template;
-                error_log("[PHPENGINE DEBUG] Template is object, path: $templatePath");
                 
                 // Check if it's a file path
                 if (file_exists($templatePath)) {
-                    error_log("[PHPENGINE DEBUG] Including file: $templatePath");
                     require $templatePath;
                 } else {
-                    error_log("[PHPENGINE DEBUG] Evaluating as string template");
                     // Treat as string template
                     eval('?>' . $templatePath);
                 }
             } elseif (is_string($template)) {
-                error_log("[PHPENGINE DEBUG] Template is string: $template");
                 if (file_exists($template)) {
-                    error_log("[PHPENGINE DEBUG] Including file: $template");
                     require $template;
                 } else {
-                    error_log("[PHPENGINE DEBUG] Evaluating as string template");
                     eval('?>' . $template);
                 }
             }
             
-            $output = ob_get_clean();
-            error_log("[PHPENGINE DEBUG] evaluate() returning output length: " . strlen($output));
-            return $output;
+            return ob_get_clean();
             
         } catch (\Exception $e) {
-            error_log("[PHPENGINE DEBUG] evaluate() caught exception: " . $e->getMessage());
             ob_end_clean();
             throw $e;
         }
