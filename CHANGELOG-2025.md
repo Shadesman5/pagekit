@@ -1,6 +1,6 @@
 # Changelog 2025
 
-## Pagekit 1.0.41 - PSR-6 Cache Migration COMPLETE (September 26, 2025)
+## [Unreleased] - PSR-6 Cache Migration COMPLETE (September 26, 2025)
 
 ### 🚀 Major Changes
 - **COMPLETE PSR-6 Cache Migration** - Successfully migrated from doctrine/cache to PSR-6 (Symfony Cache)
