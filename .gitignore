@@ -34,3 +34,9 @@ node_modules
 # Ignore environment files with secrets
 docker.env
 .env
+
+# E2E Testing
+/test-results/
+/playwright-report/
+/storage-e2e/
+/tmp-e2e/
