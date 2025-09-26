@@ -1,66 +1,74 @@
 # Changelog 2025
 
-## [Unreleased] - PSR-6 Cache Migration COMPLETE (September 26, 2025)
+## Pagekit 1.0.40 - PSR-6 Cache Migration COMPLETE (September 26, 2025)
 
 ### 🚀 Major Changes
-- **COMPLETE PSR-6 Cache Migration** - Successfully migrated from doctrine/cache to PSR-6 (Symfony Cache)
-  - ✅ doctrine/cache dependency REMOVED
-  - ✅ Full backward compatibility maintained
-  - ✅ No breaking changes for extensions
-  - ✅ Frontend and Backend fully functional
+
+-   **COMPLETE PSR-6 Cache Migration** - Successfully migrated from doctrine/cache to PSR-6 (Symfony Cache)
+    -   ✅ doctrine/cache dependency REMOVED
+    -   ✅ Full backward compatibility maintained
+    -   ✅ No breaking changes for extensions
+    -   ✅ Frontend and Backend fully functional
 
 ### ✨ New Features
-- PSR-6 compliant cache adapters (Array, Filesystem, PhpFiles, APCu, Null)
-- `Pagekit\Cache\CacheInterface` for backward compatibility
-- Automatic cache key sanitization for PSR-6 compliance
-- Improved namespace support
-- Better TTL handling
+
+-   PSR-6 compliant cache adapters (Array, Filesystem, PhpFiles, APCu, Null)
+-   `Pagekit\Cache\CacheInterface` for backward compatibility
+-   Automatic cache key sanitization for PSR-6 compliance
+-   Improved namespace support
+-   Better TTL handling
 
 ### 🐛 Fixed
-- Critical fix: Cache key validation for PSR-6 reserved characters
-- Resolved 500 errors caused by invalid cache keys
-- Fixed autoloading issues for cache classes
+
+-   Critical fix: Cache key validation for PSR-6 reserved characters
+-   Resolved 500 errors caused by invalid cache keys
+-   Fixed autoloading issues for cache classes
 
 ### 🧪 Testing
-- All automated tests passing
-- CLI commands fully functional
-- Web interface working correctly
-- Admin panel accessible
-- No PHP errors or warnings
+
+-   All automated tests passing
+-   CLI commands fully functional
+-   Web interface working correctly
+-   Admin panel accessible
+-   No PHP errors or warnings
 
 ### 📝 Technical Details
-- Removed legacy FilesystemCache.php and PhpFileCache.php
-- Updated CacheModule to use PSR-6 exclusively
-- Created adapter layer for seamless migration
-- All system modules now use PSR-6 through compatibility layer
+
+-   Removed legacy FilesystemCache.php and PhpFileCache.php
+-   Updated CacheModule to use PSR-6 exclusively
+-   Created adapter layer for seamless migration
+-   All system modules now use PSR-6 through compatibility layer
 
 ## Pagekit 1.0.39 - Complete Symfony 6.4 LTS Upgrade (September 25, 2025)
 
 ### 🎉 Major Upgrade
-- **Symfony 6.4 LTS** - Successfully upgraded from Symfony 5.4 to 6.4 LTS
-  - All components updated to ^6.4
-  - Full system functionality restored
-  - ~99% compatibility achieved
+
+-   **Symfony 6.4 LTS** - Successfully upgraded from Symfony 5.4 to 6.4 LTS
+    -   All components updated to ^6.4
+    -   Full system functionality restored
+    -   ~99% compatibility achieved
 
 ### 🔧 Fixed
-- **Installer** - Fixed JavaScript globals and request handling
-- **Authentication** - Fixed service access and CSRF validation  
-- **Password Reset** - Complete flow working with all fixes
-- **Module System** - Fixed anonymous function support in ModuleLoader
-- **Controllers** - Removed @Request annotations, fixed parameter handling
-- **Mail System** - Updated to Symfony Mailer API
-- **Menu Management** - Fixed SQL parameter binding
-- **Translation** - Fixed __() function availability
+
+-   **Installer** - Fixed JavaScript globals and request handling
+-   **Authentication** - Fixed service access and CSRF validation
+-   **Password Reset** - Complete flow working with all fixes
+-   **Module System** - Fixed anonymous function support in ModuleLoader
+-   **Controllers** - Removed @Request annotations, fixed parameter handling
+-   **Mail System** - Updated to Symfony Mailer API
+-   **Menu Management** - Fixed SQL parameter binding
+-   **Translation** - Fixed \_\_() function availability
 
 ### 📝 Technical Changes
-- Updated method signatures for Symfony 6.4
-- Fixed typed properties causing issues
-- Generated URL-safe activation keys
-- Improved error handling throughout
-- Removed all debug code from production
-- **Removed symfony/templating** - Replaced with custom PhpEngine implementation
-- **Modernized View System** - New engine interfaces for PHP and Twig templates
-- **Fixed PHP 8.1+ compatibility** - Null handling in template functions
+
+-   Updated method signatures for Symfony 6.4
+-   Fixed typed properties causing issues
+-   Generated URL-safe activation keys
+-   Improved error handling throughout
+-   Removed all debug code from production
+-   **Removed symfony/templating** - Replaced with custom PhpEngine implementation
+-   **Modernized View System** - New engine interfaces for PHP and Twig templates
+-   **Fixed PHP 8.1+ compatibility** - Null handling in template functions
 
 ## Pagekit 1.0.38 - Symfony 6.4 Routing System Compatibility (September 24, 2025)
 
