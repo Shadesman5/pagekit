@@ -20,7 +20,6 @@
         "php": "^8.2",
         "composer/composer": "^2.8",
         "doctrine/annotations": "~1.14",
-        "doctrine/cache": "~1.13",
         "doctrine/dbal": "^3.8",
         "paragonie/random-lib": "~2.0.1",
         "paragonie/sodium_compat": "^2.0",

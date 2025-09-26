@@ -2,18 +2,16 @@
 
 namespace Pagekit\Cache\Adapter;
 
-use Doctrine\Common\Cache\CacheProvider;
+use Pagekit\Cache\CacheInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Cache\CacheItemInterface;
-use Symfony\Component\Cache\CacheItem;
 
 /**
  * PSR-6 Cache Adapter
- * Extends doctrine/cache CacheProvider for backward compatibility
+ * Implements Pagekit's CacheInterface for backward compatibility
  * Internally uses PSR-6 CacheItemPoolInterface
- * Note: This class does NOT implement CacheItemPoolInterface directly due to method signature conflicts
  */
-class Psr6Adapter extends CacheProvider
+class Psr6Adapter implements CacheInterface
 {
     /**
      * @var CacheItemPoolInterface
@@ -26,11 +24,6 @@ class Psr6Adapter extends CacheProvider
     protected string $namespace = '';
 
     /**
-     * @var array
-     */
-    protected array $deferred = [];
-
-    /**
      * Constructor
      *
      * @param CacheItemPoolInterface $pool
@@ -41,20 +34,15 @@ class Psr6Adapter extends CacheProvider
     }
 
     /**
-     * Set the namespace to prefix all cache ids with.
-     *
-     * @param string $namespace
+     * {@inheritdoc}
      */
     public function setNamespace($namespace)
     {
         $this->namespace = $namespace;
-        parent::setNamespace($namespace);
     }
 
     /**
-     * Get the namespace
-     *
-     * @return string
+     * {@inheritdoc}
      */
     public function getNamespace()
     {
@@ -63,7 +51,6 @@ class Psr6Adapter extends CacheProvider
 
     /**
      * Get namespaced ID
-     * PSR-6 doesn't allow : in cache keys, so we use . as separator
      *
      * @param string $id
      * @return string
@@ -71,18 +58,65 @@ class Psr6Adapter extends CacheProvider
     protected function getNamespacedId(string $id): string
     {
         if ($this->namespace) {
-            // Replace any invalid characters for PSR-6
+            // PSR-6 doesn't allow certain characters in keys
             $safeNamespace = str_replace([':', '\\', '/', '@', '{', '}', '(', ')'], '_', $this->namespace);
-            $safeId = str_replace([':', '\\', '/', '@', '{', '}', '(', ')'], '_', $id);
-            return $safeNamespace . '.' . $safeId;
+            return $safeNamespace . '.' . $id;
         }
-        return str_replace([':', '\\', '/', '@', '{', '}', '(', ')'], '_', $id);
+        return $id;
     }
-
-    // ===== PSR-6 CacheItemPoolInterface Methods =====
 
     /**
      * {@inheritdoc}
+     */
+    public function fetch($id)
+    {
+        $item = $this->pool->getItem($this->getNamespacedId($id));
+        return $item->isHit() ? $item->get() : false;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function contains($id)
+    {
+        return $this->pool->hasItem($this->getNamespacedId($id));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function save($id, $data, $lifeTime = 0)
+    {
+        $item = $this->pool->getItem($this->getNamespacedId($id));
+        $item->set($data);
+        
+        if ($lifeTime > 0) {
+            $item->expiresAfter($lifeTime);
+        }
+        
+        return $this->pool->save($item);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function delete($id)
+    {
+        return $this->pool->deleteItem($this->getNamespacedId($id));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function flushAll()
+    {
+        return $this->pool->clear();
+    }
+
+    // ===== PSR-6 Methods for internal use =====
+
+    /**
+     * Returns a Cache Item representing the specified key.
      */
     public function getItem(string $key): CacheItemInterface
     {
@@ -90,7 +124,7 @@ class Psr6Adapter extends CacheProvider
     }
 
     /**
-     * {@inheritdoc}
+     * Returns a traversable set of cache items.
      */
     public function getItems(array $keys = []): iterable
     {
@@ -99,7 +133,7 @@ class Psr6Adapter extends CacheProvider
     }
 
     /**
-     * {@inheritdoc}
+     * Confirms if the cache contains specified cache item.
      */
     public function hasItem(string $key): bool
     {
@@ -107,7 +141,7 @@ class Psr6Adapter extends CacheProvider
     }
 
     /**
-     * {@inheritdoc}
+     * Deletes all items in the pool.
      */
     public function clear(): bool
     {
@@ -115,7 +149,7 @@ class Psr6Adapter extends CacheProvider
     }
 
     /**
-     * {@inheritdoc}
+     * Removes the item from the pool.
      */
     public function deleteItem(string $key): bool
     {
@@ -123,7 +157,7 @@ class Psr6Adapter extends CacheProvider
     }
 
     /**
-     * {@inheritdoc}
+     * Removes multiple items from the pool.
      */
     public function deleteItems(array $keys): bool
     {
@@ -132,19 +166,15 @@ class Psr6Adapter extends CacheProvider
     }
 
     /**
-     * Save PSR-6 cache item
-     * Internal method to avoid conflict with doctrine/cache save()
-     *
-     * @param CacheItemInterface $item
-     * @return bool
+     * Persists a cache item immediately.
      */
-    protected function saveCacheItem(CacheItemInterface $item): bool
+    public function saveCacheItem(CacheItemInterface $item): bool
     {
         return $this->pool->save($item);
     }
 
     /**
-     * {@inheritdoc}
+     * Sets a cache item to be persisted later.
      */
     public function saveDeferred(CacheItemInterface $item): bool
     {
@@ -152,116 +182,10 @@ class Psr6Adapter extends CacheProvider
     }
 
     /**
-     * {@inheritdoc}
+     * Persists any deferred cache items.
      */
     public function commit(): bool
     {
         return $this->pool->commit();
-    }
-
-    // ===== Doctrine\Common\Cache\CacheProvider Abstract Methods =====
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function doFetch($id)
-    {
-        $item = $this->getItem($id);
-        return $item->isHit() ? $item->get() : false;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function doContains($id)
-    {
-        return $this->hasItem($id);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function doSave($id, $data, $lifeTime = 0)
-    {
-        $item = $this->getItem($id);
-        $item->set($data);
-        
-        if ($lifeTime > 0) {
-            $item->expiresAfter($lifeTime);
-        }
-        
-        return $this->saveCacheItem($item);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function doDelete($id)
-    {
-        return $this->deleteItem($id);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function doFlush()
-    {
-        return $this->clear();
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function doGetStats()
-    {
-        // PSR-6 doesn't define stats
-        return null;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function doFetchMultiple(array $keys)
-    {
-        $result = [];
-        $items = $this->getItems($keys);
-        
-        foreach ($items as $key => $item) {
-            if ($item->isHit()) {
-                // Remove namespace prefix from key if present
-                $originalKey = $key;
-                $safeNamespace = str_replace([':', '\\', '/', '@', '{', '}', '(', ')'], '_', $this->namespace);
-                if ($this->namespace && strpos($key, $safeNamespace . '.') === 0) {
-                    $originalKey = substr($key, strlen($safeNamespace) + 1);
-                }
-                $result[$originalKey] = $item->get();
-            }
-        }
-        
-        return $result;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function doSaveMultiple(array $keysAndValues, $lifetime = 0)
-    {
-        $success = true;
-        
-        foreach ($keysAndValues as $key => $value) {
-            if (!$this->doSave($key, $value, $lifetime)) {
-                $success = false;
-            }
-        }
-        
-        return $success;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function doDeleteMultiple(array $keys)
-    {
-        return $this->deleteItems($keys);
     }
 }
