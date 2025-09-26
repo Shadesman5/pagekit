@@ -290,7 +290,7 @@ yarn lint-watch
 
 ### Backend
 
--   **Framework**: Symfony 5.4 components
+-   **Framework**: Symfony 6.4 LTS components
 -   **Architecture**: Modular system with clean separation of concerns
 -   **Database**: Doctrine ORM with migration support
 -   **Authentication**: User management and permission system

@@ -8,15 +8,14 @@ use Pagekit\Event\PrefixEventDispatcher;
 use Pagekit\Util\ArrObject;
 use Pagekit\View\Event\ViewEvent;
 use Pagekit\View\Helper\HelperInterface;
-use Symfony\Component\Templating\DelegatingEngine;
-use Symfony\Component\Templating\EngineInterface;
-use Symfony\Component\Templating\TemplateReference;
+use Pagekit\View\Engine\EngineInterface;
+use Pagekit\View\Engine\DelegatingEngine;
 
 class View
 {
     protected \Pagekit\Event\EventDispatcherInterface $events;
 
-    protected \Symfony\Component\Templating\EngineInterface $engine;
+    protected EngineInterface $engine;
 
     protected array $globals = [];
 
@@ -96,7 +95,17 @@ class View
      */
     public function addEngine(EngineInterface $engine): self
     {
-        $this->engine->addEngine($engine);
+        if ($this->engine instanceof DelegatingEngine) {
+            $this->engine->addEngine($engine);
+        } else {
+            // Replace with delegating engine if needed
+            $delegating = new DelegatingEngine();
+            if ($this->engine) {
+                $delegating->addEngine($this->engine);
+            }
+            $delegating->addEngine($engine);
+            $this->engine = $delegating;
+        }
 
         return $this;
     }
@@ -174,6 +183,18 @@ class View
     }
 
     /**
+     * Returns true if the template exists.
+     */
+    public function exists($name): bool
+    {
+        try {
+            return $this->engine->exists($name);
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function render($name, array $parameters = []): ?string
@@ -194,35 +215,18 @@ class View
         if ($result === null) {
             $template = $event->getTemplate();
             
-            // Symfony 6.4 compatibility: Handle string templates differently
-            // The engine expects either a TemplateReference or can parse strings directly
+            // Special handling for 'layout' - if no layout template exists, return null
+            if ($template === 'layout' && !$this->engine->exists($template)) {
+                array_pop($this->parameters);
+                return null;
+            }
+            
+            // Render the template with our engine (PhpEngine or Twig)
             try {
-                // Try to render directly with the template string/object
                 $result = $this->engine->render($template, $params);
-            } catch (\TypeError | \Exception $e) {
-                // If that fails, try different approaches
-                if (is_string($template)) {
-                    // Create a properly configured TemplateReference
-                    $templateRef = new TemplateReference($template, 'php');
-                    $templateRef->set('name', $template);
-                    $templateRef->set('engine', 'php');
-                    
-                    try {
-                        if ($this->engine->supports($templateRef)) {
-                            $result = $this->engine->render($templateRef, $params);
-                        }
-                    } catch (\Exception $e2) {
-                        // Last resort: try with just the string
-                        try {
-                            // Some engines might handle strings directly
-                            if (method_exists($this->engine, 'exists') && $this->engine->exists($template)) {
-                                $result = $this->engine->render($template, $params);
-                            }
-                        } catch (\Exception $e3) {
-                            // Template rendering failed completely
-                        }
-                    }
-                }
+            } catch (\Exception $e) {
+                // Template rendering failed
+                throw new \RuntimeException(sprintf('Failed to render template "%s": %s', $template, $e->getMessage()), 0, $e);
             }
         }
 

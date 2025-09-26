@@ -3,52 +3,95 @@
 namespace Pagekit\View\Loader;
 
 use Pagekit\Filesystem\Locator;
-use Symfony\Component\Templating\Loader\LoaderInterface;
-use Symfony\Component\Templating\Storage\FileStorage;
-use Symfony\Component\Templating\Storage\Storage;
-use Symfony\Component\Templating\TemplateReferenceInterface;
 
-class FilesystemLoader implements LoaderInterface
+/**
+ * Filesystem Template Loader - Independent from Symfony
+ */
+class FilesystemLoader
 {
-    protected \Pagekit\Filesystem\Locator $locator;
+    protected ?Locator $locator;
 
     /**
      * Constructor.
      *
-     * @param Locator $locator
+     * @param Locator|null $locator
      */
-    public function __construct(Locator $locator)
+    public function __construct(?Locator $locator = null)
     {
         $this->locator = $locator;
     }
 
     /**
-     * {@inheritdoc}
+     * Loads a template.
      */
-    public function load(TemplateReferenceInterface $template): Storage|false
+    public function load($template)
     {
-        if (!strpos($template, ':') && $file = $this->locator->get("views:{$template}")) {
-            return new FileStorage($file);
-        } elseif ($file = $this->locator->get($template)) {
-            return new FileStorage($file);
+        // Handle TemplateReference objects for backward compatibility
+        if (is_object($template) && method_exists($template, '__toString')) {
+            $template = (string) $template;
         }
-
-        return false;
+        
+        if (!$this->locator) {
+            // Return a simple file storage
+            return new class($template) {
+                private $path;
+                
+                public function __construct($path) {
+                    $this->path = $path;
+                }
+                
+                public function __toString() {
+                    return $this->path;
+                }
+            };
+        }
+        
+        // Try to locate the template file
+        $file = null;
+        
+        // First try direct path (handles namespaced paths like system/theme:views/login.php)
+        $file = $this->locator->get($template);
+        
+        if (!$file && strpos($template, ':') === false) {
+            // If not found and no namespace, try with views: prefix
+            $file = $this->locator->get("views:{$template}");
+        }
+        
+        if (!$file) {
+            return false;
+        }
+        
+        // Return a simple file storage object
+        return new class($file) {
+            private $path;
+            
+            public function __construct($path) {
+                $this->path = $path;
+            }
+            
+            public function __toString() {
+                return $this->path;
+            }
+        };
     }
 
     /**
-     * {@inheritdoc}
+     * Returns true if the template is still fresh.
      */
-    public function isFresh(TemplateReferenceInterface $template, $time): bool
+    public function isFresh($template, $time): bool
     {
-        if (false === $storage = $this->load($template)) {
+        $storage = $this->load($template);
+        
+        if ($storage === false) {
             return false;
         }
-
-        if (!is_readable((string) $storage)) {
+        
+        $path = (string) $storage;
+        
+        if (!is_readable($path)) {
             return false;
         }
-
-        return filemtime((string) $storage) < $time;
+        
+        return filemtime($path) < $time;
     }
 }

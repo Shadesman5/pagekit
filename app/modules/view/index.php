@@ -18,8 +18,10 @@ use Pagekit\View\Helper\UrlHelper;
 use Pagekit\View\Loader\FilesystemLoader;
 use Pagekit\View\PhpEngine;
 use Pagekit\View\View;
+use Pagekit\View\Engine\PhpEngineAdapter;
+use Pagekit\View\Engine\TwigEngineAdapter;
+use Pagekit\View\Engine\DelegatingEngine;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Templating\TemplateNameParser;
 
 return [
 
@@ -123,11 +125,19 @@ return [
 
         'view.init' => [function ($event, $view) use ($app) {
 
-            $view->addEngine(new PhpEngine(null, isset($app['locator']) ? new FilesystemLoader($app['locator']) : null));
+            // Create delegating engine
+            $delegatingEngine = new DelegatingEngine();
+            
+            // Add PHP engine
+            $phpEngine = new PhpEngine(null, isset($app['locator']) ? new FilesystemLoader($app['locator']) : null);
+            $delegatingEngine->addEngine(new PhpEngineAdapter($phpEngine));
 
+            // Add Twig engine if available
             if (isset($app['twig'])) {
-                $view->addEngine(new TwigEngine($app['twig'], new TemplateNameParser()));
+                $delegatingEngine->addEngine(new TwigEngineAdapter($app['twig']));
             }
+            
+            $view->addEngine($delegatingEngine);
 
             $view->addGlobal('app', $app);
             $view->addGlobal('view', $view);

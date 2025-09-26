@@ -24,6 +24,9 @@
 - Generated URL-safe activation keys
 - Improved error handling throughout
 - Removed all debug code from production
+- **Removed symfony/templating** - Replaced with custom PhpEngine implementation
+- **Modernized View System** - New engine interfaces for PHP and Twig templates
+- **Fixed PHP 8.1+ compatibility** - Null handling in template functions
 
 ## Pagekit 1.0.38 - Symfony 6.4 Routing System Compatibility (September 24, 2025)
 

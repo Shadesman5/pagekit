@@ -3,8 +3,8 @@
 use Pagekit\Application as App;
 use Symfony\Component\Translation\Formatter\IntlFormatter;
 
+// Global namespace functions
 if (!function_exists('__')) {
-
     /**
      * Translates the given message, alias for method trans()
      */
@@ -14,7 +14,6 @@ if (!function_exists('__')) {
 }
 
 if (!function_exists('_c')) {
-
     /**
      * The transChoice() method is deprecated since Symfony 4.2, use the trans() one instead with a "%%count%%" parameter.
      * Trying replace '%value%'' to '%count%' in source string and parameters property.
@@ -34,7 +33,6 @@ if (!function_exists('_c')) {
 }
 
 if (!function_exists('_i')) {
-
     /**
      * Translate Messages using the ICU MessageFormat:
      * https://symfony.com/doc/current/translation/message_format.html#using-the-icu-message-format
