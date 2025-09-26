@@ -26,7 +26,7 @@ class CacheModule extends Module
     public function main(App $app): void
     {
         foreach ($this->config['caches'] as $name => $config)  {
-            $app[$name] = function() use ($config) {
+            $app[$name] = function() use ($config, $name) {
 
                 $supports = $this->supports();
 
@@ -57,8 +57,17 @@ class CacheModule extends Module
      */
     protected function shouldUsePsr6(string $cacheName): bool
     {
-        // For now, keep all caches on legacy until properly migrated
-        // We'll change this per cache as we migrate
+        // Phase 2: Migrate cache.phpfile for MetadataManager
+        if ($cacheName === 'cache.phpfile') {
+            return true; // MetadataManager needs PSR-6
+        }
+        
+        // Phase 3: Migrate main cache for LoginAttemptListener, Blog modules
+        if ($cacheName === 'cache') {
+            return true; // Main cache uses PSR-6
+        }
+        
+        // Other caches stay on legacy for now
         return false;
     }
 
@@ -174,7 +183,7 @@ class CacheModule extends Module
         $supports = ['file', 'phpfile', 'array'];
 
         // Legacy APC support (will be removed in Phase 4)
-        if (\Doctrine\Common\Cache\ApcCache::isSupported()) {
+        if (function_exists('apc_fetch') && ini_get('apc.enabled')) {
             $supports[] = 'apc';
         }
 

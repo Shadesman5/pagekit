@@ -2,15 +2,18 @@
 
 namespace Pagekit\Cache\Adapter;
 
+use Doctrine\Common\Cache\CacheProvider;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Cache\CacheItemInterface;
 use Symfony\Component\Cache\CacheItem;
 
 /**
  * PSR-6 Cache Adapter
- * Provides a PSR-6 compliant cache implementation
+ * Extends doctrine/cache CacheProvider for backward compatibility
+ * Internally uses PSR-6 CacheItemPoolInterface
+ * Note: This class does NOT implement CacheItemPoolInterface directly due to method signature conflicts
  */
-class Psr6Adapter implements CacheItemPoolInterface
+class Psr6Adapter extends CacheProvider
 {
     /**
      * @var CacheItemPoolInterface
@@ -42,9 +45,10 @@ class Psr6Adapter implements CacheItemPoolInterface
      *
      * @param string $namespace
      */
-    public function setNamespace(string $namespace): void
+    public function setNamespace($namespace)
     {
         $this->namespace = $namespace;
+        parent::setNamespace($namespace);
     }
 
     /**
@@ -52,7 +56,7 @@ class Psr6Adapter implements CacheItemPoolInterface
      *
      * @return string
      */
-    public function getNamespace(): string
+    public function getNamespace()
     {
         return $this->namespace;
     }
@@ -65,7 +69,10 @@ class Psr6Adapter implements CacheItemPoolInterface
      */
     protected function getNamespacedId(string $id): string
     {
-        return $this->namespace ? $this->namespace . ':' . $id : $id;
+        if ($this->namespace) {
+            return $this->namespace . ':' . $id;
+        }
+        return $id;
     }
 
     // ===== PSR-6 CacheItemPoolInterface Methods =====
@@ -121,9 +128,13 @@ class Psr6Adapter implements CacheItemPoolInterface
     }
 
     /**
-     * {@inheritdoc}
+     * Save PSR-6 cache item
+     * Internal method to avoid conflict with doctrine/cache save()
+     *
+     * @param CacheItemInterface $item
+     * @return bool
      */
-    public function save(CacheItemInterface $item): bool
+    protected function saveCacheItem(CacheItemInterface $item): bool
     {
         return $this->pool->save($item);
     }
@@ -144,40 +155,29 @@ class Psr6Adapter implements CacheItemPoolInterface
         return $this->pool->commit();
     }
 
-    // ===== Legacy Compatibility Methods (for extensions) =====
+    // ===== Doctrine\Common\Cache\CacheProvider Abstract Methods =====
 
     /**
-     * Fetches an entry from the cache.
-     *
-     * @param string $id The id of the cache entry to fetch.
-     * @return mixed The cached data or FALSE, if no cache entry exists for the given id.
+     * {@inheritdoc}
      */
-    public function fetch(string $id)
+    protected function doFetch($id)
     {
         $item = $this->getItem($id);
         return $item->isHit() ? $item->get() : false;
     }
 
     /**
-     * Tests if an entry exists in the cache.
-     *
-     * @param string $id The cache id of the entry to check for.
-     * @return bool TRUE if a cache entry exists for the given cache id, FALSE otherwise.
+     * {@inheritdoc}
      */
-    public function contains(string $id): bool
+    protected function doContains($id)
     {
         return $this->hasItem($id);
     }
 
     /**
-     * Puts data into the cache.
-     *
-     * @param string $id The cache id.
-     * @param mixed $data The cache entry/data.
-     * @param int $lifeTime The cache lifetime.
-     * @return bool TRUE if the entry was successfully stored in the cache, FALSE otherwise.
+     * {@inheritdoc}
      */
-    public function saveData(string $id, $data, int $lifeTime = 0): bool
+    protected function doSave($id, $data, $lifeTime = 0)
     {
         $item = $this->getItem($id);
         $item->set($data);
@@ -186,84 +186,77 @@ class Psr6Adapter implements CacheItemPoolInterface
             $item->expiresAfter($lifeTime);
         }
         
-        return $this->save($item);
+        return $this->saveCacheItem($item);
     }
 
     /**
-     * Deletes a cache entry.
-     *
-     * @param string $id The cache id.
-     * @return bool TRUE if the cache entry was successfully deleted, FALSE otherwise.
+     * {@inheritdoc}
      */
-    public function delete(string $id): bool
+    protected function doDelete($id)
     {
         return $this->deleteItem($id);
     }
 
     /**
-     * Flushes all cache entries.
-     *
-     * @return bool TRUE if the cache entries were successfully flushed, FALSE otherwise.
+     * {@inheritdoc}
      */
-    public function flushAll(): bool
+    protected function doFlush()
     {
         return $this->clear();
     }
 
     /**
-     * Fetches multiple cache entries.
-     *
-     * @param array $keys Array of keys to fetch.
-     * @return array Array of values keyed by cache keys.
+     * {@inheritdoc}
      */
-    public function fetchMultiple(array $keys): array
+    protected function doGetStats()
+    {
+        // PSR-6 doesn't define stats
+        return null;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function doFetchMultiple(array $keys)
     {
         $result = [];
-        foreach ($this->getItems($keys) as $key => $item) {
+        $items = $this->getItems($keys);
+        
+        foreach ($items as $key => $item) {
             if ($item->isHit()) {
-                $result[$key] = $item->get();
+                // Remove namespace prefix from key if present
+                $originalKey = $key;
+                if ($this->namespace && strpos($key, $this->namespace . ':') === 0) {
+                    $originalKey = substr($key, strlen($this->namespace) + 1);
+                }
+                $result[$originalKey] = $item->get();
             }
         }
+        
         return $result;
     }
 
     /**
-     * Saves multiple cache entries.
-     *
-     * @param array $keysAndValues Array of keys and values to save.
-     * @param int $lifetime The cache lifetime.
-     * @return bool TRUE if the entries were successfully stored, FALSE otherwise.
+     * {@inheritdoc}
      */
-    public function saveMultiple(array $keysAndValues, int $lifetime = 0): bool
+    protected function doSaveMultiple(array $keysAndValues, $lifetime = 0)
     {
         $success = true;
+        
         foreach ($keysAndValues as $key => $value) {
-            if (!$this->saveData($key, $value, $lifetime)) {
+            if (!$this->doSave($key, $value, $lifetime)) {
                 $success = false;
             }
         }
+        
         return $success;
     }
 
     /**
-     * Deletes multiple cache entries.
-     *
-     * @param array $keys Array of keys to delete.
-     * @return bool TRUE if the entries were successfully deleted, FALSE otherwise.
+     * {@inheritdoc}
      */
-    public function deleteMultiple(array $keys): bool
+    protected function doDeleteMultiple(array $keys)
     {
         return $this->deleteItems($keys);
-    }
-
-    /**
-     * Retrieves cached information from the data store.
-     *
-     * @return array|null An associative array with server's statistics if available, NULL otherwise.
-     */
-    public function getStats(): ?array
-    {
-        // PSR-6 doesn't define stats, return null
-        return null;
     }
 }
