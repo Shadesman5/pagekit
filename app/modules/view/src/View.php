@@ -183,6 +183,18 @@ class View
     }
 
     /**
+     * Returns true if the template exists.
+     */
+    public function exists($name): bool
+    {
+        try {
+            return $this->engine->exists($name);
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function render($name, array $parameters = []): ?string
