@@ -1,5 +1,30 @@
 # Changelog 2025
 
+## Pagekit 1.0.40 - PSR-6 Cache Migration (September 26, 2025)
+
+### 🚀 Enhancements
+- **PSR-6 Cache Implementation** - Migrated from doctrine/cache to PSR-6 (Symfony Cache)
+  - Full backward compatibility maintained
+  - No breaking changes for extensions
+  - Performance improvements
+
+### ✨ New Features
+- Modern cache adapters (Array, Filesystem, PhpFiles, APCu, Null)
+- PSR-6 compliant cache interface
+- Improved namespace support
+- Better TTL handling
+
+### 🧪 Testing
+- Comprehensive test suite for cache system
+- 100% backward compatibility verified
+- Performance benchmarks included
+
+### 📝 Technical Details
+- Removed legacy FilesystemCache.php and PhpFileCache.php
+- Updated CacheModule to use PSR-6 exclusively
+- Created adapter layer for seamless migration
+- All system modules now use PSR-6 through compatibility layer
+
 ## Pagekit 1.0.39 - Complete Symfony 6.4 LTS Upgrade (September 25, 2025)
 
 ### 🎉 Major Upgrade
