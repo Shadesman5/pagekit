@@ -25,8 +25,7 @@ class LoginAttemptListener implements EventSubscriberInterface
             return;
         }
 
-        $cacheItem = App::cache()->getItem($this->getCacheKey($credentials['username']));
-        $attempts = $cacheItem->isHit() ? $cacheItem->get() : [];
+        $attempts = App::cache()->fetch($this->getCacheKey($credentials['username'])) ?: [];
 
         if (count($attempts) > self::ATTEMPTS && time() - (int) array_pop($attempts) < self::DELAY) {
             throw new AuthException(__('Slow down a bit.'));
@@ -46,12 +45,10 @@ class LoginAttemptListener implements EventSubscriberInterface
 
         $key = $this->getCacheKey($credentials['username']);
 
-        $cacheItem = App::cache()->getItem($key);
-        $attempts = $cacheItem->isHit() ? $cacheItem->get() : [];
+        $attempts = App::cache()->fetch($key) ?: [];
         $attempts[] = time();
         
-        $cacheItem->set($attempts);
-        App::cache()->save($cacheItem);
+        App::cache()->save($key, $attempts);
     }
 
     /**
@@ -65,7 +62,7 @@ class LoginAttemptListener implements EventSubscriberInterface
             return;
         }
 
-        App::cache()->deleteItem($this->getCacheKey($credentials['username']));
+        App::cache()->delete($this->getCacheKey($credentials['username']));
     }
 
     /**

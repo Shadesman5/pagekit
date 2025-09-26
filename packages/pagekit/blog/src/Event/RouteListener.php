@@ -31,7 +31,7 @@ class RouteListener implements EventSubscriberInterface
      */
     public function clearCache(): void
     {
-        App::cache()->deleteItem(UrlResolver::CACHE_KEY);
+        App::cache()->delete(UrlResolver::CACHE_KEY);
     }
 
     /**

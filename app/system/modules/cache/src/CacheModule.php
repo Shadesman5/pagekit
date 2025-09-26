@@ -53,21 +53,12 @@ class CacheModule extends Module
 
     /**
      * Check if specific cache should use PSR-6
-     * Phase 1: Migrate gradually
+     * Phase 1: Keep all on legacy for now, migrate gradually
      */
     protected function shouldUsePsr6(string $cacheName): bool
     {
-        // Phase 2: Migrate cache.phpfile for MetadataManager
-        if ($cacheName === 'cache.phpfile') {
-            return true; // MetadataManager needs PSR-6
-        }
-        
-        // Phase 3: Migrate main cache for LoginAttemptListener, Blog modules
-        if ($cacheName === 'cache') {
-            return true; // Main cache uses PSR-6
-        }
-        
-        // Other caches stay on legacy for now
+        // Phase 1: Keep everything on doctrine/cache for stability
+        // We'll migrate one by one after everything is stable
         return false;
     }
 
