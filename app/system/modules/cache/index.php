@@ -37,24 +37,28 @@ return [
             // Modern cache options only
             $caches = [
                 'auto'     => ['name' => '', 'supported' => true],
-                'file'     => ['name' => 'File', 'supported' => in_array('file', $supported)],
-                'phpfile'  => ['name' => 'PHP File (Faster)', 'supported' => in_array('phpfile', $supported)],
+                'file'     => ['name' => 'Datei', 'supported' => in_array('file', $supported)],
+                'phpfile'  => ['name' => 'PHP Datei', 'supported' => in_array('phpfile', $supported)],
             ];
 
             // Add APCu only if available (modern PHP opcode cache)
             if (in_array('apcu', $supported)) {
-                $caches['apcu'] = ['name' => 'APCu (Memory)', 'supported' => true];
+                $caches['apcu'] = ['name' => 'APCu Speicher', 'supported' => true];
             }
 
             // Set auto name based on best available option
             $bestOption = 'file';
+            $bestName = 'Datei';
+            
             if (in_array('apcu', $supported)) {
                 $bestOption = 'apcu';
+                $bestName = 'APCu Speicher';
             } elseif (in_array('phpfile', $supported)) {
                 $bestOption = 'phpfile';
+                $bestName = 'PHP Datei';
             }
             
-            $caches['auto']['name'] = "Auto ({$caches[$bestOption]['name']})";
+            $caches['auto']['name'] = "Auto ($bestName)";
 
             $view->data('$caches', $caches);
             $view->data('$settings', ['config' => [$this->name => $this->config(['caches.cache.storage', 'nocache'])]]);
