@@ -112,13 +112,7 @@ return [
 
                 $view->section('content', (string) $result);
 
-                // Only try to render layout if it exists
-                if ($view->exists('layout')) {
-                    if (null !== $result = $view->render('layout')) {
-                        $response = $result;
-                    }
-                } else {
-                    // No layout template, use result as-is
+                if (null !== $result = $view->render('layout')) {
                     $response = $result;
                 }
             }

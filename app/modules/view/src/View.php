@@ -215,6 +215,12 @@ class View
         if ($result === null) {
             $template = $event->getTemplate();
             
+            // Special handling for 'layout' - if no layout template exists, return null
+            if ($template === 'layout' && !$this->engine->exists($template)) {
+                array_pop($this->parameters);
+                return null;
+            }
+            
             // Render the template with our engine (PhpEngine or Twig)
             try {
                 $result = $this->engine->render($template, $params);
