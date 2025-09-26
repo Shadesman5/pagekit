@@ -34,14 +34,27 @@ return [
 
             $supported = $this->supports();
 
+            // Modern cache options only
             $caches = [
-                'auto'   => ['name' => '', 'supported' => true],
-                'apc'    => ['name' => 'APC', 'supported' => in_array('apc', $supported)],
-                'xcache' => ['name' => 'XCache', 'supported' => in_array('xcache', $supported)],
-                'file'   => ['name' => 'File', 'supported' => in_array('file', $supported)]
+                'auto'     => ['name' => '', 'supported' => true],
+                'file'     => ['name' => 'File', 'supported' => in_array('file', $supported)],
+                'phpfile'  => ['name' => 'PHP File', 'supported' => in_array('phpfile', $supported)],
             ];
 
-            $caches['auto']['name'] = "Auto ({$caches[end($supported)]['name']})";
+            // Add APCu only if available (modern PHP opcode cache)
+            if (in_array('apcu', $supported)) {
+                $caches['apcu'] = ['name' => 'APCu Memory', 'supported' => true];
+            }
+
+            // Set auto name based on best available option
+            $bestOption = 'file';
+            if (in_array('apcu', $supported)) {
+                $bestOption = 'apcu';
+            } elseif (in_array('phpfile', $supported)) {
+                $bestOption = 'phpfile';
+            }
+            
+            $caches['auto']['name'] = "Auto ({$caches[$bestOption]['name']})";
 
             $view->data('$caches', $caches);
             $view->data('$settings', ['config' => [$this->name => $this->config(['caches.cache.storage', 'nocache'])]]);

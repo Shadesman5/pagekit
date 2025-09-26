@@ -2,21 +2,29 @@
 
 namespace Pagekit\Cache;
 
-use Doctrine\Common\Cache\ApcCache;
-use Doctrine\Common\Cache\ArrayCache;
-use Doctrine\Common\Cache\XcacheCache;
 use Pagekit\Application as App;
+use Pagekit\Cache\Adapter\ArrayAdapter;
+use Pagekit\Cache\Adapter\ApcuAdapter;
+use Pagekit\Cache\Adapter\FilesystemAdapter;
+use Pagekit\Cache\Adapter\NullAdapter;
+use Pagekit\Cache\Adapter\PhpFilesAdapter;
+use Pagekit\Cache\CacheInterface;
 use Pagekit\Module\Module;
 
 class CacheModule extends Module
 {
+    /**
+     * @var bool Whether to use PSR-6 adapters (true) or legacy doctrine/cache (false)
+     */
+    protected $usePsr6 = false; // Phase 1: Keep legacy by default, migrate gradually
+
     /**
      * {@inheritdoc}
      */
     public function main(App $app): void
     {
         foreach ($this->config['caches'] as $name => $config)  {
-            $app[$name] = function() use ($config) {
+            $app[$name] = function() use ($config, $name) {
 
                 $supports = $this->supports();
 
@@ -30,41 +38,68 @@ class CacheModule extends Module
                     $config['storage'] = end($supports);
                 }
 
-                switch ($config['storage']) {
-
-                    case 'array':
-                        $cache = new ArrayCache;
-                        break;
-
-                    case 'apc':
-                        $cache = new ApcCache;
-                        break;
-
-                    case 'xcache':
-                        $cache = new XcacheCache;
-                        break;
-
-                    case 'file':
-                        $cache = new FilesystemCache($config['path']);
-                        break;
-
-                    case 'phpfile':
-                        $cache = new PhpFileCache($config['path']);
-                        break;
-
-                    default:
-                        throw new \RuntimeException('Unknown cache storage.');
-                        break;
-                }
-
-                if ($prefix = isset($config['prefix']) ? $config['prefix'] : false) {
-                    $cache->setNamespace($prefix);
-                }
-
-                return $cache;
+                // Always use PSR-6 adapters
+                return $this->createPsr6Cache($config);
             };
         }
     }
+
+
+
+    /**
+     * Create PSR-6 based cache adapter
+     *
+     * @param array $config
+     * @return CacheInterface
+     */
+    protected function createPsr6Cache(array $config): CacheInterface
+    {
+            switch ($config['storage']) {
+            case 'array':
+                $cache = new ArrayAdapter();
+                break;
+
+            case 'apcu':
+                // Check if APCu is available
+                if (!function_exists('apcu_fetch') || !ini_get('apc.enabled')) {
+                    // Fallback to phpfile cache if APCu not available
+                    $cache = new PhpFilesAdapter($config['path'] ?? '');
+                } else {
+                    $cache = new ApcuAdapter('', 0);
+                }
+                break;
+
+            case 'file':
+                $cache = new FilesystemAdapter($config['path'] ?? '');
+                break;
+
+            case 'phpfile':
+                $cache = new PhpFilesAdapter($config['path'] ?? '');
+                break;
+
+            case 'null':
+                $cache = new NullAdapter();
+                break;
+
+            // Handle legacy configurations
+            case 'apc':
+            case 'xcache':
+                // Silently fallback to phpfile for legacy configurations
+                $cache = new PhpFilesAdapter($config['path'] ?? '');
+                break;
+
+            default:
+                throw new \RuntimeException('Unknown cache storage: ' . $config['storage']);
+        }
+
+        // Set namespace if provided
+        if ($prefix = isset($config['prefix']) ? $config['prefix'] : false) {
+            $cache->setNamespace($prefix);
+        }
+        
+        return $cache;
+    }
+
 
     /**
      * Returns list of supported caches or boolean for individual cache.
@@ -74,13 +109,16 @@ class CacheModule extends Module
      */
     public static function supports($name = null)
     {
-        $supports = ['phpfile', 'array', 'file'];
+        $supports = ['file', 'phpfile', 'array'];
 
-        if (extension_loaded('apc') && class_exists('\APCIterator') && (!extension_loaded('apcu') || version_compare(phpversion('apcu'), '4.0.2', '>='))) {
-            $supports[] = 'apc';
+
+        // Modern APCu support
+        if (function_exists('apcu_fetch') && ini_get('apc.enabled')) {
+            $supports[] = 'apcu';
         }
 
-        if (extension_loaded('xcache') && ini_get('xcache.var_size')) {
+        // Legacy XCache (deprecated, but keep for compatibility)
+        if (extension_loaded('xcache')) {
             $supports[] = 'xcache';
         }
 

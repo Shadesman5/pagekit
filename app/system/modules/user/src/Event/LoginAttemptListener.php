@@ -47,7 +47,7 @@ class LoginAttemptListener implements EventSubscriberInterface
 
         $attempts = App::cache()->fetch($key) ?: [];
         $attempts[] = time();
-
+        
         App::cache()->save($key, $attempts);
     }
 
