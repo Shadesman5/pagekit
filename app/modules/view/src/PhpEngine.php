@@ -254,14 +254,6 @@ class PhpEngine
     }
     
     /**
-     * Adds a global variable.
-     */
-    public function addGlobal($name, $value): void
-    {
-        $this->globals[$name] = $value;
-    }
-    
-    /**
      * Returns the assigned globals.
      */
     public function getGlobals(): array
