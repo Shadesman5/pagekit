@@ -1,0 +1,58 @@
+{
+  "users": [
+    {
+      "username": "admin",
+      "password": "admin123",
+      "email": "admin@pagekit.local",
+      "role": "administrator",
+      "name": "Test Admin"
+    },
+    {
+      "username": "editor",
+      "password": "editor123",
+      "email": "editor@pagekit.local",
+      "role": "editor",
+      "name": "Test Editor"
+    },
+    {
+      "username": "user",
+      "password": "user123",
+      "email": "user@pagekit.local",
+      "role": "authenticated",
+      "name": "Test User"
+    }
+  ],
+  "testContent": {
+    "pages": [
+      {
+        "title": "Test Page 1",
+        "content": "This is a test page for E2E testing.",
+        "slug": "test-page-1",
+        "status": "published"
+      },
+      {
+        "title": "Test Page 2",
+        "content": "Another test page with **markdown** content.",
+        "slug": "test-page-2",
+        "status": "draft"
+      }
+    ],
+    "posts": [
+      {
+        "title": "Test Blog Post",
+        "content": "This is a test blog post for E2E testing.",
+        "slug": "test-blog-post",
+        "status": "published",
+        "category": "General"
+      }
+    ],
+    "widgets": [
+      {
+        "title": "Test Widget",
+        "type": "text",
+        "position": "sidebar",
+        "content": "Test widget content"
+      }
+    ]
+  }
+}
