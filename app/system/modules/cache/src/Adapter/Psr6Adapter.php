@@ -177,7 +177,7 @@ class Psr6Adapter implements CacheItemPoolInterface
      * @param int $lifeTime The cache lifetime.
      * @return bool TRUE if the entry was successfully stored in the cache, FALSE otherwise.
      */
-    public function save(string $id, $data, int $lifeTime = 0): bool
+    public function saveData(string $id, $data, int $lifeTime = 0): bool
     {
         $item = $this->getItem($id);
         $item->set($data);
@@ -238,7 +238,7 @@ class Psr6Adapter implements CacheItemPoolInterface
     {
         $success = true;
         foreach ($keysAndValues as $key => $value) {
-            if (!$this->save($key, $value, $lifetime)) {
+            if (!$this->saveData($key, $value, $lifetime)) {
                 $success = false;
             }
         }

@@ -2,6 +2,9 @@
 
 namespace Pagekit\Cache;
 
+use Doctrine\Common\Cache\ApcCache;
+use Doctrine\Common\Cache\ArrayCache;
+use Doctrine\Common\Cache\Cache;
 use Pagekit\Application as App;
 use Pagekit\Cache\Adapter\ArrayAdapter;
 use Pagekit\Cache\Adapter\ApcuAdapter;
@@ -12,6 +15,11 @@ use Pagekit\Module\Module;
 
 class CacheModule extends Module
 {
+    /**
+     * @var bool Whether to use PSR-6 adapters (true) or legacy doctrine/cache (false)
+     */
+    protected $usePsr6 = false; // Phase 1: Keep legacy by default, migrate gradually
+
     /**
      * {@inheritdoc}
      */
@@ -32,10 +40,72 @@ class CacheModule extends Module
                     $config['storage'] = end($supports);
                 }
 
-                // Always use PSR-6 adapters
-                return $this->createPsr6Cache($config);
+                // Phase 1: Use PSR-6 for specific caches, legacy for others
+                // This allows gradual migration
+                if ($this->shouldUsePsr6($name)) {
+                    return $this->createPsr6Cache($config);
+                } else {
+                    return $this->createLegacyCache($config);
+                }
             };
         }
+    }
+
+    /**
+     * Check if specific cache should use PSR-6
+     * Phase 1: Migrate gradually
+     */
+    protected function shouldUsePsr6(string $cacheName): bool
+    {
+        // For now, keep all caches on legacy until properly migrated
+        // We'll change this per cache as we migrate
+        return false;
+    }
+
+    /**
+     * Create legacy doctrine/cache adapter
+     *
+     * @param array $config
+     * @return Cache
+     */
+    protected function createLegacyCache(array $config): Cache
+    {
+        switch ($config['storage']) {
+            case 'array':
+                $cache = new ArrayCache();
+                break;
+
+            case 'apc':
+            case 'apcu':
+                if (ApcCache::isSupported()) {
+                    $cache = new ApcCache();
+                } else {
+                    $cache = new PhpFileCache($config['path']);
+                }
+                break;
+
+            case 'file':
+                $cache = new FilesystemCache($config['path']);
+                break;
+
+            case 'phpfile':
+                $cache = new PhpFileCache($config['path']);
+                break;
+
+            case 'xcache':
+                // XCache is deprecated, fallback to file
+                $cache = new PhpFileCache($config['path']);
+                break;
+
+            default:
+                throw new \RuntimeException('Unknown cache storage: ' . $config['storage']);
+        }
+
+        if ($prefix = isset($config['prefix']) ? $config['prefix'] : false) {
+            $cache->setNamespace($prefix);
+        }
+
+        return $cache;
     }
 
     /**
@@ -101,12 +171,21 @@ class CacheModule extends Module
      */
     public static function supports($name = null)
     {
-        // Only modern cache options
         $supports = ['file', 'phpfile', 'array'];
 
-        // Check for APCu support (modern memory cache)
+        // Legacy APC support (will be removed in Phase 4)
+        if (\Doctrine\Common\Cache\ApcCache::isSupported()) {
+            $supports[] = 'apc';
+        }
+
+        // Modern APCu support
         if (function_exists('apcu_fetch') && ini_get('apc.enabled')) {
             $supports[] = 'apcu';
+        }
+
+        // Legacy XCache (deprecated, but keep for compatibility)
+        if (extension_loaded('xcache')) {
+            $supports[] = 'xcache';
         }
 
         return $name? in_array($name, $supports) : $supports;
