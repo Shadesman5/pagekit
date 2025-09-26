@@ -9,7 +9,7 @@ const { expect } = require('@playwright/test');
  * @param {import('@playwright/test').Page} page - Playwright page object
  */
 async function loginAsAdmin(page) {
-  await loginAsUser(page, 'admin', 'admin');
+  await loginAsUser(page, 'admin', 'admin123');
 }
 
 /**
