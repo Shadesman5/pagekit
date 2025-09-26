@@ -1,139 +1,134 @@
 # PSR-6 Cache Migration Documentation
 
-## Current Status: Phase 1 - Dual System Running
+## Current Status: Phase 2 COMPLETE ✅
 
-### ✅ What's Working
-- doctrine/cache is installed and working
-- PSR-6 adapters are created and ready
-- All cache operations use doctrine/cache API
-- System is stable: Web, Admin, CLI all working
+### Migration Progress
+- **Phase 1**: ✅ Dual system running (both doctrine/cache and PSR-6 available)
+- **Phase 2**: ✅ PSR-6 adapters active for all main caches
+- **Phase 3**: ⏳ Module code migration (keep using doctrine/cache API)
+- **Phase 4**: ⏳ Remove doctrine/cache (final step)
 
-### Test Results (All Passing)
-- ✅ `php pagekit list` - CLI works
-- ✅ `curl http://localhost:8000` - Web root returns 200
-- ✅ `curl http://localhost:8000/admin` - Admin redirects to login
-- ✅ `php pagekit clearcache` - Cache clearing works
+### Test Results (All Passing) ✅
+```bash
+✅ php pagekit list              # CLI works
+✅ curl http://localhost:8000    # Web returns 200
+✅ curl http://localhost:8000/admin # Admin redirects to login  
+✅ php pagekit clearcache        # Cache clearing works
+```
 
-## Migration Plan
+## What's Been Done
 
-### Phase 1: Add PSR-6 support alongside doctrine/cache ✅
-**Status: COMPLETE**
-- Created PSR-6 adapters that wrap Symfony Cache
-- Adapters extend CacheProvider for backward compatibility
-- Both systems can run in parallel
-- All code still uses doctrine/cache API
-
-Files created:
-- `app/system/modules/cache/src/Adapter/Psr6Adapter.php`
+### Phase 1: Infrastructure ✅
+Created PSR-6 adapters that extend `CacheProvider` for backward compatibility:
+- `app/system/modules/cache/src/Adapter/Psr6Adapter.php` - Base adapter
 - `app/system/modules/cache/src/Adapter/ArrayAdapter.php`
 - `app/system/modules/cache/src/Adapter/ApcuAdapter.php`
 - `app/system/modules/cache/src/Adapter/FilesystemAdapter.php`
 - `app/system/modules/cache/src/Adapter/PhpFilesAdapter.php`
 - `app/system/modules/cache/src/Adapter/NullAdapter.php`
 
-### Phase 2: Migrate core modules ⏳
-**Status: PENDING**
+### Phase 2: PSR-6 Activation ✅
+All main caches now use PSR-6 adapters internally:
+- `cache.phpfile` - Used by MetadataManager
+- `cache` - Main system cache
+- `cache.module` - Module metadata cache
 
-Core modules to check:
-- `app/modules/routing` - Uses file-based caching, not cache service ✅
-- `app/modules/application` - No cache usage ✅
-- `app/modules/database` - MetadataManager uses cache (currently doctrine/cache)
+The adapters provide full doctrine/cache API compatibility while using Symfony Cache internally.
 
-### Phase 3: Migrate system modules ⏳
-**Status: PENDING**
+### Key Fixes Applied
+1. **Namespace handling**: PSR-6 doesn't allow `:` in cache keys, changed to `.` separator
+2. **Invalid characters**: Replace `{}()/\@:` with `_` for PSR-6 compliance
+3. **Method signatures**: Fixed to match doctrine/cache exactly
+4. **Dual API support**: Adapters extend CacheProvider for backward compatibility
 
-System modules using cache:
-- `app/system/modules/user/src/Event/LoginAttemptListener.php` - Uses doctrine/cache
-- `packages/pagekit/blog/src/UrlResolver.php` - Uses doctrine/cache
-- `packages/pagekit/blog/src/Event/RouteListener.php` - Uses doctrine/cache
+## Current Architecture
 
-### Phase 4: Remove doctrine/cache ⏳
-**Status: PENDING**
-- Remove from composer.json
-- Remove legacy cache classes
-- Clean up compatibility layer
+```
+Application Code (using doctrine/cache API)
+    ↓
+CacheModule::shouldUsePsr6() decides implementation
+    ↓
+PSR-6 Adapters (extending CacheProvider)
+    ↓
+Symfony Cache Components (PSR-6)
+```
 
-## Migration Method Mapping
+## Files Using Cache (All Still Using doctrine/cache API)
 
-### Current (doctrine/cache) → Target (PSR-6)
+### Core Modules
+- `app/modules/database/src/ORM/MetadataManager.php` - Uses `cache.phpfile`
+  - `fetch()`, `save()` - Working with PSR-6 adapter ✅
+
+### System Modules  
+- `app/system/modules/user/src/Event/LoginAttemptListener.php` - Uses main `cache`
+  - `fetch()`, `save()`, `delete()` - Working with PSR-6 adapter ✅
+  
+### Package Modules
+- `packages/pagekit/blog/src/UrlResolver.php` - Uses main `cache`
+  - `fetch()`, `save()` - Working with PSR-6 adapter ✅
+- `packages/pagekit/blog/src/Event/RouteListener.php` - Uses main `cache`
+  - `delete()` - Working with PSR-6 adapter ✅
+
+## Phase 3: Module Migration Plan ⏳
+
+### Current State
+All modules still use doctrine/cache API (`fetch`, `save`, `delete`) but the underlying implementation is PSR-6.
+
+### Migration Strategy
+1. Keep backward compatibility layer active
+2. Migrate modules one by one to PSR-6 API
+3. Test thoroughly after each migration
+4. Only remove doctrine/cache after ALL modules migrated
+
+### Method Mapping for Future Migration
 ```php
-// Fetch
+// OLD (doctrine/cache)
 $data = $cache->fetch($key);
-// becomes
+$cache->save($key, $data, $ttl);
+$cache->delete($key);
+$exists = $cache->contains($key);
+
+// NEW (PSR-6)
 $item = $cache->getItem($key);
 $data = $item->isHit() ? $item->get() : false;
 
-// Save
-$cache->save($key, $data, $ttl);
-// becomes
 $item = $cache->getItem($key);
 $item->set($data);
-if ($ttl > 0) {
-    $item->expiresAfter($ttl);
-}
+$item->expiresAfter($ttl);
 $cache->save($item);
 
-// Delete
-$cache->delete($key);
-// becomes
 $cache->deleteItem($key);
+$cache->hasItem($key);
+```
 
-// Contains
-$exists = $cache->contains($key);
-// becomes
-$exists = $cache->hasItem($key);
+## Phase 4: Cleanup Plan ⏳
 
-// Clear
-$cache->flushAll();
-// becomes
-$cache->clear();
+Only after Phase 3 is complete:
+1. Remove `doctrine/cache` from composer.json
+2. Remove legacy cache classes
+3. Remove backward compatibility from adapters
+4. Update documentation
+
+## Testing Checklist
+
+After EVERY change, run ALL tests:
+```bash
+php pagekit list                    # Must work
+curl -I http://localhost:8000       # Must return 200
+curl -I http://localhost:8000/admin # Must return 302/200
+php pagekit clearcache              # Must work
 ```
 
 ## Important Notes
 
-### Why Phase 1 is Critical
-- Allows testing PSR-6 adapters without breaking existing code
-- Provides fallback if issues arise
-- Extensions continue working without changes
+### Why This Approach Works
+1. **No Breaking Changes**: All code continues using doctrine/cache API
+2. **Gradual Migration**: Can test each component separately
+3. **Easy Rollback**: Just flip `shouldUsePsr6()` back to false
+4. **Extension Compatible**: Extensions continue working unchanged
 
-### Current Architecture
-```
-Application Code
-    ↓
-doctrine/cache API (CacheProvider)
-    ↓
-CacheModule (decides which implementation)
-    ↓
-Either:
-- Legacy: doctrine/cache implementations
-- New: PSR-6 Adapters (wrapping Symfony Cache)
-```
-
-### Next Steps for Phase 2-3
-1. Enable PSR-6 for one cache at a time in `shouldUsePsr6()`
-2. Test thoroughly after each change
-3. Update code to use PSR-6 API directly
-4. Keep backward compatibility layer
-
-## Testing Checklist
-
-After EVERY change:
-- [ ] `php pagekit list` - Must show command list
-- [ ] `curl -I http://localhost:8000` - Must return 200
-- [ ] `curl -I http://localhost:8000/admin` - Must return 302 or 200
-- [ ] `php pagekit clearcache` - Must clear cache successfully
-
-## Files Modified
-
-### Phase 1 Changes
-- ✅ `composer.json` - Added doctrine/cache back
-- ✅ `app/system/modules/cache/src/CacheModule.php` - Dual system support
-- ✅ `app/system/modules/cache/src/FilesystemCache.php` - Legacy cache restored
-- ✅ `app/system/modules/cache/src/PhpFileCache.php` - Legacy cache restored
-- ✅ All adapters created in `app/system/modules/cache/src/Adapter/`
-
-### Reverted Changes (kept on doctrine/cache)
-- ✅ `app/modules/database/src/ORM/MetadataManager.php` - Using doctrine/cache
-- ✅ `app/system/modules/user/src/Event/LoginAttemptListener.php` - Using doctrine/cache
-- ✅ `packages/pagekit/blog/src/UrlResolver.php` - Using doctrine/cache
-- ✅ `packages/pagekit/blog/src/Event/RouteListener.php` - Using doctrine/cache
+### Current Stability
+- System is fully functional
+- All caches using PSR-6 internally
+- Full backward compatibility maintained
+- Ready for Phase 3 (code migration)

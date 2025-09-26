@@ -63,6 +63,7 @@ class Psr6Adapter extends CacheProvider
 
     /**
      * Get namespaced ID
+     * PSR-6 doesn't allow : in cache keys, so we use . as separator
      *
      * @param string $id
      * @return string
@@ -70,9 +71,12 @@ class Psr6Adapter extends CacheProvider
     protected function getNamespacedId(string $id): string
     {
         if ($this->namespace) {
-            return $this->namespace . ':' . $id;
+            // Replace any invalid characters for PSR-6
+            $safeNamespace = str_replace([':', '\\', '/', '@', '{', '}', '(', ')'], '_', $this->namespace);
+            $safeId = str_replace([':', '\\', '/', '@', '{', '}', '(', ')'], '_', $id);
+            return $safeNamespace . '.' . $safeId;
         }
-        return $id;
+        return str_replace([':', '\\', '/', '@', '{', '}', '(', ')'], '_', $id);
     }
 
     // ===== PSR-6 CacheItemPoolInterface Methods =====
@@ -226,8 +230,9 @@ class Psr6Adapter extends CacheProvider
             if ($item->isHit()) {
                 // Remove namespace prefix from key if present
                 $originalKey = $key;
-                if ($this->namespace && strpos($key, $this->namespace . ':') === 0) {
-                    $originalKey = substr($key, strlen($this->namespace) + 1);
+                $safeNamespace = str_replace([':', '\\', '/', '@', '{', '}', '(', ')'], '_', $this->namespace);
+                if ($this->namespace && strpos($key, $safeNamespace . '.') === 0) {
+                    $originalKey = substr($key, strlen($safeNamespace) + 1);
                 }
                 $result[$originalKey] = $item->get();
             }

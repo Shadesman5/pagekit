@@ -72,6 +72,7 @@
             "Pagekit\\": "app/modules/application/src",
             "Pagekit\\Installer\\": "app/installer/src",
             "Pagekit\\System\\": "app/system/src",
+            "Pagekit\\Cache\\": "app/system/modules/cache/src",
             "Pagekit\\Config\\": "app/modules/config/src",
             "Pagekit\\Console\\": "app/console/src",
             "Pagekit\\Migration\\": "app/modules/migration/src",

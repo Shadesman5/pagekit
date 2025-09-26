@@ -53,12 +53,17 @@ class CacheModule extends Module
 
     /**
      * Check if specific cache should use PSR-6
-     * Phase 1: Keep all on legacy for now, migrate gradually
+     * Phase 2: Gradual migration - expanding to more caches
      */
     protected function shouldUsePsr6(string $cacheName): bool
     {
-        // Phase 1: Keep everything on doctrine/cache for stability
-        // We'll migrate one by one after everything is stable
+        // Phase 2: Enable PSR-6 for multiple caches
+        // These have been tested and work correctly
+        if (in_array($cacheName, ['cache.phpfile', 'cache', 'cache.module'])) {
+            return true;
+        }
+        
+        // Keep any other caches on doctrine/cache for now
         return false;
     }
 
