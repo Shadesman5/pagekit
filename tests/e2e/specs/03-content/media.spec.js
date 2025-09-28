@@ -4,7 +4,7 @@
  */
 
 const { test, expect } = require('@playwright/test');
-const { navigateAndWaitForVue, waitForVue } = require('../helpers/vue-helpers');
+const { navigateAndWaitForVue, waitForVue } = require('../../helpers/vue-helpers');
 const path = require('path');
 const fs = require('fs');
 

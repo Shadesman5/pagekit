@@ -4,7 +4,7 @@
  */
 
 const { test, expect } = require('@playwright/test');
-const { navigateAndWaitForVue, waitForVue, fillVueInput } = require('../helpers/vue-helpers');
+const { navigateAndWaitForVue, waitForVue, fillVueInput } = require('../../helpers/vue-helpers');
 
 test.describe('Pagekit System Settings', () => {
   test.beforeEach(async ({ page }) => {

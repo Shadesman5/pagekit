@@ -4,7 +4,7 @@
  */
 
 const { test, expect } = require('@playwright/test');
-const { navigateAndWaitForVue, waitForVue } = require('../helpers/vue-helpers');
+const { navigateAndWaitForVue, waitForVue } = require('../../helpers/vue-helpers');
 
 test.describe('Pagekit Menu System', () => {
   test.beforeEach(async ({ page }) => {

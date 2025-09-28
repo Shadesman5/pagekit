@@ -4,7 +4,7 @@
  */
 
 const { test, expect } = require('@playwright/test');
-const { navigateAndWaitForVue, waitForVue, waitForUIkitModal } = require('../helpers/vue-helpers');
+const { navigateAndWaitForVue, waitForVue, waitForUIkitModal } = require('../../helpers/vue-helpers');
 
 test.describe('Pagekit User Management', () => {
   // Login as admin before each test

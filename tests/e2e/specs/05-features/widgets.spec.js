@@ -4,7 +4,7 @@
  */
 
 const { test, expect } = require('@playwright/test');
-const { navigateAndWaitForVue, waitForVue, waitForUIkitModal, closeUIkitModal } = require('../helpers/vue-helpers');
+const { navigateAndWaitForVue, waitForVue, waitForUIkitModal, closeUIkitModal } = require('../../helpers/vue-helpers');
 
 test.describe('Pagekit Widget System', () => {
   test.beforeEach(async ({ page }) => {
