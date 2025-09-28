@@ -1,12 +1,19 @@
 # 🎯 Vollständiger E2E Test-Plan für Pagekit
 
+**Stand:** 28.09.2025 | **Version:** 2.0 | **System:** Pagekit Modernized
+
 ## Aktuelle Test-Coverage-Analyse
 
 ### ✅ Was wir bereits testen:
-1. Installation (5 Steps)
-2. Basic Authentication (Login/Logout)
-3. Basic Content (Pages)
-4. Basic Frontend (Homepage, 404)
+1. ✅ Installation (5 Steps) - **Vollständig optimiert**
+2. ⚠️ Basic Authentication (Login/Logout) - Vorhanden, noch nicht optimiert
+3. ⚠️ Basic Content (Pages) - Vorhanden, noch nicht optimiert
+4. ⚠️ Basic Frontend (Homepage, 404) - Vorhanden, noch nicht optimiert
+
+### 📊 Test-Status:
+- **Optimiert:** `test-config.js`, `installation.spec.js`
+- **Vorhanden:** 11 Test-Specs in 5 Kategorien
+- **Helper:** Vue-Helpers vorhanden
 
 ### ❌ Was noch FEHLT und getestet werden MUSS:
 
@@ -58,7 +65,7 @@
 - [ ] Text Widget
 - [ ] Menu Widget
 - [ ] Login Widget
-- [ ] Custom HTML Widget
+- [ ] User Widget
 
 ## 5. SITE/PAGE MANAGEMENT
 - [ ] Seite erstellen (verschiedene Typen)
@@ -89,15 +96,13 @@
 - [ ] Cache Management
 - [ ] System Information
 - [ ] Update Check
-- [ ] Extension Management
 
 ## 8. DASHBOARD
 - [ ] Dashboard Widgets
 - [ ] Widget Reihenfolge ändern
-- [ ] Feed Widget
-- [ ] Location Widget
-- [ ] User Widget
-- [ ] Custom Dashboard
+- [ ] System Info Widget
+- [ ] User Statistics
+- [ ] Custom Dashboard Layout
 
 ## 9. THEME MANAGEMENT
 - [ ] Theme aktivieren
@@ -109,13 +114,12 @@
 - [ ] Widget Positions
 
 ## 10. EDITOR TESTING
-- [ ] TinyMCE/HTML Editor
+- [ ] HTML Editor
 - [ ] Markdown Editor
 - [ ] Code Editor
 - [ ] Media einfügen
 - [ ] Links einfügen
 - [ ] Shortcodes
-- [ ] Auto-Save
 
 ## 11. SEARCH FUNCTIONALITY
 - [ ] Global Search
@@ -128,14 +132,12 @@
 - [ ] Sprache wechseln
 - [ ] Content übersetzen
 - [ ] Language Detection
-- [ ] RTL Support (wenn vorhanden)
 
 ## 13. COMMENTS SYSTEM
-- [ ] Kommentar schreiben
+- [ ] Kommentar schreiben (eingeloggte User)
 - [ ] Kommentar moderieren
 - [ ] Kommentar löschen
 - [ ] Spam Protection
-- [ ] Guest Comments
 
 ## 14. SECURITY FEATURES
 - [ ] CSRF Protection
@@ -143,12 +145,12 @@
 - [ ] SQL Injection Prevention
 - [ ] File Upload Security
 - [ ] Session Management
-- [ ] Two-Factor Auth (wenn vorhanden)
+- [ ] Captcha Integration
 
-## 15. API TESTING
-- [ ] REST API Endpoints
-- [ ] Authentication
-- [ ] CRUD Operations
+## 15. INTERNAL API TESTING
+- [ ] Admin AJAX Endpoints
+- [ ] Vue.js API Calls
+- [ ] Authentication Checks
 - [ ] Error Handling
 
 ## 16. PERFORMANCE & EDGE CASES
@@ -180,11 +182,11 @@
 - [ ] Focus Management
 
 ## 20. SPECIAL PAGEKIT FEATURES
-- [ ] Marketplace (wenn aktiv)
-- [ ] Extension Installation
 - [ ] Database Migration
-- [ ] Backup/Restore
-- [ ] Import/Export
+- [ ] Cache Clear
+- [ ] System Info Display
+- [ ] Debug Mode
+- [ ] Maintenance Mode
 
 ## Prioritäten für Implementation:
 
@@ -209,13 +211,30 @@
 14. Accessibility
 15. Performance Tests
 
-## Geschätzte Test-Anzahl:
-- **Minimum:** ~150 Tests
-- **Optimal:** ~300 Tests
-- **Vollständig:** ~500+ Tests
+## Geschätzte Test-Anzahl (realistisch):
+- **Minimum:** ~80-100 Tests (Kritische Features)
+- **Optimal:** ~150-200 Tests (Kritisch + Wichtig)
+- **Vollständig:** ~250-300 Tests (Alle vorhandenen Features)
 
 ## Nächste Schritte:
-1. Kritische Tests implementieren
-2. Test-Daten vorbereiten (Fixtures)
-3. Helper-Funktionen erweitern
-4. CI/CD Integration
+1. ✅ Test-Config und Installation optimiert
+2. ⏳ Authentication & User Management Tests optimieren
+3. ⏳ Blog Module Tests optimieren
+4. ⏳ Media/Finder Tests optimieren
+5. 🔜 GitHub Actions CI/CD implementieren
+6. 🔜 Test-Fixtures (SQL) vorbereiten
+
+## CI/CD Status:
+- ✅ Dependabot konfiguriert (Composer, NPM, Docker)
+- ✅ Docker E2E Environment (`docker-compose.e2e.yml`)
+- ✅ Test-Scripts vorhanden (`scripts/e2e-*.sh`)
+- ⚠️ Travis CI veraltet (PHP 7.4)
+- ❌ GitHub Actions noch nicht implementiert
+
+## System-Informationen:
+- **PHP:** 8.2-8.4
+- **MySQL:** 8.4
+- **SQLite:** 3.x
+- **Vue.js:** 2.6
+- **UIkit:** 3.5
+- **Node.js:** 18-20 (für Tests)
