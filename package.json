@@ -18,7 +18,11 @@
         "test:e2e:debug": "playwright test --debug",
         "test:e2e:ui": "playwright test --ui",
         "test:e2e:report": "playwright show-report",
-        "test:e2e:install": "playwright test tests/e2e/specs/001-installation.spec.js"
+        "test:e2e:install": "playwright test tests/e2e/specs/setup/installation.spec.js --config=playwright.smoke.config.js",
+        "test:smoke": "playwright test --config=playwright.smoke.config.js",
+        "test:smoke:headed": "playwright test --config=playwright.smoke.config.js --headed",
+        "test:smoke:ui": "playwright test --config=playwright.smoke.config.js --ui",
+        "test:smoke:report": "playwright show-report --config=playwright.smoke.config.js"
     },
     "dependencies": {
         "blueimp-md5": "~2.19.0",
