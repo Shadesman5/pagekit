@@ -25,24 +25,17 @@ async function navigateAndWait(page, url) {
 
 test.describe('Pagekit Authentication with Vue.js (Improved)', () => {
     test.beforeAll(async () => {
-        // Validate configuration
-        try {
-            testConfig.validate();
-            console.log('✅ Configuration validation passed');
+        // Start test timer
+        testConfig.startTestTimer();
 
-            // Test connectivity (required, fails tests if URLs not accessible)
-            await testConfig.testConnectivity();
-        } catch (error) {
-            console.error('❌ Test configuration error:', error.message);
-            testConfig.printSetupInstructions();
-            throw error;
-        }
+        // Test connectivity and configuration
+        await testConfig.testConnectivity();
     });
     test('Admin login page loads completely', async ({ page }) => {
-        console.log('📍 Testing login page load...');
+        testConfig.log('Testing login page load...', '🚀');
 
         // Navigate to login page
-        await navigateAndWait(page, testConfig.getAdminUrl() + '/login');
+        await navigateAndWait(page, testConfig.getAdminUrl() + '/admin/login');
 
         // Wait for form to be fully loaded
         await page.waitForSelector('form.js-login', { state: 'visible' });
@@ -61,11 +54,11 @@ test.describe('Pagekit Authentication with Vue.js (Improved)', () => {
         await expect(passwordInput).toBeEnabled();
         await expect(loginButton).toBeEnabled();
 
-        console.log('✅ Login page loaded successfully with all elements');
+        testConfig.success('Login page loaded successfully with all elements');
     });
 
     test('Admin login with valid credentials', async ({ page }) => {
-        console.log('📍 Testing valid login...');
+        testConfig.log('Testing valid login...', '🚀');
 
         await navigateAndWait(page, '/admin/login');
 
@@ -94,11 +87,11 @@ test.describe('Pagekit Authentication with Vue.js (Improved)', () => {
         const adminNav = await page.locator('.pk-navbar').isVisible();
         expect(adminNav).toBeTruthy();
 
-        console.log('✅ Successfully logged in as admin');
+        testConfig.success('Successfully logged in as admin');
     });
 
     test('Admin login with invalid credentials shows error', async ({ page }) => {
-        console.log('📍 Testing invalid login...');
+        testConfig.log('Testing invalid login...', '🚀');
 
         await navigateAndWait(page, '/admin/login');
 
@@ -121,11 +114,11 @@ test.describe('Pagekit Authentication with Vue.js (Improved)', () => {
         await expect(errorMessage).toBeVisible();
         await expect(errorMessage).toContainText(/invalid|incorrect|failed/i);
 
-        console.log('✅ Invalid login correctly shows error');
+        testConfig.success('Invalid login correctly shows error');
     });
 
     test('Admin logout works correctly', async ({ page }) => {
-        console.log('📍 Testing logout...');
+        testConfig.log('Testing logout...', '🚀');
 
         // First login
         await navigateAndWait(page, '/admin/login');
@@ -138,41 +131,41 @@ test.describe('Pagekit Authentication with Vue.js (Improved)', () => {
         ]);
 
         await waitForVue(page);
-        console.log('   Logged in successfully');
+        testConfig.success('Logged in successfully');
 
         // Look for logout icon in navigation (desktop version)
         const logoutIcon = page.locator('a[uk-icon="sign-out"][href*="/user/logout"]').first();
 
         if (await logoutIcon.isVisible()) {
-            console.log('   Found desktop logout icon');
+            testConfig.info('Found desktop logout icon', '🔍');
             await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle' }), logoutIcon.click()]);
 
             // Should redirect to login
             expect(page.url()).toContain('/login');
-            console.log('✅ Successfully logged out via desktop icon');
+            testConfig.success('Successfully logged out via desktop icon');
         } else {
             // Try mobile offcanvas version
             const mobileLogoutLink = page.locator('a[href*="/user/logout"]:has(span[uk-icon="sign-out"])').first();
 
             if (await mobileLogoutLink.isVisible()) {
-                console.log('   Found mobile logout link');
+                testConfig.info('Found mobile logout link', '🔍');
                 await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle' }), mobileLogoutLink.click()]);
 
                 // Should redirect to login
                 expect(page.url()).toContain('/login');
-                console.log('✅ Successfully logged out via mobile link');
+                testConfig.success('Successfully logged out via mobile link');
             } else {
                 // Fallback: Direct logout URL
-                console.log('   Using direct logout URL as fallback');
+                testConfig.info('Using direct logout URL as fallback', '🔍');
                 await page.goto('/user/logout');
                 await page.waitForURL(/\/login/, { timeout: 5000 });
-                console.log('✅ Logged out via direct URL');
+                testConfig.success('Logged out via direct URL');
             }
         }
     });
 
     test('Protected admin area redirects to login when not authenticated', async ({ page }) => {
-        console.log('📍 Testing protected area...');
+        testConfig.log('Testing protected area...', '🚀');
 
         // Clear all cookies to ensure logged out
         await page.context().clearCookies();
@@ -190,11 +183,11 @@ test.describe('Pagekit Authentication with Vue.js (Improved)', () => {
         const loginForm = await page.locator('form.js-login').isVisible();
         expect(loginForm).toBeTruthy();
 
-        console.log('✅ Admin area correctly protected');
+        testConfig.success('Admin area correctly protected');
     });
 
     test('Remember me checkbox works', async ({ page }) => {
-        console.log('📍 Testing remember me functionality...');
+        testConfig.log('Testing remember me functionality...', '🚀');
 
         await navigateAndWait(page, '/admin/login');
 
@@ -222,19 +215,19 @@ test.describe('Pagekit Authentication with Vue.js (Improved)', () => {
             );
 
             if (rememberCookie) {
-                console.log('✅ Remember me cookie set');
+                testConfig.success('Remember me cookie set');
             } else {
-                console.log('⚠️  Remember cookie not clearly identified');
+                testConfig.warning('Remember cookie not clearly identified');
             }
         } else {
-            console.log('ℹ️  Remember me checkbox not found');
+            testConfig.error('Remember me checkbox not found');
         }
     });
 
     test('CSRF token is present in login form', async ({ page }) => {
-        console.log('📍 Testing CSRF token presence...');
+        testConfig.log('Testing CSRF token presence...', '🚀');
 
-        await navigateAndWait(page, testConfig.getAdminUrl() + '/login');
+        await navigateAndWait(page, testConfig.getAdminUrl() + '/admin/login');
 
         // Check if CSRF token is available in JavaScript
         const csrfToken = await page.evaluate(() => {
@@ -245,24 +238,24 @@ test.describe('Pagekit Authentication with Vue.js (Improved)', () => {
         expect(typeof csrfToken).toBe('string');
         expect(csrfToken.length).toBeGreaterThan(10); // Should be a reasonable length
 
-        console.log('✅ CSRF token found in pagekit object');
+        testConfig.success('CSRF token found in pagekit object');
 
         // Check if CSRF token is in hidden form field
         const csrfInput = page.locator('input[name="_csrf"]');
         if ((await csrfInput.count()) > 0) {
             const csrfValue = await csrfInput.inputValue();
             expect(csrfValue).toBeTruthy();
-            console.log('✅ CSRF token found in form field');
+            testConfig.success('CSRF token found in form field');
         } else {
-            console.log('ℹ️  CSRF token not found in form field (may be handled by Vue.js)');
+            testConfig.error('CSRF token not found in form field (may be handled by Vue.js)');
         }
     });
 
     test('CSRF protection blocks requests without valid token', async ({ page }) => {
-        console.log('📍 Testing CSRF protection...');
+        testConfig.log('Testing CSRF protection...', '🚀');
 
         // First login to get a valid session
-        await navigateAndWait(page, testConfig.getAdminUrl() + '/login');
+        await navigateAndWait(page, testConfig.getAdminUrl() + '/admin/login');
         const adminCreds = testConfig.getAdminCredentials();
         await page.fill('input[name="credentials[username]"]', adminCreds.username);
         await page.fill('input[name="credentials[password]"]', adminCreds.password);
@@ -273,7 +266,7 @@ test.describe('Pagekit Authentication with Vue.js (Improved)', () => {
         ]);
 
         await waitForVue(page);
-        console.log('   Logged in successfully');
+        testConfig.success('Logged in successfully');
 
         // Try to make a request without CSRF token
         const response = await page.request.post(testConfig.getAdminUrl() + '/user/profile', {
@@ -287,20 +280,20 @@ test.describe('Pagekit Authentication with Vue.js (Improved)', () => {
 
         // Should get 401 or 403 error
         expect([401, 403]).toContain(response.status());
-        console.log(`✅ CSRF protection working - got ${response.status()} status`);
+        testConfig.success(`CSRF protection working - got ${response.status()} status`);
 
         // Check response content for CSRF error
         const responseText = await response.text();
         if (responseText.includes('Invalid token') || responseText.includes('CSRF')) {
-            console.log('✅ CSRF error message found in response');
+            testConfig.success('CSRF error message found in response');
         }
     });
 
     test('CSRF token is regenerated after login', async ({ page }) => {
-        console.log('📍 Testing CSRF token regeneration...');
+        testConfig.log('Testing CSRF token regeneration...', '🚀');
 
         // Get initial CSRF token
-        await navigateAndWait(page, testConfig.getAdminUrl() + '/login');
+        await navigateAndWait(page, testConfig.getAdminUrl() + '/admin/login');
         const initialToken = await page.evaluate(() => window.$pagekit.csrf);
 
         // Login
@@ -320,14 +313,14 @@ test.describe('Pagekit Authentication with Vue.js (Improved)', () => {
 
         // Tokens should be different (session changed)
         expect(newToken).not.toBe(initialToken);
-        console.log('✅ CSRF token regenerated after login');
+        testConfig.success('CSRF token regenerated after login');
     });
 
     test('Vue.js automatically adds CSRF header to AJAX requests', async ({ page }) => {
-        console.log('📍 Testing Vue.js CSRF header injection...');
+        testConfig.log('Testing Vue.js CSRF header injection...', '🚀');
 
         // Login first
-        await navigateAndWait(page, testConfig.getAdminUrl() + '/login');
+        await navigateAndWait(page, testConfig.getAdminUrl() + '/admin/login');
         const adminCreds = testConfig.getAdminCredentials();
         await page.fill('input[name="credentials[username]"]', adminCreds.username);
         await page.fill('input[name="credentials[password]"]', adminCreds.password);
@@ -358,20 +351,20 @@ test.describe('Pagekit Authentication with Vue.js (Improved)', () => {
         const csrfRequests = requests.filter(req => req.headers['x-xsrf-token'] || req.headers['X-XSRF-TOKEN']);
 
         if (csrfRequests.length > 0) {
-            console.log('✅ Vue.js automatically added CSRF header to AJAX requests');
+            testConfig.success('Vue.js automatically added CSRF header to AJAX requests');
         } else {
-            console.log('ℹ️  No AJAX requests with CSRF headers detected (may be normal)');
+            testConfig.error('No AJAX requests with CSRF headers detected (may be normal)');
         }
     });
 
     test('Rate limiting blocks too many failed login attempts', async ({ page }) => {
-        console.log('📍 Testing rate limiting for failed login attempts...');
+        testConfig.log('Testing rate limiting for failed login attempts...', '🚀');
 
-        await navigateAndWait(page, testConfig.getAdminUrl() + '/login');
+        await navigateAndWait(page, testConfig.getAdminUrl() + '/admin/login');
 
         // Make 6 failed login attempts (limit is 5)
         for (let i = 1; i <= 6; i++) {
-            console.log(`   Attempt ${i}/6...`);
+            testConfig.info(`   Attempt ${i}/6...`);
 
             const adminCreds = testConfig.getAdminCredentials();
             await page.fill('input[name="credentials[username]"]', adminCreds.username);
@@ -393,20 +386,20 @@ test.describe('Pagekit Authentication with Vue.js (Improved)', () => {
 
         const errorText = await errorMessage.textContent();
         if (errorText.includes('Slow down') || errorText.includes('rate limit') || errorText.includes('too many')) {
-            console.log('✅ Rate limiting message detected');
+            testConfig.success('Rate limiting message detected');
         } else {
-            console.log('ℹ️  Rate limiting may be working but message not clearly identified');
+            testConfig.warning('Rate limiting may be working but message not clearly identified');
         }
 
         // Should still be on login page
         expect(page.url()).toContain('/login');
-        console.log('✅ Rate limiting working - blocked excessive attempts');
+        testConfig.success('Rate limiting working - blocked excessive attempts');
     });
 
     test('Rate limiting allows login after delay', async ({ page }) => {
-        console.log('📍 Testing rate limiting delay...');
+        testConfig.log('Testing rate limiting delay...', '🚀');
 
-        await navigateAndWait(page, testConfig.getAdminUrl() + '/login');
+        await navigateAndWait(page, testConfig.getAdminUrl() + '/admin/login');
 
         // Make 5 failed attempts to trigger rate limiting
         for (let i = 1; i <= 5; i++) {
@@ -422,7 +415,7 @@ test.describe('Pagekit Authentication with Vue.js (Improved)', () => {
             await page.fill('input[name="credentials[password]"]', '');
         }
 
-        console.log('   Made 5 failed attempts, waiting 6 seconds for rate limit to reset...');
+        testConfig.info('   Made 5 failed attempts, waiting 6 seconds for rate limit to reset...');
 
         // Wait for rate limit to reset (5 seconds + 1 second buffer)
         await page.waitForTimeout(6000);
@@ -440,13 +433,13 @@ test.describe('Pagekit Authentication with Vue.js (Improved)', () => {
         // Should successfully login
         expect(page.url()).toContain('/admin');
         expect(page.url()).not.toContain('/login');
-        console.log('✅ Successfully logged in after rate limit delay');
+        testConfig.success('Successfully logged in after rate limit delay');
     });
 
     test('Rate limiting resets after successful login', async ({ page }) => {
-        console.log('📍 Testing rate limiting reset after successful login...');
+        testConfig.log('Testing rate limiting reset after successful login...', '🚀');
 
-        await navigateAndWait(page, testConfig.getAdminUrl() + '/login');
+        await navigateAndWait(page, testConfig.getAdminUrl() + '/admin/login');
 
         // Make 3 failed attempts
         for (let i = 1; i <= 3; i++) {
@@ -461,7 +454,7 @@ test.describe('Pagekit Authentication with Vue.js (Improved)', () => {
             await page.fill('input[name="credentials[password]"]', '');
         }
 
-        console.log('   Made 3 failed attempts, now trying correct login...');
+        testConfig.info('Made 3 failed attempts, now trying correct login...');
 
         // Login successfully
         const adminCreds = testConfig.getAdminCredentials();
@@ -474,7 +467,7 @@ test.describe('Pagekit Authentication with Vue.js (Improved)', () => {
         ]);
 
         await waitForVue(page);
-        console.log('   Successfully logged in');
+        testConfig.success('Successfully logged in');
 
         // Logout
         const logoutIcon = page.locator('a[uk-icon="sign-out"][href*="/user/logout"]').first();
@@ -485,7 +478,7 @@ test.describe('Pagekit Authentication with Vue.js (Improved)', () => {
             await page.waitForURL(/\/login/, { timeout: 5000 });
         }
 
-        console.log('   Logged out, testing if rate limiting was reset...');
+        testConfig.info('Logged out, testing if rate limiting was reset...');
 
         // Now make 5 failed attempts again - should work (no rate limiting)
         for (let i = 1; i <= 5; i++) {
@@ -501,13 +494,13 @@ test.describe('Pagekit Authentication with Vue.js (Improved)', () => {
         }
 
         // Should not be rate limited (counter was reset)
-        console.log('✅ Rate limiting counter reset after successful login');
+        testConfig.success('Rate limiting counter reset after successful login');
     });
 
     test('Rate limiting is per-username', async ({ page }) => {
-        console.log('📍 Testing rate limiting per username...');
+        testConfig.log('Testing rate limiting per username...', '🚀');
 
-        await navigateAndWait(page, testConfig.getAdminUrl() + '/login');
+        await navigateAndWait(page, testConfig.getAdminUrl() + '/admin/login');
 
         // Make 5 failed attempts with 'admin'
         for (let i = 1; i <= 5; i++) {
@@ -522,7 +515,7 @@ test.describe('Pagekit Authentication with Vue.js (Improved)', () => {
             await page.fill('input[name="credentials[password]"]', '');
         }
 
-        console.log('   Made 5 failed attempts with admin, now trying with different username...');
+        testConfig.info('Made 5 failed attempts with admin, now trying with different username...');
 
         // Try with different username - should not be rate limited
         await page.fill('input[name="credentials[username]"]', 'differentuser');
@@ -536,9 +529,9 @@ test.describe('Pagekit Authentication with Vue.js (Improved)', () => {
         const errorText = await errorMessage.textContent();
 
         if (!errorText.includes('Slow down') && !errorText.includes('rate limit')) {
-            console.log('✅ Rate limiting is per-username (different user not rate limited)');
+            testConfig.success('Rate limiting is per-username (different user not rate limited)');
         } else {
-            console.log('⚠️  Rate limiting may be global rather than per-username');
+            testConfig.warning('Rate limiting may be global rather than per-username');
         }
     });
 });
