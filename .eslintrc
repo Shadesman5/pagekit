@@ -68,7 +68,7 @@
         "radix": 0,
         "func-names": 0,
         "object-curly-newline": ["error", { "consistent": true }],
-        "vue/html-indent": ["error", 4, {
+        "vue/html-indent": ["error", 2, {
             "attribute": 1,
             "baseIndent": 1,
             "closeBracket": 0,
