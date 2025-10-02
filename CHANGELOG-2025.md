@@ -1,22 +1,6 @@
 # Changelog 2025
 
-## Pagekit 1.0.41 - E2E Configuration Fixes (October 2, 2025)
-
-### 🐛 Bug Fixes
-
--   **E2E Test Configuration** - Fixed JSON parsing issues in test configuration
-    -   🔧 Added BOM (Byte Order Mark) handling in test-config.js
-    -   📝 Updated test-config.example.json with proper placeholder values
-    -   🛠️ Enhanced error handling for malformed JSON files
-    -   ✅ Resolved "Unexpected end of JSON input" errors
-
-### 🔧 Infrastructure
-
--   **Cursor Development Environment** - Updated installation script
-    -   📦 Enhanced setup process for development environment
-    -   🚀 Improved developer onboarding experience
-
-## Pagekit 1.0.41 - E2E Testing Infrastructure (September 26, 2025)
+## Pagekit 1.0.41 - E2E Testing Infrastructure & Configuration Fixes (October 2, 2025)
 
 ### 🚀 Major Changes
 
@@ -49,6 +33,20 @@
 -   **Enhanced Examples**: Modern test structure examples with TestConfig usage
 -   **Improved Setup Guide**: Clear configuration instructions and troubleshooting
 -   **Architecture Documentation**: Comprehensive helper system documentation
+
+### 🐛 Bug Fixes
+
+-   **E2E Test Configuration** - Fixed JSON parsing issues in test configuration
+    -   🔧 Added BOM (Byte Order Mark) handling in test-config.js
+    -   📝 Updated test-config.example.json with proper placeholder values
+    -   🛠️ Enhanced error handling for malformed JSON files
+    -   ✅ Resolved "Unexpected end of JSON input" errors
+
+### 🔧 Infrastructure
+
+-   **Cursor Development Environment** - Updated installation script
+    -   📦 Enhanced setup process for development environment
+    -   🚀 Improved developer onboarding experience
 
 ## Pagekit 1.0.40 - PSR-6 Cache Migration COMPLETE (September 26, 2025)
 
