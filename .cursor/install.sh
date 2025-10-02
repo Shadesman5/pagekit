@@ -6,6 +6,13 @@ export GH_TOKEN="${PAGEKIT_BACKGROUND_AGENT}"
 
 echo "🚀 Starting Pagekit Background Agent Setup..."
 
+# --- Auf erforderliche Tools prüfen ---
+command -v git >/dev/null 2>&1 || { echo >&2 "Git is required but it's not installed. Aborting."; exit 1; }
+command -v composer >/dev/null 2>&1 || { echo >&2 "Composer is required but it's not installed. Aborting."; exit 1; }
+command -v yarn >/dev/null 2>&1 || { echo >&2 "Yarn is required but it's not installed. Aborting."; exit 1; }
+command -v node >/dev/null 2>&1 || { echo >&2 "Node.js is required but it's not installed. Aborting."; exit 1; }
+
+
 # Clone the repository if not exists
 if [ ! -d "/home/ubuntu/pagekit" ]; then
     echo "📦 Cloning Pagekit repository..."
@@ -24,6 +31,10 @@ echo "🔄 Switching to develop branch..."
 git checkout develop
 git pull origin develop
 
+# Workspace für eine saubere Installation bereinigen
+echo "🧹 Cleaning workspace for a fresh start..."
+rm -f composer.lock yarn.lock config.php pagekit.db
+
 # Install PHP dependencies
 echo "📚 Installing PHP dependencies..."
 composer install --no-interaction
@@ -31,6 +42,10 @@ composer install --no-interaction
 # Install Node dependencies
 echo "📦 Installing Node dependencies..."
 yarn install
+
+# Essentieller Build-Schritt für das Frontend
+echo "🛠️ Compiling JavaScript bundles..."
+yarn compile-js --mode=production
 
 # Run initial tests to verify setup
 echo "🧪 Running initial test suite..."

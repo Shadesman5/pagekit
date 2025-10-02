@@ -64,7 +64,9 @@ class TestConfig {
         // Try to parse config
         try {
             const configContent = fs.readFileSync(configPath, 'utf8');
-            const config = JSON.parse(configContent);
+            // Remove BOM if present
+            const cleanContent = configContent.replace(/^\uFEFF/, '');
+            const config = JSON.parse(cleanContent);
 
             // Only show success on first load
             if (!this._initialized) {
