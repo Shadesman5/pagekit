@@ -3,6 +3,6 @@
     "context": ".",
     "dockerfile": "Dockerfile"
   },
-  "install": "bash /home/ubuntu/.cursor/install.sh",
-  "start": "bash /home/ubuntu/.cursor/start.sh"
+  "install": "bash .cursor/install.sh",
+  "start": "bash .cursor/start.sh"
 }
