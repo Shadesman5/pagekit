@@ -1,0 +1,111 @@
+{
+    "auth": {
+        "admin": {
+            "username": "YOUR_ADMIN_USERNAME",
+            "password": "YOUR_ADMIN_PASSWORD",
+            "email": "YOUR_ADMIN_EMAIL"
+        },
+        "testUser": {
+            "username": "YOUR_TEST_USERNAME",
+            "password": "YOUR_TEST_PASSWORD",
+            "email": "YOUR_TEST_EMAIL"
+        }
+    },
+    "database": {
+        "sqlite": {
+            "enabled": true,
+            "path": "pagekit.db",
+            "prefix": "pk_"
+        },
+        "mysql": {
+            "enabled": false,
+            "host": "YOUR_MYSQL_HOST",
+            "port": 3306,
+            "database": "YOUR_MYSQL_DATABASE",
+            "username": "YOUR_MYSQL_USERNAME",
+            "password": "YOUR_MYSQL_PASSWORD",
+            "prefix": "pk_"
+        }
+    },
+    "site": {
+        "title": "YOUR_SITE_TITLE",
+        "url": "http://localhost:8180",
+        "adminUrl": "http://localhost:8180/admin"
+    },
+    "installation": {
+        "language": "en_US",
+        "demoContent": true
+    },
+    "testSettings": {
+        "timeouts": {
+            "short": 5000,
+            "medium": 10000,
+            "long": 30000,
+            "installation": 90000,
+            "playwright": {
+                "action": 15000,
+                "navigation": 30000,
+                "global": 30000,
+                "expect": 10000,
+                "connectivity": 5000
+            }
+        },
+        "retries": {
+            "maxAttempts": 3,
+            "delayBetweenAttempts": 1000
+        },
+        "waitFor": {
+            "vueLoad": 10000,
+            "networkIdle": 5000,
+            "animation": 500
+        }
+    },
+    "logging": {
+        "locale": "en_US",
+        "timeFormat": {
+            "hour12": false,
+            "hour": "2-digit",
+            "minute": "2-digit",
+            "second": "2-digit",
+            "fractionalSecondDigits": 3
+        },
+        "icons": {
+            "default": "📝",
+            "log": "📝",
+            "warn": "⚠️",
+            "error": "❌",
+            "debug": "🐛",
+            "info": "ℹ️",
+            "success": "✅"
+        }
+    },
+    "testData": {
+        "pages": [
+            {
+                "title": "Test Page 1",
+                "content": "This is a test page for E2E testing.",
+                "slug": "test-page-1",
+                "status": "published"
+            },
+            {
+                "title": "Test Page 2",
+                "content": "Another test page with **markdown** content.",
+                "slug": "test-page-2",
+                "status": "draft"
+            }
+        ],
+        "posts": [
+            {
+                "title": "Test Blog Post",
+                "content": "This is a test blog post for E2E testing.",
+                "slug": "test-blog-post",
+                "status": "published",
+                "category": "General"
+            }
+        ],
+        "media": {
+            "testImage": "test-image.jpg",
+            "testDocument": "test-document.pdf"
+        }
+    }
+}

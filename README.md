@@ -395,9 +395,17 @@ yarn compile-less                       # Build CSS for production
 yarn install                            # Full production build
 
 # Testing
+
+## Unit Tests
 ./app/vendor/bin/phpunit                 # Run PHPUnit test suite (159 tests)
 ./app/vendor/bin/phpunit --testdox       # Run tests with detailed output
 ./app/vendor/bin/phpunit --coverage-html coverage/  # Generate code coverage
+
+## E2E Tests
+npm run test:e2e                         # Run all E2E tests
+npm run test:e2e:headed                  # Run tests with browser visible
+npm run test:e2e:debug                   # Debug mode for test development
+npm run test:e2e:ui                      # Interactive UI mode
 
 # Utilities
 yarn lint                               # Check code quality
@@ -431,6 +439,7 @@ docker-compose exec node yarn install       # Install Node dependencies
 -   **Modern Admin Theme**: UIkit 3 based administration interface
 -   **Theme One**: Responsive frontend theme
 -   **Demo Content**: Sample data for testing
+-   **E2E Testing**: Comprehensive Playwright-based testing framework
 
 ### Extension Development
 

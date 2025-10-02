@@ -1,5 +1,39 @@
 # Changelog 2025
 
+## Pagekit 1.0.41 - E2E Testing Infrastructure (September 26, 2025)
+
+### 🚀 Major Changes
+
+- **E2E Testing Infrastructure** - Completely reorganized and modernized testing framework
+  - 🎭 Modern web testing with multi-browser support (Chrome, Firefox, Safari)
+  - 🐳 Isolated test environment with Docker integration
+  - 🧪 Comprehensive test coverage across all Pagekit functionality
+  - 📊 Optimized parallel execution with smart test organization
+  - 🔧 Centralized configuration management system
+  - 📁 Category-based test organization (Setup, Core, Content, Frontend, Features)
+
+### ✨ New Features
+
+- **Restructured Test Architecture**: Category-based organization (01-setup/, 02-core/, 03-content/, etc.)
+- **Centralized Configuration**: New `TestConfig` class with lazy loading and validation
+- **Enhanced Helper System**: Modern Vue.js helpers and improved error handling
+- **Smoke Test Suite**: Quick validation tests for rapid feedback
+- **Improved Documentation**: Updated README with new structure and examples
+- **Better Error Handling**: Comprehensive connectivity testing and validation
+
+### 📦 Dependencies
+
+- Added @playwright/test for E2E testing
+- Added dotenv for environment configuration
+- All changes are dev dependencies only
+
+### 📝 Documentation
+
+- **Updated README**: Reflects new category-based test organization
+- **Enhanced Examples**: Modern test structure examples with TestConfig usage
+- **Improved Setup Guide**: Clear configuration instructions and troubleshooting
+- **Architecture Documentation**: Comprehensive helper system documentation
+
 ## Pagekit 1.0.40 - PSR-6 Cache Migration COMPLETE (September 26, 2025)
 
 ### 🚀 Major Changes
