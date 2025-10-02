@@ -1,7 +1,8 @@
 {
-    "build": {
-        "dockerfile": "Dockerfile"
-    },
-    "install": "bash /home/ubuntu/.cursor/install.sh",
-    "start": "bash /home/ubuntu/.cursor/start.sh"
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "install": "bash /home/ubuntu/.cursor/install.sh",
+  "start": "bash /home/ubuntu/.cursor/start.sh"
 }
