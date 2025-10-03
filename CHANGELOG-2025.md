@@ -10,6 +10,7 @@
   - 🛠️ Updated modernize helper and start scripts
   - 🔧 Further cursor tooling improvements
   - ⚡ Additional cursor tooling enhancements
+  - 🐳 Update Dockerfile for background agent
 
 ## Pagekit 1.0.41 - E2E Testing Infrastructure & Configuration Fixes (October 2, 2025)
 

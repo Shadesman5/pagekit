@@ -68,11 +68,14 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 # Verify composer installation and add to PATH
 RUN composer --version && echo 'export PATH="/usr/local/bin:$PATH"' >> /etc/bash.bashrc
 
-# Background agent will use scripts from the checked-out repository
-# No need to copy scripts - they're already in the git repo
+# Create a non-root user for the background agent
+RUN useradd -m -s /bin/bash ubuntu
 
-# Set working directory to workspace root
-# WORKDIR /workspace
+# Switch to non-root user
+USER ubuntu
+
+# Set working directory to user's home
+WORKDIR /home/ubuntu
 
 # Environment variables for better git/composer experience
 ENV COMPOSER_ALLOW_SUPERUSER=1
