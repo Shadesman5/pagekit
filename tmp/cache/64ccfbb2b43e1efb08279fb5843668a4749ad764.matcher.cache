@@ -1,0 +1,293 @@
+<?php
+use Symfony\Component\Routing\Matcher\Dumper\CompiledUrlMatcherTrait;
+use Symfony\Component\Routing\RequestContext;
+/**
+ * This class has been auto-generated
+ * by the Symfony Routing Component.
+ */
+class UrlMatcher64ccfbb2b43e1efb08279fb5843668a4749ad764 extends Symfony\Component\Routing\Matcher\UrlMatcher
+{
+    use CompiledUrlMatcherTrait;
+    public function __construct(RequestContext $context)
+    {
+        $this->context = $context;
+        $this->staticRoutes = [
+            '/admin/system/cache/clear' => [[['_route' => '@system/cache/clear', '_controller' => 'Pagekit\\Cache\\Controller\\CacheController::clearAction', '_access' => ['system: access admin area']], null, ['POST' => 0], null, false, false, null]],
+            '/admin/system/package/themes' => [[['_route' => '@system/package/themes', '_controller' => 'Pagekit\\Installer\\Controller\\PackageController::themesAction', '_access' => ['system: manage packages', 'system: access admin area']], null, null, null, false, false, null]],
+            '/admin/system/package/extensions' => [[['_route' => '@system/package/extensions', '_controller' => 'Pagekit\\Installer\\Controller\\PackageController::extensionsAction', '_access' => ['system: manage packages', 'system: access admin area']], null, null, null, false, false, null]],
+            '/admin/system/package/enable' => [[['_route' => '@system/package/enable', '_controller' => 'Pagekit\\Installer\\Controller\\PackageController::enableAction', '_request' => ['csrf' => true, 'value' => ['name']], '_access' => ['system: manage packages', 'system: access admin area']], null, null, null, false, false, null]],
+            '/admin/system/package/disable' => [[['_route' => '@system/package/disable', '_controller' => 'Pagekit\\Installer\\Controller\\PackageController::disableAction', '_request' => ['csrf' => true, 'value' => ['name']], '_access' => ['system: manage packages', 'system: access admin area']], null, null, null, false, false, null]],
+            '/admin/system/package/upload' => [[['_route' => '@system/package/upload', '_controller' => 'Pagekit\\Installer\\Controller\\PackageController::uploadAction', '_request' => ['csrf' => true, 'value' => ['type' => 'string']], '_access' => ['system: manage packages', 'system: access admin area']], null, null, null, false, false, null]],
+            '/admin/system/package/install' => [[['_route' => '@system/package/install', '_controller' => 'Pagekit\\Installer\\Controller\\PackageController::installAction', '_request' => ['csrf' => true, 'value' => ['package' => 'array', 'packagist' => 'boolean']], '_access' => ['system: manage packages', 'system: access admin area']], null, null, null, false, false, null]],
+            '/admin/system/package/uninstall' => [[['_route' => '@system/package/uninstall', '_controller' => 'Pagekit\\Installer\\Controller\\PackageController::uninstallAction', '_request' => ['csrf' => true, 'value' => ['name']], '_access' => ['system: manage packages', 'system: access admin area']], null, null, null, false, false, null]],
+            '/admin/system/marketplace/themes' => [[['_route' => '@system/marketplace/themes', '_controller' => 'Pagekit\\Installer\\Controller\\MarketplaceController::themesAction', '_request' => ['value' => ['page' => 'int']], '_access' => ['system: manage packages', 'system: access admin area']], null, null, null, false, false, null]],
+            '/admin/system/marketplace/extensions' => [[['_route' => '@system/marketplace/extensions', '_controller' => 'Pagekit\\Installer\\Controller\\MarketplaceController::extensionsAction', '_request' => ['value' => ['page' => 'int']], '_access' => ['system: manage packages', 'system: access admin area']], null, null, null, false, false, null]],
+            '/admin/system/update' => [[['_route' => '@system/update', '_controller' => 'Pagekit\\Installer\\Controller\\UpdateController::indexAction', '_access' => ['system: software updates', 'system: access admin area']], null, null, null, false, false, null]],
+            '/admin/system/update/download' => [[['_route' => '@system/update/download', '_controller' => 'Pagekit\\Installer\\Controller\\UpdateController::downloadAction', '_request' => ['csrf' => true, 'value' => ['url' => 'string']], '_access' => ['system: software updates', 'system: access admin area']], null, null, null, false, false, null]],
+            '/admin/system/update/update' => [[['_route' => '@system/update/update', '_controller' => 'Pagekit\\Installer\\Controller\\UpdateController::updateAction', '_request' => ['csrf' => true], '_access' => ['system: software updates', 'system: access admin area']], null, null, null, false, false, null]],
+            '/admin/site/widget' => [[['_route' => '@site/widget', '_controller' => 'Pagekit\\Widget\\Controller\\WidgetController::indexAction', '_access' => ['system: manage widgets', 'system: access admin area']], null, null, null, false, false, null]],
+            '/admin/site/widget/edit' => [[['_route' => '@site/widget/edit', '_controller' => 'Pagekit\\Widget\\Controller\\WidgetController::editAction', '_request' => ['value' => ['id' => 'int', 'type' => 'string']], '_access' => ['system: manage widgets', 'system: access admin area']], null, null, null, false, false, null]],
+            '/api/site/widget' => [
+                [['_route' => '@site/api/widget', '_controller' => 'Pagekit\\Widget\\Controller\\WidgetApiController::indexAction', '_access' => ['system: manage widgets']], null, ['GET' => 0], null, false, false, null],
+                [['_route' => '@site/api/widget/save', '_controller' => 'Pagekit\\Widget\\Controller\\WidgetApiController::saveAction', '_access' => ['system: manage widgets']], null, ['POST' => 0], null, false, false, null],
+            ],
+            '/api/site/widget/assign' => [[['_route' => '@site/api/widget/assign', '_controller' => 'Pagekit\\Widget\\Controller\\WidgetApiController::assignAction', '_access' => ['system: manage widgets']], null, ['POST' => 0], null, false, false, null]],
+            '/api/site/widget/copy' => [[['_route' => '@site/api/widget/copy', '_controller' => 'Pagekit\\Widget\\Controller\\WidgetApiController::copyAction', '_access' => ['system: manage widgets']], null, ['POST' => 0], null, false, false, null]],
+            '/api/site/widget/bulk' => [
+                [['_route' => '@site/api/widget/bulksave', '_controller' => 'Pagekit\\Widget\\Controller\\WidgetApiController::bulkSaveAction', '_access' => ['system: manage widgets']], null, ['POST' => 0], null, false, false, null],
+                [['_route' => '@site/api/widget/bulkdelete', '_controller' => 'Pagekit\\Widget\\Controller\\WidgetApiController::bulkDeleteAction', '_access' => ['system: manage widgets']], null, ['DELETE' => 0], null, false, false, null],
+            ],
+            '/admin/dashboard' => [
+                [['_route' => '@dashboard', '_controller' => 'Pagekit\\Dashboard\\Controller\\DashboardController::indexAction', '_access' => ['system: access admin area']], null, ['GET' => 0], null, false, false, null],
+                [['_route' => '@dashboard/save', '_controller' => 'Pagekit\\Dashboard\\Controller\\DashboardController::saveAction', '_access' => ['system: access admin area']], null, ['POST' => 0], null, false, false, null],
+            ],
+            '/admin/dashboard/savewidgets' => [[['_route' => '@dashboard/savewidgets', '_controller' => 'Pagekit\\Dashboard\\Controller\\DashboardController::saveWidgetsAction', '_access' => ['system: access admin area']], null, ['POST' => 0], null, false, false, null]],
+            '/system/finder' => [[['_route' => '@system/finder', '_controller' => 'Pagekit\\Finder\\Controller\\FinderController::indexAction'], null, null, null, false, false, null]],
+            '/system/finder/createfolder' => [[['_route' => '@system/finder/createfolder', '_controller' => 'Pagekit\\Finder\\Controller\\FinderController::createFolderAction'], null, ['POST' => 0], null, false, false, null]],
+            '/system/finder/rename' => [[['_route' => '@system/finder/rename', '_controller' => 'Pagekit\\Finder\\Controller\\FinderController::renameAction'], null, ['POST' => 0], null, false, false, null]],
+            '/system/finder/removefiles' => [[['_route' => '@system/finder/removefiles', '_controller' => 'Pagekit\\Finder\\Controller\\FinderController::removeFilesAction'], null, ['POST' => 0], null, false, false, null]],
+            '/system/finder/upload' => [[['_route' => '@system/finder/upload', '_controller' => 'Pagekit\\Finder\\Controller\\FinderController::uploadAction'], null, ['POST' => 0], null, false, false, null]],
+            '/admin/site/storage' => [[['_route' => '@site/storage', '_controller' => 'Pagekit\\Finder\\Controller\\StorageController::indexAction', '_access' => ['system: manage storage', 'system: access admin area']], null, null, null, false, false, null]],
+            '/admin/system/info' => [[['_route' => '@system/info', '_controller' => 'Pagekit\\Info\\Controller\\InfoController::indexAction', '_access' => ['system: access admin area']], null, null, null, false, false, null]],
+            '/admin/system/smtp' => [[['_route' => '@system/smtp', '_controller' => 'Pagekit\\Mail\\Controller\\MailController::smtpAction', '_access' => ['system: access settings', 'system: access admin area']], null, ['POST' => 0], null, false, false, null]],
+            '/admin/system/email' => [[['_route' => '@system/email', '_controller' => 'Pagekit\\Mail\\Controller\\MailController::emailAction', '_access' => ['system: access settings', 'system: access admin area']], null, ['POST' => 0], null, false, false, null]],
+            '/admin/system/settings' => [[['_route' => '@system/settings', '_controller' => 'Pagekit\\System\\Controller\\SettingsController::indexAction', '_access' => ['system: access settings', 'system: access admin area']], null, null, null, false, false, null]],
+            '/admin/system/settings/save' => [[['_route' => '@system/settings/save', '_controller' => 'Pagekit\\System\\Controller\\SettingsController::saveAction', '_access' => ['system: access settings', 'system: access admin area']], null, ['POST' => 0], null, false, false, null]],
+            '/admin/system/settings/config' => [[['_route' => '@system/settings/config', '_controller' => 'Pagekit\\System\\Controller\\SettingsController::configAction', '_access' => ['system: access settings', 'system: access admin area']], null, ['POST' => 0], null, false, false, null]],
+            '/admin/site/page' => [[['_route' => '@site/page', '_controller' => 'Pagekit\\Site\\Controller\\NodeController::indexAction', '_access' => ['site: manage site', 'system: access admin area']], null, null, null, false, false, null]],
+            '/admin/site/page/edit' => [[['_route' => '@site/page/edit', '_controller' => 'Pagekit\\Site\\Controller\\NodeController::editAction', '_request' => ['value' => ['id', 'menu']], '_access' => ['site: manage site', 'system: access admin area']], null, null, null, false, false, null]],
+            '/admin/site/settings' => [[['_route' => '@site/settings', '_controller' => 'Pagekit\\Site\\Controller\\NodeController::settingsAction', '_access' => ['system: access settings', 'system: access admin area']], null, null, null, false, false, null]],
+            '/api/site/link' => [[['_route' => '@site/api/link', '_controller' => 'Pagekit\\Site\\Controller\\NodeController::linkAction', '_request' => ['value' => ['link']], '_access' => ['site: manage site']], null, null, null, false, false, null]],
+            '/api/site/menu' => [
+                [['_route' => '@site/api/menu', '_controller' => 'Pagekit\\Site\\Controller\\MenuApiController::indexAction', '_access' => ['site: manage site']], null, ['GET' => 0], null, false, false, null],
+                [['_route' => '@site/api/menu/save', '_controller' => 'Pagekit\\Site\\Controller\\MenuApiController::saveAction', '_access' => ['site: manage site']], null, ['POST' => 0], null, false, false, null],
+            ],
+            '/api/site/node' => [
+                [['_route' => '@site/api/node', '_controller' => 'Pagekit\\Site\\Controller\\NodeApiController::indexAction', '_access' => ['site: manage site']], null, ['GET' => 0], null, false, false, null],
+                [['_route' => '@site/api/node/save', '_controller' => 'Pagekit\\Site\\Controller\\NodeApiController::saveAction', '_access' => ['site: manage site']], null, ['POST' => 0], null, false, false, null],
+            ],
+            '/api/site/node/bulk' => [
+                [['_route' => '@site/api/node/bulksave', '_controller' => 'Pagekit\\Site\\Controller\\NodeApiController::bulkSaveAction', '_access' => ['site: manage site']], null, ['POST' => 0], null, false, false, null],
+                [['_route' => '@site/api/node/bulkdelete', '_controller' => 'Pagekit\\Site\\Controller\\NodeApiController::bulkDeleteAction', '_access' => ['site: manage site']], null, ['DELETE' => 0], null, false, false, null],
+            ],
+            '/api/site/node/updateOrder' => [[['_route' => '@site/api/node/updateorder', '_controller' => 'Pagekit\\Site\\Controller\\NodeApiController::updateOrderAction', '_access' => ['site: manage site']], null, ['POST' => 0], null, false, false, null]],
+            '/api/site/node/frontpage' => [[['_route' => '@site/api/node/frontpage', '_controller' => 'Pagekit\\Site\\Controller\\NodeApiController::frontpageAction', '_access' => ['site: manage site']], null, ['POST' => 0], null, false, false, null]],
+            '/api/site/page' => [[['_route' => '@site/api/page', '_controller' => 'Pagekit\\Site\\Controller\\PageApiController::indexAction', '_access' => ['site: manage site']], null, ['GET' => 0], null, false, false, null]],
+            '/user/login' => [[['_route' => '@user/login', '_maintenance' => true, '_controller' => 'Pagekit\\User\\Controller\\AuthController::loginAction', '_request' => ['value' => ['redirect']]], null, null, null, false, false, null]],
+            '/user/logout' => [[['_route' => '@user/logout', '_maintenance' => true, '_controller' => 'Pagekit\\User\\Controller\\AuthController::logoutAction'], null, null, null, false, false, null]],
+            '/user/authenticate' => [[['_route' => '@user/authenticate', '_maintenance' => true, '_controller' => 'Pagekit\\User\\Controller\\AuthController::authenticateAction'], null, ['POST' => 0], null, false, false, null]],
+            '/admin/user' => [[['_route' => '@user', '_controller' => 'Pagekit\\User\\Controller\\UserController::indexAction', '_request' => ['value' => ['filter' => 'array', 'page' => 'int']], '_access' => ['system: access admin area', 'user: manage users']], null, null, null, false, false, null]],
+            '/admin/user/edit' => [[['_route' => '@user/edit', '_controller' => 'Pagekit\\User\\Controller\\UserController::editAction', '_request' => ['value' => ['id' => 'int']], '_access' => ['system: access admin area', 'user: manage users']], null, null, null, false, false, null]],
+            '/admin/user/permissions' => [[['_route' => '@user/permissions', '_controller' => 'Pagekit\\User\\Controller\\UserController::permissionsAction', '_access' => ['system: access admin area', 'user: manage user permissions']], null, null, null, false, false, null]],
+            '/admin/user/roles' => [[['_route' => '@user/roles', '_controller' => 'Pagekit\\User\\Controller\\UserController::rolesAction', '_request' => ['value' => ['id' => 'int']], '_access' => ['system: access admin area', 'user: manage user permissions']], null, null, null, false, false, null]],
+            '/admin/user/settings' => [[['_route' => '@user/settings', '_controller' => 'Pagekit\\User\\Controller\\UserController::settingsAction', '_access' => ['system: access admin area', 'system: access settings']], null, null, null, false, false, null]],
+            '/user/profile' => [[['_route' => '@user/profile', '_controller' => 'Pagekit\\User\\Controller\\ProfileController::indexAction'], null, null, null, false, false, null]],
+            '/user/profile/save' => [[['_route' => '@user/profile/save', '_controller' => 'Pagekit\\User\\Controller\\ProfileController::saveAction', '_request' => ['csrf' => true, 'value' => ['user' => 'array']]], null, null, null, false, false, null]],
+            '/user/registration' => [[['_route' => '@user/registration', '_controller' => 'Pagekit\\User\\Controller\\RegistrationController::indexAction', '_captcha_routes' => ['@user/registration/register']], null, null, null, false, false, null]],
+            '/user/registration/register' => [[['_route' => '@user/registration/register', '_controller' => 'Pagekit\\User\\Controller\\RegistrationController::registerAction', '_request' => ['value' => ['user' => 'array']], '_captcha_verify' => true], null, null, null, false, false, null]],
+            '/user/registration/activate' => [[['_route' => '@user/registration/activate', '_controller' => 'Pagekit\\User\\Controller\\RegistrationController::activateAction', '_request' => ['value' => ['user', 'key']]], null, null, null, false, false, null]],
+            '/user/resetpassword' => [[['_route' => '@user/resetpassword', '_controller' => 'Pagekit\\User\\Controller\\ResetPasswordController::indexAction'], null, null, null, false, false, null]],
+            '/user/resetpassword/request' => [[['_route' => '@user/resetpassword/request', '_controller' => 'Pagekit\\User\\Controller\\ResetPasswordController::requestAction'], null, ['POST' => 0], null, false, false, null]],
+            '/user/resetpassword/confirm' => [
+                [['_route' => '@user/resetpassword/confirm', '_controller' => 'Pagekit\\User\\Controller\\ResetPasswordController::confirmAction'], null, ['GET' => 0], null, false, false, null],
+                [['_route' => '@user/resetpassword/confirm_1', '_controller' => 'Pagekit\\User\\Controller\\ResetPasswordController::confirmAction'], null, ['POST' => 0], null, false, false, null],
+            ],
+            '/api/user' => [
+                [['_route' => '@user/api', '_controller' => 'Pagekit\\User\\Controller\\UserApiController::indexAction', '_access' => ['user: manage users']], null, ['GET' => 0], null, false, false, null],
+                [['_route' => '@user/api/save', '_controller' => 'Pagekit\\User\\Controller\\UserApiController::saveAction', '_access' => ['user: manage users']], null, ['POST' => 0], null, false, false, null],
+            ],
+            '/api/user/count' => [[['_route' => '@user/api/count', '_controller' => 'Pagekit\\User\\Controller\\UserApiController::countAction', '_access' => ['user: manage users']], null, null, null, false, false, null]],
+            '/api/user/bulk' => [
+                [['_route' => '@user/api/bulksave', '_controller' => 'Pagekit\\User\\Controller\\UserApiController::bulkSaveAction', '_access' => ['user: manage users']], null, ['POST' => 0], null, false, false, null],
+                [['_route' => '@user/api/bulkdelete', '_controller' => 'Pagekit\\User\\Controller\\UserApiController::bulkDeleteAction', '_access' => ['user: manage users']], null, ['DELETE' => 0], null, false, false, null],
+            ],
+            '/api/user/role' => [
+                [['_route' => '@user/api/role', '_controller' => 'Pagekit\\User\\Controller\\RoleApiController::indexAction', '_access' => ['user: manage user permissions']], null, ['GET' => 0], null, false, false, null],
+                [['_route' => '@user/api/role/save', '_controller' => 'Pagekit\\User\\Controller\\RoleApiController::saveAction', '_access' => ['user: manage user permissions']], null, ['POST' => 0], null, false, false, null],
+            ],
+            '/api/user/role/bulk' => [
+                [['_route' => '@user/api/role/bulksave', '_controller' => 'Pagekit\\User\\Controller\\RoleApiController::bulkSaveAction', '_access' => ['user: manage user permissions']], null, ['POST' => 0], null, false, false, null],
+                [['_route' => '@user/api/role/bulkdelete', '_controller' => 'Pagekit\\User\\Controller\\RoleApiController::bulkDeleteAction', '_access' => ['user: manage user permissions']], null, ['DELETE' => 0], null, false, false, null],
+            ],
+            '/admin' => [[['_route' => '@system', '_controller' => 'Pagekit\\System\\Controller\\AdminController::indexAction', '_access' => ['system: access admin area']], null, null, null, false, false, null]],
+            '/admin/login' => [[['_route' => '@system/login', '_maintenance' => true, '_controller' => 'Pagekit\\System\\Controller\\AdminController::loginAction', '_request' => ['value' => ['redirect' => 'string', 'message' => 'string']]], null, null, null, false, false, null]],
+            '/admin/adminmenu' => [[['_route' => '@system/adminmenu', '_controller' => 'Pagekit\\System\\Controller\\AdminController::adminMenuAction', '_request' => ['value' => ['order' => 'array']], '_access' => ['system: access admin area']], null, null, null, false, false, null]],
+            '/admin/system/migration' => [[['_route' => '@system/migration', '_controller' => 'Pagekit\\System\\Controller\\MigrationController::indexAction', '_request' => ['value' => ['redirect' => 'string']], '_access' => ['system: software updates', 'system: access admin area']], null, null, null, false, false, null]],
+            '/admin/system/migration/migrate' => [[['_route' => '@system/migration/migrate', '_controller' => 'Pagekit\\System\\Controller\\MigrationController::migrateAction', '_request' => ['csrf' => true, 'value' => ['redirect' => 'string']], '_access' => ['system: software updates', 'system: access admin area']], null, null, null, false, false, null]],
+            '/admin/blog/post' => [[['_route' => '@blog/post', '_controller' => 'Pagekit\\Blog\\Controller\\BlogController::postAction', '_request' => ['value' => ['filter' => 'array', 'page' => 'int']], '_access' => ['system: access admin area', 'blog: manage own posts || blog: manage all posts']], null, null, null, false, false, null]],
+            '/admin/blog/post/edit' => [[['_route' => '@blog/post/edit', '_controller' => 'Pagekit\\Blog\\Controller\\BlogController::editAction', '_request' => ['value' => ['id' => 'int']], '_access' => ['system: access admin area', 'blog: manage own posts || blog: manage all posts']], null, null, null, false, false, null]],
+            '/admin/blog/comment' => [[['_route' => '@blog/comment', '_controller' => 'Pagekit\\Blog\\Controller\\BlogController::commentAction', '_request' => ['value' => ['filter' => 'array', 'post' => 'int', 'page' => 'int']], '_access' => ['system: access admin area', 'blog: manage comments']], null, null, null, false, false, null]],
+            '/admin/blog/settings' => [[['_route' => '@blog/settings', '_controller' => 'Pagekit\\Blog\\Controller\\BlogController::settingsAction', '_access' => ['system: access admin area', 'system: access settings']], null, null, null, false, false, null]],
+            '/api/blog/post' => [
+                [['_route' => '@blog/api/post', '_controller' => 'Pagekit\\Blog\\Controller\\PostApiController::indexAction', '_access' => ['blog: manage own posts || blog: manage all posts']], null, ['GET' => 0], null, false, false, null],
+                [['_route' => '@blog/api/post/save', '_controller' => 'Pagekit\\Blog\\Controller\\PostApiController::saveAction', '_access' => ['blog: manage own posts || blog: manage all posts']], null, ['POST' => 0], null, false, false, null],
+            ],
+            '/api/blog/post/copy' => [[['_route' => '@blog/api/post/copy', '_controller' => 'Pagekit\\Blog\\Controller\\PostApiController::copyAction', '_access' => ['blog: manage own posts || blog: manage all posts']], null, ['POST' => 0], null, false, false, null]],
+            '/api/blog/post/bulk' => [
+                [['_route' => '@blog/api/post/bulksave', '_controller' => 'Pagekit\\Blog\\Controller\\PostApiController::bulkSaveAction', '_access' => ['blog: manage own posts || blog: manage all posts']], null, ['POST' => 0], null, false, false, null],
+                [['_route' => '@blog/api/post/bulkdelete', '_controller' => 'Pagekit\\Blog\\Controller\\PostApiController::bulkDeleteAction', '_access' => ['blog: manage own posts || blog: manage all posts']], null, ['DELETE' => 0], null, false, false, null],
+            ],
+            '/api/blog/comment' => [
+                [['_route' => '@blog/api/comment', '_controller' => 'Pagekit\\Blog\\Controller\\CommentApiController::indexAction', '_request' => ['value' => ['filter' => 'array', 'post' => 'int', 'page' => 'int', 'limit' => 'int']]], null, ['GET' => 0], null, false, false, null],
+                [['_route' => '@blog/api/comment/save', '_controller' => 'Pagekit\\Blog\\Controller\\CommentApiController::saveAction', '_request' => ['csrf' => true, 'value' => ['comment' => 'array', 'id' => 'int']], '_captcha_verify' => true], null, ['POST' => 0], null, false, false, null],
+            ],
+            '/api/blog/comment/bulk' => [
+                [['_route' => '@blog/api/comment/bulksave', '_controller' => 'Pagekit\\Blog\\Controller\\CommentApiController::bulkSaveAction', '_request' => ['csrf' => true, 'value' => ['comments' => 'array']], '_access' => ['blog: manage comments']], null, ['POST' => 0], null, false, false, null],
+                [['_route' => '@blog/api/comment/bulkdelete', '_controller' => 'Pagekit\\Blog\\Controller\\CommentApiController::bulkDeleteAction', '_request' => ['csrf' => true, 'value' => ['ids' => 'array']], '_access' => ['blog: manage comments']], null, ['DELETE' => 0], null, false, false, null],
+            ],
+            '/admin/menucards' => [[['_route' => '@menucards/admin/@menucards/admin', '_controller' => 'Pagekit\\Menucards\\Controller\\MenucardsController::indexAction', '_access' => ['menucards: manage menus', 'system: access admin area']], null, null, null, false, false, null]],
+            '/admin/admin/menucards/products' => [[['_route' => '@menucards/admin/@menucards/admin/products', '_controller' => 'Pagekit\\Menucards\\Controller\\MenucardsController::productsAction', '_access' => ['menucards: manage menus', 'system: access admin area', 'menucards: manage products']], null, null, null, false, false, null]],
+            '/api/menucards/product' => [
+                [['_route' => '@menucards/api/product', '_controller' => 'Pagekit\\Menucards\\Controller\\ProductApiController::indexAction', '_request' => ['value' => ['filter' => 'array', 'page' => 'int']], '_access' => ['menucards: manage products']], null, ['GET' => 0], null, false, false, null],
+                [['_route' => '@menucards/api/product/save', '_controller' => 'Pagekit\\Menucards\\Controller\\ProductApiController::saveAction', '_request' => ['csrf' => true, 'value' => ['product' => 'array']], '_access' => ['menucards: manage products']], null, ['POST' => 0], null, false, false, null],
+            ],
+            '/api/menucards/product/bulk' => [[['_route' => '@menucards/api/product/bulkdelete', '_controller' => 'Pagekit\\Menucards\\Controller\\ProductApiController::bulkDeleteAction', '_request' => ['csrf' => true, 'value' => ['ids' => 'int[]']], '_access' => ['menucards: manage products']], null, ['POST' => 0], null, false, false, null]],
+            '/api/menucards/menu' => [
+                [['_route' => '@menucards/api/menu', '_controller' => 'Pagekit\\Menucards\\Controller\\MenuApiController::indexAction', '_request' => ['value' => ['filter' => 'array', 'page' => 'int']], '_access' => ['menucards: manage menus']], null, ['GET' => 0], null, false, false, null],
+                [['_route' => '@menucards/api/menu/save', '_controller' => 'Pagekit\\Menucards\\Controller\\MenuApiController::saveAction', '_request' => ['csrf' => true, 'value' => ['menu' => 'array']], '_access' => ['menucards: manage menus']], null, ['POST' => 0], null, false, false, null],
+            ],
+            '/api/menucards/category' => [[['_route' => '@menucards/api/category/save', '_controller' => 'Pagekit\\Menucards\\Controller\\CategoryApiController::saveAction', '_request' => ['csrf' => true, 'value' => ['category' => 'array']], '_access' => ['menucards: manage menus']], null, ['POST' => 0], null, false, false, null]],
+            '/' => [[['_route' => '@page/1', '_controller' => 'Pagekit\\Site\\Controller\\PageController::indexAction', 'id' => 1, '_node' => 1, '_variables' => []], null, null, null, false, false, null]],
+            '/about' => [[['_route' => '@page/2', '_controller' => 'Pagekit\\Site\\Controller\\PageController::indexAction', 'id' => 2, '_node' => 2], null, null, null, false, false, null]],
+            '/blog' => [[['_route' => '@blog', '_controller' => 'Pagekit\\Blog\\Controller\\SiteController::indexAction', '_node' => 4], null, null, null, false, false, null]],
+            '/blog/feed' => [[['_route' => '@blog/feed', '_controller' => 'Pagekit\\Blog\\Controller\\SiteController::feedAction', '_node' => 4], null, null, null, false, false, null]],
+            '/positions' => [[['_route' => '@page/3', '_controller' => 'Pagekit\\Site\\Controller\\PageController::indexAction', 'id' => 3, '_node' => 3], null, null, null, false, false, null]],
+        ];
+        $this->regexpList = [
+            0 => '{^(?'
+                    .'|/system/intl/([a-zA-Z0-9_-]+)(*:36)'
+                    .'|/a(?'
+                        .'|pi/(?'
+                            .'|s(?'
+                                .'|ystem/intl/([^/]++)(*:77)'
+                                .'|ite/(?'
+                                    .'|widget/(\\d+)(?'
+                                        .'|(*:106)'
+                                    .')'
+                                    .'|menu/([^/]++)(*:128)'
+                                    .'|node/(\\d+)(?'
+                                        .'|(*:149)'
+                                    .')'
+                                    .'|page/(\\d+)(*:168)'
+                                .')'
+                            .')'
+                            .'|user/(?'
+                                .'|(\\d+)(?'
+                                    .'|(*:194)'
+                                .')'
+                                .'|role/(\\d+)(?'
+                                    .'|(*:216)'
+                                .')'
+                            .')'
+                            .'|blog/(?'
+                                .'|post/(\\d+)(?'
+                                    .'|(*:247)'
+                                .')'
+                                .'|comment/(\\d+)(?'
+                                    .'|(*:272)'
+                                .')'
+                            .')'
+                            .'|menucards/(?'
+                                .'|product/(\\d+)(?'
+                                    .'|(*:311)'
+                                .')'
+                                .'|menu/(\\d+)(?'
+                                    .'|(*:333)'
+                                .')'
+                                .'|category/(?'
+                                    .'|(\\d+)(?'
+                                        .'|(*:362)'
+                                    .')'
+                                    .'|(\\d+)/product(*:384)'
+                                    .'|(\\d+)/product/(\\d+)(*:411)'
+                                    .'|(\\d+)/product/reorder(*:440)'
+                                .')'
+                            .')'
+                        .')'
+                        .'|dmin/(?'
+                            .'|dashboard/(?'
+                                .'|(\\w+)(?'
+                                    .'|(*:480)'
+                                .')'
+                                .'|reorder(*:496)'
+                                .'|weather(*:511)'
+                            .')'
+                            .'|menucards/menu/(\\d+)(*:540)'
+                        .')'
+                    .')'
+                    .'|/menucard/menucard/([^/]++)(*:577)'
+                    .'|/blog/(?'
+                        .'|page/(\\d+)(*:604)'
+                        .'|feed/([^/]++)(*:625)'
+                        .'|([^/]++)(*:641)'
+                    .')'
+                .')/?$}sD',
+        ];
+        $this->dynamicRoutes = [
+            36 => [[['_route' => '@system/intl', '_maintenance' => true, '_controller' => 'Pagekit\\Intl\\Controller\\IntlController::indexAction', '_request' => ['value' => ['locale']]], ['locale'], null, null, false, true, null]],
+            77 => [[['_route' => '@system/api/intl/locales', '_maintenance' => true, '_controller' => 'Pagekit\\Intl\\Controller\\IntlApiController::localesAction', '_request' => ['value' => ['locale']]], ['locales'], ['GET' => 0], null, false, true, null]],
+            106 => [
+                [['_route' => '@site/api/widget/get', '_controller' => 'Pagekit\\Widget\\Controller\\WidgetApiController::getAction', '_access' => ['system: manage widgets']], ['id'], ['GET' => 0], null, false, true, null],
+                [['_route' => '@site/api/widget/save_1', '_controller' => 'Pagekit\\Widget\\Controller\\WidgetApiController::saveAction', '_access' => ['system: manage widgets']], ['id'], ['POST' => 0], null, false, true, null],
+                [['_route' => '@site/api/widget/delete', '_controller' => 'Pagekit\\Widget\\Controller\\WidgetApiController::deleteAction', '_access' => ['system: manage widgets']], ['id'], ['DELETE' => 0], null, false, true, null],
+            ],
+            128 => [[['_route' => '@site/api/menu/delete', '_controller' => 'Pagekit\\Site\\Controller\\MenuApiController::deleteAction', '_access' => ['site: manage site']], ['id'], ['DELETE' => 0], null, false, true, null]],
+            149 => [
+                [['_route' => '@site/api/node/get', '_controller' => 'Pagekit\\Site\\Controller\\NodeApiController::getAction', '_access' => ['site: manage site']], ['id'], ['GET' => 0], null, false, true, null],
+                [['_route' => '@site/api/node/save_1', '_controller' => 'Pagekit\\Site\\Controller\\NodeApiController::saveAction', '_access' => ['site: manage site']], ['id'], ['POST' => 0], null, false, true, null],
+                [['_route' => '@site/api/node/delete', '_controller' => 'Pagekit\\Site\\Controller\\NodeApiController::deleteAction', '_access' => ['site: manage site']], ['id'], ['DELETE' => 0], null, false, true, null],
+            ],
+            168 => [[['_route' => '@site/api/page/get', '_controller' => 'Pagekit\\Site\\Controller\\PageApiController::getAction', '_access' => ['site: manage site']], ['id'], ['GET' => 0], null, false, true, null]],
+            194 => [
+                [['_route' => '@user/api/get', '_controller' => 'Pagekit\\User\\Controller\\UserApiController::getAction', '_access' => ['user: manage users']], ['id'], ['GET' => 0], null, false, true, null],
+                [['_route' => '@user/api/save_1', '_controller' => 'Pagekit\\User\\Controller\\UserApiController::saveAction', '_access' => ['user: manage users']], ['id'], ['POST' => 0], null, false, true, null],
+                [['_route' => '@user/api/delete', '_controller' => 'Pagekit\\User\\Controller\\UserApiController::deleteAction', '_access' => ['user: manage users']], ['id'], ['DELETE' => 0], null, false, true, null],
+            ],
+            216 => [
+                [['_route' => '@user/api/role/get', '_controller' => 'Pagekit\\User\\Controller\\RoleApiController::getAction', '_access' => ['user: manage user permissions']], ['id'], ['GET' => 0], null, false, true, null],
+                [['_route' => '@user/api/role/save_1', '_controller' => 'Pagekit\\User\\Controller\\RoleApiController::saveAction', '_access' => ['user: manage user permissions']], ['id'], ['POST' => 0], null, false, true, null],
+                [['_route' => '@user/api/role/delete', '_controller' => 'Pagekit\\User\\Controller\\RoleApiController::deleteAction', '_access' => ['user: manage user permissions']], ['id'], ['DELETE' => 0], null, false, true, null],
+            ],
+            247 => [
+                [['_route' => '@blog/api/post/get', '_controller' => 'Pagekit\\Blog\\Controller\\PostApiController::getAction', '_access' => ['blog: manage own posts || blog: manage all posts']], ['id'], ['GET' => 0], null, false, true, null],
+                [['_route' => '@blog/api/post/save_1', '_controller' => 'Pagekit\\Blog\\Controller\\PostApiController::saveAction', '_access' => ['blog: manage own posts || blog: manage all posts']], ['id'], ['POST' => 0], null, false, true, null],
+                [['_route' => '@blog/api/post/delete', '_controller' => 'Pagekit\\Blog\\Controller\\PostApiController::deleteAction', '_access' => ['blog: manage own posts || blog: manage all posts']], ['id'], ['DELETE' => 0], null, false, true, null],
+            ],
+            272 => [
+                [['_route' => '@blog/api/comment/save_1', '_controller' => 'Pagekit\\Blog\\Controller\\CommentApiController::saveAction', '_request' => ['csrf' => true, 'value' => ['comment' => 'array', 'id' => 'int']], '_captcha_verify' => true], ['id'], ['POST' => 0], null, false, true, null],
+                [['_route' => '@blog/api/comment/delete', '_controller' => 'Pagekit\\Blog\\Controller\\CommentApiController::deleteAction', '_request' => ['csrf' => true, 'value' => ['id' => 'int']], '_access' => ['blog: manage comments']], ['id'], ['DELETE' => 0], null, false, true, null],
+            ],
+            311 => [
+                [['_route' => '@menucards/api/product/get', '_controller' => 'Pagekit\\Menucards\\Controller\\ProductApiController::getAction', '_access' => ['menucards: manage products']], ['id'], ['GET' => 0], null, false, true, null],
+                [['_route' => '@menucards/api/product/save_1', '_controller' => 'Pagekit\\Menucards\\Controller\\ProductApiController::saveAction', '_request' => ['csrf' => true, 'value' => ['product' => 'array']], '_access' => ['menucards: manage products']], ['id'], ['POST' => 0], null, false, true, null],
+                [['_route' => '@menucards/api/product/delete', '_controller' => 'Pagekit\\Menucards\\Controller\\ProductApiController::deleteAction', '_request' => ['csrf' => true], '_access' => ['menucards: manage products']], ['id'], ['DELETE' => 0], null, false, true, null],
+            ],
+            333 => [
+                [['_route' => '@menucards/api/menu/get', '_controller' => 'Pagekit\\Menucards\\Controller\\MenuApiController::getAction', '_access' => ['menucards: manage menus']], ['id'], ['GET' => 0], null, false, true, null],
+                [['_route' => '@menucards/api/menu/save_1', '_controller' => 'Pagekit\\Menucards\\Controller\\MenuApiController::saveAction', '_request' => ['csrf' => true, 'value' => ['menu' => 'array']], '_access' => ['menucards: manage menus']], ['id'], ['POST' => 0], null, false, true, null],
+                [['_route' => '@menucards/api/menu/delete', '_controller' => 'Pagekit\\Menucards\\Controller\\MenuApiController::deleteAction', '_request' => ['csrf' => true], '_access' => ['menucards: manage menus']], ['id'], ['DELETE' => 0], null, false, true, null],
+            ],
+            362 => [
+                [['_route' => '@menucards/api/category/save_1', '_controller' => 'Pagekit\\Menucards\\Controller\\CategoryApiController::saveAction', '_request' => ['csrf' => true, 'value' => ['category' => 'array']], '_access' => ['menucards: manage menus']], ['id'], ['POST' => 0], null, false, true, null],
+                [['_route' => '@menucards/api/category/delete', '_controller' => 'Pagekit\\Menucards\\Controller\\CategoryApiController::deleteAction', '_request' => ['csrf' => true], '_access' => ['menucards: manage menus']], ['id'], ['DELETE' => 0], null, false, true, null],
+            ],
+            384 => [[['_route' => '@menucards/api/category/addproduct', '_controller' => 'Pagekit\\Menucards\\Controller\\CategoryApiController::addProductAction', '_request' => ['csrf' => true, 'value' => ['product_id' => 'int', 'priority' => 'int']], '_access' => ['menucards: manage menus']], ['id'], ['POST' => 0], null, false, false, null]],
+            411 => [[['_route' => '@menucards/api/category/removeproduct', '_controller' => 'Pagekit\\Menucards\\Controller\\CategoryApiController::removeProductAction', '_request' => ['csrf' => true], '_access' => ['menucards: manage menus']], ['id', 'product_id'], ['DELETE' => 0], null, false, true, null]],
+            440 => [[['_route' => '@menucards/api/category/reorderproducts', '_controller' => 'Pagekit\\Menucards\\Controller\\CategoryApiController::reorderProductsAction', '_request' => ['csrf' => true, 'value' => ['products' => 'array']], '_access' => ['menucards: manage menus']], ['id'], ['POST' => 0], null, false, false, null]],
+            480 => [
+                [['_route' => '@dashboard/save_1', '_controller' => 'Pagekit\\Dashboard\\Controller\\DashboardController::saveAction', '_access' => ['system: access admin area']], ['id'], ['POST' => 0], null, false, true, null],
+                [['_route' => '@dashboard/delete', '_controller' => 'Pagekit\\Dashboard\\Controller\\DashboardController::deleteAction', '_access' => ['system: access admin area']], ['id'], ['DELETE' => 0], null, false, true, null],
+            ],
+            496 => [[['_route' => '@dashboard/reorder', '_controller' => 'Pagekit\\Dashboard\\Controller\\DashboardController::reorderAction', '_access' => ['system: access admin area']], [], ['POST' => 0], null, false, false, null]],
+            511 => [[['_route' => '@dashboard/weather', '_controller' => 'Pagekit\\Dashboard\\Controller\\DashboardController::weatherAction', '_access' => ['system: access admin area']], [], ['GET' => 0], null, false, false, null]],
+            540 => [[['_route' => '@menucards/admin/@menucards/admin/menu', '_controller' => 'Pagekit\\Menucards\\Controller\\MenucardsController::menuAction', '_access' => ['menucards: manage menus', 'system: access admin area']], ['id'], null, null, false, true, null]],
+            577 => [[['_route' => '@menucards/site/@menucards/site', '_controller' => 'Pagekit\\Menucards\\Controller\\SiteController::indexAction', '_request' => ['value' => ['slug' => 'string']]], ['slug'], null, null, false, true, null]],
+            604 => [[['_route' => '@blog/page', '_controller' => 'Pagekit\\Blog\\Controller\\SiteController::indexAction', '_node' => 4], ['page'], null, null, false, true, null]],
+            625 => [[['_route' => '@blog/feed_1', '_controller' => 'Pagekit\\Blog\\Controller\\SiteController::feedAction', '_node' => 4], ['type'], null, null, false, true, null]],
+            641 => [
+                [['_route' => '@blog/id', '_controller' => 'Pagekit\\Blog\\Controller\\SiteController::postAction', '_node' => 4, '_captcha_routes' => ['@blog/api/comment/save', '@blog/api/comment/save_1'], '_resolver' => 'Pagekit\\Blog\\UrlResolver', '_variables' => ['id']], ['slug'], null, null, false, true, null],
+                [null, null, null, null, false, false, 0],
+            ],
+        ];
+    }
+}

@@ -1,0 +1,33 @@
+<?php //Metadata.5278576929.Pagekit_Site_Model_Page
+
+return [PHP_INT_MAX, [
+    'class' => 'Pagekit\\Site\\Model\\Page',
+    'eventPrefix' => '',
+    'events' => [],
+    'fields' => [
+        'id' => [
+            'name' => 'id',
+            'type' => 'integer',
+            'id' => true,
+            'column' => 'id',
+        ],
+        'title' => [
+            'name' => 'title',
+            'type' => 'string',
+            'column' => 'title',
+        ],
+        'content' => [
+            'name' => 'content',
+            'type' => 'string',
+            'column' => 'content',
+        ],
+        'data' => [
+            'name' => 'data',
+            'type' => 'json_array',
+            'column' => 'data',
+        ],
+    ],
+    'isMappedSuperclass' => false,
+    'relations' => [],
+    'table' => '@system_page',
+]];
