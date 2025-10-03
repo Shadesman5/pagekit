@@ -12,13 +12,9 @@ echo "📍 Working in current workspace: $(pwd)"
 # Find composer command
 if command -v composer >/dev/null 2>&1; then
     COMPOSER_CMD="composer"
-elif [ -f "/usr/local/bin/composer" ]; then
-    COMPOSER_CMD="/usr/local/bin/composer"
-elif [ -f "/usr/bin/composer" ]; then
-    COMPOSER_CMD="/usr/bin/composer"
 else
     echo "❌ Error: Composer not found in system"
-    echo "🔍 Note: /workspace/packages/composer is for Pagekit extensions only"
+    echo "🔍 Note: This background agent may need Composer to be installed"
     exit 1
 fi
 
