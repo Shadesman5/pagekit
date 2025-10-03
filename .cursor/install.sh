@@ -1,17 +1,24 @@
 #!/bin/bash
 set -e
 
+# Cleanup function for lock file
+cleanup() {
+    rm -f "$LOCK_FILE"
+}
+trap cleanup EXIT
+
 # Map Cursor secret to standard GitHub CLI env var
 export GH_TOKEN="${PAGEKIT_BACKGROUND_AGENT}"
 
 # Check if already running to prevent duplicate execution
-if [ -f "/tmp/pagekit-setup-running" ]; then
+LOCK_FILE="/tmp/pagekit-setup-running"
+if [ -f "$LOCK_FILE" ]; then
     echo "⚠️ Setup already running, skipping..."
     exit 0
 fi
 
 # Create lock file
-touch /tmp/pagekit-setup-running
+echo "$$" > "$LOCK_FILE"
 
 echo "🚀 Starting Pagekit Background Agent Setup..."
 
@@ -47,12 +54,11 @@ elif [ -f "/usr/bin/composer" ]; then
     echo "✅ Composer found at /usr/bin/composer"
     COMPOSER_CMD="/usr/bin/composer"
 else
-    echo "❌ Error: Composer not found"
+    echo "❌ Error: Composer not found in system"
     echo "🔍 Available composer locations:"
     which composer || echo "  - composer not in PATH"
     find /usr -name "composer" 2>/dev/null || echo "  - no composer found in /usr"
-    echo "🔍 Checking if composer is in different location..."
-    find / -name "composer" 2>/dev/null | head -5
+    echo "🔍 Note: /workspace/packages/composer is for Pagekit extensions only"
     exit 1
 fi
 
@@ -74,4 +80,4 @@ echo "📋 Current Node version: $(node --version)"
 echo "📋 Current Yarn version: $(yarn --version)"
 
 # Clean up lock file
-rm -f /tmp/pagekit-setup-running
+rm -f "$LOCK_FILE"

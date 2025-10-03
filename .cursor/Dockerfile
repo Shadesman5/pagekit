@@ -65,12 +65,11 @@ RUN echo "memory_limit=256M" > /usr/local/etc/php/conf.d/memory.ini \
 # Install Composer 2.0+
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Create .cursor directory and copy helper scripts
-# RUN mkdir -p /.cursor
-# COPY .cursor/install.sh /.cursor/install.sh
-# COPY .cursor/start.sh /.cursor/start.sh
-# COPY .cursor/modernize-helper.sh /.cursor/modernize-helper.sh
-# RUN chmod +x /.cursor/*.sh
+# Verify composer installation
+RUN composer --version
+
+# Background agent will use scripts from the checked-out repository
+# No need to copy scripts - they're already in the git repo
 
 # Set working directory to workspace root
 WORKDIR /workspace
