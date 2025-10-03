@@ -5,9 +5,9 @@ set -e
 export GH_TOKEN="${PAGEKIT_BACKGROUND_AGENT}"
 
 # Helper script for Pagekit modernization tasks
+# The background agent works in the current workspace directory
 
-PROJECT_DIR="/home/ubuntu/pagekit"
-cd "$PROJECT_DIR"
+echo "📍 Working in current workspace: $(pwd)"
 
 function create_branch() {
     local branch_name=$1
@@ -15,6 +15,7 @@ function create_branch() {
     git checkout develop
     git pull origin develop
     git checkout -b "$branch_name"
+    echo "✅ Branch '$branch_name' created and checked out"
 }
 
 function run_tests() {
