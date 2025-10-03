@@ -8,24 +8,16 @@ use Pagekit\Application as App;
 return [
 
     /**
-     * Install/Enable hook - Creates database tables
+     * Install hook - Creates database tables
      */
     'install' => function ($app) {
         // Debug: Install script called
         error_log('[Menucards] Install script called');
-    },
-
-    /**
-     * Enable hook - Creates database tables
-     */
-    'enable' => function ($app) {
-        // Debug: Enable script called
-        error_log('[Menucards] Enable script called');
 
         $util = $app['db']->getUtility();
 
         // Create Menu table
-        if (!$util->tableExists('@menucards_menu')) {
+        if ($util->tableExists('@menucards_menu') === false) {
             $util->createTable('@menucards_menu', function ($table) {
                 $table->addColumn('id', 'integer', ['unsigned' => true, 'length' => 10, 'autoincrement' => true]);
                 $table->addColumn('title', 'string', ['length' => 255]);
@@ -42,7 +34,7 @@ return [
         }
 
         // Create Category table
-        if (!$util->tableExists('@menucards_category')) {
+        if ($util->tableExists('@menucards_category') === false) {
             $util->createTable('@menucards_category', function ($table) {
                 $table->addColumn('id', 'integer', ['unsigned' => true, 'length' => 10, 'autoincrement' => true]);
                 $table->addColumn('menu_id', 'integer', ['unsigned' => true, 'length' => 10]);
@@ -57,7 +49,7 @@ return [
         }
 
         // Create Product table
-        if (!$util->tableExists('@menucards_product')) {
+        if ($util->tableExists('@menucards_product') === false) {
             $util->createTable('@menucards_product', function ($table) {
                 $table->addColumn('id', 'integer', ['unsigned' => true, 'length' => 10, 'autoincrement' => true]);
                 $table->addColumn('name', 'string', ['length' => 255]);
@@ -74,7 +66,7 @@ return [
         }
 
         // Create Category-Product relationship table (Many-to-Many)
-        if (!$util->tableExists('@menucards_category_product')) {
+        if ($util->tableExists('@menucards_category_product') === false) {
             $util->createTable('@menucards_category_product', function ($table) {
                 $table->addColumn('category_id', 'integer', ['unsigned' => true, 'length' => 10]);
                 $table->addColumn('product_id', 'integer', ['unsigned' => true, 'length' => 10]);
