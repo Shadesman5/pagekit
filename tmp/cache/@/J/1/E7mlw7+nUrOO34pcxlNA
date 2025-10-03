@@ -1,0 +1,77 @@
+<?php //Metadata.7038102572.Pagekit_User_Model_User
+
+return [PHP_INT_MAX, [
+    'class' => 'Pagekit\\User\\Model\\User',
+    'eventPrefix' => '',
+    'events' => [
+        'saving' => [
+            'saving',
+        ],
+    ],
+    'fields' => [
+        'id' => [
+            'name' => 'id',
+            'type' => 'integer',
+            'id' => true,
+            'column' => 'id',
+        ],
+        'username' => [
+            'name' => 'username',
+            'type' => 'string',
+            'column' => 'username',
+        ],
+        'password' => [
+            'name' => 'password',
+            'type' => 'string',
+            'column' => 'password',
+        ],
+        'email' => [
+            'name' => 'email',
+            'type' => 'string',
+            'column' => 'email',
+        ],
+        'url' => [
+            'name' => 'url',
+            'type' => 'string',
+            'column' => 'url',
+        ],
+        'registered' => [
+            'name' => 'registered',
+            'type' => 'datetime',
+            'column' => 'registered',
+        ],
+        'status' => [
+            'name' => 'status',
+            'type' => 'integer',
+            'column' => 'status',
+        ],
+        'name' => [
+            'name' => 'name',
+            'type' => 'string',
+            'column' => 'name',
+        ],
+        'login' => [
+            'name' => 'login',
+            'type' => 'datetime',
+            'column' => 'login',
+        ],
+        'activation' => [
+            'name' => 'activation',
+            'type' => 'string',
+            'column' => 'activation',
+        ],
+        'roles' => [
+            'name' => 'roles',
+            'type' => 'simple_array',
+            'column' => 'roles',
+        ],
+        'data' => [
+            'name' => 'data',
+            'type' => 'json_array',
+            'column' => 'data',
+        ],
+    ],
+    'isMappedSuperclass' => false,
+    'relations' => [],
+    'table' => '@system_user',
+]];

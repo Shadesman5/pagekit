@@ -1,0 +1,8 @@
+{
+    "name": "menucards",
+    "version": "1.0.0",
+    "description": "Digital menu card management system",
+    "main": "app/bundle/index.js",
+    "author": "Pagekit",
+    "license": "MIT"
+}

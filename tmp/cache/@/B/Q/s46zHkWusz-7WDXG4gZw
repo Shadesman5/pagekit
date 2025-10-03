@@ -1,0 +1,80 @@
+<?php //Metadata.8797628215.Pagekit_Site_Model_Node
+
+return [PHP_INT_MAX, [
+    'class' => 'Pagekit\\Site\\Model\\Node',
+    'eventPrefix' => '',
+    'events' => [
+        'saving' => [
+            'saving',
+        ],
+        'deleting' => [
+            'deleting',
+        ],
+    ],
+    'fields' => [
+        'id' => [
+            'name' => 'id',
+            'type' => 'integer',
+            'id' => true,
+            'column' => 'id',
+        ],
+        'parent_id' => [
+            'name' => 'parent_id',
+            'type' => 'integer',
+            'column' => 'parent_id',
+        ],
+        'priority' => [
+            'name' => 'priority',
+            'type' => 'integer',
+            'column' => 'priority',
+        ],
+        'status' => [
+            'name' => 'status',
+            'type' => 'integer',
+            'column' => 'status',
+        ],
+        'slug' => [
+            'name' => 'slug',
+            'type' => 'string',
+            'column' => 'slug',
+        ],
+        'path' => [
+            'name' => 'path',
+            'type' => 'string',
+            'column' => 'path',
+        ],
+        'link' => [
+            'name' => 'link',
+            'type' => 'string',
+            'column' => 'link',
+        ],
+        'title' => [
+            'name' => 'title',
+            'type' => 'string',
+            'column' => 'title',
+        ],
+        'type' => [
+            'name' => 'type',
+            'type' => 'string',
+            'column' => 'type',
+        ],
+        'menu' => [
+            'name' => 'menu',
+            'type' => 'string',
+            'column' => 'menu',
+        ],
+        'roles' => [
+            'name' => 'roles',
+            'type' => 'simple_array',
+            'column' => 'roles',
+        ],
+        'data' => [
+            'name' => 'data',
+            'type' => 'json_array',
+            'column' => 'data',
+        ],
+    ],
+    'isMappedSuperclass' => false,
+    'relations' => [],
+    'table' => '@system_node',
+]];

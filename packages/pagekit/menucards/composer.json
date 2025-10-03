@@ -1,0 +1,18 @@
+{
+    "name": "pagekit/menucards",
+    "type": "pagekit-extension",
+    "version": "1.0.0",
+    "title": "Menucards",
+    "description": "Digital menu card management system with centralized product management",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Pagekit",
+            "email": "info@pagekit.com",
+            "homepage": "http://pagekit.com"
+        }
+    ],
+    "extra": {
+        "icon": "icon.svg"
+    }
+}

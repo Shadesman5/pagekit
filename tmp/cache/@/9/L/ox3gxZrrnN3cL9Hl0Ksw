@@ -1,0 +1,37 @@
+<?php //Metadata.3519051286.Pagekit_User_Model_Role
+
+return [PHP_INT_MAX, [
+    'class' => 'Pagekit\\User\\Model\\Role',
+    'eventPrefix' => '',
+    'events' => [
+        'saving' => [
+            'saving',
+        ],
+    ],
+    'fields' => [
+        'id' => [
+            'name' => 'id',
+            'type' => 'integer',
+            'id' => true,
+            'column' => 'id',
+        ],
+        'name' => [
+            'name' => 'name',
+            'type' => 'string',
+            'column' => 'name',
+        ],
+        'priority' => [
+            'name' => 'priority',
+            'type' => 'integer',
+            'column' => 'priority',
+        ],
+        'permissions' => [
+            'name' => 'permissions',
+            'type' => 'simple_array',
+            'column' => 'permissions',
+        ],
+    ],
+    'isMappedSuperclass' => false,
+    'relations' => [],
+    'table' => '@system_role',
+]];
