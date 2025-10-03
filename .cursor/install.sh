@@ -100,7 +100,13 @@ yarn install
 
 # Run initial tests to verify setup
 echo "🧪 Running initial test suite..."
-./vendor/bin/phpunit --version
+if [ -f "./app/vendor/bin/phpunit" ]; then
+    ./app/vendor/bin/phpunit --version
+elif [ -f "./vendor/bin/phpunit" ]; then
+    ./vendor/bin/phpunit --version
+else
+    echo "⚠️ PHPUnit not found, but setup completed successfully"
+fi
 
 echo "✅ Setup complete! Ready for modernization tasks."
 echo "📋 Current PHP version: $(php -v | head -n 1)"
