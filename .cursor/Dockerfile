@@ -65,8 +65,8 @@ RUN echo "memory_limit=256M" > /usr/local/etc/php/conf.d/memory.ini \
 # Install Composer 2.0+ using the official installer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Verify composer installation
-RUN composer --version
+# Verify composer installation and add to PATH
+RUN composer --version && echo 'export PATH="/usr/local/bin:$PATH"' >> /etc/bash.bashrc
 
 # Background agent will use scripts from the checked-out repository
 # No need to copy scripts - they're already in the git repo

@@ -51,37 +51,37 @@ echo "📍 Current PATH: $PATH"
 echo "📍 Current user: $(whoami)"
 echo "📍 Current directory: $(pwd)"
 
-# Check if composer is executable
+# Check if composer is available
 if command -v composer >/dev/null 2>&1; then
     echo "✅ Composer found in PATH: $(which composer)"
     COMPOSER_CMD="composer"
-elif [ -f "/usr/local/bin/composer" ]; then
-    echo "✅ Composer file found at /usr/local/bin/composer"
-    if [ -x "/usr/local/bin/composer" ]; then
-        echo "✅ Composer is executable"
-        COMPOSER_CMD="/usr/local/bin/composer"
-    else
-        echo "❌ Composer file exists but is not executable"
-        ls -la /usr/local/bin/composer
-    fi
-elif [ -f "/usr/bin/composer" ]; then
-    echo "✅ Composer file found at /usr/bin/composer"
-    if [ -x "/usr/bin/composer" ]; then
-        echo "✅ Composer is executable"
-        COMPOSER_CMD="/usr/bin/composer"
-    else
-        echo "❌ Composer file exists but is not executable"
-        ls -la /usr/bin/composer
-    fi
+elif [ -f "/usr/local/bin/composer" ] && [ -x "/usr/local/bin/composer" ]; then
+    echo "✅ Composer found at /usr/local/bin/composer"
+    COMPOSER_CMD="/usr/local/bin/composer"
+elif [ -f "/usr/bin/composer" ] && [ -x "/usr/bin/composer" ]; then
+    echo "✅ Composer found at /usr/bin/composer"
+    COMPOSER_CMD="/usr/bin/composer"
 else
-    echo "❌ Error: Composer not found in system"
-    echo "🔍 Available composer locations:"
-    which composer || echo "  - composer not in PATH"
-    find /usr -name "composer" 2>/dev/null || echo "  - no composer found in /usr"
-    echo "🔍 Checking all possible locations:"
-    find / -name "composer" 2>/dev/null | head -10
-    echo "🔍 Note: /workspace/packages/composer is for Pagekit extensions only"
-    exit 1
+    echo "⚠️ Composer not found in system, installing it..."
+    
+    # Install Composer if not available
+    if command -v php >/dev/null 2>&1; then
+        echo "📦 Installing Composer..."
+        curl -sS https://getcomposer.org/installer | php -- --install-dir=/tmp --filename=composer
+        chmod +x /tmp/composer
+        COMPOSER_CMD="/tmp/composer"
+        echo "✅ Composer installed at /tmp/composer"
+    else
+        echo "❌ Error: PHP not found, cannot install Composer"
+        echo "🔍 Available locations:"
+        which composer || echo "  - composer not in PATH"
+        which php || echo "  - php not in PATH"
+        echo "🔍 Checking if we're in the right environment..."
+        echo "  - Current user: $(whoami)"
+        echo "  - Current directory: $(pwd)"
+        echo "  - PHP version: $(php --version 2>/dev/null || echo 'PHP not available')"
+        exit 1
+    fi
 fi
 
 echo "📦 Running: $COMPOSER_CMD install --no-interaction"
