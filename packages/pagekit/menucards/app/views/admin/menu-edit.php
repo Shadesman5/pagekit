@@ -123,7 +123,7 @@
     </div>
 
     <!-- Product Selector Modal -->
-    <v-modal v-ref:productmodal>
+    <v-modal ref="productmodal">
         <product-selector-modal 
             :products="allProducts" 
             @select="addProductToCategory" 
@@ -132,7 +132,7 @@
     </v-modal>
 
     <!-- Product Creator Modal -->
-    <v-modal v-ref:creatormodal>
+    <v-modal ref="creatormodal">
         <product-creator-modal 
             @save="createAndAddProduct" 
             @cancel="$refs.creatormodal.close()">

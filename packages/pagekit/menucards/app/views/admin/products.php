@@ -73,7 +73,7 @@
     <v-pagination :page.sync="config.page" :pages="pages" v-show="pages > 1"></v-pagination>
 
     <!-- Product Edit Modal -->
-    <v-modal v-ref:editmodal large>
+    <v-modal ref="editmodal" large>
         <product-edit-modal :product="editingProduct" @save="saveProduct" @cancel="$refs.editmodal.close()"></product-edit-modal>
     </v-modal>
 

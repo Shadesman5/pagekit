@@ -71,7 +71,7 @@
     <v-pagination :page.sync="config.page" :pages="pages" v-show="pages > 1"></v-pagination>
 
     <!-- Menu Edit Modal -->
-    <v-modal v-ref:editmodal>
+    <v-modal ref="editmodal">
         <menu-edit-modal :menu="editingMenu" @save="saveMenu" @cancel="$refs.editmodal.close()"></menu-edit-modal>
     </v-modal>
 
