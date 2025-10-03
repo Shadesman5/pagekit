@@ -64,7 +64,14 @@ elif [ -f "/usr/bin/composer" ] && [ -x "/usr/bin/composer" ]; then
 else
     echo "⚠️ Composer not found in system, installing it..."
     
-    # Install Composer if not available
+    # First, install PHP if not available
+    if ! command -v php >/dev/null 2>&1; then
+        echo "📦 Installing PHP..."
+        sudo apt-get update
+        sudo apt-get install -y php php-cli php-curl php-zip php-mbstring php-xml
+    fi
+    
+    # Now install Composer
     if command -v php >/dev/null 2>&1; then
         echo "📦 Installing Composer..."
         curl -sS https://getcomposer.org/installer | php -- --install-dir=/tmp --filename=composer
