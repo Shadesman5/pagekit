@@ -26,7 +26,7 @@ function run_tests() {
 function check_linting() {
     echo "🔍 Checking PHP code style..."
     # Add phpcs or other linting tools if configured
-    composer validate
+    /usr/bin/composer validate
 }
 
 function update_changelog() {
@@ -52,7 +52,7 @@ function upgrade_phpunit() {
     sed -i 's/"php": ">=7.4"/"php": ">=8.2"/' composer.json
     
     # Update PHPUnit
-    composer require --dev phpunit/phpunit:^11.0
+    /usr/bin/composer require --dev phpunit/phpunit:^11.0
     
     run_tests
 }
@@ -62,7 +62,7 @@ function patch_security() {
     create_branch "feature/security-patches"
     
     # Run composer audit
-    composer audit
+    /usr/bin/composer audit
     
     # Update packages one by one
     # Add specific update commands here
