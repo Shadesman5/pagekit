@@ -6,7 +6,7 @@ export GH_TOKEN="${PAGEKIT_BACKGROUND_AGENT}"
 
 echo "🤖 Pagekit Background Agent started!"
 echo "📍 Working directory: $(pwd)"
-echo "🌿 Current branch: $(cd /home/ubuntu/pagekit && git branch --show-current)"
+echo "🌿 Current branch: $(git branch --show-current)"
 
 # Keep the container running
 echo "⏳ Agent is ready and waiting for tasks..."

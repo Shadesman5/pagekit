@@ -6,13 +6,15 @@ export GH_TOKEN="${PAGEKIT_BACKGROUND_AGENT}"
 
 echo "🚀 Starting Pagekit Background Agent Setup..."
 
-# Clone the repository if not exists
-if [ ! -d "/home/ubuntu/pagekit" ]; then
-    echo "📦 Cloning Pagekit repository..."
-    git clone https://github.com/Shadesman5/pagekit.git /home/ubuntu/pagekit
-fi
+# The background agent already has the workspace mounted
+# We're working in the current directory (the workspace root)
+echo "📍 Working in current workspace: $(pwd)"
 
-cd /home/ubuntu/pagekit
+# Ensure we're in a git repository
+if [ ! -d ".git" ]; then
+    echo "❌ Error: Not in a git repository. Background agent should have workspace mounted."
+    exit 1
+fi
 
 # Configure git
 echo "⚙️ Configuring Git..."

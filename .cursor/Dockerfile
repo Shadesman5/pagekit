@@ -65,29 +65,22 @@ RUN echo "memory_limit=256M" > /usr/local/etc/php/conf.d/memory.ini \
 # Install Composer 2.0+
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Create ubuntu user for development
-RUN useradd -m -s /bin/bash ubuntu
-
 # Create .cursor directory and copy helper scripts
-RUN mkdir -p /home/ubuntu/.cursor
-COPY .cursor/install.sh /home/ubuntu/.cursor/install.sh
-COPY .cursor/start.sh /home/ubuntu/.cursor/start.sh
-COPY .cursor/modernize-helper.sh /home/ubuntu/.cursor/modernize-helper.sh
-RUN chown -R ubuntu:ubuntu /home/ubuntu/.cursor \
-    && chmod +x /home/ubuntu/.cursor/*.sh
+RUN mkdir -p /.cursor
+COPY .cursor/install.sh /.cursor/install.sh
+COPY .cursor/start.sh /.cursor/start.sh
+COPY .cursor/modernize-helper.sh /.cursor/modernize-helper.sh
+RUN chmod +x /.cursor/*.sh
 
-# Switch to ubuntu user
-USER ubuntu
-
-# Set working directory to user home
-WORKDIR /home/ubuntu
+# Set working directory to workspace root
+WORKDIR /workspace
 
 # Environment variables for better git/composer experience
 ENV COMPOSER_ALLOW_SUPERUSER=1
 ENV COMPOSER_NO_INTERACTION=1
 
-# Code will be cloned by the background agent - no COPY needed
-# Dependencies will be installed by the background agent - no RUN composer install needed
+# The background agent will mount the workspace at /workspace
+# Dependencies will be installed by the background agent using the install.sh script
 
 # Note: GitHub token should be provided via environment variable when running the container:
-# docker run -e GH_TOKEN=your_token ...
+# docker run -e PAGEKIT_BACKGROUND_AGENT=your_token ...
