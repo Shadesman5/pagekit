@@ -47,17 +47,39 @@ echo "📚 Installing PHP dependencies..."
 
 # Debug: Check composer availability
 echo "🔍 Checking composer availability..."
+echo "📍 Current PATH: $PATH"
+echo "📍 Current user: $(whoami)"
+echo "📍 Current directory: $(pwd)"
+
+# Check if composer is executable
 if command -v composer >/dev/null 2>&1; then
     echo "✅ Composer found in PATH: $(which composer)"
     COMPOSER_CMD="composer"
+elif [ -f "/usr/local/bin/composer" ]; then
+    echo "✅ Composer file found at /usr/local/bin/composer"
+    if [ -x "/usr/local/bin/composer" ]; then
+        echo "✅ Composer is executable"
+        COMPOSER_CMD="/usr/local/bin/composer"
+    else
+        echo "❌ Composer file exists but is not executable"
+        ls -la /usr/local/bin/composer
+    fi
 elif [ -f "/usr/bin/composer" ]; then
-    echo "✅ Composer found at /usr/bin/composer"
-    COMPOSER_CMD="/usr/bin/composer"
+    echo "✅ Composer file found at /usr/bin/composer"
+    if [ -x "/usr/bin/composer" ]; then
+        echo "✅ Composer is executable"
+        COMPOSER_CMD="/usr/bin/composer"
+    else
+        echo "❌ Composer file exists but is not executable"
+        ls -la /usr/bin/composer
+    fi
 else
     echo "❌ Error: Composer not found in system"
     echo "🔍 Available composer locations:"
     which composer || echo "  - composer not in PATH"
     find /usr -name "composer" 2>/dev/null || echo "  - no composer found in /usr"
+    echo "🔍 Checking all possible locations:"
+    find / -name "composer" 2>/dev/null | head -10
     echo "🔍 Note: /workspace/packages/composer is for Pagekit extensions only"
     exit 1
 fi

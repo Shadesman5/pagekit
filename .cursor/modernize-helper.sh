@@ -12,6 +12,8 @@ echo "📍 Working in current workspace: $(pwd)"
 # Find composer command
 if command -v composer >/dev/null 2>&1; then
     COMPOSER_CMD="composer"
+elif [ -f "/usr/local/bin/composer" ]; then
+    COMPOSER_CMD="/usr/local/bin/composer"
 elif [ -f "/usr/bin/composer" ]; then
     COMPOSER_CMD="/usr/bin/composer"
 else

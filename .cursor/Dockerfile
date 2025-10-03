@@ -62,8 +62,8 @@ RUN echo "memory_limit=256M" > /usr/local/etc/php/conf.d/memory.ini \
     && echo "max_execution_time=300" >> /usr/local/etc/php/conf.d/memory.ini \
     && echo "xdebug.mode=coverage" > /usr/local/etc/php/conf.d/xdebug.ini
 
-# Install Composer 2.0+
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+# Install Composer 2.0+ using the official installer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 # Verify composer installation
 RUN composer --version
