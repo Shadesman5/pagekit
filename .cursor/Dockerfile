@@ -72,7 +72,7 @@ RUN composer --version && echo 'export PATH="/usr/local/bin:$PATH"' >> /etc/bash
 # No need to copy scripts - they're already in the git repo
 
 # Set working directory to workspace root
-WORKDIR /workspace
+# WORKDIR /workspace
 
 # Environment variables for better git/composer experience
 ENV COMPOSER_ALLOW_SUPERUSER=1
