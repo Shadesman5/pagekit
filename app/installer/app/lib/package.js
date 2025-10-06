@@ -22,7 +22,13 @@ export default {
         },
 
         enable(pkg) {
-            return this.$http.post('admin/system/package/enable', { name: pkg.name }).then(() => {
+            return this.$http.post('admin/system/package/enable', { name: pkg.name }).then((response) => {
+                // Check if response contains an error (even with 200 status)
+                if (response.data && response.data.error) {
+                    this.$notify(response.data.error, 'danger');
+                    return;
+                }
+                
                 this.$notify(this.$trans('"%title%" enabled.', { title: pkg.title }));
                 Vue.set(pkg, 'enabled', true);
                 document.location.assign(this.$url(`admin/system/package/${pkg.type === 'pagekit-theme' ? 'themes' : 'extensions'}`));
@@ -55,8 +61,23 @@ export default {
             return uninstall.uninstall(pkg, packages);
         },
 
-        error(message) {
-            this.$notify(message.data, 'danger');
+        error(response) {
+            // Handle different error response formats
+            let message = 'An error occurred';
+            
+            if (response && response.data) {
+                if (typeof response.data === 'string') {
+                    message = response.data;
+                } else if (response.data.error) {
+                    message = response.data.error;
+                } else if (response.data.message) {
+                    message = response.data.message;
+                }
+            } else if (typeof response === 'string') {
+                message = response;
+            }
+            
+            this.$notify(message, 'danger');
         }
 
     }
