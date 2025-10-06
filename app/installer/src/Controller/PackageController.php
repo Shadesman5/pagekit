@@ -95,8 +95,28 @@ class PackageController
             }
 
             $this->manager->enable($package);
+            
+            // Clear cache only on successful enable
+            App::module('system/cache')->clearCache();
 
             return ['message' => 'success'];
+            
+        } catch (\Throwable $e) {
+            // Log the error
+            App::log('error', sprintf(
+                'Failed to enable extension "%s": %s',
+                $name,
+                $e->getMessage()
+            ), ['exception' => $e]);
+            
+            // Return error to UI
+            // In debug mode, show full error; otherwise show generic message
+            $errorMessage = App::debug() 
+                ? sprintf('%s', $e->getMessage())
+                : __('Unable to enable "%name%". See error log for details.', ['%name%' => $name]);
+            
+            return ['error' => $errorMessage];
+            
         } finally {
             // Restore original error handlers
             if ($handler) {

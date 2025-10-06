@@ -126,45 +126,128 @@ class PackageManager
         }
 
         foreach ($packages as $package) {
-
-            // Get the old package config if provided. If there is no old config available, then use the new config (usually fist installation).
-            $previousPackageConfig = $package;
-            foreach ($previousPackageConfigs as $packageConfig) {
-                if ($packageConfig->get('name') == $package->get('name')) {
-                    $previousPackageConfig = $packageConfig;
-                    break;
+            // Store original state for rollback on error
+            $originalState = null;
+            $moduleName = $package->get('module');
+            
+            try {
+                // Get the old package config if provided. If there is no old config available, then use the new config (usually fist installation).
+                $previousPackageConfig = $package;
+                foreach ($previousPackageConfigs as $packageConfig) {
+                    if ($packageConfig->get('name') == $package->get('name')) {
+                        $previousPackageConfig = $packageConfig;
+                        break;
+                    }
                 }
-            }
 
-            App::trigger('package.enable', [$package]);
+                App::trigger('package.enable', [$package]);
 
-            // During installation, config service might not be available
-            $app = App::getInstance();
-            if ($app && isset($app['config'])) {
-                if (!$current = App::config('system')->get('packages.' . $previousPackageConfig->get('module'))) {
+                // During installation, config service might not be available
+                $app = App::getInstance();
+                if ($app && isset($app['config'])) {
+                    // Capture original state for potential rollback
+                    $originalState = [
+                        'version' => App::config('system')->get('packages.' . $moduleName),
+                        'enabled' => in_array($moduleName, (array) App::config('system')->get('extensions', [])),
+                        'theme' => App::config('system')->get('site.theme') === $moduleName,
+                    ];
+                    
+                    if (!$current = App::config('system')->get('packages.' . $previousPackageConfig->get('module'))) {
+                        $current = $this->doInstall($package);
+                    }
+
+                    $scripts = $this->getScripts($package, $current);
+                    if ($scripts->hasUpdates()) {
+                        $scripts->update();
+                    }
+
+                    // CRITICAL FIX: Execute enable scripts BEFORE setting config
+                    // This way, if scripts fail, config is not yet modified
+                    $scripts->enable();
+                    
+                    // Only persist config changes if enable() succeeded
+                    $version = $this->getVersion($package);
+                    App::config('system')->set('packages.' . $moduleName, $version);
+
+                    if ($package->getType() == 'pagekit-theme') {
+                        App::config('system')->set('site.theme', $moduleName);
+                    } elseif ($package->getType() == 'pagekit-extension') {
+                        // Only add to extensions list if not already there
+                        if (!$originalState['enabled']) {
+                            App::config('system')->push('extensions', $moduleName);
+                        }
+                    }
+                } else {
+                    // During installation, just run basic enable without config updates
                     $current = $this->doInstall($package);
+                    $scripts = $this->getScripts($package, $current);
+                    $scripts->enable();
                 }
-
-                $scripts = $this->getScripts($package, $current);
-                if ($scripts->hasUpdates()) {
-                    $scripts->update();
+            } catch (\Throwable $e) {
+                // Rollback: Restore original state on any error
+                if ($originalState !== null) {
+                    $this->rollbackEnable($package, $originalState);
                 }
-
-                $version = $this->getVersion($package);
-                App::config('system')->set('packages.' . $package->get('module'), $version);
-
-                $scripts->enable();
-
-                if ($package->getType() == 'pagekit-theme') {
-                    App::config('system')->set('site.theme', $package->get('module'));
-                } elseif ($package->getType() == 'pagekit-extension') {
-                    App::config('system')->push('extensions', $package->get('module'));
+                
+                // Log the error
+                $app = App::getInstance();
+                if ($app && isset($app['log'])) {
+                    $app['log']->error(
+                        sprintf('Failed to enable package "%s": %s', 
+                            $package->get('name'), 
+                            $e->getMessage()
+                        ),
+                        ['exception' => $e, 'package' => $moduleName]
+                    );
                 }
-            } else {
-                // During installation, just run basic enable without config updates
-                $current = $this->doInstall($package);
-                $scripts = $this->getScripts($package, $current);
-                $scripts->enable();
+                
+                // Re-throw with context for caller to handle
+                throw new \RuntimeException(
+                    sprintf('Unable to enable "%s": %s', 
+                        $package->get('title') ?? $package->get('name'),
+                        $e->getMessage()
+                    ),
+                    0,
+                    $e
+                );
+            }
+        }
+    }
+    
+    /**
+     * Rollback package enable on error
+     *
+     * @param  $package
+     * @param  array $originalState
+     */
+    protected function rollbackEnable($package, array $originalState): void
+    {
+        $moduleName = $package->get('module');
+        $config = App::config('system');
+        
+        // Restore original version
+        if ($originalState['version'] !== null) {
+            $config->set('packages.' . $moduleName, $originalState['version']);
+        } else {
+            $config->remove('packages.' . $moduleName);
+        }
+        
+        // Restore original enabled state
+        $currentlyEnabled = in_array($moduleName, (array) $config->get('extensions', []));
+        if ($originalState['enabled'] && !$currentlyEnabled) {
+            // Was enabled, restore it
+            $config->push('extensions', $moduleName);
+        } elseif (!$originalState['enabled'] && $currentlyEnabled) {
+            // Was not enabled, remove it
+            $config->pull('extensions', $moduleName);
+        }
+        
+        // Restore theme setting
+        if ($package->getType() == 'pagekit-theme') {
+            if ($originalState['theme']) {
+                $config->set('site.theme', $moduleName);
+            } elseif ($config->get('site.theme') === $moduleName) {
+                $config->remove('site.theme');
             }
         }
     }

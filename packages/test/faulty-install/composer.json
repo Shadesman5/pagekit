@@ -1,0 +1,17 @@
+{
+    "name": "test/faulty-install",
+    "type": "pagekit-extension",
+    "version": "1.0.0",
+    "title": "Faulty Install Test",
+    "description": "Test extension that fails during install() - should NOT be marked as installed",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Test",
+            "email": "test@example.com"
+        }
+    ],
+    "extra": {
+        "scripts": "scripts.php"
+    }
+}
