@@ -54,11 +54,17 @@ export default {
 
             if (this.packages) {
                 this.queryUpdates(this.packages).then((res) => {
-                    const { data } = res;
-                    this.$set(this, 'updates', data.packages.length ? _.keyBy(data.packages, 'name') : null);
+                    // Handle response safely (API might be unavailable)
+                    if (res && res.data && res.data.packages) {
+                        this.$set(this, 'updates', res.data.packages.length ? _.keyBy(res.data.packages, 'name') : null);
+                    } else {
+                        this.$set(this, 'updates', null);
+                    }
                     this.$set(this, 'status', '');
                 }, () => {
-                    this.$set(this, 'status', 'error');
+                    // API unavailable or blocked by CSP - this is expected
+                    this.$set(this, 'updates', null);
+                    this.$set(this, 'status', '');
                 });
             }
         },
