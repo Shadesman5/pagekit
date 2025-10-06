@@ -1,6 +1,6 @@
 # Changelog 2025
 
-## Pagekit 1.0.41 - Cursor Tooling Updates (October 3, 2025)
+## Pagekit 1.0.41 - Cursor Tooling Updates (October 6, 2025)
 
 ### 🔧 Infrastructure
 
@@ -11,6 +11,7 @@
   - 🔧 Further cursor tooling improvements
   - ⚡ Additional cursor tooling enhancements
   - 🐳 Update Dockerfile for background agent
+  - 📁 Reorganized migration docs structure
 
 ## Pagekit 1.0.41 - E2E Testing Infrastructure & Configuration Fixes (October 2, 2025)
 
