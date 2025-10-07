@@ -1,5 +1,65 @@
 # Changelog 2025
 
+## Pagekit 1.0.42 - Enhanced Extension Error Handling & Transaction Safety (October 7, 2025)
+
+### 🚀 Major Changes
+
+- **Transactional Package Activation** - Complete rewrite with atomic operations
+  - 🔒 Database transaction support with automatic rollback on failure
+  - 🛡️ Safe package enable/disable with proper error recovery
+  - 📝 Comprehensive error logging and user feedback
+  - ⚡ Improved package manager API with better exception handling
+
+### ✨ New Features
+
+- **File-based Debug Logging** - New persistent logging system
+  - 📄 Debug messages now written to `tmp/logs/debug.log`
+  - 🔍 Better debugging capabilities for production environments
+  - 💾 Persistent log storage for troubleshooting
+
+### 🐛 Bug Fixes
+
+- **Frontend Error Handling** - Improved error display for package operations
+
+  - ✨ Better error messages when enabling/disabling packages
+  - 🎯 Clear user feedback for failed package operations
+  - 🔧 Enhanced error recovery mechanisms
+
+- **Package Manager API** - Robust error handling improvements
+  - 🛠️ Better exception handling in package operations
+  - 📊 Improved error reporting and debugging
+  - 🔄 Automatic state recovery on failures
+
+### 🔧 Infrastructure
+
+- **Development Environment** - Enhanced debugging capabilities
+  - 🗂️ Updated `.gitignore` for Playwright MCP integration
+  - 🧪 Better test environment isolation
+  - 📁 Improved temporary file management
+
+### 📝 Documentation
+
+- **Documentation Reorganization** - Extension error handling docs moved to migration-docs
+  - 📂 Moved analysis and implementation docs to `migration-docs/documentation/`
+  - 📋 Moved test guide to `migration-docs/testing/`
+  - 🗂️ Cleaned up root directory
+  - 🧹 Removed test packages (faulty-bootstrap, faulty-enable, faulty-install)
+- **Change Tracking** - All changes documented in CHANGELOG-2025.md
+- **Error Handling Guide** - Improved documentation for troubleshooting
+
+### 🔍 Technical Details
+
+**Breaking Changes**: None
+
+**Migration Notes**: No migration required. The changes are backward compatible.
+
+**Testing Notes**:
+
+- Test package enable/disable functionality
+- Verify error handling with faulty extensions
+- Check debug.log file generation
+- Confirm transaction rollback on errors
+
 ## Pagekit 1.0.41 - Cursor Tooling Updates (October 6, 2025)
 
 ### 🔧 Infrastructure

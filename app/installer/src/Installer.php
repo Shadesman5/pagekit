@@ -141,12 +141,28 @@ class Installer
                 try {
                     $package = $this->app['package']->load($package);
                 } catch (\Exception $e) {
+                    // Log package loading error and continue with next package
+                    $this->app['log']->warning(
+                        sprintf('Failed to load package from "%s": %s', basename(dirname($package)), $e->getMessage()),
+                        ['exception' => $e]
+                    );
                     continue;
                 }
                 if ($package->get('type') === 'pagekit-extension' || $package->get('type') === 'pagekit-theme') {
                     try {
                         $packageManager->enable($package);
                     } catch (\Exception $e) {
+                        // Log the error but continue with other packages during installation
+                        // The package will NOT be marked as enabled due to rollback in PackageManager
+                        $this->app['log']->error(
+                            sprintf('Failed to enable package "%s" during installation: %s', 
+                                $package->get('name'), 
+                                $e->getMessage()
+                            ),
+                            ['exception' => $e]
+                        );
+                        // Continue with next package - installation should not fail completely
+                        // if one extension has issues
                     }
                 }
             }
