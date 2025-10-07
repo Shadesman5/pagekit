@@ -36,6 +36,7 @@ docker.env
 .env
 
 # E2E Testing
+.playwright-mcp/**/*
 /test-results/
 /playwright-report/**/*
 /playwright-smoke-report/**/*
