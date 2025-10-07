@@ -39,6 +39,11 @@
 
 ### 📝 Documentation
 
+- **Documentation Reorganization** - Extension error handling docs moved to migration-docs
+  - 📂 Moved analysis and implementation docs to `migration-docs/documentation/`
+  - 📋 Moved test guide to `migration-docs/testing/`
+  - 🗂️ Cleaned up root directory
+  - 🧹 Removed test packages (faulty-bootstrap, faulty-enable, faulty-install)
 - **Change Tracking** - All changes documented in CHANGELOG-2025.md
 - **Error Handling Guide** - Improved documentation for troubleshooting
 
