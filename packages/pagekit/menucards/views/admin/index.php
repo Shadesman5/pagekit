@@ -1,10 +1,9 @@
-<div id="menus" class="uk-form" v-cloak>
+<?php $view->script('menu-index', 'menucards:app/bundle/menu-index.js', ['vue']) ?>
+
+<div id="menus" v-cloak>
     <menu-list></menu-list>
 </div>
 
 <script>
-    // Mount Vue.js Menu Management App (with Context-Aware Product Creation)
-    (function() {
-        window.$data = <?= json_encode($data) ?>;
-    })();
+window.$data = <?= json_encode($data) ?>;
 </script>

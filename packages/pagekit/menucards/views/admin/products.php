@@ -1,10 +1,9 @@
-<div id="products" class="uk-form" v-cloak>
+<?php $view->script('product-index', 'menucards:app/bundle/product-index.js', ['vue']) ?>
+
+<div id="products" v-cloak>
     <product-list></product-list>
 </div>
 
 <script>
-    // Mount Vue.js Product Management App
-    (function() {
-        window.$data = <?= json_encode($data) ?>;
-    })();
+window.$data = <?= json_encode($data) ?>;
 </script>

@@ -43,7 +43,7 @@ return [
     'menu' => [
         'menucards' => [
             'label' => 'Menucards',
-            'url' => '@menucards/admin',
+            'url' => 'admin/menucards',
             'access' => 'menucards: manage menucards',
             'icon' => 'menucards:icon.svg',
             'priority' => 10
@@ -51,7 +51,7 @@ return [
         'menucards: products' => [
             'label' => 'Products',
             'parent' => 'menucards',
-            'url' => '@menucards/admin/products',
+            'url' => 'admin/menucards/products',
             'access' => 'menucards: manage products',
             'priority' => 5
         ]

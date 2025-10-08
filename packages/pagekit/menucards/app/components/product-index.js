@@ -1,6 +1,6 @@
 import ProductList from './product-list.vue';
 
-window.Products = {
+const Products = {
     el: '#products',
     
     name: 'Products',
@@ -9,9 +9,17 @@ window.Products = {
         ProductList
     },
     
+    data() {
+        return _.merge({
+            config: {}
+        }, window.$data);
+    },
+    
     created() {
         console.log('Products app initialized');
     }
 };
 
-Vue.ready(window.Products);
+export default Products;
+
+Vue.ready(Products);

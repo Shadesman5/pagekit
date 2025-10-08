@@ -1,6 +1,6 @@
 import MenuList from './menu-list.vue';
 
-window.Menus = {
+const Menus = {
     el: '#menus',
     
     name: 'Menus',
@@ -9,9 +9,17 @@ window.Menus = {
         MenuList
     },
     
+    data() {
+        return _.merge({
+            config: {}
+        }, window.$data);
+    },
+    
     created() {
         console.log('Menus app initialized');
     }
 };
 
-Vue.ready(window.Menus);
+export default Menus;
+
+Vue.ready(Menus);

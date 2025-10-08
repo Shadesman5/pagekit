@@ -28,6 +28,11 @@ class ProductController
                 'config' => [
                     'api' => '/api/menucards'
                 ]
+            ],
+            'data' => [
+                'config' => [
+                    'api' => '/api/menucards'
+                ]
             ]
         ];
     }
