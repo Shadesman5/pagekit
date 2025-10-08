@@ -98,21 +98,82 @@ $COMPOSER_CMD install --no-interaction
 echo "📦 Installing Node dependencies..."
 yarn install
 
+# Install Playwright and browsers for E2E testing
+echo "🎭 Setting up Playwright for E2E testing..."
+if command -v npx >/dev/null 2>&1; then
+    echo "📦 Installing Playwright browsers..."
+    npx playwright install chromium
+    echo "✅ Playwright browsers installed"
+else
+    echo "⚠️ npx not found, skipping Playwright browser installation"
+fi
+
+# Create E2E test configuration if not exists
+echo "⚙️ Setting up E2E test configuration..."
+if [ ! -f "tests/e2e/config/test-config.json" ]; then
+    if [ -f "tests/e2e/config/test-config.example.json" ]; then
+        echo "📝 Creating test-config.json from example..."
+        cp tests/e2e/config/test-config.example.json tests/e2e/config/test-config.json
+        echo "✅ test-config.json created"
+        echo "⚠️ IMPORTANT: Edit tests/e2e/config/test-config.json with YOUR credentials!"
+        echo "⚠️ Replace all 'YOUR_*' placeholders with actual values"
+    else
+        echo "⚠️ test-config.example.json not found, skipping test config creation"
+    fi
+else
+    echo "✅ test-config.json already exists"
+fi
+
+# Compile frontend assets for initial setup
+echo "🔨 Compiling frontend assets..."
+if [ -f "package.json" ] && command -v yarn >/dev/null 2>&1; then
+    yarn compile-js --mode=production
+    echo "✅ Frontend assets compiled"
+else
+    echo "⚠️ Cannot compile assets, yarn or package.json not available"
+fi
+
 # Run initial tests to verify setup
 echo "🧪 Running initial test suite..."
 if [ -f "./app/vendor/bin/phpunit" ]; then
     ./app/vendor/bin/phpunit --version
+    echo "✅ PHPUnit available at ./app/vendor/bin/phpunit"
 elif [ -f "./vendor/bin/phpunit" ]; then
     ./vendor/bin/phpunit --version
+    echo "✅ PHPUnit available at ./vendor/bin/phpunit"
 else
     echo "⚠️ PHPUnit not found, but setup completed successfully"
 fi
 
+# Verify Playwright installation
+if command -v npx >/dev/null 2>&1; then
+    echo "🎭 Verifying Playwright..."
+    npx playwright --version || echo "⚠️ Playwright verification failed"
+fi
+
+echo ""
 echo "✅ Setup complete! Ready for modernization tasks."
-echo "📋 Current PHP version: $(php -v | head -n 1)"
-echo "📋 Current Composer version: $($COMPOSER_CMD --version)"
-echo "📋 Current Node version: $(node --version)"
-echo "📋 Current Yarn version: $(yarn --version)"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📋 Environment Summary:"
+echo "  • PHP version: $(php -v | head -n 1)"
+echo "  • Composer version: $($COMPOSER_CMD --version)"
+echo "  • Node version: $(node --version)"
+echo "  • Yarn version: $(yarn --version)"
+echo "  • Playwright: $(npx playwright --version 2>/dev/null || echo 'Not available')"
+echo "  • PHPUnit: $(./app/vendor/bin/phpunit --version 2>/dev/null | head -n 1 || echo 'Not available')"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "🎯 E2E Testing Setup:"
+echo "  • Test config: tests/e2e/config/test-config.json"
+echo "  • ⚠️  EDIT test-config.json with YOUR credentials before running tests!"
+echo "  • MCP Playwright tools available for browser automation"
+echo ""
+echo "🚀 To start Pagekit server for E2E tests:"
+echo "   php pagekit start -s localhost:8080 --no-ansi"
+echo ""
+echo "🧪 To run fresh installation test:"
+echo "   npx playwright test tests/e2e/specs/01-setup/installation.spec.js --project=chromium"
+echo ""
 
 # Clean up lock file
 rm -f "$LOCK_FILE"
