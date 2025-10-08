@@ -93,7 +93,8 @@
             "Pagekit\\User\\": "app/system/modules/user/src",
             "Pagekit\\Info\\": "app/system/modules/info/src",
             "Pagekit\\Package\\": "app/system/modules/package/src",
-            "Pagekit\\Theme\\": "app/system/modules/theme/src"
+            "Pagekit\\Theme\\": "app/system/modules/theme/src",
+            "Pagekit\\Menucards\\": "packages/pagekit/menucards/src"
         }
     },
     "autoload-dev": {

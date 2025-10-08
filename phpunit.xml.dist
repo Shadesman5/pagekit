@@ -10,6 +10,7 @@
         <testsuite name="Pagekit Test Suite">
             <directory>app/modules/*/src/Tests</directory>
             <directory>app/system/modules/*/src/Tests</directory>
+            <directory>packages/pagekit/*/src/Tests</directory>
         </testsuite>
     </testsuites>
 

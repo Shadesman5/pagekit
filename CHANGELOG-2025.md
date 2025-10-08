@@ -1,5 +1,22 @@
 # Changelog 2025
 
+## [1.0.43] - 2025-10-08 - Menucards Extension
+
+### Added
+- **Menucards Extension**: Complete digital menu card management system for restaurants
+  - Full CRUD operations for menus, categories, and products
+  - **Critical Feature**: Context-aware product creation - create products directly from menu editing view with automatic category assignment
+  - Global product library management
+  - Category-based organization with Many-to-Many relationships
+  - Public menu card display via slug (`/menucard/{slug}`)
+  - Responsive UIkit 3.5 design for both admin and public views
+  - Database tables: `menucards_menu`, `menucards_category`, `menucards_product`, `menucards_category_product` (pivot)
+  - 18 comprehensive PHPUnit tests (Models: Menu, Category, Product)
+  - E2E test suite (Playwright): Admin interface, integration workflow, public view
+  - Vue.js 2.6 admin components with real-time updates (no page reloads)
+  - Complete REST API with validation and error handling
+  - Debug logging throughout all components
+
 ## Pagekit 1.0.42 - Enhanced Extension Error Handling & Transaction Safety (October 7, 2025)
 
 ### 🚀 Major Changes

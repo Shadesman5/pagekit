@@ -1,0 +1,17 @@
+{
+  "name": "pagekit/menucards",
+  "type": "pagekit-extension",
+  "version": "1.0.0",
+  "title": "Menucards",
+  "description": "Digital menu card management extension for restaurants",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Pagekit Team",
+      "email": "info@pagekit.com"
+    }
+  ],
+  "extra": {
+    "scripts": "scripts.php"
+  }
+}
