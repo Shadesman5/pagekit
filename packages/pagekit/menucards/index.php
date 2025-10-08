@@ -20,12 +20,8 @@ return [
 
     'routes' => [
         '/menucards' => [
-            'name' => '@menucards/admin',
+            'name' => '@menucards',
             'controller' => 'Pagekit\\Menucards\\Controller\\MenucardController'
-        ],
-        '/menucards/products' => [
-            'name' => '@menucards/products',
-            'controller' => 'Pagekit\\Menucards\\Controller\\ProductController'
         ],
         '/api/menucards' => [
             'name' => '@menucards/api',
