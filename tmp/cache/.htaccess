@@ -1,0 +1,17 @@
+# Deny access to cache files
+<Files "*.cache">
+    Order Deny,Allow
+    Deny from all
+</Files>
+
+# Deny access to all files in subdirectories
+<Files "*">
+    Order Deny,Allow
+    Deny from all
+</Files>
+
+# Allow access to .htaccess itself
+<Files ".htaccess">
+    Order Allow,Deny
+    Allow from all
+</Files>

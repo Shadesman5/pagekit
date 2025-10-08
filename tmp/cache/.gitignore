@@ -1,0 +1,5 @@
+# Ignore all cache files
+*
+# But keep .htaccess and .gitignore
+!.htaccess
+!.gitignore
