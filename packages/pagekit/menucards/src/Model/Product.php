@@ -27,9 +27,9 @@ class Product implements \JsonSerializable
     public $name;
 
     /** 
-     * @Column(type="text", nullable=true) 
+     * @Column(type="text") 
      */
-    public ?string $description = null;
+    public $description;
 
     /** 
      * @Column(type="decimal", precision=10, scale=2) 
@@ -37,22 +37,14 @@ class Product implements \JsonSerializable
     public $price;
 
     /** 
-     * @Column(type="string", nullable=true) 
+     * @Column(type="string") 
      */
-    public ?string $image = null;
+    public $image;
 
     /** 
      * @Column(type="datetime") 
      */
     public $created;
-
-    /**
-     * Constructor - Initialize with current timestamp
-     */
-    public function __construct()
-    {
-        $this->created = new \DateTime();
-    }
 
     /**
      * Get categories this product belongs to

@@ -16,15 +16,25 @@ class ProductApiController
      */
     public function indexAction()
     {
-        App::log()->debug('ProductApiController: Fetching all products');
-        
-        $products = Product::findAll();
-        App::log()->debug("ProductApiController: Found " . count($products) . " products");
-        
-        return [
-            'products' => $products,
-            'count' => count($products)
-        ];
+        try {
+            App::log()->debug('ProductApiController: Fetching all products');
+            
+            $products = Product::findAll();
+            App::log()->debug("ProductApiController: Found " . count($products) . " products");
+            
+            return [
+                'products' => $products,
+                'count' => count($products)
+            ];
+        } catch (\Exception $e) {
+            App::log()->error('ProductApiController ERROR: ' . $e->getMessage());
+            
+            return [
+                'error' => $e->getMessage(),
+                'products' => [],
+                'count' => 0
+            ];
+        }
     }
 
     /**
@@ -56,6 +66,7 @@ class ProductApiController
         $product->description = $data['description'] ?? '';
         $product->price = $data['price'] ?? 0;
         $product->image = $data['image'] ?? null;
+        $product->created = new \DateTime();
         
         $errors = $product->validate();
         if (!empty($errors)) {

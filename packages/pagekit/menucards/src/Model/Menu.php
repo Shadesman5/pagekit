@@ -31,27 +31,19 @@ class Menu implements \JsonSerializable
     public $slug;
 
     /** 
-     * @Column(type="text", nullable=true) 
+     * @Column(type="text") 
      */
-    public ?string $description = null;
+    public $description;
 
     /** 
      * @Column(type="smallint") 
      */
-    public int $status = 0;
+    public $status;
 
     /** 
      * @Column(type="datetime") 
      */
     public $created;
-
-    /**
-     * Constructor - Initialize with current timestamp
-     */
-    public function __construct()
-    {
-        $this->created = new \DateTime();
-    }
 
     /**
      * Get categories for this menu

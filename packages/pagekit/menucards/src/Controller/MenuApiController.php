@@ -17,15 +17,40 @@ class MenuApiController
      */
     public function indexAction()
     {
-        App::log()->debug('MenuApiController: Fetching all menus');
-        
-        $menus = Menu::findAll();
-        App::log()->debug("MenuApiController: Found " . count($menus) . " menus");
-        
-        return [
-            'menus' => $menus,
-            'count' => count($menus)
-        ];
+        try {
+            App::log()->debug('MenuApiController: Fetching all menus');
+            
+            // Test if Menu class exists
+            if (!class_exists('Pagekit\\Menucards\\Model\\Menu')) {
+                throw new \Exception('Menu class not found!');
+            }
+            
+            // Test database connection
+            $tables = App::db()->getUtility()->listTableNames();
+            if (!in_array(App::db()->getPrefix() . 'menucards_menu', $tables)) {
+                throw new \Exception('menucards_menu table not found!');
+            }
+            
+            // Test findAll
+            $menus = Menu::findAll();
+            App::log()->debug("MenuApiController: Found " . count($menus) . " menus");
+            
+            return [
+                'menus' => $menus,
+                'count' => count($menus)
+            ];
+        } catch (\Exception $e) {
+            App::log()->error('MenuApiController ERROR: ' . $e->getMessage());
+            App::log()->error('Stack: ' . $e->getTraceAsString());
+            
+            return [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'menus' => [],
+                'count' => 0
+            ];
+        }
     }
 
     /**
@@ -74,6 +99,7 @@ class MenuApiController
         $menu->slug = $this->generateSlug($data['slug'] ?? $data['title']);
         $menu->description = $data['description'] ?? '';
         $menu->status = $data['status'] ?? 0;
+        $menu->created = new \DateTime();
         $menu->save();
 
         App::log()->info("MenuApiController: Menu created with ID {$menu->id}");

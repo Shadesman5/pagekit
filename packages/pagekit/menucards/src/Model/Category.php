@@ -34,7 +34,7 @@ class Category implements \JsonSerializable
     /** 
      * @Column(type="integer") 
      */
-    public int $priority = 0;
+    public $priority = 0;
 
     /**
      * Get parent menu
