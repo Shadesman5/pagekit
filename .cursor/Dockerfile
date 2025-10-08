@@ -1,4 +1,4 @@
-FROM php:8.4-cli
+FROM php:8.3-cli
 
 # Install system dependencies and development tools
 RUN apt-get update && apt-get install -y \
@@ -37,6 +37,7 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | d
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions required by Pagekit
+# Note: xml, dom, xmlwriter, simplexml are built-in to PHP 8.3
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
     pdo \
@@ -47,11 +48,7 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     pcntl \
     bcmath \
     gd \
-    zip \
-    xml \
-    dom \
-    xmlwriter \
-    simplexml
+    zip
 
 # Install Xdebug for code coverage
 RUN pecl install xdebug \
