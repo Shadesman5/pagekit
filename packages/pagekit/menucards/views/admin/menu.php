@@ -3,7 +3,3 @@
 <div id="menus" v-cloak>
     <menu-list></menu-list>
 </div>
-
-<script>
-window.$data = <?= json_encode($data) ?>;
-</script>

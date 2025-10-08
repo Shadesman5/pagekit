@@ -3,7 +3,3 @@
 <div id="products" v-cloak>
     <product-list></product-list>
 </div>
-
-<script>
-window.$data = <?= json_encode($data) ?>;
-</script>

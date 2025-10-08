@@ -6,58 +6,53 @@ use Pagekit\Application as App;
 
 /**
  * Menucard Admin Controller
- * Renders the Vue.js menu management interface with context-aware product creation
  * 
  * @Access(admin=true)
  */
 class MenucardController
 {
     /**
-     * @Access("menucards: manage menucards")
+     * Default action - redirect to menu
      */
     public function indexAction()
     {
-        App::log()->debug('MenucardController: Rendering menu management view');
+        return App::redirect('@menucards/menu');
+    }
+    
+    /**
+     * Menu management view
+     * @Access("menucards: manage menucards")
+     */
+    public function menuAction()
+    {
+        App::log()->debug('MenucardController: Menu action called');
         
         return [
             '$view' => [
-                'title' => 'Menu Cards',
-                'name' => 'menucards:views/admin/index.php'
+                'title' => __('Menu Cards'),
+                'name' => 'menucards:views/admin/menu.php'
             ],
             '$data' => [
-                'config' => [
-                    'api' => '/api/menucards'
-                ]
-            ],
-            'data' => [
-                'config' => [
-                    'api' => '/api/menucards'
-                ]
+                'config' => []
             ]
         ];
     }
     
     /**
+     * Product management view
      * @Access("menucards: manage products")
      */
-    public function productsAction()
+    public function productAction()
     {
-        App::log()->debug('MenucardController: Rendering products management view');
+        App::log()->debug('MenucardController: Product action called');
         
         return [
             '$view' => [
-                'title' => 'Products',
-                'name' => 'menucards:views/admin/products.php'
+                'title' => __('Products'),
+                'name' => 'menucards:views/admin/product.php'
             ],
             '$data' => [
-                'config' => [
-                    'api' => '/api/menucards'
-                ]
-            ],
-            'data' => [
-                'config' => [
-                    'api' => '/api/menucards'
-                ]
+                'config' => []
             ]
         ];
     }

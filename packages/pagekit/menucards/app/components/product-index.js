@@ -1,18 +1,15 @@
 import ProductList from './product-list.vue';
 
+// Register component GLOBALLY first
+Vue.component('product-list', ProductList);
+
 const Products = {
     el: '#products',
     
     name: 'Products',
     
-    components: {
-        ProductList
-    },
-    
     data() {
-        return _.merge({
-            config: {}
-        }, window.$data);
+        return _.merge({}, window.$data);
     },
     
     created() {
