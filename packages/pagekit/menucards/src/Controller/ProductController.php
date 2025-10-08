@@ -9,12 +9,11 @@ use Pagekit\Application as App;
  * Renders the Vue.js product management interface
  * 
  * @Access("menucards: manage products", admin=true)
- * @Route("/menucards/products", name="@menucards/admin/products")
  */
 class ProductController
 {
     /**
-     * @Route("/", name="@menucards/admin/products/index")
+     * @Route("/")
      */
     public function indexAction()
     {

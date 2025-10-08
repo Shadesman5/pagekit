@@ -9,12 +9,11 @@ use Pagekit\Application as App;
  * Renders the Vue.js menu management interface with context-aware product creation
  * 
  * @Access("menucards: manage menucards", admin=true)
- * @Route("/menucards", name="@menucards/admin")
  */
 class MenucardController
 {
     /**
-     * @Route("/", name="@menucards/admin/index")
+     * @Route("/")
      */
     public function indexAction()
     {

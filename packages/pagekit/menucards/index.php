@@ -21,10 +21,11 @@ return [
     'routes' => [
         '/menucards' => [
             'name' => '@menucards/admin',
-            'controller' => [
-                'Pagekit\\Menucards\\Controller\\MenucardController',
-                'Pagekit\\Menucards\\Controller\\ProductController'
-            ]
+            'controller' => 'Pagekit\\Menucards\\Controller\\MenucardController'
+        ],
+        '/menucards/products' => [
+            'name' => '@menucards/products',
+            'controller' => 'Pagekit\\Menucards\\Controller\\ProductController'
         ],
         '/api/menucards' => [
             'name' => '@menucards/api',
