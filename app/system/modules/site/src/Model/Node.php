@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Site\Model;
 
 use Pagekit\Application as App;
@@ -18,34 +20,34 @@ class Node implements NodeInterface, \JsonSerializable
     use AccessModelTrait, DataModelTrait, NodeModelTrait, NodeTrait;
 
     /** @Column(type="integer") @Id */
-    public $id;
+    public ?int $id = null;
 
     /** @Column(type="integer") */
-    public $parent_id = 0;
+    public int $parent_id = 0;
 
     /** @Column(type="integer") */
-    public $priority = 0;
+    public int $priority = 0;
 
     /** @Column(type="integer") */
-    public $status = 0;
+    public int $status = 0;
 
     /** @Column(type="string") */
-    public $slug;
+    public ?string $slug = null;
 
     /** @Column(type="string") */
-    public $path;
+    public ?string $path = null;
 
     /** @Column(type="string") */
-    public $link;
+    public ?string $link = null;
 
     /** @Column(type="string") */
-    public $title;
+    public ?string $title = null;
 
     /** @Column(type="string") */
-    public $type;
+    public ?string $type = null;
 
     /** @Column(type="string") */
-    public $menu = '';
+    public string $menu = '';
 
     protected static array $properties = [
         'accessible' => 'isAccessible'
@@ -56,7 +58,7 @@ class Node implements NodeInterface, \JsonSerializable
      *
      * @param  mixed  $referenceType
      */
-    public function getUrl($referenceType = false): string
+    public function getUrl(mixed $referenceType = false): string
     {
         return App::url($this->link, [], $referenceType);
     }

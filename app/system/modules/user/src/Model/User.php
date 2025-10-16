@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Model;
 
 use Pagekit\Application\Exception;
@@ -30,41 +32,41 @@ class User implements UserInterface, \JsonSerializable
     const STATUS_ACTIVE = 1;
 
     /** @Column(type="integer") @Id */
-    public $id;
+    public ?int $id = null;
 
     /** @Column */
-    public $username = '';
+    public string $username = '';
 
     /** @Column */
-    public $password = '';
+    public string $password = '';
 
     /** @Column */
-    public $email = '';
+    public string $email = '';
 
     /** @Column */
-    public $url = '';
+    public string $url = '';
 
     /** @Column(type="datetime") */
-    public $registered;
+    public ?\DateTime $registered = null;
 
     /** @Column(type="integer") */
-    public $status = User::STATUS_ACTIVE;
+    public int $status = User::STATUS_ACTIVE;
 
     /** @Column */
-    public $name;
+    public ?string $name = null;
 
     /** @Column(type="datetime") */
-    public $login;
+    public ?\DateTime $login = null;
 
     /** @Column */
-    public $activation;
+    public ?string $activation = null;
 
     protected ?array $permissions = null;
 
     /**
      * {@inheritdoc}
      */
-    public function getId(): string
+    public function getId(): ?int
     {
         return $this->id;
     }
@@ -85,11 +87,11 @@ class User implements UserInterface, \JsonSerializable
         return $this->password;
     }
 
-    public function getStatusText()
+    public function getStatusText(): string
     {
         $statuses = self::getStatuses();
 
-        return isset($statuses[$this->status]) ? $statuses[$this->status] : __('Unknown');
+        return $statuses[$this->status] ?? __('Unknown');
     }
 
     public static function getStatuses(): array
@@ -145,7 +147,7 @@ class User implements UserInterface, \JsonSerializable
      *
      * @param  string  $permission
      */
-    public function hasPermission($permission): bool
+    public function hasPermission(string $permission): bool
     {
         if ($this->permissions === null) {
 
@@ -173,7 +175,7 @@ class User implements UserInterface, \JsonSerializable
      * @param  string $expression
      * @throws \InvalidArgumentException
      */
-    public function hasAccess($expression): bool
+    public function hasAccess(string $expression): bool
     {
         $user = $this;
 

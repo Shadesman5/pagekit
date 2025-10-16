@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Widget\Model;
 
 use Pagekit\Database\ORM\ModelTrait;
@@ -15,17 +17,17 @@ class Widget implements \JsonSerializable
     use AccessModelTrait, DataModelTrait, ModelTrait;
 
     /** @Column(type="integer") @Id */
-    public $id;
+    public ?int $id = null;
 
     /** @Column */
-    public $title = '';
+    public string $title = '';
 
     /** @Column(type="string") */
-    public $type;
+    public ?string $type = null;
 
     /** @Column(type="integer") */
-    public $status = 1;
+    public int $status = 1;
 
     /** @Column(type="simple_array") */
-    public $nodes = [];
+    public array $nodes = [];
 }

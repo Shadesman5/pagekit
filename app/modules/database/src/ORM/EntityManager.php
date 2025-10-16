@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Database\ORM;
 
 use Pagekit\Database\Connection;
@@ -66,14 +68,16 @@ class EntityManager
      *
      * @param  string $entity
      * @param  mixed  $identifier
-     * @return mixed
+     * @return object|null
      */
-    public function find($entity, $identifier)
+    public function find(string $entity, mixed $identifier): ?object
     {
         $callable = "{$entity}::find";
         if (is_callable($callable)) {
             return call_user_func($callable, $identifier);
         }
+        
+        return null;
     }
 
     /**
@@ -81,7 +85,7 @@ class EntityManager
      *
      * @param  object $entity
      */
-    public function exists($entity): bool
+    public function exists(object $entity): bool
     {
         $metadata   = $this->getMetadata($entity);
         $identifier = $metadata->getIdentifier(true);
@@ -97,12 +101,12 @@ class EntityManager
     /**
      * Relate target entities to the entity's relation.
      *
-     * @param  array        $entities
+     * @param  array|object $entities
      * @param  string       $name
      * @param  QueryBuilder $query
      * @throws \LogicException
      */
-    public function related($entities, $name, QueryBuilder $query): void
+    public function related(array|object $entities, string $name, QueryBuilder $query): void
     {
         if (!is_array($entities)) {
             $entities = [$entities];
@@ -125,7 +129,7 @@ class EntityManager
      * @param object $entity
      * @param array  $data
      */
-    public function save($entity, array $data = []): void
+    public function save(object $entity, array $data = []): void
     {
         $metadata   = $this->getMetadata($entity);
         $identifier = $metadata->getIdentifier(true);
@@ -154,6 +158,9 @@ class EntityManager
         }
 
         $this->trigger(Events::SAVED, $metadata, [$entity, $data]);
+        
+        // Invalidate query cache for this entity type
+        $this->invalidateCache($metadata);
     }
 
     /**
@@ -162,7 +169,7 @@ class EntityManager
      * @param  object $entity
      * @throws \InvalidArgumentException
      */
-    public function delete($entity): void
+    public function delete(object $entity): void
     {
         $metadata   = $this->getMetadata($entity);
         $identifier = $metadata->getIdentifier(true);
@@ -176,6 +183,9 @@ class EntityManager
             $this->trigger(Events::DELETED, $metadata, [$entity]);
 
             $metadata->setValue($entity, $identifier, null, true);
+            
+            // Invalidate query cache for this entity type
+            $this->invalidateCache($metadata);
 
         } else {
             throw new \InvalidArgumentException("Can't remove entity with empty identifier value.");
@@ -187,9 +197,9 @@ class EntityManager
      *
      * @param  object   $statement
      * @param  Metadata $metadata
-     * @return mixed
+     * @return object|false
      */
-    public function hydrateOne($statement, Metadata $metadata)
+    public function hydrateOne(object $statement, Metadata $metadata): object|false
     {
         if ($row = $statement->fetchAssociative()) {
             return $this->load($metadata, $row, true, true);
@@ -203,9 +213,9 @@ class EntityManager
      *
      * @param  object   $statement
      * @param  Metadata $metadata
-     * @return mixed
+     * @return array
      */
-    public function hydrateAll($statement, Metadata $metadata): array
+    public function hydrateAll(object $statement, Metadata $metadata): array
     {
         $result     = [];
         $identifier = $metadata->getIdentifier();
@@ -226,7 +236,7 @@ class EntityManager
      * @param  bool     $column
      * @param  bool     $convert
      */
-    public function load(Metadata $metadata, array $data, $column = false, $convert = false): object
+    public function load(Metadata $metadata, array $data, bool $column = false, bool $convert = false): object
     {
         $entity = $metadata->newInstance();
         $metadata->setValues($entity, $data, $column, $convert);
@@ -243,7 +253,7 @@ class EntityManager
      * @param  Metadata $metadata
      * @param  array    $arguments
      */
-    public function trigger($name, Metadata $metadata, array $arguments): void
+    public function trigger(string $name, Metadata $metadata, array $arguments): void
     {
         $this->events->trigger("{$metadata->getEventPrefix()}.{$name}", $arguments);
     }
@@ -254,5 +264,26 @@ class EntityManager
     public static function getInstance(): self
     {
         return static::$instance;
+    }
+    
+    /**
+     * Invalidates the query cache for the given entity type.
+     *
+     * @param  Metadata $metadata
+     * @return void
+     */
+    protected function invalidateCache(Metadata $metadata): void
+    {
+        $cache = $this->metadata->getCache();
+        
+        if (!$cache) {
+            return;
+        }
+        
+        // Clear all cache items with prefix 'orm_query_'
+        // Note: PSR-6 doesn't have a built-in way to delete by pattern
+        // This is a simplified implementation - in production, you might use cache tags
+        // or a more sophisticated cache invalidation strategy
+        $cache->clear();
     }
 }

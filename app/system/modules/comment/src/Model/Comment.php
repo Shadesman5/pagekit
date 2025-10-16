@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Comment\Model;
 
 /**
@@ -14,22 +16,22 @@ abstract class Comment
     const STATUS_SPAM = 2;
 
     /** @Column(type="integer") @Id */
-    public $id;
+    public ?int $id = null;
 
     /** @Column(type="text") */
-    public $content;
+    public ?string $content = null;
 
     /** @Column(type="string") */
-    public $author;
+    public ?string $author = null;
 
     /** @Column(type="datetime") */
     public \DateTime $created;
 
     /** @Column(type="smallint") */
-    public $status = 0;
+    public int $status = 0;
 
     /** @Column(type="integer") */
-    public $parent_id;
+    public ?int $parent_id = null;
 
     /**
      * Should be mapped by the end developer.
@@ -44,7 +46,7 @@ abstract class Comment
         $this->created = new \DateTime;
     }
 
-    public function __toString()
+    public function __toString(): string
     {
         return 'Comment #'.$this->id;
     }

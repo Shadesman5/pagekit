@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Database\ORM;
 
-use Pagekit\Cache\CacheInterface;
+use Psr\Cache\CacheItemPoolInterface;
 use Pagekit\Database\Connection;
 use Pagekit\Database\ORM\Metadata;
 use Pagekit\Database\ORM\Loader\LoaderInterface;
@@ -16,7 +18,7 @@ class MetadataManager
 
     protected ?LoaderInterface $loader = null;
 
-    protected ?CacheInterface $cache = null;
+    protected ?CacheItemPoolInterface $cache = null;
 
     /**
      * @var Metadata[]
@@ -60,7 +62,7 @@ class MetadataManager
     /**
      * Gets the cache used for caching Metadata objects.
      */
-    public function getCache(): ?CacheInterface
+    public function getCache(): ?CacheItemPoolInterface
     {
         return $this->cache;
     }
@@ -70,7 +72,7 @@ class MetadataManager
      *
      * @param CacheItemPoolInterface $cache
      */
-    public function setCache(CacheInterface $cache): void
+    public function setCache(CacheItemPoolInterface $cache): void
     {
         $this->cache = $cache;
     }
@@ -80,7 +82,7 @@ class MetadataManager
      *
      * @param  string $class
      */
-    public function has($class): bool
+    public function has(string $class): bool
     {
         return isset($this->metadata[$class]);
     }
@@ -90,7 +92,7 @@ class MetadataManager
      *
      * @param  object|string $class
      */
-    public function get($class): Metadata
+    public function get(object|string $class): Metadata
     {
         $class = new \ReflectionClass($class);
         $name  = $class->getName();
@@ -112,13 +114,15 @@ class MetadataManager
 
                 $id = sprintf('%s%s.%s', $this->prefix, $hash, $name);
 
-                $config = $this->cache->fetch($id);
+                $item = $this->cache->getItem($id);
                 
-                if ($config !== false) {
+                if ($item->isHit()) {
+                    $config = $item->get();
                     $this->metadata[$name] = new Metadata($this, $name, $config);
                 } else {
                     $metadata = $this->load($class);
-                    $this->cache->save($id, $metadata->getConfig());
+                    $item->set($metadata->getConfig());
+                    $this->cache->save($item);
                 }
 
             } else {
