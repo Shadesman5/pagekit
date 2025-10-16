@@ -280,10 +280,15 @@ class EntityManager
             return;
         }
         
-        // Clear all cache items with prefix 'orm_query_'
+        // Clear all cache items
         // Note: PSR-6 doesn't have a built-in way to delete by pattern
         // This is a simplified implementation - in production, you might use cache tags
         // or a more sophisticated cache invalidation strategy
-        $cache->clear();
+        if ($cache instanceof \Psr\Cache\CacheItemPoolInterface) {
+            $cache->clear();
+        } else {
+            // Legacy CacheInterface
+            $cache->flushAll();
+        }
     }
 }

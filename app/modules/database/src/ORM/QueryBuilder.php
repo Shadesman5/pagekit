@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Database\ORM;
 
 use Psr\Cache\CacheItemPoolInterface;
+use Pagekit\Cache\CacheInterface;
 
 class QueryBuilder
 {
@@ -16,7 +17,7 @@ class QueryBuilder
 
     protected array $relations = [];
     
-    protected ?CacheItemPoolInterface $cache = null;
+    protected CacheItemPoolInterface|CacheInterface|null $cache = null;
     
     protected ?int $cacheTtl = null;
 
@@ -41,10 +42,17 @@ class QueryBuilder
         // Check cache if enabled
         if ($this->cache && $this->cacheTtl !== null) {
             $cacheKey = $this->getCacheKey();
-            $item = $this->cache->getItem($cacheKey);
             
-            if ($item->isHit()) {
-                return $item->get();
+            if ($this->cache instanceof CacheItemPoolInterface) {
+                $item = $this->cache->getItem($cacheKey);
+                if ($item->isHit()) {
+                    return $item->get();
+                }
+            } else {
+                $cached = $this->cache->fetch($cacheKey);
+                if ($cached !== false) {
+                    return $cached;
+                }
             }
         }
         
@@ -55,10 +63,15 @@ class QueryBuilder
         }
         
         // Save to cache if enabled
-        if ($this->cache && $this->cacheTtl !== null && isset($cacheKey) && isset($item)) {
-            $item->set($entities);
-            $item->expiresAfter($this->cacheTtl);
-            $this->cache->save($item);
+        if ($this->cache && $this->cacheTtl !== null && isset($cacheKey)) {
+            if ($this->cache instanceof CacheItemPoolInterface) {
+                $item = $this->cache->getItem($cacheKey);
+                $item->set($entities);
+                $item->expiresAfter($this->cacheTtl);
+                $this->cache->save($item);
+            } else {
+                $this->cache->save($cacheKey, $entities, $this->cacheTtl);
+            }
         }
 
         return $entities;
@@ -74,10 +87,17 @@ class QueryBuilder
         // Check cache if enabled
         if ($this->cache && $this->cacheTtl !== null) {
             $cacheKey = $this->getCacheKey('first');
-            $item = $this->cache->getItem($cacheKey);
             
-            if ($item->isHit()) {
-                return $item->get();
+            if ($this->cache instanceof CacheItemPoolInterface) {
+                $item = $this->cache->getItem($cacheKey);
+                if ($item->isHit()) {
+                    return $item->get();
+                }
+            } else {
+                $cached = $this->cache->fetch($cacheKey);
+                if ($cached !== false) {
+                    return $cached;
+                }
             }
         }
         
@@ -88,10 +108,15 @@ class QueryBuilder
             }
             
             // Save to cache if enabled
-            if ($this->cache && $this->cacheTtl !== null && isset($cacheKey) && isset($item)) {
-                $item->set($entity);
-                $item->expiresAfter($this->cacheTtl);
-                $this->cache->save($item);
+            if ($this->cache && $this->cacheTtl !== null && isset($cacheKey)) {
+                if ($this->cache instanceof CacheItemPoolInterface) {
+                    $item = $this->cache->getItem($cacheKey);
+                    $item->set($entity);
+                    $item->expiresAfter($this->cacheTtl);
+                    $this->cache->save($item);
+                } else {
+                    $this->cache->save($cacheKey, $entity, $this->cacheTtl);
+                }
             }
 
             return $entity;
@@ -193,10 +218,10 @@ class QueryBuilder
      * Enable query result caching with TTL in seconds.
      *
      * @param  int               $ttl   Time to live in seconds
-     * @param  CacheItemPoolInterface|null $cache Custom cache pool (optional)
+     * @param  CacheItemPoolInterface|CacheInterface|null $cache Custom cache pool (optional)
      * @return self
      */
-    public function cache(int $ttl, ?CacheItemPoolInterface $cache = null): self
+    public function cache(int $ttl, CacheItemPoolInterface|CacheInterface|null $cache = null): self
     {
         $this->cacheTtl = $ttl;
         $this->cache = $cache ?? $this->manager->getMetadataManager()->getCache();

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Database\ORM;
 
 use Psr\Cache\CacheItemPoolInterface;
+use Pagekit\Cache\CacheInterface;
 use Pagekit\Database\Connection;
 use Pagekit\Database\ORM\Metadata;
 use Pagekit\Database\ORM\Loader\LoaderInterface;
@@ -18,7 +19,7 @@ class MetadataManager
 
     protected ?LoaderInterface $loader = null;
 
-    protected ?CacheItemPoolInterface $cache = null;
+    protected CacheItemPoolInterface|CacheInterface|null $cache = null;
 
     /**
      * @var Metadata[]
@@ -62,7 +63,7 @@ class MetadataManager
     /**
      * Gets the cache used for caching Metadata objects.
      */
-    public function getCache(): ?CacheItemPoolInterface
+    public function getCache(): CacheItemPoolInterface|CacheInterface|null
     {
         return $this->cache;
     }
@@ -70,9 +71,9 @@ class MetadataManager
     /**
      * Sets the cache used for caching Metadata objects.
      *
-     * @param CacheItemPoolInterface $cache
+     * @param CacheItemPoolInterface|CacheInterface $cache
      */
-    public function setCache(CacheItemPoolInterface $cache): void
+    public function setCache(CacheItemPoolInterface|CacheInterface $cache): void
     {
         $this->cache = $cache;
     }
@@ -114,15 +115,28 @@ class MetadataManager
 
                 $id = sprintf('%s%s.%s', $this->prefix, $hash, $name);
 
-                $item = $this->cache->getItem($id);
-                
-                if ($item->isHit()) {
-                    $config = $item->get();
-                    $this->metadata[$name] = new Metadata($this, $name, $config);
+                // Support both PSR-6 and legacy CacheInterface
+                if ($this->cache instanceof CacheItemPoolInterface) {
+                    $item = $this->cache->getItem($id);
+                    
+                    if ($item->isHit()) {
+                        $config = $item->get();
+                        $this->metadata[$name] = new Metadata($this, $name, $config);
+                    } else {
+                        $metadata = $this->load($class);
+                        $item->set($metadata->getConfig());
+                        $this->cache->save($item);
+                    }
                 } else {
-                    $metadata = $this->load($class);
-                    $item->set($metadata->getConfig());
-                    $this->cache->save($item);
+                    // Legacy CacheInterface (with PSR-6 methods via Psr6Adapter)
+                    $config = $this->cache->fetch($id);
+                    
+                    if ($config !== false) {
+                        $this->metadata[$name] = new Metadata($this, $name, $config);
+                    } else {
+                        $metadata = $this->load($class);
+                        $this->cache->save($id, $metadata->getConfig());
+                    }
                 }
 
             } else {
