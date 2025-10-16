@@ -172,6 +172,27 @@ Proceeding with plan as designed ✅
 
 ### Step 3: Modernize EntityManager ✅ COMPLETED
 
+#### ⚠️ CRITICAL BUG FIX (2025-10-16)
+
+**Issue**: Type error caused 500 error on all pages after installation
+- **Problem**: `MetadataManager::setCache()` only accepted `CacheItemPoolInterface`
+- **But**: `$app['cache.phpfile']` returns `CacheInterface` (Psr6Adapter wrapper)
+- **With** `declare(strict_types=1)` → Fatal type error
+- **Result**: Application completely broken
+
+**Solution**: Support both PSR-6 and legacy cache interfaces
+- Changed type to `CacheItemPoolInterface|CacheInterface`
+- Added `instanceof` checks in cache operations
+- Both interfaces now supported in MetadataManager, QueryBuilder, EntityManager
+- Maintains backward compatibility ✅
+
+**Files Fixed**:
+- `app/modules/database/src/ORM/MetadataManager.php`
+- `app/modules/database/src/ORM/QueryBuilder.php` 
+- `app/modules/database/src/ORM/EntityManager.php`
+
+**Lesson Learned**: Always test with actual cache system, not just syntax checks!
+
 #### Changes Made
 
 **EntityManager.php** - Full modernization with strict types

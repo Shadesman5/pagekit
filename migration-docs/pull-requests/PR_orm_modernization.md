@@ -121,11 +121,19 @@ $posts = Post::query()
     ->get();
 ```
 
+## 🐛 Critical Bug Fixed
+
+**Type Error in Cache Integration** (Fixed 2025-10-16):
+- **Issue**: Initial implementation caused 500 error due to type mismatch
+- **Cause**: `MetadataManager::setCache()` expected PSR-6 but received legacy `CacheInterface`
+- **Fix**: Support both `CacheItemPoolInterface|CacheInterface` types
+- **Status**: ✅ Fixed and tested
+
 ## 🚨 Breaking Changes
 
 **None!** ✅
 
-This migration is fully backward compatible:
+This migration is fully backward compatible (after bugfix):
 - All existing code continues to work
 - No API changes for users
 - Type hints are additive, not restrictive
