@@ -496,7 +496,7 @@ foreach ($posts as $post) {
 
 #### E2E Tests Created
 
-**orm-operations.spec.js** (6 tests)
+**tests/e2e/specs/02-core/orm-operations.spec.js** (6 tests)
 - ✅ Tests users list loading with relations
 - ✅ Tests page entity creation (CRUD)
 - ✅ Tests entity updates and persistence
@@ -509,6 +509,7 @@ foreach ($posts as $post) {
 - Relation loading (BelongsTo, HasMany)
 - Data persistence verification
 - Query efficiency monitoring
+- All credentials from test-config.json (no hardcoded data)
 
 #### Test Results Summary
 - ✅ **PHPUnit**: 13/13 tests passing (100%)

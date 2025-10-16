@@ -65,11 +65,12 @@ Complete modernization of Pagekit's ORM layer for PHP 8.2+ compatibility with ty
 - ✅ **Total**: 13/13 tests (100%) ✅
 
 ### E2E Tests
-- ✅ **orm-operations.spec.js**: 6 test scenarios created
+- ✅ **tests/e2e/specs/02-core/orm-operations.spec.js**: 6 test scenarios
   - Entity CRUD operations
   - Relations loading (eager/lazy)
   - N+1 query prevention
   - Data persistence
+  - Uses test-config.json for credentials (no hardcoded data)
 
 ### Application Health
 - ✅ Homepage: HTTP 200
@@ -144,7 +145,7 @@ This migration is fully backward compatible:
 
 ### Test Documentation  
 - PHPUnit tests: `app/modules/database/src/Tests/ORM/`
-- E2E tests: `tests/e2e/specs/03-orm/`
+- E2E tests: `tests/e2e/specs/02-core/orm-operations.spec.js`
 
 ## ✅ Checklist
 
