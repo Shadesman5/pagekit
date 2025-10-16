@@ -18,7 +18,7 @@ This document details the migration from the deprecated SwiftMailer to Symfony M
 - `swiftmailer/swiftmailer`: ~6.0
 
 **Added:**
-- `symfony/mailer`: ^5.4
+- `symfony/mailer`: ^6.4 (upgraded with Symfony 6.4)
 
 ### 2. Core Mail Module Updates
 
@@ -62,7 +62,9 @@ $transport = Transport::fromDsn($dsn);
 
 ### 4. Test Coverage
 
-Added comprehensive test suite with 42 tests covering:
+Added comprehensive test suite with 52 tests covering:
+
+**Note**: As of Oct 2025 audit, 10 tests are failing due to attachment/embed implementation issues that need fixing.
 
 #### Core Functionality Tests (24 tests)
 - ✅ SMTP configuration validation
@@ -89,6 +91,8 @@ Added comprehensive test suite with 42 tests covering:
 - ✅ Newsletter functionality
 
 #### Test Results
+
+**Initial Results** (when implemented):
 ```bash
 $ ./vendor/bin/phpunit app/modules/mail/src/Tests/
 PHPUnit 11.0.1 by Sebastian Bergmann and contributors.
@@ -101,6 +105,15 @@ Time: 00:03.247, Memory: 28.00 MB
 OK (42 tests, 156 assertions)
 Code Coverage: 94.2%
 ```
+
+**Current Status** (Oct 2025 audit - PHPUnit 11.5.42):
+- Total Tests: 52 (expanded coverage)
+- Passing: 42
+- Failing/Erroring: 10 (attachment and embed functionality issues)
+- Issues identified:
+  - TypeError in attachment handling (DataPart vs File)
+  - Undefined method in embedded content
+  - Container access issues in controller tests
 
 ### 5. Breaking Changes
 
