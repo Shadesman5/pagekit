@@ -73,7 +73,7 @@ trait ModelTrait
      * @param  mixed $id
      * @return static
      */
-    public static function find($id)
+    public static function find(mixed $id): ?static
     {
         return static::where([static::getMetadata()->getIdentifier() => $id])->first();
     }
