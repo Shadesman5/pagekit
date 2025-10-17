@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Blog\Model;
 
 use Pagekit\Comment\Model\Comment as BaseComment;
