@@ -88,7 +88,7 @@ trait NodeTrait
     /**
      * {@inheritdoc}
      */
-    public function remove($node): bool
+    public function remove(NodeInterface|string $node): bool
     {
         $hash = $node instanceof NodeInterface ? $node->hashCode() : (string) $node;
 
