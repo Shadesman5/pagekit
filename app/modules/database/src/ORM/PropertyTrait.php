@@ -145,5 +145,7 @@ trait PropertyTrait
         if (isset(static::$properties, static::$properties[$name])) {
             return static::defineProperty($name, static::$properties[$name]);
         }
+
+        return null;
     }
 }

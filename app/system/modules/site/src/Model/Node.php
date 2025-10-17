@@ -23,7 +23,7 @@ class Node implements NodeInterface, \JsonSerializable
     public ?int $id = null;
 
     /** @Column(type="integer") */
-    public int $parent_id = 0;
+    public ?int $parent_id = 0;
 
     /** @Column(type="integer") */
     public int $priority = 0;
