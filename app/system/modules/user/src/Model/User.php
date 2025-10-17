@@ -35,16 +35,16 @@ class User implements UserInterface, \JsonSerializable
     public ?int $id = null;
 
     /** @Column */
-    public string $username = '';
+    public ?string $username = '';
 
     /** @Column */
-    public string $password = '';
+    public ?string $password = '';
 
     /** @Column */
-    public string $email = '';
+    public ?string $email = '';
 
     /** @Column */
-    public string $url = '';
+    public ?string $url = '';
 
     /** @Column(type="datetime") */
     public ?\DateTime $registered = null;
@@ -76,7 +76,7 @@ class User implements UserInterface, \JsonSerializable
      */
     public function getUsername(): string
     {
-        return $this->username;
+        return (string) $this->username;
     }
 
     /**
@@ -84,7 +84,7 @@ class User implements UserInterface, \JsonSerializable
      */
     public function getPassword(): string
     {
-        return $this->password;
+        return (string) $this->password;
     }
 
     public function getStatusText(): string

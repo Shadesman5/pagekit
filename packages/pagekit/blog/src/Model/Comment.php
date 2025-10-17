@@ -21,7 +21,7 @@ class Comment extends BaseComment implements \JsonSerializable
     public ?string $email = null;
 
     /** @Column(type="string") */
-    public string $url = '';
+    public ?string $url = '';
 
     /** @Column(type="string") */
     public ?string $ip = null;

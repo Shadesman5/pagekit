@@ -47,7 +47,7 @@ class Node implements NodeInterface, \JsonSerializable
     public ?string $type = null;
 
     /** @Column(type="string") */
-    public string $menu = '';
+    public ?string $menu = '';
 
     protected static array $properties = [
         'accessible' => 'isAccessible'

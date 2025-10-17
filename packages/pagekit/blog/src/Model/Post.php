@@ -44,10 +44,10 @@ class Post implements \JsonSerializable
     public ?\DateTime $date = null;
 
     /** @Column(type="text") */
-    public string $content = '';
+    public ?string $content = '';
 
     /** @Column(type="text") */
-    public string $excerpt = '';
+    public ?string $excerpt = '';
 
     /** @Column(type="smallint") */
     public ?int $status = null;
