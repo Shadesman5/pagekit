@@ -299,6 +299,45 @@ must be compatible with NodeInterface::findChild($hash, $recursive = true)
 
 **Current Status**: All ORM components, models, traits, AND interfaces fully modernized for PHP 8.2+
 
+#### ⚠️ SIXTH BUG FIX (2025-10-17) - Core ORM Traits
+
+**Issue**: 500 error on `/admin/dashboard` after login, frontend broken
+
+**Root Cause**: **ModelTrait** and **PropertyTrait** were not modernized!
+- These core traits are used by EVERY entity model
+- They lacked `declare(strict_types=1)`
+- Magic methods and utility methods had no type hints
+- With strict_types in models, this caused fatal errors
+
+**Solution**: Modernize the CORE ORM infrastructure traits!
+
+**ModelTrait.php Changes**:
+- ✅ Added `declare(strict_types=1)`
+- ✅ `create($data)` → `create(array $data = []): static`
+- ✅ `where($condition, ...)` → `where(mixed $condition, array $params = []): QueryBuilder`
+- ✅ `find($id)` → `find(mixed $id): ?static`
+- ✅ `toArray(...)` → `toArray(array $data = [], array $ignore = []): array`
+
+**PropertyTrait.php Changes**:
+- ✅ Added `declare(strict_types=1)`
+- ✅ `__get($name)` → `__get(string $name): mixed`
+- ✅ `__set($name, $value)` → `__set(string $name, mixed $value): void`
+- ✅ `__isset($name)` → `__isset(string $name): bool`
+- ✅ `defineProperty(...)` → `defineProperty(string $name, mixed $get, mixed $set = null): array`
+- ✅ `getPropertyDescriptor($name)` → `getPropertyDescriptor(string $name): ?array`
+
+**UserInterface.php**:
+- ✅ Added `declare(strict_types=1)` for consistency
+
+**Complete Stack Now Modernized**:
+- ✅ EntityManager, QueryBuilder, Relations (ORM Core)
+- ✅ ModelTrait, PropertyTrait (Base traits for ALL models)
+- ✅ DataModelTrait, AccessModelTrait, UserModelTrait, etc. (Feature traits)
+- ✅ NodeInterface, TypeInterface, UserInterface (All interfaces)
+- ✅ User, Role, Page, Node, Post, Comment, Widget (All models)
+
+**Every layer of the ORM stack now has strict_types and full type safety!**
+
 #### Changes Made
 
 **EntityManager.php** - Full modernization with strict types
