@@ -19,7 +19,7 @@ class EntityManager
 
     protected EventDispatcherInterface $events;
 
-    protected static self $instance;
+    protected static ?self $instance = null;
 
     /**
      * Creates a new Manager instance
@@ -30,11 +30,13 @@ class EntityManager
      */
     public function __construct(Connection $connection, MetadataManager $metadata, ?EventDispatcherInterface $events = null)
     {
+        error_log('[ORM DEBUG] EntityManager::__construct() called');
         $this->connection = $connection;
         $this->metadata   = $metadata;
         $this->events     = $events ?: new PrefixEventDispatcher('model.');
 
         static::$instance = $this;
+        error_log('[ORM DEBUG] EntityManager instance set successfully');
     }
 
     /**
@@ -261,8 +263,9 @@ class EntityManager
     /**
      * Gets the instance.
      */
-    public static function getInstance(): self
+    public static function getInstance(): ?self
     {
+        error_log('[ORM DEBUG] EntityManager::getInstance() called, instance is: ' . (static::$instance ? 'SET' : 'NULL'));
         return static::$instance;
     }
     

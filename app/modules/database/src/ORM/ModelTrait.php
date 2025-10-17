@@ -19,6 +19,9 @@ trait ModelTrait
 
         if (!$manager) {
             $manager = EntityManager::getInstance();
+            if (!$manager) {
+                throw new \RuntimeException('EntityManager has not been initialized. Make sure the application is fully bootstrapped.');
+            }
         }
 
         return $manager;
