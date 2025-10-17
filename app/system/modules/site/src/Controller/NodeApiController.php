@@ -76,6 +76,10 @@ class NodeApiController
             App::abort(400, __('Invalid slug.'));
         }
 
+        // TODO: Validate that 'link' field is set before saving
+        // Database has NOT NULL constraint on 'link' column, but Vue.js might send empty value
+        // This causes: "NOT NULL constraint failed: pk_system_node.link"
+        // Solution: Add validation or set default value for 'link' field
         $node->save($data);
 
         return ['message' => 'success', 'node' => $node];
