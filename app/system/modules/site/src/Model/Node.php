@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Pagekit\Site\Model;
 
 use Pagekit\Application as App;
