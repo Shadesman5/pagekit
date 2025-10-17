@@ -271,8 +271,33 @@ Proceeding with plan as designed ✅
 3. ✅ Nullable string properties (DB NULL handling)
 4. ✅ Traits modernized (REPLACE not compatibility!)
 5. ✅ strict_types restored in all models
+6. ✅ **NodeInterface modernized** with proper type hints
 
-**Current Status**: All ORM components and models fully modernized for PHP 8.2+
+#### ⚠️ FIFTH BUG FIX (2025-10-17) - Interface Modernization
+
+**Issue**: Fatal error with NodeInterface method signatures
+```
+Declaration of Node::findChild(string $hash, bool $recursive = true) 
+must be compatible with NodeInterface::findChild($hash, $recursive = true)
+```
+
+**Root Cause**: Interface still had old untyped parameters, but implementation (Trait) had strict types!
+
+**Solution**: Modernize the **INTERFACE** itself!
+
+**NodeInterface.php Changes**:
+- ✅ Added `declare(strict_types=1)`
+- ✅ `findChild($hash, $recursive)` → `findChild(string $hash, bool $recursive)`
+- ✅ `contains($node, $recursive)` → `contains(NodeInterface|string $node, bool $recursive)`
+- ✅ `remove($node)` → `remove(NodeInterface|string $node)`
+
+**NodeTrait.php Changes**:
+- ✅ Updated `remove()` signature to match interface with union type
+
+**TypeInterface.php**:
+- ✅ Added `declare(strict_types=1)` for consistency
+
+**Current Status**: All ORM components, models, traits, AND interfaces fully modernized for PHP 8.2+
 
 #### Changes Made
 
