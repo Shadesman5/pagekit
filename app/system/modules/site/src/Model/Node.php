@@ -58,7 +58,7 @@ class Node implements NodeInterface, \JsonSerializable
      *
      * @param  mixed  $referenceType
      */
-    public function getUrl(mixed $referenceType = false): string
+    public function getUrl(mixed $referenceType = false): string|false
     {
         return App::url($this->link, [], $referenceType);
     }
