@@ -30,13 +30,11 @@ class EntityManager
      */
     public function __construct(Connection $connection, MetadataManager $metadata, ?EventDispatcherInterface $events = null)
     {
-        error_log('[ORM DEBUG] EntityManager::__construct() called');
         $this->connection = $connection;
         $this->metadata   = $metadata;
         $this->events     = $events ?: new PrefixEventDispatcher('model.');
 
         static::$instance = $this;
-        error_log('[ORM DEBUG] EntityManager instance set successfully');
     }
 
     /**
@@ -74,7 +72,6 @@ class EntityManager
      */
     public function find(string $entity, mixed $identifier): ?object
     {
-        error_log('[ORM DEBUG] find() called for: ' . $entity . ' with ID: ' . $identifier);
         $callable = "{$entity}::find";
         if (is_callable($callable)) {
             return call_user_func($callable, $identifier);
@@ -134,7 +131,6 @@ class EntityManager
      */
     public function save(object $entity, array $data = []): void
     {
-        error_log('[ORM DEBUG] save() called for: ' . get_class($entity));
         $metadata   = $this->getMetadata($entity);
         $identifier = $metadata->getIdentifier(true);
 
@@ -267,7 +263,6 @@ class EntityManager
      */
     public static function getInstance(): ?self
     {
-        error_log('[ORM DEBUG] EntityManager::getInstance() called, instance is: ' . (static::$instance ? 'SET' : 'NULL'));
         return static::$instance;
     }
     

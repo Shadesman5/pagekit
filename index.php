@@ -16,7 +16,7 @@ if (!isset($_SERVER['HTTP_MOD_REWRITE']) && !isset($_SERVER['REDIRECT_HTTP_MOD_R
 
 date_default_timezone_set('UTC');
 
-// DEBUG: Global exception handler
+// Global exception handler for debugging
 if (file_exists($debugLog = __DIR__.'/tmp/logs/debug.log')) {
     set_exception_handler(function($e) use ($debugLog) {
         $message = sprintf(
