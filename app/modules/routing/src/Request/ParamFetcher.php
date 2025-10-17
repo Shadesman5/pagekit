@@ -75,6 +75,10 @@ class ParamFetcher implements ParamFetcherInterface
 
         foreach (['query', 'request'] as $bag) {
 
+            // TODO: Symfony 6.4 InputBag throws BadRequestException for non-scalar values
+            // Vue.js frontend sends arrays/objects for filters and complex params
+            // Current error: "Input value 'filter' contains a non-scalar value"
+            // Solution: Use $this->request->$bag->all()[$name] ?? null for array support
             $value = $this->request->$bag->get($name);
 
             if ($value !== null) {
