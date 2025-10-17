@@ -41,7 +41,7 @@ trait ModelTrait
      * @param  array $data
      * @return static
      */
-    public static function create($data = [])
+    public static function create(array $data = []): static
     {
         return static::getManager()->load(self::getMetadata(), $data);
     }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Database\ORM;
 
 trait PropertyTrait
@@ -12,7 +14,7 @@ trait PropertyTrait
      * @param  string $name
      * @return mixed
      */
-    public function __get($name)
+    public function __get(string $name): mixed
     {
         if ($descriptor = static::getPropertyDescriptor($name)) {
 
@@ -38,7 +40,7 @@ trait PropertyTrait
      * @param string $name
      * @param mixed  $value
      */
-    public function __set($name, $value)
+    public function __set(string $name, mixed $value): void
     {
         if ($descriptor = static::getPropertyDescriptor($name)) {
 
@@ -77,7 +79,7 @@ trait PropertyTrait
      * @param  string $name
      * @return bool
      */
-    public function __isset($name)
+    public function __isset(string $name): bool
     {
         return isset(static::$_properties[$name]);
     }
@@ -111,7 +113,7 @@ trait PropertyTrait
      * @param  string|callable|array $get
      * @param  string|callable|bool  $set
      */
-    public static function defineProperty($name, $get, $set = null): array
+    public static function defineProperty(string $name, mixed $get, mixed $set = null): array
     {
         $descriptor = is_array($get) ? $get : compact('get', 'set');
 
@@ -134,7 +136,7 @@ trait PropertyTrait
      * @param  string $name
      * @return array
      */
-    protected static function getPropertyDescriptor($name)
+    protected static function getPropertyDescriptor(string $name): ?array
     {
         if (isset(static::$_properties[$name])) {
             return static::$_properties[$name];
