@@ -74,6 +74,7 @@ class EntityManager
      */
     public function find(string $entity, mixed $identifier): ?object
     {
+        error_log('[ORM DEBUG] find() called for: ' . $entity . ' with ID: ' . $identifier);
         $callable = "{$entity}::find";
         if (is_callable($callable)) {
             return call_user_func($callable, $identifier);
