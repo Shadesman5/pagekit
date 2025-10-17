@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Model;
 
 use Pagekit\Database\ORM\ModelTrait;
@@ -11,7 +13,7 @@ trait UserModelTrait
     /**
      * {@inheritdoc}
      */
-    public static function findByUsername($username)
+    public static function findByUsername(string $username): ?User
     {
         return static::where(compact('username'))->first();
     }
@@ -19,7 +21,7 @@ trait UserModelTrait
     /**
      * {@inheritdoc}
      */
-    public static function findByEmail($email)
+    public static function findByEmail(string $email): ?User
     {
         return static::where(compact('email'))->first();
     }
@@ -27,7 +29,7 @@ trait UserModelTrait
     /**
      * {@inheritdoc}
      */
-    public static function findByLogin($login)
+    public static function findByLogin(string $login): ?User
     {
         return static::where(['username' => $login])->orWhere(['email' => $login])->first();
     }

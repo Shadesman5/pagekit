@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\System\Model;
 
 use Pagekit\Util\Arr;
@@ -7,7 +9,7 @@ use Pagekit\Util\Arr;
 trait DataModelTrait
 {
     /** @Column(type="json_array") */
-    public $data;
+    public mixed $data = null;
 
     /**
      * Gets a data value.
@@ -16,7 +18,7 @@ trait DataModelTrait
      * @param  mixed  $default
      * @return mixed
      */
-    public function get($key, $default = null)
+    public function get(string $key, mixed $default = null): mixed
     {
         return Arr::get((array) $this->data, $key, $default);
     }
@@ -27,7 +29,7 @@ trait DataModelTrait
      * @param string $key
      * @param mixed  $value
      */
-    public function set($key, $value): void
+    public function set(string $key, mixed $value): void
     {
         if (null === $this->data) {
             $this->data = [];

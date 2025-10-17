@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Site\Model;
 
 use Pagekit\Application as App;
@@ -18,9 +20,9 @@ trait NodeModelTrait
      *
      * @param  mixed $id
      * @param  bool  $cached
-     * @return static
+     * @return static|null
      */
-    public static function find($id, $cached = false)
+    public static function find(mixed $id, bool $cached = false): ?Node
     {
         if (!$cached || !isset(self::$nodes[$id])) {
             self::$nodes[$id] = self::modelFind($id);
@@ -35,7 +37,7 @@ trait NodeModelTrait
      * @param  bool $cached
      * @return static[]
      */
-    public static function findAll($cached = false): array
+    public static function findAll(bool $cached = false): array
     {
         if (!$cached || null === self::$nodes) {
             self::$nodes = self::query()->orderBy('priority')->get();
@@ -49,7 +51,7 @@ trait NodeModelTrait
      *
      * @return static[]
      */
-    public static function findByMenu($menu, $cached = false): array
+    public static function findByMenu(string $menu, bool $cached = false): array
     {
         return array_filter(self::findAll($cached), fn($node) => $menu == $node->menu);
     }
@@ -59,7 +61,7 @@ trait NodeModelTrait
      *
      * @return int
      */
-    public static function fixOrphanedNodes()
+    public static function fixOrphanedNodes(): int
     {
         if ($orphaned = self::getConnection()
             ->createQueryBuilder()

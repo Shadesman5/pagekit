@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\System\Model;
 
 trait NodeTrait
@@ -131,7 +133,7 @@ trait NodeTrait
     /**
      * {@inheritdoc}
      */
-    public function findChild($hash, $recursive = true): ?NodeInterface
+    public function findChild(string $hash, bool $recursive = true): ?NodeInterface
     {
         $node = isset($this->children[$hash]) ? $this->children[$hash] : null;
 
@@ -149,7 +151,7 @@ trait NodeTrait
     /**
      * {@inheritdoc}
      */
-    public function contains($node, $recursive = true): bool
+    public function contains(NodeInterface|string $node, bool $recursive = true): bool
     {
         return $this->findChild(($node instanceof NodeInterface ? $node->hashCode() : (string) $node), $recursive) !== null;
     }
