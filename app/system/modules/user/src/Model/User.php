@@ -175,7 +175,7 @@ class User implements UserInterface, \JsonSerializable
      * @param  string $expression
      * @throws \InvalidArgumentException
      */
-    public function hasAccess(string $expression): bool
+    public function hasAccess(?string $expression): bool
     {
         $user = $this;
 
