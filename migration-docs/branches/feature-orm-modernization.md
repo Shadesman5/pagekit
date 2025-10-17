@@ -203,6 +203,28 @@ Proceeding with plan as designed ✅
 
 **Lesson Learned**: Always check interface contracts when changing return types!
 
+#### ⚠️ THIRD BUG FIX (2025-10-17)
+
+**Issue**: Type errors when loading entities from database
+- **Problem**: String properties with default `''` but stored as NULL in DB
+- **Error**: Cannot assign NULL to non-nullable string properties with `declare(strict_types=1)`
+- **Result**: Fatal type error during entity hydration → 500 errors everywhere
+
+**Solution**: Made all string properties nullable
+- Changed `public string $property = ''` to `public ?string $property = ''`
+- Added string casts in getters to maintain interface contracts
+- Affects: User, Page, Node, Post, Comment, Widget models
+
+**Files Fixed**:
+- `app/system/modules/user/src/Model/User.php`
+- `app/system/modules/site/src/Model/Page.php`
+- `app/system/modules/site/src/Model/Node.php`
+- `packages/pagekit/blog/src/Model/Post.php`
+- `packages/pagekit/blog/src/Model/Comment.php`
+- `app/system/modules/widget/src/Model/Widget.php`
+
+**Lesson Learned**: With `declare(strict_types=1)`, database NULL values MUST be handled with nullable types!
+
 #### Changes Made
 
 **EntityManager.php** - Full modernization with strict types
