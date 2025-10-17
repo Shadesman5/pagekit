@@ -133,6 +133,7 @@ class EntityManager
      */
     public function save(object $entity, array $data = []): void
     {
+        error_log('[ORM DEBUG] save() called for: ' . get_class($entity));
         $metadata   = $this->getMetadata($entity);
         $identifier = $metadata->getIdentifier(true);
 
