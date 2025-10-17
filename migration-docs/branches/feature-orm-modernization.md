@@ -193,6 +193,16 @@ Proceeding with plan as designed ✅
 
 **Lesson Learned**: Always test with actual cache system, not just syntax checks!
 
+#### ⚠️ SECOND BUG FIX (2025-10-17)
+
+**Issue**: Type error in User::getId() method
+- **Problem**: Changed return type to `?int` but `UserInterface` expects `string`
+- **Error**: `Declaration of User::getId(): ?int must be compatible with UserInterface::getId(): string`
+- **Fix**: Cast to string: `return (string) $this->id;`
+- **Status**: ✅ Fixed
+
+**Lesson Learned**: Always check interface contracts when changing return types!
+
 #### Changes Made
 
 **EntityManager.php** - Full modernization with strict types
