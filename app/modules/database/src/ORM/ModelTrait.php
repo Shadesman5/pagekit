@@ -62,7 +62,7 @@ trait ModelTrait
      * @param  mixed $condition
      * @param  array $params
      */
-    public static function where($condition, array $params = []): QueryBuilder
+    public static function where(mixed $condition, array $params = []): QueryBuilder
     {
         return static::query()->where($condition, $params);
     }
