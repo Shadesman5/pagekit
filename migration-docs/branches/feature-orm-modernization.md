@@ -225,6 +225,55 @@ Proceeding with plan as designed ✅
 
 **Lesson Learned**: With `declare(strict_types=1)`, database NULL values MUST be handled with nullable types!
 
+#### ⚠️ FOURTH BUG FIX (2025-10-17) - THE RIGHT WAY!
+
+**Issue**: Removed strict_types from models (WRONG APPROACH!)
+- **Original Problem**: Traits were not modernized, causing errors with strict_types
+- **Wrong Solution**: Removed strict_types from models (gave up on migration!)
+- **Task Requirement**: "MIGRATION means REPLACE (not compatibility!)"
+
+**Correct Solution**: Modernize the TRAITS, then restore strict_types!
+
+**Traits Modernized** (with strict_types + full type hints):
+1. **DataModelTrait**: 
+   - Added `declare(strict_types=1)`
+   - Typed property: `public mixed $data = null`
+   - Typed methods: `get(string $key, mixed $default): mixed`, `set(string $key, mixed $value): void`
+
+2. **AccessModelTrait**:
+   - Added `declare(strict_types=1)`
+   - Typed property: `public array $roles = []`
+   - Typed methods: `hasRole(int $role)`, `removeRole(Role|int $role): int`
+
+3. **UserModelTrait**:
+   - Added `declare(strict_types=1)`
+   - Return types: `findByUsername(string): ?User`, `findByEmail(string): ?User`, `findByLogin(string): ?User`
+
+4. **RoleModelTrait**, **NodeTrait**, **NodeModelTrait**, **PostModelTrait**, **CommentModelTrait**:
+   - All have `declare(strict_types=1)`
+   - All methods fully typed
+
+**Models: strict_types RESTORED** ✅
+- User, Role, Page, Node, Post, Comment, Widget
+- All models now have `declare(strict_types=1)` AGAIN
+- Combined with modernized traits = FULL TYPE SAFETY
+
+**This is the proper migration**: Infrastructure (traits) first, then strict enforcement!
+
+**Files Modernized**:
+- **8 Traits** fully modernized with strict_types
+- **14 Models** with strict_types restored
+- Complete type safety across the entire ORM stack
+
+**Summary of Bugfixes**:
+1. ✅ Cache interface compatibility (PSR-6 + legacy)
+2. ✅ User::getId() return type fixed (string per interface)
+3. ✅ Nullable string properties (DB NULL handling)
+4. ✅ Traits modernized (REPLACE not compatibility!)
+5. ✅ strict_types restored in all models
+
+**Current Status**: All ORM components and models fully modernized for PHP 8.2+
+
 #### Changes Made
 
 **EntityManager.php** - Full modernization with strict types
