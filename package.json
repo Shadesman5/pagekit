@@ -32,7 +32,7 @@
         "ismobilejs": "~1.1.1",
         "JSONStorage": "github:uatrend/JSONStorage#master",
         "lodash": "^4.17.20",
-        "marked": "^4.3.0",
+        "marked": "^16.4.1",
         "tinymce": "~5.5.1",
         "uikit": "~3.5.8",
         "vee-validate": "~3.3.11",
