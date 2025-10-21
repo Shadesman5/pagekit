@@ -1,6 +1,6 @@
 # Changelog 2025
 
-## Pagekit 1.0.43 - ORM Layer Modernization for PHP 8.2+ (October 16, 2025)
+## Pagekit 1.0.43 - ORM Layer Modernization for PHP 8.2+ & Critical Bugfixes (October 21, 2025)
 
 ### 🚀 Major Changes
 
@@ -13,6 +13,7 @@
 ### ✨ New Features
 
 - **Query Result Caching** - PSR-6 based caching system
+
   - 💾 `QueryBuilder::cache(int $ttl)` method for query caching
   - 🔄 Automatic cache invalidation on entity save/delete
   - 🔑 Smart cache key generation based on SQL and relations
@@ -28,10 +29,30 @@
 ### 🔧 Infrastructure
 
 - **Enhanced Relations** - Modernized relation classes
+
   - ✨ BelongsTo, HasOne, HasMany, ManyToMany all typed
   - 🎯 Full constructor parameter typing
   - 🚀 Eager loading prevents N+1 query problems
   - 📊 Up to 50x query performance improvement
+
+- **Debug Database Storage** - Automatic cleanup system
+
+  - 🗄️ SQLite-based debug bar storage with automatic cleanup
+  - 🔄 Keeps maximum 100 entries, auto-deletes oldest
+  - 💾 Prevents unlimited database growth
+  - 📊 Performance-optimized with memory-based journal mode
+
+- **System Settings Enhancement** - SQLite availability detection
+
+  - ✅ Automatic SQLite driver detection (SQLite3 + PDO)
+  - 🔍 Real-time check for database configuration options
+  - 🎯 Better UX: Shows only available database options
+
+- **Frontend Development** - ESLint modernization
+
+  - 📦 Updated to ECMAScript 2020 (ES11)
+  - 🔧 Modern JavaScript features support
+  - ✨ Better code quality and linting
 
 - **Comprehensive Testing** - New test coverage
   - 🧪 13 PHPUnit tests (100% passing)
@@ -45,6 +66,28 @@
   - After: 2 queries (1 for posts, 1 for users)
 - **Query Caching**: 2-5x faster for cached results
 - **Type Safety**: Reduced runtime overhead and early error detection
+
+### 🐛 Bug Fixes
+
+- **Fixed: Symfony InputBag non-scalar values** (`ParamFetcher.php`)
+
+  - 🔧 Changed `$bag->get($name)` to `$bag->all()[$name] ?? null`
+  - ✅ Vue.js arrays/objects for filters now work correctly
+  - 🎁 Bonus: Blog comments display fixed as side effect
+
+- **Fixed: Node link validation** (Multiple files)
+
+  - 🛡️ 4-layer defense: Frontend validation, Controller validation, Model fallback, DB constraint
+  - 🎨 UI improvement: External URLs auto-select "Link" type, disable Alias/Redirect options
+  - 🔧 Fixed v-model binding in `input-link.vue` component
+  - ✅ Prevents "NOT NULL constraint failed: pk_system_node.link" errors
+
+- **Fixed: Blog permalink routing** (Critical!)
+  - 🔧 Removed static cache from `UrlResolver::getPermalink()`
+  - 🔧 Fixed `Router::generate()` to call resolver BEFORE URL generation
+  - 🔧 Set `_resolver` on `@blog/id` route in `RouteListener`
+  - ✅ All permalink types now work: Numeric, Name, Date+Name, Month+Name, Custom
+  - 🎨 Full flexibility for custom permalink patterns (e.g., `{day}/{slug}/{year}`)
 
 ### 📝 Documentation
 
