@@ -78,17 +78,23 @@ class UrlResolver implements ParamsResolverInterface
 
         $meta = $this->cacheEntries[$id];
 
-        preg_match_all('#{([a-z]+)}#i', self::getPermalink(), $matches);
+        $permalink = self::getPermalink();
+        
+        // Check if permalink has placeholders like {slug}, {year}, etc.
+        $matchCount = preg_match_all('#{([a-z]+)}#i', $permalink, $matches);
 
-        if ($matches) {
+        if ($matchCount > 0 && !empty($matches[1])) {
+            // We have placeholders in the permalink - replace them with actual values
             foreach($matches[1] as $attribute) {
                 if (isset($meta[$attribute])) {
                     $parameters[$attribute] = $meta[$attribute];
                 }
             }
+            // Only remove 'id' if we have successfully replaced it with permalink parameters
+            unset($parameters['id']);
         }
+        // else: Keep 'id' for numeric permalinks
 
-        unset($parameters['id']);
         return $parameters;
     }
 
@@ -104,17 +110,11 @@ class UrlResolver implements ParamsResolverInterface
      */
     public static function getPermalink(): string
     {
-        static $permalink;
+        $blog = App::module('blog');
+        $permalink = $blog->config('permalink.type');
 
-        if (null === $permalink) {
-
-            $blog = App::module('blog');
-            $permalink = $blog->config('permalink.type');
-
-            if ($permalink == 'custom') {
-                $permalink = $blog->config('permalink.custom');
-            }
-
+        if ($permalink == 'custom') {
+            $permalink = $blog->config('permalink.custom');
         }
 
         return $permalink;

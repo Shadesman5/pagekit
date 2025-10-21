@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Model;
 
 /**
@@ -31,13 +33,13 @@ class Role implements \JsonSerializable
     const ROLE_ADMINISTRATOR = 3;
 
     /** @Column(type="integer") @Id */
-    public $id;
+    public ?int $id = null;
 
     /** @Column(type="string") */
-    public $name;
+    public ?string $name = null;
 
     /** @Column(type="integer") */
-    public $priority = 0;
+    public int $priority = 0;
 
     /** @Column(type="simple_array") */
     public array $permissions = [];
@@ -52,7 +54,7 @@ class Role implements \JsonSerializable
     /**
      * {@inheritdoc}
      */
-    public function hasPermission($permission): bool
+    public function hasPermission(string $permission): bool
     {
         return in_array($permission, $this->permissions);
     }
@@ -60,9 +62,9 @@ class Role implements \JsonSerializable
     /**
      * {@inheritdoc}
      */
-    public function addPermission($permission): void
+    public function addPermission(string $permission): void
     {
-        $this->permissions[] = (string) $permission;
+        $this->permissions[] = $permission;
     }
 
     /**
@@ -108,7 +110,7 @@ class Role implements \JsonSerializable
     /**
      * {@inheritdoc}
      */
-    public function __toString() {
+    public function __toString(): string {
         return (string) $this->name;
     }
 }

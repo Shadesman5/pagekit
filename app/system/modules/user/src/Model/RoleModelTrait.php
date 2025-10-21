@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Model;
 
 use Pagekit\Database\ORM\ModelTrait;

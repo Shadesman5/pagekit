@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Site\Model;
 
 use Pagekit\Application as App;
@@ -18,9 +20,9 @@ trait NodeModelTrait
      *
      * @param  mixed $id
      * @param  bool  $cached
-     * @return static
+     * @return static|null
      */
-    public static function find($id, $cached = false)
+    public static function find(mixed $id, bool $cached = false): ?Node
     {
         if (!$cached || !isset(self::$nodes[$id])) {
             self::$nodes[$id] = self::modelFind($id);
@@ -35,7 +37,7 @@ trait NodeModelTrait
      * @param  bool $cached
      * @return static[]
      */
-    public static function findAll($cached = false): array
+    public static function findAll(bool $cached = false): array
     {
         if (!$cached || null === self::$nodes) {
             self::$nodes = self::query()->orderBy('priority')->get();
@@ -49,7 +51,7 @@ trait NodeModelTrait
      *
      * @return static[]
      */
-    public static function findByMenu($menu, $cached = false): array
+    public static function findByMenu(string $menu, bool $cached = false): array
     {
         return array_filter(self::findAll($cached), fn($node) => $menu == $node->menu);
     }
@@ -59,7 +61,7 @@ trait NodeModelTrait
      *
      * @return int
      */
-    public static function fixOrphanedNodes()
+    public static function fixOrphanedNodes(): int
     {
         if ($orphaned = self::getConnection()
             ->createQueryBuilder()
@@ -88,6 +90,19 @@ trait NodeModelTrait
 
         if (!$node->slug) {
             $node->slug = $node->title;
+        }
+
+        // Ensure link is set (database has NOT NULL constraint)
+        // This is a safety fallback for cases where link is not provided
+        if (empty($node->link)) {
+            // Generate a default link based on node type or path
+            if ($node->type && $node->type !== 'link') {
+                // For typed nodes (page, blog, etc.), use type-based route
+                $node->link = '@' . $node->type . '/id';
+            } else {
+                // For generic links or unknown types, create a safe default
+                $node->link = '#';
+            }
         }
 
         // A node cannot have itself as a parent
