@@ -281,6 +281,7 @@ class EntityManager
         }
         
         // Clear all cache items
+        // TODO: Implement cache invalidation strategy
         // Note: PSR-6 doesn't have a built-in way to delete by pattern
         // This is a simplified implementation - in production, you might use cache tags
         // or a more sophisticated cache invalidation strategy
