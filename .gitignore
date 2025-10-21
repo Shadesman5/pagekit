@@ -40,6 +40,7 @@ docker.env
 
 # Ignore Cursor files
 .cursor/rules/push.mdc
+.cursor/environment.json
 
 # E2E Testing
 .playwright-mcp/**/*
