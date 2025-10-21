@@ -10,7 +10,7 @@ echo "🌿 Current branch: $(git branch --show-current)"
 
 # Keep the container running
 echo "⏳ Agent is ready and waiting for tasks..."
-echo "💡 Tip: Use 'push' rule to create commits and PRs automatically"
+echo "💡 Tip: Use 'push' rule to create commits automatically"
 
 # Optional: Start a simple HTTP server for testing
 # cd /home/ubuntu/pagekit && php -S 0.0.0.0:8080 -t . &
