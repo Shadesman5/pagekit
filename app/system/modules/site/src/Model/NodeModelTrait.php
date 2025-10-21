@@ -92,6 +92,19 @@ trait NodeModelTrait
             $node->slug = $node->title;
         }
 
+        // Ensure link is set (database has NOT NULL constraint)
+        // This is a safety fallback for cases where link is not provided
+        if (empty($node->link)) {
+            // Generate a default link based on node type or path
+            if ($node->type && $node->type !== 'link') {
+                // For typed nodes (page, blog, etc.), use type-based route
+                $node->link = '@' . $node->type . '/id';
+            } else {
+                // For generic links or unknown types, create a safe default
+                $node->link = '#';
+            }
+        }
+
         // A node cannot have itself as a parent
         if ($node->parent_id === $node->id) {
             $node->parent_id = 0;
