@@ -1,5 +1,44 @@
 # Changelog 2025
 
+## Pagekit 1.0.43 - Project Infrastructure Modernization (October 22, 2025)
+
+### 📋 Documentation & Standards
+
+- **docs(rules): add github labels guide** - Comprehensive label system for PRs and issues
+  - 🏷️ Dependency labels (php, javascript, docker, github-actions)
+  - 🏷️ Conventional Commits labels (breaking-change, security, performance)
+  - 🏷️ Project area labels (frontend, backend, database, module, theme, migration)
+  - 📖 Full usage guide with examples and best practices
+
+- **docs(rules): link labels to conventional commits** - Integrated workflow
+  - 🔗 Commit types mapped to GitHub labels
+  - 📝 PR labeling guidelines
+  - 🔄 Workflow integration documentation
+
+### 🔧 Build & CI/CD
+
+- **build(git): enhance gitattributes for cross-platform consistency**
+  - ✅ Consistent LF line endings for all text files
+  - 🔒 Binary files properly marked
+  - 📦 Export-ignore for test and dev files
+  - 🚫 No more CRLF/LF warnings
+
+- **ci(dependabot): adopt conventional commits format**
+  - 🤖 All Dependabot PRs now use `chore(deps):` format
+  - ✅ Follows Conventional Commits v1.0.0 specification
+  - 📊 Better changelog integration
+  - 🔄 Automatic label assignment
+
+- **build(agent): improve background agent reliability**
+  - 🐳 Enhanced Dockerfile with explicit PATH configuration
+  - 🔍 Comprehensive error diagnostics in install.sh
+  - 💾 PDO driver checks and installation (MySQL, SQLite)
+  - 🔄 Support for both Dockerfile and Snapshot environments
+  - 📦 Automatic installation of missing dependencies
+  - ✅ Environment detection and summary
+
+---
+
 ## Pagekit 1.0.43 - ORM Layer Modernization for PHP 8.2+ & Critical Bugfixes (October 21, 2025)
 
 ### 🚀 Major Changes
