@@ -112,6 +112,15 @@ build(webpack): optimize bundle splitting
 - Keep subject line under 50 characters
 - Add detailed body if needed
 
+### GitHub Labels (for Pull Requests)
+
+- When creating PRs, add labels based on commit types (see `github-labels.mdc`)
+- `feat:` commits → PR gets `enhancement` label
+- `fix:` commits → PR gets `bug` label
+- `feat!:` or `fix!:` commits → PR gets `breaking-change` label
+- `perf:` commits → PR gets `performance` label
+- Also add area labels to PR: `frontend`, `backend`, `database`, etc.
+
 ### Changelog Entry
 
 - Commits are automatically parsed into `CHANGELOG-2025.md` (see `push.mdc`)
@@ -122,8 +131,9 @@ build(webpack): optimize bundle splitting
 
 1. Make changes
 2. Create commit with Conventional Commits format
-3. Push workflow automatically updates changelog
-4. PR documentation includes commit context
+3. Push workflow automatically updates changelog (see `push.mdc`)
+4. When PR is created, add appropriate labels based on commit types (see `github-labels.mdc`)
+5. PR documentation includes commit context
 
 ## Benefits
 
@@ -157,3 +167,4 @@ revert:    ⏪ Revert
 - **One concern per commit**: Multiple changes = multiple commits
 - **Test before commit**: Ensure code works
 - **Link issues**: Use `Refs: #123` in footer
+- **PR labels**: When creating PRs, add labels that match your commit types (see `github-labels.mdc`)
