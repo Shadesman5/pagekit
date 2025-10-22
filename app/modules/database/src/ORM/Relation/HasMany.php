@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Database\ORM\Relation;
 
 use Pagekit\Database\ORM\QueryBuilder;
@@ -11,7 +13,7 @@ class HasMany extends HasOne
     /**
      * {@inheritdoc}
      */
-    public function __construct($manager, $metadata, $mapping)
+    public function __construct(\Pagekit\Database\ORM\EntityManager $manager, \Pagekit\Database\ORM\Metadata $metadata, array $mapping)
     {
         parent::__construct($manager, $metadata, $mapping);
 
@@ -42,7 +44,7 @@ class HasMany extends HasOne
         $this->resolveRelations($query, $targets);
     }
 
-    protected function mapBelongsTo($entities): void
+    protected function mapBelongsTo(array $entities): void
     {
         if ($this->belongsTo) {
             foreach ($entities as $entity) {

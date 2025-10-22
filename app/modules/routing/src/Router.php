@@ -261,11 +261,14 @@ class Router implements RouterInterface, UrlGeneratorInterface
             $parameters = array_replace($parameters, $params);
         }
 
-        if ($referenceType !== self::LINK_URL
-            && ($props = $generator->getRouteProperties($generator->generate($name, $parameters, self::ABSOLUTE_PATH)) or $props = $generator->getRouteProperties($name))
-            && $resolver = $this->getResolver($props[1])
-        ) {
-            $parameters = $resolver->generate($parameters);
+        if ($referenceType !== self::LINK_URL) {
+            // Try to get route properties directly first (without generating)
+            // This allows resolvers to transform parameters before URL generation
+            if ($props = $generator->getRouteProperties($name)) {
+                if ($resolver = $this->getResolver($props[1])) {
+                    $parameters = $resolver->generate($parameters);
+                }
+            }
         }
 
         return $generator->generate($name, $parameters, $referenceType).$fragment;

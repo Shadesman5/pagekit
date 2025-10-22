@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Blog\Model;
 
 use Pagekit\Application as App;
@@ -27,51 +29,51 @@ class Post implements \JsonSerializable
     const STATUS_UNPUBLISHED = 3;
 
     /** @Column(type="integer") @Id */
-    public $id;
+    public ?int $id = null;
 
     /** @Column(type="string") */
-    public $title;
+    public ?string $title = null;
 
     /** @Column(type="string") */
-    public $slug;
+    public ?string $slug = null;
 
     /** @Column(type="integer") */
-    public $user_id;
+    public ?int $user_id = null;
 
     /** @Column(type="datetime") */
-    public $date;
+    public ?\DateTime $date = null;
 
     /** @Column(type="text") */
-    public $content = '';
+    public ?string $content = '';
 
     /** @Column(type="text") */
-    public $excerpt = '';
+    public ?string $excerpt = '';
 
     /** @Column(type="smallint") */
-    public $status;
+    public ?int $status = null;
 
     /** @Column(type="datetime") */
-    public $modified;
+    public ?\DateTime $modified = null;
 
     /** @Column(type="boolean") */
-    public $comment_status;
+    public ?bool $comment_status = null;
 
     /** @Column(type="integer") */
-    public $comment_count = 0;
+    public int $comment_count = 0;
 
     /**
      * @BelongsTo(targetEntity="Pagekit\User\Model\User", keyFrom="user_id")
      */
-    public $user;
+    public mixed $user = null;
 
     /**
      * @HasMany(targetEntity="Comment", keyFrom="id", keyTo="post_id")
      * @OrderBy({"created" = "DESC"})
      */
-    public $comments;
+    public mixed $comments = null;
 
     /** @var bool */
-    public $readmore = false;
+    public bool $readmore = false;
 
     protected static array $properties = [
         'author' => 'getAuthor',
@@ -89,11 +91,11 @@ class Post implements \JsonSerializable
         ];
     }
 
-    public function getStatusText()
+    public function getStatusText(): string
     {
         $statuses = self::getStatuses();
 
-        return isset($statuses[$this->status]) ? $statuses[$this->status] : __('Unknown');
+        return $statuses[$this->status] ?? __('Unknown');
     }
 
     public function isCommentable(): bool
@@ -104,7 +106,7 @@ class Post implements \JsonSerializable
         return $this->comment_status && (!$autoclose or $this->date >= new \DateTime("-{$autoclose} day"));
     }
 
-    public function getAuthor()
+    public function getAuthor(): ?string
     {
         return $this->user ? $this->user->username : null;
     }

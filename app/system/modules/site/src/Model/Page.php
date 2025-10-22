@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Site\Model;
 
 use Pagekit\Database\ORM\ModelTrait;
@@ -13,11 +15,11 @@ class Page implements \JsonSerializable
     use DataModelTrait, ModelTrait;
 
     /** @Column(type="integer") @Id */
-    public $id;
+    public ?int $id = null;
 
     /** @Column(type="string") */
-    public $title;
+    public ?string $title = null;
 
     /** @Column */
-    public $content = '';
+    public ?string $content = '';
 }

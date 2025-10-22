@@ -21,8 +21,14 @@ class RouteListener implements EventSubscriberInterface
      */
     public function onConfigureRoute($event, $route): void
     {
-        if ($route->getName() == '@blog/id' && UrlResolver::getPermalink()) {
-            App::routes()->alias(dirname($route->getPath()).'/'.ltrim(UrlResolver::getPermalink(), '/'), '@blog/id', ['_resolver' => 'Pagekit\Blog\UrlResolver']);
+        if ($route->getName() == '@blog/id') {
+            // Always set resolver on @blog/id route for URL generation
+            $route->setDefault('_resolver', 'Pagekit\Blog\UrlResolver');
+            
+            // Create alias route for custom permalink patterns
+            if ($permalink = UrlResolver::getPermalink()) {
+                App::routes()->alias(dirname($route->getPath()).'/'.ltrim($permalink, '/'), '@blog/id', ['_resolver' => 'Pagekit\Blog\UrlResolver']);
+            }
         }
     }
 

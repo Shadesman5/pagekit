@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Model;
 
 use Pagekit\Application as App;
@@ -7,12 +9,12 @@ use Pagekit\Application as App;
 trait AccessModelTrait
 {
     /** @Column(type="simple_array") */
-    public $roles = [];
+    public array $roles = [];
 
     /**
      * @param  int $role
      */
-    public function hasRole($role): bool
+    public function hasRole(int $role): bool
     {
         return in_array($role, $this->roles);
     }
@@ -28,7 +30,7 @@ trait AccessModelTrait
     /**
      * @param  Role|int $role
      */
-    public static function removeRole($role): int
+    public static function removeRole(Role|int $role): int
     {
         if ($role instanceof Role) {
             $role = $role->id;

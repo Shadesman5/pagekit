@@ -15,7 +15,7 @@ return [
         '/system/settings' => [
             'name' => '@system/settings',
             'controller' => 'Pagekit\\System\\Controller\\SettingsController'
-        ]
+        ],
 
     ],
 

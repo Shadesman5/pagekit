@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Blog\Model;
 
 use Pagekit\Comment\Model\Comment as BaseComment;
@@ -13,25 +15,25 @@ class Comment extends BaseComment implements \JsonSerializable
     public int $post_id;
 
     /** @Column(type="string") */
-    public $user_id;
+    public ?string $user_id = null;
 
     /** @Column(type="string") */
-    public $email;
+    public ?string $email = null;
 
     /** @Column(type="string") */
-    public $url = '';
+    public ?string $url = '';
 
     /** @Column(type="string") */
-    public $ip;
+    public ?string $ip = null;
 
     /** @BelongsTo(targetEntity="Post", keyFrom="post_id") */
-    public $post;
+    public mixed $post = null;
 
     /** @BelongsTo(targetEntity="Pagekit\User\Model\User", keyFrom="user_id") */
-    public $user;
+    public mixed $user = null;
 
     /** @var int */
-    public $special = 0;
+    public int $special = 0;
 
     public function setPost($post): void
     {
@@ -42,11 +44,11 @@ class Comment extends BaseComment implements \JsonSerializable
         }
     }
 
-    public function getStatusText()
+    public function getStatusText(): string
     {
         $statuses = self::getStatuses();
 
-        return isset($statuses[$this->status]) ? $statuses[$this->status] : __('Unknown');
+        return $statuses[$this->status] ?? __('Unknown');
     }
 
     public static function getStatuses(): array

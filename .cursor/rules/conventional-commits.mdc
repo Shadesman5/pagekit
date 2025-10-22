@@ -1,0 +1,170 @@
+---
+description: Conventional Commits Standard - Follow the Conventional Commits v1.0.0 specification for all commit messages. Structure: <type>[optional scope]: <description> (max 50 chars). Types: feat (new feature, MINOR bump), fix (bug fix, PATCH bump), docs (documentation), style (formatting), refactor (code restructuring), perf (performance), test (tests), build (build system), ci (CI/CD), chore (maintenance), revert (reverts). Breaking changes: Add ! after type/scope OR use BREAKING CHANGE: footer (MAJOR bump). Scope: Optional context in parentheses, e.g., feat(auth):. Description: Imperative mood, lowercase, no period. Body: Optional detailed explanation after blank line. Footer: Optional metadata (Refs, Reviewed-by, BREAKING CHANGE). Examples: feat(api): add user authentication endpoint | fix(blog): prevent XSS in comments | docs: update installation guide | feat!: drop support for PHP 7.4 | chore: upgrade dependencies. Always use this format for commits. Detailed changelog entries go in CHANGELOG-2025.md as per push.mdc workflow.
+alwaysApply: false
+---
+
+# Conventional Commits Standard
+
+Follow the [Conventional Commits v1.0.0 specification](https://www.conventionalcommits.org/en/v1.0.0/) for all commit messages.
+
+## Structure
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+## Types
+
+### Core Types (SemVer)
+
+- **feat**: New feature (→ MINOR version bump)
+- **fix**: Bug fix (→ PATCH version bump)
+- **BREAKING CHANGE**: Breaking change (→ MAJOR version bump)
+
+### Additional Types
+
+- **docs**: Documentation only changes
+- **style**: Code formatting, missing semicolons, etc. (no code change)
+- **refactor**: Code refactoring (neither fixes bug nor adds feature)
+- **perf**: Performance improvements
+- **test**: Adding or correcting tests
+- **build**: Changes to build system or dependencies
+- **ci**: Changes to CI/CD configuration
+- **chore**: Maintenance tasks, updates
+- **revert**: Reverts a previous commit
+
+## Rules
+
+1. **Type**: Required, lowercase noun
+2. **Scope**: Optional, in parentheses, e.g., `feat(auth):`
+3. **Description**:
+   - Max 50 characters
+   - Imperative mood ("add" not "added" or "adds")
+   - Lowercase
+   - No period at the end
+4. **Body**: Optional, detailed explanation after blank line
+5. **Footer**: Optional metadata (Refs, Reviewed-by, BREAKING CHANGE)
+6. **Breaking Changes**:
+   - Add `!` after type/scope: `feat!:` or `feat(api)!:`
+   - OR use footer: `BREAKING CHANGE: description`
+
+## Examples
+
+### Simple Commits
+
+```
+feat(api): add user authentication endpoint
+fix(blog): prevent XSS vulnerability in comments
+docs: update installation guide
+style: format code with PHP-CS-Fixer
+refactor(database): extract query builder logic
+perf(cache): optimize Redis connection pooling
+test(auth): add login integration tests
+chore: upgrade Symfony to 6.4
+```
+
+### With Breaking Changes
+
+```
+feat!: drop support for PHP 7.4
+
+BREAKING CHANGE: Minimum PHP version is now 8.2
+```
+
+```
+feat(api)!: change authentication response format
+```
+
+### With Body
+
+```
+fix: prevent race condition in request handling
+
+Introduce request ID and reference to latest request.
+Dismiss incoming responses other than from latest request.
+Remove obsolete timeouts.
+
+Refs: #123
+```
+
+### Pagekit-Specific Examples
+
+```
+feat(system): add widget management UI
+fix(blog): resolve date formatting in posts
+refactor(orm): modernize query builder API
+docs(readme): update system requirements
+test(e2e): add playwright tests for login
+chore(deps): update doctrine/dbal to 3.x
+perf(frontend): lazy load Vue components
+build(webpack): optimize bundle splitting
+```
+
+## Integration with Existing Workflow
+
+### Commit Message
+
+- Use Conventional Commits format (this rule)
+- Keep subject line under 50 characters
+- Add detailed body if needed
+
+### GitHub Labels (for Pull Requests)
+
+- When creating PRs, add labels based on commit types (see `github-labels.mdc`)
+- `feat:` commits → PR gets `enhancement` label
+- `fix:` commits → PR gets `bug` label
+- `feat!:` or `fix!:` commits → PR gets `breaking-change` label
+- `perf:` commits → PR gets `performance` label
+- Also add area labels to PR: `frontend`, `backend`, `database`, etc.
+
+### Changelog Entry
+
+- Commits are automatically parsed into `CHANGELOG-2025.md` (see `push.mdc`)
+- Changelog can contain more detailed descriptions
+- Types automatically categorize changes
+
+### Workflow
+
+1. Make changes
+2. Create commit with Conventional Commits format
+3. Push workflow automatically updates changelog (see `push.mdc`)
+4. When PR is created, add appropriate labels based on commit types (see `github-labels.mdc`)
+5. PR documentation includes commit context
+
+## Benefits
+
+✅ Automatic CHANGELOG generation  
+✅ Semantic version determination  
+✅ Clear communication of changes  
+✅ Better git history navigation  
+✅ Automated release processes  
+✅ Easy to understand impact of changes
+
+## Quick Reference
+
+```
+feat:      ✨ New feature
+fix:       🐛 Bug fix
+docs:      📝 Documentation
+style:     💎 Formatting
+refactor:  ♻️  Code restructuring
+perf:      ⚡ Performance
+test:      ✅ Tests
+build:     📦 Build system
+ci:        👷 CI/CD
+chore:     🔧 Maintenance
+revert:    ⏪ Revert
+```
+
+## Tips
+
+- **Imperative mood**: "add feature" not "added feature"
+- **Be specific**: "fix(blog): sanitize user input" not "fix stuff"
+- **One concern per commit**: Multiple changes = multiple commits
+- **Test before commit**: Ensure code works
+- **Link issues**: Use `Refs: #123` in footer
+- **PR labels**: When creating PRs, add labels that match your commit types (see `github-labels.mdc`)

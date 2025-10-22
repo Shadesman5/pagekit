@@ -1,6 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Database\ORM;
+
+use Psr\Cache\CacheItemPoolInterface;
+use Pagekit\Cache\CacheInterface;
 
 class QueryBuilder
 {
@@ -11,6 +16,10 @@ class QueryBuilder
     protected \Pagekit\Database\Query\QueryBuilder $query;
 
     protected array $relations = [];
+    
+    protected CacheItemPoolInterface|CacheInterface|null $cache = null;
+    
+    protected ?int $cacheTtl = null;
 
     /**
      * Constructor.
@@ -30,9 +39,38 @@ class QueryBuilder
      */
     public function get(): array
     {
+        // Check cache if enabled
+        if ($this->cache && $this->cacheTtl !== null) {
+            $cacheKey = $this->getCacheKey();
+            
+            if ($this->cache instanceof CacheItemPoolInterface) {
+                $item = $this->cache->getItem($cacheKey);
+                if ($item->isHit()) {
+                    return $item->get();
+                }
+            } else {
+                $cached = $this->cache->fetch($cacheKey);
+                if ($cached !== false) {
+                    return $cached;
+                }
+            }
+        }
+        
         if ($entities = $this->manager->hydrateAll($this->query->execute(), $this->metadata)) {
             foreach ($this->getRelations() as $name => $query) {
                 $this->manager->related($entities, $name, $query);
+            }
+        }
+        
+        // Save to cache if enabled
+        if ($this->cache && $this->cacheTtl !== null && isset($cacheKey)) {
+            if ($this->cache instanceof CacheItemPoolInterface) {
+                $item = $this->cache->getItem($cacheKey);
+                $item->set($entities);
+                $item->expiresAfter($this->cacheTtl);
+                $this->cache->save($item);
+            } else {
+                $this->cache->save($cacheKey, $entities, $this->cacheTtl);
             }
         }
 
@@ -42,14 +80,43 @@ class QueryBuilder
     /**
      * Execute the query and get the first result.
      *
-     * @return mixed
+     * @return object|null
      */
-    public function first()
+    public function first(): ?object
     {
+        // Check cache if enabled
+        if ($this->cache && $this->cacheTtl !== null) {
+            $cacheKey = $this->getCacheKey('first');
+            
+            if ($this->cache instanceof CacheItemPoolInterface) {
+                $item = $this->cache->getItem($cacheKey);
+                if ($item->isHit()) {
+                    return $item->get();
+                }
+            } else {
+                $cached = $this->cache->fetch($cacheKey);
+                if ($cached !== false) {
+                    return $cached;
+                }
+            }
+        }
+        
         if ($entity = $this->manager->hydrateOne($this->query->limit(1)->execute(), $this->metadata)) {
 
             foreach ($this->getRelations() as $name => $query) {
                 $this->manager->related($entity, $name, $query);
+            }
+            
+            // Save to cache if enabled
+            if ($this->cache && $this->cacheTtl !== null && isset($cacheKey)) {
+                if ($this->cache instanceof CacheItemPoolInterface) {
+                    $item = $this->cache->getItem($cacheKey);
+                    $item->set($entity);
+                    $item->expiresAfter($this->cacheTtl);
+                    $this->cache->save($item);
+                } else {
+                    $this->cache->save($cacheKey, $entity, $this->cacheTtl);
+                }
             }
 
             return $entity;
@@ -63,7 +130,7 @@ class QueryBuilder
      *
      * @param  mixed $related
      */
-    public function related($related): self
+    public function related(mixed $related): self
     {
         if (is_string($related)) {
             $related = func_get_args();
@@ -133,7 +200,7 @@ class QueryBuilder
      *
      * @param  string $relation
      */
-    public function getNestedRelations($relation): array
+    public function getNestedRelations(string $relation): array
     {
         $nested = [];
         $prefix = $relation.'.';
@@ -146,6 +213,37 @@ class QueryBuilder
 
         return $nested;
     }
+    
+    /**
+     * Enable query result caching with TTL in seconds.
+     *
+     * @param  int               $ttl   Time to live in seconds
+     * @param  CacheItemPoolInterface|CacheInterface|null $cache Custom cache pool (optional)
+     * @return self
+     */
+    public function cache(int $ttl, CacheItemPoolInterface|CacheInterface|null $cache = null): self
+    {
+        $this->cacheTtl = $ttl;
+        $this->cache = $cache ?? $this->manager->getMetadataManager()->getCache();
+        
+        return $this;
+    }
+    
+    /**
+     * Generates a cache key based on the query SQL and parameters.
+     *
+     * @param  string $suffix Optional suffix for the cache key
+     * @return string
+     */
+    protected function getCacheKey(string $suffix = ''): string
+    {
+        $sql = $this->query->getSQL();
+        
+        // Serialize the query parts and relations for cache key
+        $key = 'orm_query_' . md5($sql . serialize($this->relations) . $suffix);
+        
+        return $key;
+    }
 
     /**
      * Proxy method call to query builder.
@@ -155,7 +253,7 @@ class QueryBuilder
      * @throws \BadMethodCallException
      * @return mixed
      */
-    public function __call($method, $args)
+    public function __call(string $method, array $args): mixed
     {
         if (!method_exists($this->query, $method)) {
             throw new \BadMethodCallException(sprintf('Undefined method call "%s::%s"', get_class($this), $method));

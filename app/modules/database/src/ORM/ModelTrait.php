@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Database\ORM;
 
 use Pagekit\Database\Connection;
@@ -17,6 +19,9 @@ trait ModelTrait
 
         if (!$manager) {
             $manager = EntityManager::getInstance();
+            if (!$manager) {
+                throw new \RuntimeException('EntityManager has not been initialized. Make sure the application is fully bootstrapped.');
+            }
         }
 
         return $manager;
@@ -41,7 +46,7 @@ trait ModelTrait
      * @param  array $data
      * @return static
      */
-    public static function create($data = [])
+    public static function create(array $data = []): static
     {
         return static::getManager()->load(self::getMetadata(), $data);
     }
@@ -60,7 +65,7 @@ trait ModelTrait
      * @param  mixed $condition
      * @param  array $params
      */
-    public static function where($condition, array $params = []): QueryBuilder
+    public static function where(mixed $condition, array $params = []): QueryBuilder
     {
         return static::query()->where($condition, $params);
     }
@@ -71,7 +76,7 @@ trait ModelTrait
      * @param  mixed $id
      * @return static
      */
-    public static function find($id)
+    public static function find(mixed $id): ?static
     {
         return static::where([static::getMetadata()->getIdentifier() => $id])->first();
     }

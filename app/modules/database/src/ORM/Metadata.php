@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Database\ORM;
 
 use Doctrine\DBAL\Types\Type;

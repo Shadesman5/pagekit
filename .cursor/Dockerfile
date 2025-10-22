@@ -68,18 +68,19 @@ RUN composer --version && echo 'export PATH="/usr/local/bin:$PATH"' >> /etc/bash
 # Create a non-root user for the background agent
 RUN useradd -m -s /bin/bash ubuntu
 
-# Switch to non-root user
-USER ubuntu
-
-# Set working directory to user's home
-WORKDIR /home/ubuntu
-
 # Environment variables for better git/composer experience
 ENV COMPOSER_ALLOW_SUPERUSER=1
 ENV COMPOSER_NO_INTERACTION=1
 
-# The background agent will mount the workspace at /workspace
-# Dependencies will be installed by the background agent using the install.sh script
+# Set PATH to ensure composer and other tools are accessible
+ENV PATH="/usr/local/bin:$PATH"
 
-# Note: GitHub token should be provided via environment variable when running the container:
-# docker run -e PAGEKIT_BACKGROUND_AGENT=your_token ...
+# Switch to non-root user
+USER ubuntu
+
+# Set working directory to user's home (Cursor will mount workspace automatically)
+WORKDIR /home/ubuntu
+
+# Note: Cursor background agent will automatically mount the workspace
+# Dependencies will be installed by install.sh script (works in both Dockerfile and Snapshot environments)
+# GitHub token should be provided via environment variable: PAGEKIT_BACKGROUND_AGENT

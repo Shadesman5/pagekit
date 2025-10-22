@@ -1,24 +1,26 @@
-# Ignore assets
-/app/assets/*
 # Ignor bundles
 **/app/bundle/**/*.js
+
 # Ignor assets
 /app/assets/*
 /app/system/modules/editor/app/assets/*
-# Don't ignore editor assets
-!/app/system/modules/editor/app/assets/tinymce_skin
-# Ignore vendor folder
-/app/vendor/*
+
 # Ignor module assets
 /app/installer/assets/css/*
 /app/system/modules/theme/css/*
 /app/system/modules/theme/js/theme.js
 /app/system/modules/theme/assets/css/theme.css
+
+# Don't ignore editor assets
+!/app/system/modules/editor/app/assets/tinymce_skin
+
+# Ignore vendor folder
+/app/vendor/*
+
 # Ignore database and logs
 /docker/logs/*
 /docker/mysql/data/*
 /docker/redis/*
-# /packages/*
 /pagekit*.zip
 /pagekit.db
 /config.php
@@ -28,12 +30,17 @@
 node_modules
 .DS_Store
 .idea
+
 # Ignore development/migration documentation
 /migration-docs/TODO/*
 
 # Ignore environment files with secrets
 docker.env
 .env
+
+# Ignore Cursor files
+.cursor/rules/push.mdc
+.cursor/environment.json
 
 # E2E Testing
 .playwright-mcp/**/*

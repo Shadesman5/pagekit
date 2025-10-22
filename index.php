@@ -16,6 +16,22 @@ if (!isset($_SERVER['HTTP_MOD_REWRITE']) && !isset($_SERVER['REDIRECT_HTTP_MOD_R
 
 date_default_timezone_set('UTC');
 
+// Global exception handler for debugging
+if (file_exists($debugLog = __DIR__.'/tmp/logs/debug.log')) {
+    set_exception_handler(function($e) use ($debugLog) {
+        $message = sprintf(
+            "\n[UNCAUGHT EXCEPTION] [%s]\nType: %s\nMessage: %s\nFile: %s:%d\nTrace:\n%s\n\n",
+            date('Y-m-d H:i:s'),
+            get_class($e),
+            $e->getMessage(),
+            $e->getFile(),
+            $e->getLine(),
+            $e->getTraceAsString()
+        );
+        error_log($message, 3, $debugLog);
+    });
+}
+
 $env = 'system';
 $path = __DIR__;
 $config = array(
