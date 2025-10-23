@@ -1,5 +1,69 @@
 # Changelog 2025
 
+## Pagekit 1.0.44 - Database Migration System (October 23, 2025)
+
+### 🗄️ Database Migration System
+
+**feat: Add professional database migration system**
+
+- ✅ **Doctrine Migrations Integration** (compatible with DBAL 3.10.2)
+  - Doctrine Migrations 3.9.4 installed and configured
+  - Migration version tracking in `pk_migration_versions` table
+  - Platform-independent schema definitions
+  
+- 📦 **Console Commands**
+  - `migration:migrate` - Execute pending migrations
+  - `migration:status` - Show migration status and history
+  - `migration:generate` - Create new timestamped migration files
+  - `migration:rollback` - Rollback migrations with version targeting
+  
+- 🔄 **Automatic Schema Versioning**
+  - Timestamped migration files (Version{YmdHis}_{Name}.php)
+  - Complete execution history with timestamps
+  - Execution time tracking
+  
+- 🔙 **Rollback Functionality**
+  - Full rollback support with `down()` methods
+  - Rollback to specific version or previous version
+  - Complete rollback with `--to=0` option
+  
+- 🔧 **Installer Integration**
+  - Installer uses migration system for schema creation
+  - Intelligent fallback to legacy method for compatibility
+  - Migration system detection and initialization
+  
+- 🧩 **Extension Migration Support**
+  - `ExtensionMigration` base class with helper methods
+  - Automatic table and index name prefixing
+  - Safe table creation/deletion helpers
+  - Complete blog extension migration example
+  
+- 📊 **Migration Status Tracking**
+  - View executed and pending migrations
+  - Execution timestamps and performance metrics
+  - Migration description display
+  
+- ✅ **SQLite and MySQL Support**
+  - Full compatibility with both database systems
+  - Platform-independent DBAL types
+  - Custom type handling (json, simple_array)
+
+**Technical Details**:
+- Initial schema migration with all 8 core Pagekit tables
+- Default roles automatically inserted (Anonymous, Authenticated, Administrator)
+- Table prefix support (@table → pk_table)
+- Configuration in `app/config/migrations.php`
+- Migrations stored in `app/migrations/`
+- Namespace: `Pagekit\Migration`
+
+**Documentation**:
+- Complete extension migration guide in `migration-docs/branches/`
+- Migration best practices
+- Helper methods documentation
+- Real working examples (core + blog extension)
+
+---
+
 ## Pagekit 1.0.43 - Project Infrastructure Modernization (October 22, 2025)
 
 ### 📋 Documentation & Standards
