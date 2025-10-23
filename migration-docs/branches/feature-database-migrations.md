@@ -299,10 +299,10 @@ Extensions have distinct lifecycle stages with different database implications:
    - New commands need different names to avoid conflict
    - Solution: Use namespaced commands like `migrate:run`, `migrate:status`, etc.
 
-3. **Coexistence Strategy**:
-   - Old system must continue to work (backward compatibility)
-   - New system should handle NEW migrations
-   - Consider migration path from old to new system
+3. **Replacement Strategy**:
+   - New migration system REPLACES old scripts.php method
+   - Modern Pagekit uses migrations exclusively
+   - No migration path from legacy versions (fresh installation required)
 
 4. **Table Prefix Handling**:
    - All tables use `@` placeholder (e.g., `@system_user`)
@@ -730,7 +730,7 @@ php pagekit migrate:rollback --to=0
 - ✅ **Doctrine Migrations fully integrated** (3.9.4 with DBAL 3.10.2)
 - ✅ **All console commands working** (migrate, status, generate, rollback)
 - ✅ **Initial schema migration created** (Version20251023061532)
-- ✅ **Installer uses migration system** (with intelligent fallback)
+- ✅ **Installer uses migration system** (directly executes migrations, replaces legacy method)
 - ✅ **Extension migration support implemented** (ExtensionMigration + Blog example)
 - ✅ **Rollback functionality working** (tested with complete rollback)
 - ✅ **SQLite working** (fully tested)
@@ -802,7 +802,7 @@ php pagekit migrate:rollback --to=0
 
 The migration system is **production-ready** with:
 - ✅ Complete core functionality
-- ✅ Backward compatibility
+- ✅ Modern, clean implementation (replaces legacy method)
 - ✅ Comprehensive documentation
 - ✅ Working examples
 - ✅ Performance validated

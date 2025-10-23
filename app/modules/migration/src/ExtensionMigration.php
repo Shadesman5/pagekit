@@ -77,12 +77,12 @@ abstract class ExtensionMigration extends AbstractMigration
      */
     protected function getTablePrefix(): string
     {
-        // Try to get prefix from Pagekit connection
+        // Get prefix from Pagekit connection
         if ($this->connection instanceof \Pagekit\Database\Connection) {
             return $this->connection->getPrefix();
         }
 
-        // Fallback to default prefix
+        // Default prefix (standard Pagekit installation)
         return 'pk_';
     }
 

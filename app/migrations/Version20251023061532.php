@@ -188,12 +188,12 @@ final class Version20251023061532 extends AbstractMigration
      */
     private function getTablePrefix(): string
     {
-        // Try to get prefix from Pagekit connection
+        // Get prefix from Pagekit connection
         if ($this->connection instanceof \Pagekit\Database\Connection) {
             return $this->connection->getPrefix();
         }
 
-        // Fallback to default prefix
+        // Default prefix (standard Pagekit installation)
         return 'pk_';
     }
 }

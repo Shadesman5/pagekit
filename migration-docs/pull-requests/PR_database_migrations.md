@@ -11,7 +11,7 @@
 
 Professional database migration system using Doctrine Migrations 3.9.4, providing automatic schema versioning, rollback functionality, and comprehensive migration management for Pagekit CMS.
 
-This implementation replaces direct schema creation with a versioned migration system while maintaining full backward compatibility with the existing installation method.
+**This implementation REPLACES the legacy `scripts.php` installation method with a modern, versioned migration system.** Modern Pagekit requires fresh installation - there is no upgrade path from legacy versions.
 
 ---
 
@@ -116,33 +116,35 @@ packages/pagekit/blog/
 - **Rollback time**: ~0.002ms
 
 ### Comparison with Legacy Method
-- **Old method**: Direct table creation, no versioning
-- **New method**: Versioned migrations, full rollback support
+- **Old method**: Direct table creation via `scripts.php`, no versioning
+- **New method**: Versioned migrations via Doctrine Migrations, full rollback support
 - **Performance impact**: Negligible (<5ms difference)
-- **Benefits**: Complete version control, rollback, history
+- **Benefits**: Complete version control, rollback capability, migration history, professional tooling
 
 ---
 
-## 🔄 Migration from Legacy System
+## 🔄 Migration Strategy
 
-### Backward Compatibility ✅
+### ⚠️ Important: No Backward Compatibility
 
-The implementation is **fully backward compatible**:
+This is a **modernization effort** - **NOT a compatibility update**:
 
-1. **Existing Installations**:
-   - Continue to work without changes
-   - Can optionally migrate to new system
-   - No forced migration required
+1. **Fresh Installations (Modern Pagekit)**:
+   - MUST use the new Doctrine Migrations system
+   - Installer directly executes migrations
+   - `pk_migration_versions` table tracks all schema changes
+   - Full rollback and version control from day one
 
-2. **Legacy `scripts.php` Method**:
-   - Still supported as fallback
-   - Used if migration system not available
-   - Extensions continue to work as before
+2. **Legacy Pagekit (Old Versions)**:
+   - No upgrade path provided
+   - Users must perform fresh installation
+   - Data migration tools may be developed separately
+   - Focus is on modern, clean implementation
 
-3. **Installation Detection**:
-   - Installer auto-detects migration system availability
-   - Falls back gracefully if migrations not found
-   - No breaking changes to installation flow
+3. **Extension System**:
+   - Extensions can still use `scripts.php` for their lifecycle hooks (install/uninstall)
+   - Modern extensions are encouraged to use the new migration system
+   - Both approaches can coexist (extensions are independent of core)
 
 ---
 
@@ -359,9 +361,9 @@ Add to `app/config/migrations.php`:
 **Recommendation**: ✅ **READY TO MERGE**
 
 **Conditions**:
-- Code is production-ready
-- Fully backward compatible
-- No breaking changes
+- Code is production-ready and follows modern standards
+- Clean implementation - replaces legacy method
+- Breaking change acknowledged (fresh installation required)
 - Comprehensive documentation
 - Tests pass (with pre-existing failures unchanged)
 
