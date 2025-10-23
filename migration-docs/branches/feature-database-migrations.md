@@ -218,28 +218,56 @@ public function migrate(): void {
 
 #### Database Touch Points ✅
 
+**IMPORTANT: Extension Lifecycle Clarification**
+
+Extensions have distinct lifecycle stages with different database implications:
+
+1. **`install`** → Extension installation → **Tables are CREATED here**
+2. **`enable`** → Extension activation → Status change only, **NO database changes**
+3. **`disable`** → Extension deactivation → Status change only, **NO database changes, data preserved**
+4. **`uninstall`** → Extension removal → **Tables are DELETED here**
+5. **`updates`** → Version updates → Schema updates/migrations
+
+**Database Touch Points:**
+
 1. **Fresh Installation**:
    - Installer → `PackageScripts` → `scripts['install']` → `$util->createTable()`
    - All system tables created
-   - Extensions activated → extension tables created
+   - Extensions installed (not just "activated") → extension tables created via `install` hook
+   - After installation, extensions are automatically enabled
 
-2. **Extension Activation**:
-   - `PackageManager::enable()` → `scripts['install']`
-   - Creates extension-specific tables
+2. **Extension Installation** (PackageManager::doInstall):
+   - `$scripts->install()` executes → **Creates extension-specific tables**
+   - This happens when: Package first installed OR during enable() if not yet installed
+   - Tables created using `$util->createTable()` in scripts.php
 
-3. **Extension Deactivation**:
-   - `PackageManager::disable()` → optionally `scripts['uninstall']`
-   - Can drop extension tables (but often doesn't for data preservation)
+3. **Extension Activation** (PackageManager::enable):
+   - `$scripts->enable()` executes → **Status change only, NO database operations**
+   - Used for: Re-enabling previously disabled extensions
+   - Only updates config: `extensions` array and package version
 
-4. **System Updates**:
+4. **Extension Deactivation** (PackageManager::disable):
+   - `$scripts->disable()` executes → **Status change only, NO database operations**
+   - Tables and data remain intact
+   - Only updates config: removes from `extensions` array
+   - Used in backend via enable/disable toggle
+
+5. **Extension Uninstallation** (PackageManager::uninstall):
+   - First: `$scripts->disable()` → Status change
+   - Then: `$scripts->uninstall()` → **Drops extension tables and deletes all data**
+   - Finally: Package folder removed from filesystem
+   - Complete removal of extension and all its data
+
+6. **System Updates**:
    - User navigates to `/admin/system/migration` OR runs `php pagekit migrate`
    - `MigrationController/MigrationCommand` → `PackageScripts::update()`
    - Executes version-specific callbacks from `updates` array
    - Often ends with `$util->migrate()` for schema sync
 
-5. **Extension Updates**:
-   - Same as system updates
-   - Each extension can have `updates` array in `scripts.php`
+7. **Extension Updates** (PackageManager::enable with updates):
+   - Checks `$scripts->hasUpdates()` → compares current vs. new version
+   - If updates exist: `$scripts->update()` executes version-specific migrations
+   - Each extension can have `updates` array in `scripts.php` keyed by version
 
 #### Key Findings & Implications ✅
 
