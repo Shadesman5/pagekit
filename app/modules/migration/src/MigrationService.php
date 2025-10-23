@@ -112,15 +112,37 @@ class MigrationService
     {
         $migrator = $this->dependencyFactory->getMigrator();
         $planCalculator = $this->dependencyFactory->getMigrationPlanCalculator();
+        $aliasResolver = $this->dependencyFactory->getVersionAliasResolver();
         
         try {
-            // Calculate migration plan
-            $plan = $version 
-                ? $planCalculator->getPlanUntilVersion($version)
-                : $planCalculator->getPlanForLatest();
+            // Resolve version alias to actual version
+            if ($version) {
+                $targetVersion = new \Doctrine\Migrations\Version\Version($version);
+            } else {
+                // Migrate to latest
+                $targetVersion = $aliasResolver->resolveVersionAlias('latest');
+            }
             
-            // Execute migrations
-            $result = $migrator->migrate($plan);
+            // Calculate migration plan
+            $plan = $planCalculator->getPlanForVersions(
+                [$targetVersion],
+                \Doctrine\Migrations\Version\Direction::UP
+            );
+            
+            // Execute migrations with MigratorConfiguration
+            $migratorConfig = new \Doctrine\Migrations\MigratorConfiguration();
+            $result = $migrator->migrate($plan, $migratorConfig);
+            
+            // Check if result is valid
+            if (is_array($result)) {
+                // Empty result or error
+                return [
+                    'success' => true,
+                    'executed' => 0,
+                    'time' => 0,
+                    'sql' => [],
+                ];
+            }
             
             return [
                 'success' => true,
@@ -129,7 +151,7 @@ class MigrationService
                 'sql' => $result->getSql(),
             ];
             
-        } catch (MigrationException $e) {
+        } catch (\Exception $e) {
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -148,15 +170,30 @@ class MigrationService
     {
         $migrator = $this->dependencyFactory->getMigrator();
         $planCalculator = $this->dependencyFactory->getMigrationPlanCalculator();
+        $aliasResolver = $this->dependencyFactory->getVersionAliasResolver();
         
         try {
-            // Calculate rollback plan
-            $plan = $version
-                ? $planCalculator->getPlanUntilVersion($version)
-                : $planCalculator->getPlanForPrevious();
+            // Resolve target version
+            if ($version === '0' || $version === 'first') {
+                // Rollback all migrations
+                $targetVersion = $aliasResolver->resolveVersionAlias('first');
+            } elseif ($version) {
+                // Rollback to specific version
+                $targetVersion = new \Doctrine\Migrations\Version\Version($version);
+            } else {
+                // Rollback to previous version
+                $targetVersion = $aliasResolver->resolveVersionAlias('prev');
+            }
+            
+            // Calculate rollback plan (DOWN direction)
+            $plan = $planCalculator->getPlanForVersions(
+                [$targetVersion],
+                \Doctrine\Migrations\Version\Direction::DOWN
+            );
             
             // Execute rollback
-            $result = $migrator->migrate($plan);
+            $migratorConfig = new \Doctrine\Migrations\MigratorConfiguration();
+            $result = $migrator->migrate($plan, $migratorConfig);
             
             return [
                 'success' => true,
@@ -164,7 +201,7 @@ class MigrationService
                 'time' => $result->getTime(),
             ];
             
-        } catch (MigrationException $e) {
+        } catch (\Exception $e) {
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -297,12 +334,12 @@ class MigrationService
      */
     public function isInitialized(): bool
     {
-        $storage = $this->dependencyFactory->getMetadataStorage();
-        
         try {
-            // Try to read metadata - this will fail if table doesn't exist
-            $storage->getExecutedMigrations();
-            return true;
+            // Check if the migration table exists in the database
+            $schemaManager = $this->connection->createSchemaManager();
+            $tableName = $this->replacePrefix($this->config['table_storage']['table_name'] ?? '@migration_versions');
+            
+            return $schemaManager->tablesExist([$tableName]);
         } catch (\Exception $e) {
             return false;
         }
