@@ -771,9 +771,9 @@ php pagekit migrate:rollback --to=0
 4. ✅ **Migration Infrastructure**
 5. ✅ **Console Commands**
 6. ✅ **Initial Schema Migration** (CRITICAL)
-7. ✅ **Installer Integration**
+7. ✅ **Installer Integration** (Simplified - direct migration execution)
 8. ✅ **Extension Migration Support**
-9. ⚠️ **Testing & Validation** (Partial - core tests done, E2E pending)
+9. ⚠️ **Testing & Validation** (Manual testing required by user)
 10. ✅ **Documentation & PR Preparation**
 
 ### 📊 Final Statistics

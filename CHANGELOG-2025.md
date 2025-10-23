@@ -28,9 +28,9 @@
   - Complete rollback with `--to=0` option
   
 - 🔧 **Installer Integration**
-  - Installer uses migration system for schema creation
-  - Intelligent fallback to legacy method for compatibility
-  - Migration system detection and initialization
+  - Installer directly executes migrations for schema creation
+  - Replaces legacy scripts.php installation method
+  - Modern Pagekit requires fresh installation (no upgrade path needed)
   
 - 🧩 **Extension Migration Support**
   - `ExtensionMigration` base class with helper methods

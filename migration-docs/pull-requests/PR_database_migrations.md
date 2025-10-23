@@ -32,10 +32,10 @@ php pagekit migration:rollback     # Rollback migrations
 ```
 
 ### 3. Installer Integration ✅
-- Intelligent migration system detection
+- Direct migration execution during installation
 - Automatic initialization on first run
-- Graceful fallback to legacy method
-- Zero breaking changes for existing installations
+- Replaces legacy scripts.php method
+- Modern Pagekit requires fresh installation
 
 ### 4. Extension Migration Support ✅
 - `ExtensionMigration` base class
