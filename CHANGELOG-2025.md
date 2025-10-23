@@ -69,6 +69,7 @@
 ### 📋 Documentation & Standards
 
 - **docs(rules): add github labels guide** - Comprehensive label system for PRs and issues
+
   - 🏷️ Dependency labels (php, javascript, docker, github-actions)
   - 🏷️ Conventional Commits labels (breaking-change, security, performance)
   - 🏷️ Project area labels (frontend, backend, database, module, theme, migration)
@@ -82,12 +83,14 @@
 ### 🔧 Build & CI/CD
 
 - **build(git): enhance gitattributes for cross-platform consistency**
+
   - ✅ Consistent LF line endings for all text files
   - 🔒 Binary files properly marked
   - 📦 Export-ignore for test and dev files
   - 🚫 No more CRLF/LF warnings
 
 - **ci(dependabot): adopt conventional commits format**
+
   - 🤖 All Dependabot PRs now use `chore(deps):` format
   - ✅ Follows Conventional Commits v1.0.0 specification
   - 📊 Better changelog integration
