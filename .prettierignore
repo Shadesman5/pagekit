@@ -1,0 +1,27 @@
+# Ignore Markdown files to preserve manual formatting
+*.md
+
+# Ignore CHANGELOG files specifically
+CHANGELOG*.md
+
+# Ignore compiled/bundled files
+app/bundle/
+app/assets/
+storage/
+tmp/
+packages/*/app/bundle/
+
+# Ignore dependencies
+node_modules/
+vendor/
+packages/composer/
+
+# Ignore build artifacts
+*.min.js
+*.min.css
+
+# Ignore lock files
+package-lock.json
+yarn.lock
+composer.lock
+
