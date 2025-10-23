@@ -67,13 +67,6 @@ return [
     ],
 
     /**
-     * Migrations Directory
-     *
-     * The directory where migration files are stored.
-     */
-    'migrations_directory' => __DIR__ . '/../migrations',
-
-    /**
      * All or Nothing Transaction Mode
      *
      * When true, wraps all migrations in a single transaction.
