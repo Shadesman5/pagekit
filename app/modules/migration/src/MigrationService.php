@@ -115,19 +115,26 @@ class MigrationService
         $aliasResolver = $this->dependencyFactory->getVersionAliasResolver();
         
         try {
-            // Resolve version alias to actual version
+            // Resolve target version
             if ($version) {
                 $targetVersion = new \Doctrine\Migrations\Version\Version($version);
             } else {
-                // Migrate to latest
+                // Migrate to latest version
                 $targetVersion = $aliasResolver->resolveVersionAlias('latest');
             }
             
-            // Calculate migration plan
-            $plan = $planCalculator->getPlanForVersions(
-                [$targetVersion],
-                \Doctrine\Migrations\Version\Direction::UP
-            );
+            // Calculate migration plan - migrate UP to target version
+            $plan = $planCalculator->getPlanUntilVersion($targetVersion);
+            
+            // Check if plan is empty
+            if (count($plan) === 0) {
+                return [
+                    'success' => true,
+                    'executed' => 0,
+                    'time' => 0,
+                    'sql' => [],
+                ];
+            }
             
             // Execute migrations with MigratorConfiguration
             $migratorConfig = new \Doctrine\Migrations\MigratorConfiguration();
@@ -171,29 +178,81 @@ class MigrationService
         $migrator = $this->dependencyFactory->getMigrator();
         $planCalculator = $this->dependencyFactory->getMigrationPlanCalculator();
         $aliasResolver = $this->dependencyFactory->getVersionAliasResolver();
+        $metadataStorage = $this->dependencyFactory->getMetadataStorage();
         
         try {
-            // Resolve target version
+            // Get executed migrations
+            $executedMigrations = $metadataStorage->getExecutedMigrations();
+            
+            // Check if there are migrations to rollback
+            if (count($executedMigrations) === 0) {
+                return [
+                    'success' => true,
+                    'executed' => 0,
+                    'time' => 0,
+                    'message' => 'No migrations to rollback',
+                ];
+            }
+            
+            // Determine target for rollback
             if ($version === '0' || $version === 'first') {
-                // Rollback all migrations
+                // Rollback ALL migrations - use 'first' which means before first migration
                 $targetVersion = $aliasResolver->resolveVersionAlias('first');
             } elseif ($version) {
                 // Rollback to specific version
                 $targetVersion = new \Doctrine\Migrations\Version\Version($version);
             } else {
-                // Rollback to previous version
-                $targetVersion = $aliasResolver->resolveVersionAlias('prev');
+                // Rollback to previous version (one step back)
+                // Get current version and find previous one
+                $currentVersion = $aliasResolver->resolveVersionAlias('current');
+                
+                if ($currentVersion === null || count($executedMigrations) === 0) {
+                    return [
+                        'success' => true,
+                        'executed' => 0,
+                        'time' => 0,
+                        'message' => 'Already at first migration',
+                    ];
+                }
+                
+                // Get all executed migrations and find previous
+                $versions = array_map(fn($m) => $m->getVersion(), $executedMigrations->getItems());
+                $currentIndex = array_search($currentVersion, $versions);
+                
+                if ($currentIndex === false || $currentIndex === 0) {
+                    // Already at first migration, rollback it completely
+                    $targetVersion = $aliasResolver->resolveVersionAlias('first');
+                } else {
+                    // Rollback to previous version
+                    $targetVersion = $versions[$currentIndex - 1];
+                }
             }
             
-            // Calculate rollback plan (DOWN direction)
-            $plan = $planCalculator->getPlanForVersions(
-                [$targetVersion],
-                \Doctrine\Migrations\Version\Direction::DOWN
-            );
+            // Calculate rollback plan
+            $plan = $planCalculator->getPlanUntilVersion($targetVersion);
+            
+            // Check if plan is empty
+            if (count($plan) === 0) {
+                return [
+                    'success' => true,
+                    'executed' => 0,
+                    'time' => 0,
+                    'message' => 'No migrations to rollback',
+                ];
+            }
             
             // Execute rollback
             $migratorConfig = new \Doctrine\Migrations\MigratorConfiguration();
             $result = $migrator->migrate($plan, $migratorConfig);
+            
+            // Check if result is valid
+            if (is_array($result)) {
+                return [
+                    'success' => true,
+                    'executed' => 0,
+                    'time' => 0,
+                ];
+            }
             
             return [
                 'success' => true,

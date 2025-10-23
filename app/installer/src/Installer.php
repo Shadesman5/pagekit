@@ -225,4 +225,96 @@ class Installer
         $db->close();
     }
 
+    /**
+     * Check if migration system should be used
+     *
+     * Determines whether to use the new Doctrine Migrations system
+     * or fallback to the legacy scripts.php installation method.
+     *
+     * @return bool True if migration system should be used
+     */
+    protected function useMigrationSystem(): bool
+    {
+        // Check if migration module is loaded
+        if (!$this->app->module('migration')) {
+            return false;
+        }
+
+        // Check if migration service is available
+        if (!isset($this->app['migration'])) {
+            return false;
+        }
+
+        // Check if migration directory exists
+        $migrationDir = $this->app->path() . '/app/migrations';
+        if (!is_dir($migrationDir)) {
+            return false;
+        }
+
+        // Check if initial migration file exists
+        $migrationFiles = glob($migrationDir . '/Version*.php');
+        if (empty($migrationFiles)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Run database migrations
+     *
+     * Executes Doctrine Migrations to create database schema.
+     * This replaces the legacy scripts.php installation method.
+     *
+     * @throws \Exception If migration fails
+     */
+    protected function runMigrations(): void
+    {
+        try {
+            /** @var \Pagekit\Migration\MigrationService $migrationService */
+            $migrationService = $this->app['migration'];
+
+            // Initialize migration system if not already initialized
+            if (!$migrationService->isInitialized()) {
+                $initResult = $migrationService->initialize();
+                
+                if (!$initResult['success']) {
+                    throw new \RuntimeException(
+                        'Failed to initialize migration system: ' . $initResult['error']
+                    );
+                }
+            }
+
+            // Execute all migrations
+            $result = $migrationService->migrate();
+
+            if (!$result['success']) {
+                throw new \RuntimeException(
+                    'Migration failed: ' . $result['error']
+                );
+            }
+
+            // Log success for debugging
+            if (isset($this->app['log'])) {
+                $this->app['log']->info(
+                    sprintf('Database migrations executed successfully: %d migrations in %.2fs',
+                        $result['executed'],
+                        $result['time']
+                    )
+                );
+            }
+
+        } catch (\Exception $e) {
+            // Log error for debugging
+            if (isset($this->app['log'])) {
+                $this->app['log']->error(
+                    'Migration execution failed: ' . $e->getMessage(),
+                    ['exception' => $e]
+                );
+            }
+            
+            throw $e;
+        }
+    }
+
 }
