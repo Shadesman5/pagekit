@@ -597,7 +597,56 @@ The `ExtensionMigration` base class provides:
 
 ---
 
-#### 5. Extension Lifecycle Integration
+#### 5. System Update Integration
+
+**For future Pagekit updates (2.0.0 → 2.1.0, etc.)**
+
+Modern Pagekit uses Doctrine Migrations for schema changes. When releasing a new version with database updates:
+
+**Step 1: Create Migration**
+```bash
+php pagekit migration:generate AddNewFeatureTable
+# Edit migration file with schema changes
+```
+
+**Step 2: Add Update Hook**
+
+Edit `app/system/scripts.php` and add version entry:
+
+```php
+'updates' => [
+    '2.1.0' => function ($app) {
+        // Execute new migrations automatically
+        $migrationService = $app['migration'];
+        $result = $migrationService->migrate();
+        
+        if (!$result['success']) {
+            throw new \RuntimeException(
+                'Migration failed: ' . ($result['error'] ?? 'Unknown error')
+            );
+        }
+    }
+]
+```
+
+**Step 3: User Updates**
+
+When users update Pagekit:
+1. System detects new version
+2. Executes update hook automatically
+3. Migrations run automatically ✅
+4. Schema is updated seamlessly
+
+**Alternative**: Users can manually run:
+```bash
+php pagekit migration:migrate
+```
+
+**Recommendation**: Use automatic execution in update hooks for best UX!
+
+---
+
+#### 6. Extension Lifecycle Integration
 
 **Current Implementation (Manual)**:
 
