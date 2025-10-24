@@ -1,8 +1,20 @@
 <?php
 
+/**
+ * System Installation & Update Scripts
+ * 
+ * IMPORTANT: Fresh installations (Pagekit 2.0+) use Doctrine Migrations!
+ * The 'install' hook below is kept for backward compatibility with extensions.
+ * 
+ * For system updates (2.0 → 2.1, etc.), add entries to the 'updates' array
+ * and execute $app['migration']->migrate() to run new migrations.
+ */
 return [
 
     'install' => function ($app) {
+        // NOTE: Fresh installations now use Doctrine Migrations system.
+        // This hook is executed AFTER migrations for any additional setup.
+        // Legacy table creation code kept for reference only.
 
         $db = $app['db'];
         $util = $db->getUtility();
@@ -127,6 +139,11 @@ return [
     },
 
     'updates' => [
+        // Example for future updates:
+        // '2.1.0' => function ($app) {
+        //     // Execute new migrations for version 2.1.0
+        //     $app['migration']->migrate();
+        // },
 
         '0.11.3' => function ($app) {
 
