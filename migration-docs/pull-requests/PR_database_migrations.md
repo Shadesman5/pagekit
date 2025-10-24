@@ -32,10 +32,10 @@ php pagekit migration:rollback     # Rollback migrations
 ```
 
 ### 3. Installer Integration ✅
-- Direct migration execution during installation
-- Automatic initialization on first run
-- Replaces legacy scripts.php method
-- Modern Pagekit requires fresh installation
+- **Fresh Installation**: Direct migration execution (replaces legacy scripts.php)
+- **System Updates**: Automatic migration execution in update hooks
+- **Example**: `'2.1.0' => function ($app) { $app['migration']->migrate(); }`
+- Modern Pagekit (2.0+) uses migrations exclusively
 
 ### 4. Extension Migration Support ✅
 - `ExtensionMigration` base class
