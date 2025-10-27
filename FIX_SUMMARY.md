@@ -207,3 +207,66 @@ The fix ensures that:
 3. Existing scripts.php logic is preserved ✅
 4. Type safety is improved ✅
 5. No regression in functionality ✅
+
+---
+
+## 🎯 Additional Modernization (Clean Separation)
+
+After the initial fixes, the architecture was further modernized to eliminate duplication:
+
+### Changes Made:
+
+1. **Year-Based Migration Organization** ✅
+   - Config: `organize_migrations` set to `'year'`
+   - Structure: `app/migrations/2025/`, `packages/pagekit/blog/src/Migrations/2025/`
+
+2. **Core System (app/system/scripts.php)** ✅
+   - **Removed**: All table creation code (now in migrations)
+   - **Removed**: Role insertions (now in migration's postUp())
+   - **Kept**: Dashboard and menu configuration (user preferences)
+   - Result: Clean, focused on configurable defaults only
+
+3. **Blog Extension (packages/pagekit/blog/)** ✅
+   - **Created**: Migration in `src/Migrations/2025/Version001_CreateBlogTables.php`
+   - **Updated**: `scripts.php` to execute migrations instead of creating tables
+   - **Added**: Proper error handling and rollback support
+   - Result: Modern, migration-based architecture
+
+### Architecture:
+
+```
+┌─────────────────────────────────────────────────┐
+│ MIGRATIONS (Structure)                          │
+│ ✅ Tables, columns, indexes                     │
+│ ✅ System roles (structural data)               │
+│ Location: app/migrations/2025/                  │
+└─────────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────────┐
+│ SCRIPTS.PHP (Configuration)                     │
+│ ✅ Dashboard widgets, menu config               │
+│ ✅ Configurable user preferences                │
+│ ✅ Lifecycle hooks (install/uninstall/updates)  │
+└─────────────────────────────────────────────────┘
+```
+
+### Benefits:
+
+- ✅ No duplication (one source of truth for schema)
+- ✅ Clean separation of concerns (structure vs. config)
+- ✅ Year-based organization (easier maintenance)
+- ✅ Both core and extensions use same pattern
+- ✅ Future-proof for system updates (2.0 → 2.1 → 2.2)
+
+### Files Changed:
+
+**Configuration:**
+- `app/config/migrations.php` - Year-based organization enabled
+
+**Core System:**
+- `app/system/scripts.php` - Cleaned up (config only)
+- `app/migrations/2025/Version20251023061532.php` - Moved to year folder
+
+**Blog Extension:**
+- `packages/pagekit/blog/scripts.php` - Uses migrations now
+- `packages/pagekit/blog/src/Migrations/2025/Version001_CreateBlogTables.php` - Moved to year folder

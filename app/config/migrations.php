@@ -92,7 +92,7 @@ return [
      * - 'year': Organize by year (e.g., 2025/)
      * - 'year_and_month': Organize by year and month (e.g., 2025/10/)
      */
-    'organize_migrations' => 'none',
+    'organize_migrations' => 'year',
 
     /**
      * Custom Migration Template
