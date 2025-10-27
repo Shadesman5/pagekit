@@ -970,5 +970,285 @@ Similar type hint patterns found in other files (not critical now, but should be
 
 ---
 
-**Status Update**: 🔧 **Fixes Applied** - Awaiting User Testing  
+## 🎯 Architecture Modernization (2025-10-27)
+
+After fixing the immediate errors, the architecture was further modernized to eliminate duplication and provide clean separation of concerns.
+
+### Problem: Duplication
+
+**Current Flow After Initial Fix:**
+1. Installer calls `runMigrations()` → Creates tables ✅
+2. Installer calls `scripts.php` 'install' → Also has table creation code (with checks) ❌
+3. = DUPLICATE LOGIC (even if checks prevent double creation)
+
+**Both Core and Extensions had this problem.**
+
+### Solution: Clean Separation
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ MIGRATIONS                                                   │
+│ ✅ Schema Definition (tables, columns, indexes)             │
+│ ✅ STRUCTURAL defaults (system-critical data)               │
+│    Example: System roles (Anonymous, Admin)                 │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│ SCRIPTS.PHP                                                  │
+│ ✅ Lifecycle hooks (install/enable/disable/uninstall)       │
+│ ✅ Configurable defaults (user preferences)                 │
+│ ✅ Demo content (optional)                                  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Rule:**
+- Migrations: Things that MUST exist for system to work
+- scripts.php: Things that CAN be configured/changed
+
+### Changes Implemented
+
+#### 1. Year-Based Migration Organization
+
+**File:** `app/config/migrations.php`
+
+**Changed:**
+```php
+'organize_migrations' => 'year',  // was: 'none'
+```
+
+**Result:** Migrations organized in `2025/`, `2026/`, etc.
+
+**Structure:**
+```
+app/migrations/
+  └── 2025/
+      └── Version20251023061532.php
+
+packages/pagekit/blog/src/Migrations/
+  └── 2025/
+      └── Version001_CreateBlogTables.php
+```
+
+#### 2. Core System Cleanup
+
+**File:** `app/system/scripts.php`
+
+**Removed:**
+- Lines 22-127: All `$util->createTable()` calls (8 tables)
+- Lines 82-84: Role insertions (now in migration's `postUp()`)
+
+**Kept:**
+- Dashboard widget configuration (user preferences)
+- Site/menu configuration (user preferences)
+- 'updates' array structure
+
+**Result:**
+```php
+<?php
+return [
+    'install' => function ($app) {
+        // NOTE: Database tables are created by Doctrine Migrations.
+        // This hook is executed AFTER migrations for configuration setup.
+        
+        // Initialize default dashboard widgets configuration
+        $app['config']->set('system/dashboard', [...]);
+
+        // Initialize default site configuration (main menu)
+        $app['config']->set('system/site', [
+            'menus' => ['main' => ['id' => 'main', 'label' => 'Main']]
+        ]);
+    },
+
+    'updates' => [
+        // System updates execute new migrations automatically
+    ]
+];
+```
+
+**Impact:** ~186 lines → ~45 lines (clean, focused)
+
+#### 3. Blog Extension Modernization
+
+**File:** `packages/pagekit/blog/scripts.php`
+
+**Changed from (creates tables directly):**
+```php
+'install' => function ($app) {
+    $util->createTable('@blog_post', ...);
+    $util->createTable('@blog_comment', ...);
+}
+```
+
+**Changed to (uses migrations):**
+```php
+'install' => function ($app) {
+    // Execute blog migrations to create database tables
+    $result = $app['migration']->migrate();
+    
+    if (!$result['success']) {
+        throw new \RuntimeException(
+            'Blog installation failed: ' . ($result['error'] ?? 'Unknown error')
+        );
+    }
+    
+    // Initialize blog configuration (if needed)
+},
+
+'uninstall' => function ($app) {
+    // Rollback blog migrations to remove database tables
+    $result = $app['migration']->rollback('0');
+    
+    if (!$result['success']) {
+        throw new \RuntimeException(
+            'Blog uninstallation failed: ' . ($result['error'] ?? 'Unknown error')
+        );
+    }
+    
+    // Clear cache
+    if (isset($app['cache'])) {
+        $app['cache']->clear();
+    }
+},
+
+'updates' => [
+    // Extension updates execute new migrations automatically
+]
+```
+
+**Impact:** ~99 lines → ~60 lines (modern, migration-based)
+
+### Benefits
+
+✅ **No Duplication**
+- One source of truth for database schema (migrations)
+- scripts.php only handles configuration
+
+✅ **Clear Separation of Concerns**
+- Structure (migrations): What MUST exist
+- Config (scripts.php): What CAN be changed
+
+✅ **Year-Based Organization**
+- Easier to find migrations by release year
+- Better organization for long-term maintenance
+
+✅ **Consistent Pattern**
+- Core and extensions use same approach
+- Easier for extension developers to follow
+
+✅ **Future-Proof**
+- Ready for system updates (2.0 → 2.1 → 2.2)
+- Extension migrations integrate seamlessly
+
+### Statistics
+
+**Code Changes:**
+```
+6 files changed
+125 lines added (+)
+243 lines removed (-)
+Net: -118 lines (much cleaner!)
+```
+
+**Files Modified:**
+- `app/config/migrations.php` - Year organization enabled
+- `app/system/scripts.php` - Cleaned up (config only)
+- `app/migrations/2025/Version20251023061532.php` - Moved to year folder
+- `packages/pagekit/blog/scripts.php` - Uses migrations now
+- `packages/pagekit/blog/src/Migrations/2025/Version001_CreateBlogTables.php` - Moved
+- `FIX_SUMMARY.md` - Updated with modernization details
+
+**Commits:**
+1. `4fb5a511` - Fix: Execute scripts.php after migrations and fix MenuManager return types
+2. `b763d010` - Docs: Document post-implementation fixes for MenuManager TypeError
+3. `011e9ca1` - **Refactor: Modernize migration architecture with clean separation**
+
+### Testing Requirements
+
+**Fresh Installation Flow:**
+1. Installer calls `runMigrations()`
+   - Executes `app/migrations/2025/Version20251023061532.php`
+   - Creates 8 core tables
+   - Inserts 3 system roles (in `postUp()`)
+2. Installer calls `scripts.php` 'install'
+   - Sets dashboard widget configuration
+   - Sets menu configuration
+   - NO table creation (already done by migrations)
+
+**Extension Activation Flow:**
+1. User enables blog extension
+2. `scripts.php` 'install' hook executes
+3. Calls `$app['migration']->migrate()`
+4. Migration system finds blog migrations in `src/Migrations/2025/`
+5. Executes `Version001_CreateBlogTables.php`
+6. Creates 2 blog tables
+7. Returns to scripts.php (config initialization if needed)
+
+**Tests to Perform:**
+
+```bash
+# 1. Fresh Installation
+rm pagekit.db config.php
+# Navigate to http://localhost:8000/installer
+# Complete installation wizard
+# Verify:
+# - Dashboard loads with widgets ✓
+# - Main menu exists ✓
+# - 8 core tables exist ✓
+# - 3 system roles exist ✓
+
+# 2. CLI Installation (alternative)
+rm pagekit.db config.php
+php pagekit setup
+# Complete interactive setup
+# Verify same as above
+
+# 3. Migration Status
+php pagekit migration:status
+# Should show:
+# - Current: Version20251023061532 (executed)
+# - No pending migrations
+
+# 4. Blog Extension Activation
+# In admin panel: Extensions > Blog > Enable
+# Verify:
+# - Blog tables created (pk_blog_post, pk_blog_comment) ✓
+# - No errors ✓
+# - Blog menu appears ✓
+
+# 5. Blog Extension Deactivation (optional)
+# In admin panel: Extensions > Blog > Disable
+# Verify:
+# - Blog tables removed (if uninstall implemented) ✓
+# - System still works ✓
+
+# 6. Year-Based Organization
+ls app/migrations/2025/
+# Should show: Version20251023061532.php
+ls packages/pagekit/blog/src/Migrations/2025/
+# Should show: Version001_CreateBlogTables.php
+
+# 7. Database Compatibility
+# Test with SQLite (default)
+# Test with MySQL (via Docker)
+# Both should work identically
+```
+
+**Validation Checklist:**
+
+- [ ] Fresh installation creates all tables via migrations
+- [ ] Dashboard widgets configuration is set
+- [ ] Menu configuration is set
+- [ ] System roles exist (Anonymous, Authenticated, Administrator)
+- [ ] Blog extension activation runs migrations
+- [ ] Blog tables are created correctly
+- [ ] Year-based migration structure works
+- [ ] No duplicate table creation attempts
+- [ ] scripts.php has no table creation code
+- [ ] All migrations in 2025/ folders
+- [ ] Error handling works (migration failures throw exceptions)
+- [ ] Rollback functionality works
+
+---
+
+**Status Update**: ✅ **Modernization Complete** - Ready for User Testing  
 **Last Updated**: 2025-10-27
