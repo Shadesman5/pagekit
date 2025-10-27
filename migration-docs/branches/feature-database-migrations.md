@@ -294,6 +294,7 @@ Extensions have distinct lifecycle stages with different database implications:
    - `Pagekit\Migration\` already defined in `composer.json` but directory doesn't exist
    - Solution: Use this existing namespace
 
+<!-- (Note: There should be no conflicts because we are completely modernizing everything, including modernizing 'simple updates' to 'Migrations') -->
 2. **Command Name Conflict**:
    - Existing command: `php pagekit migrate` (runs simple updates)
    - New commands need different names to avoid conflict
@@ -315,13 +316,14 @@ Based on analysis, I'm adjusting the implementation plan:
 
 1. **Use existing `Pagekit\Migration\` namespace** (already in composer.json)
 2. **Create `app/modules/migration/src/` directory** (matches composer autoload)
+<!-- (Note: There should be no conflicts because we are completely modernizing everything, including modernizing 'simple updates' to 'Migrations') -->
 3. **Rename console commands** to avoid conflict:
    - ~~`migrate`~~ → `migrate:run` or `migration:migrate`
    - `migrate:status` → Keep as is
    - `migrate:rollback` → Keep as is
    - `migrate:generate` → Keep as is
-4. **Keep old system functional** for backward compatibility
-5. **Document migration path** from old to new system
+4. **Keep old system functional** for backward compatibility (Note: wrong, we modernizing the whole system)
+5. **Document migration path** from old to new system (Note: wrong, it will only be possible from new to even newer system)
 
 ---
 
@@ -487,9 +489,9 @@ None yet - will be documented as discovered.
 
 #### Overview
 
-Extensions can use the professional migration system by creating migration files that extend the `ExtensionMigration` base class. This provides automatic table prefixing, helper methods, and consistent migration management.
+Extensions MUST use the professional migration system by creating migration files that extend the `ExtensionMigration` base class. This provides automatic table prefixing, helper methods, and consistent migration management.
 
-**Note**: Extension migration auto-discovery and automatic execution during install/uninstall is planned for a future version. Currently, migrations must be registered manually in the extension's configuration.
+**Note**: Extension migration auto-discovery and automatic execution during install/uninstall should be integrated.
 
 ---
 
@@ -499,7 +501,10 @@ Extensions can use the professional migration system by creating migration files
 packages/your-extension/
 └── src/
     └── Migrations/
-        └── Version001_CreateTables.php
+        ├── 2026/
+            └── Version002_NewTables.php
+        └── 2025/
+            └── Version001_CreateTables.php
 ```
 
 ---
@@ -599,7 +604,7 @@ The `ExtensionMigration` base class provides:
 
 #### 5. System Update Integration
 
-**For future Pagekit updates (2.0.0 → 2.1.0, etc.)**
+**For Pagekit updates (2.0.0 → 2.1.0, etc.)**
 
 Modern Pagekit uses Doctrine Migrations for schema changes. When releasing a new version with database updates:
 
@@ -673,7 +678,7 @@ return [
     }
 ];
 ```
-
+<!-- (Note: we are completely modernizing everything, including modernizing 'simple updates' to 'Migrations'. extensions should be able to use migrations automatically) -->
 **Future Enhancement (Planned)**:
 
 In a future version, extensions will be able to use migrations automatically:
@@ -708,7 +713,7 @@ return [
 - ❌ Don't skip index creation for performance-critical columns
 
 ---
-
+<!-- (Note: we are completely modernizing everything, including modernizing 'simple updates' to 'Migrations'. extensions should be able to use migrations automatically) -->
 #### 7. Registering Extension Migrations (Advanced)
 
 For extensions that want to use the migration system NOW (before auto-discovery):
