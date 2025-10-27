@@ -13,7 +13,11 @@ return [
 
     'install' => function ($app) {
         // Execute blog migrations to create database tables
-        $result = $app['migration']->migrate();
+        // Note: Extensions use migrateExtension() to run their own migrations
+        $result = $app['migration']->migrateExtension(
+            'Pagekit\\Blog\\Migrations',
+            __DIR__ . '/src/Migrations'
+        );
         
         if (!$result['success']) {
             throw new \RuntimeException(
@@ -32,7 +36,11 @@ return [
     'uninstall' => function ($app) {
         // Rollback blog migrations to remove database tables
         // Note: This deletes all blog data!
-        $result = $app['migration']->rollback('0');
+        $result = $app['migration']->rollbackExtension(
+            'Pagekit\\Blog\\Migrations',
+            __DIR__ . '/src/Migrations',
+            '0'  // Rollback all blog migrations
+        );
         
         if (!$result['success']) {
             throw new \RuntimeException(
@@ -50,7 +58,10 @@ return [
         // Extension updates execute new migrations automatically
         // Example:
         // '2.1.0' => function ($app) {
-        //     $result = $app['migration']->migrate();
+        //     $result = $app['migration']->migrateExtension(
+        //         'Pagekit\\Blog\\Migrations',
+        //         __DIR__ . '/src/Migrations'
+        //     );
         //     if (!$result['success']) {
         //         throw new \RuntimeException('Blog update failed: ' . $result['error']);
         //     }
