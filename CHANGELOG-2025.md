@@ -1,5 +1,33 @@
 # Changelog 2025
 
+## Pagekit 1.0.45 - Database Migration System Improvements (January 17, 2026)
+
+### 🐛 Fixed
+
+- **Fixed scripts.php execution after migrations** - Ensured scripts.php runs after migration execution in the installer to maintain compatibility with legacy extension installation hooks
+- **Fixed MenuManager return types** - Corrected return type declarations in MenuManager to prevent TypeError exceptions during menu operations
+
+### ✨ Added
+
+- **Extension migration support in MigrationService** - Added `migrateExtension()` method to MigrationService for handling extension-specific migrations with automatic namespace registration
+- **Year-based migration organization** - Migrations now organized in year-based subdirectories (e.g., `app/migrations/2025/`) for better structure and maintainability
+  - Core migration moved to `app/migrations/2025/Version20251023061532.php`
+  - Blog extension migration moved to `packages/pagekit/blog/src/Migrations/2025/Version001_CreateBlogTables.php`
+
+### 🔄 Refactored
+
+- **Modernized migration architecture with clean separation** - Improved code organization by separating migration structure configuration from execution logic, reducing code duplication and improving maintainability
+- **Simplified scripts.php files** - Reduced complexity in both core and blog extension scripts.php files by leveraging the new migration system architecture
+
+### 📚 Documentation
+
+- **Updated branch documentation with architecture modernization** - Documented the improved migration architecture and year-based organization structure
+- **Added post-implementation fixes documentation** - Documented fixes for MenuManager TypeError issues encountered during implementation
+- **Completed branch documentation** - Finalized comprehensive documentation for the database migration system implementation
+- **Added final modernization validation and statistics** - Documented validation results and completion statistics for the migration system modernization
+
+---
+
 ## Pagekit 1.0.44 - Database Migration System (October 23, 2025)
 
 ### 🗄️ Database Migration System
