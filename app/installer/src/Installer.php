@@ -114,6 +114,11 @@ class Installer
 
             // Execute database migrations to create schema
             $this->runMigrations();
+            
+            // Execute additional setup (config initialization, etc.)
+            // NOTE: scripts.php 'install' hook is executed AFTER migrations
+            $scripts = new PackageScripts($this->app->path().'/app/system/scripts.php');
+            $scripts->install();
 
             $this->app->db()->insert('@system_user', [
                 'name' => $user['username'],

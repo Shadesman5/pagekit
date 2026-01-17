@@ -452,4 +452,188 @@ class MigrationService
     {
         return $this->connection;
     }
+
+    /**
+     * Execute migrations for a specific extension
+     *
+     * This method allows extensions to run their own migrations by providing
+     * their namespace and migration directory path.
+     *
+     * @param string $namespace Extension migration namespace (e.g., 'Pagekit\\Blog\\Migrations')
+     * @param string $path Absolute path to extension migrations directory
+     * @param string|null $version Target version (null = latest)
+     * @return array Result information
+     */
+    public function migrateExtension(string $namespace, string $path, ?string $version = null): array
+    {
+        try {
+            // Create temporary config for extension migrations
+            $extensionConfig = $this->config;
+            $extensionConfig['migrations_paths'] = [$namespace => $path];
+            
+            // Replace table prefix in table name for extension config
+            if (isset($extensionConfig['table_storage']['table_name'])) {
+                $extensionConfig['table_storage']['table_name'] = $this->replacePrefix(
+                    $extensionConfig['table_storage']['table_name']
+                );
+            }
+            
+            // Create temporary dependency factory for extension
+            $extensionFactory = DependencyFactory::fromConnection(
+                new \Doctrine\Migrations\Configuration\Migration\ConfigurationArray($extensionConfig),
+                new \Doctrine\Migrations\Configuration\Connection\ExistingConnection($this->connection)
+            );
+            
+            // Get services from extension factory
+            $migrator = $extensionFactory->getMigrator();
+            $planCalculator = $extensionFactory->getMigrationPlanCalculator();
+            $aliasResolver = $extensionFactory->getVersionAliasResolver();
+            
+            // Resolve target version
+            if ($version) {
+                $targetVersion = new \Doctrine\Migrations\Version\Version($version);
+            } else {
+                // Migrate to latest version
+                $targetVersion = $aliasResolver->resolveVersionAlias('latest');
+            }
+            
+            // Calculate migration plan
+            $plan = $planCalculator->getPlanUntilVersion($targetVersion);
+            
+            // Check if plan is empty
+            if (count($plan) === 0) {
+                return [
+                    'success' => true,
+                    'executed' => 0,
+                    'time' => 0,
+                    'sql' => [],
+                    'message' => 'No pending migrations for extension',
+                ];
+            }
+            
+            // Execute migrations
+            $migratorConfig = new \Doctrine\Migrations\MigratorConfiguration();
+            $result = $migrator->migrate($plan, $migratorConfig);
+            
+            // Check if result is valid
+            if (is_array($result)) {
+                return [
+                    'success' => true,
+                    'executed' => 0,
+                    'time' => 0,
+                    'sql' => [],
+                ];
+            }
+            
+            return [
+                'success' => true,
+                'executed' => count($result->getMigrations()),
+                'time' => $result->getTime(),
+                'sql' => $result->getSql(),
+            ];
+            
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'exception' => $e,
+            ];
+        }
+    }
+
+    /**
+     * Rollback migrations for a specific extension
+     *
+     * This method allows extensions to rollback their own migrations.
+     *
+     * @param string $namespace Extension migration namespace
+     * @param string $path Absolute path to extension migrations directory
+     * @param string|null $version Target version (null = all, '0' = rollback all)
+     * @return array Result information
+     */
+    public function rollbackExtension(string $namespace, string $path, ?string $version = null): array
+    {
+        try {
+            // Create temporary config for extension migrations
+            $extensionConfig = $this->config;
+            $extensionConfig['migrations_paths'] = [$namespace => $path];
+            
+            // Replace table prefix
+            if (isset($extensionConfig['table_storage']['table_name'])) {
+                $extensionConfig['table_storage']['table_name'] = $this->replacePrefix(
+                    $extensionConfig['table_storage']['table_name']
+                );
+            }
+            
+            // Create temporary dependency factory
+            $extensionFactory = DependencyFactory::fromConnection(
+                new \Doctrine\Migrations\Configuration\Migration\ConfigurationArray($extensionConfig),
+                new \Doctrine\Migrations\Configuration\Connection\ExistingConnection($this->connection)
+            );
+            
+            // Get services
+            $migrator = $extensionFactory->getMigrator();
+            $planCalculator = $extensionFactory->getMigrationPlanCalculator();
+            $aliasResolver = $extensionFactory->getVersionAliasResolver();
+            $metadataStorage = $extensionFactory->getMetadataStorage();
+            
+            // Get executed migrations
+            $executedMigrations = $metadataStorage->getExecutedMigrations();
+            
+            if (count($executedMigrations) === 0) {
+                return [
+                    'success' => true,
+                    'executed' => 0,
+                    'time' => 0,
+                    'message' => 'No migrations to rollback',
+                ];
+            }
+            
+            // Determine target for rollback
+            if ($version === '0' || $version === null) {
+                // Rollback ALL extension migrations
+                $targetVersion = $aliasResolver->resolveVersionAlias('first');
+            } else {
+                // Rollback to specific version
+                $targetVersion = new \Doctrine\Migrations\Version\Version($version);
+            }
+            
+            // Calculate rollback plan
+            $plan = $planCalculator->getPlanUntilVersion($targetVersion);
+            
+            if (count($plan) === 0) {
+                return [
+                    'success' => true,
+                    'executed' => 0,
+                    'time' => 0,
+                    'message' => 'No migrations to rollback',
+                ];
+            }
+            
+            // Execute rollback
+            $migratorConfig = new \Doctrine\Migrations\MigratorConfiguration();
+            $result = $migrator->migrate($plan, $migratorConfig);
+            
+            if (is_array($result)) {
+                return [
+                    'success' => true,
+                    'executed' => 0,
+                    'time' => 0,
+                ];
+            }
+            
+            return [
+                'success' => true,
+                'executed' => count($result->getMigrations()),
+                'time' => $result->getTime(),
+            ];
+            
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'exception' => $e,
+            ];
+        }
+    }
 }
