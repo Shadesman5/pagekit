@@ -1,6 +1,9 @@
 # Ignore Markdown files to preserve manual formatting
 *.md
 
+# Don't ignore migration-docs
+!migration-docs/TODO/*
+
 # Ignore CHANGELOG files specifically
 CHANGELOG*.md
 
