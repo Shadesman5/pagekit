@@ -9,6 +9,7 @@
 - **Fixed dry-run option in migration commands** - The `--dry-run` flag now correctly prevents database changes and shows SQL statements that would be executed
 - **Fixed migration generator return value** - Corrected array access on string return value from `generateMigration()` that caused only first character of file path to be returned
 - **Fixed migration name being ignored** - User-provided migration names are now included in generated class names (e.g., `Version20250118_CreateUserTable` instead of just `Version20250118`)
+- **Fixed inconsistent rollbackExtension() behavior** - `rollbackExtension(null)` now rolls back one step (previous version) instead of all migrations, consistent with `rollback()` method behavior
 
 ### ✨ Added
 
