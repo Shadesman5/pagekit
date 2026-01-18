@@ -47,7 +47,8 @@
     "symfony/twig-bridge": "^6.4",
     "symfony/yaml": "^6.4",
     "symfony/cache": "^6.4",
-    "doctrine/migrations": "^3.9"
+    "doctrine/migrations": "^3.9",
+    "symfony/validator": "^7.4"
   },
   "require-dev": {
     "ext-dom": "*",
