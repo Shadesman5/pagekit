@@ -556,10 +556,14 @@ class MigrationService
      * Rollback migrations for a specific extension
      *
      * This method allows extensions to rollback their own migrations.
+     * Behavior is consistent with rollback() method.
      *
      * @param string $namespace Extension migration namespace
      * @param string $path Absolute path to extension migrations directory
-     * @param string|null $version Target version (null = all, '0' = rollback all)
+     * @param string|null $version Target version:
+     *                             - null = rollback one step (previous version)
+     *                             - '0' or 'first' = rollback all migrations
+     *                             - specific version = rollback to that version
      * @return array Result information
      */
     public function rollbackExtension(string $namespace, string $path, ?string $version = null): array
@@ -601,12 +605,36 @@ class MigrationService
             }
             
             // Determine target for rollback
-            if ($version === '0' || $version === null) {
+            if ($version === '0' || $version === 'first') {
                 // Rollback ALL extension migrations
                 $targetVersion = $aliasResolver->resolveVersionAlias('first');
-            } else {
+            } elseif ($version) {
                 // Rollback to specific version
                 $targetVersion = new \Doctrine\Migrations\Version\Version($version);
+            } else {
+                // Rollback to previous version (one step back) - consistent with rollback()
+                $currentVersion = $aliasResolver->resolveVersionAlias('current');
+                
+                if ($currentVersion === null || count($executedMigrations) === 0) {
+                    return [
+                        'success' => true,
+                        'executed' => 0,
+                        'time' => 0,
+                        'message' => 'Already at first migration',
+                    ];
+                }
+                
+                // Get all executed migrations and find previous
+                $versions = array_map(fn($m) => $m->getVersion(), $executedMigrations->getItems());
+                $currentIndex = array_search($currentVersion, $versions);
+                
+                if ($currentIndex === false || $currentIndex === 0) {
+                    // Already at first migration, rollback it completely
+                    $targetVersion = $aliasResolver->resolveVersionAlias('first');
+                } else {
+                    // Rollback to previous version
+                    $targetVersion = $versions[$currentIndex - 1];
+                }
             }
             
             // Calculate rollback plan
