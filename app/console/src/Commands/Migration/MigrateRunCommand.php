@@ -88,9 +88,9 @@ class MigrateRunCommand extends Command
             }
             
             // Execute migrations
-            $io->text('Executing migrations...');
+            $io->text($dryRun ? 'Calculating migrations (dry-run)...' : 'Executing migrations...');
             
-            $result = $migrationService->migrate($version);
+            $result = $migrationService->migrate($version, $dryRun);
             
             if (!$result['success']) {
                 $io->error('Migration failed: ' . $result['error']);
@@ -103,16 +103,30 @@ class MigrateRunCommand extends Command
             }
             
             // Show results
-            $io->success(sprintf(
-                'Successfully executed %d migration(s) in %.2f seconds.',
-                $result['executed'],
-                $result['time']
-            ));
-            
-            if (!empty($result['sql']) && $output->isVerbose()) {
-                $io->section('Executed SQL');
-                foreach ($result['sql'] as $sql) {
-                    $io->writeln('  ' . $sql);
+            if ($dryRun) {
+                $io->success(sprintf(
+                    'Dry-run complete: %d migration(s) would be executed.',
+                    $result['executed']
+                ));
+                
+                if (!empty($result['sql'])) {
+                    $io->section('SQL statements that would be executed');
+                    foreach ($result['sql'] as $sql) {
+                        $io->writeln('  ' . $sql);
+                    }
+                }
+            } else {
+                $io->success(sprintf(
+                    'Successfully executed %d migration(s) in %.2f seconds.',
+                    $result['executed'],
+                    $result['time']
+                ));
+                
+                if (!empty($result['sql']) && $output->isVerbose()) {
+                    $io->section('Executed SQL');
+                    foreach ($result['sql'] as $sql) {
+                        $io->writeln('  ' . $sql);
+                    }
                 }
             }
             

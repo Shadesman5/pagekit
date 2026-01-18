@@ -106,9 +106,10 @@ class MigrationService
      * Execute migrations up to specified version
      *
      * @param string|null $version Target version (null = latest)
+     * @param bool $dryRun If true, only show SQL without executing
      * @return array Result information (executed migrations, execution time, etc.)
      */
-    public function migrate(?string $version = null): array
+    public function migrate(?string $version = null, bool $dryRun = false): array
     {
         $migrator = $this->dependencyFactory->getMigrator();
         $planCalculator = $this->dependencyFactory->getMigrationPlanCalculator();
@@ -138,6 +139,7 @@ class MigrationService
             
             // Execute migrations with MigratorConfiguration
             $migratorConfig = new \Doctrine\Migrations\MigratorConfiguration();
+            $migratorConfig->setDryRun($dryRun);
             $result = $migrator->migrate($plan, $migratorConfig);
             
             // Check if result is valid
@@ -171,9 +173,10 @@ class MigrationService
      * Rollback migrations to specified version
      *
      * @param string|null $version Target version (null = previous version)
+     * @param bool $dryRun If true, only show SQL without executing
      * @return array Result information
      */
-    public function rollback(?string $version = null): array
+    public function rollback(?string $version = null, bool $dryRun = false): array
     {
         $migrator = $this->dependencyFactory->getMigrator();
         $planCalculator = $this->dependencyFactory->getMigrationPlanCalculator();
@@ -243,6 +246,7 @@ class MigrationService
             
             // Execute rollback
             $migratorConfig = new \Doctrine\Migrations\MigratorConfiguration();
+            $migratorConfig->setDryRun($dryRun);
             $result = $migrator->migrate($plan, $migratorConfig);
             
             // Check if result is valid
@@ -359,21 +363,28 @@ class MigrationService
                 $namespace = array_key_first($paths);
             }
             
-            // Generate version identifier (timestamp-based)
-            $version = 'Version' . date('YmdHis');
+            // Sanitize name: convert to PascalCase and remove invalid characters
+            $sanitizedName = preg_replace('/[^A-Za-z0-9]/', '', ucwords($name, '_- '));
+            
+            // Generate version identifier (timestamp + user-provided name)
+            // Format: Version{timestamp}_{Name} e.g., Version20250118123456_CreateUserTable
+            $timestamp = date('YmdHis');
+            $version = 'Version' . $timestamp . '_' . $sanitizedName;
             
             // Create fully qualified class name
             $fqcn = $namespace . '\\' . $version;
             
             // Generate migration file
-            $result = $generator->generateMigration($fqcn);
+            // generateMigration() returns the file path as a string
+            $path = $generator->generateMigration($fqcn);
             
             return [
                 'success' => true,
                 'version' => $version,
                 'class' => $fqcn,
-                'path' => $result[0], // Generated file path
+                'path' => $path,
                 'namespace' => $namespace,
+                'name' => $sanitizedName,
             ];
             
         } catch (\Exception $e) {

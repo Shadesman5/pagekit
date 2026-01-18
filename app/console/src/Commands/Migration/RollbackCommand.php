@@ -91,9 +91,9 @@ class RollbackCommand extends Command
             }
             
             // Execute rollback
-            $io->text('Rolling back migrations...');
+            $io->text($dryRun ? 'Calculating rollback (dry-run)...' : 'Rolling back migrations...');
             
-            $result = $migrationService->rollback($version);
+            $result = $migrationService->rollback($version, $dryRun);
             
             if (!$result['success']) {
                 $io->error('Rollback failed: ' . $result['error']);
@@ -106,11 +106,18 @@ class RollbackCommand extends Command
             }
             
             // Show results
-            $io->success(sprintf(
-                'Successfully rolled back %d migration(s) in %.2f seconds.',
-                $result['executed'],
-                $result['time']
-            ));
+            if ($dryRun) {
+                $io->success(sprintf(
+                    'Dry-run complete: %d migration(s) would be rolled back.',
+                    $result['executed']
+                ));
+            } else {
+                $io->success(sprintf(
+                    'Successfully rolled back %d migration(s) in %.2f seconds.',
+                    $result['executed'],
+                    $result['time']
+                ));
+            }
             
             if ($output->isVerbose()) {
                 $io->note('Run "php pagekit migration:status" to see current migration status.');

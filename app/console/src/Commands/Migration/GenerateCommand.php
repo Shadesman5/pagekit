@@ -80,6 +80,7 @@ class GenerateCommand extends Command
             $io->success('Migration generated successfully!');
             
             $io->definitionList(
+                ['Name' => $result['name'] ?? $name],
                 ['Version' => $result['version']],
                 ['Class' => $result['class']],
                 ['Path' => $result['path']],
