@@ -4,7 +4,14 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Model;
 
+use Symfony\Component\Validator\Constraints as Assert;
+
 /**
+ * Role entity with Symfony Validator integration (Hybrid Mode).
+ *
+ * Validation: Uses PHP 8 Attributes (#[Assert\...])
+ * ORM: Still uses Doctrine Annotations (@Entity, @Column) - TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+ *
  * @Entity(tableClass="@system_role")
  */
 class Role implements \JsonSerializable
@@ -13,35 +20,49 @@ class Role implements \JsonSerializable
 
     /**
      * The identifier of the anonymous role.
-     *
-     * @var int
      */
-    const ROLE_ANONYMOUS = 1;
+    public const ROLE_ANONYMOUS = 1;
 
     /**
      * The identifier of the authenticated role.
-     *
-     * @var int
      */
-    const ROLE_AUTHENTICATED = 2;
+    public const ROLE_AUTHENTICATED = 2;
 
     /**
      * The identifier of the administrator role.
-     *
-     * @var int
      */
-    const ROLE_ADMINISTRATOR = 3;
+    public const ROLE_ADMINISTRATOR = 3;
 
-    /** @Column(type="integer") @Id */
+    /**
+     * @Column(type="integer") @Id
+     */
+    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
     public ?int $id = null;
 
-    /** @Column(type="string") */
+    /**
+     * @Column(type="string")
+     */
+    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[Assert\NotBlank(message: 'Role name is required.')]
+    #[Assert\Length(
+        min: 2,
+        max: 255,
+        minMessage: 'Role name must be at least {{ limit }} characters.',
+        maxMessage: 'Role name cannot exceed {{ limit }} characters.'
+    )]
     public ?string $name = null;
 
-    /** @Column(type="integer") */
+    /**
+     * @Column(type="integer")
+     */
+    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[Assert\PositiveOrZero(message: 'Priority must be a non-negative number.')]
     public int $priority = 0;
 
-    /** @Column(type="simple_array") */
+    /**
+     * @Column(type="simple_array")
+     */
+    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
     public array $permissions = [];
 
     protected static array $properties = [
@@ -52,7 +73,7 @@ class Role implements \JsonSerializable
     ];
 
     /**
-     * {@inheritdoc}
+     * Check if the role has a specific permission.
      */
     public function hasPermission(string $permission): bool
     {
@@ -60,7 +81,7 @@ class Role implements \JsonSerializable
     }
 
     /**
-     * {@inheritdoc}
+     * Add a permission to the role.
      */
     public function addPermission(string $permission): void
     {
@@ -68,7 +89,7 @@ class Role implements \JsonSerializable
     }
 
     /**
-     * {@inheritdoc}
+     * Clear all permissions from the role.
      */
     public function clearPermissions(): void
     {
@@ -76,7 +97,7 @@ class Role implements \JsonSerializable
     }
 
     /**
-     * {@inheritdoc}
+     * Check if this is a system-locked role.
      */
     public function isLocked(): bool
     {
@@ -84,7 +105,7 @@ class Role implements \JsonSerializable
     }
 
     /**
-     * {@inheritdoc}
+     * Check if this is the anonymous role.
      */
     public function isAnonymous(): bool
     {
@@ -92,7 +113,7 @@ class Role implements \JsonSerializable
     }
 
     /**
-     * {@inheritdoc}
+     * Check if this is the authenticated role.
      */
     public function isAuthenticated(): bool
     {
@@ -100,7 +121,7 @@ class Role implements \JsonSerializable
     }
 
     /**
-     * {@inheritdoc}
+     * Check if this is the administrator role.
      */
     public function isAdministrator(): bool
     {
