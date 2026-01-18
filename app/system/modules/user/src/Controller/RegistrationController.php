@@ -1,15 +1,25 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Application\Exception;
 use Pagekit\Module\Module;
+use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Model\User;
 use function Pagekit\__;
 
+/**
+ * Controller for user registration.
+ *
+ * Uses Symfony Validator for entity validation (Step 1.13 - Hybrid Mode).
+ */
 class RegistrationController
 {
+    use ValidatesRequestTrait;
+
     protected Module $module;
 
     public function __construct()
@@ -39,10 +49,14 @@ class RegistrationController
     }
 
     /**
+     * Register a new user.
+     *
+     * Uses Symfony Validator for validation (replaces old $user->validate() method).
+     *
      * @Request({"user": "array"})
      * @Captcha(verify="true")
      */
-    public function registerAction($data)
+    public function registerAction(array $data)
     {
         try {
 
@@ -78,7 +92,11 @@ class RegistrationController
                 $user->status = User::STATUS_ACTIVE;
             }
 
-            $user->validate();
+            // Validate using Symfony Validator (replaces old $user->validate() call)
+            // Rule #4: DELETE OVER WRAP - old validate() method has been removed
+            // Use 'registration' validation group to include password validation
+            $this->validateOrFail($user);
+
             $user->save();
 
             if ($verify) {
@@ -106,7 +124,7 @@ class RegistrationController
     /**
      * @Request({"user", "key"})
      */
-    public function activateAction($username, $activation)
+    public function activateAction(string $username, string $activation)
     {
         if (empty($username) || empty($activation) || !$user = User::where(['username' => $username, 'activation' => $activation, 'login IS NULL'])->first()) {
             App::abort(400, __('Invalid key.'));
@@ -137,7 +155,7 @@ class RegistrationController
         return App::redirect('@user/login');
     }
 
-    protected function sendWelcomeEmail($user): void
+    protected function sendWelcomeEmail(User $user): void
     {
         try {
 
@@ -151,7 +169,7 @@ class RegistrationController
         }
     }
 
-    protected function sendVerificationMail($user): void
+    protected function sendVerificationMail(User $user): void
     {
         try {
 
@@ -166,7 +184,7 @@ class RegistrationController
         }
     }
 
-    protected function sendApproveMail($user): void
+    protected function sendApproveMail(User $user): void
     {
         try {
 

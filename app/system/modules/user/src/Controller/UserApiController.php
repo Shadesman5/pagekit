@@ -1,18 +1,27 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Application\Exception;
+use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Model\Role;
 use Pagekit\User\Model\User;
 use function Pagekit\__;
 
 /**
+ * API Controller for User management.
+ *
+ * Uses Symfony Validator for entity validation (Step 1.13 - Hybrid Mode).
+ *
  * @Access("user: manage users")
  */
 class UserApiController
 {
+    use ValidatesRequestTrait;
+
     /**
      * @Route("/", methods="GET")
      */
@@ -23,7 +32,7 @@ class UserApiController
         $filter = $request->query->all()['filter'] ?? [];
         $page = (int) $request->query->get('page', 0);
         $limit = (int) $request->query->get('limit', 0);
-        
+
         $query  = User::query();
         $filter = array_merge(array_fill_keys(['status', 'search', 'role', 'order', 'access'], ''), $filter);
         extract($filter, EXTR_SKIP);
@@ -80,7 +89,7 @@ class UserApiController
         // Get parameters from request (Symfony 6.4 compatibility)
         $request = App::request();
         $filter = $request->query->all()['filter'] ?? [];
-        
+
         $query  = User::query();
         $filter = array_merge(array_fill_keys(['status', 'search', 'role', 'order', 'access'], ''), (array)$filter);
         extract($filter, EXTR_SKIP);
@@ -124,7 +133,7 @@ class UserApiController
     /**
      * @Route("/{id}", methods="GET", requirements={"id"="\d+"})
      */
-    public function getAction($id): User
+    public function getAction(int $id): User
     {
         if (!$user = User::find($id)) {
             App::abort(404, 'User not found.');
@@ -134,29 +143,33 @@ class UserApiController
     }
 
     /**
+     * Save a user (create or update).
+     *
+     * Uses Symfony Validator for validation (replaces old $user->validate() method).
+     *
      * @Route("/", methods="POST")
      * @Route("/{id}", methods="POST", requirements={"id"="\d+"})
      */
-    public function saveAction($id = 0)
+    public function saveAction(int $id = 0)
     {
         // Get parameters from request (Symfony 6.4 compatibility)
         $request = App::request();
-        
+
         // Get user data from POST or JSON body
         $data = $request->request->all()['user'] ?? [];
         $password = $request->request->get('password');
-        
+
         if (empty($data) && $request->getContent()) {
             $json = json_decode($request->getContent(), true);
             $data = $json['user'] ?? [];
             $password = $json['password'] ?? $password;
         }
-        
+
         // Get id from route if not provided
         if (!$id) {
             $id = (int) ($request->request->get('id') ?? $request->get('id', 0));
         }
-        
+
         try {
 
             // is new ?
@@ -209,7 +222,10 @@ class UserApiController
 
             unset($data['login'], $data['registered']);
 
-            $user->validate();
+            // Validate using Symfony Validator (replaces old $user->validate() call)
+            // Rule #4: DELETE OVER WRAP - old validate() method has been removed
+            $this->validateOrFail($user);
+
             $user->save($data);
 
             return ['message' => 'success', 'user' => $user];
@@ -222,13 +238,13 @@ class UserApiController
     /**
      * @Route("/{id}", methods="DELETE", requirements={"id"="\d+"})
      */
-    public function deleteAction($id = 0): array
+    public function deleteAction(int $id = 0): array
     {
         // Get id from route if not provided (Symfony 6.4 compatibility)
         if (!$id) {
             $id = (int) App::request()->get('id', 0);
         }
-        
+
         if (App::user()->id == $id) {
             App::abort(400, __('Unable to delete yourself.'));
         }
@@ -251,25 +267,25 @@ class UserApiController
     {
         // Get parameters from request (Symfony 6.4 compatibility)
         $request = App::request();
-        
+
         // Get users data from POST or JSON body
         $users = $request->request->all()['users'] ?? [];
         if (empty($users) && $request->getContent()) {
             $json = json_decode($request->getContent(), true);
             $users = $json['users'] ?? [];
         }
-        
+
         foreach ($users as $data) {
             // Temporarily set the data in request for saveAction
             $id = isset($data['id']) ? $data['id'] : 0;
             $password = $data['password'] ?? null;
-            
+
             // Create a new request with the user data
             $request->request->set('user', $data);
             if ($password) {
                 $request->request->set('password', $password);
             }
-            
+
             $this->saveAction($id);
         }
 
@@ -283,14 +299,14 @@ class UserApiController
     {
         // Get parameters from request (Symfony 6.4 compatibility)
         $request = App::request();
-        
+
         // Get ids from POST/DELETE body or JSON
         $ids = $request->request->all()['ids'] ?? [];
         if (empty($ids) && $request->getContent()) {
             $json = json_decode($request->getContent(), true);
             $ids = $json['ids'] ?? [];
         }
-        
+
         foreach (array_filter($ids) as $id) {
             $this->deleteAction($id);
         }
