@@ -81,6 +81,10 @@ return [
 
         'boot' => function ($event, $app) {
 
+            // Register Symfony Validator service (Step 1.13 - Hybrid Mode)
+            // Uses PHP 8 Attributes for validation while ORM still uses Doctrine Annotations
+            \Pagekit\System\ValidatorServiceProvider::register($app);
+
             if (!$app['debug']) {
                 $app->subscribe(new ExceptionListener('Pagekit\System\Controller\ExceptionController::showAction'));
             }
