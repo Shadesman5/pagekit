@@ -6,6 +6,9 @@
 
 - **Fixed scripts.php execution after migrations** - Ensured scripts.php runs after migration execution in the installer to maintain compatibility with legacy extension installation hooks
 - **Fixed MenuManager return types** - Corrected return type declarations in MenuManager to prevent TypeError exceptions during menu operations
+- **Fixed dry-run option in migration commands** - The `--dry-run` flag now correctly prevents database changes and shows SQL statements that would be executed
+- **Fixed migration generator return value** - Corrected array access on string return value from `generateMigration()` that caused only first character of file path to be returned
+- **Fixed migration name being ignored** - User-provided migration names are now included in generated class names (e.g., `Version20250118_CreateUserTable` instead of just `Version20250118`)
 
 ### ✨ Added
 
