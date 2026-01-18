@@ -1,10 +1,107 @@
 # Changelog 2025
 
+## Pagekit 1.0.45 - Database Migration System Improvements (January 17, 2026)
+
+### 🐛 Fixed
+
+- **Fixed scripts.php execution after migrations** - Ensured scripts.php runs after migration execution in the installer to maintain compatibility with legacy extension installation hooks
+- **Fixed MenuManager return types** - Corrected return type declarations in MenuManager to prevent TypeError exceptions during menu operations
+- **Fixed dry-run option in migration commands** - The `--dry-run` flag now correctly prevents database changes and shows SQL statements that would be executed
+- **Fixed migration generator return value** - Corrected array access on string return value from `generateMigration()` that caused only first character of file path to be returned
+- **Fixed migration name being ignored** - User-provided migration names are now included in generated class names (e.g., `Version20250118_CreateUserTable` instead of just `Version20250118`)
+- **Fixed inconsistent rollbackExtension() behavior** - `rollbackExtension(null)` now rolls back one step (previous version) instead of all migrations, consistent with `rollback()` method behavior
+
+### ✨ Added
+
+- **Extension migration support in MigrationService** - Added `migrateExtension()` method to MigrationService for handling extension-specific migrations with automatic namespace registration
+- **Year-based migration organization** - Migrations now organized in year-based subdirectories (e.g., `app/migrations/2025/`) for better structure and maintainability
+  - Core migration moved to `app/migrations/2025/Version20251023061532.php`
+  - Blog extension migration moved to `packages/pagekit/blog/src/Migrations/2025/Version001_CreateBlogTables.php`
+
+### 🔄 Refactored
+
+- **Modernized migration architecture with clean separation** - Improved code organization by separating migration structure configuration from execution logic, reducing code duplication and improving maintainability
+- **Simplified scripts.php files** - Reduced complexity in both core and blog extension scripts.php files by leveraging the new migration system architecture
+
+### 📚 Documentation
+
+- **Updated branch documentation with architecture modernization** - Documented the improved migration architecture and year-based organization structure
+- **Added post-implementation fixes documentation** - Documented fixes for MenuManager TypeError issues encountered during implementation
+- **Completed branch documentation** - Finalized comprehensive documentation for the database migration system implementation
+- **Added final modernization validation and statistics** - Documented validation results and completion statistics for the migration system modernization
+
+---
+
+## Pagekit 1.0.44 - Database Migration System (October 23, 2025)
+
+### 🗄️ Database Migration System
+
+**feat: Add professional database migration system**
+
+- ✅ **Doctrine Migrations Integration** (compatible with DBAL 3.10.2)
+  - Doctrine Migrations 3.9.4 installed and configured
+  - Migration version tracking in `pk_migration_versions` table
+  - Platform-independent schema definitions
+  
+- 📦 **Console Commands**
+  - `migration:migrate` - Execute pending migrations
+  - `migration:status` - Show migration status and history
+  - `migration:generate` - Create new timestamped migration files
+  - `migration:rollback` - Rollback migrations with version targeting
+  
+- 🔄 **Automatic Schema Versioning**
+  - Timestamped migration files (Version{YmdHis}_{Name}.php)
+  - Complete execution history with timestamps
+  - Execution time tracking
+  
+- 🔙 **Rollback Functionality**
+  - Full rollback support with `down()` methods
+  - Rollback to specific version or previous version
+  - Complete rollback with `--to=0` option
+  
+- 🔧 **Installer Integration**
+  - Installer directly executes migrations for schema creation
+  - Replaces legacy scripts.php installation method
+  - Modern Pagekit requires fresh installation (no upgrade path needed)
+  
+- 🧩 **Extension Migration Support**
+  - `ExtensionMigration` base class with helper methods
+  - Automatic table and index name prefixing
+  - Safe table creation/deletion helpers
+  - Complete blog extension migration example
+  
+- 📊 **Migration Status Tracking**
+  - View executed and pending migrations
+  - Execution timestamps and performance metrics
+  - Migration description display
+  
+- ✅ **SQLite and MySQL Support**
+  - Full compatibility with both database systems
+  - Platform-independent DBAL types
+  - Custom type handling (json, simple_array)
+
+**Technical Details**:
+- Initial schema migration with all 8 core Pagekit tables
+- Default roles automatically inserted (Anonymous, Authenticated, Administrator)
+- Table prefix support (@table → pk_table)
+- Configuration in `app/config/migrations.php`
+- Migrations stored in `app/migrations/`
+- Namespace: `Pagekit\Migration`
+
+**Documentation**:
+- Complete extension migration guide in `migration-docs/branches/`
+- Migration best practices
+- Helper methods documentation
+- Real working examples (core + blog extension)
+
+---
+
 ## Pagekit 1.0.43 - Project Infrastructure Modernization (October 22, 2025)
 
 ### 📋 Documentation & Standards
 
 - **docs(rules): add github labels guide** - Comprehensive label system for PRs and issues
+
   - 🏷️ Dependency labels (php, javascript, docker, github-actions)
   - 🏷️ Conventional Commits labels (breaking-change, security, performance)
   - 🏷️ Project area labels (frontend, backend, database, module, theme, migration)
@@ -18,12 +115,14 @@
 ### 🔧 Build & CI/CD
 
 - **build(git): enhance gitattributes for cross-platform consistency**
+
   - ✅ Consistent LF line endings for all text files
   - 🔒 Binary files properly marked
   - 📦 Export-ignore for test and dev files
   - 🚫 No more CRLF/LF warnings
 
 - **ci(dependabot): adopt conventional commits format**
+
   - 🤖 All Dependabot PRs now use `chore(deps):` format
   - ✅ Follows Conventional Commits v1.0.0 specification
   - 📊 Better changelog integration

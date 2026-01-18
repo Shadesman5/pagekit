@@ -112,6 +112,11 @@ class Installer
                 $this->app->abort(400, $message);
             }
 
+            // Execute database migrations to create schema
+            $this->runMigrations();
+            
+            // Execute additional setup (config initialization, etc.)
+            // NOTE: scripts.php 'install' hook is executed AFTER migrations
             $scripts = new PackageScripts($this->app->path().'/app/system/scripts.php');
             $scripts->install();
 
@@ -223,6 +228,40 @@ class Installer
         $db = DriverManager::getConnection($params);
         $db->getSchemaManager()->createDatabase($db->quoteIdentifier($name));
         $db->close();
+    }
+
+    /**
+     * Run database migrations
+     *
+     * Executes Doctrine Migrations to create the database schema.
+     * This is the modern approach replacing the legacy scripts.php method.
+     *
+     * @throws \Exception If migration fails
+     */
+    protected function runMigrations(): void
+    {
+        /** @var \Pagekit\Migration\MigrationService $migrationService */
+        $migrationService = $this->app['migration'];
+
+        // Initialize migration system if needed
+        if (!$migrationService->isInitialized()) {
+            $initResult = $migrationService->initialize();
+            
+            if (!$initResult['success']) {
+                throw new \RuntimeException(
+                    'Failed to initialize migration system: ' . ($initResult['error'] ?? 'Unknown error')
+                );
+            }
+        }
+
+        // Execute all migrations to create schema
+        $result = $migrationService->migrate();
+
+        if (!$result['success']) {
+            throw new \RuntimeException(
+                'Migration failed: ' . ($result['error'] ?? 'Unknown error')
+            );
+        }
     }
 
 }

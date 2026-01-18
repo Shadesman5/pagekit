@@ -32,7 +32,7 @@ class MenuManager implements \JsonSerializable
      *
      * @param  string $id
      */
-    public function get($id): array
+    public function get($id): ?array
     {
         $menus = $this->all();
 
@@ -79,7 +79,7 @@ class MenuManager implements \JsonSerializable
      *
      * @param  string $position
      */
-    public function find($position): string
+    public function find($position): ?string
     {
         return $this->config->get("_menus.{$position}");
     }

@@ -1,4 +1,51 @@
 ---
-description: Pagekit Context Rules - Apply when working with specific technologies or implementing features. Primary source: Pagekit Original Documentation as reference; Modernization: Update old code examples with modern technologies; Evolution: Compatibility requirements can be adjusted as needed; Always base new implementations on Pagekit documentation patterns; PHP Versions: Currently 8.2 to 8.4, flexibly adjustable as needed; Databases: MySQL 8.4 and SQLite 3 (selectable during installation); Frontend: Vue.js 2.6 and UIkit 3.5; Build Tools: Yarn 1.22, Composer 2, Webpack 4; Future-proofing: Requirements can be adjusted when needed; Use Vue.js 2.6 patterns and best practices; Follow UIkit 3.5 component structure
-alwaysApply: false
+description: Pagekit Context Rules - Tech Stack & Critical Constraints for Modernization.
+globs: *.php,*.js,*.vue,composer.json,package.json
+alwaysApply: true
 ---
+
+# Pagekit Context & Constraints
+
+## 🛑 CRITICAL CONSTRAINTS (STRICT)
+
+1.  **NO WORDPRESS CODE:**
+
+    - **NEVER** use WordPress-specific functions (e.g., `add_action`, `do_shortcode`, `WP_Query`, `get_post_meta`).
+    - **NEVER** assume a WordPress database structure (`wp_posts`, `wp_options`).
+    - This is a **Symfony/Pagekit** application, not WordPress.
+
+2.  **NO LARAVEL FACADES:**
+
+    - Do not use Laravel-specific helpers (e.g., `dd()`, `collect()`, `Str::`) unless explicitly polyfilled in `composer.json`.
+    - Use standard **Symfony Components** (`dump()`, `Doctrine\Common\Collections`, etc.).
+
+3.  **STRICT TYPING (PHP):**
+    - Enforce **PHP 8.2+** standards.
+    - Use **typed properties** (`public string $name`).
+    - Use **Return Types** (`: void`, `: ?array`).
+    - Use **Constructor Property Promotion** where readable.
+
+## 🛠 Technology Stack (Modernization Phase)
+
+### Backend (Active)
+
+- **Core:** Pagekit CMS (Symfony-based Kernel)
+- **PHP:** **8.2+** (Strict Mode)
+- **Database:** Doctrine DBAL 3.x (Query Builder), ORM modernization active.
+- **Container:** PSR-11 compatible (Symfony DI).
+
+### Frontend (Maintenance Mode - Pre-Migration)
+
+- **Framework:** **Vue.js 2.6** (Legacy).
+- **Goal:** Maintain compatibility with current build pipeline (Webpack 4).
+- **Future Proofing:**
+  - Avoid complex "Mixins" (hard to migrate to Vue 3).
+  - Prefer clear props/events interfaces.
+  - **DO NOT** use Vue 3 syntax (`<script setup>`, Composition API) yet, unless Vue 2.7 bridge is active.
+  - Keep logic separate from template to ease future extraction.
+- **UI Framework:** UIkit 3.5.
+
+## Coding Style
+
+- **Refactoring:** Prefer small, atomic changes over "Big Bang" rewrites.
+- **Comments:** If you encounter legacy hacks, mark them with `// TODO: Refactor in Phase 3 (Vue Migration)`.

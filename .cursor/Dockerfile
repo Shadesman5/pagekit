@@ -28,6 +28,11 @@ RUN apt-get update && apt-get install -y \
 # Install Yarn (required for Pagekit frontend builds)
 RUN npm install -g yarn@1.22
 
+# Install Playwright and dependencies for E2E testing
+RUN npm install -g playwright@latest \
+    && npx playwright install-deps \
+    && npx playwright install chromium
+
 # Install GitHub CLI for PR creation
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
     && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \

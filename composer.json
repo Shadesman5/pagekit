@@ -1,7 +1,7 @@
 {
   "name": "pagekit/pagekit",
   "title": "Pagekit",
-  "version": "1.0.43",
+  "version": "1.0.45",
   "type": "project",
   "description": "The Pagekit CMS",
   "keywords": [
@@ -46,7 +46,8 @@
     "twig/twig": "^3.14",
     "symfony/twig-bridge": "^6.4",
     "symfony/yaml": "^6.4",
-    "symfony/cache": "^6.4"
+    "symfony/cache": "^6.4",
+    "doctrine/migrations": "^3.9"
   },
   "require-dev": {
     "ext-dom": "*",
