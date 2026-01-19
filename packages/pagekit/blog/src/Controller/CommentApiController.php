@@ -1,18 +1,28 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Blog\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Blog\Model\Comment;
 use Pagekit\Blog\Model\Post;
+use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Model\User;
 use Pagekit\Module\Module;
+use function Pagekit\__;
 
 /**
+ * API Controller for Blog Comment management.
+ *
+ * Uses Symfony Validator for entity validation (Step 1.13 - Hybrid Mode).
+ *
  * @Route("comment", name="comment")
  */
 class CommentApiController
 {
+    use ValidatesRequestTrait;
+
     protected Module $blog;
     protected User $user;
 
@@ -26,7 +36,7 @@ class CommentApiController
      * @Route("/", methods="GET")
      * @Request({"filter": "array", "post":"int", "page":"int", "limit":"int"})
      */
-    public function indexAction($filter = [], $post = 0, $page = 0, $limit = 0): array
+    public function indexAction(array $filter = [], int $post = 0, int $page = 0, int $limit = 0): array
     {
         $query = Comment::query();
         $filter = array_merge(array_fill_keys(['status', 'search', 'order'], ''), $filter);
@@ -113,12 +123,16 @@ class CommentApiController
     }
 
     /**
+     * Save a comment (create or update).
+     *
+     * Uses Symfony Validator for entity validation (Step 1.13 - Hybrid Mode).
+     *
      * @Route("/", methods="POST")
      * @Route("/{id}", methods="POST", requirements={"id"="\d+"})
      * @Request({"comment": "array", "id": "int"}, csrf=true)
      * @Captcha(verify="true")
      */
-    public function saveAction($data, $id = 0): array
+    public function saveAction(array $data, int $id = 0): array
     {
         if (!$id) {
 
@@ -133,6 +147,8 @@ class CommentApiController
                 $data['email'] = $this->user->email;
                 $data['url'] = $this->user->url;
             } elseif ($this->blog->config('comments.require_email') && (!@$data['author'] || !@$data['email'])) {
+                // Business logic: require email only for anonymous users when config is enabled
+                // This is a conditional validation that cannot be easily expressed with static attributes
                 App::abort(400, __('Please provide valid name and email.'));
             }
 
@@ -156,7 +172,7 @@ class CommentApiController
 
         unset($data['created']);
 
-        // check minimum idle time in between user comments
+        // check minimum idle time in between user comments (business logic)
         if (!$this->user->hasAccess('blog: skip comment min idle')
             and $minidle = $this->blog->config('comments.minidle')
             and $commentIdle = Comment::where($this->user->isAuthenticated() ? ['user_id' => $this->user->id] : ['ip' => App::request()->getClientIp()])->orderBy('created', 'DESC')->first()
@@ -180,7 +196,7 @@ class CommentApiController
         $approved_once = (boolean) Comment::where(['user_id' => $this->user->id, 'status' => Comment::STATUS_APPROVED])->first();
         $comment->status = $this->user->hasAccess('blog: skip comment approval') ? Comment::STATUS_APPROVED : ($this->user->hasAccess('blog: comment approval required once') && $approved_once ? Comment::STATUS_APPROVED : Comment::STATUS_PENDING);
 
-        // check the max links rule
+        // check the max links rule (business logic)
         if ($comment->status == Comment::STATUS_APPROVED && $this->blog->config('comments.maxlinks') <= preg_match_all('/<a [^>]*href/i', @$data['content'])) {
             $comment->status = Comment::STATUS_PENDING;
         }
@@ -190,6 +206,12 @@ class CommentApiController
 
         $comment->save($data);
 
+        // Validate using Symfony Validator (Step 1.13 - Hybrid Mode)
+        // Note: Some validations remain as business logic above (require_email for anonymous users)
+        $this->validateOrFail($comment);
+
+        $comment->save();
+
         return ['message' => 'success', 'comment' => $comment];
     }
 
@@ -198,7 +220,7 @@ class CommentApiController
      * @Route("/{id}", methods="DELETE", requirements={"id"="\d+"})
      * @Request({"id": "int"}, csrf=true)
      */
-    public function deleteAction($id): array
+    public function deleteAction(int $id): array
     {
         if ($comment = Comment::find($id)) {
             $comment->delete();
@@ -212,7 +234,7 @@ class CommentApiController
      * @Route("/bulk", methods="POST")
      * @Request({"comments": "array"}, csrf=true)
      */
-    public function bulkSaveAction($comments = []): array
+    public function bulkSaveAction(array $comments = []): array
     {
 
         foreach ($comments as $data) {
@@ -227,7 +249,7 @@ class CommentApiController
      * @Route("/bulk", methods="DELETE")
      * @Request({"ids": "array"}, csrf=true)
      */
-    public function bulkDeleteAction($ids = []): array
+    public function bulkDeleteAction(array $ids = []): array
     {
         foreach (array_filter($ids) as $id) {
             $this->deleteAction($id);
