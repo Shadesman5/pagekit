@@ -1,16 +1,25 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Widget\Controller;
 
 use Pagekit\Application as App;
+use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\Widget\Model\Widget;
 use function Pagekit\__;
 
 /**
+ * API Controller for Widget management.
+ *
+ * Uses Symfony Validator for entity validation (Step 1.13 - Hybrid Mode).
+ *
  * @Access("system: manage widgets")
  */
 class WidgetApiController
 {
+    use ValidatesRequestTrait;
+
     /**
      * @Route("/", methods="GET")
      */
@@ -38,12 +47,12 @@ class WidgetApiController
     /**
      * @Route("/{id}", methods="GET", requirements={"id"="\d+"})
      */
-    public function getAction($id): Widget
+    public function getAction(int $id): Widget
     {
         if (!$widget = Widget::find($id)) {
             App::abort(404, 'Widget not found.');
         }
-        
+
         // Find and set the widget's position
         $positions = App::position()->all();
         foreach ($positions as $position) {
@@ -63,10 +72,10 @@ class WidgetApiController
     {
         // Get parameters from request (Symfony 6.4 compatibility)
         $request = App::request();
-        
+
         $position = $request->request->get('position', '');
         $ids = $request->request->all()['ids'] ?? [];
-        
+
         if ($request->getContent()) {
             $json = json_decode($request->getContent(), true);
             if ($json) {
@@ -74,49 +83,55 @@ class WidgetApiController
                 $ids = $json['ids'] ?? $ids;
             }
         }
-        
+
         App::position()->assign($position, $ids);
 
         return ['message' => 'success'];
     }
 
     /**
+     * Save a widget (create or update).
+     *
+     * Uses Symfony Validator for validation (replaces manual validation).
+     *
      * @Route("/", methods="POST")
      * @Route("/{id}", methods="POST", requirements={"id"="\d+"})
      */
-    public function saveAction($id = 0, $data = null): array
+    public function saveAction(int $id = 0, ?array $data = null): array
     {
         // Get parameters from request if not provided (Symfony 6.4 compatibility)
         if ($data === null) {
             $request = App::request();
-            
+
             $data = $request->request->all()['widget'] ?? [];
             if (empty($data) && $request->getContent()) {
                 $json = json_decode($request->getContent(), true);
                 $data = $json['widget'] ?? $json ?? [];
             }
         }
-        
+
         // Get id from route or data
         if (!$id && isset($data['id'])) {
             $id = (int) $data['id'];
         }
-        
+
         if (!$id) {
             $widget = Widget::create();
         } elseif (!$widget = Widget::find($id)) {
             App::abort(404, 'Widget not found.');
         }
 
-        if (empty($data['title'])) {
-            App::abort(400, 'Widget title empty.');
-        }
-        
         // Extract position before saving (it's not a database field)
         $position = isset($data['position']) ? $data['position'] : null;
 
         $widget->save($data);
-        
+
+        // Validate using Symfony Validator (replaces manual title validation)
+        // Rule #4: DELETE OVER WRAP - old manual check removed
+        $this->validateOrFail($widget);
+
+        $widget->save();
+
         // Set position property after save for the event handler
         if ($position !== null) {
             $widget->position = $position;
@@ -128,13 +143,13 @@ class WidgetApiController
     /**
      * @Route("/{id}", methods="DELETE", requirements={"id"="\d+"})
      */
-    public function deleteAction($id = 0): array
+    public function deleteAction(int $id = 0): array
     {
         // Get id from route if not provided (Symfony 6.4 compatibility)
         if (!$id) {
             $id = (int) App::request()->get('id', 0);
         }
-        
+
         if (!$widget = Widget::find($id)) {
             App::abort(404, 'Widget not found.');
         }
@@ -151,13 +166,13 @@ class WidgetApiController
     {
         // Get parameters from request (Symfony 6.4 compatibility)
         $request = App::request();
-        
+
         $ids = $request->request->all()['ids'] ?? [];
         if (empty($ids) && $request->getContent()) {
             $json = json_decode($request->getContent(), true);
             $ids = $json['ids'] ?? [];
         }
-        
+
         foreach ($ids as $id) {
             if ($widget = Widget::find((int) $id)) {
                 $copy = clone $widget;
@@ -178,13 +193,13 @@ class WidgetApiController
     {
         // Get parameters from request (Symfony 6.4 compatibility)
         $request = App::request();
-        
+
         $widgets = $request->request->all()['widgets'] ?? [];
         if (empty($widgets) && $request->getContent()) {
             $json = json_decode($request->getContent(), true);
             $widgets = $json['widgets'] ?? [];
         }
-        
+
         foreach ($widgets as $data) {
             $id = isset($data['id']) ? $data['id'] : 0;
             $this->saveAction($id, $data);
@@ -200,13 +215,13 @@ class WidgetApiController
     {
         // Get parameters from request (Symfony 6.4 compatibility)
         $request = App::request();
-        
+
         $ids = $request->request->all()['ids'] ?? [];
         if (empty($ids) && $request->getContent()) {
             $json = json_decode($request->getContent(), true);
             $ids = $json['ids'] ?? [];
         }
-        
+
         foreach (array_filter($ids) as $id) {
             $this->deleteAction($id);
         }
