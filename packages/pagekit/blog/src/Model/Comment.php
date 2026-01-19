@@ -21,7 +21,7 @@ class Comment extends BaseComment implements \JsonSerializable
      * @Column(type="integer")
      */
     // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
-    #[Assert\NotBlank(message: 'validation.blog_comment.post_required')]
+    #[Assert\NotBlank(message: 'validation.comment.post_required')]
     #[Assert\Positive]
     public int $post_id;
 
@@ -35,14 +35,14 @@ class Comment extends BaseComment implements \JsonSerializable
      * @Column(type="string")
      */
     // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
-    #[Assert\Email(message: 'validation.blog_comment.email_invalid')]
+    #[Assert\Email(message: 'validation.comment.email_invalid')]
     public ?string $email = null;
 
     /**
      * @Column(type="string")
      */
     // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
-    #[Assert\Url(message: 'validation.blog_comment.url_invalid')]
+    #[Assert\Url(message: 'validation.comment.url_invalid')]
     public ?string $url = '';
 
     /**
