@@ -7,9 +7,25 @@ This document describes the integration of Symfony Validator 7.4 with PHP 8 Attr
 - **Validation**: Uses PHP 8 Attributes (`#[Assert\...]`)
 - **ORM**: Still uses Doctrine Annotations (`@Entity`, `@Column`) - Will be migrated in Step 1.14
 
-## Changes Made
+## Migration Phases
 
-### 1. Dependencies Added
+### Phase 1 (Completed)
+- Symfony Validator 7.4 installed and configured
+- `ValidatorServiceProvider` created and registered
+- `ValidatesRequestTrait` created for controller validation
+- Custom `Unique` constraint implemented
+- User module fully migrated (User, Role entities and controllers)
+
+### Phase 2 (Completed)
+- Validation messages file created (`app/system/languages/en_US/validation.php`)
+- All hardcoded messages replaced with message keys
+- Site module migrated (Node, Page entities and controllers)
+- Widget module migrated (Widget entity and controller)
+- User module messages updated to use message keys
+
+---
+
+## 1. Dependencies
 
 ```json
 {
@@ -19,9 +35,9 @@ This document describes the integration of Symfony Validator 7.4 with PHP 8 Attr
 }
 ```
 
-### 2. New Files Created
+## 2. Infrastructure Files
 
-#### ValidatorServiceProvider
+### ValidatorServiceProvider
 `app/system/src/ValidatorServiceProvider.php`
 
 Registers the Symfony Validator as a service in the Pagekit application container:
@@ -34,7 +50,7 @@ $app['validator'] = function ($app): ValidatorInterface {
 };
 ```
 
-#### ValidatesRequestTrait
+### ValidatesRequestTrait
 `app/system/src/Controller/ValidatesRequestTrait.php`
 
 Provides standardized validation methods for controllers:
@@ -43,98 +59,74 @@ Provides standardized validation methods for controllers:
 - `validateOrFail($object)`: Throws `Exception` on failure
 - `validationErrorResponse($violations)`: Creates structured JSON error response
 
-#### Custom Constraints
+### Custom Constraints
 `app/system/src/Validator/Constraints/`
 
 - `Unique.php`: Attribute-based constraint for database uniqueness checks
 - `UniqueValidator.php`: Validator implementation using Pagekit's QueryBuilder (DBAL 3.x)
 
-### 3. Modified Files
+### Validation Messages File
+`app/system/languages/en_US/validation.php`
 
-#### User Entity
-`app/system/modules/user/src/Model/User.php`
+Centralized validation messages for all entities. Messages are referenced by key in entity attributes:
 
-**BEFORE** (Manual validation):
 ```php
-public function validate(): bool
-{
-    if (empty($this->name)) {
-        throw new Exception(__('Name required.'));
-    }
-    // ... more manual checks ...
-}
-```
+// In validation.php
+'validation.user.username_required' => 'Username is required.',
 
-**AFTER** (Symfony Validator Attributes):
-```php
-#[Assert\NotBlank(message: 'Name is required.')]
-#[Assert\Length(max: 255)]
-public ?string $name = null;
-
-#[Assert\NotBlank(message: 'Username is required.')]
-#[Assert\Length(min: 3, max: 255)]
-#[Assert\Regex(pattern: '/^[a-zA-Z0-9._\-]+$/')]
-#[PagekitAssert\Unique(table: '@system_user', column: 'username')]
+// In entity
+#[Assert\NotBlank(message: 'validation.user.username_required')]
 public ?string $username = '';
-
-#[Assert\NotBlank(message: 'Email is required.')]
-#[Assert\Email(message: 'Email is invalid.')]
-#[PagekitAssert\Unique(table: '@system_user', column: 'email')]
-public ?string $email = '';
 ```
 
-**NOTE**: The old `validate()` method was **REMOVED** per Rule #4 (DELETE OVER WRAP).
+---
 
-#### Role Entity
-`app/system/modules/user/src/Model/Role.php`
+## 3. Migrated Modules
 
-Added validation attributes:
-- `name`: `#[Assert\NotBlank]`, `#[Assert\Length(min: 2, max: 255)]`
-- `priority`: `#[Assert\PositiveOrZero]`
+### User Module (Phase 1 + 2)
 
-#### Controllers Updated
+**Entities:**
+- `User.php` - Full validation with Unique constraints
+- `Role.php` - Name and priority validation
 
-All controllers now use `ValidatesRequestTrait`:
+**Controllers:**
+- `UserApiController.php` - Uses ValidatesRequestTrait
+- `RegistrationController.php` - Uses ValidatesRequestTrait
+- `ProfileController.php` - Uses ValidatesRequestTrait
+- `RoleApiController.php` - Uses ValidatesRequestTrait (Phase 2)
 
-1. **UserApiController** (`app/system/modules/user/src/Controller/UserApiController.php`)
-   - Added `use ValidatesRequestTrait;`
-   - Replaced `$user->validate()` with `$this->validateOrFail($user)`
-   - Added `declare(strict_types=1)`
+### Site Module (Phase 2)
 
-2. **RegistrationController** (`app/system/modules/user/src/Controller/RegistrationController.php`)
-   - Added `use ValidatesRequestTrait;`
-   - Replaced `$user->validate()` with `$this->validateOrFail($user)`
-   - Added `declare(strict_types=1)`
+**Entities:**
+- `Node.php` - Slug, title, link, type, status validation
+- `Page.php` - Title validation
 
-3. **ProfileController** (`app/system/modules/user/src/Controller/ProfileController.php`)
-   - Added `use ValidatesRequestTrait;`
-   - Replaced `$user->validate()` with `$this->validateOrFail($user)`
-   - Added `declare(strict_types=1)`
+**Controllers:**
+- `NodeApiController.php` - Uses ValidatesRequestTrait
 
-### 4. Service Registration
+### Widget Module (Phase 2)
 
-The validator service is registered in `app/system/index.php` during the `boot` event:
+**Entities:**
+- `Widget.php` - Title, type, status validation
 
-```php
-'boot' => function ($event, $app) {
-    \Pagekit\System\ValidatorServiceProvider::register($app);
-    // ...
-}
-```
+**Controllers:**
+- `WidgetApiController.php` - Uses ValidatesRequestTrait
 
-## Validation Constraints Used
+---
+
+## 4. Validation Constraints Reference
 
 ### Symfony Built-in Constraints
 
 | Constraint | Used On | Purpose |
 |------------|---------|---------|
-| `#[Assert\NotBlank]` | User.username, User.email, User.name, User.password, Role.name | Required field validation |
+| `#[Assert\NotBlank]` | User.username, User.email, User.name, User.password, Role.name, Node.slug, Node.title, Node.type, Page.title, Widget.title, Widget.type | Required field validation |
 | `#[Assert\Email]` | User.email | Email format validation |
-| `#[Assert\Length]` | User.username, User.name, Role.name | Min/max length validation |
-| `#[Assert\Regex]` | User.username | Pattern validation |
+| `#[Assert\Length]` | User.username, User.name, Role.name, Node.slug, Node.title, Node.link, Page.title, Widget.title | Min/max length validation |
+| `#[Assert\Regex]` | User.username, Node.slug | Pattern validation |
 | `#[Assert\Url]` | User.url | URL format validation |
-| `#[Assert\Choice]` | User.status | Enum validation |
-| `#[Assert\PositiveOrZero]` | Role.priority | Numeric validation |
+| `#[Assert\Choice]` | User.status, Node.status, Widget.status | Enum validation |
+| `#[Assert\PositiveOrZero]` | Role.priority, Node.priority, Node.parent_id | Numeric validation |
 
 ### Custom Constraints
 
@@ -142,33 +134,49 @@ The validator service is registered in `app/system/index.php` during the `boot` 
 |------------|---------|---------|
 | `#[PagekitAssert\Unique]` | User.username, User.email | Database uniqueness check |
 
-## Validation Groups
+---
 
-The `registration` validation group is used for password validation during user registration:
+## 5. Message Keys Reference
 
-```php
-#[Assert\NotBlank(message: 'Password is required.', groups: ['registration'])]
-public ?string $password = '';
-```
+All validation messages are stored in `app/system/languages/en_US/validation.php`.
 
-## Error Response Format
+### User Module Messages
 
-Validation errors are returned as JSON with the following structure:
+| Key | Message |
+|-----|---------|
+| `validation.user.username_required` | Username is required. |
+| `validation.user.username_min_length` | Username must be at least {{ limit }} characters. |
+| `validation.user.username_max_length` | Username cannot exceed {{ limit }} characters. |
+| `validation.user.username_invalid` | Username is invalid. Only letters, numbers, dots, underscores and hyphens are allowed. |
+| `validation.user.username_not_available` | Username is not available. |
+| `validation.user.email_required` | Email is required. |
+| `validation.user.email_invalid` | Email is invalid. |
+| `validation.user.email_not_available` | Email is not available. |
+| `validation.user.name_required` | Name is required. |
+| `validation.user.password_required` | Password is required. |
+| `validation.role.name_required` | Role name is required. |
+| `validation.role.priority_invalid` | Priority must be a non-negative number. |
 
-```json
-{
-  "error": true,
-  "message": "First error message for display",
-  "errors": {
-    "username": ["Username is required.", "Username must be at least 3 characters."],
-    "email": ["Email is invalid."]
-  }
-}
-```
+### Site Module Messages
 
-HTTP Status Code: **400 Bad Request**
+| Key | Message |
+|-----|---------|
+| `validation.node.slug_required` | Slug is required. |
+| `validation.node.slug_invalid` | Invalid slug. Only lowercase letters, numbers, hyphens and underscores are allowed. |
+| `validation.node.title_required` | Title is required. |
+| `validation.node.type_required` | Node type is required. |
+| `validation.page.title_required` | Page title is required. |
 
-## Usage Guide
+### Widget Module Messages
+
+| Key | Message |
+|-----|---------|
+| `validation.widget.title_required` | Widget title is required. |
+| `validation.widget.type_required` | Widget type is required. |
+
+---
+
+## 6. Usage Guide
 
 ### In Controllers
 
@@ -200,30 +208,56 @@ class MyController
 
 ### Adding Validation to New Entities
 
-1. Import the Symfony Validator constraints:
+1. Import the constraints:
    ```php
    use Symfony\Component\Validator\Constraints as Assert;
    use Pagekit\System\Validator\Constraints as PagekitAssert;
    ```
 
-2. Add attributes to properties:
+2. Add message keys to `validation.php`:
    ```php
-   #[Assert\NotBlank(message: 'Field is required.')]
+   'validation.myentity.field_required' => 'Field is required.',
+   ```
+
+3. Add attributes to properties:
+   ```php
+   #[Assert\NotBlank(message: 'validation.myentity.field_required')]
    #[Assert\Length(min: 3, max: 100)]
    public ?string $myField = '';
    ```
 
-3. For database uniqueness:
+4. For database uniqueness:
    ```php
    #[PagekitAssert\Unique(
        table: '@my_table',
        column: 'my_column',
-       message: 'Value already exists.'
+       message: 'validation.myentity.field_not_available'
    )]
    public ?string $uniqueField = '';
    ```
 
-## Hybrid Mode Notes
+---
+
+## 7. Error Response Format
+
+Validation errors are returned as JSON with the following structure:
+
+```json
+{
+  "error": true,
+  "message": "First error message for display",
+  "errors": {
+    "username": ["validation.user.username_required", "validation.user.username_min_length"],
+    "email": ["validation.user.email_invalid"]
+  }
+}
+```
+
+HTTP Status Code: **400 Bad Request**
+
+---
+
+## 8. Hybrid Mode Notes
 
 ### Why Hybrid?
 
@@ -237,107 +271,70 @@ The ORM still uses Doctrine Annotations (`doctrine/annotations` package) because
 All ORM annotations are marked with TODO comments:
 
 ```php
-/** @Column */
+/**
+ * @Column
+ */
 // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+#[Assert\NotBlank(message: 'validation.entity.field_required')]
+public ?string $field = null;
 ```
 
-### When Step 1.14 is Complete
+---
 
-After ORM Attributes migration:
-1. Replace `@Entity`, `@Column`, `@Id` annotations with `#[ORM\Entity]`, `#[ORM\Column]`, `#[ORM\Id]`
-2. Remove `// TODO: Must be refactored in Step 1.14` comments
-3. Update `doctrine/annotations` usage
+## 9. Files Changed
 
-## Migration from Manual Validation
-
-### Old Pattern (REMOVED)
-
-```php
-// In Entity
-public function validate(): bool
-{
-    if (empty($this->name)) {
-        throw new Exception(__('Name required.'));
-    }
-    return true;
-}
-
-// In Controller
-$user->validate();
-$user->save();
-```
-
-### New Pattern (CURRENT)
-
-```php
-// In Entity - just attributes, no validate() method
-#[Assert\NotBlank(message: 'Name is required.')]
-public ?string $name = null;
-
-// In Controller
-use ValidatesRequestTrait;
-// ...
-$this->validateOrFail($user);
-$user->save();
-```
-
-## Aggressive Modernization Rules Applied
-
-| Rule | Application |
-|------|-------------|
-| **#1 NO COMPATIBILITY LAYERS** | No shim classes created; all controllers updated directly |
-| **#2 NO ADAPTERS** | All `$user->validate()` calls replaced in the same commit |
-| **#3 BREAKING CHANGES ALLOWED** | Internal API changed (validate() method removed) |
-| **#4 DELETE OVER WRAP** | Old `validate()` method completely removed, not wrapped |
-| **#5 MANDATORY FLAGGING** | All ORM annotations marked with `// TODO: Must be refactored in Step 1.14` |
-
-## Files Changed
+### Phase 1
 
 ```
-Modified:
-- composer.json (added symfony/validator)
-- app/system/index.php (registered validator service)
-- app/system/modules/user/src/Model/User.php (added validation attributes, removed validate())
-- app/system/modules/user/src/Model/Role.php (added validation attributes)
-- app/system/modules/user/src/Controller/UserApiController.php (use ValidatesRequestTrait)
-- app/system/modules/user/src/Controller/RegistrationController.php (use ValidatesRequestTrait)
-- app/system/modules/user/src/Controller/ProfileController.php (use ValidatesRequestTrait)
-
 Created:
 - app/system/src/ValidatorServiceProvider.php
 - app/system/src/Controller/ValidatesRequestTrait.php
 - app/system/src/Validator/Constraints/Unique.php
 - app/system/src/Validator/Constraints/UniqueValidator.php
-- migration-docs/branches/VALIDATION_SYSTEM.md (this file)
+
+Modified:
+- composer.json (added symfony/validator)
+- app/system/index.php (registered validator service)
+- app/system/modules/user/src/Model/User.php
+- app/system/modules/user/src/Model/Role.php
+- app/system/modules/user/src/Controller/UserApiController.php
+- app/system/modules/user/src/Controller/RegistrationController.php
+- app/system/modules/user/src/Controller/ProfileController.php
 ```
 
-## Testing
+### Phase 2
 
-### Manual Tests
+```
+Created:
+- app/system/languages/en_US/validation.php
+- migration-docs/branches/VALIDATION_PHASE2_DISCOVERY.md
 
-1. **Page Load Test**: Access `/admin` - should redirect to login
-2. **Invalid Data Test**: Submit registration with empty fields - should return validation errors
-3. **Valid Data Test**: Submit valid registration - should succeed
-4. **ORM Test**: Load users via `User::find(1)` - should work correctly
+Modified:
+- app/system/modules/user/src/Model/User.php (updated to use message keys)
+- app/system/modules/user/src/Model/Role.php (updated to use message keys)
+- app/system/modules/user/src/Controller/RoleApiController.php (added ValidatesRequestTrait)
+- app/system/modules/site/src/Model/Node.php (added validation attributes)
+- app/system/modules/site/src/Model/Page.php (added validation attributes)
+- app/system/modules/site/src/Controller/NodeApiController.php (added ValidatesRequestTrait)
+- app/system/modules/widget/src/Model/Widget.php (added validation attributes)
+- app/system/modules/widget/src/Controller/WidgetApiController.php (added ValidatesRequestTrait)
+```
 
-### Automated Tests
+---
 
-TODO: Add unit tests for:
-- `ValidatorServiceProvider` registration
-- `ValidatesRequestTrait` methods
-- `Unique` constraint validator
-- User entity validation
+## 10. Aggressive Modernization Rules Applied
 
-## Rollback Plan
+| Rule | Application |
+|------|-------------|
+| **#1 NO COMPATIBILITY LAYERS** | No shim classes created; all controllers updated directly |
+| **#2 NO ADAPTERS** | All manual validation calls replaced in the same commit |
+| **#3 BREAKING CHANGES ALLOWED** | Internal API changed (validate() method removed) |
+| **#4 DELETE OVER WRAP** | Old `validate()` method and manual validation completely removed |
+| **#5 MANDATORY FLAGGING** | All ORM annotations marked with `// TODO: Must be refactored in Step 1.14` |
 
-If issues occur:
+---
 
-1. Revert the branch
-2. Remove `symfony/validator` from `composer.json`
-3. Run `composer update`
-4. Verify system works
-
-## Next Steps
+## 11. Next Steps
 
 1. **Step 1.14**: Migrate ORM from Annotations to Attributes
    - Replace `@Entity` with `#[ORM\Entity]`
@@ -345,9 +342,10 @@ If issues occur:
    - Remove `doctrine/annotations` dependency
    - Remove TODO comments
 
-2. Add validation to other entities as needed
+2. **Translation Integration**: Integrate message keys with `__()` function or Symfony Translator
 
-3. Consider adding more custom constraints:
-   - `#[UniqueEmail]` - Email uniqueness across multiple tables
+3. **Additional Entities**: Add validation to any remaining entities as needed
+
+4. **Custom Constraints**: Consider adding more custom constraints:
    - `#[StrongPassword]` - Password strength validation
    - `#[ValidSlug]` - URL slug validation
