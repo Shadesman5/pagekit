@@ -1,5 +1,90 @@
 # Changelog 2025
 
+## Pagekit 1.0.46 - Symfony Validator Integration (January 19, 2026)
+
+### 🚀 Major Changes
+
+- **Symfony Validator Integration (Step 1.13 - Hybrid Mode)** - Complete migration from manual validation to Symfony Validator with PHP 8 Attributes
+  - ✅ Added `symfony/validator` ^7.4 for modern PHP 8 Attribute-based validation
+  - ✅ Hybrid approach: Validation uses Attributes, ORM still uses Doctrine Annotations (until Step 1.14)
+  - ✅ No compatibility layers - aggressive modernization per project rules
+
+### ✨ New Features
+
+- **ValidatorServiceProvider** - New service provider for Symfony Validator integration
+  - Registers `$app['validator']` service with PHP 8 Attribute support enabled
+  - Registered during boot event in `app/system/index.php`
+
+- **ValidatesRequestTrait** - Standardized controller validation
+  - `validate($object)` - Returns `JsonResponse` on failure, `null` on success
+  - `validateOrFail($object)` - Throws `Exception` on failure
+  - Consistent JSON error format for Vue.js frontend integration
+
+- **Custom Unique Constraint** - Database uniqueness validation
+  - `#[PagekitAssert\Unique]` attribute for entity properties
+  - Uses Pagekit's QueryBuilder (DBAL 3.x compatible)
+  - Supports update context (excludes current record by ID)
+
+### 🔄 Refactored
+
+- **User Entity Validation** - Complete rewrite with Symfony Validator
+  - Added `#[Assert\NotBlank]`, `#[Assert\Email]`, `#[Assert\Length]`, `#[Assert\Regex]` attributes
+  - Added `#[PagekitAssert\Unique]` for username and email uniqueness
+  - **REMOVED** old `validate()` method (Rule #4: DELETE OVER WRAP)
+  - ORM annotations preserved with TODO markers for Step 1.14
+
+- **Role Entity Validation** - Added Symfony Validator attributes
+  - `#[Assert\NotBlank]` for name
+  - `#[Assert\Length]` for name constraints
+  - `#[Assert\PositiveOrZero]` for priority
+
+- **Controller Updates** - All user controllers modernized
+  - `UserApiController` - Uses `ValidatesRequestTrait`, `$this->validateOrFail($user)`
+  - `RegistrationController` - Uses `ValidatesRequestTrait`, `$this->validateOrFail($user)`
+  - `ProfileController` - Uses `ValidatesRequestTrait`, `$this->validateOrFail($user)`
+  - Added `declare(strict_types=1)` to all controllers
+
+### 📝 Breaking Changes
+
+- **User::validate() method removed** - Replace all calls with `$this->validateOrFail($user)` using `ValidatesRequestTrait`
+- Internal API changes for cleaner PHP 8 code (Rule #3: BREAKING CHANGES ALLOWED)
+
+### 📚 Documentation
+
+- **VALIDATION_SYSTEM.md** - Comprehensive documentation in `migration-docs/branches/`
+  - Hybrid approach explanation (Attributes for validation, Annotations for ORM)
+  - Usage guide for ValidatesRequestTrait
+  - All validation constraints documented
+  - Error response format for Vue.js frontend
+  - Migration guide from manual validation
+
+### 🔧 Technical Details
+
+**Files Created:**
+- `app/system/src/ValidatorServiceProvider.php`
+- `app/system/src/Controller/ValidatesRequestTrait.php`
+- `app/system/src/Validator/Constraints/Unique.php`
+- `app/system/src/Validator/Constraints/UniqueValidator.php`
+- `migration-docs/branches/VALIDATION_SYSTEM.md`
+
+**Files Modified:**
+- `composer.json` (added symfony/validator)
+- `app/system/index.php` (registered validator service)
+- `app/system/modules/user/src/Model/User.php`
+- `app/system/modules/user/src/Model/Role.php`
+- `app/system/modules/user/src/Controller/UserApiController.php`
+- `app/system/modules/user/src/Controller/RegistrationController.php`
+- `app/system/modules/user/src/Controller/ProfileController.php`
+
+**Aggressive Modernization Rules Applied:**
+- Rule #1: NO COMPATIBILITY LAYERS - No shim classes created
+- Rule #2: NO ADAPTERS - All controller usages updated in same commit
+- Rule #3: BREAKING CHANGES ALLOWED - Internal API changed for cleaner code
+- Rule #4: DELETE OVER WRAP - Old `validate()` method completely removed
+- Rule #5: MANDATORY FLAGGING - All ORM annotations marked with TODO for Step 1.14
+
+---
+
 ## Pagekit 1.0.45 - Database Migration System Improvements (January 17, 2026)
 
 ### 🐛 Fixed
