@@ -8,6 +8,8 @@
   - ✅ Added `symfony/validator` ^7.4 for modern PHP 8 Attribute-based validation
   - ✅ Hybrid approach: Validation uses Attributes, ORM still uses Doctrine Annotations (until Step 1.14)
   - ✅ No compatibility layers - aggressive modernization per project rules
+  - ✅ Phase 1: User module (User, Role entities)
+  - ✅ Phase 2: Site module (Node, Page entities), Widget module (Widget entity)
 
 ### ✨ New Features
 
@@ -25,28 +27,34 @@
   - Uses Pagekit's QueryBuilder (DBAL 3.x compatible)
   - Supports update context (excludes current record by ID)
 
+- **Centralized Validation Messages** (Phase 2)
+  - Created `app/system/languages/en_US/validation.php`
+  - All validation messages referenced by key for future translation
+  - Message keys follow pattern: `validation.{module}.{field}_{constraint}`
+
 ### 🔄 Refactored
 
-- **User Entity Validation** - Complete rewrite with Symfony Validator
-  - Added `#[Assert\NotBlank]`, `#[Assert\Email]`, `#[Assert\Length]`, `#[Assert\Regex]` attributes
-  - Added `#[PagekitAssert\Unique]` for username and email uniqueness
+- **User Module** (Phase 1)
+  - `User` entity: Full validation with `#[Assert\...]` and `#[PagekitAssert\Unique]`
+  - `Role` entity: Name and priority validation
+  - Controllers: `UserApiController`, `RegistrationController`, `ProfileController`, `RoleApiController`
   - **REMOVED** old `validate()` method (Rule #4: DELETE OVER WRAP)
-  - ORM annotations preserved with TODO markers for Step 1.14
 
-- **Role Entity Validation** - Added Symfony Validator attributes
-  - `#[Assert\NotBlank]` for name
-  - `#[Assert\Length]` for name constraints
-  - `#[Assert\PositiveOrZero]` for priority
+- **Site Module** (Phase 2)
+  - `Node` entity: Slug, title, link, type, status, priority validation
+  - `Page` entity: Title validation
+  - Controller: `NodeApiController` with ValidatesRequestTrait
+  - Removed manual slug/link validation checks
 
-- **Controller Updates** - All user controllers modernized
-  - `UserApiController` - Uses `ValidatesRequestTrait`, `$this->validateOrFail($user)`
-  - `RegistrationController` - Uses `ValidatesRequestTrait`, `$this->validateOrFail($user)`
-  - `ProfileController` - Uses `ValidatesRequestTrait`, `$this->validateOrFail($user)`
-  - Added `declare(strict_types=1)` to all controllers
+- **Widget Module** (Phase 2)
+  - `Widget` entity: Title, type, status validation
+  - Controller: `WidgetApiController` with ValidatesRequestTrait
+  - Removed manual 'Widget title empty' check
 
 ### 📝 Breaking Changes
 
 - **User::validate() method removed** - Replace all calls with `$this->validateOrFail($user)` using `ValidatesRequestTrait`
+- **Manual validation in controllers removed** - All validation now uses Symfony Validator
 - Internal API changes for cleaner PHP 8 code (Rule #3: BREAKING CHANGES ALLOWED)
 
 ### 📚 Documentation
@@ -57,17 +65,24 @@
   - All validation constraints documented
   - Error response format for Vue.js frontend
   - Migration guide from manual validation
+  - Message key reference
+
+- **VALIDATION_PHASE2_DISCOVERY.md** - Migration checklist and discovery document
 
 ### 🔧 Technical Details
 
-**Files Created:**
+**Files Created (Phase 1):**
 - `app/system/src/ValidatorServiceProvider.php`
 - `app/system/src/Controller/ValidatesRequestTrait.php`
 - `app/system/src/Validator/Constraints/Unique.php`
 - `app/system/src/Validator/Constraints/UniqueValidator.php`
 - `migration-docs/branches/VALIDATION_SYSTEM.md`
 
-**Files Modified:**
+**Files Created (Phase 2):**
+- `app/system/languages/en_US/validation.php`
+- `migration-docs/branches/VALIDATION_PHASE2_DISCOVERY.md`
+
+**Files Modified (Phase 1):**
 - `composer.json` (added symfony/validator)
 - `app/system/index.php` (registered validator service)
 - `app/system/modules/user/src/Model/User.php`
@@ -76,11 +91,19 @@
 - `app/system/modules/user/src/Controller/RegistrationController.php`
 - `app/system/modules/user/src/Controller/ProfileController.php`
 
+**Files Modified (Phase 2):**
+- `app/system/modules/user/src/Controller/RoleApiController.php`
+- `app/system/modules/site/src/Model/Node.php`
+- `app/system/modules/site/src/Model/Page.php`
+- `app/system/modules/site/src/Controller/NodeApiController.php`
+- `app/system/modules/widget/src/Model/Widget.php`
+- `app/system/modules/widget/src/Controller/WidgetApiController.php`
+
 **Aggressive Modernization Rules Applied:**
 - Rule #1: NO COMPATIBILITY LAYERS - No shim classes created
 - Rule #2: NO ADAPTERS - All controller usages updated in same commit
 - Rule #3: BREAKING CHANGES ALLOWED - Internal API changed for cleaner code
-- Rule #4: DELETE OVER WRAP - Old `validate()` method completely removed
+- Rule #4: DELETE OVER WRAP - Old `validate()` method and manual checks completely removed
 - Rule #5: MANDATORY FLAGGING - All ORM annotations marked with TODO for Step 1.14
 
 ---
