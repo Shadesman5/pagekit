@@ -43,21 +43,21 @@ class User implements UserInterface, \JsonSerializable
      * @Column
      */
     // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
-    #[Assert\NotBlank(message: 'Username is required.')]
+    #[Assert\NotBlank(message: 'validation.user.username_required')]
     #[Assert\Length(
         min: 3,
         max: 255,
-        minMessage: 'Username must be at least {{ limit }} characters.',
-        maxMessage: 'Username cannot exceed {{ limit }} characters.'
+        minMessage: 'validation.user.username_min_length',
+        maxMessage: 'validation.user.username_max_length'
     )]
     #[Assert\Regex(
         pattern: '/^[a-zA-Z0-9._\-]+$/',
-        message: 'Username is invalid. Only letters, numbers, dots, underscores and hyphens are allowed.'
+        message: 'validation.user.username_invalid'
     )]
     #[PagekitAssert\Unique(
         table: '@system_user',
         column: 'username',
-        message: 'Username is not available.'
+        message: 'validation.user.username_not_available'
     )]
     public ?string $username = '';
 
@@ -65,19 +65,19 @@ class User implements UserInterface, \JsonSerializable
      * @Column
      */
     // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
-    #[Assert\NotBlank(message: 'Password is required.', groups: ['registration'])]
+    #[Assert\NotBlank(message: 'validation.user.password_required', groups: ['registration'])]
     public ?string $password = '';
 
     /**
      * @Column
      */
     // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
-    #[Assert\NotBlank(message: 'Email is required.')]
-    #[Assert\Email(message: 'Email is invalid.')]
+    #[Assert\NotBlank(message: 'validation.user.email_required')]
+    #[Assert\Email(message: 'validation.user.email_invalid')]
     #[PagekitAssert\Unique(
         table: '@system_user',
         column: 'email',
-        message: 'Email is not available.'
+        message: 'validation.user.email_not_available'
     )]
     public ?string $email = '';
 
@@ -85,7 +85,7 @@ class User implements UserInterface, \JsonSerializable
      * @Column
      */
     // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
-    #[Assert\Url(message: 'URL is invalid.')]
+    #[Assert\Url(message: 'validation.user.url_invalid')]
     public ?string $url = '';
 
     /**
@@ -100,7 +100,7 @@ class User implements UserInterface, \JsonSerializable
     // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
     #[Assert\Choice(
         choices: [self::STATUS_BLOCKED, self::STATUS_ACTIVE],
-        message: 'Invalid status.'
+        message: 'validation.user.status_invalid'
     )]
     public int $status = User::STATUS_ACTIVE;
 
@@ -108,10 +108,10 @@ class User implements UserInterface, \JsonSerializable
      * @Column
      */
     // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
-    #[Assert\NotBlank(message: 'Name is required.')]
+    #[Assert\NotBlank(message: 'validation.user.name_required')]
     #[Assert\Length(
         max: 255,
-        maxMessage: 'Name cannot exceed {{ limit }} characters.'
+        maxMessage: 'validation.user.name_max_length'
     )]
     public ?string $name = null;
 

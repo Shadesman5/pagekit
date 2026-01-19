@@ -43,12 +43,12 @@ class Role implements \JsonSerializable
      * @Column(type="string")
      */
     // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
-    #[Assert\NotBlank(message: 'Role name is required.')]
+    #[Assert\NotBlank(message: 'validation.role.name_required')]
     #[Assert\Length(
         min: 2,
         max: 255,
-        minMessage: 'Role name must be at least {{ limit }} characters.',
-        maxMessage: 'Role name cannot exceed {{ limit }} characters.'
+        minMessage: 'validation.role.name_min_length',
+        maxMessage: 'validation.role.name_max_length'
     )]
     public ?string $name = null;
 
@@ -56,7 +56,7 @@ class Role implements \JsonSerializable
      * @Column(type="integer")
      */
     // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
-    #[Assert\PositiveOrZero(message: 'Priority must be a non-negative number.')]
+    #[Assert\PositiveOrZero(message: 'validation.role.priority_invalid')]
     public int $priority = 0;
 
     /**
