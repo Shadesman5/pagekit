@@ -99,4 +99,40 @@ return [
 
     'validation.widget.status_invalid' => 'Invalid widget status.',
 
+    // ============================================================
+    // COMMENT MODULE (Base)
+    // ============================================================
+
+    // Comment Entity (base class)
+    'validation.comment.author_required' => 'Author name is required.',
+    'validation.comment.author_max_length' => 'Author name cannot exceed {{ limit }} characters.',
+
+    'validation.comment.content_required' => 'Comment content is required.',
+
+    'validation.comment.status_invalid' => 'Invalid comment status.',
+
+    // ============================================================
+    // BLOG PACKAGE
+    // ============================================================
+
+    // Post Entity
+    'validation.post.title_required' => 'Post title is required.',
+    'validation.post.title_max_length' => 'Post title cannot exceed {{ limit }} characters.',
+
+    'validation.post.slug_required' => 'Slug is required.',
+    'validation.post.slug_invalid' => 'Invalid slug. Only lowercase letters, numbers, hyphens and underscores are allowed.',
+    'validation.post.slug_max_length' => 'Slug cannot exceed {{ limit }} characters.',
+
+    'validation.post.status_invalid' => 'Invalid post status.',
+
+    'validation.post.user_required' => 'Author is required.',
+
+    // Blog Comment Entity (extends base Comment)
+    'validation.blog_comment.email_required' => 'Email is required.',
+    'validation.blog_comment.email_invalid' => 'Please provide a valid email address.',
+
+    'validation.blog_comment.post_required' => 'Post is required.',
+
+    'validation.blog_comment.url_invalid' => 'URL is invalid.',
+
 ];
