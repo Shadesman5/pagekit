@@ -124,13 +124,18 @@ class WidgetApiController
         // Extract position before saving (it's not a database field)
         $position = isset($data['position']) ? $data['position'] : null;
 
-        $widget->save($data);
+        // Assign data to entity for validation (without saving yet)
+        foreach ($data as $key => $value) {
+            if (property_exists($widget, $key)) {
+                $widget->$key = $value;
+            }
+        }
 
         // Validate using Symfony Validator (replaces manual title validation)
         // Rule #4: DELETE OVER WRAP - old manual check removed
         $this->validateOrFail($widget);
 
-        $widget->save();
+        $widget->save($data);
 
         // Set position property after save for the event handler
         if ($position !== null) {

@@ -88,13 +88,18 @@ class NodeApiController
         // Apply slug filter - this is business logic that generates a valid slug
         $data['slug'] = App::filter($slug ?: $title, 'slugify');
 
-        $node->save($data);
+        // Assign data to entity for validation (without saving yet)
+        foreach ($data as $key => $value) {
+            if (property_exists($node, $key)) {
+                $node->$key = $value;
+            }
+        }
 
         // Validate using Symfony Validator (replaces manual slug/link validation)
         // Rule #4: DELETE OVER WRAP - old manual checks removed
         $this->validateOrFail($node);
 
-        $node->save();
+        $node->save($data);
 
         return ['message' => 'success', 'node' => $node];
     }

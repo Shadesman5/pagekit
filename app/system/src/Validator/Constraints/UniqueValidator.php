@@ -35,12 +35,12 @@ class UniqueValidator extends ConstraintValidator
 
         // Build the uniqueness check query
         // Using Pagekit's QueryBuilder which is DBAL 3.x compatible
-        $queryBuilder = $db->createQueryBuilder();
-        $queryBuilder
+        // Pagekit's QueryBuilder uses where([column => value]) or where(condition, [params])
+        // NOT setParameter() method! Multiple where() calls are AND-ed together
+        $queryBuilder = $db->createQueryBuilder()
             ->select('COUNT(*)')
             ->from($constraint->table)
-            ->where("{$constraint->column} = :value")
-            ->setParameter('value', strtolower((string) $value));
+            ->where([$constraint->column => strtolower((string) $value)]);
 
         // Handle update context: exclude current record by ID
         // Access the object being validated to get its ID
@@ -55,9 +55,7 @@ class UniqueValidator extends ConstraintValidator
 
                 // Only exclude if we have an ID (update scenario)
                 if ($idValue !== null && $idValue > 0) {
-                    $queryBuilder
-                        ->andWhere('id <> :id')
-                        ->setParameter('id', $idValue);
+                    $queryBuilder->where(['id <> :id'], ['id' => $idValue]);
                 }
             }
         }
