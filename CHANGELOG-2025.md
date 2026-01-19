@@ -10,6 +10,7 @@
   - ✅ No compatibility layers - aggressive modernization per project rules
   - ✅ Phase 1: User module (User, Role entities)
   - ✅ Phase 2: Site module (Node, Page entities), Widget module (Widget entity)
+  - ✅ Phase 3: Comment module (base), Blog package (Post, Comment entities)
 
 ### ✨ New Features
 
@@ -50,6 +51,15 @@
   - `Widget` entity: Title, type, status validation
   - Controller: `WidgetApiController` with ValidatesRequestTrait
   - Removed manual 'Widget title empty' check
+
+- **Comment Module** (Phase 3)
+  - Base `Comment` entity (abstract): Author, content, status validation
+
+- **Blog Package** (Phase 3)
+  - `Post` entity: Title, slug, status, user_id, comment_count validation
+  - `Comment` entity: Email, url, post_id validation (extends base Comment)
+  - Controllers: `PostApiController`, `CommentApiController` with ValidatesRequestTrait
+  - Removed manual 'Invalid slug' validation check
 
 ### 📝 Breaking Changes
 
@@ -98,6 +108,14 @@
 - `app/system/modules/site/src/Controller/NodeApiController.php`
 - `app/system/modules/widget/src/Model/Widget.php`
 - `app/system/modules/widget/src/Controller/WidgetApiController.php`
+
+**Files Modified (Phase 3):**
+- `app/system/languages/en_US/validation.php` (added Blog/Comment messages)
+- `app/system/modules/comment/src/Model/Comment.php` (base Comment entity)
+- `packages/pagekit/blog/src/Model/Post.php`
+- `packages/pagekit/blog/src/Model/Comment.php`
+- `packages/pagekit/blog/src/Controller/PostApiController.php`
+- `packages/pagekit/blog/src/Controller/CommentApiController.php`
 
 **Aggressive Modernization Rules Applied:**
 - Rule #1: NO COMPATIBILITY LAYERS - No shim classes created

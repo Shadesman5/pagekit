@@ -23,6 +23,11 @@ This document describes the integration of Symfony Validator 7.4 with PHP 8 Attr
 - Widget module migrated (Widget entity and controller)
 - User module messages updated to use message keys
 
+### Phase 3 (Completed)
+- Comment base module migrated (abstract Comment class)
+- Blog package migrated (Post, Comment entities and controllers)
+- All extension packages now use Symfony Validator
+
 ---
 
 ## 1. Dependencies
@@ -112,6 +117,21 @@ public ?string $username = '';
 **Controllers:**
 - `WidgetApiController.php` - Uses ValidatesRequestTrait
 
+### Comment Module - Base (Phase 3)
+
+**Entities:**
+- `Comment.php` (abstract) - Author, content, status validation
+
+### Blog Package (Phase 3)
+
+**Entities:**
+- `Post.php` - Title, slug, status, user_id validation
+- `Comment.php` - Email, url, post_id validation (extends base Comment)
+
+**Controllers:**
+- `PostApiController.php` - Uses ValidatesRequestTrait
+- `CommentApiController.php` - Uses ValidatesRequestTrait
+
 ---
 
 ## 4. Validation Constraints Reference
@@ -120,13 +140,14 @@ public ?string $username = '';
 
 | Constraint | Used On | Purpose |
 |------------|---------|---------|
-| `#[Assert\NotBlank]` | User.username, User.email, User.name, User.password, Role.name, Node.slug, Node.title, Node.type, Page.title, Widget.title, Widget.type | Required field validation |
-| `#[Assert\Email]` | User.email | Email format validation |
-| `#[Assert\Length]` | User.username, User.name, Role.name, Node.slug, Node.title, Node.link, Page.title, Widget.title | Min/max length validation |
-| `#[Assert\Regex]` | User.username, Node.slug | Pattern validation |
-| `#[Assert\Url]` | User.url | URL format validation |
-| `#[Assert\Choice]` | User.status, Node.status, Widget.status | Enum validation |
-| `#[Assert\PositiveOrZero]` | Role.priority, Node.priority, Node.parent_id | Numeric validation |
+| `#[Assert\NotBlank]` | User.username, User.email, User.name, User.password, Role.name, Node.slug, Node.title, Node.type, Page.title, Widget.title, Widget.type, Comment.author, Comment.content, Post.title, Post.slug, Post.user_id, BlogComment.post_id | Required field validation |
+| `#[Assert\Email]` | User.email, BlogComment.email | Email format validation |
+| `#[Assert\Length]` | User.username, User.name, Role.name, Node.slug, Node.title, Node.link, Page.title, Widget.title, Comment.author, Post.title, Post.slug | Min/max length validation |
+| `#[Assert\Regex]` | User.username, Node.slug, Post.slug | Pattern validation |
+| `#[Assert\Url]` | User.url, BlogComment.url | URL format validation |
+| `#[Assert\Choice]` | User.status, Node.status, Widget.status, Comment.status, Post.status | Enum validation |
+| `#[Assert\PositiveOrZero]` | Role.priority, Node.priority, Node.parent_id, Post.comment_count | Numeric validation |
+| `#[Assert\Positive]` | Post.user_id, BlogComment.post_id | Positive integer validation |
 
 ### Custom Constraints
 
