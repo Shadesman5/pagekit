@@ -85,8 +85,10 @@ class User implements UserInterface, \JsonSerializable
      * @Column
      */
     // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    // URL is optional. Symfony's Url constraint validates format when provided but accepts null for optional fields.
+    // Empty strings are converted to null via __set() magic method since Url constraint rejects empty strings.
     #[Assert\Url(message: 'validation.user.url_invalid')]
-    public ?string $url = '';
+    public ?string $url = null;
 
     /**
      * @Column(type="datetime")
@@ -262,6 +264,25 @@ class User implements UserInterface, \JsonSerializable
     // NOTE: The old validate() method has been REMOVED per Rule #4 (DELETE OVER WRAP).
     // All validation is now handled by Symfony Validator attributes on the properties.
     // Controllers must use ValidatesRequestTrait::validate($user) or ValidatesRequestTrait::validateOrFail($user).
+
+    /**
+     * Magic setter to normalize URL field values.
+     *
+     * Converts empty strings to null for the URL field. Symfony's Url constraint accepts null
+     * (optional field) but rejects empty strings. This normalization ensures consistent behavior
+     * when empty strings are assigned from form data or API requests.
+     *
+     * @param string $name Property name
+     * @param mixed $value Property value
+     */
+    public function __set(string $name, mixed $value): void
+    {
+        if ($name === 'url' && $value === '') {
+            $value = null;
+        }
+
+        $this->$name = $value;
+    }
 
     /**
      * {@inheritdoc}
