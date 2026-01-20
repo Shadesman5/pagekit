@@ -20,32 +20,47 @@
 
 # Security Headers
 <IfModule mod_headers.c>
-    # HSTS
+    # HSTS - Strict Transport Security
     Header always set Strict-Transport-Security "max-age=31556926; includeSubDomains; preload"
     
-    # X-Content-Type-Options
+    # X-Content-Type-Options - Prevent MIME-type sniffing
     Header always set X-Content-Type-Options "nosniff"
     
-    # X-XSS-Protection
+    # X-XSS-Protection - Enable browser XSS filter (legacy browsers)
     Header always set X-XSS-Protection "1; mode=block"
     
-    # X-Frame-Options
+    # X-Frame-Options - Prevent clickjacking
     Header always set X-Frame-Options "SAMEORIGIN"
     
-    # Referrer Policy
-    Header always set Referrer-Policy "origin-when-cross-origin"
+    # Referrer Policy - Privacy-preserving referrer policy
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
     
-    # Permissions Policy
-    Header always set Permissions-Policy "accelerometer=(), camera=(), microphone=(), geolocation=(), usb=(), gyroscope=(), magnetometer=(), midi=(), ambient-light-sensor=()"
+    # Permissions Policy - Restrict browser features
+    Header always set Permissions-Policy "accelerometer=(), camera=(), microphone=(), geolocation=(), usb=(), gyroscope=(), magnetometer=(), midi=(), ambient-light-sensor=(), autoplay=(), fullscreen=(self), payment=()"
     
-    # Remove X-Powered-By
+    # Remove X-Powered-By - Hide server technology
     Header unset X-Powered-By
     
-    # Cookie Security
+    # Cookie Security - HttpOnly, Secure, SameSite
     Header always edit Set-Cookie ^(.*)$ "$1; HttpOnly; Secure; SameSite=Lax"
     
-    # Content Security Policy for Pagekit (DSGVO-konform)
-    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self';"
+    # Content Security Policy - STRICT (Gold Standard)
+    # Since we use JSON data container (no inline scripts), we can be very strict
+    # - script-src: NO 'unsafe-inline', NO 'unsafe-eval'
+    # - style-src: 'unsafe-inline' kept for UIkit inline styles (can be improved later)
+    # - object-src: 'none' - No Flash/plugins
+    # - base-uri: 'self' - Prevent base tag injection
+    # - form-action: 'self' - Forms only submit to same origin
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';"
+    
+    # Cross-Origin-Embedder-Policy - Require CORP for cross-origin resources
+    Header always set Cross-Origin-Embedder-Policy "credentialless"
+    
+    # Cross-Origin-Opener-Policy - Isolate browsing context
+    Header always set Cross-Origin-Opener-Policy "same-origin"
+    
+    # Cross-Origin-Resource-Policy - Restrict resource sharing
+    Header always set Cross-Origin-Resource-Policy "same-origin"
 </IfModule>
 
 # Additional file protection
