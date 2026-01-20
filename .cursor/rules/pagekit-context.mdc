@@ -25,6 +25,18 @@ alwaysApply: true
     - Use **Return Types** (`: void`, `: ?array`).
     - Use **Constructor Property Promotion** where readable.
 
+## 🚀 AGGRESSIVE MODERNIZATION RULES
+
+1. **NO COMPATIBILITY LAYERS** – do not keep old & new behavior in parallel.
+2. **NO ADAPTERS** – update all call sites instead of adding wrappers.
+3. **BREAKING CHANGES ALLOWED INTERNALLY** – as long as public behavior (HTTP/API) stays the same.
+4. **DELETE OVER WRAP** – if old logic conflicts with the new security model, delete it.
+5. **LEGACY HACKS MUST BE MARKED** – use `// TODO: Must be refactored later` for unavoidable hacks.
+6. **HONEST COMMENTS** – Comments must reflect reality. If something IS backward compatibility, 
+   mark it clearly with `// TODO: BACKWARD COMPATIBILITY - Must be refactored later` prefix so it can be refactored per rules 1-5. 
+   Don't hide backward compatibility by removing the word from comments. Explain WHY code works 
+   this way, not what it replaces (unless it's temporary backward compatibility that needs removal).
+
 ## 🛠 Technology Stack (Modernization Phase)
 
 ### Backend (Active)
