@@ -127,8 +127,10 @@ class PostApiController
         }
 
         // Assign data to entity for validation (without saving yet)
+        // Skip DateTime fields - save() handles string-to-DateTime conversion
+        $skipFields = ['date', 'modified', 'created'];
         foreach ($data as $key => $value) {
-            if (property_exists($post, $key)) {
+            if (property_exists($post, $key) && !in_array($key, $skipFields, true)) {
                 $post->$key = $value;
             }
         }
