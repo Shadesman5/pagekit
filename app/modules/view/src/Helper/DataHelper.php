@@ -4,6 +4,12 @@ namespace Pagekit\View\Helper;
 
 use Pagekit\View\View;
 
+/**
+ * DataHelper - CSP-compliant configuration delivery
+ * 
+ * Uses JSON data container instead of inline scripts for strict CSP compliance.
+ * JavaScript reads configuration from data-attribute (no eval, no inline execution).
+ */
 class DataHelper implements HelperInterface
 {
     protected array $data = [];
@@ -66,17 +72,32 @@ class DataHelper implements HelperInterface
     }
 
     /**
-     * Renders the data tags.
+     * Renders the data as CSP-compliant JSON container.
+     * 
+     * Output: <script id="pagekit-data" type="application/json">{"data":...}</script>
+     * 
+     * Why type="application/json"?
+     * - Browser does NOT execute scripts with type="application/json"
+     * - Perfect for strict CSP (no 'unsafe-inline' needed)
+     * - JavaScript reads data via JSON.parse(element.textContent)
+     * - Industry best practice for passing server data to client
      */
     public function render(): string
     {
-        $output = '';
-
-        foreach ($this->data as $name => $value) {
-            $output .= sprintf("        <script>var %s = %s;</script>\n", $name, json_encode($value, $this->encodingOptions));
+        if (empty($this->data)) {
+            return '';
         }
 
-        return $output;
+        // Build config object with all data
+        $config = [
+            'data' => $this->data
+        ];
+
+        // Encode as JSON (safe for embedding in HTML)
+        $json = json_encode($config, $this->encodingOptions | JSON_UNESCAPED_SLASHES);
+        
+        // Output as JSON script tag (CSP-safe, not executed by browser)
+        return sprintf("        <script id=\"pagekit-data\" type=\"application/json\">%s</script>\n", $json);
     }
 
     /**
