@@ -1,5 +1,77 @@
 # Changelog 2025
 
+## Pagekit 1.0.47 - Template Security Hardening (January 20, 2026)
+
+### 🔒 Security - Gold Standard CSP Implementation
+
+- **Complete eval() Removal from Template Engines** - Eliminated all `eval()` calls from template rendering
+  - Removed eval() from `app/modules/view/src/PhpEngine.php` (lines 168, 174)
+  - Removed eval() from `app/modules/view/src/Engine/PhpEngine.php` (line 122)
+  - String template execution no longer supported (was dead code path)
+  - All templates must be file-based for security
+
+- **JSON Data Container (Replaces Inline Scripts)** - Industry best practice implementation
+  - `DataHelper` now outputs `<script type="application/json">` instead of inline `<script>var...`
+  - New `config-loader.js` reads JSON and exposes data as global variables
+  - Backward compatible: `$pagekit`, `$debugbar` globals still work
+  - Perfect CSP compliance without `unsafe-inline` in script-src
+
+- **Strict Content Security Policy** - No more `unsafe-inline` or `unsafe-eval`
+  - `script-src 'self'` - No inline scripts, no eval()
+  - `style-src 'self' 'unsafe-inline'` - UIkit requires inline styles (for now)
+  - Added `object-src 'none'` - No Flash/plugins
+  - Added `base-uri 'self'` - Prevent base tag injection
+  - Added `form-action 'self'` - Forms only submit to same origin
+  - Added `frame-ancestors 'self'` - Prevent clickjacking
+
+- **Modern Cross-Origin Security Headers**
+  - `Cross-Origin-Embedder-Policy: credentialless`
+  - `Cross-Origin-Opener-Policy: same-origin`
+  - `Cross-Origin-Resource-Policy: same-origin`
+  - Upgraded `Referrer-Policy` to `strict-origin-when-cross-origin`
+  - Extended `Permissions-Policy` with autoplay, fullscreen, payment
+
+### ✨ New Features
+
+- **config-loader.js** - CSP-compliant configuration reader
+  - Reads JSON from `<script type="application/json">` container
+  - Exposes data as global variables for backward compatibility
+  - No inline JavaScript execution required
+  - Works with strict CSP without exceptions
+
+### 📝 Documentation
+
+- **feature-template-security-hardening.md** - Complete migration guide and documentation
+  - How the JSON data container works
+  - Migration guide for theme/extension developers
+  - Security impact and CSP configuration details
+  - Testing checklist and verification steps
+
+### 🔧 Technical Details
+
+**Files Created:**
+- `app/system/app/lib/config-loader.js`
+- `migration-docs/branches/feature-template-security-hardening.md`
+
+**Files Modified:**
+- `app/modules/view/src/PhpEngine.php` (eval removal)
+- `app/modules/view/src/Engine/PhpEngine.php` (eval removal)
+- `app/modules/view/src/Helper/DataHelper.php` (JSON data container)
+- `app/system/modules/view/index.php` (register config-loader)
+- `.htaccess` (strict CSP and modern headers)
+
+**Breaking Changes (Internal Only):**
+- String template execution no longer supported (was dead code)
+- Inline `<script>` tags with executable JavaScript blocked by CSP
+
+**Backward Compatible:**
+- All existing PHP templates work unchanged
+- Global variables (`$pagekit`, etc.) still accessible
+- Vue.js components work normally
+- Admin interface unchanged
+
+---
+
 ## Pagekit 1.0.46 - Symfony Validator Integration (January 19, 2026)
 
 ### 🚀 Major Changes
