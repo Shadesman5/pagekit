@@ -67,6 +67,13 @@
 - **Manual validation in controllers removed** - All validation now uses Symfony Validator
 - Internal API changes for cleaner PHP 8 code (Rule #3: BREAKING CHANGES ALLOWED)
 
+### 🔧 Fixes
+
+- **URL field normalization** - Fixed optional URL fields in User and Comment models (empty strings converted to null for Symfony Url constraint compatibility)
+- **Case-insensitive uniqueness validation** - Updated UniqueValidator to use SQL LOWER() for case-insensitive comparison
+- **Validation group handling** - Fixed RegistrationController to explicitly include 'Default' validation group
+- **Modernization rules documentation** - Added aggressive modernization rules to project context (NO COMPATIBILITY LAYERS, NO ADAPTERS, DELETE OVER WRAP)
+
 ### 📚 Documentation
 
 - **VALIDATION_SYSTEM.md** - Comprehensive documentation in `migration-docs/branches/`
