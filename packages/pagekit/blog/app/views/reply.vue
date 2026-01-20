@@ -25,7 +25,7 @@
 
                     <div class="uk-margin">
                         <label for="form-email" class="uk-form-label">{{ 'Email' | trans }}</label>
-                        <v-input id="form-email" v-model="email" name="email" type="email" view="class: uk-input uk-form-width-large" rules="required|email" message="Email invalid." />
+                        <v-input id="form-email" v-model="email" name="email" type="email" view="class: uk-input uk-form-width-large" :rules="emailRules" message="Email invalid." />
                     </div>
                 </template>
 
@@ -84,6 +84,12 @@ export default {
 
         login() {
             return this.$url('user/login', { redirect: window.location.href });
+        },
+
+        emailRules() {
+            // Use requireinfo from config (set by SiteController based on blog settings)
+            // If requireinfo is true, email is required; otherwise only validate format if provided
+            return this.config.requireinfo ? 'required|email' : 'email';
         }
 
     },

@@ -1,14 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Application\Exception;
+use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Model\User;
 use function Pagekit\__;
 
+/**
+ * Controller for user profile management.
+ *
+ * Uses Symfony Validator for entity validation (Step 1.13 - Hybrid Mode).
+ */
 class ProfileController
 {
+    use ValidatesRequestTrait;
+
     public function indexAction()
     {
         $user = App::user();
@@ -32,9 +42,13 @@ class ProfileController
     }
 
     /**
+     * Save user profile changes.
+     *
+     * Uses Symfony Validator for validation (replaces old $user->validate() method).
+     *
      * @Request({"user": "array"}, csrf=true)
      */
-    public function saveAction($data)
+    public function saveAction(array $data)
     {
         $user = App::user();
 
@@ -66,7 +80,10 @@ class ProfileController
             $user->name = @$data['name'];
             $user->email = @$data['email'];
 
-            $user->validate();
+            // Validate using Symfony Validator (replaces old $user->validate() call)
+            // Rule #4: DELETE OVER WRAP - old validate() method has been removed
+            $this->validateOrFail($user);
+
             $user->save();
 
             return ['message' => 'success'];

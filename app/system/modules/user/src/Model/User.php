@@ -4,13 +4,19 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Model;
 
-use Pagekit\Application\Exception;
 use Pagekit\Auth\UserInterface;
 use Pagekit\System\Model\DataModelTrait;
+use Pagekit\System\Validator\Constraints as PagekitAssert;
 use Pagekit\User\Model\AccessModelTrait;
 use Pagekit\User\Model\UserModelTrait;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
+ * User entity with Symfony Validator integration (Hybrid Mode).
+ *
+ * Validation: Uses PHP 8 Attributes (#[Assert\...])
+ * ORM: Still uses Doctrine Annotations (@Entity, @Column) - TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+ *
  * @Entity(tableClass="@system_user")
  */
 class User implements UserInterface, \JsonSerializable
@@ -19,46 +25,108 @@ class User implements UserInterface, \JsonSerializable
 
     /**
      * The blocked status.
-     *
-     * @var int
      */
-    const STATUS_BLOCKED = 0;
+    public const STATUS_BLOCKED = 0;
 
     /**
      * The active status.
-     *
-     * @var int
      */
-    const STATUS_ACTIVE = 1;
+    public const STATUS_ACTIVE = 1;
 
-    /** @Column(type="integer") @Id */
+    /**
+     * @Column(type="integer") @Id
+     */
+    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
     public ?int $id = null;
 
-    /** @Column */
+    /**
+     * @Column
+     */
+    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[Assert\NotBlank(message: 'validation.user.username_required')]
+    #[Assert\Length(
+        min: 3,
+        max: 255,
+        minMessage: 'validation.user.username_min_length',
+        maxMessage: 'validation.user.username_max_length'
+    )]
+    #[Assert\Regex(
+        pattern: '/^[a-zA-Z0-9._\-]+$/',
+        message: 'validation.user.username_invalid'
+    )]
+    #[PagekitAssert\Unique(
+        table: '@system_user',
+        column: 'username',
+        message: 'validation.user.username_not_available'
+    )]
     public ?string $username = '';
 
-    /** @Column */
+    /**
+     * @Column
+     */
+    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[Assert\NotBlank(message: 'validation.user.password_required', groups: ['registration'])]
     public ?string $password = '';
 
-    /** @Column */
+    /**
+     * @Column
+     */
+    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[Assert\NotBlank(message: 'validation.user.email_required')]
+    #[Assert\Email(message: 'validation.user.email_invalid')]
+    #[PagekitAssert\Unique(
+        table: '@system_user',
+        column: 'email',
+        message: 'validation.user.email_not_available'
+    )]
     public ?string $email = '';
 
-    /** @Column */
+    /**
+     * @Column
+     */
+    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    // URL is optional. Symfony's Url constraint validates format when provided.
+    // Both null and empty strings are accepted (constraint returns early for empty values).
+    #[Assert\Url(message: 'validation.user.url_invalid')]
     public ?string $url = '';
 
-    /** @Column(type="datetime") */
+    /**
+     * @Column(type="datetime")
+     */
+    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
     public ?\DateTime $registered = null;
 
-    /** @Column(type="integer") */
+    /**
+     * @Column(type="integer")
+     */
+    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[Assert\Choice(
+        choices: [self::STATUS_BLOCKED, self::STATUS_ACTIVE],
+        message: 'validation.user.status_invalid'
+    )]
     public int $status = User::STATUS_ACTIVE;
 
-    /** @Column */
+    /**
+     * @Column
+     */
+    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[Assert\NotBlank(message: 'validation.user.name_required')]
+    #[Assert\Length(
+        max: 255,
+        maxMessage: 'validation.user.name_max_length'
+    )]
     public ?string $name = null;
 
-    /** @Column(type="datetime") */
+    /**
+     * @Column(type="datetime")
+     */
+    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
     public ?\DateTime $login = null;
 
-    /** @Column */
+    /**
+     * @Column
+     */
+    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
     public ?string $activation = null;
 
     protected ?array $permissions = null;
@@ -144,8 +212,6 @@ class User implements UserInterface, \JsonSerializable
 
     /**
      * Check if the user has access for a provided permission identifier
-     *
-     * @param  string  $permission
      */
     public function hasPermission(string $permission): bool
     {
@@ -172,7 +238,6 @@ class User implements UserInterface, \JsonSerializable
      *   - a single permission string can be "create_posts", "create posts", "posts:create" etc.
      *   - a boolean expression with multiple permissions boolean expression can be "create_posts && delete_posts", "(create posts && delete posts) || manage posts" etc.
      *
-     * @param  string $expression
      * @throws \InvalidArgumentException
      */
     public function hasAccess(?string $expression): bool
@@ -196,41 +261,9 @@ class User implements UserInterface, \JsonSerializable
         return (bool) $fn();
     }
 
-    public function validate(): bool
-    {
-        if (empty($this->name)) {
-            throw new Exception(__('Name required.'));
-        }
-
-        if (empty($this->password)) {
-            throw new Exception(__('Password required.'));
-        }
-
-        if (!preg_match('/^[a-zA-Z0-9._\-]{3,}$/', $this->username)) {
-            throw new Exception(__('Username is invalid.'));
-        }
-
-        // TODO: email validation differs from email validation in vuejs
-        if (!filter_var($this->email, FILTER_VALIDATE_EMAIL)) {
-            throw new Exception(__('Email is invalid.'));
-        }
-
-        if (self::where(['id <> :id'], ['id' => $this->id ?: 0])->where(function ($query) {
-            $query->orWhere(['LOWER(username) = :username', 'LOWER(email) = :username'], ['username' => strtolower($this->username)]);
-        })->first()
-        ) {
-            throw new Exception(__('Username not available.'));
-        }
-
-        if (self::where(['id <> :id'], ['id' => $this->id ?: 0])->where(function ($query) {
-            $query->orWhere(['LOWER(username) = :email', 'LOWER(email) = :email'], ['email' => strtolower($this->email)]);
-        })->first()
-        ) {
-            throw new Exception(__('Email not available.'));
-        }
-
-        return true;
-    }
+    // NOTE: The old validate() method has been REMOVED per Rule #4 (DELETE OVER WRAP).
+    // All validation is now handled by Symfony Validator attributes on the properties.
+    // Controllers must use ValidatesRequestTrait::validate($user) or ValidatesRequestTrait::validateOrFail($user).
 
     /**
      * {@inheritdoc}

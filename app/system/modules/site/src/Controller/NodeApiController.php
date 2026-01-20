@@ -1,16 +1,25 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Site\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Site\Model\Node;
+use Pagekit\System\Controller\ValidatesRequestTrait;
 use function Pagekit\__;
 
 /**
+ * API Controller for Node management.
+ *
+ * Uses Symfony Validator for entity validation (Step 1.13 - Hybrid Mode).
+ *
  * @Access("site: manage site")
  */
 class NodeApiController
 {
+    use ValidatesRequestTrait;
+
     /**
      * @Route("/", methods="GET")
      */
@@ -18,7 +27,7 @@ class NodeApiController
     {
         // Get parameters from request (Symfony 6.4 compatibility)
         $menu = App::request()->query->get('menu', false);
-        
+
         $query = Node::query();
 
         if (is_string($menu)) {
@@ -31,7 +40,7 @@ class NodeApiController
     /**
      * @Route("/{id}", methods="GET", requirements={"id"="\d+"})
      */
-    public function getAction($id): Node
+    public function getAction(int $id): Node
     {
         if (!$node = Node::find($id)) {
             App::abort(404, __('Node not found.'));
@@ -41,15 +50,19 @@ class NodeApiController
     }
 
     /**
+     * Save a node (create or update).
+     *
+     * Uses Symfony Validator for validation (replaces manual slug/link validation).
+     *
      * @Route("/", methods="POST")
      * @Route("/{id}", methods="POST", requirements={"id"="\d+"})
      */
-    public function saveAction($id = 0, $data = null): array
+    public function saveAction(int $id = 0, ?array $data = null): array
     {
         // Get parameters from request if not provided (Symfony 6.4 compatibility)
         if ($data === null) {
             $request = App::request();
-            
+
             // Get node data from POST or JSON body
             $data = $request->request->all()['node'] ?? [];
             if (empty($data) && $request->getContent()) {
@@ -57,30 +70,34 @@ class NodeApiController
                 $data = $json['node'] ?? $json ?? [];
             }
         }
-        
+
         // Get id from route or data
         if (!$id && isset($data['id'])) {
             $id = (int) $data['id'];
         }
-        
+
         if (!$node = Node::find($id)) {
             $node = Node::create();
             unset($data['id']);
         }
 
-        // Generate slug from title if not provided
+        // Generate slug from title if not provided (business logic, not validation)
         $slug = isset($data['slug']) ? $data['slug'] : '';
         $title = isset($data['title']) ? $data['title'] : '';
-        
-        if (!$data['slug'] = App::filter($slug ?: $title, 'slugify')) {
-            App::abort(400, __('Invalid slug.'));
+
+        // Apply slug filter - this is business logic that generates a valid slug
+        $data['slug'] = App::filter($slug ?: $title, 'slugify');
+
+        // Assign data to entity for validation (without saving yet)
+        foreach ($data as $key => $value) {
+            if (property_exists($node, $key)) {
+                $node->$key = $value;
+            }
         }
 
-        // Validate link field only for existing nodes where it's explicitly empty
-        // For new nodes, the model's @Saving hook will set a default value
-        if ($node->id && isset($data['link']) && trim($data['link']) === '') {
-            App::abort(400, __('Link is required. Please specify a valid URL or route.'));
-        }
+        // Validate using Symfony Validator (replaces manual slug/link validation)
+        // Rule #4: DELETE OVER WRAP - old manual checks removed
+        $this->validateOrFail($node);
 
         $node->save($data);
 
@@ -90,15 +107,16 @@ class NodeApiController
     /**
      * @Route("/{id}", methods="DELETE", requirements={"id"="\d+"})
      */
-    public function deleteAction($id = 0): array
+    public function deleteAction(int $id = 0): array
     {
         // Get id from route if not provided (Symfony 6.4 compatibility)
         if (!$id) {
             $id = (int) App::request()->get('id', 0);
         }
-        
+
         if ($node = Node::find($id)) {
 
+            // Business logic: Check if node type is protected (NOT entity validation)
             if ($type = App::module('system/site')->getType($node->type) and isset($type['protected']) and $type['protected']) {
                 App::abort(400, __('Invalid type.'));
             }
@@ -116,14 +134,14 @@ class NodeApiController
     {
         // Get parameters from request (Symfony 6.4 compatibility)
         $request = App::request();
-        
+
         // Get nodes data from POST or JSON body
         $nodes = $request->request->all()['nodes'] ?? [];
         if (empty($nodes) && $request->getContent()) {
             $json = json_decode($request->getContent(), true);
             $nodes = $json['nodes'] ?? [];
         }
-        
+
         foreach ($nodes as $data) {
             // Call saveAction with each node's id and data
             $id = isset($data['id']) ? $data['id'] : 0;
@@ -140,14 +158,14 @@ class NodeApiController
     {
         // Get parameters from request (Symfony 6.4 compatibility)
         $request = App::request();
-        
+
         // Get ids from POST/DELETE body or JSON
         $ids = $request->request->all()['ids'] ?? [];
         if (empty($ids) && $request->getContent()) {
             $json = json_decode($request->getContent(), true);
             $ids = $json['ids'] ?? [];
         }
-        
+
         foreach (array_filter($ids) as $id) {
             $this->deleteAction($id);
         }
@@ -162,10 +180,10 @@ class NodeApiController
     {
         // Get parameters from request (Symfony 6.4 compatibility)
         $request = App::request();
-        
+
         $menu = $request->request->get('menu', '');
         $nodes = $request->request->all()['nodes'] ?? [];
-        
+
         if ($request->getContent()) {
             $json = json_decode($request->getContent(), true);
             if ($json) {
@@ -173,7 +191,7 @@ class NodeApiController
                 $nodes = $json['nodes'] ?? $nodes;
             }
         }
-        
+
         foreach ($nodes as $data) {
 
             if ($node = Node::find($data['id'])) {
@@ -196,17 +214,18 @@ class NodeApiController
     {
         // Get parameters from request (Symfony 6.4 compatibility)
         $request = App::request();
-        
+
         $id = (int) $request->request->get('id', 0);
         if (!$id && $request->getContent()) {
             $json = json_decode($request->getContent(), true);
             $id = (int) ($json['id'] ?? 0);
         }
-        
+
         if (!$node = Node::find($id) or !$type = App::module('system/site')->getType($node->type)) {
             App::abort(404, __('Node not found.'));
         }
 
+        // Business logic: Check if node type is allowed as frontpage (NOT entity validation)
         if (isset($type['frontpage']) and !$type['frontpage']) {
             App::abort(400, __('Invalid node type.'));
         }

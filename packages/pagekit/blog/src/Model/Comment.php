@@ -5,31 +5,64 @@ declare(strict_types=1);
 namespace Pagekit\Blog\Model;
 
 use Pagekit\Comment\Model\Comment as BaseComment;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
+ * Blog Comment entity with Symfony Validator integration (Hybrid Mode).
+ *
+ * Validation: Uses PHP 8 Attributes (#[Assert\...])
+ * ORM: Still uses Doctrine Annotations (@Entity, @Column) - TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+ *
  * @Entity(tableClass="@blog_comment")
  */
 class Comment extends BaseComment implements \JsonSerializable
 {
-    /** @Column(type="integer") */
+    /**
+     * @Column(type="integer")
+     */
+    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[Assert\NotBlank(message: 'validation.comment.post_required')]
+    #[Assert\Positive]
     public int $post_id;
 
-    /** @Column(type="string") */
+    /**
+     * @Column(type="string")
+     */
+    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
     public ?string $user_id = null;
 
-    /** @Column(type="string") */
+    /**
+     * @Column(type="string")
+     */
+    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[Assert\Email(message: 'validation.comment.email_invalid')]
     public ?string $email = null;
 
-    /** @Column(type="string") */
+    /**
+     * @Column(type="string")
+     */
+    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    // URL is optional. Symfony's Url constraint validates format when provided.
+    // Both null and empty strings are accepted (constraint returns early for empty values).
+    #[Assert\Url(message: 'validation.comment.url_invalid')]
     public ?string $url = '';
 
-    /** @Column(type="string") */
+    /**
+     * @Column(type="string")
+     */
+    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
     public ?string $ip = null;
 
-    /** @BelongsTo(targetEntity="Post", keyFrom="post_id") */
+    /**
+     * @BelongsTo(targetEntity="Post", keyFrom="post_id")
+     */
+    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
     public mixed $post = null;
 
-    /** @BelongsTo(targetEntity="Pagekit\User\Model\User", keyFrom="user_id") */
+    /**
+     * @BelongsTo(targetEntity="Pagekit\User\Model\User", keyFrom="user_id")
+     */
+    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
     public mixed $user = null;
 
     /** @var int */

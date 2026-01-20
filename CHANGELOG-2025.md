@@ -1,5 +1,138 @@
 # Changelog 2025
 
+## Pagekit 1.0.46 - Symfony Validator Integration (January 19, 2026)
+
+### 🚀 Major Changes
+
+- **Symfony Validator Integration (Step 1.13 - Hybrid Mode)** - Complete migration from manual validation to Symfony Validator with PHP 8 Attributes
+  - ✅ Added `symfony/validator` ^7.4 for modern PHP 8 Attribute-based validation
+  - ✅ Hybrid approach: Validation uses Attributes, ORM still uses Doctrine Annotations (until Step 1.14)
+  - ✅ No compatibility layers - aggressive modernization per project rules
+  - ✅ Phase 1: User module (User, Role entities)
+  - ✅ Phase 2: Site module (Node, Page entities), Widget module (Widget entity)
+  - ✅ Phase 3: Comment module (base), Blog package (Post, Comment entities)
+
+### ✨ New Features
+
+- **ValidatorServiceProvider** - New service provider for Symfony Validator integration
+  - Registers `$app['validator']` service with PHP 8 Attribute support enabled
+  - Registered during boot event in `app/system/index.php`
+
+- **ValidatesRequestTrait** - Standardized controller validation
+  - `validate($object)` - Returns `JsonResponse` on failure, `null` on success
+  - `validateOrFail($object)` - Throws `Exception` on failure
+  - Consistent JSON error format for Vue.js frontend integration
+
+- **Custom Unique Constraint** - Database uniqueness validation
+  - `#[PagekitAssert\Unique]` attribute for entity properties
+  - Uses Pagekit's QueryBuilder (DBAL 3.x compatible)
+  - Supports update context (excludes current record by ID)
+
+- **Centralized Validation Messages** (Phase 2)
+  - Created `app/system/languages/en_US/validation.php`
+  - All validation messages referenced by key for future translation
+  - Message keys follow pattern: `validation.{module}.{field}_{constraint}`
+
+### 🔄 Refactored
+
+- **User Module** (Phase 1)
+  - `User` entity: Full validation with `#[Assert\...]` and `#[PagekitAssert\Unique]`
+  - `Role` entity: Name and priority validation
+  - Controllers: `UserApiController`, `RegistrationController`, `ProfileController`, `RoleApiController`
+  - **REMOVED** old `validate()` method (Rule #4: DELETE OVER WRAP)
+
+- **Site Module** (Phase 2)
+  - `Node` entity: Slug, title, link, type, status, priority validation
+  - `Page` entity: Title validation
+  - Controller: `NodeApiController` with ValidatesRequestTrait
+  - Removed manual slug/link validation checks
+
+- **Widget Module** (Phase 2)
+  - `Widget` entity: Title, type, status validation
+  - Controller: `WidgetApiController` with ValidatesRequestTrait
+  - Removed manual 'Widget title empty' check
+
+- **Comment Module** (Phase 3)
+  - Base `Comment` entity (abstract): Author, content, status validation
+
+- **Blog Package** (Phase 3)
+  - `Post` entity: Title, slug, status, user_id, comment_count validation
+  - `Comment` entity: Email, url, post_id validation (extends base Comment)
+  - Controllers: `PostApiController`, `CommentApiController` with ValidatesRequestTrait
+  - Removed manual 'Invalid slug' validation check
+
+### 📝 Breaking Changes
+
+- **User::validate() method removed** - Replace all calls with `$this->validateOrFail($user)` using `ValidatesRequestTrait`
+- **Manual validation in controllers removed** - All validation now uses Symfony Validator
+- Internal API changes for cleaner PHP 8 code (Rule #3: BREAKING CHANGES ALLOWED)
+
+### 🔧 Fixes
+
+- **URL field normalization** - Fixed optional URL fields in User and Comment models (empty strings converted to null for Symfony Url constraint compatibility)
+- **Case-insensitive uniqueness validation** - Updated UniqueValidator to use SQL LOWER() for case-insensitive comparison
+- **Validation group handling** - Fixed RegistrationController to explicitly include 'Default' validation group
+- **Modernization rules documentation** - Added aggressive modernization rules to project context (NO COMPATIBILITY LAYERS, NO ADAPTERS, DELETE OVER WRAP)
+
+### 📚 Documentation
+
+- **VALIDATION_SYSTEM.md** - Comprehensive documentation in `migration-docs/branches/`
+  - Hybrid approach explanation (Attributes for validation, Annotations for ORM)
+  - Usage guide for ValidatesRequestTrait
+  - All validation constraints documented
+  - Error response format for Vue.js frontend
+  - Migration guide from manual validation
+  - Message key reference
+
+- **VALIDATION_PHASE2_DISCOVERY.md** - Migration checklist and discovery document
+
+### 🔧 Technical Details
+
+**Files Created (Phase 1):**
+- `app/system/src/ValidatorServiceProvider.php`
+- `app/system/src/Controller/ValidatesRequestTrait.php`
+- `app/system/src/Validator/Constraints/Unique.php`
+- `app/system/src/Validator/Constraints/UniqueValidator.php`
+- `migration-docs/branches/VALIDATION_SYSTEM.md`
+
+**Files Created (Phase 2):**
+- `app/system/languages/en_US/validation.php`
+- `migration-docs/branches/VALIDATION_PHASE2_DISCOVERY.md`
+
+**Files Modified (Phase 1):**
+- `composer.json` (added symfony/validator)
+- `app/system/index.php` (registered validator service)
+- `app/system/modules/user/src/Model/User.php`
+- `app/system/modules/user/src/Model/Role.php`
+- `app/system/modules/user/src/Controller/UserApiController.php`
+- `app/system/modules/user/src/Controller/RegistrationController.php`
+- `app/system/modules/user/src/Controller/ProfileController.php`
+
+**Files Modified (Phase 2):**
+- `app/system/modules/user/src/Controller/RoleApiController.php`
+- `app/system/modules/site/src/Model/Node.php`
+- `app/system/modules/site/src/Model/Page.php`
+- `app/system/modules/site/src/Controller/NodeApiController.php`
+- `app/system/modules/widget/src/Model/Widget.php`
+- `app/system/modules/widget/src/Controller/WidgetApiController.php`
+
+**Files Modified (Phase 3):**
+- `app/system/languages/en_US/validation.php` (added Blog/Comment messages)
+- `app/system/modules/comment/src/Model/Comment.php` (base Comment entity)
+- `packages/pagekit/blog/src/Model/Post.php`
+- `packages/pagekit/blog/src/Model/Comment.php`
+- `packages/pagekit/blog/src/Controller/PostApiController.php`
+- `packages/pagekit/blog/src/Controller/CommentApiController.php`
+
+**Aggressive Modernization Rules Applied:**
+- Rule #1: NO COMPATIBILITY LAYERS - No shim classes created
+- Rule #2: NO ADAPTERS - All controller usages updated in same commit
+- Rule #3: BREAKING CHANGES ALLOWED - Internal API changed for cleaner code
+- Rule #4: DELETE OVER WRAP - Old `validate()` method and manual checks completely removed
+- Rule #5: MANDATORY FLAGGING - All ORM annotations marked with TODO for Step 1.14
+
+---
+
 ## Pagekit 1.0.45 - Database Migration System Improvements (January 17, 2026)
 
 ### 🐛 Fixed
