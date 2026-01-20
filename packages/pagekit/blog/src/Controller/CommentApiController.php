@@ -152,7 +152,8 @@ class CommentApiController
                 App::abort(400, __('Please provide valid name and email.'));
             }
 
-            $comment->user_id = $this->user->isAuthenticated() ? (int) $this->user->id : 0;
+            // user_id stored as string in database (legacy), use '0' for anonymous users
+            $comment->user_id = $this->user->isAuthenticated() ? (string) $this->user->id : '0';
             $comment->ip = App::request()->getClientIp();
             $comment->created = new \DateTime;
 
