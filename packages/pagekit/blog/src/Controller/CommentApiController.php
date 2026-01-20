@@ -171,7 +171,9 @@ class CommentApiController
 
         }
 
-        unset($data['created']);
+        // Security: Remove server-controlled fields from client data to prevent spoofing
+        // These fields are set by the server (user_id, ip, created) and must not be overwritten by client
+        unset($data['created'], $data['user_id'], $data['ip']);
 
         // check minimum idle time in between user comments (business logic)
         if (!$this->user->hasAccess('blog: skip comment min idle')
