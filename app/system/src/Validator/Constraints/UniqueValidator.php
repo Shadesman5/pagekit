@@ -33,14 +33,13 @@ class UniqueValidator extends ConstraintValidator
         // Get the database connection using Pagekit's Application
         $db = App::db();
 
-        // Build the uniqueness check query
-        // Using Pagekit's QueryBuilder which is DBAL 3.x compatible
-        // Pagekit's QueryBuilder uses where([column => value]) or where(condition, [params])
-        // NOT setParameter() method! Multiple where() calls are AND-ed together
-        $queryBuilder = $db->createQueryBuilder()
-            ->select('COUNT(*)')
-            ->from($constraint->table)
-            ->where([$constraint->column => strtolower((string) $value)]);
+        // Build the uniqueness check query with case-insensitive comparison
+        // Using SQL LOWER() on both column and value for case-insensitive matching
+        // This matches the behavior of the old User::validate() method which used
+        // "LOWER(username) = :username" to prevent case-variant duplicates
+        $lowerValue = strtolower((string) $value);
+        $whereConditions = ["LOWER({$constraint->column}) = :value"];
+        $whereParams = ['value' => $lowerValue];
 
         // Handle update context: exclude current record by ID
         // Access the object being validated to get its ID
@@ -55,10 +54,17 @@ class UniqueValidator extends ConstraintValidator
 
                 // Only exclude if we have an ID (update scenario)
                 if ($idValue !== null && $idValue > 0) {
-                    $queryBuilder->where(['id <> :id'], ['id' => $idValue]);
+                    $whereConditions[] = "id <> :id";
+                    $whereParams['id'] = $idValue;
                 }
             }
         }
+
+        // Build query with all conditions combined
+        $queryBuilder = $db->createQueryBuilder()
+            ->select('COUNT(*)')
+            ->from($constraint->table)
+            ->where($whereConditions, $whereParams);
 
         // Execute query and get count
         // DBAL 3.x: execute() returns Result, fetchOne() gets single value

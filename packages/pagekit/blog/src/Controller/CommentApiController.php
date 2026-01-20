@@ -205,13 +205,18 @@ class CommentApiController
         // check for spam
         //App::trigger('system.comment.spam_check', new CommentEvent($comment));
 
-        $comment->save($data);
+        // Assign data to entity for validation (without saving yet)
+        foreach ($data as $key => $value) {
+            if (property_exists($comment, $key)) {
+                $comment->$key = $value;
+            }
+        }
 
         // Validate using Symfony Validator (Step 1.13 - Hybrid Mode)
         // Note: Some validations remain as business logic above (require_email for anonymous users)
         $this->validateOrFail($comment);
 
-        $comment->save();
+        $comment->save($data);
 
         return ['message' => 'success', 'comment' => $comment];
     }

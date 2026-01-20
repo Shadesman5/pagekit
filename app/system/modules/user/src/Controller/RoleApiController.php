@@ -72,12 +72,17 @@ class RoleApiController
             $role = Role::create();
         }
 
-        $role->save($data);
+        // Assign data to entity for validation (without saving yet)
+        foreach ($data as $key => $value) {
+            if (property_exists($role, $key)) {
+                $role->$key = $value;
+            }
+        }
 
         // Validate using Symfony Validator (Step 1.13 - Hybrid Mode)
         $this->validateOrFail($role);
 
-        $role->save();
+        $role->save($data);
 
         return ['message' => 'success', 'role' => $role];
     }

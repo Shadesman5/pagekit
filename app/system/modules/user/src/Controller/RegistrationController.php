@@ -94,8 +94,8 @@ class RegistrationController
 
             // Validate using Symfony Validator (replaces old $user->validate() call)
             // Rule #4: DELETE OVER WRAP - old validate() method has been removed
-            // Use 'registration' validation group to include password validation
-            $this->validateOrFail($user);
+            // Use 'registration' validation group (in addition to Default) to include password validation
+            $this->validateOrFail($user, null, ['Default', 'registration']);
 
             $user->save();
 

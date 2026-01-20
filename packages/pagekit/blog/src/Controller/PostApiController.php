@@ -126,13 +126,18 @@ class PostApiController
             App::abort(400, __('Access denied.'));
         }
 
-        $post->save($data);
+        // Assign data to entity for validation (without saving yet)
+        foreach ($data as $key => $value) {
+            if (property_exists($post, $key)) {
+                $post->$key = $value;
+            }
+        }
 
         // Validate using Symfony Validator (replaces manual slug validation)
         // Rule #4: DELETE OVER WRAP - old manual check removed
         $this->validateOrFail($post);
 
-        $post->save();
+        $post->save($data);
 
         return ['message' => 'success', 'post' => $post];
     }
