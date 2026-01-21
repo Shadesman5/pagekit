@@ -155,9 +155,24 @@ class Router implements RouterInterface, UrlGeneratorInterface
                     $this->writeCache($cache['file'], (new PhpMatcherDumper($this->getRouteCollection()))->dump($options));
                 }
 
-                require_once $cache['file'];
+                try {
+                    require_once $cache['file'];
 
-                $this->matcher = new $class($this->context);
+                    // Verify class exists after requiring the file
+                    if (!class_exists($class, false)) {
+                        // Class not found in cache file - regenerate cache
+                        $options = ['class' => $class, 'base_class' => $this->options['matcher']];
+                        $this->writeCache($cache['file'], (new PhpMatcherDumper($this->getRouteCollection()))->dump($options));
+                        require_once $cache['file'];
+                    }
+
+                    $this->matcher = new $class($this->context);
+
+                } catch (\Error $e) {
+                    // Fallback to non-cached matcher if cache file is corrupted or class not found
+                    $class = $this->options['matcher'];
+                    $this->matcher = new $class($this->getRouteCollection(), $this->context);
+                }
 
             } else {
 
@@ -185,9 +200,24 @@ class Router implements RouterInterface, UrlGeneratorInterface
                     $this->writeCache($cache['file'], (new UrlGeneratorDumper($this->getRouteCollection()))->dump($options));
                 }
 
-                require_once $cache['file'];
+                try {
+                    require_once $cache['file'];
 
-                $this->generator = new $class($this->context);
+                    // Verify class exists after requiring the file
+                    if (!class_exists($class, false)) {
+                        // Class not found in cache file - regenerate cache
+                        $options = ['class' => $class, 'base_class' => $this->options['generator']];
+                        $this->writeCache($cache['file'], (new UrlGeneratorDumper($this->getRouteCollection()))->dump($options));
+                        require_once $cache['file'];
+                    }
+
+                    $this->generator = new $class($this->context);
+
+                } catch (\Error $e) {
+                    // Fallback to non-cached generator if cache file is corrupted or class not found
+                    $class = $this->options['generator'];
+                    $this->generator = new $class($this->getRouteCollection(), $this->context);
+                }
 
             } else {
 
@@ -286,8 +316,25 @@ class Router implements RouterInterface, UrlGeneratorInterface
             return null;
         }
 
-        if (!$this->cache) {
-            $this->cache = ['key' => sha1(serialize($this->resource).serialize($this->options)), 'modified' => $this->resource->getModified()];
+        // Only include structural options in cache key (matcher/generator classes)
+        // Meta-options like 'blog.permalink' should not invalidate the cache
+        $structuralOptions = array_intersect_key($this->options, [
+            'matcher' => true,
+            'generator' => true,
+            'cache' => true
+        ]);
+
+        // Calculate current cache key and check if it has changed
+        $currentKey = sha1(serialize($this->resource).serialize($structuralOptions));
+        $currentModified = $this->resource->getModified();
+
+        // Reset cache if key or modified time has changed (routes were updated)
+        if (!$this->cache || $this->cache['key'] !== $currentKey || $this->cache['modified'] !== $currentModified) {
+            $this->cache = ['key' => $currentKey, 'modified' => $currentModified];
+            // Invalidate cached matcher/generator/routes when cache key changes
+            $this->matcher = null;
+            $this->generator = null;
+            $this->routes = null;
         }
 
         $file  = sprintf($file, $this->options['cache'], $this->cache['key']);
