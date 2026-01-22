@@ -102,7 +102,9 @@ function Install(Vue) {
             options = { url, params };
         }
 
-        Vue.util.extend(options, { root: Vue.http.options.root });
+        // Use Vue.url.options.root (without index.php) for URL generation
+        // Vue.http.options.root (with index.php) is only for API calls
+        Vue.util.extend(options, { root: Vue.url.options.root });
 
         return this(options);
     };

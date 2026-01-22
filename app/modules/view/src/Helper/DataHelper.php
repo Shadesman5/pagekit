@@ -25,10 +25,13 @@ class DataHelper implements HelperInterface
      */
     public function register(View $view): void
     {
+        // Priority 1 = runs AFTER ScriptHelper (priority 5)
+        // This allows modules to add data in 'view.scripts' event
+        // before the JSON is rendered
         $view->on('head', function ($event) use ($view) {
             $view->trigger('data', [$this]);
             $event->addResult($this->render());
-        }, 10);
+        }, 1);
     }
 
     /**

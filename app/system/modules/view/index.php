@@ -52,11 +52,16 @@ return [
         }, 20],
 
         'view.data' => function ($event, $data) use ($app) {
-            // Get base URL - with fallback for installer context
+            // Get base URL from router context
+            // - With mod_rewrite: '' (empty string) - URLs like /admin
+            // - Without mod_rewrite: '/index.php' - URLs like /index.php/admin
             $baseUrl = $app['router']->getContext()->getBaseUrl();
-            if (empty($baseUrl)) {
-                // In installer context, router may not be fully configured
-                // Use /index.php as fallback
+            
+            // Only use fallback in installer context (no config.php yet)
+            // In normal operation, empty baseUrl is correct for mod_rewrite
+            if (empty($baseUrl) && !file_exists($app['path'] . '/config.php')) {
+                // Installer context: router not fully configured
+                // Use /index.php as safe fallback for API calls
                 $baseUrl = '/index.php';
             }
             
