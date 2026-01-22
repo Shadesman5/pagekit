@@ -10,25 +10,26 @@
  * 3. This loader reads the JSON and exposes data as global variables
  * 4. Result: Backward compatible with existing code ($pagekit, etc.)
  * 
+ * IMPORTANT: This script MUST run synchronously before other scripts!
+ * The pagekit-data element must appear BEFORE this script in the HTML.
+ * 
  * @since 1.0.x (Template Security Modernization)
  */
 (function() {
     'use strict';
 
-    var initialized = false;
-
     /**
-     * Initialize configuration from JSON container
+     * Initialize configuration from JSON container - SYNCHRONOUS
      */
     function initConfig() {
-        if (initialized) {
-            return;
-        }
-
         var configElement = document.getElementById('pagekit-data');
         
         if (!configElement) {
-            // No config element yet - might be called too early
+            // This is a problem - the pagekit-data element should exist
+            // It must be rendered BEFORE this script in the HTML
+            if (console && console.warn) {
+                console.warn('[Pagekit] Config element #pagekit-data not found. Make sure it appears before config-loader.js in the HTML.');
+            }
             return false;
         }
 
@@ -42,6 +43,7 @@
             var config = JSON.parse(content);
 
             // Expose data as global variables (backward compatibility)
+            // This MUST happen synchronously before other scripts run!
             if (config.data && typeof config.data === 'object') {
                 Object.keys(config.data).forEach(function(key) {
                     // Set on window object for global access
@@ -49,7 +51,6 @@
                 });
             }
 
-            initialized = true;
             return true;
 
         } catch (e) {
@@ -61,21 +62,22 @@
         }
     }
 
-    // Try immediately (script might be after pagekit-data in DOM)
-    if (!initConfig()) {
-        // If not found, wait for DOM to be ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initConfig);
-        } else {
-            // DOM already loaded, try again with slight delay
-            setTimeout(initConfig, 0);
-        }
+    // Execute IMMEDIATELY and SYNCHRONOUSLY
+    // The pagekit-data script tag MUST appear before this script in the HTML
+    var success = initConfig();
+    
+    // Debug: Log what was loaded
+    if (console && console.log && window.$pagekit) {
+        console.log('[Pagekit] Config loaded successfully. $pagekit.url =', window.$pagekit.url);
+    }
+    if (console && console.log && window.$installer) {
+        console.log('[Pagekit] Installer config loaded. Locales:', Object.keys(window.$installer.locales || {}).length);
     }
 
-    // Also expose for manual re-initialization if needed
+    // Expose for debugging
     window.PagekitConfigLoader = {
         init: initConfig,
-        isInitialized: function() { return initialized; }
+        wasSuccessful: function() { return success; }
     };
 
 })();
