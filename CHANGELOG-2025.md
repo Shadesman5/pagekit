@@ -1,5 +1,16 @@
 # Changelog 2025
 
+## Pagekit 1.0.47 - Routing Cache Fix (January 21, 2026)
+
+### 🔧 Fixes
+
+- **Routing cache race condition** - Fixed `ClassNotFoundError` when moving pages via drag & drop
+  - Added automatic cache invalidation when routes change (cache key or modified time)
+  - Added error handling with fallback to non-cached matcher/generator if cache file is corrupted
+  - Fixed cache key calculation to only include structural options (matcher, generator, cache path)
+  - Meta-options like `blog.permalink` no longer invalidate routing cache unnecessarily
+  - Prevents multiple unnecessary cache files from being created
+
 ## Pagekit 1.0.46 - Symfony Validator Integration (January 19, 2026)
 
 ### 🚀 Major Changes
