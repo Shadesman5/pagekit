@@ -25,30 +25,37 @@ return [
 
     'events' => [
 
-        'view.scripts' => function ($event, $scripts) use ($app) {
+        // Add editor data via view.data event
+        'view.data' => function ($event, $data) use ($app) {
             $presets = $this->config('presets');
-            $editorScripts = [];
             $editor = [
                 'root_url' => $app['url']->getStatic(__DIR__),
-                'locale' => $app->module('system/intl')->getLocale()
+                'locale' => $app->module('system/intl')->getLocale(),
+                'content_js' => []
             ];
+            
             if ($css = $app['url']->getStatic('theme:css/theme.css')) {
                 $editor['content_css'] = [ $css ];
             }
-            if (isset($presets['tinymce_uikit']) && $presets['tinymce_uikit'] && ($uikit = $scripts->get('uikit')->getSource())) {
-                $editorScripts[] = $uikit;
-                if ($uikitIcons = $scripts->get('uikit-icons')->getSource()) {
-                    $editorScripts[] = $uikitIcons;
-                }
-            }
+            
             if (isset($presets['tinymce_body_class']) && $presets['tinymce_body_class']) {
                 $editor['body_class'] = 'uk-container';
             }
-            $editor['content_js'] = $editorScripts;
-
-            // Use DataHelper for CSP-compliant config delivery (no inline scripts)
-            $app['view']->data('$editor', $editor);
             
+            // Add UIkit scripts if configured
+            // Use static paths instead of getting from script manager
+            if (isset($presets['tinymce_uikit']) && $presets['tinymce_uikit']) {
+                $editor['content_js'] = [
+                    $app['url']->getStatic('app/assets/uikit/dist/js/uikit.min.js'),
+                    $app['url']->getStatic('app/system/assets/js/uikit-icons.min.js')
+                ];
+            }
+
+            $data->add('$editor', $editor);
+        },
+
+        // Register editor script
+        'view.scripts' => function ($event, $scripts) {
             $scripts->register('editor', 'system/editor:app/bundle/editor.js', ['input-link', 'pagekit-config']);
         }
 
