@@ -23,6 +23,12 @@
   - Added `base-uri 'self'` - Prevent base tag injection
   - Added `form-action 'self'` - Forms only submit to same origin
   - Added `frame-ancestors 'self'` - Prevent clickjacking
+  - External APIs allowed: Google reCAPTCHA, Gravatar, OpenWeatherMap, Pagekit.com
+
+- **Inline Script Migration** - All modules migrated to DataHelper
+  - `CaptchaListener`: `$captcha` now via DataHelper
+  - `Editor`: `$editor` now via DataHelper
+  - `ScriptHelper`: Inline scripts blocked with warning
 
 - **Modern Cross-Origin Security Headers**
   - `Cross-Origin-Embedder-Policy: credentialless`

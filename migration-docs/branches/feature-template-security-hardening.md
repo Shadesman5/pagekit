@@ -8,6 +8,14 @@ This feature implements industry-leading security practices for Pagekit's templa
 **Status:** Completed  
 **Version:** 1.0.x (Step 1.13.5)
 
+## External APIs Supported
+
+The CSP has been configured to allow these external services:
+- **Google reCAPTCHA**: Script and frame sources for captcha verification
+- **Gravatar**: Images for user avatars (via `img-src https:`)
+- **OpenWeatherMap API**: Weather widget API calls
+- **Pagekit.com**: News feeds and documentation
+
 ## Changes Made
 
 ### Phase 1: eval() Dead Code Removal
@@ -184,9 +192,12 @@ $app['view']->data('$myExtension', [
 | `app/modules/view/src/PhpEngine.php` | Modified | Remove eval() |
 | `app/modules/view/src/Engine/PhpEngine.php` | Modified | Remove eval() |
 | `app/modules/view/src/Helper/DataHelper.php` | Modified | JSON data container |
+| `app/modules/view/src/Helper/ScriptHelper.php` | Modified | Block inline scripts |
 | `app/system/app/lib/config-loader.js` | Created | Read JSON config |
 | `app/system/modules/view/index.php` | Modified | Register config-loader |
-| `.htaccess` | Modified | Strict CSP headers |
+| `app/system/modules/captcha/src/CaptchaListener.php` | Modified | Migrate to DataHelper |
+| `app/system/modules/editor/index.php` | Modified | Migrate to DataHelper |
+| `.htaccess` | Modified | Strict CSP + external APIs |
 
 ## References
 
