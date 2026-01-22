@@ -65,16 +65,8 @@
     // Execute IMMEDIATELY and SYNCHRONOUSLY
     // The pagekit-data script tag MUST appear before this script in the HTML
     var success = initConfig();
-    
-    // Debug: Log what was loaded
-    if (console && console.log && window.$pagekit) {
-        console.log('[Pagekit] Config loaded successfully. $pagekit.url =', window.$pagekit.url);
-    }
-    if (console && console.log && window.$installer) {
-        console.log('[Pagekit] Installer config loaded. Locales:', Object.keys(window.$installer.locales || {}).length);
-    }
 
-    // Expose for debugging
+    // Expose for debugging (only the API, no console output)
     window.PagekitConfigLoader = {
         init: initConfig,
         wasSuccessful: function() { return success; }
