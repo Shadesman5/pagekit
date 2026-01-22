@@ -1,8 +1,10 @@
-# Template Security Hardening (Gold Standard)
+# Template Security Hardening
 
 ## Overview
 
-This feature implements industry-leading security practices for Pagekit's template system, achieving strict Content Security Policy compliance without `unsafe-inline` or `unsafe-eval` in the script-src directive.
+This feature implements enhanced security practices for Pagekit's template system, achieving Content Security Policy compliance without `unsafe-inline` in the script-src directive.
+
+**Note:** `'unsafe-eval'` is currently required because Vue.js 2.x uses `new Function()` for runtime template compilation. Some components (like `installer-steps`, `buttons`) define templates as strings that must be compiled at runtime. See "Future Improvements" for the path to removing this requirement.
 
 **Branch:** `cursor/template-security-modernization-783e`  
 **Status:** Completed  
@@ -69,7 +71,7 @@ The CSP has been configured to allow these external services:
 - Cleaner separation of data and presentation
 - Industry best practice (used by major frameworks)
 
-### Phase 3: Strict Security Headers
+### Phase 3: Security Headers
 
 **Files Modified:**
 - `.htaccess`
@@ -78,16 +80,23 @@ The CSP has been configured to allow these external services:
 ```apache
 Content-Security-Policy: 
     default-src 'self'; 
-    script-src 'self';                    # NO unsafe-inline, NO unsafe-eval!
-    style-src 'self' 'unsafe-inline';     # UIkit requires inline styles (for now)
-    img-src 'self' data: https:; 
+    script-src 'self' 'unsafe-eval';      # unsafe-eval required for Vue.js runtime templates
+    style-src 'self' 'unsafe-inline';     # UIkit requires inline styles
+    img-src 'self' data: https: blob:;    # Gravatar, uploads
     font-src 'self' data:; 
-    connect-src 'self'; 
+    connect-src 'self' https://www.google.com/recaptcha/ https://api.openweathermap.org https://pagekit.com;
+    frame-src 'self' https://www.google.com/recaptcha/;
     object-src 'none';                    # No Flash/plugins
     base-uri 'self';                      # Prevent base tag injection
     form-action 'self';                   # Forms only submit to same origin
     frame-ancestors 'self';               # Prevent clickjacking
 ```
+
+**Why `'unsafe-eval'` is required:**
+Vue.js 2.x uses `new Function()` for compiling template strings at runtime. Components like these use string templates:
+- `installer-steps` in `installer.vue`
+- `buttons` in `installer.vue`  
+- Various admin components
 
 **Additional Headers Added:**
 - `Cross-Origin-Embedder-Policy: credentialless`
@@ -141,16 +150,24 @@ npx playwright test tests/e2e/specs/02-core/authentication.spec.js
 ### Improvements:
 | Metric | Before | After |
 |--------|--------|-------|
-| CSP Score | Poor (unsafe-inline) | Excellent (strict) |
-| XSS Protection | Vulnerable to inline | Protected |
-| eval() usage | Present (dead code) | Removed |
-| Cross-Origin | Basic | Full protection |
+| CSP Script Policy | Poor (unsafe-inline) | Better (no unsafe-inline, but unsafe-eval for Vue) |
+| XSS Protection | Vulnerable to inline scripts | Protected from inline injection |
+| PHP eval() usage | Present (dead code) | Removed |
+| Cross-Origin | Basic | Full protection (COEP, COOP, CORP) |
+| Data Transfer | Inline `<script>var x=...` | JSON data container |
 
-### Remaining TODOs:
-1. **style-src 'unsafe-inline'**: UIkit uses inline styles. Can be addressed in future by:
-   - Using nonce for inline styles
-   - Moving critical styles to external file
-   - Waiting for UIkit update
+### Future Improvements (Remove unsafe-eval and unsafe-inline):
+
+1. **script-src 'unsafe-eval'** - Required for Vue.js runtime template compilation:
+   - Pre-compile ALL template strings during build (webpack/vue-loader)
+   - Convert inline `template: '...'` to render functions
+   - Components to update: `installer-steps`, `buttons`, various admin components
+   - This would achieve true "Gold Standard" CSP
+
+2. **style-src 'unsafe-inline'** - UIkit uses inline styles:
+   - Use nonce-based approach for inline styles
+   - Move critical styles to external file
+   - Wait for UIkit update with CSP support
 
 ## Migration Guide
 
