@@ -76,14 +76,13 @@ class CaptchaListener implements EventSubscriberInterface
             return false;
         }, $routes));
 
-        $scripts->register('captcha-config', sprintf(
-            'var $captcha = %s;',
-            json_encode([
-                'grecaptcha' => App::module('system/captcha')->config('recaptcha_sitekey'),
-                'routes' => $routes
-            ])
-        ), [], 'string', ['defer' => true]);
-        $scripts->add('captcha-interceptor', 'system/captcha:app/bundle/captcha-interceptor.js', ['vue', 'captcha-config']);
+        // Use DataHelper for CSP-compliant config delivery (no inline scripts)
+        App::view()->data('$captcha', [
+            'grecaptcha' => App::module('system/captcha')->config('recaptcha_sitekey'),
+            'routes' => $routes
+        ]);
+        
+        $scripts->add('captcha-interceptor', 'system/captcha:app/bundle/captcha-interceptor.js', ['vue', 'pagekit-config']);
     }
 
     public function onRequest($event, $request): void

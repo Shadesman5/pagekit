@@ -46,8 +46,10 @@ return [
             }
             $editor['content_js'] = $editorScripts;
 
-            $scripts->register('editor', 'system/editor:app/bundle/editor.js', ['input-link']);
-            $scripts->register('editor-data', sprintf('var $editor = %s;', json_encode($editor)), ['~editor'], 'string');
+            // Use DataHelper for CSP-compliant config delivery (no inline scripts)
+            $app['view']->data('$editor', $editor);
+            
+            $scripts->register('editor', 'system/editor:app/bundle/editor.js', ['input-link', 'pagekit-config']);
         }
 
     ]
