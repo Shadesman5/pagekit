@@ -42,6 +42,8 @@ return [
             $scripts->register('input-image', 'system/finder:app/bundle/input-image.js', ['vue', 'panel-finder']);
             $scripts->register('input-video', 'system/finder:app/bundle/input-video.js', ['vue', 'panel-finder']);
             $scripts->register('link-storage', 'system/finder:app/bundle/link-storage.js', ['~panel-link']);
+            // Storage page Vue initialization (CSP-compliant, no inline script)
+            $scripts->register('storage-init', 'system/finder:app/storage.js', ['vue', 'panel-finder']);
         },
 
         'view.system:modules/settings/views/settings' => function ($event, $view) use ($app) {
