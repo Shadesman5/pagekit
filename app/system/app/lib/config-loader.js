@@ -15,22 +15,28 @@
 (function() {
     'use strict';
 
+    var initialized = false;
+
     /**
      * Initialize configuration from JSON container
      */
     function initConfig() {
+        if (initialized) {
+            return;
+        }
+
         var configElement = document.getElementById('pagekit-data');
         
         if (!configElement) {
-            // No config element - this is okay for some pages
-            return;
+            // No config element yet - might be called too early
+            return false;
         }
 
         try {
             // Parse JSON content from script tag
             var content = configElement.textContent || configElement.innerText;
             if (!content || content.trim() === '') {
-                return;
+                return false;
             }
 
             var config = JSON.parse(content);
@@ -43,20 +49,33 @@
                 });
             }
 
+            initialized = true;
+            return true;
+
         } catch (e) {
             // Log error but don't break the page
             if (console && console.error) {
                 console.error('[Pagekit] Failed to parse configuration:', e);
             }
+            return false;
         }
     }
 
-    // Execute immediately (this script loads synchronously before other scripts)
-    initConfig();
+    // Try immediately (script might be after pagekit-data in DOM)
+    if (!initConfig()) {
+        // If not found, wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initConfig);
+        } else {
+            // DOM already loaded, try again with slight delay
+            setTimeout(initConfig, 0);
+        }
+    }
 
     // Also expose for manual re-initialization if needed
     window.PagekitConfigLoader = {
-        init: initConfig
+        init: initConfig,
+        isInitialized: function() { return initialized; }
     };
 
 })();
