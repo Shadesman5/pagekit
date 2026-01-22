@@ -2,9 +2,9 @@
 
 ## Pagekit 1.0.47 - Template Security Hardening (January 20, 2026)
 
-### 🔒 Security - Gold Standard CSP Implementation
+### 🔒 Security - Enhanced CSP Implementation
 
-- **Complete eval() Removal from Template Engines** - Eliminated all `eval()` calls from template rendering
+- **Complete PHP eval() Removal from Template Engines** - Eliminated all `eval()` calls from template rendering
   - Removed eval() from `app/modules/view/src/PhpEngine.php` (lines 168, 174)
   - Removed eval() from `app/modules/view/src/Engine/PhpEngine.php` (line 122)
   - String template execution no longer supported (was dead code path)
@@ -14,16 +14,17 @@
   - `DataHelper` now outputs `<script type="application/json">` instead of inline `<script>var...`
   - New `config-loader.js` reads JSON and exposes data as global variables
   - Backward compatible: `$pagekit`, `$debugbar` globals still work
-  - Perfect CSP compliance without `unsafe-inline` in script-src
+  - CSP compliance: No `unsafe-inline` required in script-src
 
-- **Strict Content Security Policy** - No more `unsafe-inline` or `unsafe-eval`
-  - `script-src 'self'` - No inline scripts, no eval()
-  - `style-src 'self' 'unsafe-inline'` - UIkit requires inline styles (for now)
+- **Content Security Policy** - Hardened with Vue.js compatibility
+  - `script-src 'self' 'unsafe-eval'` - No inline scripts, but eval needed for Vue.js runtime templates
+  - `style-src 'self' 'unsafe-inline'` - UIkit requires inline styles
   - Added `object-src 'none'` - No Flash/plugins
   - Added `base-uri 'self'` - Prevent base tag injection
   - Added `form-action 'self'` - Forms only submit to same origin
   - Added `frame-ancestors 'self'` - Prevent clickjacking
   - External APIs allowed: Google reCAPTCHA, Gravatar, OpenWeatherMap, Pagekit.com
+  - **Note:** `unsafe-eval` required because Vue.js 2.x uses `new Function()` for runtime template compilation
 
 - **Inline Script Migration** - All modules migrated to DataHelper
   - `CaptchaListener`: `$captcha` now via DataHelper
