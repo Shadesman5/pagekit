@@ -23,7 +23,7 @@
   - Added `base-uri 'self'` - Prevent base tag injection
   - Added `form-action 'self'` - Forms only submit to same origin
   - Added `frame-ancestors 'self'` - Prevent clickjacking
-  - External APIs allowed: Google reCAPTCHA, Gravatar, OpenWeatherMap, Pagekit.com
+  - External APIs allowed: Google reCAPTCHA, Gravatar, OpenWeatherMap, Pagekit.com, Google Maps Timezone API, RSS2JSON API
   - **Note:** `unsafe-eval` required because Vue.js 2.x uses `new Function()` for runtime template compilation
 
 - **Inline Script Migration** - All modules migrated to DataHelper
@@ -32,9 +32,11 @@
   - `ScriptHelper`: Inline scripts blocked with warning
 
 - **Modern Cross-Origin Security Headers**
-  - `Cross-Origin-Embedder-Policy: credentialless`
-  - `Cross-Origin-Opener-Policy: same-origin`
-  - `Cross-Origin-Resource-Policy: same-origin`
+  - `Cross-Origin-Opener-Policy: same-origin` - Prevents window.opener attacks
+  - `Cross-Origin-Resource-Policy: same-origin` - Prevents unauthorized embedding of resources
+  - `Cross-Origin-Embedder-Policy: REMOVED` - Not needed (Pagekit doesn't use SharedArrayBuffer)
+    - COEP caused compatibility issues with external resources (reCAPTCHA, OpenWeatherMap)
+    - COOP and CORP provide sufficient protection for Pagekit's use case
   - Upgraded `Referrer-Policy` to `strict-origin-when-cross-origin`
   - Extended `Permissions-Policy` with autoplay, fullscreen, payment
 

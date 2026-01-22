@@ -84,7 +84,7 @@ Content-Security-Policy:
     style-src 'self' 'unsafe-inline';     # UIkit requires inline styles
     img-src 'self' data: https: blob:;    # Gravatar, uploads
     font-src 'self' data:; 
-    connect-src 'self' https://www.google.com/recaptcha/ https://api.openweathermap.org https://pagekit.com;
+    connect-src 'self' https://www.google.com/recaptcha/ https://api.openweathermap.org https://pagekit.com https://maps.googleapis.com https://api.rss2json.com;
     frame-src 'self' https://www.google.com/recaptcha/;
     object-src 'none';                    # No Flash/plugins
     base-uri 'self';                      # Prevent base tag injection
@@ -99,9 +99,9 @@ Vue.js 2.x uses `new Function()` for compiling template strings at runtime. Comp
 - Various admin components
 
 **Additional Headers Added:**
-- `Cross-Origin-Embedder-Policy: credentialless`
-- `Cross-Origin-Opener-Policy: same-origin`
-- `Cross-Origin-Resource-Policy: same-origin`
+- `Cross-Origin-Opener-Policy: same-origin` - Prevents window.opener attacks
+- `Cross-Origin-Resource-Policy: same-origin` - Prevents unauthorized embedding
+- `Cross-Origin-Embedder-Policy: REMOVED` - Not needed for Pagekit (no SharedArrayBuffer usage)
 - `Referrer-Policy: strict-origin-when-cross-origin` (upgraded)
 - Extended `Permissions-Policy`
 
