@@ -52,8 +52,16 @@ return [
         }, 20],
 
         'view.data' => function ($event, $data) use ($app) {
+            // Get base URL - with fallback for installer context
+            $baseUrl = $app['router']->getContext()->getBaseUrl();
+            if (empty($baseUrl)) {
+                // In installer context, router may not be fully configured
+                // Use /index.php as fallback
+                $baseUrl = '/index.php';
+            }
+            
             $data->add('$pagekit', [
-                'url' => $app['router']->getContext()->getBaseUrl(),
+                'url' => $baseUrl,
                 'csrf' => $app['csrf']->generate()
             ]);
         },
