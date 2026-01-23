@@ -36,6 +36,7 @@
   - `Cross-Origin-Resource-Policy: same-origin` - Prevents unauthorized embedding of resources
   - `Cross-Origin-Embedder-Policy: REMOVED` - Not needed (Pagekit doesn't use SharedArrayBuffer)
     - COEP caused compatibility issues with external resources (reCAPTCHA, OpenWeatherMap)
+    - COEP breaks browser extensions (password managers, etc.)
     - COOP and CORP provide sufficient protection for Pagekit's use case
   - Upgraded `Referrer-Policy` to `strict-origin-when-cross-origin`
   - Extended `Permissions-Policy` with autoplay, fullscreen, payment
