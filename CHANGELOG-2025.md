@@ -1,6 +1,6 @@
 # Changelog 2025
 
-## Pagekit 1.0.47 - Template Security Hardening (January 20, 2026)
+## Pagekit 1.0.48 - Template Security Hardening (January 23, 2026)
 
 ### 🔒 Security - Enhanced CSP Implementation
 
