@@ -34,7 +34,13 @@ class ExceptionController
         $content  = $this->getAndCleanOutputBuffering($request->headers->get('X-Php-Ob-Level', -1));
         $response = App::view('system/error.php', compact('title', 'exception', 'content'));
 
-        return App::response($response, $exception->getCode(), $exception->getHeaders());
+        // Ensure a valid HTTP status code (must be between 100 and 599)
+        $statusCode = $exception->getCode();
+        if ($statusCode < 100 || $statusCode > 599) {
+            $statusCode = 500;
+        }
+
+        return App::response($response, $statusCode, $exception->getHeaders());
     }
 
     /**
