@@ -36,7 +36,8 @@ class ConfigureRouteListener implements EventSubscriberInterface
         if (!empty($attributes)) {
             $request = $attributes[0]->newInstance();
             if ($data = $request->getData()) {
-                $route->setDefault('_request', $data);
+                // Format expected by ParamFetcherListener: ['value' => [...], 'options' => [...]]
+                $route->setDefault('_request', ['value' => $data, 'options' => []]);
             }
         }
     }
