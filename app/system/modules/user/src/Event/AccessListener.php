@@ -55,13 +55,14 @@ class AccessListener implements EventSubscriberInterface
             $access[] = $expression;
         }
 
-        if ($admin = $annot->getAdmin() !== null) {
+        $adminValue = $annot->getAdmin();
+        if ($adminValue !== null) {
             $route->setPath('admin' . rtrim($route->getPath(), '/'));
             $permission = 'system: access admin area';
 
-            if ($admin) {
+            if ($adminValue) {
                 $access[] = $permission;
-            } elseif ($key = array_search($permission, $access)) {
+            } elseif (($key = array_search($permission, $access)) !== false) {
                 unset($access[$key]);
             }
         }
