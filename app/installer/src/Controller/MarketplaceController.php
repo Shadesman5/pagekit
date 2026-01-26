@@ -1,18 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Installer\Controller;
 
 use Pagekit\Application as App;
+use Pagekit\Routing\Attribute\Request;
+use Pagekit\User\Attribute\Access;
 
-/**
- * @Access("system: manage packages", admin=true)
- */
+#[Access('system: manage packages', admin: true)]
 class MarketplaceController
 {
 
-    /**
-     * @Request({"page":"int"})
-     */
+    #[Request(['page' => 'int'])]
     public function themesAction($page = null): array
     {
         return [
@@ -30,9 +30,7 @@ class MarketplaceController
         ];
     }
 
-    /**
-     * @Request({"page":"int"})
-     */
+    #[Request(['page' => 'int'])]
     public function extensionsAction($page = null): array
     {
         return [

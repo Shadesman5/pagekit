@@ -1,13 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Installer\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Installer\Package\PackageManager;
+use Pagekit\Routing\Attribute\Request;
+use Pagekit\User\Attribute\Access;
 
-/**
- * @Access("system: manage packages", admin=true)
- */
+#[Access('system: manage packages', admin: true)]
 class PackageController
 {
     protected PackageManager $manager;
@@ -76,9 +78,7 @@ class PackageController
         ];
     }
 
-    /**
-     * @Request({"name"}, csrf=true)
-     */
+    #[Request(['name' => 'string'])]
     public function enableAction($name): array
     {
         $handler = $this->errorHandler($name);
@@ -125,9 +125,7 @@ class PackageController
         }
     }
 
-    /**
-     * @Request({"name"}, csrf=true)
-     */
+    #[Request(['name' => 'string'])]
     public function disableAction($name): array
     {
         if (!$package = App::package($name)) {
@@ -145,9 +143,7 @@ class PackageController
         return ['message' => 'success'];
     }
 
-    /**
-     * @Request({"type": "string"}, csrf=true)
-     */
+    #[Request(['type' => 'string'])]
     public function uploadAction($type): array
     {
         $file = App::request()->files->get('file');
@@ -174,9 +170,7 @@ class PackageController
         return compact('package');
     }
 
-    /**
-     * @Request({"package": "array", "packagist": "boolean"}, csrf=true)
-     */
+    #[Request(['package' => 'array', 'packagist' => 'boolean'])]
     public function installAction($package = [], $packagist = false)
     {
 
@@ -210,9 +204,7 @@ class PackageController
         });
     }
 
-    /**
-     * @Request({"name"}, csrf=true)
-     */
+    #[Request(['name' => 'string'])]
     public function uninstallAction($name)
     {
         return App::response()->stream(function () use ($name) {
@@ -263,10 +255,6 @@ class PackageController
         App::abort(400, __('Can\'t load json file from package.'));
     }
 
-    /**
-     * @param  string $name
-     * @return callable|null
-     */
     protected function errorHandler($name): ?callable
     {
         // Store original error reporting level

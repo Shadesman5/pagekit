@@ -6,24 +6,21 @@ namespace Pagekit\Blog\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Blog\Model\Post;
+use Pagekit\Routing\Attribute\Route;
 use Pagekit\System\Controller\ValidatesRequestTrait;
+use Pagekit\User\Attribute\Access;
 use function Pagekit\__;
 
 /**
  * API Controller for Blog Post management.
- *
- * Uses Symfony Validator for entity validation (Step 1.13 - Hybrid Mode).
- *
- * @Access("blog: manage own posts || blog: manage all posts")
- * @Route("post", name="post")
  */
+#[Access('blog: manage own posts || blog: manage all posts')]
+#[Route('post', name: 'post')]
 class PostApiController
 {
     use ValidatesRequestTrait;
 
-    /**
-     * @Route("/", methods="GET")
-     */
+    #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -70,9 +67,7 @@ class PostApiController
         return compact('posts', 'pages', 'count');
     }
 
-    /**
-     * @Route("/{id}", methods="GET", requirements={"id"="\d+"})
-     */
+    #[Route('/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function getAction(int $id)
     {
         return Post::where(compact('id'))->related('user', 'comments')->first();
@@ -80,12 +75,9 @@ class PostApiController
 
     /**
      * Save a post (create or update).
-     *
-     * Uses Symfony Validator for validation (replaces manual slug validation).
-     *
-     * @Route("/", methods="POST")
-     * @Route("/{id}", methods="POST", requirements={"id"="\d+"})
      */
+    #[Route('/', methods: ['POST'])]
+    #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function saveAction(int $id = 0, ?array $data = null): array
     {
         // Get parameters from request if not provided (Symfony 6.4 compatibility)
@@ -135,8 +127,7 @@ class PostApiController
             }
         }
 
-        // Validate using Symfony Validator (replaces manual slug validation)
-        // Rule #4: DELETE OVER WRAP - old manual check removed
+        // Validate using Symfony Validator
         $this->validateOrFail($post);
 
         $post->save($data);
@@ -144,9 +135,7 @@ class PostApiController
         return ['message' => 'success', 'post' => $post];
     }
 
-    /**
-     * @Route("/{id}", methods="DELETE", requirements={"id"="\d+"})
-     */
+    #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\d+'])]
     public function deleteAction(int $id = 0): array
     {
         // Get id from route if not provided (Symfony 6.4 compatibility)
@@ -167,9 +156,7 @@ class PostApiController
         return ['message' => 'success'];
     }
 
-    /**
-     * @Route("/copy", methods="POST")
-     */
+    #[Route('/copy', methods: ['POST'])]
     public function copyAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -200,9 +187,7 @@ class PostApiController
         return ['message' => 'success'];
     }
 
-    /**
-     * @Route("/bulk", methods="POST")
-     */
+    #[Route('/bulk', methods: ['POST'])]
     public function bulkSaveAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -222,9 +207,7 @@ class PostApiController
         return ['message' => 'success'];
     }
 
-    /**
-     * @Route("/bulk", methods="DELETE")
-     */
+    #[Route('/bulk', methods: ['DELETE'])]
     public function bulkDeleteAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)

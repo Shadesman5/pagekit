@@ -1,16 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Intl\Controller;
 
 use Pagekit\Application as App;
+use Pagekit\Routing\Attribute\Request;
+use Pagekit\Routing\Attribute\Route;
 
 class IntlController
 {
-    /**
-     * TODO: Limit catalogue if maintenance mode is enabled?
-     * @Route("/{locale}", requirements={"locale"="[a-zA-Z0-9_-]+"}, defaults={"_maintenance" = true})
-     * @Request({"locale"})
-     */
+    #[Route('/{locale}', requirements: ['locale' => '[a-zA-Z0-9_-]+'], defaults: ['_maintenance' => true])]
+    #[Request(['locale' => 'string'])]
     public function indexAction($locale = null)
     {
         $intl = App::module('system/intl');

@@ -7,18 +7,19 @@ namespace Pagekit\Blog\Controller;
 use Pagekit\Application as App;
 use Pagekit\Blog\Model\Comment;
 use Pagekit\Blog\Model\Post;
-use Pagekit\System\Controller\ValidatesRequestTrait;
-use Pagekit\User\Model\User;
+use Pagekit\Captcha\Attribute\Captcha;
 use Pagekit\Module\Module;
+use Pagekit\Routing\Attribute\Request;
+use Pagekit\Routing\Attribute\Route;
+use Pagekit\System\Controller\ValidatesRequestTrait;
+use Pagekit\User\Attribute\Access;
+use Pagekit\User\Model\User;
 use function Pagekit\__;
 
 /**
  * API Controller for Blog Comment management.
- *
- * Uses Symfony Validator for entity validation (Step 1.13 - Hybrid Mode).
- *
- * @Route("comment", name="comment")
  */
+#[Route('comment', name: 'comment')]
 class CommentApiController
 {
     use ValidatesRequestTrait;
@@ -32,10 +33,8 @@ class CommentApiController
         $this->user = App::user();
     }
 
-    /**
-     * @Route("/", methods="GET")
-     * @Request({"filter": "array", "post":"int", "page":"int", "limit":"int"})
-     */
+    #[Route('/', methods: ['GET'])]
+    #[Request(['filter' => 'array', 'post' => 'int', 'page' => 'int', 'limit' => 'int'])]
     public function indexAction(array $filter = [], int $post = 0, int $page = 0, int $limit = 0): array
     {
         $query = Comment::query();
@@ -110,7 +109,6 @@ class CommentApiController
             if ($this->user->hasAccess('blog: manage comments')) {
                 $posts[$p->id] = $p;
             } else {
-                // unset($comment->ip, $comment->email, $comment->user_id);
                 unset($comment->ip, $comment->user_id);
                 $comment->email = md5(strtolower($comment->email));
             }
@@ -124,14 +122,11 @@ class CommentApiController
 
     /**
      * Save a comment (create or update).
-     *
-     * Uses Symfony Validator for entity validation (Step 1.13 - Hybrid Mode).
-     *
-     * @Route("/", methods="POST")
-     * @Route("/{id}", methods="POST", requirements={"id"="\d+"})
-     * @Request({"comment": "array", "id": "int"}, csrf=true)
-     * @Captcha(verify="true")
      */
+    #[Route('/', methods: ['POST'])]
+    #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
+    #[Request(['comment' => 'array', 'id' => 'int'])]
+    #[Captcha(verify: true)]
     public function saveAction(array $data, int $id = 0): array
     {
         if (!$id) {
@@ -214,7 +209,7 @@ class CommentApiController
             }
         }
 
-        // Validate using Symfony Validator (Step 1.13 - Hybrid Mode)
+        // Validate using Symfony Validator
         // Note: Some validations remain as business logic above (require_email for anonymous users)
         $this->validateOrFail($comment);
 
@@ -223,11 +218,9 @@ class CommentApiController
         return ['message' => 'success', 'comment' => $comment];
     }
 
-    /**
-     * @Access("blog: manage comments")
-     * @Route("/{id}", methods="DELETE", requirements={"id"="\d+"})
-     * @Request({"id": "int"}, csrf=true)
-     */
+    #[Access('blog: manage comments')]
+    #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\d+'])]
+    #[Request(['id' => 'int'])]
     public function deleteAction(int $id): array
     {
         if ($comment = Comment::find($id)) {
@@ -237,11 +230,9 @@ class CommentApiController
         return ['message' => 'success'];
     }
 
-    /**
-     * @Access("blog: manage comments")
-     * @Route("/bulk", methods="POST")
-     * @Request({"comments": "array"}, csrf=true)
-     */
+    #[Access('blog: manage comments')]
+    #[Route('/bulk', methods: ['POST'])]
+    #[Request(['comments' => 'array'])]
     public function bulkSaveAction(array $comments = []): array
     {
 
@@ -252,11 +243,9 @@ class CommentApiController
         return ['message' => 'success'];
     }
 
-    /**
-     * @Access("blog: manage comments")
-     * @Route("/bulk", methods="DELETE")
-     * @Request({"ids": "array"}, csrf=true)
-     */
+    #[Access('blog: manage comments')]
+    #[Route('/bulk', methods: ['DELETE'])]
+    #[Request(['ids' => 'array'])]
     public function bulkDeleteAction(array $ids = []): array
     {
         foreach (array_filter($ids) as $id) {
