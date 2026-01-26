@@ -43,11 +43,11 @@ return [
             }
             
             // Add UIkit scripts if configured
-            // Use static paths instead of getting from script manager
+            // Respect debug mode: use non-minified versions when debugging
             if (isset($presets['tinymce_uikit']) && $presets['tinymce_uikit']) {
                 $editor['content_js'] = [
-                    $app['url']->getStatic('app/assets/uikit/dist/js/uikit.min.js'),
-                    $app['url']->getStatic('app/system/assets/js/uikit-icons.min.js')
+                    $app['url']->getStatic('app/assets/uikit/dist/js/' . ($app->debug() ? 'uikit.js' : 'uikit.min.js')),
+                    $app['url']->getStatic('app/system/assets/js/' . ($app->debug() ? 'uikit-icons.js' : 'uikit-icons.min.js'))
                 ];
             }
 
