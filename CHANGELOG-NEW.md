@@ -1,5 +1,127 @@
 # Changelog 2025
 
+## Pagekit 1.1.0 - Complete PHP 8 Attributes Migration (January 26, 2026)
+
+### 🚀 Major Changes - BREAKING
+
+- **Complete Doctrine Annotations to PHP 8 Attributes Migration** - Eliminates `doctrine/annotations` dependency
+  - ✅ ORM Attributes: `#[Entity]`, `#[Column]`, `#[Id]`, `#[BelongsTo]`, `#[HasMany]`, etc.
+  - ✅ Routing Attributes: `#[Route]`, `#[Request]`
+  - ✅ Access Control Attributes: `#[Access]`
+  - ✅ Captcha Attributes: `#[Captcha]`
+
+### ✨ New Features
+
+- **ORM Attribute Classes** (`app/modules/database/src/ORM/Attribute/`)
+  - `Entity`, `MappedSuperclass` - Class-level mapping
+  - `Column`, `Id` - Property mapping
+  - `BelongsTo`, `HasOne`, `HasMany`, `ManyToMany`, `OrderBy` - Relations
+  - `Saving`, `Saved`, `Creating`, `Created`, `Updating`, `Updated`, `Deleting`, `Deleted`, `Init` - Lifecycle events
+
+- **Routing Attribute Classes** (`app/modules/routing/src/Attribute/`)
+  - `Route` - Route definition with path, methods, requirements, defaults
+  - `Request` - Parameter mapping from request
+
+- **Access Control Attribute** (`app/system/modules/user/src/Attribute/`)
+  - `Access` - Permission and admin access control
+
+- **Captcha Attribute** (`app/system/modules/captcha/src/Attribute/`)
+  - `Captcha` - reCAPTCHA integration for forms
+
+- **New AttributeLoaders**
+  - `Pagekit\Database\ORM\Loader\AttributeLoader` - ORM metadata from PHP 8 Attributes
+  - `Pagekit\Routing\Loader\AttributeLoader` - Route loading from PHP 8 Attributes
+
+### 🔄 Migrated Components
+
+**ORM Entities (7 entities + 6 traits):**
+- `User`, `Role`, `Page`, `Node`, `Comment` (base), `Widget`
+- `Post` (blog), `Comment` (blog)
+- `AccessModelTrait`, `UserModelTrait`, `RoleModelTrait`, `NodeModelTrait`, `DataModelTrait`, `CommentModelTrait`, `PostModelTrait`
+
+**Controllers (31 controllers):**
+- User Module: `UserController`, `UserApiController`, `AuthController`, `ProfileController`, `RegistrationController`, `ResetPasswordController`, `RoleApiController`
+- Site Module: `NodeController`, `NodeApiController`, `PageApiController`, `MenuApiController`
+- Widget Module: `WidgetController`, `WidgetApiController`
+- System: `AdminController`, `MigrationController`, `SettingsController`
+- Installer: `PackageController`, `MarketplaceController`, `UpdateController`
+- Blog Package: `BlogController`, `SiteController`, `PostApiController`, `CommentApiController`
+- Other: `MailController`, `InfoController`, `IntlController`, `IntlApiController`, `FinderController`, `StorageController`, `CacheController`, `DashboardController`
+
+**Listeners Updated:**
+- `ConfigureRouteListener` - Now reads `#[Request]` attributes
+- `AccessListener` - Now reads `#[Access]` attributes
+- `CaptchaListener` - Now reads `#[Captcha]` attributes
+
+### 🗑️ Removed
+
+- **Deleted Annotation Classes:**
+  - `app/modules/routing/src/Annotation/Route.php`
+  - `app/modules/routing/src/Annotation/Request.php`
+  - `app/modules/routing/src/Loader/AnnotationLoader.php`
+  - `app/system/modules/user/src/Annotation/Access.php`
+  - `app/system/modules/captcha/src/Annotation/Captcha.php`
+  - `app/modules/database/src/ORM/Annotation/*` (19 files)
+  - `app/modules/database/src/ORM/Loader/AnnotationLoader.php`
+
+- **Removed Dependency:**
+  - `doctrine/annotations` package removed from `composer.json`
+
+### 🐛 Bug Fixes
+
+- Fixed `AttributeLoader` array access error for empty attribute arrays
+- Fixed `OrderBy` string-to-array conversion for `HasMany` relations
+- Fixed HTTP status code validation in `ExceptionController` (0 is invalid)
+- Fixed Symfony 6.4 `InputBag::get()` non-scalar value handling in `ParamFetcherListener`
+- Fixed `_request` route default format for `ParamFetcherListener` (value/options structure)
+- Fixed `CommentApiController::saveAction()` parameter name mismatch
+
+### 📝 Breaking Changes
+
+- **All ORM annotations replaced with PHP 8 Attributes** - Extensions using `@Entity`, `@Column`, etc. must migrate
+- **All routing annotations replaced with PHP 8 Attributes** - Extensions using `@Route`, `@Request`, `@Access` must migrate
+- **doctrine/annotations dependency removed** - Extensions depending on it must add it explicitly
+
+### 🔧 Migration Guide
+
+**Before (Annotation):**
+```php
+/**
+ * @Entity(tableClass="@system_user")
+ */
+class User {
+    /** @Column(type="integer") @Id */
+    public ?int $id = null;
+}
+```
+
+**After (Attribute):**
+```php
+use Pagekit\Database\ORM\Attribute as ORM;
+
+#[ORM\Entity(tableClass: '@system_user')]
+class User {
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
+    public ?int $id = null;
+}
+```
+
+**Controller Migration:**
+```php
+// Before
+/** @Access(admin=true) */
+/** @Route("/api/users") */
+/** @Request({"id": "int"}) */
+
+// After
+#[Access(admin: true)]
+#[Route('/api/users')]
+#[Request(['id' => 'int'])]
+```
+
+---
+
 ## Pagekit 1.0.48 - Template Security Hardening (January 23, 2026)
 
 ### 🔒 Security - Enhanced CSP Implementation
