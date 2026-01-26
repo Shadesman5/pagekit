@@ -122,7 +122,8 @@ class AttributeLoader implements LoaderInterface
                     // Check for OrderBy attribute
                     $orderByAttr = $this->getPropertyAttribute($property, OrderBy::class);
                     if ($orderByAttr) {
-                        $relationData['orderBy'] = $orderByAttr->value;
+                        // Parse "column DESC" or "column ASC" format into array
+                        $relationData['orderBy'] = $this->parseOrderBy($orderByAttr->value);
                     }
 
                     $config['relations'][$name] = array_merge(
@@ -171,13 +172,36 @@ class AttributeLoader implements LoaderInterface
     }
 
     /**
+     * Parses OrderBy string value into array format.
+     *
+     * Converts "column DESC" or "column ASC" to ['column' => 'DESC']
+     * Also supports multiple columns: "col1 DESC, col2 ASC" -> ['col1' => 'DESC', 'col2' => 'ASC']
+     */
+    protected function parseOrderBy(string $value): array
+    {
+        $result = [];
+        $parts = array_map('trim', explode(',', $value));
+
+        foreach ($parts as $part) {
+            if (preg_match('/^(\w+)\s+(ASC|DESC)$/i', $part, $matches)) {
+                $result[$matches[1]] = strtoupper($matches[2]);
+            } elseif (preg_match('/^(\w+)$/i', $part, $matches)) {
+                // Default to ASC if no direction specified
+                $result[$matches[1]] = 'ASC';
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * Gets a class attribute.
      */
     protected function getClassAttribute(\ReflectionClass $class, string $attributeClass): ?object
     {
         $attributes = $class->getAttributes($attributeClass, \ReflectionAttribute::IS_INSTANCEOF);
 
-        return $attributes[0]?->newInstance() ?? null;
+        return !empty($attributes) ? $attributes[0]->newInstance() : null;
     }
 
     /**
@@ -187,7 +211,7 @@ class AttributeLoader implements LoaderInterface
     {
         $attributes = $property->getAttributes($attributeClass, \ReflectionAttribute::IS_INSTANCEOF);
 
-        return $attributes[0]?->newInstance() ?? null;
+        return !empty($attributes) ? $attributes[0]->newInstance() : null;
     }
 
     /**
@@ -197,6 +221,6 @@ class AttributeLoader implements LoaderInterface
     {
         $attributes = $method->getAttributes($attributeClass, \ReflectionAttribute::IS_INSTANCEOF);
 
-        return $attributes[0]?->newInstance() ?? null;
+        return !empty($attributes) ? $attributes[0]->newInstance() : null;
     }
 }

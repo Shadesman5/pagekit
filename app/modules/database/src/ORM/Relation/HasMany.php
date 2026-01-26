@@ -17,7 +17,7 @@ class HasMany extends HasOne
     {
         parent::__construct($manager, $metadata, $mapping);
 
-        $this->orderBy = $mapping['orderBy'];
+        $this->orderBy = $mapping['orderBy'] ?? [];
     }
 
     /**
