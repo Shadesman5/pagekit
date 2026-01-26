@@ -152,7 +152,7 @@ class AttributeLoader implements LoaderInterface
                 $eventClass = "Pagekit\\Database\\ORM\\Attribute\\{$eventName}";
                 if ($this->getMethodAttribute($method, $eventClass)) {
                     $config['events'][lcfirst($eventName)][] = $name;
-                    break;
+                    // No break - allow multiple event attributes on same method
                 }
             }
         }

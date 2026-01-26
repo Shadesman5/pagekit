@@ -40,7 +40,7 @@ class ManyToMany extends Relation
         $this->tableThrough   = $mapping['tableThrough'];
         $this->keyThroughFrom = $mapping['keyThroughFrom'];
         $this->keyThroughTo   = $mapping['keyThroughTo'];
-        $this->orderBy        = $mapping['orderBy'];
+        $this->orderBy        = $mapping['orderBy'] ?? [];
     }
 
     /**
