@@ -26,10 +26,14 @@ This PR implements enhanced security for Pagekit's template system, achieving Co
    - `unsafe-eval` required for Vue.js (documented for Step 3.2.5)
 
 4. **Modern Security Headers**
-   - Added `Cross-Origin-Embedder-Policy: credentialless`
-   - Added `Cross-Origin-Opener-Policy: same-origin`
-   - Added `Cross-Origin-Resource-Policy: same-origin`
+   - Added `Cross-Origin-Opener-Policy: same-origin` - Prevents window.opener attacks
+   - Added `Cross-Origin-Resource-Policy: same-origin` - Prevents unauthorized embedding of resources
+   - `Cross-Origin-Embedder-Policy: REMOVED` - Not needed (Pagekit doesn't use SharedArrayBuffer)
+     - COEP caused compatibility issues with external resources (reCAPTCHA, OpenWeatherMap)
+     - COEP breaks browser extensions (password managers, etc.)
+     - COOP and CORP provide sufficient protection for Pagekit's use case
    - Upgraded `Referrer-Policy` to `strict-origin-when-cross-origin`
+   - Extended `Permissions-Policy` with autoplay, fullscreen, payment
 
 5. **Inline Script Migration**
    - Migrated `CaptchaListener` to use DataHelper
