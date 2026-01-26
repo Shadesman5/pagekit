@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Database\ORM\Loader;
 
 interface LoaderInterface
@@ -13,7 +15,7 @@ interface LoaderInterface
     public function load(\ReflectionClass $class, array $config = []): array;
 
     /**
-     * A transient class is NOT annotated with either @Entity or @MappedSuperclass.
+     * A transient class does NOT have #[Entity] or #[MappedSuperclass] attribute.
      *
      * @param  \ReflectionClass $class
      */
