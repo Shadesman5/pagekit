@@ -1,68 +1,44 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Event;
 
-use Doctrine\Common\Annotations\Reader;
-use Doctrine\Common\Annotations\SimpleAnnotationReader;
 use Pagekit\Application as App;
 use Pagekit\Auth\Event\AuthorizeEvent;
 use Pagekit\Auth\Exception\AuthException;
 use Pagekit\Event\EventSubscriberInterface;
-use Pagekit\User\Annotation\Access;
+use Pagekit\User\Attribute\Access;
 
+/**
+ * Reads Access attributes from controllers and enforces access control.
+ */
 class AccessListener implements EventSubscriberInterface
 {
     /**
-     * @var Reader
-     */
-    protected $reader;
-
-    /**
-     * Constructor.
-     *
-     * @param Reader $reader
-     */
-    public function __construct(?Reader $reader = null)
-    {
-        $this->reader = $reader;
-    }
-
-    /**
-     * Reads the "@Access" annotations from the controller stores them in the "access" route option.
+     * Reads the #[Access] attributes from the controller and stores them in the "access" route option.
      */
     public function onConfigureRoute($event, $route): void
     {
-        if (!$this->reader) {
-            $this->reader = new SimpleAnnotationReader;
-            $this->reader->addNamespace('Pagekit\User\Annotation');
-        }
-
         if (!$route->getControllerClass()) {
             return;
         }
 
+        $class = $route->getControllerClass();
+        $method = $route->getControllerMethod();
+
         $access = [];
 
-        foreach (array_merge($this->reader->getClassAnnotations($route->getControllerClass()), $this->reader->getMethodAnnotations($route->getControllerMethod())) as $annot) {
-            if (!$annot instanceof Access) {
-                continue;
-            }
+        // Get class-level Access attributes
+        $classAttributes = $class->getAttributes(Access::class, \ReflectionAttribute::IS_INSTANCEOF);
+        foreach ($classAttributes as $attr) {
+            $this->processAccessAttribute($attr->newInstance(), $access, $route);
+        }
 
-            if ($expression = $annot->getExpression()) {
-                $access[] = $expression;
-            }
-
-            if ($admin = $annot->getAdmin() !== null) {
-
-                $route->setPath('admin'.rtrim($route->getPath(), '/'));
-                $permission = 'system: access admin area';
-
-                if ($admin) {
-                    $access[] = $permission;
-                } elseif ($key = array_search($permission, $access)) {
-                    unset($access[$key]);
-                }
-            }
+        // Get method-level Access attributes
+        $methodAttributes = $method->getAttributes(Access::class, \ReflectionAttribute::IS_INSTANCEOF);
+        foreach ($methodAttributes as $attr) {
+            $this->processAccessAttribute($attr->newInstance(), $access, $route);
         }
 
         if ($access) {
@@ -71,9 +47,29 @@ class AccessListener implements EventSubscriberInterface
     }
 
     /**
+     * Process a single Access attribute.
+     */
+    private function processAccessAttribute(Access $annot, array &$access, $route): void
+    {
+        if ($expression = $annot->getExpression()) {
+            $access[] = $expression;
+        }
+
+        if ($admin = $annot->getAdmin() !== null) {
+            $route->setPath('admin' . rtrim($route->getPath(), '/'));
+            $permission = 'system: access admin area';
+
+            if ($admin) {
+                $access[] = $permission;
+            } elseif ($key = array_search($permission, $access)) {
+                unset($access[$key]);
+            }
+        }
+    }
+
+    /**
      * Checks if the user is authorized to login to administration section.
      *
-     * @param  AuthorizeEvent $event
      * @throws AuthException
      */
     public function onAuthorize(AuthorizeEvent $event): void
