@@ -35,6 +35,19 @@ class ManyToMany extends Relation
     {
         parent::__construct($manager, $metadata, $mapping);
 
+        // Validate required ManyToMany parameters
+        $requiredParams = ['tableThrough', 'keyThroughFrom', 'keyThroughTo'];
+        foreach ($requiredParams as $param) {
+            if (empty($mapping[$param])) {
+                throw new \InvalidArgumentException(sprintf(
+                    'ManyToMany relation "%s" on "%s" requires "%s" parameter.',
+                    $mapping['name'] ?? 'unknown',
+                    $metadata->getClass(),
+                    $param
+                ));
+            }
+        }
+
         $this->keyFrom        = (isset($mapping['keyFrom']) && $mapping['keyFrom']) ? $mapping['keyFrom'] : $this->targetMetadata->getIdentifier();
         $this->keyTo          = (isset($mapping['keyTo']) && $mapping['keyTo']) ? $mapping['keyTo'] : $metadata->getIdentifier();
         $this->tableThrough   = $mapping['tableThrough'];
