@@ -41,8 +41,12 @@ class ConfigureRouteListener implements EventSubscriberInterface
             // Only set _request if there's data or csrf is required
             if ($data || $csrf) {
                 // Format expected by ParamFetcherListener and CsrfListener
-                $options = $csrf ? ['csrf' => true] : [];
-                $route->setDefault('_request', ['value' => $data, 'options' => $options, 'csrf' => $csrf]);
+                // Only include 'csrf' key when true - isset() returns true for false values
+                $requestConfig = ['value' => $data, 'options' => []];
+                if ($csrf) {
+                    $requestConfig['csrf'] = true;
+                }
+                $route->setDefault('_request', $requestConfig);
             }
         }
     }
