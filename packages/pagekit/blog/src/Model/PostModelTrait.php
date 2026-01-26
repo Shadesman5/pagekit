@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Blog\Model;
 
 use Pagekit\Application as App;
+use Pagekit\Database\ORM\Attribute as ORM;
 use Pagekit\Database\ORM\ModelTrait;
 
 trait PostModelTrait
@@ -31,9 +32,7 @@ trait PostModelTrait
         return self::query()->select('user_id', 'name', 'username')->groupBy('user_id', 'name', 'username')->join('@system_user', 'user_id = @system_user.id')->execute()->fetchAllAssociative();
     }
 
-    /**
-     * @Saving
-     */
+    #[ORM\Saving]
     public static function saving($event, Post $post): void
     {
         $post->modified = new \DateTime();
@@ -50,9 +49,7 @@ trait PostModelTrait
         }
     }
 
-    /**
-     * @Deleting
-     */
+    #[ORM\Deleting]
     public static function deleting($event, Post $post): void
     {
         self::getConnection()->delete('@blog_comment', ['post_id' => $post->id]);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\User\Model;
 
 use Pagekit\Auth\UserInterface;
+use Pagekit\Database\ORM\Attribute as ORM;
 use Pagekit\System\Model\DataModelTrait;
 use Pagekit\System\Validator\Constraints as PagekitAssert;
 use Pagekit\User\Model\AccessModelTrait;
@@ -12,13 +13,9 @@ use Pagekit\User\Model\UserModelTrait;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * User entity with Symfony Validator integration (Hybrid Mode).
- *
- * Validation: Uses PHP 8 Attributes (#[Assert\...])
- * ORM: Still uses Doctrine Annotations (@Entity, @Column) - TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
- *
- * @Entity(tableClass="@system_user")
+ * User entity with PHP 8 Attributes for ORM and Validation.
  */
+#[ORM\Entity(tableClass: '@system_user')]
 class User implements UserInterface, \JsonSerializable
 {
     use AccessModelTrait, DataModelTrait, UserModelTrait;
@@ -33,16 +30,11 @@ class User implements UserInterface, \JsonSerializable
      */
     public const STATUS_ACTIVE = 1;
 
-    /**
-     * @Column(type="integer") @Id
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
     public ?int $id = null;
 
-    /**
-     * @Column
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column]
     #[Assert\NotBlank(message: 'validation.user.username_required')]
     #[Assert\Length(
         min: 3,
@@ -61,17 +53,11 @@ class User implements UserInterface, \JsonSerializable
     )]
     public ?string $username = '';
 
-    /**
-     * @Column
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column]
     #[Assert\NotBlank(message: 'validation.user.password_required', groups: ['registration'])]
     public ?string $password = '';
 
-    /**
-     * @Column
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column]
     #[Assert\NotBlank(message: 'validation.user.email_required')]
     #[Assert\Email(message: 'validation.user.email_invalid')]
     #[PagekitAssert\Unique(
@@ -81,35 +67,21 @@ class User implements UserInterface, \JsonSerializable
     )]
     public ?string $email = '';
 
-    /**
-     * @Column
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
-    // URL is optional. Symfony's Url constraint validates format when provided.
-    // Both null and empty strings are accepted (constraint returns early for empty values).
+    #[ORM\Column]
     #[Assert\Url(message: 'validation.user.url_invalid')]
     public ?string $url = '';
 
-    /**
-     * @Column(type="datetime")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'datetime')]
     public ?\DateTime $registered = null;
 
-    /**
-     * @Column(type="integer")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'integer')]
     #[Assert\Choice(
         choices: [self::STATUS_BLOCKED, self::STATUS_ACTIVE],
         message: 'validation.user.status_invalid'
     )]
     public int $status = User::STATUS_ACTIVE;
 
-    /**
-     * @Column
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column]
     #[Assert\NotBlank(message: 'validation.user.name_required')]
     #[Assert\Length(
         max: 255,
@@ -117,16 +89,10 @@ class User implements UserInterface, \JsonSerializable
     )]
     public ?string $name = null;
 
-    /**
-     * @Column(type="datetime")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'datetime')]
     public ?\DateTime $login = null;
 
-    /**
-     * @Column
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column]
     public ?string $activation = null;
 
     protected ?array $permissions = null;
@@ -260,10 +226,6 @@ class User implements UserInterface, \JsonSerializable
 
         return (bool) $fn();
     }
-
-    // NOTE: The old validate() method has been REMOVED per Rule #4 (DELETE OVER WRAP).
-    // All validation is now handled by Symfony Validator attributes on the properties.
-    // Controllers must use ValidatesRequestTrait::validate($user) or ValidatesRequestTrait::validateOrFail($user).
 
     /**
      * {@inheritdoc}

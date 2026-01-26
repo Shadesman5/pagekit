@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Site\Model;
 
 use Pagekit\Application as App;
+use Pagekit\Database\ORM\Attribute as ORM;
 use Pagekit\System\Model\DataModelTrait;
 use Pagekit\System\Model\NodeInterface;
 use Pagekit\System\Model\NodeTrait;
@@ -13,52 +14,34 @@ use Pagekit\User\Model\User;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * Node entity with Symfony Validator integration (Hybrid Mode).
- *
- * Validation: Uses PHP 8 Attributes (#[Assert\...])
- * ORM: Still uses Doctrine Annotations (@Entity, @Column) - TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
- *
- * @Entity(tableClass="@system_node")
+ * Node entity with PHP 8 Attributes for ORM and Validation.
  */
+#[ORM\Entity(tableClass: '@system_node')]
 #[\AllowDynamicProperties]
 class Node implements NodeInterface, \JsonSerializable
 {
     use AccessModelTrait, DataModelTrait, NodeModelTrait, NodeTrait;
 
-    /**
-     * @Column(type="integer") @Id
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
     public ?int $id = null;
 
-    /**
-     * @Column(type="integer")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'integer')]
     #[Assert\PositiveOrZero(message: 'validation.node.priority_invalid')]
     public ?int $parent_id = 0;
 
-    /**
-     * @Column(type="integer")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'integer')]
     #[Assert\PositiveOrZero(message: 'validation.node.priority_invalid')]
     public int $priority = 0;
 
-    /**
-     * @Column(type="integer")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'integer')]
     #[Assert\Choice(
         choices: [0, 1],
         message: 'validation.node.status_invalid'
     )]
     public int $status = 0;
 
-    /**
-     * @Column(type="string")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'string')]
     #[Assert\NotBlank(message: 'validation.node.slug_required')]
     #[Assert\Regex(
         pattern: '/^[a-z0-9\-_]+$/',
@@ -70,26 +53,17 @@ class Node implements NodeInterface, \JsonSerializable
     )]
     public ?string $slug = null;
 
-    /**
-     * @Column(type="string")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'string')]
     public ?string $path = null;
 
-    /**
-     * @Column(type="string")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'string')]
     #[Assert\Length(
         max: 500,
         maxMessage: 'validation.node.link_max_length'
     )]
     public ?string $link = null;
 
-    /**
-     * @Column(type="string")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'string')]
     #[Assert\NotBlank(message: 'validation.node.title_required')]
     #[Assert\Length(
         max: 255,
@@ -97,17 +71,11 @@ class Node implements NodeInterface, \JsonSerializable
     )]
     public ?string $title = null;
 
-    /**
-     * @Column(type="string")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'string')]
     #[Assert\NotBlank(message: 'validation.node.type_required')]
     public ?string $type = null;
 
-    /**
-     * @Column(type="string")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'string')]
     public ?string $menu = '';
 
     protected static array $properties = [

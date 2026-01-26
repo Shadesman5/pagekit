@@ -5,19 +5,16 @@ declare(strict_types=1);
 namespace Pagekit\Blog\Model;
 
 use Pagekit\Application as App;
+use Pagekit\Database\ORM\Attribute as ORM;
 use Pagekit\System\Model\DataModelTrait;
 use Pagekit\User\Model\AccessModelTrait;
 use Pagekit\User\Model\User;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * Blog Post entity with Symfony Validator integration (Hybrid Mode).
- *
- * Validation: Uses PHP 8 Attributes (#[Assert\...])
- * ORM: Still uses Doctrine Annotations (@Entity, @Column) - TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
- *
- * @Entity(tableClass="@blog_post")
+ * Blog Post entity with PHP 8 Attributes for ORM and Validation.
  */
+#[ORM\Entity(tableClass: '@blog_post')]
 class Post implements \JsonSerializable
 {
     use AccessModelTrait, DataModelTrait, PostModelTrait;
@@ -34,16 +31,11 @@ class Post implements \JsonSerializable
     /* Post unpublished. */
     public const STATUS_UNPUBLISHED = 3;
 
-    /**
-     * @Column(type="integer") @Id
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
     public ?int $id = null;
 
-    /**
-     * @Column(type="string")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'string')]
     #[Assert\NotBlank(message: 'validation.post.title_required')]
     #[Assert\Length(
         max: 255,
@@ -51,10 +43,7 @@ class Post implements \JsonSerializable
     )]
     public ?string $title = null;
 
-    /**
-     * @Column(type="string")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'string')]
     #[Assert\NotBlank(message: 'validation.post.slug_required')]
     #[Assert\Regex(
         pattern: '/^[a-z0-9\-_]+$/',
@@ -66,72 +55,42 @@ class Post implements \JsonSerializable
     )]
     public ?string $slug = null;
 
-    /**
-     * @Column(type="integer")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'integer')]
     #[Assert\NotBlank(message: 'validation.post.user_required')]
     #[Assert\Positive]
     public ?int $user_id = null;
 
-    /**
-     * @Column(type="datetime")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'datetime')]
     public ?\DateTime $date = null;
 
-    /**
-     * @Column(type="text")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'text')]
     public ?string $content = '';
 
-    /**
-     * @Column(type="text")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'text')]
     public ?string $excerpt = '';
 
-    /**
-     * @Column(type="smallint")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'smallint')]
     #[Assert\Choice(
         choices: [self::STATUS_DRAFT, self::STATUS_PENDING_REVIEW, self::STATUS_PUBLISHED, self::STATUS_UNPUBLISHED],
         message: 'validation.post.status_invalid'
     )]
     public ?int $status = null;
 
-    /**
-     * @Column(type="datetime")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'datetime')]
     public ?\DateTime $modified = null;
 
-    /**
-     * @Column(type="boolean")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'boolean')]
     public ?bool $comment_status = null;
 
-    /**
-     * @Column(type="integer")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'integer')]
     #[Assert\PositiveOrZero]
     public int $comment_count = 0;
 
-    /**
-     * @BelongsTo(targetEntity="Pagekit\User\Model\User", keyFrom="user_id")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\BelongsTo(targetEntity: 'Pagekit\User\Model\User', keyFrom: 'user_id')]
     public mixed $user = null;
 
-    /**
-     * @HasMany(targetEntity="Comment", keyFrom="id", keyTo="post_id")
-     * @OrderBy({"created" = "DESC"})
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\HasMany(targetEntity: 'Comment', keyFrom: 'id', keyTo: 'post_id')]
+    #[ORM\OrderBy(value: 'created DESC')]
     public mixed $comments = null;
 
     /** @var bool */

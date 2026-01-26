@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Site\Model;
 
 use Pagekit\Application as App;
+use Pagekit\Database\ORM\Attribute as ORM;
 use Pagekit\Database\ORM\ModelTrait;
 
 trait NodeModelTrait
@@ -78,9 +79,7 @@ trait NodeModelTrait
         return 0;
     }
 
-    /**
-     * @Saving
-     */
+    #[ORM\Saving]
     public static function saving($event, Node $node): void
     {
         $db = self::getConnection();
@@ -147,9 +146,7 @@ trait NodeModelTrait
         }
     }
 
-    /**
-     * @Deleting
-     */
+    #[ORM\Deleting]
     public static function deleting($event, Node $node): void
     {
         // Update children's parents

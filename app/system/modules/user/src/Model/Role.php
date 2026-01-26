@@ -4,16 +4,13 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Model;
 
+use Pagekit\Database\ORM\Attribute as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * Role entity with Symfony Validator integration (Hybrid Mode).
- *
- * Validation: Uses PHP 8 Attributes (#[Assert\...])
- * ORM: Still uses Doctrine Annotations (@Entity, @Column) - TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
- *
- * @Entity(tableClass="@system_role")
+ * Role entity with PHP 8 Attributes for ORM and Validation.
  */
+#[ORM\Entity(tableClass: '@system_role')]
 class Role implements \JsonSerializable
 {
     use RoleModelTrait;
@@ -33,16 +30,11 @@ class Role implements \JsonSerializable
      */
     public const ROLE_ADMINISTRATOR = 3;
 
-    /**
-     * @Column(type="integer") @Id
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
     public ?int $id = null;
 
-    /**
-     * @Column(type="string")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'string')]
     #[Assert\NotBlank(message: 'validation.role.name_required')]
     #[Assert\Length(
         min: 2,
@@ -52,17 +44,11 @@ class Role implements \JsonSerializable
     )]
     public ?string $name = null;
 
-    /**
-     * @Column(type="integer")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'integer')]
     #[Assert\PositiveOrZero(message: 'validation.role.priority_invalid')]
     public int $priority = 0;
 
-    /**
-     * @Column(type="simple_array")
-     */
-    // TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
+    #[ORM\Column(type: 'simple_array')]
     public array $permissions = [];
 
     protected static array $properties = [
