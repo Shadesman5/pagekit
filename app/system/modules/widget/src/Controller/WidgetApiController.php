@@ -5,24 +5,21 @@ declare(strict_types=1);
 namespace Pagekit\Widget\Controller;
 
 use Pagekit\Application as App;
+use Pagekit\Routing\Attribute\Route;
 use Pagekit\System\Controller\ValidatesRequestTrait;
+use Pagekit\User\Attribute\Access;
 use Pagekit\Widget\Model\Widget;
 use function Pagekit\__;
 
 /**
  * API Controller for Widget management.
- *
- * Uses Symfony Validator for entity validation (Step 1.13 - Hybrid Mode).
- *
- * @Access("system: manage widgets")
  */
+#[Access('system: manage widgets')]
 class WidgetApiController
 {
     use ValidatesRequestTrait;
 
-    /**
-     * @Route("/", methods="GET")
-     */
+    #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
         $widgets = Widget::findAll();
@@ -44,9 +41,7 @@ class WidgetApiController
         return ['positions' => array_values($positions), 'unassigned' => array_values($widgets)];
     }
 
-    /**
-     * @Route("/{id}", methods="GET", requirements={"id"="\d+"})
-     */
+    #[Route('/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function getAction(int $id): Widget
     {
         if (!$widget = Widget::find($id)) {
@@ -65,9 +60,7 @@ class WidgetApiController
         return $widget;
     }
 
-    /**
-     * @Route("/assign", methods="POST")
-     */
+    #[Route('/assign', methods: ['POST'])]
     public function assignAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -91,12 +84,9 @@ class WidgetApiController
 
     /**
      * Save a widget (create or update).
-     *
-     * Uses Symfony Validator for validation (replaces manual validation).
-     *
-     * @Route("/", methods="POST")
-     * @Route("/{id}", methods="POST", requirements={"id"="\d+"})
      */
+    #[Route('/', methods: ['POST'])]
+    #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function saveAction(int $id = 0, ?array $data = null): array
     {
         // Get parameters from request if not provided (Symfony 6.4 compatibility)
@@ -131,8 +121,7 @@ class WidgetApiController
             }
         }
 
-        // Validate using Symfony Validator (replaces manual title validation)
-        // Rule #4: DELETE OVER WRAP - old manual check removed
+        // Validate using Symfony Validator
         $this->validateOrFail($widget);
 
         $widget->save($data);
@@ -145,9 +134,7 @@ class WidgetApiController
         return ['message' => 'success', 'widget' => $widget, 'data' => $data];
     }
 
-    /**
-     * @Route("/{id}", methods="DELETE", requirements={"id"="\d+"})
-     */
+    #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\d+'])]
     public function deleteAction(int $id = 0): array
     {
         // Get id from route if not provided (Symfony 6.4 compatibility)
@@ -164,9 +151,7 @@ class WidgetApiController
         return ['message' => 'success'];
     }
 
-    /**
-     * @Route("/copy", methods="POST")
-     */
+    #[Route('/copy', methods: ['POST'])]
     public function copyAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -191,9 +176,7 @@ class WidgetApiController
         return ['message' => 'success'];
     }
 
-    /**
-     * @Route("/bulk", methods="POST")
-     */
+    #[Route('/bulk', methods: ['POST'])]
     public function bulkSaveAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -213,9 +196,7 @@ class WidgetApiController
         return ['message' => 'success'];
     }
 
-    /**
-     * @Route("/bulk", methods="DELETE")
-     */
+    #[Route('/bulk', methods: ['DELETE'])]
     public function bulkDeleteAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)

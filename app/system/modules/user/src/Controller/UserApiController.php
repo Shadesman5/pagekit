@@ -6,25 +6,22 @@ namespace Pagekit\User\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Application\Exception;
+use Pagekit\Routing\Attribute\Route;
 use Pagekit\System\Controller\ValidatesRequestTrait;
+use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use Pagekit\User\Model\User;
 use function Pagekit\__;
 
 /**
  * API Controller for User management.
- *
- * Uses Symfony Validator for entity validation (Step 1.13 - Hybrid Mode).
- *
- * @Access("user: manage users")
  */
+#[Access('user: manage users')]
 class UserApiController
 {
     use ValidatesRequestTrait;
 
-    /**
-     * @Route("/", methods="GET")
-     */
+    #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -130,9 +127,7 @@ class UserApiController
         return compact('count');
     }
 
-    /**
-     * @Route("/{id}", methods="GET", requirements={"id"="\d+"})
-     */
+    #[Route('/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function getAction(int $id): User
     {
         if (!$user = User::find($id)) {
@@ -144,12 +139,9 @@ class UserApiController
 
     /**
      * Save a user (create or update).
-     *
-     * Uses Symfony Validator for validation (replaces old $user->validate() method).
-     *
-     * @Route("/", methods="POST")
-     * @Route("/{id}", methods="POST", requirements={"id"="\d+"})
      */
+    #[Route('/', methods: ['POST'])]
+    #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function saveAction(int $id = 0)
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -222,8 +214,7 @@ class UserApiController
 
             unset($data['login'], $data['registered']);
 
-            // Validate using Symfony Validator (replaces old $user->validate() call)
-            // Rule #4: DELETE OVER WRAP - old validate() method has been removed
+            // Validate using Symfony Validator
             $this->validateOrFail($user);
 
             $user->save($data);
@@ -235,9 +226,7 @@ class UserApiController
         }
     }
 
-    /**
-     * @Route("/{id}", methods="DELETE", requirements={"id"="\d+"})
-     */
+    #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\d+'])]
     public function deleteAction(int $id = 0): array
     {
         // Get id from route if not provided (Symfony 6.4 compatibility)
@@ -260,9 +249,7 @@ class UserApiController
         return ['message' => 'success'];
     }
 
-    /**
-     * @Route("/bulk", methods="POST")
-     */
+    #[Route('/bulk', methods: ['POST'])]
     public function bulkSaveAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -292,9 +279,7 @@ class UserApiController
         return ['message' => 'success'];
     }
 
-    /**
-     * @Route("/bulk", methods="DELETE")
-     */
+    #[Route('/bulk', methods: ['DELETE'])]
     public function bulkDeleteAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)

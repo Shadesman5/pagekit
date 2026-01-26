@@ -5,24 +5,21 @@ declare(strict_types=1);
 namespace Pagekit\Site\Controller;
 
 use Pagekit\Application as App;
+use Pagekit\Routing\Attribute\Route;
 use Pagekit\Site\Model\Node;
 use Pagekit\System\Controller\ValidatesRequestTrait;
+use Pagekit\User\Attribute\Access;
 use function Pagekit\__;
 
 /**
  * API Controller for Node management.
- *
- * Uses Symfony Validator for entity validation (Step 1.13 - Hybrid Mode).
- *
- * @Access("site: manage site")
  */
+#[Access('site: manage site')]
 class NodeApiController
 {
     use ValidatesRequestTrait;
 
-    /**
-     * @Route("/", methods="GET")
-     */
+    #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -37,9 +34,7 @@ class NodeApiController
         return array_values($query->get());
     }
 
-    /**
-     * @Route("/{id}", methods="GET", requirements={"id"="\d+"})
-     */
+    #[Route('/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function getAction(int $id): Node
     {
         if (!$node = Node::find($id)) {
@@ -51,12 +46,9 @@ class NodeApiController
 
     /**
      * Save a node (create or update).
-     *
-     * Uses Symfony Validator for validation (replaces manual slug/link validation).
-     *
-     * @Route("/", methods="POST")
-     * @Route("/{id}", methods="POST", requirements={"id"="\d+"})
      */
+    #[Route('/', methods: ['POST'])]
+    #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function saveAction(int $id = 0, ?array $data = null): array
     {
         // Get parameters from request if not provided (Symfony 6.4 compatibility)
@@ -95,8 +87,7 @@ class NodeApiController
             }
         }
 
-        // Validate using Symfony Validator (replaces manual slug/link validation)
-        // Rule #4: DELETE OVER WRAP - old manual checks removed
+        // Validate using Symfony Validator
         $this->validateOrFail($node);
 
         $node->save($data);
@@ -104,9 +95,7 @@ class NodeApiController
         return ['message' => 'success', 'node' => $node];
     }
 
-    /**
-     * @Route("/{id}", methods="DELETE", requirements={"id"="\d+"})
-     */
+    #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\d+'])]
     public function deleteAction(int $id = 0): array
     {
         // Get id from route if not provided (Symfony 6.4 compatibility)
@@ -127,9 +116,7 @@ class NodeApiController
         return ['message' => 'success'];
     }
 
-    /**
-     * @Route("/bulk", methods="POST")
-     */
+    #[Route('/bulk', methods: ['POST'])]
     public function bulkSaveAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -151,9 +138,7 @@ class NodeApiController
         return ['message' => 'success'];
     }
 
-    /**
-     * @Route("/bulk", methods="DELETE")
-     */
+    #[Route('/bulk', methods: ['DELETE'])]
     public function bulkDeleteAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -173,9 +158,7 @@ class NodeApiController
         return ['message' => 'success'];
     }
 
-    /**
-     * @Route("/updateOrder", methods="POST")
-     */
+    #[Route('/updateOrder', methods: ['POST'])]
     public function updateOrderAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -207,9 +190,7 @@ class NodeApiController
         return ['message' => 'success'];
     }
 
-    /**
-     * @Route("/frontpage", methods="POST")
-     */
+    #[Route('/frontpage', methods: ['POST'])]
     public function frontpageAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)

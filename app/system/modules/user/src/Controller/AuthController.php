@@ -1,20 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Auth\Auth;
 use Pagekit\Auth\Exception\AuthException;
 use Pagekit\Auth\Exception\BadCredentialsException;
+use Pagekit\Routing\Attribute\Request;
+use Pagekit\Routing\Attribute\Route;
 use Pagekit\Session\Csrf\Exception\CsrfException;
 use function Pagekit\__;
 
 class AuthController
 {
-    /**
-     * @Route(defaults={"_maintenance"=true})
-     * @Request({"redirect"})
-     */
+    #[Route(defaults: ['_maintenance' => true])]
+    #[Request(['redirect' => 'string'])]
     public function loginAction($redirect = '')
     {
         if (!$redirect) {
@@ -35,9 +37,7 @@ class AuthController
         ];
     }
 
-    /**
-     * @Route(defaults={"_maintenance" = true})
-     */
+    #[Route(defaults: ['_maintenance' => true])]
     public function logoutAction($redirect = null)
     {
         // Get redirect from request if not provided
@@ -52,13 +52,11 @@ class AuthController
         return $this->redirect($redirect);
     }
 
-    /**
-     * @Route(methods="POST", defaults={"_maintenance" = true})
-     */
+    #[Route(methods: ['POST'], defaults: ['_maintenance' => true])]
     public function authenticateAction()
     {
         try {
-            // Get parameters directly from request (no @Request annotation)
+            // Get parameters directly from request
             $request = App::request();
             
             // Get from POST data (Symfony 6.4 compatibility)

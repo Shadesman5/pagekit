@@ -1,26 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Site\Controller;
 
 use Pagekit\Application as App;
+use Pagekit\Routing\Attribute\Route;
 use Pagekit\Site\Model\Page;
+use Pagekit\User\Attribute\Access;
 
-/**
- * @Access("site: manage site")
- */
+#[Access('site: manage site')]
 class PageApiController
 {
-    /**
-     * @Route("/", methods="GET")
-     */
+    #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
         return array_values(Page::findAll());
     }
 
-    /**
-     * @Route("/{id}", methods="GET", requirements={"id"="\d+"})
-     */
+    #[Route('/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function getAction($id): Page
     {
         return Page::find($id);

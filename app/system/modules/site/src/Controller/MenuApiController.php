@@ -1,16 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Site\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Config\Config;
 use Pagekit\Kernel\Exception\ConflictException;
+use Pagekit\Routing\Attribute\Route;
 use Pagekit\Site\Model\Node;
+use Pagekit\User\Attribute\Access;
 use function Pagekit\__;
 
-/**
- * @Access("site: manage site")
- */
+#[Access('site: manage site')]
 class MenuApiController
 {
     protected $config;
@@ -20,9 +22,7 @@ class MenuApiController
         $this->config = App::config('system/site');
     }
 
-    /**
-     * @Route("/", methods="GET")
-     */
+    #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
         $menus = App::menu()->all();
@@ -40,9 +40,7 @@ class MenuApiController
         return array_values($menus);
     }
 
-    /**
-     * @Route("/", methods="POST")
-     */
+    #[Route('/', methods: ['POST'])]
     public function saveAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -82,9 +80,7 @@ class MenuApiController
         return ['message' => 'success', 'menu' => $menu];
     }
 
-    /**
-     * @Route("/{id}", methods="DELETE")
-     */
+    #[Route('/{id}', methods: ['DELETE'])]
     public function deleteAction($id = null): array
     {
         // Get id from route if not provided (Symfony 6.4 compatibility)

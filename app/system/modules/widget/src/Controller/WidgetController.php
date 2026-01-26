@@ -1,16 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Widget\Controller;
 
 use Pagekit\Application as App;
+use Pagekit\Routing\Attribute\Request;
 use Pagekit\Site\Model\Node;
+use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use Pagekit\Widget\Model\Widget;
 use function Pagekit\__;
 
-/**
- * @Access("system: manage widgets", admin=true)
- */
+#[Access('system: manage widgets', admin: true)]
 class WidgetController
 {
     public function indexAction(): array
@@ -31,9 +33,7 @@ class WidgetController
         ];
     }
 
-    /**
-     * @Request({"id": "int", "type": "string"})
-     */
+    #[Request(['id' => 'int', 'type' => 'string'])]
     public function editAction($id = 0, $type = null): array
     {
         if (!$id) {

@@ -5,32 +5,27 @@ declare(strict_types=1);
 namespace Pagekit\User\Controller;
 
 use Pagekit\Application as App;
+use Pagekit\Routing\Attribute\Route;
 use Pagekit\System\Controller\ValidatesRequestTrait;
+use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use function Pagekit\__;
 
 /**
  * API Controller for Role management.
- *
- * Uses Symfony Validator for entity validation (Step 1.13 - Hybrid Mode).
- *
- * @Access("user: manage user permissions")
  */
+#[Access('user: manage user permissions')]
 class RoleApiController
 {
     use ValidatesRequestTrait;
 
-    /**
-     * @Route("/", methods="GET")
-     */
+    #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
         return array_values(Role::findAll());
     }
 
-    /**
-     * @Route("/{id}", methods="GET", requirements={"id"="\d+"})
-     */
+    #[Route('/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function getAction(int $id): Role
     {
         return Role::find($id);
@@ -38,12 +33,9 @@ class RoleApiController
 
     /**
      * Save a role (create or update).
-     *
-     * Uses Symfony Validator for validation (Step 1.13 - Hybrid Mode).
-     *
-     * @Route("/", methods="POST")
-     * @Route("/{id}", methods="POST", requirements={"id"="\d+"})
      */
+    #[Route('/', methods: ['POST'])]
+    #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function saveAction(int $id = 0, ?array $data = null): array
     {
         // Get parameters from request if not provided (Symfony 6.4 compatibility)
@@ -79,7 +71,7 @@ class RoleApiController
             }
         }
 
-        // Validate using Symfony Validator (Step 1.13 - Hybrid Mode)
+        // Validate using Symfony Validator
         $this->validateOrFail($role);
 
         $role->save($data);
@@ -87,9 +79,7 @@ class RoleApiController
         return ['message' => 'success', 'role' => $role];
     }
 
-    /**
-     * @Route("/{id}", methods="DELETE", requirements={"id"="\d+"})
-     */
+    #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\d+'])]
     public function deleteAction(int $id = 0): array
     {
         // Get id from route if not provided (Symfony 6.4 compatibility)
@@ -104,9 +94,7 @@ class RoleApiController
         return ['message' => 'success'];
     }
 
-    /**
-     * @Route("/bulk", methods="POST")
-     */
+    #[Route('/bulk', methods: ['POST'])]
     public function bulkSaveAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -126,9 +114,7 @@ class RoleApiController
         return ['message' => 'success'];
     }
 
-    /**
-     * @Route("/bulk", methods="DELETE")
-     */
+    #[Route('/bulk', methods: ['DELETE'])]
     public function bulkDeleteAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)

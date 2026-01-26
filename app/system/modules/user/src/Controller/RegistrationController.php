@@ -6,15 +6,15 @@ namespace Pagekit\User\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Application\Exception;
+use Pagekit\Captcha\Attribute\Captcha;
 use Pagekit\Module\Module;
+use Pagekit\Routing\Attribute\Request;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Model\User;
 use function Pagekit\__;
 
 /**
  * Controller for user registration.
- *
- * Uses Symfony Validator for entity validation (Step 1.13 - Hybrid Mode).
  */
 class RegistrationController
 {
@@ -27,9 +27,7 @@ class RegistrationController
         $this->module = App::module('system/user');
     }
 
-    /**
-     * @Captcha(route="@user/registration/register")
-     */
+    #[Captcha(route: '@user/registration/register')]
     public function indexAction()
     {
         if (App::user()->isAuthenticated()) {
@@ -50,12 +48,9 @@ class RegistrationController
 
     /**
      * Register a new user.
-     *
-     * Uses Symfony Validator for validation (replaces old $user->validate() method).
-     *
-     * @Request({"user": "array"})
-     * @Captcha(verify="true")
      */
+    #[Request(['user' => 'array'])]
+    #[Captcha(verify: true)]
     public function registerAction(array $data)
     {
         try {
@@ -92,8 +87,7 @@ class RegistrationController
                 $user->status = User::STATUS_ACTIVE;
             }
 
-            // Validate using Symfony Validator (replaces old $user->validate() call)
-            // Rule #4: DELETE OVER WRAP - old validate() method has been removed
+            // Validate using Symfony Validator
             // Use 'registration' validation group (in addition to Default) to include password validation
             $this->validateOrFail($user, null, ['Default', 'registration']);
 
@@ -121,9 +115,7 @@ class RegistrationController
         ];
     }
 
-    /**
-     * @Request({"user", "key"})
-     */
+    #[Request(['user' => 'string', 'key' => 'string'])]
     public function activateAction(string $username, string $activation)
     {
         if (empty($username) || empty($activation) || !$user = User::where(['username' => $username, 'activation' => $activation, 'login IS NULL'])->first()) {
