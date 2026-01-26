@@ -56,8 +56,12 @@
     #   3. This would achieve true "Gold Standard" CSP (no unsafe-eval)
     #
     # Current policy:
-    # - script-src: 'self' + 'unsafe-eval' (Vue runtime) + Google reCAPTCHA
-    # - style-src: 'unsafe-inline' kept for UIkit inline styles
+    # - script-src: 'self' + 'unsafe-eval' (Vue runtime) + Google reCAPTCHA + Browser Extensions + LanguageTool hash
+    # - style-src: 'unsafe-inline' kept for UIkit inline styles + Browser Extensions
+    # - img-src: Allow Browser Extensions (for extension icons/widgets)
+    # - font-src: Allow Browser Extensions (for extension fonts)
+    # - connect-src: Allow Browser Extensions (for API calls to extension servers)
+    # - frame-src: Allow Browser Extensions (for extension iframes/widgets)
     # - img-src: Allow Gravatar and general HTTPS images
     # - connect-src: Allow external APIs for Dashboard widgets:
     #   * reCAPTCHA - Form protection
@@ -69,7 +73,10 @@
     # - object-src: 'none' - No Flash/plugins
     # - base-uri: 'self' - Prevent base tag injection
     # - form-action: 'self' - Forms only submit to same origin
-    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-eval' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://www.google.com/recaptcha/ https://api.openweathermap.org https://pagekit.com https://maps.googleapis.com https://api.rss2json.com; frame-src 'self' https://www.google.com/recaptcha/; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';"
+    # Note: chrome-extension: and moz-extension: allowed for browser extensions (LanguageTool, password managers, etc.)
+    #       Extensions are user-installed and trusted, so allowing them is safe and improves UX
+    #       LanguageTool inline script hash added to allow extension's injected scripts
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-eval' chrome-extension: moz-extension: 'sha256-tq5fHKUNWCWMHbqZJgps3MZdMB//nQ7ZNRkFNo18098=' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; style-src 'self' 'unsafe-inline' chrome-extension: moz-extension:; img-src 'self' data: https: blob: chrome-extension: moz-extension:; font-src 'self' data: chrome-extension: moz-extension:; connect-src 'self' chrome-extension: moz-extension: https://www.google.com/recaptcha/ https://api.openweathermap.org https://pagekit.com https://maps.googleapis.com https://api.rss2json.com; frame-src 'self' chrome-extension: moz-extension: https://www.google.com/recaptcha/; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';"
     
     # Cross-Origin-Opener-Policy - Isolate browsing context (prevents window.opener attacks)
     # This protects against malicious sites that open Pagekit in a popup and try to access the window
