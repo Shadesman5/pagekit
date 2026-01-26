@@ -85,9 +85,12 @@ class CaptchaListener implements EventSubscriberInterface
 
     public function onScripts($event, $scripts): void
     {
+        // Must match the same conditions as onData() to ensure $captcha exists
+        // when the script runs
         if (!App::module('system/captcha')->config('recaptcha_enable')
             || App::user()->isAuthenticated()
             || !App::request()->attributes->get('_captcha_routes')
+            || !App::module('system/captcha')->config('recaptcha_sitekey')
         ) {
             return;
         }
