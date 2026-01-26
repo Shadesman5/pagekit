@@ -7,6 +7,7 @@ namespace Pagekit\Finder\Controller;
 use Pagekit\Application as App;
 use Pagekit\Finder\Event\FileAccessEvent;
 use Pagekit\Kernel\Exception\ForbiddenException;
+use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
 use function Pagekit\__;
 
@@ -60,6 +61,7 @@ class FinderController
     }
 
     #[Route('/createfolder', methods: ['POST'])]
+    #[Request([], csrf: true)]
     public function createFolderAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -101,6 +103,7 @@ class FinderController
     }
 
     #[Route('/rename', methods: ['POST'])]
+    #[Request([], csrf: true)]
     public function renameAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -136,6 +139,7 @@ class FinderController
     }
 
     #[Route('/removefiles', methods: ['POST'])]
+    #[Request([], csrf: true)]
     public function removeFilesAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -172,6 +176,7 @@ class FinderController
     }
 
     #[Route('/upload', methods: ['POST'])]
+    #[Request([], csrf: true)]
     public function uploadAction(): array
     {
         try {

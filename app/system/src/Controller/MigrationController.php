@@ -37,7 +37,7 @@ class MigrationController
         ];
     }
 
-    #[Request(['redirect' => 'string'])]
+    #[Request(['redirect' => 'string'], csrf: true)]
     public function migrateAction($redirect = null)
     {
         if ($updates = $this->scripts->hasUpdates()) {

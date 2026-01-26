@@ -28,7 +28,7 @@ class UpdateController
         ];
     }
 
-    #[Request(['url' => 'string'])]
+    #[Request(['url' => 'string'], csrf: true)]
     public function downloadAction($url): array
     {
         $tempPath = App::getInstance() ? App::getInstance()['path.temp'] : sys_get_temp_dir();
@@ -42,7 +42,7 @@ class UpdateController
         return [];
     }
 
-    #[Request([])]
+    #[Request([], csrf: true)]
     public function updateAction()
     {
         if (!$file = App::session()->get('system.update')) {

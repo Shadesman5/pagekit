@@ -78,7 +78,7 @@ class PackageController
         ];
     }
 
-    #[Request(['name' => 'string'])]
+    #[Request(['name' => 'string'], csrf: true)]
     public function enableAction($name): array
     {
         $handler = $this->errorHandler($name);
@@ -125,7 +125,7 @@ class PackageController
         }
     }
 
-    #[Request(['name' => 'string'])]
+    #[Request(['name' => 'string'], csrf: true)]
     public function disableAction($name): array
     {
         if (!$package = App::package($name)) {
@@ -143,7 +143,7 @@ class PackageController
         return ['message' => 'success'];
     }
 
-    #[Request(['type' => 'string'])]
+    #[Request(['type' => 'string'], csrf: true)]
     public function uploadAction($type): array
     {
         $file = App::request()->files->get('file');
@@ -170,7 +170,7 @@ class PackageController
         return compact('package');
     }
 
-    #[Request(['package' => 'array', 'packagist' => 'boolean'])]
+    #[Request(['package' => 'array', 'packagist' => 'boolean'], csrf: true)]
     public function installAction($package = [], $packagist = false)
     {
 
@@ -204,7 +204,7 @@ class PackageController
         });
     }
 
-    #[Request(['name' => 'string'])]
+    #[Request(['name' => 'string'], csrf: true)]
     public function uninstallAction($name)
     {
         return App::response()->stream(function () use ($name) {
