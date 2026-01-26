@@ -64,15 +64,14 @@ trait ValidatesRequestTrait
     }
 
     /**
-     * Validate an entity and throw an exception on failure.
+     * Validate an entity and abort with HTTP 400 on failure.
      *
-     * This method is useful when you want to use try/catch error handling
-     * instead of returning JsonResponse directly.
+     * This method calls App::abort(400, ...) which correctly returns HTTP 400 Bad Request
+     * instead of HTTP 500 Internal Server Error.
      *
      * @param object $object The entity to validate
      * @param ValidatorInterface|null $validator Optional validator instance
      * @param array|null $groups Optional validation groups
-     * @throws \Pagekit\Application\Exception When validation fails
      */
     protected function validateOrFail(
         object $object,
@@ -87,7 +86,8 @@ trait ValidatesRequestTrait
 
         if (count($violations) > 0) {
             $firstViolation = $violations[0];
-            throw new \Pagekit\Application\Exception($firstViolation->getMessage());
+            // Use App::abort() to correctly return HTTP 400 Bad Request
+            App::abort(400, $firstViolation->getMessage());
         }
     }
 

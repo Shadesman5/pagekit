@@ -27,7 +27,7 @@ class Node implements NodeInterface, \JsonSerializable
     public ?int $id = null;
 
     #[ORM\Column(type: 'integer')]
-    #[Assert\PositiveOrZero(message: 'validation.node.priority_invalid')]
+    #[Assert\PositiveOrZero(message: 'validation.node.parent_id_invalid')]
     public ?int $parent_id = 0;
 
     #[ORM\Column(type: 'integer')]
