@@ -156,7 +156,7 @@ class PhpEngine
         extract($parameters, EXTR_SKIP);
         
         try {
-            // Handle different storage types
+            // Handle different storage types - ONLY file-based templates (security hardening)
             if (is_object($template)) {
                 $templatePath = (string) $template;
                 
@@ -164,14 +164,13 @@ class PhpEngine
                 if (file_exists($templatePath)) {
                     require $templatePath;
                 } else {
-                    // Treat as string template
-                    eval('?>' . $templatePath);
+                    throw new \RuntimeException(sprintf('Template file not found: %s', $templatePath));
                 }
             } elseif (is_string($template)) {
                 if (file_exists($template)) {
                     require $template;
                 } else {
-                    eval('?>' . $template);
+                    throw new \RuntimeException(sprintf('Template file not found: %s', $template));
                 }
             }
             

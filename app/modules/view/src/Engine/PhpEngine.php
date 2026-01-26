@@ -115,13 +115,11 @@ class PhpEngine implements EngineInterface
         extract($parameters, EXTR_SKIP);
         
         try {
-            // Include template file
+            // Include template file - ONLY file-based templates (security hardening)
             if (isset($storage['path']) && file_exists($storage['path'])) {
                 require $storage['path'];
-            } elseif (isset($storage['content'])) {
-                eval('?>' . $storage['content']);
             } else {
-                throw new \RuntimeException('Invalid storage type');
+                throw new \RuntimeException('Invalid storage: path not found or content not supported');
             }
             
             $content = ob_get_clean();

@@ -102,6 +102,8 @@ function Install(Vue) {
             options = { url, params };
         }
 
+        // Use Vue.http.options.root which includes /index.php when mod_rewrite is disabled
+        // This ensures URLs work correctly for both mod_rewrite and non-mod_rewrite installations
         Vue.util.extend(options, { root: Vue.http.options.root });
 
         return this(options);

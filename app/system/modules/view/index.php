@@ -52,8 +52,21 @@ return [
         }, 20],
 
         'view.data' => function ($event, $data) use ($app) {
+            // Get base URL from router context
+            // - With mod_rewrite: '' (empty string) - URLs like /admin
+            // - Without mod_rewrite: '/index.php' - URLs like /index.php/admin
+            $baseUrl = $app['router']->getContext()->getBaseUrl();
+            
+            // Only use fallback in installer context (no config.php yet)
+            // In normal operation, empty baseUrl is correct for mod_rewrite
+            if (empty($baseUrl) && !file_exists($app['path'] . '/config.php')) {
+                // Installer context: router not fully configured
+                // Use /index.php as safe fallback for API calls
+                $baseUrl = '/index.php';
+            }
+            
             $data->add('$pagekit', [
-                'url' => $app['router']->getContext()->getBaseUrl(),
+                'url' => $baseUrl,
                 'csrf' => $app['csrf']->generate()
             ]);
         },
@@ -64,14 +77,20 @@ return [
         },
 
         'view.scripts' => function ($event, $scripts) use ($app) {
-            $scripts->register('codemirror', 'app/system/modules/editor/app/assets/codemirror/codemirror.min.js');
-            $scripts->register('marked', 'app/system/modules/editor/app/assets/marked/marked.min.js');
-            $scripts->register('lodash', 'app/assets/lodash/dist/'  . ($app->debug() ? 'lodash.js' : 'lodash.min.js'));
-            $scripts->register('vue', 'app/system/app/bundle/vue.js', ['uikit', 'uikit-icons', 'vue-dist', 'lodash', 'locale']);
-            $scripts->register('vue-dist', 'app/assets/vue/dist/' . ($app->debug() ? 'vue.js' : 'vue.min.js'));
-            $scripts->register('locale', $app->url('@system/intl', ['locale' => $app->module('system/intl')->getLocale(), 'v' => $scripts->getFactory()->getVersion()]), [], ['type' => 'url']);
-            $scripts->register('uikit', 'app/assets/uikit/dist/js/' . ($app->debug() ? 'uikit.js' : 'uikit.min.js'));
+            // Config loader must be first - reads JSON config and exposes global variables
+            // All scripts that might need $pagekit or other globals must depend on this
+            $scripts->register('pagekit-config', 'app/system/app/lib/config-loader.js', [], ['defer' => false]);
+            
+            $scripts->register('codemirror', 'app/system/modules/editor/app/assets/codemirror/codemirror.min.js', ['pagekit-config']);
+            $scripts->register('marked', 'app/system/modules/editor/app/assets/marked/marked.min.js', ['pagekit-config']);
+            $scripts->register('lodash', 'app/assets/lodash/dist/'  . ($app->debug() ? 'lodash.js' : 'lodash.min.js'), ['pagekit-config']);
+            // vue-dist must load AFTER pagekit-config so $pagekit is available
+            $scripts->register('vue-dist', 'app/assets/vue/dist/' . ($app->debug() ? 'vue.js' : 'vue.min.js'), ['pagekit-config']);
+            // locale script returns JS that sets $locale, must load after config
+            $scripts->register('locale', $app->url('@system/intl', ['locale' => $app->module('system/intl')->getLocale(), 'v' => $scripts->getFactory()->getVersion()]), ['pagekit-config'], ['type' => 'url']);
+            $scripts->register('uikit', 'app/assets/uikit/dist/js/' . ($app->debug() ? 'uikit.js' : 'uikit.min.js'), ['pagekit-config']);
             $scripts->register('uikit-icons', 'app/system/assets/js/' . ($app->debug() ? 'uikit-icons.js' : 'uikit-icons.min.js'), 'uikit');
+            $scripts->register('vue', 'app/system/app/bundle/vue.js', ['uikit', 'uikit-icons', 'vue-dist', 'lodash', 'locale']);
         }
 
     ]

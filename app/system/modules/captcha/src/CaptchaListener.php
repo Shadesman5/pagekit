@@ -59,7 +59,7 @@ class CaptchaListener implements EventSubscriberInterface
         }
     }
 
-    public function onScripts($event, $scripts): void
+    public function onData($event, $data): void
     {
         if (!App::module('system/captcha')->config('recaptcha_enable')
             || App::user()->isAuthenticated()
@@ -76,14 +76,26 @@ class CaptchaListener implements EventSubscriberInterface
             return false;
         }, $routes));
 
-        $scripts->register('captcha-config', sprintf(
-            'var $captcha = %s;',
-            json_encode([
-                'grecaptcha' => App::module('system/captcha')->config('recaptcha_sitekey'),
-                'routes' => $routes
-            ])
-        ), [], 'string', ['defer' => true]);
-        $scripts->add('captcha-interceptor', 'system/captcha:app/bundle/captcha-interceptor.js', ['vue', 'captcha-config']);
+        // Add captcha config to JSON data container
+        $data->add('$captcha', [
+            'grecaptcha' => App::module('system/captcha')->config('recaptcha_sitekey'),
+            'routes' => $routes
+        ]);
+    }
+
+    public function onScripts($event, $scripts): void
+    {
+        // Must match the same conditions as onData() to ensure $captcha exists
+        // when the script runs
+        if (!App::module('system/captcha')->config('recaptcha_enable')
+            || App::user()->isAuthenticated()
+            || !App::request()->attributes->get('_captcha_routes')
+            || !App::module('system/captcha')->config('recaptcha_sitekey')
+        ) {
+            return;
+        }
+
+        $scripts->add('captcha-interceptor', 'system/captcha:app/bundle/captcha-interceptor.js', ['vue', 'pagekit-config']);
     }
 
     public function onRequest($event, $request): void
@@ -146,6 +158,7 @@ class CaptchaListener implements EventSubscriberInterface
         return [
             'route.configure' => 'onConfigureRoute',
             'request' => ['onRequest', -100],
+            'view.data' => ['onData', 100],
             'view.scripts' => ['onScripts', 100]
         ];
     }
