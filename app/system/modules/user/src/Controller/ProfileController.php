@@ -43,7 +43,7 @@ class ProfileController
     /**
      * Save user profile changes.
      */
-    #[Request(['user' => 'array'])]
+    #[Request(['user' => 'array'], csrf: true)]
     public function saveAction(array $data)
     {
         $user = App::user();
