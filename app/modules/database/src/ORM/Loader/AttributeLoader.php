@@ -43,7 +43,10 @@ class AttributeLoader implements LoaderInterface
         foreach ($class->getProperties() as $property) {
             $name = $property->getName();
 
-            if (!$property->isPrivate() && (isset($config['isMappedSuperclass']) || isset($config['fields'][$name]['inherited']) || isset($config['relations'][$name]['inherited']))) {
+            // Skip logic matching old AnnotationLoader behavior:
+            // 1. Skip non-private properties in MappedSuperclass context
+            // 2. Always skip inherited properties (regardless of visibility)
+            if ((!$property->isPrivate() && isset($config['isMappedSuperclass'])) || isset($config['fields'][$name]['inherited']) || isset($config['relations'][$name]['inherited'])) {
                 continue;
             }
 
