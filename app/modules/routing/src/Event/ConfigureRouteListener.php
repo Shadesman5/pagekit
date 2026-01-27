@@ -1,29 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Routing\Event;
 
-use Doctrine\Common\Annotations\Reader;
-use Doctrine\Common\Annotations\SimpleAnnotationReader;
 use Pagekit\Event\EventSubscriberInterface;
+use Pagekit\Routing\Attribute\Request;
 
+/**
+ * Reads Request attributes from controllers and configures routes.
+ */
 class ConfigureRouteListener implements EventSubscriberInterface
 {
-    protected $reader;
-    protected string $namespace;
-
     /**
-     * Constructor.
-     *
-     * @param Reader $reader
-     */
-    public function __construct(?Reader $reader = null)
-    {
-        $this->reader    = $reader;
-        $this->namespace = 'Pagekit\Routing\Annotation';
-    }
-
-    /**
-     * Reads the @Request annotations.
+     * Reads the #[Request] attributes.
      */
     public function onConfigureRoute($event, $route): void
     {
@@ -31,16 +21,32 @@ class ConfigureRouteListener implements EventSubscriberInterface
             return;
         }
 
-        $reader = $this->getReader();
+        $class = $route->getControllerClass();
+        $method = $route->getControllerMethod();
 
-        foreach (['_request' => 'Request'] as $name => $class) {
+        // Check class-level Request attribute
+        $classAttributes = $class->getAttributes(Request::class, \ReflectionAttribute::IS_INSTANCEOF);
 
-            $class = "{$this->namespace}\\$class";
+        // Check method-level Request attribute (takes precedence)
+        $methodAttributes = $method->getAttributes(Request::class, \ReflectionAttribute::IS_INSTANCEOF);
 
-            if (($annotation = $reader->getClassAnnotation($route->getControllerClass(), $class) or $annotation = $reader->getMethodAnnotation($route->getControllerMethod(), $class))
-                and $data = $annotation->getData()
-            ) {
-                $route->setDefault($name, $data);
+        // Use method attribute if available, otherwise class attribute
+        $attributes = !empty($methodAttributes) ? $methodAttributes : $classAttributes;
+
+        if (!empty($attributes)) {
+            $request = $attributes[0]->newInstance();
+            $data = $request->getData();
+            $csrf = $request->getCsrf();
+            
+            // Only set _request if there's data or csrf is required
+            if ($data || $csrf) {
+                // Format expected by ParamFetcherListener and CsrfListener
+                // Only include 'csrf' key when true - isset() returns true for false values
+                $requestConfig = ['value' => $data, 'options' => []];
+                if ($csrf) {
+                    $requestConfig['csrf'] = true;
+                }
+                $route->setDefault('_request', $requestConfig);
             }
         }
     }
@@ -53,20 +59,5 @@ class ConfigureRouteListener implements EventSubscriberInterface
         return [
             'route.configure' => 'onConfigureRoute'
         ];
-    }
-
-    /**
-     * Gets an annotation reader.
-     *
-     * @return Reader
-     */
-    protected function getReader()
-    {
-        if (!$this->reader) {
-            $this->reader = new SimpleAnnotationReader;
-            $this->reader->addNamespace($this->namespace);
-        }
-
-        return $this->reader;
     }
 }

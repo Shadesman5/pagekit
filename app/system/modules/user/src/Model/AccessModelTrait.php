@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Pagekit\User\Model;
 
 use Pagekit\Application as App;
+use Pagekit\Database\ORM\Attribute as ORM;
 
 trait AccessModelTrait
 {
-    /** @Column(type="simple_array") */
+    #[ORM\Column(type: 'simple_array')]
     public array $roles = [];
 
     /**

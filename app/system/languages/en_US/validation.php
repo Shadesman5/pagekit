@@ -82,6 +82,8 @@ return [
 
     'validation.node.priority_invalid' => 'Priority must be a non-negative number.',
 
+    'validation.node.parent_id_invalid' => 'Parent ID must be a non-negative number.',
+
     // Page Entity
     'validation.page.title_required' => 'Page title is required.',
     'validation.page.title_max_length' => 'Page title cannot exceed {{ limit }} characters.',

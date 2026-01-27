@@ -1,7 +1,5 @@
 <?php
 
-use Doctrine\Common\Annotations\AnnotationRegistry;
-
 $loader = require __DIR__ . '/app/vendor/autoload.php';
 
 if (file_exists(__DIR__ . '/packages/autoload.php')) {
@@ -27,7 +25,5 @@ if (file_exists(__DIR__ . '/packages/autoload.php')) {
         }
     }
 }
-
-AnnotationRegistry::registerLoader([$loader, 'loadClass']);
 
 return $loader;

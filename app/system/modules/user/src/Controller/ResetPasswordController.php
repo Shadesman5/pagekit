@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Application\Exception;
+use Pagekit\Routing\Attribute\Route;
 use Pagekit\User\Model\User;
 use function Pagekit\__;
 
@@ -25,9 +28,7 @@ class ResetPasswordController
         ];
     }
 
-    /**
-     * @Route("/request", methods="POST")
-     */
+    #[Route('/request', methods: ['POST'])]
     public function requestAction()
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -97,10 +98,8 @@ class ResetPasswordController
         }
     }
 
-    /**
-     * @Route("/confirm", methods="GET")
-     * @Route("/confirm", methods="POST")
-     */
+    #[Route('/confirm', methods: ['GET'])]
+    #[Route('/confirm', methods: ['POST'])]
     public function confirmAction()
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -188,9 +187,6 @@ class ResetPasswordController
                 $user->save();
 
                 $session->remove('activation');
-                
-                // Login the user (optional - can be removed if not needed)
-                // App::auth()->login($user);
                 
                 App::message()->success(__('Your password has been reset.'));
 

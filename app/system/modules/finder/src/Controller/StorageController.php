@@ -1,13 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Finder\Controller;
 
 use Pagekit\Application as App;
+use Pagekit\User\Attribute\Access;
 use function Pagekit\__;
 
-/**
- * @Access("system: manage storage", admin=true)
- */
+#[Access('system: manage storage', admin: true)]
 class StorageController
 {
     public function indexAction(): array

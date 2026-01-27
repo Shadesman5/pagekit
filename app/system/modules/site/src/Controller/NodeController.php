@@ -1,9 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Site\Controller;
 
 use Pagekit\Application as App;
+use Pagekit\Routing\Attribute\Request;
+use Pagekit\Routing\Attribute\Route;
 use Pagekit\Site\Model\Node;
+use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use function Pagekit\__;
 
@@ -16,10 +21,8 @@ class NodeController
         $this->site = App::module('system/site');
     }
 
-    /**
-     * @Route("site/page", name="page")
-     * @Access("site: manage site", admin=true)
-     */
+    #[Route('site/page', name: 'page')]
+    #[Access('site: manage site', admin: true)]
     public function indexAction()
     {
         if ($test = Node::fixOrphanedNodes()) {
@@ -40,11 +43,9 @@ class NodeController
         ];
     }
 
-    /**
-     * @Route("site/page/edit", name="page/edit")
-     * @Access("site: manage site", admin=true)
-     * @Request({"id", "menu"})
-     */
+    #[Route('site/page/edit', name: 'page/edit')]
+    #[Access('site: manage site', admin: true)]
+    #[Request(['id' => 'string', 'menu' => 'string'])]
     public function editAction($id = '', $menu = ''): array
     {
         if (is_numeric($id)) {
@@ -80,10 +81,8 @@ class NodeController
         ];
     }
 
-    /**
-     * @Route("site/settings")
-     * @Access("system: access settings", admin=true)
-     */
+    #[Route('site/settings')]
+    #[Access('system: access settings', admin: true)]
     public function settingsAction(): array
     {
         return [
@@ -97,11 +96,9 @@ class NodeController
         ];
     }
 
-    /**
-     * @Route("api/site/link", name="api/link")
-     * @Request({"link"})
-     * @Access("site: manage site")
-     */
+    #[Route('api/site/link', name: 'api/link')]
+    #[Request(['link' => 'string'])]
+    #[Access('site: manage site')]
     public function linkAction($link): array
     {
         return ['message' => 'success', 'url' => App::url($link, [], 'base') ?: $link];

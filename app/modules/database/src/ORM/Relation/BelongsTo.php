@@ -15,8 +15,17 @@ class BelongsTo extends Relation
     {
         parent::__construct($manager, $metadata, $mapping);
 
+        // Validate required parameter
+        if (empty($mapping['keyFrom'])) {
+            throw new \InvalidArgumentException(sprintf(
+                'BelongsTo relation "%s" on "%s" requires "keyFrom" parameter.',
+                $mapping['name'] ?? 'unknown',
+                $metadata->getClass()
+            ));
+        }
+
         $this->keyFrom = $mapping['keyFrom'];
-        $this->keyTo   = (isset($mapping['keyTo']) && $mapping['keyTo']) ? $mapping['keyTo'] :  $this->targetMetadata->getIdentifier();
+        $this->keyTo   = (isset($mapping['keyTo']) && $mapping['keyTo']) ? $mapping['keyTo'] : $this->targetMetadata->getIdentifier();
     }
 
     /**

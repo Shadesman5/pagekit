@@ -1,61 +1,60 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Captcha;
 
-use Doctrine\Common\Annotations\Reader;
-use Doctrine\Common\Annotations\SimpleAnnotationReader;
 use Pagekit\Application as App;
-use Pagekit\Captcha\Annotation\Captcha;
+use Pagekit\Captcha\Attribute\Captcha;
 use Pagekit\Event\EventSubscriberInterface;
 
+/**
+ * Reads Captcha attributes from controllers and handles captcha verification.
+ */
 class CaptchaListener implements EventSubscriberInterface
 {
     /**
-     * @var Reader
-     */
-    protected $reader;
-
-    /**
-     * Constructor.
-     *
-     * @param Reader $reader
-     */
-    public function __construct(?Reader $reader = null)
-    {
-        $this->reader = $reader;
-    }
-
-    /**
-     * Reads the "@Captcha" annotations from the controller.
+     * Reads the #[Captcha] attributes from the controller.
      */
     public function onConfigureRoute($event, $route): void
     {
-        if (!$this->reader) {
-            $this->reader = new SimpleAnnotationReader;
-            $this->reader->addNamespace('Pagekit\Captcha\Annotation');
-        }
-
         if (!$route->getControllerClass()) {
             return;
         }
 
+        $class = $route->getControllerClass();
+        $method = $route->getControllerMethod();
+
         $routes = [];
-        foreach (array_merge($this->reader->getClassAnnotations($route->getControllerClass()), $this->reader->getMethodAnnotations($route->getControllerMethod())) as $annot) {
-            if (!$annot instanceof Captcha) {
-                continue;
-            }
 
-            if ($expression = $annot->getVerify()) {
-                $route->setDefault('_captcha_verify', true);
-            }
+        // Get class-level Captcha attributes
+        $classAttributes = $class->getAttributes(Captcha::class, \ReflectionAttribute::IS_INSTANCEOF);
+        foreach ($classAttributes as $attr) {
+            $this->processCaptchaAttribute($attr->newInstance(), $routes, $route);
+        }
 
-            if ($captchaRoute = $annot->getRoute()) {
-                $routes[] = $captchaRoute;
-            }
+        // Get method-level Captcha attributes
+        $methodAttributes = $method->getAttributes(Captcha::class, \ReflectionAttribute::IS_INSTANCEOF);
+        foreach ($methodAttributes as $attr) {
+            $this->processCaptchaAttribute($attr->newInstance(), $routes, $route);
         }
 
         if ($routes) {
             $route->setDefault('_captcha_routes', array_unique($routes));
+        }
+    }
+
+    /**
+     * Process a single Captcha attribute.
+     */
+    private function processCaptchaAttribute(Captcha $annot, array &$routes, $route): void
+    {
+        if ($annot->getVerify()) {
+            $route->setDefault('_captcha_verify', true);
+        }
+
+        if ($captchaRoute = $annot->getRoute()) {
+            $routes[] = $captchaRoute;
         }
     }
 
@@ -117,7 +116,6 @@ class CaptchaListener implements EventSubscriberInterface
 
     protected function verifyToken($gRecaptchaResponse, $secret)
     {
-        // return __('reCaptcha not probably configured.123'.$gRecaptchaResponse);
         if ($gRecaptchaResponse && $secret) {
             $result = json_decode($this->post('https://www.google.com/recaptcha/api/siteverify', [
                 'secret' => $secret,

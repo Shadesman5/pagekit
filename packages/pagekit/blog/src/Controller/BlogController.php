@@ -1,21 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Blog\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Blog\Model\Comment;
 use Pagekit\Blog\Model\Post;
+use Pagekit\Routing\Attribute\Request;
+use Pagekit\Routing\Attribute\Route;
+use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 
-/**
- * @Access(admin=true)
- */
+#[Access(admin: true)]
 class BlogController
 {
-    /**
-     * @Access("blog: manage own posts || blog: manage all posts")
-     * @Request({"filter": "array", "page":"int"})
-     */
+    #[Access('blog: manage own posts || blog: manage all posts')]
+    #[Request(['filter' => 'array', 'page' => 'int'])]
     public function postAction($filter = null, $page = null): array
     {
         return [
@@ -35,11 +36,9 @@ class BlogController
         ];
     }
 
-    /**
-     * @Route("/post/edit", name="post/edit")
-     * @Access("blog: manage own posts || blog: manage all posts")
-     * @Request({"id": "int"})
-     */
+    #[Route('/post/edit', name: 'post/edit')]
+    #[Access('blog: manage own posts || blog: manage all posts')]
+    #[Request(['id' => 'int'])]
     public function editAction($id = 0)
     {
         try {
@@ -104,10 +103,8 @@ class BlogController
         }
     }
 
-    /**
-     * @Access("blog: manage comments")
-     * @Request({"filter": "array", "post":"int", "page":"int"})
-     */
+    #[Access('blog: manage comments')]
+    #[Request(['filter' => 'array', 'post' => 'int', 'page' => 'int'])]
     public function commentAction($filter = [], $post = 0, $page = null): array
     {
         $post = Post::find($post);
@@ -130,9 +127,7 @@ class BlogController
         ];
     }
 
-    /**
-     * @Access("system: access settings")
-     */
+    #[Access('system: access settings')]
     public function settingsAction(): array
     {
         return [

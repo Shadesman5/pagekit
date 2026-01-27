@@ -51,13 +51,17 @@ class ParamFetcherListener implements EventSubscriberInterface
                     // Try different sources
                     $value = null;
                     
+                    // Cache request data (use all() to support both scalar and array values)
+                    $postData = $request->request->all();
+                    $queryData = $request->query->all();
+                    
                     // Try POST data
-                    if ($request->request->has($name)) {
-                        $value = $request->request->get($name);
+                    if (isset($postData[$name])) {
+                        $value = $postData[$name];
                     }
                     // Try query string
-                    elseif ($request->query->has($name)) {
-                        $value = $request->query->get($name);
+                    elseif (isset($queryData[$name])) {
+                        $value = $queryData[$name];
                     }
                     // Try JSON body
                     elseif ($request->getContent()) {

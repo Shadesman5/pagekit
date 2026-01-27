@@ -1,16 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Routing\Loader;
 
 use Pagekit\Event\EventDispatcherInterface;
 use Pagekit\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 
+/**
+ * Loads routes from route definitions and controller classes.
+ */
 class RoutesLoader implements LoaderInterface
 {
     protected \Pagekit\Event\EventDispatcherInterface $events;
 
-    protected \Pagekit\Routing\Loader\AnnotationLoader $loader;
+    protected \Pagekit\Routing\Loader\AttributeLoader $loader;
 
     protected ?RouteCollection $routes = null;
 
@@ -18,12 +23,12 @@ class RoutesLoader implements LoaderInterface
      * Constructor.
      *
      * @param EventDispatcherInterface $events
-     * @param AnnotationLoader         $loader
+     * @param AttributeLoader|null $loader
      */
-    public function __construct(EventDispatcherInterface $events, ?AnnotationLoader $loader = null)
+    public function __construct(EventDispatcherInterface $events, ?AttributeLoader $loader = null)
     {
         $this->events = $events;
-        $this->loader = $loader ?: new AnnotationLoader();
+        $this->loader = $loader ?: new AttributeLoader();
     }
 
     /**

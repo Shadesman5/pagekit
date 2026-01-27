@@ -7,18 +7,19 @@ namespace Pagekit\Blog\Controller;
 use Pagekit\Application as App;
 use Pagekit\Blog\Model\Comment;
 use Pagekit\Blog\Model\Post;
-use Pagekit\System\Controller\ValidatesRequestTrait;
-use Pagekit\User\Model\User;
+use Pagekit\Captcha\Attribute\Captcha;
 use Pagekit\Module\Module;
+use Pagekit\Routing\Attribute\Request;
+use Pagekit\Routing\Attribute\Route;
+use Pagekit\System\Controller\ValidatesRequestTrait;
+use Pagekit\User\Attribute\Access;
+use Pagekit\User\Model\User;
 use function Pagekit\__;
 
 /**
  * API Controller for Blog Comment management.
- *
- * Uses Symfony Validator for entity validation (Step 1.13 - Hybrid Mode).
- *
- * @Route("comment", name="comment")
  */
+#[Route('comment', name: 'comment')]
 class CommentApiController
 {
     use ValidatesRequestTrait;
@@ -32,10 +33,8 @@ class CommentApiController
         $this->user = App::user();
     }
 
-    /**
-     * @Route("/", methods="GET")
-     * @Request({"filter": "array", "post":"int", "page":"int", "limit":"int"})
-     */
+    #[Route('/', methods: ['GET'])]
+    #[Request(['filter' => 'array', 'post' => 'int', 'page' => 'int', 'limit' => 'int'])]
     public function indexAction(array $filter = [], int $post = 0, int $page = 0, int $limit = 0): array
     {
         $query = Comment::query();
@@ -110,7 +109,6 @@ class CommentApiController
             if ($this->user->hasAccess('blog: manage comments')) {
                 $posts[$p->id] = $p;
             } else {
-                // unset($comment->ip, $comment->email, $comment->user_id);
                 unset($comment->ip, $comment->user_id);
                 $comment->email = md5(strtolower($comment->email));
             }
@@ -124,23 +122,23 @@ class CommentApiController
 
     /**
      * Save a comment (create or update).
-     *
-     * Uses Symfony Validator for entity validation (Step 1.13 - Hybrid Mode).
-     *
-     * @Route("/", methods="POST")
-     * @Route("/{id}", methods="POST", requirements={"id"="\d+"})
-     * @Request({"comment": "array", "id": "int"}, csrf=true)
-     * @Captcha(verify="true")
      */
-    public function saveAction(array $data, int $id = 0): array
+    #[Route('/', methods: ['POST'])]
+    #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
+    #[Request(['comment' => 'array', 'id' => 'int'])]
+    #[Captcha(verify: true)]
+    public function saveAction(array $comment = [], int $id = 0): array
     {
+        // Use $data internally for backwards compatibility with the rest of the code
+        $data = $comment;
+
         if (!$id) {
 
             if (!$this->user->hasAccess('blog: post comments')) {
                 App::abort(403, __('Insufficient User Rights.'));
             }
 
-            $comment = Comment::create();
+            $commentEntity = Comment::create();
 
             if ($this->user->isAuthenticated()) {
                 $data['author'] = $this->user->name;
@@ -153,9 +151,9 @@ class CommentApiController
             }
 
             // user_id stored as string in database (legacy), use '0' for anonymous users
-            $comment->user_id = $this->user->isAuthenticated() ? (string) $this->user->id : '0';
-            $comment->ip = App::request()->getClientIp();
-            $comment->created = new \DateTime;
+            $commentEntity->user_id = $this->user->isAuthenticated() ? (string) $this->user->id : '0';
+            $commentEntity->ip = App::request()->getClientIp();
+            $commentEntity->created = new \DateTime;
 
         } else {
 
@@ -163,9 +161,9 @@ class CommentApiController
                 App::abort(403, __('Insufficient User Rights.'));
             }
 
-            $comment = Comment::find($id);
+            $commentEntity = Comment::find($id);
 
-            if (!$comment) {
+            if (!$commentEntity) {
                 App::abort(404, __('Comment not found.'));
             }
 
@@ -197,37 +195,35 @@ class CommentApiController
         }
 
         $approved_once = (boolean) Comment::where(['user_id' => $this->user->id, 'status' => Comment::STATUS_APPROVED])->first();
-        $comment->status = $this->user->hasAccess('blog: skip comment approval') ? Comment::STATUS_APPROVED : ($this->user->hasAccess('blog: comment approval required once') && $approved_once ? Comment::STATUS_APPROVED : Comment::STATUS_PENDING);
+        $commentEntity->status = $this->user->hasAccess('blog: skip comment approval') ? Comment::STATUS_APPROVED : ($this->user->hasAccess('blog: comment approval required once') && $approved_once ? Comment::STATUS_APPROVED : Comment::STATUS_PENDING);
 
         // check the max links rule (business logic)
-        if ($comment->status == Comment::STATUS_APPROVED && $this->blog->config('comments.maxlinks') <= preg_match_all('/<a [^>]*href/i', @$data['content'])) {
-            $comment->status = Comment::STATUS_PENDING;
+        if ($commentEntity->status == Comment::STATUS_APPROVED && $this->blog->config('comments.maxlinks') <= preg_match_all('/<a [^>]*href/i', @$data['content'])) {
+            $commentEntity->status = Comment::STATUS_PENDING;
         }
 
         // check for spam
-        //App::trigger('system.comment.spam_check', new CommentEvent($comment));
+        //App::trigger('system.comment.spam_check', new CommentEvent($commentEntity));
 
         // Assign data to entity for validation (without saving yet)
         foreach ($data as $key => $value) {
-            if (property_exists($comment, $key)) {
-                $comment->$key = $value;
+            if (property_exists($commentEntity, $key)) {
+                $commentEntity->$key = $value;
             }
         }
 
-        // Validate using Symfony Validator (Step 1.13 - Hybrid Mode)
+        // Validate using Symfony Validator
         // Note: Some validations remain as business logic above (require_email for anonymous users)
-        $this->validateOrFail($comment);
+        $this->validateOrFail($commentEntity);
 
-        $comment->save($data);
+        $commentEntity->save($data);
 
-        return ['message' => 'success', 'comment' => $comment];
+        return ['message' => 'success', 'comment' => $commentEntity];
     }
 
-    /**
-     * @Access("blog: manage comments")
-     * @Route("/{id}", methods="DELETE", requirements={"id"="\d+"})
-     * @Request({"id": "int"}, csrf=true)
-     */
+    #[Access('blog: manage comments')]
+    #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\d+'])]
+    #[Request(['id' => 'int'])]
     public function deleteAction(int $id): array
     {
         if ($comment = Comment::find($id)) {
@@ -237,11 +233,9 @@ class CommentApiController
         return ['message' => 'success'];
     }
 
-    /**
-     * @Access("blog: manage comments")
-     * @Route("/bulk", methods="POST")
-     * @Request({"comments": "array"}, csrf=true)
-     */
+    #[Access('blog: manage comments')]
+    #[Route('/bulk', methods: ['POST'])]
+    #[Request(['comments' => 'array'])]
     public function bulkSaveAction(array $comments = []): array
     {
 
@@ -252,11 +246,9 @@ class CommentApiController
         return ['message' => 'success'];
     }
 
-    /**
-     * @Access("blog: manage comments")
-     * @Route("/bulk", methods="DELETE")
-     * @Request({"ids": "array"}, csrf=true)
-     */
+    #[Access('blog: manage comments')]
+    #[Route('/bulk', methods: ['DELETE'])]
+    #[Request(['ids' => 'array'])]
     public function bulkDeleteAction(array $ids = []): array
     {
         foreach (array_filter($ids) as $id) {

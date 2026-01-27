@@ -1,7 +1,7 @@
 {
   "name": "pagekit/pagekit",
   "title": "Pagekit",
-  "version": "1.0.48",
+  "version": "1.1.0",
   "type": "project",
   "description": "The Pagekit CMS",
   "keywords": [
@@ -19,7 +19,6 @@
   "require": {
     "php": "^8.2",
     "composer/composer": "^2.8",
-    "doctrine/annotations": "~1.14",
     "doctrine/dbal": "^3.8",
     "paragonie/random-lib": "~2.0.1",
     "paragonie/sodium_compat": "^2.0",

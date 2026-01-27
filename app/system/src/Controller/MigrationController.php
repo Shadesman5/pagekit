@@ -1,13 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\System\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Installer\Package\PackageScripts;
+use Pagekit\Routing\Attribute\Request;
+use Pagekit\User\Attribute\Access;
 
-/**
- * @Access("system: software updates", admin=true)
- */
+#[Access('system: software updates', admin: true)]
 class MigrationController
 {
     protected PackageScripts $scripts;
@@ -18,9 +20,7 @@ class MigrationController
         $this->scripts = new PackageScripts($system->path.'/scripts.php', $system->config('version'));
     }
 
-    /**
-     * @Request({"redirect": "string"})
-     */
+    #[Request(['redirect' => 'string'])]
     public function indexAction($redirect = null)
     {
         if (!$this->scripts->hasUpdates()) {
@@ -37,9 +37,7 @@ class MigrationController
         ];
     }
 
-    /**
-     * @Request({"redirect": "string"}, csrf=true)
-     */
+    #[Request(['redirect' => 'string'], csrf: true)]
     public function migrateAction($redirect = null)
     {
         if ($updates = $this->scripts->hasUpdates()) {

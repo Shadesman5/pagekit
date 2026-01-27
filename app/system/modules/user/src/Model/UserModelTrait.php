@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Model;
 
+use Pagekit\Database\ORM\Attribute as ORM;
 use Pagekit\Database\ORM\ModelTrait;
 
 trait UserModelTrait
@@ -59,9 +60,7 @@ trait UserModelTrait
         return array_intersect_key($cached, array_flip($user->roles));
     }
 
-    /**
-     * @Saving
-     */
+    #[ORM\Saving]
     public static function saving($event, User $user): void
     {
         if (!$user->hasRole(Role::ROLE_AUTHENTICATED)) {

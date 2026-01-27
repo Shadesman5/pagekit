@@ -1,19 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Mail\Controller;
 
 use Pagekit\Application as App;
+use Pagekit\Routing\Attribute\Route;
+use Pagekit\User\Attribute\Access;
 use Pagekit\Util\Arr;
 use function Pagekit\__;
 
-/**
- * @Access("system: access settings", admin=true)
- */
+#[Access('system: access settings', admin: true)]
 class MailController
 {
-    /**
-     * @Route("/smtp", methods="POST")
-     */
+    #[Route('/smtp', methods: ['POST'])]
     public function smtpAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -49,9 +49,8 @@ class MailController
 
     /**
      * Note: If the mailer is accessed prior to this controller action, this will possibly test the wrong mailer
-     *
-     * @Route("/email", methods="POST")
      */
+    #[Route('/email', methods: ['POST'])]
     public function emailAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)

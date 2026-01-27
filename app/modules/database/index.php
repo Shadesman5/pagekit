@@ -4,7 +4,7 @@ use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Pagekit\Database\ORM\EntityManager;
-use Pagekit\Database\ORM\Loader\AnnotationLoader;
+use Pagekit\Database\ORM\Loader\AttributeLoader;
 use Pagekit\Database\ORM\MetadataManager;
 use Pagekit\Event\PrefixEventDispatcher;
 
@@ -96,7 +96,7 @@ $config = [
         $app['db.metas'] = function ($app) {
 
             $manager = new MetadataManager($app['db'], $app['db.events']);
-            $manager->setLoader(new AnnotationLoader);
+            $manager->setLoader(new AttributeLoader());
             // Cache now supports both doctrine/cache and PSR-6 interfaces
             $manager->setCache($app['cache.phpfile']);
 

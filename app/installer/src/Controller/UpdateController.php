@@ -1,14 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Installer\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Installer\SelfUpdater;
+use Pagekit\Routing\Attribute\Request;
+use Pagekit\User\Attribute\Access;
 use Symfony\Component\Console\Output\StreamOutput;
 
-/**
- * @Access("system: software updates", admin=true)
- */
+#[Access('system: software updates', admin: true)]
 class UpdateController
 {
     public function indexAction(): array
@@ -26,9 +28,7 @@ class UpdateController
         ];
     }
 
-    /**
-     * @Request({"url": "string"}, csrf=true)
-     */
+    #[Request(['url' => 'string'], csrf: true)]
     public function downloadAction($url): array
     {
         $tempPath = App::getInstance() ? App::getInstance()['path.temp'] : sys_get_temp_dir();
@@ -42,9 +42,7 @@ class UpdateController
         return [];
     }
 
-    /**
-     * @Request(csrf=true)
-     */
+    #[Request([], csrf: true)]
     public function updateAction()
     {
         if (!$file = App::session()->get('system.update')) {

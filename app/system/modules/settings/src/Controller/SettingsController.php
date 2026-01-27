@@ -1,14 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\System\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Config\Config;
+use Pagekit\Routing\Attribute\Route;
+use Pagekit\User\Attribute\Access;
 use function Pagekit\__;
 
-/**
- * @Access("system: access settings", admin=true)
- */
+#[Access('system: access settings', admin: true)]
 class SettingsController
 {
     public function indexAction(): array
@@ -21,9 +23,7 @@ class SettingsController
         ];
     }
 
-    /**
-     * @Route("/save", methods="POST")
-     */
+    #[Route('/save', methods: ['POST'])]
     public function saveAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -58,9 +58,7 @@ class SettingsController
         return ['message' => 'success'];
     }
 
-    /**
-     * @Route("/config", methods="POST")
-     */
+    #[Route('/config', methods: ['POST'])]
     public function configAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)

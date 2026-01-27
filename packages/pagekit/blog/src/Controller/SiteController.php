@@ -1,10 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Blog\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Blog\Model\Post;
+use Pagekit\Captcha\Attribute\Captcha;
 use Pagekit\Module\Module;
+use Pagekit\Routing\Attribute\Route;
 
 class SiteController
 {
@@ -18,10 +22,8 @@ class SiteController
         $this->blog = App::module('blog');
     }
 
-    /**
-     * @Route("/")
-     * @Route("/page/{page}", name="page", requirements={"page" = "\d+"})
-     */
+    #[Route('/')]
+    #[Route('/page/{page}', name: 'page', requirements: ['page' => '\d+'])]
     public function indexAction($page = 1): array
     {
         $query = Post::where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime])->where(function($query) { 
@@ -60,10 +62,8 @@ class SiteController
         ];
     }
 
-    /**
-     * @Route("/feed")
-     * @Route("/feed/{type}")
-     */
+    #[Route('/feed')]
+    #[Route('/feed/{type}')]
     public function feedAction($type = '')
     {
         // fetch locale and convert to ISO-639 (en_US -> en-us)
@@ -102,11 +102,9 @@ class SiteController
         return App::response($feed->output(), 200, ['Content-Type' => $feed->getMIMEType().'; charset='.$feed->getEncoding()]);
     }
 
-    /**
-     * @Route("/{id}", name="id")
-     * @Captcha(route="@blog/api/comment/save")
-     * @Captcha(route="@blog/api/comment/save_1")
-     */
+    #[Route('/{id}', name: 'id')]
+    #[Captcha(route: '@blog/api/comment/save')]
+    #[Captcha(route: '@blog/api/comment/save_1')]
     public function postAction($id = 0): array
     {
         if (!$post = Post::where(['id = ?', 'status = ?', 'date < ?'], [$id, Post::STATUS_PUBLISHED, new \DateTime])->related('user')->first()) {

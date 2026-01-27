@@ -17,12 +17,22 @@ class HasOne extends Relation
     {
         parent::__construct($manager, $metadata, $mapping);
 
+        // Validate required parameter
+        if (empty($mapping['keyTo'])) {
+            throw new \InvalidArgumentException(sprintf(
+                '%s relation "%s" on "%s" requires "keyTo" parameter.',
+                (new \ReflectionClass($this))->getShortName(),
+                $mapping['name'] ?? 'unknown',
+                $metadata->getClass()
+            ));
+        }
+
         $this->keyFrom = (isset($mapping['keyFrom']) && $mapping['keyFrom']) ? $mapping['keyFrom'] : $metadata->getIdentifier();
         $this->keyTo   = $mapping['keyTo'];
 
-        foreach ($this->targetMetadata->getRelationMappings() as $mapping) {
-            if ($mapping['type'] == 'BelongsTo' && $mapping['targetEntity'] == $this->metadata->getClass()) {
-                $this->belongsTo = $mapping['name'];
+        foreach ($this->targetMetadata->getRelationMappings() as $relationMapping) {
+            if ($relationMapping['type'] == 'BelongsTo' && $relationMapping['targetEntity'] == $this->metadata->getClass()) {
+                $this->belongsTo = $relationMapping['name'];
                 break;
             }
         }

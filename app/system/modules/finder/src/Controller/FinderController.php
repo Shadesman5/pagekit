@@ -1,10 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Finder\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Finder\Event\FileAccessEvent;
 use Pagekit\Kernel\Exception\ForbiddenException;
+use Pagekit\Routing\Attribute\Request;
+use Pagekit\Routing\Attribute\Route;
 use function Pagekit\__;
 
 class FinderController
@@ -56,9 +60,8 @@ class FinderController
         return $data;
     }
 
-    /**
-     * @Route("/createfolder", methods="POST")
-     */
+    #[Route('/createfolder', methods: ['POST'])]
+    #[Request([], csrf: true)]
     public function createFolderAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -99,9 +102,8 @@ class FinderController
         }
     }
 
-    /**
-     * @Route("/rename", methods="POST")
-     */
+    #[Route('/rename', methods: ['POST'])]
+    #[Request([], csrf: true)]
     public function renameAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -136,9 +138,8 @@ class FinderController
         return $this->success(__('Renamed.'));
     }
 
-    /**
-     * @Route("/removefiles", methods="POST")
-     */
+    #[Route('/removefiles', methods: ['POST'])]
+    #[Request([], csrf: true)]
     public function removeFilesAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -174,9 +175,8 @@ class FinderController
         return $this->success(__('Removed selected.'));
     }
 
-    /**
-     * @Route("/upload", methods="POST")
-     */
+    #[Route('/upload', methods: ['POST'])]
+    #[Request([], csrf: true)]
     public function uploadAction(): array
     {
         try {
@@ -252,8 +252,6 @@ class FinderController
 
     /**
      * Normalizes the given path
-     *
-     * @param  string $path
      */
     protected function normalizePath($path): string
     {

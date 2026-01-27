@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Pagekit\System\Model;
 
+use Pagekit\Database\ORM\Attribute as ORM;
 use Pagekit\Util\Arr;
 
 trait DataModelTrait
 {
-    /** @Column(type="json_array") */
+    #[ORM\Column(type: 'json_array')]
     public mixed $data = null;
 
     /**

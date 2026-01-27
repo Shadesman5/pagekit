@@ -1,17 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Cache\Controller;
 
 use Pagekit\Application as App;
+use Pagekit\Routing\Attribute\Route;
+use Pagekit\User\Attribute\Access;
 
-/**
- * @Access(admin=true)
- */
+#[Access(admin: true)]
 class CacheController
 {
-    /**
-     * @Route("/clear", methods="POST")
-     */
+    #[Route('/clear', methods: ['POST'])]
     public function clearAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)

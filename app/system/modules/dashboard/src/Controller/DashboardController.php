@@ -1,14 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Dashboard\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Module\Module;
+use Pagekit\Routing\Attribute\Route;
+use Pagekit\User\Attribute\Access;
 use function Pagekit\__;
 
-/**
- * @Access(admin=true)
- */
+#[Access(admin: true)]
 class DashboardController
 {
     protected Module $dashboard;
@@ -25,9 +27,7 @@ class DashboardController
         $this->dashboard = App::module('system/dashboard');
     }
 
-    /**
-     * @Route("/", methods="GET")
-     */
+    #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
         return [
@@ -44,9 +44,7 @@ class DashboardController
         ];
     }
 
-    /**
-     * @Route("/savewidgets", methods="POST")
-     */
+    #[Route('/savewidgets', methods: ['POST'])]
     public function saveWidgetsAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -66,10 +64,8 @@ class DashboardController
     }
 
 
-    /**
-     * @Route("/", methods="POST")
-     * @Route("/{id}", methods="POST", requirements={"id"="\w+"})
-     */
+    #[Route('/', methods: ['POST'])]
+    #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\w+'])]
     public function saveAction($id = 0)
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -99,9 +95,7 @@ class DashboardController
         return $widget;
     }
 
-    /**
-     * @Route("/{id}", methods="DELETE", requirements={"id"="\w+"})
-     */
+    #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\w+'])]
     public function deleteAction($id = null): array
     {
         // Get id from route if not provided (Symfony 6.4 compatibility)
@@ -118,9 +112,7 @@ class DashboardController
         return ['message' => __('Widget deleted.')];
     }
 
-    /**
-     * @Route("/reorder", methods="POST")
-     */
+    #[Route('/reorder', methods: ['POST'])]
     public function reorderAction(): array
     {
         // Get parameters from request (Symfony 6.4 compatibility)
@@ -148,9 +140,7 @@ class DashboardController
         return ['message' => __('Widgets reordered.')];
     }
 
-    /**
-     * @Route("/weather", methods="GET")
-     */
+    #[Route('/weather', methods: ['GET'])]
     public function weatherAction()
     {
         // Get parameters from request (Symfony 6.4 compatibility)

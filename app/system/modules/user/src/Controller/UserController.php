@@ -1,21 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Controller;
 
 use Pagekit\Application as App;
+use Pagekit\Routing\Attribute\Request;
+use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use Pagekit\User\Model\User;
 use function Pagekit\__;
 
-/**
- * @Access(admin=true)
- */
+#[Access(admin: true)]
 class UserController
 {
-    /**
-     * @Access("user: manage users")
-     * @Request({"filter": "array", "page":"int"})
-     */
+    #[Access('user: manage users')]
+    #[Request(['filter' => 'array', 'page' => 'int'])]
     public function indexAction($filter = [], $page = null): array
     {
         $roles = $this->getRoles();
@@ -38,10 +38,8 @@ class UserController
         ];
     }
 
-    /**
-     * @Access("user: manage users")
-     * @Request({"id": "int"})
-     */
+    #[Access('user: manage users')]
+    #[Request(['id' => 'int'])]
     public function editAction($id = 0): array
     {
         if (!$id) {
@@ -67,9 +65,7 @@ class UserController
         ];
     }
 
-    /**
-     * @Access("user: manage user permissions")
-     */
+    #[Access('user: manage user permissions')]
     public function permissionsAction(): array
     {
         return [
@@ -84,10 +80,8 @@ class UserController
         ];
     }
 
-    /**
-     * @Access("user: manage user permissions")
-     * @Request({"id": "int"})
-     */
+    #[Access('user: manage user permissions')]
+    #[Request(['id' => 'int'])]
     public function rolesAction($id = null): array
     {
         return [
@@ -105,9 +99,7 @@ class UserController
         ];
     }
 
-    /**
-     * @Access("system: access settings")
-     */
+    #[Access('system: access settings')]
     public function settingsAction(): array
     {
         return [
@@ -123,8 +115,6 @@ class UserController
 
     /**
      * Gets the user roles.
-     *
-     * @param  User $user
      */
     protected function getRoles(?User $user = null): array
     {

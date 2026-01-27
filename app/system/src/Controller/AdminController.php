@@ -1,25 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\System\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Auth\Auth;
+use Pagekit\Routing\Attribute\Request;
+use Pagekit\Routing\Attribute\Route;
+use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\User;
 
 class AdminController
 {
-    /**
-     * @Access(admin=true)
-     */
+    #[Access(admin: true)]
     public function indexAction()
     {
         return App::redirect('@dashboard');
     }
 
-    /**
-     * @Route("/admin/login", defaults={"_maintenance"=true})
-     * @Request({"redirect": "string", "message": "string"})
-     */
+    #[Route('/admin/login', defaults: ['_maintenance' => true])]
+    #[Request(['redirect' => 'string', 'message' => 'string'])]
     public function loginAction($redirect = '', $message = '')
     {
         if (App::user()->isAuthenticated()) {
@@ -38,10 +39,8 @@ class AdminController
         ];
     }
 
-    /**
-     * @Access(admin=true)
-     * @Request({"order": "array"})
-     */
+    #[Access(admin: true)]
+    #[Request(['order' => 'array'])]
     public function adminMenuAction($order): array
     {
         if (!$order) {
