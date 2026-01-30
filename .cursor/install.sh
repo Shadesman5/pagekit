@@ -1,24 +1,32 @@
 #!/bin/bash
 set -e
 
-# Cleanup function for lock file
+# Map Cursor secret to standard GitHub CLI env var
+export GH_TOKEN="${PAGEKIT_BACKGROUND_AGENT}"
+
+# Robust lock to prevent duplicate execution (e.g. parallel agent invocations)
+LOCK_FILE="/tmp/pagekit-setup.lock"
 cleanup() {
+    [ -n "$LOCK_FD" ] && flock -u "$LOCK_FD" 2>/dev/null || true
     rm -f "$LOCK_FILE"
 }
 trap cleanup EXIT
 
-# Map Cursor secret to standard GitHub CLI env var
-export GH_TOKEN="${PAGEKIT_BACKGROUND_AGENT}"
-
-# Check if already running to prevent duplicate execution
-LOCK_FILE="/tmp/pagekit-setup-running"
-if [ -f "$LOCK_FILE" ]; then
-    echo "⚠️ Setup already running, skipping..."
-    exit 0
+if command -v flock >/dev/null 2>&1; then
+    exec 200>"$LOCK_FILE"
+    if ! flock -n 200; then
+        echo "⚠️ Setup already running elsewhere, skipping..."
+        exit 0
+    fi
+    LOCK_FD=200
+else
+    # Fallback for systems without flock (e.g. minimal Snapshot)
+    if [ -f "$LOCK_FILE" ]; then
+        echo "⚠️ Setup already running, skipping..."
+        exit 0
+    fi
+    echo "$$" > "$LOCK_FILE"
 fi
-
-# Create lock file
-echo "$$" > "$LOCK_FILE"
 
 echo "🚀 Starting Pagekit Background Agent Setup..."
 
@@ -44,6 +52,17 @@ git pull origin develop
 
 # Install PHP dependencies
 echo "📚 Installing PHP dependencies..."
+
+# Remove stale lock files for fresh dependency resolution
+# Lock files can be out of sync after git merge/rebases (e.g. symfony/validator in composer.json but not in lock)
+if [ -f "composer.lock" ]; then
+    echo "🗑️ Removing stale composer.lock for fresh dependency resolution..."
+    rm -f composer.lock
+fi
+if [ -f "yarn.lock" ]; then
+    echo "🗑️ Removing stale yarn.lock for fresh dependency resolution..."
+    rm -f yarn.lock
+fi
 
 # Detect environment: Dockerfile (tools pre-installed) vs Snapshot (need to install)
 echo "🔍 Detecting environment..."
@@ -301,6 +320,3 @@ echo ""
 echo "🧪 To run fresh installation test:"
 echo "   npx playwright test tests/e2e/specs/01-setup/installation.spec.js --project=chromium"
 echo ""
-
-# Clean up lock file
-rm -f "$LOCK_FILE"
