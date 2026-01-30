@@ -19,8 +19,9 @@
 - **GitHub labels** - Updated PR workflow description (descriptive PR titles)
 - **Cursor Docker** - Align WORKDIR with /workspace mount, add workspace directory creation
 - **Cursor README** - Update documentation for /workspace layout and command paths
-- **install.sh** - Add flock-based lock to prevent duplicate execution, remove stale composer/yarn locks
+- **install.sh** - Add flock-based lock to prevent duplicate execution; use composer update instead of removing lock files
 - **Push workflow** - Branch-specific logic: develop (protected) uses integration branch + PR; other branches push directly
+- **Cursor rules** - Fix changelog reference CHANGELOG-2025 to CHANGELOG-NEW in feature-branch and pagekit-standards
 
 ---
 
