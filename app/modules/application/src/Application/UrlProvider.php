@@ -120,6 +120,7 @@ class UrlProvider
 
     /**
      * Gets the URL to a named route.
+     * Alias: route() for backward compatibility and clearer API.
      *
      * @param  string $name
      * @param  mixed  $parameters
@@ -144,6 +145,19 @@ class UrlProvider
         }
 
         return false;
+    }
+
+    /**
+     * Alias for getRoute(). Generates URL to a named route.
+     *
+     * @param  string $name Route name (e.g. '@hello/view/id')
+     * @param  array  $parameters Route parameters
+     * @param  mixed  $referenceType UrlGenerator::ABSOLUTE_PATH (0) or UrlGenerator::ABSOLUTE_URL (1/true)
+     * @return string|false
+     */
+    public function route($name, $parameters = [], $referenceType = UrlGenerator::ABSOLUTE_PATH)
+    {
+        return $this->getRoute($name, $parameters, $referenceType);
     }
 
     /**
