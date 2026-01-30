@@ -56,18 +56,9 @@ git checkout develop
 git pull origin develop
 
 # Install PHP dependencies
+# Use composer update (not install) so lock stays in sync with composer.json after git pull/merges.
+# composer install would fail on stale lock; update resolves fresh and keeps reproducible lock for next run.
 echo "📚 Installing PHP dependencies..."
-
-# Remove stale lock files for fresh dependency resolution
-# Lock files can be out of sync after git merge/rebases (e.g. symfony/validator in composer.json but not in lock)
-if [ -f "composer.lock" ]; then
-    echo "🗑️ Removing stale composer.lock for fresh dependency resolution..."
-    rm -f composer.lock
-fi
-if [ -f "yarn.lock" ]; then
-    echo "🗑️ Removing stale yarn.lock for fresh dependency resolution..."
-    rm -f yarn.lock
-fi
 
 # Detect environment: Dockerfile (tools pre-installed) vs Snapshot (need to install)
 echo "🔍 Detecting environment..."
@@ -182,8 +173,8 @@ else
     fi
 fi
 
-echo "📦 Running: $COMPOSER_CMD install --no-interaction"
-$COMPOSER_CMD install --no-interaction
+echo "📦 Running: $COMPOSER_CMD update --no-interaction"
+$COMPOSER_CMD update --no-interaction
 
 # Install Node dependencies
 echo "📦 Installing Node dependencies..."
