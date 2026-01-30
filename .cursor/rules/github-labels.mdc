@@ -170,7 +170,7 @@ When working with `feature-branch.mdc`:
 When using `push.mdc`:
 
 1. Commits are created with Conventional Commits format
-2. PR is auto-created with title "Integration of ongoing changes"
+2. PR is auto-created with a descriptive and smart title
 3. **Manually add appropriate labels** to the PR based on commit types
 4. Labels help with changelog categorization
 
