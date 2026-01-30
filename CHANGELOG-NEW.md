@@ -10,6 +10,7 @@
 ### 🐛 Bug Fixes
 
 - **FinderController no-op rename** - Fixed error when user saves without changing the file/folder name (source equals target)
+- **install.sh lock cleanup** - Only remove lock file when current process acquired it; prevents third process from bypassing lock
 
 ### 🔧 Maintenance
 
@@ -19,6 +20,7 @@
 - **Cursor Docker** - Align WORKDIR with /workspace mount, add workspace directory creation
 - **Cursor README** - Update documentation for /workspace layout and command paths
 - **install.sh** - Add flock-based lock to prevent duplicate execution, remove stale composer/yarn locks
+- **Push workflow** - Branch-specific logic: develop (protected) uses integration branch + PR; other branches push directly
 
 ---
 
