@@ -12,6 +12,10 @@
 *.yml text eol=lf
 *.yaml text eol=lf
 *.json text eol=lf
+*.env text eol=lf
+
+# Docker and shell config
+Dockerfile text eol=lf
 
 # PHP, JavaScript, and CSS files should use LF
 *.php text eol=lf
