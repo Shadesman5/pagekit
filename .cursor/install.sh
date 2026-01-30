@@ -5,10 +5,13 @@ set -e
 export GH_TOKEN="${PAGEKIT_BACKGROUND_AGENT}"
 
 # Robust lock to prevent duplicate execution (e.g. parallel agent invocations)
+# Only remove lock file when WE acquired it; otherwise we'd unlink the file the
+# holder has open, freeing the path for a third process to create a new file and bypass the lock.
 LOCK_FILE="/tmp/pagekit-setup.lock"
+LOCK_OWNER=
 cleanup() {
     [ -n "$LOCK_FD" ] && flock -u "$LOCK_FD" 2>/dev/null || true
-    rm -f "$LOCK_FILE"
+    [ -n "$LOCK_OWNER" ] && rm -f "$LOCK_FILE"
 }
 trap cleanup EXIT
 
@@ -19,6 +22,7 @@ if command -v flock >/dev/null 2>&1; then
         exit 0
     fi
     LOCK_FD=200
+    LOCK_OWNER=1
 else
     # Fallback for systems without flock (e.g. minimal Snapshot)
     if [ -f "$LOCK_FILE" ]; then
@@ -26,6 +30,7 @@ else
         exit 0
     fi
     echo "$$" > "$LOCK_FILE"
+    LOCK_OWNER=1
 fi
 
 echo "🚀 Starting Pagekit Background Agent Setup..."
