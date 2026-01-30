@@ -127,6 +127,11 @@ class FinderController
             return $this->error(__('Invalid path.'));
         }
 
+        // No-op: user saved without changing the name
+        if ($source === $target) {
+            return $this->success(__('Renamed.'));
+        }
+
         if ('w' !== $this->getMode($source) || file_exists($target) || 'w' !== $this->getMode(dirname($target))) {
             throw new ForbiddenException(__('Permission denied.'));
         }
