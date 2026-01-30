@@ -42,6 +42,9 @@ docker.env
 .cursor/rules/push.mdc
 .cursor/environment.json
 
+# PHPUnit cache
+.phpunit.cache/
+
 # E2E Testing
 .playwright-mcp/**/*
 /test-results/
