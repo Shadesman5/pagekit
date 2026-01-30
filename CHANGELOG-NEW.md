@@ -16,6 +16,9 @@
 - **PHPUnit cache** - Added `.phpunit.cache/` to `.gitignore` to exclude test results from version control
 - **Push workflow** - Refactored to branch-agnostic, CC-style integration branch names, no auto-merge
 - **GitHub labels** - Updated PR workflow description (descriptive PR titles)
+- **Cursor Docker** - Align WORKDIR with /workspace mount, add workspace directory creation
+- **Cursor README** - Update documentation for /workspace layout and command paths
+- **install.sh** - Add flock-based lock to prevent duplicate execution, remove stale composer/yarn locks
 
 ---
 
