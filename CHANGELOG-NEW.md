@@ -1,4 +1,4 @@
-# Changelog 2025
+# Changelog
 
 ## Pagekit 1.1.1 - UrlProvider, Request Attribute & Finder Fixes (January 30, 2026)
 
@@ -14,6 +14,8 @@
 ### 🔧 Maintenance
 
 - **PHPUnit cache** - Added `.phpunit.cache/` to `.gitignore` to exclude test results from version control
+- **Push workflow** - Refactored to branch-agnostic, CC-style integration branch names, no auto-merge
+- **GitHub labels** - Updated PR workflow description (descriptive PR titles)
 
 ---
 
