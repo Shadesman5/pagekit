@@ -1,5 +1,22 @@
 # Changelog 2025
 
+## Pagekit 1.1.1 - UrlProvider, Request Attribute & Finder Fixes (January 30, 2026)
+
+### ✨ New Features
+
+- **UrlProvider route() alias** - Added `route()` as alias for `getRoute()` for backward compatibility and clearer API
+- **#[Request] filter options** - Added `options` parameter to `#[Request]` attribute for filter-specific options (e.g. pregreplace pattern)
+
+### 🐛 Bug Fixes
+
+- **FinderController no-op rename** - Fixed error when user saves without changing the file/folder name (source equals target)
+
+### 🔧 Maintenance
+
+- **PHPUnit cache** - Added `.phpunit.cache/` to `.gitignore` to exclude test results from version control
+
+---
+
 ## Pagekit 1.1.0 - Complete PHP 8 Attributes Migration (January 26, 2026)
 
 ### 🚀 Major Changes - BREAKING
