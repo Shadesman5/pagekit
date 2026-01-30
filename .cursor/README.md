@@ -2,6 +2,10 @@
 
 Diese Konfiguration ermöglicht es, Background Agents in Cursor zu verwenden, um die Pagekit-Modernisierung automatisiert durchzuführen.
 
+## Workspace-Layout
+
+Cursor mountet das geklonte Repository unter `/workspace`. Das Dockerfile setzt `WORKDIR /workspace`, sodass alle Scripts und Befehle im Projektverzeichnis laufen.
+
 ## Setup
 
 1. **GitHub Token erstellen**:
@@ -24,13 +28,13 @@ Diese Konfiguration ermöglicht es, Background Agents in Cursor zu verwenden, um
 
 ## Verfügbare Befehle
 
-Im Background Agent Terminal kannst du folgende Befehle nutzen:
+Im Background Agent Terminal (Workspace: `/workspace`) kannst du folgende Befehle nutzen:
 
 ```bash
-# Modernisierungs-Tasks
-/home/ubuntu/.cursor/modernize-helper.sh phpunit   # PHPUnit 11 Upgrade
-/home/ubuntu/.cursor/modernize-helper.sh security  # Security Patches
-/home/ubuntu/.cursor/modernize-helper.sh symfony   # Symfony 6.4 Upgrade
+# Modernisierungs-Tasks (von /workspace aus)
+.cursor/modernize-helper.sh phpunit   # PHPUnit 11 Upgrade
+.cursor/modernize-helper.sh security  # Security Patches
+.cursor/modernize-helper.sh symfony   # Symfony 6.4 Upgrade
 
 # Allgemeine Befehle
 composer test                                      # Tests ausführen
@@ -60,25 +64,25 @@ Einfach "push" im Chat eingeben!
 1. **Schritt 1.2 - PHPUnit Update** (AKTUELL):
 
     ```bash
-    /home/ubuntu/.cursor/modernize-helper.sh phpunit
+    .cursor/modernize-helper.sh phpunit
     ```
 
 2. **Schritt 1.3 - Security Patches** (NÄCHSTER):
 
     ```bash
-    /home/ubuntu/.cursor/modernize-helper.sh security
+    .cursor/modernize-helper.sh security
     ```
 
 3. **Schritt 1.4 - Symfony Update**:
     ```bash
-    /home/ubuntu/.cursor/modernize-helper.sh symfony
+    .cursor/modernize-helper.sh symfony
     ```
 
 ## Troubleshooting
 
 -   **Permission Denied**: Scripts mit `chmod +x` ausführbar machen
 -   **GitHub Auth Failed**: Prüfe ob `GH_TOKEN` korrekt gesetzt ist
--   **Tests schlagen fehl**: Logs in `/home/ubuntu/pagekit/` prüfen
+-   **Tests schlagen fehl**: Logs in `/workspace/` bzw. `tmp/logs/` prüfen
 
 ## Wichtige Dateien
 

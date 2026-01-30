@@ -1,24 +1,37 @@
 #!/bin/bash
 set -e
 
-# Cleanup function for lock file
-cleanup() {
-    rm -f "$LOCK_FILE"
-}
-trap cleanup EXIT
-
 # Map Cursor secret to standard GitHub CLI env var
 export GH_TOKEN="${PAGEKIT_BACKGROUND_AGENT}"
 
-# Check if already running to prevent duplicate execution
-LOCK_FILE="/tmp/pagekit-setup-running"
-if [ -f "$LOCK_FILE" ]; then
-    echo "⚠️ Setup already running, skipping..."
-    exit 0
-fi
+# Robust lock to prevent duplicate execution (e.g. parallel agent invocations)
+# Only remove lock file when WE acquired it; otherwise we'd unlink the file the
+# holder has open, freeing the path for a third process to create a new file and bypass the lock.
+LOCK_FILE="/tmp/pagekit-setup.lock"
+LOCK_OWNER=
+cleanup() {
+    [ -n "$LOCK_FD" ] && flock -u "$LOCK_FD" 2>/dev/null || true
+    [ -n "$LOCK_OWNER" ] && rm -f "$LOCK_FILE"
+}
+trap cleanup EXIT
 
-# Create lock file
-echo "$$" > "$LOCK_FILE"
+if command -v flock >/dev/null 2>&1; then
+    exec 200>"$LOCK_FILE"
+    if ! flock -n 200; then
+        echo "⚠️ Setup already running elsewhere, skipping..."
+        exit 0
+    fi
+    LOCK_FD=200
+    LOCK_OWNER=1
+else
+    # Fallback for systems without flock (e.g. minimal Snapshot)
+    if [ -f "$LOCK_FILE" ]; then
+        echo "⚠️ Setup already running, skipping..."
+        exit 0
+    fi
+    echo "$$" > "$LOCK_FILE"
+    LOCK_OWNER=1
+fi
 
 echo "🚀 Starting Pagekit Background Agent Setup..."
 
@@ -43,6 +56,8 @@ git checkout develop
 git pull origin develop
 
 # Install PHP dependencies
+# Use composer update (not install) so lock stays in sync with composer.json after git pull/merges.
+# composer install would fail on stale lock; update resolves fresh and keeps reproducible lock for next run.
 echo "📚 Installing PHP dependencies..."
 
 # Detect environment: Dockerfile (tools pre-installed) vs Snapshot (need to install)
@@ -158,8 +173,8 @@ else
     fi
 fi
 
-echo "📦 Running: $COMPOSER_CMD install --no-interaction"
-$COMPOSER_CMD install --no-interaction
+echo "📦 Running: $COMPOSER_CMD update --no-interaction"
+$COMPOSER_CMD update --no-interaction
 
 # Install Node dependencies
 echo "📦 Installing Node dependencies..."
@@ -301,6 +316,3 @@ echo ""
 echo "🧪 To run fresh installation test:"
 echo "   npx playwright test tests/e2e/specs/01-setup/installation.spec.js --project=chromium"
 echo ""
-
-# Clean up lock file
-rm -f "$LOCK_FILE"
