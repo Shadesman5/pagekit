@@ -73,6 +73,9 @@ RUN composer --version && echo 'export PATH="/usr/local/bin:$PATH"' >> /etc/bash
 # Create a non-root user for the background agent
 RUN useradd -m -s /bin/bash ubuntu
 
+# Create workspace directory - Cursor mounts the cloned repo here
+RUN mkdir -p /workspace && chown ubuntu:ubuntu /workspace
+
 # Environment variables for better git/composer experience
 ENV COMPOSER_ALLOW_SUPERUSER=1
 ENV COMPOSER_NO_INTERACTION=1
@@ -83,9 +86,9 @@ ENV PATH="/usr/local/bin:$PATH"
 # Switch to non-root user
 USER ubuntu
 
-# Set working directory to user's home (Cursor will mount workspace automatically)
-WORKDIR /home/ubuntu
+# Cursor mounts the cloned repository at /workspace - align WORKDIR with that
+WORKDIR /workspace
 
-# Note: Cursor background agent will automatically mount the workspace
+# Note: Cursor background agent mounts the workspace at /workspace
 # Dependencies will be installed by install.sh script (works in both Dockerfile and Snapshot environments)
 # GitHub token should be provided via environment variable: PAGEKIT_BACKGROUND_AGENT
