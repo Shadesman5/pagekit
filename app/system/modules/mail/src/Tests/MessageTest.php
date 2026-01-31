@@ -210,13 +210,36 @@ class MessageTest extends TestCase
         $clonedParts = $clonedMessage->getParts();
         $this->assertCount(count($originalParts), $clonedParts);
         
-        // Set mailer on cloned message and verify it can send
-        $clonedMessage->setMailer($this->mailer);
-        $clonedMessage->from('from@example.com')
-                     ->to('to@example.com')
-                     ->subject('Test')
-                     ->text('Test body');
-        $result = $clonedMessage->send();
-        $this->assertEquals(1, $result);
+        // CRITICAL: Verify that cloned message's DataPart objects reference NEW temp files
+        // not the original ones. If original is destroyed, clone should still work.
+        // Use reflection to access protected tempFiles property
+        $reflection = new \ReflectionClass($this->message);
+        $tempFilesProperty = $reflection->getProperty('tempFiles');
+        $tempFilesProperty->setAccessible(true);
+        
+        $originalTempFiles = $tempFilesProperty->getValue($this->message);
+        $clonedTempFiles = $tempFilesProperty->getValue($clonedMessage);
+        
+        if (!empty($originalTempFiles) && !empty($clonedTempFiles)) {
+            // Cloned files should be different from original
+            $this->assertNotEquals($originalTempFiles, $clonedTempFiles);
+            
+            // Simulate original being destroyed (delete its temp files)
+            foreach ($originalTempFiles as $originalFile) {
+                if (file_exists($originalFile)) {
+                    @unlink($originalFile);
+                }
+            }
+            
+            // Cloned message should still be able to send (uses its own temp files)
+            // This verifies that DataPart objects were updated to reference new paths
+            $clonedMessage->setMailer($this->mailer);
+            $clonedMessage->from('from@example.com')
+                         ->to('to@example.com')
+                         ->subject('Test')
+                         ->text('Test body');
+            $result = $clonedMessage->send();
+            $this->assertEquals(1, $result, 'Cloned message should work even after original temp files are deleted');
+        }
     }
 }

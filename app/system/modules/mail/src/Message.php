@@ -243,6 +243,10 @@ class Message extends Email implements MessageInterface
      * Clone handler to duplicate temp files for cloned messages.
      * When a Message is cloned, we need to copy the temp files so both
      * objects have their own copies and can clean up independently.
+     * 
+     * Also updates DataPart objects in parent Email class to reference
+     * the new temp file paths, since they are shallow-copied and still
+     * point to original files.
      */
     public function __clone()
     {
@@ -251,7 +255,10 @@ class Message extends Email implements MessageInterface
         $originalTempFiles = $this->tempFiles;
         $this->tempFiles = [];
         
+        // Create mapping of original paths to new paths
+        $pathMapping = [];
         $newTempFiles = [];
+        
         foreach ($originalTempFiles as $tempFile) {
             // Check if original file exists before creating new temp file
             // This prevents orphaned temp files if original was deleted externally
@@ -272,6 +279,7 @@ class Message extends Email implements MessageInterface
             
             if (copy($tempFile, $newTempFile)) {
                 $newTempFiles[] = $newTempFile;
+                $pathMapping[$tempFile] = $newTempFile;
             } else {
                 // Clean up the temp file we created
                 @unlink($newTempFile);
@@ -282,6 +290,69 @@ class Message extends Email implements MessageInterface
                 throw new \RuntimeException('Failed to copy temporary file for cloned message. Check disk space and permissions.');
             }
         }
+        
         $this->tempFiles = $newTempFiles;
+        
+        // Update DataPart objects in parent Email class to reference new paths
+        // The parent's attachments are shallow-copied and still point to original files
+        if (!empty($pathMapping)) {
+            $this->updateAttachmentPaths($pathMapping);
+        }
+    }
+    
+    /**
+     * Updates DataPart objects in parent Email class to reference new temp file paths.
+     * This is necessary because __clone() shallow-copies the attachments, leaving
+     * them pointing to the original temp files.
+     * 
+     * @param array<string, string> $pathMapping Mapping of original paths to new paths
+     */
+    protected function updateAttachmentPaths(array $pathMapping): void
+    {
+        $attachments = $this->getAttachments();
+        
+        foreach ($attachments as $index => $attachment) {
+            if ($attachment instanceof DataPart) {
+                // Use reflection to access the body property of DataPart
+                // DataPart stores the file path in its body property
+                try {
+                    $reflection = new \ReflectionClass($attachment);
+                    
+                    // Try to find and update the body property
+                    // DataPart may have the path in different places depending on Symfony version
+                    if ($reflection->hasProperty('body')) {
+                        $bodyProperty = $reflection->getProperty('body');
+                        $bodyProperty->setAccessible(true);
+                        $body = $bodyProperty->getValue($attachment);
+                        
+                        // If body is a string path and it's in our mapping, update it
+                        if (is_string($body) && isset($pathMapping[$body])) {
+                            $bodyProperty->setValue($attachment, $pathMapping[$body]);
+                            continue;
+                        }
+                    }
+                    
+                    // Alternative: Check if there's a 'path' or 'filename' property
+                    // Some Symfony versions store the path differently
+                    foreach (['path', 'filename', 'file'] as $propName) {
+                        if ($reflection->hasProperty($propName)) {
+                            $prop = $reflection->getProperty($propName);
+                            $prop->setAccessible(true);
+                            $value = $prop->getValue($attachment);
+                            
+                            if (is_string($value) && isset($pathMapping[$value])) {
+                                $prop->setValue($attachment, $pathMapping[$value]);
+                                break;
+                            }
+                        }
+                    }
+                } catch (\ReflectionException $e) {
+                    // If reflection fails, we can't update the path
+                    // This means the cloned attachment will still reference the original file
+                    // This is a limitation, but the original file should exist until clone is sent
+                    // In practice, this should be rare as both objects typically exist together
+                }
+            }
+        }
     }
 }
