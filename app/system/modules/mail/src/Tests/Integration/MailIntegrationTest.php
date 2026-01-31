@@ -103,7 +103,7 @@ class MailIntegrationTest extends TestCase
             $this->assertEquals(1, $result);
             
             // Verify embedded content - CID must match header value (RFC requires local@domain)
-            $this->assertEquals('cid:logo@pagekit.local', $cid);
+            $this->assertEquals('cid:logo@pagekit', $cid);
         } finally {
             unlink($tempFile);
         }

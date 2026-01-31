@@ -130,8 +130,8 @@ class MessageTest extends TestCase
             $customCid = 'custom-cid';
             $cid = $this->message->embedFile($tempFile, $customCid);
             // CID must match the header value (RFC requires local@domain format)
-            // So 'custom-cid' becomes 'custom-cid@pagekit.local' in the header
-            $this->assertEquals('cid:custom-cid@pagekit.local', $cid);
+            // So 'custom-cid' becomes 'custom-cid@pagekit' in the header (consistent with embedData)
+            $this->assertEquals('cid:custom-cid@pagekit', $cid);
         } finally {
             unlink($tempFile);
         }
@@ -189,5 +189,34 @@ class MessageTest extends TestCase
         
         $this->assertEquals('Test Subject', $this->message->getSubject());
         $this->assertEquals('Test Body', $this->message->getTextBody());
+    }
+
+    public function testCloneWithTempFiles(): void
+    {
+        // Create message with in-memory attachment
+        $this->message->attachData('Test attachment data', 'test.txt', 'text/plain');
+        
+        // Verify original has attachment
+        $originalParts = $this->message->getParts();
+        $this->assertGreaterThan(0, count($originalParts));
+        
+        // Clone the message
+        $clonedMessage = clone $this->message;
+        
+        // Both should have their own temp files
+        $this->assertNotSame($this->message, $clonedMessage);
+        
+        // Verify cloned message has its own copy of attachments
+        $clonedParts = $clonedMessage->getParts();
+        $this->assertCount(count($originalParts), $clonedParts);
+        
+        // Set mailer on cloned message and verify it can send
+        $clonedMessage->setMailer($this->mailer);
+        $clonedMessage->from('from@example.com')
+                     ->to('to@example.com')
+                     ->subject('Test')
+                     ->text('Test body');
+        $result = $clonedMessage->send();
+        $this->assertEquals(1, $result);
     }
 }

@@ -100,7 +100,11 @@ class Message extends Email implements MessageInterface
             throw new \RuntimeException('Failed to create temporary file for attachment. Check disk space and permissions.');
         }
         
-        file_put_contents($tempFile, $data);
+        $bytesWritten = file_put_contents($tempFile, $data);
+        if ($bytesWritten === false) {
+            @unlink($tempFile);
+            throw new \RuntimeException('Failed to write data to temporary file for attachment. Check disk space and permissions.');
+        }
         
         // Store reference to keep file alive until email is sent
         $this->tempFiles[] = $tempFile;
@@ -120,8 +124,8 @@ class Message extends Email implements MessageInterface
         // Generate or use provided CID
         if ($cid !== null) {
             // For RFC compliance, Content-ID must be in format: local@domain
-            // If custom CID doesn't have @, we'll add @pagekit.local
-            $contentId = strpos($cid, '@') === false ? $cid.'@pagekit.local' : $cid;
+            // If custom CID doesn't have @, we'll add @pagekit (consistent with embedData)
+            $contentId = strpos($cid, '@') === false ? $cid.'@pagekit' : $cid;
         } else {
             $contentId = md5_file($file).'@pagekit';
         }
@@ -168,7 +172,11 @@ class Message extends Email implements MessageInterface
             throw new \RuntimeException('Failed to create temporary file for embedded content. Check disk space and permissions.');
         }
         
-        file_put_contents($tempFile, $data);
+        $bytesWritten = file_put_contents($tempFile, $data);
+        if ($bytesWritten === false) {
+            @unlink($tempFile);
+            throw new \RuntimeException('Failed to write data to temporary file for embedded content. Check disk space and permissions.');
+        }
         
         // Store reference to keep file alive until email is sent
         $this->tempFiles[] = $tempFile;
@@ -229,5 +237,29 @@ class Message extends Email implements MessageInterface
                 @unlink($tempFile);
             }
         }
+    }
+
+    /**
+     * Clone handler to duplicate temp files for cloned messages.
+     * When a Message is cloned, we need to copy the temp files so both
+     * objects have their own copies and can clean up independently.
+     */
+    public function __clone()
+    {
+        $newTempFiles = [];
+        foreach ($this->tempFiles as $tempFile) {
+            // Create a copy of the temp file for the cloned object
+            $newTempFile = tempnam(sys_get_temp_dir(), 'pagekit_mail_');
+            if ($newTempFile !== false && file_exists($tempFile)) {
+                if (copy($tempFile, $newTempFile)) {
+                    $newTempFiles[] = $newTempFile;
+                } else {
+                    // If copy fails, try to keep original (but this is risky)
+                    // Better to throw exception
+                    throw new \RuntimeException('Failed to copy temporary file for cloned message. Check disk space and permissions.');
+                }
+            }
+        }
+        $this->tempFiles = $newTempFiles;
     }
 }

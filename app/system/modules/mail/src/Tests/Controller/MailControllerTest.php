@@ -137,6 +137,62 @@ class MailControllerTest extends TestCase
         $this->assertIsString($result['message']);
     }
 
+    public function testEmailActionWithoutConfiguration(): void
+    {
+        $request = new Request();
+        $request->request->set('option', [
+            'from_address' => 'test@example.com'
+        ]);
+
+        $mailer = new Mailer(new NullTransport());
+        $mailModule = $this->createMock(Module::class);
+        $mailModule->method('config')->willReturn([
+            'from_address' => 'test@example.com',
+            'from_name' => null
+        ]);
+
+        $result = $this->controller->emailAction($request, $mailer, $mailModule);
+        
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('success', $result);
+        $this->assertArrayHasKey('message', $result);
+        // With NullTransport, sending should succeed
+        $this->assertTrue($result['success']);
+    }
+
+    /**
+     * @group network
+     */
+    public function testEmailActionWithConfiguration(): void
+    {
+        // Skip this test if email configuration is not available
+        if (!($GLOBALS['email_address'] ?? false)) {
+            $this->markTestSkipped('Email test configuration not available');
+        }
+
+        $request = new Request();
+        $request->request->set('option', [
+            'from_address' => $GLOBALS['email_address']
+        ]);
+
+        // For real email sending, we'd need a real mailer with SMTP transport
+        // For structure testing, we use NullTransport
+        $mailer = new Mailer(new NullTransport());
+        $mailModule = $this->createMock(Module::class);
+        $mailModule->method('config')->willReturn([
+            'from_address' => $GLOBALS['email_address'],
+            'from_name' => null
+        ]);
+
+        $result = $this->controller->emailAction($request, $mailer, $mailModule);
+        
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('success', $result);
+        $this->assertArrayHasKey('message', $result);
+        // With NullTransport, sending should succeed
+        $this->assertTrue($result['success']);
+    }
+
     public function testEmailActionReturnsCorrectStructure(): void
     {
         $request = new Request();
