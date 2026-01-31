@@ -342,8 +342,10 @@ class Message extends Email implements MessageInterface
                     }
                     
                     // Copy other headers from original
+                    // Note: Symfony's Headers::all() returns lowercase keys, so we use case-insensitive comparison
                     foreach ($headers->all() as $headerName => $headerValues) {
-                        if ($headerName !== 'Content-ID' && $headerName !== 'Content-Type') {
+                        $headerNameLower = strtolower($headerName);
+                        if ($headerNameLower !== 'content-id' && $headerNameLower !== 'content-type') {
                             foreach ($headerValues as $header) {
                                 $newDataPart->getHeaders()->add($header);
                             }
