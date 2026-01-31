@@ -162,8 +162,9 @@ class MessageTest extends TestCase
         
         $parts = $this->message->getParts();
         
-        // Should contain both attachment and embedded parts
-        $this->assertGreaterThanOrEqual(2, count($parts));
+        // Should contain both attachment and embedded parts (no duplicates)
+        // attachData adds 1 part, embedData adds 1 part = 2 total
+        $this->assertCount(2, $parts);
     }
 
     public function testEmailMethodsInheritance(): void

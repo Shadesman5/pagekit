@@ -12,8 +12,6 @@ use Symfony\Component\Mime\Email;
 class Message extends Email implements MessageInterface
 {
     protected ?MailerInterface $mailer = null;
-
-    protected array $embeded = [];
     
     /**
      * Temporary files created for in-memory data attachments/embeds.
@@ -97,6 +95,11 @@ class Message extends Email implements MessageInterface
         // Create a persistent temporary file (not tmpfile() which auto-deletes)
         // Symfony's attach() stores the path lazily and reads it later when sending
         $tempFile = tempnam(sys_get_temp_dir(), 'pagekit_mail_');
+        
+        if ($tempFile === false) {
+            throw new \RuntimeException('Failed to create temporary file for attachment. Check disk space and permissions.');
+        }
+        
         file_put_contents($tempFile, $data);
         
         // Store reference to keep file alive until email is sent
@@ -139,10 +142,8 @@ class Message extends Email implements MessageInterface
             }
         }
         
-        // Store reference for getParts()
-        $dataPart = DataPart::fromPath($file);
-        $dataPart->asInline();
-        $this->embeded[] = $dataPart;
+        // Note: No need to store in $this->embeded[] because $this->embed() already
+        // adds it to getAttachments(), and getParts() uses getAttachments()
         
         // Return CID that matches the header value
         // This ensures HTML references like <img src="cid:logo@pagekit.local"> match the header
@@ -162,6 +163,11 @@ class Message extends Email implements MessageInterface
         // Create a persistent temporary file (not tmpfile() which auto-deletes)
         // Symfony's embed() stores the path lazily and reads it later when sending
         $tempFile = tempnam(sys_get_temp_dir(), 'pagekit_mail_');
+        
+        if ($tempFile === false) {
+            throw new \RuntimeException('Failed to create temporary file for embedded content. Check disk space and permissions.');
+        }
+        
         file_put_contents($tempFile, $data);
         
         // Store reference to keep file alive until email is sent
@@ -184,10 +190,8 @@ class Message extends Email implements MessageInterface
             }
         }
         
-        // Store reference for getParts()
-        $dataPart = new DataPart($data, $name, $contentType ?? 'application/octet-stream');
-        $dataPart->asInline();
-        $this->embeded[] = $dataPart;
+        // Note: No need to store in $this->embeded[] because $this->embed() already
+        // adds it to getAttachments(), and getParts() uses getAttachments()
         
         return 'cid:'.$contentId;
     }
@@ -208,16 +212,10 @@ class Message extends Email implements MessageInterface
 
     public function getParts(): array
     {
-        // Email doesn't have getParts(), but we can get attachments
-        $parts = [];
-        foreach ($this->getAttachments() as $attachment) {
-            $parts[] = $attachment;
-        }
-        // Also include embedded parts
-        foreach ($this->embeded as $embedded) {
-            $parts[] = $embedded;
-        }
-        return $parts;
+        // getAttachments() already includes all attachments and embedded parts
+        // (embedded parts are attachments with Content-ID headers)
+        // The $this->embeded array is no longer needed since we removed duplicate storage
+        return $this->getAttachments();
     }
 
     /**
