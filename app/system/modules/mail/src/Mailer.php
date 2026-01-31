@@ -186,7 +186,7 @@ class Mailer implements MailerInterface
                 stream_set_timeout($socket, 5);
                 $greeting = fgets($socket, 512);
                 
-                if (!$greeting) {
+                if ($greeting === false || $greeting === '') {
                     fclose($socket);
                     throw new \Exception(sprintf('Connected to %s:%d but no SMTP greeting received. May not be an SMTP server.', $host, $port));
                 }
@@ -204,7 +204,7 @@ class Mailer implements MailerInterface
                     
                     // Read EHLO response
                     $ehloResponse = '';
-                    while ($line = fgets($socket, 512)) {
+                    while (($line = fgets($socket, 512)) !== false) {
                         $ehloResponse .= $line;
                         if (substr($line, 3, 1) === ' ') {
                             break;
@@ -221,6 +221,11 @@ class Mailer implements MailerInterface
                     fwrite($socket, "STARTTLS\r\n");
                     $starttlsResponse = fgets($socket, 512);
                     
+                    if ($starttlsResponse === false || $starttlsResponse === '') {
+                        fclose($socket);
+                        throw new \Exception(sprintf('STARTTLS failed on %s:%d. Server closed connection during STARTTLS negotiation.', $host, $port));
+                    }
+                    
                     if (!preg_match('/^220[\s-]/', $starttlsResponse)) {
                         fclose($socket);
                         throw new \Exception(sprintf('STARTTLS failed on %s:%d. Server response: %s', $host, $port, trim($starttlsResponse)));
@@ -232,16 +237,25 @@ class Mailer implements MailerInterface
                 
                 // Send QUIT command to close gracefully
                 fwrite($socket, "QUIT\r\n");
-                fgets($socket, 512); // Read QUIT response
+                $quitResponse = fgets($socket, 512); // Read QUIT response (ignore if false)
                 
                 // Close the connection
                 fclose($socket);
                 
                 return true;
                 
-            } catch (\Exception $connectionError) {
+            } catch (\Throwable $connectionError) {
+                // Ensure socket is closed even if TypeError or other Error occurs
+                if (isset($socket) && is_resource($socket)) {
+                    @fclose($socket);
+                }
+                
                 // Re-throw with our formatted error message
-                throw $connectionError;
+                if ($connectionError instanceof \Exception) {
+                    throw $connectionError;
+                }
+                // Convert Error (like TypeError) to Exception for consistent error handling
+                throw new \Exception(sprintf('Connection error: %s', $connectionError->getMessage()), 0, $connectionError);
             }
             
         } catch (\Symfony\Component\Mailer\Exception\TransportExceptionInterface $e) {
