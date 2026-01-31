@@ -78,7 +78,7 @@ class Message extends Email implements MessageInterface
      */
     public function attachFile(string $file, ?string $name = null, ?string $mime = null): self
     {
-        $this->attach($file, $name, $mime);
+        $this->attachFromPath($file, $name, $mime);
 
         return $this;
     }
@@ -93,7 +93,7 @@ class Message extends Email implements MessageInterface
     public function attachData(string $data, string $name, ?string $mime = null): self
     {
         // Create a persistent temporary file (not tmpfile() which auto-deletes)
-        // Symfony's attach() stores the path lazily and reads it later when sending
+        // We use attachFromPath() which reads the file when sending
         $tempFile = tempnam(sys_get_temp_dir(), 'pagekit_mail_');
         
         if ($tempFile === false) {
@@ -109,7 +109,8 @@ class Message extends Email implements MessageInterface
         // Store reference to keep file alive until email is sent
         $this->tempFiles[] = $tempFile;
         
-        $this->attach($tempFile, $name, $mime);
+        // Use attachFromPath() for file paths, not attach() which expects raw content
+        $this->attachFromPath($tempFile, $name, $mime);
         return $this;
     }
 
@@ -130,9 +131,8 @@ class Message extends Email implements MessageInterface
             $contentId = md5_file($file).'@pagekit';
         }
         
-        // embed() signature: embed(string|resource $body, ?string $name = null, ?string $contentType = null): string
-        // Returns the CID (Content-ID)
-        $this->embed($file);
+        // Use embedFromPath() for file paths, not embed() which expects raw content
+        $this->embedFromPath($file);
         
         // Override the CID with our custom one
         // Get the last attachment (which is the embedded part)
@@ -165,7 +165,7 @@ class Message extends Email implements MessageInterface
     public function embedData(string $data, string $name, ?string $contentType = null): string
     {
         // Create a persistent temporary file (not tmpfile() which auto-deletes)
-        // Symfony's embed() stores the path lazily and reads it later when sending
+        // We use embedFromPath() which reads the file when sending
         $tempFile = tempnam(sys_get_temp_dir(), 'pagekit_mail_');
         
         if ($tempFile === false) {
@@ -182,9 +182,8 @@ class Message extends Email implements MessageInterface
         $this->tempFiles[] = $tempFile;
         
         $contentId = md5($data).'@pagekit';
-        // embed() signature: embed(string|resource $body, ?string $name = null, ?string $contentType = null): string
-        // Returns the CID (Content-ID)
-        $this->embed($tempFile, $name, $contentType ?? 'application/octet-stream');
+        // Use embedFromPath() for file paths, not embed() which expects raw content
+        $this->embedFromPath($tempFile, $name, $contentType ?? 'application/octet-stream');
         
         // Override the CID with our custom one
         // Get the last attachment (which is the embedded part)
