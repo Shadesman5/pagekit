@@ -301,58 +301,171 @@ class Message extends Email implements MessageInterface
     }
     
     /**
-     * Updates DataPart objects in parent Email class to reference new temp file paths.
+     * Replaces DataPart objects in parent Email class with cloned versions referencing new temp file paths.
      * This is necessary because __clone() shallow-copies the attachments, leaving
-     * them pointing to the original temp files.
+     * them pointing to the original temp files. We must clone the DataPart objects
+     * to avoid modifying the shared references that would corrupt the original message.
      * 
      * @param array<string, string> $pathMapping Mapping of original paths to new paths
      */
     protected function updateAttachmentPaths(array $pathMapping): void
     {
         $attachments = $this->getAttachments();
+        $attachmentsToReplace = [];
         
+        // First pass: Identify which attachments need to be replaced and create new DataPart objects
         foreach ($attachments as $index => $attachment) {
             if ($attachment instanceof DataPart) {
-                // Use reflection to access the body property of DataPart
-                // DataPart stores the file path in its body property
-                try {
-                    $reflection = new \ReflectionClass($attachment);
+                // Check if this DataPart references one of our temp files
+                $originalPath = $this->getDataPartFilePath($attachment);
+                
+                if ($originalPath !== null && isset($pathMapping[$originalPath])) {
+                    // Create a new DataPart with the new path instead of modifying the shared one
+                    $newPath = $pathMapping[$originalPath];
                     
-                    // Try to find and update the body property
-                    // DataPart may have the path in different places depending on Symfony version
-                    if ($reflection->hasProperty('body')) {
-                        $bodyProperty = $reflection->getProperty('body');
-                        $bodyProperty->setAccessible(true);
-                        $body = $bodyProperty->getValue($attachment);
-                        
-                        // If body is a string path and it's in our mapping, update it
-                        if (is_string($body) && isset($pathMapping[$body])) {
-                            $bodyProperty->setValue($attachment, $pathMapping[$body]);
-                            continue;
+                    // Get attachment metadata before creating new one
+                    $headers = $attachment->getHeaders();
+                    $contentId = null;
+                    if ($headers->has('Content-ID')) {
+                        $contentId = $headers->get('Content-ID')->getBody();
+                    }
+                    
+                    // Check if it's inline (embedded) or attachment
+                    $isInline = $headers->has('Content-ID');
+                    
+                    // Create new DataPart with new path
+                    $newDataPart = DataPart::fromPath($newPath);
+                    if ($isInline) {
+                        $newDataPart->asInline();
+                        if ($contentId !== null) {
+                            $newDataPart->getHeaders()->setHeaderBody('Id', 'Content-ID', $contentId);
                         }
                     }
                     
-                    // Alternative: Check if there's a 'path' or 'filename' property
-                    // Some Symfony versions store the path differently
-                    foreach (['path', 'filename', 'file'] as $propName) {
-                        if ($reflection->hasProperty($propName)) {
-                            $prop = $reflection->getProperty($propName);
-                            $prop->setAccessible(true);
-                            $value = $prop->getValue($attachment);
-                            
-                            if (is_string($value) && isset($pathMapping[$value])) {
-                                $prop->setValue($attachment, $pathMapping[$value]);
-                                break;
+                    // Copy other headers from original
+                    foreach ($headers->all() as $headerName => $headerValues) {
+                        if ($headerName !== 'Content-ID' && $headerName !== 'Content-Type') {
+                            foreach ($headerValues as $header) {
+                                $newDataPart->getHeaders()->add($header);
                             }
                         }
                     }
-                } catch (\ReflectionException $e) {
-                    // If reflection fails, we can't update the path
-                    // This means the cloned attachment will still reference the original file
-                    // This is a limitation, but the original file should exist until clone is sent
-                    // In practice, this should be rare as both objects typically exist together
+                    
+                    $attachmentsToReplace[$index] = $newDataPart;
                 }
             }
+        }
+        
+        // Second pass: Replace attachments in parent Email class
+        if (!empty($attachmentsToReplace)) {
+            $this->replaceAttachments($attachmentsToReplace);
+        }
+    }
+    
+    /**
+     * Gets the file path from a DataPart object using reflection.
+     * 
+     * @param DataPart $dataPart
+     * @return string|null The file path if found, null otherwise
+     */
+    protected function getDataPartFilePath(DataPart $dataPart): ?string
+    {
+        try {
+            $reflection = new \ReflectionClass($dataPart);
+            
+            // Try body property first
+            if ($reflection->hasProperty('body')) {
+                $bodyProperty = $reflection->getProperty('body');
+                $bodyProperty->setAccessible(true);
+                $body = $bodyProperty->getValue($dataPart);
+                
+                if (is_string($body) && file_exists($body)) {
+                    return $body;
+                }
+            }
+            
+            // Try alternative property names
+            foreach (['path', 'filename', 'file'] as $propName) {
+                if ($reflection->hasProperty($propName)) {
+                    $prop = $reflection->getProperty($propName);
+                    $prop->setAccessible(true);
+                    $value = $prop->getValue($dataPart);
+                    
+                    if (is_string($value) && file_exists($value)) {
+                        return $value;
+                    }
+                }
+            }
+        } catch (\ReflectionException $e) {
+            // Reflection failed, can't determine path
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Replaces attachments in parent Email class using reflection.
+     * Creates new DataPart objects instead of modifying shared ones to prevent
+     * corrupting the original message's attachments.
+     * 
+     * @param array<int, DataPart> $replacements Mapping of attachment index to new DataPart
+     */
+    protected function replaceAttachments(array $replacements): void
+    {
+        try {
+            // Use reflection to access parent Email's internal structure
+            $reflection = new \ReflectionClass($this);
+            $parentReflection = $reflection->getParentClass();
+            
+            if ($parentReflection) {
+                // Symfony's Email class stores attachments in a private property
+                // We need to find and replace them
+                $allProperties = $parentReflection->getProperties();
+                
+                foreach ($allProperties as $prop) {
+                    $prop->setAccessible(true);
+                    $value = $prop->getValue($this);
+                    
+                    // Look for an array that contains our DataPart objects
+                    if (is_array($value) || $value instanceof \Traversable) {
+                        $found = false;
+                        $arrayToModify = is_array($value) ? $value : iterator_to_array($value);
+                        
+                        // Check if this array contains our DataPart objects
+                        foreach ($arrayToModify as $item) {
+                            if ($item instanceof DataPart) {
+                                $found = true;
+                                break;
+                            }
+                        }
+                        
+                        if ($found) {
+                            // Replace DataPart objects at specified indices
+                            foreach ($replacements as $index => $newDataPart) {
+                                if (isset($arrayToModify[$index]) && $arrayToModify[$index] instanceof DataPart) {
+                                    $arrayToModify[$index] = $newDataPart;
+                                }
+                            }
+                            
+                            // Update the property with modified array
+                            if (is_array($value)) {
+                                $prop->setValue($this, $arrayToModify);
+                            } else {
+                                // If it's a collection, we might need to clear and re-add
+                                // For now, try setting it as array (Email should handle it)
+                                $prop->setValue($this, $arrayToModify);
+                            }
+                            
+                            return;
+                        }
+                    }
+                }
+            }
+        } catch (\ReflectionException $e) {
+            // If reflection fails, we can't replace attachments
+            // Fallback: The cloned message will still reference original files
+            // This means both original and clone must exist together
+            // This is a limitation, but better than corrupting the original
         }
     }
 }
