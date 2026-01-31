@@ -134,6 +134,18 @@
 | `MAIL_MIGRATION.md:110-112` | "10 tests failing" | Current: 15 errors + 1 warning |
 | `MAIL_MIGRATION.md:120` | "None for end users. The API remains compatible." | **FALSE** - `RegistrationController` is completely broken |
 
+### Additional Documentation Review
+
+**MAIL_MIGRATION_ANALYSIS.md:**
+- Documents performance improvements (60% faster, 75% smaller headers)
+- Confirms successful migration benefits
+- No discrepancies found
+
+**MAIL_SENDMAIL_FIX.md:**
+- Documents Windows/Mailpit sendmail path fix (already implemented in `index.php:63-72`)
+- Documents SMTP validation fix (already implemented in `MailController.php:30-32`)
+- Both fixes are correctly implemented in code
+
 ---
 
 ## 6. Test Status

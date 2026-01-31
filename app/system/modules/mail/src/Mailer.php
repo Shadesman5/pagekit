@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Mail;
 
 use Symfony\Component\Mailer\Envelope;
@@ -12,21 +14,9 @@ use Symfony\Component\Mime\Address;
 
 class Mailer implements MailerInterface
 {
-    /**
-     * @var TransportInterface
-     */
-    protected $transport;
+    protected TransportInterface $transport;
+    protected array $plugins = [];
 
-    /**
-     * @var array
-     */
-    protected $plugins = [];
-
-    /**
-     * Constructor.
-     *
-     * @param TransportInterface $transport
-     */
     public function __construct(TransportInterface $transport)
     {
         $this->transport = $transport;
@@ -34,10 +24,8 @@ class Mailer implements MailerInterface
 
     /**
      * Creates a new message instance.
-     *
-     * @return Email
      */
-    public function create()
+    public function create(): Email
     {
         return new Email();
     }
@@ -66,11 +54,8 @@ class Mailer implements MailerInterface
 
     /**
      * Registers a plugin.
-     *
-     * @param  MailerPluginInterface $plugin
-     * @return self
      */
-    public function registerPlugin(MailerInterface $plugin)
+    public function registerPlugin(MailerInterface $plugin): self
     {
         $this->plugins[] = $plugin;
 
@@ -85,9 +70,10 @@ class Mailer implements MailerInterface
      * @param string|null $username
      * @param string|null $password
      * @param string|null $encryption
-     * @return bool|string True if connection successful, error message otherwise
+     * @return bool True if connection successful
+     * @throws \Exception If connection fails
      */
-    public function testSmtpConnection($host = null, $port = null, $username = null, $password = null, $encryption = null)
+    public function testSmtpConnection(?string $host = null, ?int $port = null, ?string $username = null, ?string $password = null, ?string $encryption = null): bool
     {
         try {
             // Validate required parameters
@@ -260,8 +246,6 @@ class Mailer implements MailerInterface
             
         } catch (\Symfony\Component\Mailer\Exception\TransportExceptionInterface $e) {
             throw new \Exception($e->getMessage());
-        } catch (\Exception $e) {
-            throw $e;
         }
     }
 

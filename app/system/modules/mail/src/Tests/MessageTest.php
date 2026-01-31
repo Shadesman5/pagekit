@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Mail\Tests;
 
 use PHPUnit\Framework\TestCase;
@@ -112,7 +114,7 @@ class MessageTest extends TestCase
         try {
             $cid = $this->message->embedFile($tempFile);
             $this->assertStringStartsWith('cid:', $cid);
-            $this->assertStringContains('@pagekit', $cid);
+            $this->assertStringContainsString('@pagekit', $cid);
         } finally {
             unlink($tempFile);
         }
@@ -137,7 +139,7 @@ class MessageTest extends TestCase
     {
         $cid = $this->message->embedData('Test data content', 'test.txt', 'text/plain');
         $this->assertStringStartsWith('cid:', $cid);
-        $this->assertStringContains('@pagekit', $cid);
+        $this->assertStringContainsString('@pagekit', $cid);
     }
 
     public function testAddHeader(): void

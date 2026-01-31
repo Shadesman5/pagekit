@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Mail\Mailer;
 use Pagekit\Mail\Plugin\ImpersonatePlugin;
 use Symfony\Component\Mailer\Transport\Dsn;
