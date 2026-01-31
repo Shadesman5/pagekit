@@ -246,18 +246,40 @@ class Message extends Email implements MessageInterface
      */
     public function __clone()
     {
+        // Clear tempFiles immediately to prevent cloned object from claiming
+        // ownership of original's files if an exception occurs during cloning
+        $originalTempFiles = $this->tempFiles;
+        $this->tempFiles = [];
+        
         $newTempFiles = [];
-        foreach ($this->tempFiles as $tempFile) {
+        foreach ($originalTempFiles as $tempFile) {
+            // Check if original file exists before creating new temp file
+            // This prevents orphaned temp files if original was deleted externally
+            if (!file_exists($tempFile)) {
+                // Original file was deleted externally, skip it
+                continue;
+            }
+            
             // Create a copy of the temp file for the cloned object
             $newTempFile = tempnam(sys_get_temp_dir(), 'pagekit_mail_');
-            if ($newTempFile !== false && file_exists($tempFile)) {
-                if (copy($tempFile, $newTempFile)) {
-                    $newTempFiles[] = $newTempFile;
-                } else {
-                    // If copy fails, try to keep original (but this is risky)
-                    // Better to throw exception
-                    throw new \RuntimeException('Failed to copy temporary file for cloned message. Check disk space and permissions.');
+            if ($newTempFile === false) {
+                // Clean up any files we've created so far
+                foreach ($newTempFiles as $createdFile) {
+                    @unlink($createdFile);
                 }
+                throw new \RuntimeException('Failed to create temporary file for cloned message. Check disk space and permissions.');
+            }
+            
+            if (copy($tempFile, $newTempFile)) {
+                $newTempFiles[] = $newTempFile;
+            } else {
+                // Clean up the temp file we created
+                @unlink($newTempFile);
+                // Clean up any files we've created so far
+                foreach ($newTempFiles as $createdFile) {
+                    @unlink($createdFile);
+                }
+                throw new \RuntimeException('Failed to copy temporary file for cloned message. Check disk space and permissions.');
             }
         }
         $this->tempFiles = $newTempFiles;
