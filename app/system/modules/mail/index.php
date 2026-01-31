@@ -46,7 +46,7 @@ return [
                 
                 $transport = new EsmtpTransport(
                     $this->config['host'],
-                    $this->config['port'],
+                    (int) $this->config['port'],
                     $useTls
                 );
 
