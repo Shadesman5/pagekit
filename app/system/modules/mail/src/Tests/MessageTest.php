@@ -129,7 +129,9 @@ class MessageTest extends TestCase
         try {
             $customCid = 'custom-cid';
             $cid = $this->message->embedFile($tempFile, $customCid);
-            $this->assertEquals('cid:' . $customCid, $cid);
+            // CID must match the header value (RFC requires local@domain format)
+            // So 'custom-cid' becomes 'custom-cid@pagekit.local' in the header
+            $this->assertEquals('cid:custom-cid@pagekit.local', $cid);
         } finally {
             unlink($tempFile);
         }

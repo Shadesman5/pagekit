@@ -102,8 +102,8 @@ class MailIntegrationTest extends TestCase
             $result = $message->send();
             $this->assertEquals(1, $result);
             
-            // Verify embedded content
-            $this->assertEquals('cid:logo', $cid);
+            // Verify embedded content - CID must match header value (RFC requires local@domain)
+            $this->assertEquals('cid:logo@pagekit.local', $cid);
         } finally {
             unlink($tempFile);
         }

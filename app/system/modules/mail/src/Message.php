@@ -14,6 +14,14 @@ class Message extends Email implements MessageInterface
     protected ?MailerInterface $mailer = null;
 
     protected array $embeded = [];
+    
+    /**
+     * Temporary files created for in-memory data attachments/embeds.
+     * These need to be kept alive until the email is sent.
+     * 
+     * @var array<string> Array of temporary file paths
+     */
+    protected array $tempFiles = [];
 
     /**
      * {@inheritdoc}
@@ -86,12 +94,15 @@ class Message extends Email implements MessageInterface
      */
     public function attachData(string $data, string $name, ?string $mime = null): self
     {
-        // Create temporary file for in-memory data
-        $tempFile = tmpfile();
-        fwrite($tempFile, $data);
-        $meta = stream_get_meta_data($tempFile);
-        $this->attach($meta['uri'], $name, $mime);
-        // Note: The temp file will be cleaned up by PHP when the script ends
+        // Create a persistent temporary file (not tmpfile() which auto-deletes)
+        // Symfony's attach() stores the path lazily and reads it later when sending
+        $tempFile = tempnam(sys_get_temp_dir(), 'pagekit_mail_');
+        file_put_contents($tempFile, $data);
+        
+        // Store reference to keep file alive until email is sent
+        $this->tempFiles[] = $tempFile;
+        
+        $this->attach($tempFile, $name, $mime);
         return $this;
     }
 
@@ -105,14 +116,11 @@ class Message extends Email implements MessageInterface
     {
         // Generate or use provided CID
         if ($cid !== null) {
-            // Store original CID for return value
-            $originalCid = $cid;
             // For RFC compliance, Content-ID must be in format: local@domain
-            // If custom CID doesn't have @, we'll add @pagekit.local internally
+            // If custom CID doesn't have @, we'll add @pagekit.local
             $contentId = strpos($cid, '@') === false ? $cid.'@pagekit.local' : $cid;
         } else {
-            $originalCid = md5_file($file);
-            $contentId = $originalCid.'@pagekit';
+            $contentId = md5_file($file).'@pagekit';
         }
         
         // embed() signature: embed(string|resource $body, ?string $name = null, ?string $contentType = null): string
@@ -136,12 +144,8 @@ class Message extends Email implements MessageInterface
         $dataPart->asInline();
         $this->embeded[] = $dataPart;
         
-        // Return CID in expected format
-        // If custom CID was provided, return it as-is (without @)
-        // Otherwise return with @pagekit for consistency
-        if ($cid !== null) {
-            return 'cid:'.$cid;
-        }
+        // Return CID that matches the header value
+        // This ensures HTML references like <img src="cid:logo@pagekit.local"> match the header
         return 'cid:'.$contentId;
     }
 
@@ -155,15 +159,18 @@ class Message extends Email implements MessageInterface
      */
     public function embedData(string $data, string $name, ?string $contentType = null): string
     {
-        // Create temporary file for in-memory data
-        $tempFile = tmpfile();
-        fwrite($tempFile, $data);
-        $meta = stream_get_meta_data($tempFile);
+        // Create a persistent temporary file (not tmpfile() which auto-deletes)
+        // Symfony's embed() stores the path lazily and reads it later when sending
+        $tempFile = tempnam(sys_get_temp_dir(), 'pagekit_mail_');
+        file_put_contents($tempFile, $data);
+        
+        // Store reference to keep file alive until email is sent
+        $this->tempFiles[] = $tempFile;
         
         $contentId = md5($data).'@pagekit';
         // embed() signature: embed(string|resource $body, ?string $name = null, ?string $contentType = null): string
         // Returns the CID (Content-ID)
-        $cid = $this->embed($meta['uri'], $name, $contentType ?? 'application/octet-stream');
+        $this->embed($tempFile, $name, $contentType ?? 'application/octet-stream');
         
         // Override the CID with our custom one
         // Get the last attachment (which is the embedded part)
@@ -171,11 +178,6 @@ class Message extends Email implements MessageInterface
         if (count($attachments) > 0) {
             $lastPart = $attachments[count($attachments) - 1];
             if ($lastPart instanceof DataPart) {
-                // Content-ID must be in valid message-id format (local@domain)
-                // If custom CID doesn't have @, add a domain
-                if (strpos($contentId, '@') === false) {
-                    $contentId = $contentId.'@pagekit.local';
-                }
                 // Content-ID header expects the value without angle brackets
                 // The IdentificationHeader will add them automatically
                 $lastPart->getHeaders()->setHeaderBody('Id', 'Content-ID', $contentId);
@@ -216,5 +218,18 @@ class Message extends Email implements MessageInterface
             $parts[] = $embedded;
         }
         return $parts;
+    }
+
+    /**
+     * Cleanup temporary files when message is destroyed.
+     * This ensures temp files created for in-memory data are deleted after email is sent.
+     */
+    public function __destruct()
+    {
+        foreach ($this->tempFiles as $tempFile) {
+            if (file_exists($tempFile)) {
+                @unlink($tempFile);
+            }
+        }
     }
 }
