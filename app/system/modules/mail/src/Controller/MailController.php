@@ -36,7 +36,7 @@ class MailController
 
             $mailer->testSmtpConnection(
                 $option['host'] ?? null,
-                $option['port'] ?? null,
+                isset($option['port']) ? (int) $option['port'] : null,
                 $option['username'] ?? null,
                 $option['password'] ?? null,
                 $option['encryption'] ?? null
