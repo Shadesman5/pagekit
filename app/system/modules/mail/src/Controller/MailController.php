@@ -70,6 +70,11 @@ class MailController
         try {
             $config = Arr::merge($mailModule->config(), $option);
             
+            // Validate from_address is configured before attempting to send
+            if (empty($config['from_address'])) {
+                return ['success' => false, 'message' => __('From email address is required. Please configure it in the mail settings.')];
+            }
+            
             $email = $mailer->create()
                 ->subject(__('Test email!'))
                 ->text(__('Testemail'));
@@ -88,7 +93,8 @@ class MailController
             
             return ['success' => true, 'message' => __('Mail successfully sent!')];
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            // Catch both Exception and Error (including TypeError) for graceful error handling
             return ['success' => false, 'message' => sprintf(__('Mail delivery failed! (%s)'), $e->getMessage())];
         }
     }
