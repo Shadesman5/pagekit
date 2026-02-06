@@ -164,19 +164,25 @@ class SessionTest extends TestCase
 
     /**
      * Test session id
+     * 
+     * Note: Symfony's MockArraySessionStorage does not allow setId() after start().
+     * We test getId() after start and setId() before start separately.
      */
     public function testSessionId(): void
     {
+        // Test setId() BEFORE start
+        $newId = 'new_session_id_123';
+        $storage = new MockArraySessionStorage();
+        $session = new Session($storage, new AttributeBag(), new FlashBag());
+        $session->setId($newId);
+        $session->start();
+        $this->assertEquals($newId, $session->getId());
+
+        // Test getId() after start returns non-empty string
         $this->session->start();
-        
         $id = $this->session->getId();
         $this->assertNotEmpty($id);
         $this->assertIsString($id);
-        
-        // Set new id
-        $newId = 'new_session_id_123';
-        $this->session->setId($newId);
-        $this->assertEquals($newId, $this->session->getId());
     }
 
     /**
