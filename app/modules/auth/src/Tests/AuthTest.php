@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Auth\Tests;
 
 use PHPUnit\Framework\TestCase;
@@ -8,21 +10,26 @@ use Pagekit\Auth\UserInterface;
 use Pagekit\Auth\UserProviderInterface;
 use Pagekit\Auth\Handler\HandlerInterface;
 use Pagekit\Event\EventDispatcherInterface;
+use Pagekit\Event\EventInterface;
 
 class AuthTest extends TestCase
 {
     protected ?Auth $auth = null;
+    protected $events;
+    protected $handler;
 
     public function setUp(): void
     {
-        $events = $this->createMock(EventDispatcherInterface::class);
-        $handler = $this->createMock(HandlerInterface::class);
-        $this->auth = new Auth($events, $handler);
+        $this->events = $this->createMock(EventDispatcherInterface::class);
+        $this->handler = $this->createMock(HandlerInterface::class);
+        $this->auth = new Auth($this->events, $this->handler);
     }
 
     public function tearDown(): void
     {
         $this->auth = null;
+        $this->events = null;
+        $this->handler = null;
     }
 
     /**
@@ -38,11 +45,14 @@ class AuthTest extends TestCase
      */
     public function testGetSetUser(): void
     {
-        // Create a mock user
         $user = $this->createMock(UserInterface::class);
         $user->method('getId')->willReturn('1');
-        
-        // Set and get user
+
+        // Handler::write() is called when setting user
+        $this->handler->expects($this->once())
+            ->method('write')
+            ->with('1', false);
+
         $this->auth->setUser($user);
         $this->assertSame($user, $this->auth->getUser());
     }
@@ -52,115 +62,127 @@ class AuthTest extends TestCase
      */
     public function testGetSetUserProvider(): void
     {
-        // Create a mock user provider
         $provider = $this->createMock(UserProviderInterface::class);
-        
-        // Set and get user provider
+
         $this->auth->setUserProvider($provider);
         $this->assertSame($provider, $this->auth->getUserProvider());
     }
 
     /**
-     * Test that handler is properly set via constructor
+     * Test getUserProvider throws when not set
      */
-    public function testSetHandler(): void
+    public function testGetUserProviderThrowsWhenNotSet(): void
     {
-        // Test that auth was created with handler (no exception thrown)
-        $this->assertInstanceOf(Auth::class, $this->auth);
-        $this->assertTrue(true);
+        $this->expectException(\RuntimeException::class);
+        $this->auth->getUserProvider();
     }
 
     /**
-     * Test login with valid credentials
+     * Test login dispatches event and sets user
      */
-    public function testLoginWithValidCredentials(): void
+    public function testLogin(): void
     {
-        // Create mock user
         $user = $this->createMock(UserInterface::class);
         $user->method('getId')->willReturn('1');
-        
-        // Create mock user provider
-        $provider = $this->createMock(UserProviderInterface::class);
-        $provider->expects($this->once())
-                 ->method('findByCredentials')
-                 ->with(['username' => 'testuser'])
-                 ->willReturn($user);
-        
-        // Create mock handler
-        $handler = $this->createMock(HandlerInterface::class);
-        $handler->expects($this->once())
-                ->method('validate')
-                ->with($user, ['username' => 'testuser'])
-                ->willReturn(true);
-        
-        $handler->expects($this->once())
-                ->method('login')
-                ->with($user, false);
-        
-        // Set up auth
-        $this->auth->setUserProvider($provider);
-        $this->auth->setHandler($handler);
-        
-        // Test login
-        $result = $this->auth->login(['username' => 'testuser']);
-        $this->assertSame($user, $result);
-        $this->assertSame($user, $this->auth->getUser());
+
+        // Handler::write() is called
+        $this->handler->expects($this->once())
+            ->method('write')
+            ->with('1', false);
+
+        // Events::trigger() is called for LOGIN event
+        $event = $this->createMock(EventInterface::class);
+        $this->events->expects($this->once())
+            ->method('trigger')
+            ->willReturn($event);
+
+        $result = $this->auth->login($user);
+        $this->assertInstanceOf(EventInterface::class, $result);
     }
 
     /**
-     * Test login with invalid credentials
-     */
-    public function testLoginWithInvalidCredentials(): void
-    {
-        // Create mock user
-        $user = $this->createMock(UserInterface::class);
-        
-        // Create mock user provider
-        $provider = $this->createMock(UserProviderInterface::class);
-        $provider->expects($this->once())
-                 ->method('findByCredentials')
-                 ->with(['username' => 'invaliduser'])
-                 ->willReturn($user);
-        
-        // Create mock handler
-        $handler = $this->createMock(HandlerInterface::class);
-        $handler->expects($this->once())
-                ->method('validate')
-                ->with($user, ['username' => 'invaliduser'])
-                ->willReturn(false);
-        
-        $handler->expects($this->never())
-                ->method('login');
-        
-        // Set up auth
-        $this->auth->setUserProvider($provider);
-        $this->auth->setHandler($handler);
-        
-        // Test login
-        $result = $this->auth->login(['username' => 'invaliduser']);
-        $this->assertFalse($result);
-    }
-
-    /**
-     * Test logout
+     * Test logout dispatches event and removes user
      */
     public function testLogout(): void
     {
-        // Create mock user
+        // First, set a user via internal state
         $user = $this->createMock(UserInterface::class);
-        
-        // Create mock handler
-        $handler = $this->createMock(HandlerInterface::class);
-        $handler->expects($this->once())
-                ->method('logout')
-                ->with($user);
-        
-        // Set up auth
+        $user->method('getId')->willReturn('1');
+
+        // setUser calls write
+        $this->handler->method('write');
         $this->auth->setUser($user);
-        $this->auth->setHandler($handler);
+
+        // Logout calls:
+        // 1. handler->read() via getUser() (user already cached, so not called)
+        // 2. events->trigger() for LOGOUT event
+        // 3. handler->destroy()
+        $event = $this->createMock(EventInterface::class);
+        $this->events->expects($this->once())
+            ->method('trigger')
+            ->willReturn($event);
+
+        $this->handler->expects($this->once())
+            ->method('destroy');
+
+        $result = $this->auth->logout();
+        $this->assertInstanceOf(EventInterface::class, $result);
+        $this->assertNull($this->auth->getUser());
+    }
+
+    /**
+     * Test removeUser clears user and destroys handler session
+     */
+    public function testRemoveUser(): void
+    {
+        $user = $this->createMock(UserInterface::class);
+        $user->method('getId')->willReturn('1');
+
+        $this->handler->method('write');
+        $this->auth->setUser($user);
+
+        $this->handler->expects($this->once())
+            ->method('destroy');
+
+        $this->auth->removeUser();
         
-        // Test logout
-        $this->auth->logout();
+        // After removeUser, handler->read() returns null, so getUser returns null
+        $this->handler->method('read')->willReturn(null);
+        $this->assertNull($this->auth->getUser());
+    }
+
+    /**
+     * Test getUser reads from handler when no user cached
+     */
+    public function testGetUserReadsFromHandler(): void
+    {
+        $user = $this->createMock(UserInterface::class);
+
+        $this->handler->expects($this->once())
+            ->method('read')
+            ->willReturn(42);
+
+        $provider = $this->createMock(UserProviderInterface::class);
+        $provider->expects($this->once())
+            ->method('find')
+            ->with(42)
+            ->willReturn($user);
+
+        $this->auth->setUserProvider($provider);
+
+        $result = $this->auth->getUser();
+        $this->assertSame($user, $result);
+    }
+
+    /**
+     * Test getUser returns null when handler has no user
+     */
+    public function testGetUserReturnsNullWhenNoSession(): void
+    {
+        $this->handler->expects($this->once())
+            ->method('read')
+            ->willReturn(null);
+
         $this->assertNull($this->auth->getUser());
     }
 }
