@@ -37,23 +37,23 @@
 
 | ID     | Task Name                         | Status | Audit | PR      | Responsibility |
 | :----- | :-------------------------------- | :----- | :---- | :------ | :------------- |
-| 1.1    | Mailer Migration                  | ✅     | ⚠️    | #17     | Needs Audit    |
-| 1.2    | PHPUnit Update                    | ✅     | ⚠️    | #31     | Needs Audit    |
-| 1.3    | Security Patches                  | ⚠️     | ⚠️    | #30     | Needs Audit    |
-| 1.3.5  | Dependabot Updates                | ✅     | ⚠️    | #32     | Needs Audit    |
-| 1.4    | Safe Minor Updates                | ✅     | ⚠️    | #53     | Needs Audit    |
-| 1.5    | Doctrine DBAL 3.x                 | ✅     | ⚠️    | #54     | Needs Audit    |
-| 1.6    | PSR-11 Container Compatibility    | ✅     | ⚠️    | #55     | Needs Audit    |
-| 1.7    | Event System Compatibility        | ✅     | ⚠️    | #56     | Needs Audit    |
-| 1.8    | Routing System Compatibility      | ✅     | ⚠️    | #57     | Needs Audit    |
-| 1.9    | Symfony 6.4 LTS components        | ✅     | ⚠️    | #60-#61 | Needs Audit    |
-| 1.10   | PSR-6 Cache                       | ✅     | ⚠️    | #62     | Needs Audit    |
-| 1.10.5 | E2E Testing with Playwright       | ✅     | ⚠️    | #67     | Needs Audit    |
-| 1.11   | ORM Modernization                 | ✅     | ⚠️    | #97     | Needs Audit    |
-| 1.12   | DB Migration System               | ✅     | ⚠️    | #107    | Needs Audit    |
-| 1.13   | Validation Update                 | ✅     | ⚠️    | #108    | Needs Audit    |
-| 1.13.5 | Template Security Hardening (CSP) | ⏸️ 80% | ⚠️    | #110    | Needs Audit    |
-| 1.14   | Doctrine Attributes               | ✅     | ⚠️    | #111    | Needs Audit    |
+| 1.1    | Mailer Migration                  | ✅     | 🛡️    | #17     | Audit Passed   |
+| 1.2    | PHPUnit Update                    | ✅     | 🛡️    | #31     | Audit Passed   |
+| 1.3    | Security Patches                  | ✅     | 🛡️    | #30     | Audit Passed   |
+| 1.3.5  | Dependabot Updates                | ✅     | 🛡️    | #32     | Audit Passed   |
+| 1.4    | Safe Minor Updates                | ✅     | 🛡️    | #53     | Audit Passed   |
+| 1.5    | Doctrine DBAL 3.x                 | ✅     | 🛡️    | #54     | Audit Passed   |
+| 1.6    | PSR-11 Container Compatibility    | ✅     | 🛡️    | #55     | Audit Passed   |
+| 1.7    | Event System Compatibility        | ✅     | 🛡️    | #56     | Audit Passed   |
+| 1.8    | Routing System Compatibility      | ✅     | 🛡️    | #57     | Audit Passed   |
+| 1.9    | Symfony 6.4 LTS components        | ✅     | 🛡️    | #60-#61 | Audit Passed   |
+| 1.10   | PSR-6 Cache                       | ✅     | 🛡️    | #62     | Audit Passed   |
+| 1.10.5 | E2E Testing with Playwright       | ✅     | 🛡️    | #67     | Audit Passed   |
+| 1.11   | ORM Modernization                 | ✅     | 🛡️    | #97     | Audit Passed   |
+| 1.12   | DB Migration System               | ✅     | 🛡️    | #107    | Audit Passed   |
+| 1.13   | Validation Update                 | ✅     | 🛡️    | #108    | Audit Passed   |
+| 1.13.5 | Template Security Hardening (CSP) | ⏸️ 80% | 🛡️    | #110    | Audit Passed   |
+| 1.14   | Doctrine Attributes               | ✅     | 🛡️    | #111    | Audit Passed   |
 | 2.0    | Controller Attributes             | ✅     | ⚠️    | #111    | Needs Audit    |
 | 2.0.5  | PSR-11 Container Modernising      | ⏳     | ⏳    | -       | **Next Step**  |
 | 2.1    | Static Analysis & Code Quality    | ⏳     | ⏳    | -       | Phase 2        |

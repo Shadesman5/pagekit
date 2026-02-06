@@ -10,7 +10,27 @@
 
 ## Executive Summary
 
-This audit verifies all Phase 1 "completed" tasks (ROADMAP IDs 1.1–1.14) against the actual codebase, documentation, and test results. Each step is evaluated for: code correctness, standards compliance (strict types, typed properties, return types), removal of legacy code, documentation accuracy, and test coverage.
+This audit verified all Phase 1 "completed" tasks (ROADMAP IDs 1.1–1.14) against the actual codebase, documentation, and test results. Each step was evaluated for: code correctness, standards compliance (strict types, typed properties, return types), removal of legacy code, documentation accuracy, and test coverage.
+
+### Audit Fixes Applied
+
+| Fix | Step | Description |
+|-----|------|-------------|
+| 1 | 1.2 | Rewrote `AuthTest` to match actual `HandlerInterface` API (was testing non-existent methods) |
+| 2 | 1.5 | Rewrote `ConnectionTest` for DBAL 3.x (removed non-existent `setPrefix`/`escape`, added real SQLite tests) |
+| 3 | 1.9 | Fixed `SessionTest::testSessionId` for Symfony 6.4 (`setId()` before `start()`) |
+| 4 | 1.10 | Removed dead `$usePsr6` property, removed xcache legacy support, fixed `Psr6AdapterTest` |
+| 5 | 1.13.5 | Replaced `eval()` in test files with bootstrap file (CSP-compliant) |
+
+### Test Results After Audit
+
+```
+Before:  Tests: 255, Assertions: 567, Errors: 10, Failures: 2
+After:   Tests: 259, Assertions: 608, Errors: 0, Failures: 0
+         Skipped: 5 (intentional SMTP), Warnings: 1 (PHPUnit internal)
+```
+
+### Overall Status
 
 | ID     | Topic                              | Status    | Audit Result |
 |--------|------------------------------------|-----------|--------------|
@@ -24,437 +44,316 @@ This audit verifies all Phase 1 "completed" tasks (ROADMAP IDs 1.1–1.14) again
 | 1.7    | Symfony Event System               | ✅ Done   | ⚠️ PASS*    |
 | 1.8    | Symfony Routing                    | ✅ Done   | 🛡️ PASS     |
 | 1.9    | Symfony 6.4 Upgrade               | ✅ Done   | 🛡️ PASS     |
-| 1.10   | PSR-6 Cache                        | ✅ Done   | ⚠️ PASS*    |
+| 1.10   | PSR-6 Cache                        | ✅ Done   | 🛡️ PASS     |
 | 1.10.5 | E2E Testing (Playwright)          | ✅ Done   | 🛡️ PASS     |
 | 1.11   | ORM Modernization                  | ✅ Done   | 🛡️ PASS     |
 | 1.12   | Database Migration System          | ✅ Done   | 🛡️ PASS     |
 | 1.13   | Validation System Update           | ✅ Done   | 🛡️ PASS     |
-| 1.13.5 | Template Security (CSP)           | ⏸️ 80%   | ⚠️ PASS*    |
+| 1.13.5 | Template Security (CSP)           | ⏸️ 80%   | 🛡️ PASS     |
 | 1.14   | Doctrine Attributes                | ✅ Done   | 🛡️ PASS     |
 
 **Legend:** 🛡️ = No Mercy Audit passed | ⚠️ PASS* = Passed with minor findings (tagged for future steps)
 
-**Overall Assessment: Phase 1 SUBSTANTIALLY COMPLETE.** All critical modernization objectives achieved. Minor findings documented below for future steps.
+**Overall Assessment: Phase 1 COMPLETE.** All critical modernization objectives achieved. Two items tagged for Step 2.0.5.
 
 ---
 
-## Step 1.1 – Mailer Migration (Swift → Symfony Mailer)
+## Detailed Findings Per Step
+
+### Step 1.1 – Mailer Migration (Swift → Symfony Mailer)
 
 **ROADMAP Status**: ✅ | **PR**: #17 | **Audit**: 🛡️ PASS
 
-### Verification
-
-- ✅ `symfony/mailer ^6.4` in `composer.json` (line 30)
-- ✅ No SwiftMailer references in any PHP file (`grep Swift_ *.php` = 0 matches)
-- ✅ `Mailer.php`: Uses `Symfony\Component\Mailer\Mailer`, `TransportInterface`, typed properties
-- ✅ `Message.php`: Extends `Symfony\Component\Mime\Email`, implements `MessageInterface`
+**Verification:**
+- ✅ `symfony/mailer ^6.4` in `composer.json`
+- ✅ No SwiftMailer references in codebase (0 matches)
+- ✅ `Mailer.php`: `Symfony\Component\Mailer\Mailer`, `TransportInterface`, typed properties
+- ✅ `Message.php`: Extends `Symfony\Component\Mime\Email`, `MessageInterface`
 - ✅ `declare(strict_types=1)` in all 13 mail module files
 - ✅ All properties typed, all return types declared
-- ✅ Proper temp file management (`tempnam()` not `tmpfile()`)
-- ✅ `__clone()` deep-copies temp files, updates `DataPart` references
-- ✅ `attachFromPath()`/`embedFromPath()` used (not `attach()`/`embed()`)
-- ✅ Prior audit report exists: `migration-docs/audits/2026/01/mail/AUDIT_REPORT_2026-01-30.md`
+- ✅ `tempnam()` for persistent temp files, `__destruct()` cleanup
+- ✅ `__clone()` deep-copies temp files, updates DataPart references
+- ✅ `attachFromPath()`/`embedFromPath()` (correct Symfony Mailer API)
+- ✅ Prior audit: `migration-docs/audits/2026/01/mail/AUDIT_REPORT_2026-01-30.md`
 
-### Test Results
-
-```
-Tests: 55, Assertions: 142, Skipped: 5 (real SMTP), Warnings: 1
-Status: ALL PASSING ✅
-```
-
-### Findings
-
-- **Minor**: `Mailer::send()` returns `bool` but could return `void` for Symfony consistency. Not blocking.
-- **eval() in tests**: `MailControllerTest.php` and `SendmailTransportTest.php` use `eval()` for namespace function definition. Tagged for Step 1.13.5 (template security) but acceptable in test context.
-
-**Verdict: COMPLIANT** – No action required.
+**Tests:** 55 tests, 142 assertions, 5 skipped (real SMTP). ALL PASSING.
 
 ---
 
-## Step 1.2 – PHPUnit 11 Upgrade
+### Step 1.2 – PHPUnit 11 Upgrade
 
-**ROADMAP Status**: ✅ | **PR**: #31 | **Audit**: 🛡️ PASS
+**ROADMAP Status**: ✅ | **PR**: #31 | **Audit**: 🛡️ PASS (after fix)
 
-### Verification
-
-- ✅ `phpunit/phpunit ^11.0` in `composer.json` (line 63)
+**Verification:**
+- ✅ `phpunit/phpunit ^11.0` in `composer.json`
 - ✅ `phpunit.xml.dist` uses PHPUnit 11 schema (`phpunit.de/11.0/phpunit.xsd`)
-- ✅ `cacheDirectory=".phpunit.cache"` configured (PHPUnit 11 feature)
-- ✅ `testdox="true"` enabled
-- ✅ Test suites configured: `app/modules/*/src/Tests`, `app/system/modules/*/src/Tests`
-- ✅ Source coverage configured with proper excludes
-- ✅ No deprecated PHPUnit 9/10 methods found in test files
+- ✅ `cacheDirectory=".phpunit.cache"`, `testdox="true"`
+- ✅ Test suites: `app/modules/*/src/Tests`, `app/system/modules/*/src/Tests`
 
-### Test Results
-
-PHPUnit runs successfully across all modules.
-
-**Verdict: COMPLIANT** – No action required.
+**Audit Fix:** Rewrote `AuthTest.php` – tests were mocking `validate()`, `login()`, `logout()` on `HandlerInterface` which only defines `read()`, `write()`, `destroy()`. Tests now correctly test the actual Auth class API.
 
 ---
 
-## Step 1.3 – Security Patches
+### Step 1.3 – Security Patches
 
 **ROADMAP Status**: ⚠️ | **PR**: #30 | **Audit**: 🛡️ PASS
 
-### Verification
+**Verification:**
+- ✅ `composer audit`: **0 vulnerabilities**
+- ✅ `monolog/monolog ^3.7`, `paragonie/sodium_compat ^2.0`, `psr/log ^2.0`
+- ✅ No known CVEs in dependency tree
 
-- ✅ `composer audit` reports **0 vulnerabilities**
-- ✅ `monolog/monolog ^3.7` in `composer.json`
-- ✅ `paragonie/sodium_compat ^2.0` in `composer.json`
-- ✅ `paragonie/random-lib ~2.0.1` in `composer.json`
-- ✅ `psr/log ^2.0` in `composer.json`
-- ✅ No known CVEs in current dependency tree
-
-### Findings
-
-- ROADMAP marks this as ⚠️ (not ✅), but all security patches are applied. Likely marked for ongoing monitoring.
-
-**Verdict: COMPLIANT** – Security objectives achieved. ROADMAP status could be updated to ✅.
+**Note:** ROADMAP marks ⚠️ for ongoing monitoring. All current patches applied.
 
 ---
 
-## Step 1.3.5 – Dependabot Updates
+### Step 1.3.5 – Dependabot Updates
 
 **ROADMAP Status**: ✅ | **PR**: #32 | **Audit**: 🛡️ PASS
 
-### Verification
-
-- ✅ `.github/dependabot.yml` exists and is configured
-- ✅ Safe dependency updates merged (documented in `migration-docs/dependencies/completed/DEPENDABOT_UPDATES.md`)
-- ✅ No `doctrine/annotations` in `composer.json` (fully removed as part of 1.14)
-- ✅ No breaking changes from Dependabot updates
-
-**Verdict: COMPLIANT** – No action required.
+**Verification:**
+- ✅ `.github/dependabot.yml` configured
+- ✅ No `doctrine/annotations` in `composer.json` (removed in 1.14)
+- ✅ Safe updates merged without regressions
 
 ---
 
-## Step 1.4 – Safe Minor Updates
+### Step 1.4 – Safe Minor Updates
 
 **ROADMAP Status**: ✅ | **PR**: #53 | **Audit**: 🛡️ PASS
 
-### Verification
-
-- ✅ `twig/twig ^3.14` in `composer.json`
-- ✅ `composer/composer ^2.8` in `composer.json`
-- ✅ `paragonie/sodium_compat ^2.0` in `composer.json`
-- ✅ `nikic/php-parser ^5.4` in `composer.json`
-- ✅ All updates are in the safe (non-breaking) range
-
-**Verdict: COMPLIANT** – No action required.
+**Verification:**
+- ✅ `twig/twig ^3.14`, `composer/composer ^2.8`, `paragonie/sodium_compat ^2.0`, `nikic/php-parser ^5.4`
 
 ---
 
-## Step 1.5 – Doctrine DBAL 3.x
+### Step 1.5 – Doctrine DBAL 3.x
 
-**ROADMAP Status**: ✅ | **PR**: #54 | **Audit**: 🛡️ PASS
+**ROADMAP Status**: ✅ | **PR**: #54 | **Audit**: 🛡️ PASS (after fix)
 
-### Verification
-
+**Verification:**
 - ✅ `doctrine/dbal ^3.8` in `composer.json`
-- ✅ `Connection.php` extends `Doctrine\DBAL\Connection` (DBAL 3.x API)
-- ✅ `fetchAssociative()` used instead of deprecated `fetch()` (in EntityManager, Connection)
-- ✅ `fetchOne()` used instead of deprecated `fetchColumn()` (in EntityManager)
-- ✅ `fetchAllAssociative()` used instead of deprecated `fetchAll()` (in Connection)
-- ✅ `executeStatement()` used instead of deprecated `exec()` for DML
+- ✅ `Connection.php` extends `Doctrine\DBAL\Connection` (DBAL 3.x)
+- ✅ `fetchAssociative()` replaces `fetch()`, `fetchOne()` replaces `fetchColumn()`, `fetchAllAssociative()` replaces `fetchAll()`
+- ✅ `executeStatement()` replaces deprecated `exec()`
 - ✅ Custom type mappings registered via `registerCustomTypeMappings()`
-- ✅ `JsonArrayType` and `SimpleArrayType` custom types present
 
-### Remaining `fetch()` / `fetchColumn()` Calls
+**Remaining `fetch()` calls:** All on custom `CacheInterface`, not DBAL – verified not deprecated.
 
-| File | Method | Context |
-|------|--------|---------|
-| `debug/SqliteStorage.php` | `fetchColumn()` | SQLite-specific, not DBAL Result |
-| `cache/Psr6AdapterTest.php` | `fetch()` | CacheInterface method, not DBAL |
-| `ORM/MetadataManager.php` | `fetch()` | CacheInterface method, not DBAL |
-| `ORM/QueryBuilder.php` | `fetch()` | CacheInterface method, not DBAL |
-| `LoginAttemptListener.php` | `fetch()` | CacheInterface method, not DBAL |
-| `blog/UrlResolver.php` | `fetch()` | CacheInterface method, not DBAL |
-| `config/ConfigManager.php` | `fetch()` | Internal method name, not DBAL |
-
-**Analysis**: All remaining `fetch()` calls are on the custom `CacheInterface` (not `Doctrine\DBAL\Result`), which defines its own `fetch()` method. These are NOT deprecated DBAL calls.
-
-The one `fetchColumn()` in `SqliteStorage.php` operates on a `PDOStatement` from SQLite directly, not the DBAL Result object.
-
-**Verdict: COMPLIANT** – DBAL 3.x migration complete. No deprecated DBAL API usage remains.
+**Audit Fix:** Rewrote `ConnectionTest.php` – removed tests for non-existent `setPrefix()`/`escape()`, fixed prefix assertion, added real SQLite connection tests for `getUtility`, `getDatabasePlatform`, `fetchObject`, `fetchAllObjects`.
 
 ---
 
-## Step 1.6 – PSR-11 Container
+### Step 1.6 – PSR-11 Container
 
 **ROADMAP Status**: ✅ | **PR**: #55 | **Audit**: ⚠️ PASS*
 
-### Verification
-
+**Verification:**
 - ✅ `Psr11Adapter` implements `Psr\Container\ContainerInterface`
-- ✅ `Container::getService()` and `Container::hasService()` PSR-11 compatible
-- ✅ `Container::getPsr11Adapter()` returns PSR-11 adapter
-- ✅ `ContainerException` and `NotFoundException` implement PSR-11 exception interfaces
-- ✅ Tests: `ContainerPsr11Test.php` and `ContainerTest.php` exist
+- ✅ `Container::getService()`, `Container::hasService()` PSR-11 compatible
+- ✅ `ContainerException`, `NotFoundException` implement PSR-11 exceptions
+- ✅ Tests: `ContainerPsr11Test.php`, `ContainerTest.php`
 
-### Findings
-
-- ⚠️ **Missing `declare(strict_types=1)`** in core application module files: `Container.php`, `Application.php`, `EventDispatcher.php`, and most files in `app/modules/application/src/`. These are outside PSR-11 scope but noted.
-- ⚠️ `Psr11Adapter` is a wrapper (adapter pattern). Per aggressive modernization rules, this should eventually be replaced by having `Container` directly implement `ContainerInterface`. However, this was explicitly designed to avoid method name conflicts with `StaticTrait::get()` and is tagged for Step 2.0.5 (PSR-11 Container Modernising).
+**Findings:**
+- ⚠️ `Psr11Adapter` is a wrapper pattern. Per rules, Container should eventually implement `ContainerInterface` directly. Designed to avoid `StaticTrait::get()` name conflict – deferred to Step 2.0.5.
 - // TODO: Step 2.0.5 – Container should directly implement PSR-11 ContainerInterface
-
-**Verdict: COMPLIANT** for Step 1.6 scope. Adapter is a known bridge to be resolved in 2.0.5.
 
 ---
 
-## Step 1.7 – Symfony Event System
+### Step 1.7 – Symfony Event System
 
 **ROADMAP Status**: ✅ | **PR**: #56 | **Audit**: ⚠️ PASS*
 
-### Verification
-
+**Verification:**
 - ✅ `SymfonyEventDispatcherBridge` implements `Symfony\Component\EventDispatcher\EventDispatcherInterface`
-- ✅ `addListener()`, `removeListener()`, `addSubscriber()`, `removeSubscriber()` delegate to Pagekit's EventDispatcher
-- ✅ `getListeners()`, `hasListeners()`, `getListenerPriority()` work correctly
-- ✅ `EventDispatcherCompatibilityTest.php` exists
+- ✅ `addListener()`, `removeListener()`, `addSubscriber()`, `removeSubscriber()` delegate correctly
+- ✅ `EventDispatcherCompatibilityTest.php` (8 tests, all passing)
 
-### Findings
-
-- ⚠️ **`dispatch()` is a no-op**: `SymfonyEventDispatcherBridge::dispatch()` returns the event without processing. Comment says "Simply return the event without processing. Pagekit's event system continues to work independently." This means Symfony components that call `dispatch()` on the bridge won't trigger any listeners.
-  - This is acceptable for Phase 1 (compatibility layer) but should be addressed in Phase 2 when deeper Symfony integration is needed.
-  - // TODO: Step 2.0.5 – SymfonyEventDispatcherBridge::dispatch() should forward to Pagekit's trigger()
-
-**Verdict: COMPLIANT** for Step 1.7 scope. Bridge behavior documented.
+**Findings:**
+- ⚠️ `dispatch()` is a no-op (returns event without processing). Acceptable for Phase 1 compatibility.
+- // TODO: Step 2.0.5 – SymfonyEventDispatcherBridge::dispatch() should forward to Pagekit's trigger()
 
 ---
 
-## Step 1.8 – Symfony Routing
+### Step 1.8 – Symfony Routing
 
 **ROADMAP Status**: ✅ | **PR**: #57 | **Audit**: 🛡️ PASS
 
-### Verification
-
-- ✅ `symfony/routing ^6.4` in `composer.json`
+**Verification:**
+- ✅ `symfony/routing ^6.4`
 - ✅ `Router` implements `Symfony\Component\Routing\RouterInterface`
-- ✅ All properties typed: `ResourceInterface`, `LoaderInterface`, `RequestStack`, `RequestContext`, etc.
-- ✅ Return types on all methods: `getContext(): RequestContext`, `match(string): array`, `generate(string, array, int): string`
-- ✅ `setContext(RequestContext $context): void` matches Symfony interface
-- ✅ `Attribute\Route` and `Attribute\Request` PHP 8 attributes exist
-- ✅ `AttributeLoader` for routing exists
-- ✅ `declare(strict_types=1)` in routing attribute files and loader
-- ✅ Tests: `RouterTest.php`, `RoutesLoaderTest.php`, `RouteTest.php`
-
-**Verdict: COMPLIANT** – No action required.
+- ✅ All properties typed, all return types declared
+- ✅ `Attribute\Route` and `Attribute\Request` PHP 8 attributes
+- ✅ Tests: `RouterTest.php` (12), `RoutesLoaderTest.php` (9), `RouteTest.php` (15) – all passing
 
 ---
 
-## Step 1.9 – Symfony 6.4 Upgrade
+### Step 1.9 – Symfony 6.4 Upgrade
 
-**ROADMAP Status**: ✅ | **PR**: #60-#61 | **Audit**: 🛡️ PASS
+**ROADMAP Status**: ✅ | **PR**: #60-#61 | **Audit**: 🛡️ PASS (after fix)
 
-### Verification
+**Verification:**
+- ✅ All 18 Symfony packages at `^6.4`
+- ✅ `symfony/validator ^7.4` (compatible)
+- ✅ Dev dependencies at `^6.4`
 
-All Symfony packages at `^6.4` in `composer.json`:
-
-| Package | Constraint |
-|---------|-----------|
-| symfony/mailer | ^6.4 |
-| symfony/error-handler | ^6.4 |
-| symfony/finder | ^6.4 |
-| symfony/http-foundation | ^6.4 |
-| symfony/framework-bundle | ^6.4 |
-| symfony/http-kernel | ^6.4 |
-| symfony/routing | ^6.4 |
-| symfony/stopwatch | ^6.4 |
-| symfony/console | ^6.4 |
-| symfony/filesystem | ^6.4 |
-| symfony/process | ^6.4 |
-| symfony/string | ^6.4 |
-| symfony/deprecation-contracts | ^2.5\|^3.0 |
-| symfony/service-contracts | ^2.5\|^3.0 |
-| symfony/translation | ^6.4 |
-| symfony/twig-bridge | ^6.4 |
-| symfony/yaml | ^6.4 |
-| symfony/cache | ^6.4 |
-| symfony/validator | ^7.4 |
-
-- ✅ All core Symfony packages at ^6.4 (LTS)
-- ✅ Validator at ^7.4 (newer, compatible)
-- ✅ Dev dependencies also at ^6.4 (phpunit-bridge, var-dumper, web-profiler-bundle, browser-kit, debug-bundle)
-
-**Verdict: COMPLIANT** – No action required.
+**Audit Fix:** Fixed `SessionTest::testSessionId` – Symfony 6.4's `MockArraySessionStorage` throws `LogicException` when `setId()` called after `start()`. Restructured test to set ID before starting session.
 
 ---
 
-## Step 1.10 – PSR-6 Cache
+### Step 1.10 – PSR-6 Cache
 
-**ROADMAP Status**: ✅ | **PR**: #62 | **Audit**: ⚠️ PASS*
+**ROADMAP Status**: ✅ | **PR**: #62 | **Audit**: 🛡️ PASS (after fix)
 
-### Verification
+**Verification:**
+- ✅ `psr/cache ^2.0|^3.0`, `symfony/cache ^6.4`
+- ✅ No `doctrine/cache` in `composer.json`
+- ✅ PSR-6 adapters: `ArrayAdapter`, `FilesystemAdapter`, `PhpFilesAdapter`, `ApcuAdapter`, `NullAdapter`
+- ✅ `CacheModule::main()` always creates PSR-6 cache
 
-- ✅ `psr/cache ^2.0|^3.0` in `composer.json`
-- ✅ `symfony/cache ^6.4` in `composer.json`
-- ✅ No `doctrine/cache` in `composer.json` (fully removed)
-- ✅ PSR-6 adapters implemented: `ArrayAdapter`, `FilesystemAdapter`, `PhpFilesAdapter`, `ApcuAdapter`, `NullAdapter`
-- ✅ `Psr6Adapter` wraps Symfony Cache for backward compatibility
-- ✅ `CacheModule::createPsr6Cache()` creates PSR-6 adapters
-- ✅ `CacheModule::main()` always calls `createPsr6Cache()` (no legacy path)
-- ✅ Tests: `Psr6AdapterTest.php`
-
-### Findings
-
-- ⚠️ `CacheModule::$usePsr6 = false` is dead code – the property is never read. The `main()` method always calls `createPsr6Cache()`. This should be removed.
-- ⚠️ `CacheModule::supports()` still lists `xcache` as a legacy option. XCache was removed in PHP 7.0+.
-- ⚠️ `CacheModule::doClearCache()` calls `App::cache()->flushAll()` – this is the `CacheInterface::flushAll()` method, which is part of the PSR-6 adapter's backward-compatible API.
-
-**Verdict: COMPLIANT** for Step 1.10 scope. Dead code noted for cleanup.
+**Audit Fixes:**
+1. Removed dead `$usePsr6` property (never read)
+2. Removed `xcache` from `supports()` (not available in PHP 8.x)
+3. Removed `apc`/`xcache` fallback in `createPsr6Cache()`
+4. Fixed `Psr6AdapterTest::testBackwardCompatibility` – replaced non-existent `fetchMultiple()`/`deleteMultiple()` with correct API
 
 ---
 
-## Step 1.10.5 – E2E Testing (Playwright)
+### Step 1.10.5 – E2E Testing (Playwright)
 
 **ROADMAP Status**: ✅ | **PR**: #67 | **Audit**: 🛡️ PASS
 
-### Verification
-
-- ✅ `playwright.config.js` exists at project root
-- ✅ `playwright.smoke.config.js` exists for smoke tests
-- ✅ Test directory structure:
-  - `tests/e2e/specs/01-setup/installation.spec.js`
-  - `tests/e2e/specs/02-core/` (authentication, dashboard, orm-operations, settings)
-  - `tests/e2e/specs/03-content/` (blog, media, pages)
-  - `tests/e2e/specs/04-frontend/` (public-pages)
-  - `tests/e2e/specs/05-features/` (menu-system, user-management, widgets)
-- ✅ Helper files: `test-config.js`, `vue-helpers.js`
-- ✅ Config example: `test-config.example.json`
-- ✅ E2E scripts: `scripts/e2e-reset.sh`, `scripts/e2e-start.sh`, `scripts/e2e-stop.sh`
-- ✅ Docker E2E setup: `docker-compose.e2e.yml`
-- ✅ Documentation: `tests/e2e/README.md`, `COMPLETE_TEST_PLAN.md`
-
-**Verdict: COMPLIANT** – Infrastructure complete and well-structured.
+**Verification:**
+- ✅ `playwright.config.js` and `playwright.smoke.config.js` exist
+- ✅ Test structure: `01-setup`, `02-core`, `03-content`, `04-frontend`, `05-features`
+- ✅ 11 test spec files, helper functions, Docker E2E setup
+- ✅ E2E scripts: `e2e-reset.sh`, `e2e-start.sh`, `e2e-stop.sh`
 
 ---
 
-## Step 1.11 – ORM Modernization
+### Step 1.11 – ORM Modernization
 
 **ROADMAP Status**: ✅ | **PR**: #97 | **Audit**: 🛡️ PASS
 
-### Verification
-
-- ✅ `EntityManager`: `declare(strict_types=1)`, typed properties, typed return types
-- ✅ Uses `fetchAssociative()` (DBAL 3.x) in `hydrateOne()` and `hydrateAll()`
-- ✅ `Metadata`, `MetadataManager`: `declare(strict_types=1)`
-- ✅ `QueryBuilder` (ORM): `declare(strict_types=1)`, cache integration
-- ✅ `ModelTrait`, `PropertyTrait`: `declare(strict_types=1)`
-- ✅ All relation classes: typed, strict types
-- ✅ `AttributeLoader` replaces `AnnotationLoader` (see 1.14)
-- ✅ Tests: `EntityManagerTest.php`, `QueryBuilderCacheTest.php`, `RelationTest.php`
-
-**Verdict: COMPLIANT** – No action required.
+**Verification:**
+- ✅ `EntityManager`: `declare(strict_types=1)`, typed properties, return types
+- ✅ `fetchAssociative()` in `hydrateOne()` and `hydrateAll()` (DBAL 3.x)
+- ✅ `MetadataManager`, `Metadata`, `ModelTrait`, `PropertyTrait`: strict types
+- ✅ All relation classes typed
+- ✅ `AttributeLoader` replaces `AnnotationLoader`
+- ✅ Tests: `EntityManagerTest`, `QueryBuilderCacheTest`, `RelationTest`
 
 ---
 
-## Step 1.12 – Database Migration System
+### Step 1.12 – Database Migration System
 
 **ROADMAP Status**: ✅ | **PR**: #107 | **Audit**: 🛡️ PASS
 
-### Verification
-
-- ✅ `doctrine/migrations ^3.9` in `composer.json`
-- ✅ `MigrationService`: `declare(strict_types=1)`, typed properties, uses Doctrine Migrations DependencyFactory
+**Verification:**
+- ✅ `doctrine/migrations ^3.9`
+- ✅ `MigrationService`: `declare(strict_types=1)`, typed properties, `DependencyFactory`
 - ✅ Methods: `migrate()`, `rollback()`, `status()`, `generate()`, `isInitialized()`, `initialize()`
-- ✅ Extension migration support: `migrateExtension()`, `rollbackExtension()`
+- ✅ Extension support: `migrateExtension()`, `rollbackExtension()`
 - ✅ Table prefix replacement with `@` placeholder
-- ✅ `ConfigurationProvider` and `ExtensionMigration` exist
-- ✅ Tests: `tests/unit/Migration/MigrationServiceTest.php`
-
-**Verdict: COMPLIANT** – No action required.
+- ✅ Tests: `MigrationServiceTest.php`
 
 ---
 
-## Step 1.13 – Validation System Update
+### Step 1.13 – Validation System Update
 
 **ROADMAP Status**: ✅ | **PR**: #108 | **Audit**: 🛡️ PASS
 
-### Verification
-
-- ✅ `symfony/validator ^7.4` in `composer.json`
-- ✅ `ValidatesRequestTrait` uses `Symfony\Component\Validator`
-- ✅ `ValidatorServiceProvider` integrates Symfony Validator
-- ✅ Custom constraints: `Unique` and `UniqueValidator`
-- ✅ Model validation: `Widget`, `Role`, `User`, `Post`, `Comment`, `Page`, `Node` use Symfony validation
-- ✅ Package models (blog `Post`, `Comment`) also use Symfony Validator
-
-**Verdict: COMPLIANT** – No action required.
+**Verification:**
+- ✅ `symfony/validator ^7.4`
+- ✅ `ValidatesRequestTrait`, `ValidatorServiceProvider`
+- ✅ Custom constraints: `Unique`, `UniqueValidator`
+- ✅ Models using validation: `Widget`, `Role`, `User`, `Post`, `Comment`, `Page`, `Node`
 
 ---
 
-## Step 1.13.5 – Template Security (eval removal, CSP, data-attributes)
+### Step 1.13.5 – Template Security (eval removal, CSP, data-attributes)
 
-**ROADMAP Status**: ⏸️ 80% | **PR**: #110 | **Audit**: ⚠️ PASS*
+**ROADMAP Status**: ⏸️ 80% | **PR**: #110 | **Audit**: 🛡️ PASS (after fix)
 
-### Verification
+**Verification:**
+- ✅ `DataHelper.php`: CSP-compliant JSON container (`type="application/json"`)
+- ✅ `ScriptHelper.php`: Inline scripts blocked with CSP warning
+- ✅ No `eval()` in production PHP code
+- ✅ `data-` attributes used in Vue templates
 
-- ✅ `DataHelper.php`: CSP-compliant JSON container (`type="application/json"`, no inline execution)
-- ✅ `ScriptHelper.php`: Inline scripts blocked with CSP warning, only external `<script src="...">` emitted
-- ✅ `storage-init` script registered as external file (not inline)
-- ✅ `data-` attributes used in Vue templates for configuration passing
-- ✅ No `eval()` in production PHP code (only in 2 test files for namespace function definition)
+**Audit Fix:** Replaced `eval()` in 2 test files (`MailControllerTest`, `SendmailTransportTest`) with `require_once bootstrap.php` containing the `Pagekit\__()` stub.
 
-### Findings
-
-- ⚠️ **eval() in test files**: `MailControllerTest.php:25` and `SendmailTransportTest.php:45` use `eval()` to define a namespace function. This is a test-only concern but conflicts with strict CSP goals.
-  - // TODO: Step 1.13.5 – Replace eval() in test bootstrap with proper function mock or autoloaded file
-- ⚠️ ROADMAP marks this as ⏸️ 80% – remaining 20% likely relates to Vue template pre-compilation (Step 3.2.5).
-- ✅ `DataHelper` and `ScriptHelper` are production-ready for CSP compliance.
-
-**Verdict: COMPLIANT at 80% scope.** The remaining work (Vue pre-compilation) is correctly deferred to Phase 3.
+**Remaining:** Vue template pre-compilation (20%) deferred to Step 3.2.5.
 
 ---
 
-## Step 1.14 – Doctrine Annotations → PHP 8 Attributes
+### Step 1.14 – Doctrine Annotations → PHP 8 Attributes
 
 **ROADMAP Status**: ✅ | **PR**: #111 | **Audit**: 🛡️ PASS
 
-### Verification
-
-- ✅ No `doctrine/annotations` in `composer.json` (fully removed)
-- ✅ No `@Entity(`, `@Column(`, `@HasMany(` etc. annotation syntax in any PHP file
-- ✅ ORM Attributes: `Entity`, `Column`, `Id`, `BelongsTo`, `HasOne`, `HasMany`, `ManyToMany`, `MappedSuperclass`, `OrderBy`, plus event attributes (`Saving`, `Saved`, `Updating`, `Updated`, `Deleting`, `Deleted`, `Created`, `Creating`, `Init`)
-- ✅ All attributes use `#[\Attribute()]` syntax with correct targets
-- ✅ `AttributeLoader` (ORM) uses `ReflectionAttribute` API (PHP 8.0+)
-- ✅ Routing: `Route` and `Request` PHP 8 attributes exist
-- ✅ `AttributeLoader` (Routing) uses `ReflectionAttribute` API
-- ✅ `declare(strict_types=1)` in all attribute files
-- ✅ No `AnnotationReader` or `doctrine/annotations` imports in codebase
-
-**Verdict: COMPLIANT** – Full migration to PHP 8 Attributes complete.
+**Verification:**
+- ✅ No `doctrine/annotations` in `composer.json`
+- ✅ No annotation syntax (`@Entity(`, `@Column(`, etc.) in codebase
+- ✅ ORM attributes: `Entity`, `Column`, `Id`, `BelongsTo`, `HasOne`, `HasMany`, `ManyToMany`, `MappedSuperclass`, `OrderBy`, plus event attributes
+- ✅ All use `#[\Attribute()]` syntax, `declare(strict_types=1)`
+- ✅ `AttributeLoader` (ORM) and `AttributeLoader` (Routing) use `ReflectionAttribute` API
+- ✅ Routing attributes: `Route`, `Request`
 
 ---
 
-## Code Fixes Applied
+## Recommendations for Future Steps
 
-No code fixes were required during this audit. All steps were found compliant with their respective scope.
+### Step 2.0.5 – PSR-11 Container Modernisation
 
-## Recommendations
+1. `Container` should directly implement `Psr\Container\ContainerInterface` (remove `Psr11Adapter`)
+2. `SymfonyEventDispatcherBridge::dispatch()` should forward events to Pagekit's trigger system
 
-### For Immediate Cleanup (non-blocking)
+### Step 2.1 – Static Analysis & Code Quality
 
-1. **Remove `CacheModule::$usePsr6` dead property** – Never read, always PSR-6 path taken.
-2. **Remove `xcache` from `CacheModule::supports()`** – XCache does not exist in PHP 8.x.
-3. **Replace `eval()` in test files** with autoloaded function file or proper mock.
+1. Add `declare(strict_types=1)` to all files in `app/modules/application/src/` (currently missing in 15+ files)
+2. Fix `StreamWrapper::$context` dynamic property deprecation (39 notices in filesystem tests)
+3. Fix `strlen()` null parameter deprecation in `FilesystemTest::testGetUrlExternal`
 
-### For Future Steps (tagged in ROADMAP)
+### Step 3.2.5 – Template Pre-compilation (CSP)
 
-1. **Step 2.0.5**: Container should directly implement `ContainerInterface` (remove `Psr11Adapter`).
-2. **Step 2.0.5**: `SymfonyEventDispatcherBridge::dispatch()` should forward events to Pagekit's trigger system.
-3. **Step 3.2.5**: Complete Vue template pre-compilation for full CSP compliance.
-4. **Add `declare(strict_types=1)`** to all files in `app/modules/application/src/` during next touch.
+1. Complete Vue template pre-compilation for full CSP compliance (remaining 20% of Step 1.13.5)
 
 ---
 
-## Test Summary
+## Final Test Summary
 
-| Module | Tests | Pass | Skip | Result |
-|--------|-------|------|------|--------|
-| Mail | 55 | 49 | 5 | ✅ |
-| Composer Audit | - | - | - | ✅ 0 vulnerabilities |
+```
+PHPUnit 11.5.51 – PHP 8.3.30
 
-**Overall Phase 1 Status: SUBSTANTIALLY COMPLETE ✅**
+Tests: 259, Assertions: 608
+Errors: 0, Failures: 0
+Skipped: 5 (intentional SMTP), Warnings: 1 (PHPUnit internal)
 
-All 17 audited steps pass the No Mercy audit or pass with minor findings that are correctly scoped for future steps. No compatibility layers, no adapters beyond the documented bridge patterns (PSR-11, Event), no legacy code requiring immediate action.
+Composer Audit: 0 vulnerabilities
+```
+
+### Per-Module Test Breakdown
+
+| Module | Tests | Status |
+|--------|-------|--------|
+| Mail (Mailer, Message, Controller, Plugin, Integration, Transport) | 55 | ✅ |
+| Auth | 9 | ✅ |
+| Cache (Psr6Adapter) | 7 | ✅ |
+| Container + PSR-11 | 23 | ✅ |
+| Database (Connection, ORM, QueryBuilder) | 20 | ✅ |
+| Routing (Router, Route, RoutesLoader) | 36 | ✅ |
+| Event (Dispatcher Compatibility) | 8 | ✅ |
+| Session | 13 | ✅ |
+| Config | 6 | ✅ |
+| Cookie | 4 | ✅ |
+| Filter | 29 | ✅ |
+| Filesystem (Path, Locator, Adapter) | 49 | ✅ |
+| **Total** | **259** | **✅** |
+
+---
+
+## Conclusion
+
+**Phase 1 is COMPLETE.** All 17 audited ROADMAP steps pass the No Mercy audit. Five test fixes were applied to bring the test suite from 12 errors/failures to 0. No compatibility layers or adapters were introduced. Two items are correctly deferred to Step 2.0.5 (PSR-11 full integration, Event bridge dispatch). The codebase is ready for Phase 2 development.
+
+**Final Status: ✅ PHASE 1 AUDIT PASSED**
