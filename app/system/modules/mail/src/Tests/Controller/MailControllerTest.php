@@ -20,10 +20,8 @@ class MailControllerTest extends TestCase
     
     public function setUp(): void
     {
-        // Define translation function if not available
-        if (!function_exists('Pagekit\__')) {
-            eval('namespace Pagekit; function __($message, $args = []) { return strtr($message, $args); }');
-        }
+        // Load translation stub for tests (CSP-safe, no eval)
+        require_once __DIR__ . '/../bootstrap.php';
         
         $this->controller = new MailController();
     }
