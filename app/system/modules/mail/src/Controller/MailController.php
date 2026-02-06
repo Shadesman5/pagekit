@@ -25,7 +25,11 @@ class MailController
         $option = $request->request->all()['option'] ?? [];
         if (empty($option) && $request->getContent()) {
             $json = json_decode($request->getContent(), true);
-            $option = $json['option'] ?? [];
+            // Check if json_decode succeeded (returns array) before accessing array keys
+            // Prevents PHP 8.x deprecation warning when accessing null as array
+            if (is_array($json)) {
+                $option = $json['option'] ?? [];
+            }
         }
         
         try {
@@ -64,7 +68,11 @@ class MailController
         $option = $request->request->all()['option'] ?? [];
         if (empty($option) && $request->getContent()) {
             $json = json_decode($request->getContent(), true);
-            $option = $json['option'] ?? [];
+            // Check if json_decode succeeded (returns array) before accessing array keys
+            // Prevents PHP 8.x deprecation warning when accessing null as array
+            if (is_array($json)) {
+                $option = $json['option'] ?? [];
+            }
         }
         
         try {

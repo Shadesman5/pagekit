@@ -215,4 +215,56 @@ class MailControllerTest extends TestCase
         // With NullTransport, sending should succeed
         $this->assertTrue($result['success']);
     }
+
+    /**
+     * Test that invalid JSON in request body doesn't trigger PHP 8.x deprecation warnings.
+     * When json_decode fails, it returns null, and accessing null as array should be prevented.
+     */
+    public function testSmtpActionWithInvalidJson(): void
+    {
+        $request = new Request();
+        // Set invalid JSON in request content
+        $request->initialize([], [], [], [], [], [], 'invalid json { not valid }');
+        
+        $mailer = new Mailer(new NullTransport());
+        
+        // This should not trigger any deprecation warnings
+        // The code should handle null gracefully without array access
+        $result = $this->controller->smtpAction($request, $mailer);
+        
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('success', $result);
+        $this->assertArrayHasKey('message', $result);
+        // Should fail because no valid option was provided
+        $this->assertFalse($result['success']);
+        $this->assertIsString($result['message']);
+    }
+
+    /**
+     * Test that invalid JSON in request body doesn't trigger PHP 8.x deprecation warnings.
+     * When json_decode fails, it returns null, and accessing null as array should be prevented.
+     */
+    public function testEmailActionWithInvalidJson(): void
+    {
+        $request = new Request();
+        // Set invalid JSON in request content
+        $request->initialize([], [], [], [], [], [], 'invalid json { not valid }');
+        
+        $mailer = new Mailer(new NullTransport());
+        $mailModule = $this->createMock(Module::class);
+        $mailModule->method('config')->willReturn([
+            'from_address' => 'test@example.com',
+            'from_name' => null
+        ]);
+        
+        // This should not trigger any deprecation warnings
+        // The code should handle null gracefully without array access
+        $result = $this->controller->emailAction($request, $mailer, $mailModule);
+        
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('success', $result);
+        $this->assertArrayHasKey('message', $result);
+        // Should succeed because config has from_address
+        $this->assertTrue($result['success']);
+    }
 }
