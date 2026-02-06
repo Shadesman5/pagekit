@@ -3,6 +3,7 @@
 
 # Don't ignore migration-docs
 !migration-docs/TODO/*
+!.cursor/ROADMAP.md
 
 # Ignore CHANGELOG files specifically
 CHANGELOG*.md
