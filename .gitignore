@@ -34,6 +34,10 @@ node_modules
 # Ignore development/migration documentation
 /migration-docs/TODO/*
 
+# Exception: agent_prompts for orchestrated task execution (referenced by .cursor/rules)
+!/migration-docs/TODO/agent_prompts/
+!/migration-docs/TODO/agent_prompts/**
+
 # Ignore environment files with secrets
 docker.env
 .env

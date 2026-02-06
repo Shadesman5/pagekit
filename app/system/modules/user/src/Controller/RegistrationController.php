@@ -152,10 +152,11 @@ class RegistrationController
         try {
 
             $mail = App::mailer()->create();
-            $mail->setTo($user->email)
-                ->setSubject(__('Welcome to %site%!', ['%site%' => App::module('system/site')->config('title')]))
-                ->setBody(App::view('system/user:mails/welcome.php', compact('user', 'mail')), 'text/html')
-                ->send();
+            $mail->to($user->email)
+                ->subject(__('Welcome to %site%!', ['%site%' => App::module('system/site')->config('title')]))
+                ->html(App::view('system/user:mails/welcome.php', compact('user', 'mail')));
+            
+            App::mailer()->send($mail);
 
         } catch (\Exception $e) {
         }
@@ -166,10 +167,11 @@ class RegistrationController
         try {
 
             $mail = App::mailer()->create();
-            $mail->setTo($user->email)
-                ->setSubject(__('Activate your %site% account.', ['%site%' => App::module('system/site')->config('title')]))
-                ->setBody(App::view('system/user:mails/verification.php', compact('user', 'mail')), 'text/html')
-                ->send();
+            $mail->to($user->email)
+                ->subject(__('Activate your %site% account.', ['%site%' => App::module('system/site')->config('title')]))
+                ->html(App::view('system/user:mails/verification.php', compact('user', 'mail')));
+            
+            App::mailer()->send($mail);
 
         } catch (\Exception $e) {
             throw new Exception(__('Unable to send verification link.'));
@@ -181,10 +183,11 @@ class RegistrationController
         try {
 
             $mail = App::mailer()->create();
-            $mail->setTo(App::module('system/mail')->config('from_address'))
-                ->setSubject(__('Approve an account at %site%.', ['%site%' => App::module('system/site')->config('title')]))
-                ->setBody(App::view('system/user:mails/approve.php', compact('user', 'mail')), 'text/html')
-                ->send();
+            $mail->to(App::module('system/mail')->config('from_address'))
+                ->subject(__('Approve an account at %site%.', ['%site%' => App::module('system/site')->config('title')]))
+                ->html(App::view('system/user:mails/approve.php', compact('user', 'mail')));
+            
+            App::mailer()->send($mail);
 
         } catch (\Exception $e) {
         }

@@ -1,0 +1,73 @@
+---
+description: Orchestrator workflow - delegates task prompts to Architect, Refactorer, Verifier, Tester. Apply when executing agent_prompts.
+globs: migration-docs/TODO/agent_prompts/*.md,**/PROMPT_*.md
+alwaysApply: false
+---
+
+# Orchestrator Subagent Workflow
+
+When you receive a **Task Prompt** (from agent*prompts or PROMPT*\*.md), you MUST follow this workflow.
+You do NOT execute the full prompt at once. You DELEGATE to subagents by name (see rule 4 below); each subagent runs in its own context. Start by delegating to **architect** to get the plan, then loop: **refactorer** → **verifier** → **tester** → commit → next step.
+
+## Reference Documents (MANDATORY)
+
+- **ROADMAP.md** – Step IDs, TODO format, tracking table. All TODO comments must use ROADMAP IDs.
+- If a sub-step is missing for clean modernization, add it to ROADMAP (e.g. 2.0.5b).
+
+## Workflow (Sequential, One Step at a Time)
+
+```
+Task Prompt
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ PHASE: ARCHITECT                                                 │
+│ Read full task. Output: Scope, Checklist, TODO-Spec, Deferred.   │
+└─────────────────────────────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ LOOP per logical step (e.g. Phase 1, Phase 2 in task prompt):    │
+│   1. REFACTORER – Execute ONLY current step from checklist       │
+│   2. VERIFIER   – Audit Refactorer output vs Architect plan      │
+│   3. TESTER     – Run tests (php pagekit setup, PHPUnit, etc.)  │
+│   4. COMMIT     – Per completed step (Conventional Commits)      │
+│   → Next step, repeat                                            │
+└─────────────────────────────────────────────────────────────────┘
+    │
+    ▼
+Task complete. All steps committed.
+```
+
+## Rules
+
+1. **One step at a time** – Never work on multiple steps in parallel.
+2. **Commit per step** – After each logical step (e.g. eval removal, data-attributes, CSP) is done and verified.
+3. **No batch commits** – Do not wait until the entire task is done.
+4. **Subagents** – Delegate by name so Cursor uses the right agent. Use these exact phrases when handing off:
+   - **Plan:** "Delegate to the **architect** subagent to create scope, checklist, and TODO-Spec for this task."
+   - **Do:** "Delegate to the **refactorer** subagent to execute the current step from the Architect's checklist."
+   - **Check:** "Delegate to the **verifier** subagent to audit the Refactorer's output against the Architect plan."
+   - **Test:** "Delegate to the **tester** subagent to run tests (php pagekit setup, PHPUnit, Playwright as needed)."
+     Subagent files live in `.cursor/agents/` (architect.md, refactorer.md, verifier.md, tester.md).
+
+## Handoff Format (Internal)
+
+When switching from Architect to Refactorer, use:
+
+```markdown
+## ARCHITECT OUTPUT
+
+- **Current Step (ROADMAP):** X.Y
+- **Scope:** [files/modules]
+- **Checklist:** [1. ..., 2. ..., 3. ...]
+- **Deferred:** [Step X.Y - reason]
+- **TODO-Spec:** [exact comment format for each case]
+```
+
+When Refactorer completes a step, Verifier receives: changed files + Architect plan.
+
+## On Failure
+
+- **Verifier fails** → Refactorer re-executes with Verifier feedback.
+- **Tester fails** → RCA. If Bridge-related, Architect may need to adjust plan. Otherwise Refactorer fixes.

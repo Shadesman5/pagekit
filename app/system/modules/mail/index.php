@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Mail\Mailer;
 use Pagekit\Mail\Plugin\ImpersonatePlugin;
 use Symfony\Component\Mailer\Transport\Dsn;
@@ -44,7 +46,7 @@ return [
                 
                 $transport = new EsmtpTransport(
                     $this->config['host'],
-                    $this->config['port'],
+                    (int) $this->config['port'],
                     $useTls
                 );
 

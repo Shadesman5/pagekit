@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Mail\Tests;
 
 use PHPUnit\Framework\TestCase;
@@ -12,7 +14,7 @@ use Symfony\Component\Mime\Email;
 class MailerTest extends TestCase
 {
     protected ?Mailer $mailer = null;
-    protected $transport = null;
+    protected ?\Symfony\Component\Mailer\Transport\TransportInterface $transport = null;
 
     public function setUp(): void
     {
@@ -72,9 +74,10 @@ class MailerTest extends TestCase
 
     public function testTestSmtpConnectionWithNullTransport(): void
     {
-        // Test with null transport should return true without error
-        $result = $this->mailer->testSmtpConnection();
-        $this->assertTrue($result);
+        // Test with null host should throw exception
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('SMTP host is required');
+        $this->mailer->testSmtpConnection();
     }
 
     /**
@@ -87,31 +90,37 @@ class MailerTest extends TestCase
             $this->markTestSkipped('Email SMTP configuration not available');
         }
 
-        $result = $this->mailer->testSmtpConnection(
-            $GLOBALS['email_smtp_host'],
-            (int)$GLOBALS['email_smtp_port'],
-            $GLOBALS['email_smtp_user'],
-            $GLOBALS['email_smtp_password'],
-            $GLOBALS['email_smtp_encryption']
-        );
-
-        // Result should be either true or a string with error message
-        $this->assertTrue(is_bool($result) || is_string($result));
+        try {
+            $result = $this->mailer->testSmtpConnection(
+                $GLOBALS['email_smtp_host'],
+                (int)$GLOBALS['email_smtp_port'],
+                $GLOBALS['email_smtp_user'],
+                $GLOBALS['email_smtp_password'],
+                $GLOBALS['email_smtp_encryption']
+            );
+            $this->assertTrue($result);
+        } catch (\Exception $e) {
+            // Connection failed, which is acceptable for this test
+            $this->assertIsString($e->getMessage());
+        }
     }
 
     public function testTestSmtpConnectionWithInvalidParameters(): void
     {
-        $result = $this->mailer->testSmtpConnection(
-            'invalid-host.example.com',
-            25,
-            'invalid-user',
-            'invalid-password',
-            null
-        );
-
-        // Should return error message string
-        $this->assertIsString($result);
-        $this->assertNotEmpty($result);
+        // Should throw exception with error message
+        try {
+            $this->mailer->testSmtpConnection(
+                'invalid-host.example.com',
+                25,
+                'invalid-user',
+                'invalid-password',
+                null
+            );
+            $this->fail('Expected exception was not thrown');
+        } catch (\Exception $e) {
+            $this->assertIsString($e->getMessage());
+            $this->assertNotEmpty($e->getMessage());
+        }
     }
 
     public function testSendWithMultiplePlugins(): void

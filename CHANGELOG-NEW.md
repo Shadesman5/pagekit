@@ -1,5 +1,25 @@
 # Changelog
 
+## Pagekit 1.1.1 - Cursor Workflow & Agent Prompts (February 6, 2026)
+
+### ✨ New Features
+
+- **E2E Test Architect Skill** - Added complete `.cursor/skills/e2e-test-architect/` skill with SKILL.md, selector patterns, runtime patterns, and codebase analysis script for automated E2E test generation
+
+### 📝 Documentation
+
+- **Subagent Orchestration Workflow** - Added ROADMAP.md, WORKFLOW_SUBAGENTS.md, task invocation template, and orchestrator rule for structured multi-agent modernization
+- **Agent Definitions** - Added architect, refactorer, tester, and verifier agent definitions in `.cursor/agents/`
+- **Orchestrated Agent Prompts** - Added 15 agent prompts for PSR-11 container (5 stages), Doctrine attributes migration, Symfony validator (3 phases), ORM modernization, database migrations, audit tasks, and template security modernization
+
+### 🔧 Maintenance
+
+- **secrets.example.env** - Commented out placeholder values to prevent accidental use as real credentials
+- **.gitignore** - Added exception for `migration-docs/TODO/agent_prompts/` to track orchestrated prompts
+- **.prettierignore** - Added `ROADMAP.md` to formatting exceptions
+
+---
+
 ## Pagekit 1.1.1 - UrlProvider, Request Attribute & Finder Fixes (January 30, 2026)
 
 ### ✨ New Features

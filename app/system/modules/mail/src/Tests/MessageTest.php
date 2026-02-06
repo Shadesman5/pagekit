@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Mail\Tests;
 
 use PHPUnit\Framework\TestCase;
@@ -112,7 +114,7 @@ class MessageTest extends TestCase
         try {
             $cid = $this->message->embedFile($tempFile);
             $this->assertStringStartsWith('cid:', $cid);
-            $this->assertStringContains('@pagekit', $cid);
+            $this->assertStringContainsString('@pagekit', $cid);
         } finally {
             unlink($tempFile);
         }
@@ -127,7 +129,9 @@ class MessageTest extends TestCase
         try {
             $customCid = 'custom-cid';
             $cid = $this->message->embedFile($tempFile, $customCid);
-            $this->assertEquals('cid:' . $customCid, $cid);
+            // CID must match the header value (RFC requires local@domain format)
+            // So 'custom-cid' becomes 'custom-cid@pagekit' in the header (consistent with embedData)
+            $this->assertEquals('cid:custom-cid@pagekit', $cid);
         } finally {
             unlink($tempFile);
         }
@@ -137,7 +141,7 @@ class MessageTest extends TestCase
     {
         $cid = $this->message->embedData('Test data content', 'test.txt', 'text/plain');
         $this->assertStringStartsWith('cid:', $cid);
-        $this->assertStringContains('@pagekit', $cid);
+        $this->assertStringContainsString('@pagekit', $cid);
     }
 
     public function testAddHeader(): void
@@ -158,8 +162,9 @@ class MessageTest extends TestCase
         
         $parts = $this->message->getParts();
         
-        // Should contain both attachment and embedded parts
-        $this->assertGreaterThanOrEqual(2, count($parts));
+        // Should contain both attachment and embedded parts (no duplicates)
+        // attachData adds 1 part, embedData adds 1 part = 2 total
+        $this->assertCount(2, $parts);
     }
 
     public function testEmailMethodsInheritance(): void
@@ -184,5 +189,76 @@ class MessageTest extends TestCase
         
         $this->assertEquals('Test Subject', $this->message->getSubject());
         $this->assertEquals('Test Body', $this->message->getTextBody());
+    }
+
+    public function testCloneWithTempFiles(): void
+    {
+        // Create message with in-memory attachment
+        $this->message->attachData('Test attachment data', 'test.txt', 'text/plain');
+        
+        // Verify original has attachment
+        $originalParts = $this->message->getParts();
+        $this->assertGreaterThan(0, count($originalParts));
+        
+        // Use reflection to access protected tempFiles property
+        $reflection = new \ReflectionClass($this->message);
+        $tempFilesProperty = $reflection->getProperty('tempFiles');
+        $tempFilesProperty->setAccessible(true);
+        
+        $originalTempFiles = $tempFilesProperty->getValue($this->message);
+        $this->assertNotEmpty($originalTempFiles, 'Original should have temp files');
+        
+        // Clone the message
+        $clonedMessage = clone $this->message;
+        
+        // Both should have their own temp files
+        $this->assertNotSame($this->message, $clonedMessage);
+        
+        // Verify cloned message has its own copy of attachments
+        $clonedParts = $clonedMessage->getParts();
+        $this->assertCount(count($originalParts), $clonedParts);
+        
+        $clonedTempFiles = $tempFilesProperty->getValue($clonedMessage);
+        
+        // Cloned files should be different from original
+        $this->assertNotEquals($originalTempFiles, $clonedTempFiles, 'Clone should have different temp files');
+        
+        // CRITICAL: Verify that original's DataPart objects still reference ORIGINAL temp files
+        // If clone is destroyed first, original should still work
+        foreach ($clonedTempFiles as $clonedFile) {
+            if (file_exists($clonedFile)) {
+                @unlink($clonedFile);
+            }
+        }
+        
+        // Original message should still be able to send (uses its own temp files)
+        // This verifies that DataPart objects were NOT modified in original
+        $this->message->setMailer($this->mailer);
+        $this->message->from('from@example.com')
+                     ->to('to@example.com')
+                     ->subject('Test Original')
+                     ->text('Test body');
+        $result = $this->message->send();
+        $this->assertEquals(1, $result, 'Original message should work even after clone temp files are deleted');
+        
+        // Also verify clone works after original is destroyed
+        $clonedMessage2 = clone $this->message;
+        $clonedTempFiles2 = $tempFilesProperty->getValue($clonedMessage2);
+        
+        // Delete original's temp files
+        foreach ($originalTempFiles as $originalFile) {
+            if (file_exists($originalFile)) {
+                @unlink($originalFile);
+            }
+        }
+        
+        // Cloned message should still be able to send
+        $clonedMessage2->setMailer($this->mailer);
+        $clonedMessage2->from('from@example.com')
+                      ->to('to@example.com')
+                      ->subject('Test Clone')
+                      ->text('Test body');
+        $result2 = $clonedMessage2->send();
+        $this->assertEquals(1, $result2, 'Cloned message should work even after original temp files are deleted');
     }
 }

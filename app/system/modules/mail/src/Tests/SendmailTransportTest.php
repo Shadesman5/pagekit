@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Mail\Tests;
 
 use PHPUnit\Framework\TestCase;
@@ -36,13 +38,21 @@ class SendmailTransportTest extends TestCase
         }
     }
     
+    public function setUp(): void
+    {
+        // Define translation function if not available
+        if (!function_exists('Pagekit\__')) {
+            eval('namespace Pagekit; function __($message, $args = []) { return strtr($message, $args); }');
+        }
+    }
+    
     public function testSmtpActionWithEmptyOptions(): void
     {
-        // This tests that the controller properly validates empty options
         $controller = new \Pagekit\Mail\Controller\MailController();
+        $request = new \Symfony\Component\HttpFoundation\Request();
+        $mailer = new \Pagekit\Mail\Mailer(new \Symfony\Component\Mailer\Transport\NullTransport());
         
-        // Test with empty options
-        $result = $controller->smtpAction([]);
+        $result = $controller->smtpAction($request, $mailer);
         
         $this->assertIsArray($result);
         $this->assertArrayHasKey('success', $result);
@@ -54,9 +64,11 @@ class SendmailTransportTest extends TestCase
     public function testSmtpActionWithOnlyHost(): void
     {
         $controller = new \Pagekit\Mail\Controller\MailController();
+        $request = new \Symfony\Component\HttpFoundation\Request();
+        $request->request->set('option', ['host' => 'smtp.example.com']);
+        $mailer = new \Pagekit\Mail\Mailer(new \Symfony\Component\Mailer\Transport\NullTransport());
         
-        // Test with only host provided
-        $result = $controller->smtpAction(['host' => 'smtp.example.com']);
+        $result = $controller->smtpAction($request, $mailer);
         
         $this->assertIsArray($result);
         $this->assertArrayHasKey('success', $result);

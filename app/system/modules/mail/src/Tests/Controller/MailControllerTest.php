@@ -1,10 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Mail\Tests\Controller;
 
 use PHPUnit\Framework\TestCase;
 use Pagekit\Mail\Controller\MailController;
-use Pagekit\Application as App;
+use Pagekit\Mail\Mailer;
+use Pagekit\Module\Module;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Mailer\Transport\NullTransport;
 
 /**
  * @group integration
@@ -15,20 +20,27 @@ class MailControllerTest extends TestCase
     
     public function setUp(): void
     {
+        // Define translation function if not available
+        if (!function_exists('Pagekit\__')) {
+            eval('namespace Pagekit; function __($message, $args = []) { return strtr($message, $args); }');
+        }
+        
         $this->controller = new MailController();
     }
 
     public function testSmtpActionWithInvalidCredentials(): void
     {
-        $options = [
+        $request = new Request();
+        $request->request->set('option', [
             'host' => 'invalid-host.example.com',
             'port' => 25,
             'username' => 'invalid-user',
             'password' => 'invalid-password',
             'encryption' => null
-        ];
+        ]);
 
-        $result = $this->controller->smtpAction($options);
+        $mailer = new Mailer(new NullTransport());
+        $result = $this->controller->smtpAction($request, $mailer);
         
         $this->assertIsArray($result);
         $this->assertArrayHasKey('success', $result);
@@ -47,37 +59,105 @@ class MailControllerTest extends TestCase
             $this->markTestSkipped('Email SMTP configuration not available');
         }
 
-        $options = [
+        $request = new Request();
+            $request->request->set('option', [
             'host' => $GLOBALS['email_smtp_host'],
             'port' => (int)$GLOBALS['email_smtp_port'],
             'username' => $GLOBALS['email_smtp_user'],
             'password' => $GLOBALS['email_smtp_password'],
             'encryption' => $GLOBALS['email_smtp_encryption']
-        ];
+        ]);
 
-        $result = $this->controller->smtpAction($options);
+        // Note: For real SMTP tests, we'd need a real mailer, but for structure testing we can use NullTransport
+        $mailer = new Mailer(new NullTransport());
+        $result = $this->controller->smtpAction($request, $mailer);
         
         $this->assertIsArray($result);
         $this->assertArrayHasKey('success', $result);
         $this->assertArrayHasKey('message', $result);
-        
-        // Could be either success or failure depending on actual SMTP server
         $this->assertIsBool($result['success']);
+        $this->assertIsString($result['message']);
+    }
+
+    public function testSmtpActionReturnsCorrectStructure(): void
+    {
+        $request = new Request();
+        $request->request->set('option', [
+            'host' => 'test-host',
+            'port' => 587,
+            'username' => 'test-user',
+            'password' => 'test-pass',
+            'encryption' => 'tls'
+        ]);
+
+        $mailer = new Mailer(new NullTransport());
+        $result = $this->controller->smtpAction($request, $mailer);
+        
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('success', $result);
+        $this->assertArrayHasKey('message', $result);
+        $this->assertIsBool($result['success']);
+        $this->assertIsString($result['message']);
+        $this->assertNotEmpty($result['message']);
+    }
+
+    public function testSmtpActionWithMissingParameters(): void
+    {
+        $request = new Request();
+        // Empty options - no 'option' parameter set
+
+        $mailer = new Mailer(new NullTransport());
+        $result = $this->controller->smtpAction($request, $mailer);
+        
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('success', $result);
+        $this->assertArrayHasKey('message', $result);
+        $this->assertFalse($result['success']);
+        $this->assertIsString($result['message']);
+        $this->assertStringContainsString('required', $result['message']);
+    }
+
+    public function testSmtpActionWithPartialParameters(): void
+    {
+        $request = new Request();
+        $request->request->set('option', [
+            'host' => 'partial-test.example.com',
+            'port' => 25
+            // Missing username, password, encryption
+        ]);
+
+        $mailer = new Mailer(new NullTransport());
+        $result = $this->controller->smtpAction($request, $mailer);
+        
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('success', $result);
+        $this->assertArrayHasKey('message', $result);
+        // Will fail to connect but shouldn't throw an error about missing params
+        $this->assertFalse($result['success']);
         $this->assertIsString($result['message']);
     }
 
     public function testEmailActionWithoutConfiguration(): void
     {
-        // This test would need to mock the App::module and App::mailer calls
-        // Since we can't easily mock static calls in this context, we'll focus on 
-        // testing the structure and expected behavior
-        
-        $options = [
+        $request = new Request();
+        $request->request->set('option', [
             'from_address' => 'test@example.com'
-        ];
+        ]);
 
-        // For now, we expect this to work with proper mocking in a full integration environment
-        $this->assertTrue(true);
+        $mailer = new Mailer(new NullTransport());
+        $mailModule = $this->createMock(Module::class);
+        $mailModule->method('config')->willReturn([
+            'from_address' => 'test@example.com',
+            'from_name' => null
+        ]);
+
+        $result = $this->controller->emailAction($request, $mailer, $mailModule);
+        
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('success', $result);
+        $this->assertArrayHasKey('message', $result);
+        // With NullTransport, sending should succeed
+        $this->assertTrue($result['success']);
     }
 
     /**
@@ -90,73 +170,101 @@ class MailControllerTest extends TestCase
             $this->markTestSkipped('Email test configuration not available');
         }
 
-        $options = [
+        $request = new Request();
+        $request->request->set('option', [
             'from_address' => $GLOBALS['email_address']
-        ];
+        ]);
 
-        // This would require proper application context setup
-        // In a full integration environment, this would test actual email sending
-        $this->assertTrue(true);
-    }
+        // For real email sending, we'd need a real mailer with SMTP transport
+        // For structure testing, we use NullTransport
+        $mailer = new Mailer(new NullTransport());
+        $mailModule = $this->createMock(Module::class);
+        $mailModule->method('config')->willReturn([
+            'from_address' => $GLOBALS['email_address'],
+            'from_name' => null
+        ]);
 
-    public function testSmtpActionReturnsCorrectStructure(): void
-    {
-        $options = [
-            'host' => 'test-host',
-            'port' => 587,
-            'username' => 'test-user',
-            'password' => 'test-pass',
-            'encryption' => 'tls'
-        ];
-
-        $result = $this->controller->smtpAction($options);
+        $result = $this->controller->emailAction($request, $mailer, $mailModule);
         
         $this->assertIsArray($result);
         $this->assertArrayHasKey('success', $result);
         $this->assertArrayHasKey('message', $result);
-        $this->assertIsBool($result['success']);
-        $this->assertIsString($result['message']);
-        $this->assertNotEmpty($result['message']);
-    }
-
-    public function testSmtpActionWithMissingParameters(): void
-    {
-        $options = []; // Empty options
-
-        $result = $this->controller->smtpAction($options);
-        
-        $this->assertIsArray($result);
-        $this->assertArrayHasKey('success', $result);
-        $this->assertArrayHasKey('message', $result);
-        $this->assertFalse($result['success']);
-        $this->assertIsString($result['message']);
-    }
-
-    public function testSmtpActionWithPartialParameters(): void
-    {
-        $options = [
-            'host' => 'partial-test.example.com',
-            'port' => 25
-            // Missing username, password, encryption
-        ];
-
-        $result = $this->controller->smtpAction($options);
-        
-        $this->assertIsArray($result);
-        $this->assertArrayHasKey('success', $result);
-        $this->assertArrayHasKey('message', $result);
-        $this->assertFalse($result['success']);
-        $this->assertIsString($result['message']);
+        // With NullTransport, sending should succeed
+        $this->assertTrue($result['success']);
     }
 
     public function testEmailActionReturnsCorrectStructure(): void
     {
-        // Even without full integration, we can test the expected structure
-        $options = [
+        $request = new Request();
+        $request->request->set('option', [
             'from_address' => 'test@example.com'
-        ];
+        ]);
 
-        // In a mocked environment, this would return proper structure
-        $this->assertTrue(true);
+        $mailer = new Mailer(new NullTransport());
+        $mailModule = $this->createMock(Module::class);
+        $mailModule->method('config')->willReturn([
+            'from_address' => 'test@example.com',
+            'from_name' => null
+        ]);
+
+        $result = $this->controller->emailAction($request, $mailer, $mailModule);
+        
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('success', $result);
+        $this->assertArrayHasKey('message', $result);
+        // With NullTransport, sending should succeed
+        $this->assertTrue($result['success']);
+    }
+
+    /**
+     * Test that invalid JSON in request body doesn't trigger PHP 8.x deprecation warnings.
+     * When json_decode fails, it returns null, and accessing null as array should be prevented.
+     */
+    public function testSmtpActionWithInvalidJson(): void
+    {
+        $request = new Request();
+        // Set invalid JSON in request content
+        $request->initialize([], [], [], [], [], [], 'invalid json { not valid }');
+        
+        $mailer = new Mailer(new NullTransport());
+        
+        // This should not trigger any deprecation warnings
+        // The code should handle null gracefully without array access
+        $result = $this->controller->smtpAction($request, $mailer);
+        
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('success', $result);
+        $this->assertArrayHasKey('message', $result);
+        // Should fail because no valid option was provided
+        $this->assertFalse($result['success']);
+        $this->assertIsString($result['message']);
+    }
+
+    /**
+     * Test that invalid JSON in request body doesn't trigger PHP 8.x deprecation warnings.
+     * When json_decode fails, it returns null, and accessing null as array should be prevented.
+     */
+    public function testEmailActionWithInvalidJson(): void
+    {
+        $request = new Request();
+        // Set invalid JSON in request content
+        $request->initialize([], [], [], [], [], [], 'invalid json { not valid }');
+        
+        $mailer = new Mailer(new NullTransport());
+        $mailModule = $this->createMock(Module::class);
+        $mailModule->method('config')->willReturn([
+            'from_address' => 'test@example.com',
+            'from_name' => null
+        ]);
+        
+        // This should not trigger any deprecation warnings
+        // The code should handle null gracefully without array access
+        $result = $this->controller->emailAction($request, $mailer, $mailModule);
+        
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('success', $result);
+        $this->assertArrayHasKey('message', $result);
+        // Should succeed because config has from_address
+        $this->assertTrue($result['success']);
     }
 }

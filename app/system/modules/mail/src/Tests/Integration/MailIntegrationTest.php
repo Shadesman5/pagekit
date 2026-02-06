@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Mail\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
@@ -100,8 +102,8 @@ class MailIntegrationTest extends TestCase
             $result = $message->send();
             $this->assertEquals(1, $result);
             
-            // Verify embedded content
-            $this->assertEquals('cid:logo', $cid);
+            // Verify embedded content - CID must match header value (RFC requires local@domain)
+            $this->assertEquals('cid:logo@pagekit', $cid);
         } finally {
             unlink($tempFile);
         }
@@ -208,13 +210,15 @@ class MailIntegrationTest extends TestCase
         
         $mailer = new Mailer($transport);
         
-        $result = $mailer->testSmtpConnection();
-        $this->assertTrue(is_bool($result) || is_string($result));
-        
-        if (is_string($result)) {
-            // If there's an error, it should be a descriptive message
-            $this->assertNotEmpty($result);
-        }
+        // testSmtpConnection requires explicit SMTP parameters and returns bool or throws exception
+        $result = $mailer->testSmtpConnection(
+            $GLOBALS['email_smtp_host'],
+            (int)($GLOBALS['email_smtp_port'] ?? 25),
+            $GLOBALS['email_smtp_user'] ?? null,
+            $GLOBALS['email_smtp_password'] ?? null,
+            $GLOBALS['email_smtp_encryption'] ?? null
+        );
+        $this->assertTrue($result);
     }
 
     /**
