@@ -157,27 +157,24 @@ class Psr6AdapterTest extends TestCase
     }
 
     /**
-     * Test backward compatibility with doctrine/cache methods
+     * Test CacheInterface API (fetch, save, contains, delete, flushAll)
      */
-    public function testBackwardCompatibility(): void
+    public function testCacheInterfaceApi(): void
     {
         $cache = new ArrayAdapter();
         
-        // Test multiple save/fetch
+        // Test multiple save/fetch via CacheInterface
         $cache->save('key1', 'value1');
         $cache->save('key2', 'value2');
         $cache->save('key3', 'value3');
         
-        // Test fetchMultiple
-        $values = $cache->fetchMultiple(['key1', 'key2', 'non_existent']);
-        $this->assertArrayHasKey('key1', $values);
-        $this->assertArrayHasKey('key2', $values);
-        $this->assertArrayNotHasKey('non_existent', $values);
-        $this->assertEquals('value1', $values['key1']);
-        $this->assertEquals('value2', $values['key2']);
+        // Fetch individually (CacheInterface has no fetchMultiple)
+        $this->assertEquals('value1', $cache->fetch('key1'));
+        $this->assertEquals('value2', $cache->fetch('key2'));
+        $this->assertFalse($cache->fetch('non_existent'));
         
-        // Test deleteMultiple
-        $this->assertTrue($cache->deleteMultiple(['key1', 'key2']));
+        // Delete via PSR-6 deleteItems
+        $this->assertTrue($cache->deleteItems(['key1', 'key2']));
         $this->assertFalse($cache->contains('key1'));
         $this->assertFalse($cache->contains('key2'));
         $this->assertTrue($cache->contains('key3'));
