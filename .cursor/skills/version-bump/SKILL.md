@@ -8,22 +8,22 @@ description: Determines and applies semantic version bumps based on Conventional
 ## Custom Versioning (Modernization Phase)
 
 ```
-SYSTEM-STATE . MAJOR-MINOR . PATCH
-     1       .      x       .   x    ← During modernization (ROADMAP Phase 1–5)
-     2       .      0       .   0    ← After modernization complete (manual decision)
+SYSTEM-STATE . MAJOR . MINOR-PATCH
+     1       .   x   .     x       ← During modernization (ROADMAP Phase 1–5)
+     2       .   0   .     0       ← After modernization complete (standard MAJOR.MINOR.PATCH from here)
 ```
 
 SYSTEM-STATE stays **1** until the user decides modernization is complete.
 
 ## Bump Rules
 
-| Commit types | Bump | Example |
+| Trigger | Bump | Example |
 |---|---|---|
-| `feat:`, `refactor:`, `perf:`, `feat!:`, `fix:` (non-trivial) | MAJOR-MINOR (2nd digit, reset 3rd) | 1.1.3 → 1.2.0 |
-| `docs:`, `style:`, `test:`, `build:`, `ci:`, `chore:`, `fix:` (trivial) | PATCH (3rd digit) | 1.2.0 → 1.2.1 |
-| Cosmetic only (typos in comments, punctuation) | NO BUMP | 1.2.0 → 1.2.0 |
+| ROADMAP milestone complete (Phase done, major step like PSR-11 finished) | MAJOR (2nd digit, reset 3rd) | 1.1.5 → 1.2.0 |
+| Any `feat:`, `fix:`, `refactor:`, `perf:`, `docs:`, `test:`, `build:`, `ci:`, `chore:` | MINOR-PATCH (3rd digit) | 1.1.2 → 1.1.3 |
+| Cosmetic only (typos in comments, punctuation) | NO BUMP | 1.1.2 → 1.1.2 |
 
-**Priority:** Highest bump wins across all commits. When in doubt, treat `fix:` as non-trivial.
+**MAJOR bump is a manual decision** — the user or Architect decides when a milestone warrants it. All regular work bumps the 3rd digit.
 
 ## Steps
 
