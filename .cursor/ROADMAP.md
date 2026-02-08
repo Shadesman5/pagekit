@@ -15,15 +15,11 @@
    - Legacy code must be physically deleted from the file.
    - Do not comment out old code; use Git history for reference.
 5. **MANDATORY FLAGGING & AUDIT DEBT (Scope Boundaries)**
-   Every legacy remnant must have a // TODO: Step X.Y tag.
-   - If code outside the current step's scope must remain legacy, tag it:  
-     // TODO: Must be refactored in Step X.Y (Name)
-   - If a temporary bridge is strictly required for system stability:  
-     // TODO: TEMPORARY BRIDGE - To be removed in Step X.Y
-   - If a "completed" step fails the "No Mercy" audit, it must be flagged with
-     // TODO: AUDIT FIX Step X.Y.
-   - Dynamic Roadmap: Agents are encouraged to insert sub-steps (e.g., 2.0.5b)
-     if they identify missing links for a clean modernization.
+   Every legacy remnant must have a TODO with a ROADMAP step or a clear label. Tag formats:
+   - Out-of-scope legacy: `// TODO: Must be refactored in Step X.Y (Name)`
+   - Temporary bridge: `// TODO: TEMPORARY BRIDGE - To be removed in Step X.Y`
+   - Backward compatibility: `// TODO: BACKWARD COMPATIBILITY - Must be refactored later`
+   - Agents may add sub-steps (e.g. 2.0.5b) in ROADMAP if a step is missing for clean modernization.
 
 ## **📊 TRACKING TABLE (PHASE 2: FOUNDATION)**
 
