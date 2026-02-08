@@ -27,7 +27,7 @@ alwaysApply: true
 
 ## 🚀 AGGRESSIVE MODERNIZATION RULES
 
-Same 6 rules as `.cursor/ROADMAP.md` (THE 5 AGGRESSIVE RULES). Summary:
+Same rules as `.cursor/ROADMAP.md` (THE 5 AGGRESSIVE RULES). Summary:
 
 1. **NO COMPATIBILITY LAYERS** – do not keep old & new behavior in parallel.
 2. **NO ADAPTERS** – update all call sites instead of adding wrappers.
