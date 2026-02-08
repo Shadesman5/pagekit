@@ -1,5 +1,9 @@
 # PSR-11 Container Vollmodernisierung – Stage 1: Container Core (Native PSR-11)
 
+**ROADMAP:** 2.0.5 (Stage 1). Reference: `@ROADMAP.md`.
+
+---
+
 ## CONTEXT
 
 **Current State:**
@@ -17,24 +21,16 @@
 
 ---
 
-## AGGRESSIVE MODERNIZATION RULES
-
-1. **NO COMPATIBILITY LAYERS** – No parallel old/new APIs. One path only.
-2. **NO ADAPTERS** – Container implements ContainerInterface directly. Remove Psr11Adapter.
-3. **BREAKING CHANGES ALLOWED INTERNALLY** – Public HTTP/API must stay the same.
-4. **DELETE OVER WRAP** – Remove Psr11Adapter, do not wrap.
-5. **LEGACY HACKS MUST BE MARKED** – Use `// TODO: Must be refactored later` if unavoidable.
-6. **HONEST COMMENTS** – No hidden backward compatibility.
-
----
-
 ## 0. SAFETY CHECKS (CRITICAL)
 
 **Design principle:** Each stage keeps the system functional and testable. No intermediate "broken" state. After Stage 1, the system must work exactly as before – only internal implementation changes.
 
+**Test environment:** All commands from **workspace root**. Console entrypoint: `php pagekit` (e.g. `php pagekit setup`, `php pagekit list`). PHPUnit: `./app/vendor/bin/phpunit` (Pagekit uses `app/vendor`, not root `vendor`). For HTTP checks, start the app first (e.g. `php pagekit start -s localhost:8080 --no-ansi &`), then run curl.
+
 **AFTER EVERY LOGICAL CHANGE:**
 ```bash
 php pagekit setup
+# If HTTP checks required: ensure app is running (php pagekit start -s localhost:8080 --no-ansi &), then:
 curl -s -o /dev/null -w "%{http_code}" http://localhost:8080
 curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/admin
 ./app/vendor/bin/phpunit

@@ -1,4 +1,15 @@
 ---
-description: Push workflow. Follow Conventional Commits for all messages, branch names, and PR titles. 1) Check git status on current branch, create smart commits. 2) Update CHANGELOG-NEW.md (version from composer.json, today's date, commit messages); commit. 3) If README-affected (composer.json, package.json, Dockerfile, docker-compose.yml), commit. 4) Push: If on develop (protected) → create integration branch (CC-style, e.g. feat/scope-description), push it, create/update PR to develop. If on any other branch → push directly to origin (branch not protected). 5) Do not merge; user merges manually after CI/tests pass.
+description: Push workflow with version bump. 1) Check git status, create smart commits (conventional-commits.mdc). 2) Use version-bump skill → update composer.json + app/system/config.php. 3) Update CHANGELOG-NEW.md; commit "chore(release): bump version to X.Y.Z". 4) If README-affected → readme-sync.mdc. 5) Push: develop (protected) → new branch + PR; other branch → push direct. 6) Do not merge.
 alwaysApply: false
 ---
+
+# Push Workflow
+
+1. **Check git status** – create commits (see `conventional-commits.mdc`)
+2. **Version Bump** – use `.cursor/skills/version-bump/SKILL.md`
+3. **CHANGELOG-NEW.md** – new section with version + date + grouped commits; commit: `chore(release): bump version to X.Y.Z`
+4. **README Sync** – if relevant files changed (see `readme-sync.mdc`)
+5. **Push**:
+   - On `develop` (protected) → create new branch (CC-style name), push, create/update PR
+   - On any other branch → push directly
+6. **Do NOT merge** – user merges after CI/tests pass

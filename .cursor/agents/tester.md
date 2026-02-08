@@ -1,6 +1,6 @@
 ---
 name: tester
-model: claude-4.5-opus-high-thinking
+model: claude-4.6-opus-high-thinking
 description: Quality Guard for Pagekit modernization. Runs php pagekit setup, PHPUnit, Playwright. Performs RCA on failure. Use proactively after Verifier passes.
 ---
 

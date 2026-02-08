@@ -1,5 +1,9 @@
 # PSR-11 Container Vollmodernisierung – Stage 2: Core Modules Call Sites
 
+**ROADMAP:** 2.0.5 (Stage 2). Reference: `@ROADMAP.md`.
+
+---
+
 ## CONTEXT
 
 **Previous Work (Stage 1) Completed:**
@@ -15,24 +19,16 @@
 
 ---
 
-## AGGRESSIVE MODERNIZATION RULES
-
-1. **NO COMPATIBILITY LAYERS** – Use get() only. No parallel patterns.
-2. **NO ADAPTERS** – Update all call sites directly.
-3. **BREAKING CHANGES ALLOWED INTERNALLY** – Public HTTP/API unchanged.
-4. **DELETE OVER WRAP** – Remove old patterns.
-5. **LEGACY HACKS MUST BE MARKED** – Use `// TODO: Must be refactored later` if unavoidable.
-6. **HONEST COMMENTS** – No hidden backward compatibility.
-
----
-
 ## 0. SAFETY CHECKS (CRITICAL)
 
 **Design principle:** System remains functional after each migration batch. ArrayAccess still works (delegates to get()). Both `$app['x']` and `$app->get('x')` resolve identically.
 
+**Test environment:** From workspace root. Console: `php pagekit`. PHPUnit: `./app/vendor/bin/phpunit`. For curl: start app first (`php pagekit start -s localhost:8080 --no-ansi &`).
+
 **AFTER EVERY LOGICAL CHANGE:**
 ```bash
 php pagekit setup
+# If HTTP checks required: start app (php pagekit start -s localhost:8080 --no-ansi &), then:
 curl -s -o /dev/null -w "%{http_code}" http://localhost:8080
 curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/admin
 ./app/vendor/bin/phpunit

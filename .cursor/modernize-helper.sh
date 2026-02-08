@@ -85,6 +85,12 @@ function upgrade_symfony() {
     # Add specific update commands here
 }
 
+# Watch assets
+function watch_assets() {
+    echo "👀 Starting Webpack watch mode for real-time feedback..."
+    yarn watch-all
+}
+
 # Main menu
 case "$1" in
     "phpunit")
@@ -105,8 +111,11 @@ case "$1" in
     "pr")
         create_pr "$2" "$3"
         ;;
+    "watch")
+        watch_assets
+        ;;
     *)
-        echo "Usage: $0 {phpunit|security|symfony|test|branch|pr}"
+        echo "Usage: $0 {phpunit|security|symfony|test|branch|pr|watch}"
         echo ""
         echo "Available commands:"
         echo "  phpunit    - Upgrade PHPUnit to 11.x"
@@ -115,6 +124,7 @@ case "$1" in
         echo "  test       - Run test suite"
         echo "  branch     - Create a new feature branch"
         echo "  pr         - Create a pull request"
+        echo "  watch      - Start Webpack watch mode"
         exit 1
         ;;
 esac

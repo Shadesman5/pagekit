@@ -1,5 +1,9 @@
 # PSR-11 Container Vollmodernisierung – Stage 4: Packages & Final Cleanup
 
+**ROADMAP:** 2.0.5 (Stage 4). Reference: `@ROADMAP.md`.
+
+---
+
 ## CONTEXT
 
 **Previous Work (Stage 1 + 2 + 3) Completed:**
@@ -15,24 +19,17 @@
 
 ---
 
-## AGGRESSIVE MODERNIZATION RULES
-
-1. **NO COMPATIBILITY LAYERS** – Remove ArrayAccess. No fallback.
-2. **NO ADAPTERS** – Update all call sites. No wrappers.
-3. **BREAKING CHANGES ALLOWED INTERNALLY** – Public HTTP/API unchanged.
-4. **DELETE OVER WRAP** – Remove ArrayAccess. Add set() for registration.
-5. **LEGACY HACKS MUST BE MARKED** – Use `// TODO: Must be refactored later` if unavoidable.
-6. **HONEST COMMENTS** – No hidden backward compatibility.
-
----
-
 ## 0. SAFETY CHECKS (CRITICAL)
 
 **Design principle:** ArrayAccess is removed ONLY after all call sites are migrated. Order: 1) Add set(), 2) Migrate registration, 3) Migrate remaining reads, 4) Remove ArrayAccess. System stays functional throughout.
 
+**Test environment:** From workspace root. Console: `php pagekit`. PHPUnit: `./app/vendor/bin/phpunit`. For curl/Playwright: start app first (`php pagekit start -s localhost:8080 --no-ansi &`).
+
 **AFTER EVERY LOGICAL CHANGE:**
 ```bash
 php pagekit setup
+php pagekit list
+# If HTTP/E2E checks required: start app (php pagekit start -s localhost:8080 --no-ansi &), then:
 curl -s -o /dev/null -w "%{http_code}" http://localhost:8080
 curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/admin
 ./app/vendor/bin/phpunit

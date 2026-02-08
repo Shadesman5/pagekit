@@ -1,5 +1,31 @@
 # Changelog
 
+## Pagekit 1.1.2 - Workflow Modernization & Version Bump Skill (February 8, 2026)
+
+### ✨ New Features
+
+- **Version Bump Skill** - Added `.cursor/skills/version-bump/SKILL.md` with custom Pagekit semantic versioning (SYSTEM-STATE.MAJOR-MINOR.PATCH). Updates both `composer.json` and `app/system/config.php`.
+- **Push Workflow Extended** - `push.mdc` now calls version-bump skill before CHANGELOG update, streamlined from 66 to 16 lines with references to existing rules.
+
+### ♻️ Refactoring
+
+- **Aggressive Rules Unified** - Consolidated ROADMAP (5 rules) and pagekit-context (6 rules) into consistent 5 rules across both files, eliminating duplicates.
+- **Subagent Models Upgraded** - All 4 subagents (architect, refactorer, verifier, tester) upgraded to `claude-4.6-opus-high-thinking`.
+- **PSR-11 Prompts Streamlined** - Removed duplicated aggressive rules from all 4 stage prompts (reference ROADMAP instead). Fixed safety checks with correct PHPUnit path (`./app/vendor/bin/phpunit`) and server startup instructions.
+- **Agent Prompts Reorganized** - Audit prompts moved to `AUDITS/` subfolder, Vue template prompt moved into `agent_prompts/`.
+
+### 🐛 Bug Fixes
+
+- **CHANGELOG Filename** - Fixed `CHANGELOG-2025.md` references to `CHANGELOG-NEW.md` in `conventional-commits.mdc` and `pagekit-files.mdc`.
+
+### 🔧 Maintenance
+
+- **Dockerfile** - Added agent log/artifact directories.
+- **Task Invocation Template** - Fixed placeholder to generic `@PROMPT_X_Y.md`.
+- **Modernize Helper** - Added `watch_assets` function for Webpack watch mode.
+
+---
+
 ## Pagekit 1.1.1 - Cursor Workflow & Agent Prompts (February 6, 2026)
 
 ### ✨ New Features

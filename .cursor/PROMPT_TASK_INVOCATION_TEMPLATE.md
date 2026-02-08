@@ -18,7 +18,7 @@ Use this template to invoke the Orchestrator workflow. The main agent will deleg
 ```
 TASK INVOCATION
 
-Execute the task defined in: @PROMPT_Complete_Template_Security_Modernization.md
+Execute the task defined in: @PROMPT_X_Y.md
 
 Workflow: Orchestrator (Architect → Refactorer → Verifier → Tester per step)
 Reference: @ROADMAP.md

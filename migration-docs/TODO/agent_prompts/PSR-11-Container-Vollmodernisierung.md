@@ -4,6 +4,18 @@
 
 ---
 
+## Execution (Orchestrator Workflow)
+
+Use the **Task Invocation Template** (`.cursor/PROMPT_TASK_INVOCATION_TEMPLATE.md`). Rule: `.cursor/rules/orchestrator-subagent-workflow.mdc`.
+
+- **One invocation per stage.** Do not invoke this overview file; invoke the stage file.
+- **Order:**  
+  `@PSR-11-Container-Stage1-Core.md` → wait for completion (all steps committed) →  
+  then `@PSR-11-Container-Stage2-CoreModules.md` → … → Stage 3 → Stage 4.
+- **Per stage:** Architect produces scope/checklist from the stage prompt; Refactorer → Verifier → Tester run per logical step; one commit per step. ROADMAP step: **2.0.5** (Stage N in tracking).
+
+---
+
 ## Stages Overview
 
 | Stage | Prompt | Scope | Result |
@@ -22,18 +34,7 @@
 - **Clear Boundaries** – Each stage has a defined scope
 - **Dependencies** – Stage 1 must be complete before call sites can be migrated
 
-**Important:** The system remains functional after each stage. There is no intermediate phase where functionality can only be tested at the end. Safety checks (setup, curl, phpunit) must pass after each stage.
-
----
-
-## AGGRESSIVE MODERNIZATION RULES (for all stages)
-
-1. **NO COMPATIBILITY LAYERS** – No parallel old/new APIs
-2. **NO ADAPTERS** – Update all call sites directly, no wrappers
-3. **BREAKING CHANGES ALLOWED INTERNALLY** – Public HTTP/API must stay the same
-4. **DELETE OVER WRAP** – Remove old logic, do not wrap it
-5. **LEGACY HACKS MUST BE MARKED** – `// TODO: Must be refactored later`
-6. **HONEST COMMENTS** – No hidden backward compatibility
+**Important:** The system remains functional after each stage. There is no intermediate phase where functionality can only be tested at the end. Safety checks (setup, curl, phpunit) must pass after each stage. Apply rules from `@ROADMAP.md` (THE 5 AGGRESSIVE RULES) and `.cursor/rules/pagekit-context.mdc`.
 
 ---
 
