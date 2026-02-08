@@ -85,6 +85,12 @@ function upgrade_symfony() {
     # Add specific update commands here
 }
 
+# Watch assets
+function watch_assets() {
+    echo "👀 Starting Webpack watch mode for real-time feedback..."
+    yarn watch-all
+}
+
 # Main menu
 case "$1" in
     "phpunit")

@@ -76,6 +76,10 @@ RUN useradd -m -s /bin/bash ubuntu
 # Create workspace directory - Cursor mounts the cloned repo here
 RUN mkdir -p /workspace && chown ubuntu:ubuntu /workspace
 
+# Allow the agent to write its own logs and artifacts
+RUN mkdir -p /opt/cursor/logs /opt/cursor/artifacts && \
+    chown -R ubuntu:ubuntu /opt/cursor
+
 # Environment variables for better git/composer experience
 ENV COMPOSER_ALLOW_SUPERUSER=1
 ENV COMPOSER_NO_INTERACTION=1
