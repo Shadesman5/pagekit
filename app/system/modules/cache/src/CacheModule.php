@@ -14,11 +14,6 @@ use Pagekit\Module\Module;
 class CacheModule extends Module
 {
     /**
-     * @var bool Whether to use PSR-6 adapters (true) or legacy doctrine/cache (false)
-     */
-    protected $usePsr6 = false; // Phase 1: Keep legacy by default, migrate gradually
-
-    /**
      * {@inheritdoc}
      */
     public function main(App $app): void
@@ -81,13 +76,6 @@ class CacheModule extends Module
                 $cache = new NullAdapter();
                 break;
 
-            // Handle legacy configurations
-            case 'apc':
-            case 'xcache':
-                // Silently fallback to phpfile for legacy configurations
-                $cache = new PhpFilesAdapter($config['path'] ?? '');
-                break;
-
             default:
                 throw new \RuntimeException('Unknown cache storage: ' . $config['storage']);
         }
@@ -112,17 +100,12 @@ class CacheModule extends Module
         $supports = ['file', 'phpfile', 'array'];
 
 
-        // Modern APCu support
+        // APCu support
         if (function_exists('apcu_fetch') && ini_get('apc.enabled')) {
             $supports[] = 'apcu';
         }
 
-        // Legacy XCache (deprecated, but keep for compatibility)
-        if (extension_loaded('xcache')) {
-            $supports[] = 'xcache';
-        }
-
-        return $name? in_array($name, $supports) : $supports;
+        return $name ? in_array($name, $supports) : $supports;
     }
 
     /**

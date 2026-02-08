@@ -157,30 +157,49 @@ class Psr6AdapterTest extends TestCase
     }
 
     /**
-     * Test backward compatibility with doctrine/cache methods
+     * Test CacheInterface API (fetch, save, contains, delete, flushAll)
+     *
+     * Exercises every method defined in CacheInterface using only
+     * that interface's contract — no Psr6Adapter-specific methods.
      */
-    public function testBackwardCompatibility(): void
+    public function testCacheInterfaceApi(): void
     {
         $cache = new ArrayAdapter();
-        
-        // Test multiple save/fetch
-        $cache->save('key1', 'value1');
-        $cache->save('key2', 'value2');
-        $cache->save('key3', 'value3');
-        
-        // Test fetchMultiple
-        $values = $cache->fetchMultiple(['key1', 'key2', 'non_existent']);
-        $this->assertArrayHasKey('key1', $values);
-        $this->assertArrayHasKey('key2', $values);
-        $this->assertArrayNotHasKey('non_existent', $values);
-        $this->assertEquals('value1', $values['key1']);
-        $this->assertEquals('value2', $values['key2']);
-        
-        // Test deleteMultiple
-        $this->assertTrue($cache->deleteMultiple(['key1', 'key2']));
+
+        // --- save / fetch / contains ---
+        $this->assertTrue($cache->save('key1', 'value1'));
+        $this->assertTrue($cache->save('key2', 'value2'));
+        $this->assertTrue($cache->save('key3', 'value3'));
+
+        $this->assertEquals('value1', $cache->fetch('key1'));
+        $this->assertEquals('value2', $cache->fetch('key2'));
+        $this->assertFalse($cache->fetch('non_existent'));
+
+        $this->assertTrue($cache->contains('key1'));
+        $this->assertFalse($cache->contains('non_existent'));
+
+        // --- delete (CacheInterface::delete) ---
+        $this->assertTrue($cache->delete('key1'));
         $this->assertFalse($cache->contains('key1'));
+        $this->assertFalse($cache->fetch('key1'));
+        // Remaining keys must be untouched
+        $this->assertTrue($cache->contains('key2'));
+        $this->assertTrue($cache->contains('key3'));
+
+        // Delete a second key to be thorough
+        $this->assertTrue($cache->delete('key2'));
         $this->assertFalse($cache->contains('key2'));
         $this->assertTrue($cache->contains('key3'));
+
+        // --- flushAll (CacheInterface::flushAll) ---
+        // Re-populate so we can verify flushAll clears everything
+        $cache->save('a', '1');
+        $cache->save('b', '2');
+        $this->assertTrue($cache->flushAll());
+        $this->assertFalse($cache->contains('a'));
+        $this->assertFalse($cache->contains('b'));
+        // key3 from earlier should also be gone
+        $this->assertFalse($cache->contains('key3'));
     }
 
     /**
