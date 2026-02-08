@@ -1,8 +1,5 @@
 # Task: Audit Phase 1 Completed Tasks (ROADMAP 1.1–1.14)
 
-**Scope note – this prompt is an exception:**  
-Normally you use **one or more prompts per single ROADMAP step** (full concentration on that step). Here, **one prompt covers all steps 1.1–1.14** in one run (full Phase 1 audit). If you prefer the normal pattern for audits too, use **one audit prompt per step** (e.g. `AGENT_PROMPT_AUDIT_STEP_1_5.md`) instead; see `.cursor/WORKFLOW_SUBAGENTS.md` § "Prompt Scope: Normal vs Exception".
-
 **For Orchestrator workflow:** Follow `.cursor/rules/orchestrator-subagent-workflow.mdc`. Delegate to **architect** first (plan), then per step: **refactorer** → **verifier** → **tester** → commit.
 
 ---
@@ -22,7 +19,7 @@ Normally you use **one or more prompts per single ROADMAP step** (full concentra
 | Field | Value |
 |-------|--------|
 | **Goal** | Verify Phase 1 “completed” tasks (1.1–1.14) were done correctly; fix issues found; document accurately. |
-| **Branch** | `audit/phase1-verification` (from `develop`) |
+| **Branch** | from `develop` |
 | **Audit report (ONLY path)** | `migration-docs/audits/{YYYY}/{MM}/phase1/{Optional: module}/AUDIT_REPORT_{date}.md` |
 | **Source of truth** | `.cursor/ROADMAP.md` – step IDs, task names, status, PRs. This is authoritative for scope and tracking. |
 | **Optional context (use with caution)** | `migration-docs/TODO/PHASE#1_MODERNISING.md` – historical narrative per step (branches, outcomes). **May be outdated** (not always updated when tasks diverged). Use only as a hint; always verify against actual code and docs. |
