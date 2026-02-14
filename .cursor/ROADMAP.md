@@ -8,9 +8,16 @@
 2. **NO ADAPTERS**
    - If a method signature changes, update all usages in the codebase.
    - Never create intermediate adapters to "bridge" old and new code within the same scope.
-3. **BREAKING CHANGES ALLOWED**
+3. **BREAKING CHANGES ALLOWED INTERNALLY**
    - Internal API breakage is encouraged for cleaner, stricter PHP 8.2+ code.
    - Refactor over preserve.
+   - The system must remain **functional after each step** (all tests green).
+   - Internal API endpoints (`/api/...`) may change as long as both frontend and backend
+     are updated together in the same step (no external consumers exist yet).
+   - **Platform API names** (e.g. `$date`, `$number`, `$http`) may be kept when they represent
+     a stable developer-facing API for extensions — this is NOT a compatibility layer,
+     it's a clean modern reimplementation under the same function signature.
+   - The **real public API** (versioned, documented, JWT-authenticated) comes in Step 4.2.
 4. **DELETE OVER WRAP**
    - Legacy code must be physically deleted from the file.
    - Do not comment out old code; use Git history for reference.
@@ -63,6 +70,11 @@
 | 3.2.5  | Template Pre-compilation (CSP)    | ⏳ 20% | ⏳    | -       | Phase 3        |
 | 3.3    | TypeScript                        | ⏳     | ⏳    | -       | Phase 3        |
 | 3.4    | Vue 3 Migration                   | ⏳     | ⏳    | -       | Phase 3        |
+| 3.4.1  | ↳ vue-resource → axios            | ⏳     | ⏳    | -       | Phase 3        |
+| 3.4.2  | ↳ vue-event-manager → mitt        | ⏳     | ⏳    | -       | Phase 3        |
+| 3.4.3  | ↳ Vue 3 Core + @vue/compat        | ⏳     | ⏳    | -       | Phase 3        |
+| 3.4.4  | ↳ Pinia State Management          | ⏳     | ⏳    | -       | Phase 3        |
+| 3.4.5  | ↳ Deps (intl→Intl, lodash→native) | ⏳     | ⏳    | -       | Phase 3        |
 | 3.5    | Component Library                 | ⏳     | ⏳    | -       | Phase 3        |
 | 4.1    | Basic Security                    | ⏳     | ⏳    | -       | Phase 4        |
 | 4.2    | REST API v2                       | ⏳     | ⏳    | -       | Phase 4        |
