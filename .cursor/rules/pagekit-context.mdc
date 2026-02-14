@@ -31,7 +31,7 @@ Same rules as `.cursor/ROADMAP.md` (THE 5 AGGRESSIVE RULES). Summary:
 
 1. **NO COMPATIBILITY LAYERS** – do not keep old & new behavior in parallel.
 2. **NO ADAPTERS** – update all call sites instead of adding wrappers.
-3. **BREAKING CHANGES ALLOWED INTERNALLY** – as long as public behavior (HTTP/API) stays the same.
+3. **BREAKING CHANGES ALLOWED INTERNALLY** – the system must remain functional after each step (all tests green). Internal API endpoints (`/api/...`) may change as long as frontend and backend are updated together. Platform API names (e.g. `$date`, `$number`) may be kept as clean modern reimplementations — this is a stable extension API, not legacy compat. The real public API (versioned, JWT, OpenAPI) comes in Step 4.2.
 4. **DELETE OVER WRAP** – if old logic conflicts with the new security model, delete it.
 5. **MANDATORY FLAGGING & AUDIT DEBT** – Use ROADMAP tag formats: out-of-scope `Step X.Y (Name)`; `TEMPORARY BRIDGE - To be removed in Step X.Y`; `AUDIT FIX Step X.Y`; `BACKWARD COMPATIBILITY - Must be refactored later`; other hacks `Must be refactored later`.
 

@@ -6,6 +6,8 @@
 -   Pagekit running locally (port 8080 for development, 8180 for tests)
 -   Modern browser (Chrome, Firefox, Safari, or Edge)
 
+**Local vs. CI/remote:** When using `scripts/e2e-start.sh` (e.g. in CI or for a remote agent), the script starts the environment (Docker) on a known port; use a `test-config.json` (or env) that matches that setup.
+
 ## Installation
 
 1. Install Playwright and dependencies:
@@ -34,10 +36,11 @@ cp tests/e2e/config/test-config.example.json tests/e2e/config/test-config.json
 2. **Update the configuration with your actual test data:**
 
     - Admin credentials (username, password, email)
-    - Site URL (where Pagekit is running)
+    - Site URL: the example uses **8180** so it matches `scripts/e2e-start.sh` (Docker). For local dev, set `site.url` and `site.adminUrl` to your Pagekit URL/port.
+    - **Workers** (optional): `testSettings.workers` sets how many tests run in parallel (default: 4 locally, 1 in CI). Use `1` for sequential runs. The env variable `PLAYWRIGHT_WORKERS` always takes priority over the config value, so CI pipelines and CLI overrides work reliably (e.g. `PLAYWRIGHT_WORKERS=8 npx playwright test`). You can also use `--workers=1` on the CLI.
     - Database settings (if using MySQL)
 
-3. **Ensure Pagekit is installed** with the specified admin credentials
+3. **Ensure Pagekit is installed** with the specified admin credentials (or leave uninstalled for the installation test).
 
 ## Example Configuration
 
@@ -61,6 +64,8 @@ cp tests/e2e/config/test-config.example.json tests/e2e/config/test-config.json
     }
 }
 ```
+
+The example uses port **8180** to match the Docker E2E environment (`scripts/e2e-start.sh`). For local dev, set your port in `test-config.json`.
 
 **Important**: Replace all `YOUR_*` placeholders with your actual values!
 
@@ -107,10 +112,18 @@ npx playwright test tests/e2e/specs/03-content/blog.spec.js
 
 ### Run Tests for Specific Browser
 
+Use `--project=...` (not `--chromium`). Examples:
+
 ```bash
 npx playwright test --project=chromium
 npx playwright test --project=firefox
 npx playwright test --project=webkit
+```
+
+To run only the installation test in Chromium:
+
+```bash
+npx playwright test tests/e2e/specs/01-setup/installation.spec.js --project=chromium
 ```
 
 ## Test Environment Setup
@@ -130,9 +143,10 @@ npx playwright test --project=webkit
 
 ### Manual Setup
 
-1. Ensure Pagekit is running on port 8180
-2. Use test database: pagekit_e2e_test
-3. Use test storage: ./storage-e2e
+1. Start Pagekit on the **same port** as in `test-config.json` (e.g. `php -S localhost:8180` or your usual dev server).
+2. For the **installation test**: Pagekit must **not** be installed yet (no `config.php` in project root, no `pagekit.db`). If already installed, the app will not redirect to `/installer` and the test will fail.
+3. Use test database: pagekit_e2e_test (or SQLite path from config).
+4. Use test storage: ./storage-e2e (optional).
 
 ## Writing New Tests
 
@@ -286,6 +300,8 @@ npx playwright test --config=playwright.smoke.config.js
 
 # Run tests in parallel
 npx playwright test --workers=4
+# Or set in test-config.json: "testSettings": { "workers": 1 } for sequential runs
+# Or env: PLAYWRIGHT_WORKERS=1
 
 # Run tests with specific timeout
 npx playwright test --timeout=60000
@@ -299,6 +315,20 @@ npx playwright test --list
 # Run specific test by name
 npx playwright test -g "should create page"
 ```
+
+## Verifying rate limiting (login brute-force protection)
+
+The backend implements rate limiting in `app/system/modules/user/src/Event/LoginAttemptListener.php` (5 failed attempts per username, then block for 5 seconds). To verify it works:
+
+1. **E2E (recommended)** – run only the rate-limit tests (fast, reproducible):
+   ```bash
+   npx playwright test tests/e2e/specs/02-core/authentication.spec.js -g "Rate limiting"
+   ```
+   This runs: block after 6 attempts, allow after delay, reset after success, per-username.
+
+2. **Manual in browser** – open `/admin/login`, enter correct username + wrong password 5 times; on the 6th attempt you should see **"Slow down a bit."** and stay on the login page. After ~5 seconds, another attempt is allowed.
+
+3. **Cache** – rate limits are stored in the app cache (key `auth.login_attempts_<username>`). If you use a cache backend that does not persist (e.g. array in tests), rate limiting may not trigger; ensure a real cache (e.g. PHP file cache) is used when testing.
 
 ## Troubleshooting
 

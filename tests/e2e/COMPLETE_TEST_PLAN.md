@@ -1,21 +1,70 @@
 # 🎯 Vollständiger E2E Test-Plan für Pagekit
 
-**Stand:** 28.09.2025 | **Version:** 2.0 | **System:** Pagekit Modernized
+**Stand:** 12.02.2026 | **Version:** 2.2 | **System:** Pagekit Modernized
+
+**Abgleich:** Dieser Plan ist mit `migration-docs/TODO/MODERNISING_PAGEKIT_TODO_LIST.md` und `tests/e2e/TEST_PLAN_ANALYSIS_2025.md` abgestimmt. Features, die laut Roadmap erst in Phase 4/5 kommen oder aktuell nicht vorhanden sind, sind entsprechend gekennzeichnet.
+
+---
+
+## ⚠️ Hinweis für Entwicklung (aus TODO – Agent Instructions)
+
+- **Nicht die komplette E2E-Suite bei jedem Schritt laufen lassen.**  
+  Pro Modernisierungs-Schritt: **nur** Installationstest + die Specs der betroffenen Feature-Bereiche ausführen.  
+  Siehe `MODERNISING_PAGEKIT_TODO_LIST.md` → „Test-Driven Development (CRITICAL)“.
+- Vor Arbeit: `npx playwright test tests/e2e/specs/01-setup/installation.spec.js` + `./app/vendor/bin/phpunit`
+- Nach jedem Schritt: frische Installation + betroffene Feature-Tests + PHPUnit (alle grün vor PR).
+
+---
 
 ## Aktuelle Test-Coverage-Analyse
 
 ### ✅ Was wir bereits testen:
-1. ✅ Installation (5 Steps) - **Vollständig optimiert**
-2. ⚠️ Basic Authentication (Login/Logout) - Vorhanden, noch nicht optimiert
-3. ⚠️ Basic Content (Pages) - Vorhanden, noch nicht optimiert
-4. ⚠️ Basic Frontend (Homepage, 404) - Vorhanden, noch nicht optimiert
+1. ✅ **Installation** (5 Steps) – `01-setup/installation.spec.js` – 1 Test, optimiert
+2. ✅ **Authentication** – `02-core/authentication.spec.js` – 13 Tests, optimiert (Login, Logout, CSRF, Rate Limiting, Session)
+3. ✅ **Dashboard** – `02-core/dashboard.spec.js` – 12 Tests, optimiert
+4. ✅ **Settings** – `02-core/settings.spec.js` – 9 Tests, optimiert
+5. ✅ **ORM Operations** – `02-core/orm-operations.spec.js` – 6 Tests
+6. ✅ **Pages** – `03-content/pages.spec.js` – 5 Tests
+7. ✅ **Blog** – `03-content/blog.spec.js` – 9 Tests
+8. ✅ **Media/Finder** – `03-content/media.spec.js` – 8 Tests
+9. ✅ **Frontend** – `04-frontend/public-pages.spec.js` – 5 Tests (Homepage, 404, Assets, Nav, Footer)
+10. ✅ **Menu System** – `05-features/menu-system.spec.js` – 10 Tests
+11. ✅ **User Management** – `05-features/user-management.spec.js` – 8 Tests
+12. ✅ **Widgets** – `05-features/widgets.spec.js` – 10 Tests
 
 ### 📊 Test-Status:
-- **Optimiert:** `test-config.js`, `installation.spec.js`
-- **Vorhanden:** 11 Test-Specs in 5 Kategorien
-- **Helper:** Vue-Helpers vorhanden
+- **Optimiert:** `test-config.js` (Helper), `installation.spec.js`, `authentication.spec.js`, `dashboard.spec.js`, `settings.spec.js`
+- **Vorhanden:** **12** Test-Specs in **5** Kategorien (`01-setup`, `02-core`, `03-content`, `04-frontend`, `05-features`)
+- **Ca. 96** einzelne `test()`-Fälle insgesamt
+- **Helper:** `test-config.js`, `vue-helpers.js` | **Config:** `config/test-config.json` (aus `test-config.example.json` anlegen)
+
+### 📁 Ordnerstruktur:
+```
+tests/e2e/
+├── config/
+│   ├── test-config.example.json
+│   └── test-config.json          (lokal anlegen, gitignored)
+├── helpers/
+│   ├── test-config.js
+│   └── vue-helpers.js
+├── specs/
+│   ├── 01-setup/installation.spec.js
+│   ├── 02-core/authentication.spec.js, dashboard.spec.js, orm-operations.spec.js, settings.spec.js
+│   ├── 03-content/blog.spec.js, media.spec.js, pages.spec.js
+│   ├── 04-frontend/public-pages.spec.js
+│   └── 05-features/menu-system.spec.js, user-management.spec.js, widgets.spec.js
+├── COMPLETE_TEST_PLAN.md
+├── TEST_PLAN_ANALYSIS_2025.md
+└── README.md
+```
+Playwright: `playwright.config.js`, `playwright.smoke.config.js` (Projektwurzel).
 
 ### ❌ Was noch FEHLT und getestet werden MUSS:
+
+**Legende:**  
+- Einträge ohne Zusatz = aktuell im System vorhanden, Tests ausbaubar.  
+- `(Phase 4.1)` = Feature kommt erst in Phase 4.1 (Basic Security & Modern Auth).  
+- `(nicht vorhanden)` = laut `TEST_PLAN_ANALYSIS_2025.md` derzeit nicht implementiert.
 
 ## 1. USER MANAGEMENT & PERMISSIONS
 - [ ] User erstellen (verschiedene Rollen)
@@ -27,10 +76,12 @@
 - [ ] Profil bearbeiten
 - [ ] Avatar hochladen
 - [ ] Passwort ändern
-- [ ] Passwort zurücksetzen (Reset-Flow)
-- [ ] Email-Verifizierung
+- [ ] Passwort zurücksetzen (Reset-Flow) — _(Teil von Phase 4.1)_
+- [ ] Email-Verifizierung — _(optional Phase 4.x)_
 - [ ] User blockieren/entsperren
-- [ ] Login-Versuche und Sicherheit
+- [ ] Login-Versuche und Sicherheit (Rate Limiting bereits in authentication.spec.js)
+- [ ] **2FA (Two-Factor Authentication)** — _(Phase 4.1)_
+- [ ] **OAuth2 Social Login** — _(Phase 4.1)_
 
 ## 2. BLOG MODULE (Wichtiges Package!)
 - [ ] Blog Post erstellen
@@ -51,11 +102,12 @@
 - [ ] Dateien löschen
 - [ ] Bulk Upload
 - [ ] Drag & Drop Upload
-- [ ] Bildbearbeitung (wenn vorhanden)
+- [ ] ~~Bildbearbeitung~~ — _(nicht vorhanden: kein Image Editor im Finder)_
 - [ ] Storage Settings
 - [ ] File Permissions
 
 ## 4. WIDGET SYSTEM
+_(Im System aktuell: Text Widget, Menu Widget, Login Widget, User Widget. Kein Feed Widget, Location Widget, Custom HTML Widget.)_
 - [ ] Widget hinzufügen
 - [ ] Widget konfigurieren
 - [ ] Widget positionieren
@@ -126,7 +178,7 @@
 - [ ] User Search
 - [ ] Content Search
 - [ ] Filter und Sortierung
-- [ ] Advanced Search
+- [ ] ~~Advanced Search~~ — _(nicht vorhanden: nur Basic Search)_
 
 ## 12. MULTI-LANGUAGE (Intl)
 - [ ] Sprache wechseln
@@ -134,6 +186,7 @@
 - [ ] Language Detection
 
 ## 13. COMMENTS SYSTEM
+_(Hinweis: Guest Comments nicht vorhanden – nur eingeloggte User.)_
 - [ ] Kommentar schreiben (eingeloggte User)
 - [ ] Kommentar moderieren
 - [ ] Kommentar löschen
@@ -149,9 +202,10 @@
 
 ## 15. INTERNAL API TESTING
 - [ ] Admin AJAX Endpoints
-- [ ] Vue.js API Calls
+- [ ] Vue.js API Calls (nach Phase 3: axios statt vue-resource)
 - [ ] Authentication Checks
 - [ ] Error Handling
+- [ ] **REST API v2** — _(Phase 4.2, OpenAPI/JWT)_
 
 ## 16. PERFORMANCE & EDGE CASES
 - [ ] Large File Upload
@@ -211,30 +265,33 @@
 14. Accessibility
 15. Performance Tests
 
-## Geschätzte Test-Anzahl (realistisch):
-- **Minimum:** ~80-100 Tests (Kritische Features)
-- **Optimal:** ~150-200 Tests (Kritisch + Wichtig)
-- **Vollständig:** ~250-300 Tests (Alle vorhandenen Features)
+## Test-Anzahl (IST vs. Ziel):
+- **Aktuell (IST):** ~96 Tests in 12 Spec-Dateien (Kern-Features abgedeckt)
+- **Minimum (Ziel):** ~80-100 Tests (Kritische Features) → **erreicht**
+- **Optimal (Ziel):** ~150-200 Tests (Kritisch + Wichtig)
+- **Vollständig (Ziel):** ~250-300 Tests (alle Features aus den Abschnitten 1–20 unten)
 
 ## Nächste Schritte:
 1. ✅ Test-Config und Installation optimiert
-2. ⏳ Authentication & User Management Tests optimieren
-3. ⏳ Blog Module Tests optimieren
-4. ⏳ Media/Finder Tests optimieren
-5. 🔜 GitHub Actions CI/CD implementieren
-6. 🔜 Test-Fixtures (SQL) vorbereiten
+2. ✅ Authentication, Dashboard, Settings optimiert
+3. ✅ Blog, Media, Pages, Frontend, Menu, User, Widgets-Specs vorhanden (können bei Bedarf verfeinert werden)
+4. 🔜 **GitHub Actions CI/CD für E2E** (entspricht TODO Schritt 2.2 CI/CD Pipeline)
+5. 🔜 Test-Fixtures (SQL) vorbereiten (optional)
+6. ✅ `test:e2e:install` verweist auf `specs/01-setup/installation.spec.js`
 
 ## CI/CD Status:
-- ✅ Dependabot konfiguriert (Composer, NPM, Docker)
+- ✅ Dependabot konfiguriert (`.github/dependabot.yml` – Composer, NPM, Docker)
 - ✅ Docker E2E Environment (`docker-compose.e2e.yml`)
-- ✅ Test-Scripts vorhanden (`scripts/e2e-*.sh`)
-- ⚠️ Travis CI veraltet (PHP 7.4)
-- ❌ GitHub Actions noch nicht implementiert
+- ✅ Test-Scripts: `scripts/e2e-start.sh`, `e2e-reset.sh`, `e2e-stop.sh`
+- ✅ Travis CI vorhanden (`.travis.yml`) – läuft **PHPUnit** mit PHP 8.2, 8.3, 8.4 (keine E2E)
+- ❌ GitHub Actions für E2E noch nicht implementiert
 
 ## System-Informationen:
 - **PHP:** 8.2-8.4
 - **MySQL:** 8.4
 - **SQLite:** 3.x
-- **Vue.js:** 2.6
-- **UIkit:** 3.5
+- **Vue.js:** 2.6 _(Phase 3: 2.7 Bridge → Vue 3.x; E2E-Helper/Selectors ggf. anpassen)_
+- **UIkit:** 3.5 _(Phase 3: 3.21+)_
 - **Node.js:** 18-20 (für Tests)
+
+**Nicht im Scope dieses Plans (laut Roadmap):** Marketplace (Phase 5.6, API deaktiviert), Extension-Install per UI (nur manuell), REST API (Phase 4.2). Details: `TEST_PLAN_ANALYSIS_2025.md`.

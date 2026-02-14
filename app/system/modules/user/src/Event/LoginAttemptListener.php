@@ -27,7 +27,10 @@ class LoginAttemptListener implements EventSubscriberInterface
 
         $attempts = App::cache()->fetch($this->getCacheKey($credentials['username'])) ?: [];
 
-        if (count($attempts) > self::ATTEMPTS && time() - (int) array_pop($attempts) < self::DELAY) {
+        // Block if we already have >= ATTEMPTS failures and the last one was within DELAY seconds.
+        // (Use end() to read last timestamp without mutating the array.)
+        $lastAttempt = is_array($attempts) && $attempts !== [] ? (int) end($attempts) : 0;
+        if (count($attempts) >= self::ATTEMPTS && (time() - $lastAttempt) < self::DELAY) {
             throw new AuthException(__('Slow down a bit.'));
         }
     }

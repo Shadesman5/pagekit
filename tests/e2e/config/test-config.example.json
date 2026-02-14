@@ -1,4 +1,4 @@
-﻿{
+{
   "auth": {
     "admin": {
       "username": "YOUR_ADMIN_USERNAME",
@@ -29,8 +29,8 @@
   },
   "site": {
     "title": "YOUR_SITE_TITLE",
-    "url": "http://localhost:8080",
-    "adminUrl": "http://localhost:8080/admin"
+    "url": "http://localhost:8180",
+    "adminUrl": "http://localhost:8180/admin"
   },
   "installation": {
     "language": "en_US",
@@ -58,7 +58,8 @@
       "vueLoad": 10000,
       "networkIdle": 5000,
       "animation": 500
-    }
+    },
+    "workers": 1
   },
   "logging": {
     "locale": "en-US",

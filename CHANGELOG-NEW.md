@@ -1,5 +1,33 @@
 # Changelog
 
+## Pagekit 1.1.3 - E2E Hardening & Auth Bugfix (February 14, 2026)
+
+### 🐛 Bug Fixes
+
+- **Login Rate Limiting** - Fixed off-by-one in `LoginAttemptListener`: use `>=` instead of `>` for attempt threshold; replaced `array_pop()` with `end()` to avoid mutating the attempts array; added `is_array()` guard.
+
+### ♻️ Refactoring
+
+- **E2E Test Infrastructure** - Centralized wait-time constants (animation, transition, hover, tick) derived from test-config instead of hardcoded values. Added `getWorkers()` method with config → env → CI fallback chain. Added `skipAdminCheck` option to `testConnectivity()` for installation tests.
+- **Installation Spec** - Replaced deprecated `page.$eval` / `page.$` with Playwright locator API; use config-driven timeouts; fallback to `/installer` URL if no redirect.
+- **Authentication Spec** - Fixed `waitForURL` patterns to correctly match post-login redirect (`/admin(?!/login)`); replaced `page.fill` with `fillVueInput` helper; added `.catch(() => false)` guards for optional UI elements.
+- **Dashboard Spec** - Removed duplicate user-menu and widget-editing tests; switched to language-independent selectors (href-based); fixed `page.mouse` API usage for drag-and-drop; added `MIN_CONTENT_LENGTH` constant.
+
+### 📝 Documentation
+
+- **ROADMAP** - Expanded Rule 3 (Breaking Changes Allowed Internally) with scope clarification for internal API, platform API and public API. Added Vue 3 migration substeps 3.4.1–3.4.5 (axios, mitt, @vue/compat, Pinia, deps).
+- **E2E Test Plan** - Updated to v2.2 with 96 tests across 12 specs; added folder structure, phase annotations and scope disclaimers.
+- **E2E README** - Documented workers config, rate-limiting verification steps, installation test prerequisites and browser-specific run commands.
+- **GitHub Guide** - New `GITHUB_PROJECTS_ISSUES_ACTIONS_GUIDE.md` for workflow improvement with Projects, Issues and Actions.
+
+### 🔧 Maintenance
+
+- **package.json** - Fixed `test:e2e:install` script path to `specs/01-setup/installation.spec.js`.
+- **playwright.config.js** - Workers now read from `testConfig.getWorkers()` instead of hardcoded value.
+- **test-config.example.json** - Updated default port to 8180 (Docker E2E); added `workers` setting; removed BOM.
+
+---
+
 ## Pagekit 1.1.2 - Workflow Modernization & Version Bump Skill (February 8, 2026)
 
 ### ✨ New Features

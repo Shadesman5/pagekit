@@ -54,6 +54,15 @@ Meta-Dokumentation und Workflows
 -   **DOCUMENTATION_AUTOMATION.md** - Automatisierung der Dokumentation
 -   **MODERNISING_PAGEKIT_TODO_LIST.md** - Haupt-TODO-Liste für die Modernisierung
 
+### 📋 `/TODO/`
+
+Planung, Phasen und Workflow-Guides
+
+-   **GITHUB_PROJECTS_ISSUES_ACTIONS_GUIDE.md** - Detaillierter Leitfaden: GitHub Projects, Issues und Actions für die Modernisierung (Workflow-Verbesserung, weniger Repo-Dateien)
+-   **MODERNISING_PAGEKIT_TODO_LIST.md** - Siehe auch `/documentation/`
+-   **PHASE#1_MODERNISING.md**, **PHASE#2_MODERNISING.md** - Detaillierte Schritte pro Phase
+-   **agent_prompts/** - Agent-Prompts für konkrete Migrationsschritte
+
 ## 🔍 Wichtige Hinweise
 
 ### Aktuelle Prioritäten

@@ -1,7 +1,6 @@
 /**
  * Optimized Dashboard Tests for Pagekit
  * Tests dashboard widgets, layout, and functionality with configuration integration
-
  *
  * Prerequisites: Pagekit must be installed and admin must be logged in
  */
@@ -11,7 +10,17 @@ const testConfig = require('../../helpers/test-config');
 
 const { waitForVue, navigateAndWaitForVue, fillVueInput } = require('../../helpers/vue-helpers');
 
-test.describe('Pagekit Dashboard (Optimized)', () => {
+// Wait-time constants derived from central test configuration
+const waitConfig = testConfig.getWaitConfig();
+const WAIT_ANIMATION = waitConfig.animation; // Full UI animation (default 500ms)
+const WAIT_TRANSITION = Math.round(WAIT_ANIMATION * 0.6); // Short transitions (default ~300ms)
+const WAIT_HOVER = Math.round(WAIT_ANIMATION * 0.4); // Hover effects (default ~200ms)
+const WAIT_TICK = Math.round(WAIT_ANIMATION * 0.2); // Vue tick / micro delays (default ~100ms)
+
+// Content validation threshold
+const MIN_CONTENT_LENGTH = 100;
+
+test.describe('Pagekit Dashboard', () => {
   test.beforeAll(async () => {
     // Setup common test environment (connectivity, timer)
     testConfig.startTestTimer();
@@ -113,7 +122,7 @@ test.describe('Pagekit Dashboard (Optimized)', () => {
         testConfig.info('No standard widgets found, checking for custom content...', 'ℹ️');
         // Check if there's any dashboard content at all
         const hasContent = await page.locator('body').textContent();
-        if (hasContent && hasContent.length > 100) {
+        if (hasContent && hasContent.length > MIN_CONTENT_LENGTH) {
           testConfig.success('Dashboard has content (may be custom widgets)');
         }
       }
@@ -144,7 +153,7 @@ test.describe('Pagekit Dashboard (Optimized)', () => {
       testConfig.debug('Testing hover on first widget...', '🔍');
       await firstWidget.hover();
 
-      await page.waitForTimeout(500); // Wait for hover effects to appear
+      await page.waitForTimeout(WAIT_ANIMATION); // Wait for hover effects to appear
 
       // Look for Pagekit's specific hover controls
       const primaryControls = firstWidget.locator(
@@ -162,7 +171,7 @@ test.describe('Pagekit Dashboard (Optimized)', () => {
 
           // Click edit button to reveal secondary controls
           await editButton.click();
-          await page.waitForTimeout(300);
+          await page.waitForTimeout(WAIT_TRANSITION);
 
           // Look for secondary controls (trash and check)
           const secondaryControls = firstWidget.locator(
@@ -180,7 +189,7 @@ test.describe('Pagekit Dashboard (Optimized)', () => {
 
               // Click delete to test modal
               await deleteButton.click();
-              await page.waitForTimeout(300);
+              await page.waitForTimeout(WAIT_TRANSITION);
 
               // Look for confirmation modal
               const modal = page.locator('.uk-modal.uk-open');
@@ -247,12 +256,12 @@ test.describe('Pagekit Dashboard (Optimized)', () => {
 
         // Hover first widget
         await firstWidget.hover();
-        await page.waitForTimeout(300);
+        await page.waitForTimeout(WAIT_TRANSITION);
 
         // Hover second widget
         await secondWidget.hover();
 
-        await page.waitForTimeout(300);
+        await page.waitForTimeout(WAIT_TRANSITION);
 
         // Attempt drag and drop if drag handles are visible
         const dragHandles = firstWidget.locator('.uk-invisible-hover [uk-icon="more-vertical"]');
@@ -266,19 +275,19 @@ test.describe('Pagekit Dashboard (Optimized)', () => {
             // Hover over first widget to show drag handle
             await firstWidget.hover();
 
-            await page.waitForTimeout(200);
+            await page.waitForTimeout(WAIT_HOVER);
 
-            // Click and hold on drag handle
+            // Click and hold on drag handle (use page.mouse API)
             const dragHandle = dragHandles.first();
             await dragHandle.hover();
-            await dragHandle.mouse.down();
+            await page.mouse.down();
             testConfig.debug('Mouse down on drag handle', '🔍');
 
             // Drag to second widget
             await secondWidget.hover();
 
-            await page.waitForTimeout(100);
-            await secondWidget.mouse.up();
+            await page.waitForTimeout(WAIT_TICK);
+            await page.mouse.up();
             testConfig.debug('Mouse up on second widget', '🔍');
 
             await waitForVue(page);
@@ -300,7 +309,7 @@ test.describe('Pagekit Dashboard (Optimized)', () => {
     testConfig.debug(`Widget hover test time: ${testConfig.getFormattedTestDuration()}`, '⏱️');
   });
 
-  test('? Dashboard quick stats', async ({ page }) => {
+  test('📈 Dashboard quick stats', async ({ page }) => {
     testConfig.log('Testing quick stats...', '🚀');
 
     await page.goto(testConfig.getAdminUrl());
@@ -464,22 +473,22 @@ test.describe('Pagekit Dashboard (Optimized)', () => {
 
       await userMenu.click();
 
-      await page.waitForTimeout(500); // Wait for dropdown to appear
+      await page.waitForTimeout(WAIT_ANIMATION); // Wait for dropdown to appear
 
-      // Check menu items (based on Pagekit German menu)
+      // Check menu items (language-independent using href selectors)
       const menuItems = [
-        { text: 'Abmelden', icon: '🚪' },
-        { text: 'Profil', icon: '👤' },
-        { text: 'Seite anzeigen', icon: '👁️' }
+        { name: 'Logout', selector: 'a[href*="/user/logout"]', icon: '🚪' },
+        { name: 'Profile', selector: 'a[href*="/admin/user/edit"]', icon: '👤' },
+        { name: 'View Site', selector: 'a[href="/"]', icon: '👁️' }
       ];
 
       let foundMenuItems = 0;
       for (const item of menuItems) {
-        const menuItem = page.locator(`a:has-text("${item.text}")`).first();
+        const menuItem = page.locator(item.selector).first();
         const isVisible = await menuItem.isVisible().catch(() => false);
 
         if (isVisible) {
-          testConfig.success(`${item.icon} ${item.text} menu item found`);
+          testConfig.success(`${item.icon} ${item.name} menu item found`);
           foundMenuItems++;
         }
       }
@@ -493,7 +502,7 @@ test.describe('Pagekit Dashboard (Optimized)', () => {
       // Close menu
       await page.keyboard.press('Escape');
 
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(WAIT_TRANSITION);
 
       testConfig.success('User menu interaction completed');
     } else {
@@ -503,7 +512,7 @@ test.describe('Pagekit Dashboard (Optimized)', () => {
     testConfig.debug(`User menu test time: ${testConfig.getFormattedTestDuration()}`, '⏱️');
   });
 
-  test('Dashboard refresh and reload', async ({ page }) => {
+  test('🔄 Dashboard refresh and reload', async ({ page }) => {
     testConfig.log('Testing dashboard refresh...', '🚀');
 
     await page.goto(testConfig.getAdminUrl());
@@ -523,7 +532,7 @@ test.describe('Pagekit Dashboard (Optimized)', () => {
     testConfig.success('Dashboard survives refresh');
   });
 
-  test('Dashboard widget management - Add Feed Widget', async ({ page }) => {
+  test('➕ Dashboard widget management - Add Feed Widget', async ({ page }) => {
     testConfig.log('Testing adding Feed widget...', '🚀');
 
     await page.goto(testConfig.getAdminUrl());
@@ -541,7 +550,7 @@ test.describe('Pagekit Dashboard (Optimized)', () => {
     if (await addWidgetButton.isVisible()) {
       // Sometimes buttons need hover to be fully interactive
       await addWidgetButton.hover();
-      await page.waitForTimeout(200); // Small delay for hover effects
+      await page.waitForTimeout(WAIT_HOVER); // Small delay for hover effects
 
       await addWidgetButton.click();
       await waitForVue(page);
@@ -633,140 +642,6 @@ test.describe('Pagekit Dashboard (Optimized)', () => {
     testConfig.debug(`Navigation links test time: ${testConfig.getFormattedTestDuration()}`, '⏱️');
   });
 
-  test('👤 Dashboard user menu interaction', async ({ page }) => {
-    testConfig.log('═══════════════════════════════════════');
-    testConfig.log('👤 DASHBOARD USER MENU TEST');
-    testConfig.log('═══════════════════════════════════════');
-    testConfig.log('Testing user menu interaction...', '🚀');
-
-    // Click user menu (admin link) - based on live dashboard analysis
-    const userMenu = page.locator('a[href*="/admin/user/edit"]').first();
-    await userMenu.click();
-    await waitForVue(page);
-
-    // Verify user menu dropdown appears
-    const logoutLink = page.locator('a[href*="/user/logout"]');
-    await expect(logoutLink).toBeVisible();
-
-    // Check for all user menu items (based on live analysis - language independent)
-    const menuItems = [
-      { name: 'Profile', selector: 'a[href*="/admin/user/edit"]', icon: '👤' },
-      { name: 'View Site', selector: 'a[href="/"]', icon: '🌐' },
-      { name: 'Logout', selector: 'a[href*="/user/logout"]', icon: '🚪' },
-      { name: 'Help', selector: 'a[href*="discord"]', icon: '💬' }
-    ];
-
-    let foundMenuItems = 0;
-    for (const item of menuItems) {
-      const menuItem = page.locator(item.selector).first();
-      if (await menuItem.isVisible().catch(() => false)) {
-        testConfig.success(`${item.icon} ${item.name} menu item found`);
-        foundMenuItems++;
-      }
-    }
-
-    if (foundMenuItems > 0) {
-      testConfig.success(`Found ${foundMenuItems} user menu items`);
-    }
-
-    // Click "Seite anzeigen" to test external navigation
-    const viewSiteLink = page.locator('a[href="/"]').first();
-    if (await viewSiteLink.isVisible()) {
-      await viewSiteLink.click();
-      await waitForVue(page);
-
-      // Verify we're on the public site
-      expect(page.url()).toContain('/');
-      expect(page.url()).not.toContain('/admin');
-
-      testConfig.success('Successfully navigated to public site');
-    }
-
-    testConfig.debug(`User menu test time: ${testConfig.getFormattedTestDuration()}`, '⏱️');
-  });
-
-  test('Dashboard widget editing', async ({ page }) => {
-    testConfig.log('Testing widget editing capabilities...', '🚀');
-
-    await page.goto(testConfig.getAdminUrl());
-    await waitForVue(page);
-
-    // Find widgets and test editing
-    const widgets = page.locator('.uk-grid > div');
-    const widgetCount = await widgets.count();
-
-    if (widgetCount > 0) {
-      const firstWidget = widgets.first();
-
-      // Hover over widget to reveal edit controls
-      await firstWidget.hover();
-      await waitForVue(page);
-
-      // Look for Pagekit's specific edit controls (based on detailed analysis)
-      const editButton = page.locator('.uk-invisible-hover [uk-icon="file-edit"]').first();
-
-      if (await editButton.isVisible()) {
-        testConfig.success('Edit button (file-edit) found on hover');
-
-        await editButton.click();
-
-        await page.waitForTimeout(300);
-
-        // Look for secondary controls after edit click
-        const secondaryControls = page.locator(
-          '.uk-invisible-hover [uk-icon="trash"], .uk-invisible-hover [uk-icon="check"]'
-        );
-        const secondaryCount = await secondaryControls.count();
-
-        if (secondaryCount > 0) {
-          testConfig.success(`Found ${secondaryCount} secondary controls (trash/check)`);
-
-          // Test delete functionality
-          const deleteButton = page.locator('.uk-invisible-hover [uk-icon="trash"]').first();
-          if (await deleteButton.isVisible()) {
-            testConfig.success('Delete button (trash) found');
-
-            await deleteButton.click();
-            await page.waitForTimeout(300);
-
-            // Look for confirmation modal
-            const modal = page.locator('.uk-modal, [class*="modal"]');
-            if (await modal.isVisible()) {
-              testConfig.success('Delete confirmation modal opened');
-
-              // Close modal (don't actually delete)
-              const cancelButton = page
-                .locator(
-                  'button:has-text("Cancel"), button:has-text("Abbrechen"), .uk-modal-close, .uk-close'
-                )
-                .first();
-
-              if (await cancelButton.isVisible()) {
-                await cancelButton.click();
-                testConfig.success('Modal closed successfully');
-              } else {
-                await page.keyboard.press('Escape');
-                testConfig.success('Modal closed with escape key');
-              }
-            }
-          }
-
-          // Test check button to close edit mode
-          const checkButton = page.locator('.uk-invisible-hover [uk-icon="check"]').first();
-          if (await checkButton.isVisible()) {
-            await checkButton.click();
-            testConfig.success('Edit mode closed with check button');
-          }
-        }
-      } else {
-        testConfig.log(
-          'No uk-invisible-hover edit controls found (widget may not support editing)',
-          'ℹ️'
-        );
-      }
-    }
-  });
-
   test('📱 Dashboard responsive layout', async ({ page }) => {
     testConfig.log('═══════════════════════════════════════');
     testConfig.log('📱 DASHBOARD RESPONSIVE LAYOUT TEST');
@@ -776,7 +651,7 @@ test.describe('Pagekit Dashboard (Optimized)', () => {
     // Test different viewport sizes
     const viewports = [
       { width: 1920, height: 1080, name: 'Desktop', icon: '🖥️' },
-      { width: 768, height: 1024, name: 'Tablet', icon: '📱' },
+      { width: 768, height: 1024, name: 'Tablet', icon: '📲' },
       { width: 375, height: 667, name: 'Mobile', icon: '📱' }
     ];
 
@@ -794,8 +669,14 @@ test.describe('Pagekit Dashboard (Optimized)', () => {
       // Check if navigation adapts (Pagekit uses UIkit responsive classes)
       const mobileMenu = await page
         .locator('.uk-navbar-toggle, [uk-navbar-toggle], .uk-offcanvas-toggle')
-        .isVisible();
-      const desktopMenu = await page.locator('.uk-navbar-nav, .pk-navbar-nav').isVisible();
+        .first()
+        .isVisible()
+        .catch(() => false);
+      const desktopMenu = await page
+        .locator('.uk-navbar-nav, .pk-navbar-nav')
+        .first()
+        .isVisible()
+        .catch(() => false);
 
       if (viewport.width < 960) {
         if (mobileMenu) {
@@ -815,7 +696,7 @@ test.describe('Pagekit Dashboard (Optimized)', () => {
 
       // Check if dashboard content is still visible
       const dashboardContent = await page.locator('body').textContent();
-      if (dashboardContent && dashboardContent.length > 100) {
+      if (dashboardContent && dashboardContent.length > MIN_CONTENT_LENGTH) {
         testConfig.debug(`Dashboard content visible at ${viewport.name}`);
       }
     }
@@ -860,7 +741,7 @@ test.describe('Pagekit Dashboard (Optimized)', () => {
     const dashboardSummary = `📋 Dashboard Test Summary:
 • Site: ${siteConfig.title}
 • Admin URL: ${siteConfig.adminUrl}
-    • Tests Completed: 11 dashboard scenarios
+• Tests Completed: 10 dashboard scenarios
 • Features Tested: Load, Widgets, Navigation, User Menu, Responsive Design
 • Total time: ${totalTime}
 • Performance: ${performanceRating}
@@ -870,18 +751,16 @@ test.describe('Pagekit Dashboard (Optimized)', () => {
 
     // Dashboard functionality summary
     const functionalitySummary = `🎛️ Dashboard Functionality Summary:
-    • ✅ Dashboard loads completely
-    • ✅ Widget detection and display
-    • ✅ Navigation links present and accessible
-    • ✅ User menu interactions
-    • ✅ Page refresh and reload
-    • ✅ Widget management (add/edit/delete/hover with uk-invisible-hover)
-    • ✅ Navigation links validation (Pages, Blog, Users, System)
-    • ✅ User menu interactions (logout, profile, view site)
-    • ✅ Widget editing capabilities
-    • ✅ Responsive layout adaptation
-    • ✅ Admin interface accessibility
-    • ✅ Vue.js integration working`;
+• ✅ Dashboard loads completely
+• ✅ Widget detection and display
+• ✅ Widget management (add/edit/delete/hover with uk-invisible-hover)
+• ✅ Quick stats display
+• ✅ Navigation menu and links (Pages, Blog, Users, System)
+• ✅ User menu interactions (logout, profile, view site)
+• ✅ Page refresh and reload
+• ✅ Responsive layout adaptation (Desktop, Tablet, Mobile)
+• ✅ Admin interface accessibility
+• ✅ Vue.js integration working`;
 
     testConfig.log(functionalitySummary);
 
