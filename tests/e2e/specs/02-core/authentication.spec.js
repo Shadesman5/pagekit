@@ -167,9 +167,10 @@ test.describe('Pagekit Authentication (Optimized)', () => {
         expect(page.url()).toContain('/login');
         testConfig.success('Successfully logged out via mobile link');
       } else {
-        // Fallback: Direct logout URL
+        // Fallback: Direct logout URL (pass redirect so the backend sends us to login)
         testConfig.info('Using direct logout URL as fallback', '🔍');
-        await page.goto(testConfig.getSiteUrl() + '/user/logout');
+        const logoutRedirect = encodeURIComponent(testConfig.getAdminUrl() + '/login');
+        await page.goto(testConfig.getSiteUrl() + '/user/logout?redirect=' + logoutRedirect);
         await page.waitForURL(/\/login/, { timeout: testConfig.getNavigationTimeout() });
         testConfig.success('Logged out via direct URL');
       }
@@ -578,7 +579,9 @@ test.describe('Pagekit Authentication (Optimized)', () => {
         logoutIcon.click()
       ]);
     } else {
-      await page.goto(testConfig.getSiteUrl() + '/user/logout');
+      // Pass redirect so the backend sends us to the login page
+      const logoutRedirect = encodeURIComponent(testConfig.getAdminUrl() + '/login');
+      await page.goto(testConfig.getSiteUrl() + '/user/logout?redirect=' + logoutRedirect);
       await page.waitForURL(/\/login/, { timeout: testConfig.getTimeout('short') });
     }
 

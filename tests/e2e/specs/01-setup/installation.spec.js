@@ -49,7 +49,7 @@ test.describe('Pagekit Installation Process', () => {
 
     // If still on root, try /installer directly (some setups redirect only via that path)
     if (!page.url().includes('/installer')) {
-      await page.goto(new URL('/installer', siteUrl).href, { waitUntil: 'networkidle' });
+      await page.goto(siteUrl.replace(/\/+$/, '') + '/installer', { waitUntil: 'networkidle' });
     }
     await expect(page).toHaveURL(/\/installer/, { timeout: testConfig.getTimeout('medium') });
     testConfig.log('Step 0: On installer', '🌐');
