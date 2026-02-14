@@ -11,18 +11,23 @@ const fs = require('fs');
 const path = require('path');
 const testConfig = require('../../helpers/test-config');
 
+// Wait-time constants derived from central test configuration
+const waitConfig = testConfig.getWaitConfig();
+const WAIT_ANIMATION = waitConfig.animation; // Full UI animation (default 500ms)
+const WAIT_INSTALLER_STEP = WAIT_ANIMATION * 2; // Installer step transitions (default ~1000ms)
+
 test.describe('Pagekit Installation Process', () => {
   test.beforeAll(async () => {
     // Start test timer
     testConfig.startTestTimer();
 
-    // Test connectivity and configuration
-    await testConfig.testConnectivity();
+    // Test connectivity and configuration (skip admin URL – not available before installation)
+    await testConfig.testConnectivity({ skipAdminCheck: true });
   });
 
   test('Complete 5-step installation flow', async ({ page }) => {
-    // Set longer timeout for installation (90 seconds)
-    test.setTimeout(90000);
+    // Set longer timeout for installation (from config)
+    test.setTimeout(testConfig.getTimeout('installation'));
 
     testConfig.log('Starting Pagekit installation test...', '🚀');
 
@@ -38,15 +43,21 @@ test.describe('Pagekit Installation Process', () => {
       );
     }
 
-    // Navigate to Pagekit (should redirect to installer)
-    await page.goto(testConfig.getSiteUrl(), { waitUntil: 'networkidle' });
+    // Navigate to Pagekit (should redirect to installer when not installed)
+    const siteUrl = testConfig.getSiteUrl();
+    await page.goto(siteUrl, { waitUntil: 'networkidle' });
 
-    // Should redirect to installer
-    await expect(page).toHaveURL(/\/installer/, { timeout: 10000 });
-    testConfig.log('Step 0: Redirected to installer', '🌐');
+    // If still on root, try /installer directly (some setups redirect only via that path)
+    if (!page.url().includes('/installer')) {
+      await page.goto(new URL('/installer', siteUrl).href, { waitUntil: 'networkidle' });
+    }
+    await expect(page).toHaveURL(/\/installer/, { timeout: testConfig.getTimeout('medium') });
+    testConfig.log('Step 0: On installer', '🌐');
 
     // Wait for Vue.js to initialize (check for v-cloak removal)
-    await page.waitForFunction(() => !document.querySelector('[v-cloak]'), { timeout: 10000 });
+    await page.waitForFunction(() => !document.querySelector('[v-cloak]'), {
+      timeout: testConfig.getTimeout('medium')
+    });
     testConfig.log('Vue.js initialized', '⚡');
 
     // ========================================
@@ -55,11 +66,14 @@ test.describe('Pagekit Installation Process', () => {
     testConfig.log('Step 1: Welcome screen', '👋');
 
     // Wait for the logo to be clickable
-    await page.waitForSelector('#next', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('#next', {
+      state: 'visible',
+      timeout: testConfig.getTimeout('medium')
+    });
 
     // Click on the logo/next button
     await page.click('#next');
-    await page.waitForTimeout(1000); // Wait for animation
+    await page.waitForTimeout(WAIT_INSTALLER_STEP); // Wait for step animation
 
     testConfig.success('Step 1: Clicked welcome screen');
 
@@ -69,10 +83,13 @@ test.describe('Pagekit Installation Process', () => {
     testConfig.log('Step 2: Language selection', '🌍');
 
     // Wait for language selector
-    await page.waitForSelector('#selectbox', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('#selectbox', {
+      state: 'visible',
+      timeout: testConfig.getTimeout('medium')
+    });
 
     // Select language from config (should be selected by default)
-    const selectedLang = await page.$eval('#selectbox', el => el.value);
+    const selectedLang = await page.locator('#selectbox').evaluate(el => el.value);
     const configLang = testConfig.getInstallationLanguage();
     if (selectedLang !== configLang) {
       await page.selectOption('#selectbox', configLang);
@@ -80,7 +97,7 @@ test.describe('Pagekit Installation Process', () => {
 
     // Click Next button
     await page.click('#next');
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(WAIT_INSTALLER_STEP);
 
     testConfig.success(`Step 2: Language selected (${configLang})`);
 
@@ -90,10 +107,13 @@ test.describe('Pagekit Installation Process', () => {
     testConfig.log('Step 3: Database configuration', '🗄️');
 
     // Wait for database driver selector
-    await page.waitForSelector('#form-dbdriver', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('#form-dbdriver', {
+      state: 'visible',
+      timeout: testConfig.getTimeout('medium')
+    });
 
     // Check if SQLite is selected (should be default)
-    const dbDriver = await page.$eval('#form-dbdriver', el => el.value);
+    const dbDriver = await page.locator('#form-dbdriver').evaluate(el => el.value);
     testConfig.debug(`Database driver: ${dbDriver}`, '🔧');
 
     if (dbDriver !== 'sqlite') {
@@ -102,8 +122,8 @@ test.describe('Pagekit Installation Process', () => {
     }
 
     // For SQLite, we might need to set table prefix
-    const prefixInput = await page.$('#form-sqlite-dbprefix');
-    if (prefixInput) {
+    const prefixInput = page.locator('#form-sqlite-dbprefix');
+    if ((await prefixInput.count()) > 0) {
       const currentPrefix = await prefixInput.inputValue();
       if (!currentPrefix) {
         await prefixInput.fill('pk_');
@@ -112,7 +132,7 @@ test.describe('Pagekit Installation Process', () => {
 
     // Click Next button
     await page.click('#next');
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(WAIT_INSTALLER_STEP);
 
     testConfig.success('Step 3: Database configured (SQLite)');
 
@@ -122,7 +142,10 @@ test.describe('Pagekit Installation Process', () => {
     testConfig.log('Step 4: Site and Admin configuration', '⚙️');
 
     // Wait for form fields to be visible
-    await page.waitForSelector('div[step="site"]', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('div[step="site"]', {
+      state: 'visible',
+      timeout: testConfig.getTimeout('medium')
+    });
 
     // Fill site title from config
     const siteTitle = testConfig.getSiteTitle();
@@ -137,15 +160,15 @@ test.describe('Pagekit Installation Process', () => {
     testConfig.debug(`Admin user configured: ${adminCreds.username}`, '👤');
 
     // Optional: Check demo content option from config
-    const optionsButton = await page.$('#options');
-    if (optionsButton && testConfig.getInstallationDemoContent()) {
+    const optionsButton = page.locator('#options');
+    if ((await optionsButton.count()) > 0 && testConfig.getInstallationDemoContent()) {
       // Click options to open modal
       await optionsButton.click();
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(WAIT_ANIMATION);
 
       // Check if demo content checkbox exists and check it
-      const demoCheckbox = await page.$('input[type="checkbox"]');
-      if (demoCheckbox) {
+      const demoCheckbox = page.locator('input[type="checkbox"]').first();
+      if ((await demoCheckbox.count()) > 0) {
         const isChecked = await demoCheckbox.isChecked();
         if (!isChecked) {
           await demoCheckbox.check();
@@ -154,14 +177,14 @@ test.describe('Pagekit Installation Process', () => {
       }
 
       // Close modal (click outside or close button)
-      const closeButton = await page.$('button.uk-modal-close');
-      if (closeButton) {
+      const closeButton = page.locator('button.uk-modal-close').first();
+      if (await closeButton.isVisible().catch(() => false)) {
         await closeButton.click();
       } else {
         // Click outside modal
         await page.click('body', { position: { x: 10, y: 10 } });
       }
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(WAIT_ANIMATION);
     }
 
     // Click Install button (which is the next button in this step)
@@ -175,7 +198,9 @@ test.describe('Pagekit Installation Process', () => {
     testConfig.info('This may take a few seconds...', '⏱️');
 
     // Wait for redirect to login page (installation complete)
-    await page.waitForURL(/\/(admin\/login|user\/login)/, { timeout: 30000 });
+    await page.waitForURL(/\/(admin\/login|user\/login)/, {
+      timeout: testConfig.getNavigationTimeout()
+    });
 
     testConfig.success('Step 5: Installation completed!');
     testConfig.log('Redirected to login page', '🔄');
@@ -226,7 +251,7 @@ test.describe('Pagekit Installation Process', () => {
     await page.click('.js-login button');
 
     // Wait for redirect to admin dashboard
-    await page.waitForURL(/\/admin(?!\/login)/, { timeout: 10000 });
+    await page.waitForURL(/\/admin(?!\/login)/, { timeout: testConfig.getTimeout('medium') });
 
     testConfig.success('Admin login successful!');
     testConfig.success('Complete installation verified - Pagekit is fully functional!', '🎯');

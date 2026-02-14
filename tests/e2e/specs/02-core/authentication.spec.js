@@ -9,6 +9,11 @@ const { test, expect } = require('@playwright/test');
 const testConfig = require('../../helpers/test-config');
 const { waitForVue, navigateAndWaitForVue, fillVueInput } = require('../../helpers/vue-helpers');
 
+// Wait-time constants derived from central test configuration
+const waitConfig = testConfig.getWaitConfig();
+const WAIT_ANIMATION = waitConfig.animation; // Full UI animation (default 500ms)
+const WAIT_TRANSITION = Math.round(WAIT_ANIMATION * 0.6); // Short transitions (default ~300ms)
+
 test.describe('Pagekit Authentication (Optimized)', () => {
   test.beforeAll(async () => {
     // Setup common test environment (connectivity, timer)
@@ -71,8 +76,9 @@ test.describe('Pagekit Authentication (Optimized)', () => {
     expect(page.url()).toContain('/admin');
     expect(page.url()).not.toContain('/login');
 
-    // Check for admin UI elements (Dashboard heading)
-    await page.locator('.dashboard').isVisible();
+    // Verify admin dashboard is visible
+    const dashboard = page.locator('.dashboard').first();
+    await expect(dashboard).toBeVisible({ timeout: testConfig.getActionTimeout() });
 
     testConfig.success('Successfully logged in as admin');
     testConfig.debug(`Login time: ${testConfig.getFormattedTestDuration()}`, '⏱️');
@@ -95,7 +101,10 @@ test.describe('Pagekit Authentication (Optimized)', () => {
     await page.click('.js-login button');
 
     // Wait for error message to appear (Vue might update DOM)
-    await page.waitForSelector('.uk-alert-danger', { state: 'visible', timeout: 5000 });
+    await page.waitForSelector('.uk-alert-danger', {
+      state: 'visible',
+      timeout: testConfig.getTimeout('short')
+    });
 
     // Should stay on login page
     expect(page.url()).toContain('/login');
@@ -121,7 +130,7 @@ test.describe('Pagekit Authentication (Optimized)', () => {
     await fillVueInput(page, 'input[name="credentials[password]"]', adminCreds.password);
 
     await Promise.all([
-      page.waitForURL(/\/login/, { waitUntil: 'networkidle' }),
+      page.waitForURL(/\/admin(?!\/login)/, { timeout: testConfig.getActionTimeout() }),
       page.click('.js-login button')
     ]);
 
@@ -131,9 +140,12 @@ test.describe('Pagekit Authentication (Optimized)', () => {
     // Look for logout icon in navigation (desktop version)
     const logoutIcon = page.locator('a[uk-icon="sign-out"][href*="/user/logout"]').first();
 
-    if (await logoutIcon.isVisible()) {
+    if (await logoutIcon.isVisible().catch(() => false)) {
       testConfig.info('Found desktop logout icon', '🔍');
-      await Promise.all([page.waitForURL({ waitUntil: 'networkidle' }), logoutIcon.click()]);
+      await Promise.all([
+        page.waitForURL(/\/login/, { timeout: testConfig.getNavigationTimeout() }),
+        logoutIcon.click()
+      ]);
 
       // Should redirect to login
       expect(page.url()).toContain('/login');
@@ -144,10 +156,10 @@ test.describe('Pagekit Authentication (Optimized)', () => {
         .locator('a[href*="/user/logout"]:has(span[uk-icon="sign-out"])')
         .first();
 
-      if (await mobileLogoutLink.isVisible()) {
+      if (await mobileLogoutLink.isVisible().catch(() => false)) {
         testConfig.info('Found mobile logout link', '🔍');
         await Promise.all([
-          page.waitForURL(testConfig.getAdminUrl(), { waitUntil: 'networkidle' }),
+          page.waitForURL(/\/login/, { timeout: testConfig.getNavigationTimeout() }),
           mobileLogoutLink.click()
         ]);
 
@@ -157,10 +169,8 @@ test.describe('Pagekit Authentication (Optimized)', () => {
       } else {
         // Fallback: Direct logout URL
         testConfig.info('Using direct logout URL as fallback', '🔍');
-        await page.goto('/user/logout');
-        await page.waitForURL(/\//, {
-          waitUntil: 'networkidle'
-        });
+        await page.goto(testConfig.getSiteUrl() + '/user/logout');
+        await page.waitForURL(/\/login/, { timeout: testConfig.getNavigationTimeout() });
         testConfig.success('Logged out via direct URL');
       }
     }
@@ -188,10 +198,7 @@ test.describe('Pagekit Authentication (Optimized)', () => {
       await fillVueInput(page, 'input[name="credentials[password]"]', adminCreds.password);
 
       await Promise.all([
-        await page.waitForURL(/\/login/, {
-          timeout: testConfig.getActionTimeout(),
-          waitUntil: 'networkidle'
-        }),
+        page.waitForURL(/\/admin(?!\/login)/, { timeout: testConfig.getActionTimeout() }),
         page.click('.js-login button')
       ]);
 
@@ -281,11 +288,11 @@ test.describe('Pagekit Authentication (Optimized)', () => {
     // First login to get a valid session
     await navigateAndWaitForVue(page, testConfig.getAdminUrl() + '/login');
     const adminCreds = testConfig.getAdminCredentials();
-    await page.fill('input[name="credentials[username]"]', adminCreds.username);
-    await page.fill('input[name="credentials[password]"]', adminCreds.password);
+    await fillVueInput(page, 'input[name="credentials[username]"]', adminCreds.username);
+    await fillVueInput(page, 'input[name="credentials[password]"]', adminCreds.password);
 
     await Promise.all([
-      page.waitForURL(/\/login/, { waitUntil: 'networkidle' }),
+      page.waitForURL(/\/admin(?!\/login)/, { timeout: testConfig.getActionTimeout() }),
       page.click('.js-login button')
     ]);
 
@@ -326,11 +333,11 @@ test.describe('Pagekit Authentication (Optimized)', () => {
 
     // Login
     const adminCreds = testConfig.getAdminCredentials();
-    await page.fill('input[name="credentials[username]"]', adminCreds.username);
-    await page.fill('input[name="credentials[password]"]', adminCreds.password);
+    await fillVueInput(page, 'input[name="credentials[username]"]', adminCreds.username);
+    await fillVueInput(page, 'input[name="credentials[password]"]', adminCreds.password);
 
     await Promise.all([
-      page.waitForURL(/\/login/, { waitUntil: 'networkidle' }),
+      page.waitForURL(/\/admin(?!\/login)/, { timeout: testConfig.getActionTimeout() }),
       page.click('.js-login button')
     ]);
 
@@ -353,11 +360,11 @@ test.describe('Pagekit Authentication (Optimized)', () => {
     // Login first
     await navigateAndWaitForVue(page, testConfig.getAdminUrl() + '/login');
     const adminCreds = testConfig.getAdminCredentials();
-    await page.fill('input[name="credentials[username]"]', adminCreds.username);
-    await page.fill('input[name="credentials[password]"]', adminCreds.password);
+    await fillVueInput(page, 'input[name="credentials[username]"]', adminCreds.username);
+    await fillVueInput(page, 'input[name="credentials[password]"]', adminCreds.password);
 
     await Promise.all([
-      page.waitForURL(/\/login/, { waitUntil: 'networkidle' }),
+      page.waitForURL(/\/admin(?!\/login)/, { timeout: testConfig.getActionTimeout() }),
       page.click('.js-login button')
     ]);
 
@@ -398,7 +405,7 @@ test.describe('Pagekit Authentication (Optimized)', () => {
     testConfig.log('🚫 RATE LIMITING BLOCK TEST');
     testConfig.log('═══════════════════════════════════════');
     testConfig.log('Testing rate limiting for failed login attempts...', '🚀');
-    testConfig.info('Making 6 failed attempts (limit should be 5)', '🔢');
+    testConfig.info('Making 6 failed attempts (6th should be blocked after 5 failures)', '🔢');
 
     await navigateAndWaitForVue(page, testConfig.getAdminUrl() + '/login');
 
@@ -415,7 +422,10 @@ test.describe('Pagekit Authentication (Optimized)', () => {
       await page.click('.js-login button');
 
       // Wait for error message
-      await page.waitForSelector('.uk-alert-danger', { state: 'visible', timeout: 5000 });
+      await page.waitForSelector('.uk-alert-danger', {
+        state: 'visible',
+        timeout: testConfig.getTimeout('short')
+      });
 
       // Clear form for next attempt
       await page.fill('input[name="credentials[username]"]', '');
@@ -484,7 +494,10 @@ test.describe('Pagekit Authentication (Optimized)', () => {
       await fillVueInput(page, 'input[name="credentials[password]"]', 'wrongpassword');
 
       await page.click('.js-login button');
-      await page.waitForSelector('.uk-alert-danger', { state: 'visible', timeout: 5000 });
+      await page.waitForSelector('.uk-alert-danger', {
+        state: 'visible',
+        timeout: testConfig.getTimeout('short')
+      });
 
       // Clear form
       await page.fill('input[name="credentials[username]"]', '');
@@ -495,8 +508,9 @@ test.describe('Pagekit Authentication (Optimized)', () => {
     testConfig.info(`Made 5 failed attempts in ${(failedAttemptsTime / 1000).toFixed(2)}s`, '🔢');
     testConfig.info('Waiting 6 seconds for rate limit to reset...', '⏳');
 
-    // Wait for rate limit to reset (5 seconds + 1 second buffer)
-    await page.waitForTimeout(6000);
+    // Wait for rate limit to reset (LoginAttemptListener: 5s lockout + 1s safety buffer)
+    const RATE_LIMIT_WAIT = 6000;
+    await page.waitForTimeout(RATE_LIMIT_WAIT);
 
     // Now try correct login
     testConfig.info('Attempting correct login after delay...', '🔐');
@@ -517,9 +531,9 @@ test.describe('Pagekit Authentication (Optimized)', () => {
     testConfig.debug(`Total rate limiting test time: ${(totalTime / 1000).toFixed(2)}s`, '⏱️');
   });
 
-  test('🔄 Rate limiting resets after successful login', async ({ page }) => {
+  test('🔁 Rate limiting resets after successful login', async ({ page }) => {
     testConfig.log('═══════════════════════════════════════');
-    testConfig.log('🔄 RATE LIMITING RESET TEST');
+    testConfig.log('🔁 RATE LIMITING RESET TEST');
     testConfig.log('═══════════════════════════════════════');
     testConfig.log('Testing rate limiting reset after successful login...', '🚀');
 
@@ -532,7 +546,10 @@ test.describe('Pagekit Authentication (Optimized)', () => {
       await fillVueInput(page, 'input[name="credentials[password]"]', 'wrongpassword');
 
       await page.click('.js-login button');
-      await page.waitForSelector('.uk-alert-danger', { state: 'visible', timeout: 5000 });
+      await page.waitForSelector('.uk-alert-danger', {
+        state: 'visible',
+        timeout: testConfig.getTimeout('short')
+      });
 
       await page.fill('input[name="credentials[username]"]', '');
       await page.fill('input[name="credentials[password]"]', '');
@@ -546,7 +563,7 @@ test.describe('Pagekit Authentication (Optimized)', () => {
     await fillVueInput(page, 'input[name="credentials[password]"]', adminCreds.password);
 
     await Promise.all([
-      page.waitForURL(/\/login/, { waitUntil: 'networkidle' }),
+      page.waitForURL(/\/admin(?!\/login)/, { timeout: testConfig.getActionTimeout() }),
       page.click('.js-login button')
     ]);
 
@@ -555,14 +572,14 @@ test.describe('Pagekit Authentication (Optimized)', () => {
 
     // Logout
     const logoutIcon = page.locator('a[uk-icon="sign-out"][href*="/user/logout"]').first();
-    if (await logoutIcon.isVisible()) {
+    if (await logoutIcon.isVisible().catch(() => false)) {
       await Promise.all([
-        page.waitForURL(/\/login/, { waitUntil: 'networkidle' }),
+        page.waitForURL(/\/login/, { timeout: testConfig.getNavigationTimeout() }),
         logoutIcon.click()
       ]);
     } else {
-      await page.goto('/user/logout');
-      await page.waitForURL(/\/login/, { timeout: 5000 });
+      await page.goto(testConfig.getSiteUrl() + '/user/logout');
+      await page.waitForURL(/\/login/, { timeout: testConfig.getTimeout('short') });
     }
 
     testConfig.info('Logged out, testing if rate limiting was reset...');
@@ -574,7 +591,10 @@ test.describe('Pagekit Authentication (Optimized)', () => {
       await fillVueInput(page, 'input[name="credentials[password]"]', 'wrongpassword');
 
       await page.click('.js-login button');
-      await page.waitForSelector('.uk-alert-danger', { state: 'visible', timeout: 5000 });
+      await page.waitForSelector('.uk-alert-danger', {
+        state: 'visible',
+        timeout: testConfig.getTimeout('short')
+      });
 
       await page.fill('input[name="credentials[username]"]', '');
       await page.fill('input[name="credentials[password]"]', '');
@@ -599,7 +619,10 @@ test.describe('Pagekit Authentication (Optimized)', () => {
       await fillVueInput(page, 'input[name="credentials[password]"]', 'wrongpassword');
 
       await page.click('.js-login button');
-      await page.waitForSelector('.uk-alert-danger', { state: 'visible', timeout: 5000 });
+      await page.waitForSelector('.uk-alert-danger', {
+        state: 'visible',
+        timeout: testConfig.getTimeout('short')
+      });
 
       await page.fill('input[name="credentials[username]"]', '');
       await page.fill('input[name="credentials[password]"]', '');
@@ -612,7 +635,10 @@ test.describe('Pagekit Authentication (Optimized)', () => {
     await fillVueInput(page, 'input[name="credentials[password]"]', 'wrongpassword');
 
     await page.click('.js-login button');
-    await page.waitForSelector('.uk-alert-danger', { state: 'visible', timeout: 5000 });
+    await page.waitForSelector('.uk-alert-danger', {
+      state: 'visible',
+      timeout: testConfig.getTimeout('short')
+    });
 
     // Should get normal error, not rate limiting error
     const errorMessage = page.locator('.uk-alert-danger');
@@ -625,9 +651,9 @@ test.describe('Pagekit Authentication (Optimized)', () => {
     }
   });
 
-  test('🔐 Session management and security headers', async ({ page }) => {
+  test('🗝️ Session management and security headers', async ({ page }) => {
     testConfig.log('═══════════════════════════════════════');
-    testConfig.log('🔐 SESSION MANAGEMENT TEST');
+    testConfig.log('🗝️ SESSION MANAGEMENT TEST');
     testConfig.log('═══════════════════════════════════════');
     testConfig.log('Testing session management and security headers...', '🚀');
 
@@ -745,7 +771,7 @@ test.describe('Pagekit Authentication (Optimized)', () => {
 • Admin User: ${summaryAdminCreds.username}
 • Site: ${siteConfig.title}
 • Admin URL: ${siteConfig.adminUrl}
-• Tests Completed: 13 authentication scenarios
+• Tests Completed: 14 authentication scenarios
 • Features Tested: Login, Logout, CSRF, Rate Limiting, Remember Me, Session Management
 • Total time: ${totalTime}
 • Performance: ${performanceRating}

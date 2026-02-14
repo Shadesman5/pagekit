@@ -329,6 +329,26 @@ class TestConfig {
         return this.getPlaywrightTimeouts().connectivity || 5000;
     }
 
+    /**
+     * Get number of parallel workers for Playwright.
+     * Order: testSettings.workers in config → env PLAYWRIGHT_WORKERS → CI ? 1 : 4.
+     * Use 1 for strictly sequential runs (e.g. installation test), higher for parallel.
+     * @returns {number} Number of workers (1 or more)
+     */
+    getWorkers() {
+        this._ensureConfig();
+        const fromConfig = this.config.testSettings?.workers;
+        if (typeof fromConfig === 'number' && fromConfig >= 1) {
+            return Math.floor(fromConfig);
+        }
+        const fromEnv = process.env.PLAYWRIGHT_WORKERS;
+        if (fromEnv !== undefined && fromEnv !== '') {
+            const n = parseInt(fromEnv, 10);
+            if (!Number.isNaN(n) && n >= 1) return n;
+        }
+        return process.env.CI ? 1 : 4;
+    }
+
     // ═══════════════════════════════════════
     // TEST DATA
     // ═══════════════════════════════════════
@@ -377,10 +397,17 @@ class TestConfig {
      * Test connectivity to configured URLs and validate configuration
      * @async
      * @returns {Promise<boolean>} True if all checks pass
+     * @param {Object} [options] - Optional settings
+     * @param {boolean} [options.skipAdminCheck] - If true, only validate admin URL format; do not require /admin to be accessible (use for installation test, where admin does not exist yet)
      * @throws {Error} If configuration is invalid or URLs are not accessible
      */
-    async testConnectivity() {
-        this.info('Testing connectivity to configured URLs...');
+    async testConnectivity(options = {}) {
+        const skipAdminCheck = options.skipAdminCheck === true;
+        if (skipAdminCheck) {
+            this.info('Testing connectivity (installation mode: admin URL check skipped)...');
+        } else {
+            this.info('Testing connectivity to configured URLs...');
+        }
 
         let hasErrors = false;
         let hasCriticalErrors = false;
@@ -500,17 +527,19 @@ class TestConfig {
             }
         }
 
-        // Validate and test admin URL
+        // Validate and test admin URL (skip accessibility check when running installation test)
         if (!this.config.site?.adminUrl) {
             this.error('Admin URL is required in configuration');
             errorMessages.push('Missing admin URL');
             hasErrors = true;
         } else {
-            // Validate URL format
             try {
                 new URL(this.config.site.adminUrl);
-                // Test connectivity if format is valid
-                await testUrl(this.config.site.adminUrl, 'Admin URL');
+                if (skipAdminCheck) {
+                    this.success('Admin URL format valid (accessibility skipped for installation test)');
+                } else {
+                    await testUrl(this.config.site.adminUrl, 'Admin URL');
+                }
             } catch (e) {
                 this.error(`Invalid admin URL format: ${this.config.site.adminUrl}`);
                 errorMessages.push('Invalid admin URL format');
