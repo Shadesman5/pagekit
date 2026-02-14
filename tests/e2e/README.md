@@ -37,7 +37,7 @@ cp tests/e2e/config/test-config.example.json tests/e2e/config/test-config.json
 
     - Admin credentials (username, password, email)
     - Site URL: the example uses **8180** so it matches `scripts/e2e-start.sh` (Docker). For local dev, set `site.url` and `site.adminUrl` to your Pagekit URL/port.
-    - **Workers** (optional): `testSettings.workers` sets how many tests run in parallel (default: 4 locally, 1 in CI). Use `1` for sequential runs. Override via env `PLAYWRIGHT_WORKERS` or CLI `--workers=1`.
+    - **Workers** (optional): `testSettings.workers` sets how many tests run in parallel (default: 4 locally, 1 in CI). Use `1` for sequential runs. The env variable `PLAYWRIGHT_WORKERS` always takes priority over the config value, so CI pipelines and CLI overrides work reliably (e.g. `PLAYWRIGHT_WORKERS=8 npx playwright test`). You can also use `--workers=1` on the CLI.
     - Database settings (if using MySQL)
 
 3. **Ensure Pagekit is installed** with the specified admin credentials (or leave uninstalled for the installation test).

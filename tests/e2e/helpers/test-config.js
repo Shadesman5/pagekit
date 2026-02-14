@@ -331,21 +331,26 @@ class TestConfig {
 
     /**
      * Get number of parallel workers for Playwright.
-     * Order: testSettings.workers in config → env PLAYWRIGHT_WORKERS → CI ? 1 : 4.
+     * Order: env PLAYWRIGHT_WORKERS → testSettings.workers in config → CI ? 1 : 4.
+     * Env always wins so CI pipelines or CLI overrides are respected even when
+     * the config file has a `workers` value set.
      * Use 1 for strictly sequential runs (e.g. installation test), higher for parallel.
      * @returns {number} Number of workers (1 or more)
      */
     getWorkers() {
         this._ensureConfig();
-        const fromConfig = this.config.testSettings?.workers;
-        if (typeof fromConfig === 'number' && fromConfig >= 1) {
-            return Math.floor(fromConfig);
-        }
+        // 1) Environment variable always takes priority
         const fromEnv = process.env.PLAYWRIGHT_WORKERS;
         if (fromEnv !== undefined && fromEnv !== '') {
             const n = parseInt(fromEnv, 10);
             if (!Number.isNaN(n) && n >= 1) return n;
         }
+        // 2) Config file value
+        const fromConfig = this.config.testSettings?.workers;
+        if (typeof fromConfig === 'number' && fromConfig >= 1) {
+            return Math.floor(fromConfig);
+        }
+        // 3) Fallback: 1 in CI, 4 locally
         return process.env.CI ? 1 : 4;
     }
 
