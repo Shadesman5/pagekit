@@ -1,6 +1,10 @@
 # Changelog
 
-## Pagekit 1.1.3 - E2E Hardening & Auth Bugfix (February 14, 2026)
+## Pagekit 1.1.3 - E2E Hardening & Auth Bugfix (February 15, 2026)
+
+### ✨ New Features
+
+- **GitHub Issue Creator Skill** - Added `.cursor/skills/github-issue-creator/` skill for creating GitHub issues with correct labels, milestones, and PR linking.
 
 ### 🐛 Bug Fixes
 
@@ -15,13 +19,16 @@
 
 ### 📝 Documentation
 
-- **ROADMAP** - Expanded Rule 3 (Breaking Changes Allowed Internally) with scope clarification for internal API, platform API and public API. Added Vue 3 migration substeps 3.4.1–3.4.5 (axios, mitt, @vue/compat, Pinia, deps).
+- **ROADMAP** - Expanded Rule 3 (Breaking Changes Allowed Internally) with scope clarification for internal API, platform API and public API. Added Vue 3 migration substeps 3.4.1–3.4.5 (axios, mitt, @vue/compat, Pinia, deps). Aligned task table column widths and sub-task arrows (↳) for consistency.
+- **GitHub Labels Rule** - Synced with GitHub (28 labels, 2026-02-14); added phase labels section and CLI management section; streamlined examples.
 - **E2E Test Plan** - Updated to v2.2 with 96 tests across 12 specs; added folder structure, phase annotations and scope disclaimers.
 - **E2E README** - Documented workers config, rate-limiting verification steps, installation test prerequisites and browser-specific run commands.
-- **GitHub Guide** - New `GITHUB_PROJECTS_ISSUES_ACTIONS_GUIDE.md` for workflow improvement with Projects, Issues and Actions.
+- **GitHub Guide** - New `GITHUB_PROJECTS_ISSUES_ACTIONS_GUIDE.md` for workflow improvement with Projects, Issues and Actions. Phase field values aligned to `phase-1` … `phase-5`; removed redundant label list from guide.
 
 ### 🔧 Maintenance
 
+- **GitHub Actions** - Added `.github/workflows/project-auto-phase.yml` for project automation.
+- **.gitignore** - Removed `.cursor/rules/push.mdc` from ignore list so the push workflow rule is tracked.
 - **package.json** - Fixed `test:e2e:install` script path to `specs/01-setup/installation.spec.js`.
 - **playwright.config.js** - Workers now read from `testConfig.getWorkers()` instead of hardcoded value.
 - **test-config.example.json** - Updated default port to 8180 (Docker E2E); added `workers` setting; removed BOM.
