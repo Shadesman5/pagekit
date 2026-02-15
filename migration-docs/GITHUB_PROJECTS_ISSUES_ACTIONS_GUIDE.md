@@ -93,7 +93,7 @@ Du hast bereits: Project erstellt, 117 PRs importiert, Board-View mit Standard-S
 
 1. Im Project oben rechts: **„+"** (oder Feld-Menu in Table-View) → **New field**.
 2. Name: `Phase`, Typ: **Single Select**.
-3. Werte anlegen: `1`, `2`, `3`, `4`, `5`.
+3. Werte anlegen: `Phase 1`, `Phase 2`, `Phase 3`, `Phase 4`, `Phase 5`.
 4. Speichern.
 
 ### Schritt 2: Allen 117 PRs die Phase zuweisen
@@ -119,9 +119,6 @@ Im Repo `Shadesman5/pagekit` → **Issues → Labels → New label**:
 | `phase-3`  | lila              | Frontend             |
 | `phase-4`  | orange            | Production           |
 | `phase-5`  | grau              | Ideen/Wünsche        |
-| `backend`  | dunkelblau        | Backend-Aufgaben     |
-| `frontend` | türkis            | Frontend-Aufgaben    |
-| `docs`     | gelb              | Dokumentation        |
 
 ### Schritt 5: Milestones in pagekit anlegen
 
