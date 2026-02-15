@@ -93,7 +93,7 @@ Du hast bereits: Project erstellt, 117 PRs importiert, Board-View mit Standard-S
 
 1. Im Project oben rechts: **„+"** (oder Feld-Menu in Table-View) → **New field**.
 2. Name: `Phase`, Typ: **Single Select**.
-3. Werte anlegen: `phase-1`, `phase-2`, `phase-3`, `phase-4`, `phase-5`.
+3. Werte anlegen: `Phase 1`, `Phase 2`, `Phase 3`, `Phase 4`, `Phase 5`.
 4. Speichern.
 
 ### Schritt 2: Allen 117 PRs die Phase zuweisen

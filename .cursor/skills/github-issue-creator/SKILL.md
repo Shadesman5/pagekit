@@ -239,15 +239,14 @@ rm temp-issue-body.md
 6. For steps with sub-steps: create parent first, then sub-issues, then link
 7. Report summary with issue numbers and URLs
 
-## Adding to GitHub Project (optional)
+## GitHub Project Integration (fully automatic)
 
-Project items are auto-added via the "Auto-add to project" workflow in GitHub Project settings.
-The Phase field is auto-set via `.github/workflows/project-auto-phase.yml` based on `phase-X` labels.
+No manual project management needed. Two automations handle everything:
 
-Manual add if needed:
-```bash
-gh project item-add 2 --owner Shadesman5 --url ISSUE_URL
-```
+1. **"Auto-add to project"** (built-in Project workflow) — adds every new issue to the board with Status: "Todo"
+2. **`project-auto-phase.yml`** (GitHub Action) — reads the `phase-X` label and sets the Phase field automatically (with retry for race conditions)
+
+The `phase-X` label on the issue is the only input needed. Everything else is derived from it.
 
 ## Check Before Creating
 

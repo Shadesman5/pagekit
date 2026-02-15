@@ -77,31 +77,43 @@ jobs:
               }
             `;
 
+            // Find the issue item in the project, with retry for race condition
             let itemId = null;
-            let cursor = null;
+            const maxRetries = 3;
+            const retryDelays = [5000, 10000, 15000]; // 5s, 10s, 15s
 
-            // Paginate through project items to find the issue
-            while (true) {
-              const result = await github.graphql(findItem, {
-                projectId,
-                cursor
-              });
+            for (let attempt = 0; attempt <= maxRetries; attempt++) {
+              let cursor = null;
 
-              const items = result.node.items.nodes;
-              const match = items.find(item => item.content && item.content.id === issueNodeId);
+              while (true) {
+                const result = await github.graphql(findItem, {
+                  projectId,
+                  cursor
+                });
 
-              if (match) {
-                itemId = match.id;
-                break;
+                const items = result.node.items.nodes;
+                const match = items.find(item => item.content && item.content.id === issueNodeId);
+
+                if (match) {
+                  itemId = match.id;
+                  break;
+                }
+
+                if (!result.node.items.pageInfo.hasNextPage) break;
+                cursor = result.node.items.pageInfo.endCursor;
               }
 
-              if (!result.node.items.pageInfo.hasNextPage) break;
-              cursor = result.node.items.pageInfo.endCursor;
+              if (itemId) break;
+
+              if (attempt < maxRetries) {
+                const delay = retryDelays[attempt];
+                console.log(`Issue not yet in project (attempt ${attempt + 1}/${maxRetries + 1}). Waiting ${delay / 1000}s for auto-add...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+              }
             }
 
             if (!itemId) {
-              console.log('Issue not found in project. It may not have been added yet.');
-              console.log('The "Auto-add to project" workflow should add it first.');
+              core.setFailed(`Issue #${context.payload.issue.number} not found in project after ${maxRetries + 1} attempts. Check that "Auto-add to project" workflow is enabled in project settings.`);
               return;
             }
 
