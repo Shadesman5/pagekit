@@ -43,7 +43,6 @@ docker.env
 .env
 
 # Ignore Cursor files
-.cursor/rules/push.mdc
 .cursor/environment.json
 
 # PHPUnit cache
