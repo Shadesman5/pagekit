@@ -1,178 +1,133 @@
 ---
-description: GitHub Labels Guide - Available labels for issues and pull requests in the Pagekit project. Use appropriate labels when creating or updating PRs/issues. Labels help categorize and filter work items. Dependency labels (dependencies, php, javascript, docker, github-actions) are automatically applied by Dependabot. Project labels (frontend, backend, database, module, theme) help identify affected areas. Commit-type labels (breaking-change, security, performance) correlate with Conventional Commits. Standard labels (bug, enhancement, documentation) for general classification. Use multiple labels when appropriate.
+description: 'GitHub Labels Guide (28 labels, synced 2026-02-14). Available labels for issues and PRs in Pagekit. Includes: phase labels (phase-1..phase-5), dependency labels (auto-applied by Dependabot), commit-type labels (breaking-change, security, performance), project area labels (frontend, backend, database, module, theme, migration), and standard GitHub labels. Use when creating or updating PRs/issues.'
 alwaysApply: false
 ---
 
 # GitHub Labels Guide
 
-Available labels for the Pagekit project. Use these when creating or updating issues and pull requests.
+Available labels for the Pagekit project (`Shadesman5/pagekit`).
+Use these when creating or updating issues and pull requests.
+
+**Total: 28 labels** | Last synced with GitHub: 2026-02-14
+
+## Phase Labels (Modernization Roadmap)
+
+Track which modernization phase an issue/PR belongs to. See `.cursor\ROADMAP.md` for phase details.
+
+| Label     | Description                     | Color     |
+| --------- | ------------------------------- | --------- |
+| `phase-1` | Phase 1: Foundation (completed) | `#0E8A16` |
+| `phase-2` | Phase 2: Developer Experience   | `#0052CC` |
+| `phase-3` | Phase 3: Frontend Modernization | `#5319E7` |
+| `phase-4` | Phase 4: Production Ready       | `#D93F0B` |
+| `phase-5` | Phase 5: Innovation and Future  | `#BFDADC` |
 
 ## Dependency Management Labels
 
 These are **automatically applied by Dependabot**:
 
-| Label            | Description               | Color                                                                     | Auto-Applied By             |
-| ---------------- | ------------------------- | ------------------------------------------------------------------------- | --------------------------- |
-| `dependencies`   | Dependency updates        | ![#0366d6](https://via.placeholder.com/15/0366d6/000000?text=+) `#0366d6` | Dependabot (all ecosystems) |
-| `php`            | PHP/Composer dependencies | ![#8892BF](https://via.placeholder.com/15/8892BF/000000?text=+) `#8892BF` | Dependabot (composer)       |
-| `javascript`     | npm/Yarn dependencies     | ![#168700](https://via.placeholder.com/15/168700/000000?text=+) `#168700` | Dependabot (npm)            |
-| `docker`         | Docker container updates  | ![#2496ED](https://via.placeholder.com/15/2496ED/000000?text=+) `#2496ED` | Dependabot (docker)         |
-| `github-actions` | GitHub Actions updates    | ![#2088FF](https://via.placeholder.com/15/2088FF/000000?text=+) `#2088FF` | Dependabot (github-actions) |
+| Label            | Description                                 | Color     | Auto-Applied By             |
+| ---------------- | ------------------------------------------- | --------- | --------------------------- |
+| `dependencies`   | Pull requests that update a dependency file | `#0366d6` | Dependabot (all ecosystems) |
+| `php`            | PHP dependencies and Composer updates       | `#8892BF` | Dependabot (composer)       |
+| `javascript`     | Pull requests that update javascript code   | `#168700` | Dependabot (npm)            |
+| `docker`         | Docker and container updates                | `#2496ED` | Dependabot (docker)         |
+| `github-actions` | GitHub Actions workflow updates             | `#2088FF` | Dependabot (github-actions) |
 
 ## Conventional Commits Related Labels
 
 Correlate with commit types from `conventional-commits.mdc`:
 
-| Label             | Commit Type         | Description                 | Color                                                                     |
-| ----------------- | ------------------- | --------------------------- | ------------------------------------------------------------------------- |
-| `breaking-change` | `feat!:` or `fix!:` | Major version bump required | ![#D93F0B](https://via.placeholder.com/15/D93F0B/000000?text=+) `#D93F0B` |
-| `enhancement`     | `feat:`             | New features                | ![#a2eeef](https://via.placeholder.com/15/a2eeef/000000?text=+) `#a2eeef` |
-| `bug`             | `fix:`              | Bug fixes                   | ![#d73a4a](https://via.placeholder.com/15/d73a4a/000000?text=+) `#d73a4a` |
-| `documentation`   | `docs:`             | Documentation updates       | ![#0075ca](https://via.placeholder.com/15/0075ca/000000?text=+) `#0075ca` |
-| `performance`     | `perf:`             | Performance improvements    | ![#1D76DB](https://via.placeholder.com/15/1D76DB/000000?text=+) `#1D76DB` |
-| `security`        | `fix:` or `feat:`   | Security-related changes    | ![#EE0701](https://via.placeholder.com/15/EE0701/000000?text=+) `#EE0701` |
+| Label             | Commit Type         | Description                                      | Color     |
+| ----------------- | ------------------- | ------------------------------------------------ | --------- |
+| `breaking-change` | `feat!:` or `fix!:` | Breaking changes that require major version bump | `#D93F0B` |
+| `enhancement`     | `feat:`             | New feature or request                           | `#a2eeef` |
+| `bug`             | `fix:`              | Something isn't working                          | `#d73a4a` |
+| `documentation`   | `docs:`             | Improvements or additions to documentation       | `#0075ca` |
+| `performance`     | `perf:`             | Performance improvements                         | `#1D76DB` |
+| `security`        | `fix:` or `feat:`   | Security-related issues and updates              | `#EE0701` |
 
 ## Pagekit Project Area Labels
 
 Identify which part of the system is affected:
 
-| Label       | Description          | Color                                                                     | When to Use                              |
-| ----------- | -------------------- | ------------------------------------------------------------------------- | ---------------------------------------- |
-| `frontend`  | Vue.js/UIkit changes | ![#42B883](https://via.placeholder.com/15/42B883/000000?text=+) `#42B883` | Vue components, UIkit themes, JavaScript |
-| `backend`   | PHP/Server changes   | ![#777BB4](https://via.placeholder.com/15/777BB4/000000?text=+) `#777BB4` | PHP code, Controllers, Services          |
-| `database`  | ORM/Schema changes   | ![#336791](https://via.placeholder.com/15/336791/000000?text=+) `#336791` | Doctrine entities, migrations, queries   |
-| `module`    | Extension system     | ![#BFD4F2](https://via.placeholder.com/15/BFD4F2/000000?text=+) `#BFD4F2` | Module development, extensions           |
-| `theme`     | Theme system         | ![#FFA500](https://via.placeholder.com/15/FFA500/000000?text=+) `#FFA500` | Theme templates, styles                  |
-| `migration` | Modernization tasks  | ![#C5DEF5](https://via.placeholder.com/15/C5DEF5/000000?text=+) `#C5DEF5` | PHP 8.x upgrades, Symfony updates        |
+| Label       | Description                       | Color     | When to Use                              |
+| ----------- | --------------------------------- | --------- | ---------------------------------------- |
+| `frontend`  | Frontend/Vue.js related changes   | `#42B883` | Vue components, UIkit themes, JavaScript |
+| `backend`   | Backend/PHP related changes       | `#777BB4` | PHP code, Controllers, Services          |
+| `database`  | Database and ORM related changes  | `#336791` | Doctrine entities, migrations, queries   |
+| `module`    | Extensions and modules            | `#BFD4F2` | Module development, extensions           |
+| `theme`     | Theme related changes             | `#FFA500` | Theme templates, styles                  |
+| `migration` | Migration and modernization tasks | `#C5DEF5` | PHP 8.x upgrades, Symfony updates        |
 
 ## Standard GitHub Labels
 
 Default labels for general use:
 
-| Label              | Description                | Color                                                                     | When to Use                      |
-| ------------------ | -------------------------- | ------------------------------------------------------------------------- | -------------------------------- |
-| `good first issue` | Good for newcomers         | ![#7057ff](https://via.placeholder.com/15/7057ff/000000?text=+) `#7057ff` | Easy issues for new contributors |
-| `help wanted`      | Extra attention needed     | ![#008672](https://via.placeholder.com/15/008672/000000?text=+) `#008672` | Issues needing community help    |
-| `question`         | Further information needed | ![#d876e3](https://via.placeholder.com/15/d876e3/000000?text=+) `#d876e3` | Clarification requests           |
-| `duplicate`        | Duplicate issue/PR         | ![#cfd3d7](https://via.placeholder.com/15/cfd3d7/000000?text=+) `#cfd3d7` | Already exists elsewhere         |
-| `invalid`          | Invalid issue/PR           | ![#e4e669](https://via.placeholder.com/15/e4e669/000000?text=+) `#e4e669` | Not applicable or incorrect      |
-| `wontfix`          | Won't be addressed         | ![#ffffff](https://via.placeholder.com/15/ffffff/000000?text=+) `#ffffff` | Intentionally not fixing         |
+| Label              | Description                               | Color     | When to Use                      |
+| ------------------ | ----------------------------------------- | --------- | -------------------------------- |
+| `good first issue` | Good for newcomers                        | `#7057ff` | Easy issues for new contributors |
+| `help wanted`      | Extra attention is needed                 | `#008672` | Issues needing community help    |
+| `question`         | Further information is requested          | `#d876e3` | Clarification requests           |
+| `duplicate`        | This issue or pull request already exists | `#cfd3d7` | Already exists elsewhere         |
+| `invalid`          | This doesn't seem right                   | `#e4e669` | Not applicable or incorrect      |
+| `wontfix`          | This will not be worked on                | `#ffffff` | Intentionally not fixing         |
 
 ## Label Usage Guidelines
+
+### Label Combination Formula
+
+Every issue/PR should have: **1 phase label + 1 commit-type label + 1-2 area labels**
+
+### For Modernization Issues
+
+```yaml
+# Phase 2 backend step
+Step 2.0.5: PSR-11 Container Modernisation
+Labels: phase-2, migration, backend
+
+# Phase 3 frontend step
+Step 3.4.1: HTTP Client Migration (vue-resource to axios)
+Labels: phase-3, migration, frontend
+
+# Phase 4 security feature
+Step 4.1: Basic Security and Modern Auth
+Labels: phase-4, enhancement, security, backend
+```
 
 ### For Pull Requests
 
 **Automated (Dependabot PRs)**:
 
-```
+```yaml
 chore(deps): bump symfony/http-foundation from 6.4.1 to 6.4.2
-
 Labels: dependencies, php
 ```
 
-**Manual PRs - Choose by commit type**:
+**Manual PRs - commit type + phase + area**:
 
 ```yaml
 feat(auth): add two-factor authentication
-Labels: enhancement, security, backend
+Labels: phase-4, enhancement, security, backend
 
 fix(blog): sanitize user input in comments
 Labels: bug, security, frontend
 
-refactor(database): modernize query builder
-Labels: migration, database, backend
-
-perf(cache): optimize Redis connection pooling
-Labels: performance, backend
-
-docs(readme): update system requirements
-Labels: documentation
+refactor(container): modernize PSR-11 container
+Labels: phase-2, migration, backend
 ```
 
-**Breaking Changes**:
+### Conventional Commits to Labels Mapping
 
-```yaml
-feat!(api): change authentication response format
-
-Labels: breaking-change, backend, enhancement
-```
-
-### For Issues
-
-**Bug Reports**:
-
-```
-Bug: Login form breaks on Safari
-
-Labels: bug, frontend, help wanted
-```
-
-**Feature Requests**:
-
-```
-Feature: Add markdown editor to blog
-
-Labels: enhancement, frontend, module
-```
-
-**Security Issues**:
-
-```
-Security: XSS vulnerability in comment system
-
-Labels: security, bug, frontend
-```
-
-### Multiple Labels
-
-Use **multiple labels** when appropriate:
-
-```yaml
-# Vue.js performance optimization
-Labels: performance, frontend
-
-# Database security fix
-Labels: security, bug, database, backend
-
-# Breaking change in module API
-Labels: breaking-change, module, backend, migration
-
-# Frontend bug that needs help
-Labels: bug, frontend, help wanted, good first issue
-```
-
-## Integration with Workflows
-
-### Conventional Commits → Labels Mapping
-
-When creating commits, think about corresponding labels:
-
-| Commit Type         | Suggested Labels                            |
-| ------------------- | ------------------------------------------- |
-| `feat:`             | `enhancement` + area label                  |
-| `fix:`              | `bug` + area label                          |
-| `feat!:` or `fix!:` | `breaking-change` + area label              |
-| `docs:`             | `documentation`                             |
-| `perf:`             | `performance` + area label                  |
-| `refactor:`         | `migration` (if modernization) + area label |
-| `chore(deps):`      | Auto-labeled by Dependabot                  |
-
-### Feature Branch Workflow
-
-When working with `feature-branch.mdc`:
-
-1. **Feature Start**: Tag issues with appropriate labels
-2. **Development**: PRs inherit labels from linked issues
-3. **Completion**: Verify labels match commit types
-
-### Push Workflow
-
-When using `push.mdc`:
-
-1. Commits are created with Conventional Commits format
-2. PR is auto-created with a descriptive and smart title
-3. **Manually add appropriate labels** to the PR based on commit types
-4. Labels help with changelog categorization
+| Commit Type         | Suggested Labels                                    |
+| ------------------- | --------------------------------------------------- |
+| `feat:`             | `enhancement` + phase label + area label            |
+| `fix:`              | `bug` + area label (+ phase label if modernization) |
+| `feat!:` or `fix!:` | `breaking-change` + area label                      |
+| `docs:`             | `documentation`                                     |
+| `perf:`             | `performance` + area label                          |
+| `refactor:`         | `migration` (if modernization) + phase + area label |
+| `chore(deps):`      | Auto-labeled by Dependabot                          |
 
 ## Quick Reference
 
@@ -180,6 +135,8 @@ When using `push.mdc`:
 
 | What You're Doing             | Labels to Use                          |
 | ----------------------------- | -------------------------------------- |
+| Phase 2 modernization step    | `phase-2`, `migration`, `backend`      |
+| Phase 3 frontend migration    | `phase-3`, `migration`, `frontend`     |
 | Fixing a bug in Vue component | `bug`, `frontend`                      |
 | Adding new module feature     | `enhancement`, `module`, `backend`     |
 | Upgrading Symfony components  | `migration`, `dependencies`, `backend` |
@@ -187,66 +144,23 @@ When using `push.mdc`:
 | Security patch                | `security`, `bug`, appropriate area    |
 | Breaking API change           | `breaking-change`, appropriate area    |
 | Documentation update          | `documentation`                        |
-| Theme styling fix             | `bug`, `theme`, `frontend`             |
 
-### By Severity/Priority
+## Managing Labels via CLI
 
-- **Critical**: `security`, `bug`, `breaking-change`
-- **Important**: `bug`, `enhancement`, `performance`
-- **Minor**: `documentation`, `theme`
-- **Community**: `help wanted`, `good first issue`
+Labels can be created, edited, and deleted using `gh` CLI from Cursor:
 
-## Tips
+```bash
+# List all labels
+gh label list --repo Shadesman5/pagekit
 
-1. **Be specific**: Use multiple labels to clearly categorize
-2. **Follow conventions**: Match labels with commit types
-3. **Think about changelog**: Labels help generate release notes
-4. **Consider audience**: Use `good first issue` for newcomers
-5. **Security first**: Always tag security issues appropriately
-6. **Breaking changes**: Don't forget the `breaking-change` label for major version bumps
+# Create a new label
+gh label create "label-name" --description "Description" --color "HEX" --repo Shadesman5/pagekit
 
-## Examples from Pagekit Development
+# Edit a label
+gh label edit "label-name" --description "New description" --repo Shadesman5/pagekit
 
-### Recent Migration Work
-
-```yaml
-PR: "Upgrade to Symfony 6.4 components"
-Commit: chore(deps): upgrade symfony components to 6.4
-Labels: dependencies, php, backend, migration
+# Delete a label
+gh label delete "label-name" --repo Shadesman5/pagekit --yes
 ```
 
-### Frontend Enhancement
-
-```yaml
-PR: "Add drag-and-drop file upload to media manager"
-Commit: feat(media): add drag-and-drop upload support
-Labels: enhancement, frontend, module
-```
-
-### Security Fix
-
-```yaml
-PR: "Sanitize user input in blog comments"
-Commit: fix(blog): prevent XSS in comment rendering
-Labels: security, bug, frontend, module
-```
-
-### Performance Improvement
-
-```yaml
-PR: "Optimize Vue component rendering"
-Commit: perf(frontend): lazy load Vue components
-Labels: performance, frontend
-```
-
-### Breaking Change
-
-```yaml
-PR: "Drop PHP 7.4 support, require PHP 8.2+"
-Commit: feat!: drop PHP 7.4 support
-Labels: breaking-change, migration, backend
-```
-
----
-
-**Remember**: Labels are tools for organization and communication. Use them consistently to help your team and future you understand the project's evolution! 🏷️
+After any label changes, update this file to keep it in sync with GitHub.
