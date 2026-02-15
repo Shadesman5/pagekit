@@ -103,7 +103,6 @@ echo '{"title":"Phase X: Name","state":"open","description":"..."}' | gh api rep
 
 - **ROADMAP Step**: [X.Y]
 - **Phase**: [Phase number and name]
-- **Discovered by**: [User / Architect / Tester / Verifier / Refactorer]
 - **Depends on**: [Previous step or "None"]
 - **Branch**: `[branch-name]` (if known, otherwise omit)
 
@@ -130,32 +129,39 @@ echo '{"title":"Phase X: Name","state":"open","description":"..."}' | gh api rep
 
 ## PR Linking
 
-### Existing PR (already merged)
+> **Important:** GitHub's "Development" sidebar link on an issue is created by the **PR**, not the issue.
+> A `Related: #17` in the issue body is only documentation — it does NOT create the Development sidebar link.
+> The real linking happens when a PR body contains `Closes #X` or `Fixes #X`.
 
-If a PR already exists for the step, add it to the body:
+### In the Issue Body (documentation only)
+
+Reference related PRs in the issue body for context. This is **not** the GitHub Development link:
 ```markdown
 ## Related
 
 - PR: #17
 ```
 
-### Future PR (will be created)
+### In the PR Body (creates Development link)
 
-When creating a PR later, include in the PR body:
+When creating a PR, include the issue reference in the **PR body** to create the real GitHub Development sidebar link:
 ```markdown
 Closes #42
 ```
-This auto-closes the issue when the PR merges.
+This auto-closes the issue when the PR merges and links it in the Development sidebar.
+
+The `push.mdc` workflow (Step 6) handles this automatically when creating PRs.
 
 ### Multiple PRs
 
-Some steps may have multiple PRs:
+Some steps may have multiple PRs. Reference them in the issue body for documentation:
 ```markdown
 ## Related
 
 - PR: #60 (Symfony HttpFoundation upgrade)
 - PR: #61 (Symfony HttpKernel upgrade)
 ```
+Each PR should contain `Closes #X` or `Related: #X` in its own body for the Development link.
 
 ## Parent Issues and Sub-Issues
 
@@ -171,14 +177,28 @@ Use parent/sub-issue structure when a ROADMAP step has sub-steps:
 
 1. Create the **parent issue** first (e.g. "Step 3.4: Vue 3 Migration")
 2. Create each **sub-issue** (e.g. "Step 3.4.1: HTTP Client Migration")
-3. Link sub-issues to parent using the GitHub CLI:
+3. Link sub-issues to parent using the **GraphQL API** (the `gh issue edit --add-sub-issue` flag does not exist in gh CLI):
 
 ```bash
-# Add sub-issue to parent
-gh issue edit PARENT_NUMBER --repo Shadesman5/pagekit --add-sub-issue SUB_ISSUE_URL
+# 1. Get node IDs of parent and sub-issue
+PARENT_ID=$(gh issue view PARENT_NUMBER --repo Shadesman5/pagekit --json id -q .id)
+SUB_ID=$(gh issue view SUB_NUMBER --repo Shadesman5/pagekit --json id -q .id)
+
+# 2. Write GraphQL mutation to temp file (avoids PowerShell escaping issues)
+echo '{"query":"mutation { addSubIssue(input: { issueId: \"PARENT_ID_HERE\", subIssueId: \"SUB_ID_HERE\" }) { issue { id } subIssue { id } } }"}' > temp-graphql.json
+# Replace PARENT_ID_HERE and SUB_ID_HERE with actual values
+
+# 3. Execute mutation
+gh api graphql --input temp-graphql.json
+
+# 4. Clean up
+rm temp-graphql.json
 ```
 
-Or mention in the parent body:
+> **Note:** On PowerShell, inline JSON escaping with `gh api graphql -f query="..."` is unreliable.
+> Always use `--input` with a temp file for GraphQL mutations.
+
+Also mention sub-issues in the parent body for visibility:
 ```markdown
 ## Sub-Issues
 
