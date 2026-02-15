@@ -1,8 +1,19 @@
 #!/bin/bash
 set -e
 
-# Map Cursor secret to standard GitHub CLI env var
-export GH_TOKEN="${PAGEKIT_BACKGROUND_AGENT}"
+# Map Cursor secret to standard GitHub CLI env var (gh uses GH_TOKEN)
+# Priority: PAGEKIT_BACKGROUND_AGENT > GH_TOKEN > default gh auth
+# IMPORTANT: Only override if PAGEKIT_BACKGROUND_AGENT is actually set and non-empty,
+# otherwise we'd clobber a directly-injected GH_TOKEN secret.
+if [[ -n "${PAGEKIT_BACKGROUND_AGENT:-}" ]]; then
+    export GH_TOKEN="$PAGEKIT_BACKGROUND_AGENT"
+    echo "✅ GH_TOKEN set from PAGEKIT_BACKGROUND_AGENT"
+elif [[ -n "${GH_TOKEN:-}" ]]; then
+    echo "✅ GH_TOKEN already set (injected directly)"
+else
+    echo "⚠️  No GitHub token found. Issue/PR write operations will use default gh auth (read-only)."
+    echo "   Add PAGEKIT_BACKGROUND_AGENT or GH_TOKEN in Cursor Dashboard > Cloud Agents > Secrets"
+fi
 
 # Robust lock to prevent duplicate execution (e.g. parallel agent invocations)
 # Only remove lock file when WE acquired it; otherwise we'd unlink the file the
