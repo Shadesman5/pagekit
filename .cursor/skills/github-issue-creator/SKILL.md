@@ -8,6 +8,21 @@ description: Creates GitHub issues on Shadesman5/pagekit with correct labels, mi
 Universal skill for creating GitHub issues on `Shadesman5/pagekit`.
 Any agent or user can trigger this.
 
+## Safety Limits
+
+> **The Cloud Agent can CREATE issues but CANNOT close, edit, or delete them.**
+> A runaway batch can only be cleaned up manually or via `issue-cleanup.yml`.
+
+| Rule | Limit |
+|------|-------|
+| **Max issues per session** | **5** without explicit user confirmation |
+| **Batch mode** | ALWAYS show preview table and wait for user approval before creating |
+| **Duplicate check** | MANDATORY before every `gh issue create` (see "Check Before Creating") |
+| **Cleanup workflow** | `.github/workflows/issue-cleanup.yml` — trigger from GitHub UI to bulk-close |
+
+If a batch exceeds 5 issues, the agent MUST pause and list all planned issues
+for user review before proceeding. Never auto-create more than 5 issues.
+
 ## When to Use
 
 - **User asks** to create issues from a markdown/TODO file (batch mode)
@@ -22,6 +37,24 @@ Any agent or user can trigger this.
 - `gh` CLI authenticated (`gh auth status`)
 - Issues enabled on repo
 - For project operations: `gh auth refresh -s read:project,project` (adds project scope)
+
+## Cloud Agent Permission Model
+
+The Cursor Cloud Agent `ghs_` token has asymmetric permissions:
+
+| Operation | Works? |
+|-----------|--------|
+| Create issue (title + body) | YES |
+| Create with `--label` / `--milestone` | NO (silently ignored) |
+| Edit issue body | NO |
+| Add/remove labels | NO |
+| Set milestone | NO |
+| Close/reopen issue | NO |
+| Add comment | NO |
+| Push code | YES |
+
+**This is why the `<!-- metadata -->` block exists:** the agent writes it into the body
+at creation time, and `issue-metadata-sync.yml` applies labels/milestone using `PROJECT_TOKEN`.
 
 ## What Gets Set on Every Issue
 
@@ -39,8 +72,8 @@ Every issue should have as many of these as applicable:
 
 > **How it works:** The `issue-metadata-sync.yml` GitHub Action automatically parses the
 > `<!-- metadata -->` block from the issue body and applies labels + milestone.
-> This means agents only need `gh issue create --title "..." --body-file "..."` —
-> no `--label` or `--milestone` flags needed (though they still work as fallback).
+> Agents only need `gh issue create --title "..." --body-file "..."`.
+> Do NOT use `--label` or `--milestone` flags — they are silently ignored by the Cloud Agent token.
 
 ## Label Formula
 
@@ -287,20 +320,23 @@ gh issue create --repo Shadesman5/pagekit \
 rm temp-issue-body.md
 ```
 
-> **Note:** The `--label` and `--milestone` flags can still be added for immediate effect,
-> but they are no longer required. The `issue-metadata-sync.yml` action reads the metadata
-> block and applies labels/milestone automatically. This is especially useful in environments
-> where the `gh` token lacks `issues:write` permissions (e.g. Cursor Cloud Agents).
+> **Do NOT use** `--label` or `--milestone` flags — they are silently ignored by the
+> Cloud Agent token. The `<!-- metadata -->` block is the only reliable way.
 
 ## Batch Mode
+
+> **Safety limit: max 5 issues without explicit user approval.**
+> The agent CANNOT close or delete issues it creates. A runaway batch is irreversible.
+> Use `issue-cleanup.yml` (GitHub UI) to bulk-close accidental issues.
 
 1. Read source file (e.g. `MODERNISING_PAGEKIT_TODO_LIST.md` or `ROADMAP.md`)
 2. Parse each step: number, title, status, sub-steps, related PR
 3. **Skip** `✅` completed steps unless user says otherwise
-4. **Show preview table** to user before creating
-5. Create issues one by one
-6. For steps with sub-steps: create parent first, then sub-issues, then link
-7. Report summary with issue numbers and URLs
+4. **Duplicate check** for every issue (MANDATORY, see "Check Before Creating")
+5. **Show preview table** to user and **WAIT for approval** before creating
+6. Create issues one by one (max 5 per batch without re-confirmation)
+7. For steps with sub-steps: create parent first, then sub-issues, then link
+8. Report summary with issue numbers and URLs
 
 ## GitHub Project Integration (fully automatic)
 
