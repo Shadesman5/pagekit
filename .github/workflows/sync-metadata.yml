@@ -68,6 +68,15 @@ jobs:
             const itemNumber = item.number;
 
             // ================================================================
+            // Skip bot senders (e.g. cursor[bot] editing PR bodies).
+            // Bots have sender.type "Bot" — no point checking permissions.
+            // ================================================================
+            if (sender.type === 'Bot') {
+              console.log(`Sender "${sender.login}" is a bot. Skipping metadata sync for ${itemType} #${itemNumber}.`);
+              return;
+            }
+
+            // ================================================================
             // Security: only trust senders with write or admin access.
             // Uses sender (who triggered the event), NOT author_association
             // which reflects the original author — important because the Cloud
