@@ -88,10 +88,12 @@ jobs:
               });
               permission = perm.permission;
             } catch (err) {
-              if ([401, 403, 404].includes(err.status)) {
-                console.log(`Sender "${sender.login}" permission check failed (${err.status}). Skipping metadata sync for ${itemType} #${itemNumber}.`);
+              if (err.status === 404) {
+                console.log(`Sender "${sender.login}" is not a collaborator (404). Skipping metadata sync for ${itemType} #${itemNumber}.`);
                 return;
               }
+              // 401/403 = broken PROJECT_TOKEN → fail loudly so the owner notices.
+              // Fork PRs (where the token is unavailable) are already skipped at job level.
               throw err;
             }
 
