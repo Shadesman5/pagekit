@@ -2,7 +2,7 @@
 # Chains with project-auto-phase.yml: this workflow adds labels → labeled event
 # triggers project-auto-phase → Phase field set in Project board.
 #
-# Metadata block format (hidden in rendered markdown):
+# Metadata block format (hidden in rendered markdown, MUST use multi-line):
 #
 #   <!-- metadata
 #   labels: phase-1, migration, backend
@@ -18,9 +18,10 @@
 #   External contributors' metadata blocks are ignored.
 #
 # Label sync:
-#   Labels are synced bidirectionally within the "managed" set.
-#   Labels in the metadata block are added; managed labels NOT in the block are removed.
+#   Only labels in the MANAGED_LABELS set are added or removed.
 #   Labels outside the managed set (e.g. "good first issue") are never touched.
+#   If the metadata block contains unknown labels, sync is aborted entirely
+#   to prevent typos from silently stripping valid labels.
 #
 # Requires:
 #   Secret: PROJECT_TOKEN - PAT with repo scope
@@ -51,7 +52,7 @@ jobs:
             // Security: only trust OWNER, MEMBER, COLLABORATOR
             // ================================================================
             const trustedAssociations = ['OWNER', 'MEMBER', 'COLLABORATOR'];
-            const association = issue.author_association || context.payload.issue.author_association;
+            const association = issue.author_association;
 
             if (!trustedAssociations.includes(association)) {
               console.log(`Untrusted author_association "${association}" for issue #${issue.number} (by ${sender.login}). Skipping metadata sync.`);
@@ -60,6 +61,11 @@ jobs:
 
             // ================================================================
             // Parse <!-- metadata ... --> block
+            // Supports multi-line format only:
+            //   <!-- metadata
+            //   labels: ...
+            //   milestone: ...
+            //   -->
             // ================================================================
             const metadataMatch = body.match(/<!--\s*metadata\s*\n([\s\S]*?)-->/i);
 
@@ -87,8 +93,8 @@ jobs:
             const issueNumber = issue.number;
 
             // ================================================================
-            // Managed label set (only these are synced by this workflow)
-            // Labels outside this set are never added or removed.
+            // Managed label set — ONLY these labels are added or removed.
+            // Any label not in this set is completely ignored by this workflow.
             // ================================================================
             const MANAGED_LABELS = new Set([
               // Phase labels
@@ -100,7 +106,7 @@ jobs:
             ]);
 
             // ================================================================
-            // Sync labels (add missing, remove stale within managed set)
+            // Sync labels (add missing, remove stale — within managed set only)
             // ================================================================
             if (metadata.labels) {
               const desiredLabels = metadata.labels
@@ -108,27 +114,36 @@ jobs:
                 .map(l => l.trim())
                 .filter(Boolean);
 
-              const currentLabels = issue.labels.map(l => l.name);
+              // Separate managed from unmanaged desired labels
+              const managedDesired = desiredLabels.filter(l => MANAGED_LABELS.has(l));
+              const unmanagedDesired = desiredLabels.filter(l => !MANAGED_LABELS.has(l));
 
-              // Validate desired labels exist in repo
+              if (unmanagedDesired.length > 0) {
+                core.warning(`Labels not in managed set (ignored): ${unmanagedDesired.join(', ')}. Managed labels: ${[...MANAGED_LABELS].join(', ')}`);
+              }
+
+              // Validate managed labels exist in repo
               const repoLabels = await github.paginate(
                 github.rest.issues.listLabelsForRepo,
                 { owner, repo, per_page: 100 }
               );
               const repoLabelNames = new Set(repoLabels.map(l => l.name));
 
-              const validDesired = desiredLabels.filter(l => repoLabelNames.has(l));
-              const invalidDesired = desiredLabels.filter(l => !repoLabelNames.has(l));
+              const invalidLabels = managedDesired.filter(l => !repoLabelNames.has(l));
 
-              if (invalidDesired.length > 0) {
-                core.warning(`Unknown labels (not in repo): ${invalidDesired.join(', ')}`);
+              if (invalidLabels.length > 0) {
+                // Abort sync entirely — a typo could silently strip valid labels
+                core.setFailed(`Unknown labels in metadata block: ${invalidLabels.join(', ')}. Label sync aborted to prevent accidental removal. Fix the metadata block and re-save the issue.`);
+                return;
               }
 
-              // Labels to ADD: in metadata but not on issue
-              const toAdd = validDesired.filter(l => !currentLabels.includes(l));
+              const currentLabels = issue.labels.map(l => l.name);
+              const desiredSet = new Set(managedDesired);
 
-              // Labels to REMOVE: on issue AND in managed set, but NOT in metadata
-              const desiredSet = new Set(validDesired);
+              // Labels to ADD: managed + in metadata + not on issue
+              const toAdd = managedDesired.filter(l => !currentLabels.includes(l));
+
+              // Labels to REMOVE: on issue + in managed set + NOT in metadata
               const toRemove = currentLabels.filter(l =>
                 MANAGED_LABELS.has(l) && !desiredSet.has(l)
               );

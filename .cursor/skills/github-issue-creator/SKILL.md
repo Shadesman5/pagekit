@@ -348,8 +348,8 @@ No manual project management needed. Three automations handle everything:
 
 The `<!-- metadata -->` block in the issue body is the only input needed. Everything else is derived from it:
 ```
-Issue body contains <!-- metadata labels: phase-2, migration, backend ... -->
-  → issue-metadata-sync.yml adds labels + milestone
+Issue body contains multi-line <!-- metadata --> block
+  → issue-metadata-sync.yml parses labels + milestone from block
     → project-auto-phase.yml sets Phase field in Project board
       → Auto-add workflow sets Status: "Todo"
 ```
@@ -364,15 +364,33 @@ gh issue list --repo Shadesman5/pagekit --search "Step 2.0.5" --json number,titl
 ## Sub-Agent Examples
 
 **Tester finds regression:**
-> Creating issue: "Bug: UserController loginAction missing CSRF validation"
-> Body includes: `<!-- metadata labels: phase-2, bug, security, backend milestone: Phase 2 -->`
+> Title: "Bug: UserController loginAction missing CSRF validation"
+> Metadata block in body:
+```html
+<!-- metadata
+labels: phase-2, bug, security, backend
+milestone: Phase 2
+-->
+```
 
 **Verifier finds legacy debt:**
-> Creating issue: "Step 2.0.5b: Config service still uses array-access"
-> Body includes: `<!-- metadata labels: phase-2, migration, backend milestone: Phase 2 -->`
+> Title: "Step 2.0.5b: Config service still uses array-access"
 > Parent: Step 2.0.5 issue.
+> Metadata block in body:
+```html
+<!-- metadata
+labels: phase-2, migration, backend
+milestone: Phase 2
+-->
+```
 
 **Architect adds missing sub-step:**
-> Creating issue: "Step 2.0.5b: Config Service Modernization"
-> Body includes: `<!-- metadata labels: phase-2, migration, backend milestone: Phase 2 -->`
+> Title: "Step 2.0.5b: Config Service Modernization"
 > Sub-issue of Step 2.0.5.
+> Metadata block in body:
+```html
+<!-- metadata
+labels: phase-2, migration, backend
+milestone: Phase 2
+-->
+```

@@ -26,21 +26,21 @@ if [[ "${1:-}" == "--dry-run" ]]; then
   echo "=== DRY RUN MODE ==="
 fi
 
-# Issue metadata mapping: number|labels|milestone|pr
+# Issue metadata mapping: number|labels|milestone
 ISSUES=(
-  "124|phase-1, migration, backend|Phase 1: Foundation|#53"
-  "125|phase-1, migration, database, backend|Phase 1: Foundation|#54"
-  "126|phase-1, migration, backend|Phase 1: Foundation|#55"
-  "127|phase-1, migration, backend|Phase 1: Foundation|#56"
-  "128|phase-1, migration, backend|Phase 1: Foundation|#57"
-  "129|phase-1, migration, backend|Phase 1: Foundation|#60, #61"
-  "130|phase-1, migration, backend|Phase 1: Foundation|#62"
-  "131|phase-1, migration, database, backend|Phase 1: Foundation|#97"
-  "132|phase-1, migration, database|Phase 1: Foundation|#107"
-  "133|phase-1, migration, backend|Phase 1: Foundation|#108"
-  "134|phase-1, migration, database, backend|Phase 1: Foundation|#111"
-  "135|phase-1, enhancement, frontend|Phase 1: Foundation|#67"
-  "136|phase-1, security, backend, frontend|Phase 1: Foundation|#110"
+  "124|phase-1, migration, backend|Phase 1: Foundation"
+  "125|phase-1, migration, database, backend|Phase 1: Foundation"
+  "126|phase-1, migration, backend|Phase 1: Foundation"
+  "127|phase-1, migration, backend|Phase 1: Foundation"
+  "128|phase-1, migration, backend|Phase 1: Foundation"
+  "129|phase-1, migration, backend|Phase 1: Foundation"
+  "130|phase-1, migration, backend|Phase 1: Foundation"
+  "131|phase-1, migration, database, backend|Phase 1: Foundation"
+  "132|phase-1, migration, database|Phase 1: Foundation"
+  "133|phase-1, migration, backend|Phase 1: Foundation"
+  "134|phase-1, migration, database, backend|Phase 1: Foundation"
+  "135|phase-1, enhancement, frontend|Phase 1: Foundation"
+  "136|phase-1, security, backend, frontend|Phase 1: Foundation"
 )
 
 SUCCESS=0
@@ -48,7 +48,7 @@ SKIPPED=0
 FAIL=0
 
 for ENTRY in "${ISSUES[@]}"; do
-  IFS='|' read -r NUM LABELS MILESTONE PR <<< "$ENTRY"
+  IFS='|' read -r NUM LABELS MILESTONE <<< "$ENTRY"
 
   echo ""
   echo "━━━ #${NUM} ━━━"
