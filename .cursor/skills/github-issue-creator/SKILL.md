@@ -15,13 +15,13 @@ Any agent or user can trigger this.
 
 | Rule | Limit |
 |------|-------|
-| **Max issues per session** | **5** without explicit user confirmation |
+| **Max issues per session** | **10** without explicit user confirmation |
 | **Batch mode** | ALWAYS show preview table and wait for user approval before creating |
 | **Duplicate check** | MANDATORY before every `gh issue create` (see "Check Before Creating") |
 | **Cleanup workflow** | `.github/workflows/issue-cleanup.yml` — trigger from GitHub UI to bulk-close |
 
-If a batch exceeds 5 issues, the agent MUST pause and list all planned issues
-for user review before proceeding. Never auto-create more than 5 issues.
+If a batch exceeds 10 issues, the agent MUST pause and list all planned issues
+for user review before proceeding. Never auto-create more than 10 issues.
 
 ## When to Use
 
@@ -325,7 +325,7 @@ rm temp-issue-body.md
 
 ## Batch Mode
 
-> **Safety limit: max 5 issues without explicit user approval.**
+> **Safety limit: max 10 issues per session without explicit user approval** (see Safety Limits table).
 > The agent CANNOT close or delete issues it creates. A runaway batch is irreversible.
 > Use `issue-cleanup.yml` (GitHub UI) to bulk-close accidental issues.
 
@@ -334,7 +334,7 @@ rm temp-issue-body.md
 3. **Skip** `✅` completed steps unless user says otherwise
 4. **Duplicate check** for every issue (MANDATORY, see "Check Before Creating")
 5. **Show preview table** to user and **WAIT for approval** before creating
-6. Create issues one by one (max 5 per batch without re-confirmation)
+6. Create issues one by one (max 10 per batch without re-confirmation; pause for user approval if more)
 7. For steps with sub-steps: create parent first, then sub-issues, then link
 8. Report summary with issue numbers and URLs
 
