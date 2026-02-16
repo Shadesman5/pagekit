@@ -13,7 +13,7 @@ alwaysApply: false
    - On `develop` (protected) → create new branch (CC-style name), push, create/update PR
    - On any other branch → push directly
 6. **PR Metadata** – every PR body MUST end with a `<!-- metadata -->` block.
-   `issue-metadata-sync.yml` automatically applies labels + milestone from this block.
+   `sync-metadata.yml` automatically applies labels + milestone from this block.
    ```markdown
    <!-- metadata
    labels: phase-2, migration, backend

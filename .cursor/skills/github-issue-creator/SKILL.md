@@ -54,7 +54,7 @@ The Cursor Cloud Agent `ghs_` token has asymmetric permissions:
 | Push code | YES |
 
 **This is why the `<!-- metadata -->` block exists:** the agent writes it into the body
-at creation time, and `issue-metadata-sync.yml` applies labels/milestone using `PROJECT_TOKEN`.
+at creation time, and `sync-metadata.yml` applies labels/milestone using `PROJECT_TOKEN`.
 
 ## What Gets Set on Every Issue
 
@@ -70,7 +70,7 @@ Every issue should have as many of these as applicable:
 | **Parent Issue** | Add as sub-issue after creation | When step has sub-steps in ROADMAP |
 | **Assignee** | `--assignee Shadesman5` | Optional |
 
-> **How it works:** The `issue-metadata-sync.yml` GitHub Action automatically parses the
+> **How it works:** The `sync-metadata.yml` GitHub Action automatically parses the
 > `<!-- metadata -->` block from the issue body and applies labels + milestone.
 > Agents only need `gh issue create --title "..." --body-file "..."`.
 > Do NOT use `--label` or `--milestone` flags — they are silently ignored by the Cloud Agent token.
@@ -133,7 +133,7 @@ echo '{"title":"Phase X: Name","state":"open","description":"..."}' | gh api rep
 ## Issue Body Template
 
 Every issue body **MUST** end with a `<!-- metadata -->` block. This block is parsed by
-`issue-metadata-sync.yml` which automatically applies labels and milestones.
+`sync-metadata.yml` which automatically applies labels and milestones.
 
 ```markdown
 ## Goal
@@ -169,7 +169,7 @@ milestone: [Phase X: Name]
 ### Metadata Block Reference
 
 The `<!-- metadata -->` block is an HTML comment — **invisible** in rendered markdown but
-parsed by the `issue-metadata-sync.yml` GitHub Action.
+parsed by the `sync-metadata.yml` GitHub Action.
 
 | Field | Required | Format | Example |
 |-------|----------|--------|---------|
@@ -183,7 +183,7 @@ parsed by the `issue-metadata-sync.yml` GitHub Action.
 
 ```
 Issue created/edited with <!-- metadata --> block
-  → issue-metadata-sync.yml parses body → applies labels + milestone
+  → sync-metadata.yml parses body → applies labels + milestone
     → labeled event triggers project-auto-phase.yml → sets Phase in Project board
 ```
 
@@ -311,7 +311,7 @@ milestone: Phase 1: Foundation
 -->
 EOF
 
-# Create issue (--label/--milestone are optional: issue-metadata-sync.yml reads the metadata block)
+# Create issue (--label/--milestone are optional: sync-metadata.yml reads the metadata block)
 gh issue create --repo Shadesman5/pagekit \
   --title "Step 1.1: Mailer Migration" \
   --body-file "temp-issue-body.md"
@@ -343,13 +343,13 @@ rm temp-issue-body.md
 No manual project management needed. Three automations handle everything:
 
 1. **"Auto-add to project"** (built-in Project workflow) — adds every new issue to the board with Status: "Todo"
-2. **`issue-metadata-sync.yml`** (GitHub Action) — parses the `<!-- metadata -->` block from **issue and PR bodies** and applies labels + milestone automatically
+2. **`sync-metadata.yml`** (GitHub Action) — parses the `<!-- metadata -->` block from **issue and PR bodies** and applies labels + milestone automatically
 3. **`project-auto-phase.yml`** (GitHub Action) — reads the `phase-X` label and sets the Phase field automatically (with retry for race conditions)
 
 The `<!-- metadata -->` block in the issue/PR body is the only input needed. Everything else is derived from it:
 ```
 Issue/PR body contains multi-line <!-- metadata --> block
-  → issue-metadata-sync.yml parses labels + milestone from block
+  → sync-metadata.yml parses labels + milestone from block
     → project-auto-phase.yml sets Phase field in Project board
       → Auto-add workflow sets Status: "Todo"
 ```

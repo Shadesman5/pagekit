@@ -3,7 +3,7 @@
 # Adds <!-- metadata --> blocks to existing issue bodies (#124-#136)
 # This is a ONE-TIME migration script.
 #
-# The metadata block enables issue-metadata-sync.yml to automatically
+# The metadata block enables sync-metadata.yml to automatically
 # apply labels and milestones.
 #
 # Usage (local, with authenticated gh CLI):
