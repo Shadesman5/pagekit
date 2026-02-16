@@ -45,7 +45,6 @@ docker.env
 # Ignore Cursor files
 .cursor/environment.json
 .cursor/secrets.env
-.cursor/scripts/set-issue-metadata.sh
 
 # PHPUnit cache
 .phpunit.cache/

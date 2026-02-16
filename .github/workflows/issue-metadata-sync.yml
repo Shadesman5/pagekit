@@ -13,6 +13,15 @@
 #   - issues.opened  → new issue with metadata block
 #   - issues.edited  → metadata block was updated
 #
+# Security:
+#   Only processes metadata from trusted authors (OWNER, MEMBER, COLLABORATOR).
+#   External contributors' metadata blocks are ignored.
+#
+# Label sync:
+#   Labels are synced bidirectionally within the "managed" set.
+#   Labels in the metadata block are added; managed labels NOT in the block are removed.
+#   Labels outside the managed set (e.g. "good first issue") are never touched.
+#
 # Requires:
 #   Secret: PROJECT_TOKEN - PAT with repo scope
 #     (MUST be a PAT, not GITHUB_TOKEN, so that label events trigger project-auto-phase.yml)
@@ -36,6 +45,18 @@ jobs:
           script: |
             const issue = context.payload.issue;
             const body = issue.body || '';
+            const sender = context.payload.sender;
+
+            // ================================================================
+            // Security: only trust OWNER, MEMBER, COLLABORATOR
+            // ================================================================
+            const trustedAssociations = ['OWNER', 'MEMBER', 'COLLABORATOR'];
+            const association = issue.author_association || context.payload.issue.author_association;
+
+            if (!trustedAssociations.includes(association)) {
+              console.log(`Untrusted author_association "${association}" for issue #${issue.number} (by ${sender.login}). Skipping metadata sync.`);
+              return;
+            }
 
             // ================================================================
             // Parse <!-- metadata ... --> block
@@ -66,7 +87,20 @@ jobs:
             const issueNumber = issue.number;
 
             // ================================================================
-            // Apply labels
+            // Managed label set (only these are synced by this workflow)
+            // Labels outside this set are never added or removed.
+            // ================================================================
+            const MANAGED_LABELS = new Set([
+              // Phase labels
+              'phase-1', 'phase-2', 'phase-3', 'phase-4', 'phase-5',
+              // Type labels
+              'migration', 'enhancement', 'bug', 'performance', 'security', 'documentation',
+              // Area labels
+              'frontend', 'backend', 'database', 'module', 'theme',
+            ]);
+
+            // ================================================================
+            // Sync labels (add missing, remove stale within managed set)
             // ================================================================
             if (metadata.labels) {
               const desiredLabels = metadata.labels
@@ -75,33 +109,50 @@ jobs:
                 .filter(Boolean);
 
               const currentLabels = issue.labels.map(l => l.name);
-              const newLabels = desiredLabels.filter(l => !currentLabels.includes(l));
 
-              if (newLabels.length > 0) {
-                // Verify all labels exist before adding
-                const repoLabels = await github.paginate(
-                  github.rest.issues.listLabelsForRepo,
-                  { owner, repo, per_page: 100 }
-                );
-                const repoLabelNames = repoLabels.map(l => l.name);
+              // Validate desired labels exist in repo
+              const repoLabels = await github.paginate(
+                github.rest.issues.listLabelsForRepo,
+                { owner, repo, per_page: 100 }
+              );
+              const repoLabelNames = new Set(repoLabels.map(l => l.name));
 
-                const validLabels = newLabels.filter(l => repoLabelNames.includes(l));
-                const invalidLabels = newLabels.filter(l => !repoLabelNames.includes(l));
+              const validDesired = desiredLabels.filter(l => repoLabelNames.has(l));
+              const invalidDesired = desiredLabels.filter(l => !repoLabelNames.has(l));
 
-                if (invalidLabels.length > 0) {
-                  core.warning(`Unknown labels (not in repo): ${invalidLabels.join(', ')}`);
-                }
+              if (invalidDesired.length > 0) {
+                core.warning(`Unknown labels (not in repo): ${invalidDesired.join(', ')}`);
+              }
 
-                if (validLabels.length > 0) {
-                  await github.rest.issues.addLabels({
-                    owner, repo,
-                    issue_number: issueNumber,
-                    labels: validLabels,
-                  });
-                  console.log(`✅ Added labels: [${validLabels.join(', ')}]`);
-                }
-              } else {
-                console.log('Labels already up to date');
+              // Labels to ADD: in metadata but not on issue
+              const toAdd = validDesired.filter(l => !currentLabels.includes(l));
+
+              // Labels to REMOVE: on issue AND in managed set, but NOT in metadata
+              const desiredSet = new Set(validDesired);
+              const toRemove = currentLabels.filter(l =>
+                MANAGED_LABELS.has(l) && !desiredSet.has(l)
+              );
+
+              if (toAdd.length > 0) {
+                await github.rest.issues.addLabels({
+                  owner, repo,
+                  issue_number: issueNumber,
+                  labels: toAdd,
+                });
+                console.log(`Added labels: [${toAdd.join(', ')}]`);
+              }
+
+              for (const label of toRemove) {
+                await github.rest.issues.removeLabel({
+                  owner, repo,
+                  issue_number: issueNumber,
+                  name: label,
+                });
+                console.log(`Removed stale label: ${label}`);
+              }
+
+              if (toAdd.length === 0 && toRemove.length === 0) {
+                console.log('Labels already in sync');
               }
             }
 
@@ -135,7 +186,7 @@ jobs:
                     issue_number: issueNumber,
                     milestone: ms.number,
                   });
-                  console.log(`✅ Set milestone: ${milestoneName}`);
+                  console.log(`Set milestone: ${milestoneName}`);
                 } else {
                   core.warning(`Milestone "${milestoneName}" not found. Available: ${milestones.data.map(m => m.title).join(', ')}`);
                 }
@@ -148,7 +199,7 @@ jobs:
             // Log PR reference (informational only, linking is done by PR body)
             // ================================================================
             if (metadata.pr) {
-              console.log(`📎 Related PR: ${metadata.pr}`);
+              console.log(`Related PR: ${metadata.pr}`);
             }
 
-            console.log(`\n✅ Metadata sync complete for issue #${issueNumber}`);
+            console.log(`\nMetadata sync complete for issue #${issueNumber}`);

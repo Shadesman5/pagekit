@@ -58,8 +58,8 @@ for ENTRY in "${ISSUES[@]}"; do
 
   # Check if metadata block already exists
   if echo "$BODY" | grep -q '<!-- metadata' ; then
-    echo "  ⏭️  Metadata block already exists, skipping"
-    ((SKIPPED++))
+    echo "  Metadata block already exists, skipping"
+    SKIPPED=$((SKIPPED + 1))
     continue
   fi
 
@@ -76,20 +76,20 @@ milestone: ${MILESTONE}
   if [[ "$DRY_RUN" == "true" ]]; then
     echo "  [DRY RUN] Would append:"
     echo "  ${METADATA_BLOCK}"
-    ((SUCCESS++))
+    SUCCESS=$((SUCCESS + 1))
     continue
   fi
 
   # Write to temp file (avoids shell escaping issues)
   TMPFILE=$(mktemp)
-  echo "$NEW_BODY" > "$TMPFILE"
+  printf '%s' "$NEW_BODY" > "$TMPFILE"
 
   if gh issue edit "$NUM" --repo "$REPO" --body-file "$TMPFILE" 2>&1; then
-    echo "  ✅ Metadata block added"
-    ((SUCCESS++))
+    echo "  Metadata block added"
+    SUCCESS=$((SUCCESS + 1))
   else
-    echo "  ❌ Failed to update"
-    ((FAIL++))
+    echo "  Failed to update"
+    FAIL=$((FAIL + 1))
   fi
 
   rm -f "$TMPFILE"
