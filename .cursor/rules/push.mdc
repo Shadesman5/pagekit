@@ -1,5 +1,5 @@
 ---
-description: Push workflow with version bump. 1) Check git status, create smart commits (conventional-commits.mdc). 2) Use version-bump skill → update composer.json + app/system/config.php. 3) Update CHANGELOG-NEW.md; commit "chore(release): bump version to X.Y.Z". 4) If README-affected → readme-sync.mdc. 5) Push: develop (protected) → new branch + PR; other branch → push direct. 6) Issue Linking: include "Closes #X" in PR body for related GitHub Issues. 7) Do not merge.
+description: Push workflow with version bump. 1) Check git status, create smart commits (conventional-commits.mdc). 2) Use version-bump skill → update composer.json + app/system/config.php. 3) Update CHANGELOG-NEW.md; commit "chore(release): bump version to X.Y.Z". 4) If README-affected → readme-sync.mdc. 5) Push: develop (protected) → new branch + PR; other branch → push direct. 6) PR metadata: include <!-- metadata --> block with labels, milestone, and Closes #X. 7) Do not merge.
 alwaysApply: false
 ---
 
@@ -12,5 +12,16 @@ alwaysApply: false
 5. **Push**:
    - On `develop` (protected) → create new branch (CC-style name), push, create/update PR
    - On any other branch → push directly
-6. **Issue Linking** – when creating a PR, check for related GitHub Issues (e.g. `gh issue list --search "Step X.Y"`). If found, include `Closes #X` in the PR body to create the GitHub Development sidebar link.
+6. **PR Metadata** – every PR body MUST end with a `<!-- metadata -->` block.
+   `issue-metadata-sync.yml` automatically applies labels + milestone from this block.
+   ```markdown
+   <!-- metadata
+   labels: phase-2, migration, backend
+   milestone: Phase 2: Developer Experience
+   closes: #42, #43
+   -->
+   ```
+   - **labels**: 1 phase + 1 type + 1-2 area labels (see `github-labels.mdc`)
+   - **milestone**: Phase name (shorthand `Phase 1` or full `Phase 1: Foundation`)
+   - **closes**: related GitHub Issues — also include `Closes #X` in visible PR body text for GitHub's auto-close linking
 7. **Do NOT merge** – user merges after CI/tests pass
