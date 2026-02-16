@@ -42,11 +42,12 @@ on:
 jobs:
   sync-metadata:
     runs-on: ubuntu-latest
-    # Skip fork PRs — secrets.PROJECT_TOKEN is unavailable and the sender
-    # cannot have write access anyway. Issue events always run.
+    # Skip bots (e.g. cursor[bot] editing PR bodies) and fork PRs
+    # (secrets.PROJECT_TOKEN unavailable). No runner is started for these.
     if: >-
-      github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository
+      !contains(github.actor, '[bot]') &&
+      (github.event_name != 'pull_request' ||
+       github.event.pull_request.head.repo.full_name == github.repository)
     steps:
       - name: Parse metadata and apply labels/milestone
         uses: actions/github-script@v7
