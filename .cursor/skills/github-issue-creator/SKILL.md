@@ -343,16 +343,20 @@ rm temp-issue-body.md
 No manual project management needed. Three automations handle everything:
 
 1. **"Auto-add to project"** (built-in Project workflow) — adds every new issue to the board with Status: "Todo"
-2. **`issue-metadata-sync.yml`** (GitHub Action) — parses the `<!-- metadata -->` block from the issue body and applies labels + milestone automatically
+2. **`issue-metadata-sync.yml`** (GitHub Action) — parses the `<!-- metadata -->` block from **issue and PR bodies** and applies labels + milestone automatically
 3. **`project-auto-phase.yml`** (GitHub Action) — reads the `phase-X` label and sets the Phase field automatically (with retry for race conditions)
 
-The `<!-- metadata -->` block in the issue body is the only input needed. Everything else is derived from it:
+The `<!-- metadata -->` block in the issue/PR body is the only input needed. Everything else is derived from it:
 ```
-Issue body contains multi-line <!-- metadata --> block
+Issue/PR body contains multi-line <!-- metadata --> block
   → issue-metadata-sync.yml parses labels + milestone from block
     → project-auto-phase.yml sets Phase field in Project board
       → Auto-add workflow sets Status: "Todo"
 ```
+
+> **PRs also supported:** The same `<!-- metadata -->` block works in PR bodies.
+> Agents creating PRs (via `push.mdc`) should include the metadata block to get
+> automatic labels and milestones. Add `closes: #42, #43` for issue references.
 
 ## Check Before Creating
 
