@@ -14,8 +14,10 @@
 #   - issues.edited  → metadata block was updated
 #
 # Security:
-#   Only processes metadata from trusted authors (OWNER, MEMBER, COLLABORATOR).
-#   External contributors' metadata blocks are ignored.
+#   Only processes metadata from trusted senders (admin or write access).
+#   Checks the actual repo permission of whoever triggered the event (sender),
+#   not the original issue author — so edits by collaborators on agent-created
+#   issues are correctly trusted.
 #
 # Label sync:
 #   Only labels in the MANAGED_LABELS set are added or removed.
@@ -49,13 +51,20 @@ jobs:
             const sender = context.payload.sender;
 
             // ================================================================
-            // Security: only trust OWNER, MEMBER, COLLABORATOR
+            // Security: only trust senders with write or admin access.
+            // Uses sender (who triggered the event), NOT issue.author_association
+            // which reflects the original author — important because the Cloud
+            // Agent (ghs_ token) creates issues with author_association "NONE".
             // ================================================================
-            const trustedAssociations = ['OWNER', 'MEMBER', 'COLLABORATOR'];
-            const association = issue.author_association;
+            const { data: perm } = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              username: sender.login,
+            });
+            const trustedPermissions = ['admin', 'write'];
 
-            if (!trustedAssociations.includes(association)) {
-              console.log(`Untrusted author_association "${association}" for issue #${issue.number} (by ${sender.login}). Skipping metadata sync.`);
+            if (!trustedPermissions.includes(perm.permission)) {
+              console.log(`Sender "${sender.login}" has "${perm.permission}" permission for issue #${issue.number}. Skipping metadata sync.`);
               return;
             }
 
