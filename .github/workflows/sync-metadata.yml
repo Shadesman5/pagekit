@@ -97,7 +97,7 @@ jobs:
               throw err;
             }
 
-            const trustedPermissions = ['admin', 'write'];
+            const trustedPermissions = ['admin', 'maintain', 'write'];
             if (!trustedPermissions.includes(permission)) {
               console.log(`Sender "${sender.login}" has "${permission}" permission for ${itemType} #${itemNumber}. Skipping metadata sync.`);
               return;
