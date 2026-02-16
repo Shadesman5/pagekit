@@ -102,6 +102,7 @@ Read `.cursor/rules/github-labels.mdc` for full list.
 | Performance | `performance` |
 | Security | `security` |
 | Documentation | `documentation` |
+| Breaking change (API, internal) | `breaking-change` |
 
 ### Area (pick one or more)
 

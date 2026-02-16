@@ -143,10 +143,14 @@ jobs:
             const MANAGED_LABELS = new Set([
               // Phase labels
               'phase-1', 'phase-2', 'phase-3', 'phase-4', 'phase-5',
-              // Type labels
+              // Type labels (see .cursor/rules/github-labels.mdc)
               'migration', 'enhancement', 'bug', 'performance', 'security', 'documentation',
+              'breaking-change',
               // Area labels
               'frontend', 'backend', 'database', 'module', 'theme',
+              // NOT managed (applied by other systems, never touch):
+              //   Dependabot: dependencies, php, javascript, docker, github-actions
+              //   Standard:   good first issue, help wanted, question, duplicate, invalid, wontfix
             ]);
 
             // ================================================================
