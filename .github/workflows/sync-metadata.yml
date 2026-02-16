@@ -42,10 +42,12 @@ on:
 jobs:
   sync-metadata:
     runs-on: ubuntu-latest
-    # Skip bots (e.g. cursor[bot] editing PR bodies) and fork PRs
+    # Skip cursor[bot] (edits PR bodies frequently) and fork PRs
     # (secrets.PROJECT_TOKEN unavailable). No runner is started for these.
+    # Other bots (e.g. Cloud Agent) are allowed through — they create
+    # issues/PRs with <!-- metadata --> blocks that need processing.
     if: >-
-      !contains(github.actor, '[bot]') &&
+      github.actor != 'cursor[bot]' &&
       (github.event_name != 'pull_request' ||
        github.event.pull_request.head.repo.full_name == github.repository)
     steps:
@@ -67,15 +69,6 @@ jobs:
             const sender = context.payload.sender;
             const itemType = isPR ? 'PR' : 'issue';
             const itemNumber = item.number;
-
-            // ================================================================
-            // Skip bot senders (e.g. cursor[bot] editing PR bodies).
-            // Bots have sender.type "Bot" — no point checking permissions.
-            // ================================================================
-            if (sender.type === 'Bot') {
-              console.log(`Sender "${sender.login}" is a bot. Skipping metadata sync for ${itemType} #${itemNumber}.`);
-              return;
-            }
 
             // ================================================================
             // Security: only trust senders with write or admin access.
