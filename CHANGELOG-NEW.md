@@ -1,5 +1,41 @@
 # Changelog
 
+## Pagekit 1.1.4 - GitHub Metadata Automation & Security Hardening (February 16, 2026)
+
+### ✨ New Features
+
+- **Metadata Sync Workflow** (`sync-metadata.yml`) - New GitHub Action that parses `<!-- metadata -->` blocks from issue **and PR** bodies and automatically applies labels + milestones. Chains with `project-auto-phase.yml` to set Phase field in Project board. (PRs #138, #141)
+- **Issue Cleanup Workflow** (`issue-cleanup.yml`) - Emergency manual workflow to bulk-close agent-created issues via GitHub UI. Inputs are passed safely via `process.env` (no script injection). Strict `/^\d+$/` validation rejects malformed issue numbers. (PRs #138, #141)
+- **Migration Script** (`add-metadata-to-issues.sh`) - One-time bash script to add `<!-- metadata -->` blocks to existing issues #124–#136 with dry-run support. (PR #138)
+
+### 🐛 Bug Fixes
+
+- **Script Injection in issue-cleanup** - Replaced direct `${{ inputs }}` interpolation in JS strings with `process.env` to prevent script injection via apostrophes in workflow_dispatch inputs. (PR #141)
+- **parseInt Accepting Partial Numbers** - Replaced `parseInt()` with strict `/^\d+$/` regex to reject malformed entries like ranges or suffixed values. (PR #141)
+- **Sender Permission Check** - `sync-metadata.yml` now checks the sender's actual repo permission (`admin`/`maintain`/`write`) instead of `issue.author_association`, which incorrectly showed "NONE" for Cloud Agent-created issues. (PR #141)
+- **Non-Collaborator 404** - `getCollaboratorPermissionLevel` wrapped in try/catch to gracefully skip non-collaborators instead of crashing the workflow. (PR #141)
+- **Auth Errors Fail Loudly** - 401/403 errors from a broken `PROJECT_TOKEN` now fail the workflow instead of silently skipping, so expired tokens are noticed immediately. (PR #141)
+- **Batch Safety Limit** - Unified inconsistent limits (5 vs 10) to 10 issues per session in `github-issue-creator` SKILL. (PR #141)
+
+### ⚡ Performance
+
+- **Bot Actor Skip** - `sync-metadata.yml` skips `cursor[bot]` at job level (`github.actor != 'cursor[bot]'`), preventing runner startup for frequent PR body edits. Other bots (Cloud Agent) are allowed through. (PR #141)
+- **Fork PR Skip** - Fork PRs are skipped at job level since `PROJECT_TOKEN` is unavailable. (PR #141)
+
+### 📝 Documentation
+
+- **Push Workflow** (`push.mdc`) - Step 6 now requires a `<!-- metadata -->` block in every PR body with labels, milestone, and closes fields. Added Issue Linking via `Closes #X`. (PRs #137, #141)
+- **GitHub Issue Creator SKILL** - Clarified PR linking (issue body vs PR body), replaced broken `gh issue edit --add-sub-issue` with GraphQL mutation, added PR metadata support notes, added `breaking-change` label option. (PRs #120, #137, #141)
+
+### 🔧 Maintenance
+
+- **Workflow Renamed** - `issue-metadata-sync.yml` → `sync-metadata.yml` to match the new scope (issues + PRs). All references updated. (PR #141)
+- **Managed Labels** - Added `breaking-change` to managed label set. Documented which labels are intentionally excluded (Dependabot, standard GitHub labels). (PR #141)
+- **.gitignore** - Broadened `.env` to `*.env` to catch all environment files. (PR #138)
+- **Token Handling** - `PAGEKIT_BACKGROUND_AGENT` only overrides `GH_TOKEN` when explicitly set; `secrets.example.env` updated with `PROJECT_TOKEN` docs. (PR #138)
+
+---
+
 ## Pagekit 1.1.3 - E2E Hardening & Auth Bugfix (February 15, 2026)
 
 ### ✨ New Features

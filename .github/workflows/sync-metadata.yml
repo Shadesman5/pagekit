@@ -1,4 +1,4 @@
-# Parses a <!-- metadata --> block from issue bodies and applies labels + milestone.
+# Parses a <!-- metadata --> block from issue/PR bodies and applies labels + milestone.
 # Chains with project-auto-phase.yml: this workflow adds labels → labeled event
 # triggers project-auto-phase → Phase field set in Project board.
 #
@@ -7,15 +7,19 @@
 #   <!-- metadata
 #   labels: phase-1, migration, backend
 #   milestone: Phase 1: Foundation
+#   closes: #42, #43
 #   -->
 #
 # Triggers:
-#   - issues.opened  → new issue with metadata block
-#   - issues.edited  → metadata block was updated
+#   - issues.opened / issues.edited       → issue with metadata block
+#   - pull_request.opened / .edited       → PR with metadata block
 #
 # Security:
-#   Only processes metadata from trusted authors (OWNER, MEMBER, COLLABORATOR).
-#   External contributors' metadata blocks are ignored.
+#   Only processes metadata from trusted senders (admin or write access).
+#   Checks the actual repo permission of whoever triggered the event (sender),
+#   not the original author — so edits by collaborators on agent-created
+#   issues/PRs are correctly trusted. Non-collaborators (404) are gracefully
+#   rejected without failing the workflow.
 #
 # Label sync:
 #   Only labels in the MANAGED_LABELS set are added or removed.
@@ -27,15 +31,25 @@
 #   Secret: PROJECT_TOKEN - PAT with repo scope
 #     (MUST be a PAT, not GITHUB_TOKEN, so that label events trigger project-auto-phase.yml)
 
-name: Sync Issue Metadata
+name: Sync Metadata
 
 on:
   issues:
+    types: [opened, edited]
+  pull_request:
     types: [opened, edited]
 
 jobs:
   sync-metadata:
     runs-on: ubuntu-latest
+    # Skip cursor[bot] (edits PR bodies frequently) and fork PRs
+    # (secrets.PROJECT_TOKEN unavailable). No runner is started for these.
+    # Other bots (e.g. Cloud Agent) are allowed through — they create
+    # issues/PRs with <!-- metadata --> blocks that need processing.
+    if: >-
+      github.actor != 'cursor[bot]' &&
+      (github.event_name != 'pull_request' ||
+       github.event.pull_request.head.repo.full_name == github.repository)
     steps:
       - name: Parse metadata and apply labels/milestone
         uses: actions/github-script@v7
@@ -44,18 +58,48 @@ jobs:
           # (GITHUB_TOKEN events don't trigger other workflows)
           github-token: ${{ secrets.PROJECT_TOKEN }}
           script: |
-            const issue = context.payload.issue;
-            const body = issue.body || '';
+            // ================================================================
+            // Normalize payload: works for both issues and pull_requests.
+            // GitHub's Issues API handles labels/milestones for PRs too
+            // (PRs are issues internally), so we just need the number + body.
+            // ================================================================
+            const isPR = !!context.payload.pull_request;
+            const item = isPR ? context.payload.pull_request : context.payload.issue;
+            const body = item.body || '';
             const sender = context.payload.sender;
+            const itemType = isPR ? 'PR' : 'issue';
+            const itemNumber = item.number;
 
             // ================================================================
-            // Security: only trust OWNER, MEMBER, COLLABORATOR
+            // Security: only trust senders with write or admin access.
+            // Uses sender (who triggered the event), NOT author_association
+            // which reflects the original author — important because the Cloud
+            // Agent (ghs_ token) creates items with author_association "NONE".
+            //
+            // getCollaboratorPermissionLevel returns 404 for non-collaborators,
+            // so we catch that and treat it as untrusted.
             // ================================================================
-            const trustedAssociations = ['OWNER', 'MEMBER', 'COLLABORATOR'];
-            const association = issue.author_association;
+            let permission = 'none';
+            try {
+              const { data: perm } = await github.rest.repos.getCollaboratorPermissionLevel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                username: sender.login,
+              });
+              permission = perm.permission;
+            } catch (err) {
+              if (err.status === 404) {
+                console.log(`Sender "${sender.login}" is not a collaborator (404). Skipping metadata sync for ${itemType} #${itemNumber}.`);
+                return;
+              }
+              // 401/403 = broken PROJECT_TOKEN → fail loudly so the owner notices.
+              // Fork PRs (where the token is unavailable) are already skipped at job level.
+              throw err;
+            }
 
-            if (!trustedAssociations.includes(association)) {
-              console.log(`Untrusted author_association "${association}" for issue #${issue.number} (by ${sender.login}). Skipping metadata sync.`);
+            const trustedPermissions = ['admin', 'maintain', 'write'];
+            if (!trustedPermissions.includes(permission)) {
+              console.log(`Sender "${sender.login}" has "${permission}" permission for ${itemType} #${itemNumber}. Skipping metadata sync.`);
               return;
             }
 
@@ -65,19 +109,20 @@ jobs:
             //   <!-- metadata
             //   labels: ...
             //   milestone: ...
+            //   closes: #42, #43
             //   -->
             // ================================================================
             const metadataMatch = body.match(/<!--\s*metadata\s*\n([\s\S]*?)-->/i);
 
             if (!metadataMatch) {
-              console.log(`No <!-- metadata --> block found in issue #${issue.number}. Skipping.`);
+              console.log(`No <!-- metadata --> block found in ${itemType} #${itemNumber}. Skipping.`);
               return;
             }
 
             const metadataBlock = metadataMatch[1];
-            console.log(`Found metadata block in issue #${issue.number}:\n${metadataBlock}`);
+            console.log(`Found metadata block in ${itemType} #${itemNumber}:\n${metadataBlock}`);
 
-            // Parse key-value pairs (labels, milestone, pr)
+            // Parse key-value pairs (labels, milestone, closes)
             const metadata = {};
             for (const line of metadataBlock.split('\n')) {
               const kv = line.match(/^\s*(\w+)\s*:\s*(.+)\s*$/);
@@ -90,7 +135,6 @@ jobs:
 
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const issueNumber = issue.number;
 
             // ================================================================
             // Managed label set — ONLY these labels are added or removed.
@@ -99,10 +143,14 @@ jobs:
             const MANAGED_LABELS = new Set([
               // Phase labels
               'phase-1', 'phase-2', 'phase-3', 'phase-4', 'phase-5',
-              // Type labels
+              // Type labels (see .cursor/rules/github-labels.mdc)
               'migration', 'enhancement', 'bug', 'performance', 'security', 'documentation',
+              'breaking-change',
               // Area labels
               'frontend', 'backend', 'database', 'module', 'theme',
+              // NOT managed (applied by other systems, never touch):
+              //   Dependabot: dependencies, php, javascript, docker, github-actions
+              //   Standard:   good first issue, help wanted, question, duplicate, invalid, wontfix
             ]);
 
             // ================================================================
@@ -133,17 +181,17 @@ jobs:
 
               if (invalidLabels.length > 0) {
                 // Abort sync entirely — a typo could silently strip valid labels
-                core.setFailed(`Unknown labels in metadata block: ${invalidLabels.join(', ')}. Label sync aborted to prevent accidental removal. Fix the metadata block and re-save the issue.`);
+                core.setFailed(`Unknown labels in metadata block: ${invalidLabels.join(', ')}. Label sync aborted to prevent accidental removal. Fix the metadata block and re-save the ${itemType}.`);
                 return;
               }
 
-              const currentLabels = issue.labels.map(l => l.name);
+              const currentLabels = item.labels.map(l => l.name);
               const desiredSet = new Set(managedDesired);
 
-              // Labels to ADD: managed + in metadata + not on issue
+              // Labels to ADD: managed + in metadata + not on item
               const toAdd = managedDesired.filter(l => !currentLabels.includes(l));
 
-              // Labels to REMOVE: on issue + in managed set + NOT in metadata
+              // Labels to REMOVE: on item + in managed set + NOT in metadata
               const toRemove = currentLabels.filter(l =>
                 MANAGED_LABELS.has(l) && !desiredSet.has(l)
               );
@@ -151,7 +199,7 @@ jobs:
               if (toAdd.length > 0) {
                 await github.rest.issues.addLabels({
                   owner, repo,
-                  issue_number: issueNumber,
+                  issue_number: itemNumber,
                   labels: toAdd,
                 });
                 console.log(`Added labels: [${toAdd.join(', ')}]`);
@@ -160,7 +208,7 @@ jobs:
               for (const label of toRemove) {
                 await github.rest.issues.removeLabel({
                   owner, repo,
-                  issue_number: issueNumber,
+                  issue_number: itemNumber,
                   name: label,
                 });
                 console.log(`Removed stale label: ${label}`);
@@ -175,7 +223,7 @@ jobs:
             // Apply milestone
             // ================================================================
             if (metadata.milestone) {
-              const currentMilestone = issue.milestone ? issue.milestone.title : null;
+              const currentMilestone = item.milestone ? item.milestone.title : null;
 
               // Normalize: allow shorthand "Phase 1" → "Phase 1: Foundation"
               const milestoneFullNames = {
@@ -198,7 +246,7 @@ jobs:
                 if (ms) {
                   await github.rest.issues.update({
                     owner, repo,
-                    issue_number: issueNumber,
+                    issue_number: itemNumber,
                     milestone: ms.number,
                   });
                   console.log(`Set milestone: ${milestoneName}`);
@@ -211,10 +259,11 @@ jobs:
             }
 
             // ================================================================
-            // Log PR reference (informational only, linking is done by PR body)
+            // Log closes references (informational — GitHub handles the actual
+            // linking when PRs contain "Closes #X" in the body text)
             // ================================================================
-            if (metadata.pr) {
-              console.log(`Related PR: ${metadata.pr}`);
+            if (metadata.closes) {
+              console.log(`Closes references: ${metadata.closes}`);
             }
 
-            console.log(`\nMetadata sync complete for issue #${issueNumber}`);
+            console.log(`\nMetadata sync complete for ${itemType} #${itemNumber}`);
