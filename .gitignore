@@ -40,10 +40,11 @@ node_modules
 
 # Ignore environment files with secrets
 docker.env
-.env
+*.env
 
 # Ignore Cursor files
 .cursor/environment.json
+.cursor/secrets.env
 
 # PHPUnit cache
 .phpunit.cache/

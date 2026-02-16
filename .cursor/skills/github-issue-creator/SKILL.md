@@ -8,6 +8,21 @@ description: Creates GitHub issues on Shadesman5/pagekit with correct labels, mi
 Universal skill for creating GitHub issues on `Shadesman5/pagekit`.
 Any agent or user can trigger this.
 
+## Safety Limits
+
+> **The Cloud Agent can CREATE issues but CANNOT close, edit, or delete them.**
+> A runaway batch can only be cleaned up manually or via `issue-cleanup.yml`.
+
+| Rule | Limit |
+|------|-------|
+| **Max issues per session** | **10** without explicit user confirmation |
+| **Batch mode** | ALWAYS show preview table and wait for user approval before creating |
+| **Duplicate check** | MANDATORY before every `gh issue create` (see "Check Before Creating") |
+| **Cleanup workflow** | `.github/workflows/issue-cleanup.yml` — trigger from GitHub UI to bulk-close |
+
+If a batch exceeds 10 issues, the agent MUST pause and list all planned issues
+for user review before proceeding. Never auto-create more than 10 issues.
+
 ## When to Use
 
 - **User asks** to create issues from a markdown/TODO file (batch mode)
@@ -23,6 +38,24 @@ Any agent or user can trigger this.
 - Issues enabled on repo
 - For project operations: `gh auth refresh -s read:project,project` (adds project scope)
 
+## Cloud Agent Permission Model
+
+The Cursor Cloud Agent `ghs_` token has asymmetric permissions:
+
+| Operation | Works? |
+|-----------|--------|
+| Create issue (title + body) | YES |
+| Create with `--label` / `--milestone` | NO (silently ignored) |
+| Edit issue body | NO |
+| Add/remove labels | NO |
+| Set milestone | NO |
+| Close/reopen issue | NO |
+| Add comment | NO |
+| Push code | YES |
+
+**This is why the `<!-- metadata -->` block exists:** the agent writes it into the body
+at creation time, and `issue-metadata-sync.yml` applies labels/milestone using `PROJECT_TOKEN`.
+
 ## What Gets Set on Every Issue
 
 Every issue should have as many of these as applicable:
@@ -30,12 +63,17 @@ Every issue should have as many of these as applicable:
 | Field | How to set | When |
 |-------|-----------|------|
 | **Title** | `--title` | Always |
-| **Labels** | `--label "phase-2,migration,backend"` | Always (see formula below) |
-| **Milestone** | `--milestone "Phase 2: Developer Experience"` | Always for ROADMAP steps |
-| **Body** | `--body-file` | Always |
-| **PR Link** | `Closes #17` or `Related: #17` in body | When a PR exists or will exist |
+| **Body** | `--body-file` (with `<!-- metadata -->` block) | Always |
+| **Labels** | Automatic via `<!-- metadata -->` block in body | Always (see formula below) |
+| **Milestone** | Automatic via `<!-- metadata -->` block in body | Always for ROADMAP steps |
+| **PR Link** | `Related: #17` in body | When a PR exists or will exist |
 | **Parent Issue** | Add as sub-issue after creation | When step has sub-steps in ROADMAP |
 | **Assignee** | `--assignee Shadesman5` | Optional |
+
+> **How it works:** The `issue-metadata-sync.yml` GitHub Action automatically parses the
+> `<!-- metadata -->` block from the issue body and applies labels + milestone.
+> Agents only need `gh issue create --title "..." --body-file "..."`.
+> Do NOT use `--label` or `--milestone` flags — they are silently ignored by the Cloud Agent token.
 
 ## Label Formula
 
@@ -94,6 +132,9 @@ echo '{"title":"Phase X: Name","state":"open","description":"..."}' | gh api rep
 
 ## Issue Body Template
 
+Every issue body **MUST** end with a `<!-- metadata -->` block. This block is parsed by
+`issue-metadata-sync.yml` which automatically applies labels and milestones.
+
 ```markdown
 ## Goal
 
@@ -118,9 +159,36 @@ echo '{"title":"Phase X: Name","state":"open","description":"..."}' | gh api rep
 - [ ] All existing tests pass
 - [ ] No regressions
 - [ ] [Step-specific criteria]
+
+<!-- metadata
+labels: [phase-X], [type], [area1], [area2]
+milestone: [Phase X: Name]
+-->
+```
+
+### Metadata Block Reference
+
+The `<!-- metadata -->` block is an HTML comment — **invisible** in rendered markdown but
+parsed by the `issue-metadata-sync.yml` GitHub Action.
+
+| Field | Required | Format | Example |
+|-------|----------|--------|---------|
+| `labels` | Yes | Comma-separated label names | `phase-2, migration, backend` |
+| `milestone` | Yes (ROADMAP) | Full name or shorthand | `Phase 2: Developer Experience` or `Phase 2` |
+| `pr` | No | `#number` | `#71` |
+
+**Milestone shorthand:** `Phase 1` → `Phase 1: Foundation`, `Phase 2` → `Phase 2: Developer Experience`, etc.
+
+### Automation chain
+
+```
+Issue created/edited with <!-- metadata --> block
+  → issue-metadata-sync.yml parses body → applies labels + milestone
+    → labeled event triggers project-auto-phase.yml → sets Phase in Project board
 ```
 
 **Body rules:**
+- Every issue body **MUST** include the `<!-- metadata -->` block at the end
 - Do NOT link to agent-prompt files
 - Do NOT include internal agent workflow details
 - Keep readable for any developer (human or agent)
@@ -236,37 +304,55 @@ Migrate Swift Mailer to Symfony Mailer 5.4.
 
 ## Related
 - PR: #17
+
+<!-- metadata
+labels: phase-1, migration, backend
+milestone: Phase 1: Foundation
+-->
 EOF
 
-# Create issue
+# Create issue (--label/--milestone are optional: issue-metadata-sync.yml reads the metadata block)
 gh issue create --repo Shadesman5/pagekit \
   --title "Step 1.1: Mailer Migration" \
-  --body-file "temp-issue-body.md" \
-  --label "phase-1,migration,backend" \
-  --milestone "Phase 1: Foundation"
+  --body-file "temp-issue-body.md"
 
 # Clean up
 rm temp-issue-body.md
 ```
 
+> **Do NOT use** `--label` or `--milestone` flags — they are silently ignored by the
+> Cloud Agent token. The `<!-- metadata -->` block is the only reliable way.
+
 ## Batch Mode
+
+> **Safety limit: max 10 issues per session without explicit user approval** (see Safety Limits table).
+> The agent CANNOT close or delete issues it creates. A runaway batch is irreversible.
+> Use `issue-cleanup.yml` (GitHub UI) to bulk-close accidental issues.
 
 1. Read source file (e.g. `MODERNISING_PAGEKIT_TODO_LIST.md` or `ROADMAP.md`)
 2. Parse each step: number, title, status, sub-steps, related PR
 3. **Skip** `✅` completed steps unless user says otherwise
-4. **Show preview table** to user before creating
-5. Create issues one by one
-6. For steps with sub-steps: create parent first, then sub-issues, then link
-7. Report summary with issue numbers and URLs
+4. **Duplicate check** for every issue (MANDATORY, see "Check Before Creating")
+5. **Show preview table** to user and **WAIT for approval** before creating
+6. Create issues one by one (max 10 per batch without re-confirmation; pause for user approval if more)
+7. For steps with sub-steps: create parent first, then sub-issues, then link
+8. Report summary with issue numbers and URLs
 
 ## GitHub Project Integration (fully automatic)
 
-No manual project management needed. Two automations handle everything:
+No manual project management needed. Three automations handle everything:
 
 1. **"Auto-add to project"** (built-in Project workflow) — adds every new issue to the board with Status: "Todo"
-2. **`project-auto-phase.yml`** (GitHub Action) — reads the `phase-X` label and sets the Phase field automatically (with retry for race conditions)
+2. **`issue-metadata-sync.yml`** (GitHub Action) — parses the `<!-- metadata -->` block from the issue body and applies labels + milestone automatically
+3. **`project-auto-phase.yml`** (GitHub Action) — reads the `phase-X` label and sets the Phase field automatically (with retry for race conditions)
 
-The `phase-X` label on the issue is the only input needed. Everything else is derived from it.
+The `<!-- metadata -->` block in the issue body is the only input needed. Everything else is derived from it:
+```
+Issue body contains multi-line <!-- metadata --> block
+  → issue-metadata-sync.yml parses labels + milestone from block
+    → project-auto-phase.yml sets Phase field in Project board
+      → Auto-add workflow sets Status: "Todo"
+```
 
 ## Check Before Creating
 
@@ -278,13 +364,33 @@ gh issue list --repo Shadesman5/pagekit --search "Step 2.0.5" --json number,titl
 ## Sub-Agent Examples
 
 **Tester finds regression:**
-> Creating issue: "Bug: UserController loginAction missing CSRF validation"
-> Labels: phase-2, bug, security, backend. Milestone: Phase 2.
+> Title: "Bug: UserController loginAction missing CSRF validation"
+> Metadata block in body:
+```html
+<!-- metadata
+labels: phase-2, bug, security, backend
+milestone: Phase 2
+-->
+```
 
 **Verifier finds legacy debt:**
-> Creating issue: "Step 2.0.5b: Config service still uses array-access"
-> Labels: phase-2, migration, backend. Milestone: Phase 2. Parent: Step 2.0.5 issue.
+> Title: "Step 2.0.5b: Config service still uses array-access"
+> Parent: Step 2.0.5 issue.
+> Metadata block in body:
+```html
+<!-- metadata
+labels: phase-2, migration, backend
+milestone: Phase 2
+-->
+```
 
 **Architect adds missing sub-step:**
-> Creating issue: "Step 2.0.5b: Config Service Modernization"
-> Labels: phase-2, migration, backend. Sub-issue of Step 2.0.5.
+> Title: "Step 2.0.5b: Config Service Modernization"
+> Sub-issue of Step 2.0.5.
+> Metadata block in body:
+```html
+<!-- metadata
+labels: phase-2, migration, backend
+milestone: Phase 2
+-->
+```
