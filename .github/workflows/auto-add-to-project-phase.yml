@@ -73,19 +73,21 @@ jobs:
               }
             `;
 
-            let itemId = null;
-            let cursor = null;
+            function findItemId() {
+              let cursor = null;
+              return (async () => {
+                do {
+                  const result = await github.graphql(findItemQuery, { projectId, cursor });
+                  const nodes = result.node.items.nodes;
+                  const match = nodes.find(item => item.content && item.content.id === issueNodeId);
+                  if (match) return match.id;
+                  cursor = result.node.items.pageInfo.hasNextPage ? result.node.items.pageInfo.endCursor : null;
+                } while (cursor);
+                return null;
+              })();
+            }
 
-            do {
-              const result = await github.graphql(findItemQuery, { projectId, cursor });
-              const nodes = result.node.items.nodes;
-              const match = nodes.find(item => item.content && item.content.id === issueNodeId);
-              if (match) {
-                itemId = match.id;
-                break;
-              }
-              cursor = result.node.items.pageInfo.hasNextPage ? result.node.items.pageInfo.endCursor : null;
-            } while (cursor);
+            let itemId = await findItemId();
 
             if (!itemId) {
               const addMutation = `
@@ -100,12 +102,26 @@ jobs:
                   }
                 }
               `;
-              const addResult = await github.graphql(addMutation, {
-                projectId,
-                contentId: issueNodeId
-              });
-              itemId = addResult.addProjectV2ItemById.projectV2Item.id;
-              console.log(`Added issue #${context.payload.issue.number} to project.`);
+              try {
+                const addResult = await github.graphql(addMutation, {
+                  projectId,
+                  contentId: issueNodeId
+                });
+                itemId = addResult.addProjectV2ItemById.projectV2Item.id;
+                console.log(`Added issue #${context.payload.issue.number} to project.`);
+              } catch (addErr) {
+                // Race: another automation may have added the issue after our find; addProjectV2ItemById then fails (e.g. duplicate).
+                // Re-query so we still set Phase; otherwise the issue would be in the project without Phase.
+                const message = addErr.message || String(addErr);
+                console.log(`Add failed (${message}), re-querying project for item after short delay.`);
+                await new Promise(r => setTimeout(r, 1500));
+                itemId = await findItemId();
+                if (!itemId) {
+                  core.setFailed(`Could not add issue #${context.payload.issue.number} to project and could not find it there: ${message}`);
+                  return;
+                }
+                console.log(`Found issue #${context.payload.issue.number} in project, will set Phase.`);
+              }
             } else {
               console.log(`Issue #${context.payload.issue.number} already in project.`);
             }
