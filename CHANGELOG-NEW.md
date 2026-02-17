@@ -1,10 +1,10 @@
 # Changelog
 
-## Pagekit 1.1.4 - GitHub Metadata Automation & Security Hardening (February 16, 2026)
+## Pagekit 1.1.4 - GitHub Metadata Automation & Security Hardening (February 17, 2026)
 
 ### ✨ New Features
 
-- **Metadata Sync Workflow** (`sync-metadata.yml`) - New GitHub Action that parses `<!-- metadata -->` blocks from issue **and PR** bodies and automatically applies labels + milestones. Chains with `project-auto-phase.yml` to set Phase field in Project board. (PRs #138, #141)
+- **Metadata Sync Workflow** (`sync-metadata.yml`) - New GitHub Action that parses `<!-- metadata -->` blocks from issue **and PR** bodies and automatically applies labels + milestones. Chains with `auto-add-to-project-phase.yml` to add issues to project and set Phase field. (PRs #138, #141)
 - **Issue Cleanup Workflow** (`issue-cleanup.yml`) - Emergency manual workflow to bulk-close agent-created issues via GitHub UI. Inputs are passed safely via `process.env` (no script injection). Strict `/^\d+$/` validation rejects malformed issue numbers. (PRs #138, #141)
 - **Migration Script** (`add-metadata-to-issues.sh`) - One-time bash script to add `<!-- metadata -->` blocks to existing issues #124–#136 with dry-run support. (PR #138)
 
