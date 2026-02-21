@@ -22,33 +22,29 @@ class ContainerPsr11Test extends TestCase
     }
 
     /**
-     * Test that Container provides PSR-11 compatibility via adapter
+     * Test that Container directly implements PSR-11 ContainerInterface
      */
     public function testImplementsPsr11Interface(): void
     {
-        $adapter = $this->container->getPsr11Adapter();
-        $this->assertInstanceOf(ContainerInterface::class, $adapter);
+        $this->assertInstanceOf(ContainerInterface::class, $this->container);
     }
 
     /**
-     * Test PSR-11 compatible hasService() method
+     * Test PSR-11 has() method
      */
     public function testHasMethod(): void
     {
-        // Test non-existent service
-        $this->assertFalse($this->container->hasService('non.existent'));
+        $this->assertFalse($this->container->has('non.existent'));
 
-        // Test scalar value
         $this->container['test.scalar'] = 'value';
-        $this->assertTrue($this->container->hasService('test.scalar'));
+        $this->assertTrue($this->container->has('test.scalar'));
 
-        // Test service factory
         $this->container['test.service'] = fn() => new \stdClass();
-        $this->assertTrue($this->container->hasService('test.service'));
+        $this->assertTrue($this->container->has('test.service'));
     }
 
     /**
-     * Test PSR-11 compatible getService() method with scalar values
+     * Test PSR-11 get() method with scalar values
      */
     public function testGetScalarValue(): void
     {
@@ -56,13 +52,13 @@ class ContainerPsr11Test extends TestCase
         $this->container['test.number'] = 42;
         $this->container['test.array'] = ['a', 'b', 'c'];
 
-        $this->assertEquals('hello', $this->container->getService('test.string'));
-        $this->assertEquals(42, $this->container->getService('test.number'));
-        $this->assertEquals(['a', 'b', 'c'], $this->container->getService('test.array'));
+        $this->assertEquals('hello', $this->container->get('test.string'));
+        $this->assertEquals(42, $this->container->get('test.number'));
+        $this->assertEquals(['a', 'b', 'c'], $this->container->get('test.array'));
     }
 
     /**
-     * Test PSR-11 compatible getService() method with service factories
+     * Test PSR-11 get() method with service factories (closure resolution)
      */
     public function testGetServiceFactory(): void
     {
@@ -72,22 +68,45 @@ class ContainerPsr11Test extends TestCase
             return $obj;
         };
 
-        $service = $this->container->getService('test.service');
+        $service = $this->container->get('test.service');
         $this->assertInstanceOf(\stdClass::class, $service);
         $this->assertTrue($service->created);
 
-        // Test that same instance is returned (singleton behavior)
-        $service2 = $this->container->getService('test.service');
+        $service2 = $this->container->get('test.service');
         $this->assertSame($service, $service2);
     }
 
     /**
-     * Test PSR-11 compatible getService() throws NotFoundException for missing services
+     * Test PSR-11 get() throws NotFoundException for missing services
      */
     public function testGetThrowsNotFoundException(): void
     {
         $this->expectException(NotFoundException::class);
-        $this->container->getService('non.existent.service');
+        $this->container->get('non.existent.service');
+    }
+
+    /**
+     * Test NotFoundException implements PSR-11 NotFoundExceptionInterface
+     */
+    public function testNotFoundExceptionImplementsPsr11(): void
+    {
+        try {
+            $this->container->get('missing');
+            $this->fail('Expected NotFoundException');
+        } catch (NotFoundException $e) {
+            $this->assertInstanceOf(\Psr\Container\NotFoundExceptionInterface::class, $e);
+            $this->assertInstanceOf(\InvalidArgumentException::class, $e);
+        }
+    }
+
+    /**
+     * Test ContainerException implements PSR-11 ContainerExceptionInterface
+     */
+    public function testContainerExceptionImplementsPsr11(): void
+    {
+        $e = new ContainerException('test');
+        $this->assertInstanceOf(\Psr\Container\ContainerExceptionInterface::class, $e);
+        $this->assertInstanceOf(\RuntimeException::class, $e);
     }
 
     /**
@@ -103,8 +122,8 @@ class ContainerPsr11Test extends TestCase
             return $obj;
         });
 
-        $service1 = $this->container->getService('test.factory');
-        $service2 = $this->container->getService('test.factory');
+        $service1 = $this->container->get('test.factory');
+        $service2 = $this->container->get('test.factory');
 
         $this->assertNotSame($service1, $service2);
         $this->assertEquals(1, $service1->id);
@@ -112,45 +131,39 @@ class ContainerPsr11Test extends TestCase
     }
 
     /**
-     * Test backward compatibility with ArrayAccess
+     * Test backward compatibility: ArrayAccess delegates to get/has
      */
-    public function testBackwardCompatibilityWithArrayAccess(): void
+    public function testArrayAccessDelegatesToGetHas(): void
     {
-        // Test setting via ArrayAccess
         $this->container['old.style'] = 'value';
 
-        // Test getting via PSR-11 compatible methods
-        $this->assertTrue($this->container->hasService('old.style'));
-        $this->assertEquals('value', $this->container->getService('old.style'));
+        $this->assertTrue($this->container->has('old.style'));
+        $this->assertEquals('value', $this->container->get('old.style'));
 
-        // Test setting via offsetSet
         $this->container->offsetSet('another.old', 'test');
-        $this->assertTrue($this->container->hasService('another.old'));
-        $this->assertEquals('test', $this->container->getService('another.old'));
+        $this->assertTrue($this->container->has('another.old'));
+        $this->assertEquals('test', $this->container->get('another.old'));
+
+        $this->assertEquals('value', $this->container['old.style']);
+        $this->assertTrue(isset($this->container['old.style']));
     }
 
     /**
-     * Test Application class PSR-11 compatibility
+     * Test Application class implements ContainerInterface directly
      */
-    public function testApplicationPsr11Compatibility(): void
+    public function testApplicationImplementsContainerInterface(): void
     {
         $app = new Application();
-        
-        // Application can get a PSR-11 adapter
-        $adapter = $app->getPsr11Adapter();
-        $this->assertInstanceOf(ContainerInterface::class, $adapter);
 
-        // Test built-in services via adapter
-        $this->assertTrue($adapter->has('events'));
-        $this->assertTrue($adapter->has('module'));
+        $this->assertInstanceOf(ContainerInterface::class, $app);
 
-        // Test getting services via adapter
-        $events = $adapter->get('events');
+        $this->assertTrue($app->has('events'));
+        $this->assertTrue($app->has('module'));
+
+        $events = $app->get('events');
         $this->assertNotNull($events);
-        
-        // Test direct methods on Application
-        $this->assertTrue($app->hasService('events'));
-        $events2 = $app->getService('events');
+
+        $events2 = $app->get('events');
         $this->assertSame($events, $events2);
     }
 
@@ -165,11 +178,11 @@ class ContainerPsr11Test extends TestCase
             return $base . '-extended';
         });
 
-        $this->assertEquals('base-extended', $this->container->getService('test.base'));
+        $this->assertEquals('base-extended', $this->container->get('test.base'));
     }
 
     /**
-     * Test that getService() handles service creation errors properly
+     * Test that get() handles service creation errors properly
      */
     public function testGetHandlesServiceCreationErrors(): void
     {
@@ -178,7 +191,7 @@ class ContainerPsr11Test extends TestCase
         };
 
         try {
-            $this->container->getService('broken.service');
+            $this->container->get('broken.service');
             $this->fail('Expected ContainerException was not thrown');
         } catch (ContainerException $e) {
             $this->assertStringContainsString('Error while retrieving', $e->getMessage());
@@ -187,7 +200,7 @@ class ContainerPsr11Test extends TestCase
     }
 
     /**
-     * Test container keys() method still works
+     * Test container keys() method
      */
     public function testKeysMethod(): void
     {
@@ -202,21 +215,19 @@ class ContainerPsr11Test extends TestCase
     }
 
     /**
-     * Test raw() method still works
+     * Test raw() method
      */
     public function testRawMethod(): void
     {
         $closure = fn() => 'resolved';
         $this->container['test.closure'] = $closure;
 
-        // Get raw closure before resolution
         $raw = $this->container->raw('test.closure');
         $this->assertSame($closure, $raw);
 
-        // After resolution, raw should still return the closure
-        $resolved = $this->container->getService('test.closure');
+        $resolved = $this->container->get('test.closure');
         $this->assertEquals('resolved', $resolved);
-        
+
         $raw2 = $this->container->raw('test.closure');
         $this->assertSame($closure, $raw2);
     }
