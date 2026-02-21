@@ -15,23 +15,19 @@ return [
 
             $logger = new Logger($this->name);
 
-            // Add file handler for persistent logging
-            if (isset($app['path.logs'])) {
-                $logFile = $app['path.logs'] . '/debug.log';
-                
-                // Ensure log directory exists
+            if ($app->has('path.logs')) {
+                $logFile = $app->get('path.logs') . '/debug.log';
+
                 if (!is_dir(dirname($logFile))) {
                     mkdir(dirname($logFile), 0755, true);
                 }
-                
-                // Add stream handler with DEBUG level
+
                 $streamHandler = new StreamHandler($logFile, Level::Debug);
                 $logger->pushHandler($streamHandler);
             }
 
-            // Add debug bar handler if available
-            if (isset($app['debugbar'])) {
-                $logger->pushHandler($app['log.debug']);
+            if ($app->has('debugbar')) {
+                $logger->pushHandler($app->get('log.debug'));
             }
 
             return $logger;
