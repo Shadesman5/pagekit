@@ -2,7 +2,7 @@
 
 **ROADMAP Step:** 2.0.1 (Stage 1)
 **Branch:** `cursor/psr-11-container-core-71d2`
-**Status:** In Progress
+**Status:** Complete
 
 ---
 
@@ -10,42 +10,49 @@
 
 Refactor `Pagekit\Container` to implement `Psr\Container\ContainerInterface` natively, eliminating the `Psr11Adapter` wrapper. ArrayAccess is kept but delegates to `get()`/`has()` so existing `$app['x']` call sites continue working without changes.
 
-## Discovery
+## Summary of Changes
 
-### Files with Psr11Adapter references:
-- `app/modules/application/src/Container.php` (import + getPsr11Adapter method)
-- `app/modules/application/src/Container/Psr11Adapter.php` (the adapter itself)
-- `app/modules/application/src/Tests/ContainerPsr11Test.php` (tests using adapter)
+### Before
 
-### Files with getService/hasService references:
-- `app/modules/application/src/Container.php` (method definitions)
-- `app/modules/application/src/Container/Psr11Adapter.php` (delegates to getService/hasService)
-- `app/modules/application/src/Application/Traits/StaticTrait.php` (calls hasService)
-- `app/modules/application/src/Tests/ContainerPsr11Test.php` (test calls)
+- Container used `ArrayAccess` as primary API (`$app['x']`)
+- `getService()` / `hasService()` were PSR-11-like methods (avoiding name conflict with static `App::get()`)
+- `Psr11Adapter` wrapped Container for PSR-11 compliance
+- `App::get('x')` routed through `__callStatic`
 
-## Changes
+### After
 
-### Container.php
-- [ ] Add `implements \Psr\Container\ContainerInterface`
-- [ ] Move resolution logic from `offsetGet()` into `get()`
-- [ ] `offsetGet()` delegates to `get()`
-- [ ] `offsetExists()` delegates to `has()`
-- [ ] Remove `getService()`, `hasService()`, `getPsr11Adapter()`
-- [ ] Remove `Psr11Adapter` import
+- Container implements `Psr\Container\ContainerInterface` directly
+- `get(string $id)` is the PSR-11 entry point (resolution logic lives here)
+- `has(string $id)` is the PSR-11 existence check
+- `offsetGet()` / `offsetExists()` delegate to `get()` / `has()` (backward compat)
+- `Psr11Adapter` deleted
+- `getService()` / `hasService()` / `getPsr11Adapter()` removed
+- `App::get('x')` changed to `App::getInstance()->get('x')` at 8 call sites (PHP limitation: `__callStatic` is not triggered when method exists as instance method)
+- StaticTrait cleaned up (dead `get`/`has` cases removed from `__callStatic`)
 
-### StaticTrait.php
-- [ ] `case 'has':` → `static::$instance->has(...)`
-- [ ] `case 'get':` → `static::$instance->get(...)`
+## Files Changed
 
-### Psr11Adapter.php
-- [ ] Delete file entirely
+| File | Change |
+|------|--------|
+| `app/modules/application/src/Container.php` | Implements ContainerInterface, get()/has() as PSR-11 methods, ArrayAccess delegates |
+| `app/modules/application/src/Container/Psr11Adapter.php` | Deleted |
+| `app/modules/application/src/Application/Traits/StaticTrait.php` | Removed dead cases, updated docblock |
+| `app/modules/application/src/Tests/ContainerPsr11Test.php` | Updated for native PSR-11 |
+| `app/system/modules/cache/src/CacheModule.php` | `App::get()` -> `App::getInstance()->get()` |
+| `app/system/modules/info/src/InfoHelper.php` | `App::get()` -> `App::getInstance()->get()` |
+| `app/system/modules/settings/src/Controller/SettingsController.php` | `App::get()` -> `App::getInstance()->get()` |
+| `app/system/modules/dashboard/src/Controller/DashboardController.php` | `App::get()` -> `App::getInstance()->get()` |
 
-### Tests
-- [ ] Update ContainerPsr11Test: remove adapter tests, use get/has directly
-- [ ] Update ContainerTest: ensure ArrayAccess delegation works
+## Validation Results
 
-## Safety Notes
+- [x] `php pagekit setup` succeeds
+- [x] All 261 PHPUnit tests pass (0 failures)
+- [x] No references to Psr11Adapter, getService, hasService
+- [x] Container implements ContainerInterface
+- [x] ArrayAccess delegates to get/has
+- [x] NotFoundException implements NotFoundExceptionInterface
+- [x] ContainerException implements ContainerExceptionInterface
 
-- `NotFoundException extends \InvalidArgumentException` - so existing `catch(\InvalidArgumentException)` blocks still work
-- `ContainerException extends \RuntimeException` - wraps service creation errors
-- ArrayAccess kept as backward compatibility (removed in Stage 4)
+## Next Stage
+
+Stage 2 will migrate `app/modules/` call sites from `$app['x']` to `$app->get('x')`.
