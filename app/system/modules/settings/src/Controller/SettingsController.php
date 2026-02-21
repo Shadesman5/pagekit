@@ -39,7 +39,7 @@ class SettingsController
             $options = $json['options'] ?? [];
         }
         $config = new Config;
-        $config->merge(include $file = App::get('config.file'));
+        $config->merge(include $file = App::getInstance()->get('config.file'));
 
         foreach ($values as $module => $value) {
             $config->set($module, $value);
