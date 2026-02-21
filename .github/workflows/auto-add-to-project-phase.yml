@@ -96,7 +96,7 @@ jobs:
                     projectId: $projectId
                     contentId: $contentId
                   }) {
-                    projectV2Item {
+                    item {
                       id
                     }
                   }
@@ -107,7 +107,7 @@ jobs:
                   projectId,
                   contentId: issueNodeId
                 });
-                itemId = addResult.addProjectV2ItemById.projectV2Item.id;
+                itemId = addResult.addProjectV2ItemById.item.id;
                 console.log(`Added issue #${context.payload.issue.number} to project.`);
               } catch (addErr) {
                 // Race: another automation may have added the issue after our find; addProjectV2ItemById then fails (e.g. duplicate).
