@@ -1,6 +1,6 @@
 # Changelog
 
-## Pagekit 1.1.4 - GitHub Metadata Automation & Security Hardening (February 17, 2026)
+## Pagekit 1.1.4 - GitHub Metadata Automation & Security Hardening (February 21, 2026)
 
 ### ✨ New Features
 
@@ -26,12 +26,17 @@
 
 - **Push Workflow** (`push.mdc`) - Step 6 now requires a `<!-- metadata -->` block in every PR body with labels, milestone, and closes fields. Added Issue Linking via `Closes #X`. (PRs #137, #141)
 - **GitHub Issue Creator SKILL** - Clarified PR linking (issue body vs PR body), replaced broken `gh issue edit --add-sub-issue` with GraphQL mutation, added PR metadata support notes, added `breaking-change` label option. (PRs #120, #137, #141)
+- **ROADMAP** - Added Issue column mapping #119-#142 to completed tasks. Restructured Phase 2: 2.0.5→2.0.1, added 2.0.2 Validator-Translator, substeps 2.1.1-2.1.9 (Tooling, CI, PHPStan, QueryBuilder, etc.). Phase 3: 3.2.5→3.2.1, added 3.4.6 Translation System.
+- **Validation System** - Expanded `VALIDATION_SYSTEM.md` with translation architecture, domain separation, key-pattern convention, `validators.php` rename, Open Items. Updated `VALIDATION_TESTING_GUIDE` references (Step 2.1.5+ → Phase 3 Step 3.4+).
+- **GitHub Guide** - Updated QueryBuilder step reference 2.1.5 → 2.1.7.
+- **Rules** - `conventional-commits.mdc`: fix description CHANGELOG-2025 → CHANGELOG-NEW. `pagekit-standards.mdc`: add PSR-2/PSR-12 migration note for Step 2.1.
 
 ### 🔧 Maintenance
 
 - **Workflow Renamed** - `issue-metadata-sync.yml` → `sync-metadata.yml` to match the new scope (issues + PRs). All references updated. (PR #141)
 - **Managed Labels** - Added `breaking-change` to managed label set. Documented which labels are intentionally excluded (Dependabot, standard GitHub labels). (PR #141)
-- **.gitignore** - Broadened `.env` to `*.env` to catch all environment files. (PR #138)
+- **.gitignore** - Broadened `.env` to `*.env` to catch all environment files. Added `/planning/` for local planning documents. (PR #138)
+- **.cursorignore** - Commented out `languages/**` and `/app/vendor` for local dev visibility. (PR #138)
 - **Token Handling** - `PAGEKIT_BACKGROUND_AGENT` only overrides `GH_TOKEN` when explicitly set; `secrets.example.env` updated with `PROJECT_TOKEN` docs. (PR #138)
 
 ---
