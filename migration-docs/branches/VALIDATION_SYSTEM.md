@@ -1,11 +1,8 @@
-# Symfony Validator Integration (Step 1.13 - Hybrid Mode)
+# Symfony Validator Integration (Step 1.13)
 
 ## Overview
 
-This document describes the integration of Symfony Validator 7.4 with PHP 8 Attributes support into the Pagekit CMS. The implementation follows a **hybrid approach**:
-
-- **Validation**: Uses PHP 8 Attributes (`#[Assert\...]`)
-- **ORM**: Still uses Doctrine Annotations (`@Entity`, `@Column`) - Will be migrated in Step 1.14
+This document describes the integration of Symfony Validator 7.4 with PHP 8 Attributes support into Pagekit CMS. Both Validation and ORM now use PHP 8 Attributes (Step 1.14 completed).
 
 ## Migration Phases
 
@@ -17,7 +14,7 @@ This document describes the integration of Symfony Validator 7.4 with PHP 8 Attr
 - User module fully migrated (User, Role entities and controllers)
 
 ### Phase 2 (Completed)
-- Validation messages file created (`app/system/languages/en_US/validation.php`)
+- Validation messages file created (`app/system/languages/en_US/validators.php`)
 - All hardcoded messages replaced with message keys
 - Site module migrated (Node, Page entities and controllers)
 - Widget module migrated (Widget entity and controller)
@@ -27,6 +24,45 @@ This document describes the integration of Symfony Validator 7.4 with PHP 8 Attr
 - Comment base module migrated (abstract Comment class)
 - Blog package migrated (Post, Comment entities and controllers)
 - All extension packages now use Symfony Validator
+
+---
+
+## ⚠️ Known Gap: Translation Integration Missing
+
+**Status**: NOT YET IMPLEMENTED — Tracked as Step 2.0.2 (Validator-Translator Integration)
+
+The Symfony Validator currently returns **raw message keys** (e.g. `validation.user.username_required`) without translation. The `ValidatorServiceProvider` does not connect to Pagekit's Translator.
+
+### What's broken
+
+1. `ValidatorServiceProvider` creates a standalone validator without `setTranslator()` / `setTranslationDomain()`
+2. `ValidatesRequestTrait` returns raw keys in JSON responses — users see keys, not human-readable messages
+3. The `validators.php` file is loaded by `IntlModule::loadLocale()` as domain `validators`, but nothing queries it
+
+### Required fix (Phase 2 implementation)
+
+```php
+// ValidatorServiceProvider — connect to Pagekit's Translator
+$app['validator'] = function ($app): ValidatorInterface {
+    $builder = Validation::createValidatorBuilder();
+    $builder->enableAttributeMapping();
+    $builder->setTranslator($app['translator']);
+    $builder->setTranslationDomain('validators');
+    return $builder->getValidator();
+};
+```
+
+With this fix, `$violation->getMessage()` returns the **translated string** automatically. No changes needed in `ValidatesRequestTrait`.
+
+### File rename required
+
+The translation file must follow Symfony conventions:
+- **Current (wrong):** `validation.php` → domain `validation`
+- **Target (correct):** `validators.php` → domain `validators`
+
+Files to rename:
+- `app/system/languages/en_US/validation.php` → `validators.php`
+- `packages/pagekit/blog/languages/en_US/validation.php` → `validators.php`
 
 ---
 
@@ -51,6 +87,7 @@ Registers the Symfony Validator as a service in the Pagekit application containe
 $app['validator'] = function ($app): ValidatorInterface {
     $builder = Validation::createValidatorBuilder();
     $builder->enableAttributeMapping();
+    // TODO: Connect to Translator — see "Known Gap" section above
     return $builder->getValidator();
 };
 ```
@@ -71,18 +108,29 @@ Provides standardized validation methods for controllers:
 - `UniqueValidator.php`: Validator implementation using Pagekit's QueryBuilder (DBAL 3.x)
 
 ### Validation Messages File
-`app/system/languages/en_US/validation.php`
+`app/system/languages/en_US/validators.php`
 
-Centralized validation messages for all entities. Messages are referenced by key in entity attributes:
+> **Note:** File is currently named `validation.php` — rename to `validators.php` required (Symfony standard domain name).
+
+Centralized validation messages for all entities. Messages use key-pattern approach:
 
 ```php
-// In validation.php
+// In validators.php (Symfony domain: "validators")
 'validation.user.username_required' => 'Username is required.',
 
 // In entity
 #[Assert\NotBlank(message: 'validation.user.username_required')]
 public ?string $username = '';
 ```
+
+### Key-Pattern Convention
+
+Pattern: `validation.{module}.{field}_{constraint}`
+
+This differs from Pagekit's traditional `messages` domain which uses English strings as keys (`'Save' => 'Speichern'`). The key-pattern approach is the modern standard because:
+- Keys are stable identifiers (changing the English text doesn't break translations)
+- Self-documenting: the key tells you module, field, and constraint type
+- Symfony recommends key-patterns for the `validators` domain
 
 ---
 
@@ -159,7 +207,9 @@ public ?string $username = '';
 
 ## 5. Message Keys Reference
 
-All validation messages are stored in `app/system/languages/en_US/validation.php`.
+All validation messages are stored in `app/system/languages/en_US/validators.php`.
+
+> **Note:** File is currently named `validation.php` — rename pending.
 
 ### User Module Messages
 
@@ -235,7 +285,7 @@ class MyController
    use Pagekit\System\Validator\Constraints as PagekitAssert;
    ```
 
-2. Add message keys to `validation.php`:
+2. Add message keys to `validators.php`:
    ```php
    'validation.myentity.field_required' => 'Field is required.',
    ```
@@ -261,44 +311,50 @@ class MyController
 
 ## 7. Error Response Format
 
-Validation errors are returned as JSON with the following structure:
+Validation errors are returned as JSON:
 
 ```json
 {
   "error": true,
-  "message": "First error message for display",
+  "message": "First translated error message for display",
   "errors": {
-    "username": ["validation.user.username_required", "validation.user.username_min_length"],
-    "email": ["validation.user.email_invalid"]
+    "username": ["Username is required.", "Username must be at least 3 characters."],
+    "email": ["Email is invalid."]
   }
 }
 ```
 
 HTTP Status Code: **400 Bad Request**
 
+> **Note:** Currently returns raw message keys instead of translated strings until the Translator integration is implemented. See "Known Gap" section.
+
 ---
 
-## 8. Hybrid Mode Notes
+## 8. Translation Architecture
 
-### Why Hybrid?
+### How it will work (after integration)
 
-The ORM still uses Doctrine Annotations (`doctrine/annotations` package) because:
-- Step 1.14 (ORM Attributes Migration) is pending
-- Entity mapping relies on `@Entity`, `@Column`, `@Id` annotations
-- Both can coexist on the same class
-
-### ORM Annotations (Temporary)
-
-All ORM annotations are marked with TODO comments:
-
-```php
-/**
- * @Column
- */
-// TODO: Must be refactored in Step 1.14 (ORM Attributes migration)
-#[Assert\NotBlank(message: 'validation.entity.field_required')]
-public ?string $field = null;
 ```
+Entity Attribute                    Symfony Validator              Translator (IntlModule)
+#[Assert\NotBlank(                  ──► resolves key via ──►      validators.php domain
+  message: 'validation.x.y')]           setTranslator()            'validation.x.y' => 'Human text'
+                                                                    ▼
+                                    ◄── returns translated  ◄──   Locale-specific file
+                                        string                     de_DE/validators.php
+```
+
+### Domain separation
+
+| Domain | File | Key Style | Purpose |
+|--------|------|-----------|---------|
+| `messages` | `messages.php` | English strings (`'Save'`) | UI labels, general strings (legacy pattern) |
+| `validators` | `validators.php` | Key-pattern (`'validation.user.x'`) | Validation error messages (modern pattern) |
+
+Both domains are loaded automatically by `IntlModule::loadLocale()` — it scans all `*.php` files in the locale directory and registers each as a domain based on filename.
+
+### `ExtensionTranslateCommand` gap
+
+The `./pagekit extension:translate` command currently does NOT extract message keys from `#[Assert\...]` attributes. It only scans `__()`, `_c()`, `trans`, and `transChoice` calls. This needs to be extended in Phase 2 to also parse PHP 8 Attribute `message:` parameters.
 
 ---
 
@@ -327,7 +383,7 @@ Modified:
 
 ```
 Created:
-- app/system/languages/en_US/validation.php
+- app/system/languages/en_US/validators.php (currently named validation.php — rename pending)
 - migration-docs/branches/VALIDATION_PHASE2_DISCOVERY.md
 
 Modified:
@@ -341,6 +397,18 @@ Modified:
 - app/system/modules/widget/src/Controller/WidgetApiController.php (added ValidatesRequestTrait)
 ```
 
+### Phase 3
+
+```
+Modified:
+- app/system/languages/en_US/validators.php (added Blog/Comment messages; currently named validation.php)
+- app/system/modules/comment/src/Model/Comment.php (base Comment entity)
+- packages/pagekit/blog/src/Model/Post.php
+- packages/pagekit/blog/src/Model/Comment.php
+- packages/pagekit/blog/src/Controller/PostApiController.php
+- packages/pagekit/blog/src/Controller/CommentApiController.php
+```
+
 ---
 
 ## 10. Aggressive Modernization Rules Applied
@@ -351,22 +419,26 @@ Modified:
 | **#2 NO ADAPTERS** | All manual validation calls replaced in the same commit |
 | **#3 BREAKING CHANGES ALLOWED** | Internal API changed (validate() method removed) |
 | **#4 DELETE OVER WRAP** | Old `validate()` method and manual validation completely removed |
-| **#5 MANDATORY FLAGGING** | All ORM annotations marked with `// TODO: Must be refactored in Step 1.14` |
+| **#5 MANDATORY FLAGGING** | ORM annotations were migrated in Step 1.14 (completed) |
 
 ---
 
-## 11. Next Steps
+## 11. Open Items
 
-1. **Step 1.14**: Migrate ORM from Annotations to Attributes
-   - Replace `@Entity` with `#[ORM\Entity]`
-   - Replace `@Column` with `#[ORM\Column]`
-   - Remove `doctrine/annotations` dependency
-   - Remove TODO comments
+1. **Rename `validation.php` → `validators.php`** (Symfony standard domain)
+   - `app/system/languages/en_US/validation.php`
+   - `packages/pagekit/blog/languages/en_US/validation.php`
 
-2. **Translation Integration**: Integrate message keys with `__()` function or Symfony Translator
+2. **Connect Validator to Translator** in `ValidatorServiceProvider`
+   - Add `$builder->setTranslator($app['translator'])`
+   - Add `$builder->setTranslationDomain('validators')`
 
-3. **Additional Entities**: Add validation to any remaining entities as needed
+3. **Extend `ExtensionTranslateCommand`** to extract `#[Assert\...]` message keys
 
-4. **Custom Constraints**: Consider adding more custom constraints:
+4. **Create locale files** for other languages (e.g. `de_DE/validators.php`).
+   After Open Item #3 is done, `./pagekit extension:translate` will generate `validators.pot` (template).
+   Translators then create the actual `xx_XX/validators.php` files from that template (manually or via poEdit/Weblate).
+
+5. **Custom Constraints**: Consider adding more custom constraints:
    - `#[StrongPassword]` - Password strength validation
    - `#[ValidSlug]` - URL slug validation

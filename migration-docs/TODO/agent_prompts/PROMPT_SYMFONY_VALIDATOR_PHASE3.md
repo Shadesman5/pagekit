@@ -1,3 +1,6 @@
+> **⚠️ COMPLETED & SUPERSEDED** — This prompt was executed successfully. The file naming has changed:
+> `validation.php` must be renamed to `validators.php` (Symfony standard). See `migration-docs/branches/VALIDATION_SYSTEM.md` for current state.
+
 # Symfony Validator Migration - Phase 3: Extension/Package Migration
 
 ## Task

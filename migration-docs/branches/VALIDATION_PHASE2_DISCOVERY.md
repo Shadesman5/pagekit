@@ -132,4 +132,8 @@ All ORM annotations (`@Entity`, `@Column`, `@Id`) must be preserved and marked w
 
 ### Translation Integration
 
-Message keys will be stored in `app/system/languages/en_US/validation.php`. Actual translation integration (using `__()` function or Symfony Translator) will be handled in a later phase.
+Message keys are stored in `app/system/languages/en_US/validators.php` (Symfony standard domain `validators`).
+
+> **Note:** File is currently named `validation.php` — rename to `validators.php` pending.
+
+The Translator integration (connecting Symfony Validator to Pagekit's `IntlModule` Translator via `setTranslator()` + `setTranslationDomain('validators')`) is tracked as a Phase 2 task. See `migration-docs/branches/VALIDATION_SYSTEM.md` for details.
