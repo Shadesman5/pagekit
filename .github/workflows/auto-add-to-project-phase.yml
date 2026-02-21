@@ -134,9 +134,7 @@ jobs:
                   fieldId: $fieldId
                   value: { singleSelectOptionId: $optionId }
                 }) {
-                  projectV2Item {
-                    id
-                  }
+                  clientMutationId
                 }
               }
             `;
