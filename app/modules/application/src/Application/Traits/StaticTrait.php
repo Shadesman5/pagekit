@@ -4,9 +4,8 @@ namespace Pagekit\Application\Traits;
 
 /**
  * Provides static access to the container instance.
- * 
- * Note: To avoid conflicts with PSR-11 non-static methods in the Container class,
- * static methods are implemented as wrappers that delegate to the instance methods.
+ *
+ * App::get() and App::has() delegate to Container's PSR-11 get()/has() via __callStatic.
  */
 trait StaticTrait
 {
@@ -35,10 +34,10 @@ trait StaticTrait
         // Handle special container methods
         switch ($name) {
             case 'has':
-                return static::$instance->hasService($args[0] ?? '');
+                return static::$instance->has($args[0] ?? '');
             
             case 'get':
-                return static::$instance->offsetGet($args[0] ?? '');
+                return static::$instance->get($args[0] ?? '');
             
             case 'set':
                 static::$instance->offsetSet($args[0] ?? '', $args[1] ?? null);
@@ -50,7 +49,7 @@ trait StaticTrait
             
             case 'config':
                 // Special handling for config() during installation
-                if (!static::$instance->offsetExists('config')) {
+                if (!static::$instance->has('config')) {
                     // Return a dummy config object during installation
                     return new class {
                         public function get($key) { return null; }
@@ -66,7 +65,7 @@ trait StaticTrait
                 // For all service calls (like db(), module(), etc.), 
                 // get the service from container and optionally call it with args
                 try {
-                    $value = static::$instance->offsetGet($name);
+                    $value = static::$instance->get($name);
                 } catch (\Exception $e) {
                     // Service not found - return null or throw depending on context
                     error_log("Service '$name' not found: " . $e->getMessage());
