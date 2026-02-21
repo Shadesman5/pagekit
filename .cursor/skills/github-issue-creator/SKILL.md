@@ -185,7 +185,7 @@ parsed by the `sync-metadata.yml` GitHub Action.
 ```
 Issue created/edited with <!-- metadata --> block
   → sync-metadata.yml parses body → applies labels + milestone
-    → labeled event triggers project-auto-phase.yml → sets Phase in Project board
+    → labeled event triggers auto-add-to-project-phase.yml → add to project + set Phase
 ```
 
 **Body rules:**
@@ -345,13 +345,13 @@ No manual project management needed. Three automations handle everything:
 
 1. **"Auto-add to project"** (built-in Project workflow) — adds every new issue to the board with Status: "Todo"
 2. **`sync-metadata.yml`** (GitHub Action) — parses the `<!-- metadata -->` block from **issue and PR bodies** and applies labels + milestone automatically
-3. **`project-auto-phase.yml`** (GitHub Action) — reads the `phase-X` label and sets the Phase field automatically (with retry for race conditions)
+3. **`auto-add-to-project-phase.yml`** (GitHub Action) — on `phase-X` label: adds issue to project (if needed) and sets Phase field in one run (no timing issues)
 
 The `<!-- metadata -->` block in the issue/PR body is the only input needed. Everything else is derived from it:
 ```
 Issue/PR body contains multi-line <!-- metadata --> block
   → sync-metadata.yml parses labels + milestone from block
-    → project-auto-phase.yml sets Phase field in Project board
+    → auto-add-to-project-phase.yml adds to project and sets Phase field
       → Auto-add workflow sets Status: "Todo"
 ```
 

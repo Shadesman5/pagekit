@@ -138,7 +138,7 @@ Im Repo → **Issues → Milestones → New milestone**:
 | ------------------------------------------------ | --------------------- | ------------- | -------------------- |
 | PSR-11 Container Vollmodernisierung (Step 2.0.5) | `phase-2`, `backend`  | Pagekit 1.1.x | 2                    |
 | Static Analysis & Code Quality (Step 2.1)        | `phase-2`, `backend`  | Pagekit 1.1.x | 2                    |
-| QueryBuilder API Standardization (Step 2.1.5)    | `phase-2`, `backend`  | Pagekit 1.1.x | 2                    |
+| QueryBuilder API Standardization (Step 2.1.7)    | `phase-2`, `backend`  | Pagekit 1.1.x | 2                    |
 | CI/CD Pipeline (Step 2.2)                        | `phase-2`, `backend`  | Pagekit 1.1.x | 2                    |
 | Docker Production Setup (Step 2.3)               | `phase-2`, `backend`  | Pagekit 1.1.x | 2                    |
 | Build Tools Modernization (Step 2.4)             | `phase-2`, `frontend` | Pagekit 1.1.x | 2                    |

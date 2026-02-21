@@ -59,3 +59,18 @@ Same rules as `.cursor/ROADMAP.md` (THE 5 AGGRESSIVE RULES). Summary:
 
 - **Refactoring:** Prefer small, atomic changes over "Big Bang" rewrites.
 - **Comments:** If you encounter legacy hacks, mark them with `// TODO: Refactor in Phase 3 (Vue Migration)`.
+
+## Unicode & Encoding Hygiene (STRICT)
+
+All generated text output (commits, PRs, changelogs, docs, code) **MUST be clean UTF-8**. Remote/background agents are prone to encoding corruption — these rules prevent it.
+
+### General
+- **Verify every output is valid UTF-8.** Never produce U+FFFD replacement characters (`�`), raw escape sequences, or garbled byte sequences.
+- **ASCII content must stay ASCII.** Standard code keywords (`bash`, `php`, `function`) must never contain corrupted characters (e.g., `◆ash` instead of `bash`).
+- **Code fences must be intact.** Triple-backtick language tags (` ```bash `, ` ```php `) are critical — a corrupted tag breaks rendering.
+- If encoding issues are detected in own output, **fix immediately** before submitting.
+
+### Emojis
+- **Emojis are welcome** in headings, changelogs, PR descriptions, and docs — they improve scannability (e.g., `🔍 Review Checklist`, `🚀 Deployment Notes`).
+- Use only **standard, widely-supported emojis** that render on GitHub, terminals, and IDEs. Avoid obscure Unicode symbols, combining characters, or multi-codepoint sequences.
+- **Keep emojis functional** — use them to convey status (✅/❌), warnings (⚠️), or categories at a glance, not as filler or decoration.

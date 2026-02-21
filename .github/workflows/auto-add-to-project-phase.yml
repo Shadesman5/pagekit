@@ -1,0 +1,151 @@
+# When an issue gets a phase-X label (e.g. from sync-metadata.yml after creation):
+# 1. Add the issue to the project if not already in it.
+# 2. Set the Phase field on the project item.
+# Single workflow avoids timing/race issues between add and set-phase.
+#
+# Trigger: issues.labeled with phase-1 … phase-5
+# Requires:
+#   Secret:   PROJECT_TOKEN
+#   Variable: PROJECT_ID
+#   Variable: PROJECT_PHASE_FIELD_ID
+#   Variable: PROJECT_PHASE_OPTIONS  (JSON: {"Phase 1":"id","Phase 2":"id",...})
+
+name: Add to project and set Phase
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  add-and-set-phase:
+    runs-on: ubuntu-latest
+    if: startsWith(github.event.label.name, 'phase-')
+    steps:
+      - name: Add to project and set Phase field
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PROJECT_TOKEN }}
+          script: |
+            const label = context.payload.label.name;
+            const issueNodeId = context.payload.issue.node_id;
+            const projectId = '${{ vars.PROJECT_ID }}';
+            const fieldId = '${{ vars.PROJECT_PHASE_FIELD_ID }}';
+            const phaseOptions = JSON.parse('${{ vars.PROJECT_PHASE_OPTIONS }}');
+
+            const phaseMap = {
+              'phase-1': 'Phase 1',
+              'phase-2': 'Phase 2',
+              'phase-3': 'Phase 3',
+              'phase-4': 'Phase 4',
+              'phase-5': 'Phase 5'
+            };
+            const phaseName = phaseMap[label];
+            if (!phaseName) {
+              console.log(`Unknown phase label: ${label}`);
+              return;
+            }
+            const optionId = phaseOptions[phaseName];
+            if (!optionId) {
+              core.setFailed(`No option ID for "${phaseName}". Check PROJECT_PHASE_OPTIONS.`);
+              return;
+            }
+
+            const findItemQuery = `
+              query($projectId: ID!, $cursor: String) {
+                node(id: $projectId) {
+                  ... on ProjectV2 {
+                    items(first: 100, after: $cursor) {
+                      nodes {
+                        id
+                        content {
+                          ... on Issue {
+                            id
+                          }
+                        }
+                      }
+                      pageInfo {
+                        hasNextPage
+                        endCursor
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+
+            function findItemId() {
+              let cursor = null;
+              return (async () => {
+                do {
+                  const result = await github.graphql(findItemQuery, { projectId, cursor });
+                  const nodes = result.node.items.nodes;
+                  const match = nodes.find(item => item.content && item.content.id === issueNodeId);
+                  if (match) return match.id;
+                  cursor = result.node.items.pageInfo.hasNextPage ? result.node.items.pageInfo.endCursor : null;
+                } while (cursor);
+                return null;
+              })();
+            }
+
+            let itemId = await findItemId();
+
+            if (!itemId) {
+              const addMutation = `
+                mutation($projectId: ID!, $contentId: ID!) {
+                  addProjectV2ItemById(input: {
+                    projectId: $projectId
+                    contentId: $contentId
+                  }) {
+                    projectV2Item {
+                      id
+                    }
+                  }
+                }
+              `;
+              try {
+                const addResult = await github.graphql(addMutation, {
+                  projectId,
+                  contentId: issueNodeId
+                });
+                itemId = addResult.addProjectV2ItemById.projectV2Item.id;
+                console.log(`Added issue #${context.payload.issue.number} to project.`);
+              } catch (addErr) {
+                // Race: another automation may have added the issue after our find; addProjectV2ItemById then fails (e.g. duplicate).
+                // Re-query so we still set Phase; otherwise the issue would be in the project without Phase.
+                const message = addErr.message || String(addErr);
+                console.log(`Add failed (${message}), re-querying project for item after short delay.`);
+                await new Promise(r => setTimeout(r, 1500));
+                itemId = await findItemId();
+                if (!itemId) {
+                  core.setFailed(`Could not add issue #${context.payload.issue.number} to project and could not find it there: ${message}`);
+                  return;
+                }
+                console.log(`Found issue #${context.payload.issue.number} in project, will set Phase.`);
+              }
+            } else {
+              console.log(`Issue #${context.payload.issue.number} already in project.`);
+            }
+
+            const setFieldMutation = `
+              mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                updateProjectV2ItemFieldValue(input: {
+                  projectId: $projectId
+                  itemId: $itemId
+                  fieldId: $fieldId
+                  value: { singleSelectOptionId: $optionId }
+                }) {
+                  projectV2Item {
+                    id
+                  }
+                }
+              }
+            `;
+
+            await github.graphql(setFieldMutation, {
+              projectId,
+              itemId,
+              fieldId,
+              optionId
+            });
+
+            console.log(`Phase set to "${phaseName}" for issue #${context.payload.issue.number}.`);

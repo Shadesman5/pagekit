@@ -1,6 +1,6 @@
 *.css
 *.less
 /node_modules
-**/*/languages/**
+# **/*/languages/**
 **/*/tmp/**
-/app/vendor
+# /app/vendor

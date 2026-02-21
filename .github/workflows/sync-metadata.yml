@@ -1,6 +1,6 @@
 # Parses a <!-- metadata --> block from issue/PR bodies and applies labels + milestone.
-# Chains with project-auto-phase.yml: this workflow adds labels → labeled event
-# triggers project-auto-phase → Phase field set in Project board.
+# Chains with auto-add-to-project-phase.yml: this workflow adds labels → labeled event
+# triggers add-to-project + Phase field set in one workflow.
 #
 # Metadata block format (hidden in rendered markdown, MUST use multi-line):
 #
@@ -29,7 +29,7 @@
 #
 # Requires:
 #   Secret: PROJECT_TOKEN - PAT with repo scope
-#     (MUST be a PAT, not GITHUB_TOKEN, so that label events trigger project-auto-phase.yml)
+#     (MUST be a PAT, not GITHUB_TOKEN, so that label events trigger auto-add-to-project-phase.yml)
 
 name: Sync Metadata
 
@@ -54,7 +54,7 @@ jobs:
       - name: Parse metadata and apply labels/milestone
         uses: actions/github-script@v7
         with:
-          # Use PAT so that label events trigger project-auto-phase.yml
+          # Use PAT so that label events trigger auto-add-to-project-phase.yml
           # (GITHUB_TOKEN events don't trigger other workflows)
           github-token: ${{ secrets.PROJECT_TOKEN }}
           script: |

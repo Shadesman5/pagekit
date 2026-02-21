@@ -162,7 +162,7 @@ For ALL validation failures, verify:
 **Future Improvement Needed:**
 - Display backend validation errors per field (like client-side validation)
 - Use `response.data.errors` object to show errors below respective form fields
-- This will be addressed in future Vue.js migration (Step 2.1.5+)
+- This will be addressed in Vue 3 migration (Phase 3 — Step 3.4+)
 
 ---
 
@@ -410,5 +410,5 @@ curl -X POST http://localhost:8000/api/site/node \
   - 📌 **Dual System**: Both validations work in parallel:
     1. Client-side catches most errors before submit (better UX)
     2. Backend validation catches edge cases and ensures data integrity (security)
-  - 🔮 **Future**: Backend validation errors will be displayed as structured field errors in Vue.js migration (Step 2.1.5+)
+  - 🔮 **Future**: Backend validation errors will be displayed as structured field errors in Vue 3 migration (Phase 3 — Step 3.4+)
 - **Business Logic**: Some validation (like "Invalid type" for protected nodes) is business logic, not entity validation - these remain in controllers
