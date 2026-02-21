@@ -89,21 +89,20 @@ $config = [
             return $dbs;
         };
 
-        $app['db'] = fn ($app) => $app['dbs'][$this->config['default']];
+        $app['db'] = fn ($app) => $app->get('dbs')[$this->config['default']];
 
-        $app['db.em'] = fn ($app) => new EntityManager($app['db'], $app['db.metas'], $app['db.events']);
+        $app['db.em'] = fn ($app) => new EntityManager($app->get('db'), $app->get('db.metas'), $app->get('db.events'));
 
         $app['db.metas'] = function ($app) {
 
-            $manager = new MetadataManager($app['db'], $app['db.events']);
+            $manager = new MetadataManager($app->get('db'), $app->get('db.events'));
             $manager->setLoader(new AttributeLoader());
-            // Cache now supports both doctrine/cache and PSR-6 interfaces
-            $manager->setCache($app['cache.phpfile']);
+            $manager->setCache($app->get('cache.phpfile'));
 
             return $manager;
         };
 
-        $app['db.events'] = fn ($app) => new PrefixEventDispatcher('model.', $app['events']);
+        $app['db.events'] = fn ($app) => new PrefixEventDispatcher('model.', $app->get('events'));
 
         // Note: db.debug_middleware is now created inline in the dbs factory above
         // This ensures it's available when the connection is created

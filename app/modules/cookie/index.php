@@ -33,11 +33,11 @@ return [
                 $path = $request->getBasePath() ?: '/';
             }
 
-            $app['cookie']->setDefaultPathAndDomain($path, $this->config['domain']);
+            $app->get('cookie')->setDefaultPathAndDomain($path, $this->config['domain']);
         },
 
         'response' => function ($event, $request, $response) use ($app) {
-            foreach ($app['cookie']->getQueuedCookies() as $cookie) {
+            foreach ($app->get('cookie')->getQueuedCookies() as $cookie) {
                 $response->headers->setCookie($cookie);
             }
         }
