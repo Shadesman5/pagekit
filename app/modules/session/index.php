@@ -85,7 +85,7 @@ return [
                 return;
             }
 
-            if (!isset($app->get('session.options')['cookie_path'])) {
+            if (!$app->has('session.options') || !isset($app->get('session.options')['cookie_path'])) {
                 $app->get('session.storage')->setOptions(['cookie_path' => $request->getBasePath() ?: '/']);
             }
 
