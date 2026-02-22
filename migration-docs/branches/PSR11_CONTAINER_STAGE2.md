@@ -51,6 +51,14 @@ Migrate all READ access call sites in `app/modules/` from ArrayAccess (`$app['x'
 - [x] No `isset($app['x'])` in `app/modules/`
 - [x] No static shortcut calls (`App::db()`, etc.) in `app/modules/`
 
-## Next Stage
+## Sub-Step Classification
 
-Stage 3 will migrate `app/system/`, `app/installer/`, `app/console/` call sites.
+Stages 1 and 2 together form **sub-step 2.0.1a** of the PSR-11 Container Vollmodernisierung.
+The full sub-step plan (2.0.1a–e) is documented in
+`migration-docs/TODO/agent_prompts/PSR-11-Container-Vollmodernisierung.md`.
+
+## Next Sub-Step
+
+2.0.1b (DI Infrastructure) will add constructor injection support to the ControllerResolver,
+followed by 2.0.1c which migrates `app/system/`, `app/installer/`, `app/console/` call sites
+using the new DI infrastructure.

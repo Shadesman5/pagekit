@@ -53,6 +53,20 @@ Refactor `Pagekit\Container` to implement `Psr\Container\ContainerInterface` nat
 - [x] NotFoundException implements NotFoundExceptionInterface
 - [x] ContainerException implements ContainerExceptionInterface
 
+## Architecture Note: __callStatic / PSR-11 Collision
+
+During this stage, a fundamental limitation was discovered: PHP does not trigger `__callStatic`
+when a method with the same name exists as an instance method. Since `Container::get()` is now
+a PSR-11 instance method, `App::get('db')` causes a fatal error instead of routing through
+`__callStatic`. This affected 8 call sites (changed to `App::getInstance()->get('x')`).
+
+**Resolution plan:** This is properly addressed in the expanded sub-step structure:
+- 2.0.1b: DI Infrastructure (ControllerResolver supports constructor injection)
+- 2.0.1c: Controllers/listeners migrate to constructor DI (no more `App::x()` service shortcuts)
+- 2.0.1e: StaticTrait, EventTrait, RouterTrait deleted entirely
+
+See `migration-docs/TODO/agent_prompts/PSR-11-Container-Vollmodernisierung.md` for the full plan.
+
 ## Next Stage
 
 Stage 2 will migrate `app/modules/` call sites from `$app['x']` to `$app->get('x')`.

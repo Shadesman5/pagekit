@@ -1,6 +1,7 @@
-# PSR-11 Container Vollmodernisierung – Stage 1: Container Core (Native PSR-11)
+# PSR-11 Container Vollmodernisierung – Sub-Step 2.0.1a (Part 1): Container Core
 
-**ROADMAP:** 2.0.5 (Stage 1). Reference: `@ROADMAP.md`.
+**ROADMAP:** 2.0.1a (Part 1 of 2). Reference: `@ROADMAP.md`.
+**Status:** ✅ COMPLETED — See `migration-docs/branches/PSR11_CONTAINER_STAGE1.md`
 
 ---
 
