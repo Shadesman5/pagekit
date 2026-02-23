@@ -79,7 +79,7 @@ After the last step is committed, the Orchestrator (NOT a subagent) executes the
 1. **Version bump** – follow `.cursor/skills/version-bump/SKILL.md`
 2. **CHANGELOG-NEW.md** – group all commits from this task
 3. **Push** – to remote (create branch from develop if needed)
-4. **PR** – with `<!-- metadata -->` block (labels, milestone, `closes`). See `push.mdc` and `github-labels.mdc`.
+4. **PR** – with `<!-- metadata -->` block (labels, milestone, `closes`). Use the GitHub Issue number from the invocation block (`GitHub Issue: #XXX`). Include `Closes #XXX` in the visible PR body AND in the metadata `closes:` field. See `push.mdc` and `github-labels.mdc`.
 5. **Do NOT merge** – user reviews and merges.
 
 This replaces Cursor's auto-PR feature (which should be set to "Off" in Cursor settings).

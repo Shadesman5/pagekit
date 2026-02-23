@@ -19,6 +19,7 @@ Use this template to invoke the Orchestrator workflow. The main agent will deleg
 TASK INVOCATION
 
 Execute the task defined in: @PROMPT_X_Y.md
+GitHub Issue: #XXX (PR will "Closes #XXX" and metadata block will reference it)
 
 Workflow: Orchestrator (Architect → Refactorer → Verifier → Tester per step → Push + PR)
 Rule: @orchestrator-subagent-workflow.mdc
@@ -30,7 +31,7 @@ Rules:
 - One step at a time (sequential)
 - Commit per completed step (Conventional Commits)
 - Do NOT batch commits until end of task
-- After last step: follow push.mdc (version bump → CHANGELOG → push → PR with metadata). Do NOT merge.
+- After last step: follow push.mdc (version bump → CHANGELOG → push → PR with metadata). PR must include "Closes #XXX" and the issue number in the metadata block. Do NOT merge.
 
 Token discipline (Orchestrator):
 - Delegate to Architect immediately. Do NOT read the full task prompt or ROADMAP yourself.
