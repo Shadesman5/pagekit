@@ -28,7 +28,7 @@
    - Backward compatibility: `// TODO: BACKWARD COMPATIBILITY - Must be refactored later`
    - Agents may add sub-steps (e.g. 2.0.5b) in ROADMAP if a step is missing for clean modernization.
 
-## **📊 TRACKING TABLE (PHASE 2: FOUNDATION)**
+## **📊 TRACKING TABLE**
 
 **Legend:**
 
@@ -91,6 +91,7 @@
 | 3.4.5  | ↳ Deps (intl→Intl, lodash→native)     | ⏳     | ⏳    | -     | -       | Phase 3          |
 | 3.4.6  | ↳ Translation System Modernization    | ⏳     | ⏳    | -     | -       | Phase 3          |
 | 3.5    | Component Library                     | ⏳     | ⏳    | -     | -       | Phase 3          |
+| 3.6    | E2E selector strategy (data-testid)   | ⏳     | ⏳    | -     | -       | Phase 3          |
 | 4.1    | Basic Security                        | ⏳     | ⏳    | -     | -       | Phase 4          |
 | 4.2    | REST API v2                           | ⏳     | ⏳    | -     | -       | Phase 4          |
 | 4.3    | Performance Optimization              | ⏳     | ⏳    | -     | -       | Phase 4          |
