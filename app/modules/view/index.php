@@ -37,15 +37,15 @@ return [
 
     'main' => function ($app) {
 
-        $app['view'] = fn($app) => new View(new PrefixEventDispatcher('view.', $app['events']));
+        $app['view'] = fn($app) => new View(new PrefixEventDispatcher('view.', $app->get('events')));
 
         $app['assets'] = fn() => new AssetFactory();
 
-        $app['styles'] = fn($app) => new AssetManager($app['assets']);
+        $app['styles'] = fn($app) => new AssetManager($app->get('assets'));
 
-        $app['scripts'] = fn($app) => new AssetManager($app['assets']);
+        $app['scripts'] = fn($app) => new AssetManager($app->get('assets'));
 
-        $app['module']->addLoader(function ($module) use ($app) {
+        $app->get('module')->addLoader(function ($module) use ($app) {
 
             if (isset($module['views'])) {
                 $app->extend('view', function ($view) use ($module) {
@@ -65,7 +65,7 @@ return [
 
         'controller' => [function ($event) use ($app) {
 
-            $view = $app['view'];
+            $view = $app->get('view');
             $layout = true;
             $result = $event->getControllerResult();
 
@@ -125,18 +125,15 @@ return [
 
         'view.init' => [function ($event, $view) use ($app) {
 
-            // Create delegating engine
             $delegatingEngine = new DelegatingEngine();
-            
-            // Add PHP engine
-            $phpEngine = new PhpEngine(null, isset($app['locator']) ? new FilesystemLoader($app['locator']) : null);
+
+            $phpEngine = new PhpEngine(null, $app->has('locator') ? new FilesystemLoader($app->get('locator')) : null);
             $delegatingEngine->addEngine(new PhpEngineAdapter($phpEngine));
 
-            // Add Twig engine if available
-            if (isset($app['twig'])) {
-                $delegatingEngine->addEngine(new TwigEngineAdapter($app['twig']));
+            if ($app->has('twig')) {
+                $delegatingEngine->addEngine(new TwigEngineAdapter($app->get('twig')));
             }
-            
+
             $view->addEngine($delegatingEngine);
 
             $view->addGlobal('app', $app);
@@ -144,22 +141,22 @@ return [
 
             $view->addHelpers([
                 new DataHelper(),
-                new DeferredHelper($app['events']),
+                new DeferredHelper($app->get('events')),
                 new GravatarHelper(),
                 new MapHelper(),
                 new MetaHelper(),
-                new ScriptHelper($app['scripts']),
+                new ScriptHelper($app->get('scripts')),
                 new SectionHelper(),
-                new StyleHelper($app['styles']),
-                new UrlHelper($app['url'])
+                new StyleHelper($app->get('styles')),
+                new UrlHelper($app->get('url'))
             ]);
 
-            if (isset($app['csrf'])) {
-                $view->addHelper(new TokenHelper($app['csrf']));
+            if ($app->has('csrf')) {
+                $view->addHelper(new TokenHelper($app->get('csrf')));
             }
 
-            if (isset($app['markdown'])) {
-                $view->addHelper(new MarkdownHelper($app['markdown']));
+            if ($app->has('markdown')) {
+                $view->addHelper(new MarkdownHelper($app->get('markdown')));
             }
 
         }, 50]

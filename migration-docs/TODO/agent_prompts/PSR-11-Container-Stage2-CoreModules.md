@@ -1,6 +1,7 @@
-# PSR-11 Container Vollmodernisierung – Stage 2: Core Modules Call Sites
+# PSR-11 Container Vollmodernisierung – Sub-Step 2.0.1a (Part 2): Core Modules Call Sites
 
-**ROADMAP:** 2.0.5 (Stage 2). Reference: `@ROADMAP.md`.
+**ROADMAP:** 2.0.1a (Part 2 of 2). Reference: `@ROADMAP.md`.
+**Status:** ✅ COMPLETED — See `migration-docs/branches/PSR11_CONTAINER_STAGE2.md`
 
 ---
 

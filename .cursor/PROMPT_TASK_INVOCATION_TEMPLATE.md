@@ -21,6 +21,7 @@ TASK INVOCATION
 Execute the task defined in: @PROMPT_X_Y.md
 
 Workflow: Orchestrator (Architect → Refactorer → Verifier → Tester per step)
+Rule: @orchestrator-subagent-workflow.mdc
 Reference: @ROADMAP.md
 
 Rules:

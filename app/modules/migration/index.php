@@ -15,22 +15,18 @@ return [
     'name' => 'migration',
 
     'main' => function ($app) {
-        // Register migration service in DI container
         $app['migration'] = function ($app) {
-            // Load migration configuration
             $configPath = __DIR__ . '/../../config/migrations.php';
             $config = file_exists($configPath) ? require $configPath : [];
-            
-            // Create and return migration service
-            return new MigrationService($app['db'], $config);
+
+            return new MigrationService($app->get('db'), $config);
         };
 
-        // Register configuration provider
         $app['migration.config'] = function ($app) {
             $configPath = __DIR__ . '/../../config/migrations.php';
             $config = file_exists($configPath) ? require $configPath : [];
-            
-            return new ConfigurationProvider($app['db'], $config);
+
+            return new ConfigurationProvider($app->get('db'), $config);
         };
     },
 

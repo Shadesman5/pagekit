@@ -25,14 +25,14 @@ return [
 
         $app['debugbar'] = function ($app) {
             $debugbar = new DebugBar();
-            return $debugbar->setStorage($app['debugbar.storage']);
+            return $debugbar->setStorage($app->get('debugbar.storage'));
         };
 
         $app['debugbar.storage'] = fn() => new SqliteStorage($this->config['file']);
 
         $app['debugbar.stopwatch'] = fn() => new Stopwatch();
 
-        $app->extend('events', fn($dispatcher, $app) => new TraceableEventDispatcher($dispatcher, $app['debugbar.stopwatch']));
+        $app->extend('events', fn($dispatcher, $app) => new TraceableEventDispatcher($dispatcher, $app->get('debugbar.stopwatch')));
 
     },
 
@@ -40,65 +40,58 @@ return [
 
         'boot' => function ($event, $app) {
 
-            if (!isset($app['debugbar'])) {
+            if (!$app->has('debugbar')) {
                 return;
             }
 
-            $app['debugbar']->addCollector(new MemoryCollector());
-            $app['debugbar']->addCollector(new TimeDataCollector());
-            $app['debugbar']->addCollector(new RoutesDataCollector($app['router'], $app['events'], $app['path.cache']));
-            $app['debugbar']->addCollector(new EventDataCollector($app['events'], $app['path']));
-            $app['debugbar']->addCollector(new ProfileDataCollector($app['debugbar.storage']));
+            $app->get('debugbar')->addCollector(new MemoryCollector());
+            $app->get('debugbar')->addCollector(new TimeDataCollector());
+            $app->get('debugbar')->addCollector(new RoutesDataCollector($app->get('router'), $app->get('events'), $app->get('path.cache')));
+            $app->get('debugbar')->addCollector(new EventDataCollector($app->get('events'), $app->get('path')));
+            $app->get('debugbar')->addCollector(new ProfileDataCollector($app->get('debugbar.storage')));
 
-            if (isset($app['auth'])) {
-                $app['debugbar']->addCollector(new AuthDataCollector($app['auth']));
+            if ($app->has('auth')) {
+                $app->get('debugbar')->addCollector(new AuthDataCollector($app->get('auth')));
             }
 
-            if (isset($app['info'])) {
-                $app['debugbar']->addCollector(new SystemDataCollector($app['info']));
+            if ($app->has('info')) {
+                $app->get('debugbar')->addCollector(new SystemDataCollector($app->get('info')));
             }
 
-            if (isset($app['db'])) {
-                // DBAL 3.x uses middleware instead of SQLLogger
+            if ($app->has('db')) {
                 try {
-                    // Check if logger exists (created during connection setup)
-                    if (isset($app['db.debug_logger'])) {
-                        $logger = $app['db.debug_logger'];
-                        // Logger is always enabled in DBAL 3.x (middleware requirement)
-                        // Set stopwatch if available
-                        if (isset($app['debugbar.stopwatch']) && $logger->stopwatch === null) {
-                            $logger->stopwatch = $app['debugbar.stopwatch'];
+                    if ($app->has('db.debug_logger')) {
+                        $logger = $app->get('db.debug_logger');
+                        if ($app->has('debugbar.stopwatch') && $logger->stopwatch === null) {
+                            $logger->stopwatch = $app->get('debugbar.stopwatch');
                         }
-                        $app['debugbar']->addCollector(new DatabaseDataCollector($app['db'], $logger));
-                    } elseif (isset($app['db.debug_middleware'])) {
-                        // Fallback: try to get logger from middleware
-                        $middleware = $app['db.debug_middleware'];
+                        $app->get('debugbar')->addCollector(new DatabaseDataCollector($app->get('db'), $logger));
+                    } elseif ($app->has('db.debug_middleware')) {
+                        $middleware = $app->get('db.debug_middleware');
                         $logger = $middleware->getLogger();
-                        if (isset($app['debugbar.stopwatch']) && $logger->stopwatch === null) {
-                            $logger->stopwatch = $app['debugbar.stopwatch'];
+                        if ($app->has('debugbar.stopwatch') && $logger->stopwatch === null) {
+                            $logger->stopwatch = $app->get('debugbar.stopwatch');
                         }
-                        $app['debugbar']->addCollector(new DatabaseDataCollector($app['db'], $logger));
+                        $app->get('debugbar')->addCollector(new DatabaseDataCollector($app->get('db'), $logger));
                     } else {
-                        // Last fallback: Create collector without logger
-                        $app['debugbar']->addCollector(new DatabaseDataCollector($app['db'], null));
+                        $app->get('debugbar')->addCollector(new DatabaseDataCollector($app->get('db'), null));
                     }
                 } catch (\Exception $e) {
-                    // If all fails, create collector without logger
-                    $app['debugbar']->addCollector(new DatabaseDataCollector($app['db'], null));
+                    $app->get('debugbar')->addCollector(new DatabaseDataCollector($app->get('db'), null));
                 }
             }
 
-            if (isset($app['log.debug'])) {
-                $app['debugbar']->addCollector($app['log.debug']);
+            if ($app->has('log.debug')) {
+                $app->get('debugbar')->addCollector($app->get('log.debug'));
             }
 
             $app->on('view.head', function ($event, $view) use ($app) {
 
-                if ($app['request']->get('_disable_debugbar')) {
+                if ($app->get('request')->get('_disable_debugbar')) {
                     return;
                 }
 
-                $view->data('$debugbar', ['current' => $app['debugbar']->getCurrentRequestId()]);
+                $view->data('$debugbar', ['current' => $app->get('debugbar')->getCurrentRequestId()]);
                 $view->style('debugbar', 'app/modules/debug/assets/css/debugbar.css');
                 $view->script('debugbar', 'app/modules/debug/app/bundle/debugbar.js', ['vue']);
             }, 50);
@@ -111,15 +104,15 @@ return [
                     return;
                 }
 
-                $app['debugbar']->collect();
+                $app->get('debugbar')->collect();
 
             }, -1000);
 
-            $app['routes']->add([
+            $app->get('routes')->add([
                 'name' => '_debugbar',
                 'path' => '_debugbar/{id}',
                 'defaults' => ['_debugbar' => false],
-                'controller' => fn($id) => $app['response']->json($app['debugbar']->getStorage()->get($id))
+                'controller' => fn($id) => $app->get('response')->json($app->get('debugbar')->getStorage()->get($id))
             ]);
 
         }

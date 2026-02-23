@@ -4,9 +4,10 @@ namespace Pagekit;
 
 use Pagekit\Container\ContainerException;
 use Pagekit\Container\NotFoundException;
-use Pagekit\Container\Psr11Adapter;
+use Psr\Container\ContainerInterface;
 
-class Container implements \ArrayAccess
+// TODO: BACKWARD COMPATIBILITY - ArrayAccess delegates to get/has. Must be removed in Step 2.0.1 Stage 4
+class Container implements ContainerInterface, \ArrayAccess
 {
     protected array $values = [];
 
@@ -39,18 +40,16 @@ class Container implements \ArrayAccess
      */
     public function __call($name, $args)
     {
-        $value = $this->offsetGet($name);
-        
-        // Special handling for module() calls
+        $value = $this->get($name);
+
         if ($name === 'module' && $args && is_object($value) && method_exists($value, 'get')) {
             return $value->get($args[0]);
         }
-        
-        // For callable values, call them with arguments
+
         if (is_callable($value) && $args) {
             return call_user_func_array($value, $args);
         }
-        
+
         return $value;
     }
 
@@ -115,48 +114,48 @@ class Container implements \ArrayAccess
     }
 
     /**
-     * Gets a PSR-11 compatible adapter for this container.
-     * 
-     * @return Psr11Adapter
-     */
-    public function getPsr11Adapter(): Psr11Adapter
-    {
-        return new Psr11Adapter($this);
-    }
-
-    /**
-     * PSR-11 Compatible: Finds an entry of the container by its identifier and returns it.
-     * Named getService() to avoid conflict with static get() method.
+     * PSR-11: Finds an entry of the container by its identifier and returns it.
      *
      * @param string $id Identifier of the entry to look for.
      *
-     * @throws NotFoundExceptionInterface  No entry was found for this identifier.
-     * @throws ContainerExceptionInterface Error while retrieving the entry.
+     * @throws NotFoundException  No entry was found for this identifier.
+     * @throws ContainerException Error while retrieving the entry.
      *
      * @return mixed Entry.
      */
-    public function getService(string $id)
+    public function get(string $id): mixed
     {
+        if (!array_key_exists($id, $this->values)) {
+            throw new NotFoundException(sprintf('"%s" is not defined.', $id));
+        }
+
         try {
-            return $this->offsetGet($id);
-        } catch (\InvalidArgumentException $e) {
-            throw new NotFoundException($e->getMessage(), $e->getCode(), $e);
+            if (array_key_exists($id, $this->raw) || !($this->values[$id] instanceof \Closure)) {
+                return $this->values[$id];
+            }
+
+            if (isset($this->factories[$id])) {
+                return $this->values[$id]($this);
+            }
+
+            $this->raw[$id] = $this->values[$id];
+
+            return $this->values[$id] = $this->values[$id]($this);
         } catch (\Exception $e) {
             throw new ContainerException(sprintf('Error while retrieving "%s"', $id), 0, $e);
         }
     }
 
     /**
-     * PSR-11 Compatible: Returns true if the container can return an entry for the given identifier.
-     * Named hasService() to avoid conflict with static has() method.
+     * PSR-11: Returns true if the container can return an entry for the given identifier.
      *
      * @param string $id Identifier of the entry to look for.
      *
      * @return bool
      */
-    public function hasService(string $id): bool
+    public function has(string $id): bool
     {
-        return $this->offsetExists($id);
+        return array_key_exists($id, $this->values);
     }
 
     /**
@@ -166,7 +165,7 @@ class Container implements \ArrayAccess
      */
     public function offsetExists($name): bool
     {
-        return array_key_exists($name, $this->values);
+        return $this->has((string) $name);
     }
 
     /**
@@ -175,26 +174,12 @@ class Container implements \ArrayAccess
      * @param  string $name
      * @return mixed
      *
-     * @throws \InvalidArgumentException
+     * @throws NotFoundException
      */
     #[\ReturnTypeWillChange]
     public function offsetGet($name)
     {
-        if (!array_key_exists($name, $this->values)) {
-            throw new \InvalidArgumentException(sprintf('"%s" is not defined.', $name));
-        }
-
-        if (array_key_exists($name, $this->raw) || !($this->values[$name] instanceof \Closure)) {
-            return $this->values[$name];
-        }
-
-        if (isset($this->factories[$name])) {
-            return $this->values[$name]($this);
-        }
-
-        $this->raw[$name] = $this->values[$name];
-
-        return $this->values[$name] = $this->values[$name]($this);
+        return $this->get((string) $name);
     }
 
     /**

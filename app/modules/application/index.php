@@ -15,22 +15,17 @@ return [
 
         $app['debug'] = fn() => (bool) $this->config['debug'];
 
-        $app['url'] = fn($app) => new UrlProvider($app['router'], $app['file'], $app['locator']);
+        $app['url'] = fn($app) => new UrlProvider($app->get('router'), $app->get('file'), $app->get('locator'));
 
-        $app['response'] = fn($app) => new Response($app['url']);
+        $app['response'] = fn($app) => new Response($app->get('url'));
 
-        // Symfony 6.4 Event System Compatibility Layer
-        // Only used when Symfony components explicitly need it
         $app['symfony.event_dispatcher'] = function($app) {
-            return new \Pagekit\Event\SymfonyEventDispatcherBridge($app['events']);
+            return new \Pagekit\Event\SymfonyEventDispatcherBridge($app->get('events'));
         };
-
-        // use Symfony\Component\ErrorHandler\ErrorHandler instead.
-        // $app['exception'] = ExceptionHandler::register($app['debug']);
 
         ErrorHandler::register()->throwAt(E_ERROR | E_CORE_ERROR | E_COMPILE_ERROR | E_RECOVERABLE_ERROR);
 
-        ini_set('display_errors', $app->inConsole() || $app['debug'] ? 1 : 0);
+        ini_set('display_errors', $app->inConsole() || $app->get('debug') ? 1 : 0);
 
     },
 

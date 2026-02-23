@@ -1,5 +1,29 @@
 # Changelog
 
+## Pagekit 1.1.5 - PSR-11 Container Core + DI Modernization Plan (February 22, 2026)
+
+### ♻️ Refactoring
+
+- **PSR-11 Native Container (2.0.1a Stage 1)** - `Container` now directly implements `Psr\Container\ContainerInterface` with native `get()` and `has()` methods. `Psr11Adapter` wrapper deleted. `ArrayAccess` delegates to `get()`/`has()` for backward compatibility. `NotFoundException` and `ContainerException` implement PSR-11 exception interfaces. (Issue #145)
+- **Core Modules Call Site Migration (2.0.1a Stage 2)** - Migrated ~116 call sites in `app/modules/` from `$app['x']` to `$app->get('x')` and `isset($app['x'])` to `$app->has('x')`. Service registration (`$app['x'] = fn`) kept as ArrayAccess (deferred to 2.0.1d). (Issue #145)
+- **StaticTrait Cleanup** - Removed dead `get`/`has` cases from `__callStatic` (PHP limitation: `__callStatic` not triggered when instance method exists). Documented workaround: `App::getInstance()->get('x')` for 8 call sites where `App::get('x')` collides with PSR-11 instance method.
+
+### 📝 Documentation
+
+- **PSR-11 Vollmodernisierung Plan** - Expanded Step 2.0.1 from 4 stages into 5 sub-steps (2.0.1a–e) with proper dependency chain: Container Core → DI Infrastructure → System Migration → ArrayAccess Removal → StaticTrait Deletion. Discovered and fixed critical bug in Stage 3/4 agent prompts where `App::db() → App::get('db')` would cause fatal errors due to `__callStatic`/PSR-11 name collision.
+- **New Agent Prompts** - Created `PSR-11-Container-DI-Infrastructure.md` (2.0.1b: ControllerResolver constructor injection) and `PSR-11-Container-StaticTrait-Removal.md` (2.0.1e: delete all traits, repository pattern for models, fix SymfonyEventDispatcherBridge).
+- **Architecture Analysis** - Documented component DI feasibility (controllers: yes, listeners: yes, models: need repositories, commands: yes). Identified RouterTrait and EventTrait as additional removal targets dependent on StaticTrait.
+- **ROADMAP** - Updated tracking table with 5 sub-steps for 2.0.1. Branch docs updated with architecture notes.
+
+### 🧪 Tests
+
+- All 261 PHPUnit tests pass (0 failures, 0 errors)
+- `php pagekit setup` succeeds
+- Container implements `ContainerInterface` (verified)
+- No references to `Psr11Adapter`, `getService`, `hasService`
+
+---
+
 ## Pagekit 1.1.4 - GitHub Metadata Automation & Security Hardening (February 21, 2026)
 
 ### ✨ New Features

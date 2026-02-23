@@ -13,13 +13,13 @@ return [
 
         $app['twig'] = function ($app) {
 
-            $twig = new Environment(new TwigLoader(isset($app['locator']) ? new FilesystemLoader($app['locator']) : null), [
-                'cache' => new TwigCache($app['path.cache']),
+            $twig = new Environment(new TwigLoader($app->has('locator') ? new FilesystemLoader($app->get('locator')) : null), [
+                'cache' => new TwigCache($app->get('path.cache')),
                 'auto_reload' => true,
-                'debug' => $app['debug'],
+                'debug' => $app->get('debug'),
             ]);
 
-            if (isset($app['debug']) && $app['debug']) {
+            if ($app->has('debug') && $app->get('debug')) {
                 $twig->addExtension(new DebugExtension());
             }
 

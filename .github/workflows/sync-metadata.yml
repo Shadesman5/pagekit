@@ -1,4 +1,5 @@
 # Parses a <!-- metadata --> block from issue/PR bodies and applies labels + milestone.
+# Issues: labels + milestone. PRs: labels only (milestone inherited from linked issue).
 # Chains with auto-add-to-project-phase.yml: this workflow adds labels → labeled event
 # triggers add-to-project + Phase field set in one workflow.
 #
@@ -220,9 +221,9 @@ jobs:
             }
 
             // ================================================================
-            // Apply milestone
+            // Apply milestone (issues only — PRs inherit milestone from linked issue)
             // ================================================================
-            if (metadata.milestone) {
+            if (metadata.milestone && !isPR) {
               const currentMilestone = item.milestone ? item.milestone.title : null;
 
               // Normalize: allow shorthand "Phase 1" → "Phase 1: Foundation"

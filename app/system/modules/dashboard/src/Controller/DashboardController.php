@@ -37,7 +37,7 @@ class DashboardController
             ],
             '$data' => [
                 'widgets' => array_values($this->dashboard->getWidgets()),
-                'api' => App::get('system.api'),
+                'api' => App::getInstance()->get('system.api'),
                 'version' => App::version(),
                 'channel' => 'stable'
             ]

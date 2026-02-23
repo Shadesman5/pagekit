@@ -15,8 +15,8 @@ return [
     'main' => function ($app) {
 
         $app['session'] = function ($app) {
-            $session = new Session($app['session.storage']);
-            $session->registerBag($app['message']);
+            $session = new Session($app->get('session.storage'));
+            $session->registerBag($app->get('message'));
             return $session;
         };
 
@@ -28,15 +28,15 @@ return [
 
                 case 'database':
 
-                    $handler = new DatabaseSessionHandler($app['db'], $this->config['table']);
-                    $storage = new NativeSessionStorage($app['session.options'], $handler);
+                    $handler = new DatabaseSessionHandler($app->get('db'), $this->config['table']);
+                    $storage = new NativeSessionStorage($app->get('session.options'), $handler);
 
                     break;
 
                 default:
 
                     $handler = new NativeFileSessionHandler($this->config['files']);
-                    $storage = new NativeSessionStorage($app['session.options'], $handler);
+                    $storage = new NativeSessionStorage($app->get('session.options'), $handler);
 
                     break;
             }
@@ -65,7 +65,7 @@ return [
         };
 
         $app['csrf'] = function ($app) {
-            return new SessionCsrfProvider($app['session']);
+            return new SessionCsrfProvider($app->get('session'));
         };
 
     },
@@ -74,7 +74,7 @@ return [
 
         'boot' => function ($event, $app) {
 
-            $app->subscribe(new CsrfListener($app['csrf']));
+            $app->subscribe(new CsrfListener($app->get('csrf')));
 
         },
 
@@ -85,13 +85,13 @@ return [
                 return;
             }
 
-            if (!isset($app['session.options']['cookie_path'])) {
-                $app['session.storage']->setOptions(['cookie_path' => $request->getBasePath() ?: '/']);
+            if (!$app->has('session.options') || !isset($app->get('session.options')['cookie_path'])) {
+                $app->get('session.storage')->setOptions(['cookie_path' => $request->getBasePath() ?: '/']);
             }
 
-            $request->setSession($app['session']);
+            $request->setSession($app->get('session'));
 
-            $app['session']->start();
+            $app->get('session')->start();
 
         }, 100]
 

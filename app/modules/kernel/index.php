@@ -17,18 +17,18 @@ return [
         $app['kernel'] = function ($app) {
 
             $app->subscribe(
-                new ControllerListener($app['resolver']),
+                new ControllerListener($app->get('resolver')),
                 new ResponseListener(),
                 new JsonResponseListener(),
                 new StringResponseListener()
             );
 
-            return new HttpKernel($app['events'], $app['request.stack']);
+            return new HttpKernel($app->get('events'), $app->get('request.stack'));
         };
 
         $app['resolver'] = fn() => new ControllerResolver();
 
-        $app->factory('request', fn($app) => $app['request.stack']->getCurrentRequest());
+        $app->factory('request', fn($app) => $app->get('request.stack')->getCurrentRequest());
 
         $app['request.stack'] = fn() => new RequestStack();
 

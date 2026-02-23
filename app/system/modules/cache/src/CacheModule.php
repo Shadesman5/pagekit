@@ -127,7 +127,7 @@ class CacheModule extends Module
         if (empty($options) || @$options['cache']) {
             App::cache()->flushAll();
 
-            foreach ((array) glob(App::get('path.cache') . '/*.cache') as $file) {
+            foreach ((array) glob(App::getInstance()->get('path.cache') . '/*.cache') as $file) {
                 @unlink($file);
                 // opcache
                 if (function_exists('opcache_invalidate')) {
@@ -138,7 +138,7 @@ class CacheModule extends Module
 
         // clear temp folder
         if (@$options['temp']) {
-            foreach (App::finder()->in(App::get('path.temp'))->depth(0)->ignoreDotFiles(true) as $file) {
+            foreach (App::finder()->in(App::getInstance()->get('path.temp'))->depth(0)->ignoreDotFiles(true) as $file) {
                 App::file()->delete($file->getPathname());
                 // opcache
                 if (function_exists('opcache_invalidate')) {

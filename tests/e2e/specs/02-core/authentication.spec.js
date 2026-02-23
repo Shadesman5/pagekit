@@ -33,9 +33,9 @@ test.describe('Pagekit Authentication (Optimized)', () => {
     // Wait for form to be fully loaded
     await page.waitForSelector('input[type="text"]', { state: 'visible' });
 
-    // Check all form elements are present and visible (using German labels)
-    const usernameInput = page.getByRole('textbox', { name: 'Benutzername' });
-    const passwordInput = page.getByRole('textbox', { name: 'Passwort' });
+    // Check all form elements are present and visible
+    const usernameInput = page.locator('.js-login input[name="credentials[username]"]');
+    const passwordInput = page.locator('.js-login input[name="credentials[password]"]');
     const loginButton = page.locator('.js-login button');
 
     await expect(usernameInput).toBeVisible();

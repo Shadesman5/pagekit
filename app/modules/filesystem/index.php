@@ -15,11 +15,11 @@ return [
 
         $app['locator'] = fn() => new Locator($this->config['path']);
 
-        $app['module']->addLoader(function ($module) use ($app) {
+        $app->get('module')->addLoader(function ($module) use ($app) {
 
             if (isset($module['resources'])) {
                 foreach ($module['resources'] as $prefix => $path) {
-                    $app['locator']->add($prefix, "{$module['path']}/$path");
+                    $app->get('locator')->add($prefix, "{$module['path']}/$path");
                 }
             }
 
@@ -32,7 +32,7 @@ return [
 
         'boot' => function ($event, $app) {
 
-            StreamWrapper::setFilesystem($app['file']);
+            StreamWrapper::setFilesystem($app->get('file'));
 
         },
 
@@ -40,7 +40,7 @@ return [
 
             $baseUrl = $request->getSchemeAndHttpHost().$request->getBasePath();
 
-            $app['file']->registerAdapter('file', new FileAdapter($this->config['path'], $baseUrl));
+            $app->get('file')->registerAdapter('file', new FileAdapter($this->config['path'], $baseUrl));
 
         }, 100]
     ],
