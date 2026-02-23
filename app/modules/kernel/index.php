@@ -26,7 +26,8 @@ return [
             return new HttpKernel($app->get('events'), $app->get('request.stack'));
         };
 
-        $app['resolver'] = fn() => new ControllerResolver();
+        // TODO: BACKWARD COMPATIBILITY - ArrayAccess registration. Must be refactored in Step 2.0.1d
+        $app['resolver'] = fn($app) => new ControllerResolver($app);
 
         $app->factory('request', fn($app) => $app->get('request.stack')->getCurrentRequest());
 

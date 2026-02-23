@@ -2,20 +2,18 @@
 
 namespace Pagekit\Kernel\Controller;
 
+use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 class ControllerResolver
 {
-    protected ?\Psr\Log\LoggerInterface $logger = null;
+    protected ?ContainerInterface $container = null;
+    protected ?LoggerInterface $logger = null;
 
-    /**
-     * Constructor.
-     *
-     * @param LoggerInterface $logger
-     */
-    public function __construct(?LoggerInterface $logger = null)
+    public function __construct(?ContainerInterface $container = null, ?LoggerInterface $logger = null)
     {
+        $this->container = $container;
         $this->logger = $logger;
     }
 
@@ -127,13 +125,40 @@ class ControllerResolver
         return [$this->instantiateController($class), $method];
     }
 
-    /**
-     * Returns an instantiated controller
-     *
-     * @param string $class A class name
-     */
-    protected function instantiateController($class): object
+    protected function instantiateController(string $class): object
     {
-        return new $class();
+        if ($this->container === null) {
+            return new $class();
+        }
+
+        $reflectionClass = new \ReflectionClass($class);
+        $constructor = $reflectionClass->getConstructor();
+
+        if ($constructor === null || $constructor->getNumberOfParameters() === 0) {
+            return new $class();
+        }
+
+        $parameters = $constructor->getParameters();
+        $args = [];
+
+        foreach ($parameters as $param) {
+            $paramName = $param->getName();
+
+            if ($this->container->has($paramName)) {
+                $args[] = $this->container->get($paramName);
+            } elseif ($param->isDefaultValueAvailable()) {
+                $args[] = $param->getDefaultValue();
+            } else {
+                throw new \RuntimeException(sprintf(
+                    'Controller "%s" requires a value for constructor parameter "$%s" '
+                    . '(no container service "%s" found and no default value available).',
+                    $class,
+                    $paramName,
+                    $paramName
+                ));
+            }
+        }
+
+        return $reflectionClass->newInstanceArgs($args);
     }
 }
