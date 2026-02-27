@@ -9,6 +9,18 @@ alwaysApply: false
 When you receive a **Task Prompt** (from agent*prompts or PROMPT*\*.md), you MUST follow this workflow.
 You do NOT execute the full prompt at once. You DELEGATE to subagents by name (see rule 4 below); each subagent runs in its own context. Start by delegating to **architect** to get the plan, then loop: **refactorer** → **verifier** → **tester** → commit → next step.
 
+**Orchestrator = thin coordinator (token discipline):**
+- Do NOT read the full task prompt or ROADMAP before delegating. Delegate to **architect** first; the Architect is the only role that reads and interprets the task.
+- Do NOT re-interpret the Architect's checklist (e.g. merging steps into "logical commit units"). Execute checklist steps in order, one at a time; one commit per step.
+- After **refactorer** completes: delegate to **verifier** immediately. Do NOT read or verify the changed files yourself; verification is the Verifier's job.
+- Keep handoff messages short (e.g. "Step N: [checklist title]. Delegate to refactorer.").
+
+**Ticket-based handoff (preferred):** Plans and step specs live in files under `.cursor/tickets/`. See `.cursor/tickets/README.md`.
+- After **architect**: plan is in `.cursor/tickets/{task-slug}_plan.md` (task-slug = task prompt filename without path and without `.md`). Do not paste the plan into chat.
+- When delegating to **refactorer**: "Ticket: .cursor/tickets/{task-slug}_plan.md, Step N. Delegate to refactorer."
+- When delegating to **verifier**: "Ticket: .cursor/tickets/{task-slug}_plan.md, Step N. Changed files: [list]. Delegate to verifier."
+- Subagents read only the ticket (and code/changed files); they do not need the full task prompt again.
+
 ## Reference Documents (MANDATORY)
 
 - **ROADMAP.md** – Step IDs, TODO format, tracking table. All TODO comments must use ROADMAP IDs.
@@ -20,23 +32,28 @@ You do NOT execute the full prompt at once. You DELEGATE to subagents by name (s
 Task Prompt
     │
     ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ PHASE: ARCHITECT                                                 │
-│ Read full task. Output: Scope, Checklist, TODO-Spec, Deferred.   │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│ ARCHITECT (subagent)                                              │
+│ Reads task + ROADMAP. Writes plan to .cursor/tickets/*_plan.md.   │
+│ Chat: one line ("Plan written to …").                             │
+└──────────────────────────────────────────────────────────────────┘
     │
     ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ LOOP per logical step (e.g. Phase 1, Phase 2 in task prompt):    │
-│   1. REFACTORER – Execute ONLY current step from checklist       │
-│   2. VERIFIER   – Audit Refactorer output vs Architect plan      │
-│   3. TESTER     – Run tests (php pagekit setup, PHPUnit, etc.)  │
-│   4. COMMIT     – Per completed step (Conventional Commits)      │
-│   → Next step, repeat                                            │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│ LOOP per checklist step (from ticket file):                       │
+│   1. REFACTORER – Ticket path + Step N → code changes only       │
+│   2. VERIFIER   – Ticket path + Step N + changed files → PASS/FAIL│
+│   3. TESTER     – Run tests → PASS/FAIL (git diff for RCA)       │
+│   4. COMMIT     – Conventional Commits                            │
+│   → Next step                                                     │
+└──────────────────────────────────────────────────────────────────┘
     │
     ▼
-Task complete. All steps committed.
+┌──────────────────────────────────────────────────────────────────┐
+│ FINALIZE (Orchestrator, no subagent)                              │
+│ Follow push.mdc: version bump, CHANGELOG, push, PR + metadata.   │
+│ Do NOT merge.                                                     │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ## Rules
@@ -44,28 +61,28 @@ Task complete. All steps committed.
 1. **One step at a time** – Never work on multiple steps in parallel.
 2. **Commit per step** – After each logical step (e.g. eval removal, data-attributes, CSP) is done and verified.
 3. **No batch commits** – Do not wait until the entire task is done.
-4. **Subagents** – Delegate by name so Cursor uses the right agent. Use these exact phrases when handing off:
-   - **Plan:** "Delegate to the **architect** subagent to create scope, checklist, and TODO-Spec for this task."
-   - **Do:** "Delegate to the **refactorer** subagent to execute the current step from the Architect's checklist."
-   - **Check:** "Delegate to the **verifier** subagent to audit the Refactorer's output against the Architect plan."
+4. **Subagents** – Delegate by name so Cursor uses the right agent. Prefer ticket-based handoffs (see above). Phrase examples:
+   - **Plan:** "Delegate to the **architect** subagent to create scope, checklist, and TODO-Spec for this task. Output to .cursor/tickets/{task-slug}_plan.md."
+   - **Do:** "Ticket: .cursor/tickets/{task-slug}_plan.md, Step N. Delegate to the **refactorer** subagent."
+   - **Check:** "Ticket: .cursor/tickets/{task-slug}_plan.md, Step N. Changed files: [list]. Delegate to the **verifier** subagent."
    - **Test:** "Delegate to the **tester** subagent to run tests (php pagekit setup, PHPUnit, Playwright as needed)."
      Subagent files live in `.cursor/agents/` (architect.md, refactorer.md, verifier.md, tester.md).
 
 ## Handoff Format (Internal)
 
-When switching from Architect to Refactorer, use:
+When using tickets (preferred): the plan is in `.cursor/tickets/{task-slug}_plan.md`. When delegating to Refactorer or Verifier, pass only the ticket path and step number (and changed files for Verifier). Do not paste the full plan or task prompt into chat.
 
-```markdown
-## ARCHITECT OUTPUT
+## Finalize (after all steps committed)
 
-- **Current Step (ROADMAP):** X.Y
-- **Scope:** [files/modules]
-- **Checklist:** [1. ..., 2. ..., 3. ...]
-- **Deferred:** [Step X.Y - reason]
-- **TODO-Spec:** [exact comment format for each case]
-```
+After the last step is committed, the Orchestrator (NOT a subagent) executes the **push workflow** (`push.mdc`):
 
-When Refactorer completes a step, Verifier receives: changed files + Architect plan.
+1. **Version bump** – follow `.cursor/skills/version-bump/SKILL.md`
+2. **CHANGELOG-NEW.md** – group all commits from this task
+3. **Push** – to remote (create branch from develop if needed)
+4. **PR** – with `<!-- metadata -->` block (labels, milestone, `closes`). Use the GitHub Issue number from the invocation block (`GitHub Issue: #XXX`). Include `Closes #XXX` in the visible PR body AND in the metadata `closes:` field. See `push.mdc` and `github-labels.mdc`.
+5. **Do NOT merge** – user reviews and merges.
+
+This replaces Cursor's auto-PR feature (which should be set to "Off" in Cursor settings).
 
 ## On Failure
 

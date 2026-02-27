@@ -1,5 +1,29 @@
 # Changelog
 
+## Pagekit 1.1.6 - PSR-11 DI Infrastructure + Workflow Optimization (February 23, 2026)
+
+### ✨ New Features
+
+- **PSR-11 Constructor DI for Controllers (2.0.1b)** — `ControllerResolver` now accepts `ContainerInterface` and resolves constructor dependencies via reflection. Controllers can declare typed constructor params (matched by name to container services); fallback to `new $class()` when no params exist. Wired in `kernel/index.php`.
+
+### 🧪 Tests
+
+- **ControllerResolver DI Tests** — PHPUnit coverage for reflection-based instantiation, default values, missing-service errors, and request integration.
+
+### 🔧 Maintenance
+
+- **Orchestrator Token Discipline** — Orchestrator is now a thin coordinator: delegates to Architect immediately, does not read task prompts or ROADMAP itself, does not re-interpret the Architect's checklist, does not verify Refactorer output.
+- **Ticket-based Handoff** — Plans written to `.cursor/tickets/{task-slug}_plan.md` by Architect. Subagents receive only the ticket path + step number, not the full task prompt. Reduces context duplication and token usage.
+- **Subagent Output Discipline** — All subagents (Architect, Refactorer, Verifier, Tester) have strict output rules: minimal chat output, no narration, structured results only.
+- **Push + PR Phase** — Orchestrator now executes `push.mdc` as final step (version bump, CHANGELOG, push, PR with metadata block). Replaces Cursor's auto-PR feature.
+- **Console Command DI TODO** — Deferred console command DI to Step 2.0.1e with TODO markers.
+
+### 📝 Documentation
+
+- **Branch Documentation** — `PSR11_CONTAINER_DI_INFRASTRUCTURE.md` created and updated for Step 2.0.1b completion.
+
+---
+
 ## Pagekit 1.1.5 - PSR-11 Container Core + DI Modernization Plan (February 22, 2026)
 
 ### ♻️ Refactoring

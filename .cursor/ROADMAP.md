@@ -60,7 +60,7 @@
 | 2.0    | Controller Attributes                 | ✅     | ⚠️    | #142  | #111    | Needs Audit      |
 | 2.0.1  | ↳ PSR-11 Container Vollmodernisierung | ⏳     | ⏳    | #145  | -       | **Current Step** |
 | 2.0.1a | ↳ Container Core + Modules (S1+S2)    | ✅     | ⏳    | #162  | #161    | Done             |
-| 2.0.1b | ↳ DI Infrastructure                   | ⏳     | ⏳    | #163  | -       | Next Sub-Step    |
+| 2.0.1b | ↳ DI Infrastructure                   | ⏳     | ⏳    | #163  | #167    | Next Sub-Step    |
 | 2.0.1c | ↳ System/Installer/Console + DI       | ⏳     | ⏳    | #164  | -       | Sub-Step         |
 | 2.0.1d | ↳ Packages + ArrayAccess Removal      | ⏳     | ⏳    | #165  | -       | Sub-Step         |
 | 2.0.1e | ↳ StaticTrait Removal + DI Final      | ⏳     | ⏳    | #166  | -       | Sub-Step         |
