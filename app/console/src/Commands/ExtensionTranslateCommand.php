@@ -42,7 +42,7 @@ class ExtensionTranslateCommand extends Command
         $languages = "$path/languages";
 
         $app = $this->container;
-        $this->visitor = new PhpNodeVisitor($app['view']->getEngine());
+        $this->visitor = new PhpNodeVisitor($app->get('view')->getEngine());
 
         $this->line("Extracting strings for extension '$extension'");
 
