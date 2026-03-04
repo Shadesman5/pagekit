@@ -237,7 +237,11 @@ return [
             if ($app->isAdmin()) {
                 return;
             }
-            $view->addHelper(new MenuHelper($app->get('menu')));
+            $view->addHelper(new MenuHelper(
+                $app->get('menu'),
+                $app->get('user'),
+                $app->get('node'),
+            ));
         }, 100],
 
         'view.meta' => function ($event, $meta) use ($app) {

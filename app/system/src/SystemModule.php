@@ -8,11 +8,14 @@ use Symfony\Component\Finder\Finder;
 
 class SystemModule extends Module
 {
+    protected App $app;
+
     /**
      * {@inheritdoc}
      */
     public function main(App $app): void
     {
+        $this->app = $app;
         $app['system'] = $this; // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
         $app['isAdmin'] = false; // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
 
@@ -76,9 +79,13 @@ class SystemModule extends Module
 
         if (!$menu) {
 
-            $menu = new SystemMenu();
+            $menu = new SystemMenu(
+                $this->app->get('user'),
+                $this->app->get('request'),
+                $this->app->get('url'),
+            );
 
-            foreach (App::module() as $module) {
+            foreach ($this->app->get('module') as $module) {
                 foreach ((array) $module->get('menu') as $id => $item) {
                     $menu->addItem($id, $item);
                 }

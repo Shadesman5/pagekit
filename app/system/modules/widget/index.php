@@ -130,7 +130,12 @@ return [
         },
 
         'view.init' => function ($event, $view) use ($app) {
-            $view->addHelper(new PositionHelper($app->get('position')));
+            $view->addHelper(new PositionHelper(
+                $app->get('position'),
+                $app->get('user'),
+                $app->get('node'),
+                $app->get('widget'),
+            ));
         },
 
         'view.scripts' => function ($event, $scripts) {

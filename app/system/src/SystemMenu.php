@@ -2,12 +2,20 @@
 
 namespace Pagekit\System;
 
-use Pagekit\Application as App;
+use Pagekit\Application\UrlProvider;
+use Pagekit\User\Model\User;
 use Pagekit\Util\ArrObject;
+use Symfony\Component\HttpFoundation\Request;
 
 class SystemMenu implements \IteratorAggregate, \JsonSerializable
 {
     protected array $items = [];
+
+    public function __construct(
+        private readonly User $user,
+        private readonly Request $request,
+        private readonly UrlProvider $url,
+    ) {}
 
     /**
      * Gets all menu items.
@@ -46,8 +54,8 @@ class SystemMenu implements \IteratorAggregate, \JsonSerializable
      */
     public function addItem($id, array $item): void
     {
-        $meta  = App::user()->get('admin.menu', []);
-        $route = App::request()->attributes->get('_route');
+        $meta  = $this->user->get('admin.menu', []);
+        $route = $this->request->attributes->get('_route');
 
         $item = new ArrObject($item, [
             'id' => $id,
@@ -56,7 +64,7 @@ class SystemMenu implements \IteratorAggregate, \JsonSerializable
             'priority' => 0
         ]);
 
-        if (!App::user()->hasAccess($item['access'])) {
+        if (!$this->user->hasAccess($item['access'])) {
             return;
         }
 
@@ -65,11 +73,11 @@ class SystemMenu implements \IteratorAggregate, \JsonSerializable
         }
 
         if ($item['icon']) {
-            $item['icon'] = App::url()->getStatic($item['icon']);
+            $item['icon'] = $this->url->getStatic($item['icon']);
         }
 
         $item['active'] = (bool) preg_match('#^'.str_replace('*', '.*', $item['active'] ?: $item['url']).'$#', $route);
-        $item['url'] = App::url($item['url']);
+        $item['url'] = ($this->url)($item['url']);
 
         $this->items[$id] = $item;
     }

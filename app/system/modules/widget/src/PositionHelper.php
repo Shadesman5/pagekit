@@ -2,21 +2,18 @@
 
 namespace Pagekit\Widget;
 
-use Pagekit\Application as App;
+use Pagekit\User\Model\User;
 use Pagekit\View\Helper\Helper;
 use Pagekit\Widget\Model\Widget;
 
 class PositionHelper extends Helper
 {
-    protected \Pagekit\Widget\PositionManager $positions;
-
-    /**
-     * @param PositionManager $positions
-     */
-    public function __construct(PositionManager $positions)
-    {
-        $this->positions = $positions;
-    }
+    public function __construct(
+        private readonly PositionManager $positions,
+        private readonly User $user,
+        private readonly object $node,
+        private readonly WidgetManager $widget,
+    ) {}
 
     /**
      * Set shortcut.
@@ -89,9 +86,9 @@ class PositionHelper extends Helper
 
                 if (!isset($widgets[$id])
                     or !$widget = $widgets[$id]
-                    or !$widget->hasAccess(App::user())
-                    or ($nodes = $widget->nodes and !in_array(App::node()->id, $nodes))
-                    or !$type = App::widget($widget->type)
+                    or !$widget->hasAccess($this->user)
+                    or ($nodes = $widget->nodes and !in_array($this->node->id, $nodes))
+                    or !$type = $this->widget->get($widget->type)
                 ) {
                     continue;
                 }

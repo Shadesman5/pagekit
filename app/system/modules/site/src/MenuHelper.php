@@ -2,21 +2,17 @@
 
 namespace Pagekit\Site;
 
-use Pagekit\Application as App;
 use Pagekit\Site\Model\Node;
+use Pagekit\User\Model\User;
 use Pagekit\View\Helper\Helper;
 
 class MenuHelper extends Helper
 {
-    protected \Pagekit\Site\MenuManager $menus;
-
-    /**
-     * @param MenuManager $menus
-     */
-    public function __construct(MenuManager $menus)
-    {
-        $this->menus = $menus;
-    }
+    public function __construct(
+        private readonly MenuManager $menus,
+        private readonly User $user,
+        private readonly Node $node,
+    ) {}
 
     /**
      * Set shortcut.
@@ -84,7 +80,7 @@ class MenuHelper extends Helper
             'mode' => 'all'
         ], $parameters);
 
-        $user = App::user();
+        $user = $this->user;
         $startLevel = (int) $parameters['start_level'] ?: 1;
         $maxDepth = $startLevel + ($parameters['depth'] ?: PHP_INT_MAX);
 
@@ -93,7 +89,7 @@ class MenuHelper extends Helper
         $nodes[0]->status = 1;
         $nodes[0]->parent_id = null;
 
-        $node = App::node();
+        $node = $this->node;
         $path = $node->path;
 
         if (!isset($nodes[$node->id])) {

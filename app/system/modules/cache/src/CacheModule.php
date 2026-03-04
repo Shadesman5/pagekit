@@ -10,14 +10,18 @@ use Pagekit\Cache\Adapter\NullAdapter;
 use Pagekit\Cache\Adapter\PhpFilesAdapter;
 use Pagekit\Cache\CacheInterface;
 use Pagekit\Module\Module;
+use Symfony\Component\Finder\Finder;
 
 class CacheModule extends Module
 {
+    protected App $app;
+
     /**
      * {@inheritdoc}
      */
     public function main(App $app): void
     {
+        $this->app = $app;
         foreach ($this->config['caches'] as $name => $config)  {
             $app[$name] = function() use ($config, $name) {
 
@@ -113,7 +117,7 @@ class CacheModule extends Module
      */
     public function clearCache(array $options = []): void
     {
-        App::on('terminate', function() use ($options) {
+        App::on('terminate', function() use ($options) { // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
             $this->doClearCache($options);
         }, -512);
     }
@@ -125,9 +129,9 @@ class CacheModule extends Module
     {
         // clear cache
         if (empty($options) || @$options['cache']) {
-            App::cache()->flushAll();
+            $this->app->get('cache')->flushAll();
 
-            foreach ((array) glob(App::getInstance()->get('path.cache') . '/*.cache') as $file) {
+            foreach ((array) glob($this->app->get('path.cache') . '/*.cache') as $file) {
                 @unlink($file);
                 // opcache
                 if (function_exists('opcache_invalidate')) {
@@ -138,8 +142,8 @@ class CacheModule extends Module
 
         // clear temp folder
         if (@$options['temp']) {
-            foreach (App::finder()->in(App::getInstance()->get('path.temp'))->depth(0)->ignoreDotFiles(true) as $file) {
-                App::file()->delete($file->getPathname());
+            foreach (Finder::create()->in($this->app->get('path.temp'))->depth(0)->ignoreDotFiles(true) as $file) {
+                $this->app->get('file')->delete($file->getPathname());
                 // opcache
                 if (function_exists('opcache_invalidate')) {
                     opcache_invalidate($file);

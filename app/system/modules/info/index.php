@@ -8,7 +8,15 @@ return [
 
     'main' => function ($app) {
 
-        $app['info'] = fn() => new InfoHelper(); // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
+        $app['info'] = fn() => new InfoHelper( // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
+            $app->get('db'),
+            $app->get('version'),
+            $app->get('path.storage'),
+            $app->get('path.temp'),
+            $app->get('path.packages'),
+            $app->get('config.file'),
+            $app->get('path'),
+        );
 
     },
 

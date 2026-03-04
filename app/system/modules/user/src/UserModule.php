@@ -9,6 +9,7 @@ use Pagekit\User\Model\User;
 
 class UserModule extends Module
 {
+    protected App $app;
     protected array $perms = [];
 
     /**
@@ -16,6 +17,7 @@ class UserModule extends Module
      */
     public function main(App $app): void
     {
+        $this->app = $app;
         $app['user'] = function ($app) { // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
 
             if (!$user = $app->get('auth')->getUser()) {
@@ -30,13 +32,13 @@ class UserModule extends Module
     {
         if (!$this->perms) {
 
-            foreach (App::module() as $module) {
+            foreach ($this->app->get('module') as $module) {
                 if ($perms = $module->get('permissions')) {
                     $this->registerPermissions($module->get('name'), $perms);
                 }
             }
 
-            App::trigger('user.permission', [$this]);
+            App::trigger('user.permission', [$this]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         return $this->perms;
