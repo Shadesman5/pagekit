@@ -36,7 +36,7 @@ return [
     'events' => [
 
         'boot' => function ($event, $app) {
-            $app->subscribe(new ResponseListener());
+            $app->subscribe(new ResponseListener($app->get('url')));
         },
 
         'site' => function ($event, $app) {

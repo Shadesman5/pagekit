@@ -2,7 +2,6 @@
 
 namespace Pagekit\User\Event;
 
-use Pagekit\Application as App;
 use Pagekit\Auth\Auth;
 use Pagekit\Auth\Event\AuthenticateEvent;
 use Pagekit\Auth\Event\AuthorizeEvent;
@@ -12,12 +11,18 @@ use Pagekit\User\Auth\UserProvider;
 
 class AuthorizationListener implements EventSubscriberInterface
 {
+    public function __construct(
+        private readonly mixed $auth,
+        private readonly mixed $authPassword,
+        private readonly mixed $session,
+    ) {}
+
     /**
      * Initialize system.
      */
     public function onSystemInit(): void
     {
-        App::auth()->setUserProvider(new UserProvider(App::getInstance()['auth.password']));
+        $this->auth->setUserProvider(new UserProvider($this->authPassword));
     }
 
     /**
@@ -25,8 +30,8 @@ class AuthorizationListener implements EventSubscriberInterface
      */
     public function onRequest(): void
     {
-        if ($user = App::auth()->getUser() and $user->isBlocked()) {
-            App::auth()->logout();
+        if ($user = $this->auth->getUser() and $user->isBlocked()) {
+            $this->auth->logout();
         }
     }
 
@@ -48,18 +53,18 @@ class AuthorizationListener implements EventSubscriberInterface
      */
     public function onLogin(): void
     {
-        App::session()->migrate();
+        $this->session->migrate();
     }
 
     public function onSuccess(): void
     {
-        App::session()->remove(Auth::LAST_USERNAME);
+        $this->session->remove(Auth::LAST_USERNAME);
     }
 
     public function onFailure(AuthenticateEvent $event): void
     {
         $credentials = $event->getCredentials();
-        App::session()->set(Auth::LAST_USERNAME, $credentials['username']);
+        $this->session->set(Auth::LAST_USERNAME, $credentials['username']);
     }
 
     /**

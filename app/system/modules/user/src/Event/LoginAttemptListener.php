@@ -2,7 +2,6 @@
 
 namespace Pagekit\User\Event;
 
-use Pagekit\Application as App;
 use Pagekit\Auth\Event\AuthenticateEvent;
 use Pagekit\Auth\Exception\AuthException;
 use Pagekit\Event\EventSubscriberInterface;
@@ -12,6 +11,10 @@ class LoginAttemptListener implements EventSubscriberInterface
     const DELAY     = 5;
     const ATTEMPTS  = 5;
     const CACHE_KEY = 'auth.login_attempts';
+
+    public function __construct(
+        private readonly mixed $cache,
+    ) {}
 
     /**
      * Prevent authentication attempts if time in between failed attempts is too short
@@ -25,7 +28,7 @@ class LoginAttemptListener implements EventSubscriberInterface
             return;
         }
 
-        $attempts = App::cache()->fetch($this->getCacheKey($credentials['username'])) ?: [];
+        $attempts = $this->cache->fetch($this->getCacheKey($credentials['username'])) ?: [];
 
         // Block if we already have >= ATTEMPTS failures and the last one was within DELAY seconds.
         // (Use end() to read last timestamp without mutating the array.)
@@ -48,10 +51,10 @@ class LoginAttemptListener implements EventSubscriberInterface
 
         $key = $this->getCacheKey($credentials['username']);
 
-        $attempts = App::cache()->fetch($key) ?: [];
+        $attempts = $this->cache->fetch($key) ?: [];
         $attempts[] = time();
         
-        App::cache()->save($key, $attempts);
+        $this->cache->save($key, $attempts);
     }
 
     /**
@@ -65,7 +68,7 @@ class LoginAttemptListener implements EventSubscriberInterface
             return;
         }
 
-        App::cache()->delete($this->getCacheKey($credentials['username']));
+        $this->cache->delete($this->getCacheKey($credentials['username']));
     }
 
     /**

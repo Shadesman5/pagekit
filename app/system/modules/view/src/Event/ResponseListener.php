@@ -2,7 +2,6 @@
 
 namespace Pagekit\View\Event;
 
-use Pagekit\Application as App;
 use Pagekit\Event\EventSubscriberInterface;
 
 class ResponseListener implements EventSubscriberInterface
@@ -16,6 +15,10 @@ class ResponseListener implements EventSubscriberInterface
                         \2                              # match the previous quote
                        /xiU';
 
+    public function __construct(
+        private readonly mixed $url,
+    ) {}
+
     /**
      * Filter the response content.
      */
@@ -25,7 +28,7 @@ class ResponseListener implements EventSubscriberInterface
             return;
         }
 
-        $response->setContent(preg_replace_callback(self::REGEX_URL, fn($matches) => sprintf(' %s="%s"', $matches['attr'], App::url($matches['url'])), $content));
+        $response->setContent(preg_replace_callback(self::REGEX_URL, fn($matches) => sprintf(' %s="%s"', $matches['attr'], ($this->url)($matches['url'])), $content));
     }
 
     /**

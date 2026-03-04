@@ -7,12 +7,21 @@ namespace Pagekit\Captcha;
 use Pagekit\Application as App;
 use Pagekit\Captcha\Attribute\Captcha;
 use Pagekit\Event\EventSubscriberInterface;
+use Pagekit\Module\Module;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Reads Captcha attributes from controllers and handles captcha verification.
  */
 class CaptchaListener implements EventSubscriberInterface
 {
+    public function __construct(
+        private readonly Module $captchaModule,
+        private readonly mixed $auth,
+        private readonly RequestStack $requestStack,
+        private readonly mixed $router,
+    ) {}
+
     /**
      * Reads the #[Captcha] attributes from the controller.
      */
@@ -60,16 +69,18 @@ class CaptchaListener implements EventSubscriberInterface
 
     public function onData($event, $data): void
     {
-        if (!App::module('system/captcha')->config('recaptcha_enable')
-            || App::user()->isAuthenticated()
-            || !($routes = App::request()->attributes->get('_captcha_routes'))
-            || !($sitekey = App::module('system/captcha')->config('recaptcha_sitekey'))
+        $request = $this->requestStack->getCurrentRequest();
+
+        if (!$this->captchaModule->config('recaptcha_enable')
+            || $this->auth->getUser()?->isAuthenticated()
+            || !($routes = $request?->attributes->get('_captcha_routes'))
+            || !($sitekey = $this->captchaModule->config('recaptcha_sitekey'))
         ) {
             return;
         }
 
         $routes = array_filter(array_map(function ($route) {
-            if ($route = App::router()->getRoute($route)) {
+            if ($route = $this->router->getRoute($route)) {
                 return ltrim($route->getPath(), '/');
             }
             return false;
@@ -77,19 +88,21 @@ class CaptchaListener implements EventSubscriberInterface
 
         // Add captcha config to JSON data container
         $data->add('$captcha', [
-            'grecaptcha' => App::module('system/captcha')->config('recaptcha_sitekey'),
+            'grecaptcha' => $this->captchaModule->config('recaptcha_sitekey'),
             'routes' => $routes
         ]);
     }
 
     public function onScripts($event, $scripts): void
     {
+        $request = $this->requestStack->getCurrentRequest();
+
         // Must match the same conditions as onData() to ensure $captcha exists
         // when the script runs
-        if (!App::module('system/captcha')->config('recaptcha_enable')
-            || App::user()->isAuthenticated()
-            || !App::request()->attributes->get('_captcha_routes')
-            || !App::module('system/captcha')->config('recaptcha_sitekey')
+        if (!$this->captchaModule->config('recaptcha_enable')
+            || $this->auth->getUser()?->isAuthenticated()
+            || !$request?->attributes->get('_captcha_routes')
+            || !$this->captchaModule->config('recaptcha_sitekey')
         ) {
             return;
         }
@@ -103,14 +116,14 @@ class CaptchaListener implements EventSubscriberInterface
             // App::abort(400, 'USER');
         }
 
-        if (!App::module('system/captcha')->config('recaptcha_enable')
+        if (!$this->captchaModule->config('recaptcha_enable')
             || !($captcha = $request->attributes->get('_captcha_verify'))
-            || App::user()->isAuthenticated()) {
+            || $this->auth->getUser()?->isAuthenticated()) {
             return;
         }
 
-        if ($error = $this->verifyToken($request->get('gRecaptchaResponse'), App::module('system/captcha')->config('recaptcha_secret'))) {
-            App::abort(400, $error);
+        if ($error = $this->verifyToken($request->get('gRecaptchaResponse'), $this->captchaModule->config('recaptcha_secret'))) {
+            App::abort(400, $error); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
     }
 

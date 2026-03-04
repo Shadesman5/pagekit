@@ -145,9 +145,20 @@ return [
 
         'boot' => function ($event, $app) {
             $app->subscribe(
-                new AccessListener,
-                new AuthorizationListener,
-                new LoginAttemptListener,
+                new AccessListener(
+                    $app->get('auth'),
+                    $app->get('url'),
+                    $app->get('response'),
+                    $app->get('request.stack'),
+                ),
+                new AuthorizationListener(
+                    $app->get('auth'),
+                    $app->get('auth.password'),
+                    $app->get('session'),
+                ),
+                new LoginAttemptListener(
+                    $app->get('cache'),
+                ),
                 new UserListener
             );
         },

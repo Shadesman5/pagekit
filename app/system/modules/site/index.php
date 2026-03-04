@@ -145,8 +145,17 @@ return [
         'boot' => function ($event, $app) {
 
             $app->subscribe(
-                new MaintenanceListener(),
-                new NodesListener(),
+                new MaintenanceListener(
+                    $app,
+                    $this,
+                    $app->get('auth'),
+                    $app->get('view'),
+                    $app->get('response'),
+                ),
+                new NodesListener(
+                    $this,
+                    $app->get('routes'),
+                ),
                 new PageListener()
             );
 

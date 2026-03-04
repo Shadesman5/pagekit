@@ -22,7 +22,12 @@ return [
 
         'boot' => function ($event, $app) {
             $app->subscribe(
-                new CaptchaListener
+                new CaptchaListener(
+                    $this,
+                    $app->get('auth'),
+                    $app->get('request.stack'),
+                    $app->get('router'),
+                )
             );
         },
 
