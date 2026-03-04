@@ -12,8 +12,8 @@ return [
 
     'main' => function ($app) {
         $this->config['storage'] = '/' . trim(($this->config['storage'] ?: 'storage'), '/');
-        $app['path.storage'] = $app['path'] . $this->config['storage'];
-        $app['locator']->add('storage:', $app['path.storage']);
+        $app['path.storage'] = $app->get('path') . $this->config['storage']; // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
+        $app->get('locator')->add('storage:', $app->get('path.storage'));
     },
 
     'routes' => [
@@ -58,8 +58,8 @@ return [
         },
 
         'system.finder' => function ($event) use ($app) {
-            if ($app['user']->hasAccess('system: manage storage | system: manage storage read only')) {
-                $event->path('#^' . preg_quote(strtr($app['path.storage'], '\\', '/'), '#') . '($|\/.*)#', $app['user']->hasAccess('system: manage storage') ? 'w' : 'r');
+            if ($app->get('user')->hasAccess('system: manage storage | system: manage storage read only')) {
+                $event->path('#^' . preg_quote(strtr($app->get('path.storage'), '\\', '/'), '#') . '($|\/.*)#', $app->get('user')->hasAccess('system: manage storage') ? 'w' : 'r');
             }
         }
 

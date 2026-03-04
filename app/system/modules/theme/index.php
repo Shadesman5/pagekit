@@ -20,7 +20,7 @@ return [
                         'addpage' => [
                             'caption' => 'Add Page',
                             'attrs' => [
-                                'href' => $app['url']->get('admin/site/page/edit?id=page&menu=')
+                                'href' => $app->get('url')->get('admin/site/page/edit?id=page&menu=')
                             ],
                             'priority' => 0
                         ]
@@ -29,7 +29,7 @@ return [
                         'site' => [
                             'caption' => 'Visit Site',
                             'attrs' => [
-                                'href' => $app['url']->get(''),
+                                'href' => $app->get('url')->get(''),
                                 'target' => '_blank'
                             ],
                             'priority' => 0
@@ -37,7 +37,7 @@ return [
                         'pagekitdocs' => [
                             'caption' => 'Documentation',
                             'attrs' => [
-                                'href' => $app['url']->get('https://pagekit.com/docs'),
+                                'href' => $app->get('url')->get('https://pagekit.com/docs'),
                                 'target' => '_blank'
                             ],
                             'priority' => 1
@@ -45,7 +45,7 @@ return [
                         'pagekit' => [
                             'caption' => '<span class="uk-text-middle">pagekit.com</span>',
                             'attrs' => [
-                                'href' => $app['url']->get('https://pagekit.com'),
+                                'href' => $app->get('url')->get('https://pagekit.com'),
                                 'target' => '_blank'
                             ],
                             'priority' => 2
@@ -53,7 +53,7 @@ return [
                         'logout' => [
                             'caption' => 'Logout',
                             'attrs' => [
-                                'href' => $app['url']->get('@user/logout', ['redirect' => 'admin/login'])
+                                'href' => $app->get('url')->get('@user/logout', ['redirect' => 'admin/login'])
                             ],
                             'priority' => 99
                         ]
@@ -65,12 +65,12 @@ return [
         'view.meta' => [function($event, $meta) use ($app) {
             $meta([
                 'link:favicon' => [
-                    'href' => $app['url']->getStatic('system/theme:favicon.ico'),
+                    'href' => $app->get('url')->getStatic('system/theme:favicon.ico'),
                     'rel' => 'shortcut icon',
                     'type' => 'image/x-icon'
                 ],
                 'link:appicon' => [
-                    'href' => $app['url']->getStatic('system/theme:apple_touch_icon.png'),
+                    'href' => $app->get('url')->getStatic('system/theme:apple_touch_icon.png'),
                     'rel' => 'apple-touch-icon-precomposed'
                 ]
             ]);
@@ -82,7 +82,7 @@ return [
                 return;
             }
 
-            $user = $app['user'];
+            $user = $app->get('user');
 
             $view->data('$pagekit', [
                 'editor' => $app->module('system/editor')->config(),
@@ -93,7 +93,7 @@ return [
                     'email' => $user->email,
                     'username' => $user->username
                 ],
-                'menu' => array_values($app['system']->getMenu()->getItems())
+                'menu' => array_values($app->get('system')->getMenu()->getItems())
             ]);
 
             $subsets = 'latin,latin-ext';
@@ -108,7 +108,7 @@ return [
     		}
 
             $event['subset'] = $subsets;
-            $event['pageClass'] = implode('-', explode('/', preg_replace('/^\/admin\//','', $app['request']->getPathInfo())));
+            $event['pageClass'] = implode('-', explode('/', preg_replace('/^\/admin\//','', $app->get('request')->getPathInfo())));
         }
 
     ],

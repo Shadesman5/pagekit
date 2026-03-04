@@ -85,11 +85,11 @@ return [
             // Uses PHP 8 Attributes for validation while ORM still uses Doctrine Annotations
             \Pagekit\System\ValidatorServiceProvider::register($app);
 
-            if (!$app['debug']) {
+            if (!$app->get('debug')) {
                 $app->subscribe(new ExceptionListener('Pagekit\System\Controller\ExceptionController::showAction'));
             }
 
-            $app['db.em']; // -TODO- fix me
+            $app->get('db.em'); // -TODO- fix me
 
         },
 
@@ -101,7 +101,7 @@ return [
                     return;
                 }
 
-                $app['isAdmin'] = $admin = (bool) preg_match('#^/admin(/?$|/.+)#', $request->getPathInfo());
+                $app['isAdmin'] = $admin = (bool) preg_match('#^/admin(/?$|/.+)#', $request->getPathInfo()); // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
                 $app->module('system/intl')->setLocale($this->config($admin ? 'admin.locale' : 'site.locale'));
 
             }, 150],
@@ -124,7 +124,7 @@ return [
                 $scripts = new PackageScripts($this->path . '/scripts.php', $this->config('version'));
 
                 if ($scripts->hasUpdates()) {
-                    $event->setResponse($app['response']->redirect('@system/migration', ['redirect' => $app['url']->getRoute('@system')]));
+                    $event->setResponse($app->get('response')->redirect('@system/migration', ['redirect' => $app->get('url')->getRoute('@system')]));
                 } else {
                     $app->config('system')->set('version', $app->version());
                 }
@@ -132,18 +132,18 @@ return [
         }, 8],
 
         'view.init' => function ($event, $view) use ($app) {
-            $theme = $app->isAdmin() ? $app->module('system/theme') : $app['theme'];
+            $theme = $app->isAdmin() ? $app->module('system/theme') : $app->get('theme');
             $view->map('layout', $theme->get('layout', 'views:template.php'));
-            $view->addGlobal('theme', $app['theme']);
+            $view->addGlobal('theme', $app->get('theme'));
         },
 
         'view.messages' => function ($event) use ($app) {
 
             $result = '';
 
-            if ($app['message']->peekAll()) {
-                foreach ($app['message']->levels() as $level) {
-                    if ($messages = $app['message']->get($level)) {
+            if ($app->get('message')->peekAll()) {
+                foreach ($app->get('message')->levels() as $level) {
+                    if ($messages = $app->get('message')->get($level)) {
                         foreach ($messages as $message) {
                             $result .= sprintf('<div class="uk-alert uk-alert-%1$s" data-status="%1$s">%2$s</div>', $level == 'error' ? 'danger' : $level, $message);
                         }

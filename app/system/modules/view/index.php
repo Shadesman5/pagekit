@@ -41,7 +41,7 @@ return [
 
         'site' => function ($event, $app) {
             $app->on('view.meta', function ($event, $meta) use ($app) {
-                $meta->add('canonical', $app['url']->get($app['request']->attributes->get('_route'), $app['request']->attributes->get('_route_params', []), 0));
+                $meta->add('canonical', $app->get('url')->get($app->get('request')->attributes->get('_route'), $app->get('request')->attributes->get('_route_params', []), 0));
             }, 60);
         },
 
@@ -55,11 +55,11 @@ return [
             // Get base URL from router context
             // - With mod_rewrite: '' (empty string) - URLs like /admin
             // - Without mod_rewrite: '/index.php' - URLs like /index.php/admin
-            $baseUrl = $app['router']->getContext()->getBaseUrl();
+            $baseUrl = $app->get('router')->getContext()->getBaseUrl();
             
             // Only use fallback in installer context (no config.php yet)
             // In normal operation, empty baseUrl is correct for mod_rewrite
-            if (empty($baseUrl) && !file_exists($app['path'] . '/config.php')) {
+            if (empty($baseUrl) && !file_exists($app->get('path') . '/config.php')) {
                 // Installer context: router not fully configured
                 // Use /index.php as safe fallback for API calls
                 $baseUrl = '/index.php';
@@ -67,7 +67,7 @@ return [
             
             $data->add('$pagekit', [
                 'url' => $baseUrl,
-                'csrf' => $app['csrf']->generate()
+                'csrf' => $app->get('csrf')->generate()
             ]);
         },
 

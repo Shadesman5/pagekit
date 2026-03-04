@@ -8,7 +8,7 @@ return [
 
     'main' => function ($app) {
 
-        $app['info'] = fn() => new InfoHelper();
+        $app['info'] = fn() => new InfoHelper(); // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
 
     },
 
