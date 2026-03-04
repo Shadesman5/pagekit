@@ -19,6 +19,10 @@ class RoleApiController
 {
     use ValidatesRequestTrait;
 
+    public function __construct(
+        private readonly mixed $request,
+    ) {}
+
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
@@ -38,9 +42,8 @@ class RoleApiController
     #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function saveAction(int $id = 0, ?array $data = null): array
     {
-        // Get parameters from request if not provided (Symfony 6.4 compatibility)
         if ($data === null) {
-            $request = App::request();
+            $request = $this->request;
 
             $data = $request->request->all()['role'] ?? [];
             if (empty($data) && $request->getContent()) {
@@ -58,7 +61,7 @@ class RoleApiController
         if (!$role = Role::find($id)) {
 
             if ($id) {
-                App::abort(404, __('Role not found.'));
+                App::abort(404, __('Role not found.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
             }
 
             $role = Role::create();
@@ -84,7 +87,7 @@ class RoleApiController
     {
         // Get id from route if not provided (Symfony 6.4 compatibility)
         if (!$id) {
-            $id = (int) App::request()->get('id', 0);
+            $id = (int) $this->request->get('id', 0);
         }
 
         if ($role = Role::find($id)) {
@@ -97,8 +100,7 @@ class RoleApiController
     #[Route('/bulk', methods: ['POST'])]
     public function bulkSaveAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        $request = $this->request;
 
         $roles = $request->request->all()['roles'] ?? [];
         if (empty($roles) && $request->getContent()) {
@@ -117,8 +119,7 @@ class RoleApiController
     #[Route('/bulk', methods: ['DELETE'])]
     public function bulkDeleteAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        $request = $this->request;
 
         $ids = $request->request->all()['ids'] ?? [];
         if (empty($ids) && $request->getContent()) {

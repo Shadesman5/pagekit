@@ -15,17 +15,21 @@ use function Pagekit\__;
 #[Access('site: manage site')]
 class MenuApiController
 {
-    protected $config;
+    private readonly mixed $siteConfig;
 
-    public function __construct()
-    {
-        $this->config = App::config('system/site');
+    public function __construct(
+        private readonly mixed $config,
+        private readonly mixed $menu,
+        private readonly mixed $request,
+        private readonly mixed $filter,
+    ) {
+        $this->siteConfig = ($this->config)('system/site');
     }
 
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
-        $menus = App::menu()->all();
+        $menus = $this->menu->all();
 
         $menus['trash'] = ['id' => 'trash', 'label' => __('Trash'), 'fixed' => true];
 
@@ -43,38 +47,34 @@ class MenuApiController
     #[Route('/', methods: ['POST'])]
     public function saveAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
-        
-        $menu = $request->request->all()['menu'] ?? [];
-        if (empty($menu) && $request->getContent()) {
-            $json = json_decode($request->getContent(), true);
+        $menu = $this->request->request->all()['menu'] ?? [];
+        if (empty($menu) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
             $menu = $json['menu'] ?? [];
         }
         
         $oldId = isset($menu['id']) ? trim($menu['id']) : null;
         $label = isset($menu['label']) ? trim($menu['label']) : '';
 
-        if (!$id = App::filter($label, 'slugify')) {
-            App::abort(400, __('Invalid id.'));
+        if (!$id = ($this->filter)($label, 'slugify')) {
+            App::abort(400, __('Invalid id.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         if ($id != $oldId) {
 
-            if ($this->config->has('menus.'.$id)) {
+            if ($this->siteConfig->has('menus.'.$id)) {
                 throw new ConflictException(__('Duplicate Menu Id.'));
             }
 
-            $this->config->remove('menus.'.$oldId);
+            $this->siteConfig->remove('menus.'.$oldId);
 
             Node::where(['menu = :old'], ['old' => $oldId])->update(['menu' => $id]);
         }
 
-        $this->config->merge(['menus' => [$id => compact('id', 'label')]]);
+        $this->siteConfig->merge(['menus' => [$id => compact('id', 'label')]]);
 
-        // Assign positions if provided
         if (isset($menu['positions'])) {
-            App::menu()->assign($id, $menu['positions']);
+            $this->menu->assign($id, $menu['positions']);
         }
 
         return ['message' => 'success', 'menu' => $menu];
@@ -83,11 +83,10 @@ class MenuApiController
     #[Route('/{id}', methods: ['DELETE'])]
     public function deleteAction($id = null): array
     {
-        // Get id from route if not provided (Symfony 6.4 compatibility)
         if (!$id) {
-            $id = App::request()->attributes->get('id');
+            $id = $this->request->attributes->get('id');
             if (!$id) {
-                $id = App::request()->get('id');
+                $id = $this->request->get('id');
             }
         }
         
@@ -95,7 +94,7 @@ class MenuApiController
             throw new \Exception('Menu ID is required');
         }
         
-        App::config('system/site')->remove('menus.'.$id);
+        $this->siteConfig->remove('menus.'.$id);
         Node::where(['menu = :id'], ['id' => $id])->update(['menu' => 'trash', 'status' => 0]);
 
         return ['message' => 'success'];

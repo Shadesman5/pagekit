@@ -13,6 +13,11 @@ use function Pagekit\__;
 #[Access('system: access settings', admin: true)]
 class SettingsController
 {
+    public function __construct(
+        private readonly mixed $request,
+        private readonly mixed $config,
+    ) {}
+
     public function indexAction(): array
     {
         return [
@@ -26,29 +31,25 @@ class SettingsController
     #[Route('/save', methods: ['POST'])]
     public function saveAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        $values = $this->request->request->all()['config'] ?? [];
+        $options = $this->request->request->all()['options'] ?? [];
         
-        // Get config and options from POST or JSON body
-        $values = $request->request->all()['config'] ?? [];
-        $options = $request->request->all()['options'] ?? [];
-        
-        if ((empty($values) && empty($options)) && $request->getContent()) {
-            $json = json_decode($request->getContent(), true);
+        if ((empty($values) && empty($options)) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
             $values = $json['config'] ?? [];
             $options = $json['options'] ?? [];
         }
-        $config = new Config;
-        $config->merge(include $file = App::getInstance()->get('config.file'));
+        $fileConfig = new Config;
+        $fileConfig->merge(include $file = App::getInstance()->get('config.file')); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
 
         foreach ($values as $module => $value) {
-            $config->set($module, $value);
+            $fileConfig->set($module, $value);
         }
 
-        file_put_contents($file, $config->dump());
+        file_put_contents($file, $fileConfig->dump());
 
         foreach ($options as $module => $value) {
-            App::config()->set($module, array_replace(App::config($module)->toArray(), $value));
+            $this->config->set($module, array_replace(($this->config)($module)->toArray(), $value));
         }
 
         if (function_exists('opcache_invalidate')) {
@@ -61,21 +62,17 @@ class SettingsController
     #[Route('/config', methods: ['POST'])]
     public function configAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        $name = $this->request->request->get('name', '');
+        $configData = $this->request->request->all()['config'] ?? [];
         
-        // Get name and config from POST or JSON body
-        $name = $request->request->get('name', '');
-        $config = $request->request->all()['config'] ?? [];
-        
-        if ($request->getContent()) {
-            $json = json_decode($request->getContent(), true);
+        if ($this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
             if ($json) {
                 $name = $json['name'] ?? $name;
-                $config = $json['config'] ?? $config;
+                $configData = $json['config'] ?? $configData;
             }
         }
-        App::config()->set($name, array_replace(App::config($name)->toArray(), $config));
+        $this->config->set($name, array_replace(($this->config)($name)->toArray(), $configData));
 
         return ['message' => 'success'];
     }

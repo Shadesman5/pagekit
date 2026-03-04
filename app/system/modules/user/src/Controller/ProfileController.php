@@ -18,12 +18,16 @@ class ProfileController
 {
     use ValidatesRequestTrait;
 
+    public function __construct(
+        private readonly mixed $user,
+        private readonly mixed $url,
+        private readonly mixed $auth,
+    ) {}
+
     public function indexAction()
     {
-        $user = App::user();
-
-        if (!$user->isAuthenticated()) {
-            return App::redirect('@user/login', ['redirect' => App::url()->current()]);
+        if (!$this->user->isAuthenticated()) {
+            return App::redirect('@user/login', ['redirect' => $this->url->current()]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         return [
@@ -33,32 +37,27 @@ class ProfileController
             ],
             '$data' => [
                 'user' => [
-                    'name' => $user->name,
-                    'email' => $user->email
+                    'name' => $this->user->name,
+                    'email' => $this->user->email
                 ]
             ]
         ];
     }
 
-    /**
-     * Save user profile changes.
-     */
     #[Request(['user' => 'array'], csrf: true)]
     public function saveAction(array $data)
     {
-        $user = App::user();
-
-        if (!$user->isAuthenticated()) {
-            App::abort(404);
+        if (!$this->user->isAuthenticated()) {
+            App::abort(404); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         try {
 
-            $user = User::find($user->id);
+            $user = User::find($this->user->id);
 
             if ($password = @$data['password_new']) {
 
-                if (!App::auth()->getUserProvider()->validateCredentials($user, ['password' => @$data['password_old']])) {
+                if (!$this->auth->getUserProvider()->validateCredentials($user, ['password' => @$data['password_old']])) {
                     throw new Exception(__('Invalid Password.'));
                 }
 
@@ -66,7 +65,7 @@ class ProfileController
                     throw new Exception(__('Invalid Password.'));
                 }
 
-                $user->password = App::getInstance()['auth.password']->hash($password);
+                $user->password = App::getInstance()['auth.password']->hash($password); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
             }
 
             if (@$data['email'] != $user->email) {
@@ -76,7 +75,6 @@ class ProfileController
             $user->name = @$data['name'];
             $user->email = @$data['email'];
 
-            // Validate using Symfony Validator
             $this->validateOrFail($user);
 
             $user->save();
@@ -84,7 +82,7 @@ class ProfileController
             return ['message' => 'success'];
 
         } catch (Exception $e) {
-            App::abort(400, $e->getMessage());
+            App::abort(400, $e->getMessage()); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
     }
 }

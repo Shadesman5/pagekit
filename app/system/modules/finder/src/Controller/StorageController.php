@@ -11,6 +11,10 @@ use function Pagekit\__;
 #[Access('system: manage storage', admin: true)]
 class StorageController
 {
+    public function __construct(
+        private readonly mixed $module,
+    ) {}
+
     public function indexAction(): array
     {
         return [
@@ -18,7 +22,7 @@ class StorageController
                 'title' => __('Storage'),
                 'name'  => 'system:modules/finder/views/storage.php'
             ],
-            'root' => App::module('system/finder')->config('storage'),
+            'root' => $this->module->get('system/finder')->config('storage'),
             'mode' => 'write'
         ];
     }

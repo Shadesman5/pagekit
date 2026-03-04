@@ -19,12 +19,13 @@ class DashboardController
 
     protected string $apiKey = '08c012f513db564bd6d4bae94b73cc94';
 
-    /**
-     * Constructor.
-     */
-    public function __construct()
-    {
-        $this->dashboard = App::module('system/dashboard');
+    public function __construct(
+        private readonly mixed $module,
+        private readonly mixed $request,
+        private readonly mixed $response,
+        private readonly mixed $version,
+    ) {
+        $this->dashboard = $this->module->get('system/dashboard');
     }
 
     #[Route('/', methods: ['GET'])]
@@ -37,8 +38,8 @@ class DashboardController
             ],
             '$data' => [
                 'widgets' => array_values($this->dashboard->getWidgets()),
-                'api' => App::getInstance()->get('system.api'),
-                'version' => App::version(),
+                'api' => App::getInstance()->get('system.api'), // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                'version' => $this->version,
                 'channel' => 'stable'
             ]
         ];
@@ -47,12 +48,9 @@ class DashboardController
     #[Route('/savewidgets', methods: ['POST'])]
     public function saveWidgetsAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
-        
-        $widgets = $request->request->all()['widgets'] ?? [];
-        if (empty($widgets) && $request->getContent()) {
-            $json = json_decode($request->getContent(), true);
+        $widgets = $this->request->request->all()['widgets'] ?? [];
+        if (empty($widgets) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
             $widgets = $json['widgets'] ?? [];
         }
 
@@ -68,16 +66,13 @@ class DashboardController
     #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\w+'])]
     public function saveAction($id = 0)
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
-        
         if (!$id) {
-            $id = $request->request->get('id', 0);
+            $id = $this->request->request->get('id', 0);
         }
         
-        $widget = $request->request->all()['widget'] ?? [];
-        if (empty($widget) && $request->getContent()) {
-            $json = json_decode($request->getContent(), true);
+        $widget = $this->request->request->all()['widget'] ?? [];
+        if (empty($widget) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
             $widget = $json['widget'] ?? [];
             if (!$id && isset($json['id'])) {
                 $id = $json['id'];
@@ -98,9 +93,8 @@ class DashboardController
     #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\w+'])]
     public function deleteAction($id = null): array
     {
-        // Get id from route if not provided (Symfony 6.4 compatibility)
         if (!$id) {
-            $id = App::request()->get('id');
+            $id = $this->request->get('id');
         }
         
         $widgets = $this->dashboard->getWidgets();
@@ -115,12 +109,9 @@ class DashboardController
     #[Route('/reorder', methods: ['POST'])]
     public function reorderAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
-        
-        $order = $request->request->all()['order'] ?? [];
-        if (empty($order) && $request->getContent()) {
-            $json = json_decode($request->getContent(), true);
+        $order = $this->request->request->all()['order'] ?? [];
+        if (empty($order) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
             $order = $json['order'] ?? [];
         }
         
@@ -143,12 +134,8 @@ class DashboardController
     #[Route('/weather', methods: ['GET'])]
     public function weatherAction()
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
-        
-        // Weather widget uses GET parameters
-        $data = $request->query->all()['data'] ?? [];
-        $action = $request->query->get('action', '');
+        $data = $this->request->query->all()['data'] ?? [];
+        $action = $this->request->query->get('action', '');
         
         $url = $this->api;
 
@@ -161,6 +148,6 @@ class DashboardController
         $data['APPID'] = $this->apiKey;
         $url .= '?' . http_build_query($data);
 
-        return App::response(file_get_contents((string) $url), 200, ['Content-Type' => 'application/json']);
+        return ($this->response)(file_get_contents((string) $url), 200, ['Content-Type' => 'application/json']);
     }
 }

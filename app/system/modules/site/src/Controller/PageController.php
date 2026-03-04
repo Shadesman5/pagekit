@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Site\Controller;
 
 use Pagekit\Application as App;
@@ -8,13 +10,18 @@ use function Pagekit\__;
 
 class PageController
 {
+    public function __construct(
+        private readonly mixed $content,
+        private readonly mixed $node,
+    ) {}
+
     public function indexAction($id = 0): array
     {
         if (!$page = Page::find($id)) {
-            App::abort(404, __('Page not found.'));
+            App::abort(404, __('Page not found.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
-        $page->content = App::content()->applyPlugins($page->content, ['page' => $page, 'markdown' => $page->get('markdown')]);
+        $page->content = $this->content->applyPlugins($page->content, ['page' => $page, 'markdown' => $page->get('markdown')]);
 
         return [
             '$view' => [
@@ -22,7 +29,7 @@ class PageController
                 'name'  => 'system/site/page.php'
             ],
             'page' => $page,
-            'node' => App::node()
+            'node' => $this->node
         ];
     }
 }

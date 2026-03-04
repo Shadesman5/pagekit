@@ -21,11 +21,16 @@ class UserApiController
 {
     use ValidatesRequestTrait;
 
+    public function __construct(
+        private readonly mixed $request,
+        private readonly mixed $user,
+        private readonly mixed $module,
+    ) {}
+
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        $request = $this->request;
         $filter = $request->query->all()['filter'] ?? [];
         $page = (int) $request->query->get('page', 0);
         $limit = (int) $request->query->get('limit', 0);
@@ -71,7 +76,7 @@ class UserApiController
             $order = [1=>'username', 2=>'asc'];
         }
 
-        $default = App::module('system/user')->config('users_per_page');
+        $default = $this->module->get('system/user')->config('users_per_page');
         $limit   = min(max(0, $limit), $default) ?: $default;
         $count   = $query->count();
         $pages   = ceil($count / $limit);
@@ -83,8 +88,7 @@ class UserApiController
 
     public function countAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        $request = $this->request;
         $filter = $request->query->all()['filter'] ?? [];
 
         $query  = User::query();
@@ -131,7 +135,7 @@ class UserApiController
     public function getAction(int $id): User
     {
         if (!$user = User::find($id)) {
-            App::abort(404, 'User not found.');
+            App::abort(404, 'User not found.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         return $user;
@@ -144,8 +148,7 @@ class UserApiController
     #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function saveAction(int $id = 0)
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        $request = $this->request;
 
         // Get user data from POST or JSON body
         $data = $request->request->all()['user'] ?? [];
@@ -168,27 +171,27 @@ class UserApiController
             if (!$user = User::find($id)) {
 
                 if ($id) {
-                    App::abort(404, __('User not found.'));
+                    App::abort(404, __('User not found.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
                 }
 
                 if (!$password) {
-                    App::abort(400, __('Password required.'));
+                    App::abort(400, __('Password required.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
                 }
 
                 $user = User::create(['registered' => new \DateTime]);
             }
 
-            if ($user->isAdministrator() && !App::user()->isAdministrator()) {
-                App::abort(400, __('Unable to edit administrator.'));
+            if ($user->isAdministrator() && !$this->user->isAdministrator()) {
+                App::abort(400, __('Unable to edit administrator.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
             }
 
             $user->name = @$data['name'];
             $user->username = @$data['username'];
             $user->email = @$data['email'];
 
-            $self = App::user()->id == $user->id;
+            $self = $this->user->id == $user->id;
             if ($self && @$data['status'] == User::STATUS_BLOCKED) {
-                App::abort(400, __('Unable to block yourself.'));
+                App::abort(400, __('Unable to block yourself.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
             }
 
             if (@$data['email'] != $user->email) {
@@ -201,15 +204,15 @@ class UserApiController
                     throw new Exception(__('Invalid Password.'));
                 }
 
-                $user->password = App::getInstance()['auth.password']->hash($password);
+                $user->password = App::getInstance()['auth.password']->hash($password); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
             }
 
             $key    = array_search(Role::ROLE_ADMINISTRATOR, @$data['roles'] ?: []);
             $add    = false !== $key && !$user->isAdministrator();
             $remove = false === $key && $user->isAdministrator();
 
-            if (($self && $remove) || !App::user()->isAdministrator() && ($remove || $add)) {
-                App::abort(403, 'Cannot add/remove Admin Role.');
+            if (($self && $remove) || !$this->user->isAdministrator() && ($remove || $add)) {
+                App::abort(403, 'Cannot add/remove Admin Role.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
             }
 
             unset($data['login'], $data['registered']);
@@ -222,7 +225,7 @@ class UserApiController
             return ['message' => 'success', 'user' => $user];
 
         } catch (Exception $e) {
-            App::abort(400, $e->getMessage());
+            App::abort(400, $e->getMessage()); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
     }
 
@@ -231,16 +234,16 @@ class UserApiController
     {
         // Get id from route if not provided (Symfony 6.4 compatibility)
         if (!$id) {
-            $id = (int) App::request()->get('id', 0);
+            $id = (int) $this->request->get('id', 0);
         }
 
-        if (App::user()->id == $id) {
-            App::abort(400, __('Unable to delete yourself.'));
+        if ($this->user->id == $id) {
+            App::abort(400, __('Unable to delete yourself.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         if ($user = User::find($id)) {
-            if ($user->isAdministrator() && !App::user()->isAdministrator()) {
-                App::abort(400, __('Unable to delete administrator.'));
+            if ($user->isAdministrator() && !$this->user->isAdministrator()) {
+                App::abort(400, __('Unable to delete administrator.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
             }
 
             $user->delete();
@@ -252,8 +255,7 @@ class UserApiController
     #[Route('/bulk', methods: ['POST'])]
     public function bulkSaveAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        $request = $this->request;
 
         // Get users data from POST or JSON body
         $users = $request->request->all()['users'] ?? [];
@@ -282,8 +284,7 @@ class UserApiController
     #[Route('/bulk', methods: ['DELETE'])]
     public function bulkDeleteAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        $request = $this->request;
 
         // Get ids from POST/DELETE body or JSON
         $ids = $request->request->all()['ids'] ?? [];
