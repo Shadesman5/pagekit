@@ -3,7 +3,7 @@
 **ROADMAP Step:** 2.0.1c
 **Branch:** `feature/psr11-stage3-system-installer-console`
 **GitHub Issue:** #164
-**Status:** Discovery
+**Status:** Complete
 
 ---
 
@@ -270,10 +270,91 @@ Top service proxies to migrate (excluding deferred `abort`/`redirect`/`on`/`subs
 
 ## Validation Plan (Step 10)
 
-- [ ] `./app/vendor/bin/phpunit` — all 261+ tests pass
-- [ ] `php -S localhost:8080 index.php` — app serves correctly
-- [ ] No `$app['x']` READ access remains in scope (only WRITEs)
-- [ ] No `App::service()` proxy calls in controllers/listeners (only deferred patterns remain)
-- [ ] All WRITEs tagged: `// TODO: Must be refactored in Step 2.0.1d`
-- [ ] All deferred statics tagged: `// TODO: Must be refactored in Step 2.0.1e`
-- [ ] Model bridges tagged: `// TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e`
+- [x] `./app/vendor/bin/phpunit` — 267 tests, 646 assertions, 0 failures
+- [x] `php -S localhost:8080 index.php` — app serves correctly
+- [x] No `$app['x']` READ access remains in scope (only WRITEs + 1 commented-out line)
+- [x] No `App::service()` proxy calls in controllers/listeners (only deferred patterns remain)
+- [x] All WRITEs tagged: `// TODO: Must be refactored in Step 2.0.1d`
+- [x] All deferred statics tagged: `// TODO: Must be refactored in Step 2.0.1e`
+- [x] Model bridges tagged: `// TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e`
+
+---
+
+## Final Validation Results
+
+**Date:** 2026-03-04
+**Branch:** `feature/psr11-stage3-system-installer-console`
+
+### 1. PHPUnit
+
+```
+Tests: 267, Assertions: 646, Warnings: 1, Skipped: 5
+Result: OK (0 failures, 0 errors)
+```
+
+### 2. ArrayAccess READ Patterns (`$app['x']`)
+
+**Zero `$app['x']` READ patterns remaining in scope.** Only WRITE patterns (`$app['x'] = ...`) remain, all tagged for Step 2.0.1d. One commented-out READ exists in `app/system/scripts.php` (inactive code).
+
+### 3. `App::service()` Calls in Controllers/Listeners
+
+**Zero `App::service()` calls remaining** in any controller or listener across `app/system/`, `app/installer/`, and `app/console/`. All migrated to constructor injection.
+
+### 4. PHP Syntax Check
+
+```
+0 errors across 292 PHP files (app/system/, app/installer/, app/console/)
+```
+
+### 5. CLI Validation
+
+```
+$ php pagekit list
+Pagekit 1.1.6 — 19 commands available (including 5 migration subcommands)
+```
+
+All console commands load and execute without container errors.
+
+### 6. Deferred Patterns Summary
+
+| Pattern | Count | Tagged For |
+|---------|-------|------------|
+| `App::abort()` | 51 | Step 2.0.1e |
+| `App::redirect()` | 15 | Step 2.0.1e |
+| `App::on()`/`subscribe()`/`trigger()`/`forward()`/`error()` | 7 | Step 2.0.1e |
+| `$app['x'] = ...` (WRITE) | 24 | Step 2.0.1d |
+| `App::getInstance()->get()` (temporary bridges) | 17 | Step 2.0.1e |
+| `App::translator()` in intl global functions | 5 | Step 2.0.1e |
+| `App::path()` in SelfUpdater | 1 | Step 2.0.1e |
+| **Total deferred** | **120** | |
+
+---
+
+## Migration Summary
+
+| Metric | Count |
+|--------|-------|
+| **Total files changed** | 90 (88 PHP + 2 MD) |
+| **Total insertions / deletions** | +1,593 / −1,015 |
+| **ArrayAccess READs migrated** (`$app['x']` → `$app->get('x')`) | 130 |
+| **`isset($app['x'])` migrated** → `$app->has('x')` | 5 |
+| **`App::*()` static proxy calls migrated** | 320 |
+| **`$app->get()` calls introduced** | 161 |
+| **Constructors added/modified** | 40 |
+| **Injected property usages introduced** | 290 |
+| **Commits (excluding docs)** | 8 |
+
+### Files by Category
+
+| Category | Files |
+|----------|-------|
+| System module index.php | 12 |
+| System bootstrap/scripts | 2 |
+| System controllers | 25 |
+| System listeners | 7 |
+| System helpers & module classes | 12 |
+| System views/widgets/mails | 8 |
+| System model + intl functions | 5 |
+| Installer | 12 |
+| Console | 4 |
+| Documentation | 2 |
