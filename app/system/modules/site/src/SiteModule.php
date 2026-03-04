@@ -15,20 +15,20 @@ class SiteModule extends Module
      */
     public function main(App $app): void
     {
-        $app['node'] = function ($app) {
+        $app['node'] = function ($app) { // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
 
-            if ($id = $app['request']->attributes->get('_node') and $node = Node::find($id, true)) {
+            if ($id = $app->get('request')->attributes->get('_node') and $node = Node::find($id, true)) {
                 return $node;
             }
 
             return Node::create();
         };
 
-        $app['menu'] = function ($app) {
+        $app['menu'] = function ($app) { // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
 
-            $menus = new MenuManager($app->config($app['theme']->name), $this->config('menus'));
+            $menus = new MenuManager($app->config($app->get('theme')->name), $this->config('menus'));
 
-            foreach ($app['theme']->get('menus', []) as $name => $label) {
+            foreach ($app->get('theme')->get('menus', []) as $name => $label) {
                 $menus->register($name, $label);
             }
 

@@ -18,11 +18,11 @@ return [
 
     'render' => function ($widget) use ($app) {
 
-        $user              = $app['user'];
-        $redirect          = $widget->get($user->isAuthenticated() ? 'redirect_logout' : 'redirect_login') ?: $app['url']->current(true);
-        $last_username     = $app['session']->get(Auth::LAST_USERNAME);
+        $user              = $app->get('user');
+        $redirect          = $widget->get($user->isAuthenticated() ? 'redirect_logout' : 'redirect_login') ?: $app->get('url')->current(true);
+        $last_username     = $app->get('session')->get(Auth::LAST_USERNAME);
 
-        return $app['view']('system/user/widget-login.php', compact('widget', 'user', 'last_username', 'redirect'));
+        return $app->get('view')('system/user/widget-login.php', compact('widget', 'user', 'last_username', 'redirect'));
     }
 
 ];

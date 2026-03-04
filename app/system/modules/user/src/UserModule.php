@@ -16,9 +16,9 @@ class UserModule extends Module
      */
     public function main(App $app): void
     {
-        $app['user'] = function ($app) {
+        $app['user'] = function ($app) { // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
 
-            if (!$user = $app['auth']->getUser()) {
+            if (!$user = $app->get('auth')->getUser()) {
                 $user = User::create(['roles' => [Role::ROLE_ANONYMOUS]]);
             }
 
