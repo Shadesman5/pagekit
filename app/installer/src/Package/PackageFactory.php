@@ -78,7 +78,7 @@ class PackageFactory implements \ArrayAccess, \IteratorAggregate
 
             if (isset($path)) {
                 $data['path'] = $path;
-                $data['url'] = App::url()->getStatic($path);
+                $data['url'] = App::getInstance()->get('url')->getStatic($path);
             }
 
             return new Package($data);

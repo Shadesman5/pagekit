@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Installer\Package;
 
 use Pagekit\Application as App;
@@ -14,30 +16,25 @@ class PackageManager
     protected Composer $composer;
 
     /**
-     * Constructor.
-     *
      * @param mixed $output
      */
     public function __construct($output = null)
     {
         $this->output = $output ?: new StreamOutput(fopen('php://output', 'w'));
 
-        // Get config from App if available, otherwise use defaults
         $path = realpath(__DIR__ . '/../../..');
         $config = [];
-        
-        // Try to get from Application instance if available
+
         try {
             $app = App::getInstance();
-            if ($app && isset($app['path.temp'])) {
-                $config['path.temp'] = $app['path.temp'];
-                $config['path.cache'] = $app['path.cache'];
-                $config['path.vendor'] = $app['path.vendor'];
-                $config['path.artifact'] = $app['path.artifact'];
-                $config['path.packages'] = $app['path.packages'];
-                $config['system.api'] = $app['system.api'] ?? 'https://pagekit.com';
+            if ($app && $app->has('path.temp')) {
+                $config['path.temp'] = $app->get('path.temp');
+                $config['path.cache'] = $app->get('path.cache');
+                $config['path.vendor'] = $app->get('path.vendor');
+                $config['path.artifact'] = $app->get('path.artifact');
+                $config['path.packages'] = $app->get('path.packages');
+                $config['system.api'] = $app->has('system.api') ? $app->get('system.api') : 'https://pagekit.com';
             } else {
-                // Use default paths
                 $config['path.temp'] = $path . '/tmp/temp';
                 $config['path.cache'] = $path . '/tmp/cache';
                 $config['path.vendor'] = $path . '/vendor';
@@ -46,7 +43,6 @@ class PackageManager
                 $config['system.api'] = 'https://pagekit.com';
             }
         } catch (\Exception $e) {
-            // Use default paths on any error
             $config['path.temp'] = $path . '/tmp/temp';
             $config['path.cache'] = $path . '/tmp/cache';
             $config['path.vendor'] = $path . '/vendor';
@@ -65,13 +61,16 @@ class PackageManager
      */
     public function install(array $install = [], $packagist = false, $preferSource = false): void
     {
-        $previousPackageConfigs = App::package()->all(null, true);
+        $app = App::getInstance();
+        $packageFactory = $app->get('package');
+
+        $previousPackageConfigs = $packageFactory->all(null, true);
 
         $this->composer->install($install, $packagist, $preferSource);
 
-        $packages = App::package()->all(null, true);
+        $packages = $packageFactory->all(null, true);
         foreach (array_keys($install) as $name) {
-            $moduleAlreadyExisted = isset($previousPackageConfigs[$name]) && App::module($previousPackageConfigs[$name]->get('module'));
+            $moduleAlreadyExisted = isset($previousPackageConfigs[$name]) && $app->get('module')->get($previousPackageConfigs[$name]->get('module'));
 
             if ($moduleAlreadyExisted == true) {
                 $previousPackageConfig = isset($previousPackageConfigs[$name]) ? $previousPackageConfigs[$name] : null;
@@ -87,14 +86,17 @@ class PackageManager
      */
     public function uninstall($uninstall): void
     {
+        $app = App::getInstance();
+        $packageFactory = $app->get('package');
+
         foreach ((array) $uninstall as $name) {
-            if (!$package = App::package($name)) {
+            if (!$package = $packageFactory->get($name)) {
                 throw new \RuntimeException(__('Unable to find "%name%".', ['%name%' => $name]));
             }
 
             $this->disable($package);
             $this->getScripts($package)->uninstall();
-            App::config('system')->remove('packages.' . $package->get('module'));
+            $app->get('config')('system')->remove('packages.' . $package->get('module'));
 
             if ($this->composer->isInstalled($package->getName())) {
                 $this->composer->uninstall($package->getName());
@@ -105,7 +107,7 @@ class PackageManager
 
                 $this->output->writeln(__("Removing package folder."));
 
-                App::file()->delete($path);
+                $app->get('file')->delete($path);
                 @rmdir(dirname($path));
             }
         }
@@ -126,12 +128,10 @@ class PackageManager
         }
 
         foreach ($packages as $package) {
-            // Store original state for rollback on error
             $originalState = null;
             $moduleName = $package->get('module');
-            
+
             try {
-                // Get the old package config if provided. If there is no old config available, then use the new config (usually fist installation).
                 $previousPackageConfig = $package;
                 foreach ($previousPackageConfigs as $packageConfig) {
                     if ($packageConfig->get('name') == $package->get('name')) {
@@ -140,19 +140,19 @@ class PackageManager
                     }
                 }
 
-                App::trigger('package.enable', [$package]);
+                App::trigger('package.enable', [$package]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
 
-                // During installation, config service might not be available
                 $app = App::getInstance();
-                if ($app && isset($app['config'])) {
-                    // Capture original state for potential rollback
+                if ($app && $app->has('config')) {
+                    $sysConfig = $app->get('config')('system');
+
                     $originalState = [
-                        'version' => App::config('system')->get('packages.' . $moduleName),
-                        'enabled' => in_array($moduleName, (array) App::config('system')->get('extensions', [])),
-                        'theme' => App::config('system')->get('site.theme') === $moduleName,
+                        'version' => $sysConfig->get('packages.' . $moduleName),
+                        'enabled' => in_array($moduleName, (array) $sysConfig->get('extensions', [])),
+                        'theme' => $sysConfig->get('site.theme') === $moduleName,
                     ];
-                    
-                    if (!$current = App::config('system')->get('packages.' . $previousPackageConfig->get('module'))) {
+
+                    if (!$current = $sysConfig->get('packages.' . $previousPackageConfig->get('module'))) {
                         $current = $this->doInstall($package);
                     }
 
@@ -161,49 +161,42 @@ class PackageManager
                         $scripts->update();
                     }
 
-                    // CRITICAL FIX: Execute enable scripts BEFORE setting config
-                    // This way, if scripts fail, config is not yet modified
+                    // Execute enable scripts BEFORE setting config
                     $scripts->enable();
-                    
-                    // Only persist config changes if enable() succeeded
+
                     $version = $this->getVersion($package);
-                    App::config('system')->set('packages.' . $moduleName, $version);
+                    $sysConfig->set('packages.' . $moduleName, $version);
 
                     if ($package->getType() == 'pagekit-theme') {
-                        App::config('system')->set('site.theme', $moduleName);
+                        $sysConfig->set('site.theme', $moduleName);
                     } elseif ($package->getType() == 'pagekit-extension') {
-                        // Only add to extensions list if not already there
                         if (!$originalState['enabled']) {
-                            App::config('system')->push('extensions', $moduleName);
+                            $sysConfig->push('extensions', $moduleName);
                         }
                     }
                 } else {
-                    // During installation, just run basic enable without config updates
                     $current = $this->doInstall($package);
                     $scripts = $this->getScripts($package, $current);
                     $scripts->enable();
                 }
             } catch (\Throwable $e) {
-                // Rollback: Restore original state on any error
                 if ($originalState !== null) {
                     $this->rollbackEnable($package, $originalState);
                 }
-                
-                // Log the error
+
                 $app = App::getInstance();
-                if ($app && isset($app['log'])) {
-                    $app['log']->error(
-                        sprintf('Failed to enable package "%s": %s', 
-                            $package->get('name'), 
+                if ($app && $app->has('log')) {
+                    $app->get('log')->error(
+                        sprintf('Failed to enable package "%s": %s',
+                            $package->get('name'),
                             $e->getMessage()
                         ),
                         ['exception' => $e, 'package' => $moduleName]
                     );
                 }
-                
-                // Re-throw with context for caller to handle
+
                 throw new \RuntimeException(
-                    sprintf('Unable to enable "%s": %s', 
+                    sprintf('Unable to enable "%s": %s',
                         $package->get('title') ?? $package->get('name'),
                         $e->getMessage()
                     ),
@@ -213,36 +206,28 @@ class PackageManager
             }
         }
     }
-    
+
     /**
-     * Rollback package enable on error
-     *
-     * @param  $package
-     * @param  array $originalState
+     * Rollback package enable on error.
      */
     protected function rollbackEnable($package, array $originalState): void
     {
         $moduleName = $package->get('module');
-        $config = App::config('system');
-        
-        // Restore original version
+        $config = App::getInstance()->get('config')('system');
+
         if ($originalState['version'] !== null) {
             $config->set('packages.' . $moduleName, $originalState['version']);
         } else {
             $config->remove('packages.' . $moduleName);
         }
-        
-        // Restore original enabled state
+
         $currentlyEnabled = in_array($moduleName, (array) $config->get('extensions', []));
         if ($originalState['enabled'] && !$currentlyEnabled) {
-            // Was enabled, restore it
             $config->push('extensions', $moduleName);
         } elseif (!$originalState['enabled'] && $currentlyEnabled) {
-            // Was not enabled, remove it
             $config->pull('extensions', $moduleName);
         }
-        
-        // Restore theme setting
+
         if ($package->getType() == 'pagekit-theme') {
             if ($originalState['theme']) {
                 $config->set('site.theme', $moduleName);
@@ -265,7 +250,7 @@ class PackageManager
             $this->getScripts($package)->disable();
 
             if ($package->getType() == 'pagekit-extension') {
-                App::config('system')->pull('extensions', $package->get('module'));
+                App::getInstance()->get('config')('system')->pull('extensions', $package->get('module'));
             }
         }
     }
@@ -295,10 +280,9 @@ class PackageManager
         $this->getScripts($package)->install();
         $version = $this->getVersion($package);
 
-        // Only update config if available (not during initial installation)
         $app = App::getInstance();
-        if ($app && isset($app['config'])) {
-            App::config('system')->set('packages.' . $package->get('module'), $version);
+        if ($app && $app->has('config')) {
+            $app->get('config')('system')->set('packages.' . $package->get('module'), $version);
         }
 
         return $version;
@@ -325,7 +309,8 @@ class PackageManager
             return $package['version'];
         }
 
-        $packagesPath = App::getInstance() ? App::getInstance()['path.packages'] : realpath(__DIR__ . '/../../..') . '/packages';
+        $app = App::getInstance();
+        $packagesPath = $app ? $app->get('path.packages') : realpath(__DIR__ . '/../../..') . '/packages';
         if (file_exists($packagesPath . '/composer/installed.json')) {
             $installed = json_decode(file_get_contents($file), true);
 

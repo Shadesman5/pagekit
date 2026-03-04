@@ -14,20 +14,26 @@ class PackageController
 {
     protected PackageManager $manager;
 
-    public function __construct()
-    {
+    public function __construct(
+        private readonly mixed $package,
+        private readonly mixed $module,
+        private readonly mixed $url,
+        private readonly mixed $request,
+        private readonly mixed $response,
+        private readonly mixed $path,
+    ) {
         $this->manager = new PackageManager();
     }
 
     public function themesAction(): array
     {
-        $packages = array_values(App::package()->all('pagekit-theme'));
+        $packages = array_values($this->package->all('pagekit-theme'));
 
         foreach ($packages as $package) {
-            if ($module = App::module($package->get('module'))) {
+            if ($module = $this->module->get($package->get('module'))) {
 
                 if ($settings = $module->get('settings') and $settings[0] === '@') {
-                    $settings = App::url($settings);
+                    $settings = ($this->url)($settings);
                 }
 
                 $package->set('enabled', true);
@@ -42,7 +48,7 @@ class PackageController
                 'name' => 'installer:views/themes.php'
             ],
             '$data' => [
-                'api' => App::getInstance() ? App::getInstance()['system.api'] : 'https://pagekit.com',
+                'api' => App::getInstance()->get('system.api'), // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
                 'packages' => $packages
             ]
         ];
@@ -50,13 +56,13 @@ class PackageController
 
     public function extensionsAction(): array
     {
-        $packages = array_values(App::package()->all('pagekit-extension'));
+        $packages = array_values($this->package->all('pagekit-extension'));
 
         foreach ($packages as $package) {
-            if ($module = App::module($package->get('module'))) {
+            if ($module = $this->module->get($package->get('module'))) {
 
                 if ($settings = $module->get('settings') and $settings[0] === '@') {
-                    $settings = App::url($settings);
+                    $settings = ($this->url)($settings);
                 }
 
                 $package->set('enabled', true);
@@ -72,7 +78,7 @@ class PackageController
                 'name' => 'installer:views/extensions.php'
             ],
             '$data' => [
-                'api' => App::getInstance() ? App::getInstance()['system.api'] : 'https://pagekit.com',
+                'api' => App::getInstance()->get('system.api'), // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
                 'packages' => $packages
             ]
         ];
@@ -84,41 +90,36 @@ class PackageController
         $handler = $this->errorHandler($name);
 
         try {
-            if (!$package = App::package($name)) {
-                App::abort(400, __('Unable to find "%name%".', ['%name%' => $name]));
+            if (!$package = ($this->package)($name)) {
+                App::abort(400, __('Unable to find "%name%".', ['%name%' => $name])); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
             }
 
-            App::module()->load($package->get('module'));
+            $this->module->load($package->get('module'));
 
-            if (!$module = App::module($package->get('module'))) {
-                App::abort(400, __('Unable to enable "%name%".', ['%name%' => $package->get('title')]));
+            if (!$module = $this->module->get($package->get('module'))) {
+                App::abort(400, __('Unable to enable "%name%".', ['%name%' => $package->get('title')])); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
             }
 
             $this->manager->enable($package);
-            
-            // Clear cache only on successful enable
-            App::module('system/cache')->clearCache();
+
+            $this->module->get('system/cache')->clearCache();
 
             return ['message' => 'success'];
-            
+
         } catch (\Throwable $e) {
-            // Log the error
-            App::log('error', sprintf(
+            App::log('error', sprintf( // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
                 'Failed to enable extension "%s": %s',
                 $name,
                 $e->getMessage()
             ), ['exception' => $e]);
-            
-            // Return error to UI
-            // In debug mode, show full error; otherwise show generic message
-            $errorMessage = App::debug() 
+
+            $errorMessage = App::debug() // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
                 ? sprintf('%s', $e->getMessage())
                 : __('Unable to enable "%name%". See error log for details.', ['%name%' => $name]);
-            
+
             return ['error' => $errorMessage];
-            
+
         } finally {
-            // Restore original error handlers
             if ($handler) {
                 $handler();
             }
@@ -128,17 +129,17 @@ class PackageController
     #[Request(['name' => 'string'], csrf: true)]
     public function disableAction($name): array
     {
-        if (!$package = App::package($name)) {
-            App::abort(400, __('Unable to find "%name%".', ['%name%' => $name]));
+        if (!$package = ($this->package)($name)) {
+            App::abort(400, __('Unable to find "%name%".', ['%name%' => $name])); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
-        if (!$module = App::module($package->get('module'))) {
-            App::abort(400, __('"%name%" has not been loaded.', ['%name%' => $package->get('title')]));
+        if (!$module = $this->module->get($package->get('module'))) {
+            App::abort(400, __('"%name%" has not been loaded.', ['%name%' => $package->get('title')])); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         $this->manager->disable($package);
 
-        App::module('system/cache')->clearCache();
+        $this->module->get('system/cache')->clearCache();
 
         return ['message' => 'success'];
     }
@@ -146,26 +147,25 @@ class PackageController
     #[Request(['type' => 'string'], csrf: true)]
     public function uploadAction($type): array
     {
-        $file = App::request()->files->get('file');
+        $file = $this->request->files->get('file');
 
         if ($file === null || !$file->isValid()) {
-            App::abort(400, __('No file uploaded.'));
+            App::abort(400, __('No file uploaded.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         $package = $this->loadPackage($file->getPathname());
 
         if (!$package->getName() || !$package->get('title') || !$package->get('version')) {
-            App::abort(400, __('"composer.json" file not valid.'));
+            App::abort(400, __('"composer.json" file not valid.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         if ($package->get('type') !== 'pagekit-' . $type) {
-            App::abort(400, __('No Pagekit %type%', ['%type%' => $type]));
+            App::abort(400, __('No Pagekit %type%', ['%type%' => $type])); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         $filename = str_replace('/', '-', $package->getName()) . '-' . $package->get('version') . '.zip';
 
-        $path = App::getInstance() ? App::getInstance()['path'] : realpath(__DIR__ . '/../../../..');
-        $file->move($path . '/tmp/packages', $filename);
+        $file->move($this->path . '/tmp/packages', $filename);
 
         return compact('package');
     }
@@ -173,20 +173,18 @@ class PackageController
     #[Request(['package' => 'array', 'packagist' => 'boolean'], csrf: true)]
     public function installAction($package = [], $packagist = false)
     {
-
-        // TODO
-        $file = App::path().'/tmp/temp/composer/composer.json';
+        $file = $this->path . '/tmp/temp/composer/composer.json';
 
         if (!file_exists(dirname($file))) {
             mkdir(dirname($file), 0755, true);
             file_put_contents($file, '{}');
         }
 
-        return App::response()->stream(function () use ($package, $packagist) {
+        return $this->response->stream(function () use ($package, $packagist) {
 
             try {
 
-                $package = App::package()->load($package);
+                $package = $this->package->load($package);
 
                 if (!$package) {
                     throw new \RuntimeException('Invalid parameters.');
@@ -207,7 +205,7 @@ class PackageController
     #[Request(['name' => 'string'], csrf: true)]
     public function uninstallAction($name)
     {
-        return App::response()->stream(function () use ($name) {
+        return $this->response->stream(function () use ($name) {
 
             try {
 
@@ -232,7 +230,7 @@ class PackageController
             if ($zip->open($file) === true) {
                 $json = $zip->getFromName('composer.json');
 
-                if ($json && $package = App::package()->load($json)) {
+                if ($json && $package = $this->package->load($json)) {
                     $extra = $package->get('extra');
 
                     if (isset($extra['icon']) || isset($extra['image'])) {
@@ -252,42 +250,34 @@ class PackageController
             return $package;
         }
 
-        App::abort(400, __('Can\'t load json file from package.'));
+        App::abort(400, __('Can\'t load json file from package.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
     }
 
     protected function errorHandler($name): ?callable
     {
-        // Store original error reporting level
         $originalErrorReporting = error_reporting();
-        
-        // Disable error display temporarily
+
         ini_set('display_errors', 0);
-        
-        // Set error handler that converts errors to exceptions
+
         $originalErrorHandler = set_error_handler(function ($severity, $message, $file, $line) use ($name) {
-            // Only handle errors that would normally be fatal
             if ($severity & (E_ERROR | E_CORE_ERROR | E_COMPILE_ERROR | E_RECOVERABLE_ERROR)) {
-                // Clean output buffer
                 while (ob_get_level()) {
                     ob_get_clean();
                 }
 
                 $errorMessage = __('Unable to activate "%name%".<br>A fatal error occured.', ['%name%' => $name]);
-                
-                if (App::debug()) {
+
+                if (App::debug()) { // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
                     $errorMessage .= '<br><br>' . sprintf('%s in %s on line %d', $message, $file, $line);
                 }
 
-                // Send JSON response
-                App::response()->json($errorMessage, 500)->send();
+                $this->response->json($errorMessage, 500)->send();
                 exit;
             }
-            
-            // For other errors, return false to let PHP handle them normally
+
             return false;
         });
 
-        // Set exception handler for uncaught exceptions
         $originalExceptionHandler = set_exception_handler(function ($exception) use ($name) {
             while (ob_get_level()) {
                 ob_get_clean();
@@ -295,15 +285,14 @@ class PackageController
 
             $message = __('Unable to activate "%name%".<br>A fatal error occured.', ['%name%' => $name]);
 
-            if (App::debug()) {
+            if (App::debug()) { // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
                 $message .= '<br><br>' . $exception->getMessage();
             }
 
-            App::response()->json($message, 500)->send();
+            $this->response->json($message, 500)->send();
             exit;
         });
 
-        // Return a function to restore original handlers
         return function () use ($originalErrorHandler, $originalExceptionHandler, $originalErrorReporting) {
             if ($originalErrorHandler !== null) {
                 set_error_handler($originalErrorHandler);
