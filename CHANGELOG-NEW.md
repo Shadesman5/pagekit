@@ -1,5 +1,25 @@
 # Changelog
 
+## Pagekit 1.1.7 - PSR-11 Container Stage 3: System, Installer & Console (March 4, 2026)
+
+### ♻️ Refactoring
+
+- **System Module index.php Migration (2.0.1c)** — All `$app['xxx']` ArrayAccess READ patterns in 12 system module `index.php` files migrated to `$app->get('xxx')`. WRITE patterns preserved with TODO for Step 2.0.1d.
+- **System Bootstrap & Module Classes (2.0.1c)** — ArrayAccess reads in `app.php`, `scripts.php`, `SystemModule`, `SiteModule`, `UserModule`, `IntlModule`, `ValidatorServiceProvider`, view templates, and mail templates migrated to `$app->get('xxx')`.
+- **System Controllers Constructor Injection (2.0.1c)** — All 25 system controllers migrated from `App::service()` to constructor injection with `private readonly` typed properties. `App::abort()`/`App::redirect()` deferred to Step 2.0.1e.
+- **System Listeners Constructor Injection (2.0.1c)** — 7 event listeners (`AuthorizationListener`, `AccessListener`, `LoginAttemptListener`, `ResponseListener`, `MaintenanceListener`, `NodesListener`, `CaptchaListener`) migrated to constructor injection. Index.php files updated to pass services.
+- **System Helpers & Module Classes (2.0.1c)** — `SystemMenu`, `PositionHelper`, `MenuHelper`, `InfoHelper`, `FileLocatorAsset`, `CacheModule`, `DashboardModule`, `UniqueValidator`, and module classes migrated to constructor injection.
+- **System Model Temporary Bridge (2.0.1c)** — `Node.php` model uses `App::getInstance()->get()` pattern (models cannot use constructor injection). Intl global functions marked with TODO for Step 2.0.1e.
+- **Installer Migration (2.0.1c)** — All ArrayAccess reads in installer bootstrap, index, install scripts, controllers, and `PackageManager`/`PackageFactory` migrated to `$app->get()` or constructor injection.
+- **Console Migration (2.0.1c)** — All ArrayAccess reads in console `app.php` and commands migrated to `$app->get()`. `App::abort()` in `SelfupdateCommand` deferred to Step 2.0.1e.
+
+### 📝 Documentation
+
+- **Stage 3 Branch Documentation** — `PSR11_CONTAINER_STAGE3.md` with discovery results and final validation.
+- **Validation Results** — 267 PHPUnit tests pass, 0 `$app['xxx']` reads remain, 0 `App::service()` in controllers/listeners, PHP syntax valid across 292 files.
+
+---
+
 ## Pagekit 1.1.6 - PSR-11 DI Infrastructure + Workflow Optimization (February 23, 2026)
 
 ### ✨ New Features
