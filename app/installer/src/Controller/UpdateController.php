@@ -27,7 +27,7 @@ class UpdateController
                 'name' => 'installer:views/update.php'
             ],
             '$data' => [
-                'api' => App::getInstance()->get('system.api'), // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                'api' => App::getInstance() ? App::getInstance()->get('system.api') : 'https://pagekit.com', // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
                 'version' => $this->version,
                 'channel' => 'stable'
             ]
@@ -37,7 +37,7 @@ class UpdateController
     #[Request(['url' => 'string'], csrf: true)]
     public function downloadAction($url): array
     {
-        $tempPath = App::getInstance()->get('path.temp'); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+        $tempPath = App::getInstance() ? App::getInstance()->get('path.temp') : sys_get_temp_dir(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
         $file = tempnam($tempPath, 'update_');
         $this->session->set('system.update', $file);
 

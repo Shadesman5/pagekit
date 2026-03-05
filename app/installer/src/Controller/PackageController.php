@@ -48,7 +48,7 @@ class PackageController
                 'name' => 'installer:views/themes.php'
             ],
             '$data' => [
-                'api' => App::getInstance()->get('system.api'), // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                'api' => App::getInstance() ? App::getInstance()->get('system.api') : 'https://pagekit.com', // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
                 'packages' => $packages
             ]
         ];
@@ -78,7 +78,7 @@ class PackageController
                 'name' => 'installer:views/extensions.php'
             ],
             '$data' => [
-                'api' => App::getInstance()->get('system.api'), // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                'api' => App::getInstance() ? App::getInstance()->get('system.api') : 'https://pagekit.com', // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
                 'packages' => $packages
             ]
         ];
