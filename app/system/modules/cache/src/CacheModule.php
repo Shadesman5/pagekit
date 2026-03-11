@@ -14,7 +14,7 @@ use Symfony\Component\Finder\Finder;
 
 class CacheModule extends Module
 {
-    protected App $app;
+    protected ?App $app = null;
 
     /**
      * {@inheritdoc}
@@ -127,11 +127,13 @@ class CacheModule extends Module
      */
     public function doClearCache(array $options = []): void
     {
+        $app = $this->app ?? App::getInstance();
+
         // clear cache
         if (empty($options) || @$options['cache']) {
-            $this->app->get('cache')->flushAll();
+            $app->get('cache')->flushAll();
 
-            foreach ((array) glob($this->app->get('path.cache') . '/*.cache') as $file) {
+            foreach ((array) glob($app->get('path.cache') . '/*.cache') as $file) {
                 @unlink($file);
                 // opcache
                 if (function_exists('opcache_invalidate')) {
@@ -142,8 +144,8 @@ class CacheModule extends Module
 
         // clear temp folder
         if (@$options['temp']) {
-            foreach (Finder::create()->in($this->app->get('path.temp'))->depth(0)->ignoreDotFiles(true) as $file) {
-                $this->app->get('file')->delete($file->getPathname());
+            foreach (Finder::create()->in($app->get('path.temp'))->depth(0)->ignoreDotFiles(true) as $file) {
+                $app->get('file')->delete($file->getPathname());
                 // opcache
                 if (function_exists('opcache_invalidate')) {
                     opcache_invalidate($file);
