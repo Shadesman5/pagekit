@@ -33,7 +33,7 @@ class PackageController
             if ($module = $this->module->get($package->get('module'))) {
 
                 if ($settings = $module->get('settings') and $settings[0] === '@') {
-                    $settings = ($this->url)($settings);
+                    $settings = $this->url->get($settings);
                 }
 
                 $package->set('enabled', true);
@@ -62,7 +62,7 @@ class PackageController
             if ($module = $this->module->get($package->get('module'))) {
 
                 if ($settings = $module->get('settings') and $settings[0] === '@') {
-                    $settings = ($this->url)($settings);
+                    $settings = $this->url->get($settings);
                 }
 
                 $package->set('enabled', true);
