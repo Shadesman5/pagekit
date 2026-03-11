@@ -148,9 +148,6 @@ return [
                 new MaintenanceListener(
                     $app,
                     $this,
-                    $app->get('auth'),
-                    $app->get('view'),
-                    $app->get('response'),
                 ),
                 new NodesListener(
                     $this,
@@ -239,8 +236,6 @@ return [
             }
             $view->addHelper(new MenuHelper(
                 $app->get('menu'),
-                $app->get('user'),
-                $app->get('node'),
             ));
         }, 100],
 

@@ -135,11 +135,36 @@ class Config implements \ArrayAccess, \Countable, \JsonSerializable
     }
 
     /**
+     * Restores a Config instance from var_export() output.
+     *
+     * @param array $state Exported state array
+     */
+    public static function __set_state(array $state): self
+    {
+        return new self($state['values'] ?? []);
+    }
+
+    /**
      * Dumps the values as php.
      */
     public function dump(): string
     {
-        return '<?php return '.var_export($this->values, true).';';
+        return '<?php return '.var_export(self::toPlainArray($this->values), true).';';
+    }
+
+    /**
+     * Recursively converts Config objects to plain arrays for var_export().
+     */
+    private static function toPlainArray(array $values): array
+    {
+        foreach ($values as $key => $value) {
+            if ($value instanceof self) {
+                $values[$key] = self::toPlainArray($value->values);
+            } elseif (is_array($value)) {
+                $values[$key] = self::toPlainArray($value);
+            }
+        }
+        return $values;
     }
 
     /**
