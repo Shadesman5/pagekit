@@ -40,7 +40,7 @@ class ExceptionController
             $statusCode = 500;
         }
 
-        return ($this->response)($rendered, $statusCode, $exception->getHeaders());
+        return $this->response->create($rendered, $statusCode, $exception->getHeaders());
     }
 
     /**

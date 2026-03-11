@@ -90,7 +90,7 @@ class PackageController
         $handler = $this->errorHandler($name);
 
         try {
-            if (!$package = ($this->package)($name)) {
+            if (!$package = $this->package->get($name)) {
                 App::abort(400, __('Unable to find "%name%".', ['%name%' => $name])); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
             }
 
@@ -129,7 +129,7 @@ class PackageController
     #[Request(['name' => 'string'], csrf: true)]
     public function disableAction($name): array
     {
-        if (!$package = ($this->package)($name)) {
+        if (!$package = $this->package->get($name)) {
             App::abort(400, __('Unable to find "%name%".', ['%name%' => $name])); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 

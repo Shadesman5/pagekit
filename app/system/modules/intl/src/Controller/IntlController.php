@@ -31,7 +31,7 @@ class IntlController
 
         $json = $this->request->isXmlHttpRequest();
 
-        $httpResponse = ($json ? $this->response->json() : ($this->response)('', 200, ['Content-Type' => 'application/javascript']));
+        $httpResponse = ($json ? $this->response->json() : $this->response->create('', 200, ['Content-Type' => 'application/javascript']));
         $httpResponse->setETag(md5($json . $messages))->setPublic();
 
         if ($httpResponse->isNotModified($this->request)) {

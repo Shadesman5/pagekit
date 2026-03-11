@@ -42,7 +42,7 @@ class MaintenanceListener implements EventSubscriberInterface
             } elseif ('json' == $request->getFormat(array_shift($types))) {
                 $viewResponse = $this->response->json($message, 503);
             } else {
-                $viewResponse = ($this->response)($viewResponse, 503);
+                $viewResponse = $this->response->create($viewResponse, 503);
             }
 
             $event->setResponse($viewResponse);
