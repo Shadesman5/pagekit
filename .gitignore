@@ -50,7 +50,7 @@ docker.env
 .cursor/secrets.env
 
 # PHPUnit cache
-.phpunit.cache/
+.phpunit.cache/**/*
 
 # E2E Testing
 .playwright-mcp/**/*
