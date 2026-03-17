@@ -7,7 +7,7 @@ use Pagekit\Module\Module;
 
 class DashboardModule extends Module
 {
-    protected App $app;
+    protected ?App $app = null;
 
     /**
      * {@inheritdoc}
@@ -34,7 +34,8 @@ class DashboardModule extends Module
      */
     public function getWidgets(): array
     {
-        return $this->app->get('config')->get('system/dashboard', $this->config('defaults'))->toArray();
+        $app = $this->app ?? App::getInstance();
+        return $app->get('config')->get('system/dashboard', $this->config('defaults'))->toArray();
     }
 
     /**
@@ -44,6 +45,7 @@ class DashboardModule extends Module
      */
     public function saveWidgets(array $widgets): void
     {
-        $this->app->get('config')->set('system/dashboard', $widgets);
+        $app = $this->app ?? App::getInstance();
+        $app->get('config')->set('system/dashboard', $widgets);
     }
 }

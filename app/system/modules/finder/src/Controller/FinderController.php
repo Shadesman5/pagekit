@@ -9,13 +9,13 @@ use Pagekit\Finder\Event\FileAccessEvent;
 use Pagekit\Kernel\Exception\ForbiddenException;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
+use Symfony\Component\Finder\Finder;
 use function Pagekit\__;
 
 class FinderController
 {
     public function __construct(
         private readonly mixed $request,
-        private readonly mixed $finder,
         private readonly mixed $url,
         private readonly mixed $file,
         private readonly mixed $path,
@@ -37,7 +37,7 @@ class FinderController
         $data = array_fill_keys(['items'], []);
         $data['mode'] = $mode;
 
-        $finder = $this->finder;
+        $finder = Finder::create();
 
         $finder->sort(fn($a, $b) => $b->getRealpath() > $a->getRealpath() ? -1 : 1);
 
