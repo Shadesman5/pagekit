@@ -6,8 +6,7 @@ use Pagekit\Container\ContainerException;
 use Pagekit\Container\NotFoundException;
 use Psr\Container\ContainerInterface;
 
-// TODO: BACKWARD COMPATIBILITY - ArrayAccess delegates to get/has. Must be removed in Step 2.0.1 Stage 4
-class Container implements ContainerInterface, \ArrayAccess
+class Container implements ContainerInterface
 {
     protected array $values = [];
 
@@ -38,6 +37,7 @@ class Container implements ContainerInterface, \ArrayAccess
      * @param  array  $args
      * @return mixed
      */
+    // TODO: Remove __call() magic in Step 2.0.1e (StaticTrait Removal)
     public function __call($name, $args)
     {
         $value = $this->get($name);
@@ -170,54 +170,5 @@ class Container implements ContainerInterface, \ArrayAccess
         }
 
         $this->values[$id] = $value;
-    }
-
-    /**
-     * Checks if a parameter/service is defined.
-     *
-     * @param  string $name
-     */
-    public function offsetExists($name): bool
-    {
-        return $this->has((string) $name);
-    }
-
-    /**
-     * Gets a parameter/service.
-     *
-     * @param  string $name
-     * @return mixed
-     *
-     * @throws NotFoundException
-     */
-    #[\ReturnTypeWillChange]
-    public function offsetGet($name)
-    {
-        return $this->get((string) $name);
-    }
-
-    /**
-     * Sets a parameter/service.
-     *
-     * @param string $name
-     * @param mixed  $value
-     *
-     * @throws \RuntimeException
-     */
-    public function offsetSet($name, $value): void
-    {
-        $this->set((string) $name, $value);
-    }
-
-    /**
-     * Removes a parameter/service.
-     *
-     * @param string $name
-     */
-    public function offsetUnset($name): void
-    {
-        if (array_key_exists($name, $this->values)) {
-            unset($this->values[$name], $this->raw[$name], $this->factories[$name]);
-        }
     }
 }
