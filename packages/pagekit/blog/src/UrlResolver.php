@@ -20,7 +20,7 @@ class UrlResolver implements ParamsResolverInterface
      */
     public function __construct()
     {
-        $this->cacheEntries = App::cache()->fetch(self::CACHE_KEY) ?: [];
+        $this->cacheEntries = App::cache()->fetch(self::CACHE_KEY) ?: []; // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
     }
 
     /**
@@ -33,7 +33,7 @@ class UrlResolver implements ParamsResolverInterface
         }
 
         if (!isset($parameters['slug'])) {
-            App::abort(404, 'Post not found.');
+            App::abort(404, 'Post not found.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         $slug = $parameters['slug'];
@@ -48,7 +48,7 @@ class UrlResolver implements ParamsResolverInterface
         if (!$id) {
 
             if (!$post = Post::where(compact('slug'))->first()) {
-                App::abort(404, 'Post not found.');
+                App::abort(404, 'Post not found.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
             }
 
             $this->addCache($post);
@@ -101,7 +101,7 @@ class UrlResolver implements ParamsResolverInterface
     public function __destruct()
     {
         if ($this->cacheDirty) {
-            App::cache()->save(self::CACHE_KEY, $this->cacheEntries);
+            App::cache()->save(self::CACHE_KEY, $this->cacheEntries); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
         }
     }
 
@@ -110,7 +110,7 @@ class UrlResolver implements ParamsResolverInterface
      */
     public static function getPermalink(): string
     {
-        $blog = App::module('blog');
+        $blog = App::module('blog'); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
         $permalink = $blog->config('permalink.type');
 
         if ($permalink == 'custom') {
