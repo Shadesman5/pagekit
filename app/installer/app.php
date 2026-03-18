@@ -13,7 +13,7 @@ if ($failed = $requirements->getFailedRequirements()) {
 }
 
 $app = new App($config);
-$app['autoloader'] = $loader; // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
+$app->set('autoloader', $loader);
 
 $app->get('module')->register([
     'app/modules/*/index.php',

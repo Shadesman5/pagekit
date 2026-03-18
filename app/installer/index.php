@@ -9,7 +9,7 @@ return [
 
     'main' => function ($app) {
 
-        $app['package'] = fn($app) => (new PackageFactory())->addPath($app->get('path').'/packages/*/*/composer.json'); // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
+        $app->set('package', fn($app) => (new PackageFactory())->addPath($app->get('path').'/packages/*/*/composer.json'));
 
         if ($this->config['enabled']) {
 
