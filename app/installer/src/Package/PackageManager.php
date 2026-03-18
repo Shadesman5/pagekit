@@ -26,7 +26,7 @@ class PackageManager
         $config = [];
 
         try {
-            $app = App::getInstance();
+            $app = App::getInstance(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
             if ($app && $app->has('path.temp')) {
                 $config['path.temp'] = $app->get('path.temp');
                 $config['path.cache'] = $app->get('path.cache');
@@ -61,7 +61,7 @@ class PackageManager
      */
     public function install(array $install = [], $packagist = false, $preferSource = false): void
     {
-        $app = App::getInstance();
+        $app = App::getInstance(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
         $packageFactory = $app->get('package');
 
         $previousPackageConfigs = $packageFactory->all(null, true);
@@ -86,7 +86,7 @@ class PackageManager
      */
     public function uninstall($uninstall): void
     {
-        $app = App::getInstance();
+        $app = App::getInstance(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
         $packageFactory = $app->get('package');
 
         foreach ((array) $uninstall as $name) {
@@ -142,7 +142,7 @@ class PackageManager
 
                 App::trigger('package.enable', [$package]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
 
-                $app = App::getInstance();
+                $app = App::getInstance(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
                 if ($app && $app->has('config')) {
                     $sysConfig = $app->get('config')('system');
 
@@ -184,7 +184,7 @@ class PackageManager
                     $this->rollbackEnable($package, $originalState);
                 }
 
-                $app = App::getInstance();
+                $app = App::getInstance(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
                 if ($app && $app->has('log')) {
                     $app->get('log')->error(
                         sprintf('Failed to enable package "%s": %s',
@@ -213,7 +213,7 @@ class PackageManager
     protected function rollbackEnable($package, array $originalState): void
     {
         $moduleName = $package->get('module');
-        $config = App::getInstance()->get('config')('system');
+        $config = App::getInstance()->get('config')('system'); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
 
         if ($originalState['version'] !== null) {
             $config->set('packages.' . $moduleName, $originalState['version']);
@@ -250,7 +250,7 @@ class PackageManager
             $this->getScripts($package)->disable();
 
             if ($package->getType() == 'pagekit-extension') {
-                App::getInstance()->get('config')('system')->pull('extensions', $package->get('module'));
+                App::getInstance()->get('config')('system')->pull('extensions', $package->get('module')); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
             }
         }
     }
@@ -280,7 +280,7 @@ class PackageManager
         $this->getScripts($package)->install();
         $version = $this->getVersion($package);
 
-        $app = App::getInstance();
+        $app = App::getInstance(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
         if ($app && $app->has('config')) {
             $app->get('config')('system')->set('packages.' . $package->get('module'), $version);
         }
@@ -309,7 +309,7 @@ class PackageManager
             return $package['version'];
         }
 
-        $app = App::getInstance();
+        $app = App::getInstance(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
         $packagesPath = $app ? $app->get('path.packages') : realpath(__DIR__ . '/../../..') . '/packages';
         if (file_exists($packagesPath . '/composer/installed.json')) {
             $installed = json_decode(file_get_contents($file), true);

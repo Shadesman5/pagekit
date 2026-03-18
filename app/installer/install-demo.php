@@ -2,7 +2,7 @@
 
 use Pagekit\Application as App;
 
-$app = App::getInstance();
+$app = App::getInstance(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
 $db = $app->get('db');
 $config = $app->get('config');
 
@@ -148,7 +148,7 @@ if ($db->getUtility()->tableExists('@blog_post')) {
 
     function pushComments($comments, $id, $parent_id = 0) {
         global $global_comment_count;
-        $db = App::getInstance()->get('db');
+        $db = App::getInstance()->get('db'); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
 
         $current_comment_count = 0;
 
