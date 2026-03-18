@@ -204,7 +204,7 @@ class UserApiController
                     throw new Exception(__('Invalid Password.'));
                 }
 
-                $user->password = App::getInstance()['auth.password']->hash($password); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                $user->password = App::getInstance()->get('auth.password')->hash($password); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
             }
 
             $key    = array_search(Role::ROLE_ADMINISTRATOR, @$data['roles'] ?: []);

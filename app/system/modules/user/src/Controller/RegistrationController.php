@@ -77,7 +77,7 @@ class RegistrationController
                 'name' => @$data['name'],
                 'username' => @$data['username'],
                 'email' => @$data['email'],
-                'password' => App::getInstance()['auth.password']->hash($password), // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                'password' => App::getInstance()->get('auth.password')->hash($password), // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
                 'status' => User::STATUS_BLOCKED
             ]);
 

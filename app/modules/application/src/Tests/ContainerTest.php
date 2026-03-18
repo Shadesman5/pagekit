@@ -179,8 +179,14 @@ class ContainerTest extends TestCase
     public function testGetThrowsNotFoundException(): void
     {
         $this->expectException(NotFoundException::class);
-        $this->expectException(NotFoundExceptionInterface::class);
         $this->expectExceptionMessage('"undefined" is not defined');
+
+        $this->container->get('undefined');
+    }
+
+    public function testGetThrowsNotFoundExceptionInterface(): void
+    {
+        $this->expectException(NotFoundExceptionInterface::class);
 
         $this->container->get('undefined');
     }

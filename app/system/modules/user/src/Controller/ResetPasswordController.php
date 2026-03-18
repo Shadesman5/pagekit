@@ -177,7 +177,7 @@ class ResetPasswordController
                 }
 
                 $user->activation = null;
-                $user->password = App::getInstance()['auth.password']->hash($password); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                $user->password = App::getInstance()->get('auth.password')->hash($password); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
                 $user->save();
 
                 $this->session->remove('activation');
