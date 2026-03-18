@@ -11,7 +11,7 @@ return [
 
     'main' => function ($app) {
 
-        $app['log'] = function ($app) {
+        $app->set('log', function ($app) {
 
             $logger = new Logger($this->name);
 
@@ -31,9 +31,9 @@ return [
             }
 
             return $logger;
-        };
+        });
 
-        $app['log.debug'] = fn() => new DebugBarHandler();
+        $app->set('log.debug', fn() => new DebugBarHandler());
 
     },
 

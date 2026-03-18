@@ -23,14 +23,14 @@ return [
             return;
         }
 
-        $app['debugbar'] = function ($app) {
+        $app->set('debugbar', function ($app) {
             $debugbar = new DebugBar();
             return $debugbar->setStorage($app->get('debugbar.storage'));
-        };
+        });
 
-        $app['debugbar.storage'] = fn() => new SqliteStorage($this->config['file']);
+        $app->set('debugbar.storage', fn() => new SqliteStorage($this->config['file']));
 
-        $app['debugbar.stopwatch'] = fn() => new Stopwatch();
+        $app->set('debugbar.stopwatch', fn() => new Stopwatch());
 
         $app->extend('events', fn($dispatcher, $app) => new TraceableEventDispatcher($dispatcher, $app->get('debugbar.stopwatch')));
 

@@ -11,13 +11,13 @@ return [
 
     'main' => function ($app) {
 
-        $app['auth'] = fn($app) => new Auth($app->get('events'), $app->get('auth.handler'));
+        $app->set('auth', fn($app) => new Auth($app->get('events'), $app->get('auth.handler')));
 
-        $app['auth.password'] = fn() => new NativePasswordEncoder;
+        $app->set('auth.password', fn() => new NativePasswordEncoder);
 
-        $app['auth.random'] = fn() => (new Factory)->getLowStrengthGenerator();
+        $app->set('auth.random', fn() => (new Factory)->getLowStrengthGenerator());
 
-        $app['auth.handler'] = fn($app) => new DatabaseHandler($app->get('db'), $app->get('request.stack'), $app->get('cookie'), $app->get('auth.random'), $this->config);
+        $app->set('auth.handler', fn($app) => new DatabaseHandler($app->get('db'), $app->get('request.stack'), $app->get('cookie'), $app->get('auth.random'), $this->config));
 
     },
 

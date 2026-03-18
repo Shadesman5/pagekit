@@ -15,19 +15,19 @@ return [
     'name' => 'migration',
 
     'main' => function ($app) {
-        $app['migration'] = function ($app) {
+        $app->set('migration', function ($app) {
             $configPath = __DIR__ . '/../../config/migrations.php';
             $config = file_exists($configPath) ? require $configPath : [];
 
             return new MigrationService($app->get('db'), $config);
-        };
+        });
 
-        $app['migration.config'] = function ($app) {
+        $app->set('migration.config', function ($app) {
             $configPath = __DIR__ . '/../../config/migrations.php';
             $config = file_exists($configPath) ? require $configPath : [];
 
             return new ConfigurationProvider($app->get('db'), $config);
-        };
+        });
     },
 
     'autoload' => [
@@ -44,7 +44,7 @@ return [
 
     'events' => [
         'boot' => function ($event, $app) {
-            // Migration service is now available via $app['migration']
+            // Migration service is now available via $app->get('migration')
         }
     ]
 

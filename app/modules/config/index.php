@@ -8,7 +8,7 @@ return [
 
     'main' => function ($app) {
 
-        $app['config'] = fn($app) => new ConfigManager($app->get('db'), $this->config);
+        $app->set('config', fn($app) => new ConfigManager($app->get('db'), $this->config));
 
         if ($app->get('config.file') && file_exists($app->get('config.file'))) {
             $app->get('module')->addLoader(function ($module) use ($app) {

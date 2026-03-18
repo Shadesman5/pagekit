@@ -37,13 +37,13 @@ return [
 
     'main' => function ($app) {
 
-        $app['view'] = fn($app) => new View(new PrefixEventDispatcher('view.', $app->get('events')));
+        $app->set('view', fn($app) => new View(new PrefixEventDispatcher('view.', $app->get('events'))));
 
-        $app['assets'] = fn() => new AssetFactory();
+        $app->set('assets', fn() => new AssetFactory());
 
-        $app['styles'] = fn($app) => new AssetManager($app->get('assets'));
+        $app->set('styles', fn($app) => new AssetManager($app->get('assets')));
 
-        $app['scripts'] = fn($app) => new AssetManager($app->get('assets'));
+        $app->set('scripts', fn($app) => new AssetManager($app->get('assets')));
 
         $app->get('module')->addLoader(function ($module) use ($app) {
 

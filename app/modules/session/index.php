@@ -14,15 +14,15 @@ return [
 
     'main' => function ($app) {
 
-        $app['session'] = function ($app) {
+        $app->set('session', function ($app) {
             $session = new Session($app->get('session.storage'));
             $session->registerBag($app->get('message'));
             return $session;
-        };
+        });
 
-        $app['message'] = fn() => new MessageBag();
+        $app->set('message', fn() => new MessageBag());
 
-        $app['session.storage'] = function ($app) {
+        $app->set('session.storage', function ($app) {
 
             switch ($this->config['storage']) {
 
@@ -42,9 +42,9 @@ return [
             }
 
             return $storage;
-        };
+        });
 
-        $app['session.options'] = function () {
+        $app->set('session.options', function () {
 
             $options = $this->config(['cookie', 'lifetime']);
 
@@ -62,11 +62,11 @@ return [
             }
 
             return $options;
-        };
+        });
 
-        $app['csrf'] = function ($app) {
+        $app->set('csrf', function ($app) {
             return new SessionCsrfProvider($app->get('session'));
-        };
+        });
 
     },
 

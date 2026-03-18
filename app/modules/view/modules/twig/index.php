@@ -11,7 +11,7 @@ return [
 
     'main' => function ($app) {
 
-        $app['twig'] = function ($app) {
+        $app->set('twig', function ($app) {
 
             $twig = new Environment(new TwigLoader($app->has('locator') ? new FilesystemLoader($app->get('locator')) : null), [
                 'cache' => new TwigCache($app->get('path.cache')),
@@ -25,7 +25,7 @@ return [
 
             return $twig;
 
-         };
+         });
 
     },
 

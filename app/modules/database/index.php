@@ -18,7 +18,7 @@ $config = [
             'wrapperClass' => 'Pagekit\Database\Connection'
         ];
 
-        $app['dbs'] = function ($app) use ($default) {
+        $app->set('dbs', function ($app) use ($default) {
 
             $dbs = [];
 
@@ -30,79 +30,65 @@ $config = [
                     class_exists('Pagekit\Debug\Middleware\DebugLogger')) {
                     
                     try {
-                        // Create logger - ALWAYS ENABLED to ensure queries are captured
-                        $stopwatch = null; // Will be set later if debugbar is active
+                        $stopwatch = null;
                         $logger = new \Pagekit\Debug\Middleware\DebugLogger($stopwatch);
                         
-                        // ALWAYS enable logging - we'll filter later when displaying
                         $logger->enabled = true;
                         
-                        
-                        // Create middleware with logger
                         $middleware = new \Pagekit\Debug\Middleware\DebugMiddleware($logger);
                         
-                        // Add to connection params (required for DBAL 3.x)
                         $connectionParams['middlewares'] = [$middleware];
                         
-                        // Store reference for later use by debugbar
-                        $app['db.debug_middleware'] = $middleware;
-                        $app['db.debug_logger'] = $logger;
+                        $app->set('db.debug_middleware', $middleware);
+                        $app->set('db.debug_logger', $logger);
                     } catch (\Exception $e) {
                         // If middleware creation fails, continue without it
                     }
                 }
                 
                 // DBAL 3.x Bug: Middlewares are ignored when using wrapperClass
-                // We need to manually wrap the driver before creating the connection
                 if (isset($connectionParams['middlewares']) && !empty($connectionParams['middlewares'])) {
-                    // First create the connection normally to get the driver
                     $tempConnection = DriverManager::getConnection($connectionParams);
                     
-                    // Get the driver from the connection
                     $driver = $tempConnection->getDriver();
                     
-                    // Apply middlewares manually
                     foreach ($connectionParams['middlewares'] as $middleware) {
                         $driver = $middleware->wrap($driver);
                     }
                     
-                    // Get configuration from temp connection
                     $config = $tempConnection->getConfiguration();
                     
-                    // Create new connection with wrapped driver
                     $connection = new $connectionParams['wrapperClass'](
                         $connectionParams,
                         $driver,
                         $config
                     );
                     
-                    // Close temp connection
                     $tempConnection->close();
                     
                     $dbs[$name] = $connection;
                 } else {
-                    // Fallback to standard creation
                     $dbs[$name] = DriverManager::getConnection($connectionParams);
                 }
             }
 
             return $dbs;
-        };
+        });
 
-        $app['db'] = fn ($app) => $app->get('dbs')[$this->config['default']];
+        $app->set('db', fn ($app) => $app->get('dbs')[$this->config['default']]);
 
-        $app['db.em'] = fn ($app) => new EntityManager($app->get('db'), $app->get('db.metas'), $app->get('db.events'));
+        $app->set('db.em', fn ($app) => new EntityManager($app->get('db'), $app->get('db.metas'), $app->get('db.events')));
 
-        $app['db.metas'] = function ($app) {
+        $app->set('db.metas', function ($app) {
 
             $manager = new MetadataManager($app->get('db'), $app->get('db.events'));
             $manager->setLoader(new AttributeLoader());
             $manager->setCache($app->get('cache.phpfile'));
 
             return $manager;
-        };
+        });
 
-        $app['db.events'] = fn ($app) => new PrefixEventDispatcher('model.', $app->get('events'));
+        $app->set('db.events', fn ($app) => new PrefixEventDispatcher('model.', $app->get('events')));
 
         // Note: db.debug_middleware is now created inline in the dbs factory above
         // This ensures it's available when the connection is created

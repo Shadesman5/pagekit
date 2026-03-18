@@ -8,7 +8,7 @@ return [
 
     'main' => function ($app) {
 
-        $app['feed'] = fn() => new FeedFactory;
+        $app->set('feed', fn() => new FeedFactory);
 
     },
 
