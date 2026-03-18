@@ -146,17 +146,14 @@ if ($db->getUtility()->tableExists('@blog_post')) {
 
     $global_comment_count = 0;
 
-    function pushComments($comments, $id, $parent_id = 0) {
-        global $global_comment_count;
-        $db = App::getInstance()->get('db'); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
-
+    $pushComments = function (array $comments, int $id, int $parent_id = 0) use ($db, &$global_comment_count, &$pushComments): int {
         $current_comment_count = 0;
 
         if (!$db->getUtility()->tableExists('@blog_comment')) {
-            return;
+            return 0;
         }
 
-        foreach($comments as $key => $comment) {
+        foreach ($comments as $comment) {
             $child_comments = null;
 
             $comment = array_merge(defaults('comment'), $comment);
@@ -169,25 +166,25 @@ if ($db->getUtility()->tableExists('@blog_post')) {
             }
 
             $db->insert('@blog_comment', $comment);
-            $global_comment_count ++;
-            $current_comment_count ++;
+            $global_comment_count++;
+            $current_comment_count++;
 
             if ($child_comments) {
-                $current_comment_count +=pushComments($child_comments, $id, $global_comment_count);
+                $current_comment_count += $pushComments($child_comments, $id, $global_comment_count);
             }
         }
 
         return $current_comment_count;
     };
 
-    foreach($posts as $key => $post) {
+    foreach ($posts as $key => $post) {
 
         if (isset($post['comments'])) {
             $comments = $post['comments'];
-            $post['comment_count'] = pushComments($comments, $key + 1);
+            $post['comment_count'] = $pushComments($comments, $key + 1);
             unset($post['comments']);
         }
 
         $db->insert('@blog_post', array_merge(defaults('post'), $post));
-    };
+    }
 }
