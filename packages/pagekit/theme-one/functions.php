@@ -82,7 +82,7 @@ function bgImage ($url, $options) : array
 
 function image($url, array $attrs = []): string
 {
-    $path = App::view()->url($url);
+    $path = App::view()->url($url); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
 
     if (empty($attrs['alt'])) {
         $attrs['alt'] = true;
