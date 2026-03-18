@@ -6,6 +6,8 @@ namespace Pagekit\Blog\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Blog\Model\Post;
+use Pagekit\Module\Module;
+use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
@@ -20,11 +22,17 @@ class PostApiController
 {
     use ValidatesRequestTrait;
 
+    protected Module $blog;
+
+    public function __construct(ModuleManager $module)
+    {
+        $this->blog = $module->get('blog');
+    }
+
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        $request = App::request(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         $filter = $request->query->all()['filter'] ?? [];
         $page = (int) $request->query->get('page', 0);
 
@@ -33,8 +41,8 @@ class PostApiController
 
         extract($filter, EXTR_SKIP);
 
-        if(!App::user()->hasAccess('blog: manage all posts')) {
-            $author = App::user()->id;
+        if(!App::user()->hasAccess('blog: manage all posts')) { // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            $author = App::user()->id; // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         if (is_numeric($status)) {
@@ -57,7 +65,7 @@ class PostApiController
             $order = [1 => 'date', 2 => 'desc'];
         }
 
-        $limit = (int) $limit ?: App::module('blog')->config('posts.posts_per_page');
+        $limit = (int) $limit ?: $this->blog->config('posts.posts_per_page');
         $count = $query->count();
         $pages = ceil($count / $limit);
         $page  = max(0, min($pages - 1, $page));
@@ -80,9 +88,8 @@ class PostApiController
     #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function saveAction(int $id = 0, ?array $data = null): array
     {
-        // Get parameters from request if not provided (Symfony 6.4 compatibility)
         if ($data === null) {
-            $request = App::request();
+            $request = App::request(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
 
             $data = $request->request->all()['post'] ?? [];
             if (empty($data) && $request->getContent()) {
@@ -91,7 +98,6 @@ class PostApiController
             }
         }
 
-        // Get id from route or data
         if (!$id && isset($data['id'])) {
             $id = (int) $data['id'];
         }
@@ -99,27 +105,22 @@ class PostApiController
         if (!$id || !$post = Post::find($id)) {
 
             if ($id) {
-                App::abort(404, __('Post not found.'));
+                App::abort(404, __('Post not found.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
             }
 
             $post = Post::create();
         }
 
-        // Generate slug from title if not provided (business logic)
-        $data['slug'] = App::filter($data['slug'] ?: $data['title'], 'slugify');
+        $data['slug'] = App::filter($data['slug'] ?: $data['title'], 'slugify'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
 
-        // user without universal access is not allowed to assign posts to other users
-        if(!App::user()->hasAccess('blog: manage all posts')) {
-            $data['user_id'] = App::user()->id;
+        if(!App::user()->hasAccess('blog: manage all posts')) { // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            $data['user_id'] = App::user()->id; // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
-        // user without universal access can only edit their own posts (business logic, not entity validation)
-        if(!App::user()->hasAccess('blog: manage all posts') && !App::user()->hasAccess('blog: manage own posts') && $post->user_id !== App::user()->id) {
-            App::abort(400, __('Access denied.'));
+        if(!App::user()->hasAccess('blog: manage all posts') && !App::user()->hasAccess('blog: manage own posts') && $post->user_id !== App::user()->id) { // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            App::abort(400, __('Access denied.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
-        // Assign data to entity for validation (without saving yet)
-        // Skip DateTime fields - save() handles string-to-DateTime conversion
         $skipFields = ['date', 'modified', 'created'];
         foreach ($data as $key => $value) {
             if (property_exists($post, $key) && !in_array($key, $skipFields, true)) {
@@ -127,7 +128,6 @@ class PostApiController
             }
         }
 
-        // Validate using Symfony Validator
         $this->validateOrFail($post);
 
         $post->save($data);
@@ -138,16 +138,14 @@ class PostApiController
     #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\d+'])]
     public function deleteAction(int $id = 0): array
     {
-        // Get id from route if not provided (Symfony 6.4 compatibility)
         if (!$id) {
-            $id = (int) App::request()->get('id', 0);
+            $id = (int) App::request()->get('id', 0); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         if ($post = Post::find($id)) {
 
-            // Business logic: user without universal access can only delete their own posts
-            if(!App::user()->hasAccess('blog: manage all posts') && !App::user()->hasAccess('blog: manage own posts') && $post->user_id !== App::user()->id) {
-                App::abort(400, __('Access denied.'));
+            if(!App::user()->hasAccess('blog: manage all posts') && !App::user()->hasAccess('blog: manage own posts') && $post->user_id !== App::user()->id) { // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                App::abort(400, __('Access denied.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
             }
 
             $post->delete();
@@ -159,8 +157,7 @@ class PostApiController
     #[Route('/copy', methods: ['POST'])]
     public function copyAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        $request = App::request(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
 
         $ids = $request->request->all()['ids'] ?? [];
         if (empty($ids) && $request->getContent()) {
@@ -170,7 +167,7 @@ class PostApiController
 
         foreach ($ids as $id) {
             if ($post = Post::find((int) $id)) {
-                if(!App::user()->hasAccess('blog: manage all posts') && !App::user()->hasAccess('blog: manage own posts') && $post->user_id !== App::user()->id) {
+                if(!App::user()->hasAccess('blog: manage all posts') && !App::user()->hasAccess('blog: manage own posts') && $post->user_id !== App::user()->id) { // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
                     continue;
                 }
 
@@ -190,8 +187,7 @@ class PostApiController
     #[Route('/bulk', methods: ['POST'])]
     public function bulkSaveAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        $request = App::request(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
 
         $posts = $request->request->all()['posts'] ?? [];
         if (empty($posts) && $request->getContent()) {
@@ -210,8 +206,7 @@ class PostApiController
     #[Route('/bulk', methods: ['DELETE'])]
     public function bulkDeleteAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        $request = App::request(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
 
         $ids = $request->request->all()['ids'] ?? [];
         if (empty($ids) && $request->getContent()) {
