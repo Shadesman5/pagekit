@@ -36,10 +36,10 @@ class ContainerPsr11Test extends TestCase
     {
         $this->assertFalse($this->container->has('non.existent'));
 
-        $this->container['test.scalar'] = 'value';
+        $this->container->set('test.scalar', 'value');
         $this->assertTrue($this->container->has('test.scalar'));
 
-        $this->container['test.service'] = fn() => new \stdClass();
+        $this->container->set('test.service', fn() => new \stdClass());
         $this->assertTrue($this->container->has('test.service'));
     }
 
@@ -48,9 +48,9 @@ class ContainerPsr11Test extends TestCase
      */
     public function testGetScalarValue(): void
     {
-        $this->container['test.string'] = 'hello';
-        $this->container['test.number'] = 42;
-        $this->container['test.array'] = ['a', 'b', 'c'];
+        $this->container->set('test.string', 'hello');
+        $this->container->set('test.number', 42);
+        $this->container->set('test.array', ['a', 'b', 'c']);
 
         $this->assertEquals('hello', $this->container->get('test.string'));
         $this->assertEquals(42, $this->container->get('test.number'));
@@ -62,11 +62,11 @@ class ContainerPsr11Test extends TestCase
      */
     public function testGetServiceFactory(): void
     {
-        $this->container['test.service'] = function ($container) {
+        $this->container->set('test.service', function ($container) {
             $obj = new \stdClass();
             $obj->created = true;
             return $obj;
-        };
+        });
 
         $service = $this->container->get('test.service');
         $this->assertInstanceOf(\stdClass::class, $service);
@@ -131,21 +131,18 @@ class ContainerPsr11Test extends TestCase
     }
 
     /**
-     * Test backward compatibility: ArrayAccess delegates to get/has
+     * Test set()/get()/has() methods work together
      */
-    public function testArrayAccessDelegatesToGetHas(): void
+    public function testSetGetHasMethods(): void
     {
-        $this->container['old.style'] = 'value';
+        $this->container->set('old.style', 'value');
 
         $this->assertTrue($this->container->has('old.style'));
         $this->assertEquals('value', $this->container->get('old.style'));
 
-        $this->container->offsetSet('another.old', 'test');
+        $this->container->set('another.old', 'test');
         $this->assertTrue($this->container->has('another.old'));
         $this->assertEquals('test', $this->container->get('another.old'));
-
-        $this->assertEquals('value', $this->container['old.style']);
-        $this->assertTrue(isset($this->container['old.style']));
     }
 
     /**
@@ -172,7 +169,7 @@ class ContainerPsr11Test extends TestCase
      */
     public function testServiceExtension(): void
     {
-        $this->container['test.base'] = fn() => 'base';
+        $this->container->set('test.base', fn() => 'base');
 
         $this->container->extend('test.base', function ($base, $container) {
             return $base . '-extended';
@@ -186,9 +183,9 @@ class ContainerPsr11Test extends TestCase
      */
     public function testGetHandlesServiceCreationErrors(): void
     {
-        $this->container['broken.service'] = function () {
+        $this->container->set('broken.service', function () {
             throw new \RuntimeException('Service creation failed');
-        };
+        });
 
         try {
             $this->container->get('broken.service');
@@ -204,9 +201,9 @@ class ContainerPsr11Test extends TestCase
      */
     public function testKeysMethod(): void
     {
-        $this->container['service1'] = 'value1';
-        $this->container['service2'] = 'value2';
-        $this->container['service3'] = 'value3';
+        $this->container->set('service1', 'value1');
+        $this->container->set('service2', 'value2');
+        $this->container->set('service3', 'value3');
 
         $keys = $this->container->keys();
         $this->assertContains('service1', $keys);
@@ -220,7 +217,7 @@ class ContainerPsr11Test extends TestCase
     public function testRawMethod(): void
     {
         $closure = fn() => 'resolved';
-        $this->container['test.closure'] = $closure;
+        $this->container->set('test.closure', $closure);
 
         $raw = $this->container->raw('test.closure');
         $this->assertSame($closure, $raw);
