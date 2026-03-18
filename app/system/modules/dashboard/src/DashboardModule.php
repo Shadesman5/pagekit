@@ -35,7 +35,8 @@ class DashboardModule extends Module
     public function getWidgets(): array
     {
         $app = $this->app ?? App::getInstance(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
-        return $app->get('config')->get('system/dashboard', $this->config('defaults'))->toArray();
+        $config = $app->get('config')->get('system/dashboard')->toArray();
+        return $config ?: ($this->config('defaults') ?? []);
     }
 
     /**
