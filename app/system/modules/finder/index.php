@@ -12,7 +12,7 @@ return [
 
     'main' => function ($app) {
         $this->config['storage'] = '/' . trim(($this->config['storage'] ?: 'storage'), '/');
-        $app['path.storage'] = $app->get('path') . $this->config['storage']; // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
+        $app->set('path.storage', $app->get('path') . $this->config['storage']);
         $app->get('locator')->add('storage:', $app->get('path.storage'));
     },
 

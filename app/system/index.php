@@ -101,7 +101,7 @@ return [
                     return;
                 }
 
-                $app['isAdmin'] = $admin = (bool) preg_match('#^/admin(/?$|/.+)#', $request->getPathInfo()); // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
+                $app->set('isAdmin', $admin = (bool) preg_match('#^/admin(/?$|/.+)#', $request->getPathInfo()));
                 $app->module('system/intl')->setLocale($this->config($admin ? 'admin.locale' : 'site.locale'));
 
             }, 150],

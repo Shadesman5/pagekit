@@ -18,14 +18,14 @@ class UserModule extends Module
     public function main(App $app): void
     {
         $this->app = $app;
-        $app['user'] = function ($app) { // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
+        $app->set('user', function ($app) {
 
             if (!$user = $app->get('auth')->getUser()) {
                 $user = User::create(['roles' => [Role::ROLE_ANONYMOUS]]);
             }
 
             return $user;
-        };
+        });
     }
 
     public function getPermissions(): array

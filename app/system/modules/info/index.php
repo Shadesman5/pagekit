@@ -8,7 +8,7 @@ return [
 
     'main' => function ($app) {
 
-        $app['info'] = fn() => new InfoHelper( // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
+        $app->set('info', fn() => new InfoHelper(
             $app->get('db'),
             $app->get('version'),
             $app->get('path.storage'),
@@ -16,7 +16,7 @@ return [
             $app->get('path.packages'),
             $app->get('config.file'),
             $app->get('path'),
-        );
+        ));
 
     },
 

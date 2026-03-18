@@ -15,18 +15,18 @@ return [
 
     'main' => function ($app) {
 
-        $app['mailer'] = function ($app) { // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
+        $app->set('mailer', function ($app) {
 
-            $app['mailer.initialized'] = true; // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
+            $app->set('mailer.initialized', true);
 
             $mailer = new Mailer($app->get('mailer.transport'));
             $mailer->registerPlugin(new ImpersonatePlugin($this->config['from_address'], $this->config['from_name']));
 
             return $mailer;
-        };
+        });
 
-        $app['mailer.initialized'] = false; // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
-        $app['mailer.transport'] = function ($app) { // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
+        $app->set('mailer.initialized', false);
+        $app->set('mailer.transport', function ($app) {
             $driver = $this->config['driver'];
 
             if ($driver === 'smtp') {
@@ -77,7 +77,7 @@ return [
             }
             
             throw new \InvalidArgumentException(sprintf('Unsupported mail driver: %s', $driver));
-        };
+        });
 
     },
 

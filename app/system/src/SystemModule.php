@@ -16,8 +16,8 @@ class SystemModule extends Module
     public function main(App $app): void
     {
         $this->app = $app;
-        $app['system'] = $this; // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
-        $app['isAdmin'] = false; // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
+        $app->set('system', $this);
+        $app->set('isAdmin', false);
 
         $app->factory('finder', fn() => Finder::create());
 
@@ -57,9 +57,9 @@ class SystemModule extends Module
             }
         }
 
-        // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
-        if (!$app['theme'] = $app->module($theme)) {
-            $app['theme'] = new Module([
+        $themeModule = $app->module($theme);
+        if (!$themeModule) {
+            $themeModule = new Module([
                 'name' => 'theme-default',
                 'type' => 'theme',
                 'path' => '',
@@ -67,6 +67,7 @@ class SystemModule extends Module
                 'layout' => 'views:system/blank.php'
             ]);
         }
+        $app->set('theme', $themeModule);
 
     }
 
