@@ -9,14 +9,22 @@ use Pagekit\Finder\Event\FileAccessEvent;
 use Pagekit\Kernel\Exception\ForbiddenException;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
+use Symfony\Component\Finder\Finder;
 use function Pagekit\__;
 
 class FinderController
 {
+    public function __construct(
+        private readonly mixed $request,
+        private readonly mixed $url,
+        private readonly mixed $file,
+        private readonly mixed $path,
+        private readonly mixed $module,
+    ) {}
+
     public function indexAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $path = App::request()->get('path', '');
+        $path = $this->request->get('path', '');
         
         if (!$dir = $this->getPath()) {
             return $this->error(__('Invalid path.'));
@@ -29,7 +37,7 @@ class FinderController
         $data = array_fill_keys(['items'], []);
         $data['mode'] = $mode;
 
-        $finder = App::finder();
+        $finder = Finder::create();
 
         $finder->sort(fn($a, $b) => $b->getRealpath() > $a->getRealpath() ? -1 : 1);
 
@@ -43,7 +51,7 @@ class FinderController
                 'name'     => $file->getFilename(),
                 'mime'     => 'application/'.($file->isDir() ? 'folder':'file'),
                 'path'     => $this->normalizePath($path.'/'.$file->getFilename()),
-                'url'      => ltrim(App::url()->getStatic($file->getPathname(), [], 'base'), '/'),
+                'url'      => ltrim($this->url->getStatic($file->getPathname(), [], 'base'), '/'),
                 'writable' => $mode == 'w'
             ];
 
@@ -64,13 +72,9 @@ class FinderController
     #[Request([], csrf: true)]
     public function createFolderAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
-        
-        // Get name from POST or JSON body
-        $name = $request->request->get('name', '');
-        if (empty($name) && $request->getContent()) {
-            $json = json_decode($request->getContent(), true);
+        $name = $this->request->request->get('name', '');
+        if (empty($name) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
             $name = $json['name'] ?? '';
         }
         
@@ -92,7 +96,7 @@ class FinderController
 
         try {
 
-            App::file()->makeDir($path);
+            $this->file->makeDir($path);
 
             return $this->success(__('Directory created.'));
 
@@ -106,15 +110,11 @@ class FinderController
     #[Request([], csrf: true)]
     public function renameAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        $oldname = $this->request->request->get('oldname', '');
+        $newname = $this->request->request->get('newname', '');
         
-        // Get parameters from POST or JSON body
-        $oldname = $request->request->get('oldname', '');
-        $newname = $request->request->get('newname', '');
-        
-        if ((empty($oldname) || empty($newname)) && $request->getContent()) {
-            $json = json_decode($request->getContent(), true);
+        if ((empty($oldname) || empty($newname)) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
             $oldname = $json['oldname'] ?? $oldname;
             $newname = $json['newname'] ?? $newname;
         }
@@ -147,13 +147,9 @@ class FinderController
     #[Request([], csrf: true)]
     public function removeFilesAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
-        
-        // Get names from POST or JSON body
-        $names = $request->request->all()['names'] ?? [];
-        if (empty($names) && $request->getContent()) {
-            $json = json_decode($request->getContent(), true);
+        $names = $this->request->request->all()['names'] ?? [];
+        if (empty($names) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
             $names = $json['names'] ?? [];
         }
         
@@ -169,7 +165,7 @@ class FinderController
 
             try {
 
-                App::file()->delete($path);
+                $this->file->delete($path);
 
             } catch (\Exception $e) {
 
@@ -194,7 +190,7 @@ class FinderController
                 throw new ForbiddenException(__('Permission denied.'));
             }
 
-            $files = App::request()->files->get('files');
+            $files = $this->request->files->get('files');
 
             if (!$files) {
                 return $this->error(__('No files uploaded.'));
@@ -223,7 +219,7 @@ class FinderController
 
     protected function getMode($path): string
     {
-        $mode = App::trigger(new FileAccessEvent('system.finder'))->mode($path);
+        $mode = App::trigger(new FileAccessEvent('system.finder'))->mode($path); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
 
         if ('w' == $mode && !is_writable($path)) {
             $mode = 'r';
@@ -249,8 +245,8 @@ class FinderController
 
     protected function getPath($path = '')
     {
-        $root = strtr(App::path(), '\\', '/');
-        $path = $this->normalizePath($root.'/'.App::request()->get('root').'/'.App::request()->get('path').'/'.$path);
+        $root = strtr($this->path, '\\', '/');
+        $path = $this->normalizePath($root.'/'.$this->request->get('root').'/'.$this->request->get('path').'/'.$path);
 
         return 0 === strpos($path, $root) ? $path : false;
     }
@@ -284,7 +280,7 @@ class FinderController
         }
 
         $extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-        $allowed = App::module('system/finder')->config['extensions'];
+        $allowed = $this->module->get('system/finder')->config['extensions'];
         if (!empty($extension) && !in_array($extension, explode(',', $allowed))) {
             return false;
         }

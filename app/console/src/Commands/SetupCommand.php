@@ -4,7 +4,6 @@ namespace Pagekit\Console\Commands;
 
 use Pagekit\Application\Console\Command;
 use Pagekit\Installer\Installer;
-use Pagekit\Application as App;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -56,11 +55,11 @@ class SetupCommand extends Command
 
         $app = $this->container;
 
-        App::module('session')->config['storage'] = 'array';
+        $app->get('module')->get('session')->config['storage'] = 'array';
 
         $app->boot();
 
-        $app['module']->load('installer');
+        $app->get('module')->load('installer');
 
         $installer = new Installer($app);
 

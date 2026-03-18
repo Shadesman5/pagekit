@@ -15,16 +15,28 @@ use function Pagekit\__;
 
 class AuthController
 {
+    public function __construct(
+        private readonly mixed $user,
+        private readonly mixed $session,
+        private readonly mixed $url,
+        private readonly mixed $config,
+        private readonly mixed $request,
+        private readonly mixed $auth,
+        private readonly mixed $csrf,
+        private readonly mixed $response,
+        private readonly mixed $message,
+    ) {}
+
     #[Route(defaults: ['_maintenance' => true])]
     #[Request(['redirect' => 'string'])]
     public function loginAction($redirect = '')
     {
         if (!$redirect) {
-            $redirect = App::url(App::config('system/user')['login_redirect']);
+            $redirect = ($this->url)(($this->config)('system/user')['login_redirect']);
         }
 
-        if (App::user()->isAuthenticated()) {
-            return $this->redirect($redirect);
+        if ($this->user->isAuthenticated()) {
+            return $this->doRedirect($redirect);
         }
 
         return [
@@ -32,7 +44,7 @@ class AuthController
                 'title' => __('Login'),
                 'name' => 'system/user/login.php'
             ],
-            'last_username' => App::session()->get(Auth::LAST_USERNAME),
+            'last_username' => $this->session->get(Auth::LAST_USERNAME),
             'redirect' => $redirect
         ];
     }
@@ -40,33 +52,27 @@ class AuthController
     #[Route(defaults: ['_maintenance' => true])]
     public function logoutAction($redirect = null)
     {
-        // Get redirect from request if not provided
         if ($redirect === null) {
-            $redirect = App::request()->get('redirect', '');
+            $redirect = $this->request->get('redirect', '');
         }
         
-        if (($event = App::auth()->logout()) && $event->hasResponse()) {
+        if (($event = $this->auth->logout()) && $event->hasResponse()) {
             return $event->getResponse();
         }
 
-        return $this->redirect($redirect);
+        return $this->doRedirect($redirect);
     }
 
     #[Route(methods: ['POST'], defaults: ['_maintenance' => true])]
     public function authenticateAction()
     {
         try {
-            // Get parameters directly from request
-            $request = App::request();
+            $credentials = $this->request->request->all()['credentials'] ?? [];
+            $remember = (bool) ($this->request->request->get('remember_me') ?? false);
+            $redirect = $this->request->request->get('redirect') ?? '';
             
-            // Get from POST data (Symfony 6.4 compatibility)
-            $credentials = $request->request->all()['credentials'] ?? [];
-            $remember = (bool) ($request->request->get('remember_me') ?? false);
-            $redirect = $request->request->get('redirect') ?? '';
-            
-            // If empty, try JSON body
-            if (empty($credentials) && $request->getContent()) {
-                $data = json_decode($request->getContent(), true);
+            if (empty($credentials) && $this->request->getContent()) {
+                $data = json_decode($this->request->getContent(), true);
                 if ($data) {
                     $credentials = $data['credentials'] ?? [];
                     $remember = $data['remember_me'] ?? false;
@@ -74,25 +80,25 @@ class AuthController
                 }
             }
             
-            if (!App::csrf()->validate()) {
+            if (!$this->csrf->validate()) {
                 throw new CsrfException(__('Invalid token. Please try again.'));
             }
 
-            App::auth()->authorize($user = App::auth()->authenticate($credentials, false));
+            $this->auth->authorize($user = $this->auth->authenticate($credentials, false));
 
-            if (($event = App::auth()->login($user, $remember)) && $event->hasResponse()) {
+            if (($event = $this->auth->login($user, $remember)) && $event->hasResponse()) {
                 return $event->getResponse();
             }
 
-            if (App::request()->isXmlHttpRequest()) {
-                return App::response()->json(['csrf' => App::csrf()->generate()]);
+            if ($this->request->isXmlHttpRequest()) {
+                return $this->response->json(['csrf' => $this->csrf->generate()]);
             } else {
-                return $this->redirect($redirect);
+                return $this->doRedirect($redirect);
             }
 
         } catch (CsrfException $e) {
-            if (App::request()->isXmlHttpRequest()) {
-                return App::response()->json(['csrf' => App::csrf()->generate()], 401);
+            if ($this->request->isXmlHttpRequest()) {
+                return $this->response->json(['csrf' => $this->csrf->generate()], 401);
             }
             $error = $e->getMessage();
         } catch (BadCredentialsException $e) {
@@ -101,19 +107,19 @@ class AuthController
             $error = $e->getMessage();
         }
 
-        if (App::request()->isXmlHttpRequest()) {
-            return App::response()->json($error, 401);
+        if ($this->request->isXmlHttpRequest()) {
+            return $this->response->json($error, 401);
         } else {
-            App::message()->error($error);
-            return $this->redirect(App::url()->previous());
+            $this->message->error($error);
+            return $this->doRedirect($this->url->previous());
         }
     }
 
-    protected function redirect($url)
+    protected function doRedirect($url)
     {
         do {
             $url = preg_replace('#^(https?:)?//[^/]+#', '', $url, 1, $count);
         } while ($count);
-        return App::redirect($url);
+        return App::redirect($url); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
     }
 }

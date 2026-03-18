@@ -14,17 +14,21 @@ class MigrationController
 {
     protected PackageScripts $scripts;
 
-    public function __construct()
-    {
-        $system = App::system();
-        $this->scripts = new PackageScripts($system->path.'/scripts.php', $system->config('version'));
+    public function __construct(
+        private readonly mixed $system,
+        private readonly mixed $config,
+        private readonly mixed $version,
+        private readonly mixed $message,
+        private readonly mixed $response,
+    ) {
+        $this->scripts = new PackageScripts($this->system->path.'/scripts.php', $this->system->config('version'));
     }
 
     #[Request(['redirect' => 'string'])]
     public function indexAction($redirect = null)
     {
         if (!$this->scripts->hasUpdates()) {
-            return App::redirect($redirect ?: '@system');
+            return App::redirect($redirect ?: '@system'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         return [
@@ -42,18 +46,18 @@ class MigrationController
     {
         if ($updates = $this->scripts->hasUpdates()) {
             $this->scripts->update();
-            $message =  __('Your Pagekit database has been updated successfully.');
+            $message = __('Your Pagekit database has been updated successfully.');
         } else {
-            $message =  __('Your database is up to date.');
+            $message = __('Your database is up to date.');
         }
 
-        App::config('system')->set('version', App::version());
+        ($this->config)('system')->set('version', $this->version);
 
         if ($redirect) {
-            App::message()->success($message);
-            return App::redirect($redirect);
+            $this->message->success($message);
+            return App::redirect($redirect); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
-        return App::response()->json(compact('status', 'message'));
+        return $this->response->json(compact('status', 'message'));
     }
 }

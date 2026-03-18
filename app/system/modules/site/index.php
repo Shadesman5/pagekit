@@ -145,15 +145,21 @@ return [
         'boot' => function ($event, $app) {
 
             $app->subscribe(
-                new MaintenanceListener(),
-                new NodesListener(),
+                new MaintenanceListener(
+                    $app,
+                    $this,
+                ),
+                new NodesListener(
+                    $this,
+                    $app->get('routes'),
+                ),
                 new PageListener()
             );
 
             Node::defineProperty('theme', function () use ($app) {
 
-                $config = $app['theme']->config('_nodes.' . $this->id, []);
-                $default = $app['theme']->get('node', []);
+                $config = $app->get('theme')->config('_nodes.' . $this->id, []);
+                $default = $app->get('theme')->get('node', []);
 
                 return array_replace_recursive($default, $config);
             }, true);
@@ -161,8 +167,8 @@ return [
         },
 
         'request' => [function() use ($app) {
-            if (!$app['node']->hasAccess($app['user'])) {
-                $app['kernel']->abort(403, __('Insufficient User Rights.'));
+            if (!$app->get('node')->hasAccess($app->get('user'))) {
+                $app->get('kernel')->abort(403, __('Insufficient User Rights.'));
             }
         }, -100],
 
@@ -179,8 +185,8 @@ return [
             $app->on('view.init', function ($event, $view) use ($app) {
                 $view->params->set('title', $this->config('title'));
                 $view->params->merge($this->config('view'));
-                $view->params->merge($app['theme']->config);
-                $view->params->merge($app['node']->theme);
+                $view->params->merge($app->get('theme')->config);
+                $view->params->merge($app->get('node')->theme);
             }, 10);
 
             $app->on('view.meta', function ($event, $meta) use ($app) {
@@ -192,16 +198,16 @@ return [
                     'twitter:site' => $config->get('meta.twitter'),
                     'fb:app_id' => $config->get('meta.facebook'),
                     'og:site_name' => $config->get('title'),
-                    'og:title' => $app['node']->title,
-                    'og:image' => $config->get('meta.image') ? $app['url']->getStatic($config->get('meta.image'), [], 0) : false,
+                    'og:title' => $app->get('node')->title,
+                    'og:image' => $config->get('meta.image') ? $app->get('url')->getStatic($config->get('meta.image'), [], 0) : false,
                     'og:description' => $config->get('meta.description'),
                     'og:url' => $meta->get('canonical'),
                 ]);
 
-				if ($config = $app['node']->get('meta')) {
+				if ($config = $app->get('node')->get('meta')) {
 
 					if (!empty($config['og:image'])) {
-                        $config['og:image'] = $app['url']->getStatic($config['og:image'], [], 0);
+                        $config['og:image'] = $app->get('url')->getStatic($config['og:image'], [], 0);
                     }
 
                     $meta($config);
@@ -214,7 +220,7 @@ return [
         'package.enable' => function ($event, $package) use ($app) {
             if ($package->getType() === 'pagekit-theme') {
                 $new = $app->config($package->get('module'));
-                $old = $app->config($app['theme']->name);
+                $old = $app->config($app->get('theme')->name);
 
                 foreach ((array) $old->get('_menus') as $menu => $position) {
                     if (!$new->has('_menus.' . $menu)) {
@@ -228,19 +234,21 @@ return [
             if ($app->isAdmin()) {
                 return;
             }
-            $view->addHelper(new MenuHelper($app['menu']));
+            $view->addHelper(new MenuHelper(
+                $app->get('menu'),
+            ));
         }, 100],
 
         'view.meta' => function ($event, $meta) use ($app) {
 
             $meta->add('link:favicon', [
-                'href' => $app['url']->getStatic($this->config('icons.favicon') ?: 'system/theme:favicon.ico'),
+                'href' => $app->get('url')->getStatic($this->config('icons.favicon') ?: 'system/theme:favicon.ico'),
                 'rel' => 'shortcut icon',
                 'type' => 'image/x-icon'
             ]);
 
             $meta->add('link:appicon', [
-                'href' => $app['url']->getStatic($this->config('icons.appicon') ?: 'system/theme:apple_touch_icon.png'),
+                'href' => $app->get('url')->getStatic($this->config('icons.appicon') ?: 'system/theme:apple_touch_icon.png'),
                 'rel' => 'apple-touch-icon-precomposed'
             ]);
 
@@ -256,7 +264,7 @@ return [
         },
 
         'model.node.saved' => function ($event, $node) use ($app) {
-            $app->config($app['theme']->name)->set('_nodes.' . $node->id, $node->theme);
+            $app->config($app->get('theme')->name)->set('_nodes.' . $node->id, $node->theme);
         }
 
     ]

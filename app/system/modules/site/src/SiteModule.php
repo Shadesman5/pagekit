@@ -8,6 +8,7 @@ use Pagekit\Site\Model\Node;
 
 class SiteModule extends Module
 {
+    protected App $app;
     protected ?array $types = null;
 
     /**
@@ -15,20 +16,21 @@ class SiteModule extends Module
      */
     public function main(App $app): void
     {
-        $app['node'] = function ($app) {
+        $this->app = $app;
+        $app['node'] = function ($app) { // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
 
-            if ($id = $app['request']->attributes->get('_node') and $node = Node::find($id, true)) {
+            if ($id = $app->get('request')->attributes->get('_node') and $node = Node::find($id, true)) {
                 return $node;
             }
 
             return Node::create();
         };
 
-        $app['menu'] = function ($app) {
+        $app['menu'] = function ($app) { // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
 
-            $menus = new MenuManager($app->config($app['theme']->name), $this->config('menus'));
+            $menus = new MenuManager($app->config($app->get('theme')->name), $this->config('menus'));
 
-            foreach ($app['theme']->get('menus', []) as $name => $label) {
+            foreach ($app->get('theme')->get('menus', []) as $name => $label) {
                 $menus->register($name, $label);
             }
 
@@ -51,7 +53,7 @@ class SiteModule extends Module
     {
         if (!$this->types) {
 
-            foreach (App::module() as $module) {
+            foreach ($this->app->get('module') as $module) {
                 foreach ((array) $module->get('nodes') as $type => $route) {
                     $this->registerType($type, $route);
                 }
@@ -59,7 +61,7 @@ class SiteModule extends Module
 
             $this->registerType('link', ['label' => 'Link', 'frontpage' => false]);
 
-            App::trigger('site.types', [$this]);
+            App::trigger('site.types', [$this]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         return $this->types;
@@ -76,7 +78,7 @@ class SiteModule extends Module
         if (isset($route['protected']) and $route['protected'] and !array_filter(Node::findAll(true), fn($node) => $type === $node->type)) {
             Node::create([
                 'title' => $route['label'],
-                'slug' => App::filter($route['label'], 'slugify'),
+                'slug' => ($this->app->get('filter'))($route['label'], 'slugify'),
                 'type' => $type,
                 'status' => 1,
                 'link' => $route['name']

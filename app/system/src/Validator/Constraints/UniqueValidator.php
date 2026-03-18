@@ -15,7 +15,8 @@ use Symfony\Component\Validator\Exception\UnexpectedTypeException;
  * Checks if a value already exists in the database, excluding the current
  * entity when updating (based on ID).
  *
- * Uses Pagekit's static DB access since DI is not yet fully modernized for Validators.
+ * TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+ * UniqueValidator is framework-instantiated by Symfony's ConstraintValidatorFactory — cannot use constructor injection.
  */
 class UniqueValidator extends ConstraintValidator
 {
@@ -30,8 +31,7 @@ class UniqueValidator extends ConstraintValidator
             return;
         }
 
-        // Get the database connection using Pagekit's Application
-        $db = App::db();
+        $db = App::getInstance()->get('db'); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
 
         // Build the uniqueness check query with case-insensitive comparison
         // Using SQL LOWER() on both column and value for case-insensitive matching

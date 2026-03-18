@@ -15,6 +15,12 @@ use function Pagekit\__;
 #[Access('system: manage widgets', admin: true)]
 class WidgetController
 {
+    public function __construct(
+        private readonly mixed $widget,
+        private readonly mixed $menu,
+        private readonly mixed $position,
+    ) {}
+
     public function indexAction(): array
     {
         return [
@@ -24,9 +30,9 @@ class WidgetController
             ],
             '$data' => [
                 'widgets' => array_values(Widget::findAll()),
-                'types' => App::widget()->all(),
+                'types' => $this->widget->all(),
                 'config' => [
-                    'menus' => App::menu(),
+                    'menus' => $this->menu,
                     'nodes' => array_values(Node::query()->get())
                 ]
             ]
@@ -39,12 +45,11 @@ class WidgetController
         if (!$id) {
             $widget = Widget::create(['type' => $type]);
         } elseif (!$widget = Widget::find($id)) {
-            App::abort(404, 'Widget not found.');
+            App::abort(404, 'Widget not found.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
         
-        // Find and set the widget's position if it exists
         if ($widget->id) {
-            $positions = App::position()->all();
+            $positions = $this->position->all();
             foreach ($positions as $position) {
                 if (in_array($widget->id, $position['assigned'])) {
                     $widget->position = $position['name'];
@@ -61,11 +66,11 @@ class WidgetController
             '$data' => [
                 'widget' => $widget,
                 'config' => [
-                    'menus' => App::menu(),
+                    'menus' => $this->menu,
                     'nodes' => array_values(Node::query()->get()),
                     'roles' => array_values(Role::findAll()),
-                    'types' => array_values(App::widget()->all()),
-                    'positions' => array_values(App::position()->all())
+                    'types' => array_values($this->widget->all()),
+                    'positions' => array_values($this->position->all())
                 ]
             ]
         ];

@@ -11,19 +11,21 @@ use Pagekit\User\Attribute\Access;
 #[Access(admin: true)]
 class CacheController
 {
+    public function __construct(
+        private readonly mixed $request,
+        private readonly mixed $module,
+    ) {}
+
     #[Route('/clear', methods: ['POST'])]
     public function clearAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
-        
-        $caches = $request->request->all()['caches'] ?? [];
-        if (empty($caches) && $request->getContent()) {
-            $json = json_decode($request->getContent(), true);
+        $caches = $this->request->request->all()['caches'] ?? [];
+        if (empty($caches) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
             $caches = $json['caches'] ?? [];
         }
         
-        App::module('system/cache')->clearCache($caches);
+        $this->module->get('system/cache')->clearCache($caches);
 
         return ['message' => 'success'];
     }

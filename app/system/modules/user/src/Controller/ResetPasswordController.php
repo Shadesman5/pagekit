@@ -12,11 +12,22 @@ use function Pagekit\__;
 
 class ResetPasswordController
 {
+    public function __construct(
+        private readonly mixed $user,
+        private readonly mixed $request,
+        private readonly mixed $session,
+        private readonly mixed $csrf,
+        private readonly mixed $url,
+        private readonly mixed $mailer,
+        private readonly mixed $module,
+        private readonly mixed $view,
+        private readonly mixed $message,
+    ) {}
 
     public function indexAction()
     {
-        if (App::user()->isAuthenticated()) {
-            return App::redirect();
+        if ($this->user->isAuthenticated()) {
+            return App::redirect(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         return [
@@ -31,23 +42,20 @@ class ResetPasswordController
     #[Route('/request', methods: ['POST'])]
     public function requestAction()
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $app = App::getInstance();
-        $request = isset($app['request']) ? $app['request'] : \Symfony\Component\HttpFoundation\Request::createFromGlobals();
-        $email = $request->request->get('email', '');
+        $email = $this->request->request->get('email', '');
         
-        if (empty($email) && $request->getContent()) {
-            $json = json_decode($request->getContent(), true);
+        if (empty($email) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
             $email = $json['email'] ?? '';
         }
         
         try {
 
-            if (App::user()->isAuthenticated()) {
-                return App::redirect();
+            if ($this->user->isAuthenticated()) {
+                return App::redirect(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
             }
 
-            if (!App::csrf()->validate()) {
+            if (!$this->csrf->validate()) {
                 throw new Exception(__('Invalid token. Please try again.'));
             }
 
@@ -63,18 +71,17 @@ class ResetPasswordController
                 throw new Exception(__('Your account has not been activated or is blocked.'));
             }
 
-            // Generate URL-safe key (no special chars like /)
-            $key = bin2hex(random_bytes(16)); // 32 chars, URL-safe
-            $url = App::url('@user/resetpassword/confirm', compact('key'), 0);
+            $key = bin2hex(random_bytes(16));
+            $url = ($this->url)('@user/resetpassword/confirm', compact('key'), 0);
 
             try {
 
-                $mail = App::mailer()->create();
+                $mail = $this->mailer->create();
                 $mail->to($user->email)
-                    ->subject(__('Reset password for %site%.', ['%site%' => App::module('system/site')->config('title')]))
-                    ->html(App::view('system/user:mails/reset.php', compact('user', 'url', 'mail')));
+                    ->subject(__('Reset password for %site%.', ['%site%' => $this->module->get('system/site')->config('title')]))
+                    ->html(($this->view)('system/user:mails/reset.php', compact('user', 'url', 'mail')));
                 
-                App::mailer()->send($mail);
+                $this->mailer->send($mail);
 
             } catch (\Exception $e) {
                 throw new Exception(__('Unable to send confirmation link.'));
@@ -83,9 +90,9 @@ class ResetPasswordController
             $user->activation = $key;
             $user->save();
 
-            App::message()->success(__('Check your email for the confirmation link.'));
+            $this->message->success(__('Check your email for the confirmation link.'));
 
-            return App::redirect('@user/login');
+            return App::redirect('@user/login'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
 
         } catch (Exception $e) {
             return [
@@ -102,21 +109,15 @@ class ResetPasswordController
     #[Route('/confirm', methods: ['POST'])]
     public function confirmAction()
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $app = App::getInstance();
-        $request = isset($app['request']) ? $app['request'] : \Symfony\Component\HttpFoundation\Request::createFromGlobals();
-        
-        // For GET requests (clicking the link), get key from query string
-        // For POST requests (submitting new password), get from POST data
-        if ($request->isMethod('GET')) {
-            $activation = $request->query->get('key', '');
+        if ($this->request->isMethod('GET')) {
+            $activation = $this->request->query->get('key', '');
             $password = '';
         } else {
-            $activation = $request->request->get('key', '');
-            $password = $request->request->get('password', '');
+            $activation = $this->request->request->get('key', '');
+            $password = $this->request->request->get('password', '');
             
-            if ($request->getContent()) {
-                $json = json_decode($request->getContent(), true);
+            if ($this->request->getContent()) {
+                $json = json_decode($this->request->getContent(), true);
                 if ($json) {
                     $activation = $json['key'] ?? $activation;
                     $password = $json['password'] ?? $password;
@@ -126,9 +127,7 @@ class ResetPasswordController
         
         if ($activation and $user = User::where(compact('activation'))->first()) {
 
-            $app = App::getInstance();
-            $session = $app['session'];
-            $session->set('activation', [
+            $this->session->set('activation', [
                 'key' => $activation,
                 'user' => $user->id,
             ]);
@@ -137,40 +136,35 @@ class ResetPasswordController
             $user->save();
         }
 
-        $app = App::getInstance();
-        $session = $app['session'];
-        
-        // Ensure session is started
-        if (!$session->isStarted()) {
-            $session->start();
+        if (!$this->session->isStarted()) {
+            $this->session->start();
         }
         
-        $data = $session->get('activation');
+        $data = $this->session->get('activation');
         
-        // For POST requests, if session is empty, try to find user by key again
-        if ($request->isMethod('POST') && !$data && $activation) {
+        if ($this->request->isMethod('POST') && !$data && $activation) {
             if ($user = User::where(compact('activation'))->first()) {
                 $data = [
                     'key' => $activation,
                     'user' => $user->id
                 ];
-                $session->set('activation', $data);
+                $this->session->set('activation', $data);
             }
         }
         
         if (!$data || $data['key'] != $activation) {
-            App::abort(400, __('Invalid key.'));
+            App::abort(400, __('Invalid key.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         if (!$user = User::find($data['user']) or $user->isBlocked()) {
-            App::abort(400, __('Your account has not been activated or is blocked.'));
+            App::abort(400, __('Your account has not been activated or is blocked.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
-        if ('POST' === $request->getMethod()) {
+        if ('POST' === $this->request->getMethod()) {
 
             try {
 
-                if (!App::csrf()->validate()) {
+                if (!$this->csrf->validate()) {
                     throw new Exception(__('Invalid token. Please try again.'));
                 }
 
@@ -183,14 +177,14 @@ class ResetPasswordController
                 }
 
                 $user->activation = null;
-                $user->password = App::getInstance()['auth.password']->hash($password);
+                $user->password = App::getInstance()['auth.password']->hash($password); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
                 $user->save();
 
-                $session->remove('activation');
+                $this->session->remove('activation');
                 
-                App::message()->success(__('Your password has been reset.'));
+                $this->message->success(__('Your password has been reset.'));
 
-                return App::redirect('@user/login');
+                return App::redirect('@user/login'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
 
             } catch (Exception $e) {
                 $error = $e->getMessage();

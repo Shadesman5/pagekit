@@ -11,6 +11,9 @@ use Pagekit\User\Attribute\Access;
 #[Access('system: manage packages', admin: true)]
 class MarketplaceController
 {
+    public function __construct(
+        private readonly mixed $package,
+    ) {}
 
     #[Request(['page' => 'int'])]
     public function themesAction($page = null): array
@@ -23,8 +26,8 @@ class MarketplaceController
             '$data' => [
                 'title' => 'Themes',
                 'type' => 'pagekit-theme',
-                'api' => App::getInstance() ? App::getInstance()['system.api'] : 'https://pagekit.com',
-                'installed' => array_values(App::package()->all('pagekit-theme')),
+                'api' => App::getInstance() ? App::getInstance()->get('system.api') : 'https://pagekit.com', // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                'installed' => array_values($this->package->all('pagekit-theme')),
                 'page' => $page
             ]
         ];
@@ -41,8 +44,8 @@ class MarketplaceController
             '$data' => [
                 'title' => 'Extensions',
                 'type' => 'pagekit-extension',
-                'api' => App::getInstance() ? App::getInstance()['system.api'] : 'https://pagekit.com',
-                'installed' => array_values(App::package()->all('pagekit-extension')),
+                'api' => App::getInstance() ? App::getInstance()->get('system.api') : 'https://pagekit.com', // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                'installed' => array_values($this->package->all('pagekit-extension')),
                 'page' => $page
             ]
         ];

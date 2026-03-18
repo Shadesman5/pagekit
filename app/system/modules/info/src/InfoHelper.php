@@ -2,12 +2,23 @@
 
 namespace Pagekit\Info;
 
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver\PDOConnection;
-use Pagekit\Application as App;
+use Symfony\Component\Finder\Finder;
 use Symfony\Component\HttpFoundation\ServerBag;
 
 class InfoHelper
 {
+    public function __construct(
+        private readonly Connection $db,
+        private readonly string $version,
+        private readonly string $pathStorage,
+        private readonly string $pathTemp,
+        private readonly string $pathPackages,
+        private readonly string $configFile,
+        private readonly string $basePath,
+    ) {}
+
     /**
      * Method to get the system information
      *
@@ -22,14 +33,14 @@ class InfoHelper
 
         try {
             // DBAL 3.x compatibility: getNativeConnection() replaces getWrappedConnection()
-            $connection = App::db()->getNativeConnection();
+            $connection = $this->db->getNativeConnection();
             if ($connection instanceof \PDO || $connection instanceof PDOConnection) {
                 $info['dbdriver']  = $connection->getAttribute(\PDO::ATTR_DRIVER_NAME);
                 $info['dbversion'] = $connection->getAttribute(\PDO::ATTR_SERVER_VERSION);
                 $info['dbclient']  = $connection->getAttribute(\PDO::ATTR_CLIENT_VERSION);
             } else {
                 // Fallback for non-PDO connections
-                $info['dbdriver']  = App::db()->getDriver()->getName();
+                $info['dbdriver']  = $this->db->getDriver()->getName();
                 $info['dbversion'] = 'Unknown';
                 $info['dbclient']  = 'Unknown';
             }
@@ -43,7 +54,7 @@ class InfoHelper
         $info['phpversion']    = phpversion();
         $info['server']        = $server->get('SERVER_SOFTWARE', getenv('SERVER_SOFTWARE'));
         $info['sapi_name']     = php_sapi_name();
-        $info['version']       = App::version();
+        $info['version']       = $this->version;
         $info['useragent']     = $server->get('HTTP_USER_AGENT');
         $info['extensions']    = implode(", ", get_loaded_extensions());
         $info['directories']   = $this->getDirectories();
@@ -58,13 +69,11 @@ class InfoHelper
      */
     protected function getDirectories(): array
     {
-        // -TODO-
-
         $directories = [
-            App::getInstance()->get('path.storage'),
-            App::getInstance()->get('path.temp'),
-            App::getInstance()->get('path.packages'),
-            App::getInstance()->get('config.file')
+            $this->pathStorage,
+            $this->pathTemp,
+            $this->pathPackages,
+            $this->configFile
         ];
 
         $result = [];
@@ -74,7 +83,7 @@ class InfoHelper
             $result[$this->getRelativePath($directory)] = is_writable($directory);
 
             if (is_dir($directory)) {
-                foreach (App::finder()->depth('< 2')->in($directory)->directories() as $dir) {
+                foreach (Finder::create()->depth('< 2')->in($directory)->directories() as $dir) {
                     if (!is_writable($dir->getPathname())) {
                         $result[$this->getRelativePath($dir->getPathname())] = false;
                     }
@@ -93,8 +102,8 @@ class InfoHelper
      */
     protected function getRelativePath($path): string
     {
-        if (0 === strpos($path, App::path())) {
-            $path = ltrim(str_replace('\\', '/', substr($path, strlen(App::path()))), '/');
+        if (0 === strpos($path, $this->basePath)) {
+            $path = ltrim(str_replace('\\', '/', substr($path, strlen($this->basePath))), '/');
         }
 
         return $path;

@@ -8,20 +8,23 @@ use Symfony\Component\Finder\Finder;
 
 class SystemModule extends Module
 {
+    protected App $app;
+
     /**
      * {@inheritdoc}
      */
     public function main(App $app): void
     {
-        $app['system'] = $this;
-        $app['isAdmin'] = false;
+        $this->app = $app;
+        $app['system'] = $this; // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
+        $app['isAdmin'] = false; // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
 
         $app->factory('finder', fn() => Finder::create());
 
         $app->extend('assets', function ($factory) use ($app) {
 
             $secret = $this->config['secret'];
-            $version = substr(sha1($app['version'] . $secret), 0, 4);
+            $version = substr(sha1($app->get('version') . $secret), 0, 4);
             $factory->setVersion($version);
 
             return $factory;
@@ -30,16 +33,16 @@ class SystemModule extends Module
 
         $theme = $this->config('site.theme');
 
-        $app['module']->addLoader(function ($module) use ($app, $theme) {
+        $app->get('module')->addLoader(function ($module) use ($app, $theme) {
 
             if (in_array($module['name'], $this->config['extensions'])) {
                 $module['type'] = 'extension';
-                $app['locator']->add("{$module['name']}:", $module['path']);
-                $app['locator']->add("views:{$module['name']}", "{$module['path']}/views");
+                $app->get('locator')->add("{$module['name']}:", $module['path']);
+                $app->get('locator')->add("views:{$module['name']}", "{$module['path']}/views");
             } elseif ($module['name'] == $theme) {
                 $module['type'] = 'theme';
-                $app['locator']->add('theme:', $module['path']);
-                $app['locator']->add('views:', "{$module['path']}/views");
+                $app->get('locator')->add('theme:', $module['path']);
+                $app->get('locator')->add('views:', "{$module['path']}/views");
             }
 
             return $module;
@@ -47,13 +50,14 @@ class SystemModule extends Module
 
         foreach (array_merge($this->config['extensions'], (array) $theme) as $module) {
             try {
-                $app['module']->load($module);
+                $app->get('module')->load($module);
             } catch (\RuntimeException $e) {
                 $module = ucfirst($module);
-                $app['log']->error("[$module exception]: {$e->getMessage()}");
+                $app->get('log')->error("[$module exception]: {$e->getMessage()}");
             }
         }
 
+        // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
         if (!$app['theme'] = $app->module($theme)) {
             $app['theme'] = new Module([
                 'name' => 'theme-default',
@@ -75,9 +79,13 @@ class SystemModule extends Module
 
         if (!$menu) {
 
-            $menu = new SystemMenu();
+            $menu = new SystemMenu(
+                $this->app->get('user'),
+                $this->app->get('request'),
+                $this->app->get('url'),
+            );
 
-            foreach (App::module() as $module) {
+            foreach ($this->app->get('module') as $module) {
                 foreach ((array) $module->get('menu') as $id => $item) {
                     $menu->addItem($id, $item);
                 }

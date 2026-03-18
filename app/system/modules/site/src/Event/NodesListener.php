@@ -2,19 +2,23 @@
 
 namespace Pagekit\Site\Event;
 
-use Pagekit\Application as App;
 use Pagekit\Event\EventSubscriberInterface;
+use Pagekit\Module\Module;
 use Pagekit\Site\Model\Node;
 
 class NodesListener implements EventSubscriberInterface
 {
+    public function __construct(
+        private readonly Module $site,
+        private readonly mixed $routes,
+    ) {}
+
     /**
      * Registers node routes
      */
     public function onRequest(): void
     {
-        $site      = App::module('system/site');
-        $frontpage = $site->config('frontpage');
+        $frontpage = $this->site->config('frontpage');
         $nodes     = Node::findAll(true);
 
         uasort($nodes, function($a, $b) {
@@ -22,7 +26,7 @@ class NodesListener implements EventSubscriberInterface
         });
 
         foreach ($nodes as $node) {
-            if ($node->status !== 1 || !$type = $site->getType($node->type)) {
+            if ($node->status !== 1 || !$type = $this->site->getType($node->type)) {
                 continue;
             }
 
@@ -32,11 +36,11 @@ class NodesListener implements EventSubscriberInterface
 
             $route = null;
             if ($node->get('alias')) {
-                App::routes()->alias($node->path, $node->link, $type['defaults']);
+                $this->routes->alias($node->path, $node->link, $type['defaults']);
             } elseif ($node->get('redirect')) {
-                App::routes()->redirect($node->path, $node->get('redirect'), $type['defaults']);
+                $this->routes->redirect($node->path, $node->get('redirect'), $type['defaults']);
             } elseif ($type['controller']) {
-                App::routes()->add($type);
+                $this->routes->add($type);
             }
 
             if (!$frontpage && isset($type['frontpage']) && $type['frontpage']) {
@@ -46,9 +50,9 @@ class NodesListener implements EventSubscriberInterface
         }
 
         if ($frontpage && isset($nodes[$frontpage])) {
-            App::routes()->alias('/', $nodes[$frontpage]->link);
+            $this->routes->alias('/', $nodes[$frontpage]->link);
         } else {
-            App::routes()->get('/', function() { 
+            $this->routes->get('/', function() { 
                 return __('No Frontpage assigned.'); 
             });
         }

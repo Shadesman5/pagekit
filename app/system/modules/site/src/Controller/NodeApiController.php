@@ -19,11 +19,17 @@ class NodeApiController
 {
     use ValidatesRequestTrait;
 
+    public function __construct(
+        private readonly mixed $request,
+        private readonly mixed $filter,
+        private readonly mixed $module,
+        private readonly mixed $config,
+    ) {}
+
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $menu = App::request()->query->get('menu', false);
+        $menu = $this->request->query->get('menu', false);
 
         $query = Node::query();
 
@@ -38,7 +44,7 @@ class NodeApiController
     public function getAction(int $id): Node
     {
         if (!$node = Node::find($id)) {
-            App::abort(404, __('Node not found.'));
+            App::abort(404, __('Node not found.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         return $node;
@@ -51,9 +57,8 @@ class NodeApiController
     #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function saveAction(int $id = 0, ?array $data = null): array
     {
-        // Get parameters from request if not provided (Symfony 6.4 compatibility)
         if ($data === null) {
-            $request = App::request();
+            $request = $this->request;
 
             // Get node data from POST or JSON body
             $data = $request->request->all()['node'] ?? [];
@@ -78,7 +83,7 @@ class NodeApiController
         $title = isset($data['title']) ? $data['title'] : '';
 
         // Apply slug filter - this is business logic that generates a valid slug
-        $data['slug'] = App::filter($slug ?: $title, 'slugify');
+        $data['slug'] = ($this->filter)($slug ?: $title, 'slugify');
 
         // Assign data to entity for validation (without saving yet)
         foreach ($data as $key => $value) {
@@ -100,14 +105,14 @@ class NodeApiController
     {
         // Get id from route if not provided (Symfony 6.4 compatibility)
         if (!$id) {
-            $id = (int) App::request()->get('id', 0);
+            $id = (int) $this->request->get('id', 0);
         }
 
         if ($node = Node::find($id)) {
 
             // Business logic: Check if node type is protected (NOT entity validation)
-            if ($type = App::module('system/site')->getType($node->type) and isset($type['protected']) and $type['protected']) {
-                App::abort(400, __('Invalid type.'));
+            if ($type = $this->module->get('system/site')->getType($node->type) and isset($type['protected']) and $type['protected']) {
+                App::abort(400, __('Invalid type.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
             }
 
             $node->delete();
@@ -119,10 +124,8 @@ class NodeApiController
     #[Route('/bulk', methods: ['POST'])]
     public function bulkSaveAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        $request = $this->request;
 
-        // Get nodes data from POST or JSON body
         $nodes = $request->request->all()['nodes'] ?? [];
         if (empty($nodes) && $request->getContent()) {
             $json = json_decode($request->getContent(), true);
@@ -141,10 +144,8 @@ class NodeApiController
     #[Route('/bulk', methods: ['DELETE'])]
     public function bulkDeleteAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        $request = $this->request;
 
-        // Get ids from POST/DELETE body or JSON
         $ids = $request->request->all()['ids'] ?? [];
         if (empty($ids) && $request->getContent()) {
             $json = json_decode($request->getContent(), true);
@@ -161,8 +162,7 @@ class NodeApiController
     #[Route('/updateOrder', methods: ['POST'])]
     public function updateOrderAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        $request = $this->request;
 
         $menu = $request->request->get('menu', '');
         $nodes = $request->request->all()['nodes'] ?? [];
@@ -193,8 +193,7 @@ class NodeApiController
     #[Route('/frontpage', methods: ['POST'])]
     public function frontpageAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        $request = $this->request;
 
         $id = (int) $request->request->get('id', 0);
         if (!$id && $request->getContent()) {
@@ -202,16 +201,15 @@ class NodeApiController
             $id = (int) ($json['id'] ?? 0);
         }
 
-        if (!$node = Node::find($id) or !$type = App::module('system/site')->getType($node->type)) {
-            App::abort(404, __('Node not found.'));
+        if (!$node = Node::find($id) or !$type = $this->module->get('system/site')->getType($node->type)) {
+            App::abort(404, __('Node not found.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
-        // Business logic: Check if node type is allowed as frontpage (NOT entity validation)
         if (isset($type['frontpage']) and !$type['frontpage']) {
-            App::abort(400, __('Invalid node type.'));
+            App::abort(400, __('Invalid node type.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
-        App::config('system/site')->set('frontpage', $id);
+        ($this->config)('system/site')->set('frontpage', $id);
         return ['message' => 'success'];
     }
 }

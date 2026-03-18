@@ -14,16 +14,19 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 class IntlModule extends Module
 {
+    protected App $app;
+
     /**
      * {@inheritdoc}
      */
     public function main(App $app): void
     {
+        $this->app = $app;
         // Load translation functions
         require_once __DIR__ . '/../functions.php';
         require_once __DIR__ . '/../functions-pagekit-namespace.php';
         
-        $app['translator'] = function () {
+        $app['translator'] = function () { // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
 
             $translator = new Translator($this->getLocale());
             $translator->addLoader('php', new PhpFileLoader());
@@ -36,7 +39,6 @@ class IntlModule extends Module
             return $translator;
         };
 
-        require __DIR__.'/../functions.php';
     }
 
     /**
@@ -165,9 +167,9 @@ class IntlModule extends Module
      */
     public function loadLocale($locale, ?TranslatorInterface $translator = null): void
     {
-        $translator = $translator ?: App::translator();
+        $translator = $translator ?: $this->app->get('translator');
 
-        foreach (App::module() as $module) {
+        foreach ($this->app->get('module') as $module) {
 
             $domains = [];
             $path = $module->get('path').($module->get('languages') ?: '/languages');
@@ -261,7 +263,7 @@ class IntlModule extends Module
         static $data = [];
 
         if (!isset($data[$file])) {
-            $data[$file] = ($file = App::locator()->get($file)) ? json_decode(file_get_contents($file), true) : null;
+            $data[$file] = ($file = $this->app->get('locator')->get($file)) ? json_decode(file_get_contents($file), true) : null;
         }
 
         return $data[$file];

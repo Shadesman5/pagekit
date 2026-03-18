@@ -44,13 +44,19 @@ class SendmailTransportTest extends TestCase
         require_once __DIR__ . '/bootstrap.php';
     }
     
+    private function createMailController(\Symfony\Component\HttpFoundation\Request $request, ?\Pagekit\Mail\Mailer $mailer = null): \Pagekit\Mail\Controller\MailController
+    {
+        $mailer = $mailer ?? new \Pagekit\Mail\Mailer(new \Symfony\Component\Mailer\Transport\NullTransport());
+        $module = $this->createMock(\Pagekit\Module\ModuleManager::class);
+        return new \Pagekit\Mail\Controller\MailController($request, $mailer, $module);
+    }
+
     public function testSmtpActionWithEmptyOptions(): void
     {
-        $controller = new \Pagekit\Mail\Controller\MailController();
         $request = new \Symfony\Component\HttpFoundation\Request();
-        $mailer = new \Pagekit\Mail\Mailer(new \Symfony\Component\Mailer\Transport\NullTransport());
+        $controller = $this->createMailController($request);
         
-        $result = $controller->smtpAction($request, $mailer);
+        $result = $controller->smtpAction();
         
         $this->assertIsArray($result);
         $this->assertArrayHasKey('success', $result);
@@ -61,17 +67,15 @@ class SendmailTransportTest extends TestCase
     
     public function testSmtpActionWithOnlyHost(): void
     {
-        $controller = new \Pagekit\Mail\Controller\MailController();
         $request = new \Symfony\Component\HttpFoundation\Request();
         $request->request->set('option', ['host' => 'smtp.example.com']);
-        $mailer = new \Pagekit\Mail\Mailer(new \Symfony\Component\Mailer\Transport\NullTransport());
+        $controller = $this->createMailController($request);
         
-        $result = $controller->smtpAction($request, $mailer);
+        $result = $controller->smtpAction();
         
         $this->assertIsArray($result);
         $this->assertArrayHasKey('success', $result);
         $this->assertArrayHasKey('message', $result);
-        // This will fail to connect but shouldn't throw an error about missing params
         $this->assertFalse($result['success']);
     }
 }

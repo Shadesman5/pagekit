@@ -89,12 +89,14 @@ class Node implements NodeInterface, \JsonSerializable
      */
     public function getUrl(mixed $referenceType = false): string|false
     {
-        return App::url($this->link, [], $referenceType);
+        // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+        return App::getInstance()->get('url')->get($this->link, [], $referenceType);
     }
 
     public function isAccessible(?User $user = null): bool
     {
-        return $this->status && $this->hasAccess($user ?: App::user());
+        // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+        return $this->status && $this->hasAccess($user ?: App::getInstance()->get('user'));
     }
 
     /**

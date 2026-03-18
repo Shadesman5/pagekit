@@ -145,20 +145,31 @@ return [
 
         'boot' => function ($event, $app) {
             $app->subscribe(
-                new AccessListener,
-                new AuthorizationListener,
-                new LoginAttemptListener,
+                new AccessListener(
+                    $app->get('auth'),
+                    $app->get('url'),
+                    $app->get('response'),
+                    $app->get('request.stack'),
+                ),
+                new AuthorizationListener(
+                    $app->get('auth'),
+                    $app->get('auth.password'),
+                    $app->get('session'),
+                ),
+                new LoginAttemptListener(
+                    $app->get('cache'),
+                ),
                 new UserListener
             );
         },
 
         'view.scripts' => function ($event, $scripts) use ($app) {
-            if ($app['user']->hasAccess('user: manage users')) {
+            if ($app->get('user')->hasAccess('user: manage users')) {
                 $scripts->register('widget-user', 'system/user:app/bundle/widget-user.js', '~dashboard');
             }
             $scripts->register('link-user', 'system/user:app/bundle/link-user.js', '~panel-link');
 
-            if ($app['user']->isAuthenticated()) {
+            if ($app->get('user')->isAuthenticated()) {
                 $scripts->register('auth', 'system/user:app/bundle/interceptor.js', ['~vue']);
             }
         }

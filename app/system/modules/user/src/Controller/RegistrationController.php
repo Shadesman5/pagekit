@@ -20,22 +20,29 @@ class RegistrationController
 {
     use ValidatesRequestTrait;
 
-    protected Module $module;
+    protected mixed $userModule;
 
-    public function __construct()
-    {
-        $this->module = App::module('system/user');
+    public function __construct(
+        private readonly mixed $module,
+        private readonly mixed $user,
+        private readonly mixed $csrf,
+        private readonly mixed $message,
+        private readonly mixed $url,
+        private readonly mixed $mailer,
+        private readonly mixed $view,
+    ) {
+        $this->userModule = $this->module->get('system/user');
     }
 
     #[Captcha(route: '@user/registration/register')]
     public function indexAction()
     {
-        if (App::user()->isAuthenticated()) {
-            return App::redirect();
+        if ($this->user->isAuthenticated()) {
+            return App::redirect(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
-        if ($this->module->config('registration') == 'admin') {
-            return App::redirect();
+        if ($this->userModule->config('registration') == 'admin') {
+            return App::redirect(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         return [
@@ -46,20 +53,17 @@ class RegistrationController
         ];
     }
 
-    /**
-     * Register a new user.
-     */
     #[Request(['user' => 'array'])]
     #[Captcha(verify: true)]
     public function registerAction(array $data)
     {
         try {
 
-            if (App::user()->isAuthenticated() || $this->module->config('registration') == 'admin') {
-                return App::redirect();
+            if ($this->user->isAuthenticated() || $this->userModule->config('registration') == 'admin') {
+                return App::redirect(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
             }
 
-            if (!App::csrf()->validate()) {
+            if (!$this->csrf->validate()) {
                 throw new Exception(__('Invalid token. Please try again.'));
             }
 
@@ -73,22 +77,19 @@ class RegistrationController
                 'name' => @$data['name'],
                 'username' => @$data['username'],
                 'email' => @$data['email'],
-                'password' => App::getInstance()['auth.password']->hash($password),
+                'password' => App::getInstance()['auth.password']->hash($password), // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
                 'status' => User::STATUS_BLOCKED
             ]);
 
-            // Generate URL-safe token
-            $token = bin2hex(random_bytes(16)); // 32 chars, URL-safe
-            $admin = $this->module->config('registration') == 'approval';
+            $token = bin2hex(random_bytes(16));
+            $admin = $this->userModule->config('registration') == 'approval';
 
-            if ($verify = $this->module->config('require_verification') or $admin) {
+            if ($verify = $this->userModule->config('require_verification') or $admin) {
                 $user->activation = $token;
             } else {
                 $user->status = User::STATUS_ACTIVE;
             }
 
-            // Validate using Symfony Validator
-            // Use 'registration' validation group (in addition to Default) to include password validation
             $this->validateOrFail($user, null, ['Default', 'registration']);
 
             $user->save();
@@ -105,13 +106,13 @@ class RegistrationController
             }
 
         } catch (Exception $e) {
-            App::abort(400, $e->getMessage());
+            App::abort(400, $e->getMessage()); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
-        App::message()->success($message);
+        $this->message->success($message);
 
         return [
-            'redirect' => App::url('@user/login')
+            'redirect' => ($this->url)('@user/login')
         ];
     }
 
@@ -119,18 +120,17 @@ class RegistrationController
     public function activateAction(string $username, string $activation)
     {
         if (empty($username) || empty($activation) || !$user = User::where(['username' => $username, 'activation' => $activation, 'login IS NULL'])->first()) {
-            App::abort(400, __('Invalid key.'));
+            App::abort(400, __('Invalid key.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         $verifying = false;
-        if ($this->module->config('require_verification') && !$user->get('verified')) {
+        if ($this->userModule->config('require_verification') && !$user->get('verified')) {
             $user->set('verified', true);
             $verifying = true;
         }
 
-        if ($this->module->config('registration') === 'approval' && $user->status === User::STATUS_BLOCKED && $verifying) {
-            // Generate URL-safe activation key
-            $user->activation = bin2hex(random_bytes(16)); // 32 chars, URL-safe
+        if ($this->userModule->config('registration') === 'approval' && $user->status === User::STATUS_BLOCKED && $verifying) {
+            $user->activation = bin2hex(random_bytes(16));
             $this->sendApproveMail($user);
             $message = __('Your email has been verified. Once an administrator approves your account, you will be notified by email.');
         } else {
@@ -142,21 +142,21 @@ class RegistrationController
 
         $user->save();
 
-        App::message()->success($message);
+        $this->message->success($message);
 
-        return App::redirect('@user/login');
+        return App::redirect('@user/login'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
     }
 
     protected function sendWelcomeEmail(User $user): void
     {
         try {
 
-            $mail = App::mailer()->create();
+            $mail = $this->mailer->create();
             $mail->to($user->email)
-                ->subject(__('Welcome to %site%!', ['%site%' => App::module('system/site')->config('title')]))
-                ->html(App::view('system/user:mails/welcome.php', compact('user', 'mail')));
+                ->subject(__('Welcome to %site%!', ['%site%' => $this->module->get('system/site')->config('title')]))
+                ->html(($this->view)('system/user:mails/welcome.php', compact('user', 'mail')));
             
-            App::mailer()->send($mail);
+            $this->mailer->send($mail);
 
         } catch (\Exception $e) {
         }
@@ -166,12 +166,12 @@ class RegistrationController
     {
         try {
 
-            $mail = App::mailer()->create();
+            $mail = $this->mailer->create();
             $mail->to($user->email)
-                ->subject(__('Activate your %site% account.', ['%site%' => App::module('system/site')->config('title')]))
-                ->html(App::view('system/user:mails/verification.php', compact('user', 'mail')));
+                ->subject(__('Activate your %site% account.', ['%site%' => $this->module->get('system/site')->config('title')]))
+                ->html(($this->view)('system/user:mails/verification.php', compact('user', 'mail')));
             
-            App::mailer()->send($mail);
+            $this->mailer->send($mail);
 
         } catch (\Exception $e) {
             throw new Exception(__('Unable to send verification link.'));
@@ -182,12 +182,12 @@ class RegistrationController
     {
         try {
 
-            $mail = App::mailer()->create();
-            $mail->to(App::module('system/mail')->config('from_address'))
-                ->subject(__('Approve an account at %site%.', ['%site%' => App::module('system/site')->config('title')]))
-                ->html(App::view('system/user:mails/approve.php', compact('user', 'mail')));
+            $mail = $this->mailer->create();
+            $mail->to($this->module->get('system/mail')->config('from_address'))
+                ->subject(__('Approve an account at %site%.', ['%site%' => $this->module->get('system/site')->config('title')]))
+                ->html(($this->view)('system/user:mails/approve.php', compact('user', 'mail')));
             
-            App::mailer()->send($mail);
+            $this->mailer->send($mail);
 
         } catch (\Exception $e) {
         }

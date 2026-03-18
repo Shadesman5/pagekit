@@ -10,6 +10,10 @@ use Pagekit\User\Attribute\Access;
 #[Access(admin: true)]
 class InfoController
 {
+    public function __construct(
+        private readonly mixed $info,
+    ) {}
+
     public function indexAction(): array
     {
         return [
@@ -17,7 +21,7 @@ class InfoController
                 'title' => __('Info'),
                 'name'  => 'system:modules/info/views/info.php'
             ],
-            '$info' => App::info()->get()
+            '$info' => $this->info->get()
         ];
     }
 }

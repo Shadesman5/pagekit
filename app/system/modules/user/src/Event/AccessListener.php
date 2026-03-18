@@ -9,12 +9,20 @@ use Pagekit\Auth\Event\AuthorizeEvent;
 use Pagekit\Auth\Exception\AuthException;
 use Pagekit\Event\EventSubscriberInterface;
 use Pagekit\User\Attribute\Access;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Reads Access attributes from controllers and enforces access control.
  */
 class AccessListener implements EventSubscriberInterface
 {
+    public function __construct(
+        private readonly mixed $auth,
+        private readonly mixed $url,
+        private readonly mixed $response,
+        private readonly RequestStack $requestStack,
+    ) {}
+
     /**
      * Reads the #[Access] attributes from the controller and stores them in the "access" route option.
      */
@@ -75,8 +83,8 @@ class AccessListener implements EventSubscriberInterface
      */
     public function onAuthorize(AuthorizeEvent $event): void
     {
-        $redirect = App::request()->get('redirect');
-        if ($redirect && strpos($redirect, App::url('@system', [], true)) === 0 && !$event->getUser()->hasAccess('system: access admin area')) {
+        $redirect = $this->requestStack->getCurrentRequest()?->get('redirect');
+        if ($redirect && strpos($redirect, ($this->url)('@system', [], true)) === 0 && !$event->getUser()->hasAccess('system: access admin area')) {
             throw new AuthException(__('You do not have access to the administration area of this site.'));
         }
     }
@@ -90,12 +98,14 @@ class AccessListener implements EventSubscriberInterface
             return;
         }
 
+        $user = $this->auth->getUser();
+
         foreach ($access as $expression) {
-            if (!App::user()->hasAccess($expression)) {
-                if (!App::user()->isAuthenticated()) {
-                    App::abort(401, __('Unauthorized'));
+            if (!$user?->hasAccess($expression)) {
+                if (!$user?->isAuthenticated()) {
+                    App::abort(401, __('Unauthorized')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
                 } else {
-                    App::abort(403, __('Insufficient User Rights.'));
+                    App::abort(403, __('Insufficient User Rights.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
                 }
             }
         }
@@ -106,7 +116,7 @@ class AccessListener implements EventSubscriberInterface
      */
     public function onRequest($event, $request): void
     {
-        if ($request->isXmlHttpRequest() || App::auth()->getUser() || !in_array('system: access admin area', $request->attributes->get('_access', []))) {
+        if ($request->isXmlHttpRequest() || $this->auth->getUser() || !in_array('system: access admin area', $request->attributes->get('_access', []))) {
             return;
         }
 
@@ -114,10 +124,10 @@ class AccessListener implements EventSubscriberInterface
 
         // redirect to default URL for POST requests and don't explicitly redirect the default URL
         if ('POST' !== $request->getMethod() && $request->attributes->get('_route') != '@system') {
-            $params['redirect'] = App::url()->current();
+            $params['redirect'] = $this->url->current();
         }
 
-        $event->setResponse(App::response()->redirect('@system/login', $params));
+        $event->setResponse($this->response->redirect('@system/login', $params));
     }
 
     /**

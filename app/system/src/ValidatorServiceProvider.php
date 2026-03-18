@@ -26,7 +26,7 @@ class ValidatorServiceProvider
      */
     public static function register($app): void
     {
-        $app['validator'] = function ($app): ValidatorInterface {
+        $app['validator'] = function ($app): ValidatorInterface { // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
             $builder = Validation::createValidatorBuilder();
 
             // CRITICAL: Enable PHP 8 Attribute support for Validation

@@ -14,6 +14,11 @@ use function Pagekit\__;
 #[Access(admin: true)]
 class UserController
 {
+    public function __construct(
+        private readonly mixed $user,
+        private readonly mixed $module,
+    ) {}
+
     #[Access('user: manage users')]
     #[Request(['filter' => 'array', 'page' => 'int'])]
     public function indexAction($filter = [], $page = null): array
@@ -30,7 +35,7 @@ class UserController
                 'config' => [
                     'statuses' => User::getStatuses(),
                     'roles' => array_values($roles),
-                    'emailVerification' => App::module('system/user')->config('require_verification'),
+                    'emailVerification' => $this->module->get('system/user')->config('require_verification'),
                     'filter' => (object) $filter,
                     'page' => $page
                 ]
@@ -45,7 +50,7 @@ class UserController
         if (!$id) {
             $user = User::create(['roles' => [Role::ROLE_AUTHENTICATED]]);
         } elseif (!$user = User::find($id)) {
-            App::abort(404, 'User not found.');
+            App::abort(404, 'User not found.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         return [
@@ -58,8 +63,8 @@ class UserController
                 'config' => [
                     'statuses' => User::getStatuses(),
                     'roles' => array_values($this->getRoles($user)),
-                    'emailVerification' => App::module('system/user')->config('require_verification'),
-                    'currentUser' => App::user()->id
+                    'emailVerification' => $this->module->get('system/user')->config('require_verification'),
+                    'currentUser' => $this->user->id
                 ]
             ]
         ];
@@ -74,7 +79,7 @@ class UserController
                 'name' => 'system/user/admin/permission-index.php'
             ],
             '$data' => [
-                'permissions' => App::module('system/user')->getPermissions(),
+                'permissions' => $this->module->get('system/user')->getPermissions(),
                 'roles' => array_values(Role::query()->orderBy('priority')->get())
             ]
         ];
@@ -93,7 +98,7 @@ class UserController
                 'role' => $id
             ],
             '$data' => [
-                'permissions' => App::module('system/user')->getPermissions(),
+                'permissions' => $this->module->get('system/user')->getPermissions(),
                 'roles' => array_values(Role::query()->orderBy('priority')->get())
             ]
         ];
@@ -108,18 +113,15 @@ class UserController
                 'name' => 'system/user/admin/settings.php'
             ],
             '$data' => [
-                'config' => App::module('system/user')->config()
+                'config' => $this->module->get('system/user')->config()
             ]
         ];
     }
 
-    /**
-     * Gets the user roles.
-     */
     protected function getRoles(?User $user = null): array
     {
         $roles = [];
-        $self  = $user && $user->id === App::user()->id;
+        $self  = $user && $user->id === $this->user->id;
         foreach (Role::where(['id <> ?'], [Role::ROLE_ANONYMOUS])->orderBy('priority')->get() as $role) {
 
             $r = $role->jsonSerialize();
@@ -128,7 +130,7 @@ class UserController
                 $r['disabled'] = true;
             }
 
-            if ($user && $role->isAdministrator() && (!App::user()->isAdministrator() || $self)) {
+            if ($user && $role->isAdministrator() && (!$this->user->isAdministrator() || $self)) {
                 $r['disabled'] = true;
             }
 

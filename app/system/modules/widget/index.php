@@ -11,23 +11,23 @@ return [
 
     'main' => function ($app) {
 
-        $app['widget'] = fn($app) => new WidgetManager($app);
+        $app['widget'] = fn($app) => new WidgetManager($app); // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
 
-        $app['position'] = function ($app) {
+        $app['position'] = function ($app) { // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
 
-            $positions = new PositionManager($app->config($app['theme']->name));
+            $positions = new PositionManager($app->config($app->get('theme')->name));
 
-            foreach ($app['theme']->get('positions', []) as $name => $label) {
+            foreach ($app->get('theme')->get('positions', []) as $name => $label) {
                 $positions->register($name, $label);
             }
 
             return $positions;
         };
 
-        $app['module']->addLoader(function ($module) use ($app) {
+        $app->get('module')->addLoader(function ($module) use ($app) {
 
             if (isset($module['widgets'])) {
-                $app['widget']->register($module['widgets'], $module['path']);
+                $app->get('widget')->register($module['widgets'], $module['path']);
             }
 
             return $module;
@@ -98,12 +98,12 @@ return [
 
         'boot' => function ($event, $app) {
 
-            Widget::defineProperty('position', fn() => $app['position']->find($this->id), true);
+            Widget::defineProperty('position', fn() => $app->get('position')->find($this->id), true);
 
             Widget::defineProperty('theme', function () use ($app) {
 
-                $config  = $app['theme']->config('_widgets.'.$this->id, []);
-                $default = $app['theme']->get('widget', []);
+                $config  = $app->get('theme')->config('_widgets.'.$this->id, []);
+                $default = $app->get('theme')->get('widget', []);
 
                 return array_replace_recursive($default, $config);
             }, true);
@@ -112,7 +112,7 @@ return [
         'package.enable' => function ($event, $package) use ($app) {
             if ($package->getType() === 'pagekit-theme') {
                 $new = $app->config($package->get('module'));
-                $old = $app->config($app['theme']->name);
+                $old = $app->config($app->get('theme')->name);
                 $assigned = [];
 
                 foreach ((array) $new->get('_positions') as $position => $modules) {
@@ -130,7 +130,12 @@ return [
         },
 
         'view.init' => function ($event, $view) use ($app) {
-            $view->addHelper(new PositionHelper($app['position']));
+            $view->addHelper(new PositionHelper(
+                $app->get('position'),
+                $app->get('user'),
+                $app->get('node'),
+                $app->get('widget'),
+            ));
         },
 
         'view.scripts' => function ($event, $scripts) {
@@ -144,8 +149,8 @@ return [
         },
 
         'model.widget.saved' => function ($event, $widget) use ($app) {
-            $app['position']->assign($widget->position, $widget->id);
-            $app->config($app['theme']->name)->set('_widgets.'.$widget->id, $widget->theme);
+            $app->get('position')->assign($widget->position, $widget->id);
+            $app->config($app->get('theme')->name)->set('_widgets.'.$widget->id, $widget->theme);
         },
 
         'model.role.deleted' => function ($event, $role) {

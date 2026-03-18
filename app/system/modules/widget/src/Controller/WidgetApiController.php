@@ -19,11 +19,16 @@ class WidgetApiController
 {
     use ValidatesRequestTrait;
 
+    public function __construct(
+        private readonly mixed $position,
+        private readonly mixed $request,
+    ) {}
+
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
         $widgets = Widget::findAll();
-        $positions = App::position()->all();
+        $positions = $this->position->all();
 
         foreach ($positions as &$position) {
             $position['widgets'] = [];
@@ -45,11 +50,10 @@ class WidgetApiController
     public function getAction(int $id): Widget
     {
         if (!$widget = Widget::find($id)) {
-            App::abort(404, 'Widget not found.');
+            App::abort(404, 'Widget not found.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
-        // Find and set the widget's position
-        $positions = App::position()->all();
+        $positions = $this->position->all();
         foreach ($positions as $position) {
             if (in_array($id, $position['assigned'])) {
                 $widget->position = $position['name'];
@@ -63,8 +67,7 @@ class WidgetApiController
     #[Route('/assign', methods: ['POST'])]
     public function assignAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        $request = $this->request;
 
         $position = $request->request->get('position', '');
         $ids = $request->request->all()['ids'] ?? [];
@@ -77,7 +80,7 @@ class WidgetApiController
             }
         }
 
-        App::position()->assign($position, $ids);
+        $this->position->assign($position, $ids);
 
         return ['message' => 'success'];
     }
@@ -89,9 +92,8 @@ class WidgetApiController
     #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function saveAction(int $id = 0, ?array $data = null): array
     {
-        // Get parameters from request if not provided (Symfony 6.4 compatibility)
         if ($data === null) {
-            $request = App::request();
+            $request = $this->request;
 
             $data = $request->request->all()['widget'] ?? [];
             if (empty($data) && $request->getContent()) {
@@ -108,7 +110,7 @@ class WidgetApiController
         if (!$id) {
             $widget = Widget::create();
         } elseif (!$widget = Widget::find($id)) {
-            App::abort(404, 'Widget not found.');
+            App::abort(404, 'Widget not found.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         // Extract position before saving (it's not a database field)
@@ -139,11 +141,11 @@ class WidgetApiController
     {
         // Get id from route if not provided (Symfony 6.4 compatibility)
         if (!$id) {
-            $id = (int) App::request()->get('id', 0);
+            $id = (int) $this->request->get('id', 0);
         }
 
         if (!$widget = Widget::find($id)) {
-            App::abort(404, 'Widget not found.');
+            App::abort(404, 'Widget not found.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         $widget->delete();
@@ -154,8 +156,7 @@ class WidgetApiController
     #[Route('/copy', methods: ['POST'])]
     public function copyAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        $request = $this->request;
 
         $ids = $request->request->all()['ids'] ?? [];
         if (empty($ids) && $request->getContent()) {
@@ -179,8 +180,7 @@ class WidgetApiController
     #[Route('/bulk', methods: ['POST'])]
     public function bulkSaveAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        $request = $this->request;
 
         $widgets = $request->request->all()['widgets'] ?? [];
         if (empty($widgets) && $request->getContent()) {
@@ -199,8 +199,7 @@ class WidgetApiController
     #[Route('/bulk', methods: ['DELETE'])]
     public function bulkDeleteAction(): array
     {
-        // Get parameters from request (Symfony 6.4 compatibility)
-        $request = App::request();
+        $request = $this->request;
 
         $ids = $request->request->all()['ids'] ?? [];
         if (empty($ids) && $request->getContent()) {

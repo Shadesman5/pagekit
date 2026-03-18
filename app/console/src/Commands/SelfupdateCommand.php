@@ -88,7 +88,7 @@ class SelfupdateCommand extends Command
     protected function getVersions()
     {
         if (!($res = file_get_contents($this->container->get('system.api') . '/api/update'))) {
-            App::abort(500, 'Could not obtain latest Version.');
+            App::abort(500, 'Could not obtain latest Version.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         return json_decode($res, true);
@@ -106,7 +106,7 @@ class SelfupdateCommand extends Command
         }
 
         if (!file_put_contents($file, @fopen($url, 'r'))) {
-            App::abort(500, 'Download failed or path not writable.');
+            App::abort(500, 'Download failed or path not writable.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
     }
 }

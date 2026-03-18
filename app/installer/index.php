@@ -9,19 +9,19 @@ return [
 
     'main' => function ($app) {
 
-        $app['package'] = fn($app) => (new PackageFactory())->addPath($app['path'].'/packages/*/*/composer.json');
+        $app['package'] = fn($app) => (new PackageFactory())->addPath($app->get('path').'/packages/*/*/composer.json'); // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
 
         if ($this->config['enabled']) {
 
             $app->extend('assets', function ($factory) use ($app) {
 
-                $factory->setVersion($app['version']);
+                $factory->setVersion($app->get('version'));
 
                 return $factory;
 
             });
 
-            $app['routes']->add([
+            $app->get('routes')->add([
                 'path' => '/installer',
                 'name' => '@installer',
                 'controller' => 'Pagekit\Installer\Controller\InstallerController'
@@ -29,7 +29,7 @@ return [
 
             $app->on('request', function ($event, $request) use ($app) {
 
-                $locale = $request->get('locale') ?: $app['request']->getPreferredLanguage();
+                $locale = $request->get('locale') ?: $app->get('request')->getPreferredLanguage();
                 $available = $app->module('system/intl')->getAvailableLanguages();
 
                 if (isset($available[$locale])) {
@@ -38,7 +38,7 @@ return [
 
             });
 
-            $app->error(fn(NotFoundException $e) => $app['response']->redirect('@installer'));
+            $app->error(fn(NotFoundException $e) => $app->get('response')->redirect('@installer')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal) — App::error()
 
         }
 
@@ -143,16 +143,16 @@ return [
 
         'view.data' => function ($event, $view) use ($app) {
             // Set $pagekit variable for installer JavaScript
-            $installer = $app['module']->get('installer');
+            $installer = $app->get('module')->get('installer');
             if ($installer && $installer->config('enabled')) {
-                $request = $app['request'];
+                $request = $app->get('request');
                 
                 // Build URL - always include index.php for installer
                 $url = '/index.php';
                 
                 $view->data('$pagekit', [
                     'url' => $url,
-                    'csrf' => $app['csrf']->generate()
+                    'csrf' => $app->get('csrf')->generate()
                 ]);
             }
         }

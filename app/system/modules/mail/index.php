@@ -15,18 +15,18 @@ return [
 
     'main' => function ($app) {
 
-        $app['mailer'] = function ($app) {
+        $app['mailer'] = function ($app) { // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
 
-            $app['mailer.initialized'] = true;
+            $app['mailer.initialized'] = true; // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
 
-            $mailer = new Mailer($app['mailer.transport']);
+            $mailer = new Mailer($app->get('mailer.transport'));
             $mailer->registerPlugin(new ImpersonatePlugin($this->config['from_address'], $this->config['from_name']));
 
             return $mailer;
         };
 
-        $app['mailer.initialized'] = false;
-        $app['mailer.transport'] = function ($app) {
+        $app['mailer.initialized'] = false; // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
+        $app['mailer.transport'] = function ($app) { // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
             $driver = $this->config['driver'];
 
             if ($driver === 'smtp') {

@@ -13,6 +13,12 @@ use Symfony\Component\Console\Output\StreamOutput;
 #[Access('system: software updates', admin: true)]
 class UpdateController
 {
+    public function __construct(
+        private readonly mixed $session,
+        private readonly mixed $response,
+        private readonly mixed $version,
+    ) {}
+
     public function indexAction(): array
     {
         return [
@@ -21,8 +27,8 @@ class UpdateController
                 'name' => 'installer:views/update.php'
             ],
             '$data' => [
-                'api' => App::getInstance() ? App::getInstance()['system.api'] : 'https://pagekit.com',
-                'version' => App::version(),
+                'api' => App::getInstance() ? App::getInstance()->get('system.api') : 'https://pagekit.com', // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                'version' => $this->version,
                 'channel' => 'stable'
             ]
         ];
@@ -31,12 +37,12 @@ class UpdateController
     #[Request(['url' => 'string'], csrf: true)]
     public function downloadAction($url): array
     {
-        $tempPath = App::getInstance() ? App::getInstance()['path.temp'] : sys_get_temp_dir();
+        $tempPath = App::getInstance() ? App::getInstance()->get('path.temp') : sys_get_temp_dir(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
         $file = tempnam($tempPath, 'update_');
-        App::session()->set('system.update', $file);
+        $this->session->set('system.update', $file);
 
         if (!file_put_contents($file, @fopen($url, 'r'))) {
-            App::abort(500, 'Download failed or path not writable.');
+            App::abort(500, 'Download failed or path not writable.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         return [];
@@ -45,12 +51,12 @@ class UpdateController
     #[Request([], csrf: true)]
     public function updateAction()
     {
-        if (!$file = App::session()->get('system.update')) {
-            App::abort(400, __('You may not call this step directly.'));
+        if (!$file = $this->session->get('system.update')) {
+            App::abort(400, __('You may not call this step directly.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
-        App::session()->remove('system.update');
+        $this->session->remove('system.update');
 
-        return App::response()->stream(function () use ($file) {
+        return $this->response->stream(function () use ($file) {
             $output = new StreamOutput(fopen('php://output', 'w'));
             try {
 

@@ -8,15 +8,9 @@ use Pagekit\View\Helper\Helper;
 
 class MenuHelper extends Helper
 {
-    protected \Pagekit\Site\MenuManager $menus;
-
-    /**
-     * @param MenuManager $menus
-     */
-    public function __construct(MenuManager $menus)
-    {
-        $this->menus = $menus;
-    }
+    public function __construct(
+        private readonly MenuManager $menus,
+    ) {}
 
     /**
      * Set shortcut.
@@ -84,7 +78,7 @@ class MenuHelper extends Helper
             'mode' => 'all'
         ], $parameters);
 
-        $user = App::user();
+        $user = App::getInstance()->get('user'); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
         $startLevel = (int) $parameters['start_level'] ?: 1;
         $maxDepth = $startLevel + ($parameters['depth'] ?: PHP_INT_MAX);
 
@@ -93,7 +87,7 @@ class MenuHelper extends Helper
         $nodes[0]->status = 1;
         $nodes[0]->parent_id = null;
 
-        $node = App::node();
+        $node = App::getInstance()->get('node'); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
         $path = $node->path;
 
         if (!isset($nodes[$node->id])) {

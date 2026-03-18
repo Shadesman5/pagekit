@@ -53,9 +53,8 @@ docker.env
 .phpunit.cache/
 
 # E2E Testing
-.playwright-mcp/**/*
+.playwright-mcp/
 /test-results/
-.playwright-mcp/*
 /playwright-report/**/*
 /playwright-smoke-report/**/*
 /storage-e2e/

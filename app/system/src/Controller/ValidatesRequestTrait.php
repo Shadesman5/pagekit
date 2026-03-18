@@ -51,7 +51,7 @@ trait ValidatesRequestTrait
         ?array $groups = null
     ): ?JsonResponse {
         if ($validator === null) {
-            $validator = App::getInstance()['validator'];
+            $validator = App::getInstance()['validator']; // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
         }
 
         $violations = $validator->validate($object, null, $groups);
@@ -79,7 +79,7 @@ trait ValidatesRequestTrait
         ?array $groups = null
     ): void {
         if ($validator === null) {
-            $validator = App::getInstance()['validator'];
+            $validator = App::getInstance()['validator']; // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
         }
 
         $violations = $validator->validate($object, null, $groups);
@@ -87,7 +87,7 @@ trait ValidatesRequestTrait
         if (count($violations) > 0) {
             $firstViolation = $violations[0];
             // Use App::abort() to correctly return HTTP 400 Bad Request
-            App::abort(400, $firstViolation->getMessage());
+            App::abort(400, $firstViolation->getMessage()); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
     }
 

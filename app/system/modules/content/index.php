@@ -17,7 +17,7 @@ return [
             new VideoPlugin
         );
 
-        $app['content'] = fn() => new ContentHelper;
+        $app['content'] = fn() => new ContentHelper; // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
 
     },
 
