@@ -19,6 +19,12 @@
 
 **Result:** Native PSR-11 Container. No ArrayAccess. Clean registration via `set()`.
 
+**Lessons Learned from 2.0.1c** (see `migration-docs/branches/PSR11_CONTAINER_STAGE3.md`, section "Post-Review Fixes"):
+1. **Factory services cannot use constructor injection.** If a service is registered with `$app->factory()`, each `get()` must return a fresh instance. Use direct instantiation or `$app->get()` in the method instead.
+2. **Module `$app` properties must be nullable.** Module classes receive `$app` in `main()`, but methods may be called before `main()` runs. Always use `protected ?App $app = null` with `App::getInstance()` fallback.
+3. **Every `App::getInstance()` needs a TEMPORARY BRIDGE tag** per ROADMAP Rule 5. Bugbot (`.cursor/BUGBOT.md`) enforces this.
+4. **`ConfigManager::get()` only accepts one parameter.** Do not pass a default as second arg — it is silently ignored. Use explicit fallback instead.
+
 ---
 
 ## 0. SAFETY CHECKS (CRITICAL)

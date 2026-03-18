@@ -22,7 +22,7 @@ jobs:
     if: startsWith(github.event.label.name, 'phase-')
     steps:
       - name: Add to project and set Phase field
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.PROJECT_TOKEN }}
           script: |
