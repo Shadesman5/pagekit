@@ -28,7 +28,7 @@ class LocatorTest extends TestCase
 
     public static function dataGetPaths(): array
     {
-        $fixtures = __DIR__.'/Fixtures';
+        $fixtures = strtr(__DIR__, '\\', '/').'/Fixtures';
 
         return [
             ['Fixtures', $fixtures, true],
@@ -48,6 +48,6 @@ class LocatorTest extends TestCase
 
         $this->locator->add('Dir', __DIR__);
 
-        $this->assertSame(__FILE__, $this->locator->get('Dir/'.$file));
+        $this->assertSame(strtr(__FILE__, '\\', '/'), $this->locator->get('Dir/'.$file));
     }
 }
