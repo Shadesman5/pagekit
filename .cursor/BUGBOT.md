@@ -49,6 +49,30 @@ If changes modify files or patterns that belong to a different step, flag as
 **non-blocking Bug** titled "Out-of-scope change for Step X.Y".
 Reference the correct step where this change belongs.
 
+### 1.6 Deferred Pattern Awareness (CRITICAL)
+
+Before flagging any finding, cross-reference against the **ROADMAP tracking table**
+(`.cursor/ROADMAP.md`). If the finding falls under a later ROADMAP step that is
+already tracked with a GitHub Issue, **do NOT flag it as a Bug**. Instead:
+
+- Skip silently if the pattern is a known deferred item.
+- If unsure, add a single **informational** comment (not a Bug) referencing the
+  step and issue: "Tracked in Step X.Y (Issue #N) — not in scope for this PR."
+
+**Known deferred patterns** (do NOT flag during Steps 2.0.x):
+
+| Pattern | Tracked In | Issue |
+|---------|-----------|-------|
+| `mixed` typed constructor parameters | Steps 2.1.4–2.1.6 (PHPStan) | #151, #152, #153 |
+| Missing `declare(strict_types=1)` | Step 2.1.3 (strict_types Migration) | #150 |
+| Missing test coverage for refactors | Step 2.1.9 (Test Coverage Expansion) | #156 |
+| `App::abort()`, `App::redirect()` | Step 2.0.1e (StaticTrait Removal) | #166 |
+| `App::getInstance()` temporary bridges | Step 2.0.1e (StaticTrait Removal) | #166 |
+| `$app['x'] = ...` ArrayAccess WRITE | Step 2.0.1d (ArrayAccess Removal) | #165 |
+
+This table MUST be updated when new deferred items are added to the ROADMAP.
+Bugbot should re-read ROADMAP.md on every review to detect changes.
+
 ---
 
 ## 2. PHP Standards (PHP 8.2+ Strict)
@@ -60,11 +84,18 @@ If a changed PHP file does not contain `declare(strict_types=1);` as its
 second line (after `<?php`), flag as **non-blocking Bug** titled
 "Missing strict_types declaration".
 
+**Exception:** Skip during Steps 2.0.x — `strict_types` is a batch migration
+tracked in Step 2.1.3 (Issue #150). Do not flag individual files.
+
 ### 2.2 Typed Properties
 
 If a changed file introduces a property without a type declaration
 (e.g., `protected $foo` instead of `protected string $foo`), flag as
 **non-blocking Bug** titled "Untyped property — PHP 8.2+ requires types".
+
+**Clarification:** `mixed` IS a valid PHP 8.0+ type declaration. If `mixed`
+is used as a placeholder with a TODO tag referencing Steps 2.1.4–2.1.6,
+do NOT flag it. Only flag truly untyped properties (no type at all).
 
 ### 2.3 Return Types
 
@@ -135,6 +166,36 @@ The fix is `protected ?App $app = null` with a fallback like
 If a PR introduces new `$app['x']` read patterns (not tagged as WRITE for Step 2.0.1d),
 flag as **blocking Bug** titled "New ArrayAccess read — use \$app->get('x') instead".
 
+### 4.4 Callable vs Method Equivalence
+
+When a `StaticTrait` proxy call (e.g., `App::url($x)`) is migrated to a direct
+method call (e.g., `$this->url->get($x)`), **verify whether `__invoke()` and
+`get()` are actually different** before flagging. Many Pagekit service classes
+implement `__invoke()` as a one-line delegation to `get()`:
+
+```php
+public function __invoke($path = '') { return $this->get($path); }
+```
+
+If `__invoke()` delegates to the same method being called, the migration is
+**semantically identical**. Do NOT flag as a bug. Check the actual source code.
+
+Known equivalent pairs:
+- `UrlProvider::__invoke()` → `UrlProvider::get()`
+- `ConfigManager::__invoke()` → `ConfigManager::get()`
+
+### 4.5 Execution Context Verification
+
+Before flagging potential runtime errors (e.g., "database table may not exist"),
+**verify the execution order** by reading the calling context. For install scripts
+(`install.php`, `install-demo.php`):
+
+- These are loaded via `require_once` in `Installer::install()`.
+- `Installer::install()` calls `runMigrations()` BEFORE loading install scripts.
+- All database tables exist by the time install scripts execute.
+
+Do NOT flag speculative runtime errors without verifying the actual call chain.
+
 ---
 
 ## 5. Security
@@ -167,6 +228,12 @@ If the PR adds or modifies files in `app/system/src/`, `app/installer/src/`,
 or `app/modules/*/src/` and there are no corresponding changes in
 `**/Tests/**` or `tests/`, flag as **non-blocking Bug** titled
 "No tests for backend changes".
+
+**Exception:** Skip during infrastructure migration steps (2.0.x) where changes
+are mechanical refactors (e.g., `$app['x']` → `$app->get('x')`, constructor
+injection). Test coverage expansion for these is tracked in Step 2.1.9
+(Issue #156). Only flag if the PR introduces **new logic or behavioral changes**
+that are untested.
 
 ---
 
