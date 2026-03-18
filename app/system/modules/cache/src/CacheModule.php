@@ -127,7 +127,7 @@ class CacheModule extends Module
      */
     public function doClearCache(array $options = []): void
     {
-        $app = $this->app ?? App::getInstance();
+        $app = $this->app ?? App::getInstance(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
 
         // clear cache
         if (empty($options) || @$options['cache']) {
