@@ -171,4 +171,12 @@ class Container implements ContainerInterface
 
         $this->values[$id] = $value;
     }
+
+    /**
+     * Removes a parameter/service.
+     */
+    public function remove(string $id): void
+    {
+        unset($this->values[$id], $this->raw[$id], $this->factories[$id]);
+    }
 }
