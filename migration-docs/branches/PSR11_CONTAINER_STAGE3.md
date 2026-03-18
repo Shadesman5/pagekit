@@ -358,3 +358,31 @@ All console commands load and execute without container errors.
 | Installer | 12 |
 | Console | 4 |
 | Documentation | 2 |
+
+---
+
+## Post-Review Fixes
+
+**Date:** 2026-03-18
+**Trigger:** Bugbot automated PR review + manual review of PR #169
+
+### Bugs Found & Fixed
+
+| Issue | File | Root Cause | Fix |
+|-------|------|-----------|-----|
+| Factory service reuse | `FinderController.php` | `finder` registered via `$app->factory()` but captured as single instance via constructor injection. Finder is stateful. | Removed `$finder` from constructor; use `Finder::create()` directly in `indexAction`. |
+| Init-order TypeError | `DashboardModule.php` | `protected App $app` non-nullable without default. TypeError if `getWidgets()`/`saveWidgets()` called before `main()`. | Changed to `?App $app = null` with `App::getInstance()` fallback (matches `CacheModule` pattern). |
+| Missing TEMPORARY BRIDGE tags | `install.php`, `install-demo.php`, `PackageManager.php`, `PackageFactory.php` | 13 `App::getInstance()` calls introduced without ROADMAP Rule 5 TODO tags. | Added `// TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e` to all instances. |
+
+### Patterns to Watch (Lessons Learned)
+
+1. **Factory services cannot use constructor injection.** If a service is registered with `$app->factory()`, each `get()` must return a fresh instance. Constructor injection captures only one. Use direct instantiation or `$app->get()` in the method instead.
+2. **Module `$app` properties must be nullable.** Module classes receive `$app` in `main()`, but methods may be called before `main()` runs (e.g., in tests, sub-requests). Always use `protected ?App $app = null` with `App::getInstance()` fallback.
+3. **Every `App::getInstance()` needs a TEMPORARY BRIDGE tag.** Bugbot now enforces this via `.cursor/BUGBOT.md` Rule 1.1.
+
+### Deferred Findings (not in scope for 2.0.1c)
+
+| Finding | Tracked In | Target Step |
+|---------|-----------|-------------|
+| `mixed` typing in 25+ controller constructors | Issues #151, #153 | Steps 2.1.4, 2.1.6 |
+| Missing integration tests for DI wiring | Issue #156 | Step 2.1.9 |
