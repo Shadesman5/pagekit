@@ -12,8 +12,8 @@ class InstallerController
     protected Installer $installer;
 
     public function __construct(
-        private readonly mixed $request,
-        private readonly mixed $module,
+        private readonly mixed $request, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
+        private readonly mixed $module, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
     ) {
         $this->installer = new Installer(App::getInstance()); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
     }

@@ -15,12 +15,12 @@ class PackageController
     protected PackageManager $manager;
 
     public function __construct(
-        private readonly mixed $package,
-        private readonly mixed $module,
-        private readonly mixed $url,
-        private readonly mixed $request,
-        private readonly mixed $response,
-        private readonly mixed $path,
+        private readonly mixed $package, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
+        private readonly mixed $module, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
+        private readonly mixed $url, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
+        private readonly mixed $request, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
+        private readonly mixed $response, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
+        private readonly mixed $path, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
     ) {
         $this->manager = new PackageManager();
     }
