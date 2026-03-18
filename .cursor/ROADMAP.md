@@ -60,10 +60,10 @@
 | 2.0    | Controller Attributes                 | ✅     | ⚠️    | #142  | #111    | Needs Audit      |
 | 2.0.1  | ↳ PSR-11 Container Vollmodernisierung | ⏳     | ⏳    | #145  | -       | **Current Step** |
 | 2.0.1a | ↳ Container Core + Modules (S1+S2)    | ✅     | ⏳    | #162  | #161    | done             |
-| 2.0.1b | ↳ DI Infrastructure                   | ⏳     | ⏳    | #163  | #167    | done             |
-| 2.0.1c | ↳ System/Installer/Console + DI       | ⏳     | ⏳    | #164  | #169    | done             |
-| 2.0.1d | ↳ Packages + ArrayAccess Removal      | ⏳     | ⏳    | #165  | -       | Current Sub-Step |
-| 2.0.1e | ↳ StaticTrait Removal + DI Final      | ⏳     | ⏳    | #166  | -       | Sub-Step         |
+| 2.0.1b | ↳ DI Infrastructure                   | ✅     | ⏳    | #163  | #167    | done             |
+| 2.0.1c | ↳ System/Installer/Console + DI       | ✅     | ⏳    | #164  | #169    | done             |
+| 2.0.1d | ↳ Packages + ArrayAccess Removal      | ✅     | ⏳    | #165  | #171    | done             |
+| 2.0.1e | ↳ StaticTrait Removal + DI Final      | ⏳     | ⏳    | #166  | -       | Current Sub-Step |
 | 2.0.2  | ↳ Validator-Translator Integration    | ⏳     | ⏳    | #146  | -       | Phase 2          |
 | 2.1    | Static Analysis & Code Quality        | ⏳     | ⏳    | #147  | -       | Phase 2          |
 | 2.1.1  | ↳ Tooling-Setup & Baseline            | ⏳     | ⏳    | #148  | -       | Phase 2          |
