@@ -19,6 +19,7 @@ class UpdateController
         private readonly mixed $session,
         private readonly mixed $response,
         private readonly mixed $version,
+        private readonly string $path,
     ) {}
 
     public function indexAction(): array
@@ -66,7 +67,7 @@ class UpdateController
                     throw new \RuntimeException('File does not exist.');
                 }
 
-                $updater = new SelfUpdater($output);
+                $updater = new SelfUpdater($this->path, $output);
                 $updater->update($file);
 
             } catch (\Exception $e) {

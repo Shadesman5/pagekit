@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\Finder\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Finder\Event\FileAccessEvent;
 use Pagekit\Kernel\Exception\ForbiddenException;
 use Pagekit\Routing\Attribute\Request;
@@ -20,6 +19,7 @@ class FinderController
         private readonly mixed $file,
         private readonly mixed $path,
         private readonly mixed $module,
+        private readonly mixed $events,
     ) {}
 
     public function indexAction(): array
@@ -219,7 +219,7 @@ class FinderController
 
     protected function getMode($path): string
     {
-        $mode = App::trigger(new FileAccessEvent('system.finder'))->mode($path); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+        $mode = $this->events->trigger(new FileAccessEvent('system.finder'))->mode($path);
 
         if ('w' == $mode && !is_writable($path)) {
             $mode = 'r';

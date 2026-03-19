@@ -22,6 +22,8 @@ class PackageController
         private readonly mixed $request, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
         private readonly mixed $response, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
         private readonly mixed $path, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
+        private readonly bool $debug,
+        private readonly mixed $log,
     ) {
         $this->manager = new PackageManager();
     }
@@ -108,13 +110,13 @@ class PackageController
             return ['message' => 'success'];
 
         } catch (\Throwable $e) {
-            App::log('error', sprintf( // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            $this->log->error(sprintf(
                 'Failed to enable extension "%s": %s',
                 $name,
                 $e->getMessage()
             ), ['exception' => $e]);
 
-            $errorMessage = App::debug() // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            $errorMessage = $this->debug
                 ? sprintf('%s', $e->getMessage())
                 : __('Unable to enable "%name%". See error log for details.', ['%name%' => $name]);
 
@@ -268,7 +270,7 @@ class PackageController
 
                 $errorMessage = __('Unable to activate "%name%".<br>A fatal error occured.', ['%name%' => $name]);
 
-                if (App::debug()) { // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                if ($this->debug) {
                     $errorMessage .= '<br><br>' . sprintf('%s in %s on line %d', $message, $file, $line);
                 }
 
@@ -286,7 +288,7 @@ class PackageController
 
             $message = __('Unable to activate "%name%".<br>A fatal error occured.', ['%name%' => $name]);
 
-            if (App::debug()) { // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            if ($this->debug) {
                 $message .= '<br><br>' . $exception->getMessage();
             }
 

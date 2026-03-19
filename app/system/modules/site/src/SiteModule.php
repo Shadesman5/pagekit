@@ -61,7 +61,7 @@ class SiteModule extends Module
 
             $this->registerType('link', ['label' => 'Link', 'frontpage' => false]);
 
-            App::trigger('site.types', [$this]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            $this->app->get('events')->trigger('site.types', [$this]);
         }
 
         return $this->types;

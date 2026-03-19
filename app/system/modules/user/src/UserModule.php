@@ -38,7 +38,7 @@ class UserModule extends Module
                 }
             }
 
-            App::trigger('user.permission', [$this]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            $this->app->get('events')->trigger('user.permission', [$this]);
         }
 
         return $this->perms;

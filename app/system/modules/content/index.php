@@ -12,12 +12,12 @@ return [
     'main' => function ($app) {
 
         $app->get('events')->subscribe(
-            new MarkdownPlugin,
+            new MarkdownPlugin($app->get('markdown')),
             new SimplePlugin,
             new VideoPlugin
         );
 
-        $app->set('content', fn() => new ContentHelper);
+        $app->set('content', fn() => new ContentHelper($app->get('events')));
 
     },
 

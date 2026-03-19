@@ -140,9 +140,11 @@ class PackageManager
                     }
                 }
 
-                App::trigger('package.enable', [$package]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
-
                 $app = App::getInstance(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+
+                if ($app && $app->has('events')) {
+                    $app->get('events')->trigger('package.enable', [$package]);
+                }
                 if ($app && $app->has('config')) {
                     $sysConfig = $app->get('config')('system');
 

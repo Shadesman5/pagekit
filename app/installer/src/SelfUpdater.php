@@ -3,7 +3,6 @@
 namespace Pagekit\Installer;
 
 use Composer\Console\HtmlOutputFormatter;
-use Pagekit\Application as App;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Output\StreamOutput;
 
@@ -17,13 +16,9 @@ class SelfUpdater
 
     protected OutputInterface $output;
 
-    /**
-     * Constructor.
-     *
-     * @param mixed  $output
-     */
-    public function __construct(OutputInterface $output = null)
+    public function __construct(string $path, ?OutputInterface $output = null)
     {
+        $this->path = $path;
         $this->output = $output ?: new StreamOutput(fopen('php://output', 'w'));
 
         if (PHP_SAPI != 'cli') {
@@ -44,7 +39,7 @@ class SelfUpdater
     public function update($file): void
     {
         try {
-            $path = App::path();
+            $path = $this->path;
 
             if (!file_exists($file)) {
                 throw new \RuntimeException('File not found.');
