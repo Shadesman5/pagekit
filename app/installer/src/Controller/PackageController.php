@@ -8,6 +8,7 @@ use Pagekit\Application as App;
 use Pagekit\Installer\Package\PackageManager;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\User\Attribute\Access;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 #[Access('system: manage packages', admin: true)]
 class PackageController
@@ -91,13 +92,13 @@ class PackageController
 
         try {
             if (!$package = $this->package->get($name)) {
-                App::abort(400, __('Unable to find "%name%".', ['%name%' => $name])); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                throw new BadRequestHttpException(__('Unable to find "%name%".', ['%name%' => $name]));
             }
 
             $this->module->load($package->get('module'));
 
             if (!$module = $this->module->get($package->get('module'))) {
-                App::abort(400, __('Unable to enable "%name%".', ['%name%' => $package->get('title')])); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                throw new BadRequestHttpException(__('Unable to enable "%name%".', ['%name%' => $package->get('title')]));
             }
 
             $this->manager->enable($package);
@@ -130,11 +131,11 @@ class PackageController
     public function disableAction($name): array
     {
         if (!$package = $this->package->get($name)) {
-            App::abort(400, __('Unable to find "%name%".', ['%name%' => $name])); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException(__('Unable to find "%name%".', ['%name%' => $name]));
         }
 
         if (!$module = $this->module->get($package->get('module'))) {
-            App::abort(400, __('"%name%" has not been loaded.', ['%name%' => $package->get('title')])); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException(__('"%name%" has not been loaded.', ['%name%' => $package->get('title')]));
         }
 
         $this->manager->disable($package);
@@ -150,17 +151,17 @@ class PackageController
         $file = $this->request->files->get('file');
 
         if ($file === null || !$file->isValid()) {
-            App::abort(400, __('No file uploaded.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException(__('No file uploaded.'));
         }
 
         $package = $this->loadPackage($file->getPathname());
 
         if (!$package->getName() || !$package->get('title') || !$package->get('version')) {
-            App::abort(400, __('"composer.json" file not valid.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException(__('"composer.json" file not valid.'));
         }
 
         if ($package->get('type') !== 'pagekit-' . $type) {
-            App::abort(400, __('No Pagekit %type%', ['%type%' => $type])); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException(__('No Pagekit %type%', ['%type%' => $type]));
         }
 
         $filename = str_replace('/', '-', $package->getName()) . '-' . $package->get('version') . '.zip';
@@ -250,7 +251,7 @@ class PackageController
             return $package;
         }
 
-        App::abort(400, __('Can\'t load json file from package.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+        throw new BadRequestHttpException(__('Can\'t load json file from package.'));
     }
 
     protected function errorHandler($name): ?callable

@@ -10,6 +10,8 @@ use Pagekit\Captcha\Attribute\Captcha;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Route;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class SiteController
 {
@@ -106,11 +108,11 @@ class SiteController
     public function postAction($id = 0): array
     {
         if (!$post = Post::where(['id = ?', 'status = ?', 'date < ?'], [$id, Post::STATUS_PUBLISHED, new \DateTime])->related('user')->first()) {
-            App::abort(404, __('Post not found!')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new NotFoundHttpException(__('Post not found!'));
         }
 
         if (!$post->hasAccess(App::user())) { // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
-            App::abort(403, __('Insufficient User Rights.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new AccessDeniedHttpException(__('Insufficient User Rights.'));
         }
 
         $post->excerpt = App::content()->applyPlugins($post->excerpt, ['post' => $post, 'markdown' => $post->get('markdown')]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)

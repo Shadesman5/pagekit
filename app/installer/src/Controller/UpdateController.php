@@ -9,6 +9,8 @@ use Pagekit\Installer\SelfUpdater;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\User\Attribute\Access;
 use Symfony\Component\Console\Output\StreamOutput;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 #[Access('system: software updates', admin: true)]
 class UpdateController
@@ -42,7 +44,7 @@ class UpdateController
         $this->session->set('system.update', $file);
 
         if (!file_put_contents($file, @fopen($url, 'r'))) {
-            App::abort(500, 'Download failed or path not writable.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new HttpException(500, 'Download failed or path not writable.');
         }
 
         return [];
@@ -52,7 +54,7 @@ class UpdateController
     public function updateAction()
     {
         if (!$file = $this->session->get('system.update')) {
-            App::abort(400, __('You may not call this step directly.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException(__('You may not call this step directly.'));
         }
         $this->session->remove('system.update');
 

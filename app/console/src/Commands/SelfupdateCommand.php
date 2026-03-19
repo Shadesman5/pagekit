@@ -7,8 +7,6 @@ use Pagekit\Installer\SelfUpdater;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Pagekit\Application as App;
-
 class SelfupdateCommand extends Command
 {
     /**
@@ -88,7 +86,7 @@ class SelfupdateCommand extends Command
     protected function getVersions()
     {
         if (!($res = file_get_contents($this->container->get('system.api') . '/api/update'))) {
-            App::abort(500, 'Could not obtain latest Version.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new \RuntimeException('Could not obtain latest Version.');
         }
 
         return json_decode($res, true);
@@ -106,7 +104,7 @@ class SelfupdateCommand extends Command
         }
 
         if (!file_put_contents($file, @fopen($url, 'r'))) {
-            App::abort(500, 'Download failed or path not writable.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new \RuntimeException('Download failed or path not writable.');
         }
     }
 }

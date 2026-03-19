@@ -5,6 +5,7 @@ namespace Pagekit\Blog;
 use Pagekit\Application as App;
 use Pagekit\Blog\Model\Post;
 use Pagekit\Routing\ParamsResolverInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 class UrlResolver implements ParamsResolverInterface
@@ -33,7 +34,7 @@ class UrlResolver implements ParamsResolverInterface
         }
 
         if (!isset($parameters['slug'])) {
-            App::abort(404, 'Post not found.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new NotFoundHttpException('Post not found.');
         }
 
         $slug = $parameters['slug'];
@@ -48,7 +49,7 @@ class UrlResolver implements ParamsResolverInterface
         if (!$id) {
 
             if (!$post = Post::where(compact('slug'))->first()) {
-                App::abort(404, 'Post not found.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                throw new NotFoundHttpException('Post not found.');
             }
 
             $this->addCache($post);

@@ -11,6 +11,8 @@ use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use function Pagekit\__;
 
 /**
@@ -105,7 +107,7 @@ class PostApiController
         if (!$id || !$post = Post::find($id)) {
 
             if ($id) {
-                App::abort(404, __('Post not found.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                throw new NotFoundHttpException(__('Post not found.'));
             }
 
             $post = Post::create();
@@ -118,7 +120,7 @@ class PostApiController
         }
 
         if(!App::user()->hasAccess('blog: manage all posts') && !App::user()->hasAccess('blog: manage own posts') && $post->user_id !== App::user()->id) { // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
-            App::abort(400, __('Access denied.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException(__('Access denied.'));
         }
 
         $skipFields = ['date', 'modified', 'created'];
@@ -145,7 +147,7 @@ class PostApiController
         if ($post = Post::find($id)) {
 
             if(!App::user()->hasAccess('blog: manage all posts') && !App::user()->hasAccess('blog: manage own posts') && $post->user_id !== App::user()->id) { // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
-                App::abort(400, __('Access denied.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                throw new BadRequestHttpException(__('Access denied.'));
             }
 
             $post->delete();

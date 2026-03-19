@@ -13,6 +13,8 @@ use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 #[Access(admin: true)]
 class BlogController
@@ -55,7 +57,7 @@ class BlogController
             if (!$post = Post::where(compact('id'))->related('user')->first()) {
 
                 if ($id) {
-                    App::abort(404, __('Invalid post id.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                    throw new NotFoundHttpException(__('Invalid post id.'));
                 }
 
                 $post = Post::create([
@@ -71,7 +73,7 @@ class BlogController
 
             $user = App::user(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
             if(!$user->hasAccess('blog: manage all posts') && $post->user_id !== $user->id) {
-                App::abort(403, __('Insufficient User Rights.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                throw new AccessDeniedHttpException(__('Insufficient User Rights.'));
             }
 
             $roles = App::db()->createQueryBuilder() // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
