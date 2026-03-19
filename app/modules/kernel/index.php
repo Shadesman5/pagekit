@@ -46,7 +46,7 @@ return [
 
             // redirect the request if it has a trailing slash
             if ('/' != $path && '/' == substr($path, -1) && '//' != substr($path, -2)) {
-                $event->setResponse($app->redirect(rtrim($request->getUriForPath($path), '/'), [], 301));
+                $event->setResponse($app->get('router')->redirect(rtrim($request->getUriForPath($path), '/'), [], 301));
             }
 
         }, 200]

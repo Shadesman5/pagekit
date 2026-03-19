@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Kernel\Event;
 
 use Pagekit\Kernel\Exception\HttpException;
@@ -7,19 +9,12 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ExceptionListenerWrapper
 {
-    protected $callback;
-
-    /**
-     * Constructor.
-     *
-     * @param mixed $callback
-     */
-    public function __construct($callback)
-    {
-        $this->callback = $callback;
+    public function __construct(
+        protected \Closure $callback,
+    ) {
     }
 
-    public function __invoke($event)
+    public function __invoke(object $event): void
     {
         $exception = $event->getException();
 
@@ -38,20 +33,11 @@ class ExceptionListenerWrapper
 
     protected function shouldRun(\Exception $exception): bool
     {
-        if (is_array($this->callback)) {
-            $callbackReflection = new \ReflectionMethod($this->callback[0], $this->callback[1]);
-        } elseif (is_object($this->callback) && !$this->callback instanceof \Closure) {
-            $callbackReflection = new \ReflectionObject($this->callback);
-            $callbackReflection = $callbackReflection->getMethod('__invoke');
-        } else {
-            $callbackReflection = new \ReflectionFunction($this->callback);
-        }
+        $callbackReflection = new \ReflectionFunction($this->callback);
 
         if ($callbackReflection->getNumberOfParameters() > 0) {
             $parameters = $callbackReflection->getParameters();
             $expectedException = $parameters[0];
-            
-            // Replace deprecated getClass() with getType()
             $paramType = $expectedException->getType();
             if ($paramType instanceof \ReflectionNamedType && !$paramType->isBuiltin() && 
                 !($exception instanceof ($paramType->getName()))) {

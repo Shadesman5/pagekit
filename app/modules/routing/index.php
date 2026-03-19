@@ -1,6 +1,7 @@
 <?php
 
 use Pagekit\Filter\FilterManager;
+use Pagekit\Kernel\Event\ExceptionListenerWrapper;
 use Pagekit\Kernel\Exception\HttpException;
 use Pagekit\Routing\Event\AliasListener;
 use Pagekit\Routing\Event\ConfigureRouteListener;
@@ -51,7 +52,7 @@ return [
 
             $app->get('middleware');
 
-            $app->error(function (HttpException $e) use ($app) {
+            $app->get('events')->on('exception', new ExceptionListenerWrapper(function (HttpException $e) use ($app) {
 
                 $request = $app->get('router')->getRequest();
                 $types   = $request->getAcceptableContentTypes();
@@ -60,14 +61,14 @@ return [
                     return new JsonResponse($e->getMessage(), $e->getCode());
                 }
 
-            }, -10);
+            }), -10);
 
         },
 
         'request' => [function ($event, $request) use ($app) {
 
             if ($redirect = $request->attributes->get('_redirect')) {
-                $event->setResponse($app->redirect($redirect), [], 301);
+                $event->setResponse($app->get('router')->redirect($redirect), [], 301);
             };
 
         }, 90],

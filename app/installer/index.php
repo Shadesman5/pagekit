@@ -1,6 +1,7 @@
 <?php
 
 use Pagekit\Installer\Package\PackageFactory;
+use Pagekit\Kernel\Event\ExceptionListenerWrapper;
 use Pagekit\Kernel\Exception\NotFoundException;
 
 return [
@@ -38,7 +39,7 @@ return [
 
             });
 
-            $app->error(fn(NotFoundException $e) => $app->get('response')->redirect('@installer')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal) — App::error()
+            $app->get('events')->on('exception', new ExceptionListenerWrapper(fn(NotFoundException $e) => $app->get('router')->redirect('@installer')), -8);
 
         }
 
