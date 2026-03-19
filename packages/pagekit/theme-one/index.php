@@ -1,7 +1,5 @@
 <?php
 
-use Pagekit\Application as App;
-
 return [
 
     'name' => 'theme-one',
@@ -13,6 +11,7 @@ return [
         }
 
         require __DIR__.'/functions.php';
+        \ThemeOneHelpers::setUrl($app->get('url'));
     },
 
     /**

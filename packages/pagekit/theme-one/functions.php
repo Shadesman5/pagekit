@@ -1,6 +1,26 @@
 <?php
 
-use Pagekit\Application as App;
+use Pagekit\Application\UrlProvider;
+
+// Static URL provider for template helper functions.
+// TODO: Step 2.1 (Static Analysis) — replace with proper DI once template functions support it
+final class ThemeOneHelpers
+{
+    private static ?UrlProvider $url = null;
+
+    public static function setUrl(UrlProvider $url): void
+    {
+        self::$url = $url;
+    }
+
+    public static function getUrl(): UrlProvider
+    {
+        if (self::$url === null) {
+            throw new \RuntimeException('ThemeOneHelpers::setUrl() must be called before using template helpers.');
+        }
+        return self::$url;
+    }
+}
 
 function isHTML(string $string) : bool
 {
@@ -82,7 +102,7 @@ function bgImage ($url, $options) : array
 
 function image($url, array $attrs = []): string
 {
-    $path = App::view()->url($url); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+    $path = ThemeOneHelpers::getUrl()->get($url);
 
     if (empty($attrs['alt'])) {
         $attrs['alt'] = true;

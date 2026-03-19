@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Pagekit\Blog\Controller;
 
-use Pagekit\Application as App;
+use Pagekit\Application\UrlProvider;
 use Pagekit\Blog\Model\Post;
 use Pagekit\Captcha\Attribute\Captcha;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Route;
+use Pagekit\User\Model\User;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -17,8 +18,14 @@ class SiteController
 {
     protected Module $blog;
 
-    public function __construct(ModuleManager $module)
-    {
+    public function __construct(
+        private readonly ModuleManager $module,
+        private readonly User $user,
+        private readonly mixed $content,
+        private readonly mixed $feed,
+        private readonly UrlProvider $url,
+        private readonly mixed $response,
+    ) {
         $this->blog = $module->get('blog');
     }
 
@@ -26,8 +33,8 @@ class SiteController
     #[Route('/page/{page}', name: 'page', requirements: ['page' => '\d+'])]
     public function indexAction($page = 1): array
     {
-        $query = Post::where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime])->where(function($query) { 
-            return $query->where('roles IS NULL')->whereInSet('roles', App::user()->roles, false, 'OR'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+        $query = Post::where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime])->where(function($query) {
+            return $query->where('roles IS NULL')->whereInSet('roles', $this->user->roles, false, 'OR');
         })->related('user');
 
         if (!$limit = $this->blog->config('posts.posts_per_page')) {
@@ -40,8 +47,8 @@ class SiteController
         $query->offset(($page - 1) * $limit)->limit($limit)->orderBy('date', 'DESC');
 
         foreach ($posts = $query->get() as $post) {
-            $post->excerpt = App::content()->applyPlugins($post->excerpt, ['post' => $post, 'markdown' => $post->get('markdown')]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
-            $post->content = App::content()->applyPlugins($post->content, ['post' => $post, 'markdown' => $post->get('markdown'), 'readmore' => true]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            $post->excerpt = $this->content->applyPlugins($post->excerpt, ['post' => $post, 'markdown' => $post->get('markdown')]);
+            $post->content = $this->content->applyPlugins($post->content, ['post' => $post, 'markdown' => $post->get('markdown'), 'readmore' => true]);
         }
 
         return [
@@ -50,9 +57,9 @@ class SiteController
                 'name' => 'blog/posts.php',
                 'link:feed' => [
                     'rel' => 'alternate',
-                    'href' => App::url('@blog/feed'), // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
-                    'title' => App::module('system/site')->config('title'), // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
-                    'type' => App::feed()->create($this->blog->config('feed.type'))->getMIMEType() // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                    'href' => $this->url->get('@blog/feed'),
+                    'title' => $this->module->get('system/site')->config('title'),
+                    'type' => $this->feed->create($this->blog->config('feed.type'))->getMIMEType()
                 ]
             ],
             'blog' => $this->blog,
@@ -67,16 +74,16 @@ class SiteController
     public function feedAction($type = '')
     {
         // fetch locale and convert to ISO-639 (en_US -> en-us)
-        $locale = App::module('system')->config('site.locale'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+        $locale = $this->module->get('system')->config('site.locale');
         $locale = str_replace('_', '-', strtolower($locale));
 
-        $site = App::module('system/site'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
-        $feed = App::feed()->create($type ?: $this->blog->config('feed.type'), [ // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+        $site = $this->module->get('system/site');
+        $feed = $this->feed->create($type ?: $this->blog->config('feed.type'), [
             'title' => $site->config('title'),
-            'link' => App::url('@blog', [], 0), // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            'link' => $this->url->get('@blog', [], 0),
             'description' => $site->config('description'),
             'element' => ['language', $locale],
-            'selfLink' => App::url('@blog/feed', [], 0) // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            'selfLink' => $this->url->get('@blog/feed', [], 0)
         ]);
 
         if ($last = Post::where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime])->limit(1)->orderBy('modified', 'DESC')->first()) {
@@ -84,14 +91,14 @@ class SiteController
         }
 
         foreach (Post::where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime])->where(function($query) {
-            return $query->where('roles IS NULL')->whereInSet('roles', App::user()->roles, false, 'OR'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            return $query->where('roles IS NULL')->whereInSet('roles', $this->user->roles, false, 'OR');
         })->related('user')->limit($this->blog->config('feed.limit'))->orderBy('date', 'DESC')->get() as $post) {
-            $url = App::url('@blog/id', ['id' => $post->id], 0); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            $url = $this->url->get('@blog/id', ['id' => $post->id], 0);
             $feed->addItem(
                 $feed->createItem([
                     'title' => $post->title,
                     'link' => $url,
-                    'description' => App::content()->applyPlugins($post->content, ['post' => $post, 'markdown' => $post->get('markdown'), 'readmore' => true]), // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                    'description' => $this->content->applyPlugins($post->content, ['post' => $post, 'markdown' => $post->get('markdown'), 'readmore' => true]),
                     'date' => $post->date,
                     'author' => [$post->user->name, $post->user->email],
                     'id' => $url
@@ -99,7 +106,7 @@ class SiteController
             );
         }
 
-        return App::response($feed->output(), 200, ['Content-Type' => $feed->getMIMEType().'; charset='.$feed->getEncoding()]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+        return $this->response->create($feed->output(), 200, ['Content-Type' => $feed->getMIMEType().'; charset='.$feed->getEncoding()]);
     }
 
     #[Route('/{id}', name: 'id')]
@@ -111,14 +118,12 @@ class SiteController
             throw new NotFoundHttpException(__('Post not found!'));
         }
 
-        if (!$post->hasAccess(App::user())) { // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+        if (!$post->hasAccess($this->user)) {
             throw new AccessDeniedHttpException(__('Insufficient User Rights.'));
         }
 
-        $post->excerpt = App::content()->applyPlugins($post->excerpt, ['post' => $post, 'markdown' => $post->get('markdown')]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
-        $post->content = App::content()->applyPlugins($post->content, ['post' => $post, 'markdown' => $post->get('markdown')]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
-
-        $user = App::user(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+        $post->excerpt = $this->content->applyPlugins($post->excerpt, ['post' => $post, 'markdown' => $post->get('markdown')]);
+        $post->content = $this->content->applyPlugins($post->content, ['post' => $post, 'markdown' => $post->get('markdown')]);
 
         $description = $post->get('meta.og:description');
         if (!$description) {
@@ -136,7 +141,7 @@ class SiteController
                 'article:author' => $post->user->name,
                 'og:title' => $post->get('meta.og:title') ?: $post->title,
                 'og:description' => $description,
-                'og:image' =>  $post->get('image.src') ? App::url()->getStatic($post->get('image.src'), [], 0) : false // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                'og:image' =>  $post->get('image.src') ? $this->url->getStatic($post->get('image.src'), [], 0) : false
             ],
             '$comments' => [
                 'config' => [
@@ -145,10 +150,10 @@ class SiteController
                     'requireinfo' => $this->blog->config('comments.require_email'),
                     'max_depth' => $this->blog->config('comments.max_depth'),
                     'user' => [
-                        'name' => $user->name,
-                        'isAuthenticated' => $user->isAuthenticated(),
-                        'canComment' => $user->hasAccess('blog: post comments'),
-                        'skipApproval' => $user->hasAccess('blog: skip comment approval')
+                        'name' => $this->user->name,
+                        'isAuthenticated' => $this->user->isAuthenticated(),
+                        'canComment' => $this->user->hasAccess('blog: post comments'),
+                        'skipApproval' => $this->user->hasAccess('blog: skip comment approval')
                     ]
                 ]
             ],

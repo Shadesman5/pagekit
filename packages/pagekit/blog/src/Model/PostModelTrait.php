@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\Blog\Model;
 
-use Pagekit\Application as App;
 use Pagekit\Database\ORM\Attribute as ORM;
 use Pagekit\Database\ORM\ModelTrait;
 

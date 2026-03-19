@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Blog;
 
-use Pagekit\Application as App;
 use Pagekit\Blog\Model\Post;
+use Pagekit\Module\Module;
 use Pagekit\Routing\ParamsResolverInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
@@ -16,12 +18,28 @@ class UrlResolver implements ParamsResolverInterface
 
     protected array $cacheEntries;
 
+    // Static service references set during blog module boot,
+    // required because Router instantiates resolvers via `new $class` (no DI).
+    // TODO: Step 2.1 (Static Analysis) — replace with proper DI once Router supports it
+    private static mixed $cache = null;
+    private static ?Module $module = null;
+
+    public static function setCache(mixed $cache): void
+    {
+        self::$cache = $cache;
+    }
+
+    public static function setModule(Module $module): void
+    {
+        self::$module = $module;
+    }
+
     /**
      * Constructor.
      */
     public function __construct()
     {
-        $this->cacheEntries = App::cache()->fetch(self::CACHE_KEY) ?: []; // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+        $this->cacheEntries = self::$cache?->fetch(self::CACHE_KEY) ?: [];
     }
 
     /**
@@ -81,28 +99,24 @@ class UrlResolver implements ParamsResolverInterface
 
         $permalink = self::getPermalink();
         
-        // Check if permalink has placeholders like {slug}, {year}, etc.
         $matchCount = preg_match_all('#{([a-z]+)}#i', $permalink, $matches);
 
         if ($matchCount > 0 && !empty($matches[1])) {
-            // We have placeholders in the permalink - replace them with actual values
             foreach($matches[1] as $attribute) {
                 if (isset($meta[$attribute])) {
                     $parameters[$attribute] = $meta[$attribute];
                 }
             }
-            // Only remove 'id' if we have successfully replaced it with permalink parameters
             unset($parameters['id']);
         }
-        // else: Keep 'id' for numeric permalinks
 
         return $parameters;
     }
 
     public function __destruct()
     {
-        if ($this->cacheDirty) {
-            App::cache()->save(self::CACHE_KEY, $this->cacheEntries); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+        if ($this->cacheDirty && self::$cache !== null) {
+            self::$cache->save(self::CACHE_KEY, $this->cacheEntries);
         }
     }
 
@@ -111,11 +125,14 @@ class UrlResolver implements ParamsResolverInterface
      */
     public static function getPermalink(): string
     {
-        $blog = App::module('blog'); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
-        $permalink = $blog->config('permalink.type');
+        if (self::$module === null) {
+            return '';
+        }
+
+        $permalink = self::$module->config('permalink.type');
 
         if ($permalink == 'custom') {
-            $permalink = $blog->config('permalink.custom');
+            $permalink = self::$module->config('permalink.custom');
         }
 
         return $permalink;

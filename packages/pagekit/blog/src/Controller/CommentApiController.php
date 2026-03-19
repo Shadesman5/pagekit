@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\Blog\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Blog\Model\Comment;
 use Pagekit\Blog\Model\Post;
 use Pagekit\Captcha\Attribute\Captcha;
@@ -15,6 +14,7 @@ use Pagekit\Routing\Attribute\Route;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\User;
+use Symfony\Component\HttpFoundation\Request as HttpRequest;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -29,12 +29,14 @@ class CommentApiController
     use ValidatesRequestTrait;
 
     protected Module $blog;
-    protected User $user;
 
-    public function __construct(ModuleManager $module)
-    {
+    public function __construct(
+        ModuleManager $module,
+        private readonly User $user,
+        private readonly HttpRequest $request,
+        private readonly mixed $content,
+    ) {
         $this->blog = $module->get('blog');
-        $this->user = App::user(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
     }
 
     #[Route('/', methods: ['GET'])]
@@ -58,7 +60,7 @@ class CommentApiController
 
             if ($this->user->isAuthenticated()) {
                 $query->orWhere(function ($query) {
-                    $query->where(['status = ?', 'user_id = ?'], [Comment::STATUS_PENDING, App::user()->id]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                    $query->where(['status = ?', 'user_id = ?'], [Comment::STATUS_PENDING, $this->user->id]);
                 });
             }
 
@@ -104,7 +106,7 @@ class CommentApiController
                 throw new AccessDeniedHttpException(__('Post not found.'));
             }
 
-            $comment->content = App::content()->applyPlugins($comment->content, ['comment' => true]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            $comment->content = $this->content->applyPlugins($comment->content, ['comment' => true]);
 
             $comment->special = count(array_diff($comment->user ? $comment->user->roles : [], [0, 1, 2]));
             $comment->post = null;
@@ -154,7 +156,7 @@ class CommentApiController
 
             // user_id stored as string in database (legacy), use '0' for anonymous users
             $commentEntity->user_id = $this->user->isAuthenticated() ? (string) $this->user->id : '0';
-            $commentEntity->ip = App::request()->getClientIp(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            $commentEntity->ip = $this->request->getClientIp();
             $commentEntity->created = new \DateTime;
 
         } else {
@@ -178,7 +180,7 @@ class CommentApiController
         // check minimum idle time in between user comments (business logic)
         if (!$this->user->hasAccess('blog: skip comment min idle')
             and $minidle = $this->blog->config('comments.minidle')
-            and $commentIdle = Comment::where($this->user->isAuthenticated() ? ['user_id' => $this->user->id] : ['ip' => App::request()->getClientIp()])->orderBy('created', 'DESC')->first() // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            and $commentIdle = Comment::where($this->user->isAuthenticated() ? ['user_id' => $this->user->id] : ['ip' => $this->request->getClientIp()])->orderBy('created', 'DESC')->first()
         ) {
 
             $diff = $commentIdle->created->diff(new \DateTime("- {$minidle} sec"));
