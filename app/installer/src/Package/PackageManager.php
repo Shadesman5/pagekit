@@ -288,7 +288,7 @@ class PackageManager
      * @param  $package
      * @return string
      */
-    protected function getVersion($package)
+    protected function getVersion($package): string
     {
         if (!$path = $package->get('path')) {
             throw new \RuntimeException(__('Package path is missing.'));
@@ -298,20 +298,22 @@ class PackageManager
             throw new \RuntimeException(__('\'composer.json\' is missing.'));
         }
 
-        $package = json_decode(file_get_contents($file), true);
-        if (isset($package['version'])) {
-            return $package['version'];
+        $composerData = json_decode(file_get_contents($file), true);
+        if (isset($composerData['version'])) {
+            return $composerData['version'];
         }
 
         $packagesPath = $this->app->has('path.packages')
             ? $this->app->get('path.packages')
             : realpath(__DIR__ . '/../../..') . '/packages';
-        if (file_exists($packagesPath . '/composer/installed.json')) {
-            $installed = json_decode(file_get_contents($file), true);
+        $installedFile = $packagesPath . '/composer/installed.json';
+        if (file_exists($installedFile)) {
+            $installed = json_decode(file_get_contents($installedFile), true);
+            $packageName = $package->getName();
 
-            foreach ($installed as $package) {
-                if ($package['name'] === $package->getName()) {
-                    return $package['version'];
+            foreach ($installed as $entry) {
+                if (($entry['name'] ?? null) === $packageName) {
+                    return $entry['version'];
                 }
             }
         }

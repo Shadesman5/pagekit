@@ -7,7 +7,7 @@ use Pagekit\Module\Module;
 
 class DashboardModule extends Module
 {
-    protected App $app;
+    protected ?App $app = null;
 
     /**
      * {@inheritdoc}
@@ -15,7 +15,7 @@ class DashboardModule extends Module
     public function main(App $app): void
     {
         $this->app = $app;
-        $app->set('systemApi', fn($app) => $app->get('system.api'));
+        $app->set('systemApi', fn($app) => $app->has('system.api') ? $app->get('system.api') : 'https://pagekit.com');
     }
 
     /**

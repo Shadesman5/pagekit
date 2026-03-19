@@ -144,17 +144,9 @@ return [
 
         'boot' => function ($event, $app) {
 
-            $app->get('events')->subscribe(
-                new MaintenanceListener(
-                    $app,
-                    $this,
-                ),
-                new NodesListener(
-                    $this,
-                    $app->get('routes'),
-                ),
-                new PageListener()
-            );
+            $app->get('events')->subscribe(new MaintenanceListener($app, $this));
+            $app->get('events')->subscribe(new NodesListener($this, $app->get('routes')));
+            $app->get('events')->subscribe(new PageListener());
 
             Node::defineProperty('theme', function () use ($app) {
 

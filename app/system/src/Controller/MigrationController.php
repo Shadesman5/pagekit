@@ -20,8 +20,9 @@ class MigrationController
         private readonly mixed $message,
         private readonly mixed $response,
         private readonly mixed $router,
+        private readonly mixed $app,
     ) {
-        $this->scripts = new PackageScripts($this->system->path.'/scripts.php', $this->system->config('version'));
+        $this->scripts = new PackageScripts($this->system->path.'/scripts.php', $this->system->config('version'), $this->app);
     }
 
     #[Request(['redirect' => 'string'])]

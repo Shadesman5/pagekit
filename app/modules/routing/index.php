@@ -43,12 +43,10 @@ return [
 
         'boot' => function ($event, $app) {
 
-            $app->get('events')->subscribe(
-                new ConfigureRouteListener,
-                new ParamFetcherListener(new ParamFetcher(new FilterManager)),
-                new RouterListener($app->get('router')),
-                new AliasListener($app->get('routes'))
-            );
+            $app->get('events')->subscribe(new ConfigureRouteListener);
+            $app->get('events')->subscribe(new ParamFetcherListener(new ParamFetcher(new FilterManager)));
+            $app->get('events')->subscribe(new RouterListener($app->get('router')));
+            $app->get('events')->subscribe(new AliasListener($app->get('routes')));
 
             $app->get('middleware');
 

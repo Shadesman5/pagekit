@@ -123,7 +123,7 @@ return [
         'auth.login' => [function ($event) use ($app) {
             if ($event->getUser()->hasAccess('system: software updates') && version_compare($this->config('version'), $app->get('version'), '<')) {
 
-                $scripts = new PackageScripts($this->path . '/scripts.php', $this->config('version'));
+                $scripts = new PackageScripts($this->path . '/scripts.php', $this->config('version'), $app);
 
                 if ($scripts->hasUpdates()) {
                     $event->setResponse($app->get('response')->redirect('@system/migration', ['redirect' => $app->get('url')->getRoute('@system')]));

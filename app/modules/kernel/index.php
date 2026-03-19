@@ -16,12 +16,10 @@ return [
 
         $app->set('kernel', function ($app) {
 
-            $app->get('events')->subscribe(
-                new ControllerListener($app->get('resolver')),
-                new ResponseListener(),
-                new JsonResponseListener(),
-                new StringResponseListener()
-            );
+            $app->get('events')->subscribe(new ControllerListener($app->get('resolver')));
+            $app->get('events')->subscribe(new ResponseListener());
+            $app->get('events')->subscribe(new JsonResponseListener());
+            $app->get('events')->subscribe(new StringResponseListener());
 
             return new HttpKernel($app->get('events'), $app->get('request.stack'));
         });
