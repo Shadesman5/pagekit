@@ -144,7 +144,7 @@ return [
 
         'boot' => function ($event, $app) {
 
-            $app->subscribe(
+            $app->get('events')->subscribe(
                 new MaintenanceListener(
                     $app,
                     $this,
@@ -174,22 +174,22 @@ return [
 
         'site' => function ($event, $app) {
 
-            $app->on('view.head', function ($event) use ($app) {
+            $app->get('events')->on('view.head', function ($event) use ($app) {
                 $event->addResult($this->config('code.header'));
             }, -10);
 
-            $app->on('view.footer', function ($event) use ($app) {
+            $app->get('events')->on('view.footer', function ($event) use ($app) {
                 $event->addResult($this->config('code.footer'));
             }, -10);
 
-            $app->on('view.init', function ($event, $view) use ($app) {
+            $app->get('events')->on('view.init', function ($event, $view) use ($app) {
                 $view->params->set('title', $this->config('title'));
                 $view->params->merge($this->config('view'));
                 $view->params->merge($app->get('theme')->config);
                 $view->params->merge($app->get('node')->theme);
             }, 10);
 
-            $app->on('view.meta', function ($event, $meta) use ($app) {
+            $app->get('events')->on('view.meta', function ($event, $meta) use ($app) {
 
                 $config = $app->get('config')('system/site');
 

@@ -84,7 +84,7 @@ return [
                             unset($value['layout']);
                         }
 
-                        $app->on('view.meta', function ($event, $meta) use ($value) {
+                        $app->get('events')->on('view.meta', function ($event, $meta) use ($value) {
                             $meta($value);
                         });
 

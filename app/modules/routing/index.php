@@ -42,7 +42,7 @@ return [
 
         'boot' => function ($event, $app) {
 
-            $app->subscribe(
+            $app->get('events')->subscribe(
                 new ConfigureRouteListener,
                 new ParamFetcherListener(new ParamFetcher(new FilterManager)),
                 new RouterListener($app->get('router')),

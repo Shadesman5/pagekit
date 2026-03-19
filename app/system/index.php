@@ -86,7 +86,7 @@ return [
             \Pagekit\System\ValidatorServiceProvider::register($app);
 
             if (!$app->get('debug')) {
-                $app->subscribe(new ExceptionListener('Pagekit\System\Controller\ExceptionController::showAction'));
+                $app->get('events')->subscribe(new ExceptionListener('Pagekit\System\Controller\ExceptionController::showAction'));
             }
 
             $app->get('db.em'); // -TODO- fix me
@@ -112,7 +112,7 @@ return [
                     return;
                 }
 
-                $app->trigger($app->isAdmin() ? 'admin' : 'site', [$app]);
+                $app->get('events')->trigger($app->isAdmin() ? 'admin' : 'site', [$app]);
 
             }]
 

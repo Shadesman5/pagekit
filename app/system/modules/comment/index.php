@@ -8,7 +8,7 @@ return [
 
     'main' => function ($app) {
 
-        $app->subscribe(new CommentPlugin);
+        $app->get('events')->subscribe(new CommentPlugin);
 
     },
 

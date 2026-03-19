@@ -144,7 +144,7 @@ return [
     'events' => [
 
         'boot' => function ($event, $app) {
-            $app->subscribe(
+            $app->get('events')->subscribe(
                 new AccessListener(
                     $app->get('auth'),
                     $app->get('url'),

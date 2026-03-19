@@ -11,7 +11,7 @@ return [
 
     'main' => function ($app) {
 
-        $app->subscribe(
+        $app->get('events')->subscribe(
             new MarkdownPlugin,
             new SimplePlugin,
             new VideoPlugin

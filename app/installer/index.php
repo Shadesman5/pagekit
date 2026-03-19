@@ -27,7 +27,7 @@ return [
                 'controller' => 'Pagekit\Installer\Controller\InstallerController'
             ]);
 
-            $app->on('request', function ($event, $request) use ($app) {
+            $app->get('events')->on('request', function ($event, $request) use ($app) {
 
                 $locale = $request->get('locale') ?: $app->get('request')->getPreferredLanguage();
                 $available = $app->get('module')->get('system/intl')->getAvailableLanguages();

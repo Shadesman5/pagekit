@@ -37,7 +37,7 @@ class Application extends Container
         if (!$this->booted) {
 
             $this->booted = true;
-            $this->trigger('boot', [$this]);
+            $this->get('events')->trigger('boot', [$this]);
 
         }
     }

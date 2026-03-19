@@ -36,11 +36,11 @@ return [
     'events' => [
 
         'boot' => function ($event, $app) {
-            $app->subscribe(new ResponseListener($app->get('url')));
+            $app->get('events')->subscribe(new ResponseListener($app->get('url')));
         },
 
         'site' => function ($event, $app) {
-            $app->on('view.meta', function ($event, $meta) use ($app) {
+            $app->get('events')->on('view.meta', function ($event, $meta) use ($app) {
                 $meta->add('canonical', $app->get('url')->get($app->get('request')->attributes->get('_route'), $app->get('request')->attributes->get('_route_params', []), 0));
             }, 60);
         },

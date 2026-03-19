@@ -154,7 +154,7 @@ return [
     'events' => [
 
         'boot' => function ($event, $app) {
-            $app->subscribe(
+            $app->get('events')->subscribe(
                 new RouteListener,
                 new PostListener(),
                 new ReadmorePlugin

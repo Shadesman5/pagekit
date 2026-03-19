@@ -16,7 +16,7 @@ return [
 
         $app->set('kernel', function ($app) {
 
-            $app->subscribe(
+            $app->get('events')->subscribe(
                 new ControllerListener($app->get('resolver')),
                 new ResponseListener(),
                 new JsonResponseListener(),
