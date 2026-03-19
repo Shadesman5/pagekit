@@ -1,8 +1,5 @@
 <?php
 
-use Pagekit\Application as App;
-
-$app = App::getInstance(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
 $db = $app->get('db');
 $config = $app->get('config');
 

@@ -24,6 +24,7 @@ class Application extends Container
     {
         parent::__construct($values);
 
+        $this->set('app', $this);
         $this->set('events', fn() => new EventDispatcher());
 
         $this->set('module', fn() => new ModuleManager($this));

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Installer;
 
 use Doctrine\DBAL\DBALException;
@@ -11,6 +13,7 @@ use Pagekit\Installer\Package\PackageManager;
 use Pagekit\Installer\Package\PackageScripts;
 use Pagekit\Util\Arr;
 use Symfony\Component\Console\Output\NullOutput;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 class Installer
 {
@@ -23,10 +26,7 @@ class Installer
      */
     protected \Pagekit\Application $app;
 
-    /**
-     * @var bool
-     */
-    protected $config;
+    protected bool $config;
 
     public function __construct(Application $app)
     {
@@ -50,16 +50,16 @@ class Installer
 
                 if (!$this->config) {
                     foreach ($config as $name => $values) {
-                        if ($module = $this->app->module($name)) {
+                        if ($module = $this->app->get('module')->get($name)) {
                             $module->config = Arr::merge($module->config, $values);
                         } else {
                         }
                     }
                 }
 
-                $this->app->db()->connect();
+                $this->app->get('db')->connect();
 
-                if ($this->app->db()->getUtility()->tableExists('@system_config')) {
+                if ($this->app->get('db')->getUtility()->tableExists('@system_config')) {
                     $status = 'tables-exist';
                     $message = __('Existing Pagekit installation detected. Choose different table prefix?');
                 } else {
@@ -78,9 +78,7 @@ class Installer
 
         } catch (\Exception $e) {
             
-            // Debug: Log the actual error
-
-            $message = $e->getMessage(); // Show the actual error for debugging
+            $message = $e->getMessage();
             
             if ($e->getCode() == 1045) {
                 $message = __('Database access denied!');
@@ -105,11 +103,11 @@ class Installer
         try {
 
             if ('no-connection' == $status) {
-                $this->app->abort(400, __('No database connection.'));
+                throw new BadRequestHttpException(__('No database connection.'));
             }
 
             if ('tables-exist' == $status) {
-                $this->app->abort(400, $message);
+                throw new BadRequestHttpException($message);
             }
 
             // Execute database migrations to create schema
@@ -117,10 +115,10 @@ class Installer
             
             // Execute additional setup (config initialization, etc.)
             // NOTE: scripts.php 'install' hook is executed AFTER migrations
-            $scripts = new PackageScripts($this->app->path().'/app/system/scripts.php');
+            $scripts = new PackageScripts($this->app->get('path').'/app/system/scripts.php', null, $this->app);
             $scripts->install();
 
-            $this->app->db()->insert('@system_user', [
+            $this->app->get('db')->insert('@system_user', [
                 'name' => $user['username'],
                 'username' => $user['username'],
                 'password' => $this->app->get('auth.password')->hash($user['password']),
@@ -130,14 +128,14 @@ class Installer
                 'roles' => '2,3'
             ]);
 
-            $option['system']['version'] = $this->app->version();
+            $option['system']['version'] = $this->app->get('version');
 
             foreach ($option as $name => $values) {
-                $this->app->config()->set($name, $this->app->config($name)->merge($values));
+                $this->app->get('config')->set($name, $this->app->get('config')($name)->merge($values));
             }
 
             try {
-                $packageManager = new PackageManager(new NullOutput());
+                $packageManager = new PackageManager($this->app, new NullOutput());
             } catch (\Exception $e) {
                 throw new \Exception("Error creating PackageManager: " . $e->getMessage(), 0, $e);
             }
@@ -172,6 +170,7 @@ class Installer
                 }
             }
 
+            $app = $this->app;
             if (!$demo_content) {
                 if (file_exists(__DIR__.'/../install.php')) {
                     require_once __DIR__.'/../install.php';
@@ -195,11 +194,11 @@ class Installer
 
                     $status = 'write-failed';
 
-                    $this->app->abort(400, __('Can\'t write config.'));
+                    throw new BadRequestHttpException(__('Can\'t write config.'));
                 }
             }
 
-            $this->app->module('system/cache')->clearCache();
+            $this->app->get('module')->get('system/cache')->clearCache();
 
             $status = 'success';
 
@@ -219,7 +218,7 @@ class Installer
 
     protected function createDatabase(): void
     {
-        $module = $this->app->module('database');
+        $module = $this->app->get('module')->get('database');
         $params = $module->config('connections')[$module->config('default')];
 
         $name = $params['dbname'];

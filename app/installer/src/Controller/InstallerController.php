@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\Installer\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Installer\Installer;
 
 class InstallerController
@@ -12,10 +11,11 @@ class InstallerController
     protected Installer $installer;
 
     public function __construct(
+        private readonly mixed $app, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
         private readonly mixed $request, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
         private readonly mixed $module, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
     ) {
-        $this->installer = new Installer(App::getInstance()); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+        $this->installer = new Installer($this->app);
     }
 
     public function indexAction(): array

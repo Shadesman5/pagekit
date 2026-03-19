@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Installer\Package;
 
-use Pagekit\Application as App;
+use Psr\Container\ContainerInterface;
 
 class PackageScripts
 {
@@ -10,16 +12,13 @@ class PackageScripts
 
     protected ?string $current = null;
 
-    /**
-     * Constructor.
-     *
-     * @param string $file
-     * @param string $current
-     */
-    public function __construct($file, $current = null)
+    protected ?ContainerInterface $app = null;
+
+    public function __construct(?string $file, ?string $current = null, ?ContainerInterface $app = null)
     {
         $this->file = $file;
         $this->current = $current;
+        $this->app = $app;
     }
 
     /**
@@ -100,7 +99,7 @@ class PackageScripts
         array_map(function ($script) {
 
             if (is_callable($script)) {
-                call_user_func($script, App::getInstance());
+                call_user_func($script, $this->app);
             }
 
         }, (array) $scripts);

@@ -10,7 +10,7 @@ return [
 
     'main' => function ($app) {
 
-        $app->set('package', fn($app) => (new PackageFactory())->addPath($app->get('path').'/packages/*/*/composer.json'));
+        $app->set('package', fn($app) => (new PackageFactory($app->get('url')))->addPath($app->get('path').'/packages/*/*/composer.json'));
 
         if ($this->config['enabled']) {
 

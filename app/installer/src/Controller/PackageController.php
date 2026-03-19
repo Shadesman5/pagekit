@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Pagekit\Installer\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Installer\Package\PackageManager;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\User\Attribute\Access;
+use Psr\Container\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 #[Access('system: manage packages', admin: true)]
@@ -15,7 +15,10 @@ class PackageController
 {
     protected PackageManager $manager;
 
+    private readonly string $systemApi;
+
     public function __construct(
+        private readonly ContainerInterface $app, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
         private readonly mixed $package, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
         private readonly mixed $module, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
         private readonly mixed $url, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
@@ -25,7 +28,10 @@ class PackageController
         private readonly bool $debug,
         private readonly mixed $log,
     ) {
-        $this->manager = new PackageManager();
+        $this->manager = new PackageManager($this->app);
+        $this->systemApi = $this->app->has('system.api')
+            ? $this->app->get('system.api')
+            : 'https://pagekit.com';
     }
 
     public function themesAction(): array
@@ -51,7 +57,7 @@ class PackageController
                 'name' => 'installer:views/themes.php'
             ],
             '$data' => [
-                'api' => App::getInstance() ? App::getInstance()->get('system.api') : 'https://pagekit.com', // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                'api' => $this->systemApi,
                 'packages' => $packages
             ]
         ];
@@ -81,7 +87,7 @@ class PackageController
                 'name' => 'installer:views/extensions.php'
             ],
             '$data' => [
-                'api' => App::getInstance() ? App::getInstance()->get('system.api') : 'https://pagekit.com', // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                'api' => $this->systemApi,
                 'packages' => $packages
             ]
         ];

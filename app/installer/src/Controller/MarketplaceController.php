@@ -4,16 +4,23 @@ declare(strict_types=1);
 
 namespace Pagekit\Installer\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\User\Attribute\Access;
+use Psr\Container\ContainerInterface;
 
 #[Access('system: manage packages', admin: true)]
 class MarketplaceController
 {
+    private readonly string $systemApi;
+
     public function __construct(
+        private readonly ContainerInterface $app,
         private readonly mixed $package,
-    ) {}
+    ) {
+        $this->systemApi = $this->app->has('system.api')
+            ? $this->app->get('system.api')
+            : 'https://pagekit.com';
+    }
 
     #[Request(['page' => 'int'])]
     public function themesAction($page = null): array
@@ -26,7 +33,7 @@ class MarketplaceController
             '$data' => [
                 'title' => 'Themes',
                 'type' => 'pagekit-theme',
-                'api' => App::getInstance() ? App::getInstance()->get('system.api') : 'https://pagekit.com', // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                'api' => $this->systemApi,
                 'installed' => array_values($this->package->all('pagekit-theme')),
                 'page' => $page
             ]
@@ -44,7 +51,7 @@ class MarketplaceController
             '$data' => [
                 'title' => 'Extensions',
                 'type' => 'pagekit-extension',
-                'api' => App::getInstance() ? App::getInstance()->get('system.api') : 'https://pagekit.com', // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                'api' => $this->systemApi,
                 'installed' => array_values($this->package->all('pagekit-extension')),
                 'page' => $page
             ]

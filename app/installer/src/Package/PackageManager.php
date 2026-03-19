@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Pagekit\Installer\Package;
 
-use Pagekit\Application as App;
 use Pagekit\Installer\Helper\Composer;
+use Psr\Container\ContainerInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Output\StreamOutput;
 
@@ -15,25 +15,23 @@ class PackageManager
 
     protected Composer $composer;
 
-    /**
-     * @param mixed $output
-     */
-    public function __construct($output = null)
-    {
+    public function __construct(
+        private readonly ContainerInterface $app,
+        ?OutputInterface $output = null,
+    ) {
         $this->output = $output ?: new StreamOutput(fopen('php://output', 'w'));
 
         $path = realpath(__DIR__ . '/../../..');
         $config = [];
 
         try {
-            $app = App::getInstance(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
-            if ($app && $app->has('path.temp')) {
-                $config['path.temp'] = $app->get('path.temp');
-                $config['path.cache'] = $app->get('path.cache');
-                $config['path.vendor'] = $app->get('path.vendor');
-                $config['path.artifact'] = $app->get('path.artifact');
-                $config['path.packages'] = $app->get('path.packages');
-                $config['system.api'] = $app->has('system.api') ? $app->get('system.api') : 'https://pagekit.com';
+            if ($this->app->has('path.temp')) {
+                $config['path.temp'] = $this->app->get('path.temp');
+                $config['path.cache'] = $this->app->get('path.cache');
+                $config['path.vendor'] = $this->app->get('path.vendor');
+                $config['path.artifact'] = $this->app->get('path.artifact');
+                $config['path.packages'] = $this->app->get('path.packages');
+                $config['system.api'] = $this->app->has('system.api') ? $this->app->get('system.api') : 'https://pagekit.com';
             } else {
                 $config['path.temp'] = $path . '/tmp/temp';
                 $config['path.cache'] = $path . '/tmp/cache';
@@ -61,8 +59,7 @@ class PackageManager
      */
     public function install(array $install = [], $packagist = false, $preferSource = false): void
     {
-        $app = App::getInstance(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
-        $packageFactory = $app->get('package');
+        $packageFactory = $this->app->get('package');
 
         $previousPackageConfigs = $packageFactory->all(null, true);
 
@@ -70,7 +67,7 @@ class PackageManager
 
         $packages = $packageFactory->all(null, true);
         foreach (array_keys($install) as $name) {
-            $moduleAlreadyExisted = isset($previousPackageConfigs[$name]) && $app->get('module')->get($previousPackageConfigs[$name]->get('module'));
+            $moduleAlreadyExisted = isset($previousPackageConfigs[$name]) && $this->app->get('module')->get($previousPackageConfigs[$name]->get('module'));
 
             if ($moduleAlreadyExisted == true) {
                 $previousPackageConfig = isset($previousPackageConfigs[$name]) ? $previousPackageConfigs[$name] : null;
@@ -86,8 +83,7 @@ class PackageManager
      */
     public function uninstall($uninstall): void
     {
-        $app = App::getInstance(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
-        $packageFactory = $app->get('package');
+        $packageFactory = $this->app->get('package');
 
         foreach ((array) $uninstall as $name) {
             if (!$package = $packageFactory->get($name)) {
@@ -96,7 +92,7 @@ class PackageManager
 
             $this->disable($package);
             $this->getScripts($package)->uninstall();
-            $app->get('config')('system')->remove('packages.' . $package->get('module'));
+            $this->app->get('config')('system')->remove('packages.' . $package->get('module'));
 
             if ($this->composer->isInstalled($package->getName())) {
                 $this->composer->uninstall($package->getName());
@@ -107,7 +103,7 @@ class PackageManager
 
                 $this->output->writeln(__("Removing package folder."));
 
-                $app->get('file')->delete($path);
+                $this->app->get('file')->delete($path);
                 @rmdir(dirname($path));
             }
         }
@@ -140,13 +136,11 @@ class PackageManager
                     }
                 }
 
-                $app = App::getInstance(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
-
-                if ($app && $app->has('events')) {
-                    $app->get('events')->trigger('package.enable', [$package]);
+                if ($this->app->has('events')) {
+                    $this->app->get('events')->trigger('package.enable', [$package]);
                 }
-                if ($app && $app->has('config')) {
-                    $sysConfig = $app->get('config')('system');
+                if ($this->app->has('config')) {
+                    $sysConfig = $this->app->get('config')('system');
 
                     $originalState = [
                         'version' => $sysConfig->get('packages.' . $moduleName),
@@ -186,9 +180,8 @@ class PackageManager
                     $this->rollbackEnable($package, $originalState);
                 }
 
-                $app = App::getInstance(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
-                if ($app && $app->has('log')) {
-                    $app->get('log')->error(
+                if ($this->app->has('log')) {
+                    $this->app->get('log')->error(
                         sprintf('Failed to enable package "%s": %s',
                             $package->get('name'),
                             $e->getMessage()
@@ -215,7 +208,7 @@ class PackageManager
     protected function rollbackEnable($package, array $originalState): void
     {
         $moduleName = $package->get('module');
-        $config = App::getInstance()->get('config')('system'); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+        $config = $this->app->get('config')('system');
 
         if ($originalState['version'] !== null) {
             $config->set('packages.' . $moduleName, $originalState['version']);
@@ -252,7 +245,7 @@ class PackageManager
             $this->getScripts($package)->disable();
 
             if ($package->getType() == 'pagekit-extension') {
-                App::getInstance()->get('config')('system')->pull('extensions', $package->get('module')); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                $this->app->get('config')('system')->pull('extensions', $package->get('module'));
             }
         }
     }
@@ -264,14 +257,14 @@ class PackageManager
     protected function getScripts($package, $current = null): PackageScripts
     {
         if (!$scripts = $package->get('extra.scripts')) {
-            return new PackageScripts(null, $current);
+            return new PackageScripts(null, $current, $this->app);
         }
 
         if (!$path = $package->get('path')) {
             throw new \RuntimeException(__('Package path is missing.'));
         }
 
-        return new PackageScripts($path . '/' . $scripts, $current);
+        return new PackageScripts($path . '/' . $scripts, $current, $this->app);
     }
 
     /**
@@ -282,9 +275,8 @@ class PackageManager
         $this->getScripts($package)->install();
         $version = $this->getVersion($package);
 
-        $app = App::getInstance(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
-        if ($app && $app->has('config')) {
-            $app->get('config')('system')->set('packages.' . $package->get('module'), $version);
+        if ($this->app->has('config')) {
+            $this->app->get('config')('system')->set('packages.' . $package->get('module'), $version);
         }
 
         return $version;
@@ -311,8 +303,9 @@ class PackageManager
             return $package['version'];
         }
 
-        $app = App::getInstance(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
-        $packagesPath = $app ? $app->get('path.packages') : realpath(__DIR__ . '/../../..') . '/packages';
+        $packagesPath = $this->app->has('path.packages')
+            ? $this->app->get('path.packages')
+            : realpath(__DIR__ . '/../../..') . '/packages';
         if (file_exists($packagesPath . '/composer/installed.json')) {
             $installed = json_decode(file_get_contents($file), true);
 
