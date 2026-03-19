@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Pagekit\Site\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Config\Config;
 use Pagekit\Kernel\Exception\ConflictException;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\Site\Model\Node;
 use Pagekit\User\Attribute\Access;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use function Pagekit\__;
 
 #[Access('site: manage site')]
@@ -57,7 +57,7 @@ class MenuApiController
         $label = isset($menu['label']) ? trim($menu['label']) : '';
 
         if (!$id = ($this->filter)($label, 'slugify')) {
-            App::abort(400, __('Invalid id.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException(__('Invalid id.'));
         }
 
         if ($id != $oldId) {

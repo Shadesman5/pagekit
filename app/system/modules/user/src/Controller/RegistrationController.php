@@ -7,6 +7,7 @@ namespace Pagekit\User\Controller;
 use Pagekit\Application as App;
 use Pagekit\Application\Exception;
 use Pagekit\Captcha\Attribute\Captcha;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Pagekit\Module\Module;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\System\Controller\ValidatesRequestTrait;
@@ -106,7 +107,7 @@ class RegistrationController
             }
 
         } catch (Exception $e) {
-            App::abort(400, $e->getMessage()); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException($e->getMessage(), $e);
         }
 
         $this->message->success($message);
@@ -120,7 +121,7 @@ class RegistrationController
     public function activateAction(string $username, string $activation)
     {
         if (empty($username) || empty($activation) || !$user = User::where(['username' => $username, 'activation' => $activation, 'login IS NULL'])->first()) {
-            App::abort(400, __('Invalid key.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException(__('Invalid key.'));
         }
 
         $verifying = false;

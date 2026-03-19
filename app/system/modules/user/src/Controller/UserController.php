@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use Pagekit\User\Model\User;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use function Pagekit\__;
 
 #[Access(admin: true)]
@@ -50,7 +50,7 @@ class UserController
         if (!$id) {
             $user = User::create(['roles' => [Role::ROLE_AUTHENTICATED]]);
         } elseif (!$user = User::find($id)) {
-            App::abort(404, 'User not found.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new NotFoundHttpException('User not found.');
         }
 
         return [

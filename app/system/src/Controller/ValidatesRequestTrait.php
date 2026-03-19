@@ -6,6 +6,7 @@ namespace Pagekit\System\Controller;
 
 use Pagekit\Application as App;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 
@@ -51,7 +52,7 @@ trait ValidatesRequestTrait
         ?array $groups = null
     ): ?JsonResponse {
         if ($validator === null) {
-            $validator = App::getInstance()->get('validator'); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+            $validator = App::getInstance()->get('validator'); // TODO: TEMPORARY BRIDGE - To be removed in Step 11 (App::getInstance bridges)
         }
 
         $violations = $validator->validate($object, null, $groups);
@@ -64,10 +65,7 @@ trait ValidatesRequestTrait
     }
 
     /**
-     * Validate an entity and abort with HTTP 400 on failure.
-     *
-     * This method calls App::abort(400, ...) which correctly returns HTTP 400 Bad Request
-     * instead of HTTP 500 Internal Server Error.
+     * Validate an entity and throw BadRequestHttpException on failure.
      *
      * @param object $object The entity to validate
      * @param ValidatorInterface|null $validator Optional validator instance
@@ -79,15 +77,14 @@ trait ValidatesRequestTrait
         ?array $groups = null
     ): void {
         if ($validator === null) {
-            $validator = App::getInstance()->get('validator'); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+            $validator = App::getInstance()->get('validator'); // TODO: TEMPORARY BRIDGE - To be removed in Step 11 (App::getInstance bridges)
         }
 
         $violations = $validator->validate($object, null, $groups);
 
         if (count($violations) > 0) {
             $firstViolation = $violations[0];
-            // Use App::abort() to correctly return HTTP 400 Bad Request
-            App::abort(400, $firstViolation->getMessage()); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException($firstViolation->getMessage());
         }
     }
 

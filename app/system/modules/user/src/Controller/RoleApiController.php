@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use function Pagekit\__;
 
 /**
@@ -61,7 +61,7 @@ class RoleApiController
         if (!$role = Role::find($id)) {
 
             if ($id) {
-                App::abort(404, __('Role not found.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                throw new NotFoundHttpException(__('Role not found.'));
             }
 
             $role = Role::create();

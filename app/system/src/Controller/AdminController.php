@@ -10,6 +10,7 @@ use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\User;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 class AdminController
 {
@@ -50,7 +51,7 @@ class AdminController
     public function adminMenuAction($order): array
     {
         if (!$order) {
-            App::abort(400, __('Missing order data.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException(__('Missing order data.'));
         }
 
         $user = User::find($this->user->id);

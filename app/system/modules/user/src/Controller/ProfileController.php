@@ -6,6 +6,8 @@ namespace Pagekit\User\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Application\Exception;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Model\User;
@@ -48,7 +50,7 @@ class ProfileController
     public function saveAction(array $data)
     {
         if (!$this->user->isAuthenticated()) {
-            App::abort(404); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new NotFoundHttpException();
         }
 
         try {
@@ -82,7 +84,7 @@ class ProfileController
             return ['message' => 'success'];
 
         } catch (Exception $e) {
-            App::abort(400, $e->getMessage()); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException($e->getMessage(), $e);
         }
     }
 }

@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Event;
 
-use Pagekit\Application as App;
 use Pagekit\Auth\Event\AuthorizeEvent;
 use Pagekit\Auth\Exception\AuthException;
 use Pagekit\Event\EventSubscriberInterface;
 use Pagekit\User\Attribute\Access;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * Reads Access attributes from controllers and enforces access control.
@@ -103,9 +104,9 @@ class AccessListener implements EventSubscriberInterface
         foreach ($access as $expression) {
             if (!$user?->hasAccess($expression)) {
                 if (!$user?->isAuthenticated()) {
-                    App::abort(401, __('Unauthorized')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                    throw new HttpException(401, __('Unauthorized'));
                 } else {
-                    App::abort(403, __('Insufficient User Rights.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                    throw new AccessDeniedHttpException(__('Insufficient User Rights.'));
                 }
             }
         }

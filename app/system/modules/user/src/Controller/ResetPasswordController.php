@@ -6,6 +6,7 @@ namespace Pagekit\User\Controller;
 
 use Pagekit\Application as App;
 use Pagekit\Application\Exception;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\User\Model\User;
 use function Pagekit\__;
@@ -153,11 +154,11 @@ class ResetPasswordController
         }
         
         if (!$data || $data['key'] != $activation) {
-            App::abort(400, __('Invalid key.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException(__('Invalid key.'));
         }
 
         if (!$user = User::find($data['user']) or $user->isBlocked()) {
-            App::abort(400, __('Your account has not been activated or is blocked.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException(__('Your account has not been activated or is blocked.'));
         }
 
         if ('POST' === $this->request->getMethod()) {

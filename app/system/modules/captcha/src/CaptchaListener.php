@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Pagekit\Captcha;
 
-use Pagekit\Application as App;
 use Pagekit\Captcha\Attribute\Captcha;
 use Pagekit\Event\EventSubscriberInterface;
 use Pagekit\Module\Module;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * Reads Captcha attributes from controllers and handles captcha verification.
@@ -112,10 +112,6 @@ class CaptchaListener implements EventSubscriberInterface
 
     public function onRequest($event, $request): void
     {
-        if ($user = $request->get('user')) {
-            // App::abort(400, 'USER');
-        }
-
         if (!$this->captchaModule->config('recaptcha_enable')
             || !($captcha = $request->attributes->get('_captcha_verify'))
             || $this->auth->getUser()?->isAuthenticated()) {
@@ -123,7 +119,7 @@ class CaptchaListener implements EventSubscriberInterface
         }
 
         if ($error = $this->verifyToken($request->get('gRecaptchaResponse'), $this->captchaModule->config('recaptcha_secret'))) {
-            App::abort(400, $error); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException($error);
         }
     }
 
