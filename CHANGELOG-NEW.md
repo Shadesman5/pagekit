@@ -1,5 +1,42 @@
 # Changelog
 
+## Pagekit 1.2.0 - PSR-11 Container: StaticTrait Removal (March 19, 2026)
+
+### 🚀 Breaking Changes
+
+- **StaticTrait, EventTrait, RouterTrait Deleted** — All three Application trait files removed. `App::*` static shortcut methods (`App::abort()`, `App::redirect()`, `App::trigger()`, `App::user()`, `App::db()`, etc.) and `App::getInstance()` are no longer available. Use explicit `$app->get('service')` PSR-11 calls or constructor dependency injection.
+- **Container::__call() Removed** — Magic method service access (`$app->module()`, `$app->config()`, etc.) no longer works. Use `$app->get('module')`, `$app->get('config')`, etc.
+
+### ♻️ Refactoring
+
+- **Instance Magic Calls Migrated** — All `$app->module()`, `$app->config()`, `$app->request()`, `$app->url()`, `$app->view()` calls replaced with `$app->get('service')` across all module index files, views, and mail templates.
+- **EventTrait Calls Migrated** — All `$app->on()`, `$app->subscribe()`, `$app->trigger()` instance calls replaced with `$app->get('events')->on/subscribe/trigger()`.
+- **RouterTrait Calls Migrated** — `$app->error()` converted to events service with `ExceptionListenerWrapper`. `$app->redirect()` converted to router service.
+- **App::abort() Replaced** — ~80 `App::abort()` static calls across system, installer, console, and blog replaced with typed Symfony HTTP exceptions (`NotFoundHttpException`, `AccessDeniedHttpException`, `BadRequestHttpException`, etc.).
+- **App::redirect() Replaced** — ~18 `App::redirect()` static calls replaced with injected router service via constructor DI.
+- **Remaining App:: Static Calls Eliminated** — `App::trigger()`, `App::on()`, `App::markdown()`, `App::path()`, `App::debug()`, `App::log()`, `App::user()`, `App::request()`, `App::filter()`, `App::db()`, `App::cache()`, `App::url()`, `App::response()`, `App::feed()`, `App::content()` all replaced with constructor DI.
+- **App::getInstance() Bridges Resolved** — ~38 temporary bridge patterns in system and installer areas replaced with proper constructor DI. PackageManager, PackageFactory, PackageScripts, Installer, and all installer controllers refactored.
+- **Models Cleaned** — `Post.php` and `Node.php` models purged of all `App::` static access. ModelServiceLocator provides URL/user/module services for model serialization (tagged for Step 2.1 replacement with DTO/presenter pattern).
+- **IntlServiceLocator Created** — Permanent narrow service locator for `__()`, `_c()`, `_i()` global translation functions, replacing `App::translator()` and `App::intl()`.
+- **Blog Package Fully Migrated** — All 4 controllers, RouteListener, UrlResolver, and Post model now use constructor DI exclusively.
+- **SymfonyEventDispatcherBridge Fixed** — `dispatch()` method now properly forwards events to Pagekit's event dispatcher.
+- **ExceptionListenerWrapper Created** — New kernel event wrapper for typed exception filtering on the events dispatcher.
+
+### 🧪 Tests
+
+- **IntlServiceLocatorTest Added** — 5 tests covering getter/setter and error paths.
+- **EventDispatcherCompatibilityTest Added** — Tests for bridge dispatch forwarding.
+- **ContainerTest Updated** — `__call()` test removed.
+- **274 PHPUnit tests pass**, 658 assertions, 0 failures.
+
+### 📝 Notes
+
+- **EntityManager singleton deferred** — `static::$instance` in EntityManager tagged for removal in Step 2.1 (Static Analysis). ORM refactoring is out of scope for 2.0.1e.
+- **ModelServiceLocator** is a transitional pattern tagged for Step 2.1 replacement with proper DTO/presenter patterns.
+- Container is now pure PSR-11: `get()`, `has()`, `set()`, `factory()`, `extend()`, `raw()`, `keys()`, `remove()` — no magic methods, no static traits.
+
+---
+
 ## Pagekit 1.1.8 - PSR-11 Container Stage 4: Packages Final & ArrayAccess Removal (March 18, 2026)
 
 ### 🚀 Breaking Changes
