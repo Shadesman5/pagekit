@@ -1,5 +1,18 @@
 # Changelog
 
+## Pagekit 1.2.1 - PSR-11 StaticTrait Removal Bugfixes (March 19, 2026)
+
+### 🐛 Bug Fixes
+
+- **subscribe() multi-arg regression** — `EventDispatcher::subscribe()` accepts one subscriber, but migrated calls passed multiple (silently dropped). Split into individual calls in routing, kernel, site, content, user, and blog modules.
+- **DashboardModule TypeError** — Non-nullable `$app` property without default caused TypeError when accessed before `main()`. Restored nullable typing.
+- **PackageScripts null container** — 3 call sites (system/index.php, MigrationController, MigrationCommand) omitted `$app` parameter, causing null container in script callbacks.
+- **PackageManager::getVersion() wrong file** — Read `composer.json` instead of `installed.json` for fallback lookup; also fixed `->getName()` called on array.
+- **systemApi factory crash** — Missing fallback for unregistered `system.api` service in DashboardModule. Added `has()` guard matching other controllers.
+- **Console commands broken __call()** — Fixed `$this->container->path()`, `->version()`, `->config()` magic calls in MigrationCommand, BuildCommand, ArchiveCommand, ExtensionTranslateCommand.
+
+---
+
 ## Pagekit 1.2.0 - PSR-11 Container: StaticTrait Removal (March 19, 2026)
 
 ### 🚀 Breaking Changes
