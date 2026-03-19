@@ -6,7 +6,7 @@ return [
 
     'main' => function($app) {
 
-        if ($app->isAdmin()) {
+        if ($app->get('isAdmin')) {
             return;
         }
 
@@ -172,7 +172,7 @@ return [
          */
         'view.layout' => function ($event, $view) use ($app) {
 
-            if ($app->isAdmin()) {
+            if ($app->get('isAdmin')) {
                 return;
             }
 

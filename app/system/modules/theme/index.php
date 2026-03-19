@@ -11,7 +11,7 @@ return [
     'events' => [
 
        'view.data' => function ($event, $data) use ($app) {
-            if (!$app->isAdmin()) {
+            if (!$app->get('isAdmin')) {
                 return;
             }
             $data->add('Theme', [
@@ -78,7 +78,7 @@ return [
 
         'view.layout' => function ($event, $view) use ($app) {
 
-            if (!$app->isAdmin()) {
+            if (!$app->get('isAdmin')) {
                 return;
             }
 

@@ -114,27 +114,27 @@ return [
                     return;
                 }
 
-                $app->get('events')->trigger($app->isAdmin() ? 'admin' : 'site', [$app]);
+                $app->get('events')->trigger($app->get('isAdmin') ? 'admin' : 'site', [$app]);
 
             }]
 
         ],
 
         'auth.login' => [function ($event) use ($app) {
-            if ($event->getUser()->hasAccess('system: software updates') && version_compare($this->config('version'), $app->version(), '<')) {
+            if ($event->getUser()->hasAccess('system: software updates') && version_compare($this->config('version'), $app->get('version'), '<')) {
 
                 $scripts = new PackageScripts($this->path . '/scripts.php', $this->config('version'));
 
                 if ($scripts->hasUpdates()) {
                     $event->setResponse($app->get('response')->redirect('@system/migration', ['redirect' => $app->get('url')->getRoute('@system')]));
                 } else {
-                    $app->get('config')('system')->set('version', $app->version());
+                    $app->get('config')('system')->set('version', $app->get('version'));
                 }
             }
         }, 8],
 
         'view.init' => function ($event, $view) use ($app) {
-            $theme = $app->isAdmin() ? $app->get('module')->get('system/theme') : $app->get('theme');
+            $theme = $app->get('isAdmin') ? $app->get('module')->get('system/theme') : $app->get('theme');
             $view->map('layout', $theme->get('layout', 'views:template.php'));
             $view->addGlobal('theme', $app->get('theme'));
         },
