@@ -25,9 +25,6 @@ class Container implements ContainerInterface
             $this->set($name, $value);
         }
 
-        if (in_array('Pagekit\Application\Traits\StaticTrait', class_uses($this))) {
-            static::$instance = $this;
-        }
     }
 
     /**

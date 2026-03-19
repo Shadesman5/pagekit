@@ -52,9 +52,7 @@ class Application extends BaseApplication
      * @param  BaseCommand $command
      * @return BaseCommand
      */
-    // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal + DI Final)
-    // Console commands use setter injection via setContainer(). Convert to constructor DI
-    // once StaticTrait is removed and commands no longer depend on App:: static calls.
+    // TODO: Step 2.1 (Static Analysis) — convert console commands from setter injection to constructor DI
     public function add(BaseCommand $command): ?\Symfony\Component\Console\Command\Command
     {
         if ($command instanceof Command) {

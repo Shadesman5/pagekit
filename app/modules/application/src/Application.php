@@ -2,17 +2,12 @@
 
 namespace Pagekit;
 
-use Pagekit\Application\Traits\EventTrait;
-use Pagekit\Application\Traits\RouterTrait;
-use Pagekit\Application\Traits\StaticTrait;
 use Pagekit\Event\EventDispatcher;
 use Pagekit\Module\ModuleManager;
 use Symfony\Component\HttpFoundation\Request;
 
 class Application extends Container
 {
-    use StaticTrait, EventTrait, RouterTrait;
-
     protected bool $booted = false;
 
     /**
