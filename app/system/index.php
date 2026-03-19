@@ -85,6 +85,8 @@ return [
             // Uses PHP 8 Attributes for validation while ORM still uses Doctrine Annotations
             \Pagekit\System\ValidatorServiceProvider::register($app);
 
+            \Pagekit\System\Validator\Constraints\UniqueValidator::setDb($app->get('db'));
+
             if (!$app->get('debug')) {
                 $app->get('events')->subscribe(new ExceptionListener('Pagekit\System\Controller\ExceptionController::showAction'));
             }

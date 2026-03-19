@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\Dashboard\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Module\Module;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\User\Attribute\Access;
@@ -24,6 +23,7 @@ class DashboardController
         private readonly mixed $request,
         private readonly mixed $response,
         private readonly mixed $version,
+        private readonly mixed $systemApi,
     ) {
         $this->dashboard = $this->module->get('system/dashboard');
     }
@@ -38,7 +38,7 @@ class DashboardController
             ],
             '$data' => [
                 'widgets' => array_values($this->dashboard->getWidgets()),
-                'api' => App::getInstance()->get('system.api'), // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                'api' => $this->systemApi,
                 'version' => $this->version,
                 'channel' => 'stable'
             ]

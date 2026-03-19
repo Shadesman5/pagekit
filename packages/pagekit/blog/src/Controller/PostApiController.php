@@ -34,6 +34,7 @@ class PostApiController
         private readonly Request $request,
         private readonly FilterManager $filter,
         private readonly mixed $db,
+        private readonly mixed $validator,
     ) {
         $this->blog = $module->get('blog');
     }

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Application\Exception;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Pagekit\Routing\Attribute\Route;
@@ -24,6 +23,7 @@ class ResetPasswordController
         private readonly mixed $view,
         private readonly mixed $message,
         private readonly mixed $router,
+        private readonly mixed $authPassword,
     ) {}
 
     public function indexAction()
@@ -179,7 +179,7 @@ class ResetPasswordController
                 }
 
                 $user->activation = null;
-                $user->password = App::getInstance()->get('auth.password')->hash($password); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                $user->password = $this->authPassword->hash($password);
                 $user->save();
 
                 $this->session->remove('activation');

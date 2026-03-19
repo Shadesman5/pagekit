@@ -15,6 +15,8 @@ return [
 
         $app->set('auth.password', fn() => new NativePasswordEncoder);
 
+        $app->set('authPassword', fn($app) => $app->get('auth.password'));
+
         $app->set('auth.random', fn() => (new Factory)->getLowStrengthGenerator());
 
         $app->set('auth.handler', fn($app) => new DatabaseHandler($app->get('db'), $app->get('request.stack'), $app->get('cookie'), $app->get('auth.random'), $this->config));

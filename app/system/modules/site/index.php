@@ -236,6 +236,8 @@ return [
             }
             $view->addHelper(new MenuHelper(
                 $app->get('menu'),
+                $app->get('user'),
+                $app->get('node'),
             ));
         }, 100],
 

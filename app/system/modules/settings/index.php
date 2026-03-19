@@ -4,6 +4,10 @@ return [
 
     'name' => 'system/settings',
 
+    'main' => function ($app) {
+        $app->set('configFile', fn($app) => $app->get('config.file'));
+    },
+
     'autoload' => [
 
         'Pagekit\\System\\' => 'src'

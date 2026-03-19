@@ -22,6 +22,7 @@ class WidgetApiController
     public function __construct(
         private readonly mixed $position,
         private readonly mixed $request,
+        private readonly mixed $validator,
     ) {}
 
     #[Route('/', methods: ['GET'])]

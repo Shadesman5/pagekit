@@ -35,6 +35,7 @@ class CommentApiController
         private readonly User $user,
         private readonly HttpRequest $request,
         private readonly mixed $content,
+        private readonly mixed $validator,
     ) {
         $this->blog = $module->get('blog');
     }

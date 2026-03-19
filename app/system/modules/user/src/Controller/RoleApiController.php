@@ -21,6 +21,7 @@ class RoleApiController
 
     public function __construct(
         private readonly mixed $request,
+        private readonly mixed $validator,
     ) {}
 
     #[Route('/', methods: ['GET'])]

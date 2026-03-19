@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Application\Exception;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -28,6 +27,8 @@ class UserApiController
         private readonly mixed $request,
         private readonly mixed $user,
         private readonly mixed $module,
+        private readonly mixed $authPassword,
+        private readonly mixed $validator,
     ) {}
 
     #[Route('/', methods: ['GET'])]
@@ -207,7 +208,7 @@ class UserApiController
                     throw new Exception(__('Invalid Password.'));
                 }
 
-                $user->password = App::getInstance()->get('auth.password')->hash($password); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                $user->password = $this->authPassword->hash($password);
             }
 
             $key    = array_search(Role::ROLE_ADMINISTRATOR, @$data['roles'] ?: []);

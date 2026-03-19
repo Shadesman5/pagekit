@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Application\Exception;
 use Pagekit\Captcha\Attribute\Captcha;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -32,6 +31,8 @@ class RegistrationController
         private readonly mixed $mailer,
         private readonly mixed $view,
         private readonly mixed $router,
+        private readonly mixed $authPassword,
+        private readonly mixed $validator,
     ) {
         $this->userModule = $this->module->get('system/user');
     }
@@ -79,7 +80,7 @@ class RegistrationController
                 'name' => @$data['name'],
                 'username' => @$data['username'],
                 'email' => @$data['email'],
-                'password' => App::getInstance()->get('auth.password')->hash($password), // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                'password' => $this->authPassword->hash($password),
                 'status' => User::STATUS_BLOCKED
             ]);
 

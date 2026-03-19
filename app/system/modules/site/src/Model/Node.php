@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Pagekit\Site\Model;
 
-use Pagekit\Application as App;
 use Pagekit\Database\ORM\Attribute as ORM;
+use Pagekit\Site\ModelServiceLocator;
 use Pagekit\System\Model\DataModelTrait;
 use Pagekit\System\Model\NodeInterface;
 use Pagekit\System\Model\NodeTrait;
@@ -89,14 +89,12 @@ class Node implements NodeInterface, \JsonSerializable
      */
     public function getUrl(mixed $referenceType = false): string|false
     {
-        // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
-        return App::getInstance()->get('url')->get($this->link, [], $referenceType);
+        return ModelServiceLocator::getUrl()->get($this->link, [], $referenceType);
     }
 
     public function isAccessible(?User $user = null): bool
     {
-        // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
-        return $this->status && $this->hasAccess($user ?: App::getInstance()->get('user'));
+        return $this->status && $this->hasAccess($user ?: ModelServiceLocator::getUser());
     }
 
     /**

@@ -2,6 +2,7 @@
 
 use Twig\TwigFilter;
 use Pagekit\Util\ArrObject;
+use Pagekit\View\Asset\FileLocatorAsset;
 use Pagekit\View\Event\ResponseListener;
 return [
 
@@ -24,6 +25,8 @@ return [
 
             return $assets;
         });
+
+        FileLocatorAsset::setServices($app->get('file'), $app->get('locator'));
 
     },
 

@@ -25,6 +25,7 @@ class NodeApiController
         private readonly mixed $filter,
         private readonly mixed $module,
         private readonly mixed $config,
+        private readonly mixed $validator,
     ) {}
 
     #[Route('/', methods: ['GET'])]

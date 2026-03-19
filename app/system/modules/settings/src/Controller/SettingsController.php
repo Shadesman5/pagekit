@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\System\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Config\Config;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\User\Attribute\Access;
@@ -16,6 +15,7 @@ class SettingsController
     public function __construct(
         private readonly mixed $request,
         private readonly mixed $config,
+        private readonly mixed $configFile,
     ) {}
 
     public function indexAction(): array
@@ -40,7 +40,7 @@ class SettingsController
             $options = $json['options'] ?? [];
         }
         $fileConfig = new Config;
-        $fileConfig->merge(include $file = App::getInstance()->get('config.file')); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+        $fileConfig->merge(include $file = $this->configFile);
 
         foreach ($values as $module => $value) {
             $fileConfig->set($module, $value);

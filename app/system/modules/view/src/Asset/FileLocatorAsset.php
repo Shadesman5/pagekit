@@ -2,12 +2,17 @@
 
 namespace Pagekit\View\Asset;
 
-use Pagekit\Application as App;
-
-// TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
-// FileLocatorAsset is dynamically instantiated by AssetFactory via new $class() — cannot use constructor injection.
 class FileLocatorAsset extends FileAsset
 {
+    private static mixed $file = null;
+    private static mixed $locator = null;
+
+    public static function setServices(mixed $file, mixed $locator): void
+    {
+        self::$file = $file;
+        self::$locator = $locator;
+    }
+
     /**
      * {@inheritdoc}
      */
@@ -17,7 +22,7 @@ class FileLocatorAsset extends FileAsset
             return parent::getSource();
         }
 
-        $path = App::getInstance()->get('file')->getUrl($path); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+        $path = self::$file->getUrl($path);
 
         if ($version = $this->getOption('version')) {
             $path .= (false === strpos($path, '?') ? '?' : '&') . 'v=' . $version;
@@ -31,6 +36,6 @@ class FileLocatorAsset extends FileAsset
      */
     public function getPath(): string
     {
-        return App::getInstance()->get('locator')->get($this->source) ?: false; // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+        return self::$locator->get($this->source) ?: false;
     }
 }

@@ -2,7 +2,6 @@
 
 namespace Pagekit\Site;
 
-use Pagekit\Application as App;
 use Pagekit\Site\Model\Node;
 use Pagekit\View\Helper\Helper;
 
@@ -10,6 +9,8 @@ class MenuHelper extends Helper
 {
     public function __construct(
         private readonly MenuManager $menus,
+        private readonly mixed $user,
+        private readonly mixed $node,
     ) {}
 
     /**
@@ -78,7 +79,7 @@ class MenuHelper extends Helper
             'mode' => 'all'
         ], $parameters);
 
-        $user = App::getInstance()->get('user'); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+        $user = $this->user;
         $startLevel = (int) $parameters['start_level'] ?: 1;
         $maxDepth = $startLevel + ($parameters['depth'] ?: PHP_INT_MAX);
 
@@ -87,7 +88,7 @@ class MenuHelper extends Helper
         $nodes[0]->status = 1;
         $nodes[0]->parent_id = null;
 
-        $node = App::getInstance()->get('node'); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+        $node = $this->node;
         $path = $node->path;
 
         if (!isset($nodes[$node->id])) {
