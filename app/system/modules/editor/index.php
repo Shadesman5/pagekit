@@ -46,8 +46,8 @@ return [
             // Respect debug mode: use non-minified versions when debugging
             if (isset($presets['tinymce_uikit']) && $presets['tinymce_uikit']) {
                 $editor['content_js'] = [
-                    $app->get('url')->getStatic('app/assets/uikit/dist/js/' . ($app->debug() ? 'uikit.js' : 'uikit.min.js')),
-                    $app->get('url')->getStatic('app/system/assets/js/' . ($app->debug() ? 'uikit-icons.js' : 'uikit-icons.min.js'))
+                    $app->get('url')->getStatic('app/assets/uikit/dist/js/' . ($app->get('debug') ? 'uikit.js' : 'uikit.min.js')),
+                    $app->get('url')->getStatic('app/system/assets/js/' . ($app->get('debug') ? 'uikit-icons.js' : 'uikit-icons.min.js'))
                 ];
             }
 

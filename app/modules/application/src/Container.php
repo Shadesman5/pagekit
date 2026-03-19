@@ -31,29 +31,6 @@ class Container implements ContainerInterface
     }
 
     /**
-     * Gets a parameter/service or calls the invoke method.
-     *
-     * @param  string $name
-     * @param  array  $args
-     * @return mixed
-     */
-    // TODO: Remove __call() magic in Step 2.0.1e (StaticTrait Removal)
-    public function __call($name, $args)
-    {
-        $value = $this->get($name);
-
-        if ($name === 'module' && $args && is_object($value) && method_exists($value, 'get')) {
-            return $value->get($args[0]);
-        }
-
-        if (is_callable($value) && $args) {
-            return call_user_func_array($value, $args);
-        }
-
-        return $value;
-    }
-
-    /**
      * Sets a closure as a factory service.
      *
      * @param string   $name

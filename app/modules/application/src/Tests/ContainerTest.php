@@ -224,24 +224,4 @@ class ContainerTest extends TestCase
         $this->assertEquals('service_value', $container->get('service'));
     }
 
-    /**
-     * Test __call method
-     */
-    public function testCallMethod(): void
-    {
-        $this->container->set('callable', function ($container) {
-            return function ($arg1, $arg2) {
-                return $arg1 . '-' . $arg2;
-            };
-        });
-
-        // Call with arguments
-        $result = $this->container->callable('hello', 'world');
-        $this->assertEquals('hello-world', $result);
-
-        // Call without arguments returns the resolved service
-        $this->container->set('service', fn() => 'value');
-        $result = $this->container->service();
-        $this->assertEquals('value', $result);
-    }
 }

@@ -143,7 +143,7 @@ return [
         },
 
         'model.widget.init' => function ($event, $widget) use ($app) {
-            if ($type = $app->widget($widget->type)) {
+            if ($type = $app->get('widget')->get($widget->type)) {
                 $widget->data = array_replace_recursive($type->get('defaults', []), $widget->data ?: []);
             }
         },
