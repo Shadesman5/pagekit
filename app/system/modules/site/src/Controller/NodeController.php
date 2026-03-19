@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\Site\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -21,6 +20,7 @@ class NodeController
         private readonly mixed $module,
         private readonly mixed $menu,
         private readonly mixed $url,
+        private readonly mixed $router,
     ) {
         $this->site = $this->module->get('system/site');
     }
@@ -30,7 +30,7 @@ class NodeController
     public function indexAction()
     {
         if ($test = Node::fixOrphanedNodes()) {
-            return App::redirect('@site/page'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            return $this->router->redirect('@site/page');
         }
 
         return [

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Auth\Auth;
 use Pagekit\Auth\Exception\AuthException;
 use Pagekit\Auth\Exception\BadCredentialsException;
@@ -25,6 +24,7 @@ class AuthController
         private readonly mixed $csrf,
         private readonly mixed $response,
         private readonly mixed $message,
+        private readonly mixed $router,
     ) {}
 
     #[Route(defaults: ['_maintenance' => true])]
@@ -120,6 +120,6 @@ class AuthController
         do {
             $url = preg_replace('#^(https?:)?//[^/]+#', '', $url, 1, $count);
         } while ($count);
-        return App::redirect($url); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+        return $this->router->redirect($url);
     }
 }

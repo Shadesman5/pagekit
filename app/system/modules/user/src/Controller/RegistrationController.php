@@ -31,6 +31,7 @@ class RegistrationController
         private readonly mixed $url,
         private readonly mixed $mailer,
         private readonly mixed $view,
+        private readonly mixed $router,
     ) {
         $this->userModule = $this->module->get('system/user');
     }
@@ -39,11 +40,11 @@ class RegistrationController
     public function indexAction()
     {
         if ($this->user->isAuthenticated()) {
-            return App::redirect(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            return $this->router->redirect();
         }
 
         if ($this->userModule->config('registration') == 'admin') {
-            return App::redirect(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            return $this->router->redirect();
         }
 
         return [
@@ -61,7 +62,7 @@ class RegistrationController
         try {
 
             if ($this->user->isAuthenticated() || $this->userModule->config('registration') == 'admin') {
-                return App::redirect(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                return $this->router->redirect();
             }
 
             if (!$this->csrf->validate()) {
@@ -145,7 +146,7 @@ class RegistrationController
 
         $this->message->success($message);
 
-        return App::redirect('@user/login'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+        return $this->router->redirect('@user/login');
     }
 
     protected function sendWelcomeEmail(User $user): void

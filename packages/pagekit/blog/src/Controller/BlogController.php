@@ -21,8 +21,11 @@ class BlogController
 {
     protected Module $blog;
 
-    public function __construct(ModuleManager $module)
-    {
+    public function __construct(
+        ModuleManager $module,
+        private readonly mixed $router,
+        private readonly mixed $message,
+    ) {
         $this->blog = $module->get('blog');
     }
 
@@ -106,9 +109,9 @@ class BlogController
 
         } catch (\Exception $e) {
 
-            App::message()->error($e->getMessage()); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            $this->message->error($e->getMessage());
 
-            return App::redirect('@blog/post'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            return $this->router->redirect('@blog/post');
         }
     }
 

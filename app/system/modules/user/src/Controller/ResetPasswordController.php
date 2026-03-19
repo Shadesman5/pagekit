@@ -23,12 +23,13 @@ class ResetPasswordController
         private readonly mixed $module,
         private readonly mixed $view,
         private readonly mixed $message,
+        private readonly mixed $router,
     ) {}
 
     public function indexAction()
     {
         if ($this->user->isAuthenticated()) {
-            return App::redirect(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            return $this->router->redirect();
         }
 
         return [
@@ -53,7 +54,7 @@ class ResetPasswordController
         try {
 
             if ($this->user->isAuthenticated()) {
-                return App::redirect(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                return $this->router->redirect();
             }
 
             if (!$this->csrf->validate()) {
@@ -93,7 +94,7 @@ class ResetPasswordController
 
             $this->message->success(__('Check your email for the confirmation link.'));
 
-            return App::redirect('@user/login'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            return $this->router->redirect('@user/login');
 
         } catch (Exception $e) {
             return [
@@ -185,7 +186,7 @@ class ResetPasswordController
                 
                 $this->message->success(__('Your password has been reset.'));
 
-                return App::redirect('@user/login'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                return $this->router->redirect('@user/login');
 
             } catch (Exception $e) {
                 $error = $e->getMessage();

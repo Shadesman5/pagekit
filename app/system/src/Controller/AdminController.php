@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\System\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Auth\Auth;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
@@ -18,12 +17,13 @@ class AdminController
         private readonly mixed $user,
         private readonly mixed $session,
         private readonly mixed $url,
+        private readonly mixed $router,
     ) {}
 
     #[Access(admin: true)]
     public function indexAction()
     {
-        return App::redirect('@dashboard'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+        return $this->router->redirect('@dashboard');
     }
 
     #[Route('/admin/login', defaults: ['_maintenance' => true])]
@@ -31,7 +31,7 @@ class AdminController
     public function loginAction($redirect = '', $message = '')
     {
         if ($this->user->isAuthenticated()) {
-            return App::redirect('@system'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            return $this->router->redirect('@system');
         }
 
         return [

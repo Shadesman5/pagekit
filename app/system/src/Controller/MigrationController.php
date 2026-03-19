@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\System\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Installer\Package\PackageScripts;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\User\Attribute\Access;
@@ -20,6 +19,7 @@ class MigrationController
         private readonly mixed $version,
         private readonly mixed $message,
         private readonly mixed $response,
+        private readonly mixed $router,
     ) {
         $this->scripts = new PackageScripts($this->system->path.'/scripts.php', $this->system->config('version'));
     }
@@ -28,7 +28,7 @@ class MigrationController
     public function indexAction($redirect = null)
     {
         if (!$this->scripts->hasUpdates()) {
-            return App::redirect($redirect ?: '@system'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            return $this->router->redirect($redirect ?: '@system');
         }
 
         return [
@@ -55,7 +55,7 @@ class MigrationController
 
         if ($redirect) {
             $this->message->success($message);
-            return App::redirect($redirect); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            return $this->router->redirect($redirect);
         }
 
         return $this->response->json(compact('status', 'message'));

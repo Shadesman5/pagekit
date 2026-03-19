@@ -24,12 +24,13 @@ class ProfileController
         private readonly mixed $user,
         private readonly mixed $url,
         private readonly mixed $auth,
+        private readonly mixed $router,
     ) {}
 
     public function indexAction()
     {
         if (!$this->user->isAuthenticated()) {
-            return App::redirect('@user/login', ['redirect' => $this->url->current()]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            return $this->router->redirect('@user/login', ['redirect' => $this->url->current()]);
         }
 
         return [
