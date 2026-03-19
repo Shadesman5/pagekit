@@ -8,18 +8,16 @@ use Pagekit\Application as App;
 use Pagekit\Blog\Model\Post;
 use Pagekit\Captcha\Attribute\Captcha;
 use Pagekit\Module\Module;
+use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Route;
 
 class SiteController
 {
     protected Module $blog;
 
-    /**
-     * Constructor.
-     */
-    public function __construct()
+    public function __construct(ModuleManager $module)
     {
-        $this->blog = App::module('blog');
+        $this->blog = $module->get('blog');
     }
 
     #[Route('/')]
@@ -27,7 +25,7 @@ class SiteController
     public function indexAction($page = 1): array
     {
         $query = Post::where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime])->where(function($query) { 
-            return $query->where('roles IS NULL')->whereInSet('roles', App::user()->roles, false, 'OR');
+            return $query->where('roles IS NULL')->whereInSet('roles', App::user()->roles, false, 'OR'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         })->related('user');
 
         if (!$limit = $this->blog->config('posts.posts_per_page')) {
@@ -40,8 +38,8 @@ class SiteController
         $query->offset(($page - 1) * $limit)->limit($limit)->orderBy('date', 'DESC');
 
         foreach ($posts = $query->get() as $post) {
-            $post->excerpt = App::content()->applyPlugins($post->excerpt, ['post' => $post, 'markdown' => $post->get('markdown')]);
-            $post->content = App::content()->applyPlugins($post->content, ['post' => $post, 'markdown' => $post->get('markdown'), 'readmore' => true]);
+            $post->excerpt = App::content()->applyPlugins($post->excerpt, ['post' => $post, 'markdown' => $post->get('markdown')]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            $post->content = App::content()->applyPlugins($post->content, ['post' => $post, 'markdown' => $post->get('markdown'), 'readmore' => true]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
         return [
@@ -50,9 +48,9 @@ class SiteController
                 'name' => 'blog/posts.php',
                 'link:feed' => [
                     'rel' => 'alternate',
-                    'href' => App::url('@blog/feed'),
-                    'title' => App::module('system/site')->config('title'),
-                    'type' => App::feed()->create($this->blog->config('feed.type'))->getMIMEType()
+                    'href' => App::url('@blog/feed'), // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                    'title' => App::module('system/site')->config('title'), // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                    'type' => App::feed()->create($this->blog->config('feed.type'))->getMIMEType() // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
                 ]
             ],
             'blog' => $this->blog,
@@ -67,16 +65,16 @@ class SiteController
     public function feedAction($type = '')
     {
         // fetch locale and convert to ISO-639 (en_US -> en-us)
-        $locale = App::module('system')->config('site.locale');
+        $locale = App::module('system')->config('site.locale'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         $locale = str_replace('_', '-', strtolower($locale));
 
-        $site = App::module('system/site');
-        $feed = App::feed()->create($type ?: $this->blog->config('feed.type'), [
+        $site = App::module('system/site'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+        $feed = App::feed()->create($type ?: $this->blog->config('feed.type'), [ // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
             'title' => $site->config('title'),
-            'link' => App::url('@blog', [], 0),
+            'link' => App::url('@blog', [], 0), // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
             'description' => $site->config('description'),
             'element' => ['language', $locale],
-            'selfLink' => App::url('@blog/feed', [], 0)
+            'selfLink' => App::url('@blog/feed', [], 0) // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         ]);
 
         if ($last = Post::where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime])->limit(1)->orderBy('modified', 'DESC')->first()) {
@@ -84,14 +82,14 @@ class SiteController
         }
 
         foreach (Post::where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime])->where(function($query) {
-            return $query->where('roles IS NULL')->whereInSet('roles', App::user()->roles, false, 'OR');
+            return $query->where('roles IS NULL')->whereInSet('roles', App::user()->roles, false, 'OR'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         })->related('user')->limit($this->blog->config('feed.limit'))->orderBy('date', 'DESC')->get() as $post) {
-            $url = App::url('@blog/id', ['id' => $post->id], 0);
+            $url = App::url('@blog/id', ['id' => $post->id], 0); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
             $feed->addItem(
                 $feed->createItem([
                     'title' => $post->title,
                     'link' => $url,
-                    'description' => App::content()->applyPlugins($post->content, ['post' => $post, 'markdown' => $post->get('markdown'), 'readmore' => true]),
+                    'description' => App::content()->applyPlugins($post->content, ['post' => $post, 'markdown' => $post->get('markdown'), 'readmore' => true]), // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
                     'date' => $post->date,
                     'author' => [$post->user->name, $post->user->email],
                     'id' => $url
@@ -99,7 +97,7 @@ class SiteController
             );
         }
 
-        return App::response($feed->output(), 200, ['Content-Type' => $feed->getMIMEType().'; charset='.$feed->getEncoding()]);
+        return App::response($feed->output(), 200, ['Content-Type' => $feed->getMIMEType().'; charset='.$feed->getEncoding()]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
     }
 
     #[Route('/{id}', name: 'id')]
@@ -108,17 +106,17 @@ class SiteController
     public function postAction($id = 0): array
     {
         if (!$post = Post::where(['id = ?', 'status = ?', 'date < ?'], [$id, Post::STATUS_PUBLISHED, new \DateTime])->related('user')->first()) {
-            App::abort(404, __('Post not found!'));
+            App::abort(404, __('Post not found!')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
-        if (!$post->hasAccess(App::user())) {
-            App::abort(403, __('Insufficient User Rights.'));
+        if (!$post->hasAccess(App::user())) { // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            App::abort(403, __('Insufficient User Rights.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
 
-        $post->excerpt = App::content()->applyPlugins($post->excerpt, ['post' => $post, 'markdown' => $post->get('markdown')]);
-        $post->content = App::content()->applyPlugins($post->content, ['post' => $post, 'markdown' => $post->get('markdown')]);
+        $post->excerpt = App::content()->applyPlugins($post->excerpt, ['post' => $post, 'markdown' => $post->get('markdown')]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+        $post->content = App::content()->applyPlugins($post->content, ['post' => $post, 'markdown' => $post->get('markdown')]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
 
-        $user = App::user();
+        $user = App::user(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
 
         $description = $post->get('meta.og:description');
         if (!$description) {
@@ -136,7 +134,7 @@ class SiteController
                 'article:author' => $post->user->name,
                 'og:title' => $post->get('meta.og:title') ?: $post->title,
                 'og:description' => $description,
-                'og:image' =>  $post->get('image.src') ? App::url()->getStatic($post->get('image.src'), [], 0) : false
+                'og:image' =>  $post->get('image.src') ? App::url()->getStatic($post->get('image.src'), [], 0) : false // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
             ],
             '$comments' => [
                 'config' => [

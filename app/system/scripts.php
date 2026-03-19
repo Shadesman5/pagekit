@@ -35,7 +35,7 @@ return [
         // System updates execute new migrations automatically
         // Example:
         // '2.1.0' => function ($app) {
-        //     $result = $app['migration']->migrate();
+        //     $result = $app->get('migration')->migrate();
         //     if (!$result['success']) {
         //         throw new \RuntimeException('Migration failed: ' . $result['error']);
         //     }

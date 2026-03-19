@@ -26,7 +26,7 @@ class IntlModule extends Module
         require_once __DIR__ . '/../functions.php';
         require_once __DIR__ . '/../functions-pagekit-namespace.php';
         
-        $app['translator'] = function () { // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
+        $app->set('translator', function () {
 
             $translator = new Translator($this->getLocale());
             $translator->addLoader('php', new PhpFileLoader());
@@ -37,7 +37,7 @@ class IntlModule extends Module
             $this->loadLocale($this->getLocale(), $translator);
 
             return $translator;
-        };
+        });
 
     }
 

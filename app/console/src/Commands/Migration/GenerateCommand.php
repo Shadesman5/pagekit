@@ -55,7 +55,7 @@ class GenerateCommand extends Command
 
         try {
             // Get migration service
-            $migrationService = $this->container['migration'];
+            $migrationService = $this->container->get('migration');
             
             // Get migration name
             $name = $input->getArgument('name');

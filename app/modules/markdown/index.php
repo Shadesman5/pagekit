@@ -8,7 +8,7 @@ return [
 
     'main' => function ($app) {
 
-        $app['markdown'] = fn() => new Markdown;
+        $app->set('markdown', fn() => new Markdown);
 
     },
 

@@ -14,7 +14,7 @@ return [
 
     'main' => function ($app) {
 
-        $app['kernel'] = function ($app) {
+        $app->set('kernel', function ($app) {
 
             $app->subscribe(
                 new ControllerListener($app->get('resolver')),
@@ -24,14 +24,13 @@ return [
             );
 
             return new HttpKernel($app->get('events'), $app->get('request.stack'));
-        };
+        });
 
-        // TODO: BACKWARD COMPATIBILITY - ArrayAccess registration. Must be refactored in Step 2.0.1d
-        $app['resolver'] = fn($app) => new ControllerResolver($app);
+        $app->set('resolver', fn($app) => new ControllerResolver($app));
 
         $app->factory('request', fn($app) => $app->get('request.stack')->getCurrentRequest());
 
-        $app['request.stack'] = fn() => new RequestStack();
+        $app->set('request.stack', fn() => new RequestStack());
 
     },
 

@@ -30,8 +30,8 @@ class Application extends BaseApplication
 
         $this->container = $container;
 
-        if (isset($container['events'])) {
-            $container['events']->trigger('console.init', [$this]);
+        if ($container->has('events')) {
+            $container->get('events')->trigger('console.init', [$this]);
         }
     }
 
@@ -39,8 +39,8 @@ class Application extends BaseApplication
     {
         $code = parent::run($input, $output);
 
-        if(($code === 0) && (isset($this->container['events']))) {
-            $this->container['events']->trigger(new Event('terminate'));
+        if(($code === 0) && ($this->container->has('events'))) {
+            $this->container->get('events')->trigger(new Event('terminate'));
         }
 
         return $code;

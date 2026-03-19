@@ -51,7 +51,7 @@ trait ValidatesRequestTrait
         ?array $groups = null
     ): ?JsonResponse {
         if ($validator === null) {
-            $validator = App::getInstance()['validator']; // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+            $validator = App::getInstance()->get('validator'); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
         }
 
         $violations = $validator->validate($object, null, $groups);
@@ -79,7 +79,7 @@ trait ValidatesRequestTrait
         ?array $groups = null
     ): void {
         if ($validator === null) {
-            $validator = App::getInstance()['validator']; // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+            $validator = App::getInstance()->get('validator'); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
         }
 
         $violations = $validator->validate($object, null, $groups);

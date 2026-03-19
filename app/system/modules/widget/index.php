@@ -11,9 +11,9 @@ return [
 
     'main' => function ($app) {
 
-        $app['widget'] = fn($app) => new WidgetManager($app); // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
+        $app->set('widget', fn($app) => new WidgetManager($app));
 
-        $app['position'] = function ($app) { // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
+        $app->set('position', function ($app) {
 
             $positions = new PositionManager($app->config($app->get('theme')->name));
 
@@ -22,7 +22,7 @@ return [
             }
 
             return $positions;
-        };
+        });
 
         $app->get('module')->addLoader(function ($module) use ($app) {
 

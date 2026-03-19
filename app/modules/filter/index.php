@@ -8,7 +8,7 @@ return [
 
     'main' => function ($app) {
 
-        $app['filter'] = fn() => new FilterManager($this->config['defaults']);
+        $app->set('filter', fn() => new FilterManager($this->config['defaults']));
 
     },
 

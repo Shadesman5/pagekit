@@ -17,16 +17,16 @@ class SiteModule extends Module
     public function main(App $app): void
     {
         $this->app = $app;
-        $app['node'] = function ($app) { // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
+        $app->set('node', function ($app) {
 
             if ($id = $app->get('request')->attributes->get('_node') and $node = Node::find($id, true)) {
                 return $node;
             }
 
             return Node::create();
-        };
+        });
 
-        $app['menu'] = function ($app) { // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
+        $app->set('menu', function ($app) {
 
             $menus = new MenuManager($app->config($app->get('theme')->name), $this->config('menus'));
 
@@ -35,7 +35,7 @@ class SiteModule extends Module
             }
 
             return $menus;
-        };
+        });
 
     }
 

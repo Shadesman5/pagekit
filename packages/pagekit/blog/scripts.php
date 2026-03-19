@@ -14,7 +14,7 @@ return [
     'install' => function ($app) {
         // Execute blog migrations to create database tables
         // Note: Extensions use migrateExtension() to run their own migrations
-        $result = $app['migration']->migrateExtension(
+        $result = $app->get('migration')->migrateExtension(
             'Pagekit\\Blog\\Migrations',
             __DIR__ . '/src/Migrations'
         );
@@ -36,7 +36,7 @@ return [
     'uninstall' => function ($app) {
         // Rollback blog migrations to remove database tables
         // Note: This deletes all blog data!
-        $result = $app['migration']->rollbackExtension(
+        $result = $app->get('migration')->rollbackExtension(
             'Pagekit\\Blog\\Migrations',
             __DIR__ . '/src/Migrations',
             '0'  // Rollback all blog migrations
@@ -49,8 +49,8 @@ return [
         }
         
         // Clear cache
-        if (isset($app['cache'])) {
-            $app['cache']->clear();
+        if ($app->has('cache')) {
+            $app->get('cache')->clear();
         }
     },
 
@@ -58,7 +58,7 @@ return [
         // Extension updates execute new migrations automatically
         // Example:
         // '2.1.0' => function ($app) {
-        //     $result = $app['migration']->migrateExtension(
+        //     $result = $app->get('migration')->migrateExtension(
         //         'Pagekit\\Blog\\Migrations',
         //         __DIR__ . '/src/Migrations'
         //     );

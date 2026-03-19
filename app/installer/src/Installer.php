@@ -123,7 +123,7 @@ class Installer
             $this->app->db()->insert('@system_user', [
                 'name' => $user['username'],
                 'username' => $user['username'],
-                'password' => $this->app['auth.password']->hash($user['password']),
+                'password' => $this->app->get('auth.password')->hash($user['password']),
                 'status' => 1,
                 'email' => $user['email'],
                 'registered' => date('Y-m-d H:i:s'),
@@ -142,12 +142,12 @@ class Installer
                 throw new \Exception("Error creating PackageManager: " . $e->getMessage(), 0, $e);
             }
             
-            foreach (glob($this->app['path.packages'] . '/*/*/composer.json') as $package) {
+            foreach (glob($this->app->get('path.packages') . '/*/*/composer.json') as $package) {
                 try {
-                    $package = $this->app['package']->load($package);
+                    $package = $this->app->get('package')->load($package);
                 } catch (\Exception $e) {
                     // Log package loading error and continue with next package
-                    $this->app['log']->warning(
+                    $this->app->get('log')->warning(
                         sprintf('Failed to load package from "%s": %s', basename(dirname($package)), $e->getMessage()),
                         ['exception' => $e]
                     );
@@ -159,7 +159,7 @@ class Installer
                     } catch (\Exception $e) {
                         // Log the error but continue with other packages during installation
                         // The package will NOT be marked as enabled due to rollback in PackageManager
-                        $this->app['log']->error(
+                        $this->app->get('log')->error(
                             sprintf('Failed to enable package "%s" during installation: %s', 
                                 $package->get('name'), 
                                 $e->getMessage()
@@ -189,7 +189,7 @@ class Installer
                     $configuration->set($key, $value);
                 }
 
-                $configuration->set('system.secret', $this->app['auth.random']->generateString(64));
+                $configuration->set('system.secret', $this->app->get('auth.random')->generateString(64));
 
                 if (!file_put_contents($this->configFile, $configuration->dump())) {
 
@@ -241,7 +241,7 @@ class Installer
     protected function runMigrations(): void
     {
         /** @var \Pagekit\Migration\MigrationService $migrationService */
-        $migrationService = $this->app['migration'];
+        $migrationService = $this->app->get('migration');
 
         // Initialize migration system if needed
         if (!$migrationService->isInitialized()) {

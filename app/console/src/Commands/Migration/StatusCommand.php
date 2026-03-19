@@ -42,7 +42,7 @@ class StatusCommand extends Command
 
         try {
             // Get migration service
-            $migrationService = $this->container['migration'];
+            $migrationService = $this->container->get('migration');
             
             // Check if migration system is initialized
             if (!$migrationService->isInitialized()) {

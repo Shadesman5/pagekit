@@ -1,5 +1,42 @@
 # Changelog
 
+## Pagekit 1.1.8 - PSR-11 Container Stage 4: Packages Final & ArrayAccess Removal (March 18, 2026)
+
+### 🚀 Breaking Changes
+
+- **ArrayAccess Removed from Container** — `Pagekit\Container` no longer implements `\ArrayAccess`. All `$app['x']`, `$this['x']`, `$container['x']` bracket-access patterns are replaced with PSR-11 `get()`/`has()` and new `set()` method. Extensions using ArrayAccess must migrate (see migration guide).
+
+### ♻️ Refactoring
+
+- **Container `set()` Method** — New `public function set(string $id, mixed $value): void` added to Container. `factory()`, `extend()`, and constructor now call `set()` internally.
+- **Application.php Migration** — All `$this['x']` ArrayAccess in Application.php converted to `$this->set()`/`$this->get()`.
+- **app/modules/ Migration** — 17 module index.php files: all `$app['x'] = ...` writes migrated to `$app->set('x', ...)`, all reads to `$app->get('x')`.
+- **app/system/ Migration** — 11 system files: all service registrations migrated from ArrayAccess to `set()`/`get()`.
+- **Bootstrap Migration** — Installer, console, and system bootstrap files migrated to PSR-11.
+- **Blog Package Migration** — `scripts.php`, `index.php` ArrayAccess migrated. All 4 blog controllers (`BlogController`, `PostApiController`, `CommentApiController`, `SiteController`) refactored with constructor DI for module service.
+- **Blog Listeners/Models Tagging** — `RouteListener` static calls tagged for Step 2.0.1e. `Post` model and `UrlResolver` bridge patterns tagged with `TEMPORARY BRIDGE`.
+- **Theme-One Tagging** — `App::view()` in `functions.php` tagged for Step 2.0.1e.
+- **Console & Installer Cleanup** — Remaining `$container['x']` and `$this->app['x']` patterns in Console/Application and Installer migrated.
+
+### 🧪 Tests
+
+- **ContainerTest Updated** — Rewritten for PSR-11: `testSetAndGetMethods`, `testGetThrowsNotFoundException`, `testSetThrowsExceptionWhenOverriding`, `testSetMethod`. All ArrayAccess syntax removed.
+- **ContainerPsr11Test Updated** — All bracket-access migrated to `set()`/`get()`/`has()`.
+- **268 PHPUnit tests pass**, 648 assertions, 0 failures.
+
+### 📝 Documentation
+
+- **Extension Migration Guide** — `migration-docs/PSR11_CONTAINER_EXTENSION_MIGRATION.md` with service access tables, registration tables, controller DI examples, and exception types.
+- **Stage 4 Branch Documentation** — `migration-docs/branches/PSR11_CONTAINER_STAGE4.md` with full migration summary and deferred items.
+
+### 🔧 Validation
+
+- Zero `$app['x']`, `$this['x']`, `$container['x']`, `$this->app['x']` ArrayAccess patterns in codebase.
+- `php pagekit setup` and `php pagekit list` execute successfully.
+- Container implements only `Psr\Container\ContainerInterface`.
+
+---
+
 ## Pagekit 1.1.7 - PSR-11 Container Stage 3: System, Installer & Console (March 4, 2026)
 
 ### ♻️ Refactoring

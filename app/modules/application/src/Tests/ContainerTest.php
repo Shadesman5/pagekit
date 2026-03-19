@@ -4,6 +4,8 @@ namespace Pagekit\Tests;
 
 use PHPUnit\Framework\TestCase;
 use Pagekit\Container;
+use Pagekit\Container\NotFoundException;
+use Psr\Container\NotFoundExceptionInterface;
 
 /**
  * Test Container basic functionality
@@ -18,23 +20,37 @@ class ContainerTest extends TestCase
     }
 
     /**
-     * Test ArrayAccess implementation
+     * Test set()/get()/has() methods
      */
-    public function testArrayAccessImplementation(): void
+    public function testSetAndGetMethods(): void
     {
-        // Test isset (offsetExists)
-        $this->assertFalse(isset($this->container['test']));
-        
-        // Test set (offsetSet)
-        $this->container['test'] = 'value';
-        $this->assertTrue(isset($this->container['test']));
-        
-        // Test get (offsetGet)
-        $this->assertEquals('value', $this->container['test']);
-        
-        // Test unset (offsetUnset)
-        unset($this->container['test']);
-        $this->assertFalse(isset($this->container['test']));
+        $this->assertFalse($this->container->has('test'));
+
+        $this->container->set('test', 'value');
+        $this->assertTrue($this->container->has('test'));
+
+        $this->assertEquals('value', $this->container->get('test'));
+    }
+
+    /**
+     * Test set() with scalar, closure, and factory override prevention
+     */
+    public function testSetMethod(): void
+    {
+        $this->container->set('scalar', 42);
+        $this->assertEquals(42, $this->container->get('scalar'));
+
+        $this->container->set('string', 'hello');
+        $this->assertEquals('hello', $this->container->get('string'));
+
+        $closure = fn() => 'from_closure';
+        $this->container->set('closure_service', $closure);
+        $this->assertEquals('from_closure', $this->container->get('closure_service'));
+
+        // Resolved service cannot be overridden
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Cannot override service definition "closure_service"');
+        $this->container->set('closure_service', fn() => 'new');
     }
 
     /**
@@ -42,18 +58,18 @@ class ContainerTest extends TestCase
      */
     public function testServiceAsClosure(): void
     {
-        $this->container['service'] = function ($c) {
+        $this->container->set('service', function ($c) {
             $obj = new \stdClass();
             $obj->container = $c;
             return $obj;
-        };
+        });
 
-        $service = $this->container['service'];
+        $service = $this->container->get('service');
         $this->assertInstanceOf(\stdClass::class, $service);
         $this->assertSame($this->container, $service->container);
 
         // Test singleton behavior
-        $service2 = $this->container['service'];
+        $service2 = $this->container->get('service');
         $this->assertSame($service, $service2);
     }
 
@@ -68,9 +84,9 @@ class ContainerTest extends TestCase
             return $counter;
         });
 
-        $this->assertEquals(1, $this->container['factory']);
-        $this->assertEquals(2, $this->container['factory']);
-        $this->assertEquals(3, $this->container['factory']);
+        $this->assertEquals(1, $this->container->get('factory'));
+        $this->assertEquals(2, $this->container->get('factory'));
+        $this->assertEquals(3, $this->container->get('factory'));
     }
 
     /**
@@ -78,13 +94,13 @@ class ContainerTest extends TestCase
      */
     public function testExtend(): void
     {
-        $this->container['service'] = fn() => 'original';
+        $this->container->set('service', fn() => 'original');
 
         $this->container->extend('service', function ($original, $c) {
             return $original . '-extended';
         });
 
-        $this->assertEquals('original-extended', $this->container['service']);
+        $this->assertEquals('original-extended', $this->container->get('service'));
     }
 
     /**
@@ -94,7 +110,7 @@ class ContainerTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('"non.existent" is not defined');
-        
+
         $this->container->extend('non.existent', fn($s) => $s);
     }
 
@@ -103,11 +119,11 @@ class ContainerTest extends TestCase
      */
     public function testExtendThrowsExceptionForNonClosure(): void
     {
-        $this->container['scalar'] = 'value';
-        
+        $this->container->set('scalar', 'value');
+
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('"scalar" service definition is not a Closure');
-        
+
         $this->container->extend('scalar', fn($s) => $s);
     }
 
@@ -117,13 +133,13 @@ class ContainerTest extends TestCase
     public function testRaw(): void
     {
         $closure = fn() => 'value';
-        $this->container['service'] = $closure;
+        $this->container->set('service', $closure);
 
         // Before resolution
         $this->assertSame($closure, $this->container->raw('service'));
 
         // Resolve service
-        $value = $this->container['service'];
+        $value = $this->container->get('service');
         $this->assertEquals('value', $value);
 
         // After resolution, raw still returns closure
@@ -137,7 +153,7 @@ class ContainerTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('"undefined" is not defined');
-        
+
         $this->container->raw('undefined');
     }
 
@@ -148,9 +164,9 @@ class ContainerTest extends TestCase
     {
         $this->assertEquals([], $this->container->keys());
 
-        $this->container['a'] = 1;
-        $this->container['b'] = 2;
-        $this->container['c'] = 3;
+        $this->container->set('a', 1);
+        $this->container->set('b', 2);
+        $this->container->set('c', 3);
 
         $keys = $this->container->keys();
         sort($keys);
@@ -158,31 +174,38 @@ class ContainerTest extends TestCase
     }
 
     /**
-     * Test offsetGet throws exception for undefined
+     * Test get() throws NotFoundException for undefined
      */
-    public function testOffsetGetThrowsExceptionForUndefined(): void
+    public function testGetThrowsNotFoundException(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(NotFoundException::class);
         $this->expectExceptionMessage('"undefined" is not defined');
-        
-        $value = $this->container['undefined'];
+
+        $this->container->get('undefined');
+    }
+
+    public function testGetThrowsNotFoundExceptionInterface(): void
+    {
+        $this->expectException(NotFoundExceptionInterface::class);
+
+        $this->container->get('undefined');
     }
 
     /**
-     * Test offsetSet throws exception when overriding resolved service
+     * Test set() throws exception when overriding resolved service
      */
-    public function testOffsetSetThrowsExceptionWhenOverriding(): void
+    public function testSetThrowsExceptionWhenOverriding(): void
     {
-        $this->container['service'] = fn() => 'value';
-        
+        $this->container->set('service', fn() => 'value');
+
         // Resolve the service
-        $value = $this->container['service'];
-        
+        $value = $this->container->get('service');
+
         // Try to override - should throw exception
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Cannot override service definition "service"');
-        
-        $this->container['service'] = 'new value';
+
+        $this->container->set('service', 'new value');
     }
 
     /**
@@ -196,9 +219,9 @@ class ContainerTest extends TestCase
             'service' => fn() => 'service_value'
         ]);
 
-        $this->assertEquals('value1', $container['param1']);
-        $this->assertEquals('value2', $container['param2']);
-        $this->assertEquals('service_value', $container['service']);
+        $this->assertEquals('value1', $container->get('param1'));
+        $this->assertEquals('value2', $container->get('param2'));
+        $this->assertEquals('service_value', $container->get('service'));
     }
 
     /**
@@ -206,19 +229,18 @@ class ContainerTest extends TestCase
      */
     public function testCallMethod(): void
     {
-        // For __call to work with arguments, the service must return a callable
-        $this->container['callable'] = function ($container) {
+        $this->container->set('callable', function ($container) {
             return function ($arg1, $arg2) {
                 return $arg1 . '-' . $arg2;
             };
-        };
+        });
 
         // Call with arguments
         $result = $this->container->callable('hello', 'world');
         $this->assertEquals('hello-world', $result);
 
         // Call without arguments returns the resolved service
-        $this->container['service'] = fn() => 'value';
+        $this->container->set('service', fn() => 'value');
         $result = $this->container->service();
         $this->assertEquals('value', $result);
     }

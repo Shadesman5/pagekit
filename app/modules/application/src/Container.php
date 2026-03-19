@@ -6,8 +6,7 @@ use Pagekit\Container\ContainerException;
 use Pagekit\Container\NotFoundException;
 use Psr\Container\ContainerInterface;
 
-// TODO: BACKWARD COMPATIBILITY - ArrayAccess delegates to get/has. Must be removed in Step 2.0.1 Stage 4
-class Container implements ContainerInterface, \ArrayAccess
+class Container implements ContainerInterface
 {
     protected array $values = [];
 
@@ -23,7 +22,7 @@ class Container implements ContainerInterface, \ArrayAccess
     public function __construct(array $values = [])
     {
         foreach ($values as $name => $value) {
-            $this->offsetSet($name, $value);
+            $this->set($name, $value);
         }
 
         if (in_array('Pagekit\Application\Traits\StaticTrait', class_uses($this))) {
@@ -38,6 +37,7 @@ class Container implements ContainerInterface, \ArrayAccess
      * @param  array  $args
      * @return mixed
      */
+    // TODO: Remove __call() magic in Step 2.0.1e (StaticTrait Removal)
     public function __call($name, $args)
     {
         $value = $this->get($name);
@@ -59,9 +59,9 @@ class Container implements ContainerInterface, \ArrayAccess
      * @param string   $name
      * @param \Closure $closure
      */
-    public function factory($name, \Closure $closure): void
+    public function factory(string $name, \Closure $closure): void
     {
-        $this->offsetSet($name, $closure);
+        $this->set($name, $closure);
         $this->factories[$name] = true;
     }
 
@@ -73,7 +73,7 @@ class Container implements ContainerInterface, \ArrayAccess
      *
      * @throws \InvalidArgumentException
      */
-    public function extend($name, \Closure $closure): void
+    public function extend(string $name, \Closure $closure): void
     {
         if (!array_key_exists($name, $this->values)) {
             throw new \InvalidArgumentException(sprintf('"%s" is not defined.', $name));
@@ -85,7 +85,7 @@ class Container implements ContainerInterface, \ArrayAccess
 
         $factory = $this->values[$name];
 
-        $this->offsetSet($name, fn($c) => $closure($factory($c), $c));
+        $this->set($name, fn($c) => $closure($factory($c), $c));
     }
 
     /**
@@ -159,55 +159,24 @@ class Container implements ContainerInterface, \ArrayAccess
     }
 
     /**
-     * Checks if a parameter/service is defined.
-     *
-     * @param  string $name
-     */
-    public function offsetExists($name): bool
-    {
-        return $this->has((string) $name);
-    }
-
-    /**
-     * Gets a parameter/service.
-     *
-     * @param  string $name
-     * @return mixed
-     *
-     * @throws NotFoundException
-     */
-    #[\ReturnTypeWillChange]
-    public function offsetGet($name)
-    {
-        return $this->get((string) $name);
-    }
-
-    /**
      * Sets a parameter/service.
-     *
-     * @param string $name
-     * @param mixed  $value
      *
      * @throws \RuntimeException
      */
-    public function offsetSet($name, $value): void
+    public function set(string $id, mixed $value): void
     {
-        if (array_key_exists($name, $this->raw)) {
-            throw new \RuntimeException(sprintf('Cannot override service definition "%s".', $name));
+        if (array_key_exists($id, $this->raw)) {
+            throw new \RuntimeException(sprintf('Cannot override service definition "%s".', $id));
         }
 
-        $this->values[$name] = $value;
+        $this->values[$id] = $value;
     }
 
     /**
      * Removes a parameter/service.
-     *
-     * @param string $name
      */
-    public function offsetUnset($name): void
+    public function remove(string $id): void
     {
-        if (array_key_exists($name, $this->values)) {
-            unset($this->values[$name], $this->raw[$name], $this->factories[$name]);
-        }
+        unset($this->values[$id], $this->raw[$id], $this->factories[$id]);
     }
 }

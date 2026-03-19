@@ -23,7 +23,7 @@ class CacheModule extends Module
     {
         $this->app = $app;
         foreach ($this->config['caches'] as $name => $config)  {
-            $app[$name] = function() use ($config, $name) {
+            $app->set($name, function() use ($config, $name) {
 
                 $supports = $this->supports();
 
@@ -39,7 +39,7 @@ class CacheModule extends Module
 
                 // Always use PSR-6 adapters
                 return $this->createPsr6Cache($config);
-            };
+            });
         }
     }
 

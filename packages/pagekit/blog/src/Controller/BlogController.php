@@ -7,6 +7,8 @@ namespace Pagekit\Blog\Controller;
 use Pagekit\Application as App;
 use Pagekit\Blog\Model\Comment;
 use Pagekit\Blog\Model\Post;
+use Pagekit\Module\Module;
+use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\User\Attribute\Access;
@@ -15,6 +17,13 @@ use Pagekit\User\Model\Role;
 #[Access(admin: true)]
 class BlogController
 {
+    protected Module $blog;
+
+    public function __construct(ModuleManager $module)
+    {
+        $this->blog = $module->get('blog');
+    }
+
     #[Access('blog: manage own posts || blog: manage all posts')]
     #[Request(['filter' => 'array', 'page' => 'int'])]
     public function postAction($filter = null, $page = null): array
@@ -27,7 +36,7 @@ class BlogController
             '$data' => [
                 'statuses' => Post::getStatuses(),
                 'authors'  => Post::getAuthors(),
-                'canEditAll' => App::user()->hasAccess('blog: manage all posts'),
+                'canEditAll' => App::user()->hasAccess('blog: manage all posts'), // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
                 'config'   => [
                     'filter' => (object) $filter,
                     'page'   => $page
@@ -46,35 +55,33 @@ class BlogController
             if (!$post = Post::where(compact('id'))->related('user')->first()) {
 
                 if ($id) {
-                    App::abort(404, __('Invalid post id.'));
+                    App::abort(404, __('Invalid post id.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
                 }
 
-                $module = App::module('blog');
-
                 $post = Post::create([
-                    'user_id' => App::user()->id,
+                    'user_id' => App::user()->id, // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
                     'status' => Post::STATUS_DRAFT,
                     'date' => new \DateTime(),
-                    'comment_status' => (bool) $module->config('posts.comments_enabled')
+                    'comment_status' => (bool) $this->blog->config('posts.comments_enabled')
                 ]);
 
-                $post->set('title', $module->config('posts.show_title'));
-                $post->set('markdown', $module->config('posts.markdown_enabled'));
+                $post->set('title', $this->blog->config('posts.show_title'));
+                $post->set('markdown', $this->blog->config('posts.markdown_enabled'));
             }
 
-            $user = App::user();
+            $user = App::user(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
             if(!$user->hasAccess('blog: manage all posts') && $post->user_id !== $user->id) {
-                App::abort(403, __('Insufficient User Rights.'));
+                App::abort(403, __('Insufficient User Rights.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
             }
 
-            $roles = App::db()->createQueryBuilder()
+            $roles = App::db()->createQueryBuilder() // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
                 ->from('@system_role')
                 ->where(['id' => Role::ROLE_ADMINISTRATOR])
                 ->whereInSet('permissions', ['blog: manage all posts', 'blog: manage own posts'], false, 'OR')
                 ->execute('id')
                 ->fetchFirstColumn();
 
-            $authors = App::db()->createQueryBuilder()
+            $authors = App::db()->createQueryBuilder() // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
                 ->from('@system_user')
                 ->whereInSet('roles', $roles)
                 ->execute('id, username')
@@ -97,9 +104,9 @@ class BlogController
 
         } catch (\Exception $e) {
 
-            App::message()->error($e->getMessage());
+            App::message()->error($e->getMessage()); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
 
-            return App::redirect('@blog/post');
+            return App::redirect('@blog/post'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
         }
     }
 
@@ -121,7 +128,7 @@ class BlogController
                     'filter' => (object) $filter,
                     'page'   => $page,
                     'post'   => $post,
-                    'limit'  => App::module('blog')->config('comments.comments_per_page')
+                    'limit'  => $this->blog->config('comments.comments_per_page')
                 ]
             ]
         ];
@@ -136,7 +143,7 @@ class BlogController
                 'name'  => 'blog/admin/settings.php'
             ],
             '$data' => [
-                'config' => App::module('blog')->config()
+                'config' => $this->blog->config()
             ]
         ];
     }

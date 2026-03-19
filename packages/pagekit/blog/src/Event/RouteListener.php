@@ -13,7 +13,7 @@ class RouteListener implements EventSubscriberInterface
      */
     public function onAppRequest(): void
     {
-        App::router()->setOption('blog.permalink', UrlResolver::getPermalink());
+        App::router()->setOption('blog.permalink', UrlResolver::getPermalink()); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
     }
 
     /**
@@ -27,7 +27,7 @@ class RouteListener implements EventSubscriberInterface
             
             // Create alias route for custom permalink patterns
             if ($permalink = UrlResolver::getPermalink()) {
-                App::routes()->alias(dirname($route->getPath()).'/'.ltrim($permalink, '/'), '@blog/id', ['_resolver' => 'Pagekit\Blog\UrlResolver']);
+                App::routes()->alias(dirname($route->getPath()).'/'.ltrim($permalink, '/'), '@blog/id', ['_resolver' => 'Pagekit\Blog\UrlResolver']); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
             }
         }
     }
@@ -37,7 +37,7 @@ class RouteListener implements EventSubscriberInterface
      */
     public function clearCache(): void
     {
-        App::cache()->delete(UrlResolver::CACHE_KEY);
+        App::cache()->delete(UrlResolver::CACHE_KEY); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
     }
 
     /**

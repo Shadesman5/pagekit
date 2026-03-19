@@ -42,11 +42,11 @@ trait StaticTrait
     {
         switch ($name) {
             case 'set':
-                static::$instance->offsetSet($args[0] ?? '', $args[1] ?? null);
+                static::$instance->set($args[0] ?? '', $args[1] ?? null);
                 return;
 
             case 'remove':
-                static::$instance->offsetUnset($args[0] ?? '');
+                static::$instance->remove($args[0] ?? '');
                 return;
 
             case 'config':

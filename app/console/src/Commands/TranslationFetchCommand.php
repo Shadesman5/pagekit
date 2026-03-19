@@ -77,10 +77,10 @@ class TranslationFetchCommand extends Command
         $vendor = 'pagekit';
 
         if ($resource == "system") {
-            $path = sprintf('%s/app/system', $this->container['path']);
+            $path = sprintf('%s/app/system', $this->container->get('path'));
         } else {
             $path = sprintf('%s/%s/%s',
-                $this->container['path.packages'],
+                $this->container->get('path.packages'),
                 $vendor,
                 $resource);
         }

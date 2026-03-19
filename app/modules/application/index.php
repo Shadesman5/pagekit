@@ -11,17 +11,17 @@ return [
 
     'main' => function ($app) {
 
-        $app['version'] = fn() => $this->config['version'];
+        $app->set('version', fn() => $this->config['version']);
 
-        $app['debug'] = fn() => (bool) $this->config['debug'];
+        $app->set('debug', fn() => (bool) $this->config['debug']);
 
-        $app['url'] = fn($app) => new UrlProvider($app->get('router'), $app->get('file'), $app->get('locator'));
+        $app->set('url', fn($app) => new UrlProvider($app->get('router'), $app->get('file'), $app->get('locator')));
 
-        $app['response'] = fn($app) => new Response($app->get('url'));
+        $app->set('response', fn($app) => new Response($app->get('url')));
 
-        $app['symfony.event_dispatcher'] = function($app) {
+        $app->set('symfony.event_dispatcher', function($app) {
             return new \Pagekit\Event\SymfonyEventDispatcherBridge($app->get('events'));
-        };
+        });
 
         ErrorHandler::register()->throwAt(E_ERROR | E_CORE_ERROR | E_COMPILE_ERROR | E_RECOVERABLE_ERROR);
 

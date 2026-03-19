@@ -7,7 +7,7 @@ use Pagekit\Module\Loader\ConfigLoader;
 $loader = require $path.'/autoload.php';
 
 $app = new App($config);
-$app['autoloader'] = $loader; // TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)
+$app->set('autoloader', $loader);
 
 $app->get('module')->register([
     'packages/*/*/index.php',

@@ -24,9 +24,9 @@ class Application extends Container
     {
         parent::__construct($values);
 
-        $this['events'] = fn() => new EventDispatcher();
+        $this->set('events', fn() => new EventDispatcher());
 
-        $this['module'] = fn() => new ModuleManager($this);
+        $this->set('module', fn() => new ModuleManager($this));
     }
 
     /**
@@ -57,10 +57,10 @@ class Application extends Container
             $this->boot();
         }
 
-        $response = $this['kernel']->handle($request);
+        $response = $this->get('kernel')->handle($request);
         $response->send();
 
-        $this['kernel']->terminate($request, $response);
+        $this->get('kernel')->terminate($request, $response);
     }
 
     /**
