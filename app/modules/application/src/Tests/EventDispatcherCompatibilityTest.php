@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Tests;
 
 use PHPUnit\Framework\TestCase;
@@ -129,12 +131,36 @@ class EventDispatcherCompatibilityTest extends TestCase
     }
 
     /**
-     * Test that dispatch returns the event unchanged
+     * Test that dispatch forwards to Pagekit dispatcher and returns the event
      */
-    public function testDispatchReturnsEvent()
+    public function testDispatchForwardsToPagekit()
     {
+        $called = false;
+        $this->dispatcher->on('test.event', function () use (&$called) {
+            $called = true;
+        });
+
         $event = new SymfonyEvent();
         $result = $this->bridge->dispatch($event, 'test.event');
+
+        $this->assertTrue($called, 'dispatch() must forward to Pagekit trigger');
+        $this->assertSame($event, $result);
+    }
+
+    /**
+     * Test that dispatch uses FQCN when no event name is given
+     */
+    public function testDispatchUsesClassNameWhenNoEventName()
+    {
+        $called = false;
+        $this->dispatcher->on(SymfonyEvent::class, function () use (&$called) {
+            $called = true;
+        });
+
+        $event = new SymfonyEvent();
+        $result = $this->bridge->dispatch($event);
+
+        $this->assertTrue($called, 'dispatch() must use FQCN as event name when none provided');
         $this->assertSame($event, $result);
     }
 
