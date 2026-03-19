@@ -32,4 +32,12 @@ final class ModelServiceLocator
         }
         return self::$app->get('user');
     }
+
+    public static function getModule(string $name): mixed
+    {
+        if (self::$app === null) {
+            throw new \RuntimeException('ModelServiceLocator not initialized. Was SiteModule booted?');
+        }
+        return self::$app->get('module')->get($name);
+    }
 }

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Pagekit\Blog\Model;
 
-use Pagekit\Application as App;
 use Pagekit\Database\ORM\Attribute as ORM;
+use Pagekit\Site\ModelServiceLocator;
 use Pagekit\System\Model\DataModelTrait;
 use Pagekit\User\Model\AccessModelTrait;
 use Pagekit\User\Model\User;
@@ -121,7 +121,7 @@ class Post implements \JsonSerializable
 
     public function isCommentable(): bool
     {
-        $blog      = App::module('blog'); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+        $blog      = ModelServiceLocator::getModule('blog');
         $autoclose = $blog->config('comments.autoclose') ? $blog->config('comments.autoclose_days') : 0;
 
         return $this->comment_status && (!$autoclose or $this->date >= new \DateTime("-{$autoclose} day"));
@@ -139,7 +139,7 @@ class Post implements \JsonSerializable
 
     public function isAccessible(?User $user = null): bool
     {
-        return $this->isPublished() && $this->hasAccess($user ?: App::user()); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+        return $this->isPublished() && $this->hasAccess($user ?: ModelServiceLocator::getUser());
     }
 
     /**
@@ -148,7 +148,7 @@ class Post implements \JsonSerializable
     public function jsonSerialize(): array
     {
         $data = [
-            'url' => App::url('@blog/id', ['id' => $this->id ?: 0], 'base') // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            'url' => ModelServiceLocator::getUrl()->get('@blog/id', ['id' => $this->id ?: 0], 'base')
         ];
 
         if ($this->comments) {
