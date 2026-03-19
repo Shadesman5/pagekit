@@ -57,7 +57,7 @@ class SystemModule extends Module
             }
         }
 
-        $themeModule = $app->module($theme);
+        $themeModule = $app->get('module')->get($theme);
         if (!$themeModule) {
             $themeModule = new Module([
                 'name' => 'theme-default',

@@ -28,7 +28,7 @@ class SiteModule extends Module
 
         $app->set('menu', function ($app) {
 
-            $menus = new MenuManager($app->config($app->get('theme')->name), $this->config('menus'));
+            $menus = new MenuManager($app->get('config')($app->get('theme')->name), $this->config('menus'));
 
             foreach ($app->get('theme')->get('menus', []) as $name => $label) {
                 $menus->register($name, $label);

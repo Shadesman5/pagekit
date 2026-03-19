@@ -15,7 +15,7 @@ return [
 
         $app->set('position', function ($app) {
 
-            $positions = new PositionManager($app->config($app->get('theme')->name));
+            $positions = new PositionManager($app->get('config')($app->get('theme')->name));
 
             foreach ($app->get('theme')->get('positions', []) as $name => $label) {
                 $positions->register($name, $label);
@@ -111,8 +111,8 @@ return [
 
         'package.enable' => function ($event, $package) use ($app) {
             if ($package->getType() === 'pagekit-theme') {
-                $new = $app->config($package->get('module'));
-                $old = $app->config($app->get('theme')->name);
+                $new = $app->get('config')($package->get('module'));
+                $old = $app->get('config')($app->get('theme')->name);
                 $assigned = [];
 
                 foreach ((array) $new->get('_positions') as $position => $modules) {
@@ -150,7 +150,7 @@ return [
 
         'model.widget.saved' => function ($event, $widget) use ($app) {
             $app->get('position')->assign($widget->position, $widget->id);
-            $app->config($app->get('theme')->name)->set('_widgets.'.$widget->id, $widget->theme);
+            $app->get('config')($app->get('theme')->name)->set('_widgets.'.$widget->id, $widget->theme);
         },
 
         'model.role.deleted' => function ($event, $role) {

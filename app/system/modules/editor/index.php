@@ -30,7 +30,7 @@ return [
             $presets = $this->config('presets');
             $editor = [
                 'root_url' => $app->get('url')->getStatic(__DIR__),
-                'locale' => $app->module('system/intl')->getLocale(),
+                'locale' => $app->get('module')->get('system/intl')->getLocale(),
                 'content_js' => []
             ];
             

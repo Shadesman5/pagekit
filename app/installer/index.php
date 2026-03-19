@@ -30,10 +30,10 @@ return [
             $app->on('request', function ($event, $request) use ($app) {
 
                 $locale = $request->get('locale') ?: $app->get('request')->getPreferredLanguage();
-                $available = $app->module('system/intl')->getAvailableLanguages();
+                $available = $app->get('module')->get('system/intl')->getAvailableLanguages();
 
                 if (isset($available[$locale])) {
-                    $app->module('system/intl')->setLocale($locale);
+                    $app->get('module')->get('system/intl')->setLocale($locale);
                 }
 
             });

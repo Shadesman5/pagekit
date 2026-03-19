@@ -191,7 +191,7 @@ return [
 
             $app->on('view.meta', function ($event, $meta) use ($app) {
 
-                $config = $app->config('system/site');
+                $config = $app->get('config')('system/site');
 
                 $meta([
                     'twitter:card' => 'summary_large_image',
@@ -219,8 +219,8 @@ return [
 
         'package.enable' => function ($event, $package) use ($app) {
             if ($package->getType() === 'pagekit-theme') {
-                $new = $app->config($package->get('module'));
-                $old = $app->config($app->get('theme')->name);
+                $new = $app->get('config')($package->get('module'));
+                $old = $app->get('config')($app->get('theme')->name);
 
                 foreach ((array) $old->get('_menus') as $menu => $position) {
                     if (!$new->has('_menus.' . $menu)) {
@@ -264,7 +264,7 @@ return [
         },
 
         'model.node.saved' => function ($event, $node) use ($app) {
-            $app->config($app->get('theme')->name)->set('_nodes.' . $node->id, $node->theme);
+            $app->get('config')($app->get('theme')->name)->set('_nodes.' . $node->id, $node->theme);
         }
 
     ]
