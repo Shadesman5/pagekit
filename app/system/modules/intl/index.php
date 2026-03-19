@@ -37,6 +37,11 @@ return [
 
     'events' => [
 
+        'boot' => function ($event, $app) {
+            \Pagekit\Intl\IntlServiceLocator::setTranslator($app->get('translator'));
+            \Pagekit\Intl\IntlServiceLocator::setIntl($this);
+        },
+
         'view.init' => function ($event, $view) {
             $view->addGlobal('intl', $this);
         }

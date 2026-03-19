@@ -1,6 +1,6 @@
 <?php
 
-use Pagekit\Application as App;
+use Pagekit\Intl\IntlServiceLocator;
 use Symfony\Component\Translation\Formatter\IntlFormatter;
 
 // Global namespace functions
@@ -9,8 +9,7 @@ if (!function_exists('__')) {
      * Translates the given message, alias for method trans()
      */
     function __($id, array $parameters = [], $domain = 'messages', $locale = null) {
-        // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
-        return App::translator()->trans($id, $parameters, $domain, $locale);
+        return IntlServiceLocator::getTranslator()->trans($id, $parameters, $domain, $locale);
     }
 }
 
@@ -29,8 +28,7 @@ if (!function_exists('_c')) {
             $params[preg_replace('/(%)(.*?)(%)/', '%count%', $key)] = $value;
         }
 
-        // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
-        return App::translator()->trans($id, $params, $domain, $locale);
+        return IntlServiceLocator::getTranslator()->trans($id, $params, $domain, $locale);
     }
 }
 
@@ -46,8 +44,7 @@ if (!function_exists('_i')) {
             $domain = 'messages';
         }
 
-        // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
-        $catalogue = App::translator()->getCatalogue($locale);
+        $catalogue = IntlServiceLocator::getTranslator()->getCatalogue($locale);
         $locale = $catalogue->getLocale();
         while (!$catalogue->defines($id, $domain)) {
             if ($cat = $catalogue->getFallbackCatalogue()) {
