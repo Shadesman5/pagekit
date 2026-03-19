@@ -206,9 +206,6 @@ class CommentApiController
             $commentEntity->status = Comment::STATUS_PENDING;
         }
 
-        // check for spam
-        //App::trigger('system.comment.spam_check', new CommentEvent($commentEntity));
-
         // Assign data to entity for validation (without saving yet)
         foreach ($data as $key => $value) {
             if (property_exists($commentEntity, $key)) {
