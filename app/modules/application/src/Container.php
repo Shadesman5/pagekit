@@ -61,6 +61,7 @@ class Container implements ContainerInterface
             // services (registered via factory()) are never affected since they are
             // not stored in $raw.
             $this->values[$name] = $closure($this->values[$name], $this);
+            $this->raw[$name] = $this->values[$name];
             return;
         }
 

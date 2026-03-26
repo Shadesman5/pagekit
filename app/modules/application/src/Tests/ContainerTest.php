@@ -104,6 +104,24 @@ class ContainerTest extends TestCase
     }
 
     /**
+     * Test extend on already-resolved service updates raw() consistently.
+     */
+    public function testExtendOnResolvedServiceUpdatesRaw(): void
+    {
+        $this->container->set('service', fn() => 'original');
+
+        $resolved = $this->container->get('service');
+        $this->assertEquals('original', $resolved);
+
+        $this->container->extend('service', function ($original, $c) {
+            return $original . '-decorated';
+        });
+
+        $this->assertEquals('original-decorated', $this->container->get('service'));
+        $this->assertEquals('original-decorated', $this->container->raw('service'));
+    }
+
+    /**
      * Test extend throws exception for non-existent service
      */
     public function testExtendThrowsExceptionForNonExistent(): void
