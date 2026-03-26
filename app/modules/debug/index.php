@@ -85,7 +85,7 @@ return [
                 $app->get('debugbar')->addCollector($app->get('log.debug'));
             }
 
-            $app->on('view.head', function ($event, $view) use ($app) {
+            $app->get('events')->on('view.head', function ($event, $view) use ($app) {
 
                 if ($app->get('request')->get('_disable_debugbar')) {
                     return;
@@ -96,7 +96,7 @@ return [
                 $view->script('debugbar', 'app/modules/debug/app/bundle/debugbar.js', ['vue']);
             }, 50);
 
-            $app->on('terminate', function ($event, $request) use ($app) {
+            $app->get('events')->on('terminate', function ($event, $request) use ($app) {
 
                 $route = $request->attributes->get('_route');
 

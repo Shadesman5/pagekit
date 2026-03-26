@@ -104,6 +104,24 @@ class ContainerTest extends TestCase
     }
 
     /**
+     * Test extend on already-resolved service updates raw() consistently.
+     */
+    public function testExtendOnResolvedServiceUpdatesRaw(): void
+    {
+        $this->container->set('service', fn() => 'original');
+
+        $resolved = $this->container->get('service');
+        $this->assertEquals('original', $resolved);
+
+        $this->container->extend('service', function ($original, $c) {
+            return $original . '-decorated';
+        });
+
+        $this->assertEquals('original-decorated', $this->container->get('service'));
+        $this->assertEquals('original-decorated', $this->container->raw('service'));
+    }
+
+    /**
      * Test extend throws exception for non-existent service
      */
     public function testExtendThrowsExceptionForNonExistent(): void
@@ -224,24 +242,4 @@ class ContainerTest extends TestCase
         $this->assertEquals('service_value', $container->get('service'));
     }
 
-    /**
-     * Test __call method
-     */
-    public function testCallMethod(): void
-    {
-        $this->container->set('callable', function ($container) {
-            return function ($arg1, $arg2) {
-                return $arg1 . '-' . $arg2;
-            };
-        });
-
-        // Call with arguments
-        $result = $this->container->callable('hello', 'world');
-        $this->assertEquals('hello-world', $result);
-
-        // Call without arguments returns the resolved service
-        $this->container->set('service', fn() => 'value');
-        $result = $this->container->service();
-        $this->assertEquals('value', $result);
-    }
 }

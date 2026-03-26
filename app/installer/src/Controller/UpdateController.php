@@ -4,20 +4,34 @@ declare(strict_types=1);
 
 namespace Pagekit\Installer\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Installer\SelfUpdater;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\User\Attribute\Access;
+use Psr\Container\ContainerInterface;
 use Symfony\Component\Console\Output\StreamOutput;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 #[Access('system: software updates', admin: true)]
 class UpdateController
 {
+    private readonly string $systemApi;
+    private readonly string $tempPath;
+
     public function __construct(
+        private readonly ContainerInterface $app,
         private readonly mixed $session,
         private readonly mixed $response,
         private readonly mixed $version,
-    ) {}
+        private readonly string $path,
+    ) {
+        $this->systemApi = $this->app->has('system.api')
+            ? $this->app->get('system.api')
+            : 'https://pagekit.com';
+        $this->tempPath = $this->app->has('path.temp')
+            ? $this->app->get('path.temp')
+            : sys_get_temp_dir();
+    }
 
     public function indexAction(): array
     {
@@ -27,7 +41,7 @@ class UpdateController
                 'name' => 'installer:views/update.php'
             ],
             '$data' => [
-                'api' => App::getInstance() ? App::getInstance()->get('system.api') : 'https://pagekit.com', // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                'api' => $this->systemApi,
                 'version' => $this->version,
                 'channel' => 'stable'
             ]
@@ -37,12 +51,11 @@ class UpdateController
     #[Request(['url' => 'string'], csrf: true)]
     public function downloadAction($url): array
     {
-        $tempPath = App::getInstance() ? App::getInstance()->get('path.temp') : sys_get_temp_dir(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
-        $file = tempnam($tempPath, 'update_');
+        $file = tempnam($this->tempPath, 'update_');
         $this->session->set('system.update', $file);
 
         if (!file_put_contents($file, @fopen($url, 'r'))) {
-            App::abort(500, 'Download failed or path not writable.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new HttpException(500, 'Download failed or path not writable.');
         }
 
         return [];
@@ -52,7 +65,7 @@ class UpdateController
     public function updateAction()
     {
         if (!$file = $this->session->get('system.update')) {
-            App::abort(400, __('You may not call this step directly.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException(__('You may not call this step directly.'));
         }
         $this->session->remove('system.update');
 
@@ -64,7 +77,7 @@ class UpdateController
                     throw new \RuntimeException('File does not exist.');
                 }
 
-                $updater = new SelfUpdater($output);
+                $updater = new SelfUpdater($this->path, $output);
                 $updater->update($file);
 
             } catch (\Exception $e) {

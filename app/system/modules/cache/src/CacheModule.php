@@ -2,13 +2,13 @@
 
 namespace Pagekit\Cache;
 
-use Pagekit\Application as App;
 use Pagekit\Cache\Adapter\ArrayAdapter;
 use Pagekit\Cache\Adapter\ApcuAdapter;
 use Pagekit\Cache\Adapter\FilesystemAdapter;
 use Pagekit\Cache\Adapter\NullAdapter;
 use Pagekit\Cache\Adapter\PhpFilesAdapter;
 use Pagekit\Cache\CacheInterface;
+use Pagekit\Application as App;
 use Pagekit\Module\Module;
 use Symfony\Component\Finder\Finder;
 
@@ -115,9 +115,18 @@ class CacheModule extends Module
     /**
      * Clear cache on terminate event.
      */
+    private function assertBooted(): void
+    {
+        if ($this->app === null) {
+            throw new \LogicException('CacheModule::main() has not been called yet.');
+        }
+    }
+
     public function clearCache(array $options = []): void
     {
-        App::on('terminate', function() use ($options) { // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+        $this->assertBooted();
+
+        $this->app->get('events')->on('terminate', function() use ($options) {
             $this->doClearCache($options);
         }, -512);
     }
@@ -127,7 +136,9 @@ class CacheModule extends Module
      */
     public function doClearCache(array $options = []): void
     {
-        $app = $this->app ?? App::getInstance(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+        $this->assertBooted();
+
+        $app = $this->app;
 
         // clear cache
         if (empty($options) || @$options['cache']) {

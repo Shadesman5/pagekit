@@ -144,17 +144,9 @@ return [
 
         'boot' => function ($event, $app) {
 
-            $app->subscribe(
-                new MaintenanceListener(
-                    $app,
-                    $this,
-                ),
-                new NodesListener(
-                    $this,
-                    $app->get('routes'),
-                ),
-                new PageListener()
-            );
+            $app->get('events')->subscribe(new MaintenanceListener($app, $this));
+            $app->get('events')->subscribe(new NodesListener($this, $app->get('routes')));
+            $app->get('events')->subscribe(new PageListener());
 
             Node::defineProperty('theme', function () use ($app) {
 
@@ -174,24 +166,24 @@ return [
 
         'site' => function ($event, $app) {
 
-            $app->on('view.head', function ($event) use ($app) {
+            $app->get('events')->on('view.head', function ($event) use ($app) {
                 $event->addResult($this->config('code.header'));
             }, -10);
 
-            $app->on('view.footer', function ($event) use ($app) {
+            $app->get('events')->on('view.footer', function ($event) use ($app) {
                 $event->addResult($this->config('code.footer'));
             }, -10);
 
-            $app->on('view.init', function ($event, $view) use ($app) {
+            $app->get('events')->on('view.init', function ($event, $view) use ($app) {
                 $view->params->set('title', $this->config('title'));
                 $view->params->merge($this->config('view'));
                 $view->params->merge($app->get('theme')->config);
                 $view->params->merge($app->get('node')->theme);
             }, 10);
 
-            $app->on('view.meta', function ($event, $meta) use ($app) {
+            $app->get('events')->on('view.meta', function ($event, $meta) use ($app) {
 
-                $config = $app->config('system/site');
+                $config = $app->get('config')('system/site');
 
                 $meta([
                     'twitter:card' => 'summary_large_image',
@@ -219,8 +211,8 @@ return [
 
         'package.enable' => function ($event, $package) use ($app) {
             if ($package->getType() === 'pagekit-theme') {
-                $new = $app->config($package->get('module'));
-                $old = $app->config($app->get('theme')->name);
+                $new = $app->get('config')($package->get('module'));
+                $old = $app->get('config')($app->get('theme')->name);
 
                 foreach ((array) $old->get('_menus') as $menu => $position) {
                     if (!$new->has('_menus.' . $menu)) {
@@ -231,11 +223,13 @@ return [
         },
 
         'view.init' => [function ($event, $view) use ($app) {
-            if ($app->isAdmin()) {
+            if ($app->get('isAdmin')) {
                 return;
             }
             $view->addHelper(new MenuHelper(
                 $app->get('menu'),
+                $app->get('user'),
+                $app->get('node'),
             ));
         }, 100],
 
@@ -264,7 +258,7 @@ return [
         },
 
         'model.node.saved' => function ($event, $node) use ($app) {
-            $app->config($app->get('theme')->name)->set('_nodes.' . $node->id, $node->theme);
+            $app->get('config')($app->get('theme')->name)->set('_nodes.' . $node->id, $node->theme);
         }
 
     ]

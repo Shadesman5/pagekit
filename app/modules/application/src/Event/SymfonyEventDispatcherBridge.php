@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Event;
 
 use Symfony\Component\EventDispatcher\EventDispatcherInterface as SymfonyEventDispatcherInterface;
@@ -26,8 +28,8 @@ class SymfonyEventDispatcherBridge implements SymfonyEventDispatcherInterface
      */
     public function dispatch(object $event, ?string $eventName = null): object
     {
-        // Simply return the event without processing
-        // Pagekit's event system continues to work independently
+        $name = $eventName ?? get_class($event);
+        $this->dispatcher->trigger($name, [$event]);
         return $event;
     }
 

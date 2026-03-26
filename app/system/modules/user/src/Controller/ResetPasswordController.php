@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Application\Exception;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\User\Model\User;
 use function Pagekit\__;
@@ -22,12 +22,14 @@ class ResetPasswordController
         private readonly mixed $module,
         private readonly mixed $view,
         private readonly mixed $message,
+        private readonly mixed $router,
+        private readonly mixed $authPassword,
     ) {}
 
     public function indexAction()
     {
         if ($this->user->isAuthenticated()) {
-            return App::redirect(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            return $this->router->redirect();
         }
 
         return [
@@ -52,7 +54,7 @@ class ResetPasswordController
         try {
 
             if ($this->user->isAuthenticated()) {
-                return App::redirect(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                return $this->router->redirect();
             }
 
             if (!$this->csrf->validate()) {
@@ -92,7 +94,7 @@ class ResetPasswordController
 
             $this->message->success(__('Check your email for the confirmation link.'));
 
-            return App::redirect('@user/login'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            return $this->router->redirect('@user/login');
 
         } catch (Exception $e) {
             return [
@@ -153,11 +155,11 @@ class ResetPasswordController
         }
         
         if (!$data || $data['key'] != $activation) {
-            App::abort(400, __('Invalid key.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException(__('Invalid key.'));
         }
 
         if (!$user = User::find($data['user']) or $user->isBlocked()) {
-            App::abort(400, __('Your account has not been activated or is blocked.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException(__('Your account has not been activated or is blocked.'));
         }
 
         if ('POST' === $this->request->getMethod()) {
@@ -177,14 +179,14 @@ class ResetPasswordController
                 }
 
                 $user->activation = null;
-                $user->password = App::getInstance()->get('auth.password')->hash($password); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                $user->password = $this->authPassword->hash($password);
                 $user->save();
 
                 $this->session->remove('activation');
                 
                 $this->message->success(__('Your password has been reset.'));
 
-                return App::redirect('@user/login'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                return $this->router->redirect('@user/login');
 
             } catch (Exception $e) {
                 $error = $e->getMessage();

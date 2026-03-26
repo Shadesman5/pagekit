@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\Blog\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Blog\Model\Comment;
 use Pagekit\Blog\Model\Post;
 use Pagekit\Captcha\Attribute\Captcha;
@@ -15,6 +14,10 @@ use Pagekit\Routing\Attribute\Route;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\User;
+use Symfony\Component\HttpFoundation\Request as HttpRequest;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use function Pagekit\__;
 
 /**
@@ -26,12 +29,15 @@ class CommentApiController
     use ValidatesRequestTrait;
 
     protected Module $blog;
-    protected User $user;
 
-    public function __construct(ModuleManager $module)
-    {
+    public function __construct(
+        ModuleManager $module,
+        private readonly User $user,
+        private readonly HttpRequest $request,
+        private readonly mixed $content,
+        private readonly mixed $validator,
+    ) {
         $this->blog = $module->get('blog');
-        $this->user = App::user(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
     }
 
     #[Route('/', methods: ['GET'])]
@@ -46,7 +52,7 @@ class CommentApiController
         if ($post) {
             $query->where(['post_id = ?'], [$post]);
         } elseif (!$this->user->hasAccess('blog: manage comments')) {
-            App::abort(403, __('Insufficient user rights.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new AccessDeniedHttpException(__('Insufficient user rights.'));
         }
 
         if (!$this->user->hasAccess('blog: manage comments')) {
@@ -55,7 +61,7 @@ class CommentApiController
 
             if ($this->user->isAuthenticated()) {
                 $query->orWhere(function ($query) {
-                    $query->where(['status = ?', 'user_id = ?'], [Comment::STATUS_PENDING, App::user()->id]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                    $query->where(['status = ?', 'user_id = ?'], [Comment::STATUS_PENDING, $this->user->id]);
                 });
             }
 
@@ -98,10 +104,10 @@ class CommentApiController
             $p = $comment->post;
 
             if ($post && (!$p || !$p->hasAccess($this->user) || !$p->isPublished() && !$this->user->hasAccess('blog: manage comments'))) {
-                App::abort(403, __('Post not found.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                throw new AccessDeniedHttpException(__('Post not found.'));
             }
 
-            $comment->content = App::content()->applyPlugins($comment->content, ['comment' => true]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            $comment->content = $this->content->applyPlugins($comment->content, ['comment' => true]);
 
             $comment->special = count(array_diff($comment->user ? $comment->user->roles : [], [0, 1, 2]));
             $comment->post = null;
@@ -136,7 +142,7 @@ class CommentApiController
         if (!$id) {
 
             if (!$this->user->hasAccess('blog: post comments')) {
-                App::abort(403, __('Insufficient User Rights.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                throw new AccessDeniedHttpException(__('Insufficient User Rights.'));
             }
 
             $commentEntity = Comment::create();
@@ -146,24 +152,24 @@ class CommentApiController
                 $data['email'] = $this->user->email;
                 $data['url'] = $this->user->url;
             } elseif ($this->blog->config('comments.require_email') && (!@$data['author'] || !@$data['email'])) {
-                App::abort(400, __('Please provide valid name and email.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                throw new BadRequestHttpException(__('Please provide valid name and email.'));
             }
 
             // user_id stored as string in database (legacy), use '0' for anonymous users
             $commentEntity->user_id = $this->user->isAuthenticated() ? (string) $this->user->id : '0';
-            $commentEntity->ip = App::request()->getClientIp(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            $commentEntity->ip = $this->request->getClientIp();
             $commentEntity->created = new \DateTime;
 
         } else {
 
             if (!$this->user->hasAccess('blog: manage comments')) {
-                App::abort(403, __('Insufficient User Rights.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                throw new AccessDeniedHttpException(__('Insufficient User Rights.'));
             }
 
             $commentEntity = Comment::find($id);
 
             if (!$commentEntity) {
-                App::abort(404, __('Comment not found.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                throw new NotFoundHttpException(__('Comment not found.'));
             }
 
         }
@@ -175,22 +181,22 @@ class CommentApiController
         // check minimum idle time in between user comments (business logic)
         if (!$this->user->hasAccess('blog: skip comment min idle')
             and $minidle = $this->blog->config('comments.minidle')
-            and $commentIdle = Comment::where($this->user->isAuthenticated() ? ['user_id' => $this->user->id] : ['ip' => App::request()->getClientIp()])->orderBy('created', 'DESC')->first() // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            and $commentIdle = Comment::where($this->user->isAuthenticated() ? ['user_id' => $this->user->id] : ['ip' => $this->request->getClientIp()])->orderBy('created', 'DESC')->first()
         ) {
 
             $diff = $commentIdle->created->diff(new \DateTime("- {$minidle} sec"));
 
             if ($diff->invert) {
-                App::abort(403, __('Please wait another %seconds% seconds before commenting again.', ['%seconds%' => $diff->s + $diff->i * 60 + $diff->h * 3600])); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                throw new AccessDeniedHttpException(__('Please wait another %seconds% seconds before commenting again.', ['%seconds%' => $diff->s + $diff->i * 60 + $diff->h * 3600]));
             }
         }
 
         if (@$data['parent_id'] && !$parent = Comment::find((int) $data['parent_id'])) {
-            App::abort(404, __('Parent not found.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new NotFoundHttpException(__('Parent not found.'));
         }
 
         if (!@$data['post_id'] || !$post = Post::where(['id' => $data['post_id']])->first() or !$this->user->hasAccess('blog: manage comments') && !($post->isCommentable() && $post->isPublished())) {
-            App::abort(404, __('Post not found.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new NotFoundHttpException(__('Post not found.'));
         }
 
         $approved_once = (boolean) Comment::where(['user_id' => $this->user->id, 'status' => Comment::STATUS_APPROVED])->first();
@@ -200,9 +206,6 @@ class CommentApiController
         if ($commentEntity->status == Comment::STATUS_APPROVED && $this->blog->config('comments.maxlinks') <= preg_match_all('/<a [^>]*href/i', @$data['content'])) {
             $commentEntity->status = Comment::STATUS_PENDING;
         }
-
-        // check for spam
-        //App::trigger('system.comment.spam_check', new CommentEvent($commentEntity));
 
         // Assign data to entity for validation (without saving yet)
         foreach ($data as $key => $value) {

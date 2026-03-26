@@ -33,7 +33,7 @@ class ModuleLoader implements LoaderInterface
             $callable($this->app);
             
             if (is_a($moduleObj, 'Pagekit\Event\EventSubscriberInterface')) {
-                $this->app->subscribe($moduleObj);
+                $this->app->get('events')->subscribe($moduleObj);
             }
             
             return $moduleObj;
@@ -46,7 +46,7 @@ class ModuleLoader implements LoaderInterface
         $module->main($this->app);
 
         if (is_a($module, 'Pagekit\Event\EventSubscriberInterface')) {
-            $this->app->subscribe($module);
+            $this->app->get('events')->subscribe($module);
         }
 
         return $module;

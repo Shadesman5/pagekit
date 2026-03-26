@@ -34,6 +34,7 @@ class EntityManager
         $this->metadata   = $metadata;
         $this->events     = $events ?: new PrefixEventDispatcher('model.');
 
+        // TODO: Must be refactored in Step 2.1 (Static Analysis) — remove EntityManager singleton pattern
         static::$instance = $this;
     }
 

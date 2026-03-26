@@ -12,7 +12,7 @@ return [
         'mode' => 'all'
     ],
 
-    'render' => fn($widget) => $app->view()->menu()->render($widget->get('menu'), 'system/site/widget-menu.php', [
+    'render' => fn($widget) => $app->get('view')->menu()->render($widget->get('menu'), 'system/site/widget-menu.php', [
         'start_level' => (int) $widget->get('start_level'),
         'depth' => $widget->get('depth'),
         'mode' => $widget->get('mode'),

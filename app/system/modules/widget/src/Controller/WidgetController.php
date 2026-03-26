@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Pagekit\Widget\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Site\Model\Node;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use Pagekit\Widget\Model\Widget;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use function Pagekit\__;
 
 #[Access('system: manage widgets', admin: true)]
@@ -45,7 +45,7 @@ class WidgetController
         if (!$id) {
             $widget = Widget::create(['type' => $type]);
         } elseif (!$widget = Widget::find($id)) {
-            App::abort(404, 'Widget not found.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new NotFoundHttpException('Widget not found.');
         }
         
         if ($widget->id) {

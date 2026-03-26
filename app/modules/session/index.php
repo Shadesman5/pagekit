@@ -74,7 +74,7 @@ return [
 
         'boot' => function ($event, $app) {
 
-            $app->subscribe(new CsrfListener($app->get('csrf')));
+            $app->get('events')->subscribe(new CsrfListener($app->get('csrf')));
 
         },
 

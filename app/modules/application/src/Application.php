@@ -2,17 +2,12 @@
 
 namespace Pagekit;
 
-use Pagekit\Application\Traits\EventTrait;
-use Pagekit\Application\Traits\RouterTrait;
-use Pagekit\Application\Traits\StaticTrait;
 use Pagekit\Event\EventDispatcher;
 use Pagekit\Module\ModuleManager;
 use Symfony\Component\HttpFoundation\Request;
 
 class Application extends Container
 {
-    use StaticTrait, EventTrait, RouterTrait;
-
     protected bool $booted = false;
 
     /**
@@ -24,6 +19,7 @@ class Application extends Container
     {
         parent::__construct($values);
 
+        $this->set('app', $this);
         $this->set('events', fn() => new EventDispatcher());
 
         $this->set('module', fn() => new ModuleManager($this));
@@ -37,7 +33,7 @@ class Application extends Container
         if (!$this->booted) {
 
             $this->booted = true;
-            $this->trigger('boot', [$this]);
+            $this->get('events')->trigger('boot', [$this]);
 
         }
     }

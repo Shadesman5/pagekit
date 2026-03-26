@@ -31,7 +31,7 @@
         </li>
     </ul>
 
-    <?php if ($app->module('system/user')->config('registration') != 'admin') : ?>
+    <?php if ($app->get('module')->get('system/user')->config('registration') != 'admin') : ?>
     <p class="uk-text-center"><?= __('No account yet?') ?> <a href="<?= $view->url('@user/registration') ?>"><?= __('Sign up now') ?></a></p>
     <?php endif ?>
 

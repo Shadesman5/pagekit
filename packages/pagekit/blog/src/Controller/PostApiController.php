@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace Pagekit\Blog\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Blog\Model\Post;
+use Pagekit\Filter\FilterManager;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
+use Pagekit\User\Model\User;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use function Pagekit\__;
 
 /**
@@ -24,25 +28,30 @@ class PostApiController
 
     protected Module $blog;
 
-    public function __construct(ModuleManager $module)
-    {
+    public function __construct(
+        ModuleManager $module,
+        private readonly User $user,
+        private readonly Request $request,
+        private readonly FilterManager $filter,
+        private readonly mixed $db,
+        private readonly mixed $validator,
+    ) {
         $this->blog = $module->get('blog');
     }
 
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
-        $request = App::request(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
-        $filter = $request->query->all()['filter'] ?? [];
-        $page = (int) $request->query->get('page', 0);
+        $filter = $this->request->query->all()['filter'] ?? [];
+        $page = (int) $this->request->query->get('page', 0);
 
         $query  = Post::query();
         $filter = array_merge(array_fill_keys(['status', 'search', 'author', 'order', 'limit'], ''), $filter);
 
         extract($filter, EXTR_SKIP);
 
-        if(!App::user()->hasAccess('blog: manage all posts')) { // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
-            $author = App::user()->id; // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+        if (!$this->user->hasAccess('blog: manage all posts')) {
+            $author = $this->user->id;
         }
 
         if (is_numeric($status)) {
@@ -89,11 +98,9 @@ class PostApiController
     public function saveAction(int $id = 0, ?array $data = null): array
     {
         if ($data === null) {
-            $request = App::request(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
-
-            $data = $request->request->all()['post'] ?? [];
-            if (empty($data) && $request->getContent()) {
-                $json = json_decode($request->getContent(), true);
+            $data = $this->request->request->all()['post'] ?? [];
+            if (empty($data) && $this->request->getContent()) {
+                $json = json_decode($this->request->getContent(), true);
                 $data = $json['post'] ?? [];
             }
         }
@@ -105,20 +112,20 @@ class PostApiController
         if (!$id || !$post = Post::find($id)) {
 
             if ($id) {
-                App::abort(404, __('Post not found.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                throw new NotFoundHttpException(__('Post not found.'));
             }
 
             $post = Post::create();
         }
 
-        $data['slug'] = App::filter($data['slug'] ?: $data['title'], 'slugify'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+        $data['slug'] = $this->filter->apply($data['slug'] ?: $data['title'], 'slugify');
 
-        if(!App::user()->hasAccess('blog: manage all posts')) { // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
-            $data['user_id'] = App::user()->id; // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+        if (!$this->user->hasAccess('blog: manage all posts')) {
+            $data['user_id'] = $this->user->id;
         }
 
-        if(!App::user()->hasAccess('blog: manage all posts') && !App::user()->hasAccess('blog: manage own posts') && $post->user_id !== App::user()->id) { // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
-            App::abort(400, __('Access denied.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+        if (!$this->user->hasAccess('blog: manage all posts') && !$this->user->hasAccess('blog: manage own posts') && $post->user_id !== $this->user->id) {
+            throw new BadRequestHttpException(__('Access denied.'));
         }
 
         $skipFields = ['date', 'modified', 'created'];
@@ -139,13 +146,13 @@ class PostApiController
     public function deleteAction(int $id = 0): array
     {
         if (!$id) {
-            $id = (int) App::request()->get('id', 0); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            $id = (int) $this->request->get('id', 0);
         }
 
         if ($post = Post::find($id)) {
 
-            if(!App::user()->hasAccess('blog: manage all posts') && !App::user()->hasAccess('blog: manage own posts') && $post->user_id !== App::user()->id) { // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
-                App::abort(400, __('Access denied.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            if (!$this->user->hasAccess('blog: manage all posts') && !$this->user->hasAccess('blog: manage own posts') && $post->user_id !== $this->user->id) {
+                throw new BadRequestHttpException(__('Access denied.'));
             }
 
             $post->delete();
@@ -157,17 +164,15 @@ class PostApiController
     #[Route('/copy', methods: ['POST'])]
     public function copyAction(): array
     {
-        $request = App::request(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
-
-        $ids = $request->request->all()['ids'] ?? [];
-        if (empty($ids) && $request->getContent()) {
-            $json = json_decode($request->getContent(), true);
+        $ids = $this->request->request->all()['ids'] ?? [];
+        if (empty($ids) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
             $ids = $json['ids'] ?? [];
         }
 
         foreach ($ids as $id) {
             if ($post = Post::find((int) $id)) {
-                if(!App::user()->hasAccess('blog: manage all posts') && !App::user()->hasAccess('blog: manage own posts') && $post->user_id !== App::user()->id) { // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                if (!$this->user->hasAccess('blog: manage all posts') && !$this->user->hasAccess('blog: manage own posts') && $post->user_id !== $this->user->id) {
                     continue;
                 }
 
@@ -187,11 +192,9 @@ class PostApiController
     #[Route('/bulk', methods: ['POST'])]
     public function bulkSaveAction(): array
     {
-        $request = App::request(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
-
-        $posts = $request->request->all()['posts'] ?? [];
-        if (empty($posts) && $request->getContent()) {
-            $json = json_decode($request->getContent(), true);
+        $posts = $this->request->request->all()['posts'] ?? [];
+        if (empty($posts) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
             $posts = $json['posts'] ?? [];
         }
 
@@ -206,11 +209,9 @@ class PostApiController
     #[Route('/bulk', methods: ['DELETE'])]
     public function bulkDeleteAction(): array
     {
-        $request = App::request(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
-
-        $ids = $request->request->all()['ids'] ?? [];
-        if (empty($ids) && $request->getContent()) {
-            $json = json_decode($request->getContent(), true);
+        $ids = $this->request->request->all()['ids'] ?? [];
+        if (empty($ids) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
             $ids = $json['ids'] ?? [];
         }
 

@@ -25,32 +25,6 @@ class Container implements ContainerInterface
             $this->set($name, $value);
         }
 
-        if (in_array('Pagekit\Application\Traits\StaticTrait', class_uses($this))) {
-            static::$instance = $this;
-        }
-    }
-
-    /**
-     * Gets a parameter/service or calls the invoke method.
-     *
-     * @param  string $name
-     * @param  array  $args
-     * @return mixed
-     */
-    // TODO: Remove __call() magic in Step 2.0.1e (StaticTrait Removal)
-    public function __call($name, $args)
-    {
-        $value = $this->get($name);
-
-        if ($name === 'module' && $args && is_object($value) && method_exists($value, 'get')) {
-            return $value->get($args[0]);
-        }
-
-        if (is_callable($value) && $args) {
-            return call_user_func_array($value, $args);
-        }
-
-        return $value;
     }
 
     /**
@@ -79,13 +53,25 @@ class Container implements ContainerInterface
             throw new \InvalidArgumentException(sprintf('"%s" is not defined.', $name));
         }
 
+        if (array_key_exists($name, $this->raw)) {
+            // Service already resolved — apply decorator to the live instance.
+            // Use case: debug module wraps EventDispatcher with TraceableEventDispatcher.
+            // NOTE for extension developers: this branch only runs if get() was called
+            // before extend(). The result replaces the resolved singleton; factory
+            // services (registered via factory()) are never affected since they are
+            // not stored in $raw.
+            $this->values[$name] = $closure($this->values[$name], $this);
+            $this->raw[$name] = $this->values[$name];
+            return;
+        }
+
         if (!($this->values[$name] instanceof \Closure)) {
             throw new \InvalidArgumentException(sprintf('"%s" service definition is not a Closure.', $name));
         }
 
         $factory = $this->values[$name];
 
-        $this->set($name, fn($c) => $closure($factory($c), $c));
+        $this->values[$name] = fn($c) => $closure($factory($c), $c);
     }
 
     /**

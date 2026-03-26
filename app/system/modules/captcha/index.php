@@ -21,7 +21,7 @@ return [
     'events' => [
 
         'boot' => function ($event, $app) {
-            $app->subscribe(
+            $app->get('events')->subscribe(
                 new CaptchaListener(
                     $this,
                     $app->get('auth'),

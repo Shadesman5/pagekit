@@ -1,6 +1,7 @@
 <?php
 
 use Pagekit\Filter\FilterManager;
+use Pagekit\Kernel\Event\ExceptionListenerWrapper;
 use Pagekit\Kernel\Exception\HttpException;
 use Pagekit\Routing\Event\AliasListener;
 use Pagekit\Routing\Event\ConfigureRouteListener;
@@ -42,32 +43,35 @@ return [
 
         'boot' => function ($event, $app) {
 
-            $app->subscribe(
-                new ConfigureRouteListener,
-                new ParamFetcherListener(new ParamFetcher(new FilterManager)),
-                new RouterListener($app->get('router')),
-                new AliasListener($app->get('routes'))
-            );
+            $app->get('events')->subscribe(new ConfigureRouteListener);
+            $app->get('events')->subscribe(new ParamFetcherListener(new ParamFetcher(new FilterManager)));
+            $app->get('events')->subscribe(new RouterListener($app->get('router')));
+            $app->get('events')->subscribe(new AliasListener($app->get('routes')));
 
             $app->get('middleware');
 
-            $app->error(function (HttpException $e) use ($app) {
+            $app->get('events')->on('exception', new ExceptionListenerWrapper(function (\Throwable $e, int $code) use ($app) {
+
+                if (!($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface)
+                    && !($e instanceof HttpException)) {
+                    return;
+                }
 
                 $request = $app->get('router')->getRequest();
                 $types   = $request->getAcceptableContentTypes();
 
                 if ('json' == $request->getFormat(array_shift($types))) {
-                    return new JsonResponse($e->getMessage(), $e->getCode());
+                    return new JsonResponse($e->getMessage(), $code);
                 }
 
-            }, -10);
+            }), -10);
 
         },
 
         'request' => [function ($event, $request) use ($app) {
 
             if ($redirect = $request->attributes->get('_redirect')) {
-                $event->setResponse($app->redirect($redirect), [], 301);
+                $event->setResponse($app->get('router')->redirect($redirect, [], 301));
             };
 
         }, 90],

@@ -2,6 +2,7 @@
 
 use Twig\TwigFilter;
 use Pagekit\Util\ArrObject;
+use Pagekit\View\Asset\FileLocatorAsset;
 use Pagekit\View\Event\ResponseListener;
 return [
 
@@ -25,6 +26,8 @@ return [
             return $assets;
         });
 
+        FileLocatorAsset::setServices($app->get('file'), $app->get('locator'));
+
     },
 
     'autoload' => [
@@ -36,11 +39,11 @@ return [
     'events' => [
 
         'boot' => function ($event, $app) {
-            $app->subscribe(new ResponseListener($app->get('url')));
+            $app->get('events')->subscribe(new ResponseListener($app->get('url')));
         },
 
         'site' => function ($event, $app) {
-            $app->on('view.meta', function ($event, $meta) use ($app) {
+            $app->get('events')->on('view.meta', function ($event, $meta) use ($app) {
                 $meta->add('canonical', $app->get('url')->get($app->get('request')->attributes->get('_route'), $app->get('request')->attributes->get('_route_params', []), 0));
             }, 60);
         },
@@ -83,13 +86,13 @@ return [
             
             $scripts->register('codemirror', 'app/system/modules/editor/app/assets/codemirror/codemirror.min.js', ['pagekit-config']);
             $scripts->register('marked', 'app/system/modules/editor/app/assets/marked/marked.min.js', ['pagekit-config']);
-            $scripts->register('lodash', 'app/assets/lodash/dist/'  . ($app->debug() ? 'lodash.js' : 'lodash.min.js'), ['pagekit-config']);
+            $scripts->register('lodash', 'app/assets/lodash/dist/'  . ($app->get('debug') ? 'lodash.js' : 'lodash.min.js'), ['pagekit-config']);
             // vue-dist must load AFTER pagekit-config so $pagekit is available
-            $scripts->register('vue-dist', 'app/assets/vue/dist/' . ($app->debug() ? 'vue.js' : 'vue.min.js'), ['pagekit-config']);
+            $scripts->register('vue-dist', 'app/assets/vue/dist/' . ($app->get('debug') ? 'vue.js' : 'vue.min.js'), ['pagekit-config']);
             // locale script returns JS that sets $locale, must load after config
-            $scripts->register('locale', $app->url('@system/intl', ['locale' => $app->module('system/intl')->getLocale(), 'v' => $scripts->getFactory()->getVersion()]), ['pagekit-config'], ['type' => 'url']);
-            $scripts->register('uikit', 'app/assets/uikit/dist/js/' . ($app->debug() ? 'uikit.js' : 'uikit.min.js'), ['pagekit-config']);
-            $scripts->register('uikit-icons', 'app/system/assets/js/' . ($app->debug() ? 'uikit-icons.js' : 'uikit-icons.min.js'), 'uikit');
+            $scripts->register('locale', $app->get('url')->get('@system/intl', ['locale' => $app->get('module')->get('system/intl')->getLocale(), 'v' => $scripts->getFactory()->getVersion()]), ['pagekit-config'], ['type' => 'url']);
+            $scripts->register('uikit', 'app/assets/uikit/dist/js/' . ($app->get('debug') ? 'uikit.js' : 'uikit.min.js'), ['pagekit-config']);
+            $scripts->register('uikit-icons', 'app/system/assets/js/' . ($app->get('debug') ? 'uikit-icons.js' : 'uikit-icons.min.js'), 'uikit');
             $scripts->register('vue', 'app/system/app/bundle/vue.js', ['uikit', 'uikit-icons', 'vue-dist', 'lodash', 'locale']);
         }
 

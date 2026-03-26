@@ -1,14 +1,18 @@
 <?php
 
-namespace Pagekit\Installer\Package;
+declare(strict_types=1);
 
-use Pagekit\Application as App;
+namespace Pagekit\Installer\Package;
 
 class PackageFactory implements \ArrayAccess, \IteratorAggregate
 {
     protected array $paths = [];
 
     protected array $packages = [];
+
+    public function __construct(
+        private readonly mixed $url = null,
+    ) {}
 
     /**
      * Get shortcut.
@@ -78,7 +82,7 @@ class PackageFactory implements \ArrayAccess, \IteratorAggregate
 
             if (isset($path)) {
                 $data['path'] = $path;
-                $data['url'] = App::getInstance()->get('url')->getStatic($path); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                $data['url'] = $this->url?->getStatic($path) ?? '';
             }
 
             return new Package($data);

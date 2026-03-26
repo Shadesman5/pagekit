@@ -24,16 +24,16 @@ class MigrationCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $config = $this->container->config('system');
+        $config = $this->container->get('config')('system');
 
-        $scripts = new PackageScripts($this->container->path().'/app/system/scripts.php', $config->get('version'));
+        $scripts = new PackageScripts($this->container->get('path').'/app/system/scripts.php', $config->get('version'), $this->container);
         if ($scripts->hasUpdates()) {
             $scripts->update();
         }
 
-        $config->set('version', $this->container->version());
-        
-        // TODO: Callback
-        return (int) $this->line(sprintf('<info>%s</info>', __('Your Pagekit database has been updated successfully.')));
+        $config->set('version', $this->container->get('version'));
+
+        $this->line(sprintf('<info>%s</info>', __('Your Pagekit database has been updated successfully.')));
+        return 0;
     }
 }

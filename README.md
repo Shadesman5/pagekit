@@ -133,7 +133,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 -   **Composer**: Version 2.0+ required
 -   **Yarn**: Version 1.22+ required
 -   **Framework Updates**: Symfony 6.4 LTS components with modern architecture
--   **PSR Standards**: PSR-11 Container compatibility implemented
+-   **PSR Standards**: Native PSR-11 Container with constructor dependency injection
 -   **Security Updates**: All dependencies updated to secure versions (0 vulnerabilities confirmed)
 -   **Database Layer**: Doctrine DBAL 3.8+ with modern query methods and enhanced compatibility
 -   **Logging System**: Monolog 3.9+ with improved performance and PHP 8.4 support
@@ -361,7 +361,7 @@ theme: {
                 'addpost' => [
                     'caption' => 'Add Post',
                     'attrs' => [
-                        'href' => $app['url']->get('admin/blog/post/edit')
+                        'href' => $app->get('url')->get('admin/blog/post/edit')
                     ],
                     'priority' => 1
                 ]
@@ -397,7 +397,7 @@ yarn install                            # Full production build
 # Testing
 
 ## Unit Tests
-./app/vendor/bin/phpunit                 # Run PHPUnit test suite (159 tests)
+./app/vendor/bin/phpunit                 # Run PHPUnit test suite (275 tests)
 ./app/vendor/bin/phpunit --testdox       # Run tests with detailed output
 ./app/vendor/bin/phpunit --coverage-html coverage/  # Generate code coverage
 
@@ -496,11 +496,10 @@ This modernized version builds upon the work of many contributors:
 
 ## Documentation & Support
 
--   **Documentation**: Currently being updated. For reference, see the original [Pagekit Documentation](https://github.com/pagekit/docs)
+-   **Documentation**: Currently being rewritten for the modernized system. For legacy reference, see the original [Pagekit Documentation](https://github.com/pagekit/docs)
 -   **Issues**: Report bugs via GitHub Issues
 -   **Discussions**: Use GitHub Discussions for questions and feature requests
--   **Migration Guide**: Documentation for upgrading from legacy Pagekit versions is in development
 
 ---
 
-**Note**: This is a modernized version with significant improvements. Please review the upgrade guide before migrating from older Pagekit versions.
+**Note**: This is a fully modernized version. Original Pagekit extensions and themes are not compatible and must be rewritten for the new architecture.

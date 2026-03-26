@@ -15,6 +15,7 @@ class DashboardModule extends Module
     public function main(App $app): void
     {
         $this->app = $app;
+        $app->set('systemApi', fn($app) => $app->has('system.api') ? $app->get('system.api') : 'https://pagekit.com');
     }
 
     /**
@@ -22,11 +23,11 @@ class DashboardModule extends Module
      *
      * @param  string $id
      */
-    public function getWidget($id): array
+    public function getWidget(string $id): ?array
     {
         $widgets = $this->getWidgets();
 
-        return isset($widgets[$id]) ? $widgets[$id] : null;
+        return $widgets[$id] ?? null;
     }
 
     /**
@@ -34,8 +35,9 @@ class DashboardModule extends Module
      */
     public function getWidgets(): array
     {
-        $app = $this->app ?? App::getInstance(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
-        $config = $app->get('config')->get('system/dashboard')->toArray();
+        $this->assertBooted();
+
+        $config = $this->app->get('config')->get('system/dashboard')->toArray();
         return $config ?: ($this->config('defaults') ?? []);
     }
 
@@ -46,7 +48,15 @@ class DashboardModule extends Module
      */
     public function saveWidgets(array $widgets): void
     {
-        $app = $this->app ?? App::getInstance(); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
-        $app->get('config')->set('system/dashboard', $widgets);
+        $this->assertBooted();
+
+        $this->app->get('config')->set('system/dashboard', $widgets);
+    }
+
+    private function assertBooted(): void
+    {
+        if ($this->app === null) {
+            throw new \LogicException('DashboardModule::main() has not been called yet.');
+        }
     }
 }

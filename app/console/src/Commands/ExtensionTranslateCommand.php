@@ -46,7 +46,7 @@ class ExtensionTranslateCommand extends Command
 
         $this->line("Extracting strings for extension '$extension'");
 
-        chdir($this->container->path());
+        chdir($this->container->get('path'));
 
         if (!is_dir($languages)) {
             mkdir($languages, 0755, true);
@@ -179,7 +179,7 @@ class ExtensionTranslateCommand extends Command
 
         if ($extension == "system") {
             // add installer files
-            $files->in($this->container->path().'/app/installer');
+            $files->in($this->container->get('path').'/app/installer');
         }
 
         return $files->name('*.{php,vue,js,html,twig}');
@@ -192,7 +192,7 @@ class ExtensionTranslateCommand extends Command
      */
     protected function getPath($path): string
     {
-        $root = $path == 'system' ? $this->container->path().'/app' : $this->container->path().'/packages';
+        $root = $path == 'system' ? $this->container->get('path').'/app' : $this->container->get('path').'/packages';
 
         if (!is_dir($path = "$root/$path")) {
             $this->abort("Can't find extension in '$path'");

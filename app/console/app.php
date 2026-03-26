@@ -27,5 +27,5 @@ if ($app->get('config.file')) {
 }
 $app->get('module')->load('console');
 
-$console = new Console($app, 'Pagekit', $app->version());
+$console = new Console($app, 'Pagekit', $app->get('version'));
 $console->run();

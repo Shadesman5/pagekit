@@ -144,23 +144,21 @@ return [
     'events' => [
 
         'boot' => function ($event, $app) {
-            $app->subscribe(
-                new AccessListener(
-                    $app->get('auth'),
-                    $app->get('url'),
-                    $app->get('response'),
-                    $app->get('request.stack'),
-                ),
-                new AuthorizationListener(
-                    $app->get('auth'),
-                    $app->get('auth.password'),
-                    $app->get('session'),
-                ),
-                new LoginAttemptListener(
-                    $app->get('cache'),
-                ),
-                new UserListener
-            );
+            $app->get('events')->subscribe(new AccessListener(
+                $app->get('auth'),
+                $app->get('url'),
+                $app->get('response'),
+                $app->get('request.stack'),
+            ));
+            $app->get('events')->subscribe(new AuthorizationListener(
+                $app->get('auth'),
+                $app->get('auth.password'),
+                $app->get('session'),
+            ));
+            $app->get('events')->subscribe(new LoginAttemptListener(
+                $app->get('cache'),
+            ));
+            $app->get('events')->subscribe(new UserListener);
         },
 
         'view.scripts' => function ($event, $scripts) use ($app) {

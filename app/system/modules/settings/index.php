@@ -4,6 +4,10 @@ return [
 
     'name' => 'system/settings',
 
+    'main' => function ($app) {
+        $app->set('configFile', fn($app) => $app->get('config.file'));
+    },
+
     'autoload' => [
 
         'Pagekit\\System\\' => 'src'
@@ -57,7 +61,7 @@ return [
         'view.system:modules/settings/views/settings' => function ($event, $view) use ($app) {
 
             $view->data('$system', [
-                'locales' => $app->module('system/intl')->getAvailableLanguages(),
+                'locales' => $app->get('module')->get('system/intl')->getAvailableLanguages(),
                 'sqlite' => class_exists('SQLite3') || (class_exists('PDO') && in_array('sqlite', \PDO::getAvailableDrivers(), true))
             ]);
 
@@ -66,8 +70,8 @@ return [
                     'system' => $app->get('system')->config(['site.', 'admin.'])
                 ],
                 'config' => [
-                    'application' => $app->module('application')->config(['debug']),
-                    'debug' => $app->module('debug')->config(['enabled'])
+                    'application' => $app->get('module')->get('application')->config(['debug']),
+                    'debug' => $app->get('module')->get('debug')->config(['enabled'])
                 ]
             ]);
 

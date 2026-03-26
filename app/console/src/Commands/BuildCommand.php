@@ -42,8 +42,8 @@ class BuildCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $path = $this->container->path();
-        $vers = $this->container->version();
+        $path = $this->container->get('path');
+        $vers = $this->container->get('version');
         $filter = '/' . implode('|', $this->excludes) . '/i';
         $packages = [
             'pagekit/blog' => '*',

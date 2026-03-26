@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\Dashboard\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Module\Module;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\User\Attribute\Access;
@@ -15,17 +14,20 @@ class DashboardController
 {
     protected Module $dashboard;
 
-    protected string $api = 'http://api.openweathermap.org/data/2.5';
+    protected string $api;
 
-    protected string $apiKey = '08c012f513db564bd6d4bae94b73cc94';
+    protected string $apiKey;
 
     public function __construct(
         private readonly mixed $module,
         private readonly mixed $request,
         private readonly mixed $response,
         private readonly mixed $version,
+        private readonly mixed $systemApi,
     ) {
         $this->dashboard = $this->module->get('system/dashboard');
+        $this->api = $this->dashboard->config('weather.api', 'http://api.openweathermap.org/data/2.5');
+        $this->apiKey = $this->dashboard->config('weather.key', '');
     }
 
     #[Route('/', methods: ['GET'])]
@@ -38,7 +40,7 @@ class DashboardController
             ],
             '$data' => [
                 'widgets' => array_values($this->dashboard->getWidgets()),
-                'api' => App::getInstance()->get('system.api'), // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                'api' => $this->systemApi,
                 'version' => $this->version,
                 'channel' => 'stable'
             ]

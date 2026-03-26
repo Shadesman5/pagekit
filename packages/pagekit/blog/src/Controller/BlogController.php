@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\Blog\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Blog\Model\Comment;
 use Pagekit\Blog\Model\Post;
 use Pagekit\Module\Module;
@@ -13,14 +12,22 @@ use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
+use Pagekit\User\Model\User;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 #[Access(admin: true)]
 class BlogController
 {
     protected Module $blog;
 
-    public function __construct(ModuleManager $module)
-    {
+    public function __construct(
+        ModuleManager $module,
+        private readonly mixed $router,
+        private readonly mixed $message,
+        private readonly User $user,
+        private readonly mixed $db,
+    ) {
         $this->blog = $module->get('blog');
     }
 
@@ -36,7 +43,7 @@ class BlogController
             '$data' => [
                 'statuses' => Post::getStatuses(),
                 'authors'  => Post::getAuthors(),
-                'canEditAll' => App::user()->hasAccess('blog: manage all posts'), // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                'canEditAll' => $this->user->hasAccess('blog: manage all posts'),
                 'config'   => [
                     'filter' => (object) $filter,
                     'page'   => $page
@@ -55,11 +62,11 @@ class BlogController
             if (!$post = Post::where(compact('id'))->related('user')->first()) {
 
                 if ($id) {
-                    App::abort(404, __('Invalid post id.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                    throw new NotFoundHttpException(__('Invalid post id.'));
                 }
 
                 $post = Post::create([
-                    'user_id' => App::user()->id, // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                    'user_id' => $this->user->id,
                     'status' => Post::STATUS_DRAFT,
                     'date' => new \DateTime(),
                     'comment_status' => (bool) $this->blog->config('posts.comments_enabled')
@@ -69,19 +76,18 @@ class BlogController
                 $post->set('markdown', $this->blog->config('posts.markdown_enabled'));
             }
 
-            $user = App::user(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
-            if(!$user->hasAccess('blog: manage all posts') && $post->user_id !== $user->id) {
-                App::abort(403, __('Insufficient User Rights.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            if (!$this->user->hasAccess('blog: manage all posts') && $post->user_id !== $this->user->id) {
+                throw new AccessDeniedHttpException(__('Insufficient User Rights.'));
             }
 
-            $roles = App::db()->createQueryBuilder() // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            $roles = $this->db->createQueryBuilder()
                 ->from('@system_role')
                 ->where(['id' => Role::ROLE_ADMINISTRATOR])
                 ->whereInSet('permissions', ['blog: manage all posts', 'blog: manage own posts'], false, 'OR')
                 ->execute('id')
                 ->fetchFirstColumn();
 
-            $authors = App::db()->createQueryBuilder() // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            $authors = $this->db->createQueryBuilder()
                 ->from('@system_user')
                 ->whereInSet('roles', $roles)
                 ->execute('id, username')
@@ -96,7 +102,7 @@ class BlogController
                     'post'     => $post,
                     'statuses' => Post::getStatuses(),
                     'roles'    => array_values(Role::findAll()),
-                    'canEditAll' => $user->hasAccess('blog: manage all posts'),
+                    'canEditAll' => $this->user->hasAccess('blog: manage all posts'),
                     'authors'  => $authors
                 ],
                 'post' => $post
@@ -104,9 +110,9 @@ class BlogController
 
         } catch (\Exception $e) {
 
-            App::message()->error($e->getMessage()); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            $this->message->error($e->getMessage());
 
-            return App::redirect('@blog/post'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            return $this->router->redirect('@blog/post');
         }
     }
 

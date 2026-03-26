@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Application\Exception;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
@@ -25,6 +27,8 @@ class UserApiController
         private readonly mixed $request,
         private readonly mixed $user,
         private readonly mixed $module,
+        private readonly mixed $authPassword,
+        private readonly mixed $validator,
     ) {}
 
     #[Route('/', methods: ['GET'])]
@@ -135,7 +139,7 @@ class UserApiController
     public function getAction(int $id): User
     {
         if (!$user = User::find($id)) {
-            App::abort(404, 'User not found.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new NotFoundHttpException('User not found.');
         }
 
         return $user;
@@ -171,18 +175,18 @@ class UserApiController
             if (!$user = User::find($id)) {
 
                 if ($id) {
-                    App::abort(404, __('User not found.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                    throw new NotFoundHttpException(__('User not found.'));
                 }
 
                 if (!$password) {
-                    App::abort(400, __('Password required.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                    throw new BadRequestHttpException(__('Password required.'));
                 }
 
                 $user = User::create(['registered' => new \DateTime]);
             }
 
             if ($user->isAdministrator() && !$this->user->isAdministrator()) {
-                App::abort(400, __('Unable to edit administrator.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                throw new BadRequestHttpException(__('Unable to edit administrator.'));
             }
 
             $user->name = @$data['name'];
@@ -191,7 +195,7 @@ class UserApiController
 
             $self = $this->user->id == $user->id;
             if ($self && @$data['status'] == User::STATUS_BLOCKED) {
-                App::abort(400, __('Unable to block yourself.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                throw new BadRequestHttpException(__('Unable to block yourself.'));
             }
 
             if (@$data['email'] != $user->email) {
@@ -204,7 +208,7 @@ class UserApiController
                     throw new Exception(__('Invalid Password.'));
                 }
 
-                $user->password = App::getInstance()->get('auth.password')->hash($password); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                $user->password = $this->authPassword->hash($password);
             }
 
             $key    = array_search(Role::ROLE_ADMINISTRATOR, @$data['roles'] ?: []);
@@ -212,7 +216,7 @@ class UserApiController
             $remove = false === $key && $user->isAdministrator();
 
             if (($self && $remove) || !$this->user->isAdministrator() && ($remove || $add)) {
-                App::abort(403, 'Cannot add/remove Admin Role.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                throw new AccessDeniedHttpException('Cannot add/remove Admin Role.');
             }
 
             unset($data['login'], $data['registered']);
@@ -225,7 +229,7 @@ class UserApiController
             return ['message' => 'success', 'user' => $user];
 
         } catch (Exception $e) {
-            App::abort(400, $e->getMessage()); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException($e->getMessage(), $e);
         }
     }
 
@@ -238,12 +242,12 @@ class UserApiController
         }
 
         if ($this->user->id == $id) {
-            App::abort(400, __('Unable to delete yourself.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException(__('Unable to delete yourself.'));
         }
 
         if ($user = User::find($id)) {
             if ($user->isAdministrator() && !$this->user->isAdministrator()) {
-                App::abort(400, __('Unable to delete administrator.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                throw new BadRequestHttpException(__('Unable to delete administrator.'));
             }
 
             $user->delete();

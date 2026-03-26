@@ -85,8 +85,10 @@ return [
             // Uses PHP 8 Attributes for validation while ORM still uses Doctrine Annotations
             \Pagekit\System\ValidatorServiceProvider::register($app);
 
+            \Pagekit\System\Validator\Constraints\UniqueValidator::setDb($app->get('db'));
+
             if (!$app->get('debug')) {
-                $app->subscribe(new ExceptionListener('Pagekit\System\Controller\ExceptionController::showAction'));
+                $app->get('events')->subscribe(new ExceptionListener('Pagekit\System\Controller\ExceptionController::showAction'));
             }
 
             $app->get('db.em'); // -TODO- fix me
@@ -102,7 +104,7 @@ return [
                 }
 
                 $app->set('isAdmin', $admin = (bool) preg_match('#^/admin(/?$|/.+)#', $request->getPathInfo()));
-                $app->module('system/intl')->setLocale($this->config($admin ? 'admin.locale' : 'site.locale'));
+                $app->get('module')->get('system/intl')->setLocale($this->config($admin ? 'admin.locale' : 'site.locale'));
 
             }, 150],
 
@@ -112,27 +114,27 @@ return [
                     return;
                 }
 
-                $app->trigger($app->isAdmin() ? 'admin' : 'site', [$app]);
+                $app->get('events')->trigger($app->get('isAdmin') ? 'admin' : 'site', [$app]);
 
             }]
 
         ],
 
         'auth.login' => [function ($event) use ($app) {
-            if ($event->getUser()->hasAccess('system: software updates') && version_compare($this->config('version'), $app->version(), '<')) {
+            if ($event->getUser()->hasAccess('system: software updates') && version_compare($this->config('version'), $app->get('version'), '<')) {
 
-                $scripts = new PackageScripts($this->path . '/scripts.php', $this->config('version'));
+                $scripts = new PackageScripts($this->path . '/scripts.php', $this->config('version'), $app);
 
                 if ($scripts->hasUpdates()) {
                     $event->setResponse($app->get('response')->redirect('@system/migration', ['redirect' => $app->get('url')->getRoute('@system')]));
                 } else {
-                    $app->config('system')->set('version', $app->version());
+                    $app->get('config')('system')->set('version', $app->get('version'));
                 }
             }
         }, 8],
 
         'view.init' => function ($event, $view) use ($app) {
-            $theme = $app->isAdmin() ? $app->module('system/theme') : $app->get('theme');
+            $theme = $app->get('isAdmin') ? $app->get('module')->get('system/theme') : $app->get('theme');
             $view->map('layout', $theme->get('layout', 'views:template.php'));
             $view->addGlobal('theme', $app->get('theme'));
         },
@@ -159,8 +161,8 @@ return [
             if ($meta->get('title')) {
                 $title[] = $meta->get('title');
             }
-            $title[] = $app->config('system/site')->get('title');
-            if ($app->request()->getPathInfo() === '/') {
+            $title[] = $app->get('config')('system/site')->get('title');
+            if ($app->get('request')->getPathInfo() === '/') {
                 $title = array_reverse($title);
             }
 

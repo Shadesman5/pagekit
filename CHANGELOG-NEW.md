@@ -1,5 +1,96 @@
 # Changelog
 
+## Pagekit 1.2.1 - PSR-11 StaticTrait Removal Bugfixes (March 26, 2026)
+
+### 🐛 Bug Fixes — Wave 1 (initial)
+
+- **subscribe() multi-arg regression** — `EventDispatcher::subscribe()` accepts one subscriber, but migrated calls passed multiple (silently dropped). Split into individual calls in routing, kernel, site, content, user, and blog modules.
+- **DashboardModule TypeError** — Non-nullable `$app` property without default caused TypeError when accessed before `main()`. Restored nullable typing.
+- **PackageScripts null container** — 3 call sites (system/index.php, MigrationController, MigrationCommand) omitted `$app` parameter, causing null container in script callbacks.
+- **PackageManager::getVersion() wrong file** — Read `composer.json` instead of `installed.json` for fallback lookup; also fixed `->getName()` called on array.
+- **systemApi factory crash** — Missing fallback for unregistered `system.api` service in DashboardModule. Added `has()` guard matching other controllers.
+- **Console commands broken __call()** — Fixed `$this->container->path()`, `->version()`, `->config()` magic calls in MigrationCommand, BuildCommand, ArchiveCommand, ExtensionTranslateCommand.
+
+### 🐛 Bug Fixes — Wave 2
+
+- **DashboardModule::getWidget() null return** — Returned null violating array contract. Added `assertBooted()` guard for `getWidgets`/`saveWidgets` called before `main()`.
+- **ExceptionListenerWrapper \Exception vs \Throwable** — `shouldRun()` typed `\Exception` but receives `\Throwable` from `getException()`. Fixed to `\Throwable`.
+- **PackageFactory::load() null url** — Silently skipped URL when `$url` was null. Use nullsafe operator with empty string fallback.
+- **CacheModule clearCache missing null guard** — `$this->app` accessed without null guard. Added `assertBooted()` pattern.
+- **routing/index.php redirect args** — Passed 3 args to `setResponse()` instead of status 301 to `redirect()`.
+
+### 🐛 Bug Fixes — Wave 3
+
+- **SiteModule missing assertBooted() guard** — Nullable `$app` property and guard added, matching DashboardModule/CacheModule pattern.
+- **SelfupdateCommand wrong SelfUpdater constructor** — Commented-out instantiation passed wrong argument order after constructor signature change.
+- **Container::extend() crash on resolved services** — Debug module calls `extend('events', ...)` after events service is resolved by ModuleLoader. Added early-return branch for post-resolution decoration.
+- **UserModule/SystemModule missing guards** — Added nullable `$app` + `assertBooted()` guards.
+- **intl/index.php wrong service reference** — Used `$app->get('intl')` but IntlModule IS the intl service. Reverted to `$this`.
+
+### 🐛 Bug Fixes — Wave 4
+
+- **ExceptionListenerWrapper wrong status code** — Symfony `HttpExceptionInterface` uses `getStatusCode()`, Pagekit `HttpException` uses `getCode()`. Previously all Symfony exceptions fell back to 500.
+- **JSON error handler type-hint too narrow** — Only caught Pagekit `HttpException`, not Symfony exceptions. API errors returned HTML instead of JSON.
+- **JSON error response leaked internals** — Internal errors (DB, filesystem) were exposed to API clients. Restricted to HTTP exceptions only.
+- **DashboardModule::getWidget() nullable return restored** — `reorderAction()` relies on null for missing widget IDs.
+- **Installer view.data handler crash** — Called `$view->data()` on `DataHelper` which has no `data()` method. Fixed to use `$data()` invocable.
+- **ExceptionListenerWrapper Closure-only limitation** — Only accepted `\Closure`, now accepts any `callable` via `Closure::fromCallable()`.
+- **IntlServiceLocator::setIntl() NotFoundException on boot** — `$app->get('intl')` threw because no separate intl service exists. Reverted to `$this`.
+- **DashboardController hardcoded API key** — Moved OpenWeatherMap API key/URL to module config (AUDIT FIX marker).
+- **Weather API key empty default** — Restored default key with AUDIT FIX TODO marker; empty default broke widget.
+
+### 🐛 Bug Fixes — Wave 5
+
+- **Container::extend() raw[] stale after decoration** — `raw()` returned stale original closure after `extend()` on resolved service. Now syncs `raw[$name]` to decorated value.
+
+### 🧪 Tests
+
+- **testExtendOnResolvedServiceUpdatesRaw** added to `ContainerTest`.
+- **275 PHPUnit tests pass**, 658 assertions, 0 failures.
+
+### 📝 Documentation
+
+- `README.md` — Fixed broken ArrayAccess code example, updated test count, PSR-11 description, removed stale migration guide reference.
+
+---
+
+## Pagekit 1.2.0 - PSR-11 Container: StaticTrait Removal (March 19, 2026)
+
+### 🚀 Breaking Changes
+
+- **StaticTrait, EventTrait, RouterTrait Deleted** — All three Application trait files removed. `App::*` static shortcut methods (`App::abort()`, `App::redirect()`, `App::trigger()`, `App::user()`, `App::db()`, etc.) and `App::getInstance()` are no longer available. Use explicit `$app->get('service')` PSR-11 calls or constructor dependency injection.
+- **Container::__call() Removed** — Magic method service access (`$app->module()`, `$app->config()`, etc.) no longer works. Use `$app->get('module')`, `$app->get('config')`, etc.
+
+### ♻️ Refactoring
+
+- **Instance Magic Calls Migrated** — All `$app->module()`, `$app->config()`, `$app->request()`, `$app->url()`, `$app->view()` calls replaced with `$app->get('service')` across all module index files, views, and mail templates.
+- **EventTrait Calls Migrated** — All `$app->on()`, `$app->subscribe()`, `$app->trigger()` instance calls replaced with `$app->get('events')->on/subscribe/trigger()`.
+- **RouterTrait Calls Migrated** — `$app->error()` converted to events service with `ExceptionListenerWrapper`. `$app->redirect()` converted to router service.
+- **App::abort() Replaced** — ~80 `App::abort()` static calls across system, installer, console, and blog replaced with typed Symfony HTTP exceptions (`NotFoundHttpException`, `AccessDeniedHttpException`, `BadRequestHttpException`, etc.).
+- **App::redirect() Replaced** — ~18 `App::redirect()` static calls replaced with injected router service via constructor DI.
+- **Remaining App:: Static Calls Eliminated** — `App::trigger()`, `App::on()`, `App::markdown()`, `App::path()`, `App::debug()`, `App::log()`, `App::user()`, `App::request()`, `App::filter()`, `App::db()`, `App::cache()`, `App::url()`, `App::response()`, `App::feed()`, `App::content()` all replaced with constructor DI.
+- **App::getInstance() Bridges Resolved** — ~38 temporary bridge patterns in system and installer areas replaced with proper constructor DI. PackageManager, PackageFactory, PackageScripts, Installer, and all installer controllers refactored.
+- **Models Cleaned** — `Post.php` and `Node.php` models purged of all `App::` static access. ModelServiceLocator provides URL/user/module services for model serialization (tagged for Step 2.1 replacement with DTO/presenter pattern).
+- **IntlServiceLocator Created** — Permanent narrow service locator for `__()`, `_c()`, `_i()` global translation functions, replacing `App::translator()` and `App::intl()`.
+- **Blog Package Fully Migrated** — All 4 controllers, RouteListener, UrlResolver, and Post model now use constructor DI exclusively.
+- **SymfonyEventDispatcherBridge Fixed** — `dispatch()` method now properly forwards events to Pagekit's event dispatcher.
+- **ExceptionListenerWrapper Created** — New kernel event wrapper for typed exception filtering on the events dispatcher.
+
+### 🧪 Tests
+
+- **IntlServiceLocatorTest Added** — 5 tests covering getter/setter and error paths.
+- **EventDispatcherCompatibilityTest Added** — Tests for bridge dispatch forwarding.
+- **ContainerTest Updated** — `__call()` test removed.
+- **274 PHPUnit tests pass**, 658 assertions, 0 failures.
+
+### 📝 Notes
+
+- **EntityManager singleton deferred** — `static::$instance` in EntityManager tagged for removal in Step 2.1 (Static Analysis). ORM refactoring is out of scope for 2.0.1e.
+- **ModelServiceLocator** is a transitional pattern tagged for Step 2.1 replacement with proper DTO/presenter patterns.
+- Container is now pure PSR-11: `get()`, `has()`, `set()`, `factory()`, `extend()`, `raw()`, `keys()`, `remove()` — no magic methods, no static traits.
+
+---
+
 ## Pagekit 1.1.8 - PSR-11 Container Stage 4: Packages Final & ArrayAccess Removal (March 18, 2026)
 
 ### 🚀 Breaking Changes

@@ -8,7 +8,7 @@ use Pagekit\Site\Model\Node;
 
 class SiteModule extends Module
 {
-    protected App $app;
+    protected ?App $app = null;
     protected ?array $types = null;
 
     /**
@@ -17,6 +17,9 @@ class SiteModule extends Module
     public function main(App $app): void
     {
         $this->app = $app;
+
+        ModelServiceLocator::init($app);
+
         $app->set('node', function ($app) {
 
             if ($id = $app->get('request')->attributes->get('_node') and $node = Node::find($id, true)) {
@@ -28,7 +31,7 @@ class SiteModule extends Module
 
         $app->set('menu', function ($app) {
 
-            $menus = new MenuManager($app->config($app->get('theme')->name), $this->config('menus'));
+            $menus = new MenuManager($app->get('config')($app->get('theme')->name), $this->config('menus'));
 
             foreach ($app->get('theme')->get('menus', []) as $name => $label) {
                 $menus->register($name, $label);
@@ -52,6 +55,7 @@ class SiteModule extends Module
     public function getTypes(): ?array
     {
         if (!$this->types) {
+            $this->assertBooted();
 
             foreach ($this->app->get('module') as $module) {
                 foreach ((array) $module->get('nodes') as $type => $route) {
@@ -61,7 +65,7 @@ class SiteModule extends Module
 
             $this->registerType('link', ['label' => 'Link', 'frontpage' => false]);
 
-            App::trigger('site.types', [$this]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            $this->app->get('events')->trigger('site.types', [$this]);
         }
 
         return $this->types;
@@ -73,8 +77,17 @@ class SiteModule extends Module
      * @param string $type
      * @param array  $route
      */
+    private function assertBooted(): void
+    {
+        if ($this->app === null) {
+            throw new \LogicException('SiteModule::main() has not been called yet.');
+        }
+    }
+
     public function registerType($type, array $route): void
     {
+        $this->assertBooted();
+
         if (isset($route['protected']) and $route['protected'] and !array_filter(Node::findAll(true), fn($node) => $type === $node->type)) {
             Node::create([
                 'title' => $route['label'],

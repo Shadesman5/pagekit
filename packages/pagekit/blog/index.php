@@ -3,7 +3,7 @@
 use Pagekit\Blog\Content\ReadmorePlugin;
 use Pagekit\Blog\Event\PostListener;
 use Pagekit\Blog\Event\RouteListener;
-
+use Pagekit\Blog\UrlResolver;
 return [
 
     'name' => 'blog',
@@ -154,11 +154,16 @@ return [
     'events' => [
 
         'boot' => function ($event, $app) {
-            $app->subscribe(
-                new RouteListener,
-                new PostListener(),
-                new ReadmorePlugin
-            );
+            UrlResolver::setCache($app->get('cache'));
+            UrlResolver::setModule($app->get('module')->get('blog'));
+
+            $app->get('events')->subscribe(new RouteListener(
+                $app->get('router'),
+                $app->get('routes'),
+                $app->get('cache'),
+            ));
+            $app->get('events')->subscribe(new PostListener());
+            $app->get('events')->subscribe(new ReadmorePlugin);
         },
 
         'view.scripts' => function ($event, $scripts) {
@@ -167,7 +172,7 @@ return [
         },
 
         'view.data' => function ($event, $data) use ($app) {
-            if (!$app->isAdmin()) {
+            if (!$app->get('isAdmin')) {
                 return;
             }
             $data->add('Theme', [

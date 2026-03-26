@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Pagekit\Widget\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
 use Pagekit\Widget\Model\Widget;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use function Pagekit\__;
 
 /**
@@ -22,6 +22,7 @@ class WidgetApiController
     public function __construct(
         private readonly mixed $position,
         private readonly mixed $request,
+        private readonly mixed $validator,
     ) {}
 
     #[Route('/', methods: ['GET'])]
@@ -50,7 +51,7 @@ class WidgetApiController
     public function getAction(int $id): Widget
     {
         if (!$widget = Widget::find($id)) {
-            App::abort(404, 'Widget not found.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new NotFoundHttpException('Widget not found.');
         }
 
         $positions = $this->position->all();
@@ -110,7 +111,7 @@ class WidgetApiController
         if (!$id) {
             $widget = Widget::create();
         } elseif (!$widget = Widget::find($id)) {
-            App::abort(404, 'Widget not found.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new NotFoundHttpException('Widget not found.');
         }
 
         // Extract position before saving (it's not a database field)
@@ -145,7 +146,7 @@ class WidgetApiController
         }
 
         if (!$widget = Widget::find($id)) {
-            App::abort(404, 'Widget not found.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new NotFoundHttpException('Widget not found.');
         }
 
         $widget->delete();

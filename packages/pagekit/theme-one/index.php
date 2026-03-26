@@ -1,18 +1,17 @@
 <?php
 
-use Pagekit\Application as App;
-
 return [
 
     'name' => 'theme-one',
 
     'main' => function($app) {
 
-        if ($app->isAdmin()) {
+        if ($app->get('isAdmin')) {
             return;
         }
 
         require __DIR__.'/functions.php';
+        \ThemeOneHelpers::setUrl($app->get('url'));
     },
 
     /**
@@ -173,7 +172,7 @@ return [
          */
         'view.layout' => function ($event, $view) use ($app) {
 
-            if ($app->isAdmin()) {
+            if ($app->get('isAdmin')) {
                 return;
             }
 

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Application\Exception;
 use Pagekit\Captcha\Attribute\Captcha;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Pagekit\Module\Module;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\System\Controller\ValidatesRequestTrait;
@@ -30,6 +30,9 @@ class RegistrationController
         private readonly mixed $url,
         private readonly mixed $mailer,
         private readonly mixed $view,
+        private readonly mixed $router,
+        private readonly mixed $authPassword,
+        private readonly mixed $validator,
     ) {
         $this->userModule = $this->module->get('system/user');
     }
@@ -38,11 +41,11 @@ class RegistrationController
     public function indexAction()
     {
         if ($this->user->isAuthenticated()) {
-            return App::redirect(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            return $this->router->redirect();
         }
 
         if ($this->userModule->config('registration') == 'admin') {
-            return App::redirect(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            return $this->router->redirect();
         }
 
         return [
@@ -60,7 +63,7 @@ class RegistrationController
         try {
 
             if ($this->user->isAuthenticated() || $this->userModule->config('registration') == 'admin') {
-                return App::redirect(); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                return $this->router->redirect();
             }
 
             if (!$this->csrf->validate()) {
@@ -77,7 +80,7 @@ class RegistrationController
                 'name' => @$data['name'],
                 'username' => @$data['username'],
                 'email' => @$data['email'],
-                'password' => App::getInstance()->get('auth.password')->hash($password), // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                'password' => $this->authPassword->hash($password),
                 'status' => User::STATUS_BLOCKED
             ]);
 
@@ -106,7 +109,7 @@ class RegistrationController
             }
 
         } catch (Exception $e) {
-            App::abort(400, $e->getMessage()); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException($e->getMessage(), $e);
         }
 
         $this->message->success($message);
@@ -120,7 +123,7 @@ class RegistrationController
     public function activateAction(string $username, string $activation)
     {
         if (empty($username) || empty($activation) || !$user = User::where(['username' => $username, 'activation' => $activation, 'login IS NULL'])->first()) {
-            App::abort(400, __('Invalid key.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException(__('Invalid key.'));
         }
 
         $verifying = false;
@@ -144,7 +147,7 @@ class RegistrationController
 
         $this->message->success($message);
 
-        return App::redirect('@user/login'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+        return $this->router->redirect('@user/login');
     }
 
     protected function sendWelcomeEmail(User $user): void

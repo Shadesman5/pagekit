@@ -1,25 +1,30 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Kernel\Event;
 
-use Pagekit\Kernel\Exception\HttpException;
+use Pagekit\Kernel\Exception\HttpException as PagekitHttpException;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 class ExceptionListenerWrapper
 {
-    protected $callback;
+    /** @var \Closure */
+    protected \Closure $closure;
 
     /**
-     * Constructor.
-     *
-     * @param mixed $callback
+     * @param callable $callback  Accepts closures, [$obj,'method'], and invokable objects.
+     *                            Converted to Closure internally for uniform reflection.
      */
-    public function __construct($callback)
+    public function __construct(callable $callback)
     {
-        $this->callback = $callback;
+        $this->closure = $callback instanceof \Closure
+            ? $callback
+            : \Closure::fromCallable($callback);
     }
 
-    public function __invoke($event)
+    public function __invoke(object $event): void
     {
         $exception = $event->getException();
 
@@ -27,34 +32,36 @@ class ExceptionListenerWrapper
             return;
         }
 
-        $code = $exception instanceof HttpException ? $exception->getCode() : 500;
+        $code = $this->resolveStatusCode($exception);
 
-        $response = call_user_func($this->callback, $exception, $code);
+        $response = ($this->closure)($exception, $code);
 
         if ($response instanceof Response) {
             $event->setResponse($response);
         }
     }
 
-    protected function shouldRun(\Exception $exception): bool
+    private function resolveStatusCode(\Throwable $exception): int
     {
-        if (is_array($this->callback)) {
-            $callbackReflection = new \ReflectionMethod($this->callback[0], $this->callback[1]);
-        } elseif (is_object($this->callback) && !$this->callback instanceof \Closure) {
-            $callbackReflection = new \ReflectionObject($this->callback);
-            $callbackReflection = $callbackReflection->getMethod('__invoke');
-        } else {
-            $callbackReflection = new \ReflectionFunction($this->callback);
+        if ($exception instanceof HttpExceptionInterface) {
+            return $exception->getStatusCode();
         }
 
-        if ($callbackReflection->getNumberOfParameters() > 0) {
-            $parameters = $callbackReflection->getParameters();
-            $expectedException = $parameters[0];
-            
-            // Replace deprecated getClass() with getType()
-            $paramType = $expectedException->getType();
-            if ($paramType instanceof \ReflectionNamedType && !$paramType->isBuiltin() && 
-                !($exception instanceof ($paramType->getName()))) {
+        if ($exception instanceof PagekitHttpException) {
+            return $exception->getCode();
+        }
+
+        return 500;
+    }
+
+    protected function shouldRun(\Throwable $exception): bool
+    {
+        $reflection = new \ReflectionFunction($this->closure);
+
+        if ($reflection->getNumberOfParameters() > 0) {
+            $paramType = $reflection->getParameters()[0]->getType();
+            if ($paramType instanceof \ReflectionNamedType && !$paramType->isBuiltin()
+                && !($exception instanceof ($paramType->getName()))) {
                 return false;
             }
         }

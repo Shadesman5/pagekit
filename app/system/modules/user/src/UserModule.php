@@ -9,7 +9,7 @@ use Pagekit\User\Model\User;
 
 class UserModule extends Module
 {
-    protected App $app;
+    protected ?App $app = null;
     protected array $perms = [];
 
     /**
@@ -28,9 +28,17 @@ class UserModule extends Module
         });
     }
 
+    private function assertBooted(): void
+    {
+        if ($this->app === null) {
+            throw new \LogicException('UserModule::main() has not been called yet.');
+        }
+    }
+
     public function getPermissions(): array
     {
         if (!$this->perms) {
+            $this->assertBooted();
 
             foreach ($this->app->get('module') as $module) {
                 if ($perms = $module->get('permissions')) {
@@ -38,7 +46,7 @@ class UserModule extends Module
                 }
             }
 
-            App::trigger('user.permission', [$this]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            $this->app->get('events')->trigger('user.permission', [$this]);
         }
 
         return $this->perms;

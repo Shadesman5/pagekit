@@ -41,7 +41,7 @@ class ArchiveCommand extends Command
         $packageName = $this->getPackageFilename($name = $this->argument('name'));
 
         if (!($targetDir = $this->option('dir'))) {
-            $targetDir = $this->container->path();
+            $targetDir = $this->container->get('path');
         }
 
         $sourcePath = $this->container->get('path.packages').'/'.$name;

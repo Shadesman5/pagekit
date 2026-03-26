@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Pagekit\Site\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Pagekit\Site\Model\Node;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
@@ -20,6 +20,7 @@ class NodeController
         private readonly mixed $module,
         private readonly mixed $menu,
         private readonly mixed $url,
+        private readonly mixed $router,
     ) {
         $this->site = $this->module->get('system/site');
     }
@@ -29,7 +30,7 @@ class NodeController
     public function indexAction()
     {
         if ($test = Node::fixOrphanedNodes()) {
-            return App::redirect('@site/page'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            return $this->router->redirect('@site/page');
         }
 
         return [
@@ -54,21 +55,21 @@ class NodeController
         if (is_numeric($id)) {
 
             if (!$id or !$node = Node::find($id)) {
-                App::abort(404, 'Node not found.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                throw new NotFoundHttpException('Node not found.');
             }
 
         } else {
             $node = Node::create(['type' => $id]);
 
             if ($menu && !($this->menu)($menu)) {
-                App::abort(404, 'Menu not found.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                throw new NotFoundHttpException('Menu not found.');
             }
 
             $node->menu = $menu;
         }
 
         if (!$type = $this->site->getType($node->type)) {
-            App::abort(404, 'Type not found.'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new NotFoundHttpException('Type not found.');
         }
 
         return [

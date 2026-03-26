@@ -5,6 +5,7 @@ namespace Pagekit\Site\Event;
 use Pagekit\Application as App;
 use Pagekit\Event\EventSubscriberInterface;
 use Pagekit\Module\Module;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class MaintenanceListener implements EventSubscriberInterface
 {
@@ -37,7 +38,7 @@ class MaintenanceListener implements EventSubscriberInterface
             $response = $this->app->get('response');
 
             if (!$user?->isAuthenticated() && $request->isXMLHttpRequest()) {
-                App::abort('401', 'Unauthorized'); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                throw new HttpException(401, 'Unauthorized');
             } elseif ('json' == $request->getFormat(array_shift($types))) {
                 $viewResponse = $response->json($message, 503);
             } else {

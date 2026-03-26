@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Pagekit\Site\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\Site\Model\Node;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use function Pagekit\__;
 
 /**
@@ -24,6 +25,7 @@ class NodeApiController
         private readonly mixed $filter,
         private readonly mixed $module,
         private readonly mixed $config,
+        private readonly mixed $validator,
     ) {}
 
     #[Route('/', methods: ['GET'])]
@@ -44,7 +46,7 @@ class NodeApiController
     public function getAction(int $id): Node
     {
         if (!$node = Node::find($id)) {
-            App::abort(404, __('Node not found.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new NotFoundHttpException(__('Node not found.'));
         }
 
         return $node;
@@ -112,7 +114,7 @@ class NodeApiController
 
             // Business logic: Check if node type is protected (NOT entity validation)
             if ($type = $this->module->get('system/site')->getType($node->type) and isset($type['protected']) and $type['protected']) {
-                App::abort(400, __('Invalid type.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+                throw new BadRequestHttpException(__('Invalid type.'));
             }
 
             $node->delete();
@@ -202,11 +204,11 @@ class NodeApiController
         }
 
         if (!$node = Node::find($id) or !$type = $this->module->get('system/site')->getType($node->type)) {
-            App::abort(404, __('Node not found.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new NotFoundHttpException(__('Node not found.'));
         }
 
         if (isset($type['frontpage']) and !$type['frontpage']) {
-            App::abort(400, __('Invalid node type.')); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException(__('Invalid node type.'));
         }
 
         ($this->config)('system/site')->set('frontpage', $id);

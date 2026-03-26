@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Application\Exception;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Model\User;
@@ -22,12 +23,15 @@ class ProfileController
         private readonly mixed $user,
         private readonly mixed $url,
         private readonly mixed $auth,
+        private readonly mixed $router,
+        private readonly mixed $authPassword,
+        private readonly mixed $validator,
     ) {}
 
     public function indexAction()
     {
         if (!$this->user->isAuthenticated()) {
-            return App::redirect('@user/login', ['redirect' => $this->url->current()]); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            return $this->router->redirect('@user/login', ['redirect' => $this->url->current()]);
         }
 
         return [
@@ -48,7 +52,7 @@ class ProfileController
     public function saveAction(array $data)
     {
         if (!$this->user->isAuthenticated()) {
-            App::abort(404); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new NotFoundHttpException();
         }
 
         try {
@@ -65,7 +69,7 @@ class ProfileController
                     throw new Exception(__('Invalid Password.'));
                 }
 
-                $user->password = App::getInstance()->get('auth.password')->hash($password); // TODO: TEMPORARY BRIDGE - To be removed in Step 2.0.1e
+                $user->password = $this->authPassword->hash($password);
             }
 
             if (@$data['email'] != $user->email) {
@@ -82,7 +86,7 @@ class ProfileController
             return ['message' => 'success'];
 
         } catch (Exception $e) {
-            App::abort(400, $e->getMessage()); // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)
+            throw new BadRequestHttpException($e->getMessage(), $e);
         }
     }
 }
