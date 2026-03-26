@@ -54,7 +54,12 @@ class Container implements ContainerInterface
         }
 
         if (array_key_exists($name, $this->raw)) {
-            // Service already resolved — apply extension to the live instance
+            // Service already resolved — apply decorator to the live instance.
+            // Use case: debug module wraps EventDispatcher with TraceableEventDispatcher.
+            // NOTE for extension developers: this branch only runs if get() was called
+            // before extend(). The result replaces the resolved singleton; factory
+            // services (registered via factory()) are never affected since they are
+            // not stored in $raw.
             $this->values[$name] = $closure($this->values[$name], $this);
             return;
         }

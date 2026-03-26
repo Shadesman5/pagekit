@@ -50,7 +50,7 @@ return [
 
             $app->get('middleware');
 
-            $app->get('events')->on('exception', new ExceptionListenerWrapper(function (\Throwable $e) use ($app) {
+            $app->get('events')->on('exception', new ExceptionListenerWrapper(function (\Throwable $e, int $code) use ($app) {
 
                 if (!($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface)
                     && !($e instanceof HttpException)) {
@@ -61,9 +61,6 @@ return [
                 $types   = $request->getAcceptableContentTypes();
 
                 if ('json' == $request->getFormat(array_shift($types))) {
-                    $code = $e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
-                        ? $e->getStatusCode()
-                        : $e->getCode();
                     return new JsonResponse($e->getMessage(), $code);
                 }
 

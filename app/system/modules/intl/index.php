@@ -39,7 +39,10 @@ return [
 
         'boot' => function ($event, $app) {
             \Pagekit\Intl\IntlServiceLocator::setTranslator($app->get('translator'));
-            \Pagekit\Intl\IntlServiceLocator::setIntl($app->get('intl'));
+            // $this is the IntlModule instance — it IS the intl service (provides
+            // locale, date/number formatting, territory data). No separate 'intl'
+            // service is registered; the module object is the API surface.
+            \Pagekit\Intl\IntlServiceLocator::setIntl($this);
         },
 
         'view.init' => function ($event, $view) {
