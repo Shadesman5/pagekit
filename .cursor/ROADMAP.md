@@ -63,7 +63,7 @@
 | 2.0.1b | ↳ DI Infrastructure                   | ✅     | ⏳    | #163  | #167    | done             |
 | 2.0.1c | ↳ System/Installer/Console + DI       | ✅     | ⏳    | #164  | #169    | done             |
 | 2.0.1d | ↳ Packages + ArrayAccess Removal      | ✅     | ⏳    | #165  | #171    | done             |
-| 2.0.1e | ↳ StaticTrait Removal + DI Final      | ⏳     | ⏳    | #166  | -       | Current Sub-Step |
+| 2.0.1e | ↳ StaticTrait Removal + DI Final      | ✅     | ⏳    | #166  | #172    | done             |
 | 2.0.2  | ↳ Validator-Translator Integration    | ⏳     | ⏳    | #146  | -       | Phase 2          |
 | 2.1    | Static Analysis & Code Quality        | ⏳     | ⏳    | #147  | -       | Phase 2          |
 | 2.1.1  | ↳ Tooling-Setup & Baseline            | ⏳     | ⏳    | #148  | -       | Phase 2          |
