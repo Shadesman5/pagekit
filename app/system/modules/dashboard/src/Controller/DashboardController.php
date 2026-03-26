@@ -14,9 +14,9 @@ class DashboardController
 {
     protected Module $dashboard;
 
-    protected string $api = 'http://api.openweathermap.org/data/2.5';
+    protected string $api;
 
-    protected string $apiKey = '08c012f513db564bd6d4bae94b73cc94';
+    protected string $apiKey;
 
     public function __construct(
         private readonly mixed $module,
@@ -26,6 +26,8 @@ class DashboardController
         private readonly mixed $systemApi,
     ) {
         $this->dashboard = $this->module->get('system/dashboard');
+        $this->api = $this->dashboard->config('weather.api', 'http://api.openweathermap.org/data/2.5');
+        $this->apiKey = $this->dashboard->config('weather.key', '');
     }
 
     #[Route('/', methods: ['GET'])]
