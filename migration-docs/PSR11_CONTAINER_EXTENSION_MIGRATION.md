@@ -278,6 +278,22 @@ $value = $app->config('app.debug');
 $value = $app->get('config')('app.debug');
 ```
 
+### `App::forward()` — Sub-Request Forwarding (Removed)
+
+`App::forward()` from `RouterTrait` has been removed. There were 0 internal calls, but extensions may have used it. Replace with injected `kernel` + `router` services:
+
+```php
+// Old
+return App::forward($route, $parameters);
+
+// New — inject 'kernel' and 'router' via constructor, then:
+use Symfony\Component\HttpFoundation\Request;
+
+$url = $this->router->generate($route, $parameters);
+$subRequest = Request::create($url);
+return $this->kernel->handle($subRequest);
+```
+
 ### `$app->error()` — Event-Based Exception Handling
 
 ```php
@@ -308,6 +324,7 @@ Use this checklist when migrating an extension from pre-2.0.1 Pagekit to 1.2.x+.
 
 - [ ] Replace `App::abort(code)` with `throw new` Symfony HTTP exception (see table above)
 - [ ] Replace `App::redirect(...)` with `$this->router->redirect(...)` (inject `router`)
+- [ ] Replace `App::forward(...)` with sub-request via injected `kernel` + `router` (see above)
 - [ ] Replace `App::on/subscribe/trigger(...)` with `$app->get('events')->on/subscribe/trigger(...)`
 - [ ] Replace `App::user()` with constructor-injected `$this->auth->getUser()`
 - [ ] Replace `App::db()`, `App::cache()`, `App::url()`, etc. with constructor-injected services
