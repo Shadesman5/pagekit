@@ -1,5 +1,20 @@
 # Changelog
 
+## Pagekit 1.2.2 - Task Prompts & Agent Roles (March 26, 2026)
+
+### 📁 Documentation
+
+- **Reorganize PSR-11 docs** — Moved migration docs, agent prompts, branch docs, and ticket plans into organized `PSR-11-Container/` subdirectories for better discoverability.
+- **PSR-11 Closure Audit prompt** — Added verification and No Mercy audit prompt for Issue #145 (all 10 acceptance criteria + 5 ROADMAP rules).
+- **Validator-Translator prompt** — Added Step 2.0.2 task prompt (#146) for connecting Symfony Validator to Pagekit Translator.
+- **Static Analysis prompts (2.1.1–2.1.9)** — Added 9 sub-step prompts + overview for PHPStan, strict_types, CI/CD, QueryBuilder API, Infection, and test coverage.
+
+### 🤖 Agent Improvements
+
+- **Refactorer** — Explicit boundary: no test execution, no self-verification.
+- **Verifier** — Restricted to static code review only; no PHPUnit, Playwright, or application commands.
+- **Tester** — Declared as exclusive test runner. Added clean-state rule: `rm -f pagekit.db config.php` before any fresh installation.
+
 ## Pagekit 1.2.1 - PSR-11 StaticTrait Removal Bugfixes (March 26, 2026)
 
 ### 🐛 Bug Fixes — Wave 1 (initial)
