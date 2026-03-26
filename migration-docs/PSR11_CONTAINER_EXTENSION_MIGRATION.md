@@ -1,8 +1,8 @@
 # PSR-11 Container Migration Guide for Extensions
 
-> **Applies to:** Pagekit 1.1.x+ (ROADMAP Step 2.0.1d)
+> **Applies to:** Pagekit 1.2.x+ (ROADMAP Step 2.0.1e completed)
 >
-> This guide explains how to update legacy Pagekit extensions to work with the modernized PSR-11 Container. ArrayAccess (`$app['x']`) has been removed; all service access and registration now uses explicit methods.
+> This guide explains how to update legacy Pagekit extensions to work with the modernized PSR-11 Container. ArrayAccess (`$app['x']`), all `App::*` static shortcuts, magic `__call()` proxying, and static traits have been removed. All service access and registration now uses explicit methods and constructor dependency injection.
 
 ---
 
@@ -93,11 +93,11 @@ class PostApiController
 }
 ```
 
-### After (Constructor Injection)
+### After (Constructor Injection — Fully Modernized)
 
 ```php
-use Pagekit\Application as App;
 use Pagekit\Module\ModuleManager;
+use Pagekit\Auth\Auth;
 
 class PostApiController
 {
@@ -106,6 +106,7 @@ class PostApiController
     public function __construct(
         private readonly ModuleManager $module,
         private readonly mixed $db,
+        private readonly Auth $auth,
     ) {
         $this->blog = $this->module->get('blog');
     }
@@ -117,9 +118,7 @@ class PostApiController
     {
         $config = $this->blog->config('posts_per_page');
         $posts = $this->db->createQueryBuilder()/* ... */;
-
-        // App::user() stays until Step 2.0.1e (StaticTrait Removal)
-        $user = App::user();
+        $user = $this->auth->getUser();
 
         // ...
     }
@@ -186,13 +185,142 @@ try {
 
 ---
 
-## Deferred Changes (Step 2.0.1e)
+## Removed Static & Magic Patterns (Step 2.0.1e)
 
-The following patterns are **not yet removed** and will change in the next migration step:
+The following patterns have been **removed** as of Step 2.0.1e. All call sites must be updated.
 
-- `App::user()`, `App::db()`, `App::cache()`, `App::router()`, `App::request()`, `App::url()`, `App::content()`, `App::feed()`, `App::response()`, `App::filter()` static calls via `StaticTrait`
-- `App::abort()`, `App::redirect()`, `App::on()`, `App::trigger()`, `App::message()` utility methods
-- `App::module('x')` shorthand (will be replaced by Repository pattern)
-- `$app->someService()` magic via `__call()` on Container
+### `App::abort()` — Throw Symfony HTTP Exceptions
 
-These remain functional for now. Plan to migrate them when Step 2.0.1e lands.
+```php
+// Old
+App::abort(404, 'Page not found');
+App::abort(403, 'Access denied');
+
+// New — throw the appropriate Symfony exception directly
+throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException('Page not found');
+throw new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException('Access denied');
+```
+
+| HTTP Code | Symfony Exception Class |
+|---|---|
+| 400 | `BadRequestHttpException` |
+| 403 | `AccessDeniedHttpException` |
+| 404 | `NotFoundHttpException` |
+| 405 | `MethodNotAllowedHttpException` |
+| 409 | `ConflictHttpException` |
+| 500 | `HttpException` (generic, pass code as first arg) |
+
+### `App::redirect()` — Inject Router
+
+```php
+// Old
+return App::redirect('@blog/post', ['id' => $id]);
+
+// New — inject 'router' via constructor, then:
+return $this->router->redirect('@blog/post', ['id' => $id]);
+```
+
+### `App::on()`, `App::subscribe()`, `App::trigger()` — Use Event Dispatcher
+
+```php
+// Old
+App::on('boot', function ($event, $app) { /* ... */ });
+App::trigger('custom.event', [$data]);
+
+// New — via $app container instance:
+$app->get('events')->on('boot', function ($event, $app) { /* ... */ });
+$app->get('events')->trigger('custom.event', [$data]);
+
+// Or inject 'events' via constructor:
+$this->events->on('boot', function ($event, $app) { /* ... */ });
+```
+
+### `App::user()`, `App::db()`, `App::cache()`, etc. — Constructor DI
+
+All `App::*()` static service accessors have been removed. Use constructor dependency injection instead.
+
+```php
+// Old
+$user = App::user();
+$db = App::db();
+$cache = App::cache();
+
+// New — inject services via constructor parameters matching the container ID:
+public function __construct(
+    private readonly Auth $auth,
+    private readonly mixed $db,
+    private readonly mixed $cache,
+) {}
+
+// Then use:
+$user = $this->auth->getUser();
+$posts = $this->db->createQueryBuilder()/* ... */;
+$value = $this->cache->fetch('key');
+```
+
+### `$app->module('x')` Magic — Explicit ModuleManager
+
+```php
+// Old (via __call magic)
+$blog = $app->module('blog');
+
+// New
+$blog = $app->get('module')->get('blog');
+```
+
+### `$app->config('x')` Magic — Explicit Config Access
+
+```php
+// Old (via __call magic)
+$value = $app->config('app.debug');
+
+// New
+$value = $app->get('config')('app.debug');
+```
+
+### `$app->error()` — Event-Based Exception Handling
+
+```php
+// Old
+$app->error(function (\Exception $e) { /* ... */ });
+
+// New
+use Pagekit\Event\ExceptionListenerWrapper;
+$app->get('events')->on('exception', new ExceptionListenerWrapper(function (\Exception $e) {
+    // ...
+}));
+```
+
+---
+
+## Complete Migration Checklist
+
+Use this checklist when migrating an extension from pre-2.0.1 Pagekit to 1.2.x+.
+
+### ArrayAccess Removal (Step 2.0.1d)
+
+- [ ] Replace all `$app['x']` reads with `$app->get('x')`
+- [ ] Replace all `$app['x'] = ...` writes with `$app->set('x', ...)`
+- [ ] Replace all `isset($app['x'])` checks with `$app->has('x')`
+- [ ] Update exception handling to catch `NotFoundExceptionInterface` instead of `\InvalidArgumentException`
+
+### Static & Magic Removal (Step 2.0.1e)
+
+- [ ] Replace `App::abort(code)` with `throw new` Symfony HTTP exception (see table above)
+- [ ] Replace `App::redirect(...)` with `$this->router->redirect(...)` (inject `router`)
+- [ ] Replace `App::on/subscribe/trigger(...)` with `$app->get('events')->on/subscribe/trigger(...)`
+- [ ] Replace `App::user()` with constructor-injected `$this->auth->getUser()`
+- [ ] Replace `App::db()`, `App::cache()`, `App::url()`, etc. with constructor-injected services
+- [ ] Replace `$app->module('x')` with `$app->get('module')->get('x')`
+- [ ] Replace `$app->config('x')` with `$app->get('config')('x')`
+- [ ] Replace `$app->error(callback)` with `$app->get('events')->on('exception', new ExceptionListenerWrapper(callback))`
+- [ ] Remove all `use Pagekit\Application as App;` imports that only existed for static calls
+- [ ] Run `./app/vendor/bin/phpunit` to verify
+
+> **Note:** The global translation functions `__()`, `_c()`, and `_i()` are unchanged. They are backed by `IntlServiceLocator` internally — no extension changes needed.
+
+---
+
+## Further Reading
+
+- [PSR-11 Container Full Modernization Summary](PSR11_CONTAINER_FULL_MODERNIZATION.md) — complete overview of all 2.0.1 sub-steps (a–e), architecture comparison, and breaking changes
