@@ -49,11 +49,9 @@ All 5 sub-steps of the PSR-11 Container Vollmodernisierung (2.0.1a–e) have bee
 
 **Test environment:** From workspace root. Console: `php pagekit`. PHPUnit: `./app/vendor/bin/phpunit`. For curl/Playwright: start app first with `php -S localhost:8080 index.php`.
 
-**Before starting:** Ensure you are on `develop` with all 5 PRs merged.
+**Before starting:** Ensure you are on actual branch from `develop` with all 5 PRs merged.
 
 ```bash
-git checkout develop
-git pull origin develop
 git log --oneline -10
 ```
 
