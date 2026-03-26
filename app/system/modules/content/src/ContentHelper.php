@@ -3,12 +3,12 @@
 namespace Pagekit\Content;
 
 use Pagekit\Content\Event\ContentEvent;
-use Pagekit\Event\EventDispatcher;
+use Pagekit\Event\EventDispatcherInterface;
 
 class ContentHelper
 {
     public function __construct(
-        private readonly EventDispatcher $events,
+        private readonly EventDispatcherInterface $events,
     ) {}
 
     /**
