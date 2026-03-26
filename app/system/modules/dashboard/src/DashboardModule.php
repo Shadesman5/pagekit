@@ -23,15 +23,11 @@ class DashboardModule extends Module
      *
      * @param  string $id
      */
-    public function getWidget(string $id): array
+    public function getWidget(string $id): ?array
     {
         $widgets = $this->getWidgets();
 
-        if (!isset($widgets[$id])) {
-            throw new \LogicException(sprintf('Dashboard widget "%s" not found.', $id));
-        }
-
-        return $widgets[$id];
+        return $widgets[$id] ?? null;
     }
 
     /**
