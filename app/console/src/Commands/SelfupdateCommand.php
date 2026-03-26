@@ -33,47 +33,47 @@ class SelfupdateCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        // TODO
+        // TODO: Re-enable when self-update infrastructure is rebuilt
         return (int) $this->error("The feature is disabled during development.");
         // try {
         //     if (!$this->option('url')) {
         //         $output->write('Requesting Version...');
         //         $versions = $this->getVersions();
         //         $output->writeln('<info>done.</info>');
-
+        //
         //         $output->writeln('');
         //         $output->writeln('<comment>Latest Version: ' . $versions['latest']['version'] . '</comment> ');
         //         $output->writeln('');
-
+        //
         //         if (!$this->confirm('Update to Version ' . $versions['latest']['version'] . '? [y/n]')) {
-        //             return;
+        //             return 0;
         //         }
-
+        //
         //         $output->writeln('');
-
+        //
         //         $url = $versions['latest']['url'];
         //     } else {
         //         $url = $this->option('url');
         //     }
-
-        //     $tmpFile = tempnam($this->container['path.temp'], 'update_');
-
+        //
+        //     $tmpFile = tempnam($this->container->get('path.temp'), 'update_');
+        //
         //     $output->write('Downloading...');
         //     $this->download($url, $tmpFile);
         //     $output->writeln('<info>done.</info>');
-
+        //
         //     $updater = new SelfUpdater($this->container->get('path'), $output);
         //     $updater->update($tmpFile);
-
+        //
         //     $output->write('Migrating...');
         //     system(sprintf('php %s migrate', $_SERVER['PHP_SELF']));
-
+        //
         // } catch (\Exception $e) {
-
+        //
         //     if (isset($tmpFile) && file_exists($tmpFile)) {
         //         unlink($tmpFile);
         //     }
-
+        //
         //     throw $e;
         // }
 

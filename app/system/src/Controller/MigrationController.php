@@ -59,6 +59,6 @@ class MigrationController
             return $this->router->redirect($redirect);
         }
 
-        return $this->response->json(compact('status', 'message'));
+        return $this->response->json(['status' => (bool) $updates, 'message' => $message]);
     }
 }
