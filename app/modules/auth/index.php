@@ -15,6 +15,8 @@ return [
 
         $app->set('auth.password', fn() => new NativePasswordEncoder);
 
+        // camelCase alias — PHP parameter names cannot contain dots, so controllers
+        // inject `$authPassword` which resolves to this alias for `auth.password`.
         $app->set('authPassword', fn($app) => $app->get('auth.password'));
 
         $app->set('auth.random', fn() => (new Factory)->getLowStrengthGenerator());

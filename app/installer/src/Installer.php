@@ -170,6 +170,7 @@ class Installer
                 }
             }
 
+            // $app is used by the require'd install scripts (install.php / install-demo.php)
             $app = $this->app;
             if (!$demo_content) {
                 if (file_exists(__DIR__.'/../install.php')) {
