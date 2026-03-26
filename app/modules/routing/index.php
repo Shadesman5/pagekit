@@ -52,13 +52,18 @@ return [
 
             $app->get('events')->on('exception', new ExceptionListenerWrapper(function (\Throwable $e) use ($app) {
 
+                if (!($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface)
+                    && !($e instanceof HttpException)) {
+                    return;
+                }
+
                 $request = $app->get('router')->getRequest();
                 $types   = $request->getAcceptableContentTypes();
 
                 if ('json' == $request->getFormat(array_shift($types))) {
                     $code = $e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
                         ? $e->getStatusCode()
-                        : ($e instanceof HttpException ? $e->getCode() : 500);
+                        : $e->getCode();
                     return new JsonResponse($e->getMessage(), $code);
                 }
 

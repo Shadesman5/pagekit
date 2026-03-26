@@ -142,17 +142,11 @@ return [
 
     'events' => [
 
-        'view.data' => function ($event, $view) use ($app) {
-            // Set $pagekit variable for installer JavaScript
+        'view.data' => function ($event, $data) use ($app) {
             $installer = $app->get('module')->get('installer');
             if ($installer && $installer->config('enabled')) {
-                $request = $app->get('request');
-                
-                // Build URL - always include index.php for installer
-                $url = '/index.php';
-                
-                $view->data('$pagekit', [
-                    'url' => $url,
+                $data('$pagekit', [
+                    'url' => '/index.php',
                     'csrf' => $app->get('csrf')->generate()
                 ]);
             }

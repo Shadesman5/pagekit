@@ -10,10 +10,18 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 class ExceptionListenerWrapper
 {
-    // Only \Closure is accepted — all internal callers use fn()/function() literals.
-    public function __construct(
-        protected \Closure $callback,
-    ) {
+    /** @var \Closure */
+    protected \Closure $closure;
+
+    /**
+     * @param callable $callback  Accepts closures, [$obj,'method'], and invokable objects.
+     *                            Converted to Closure internally for uniform reflection.
+     */
+    public function __construct(callable $callback)
+    {
+        $this->closure = $callback instanceof \Closure
+            ? $callback
+            : \Closure::fromCallable($callback);
     }
 
     public function __invoke(object $event): void
@@ -26,7 +34,7 @@ class ExceptionListenerWrapper
 
         $code = $this->resolveStatusCode($exception);
 
-        $response = call_user_func($this->callback, $exception, $code);
+        $response = ($this->closure)($exception, $code);
 
         if ($response instanceof Response) {
             $event->setResponse($response);
@@ -48,10 +56,10 @@ class ExceptionListenerWrapper
 
     protected function shouldRun(\Throwable $exception): bool
     {
-        $callbackReflection = new \ReflectionFunction($this->callback);
+        $reflection = new \ReflectionFunction($this->closure);
 
-        if ($callbackReflection->getNumberOfParameters() > 0) {
-            $paramType = $callbackReflection->getParameters()[0]->getType();
+        if ($reflection->getNumberOfParameters() > 0) {
+            $paramType = $reflection->getParameters()[0]->getType();
             if ($paramType instanceof \ReflectionNamedType && !$paramType->isBuiltin()
                 && !($exception instanceof ($paramType->getName()))) {
                 return false;
