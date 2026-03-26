@@ -4,8 +4,6 @@ use Pagekit\Blog\Content\ReadmorePlugin;
 use Pagekit\Blog\Event\PostListener;
 use Pagekit\Blog\Event\RouteListener;
 use Pagekit\Blog\UrlResolver;
-use Pagekit\Site\ModelServiceLocator;
-
 return [
 
     'name' => 'blog',
@@ -156,8 +154,6 @@ return [
     'events' => [
 
         'boot' => function ($event, $app) {
-            ModelServiceLocator::init($app);
-
             UrlResolver::setCache($app->get('cache'));
             UrlResolver::setModule($app->get('module')->get('blog'));
 

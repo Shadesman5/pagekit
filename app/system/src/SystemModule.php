@@ -8,7 +8,7 @@ use Symfony\Component\Finder\Finder;
 
 class SystemModule extends Module
 {
-    protected App $app;
+    protected ?App $app = null;
 
     /**
      * {@inheritdoc}
@@ -74,11 +74,19 @@ class SystemModule extends Module
     /**
      * Gets the system menu.
      */
+    private function assertBooted(): void
+    {
+        if ($this->app === null) {
+            throw new \LogicException('SystemModule::main() has not been called yet.');
+        }
+    }
+
     public function getMenu(): object
     {
         static $menu;
 
         if (!$menu) {
+            $this->assertBooted();
 
             $menu = new SystemMenu(
                 $this->app->get('user'),

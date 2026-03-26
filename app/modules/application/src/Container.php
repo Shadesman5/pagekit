@@ -53,13 +53,19 @@ class Container implements ContainerInterface
             throw new \InvalidArgumentException(sprintf('"%s" is not defined.', $name));
         }
 
+        if (array_key_exists($name, $this->raw)) {
+            // Service already resolved — apply extension to the live instance
+            $this->values[$name] = $closure($this->values[$name], $this);
+            return;
+        }
+
         if (!($this->values[$name] instanceof \Closure)) {
             throw new \InvalidArgumentException(sprintf('"%s" service definition is not a Closure.', $name));
         }
 
         $factory = $this->values[$name];
 
-        $this->set($name, fn($c) => $closure($factory($c), $c));
+        $this->values[$name] = fn($c) => $closure($factory($c), $c);
     }
 
     /**
