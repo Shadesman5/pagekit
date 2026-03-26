@@ -82,9 +82,7 @@ class PackageFactory implements \ArrayAccess, \IteratorAggregate
 
             if (isset($path)) {
                 $data['path'] = $path;
-                if ($this->url !== null) {
-                    $data['url'] = $this->url->getStatic($path);
-                }
+                $data['url'] = $this->url?->getStatic($path) ?? '';
             }
 
             return new Package($data);

@@ -115,8 +115,17 @@ class CacheModule extends Module
     /**
      * Clear cache on terminate event.
      */
+    private function assertBooted(): void
+    {
+        if ($this->app === null) {
+            throw new \LogicException('CacheModule::main() has not been called yet.');
+        }
+    }
+
     public function clearCache(array $options = []): void
     {
+        $this->assertBooted();
+
         $this->app->get('events')->on('terminate', function() use ($options) {
             $this->doClearCache($options);
         }, -512);
@@ -127,6 +136,8 @@ class CacheModule extends Module
      */
     public function doClearCache(array $options = []): void
     {
+        $this->assertBooted();
+
         $app = $this->app;
 
         // clear cache

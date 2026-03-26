@@ -31,7 +31,7 @@ class ExceptionListenerWrapper
         }
     }
 
-    protected function shouldRun(\Exception $exception): bool
+    protected function shouldRun(\Throwable $exception): bool
     {
         $callbackReflection = new \ReflectionFunction($this->callback);
 

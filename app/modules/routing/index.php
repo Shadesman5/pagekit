@@ -66,7 +66,7 @@ return [
         'request' => [function ($event, $request) use ($app) {
 
             if ($redirect = $request->attributes->get('_redirect')) {
-                $event->setResponse($app->get('router')->redirect($redirect), [], 301);
+                $event->setResponse($app->get('router')->redirect($redirect, [], 301));
             };
 
         }, 90],
