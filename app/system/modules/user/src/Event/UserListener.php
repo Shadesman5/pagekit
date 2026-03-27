@@ -2,7 +2,6 @@
 
 namespace Pagekit\User\Event;
 
-use Pagekit\Application as App;
 use Pagekit\Auth\Event\LoginEvent;
 use Pagekit\Event\EventSubscriberInterface;
 use Pagekit\User\Model\User;

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\Cache\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\User\Attribute\Access;
 

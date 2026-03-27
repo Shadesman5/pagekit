@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\Intl\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
 

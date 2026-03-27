@@ -1,5 +1,21 @@
 # Changelog
 
+## Pagekit 1.2.3 - PSR-11 Container Closure Audit (March 26, 2026)
+
+### 🛡️ Audit
+
+- **PSR-11 Container closure audit passed** — All 10 acceptance criteria verified for ROADMAP Step 2.0.1 (PSR-11 native, no ArrayAccess, no StaticTrait, zero `App::` calls, zero magic methods, controllers/listeners use constructor DI, migration docs published, PHPUnit + E2E green).
+- **No Mercy rules verified** — Zero compat layers, zero adapters, ArrayAccess removed, legacy traits deleted, zero `TEMPORARY BRIDGE` markers.
+
+### 🧹 Cleanup
+
+- **Remove stale TODO marker** — Deleted outdated `TODO: Must be refactored in Step 2.0.1e` comment from `app/console/index.php` (work completed).
+- **Remove 7 dead `App` imports** — Removed unused `use Pagekit\Application as App;` from `PageApiController`, `StorageController`, `IntlController`, `IntlApiController`, `InfoController`, `CacheController`, and `UserListener`.
+
+### 📝 Documentation
+
+- **ROADMAP updated** — Step 2.0.1 marked as ✅ with audit 🛡️; sub-steps 2.0.1a–e audit columns set to 🛡️; Step 2.0.2 advanced to **Current Step**.
+
 ## Pagekit 1.2.2 - Task Prompts & Agent Roles (March 26, 2026)
 
 ### 📁 Documentation
