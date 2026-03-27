@@ -219,7 +219,7 @@ This step connects the Symfony Validator to Pagekit's Translator so `$violation-
 - ✅ Constraints without explicit `message:` use Symfony built-in English defaults (acceptable)
 
 #### Deferred Work
-- ✅ `PhpNodeVisitor.php` has `// TODO: Step 2.0.2 - Extract #[Assert\...] message keys from PHP 8 Attributes (optional, low priority)` — correctly deferred to Step 2.1
+- ✅ `PhpNodeVisitor.php` has `// TODO: Step 2.1 - Extract #[Assert\...] message keys from PHP 8 Attributes (optional, low priority)` — deferred to Step 2.1 (Static Analysis)
 
 #### Test Coverage
 - ✅ `ValidatorTranslatorIntegrationTest.php`: 5 tests, 16 assertions, all passing
