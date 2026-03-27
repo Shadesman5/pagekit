@@ -59,4 +59,4 @@ docker.env
 /playwright-smoke-report/**/*
 /storage-e2e/
 /tmp-e2e/
-/tests/e2e/config/test-config.jsonripgrep_14.1.1-1_amd64.deb
+/tests/e2e/config/test-config.json
