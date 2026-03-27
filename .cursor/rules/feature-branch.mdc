@@ -1,4 +1,4 @@
 ---
-description: Feature Branch Workflow - Manages feature development with automatic documentation. Steps: 1) When starting a new feature, create branch 'feature/[name]' from 'develop'; 2) Track all changes and categorize them (Breaking/Feature/Enhancement/Fix); 3) On feature completion: a) Generate comprehensive CHANGELOG-NEW.md entry with full details; b) Update README.md if feature affects system requirements or major functionality; c) Write PR documentation to migration-docs/pull-requests/PR_[feature-name].md with detailed description including: What changed, Why it was needed, How to test, Migration notes if applicable.
+description: Feature Branch Workflow - Manages feature development. Steps: 1) When starting a new feature, create branch 'feature/[name]' from 'develop'; 2) Track all changes and categorize them (Breaking/Feature/Enhancement/Fix); 3) On feature completion: a) Generate comprehensive CHANGELOG-NEW.md entry with full details; b) Update README.md if feature affects system requirements or major functionality; c) Follow push.mdc for version bump, push, and PR creation with metadata block.
 alwaysApply: false
 ---

@@ -28,3 +28,4 @@ Pagekit CMS is a modular PHP CMS built on Symfony 6.4 components with a Vue.js 2
 - **Writable directories needed:** `tmp/` (logs, cache, temp, packages) and `storage/` must be writable. Create them with `mkdir -p tmp/logs tmp/cache tmp/temp tmp/packages storage`.
 - **`php pagekit start`** is documented in README but just wraps `php -S 0.0.0.0:8080 index.php`. Use the direct command for more control.
 - **E2E tests (Playwright)** require the dev server running and a completed installation. Config at `tests/e2e/config/test-config.json` (copy from `.example.json`).
+- **Modernisation workflow** is defined in `.cursor/rules/` (push.mdc, feature-branch.mdc, orchestrator-subagent-workflow.mdc) and `.cursor/ROADMAP.md`.

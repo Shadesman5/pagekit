@@ -89,4 +89,4 @@ Einfach "push" im Chat eingeben!
 -   `.cursor/Dockerfile` - Container-Definition
 -   `.cursor/environment.json` - Agent-Konfiguration
 -   `.cursor/*.sh` - Helper Scripts
--   `MODERNISING_PAGEKIT_TODO_LIST.md` - Hauptaufgaben
+-   `MODERNISATION_STRATEGY.md` - Vision & Strategie der Modernisierung

@@ -22,13 +22,7 @@ Subagent tasks are delegated via files in this folder. The Orchestrator only ass
 
 ## Optional: output for human
 
-In the task prompt or in the invocation template you can set:
-
-```text
-Output for human (optional): migration-docs/pull-requests/PR_PSR-11-DI.md
-```
-
-Then the task prompt can instruct who writes it (e.g. "At the end, write a short PR summary to Output for human path"). That file is the single artifact you need to read; the rest stays in tickets and code.
+The task prompt or invocation template can specify a summary file path for human review. This is optional — the primary output is the PR itself (created via `push.mdc`).
 
 ## Git
 

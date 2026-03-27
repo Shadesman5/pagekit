@@ -2,7 +2,7 @@
 
 **Stand:** 12.02.2026 | **Version:** 2.2 | **System:** Pagekit Modernized
 
-**Abgleich:** Dieser Plan ist mit `migration-docs/TODO/MODERNISING_PAGEKIT_TODO_LIST.md` und `tests/e2e/TEST_PLAN_ANALYSIS_2025.md` abgestimmt. Features, die laut Roadmap erst in Phase 4/5 kommen oder aktuell nicht vorhanden sind, sind entsprechend gekennzeichnet.
+**Abgleich:** Dieser Plan ist mit der [ROADMAP](../../.cursor/ROADMAP.md) und `tests/e2e/TEST_PLAN_ANALYSIS_2025.md` abgestimmt. Features, die laut Roadmap erst in Phase 4/5 kommen oder aktuell nicht vorhanden sind, sind entsprechend gekennzeichnet.
 
 ---
 
@@ -10,7 +10,7 @@
 
 - **Nicht die komplette E2E-Suite bei jedem Schritt laufen lassen.**  
   Pro Modernisierungs-Schritt: **nur** Installationstest + die Specs der betroffenen Feature-Bereiche ausführen.  
-  Siehe `MODERNISING_PAGEKIT_TODO_LIST.md` → „Test-Driven Development (CRITICAL)“.
+  Siehe `AGENTS.md` → „Modernisation Workflow Rules“.
 - Vor Arbeit: `npx playwright test tests/e2e/specs/01-setup/installation.spec.js` + `./app/vendor/bin/phpunit`
 - Nach jedem Schritt: frische Installation + betroffene Feature-Tests + PHPUnit (alle grün vor PR).
 

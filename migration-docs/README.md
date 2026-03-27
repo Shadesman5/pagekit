@@ -4,93 +4,63 @@ Diese Sammlung enthält alle wichtigen Dokumentationen zur Modernisierung und Mi
 
 ## 📁 Struktur
 
+### 📋 `/TODO/` — Planung & Phasen (aktiv)
+
+-   **MODERNISATION_STRATEGY.md** — Vision, Philosophie und strategische Entscheidungen
+-   **PHASE#1_MODERNISING.md** .. **PHASE#5_FUTURE_VISION.md** — Detaillierte Schritte pro Phase
+-   **agent_prompts/** — Agent-Prompts für konkrete Migrationsschritte
+-   **GITHUB_PROJECTS_ISSUES_ACTIONS_GUIDE.md** — GitHub Projects, Issues und Actions Leitfaden
+
 ### 🔒 `/security/`
 
-Sicherheitsupdates und Patches
-
--   **completed/**
-    -   **SECURITY_PATCHES.md** - Finales Security Patch Dokument (September 19, 2025)
--   **process/**
-    -   **SECURITY_PATCHES_IMPLEMENTATION.md** - Detailliertes Implementierungslog
+-   **completed/SECURITY_PATCHES.md** — Finales Security Patch Dokument
+-   **process/SECURITY_PATCHES_IMPLEMENTATION.md** — Detailliertes Implementierungslog
 
 ### 📦 `/dependencies/`
 
-Abhängigkeiten-Management und Updates
-
--   **completed/**
-    -   **DEPENDABOT_UPDATES.md** - Automatisierte Dependabot-Updates
--   **process/**
-    -   **dependency-analysis.md** - Analyse aller Projekt-Abhängigkeiten
-    -   **SYMFONY_64_CHANGES.md** - Strategie für Symfony 6.4 Migration
+-   **completed/DEPENDABOT_UPDATES.md** — Automatisierte Dependabot-Updates
+-   **process/dependency-analysis.md** — Analyse aller Projekt-Abhängigkeiten
+-   **process/SYMFONY_64_CHANGES.md** — Strategie für Symfony 6.4 Migration
 
 ### 🧪 `/testing/`
 
-Test-Dokumentation und Ergebnisse
-
--   **completed/**
-    -   **TEST_IMPROVEMENTS.md** - Verbesserungen am Testsystem
-    -   **test-results.txt** - Aktuelle Testergebnisse
+-   **completed/TEST_IMPROVEMENTS.md** — Verbesserungen am Testsystem
 
 ### 📧 `/mail/`
 
-Mail-System Migration
-
--   **completed/**
-    -   **MAIL_MIGRATION.md** - Mail-System Migration
-    -   **MAIL_MIGRATION_ANALYSIS.md** - Performance-Analyse der Migration
-
-### 🔄 `/pull-requests/`
-
-PR-Dokumentation und Git-Workflows
-
--   **PR_DESCRIPTION.md** - PR-Beschreibungsvorlagen
--   **PR_PHPUNIT_11_UPGRADE.md** - PHPUnit 11 Upgrade PR
+-   **completed/MAIL_MIGRATION.md** — Mail-System Migration
 
 ### 📚 `/documentation/`
 
-Meta-Dokumentation und Workflows
+-   **CURSOR_RULES_OVERVIEW.md** — Übersicht der Cursor-Regeln
+-   **DOCUMENTATION_AUTOMATION.md** — Automatisierung der Dokumentation
 
--   **CURSOR_RULES_OVERVIEW.md** - Übersicht der Cursor-Regeln
--   **DOCUMENTATION_AUTOMATION.md** - Automatisierung der Dokumentation
--   **MODERNISING_PAGEKIT_TODO_LIST.md** - Haupt-TODO-Liste für die Modernisierung
+### 📦 `/branches/` — Historisches Archiv (Phase 1)
 
-### 📋 `/TODO/`
+> Diese Dateien dokumentieren abgeschlossene Phase-1 Branches.
+> Sie werden nicht mehr aktiv gepflegt — der aktuelle Workflow nutzt GitHub PRs direkt.
 
-Planung, Phasen und Workflow-Guides
+### 📦 `/pull-requests/` — Historisches Archiv (Phase 1)
 
--   **GITHUB_PROJECTS_ISSUES_ACTIONS_GUIDE.md** - Detaillierter Leitfaden: GitHub Projects, Issues und Actions für die Modernisierung (Workflow-Verbesserung, weniger Repo-Dateien)
--   **MODERNISING_PAGEKIT_TODO_LIST.md** - Siehe auch `/documentation/`
--   **PHASE#1_MODERNISING.md**, **PHASE#2_MODERNISING.md** - Detaillierte Schritte pro Phase
--   **agent_prompts/** - Agent-Prompts für konkrete Migrationsschritte
+> PR-Zusammenfassungen aus dem alten Workflow (vor Cloud-Agenten).
+> Aktuelle PRs werden direkt auf GitHub erstellt — siehe `push.mdc`.
 
-## 🔍 Wichtige Hinweise
+## 🔍 Tracking & Navigation
 
-### Aktuelle Prioritäten
-
-1. **Security Patches** - Alle kritischen Sicherheitslücken sind behoben
-2. **Dependency Updates** - Laufende Aktualisierung veralteter Pakete
-3. **Testing** - Verbesserung der Testabdeckung
-4. **Documentation** - Kontinuierliche Dokumentationspflege
-
-### Ordnerstruktur
-
--   **completed/** - Alle finalen, abgeschlossenen Dokumente
--   **process/** - Arbeits-/Prozessdokumente und Analysen
--   **documentation/** - Meta-Dokumentation und Workflows
+| Was | Wo |
+|---|---|
+| **Fortschritt & Status** | [ROADMAP.md](../.cursor/ROADMAP.md) (einzige SSOT) |
+| **Vision & Strategie** | [MODERNISATION_STRATEGY.md](TODO/MODERNISATION_STRATEGY.md) |
+| **Technische Details** | `TODO/PHASE#X_*.md` (pro Phase) |
+| **Agent Workflow** | `.cursor/rules/` (push.mdc, feature-branch.mdc, orchestrator) |
 
 ## 📅 Timeline
 
 -   **Start**: September 2025
--   **Aktiv**: Fortlaufende Modernisierung
--   **Ziel**: Vollständig modernisiertes Pagekit CMS
-
-## 🛠 Workflow
-
-1. Neue Migrationsdokumente in den passenden Unterordner ablegen
-2. README bei strukturellen Änderungen aktualisieren
-3. Veraltete Dokumente archivieren oder löschen
-4. Regelmäßige Reviews durchführen
+-   **Phase 1**: Abgeschlossen (17/17 Schritte, Version 1.1.0)
+-   **Phase 2**: Aktiv (Static Analysis & Code Quality)
+-   **Ziel**: Pagekit 2.0.0 (Production-Ready)
 
 ---
 
-_Zuletzt aktualisiert: 19. September 2025_
+_Zuletzt aktualisiert: März 2026_
