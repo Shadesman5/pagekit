@@ -8,12 +8,10 @@ use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
- * Service provider for Symfony Validator integration.
+ * Service provider for Symfony Validator integration (Step 2.0.2).
  *
- * This provider sets up the Symfony Validator with PHP 8 Attribute support.
- * Part of the hybrid validation strategy (Step 1.13):
- * - Validation: Uses PHP 8 Attributes (#[Assert\...])
- * - ORM: Still uses Doctrine Annotations (until Step 1.14)
+ * Sets up the Symfony Validator with PHP 8 Attribute mapping and
+ * Translator-backed constraint messages via the 'validators' domain.
  *
  * @see https://symfony.com/doc/current/validation.html
  */
@@ -22,20 +20,20 @@ class ValidatorServiceProvider
     /**
      * Register the Symfony Validator service.
      *
+     * Resolves the translator lazily inside the factory closure,
+     * so boot-order with IntlModule is not an issue.
+     *
      * @param \Pagekit\Application $app The Pagekit application container
      */
-    public static function register($app): void
+    public static function register(\Pagekit\Application $app): void
     {
         $app->set('validator', function ($app): ValidatorInterface {
             $builder = Validation::createValidatorBuilder();
 
-            // CRITICAL: Enable PHP 8 Attribute support for Validation
-            // This allows using #[Assert\NotBlank], #[Assert\Email], etc.
             $builder->enableAttributeMapping();
 
-            // Register custom constraint validators
-            // The UniqueValidator will be auto-discovered by Symfony's naming convention
-            // (Constraint class + "Validator" suffix in the same namespace)
+            $builder->setTranslator($app->get('translator'));
+            $builder->setTranslationDomain('validators');
 
             return $builder->getValidator();
         });

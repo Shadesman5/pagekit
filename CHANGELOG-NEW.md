@@ -1,5 +1,32 @@
 # Changelog
 
+## Pagekit 1.2.4 - Validator-Translator Integration + Audit (March 27, 2026)
+
+### Features
+
+- **Symfony Translator wired into ValidatorBuilder** — `ValidatorServiceProvider::register()` now calls `setTranslator()` and `setTranslationDomain('validators')`, enabling domain-aware translation of validation constraint messages (Step 2.0.2).
+
+### Refactoring
+
+- **Rename `validation.php` to `validators.php`** — Translation files in `app/system/languages/en_US/` and `packages/pagekit/blog/languages/en_US/` renamed to match the Symfony `validators` domain convention. `IntlModule::loadLocale()` auto-derives domain from filename via `glob()`.
+
+### Tests
+
+- **ValidatorTranslatorIntegrationTest** — 5 new integration tests: translated violation messages, parameterized length constraints, valid entity produces no violations, `validationErrorResponse()` returns human-readable messages, locale fallback to `en_US`.
+
+### Documentation
+
+- **Boot comment updated** — `app/system/index.php` comment reflects Step 2.0.2 Translator-integrated validator (replaces Step 1.13 hybrid-mode note).
+
+### Audit
+
+- **No Mercy audit passed for Steps 2.0-2.0.2** — Comprehensive audit covering Controller Attributes (2.0), PSR-11 Container Vollmodernisierung (2.0.1, 2.0.1a-e), and Validator-Translator Integration (2.0.2). All 8 steps pass: zero compatibility layers, zero adapters, full strict typing, 280 tests green.
+- **ROADMAP updated** — Step 2.0 audit upgraded from `needs-audit` to `passed`; Step 2.0.2 marked as done with PR #175; Step 2.1 advanced to Current Step.
+
+### Chores
+
+- **Deferred TODO for ExtensionTranslateCommand** — Added `TODO: Step 2.0.2` marker in `PhpNodeVisitor.php` for future `#[Assert\...]` attribute key extraction (low priority, deferred to Step 2.1).
+
 ## Pagekit 1.2.3 - PSR-11 Container Closure Audit (March 26, 2026)
 
 ### 🛡️ Audit
