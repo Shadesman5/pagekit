@@ -1,18 +1,13 @@
 <?php
 
 /**
- * System Validation Messages for Symfony Validator (Step 1.13 - Hybrid Mode)
+ * System Validation Messages — Symfony Validator + Translator (Step 2.0.2)
  *
- * This file contains validation message keys for SYSTEM modules only.
- * Extension packages (e.g., Blog) have their own validation.php files.
+ * Domain: "validators" (derived from filename by IntlModule::loadLocale()).
+ * The ValidatorServiceProvider wires the Translator with this domain so that
+ * constraint message keys are resolved automatically.
  *
- * These keys are referenced in entity validation constraints via the 'message' parameter.
- *
- * Example usage in entity:
- * #[Assert\NotBlank(message: 'validation.user.username_required')]
- *
- * Note: Actual translation integration (using __() function or Symfony Translator)
- * will be handled in a later phase. For now, these are English messages only.
+ * Extension packages (e.g., Blog) ship their own validators.php files.
  */
 
 return [
