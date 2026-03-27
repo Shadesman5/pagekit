@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\Finder\Controller;
 
-use Pagekit\Application as App;
 use Pagekit\User\Attribute\Access;
 use function Pagekit\__;
 

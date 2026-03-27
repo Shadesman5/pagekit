@@ -12,9 +12,6 @@ return [
 
     'events' => [
 
-        // TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal + DI Final)
-        // Commands are instantiated with parameterless new $class. Once StaticTrait is removed,
-        // commands should use constructor injection via a resolver (like ControllerResolver).
         'console.init' => function ($event, $console) {
 
             $namespace = 'Pagekit\\Console\\Commands\\';
