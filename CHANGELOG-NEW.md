@@ -1,13 +1,6 @@
 # Changelog
 
-## Pagekit 1.2.5 - Validator-Translator Integration + Audit (March 27, 2026)
-
-### Audit
-
-- **No Mercy audit passed for Steps 2.0-2.0.2** — Comprehensive audit covering Controller Attributes (2.0), PSR-11 Container Vollmodernisierung (2.0.1, 2.0.1a-e), and Validator-Translator Integration (2.0.2). All 8 steps pass: zero compatibility layers, zero adapters, full strict typing, 280 tests green.
-- **ROADMAP updated** — Step 2.0 audit upgraded from `needs-audit` to `passed`; Step 2.0.2 marked as done with PR #175; Step 2.1 advanced to Current Step.
-
-## Pagekit 1.2.4 - Validator-Translator Integration (March 27, 2026)
+## Pagekit 1.2.4 - Validator-Translator Integration + Audit (March 27, 2026)
 
 ### Features
 
@@ -24,6 +17,11 @@
 ### Documentation
 
 - **Boot comment updated** — `app/system/index.php` comment reflects Step 2.0.2 Translator-integrated validator (replaces Step 1.13 hybrid-mode note).
+
+### Audit
+
+- **No Mercy audit passed for Steps 2.0-2.0.2** — Comprehensive audit covering Controller Attributes (2.0), PSR-11 Container Vollmodernisierung (2.0.1, 2.0.1a-e), and Validator-Translator Integration (2.0.2). All 8 steps pass: zero compatibility layers, zero adapters, full strict typing, 280 tests green.
+- **ROADMAP updated** — Step 2.0 audit upgraded from `needs-audit` to `passed`; Step 2.0.2 marked as done with PR #175; Step 2.1 advanced to Current Step.
 
 ### Chores
 
