@@ -57,15 +57,15 @@
 | 1.13   | Validation Update                     | ✅     | 🛡️    | #133  | #108    | Audit Passed     |
 | 1.13.5 | ↳ Template Security Hardening (CSP)   | ⏸️ 80% | 🛡️    | #136  | #110    | Audit Passed     |
 | 1.14   | Doctrine Attributes                   | ✅     | 🛡️    | #134  | #111    | Audit Passed     |
-| 2.0    | Controller Attributes                 | ✅     | ⚠️    | #142  | #111    | Needs Audit      |
+| 2.0    | Controller Attributes                 | ✅     | 🛡️    | #142  | #111    | Audit Passed     |
 | 2.0.1  | ↳ PSR-11 Container Vollmodernisierung | ✅     | 🛡️    | #145  | #174    | Audit Passed     |
 | 2.0.1a | ↳ Container Core + Modules (S1+S2)    | ✅     | 🛡️    | #162  | #161    | done             |
 | 2.0.1b | ↳ DI Infrastructure                   | ✅     | 🛡️    | #163  | #167    | done             |
 | 2.0.1c | ↳ System/Installer/Console + DI       | ✅     | 🛡️    | #164  | #169    | done             |
 | 2.0.1d | ↳ Packages + ArrayAccess Removal      | ✅     | 🛡️    | #165  | #171    | done             |
 | 2.0.1e | ↳ StaticTrait Removal + DI Final      | ✅     | 🛡️    | #166  | #172    | done             |
-| 2.0.2  | ↳ Validator-Translator Integration    | ⏳     | ⏳    | #146  | -       | **Current Step** |
-| 2.1    | Static Analysis & Code Quality        | ⏳     | ⏳    | #147  | -       | Phase 2          |
+| 2.0.2  | ↳ Validator-Translator Integration    | ✅     | 🛡️    | #146  | #175    | Audit Passed     |
+| 2.1    | Static Analysis & Code Quality        | ⏳     | ⏳    | #147  | -       | **Current Step** |
 | 2.1.1  | ↳ Tooling-Setup & Baseline            | ⏳     | ⏳    | #148  | -       | Phase 2          |
 | 2.1.2  | ↳ CI/CD Integration & Quality Gates   | ⏳     | ⏳    | #149  | -       | Phase 2          |
 | 2.1.3  | ↳ `strict_types` Migration            | ⏳     | ⏳    | #150  | -       | Phase 2          |
