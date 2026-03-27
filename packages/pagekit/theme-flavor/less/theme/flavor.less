@@ -1,0 +1,117 @@
+//
+// Theme Flavor — Custom Component Styles
+//
+// ========================================================================
+
+// Hero overlay for background images
+.tm-hero-overlay {
+    position: relative;
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.55);
+        z-index: 0;
+    }
+    > * {
+        position: relative;
+        z-index: 1;
+    }
+}
+
+// Section label (small uppercase text above headings)
+.tm-section-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #c8a96e;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+// Gold accent border on cards
+.tm-card-accent {
+    border: 1px solid #222;
+    transition: border-color 0.3s ease;
+    &:hover {
+        border-color: #c8a96e;
+    }
+}
+
+// Price display
+.tm-price {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #c8a96e;
+}
+.tm-price-old {
+    text-decoration: line-through;
+    color: #666;
+    font-size: 1rem;
+    margin-left: 0.5rem;
+}
+
+// Feature list with custom checkmarks
+.tm-feature-list {
+    list-style: none;
+    padding: 0;
+    li {
+        padding: 0.5rem 0;
+        padding-left: 1.5rem;
+        position: relative;
+        &::before {
+            content: '\2713';
+            position: absolute;
+            left: 0;
+            color: #c8a96e;
+            font-weight: bold;
+        }
+    }
+}
+
+// Quote styling
+.tm-quote {
+    font-style: italic;
+    font-size: 1.25rem;
+    color: #cccccc;
+    max-width: 700px;
+    margin: 0 auto;
+    &::before {
+        content: '\201C';
+        font-size: 3rem;
+        color: #c8a96e;
+        display: block;
+        line-height: 1;
+    }
+}
+
+// Smooth scroll behavior for one-pager
+html {
+    scroll-behavior: smooth;
+}
+
+// Feature badges in hero
+.tm-hero-badges {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 2rem;
+    .tm-hero-badge {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.12);
+        padding: 0.75rem 1.5rem;
+        font-size: 0.85rem;
+        color: #ffffff;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+}
+
+// Heading text-transform for dark theme
+.tm-theme-flavor {
+    h1, h2, h3 {
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+    }
+}
