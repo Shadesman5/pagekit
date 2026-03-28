@@ -108,21 +108,21 @@ $db->insert('@system_node', [
 $db->insert('@system_node', [
     'priority' => 2, 'status' => 1,
     'title' => 'Services', 'slug' => 'services', 'path' => '/services',
-    'link' => '/home#tm-top-b', 'type' => 'link', 'menu' => 'main',
+    'link' => '/#tm-top-b', 'type' => 'link', 'menu' => 'main',
     'data' => '{}',
 ]);
 
 $db->insert('@system_node', [
     'priority' => 3, 'status' => 1,
     'title' => "\xC3\x9Cber mich", 'slug' => 'ueber-mich', 'path' => '/ueber-mich',
-    'link' => '/home#tm-top-c', 'type' => 'link', 'menu' => 'main',
+    'link' => '/#tm-top-c', 'type' => 'link', 'menu' => 'main',
     'data' => '{}',
 ]);
 
 $db->insert('@system_node', [
     'priority' => 4, 'status' => 1,
     'title' => 'Kontakt', 'slug' => 'kontakt', 'path' => '/kontakt',
-    'link' => '/home#tm-bottom-c', 'type' => 'link', 'menu' => 'main',
+    'link' => '/#tm-bottom-c', 'type' => 'link', 'menu' => 'main',
     'data' => '{}',
 ]);
 
@@ -150,7 +150,7 @@ $db->insert('@system_widget', ['title' => 'Hero Content', 'type' => 'system/text
     <h1 class="uk-heading-medium uk-margin-remove-top">DEIN WEG ZU MEHR KRAFT, FOKUS UND REGENERATION.</h1>
     <p class="uk-text-lead">Starte jetzt deine Transformation.</p>
     <p class="uk-margin-medium-top">
-        <a class="uk-button uk-button-primary uk-button-large" href="#tm-bottom-c" uk-scroll>Erstgespr&auml;ch sichern</a>
+        <a class="uk-button uk-button-primary uk-button-large" href="/#tm-bottom-c" uk-scroll>Erstgespr&auml;ch sichern</a>
     </p>
     <div class="tm-hero-badges">
         <div class="tm-hero-badge">Ganzheitlicher Ansatz</div>
@@ -177,31 +177,31 @@ $db->insert('@system_widget', ['title' => 'Services', 'type' => 'system/text', '
     <div>
         <div class="uk-card uk-card-default uk-card-body tm-card-accent">
             <h3 class="uk-card-title">12-WOCHEN FOUNDATION</h3>
+            <p class="uk-text-muted">Dein Einstieg in deine Gesundheit und Performance-Training.</p>
             <ul class="tm-feature-list">
-                <li>12 Wochen strukturiertes Training</li>
-                <li>Individueller Trainingsplan</li>
-                <li>W&ouml;chentliche Check-ins</li>
-                <li>Technik-Coaching (inkl. Boxen)</li>
-                <li>Regenerations-Protokoll</li>
+                <li>1x w&ouml;chentliches 1 zu 1 Personal-Training</li>
+                <li>Kraft-, Technik- &amp; Funktionaltraining</li>
                 <li>WhatsApp-Support</li>
+                <li>Fokus: Mobility, Core, Nacken- &amp; R&uuml;ckenbalance</li>
+                <li>Dein Starterpaket (Equipment &amp; Supplements)</li>
             </ul>
             <p><span class="tm-price">1.900 &euro;</span><span class="tm-price-old">2.500 &euro;</span></p>
-            <p class="uk-margin-medium-top"><a class="uk-button uk-button-primary" href="#tm-bottom-c" uk-scroll>Jetzt starten</a></p>
+            <p class="uk-margin-medium-top"><a class="uk-button uk-button-primary" href="/#tm-bottom-c" uk-scroll>Jetzt starten</a></p>
         </div>
     </div>
     <div>
         <div class="uk-card uk-card-default uk-card-body tm-card-accent">
             <h3 class="uk-card-title">ERN&Auml;HRUNGSMODUL (6 Einheiten)</h3>
+            <p class="uk-text-muted">Die Begleitung f&uuml;r deine gesamten 12 Wochen.</p>
             <ul class="tm-feature-list">
-                <li>6 Ern&auml;hrungsberatungen</li>
-                <li>Individueller Ern&auml;hrungsplan</li>
-                <li>Makro- &amp; Mikron&auml;hrstoff-Analyse</li>
-                <li>Supplement-Beratung</li>
-                <li>Rezepte &amp; Meal-Prep Tipps</li>
-                <li>Nachhaltige Gewohnheiten</li>
+                <li>Ern&auml;hrungsanalyse &amp; aktuelles Essverhalten</li>
+                <li>Sofort umsetzbare Optimierungen</li>
+                <li>Begleitetes Einkaufen</li>
+                <li>Monatschecks &amp; Abschlussanalyse</li>
+                <li>Kein Tracking, kein App-Zwang</li>
             </ul>
             <p><span class="tm-price">600 &euro;</span><span class="tm-price-old">900 &euro;</span></p>
-            <p class="uk-margin-medium-top"><a class="uk-button uk-button-primary" href="#tm-bottom-c" uk-scroll>Jetzt buchen</a></p>
+            <p class="uk-margin-medium-top"><a class="uk-button uk-button-primary" href="/#tm-bottom-c" uk-scroll>Jetzt buchen</a></p>
         </div>
     </div>
 </div>'])]);
@@ -216,10 +216,10 @@ $db->insert('@system_widget', ['title' => 'About', 'type' => 'system/text', 'sta
         <img data-src="storage/theme-flavor/robin-profil.jpg" alt="Robin Trummer" class="uk-width-1-1" style="border-radius: 4px;" uk-img>
     </div>
     <div>
-        <p class="uk-text-lead">Seit &uuml;ber 8 Jahren begleite ich Menschen auf ihrem Weg zu mehr Kraft, Gesundheit und mentaler St&auml;rke.</p>
-        <p>Mein Ansatz verbindet funktionelles Training, Boxcoaching und ganzheitliche Regeneration. Ich glaube daran, dass echte Ver&auml;nderung mit einer bewussten Entscheidung beginnt &ndash; und mit konsequentem Handeln Realit&auml;t wird.</p>
-        <p>Als zertifizierter Personal Trainer und Ern&auml;hrungsberater in Hamburg biete ich dir ein ma&szlig;geschneidertes 1-zu-1 Programm, das auf deine individuellen Ziele und Bed&uuml;rfnisse abgestimmt ist.</p>
-        <p class="uk-margin-medium-top"><a class="uk-button uk-button-default" href="#tm-bottom-c" uk-scroll>Meinen Ansatz kennenlernen</a></p>
+        <p class="uk-text-lead">Verstehen beginnt mit Erleben.</p>
+        <p>Ich begleite dich nicht nur physisch, sondern auch mental. Kampfsport st&auml;rkt den Fokus und das Mindset &ndash; eine St&auml;rke, die sich im gesamten Alltag zeigt.</p>
+        <p>Drei Monate konsequentes Training k&ouml;nnen mehr ver&auml;ndern, als du erwartest. Lass uns gemeinsam den Fokus setzen.</p>
+        <p class="uk-margin-medium-top"><a class="uk-button uk-button-default" href="/#tm-bottom-c" uk-scroll>Meinen Ansatz kennenlernen</a></p>
     </div>
 </div>'])]);
 
@@ -231,18 +231,18 @@ $db->insert('@system_widget', ['title' => 'Recommendations', 'type' => 'system/t
 <div class="uk-grid-large uk-child-width-1-2@m" uk-grid>
     <div>
         <div class="uk-card uk-card-default uk-card-body tm-card-accent">
-            <div class="uk-margin-bottom"><img data-src="storage/theme-flavor/ringana.jpg" alt="RINGANA FRESH" class="uk-width-1-1" style="border-radius: 4px;" uk-img></div>
+            <div class="uk-margin-bottom"><img data-src="storage/theme-flavor/ringana.png" alt="RINGANA FRESH" class="uk-width-1-1" style="border-radius: 4px;" uk-img></div>
             <h3 class="uk-card-title">RINGANA FRESH</h3>
-            <p>Frische, vegane Nahrungserg&auml;nzung und Naturkosmetik f&uuml;r deinen aktiven Lifestyle. Nachhaltig, ethisch und wirkungsvoll.</p>
-            <p><a class="uk-button uk-button-default" href="#" target="_blank" rel="noopener">Zum Shop</a></p>
+            <p>Nat&uuml;rliche Frische und Reinheit f&uuml;r deine Gesundheit.</p>
+            <p><a class="uk-button uk-button-default" href="https://robintrummer.ringana.com" target="_blank" rel="noopener">Zum Shop</a></p>
         </div>
     </div>
     <div>
         <div class="uk-card uk-card-default uk-card-body tm-card-accent">
-            <div class="uk-margin-bottom"><img data-src="storage/theme-flavor/dynamikplus.jpg" alt="DYNAMIK PLUS" class="uk-width-1-1" style="border-radius: 4px;" uk-img></div>
+            <div class="uk-margin-bottom"><img data-src="storage/theme-flavor/dynamikplus.png" alt="DYNAMIK PLUS" class="uk-width-1-1" style="border-radius: 4px;" uk-img></div>
             <h3 class="uk-card-title">DYNAMIK PLUS</h3>
-            <p>Premium Trainings-Equipment und Supplements f&uuml;r maximale Performance. Von Athleten f&uuml;r Athleten entwickelt.</p>
-            <p><a class="uk-button uk-button-default" href="#" target="_blank" rel="noopener">Zum Shop</a></p>
+            <p>Performance-Supplements f&uuml;r Kraft und Regeneration.</p>
+            <p><a class="uk-button uk-button-default" href="https://dynamikplus.de/discount/FOKUS10" target="_blank" rel="noopener">Zum Shop</a></p>
         </div>
     </div>
 </div>'])]);
@@ -279,16 +279,16 @@ $db->insert('@system_widget', ['title' => 'Contact', 'type' => 'system/text', 's
 $db->insert('@system_widget', ['title' => 'Footer', 'type' => 'system/text', 'status' => 1, 'data' => json_encode(['content' => '<div class="uk-text-center">
     <p class="uk-h4 uk-margin-remove"><strong>Robin Trummer</strong></p>
     <ul class="uk-subnav uk-subnav-divider uk-flex-center uk-margin-small-top">
-        <li><a href="/home#tm-top-b" uk-scroll>Services</a></li>
-        <li><a href="/home#tm-top-c" uk-scroll>&Uuml;ber mich</a></li>
-        <li><a href="/home#tm-bottom-c" uk-scroll>Kontakt</a></li>
+        <li><a href="/#tm-top-b">Services</a></li>
+        <li><a href="/#tm-top-c">&Uuml;ber mich</a></li>
+        <li><a href="/#tm-bottom-c">Kontakt</a></li>
         <li><a href="/impressum">Impressum</a></li>
         <li><a href="/datenschutz">Datenschutz</a></li>
     </ul>
     <ul class="uk-iconnav uk-flex-center uk-margin-small-top">
-        <li><a href="#" uk-icon="instagram"></a></li>
-        <li><a href="#" uk-icon="youtube"></a></li>
-        <li><a href="#" uk-icon="tiktok"></a></li>
+        <li><a href="https://www.instagram.com/robin.trummer/" target="_blank" rel="noopener" uk-icon="instagram"></a></li>
+        <li><a href="https://www.youtube.com/@sil3ntcoach?sub_confirmation=1" target="_blank" rel="noopener" uk-icon="youtube"></a></li>
+        <li><a href="https://www.tiktok.com/@allrounder.robin" target="_blank" rel="noopener" uk-icon="tiktok"></a></li>
     </ul>
     <p class="uk-text-small uk-text-muted uk-margin-top">&copy; 2026 TTAGS</p>
 </div>'])]);
