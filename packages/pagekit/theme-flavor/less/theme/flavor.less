@@ -140,14 +140,17 @@ html {
     box-shadow: 0 10px 40px rgba(0,0,0,0.3);
 }
 
-// Contact section overlay for background image
+// Dark overlay for sections with background images
+.tm-top-b,
+.tm-bottom-a,
 .tm-bottom-c {
     position: relative;
-    &::before {
+    &[class*="uk-background-cover"]::after,
+    > [class*="uk-background-cover"]::after {
         content: '';
         position: absolute;
         top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0,0,0,0.7);
+        background: rgba(0,0,0,0.75);
         z-index: 0;
     }
     .uk-section {
@@ -156,9 +159,10 @@ html {
     }
 }
 
-// Recommendation cards — product images
+// Recommendation cards — centered product logos
 .tm-bottom-a .uk-card img {
-    border-radius: 8px;
+    border-radius: 0;
+    filter: brightness(0.9);
 }
 
 // Footer — more compact

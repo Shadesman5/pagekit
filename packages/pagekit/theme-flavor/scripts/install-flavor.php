@@ -243,18 +243,18 @@ $db->insert('@system_widget', ['title' => 'Recommendations', 'type' => 'system/t
 </div>
 <div class="uk-grid-large uk-child-width-1-2@m" uk-grid>
     <div>
-        <div class="uk-card uk-card-default uk-card-body tm-card-accent">
-            <div class="uk-margin-bottom"><img data-src="storage/theme-flavor/ringana.png" alt="RINGANA FRESH" class="uk-width-1-1" style="border-radius: 4px;" uk-img></div>
+        <div class="uk-card uk-card-default uk-card-body tm-card-accent uk-text-center">
             <h3 class="uk-card-title">RINGANA FRESH</h3>
-            <p>Nat&uuml;rliche Frische und Reinheit f&uuml;r deine Gesundheit.</p>
+            <p class="uk-text-muted">Nat&uuml;rliche Frische und Reinheit f&uuml;r deine Gesundheit.</p>
+            <div class="uk-margin"><img data-src="storage/theme-flavor/ringana-partner.png" alt="Ringana Partner" style="max-height: 120px; opacity: 0.9;" uk-img></div>
             <p><a class="uk-button uk-button-default" href="https://robintrummer.ringana.com" target="_blank" rel="noopener">Zum Shop</a></p>
         </div>
     </div>
     <div>
-        <div class="uk-card uk-card-default uk-card-body tm-card-accent">
-            <div class="uk-margin-bottom"><img data-src="storage/theme-flavor/dynamikplus.png" alt="DYNAMIK PLUS" class="uk-width-1-1" style="border-radius: 4px;" uk-img></div>
+        <div class="uk-card uk-card-default uk-card-body tm-card-accent uk-text-center">
             <h3 class="uk-card-title">DYNAMIK PLUS</h3>
-            <p>Performance-Supplements f&uuml;r Kraft und Regeneration.</p>
+            <p class="uk-text-muted">Performance-Supplements f&uuml;r Kraft und Regeneration.</p>
+            <div class="uk-margin"><img data-src="storage/theme-flavor/dynamikplus.png" alt="Dynamik Plus" style="max-height: 120px;" uk-img></div>
             <p><a class="uk-button uk-button-default" href="https://dynamikplus.de/discount/FOKUS10" target="_blank" rel="noopener">Zum Shop</a></p>
         </div>
     </div>
@@ -286,21 +286,29 @@ $db->insert('@system_widget', ['title' => 'Contact', 'type' => 'system/text', 's
 $widgetIds[] = (int) $db->lastInsertId();
 
 // Widget 9: Footer (global, all pages — nodes empty)
-$db->insert('@system_widget', ['title' => 'Footer', 'type' => 'system/text', 'status' => 1, 'data' => json_encode(['content' => '<div class="uk-text-center">
-    <p class="uk-h4 uk-margin-remove"><strong>Robin Trummer</strong></p>
-    <ul class="uk-subnav uk-subnav-divider uk-flex-center uk-margin-small-top">
-        <li><a href="/#tm-top-b">Services</a></li>
-        <li><a href="/#tm-top-c">&Uuml;ber mich</a></li>
-        <li><a href="/#tm-bottom-c">Kontakt</a></li>
-        <li><a href="/impressum">Impressum</a></li>
-        <li><a href="/datenschutz">Datenschutz</a></li>
+$db->insert('@system_widget', ['title' => 'Footer', 'type' => 'system/text', 'status' => 1, 'data' => json_encode(['content' => '<div class="uk-flex uk-flex-between uk-flex-middle uk-flex-wrap" uk-grid>
+    <div class="uk-width-auto@m">
+        <div class="uk-flex uk-flex-middle">
+            <img data-src="storage/theme-flavor/robin-logo.png" alt="Robin Trummer" class="uk-border-circle" width="36" height="36" uk-img>
+            <span class="uk-margin-small-left uk-text-bold">Robin Trummer</span>
+        </div>
+    </div>
+    <div class="uk-width-expand@m uk-text-center">
+        <ul class="uk-subnav uk-subnav-divider uk-flex-center uk-margin-remove">
+            <li><a href="/#tm-top-b">Services</a></li>
+            <li><a href="/#tm-top-c">&Uuml;ber mich</a></li>
+            <li><a href="/#tm-bottom-c">Kontakt</a></li>
+        </ul>
+    </div>
+    <div class="uk-width-auto@m uk-text-right">
+        <p class="uk-text-small uk-text-muted uk-margin-remove">&copy; 2026 TTAGS</p>
+    </div>
+</div>
+<div class="uk-text-center uk-margin-small-top">
+    <ul class="uk-subnav uk-flex-center uk-margin-remove uk-text-small">
+        <li><a href="/impressum" class="uk-text-muted">Impressum</a></li>
+        <li><a href="/datenschutz" class="uk-text-muted">Datenschutz</a></li>
     </ul>
-    <ul class="uk-iconnav uk-flex-center uk-margin-small-top">
-        <li><a href="https://www.instagram.com/robin.trummer/" target="_blank" rel="noopener" uk-icon="instagram"></a></li>
-        <li><a href="https://www.youtube.com/@sil3ntcoach?sub_confirmation=1" target="_blank" rel="noopener" uk-icon="youtube"></a></li>
-        <li><a href="https://www.tiktok.com/@allrounder.robin" target="_blank" rel="noopener" uk-icon="tiktok"></a></li>
-    </ul>
-    <p class="uk-text-small uk-text-muted uk-margin-top">&copy; 2026 TTAGS</p>
 </div>'])]);
 $widgetIds[] = (int) $db->lastInsertId();
 
@@ -350,10 +358,10 @@ $themeConfig['_nodes'][(string) $nodeHome] = [
     'positions' => [
         'hero'     => array_merge($posDefaults('uk-section-secondary', ''), ['height' => 'full', 'image' => 'storage/theme-flavor/hero-bg.jpg', 'effect' => '', 'header_transparent' => true, 'header_transparent_noplaceholder' => true]),
         'top-a'    => $posDefaults('uk-section-secondary', 'uk-section-large'),
-        'top-b'    => $posDefaults('uk-section-secondary', 'uk-section-large'),
+        'top-b'    => array_merge($posDefaults('uk-section-secondary', 'uk-section-large'), ['image' => 'storage/theme-flavor/gym-sunny.jpg']),
         'top-c'    => $posDefaults('uk-section-default', 'uk-section-large'),
         'main'     => $posDefaults('uk-section-default', 'uk-section-large'),
-        'bottom-a' => $posDefaults('uk-section-secondary', 'uk-section-large'),
+        'bottom-a' => array_merge($posDefaults('uk-section-secondary', 'uk-section-large'), ['image' => 'storage/theme-flavor/gym-sunny.jpg']),
         'bottom-b' => $posDefaults('uk-section-secondary', ''),
         'bottom-c' => array_merge($posDefaults('uk-section-secondary', 'uk-section-large'), ['image' => 'storage/theme-flavor/hero-bg.jpg', 'effect' => 'fixed']),
     ],
