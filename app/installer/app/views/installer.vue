@@ -143,7 +143,12 @@
                                 </div>
                                 <div class="uk-modal-body">
                                     <div class="uk-margin">
-                                        <label><input v-model="option['demo_content']" class="uk-checkbox" type="checkbox"> {{ 'Install demo content' }}</label>
+                                        <label class="uk-form-label">{{ 'Demo Content' | trans }}</label>
+                                        <select v-model="option['demo_content']" class="uk-select">
+                                            <option value="">{{ 'No demo content' | trans }}</option>
+                                            <option value="default">{{ 'Default (Theme One)' | trans }}</option>
+                                            <option value="flavor">{{ 'Robin Trummer / Flavor' | trans }}</option>
+                                        </select>
                                     </div>
                                 </div>
                                 <div class="uk-modal-footer uk-text-right">
@@ -223,7 +228,7 @@ const Installer = {
                 }
             },
             defaultConfig: {},
-            option: { system: { admin: {}, site: {} }, 'system/site': { title: '' } },
+            option: { system: { admin: {}, site: {} }, 'system/site': { title: '' }, demo_content: '' },
             user: { username: 'admin' },
             hidePassword: true,
             editingPassword: false,

@@ -94,11 +94,11 @@ class Installer
         $message = $status['message'];
         $status = $status['status'];
 
-        $demo_content =  false;
+        $demo_content = '';
         if (isset($option['demo_content']) && $option['demo_content']) {
-            $demo_content = true;
-            unset($option['demo_content']);
+            $demo_content = (string) $option['demo_content'];
         }
+        unset($option['demo_content']);
 
         try {
 
@@ -170,14 +170,18 @@ class Installer
                 }
             }
 
-            // $app is used by the require'd install scripts (install.php / install-demo.php)
+            // $app is used by the require'd install scripts
             $app = $this->app;
-            if (!$demo_content) {
-                if (file_exists(__DIR__.'/../install.php')) {
-                    require_once __DIR__.'/../install.php';
-                }
-            } elseif (file_exists(__DIR__.'/../install-demo.php')) {
-                require_once __DIR__.'/../install-demo.php';
+
+            $contentScripts = [
+                ''        => __DIR__ . '/../install.php',
+                'default' => __DIR__ . '/../install-demo.php',
+                'flavor'  => $this->app->get('path') . '/packages/pagekit/theme-flavor/scripts/install-flavor.php',
+            ];
+
+            $scriptFile = $contentScripts[$demo_content] ?? $contentScripts[''];
+            if (file_exists($scriptFile)) {
+                require_once $scriptFile;
             }
 
             if (!$this->config) {
