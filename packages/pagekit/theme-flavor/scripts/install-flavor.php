@@ -153,22 +153,22 @@ $config->set('system/site', $config('system/site')->merge([
 // =========================================================================
 $widgetIds = [];
 
-$db->insert('@system_widget', ['title' => 'Hero Content', 'type' => 'system/text', 'status' => 1, 'nodes' => (string) $nodeHome, 'data' => json_encode(['content' => '<div class="uk-width-2-3@m">
-    <p class="tm-section-label">RESET &amp; RISE &ndash; Ma&szlig;geschneidertes 1-zu-1 Personal Training in Hamburg.</p>
-    <h1 class="uk-heading-medium uk-margin-remove-top">DEIN WEG ZU MEHR KRAFT, FOKUS UND REGENERATION.</h1>
-    <p class="uk-text-lead uk-text-muted">Starte jetzt deine Transformation.</p>
-    <p class="uk-margin-medium-top">
-        <a class="uk-button uk-button-primary uk-button-large" href="/#tm-bottom-c" uk-scroll>Erstgespr&auml;ch sichern</a>
-    </p>
-    <div class="tm-hero-badges">
-        <div class="tm-hero-badge">Ganzheitlicher Ansatz</div>
-        <div class="tm-hero-badge">Individuelle Betreuung</div>
-        <div class="tm-hero-badge">Technik- &amp; Boxcoaching</div>
-    </div>
+$db->insert('@system_widget', ['title' => 'Hero Content', 'type' => 'system/text', 'status' => 1, 'nodes' => (string) $nodeHome, 'data' => json_encode(['content' => '<p class="tm-section-label">RESET &amp; RISE &ndash; Ma&szlig;geschneidertes 1-zu-1 Personal Training in Hamburg.</p>
+<h1 class="uk-heading-medium uk-margin-remove-top">DEIN WEG ZU MEHR KRAFT, FOKUS UND REGENERATION.</h1>
+<p class="uk-text-lead uk-text-muted">Starte jetzt deine Transformation.</p>
+<p class="uk-margin-medium-top">
+    <a class="uk-button uk-button-primary uk-button-large" href="/#tm-bottom-c" uk-scroll>Erstgespr&auml;ch sichern</a>
+</p>
+<div class="tm-hero-badges">
+    <div class="tm-hero-badge">Ganzheitlicher Ansatz</div>
+    <div class="tm-hero-badge">Individuelle Betreuung</div>
+    <div class="tm-hero-badge">Technik- &amp; Boxcoaching</div>
 </div>'])]);
 $widgetIds[] = (int) $db->lastInsertId();
 
-$db->insert('@system_widget', ['title' => 'Hero Profile', 'type' => 'system/text', 'status' => 1, 'nodes' => (string) $nodeHome, 'data' => json_encode(['content' => ''])]);
+$db->insert('@system_widget', ['title' => 'Hero Profile', 'type' => 'system/text', 'status' => 1, 'nodes' => (string) $nodeHome, 'data' => json_encode(['content' => '<div class="uk-flex uk-flex-center uk-flex-middle" style="min-height: 100%;">
+    <img data-src="storage/theme-flavor/robin-profil.jpg" alt="Robin Trummer" class="tm-hero-image" uk-img>
+</div>'])]);
 $widgetIds[] = (int) $db->lastInsertId();
 
 $db->insert('@system_widget', ['title' => 'Quote 1', 'type' => 'system/text', 'status' => 1, 'nodes' => (string) $nodeHome, 'data' => json_encode(['content' => '<div class="tm-quote uk-text-center">Entwicklung beginnt mit einer Entscheidung. RESET &amp; RISE ist diese Entscheidung.</div>'])]);
