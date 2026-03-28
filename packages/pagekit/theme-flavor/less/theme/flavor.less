@@ -3,27 +3,35 @@
 //
 // ========================================================================
 
-// Hero overlay for background images
-.tm-hero-overlay {
+// Hero section overlay for background images
+.tm-hero {
     position: relative;
     &::before {
         content: '';
         position: absolute;
         top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0, 0, 0, 0.55);
+        background: linear-gradient(135deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.2) 100%);
         z-index: 0;
     }
-    > * {
+    .uk-section {
         position: relative;
         z-index: 1;
     }
 }
 
+// Hero profile image — rounded with shadow
+.tm-hero-image {
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    max-height: 500px;
+    object-fit: cover;
+}
+
 // Section label (small uppercase text above headings)
 .tm-section-label {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.2em;
     color: #c8a96e;
     font-weight: 600;
     margin-bottom: 0.5rem;
@@ -31,10 +39,13 @@
 
 // Gold accent border on cards
 .tm-card-accent {
-    border: 1px solid #222;
-    transition: border-color 0.3s ease;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    background: linear-gradient(180deg, #1a1a1a 0%, #141414 100%);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
     &:hover {
-        border-color: #c8a96e;
+        border-color: rgba(200,169,110,0.4);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.4);
     }
 }
 
@@ -46,7 +57,7 @@
 }
 .tm-price-old {
     text-decoration: line-through;
-    color: #666;
+    color: #555;
     font-size: 1rem;
     margin-left: 0.5rem;
 }
@@ -56,9 +67,10 @@
     list-style: none;
     padding: 0;
     li {
-        padding: 0.5rem 0;
+        padding: 0.4rem 0;
         padding-left: 1.5rem;
         position: relative;
+        color: #b0b0b0;
         &::before {
             content: '\2713';
             position: absolute;
@@ -69,19 +81,25 @@
     }
 }
 
-// Quote styling
+// Quote styling — large decorative quotation mark
 .tm-quote {
     font-style: italic;
     font-size: 1.25rem;
     color: #cccccc;
     max-width: 700px;
     margin: 0 auto;
+    position: relative;
+    padding-top: 2rem;
     &::before {
         content: '\201C';
-        font-size: 3rem;
+        font-size: 4rem;
         color: #c8a96e;
-        display: block;
+        position: absolute;
+        top: -0.5rem;
+        left: 50%;
+        transform: translateX(-50%);
         line-height: 1;
+        font-family: Georgia, serif;
     }
 }
 
@@ -93,18 +111,18 @@ html {
 // Feature badges in hero
 .tm-hero-badges {
     display: flex;
-    gap: 1.5rem;
+    gap: 1rem;
     flex-wrap: wrap;
-    justify-content: center;
     margin-top: 2rem;
     .tm-hero-badge {
-        background: rgba(255,255,255,0.08);
-        border: 1px solid rgba(255,255,255,0.12);
-        padding: 0.75rem 1.5rem;
-        font-size: 0.85rem;
-        color: #ffffff;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.1);
+        padding: 0.5rem 1rem;
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.8);
         text-transform: uppercase;
         letter-spacing: 0.05em;
+        border-radius: 4px;
     }
 }
 
@@ -114,6 +132,39 @@ html {
         text-transform: uppercase;
         letter-spacing: 0.02em;
     }
+}
+
+// About section image — rounded corners
+.tm-top-c img {
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+
+// Contact section overlay for background image
+.tm-bottom-c {
+    position: relative;
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.7);
+        z-index: 0;
+    }
+    .uk-section {
+        position: relative;
+        z-index: 1;
+    }
+}
+
+// Recommendation cards — product images
+.tm-bottom-a .uk-card img {
+    border-radius: 8px;
+}
+
+// Footer — more compact
+.tm-footer {
+    padding-top: 40px !important;
+    padding-bottom: 40px !important;
 }
 
 // Graceful fallback for missing placeholder images (CSP-safe, no inline JS)

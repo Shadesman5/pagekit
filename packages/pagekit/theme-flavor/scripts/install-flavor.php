@@ -153,22 +153,27 @@ $config->set('system/site', $config('system/site')->merge([
 // =========================================================================
 $widgetIds = [];
 
-$db->insert('@system_widget', ['title' => 'Hero Content', 'type' => 'system/text', 'status' => 1, 'nodes' => (string) $nodeHome, 'data' => json_encode(['content' => '<div class="uk-text-center">
-    <p class="tm-section-label">RESET &amp; RISE &ndash; Ma&szlig;geschneidertes 1-zu-1 Personal Training in Hamburg.</p>
-    <h1 class="uk-heading-medium uk-margin-remove-top">DEIN WEG ZU MEHR KRAFT, FOKUS UND REGENERATION.</h1>
-    <p class="uk-text-lead">Starte jetzt deine Transformation.</p>
-    <p class="uk-margin-medium-top">
-        <a class="uk-button uk-button-primary uk-button-large" href="/#tm-bottom-c" uk-scroll>Erstgespr&auml;ch sichern</a>
-    </p>
-    <div class="tm-hero-badges">
-        <div class="tm-hero-badge">Ganzheitlicher Ansatz</div>
-        <div class="tm-hero-badge">Individuelle Betreuung</div>
-        <div class="tm-hero-badge">Technik- &amp; Boxcoaching</div>
+$db->insert('@system_widget', ['title' => 'Hero Content', 'type' => 'system/text', 'status' => 1, 'nodes' => (string) $nodeHome, 'data' => json_encode(['content' => '<div class="uk-grid-large uk-child-width-1-2@m uk-flex-middle" uk-grid>
+    <div>
+        <p class="tm-section-label">RESET &amp; RISE &ndash; Ma&szlig;geschneidertes 1-zu-1 Personal Training in Hamburg.</p>
+        <h1 class="uk-heading-small uk-margin-remove-top">DEIN WEG ZU MEHR KRAFT, FOKUS UND REGENERATION.</h1>
+        <p class="uk-text-lead uk-text-muted">Starte jetzt deine Transformation.</p>
+        <p class="uk-margin-medium-top">
+            <a class="uk-button uk-button-primary uk-button-large" href="/#tm-bottom-c" uk-scroll>Erstgespr&auml;ch sichern</a>
+        </p>
+        <div class="tm-hero-badges uk-flex-left">
+            <div class="tm-hero-badge">Ganzheitlicher Ansatz</div>
+            <div class="tm-hero-badge">Individuelle Betreuung</div>
+            <div class="tm-hero-badge">Technik- &amp; Boxcoaching</div>
+        </div>
+    </div>
+    <div class="uk-visible@m">
+        <img data-src="storage/theme-flavor/robin-profil.jpg" alt="Robin Trummer" class="uk-width-1-1 tm-hero-image" uk-img>
     </div>
 </div>'])]);
 $widgetIds[] = (int) $db->lastInsertId();
 
-$db->insert('@system_widget', ['title' => 'Hero Profile', 'type' => 'system/text', 'status' => 1, 'nodes' => (string) $nodeHome, 'data' => json_encode(['content' => '<div class="uk-text-center uk-margin-top">
+$db->insert('@system_widget', ['title' => 'Hero Profile', 'type' => 'system/text', 'status' => 1, 'nodes' => (string) $nodeHome, 'data' => json_encode(['content' => '<div class="uk-text-center uk-hidden@m">
     <img data-src="storage/theme-flavor/robin-profil.jpg" alt="Robin Trummer" class="uk-border-circle" width="120" height="120" uk-img>
     <p class="uk-text-small uk-text-muted uk-margin-small-top">Robin Trummer</p>
 </div>'])]);
@@ -343,14 +348,14 @@ $themeConfig['_nodes'][(string) $nodeHome] = [
     'title_hide' => true, 'title_large' => false, 'alignment' => true,
     'html_class' => '', 'content_hide' => true, 'sidebar_first' => false,
     'positions' => [
-        'hero'     => array_merge($posDefaults('uk-section-secondary', ''), ['height' => 'full', 'header_transparent' => true, 'header_transparent_noplaceholder' => true]),
+        'hero'     => array_merge($posDefaults('uk-section-secondary', ''), ['height' => 'full', 'image' => 'storage/theme-flavor/hero-bg.jpg', 'effect' => '', 'header_transparent' => true, 'header_transparent_noplaceholder' => true]),
         'top-a'    => $posDefaults('uk-section-secondary', 'uk-section-large'),
         'top-b'    => $posDefaults('uk-section-secondary', 'uk-section-large'),
         'top-c'    => $posDefaults('uk-section-default', 'uk-section-large'),
         'main'     => $posDefaults('uk-section-default', 'uk-section-large'),
         'bottom-a' => $posDefaults('uk-section-secondary', 'uk-section-large'),
         'bottom-b' => $posDefaults('uk-section-secondary', ''),
-        'bottom-c' => $posDefaults('uk-section-secondary', 'uk-section-large'),
+        'bottom-c' => array_merge($posDefaults('uk-section-secondary', 'uk-section-large'), ['image' => 'storage/theme-flavor/hero-bg.jpg', 'effect' => 'fixed']),
     ],
 ];
 
