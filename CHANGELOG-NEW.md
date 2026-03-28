@@ -1,5 +1,18 @@
 # Changelog
 
+## Pagekit 1.2.5 - Documentation Cleanup & Workflow Alignment (March 28, 2026)
+
+### Documentation
+
+- **Stale file references updated** — Replaced all references to removed `MODERNISING_PAGEKIT_TODO_LIST.md` with `MODERNISATION_STRATEGY.md` or `ROADMAP.md` across `.cursor/README.md`, `github-issue-creator/SKILL.md`, and `tests/e2e/COMPLETE_TEST_PLAN.md`.
+- **migration-docs README restructured** — Cleaned up layout: flat file listings, archived `branches/` and `pull-requests/` sections as historical Phase 1 artifacts, added tracking/navigation table pointing to ROADMAP as SSOT, updated timeline to reflect Phase 2 active status.
+- **ROADMAP header added** — Current version (1.2.5) and current step (2.1) now shown at the top of `.cursor/ROADMAP.md` for quick orientation.
+- **AGENTS.md extended** — Added modernisation workflow note referencing `.cursor/rules/` and `ROADMAP.md`.
+- **Feature-branch rule simplified** — Removed outdated PR documentation path; now references `push.mdc` for version bump, push, and PR creation.
+- **Tickets README simplified** — Replaced verbose output-for-human section with concise reference to `push.mdc`.
+
+---
+
 ## Pagekit 1.2.4 - Validator-Translator Integration + Audit (March 27, 2026)
 
 ### Features
@@ -27,6 +40,8 @@
 
 - **Deferred TODO for ExtensionTranslateCommand** — Added `TODO: Step 2.0.2` marker in `PhpNodeVisitor.php` for future `#[Assert\...]` attribute key extraction (low priority, deferred to Step 2.1).
 
+---
+
 ## Pagekit 1.2.3 - PSR-11 Container Closure Audit (March 26, 2026)
 
 ### 🛡️ Audit
@@ -43,6 +58,8 @@
 
 - **ROADMAP updated** — Step 2.0.1 marked as ✅ with audit 🛡️; sub-steps 2.0.1a–e audit columns set to 🛡️; Step 2.0.2 advanced to **Current Step**.
 
+---
+
 ## Pagekit 1.2.2 - Task Prompts & Agent Roles (March 26, 2026)
 
 ### 📁 Documentation
@@ -57,6 +74,8 @@
 - **Refactorer** — Explicit boundary: no test execution, no self-verification.
 - **Verifier** — Restricted to static code review only; no PHPUnit, Playwright, or application commands.
 - **Tester** — Declared as exclusive test runner. Added clean-state rule: `rm -f pagekit.db config.php` before any fresh installation.
+
+---
 
 ## Pagekit 1.2.1 - PSR-11 StaticTrait Removal Bugfixes (March 26, 2026)
 
