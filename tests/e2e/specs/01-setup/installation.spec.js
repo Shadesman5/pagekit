@@ -159,29 +159,24 @@ test.describe('Pagekit Installation Process', () => {
     await page.fill('input#form-email', adminCreds.email);
     testConfig.debug(`Admin user configured: ${adminCreds.username}`, '👤');
 
-    // Optional: Check demo content option from config
+    // Optional: Select demo content pack from config
+    const demoContentPack = testConfig.getInstallationDemoContent();
     const optionsButton = page.locator('#options');
-    if ((await optionsButton.count()) > 0 && testConfig.getInstallationDemoContent()) {
-      // Click options to open modal
+    if ((await optionsButton.count()) > 0 && demoContentPack) {
       await optionsButton.click();
       await page.waitForTimeout(WAIT_ANIMATION);
 
-      // Check if demo content checkbox exists and check it
-      const demoCheckbox = page.locator('input[type="checkbox"]').first();
-      if ((await demoCheckbox.count()) > 0) {
-        const isChecked = await demoCheckbox.isChecked();
-        if (!isChecked) {
-          await demoCheckbox.check();
-          testConfig.debug('Demo content enabled', '📦');
-        }
+      const demoSelect = page.locator('select').first();
+      if ((await demoSelect.count()) > 0) {
+        const selectValue = typeof demoContentPack === 'string' ? demoContentPack : 'default';
+        await demoSelect.selectOption(selectValue);
+        testConfig.debug(`Demo content selected: ${selectValue}`, '📦');
       }
 
-      // Close modal (click outside or close button)
       const closeButton = page.locator('button.uk-modal-close').first();
       if (await closeButton.isVisible().catch(() => false)) {
         await closeButton.click();
       } else {
-        // Click outside modal
         await page.click('body', { position: { x: 10, y: 10 } });
       }
       await page.waitForTimeout(WAIT_ANIMATION);

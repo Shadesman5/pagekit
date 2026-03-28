@@ -34,7 +34,7 @@ $config = [
     'path.temp'     => $path . '/tmp/temp',
     'path.cache'    => $path . '/tmp/cache',
     'path.logs'     => $path . '/tmp/logs',
-    'path.vendor'   => $path . '/vendor',
+    'path.vendor'   => $path . '/app/vendor',
     'path.artifact' => $path . '/tmp/packages',
     'config.file'   => $configFile,
 ];

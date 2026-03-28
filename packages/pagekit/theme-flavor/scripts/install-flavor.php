@@ -7,18 +7,12 @@
  * or via the CLI wrapper: php packages/pagekit/theme-flavor/scripts/insert-data.php
  *
  * Expects $app (Pagekit\Application) and $db ($app->get('db')) in scope.
+ *
+ * All IDs are tracked via lastInsertId() — safe for MySQL auto-increment offsets.
  */
 
 $db = $app->get('db');
 $config = $app->get('config');
-
-// =========================================================================
-// Site Config
-// =========================================================================
-$config->set('system/site', $config('system/site')->merge([
-    'frontpage' => 1,
-    'view' => ['logo' => ''],
-]));
 
 // =========================================================================
 // Pages
@@ -28,6 +22,7 @@ $db->insert('@system_page', [
     'content' => '<p>Homepage</p>',
     'data'    => '{"title":null}',
 ]);
+$pageHome = (int) $db->lastInsertId();
 
 $db->insert('@system_page', [
     'title'   => 'Impressum',
@@ -61,6 +56,7 @@ $db->insert('@system_page', [
     ]),
     'data'    => '{"title":null}',
 ]);
+$pageImpressum = (int) $db->lastInsertId();
 
 $db->insert('@system_page', [
     'title'   => 'Datenschutz',
@@ -94,6 +90,7 @@ $db->insert('@system_page', [
     ]),
     'data'    => '{"title":null}',
 ]);
+$pageDatenschutz = (int) $db->lastInsertId();
 
 // =========================================================================
 // Nodes / Menu
@@ -101,9 +98,10 @@ $db->insert('@system_page', [
 $db->insert('@system_node', [
     'priority' => 1, 'status' => 1,
     'title' => 'Home', 'slug' => 'home', 'path' => '/home',
-    'link' => '@page/1', 'type' => 'page', 'menu' => 'main',
-    'data' => '{"defaults":{"id":1}}',
+    'link' => '@page/' . $pageHome, 'type' => 'page', 'menu' => 'main',
+    'data' => json_encode(['defaults' => ['id' => $pageHome]]),
 ]);
+$nodeHome = (int) $db->lastInsertId();
 
 $db->insert('@system_node', [
     'priority' => 2, 'status' => 1,
@@ -129,23 +127,33 @@ $db->insert('@system_node', [
 $db->insert('@system_node', [
     'priority' => 5, 'status' => 1,
     'title' => 'Impressum', 'slug' => 'impressum', 'path' => '/impressum',
-    'link' => '@page/2', 'type' => 'page', 'menu' => '',
-    'data' => '{"defaults":{"id":2}}',
+    'link' => '@page/' . $pageImpressum, 'type' => 'page', 'menu' => '',
+    'data' => json_encode(['defaults' => ['id' => $pageImpressum]]),
 ]);
+$nodeImpressum = (int) $db->lastInsertId();
 
 $db->insert('@system_node', [
     'priority' => 6, 'status' => 1,
     'title' => 'Datenschutz', 'slug' => 'datenschutz', 'path' => '/datenschutz',
-    'link' => '@page/3', 'type' => 'page', 'menu' => '',
-    'data' => '{"defaults":{"id":3}}',
+    'link' => '@page/' . $pageDatenschutz, 'type' => 'page', 'menu' => '',
+    'data' => json_encode(['defaults' => ['id' => $pageDatenschutz]]),
 ]);
+$nodeDatenschutz = (int) $db->lastInsertId();
 
 // =========================================================================
-// Widgets — Homepage (node 1 only)
+// Site Config — set frontpage to home node
 // =========================================================================
+$config->set('system/site', $config('system/site')->merge([
+    'frontpage' => $nodeHome,
+    'view' => ['logo' => ''],
+]));
 
-// Widget 1: Hero Content
-$db->insert('@system_widget', ['title' => 'Hero Content', 'type' => 'system/text', 'status' => 1, 'nodes' => 1, 'data' => json_encode(['content' => '<div class="uk-text-center">
+// =========================================================================
+// Widgets — Homepage (restricted to home node)
+// =========================================================================
+$widgetIds = [];
+
+$db->insert('@system_widget', ['title' => 'Hero Content', 'type' => 'system/text', 'status' => 1, 'nodes' => (string) $nodeHome, 'data' => json_encode(['content' => '<div class="uk-text-center">
     <p class="tm-section-label">RESET &amp; RISE &ndash; Ma&szlig;geschneidertes 1-zu-1 Personal Training in Hamburg.</p>
     <h1 class="uk-heading-medium uk-margin-remove-top">DEIN WEG ZU MEHR KRAFT, FOKUS UND REGENERATION.</h1>
     <p class="uk-text-lead">Starte jetzt deine Transformation.</p>
@@ -158,18 +166,18 @@ $db->insert('@system_widget', ['title' => 'Hero Content', 'type' => 'system/text
         <div class="tm-hero-badge">Technik- &amp; Boxcoaching</div>
     </div>
 </div>'])]);
+$widgetIds[] = (int) $db->lastInsertId();
 
-// Widget 2: Hero Profile Image
-$db->insert('@system_widget', ['title' => 'Hero Profile', 'type' => 'system/text', 'status' => 1, 'nodes' => 1, 'data' => json_encode(['content' => '<div class="uk-text-center uk-margin-top">
+$db->insert('@system_widget', ['title' => 'Hero Profile', 'type' => 'system/text', 'status' => 1, 'nodes' => (string) $nodeHome, 'data' => json_encode(['content' => '<div class="uk-text-center uk-margin-top">
     <img data-src="storage/theme-flavor/robin-profil.jpg" alt="Robin Trummer" class="uk-border-circle" width="120" height="120" uk-img>
     <p class="uk-text-small uk-text-muted uk-margin-small-top">Robin Trummer</p>
 </div>'])]);
+$widgetIds[] = (int) $db->lastInsertId();
 
-// Widget 3: Quote 1 (top-a)
-$db->insert('@system_widget', ['title' => 'Quote 1', 'type' => 'system/text', 'status' => 1, 'nodes' => 1, 'data' => json_encode(['content' => '<div class="tm-quote uk-text-center">Entwicklung beginnt mit einer Entscheidung. RESET &amp; RISE ist diese Entscheidung.</div>'])]);
+$db->insert('@system_widget', ['title' => 'Quote 1', 'type' => 'system/text', 'status' => 1, 'nodes' => (string) $nodeHome, 'data' => json_encode(['content' => '<div class="tm-quote uk-text-center">Entwicklung beginnt mit einer Entscheidung. RESET &amp; RISE ist diese Entscheidung.</div>'])]);
+$widgetIds[] = (int) $db->lastInsertId();
 
-// Widget 4: Services / Pricing (top-b)
-$db->insert('@system_widget', ['title' => 'Services', 'type' => 'system/text', 'status' => 1, 'nodes' => 1, 'data' => json_encode(['content' => '<div class="uk-text-center uk-margin-large-bottom">
+$db->insert('@system_widget', ['title' => 'Services', 'type' => 'system/text', 'status' => 1, 'nodes' => (string) $nodeHome, 'data' => json_encode(['content' => '<div class="uk-text-center uk-margin-large-bottom">
     <p class="tm-section-label">RESET &amp; RISE 12-WOCHEN-PROGRAMM</p>
     <h2 class="uk-heading-small">DEINE 3 MONATE TRANSFORMATION.</h2>
 </div>
@@ -205,9 +213,9 @@ $db->insert('@system_widget', ['title' => 'Services', 'type' => 'system/text', '
         </div>
     </div>
 </div>'])]);
+$widgetIds[] = (int) $db->lastInsertId();
 
-// Widget 5: About (top-c)
-$db->insert('@system_widget', ['title' => 'About', 'type' => 'system/text', 'status' => 1, 'nodes' => 1, 'data' => json_encode(['content' => '<div class="uk-text-center uk-margin-large-bottom">
+$db->insert('@system_widget', ['title' => 'About', 'type' => 'system/text', 'status' => 1, 'nodes' => (string) $nodeHome, 'data' => json_encode(['content' => '<div class="uk-text-center uk-margin-large-bottom">
     <p class="tm-section-label">&Uuml;BER MICH</p>
     <h2 class="uk-heading-small">ROBIN TRUMMER &ndash; DEIN COACH F&Uuml;R GESUNDHEIT &amp; PERFORMANCE</h2>
 </div>
@@ -222,9 +230,9 @@ $db->insert('@system_widget', ['title' => 'About', 'type' => 'system/text', 'sta
         <p class="uk-margin-medium-top"><a class="uk-button uk-button-default" href="/#tm-bottom-c" uk-scroll>Meinen Ansatz kennenlernen</a></p>
     </div>
 </div>'])]);
+$widgetIds[] = (int) $db->lastInsertId();
 
-// Widget 6: Recommendations (bottom-a)
-$db->insert('@system_widget', ['title' => 'Recommendations', 'type' => 'system/text', 'status' => 1, 'nodes' => 1, 'data' => json_encode(['content' => '<div class="uk-text-center uk-margin-large-bottom">
+$db->insert('@system_widget', ['title' => 'Recommendations', 'type' => 'system/text', 'status' => 1, 'nodes' => (string) $nodeHome, 'data' => json_encode(['content' => '<div class="uk-text-center uk-margin-large-bottom">
     <p class="tm-section-label">MEINE EMPFEHLUNGEN</p>
     <h2 class="uk-heading-small">QUALIT&Auml;T F&Uuml;R DEINE PERFORMANCE.</h2>
 </div>
@@ -246,12 +254,12 @@ $db->insert('@system_widget', ['title' => 'Recommendations', 'type' => 'system/t
         </div>
     </div>
 </div>'])]);
+$widgetIds[] = (int) $db->lastInsertId();
 
-// Widget 7: Quote 2 (bottom-b)
-$db->insert('@system_widget', ['title' => 'Quote 2', 'type' => 'system/text', 'status' => 1, 'nodes' => 1, 'data' => json_encode(['content' => '<div class="tm-quote uk-text-center">Der Abstand zwischen deinen Tr&auml;umen und der Realit&auml;t nennt sich Aktion. Verstehen beginnt mit Erleben.</div>'])]);
+$db->insert('@system_widget', ['title' => 'Quote 2', 'type' => 'system/text', 'status' => 1, 'nodes' => (string) $nodeHome, 'data' => json_encode(['content' => '<div class="tm-quote uk-text-center">Der Abstand zwischen deinen Tr&auml;umen und der Realit&auml;t nennt sich Aktion. Verstehen beginnt mit Erleben.</div>'])]);
+$widgetIds[] = (int) $db->lastInsertId();
 
-// Widget 8: Contact (bottom-c)
-$db->insert('@system_widget', ['title' => 'Contact', 'type' => 'system/text', 'status' => 1, 'nodes' => 1, 'data' => json_encode(['content' => '<div class="uk-text-center uk-margin-large-bottom">
+$db->insert('@system_widget', ['title' => 'Contact', 'type' => 'system/text', 'status' => 1, 'nodes' => (string) $nodeHome, 'data' => json_encode(['content' => '<div class="uk-text-center uk-margin-large-bottom">
     <p class="tm-section-label">KONTAKT</p>
     <h2 class="uk-heading-small">LASS UNS DEIN RESET STARTEN.</h2>
 </div>
@@ -270,12 +278,9 @@ $db->insert('@system_widget', ['title' => 'Contact', 'type' => 'system/text', 's
     </div>
     <div class="uk-margin uk-text-center"><button class="uk-button uk-button-primary uk-button-large" type="submit">Nachricht senden</button></div>
 </form>'])]);
+$widgetIds[] = (int) $db->lastInsertId();
 
-// =========================================================================
-// Widgets — Global (all pages)
-// =========================================================================
-
-// Widget 9: Footer
+// Widget 9: Footer (global, all pages — nodes empty)
 $db->insert('@system_widget', ['title' => 'Footer', 'type' => 'system/text', 'status' => 1, 'data' => json_encode(['content' => '<div class="uk-text-center">
     <p class="uk-h4 uk-margin-remove"><strong>Robin Trummer</strong></p>
     <ul class="uk-subnav uk-subnav-divider uk-flex-center uk-margin-small-top">
@@ -292,11 +297,11 @@ $db->insert('@system_widget', ['title' => 'Footer', 'type' => 'system/text', 'st
     </ul>
     <p class="uk-text-small uk-text-muted uk-margin-top">&copy; 2026 TTAGS</p>
 </div>'])]);
+$widgetIds[] = (int) $db->lastInsertId();
 
 // =========================================================================
-// Theme Config (theme-flavor)
+// Theme Config (theme-flavor) — all IDs from lastInsertId()
 // =========================================================================
-
 $posDefaults = function (string $style = 'uk-section-secondary', string $size = 'uk-section-large'): array {
     return [
         'style' => $style, 'size' => $size,
@@ -315,47 +320,55 @@ $widgetOpts = function (bool $centered): array {
 $themeConfig = [
     '_menus' => ['main' => 'main', 'offcanvas' => 'main'],
     '_positions' => [
-        'hero' => [1, 2], 'top-a' => [3], 'top-b' => [4], 'top-c' => [5],
-        'bottom-a' => [6], 'bottom-b' => [7], 'bottom-c' => [8], 'footer' => [9],
-        'navbar' => [], 'header' => [], 'sidebar' => [],
+        'hero'     => [$widgetIds[0], $widgetIds[1]],
+        'top-a'    => [$widgetIds[2]],
+        'top-b'    => [$widgetIds[3]],
+        'top-c'    => [$widgetIds[4]],
+        'bottom-a' => [$widgetIds[5]],
+        'bottom-b' => [$widgetIds[6]],
+        'bottom-c' => [$widgetIds[7]],
+        'footer'   => [$widgetIds[8]],
+        'navbar'   => [], 'header' => [], 'sidebar' => [],
     ],
-    '_widgets' => [
-        '1' => $widgetOpts(true),  '2' => $widgetOpts(true),  '3' => $widgetOpts(true),
-        '4' => $widgetOpts(false), '5' => $widgetOpts(false), '6' => $widgetOpts(false),
-        '7' => $widgetOpts(true),  '8' => $widgetOpts(false), '9' => $widgetOpts(true),
+    '_widgets' => [],
+    '_nodes' => [],
+];
+
+$centeredWidgets = [0, 1, 2, 6, 8];
+foreach ($widgetIds as $i => $wid) {
+    $themeConfig['_widgets'][(string) $wid] = $widgetOpts(in_array($i, $centeredWidgets, true));
+}
+
+$themeConfig['_nodes'][(string) $nodeHome] = [
+    'title_hide' => true, 'title_large' => false, 'alignment' => true,
+    'html_class' => '', 'content_hide' => true, 'sidebar_first' => false,
+    'positions' => [
+        'hero'     => array_merge($posDefaults('uk-section-secondary', ''), ['height' => 'full', 'header_transparent' => true, 'header_transparent_noplaceholder' => true]),
+        'top-a'    => $posDefaults('uk-section-secondary', 'uk-section-large'),
+        'top-b'    => $posDefaults('uk-section-secondary', 'uk-section-large'),
+        'top-c'    => $posDefaults('uk-section-default', 'uk-section-large'),
+        'main'     => $posDefaults('uk-section-default', 'uk-section-large'),
+        'bottom-a' => $posDefaults('uk-section-secondary', 'uk-section-large'),
+        'bottom-b' => $posDefaults('uk-section-secondary', ''),
+        'bottom-c' => $posDefaults('uk-section-secondary', 'uk-section-large'),
     ],
-    '_nodes' => [
-        '1' => [
-            'title_hide' => true, 'title_large' => false, 'alignment' => true,
-            'html_class' => '', 'content_hide' => true, 'sidebar_first' => false,
-            'positions' => [
-                'hero'     => array_merge($posDefaults('uk-section-secondary', ''), ['height' => 'full', 'header_transparent' => true, 'header_transparent_noplaceholder' => true]),
-                'top-a'    => $posDefaults('uk-section-secondary', 'uk-section-large'),
-                'top-b'    => $posDefaults('uk-section-secondary', 'uk-section-large'),
-                'top-c'    => $posDefaults('uk-section-default', 'uk-section-large'),
-                'main'     => $posDefaults('uk-section-default', 'uk-section-large'),
-                'bottom-a' => $posDefaults('uk-section-secondary', 'uk-section-large'),
-                'bottom-b' => $posDefaults('uk-section-secondary', ''),
-                'bottom-c' => $posDefaults('uk-section-secondary', 'uk-section-large'),
-            ],
-        ],
-        '5' => [
-            'title_hide' => false, 'title_large' => false, 'alignment' => false,
-            'html_class' => '', 'content_hide' => false, 'sidebar_first' => false,
-            'positions' => [
-                'hero' => array_merge($posDefaults('uk-section-secondary', ''), ['height' => '']),
-                'main' => $posDefaults('uk-section-default', 'uk-section-large'),
-            ],
-        ],
-        '6' => [
-            'title_hide' => false, 'title_large' => false, 'alignment' => false,
-            'html_class' => '', 'content_hide' => false, 'sidebar_first' => false,
-            'positions' => [
-                'hero' => array_merge($posDefaults('uk-section-secondary', ''), ['height' => '']),
-                'main' => $posDefaults('uk-section-default', 'uk-section-large'),
-            ],
-        ],
-    ],
+];
+
+$subpagePositions = [
+    'hero' => array_merge($posDefaults('uk-section-secondary', ''), ['height' => '']),
+    'main' => $posDefaults('uk-section-default', 'uk-section-large'),
+];
+
+$themeConfig['_nodes'][(string) $nodeImpressum] = [
+    'title_hide' => false, 'title_large' => false, 'alignment' => false,
+    'html_class' => '', 'content_hide' => false, 'sidebar_first' => false,
+    'positions' => $subpagePositions,
+];
+
+$themeConfig['_nodes'][(string) $nodeDatenschutz] = [
+    'title_hide' => false, 'title_large' => false, 'alignment' => false,
+    'html_class' => '', 'content_hide' => false, 'sidebar_first' => false,
+    'positions' => $subpagePositions,
 ];
 
 $db->insert('@system_config', ['name' => 'theme-flavor', 'value' => json_encode($themeConfig)]);
