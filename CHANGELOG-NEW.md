@@ -1,5 +1,14 @@
 # Changelog
 
+## Pagekit 1.2.5 - Theme Flavor Design Fixes (March 28, 2026)
+
+### 🎨 Theme & Design
+- **Demo Content Alignment** — Re-structured `install-flavor.php` to strictly match the Framer original: removed invalid right-column profile image from Hero, updated hero typography to Inter with `4rem` massive size, aligned checkmark badges, and set correct transparent widget structures.
+- **Hero Overlay Fixed** — Corrected pseudo-selector in `flavor.less` (`&[class*="uk-background-cover"]::after`) to ensure the dark `linear-gradient` renders correctly *above* the background image instead of behind it.
+- **Styling Updates** — Applied correct orange accent (`#e56b3e`) to buttons and checkmarks, modernized feature badges into transparent checkmark lists, and added dark glassmorphism effects (`backdrop-filter: blur(10px)`) to service and recommendation cards.
+- **Header Logo** — Updated `header-logo.php` to render a small circular profile image (`width="36"`) alongside the bold site title text, replicating the Framer navbar layout.
+- **LESS Compilation** — Recompiled `theme.css` to bundle all new design tokens.
+
 ## Pagekit 1.2.4 - Validator-Translator Integration + Audit (March 27, 2026)
 
 ### Features
