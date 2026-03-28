@@ -330,7 +330,7 @@ rm temp-issue-body.md
 > The agent CANNOT close or delete issues it creates. A runaway batch is irreversible.
 > Use `issue-cleanup.yml` (GitHub UI) to bulk-close accidental issues.
 
-1. Read source file (e.g. `MODERNISING_PAGEKIT_TODO_LIST.md` or `ROADMAP.md`)
+1. Read source file (e.g. `MODERNISATION_STRATEGY.md` or `ROADMAP.md`)
 2. Parse each step: number, title, status, sub-steps, related PR
 3. **Skip** `✅` completed steps unless user says otherwise
 4. **Duplicate check** for every issue (MANDATORY, see "Check Before Creating")
