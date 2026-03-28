@@ -161,7 +161,7 @@ $db->insert('@system_widget', ['title' => 'Hero Content', 'type' => 'system/text
 
 // Widget 2: Hero Profile Image
 $db->insert('@system_widget', ['title' => 'Hero Profile', 'type' => 'system/text', 'status' => 1, 'nodes' => 1, 'data' => json_encode(['content' => '<div class="uk-text-center uk-margin-top">
-    <img src="storage/theme-flavor/robin-profil.jpg" alt="Robin Trummer" class="uk-border-circle" width="120" height="120" onerror="this.style.display=\'none\'">
+    <img data-src="storage/theme-flavor/robin-profil.jpg" alt="Robin Trummer" class="uk-border-circle" width="120" height="120" uk-img>
     <p class="uk-text-small uk-text-muted uk-margin-small-top">Robin Trummer</p>
 </div>'])]);
 
@@ -213,7 +213,7 @@ $db->insert('@system_widget', ['title' => 'About', 'type' => 'system/text', 'sta
 </div>
 <div class="uk-grid-large uk-child-width-1-2@m uk-flex-middle" uk-grid>
     <div>
-        <img src="storage/theme-flavor/robin-profil.jpg" alt="Robin Trummer" class="uk-width-1-1" style="border-radius: 4px;" onerror="this.style.display=\'none\'">
+        <img data-src="storage/theme-flavor/robin-profil.jpg" alt="Robin Trummer" class="uk-width-1-1" style="border-radius: 4px;" uk-img>
     </div>
     <div>
         <p class="uk-text-lead">Seit &uuml;ber 8 Jahren begleite ich Menschen auf ihrem Weg zu mehr Kraft, Gesundheit und mentaler St&auml;rke.</p>
@@ -231,7 +231,7 @@ $db->insert('@system_widget', ['title' => 'Recommendations', 'type' => 'system/t
 <div class="uk-grid-large uk-child-width-1-2@m" uk-grid>
     <div>
         <div class="uk-card uk-card-default uk-card-body tm-card-accent">
-            <div class="uk-margin-bottom"><img src="storage/theme-flavor/ringana.jpg" alt="RINGANA FRESH" class="uk-width-1-1" style="border-radius: 4px;" onerror="this.style.display=\'none\'"></div>
+            <div class="uk-margin-bottom"><img data-src="storage/theme-flavor/ringana.jpg" alt="RINGANA FRESH" class="uk-width-1-1" style="border-radius: 4px;" uk-img></div>
             <h3 class="uk-card-title">RINGANA FRESH</h3>
             <p>Frische, vegane Nahrungserg&auml;nzung und Naturkosmetik f&uuml;r deinen aktiven Lifestyle. Nachhaltig, ethisch und wirkungsvoll.</p>
             <p><a class="uk-button uk-button-default" href="#" target="_blank" rel="noopener">Zum Shop</a></p>
@@ -239,7 +239,7 @@ $db->insert('@system_widget', ['title' => 'Recommendations', 'type' => 'system/t
     </div>
     <div>
         <div class="uk-card uk-card-default uk-card-body tm-card-accent">
-            <div class="uk-margin-bottom"><img src="storage/theme-flavor/dynamikplus.jpg" alt="DYNAMIK PLUS" class="uk-width-1-1" style="border-radius: 4px;" onerror="this.style.display=\'none\'"></div>
+            <div class="uk-margin-bottom"><img data-src="storage/theme-flavor/dynamikplus.jpg" alt="DYNAMIK PLUS" class="uk-width-1-1" style="border-radius: 4px;" uk-img></div>
             <h3 class="uk-card-title">DYNAMIK PLUS</h3>
             <p>Premium Trainings-Equipment und Supplements f&uuml;r maximale Performance. Von Athleten f&uuml;r Athleten entwickelt.</p>
             <p><a class="uk-button uk-button-default" href="#" target="_blank" rel="noopener">Zum Shop</a></p>

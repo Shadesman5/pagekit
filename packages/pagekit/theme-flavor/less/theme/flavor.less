@@ -115,3 +115,8 @@ html {
         letter-spacing: 0.02em;
     }
 }
+
+// Graceful fallback for missing placeholder images (CSP-safe, no inline JS)
+.tm-theme-flavor img[data-src][src=""] {
+    display: none;
+}
