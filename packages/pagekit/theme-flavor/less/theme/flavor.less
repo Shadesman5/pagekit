@@ -6,12 +6,13 @@
 // Hero section overlay for background images
 .tm-hero {
     position: relative;
-    &::before {
+    &[class*="uk-background-cover"]::after,
+    > [class*="uk-background-cover"]::after {
         content: '';
         position: absolute;
         top: 0; left: 0; right: 0; bottom: 0;
-        background: linear-gradient(135deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.2) 100%);
-        z-index: 0;
+        background: linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.95) 100%);
+        z-index: -1;
     }
     .uk-section {
         position: relative;
@@ -19,12 +20,21 @@
     }
 }
 
-// Hero profile image — rounded with shadow
-.tm-hero-image {
-    border-radius: 16px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-    max-height: 500px;
-    object-fit: cover;
+// Custom Typography & Labels
+h1, h2, h3, .uk-heading-medium, .uk-heading-small {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    letter-spacing: -0.05em;
+    font-weight: 800;
+}
+
+.uk-heading-medium {
+    font-size: 4rem;
+    font-weight: 900;
+    line-height: 1.1;
+    color: #ffffff;
+    @media (max-width: 959px) {
+        font-size: 2.5rem;
+    }
 }
 
 // Section label (small uppercase text above headings)
@@ -32,19 +42,61 @@
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.2em;
-    color: #c8a96e;
+    color: #e56b3e; /* Orange accent color from screenshot */
     font-weight: 600;
     margin-bottom: 0.5rem;
 }
 
-// Gold accent border on cards
+// Accent button
+.uk-button-primary {
+    background-color: #e56b3e; /* Orange from screenshot */
+    color: #ffffff;
+    border-radius: 50px;
+    font-weight: 600;
+    text-transform: none;
+    transition: background-color 0.3s ease;
+    border: none;
+    &:hover, &:focus {
+        background-color: darken(#e56b3e, 10%);
+        color: #ffffff;
+    }
+}
+
+// Feature badges in hero (Checkmarks instead of badges)
+.tm-hero-badges {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 2rem;
+    .tm-hero-badge {
+        background: transparent;
+        border: none;
+        padding: 0;
+        font-size: 0.9rem;
+        color: #cccccc;
+        text-transform: none;
+        letter-spacing: normal;
+        display: flex;
+        align-items: center;
+        &::before {
+            content: '\2713';
+            color: #e56b3e; /* Orange */
+            margin-right: 10px;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+    }
+}
+
+// Gold accent border on cards (now dark transparent)
 .tm-card-accent {
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.05);
     border-radius: 12px;
-    background: linear-gradient(180deg, #1a1a1a 0%, #141414 100%);
+    background: rgba(20,20,20,0.8);
+    backdrop-filter: blur(10px);
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
     &:hover {
-        border-color: rgba(200,169,110,0.4);
+        border-color: rgba(229,107,62,0.4); /* Orange accent */
         box-shadow: 0 8px 30px rgba(0,0,0,0.4);
     }
 }
@@ -53,7 +105,7 @@
 .tm-price {
     font-size: 1.5rem;
     font-weight: 700;
-    color: #c8a96e;
+    color: #ffffff;
 }
 .tm-price-old {
     text-decoration: line-through;
@@ -75,7 +127,7 @@
             content: '\2713';
             position: absolute;
             left: 0;
-            color: #c8a96e;
+            color: #e56b3e; /* Orange accent */
             font-weight: bold;
         }
     }
@@ -93,7 +145,7 @@
     &::before {
         content: '\201C';
         font-size: 4rem;
-        color: #c8a96e;
+        color: #e56b3e; /* Orange accent */
         position: absolute;
         top: -0.5rem;
         left: 50%;
@@ -106,24 +158,6 @@
 // Smooth scroll behavior for one-pager
 html {
     scroll-behavior: smooth;
-}
-
-// Feature badges in hero
-.tm-hero-badges {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-    margin-top: 2rem;
-    .tm-hero-badge {
-        background: rgba(255,255,255,0.06);
-        border: 1px solid rgba(255,255,255,0.1);
-        padding: 0.5rem 1rem;
-        font-size: 0.75rem;
-        color: rgba(255,255,255,0.8);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        border-radius: 4px;
-    }
 }
 
 // Heading text-transform for dark theme
@@ -151,7 +185,7 @@ html {
         position: absolute;
         top: 0; left: 0; right: 0; bottom: 0;
         background: rgba(0,0,0,0.75);
-        z-index: 0;
+        z-index: -1;
     }
     .uk-section {
         position: relative;

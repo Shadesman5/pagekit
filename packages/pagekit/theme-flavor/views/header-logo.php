@@ -14,42 +14,24 @@ $attrs_link['class'][] = 'uk-logo';
 
 // Image
 if ($image) {
-
     $attrs_image['class'][] = isset($img) ? $img : '';
+    $attrs_image['class'][] = 'uk-border-circle uk-margin-small-right uk-object-cover'; // Ensure the image is circular
     $attrs_image['alt'] = $title;
+    $attrs_image['width'] = '36';
+    $attrs_image['height'] = '36';
 
-    $ext = isImage($image);
-
-    if ($ext == 'gif') {
-        $attrs_image['uk-gif'] = true;
-    }
-
-    if ($ext == 'svg') {
-        $attrs_image['class'][] = 'uk-preserve';
-        $attrs_image['uk-svg'] = true;
-        $width = $height= '';
-        $logo = image($image, array_merge($attrs_image, ['width' => $width, 'height' => $height]));
-    } else {
-        $logo = image($config['image'], $attrs_image);
-    }
-
-    // Inverse
-    $image_inverse = $params->get('logo_contrast');
-    if ($image_inverse) {
-
-        $attrs_image['class'][] = 'uk-logo-inverse';
-
-        if (isImage($image_inverse) == 'svg') {
-            $width = ''; $height = '';
-            $logo .= image($image_inverse, array_merge($attrs_image, ['width' => $width, 'height' => $height]));
-        } else {
-            $logo .= image($image_inverse, $attrs_image);
-        }
-
-    }
+    $logo_img = '<img src="'.$view->url()->getStatic($image).'" alt="'.htmlspecialchars($title).'" '.attrs($attrs_image).'>';
+} else {
+    $logo_img = '';
 }
+
+// Combine image and title text
+$logo_content = '<div class="uk-flex uk-flex-middle">';
+$logo_content .= $logo_img;
+$logo_content .= '<span class="uk-text-bold">'.htmlspecialchars($title).'</span>';
+$logo_content .= '</div>';
 ?>
 
 <a<?= attrs($attrs_link) ?>>
-    <?= $logo ?>
+    <?= $logo_content ?>
 </a>

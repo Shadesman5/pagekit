@@ -141,11 +141,11 @@ $db->insert('@system_node', [
 $nodeDatenschutz = (int) $db->lastInsertId();
 
 // =========================================================================
-// Site Config — set frontpage to home node
+// Site Config — set frontpage to home node and logo
 // =========================================================================
 $config->set('system/site', $config('system/site')->merge([
     'frontpage' => $nodeHome,
-    'view' => ['logo' => ''],
+    'view' => ['logo' => 'storage/theme-flavor/robin-profil.jpg'],
 ]));
 
 // =========================================================================
@@ -153,30 +153,22 @@ $config->set('system/site', $config('system/site')->merge([
 // =========================================================================
 $widgetIds = [];
 
-$db->insert('@system_widget', ['title' => 'Hero Content', 'type' => 'system/text', 'status' => 1, 'nodes' => (string) $nodeHome, 'data' => json_encode(['content' => '<div class="uk-grid-large uk-child-width-1-2@m uk-flex-middle" uk-grid>
-    <div>
-        <p class="tm-section-label">RESET &amp; RISE &ndash; Ma&szlig;geschneidertes 1-zu-1 Personal Training in Hamburg.</p>
-        <h1 class="uk-heading-small uk-margin-remove-top">DEIN WEG ZU MEHR KRAFT, FOKUS UND REGENERATION.</h1>
-        <p class="uk-text-lead uk-text-muted">Starte jetzt deine Transformation.</p>
-        <p class="uk-margin-medium-top">
-            <a class="uk-button uk-button-primary uk-button-large" href="/#tm-bottom-c" uk-scroll>Erstgespr&auml;ch sichern</a>
-        </p>
-        <div class="tm-hero-badges uk-flex-left">
-            <div class="tm-hero-badge">Ganzheitlicher Ansatz</div>
-            <div class="tm-hero-badge">Individuelle Betreuung</div>
-            <div class="tm-hero-badge">Technik- &amp; Boxcoaching</div>
-        </div>
-    </div>
-    <div class="uk-visible@m">
-        <img data-src="storage/theme-flavor/robin-profil.jpg" alt="Robin Trummer" class="uk-width-1-1 tm-hero-image" uk-img>
+$db->insert('@system_widget', ['title' => 'Hero Content', 'type' => 'system/text', 'status' => 1, 'nodes' => (string) $nodeHome, 'data' => json_encode(['content' => '<div class="uk-width-2-3@m">
+    <p class="tm-section-label">RESET &amp; RISE &ndash; Ma&szlig;geschneidertes 1-zu-1 Personal Training in Hamburg.</p>
+    <h1 class="uk-heading-medium uk-margin-remove-top">DEIN WEG ZU MEHR KRAFT, FOKUS UND REGENERATION.</h1>
+    <p class="uk-text-lead uk-text-muted">Starte jetzt deine Transformation.</p>
+    <p class="uk-margin-medium-top">
+        <a class="uk-button uk-button-primary uk-button-large" href="/#tm-bottom-c" uk-scroll>Erstgespr&auml;ch sichern</a>
+    </p>
+    <div class="tm-hero-badges">
+        <div class="tm-hero-badge">Ganzheitlicher Ansatz</div>
+        <div class="tm-hero-badge">Individuelle Betreuung</div>
+        <div class="tm-hero-badge">Technik- &amp; Boxcoaching</div>
     </div>
 </div>'])]);
 $widgetIds[] = (int) $db->lastInsertId();
 
-$db->insert('@system_widget', ['title' => 'Hero Profile', 'type' => 'system/text', 'status' => 1, 'nodes' => (string) $nodeHome, 'data' => json_encode(['content' => '<div class="uk-text-center uk-hidden@m">
-    <img data-src="storage/theme-flavor/robin-profil.jpg" alt="Robin Trummer" class="uk-border-circle" width="120" height="120" uk-img>
-    <p class="uk-text-small uk-text-muted uk-margin-small-top">Robin Trummer</p>
-</div>'])]);
+$db->insert('@system_widget', ['title' => 'Hero Profile', 'type' => 'system/text', 'status' => 1, 'nodes' => (string) $nodeHome, 'data' => json_encode(['content' => ''])]);
 $widgetIds[] = (int) $db->lastInsertId();
 
 $db->insert('@system_widget', ['title' => 'Quote 1', 'type' => 'system/text', 'status' => 1, 'nodes' => (string) $nodeHome, 'data' => json_encode(['content' => '<div class="tm-quote uk-text-center">Entwicklung beginnt mit einer Entscheidung. RESET &amp; RISE ist diese Entscheidung.</div>'])]);
