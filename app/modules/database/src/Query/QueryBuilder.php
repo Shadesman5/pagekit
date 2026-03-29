@@ -8,7 +8,6 @@ use Doctrine\DBAL\Platforms\MySqlPlatform;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Pagekit\Database\Connection;
-use Pagekit\Database\Query\QueryBuilder;
 use PDO;
 
 class QueryBuilder

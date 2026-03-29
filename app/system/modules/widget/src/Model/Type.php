@@ -14,6 +14,8 @@ class Type extends Module implements TypeInterface
         if (is_callable($this->get('render'))) {
             return call_user_func($this->get('render'), $widget);
         }
+
+        return '';
     }
 
     /**
