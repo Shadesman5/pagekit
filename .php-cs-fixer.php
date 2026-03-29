@@ -9,14 +9,13 @@ $finder = PhpCsFixer\Finder::create()
         'app/assets',
         'node_modules',
         'docker',
-        'packages'
     ])
     ->name('*.php')
     ->notName('*.blade.php');
 
 $config = new PhpCsFixer\Config();
 return $config->setRules([
-        '@PSR2' => true,
+        '@PSR12' => true,
         'array_syntax' => ['syntax' => 'short'],
         'ordered_imports' => ['sort_algorithm' => 'alpha'],
         'no_unused_imports' => true,
@@ -36,6 +35,7 @@ return $config->setRules([
         ],
         // Moderate Modernisierungen (nicht zu aggressiv)
         'modernize_types_casting' => true,
-        'no_unneeded_control_parentheses' => true
+        'no_unneeded_control_parentheses' => true,
+        // TODO: Must be refactored in Step 2.1.3 (strict_types Migration)
     ])
     ->setFinder($finder);
