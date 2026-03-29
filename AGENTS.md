@@ -11,7 +11,7 @@ Pagekit CMS is a modular PHP CMS built on Symfony 6.4 components with a Vue.js 2
 | Service | Command | Notes |
 |---|---|---|
 | PHP dev server | `php -S localhost:8080 index.php` | Serves the full app; run from workspace root |
-| PHPUnit | `./app/vendor/bin/phpunit` | 261 tests; no external DB needed |
+| PHPUnit | `./app/vendor/bin/phpunit` | 280 tests; no external DB needed |
 | ESLint | `yarn lint` | Pre-existing style errors (~13k); runs correctly |
 | Webpack (JS build) | `yarn compile-js --mode=production` | Or `yarn watch-js` for dev |
 | Gulp (LESS build) | `yarn compile-less` | Or `yarn watch-less` for dev |
