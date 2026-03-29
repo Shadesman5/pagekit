@@ -1,0 +1,23 @@
+includes:
+    - app/vendor/phpstan/phpstan-doctrine/extension.neon
+    - app/vendor/phpstan/phpstan-symfony/extension.neon
+
+parameters:
+    level: 5
+
+    paths:
+        - app/modules
+        - app/system
+        - app/installer
+        - app/console
+        - packages
+
+    excludePaths:
+        - app/vendor
+        - app/modules/*/vendor
+        - */node_modules/*
+        - tmp
+        - storage
+
+    bootstrapFiles:
+        - app/vendor/autoload.php
