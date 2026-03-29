@@ -68,7 +68,8 @@
     "symfony/debug-bundle": "^6.4",
     "phpstan/phpstan": "^2.1",
     "phpstan/phpstan-doctrine": "^2.0",
-    "phpstan/phpstan-symfony": "^2.0"
+    "phpstan/phpstan-symfony": "^2.0",
+    "roave/security-advisories": "dev-latest"
   },
   "autoload": {
     "psr-4": {
