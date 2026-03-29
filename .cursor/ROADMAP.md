@@ -69,7 +69,7 @@
 | 2.0.1e | ↳ StaticTrait Removal + DI Final      | ✅     | 🛡️    | #166  | #172    |
 | 2.0.2  | ↳ Validator-Translator Integration    | ✅     | 🛡️    | #146  | #175    |
 | 2.1    | **Static Analysis & Code Quality**    | ⏳     | ⏳    | #147  | -       |
-| 2.1.1  | ↳ Tooling-Setup & Baseline            | ✅     | ⏳    | #148  | -       |
+| 2.1.1  | ↳ Tooling-Setup & Baseline            | ✅     | ⏳    | #148  | #178    |
 | 2.1.2  | ↳ CI/CD Integration & Quality Gates   | ⏳     | ⏳    | #149  | -       |
 | 2.1.3  | ↳ `strict_types` Migration            | ⏳     | ⏳    | #150  | -       |
 | 2.1.4  | ↳ PHPStan Level 5→6 (Return Types)    | ⏳     | ⏳    | #151  | -       |
