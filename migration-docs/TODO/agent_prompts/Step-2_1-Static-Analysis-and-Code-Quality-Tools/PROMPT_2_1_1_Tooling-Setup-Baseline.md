@@ -24,9 +24,10 @@
 ```bash
 ./app/vendor/bin/phpunit
 ```
+**Expected: ~280 tests, all passing.** If significantly fewer tests run, investigate configuration issues.
 **IF ANY FAILS → STOP AND FIX!**
 
-**Before starting:** Branch from `develop`.
+**Before starting:** Verify: Branch is Up-to-Date with `develop`.
 
 ---
 
@@ -45,6 +46,10 @@ composer require --dev phpstan/phpstan phpstan/phpstan-doctrine phpstan/phpstan-
 Create `phpstan.neon` in workspace root:
 
 ```neon
+includes:
+    - app/vendor/phpstan/phpstan-doctrine/extension.neon
+    - app/vendor/phpstan/phpstan-symfony/extension.neon
+
 parameters:
     level: 5
     paths:
@@ -64,9 +69,12 @@ parameters:
 ```
 
 Adjust paths based on discovery. The config must:
+- Include the Doctrine and Symfony extension `.neon` files (without these, the extensions are installed but inactive)
 - Target all PHP source directories (NOT vendor)
 - Use `app/vendor/autoload.php` as bootstrap
 - Start at Level 5
+
+**Note:** `phpstan-symfony` is useful for recognizing Symfony attributes (`#[Route]`, `#[Assert\...]`) and HTTP Foundation types. It does NOT require a Symfony container XML dump — Pagekit uses its own PSR-11 container, not a standard Symfony container.
 
 ### 1.3. Run PHPStan and generate baseline
 
@@ -74,14 +82,16 @@ Adjust paths based on discovery. The config must:
 ./app/vendor/bin/phpstan analyse --generate-baseline
 ```
 
-This creates `phpstan-baseline.neon`. Add it to `phpstan.neon`:
+This creates `phpstan-baseline.neon`. Add it to the existing `includes` section in `phpstan.neon`:
 
 ```neon
 includes:
     - phpstan-baseline.neon
+    - app/vendor/phpstan/phpstan-doctrine/extension.neon
+    - app/vendor/phpstan/phpstan-symfony/extension.neon
 ```
 
-Document the number of baseline errors.
+Add a comment at the top of `phpstan-baseline.neon` with the total error count and date for future reference.
 
 ### 1.4. Verify PHPStan runs clean
 
@@ -113,11 +123,15 @@ composer require --dev friendsofphp/php-cs-fixer
 
 ### 3.2. Update `.php-cs-fixer.php`
 
-Change ruleset from `@PSR2` to `@PSR12`:
+**Two changes required:**
+
+1. Change ruleset from `@PSR2` to `@PSR12`:
 
 ```php
 '@PSR12' => true,  // was: '@PSR2' => true
 ```
+
+2. Remove `'packages'` from the `->exclude([...])` array in the Finder. The current config excludes `packages/` from formatting, but PHPStan analyzes it. Both tools should cover the same scope.
 
 **⚠️ Do NOT add `declare_strict_types` rule.** That comes in Step 2.1.3.
 
@@ -129,7 +143,7 @@ Keep all existing additional rules (array_syntax, ordered_imports, etc.).
 ./app/vendor/bin/php-cs-fixer fix
 ```
 
-This is formatting only — no semantic changes. Commit the formatting changes separately from tool installation.
+This is formatting only — no semantic changes.
 
 ### 3.4. Verify no regressions
 
@@ -141,8 +155,8 @@ This is formatting only — no semantic changes. Commit the formatting changes s
 
 ## 4. DOCUMENTATION
 
-Document baseline metrics:
-- PHPStan Level 5 baseline error count
+Include baseline metrics in the **PR description**:
+- PHPStan Level 5 baseline error count (also recorded as comment in `phpstan-baseline.neon`)
 - Number of PHP files analyzed
 - Code style changes applied (PSR-2 → PSR-12 diff summary)
 
@@ -150,10 +164,10 @@ Document baseline metrics:
 
 ## SUCCESS CRITERIA
 
-- PHPStan installed and runs at Level 5 with baseline
+- PHPStan installed and runs at Level 5 with baseline (Doctrine + Symfony extensions active)
 - `phpstan.neon` and `phpstan-baseline.neon` committed
 - `roave/security-advisories` installed
-- PHP-CS-Fixer upgraded to `@PSR12`
+- PHP-CS-Fixer upgraded to `@PSR12`, `packages` no longer excluded from formatting
 - Code formatted with PSR-12
 - No `declare(strict_types=1)` changes
 - All PHPUnit tests pass
@@ -162,10 +176,10 @@ Document baseline metrics:
 
 ## VALIDATION CHECKLIST
 
-- [ ] `phpstan.neon` exists and is valid
-- [ ] `phpstan-baseline.neon` exists
+- [ ] `phpstan.neon` exists and includes Doctrine + Symfony extension `.neon` files
+- [ ] `phpstan-baseline.neon` exists with error count comment
 - [ ] `./app/vendor/bin/phpstan analyse` passes (zero errors above baseline)
-- [ ] `.php-cs-fixer.php` uses `@PSR12`
+- [ ] `.php-cs-fixer.php` uses `@PSR12` and no longer excludes `packages`
 - [ ] `roave/security-advisories` in `composer.json`
-- [ ] All PHPUnit tests pass
+- [ ] All PHPUnit tests pass (~280 tests)
 - [ ] No `strict_types` changes

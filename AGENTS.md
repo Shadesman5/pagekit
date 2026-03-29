@@ -11,7 +11,7 @@ Pagekit CMS is a modular PHP CMS built on Symfony 6.4 components with a Vue.js 2
 | Service | Command | Notes |
 |---|---|---|
 | PHP dev server | `php -S localhost:8080 index.php` | Serves the full app; run from workspace root |
-| PHPUnit | `./app/vendor/bin/phpunit` | 261 tests; no external DB needed |
+| PHPUnit | `./app/vendor/bin/phpunit` | 280 tests; no external DB needed |
 | ESLint | `yarn lint` | Pre-existing style errors (~13k); runs correctly |
 | Webpack (JS build) | `yarn compile-js --mode=production` | Or `yarn watch-js` for dev |
 | Gulp (LESS build) | `yarn compile-less` | Or `yarn watch-less` for dev |
@@ -28,3 +28,4 @@ Pagekit CMS is a modular PHP CMS built on Symfony 6.4 components with a Vue.js 2
 - **Writable directories needed:** `tmp/` (logs, cache, temp, packages) and `storage/` must be writable. Create them with `mkdir -p tmp/logs tmp/cache tmp/temp tmp/packages storage`.
 - **`php pagekit start`** is documented in README but just wraps `php -S 0.0.0.0:8080 index.php`. Use the direct command for more control.
 - **E2E tests (Playwright)** require the dev server running and a completed installation. Config at `tests/e2e/config/test-config.json` (copy from `.example.json`).
+- **Modernisation workflow** is defined in `.cursor/rules/` (push.mdc, feature-branch.mdc, orchestrator-subagent-workflow.mdc) and `.cursor/ROADMAP.md`.

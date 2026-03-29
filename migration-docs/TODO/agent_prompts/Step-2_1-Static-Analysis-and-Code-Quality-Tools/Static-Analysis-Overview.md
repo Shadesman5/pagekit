@@ -46,8 +46,8 @@ Use the **Task Invocation Template** (`.cursor/PROMPT_TASK_INVOCATION_TEMPLATE.m
 
 | Metric | Current | Target |
 |--------|---------|--------|
-| PHP files (excl. vendor) | ~900 | All modernized |
-| Files with `strict_types` | ~135 (~15%) | 100% |
+| PHP files (excl. vendor) | ~790 | All modernized |
+| Files with `strict_types` | ~137 (~17%) | 100% |
 | PHPStan | Not installed | Level 8 |
 | PHP-CS-Fixer config | `@PSR2` (`.php-cs-fixer.php`) | `@PSR12` |
 | CI/CD for PHP quality | None (only project automation) | Full pipeline |
@@ -68,4 +68,4 @@ Each sub-step creates its own branch. After merging into `develop`, the next sub
 - **Vendor directory is `app/vendor/`**, not `vendor/`. Binaries go to `app/vendor/bin/`.
 - **PHP-CS-Fixer** exists as `.php-cs-fixer.php` config but is NOT in `composer.json` as a dev dependency yet.
 - The `executeQuery()` method in Pagekit's QueryBuilder is currently **protected**, not public.
-- **~900 PHP files** need `strict_types` — this is NOT a trivial style change, it changes runtime behavior.
+- **~790 PHP files** need `strict_types` — this is NOT a trivial style change, it changes runtime behavior.

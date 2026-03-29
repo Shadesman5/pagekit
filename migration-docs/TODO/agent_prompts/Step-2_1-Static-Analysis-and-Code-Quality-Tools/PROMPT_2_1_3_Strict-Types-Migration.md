@@ -8,7 +8,7 @@
 
 - **Depends on:** Step 2.1.2 (CI/CD — regressions caught immediately)
 - **Risk:** Medium-High — `strict_types` changes runtime behavior, can cause `TypeError`
-- **Current state:** ~135 of ~900 PHP files have `strict_types` (~15%). The rest are untyped.
+- **Current state:** ~137 of ~790 PHP files have `strict_types` (~17%). The rest are untyped.
 
 **Goal:** Add `declare(strict_types=1)` to ALL PHP files, module-by-module, fixing TypeErrors as they appear.
 
