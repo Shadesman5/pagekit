@@ -1,4 +1,4 @@
-# PHPStan baseline — 891 errors at level 5 (2026-03-29)
+# PHPStan baseline — 888 errors at level 5 (2026-03-29)
 parameters:
 	ignoreErrors:
 		-
@@ -202,24 +202,6 @@ parameters:
 		-
 			message: '#^PHPDoc tag @return with type Traversable is not subtype of native type ArrayIterator\.$#'
 			identifier: return.phpDocType
-			count: 1
-			path: app/installer/requirements.php
-
-		-
-			message: '#^Parameter \$evaluation of method PhpIniRequirement\:\:__construct\(\) has invalid type callback\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/installer/requirements.php
-
-		-
-			message: '#^Parameter \$evaluation of method RequirementCollection\:\:addPhpIniRecommendation\(\) has invalid type callback\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/installer/requirements.php
-
-		-
-			message: '#^Parameter \$evaluation of method RequirementCollection\:\:addPhpIniRequirement\(\) has invalid type callback\.$#'
-			identifier: class.notFound
 			count: 1
 			path: app/installer/requirements.php
 

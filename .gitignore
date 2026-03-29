@@ -53,6 +53,9 @@ docker.env
 # PHPUnit cache
 .phpunit.cache/
 
+# PHP-CS-Fixer cache
+.php-cs-fixer.cache
+
 # E2E Testing
 .playwright-mcp/
 /test-results/
