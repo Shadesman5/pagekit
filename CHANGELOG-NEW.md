@@ -1,5 +1,30 @@
 # Changelog
 
+## Pagekit 1.2.6 - Static Analysis Tooling Baseline (March 29, 2026)
+
+### Build
+
+- **PHPStan installed** — `phpstan/phpstan`, `phpstan/phpstan-doctrine`, and `phpstan/phpstan-symfony` added as dev dependencies.
+- **`phpstan.neon` created** — Level 5 configuration with Doctrine and Symfony extensions, analysing `app/modules`, `app/system`, `app/installer`, `app/console`, and `packages`.
+- **`phpstan-baseline.neon` generated** — 888 errors baselined at level 5 (2026-03-29). PHPStan analyse runs clean with zero errors above baseline.
+- **`roave/security-advisories`** added as dev dependency for vulnerability detection.
+- **`friendsofphp/php-cs-fixer`** added as dev dependency for automated code style enforcement.
+
+### Style
+
+- **PSR-12 ruleset activated** — `.php-cs-fixer.php` upgraded from `@PSR2` to `@PSR12`; `packages` directory removed from exclusion list.
+- **PSR-12 formatting applied** — 601 PHP files reformatted across the entire codebase. No behavioral changes.
+
+### Fixes
+
+- **PHPStan non-ignorable errors resolved** — Fixed 10 type errors (missing returns, redundant self-imports) in `PropertyTrait.php`, `QueryBuilder.php`, `Type.php`, and `NodeInterface.php`.
+
+### Chores
+
+- **`.php-cs-fixer.cache` added to `.gitignore`** — Prevents generated cache file from being tracked.
+
+---
+
 ## Pagekit 1.2.5 - Documentation Cleanup & Workflow Alignment (March 28, 2026)
 
 ### Documentation
