@@ -23,7 +23,7 @@ class ConfigLoader implements LoaderInterface
     {
         if (isset($this->values[$module['name']])) {
             $module = array_replace_recursive($module, [
-                'config' => $this->values[$module['name']]
+                'config' => $this->values[$module['name']],
             ]);
         }
 

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Pagekit\Blog\Migrations;
 
-use Pagekit\Migration\ExtensionMigration;
 use Doctrine\DBAL\Schema\Schema;
+use Pagekit\Migration\ExtensionMigration;
 
 /**
  * Blog Extension Initial Schema
@@ -55,7 +55,7 @@ final class Version001_CreateBlogTables extends ExtensionMigration
         $postTable->addColumn('comment_count', 'integer', ['default' => 0]);
         $postTable->addColumn('data', 'json', ['notnull' => false]);
         $postTable->addColumn('roles', 'simple_array', ['notnull' => false]);
-        
+
         // Primary key and indexes
         $postTable->setPrimaryKey(['id']);
         $postTable->addUniqueIndex(['slug'], $this->getIndexName('post', 'slug'));
@@ -76,7 +76,7 @@ final class Version001_CreateBlogTables extends ExtensionMigration
         $commentTable->addColumn('created', 'datetime');
         $commentTable->addColumn('content', 'text');
         $commentTable->addColumn('status', 'smallint');
-        
+
         // Primary key and indexes
         $commentTable->setPrimaryKey(['id']);
         $commentTable->addIndex(['author'], $this->getIndexName('comment', 'author'));

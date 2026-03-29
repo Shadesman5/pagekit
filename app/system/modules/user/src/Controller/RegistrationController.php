@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Controller;
 
+use function Pagekit\__;
+
 use Pagekit\Application\Exception;
 use Pagekit\Captcha\Attribute\Captcha;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-use Pagekit\Module\Module;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Model\User;
-use function Pagekit\__;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * Controller for user registration.
@@ -51,8 +51,8 @@ class RegistrationController
         return [
             '$view' => [
                 'title' => __('User Registration'),
-                'name' => 'system/user/registration.php'
-            ]
+                'name' => 'system/user/registration.php',
+            ],
         ];
     }
 
@@ -76,12 +76,12 @@ class RegistrationController
             }
 
             $user = User::create([
-                'registered' => new \DateTime,
+                'registered' => new \DateTime(),
                 'name' => @$data['name'],
                 'username' => @$data['username'],
                 'email' => @$data['email'],
                 'password' => $this->authPassword->hash($password),
-                'status' => User::STATUS_BLOCKED
+                'status' => User::STATUS_BLOCKED,
             ]);
 
             $token = bin2hex(random_bytes(16));
@@ -115,7 +115,7 @@ class RegistrationController
         $this->message->success($message);
 
         return [
-            'redirect' => ($this->url)('@user/login')
+            'redirect' => ($this->url)('@user/login'),
         ];
     }
 
@@ -140,7 +140,7 @@ class RegistrationController
             $user->status = User::STATUS_ACTIVE;
             $user->activation = '';
             $this->sendWelcomeEmail($user);
-            $message = $verifying ?  __('Your account has been activated.') : __('The user\'s account has been activated and the user has been notified about it.');
+            $message = $verifying ? __('Your account has been activated.') : __('The user\'s account has been activated and the user has been notified about it.');
         }
 
         $user->save();
@@ -158,7 +158,7 @@ class RegistrationController
             $mail->to($user->email)
                 ->subject(__('Welcome to %site%!', ['%site%' => $this->module->get('system/site')->config('title')]))
                 ->html(($this->view)('system/user:mails/welcome.php', compact('user', 'mail')));
-            
+
             $this->mailer->send($mail);
 
         } catch (\Exception $e) {
@@ -173,7 +173,7 @@ class RegistrationController
             $mail->to($user->email)
                 ->subject(__('Activate your %site% account.', ['%site%' => $this->module->get('system/site')->config('title')]))
                 ->html(($this->view)('system/user:mails/verification.php', compact('user', 'mail')));
-            
+
             $this->mailer->send($mail);
 
         } catch (\Exception $e) {
@@ -189,7 +189,7 @@ class RegistrationController
             $mail->to($this->module->get('system/mail')->config('from_address'))
                 ->subject(__('Approve an account at %site%.', ['%site%' => $this->module->get('system/site')->config('title')]))
                 ->html(($this->view)('system/user:mails/approve.php', compact('user', 'mail')));
-            
+
             $this->mailer->send($mail);
 
         } catch (\Exception $e) {

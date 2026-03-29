@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Title' => 'Pealkiri',
   'Theme' => 'Kujundus',
   'Hide Title' => 'Peida pealkiri',
@@ -38,4 +40,4 @@
   'Written by %name% on %date%' => 'Kirjutanud %name% %date%',
   'Read more' => 'Loe edasi',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Kommentaare ei ole|{1} %count% Kommentaar|]1,Inf[ %count% Kommentaari',
-);
+];

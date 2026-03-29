@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Pagekit\Database\ORM;
 
-use Psr\Cache\CacheItemPoolInterface;
 use Pagekit\Cache\CacheInterface;
 use Pagekit\Database\Connection;
-use Pagekit\Database\ORM\Metadata;
 use Pagekit\Database\ORM\Loader\LoaderInterface;
 use Pagekit\Event\EventDispatcherInterface;
+use Psr\Cache\CacheItemPoolInterface;
 
 class MetadataManager
 {
@@ -39,7 +38,7 @@ class MetadataManager
     public function __construct(Connection $connection, EventDispatcherInterface $events)
     {
         $this->connection = $connection;
-        $this->events     = $events;
+        $this->events = $events;
     }
 
     /**
@@ -96,7 +95,7 @@ class MetadataManager
     public function get(object|string $class): Metadata
     {
         $class = new \ReflectionClass($class);
-        $name  = $class->getName();
+        $name = $class->getName();
 
         if (!isset($this->metadata[$name])) {
 
@@ -118,7 +117,7 @@ class MetadataManager
                 // Support both PSR-6 and legacy CacheInterface
                 if ($this->cache instanceof CacheItemPoolInterface) {
                     $item = $this->cache->getItem($id);
-                    
+
                     if ($item->isHit()) {
                         $config = $item->get();
                         $this->metadata[$name] = new Metadata($this, $name, $config);
@@ -130,7 +129,7 @@ class MetadataManager
                 } else {
                     // Legacy CacheInterface (with PSR-6 methods via Psr6Adapter)
                     $config = $this->cache->fetch($id);
-                    
+
                     if ($config !== false) {
                         $this->metadata[$name] = new Metadata($this, $name, $config);
                     } else {
@@ -164,6 +163,7 @@ class MetadataManager
 
             if (isset($this->metadata[$name])) {
                 $parent = $this->metadata[$name];
+
                 continue;
             }
 

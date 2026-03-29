@@ -55,7 +55,7 @@ class Role implements \JsonSerializable
         'locked' => 'isLocked',
         'anonymous' => 'isAnonymous',
         'authenticated' => 'isAuthenticated',
-        'administrator' => 'isAdministrator'
+        'administrator' => 'isAdministrator',
     ];
 
     /**
@@ -117,7 +117,8 @@ class Role implements \JsonSerializable
     /**
      * {@inheritdoc}
      */
-    public function __toString(): string {
+    public function __toString(): string
+    {
         return (string) $this->name;
     }
 }

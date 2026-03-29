@@ -22,7 +22,8 @@ class AccessListener implements EventSubscriberInterface
         private readonly mixed $url,
         private readonly mixed $response,
         private readonly RequestStack $requestStack,
-    ) {}
+    ) {
+    }
 
     /**
      * Reads the #[Access] attributes from the controller and stores them in the "access" route option.
@@ -141,8 +142,8 @@ class AccessListener implements EventSubscriberInterface
             'auth.authorize' => 'onAuthorize',
             'request' => [
                 ['onLateRequest', -100],
-                ['onRequest', -50]
-            ]
+                ['onRequest', -50],
+            ],
         ];
     }
 }

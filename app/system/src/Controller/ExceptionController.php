@@ -13,7 +13,8 @@ class ExceptionController
     public function __construct(
         private readonly mixed $view,
         private readonly mixed $response,
-    ) {}
+    ) {
+    }
 
     /**
      * Converts an Exception to a Response.
@@ -32,7 +33,7 @@ class ExceptionController
             $title = __('Whoops, looks like something went wrong.');
         }
 
-        $content  = $this->getAndCleanOutputBuffering((int) ($request->headers->get('X-Php-Ob-Level') ?? -1));
+        $content = $this->getAndCleanOutputBuffering((int) ($request->headers->get('X-Php-Ob-Level') ?? -1));
         $rendered = ($this->view)('system/error.php', compact('title', 'exception', 'content'));
 
         // Ensure a valid HTTP status code (must be between 100 and 599)

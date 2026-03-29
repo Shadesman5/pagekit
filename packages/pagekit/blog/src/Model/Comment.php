@@ -62,8 +62,8 @@ class Comment extends BaseComment implements \JsonSerializable
     {
         return [
             self::STATUS_APPROVED => __('Approved'),
-            self::STATUS_PENDING  => __('Pending'),
-            self::STATUS_SPAM     => __('Spam')
+            self::STATUS_PENDING => __('Pending'),
+            self::STATUS_SPAM => __('Spam'),
         ];
     }
 }

@@ -24,7 +24,7 @@ class ConfigManager implements \IteratorAggregate
     public function __construct(Connection $connection, array $config)
     {
         $this->connection = $connection;
-        $this->table      = $config['table'];
+        $this->table = $config['table'];
     }
 
     /**

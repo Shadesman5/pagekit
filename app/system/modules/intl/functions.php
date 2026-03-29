@@ -8,7 +8,8 @@ if (!function_exists('__')) {
     /**
      * Translates the given message, alias for method trans()
      */
-    function __($id, array $parameters = [], $domain = 'messages', $locale = null) {
+    function __($id, array $parameters = [], $domain = 'messages', $locale = null)
+    {
         return IntlServiceLocator::getTranslator()->trans($id, $parameters, $domain, $locale);
     }
 }
@@ -19,8 +20,9 @@ if (!function_exists('_c')) {
      * Trying replace '%value%'' to '%count%' in source string and parameters property.
      * TODO - remove _.c() from php and transChoice() from vue.
      */
-    function _c($id, $number, array $parameters = [], $domain = null, $locale = null) {
-        
+    function _c($id, $number, array $parameters = [], $domain = null, $locale = null)
+    {
+
         $id = preg_replace('/(%)(.*?)(%)/', '%count%', $id);
 
         $params = [];
@@ -38,7 +40,8 @@ if (!function_exists('_i')) {
      * https://symfony.com/doc/current/translation/message_format.html#using-the-icu-message-format
      * TODO - add _.i() to php and transICU() to vue.
      */
-    function _i($id, array $parameters = [], $domain = null, $locale = null) {
+    function _i($id, array $parameters = [], $domain = null, $locale = null)
+    {
 
         if (null === $domain) {
             $domain = 'messages';

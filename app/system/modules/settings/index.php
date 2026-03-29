@@ -5,12 +5,12 @@ return [
     'name' => 'system/settings',
 
     'main' => function ($app) {
-        $app->set('configFile', fn($app) => $app->get('config.file'));
+        $app->set('configFile', fn ($app) => $app->get('config.file'));
     },
 
     'autoload' => [
 
-        'Pagekit\\System\\' => 'src'
+        'Pagekit\\System\\' => 'src',
 
     ],
 
@@ -18,14 +18,14 @@ return [
 
         '/system/settings' => [
             'name' => '@system/settings',
-            'controller' => 'Pagekit\\System\\Controller\\SettingsController'
+            'controller' => 'Pagekit\\System\\Controller\\SettingsController',
         ],
 
     ],
 
     'resources' => [
 
-        'settings:' => ''
+        'settings:' => '',
 
     ],
 
@@ -33,8 +33,8 @@ return [
 
         'system: access settings' => [
             'title' => 'Access system settings',
-            'trusted' => true
-        ]
+            'trusted' => true,
+        ],
 
     ],
 
@@ -45,14 +45,14 @@ return [
             'icon' => 'settings:assets/images/icon-settings.svg',
             'access' => 'system: access settings',
             'url' => '@system/settings',
-            'priority' => 120
+            'priority' => 120,
         ],
 
         'system: settings' => [
             'label' => 'Settings',
             'parent' => 'system: system',
             'url' => '@system/settings',
-        ]
+        ],
 
     ],
 
@@ -62,21 +62,21 @@ return [
 
             $view->data('$system', [
                 'locales' => $app->get('module')->get('system/intl')->getAvailableLanguages(),
-                'sqlite' => class_exists('SQLite3') || (class_exists('PDO') && in_array('sqlite', \PDO::getAvailableDrivers(), true))
+                'sqlite' => class_exists('SQLite3') || (class_exists('PDO') && in_array('sqlite', \PDO::getAvailableDrivers(), true)),
             ]);
 
             $view->data('$settings', [
                 'options' => [
-                    'system' => $app->get('system')->config(['site.', 'admin.'])
+                    'system' => $app->get('system')->config(['site.', 'admin.']),
                 ],
                 'config' => [
                     'application' => $app->get('module')->get('application')->config(['debug']),
-                    'debug' => $app->get('module')->get('debug')->config(['enabled'])
-                ]
+                    'debug' => $app->get('module')->get('debug')->config(['enabled']),
+                ],
             ]);
 
-        }
+        },
 
-    ]
+    ],
 
 ];

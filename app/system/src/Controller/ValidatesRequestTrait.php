@@ -6,8 +6,8 @@ namespace Pagekit\System\Controller;
 
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * Trait for validating entities using Symfony Validator.
@@ -59,6 +59,7 @@ trait ValidatesRequestTrait
 
         if (count($violations) > 0) {
             $firstViolation = $violations[0];
+
             throw new BadRequestHttpException($firstViolation->getMessage());
         }
     }
@@ -89,7 +90,7 @@ trait ValidatesRequestTrait
         return new JsonResponse([
             'error' => true,
             'message' => $firstError,
-            'errors' => $errors
+            'errors' => $errors,
         ], 400);
     }
 }

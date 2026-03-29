@@ -18,7 +18,7 @@ date_default_timezone_set('UTC');
 
 // Global exception handler for debugging
 if (file_exists($debugLog = __DIR__.'/tmp/logs/debug.log')) {
-    set_exception_handler(function($e) use ($debugLog) {
+    set_exception_handler(function ($e) use ($debugLog) {
         $message = sprintf(
             "\n[UNCAUGHT EXCEPTION] [%s]\nType: %s\nMessage: %s\nFile: %s:%d\nTrace:\n%s\n\n",
             date('Y-m-d H:i:s'),
@@ -34,18 +34,18 @@ if (file_exists($debugLog = __DIR__.'/tmp/logs/debug.log')) {
 
 $env = 'system';
 $path = __DIR__;
-$config = array(
-    'path'          => $path,
+$config = [
+    'path' => $path,
     'path.packages' => $path.'/packages',
-    'path.storage'  => $path.'/storage',
-    'path.temp'     => $path.'/tmp/temp',
-    'path.cache'    => $path.'/tmp/cache',
-    'path.logs'     => $path.'/tmp/logs',
-    'path.vendor'   => $path.'/vendor',
+    'path.storage' => $path.'/storage',
+    'path.temp' => $path.'/tmp/temp',
+    'path.cache' => $path.'/tmp/cache',
+    'path.logs' => $path.'/tmp/logs',
+    'path.vendor' => $path.'/vendor',
     'path.artifact' => $path.'/tmp/packages',
-    'config.file'   => realpath($path.'/config.php'),
-    'system.api'    => 'https://pagekit.com'
-);
+    'config.file' => realpath($path.'/config.php'),
+    'system.api' => 'https://pagekit.com',
+];
 
 if (!$config['config.file'] || !file_exists($config['config.file'])) {
     $env = 'installer';

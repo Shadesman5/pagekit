@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Select Image' => 'მონიშნე გამოსახულება',
   'Add Image' => 'გამოსახულების დამატება',
   'Select Video' => 'მონიშნე ვიდეო',
@@ -451,4 +453,4 @@
   'You have the latest version of Pagekit. You do not need to update. However, if you want to re-install version %version%, you can download the package and re-install manually.' => 'შენ გაქვს Pagekit-ის უახლესი ვერსია, არ გჭირდება მისი განახლება. მაგრამ თუ შენ გსურს ვერსია %version%-ის ხელახალი ინსტალირება, შენ შეგიძლია ეს გააკეთო ავტომატურად ან ჩამოტვირთო და გადააყენო ხელით.',
   'Download %version%' => 'ჩამოტვირთე %version%',
   'Changelog' => 'ცვლილებების ნუსხა',
-);
+];

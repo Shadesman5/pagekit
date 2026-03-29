@@ -74,6 +74,7 @@ class ArchiveCommand extends Command
 
         if (!is_dir($sourcePath)) {
             $this->error(sprintf('Package \'%s\' doesn\'t exist.', $this->argument('name')));
+
             return 1;
         }
 

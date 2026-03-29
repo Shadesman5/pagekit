@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Title' => '標題',
   'Theme' => '主題',
   'Hide Title' => '隱藏標題',
@@ -38,4 +40,4 @@
   'Written by %name% on %date%' => '%name% 於 %date% 所撰寫',
   'Read more' => '閱讀更多',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} 無評論|{1} %count% 則評論|]1,Inf[ %count% 則評論',
-);
+];

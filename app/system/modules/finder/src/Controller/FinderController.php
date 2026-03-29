@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Pagekit\Finder\Controller;
 
+use function Pagekit\__;
+
 use Pagekit\Finder\Event\FileAccessEvent;
 use Pagekit\Kernel\Exception\ForbiddenException;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
 use Symfony\Component\Finder\Finder;
-use function Pagekit\__;
 
 class FinderController
 {
@@ -20,12 +21,13 @@ class FinderController
         private readonly mixed $path,
         private readonly mixed $module,
         private readonly mixed $events,
-    ) {}
+    ) {
+    }
 
     public function indexAction(): array
     {
         $path = $this->request->get('path', '');
-        
+
         if (!$dir = $this->getPath()) {
             return $this->error(__('Invalid path.'));
         }
@@ -39,7 +41,7 @@ class FinderController
 
         $finder = Finder::create();
 
-        $finder->sort(fn($a, $b) => $b->getRealpath() > $a->getRealpath() ? -1 : 1);
+        $finder->sort(fn ($a, $b) => $b->getRealpath() > $a->getRealpath() ? -1 : 1);
 
         foreach ($finder->depth(0)->in($dir) as $file) {
 
@@ -48,17 +50,17 @@ class FinderController
             }
 
             $info = [
-                'name'     => $file->getFilename(),
-                'mime'     => 'application/'.($file->isDir() ? 'folder':'file'),
-                'path'     => $this->normalizePath($path.'/'.$file->getFilename()),
-                'url'      => ltrim($this->url->getStatic($file->getPathname(), [], 'base'), '/'),
-                'writable' => $mode == 'w'
+                'name' => $file->getFilename(),
+                'mime' => 'application/'.($file->isDir() ? 'folder' : 'file'),
+                'path' => $this->normalizePath($path.'/'.$file->getFilename()),
+                'url' => ltrim($this->url->getStatic($file->getPathname(), [], 'base'), '/'),
+                'writable' => $mode == 'w',
             ];
 
             if (!$file->isDir()) {
                 $info = array_merge($info, [
-                    'size'         => $this->formatFileSize($file->getSize()),
-                    'lastmodified' => date(\DateTime::ATOM, $file->getMTime())
+                    'size' => $this->formatFileSize($file->getSize()),
+                    'lastmodified' => date(\DateTime::ATOM, $file->getMTime()),
                 ]);
             }
 
@@ -77,7 +79,7 @@ class FinderController
             $json = json_decode($this->request->getContent(), true);
             $name = $json['name'] ?? '';
         }
-        
+
         if (!$this->isValidFilename($name)) {
             return $this->error(__('Invalid file name.'));
         }
@@ -100,7 +102,7 @@ class FinderController
 
             return $this->success(__('Directory created.'));
 
-        } catch(\Exception $e) {
+        } catch (\Exception $e) {
 
             return $this->error(__('Unable to create directory.'));
         }
@@ -112,13 +114,13 @@ class FinderController
     {
         $oldname = $this->request->request->get('oldname', '');
         $newname = $this->request->request->get('newname', '');
-        
+
         if ((empty($oldname) || empty($newname)) && $this->request->getContent()) {
             $json = json_decode($this->request->getContent(), true);
             $oldname = $json['oldname'] ?? $oldname;
             $newname = $json['newname'] ?? $newname;
         }
-        
+
         if (!$this->isValidFilename($newname)) {
             return $this->error(__('Invalid file name.'));
         }
@@ -152,7 +154,7 @@ class FinderController
             $json = json_decode($this->request->getContent(), true);
             $names = $json['names'] ?? [];
         }
-        
+
         foreach ($names as $name) {
 
             if (!$path = $this->getPath($name)) {
@@ -211,7 +213,7 @@ class FinderController
 
             return $this->success(__('Upload complete.'));
 
-        } catch(\Exception $e) {
+        } catch (\Exception $e) {
 
             return $this->error(__('Unable to upload.'));
         }
@@ -234,13 +236,14 @@ class FinderController
 
     protected function formatFileSize($size): string
     {
-      if ($size == 0) {
-          return __('n/a');
-      }
+        if ($size == 0) {
+            return __('n/a');
+        }
 
-      $sizes = [__('%d Bytes'), __('%d  KB'), __('%d  MB'), __('%d  GB'), __('%d TB'), __('%d PB'), __('%d EB'), __('%d ZB'), __('%d YB')];
-      $size  = round($size/pow(1024, ($i = floor(log($size, 1024)))), 2);
-      return sprintf($sizes[$i], $size);
+        $sizes = [__('%d Bytes'), __('%d  KB'), __('%d  MB'), __('%d  GB'), __('%d TB'), __('%d PB'), __('%d EB'), __('%d ZB'), __('%d YB')];
+        $size = round($size / pow(1024, ($i = floor(log($size, 1024)))), 2);
+
+        return sprintf($sizes[$i], $size);
     }
 
     protected function getPath($path = '')
@@ -256,10 +259,10 @@ class FinderController
      */
     protected function normalizePath($path): string
     {
-        $path   = str_replace(['\\', '//'], '/', $path);
+        $path = str_replace(['\\', '//'], '/', $path);
         $prefix = preg_match('|^(?P<prefix>([a-zA-Z]+:)?//?)|', $path, $matches) ? $matches['prefix'] : '';
-        $path   = substr($path, strlen($prefix));
-        $parts  = array_filter(explode('/', $path), 'strlen');
+        $path = substr($path, strlen($prefix));
+        $parts = array_filter(explode('/', $path), 'strlen');
         $tokens = [];
 
         foreach ($parts as $part) {
@@ -292,11 +295,13 @@ class FinderController
         return false === strpos($name, '/');
     }
 
-    protected function success($message): array {
+    protected function success($message): array
+    {
         return compact('message');
     }
 
-    protected function error($message): array {
+    protected function error($message): array
+    {
         return ['error' => true, 'message' => $message];
     }
 }

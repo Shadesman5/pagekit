@@ -8,8 +8,8 @@ $attrs_offcanvas = [
     'uk-offcanvas' => json_encode(array_filter([
         'mode' => $params->get('navbar.offcanvas.mode'),
         'flip' => $params->get('navbar.offcanvas.flip'),
-        'overlay' => $params->get('navbar.offcanvas.overlay')
-    ]))
+        'overlay' => $params->get('navbar.offcanvas.overlay'),
+    ])),
 ];
 
 $image = $this->escape($params->get('logo_offcanvas'));
@@ -34,7 +34,7 @@ if ($image) {
     if ($ext == 'svg') {
         $attrs_image['class'][] = 'uk-preserve';
         $attrs_image['uk-svg'] = true;
-        $width = $height= '';
+        $width = $height = '';
         $logo = image($image, array_merge($attrs_image, ['width' => $width, 'height' => $height]));
     } else {
         $logo = image($config['image'], $attrs_image);

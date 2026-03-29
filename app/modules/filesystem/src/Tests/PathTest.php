@@ -2,8 +2,8 @@
 
 namespace Pagekit\Filesystem\Tests;
 
-use PHPUnit\Framework\TestCase;
 use Pagekit\Filesystem\Path;
+use PHPUnit\Framework\TestCase;
 
 class PathTest extends TestCase
 {
@@ -43,11 +43,11 @@ class PathTest extends TestCase
     {
         return [
             ['dir/file.txt', ['root' => '', 'path' => 'dir/file.txt', 'dirname' => 'dir', 'pathname' => 'dir/file.txt', 'protocol' => 'file']],
-            ['dir/./file.txt', ['root' =>'', 'path' => 'dir/file.txt', 'dirname' => 'dir', 'pathname' => 'dir/file.txt', 'protocol' => 'file']],
+            ['dir/./file.txt', ['root' => '', 'path' => 'dir/file.txt', 'dirname' => 'dir', 'pathname' => 'dir/file.txt', 'protocol' => 'file']],
             ['dir/../file.txt', ['root' => '', 'path' => 'file.txt', 'dirname' => '', 'pathname' => 'file.txt', 'protocol' => 'file']],
             ['/dir/file.txt', ['root' => '/', 'path' => 'dir/file.txt', 'dirname' => '/dir', 'pathname' => '/dir/file.txt', 'protocol' => 'file']],
             ['C:\dir\file.txt', ['root' => 'C:/', 'path' => 'dir/file.txt', 'dirname' => 'C:/dir', 'pathname' => 'C:/dir/file.txt', 'protocol' => 'file']],
-            ['http://dir/file.txt', ['root' => 'http://', 'path' => 'dir/file.txt', 'dirname' => 'http://dir', 'pathname' => 'http://dir/file.txt', 'protocol' => 'http']]
+            ['http://dir/file.txt', ['root' => 'http://', 'path' => 'dir/file.txt', 'dirname' => 'http://dir', 'pathname' => 'http://dir/file.txt', 'protocol' => 'http']],
         ];
     }
 }

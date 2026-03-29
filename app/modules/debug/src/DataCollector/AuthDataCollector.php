@@ -56,7 +56,7 @@ class AuthDataCollector implements DataCollectorInterface
             'authenticated' => $user->isAuthenticated(),
             'user_class' => get_class($user),
             'user' => $user->getUsername(),
-            'roles' => array_map(fn($role) => $role->name, User::findRoles($user)), // TODO interface does not match
+            'roles' => array_map(fn ($role) => $role->name, User::findRoles($user)), // TODO interface does not match
         ];
 
     }

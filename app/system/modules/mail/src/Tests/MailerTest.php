@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace Pagekit\Mail\Tests;
 
-use PHPUnit\Framework\TestCase;
 use Pagekit\Mail\Mailer;
 use Pagekit\Mail\Plugin\ImpersonatePlugin;
+use PHPUnit\Framework\TestCase;
 use Symfony\Component\Mailer\Transport\NullTransport;
-use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 use Symfony\Component\Mime\Email;
 
 class MailerTest extends TestCase
@@ -49,7 +48,7 @@ class MailerTest extends TestCase
     {
         $plugin = new ImpersonatePlugin('from@example.com', 'Test Sender');
         $result = $this->mailer->registerPlugin($plugin);
-        
+
         $this->assertSame($this->mailer, $result);
     }
 
@@ -65,7 +64,7 @@ class MailerTest extends TestCase
 
         // Plugin should set the from address during send
         $this->mailer->send($email);
-        
+
         $from = $email->getFrom();
         $this->assertNotEmpty($from);
         $this->assertEquals('from@example.com', $from[0]->getAddress());
@@ -127,7 +126,7 @@ class MailerTest extends TestCase
     {
         $plugin1 = new ImpersonatePlugin('from1@example.com', 'Sender 1');
         $plugin2 = new ImpersonatePlugin('from2@example.com', 'Sender 2');
-        
+
         $this->mailer->registerPlugin($plugin1);
         $this->mailer->registerPlugin($plugin2);
 

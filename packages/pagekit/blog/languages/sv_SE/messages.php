@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Filter by' => 'Filtrera på',
   'Thank you! Your comment needs approval before showing up.' => 'Tack! Din kommentar väntar på att bli godkänd innan den visas.',
   'Unable to comment. Please try again later.' => 'Det gick inte att kommentera. Var vänlig och försök igen senare.',
@@ -94,4 +96,4 @@
   'Written by %name% on %date%' => 'Skriven av %name% den %date%',
   'Read more' => 'Läs mer',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Inga kommentarer|{1} %count% kommentar|]1,Inf[ %count% kommentarer',
-);
+];

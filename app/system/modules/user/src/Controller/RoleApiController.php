@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Controller;
 
+use function Pagekit\__;
+
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use function Pagekit\__;
 
 /**
  * API Controller for Role management.
@@ -22,7 +23,8 @@ class RoleApiController
     public function __construct(
         private readonly mixed $request,
         private readonly mixed $validator,
-    ) {}
+    ) {
+    }
 
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array

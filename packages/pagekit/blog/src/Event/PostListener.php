@@ -26,7 +26,7 @@ class PostListener implements EventSubscriberInterface
         return [
             'model.comment.saved' => 'onCommentChange',
             'model.comment.deleted' => 'onCommentChange',
-            'model.role.deleted' => 'onRoleDelete'
+            'model.role.deleted' => 'onRoleDelete',
         ];
     }
 }

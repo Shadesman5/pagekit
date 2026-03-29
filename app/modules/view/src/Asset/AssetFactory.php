@@ -5,9 +5,9 @@ namespace Pagekit\View\Asset;
 class AssetFactory
 {
     protected array $types = [
-        'file'   => 'Pagekit\View\Asset\FileAsset',
+        'file' => 'Pagekit\View\Asset\FileAsset',
         'string' => 'Pagekit\View\Asset\StringAsset',
-        'url'    => 'Pagekit\View\Asset\UrlAsset'
+        'url' => 'Pagekit\View\Asset\UrlAsset',
     ];
 
     protected string $version;

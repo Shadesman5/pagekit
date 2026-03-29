@@ -9,8 +9,8 @@ use Pagekit\System\Controller\ValidatesRequestTrait;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Translation\Translator;
-use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -79,7 +79,7 @@ class ValidatorTranslatorIntegrationTest extends TestCase
 
         $lengthMessages = array_filter(
             $messages,
-            fn(string $m): bool => str_contains($m, 'characters')
+            fn (string $m): bool => str_contains($m, 'characters')
         );
         $this->assertNotEmpty($lengthMessages, 'Expected a length violation with interpolated limit');
     }
@@ -106,7 +106,7 @@ class ValidatorTranslatorIntegrationTest extends TestCase
         $violations = $this->validator->validate($entity);
         $this->assertGreaterThan(0, count($violations));
 
-        $controller = new class {
+        $controller = new class () {
             use ValidatesRequestTrait;
 
             public ValidatorInterface $validator;
@@ -185,6 +185,7 @@ class ValidatorTranslatorIntegrationTest extends TestCase
         foreach ($violations as $violation) {
             $messages[] = $violation->getMessage();
         }
+
         return $messages;
     }
 }

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Pagekit\Database\ORM;
 
 use Doctrine\DBAL\Types\Type;
-use Pagekit\Database\ORM\MetadataManager;
 
 class Metadata
 {
@@ -41,7 +40,7 @@ class Metadata
     public function __construct($manager, $class, array $config = [])
     {
         $this->manager = $manager;
-        $this->class   = $class;
+        $this->class = $class;
 
         $this->setConfig($config);
     }
@@ -203,7 +202,7 @@ class Metadata
         $data = [];
 
         foreach ($this->fields as $name => $field) {
-            $key        = $column ? $field['column'] : $name;
+            $key = $column ? $field['column'] : $name;
             $data[$key] = $this->getValue($entity, $name, false, $convert);
         }
 
@@ -261,7 +260,7 @@ class Metadata
             'fields' => $this->fields,
             'isMappedSuperclass' => $this->isMappedSuperclass,
             'relations' => $this->relations,
-            'table' => $this->table
+            'table' => $this->table,
         ];
     }
 

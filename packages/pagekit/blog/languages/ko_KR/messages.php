@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Filter by' => '분류',
   'Thank you! Your comment needs approval before showing up.' => '감사합니다! 작성하신 댓글은 승인 후에 보여집니다.',
   'Unable to comment. Please try again later.' => '댓글을 작성할 수 없습니다. 나중에 다시 시도해 보세요.',
@@ -94,4 +96,4 @@
   'Written by %name% on %date%' => '글쓴이 %name%, %date% 작성',
   'Read more' => '더보기',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} 코멘트가 없습니다.|{1} %count%개 코멘트|]1,Inf[ %count%개 코멘트',
-);
+];

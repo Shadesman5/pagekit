@@ -36,7 +36,7 @@ trait PostModelTrait
     {
         $post->modified = new \DateTime();
 
-        $i  = 2;
+        $i = 2;
         $id = $post->id;
 
         while (self::where('slug = ?', [$post->slug])->where(function ($query) use ($id) {

@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Pagekit\Mail\Controller;
 
+use function Pagekit\__;
+
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\User\Attribute\Access;
 use Pagekit\Util\Arr;
-use function Pagekit\__;
 
 #[Access('system: access settings', admin: true)]
 class MailController
@@ -16,7 +17,8 @@ class MailController
         private readonly mixed $request,
         private readonly mixed $mailer,
         private readonly mixed $module,
-    ) {}
+    ) {
+    }
 
     #[Route('/smtp', methods: ['POST'])]
     public function smtpAction(): array
@@ -28,7 +30,7 @@ class MailController
                 $option = $json['option'] ?? [];
             }
         }
-        
+
         try {
             if (empty($option['host'])) {
                 return ['success' => false, 'message' => __('SMTP host is required for connection testing.')];
@@ -62,28 +64,28 @@ class MailController
                 $option = $json['option'] ?? [];
             }
         }
-        
+
         try {
             $config = Arr::merge($mailModule->config(), $option);
-            
+
             if (empty($config['from_address'])) {
                 return ['success' => false, 'message' => __('From email address is required. Please configure it in the mail settings.')];
             }
-            
+
             $email = $this->mailer->create()
                 ->subject(__('Test email!'))
                 ->text(__('Testemail'));
-                
+
             if (!empty($config['from_name'])) {
                 $email->from(new \Symfony\Component\Mime\Address($config['from_address'], $config['from_name']));
             } else {
                 $email->from($config['from_address']);
             }
-            
+
             $email->to($config['from_address']);
-                
+
             $this->mailer->send($email);
-            
+
             return ['success' => true, 'message' => __('Mail successfully sent!')];
 
         } catch (\Throwable $e) {

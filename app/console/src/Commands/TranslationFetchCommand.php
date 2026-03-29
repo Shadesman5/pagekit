@@ -31,11 +31,11 @@ class TranslationFetchCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): void
     {
-        $tmp  = '/tmp/pagekit-languages';
+        $tmp = '/tmp/pagekit-languages';
         $repo = 'git@github.com:pagekit/languages.git';
 
         // if cloned repo exists? rm
-        if(file_exists($tmp)) {
+        if (file_exists($tmp)) {
             exec(sprintf('rm -rf %s', $tmp));
         }
 
@@ -49,7 +49,7 @@ class TranslationFetchCommand extends Command
         foreach ($resources as $resource) {
             $from = sprintf("%s/%s/*", $tmp, $resource);
 
-            if($to = $this->getPath($resource)) {
+            if ($to = $this->getPath($resource)) {
 
                 $this->info("[{$resource}] Moving languages files to: ".$to);
                 exec(sprintf('rsync -av %s %s', $from, $to));
@@ -70,7 +70,7 @@ class TranslationFetchCommand extends Command
      * Returns the extension path.
      *
      * @param $resource
-     * @return string|boolean
+     * @return string|bool
      */
     protected function getPath($resource)
     {
@@ -79,10 +79,12 @@ class TranslationFetchCommand extends Command
         if ($resource == "system") {
             $path = sprintf('%s/app/system', $this->container->get('path'));
         } else {
-            $path = sprintf('%s/%s/%s',
+            $path = sprintf(
+                '%s/%s/%s',
                 $this->container->get('path.packages'),
                 $vendor,
-                $resource);
+                $resource
+            );
         }
 
         if (!is_dir($path)) {

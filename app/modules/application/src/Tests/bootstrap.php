@@ -12,7 +12,7 @@ $autoload = [
     'Pagekit\\Routing\\' => '/app/modules/routing/src',
     'Pagekit\\Session\\' => '/app/modules/session/src',
     'Pagekit\\Tree\\' => '/app/modules/tree/src',
-    'Pagekit\\View\\' => '/app/modules/view/src'
+    'Pagekit\\View\\' => '/app/modules/view/src',
 ];
 
 $path = realpath(__DIR__.'/../../../../../');

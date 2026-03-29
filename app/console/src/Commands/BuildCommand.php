@@ -2,10 +2,8 @@
 
 namespace Pagekit\Console\Commands;
 
-use Pagekit\Application as App;
 use Pagekit\Application\Console\Command;
 use Pagekit\Installer\Helper\Composer;
-use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Finder\Finder;
@@ -34,7 +32,7 @@ class BuildCommand extends Command
         '^app\/vendor\/nickic\/php-parser\/(grammar|test_old)',
         '^app\/vendor\/(phpdocumentor|phpspec|sebastian|symfony\/yaml)',
         '^app\/vendor\/[^\/]+\/[^\/]+\/(build|docs?|tests?|changelog|phpunit|upgrade?)',
-        'node_modules'
+        'node_modules',
     ];
 
     /**
@@ -47,7 +45,7 @@ class BuildCommand extends Command
         $filter = '/' . implode('|', $this->excludes) . '/i';
         $packages = [
             'pagekit/blog' => '*',
-            'pagekit/theme-one' => '*'
+            'pagekit/theme-one' => '*',
         ];
 
         $config = [];
@@ -70,9 +68,9 @@ class BuildCommand extends Command
 
         $this->line(sprintf('Building Package.'));
 
-        $finder = Finder::create()->files()->in($path)->ignoreVCS(true)->filter(fn($file) => !preg_match($filter, $file->getRelativePathname()));
+        $finder = Finder::create()->files()->in($path)->ignoreVCS(true)->filter(fn ($file) => !preg_match($filter, $file->getRelativePathname()));
 
-        $zip = new \ZipArchive;
+        $zip = new \ZipArchive();
 
         if (true !== $zip->open($zipFile = "{$path}/pagekit-{$vers}.zip", \ZipArchive::CREATE | \ZipArchive::OVERWRITE)) {
             $this->abort("Can't open ZIP extension in '{$zipFile}'");

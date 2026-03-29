@@ -28,15 +28,15 @@ class MarketplaceController
         return [
             '$view' => [
                 'title' => __('Marketplace'),
-                'name'  => 'installer:views/marketplace.php'
+                'name' => 'installer:views/marketplace.php',
             ],
             '$data' => [
                 'title' => 'Themes',
                 'type' => 'pagekit-theme',
                 'api' => $this->systemApi,
                 'installed' => array_values($this->package->all('pagekit-theme')),
-                'page' => $page
-            ]
+                'page' => $page,
+            ],
         ];
     }
 
@@ -46,15 +46,15 @@ class MarketplaceController
         return [
             '$view' => [
                 'title' => __('Marketplace'),
-                'name'  => 'installer:views/marketplace.php'
+                'name' => 'installer:views/marketplace.php',
             ],
             '$data' => [
                 'title' => 'Extensions',
                 'type' => 'pagekit-extension',
                 'api' => $this->systemApi,
                 'installed' => array_values($this->package->all('pagekit-extension')),
-                'page' => $page
-            ]
+                'page' => $page,
+            ],
         ];
     }
 }

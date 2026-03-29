@@ -38,7 +38,7 @@ class ConfigureRouteListener implements EventSubscriberInterface
             $data = $request->getData();
             $csrf = $request->getCsrf();
             $options = $request->getOptions();
-            
+
             // Only set _request if there's data or csrf is required
             if ($data || $csrf) {
                 // Format expected by ParamFetcherListener and CsrfListener
@@ -58,7 +58,7 @@ class ConfigureRouteListener implements EventSubscriberInterface
     public function subscribe(): array
     {
         return [
-            'route.configure' => 'onConfigureRoute'
+            'route.configure' => 'onConfigureRoute',
         ];
     }
 }

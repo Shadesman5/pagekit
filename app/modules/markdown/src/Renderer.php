@@ -19,12 +19,12 @@ class Renderer
 
             if ($out != null && $out !== $code) {
                 $escaped = true;
-                $code    = $out;
+                $code = $out;
             }
         }
 
         $class = $lang ? ' class="'.$this->options['langPrefix'].Markdown::escape($lang, true).'"' : '';
-        $code  = $escaped ? $code : Markdown::escape($code, true);
+        $code = $escaped ? $code : Markdown::escape($code, true);
 
         return "<pre><code{$class}>{$code}\n</code></pre>\n";
     }
@@ -123,7 +123,7 @@ class Renderer
         return "<a href=\"{$href}\"{$title}>{$text}</a>";
     }
 
-    public function image($href = '', $title = '', $text= '')
+    public function image($href = '', $title = '', $text = '')
     {
         $title = $title ? " title=\"{$title}\"" : '';
         $close = $this->options['xhtml'] ? '/>' : '>';

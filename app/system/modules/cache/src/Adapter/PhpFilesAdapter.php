@@ -19,12 +19,12 @@ class PhpFilesAdapter extends Psr6Adapter
     {
         // Use a namespace to avoid conflicts
         $namespace = '';
-        
+
         // If no directory specified, use system temp
         if (empty($directory)) {
             $directory = sys_get_temp_dir() . '/pagekit-cache';
         }
-        
+
         parent::__construct(new SymfonyPhpFilesAdapter($namespace, $defaultLifetime, $directory));
     }
 }

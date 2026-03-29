@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Pagekit\Dashboard\Controller;
 
+use function Pagekit\__;
+
 use Pagekit\Module\Module;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\User\Attribute\Access;
-use function Pagekit\__;
 
 #[Access(admin: true)]
 class DashboardController
@@ -36,14 +37,14 @@ class DashboardController
         return [
             '$view' => [
                 'title' => __('Dashboard'),
-                'name' => 'system/dashboard:views/index.php'
+                'name' => 'system/dashboard:views/index.php',
             ],
             '$data' => [
                 'widgets' => array_values($this->dashboard->getWidgets()),
                 'api' => $this->systemApi,
                 'version' => $this->version,
-                'channel' => 'stable'
-            ]
+                'channel' => 'stable',
+            ],
         ];
     }
 
@@ -71,7 +72,7 @@ class DashboardController
         if (!$id) {
             $id = $this->request->request->get('id', 0);
         }
-        
+
         $widget = $this->request->request->all()['widget'] ?? [];
         if (empty($widget) && $this->request->getContent()) {
             $json = json_decode($this->request->getContent(), true);
@@ -80,7 +81,7 @@ class DashboardController
                 $id = $json['id'];
             }
         }
-        
+
         if ($new = !$id) {
             $id = uniqid();
         }
@@ -98,7 +99,7 @@ class DashboardController
         if (!$id) {
             $id = $this->request->get('id');
         }
-        
+
         $widgets = $this->dashboard->getWidgets();
 
         unset($widgets[$id]);
@@ -116,7 +117,7 @@ class DashboardController
             $json = json_decode($this->request->getContent(), true);
             $order = $json['order'] ?? [];
         }
-        
+
         $widgets = $this->dashboard->getWidgets();
         $reordered = [];
 
@@ -138,7 +139,7 @@ class DashboardController
     {
         $data = $this->request->query->all()['data'] ?? [];
         $action = $this->request->query->get('action', '');
-        
+
         $url = $this->api;
 
         if ($action === 'weather') {

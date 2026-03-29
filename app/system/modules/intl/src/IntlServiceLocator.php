@@ -21,6 +21,7 @@ final class IntlServiceLocator
         if (self::$translator === null) {
             throw new \RuntimeException('Translator not initialized. Was IntlModule booted?');
         }
+
         return self::$translator;
     }
 
@@ -34,6 +35,7 @@ final class IntlServiceLocator
         if (self::$intl === null) {
             throw new \RuntimeException('Intl service not initialized. Was IntlModule booted?');
         }
+
         return self::$intl;
     }
 }

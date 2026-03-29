@@ -15,7 +15,7 @@ class Zip implements ArchiveInterface
             throw new RuntimeException('You need the zip extension enabled');
         }
 
-        $zip = new \ZipArchive;
+        $zip = new \ZipArchive();
 
         if (true !== ($error = $zip->open($archive))) {
             return $error;

@@ -39,7 +39,7 @@ class Application extends BaseApplication
     {
         $code = parent::run($input, $output);
 
-        if(($code === 0) && ($this->container->has('events'))) {
+        if (($code === 0) && ($this->container->has('events'))) {
             $this->container->get('events')->trigger(new Event('terminate'));
         }
 

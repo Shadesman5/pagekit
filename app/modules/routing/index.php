@@ -20,11 +20,11 @@ return [
 
     'main' => function ($app) {
 
-        $app->set('routes', fn() => new Routes());
+        $app->set('routes', fn () => new Routes());
 
-        $app->set('router', fn($app) => new Router($app->get('routes'), new RoutesLoader($app->get('events')), $app->get('request.stack'), ['cache' => $app->get('path.cache')]));
+        $app->set('router', fn ($app) => new Router($app->get('routes'), new RoutesLoader($app->get('events')), $app->get('request.stack'), ['cache' => $app->get('path.cache')]));
 
-        $app->set('middleware', fn($app) => new Middleware($app->get('events')));
+        $app->set('middleware', fn ($app) => new Middleware($app->get('events')));
 
         $app->get('module')->addLoader(function ($module) use ($app) {
 
@@ -43,8 +43,8 @@ return [
 
         'boot' => function ($event, $app) {
 
-            $app->get('events')->subscribe(new ConfigureRouteListener);
-            $app->get('events')->subscribe(new ParamFetcherListener(new ParamFetcher(new FilterManager)));
+            $app->get('events')->subscribe(new ConfigureRouteListener());
+            $app->get('events')->subscribe(new ParamFetcherListener(new ParamFetcher(new FilterManager())));
             $app->get('events')->subscribe(new RouterListener($app->get('router')));
             $app->get('events')->subscribe(new AliasListener($app->get('routes')));
 
@@ -58,7 +58,7 @@ return [
                 }
 
                 $request = $app->get('router')->getRequest();
-                $types   = $request->getAcceptableContentTypes();
+                $types = $request->getAcceptableContentTypes();
 
                 if ('json' == $request->getFormat(array_shift($types))) {
                     return new JsonResponse($e->getMessage(), $code);
@@ -82,21 +82,21 @@ return [
                 $request->attributes->set('_controller', $callback);
             };
 
-        }, 130]
+        }, 130],
 
     ],
 
     'require' => [
 
         'kernel',
-        'filter'
+        'filter',
 
     ],
 
     'autoload' => [
 
-        'Pagekit\\Routing\\' => 'src'
+        'Pagekit\\Routing\\' => 'src',
 
-    ]
+    ],
 
 ];

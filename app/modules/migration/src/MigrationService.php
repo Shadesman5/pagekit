@@ -7,9 +7,7 @@ namespace Pagekit\Migration;
 use Doctrine\DBAL\Connection;
 use Doctrine\Migrations\Configuration\Configuration;
 use Doctrine\Migrations\Configuration\Connection\ExistingConnection;
-use Doctrine\Migrations\Configuration\Migration\PhpFile;
 use Doctrine\Migrations\DependencyFactory;
-use Doctrine\Migrations\Exception\MigrationException;
 use Doctrine\Migrations\Metadata\AvailableMigration;
 use Doctrine\Migrations\Metadata\ExecutedMigration;
 use Doctrine\Migrations\Version\Version;
@@ -59,14 +57,14 @@ class MigrationService
     {
         // Prepare configuration array with prefix replacement
         $configArray = $this->config;
-        
+
         // Replace table prefix in table name
         if (isset($configArray['table_storage']['table_name'])) {
             $configArray['table_storage']['table_name'] = $this->replacePrefix(
                 $configArray['table_storage']['table_name']
             );
         }
-        
+
         // Create dependency factory from configuration array
         $this->dependencyFactory = DependencyFactory::fromConnection(
             new \Doctrine\Migrations\Configuration\Migration\ConfigurationArray($configArray),
@@ -95,10 +93,10 @@ class MigrationService
     private function replacePrefix(string $tableName): string
     {
         // Get table prefix from connection
-        $prefix = $this->connection instanceof \Pagekit\Database\Connection 
+        $prefix = $this->connection instanceof \Pagekit\Database\Connection
             ? $this->connection->getPrefix()
             : 'pk_';
-        
+
         return str_replace('@', $prefix, $tableName);
     }
 
@@ -114,7 +112,7 @@ class MigrationService
         $migrator = $this->dependencyFactory->getMigrator();
         $planCalculator = $this->dependencyFactory->getMigrationPlanCalculator();
         $aliasResolver = $this->dependencyFactory->getVersionAliasResolver();
-        
+
         try {
             // Resolve target version
             if ($version) {
@@ -123,10 +121,10 @@ class MigrationService
                 // Migrate to latest version
                 $targetVersion = $aliasResolver->resolveVersionAlias('latest');
             }
-            
+
             // Calculate migration plan - migrate UP to target version
             $plan = $planCalculator->getPlanUntilVersion($targetVersion);
-            
+
             // Check if plan is empty
             if (count($plan) === 0) {
                 return [
@@ -136,12 +134,12 @@ class MigrationService
                     'sql' => [],
                 ];
             }
-            
+
             // Execute migrations with MigratorConfiguration
             $migratorConfig = new \Doctrine\Migrations\MigratorConfiguration();
             $migratorConfig->setDryRun($dryRun);
             $result = $migrator->migrate($plan, $migratorConfig);
-            
+
             // Check if result is valid
             if (is_array($result)) {
                 // Empty result or error
@@ -152,14 +150,14 @@ class MigrationService
                     'sql' => [],
                 ];
             }
-            
+
             return [
                 'success' => true,
                 'executed' => count($result->getMigrations()),
                 'time' => $result->getTime(),
                 'sql' => $result->getSql(),
             ];
-            
+
         } catch (\Exception $e) {
             return [
                 'success' => false,
@@ -182,11 +180,11 @@ class MigrationService
         $planCalculator = $this->dependencyFactory->getMigrationPlanCalculator();
         $aliasResolver = $this->dependencyFactory->getVersionAliasResolver();
         $metadataStorage = $this->dependencyFactory->getMetadataStorage();
-        
+
         try {
             // Get executed migrations
             $executedMigrations = $metadataStorage->getExecutedMigrations();
-            
+
             // Check if there are migrations to rollback
             if (count($executedMigrations) === 0) {
                 return [
@@ -196,7 +194,7 @@ class MigrationService
                     'message' => 'No migrations to rollback',
                 ];
             }
-            
+
             // Determine target for rollback
             if ($version === '0' || $version === 'first') {
                 // Rollback ALL migrations - use 'first' which means before first migration
@@ -208,7 +206,7 @@ class MigrationService
                 // Rollback to previous version (one step back)
                 // Get current version and find previous one
                 $currentVersion = $aliasResolver->resolveVersionAlias('current');
-                
+
                 if ($currentVersion === null || count($executedMigrations) === 0) {
                     return [
                         'success' => true,
@@ -217,11 +215,11 @@ class MigrationService
                         'message' => 'Already at first migration',
                     ];
                 }
-                
+
                 // Get all executed migrations and find previous
-                $versions = array_map(fn($m) => $m->getVersion(), $executedMigrations->getItems());
+                $versions = array_map(fn ($m) => $m->getVersion(), $executedMigrations->getItems());
                 $currentIndex = array_search($currentVersion, $versions);
-                
+
                 if ($currentIndex === false || $currentIndex === 0) {
                     // Already at first migration, rollback it completely
                     $targetVersion = $aliasResolver->resolveVersionAlias('first');
@@ -230,10 +228,10 @@ class MigrationService
                     $targetVersion = $versions[$currentIndex - 1];
                 }
             }
-            
+
             // Calculate rollback plan
             $plan = $planCalculator->getPlanUntilVersion($targetVersion);
-            
+
             // Check if plan is empty
             if (count($plan) === 0) {
                 return [
@@ -243,12 +241,12 @@ class MigrationService
                     'message' => 'No migrations to rollback',
                 ];
             }
-            
+
             // Execute rollback
             $migratorConfig = new \Doctrine\Migrations\MigratorConfiguration();
             $migratorConfig->setDryRun($dryRun);
             $result = $migrator->migrate($plan, $migratorConfig);
-            
+
             // Check if result is valid
             if (is_array($result)) {
                 return [
@@ -257,13 +255,13 @@ class MigrationService
                     'time' => 0,
                 ];
             }
-            
+
             return [
                 'success' => true,
                 'executed' => count($result->getMigrations()),
                 'time' => $result->getTime(),
             ];
-            
+
         } catch (\Exception $e) {
             return [
                 'success' => false,
@@ -286,19 +284,19 @@ class MigrationService
             $statusCalculator = $this->dependencyFactory->getMigrationStatusCalculator();
             $metadataStorage = $this->dependencyFactory->getMetadataStorage();
             $migrationRepository = $this->dependencyFactory->getMigrationRepository();
-            
+
             // Get available (new/pending) migrations
             $availableMigrations = $statusCalculator->getNewMigrations();
-            
+
             // Get executed migrations from metadata storage
             $executedMigrations = $metadataStorage->getExecutedMigrations();
-            
+
             // Get unavailable migrations (executed but files missing)
             $unavailableMigrations = $statusCalculator->getExecutedUnavailableMigrations();
-            
+
             // Get current and latest versions using AliasResolver
             $aliasResolver = $this->dependencyFactory->getVersionAliasResolver();
-            
+
             try {
                 $currentVersion = $aliasResolver->resolveVersionAlias('current');
                 $latestVersion = $aliasResolver->resolveVersionAlias('latest');
@@ -306,11 +304,11 @@ class MigrationService
                 $currentVersion = null;
                 $latestVersion = null;
             }
-            
+
             return [
                 'success' => true,
                 'available' => array_map(
-                    fn(AvailableMigration $m) => [
+                    fn (AvailableMigration $m) => [
                         'version' => (string) $m->getVersion(),
                         'description' => $m->getMigration()->getDescription(),
                         'executed' => false,
@@ -318,7 +316,7 @@ class MigrationService
                     $availableMigrations->getItems()
                 ),
                 'executed' => array_map(
-                    fn(ExecutedMigration $m) => [
+                    fn (ExecutedMigration $m) => [
                         'version' => (string) $m->getVersion(),
                         'executed_at' => $m->getExecutedAt()?->format('Y-m-d H:i:s'),
                         'execution_time' => $m->getExecutionTime(),
@@ -326,14 +324,14 @@ class MigrationService
                     $executedMigrations->getItems()
                 ),
                 'unavailable' => array_map(
-                    fn(ExecutedMigration $m) => (string) $m->getVersion(),
+                    fn (ExecutedMigration $m) => (string) $m->getVersion(),
                     $unavailableMigrations->getItems()
                 ),
                 'current_version' => $currentVersion ? (string) $currentVersion : 'None',
                 'latest_version' => $latestVersion ? (string) $latestVersion : 'None',
                 'has_pending' => count($availableMigrations) > 0,
             ];
-            
+
         } catch (\Exception $e) {
             return [
                 'success' => false,
@@ -356,28 +354,28 @@ class MigrationService
         try {
             // Get migration generator
             $generator = $this->dependencyFactory->getMigrationGenerator();
-            
+
             // Determine namespace
             if ($namespace === null) {
                 $paths = $this->config['migrations_paths'] ?? [];
                 $namespace = array_key_first($paths);
             }
-            
+
             // Sanitize name: convert to PascalCase and remove invalid characters
             $sanitizedName = preg_replace('/[^A-Za-z0-9]/', '', ucwords($name, '_- '));
-            
+
             // Generate version identifier (timestamp + user-provided name)
             // Format: Version{timestamp}_{Name} e.g., Version20250118123456_CreateUserTable
             $timestamp = date('YmdHis');
             $version = 'Version' . $timestamp . '_' . $sanitizedName;
-            
+
             // Create fully qualified class name
             $fqcn = $namespace . '\\' . $version;
-            
+
             // Generate migration file
             // generateMigration() returns the file path as a string
             $path = $generator->generateMigration($fqcn);
-            
+
             return [
                 'success' => true,
                 'version' => $version,
@@ -386,7 +384,7 @@ class MigrationService
                 'namespace' => $namespace,
                 'name' => $sanitizedName,
             ];
-            
+
         } catch (\Exception $e) {
             return [
                 'success' => false,
@@ -408,7 +406,7 @@ class MigrationService
             // Check if the migration table exists in the database
             $schemaManager = $this->connection->createSchemaManager();
             $tableName = $this->replacePrefix($this->config['table_storage']['table_name'] ?? '@migration_versions');
-            
+
             return $schemaManager->tablesExist([$tableName]);
         } catch (\Exception $e) {
             return false;
@@ -427,12 +425,12 @@ class MigrationService
         try {
             $storage = $this->dependencyFactory->getMetadataStorage();
             $storage->ensureInitialized();
-            
+
             return [
                 'success' => true,
                 'message' => 'Migration system initialized successfully.',
             ];
-            
+
         } catch (\Exception $e) {
             return [
                 'success' => false,
@@ -481,25 +479,25 @@ class MigrationService
             // Create temporary config for extension migrations
             $extensionConfig = $this->config;
             $extensionConfig['migrations_paths'] = [$namespace => $path];
-            
+
             // Replace table prefix in table name for extension config
             if (isset($extensionConfig['table_storage']['table_name'])) {
                 $extensionConfig['table_storage']['table_name'] = $this->replacePrefix(
                     $extensionConfig['table_storage']['table_name']
                 );
             }
-            
+
             // Create temporary dependency factory for extension
             $extensionFactory = DependencyFactory::fromConnection(
                 new \Doctrine\Migrations\Configuration\Migration\ConfigurationArray($extensionConfig),
                 new \Doctrine\Migrations\Configuration\Connection\ExistingConnection($this->connection)
             );
-            
+
             // Get services from extension factory
             $migrator = $extensionFactory->getMigrator();
             $planCalculator = $extensionFactory->getMigrationPlanCalculator();
             $aliasResolver = $extensionFactory->getVersionAliasResolver();
-            
+
             // Resolve target version
             if ($version) {
                 $targetVersion = new \Doctrine\Migrations\Version\Version($version);
@@ -507,10 +505,10 @@ class MigrationService
                 // Migrate to latest version
                 $targetVersion = $aliasResolver->resolveVersionAlias('latest');
             }
-            
+
             // Calculate migration plan
             $plan = $planCalculator->getPlanUntilVersion($targetVersion);
-            
+
             // Check if plan is empty
             if (count($plan) === 0) {
                 return [
@@ -521,11 +519,11 @@ class MigrationService
                     'message' => 'No pending migrations for extension',
                 ];
             }
-            
+
             // Execute migrations
             $migratorConfig = new \Doctrine\Migrations\MigratorConfiguration();
             $result = $migrator->migrate($plan, $migratorConfig);
-            
+
             // Check if result is valid
             if (is_array($result)) {
                 return [
@@ -535,14 +533,14 @@ class MigrationService
                     'sql' => [],
                 ];
             }
-            
+
             return [
                 'success' => true,
                 'executed' => count($result->getMigrations()),
                 'time' => $result->getTime(),
                 'sql' => $result->getSql(),
             ];
-            
+
         } catch (\Exception $e) {
             return [
                 'success' => false,
@@ -572,29 +570,29 @@ class MigrationService
             // Create temporary config for extension migrations
             $extensionConfig = $this->config;
             $extensionConfig['migrations_paths'] = [$namespace => $path];
-            
+
             // Replace table prefix
             if (isset($extensionConfig['table_storage']['table_name'])) {
                 $extensionConfig['table_storage']['table_name'] = $this->replacePrefix(
                     $extensionConfig['table_storage']['table_name']
                 );
             }
-            
+
             // Create temporary dependency factory
             $extensionFactory = DependencyFactory::fromConnection(
                 new \Doctrine\Migrations\Configuration\Migration\ConfigurationArray($extensionConfig),
                 new \Doctrine\Migrations\Configuration\Connection\ExistingConnection($this->connection)
             );
-            
+
             // Get services
             $migrator = $extensionFactory->getMigrator();
             $planCalculator = $extensionFactory->getMigrationPlanCalculator();
             $aliasResolver = $extensionFactory->getVersionAliasResolver();
             $metadataStorage = $extensionFactory->getMetadataStorage();
-            
+
             // Get executed migrations
             $executedMigrations = $metadataStorage->getExecutedMigrations();
-            
+
             if (count($executedMigrations) === 0) {
                 return [
                     'success' => true,
@@ -603,7 +601,7 @@ class MigrationService
                     'message' => 'No migrations to rollback',
                 ];
             }
-            
+
             // Determine target for rollback
             if ($version === '0' || $version === 'first') {
                 // Rollback ALL extension migrations
@@ -614,7 +612,7 @@ class MigrationService
             } else {
                 // Rollback to previous version (one step back) - consistent with rollback()
                 $currentVersion = $aliasResolver->resolveVersionAlias('current');
-                
+
                 if ($currentVersion === null || count($executedMigrations) === 0) {
                     return [
                         'success' => true,
@@ -623,11 +621,11 @@ class MigrationService
                         'message' => 'Already at first migration',
                     ];
                 }
-                
+
                 // Get all executed migrations and find previous
-                $versions = array_map(fn($m) => $m->getVersion(), $executedMigrations->getItems());
+                $versions = array_map(fn ($m) => $m->getVersion(), $executedMigrations->getItems());
                 $currentIndex = array_search($currentVersion, $versions);
-                
+
                 if ($currentIndex === false || $currentIndex === 0) {
                     // Already at first migration, rollback it completely
                     $targetVersion = $aliasResolver->resolveVersionAlias('first');
@@ -636,10 +634,10 @@ class MigrationService
                     $targetVersion = $versions[$currentIndex - 1];
                 }
             }
-            
+
             // Calculate rollback plan
             $plan = $planCalculator->getPlanUntilVersion($targetVersion);
-            
+
             if (count($plan) === 0) {
                 return [
                     'success' => true,
@@ -648,11 +646,11 @@ class MigrationService
                     'message' => 'No migrations to rollback',
                 ];
             }
-            
+
             // Execute rollback
             $migratorConfig = new \Doctrine\Migrations\MigratorConfiguration();
             $result = $migrator->migrate($plan, $migratorConfig);
-            
+
             if (is_array($result)) {
                 return [
                     'success' => true,
@@ -660,13 +658,13 @@ class MigrationService
                     'time' => 0,
                 ];
             }
-            
+
             return [
                 'success' => true,
                 'executed' => count($result->getMigrations()),
                 'time' => $result->getTime(),
             ];
-            
+
         } catch (\Exception $e) {
             return [
                 'success' => false,

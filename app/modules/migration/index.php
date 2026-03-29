@@ -7,8 +7,8 @@
  * Provides versioned schema management, rollback functionality, and generation tools.
  */
 
-use Pagekit\Migration\MigrationService;
 use Pagekit\Migration\ConfigurationProvider;
+use Pagekit\Migration\MigrationService;
 
 return [
 
@@ -31,7 +31,7 @@ return [
     },
 
     'autoload' => [
-        'Pagekit\\Migration\\' => 'src'
+        'Pagekit\\Migration\\' => 'src',
     ],
 
     'routes' => [
@@ -39,13 +39,13 @@ return [
     ],
 
     'config' => [
-        'migrations' => []
+        'migrations' => [],
     ],
 
     'events' => [
         'boot' => function ($event, $app) {
             // Migration service is now available via $app->get('migration')
-        }
-    ]
+        },
+    ],
 
 ];

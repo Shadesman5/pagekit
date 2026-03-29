@@ -6,7 +6,6 @@ namespace Pagekit\Event;
 
 use Symfony\Component\EventDispatcher\EventDispatcherInterface as SymfonyEventDispatcherInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface as SymfonyEventSubscriberInterface;
-use Symfony\Contracts\EventDispatcher\Event as SymfonyEvent;
 
 /**
  * Bridge class to provide Symfony EventDispatcher interface compatibility
@@ -16,7 +15,7 @@ use Symfony\Contracts\EventDispatcher\Event as SymfonyEvent;
 class SymfonyEventDispatcherBridge implements SymfonyEventDispatcherInterface
 {
     protected EventDispatcherInterface $dispatcher;
-    
+
     public function __construct(EventDispatcherInterface $dispatcher)
     {
         $this->dispatcher = $dispatcher;
@@ -30,6 +29,7 @@ class SymfonyEventDispatcherBridge implements SymfonyEventDispatcherInterface
     {
         $name = $eventName ?? get_class($event);
         $this->dispatcher->trigger($name, [$event]);
+
         return $event;
     }
 

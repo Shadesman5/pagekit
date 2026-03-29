@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Filter by' => 'คัดกรองโดย',
   'Thank you! Your comment needs approval before showing up.' => 'ขอบคุณ! ความเห็นของคุณต้องอนุมัติก่อนขึ้นโชว์',
   'Unable to comment. Please try again later.' => 'ไม่สามารถแสดงความเห็นได้ โปรดลองอีกครั้งภายหลัง',
@@ -94,4 +96,4 @@
   'Written by %name% on %date%' => 'เขียนโดย %name% ใน %date%',
   'Read more' => 'อ่านต่อ',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} ไม่มีความเห็น|{1} %count% ความเห็น|]1,Inf[ %count% ความเห็น',
-);
+];

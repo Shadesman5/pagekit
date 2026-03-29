@@ -2,11 +2,10 @@
 
 namespace Pagekit\Routing\Tests;
 
-use PHPUnit\Framework\TestCase;
-use Pagekit\Routing\Loader\RoutesLoader;
-use Pagekit\Routing\Loader\AnnotationLoader;
-use Pagekit\Routing\Route;
 use Pagekit\Event\EventDispatcher;
+use Pagekit\Routing\Loader\RoutesLoader;
+use Pagekit\Routing\Route;
+use PHPUnit\Framework\TestCase;
 
 class RoutesLoaderTest extends TestCase
 {
@@ -37,7 +36,7 @@ class RoutesLoaderTest extends TestCase
         $routes = [
             (new Route('/route1'))->setName('route1'),
             (new Route('/route2'))->setName('route2'),
-            (new Route('/route3'))->setName('route3')
+            (new Route('/route3'))->setName('route3'),
         ];
 
         $collection = $this->loader->load($routes);
@@ -87,7 +86,7 @@ class RoutesLoaderTest extends TestCase
         $route->setName('defaults_route');
         $route->setDefaults([
             '_controller' => 'TestController::defaultsAction',
-            'param' => 'default_value'
+            'param' => 'default_value',
         ]);
 
         $collection = $this->loader->load([$route]);

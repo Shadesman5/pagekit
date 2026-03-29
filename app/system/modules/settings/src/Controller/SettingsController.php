@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Pagekit\System\Controller;
 
+use function Pagekit\__;
+
 use Pagekit\Config\Config;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\User\Attribute\Access;
-use function Pagekit\__;
 
 #[Access('system: access settings', admin: true)]
 class SettingsController
@@ -16,15 +17,16 @@ class SettingsController
         private readonly mixed $request,
         private readonly mixed $config,
         private readonly mixed $configFile,
-    ) {}
+    ) {
+    }
 
     public function indexAction(): array
     {
         return [
             '$view' => [
                 'title' => __('Settings'),
-                'name'  => 'system:modules/settings/views/settings.php'
-            ]
+                'name' => 'system:modules/settings/views/settings.php',
+            ],
         ];
     }
 
@@ -33,13 +35,13 @@ class SettingsController
     {
         $values = $this->request->request->all()['config'] ?? [];
         $options = $this->request->request->all()['options'] ?? [];
-        
+
         if ((empty($values) && empty($options)) && $this->request->getContent()) {
             $json = json_decode($this->request->getContent(), true);
             $values = $json['config'] ?? [];
             $options = $json['options'] ?? [];
         }
-        $fileConfig = new Config;
+        $fileConfig = new Config();
         $fileConfig->merge(include $file = $this->configFile);
 
         foreach ($values as $module => $value) {
@@ -64,7 +66,7 @@ class SettingsController
     {
         $name = $this->request->request->get('name', '');
         $configData = $this->request->request->all()['config'] ?? [];
-        
+
         if ($this->request->getContent()) {
             $json = json_decode($this->request->getContent(), true);
             if ($json) {

@@ -14,7 +14,8 @@ class IntlController
         private readonly mixed $translator,
         private readonly mixed $request,
         private readonly mixed $response,
-    ) {}
+    ) {
+    }
 
     #[Route('/{locale}', requirements: ['locale' => '[a-zA-Z0-9_-]+'], defaults: ['_maintenance' => true])]
     #[Request(['locale' => 'string'])]

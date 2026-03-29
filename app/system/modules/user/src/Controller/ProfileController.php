@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Controller;
 
+use function Pagekit\__;
+
 use Pagekit\Application\Exception;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Model\User;
-use function Pagekit\__;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Controller for user profile management.
@@ -26,7 +27,8 @@ class ProfileController
         private readonly mixed $router,
         private readonly mixed $authPassword,
         private readonly mixed $validator,
-    ) {}
+    ) {
+    }
 
     public function indexAction()
     {
@@ -37,14 +39,14 @@ class ProfileController
         return [
             '$view' => [
                 'title' => __('Profile'),
-                'name'  => 'system/user/profile.php'
+                'name' => 'system/user/profile.php',
             ],
             '$data' => [
                 'user' => [
                     'name' => $this->user->name,
-                    'email' => $this->user->email
-                ]
-            ]
+                    'email' => $this->user->email,
+                ],
+            ],
         ];
     }
 

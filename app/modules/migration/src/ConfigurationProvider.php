@@ -7,7 +7,6 @@ namespace Pagekit\Migration;
 use Doctrine\DBAL\Connection;
 use Doctrine\Migrations\Configuration\Configuration;
 use Doctrine\Migrations\Configuration\Connection\ExistingConnection;
-use Doctrine\Migrations\Configuration\Migration\ConfigurationArray;
 
 /**
  * Configuration Provider
@@ -57,7 +56,7 @@ class ConfigurationProvider
 
         // Configure table storage
         $tableStorage = $this->config['table_storage'] ?? [];
-        
+
         if (isset($tableStorage['table_name'])) {
             $tableName = $this->replacePrefix($tableStorage['table_name']);
             $configuration->setMigrationsTableName($tableName);
@@ -113,10 +112,10 @@ class ConfigurationProvider
     private function replacePrefix(string $tableName): string
     {
         // Get table prefix from connection
-        $prefix = $this->connection instanceof \Pagekit\Database\Connection 
+        $prefix = $this->connection instanceof \Pagekit\Database\Connection
             ? $this->connection->getPrefix()
             : 'pk_';
-        
+
         return str_replace('@', $prefix, $tableName);
     }
 

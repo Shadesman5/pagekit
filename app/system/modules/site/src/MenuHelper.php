@@ -11,7 +11,8 @@ class MenuHelper extends Helper
         private readonly MenuManager $menus,
         private readonly mixed $user,
         private readonly mixed $node,
-    ) {}
+    ) {
+    }
 
     /**
      * Set shortcut.
@@ -76,7 +77,7 @@ class MenuHelper extends Helper
         $parameters = array_replace([
             'start_level' => 1,
             'depth' => PHP_INT_MAX,
-            'mode' => 'all'
+            'mode' => 'all',
         ], $parameters);
 
         $user = $this->user;
@@ -95,6 +96,7 @@ class MenuHelper extends Helper
             foreach ($nodes as $node) {
                 if ($node->getUrl('base') === $path) {
                     $path = $node->path;
+
                     break;
                 }
             }
@@ -122,6 +124,7 @@ class MenuHelper extends Helper
                     || $depth === $startLevel)
             ) {
                 $node->setParent();
+
                 continue;
             }
 

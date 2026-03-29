@@ -88,13 +88,13 @@ class SiteModule extends Module
     {
         $this->assertBooted();
 
-        if (isset($route['protected']) and $route['protected'] and !array_filter(Node::findAll(true), fn($node) => $type === $node->type)) {
+        if (isset($route['protected']) and $route['protected'] and !array_filter(Node::findAll(true), fn ($node) => $type === $node->type)) {
             Node::create([
                 'title' => $route['label'],
                 'slug' => ($this->app->get('filter'))($route['label'], 'slugify'),
                 'type' => $type,
                 'status' => 1,
-                'link' => $route['name']
+                'link' => $route['name'],
             ])->save();
         }
 

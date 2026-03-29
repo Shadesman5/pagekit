@@ -4,12 +4,11 @@ namespace Pagekit\Database\Types;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\JsonType;
-use Doctrine\DBAL\Types\ConversionException;
 
 /**
  * JSON array type for DBAL 3.x compatibility.
  * Replaces the deprecated JsonArrayType from DBAL 2.x.
- * 
+ *
  * This type ensures backward compatibility with the old json_array type
  * while using the modern JSON type infrastructure from DBAL 3.x.
  */
@@ -50,7 +49,7 @@ class JsonArrayType extends JsonType
     {
         return 'json_array';
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -58,7 +57,7 @@ class JsonArrayType extends JsonType
     {
         return true;
     }
-    
+
     /**
      * {@inheritdoc}
      */

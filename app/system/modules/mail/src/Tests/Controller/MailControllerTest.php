@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Pagekit\Mail\Tests\Controller;
 
-use PHPUnit\Framework\TestCase;
 use Pagekit\Mail\Controller\MailController;
 use Pagekit\Mail\Mailer;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
+use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Mailer\Transport\NullTransport;
 
@@ -29,6 +29,7 @@ class MailControllerTest extends TestCase
         if ($mailModule !== null) {
             $module->method('get')->willReturn($mailModule);
         }
+
         return new MailController($request, $mailer, $module);
     }
 
@@ -40,12 +41,12 @@ class MailControllerTest extends TestCase
             'port' => 25,
             'username' => 'invalid-user',
             'password' => 'invalid-password',
-            'encryption' => null
+            'encryption' => null,
         ]);
 
         $controller = $this->createController($request);
         $result = $controller->smtpAction();
-        
+
         $this->assertIsArray($result);
         $this->assertArrayHasKey('success', $result);
         $this->assertArrayHasKey('message', $result);
@@ -68,12 +69,12 @@ class MailControllerTest extends TestCase
             'port' => (int)$GLOBALS['email_smtp_port'],
             'username' => $GLOBALS['email_smtp_user'],
             'password' => $GLOBALS['email_smtp_password'],
-            'encryption' => $GLOBALS['email_smtp_encryption']
+            'encryption' => $GLOBALS['email_smtp_encryption'],
         ]);
 
         $controller = $this->createController($request);
         $result = $controller->smtpAction();
-        
+
         $this->assertIsArray($result);
         $this->assertArrayHasKey('success', $result);
         $this->assertArrayHasKey('message', $result);
@@ -89,12 +90,12 @@ class MailControllerTest extends TestCase
             'port' => 587,
             'username' => 'test-user',
             'password' => 'test-pass',
-            'encryption' => 'tls'
+            'encryption' => 'tls',
         ]);
 
         $controller = $this->createController($request);
         $result = $controller->smtpAction();
-        
+
         $this->assertIsArray($result);
         $this->assertArrayHasKey('success', $result);
         $this->assertArrayHasKey('message', $result);
@@ -109,7 +110,7 @@ class MailControllerTest extends TestCase
 
         $controller = $this->createController($request);
         $result = $controller->smtpAction();
-        
+
         $this->assertIsArray($result);
         $this->assertArrayHasKey('success', $result);
         $this->assertArrayHasKey('message', $result);
@@ -123,12 +124,12 @@ class MailControllerTest extends TestCase
         $request = new Request();
         $request->request->set('option', [
             'host' => 'partial-test.example.com',
-            'port' => 25
+            'port' => 25,
         ]);
 
         $controller = $this->createController($request);
         $result = $controller->smtpAction();
-        
+
         $this->assertIsArray($result);
         $this->assertArrayHasKey('success', $result);
         $this->assertArrayHasKey('message', $result);
@@ -140,18 +141,18 @@ class MailControllerTest extends TestCase
     {
         $request = new Request();
         $request->request->set('option', [
-            'from_address' => 'test@example.com'
+            'from_address' => 'test@example.com',
         ]);
 
         $mailModule = $this->createMock(Module::class);
         $mailModule->method('config')->willReturn([
             'from_address' => 'test@example.com',
-            'from_name' => null
+            'from_name' => null,
         ]);
 
         $controller = $this->createController($request, null, $mailModule);
         $result = $controller->emailAction();
-        
+
         $this->assertIsArray($result);
         $this->assertArrayHasKey('success', $result);
         $this->assertArrayHasKey('message', $result);
@@ -169,18 +170,18 @@ class MailControllerTest extends TestCase
 
         $request = new Request();
         $request->request->set('option', [
-            'from_address' => $GLOBALS['email_address']
+            'from_address' => $GLOBALS['email_address'],
         ]);
 
         $mailModule = $this->createMock(Module::class);
         $mailModule->method('config')->willReturn([
             'from_address' => $GLOBALS['email_address'],
-            'from_name' => null
+            'from_name' => null,
         ]);
 
         $controller = $this->createController($request, null, $mailModule);
         $result = $controller->emailAction();
-        
+
         $this->assertIsArray($result);
         $this->assertArrayHasKey('success', $result);
         $this->assertArrayHasKey('message', $result);
@@ -191,18 +192,18 @@ class MailControllerTest extends TestCase
     {
         $request = new Request();
         $request->request->set('option', [
-            'from_address' => 'test@example.com'
+            'from_address' => 'test@example.com',
         ]);
 
         $mailModule = $this->createMock(Module::class);
         $mailModule->method('config')->willReturn([
             'from_address' => 'test@example.com',
-            'from_name' => null
+            'from_name' => null,
         ]);
 
         $controller = $this->createController($request, null, $mailModule);
         $result = $controller->emailAction();
-        
+
         $this->assertIsArray($result);
         $this->assertArrayHasKey('success', $result);
         $this->assertArrayHasKey('message', $result);
@@ -213,10 +214,10 @@ class MailControllerTest extends TestCase
     {
         $request = new Request();
         $request->initialize([], [], [], [], [], [], 'invalid json { not valid }');
-        
+
         $controller = $this->createController($request);
         $result = $controller->smtpAction();
-        
+
         $this->assertIsArray($result);
         $this->assertArrayHasKey('success', $result);
         $this->assertArrayHasKey('message', $result);
@@ -228,16 +229,16 @@ class MailControllerTest extends TestCase
     {
         $request = new Request();
         $request->initialize([], [], [], [], [], [], 'invalid json { not valid }');
-        
+
         $mailModule = $this->createMock(Module::class);
         $mailModule->method('config')->willReturn([
             'from_address' => 'test@example.com',
-            'from_name' => null
+            'from_name' => null,
         ]);
-        
+
         $controller = $this->createController($request, null, $mailModule);
         $result = $controller->emailAction();
-        
+
         $this->assertIsArray($result);
         $this->assertArrayHasKey('success', $result);
         $this->assertArrayHasKey('message', $result);

@@ -2,10 +2,10 @@
 
 namespace Pagekit\Debug\DataCollector;
 
-use Symfony\Component\Routing\RouterInterface;
 use DebugBar\DataCollector\DataCollectorInterface;
 use Pagekit\Event\EventDispatcherInterface;
 use Pagekit\Routing\Router;
+use Symfony\Component\Routing\RouterInterface;
 
 class RoutesDataCollector implements DataCollectorInterface
 {

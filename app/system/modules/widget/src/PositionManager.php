@@ -2,7 +2,6 @@
 
 namespace Pagekit\Widget;
 
-use Pagekit\Application as App;
 use Pagekit\Config\Config;
 
 class PositionManager implements \JsonSerializable
@@ -33,6 +32,7 @@ class PositionManager implements \JsonSerializable
     public function get($name): ?array
     {
         $positions = $this->all();
+
         return isset($positions[$name]) ? $positions[$name] : null;
     }
 
@@ -41,7 +41,7 @@ class PositionManager implements \JsonSerializable
      */
     public function all(): array
     {
-        array_walk($this->positions, function(&$position, $name) {
+        array_walk($this->positions, function (&$position, $name) {
             $position['assigned'] = $this->config->get("_positions.$name", []);
         });
 
@@ -62,7 +62,7 @@ class PositionManager implements \JsonSerializable
     /**
      * Finds a theme position by widget id.
      *
-     * @param  integer $id
+     * @param  int $id
      * @return string
      */
     public function find($id)
@@ -80,7 +80,7 @@ class PositionManager implements \JsonSerializable
      * Assigns widgets to a theme position.
      *
      * @param string        $position
-     * @param array|integer $id
+     * @param array|int $id
      */
     public function assign($position, $id): void
     {

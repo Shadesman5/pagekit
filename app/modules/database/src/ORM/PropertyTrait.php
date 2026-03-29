@@ -69,7 +69,8 @@ trait PropertyTrait
     /**
      * Clones the object properties.
      */
-    public function __clone() {
+    public function __clone()
+    {
         foreach (array_keys(static::$_properties) as $name) {
             $this->$name = $this->__get($name);
         }

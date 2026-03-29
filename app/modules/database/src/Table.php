@@ -3,7 +3,6 @@
 namespace Pagekit\Database;
 
 use Doctrine\DBAL\Schema\Table as BaseTable;
-use Pagekit\Database\Connection;
 
 class Table
 {
@@ -29,7 +28,7 @@ class Table
      * @param array $flags
      * @param array $options
      */
-    public function addIndex(array $columnNames, $indexName = null, array $flags = array(), array $options = array()): self
+    public function addIndex(array $columnNames, $indexName = null, array $flags = [], array $options = []): self
     {
         if ($indexName) {
             $indexName = $this->connection->replacePrefix($indexName);
@@ -45,7 +44,7 @@ class Table
      * @param string|null $indexName
      * @param array $options
      */
-    public function addUniqueIndex(array $columnNames, $indexName = null, array $options = array()): self
+    public function addUniqueIndex(array $columnNames, $indexName = null, array $options = []): self
     {
         if ($indexName) {
             $indexName = $this->connection->replacePrefix($indexName);
@@ -63,7 +62,7 @@ class Table
      *
      * @return Column
      */
-    public function addColumn($columnName, $typeName, array $options = array()): \Doctrine\DBAL\Schema\Column
+    public function addColumn($columnName, $typeName, array $options = []): \Doctrine\DBAL\Schema\Column
     {
         if ($this->connection->getDatabasePlatform()->getName() === 'sqlite' && in_array($typeName, ['string', 'text'])) {
             $options['customSchemaOptions']['collation'] = 'NOCASE';

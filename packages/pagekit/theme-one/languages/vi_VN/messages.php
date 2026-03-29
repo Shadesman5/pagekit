@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Title' => 'Tiêu đề',
   'Theme' => 'Giao diện',
   'Hide Title' => 'Ẩn tiêu đề',
@@ -38,4 +40,4 @@
   'Written by %name% on %date%' => 'Được ghi bởi  %name% vào ngày %date%',
   'Read more' => 'Đọc thêm',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments',
-);
+];

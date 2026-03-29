@@ -8,13 +8,14 @@ return [
 
     'main' => function ($app) {
 
-        $app->set('config', fn($app) => new ConfigManager($app->get('db'), $this->config));
+        $app->set('config', fn ($app) => new ConfigManager($app->get('db'), $this->config));
 
         if ($app->get('config.file') && file_exists($app->get('config.file'))) {
             $app->get('module')->addLoader(function ($module) use ($app) {
 
                 if ($app->get('config')->has($module['name'])) {
-                    $module['config'] = array_replace($module['config'],
+                    $module['config'] = array_replace(
+                        $module['config'],
                         $app->get('config')->get($module['name'])->toArray()
                     );
                 }
@@ -27,19 +28,19 @@ return [
 
     'require' => [
 
-        'database'
+        'database',
 
     ],
 
     'autoload' => [
 
-        'Pagekit\\Config\\' => 'src'
+        'Pagekit\\Config\\' => 'src',
 
     ],
 
     'config' => [
 
-        'table'  => '@system_config'
+        'table' => '@system_config',
 
     ],
 
@@ -49,8 +50,8 @@ return [
             foreach ($app->get('config') as $name => $config) {
                 $app->get('config')->set($name, $config);
             }
-        }, 100]
+        }, 100],
 
-    ]
+    ],
 
 ];

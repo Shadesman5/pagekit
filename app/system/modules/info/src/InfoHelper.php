@@ -17,7 +17,8 @@ class InfoHelper
         private readonly string $pathPackages,
         private readonly string $configFile,
         private readonly string $basePath,
-    ) {}
+    ) {
+    }
 
     /**
      * Method to get the system information
@@ -28,36 +29,36 @@ class InfoHelper
     {
         $server = new ServerBag($GLOBALS['_SERVER']);
 
-        $info                  = [];
-        $info['php']           = php_uname();
+        $info = [];
+        $info['php'] = php_uname();
 
         try {
             // DBAL 3.x compatibility: getNativeConnection() replaces getWrappedConnection()
             $connection = $this->db->getNativeConnection();
             if ($connection instanceof \PDO || $connection instanceof PDOConnection) {
-                $info['dbdriver']  = $connection->getAttribute(\PDO::ATTR_DRIVER_NAME);
+                $info['dbdriver'] = $connection->getAttribute(\PDO::ATTR_DRIVER_NAME);
                 $info['dbversion'] = $connection->getAttribute(\PDO::ATTR_SERVER_VERSION);
-                $info['dbclient']  = $connection->getAttribute(\PDO::ATTR_CLIENT_VERSION);
+                $info['dbclient'] = $connection->getAttribute(\PDO::ATTR_CLIENT_VERSION);
             } else {
                 // Fallback for non-PDO connections
-                $info['dbdriver']  = $this->db->getDriver()->getName();
+                $info['dbdriver'] = $this->db->getDriver()->getName();
                 $info['dbversion'] = 'Unknown';
-                $info['dbclient']  = 'Unknown';
+                $info['dbclient'] = 'Unknown';
             }
         } catch (\Exception $e) {
             // If database is not connected
-            $info['dbdriver']  = 'Not connected';
+            $info['dbdriver'] = 'Not connected';
             $info['dbversion'] = 'N/A';
-            $info['dbclient']  = 'N/A';
+            $info['dbclient'] = 'N/A';
         }
 
-        $info['phpversion']    = phpversion();
-        $info['server']        = $server->get('SERVER_SOFTWARE', getenv('SERVER_SOFTWARE'));
-        $info['sapi_name']     = php_sapi_name();
-        $info['version']       = $this->version;
-        $info['useragent']     = $server->get('HTTP_USER_AGENT');
-        $info['extensions']    = implode(", ", get_loaded_extensions());
-        $info['directories']   = $this->getDirectories();
+        $info['phpversion'] = phpversion();
+        $info['server'] = $server->get('SERVER_SOFTWARE', getenv('SERVER_SOFTWARE'));
+        $info['sapi_name'] = php_sapi_name();
+        $info['version'] = $this->version;
+        $info['useragent'] = $server->get('HTTP_USER_AGENT');
+        $info['extensions'] = implode(", ", get_loaded_extensions());
+        $info['directories'] = $this->getDirectories();
 
         return $info;
     }
@@ -73,7 +74,7 @@ class InfoHelper
             $this->pathStorage,
             $this->pathTemp,
             $this->pathPackages,
-            $this->configFile
+            $this->configFile,
         ];
 
         $result = [];

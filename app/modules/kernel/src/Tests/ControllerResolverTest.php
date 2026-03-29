@@ -163,7 +163,8 @@ class ServiceInjectedController
     public function __construct(
         private readonly mixed $db,
         private readonly mixed $cache
-    ) {}
+    ) {
+    }
 
     public function getDb(): mixed
     {
@@ -181,7 +182,8 @@ class DefaultValueController
     public function __construct(
         private readonly mixed $db,
         private readonly string $mode = 'default'
-    ) {}
+    ) {
+    }
 
     public function getDb(): mixed
     {
@@ -207,7 +209,8 @@ class MixedParamsController
         private readonly mixed $db,
         private readonly string $mode = 'production',
         private readonly mixed $cache = null
-    ) {}
+    ) {
+    }
 
     public function getDb(): mixed
     {

@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Filter by' => 'تصنيف حسب',
   'Thank you! Your comment needs approval before showing up.' => 'شكرا ! ستتم مراجعة التعليق قبل نشره',
   'Unable to comment. Please try again later.' => 'لا يمكنك التعليق الرجاء المحاولة لاحقا',
@@ -94,4 +96,4 @@
   'Written by %name% on %date%' => 'كتبت من قبل %name% في %date%',
   'Read more' => 'إقرأ المزيد',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} لا توجد تعليقات|{1} %count% تعليق|]1,Inf[ %count% تعليقات',
-);
+];

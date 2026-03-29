@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Filter by' => 'Filtruoti pagal',
   'Thank you! Your comment needs approval before showing up.' => 'Ačiū! Tavo komentaras turi būti patvirtintas, kad kiti jį matytų.',
   'Unable to comment. Please try again later.' => 'Nepavyksta komentuoti. Prašome pabandyti vėliau.',
@@ -94,4 +96,4 @@
   'Written by %name% on %date%' => 'Parašė %name%, %date%',
   'Read more' => 'Skaityti toliau',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Nėra komentarų.|{1} komentaras.|]1,Inf[ komentarai.',
-);
+];

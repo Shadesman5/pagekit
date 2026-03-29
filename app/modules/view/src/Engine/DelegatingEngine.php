@@ -8,7 +8,7 @@ namespace Pagekit\View\Engine;
 class DelegatingEngine implements EngineInterface
 {
     protected array $engines = [];
-    
+
     /**
      * Adds an engine.
      */
@@ -16,7 +16,7 @@ class DelegatingEngine implements EngineInterface
     {
         $this->engines[] = $engine;
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -27,10 +27,10 @@ class DelegatingEngine implements EngineInterface
                 return $engine->render($name, $parameters);
             }
         }
-        
+
         throw new \RuntimeException(sprintf('No engine found for template "%s"', $name));
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -41,10 +41,10 @@ class DelegatingEngine implements EngineInterface
                 return true;
             }
         }
-        
+
         return false;
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -55,7 +55,7 @@ class DelegatingEngine implements EngineInterface
                 return true;
             }
         }
-        
+
         return false;
     }
 }

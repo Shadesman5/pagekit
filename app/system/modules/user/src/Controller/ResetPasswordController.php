@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Controller;
 
+use function Pagekit\__;
+
 use Pagekit\Application\Exception;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\User\Model\User;
-use function Pagekit\__;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 class ResetPasswordController
 {
@@ -24,7 +25,8 @@ class ResetPasswordController
         private readonly mixed $message,
         private readonly mixed $router,
         private readonly mixed $authPassword,
-    ) {}
+    ) {
+    }
 
     public function indexAction()
     {
@@ -37,7 +39,7 @@ class ResetPasswordController
                 'title' => __('Reset'),
                 'name' => 'system/user/reset-request.php',
             ],
-            'error' => ''
+            'error' => '',
         ];
     }
 
@@ -45,12 +47,12 @@ class ResetPasswordController
     public function requestAction()
     {
         $email = $this->request->request->get('email', '');
-        
+
         if (empty($email) && $this->request->getContent()) {
             $json = json_decode($this->request->getContent(), true);
             $email = $json['email'] ?? '';
         }
-        
+
         try {
 
             if ($this->user->isAuthenticated()) {
@@ -82,7 +84,7 @@ class ResetPasswordController
                 $mail->to($user->email)
                     ->subject(__('Reset password for %site%.', ['%site%' => $this->module->get('system/site')->config('title')]))
                     ->html(($this->view)('system/user:mails/reset.php', compact('user', 'url', 'mail')));
-                
+
                 $this->mailer->send($mail);
 
             } catch (\Exception $e) {
@@ -102,7 +104,7 @@ class ResetPasswordController
                     'title' => __('Reset'),
                     'name' => 'system/user/reset-request.php',
                 ],
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ];
         }
     }
@@ -117,7 +119,7 @@ class ResetPasswordController
         } else {
             $activation = $this->request->request->get('key', '');
             $password = $this->request->request->get('password', '');
-            
+
             if ($this->request->getContent()) {
                 $json = json_decode($this->request->getContent(), true);
                 if ($json) {
@@ -126,7 +128,7 @@ class ResetPasswordController
                 }
             }
         }
-        
+
         if ($activation and $user = User::where(compact('activation'))->first()) {
 
             $this->session->set('activation', [
@@ -141,19 +143,19 @@ class ResetPasswordController
         if (!$this->session->isStarted()) {
             $this->session->start();
         }
-        
+
         $data = $this->session->get('activation');
-        
+
         if ($this->request->isMethod('POST') && !$data && $activation) {
             if ($user = User::where(compact('activation'))->first()) {
                 $data = [
                     'key' => $activation,
-                    'user' => $user->id
+                    'user' => $user->id,
                 ];
                 $this->session->set('activation', $data);
             }
         }
-        
+
         if (!$data || $data['key'] != $activation) {
             throw new BadRequestHttpException(__('Invalid key.'));
         }
@@ -183,7 +185,7 @@ class ResetPasswordController
                 $user->save();
 
                 $this->session->remove('activation');
-                
+
                 $this->message->success(__('Your password has been reset.'));
 
                 return $this->router->redirect('@user/login');
@@ -196,10 +198,10 @@ class ResetPasswordController
         return [
             '$view' => [
                 'title' => __('Reset Confirm'),
-                'name' => 'system/user/reset-confirm.php'
+                'name' => 'system/user/reset-confirm.php',
             ],
             'activation' => $activation,
-            'error' => isset($error) ? $error : ''
+            'error' => isset($error) ? $error : '',
         ];
     }
 

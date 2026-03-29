@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Pagekit\Site\Controller;
 
+use function Pagekit\__;
+
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Pagekit\Site\Model\Node;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
-use function Pagekit\__;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class NodeController
 {
@@ -36,14 +37,14 @@ class NodeController
         return [
             '$view' => [
                 'title' => __('Pages'),
-                'name'  => 'system/site/admin/index.php'
+                'name' => 'system/site/admin/index.php',
             ],
             '$data' => [
                 'config' => [
-                    'menus' => $this->menu->getPositions()
+                    'menus' => $this->menu->getPositions(),
                 ],
-                'types' => array_values($this->site->getTypes())
-            ]
+                'types' => array_values($this->site->getTypes()),
+            ],
         ];
     }
 
@@ -75,13 +76,13 @@ class NodeController
         return [
             '$view' => [
                 'title' => __('Pages'),
-                'name'  => 'system/site/admin/edit.php'
+                'name' => 'system/site/admin/edit.php',
             ],
             '$data' => [
                 'node' => $node,
                 'type' => $type,
-                'roles' => array_values(Role::findAll())
-            ]
+                'roles' => array_values(Role::findAll()),
+            ],
         ];
     }
 
@@ -92,11 +93,11 @@ class NodeController
         return [
             '$view' => [
                 'title' => __('Settings'),
-                'name'  => 'system/site/admin/settings.php'
+                'name' => 'system/site/admin/settings.php',
             ],
             '$data' => [
-                'config' => $this->site->config(['title', 'description', 'maintenance.', 'meta.', 'logo', 'icons.', 'code.', 'view.'])
-            ]
+                'config' => $this->site->config(['title', 'description', 'maintenance.', 'meta.', 'logo', 'icons.', 'code.', 'view.']),
+            ],
         ];
     }
 

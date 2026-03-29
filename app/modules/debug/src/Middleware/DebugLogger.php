@@ -78,7 +78,7 @@ class DebugLogger implements LoggerInterface
         }
 
         // Capture call stack for debugging
-        $e = new \Exception;
+        $e = new \Exception();
         $this->callstack = $e->getTraceAsString();
 
         if ($this->stopwatch !== null) {
@@ -91,7 +91,7 @@ class DebugLogger implements LoggerInterface
             'params' => $params,
             'types' => $types,
             'executionMS' => 0,
-            'callstack' => $this->callstack
+            'callstack' => $this->callstack,
         ];
         $this->currentQuery = array_key_last($this->queries);
     }

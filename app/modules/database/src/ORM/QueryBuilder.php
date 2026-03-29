@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Pagekit\Database\ORM;
 
-use Psr\Cache\CacheItemPoolInterface;
 use Pagekit\Cache\CacheInterface;
+use Psr\Cache\CacheItemPoolInterface;
 
 class QueryBuilder
 {
@@ -16,9 +16,9 @@ class QueryBuilder
     protected \Pagekit\Database\Query\QueryBuilder $query;
 
     protected array $relations = [];
-    
+
     protected CacheItemPoolInterface|CacheInterface|null $cache = null;
-    
+
     protected ?int $cacheTtl = null;
 
     /**
@@ -29,9 +29,9 @@ class QueryBuilder
      */
     public function __construct(EntityManager $manager, Metadata $metadata)
     {
-        $this->manager  = $manager;
+        $this->manager = $manager;
         $this->metadata = $metadata;
-        $this->query    = $manager->getConnection()->createQueryBuilder()->from($metadata->getTable());
+        $this->query = $manager->getConnection()->createQueryBuilder()->from($metadata->getTable());
     }
 
     /**
@@ -42,7 +42,7 @@ class QueryBuilder
         // Check cache if enabled
         if ($this->cache && $this->cacheTtl !== null) {
             $cacheKey = $this->getCacheKey();
-            
+
             if ($this->cache instanceof CacheItemPoolInterface) {
                 $item = $this->cache->getItem($cacheKey);
                 if ($item->isHit()) {
@@ -55,13 +55,13 @@ class QueryBuilder
                 }
             }
         }
-        
+
         if ($entities = $this->manager->hydrateAll($this->query->execute(), $this->metadata)) {
             foreach ($this->getRelations() as $name => $query) {
                 $this->manager->related($entities, $name, $query);
             }
         }
-        
+
         // Save to cache if enabled
         if ($this->cache && $this->cacheTtl !== null && isset($cacheKey)) {
             if ($this->cache instanceof CacheItemPoolInterface) {
@@ -87,7 +87,7 @@ class QueryBuilder
         // Check cache if enabled
         if ($this->cache && $this->cacheTtl !== null) {
             $cacheKey = $this->getCacheKey('first');
-            
+
             if ($this->cache instanceof CacheItemPoolInterface) {
                 $item = $this->cache->getItem($cacheKey);
                 if ($item->isHit()) {
@@ -100,13 +100,13 @@ class QueryBuilder
                 }
             }
         }
-        
+
         if ($entity = $this->manager->hydrateOne($this->query->limit(1)->execute(), $this->metadata)) {
 
             foreach ($this->getRelations() as $name => $query) {
                 $this->manager->related($entity, $name, $query);
             }
-            
+
             // Save to cache if enabled
             if ($this->cache && $this->cacheTtl !== null && isset($cacheKey)) {
                 if ($this->cache instanceof CacheItemPoolInterface) {
@@ -143,7 +143,8 @@ class QueryBuilder
             // no constrains
             if (is_numeric($name)) {
                 $name = $constraints;
-                $constraints = function () {};
+                $constraints = function () {
+                };
             }
 
             // is nested ?
@@ -156,7 +157,8 @@ class QueryBuilder
                     $progress[] = $part;
 
                     if (!isset($relations[$last = implode('.', $progress)])) {
-                        $relations[$last] = function () {};
+                        $relations[$last] = function () {
+                        };
                     }
                 }
             }
@@ -180,7 +182,7 @@ class QueryBuilder
             if (strpos($name, '.') === false) {
 
                 $mapping = $this->metadata->getRelationMapping($name);
-                $query   = call_user_func("{$mapping['targetEntity']}::query");
+                $query = call_user_func("{$mapping['targetEntity']}::query");
 
                 if ($nested = $this->getNestedRelations($name)) {
                     $query->related($nested);
@@ -213,7 +215,7 @@ class QueryBuilder
 
         return $nested;
     }
-    
+
     /**
      * Enable query result caching with TTL in seconds.
      *
@@ -225,10 +227,10 @@ class QueryBuilder
     {
         $this->cacheTtl = $ttl;
         $this->cache = $cache ?? $this->manager->getMetadataManager()->getCache();
-        
+
         return $this;
     }
-    
+
     /**
      * Generates a cache key based on the query SQL and parameters.
      *
@@ -238,10 +240,10 @@ class QueryBuilder
     protected function getCacheKey(string $suffix = ''): string
     {
         $sql = $this->query->getSQL();
-        
+
         // Serialize the query parts and relations for cache key
         $key = 'orm_query_' . md5($sql . serialize($this->relations) . $suffix);
-        
+
         return $key;
     }
 

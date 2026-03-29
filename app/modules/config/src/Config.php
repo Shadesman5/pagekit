@@ -110,7 +110,7 @@ class Config implements \ArrayAccess, \Countable, \JsonSerializable
     public function merge($values, $replace = false): self
     {
         $this->values = Arr::merge($this->values, $values, $replace);
-        $this->dirty  = true;
+        $this->dirty = true;
 
         return $this;
     }
@@ -164,6 +164,7 @@ class Config implements \ArrayAccess, \Countable, \JsonSerializable
                 $values[$key] = self::toPlainArray($value);
             }
         }
+
         return $values;
     }
 

@@ -2,4 +2,6 @@
 
 namespace Pagekit\Filesystem\Exception;
 
-class RuntimeException extends \RuntimeException implements ExceptionInterface {}
+class RuntimeException extends \RuntimeException implements ExceptionInterface
+{
+}

@@ -2,22 +2,19 @@
 
 namespace Pagekit\Auth;
 
-use Pagekit\Auth\UserProviderInterface;
-use Pagekit\Auth\UserInterface;
-use Pagekit\Auth\Exception\AuthException;
-use Pagekit\Event\EventInterface;
 use Pagekit\Auth\Event\AuthenticateEvent;
 use Pagekit\Auth\Event\AuthorizeEvent;
 use Pagekit\Auth\Event\LoginEvent;
 use Pagekit\Auth\Event\LogoutEvent;
+use Pagekit\Auth\Exception\AuthException;
 use Pagekit\Auth\Exception\BadCredentialsException;
 use Pagekit\Auth\Handler\HandlerInterface;
 use Pagekit\Event\EventDispatcherInterface;
-use Symfony\Component\HttpFoundation\Response;
+use Pagekit\Event\EventInterface;
 
 class Auth
 {
-    const LAST_USERNAME     = '_auth.last_username';
+    public const LAST_USERNAME = '_auth.last_username';
 
     protected \Pagekit\Event\EventDispatcherInterface $events;
 

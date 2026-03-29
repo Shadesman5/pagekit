@@ -6,7 +6,7 @@ use Pagekit\Event\EventSubscriberInterface;
 
 class ResponseListener implements EventSubscriberInterface
 {
-    const REGEX_URL = '/
+    public const REGEX_URL = '/
                         \s                              # match a space
                         (?<attr>href|src|poster)=       # match the attribute
                         ([\"\'])                        # start with a single or double quote
@@ -17,7 +17,8 @@ class ResponseListener implements EventSubscriberInterface
 
     public function __construct(
         private readonly mixed $url,
-    ) {}
+    ) {
+    }
 
     /**
      * Filter the response content.
@@ -28,7 +29,7 @@ class ResponseListener implements EventSubscriberInterface
             return;
         }
 
-        $response->setContent(preg_replace_callback(self::REGEX_URL, fn($matches) => sprintf(' %s="%s"', $matches['attr'], ($this->url)($matches['url'])), $content));
+        $response->setContent(preg_replace_callback(self::REGEX_URL, fn ($matches) => sprintf(' %s="%s"', $matches['attr'], ($this->url)($matches['url'])), $content));
     }
 
     /**
@@ -37,7 +38,7 @@ class ResponseListener implements EventSubscriberInterface
     public function subscribe(): array
     {
         return [
-            'response' => ['onResponse', -20]
+            'response' => ['onResponse', -20],
         ];
     }
 }

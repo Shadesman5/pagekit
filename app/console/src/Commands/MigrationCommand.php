@@ -34,6 +34,7 @@ class MigrationCommand extends Command
         $config->set('version', $this->container->get('version'));
 
         $this->line(sprintf('<info>%s</info>', __('Your Pagekit database has been updated successfully.')));
+
         return 0;
     }
 }

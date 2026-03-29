@@ -40,6 +40,7 @@ class EventDispatcher implements EventDispatcherInterface
 
         if ($listener === null) {
             unset($this->listeners[$event], $this->sorted[$event]);
+
             return;
         }
 

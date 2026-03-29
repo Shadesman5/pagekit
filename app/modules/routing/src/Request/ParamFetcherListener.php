@@ -15,7 +15,7 @@ class ParamFetcherListener implements EventSubscriberInterface
      */
     public function __construct(?ParamFetcherInterface $paramFetcher = null)
     {
-        $this->paramFetcher = $paramFetcher ?: new ParamFetcher;
+        $this->paramFetcher = $paramFetcher ?: new ParamFetcher();
     }
 
     /**
@@ -33,7 +33,7 @@ class ParamFetcherListener implements EventSubscriberInterface
         // Symfony 6.4 compatibility: If no parameters from annotation, try to get from request
         if (is_array($controller)) {
             $r = new \ReflectionMethod($controller[0], $controller[1]);
-            
+
             if ($parameters) {
                 $this->paramFetcher->setRequest($request);
                 $this->paramFetcher->setParameters($parameters, $options);
@@ -47,14 +47,14 @@ class ParamFetcherListener implements EventSubscriberInterface
                 // Fallback: Get parameters directly from request
                 foreach ($r->getParameters() as $param) {
                     $name = $param->getName();
-                    
+
                     // Try different sources
                     $value = null;
-                    
+
                     // Cache request data (use all() to support both scalar and array values)
                     $postData = $request->request->all();
                     $queryData = $request->query->all();
-                    
+
                     // Try POST data
                     if (isset($postData[$name])) {
                         $value = $postData[$name];
@@ -70,7 +70,7 @@ class ParamFetcherListener implements EventSubscriberInterface
                             $value = $data[$name];
                         }
                     }
-                    
+
                     if ($value !== null) {
                         $request->attributes->set($name, $value);
                     }
@@ -85,7 +85,7 @@ class ParamFetcherListener implements EventSubscriberInterface
     public function subscribe(): array
     {
         return [
-            'controller' => ['onController', 110]
+            'controller' => ['onController', 110],
         ];
     }
 }

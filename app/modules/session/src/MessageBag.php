@@ -9,27 +9,27 @@ class MessageBag extends AutoExpireFlashBag
     /**
      * Detailed debug information
      */
-    const DEBUG = 'debug';
+    public const DEBUG = 'debug';
 
     /**
      * Interesting events
      */
-    const INFO = 'info';
+    public const INFO = 'info';
 
     /**
      * Exceptional occurrences that are not errors
      */
-    const WARNING = 'warning';
+    public const WARNING = 'warning';
 
     /**
      * Runtime errors
      */
-    const ERROR = 'error';
+    public const ERROR = 'error';
 
     /**
      * Success messages
      */
-    const SUCCESS = 'success';
+    public const SUCCESS = 'success';
 
     /**
      * Constructor.
@@ -104,7 +104,7 @@ class MessageBag extends AutoExpireFlashBag
             self::INFO,
             self::WARNING,
             self::ERROR,
-            self::SUCCESS
+            self::SUCCESS,
         ];
     }
 }

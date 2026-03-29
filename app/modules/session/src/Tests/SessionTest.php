@@ -3,10 +3,10 @@
 namespace Pagekit\Session\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\HttpFoundation\Session\Session;
-use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\Component\HttpFoundation\Session\Attribute\AttributeBag;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBag;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 
 class SessionTest extends TestCase
 {
@@ -51,11 +51,11 @@ class SessionTest extends TestCase
     public function testGetSetAttributes(): void
     {
         $this->session->start();
-        
+
         // Set attribute
         $this->session->set('test_key', 'test_value');
         $this->assertEquals('test_value', $this->session->get('test_key'));
-        
+
         // Test with default value
         $this->assertEquals('default', $this->session->get('non_existent', 'default'));
     }
@@ -66,9 +66,9 @@ class SessionTest extends TestCase
     public function testHasAttribute(): void
     {
         $this->session->start();
-        
+
         $this->assertFalse($this->session->has('test_key'));
-        
+
         $this->session->set('test_key', 'test_value');
         $this->assertTrue($this->session->has('test_key'));
     }
@@ -79,10 +79,10 @@ class SessionTest extends TestCase
     public function testRemoveAttribute(): void
     {
         $this->session->start();
-        
+
         $this->session->set('test_key', 'test_value');
         $this->assertTrue($this->session->has('test_key'));
-        
+
         $removed = $this->session->remove('test_key');
         $this->assertEquals('test_value', $removed);
         $this->assertFalse($this->session->has('test_key'));
@@ -94,10 +94,10 @@ class SessionTest extends TestCase
     public function testAllAttributes(): void
     {
         $this->session->start();
-        
+
         $this->session->set('key1', 'value1');
         $this->session->set('key2', 'value2');
-        
+
         $all = $this->session->all();
         $this->assertIsArray($all);
         $this->assertArrayHasKey('key1', $all);
@@ -112,12 +112,12 @@ class SessionTest extends TestCase
     public function testClearAttributes(): void
     {
         $this->session->start();
-        
+
         $this->session->set('key1', 'value1');
         $this->session->set('key2', 'value2');
-        
+
         $this->session->clear();
-        
+
         $all = $this->session->all();
         $this->assertEmpty($all);
     }
@@ -128,15 +128,15 @@ class SessionTest extends TestCase
     public function testFlashMessages(): void
     {
         $this->session->start();
-        
+
         // Add flash message
         $this->session->getFlashBag()->add('success', 'Operation successful');
-        
+
         // Get flash message
         $messages = $this->session->getFlashBag()->get('success');
         $this->assertIsArray($messages);
         $this->assertContains('Operation successful', $messages);
-        
+
         // Flash message should be removed after getting
         $messages = $this->session->getFlashBag()->get('success');
         $this->assertEmpty($messages);
@@ -148,15 +148,15 @@ class SessionTest extends TestCase
     public function testPeekFlashMessages(): void
     {
         $this->session->start();
-        
+
         // Add flash message
         $this->session->getFlashBag()->add('info', 'Information message');
-        
+
         // Peek flash message (should not remove it)
         $messages = $this->session->getFlashBag()->peek('info');
         $this->assertIsArray($messages);
         $this->assertContains('Information message', $messages);
-        
+
         // Message should still be there
         $messages = $this->session->getFlashBag()->peek('info');
         $this->assertNotEmpty($messages);
@@ -164,7 +164,7 @@ class SessionTest extends TestCase
 
     /**
      * Test session id
-     * 
+     *
      * Note: Symfony's MockArraySessionStorage does not allow setId() after start().
      * We test getId() after start and setId() before start separately.
      */
@@ -193,7 +193,7 @@ class SessionTest extends TestCase
         $name = $this->session->getName();
         $this->assertNotEmpty($name);
         $this->assertIsString($name);
-        
+
         // Set new name
         $newName = 'CUSTOM_SESSION';
         $this->session->setName($newName);
@@ -207,15 +207,15 @@ class SessionTest extends TestCase
     {
         $this->session->start();
         $this->session->set('test', 'value');
-        
+
         $oldId = $this->session->getId();
-        
+
         // Invalidate session
         $this->session->invalidate();
-        
+
         // Session should have new ID
         $this->assertNotEquals($oldId, $this->session->getId());
-        
+
         // Data should be cleared
         $this->assertNull($this->session->get('test'));
     }
@@ -227,15 +227,15 @@ class SessionTest extends TestCase
     {
         $this->session->start();
         $this->session->set('test', 'value');
-        
+
         $oldId = $this->session->getId();
-        
+
         // Migrate session (keep data)
         $this->session->migrate(false);
-        
+
         // Session should have new ID
         $this->assertNotEquals($oldId, $this->session->getId());
-        
+
         // Data should be preserved
         $this->assertEquals('value', $this->session->get('test'));
     }

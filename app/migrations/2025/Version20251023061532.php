@@ -145,20 +145,20 @@ final class Version20251023061532 extends AbstractMigration
         $connection->insert($prefix . 'system_role', [
             'id' => 1,
             'name' => 'Anonymous',
-            'priority' => 0
+            'priority' => 0,
         ]);
 
         $connection->insert($prefix . 'system_role', [
             'id' => 2,
             'name' => 'Authenticated',
             'priority' => 1,
-            'permissions' => 'blog: post comments'  // simple_array format
+            'permissions' => 'blog: post comments',  // simple_array format
         ]);
 
         $connection->insert($prefix . 'system_role', [
             'id' => 3,
             'name' => 'Administrator',
-            'priority' => 2
+            'priority' => 2,
         ]);
     }
 

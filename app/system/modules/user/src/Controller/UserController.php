@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Controller;
 
+use function Pagekit\__;
+
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use Pagekit\User\Model\User;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use function Pagekit\__;
 
 #[Access(admin: true)]
 class UserController
@@ -17,7 +18,8 @@ class UserController
     public function __construct(
         private readonly mixed $user,
         private readonly mixed $module,
-    ) {}
+    ) {
+    }
 
     #[Access('user: manage users')]
     #[Request(['filter' => 'array', 'page' => 'int'])]
@@ -29,7 +31,7 @@ class UserController
         return [
             '$view' => [
                 'title' => __('Users'),
-                'name' => 'system/user/admin/user-index.php'
+                'name' => 'system/user/admin/user-index.php',
             ],
             '$data' => [
                 'config' => [
@@ -37,9 +39,9 @@ class UserController
                     'roles' => array_values($roles),
                     'emailVerification' => $this->module->get('system/user')->config('require_verification'),
                     'filter' => (object) $filter,
-                    'page' => $page
-                ]
-            ]
+                    'page' => $page,
+                ],
+            ],
         ];
     }
 
@@ -56,7 +58,7 @@ class UserController
         return [
             '$view' => [
                 'title' => $id ? __('Edit User') : __('Add User'),
-                'name' => 'system/user/admin/user-edit.php'
+                'name' => 'system/user/admin/user-edit.php',
             ],
             '$data' => [
                 'user' => $user,
@@ -64,9 +66,9 @@ class UserController
                     'statuses' => User::getStatuses(),
                     'roles' => array_values($this->getRoles($user)),
                     'emailVerification' => $this->module->get('system/user')->config('require_verification'),
-                    'currentUser' => $this->user->id
-                ]
-            ]
+                    'currentUser' => $this->user->id,
+                ],
+            ],
         ];
     }
 
@@ -76,12 +78,12 @@ class UserController
         return [
             '$view' => [
                 'title' => __('Permissions'),
-                'name' => 'system/user/admin/permission-index.php'
+                'name' => 'system/user/admin/permission-index.php',
             ],
             '$data' => [
                 'permissions' => $this->module->get('system/user')->getPermissions(),
-                'roles' => array_values(Role::query()->orderBy('priority')->get())
-            ]
+                'roles' => array_values(Role::query()->orderBy('priority')->get()),
+            ],
         ];
     }
 
@@ -92,15 +94,15 @@ class UserController
         return [
             '$view' => [
                 'title' => __('Roles'),
-                'name' => 'system/user/admin/role-index.php'
+                'name' => 'system/user/admin/role-index.php',
             ],
             '$config' => [
-                'role' => $id
+                'role' => $id,
             ],
             '$data' => [
                 'permissions' => $this->module->get('system/user')->getPermissions(),
-                'roles' => array_values(Role::query()->orderBy('priority')->get())
-            ]
+                'roles' => array_values(Role::query()->orderBy('priority')->get()),
+            ],
         ];
     }
 
@@ -110,18 +112,18 @@ class UserController
         return [
             '$view' => [
                 'title' => __('User Settings'),
-                'name' => 'system/user/admin/settings.php'
+                'name' => 'system/user/admin/settings.php',
             ],
             '$data' => [
-                'config' => $this->module->get('system/user')->config()
-            ]
+                'config' => $this->module->get('system/user')->config(),
+            ],
         ];
     }
 
     protected function getRoles(?User $user = null): array
     {
         $roles = [];
-        $self  = $user && $user->id === $this->user->id;
+        $self = $user && $user->id === $this->user->id;
         foreach (Role::where(['id <> ?'], [Role::ROLE_ANONYMOUS])->orderBy('priority')->get() as $role) {
 
             $r = $role->jsonSerialize();

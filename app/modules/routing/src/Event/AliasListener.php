@@ -2,9 +2,9 @@
 
 namespace Pagekit\Routing\Event;
 
-use Pagekit\Routing\ResourceInterface;
 use Pagekit\Event\Event;
 use Pagekit\Event\EventSubscriberInterface;
+use Pagekit\Routing\ResourceInterface;
 use Pagekit\Routing\Route;
 use Pagekit\Routing\Routes;
 use Symfony\Component\Routing\RouteCollection;
@@ -34,7 +34,7 @@ class AliasListener implements EventSubscriberInterface
     {
         $name = $route->getName();
 
-        $aliases = array_filter($this->routes->getAliases(), fn($alias) => $name == $alias->getName() || $name == strtok($alias->getName(), '?'));
+        $aliases = array_filter($this->routes->getAliases(), fn ($alias) => $name == $alias->getName() || $name == strtok($alias->getName(), '?'));
 
         if (!$aliases) {
             return;
@@ -60,7 +60,7 @@ class AliasListener implements EventSubscriberInterface
     public function subscribe(): array
     {
         return [
-            'route.configure' => ['onConfigureRoute', -16]
+            'route.configure' => ['onConfigureRoute', -16],
         ];
     }
 }

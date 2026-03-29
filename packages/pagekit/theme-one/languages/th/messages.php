@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Title' => 'หัวเรื่อง',
   'Theme' => 'ธีม',
   'Hide Title' => 'ซ่อนหัวเรื่อง',
@@ -38,4 +40,4 @@
   'Written by %name% on %date%' => 'เขียนโดย %name% เมื่อ %date%',
   'Read more' => 'อ่านต่อ',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} ไม่มีความเห็น|{1} %count% ความเห็น|]1,Inf[ %count% ความเห็น',
-);
+];

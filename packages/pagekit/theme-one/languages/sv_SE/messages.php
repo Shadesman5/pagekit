@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Title' => 'Rubrik',
   'Theme' => 'Tema',
   'Hide Title' => 'Göm rubrik',
@@ -38,4 +40,4 @@
   'Written by %name% on %date%' => 'Skriven av %name% den %date%',
   'Read more' => 'Läs mer',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Inga kommentarer|{1} %count% Kommentar|]1,Inf[ %count% Kommentarer',
-);
+];

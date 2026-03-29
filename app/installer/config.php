@@ -4,26 +4,26 @@ return [
 
     'installer' => [
 
-        'enabled' => true
+        'enabled' => true,
 
     ],
 
     'application' => [
 
-        'debug' => false
+        'debug' => false,
 
     ],
 
     'session' => [
 
-        'storage' => 'array'
+        'storage' => 'array',
 
     ],
 
     'system/cache' => [
 
-        'storage' => 'array'
+        'storage' => 'array',
 
-    ]
+    ],
 
 ];

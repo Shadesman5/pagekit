@@ -8,7 +8,7 @@ return [
 
     'autoload' => [
 
-        'Pagekit\\Cache\\' => 'src'
+        'Pagekit\\Cache\\' => 'src',
 
     ],
 
@@ -16,15 +16,15 @@ return [
 
         '/system/cache' => [
             'name' => '@system/cache',
-            'controller' => 'Pagekit\\Cache\\Controller\\CacheController'
-        ]
+            'controller' => 'Pagekit\\Cache\\Controller\\CacheController',
+        ],
 
     ],
 
     'config' => [
 
         'caches' => [],
-        'nocache' => false
+        'nocache' => false,
 
     ],
 
@@ -36,9 +36,9 @@ return [
 
             // Modern cache options only
             $caches = [
-                'auto'     => ['name' => '', 'supported' => true],
-                'file'     => ['name' => 'File', 'supported' => in_array('file', $supported)],
-                'phpfile'  => ['name' => 'PHP File', 'supported' => in_array('phpfile', $supported)],
+                'auto' => ['name' => '', 'supported' => true],
+                'file' => ['name' => 'File', 'supported' => in_array('file', $supported)],
+                'phpfile' => ['name' => 'PHP File', 'supported' => in_array('phpfile', $supported)],
             ];
 
             // Add APCu only if available (modern PHP opcode cache)
@@ -53,7 +53,7 @@ return [
             } elseif (in_array('phpfile', $supported)) {
                 $bestOption = 'phpfile';
             }
-            
+
             $caches['auto']['name'] = "Auto ({$caches[$bestOption]['name']})";
 
             $view->data('$caches', $caches);
@@ -64,8 +64,8 @@ return [
 
         'after@system/settings/save' => function () {
             $this->clearCache();
-        }
+        },
 
-    ]
+    ],
 
 ];

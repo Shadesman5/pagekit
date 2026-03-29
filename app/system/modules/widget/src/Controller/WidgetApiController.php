@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Pagekit\Widget\Controller;
 
+use function Pagekit\__;
+
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
 use Pagekit\Widget\Model\Widget;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use function Pagekit\__;
 
 /**
  * API Controller for Widget management.
@@ -23,7 +24,8 @@ class WidgetApiController
         private readonly mixed $position,
         private readonly mixed $request,
         private readonly mixed $validator,
-    ) {}
+    ) {
+    }
 
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
@@ -58,6 +60,7 @@ class WidgetApiController
         foreach ($positions as $position) {
             if (in_array($id, $position['assigned'])) {
                 $widget->position = $position['name'];
+
                 break;
             }
         }

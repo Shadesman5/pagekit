@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Pagekit\Database\ORM;
 
 use Pagekit\Database\Connection;
-use Pagekit\Database\ORM\Metadata;
-use Pagekit\Database\ORM\MetadataManager;
 use Pagekit\Database\Events;
 use Pagekit\Event\EventDispatcherInterface;
 use Pagekit\Event\PrefixEventDispatcher;
@@ -31,8 +29,8 @@ class EntityManager
     public function __construct(Connection $connection, MetadataManager $metadata, ?EventDispatcherInterface $events = null)
     {
         $this->connection = $connection;
-        $this->metadata   = $metadata;
-        $this->events     = $events ?: new PrefixEventDispatcher('model.');
+        $this->metadata = $metadata;
+        $this->events = $events ?: new PrefixEventDispatcher('model.');
 
         // TODO: Must be refactored in Step 2.1 (Static Analysis) — remove EntityManager singleton pattern
         static::$instance = $this;
@@ -77,7 +75,7 @@ class EntityManager
         if (is_callable($callable)) {
             return call_user_func($callable, $identifier);
         }
-        
+
         return null;
     }
 
@@ -88,7 +86,7 @@ class EntityManager
      */
     public function exists(object $entity): bool
     {
-        $metadata   = $this->getMetadata($entity);
+        $metadata = $this->getMetadata($entity);
         $identifier = $metadata->getIdentifier(true);
 
         if (empty($identifier)) {
@@ -96,6 +94,7 @@ class EntityManager
         }
 
         $result = $this->connection->executeQuery('SELECT 1 FROM '.$metadata->getTable().' WHERE '.$identifier.'='.$this->connection->quote($metadata->getValue($entity, $identifier, true)));
+
         return (bool) $result->fetchOne();
     }
 
@@ -114,7 +113,7 @@ class EntityManager
         }
 
         $metadata = $this->getMetadata(current($entities));
-        $mapping  = $metadata->getRelationMapping($name);
+        $mapping = $metadata->getRelationMapping($name);
 
         if (!class_exists($class = 'Pagekit\Database\ORM\\Relation\\'.$mapping['type'])) {
             throw new \LogicException(sprintf("Unable to find relation class '%s'", $class));
@@ -132,7 +131,7 @@ class EntityManager
      */
     public function save(object $entity, array $data = []): void
     {
-        $metadata   = $this->getMetadata($entity);
+        $metadata = $this->getMetadata($entity);
         $identifier = $metadata->getIdentifier(true);
 
         $metadata->setValues($entity, $data, false, true);
@@ -159,7 +158,7 @@ class EntityManager
         }
 
         $this->trigger(Events::SAVED, $metadata, [$entity, $data]);
-        
+
         // Invalidate query cache for this entity type
         $this->invalidateCache($metadata);
     }
@@ -172,7 +171,7 @@ class EntityManager
      */
     public function delete(object $entity): void
     {
-        $metadata   = $this->getMetadata($entity);
+        $metadata = $this->getMetadata($entity);
         $identifier = $metadata->getIdentifier(true);
 
         if ($value = $metadata->getValue($entity, $identifier, true)) {
@@ -184,7 +183,7 @@ class EntityManager
             $this->trigger(Events::DELETED, $metadata, [$entity]);
 
             $metadata->setValue($entity, $identifier, null, true);
-            
+
             // Invalidate query cache for this entity type
             $this->invalidateCache($metadata);
 
@@ -218,7 +217,7 @@ class EntityManager
      */
     public function hydrateAll(object $statement, Metadata $metadata): array
     {
-        $result     = [];
+        $result = [];
         $identifier = $metadata->getIdentifier();
 
         while ($row = $statement->fetchAssociative()) {
@@ -266,7 +265,7 @@ class EntityManager
     {
         return static::$instance;
     }
-    
+
     /**
      * Invalidates the query cache for the given entity type.
      *
@@ -276,11 +275,11 @@ class EntityManager
     protected function invalidateCache(Metadata $metadata): void
     {
         $cache = $this->metadata->getCache();
-        
+
         if (!$cache) {
             return;
         }
-        
+
         // Clear all cache items
         // TODO: Implement cache invalidation strategy
         // Note: PSR-6 doesn't have a built-in way to delete by pattern

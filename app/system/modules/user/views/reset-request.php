@@ -2,7 +2,7 @@
 
     <h1 class="uk-h2 uk-text-center"><?= __('Forgot Password') ?></h1>
 
-    <?php if($error): ?>
+    <?php if ($error): ?>
         <div class="uk-alert-danger" uk-alert>
             <?= $error; ?>
         </div>

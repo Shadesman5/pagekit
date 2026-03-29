@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Filter by' => 'Фільтрувати за',
   'Thank you! Your comment needs approval before showing up.' => 'Дякуємо! Вам коментар буде опубліковано після схвалення Адміністратором.',
   'Unable to comment. Please try again later.' => 'Не вдалося прокоментувати. Будь ласка, спробуйте ще раз пізніше.',
@@ -94,4 +96,4 @@
   'Written by %name% on %date%' => 'Опублікував %name%, %date%',
   'Read more' => 'Детальніше',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Немає коментарів|{1} %count% коментар|]1,Inf[ %count% коментарів',
-);
+];

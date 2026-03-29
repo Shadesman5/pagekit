@@ -12,7 +12,7 @@ use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 class UrlResolver implements ParamsResolverInterface
 {
-    const CACHE_KEY = 'blog.routing';
+    public const CACHE_KEY = 'blog.routing';
 
     protected bool $cacheDirty = false;
 
@@ -98,11 +98,11 @@ class UrlResolver implements ParamsResolverInterface
         $meta = $this->cacheEntries[$id];
 
         $permalink = self::getPermalink();
-        
+
         $matchCount = preg_match_all('#{([a-z]+)}#i', $permalink, $matches);
 
         if ($matchCount > 0 && !empty($matches[1])) {
-            foreach($matches[1] as $attribute) {
+            foreach ($matches[1] as $attribute) {
                 if (isset($meta[$attribute])) {
                     $parameters[$attribute] = $meta[$attribute];
                 }
@@ -141,12 +141,12 @@ class UrlResolver implements ParamsResolverInterface
     protected function addCache($post): void
     {
         $this->cacheEntries[$post->id] = [
-            'id'     => $post->id,
-            'slug'   => $post->slug,
-            'year'   => $post->date->format('Y'),
-            'month'  => $post->date->format('m'),
-            'day'    => $post->date->format('d'),
-            'hour'   => $post->date->format('H'),
+            'id' => $post->id,
+            'slug' => $post->slug,
+            'year' => $post->date->format('Y'),
+            'month' => $post->date->format('m'),
+            'day' => $post->date->format('d'),
+            'hour' => $post->date->format('H'),
             'minute' => $post->date->format('i'),
             'second' => $post->date->format('s'),
         ];

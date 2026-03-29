@@ -17,7 +17,7 @@ class FileAdapter implements AdapterInterface
     public function __construct($path, $url = '')
     {
         $this->path = strtr($path, '\\', '/');
-        $this->url  = $url;
+        $this->url = $url;
     }
 
     /**

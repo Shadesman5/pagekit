@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Pagekit\Site\Controller;
 
+use function Pagekit\__;
+
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\Site\Model\Node;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use function Pagekit\__;
 
 /**
  * API Controller for Node management.
@@ -26,7 +27,8 @@ class NodeApiController
         private readonly mixed $module,
         private readonly mixed $config,
         private readonly mixed $validator,
-    ) {}
+    ) {
+    }
 
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
@@ -181,8 +183,8 @@ class NodeApiController
 
             if ($node = Node::find($data['id'])) {
 
-                $node->priority  = $data['order'];
-                $node->menu      = $menu;
+                $node->priority = $data['order'];
+                $node->menu = $menu;
                 $node->parent_id = $data['parent_id'] ?: 0;
 
                 $node->save();
@@ -212,6 +214,7 @@ class NodeApiController
         }
 
         ($this->config)('system/site')->set('frontpage', $id);
+
         return ['message' => 'success'];
     }
 }

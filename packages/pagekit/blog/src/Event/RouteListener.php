@@ -34,7 +34,7 @@ class RouteListener implements EventSubscriberInterface
         if ($route->getName() == '@blog/id') {
             // Always set resolver on @blog/id route for URL generation
             $route->setDefault('_resolver', 'Pagekit\Blog\UrlResolver');
-            
+
             // Create alias route for custom permalink patterns
             if ($permalink = UrlResolver::getPermalink()) {
                 $this->routes->alias(dirname($route->getPath()).'/'.ltrim($permalink, '/'), '@blog/id', ['_resolver' => 'Pagekit\Blog\UrlResolver']);
@@ -59,7 +59,7 @@ class RouteListener implements EventSubscriberInterface
             'request' => ['onAppRequest', 130],
             'route.configure' => 'onConfigureRoute',
             'model.post.saved' => 'clearCache',
-            'model.post.deleted' => 'clearCache'
+            'model.post.deleted' => 'clearCache',
         ];
     }
 }

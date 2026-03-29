@@ -69,8 +69,8 @@ class Parser
         $body = $this->token['text'];
 
         while (($token = $this->peek()) && $token['type'] == 'text') {
-          $body .= "\n".$token['text'];
-          $this->next();
+            $body .= "\n".$token['text'];
+            $this->next();
         }
 
         return $this->inline->output($body);
@@ -106,7 +106,7 @@ class Parser
             case 'table':
 
                 $header = '';
-                $cell   = '';
+                $cell = '';
                 $itemsCount = count($this->token['header']);
 
                 for ($i = 0; $i < $itemsCount; $i++) {
@@ -119,7 +119,7 @@ class Parser
 
                 for ($i = 0; $i < $itemsCount; $i++) {
 
-                    $row  = $this->token['cells'][$i];
+                    $row = $this->token['cells'][$i];
                     $cell = '';
 
                     foreach ($row as $j => $row) {

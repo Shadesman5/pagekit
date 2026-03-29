@@ -12,7 +12,8 @@ class MaintenanceListener implements EventSubscriberInterface
     public function __construct(
         private readonly App $app,
         private readonly Module $site,
-    ) {}
+    ) {
+    }
 
     /**
      * Puts the page in maintenance mode.
@@ -55,7 +56,7 @@ class MaintenanceListener implements EventSubscriberInterface
     public function subscribe(): array
     {
         return [
-            'request' => ['onRequest', 10]
+            'request' => ['onRequest', 10],
         ];
     }
 }

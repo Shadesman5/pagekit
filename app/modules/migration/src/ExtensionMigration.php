@@ -63,7 +63,7 @@ abstract class ExtensionMigration extends AbstractMigration
     {
         $prefix = $this->getTablePrefix();
         $extension = $this->getExtensionName();
-        
+
         return sprintf('%s%s_%s', $prefix, $extension, $tableName);
     }
 
@@ -102,7 +102,7 @@ abstract class ExtensionMigration extends AbstractMigration
         $extension = strtoupper($this->getExtensionName());
         $table = strtoupper($tableName);
         $name = strtoupper($indexName);
-        
+
         return sprintf('%s%s_%s_%s', $prefix, $extension, $table, $name);
     }
 
@@ -134,6 +134,7 @@ abstract class ExtensionMigration extends AbstractMigration
     {
         if ($this->tableExists($schema, $tableName)) {
             $this->write(sprintf('Table "%s" already exists, skipping.', $tableName));
+
             return null;
         }
 

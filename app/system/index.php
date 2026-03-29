@@ -33,7 +33,7 @@ return [
         'system/settings',
         'system/site',
         'system/theme',
-        'system/user'
+        'system/user',
 
     ],
 
@@ -41,18 +41,18 @@ return [
 
         '/' => [
             'name' => '@system',
-            'controller' => 'Pagekit\\System\\Controller\\AdminController'
+            'controller' => 'Pagekit\\System\\Controller\\AdminController',
         ],
         '/system/migration' => [
             'name' => '@system/migration',
-            'controller' => 'Pagekit\\System\\Controller\\MigrationController'
-        ]
+            'controller' => 'Pagekit\\System\\Controller\\MigrationController',
+        ],
 
     ],
 
     'resources' => [
 
-        'system:' => ''
+        'system:' => '',
 
     ],
 
@@ -61,19 +61,19 @@ return [
         'site' => [
 
             'theme' => null,
-            'locale' => 'en_US'
+            'locale' => 'en_US',
 
         ],
 
         'admin' => [
 
-            'locale' => 'en_US'
+            'locale' => 'en_US',
 
         ],
 
         'extensions' => [],
 
-        'packages' => []
+        'packages' => [],
 
     ],
 
@@ -116,7 +116,7 @@ return [
 
                 $app->get('events')->trigger($app->get('isAdmin') ? 'admin' : 'site', [$app]);
 
-            }]
+            }],
 
         ],
 
@@ -167,8 +167,8 @@ return [
             }
 
             $meta->add('title', implode(' | ', $title));
-        }, -50]
+        }, -50],
 
-    ]
+    ],
 
 ];

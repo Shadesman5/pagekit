@@ -20,7 +20,7 @@ class ParamFetcher implements ParamFetcherInterface
      */
     public function __construct(?FilterManager $filterManager = null)
     {
-        $this->filterManager = $filterManager ?: new FilterManager;
+        $this->filterManager = $filterManager ?: new FilterManager();
     }
 
     /**

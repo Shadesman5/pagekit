@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Title' => 'Otsikko',
   'Theme' => 'Teema',
   'Hide Title' => 'Piilota Otsikko',
@@ -38,4 +40,4 @@
   'Written by %name% on %date%' => 'Kirjoittanut %name% %date%',
   'Read more' => 'Lue lisää',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '',
-);
+];

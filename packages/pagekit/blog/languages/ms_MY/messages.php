@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Filter by' => 'Tapis ikut',
   'Thank you! Your comment needs approval before showing up.' => 'Terima kasih! Komen anda memerlukan kelulusan sebelum dipaparkan.',
   'Unable to comment. Please try again later.' => 'Tidak dapat untuk menambah komen.  Sila cuba lagi.',
@@ -94,4 +96,4 @@
   'Written by %name% on %date%' => 'Ditulis oleh %name% pada %date%',
   'Read more' => 'Baca selanjutnya',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Tiada komen|{1} %count% Komen|]1,Inf[ %count% Komen',
-);
+];

@@ -4,7 +4,7 @@ return [
 
     'application' => [
 
-        'version' => '1.2.5'
+        'version' => '1.2.5',
 
     ],
 
@@ -13,14 +13,14 @@ return [
         'table' => '@system_auth',
         'cookie' => [
             'name' => 'pagekit_auth',
-            'lifetime' => 315360000
-        ]
+            'lifetime' => 315360000,
+        ],
 
     ],
 
     'debug' => [
 
-        'file' => "sqlite:$path/tmp/temp/debug.db"
+        'file' => "sqlite:$path/tmp/temp/debug.db",
 
     ],
 
@@ -32,14 +32,14 @@ return [
         'table' => '@system_session',
         'cookie' => [
             'name' => 'pagekit_session',
-            'httponly' => true
-        ]
+            'httponly' => true,
+        ],
 
     ],
 
     'filesystem' => [
 
-        'path' => $path
+        'path' => $path,
 
     ],
 
@@ -51,18 +51,18 @@ return [
 
                 'storage' => 'auto',
                 'path' => "$path/tmp/cache",
-                'prefix' => sha1($path)
+                'prefix' => sha1($path),
 
             ],
 
             'cache.phpfile' => [
 
                 'storage' => 'phpfile',
-                'path' => "$path/tmp/cache"
+                'path' => "$path/tmp/cache",
 
-            ]
+            ],
 
-        ]
+        ],
 
     ],
 
@@ -74,10 +74,10 @@ return [
                 'id' => 'userdefault',
                 'type' => 'user',
                 'show' => 'login',
-                'display' => 'thumbnail'
-            ]
-        ]
+                'display' => 'thumbnail',
+            ],
+        ],
 
-    ]
+    ],
 
 ];

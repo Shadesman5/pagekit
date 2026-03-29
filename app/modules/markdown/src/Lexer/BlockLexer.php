@@ -66,7 +66,7 @@ class BlockLexer
 
                 $this->tokens[] = [
                     'type' => 'code',
-                    'text' => !$this->options['pedantic'] ? preg_replace('/\n+$/','',$cap) : $cap
+                    'text' => !$this->options['pedantic'] ? preg_replace('/\n+$/', '', $cap) : $cap,
                 ];
 
                 continue;
@@ -80,7 +80,7 @@ class BlockLexer
                 $this->tokens[] = [
                     'type' => 'code',
                     'lang' => $cap[2],
-                    'text' => $cap[3]
+                    'text' => $cap[3],
                 ];
 
                 continue;
@@ -92,9 +92,9 @@ class BlockLexer
                 $src = substr($src, strlen($cap[0]));
 
                 $this->tokens[] = [
-                    'type'  => 'heading',
+                    'type' => 'heading',
                     'depth' => strlen($cap[1]),
-                    'text'  => $cap[2]
+                    'text' => $cap[2],
                 ];
 
                 continue;
@@ -106,19 +106,19 @@ class BlockLexer
                 $src = substr($src, strlen($cap[0]));
 
                 $item = [
-                    'type'   => 'table',
+                    'type' => 'table',
                     'header' => preg_split('/ *\| */', preg_replace('/^ *| *\| *$/m', '', $cap[1])),
-                    'align'  => preg_split('/ *\| */', preg_replace('/^ *|\| *$/m', '', $cap[2])),
-                    'cells'  => preg_split('/\n/', preg_replace('/\n$/', '', $cap[3]))
+                    'align' => preg_split('/ *\| */', preg_replace('/^ *|\| *$/m', '', $cap[2])),
+                    'cells' => preg_split('/\n/', preg_replace('/\n$/', '', $cap[3])),
                 ];
                 $itemsCount = count($item['align']);
 
                 for ($i = 0; $i < $itemsCount; $i++) {
-                    if (preg_match('/^ *-+: *$/' ,$item['align'][$i])) {
+                    if (preg_match('/^ *-+: *$/', $item['align'][$i])) {
                         $item['align'][$i] = 'right';
-                    } elseif (preg_match('/^ *:-+: *$/' ,$item['align'][$i])) {
+                    } elseif (preg_match('/^ *:-+: *$/', $item['align'][$i])) {
                         $item['align'][$i] = 'center';
-                    } elseif (preg_match('/^ *:-+ *$/' ,$item['align'][$i])) {
+                    } elseif (preg_match('/^ *:-+ *$/', $item['align'][$i])) {
                         $item['align'][$i] = 'left';
                     } else {
                         $item['align'][$i] = null;
@@ -141,9 +141,9 @@ class BlockLexer
                 $src = substr($src, strlen($cap[0]));
 
                 $this->tokens[] = [
-                    'type'  => 'heading',
+                    'type' => 'heading',
                     'depth' => $cap[2] === '=' ? 1 : 2,
-                    'text'  => $cap[1]
+                    'text' => $cap[1],
                 ];
 
                 continue;
@@ -181,21 +181,21 @@ class BlockLexer
             // list
             if (preg_match($this->rules['list'], $src, $cap)) {
 
-                $src  = substr($src, strlen($cap[0]));
+                $src = substr($src, strlen($cap[0]));
                 $list = $cap[0];
                 $bull = $cap[2];
 
                 $this->tokens[] = [
                     'type' => 'list_start',
-                    'ordered' => strlen($bull) > 1
+                    'ordered' => strlen($bull) > 1,
                 ];
 
                 // Get each top-level item.
                 preg_match_all($this->rules['item'], $list, $cap);
 
                 $next = false;
-                $cap  = $cap[0];
-                $l    = count($cap);
+                $cap = $cap[0];
+                $l = count($cap);
 
                 for ($i = 0; $i < $l; $i++) {
 
@@ -205,12 +205,12 @@ class BlockLexer
                     // so it is seen as the next token.
                     $space = strlen($item);
 
-                    $item  = preg_replace('/^ *([*+-]|\d+\.) +/', '', $item);
+                    $item = preg_replace('/^ *([*+-]|\d+\.) +/', '', $item);
                     $space -= strlen($item);
 
                     // Outdent whatever the
                     // list item contains. Hacky.
-                    if (strpos($item, "\n ")===false) {
+                    if (strpos($item, "\n ") === false) {
                         $item = !$this->options['pedantic'] ? preg_replace('/^ {1,'.$space.'}/m', '', $item) : preg_replace('/^ {1,4}/m', '', $item);
                     } else {
                         $item = preg_replace('/^ {1,'.$space.'}/m', '', $item);
@@ -239,11 +239,13 @@ class BlockLexer
                     if ($i !== $l - 1) {
 
                         $next = @$item[strlen($item) - 1] === "\n";
-                        if (!$loose) $loose = $next;
+                        if (!$loose) {
+                            $loose = $next;
+                        }
                     }
 
                     $this->tokens[] = [
-                        'type' => $loose ? 'loose_item_start' : 'list_item_start'
+                        'type' => $loose ? 'loose_item_start' : 'list_item_start',
                     ];
 
                     // Recurse.
@@ -265,8 +267,8 @@ class BlockLexer
 
                 $this->tokens[] = [
                     'type' => $this->options['sanitize'] ? 'paragraph' : 'html',
-                    'pre'  => isset($cap[1]) && ($cap[1] === 'pre' || $cap[1] === 'script' || $cap[1] === 'style'),
-                    'text' => $cap[0]
+                    'pre' => isset($cap[1]) && ($cap[1] === 'pre' || $cap[1] === 'script' || $cap[1] === 'style'),
+                    'text' => $cap[0],
                 ];
 
                 continue;
@@ -278,8 +280,8 @@ class BlockLexer
                 $src = substr($src, strlen($cap[0]));
 
                 $this->tokens['links'][strtolower($cap[1])] = [
-                    "href"  => @$cap[2],
-                    "title" => @$cap[3]
+                    "href" => @$cap[2],
+                    "title" => @$cap[3],
                 ];
 
                 continue;
@@ -291,19 +293,19 @@ class BlockLexer
                 $src = substr($src, strlen($cap[0]));
 
                 $item = [
-                    'type'   => 'table',
+                    'type' => 'table',
                     'header' => preg_split('/ *\| */', preg_replace('/^ *| *\| *$/m', '', $cap[1])),
-                    'align'  => preg_split('/ *\| */', preg_replace('/^ *|\| *$/m', '', $cap[2])),
-                    'cells'  => preg_split('/\n/', preg_replace('/\n$/', '', $cap[3]))
+                    'align' => preg_split('/ *\| */', preg_replace('/^ *|\| *$/m', '', $cap[2])),
+                    'cells' => preg_split('/\n/', preg_replace('/\n$/', '', $cap[3])),
                 ];
                 $itemsCount = count($item['align']);
 
                 for ($i = 0; $i < $itemsCount; $i++) {
-                    if (preg_match('/^ *-+: *$/' ,$item['align'][$i])) {
+                    if (preg_match('/^ *-+: *$/', $item['align'][$i])) {
                         $item['align'][$i] = 'right';
-                    } elseif (preg_match('/^ *:-+: *$/' ,$item['align'][$i])) {
+                    } elseif (preg_match('/^ *:-+: *$/', $item['align'][$i])) {
                         $item['align'][$i] = 'center';
-                    } elseif (preg_match('/^ *:-+ *$/' ,$item['align'][$i])) {
+                    } elseif (preg_match('/^ *:-+ *$/', $item['align'][$i])) {
                         $item['align'][$i] = 'left';
                     } else {
                         $item['align'][$i] = null;
@@ -327,7 +329,7 @@ class BlockLexer
 
                 $this->tokens[] = [
                     'type' => 'paragraph',
-                    'text' => preg_match('/\n$/', $cap[1]) ? substr($cap[1], 0, -1) : $cap[1]
+                    'text' => preg_match('/\n$/', $cap[1]) ? substr($cap[1], 0, -1) : $cap[1],
                 ];
 
                 continue;
@@ -341,7 +343,7 @@ class BlockLexer
 
                 $this->tokens[] = [
                     'type' => 'text',
-                    'text' => $cap[0]
+                    'text' => $cap[0],
                 ];
 
                 continue;
@@ -368,34 +370,34 @@ class BlockLexer
 
             // normal
             $blocks['normal'] = [
-                'blockquote'  => '/^( *>[^\n]+(\n(?! *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +["(]([^\n]+)[")])? *(?:\n+|$))[^\n]+)*\n*)+/',
-                'bullet'      => '/(?:[*+-]|\d+\.)/',
-                'code'        => '/^( {4}[^\n]+\n*)+/',
-                'def'         => '/^ *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +["(]([^\n]+)[")])? *(?:\n+|$)/',
-                'fences'      => '/nooooop/',
-                'heading'     => '/^ *(#{1,6}) *([^\n]+?) *#* *(?:\n+|$)/',
-                'hr'          => '/^( *[-*_]){3,} *(?:\n+|$)/',
-                'html'        => '/^ *(?:<!--[\s\S]*?-->|<((?!(?:a|em|strong|small|s|cite|q|dfn|abbr|data|time|code|var|samp|kbd|sub|sup|i|b|u|mark|ruby|rt|rp|bdi|bdo|span|br|wbr|ins|del|img)\b)\w+(?!:\/|[^\w\s@]*@)\b)[\s\S]+?<\/\1>|<(?!(?:a|em|strong|small|s|cite|q|dfn|abbr|data|time|code|var|samp|kbd|sub|sup|i|b|u|mark|ruby|rt|rp|bdi|bdo|span|br|wbr|ins|del|img)\b)\w+(?!:\/|[^\w\s@]*@)\b(?:"[^"]*"|\'[^\']*\'|[^\'">])*?>) *(?:\n{2,}|\s*$)/',
-                'item'        => '/^( *)((?:[*+-]|\d+\.)) [^\n]*(?:\n(?!\1(?:[*+-]|\d+\.) )[^\n]*)*$/m',
-                'lheading'    => '/^([^\n]+)\n *(=|-){2,} *(?:\n+|$)/',
-                'list'        => '/^( *)((?:[*+-]|\d+\.)) [\s\S]+?(?:\n+(?=\1?(?:[-*_] *){3,}(?:\n+|$))|\n+(?= *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +["(]([^\n]+)[")])? *(?:\n+|$))|\n{2,}(?! )(?!\1(?:[*+-]|\d+\.) )\n*|\s*$)/',
-                'newline'     => '/^\n+/',
-                'nptable'     => '/nooooop/',
-                'paragraph'   => '/^((?:[^\n]+\n?(?!( *[-*_]){3,} *(?:\n+|$)| *(#{1,6}) *([^\n]+?) *#* *(?:\n+|$)|([^\n]+)\n *(=|-){2,} *(?:\n+|$)|( *>[^\n]+(\n(?! *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +["(]([^\n]+)[")])? *(?:\n+|$))[^\n]+)*\n*)+|<(?!(?:a|em|strong|small|s|cite|q|dfn|abbr|data|time|code|var|samp|kbd|sub|sup|i|b|u|mark|ruby|rt|rp|bdi|bdo|span|br|wbr|ins|del|img)\b)\w+(?!:\/|[^\w\s@]*@)\b| *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +["(]([^\n]+)[")])? *(?:\n+|$)))+)\n*/',
-                'table'       => '/nooooop/',
-                'text'        => '/^[^\n]+/'
+                'blockquote' => '/^( *>[^\n]+(\n(?! *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +["(]([^\n]+)[")])? *(?:\n+|$))[^\n]+)*\n*)+/',
+                'bullet' => '/(?:[*+-]|\d+\.)/',
+                'code' => '/^( {4}[^\n]+\n*)+/',
+                'def' => '/^ *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +["(]([^\n]+)[")])? *(?:\n+|$)/',
+                'fences' => '/nooooop/',
+                'heading' => '/^ *(#{1,6}) *([^\n]+?) *#* *(?:\n+|$)/',
+                'hr' => '/^( *[-*_]){3,} *(?:\n+|$)/',
+                'html' => '/^ *(?:<!--[\s\S]*?-->|<((?!(?:a|em|strong|small|s|cite|q|dfn|abbr|data|time|code|var|samp|kbd|sub|sup|i|b|u|mark|ruby|rt|rp|bdi|bdo|span|br|wbr|ins|del|img)\b)\w+(?!:\/|[^\w\s@]*@)\b)[\s\S]+?<\/\1>|<(?!(?:a|em|strong|small|s|cite|q|dfn|abbr|data|time|code|var|samp|kbd|sub|sup|i|b|u|mark|ruby|rt|rp|bdi|bdo|span|br|wbr|ins|del|img)\b)\w+(?!:\/|[^\w\s@]*@)\b(?:"[^"]*"|\'[^\']*\'|[^\'">])*?>) *(?:\n{2,}|\s*$)/',
+                'item' => '/^( *)((?:[*+-]|\d+\.)) [^\n]*(?:\n(?!\1(?:[*+-]|\d+\.) )[^\n]*)*$/m',
+                'lheading' => '/^([^\n]+)\n *(=|-){2,} *(?:\n+|$)/',
+                'list' => '/^( *)((?:[*+-]|\d+\.)) [\s\S]+?(?:\n+(?=\1?(?:[-*_] *){3,}(?:\n+|$))|\n+(?= *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +["(]([^\n]+)[")])? *(?:\n+|$))|\n{2,}(?! )(?!\1(?:[*+-]|\d+\.) )\n*|\s*$)/',
+                'newline' => '/^\n+/',
+                'nptable' => '/nooooop/',
+                'paragraph' => '/^((?:[^\n]+\n?(?!( *[-*_]){3,} *(?:\n+|$)| *(#{1,6}) *([^\n]+?) *#* *(?:\n+|$)|([^\n]+)\n *(=|-){2,} *(?:\n+|$)|( *>[^\n]+(\n(?! *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +["(]([^\n]+)[")])? *(?:\n+|$))[^\n]+)*\n*)+|<(?!(?:a|em|strong|small|s|cite|q|dfn|abbr|data|time|code|var|samp|kbd|sub|sup|i|b|u|mark|ruby|rt|rp|bdi|bdo|span|br|wbr|ins|del|img)\b)\w+(?!:\/|[^\w\s@]*@)\b| *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +["(]([^\n]+)[")])? *(?:\n+|$)))+)\n*/',
+                'table' => '/nooooop/',
+                'text' => '/^[^\n]+/',
             ];
 
             // github flavored markdown
             $blocks['gfm'] = array_merge($blocks['normal'], [
-                'fences'    => '/^ *(`{3,}|~{3,}) *(\S+)? *\n([\s\S]+?)\s*\1 *(?:\n+|$)/',
-                'paragraph' => '/^((?:[^\n]+\n?(?! *(`{3,}|~{3,}) *(\S+)? *\n([\s\S]+?)\s*\2 *(?:\n+|$)|( *)((?:[*+-]|\d+\.)) [\s\S]+?(?:\n+(?=\3?(?:[-*_] *){3,}(?:\n+|$))|\n+(?= *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +["(]([^\n]+)[")])? *(?:\n+|$))|\n{2,}(?! )(?!\1(?:[*+-]|\d+\.) )\n*|\s*$)|( *[-*_]){3,} *(?:\n+|$)| *(#{1,6}) *([^\n]+?) *#* *(?:\n+|$)|([^\n]+)\n *(=|-){2,} *(?:\n+|$)|( *>[^\n]+(\n(?! *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +["(]([^\n]+)[")])? *(?:\n+|$))[^\n]+)*\n*)+|<(?!(?:a|em|strong|small|s|cite|q|dfn|abbr|data|time|code|var|samp|kbd|sub|sup|i|b|u|mark|ruby|rt|rp|bdi|bdo|span|br|wbr|ins|del|img)\b)\w+(?!:\/|[^\w\s@]*@)\b| *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +["(]([^\n]+)[")])? *(?:\n+|$)))+)\n*/'
+                'fences' => '/^ *(`{3,}|~{3,}) *(\S+)? *\n([\s\S]+?)\s*\1 *(?:\n+|$)/',
+                'paragraph' => '/^((?:[^\n]+\n?(?! *(`{3,}|~{3,}) *(\S+)? *\n([\s\S]+?)\s*\2 *(?:\n+|$)|( *)((?:[*+-]|\d+\.)) [\s\S]+?(?:\n+(?=\3?(?:[-*_] *){3,}(?:\n+|$))|\n+(?= *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +["(]([^\n]+)[")])? *(?:\n+|$))|\n{2,}(?! )(?!\1(?:[*+-]|\d+\.) )\n*|\s*$)|( *[-*_]){3,} *(?:\n+|$)| *(#{1,6}) *([^\n]+?) *#* *(?:\n+|$)|([^\n]+)\n *(=|-){2,} *(?:\n+|$)|( *>[^\n]+(\n(?! *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +["(]([^\n]+)[")])? *(?:\n+|$))[^\n]+)*\n*)+|<(?!(?:a|em|strong|small|s|cite|q|dfn|abbr|data|time|code|var|samp|kbd|sub|sup|i|b|u|mark|ruby|rt|rp|bdi|bdo|span|br|wbr|ins|del|img)\b)\w+(?!:\/|[^\w\s@]*@)\b| *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +["(]([^\n]+)[")])? *(?:\n+|$)))+)\n*/',
             ]);
 
             // github flavored markdown + tables
             $blocks['tables'] = array_merge($blocks['gfm'], [
                 'nptable' => '/^ *(\S.*\|.*)\n *([-:]+ *\|[-| :]*)\n((?:.*\|.*(?:\n|$))*)\n*/',
-                'table'   => '/^ *\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*/'
+                'table' => '/^ *\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*/',
             ]);
 
             static::$blocks = $blocks;

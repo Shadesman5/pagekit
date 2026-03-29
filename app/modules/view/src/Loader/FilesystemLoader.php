@@ -30,46 +30,50 @@ class FilesystemLoader
         if (is_object($template) && method_exists($template, '__toString')) {
             $template = (string) $template;
         }
-        
+
         if (!$this->locator) {
             // Return a simple file storage
-            return new class($template) {
+            return new class ($template) {
                 private $path;
-                
-                public function __construct($path) {
+
+                public function __construct($path)
+                {
                     $this->path = $path;
                 }
-                
-                public function __toString() {
+
+                public function __toString()
+                {
                     return $this->path;
                 }
             };
         }
-        
+
         // Try to locate the template file
         $file = null;
-        
+
         // First try direct path (handles namespaced paths like system/theme:views/login.php)
         $file = $this->locator->get($template);
-        
+
         if (!$file && strpos($template, ':') === false) {
             // If not found and no namespace, try with views: prefix
             $file = $this->locator->get("views:{$template}");
         }
-        
+
         if (!$file) {
             return false;
         }
-        
+
         // Return a simple file storage object
-        return new class($file) {
+        return new class ($file) {
             private $path;
-            
-            public function __construct($path) {
+
+            public function __construct($path)
+            {
                 $this->path = $path;
             }
-            
-            public function __toString() {
+
+            public function __toString()
+            {
                 return $this->path;
             }
         };
@@ -81,17 +85,17 @@ class FilesystemLoader
     public function isFresh($template, $time): bool
     {
         $storage = $this->load($template);
-        
+
         if ($storage === false) {
             return false;
         }
-        
+
         $path = (string) $storage;
-        
+
         if (!is_readable($path)) {
             return false;
         }
-        
+
         return filemtime($path) < $time;
     }
 }

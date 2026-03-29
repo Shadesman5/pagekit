@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Pagekit\Site\Controller;
 
-use Pagekit\Config\Config;
+use function Pagekit\__;
+
 use Pagekit\Kernel\Exception\ConflictException;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\Site\Model\Node;
 use Pagekit\User\Attribute\Access;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-use function Pagekit\__;
 
 #[Access('site: manage site')]
 class MenuApiController
@@ -52,7 +52,7 @@ class MenuApiController
             $json = json_decode($this->request->getContent(), true);
             $menu = $json['menu'] ?? [];
         }
-        
+
         $oldId = isset($menu['id']) ? trim($menu['id']) : null;
         $label = isset($menu['label']) ? trim($menu['label']) : '';
 
@@ -89,11 +89,11 @@ class MenuApiController
                 $id = $this->request->get('id');
             }
         }
-        
+
         if (!$id) {
             throw new \Exception('Menu ID is required');
         }
-        
+
         $this->siteConfig->remove('menus.'.$id);
         Node::where(['menu = :id'], ['id' => $id])->update(['menu' => 'trash', 'status' => 0]);
 

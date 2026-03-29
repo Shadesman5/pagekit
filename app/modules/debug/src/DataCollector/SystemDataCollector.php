@@ -14,7 +14,7 @@ class SystemDataCollector implements DataCollectorInterface
      *
      * @param InfoHelper $info
      */
-    function __construct(InfoHelper $info)
+    public function __construct(InfoHelper $info)
     {
         $this->info = $info;
     }

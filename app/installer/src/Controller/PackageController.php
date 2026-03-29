@@ -54,12 +54,12 @@ class PackageController
         return [
             '$view' => [
                 'title' => __('Themes'),
-                'name' => 'installer:views/themes.php'
+                'name' => 'installer:views/themes.php',
             ],
             '$data' => [
                 'api' => $this->systemApi,
-                'packages' => $packages
-            ]
+                'packages' => $packages,
+            ],
         ];
     }
 
@@ -84,12 +84,12 @@ class PackageController
         return [
             '$view' => [
                 'title' => __('Extensions'),
-                'name' => 'installer:views/extensions.php'
+                'name' => 'installer:views/extensions.php',
             ],
             '$data' => [
                 'api' => $this->systemApi,
-                'packages' => $packages
-            ]
+                'packages' => $packages,
+            ],
         ];
     }
 
@@ -234,7 +234,7 @@ class PackageController
     {
         if (is_file($file)) {
 
-            $zip = new \ZipArchive;
+            $zip = new \ZipArchive();
 
             if ($zip->open($file) === true) {
                 $json = $zip->getFromName('composer.json');

@@ -2,20 +2,19 @@
 
 namespace Pagekit\Routing;
 
-use Symfony\Component\Routing\Route;
-use Pagekit\Routing\ResourceInterface;
 use Pagekit\Routing\Generator\UrlGenerator;
 use Pagekit\Routing\Generator\UrlGeneratorDumper;
 use Pagekit\Routing\Generator\UrlGeneratorInterface;
 use Pagekit\Routing\Loader\LoaderInterface;
-use Pagekit\Routing\RequestContext as Context;
 use Pagekit\Routing\Matcher\Dumper\PhpMatcherDumper;
+use Pagekit\Routing\RequestContext as Context;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\Matcher\UrlMatcher;
 use Symfony\Component\Routing\RequestContext;
+use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 use Symfony\Component\Routing\RouterInterface;
 
@@ -55,13 +54,13 @@ class Router implements RouterInterface, UrlGeneratorInterface
     public function __construct(ResourceInterface $resource, LoaderInterface $loader, RequestStack $stack, array $options = [])
     {
         $this->resource = $resource;
-        $this->loader   = $loader;
-        $this->stack    = $stack;
-        $this->context  = new Context();
-        $this->options  = array_replace([
-            'cache'     => null,
-            'matcher'   => 'Symfony\Component\Routing\Matcher\UrlMatcher',
-            'generator' => 'Pagekit\Routing\Generator\UrlGenerator'
+        $this->loader = $loader;
+        $this->stack = $stack;
+        $this->context = new Context();
+        $this->options = array_replace([
+            'cache' => null,
+            'matcher' => 'Symfony\Component\Routing\Matcher\UrlMatcher',
+            'generator' => 'Pagekit\Routing\Generator\UrlGenerator',
         ], $options);
     }
 
@@ -287,7 +286,7 @@ class Router implements RouterInterface, UrlGeneratorInterface
 
         if ($query = substr(strstr($name, '?'), 1)) {
             parse_str($query, $params);
-            $name       = strstr($name, '?', true);
+            $name = strstr($name, '?', true);
             $parameters = array_replace($parameters, $params);
         }
 
@@ -321,7 +320,7 @@ class Router implements RouterInterface, UrlGeneratorInterface
         $structuralOptions = array_intersect_key($this->options, [
             'matcher' => true,
             'generator' => true,
-            'cache' => true
+            'cache' => true,
         ]);
 
         // Calculate current cache key and check if it has changed
@@ -337,7 +336,7 @@ class Router implements RouterInterface, UrlGeneratorInterface
             $this->routes = null;
         }
 
-        $file  = sprintf($file, $this->options['cache'], $this->cache['key']);
+        $file = sprintf($file, $this->options['cache'], $this->cache['key']);
         $fresh = file_exists($file) && (!$this->cache['modified'] || filemtime($file) >= $this->cache['modified']);
 
         return array_merge(compact('fresh', 'file'), $this->cache);
@@ -372,7 +371,7 @@ class Router implements RouterInterface, UrlGeneratorInterface
                 return null;
             }
 
-            $this->resolver[$resolver] = new $resolver;
+            $this->resolver[$resolver] = new $resolver();
         }
 
         return $this->resolver[$resolver];

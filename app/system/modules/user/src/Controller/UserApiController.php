@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Controller;
 
+use function Pagekit\__;
+
 use Pagekit\Application\Exception;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use Pagekit\User\Model\User;
-use function Pagekit\__;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * API Controller for User management.
@@ -29,7 +30,8 @@ class UserApiController
         private readonly mixed $module,
         private readonly mixed $authPassword,
         private readonly mixed $validator,
-    ) {}
+    ) {
+    }
 
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
@@ -39,7 +41,7 @@ class UserApiController
         $page = (int) $request->query->get('page', 0);
         $limit = (int) $request->query->get('limit', 0);
 
-        $query  = User::query();
+        $query = User::query();
         $filter = array_merge(array_fill_keys(['status', 'search', 'role', 'order', 'access'], ''), $filter);
         extract($filter, EXTR_SKIP);
 
@@ -66,7 +68,7 @@ class UserApiController
         }
 
         if ($access) {
-            $query->whereExists(function($query) use ($access) {
+            $query->whereExists(function ($query) use ($access) {
                 $query
                     ->select('id')->from('@system_auth as a')
                     ->where('a.user_id = @system_user.id')
@@ -77,15 +79,15 @@ class UserApiController
         if (preg_match('/^(username|name|email|registered|login)\s(asc|desc)$/i', $order, $match)) {
             $order = $match;
         } else {
-            $order = [1=>'username', 2=>'asc'];
+            $order = [1 => 'username', 2 => 'asc'];
         }
 
         $default = $this->module->get('system/user')->config('users_per_page');
-        $limit   = min(max(0, $limit), $default) ?: $default;
-        $count   = $query->count();
-        $pages   = ceil($count / $limit);
-        $page    = max(0, min($pages - 1, $page));
-        $users   = array_values($query->offset($page * $limit)->limit($limit)->orderBy($order[1], $order[2])->get());
+        $limit = min(max(0, $limit), $default) ?: $default;
+        $count = $query->count();
+        $pages = ceil($count / $limit);
+        $page = max(0, min($pages - 1, $page));
+        $users = array_values($query->offset($page * $limit)->limit($limit)->orderBy($order[1], $order[2])->get());
 
         return compact('users', 'pages', 'count');
     }
@@ -95,7 +97,7 @@ class UserApiController
         $request = $this->request;
         $filter = $request->query->all()['filter'] ?? [];
 
-        $query  = User::query();
+        $query = User::query();
         $filter = array_merge(array_fill_keys(['status', 'search', 'role', 'order', 'access'], ''), (array)$filter);
         extract($filter, EXTR_SKIP);
 
@@ -122,7 +124,7 @@ class UserApiController
         }
 
         if ($access) {
-            $query->whereExists(function($query) use ($access) {
+            $query->whereExists(function ($query) use ($access) {
                 $query
                     ->select('id')->from('@system_auth as a')
                     ->where('a.user_id = @system_user.id')
@@ -182,7 +184,7 @@ class UserApiController
                     throw new BadRequestHttpException(__('Password required.'));
                 }
 
-                $user = User::create(['registered' => new \DateTime]);
+                $user = User::create(['registered' => new \DateTime()]);
             }
 
             if ($user->isAdministrator() && !$this->user->isAdministrator()) {
@@ -211,8 +213,8 @@ class UserApiController
                 $user->password = $this->authPassword->hash($password);
             }
 
-            $key    = array_search(Role::ROLE_ADMINISTRATOR, @$data['roles'] ?: []);
-            $add    = false !== $key && !$user->isAdministrator();
+            $key = array_search(Role::ROLE_ADMINISTRATOR, @$data['roles'] ?: []);
+            $add = false !== $key && !$user->isAdministrator();
             $remove = false === $key && $user->isAdministrator();
 
             if (($self && $remove) || !$this->user->isAdministrator() && ($remove || $add)) {

@@ -7,8 +7,6 @@ use Pagekit\Installer\Installer;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Pagekit\Module\Loader\ConfigLoader;
-
 
 class SetupCommand extends Command
 {
@@ -75,10 +73,10 @@ class SetupCommand extends Command
                         'host' => $this->option('db-host'),
                         'user' => $this->option('db-user'),
                         'password' => $this->option('db-pass'),
-                        'prefix' => $this->option('db-prefix')
-                    ]
-                ]
-            ]
+                        'prefix' => $this->option('db-prefix'),
+                    ],
+                ],
+            ],
         ];
 
         $user = [
@@ -90,11 +88,11 @@ class SetupCommand extends Command
         $options = [
             'system' => [
                 'site' => ['locale' => $this->option('locale')],
-                'admin' => ['locale' => $this->option('locale')]
+                'admin' => ['locale' => $this->option('locale')],
             ],
             'system/site' => [
-                'title' => $this->option('title')
-            ]
+                'title' => $this->option('title'),
+            ],
         ];
 
         try {
@@ -106,6 +104,7 @@ class SetupCommand extends Command
                 $this->error("Line: " . $e->getLine());
                 $this->error("Trace: " . $e->getTraceAsString());
             }
+
             return 1;
         }
         $status = $result['status'];
@@ -116,6 +115,7 @@ class SetupCommand extends Command
             return (int) $this->line("Done");
         } else {
             $this->error($message);
+
             // TODO: Callback
             return 1;
         }

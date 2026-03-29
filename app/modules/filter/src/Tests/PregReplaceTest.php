@@ -2,8 +2,8 @@
 
 namespace Pagekit\Filter\Tests;
 
-use PHPUnit\Framework\TestCase;
 use Pagekit\Filter\PregReplaceFilter;
+use PHPUnit\Framework\TestCase;
 
 class PregReplaceTest extends TestCase
 {
@@ -11,7 +11,7 @@ class PregReplaceTest extends TestCase
 
     public function setUp(): void
     {
-        $this->filter = new PregReplaceFilter;
+        $this->filter = new PregReplaceFilter();
     }
 
     public function testRuntimeException(): void
@@ -60,7 +60,7 @@ class PregReplaceTest extends TestCase
     {
         return [
             ['/foo/i', '', 'Foobar', 'bar'],
-            [['/foo/', '/bar/'], ['FOO', 'BAR'], 'foobar', 'FOOBAR']
+            [['/foo/', '/bar/'], ['FOO', 'BAR'], 'foobar', 'FOOBAR'],
         ];
     }
 

@@ -4,19 +4,18 @@ declare(strict_types=1);
 
 namespace Pagekit\Mail;
 
+use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\Header\UnstructuredHeader;
 use Symfony\Component\Mime\Part\DataPart;
-use Symfony\Component\Mime\Address;
-use Symfony\Component\Mime\Email;
 
 class Message extends Email implements MessageInterface
 {
     protected ?MailerInterface $mailer = null;
-    
+
     /**
      * Temporary files created for in-memory data attachments/embeds.
      * These need to be kept alive until the email is sent.
-     * 
+     *
      * @var array<string> Array of temporary file paths
      */
     protected array $tempFiles = [];
@@ -47,14 +46,16 @@ class Message extends Email implements MessageInterface
         if (!$this->mailer) {
             throw new \RuntimeException('No mailer instance set. Call setMailer() first.');
         }
-       
+
         try {
             $this->mailer->send($this);
+
             return 1;
         } catch (\Exception $e) {
             if ($errors !== null) {
                 $errors[] = $e->getMessage();
             }
+
             return 0;
         }
     }
@@ -95,22 +96,24 @@ class Message extends Email implements MessageInterface
         // Create a persistent temporary file (not tmpfile() which auto-deletes)
         // We use attachFromPath() which reads the file when sending
         $tempFile = tempnam(sys_get_temp_dir(), 'pagekit_mail_');
-        
+
         if ($tempFile === false) {
             throw new \RuntimeException('Failed to create temporary file for attachment. Check disk space and permissions.');
         }
-        
+
         $bytesWritten = file_put_contents($tempFile, $data);
         if ($bytesWritten === false) {
             @unlink($tempFile);
+
             throw new \RuntimeException('Failed to write data to temporary file for attachment. Check disk space and permissions.');
         }
-        
+
         // Store reference to keep file alive until email is sent
         $this->tempFiles[] = $tempFile;
-        
+
         // Use attachFromPath() for file paths, not attach() which expects raw content
         $this->attachFromPath($tempFile, $name, $mime);
+
         return $this;
     }
 
@@ -130,10 +133,10 @@ class Message extends Email implements MessageInterface
         } else {
             $contentId = md5_file($file).'@pagekit';
         }
-        
+
         // Use embedFromPath() for file paths, not embed() which expects raw content
         $this->embedFromPath($file);
-        
+
         // Override the CID with our custom one
         // Get the last attachment (which is the embedded part)
         $attachments = $this->getAttachments();
@@ -145,10 +148,10 @@ class Message extends Email implements MessageInterface
                 $lastPart->getHeaders()->setHeaderBody('Id', 'Content-ID', $contentId);
             }
         }
-        
+
         // Note: No need to store in $this->embeded[] because $this->embed() already
         // adds it to getAttachments(), and getParts() uses getAttachments()
-        
+
         // Return CID that matches the header value
         // This ensures HTML references like <img src="cid:logo@pagekit.local"> match the header
         return 'cid:'.$contentId;
@@ -167,24 +170,25 @@ class Message extends Email implements MessageInterface
         // Create a persistent temporary file (not tmpfile() which auto-deletes)
         // We use embedFromPath() which reads the file when sending
         $tempFile = tempnam(sys_get_temp_dir(), 'pagekit_mail_');
-        
+
         if ($tempFile === false) {
             throw new \RuntimeException('Failed to create temporary file for embedded content. Check disk space and permissions.');
         }
-        
+
         $bytesWritten = file_put_contents($tempFile, $data);
         if ($bytesWritten === false) {
             @unlink($tempFile);
+
             throw new \RuntimeException('Failed to write data to temporary file for embedded content. Check disk space and permissions.');
         }
-        
+
         // Store reference to keep file alive until email is sent
         $this->tempFiles[] = $tempFile;
-        
+
         $contentId = md5($data).'@pagekit';
         // Use embedFromPath() for file paths, not embed() which expects raw content
         $this->embedFromPath($tempFile, $name, $contentType ?? 'application/octet-stream');
-        
+
         // Override the CID with our custom one
         // Get the last attachment (which is the embedded part)
         $attachments = $this->getAttachments();
@@ -196,10 +200,10 @@ class Message extends Email implements MessageInterface
                 $lastPart->getHeaders()->setHeaderBody('Id', 'Content-ID', $contentId);
             }
         }
-        
+
         // Note: No need to store in $this->embeded[] because $this->embed() already
         // adds it to getAttachments(), and getParts() uses getAttachments()
-        
+
         return 'cid:'.$contentId;
     }
 
@@ -242,7 +246,7 @@ class Message extends Email implements MessageInterface
      * Clone handler to duplicate temp files for cloned messages.
      * When a Message is cloned, we need to copy the temp files so both
      * objects have their own copies and can clean up independently.
-     * 
+     *
      * Also updates DataPart objects in parent Email class to reference
      * the new temp file paths, since they are shallow-copied and still
      * point to original files.
@@ -253,11 +257,11 @@ class Message extends Email implements MessageInterface
         // ownership of original's files if an exception occurs during cloning
         $originalTempFiles = $this->tempFiles;
         $this->tempFiles = [];
-        
+
         // Create mapping of original paths to new paths
         $pathMapping = [];
         $newTempFiles = [];
-        
+
         foreach ($originalTempFiles as $tempFile) {
             // Check if original file exists before creating new temp file
             // This prevents orphaned temp files if original was deleted externally
@@ -265,7 +269,7 @@ class Message extends Email implements MessageInterface
                 // Original file was deleted externally, skip it
                 continue;
             }
-            
+
             // Create a copy of the temp file for the cloned object
             $newTempFile = tempnam(sys_get_temp_dir(), 'pagekit_mail_');
             if ($newTempFile === false) {
@@ -273,9 +277,10 @@ class Message extends Email implements MessageInterface
                 foreach ($newTempFiles as $createdFile) {
                     @unlink($createdFile);
                 }
+
                 throw new \RuntimeException('Failed to create temporary file for cloned message. Check disk space and permissions.');
             }
-            
+
             if (copy($tempFile, $newTempFile)) {
                 $newTempFiles[] = $newTempFile;
                 $pathMapping[$tempFile] = $newTempFile;
@@ -286,52 +291,53 @@ class Message extends Email implements MessageInterface
                 foreach ($newTempFiles as $createdFile) {
                     @unlink($createdFile);
                 }
+
                 throw new \RuntimeException('Failed to copy temporary file for cloned message. Check disk space and permissions.');
             }
         }
-        
+
         $this->tempFiles = $newTempFiles;
-        
+
         // Update DataPart objects in parent Email class to reference new paths
         // The parent's attachments are shallow-copied and still point to original files
         if (!empty($pathMapping)) {
             $this->updateAttachmentPaths($pathMapping);
         }
     }
-    
+
     /**
      * Replaces DataPart objects in parent Email class with cloned versions referencing new temp file paths.
      * This is necessary because __clone() shallow-copies the attachments, leaving
      * them pointing to the original temp files. We must clone the DataPart objects
      * to avoid modifying the shared references that would corrupt the original message.
-     * 
+     *
      * @param array<string, string> $pathMapping Mapping of original paths to new paths
      */
     protected function updateAttachmentPaths(array $pathMapping): void
     {
         $attachments = $this->getAttachments();
         $attachmentsToReplace = [];
-        
+
         // First pass: Identify which attachments need to be replaced and create new DataPart objects
         foreach ($attachments as $index => $attachment) {
             if ($attachment instanceof DataPart) {
                 // Check if this DataPart references one of our temp files
                 $originalPath = $this->getDataPartFilePath($attachment);
-                
+
                 if ($originalPath !== null && isset($pathMapping[$originalPath])) {
                     // Create a new DataPart with the new path instead of modifying the shared one
                     $newPath = $pathMapping[$originalPath];
-                    
+
                     // Get attachment metadata before creating new one
                     $headers = $attachment->getHeaders();
                     $contentId = null;
                     if ($headers->has('Content-ID')) {
                         $contentId = $headers->get('Content-ID')->getBody();
                     }
-                    
+
                     // Check if it's inline (embedded) or attachment
                     $isInline = $headers->has('Content-ID');
-                    
+
                     // Create new DataPart with new path
                     $newDataPart = DataPart::fromPath($newPath);
                     if ($isInline) {
@@ -340,7 +346,7 @@ class Message extends Email implements MessageInterface
                             $newDataPart->getHeaders()->setHeaderBody('Id', 'Content-ID', $contentId);
                         }
                     }
-                    
+
                     // Copy other headers from original
                     // Note: Symfony's Headers::all() yields individual HeaderInterface objects (not arrays)
                     // with the header name as the key, so we iterate directly over the headers
@@ -350,21 +356,21 @@ class Message extends Email implements MessageInterface
                             $newDataPart->getHeaders()->add($header);
                         }
                     }
-                    
+
                     $attachmentsToReplace[$index] = $newDataPart;
                 }
             }
         }
-        
+
         // Second pass: Replace attachments in parent Email class
         if (!empty($attachmentsToReplace)) {
             $this->replaceAttachments($attachmentsToReplace);
         }
     }
-    
+
     /**
      * Gets the file path from a DataPart object using reflection.
-     * 
+     *
      * @param DataPart $dataPart
      * @return string|null The file path if found, null otherwise
      */
@@ -372,25 +378,25 @@ class Message extends Email implements MessageInterface
     {
         try {
             $reflection = new \ReflectionClass($dataPart);
-            
+
             // Try body property first
             if ($reflection->hasProperty('body')) {
                 $bodyProperty = $reflection->getProperty('body');
                 $bodyProperty->setAccessible(true);
                 $body = $bodyProperty->getValue($dataPart);
-                
+
                 if (is_string($body) && file_exists($body)) {
                     return $body;
                 }
             }
-            
+
             // Try alternative property names
             foreach (['path', 'filename', 'file'] as $propName) {
                 if ($reflection->hasProperty($propName)) {
                     $prop = $reflection->getProperty($propName);
                     $prop->setAccessible(true);
                     $value = $prop->getValue($dataPart);
-                    
+
                     if (is_string($value) && file_exists($value)) {
                         return $value;
                     }
@@ -399,15 +405,15 @@ class Message extends Email implements MessageInterface
         } catch (\ReflectionException $e) {
             // Reflection failed, can't determine path
         }
-        
+
         return null;
     }
-    
+
     /**
      * Replaces attachments in parent Email class using reflection.
      * Creates new DataPart objects instead of modifying shared ones to prevent
      * corrupting the original message's attachments.
-     * 
+     *
      * @param array<int, DataPart> $replacements Mapping of attachment index to new DataPart
      */
     protected function replaceAttachments(array $replacements): void
@@ -416,29 +422,30 @@ class Message extends Email implements MessageInterface
             // Use reflection to access parent Email's internal structure
             $reflection = new \ReflectionClass($this);
             $parentReflection = $reflection->getParentClass();
-            
+
             if ($parentReflection) {
                 // Symfony's Email class stores attachments in a private property
                 // We need to find and replace them
                 $allProperties = $parentReflection->getProperties();
-                
+
                 foreach ($allProperties as $prop) {
                     $prop->setAccessible(true);
                     $value = $prop->getValue($this);
-                    
+
                     // Look for an array that contains our DataPart objects
                     if (is_array($value) || $value instanceof \Traversable) {
                         $found = false;
                         $arrayToModify = is_array($value) ? $value : iterator_to_array($value);
-                        
+
                         // Check if this array contains our DataPart objects
                         foreach ($arrayToModify as $item) {
                             if ($item instanceof DataPart) {
                                 $found = true;
+
                                 break;
                             }
                         }
-                        
+
                         if ($found) {
                             // Replace DataPart objects at specified indices
                             foreach ($replacements as $index => $newDataPart) {
@@ -446,7 +453,7 @@ class Message extends Email implements MessageInterface
                                     $arrayToModify[$index] = $newDataPart;
                                 }
                             }
-                            
+
                             // Update the property with modified array
                             if (is_array($value)) {
                                 $prop->setValue($this, $arrayToModify);
@@ -455,7 +462,7 @@ class Message extends Email implements MessageInterface
                                 // For now, try setting it as array (Email should handle it)
                                 $prop->setValue($this, $arrayToModify);
                             }
-                            
+
                             return;
                         }
                     }

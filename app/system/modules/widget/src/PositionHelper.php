@@ -13,7 +13,8 @@ class PositionHelper extends Helper
         private readonly User $user,
         private readonly object $node,
         private readonly WidgetManager $widget,
-    ) {}
+    ) {
+    }
 
     /**
      * Set shortcut.

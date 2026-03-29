@@ -8,14 +8,14 @@ return [
 
     'main' => function ($app) {
 
-        $app->get('events')->subscribe(new CommentPlugin);
+        $app->get('events')->subscribe(new CommentPlugin());
 
     },
 
     'autoload' => [
 
-        'Pagekit\\Comment\\' => 'src'
+        'Pagekit\\Comment\\' => 'src',
 
-    ]
+    ],
 
 ];

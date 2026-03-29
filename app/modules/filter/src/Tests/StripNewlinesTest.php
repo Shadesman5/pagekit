@@ -2,8 +2,8 @@
 
 namespace Pagekit\Filter\Tests;
 
-use PHPUnit\Framework\TestCase;
 use Pagekit\Filter\StripNewlinesFilter;
+use PHPUnit\Framework\TestCase;
 
 class StripNewlinesTest extends TestCase
 {
@@ -12,7 +12,7 @@ class StripNewlinesTest extends TestCase
      */
     public function testFilter($input, $output): void
     {
-        $filter = new StripNewlinesFilter;
+        $filter = new StripNewlinesFilter();
 
         $this->assertEquals($output, $filter->filter($input));
     }
@@ -27,7 +27,7 @@ class StripNewlinesTest extends TestCase
             ['\n', '\n'],
             ['\r', '\r'],
             ['\r\n', '\r\n'],
-            ["These newlines should\nbe removed by\r\nthe filter", 'These newlines shouldbe removed bythe filter']
+            ["These newlines should\nbe removed by\r\nthe filter", 'These newlines shouldbe removed bythe filter'],
         ];
     }
 }

@@ -12,6 +12,6 @@ class BooleanFilter extends AbstractFilter
      */
     public function filter($value): bool
     {
-        return (bool) @strval($value);
+        return (bool) @(string) $value;
     }
 }

@@ -3,12 +3,11 @@
 namespace Pagekit\Database\Query;
 
 use Closure;
-use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Platforms\MySqlPlatform;
+use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Pagekit\Database\Connection;
-use PDO;
 
 class QueryBuilder
 {
@@ -30,7 +29,7 @@ class QueryBuilder
         'having' => null,
         'order' => [],
         'offset' => null,
-        'limit' => null
+        'limit' => null,
     ];
 
     /**
@@ -227,15 +226,17 @@ class QueryBuilder
      */
     public function whereInSet($column, $values, $not = false, $type = null): QueryBuilder
     {
-        $not    = $not ? ' NOT' : '';
+        $not = $not ? ' NOT' : '';
         $values = (array) $values;
 
         if (count($values) === 1 && $this->connection->getDatabasePlatform() instanceof MySqlPlatform) {
             $value = $this->connection->quote(current($values));
+
             return $this->addWhere("{$not} FIND_IN_SET({$value}, {$column})", [], $type);
         }
 
         $values = implode('|', (array) $values);
+
         return $this->addWhere("{$column}{$not} REGEXP ".$this->connection->quote("(^|,)({$values})($|,)"), [], $type);
     }
 
@@ -263,9 +264,9 @@ class QueryBuilder
             foreach ($condition as $key => $value) {
 
                 if (!is_numeric($key)) {
-                    $name          = $this->parameter($key);
+                    $name = $this->parameter($key);
                     $params[$name] = $value;
-                    $value         = "$key = :$name";
+                    $value = "$key = :$name";
                 }
 
                 $args[] = $value;
@@ -314,7 +315,7 @@ class QueryBuilder
      */
     public function having($having, $type = CompositeExpression::TYPE_AND): QueryBuilder
     {
-        $args   = func_get_args();
+        $args = func_get_args();
         $having = $this->getPart('having');
 
         if ($having instanceof CompositeExpression && $having->getType() === $type) {
@@ -532,8 +533,8 @@ class QueryBuilder
      */
     public function aggregate($function, $column)
     {
-        $select  = $this->getPart('select');
-        
+        $select = $this->getPart('select');
+
         $results = $this->setPart('select', sprintf('%s(%s) AS aggregate', strtoupper($function), $column))->get();
 
         $this->setPart('select', $select);
@@ -541,12 +542,12 @@ class QueryBuilder
         if ($results && isset($results[0]['aggregate'])) {
             return $results[0]['aggregate'];
         }
-        
+
         // Fallback for case-sensitive databases
         if ($results && isset($results[0]['AGGREGATE'])) {
             return $results[0]['AGGREGATE'];
         }
-        
+
         return 0;
     }
 
@@ -572,7 +573,7 @@ class QueryBuilder
     public function update(array $values): int
     {
         foreach ($values as $key => $value) {
-            $name          = $this->parameter($key);
+            $name = $this->parameter($key);
             $values[$name] = $value;
             $this->addPart('set', "$key = :$name");
         }
@@ -625,10 +626,12 @@ class QueryBuilder
         switch ($type) {
             case 'update':
                 $sql = $this->getSQLForUpdate();
+
                 break;
 
             case 'delete':
                 $sql = $this->getSQLForDelete();
+
                 break;
 
             default:
@@ -730,6 +733,7 @@ class QueryBuilder
                 $types[$key] = Types::DATETIME_MUTABLE;
             }
         }
+
         return $types;
     }
 

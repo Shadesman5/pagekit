@@ -12,7 +12,8 @@ class PackageFactory implements \ArrayAccess, \IteratorAggregate
 
     public function __construct(
         private readonly mixed $url = null,
-    ) {}
+    ) {
+    }
 
     /**
      * Get shortcut.
@@ -52,7 +53,7 @@ class PackageFactory implements \ArrayAccess, \IteratorAggregate
             $this->loadPackages();
         }
 
-        $filter = fn($package) => $package->get('type') == $type;
+        $filter = fn ($package) => $package->get('type') == $type;
 
         return $type !== null ? array_filter($this->packages, $filter) : $this->packages;
     }

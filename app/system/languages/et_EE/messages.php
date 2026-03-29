@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Select Image' => 'Vali video',
   'Add Image' => 'Lisa pilt',
   'Select Video' => 'Vali video',
@@ -451,4 +453,4 @@
   'You have the latest version of Pagekit. You do not need to update. However, if you want to re-install version %version%, you can download the package and re-install manually.' => 'Teil on Pagekiti viimane versioon. Te ei pea uuendama. Kui siiski soovite eemaldada versiooni %version% võite paketi käsitsi alla laadida ja instaleerida paketi seejärel käsitsi.',
   'Download %version%' => 'Lae alla %version%',
   'Changelog' => 'Muudatused',
-);
+];

@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Title' => 'Tytuł',
   'Theme' => 'Motyw',
   'Hide Title' => 'Ukryj tytuł',
@@ -38,4 +40,4 @@
   'Written by %name% on %date%' => 'Napisane przez %name% w dniu %date%',
   'Read more' => 'Czytaj więcej',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Brak komentarzy|{1} %count% komentarz|[2,4] %count% komentarze|]1,Inf[ %count% komentarzy',
-);
+];

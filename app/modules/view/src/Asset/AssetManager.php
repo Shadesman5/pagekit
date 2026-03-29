@@ -2,10 +2,6 @@
 
 namespace Pagekit\View\Asset;
 
-use Pagekit\View\Asset\AssetInterface;
-use Pagekit\View\Asset\AssetCollection;
-use Pagekit\View\Asset\AssetFactory;
-
 class AssetManager implements \IteratorAggregate
 {
     /**
@@ -33,8 +29,8 @@ class AssetManager implements \IteratorAggregate
      */
     public function __construct(?AssetFactory $factory = null, $cache = null)
     {
-        $this->factory    = $factory ?: new AssetFactory;
-        $this->registered = new AssetCollection;
+        $this->factory = $factory ?: new AssetFactory();
+        $this->registered = new AssetCollection();
 
         if ($cache) {
             $this->cache = $cache;
@@ -258,7 +254,7 @@ class AssetManager implements \IteratorAggregate
     {
         extract($options);
 
-        $combine = new AssetCollection;
+        $combine = new AssetCollection();
         $pattern = $this->globToRegex($pattern);
 
         foreach ($assets as $asset) {
@@ -311,8 +307,8 @@ class AssetManager implements \IteratorAggregate
      */
     protected function globToRegex($glob): string
     {
-        $regex  = '';
-        $group  = 0;
+        $regex = '';
+        $group = 0;
         $escape = false;
 
         for ($i = 0; $i < strlen($glob); $i++) {
@@ -344,6 +340,7 @@ class AssetManager implements \IteratorAggregate
                 } else {
                     $escape = true;
                 }
+
                 continue;
             } else {
                 $regex .= $c;

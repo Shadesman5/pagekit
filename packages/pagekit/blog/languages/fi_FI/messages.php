@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Filter by' => 'Suodata',
   'Thank you! Your comment needs approval before showing up.' => 'Kiitos. Kommenttisi vaatii hyväksynnän ennen näkymistä',
   'Unable to comment. Please try again later.' => 'Ei voida komentoida. Yritä myöhemmin uudestaan.',
@@ -94,4 +96,4 @@
   'Written by %name% on %date%' => 'Kirjoittanut %name% %date%',
   'Read more' => 'Lue lisää',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Ei kommentteja|{1} %count% kommentti|]1,Inf[ %count% kommenttia',
-);
+];

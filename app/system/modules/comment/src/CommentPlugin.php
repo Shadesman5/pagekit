@@ -19,7 +19,7 @@ class CommentPlugin implements EventSubscriberInterface
         }
 
         // remove all html tags or escape if in [code] tag
-        $content = preg_replace_callback('/\[code\](.+?)\[\/code\]/is', fn($matches) => htmlspecialchars($matches[0]), $event->getContent());
+        $content = preg_replace_callback('/\[code\](.+?)\[\/code\]/is', fn ($matches) => htmlspecialchars($matches[0]), $event->getContent());
         $content = strip_tags($content);
 
         $content = ' '.$content.' ';
@@ -32,7 +32,7 @@ class CommentPlugin implements EventSubscriberInterface
             }
 
             // Prepend scheme if URL appears to contain no scheme (unless a relative link starting with / or a php file).
-            if (strpos($url, ':') === false &&	substr($url, 0, 1) != '/' && substr($url, 0, 1) != '#' && !preg_match('/^[a-z0-9-]+?\.php/i', $url)) {
+            if (strpos($url, ':') === false && substr($url, 0, 1) != '/' && substr($url, 0, 1) != '#' && !preg_match('/^[a-z0-9-]+?\.php/i', $url)) {
                 $url = 'http://' . $url;
             }
 
@@ -40,7 +40,7 @@ class CommentPlugin implements EventSubscriberInterface
 
         }, $content);
 
-        $content = preg_replace("/\s([a-zA-Z][a-zA-Z0-9\_\.\-]*[a-zA-Z]*\@[a-zA-Z][a-zA-Z0-9\_\.\-]*[a-zA-Z]{2,6})([\s|\.|\,])/i"," <a href=\"mailto:$1\" rel=\"nofollow\">$1</a>$2", $content);
+        $content = preg_replace("/\s([a-zA-Z][a-zA-Z0-9\_\.\-]*[a-zA-Z]*\@[a-zA-Z][a-zA-Z0-9\_\.\-]*[a-zA-Z]{2,6})([\s|\.|\,])/i", " <a href=\"mailto:$1\" rel=\"nofollow\">$1</a>$2", $content);
         $content = substr($content, 1);
         $content = substr($content, 0, -1);
 
@@ -53,7 +53,7 @@ class CommentPlugin implements EventSubscriberInterface
     public function subscribe(): array
     {
         return [
-            'content.plugins' => 'onContentPlugins'
+            'content.plugins' => 'onContentPlugins',
         ];
     }
 }

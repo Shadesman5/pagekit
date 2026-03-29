@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Select Image' => 'เลือกรูปภาพ',
   'Add Image' => 'เพิ่มรูปภาพ',
   'Select Video' => 'เลือกวิดีโอ',
@@ -451,4 +453,4 @@
   'You have the latest version of Pagekit. You do not need to update. However, if you want to re-install version %version%, you can download the package and re-install manually.' => 'คุณมี Pagekit เวอร์ชั่นล่าสุดแล้ว คุณไม่จำเป็นต้องอัปเดท แต่ถ้าคุณต้องการที่จะติดตั้งเวอร์ชั่น %version% ใหม่ คุณสามารถดาวน์โหลดแพคเกจและติดตั้งใหม่ด้วยตนเองได้',
   'Download %version%' => 'ดาวน์โหลด %version%',
   'Changelog' => 'บันทึกการกระทำ',
-);
+];

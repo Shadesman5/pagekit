@@ -18,23 +18,24 @@ final class ThemeOneHelpers
         if (self::$url === null) {
             throw new \RuntimeException('ThemeOneHelpers::setUrl() must be called before using template helpers.');
         }
+
         return self::$url;
     }
 }
 
-function isHTML(string $string) : bool
+function isHTML(string $string): bool
 {
     preg_match("/<\/?\w+((\s+\w+(\s*=\s*(?:\".*?\"|'.*?'|[^'\">\s]+))?)+\s*|\s*)\/?>/", $string, $matches);
 
     return (bool) count($matches);
 }
 
-function getHTML(string $content) : string
+function getHTML(string $content): string
 {
     return isHTML($content) ? $content : '<p>'.$content.'</p>';
 }
 
-function attrs(array $attrs) : string
+function attrs(array $attrs): string
 {
     $output = [];
 
@@ -53,18 +54,18 @@ function attrs(array $attrs) : string
         }
 
         if (is_numeric($key)) {
-           $output[] = $value;
+            $output[] = $value;
         } elseif ($value === true) {
-           $output[] = $key;
+            $output[] = $key;
         } elseif ($value !== '') {
-           $output[] = sprintf('%s="%s"', $key, htmlspecialchars($value, ENT_COMPAT, 'UTF-8', false));
+            $output[] = sprintf('%s="%s"', $key, htmlspecialchars($value, ENT_COMPAT, 'UTF-8', false));
         }
     }
 
     return (bool) count($output) ? ' '.implode(' ', $output) : '';
 }
 
-function bgImage ($url, $options) : array
+function bgImage($url, $options): array
 {
 
     $attrs = [];
@@ -87,12 +88,14 @@ function bgImage ($url, $options) : array
             break;
         case 'fixed':
             $attrs['class'][] = 'uk-background-fixed';
+
             break;
         case 'parallax':
             $parallax_options = [];
             $parallax_options[] = "bgy: -200";
             $parallax_options[] = "media: @s";
             $attrs['uk-parallax'] = implode(';', array_filter($parallax_options));
+
             break;
     }
 
@@ -109,6 +112,7 @@ function image($url, array $attrs = []): string
     }
 
     $attributes = attrs(['src' => $path], $attrs);
+
     return "<img".$attributes.">";
 }
 

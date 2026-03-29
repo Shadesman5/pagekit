@@ -6,7 +6,7 @@ use Pagekit\View\View;
 
 /**
  * DataHelper - CSP-compliant configuration delivery
- * 
+ *
  * Uses JSON data container instead of inline scripts for strict CSP compliance.
  * JavaScript reads configuration from data-attribute (no eval, no inline execution).
  */
@@ -28,7 +28,7 @@ class DataHelper implements HelperInterface
         // Priority 10 = runs BEFORE ScriptHelper (priority 5)
         // JSON data element MUST appear before script tags in HTML
         // so config-loader.js can read it
-        // 
+        //
         // Modules should add data via 'view.data' event, NOT 'view.scripts'
         $view->on('head', function ($event) use ($view) {
             $view->trigger('data', [$this]);
@@ -70,7 +70,7 @@ class DataHelper implements HelperInterface
     public function add($name, $value): void
     {
         if (isset($this->data[$name]) && is_array($this->data[$name])) {
-           $value = array_replace_recursive($this->data[$name], $value);
+            $value = array_replace_recursive($this->data[$name], $value);
         }
 
         $this->data[$name] = $value;
@@ -78,9 +78,9 @@ class DataHelper implements HelperInterface
 
     /**
      * Renders the data as CSP-compliant JSON container.
-     * 
+     *
      * Output: <script id="pagekit-data" type="application/json">{"data":...}</script>
-     * 
+     *
      * Why type="application/json"?
      * - Browser does NOT execute scripts with type="application/json"
      * - Perfect for strict CSP (no 'unsafe-inline' needed)
@@ -95,12 +95,12 @@ class DataHelper implements HelperInterface
 
         // Build config object with all data
         $config = [
-            'data' => $this->data
+            'data' => $this->data,
         ];
 
         // Encode as JSON (safe for embedding in HTML)
         $json = json_encode($config, $this->encodingOptions | JSON_UNESCAPED_SLASHES);
-        
+
         // Output as JSON script tag (CSP-safe, not executed by browser)
         return sprintf("        <script id=\"pagekit-data\" type=\"application/json\">%s</script>\n", $json);
     }

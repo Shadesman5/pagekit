@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Title' => 'Cím',
   'Theme' => 'Téma',
   'Hide Title' => 'Cím elrejtése',
@@ -38,4 +40,4 @@
   'Written by %name% on %date%' => 'Írta %name% - %date%',
   'Read more' => 'Bővebben',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Nincs hozzászólás|{1} %count% hozzászólás|]1,Inf[ %count% hozzászólás',
-);
+];

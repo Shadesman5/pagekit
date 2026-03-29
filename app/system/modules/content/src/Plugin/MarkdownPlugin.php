@@ -9,7 +9,8 @@ class MarkdownPlugin implements EventSubscriberInterface
 {
     public function __construct(
         private readonly mixed $markdown,
-    ) {}
+    ) {
+    }
 
     /**
      * Content plugins callback.
@@ -34,7 +35,7 @@ class MarkdownPlugin implements EventSubscriberInterface
     public function subscribe(): array
     {
         return [
-            'content.plugins' => ['onContentPlugins', 5]
+            'content.plugins' => ['onContentPlugins', 5],
         ];
     }
 }

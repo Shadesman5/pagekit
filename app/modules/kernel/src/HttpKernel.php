@@ -34,7 +34,7 @@ class HttpKernel implements HttpKernelInterface
     public function __construct(EventDispatcherInterface $events, ?RequestStack $stack = null)
     {
         $this->events = $events;
-        $this->stack  = $stack ?: new RequestStack();
+        $this->stack = $stack ?: new RequestStack();
     }
 
     /**
@@ -84,34 +84,42 @@ class HttpKernel implements HttpKernelInterface
 
             case 400:
                 $exception = new BadRequestException($message);
+
                 break;
 
             case 401:
                 $exception = new UnauthorizedException($message);
+
                 break;
 
             case 403:
                 $exception = new ForbiddenException($message);
+
                 break;
 
             case 404:
                 $exception = new NotFoundException($message);
+
                 break;
 
             case 405:
                 $exception = new MethodNotAllowedException($message);
+
                 break;
 
             case 409:
                 $exception = new ConflictException($message);
+
                 break;
 
             case 500:
                 $exception = new InternalErrorException($message);
+
                 break;
 
             default:
                 $exception = new HttpException($message);
+
                 break;
         }
 

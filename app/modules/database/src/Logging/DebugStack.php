@@ -6,7 +6,7 @@ use Symfony\Component\Stopwatch\Stopwatch;
 
 /**
  * @deprecated Since DBAL 3.x migration. Use Pagekit\Debug\Middleware\DebugMiddleware instead.
- * 
+ *
  * This class is kept for backward compatibility but is no longer used.
  * DBAL 3.x uses a middleware-based approach for SQL logging.
  */

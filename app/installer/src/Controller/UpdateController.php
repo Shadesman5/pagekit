@@ -38,13 +38,13 @@ class UpdateController
         return [
             '$view' => [
                 'title' => __('Update'),
-                'name' => 'installer:views/update.php'
+                'name' => 'installer:views/update.php',
             ],
             '$data' => [
                 'api' => $this->systemApi,
                 'version' => $this->version,
-                'channel' => 'stable'
-            ]
+                'channel' => 'stable',
+            ],
         ];
     }
 
@@ -71,6 +71,7 @@ class UpdateController
 
         return $this->response->stream(function () use ($file) {
             $output = new StreamOutput(fopen('php://output', 'w'));
+
             try {
 
                 if (!file_exists($file) || !is_file($file)) {

@@ -58,10 +58,10 @@ class ScriptHelper implements HelperInterface, \IteratorAggregate
 
     /**
      * Renders the script tags.
-     * 
+     *
      * NOTE: Inline scripts are NO LONGER supported due to strict CSP policy.
      * Use DataHelper ($view->data('$varname', $value)) for passing data to JavaScript.
-     * 
+     *
      * @see \Pagekit\View\Helper\DataHelper
      */
     public function render(): string
@@ -85,8 +85,10 @@ class ScriptHelper implements HelperInterface, \IteratorAggregate
                     $script->getName()
                 ));
                 // Output as HTML comment for debugging (CSP-safe)
-                $output .= sprintf("        <!-- CSP: Inline script '%s' blocked. Use DataHelper. -->\n", 
-                    htmlspecialchars($script->getName(), ENT_QUOTES, 'UTF-8'));
+                $output .= sprintf(
+                    "        <!-- CSP: Inline script '%s' blocked. Use DataHelper. -->\n",
+                    htmlspecialchars($script->getName(), ENT_QUOTES, 'UTF-8')
+                );
             }
         }
 

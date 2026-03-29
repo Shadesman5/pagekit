@@ -7,7 +7,7 @@ class FilterChain implements \Countable, FilterInterface
     /**
      * Default priority at which filters are added
      */
-    const DEFAULT_PRIORITY = 1000;
+    public const DEFAULT_PRIORITY = 1000;
 
     /**
      * Filter chain
@@ -19,7 +19,7 @@ class FilterChain implements \Countable, FilterInterface
      */
     public function __construct()
     {
-        $this->filters = new \SplPriorityQueue;
+        $this->filters = new \SplPriorityQueue();
     }
 
     /**

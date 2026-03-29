@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Filter by' => 'Filtrovať podľa',
   'Thank you! Your comment needs approval before showing up.' => 'Ďakujeme ! Váš komentár potrebuje schválenie, kým bude zobrazený.',
   'Unable to comment. Please try again later.' => 'Nedá sa komentovať. Prosím skúste to neskôr.',
@@ -94,4 +96,4 @@
   'Written by %name% on %date%' => 'Napísal %name% dňa %date%',
   'Read more' => 'Čítať viac',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Žiadne komentáre.|{1} %count% komentár.|{2,3,4} %count% komentáre.|]4,Inf[ %count% komentárov.',
-);
+];

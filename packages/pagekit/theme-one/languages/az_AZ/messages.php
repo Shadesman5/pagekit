@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Title' => 'Başlıq',
   'Theme' => 'Tema',
   'Hide Title' => 'Başlığı Gizlət',
@@ -38,4 +40,4 @@
   'Written by %name% on %date%' => '',
   'Read more' => 'Ətraflı oxu',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '',
-);
+];

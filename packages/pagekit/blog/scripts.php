@@ -2,7 +2,7 @@
 
 /**
  * Blog Extension Installation & Update Scripts
- * 
+ *
  * Modern Pagekit (2.0+) Architecture:
  * - Database schema: Handled by Doctrine Migrations (src/Migrations/)
  * - Config initialization: Handled here (configurable preferences)
@@ -18,13 +18,13 @@ return [
             'Pagekit\\Blog\\Migrations',
             __DIR__ . '/src/Migrations'
         );
-        
+
         if (!$result['success']) {
             throw new \RuntimeException(
                 'Blog installation failed: ' . ($result['error'] ?? 'Unknown error')
             );
         }
-        
+
         // Initialize blog configuration (if needed)
         // Example:
         // $app->config()->set('blog', [
@@ -41,13 +41,13 @@ return [
             __DIR__ . '/src/Migrations',
             '0'  // Rollback all blog migrations
         );
-        
+
         if (!$result['success']) {
             throw new \RuntimeException(
                 'Blog uninstallation failed: ' . ($result['error'] ?? 'Unknown error')
             );
         }
-        
+
         // Clear cache
         if ($app->has('cache')) {
             $app->get('cache')->clear();
@@ -66,6 +66,6 @@ return [
         //         throw new \RuntimeException('Blog update failed: ' . $result['error']);
         //     }
         // },
-    ]
+    ],
 
 ];

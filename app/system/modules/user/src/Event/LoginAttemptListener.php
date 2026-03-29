@@ -8,13 +8,14 @@ use Pagekit\Event\EventSubscriberInterface;
 
 class LoginAttemptListener implements EventSubscriberInterface
 {
-    const DELAY     = 5;
-    const ATTEMPTS  = 5;
-    const CACHE_KEY = 'auth.login_attempts';
+    public const DELAY = 5;
+    public const ATTEMPTS = 5;
+    public const CACHE_KEY = 'auth.login_attempts';
 
     public function __construct(
         private readonly mixed $cache,
-    ) {}
+    ) {
+    }
 
     /**
      * Prevent authentication attempts if time in between failed attempts is too short
@@ -53,7 +54,7 @@ class LoginAttemptListener implements EventSubscriberInterface
 
         $attempts = $this->cache->fetch($key) ?: [];
         $attempts[] = time();
-        
+
         $this->cache->save($key, $attempts);
     }
 
@@ -78,12 +79,13 @@ class LoginAttemptListener implements EventSubscriberInterface
     {
         return [
             'auth.pre_authenticate' => 'onPreAuthenticate',
-            'auth.failure'          => 'onAuthFailure',
-            'auth.success'          => 'onAuthSuccess'
+            'auth.failure' => 'onAuthFailure',
+            'auth.success' => 'onAuthSuccess',
         ];
     }
 
-    protected function getCacheKey($username): string {
+    protected function getCacheKey($username): string
+    {
         return self::CACHE_KEY.'_'.$username;
     }
 }

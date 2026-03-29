@@ -1,10 +1,11 @@
 <?php
 
-use Twig\Environment;
-use Twig\Extension\DebugExtension;
 use Pagekit\Twig\TwigCache;
 use Pagekit\Twig\TwigLoader;
 use Pagekit\View\Loader\FilesystemLoader;
+use Twig\Environment;
+use Twig\Extension\DebugExtension;
+
 return [
 
     'name' => 'view/twig',
@@ -25,14 +26,14 @@ return [
 
             return $twig;
 
-         });
+        });
 
     },
 
     'autoload' => [
 
-        'Pagekit\\Twig\\' => 'src'
+        'Pagekit\\Twig\\' => 'src',
 
-    ]
+    ],
 
 ];

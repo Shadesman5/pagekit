@@ -51,7 +51,7 @@ class SelfUpdater
 
             $fileList = array_values(array_filter($fileList, function ($file) {
                 foreach ($this->ignoreFolder as $ignore) {
-                    if(strpos($file, $ignore) === 0) {
+                    if (strpos($file, $ignore) === 0) {
                         return false;
                     }
                 }
@@ -60,13 +60,13 @@ class SelfUpdater
             }));
 
             if ($this->isWritable($fileList, $path) !== true) {
-                throw new \RuntimeException(array_reduce($fileList, fn($carry, $file) => $carry . sprintf("'%s' not writable\n", $file)));
+                throw new \RuntimeException(array_reduce($fileList, fn ($carry, $file) => $carry . sprintf("'%s' not writable\n", $file)));
             }
 
             $requirements = include "zip://{$file}#app/installer/requirements.php";
             if ($failed = $requirements->getFailedRequirements()) {
 
-                throw new \RuntimeException(array_reduce($failed, fn($carry, $problem) => $carry . "\n" . $problem->getHelpText()));
+                throw new \RuntimeException(array_reduce($failed, fn ($carry, $problem) => $carry . "\n" . $problem->getHelpText()));
 
             }
 
@@ -98,6 +98,7 @@ class SelfUpdater
 
         } catch (\Exception $e) {
             @unlink($file);
+
             throw $e;
         }
 
@@ -113,7 +114,7 @@ class SelfUpdater
     {
         $list = [];
 
-        $zip = new \ZipArchive;
+        $zip = new \ZipArchive();
         if ($zip->open($file) === true) {
 
             for ($i = 0; $i < $zip->numFiles; $i++) {
@@ -167,7 +168,7 @@ class SelfUpdater
      */
     protected function extract($file, $fileList, $path): void
     {
-        $zip = new \ZipArchive;
+        $zip = new \ZipArchive();
         if ($zip->open($file) === true) {
 
             $zip->extractTo($path, $fileList);

@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Filter by' => 'Szűrés az alábbiak szerint',
   'Thank you! Your comment needs approval before showing up.' => 'Köszönjük! A hozzászólás jóváhagyásra kerül megjelenítés előtt.',
   'Unable to comment. Please try again later.' => 'Nem lehet hozzászólni. Később érdemes újra megpróbálni.',
@@ -94,4 +96,4 @@
   'Written by %name% on %date%' => '%name% írta, %date%',
   'Read more' => 'Bővebben',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} nincs hozzászólás|{1} %count% hozzászólás|]1,Inf[ %count% hozzászólás',
-);
+];

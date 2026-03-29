@@ -2,8 +2,6 @@
 
 namespace Pagekit\Feed;
 
-use Pagekit\Feed\ItemInterface;
-
 interface FeedInterface
 {
     public function getMimeType(): string;

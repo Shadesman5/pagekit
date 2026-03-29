@@ -8,30 +8,30 @@ return [
 
     'autoload' => [
 
-        'Pagekit\\Intl\\' => 'src'
+        'Pagekit\\Intl\\' => 'src',
 
     ],
 
     'resources' => [
 
-        'system/intl:' => ''
+        'system/intl:' => '',
 
     ],
 
     'routes' => [
         '/system/intl' => [
             'name' => '@system/intl',
-            'controller' => 'Pagekit\\Intl\\Controller\\IntlController'
+            'controller' => 'Pagekit\\Intl\\Controller\\IntlController',
         ],
         '/api/system/intl' => [
             'name' => '@system/api/intl',
-            'controller' => 'Pagekit\\Intl\\Controller\\IntlApiController'
-        ]
+            'controller' => 'Pagekit\\Intl\\Controller\\IntlApiController',
+        ],
     ],
 
     'config' => [
 
-        'locale' => 'en_US'
+        'locale' => 'en_US',
 
     ],
 
@@ -47,8 +47,8 @@ return [
 
         'view.init' => function ($event, $view) {
             $view->addGlobal('intl', $this);
-        }
+        },
 
-    ]
+    ],
 
 ];

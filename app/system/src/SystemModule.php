@@ -19,7 +19,7 @@ class SystemModule extends Module
         $app->set('system', $this);
         $app->set('isAdmin', false);
 
-        $app->factory('finder', fn() => Finder::create());
+        $app->factory('finder', fn () => Finder::create());
 
         $app->extend('assets', function ($factory) use ($app) {
 
@@ -64,7 +64,7 @@ class SystemModule extends Module
                 'type' => 'theme',
                 'path' => '',
                 'config' => [],
-                'layout' => 'views:system/blank.php'
+                'layout' => 'views:system/blank.php',
             ]);
         }
         $app->set('theme', $themeModule);

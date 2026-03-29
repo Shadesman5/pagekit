@@ -28,11 +28,12 @@ class HasOne extends Relation
         }
 
         $this->keyFrom = (isset($mapping['keyFrom']) && $mapping['keyFrom']) ? $mapping['keyFrom'] : $metadata->getIdentifier();
-        $this->keyTo   = $mapping['keyTo'];
+        $this->keyTo = $mapping['keyTo'];
 
         foreach ($this->targetMetadata->getRelationMappings() as $relationMapping) {
             if ($relationMapping['type'] == 'BelongsTo' && $relationMapping['targetEntity'] == $this->metadata->getClass()) {
                 $this->belongsTo = $relationMapping['name'];
+
                 break;
             }
         }

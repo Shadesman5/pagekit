@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Title' => 'Tajuk',
   'Theme' => 'Tema',
   'Hide Title' => 'Sembunyi Tajuk',
@@ -38,4 +40,4 @@
   'Written by %name% on %date%' => 'Ditulis oleh %name% pada %date%',
   'Read more' => 'Baca selanjutnya',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Tiada komen|{1} %count% Komen|]1,Inf[ %count% Komen',
-);
+];

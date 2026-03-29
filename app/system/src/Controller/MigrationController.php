@@ -36,9 +36,9 @@ class MigrationController
             '$view' => [
                 'title' => __('Update Pagekit'),
                 'name' => 'system/theme:views/migration.php',
-                'layout' => false
+                'layout' => false,
             ],
-            'redirect' => $redirect
+            'redirect' => $redirect,
         ];
     }
 
@@ -56,6 +56,7 @@ class MigrationController
 
         if ($redirect) {
             $this->message->success($message);
+
             return $this->router->redirect($redirect);
         }
 

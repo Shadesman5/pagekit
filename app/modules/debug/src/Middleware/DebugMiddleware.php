@@ -6,15 +6,19 @@ use Doctrine\DBAL\Driver;
 
 // Only implement if Middleware interface exists (DBAL 3.x)
 if (!interface_exists('Doctrine\DBAL\Driver\Middleware')) {
-    class DebugMiddleware {
+    class DebugMiddleware
+    {
         protected $logger;
-        public function __construct($logger) {
+        public function __construct($logger)
+        {
             $this->logger = $logger;
         }
-        public function wrap(Driver $driver): Driver {
+        public function wrap(Driver $driver): Driver
+        {
             return $driver;
         }
     }
+
     return;
 }
 

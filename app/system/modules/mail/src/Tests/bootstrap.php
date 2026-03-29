@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * Bootstrap for Mail module tests.
- * 
+ *
  * Defines the Pagekit\__() translation stub so tests don't need eval().
  */
 

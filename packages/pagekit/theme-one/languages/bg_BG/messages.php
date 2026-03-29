@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Title' => 'Заглавие',
   'Theme' => 'Тема',
   'Hide Title' => 'Скрий заглавие',
@@ -38,4 +40,4 @@
   'Written by %name% on %date%' => 'Написан от %name% на %date%',
   'Read more' => 'Прочети още',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Няма коментари|{1} %count% коментар|]1,Inf[ %count% коментари',
-);
+];

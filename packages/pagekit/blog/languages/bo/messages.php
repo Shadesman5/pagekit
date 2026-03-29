@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Filter by' => 'བཙག་ས།',
   'Thank you! Your comment needs approval before showing up.' => 'ཐུགས་རྗེ་ཆེ་གནང་། དྐུ་ཉིད་ཀྱི་སྤེལ་བའི་དཔྱད་བརྗོད་ལ་ཆོག་མཆན་ཐོབ་རྗེས་ད་གཟོད་འཆར་ངེས།',
   'Unable to comment. Please try again later.' => 'དཔྱད་བརྗོད་སྤེལ་ཐུབ་མ་བྱུང་།  ཡང་བསྐྱར་ཚོད་ལྟ་བྱེད་དང་།',
@@ -94,4 +96,4 @@
   'Written by %name% on %date%' => '%name% ནས་on %date%ལ་བྲིས།',
   'Read more' => 'འཕྲོ་མའི་ནང་དོན།',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} No comments|{1} %count% Comment|]1,Inf[ %count% དཔྱད་བརྗོད།',
-);
+];

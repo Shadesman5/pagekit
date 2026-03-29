@@ -13,7 +13,8 @@ class CacheController
     public function __construct(
         private readonly mixed $request,
         private readonly mixed $module,
-    ) {}
+    ) {
+    }
 
     #[Route('/clear', methods: ['POST'])]
     public function clearAction(): array
@@ -23,7 +24,7 @@ class CacheController
             $json = json_decode($this->request->getContent(), true);
             $caches = $json['caches'] ?? [];
         }
-        
+
         $this->module->get('system/cache')->clearCache($caches);
 
         return ['message' => 'success'];

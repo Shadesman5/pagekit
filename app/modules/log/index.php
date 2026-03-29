@@ -1,9 +1,9 @@
 <?php
 
-use Pagekit\Log\Handler\DebugBarHandler;
-use Pagekit\Log\Logger;
 use Monolog\Handler\StreamHandler;
 use Monolog\Level;
+use Pagekit\Log\Handler\DebugBarHandler;
+use Pagekit\Log\Logger;
 
 return [
 
@@ -33,21 +33,21 @@ return [
             return $logger;
         });
 
-        $app->set('log.debug', fn() => new DebugBarHandler());
+        $app->set('log.debug', fn () => new DebugBarHandler());
 
     },
 
     'autoload' => [
 
-        'Pagekit\\Log\\' => 'src'
+        'Pagekit\\Log\\' => 'src',
 
     ],
 
     'config' => [
 
-        'name'  => 'log',
-        'level' => 100
+        'name' => 'log',
+        'level' => 100,
 
-    ]
+    ],
 
 ];

@@ -3,6 +3,7 @@
 namespace Pagekit\Tests;
 
 use PHPUnit\Framework\TestCase;
+
 abstract class FtpTestCase extends TestCase
 {
     use FtpUtil;
@@ -19,6 +20,7 @@ abstract class FtpTestCase extends TestCase
 
         } catch (\Exception $e) {
             $this->markTestSkipped(sprintf('Unable to establish connection. (%s)', $e->getMessage()));
+
             return;
         }
 
@@ -29,6 +31,7 @@ abstract class FtpTestCase extends TestCase
         if (false === @ftp_mkdir($this->connection, $this->workspace)) {
             $this->markTestSkipped('Unable to create workspace folder');
             $this->workspace = false;
+
             return;
         }
     }

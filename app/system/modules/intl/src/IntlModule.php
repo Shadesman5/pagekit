@@ -25,14 +25,14 @@ class IntlModule extends Module
         // Load translation functions
         require_once __DIR__ . '/../functions.php';
         require_once __DIR__ . '/../functions-pagekit-namespace.php';
-        
+
         $app->set('translator', function () {
 
             $translator = new Translator($this->getLocale());
             $translator->addLoader('php', new PhpFileLoader());
             $translator->addLoader('mo', new MoFileLoader());
-            $translator->addLoader('po', new PoFileLoader);
-            $translator->addLoader('array', new ArrayLoader);
+            $translator->addLoader('po', new PoFileLoader());
+            $translator->addLoader('array', new ArrayLoader());
 
             $this->loadLocale($this->getLocale(), $translator);
 
@@ -223,6 +223,7 @@ class IntlModule extends Module
             foreach ($node as $child) {
                 $result += $getLevel($child, $depth + 1);
             }
+
             return $result;
         };
 

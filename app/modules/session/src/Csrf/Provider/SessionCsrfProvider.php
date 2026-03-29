@@ -2,8 +2,8 @@
 
 namespace Pagekit\Session\Csrf\Provider;
 
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 class SessionCsrfProvider extends DefaultCsrfProvider
 {

@@ -15,7 +15,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(tableClass: '@system_page')]
 class Page implements \JsonSerializable
 {
-    use DataModelTrait, ModelTrait;
+    use DataModelTrait;
+    use ModelTrait;
 
     #[ORM\Column(type: 'integer')]
     #[ORM\Id]

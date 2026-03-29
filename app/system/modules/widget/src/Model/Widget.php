@@ -17,7 +17,9 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[\AllowDynamicProperties]
 class Widget implements \JsonSerializable
 {
-    use AccessModelTrait, DataModelTrait, ModelTrait;
+    use AccessModelTrait;
+    use DataModelTrait;
+    use ModelTrait;
 
     #[ORM\Column(type: 'integer')]
     #[ORM\Id]

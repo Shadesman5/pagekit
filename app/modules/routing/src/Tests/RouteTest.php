@@ -2,8 +2,8 @@
 
 namespace Pagekit\Routing\Tests;
 
-use PHPUnit\Framework\TestCase;
 use Pagekit\Routing\Route;
+use PHPUnit\Framework\TestCase;
 
 class RouteTest extends TestCase
 {
@@ -29,7 +29,7 @@ class RouteTest extends TestCase
         $route->setDefault('_controller', 'TestController::testAction');
 
         $controller = $route->getController();
-        
+
         $this->assertIsArray($controller);
         $this->assertCount(2, $controller);
         $this->assertEquals('TestController', $controller[0]);
@@ -38,12 +38,14 @@ class RouteTest extends TestCase
 
     public function testGetControllerWithCallable(): void
     {
-        $callable = function() { return 'test'; };
+        $callable = function () {
+            return 'test';
+        };
         $route = new Route('/test');
         $route->setDefault('_controller', $callable);
 
         $controller = $route->getController();
-        
+
         $this->assertEquals($callable, $controller);
     }
 
@@ -53,7 +55,7 @@ class RouteTest extends TestCase
         $route->setDefault('_controller', 'stdClass::method');
 
         $reflection = $route->getControllerClass();
-        
+
         $this->assertInstanceOf(\ReflectionClass::class, $reflection);
         $this->assertEquals('stdClass', $reflection->getName());
     }
@@ -61,10 +63,11 @@ class RouteTest extends TestCase
     public function testGetControllerClassReturnsNull(): void
     {
         $route = new Route('/test');
-        $route->setDefault('_controller', function() {});
+        $route->setDefault('_controller', function () {
+        });
 
         $reflection = $route->getControllerClass();
-        
+
         $this->assertNull($reflection);
     }
 
@@ -75,7 +78,7 @@ class RouteTest extends TestCase
         $route->setDefault('_controller', 'DateTime::createFromFormat');
 
         $reflection = $route->getControllerMethod();
-        
+
         $this->assertInstanceOf(\ReflectionMethod::class, $reflection);
         $this->assertEquals('createFromFormat', $reflection->getName());
     }
@@ -83,17 +86,18 @@ class RouteTest extends TestCase
     public function testGetControllerMethodReturnsNull(): void
     {
         $route = new Route('/test');
-        $route->setDefault('_controller', function() {});
+        $route->setDefault('_controller', function () {
+        });
 
         $reflection = $route->getControllerMethod();
-        
+
         $this->assertNull($reflection);
     }
 
     public function testRouteInheritsFromSymfonyRoute(): void
     {
         $route = new Route('/test');
-        
+
         $this->assertInstanceOf(\Symfony\Component\Routing\Route::class, $route);
     }
 
@@ -103,7 +107,7 @@ class RouteTest extends TestCase
         $route->setDefaults([
             '_controller' => 'TestController::testAction',
             'param1' => 'value1',
-            'param2' => 'value2'
+            'param2' => 'value2',
         ]);
 
         $this->assertEquals('TestController::testAction', $route->getDefault('_controller'));
@@ -116,7 +120,7 @@ class RouteTest extends TestCase
         $route = new Route('/test/{id}');
         $route->setRequirements([
             'id' => '\d+',
-            '_method' => 'GET|POST'
+            '_method' => 'GET|POST',
         ]);
 
         $this->assertEquals('\d+', $route->getRequirement('id'));

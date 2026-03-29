@@ -2,9 +2,9 @@
 
 namespace Pagekit\Feed\Item;
 
-use Pagekit\Feed\ItemInterface;
 use Pagekit\Feed\Feed;
 use Pagekit\Feed\Item;
+use Pagekit\Feed\ItemInterface;
 
 class Atom extends Item
 {
@@ -81,9 +81,9 @@ class Atom extends Item
     {
         return $this->addElement('atom:link', '', [
             'length' => $length,
-            'type'   => $type,
-            'href'   => $url,
-            'rel'    => 'enclosure'
+            'type' => $type,
+            'href' => $url,
+            'rel' => 'enclosure',
         ]);
     }
 

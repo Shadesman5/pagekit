@@ -38,7 +38,7 @@ class ExtensionTranslateCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): void
     {
         $extension = $this->argument('extension') ?: 'system';
-        $files     = $this->getFiles($path = $this->getPath($extension), $extension);
+        $files = $this->getFiles($path = $this->getPath($extension), $extension);
         $languages = "$path/languages";
 
         $app = $this->container;
@@ -62,7 +62,7 @@ class ExtensionTranslateCommand extends Command
         foreach ($files as $file) {
             $strings = $this->extractStrings($file);
             foreach ($strings as $domain => $messages) {
-                if(array_key_exists($domain, $result)) {
+                if (array_key_exists($domain, $result)) {
 
                     // custom merge (array_merge would create duplicates from numeric keys)
                     foreach (array_keys($messages) as $key) {
@@ -237,7 +237,7 @@ class ExtensionTranslateCommand extends Command
     protected function getHeader($extension, $domain): string
     {
         $version = $this->getApplication()->getVersion();
-        $date    = date("Y-m-d H:iO");
+        $date = date("Y-m-d H:iO");
 
         return <<<EOD
 msgid ""

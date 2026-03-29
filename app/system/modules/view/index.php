@@ -1,9 +1,10 @@
 <?php
 
-use Twig\TwigFilter;
 use Pagekit\Util\ArrObject;
 use Pagekit\View\Asset\FileLocatorAsset;
 use Pagekit\View\Event\ResponseListener;
+use Twig\TwigFilter;
+
 return [
 
     'name' => 'system/view',
@@ -32,7 +33,7 @@ return [
 
     'autoload' => [
 
-        'Pagekit\\View\\' => 'src'
+        'Pagekit\\View\\' => 'src',
 
     ],
 
@@ -59,7 +60,7 @@ return [
             // - With mod_rewrite: '' (empty string) - URLs like /admin
             // - Without mod_rewrite: '/index.php' - URLs like /index.php/admin
             $baseUrl = $app->get('router')->getContext()->getBaseUrl();
-            
+
             // Only use fallback in installer context (no config.php yet)
             // In normal operation, empty baseUrl is correct for mod_rewrite
             if (empty($baseUrl) && !file_exists($app->get('path') . '/config.php')) {
@@ -67,10 +68,10 @@ return [
                 // Use /index.php as safe fallback for API calls
                 $baseUrl = '/index.php';
             }
-            
+
             $data->add('$pagekit', [
                 'url' => $baseUrl,
-                'csrf' => $app->get('csrf')->generate()
+                'csrf' => $app->get('csrf')->generate(),
             ]);
         },
 
@@ -83,7 +84,7 @@ return [
             // Config loader must be first - reads JSON config and exposes global variables
             // All scripts that might need $pagekit or other globals must depend on this
             $scripts->register('pagekit-config', 'app/system/app/lib/config-loader.js', [], ['defer' => false]);
-            
+
             $scripts->register('codemirror', 'app/system/modules/editor/app/assets/codemirror/codemirror.min.js', ['pagekit-config']);
             $scripts->register('marked', 'app/system/modules/editor/app/assets/marked/marked.min.js', ['pagekit-config']);
             $scripts->register('lodash', 'app/assets/lodash/dist/'  . ($app->get('debug') ? 'lodash.js' : 'lodash.min.js'), ['pagekit-config']);
@@ -94,8 +95,8 @@ return [
             $scripts->register('uikit', 'app/assets/uikit/dist/js/' . ($app->get('debug') ? 'uikit.js' : 'uikit.min.js'), ['pagekit-config']);
             $scripts->register('uikit-icons', 'app/system/assets/js/' . ($app->get('debug') ? 'uikit-icons.js' : 'uikit-icons.min.js'), 'uikit');
             $scripts->register('vue', 'app/system/app/bundle/vue.js', ['uikit', 'uikit-icons', 'vue-dist', 'lodash', 'locale']);
-        }
+        },
 
-    ]
+    ],
 
 ];

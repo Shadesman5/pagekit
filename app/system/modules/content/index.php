@@ -12,17 +12,17 @@ return [
     'main' => function ($app) {
 
         $app->get('events')->subscribe(new MarkdownPlugin($app->get('markdown')));
-        $app->get('events')->subscribe(new SimplePlugin);
-        $app->get('events')->subscribe(new VideoPlugin);
+        $app->get('events')->subscribe(new SimplePlugin());
+        $app->get('events')->subscribe(new VideoPlugin());
 
-        $app->set('content', fn() => new ContentHelper($app->get('events')));
+        $app->set('content', fn () => new ContentHelper($app->get('events')));
 
     },
 
     'autoload' => [
 
-        'Pagekit\\Content\\' => 'src'
+        'Pagekit\\Content\\' => 'src',
 
-    ]
+    ],
 
 ];

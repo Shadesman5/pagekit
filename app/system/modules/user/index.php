@@ -13,7 +13,7 @@ return [
 
     'autoload' => [
 
-        'Pagekit\\User\\' => 'src'
+        'Pagekit\\User\\' => 'src',
 
     ],
 
@@ -23,52 +23,52 @@ return [
             'name' => '@user',
             'controller' => [
                 'Pagekit\\User\\Controller\\AuthController',
-                'Pagekit\\User\\Controller\\UserController'
-            ]
+                'Pagekit\\User\\Controller\\UserController',
+            ],
         ],
         '/user/profile' => [
             'name' => '@user/profile',
             'controller' => [
                 'Pagekit\\User\\Controller\\ProfileController',
-            ]
+            ],
         ],
         '/user/registration' => [
             'name' => '@user/registration',
             'controller' => [
                 'Pagekit\\User\\Controller\\RegistrationController',
-            ]
+            ],
         ],
         '/user/resetpassword' => [
             'name' => '@user/resetpassword',
             'controller' => [
                 'Pagekit\\User\\Controller\\ResetPasswordController',
-            ]
+            ],
         ],
         '/api/user' => [
             'name' => '@user/api',
             'controller' => [
-                'Pagekit\\User\\Controller\\UserApiController'
-            ]
+                'Pagekit\\User\\Controller\\UserApiController',
+            ],
         ],
         '/api/user/role' => [
             'name' => '@user/api/role',
             'controller' => [
-                'Pagekit\\User\\Controller\\RoleApiController'
-            ]
-        ]
+                'Pagekit\\User\\Controller\\RoleApiController',
+            ],
+        ],
 
     ],
 
     'widgets' => [
 
-        'widgets/login.php'
+        'widgets/login.php',
 
     ],
 
     'resources' => [
 
         'system/user:' => '',
-        'views:system/user' => 'views'
+        'views:system/user' => 'views',
 
     ],
 
@@ -76,17 +76,17 @@ return [
 
         'user: manage users' => [
             'title' => 'Manage users',
-            'trusted' => true
+            'trusted' => true,
         ],
         'user: manage user permissions' => [
             'title' => 'Manage user permissions',
-            'trusted' => true
+            'trusted' => true,
         ],
         'system: access admin area' => [
             'title' => 'Access admin area',
             'description' => 'Allows to access the admin area and to use the site in maintenance mode',
-            'trusted' => true
-        ]
+            'trusted' => true,
+        ],
 
     ],
 
@@ -98,7 +98,7 @@ return [
             'url' => '@user',
             'active' => '@user(/*)?',
             'access' => 'user: manage users || user: manage user permissions || system: access settings',
-            'priority' => 115
+            'priority' => 115,
         ],
         'user: users' => [
             'label' => 'List',
@@ -111,20 +111,20 @@ return [
             'label' => 'Permissions',
             'parent' => 'user',
             'url' => '@user/permissions',
-            'access' => 'user: manage user permissions'
+            'access' => 'user: manage user permissions',
         ],
         'user: roles' => [
             'label' => 'Roles',
             'parent' => 'user',
             'url' => '@user/roles',
-            'access' => 'user: manage user permissions'
+            'access' => 'user: manage user permissions',
         ],
         'user: settings' => [
             'label' => 'Settings',
             'parent' => 'user',
             'url' => '@user/settings',
-            'access' => 'system: access settings'
-        ]
+            'access' => 'system: access settings',
+        ],
 
     ],
 
@@ -136,8 +136,8 @@ return [
         'login_redirect' => '', // use route syntax, i.e. @page/1. empty string for index
 
         'auth' => [
-            'refresh_token' => false
-        ]
+            'refresh_token' => false,
+        ],
 
     ],
 
@@ -158,7 +158,7 @@ return [
             $app->get('events')->subscribe(new LoginAttemptListener(
                 $app->get('cache'),
             ));
-            $app->get('events')->subscribe(new UserListener);
+            $app->get('events')->subscribe(new UserListener());
         },
 
         'view.scripts' => function ($event, $scripts) use ($app) {
@@ -170,8 +170,8 @@ return [
             if ($app->get('user')->isAuthenticated()) {
                 $scripts->register('auth', 'system/user:app/bundle/interceptor.js', ['~vue']);
             }
-        }
+        },
 
-    ]
+    ],
 
 ];

@@ -2,15 +2,13 @@
 
 namespace Pagekit\Database;
 
-use Pagekit\Database\Table;
-
-use Doctrine\DBAL\Schema\SchemaException;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\Constraint;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\Schema;
+use Doctrine\DBAL\Schema\SchemaException;
 
 class Utility
 {
@@ -70,7 +68,7 @@ class Utility
      */
     public function tablesExist($tables): bool
     {
-        $tables = array_map(fn($query) => $this->replacePrefix($query), (array) $tables);
+        $tables = array_map(fn ($query) => $this->replacePrefix($query), (array) $tables);
 
         return $this->manager->tablesExist($tables);
     }
@@ -238,7 +236,8 @@ class Utility
     /**
      * Migrates the database.
      */
-    public function migrate(): void {
+    public function migrate(): void
+    {
         $comparator = new Comparator();
         $diff = $comparator->compareSchemas($this->manager->createSchema(), $this->schema);
 

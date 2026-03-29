@@ -91,7 +91,7 @@ class AttributeLoader implements LoaderInterface
             'host' => '',
             'schemes' => [],
             'methods' => [],
-            'condition' => ''
+            'condition' => '',
         ];
 
         $attributes = $class->getAttributes(RouteAttribute::class, \ReflectionAttribute::IS_INSTANCEOF);
