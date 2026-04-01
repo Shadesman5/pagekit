@@ -115,6 +115,20 @@ Ideally, the baseline should shrink significantly or reach zero new entries for 
 
 ---
 
+## 3. KNOWN ISSUES (from 2.1.1 review)
+
+### 3.1. AuthDataCollector — UserInterface mismatch
+
+**Problem:** `Auth::getUser()` returns `UserInterface` (only `getId()`, `getUsername()`, `getPassword()`), but `AuthDataCollector` calls `isAuthenticated()` and `User::findRoles($user)` which only exist on the concrete `User` class. PHPStan Level 6 will flag this as calling undefined methods on `UserInterface`.
+
+**Options:**
+- Extend `UserInterface` with `isAuthenticated(): bool` — changes the auth module contract
+- Type-narrow `$user` to `User` in `AuthDataCollector` via `instanceof` — keeps interface minimal
+
+**Files:** `app/modules/debug/src/DataCollector/AuthDataCollector.php`, `app/modules/auth/src/UserInterface.php`
+
+---
+
 ## VALIDATION CHECKLIST
 
 - [ ] `phpstan.neon` level set to 6
@@ -122,6 +136,7 @@ Ideally, the baseline should shrink significantly or reach zero new entries for 
 - [ ] `app/system/` methods typed
 - [ ] `app/installer/` + `app/console/` methods typed
 - [ ] `packages/` methods typed
+- [ ] `AuthDataCollector` UserInterface issue resolved
 - [ ] `./app/vendor/bin/phpstan analyse` passes at Level 6
 - [ ] All PHPUnit tests pass
 - [ ] Baseline updated
