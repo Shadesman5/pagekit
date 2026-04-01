@@ -32,7 +32,7 @@ class EntityManager
         $this->metadata = $metadata;
         $this->events = $events ?: new PrefixEventDispatcher('model.');
 
-        // TODO: Must be refactored in Step 2.1 (Static Analysis) — remove EntityManager singleton pattern
+        // TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 — Strict Typing) — remove EntityManager singleton pattern
         static::$instance = $this;
     }
 
@@ -280,16 +280,9 @@ class EntityManager
             return;
         }
 
-        // Clear all cache items
-        // TODO: Implement cache invalidation strategy
-        // Note: PSR-6 doesn't have a built-in way to delete by pattern
-        // This is a simplified implementation - in production, you might use cache tags
-        // or a more sophisticated cache invalidation strategy
-        if ($cache instanceof \Psr\Cache\CacheItemPoolInterface) {
-            $cache->clear();
-        } else {
-            // Legacy CacheInterface
-            $cache->flushAll();
-        }
+        // TODO: Must be refactored in Step 4.3 (Performance Optimization) —
+        // Replace $cache->clear() with tag-based invalidation (TagAwareCacheInterface)
+        // to only invalidate cache entries for this specific entity type instead of the entire pool.
+        $cache->clear();
     }
 }

@@ -1,4 +1,4 @@
-# PHPStan baseline — 888 errors at level 5 (2026-03-29)
+# PHPStan baseline — 883 errors at level 5 (2026-03-29)
 parameters:
 	ignoreErrors:
 		-
@@ -764,12 +764,6 @@ parameters:
 			path: app/modules/debug/src/DataCollector/AuthDataCollector.php
 
 		-
-			message: '#^Instanceof between Monolog\\LogRecord and Monolog\\LogRecord will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: app/modules/debug/src/DataCollector/LogDataCollector.php
-
-		-
 			message: '#^Parameter \#1 \$string of function sha1 expects string, int\<0, max\>\|false given\.$#'
 			identifier: argument.type
 			count: 1
@@ -1086,12 +1080,6 @@ parameters:
 			identifier: variable.undefined
 			count: 1
 			path: app/modules/log/index.php
-
-		-
-			message: '#^Instanceof between Monolog\\LogRecord and Monolog\\LogRecord will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: app/modules/log/src/Handler/DebugBarHandler.php
 
 		-
 			message: '#^Class Pagekit\\Log\\Logger extends @final class Monolog\\Logger\.$#'
@@ -1638,24 +1626,6 @@ parameters:
 			identifier: variable.undefined
 			count: 1
 			path: app/system/modules/finder/views/storage.php
-
-		-
-			message: '#^Call to an undefined method Doctrine\\DBAL\\Driver\:\:getName\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/info/src/InfoHelper.php
-
-		-
-			message: '#^Call to method getAttribute\(\) on an unknown class Doctrine\\DBAL\\Driver\\PDOConnection\.$#'
-			identifier: class.notFound
-			count: 3
-			path: app/system/modules/info/src/InfoHelper.php
-
-		-
-			message: '#^Class Doctrine\\DBAL\\Driver\\PDOConnection not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/system/modules/info/src/InfoHelper.php
 
 		-
 			message: '#^Method Pagekit\\Info\\InfoHelper\:\:get\(\) should return array\<string\> but returns array\<string, mixed\>\.$#'
