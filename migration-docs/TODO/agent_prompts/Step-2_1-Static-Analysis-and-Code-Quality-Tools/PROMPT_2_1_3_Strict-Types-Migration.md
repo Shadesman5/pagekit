@@ -25,7 +25,7 @@
 ```
 **IF ANY FAILS → STOP AND FIX before proceeding to the next module!**
 
-**Before starting:** Branch from `develop` (Step 2.1.2 merged).
+**Before starting:** Verify: Branch is Up-to-Date with `develop`. (Step 2.1.2 merged).
 
 ---
 

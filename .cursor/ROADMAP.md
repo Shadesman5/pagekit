@@ -68,6 +68,8 @@
 | 2.0.1d | ↳ Packages + ArrayAccess Removal      | ✅     | 🛡️    | #165  | #171    |
 | 2.0.1e | ↳ StaticTrait Removal + DI Final      | ✅     | 🛡️    | #166  | #172    |
 | 2.0.2  | ↳ Validator-Translator Integration    | ✅     | 🛡️    | #146  | #175    |
+| 2.0.3  | ↳ Cache API Vollmodernisierung        | ⏳     | ⏳    | #179  | -       |
+| 2.0.4  | ↳ Package/Migration System Redesign   | ⏳     | ⏳    | #180  | -       |
 | 2.1    | **Static Analysis & Code Quality**    | ⏳     | ⏳    | #147  | -       |
 | 2.1.1  | ↳ Tooling-Setup & Baseline            | ✅     | ⏳    | #148  | #178    |
 | 2.1.2  | ↳ CI/CD Integration & Quality Gates   | ⏳     | ⏳    | #149  | -       |

@@ -11,14 +11,14 @@ Dieser strategische Plan führt Pagekit CMS von der aktuellen Legacy-Basis zu ei
 
 ## Phase Definitions
 
-| Phase | Name | Goal | Detail File |
-|---|---|---|---|
-| 0 | Preparation | Stable, traceable baseline | *(completed)* |
-| 1 | Core Backend Modernisation | Renew the foundation (PHP 8.2+, Symfony 6.4, Doctrine DBAL 3) | `PHASE#1_MODERNISING.md` |
-| 2 | Developer Experience | Quality tools, CI/CD, Docker, static analysis | `PHASE#2_MODERNISING.md` |
-| 3 | Frontend Modernisation | Vue 3, UIkit 3.21+, TypeScript, modern build tools | `PHASE#3_MODERNISING.md` |
-| 4 | Production-Ready Release | Essential features for Pagekit 2.0 (2FA, REST API v2, Performance) | `PHASE#4_MODERNISING.md` |
-| 5 | Advanced & Enterprise | Optional post-2.0 features, extensions, marketplace | `PHASE#5_FUTURE_VISION.md` |
+| Phase | Name                       | Goal                                                               | Detail File                                          |
+| ----- | -------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------- |
+| 0     | Preparation                | Stable, traceable baseline                                         | _(completed)_                                        |
+| 1     | Core Backend Modernisation | Renew the foundation (PHP 8.2+, Symfony 6.4, Doctrine DBAL 3)      | [PHASE_1_MODERNISING.md](PHASE_1_MODERNISING.md)     |
+| 2     | Developer Experience       | Quality tools, CI/CD, Docker, static analysis                      | [PHASE_2_MODERNISING.md](PHASE_2_MODERNISING.md)     |
+| 3     | Frontend Modernisation     | Vue 3, UIkit 3.21+, TypeScript, modern build tools                 | [PHASE_3_MODERNISING.md](PHASE_3_MODERNISING.md)     |
+| 4     | Production-Ready Release   | Essential features for Pagekit 2.0 (2FA, REST API v2, Performance) | [PHASE_4_MODERNISING.md](PHASE_4_MODERNISING.md)     |
+| 5     | Advanced & Enterprise      | Optional post-2.0 features, extensions, marketplace                | [PHASE_5_FUTURE_VISION.md](PHASE_5_FUTURE_VISION.md) |
 
 ### Visuelle Roadmap
 
@@ -135,10 +135,12 @@ Pagekit's Kernphilosophie:
 **Regel für Phase 5:**
 
 1. **Frage:** Braucht das JEDER?
+
    - ✅ Ja → Core
    - ❌ Nein → Extension
 
 2. **Frage:** Erhöht das die Komplexität erheblich?
+
    - ✅ Ja → Extension
    - ❌ Nein → Core (mit Feature Flag)
 

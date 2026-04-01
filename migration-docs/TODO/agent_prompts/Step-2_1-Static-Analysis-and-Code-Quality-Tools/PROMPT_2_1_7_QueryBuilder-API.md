@@ -26,7 +26,7 @@
 ```
 **IF ANY FAILS → STOP AND FIX!**
 
-**Before starting:** Branch from `develop` (Step 2.1.2 merged).
+**Before starting:** Verify: Branch is Up-to-Date with `develop`. (Step 2.1.2 merged).
 
 ---
 
@@ -138,7 +138,53 @@ Also delete the old protected `executeQuery($type)` if it was replaced by the tw
 
 ---
 
-## 5. UPDATE TESTS
+## 5. DBAL TYPE NORMALIZATION
+
+The custom `JsonArrayType` and `SimpleArrayType` use DBAL 2.x naming and have redundant registrations. Normalize to modern Doctrine conventions.
+
+### 5.1. Rename `json_array` to `json`
+
+**`app/modules/database/src/Types/JsonArrayType.php`:**
+- Change `getName()` to return `'json'` instead of `'json_array'`
+- Update class docblock (already describes the real purpose: array-safe JSON type)
+
+### 5.2. Update entity attributes
+
+All `type: 'json_array'` references must become `type: 'json'`:
+
+| File | Current | New |
+|------|---------|-----|
+| `app/system/src/Model/DataModelTrait.php` | `#[ORM\Column(type: 'json_array')]` | `#[ORM\Column(type: 'json')]` |
+| `app/modules/auth/src/Handler/DatabaseHandler.php` | `addColumn('data', 'json_array', ...)` | `addColumn('data', 'json', ...)` |
+
+### 5.3. Update ModelTrait
+
+**`app/modules/database/src/ORM/ModelTrait.php`:**
+- `case 'json_array':` → `case 'json':`
+
+### 5.4. Simplify type registration
+
+**`app/modules/database/index.php`:**
+- Keep `Type::overrideType(Types::JSON, JsonArrayType::class)` (provides array-safety)
+- **Remove** the redundant `Type::addType('json_array', ...)` block
+
+### 5.5. Simplify Connection type mappings
+
+**`app/modules/database/src/Connection.php` → `registerCustomTypeMappings()`:**
+- Remove `$platform->registerDoctrineTypeMapping('json', 'json_array')` (no longer needed since `json` IS the type name now)
+- Remove `$platform->registerDoctrineTypeMapping('json_array', 'json_array')` (type name no longer exists)
+- Keep `$platform->registerDoctrineTypeMapping('simple_array', 'simple_array')` if still needed, or remove if the override in index.php handles it
+
+### 5.6. SimpleArrayType
+
+**`app/modules/database/src/Types/SimpleArrayType.php`:**
+- Update docblock: this is a JSON-fallback parser, not a backward compatibility layer
+
+**⚠️ Note:** Existing database columns are unaffected — the SQL column type is `TEXT`/`JSON` regardless of the Doctrine type name. Only the PHP-side mapping changes.
+
+---
+
+## 6. UPDATE TESTS
 
 - Update any tests that call `->execute()` on QueryBuilder
 - Add tests for `executeQuery()` and `executeStatement()` if not covered
@@ -153,6 +199,8 @@ Also delete the old protected `executeQuery($type)` if it was replaced by the tw
 - All call sites updated
 - Return types match DBAL 3 conventions (`Result` for queries, `int` for statements)
 - Standard Doctrine docs are applicable
+- `JsonArrayType` registered as `json` (not `json_array`)
+- No redundant type registrations
 - All PHPUnit tests pass
 
 ---
@@ -164,4 +212,8 @@ Also delete the old protected `executeQuery($type)` if it was replaced by the tw
 - [ ] Old `execute()` method deleted
 - [ ] All call sites updated (zero `->execute()` on QueryBuilder)
 - [ ] Result API methods used correctly at all call sites
+- [ ] `JsonArrayType::getName()` returns `'json'`
+- [ ] Zero `json_array` references in entity attributes or ModelTrait
+- [ ] Redundant `Type::addType('json_array', ...)` removed
+- [ ] Connection type mappings simplified
 - [ ] All PHPUnit tests pass

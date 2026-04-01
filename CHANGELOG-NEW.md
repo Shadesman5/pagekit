@@ -6,7 +6,7 @@
 
 - **PHPStan installed** — `phpstan/phpstan`, `phpstan/phpstan-doctrine`, and `phpstan/phpstan-symfony` added as dev dependencies.
 - **`phpstan.neon` created** — Level 5 configuration with Doctrine and Symfony extensions, analysing `app/modules`, `app/system`, `app/installer`, `app/console`, and `packages`.
-- **`phpstan-baseline.neon` generated** — 888 errors baselined at level 5 (2026-03-29). PHPStan analyse runs clean with zero errors above baseline.
+- **`phpstan-baseline.neon` generated** — 883 errors baselined at level 5 (reduced from 888 during 2.1.1 review: removed 5 stale entries for fixed Monolog 2.x fallbacks and DBAL 2.x dead code). PHPStan analyse runs clean with zero errors above baseline.
 - **`roave/security-advisories`** added as dev dependency for vulnerability detection.
 - **`friendsofphp/php-cs-fixer`** added as dev dependency for automated code style enforcement.
 
@@ -18,10 +18,32 @@
 ### Fixes
 
 - **PHPStan non-ignorable errors resolved** — Fixed 10 type errors (missing returns, redundant self-imports) in `PropertyTrait.php`, `QueryBuilder.php`, `Type.php`, and `NodeInterface.php`.
+- **Monolog 2.x dead code removed** — Removed unreachable Monolog 2.x fallback branches from `LogDataCollector.php` and `DebugBarHandler.php` (`composer.json` requires `monolog/monolog: ^3.7`). Typed `handle()` parameter directly as `LogRecord`.
+- **DBAL 2.x dead code removed** — Removed non-existent `Doctrine\DBAL\Driver\PDOConnection` import and dead `instanceof` check from `InfoHelper.php`. Removed deprecated `getDriver()->getName()` fallback.
+- **EntityManager cache cleanup** — Removed legacy `CacheInterface` fallback from `invalidateCache()`. Only PSR-6 `clear()` remains (Step 4.3 will add tag-based invalidation).
+
+### Refactor (TODOs for future steps)
+
+- **19-file post-formatting review** — Reviewed all files changed during PSR-12 formatting for inconsistencies, forgotten TODOs, and legacy remnants. Set precise TODO references for 15+ locations across 6 future steps.
+- **Step 2.0.3 (Cache API Vollmodernisierung)** — New roadmap step created ([#179](https://github.com/Shadesman5/pagekit/issues/179)). Pagekit's custom `CacheInterface` + `Psr6Adapter` identified as compatibility layer to be replaced by direct PSR-6 `CacheItemPoolInterface`.
+- **Step 2.0.4 (Package/Migration System Redesign)** — New roadmap step created ([#180](https://github.com/Shadesman5/pagekit/issues/180)). Update pipeline does not run Doctrine Migrations automatically; version bumps can happen without schema checks.
+- **Step 2.1.6 TODOs** — `MailerInterface` split (Mailer vs Plugin), `EntityManager` singleton removal, `FileLocatorAsset` static service locator, `ResponseListener` mixed typing.
+- **Step 2.1.7 TODOs** — DBAL type normalization: `json_array` type name to be renamed to `json`, redundant type registrations to be removed.
+- **Step 3.4.6 TODOs** — `transChoice` Twig filter and `_c()` function to be removed; 4 PHP views and ~20 JS/Vue files need ICU MessageFormat migration.
+- **Step 4.3 TODO** — ORM cache invalidation strategy: replace `$cache->clear()` with tag-based invalidation via `TagAwareCacheInterface`.
+
+### Documentation
+
+- **ROADMAP.md** — Added Steps 2.0.3 and 2.0.4 with GitHub issue references.
+- **PHASE_2_MODERNISING.md** — Added full step descriptions for 2.0.3 (Cache) and 2.0.4 (Package/Migration). Extended Steps 2.1.6 and 2.1.7 with concrete refactoring tasks from review.
+- **PHASE_3_MODERNISING.md** — Extended Step 3.4.6 with concrete transChoice removal task list.
+- **PHASE_4_MODERNISING.md** — Added ORM cache invalidation task to Step 4.3.
+- **Agent prompts updated** — `PROMPT_2_1_6` (4 new refactoring sections + checklist items), `PROMPT_2_1_7` (DBAL type normalization section + checklist items).
 
 ### Chores
 
 - **`.php-cs-fixer.cache` added to `.gitignore`** — Prevents generated cache file from being tracked.
+- **PHPStan baseline reduced** — 888 to 883 errors (5 stale entries removed for code that was fixed in this review).
 
 ---
 
