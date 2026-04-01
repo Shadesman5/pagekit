@@ -41,6 +41,10 @@ node_modules
 !/migration-docs/TODO/agent_prompts/
 !/migration-docs/TODO/agent_prompts/**
 !/migration-docs/TODO/MODERNISATION_STRATEGY.md
+!/migration-docs/TODO/PHASE_1_MODERNISING.md
+!/migration-docs/TODO/PHASE_2_MODERNISING.md
+!/migration-docs/TODO/PHASE_3_MODERNISING.md
+!/migration-docs/TODO/PHASE_4_MODERNISING.md
 
 # Ignore environment files with secrets
 docker.env
