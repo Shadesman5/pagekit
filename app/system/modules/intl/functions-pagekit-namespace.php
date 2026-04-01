@@ -16,7 +16,10 @@ if (!function_exists('Pagekit\__')) {
 
 if (!function_exists('Pagekit\_c')) {
     /**
-     * The transChoice() method is deprecated since Symfony 4.2, use the trans() one instead with a "%%count%%" parameter.
+     * Pluralization via trans() with %count% parameter (replaces removed transChoice()).
+     *
+     * TODO: Must be refactored in Step 3.4.6 (Translation System Modernization) —
+     * Remove _c() once all call sites use __() with ICU MessageFormat.
      */
     function _c($id, $number, array $parameters = [], $domain = null, $locale = null)
     {

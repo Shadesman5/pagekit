@@ -269,11 +269,14 @@ class Mailer implements MailerInterface
 
     /**
      * {@inheritdoc}
+     *
+     * TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 — Strict Typing) —
+     * MailerInterface conflates the mailer and plugin roles. Split into separate
+     * MailerInterface (send/create) and MailPluginInterface (beforeSend/afterSend).
+     * These no-op methods exist only to satisfy the shared interface contract.
      */
     public function beforeSend(Email $message): void
     {
-        // Hook for extensions to modify message before sending
-        // Currently no default implementation
     }
 
     /**
@@ -281,7 +284,5 @@ class Mailer implements MailerInterface
      */
     public function afterSend(Email $message): void
     {
-        // Hook for extensions to process message after sending
-        // Currently no default implementation
     }
 }

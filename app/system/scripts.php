@@ -9,8 +9,15 @@
  * - System updates: Execute migrations via 'updates' array
  *
  * Clean Separation:
- * ✅ Migrations: Structure (tables, columns, system roles)
- * ✅ scripts.php: Configuration (user preferences, dashboard settings)
+ * Migrations: Structure (tables, columns, system roles)
+ * scripts.php: Configuration (user preferences, dashboard settings)
+ *
+ * TODO: Must be refactored in Step 2.0.4 (Package/Migration System Redesign) —
+ * The update pipeline does not automatically run Doctrine Migrations. The 'updates'
+ * array and MigrationService::migrate() are disconnected — version bumps can happen
+ * without schema updates. The entire update flow (Login-Check, Update-Wizard, CLI)
+ * must be unified to always run Doctrine Migrations before scripts.php hooks.
+ * See also: MigrationCommand.php, system/index.php (auth.login), MigrationController.php.
  */
 return [
 

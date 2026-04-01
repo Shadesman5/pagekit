@@ -14,6 +14,8 @@ return [
         $app->extend('twig', function ($twig) use ($app) {
 
             $twig->addFilter(new TwigFilter('trans', '__'));
+            // TODO: Must be refactored in Step 3.4.6 (Translation System Modernization) —
+            // Remove transChoice Twig filter when _c() is removed.
             $twig->addFilter(new TwigFilter('transChoice', '_c'));
 
             return $twig;
@@ -27,6 +29,9 @@ return [
             return $assets;
         });
 
+        // TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 — Strict Typing) —
+        // FileLocatorAsset uses static service locator pattern (static mixed properties).
+        // Replace with proper DI once asset classes support constructor injection.
         FileLocatorAsset::setServices($app->get('file'), $app->get('locator'));
 
     },

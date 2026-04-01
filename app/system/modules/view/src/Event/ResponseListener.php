@@ -15,6 +15,9 @@ class ResponseListener implements EventSubscriberInterface
                         \2                              # match the previous quote
                        /xiU';
 
+    // TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 — Strict Typing) —
+    // $url is used as callable ($this->url)($path) but typed as mixed.
+    // Type-narrow to the correct interface or callable once DI is modernized.
     public function __construct(
         private readonly mixed $url,
     ) {

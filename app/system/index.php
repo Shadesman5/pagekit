@@ -120,6 +120,10 @@ return [
 
         ],
 
+        // TODO: Must be refactored in Step 2.0.4 (Package/Migration System Redesign) —
+        // This login check only verifies scripts.php 'updates'. If 'updates' is empty,
+        // the version is silently bumped WITHOUT running Doctrine Migrations.
+        // Must also check MigrationService for pending migrations before bumping.
         'auth.login' => [function ($event) use ($app) {
             if ($event->getUser()->hasAccess('system: software updates') && version_compare($this->config('version'), $app->get('version'), '<')) {
 

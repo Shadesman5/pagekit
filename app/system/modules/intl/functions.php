@@ -16,9 +16,12 @@ if (!function_exists('__')) {
 
 if (!function_exists('_c')) {
     /**
-     * The transChoice() method is deprecated since Symfony 4.2, use the trans() one instead with a "%%count%%" parameter.
-     * Trying replace '%value%'' to '%count%' in source string and parameters property.
-     * TODO - remove _.c() from php and transChoice() from vue.
+     * Legacy pluralization helper — replaces all %param% with %count% as a
+     * brute-force bridge from the removed transChoice() API.
+     *
+     * TODO: Must be refactored in Step 3.4.6 (Translation System Modernization) —
+     * Remove _c() and all call sites (~28 files), migrate to __() with ICU MessageFormat.
+     * Also remove transChoice() from Vue plugin (trans.js).
      */
     function _c($id, $number, array $parameters = [], $domain = null, $locale = null)
     {
@@ -36,9 +39,11 @@ if (!function_exists('_c')) {
 
 if (!function_exists('_i')) {
     /**
-     * Translate Messages using the ICU MessageFormat:
-     * https://symfony.com/doc/current/translation/message_format.html#using-the-icu-message-format
-     * TODO - add _.i() to php and transICU() to vue.
+     * Translate messages using ICU MessageFormat.
+     * @see https://symfony.com/doc/current/translation/message_format.html
+     *
+     * TODO: Must be refactored in Step 3.4.6 (Translation System Modernization) —
+     * PHP-side (_i) is done. Add Vue equivalent $transICU() to trans.js.
      */
     function _i($id, array $parameters = [], $domain = null, $locale = null)
     {

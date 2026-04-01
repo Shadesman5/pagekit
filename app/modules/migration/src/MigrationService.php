@@ -140,9 +140,11 @@ class MigrationService
             $migratorConfig->setDryRun($dryRun);
             $result = $migrator->migrate($plan, $migratorConfig);
 
-            // Check if result is valid
+            // TODO: Must be refactored in Step 2.0.4 (Package/Migration System Redesign) —
+            // An array result from $migrator->migrate() is treated as "0 migrations, OK"
+            // which may silently suppress errors. Validate the actual return type and
+            // distinguish between "nothing to do" and "failure".
             if (is_array($result)) {
-                // Empty result or error
                 return [
                     'success' => true,
                     'executed' => 0,

@@ -1,3 +1,4 @@
+<?php // TODO: Must be refactored in Step 3.4.6 (Translation System Modernization) — replace |transChoice with |trans using ICU MessageFormat ?>
 <?php $view->script('user-index', 'system/user:app/bundle/user-index.js', ['vue']) ?>
 
 <div id="users" v-cloak>

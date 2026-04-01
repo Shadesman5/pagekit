@@ -7,6 +7,10 @@ use Pagekit\Installer\Package\PackageScripts;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+// TODO: Must be refactored in Step 2.0.4 (Package/Migration System Redesign) —
+// This command ('pagekit migrate') only runs scripts.php 'updates', NOT Doctrine Migrations.
+// Developers expect 'migrate' to run DB migrations. Unify: run Doctrine Migrations first,
+// then scripts.php hooks. Rename or merge with migration:migrate for clarity.
 class MigrationCommand extends Command
 {
     /**

@@ -2,6 +2,9 @@
 
 namespace Pagekit\View\Asset;
 
+// TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 — Strict Typing) —
+// Static service locator pattern with mixed types. Replace with proper DI
+// and type $file as Filesystem, $locator as ResourceLocator.
 class FileLocatorAsset extends FileAsset
 {
     private static mixed $file = null;
