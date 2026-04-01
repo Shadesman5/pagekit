@@ -1,6 +1,6 @@
 # Changelog
 
-## Pagekit 1.2.6 - Static Analysis Tooling Baseline (March 29, 2026)
+## Pagekit 1.2.6 - Static Analysis Tooling Baseline (April 1, 2026)
 
 ### Build
 
