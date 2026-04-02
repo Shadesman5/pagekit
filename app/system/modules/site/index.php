@@ -14,7 +14,7 @@ return [
 
     'autoload' => [
 
-        'Pagekit\\Site\\' => 'src'
+        'Pagekit\\Site\\' => 'src',
 
     ],
 
@@ -23,8 +23,8 @@ return [
         'page' => [
             'name' => '@page',
             'label' => 'Page',
-            'controller' => 'Pagekit\\Site\\Controller\\PageController'
-        ]
+            'controller' => 'Pagekit\\Site\\Controller\\PageController',
+        ],
 
     ],
 
@@ -32,45 +32,45 @@ return [
 
         '/' => [
             'name' => '@site',
-            'controller' => 'Pagekit\\Site\\Controller\\NodeController'
+            'controller' => 'Pagekit\\Site\\Controller\\NodeController',
         ],
         '/api/site/menu' => [
             'name' => '@site/api/menu',
-            'controller' => 'Pagekit\\Site\\Controller\\MenuApiController'
+            'controller' => 'Pagekit\\Site\\Controller\\MenuApiController',
         ],
         '/api/site/node' => [
             'name' => '@site/api/node',
-            'controller' => 'Pagekit\\Site\\Controller\\NodeApiController'
+            'controller' => 'Pagekit\\Site\\Controller\\NodeApiController',
         ],
         '/api/site/page' => [
             'name' => '@site/api/page',
-            'controller' => 'Pagekit\\Site\\Controller\\PageApiController'
-        ]
+            'controller' => 'Pagekit\\Site\\Controller\\PageApiController',
+        ],
 
     ],
 
     'widgets' => [
 
         'widgets/menu.php',
-        'widgets/text.php'
+        'widgets/text.php',
 
     ],
 
     'resources' => [
 
         'system/site:' => '',
-        'views:system/site' => 'views'
+        'views:system/site' => 'views',
 
     ],
 
     'permissions' => [
 
         'site: manage site' => [
-            'title' => 'Manage site'
+            'title' => 'Manage site',
         ],
         'site: maintenance access' => [
-            'title' => 'Use the site in maintenance mode'
-        ]
+            'title' => 'Use the site in maintenance mode',
+        ],
 
     ],
 
@@ -82,22 +82,22 @@ return [
             'url' => '@site/page',
             'access' => 'site: manage site || system: manage widgets || system: manage storage || system: access settings',
             'active' => '@site(/*)?',
-            'priority' => 105
+            'priority' => 105,
         ],
         'site: pages' => [
             'label' => 'Pages',
             'parent' => 'site',
             'url' => '@site/page',
             'access' => 'site: manage site',
-            'active' => '@site/page(/edit)?'
+            'active' => '@site/page(/edit)?',
         ],
         'site: settings' => [
             'label' => 'Settings',
             'parent' => 'site',
             'url' => '@site/settings',
             'access' => 'system: access settings',
-            'priority' => 30
-        ]
+            'priority' => 30,
+        ],
 
     ],
 
@@ -112,31 +112,31 @@ return [
         'maintenance' => [
             'enabled' => false,
             'logo' => '',
-            'msg' => ''
+            'msg' => '',
         ],
 
         'meta' => [
             'description' => '',
             'image' => '',
             'facebook' => '',
-            'twitter' => ''
+            'twitter' => '',
         ],
 
         'icons' => [
             'favicon' => '',
-            'appicon' => ''
+            'appicon' => '',
         ],
 
         'code' => [
             'header' => '',
-            'footer' => ''
+            'footer' => '',
         ],
 
         'view' => [
 
-            'logo' => ''
+            'logo' => '',
 
-        ]
+        ],
 
     ],
 
@@ -158,7 +158,7 @@ return [
 
         },
 
-        'request' => [function() use ($app) {
+        'request' => [function () use ($app) {
             if (!$app->get('node')->hasAccess($app->get('user'))) {
                 $app->get('kernel')->abort(403, __('Insufficient User Rights.'));
             }
@@ -196,9 +196,9 @@ return [
                     'og:url' => $meta->get('canonical'),
                 ]);
 
-				if ($config = $app->get('node')->get('meta')) {
+                if ($config = $app->get('node')->get('meta')) {
 
-					if (!empty($config['og:image'])) {
+                    if (!empty($config['og:image'])) {
                         $config['og:image'] = $app->get('url')->getStatic($config['og:image'], [], 0);
                     }
 
@@ -238,12 +238,12 @@ return [
             $meta->add('link:favicon', [
                 'href' => $app->get('url')->getStatic($this->config('icons.favicon') ?: 'system/theme:favicon.ico'),
                 'rel' => 'shortcut icon',
-                'type' => 'image/x-icon'
+                'type' => 'image/x-icon',
             ]);
 
             $meta->add('link:appicon', [
                 'href' => $app->get('url')->getStatic($this->config('icons.appicon') ?: 'system/theme:apple_touch_icon.png'),
-                'rel' => 'apple-touch-icon-precomposed'
+                'rel' => 'apple-touch-icon-precomposed',
             ]);
 
         },
@@ -259,8 +259,8 @@ return [
 
         'model.node.saved' => function ($event, $node) use ($app) {
             $app->get('config')($app->get('theme')->name)->set('_nodes.' . $node->id, $node->theme);
-        }
+        },
 
-    ]
+    ],
 
 ];

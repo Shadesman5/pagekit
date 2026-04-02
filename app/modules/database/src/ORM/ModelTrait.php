@@ -130,9 +130,11 @@ trait ModelTrait
             switch ($metadata->getField($name, 'type')) {
                 case 'json_array':
                     $value = $value ?: new \stdClass();
+
                     break;
                 case 'datetime':
                     $value = $value ? $value->format(\DateTime::ATOM) : null;
+
                     break;
             }
 

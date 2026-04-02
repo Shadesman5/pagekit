@@ -19,11 +19,11 @@ class GravatarHelper extends Helper
     public function __invoke($email, $params = [])
     {
         $params = array_merge([
-            'size'    => 80,
+            'size' => 80,
             'default' => 'mm',
-            'rating'  => 'g',
-            'img'     => true,
-            'attrs'   => []
+            'rating' => 'g',
+            'img' => true,
+            'attrs' => [],
         ], $params);
 
         $url = sprintf('//gravatar.com/avatar/%s?s=%s&d=%s&r=%s', md5(strtolower(trim($email))), $params['size'], $params['default'], $params['rating']);
@@ -31,12 +31,12 @@ class GravatarHelper extends Helper
         if ($params['img']) {
 
             $attrs = array_merge([
-                'src'    => $url,
-                'width'  => $params['size'],
-                'height' => $params['size']
+                'src' => $url,
+                'width' => $params['size'],
+                'height' => $params['size'],
             ], $params['attrs']);
 
-            $attrs = array_map(fn($name, $value) => sprintf('%s="%s"', $name, htmlspecialchars($value)), array_keys($attrs), $attrs);
+            $attrs = array_map(fn ($name, $value) => sprintf('%s="%s"', $name, htmlspecialchars($value)), array_keys($attrs), $attrs);
 
             return '<img '.implode(' ', $attrs).'/>';
         }

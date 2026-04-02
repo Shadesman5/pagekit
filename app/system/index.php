@@ -33,7 +33,7 @@ return [
         'system/settings',
         'system/site',
         'system/theme',
-        'system/user'
+        'system/user',
 
     ],
 
@@ -41,18 +41,18 @@ return [
 
         '/' => [
             'name' => '@system',
-            'controller' => 'Pagekit\\System\\Controller\\AdminController'
+            'controller' => 'Pagekit\\System\\Controller\\AdminController',
         ],
         '/system/migration' => [
             'name' => '@system/migration',
-            'controller' => 'Pagekit\\System\\Controller\\MigrationController'
-        ]
+            'controller' => 'Pagekit\\System\\Controller\\MigrationController',
+        ],
 
     ],
 
     'resources' => [
 
-        'system:' => ''
+        'system:' => '',
 
     ],
 
@@ -61,19 +61,19 @@ return [
         'site' => [
 
             'theme' => null,
-            'locale' => 'en_US'
+            'locale' => 'en_US',
 
         ],
 
         'admin' => [
 
-            'locale' => 'en_US'
+            'locale' => 'en_US',
 
         ],
 
         'extensions' => [],
 
-        'packages' => []
+        'packages' => [],
 
     ],
 
@@ -116,10 +116,14 @@ return [
 
                 $app->get('events')->trigger($app->get('isAdmin') ? 'admin' : 'site', [$app]);
 
-            }]
+            }],
 
         ],
 
+        // TODO: Must be refactored in Step 2.0.4 (Package/Migration System Redesign) —
+        // This login check only verifies scripts.php 'updates'. If 'updates' is empty,
+        // the version is silently bumped WITHOUT running Doctrine Migrations.
+        // Must also check MigrationService for pending migrations before bumping.
         'auth.login' => [function ($event) use ($app) {
             if ($event->getUser()->hasAccess('system: software updates') && version_compare($this->config('version'), $app->get('version'), '<')) {
 
@@ -167,8 +171,8 @@ return [
             }
 
             $meta->add('title', implode(' | ', $title));
-        }, -50]
+        }, -50],
 
-    ]
+    ],
 
 ];

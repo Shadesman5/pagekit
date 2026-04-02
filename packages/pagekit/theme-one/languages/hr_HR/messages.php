@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Title' => 'Naslov',
   'Theme' => 'Tema',
   'Hide Title' => 'Sakrij Naslov',
@@ -38,4 +40,4 @@
   'Written by %name% on %date%' => 'Napisao %name% na %date%',
   'Read more' => 'Pročitajte više',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Nema komentara|{1} %count% Komentar|]1,Inf[ %count% Komentara',
-);
+];

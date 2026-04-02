@@ -23,7 +23,7 @@
 ```
 **IF ANY FAILS → STOP AND FIX!**
 
-**Before starting:** Branch from `develop` (Step 2.1.4 merged).
+**Before starting:** Verify: Branch is Up-to-Date with `develop`. (Step 2.1.4 merged).
 
 ---
 

@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Select Image' => 'Görsel Seçin',
   'Add Image' => 'Görsel Ekle',
   'Select Video' => 'Görüntü Seçin',
@@ -451,4 +453,4 @@
   'You have the latest version of Pagekit. You do not need to update. However, if you want to re-install version %version%, you can download the package and re-install manually.' => 'Son Pagekit sürümünü kullanıyorsunuz. Herhangi bir güncelleme gerekmiyor. Bununla birlikte %version% sürümünü yeniden yüklemek istiyorsanız, paketi indirip el ile yeniden yükleyebilirsiniz.',
   'Download %version%' => '%version% sürümünü indirin',
   'Changelog' => 'Değişiklik günlüğü',
-);
+];

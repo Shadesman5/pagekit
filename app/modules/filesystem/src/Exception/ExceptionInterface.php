@@ -2,4 +2,6 @@
 
 namespace Pagekit\Filesystem\Exception;
 
-interface ExceptionInterface {}
+interface ExceptionInterface
+{
+}

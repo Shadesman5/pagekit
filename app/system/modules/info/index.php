@@ -8,7 +8,7 @@ return [
 
     'main' => function ($app) {
 
-        $app->set('info', fn() => new InfoHelper(
+        $app->set('info', fn () => new InfoHelper(
             $app->get('db'),
             $app->get('version'),
             $app->get('path.storage'),
@@ -22,7 +22,7 @@ return [
 
     'autoload' => [
 
-        'Pagekit\\Info\\' => 'src'
+        'Pagekit\\Info\\' => 'src',
 
     ],
 
@@ -30,8 +30,8 @@ return [
 
         '/system/info' => [
             'name' => '@system/info',
-            'controller' => 'Pagekit\\Info\\Controller\\InfoController'
-        ]
+            'controller' => 'Pagekit\\Info\\Controller\\InfoController',
+        ],
 
     ],
 
@@ -41,9 +41,9 @@ return [
             'label' => 'Info',
             'parent' => 'system: system',
             'url' => '@system/info',
-            'priority' => 30
-        ]
+            'priority' => 30,
+        ],
 
-    ]
+    ],
 
 ];

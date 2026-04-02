@@ -11,7 +11,7 @@ return [
 
     'main' => function ($app) {
 
-        $app->set('widget', fn($app) => new WidgetManager($app));
+        $app->set('widget', fn ($app) => new WidgetManager($app));
 
         $app->set('position', function ($app) {
 
@@ -37,7 +37,7 @@ return [
 
     'autoload' => [
 
-        'Pagekit\\Widget\\' => 'src'
+        'Pagekit\\Widget\\' => 'src',
 
     ],
 
@@ -45,27 +45,27 @@ return [
 
         '/site/widget' => [
             'name' => '@site/widget',
-            'controller' => 'Pagekit\\Widget\\Controller\\WidgetController'
+            'controller' => 'Pagekit\\Widget\\Controller\\WidgetController',
         ],
         '/api/site/widget' => [
             'name' => '@site/api/widget',
-            'controller' => 'Pagekit\\Widget\\Controller\\WidgetApiController'
-        ]
+            'controller' => 'Pagekit\\Widget\\Controller\\WidgetApiController',
+        ],
 
     ],
 
     'resources' => [
 
         'system/widget:' => '',
-        'views:system/widget' => 'views'
+        'views:system/widget' => 'views',
 
     ],
 
     'permissions' => [
 
         'system: manage widgets' => [
-            'title' => 'Manage widgets'
-        ]
+            'title' => 'Manage widgets',
+        ],
 
     ],
 
@@ -77,8 +77,8 @@ return [
             'url' => '@site/widget',
             'access' => 'system: manage widgets',
             'active' => '@site/widget(/edit)?',
-            'priority' => 20
-        ]
+            'priority' => 20,
+        ],
 
     ],
 
@@ -88,9 +88,9 @@ return [
 
             'positions' => [],
             'config' => [],
-            'defaults' => []
+            'defaults' => [],
 
-        ]
+        ],
 
     ],
 
@@ -98,11 +98,11 @@ return [
 
         'boot' => function ($event, $app) {
 
-            Widget::defineProperty('position', fn() => $app->get('position')->find($this->id), true);
+            Widget::defineProperty('position', fn () => $app->get('position')->find($this->id), true);
 
             Widget::defineProperty('theme', function () use ($app) {
 
-                $config  = $app->get('theme')->config('_widgets.'.$this->id, []);
+                $config = $app->get('theme')->config('_widgets.'.$this->id, []);
                 $default = $app->get('theme')->get('widget', []);
 
                 return array_replace_recursive($default, $config);
@@ -155,8 +155,8 @@ return [
 
         'model.role.deleted' => function ($event, $role) {
             Widget::removeRole($role);
-        }
+        },
 
-    ]
+    ],
 
 ];

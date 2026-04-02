@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pagekit\Blog\Controller;
 
+use function Pagekit\__;
+
 use Pagekit\Blog\Model\Post;
 use Pagekit\Filter\FilterManager;
 use Pagekit\Module\Module;
@@ -15,7 +17,6 @@ use Pagekit\User\Model\User;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use function Pagekit\__;
 
 /**
  * API Controller for Blog Post management.
@@ -45,7 +46,7 @@ class PostApiController
         $filter = $this->request->query->all()['filter'] ?? [];
         $page = (int) $this->request->query->get('page', 0);
 
-        $query  = Post::query();
+        $query = Post::query();
         $filter = array_merge(array_fill_keys(['status', 'search', 'author', 'order', 'limit'], ''), $filter);
 
         extract($filter, EXTR_SKIP);
@@ -77,7 +78,7 @@ class PostApiController
         $limit = (int) $limit ?: $this->blog->config('posts.posts_per_page');
         $count = $query->count();
         $pages = ceil($count / $limit);
-        $page  = max(0, min($pages - 1, $page));
+        $page = max(0, min($pages - 1, $page));
 
         $posts = array_values($query->offset($page * $limit)->related('user', 'comments')->limit($limit)->orderBy($order[1], $order[2])->get());
 

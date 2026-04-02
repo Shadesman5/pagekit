@@ -132,6 +132,7 @@ class PackageManager
                 foreach ($previousPackageConfigs as $packageConfig) {
                     if ($packageConfig->get('name') == $package->get('name')) {
                         $previousPackageConfig = $packageConfig;
+
                         break;
                     }
                 }
@@ -182,7 +183,8 @@ class PackageManager
 
                 if ($this->app->has('log')) {
                     $this->app->get('log')->error(
-                        sprintf('Failed to enable package "%s": %s',
+                        sprintf(
+                            'Failed to enable package "%s": %s',
                             $package->get('name'),
                             $e->getMessage()
                         ),
@@ -191,7 +193,8 @@ class PackageManager
                 }
 
                 throw new \RuntimeException(
-                    sprintf('Unable to enable "%s": %s',
+                    sprintf(
+                        'Unable to enable "%s": %s',
                         $package->get('title') ?? $package->get('name'),
                         $e->getMessage()
                     ),

@@ -38,17 +38,17 @@ class BlogController
         return [
             '$view' => [
                 'title' => __('Posts'),
-                'name'  => 'blog/admin/post-index.php'
+                'name' => 'blog/admin/post-index.php',
             ],
             '$data' => [
                 'statuses' => Post::getStatuses(),
-                'authors'  => Post::getAuthors(),
+                'authors' => Post::getAuthors(),
                 'canEditAll' => $this->user->hasAccess('blog: manage all posts'),
-                'config'   => [
+                'config' => [
                     'filter' => (object) $filter,
-                    'page'   => $page
-                ]
-            ]
+                    'page' => $page,
+                ],
+            ],
         ];
     }
 
@@ -69,7 +69,7 @@ class BlogController
                     'user_id' => $this->user->id,
                     'status' => Post::STATUS_DRAFT,
                     'date' => new \DateTime(),
-                    'comment_status' => (bool) $this->blog->config('posts.comments_enabled')
+                    'comment_status' => (bool) $this->blog->config('posts.comments_enabled'),
                 ]);
 
                 $post->set('title', $this->blog->config('posts.show_title'));
@@ -96,16 +96,16 @@ class BlogController
             return [
                 '$view' => [
                     'title' => $id ? __('Edit Post') : __('Add Post'),
-                    'name'  => 'blog/admin/post-edit.php'
+                    'name' => 'blog/admin/post-edit.php',
                 ],
                 '$data' => [
-                    'post'     => $post,
+                    'post' => $post,
                     'statuses' => Post::getStatuses(),
-                    'roles'    => array_values(Role::findAll()),
+                    'roles' => array_values(Role::findAll()),
                     'canEditAll' => $this->user->hasAccess('blog: manage all posts'),
-                    'authors'  => $authors
+                    'authors' => $authors,
                 ],
-                'post' => $post
+                'post' => $post,
             ];
 
         } catch (\Exception $e) {
@@ -126,17 +126,17 @@ class BlogController
         return [
             '$view' => [
                 'title' => $post ? __('Comments on %title%', ['%title%' => $post->title]) : __('Comments'),
-                'name'  => 'blog/admin/comment-index.php'
+                'name' => 'blog/admin/comment-index.php',
             ],
-            '$data'   => [
+            '$data' => [
                 'statuses' => Comment::getStatuses(),
-                'config'   => [
+                'config' => [
                     'filter' => (object) $filter,
-                    'page'   => $page,
-                    'post'   => $post,
-                    'limit'  => $this->blog->config('comments.comments_per_page')
-                ]
-            ]
+                    'page' => $page,
+                    'post' => $post,
+                    'limit' => $this->blog->config('comments.comments_per_page'),
+                ],
+            ],
         ];
     }
 
@@ -146,11 +146,11 @@ class BlogController
         return [
             '$view' => [
                 'title' => __('Blog Settings'),
-                'name'  => 'blog/admin/settings.php'
+                'name' => 'blog/admin/settings.php',
             ],
             '$data' => [
-                'config' => $this->blog->config()
-            ]
+                'config' => $this->blog->config(),
+            ],
         ];
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 namespace Pagekit\Application\Console;
 
 use Pagekit\Container;
@@ -90,7 +91,9 @@ class Command extends BaseCommand
      */
     public function argument($key = null)
     {
-        if (is_null($key)) return $this->input->getArguments();
+        if (is_null($key)) {
+            return $this->input->getArguments();
+        }
 
         return $this->input->getArgument($key);
     }
@@ -103,7 +106,9 @@ class Command extends BaseCommand
      */
     public function option($key = null)
     {
-        if (is_null($key)) return $this->input->getOptions();
+        if (is_null($key)) {
+            return $this->input->getOptions();
+        }
 
         return $this->input->getOption($key);
     }

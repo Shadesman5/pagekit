@@ -2,9 +2,9 @@
 
 namespace Pagekit\Filesystem\Tests;
 
-use PHPUnit\Framework\TestCase;
 use Pagekit\Filesystem\Filesystem;
 use Pagekit\Filesystem\Locator;
+use PHPUnit\Framework\TestCase;
 
 class LocatorTest extends TestCase
 {
@@ -13,7 +13,7 @@ class LocatorTest extends TestCase
 
     public function setUp(): void
     {
-        $this->file    = new Filesystem;
+        $this->file = new Filesystem();
         $this->locator = new Locator(__DIR__);
     }
 
@@ -36,7 +36,7 @@ class LocatorTest extends TestCase
             ['Fixtures/file1.txt', $fixtures.'/file1.txt', true],
             ['/Fixtures/file1.txt', $fixtures.'/file1.txt', true],
             ['Fixtures/file3.txt', false, false],
-            ['/Fixtures/file3.txt', false, false]
+            ['/Fixtures/file3.txt', false, false],
         ];
     }
 

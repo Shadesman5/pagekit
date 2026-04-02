@@ -2,11 +2,11 @@
 
 namespace Pagekit\Debug\Event;
 
-use Pagekit\Event\EventInterface;
 use Pagekit\Event\EventDispatcherInterface;
+use Pagekit\Event\EventInterface;
 use Pagekit\Event\EventSubscriberInterface;
-use Symfony\Component\Stopwatch\Stopwatch;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Stopwatch\Stopwatch;
 
 /**
  * @author    Fabien Potencier <fabien@symfony.com>
@@ -54,6 +54,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
                 if ($wrappedListener->getWrappedListener() === $listener) {
                     $listener = $wrappedListener;
                     unset($this->wrappedListeners[$event][$index]);
+
                     break;
                 }
             }
@@ -220,7 +221,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
             }
         }
 
-        uasort($notCalled, fn($a, $b) => $this->sortListenersByPriority($a, $b));
+        uasort($notCalled, fn ($a, $b) => $this->sortListenersByPriority($a, $b));
 
         return $notCalled;
     }
@@ -310,7 +311,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
                 'file' => $refl->getFileName(),
                 'line' => $refl->getStartLine(),
                 'endline' => $refl->getEndLine(),
-                'pretty' => (string) $refl
+                'pretty' => (string) $refl,
             ];
         } elseif (is_string($listener)) {
             try {
@@ -333,6 +334,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
                 $listener = [$listener, '__invoke'];
             }
             $class = is_object($listener[0]) ? get_class($listener[0]) : $listener[0];
+
             try {
                 $r = new \ReflectionMethod($class, $listener[1]);
                 $file = $r->getFileName();

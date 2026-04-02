@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pagekit\Blog\Controller;
 
+use function Pagekit\__;
+
 use Pagekit\Blog\Model\Comment;
 use Pagekit\Blog\Model\Post;
 use Pagekit\Captcha\Attribute\Captcha;
@@ -18,7 +20,6 @@ use Symfony\Component\HttpFoundation\Request as HttpRequest;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use function Pagekit\__;
 
 /**
  * API Controller for Blog Comment management.
@@ -93,7 +94,7 @@ class CommentApiController
             $order = [1 => 'created', 2 => $this->blog->config('comments.order')];
         }
 
-        $comments = $query->related(['post' => function($query) {
+        $comments = $query->related(['post' => function ($query) {
             return $query->related('comments');
         }])->related('user')->orderBy($order[1], $order[2])->get();
 
@@ -158,7 +159,7 @@ class CommentApiController
             // user_id stored as string in database (legacy), use '0' for anonymous users
             $commentEntity->user_id = $this->user->isAuthenticated() ? (string) $this->user->id : '0';
             $commentEntity->ip = $this->request->getClientIp();
-            $commentEntity->created = new \DateTime;
+            $commentEntity->created = new \DateTime();
 
         } else {
 
@@ -199,7 +200,7 @@ class CommentApiController
             throw new NotFoundHttpException(__('Post not found.'));
         }
 
-        $approved_once = (boolean) Comment::where(['user_id' => $this->user->id, 'status' => Comment::STATUS_APPROVED])->first();
+        $approved_once = (bool) Comment::where(['user_id' => $this->user->id, 'status' => Comment::STATUS_APPROVED])->first();
         $commentEntity->status = $this->user->hasAccess('blog: skip comment approval') ? Comment::STATUS_APPROVED : ($this->user->hasAccess('blog: comment approval required once') && $approved_once ? Comment::STATUS_APPROVED : Comment::STATUS_PENDING);
 
         // check the max links rule (business logic)

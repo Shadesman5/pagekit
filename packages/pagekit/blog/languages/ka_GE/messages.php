@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Filter by' => 'ფილტრი',
   'Thank you! Your comment needs approval before showing up.' => 'მადლობა! თქვენს კომენტარს განიხილავენ და გამოაქვეყნებენ',
   'Unable to comment. Please try again later.' => 'შეუძლებელია დაკომენტარება, სცადეთ მოგვიანებით',
@@ -94,4 +96,4 @@
   'Written by %name% on %date%' => 'ავტორი: %name%, გამოქვეყნების თარიღი: %date%',
   'Read more' => 'ვრცლად...',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} კომენტარები არ აქვს, იყავი პირველი.. |{1} %count% კომენტარი|]1,Inf[ %count% კომენტარი',
-);
+];

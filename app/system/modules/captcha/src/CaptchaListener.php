@@ -20,7 +20,8 @@ class CaptchaListener implements EventSubscriberInterface
         private readonly mixed $auth,
         private readonly RequestStack $requestStack,
         private readonly mixed $router,
-    ) {}
+    ) {
+    }
 
     /**
      * Reads the #[Captcha] attributes from the controller.
@@ -83,13 +84,14 @@ class CaptchaListener implements EventSubscriberInterface
             if ($route = $this->router->getRoute($route)) {
                 return ltrim($route->getPath(), '/');
             }
+
             return false;
         }, $routes));
 
         // Add captcha config to JSON data container
         $data->add('$captcha', [
             'grecaptcha' => $this->captchaModule->config('recaptcha_sitekey'),
-            'routes' => $routes
+            'routes' => $routes,
         ]);
     }
 
@@ -143,12 +145,12 @@ class CaptchaListener implements EventSubscriberInterface
         $ch = curl_init($url);
         $parameterQuery = http_build_query($parameter);
 
-        $options = array(
+        $options = [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HEADER => false,
             CURLOPT_POST => count($parameter),
-            CURLOPT_POSTFIELDS => $parameterQuery
-        );
+            CURLOPT_POSTFIELDS => $parameterQuery,
+        ];
         curl_setopt_array($ch, $options);
         $result = curl_exec($ch);
 
@@ -166,7 +168,7 @@ class CaptchaListener implements EventSubscriberInterface
             'route.configure' => 'onConfigureRoute',
             'request' => ['onRequest', -100],
             'view.data' => ['onData', 100],
-            'view.scripts' => ['onScripts', 100]
+            'view.scripts' => ['onScripts', 100],
         ];
     }
 }

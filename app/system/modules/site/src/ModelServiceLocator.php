@@ -22,6 +22,7 @@ final class ModelServiceLocator
         if (self::$app === null) {
             throw new \RuntimeException('ModelServiceLocator not initialized. Was SiteModule booted?');
         }
+
         return self::$app->get('url');
     }
 
@@ -30,6 +31,7 @@ final class ModelServiceLocator
         if (self::$app === null) {
             throw new \RuntimeException('ModelServiceLocator not initialized. Was SiteModule booted?');
         }
+
         return self::$app->get('user');
     }
 
@@ -38,6 +40,7 @@ final class ModelServiceLocator
         if (self::$app === null) {
             throw new \RuntimeException('ModelServiceLocator not initialized. Was SiteModule booted?');
         }
+
         return self::$app->get('module')->get($name);
     }
 }

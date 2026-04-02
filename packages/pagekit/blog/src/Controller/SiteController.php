@@ -33,7 +33,7 @@ class SiteController
     #[Route('/page/{page}', name: 'page', requirements: ['page' => '\d+'])]
     public function indexAction($page = 1): array
     {
-        $query = Post::where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime])->where(function($query) {
+        $query = Post::where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime()])->where(function ($query) {
             return $query->where('roles IS NULL')->whereInSet('roles', $this->user->roles, false, 'OR');
         })->related('user');
 
@@ -59,13 +59,13 @@ class SiteController
                     'rel' => 'alternate',
                     'href' => $this->url->get('@blog/feed'),
                     'title' => $this->module->get('system/site')->config('title'),
-                    'type' => $this->feed->create($this->blog->config('feed.type'))->getMIMEType()
-                ]
+                    'type' => $this->feed->create($this->blog->config('feed.type'))->getMIMEType(),
+                ],
             ],
             'blog' => $this->blog,
             'posts' => $posts,
             'total' => $total,
-            'page' => $page
+            'page' => $page,
         ];
     }
 
@@ -83,14 +83,14 @@ class SiteController
             'link' => $this->url->get('@blog', [], 0),
             'description' => $site->config('description'),
             'element' => ['language', $locale],
-            'selfLink' => $this->url->get('@blog/feed', [], 0)
+            'selfLink' => $this->url->get('@blog/feed', [], 0),
         ]);
 
-        if ($last = Post::where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime])->limit(1)->orderBy('modified', 'DESC')->first()) {
+        if ($last = Post::where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime()])->limit(1)->orderBy('modified', 'DESC')->first()) {
             $feed->setDate($last->modified);
         }
 
-        foreach (Post::where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime])->where(function($query) {
+        foreach (Post::where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime()])->where(function ($query) {
             return $query->where('roles IS NULL')->whereInSet('roles', $this->user->roles, false, 'OR');
         })->related('user')->limit($this->blog->config('feed.limit'))->orderBy('date', 'DESC')->get() as $post) {
             $url = $this->url->get('@blog/id', ['id' => $post->id], 0);
@@ -101,7 +101,7 @@ class SiteController
                     'description' => $this->content->applyPlugins($post->content, ['post' => $post, 'markdown' => $post->get('markdown'), 'readmore' => true]),
                     'date' => $post->date,
                     'author' => [$post->user->name, $post->user->email],
-                    'id' => $url
+                    'id' => $url,
                 ])
             );
         }
@@ -114,7 +114,7 @@ class SiteController
     #[Captcha(route: '@blog/api/comment/save_1')]
     public function postAction($id = 0): array
     {
-        if (!$post = Post::where(['id = ?', 'status = ?', 'date < ?'], [$id, Post::STATUS_PUBLISHED, new \DateTime])->related('user')->first()) {
+        if (!$post = Post::where(['id = ?', 'status = ?', 'date < ?'], [$id, Post::STATUS_PUBLISHED, new \DateTime()])->related('user')->first()) {
             throw new NotFoundHttpException(__('Post not found!'));
         }
 
@@ -141,7 +141,7 @@ class SiteController
                 'article:author' => $post->user->name,
                 'og:title' => $post->get('meta.og:title') ?: $post->title,
                 'og:description' => $description,
-                'og:image' =>  $post->get('image.src') ? $this->url->getStatic($post->get('image.src'), [], 0) : false
+                'og:image' => $post->get('image.src') ? $this->url->getStatic($post->get('image.src'), [], 0) : false,
             ],
             '$comments' => [
                 'config' => [
@@ -153,12 +153,12 @@ class SiteController
                         'name' => $this->user->name,
                         'isAuthenticated' => $this->user->isAuthenticated(),
                         'canComment' => $this->user->hasAccess('blog: post comments'),
-                        'skipApproval' => $this->user->hasAccess('blog: skip comment approval')
-                    ]
-                ]
+                        'skipApproval' => $this->user->hasAccess('blog: skip comment approval'),
+                    ],
+                ],
             ],
             'blog' => $this->blog,
-            'post' => $post
+            'post' => $post,
         ];
     }
 }

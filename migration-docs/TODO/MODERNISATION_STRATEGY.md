@@ -3,27 +3,27 @@
 > This document defines the **vision, philosophy, and strategic decisions** behind the Pagekit modernisation.
 > It is intentionally static — progress tracking lives exclusively in [ROADMAP.md](../../.cursor/ROADMAP.md).
 
-## Übersicht
+## Overview
 
-Dieser strategische Plan führt Pagekit CMS von der aktuellen Legacy-Basis zu einem modernen, sicheren und wartbaren System. Jeder Schritt wird in einem eigenen Git-Branch durchgeführt und über Pull Requests geprüft.
+This strategic plan guides Pagekit CMS from its current legacy base to a modern, secure, and maintainable system. Each step is executed in a dedicated Git branch and reviewed via pull requests.
 
-**Wichtiges Prinzip: Erst komplett modernisieren, dann neue Features bauen!**
+**Key Principle: Fully modernize first, then build new features!**
 
 ## Phase Definitions
 
-| Phase | Name | Goal | Detail File |
-|---|---|---|---|
-| 0 | Preparation | Stable, traceable baseline | *(completed)* |
-| 1 | Core Backend Modernisation | Renew the foundation (PHP 8.2+, Symfony 6.4, Doctrine DBAL 3) | `PHASE#1_MODERNISING.md` |
-| 2 | Developer Experience | Quality tools, CI/CD, Docker, static analysis | `PHASE#2_MODERNISING.md` |
-| 3 | Frontend Modernisation | Vue 3, UIkit 3.21+, TypeScript, modern build tools | `PHASE#3_MODERNISING.md` |
-| 4 | Production-Ready Release | Essential features for Pagekit 2.0 (2FA, REST API v2, Performance) | `PHASE#4_MODERNISING.md` |
-| 5 | Advanced & Enterprise | Optional post-2.0 features, extensions, marketplace | `PHASE#5_FUTURE_VISION.md` |
+| Phase | Name                       | Goal                                                               | Detail File                                          |
+| ----- | -------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------- |
+| 0     | Preparation                | Stable, traceable baseline                                         | _(completed)_                                        |
+| 1     | Core Backend Modernisation | Renew the foundation (PHP 8.2+, Symfony 6.4, Doctrine DBAL 3)      | [PHASE_1_MODERNISING.md](PHASE_1_MODERNISING.md)     |
+| 2     | Developer Experience       | Quality tools, CI/CD, Docker, static analysis                      | [PHASE_2_MODERNISING.md](PHASE_2_MODERNISING.md)     |
+| 3     | Frontend Modernisation     | Vue 3, UIkit 3.21+, TypeScript, modern build tools                 | [PHASE_3_MODERNISING.md](PHASE_3_MODERNISING.md)     |
+| 4     | Production-Ready Release   | Essential features for Pagekit 2.0 (2FA, REST API v2, Performance) | [PHASE_4_MODERNISING.md](PHASE_4_MODERNISING.md)     |
+| 5     | Advanced & Enterprise      | Optional post-2.0 features, extensions, marketplace                | [PHASE_5_FUTURE_VISION.md](PHASE_5_FUTURE_VISION.md) |
 
-### Visuelle Roadmap
+### Visual Roadmap
 
 ```
-Phase 1: Core Backend-Modernisierung
+Phase 1: Core Backend Modernization
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
     ├─ Mailer, PHPUnit, Security   ┃
     ├─ Doctrine DBAL 3.x           ┃
@@ -33,16 +33,17 @@ Phase 1: Core Backend-Modernisierung
     └─ Validation, Attributes ━━━━┛
           ⬇️
 Phase 2: Developer Experience
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-    ├─ Controller + DI Attributes  ┃
-    ├─ PSR-11 Container Modern.    ┃
-    ├─ Static Analysis (PHPStan)   ┃
-    ├─ CI/CD Pipeline              ┃
-    ├─ Docker Production           ┃
-    ├─ Build Tools Modernization   ┃
-    └─ Extension Safety System ━━━┛
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    ├─ Foundation Consolidation:         ┃
+    │  ├─ Attributes, Container, Cache   ┃
+    │  └─ Validator, Package/Migrations  ┃
+    ├─ Static Analysis (PHPStan)         ┃
+    ├─ CI/CD Pipeline                    ┃
+    ├─ Docker Production                 ┃
+    ├─ Build Tools Modernization         ┃
+    └─ Extension Safety System ━━━━━━━━━┛
           ⬇️
-Phase 3: Frontend-Modernisierung
+Phase 3: Frontend Modernization
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
     ├─ UIkit 3.5 → 3.21+ Update         ┃
     ├─ Vue 2.7 Bridge                    ┃
@@ -83,200 +84,202 @@ Future: Next Generation (3.x+)
 
 ---
 
-## 🎯 Pagekit DNA: Leicht & Modular bleiben!
+## 🎯 Pagekit DNA: Stay Lightweight & Modular!
 
-**⚠️ WICHTIG: Wir bauen kein WordPress 2.0!**
+**⚠️ IMPORTANT: We are NOT building WordPress 2.0!**
 
-Pagekit's Kernphilosophie:
+Pagekit's core philosophy:
 
-- ✅ **Leichtgewichtig** — Minimaler Core, Features über Extensions
-- ✅ **Modular** — Alles ist ein Modul/Extension
-- ✅ **Einfach** — Klare Struktur, keine Bloatware
-- ✅ **Entwicklerfreundlich** — Modern, aber nicht überladen
+- ✅ **Lightweight** — Minimal core, features via extensions
+- ✅ **Modular** — Everything is a module/extension
+- ✅ **Simple** — Clear structure, no bloatware
+- ✅ **Developer-friendly** — Modern, but not overloaded
 
-### Wie passt unsere Roadmap dazu?
+### How Does Our Roadmap Align?
 
-#### Phase 1-3: Foundation ✅ PASST!
+#### Phases 1-3: Foundation ✅ FITS!
 
-- Modernisierung bestehender Core-Features
-- Keine neuen Features, nur bessere Basis
-- Bleibt schlank und fokussiert
+- Modernizing existing core features
+- No new features, just a better foundation
+- Stays lean and focused
 
-#### Phase 4: Production (2.0.0) ✅ PASST!
+#### Phase 4: Production (2.0.0) ✅ FITS!
 
-**Core-Features (eingebaut):**
+**Core Features (built-in):**
 
-- ✅ 2FA — Security Essential
+- ✅ 2FA — Security essential
 - ✅ **OAuth2 Client** — Social Login (Google, GitHub, etc.)
-- ✅ REST API v2 — Moderne Schnittstelle
-- ✅ Performance — Cache, Optimierung
-- ✅ Monitoring — Production Essentials
+- ✅ REST API v2 — Modern interface
+- ✅ Performance — Cache, optimization
+- ✅ Monitoring — Production essentials
 
-**Warum diese im Core?**
+**Why include these in the core?**
 
-- Notwendig für Production
-- Geringe Komplexität (mit Libraries)
-- Moderne Erwartung (Social Login Standard)
-- Stabil und bewährt
+- Required for production
+- Low complexity (with libraries)
+- Modern expectation (social login is standard)
+- Stable and proven
 
-#### Phase 5: Advanced (2.1.0+) ⚠️ VORSICHT!
+#### Phase 5: Advanced (2.1.0+) ⚠️ CAUTION!
 
-**Als Extensions realisieren (NICHT Core!):**
+**Implement as extensions (NOT core!):**
 
-- ⚠️ **PKBlocks Editor** → **Extension** (Block-Editor, optional!)
-- ⚠️ **OAuth2 Server** → **Extension** (Pagekit als Auth-Provider, Enterprise!)
-- ⚠️ **SAML/SSO** → **Extension** (Enterprise-Kunden)
-- ⚠️ **Multi-Tenancy** → **Extension** (komplexe Setups + Test-Umgebungen)
-- ⚠️ **AI Assistant** → **Extension** (spezielle Use-Cases)
-- ⚠️ **PWA** → **Extension** (nicht jeder braucht es)
+- ⚠️ **PKBlocks Editor** → **Extension** (block editor, optional!)
+- ⚠️ **OAuth2 Server** → **Extension** (Pagekit as auth provider, enterprise!)
+- ⚠️ **SAML/SSO** → **Extension** (enterprise customers)
+- ⚠️ **Multi-Tenancy** → **Extension** (complex setups + test environments)
+- ⚠️ **AI Assistant** → **Extension** (specialized use cases)
+- ⚠️ **PWA** → **Extension** (not everyone needs it)
 
-### 📦 Extension-First Strategie
+### 📦 Extension-First Strategy
 
-**Regel für Phase 5:**
+**Rule for Phase 5:**
 
-1. **Frage:** Braucht das JEDER?
-   - ✅ Ja → Core
-   - ❌ Nein → Extension
+1. **Question:** Does EVERYONE need this?
 
-2. **Frage:** Erhöht das die Komplexität erheblich?
-   - ✅ Ja → Extension
-   - ❌ Nein → Core (mit Feature Flag)
+   - ✅ Yes → Core
+   - ❌ No → Extension
 
-3. **Frage:** Ist das ein Nischen-Feature?
-   - ✅ Ja → Extension
-   - ❌ Nein → Evaluieren
+2. **Question:** Does it significantly increase complexity?
 
-**Beispiele:**
+   - ✅ Yes → Extension
+   - ❌ No → Core (with feature flag)
 
-- ✅ **2FA Core** — Security braucht jeder
-- ✅ **OAuth2 Client Core** — Social Login ist moderner Standard
-- ❌ **OAuth2 Server Extension** — Auth-Provider ist Enterprise Feature
-- ❌ **Block-Editor Extension** — Nicht jeder braucht Block-Style
-- ✅ **REST API Core** — Moderne API ist Standard
-- ❌ **GraphQL Extension** — Nischen-Feature
-- ✅ **Cache Core** — Performance braucht jeder
-- ❌ **Multi-Tenancy Extension** — Spezielle Anforderung (Test + Enterprise)
+3. **Question:** Is it a niche feature?
+   - ✅ Yes → Extension
+   - ❌ No → Evaluate
 
-### 🔄 Entscheidungsbaum: Core vs. Extension
+**Examples:**
 
-```
-Neues Feature geplant?
-    │
-    ├─ Braucht es JEDER Nutzer?
-    │  ├─ JA → Weiter
-    │  └─ NEIN → ⚠️ EXTENSION
-    │
-    ├─ Ist es ein Security/Performance Essential?
-    │  ├─ JA → ✅ CORE
-    │  └─ NEIN → Weiter
-    │
-    ├─ Erhöht es Core-Komplexität stark?
-    │  ├─ JA → ⚠️ EXTENSION
-    │  └─ NEIN → Weiter
-    │
-    ├─ Kann es als Service/API bereitgestellt werden?
-    │  ├─ JA → ✅ CORE (als API/Service)
-    │  └─ NEIN → Weiter
-    │
-    └─ Default: ⚠️ EXTENSION (wenn unsicher)
-```
+- ✅ **2FA Core** — Security is needed by everyone
+- ✅ **OAuth2 Client Core** — Social login is a modern standard
+- ❌ **OAuth2 Server Extension** — Auth provider is an enterprise feature
+- ❌ **Block Editor Extension** — Not everyone needs block-style editing
+- ✅ **REST API Core** — Modern API is standard
+- ❌ **GraphQL Extension** — Niche feature
+- ✅ **Cache Core** — Performance is needed by everyone
+- ❌ **Multi-Tenancy Extension** — Specialized requirement (test + enterprise)
 
-### 🎨 Marketplace als Lösung
-
-**Phase 5.6: Marketplace** wird zum Schlüssel:
-
-- Extensions einfach installieren
-- Offiziell geprüfte Extensions
-- Community Extensions
-- Theme Store
-
-### 📏 Größenvergleich: Bleiben wir leicht?
-
-**Pagekit 2.0.0 (Ziel):**
+### 🔄 Decision Tree: Core vs. Extension
 
 ```
-Core System: ~10 MB (leichte Zunahme durch moderne Features)
-Vendor: ~15 MB (Symfony 6.4, moderne Dependencies)
-Total: ~25 MB ✅ IMMER NOCH LEICHT!
+New feature planned?
+    │
+    ├─ Does EVERY user need it?
+    │  ├─ YES → Continue
+    │  └─ NO → ⚠️ EXTENSION
+    │
+    ├─ Is it a security/performance essential?
+    │  ├─ YES → ✅ CORE
+    │  └─ NO → Continue
+    │
+    ├─ Does it significantly increase core complexity?
+    │  ├─ YES → ⚠️ EXTENSION
+    │  └─ NO → Continue
+    │
+    ├─ Can it be provided as a service/API?
+    │  ├─ YES → ✅ CORE (as API/service)
+    │  └─ NO → Continue
+    │
+    └─ Default: ⚠️ EXTENSION (when in doubt)
+```
 
-Vergleich:
-- WordPress: ~50-80 MB Core (ohne Plugins!)
+### 🎨 Marketplace as the Solution
+
+**Phase 5.6: Marketplace** becomes the key:
+
+- Easy extension installation
+- Officially vetted extensions
+- Community extensions
+- Theme store
+
+### 📏 Size Comparison: Are We Staying Lightweight?
+
+**Pagekit 2.0.0 (Target):**
+
+```
+Core System: ~10 MB (slight increase from modern features)
+Vendor: ~15 MB (Symfony 6.4, modern dependencies)
+Total: ~25 MB ✅ STILL LIGHTWEIGHT!
+
+Comparison:
+- WordPress: ~50-80 MB core (without plugins!)
 - Drupal: ~100+ MB
 - Joomla: ~40-60 MB
 - Ghost: ~30 MB
-- Pagekit 2.0: ~25 MB ✅ PERFEKT!
+- Pagekit 2.0: ~25 MB ✅ PERFECT!
 ```
 
-**Regel:**
+**Rule:**
 
-- ✅ Core bleibt unter 30 MB
-- ✅ Extensions optional installierbar
-- ✅ User entscheidet, was sie brauchen
+- ✅ Core stays under 30 MB
+- ✅ Extensions optionally installable
+- ✅ Users decide what they need
 
-### 🚫 Was wir NICHT werden wollen
+### 🚫 What We Do NOT Want to Become
 
-- ❌ WordPress-Klon (zu überladen)
-- ❌ Drupal-Komplex (zu kompliziert)
-- ❌ Joomla-Chaos (zu unübersichtlich)
+- ❌ WordPress clone (too bloated)
+- ❌ Drupal-complex (too complicated)
+- ❌ Joomla-chaos (too confusing)
 
-**Was wir sein wollen:**
+**What we want to be:**
 
-- ✅ Ghost-ähnlich (Modern, fokussiert)
-- ✅ Statamic-ähnlich (Developer-friendly)
-- ✅ Pagekit 2.0 (Leicht, modular, modern)
-
----
-
-## 🛠 Foundation First Strategie
-
-**Warum erst alles modernisieren, dann neue Features?**
-
-1. **Keine doppelte Arbeit**: Features auf modernem Stack bauen statt später migrieren
-2. **Bessere Qualität**: Neue Features nutzen direkt moderne Best Practices
-3. **Weniger Bugs**: Testing Infrastructure vorhanden bevor neue Features kommen
-4. **Einfachere Wartung**: Konsistente, moderne Codebase
+- ✅ Ghost-like (modern, focused)
+- ✅ Statamic-like (developer-friendly)
+- ✅ Pagekit 2.0 (lightweight, modular, modern)
 
 ---
 
-## 📊 Versionierungsstrategie
+## 🛠 Foundation First Strategy
 
-**WICHTIG: Die MAJOR.MINOR.PATCH Strategie ist ab Phase 4 vorgesehen, davor ist es STATE.MAJOR.MINOR-PATCH**
+**Why modernize everything first, then build new features?**
+
+1. **No double work**: Build features on a modern stack instead of migrating them later
+2. **Better quality**: New features directly use modern best practices
+3. **Fewer bugs**: Testing infrastructure is in place before new features arrive
+4. **Easier maintenance**: Consistent, modern codebase
+
+---
+
+## 📊 Versioning Strategy
+
+**IMPORTANT: The MAJOR.MINOR.PATCH strategy is intended from Phase 4 onwards; before that it is STATE.MAJOR.MINOR-PATCH**
 
 ### PATCH Version (1.0.x → 1.0.y)
 
-- ✅ **Bugfixes** — Behebung von Fehlern
-- ✅ **Security Patches** — Sicherheitsupdates
-- ✅ **Dependency Updates** — Aktualisierung von Abhängigkeiten
-- ✅ **Modernisierungen** — Code-Verbesserungen ohne neue Features
+- ✅ **Bug fixes** — Fixing defects
+- ✅ **Security patches** — Security updates
+- ✅ **Dependency updates** — Updating dependencies
+- ✅ **Modernizations** — Code improvements without new features
 
 ### MINOR Version (1.x.0 → 1.y.0)
 
-- 🆕 **Neue Features** — Neue Funktionalität
-- 🔄 **Phase-Abschluss** — Eine komplette Phase wurde abgeschlossen
-- 🏗️ **Architektur-Änderungen** — Große strukturelle Verbesserungen
-- ⚠️ **Breaking Changes** — Änderungen, die Extensions betreffen könnten
+- 🆕 **New features** — New functionality
+- 🔄 **Phase completion** — An entire phase has been completed
+- 🏗️ **Architecture changes** — Major structural improvements
+- ⚠️ **Breaking changes** — Changes that may affect extensions
 
 ### MAJOR Version (x.0.0 → y.0.0)
 
-- 🚀 **Production Release** — System ist production-ready
-- 💥 **Massive Breaking Changes** — Grundlegende Architektur-Änderungen
-- 🎉 **Komplett neue Version** — Neue Generation des Systems
+- 🚀 **Production release** — System is production-ready
+- 💥 **Massive breaking changes** — Fundamental architecture changes
+- 🎉 **Completely new version** — New generation of the system
 
 ---
 
-## 🧭 Grundprinzipien
+## 🧭 Core Principles
 
-1. **PHP Version**: Minimum PHP 8.2 für moderne Features
-2. **Test First**: Jede Änderung muss durch Tests abgesichert sein
-3. **Incremental**: Kleine, testbare Schritte statt Big-Bang-Updates
-4. **Documentation**: Jede Phase produziert Dokumentation
-5. **No Backward Compatibility**: Radikal entfernen!
-6. **Security First**: Sicherheit hat immer Priorität!
+1. **PHP Version**: Minimum PHP 8.2 for modern features
+2. **Test First**: Every change must be backed by tests
+3. **Incremental**: Small, testable steps instead of big-bang updates
+4. **Documentation**: Every phase produces documentation
+5. **No Backward Compatibility**: Remove radically!
+6. **Security First**: Security always has priority!
 
-## ⚠️ Risikomanagement
+## ⚠️ Risk Management
 
-- ⚠️ **Breaking Changes** dokumentieren und kommunizieren
-- ⚠️ **Extension Compatibility** prüfen und migrieren, keine compatibility layer!
-- ⚠️ **Performance Regression** durch Benchmarking vermeiden
-- ⚠️ **Security Vulnerabilities** sofort patchen
-- ⚠️ **Technical Debt** kontinuierlich abbauen
+- ⚠️ **Breaking Changes** — Document and communicate
+- ⚠️ **Extension Compatibility** — Review and migrate, no compatibility layers!
+- ⚠️ **Performance Regression** — Prevent through benchmarking
+- ⚠️ **Security Vulnerabilities** — Patch immediately
+- ⚠️ **Technical Debt** — Reduce continuously

@@ -18,7 +18,7 @@
 
 This step installs a dev tool and runs mutation tests. No production code changes.
 
-**Before starting:** Branch from `develop` (Steps 2.1.6 + sufficient coverage merged).
+**Before starting:** Verify: Branch is Up-to-Date with `develop`. (Steps 2.1.6 + sufficient coverage merged).
 
 ---
 

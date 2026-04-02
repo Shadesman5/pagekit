@@ -15,7 +15,8 @@ class AuthorizationListener implements EventSubscriberInterface
         private readonly mixed $auth,
         private readonly mixed $authPassword,
         private readonly mixed $session,
-    ) {}
+    ) {
+    }
 
     /**
      * Initialize system.
@@ -75,12 +76,12 @@ class AuthorizationListener implements EventSubscriberInterface
         return [
             'request' => [
                 ['onRequest', 0],
-                ['onSystemInit', 50]
+                ['onSystemInit', 50],
             ],
             'auth.authorize' => 'onAuthorize',
-            'auth.login'     => ['onLogin', -8],
-            'auth.success'    => 'onSuccess',
-            'auth.failure'    => 'onFailure'
+            'auth.login' => ['onLogin', -8],
+            'auth.success' => 'onSuccess',
+            'auth.failure' => 'onFailure',
         ];
     }
 }

@@ -54,13 +54,15 @@ class DebugStatement extends AbstractStatementMiddleware
         }
 
         $this->logger->startQuery($this->sql, $this->params, $this->types);
-        
+
         try {
             $result = parent::execute($params);
             $this->logger->stopQuery();
+
             return $result;
         } catch (\Throwable $e) {
             $this->logger->stopQuery();
+
             throw $e;
         }
     }

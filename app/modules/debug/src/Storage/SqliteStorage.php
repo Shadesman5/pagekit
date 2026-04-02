@@ -40,11 +40,11 @@ class SqliteStorage extends PdoStorage
         $pdo->exec("CREATE INDEX IF NOT EXISTS idx_debugbar_meta_method ON $tableName (meta_method)");
 
         parent::__construct($pdo, $tableName, $sqlQueries);
-        
+
         // Clean up old entries to prevent unlimited database growth
         $this->cleanup();
     }
-    
+
     /**
      * Removes old entries keeping only the most recent ones.
      */
@@ -54,7 +54,7 @@ class SqliteStorage extends PdoStorage
             // Count total entries
             $stmt = $this->pdo->query("SELECT COUNT(*) FROM {$this->tableName}");
             $count = (int) $stmt->fetchColumn();
-            
+
             // If we have more than maxEntries, delete oldest ones
             if ($count > $this->maxEntries) {
                 $toDelete = $count - $this->maxEntries;

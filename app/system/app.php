@@ -13,7 +13,7 @@ $app->get('module')->register([
     'packages/*/*/index.php',
     'app/modules/*/index.php',
     'app/installer/index.php',
-    'app/system/index.php'
+    'app/system/index.php',
 ], $path);
 
 $app->get('module')->addLoader(new AutoLoader($app->get('autoloader')));

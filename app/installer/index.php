@@ -10,7 +10,7 @@ return [
 
     'main' => function ($app) {
 
-        $app->set('package', fn($app) => (new PackageFactory($app->get('url')))->addPath($app->get('path').'/packages/*/*/composer.json'));
+        $app->set('package', fn ($app) => (new PackageFactory($app->get('url')))->addPath($app->get('path').'/packages/*/*/composer.json'));
 
         if ($this->config['enabled']) {
 
@@ -25,7 +25,7 @@ return [
             $app->get('routes')->add([
                 'path' => '/installer',
                 'name' => '@installer',
-                'controller' => 'Pagekit\Installer\Controller\InstallerController'
+                'controller' => 'Pagekit\Installer\Controller\InstallerController',
             ]);
 
             $app->get('events')->on('request', function ($event, $request) use ($app) {
@@ -39,7 +39,7 @@ return [
 
             });
 
-            $app->get('events')->on('exception', new ExceptionListenerWrapper(fn(NotFoundException $e) => $app->get('router')->redirect('@installer')), -8);
+            $app->get('events')->on('exception', new ExceptionListenerWrapper(fn (NotFoundException $e) => $app->get('router')->redirect('@installer')), -8);
 
         }
 
@@ -51,7 +51,7 @@ return [
         'migration',
         'system/cache',
         'system/intl',
-        'system/view'
+        'system/view',
 
     ],
 
@@ -59,16 +59,16 @@ return [
 
         '/system/package' => [
             'name' => '@system/package',
-            'controller' => 'Pagekit\Installer\Controller\PackageController'
+            'controller' => 'Pagekit\Installer\Controller\PackageController',
         ],
         '/system/marketplace' => [
             'name' => '@system/marketplace',
-            'controller' => 'Pagekit\Installer\Controller\MarketplaceController'
+            'controller' => 'Pagekit\Installer\Controller\MarketplaceController',
         ],
         '/system/update' => [
             'name' => '@system/update',
-            'controller' => 'Pagekit\Installer\Controller\UpdateController'
-        ]
+            'controller' => 'Pagekit\Installer\Controller\UpdateController',
+        ],
 
     ],
 
@@ -76,7 +76,7 @@ return [
 
     'resources' => [
 
-        'installer:' => ''
+        'installer:' => '',
 
     ],
 
@@ -84,12 +84,12 @@ return [
 
         'system: manage packages' => [
             'title' => 'Manage extensions and themes',
-            'description' => 'Manage extensions and themes'
+            'description' => 'Manage extensions and themes',
         ],
         'system: software updates' => [
             'title' => 'Apply system updates',
-            'trusted' => true
-        ]
+            'trusted' => true,
+        ],
 
     ],
 
@@ -100,19 +100,19 @@ return [
             'icon' => 'installer:assets/images/icon-marketplace.svg',
             'url' => '@system/marketplace/extensions',
             'access' => 'system: manage packages',
-            'priority' => 125
+            'priority' => 125,
         ],
 
         'system: marketplace extensions' => [
             'label' => 'Extensions',
             'parent' => 'system: marketplace',
-            'url' => '@system/marketplace/extensions'
+            'url' => '@system/marketplace/extensions',
         ],
 
         'system: marketplace themes' => [
             'label' => 'Themes',
             'parent' => 'system: marketplace',
-            'url' => '@system/marketplace/themes'
+            'url' => '@system/marketplace/themes',
         ],
 
         'system: extensions' => [
@@ -120,7 +120,7 @@ return [
             'parent' => 'system: system',
             'url' => '@system/package/extensions',
             'access' => 'system: manage packages',
-            'priority' => 5
+            'priority' => 5,
         ],
 
         'system: themes' => [
@@ -128,15 +128,15 @@ return [
             'parent' => 'system: system',
             'url' => '@system/package/themes',
             'access' => 'system: manage packages',
-            'priority' => 10
+            'priority' => 10,
         ],
 
         'system: update' => [
             'label' => 'Update',
             'parent' => 'system: system',
             'url' => '@system/update',
-            'priority' => 25
-        ]
+            'priority' => 25,
+        ],
 
     ],
 
@@ -147,18 +147,18 @@ return [
             if ($installer && $installer->config('enabled')) {
                 $data('$pagekit', [
                     'url' => '/index.php',
-                    'csrf' => $app->get('csrf')->generate()
+                    'csrf' => $app->get('csrf')->generate(),
                 ]);
             }
-        }
+        },
 
     ],
 
     'config' => [
 
         'enabled' => false,
-        'release_channel' => 'stable'
+        'release_channel' => 'stable',
 
-    ]
+    ],
 
 ];

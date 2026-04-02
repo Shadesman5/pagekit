@@ -2,9 +2,9 @@
 
 namespace Pagekit\Debug\DataCollector;
 
+use DebugBar\DataCollector\AssetProvider;
 use DebugBar\DataCollector\DataCollector;
 use DebugBar\DataCollector\Renderable;
-use DebugBar\DataCollector\AssetProvider;
 use Pagekit\Database\Connection;
 use Pagekit\Debug\Middleware\DebugLogger;
 
@@ -40,7 +40,7 @@ class DatabaseDataCollector extends DataCollector implements Renderable, AssetPr
                     'sql' => $q['sql'],
                     'params' => (object) $this->formatParameters($params),
                     'duration' => $q['executionMS'] ?? 0,
-                    'duration_str' => $this->formatQueryDuration($q['executionMS'] ?? 0)
+                    'duration_str' => $this->formatQueryDuration($q['executionMS'] ?? 0),
                 ];
                 $totalTime += $q['executionMS'] ?? 0;
             }
@@ -50,13 +50,13 @@ class DatabaseDataCollector extends DataCollector implements Renderable, AssetPr
             'nb_statements' => count($queries),
             'accumulated_duration' => $totalTime,
             'accumulated_duration_str' => $this->formatQueryDuration($totalTime),
-            'statements' => $queries
+            'statements' => $queries,
         ];
     }
-    
+
     /**
      * Format parameters for display
-     * 
+     *
      * @param array $params
      * @return array
      */
@@ -68,12 +68,13 @@ class DatabaseDataCollector extends DataCollector implements Renderable, AssetPr
             } elseif (is_array($param)) {
                 return '[' . implode(', ', $this->formatParameters($param)) . ']';
             } elseif (is_numeric($param)) {
-                return strval($param);
+                return (string) $param;
             } elseif ($param instanceof \DateTimeInterface) {
                 return $param->format('Y-m-d H:i:s');
             } elseif (is_object($param)) {
                 return json_encode($param);
             }
+
             return $param ?: '';
         }, $params);
     }
@@ -96,15 +97,15 @@ class DatabaseDataCollector extends DataCollector implements Renderable, AssetPr
                 'icon' => 'inbox',
                 'widget' => 'PhpDebugBar.Widgets.SQLQueriesWidget',
                 'map' => 'database',
-                'default' => '[]'
+                'default' => '[]',
             ],
             'database:badge' => [
                 'map' => 'database.nb_statements',
-                'default' => 0
-            ]
+                'default' => 0,
+            ],
         ];
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -112,13 +113,13 @@ class DatabaseDataCollector extends DataCollector implements Renderable, AssetPr
     {
         return [
             'css' => 'widgets/sqlqueries/widget.css',
-            'js' => 'widgets/sqlqueries/widget.js'
+            'js' => 'widgets/sqlqueries/widget.js',
         ];
     }
 
     /**
      * Format query duration in milliseconds to a readable string.
-     * 
+     *
      * @param float $ms Duration in milliseconds
      * @return string Formatted duration string
      */
@@ -130,6 +131,7 @@ class DatabaseDataCollector extends DataCollector implements Renderable, AssetPr
         if ($ms < 1000) {
             return round($ms, 2) . 'ms';
         }
+
         return round($ms / 1000, 2) . 's';
     }
 }

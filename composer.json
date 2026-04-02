@@ -1,7 +1,7 @@
 {
   "name": "pagekit/pagekit",
   "title": "Pagekit",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "type": "project",
   "description": "The Pagekit CMS",
   "keywords": [
@@ -65,7 +65,12 @@
     "symfony/var-dumper": "^6.4",
     "symfony/web-profiler-bundle": "^6.4",
     "symfony/browser-kit": "^6.4",
-    "symfony/debug-bundle": "^6.4"
+    "symfony/debug-bundle": "^6.4",
+    "phpstan/phpstan": "^2.1",
+    "phpstan/phpstan-doctrine": "^2.0",
+    "phpstan/phpstan-symfony": "^2.0",
+    "roave/security-advisories": "dev-latest",
+    "friendsofphp/php-cs-fixer": "^3.94"
   },
   "autoload": {
     "psr-4": {

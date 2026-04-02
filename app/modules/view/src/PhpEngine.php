@@ -4,7 +4,7 @@ namespace Pagekit\View;
 
 /**
  * PHP Template Engine - Independent from Symfony Templating Component
- * 
+ *
  * This is a minimal implementation to support existing PHP templates
  * while we migrate to Twig for new templates.
  */
@@ -19,7 +19,7 @@ class PhpEngine
     protected $cache = [];
     protected $loader;
     protected $parser;
-    
+
     /**
      * Constructor.
      */
@@ -28,27 +28,28 @@ class PhpEngine
         // We don't really need these anymore but keep for compatibility
         $this->parser = $parser;
         $this->loader = $loader;
-        
+
         foreach ($helpers as $helper) {
             $this->addHelper($helper);
         }
     }
-    
+
     /**
      * Renders a template.
      */
     public function render($name, array $parameters = []): string
     {
         $loaded = $this->load($name);
-        
+
         if ($loaded === false) {
             throw new \RuntimeException(sprintf('Unable to load template "%s"', $name));
         }
-        
+
         $result = $this->evaluate($loaded, $parameters);
+
         return $result;
     }
-    
+
     /**
      * Returns true if the template exists.
      */
@@ -59,24 +60,25 @@ class PhpEngine
             if (is_object($name)) {
                 return true;
             }
-            
+
             // Use the loader if available
             if ($this->loader) {
                 $storage = $this->loader->load($name);
+
                 return $storage !== false;
             }
-            
+
             // Without a loader, check if it's a file
             if (is_string($name) && file_exists($name)) {
                 return true;
             }
-            
+
             return false;
         } catch (\Exception $e) {
             return false;
         }
     }
-    
+
     /**
      * Returns true if this engine supports the given template.
      */
@@ -86,9 +88,10 @@ class PhpEngine
             // Support .php files
             return str_ends_with($name, '.php');
         }
+
         return true; // Support all for backward compatibility
     }
-    
+
     /**
      * Loads a template.
      */
@@ -98,39 +101,43 @@ class PhpEngine
         if (is_object($name)) {
             return $name;
         }
-        
+
         // Use the loader if available
         if ($this->loader) {
             $storage = $this->loader->load($name);
             if ($storage !== false) {
                 return $storage;
             }
+
             // Return false if loader couldn't find it
             return false;
         }
-        
+
         // Without a loader, check if it's a direct file path
         if (file_exists($name)) {
-            return new class($name) {
+            return new class ($name) {
                 private $template;
-                
-                public function __construct($template) {
+
+                public function __construct($template)
+                {
                     $this->template = $template;
                 }
-                
-                public function getTemplate() {
+
+                public function getTemplate()
+                {
                     return $this->template;
                 }
-                
-                public function __toString() {
+
+                public function __toString()
+                {
                     return $this->template;
                 }
             };
         }
-        
+
         return false;
     }
-    
+
     /**
      * Evaluates a template.
      */
@@ -140,26 +147,26 @@ class PhpEngine
         $templateKey = is_object($template) ? spl_object_hash($template) : (string) $template;
         $this->current = $templateKey;
         $this->parents[$templateKey] = null;
-        
+
         // Add globals to parameters
         $parameters = array_replace($this->globals, $parameters);
-        
+
         // Add helpers
         foreach ($this->helpers as $name => $helper) {
             $parameters[$name] = $helper;
         }
-        
+
         // Start output buffering
         ob_start();
-        
+
         // Extract variables
         extract($parameters, EXTR_SKIP);
-        
+
         try {
             // Handle different storage types - ONLY file-based templates (security hardening)
             if (is_object($template)) {
                 $templatePath = (string) $template;
-                
+
                 // Check if it's a file path
                 if (file_exists($templatePath)) {
                     require $templatePath;
@@ -173,15 +180,16 @@ class PhpEngine
                     throw new \RuntimeException(sprintf('Template file not found: %s', $template));
                 }
             }
-            
+
             return ob_get_clean();
-            
+
         } catch (\Exception $e) {
             ob_end_clean();
+
             throw $e;
         }
     }
-    
+
     /**
      * Adds a global parameter.
      */
@@ -189,7 +197,7 @@ class PhpEngine
     {
         $this->globals[$name] = $value;
     }
-    
+
     /**
      * Sets a helper.
      */
@@ -197,7 +205,7 @@ class PhpEngine
     {
         $this->helpers[$helper->getName()] = $helper;
     }
-    
+
     /**
      * Gets a helper.
      */
@@ -206,10 +214,10 @@ class PhpEngine
         if (!isset($this->helpers[$name])) {
             throw new \InvalidArgumentException(sprintf('The helper "%s" is not defined.', $name));
         }
-        
+
         return $this->helpers[$name];
     }
-    
+
     /**
      * Returns true if the helper is defined.
      */
@@ -217,7 +225,7 @@ class PhpEngine
     {
         return isset($this->helpers[$name]);
     }
-    
+
     /**
      * Escapes a string by using the current charset.
      */
@@ -227,17 +235,17 @@ class PhpEngine
         if ($value === null) {
             return '';
         }
-        
+
         // Convert to string if needed
         $value = (string) $value;
-        
+
         if ($context === 'html') {
             return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, $this->charset);
         }
-        
+
         return $value;
     }
-    
+
     /**
      * Sets the charset to use.
      */
@@ -245,7 +253,7 @@ class PhpEngine
     {
         $this->charset = $charset;
     }
-    
+
     /**
      * Gets the current charset.
      */
@@ -253,7 +261,7 @@ class PhpEngine
     {
         return $this->charset;
     }
-    
+
     /**
      * Returns the assigned globals.
      */

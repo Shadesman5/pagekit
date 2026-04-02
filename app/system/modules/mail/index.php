@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 use Pagekit\Mail\Mailer;
 use Pagekit\Mail\Plugin\ImpersonatePlugin;
-use Symfony\Component\Mailer\Transport\Dsn;
-use Symfony\Component\Mailer\Transport\TransportInterface;
-use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 use Symfony\Component\Mailer\Transport\SendmailTransport;
-use Symfony\Component\Mailer\Transport\TransportFactory;
+use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 
 return [
     'name' => 'system/mail',
@@ -43,7 +40,7 @@ return [
                 } elseif (empty($this->config['encryption'])) {
                     $useTls = false;  // No encryption at all
                 }
-                
+
                 $transport = new EsmtpTransport(
                     $this->config['host'],
                     (int) $this->config['port'],
@@ -60,7 +57,7 @@ return [
 
             if ($driver === 'mail') {
                 $sendMailPath = ini_get('sendmail_path') ?: '/usr/sbin/sendmail -bs';
-                
+
                 // Fix for Windows/Mailpit: Ensure sendmail path has proper flags
                 if ($sendMailPath && !preg_match('/\s+-(bs|t)(\s|$)/', $sendMailPath)) {
                     // If no valid flags are present, append -t flag
@@ -72,10 +69,10 @@ return [
                         $sendMailPath .= ' -bs';
                     }
                 }
-                
+
                 return new SendmailTransport($sendMailPath);
             }
-            
+
             throw new \InvalidArgumentException(sprintf('Unsupported mail driver: %s', $driver));
         });
 
@@ -83,15 +80,15 @@ return [
 
     'autoload' => [
 
-        'Pagekit\\Mail\\' => 'src'
+        'Pagekit\\Mail\\' => 'src',
 
     ],
 
     'routes' => [
 
         '/system' => [
-            'name' => '@system', 'controller' => 'Pagekit\\Mail\\Controller\\MailController'
-        ]
+            'name' => '@system', 'controller' => 'Pagekit\\Mail\\Controller\\MailController',
+        ],
 
     ],
     'events' => [
@@ -100,7 +97,7 @@ return [
             $view->data('$mail', ['ssl' => extension_loaded('openssl')]);
             $view->data('$settings', ['options' => [$this->name => $this->config]]);
             $view->script('settings-mail', 'app/system/modules/mail/app/bundle/settings.js', 'settings');
-        }
+        },
 
     ],
     'config' => [
@@ -113,7 +110,7 @@ return [
         'encryption' => null,
         'auth_mode' => null,
         'from_name' => null,
-        'from_address' => null
-    ]
+        'from_address' => null,
+    ],
 
 ];

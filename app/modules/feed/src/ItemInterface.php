@@ -59,7 +59,7 @@ interface ItemInterface
      * Adds an attachment.
      *
      * @param  string  $url
-     * @param  integer $length
+     * @param  int $length
      * @param  string  $type
      * @param  bool    $multiple
      */

@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Controller;
 
+use function Pagekit\__;
+
 use Pagekit\Auth\Auth;
 use Pagekit\Auth\Exception\AuthException;
 use Pagekit\Auth\Exception\BadCredentialsException;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\Session\Csrf\Exception\CsrfException;
-use function Pagekit\__;
 
 class AuthController
 {
@@ -25,7 +26,8 @@ class AuthController
         private readonly mixed $response,
         private readonly mixed $message,
         private readonly mixed $router,
-    ) {}
+    ) {
+    }
 
     #[Route(defaults: ['_maintenance' => true])]
     #[Request(['redirect' => 'string'])]
@@ -42,10 +44,10 @@ class AuthController
         return [
             '$view' => [
                 'title' => __('Login'),
-                'name' => 'system/user/login.php'
+                'name' => 'system/user/login.php',
             ],
             'last_username' => $this->session->get(Auth::LAST_USERNAME),
-            'redirect' => $redirect
+            'redirect' => $redirect,
         ];
     }
 
@@ -55,7 +57,7 @@ class AuthController
         if ($redirect === null) {
             $redirect = $this->request->get('redirect', '');
         }
-        
+
         if (($event = $this->auth->logout()) && $event->hasResponse()) {
             return $event->getResponse();
         }
@@ -70,7 +72,7 @@ class AuthController
             $credentials = $this->request->request->all()['credentials'] ?? [];
             $remember = (bool) ($this->request->request->get('remember_me') ?? false);
             $redirect = $this->request->request->get('redirect') ?? '';
-            
+
             if (empty($credentials) && $this->request->getContent()) {
                 $data = json_decode($this->request->getContent(), true);
                 if ($data) {
@@ -79,7 +81,7 @@ class AuthController
                     $redirect = $data['redirect'] ?? '';
                 }
             }
-            
+
             if (!$this->csrf->validate()) {
                 throw new CsrfException(__('Invalid token. Please try again.'));
             }
@@ -111,6 +113,7 @@ class AuthController
             return $this->response->json($error, 401);
         } else {
             $this->message->error($error);
+
             return $this->doRedirect($this->url->previous());
         }
     }
@@ -120,6 +123,7 @@ class AuthController
         do {
             $url = preg_replace('#^(https?:)?//[^/]+#', '', $url, 1, $count);
         } while ($count);
+
         return $this->router->redirect($url);
     }
 }

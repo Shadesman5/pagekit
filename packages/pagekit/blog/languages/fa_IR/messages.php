@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Filter by' => 'فیلتر با',
   'Thank you! Your comment needs approval before showing up.' => 'متشکریم! دیدگاه شما قبل از نمایش نیاز به تایید دارد.',
   'Unable to comment. Please try again later.' => 'ارسال دیدگاه ممکن نیست. لطفا بعدا دوباره تلاش کنید.',
@@ -94,4 +96,4 @@
   'Written by %name% on %date%' => 'نوشته شده توسط %name% در %date%',
   'Read more' => 'بیشتر بخوانید',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} بدون دیدگاه|{1} %count% دیدگاه|]1,Inf[ %count% دیدگاه',
-);
+];

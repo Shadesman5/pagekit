@@ -2,9 +2,9 @@
 
 namespace Pagekit\Tests;
 
-use PHPUnit\Framework\TestCase;
 use Pagekit\Container;
 use Pagekit\Container\NotFoundException;
+use PHPUnit\Framework\TestCase;
 use Psr\Container\NotFoundExceptionInterface;
 
 /**
@@ -43,14 +43,14 @@ class ContainerTest extends TestCase
         $this->container->set('string', 'hello');
         $this->assertEquals('hello', $this->container->get('string'));
 
-        $closure = fn() => 'from_closure';
+        $closure = fn () => 'from_closure';
         $this->container->set('closure_service', $closure);
         $this->assertEquals('from_closure', $this->container->get('closure_service'));
 
         // Resolved service cannot be overridden
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Cannot override service definition "closure_service"');
-        $this->container->set('closure_service', fn() => 'new');
+        $this->container->set('closure_service', fn () => 'new');
     }
 
     /**
@@ -61,6 +61,7 @@ class ContainerTest extends TestCase
         $this->container->set('service', function ($c) {
             $obj = new \stdClass();
             $obj->container = $c;
+
             return $obj;
         });
 
@@ -81,6 +82,7 @@ class ContainerTest extends TestCase
         $counter = 0;
         $this->container->factory('factory', function () use (&$counter) {
             $counter++;
+
             return $counter;
         });
 
@@ -94,7 +96,7 @@ class ContainerTest extends TestCase
      */
     public function testExtend(): void
     {
-        $this->container->set('service', fn() => 'original');
+        $this->container->set('service', fn () => 'original');
 
         $this->container->extend('service', function ($original, $c) {
             return $original . '-extended';
@@ -108,7 +110,7 @@ class ContainerTest extends TestCase
      */
     public function testExtendOnResolvedServiceUpdatesRaw(): void
     {
-        $this->container->set('service', fn() => 'original');
+        $this->container->set('service', fn () => 'original');
 
         $resolved = $this->container->get('service');
         $this->assertEquals('original', $resolved);
@@ -129,7 +131,7 @@ class ContainerTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('"non.existent" is not defined');
 
-        $this->container->extend('non.existent', fn($s) => $s);
+        $this->container->extend('non.existent', fn ($s) => $s);
     }
 
     /**
@@ -142,7 +144,7 @@ class ContainerTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('"scalar" service definition is not a Closure');
 
-        $this->container->extend('scalar', fn($s) => $s);
+        $this->container->extend('scalar', fn ($s) => $s);
     }
 
     /**
@@ -150,7 +152,7 @@ class ContainerTest extends TestCase
      */
     public function testRaw(): void
     {
-        $closure = fn() => 'value';
+        $closure = fn () => 'value';
         $this->container->set('service', $closure);
 
         // Before resolution
@@ -214,7 +216,7 @@ class ContainerTest extends TestCase
      */
     public function testSetThrowsExceptionWhenOverriding(): void
     {
-        $this->container->set('service', fn() => 'value');
+        $this->container->set('service', fn () => 'value');
 
         // Resolve the service
         $value = $this->container->get('service');
@@ -234,7 +236,7 @@ class ContainerTest extends TestCase
         $container = new Container([
             'param1' => 'value1',
             'param2' => 'value2',
-            'service' => fn() => 'service_value'
+            'service' => fn () => 'service_value',
         ]);
 
         $this->assertEquals('value1', $container->get('param1'));

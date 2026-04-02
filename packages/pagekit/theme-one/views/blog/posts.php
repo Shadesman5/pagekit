@@ -37,19 +37,19 @@
 
     <?php
 
-        $range     = 3;
-        $total     = (int) $total;
-        $page      = (int) $page;
-        $pageIndex = $page - 1;
+        $range = 3;
+$total = (int) $total;
+$page = (int) $page;
+$pageIndex = $page - 1;
 
-    ?>
+?>
 
     <?php if ($total > 1) : ?>
     <ul class="uk-pagination uk-flex-center">
 
 
-        <?php for($i=1;$i<=$total;$i++): ?>
-            <?php if ($i <= ($pageIndex+$range) && $i >= ($pageIndex-$range)): ?>
+        <?php for ($i = 1;$i <= $total;$i++): ?>
+            <?php if ($i <= ($pageIndex + $range) && $i >= ($pageIndex - $range)): ?>
 
                 <?php if ($i === $page): ?>
                 <li class="uk-active"><span><?=$i?></span></li>
@@ -59,14 +59,14 @@
                 </li>
                 <?php endif; ?>
 
-            <?php elseif($i==1): ?>
+            <?php elseif ($i == 1): ?>
 
                 <li>
                     <a href="<?= $view->url('@blog/page', ['page' => 1]) ?>">1</a>
                 </li>
                 <li><span>...</span></li>
 
-            <?php elseif($i==$total): ?>
+            <?php elseif ($i == $total): ?>
 
                 <li><span>...</span></li>
                 <li>

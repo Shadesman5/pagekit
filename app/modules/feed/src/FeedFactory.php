@@ -10,7 +10,7 @@ class FeedFactory
     protected array $feeds = [
         Feed::ATOM => 'Pagekit\Feed\Feed\Atom',
         Feed::RSS1 => 'Pagekit\Feed\Feed\RSS1',
-        Feed::RSS2 => 'Pagekit\Feed\Feed\RSS2'
+        Feed::RSS2 => 'Pagekit\Feed\Feed\RSS2',
     ];
 
     /**
@@ -22,7 +22,8 @@ class FeedFactory
     public function create($type = null, array $elements = []): FeedInterface
     {
         $class = isset($this->feeds[$type]) ? $this->feeds[$type] : $this->feeds[Feed::RSS2];
-        return (new $class)->addElements($elements);
+
+        return (new $class())->addElements($elements);
     }
 
     /**

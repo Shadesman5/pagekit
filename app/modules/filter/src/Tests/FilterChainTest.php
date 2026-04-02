@@ -2,16 +2,16 @@
 
 namespace Pagekit\Filter\Tests;
 
-use PHPUnit\Framework\TestCase;
 use Pagekit\Filter\FilterChain;
+use PHPUnit\Framework\TestCase;
 
 class FilterChainTest extends TestCase
 {
     public function testAttach(): void
     {
-        $chain = new FilterChain;
+        $chain = new FilterChain();
 
-        $chain->attach(fn($value) => $value);
+        $chain->attach(fn ($value) => $value);
         $this->assertCount(1, $chain->getFilters());
     }
 
@@ -19,17 +19,17 @@ class FilterChainTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        $chain = new FilterChain;
+        $chain = new FilterChain();
 
-        $chain->attach(new \stdClass);
+        $chain->attach(new \stdClass());
     }
 
     public function testMerge(): void
     {
-        $chain = new FilterChain;
+        $chain = new FilterChain();
         $chain->attach($this->getFilterMock());
 
-        $chain2 = new FilterChain;
+        $chain2 = new FilterChain();
         $chain2->attach($this->getFilterMock());
         $chain->merge($chain2);
 
@@ -38,7 +38,7 @@ class FilterChainTest extends TestCase
 
     public function testCount(): void
     {
-        $chain = new FilterChain;
+        $chain = new FilterChain();
         $this->assertCount(0, $chain);
 
         $chain->attach($this->getFilterMock());
@@ -50,8 +50,8 @@ class FilterChainTest extends TestCase
 
     public function testFilter(): void
     {
-        $chain = new FilterChain;
-        $chain->attach(fn($value) => 'filtered_'.$value);
+        $chain = new FilterChain();
+        $chain->attach(fn ($value) => 'filtered_'.$value);
 
         $value = 'TEST';
         $this->assertEquals('filtered_TEST', $chain->filter($value));

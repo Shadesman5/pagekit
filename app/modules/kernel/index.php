@@ -24,11 +24,11 @@ return [
             return new HttpKernel($app->get('events'), $app->get('request.stack'));
         });
 
-        $app->set('resolver', fn($app) => new ControllerResolver($app));
+        $app->set('resolver', fn ($app) => new ControllerResolver($app));
 
-        $app->factory('request', fn($app) => $app->get('request.stack')->getCurrentRequest());
+        $app->factory('request', fn ($app) => $app->get('request.stack')->getCurrentRequest());
 
-        $app->set('request.stack', fn() => new RequestStack());
+        $app->set('request.stack', fn () => new RequestStack());
 
     },
 
@@ -47,14 +47,14 @@ return [
                 $event->setResponse($app->get('router')->redirect(rtrim($request->getUriForPath($path), '/'), [], 301));
             }
 
-        }, 200]
+        }, 200],
 
     ],
 
     'autoload' => [
 
-        'Pagekit\\Kernel\\' => 'src'
+        'Pagekit\\Kernel\\' => 'src',
 
-    ]
+    ],
 
 ];

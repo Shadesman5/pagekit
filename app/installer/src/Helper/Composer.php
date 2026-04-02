@@ -3,7 +3,6 @@
 namespace Pagekit\Installer\Helper;
 
 use Composer\Installer;
-use Composer\IO\ConsoleIO;
 use Composer\Json\JsonFile;
 use Composer\Package\Locker;
 use Composer\Package\Package;
@@ -39,8 +38,8 @@ class Composer
         $this->blueprint = [
             'repositories' => [
                 ['type' => 'artifact', 'url' => $config['path.artifact']],
-                ['type' => 'composer', 'url' => $config['system.api']]
-            ]
+                ['type' => 'composer', 'url' => $config['system.api']],
+            ],
         ];
     }
 
@@ -60,7 +59,8 @@ class Composer
             try {
                 $normalized = $versionParser->normalize($version);
                 $refresh[] = new Package($name, $normalized, $version);
-            } catch (\UnexpectedValueException $e) {}
+            } catch (\UnexpectedValueException $e) {
+            }
         }
 
         $this->composerUpdate(array_keys($install), $refresh, $packagist, $preferSource);
@@ -98,7 +98,7 @@ class Composer
         $installed = $this->paths['path.packages'] . '/composer/installed.json';
         $installed = file_exists($installed) ? json_decode(file_get_contents($installed), true) : [];
 
-        $installed = array_map(fn($pkg) => $pkg['name'], $installed);
+        $installed = array_map(fn ($pkg) => $pkg['name'], $installed);
 
         return in_array($name, $installed);
     }
@@ -168,7 +168,7 @@ class Composer
 
         Factory::bootstrap([
             'home' => $this->paths['path.temp'] . '/composer',
-            'cache-dir' => $this->paths['path.temp'] . '/composer/cache'
+            'cache-dir' => $this->paths['path.temp'] . '/composer/cache',
         ]);
 
         $composer = Factory::create($this->getIO(), $config);
@@ -235,10 +235,10 @@ class Composer
         switch ($unit) {
             case 'g':
                 $value *= 1024;
-            // no break (cumulative multiplier)
+                // no break (cumulative multiplier)
             case 'm':
                 $value *= 1024;
-            // no break (cumulative multiplier)
+                // no break (cumulative multiplier)
             case 'k':
                 $value *= 1024;
         }

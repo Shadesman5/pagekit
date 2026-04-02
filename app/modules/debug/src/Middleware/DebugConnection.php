@@ -6,7 +6,6 @@ use Doctrine\DBAL\Driver\Connection as ConnectionInterface;
 use Doctrine\DBAL\Driver\Middleware\AbstractConnectionMiddleware;
 use Doctrine\DBAL\Driver\Result;
 use Doctrine\DBAL\Driver\Statement;
-use Doctrine\DBAL\ParameterType;
 
 /**
  * Connection middleware that logs SQL queries.
@@ -39,13 +38,15 @@ class DebugConnection extends AbstractConnectionMiddleware
     public function query(string $sql): Result
     {
         $this->logger->startQuery($sql);
-        
+
         try {
             $result = parent::query($sql);
             $this->logger->stopQuery();
+
             return $result;
         } catch (\Throwable $e) {
             $this->logger->stopQuery();
+
             throw $e;
         }
     }
@@ -56,13 +57,15 @@ class DebugConnection extends AbstractConnectionMiddleware
     public function exec(string $sql): int
     {
         $this->logger->startQuery($sql);
-        
+
         try {
             $result = parent::exec($sql);
             $this->logger->stopQuery();
+
             return $result;
         } catch (\Throwable $e) {
             $this->logger->stopQuery();
+
             throw $e;
         }
     }

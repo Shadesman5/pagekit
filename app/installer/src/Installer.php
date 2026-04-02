@@ -17,7 +17,6 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 class Installer
 {
-
     protected string $configFile = 'config.php';
 
 
@@ -77,9 +76,9 @@ class Installer
             }
 
         } catch (\Exception $e) {
-            
+
             $message = $e->getMessage();
-            
+
             if ($e->getCode() == 1045) {
                 $message = __('Database access denied!');
             }
@@ -94,7 +93,7 @@ class Installer
         $message = $status['message'];
         $status = $status['status'];
 
-        $demo_content =  false;
+        $demo_content = false;
         if (isset($option['demo_content']) && $option['demo_content']) {
             $demo_content = true;
             unset($option['demo_content']);
@@ -112,7 +111,7 @@ class Installer
 
             // Execute database migrations to create schema
             $this->runMigrations();
-            
+
             // Execute additional setup (config initialization, etc.)
             // NOTE: scripts.php 'install' hook is executed AFTER migrations
             $scripts = new PackageScripts($this->app->get('path').'/app/system/scripts.php', null, $this->app);
@@ -125,7 +124,7 @@ class Installer
                 'status' => 1,
                 'email' => $user['email'],
                 'registered' => date('Y-m-d H:i:s'),
-                'roles' => '2,3'
+                'roles' => '2,3',
             ]);
 
             $option['system']['version'] = $this->app->get('version');
@@ -139,7 +138,7 @@ class Installer
             } catch (\Exception $e) {
                 throw new \Exception("Error creating PackageManager: " . $e->getMessage(), 0, $e);
             }
-            
+
             foreach (glob($this->app->get('path.packages') . '/*/*/composer.json') as $package) {
                 try {
                     $package = $this->app->get('package')->load($package);
@@ -149,6 +148,7 @@ class Installer
                         sprintf('Failed to load package from "%s": %s', basename(dirname($package)), $e->getMessage()),
                         ['exception' => $e]
                     );
+
                     continue;
                 }
                 if ($package->get('type') === 'pagekit-extension' || $package->get('type') === 'pagekit-theme') {
@@ -158,8 +158,9 @@ class Installer
                         // Log the error but continue with other packages during installation
                         // The package will NOT be marked as enabled due to rollback in PackageManager
                         $this->app->get('log')->error(
-                            sprintf('Failed to enable package "%s" during installation: %s', 
-                                $package->get('name'), 
+                            sprintf(
+                                'Failed to enable package "%s" during installation: %s',
+                                $package->get('name'),
                                 $e->getMessage()
                             ),
                             ['exception' => $e]
@@ -246,7 +247,7 @@ class Installer
         // Initialize migration system if needed
         if (!$migrationService->isInitialized()) {
             $initResult = $migrationService->initialize();
-            
+
             if (!$initResult['success']) {
                 throw new \RuntimeException(
                     'Failed to initialize migration system: ' . ($initResult['error'] ?? 'Unknown error')

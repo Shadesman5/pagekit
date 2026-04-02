@@ -102,6 +102,7 @@ class DatabaseSessionHandler implements \SessionHandlerInterface
 
             if (null !== $sql = $this->getMergeSql()) {
                 $this->connection->executeQuery($sql, $params);
+
                 return true;
             }
 

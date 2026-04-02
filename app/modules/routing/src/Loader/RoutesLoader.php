@@ -53,7 +53,7 @@ class RoutesLoader implements LoaderInterface
                 }
 
             } else {
-                
+
                 $this->addRoute($route);
 
             }

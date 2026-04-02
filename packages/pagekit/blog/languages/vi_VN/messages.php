@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Filter by' => 'Lọc theo',
   'Thank you! Your comment needs approval before showing up.' => 'Cám ơn bạn! Bình luận của bạn cần được kiểm duyệt trước khi hiển thị.',
   'Unable to comment. Please try again later.' => 'Không thể bình luận. Vui lòng thử lại sau.',
@@ -94,4 +96,4 @@
   'Written by %name% on %date%' => 'Được viết bởi %name% ngày %date%',
   'Read more' => 'Đọc thêm',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Không có các bình luận|{1} %count% Bình luận|]1,Inf[ %count% Các bình luận',
-);
+];

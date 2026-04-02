@@ -2,11 +2,11 @@
 
 namespace Pagekit\Filesystem\Tests\Adapter;
 
-use PHPUnit\Framework\TestCase;
-use Pagekit\Tests\FileUtil;
 use Pagekit\Filesystem\Adapter\StreamAdapter;
 use Pagekit\Filesystem\Filesystem;
 use Pagekit\Filesystem\StreamWrapper;
+use Pagekit\Tests\FileUtil;
+use PHPUnit\Framework\TestCase;
 
 class StreamAdapterTest extends TestCase
 {
@@ -18,8 +18,8 @@ class StreamAdapterTest extends TestCase
 
     public function setUp(): void
     {
-        $this->file      = new Filesystem;
-        $this->fixtures  = dirname(__DIR__).'/Fixtures';
+        $this->file = new Filesystem();
+        $this->fixtures = dirname(__DIR__).'/Fixtures';
         $this->workspace = $this->getTempDir('filesystem_');
 
         $this->file->registerAdapter('temp', new StreamAdapter($this->workspace));

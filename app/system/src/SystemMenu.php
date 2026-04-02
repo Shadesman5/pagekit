@@ -15,7 +15,8 @@ class SystemMenu implements \IteratorAggregate, \JsonSerializable
         private readonly User $user,
         private readonly Request $request,
         private readonly UrlProvider $url,
-    ) {}
+    ) {
+    }
 
     /**
      * Gets all menu items.
@@ -54,14 +55,14 @@ class SystemMenu implements \IteratorAggregate, \JsonSerializable
      */
     public function addItem($id, array $item): void
     {
-        $meta  = $this->user->get('admin.menu', []);
+        $meta = $this->user->get('admin.menu', []);
         $route = $this->request->attributes->get('_route');
 
         $item = new ArrObject($item, [
             'id' => $id,
             'label' => $id,
             'parent' => 'root',
-            'priority' => 0
+            'priority' => 0,
         ]);
 
         if (!$this->user->hasAccess($item['access'])) {

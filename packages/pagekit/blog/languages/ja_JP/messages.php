@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Filter by' => '',
   'Thank you! Your comment needs approval before showing up.' => '',
   'Unable to comment. Please try again later.' => '',
@@ -94,4 +96,4 @@
   'Written by %name% on %date%' => '%name% によって %date%に書かれました',
   'Read more' => '続きを読む',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} コメントはありません |{1} %count% コメント|]1,Inf[ %count% コメント',
-);
+];

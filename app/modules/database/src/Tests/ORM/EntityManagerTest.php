@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Pagekit\Database\Tests\ORM;
 
-use PHPUnit\Framework\TestCase;
 use Pagekit\Database\Connection;
 use Pagekit\Database\ORM\EntityManager;
 use Pagekit\Database\ORM\Metadata;
 use Pagekit\Database\ORM\MetadataManager;
 use Pagekit\Event\EventDispatcherInterface;
+use PHPUnit\Framework\TestCase;
 
 class EntityManagerTest extends TestCase
 {
@@ -21,13 +21,13 @@ class EntityManagerTest extends TestCase
     {
         // Create mock connection
         $this->connection = $this->createMock(Connection::class);
-        
+
         // Create mock metadata manager
         $this->metadataManager = $this->createMock(MetadataManager::class);
-        
+
         // Create mock event dispatcher
         $events = $this->createMock(EventDispatcherInterface::class);
-        
+
         // Create entity manager
         $this->manager = new EntityManager(
             $this->connection,
@@ -56,13 +56,13 @@ class EntityManagerTest extends TestCase
     public function testExistsReturnsFalseForNewEntity(): void
     {
         $entity = new \stdClass();
-        
+
         $metadata = $this->createMock(Metadata::class);
         $metadata->method('getIdentifier')->willReturn('id');
         $metadata->method('getValue')->willReturn(null);
-        
+
         $this->metadataManager->method('get')->willReturn($metadata);
-        
+
         $this->assertFalse($this->manager->exists($entity));
     }
 
@@ -74,7 +74,7 @@ class EntityManagerTest extends TestCase
             ->method('get')
             ->with('TestClass')
             ->willReturn($metadata);
-        
+
         $result = $this->manager->getMetadata('TestClass');
         $this->assertSame($metadata, $result);
     }
@@ -83,17 +83,17 @@ class EntityManagerTest extends TestCase
     {
         $metadata = $this->createMock(Metadata::class);
         $entity = new \stdClass();
-        
+
         $metadata->expects($this->once())
             ->method('newInstance')
             ->willReturn($entity);
-        
+
         $metadata->expects($this->once())
             ->method('setValues')
             ->with($entity, ['id' => 1, 'name' => 'Test'], true, true);
-        
+
         $result = $this->manager->load($metadata, ['id' => 1, 'name' => 'Test'], true, true);
-        
+
         $this->assertSame($entity, $result);
     }
 }

@@ -11,16 +11,17 @@ class InfoController
 {
     public function __construct(
         private readonly mixed $info,
-    ) {}
+    ) {
+    }
 
     public function indexAction(): array
     {
         return [
             '$view' => [
                 'title' => __('Info'),
-                'name'  => 'system:modules/info/views/info.php'
+                'name' => 'system:modules/info/views/info.php',
             ],
-            '$info' => $this->info->get()
+            '$info' => $this->info->get(),
         ];
     }
 }

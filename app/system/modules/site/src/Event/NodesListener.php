@@ -11,7 +11,8 @@ class NodesListener implements EventSubscriberInterface
     public function __construct(
         private readonly Module $site,
         private readonly mixed $routes,
-    ) {}
+    ) {
+    }
 
     /**
      * Registers node routes
@@ -19,9 +20,9 @@ class NodesListener implements EventSubscriberInterface
     public function onRequest(): void
     {
         $frontpage = $this->site->config('frontpage');
-        $nodes     = Node::findAll(true);
+        $nodes = Node::findAll(true);
 
-        uasort($nodes, function($a, $b) {
+        uasort($nodes, function ($a, $b) {
             return strcmp(substr_count($a->path, '/'), substr_count($b->path, '/')) * -1;
         });
 
@@ -30,9 +31,9 @@ class NodesListener implements EventSubscriberInterface
                 continue;
             }
 
-            $type             = array_replace(['alias' => '', 'redirect' => '', 'controller' => ''], $type);
+            $type = array_replace(['alias' => '', 'redirect' => '', 'controller' => ''], $type);
             $type['defaults'] = array_merge(isset($type['defaults']) ? $type['defaults'] : [], $node->get('defaults', []), ['_node' => $node->id]);
-            $type['path']     = $node->path;
+            $type['path'] = $node->path;
 
             $route = null;
             if ($node->get('alias')) {
@@ -52,8 +53,8 @@ class NodesListener implements EventSubscriberInterface
         if ($frontpage && isset($nodes[$frontpage])) {
             $this->routes->alias('/', $nodes[$frontpage]->link);
         } else {
-            $this->routes->get('/', function() { 
-                return __('No Frontpage assigned.'); 
+            $this->routes->get('/', function () {
+                return __('No Frontpage assigned.');
             });
         }
     }
@@ -78,7 +79,7 @@ class NodesListener implements EventSubscriberInterface
         return [
             'request' => ['onRequest', 110],
             'model.node.init' => 'onNodeInit',
-            'model.role.deleted' => 'onRoleDelete'
+            'model.role.deleted' => 'onRoleDelete',
         ];
     }
 }

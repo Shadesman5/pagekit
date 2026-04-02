@@ -6,7 +6,7 @@ return [
 
     'autoload' => [
 
-        'Pagekit\\Finder\\' => 'src'
+        'Pagekit\\Finder\\' => 'src',
 
     ],
 
@@ -20,18 +20,18 @@ return [
 
         '/system/finder' => [
             'name' => '@system/finder',
-            'controller' => 'Pagekit\\Finder\\Controller\\FinderController'
+            'controller' => 'Pagekit\\Finder\\Controller\\FinderController',
         ],
         '/site/storage' => [
             'name' => '@site/storage',
-            'controller' => 'Pagekit\\Finder\\Controller\\StorageController'
-        ]
+            'controller' => 'Pagekit\\Finder\\Controller\\StorageController',
+        ],
 
     ],
 
     'resources' => [
 
-        'system/finder:' => ''
+        'system/finder:' => '',
 
     ],
 
@@ -49,11 +49,11 @@ return [
         'view.system:modules/settings/views/settings' => function ($event, $view) use ($app) {
             $view->data('$settings', [
                 'config' => [
-                    $this->name => ['storage' => $this->config['storage'] === '/storage' ? '' : $this->config['storage']]
+                    $this->name => ['storage' => $this->config['storage'] === '/storage' ? '' : $this->config['storage']],
                 ],
                 'options' => [
-                    $this->name => ['extensions' => $this->config['extensions']]
-                ]
+                    $this->name => ['extensions' => $this->config['extensions']],
+                ],
             ]);
         },
 
@@ -61,7 +61,7 @@ return [
             if ($app->get('user')->hasAccess('system: manage storage | system: manage storage read only')) {
                 $event->path('#^' . preg_quote(strtr($app->get('path.storage'), '\\', '/'), '#') . '($|\/.*)#', $app->get('user')->hasAccess('system: manage storage') ? 'w' : 'r');
             }
-        }
+        },
 
     ],
 
@@ -69,11 +69,11 @@ return [
 
         'system: manage storage' => [
             'title' => 'Manage storage',
-            'trusted' => true
+            'trusted' => true,
         ],
         'system: manage storage read only' => [
-            'title' => 'Manage storage (Read only)'
-        ]
+            'title' => 'Manage storage (Read only)',
+        ],
 
     ],
 
@@ -84,8 +84,8 @@ return [
             'parent' => 'site',
             'url' => '@site/storage',
             'access' => 'system: manage storage',
-            'priority' => 21
-        ]
+            'priority' => 21,
+        ],
 
     ],
 
@@ -93,8 +93,8 @@ return [
 
         'storage' => false,
 
-        'extensions' => 'bmp,gif,jpeg,jpg,png,svgz,svg,ico,webp,mpeg,ogv,mp4,m4v,webm,wmv,ogg,wma,mp3,m4a,aac,pdf,txt,xls,xlsx,doc,docx,zip,7z,rar,tar.gz'
+        'extensions' => 'bmp,gif,jpeg,jpg,png,svgz,svg,ico,webp,mpeg,ogv,mp4,m4v,webm,wmv,ogg,wma,mp3,m4a,aac,pdf,txt,xls,xlsx,doc,docx,zip,7z,rar,tar.gz',
 
-    ]
+    ],
 
 ];

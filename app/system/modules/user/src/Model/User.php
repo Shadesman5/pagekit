@@ -8,8 +8,6 @@ use Pagekit\Auth\UserInterface;
 use Pagekit\Database\ORM\Attribute as ORM;
 use Pagekit\System\Model\DataModelTrait;
 use Pagekit\System\Validator\Constraints as PagekitAssert;
-use Pagekit\User\Model\AccessModelTrait;
-use Pagekit\User\Model\UserModelTrait;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -18,7 +16,9 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(tableClass: '@system_user')]
 class User implements UserInterface, \JsonSerializable
 {
-    use AccessModelTrait, DataModelTrait, UserModelTrait;
+    use AccessModelTrait;
+    use DataModelTrait;
+    use UserModelTrait;
 
     /**
      * The blocked status.
@@ -132,7 +132,7 @@ class User implements UserInterface, \JsonSerializable
     {
         return [
             self::STATUS_ACTIVE => __('Active'),
-            self::STATUS_BLOCKED => __('Blocked')
+            self::STATUS_BLOCKED => __('Blocked'),
         ];
     }
 
@@ -218,7 +218,7 @@ class User implements UserInterface, \JsonSerializable
             return $this->hasPermission($expression);
         }
 
-        $exp = preg_replace('/[^01&\(\)\|!]/', '', preg_replace_callback('/[a-z_][a-z-_\.:\d\s]*/i', fn($permission) => (int) $user->hasPermission(trim($permission[0])), $expression));
+        $exp = preg_replace('/[^01&\(\)\|!]/', '', preg_replace_callback('/[a-z_][a-z-_\.:\d\s]*/i', fn ($permission) => (int) $user->hasPermission(trim($permission[0])), $expression));
 
         if (!$fn = @create_function("", "return $exp;")) {
             throw new \InvalidArgumentException(sprintf('Unable to parse the given access string "%s"', $expression));

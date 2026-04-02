@@ -11,9 +11,9 @@ return [
 
     'main' => function ($app) {
 
-        $app->set('file', fn() => new Filesystem);
+        $app->set('file', fn () => new Filesystem());
 
-        $app->set('locator', fn() => new Locator($this->config['path']));
+        $app->set('locator', fn () => new Locator($this->config['path']));
 
         $app->get('module')->addLoader(function ($module) use ($app) {
 
@@ -42,19 +42,19 @@ return [
 
             $app->get('file')->registerAdapter('file', new FileAdapter($this->config['path'], $baseUrl));
 
-        }, 100]
+        }, 100],
     ],
 
     'autoload' => [
 
-        'Pagekit\\Filesystem\\' => 'src'
+        'Pagekit\\Filesystem\\' => 'src',
 
     ],
 
     'config' => [
 
-        'path' => getcwd()
+        'path' => getcwd(),
 
-    ]
+    ],
 
 ];

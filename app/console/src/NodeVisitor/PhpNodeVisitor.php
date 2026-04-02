@@ -2,10 +2,9 @@
 
 namespace Pagekit\Console\NodeVisitor;
 
+use PhpParser\Node;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Expr\MethodCall;
-use PhpParser\Lexer;
-use PhpParser\Node;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor as BaseVisitor;
 use PhpParser\ParserFactory;
@@ -17,7 +16,7 @@ class PhpNodeVisitor extends NodeVisitor implements BaseVisitor
      */
     public function traverse(array $files): array
     {
-        $parser = (new ParserFactory)->create(ParserFactory::PREFER_PHP5);
+        $parser = (new ParserFactory())->create(ParserFactory::PREFER_PHP5);
 
         $traverser = new NodeTraverser(true);
         $traverser->addVisitor($this);
@@ -48,16 +47,16 @@ class PhpNodeVisitor extends NodeVisitor implements BaseVisitor
             && isset($node->args[0]) && isset($node->args[0]->value->value)
             && is_string($string = $node->args[0]->value->value)
         ) {
-            $key                               = $node->name->parts[0] == '__' ? 2 : 3;
-            $domain                            = isset($node->args[$key]) && is_string($node->args[$key]->value->value) ? $node->args[$key]->value->value : 'messages';
+            $key = $node->name->parts[0] == '__' ? 2 : 3;
+            $domain = isset($node->args[$key]) && is_string($node->args[$key]->value->value) ? $node->args[$key]->value->value : 'messages';
             $this->results[$domain][$string][] = ['file' => $this->file, 'line' => $node->getLine()];
         } elseif ($node instanceof MethodCall
             && isset($node->name)
             && ($node->name == 'trans' || $node->name == 'transChoice')
             && isset($node->args[0]) && isset($node->args[0]->value->value)
             && is_string($string = $node->args[0]->value->value)) {
-            $key                               = $node->name == 'trans' ? 2 : 3;
-            $domain                            = isset($node->args[$key]) && is_string($node->args[$key]->value->value) ? $node->args[$key]->value->value : 'messages';
+            $key = $node->name == 'trans' ? 2 : 3;
+            $domain = isset($node->args[$key]) && is_string($node->args[$key]->value->value) ? $node->args[$key]->value->value : 'messages';
             $this->results[$domain][$string][] = ['file' => $this->file, 'line' => $node->getLine()];
         }
     }

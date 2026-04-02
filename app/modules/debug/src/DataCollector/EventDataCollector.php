@@ -46,7 +46,7 @@ class EventDataCollector implements DataCollectorInterface
     protected function getFileLink($file, $line)
     {
         if ($fileLinkFormat = ini_get('xdebug.file_link_format') and file_exists($file)) {
-            return strtr($fileLinkFormat, array('%f' => $file, '%l' => $line));
+            return strtr($fileLinkFormat, ['%f' => $file, '%l' => $line]);
         }
 
         return false;

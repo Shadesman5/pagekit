@@ -25,14 +25,15 @@ return [
 
         $app->set('debugbar', function ($app) {
             $debugbar = new DebugBar();
+
             return $debugbar->setStorage($app->get('debugbar.storage'));
         });
 
-        $app->set('debugbar.storage', fn() => new SqliteStorage($this->config['file']));
+        $app->set('debugbar.storage', fn () => new SqliteStorage($this->config['file']));
 
-        $app->set('debugbar.stopwatch', fn() => new Stopwatch());
+        $app->set('debugbar.stopwatch', fn () => new Stopwatch());
 
-        $app->extend('events', fn($dispatcher, $app) => new TraceableEventDispatcher($dispatcher, $app->get('debugbar.stopwatch')));
+        $app->extend('events', fn ($dispatcher, $app) => new TraceableEventDispatcher($dispatcher, $app->get('debugbar.stopwatch')));
 
     },
 
@@ -112,31 +113,31 @@ return [
                 'name' => '_debugbar',
                 'path' => '_debugbar/{id}',
                 'defaults' => ['_debugbar' => false],
-                'controller' => fn($id) => $app->get('response')->json($app->get('debugbar')->getStorage()->get($id))
+                'controller' => fn ($id) => $app->get('response')->json($app->get('debugbar')->getStorage()->get($id)),
             ]);
 
-        }
+        },
 
     ],
 
     'require' => [
 
         'view',
-        'routing'
+        'routing',
 
     ],
 
     'autoload' => [
 
-        'Pagekit\\Debug\\' => 'src'
+        'Pagekit\\Debug\\' => 'src',
 
     ],
 
     'config' => [
 
-        'file'    => null,
-        'enabled' => false
+        'file' => null,
+        'enabled' => false,
 
-    ]
+    ],
 
 ];

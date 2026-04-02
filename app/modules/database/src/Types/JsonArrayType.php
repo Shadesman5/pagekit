@@ -4,14 +4,16 @@ namespace Pagekit\Database\Types;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\JsonType;
-use Doctrine\DBAL\Types\ConversionException;
 
 /**
- * JSON array type for DBAL 3.x compatibility.
- * Replaces the deprecated JsonArrayType from DBAL 2.x.
- * 
- * This type ensures backward compatibility with the old json_array type
- * while using the modern JSON type infrastructure from DBAL 3.x.
+ * Array-safe JSON type: extends Doctrine's JsonType to guarantee array returns.
+ *
+ * Ensures null/empty values are converted to [] instead of null, which is required
+ * by DataModelTrait (Arr::get expects arrays). Non-array values are wrapped in [].
+ *
+ * TODO: Must be refactored in Step 2.1.7 (QueryBuilder API Standardization) —
+ * Rename type from 'json_array' (DBAL 2.x name) to 'json', update all entity
+ * attributes and migrations, remove redundant type registration in database/index.php.
  */
 class JsonArrayType extends JsonType
 {
@@ -50,7 +52,7 @@ class JsonArrayType extends JsonType
     {
         return 'json_array';
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -58,7 +60,7 @@ class JsonArrayType extends JsonType
     {
         return true;
     }
-    
+
     /**
      * {@inheritdoc}
      */

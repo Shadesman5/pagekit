@@ -2,9 +2,9 @@
 
 namespace Pagekit\Intl\Loader;
 
-use Symfony\Component\Translation\MessageCatalogue;
 use Symfony\Component\Translation\Exception\InvalidResourceException;
 use Symfony\Component\Translation\Exception\NotFoundResourceException;
+use Symfony\Component\Translation\MessageCatalogue;
 
 /**
  * @copyright Copyright (c) 2010, Union of RAD http://union-of-rad.org (http://lithify.me/)
@@ -17,7 +17,7 @@ class MoFileLoader extends ArrayLoader
      *
      * @var float
      */
-    const MO_LITTLE_ENDIAN_MAGIC = 0x950412de;
+    public const MO_LITTLE_ENDIAN_MAGIC = 0x950412de;
 
     /**
      * Magic used for validating the format of a MO file as well as
@@ -25,14 +25,14 @@ class MoFileLoader extends ArrayLoader
      *
      * @var float
      */
-    const MO_BIG_ENDIAN_MAGIC = 0xde120495;
+    public const MO_BIG_ENDIAN_MAGIC = 0xde120495;
 
     /**
      * The size of the header of a MO file in bytes.
      *
-     * @var integer Number of bytes.
+     * @var int Number of bytes.
      */
-    const MO_HEADER_SIZE = 28;
+    public const MO_HEADER_SIZE = 28;
 
     /**
      * {@inheritdoc}
@@ -159,13 +159,13 @@ class MoFileLoader extends ArrayLoader
      * Reads an unsigned long from stream respecting endianess.
      *
      * @param  resource $stream
-     * @param  boolean  $isBigEndian
+     * @param  bool  $isBigEndian
      */
     protected function readLong($stream, $isBigEndian): int
     {
         $result = unpack($isBigEndian ? 'N1' : 'V1', fread($stream, 4));
         $result = current($result);
 
-        return (integer) substr($result, -8);
+        return (int) substr($result, -8);
     }
 }

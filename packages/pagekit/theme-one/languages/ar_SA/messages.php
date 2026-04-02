@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Title' => 'العنوان',
   'Theme' => 'القالب',
   'Hide Title' => 'إخفاء العنوان',
@@ -38,4 +40,4 @@
   'Written by %name% on %date%' => 'الكتابة على الشكل %name% الى %date%',
   'Read more' => 'إقرأ المزيد',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} لا تعليق {1} %count% التعليق ',
-);
+];

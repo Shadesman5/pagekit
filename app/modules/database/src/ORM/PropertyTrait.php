@@ -31,6 +31,8 @@ trait PropertyTrait
         } else {
 
             trigger_error(sprintf('Undefined property: %s::$%s', __CLASS__, $name), E_USER_NOTICE);
+
+            return null;
         }
     }
 
@@ -67,7 +69,8 @@ trait PropertyTrait
     /**
      * Clones the object properties.
      */
-    public function __clone() {
+    public function __clone()
+    {
         foreach (array_keys(static::$_properties) as $name) {
             $this->$name = $this->__get($name);
         }

@@ -194,7 +194,7 @@ class Routes implements \Serializable, \IteratorAggregate, ResourceInterface
             $this->callbacks[$name] = $options['controller'];
             unset($options['controller']);
         } elseif ($options['controller']) {
-            foreach((array) $options['controller'] as $controller) {
+            foreach ((array) $options['controller'] as $controller) {
 
                 if (is_callable($controller)) {
                     $refl = new \ReflectionMethod($controller);
@@ -218,8 +218,9 @@ class Routes implements \Serializable, \IteratorAggregate, ResourceInterface
     protected function generateRouteName(array $config): string
     {
         $name = ltrim($config['path'], '/');
-        $name = trim(str_replace(array(':', '|', '-'), '_', $name), '_');
+        $name = trim(str_replace([':', '|', '-'], '_', $name), '_');
         $name = preg_replace('/[^a-z0-9A-Z_.\/]+/', '', $name);
+
         return $this->prefix.$name;
     }
 }

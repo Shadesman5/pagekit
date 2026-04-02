@@ -30,7 +30,7 @@ class ReadmorePlugin implements EventSubscriberInterface
     public function subscribe(): array
     {
         return [
-            'content.plugins' => ['onContentPlugins', 20]
+            'content.plugins' => ['onContentPlugins', 20],
         ];
     }
 }

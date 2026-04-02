@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Title' => 'Teitl',
   'Theme' => 'Thema',
   'Hide Title' => 'Cuddio\'r Teitl',
@@ -38,4 +40,4 @@
   'Written by %name% on %date%' => 'Ysgrifennwyd gan %name% ar %date%',
   'Read more' => 'Darllen mwy',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Dim sylw|{1} %count% Sylw|]1,Inf[ %count% Sylw',
-);
+];

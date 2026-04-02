@@ -3,6 +3,7 @@
 namespace Pagekit\Tests;
 
 use PHPUnit\Framework\TestCase;
+
 abstract class DbTestCase extends TestCase
 {
     use DbUtil;
@@ -17,6 +18,7 @@ abstract class DbTestCase extends TestCase
 
         } catch (\Exception $e) {
             $this->markTestSkipped(sprintf('Unable to establish connection. (%s)', $e->getMessage()));
+
             return;
         }
     }

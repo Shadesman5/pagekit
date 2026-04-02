@@ -2,7 +2,6 @@
 
 namespace Pagekit\Twig;
 
-use Twig\Error\LoaderError;
 use Pagekit\View\Loader\FilesystemLoader;
 
 class TwigLoader extends \Twig\Loader\FilesystemLoader

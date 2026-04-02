@@ -1,0 +1,3056 @@
+# PHPStan baseline — 883 errors at level 5 (2026-03-29)
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Variable \$config might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/console/app.php
+
+		-
+			message: '#^Variable \$path might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: app/console/app.php
+
+		-
+			message: '#^Parameter \#2 \$shortcut of method Symfony\\Component\\Console\\Command\\Command\:\:addOption\(\) expects array\|string\|null, false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/console/src/Commands/ArchiveCommand.php
+
+		-
+			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:line\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 1
+			path: app/console/src/Commands/ArchiveCommand.php
+
+		-
+			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:line\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 1
+			path: app/console/src/Commands/BuildCommand.php
+
+		-
+			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:line\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 1
+			path: app/console/src/Commands/ClearCacheCommand.php
+
+		-
+			message: '#^Return type \(void\) of method Pagekit\\Console\\Commands\\ExtensionTranslateCommand\:\:execute\(\) should be compatible with return type \(int\) of method Symfony\\Component\\Console\\Command\\Command\:\:execute\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: app/console/src/Commands/ExtensionTranslateCommand.php
+
+		-
+			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:error\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 1
+			path: app/console/src/Commands/InstallCommand.php
+
+		-
+			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:error\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 1
+			path: app/console/src/Commands/SelfupdateCommand.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Container\:\:boot\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/console/src/Commands/SetupCommand.php
+
+		-
+			message: '#^Parameter \#1 \$app of class Pagekit\\Installer\\Installer constructor expects Pagekit\\Application, Pagekit\\Container\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/console/src/Commands/SetupCommand.php
+
+		-
+			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:line\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 1
+			path: app/console/src/Commands/SetupCommand.php
+
+		-
+			message: '#^Return type \(void\) of method Pagekit\\Console\\Commands\\TranslationFetchCommand\:\:execute\(\) should be compatible with return type \(int\) of method Symfony\\Component\\Console\\Command\\Command\:\:execute\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: app/console/src/Commands/TranslationFetchCommand.php
+
+		-
+			message: '#^Parameter \#1 \$app of class Pagekit\\Installer\\Package\\PackageManager constructor expects Psr\\Container\\ContainerInterface, Symfony\\Component\\Console\\Output\\OutputInterface given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/console/src/Commands/UninstallCommand.php
+
+		-
+			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:error\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 1
+			path: app/console/src/Commands/UpdateCommand.php
+
+		-
+			message: '#^Method Pagekit\\Console\\NodeVisitor\\NodeVisitor\:\:getEngine\(\) has invalid return type Symfony\\Component\\Templating\\EngineInterface\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/console/src/NodeVisitor/NodeVisitor.php
+
+		-
+			message: '#^Parameter \$engine of method Pagekit\\Console\\NodeVisitor\\NodeVisitor\:\:__construct\(\) has invalid type Symfony\\Component\\Templating\\EngineInterface\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/console/src/NodeVisitor/NodeVisitor.php
+
+		-
+			message: '#^Property Pagekit\\Console\\NodeVisitor\\NodeVisitor\:\:\$engine has unknown class Symfony\\Component\\Templating\\EngineInterface as its type\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/console/src/NodeVisitor/NodeVisitor.php
+
+		-
+			message: '#^Access to an undefined property PhpParser\\Node\\Expr\:\:\$value\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/console/src/NodeVisitor/PhpNodeVisitor.php
+
+		-
+			message: '#^Access to undefined constant PhpParser\\ParserFactory\:\:PREFER_PHP5\.$#'
+			identifier: classConstant.notFound
+			count: 1
+			path: app/console/src/NodeVisitor/PhpNodeVisitor.php
+
+		-
+			message: '#^Call to an undefined method PhpParser\\ParserFactory\:\:create\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/console/src/NodeVisitor/PhpNodeVisitor.php
+
+		-
+			message: '#^Method Pagekit\\Console\\NodeVisitor\\PhpNodeVisitor\:\:afterTraverse\(\) should return array\<PhpParser\\Node\>\|null but return statement is missing\.$#'
+			identifier: return.missing
+			count: 1
+			path: app/console/src/NodeVisitor/PhpNodeVisitor.php
+
+		-
+			message: '#^Method Pagekit\\Console\\NodeVisitor\\PhpNodeVisitor\:\:beforeTraverse\(\) should return array\<PhpParser\\Node\>\|null but return statement is missing\.$#'
+			identifier: return.missing
+			count: 1
+			path: app/console/src/NodeVisitor/PhpNodeVisitor.php
+
+		-
+			message: '#^Method Pagekit\\Console\\NodeVisitor\\PhpNodeVisitor\:\:enterNode\(\) should return array\<PhpParser\\Node\>\|int\|PhpParser\\Node\|null but return statement is missing\.$#'
+			identifier: return.missing
+			count: 3
+			path: app/console/src/NodeVisitor/PhpNodeVisitor.php
+
+		-
+			message: '#^Method Pagekit\\Console\\NodeVisitor\\PhpNodeVisitor\:\:leaveNode\(\) should return array\<PhpParser\\Node\>\|int\|PhpParser\\Node\|null but return statement is missing\.$#'
+			identifier: return.missing
+			count: 1
+			path: app/console/src/NodeVisitor/PhpNodeVisitor.php
+
+		-
+			message: '#^Parameter \#1 \.\.\.\$visitors of class PhpParser\\NodeTraverser constructor expects PhpParser\\NodeVisitor, true given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/console/src/NodeVisitor/PhpNodeVisitor.php
+
+		-
+			message: '#^Variable \$config might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/installer/app.php
+
+		-
+			message: '#^Variable \$path might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: app/installer/app.php
+
+		-
+			message: '#^Undefined variable\: \$this$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/installer/index.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/installer/index.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/installer/install-demo.php
+
+		-
+			message: '#^Variable \$user might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/installer/install-demo.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/installer/install.php
+
+		-
+			message: '#^PHPDoc tag @return with type Traversable is not subtype of native type ArrayIterator\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: app/installer/requirements.php
+
+		-
+			message: '#^Property RequirementCollection\:\:\$requirements \(array\|null\) is never assigned null so it can be removed from the property type\.$#'
+			identifier: property.unusedType
+			count: 1
+			path: app/installer/requirements.php
+
+		-
+			message: '#^Variable \$path might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/installer/requirements.php
+
+		-
+			message: '#^Call to an undefined method Composer\\Downloader\\DownloadManager\:\:setOutputProgress\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/installer/src/Helper/Composer.php
+
+		-
+			message: '#^Call to an undefined method Composer\\Installer\:\:setAdditionalInstalledRepository\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/installer/src/Helper/Composer.php
+
+		-
+			message: '#^PHPDoc tag @return with type null is incompatible with native type Composer\\Composer\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: app/installer/src/Helper/Composer.php
+
+		-
+			message: '#^Parameter \#3 \$installationManager of class Composer\\Package\\Locker constructor expects Composer\\Installer\\InstallationManager, Composer\\Repository\\RepositoryManager given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/installer/src/Helper/Composer.php
+
+		-
+			message: '#^Parameter \#4 \$composerFileContents of class Composer\\Package\\Locker constructor expects string, Composer\\Installer\\InstallationManager given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/installer/src/Helper/Composer.php
+
+		-
+			message: '#^Parameter \#5 \$process of class Composer\\Package\\Locker constructor expects Composer\\Util\\ProcessExecutor\|null, string\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/installer/src/Helper/Composer.php
+
+		-
+			message: '#^Call to method getMessage\(\) on an unknown class Doctrine\\DBAL\\DBALException\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/installer/src/Installer.php
+
+		-
+			message: '#^Caught class Doctrine\\DBAL\\DBALException not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/installer/src/Installer.php
+
+		-
+			message: '#^Method Pagekit\\Installer\\Package\\PackageFactory\:\:load\(\) should return Pagekit\\Installer\\Package\\Package but return statement is missing\.$#'
+			identifier: return.missing
+			count: 1
+			path: app/installer/src/Package/PackageFactory.php
+
+		-
+			message: '#^Negated boolean expression is always false\.$#'
+			identifier: booleanNot.alwaysFalse
+			count: 1
+			path: app/installer/src/Package/PackageFactory.php
+
+		-
+			message: '#^Cannot call method get\(\) on array\.$#'
+			identifier: method.nonObject
+			count: 2
+			path: app/installer/src/Package/PackageManager.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Installer\\SelfUpdater\:\:writeln\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/installer/src/SelfUpdater.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/installer/views/extensions.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: app/installer/views/installer.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/installer/views/marketplace.php
+
+		-
+			message: '#^Variable \$failed might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/installer/views/requirements.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/installer/views/themes.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/installer/views/update.php
+
+		-
+			message: '#^Undefined variable\: \$this$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/modules/application/index.php
+
+		-
+			message: '#^Call to an undefined method Symfony\\Component\\Console\\Helper\\HelperInterface\:\:ask\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: app/modules/application/src/Application/Console/Command.php
+
+		-
+			message: '#^Variable \$path on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.variable
+			count: 2
+			path: app/modules/application/src/Application/UrlProvider.php
+
+		-
+			message: '#^Variable \$url on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.variable
+			count: 2
+			path: app/modules/application/src/Application/UrlProvider.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$values with type mixed is not subtype of native type array\.$#'
+			identifier: parameter.phpDocType
+			count: 1
+			path: app/modules/application/src/Event/Event.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(array\)\: Unexpected token "\\n     ", expected variable at offset 59 on line 4$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: app/modules/application/src/Event/Event.php
+
+		-
+			message: '#^PHPDoc tag @return with type array\|object is not subtype of native type array\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: app/modules/application/src/Event/Event.php
+
+		-
+			message: '#^PHPDoc tag @return with type mixed is not subtype of native type bool\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: app/modules/application/src/Event/Event.php
+
+		-
+			message: '#^Cannot call method bindTo\(\) on callable\.$#'
+			identifier: method.nonObject
+			count: 2
+			path: app/modules/application/src/Event/EventDispatcher.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Event\\EventInterface\:\:setName\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/modules/application/src/Event/PrefixEventDispatcher.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/modules/application/src/Event/SymfonyEventDispatcherBridge.php
+
+		-
+			message: '#^Call to function is_a\(\) with Pagekit\\Module\\Module and ''Pagekit\\\\Event…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/modules/application/src/Module/Loader/ModuleLoader.php
+
+		-
+			message: '#^Cannot call method bindTo\(\) on callable\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/modules/application/src/Module/Loader/ModuleLoader.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: app/modules/application/src/Tests/DbTestCase.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertFalse\(\) with false will always evaluate to false\.$#'
+			identifier: method.impossibleType
+			count: 1
+			path: app/modules/application/src/Tests/EventDispatcherCompatibilityTest.php
+
+		-
+			message: '#^If condition is always true\.$#'
+			identifier: if.alwaysTrue
+			count: 1
+			path: app/modules/application/src/Tests/FtpTestCase.php
+
+		-
+			message: '#^Method Pagekit\\Tests\\FtpTestCase\:\:getFtpConnection\(\) has invalid return type Pagekit\\Tests\\ftp\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/modules/application/src/Tests/FtpTestCase.php
+
+		-
+			message: '#^Negated boolean expression is always true\.$#'
+			identifier: booleanNot.alwaysTrue
+			count: 2
+			path: app/modules/application/src/Tests/FtpTestCase.php
+
+		-
+			message: '#^Result of or is always true\.$#'
+			identifier: logicalOr.alwaysTrue
+			count: 1
+			path: app/modules/application/src/Tests/FtpTestCase.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 3
+			path: app/modules/application/src/Tests/FtpTestCase.php
+
+		-
+			message: '#^Comparison operation "\>\=" between 1 and 0 is always true\.$#'
+			identifier: greaterOrEqual.alwaysTrue
+			count: 1
+			path: app/modules/application/src/Util/Arr.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 3
+			path: app/modules/application/src/Util/Arr.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: app/modules/application/src/Util/Arr.php
+
+		-
+			message: '#^Undefined variable\: \$this$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/modules/auth/index.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(UserInterface\)\: Unexpected token "\\n     ", expected variable at offset 63 on line 4$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: app/modules/auth/src/Auth.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(UserProviderInterface\)\: Unexpected token "\\n     ", expected variable at offset 77 on line 4$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: app/modules/auth/src/Auth.php
+
+		-
+			message: '#^Parameter \#1 \$id of method Pagekit\\Auth\\UserProviderInterface\:\:find\(\) expects string, int\<min, \-1\>\|int\<1, max\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/modules/auth/src/Auth.php
+
+		-
+			message: '#^Parameter \#1 \$user of method Pagekit\\Auth\\Handler\\HandlerInterface\:\:write\(\) expects int, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/modules/auth/src/Auth.php
+
+		-
+			message: '#^Parameter \#2 \$remember of method Pagekit\\Auth\\Handler\\DatabaseHandler\:\:write\(\) expects bool, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/modules/auth/src/Handler/DatabaseHandler.php
+
+		-
+			message: '#^PHPDoc tag @param has invalid value \(UserInterface\)\: Unexpected token "\\n     ", expected variable at offset 63 on line 4$#'
+			identifier: phpDoc.parseError
+			count: 1
+			path: app/modules/auth/src/Handler/HandlerInterface.php
+
+		-
+			message: '#^Undefined variable\: \$this$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/modules/config/index.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/modules/config/index.php
+
+		-
+			message: '#^Class Doctrine\\DBAL\\Platforms\\MySqlPlatform not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/modules/config/src/ConfigManager.php
+
+		-
+			message: '#^Method Pagekit\\Config\\ConfigManager\:\:fetch\(\) should return Pagekit\\Config\\Config\|null but return statement is missing\.$#'
+			identifier: return.missing
+			count: 1
+			path: app/modules/config/src/ConfigManager.php
+
+		-
+			message: '#^Method Pagekit\\Config\\ConfigManager\:\:get\(\) should return Pagekit\\Config\\Config but return statement is missing\.$#'
+			identifier: return.missing
+			count: 1
+			path: app/modules/config/src/ConfigManager.php
+
+		-
+			message: '#^Class Pagekit\\Config\\ConfigManager constructor invoked with 3 parameters, 2 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: app/modules/config/src/Tests/ConfigManagerTest.php
+
+		-
+			message: '#^Instantiated class Doctrine\\Common\\Cache\\ArrayCache not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/modules/config/src/Tests/ConfigManagerTest.php
+
+		-
+			message: '#^Method Pagekit\\Config\\Tests\\ConfigManagerTest\:\:getCache\(\) has invalid return type Doctrine\\Common\\Cache\\ArrayCache\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/modules/config/src/Tests/ConfigManagerTest.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertIsString\(\) with string will always evaluate to true\.$#'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: app/modules/config/src/Tests/ConfigTest.php
+
+		-
+			message: '#^Undefined variable\: \$this$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/modules/cookie/index.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/modules/cookie/index.php
+
+		-
+			message: '#^Parameter \#2 \$value of method Pagekit\\Cookie\\CookieJar\:\:set\(\) expects string, null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/modules/cookie/src/CookieJar.php
+
+		-
+			message: '#^Undefined variable\: \$this$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/modules/database/index.php
+
+		-
+			message: '#^Return type \(Pagekit\\Database\\Query\\QueryBuilder\) of method Pagekit\\Database\\Connection\:\:createQueryBuilder\(\) should be compatible with return type \(Doctrine\\DBAL\\Query\\QueryBuilder\) of method Doctrine\\DBAL\\Connection\:\:createQueryBuilder\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: app/modules/database/src/Connection.php
+
+		-
+			message: '#^Method Pagekit\\Database\\ORM\\Metadata\:\:getField\(\) should return array\|null but return statement is missing\.$#'
+			identifier: return.missing
+			count: 1
+			path: app/modules/database/src/ORM/Metadata.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:whereIn\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/modules/database/src/ORM/Relation/BelongsTo.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:orderBy\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/modules/database/src/ORM/Relation/HasMany.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:whereIn\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/modules/database/src/ORM/Relation/HasMany.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:whereIn\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/modules/database/src/ORM/Relation/HasOne.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:whereIn\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/modules/database/src/ORM/Relation/ManyToMany.php
+
+		-
+			message: '#^Instanceof between array\|float\|int\|string\|false\|null and Pagekit\\Database\\Query\\CompositeExpression will always evaluate to false\.$#'
+			identifier: instanceof.alwaysFalse
+			count: 1
+			path: app/modules/database/src/Query/CompositeExpression.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 1
+			path: app/modules/database/src/Query/CompositeExpression.php
+
+		-
+			message: '#^Class Doctrine\\DBAL\\Platforms\\MySqlPlatform not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/modules/database/src/Query/QueryBuilder.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 1
+			path: app/modules/database/src/Query/QueryBuilder.php
+
+		-
+			message: '#^Variable \$from might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: app/modules/database/src/Query/QueryBuilder.php
+
+		-
+			message: '#^Variable \$group might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/modules/database/src/Query/QueryBuilder.php
+
+		-
+			message: '#^Variable \$having might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/modules/database/src/Query/QueryBuilder.php
+
+		-
+			message: '#^Variable \$join might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: app/modules/database/src/Query/QueryBuilder.php
+
+		-
+			message: '#^Variable \$limit might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/modules/database/src/Query/QueryBuilder.php
+
+		-
+			message: '#^Variable \$offset might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/modules/database/src/Query/QueryBuilder.php
+
+		-
+			message: '#^Variable \$order might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/modules/database/src/Query/QueryBuilder.php
+
+		-
+			message: '#^Variable \$select might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/modules/database/src/Query/QueryBuilder.php
+
+		-
+			message: '#^Variable \$set might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/modules/database/src/Query/QueryBuilder.php
+
+		-
+			message: '#^Variable \$where might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: app/modules/database/src/Query/QueryBuilder.php
+
+		-
+			message: '#^Method Pagekit\\Database\\Table\:\:addColumn\(\) has invalid return type Pagekit\\Database\\Column\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/modules/database/src/Table.php
+
+		-
+			message: '#^PHPDoc tag @return with type Pagekit\\Database\\Column is not subtype of native type Doctrine\\DBAL\\Schema\\Column\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: app/modules/database/src/Table.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertIsArray\(\) with array will always evaluate to true\.$#'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: app/modules/database/src/Tests/ConnectionTest.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\MetadataManager\:\:expects\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/modules/database/src/Tests/ORM/EntityManagerTest.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\MetadataManager\:\:method\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/modules/database/src/Tests/ORM/EntityManagerTest.php
+
+		-
+			message: '#^Parameter \#1 \$tables of method Pagekit\\Database\\Utility\:\:tablesExist\(\) expects array, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/modules/database/src/Utility.php
+
+		-
+			message: '#^Undefined variable\: \$this$#'
+			identifier: variable.undefined
+			count: 3
+			path: app/modules/debug/index.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Auth\\UserInterface\:\:isAuthenticated\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/modules/debug/src/DataCollector/AuthDataCollector.php
+
+		-
+			message: '#^Parameter \#1 \$user of static method Pagekit\\User\\Model\\User\:\:findRoles\(\) expects Pagekit\\User\\Model\\User, Pagekit\\Auth\\UserInterface given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/modules/debug/src/DataCollector/AuthDataCollector.php
+
+		-
+			message: '#^Parameter \#1 \$string of function sha1 expects string, int\<0, max\>\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/modules/debug/src/DataCollector/RoutesDataCollector.php
+
+		-
+			message: '#^Call to function is_array\(\) with callable\-object will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/modules/debug/src/Event/TraceableEventDispatcher.php
+
+		-
+			message: '#^Call to function is_array\(\) with object will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/modules/debug/src/Event/TraceableEventDispatcher.php
+
+		-
+			message: '#^Call to function is_object\(\) with callable\-object will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/modules/debug/src/Event/TraceableEventDispatcher.php
+
+		-
+			message: '#^Call to function is_object\(\) with object will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/modules/debug/src/Event/TraceableEventDispatcher.php
+
+		-
+			message: '#^Call to function is_string\(\) with object will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/modules/debug/src/Event/TraceableEventDispatcher.php
+
+		-
+			message: '#^Cannot call method bindTo\(\) on callable\.$#'
+			identifier: method.nonObject
+			count: 2
+			path: app/modules/debug/src/Event/TraceableEventDispatcher.php
+
+		-
+			message: '#^Return type \(void\) of method Pagekit\\Debug\\Middleware\\DebugStatement\:\:bindParam\(\) should be compatible with return type \(bool\) of method Doctrine\\DBAL\\Driver\\Middleware\\AbstractStatementMiddleware\:\:bindParam\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: app/modules/debug/src/Middleware/DebugStatement.php
+
+		-
+			message: '#^Return type \(void\) of method Pagekit\\Debug\\Middleware\\DebugStatement\:\:bindParam\(\) should be compatible with return type \(bool\) of method Doctrine\\DBAL\\Driver\\Statement\:\:bindParam\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: app/modules/debug/src/Middleware/DebugStatement.php
+
+		-
+			message: '#^Return type \(void\) of method Pagekit\\Debug\\Middleware\\DebugStatement\:\:bindValue\(\) should be compatible with return type \(bool\) of method Doctrine\\DBAL\\Driver\\Middleware\\AbstractStatementMiddleware\:\:bindValue\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: app/modules/debug/src/Middleware/DebugStatement.php
+
+		-
+			message: '#^Return type \(void\) of method Pagekit\\Debug\\Middleware\\DebugStatement\:\:bindValue\(\) should be compatible with return type \(bool\) of method Doctrine\\DBAL\\Driver\\Statement\:\:bindValue\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: app/modules/debug/src/Middleware/DebugStatement.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Feed\\FeedInterface\:\:setElement\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/modules/feed/src/Feed/Atom.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/modules/feed/src/FeedFactory.php
+
+		-
+			message: '#^Undefined variable\: \$this$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/modules/filesystem/index.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/modules/filesystem/index.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between string and false will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/modules/filesystem/src/Locator.php
+
+		-
+			message: '#^Method Pagekit\\Filesystem\\Path\:\:parse\(\) should return array but returns string\.$#'
+			identifier: return.type
+			count: 1
+			path: app/modules/filesystem/src/Path.php
+
+		-
+			message: '#^Parameter \#2 \$callback of function array_filter expects \(callable\(string\)\: bool\)\|null, ''strlen'' given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/modules/filesystem/src/Path.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between array and '''' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/modules/filesystem/src/Path.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between array and '''' will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/modules/filesystem/src/Path.php
+
+		-
+			message: '#^PHPDoc tag @return with type resource is incompatible with native type bool\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: app/modules/filesystem/src/StreamWrapper.php
+
+		-
+			message: '#^Parameter \#3 \$recursive of function mkdir expects bool, int\<0, 1\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/modules/filesystem/src/StreamWrapper.php
+
+		-
+			message: '#^Instantiated class Pagekit\\Tests\\IOException not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/modules/filesystem/src/Tests/Adapter/StreamAdapterTest.php
+
+		-
+			message: '#^Throwing object of an unknown class Pagekit\\Tests\\IOException\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/modules/filesystem/src/Tests/Adapter/StreamAdapterTest.php
+
+		-
+			message: '#^Instantiated class Pagekit\\Tests\\IOException not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/modules/filesystem/src/Tests/FilesystemTest.php
+
+		-
+			message: '#^Throwing object of an unknown class Pagekit\\Tests\\IOException\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/modules/filesystem/src/Tests/FilesystemTest.php
+
+		-
+			message: '#^Undefined variable\: \$this$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/modules/filter/index.php
+
+		-
+			message: '#^Call to function is_object\(\) with \*NEVER\* will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/modules/filter/src/FilterChain.php
+
+		-
+			message: '#^Instanceof between Pagekit\\Filter\\FilterInterface and Pagekit\\Filter\\FilterInterface will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: app/modules/filter/src/FilterChain.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Filter\\FilterInterface\:\:setOptions\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/modules/filter/src/FilterManager.php
+
+		-
+			message: '#^If condition is always false\.$#'
+			identifier: if.alwaysFalse
+			count: 1
+			path: app/modules/filter/src/FilterManager.php
+
+		-
+			message: '#^Call to function is_object\(\) with \*NEVER\* will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/modules/filter/src/PregReplaceFilter.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/modules/filter/src/PregReplaceFilter.php
+
+		-
+			message: '#^Method Pagekit\\Filter\\PregReplaceFilter\:\:validatePattern\(\) should return bool but return statement is missing\.$#'
+			identifier: return.missing
+			count: 1
+			path: app/modules/filter/src/PregReplaceFilter.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 2
+			path: app/modules/filter/src/PregReplaceFilter.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Pagekit\\Filter\\FilterChain\:\:attach\(\) expects \(callable\(\)\: mixed\)\|Pagekit\\Filter\\FilterInterface, stdClass given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/modules/filter/src/Tests/FilterChainTest.php
+
+		-
+			message: '#^Call to function is_int\(\) with \-23\|0\|12\|23\|123\|2147483647 will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/modules/filter/src/Tests/IntTest.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertTrue\(\) with true will always evaluate to true\.$#'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: app/modules/filter/src/Tests/IntTest.php
+
+		-
+			message: '#^Parameter \#1 \$pattern of method Pagekit\\Filter\\PregReplaceFilter\:\:setPattern\(\) expects array\|string, null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/modules/filter/src/Tests/PregReplaceTest.php
+
+		-
+			message: '#^Parameter \#1 \$replacement of method Pagekit\\Filter\\PregReplaceFilter\:\:setReplacement\(\) expects array\|string, null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/modules/filter/src/Tests/PregReplaceTest.php
+
+		-
+			message: '#^Array has 2 duplicate keys with value 23 \(23, "23"\)\.$#'
+			identifier: array.duplicateKey
+			count: 1
+			path: app/modules/filter/src/Tests/StringTest.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/modules/kernel/index.php
+
+		-
+			message: '#^Parameter \$logger of method Pagekit\\Kernel\\Controller\\ControllerListener\:\:__construct\(\) has invalid type Pagekit\\Kernel\\Controller\\LoggerInterface\.$#'
+			identifier: class.notFound
+			count: 2
+			path: app/modules/kernel/src/Controller/ControllerListener.php
+
+		-
+			message: '#^Property Pagekit\\Kernel\\Controller\\ControllerListener\:\:\$logger has unknown class Pagekit\\Kernel\\Controller\\LoggerInterface as its type\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/modules/kernel/src/Controller/ControllerListener.php
+
+		-
+			message: '#^PHPDoc tag @return with type mixed is not subtype of native type array\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: app/modules/kernel/src/Controller/ControllerResolver.php
+
+		-
+			message: '#^Call to an undefined static method Symfony\\Component\\ErrorHandler\\ErrorHandler\:\:createResponse\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 1
+			path: app/modules/kernel/src/ExceptionHandler.php
+
+		-
+			message: '#^Call to an undefined static method Symfony\\Component\\ErrorHandler\\ErrorHandler\:\:sendPhpResponse\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 1
+			path: app/modules/kernel/src/ExceptionHandler.php
+
+		-
+			message: '#^Class Pagekit\\Kernel\\ExceptionHandler extends @final class Symfony\\Component\\ErrorHandler\\ErrorHandler\.$#'
+			identifier: class.extendsFinalByPhpDoc
+			count: 1
+			path: app/modules/kernel/src/ExceptionHandler.php
+
+		-
+			message: '#^Instanceof between Symfony\\Component\\HttpFoundation\\Response and Symfony\\Component\\HttpFoundation\\Response will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: app/modules/kernel/src/HttpKernel.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between \*NEVER\* and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/modules/kernel/src/HttpKernel.php
+
+		-
+			message: '#^PHPDoc tag @throws with type Pagekit\\Kernel\\HttpException is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 1
+			path: app/modules/kernel/src/HttpKernelInterface.php
+
+		-
+			message: '#^Property Pagekit\\Kernel\\Tests\\UnresolvableController\:\:\$unknownService is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: app/modules/kernel/src/Tests/ControllerResolverTest.php
+
+		-
+			message: '#^Undefined variable\: \$this$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/modules/log/index.php
+
+		-
+			message: '#^Class Pagekit\\Log\\Logger extends @final class Monolog\\Logger\.$#'
+			identifier: class.extendsFinalByPhpDoc
+			count: 1
+			path: app/modules/log/src/Logger.php
+
+		-
+			message: '#^Result of method Monolog\\Logger\:\:log\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 1
+			path: app/modules/log/src/Logger.php
+
+		-
+			message: '#^Binary operation "\+" between ''Infinite loop on…'' and int\<0, 255\> results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: app/modules/markdown/src/Lexer/BlockLexer.php
+
+		-
+			message: '#^Parameter \#1 \$value of function count expects array\|Countable, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/modules/markdown/src/Lexer/BlockLexer.php
+
+		-
+			message: '#^Binary operation "\+" between ''Infinite loop on…'' and int\<0, 255\> results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: app/modules/markdown/src/Lexer/InlineLexer.php
+
+		-
+			message: '#^Binary operation "\+" between string and string results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: app/modules/markdown/src/Lexer/InlineLexer.php
+
+		-
+			message: '#^Parameter \#1 \$num of function base_convert expects string, int\<0, 255\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/modules/markdown/src/Lexer/InlineLexer.php
+
+		-
+			message: '#^Method Pagekit\\Markdown\\Parser\:\:tok\(\) should return string but return statement is missing\.$#'
+			identifier: return.missing
+			count: 1
+			path: app/modules/markdown/src/Parser.php
+
+		-
+			message: '#^Call to an undefined method Doctrine\\Migrations\\Configuration\\Configuration\:\:setMigrationsColumnLength\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/modules/migration/src/ConfigurationProvider.php
+
+		-
+			message: '#^Call to an undefined method Doctrine\\Migrations\\Configuration\\Configuration\:\:setMigrationsColumnName\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/modules/migration/src/ConfigurationProvider.php
+
+		-
+			message: '#^Call to an undefined method Doctrine\\Migrations\\Configuration\\Configuration\:\:setMigrationsExecutedAtColumnName\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/modules/migration/src/ConfigurationProvider.php
+
+		-
+			message: '#^Call to an undefined method Doctrine\\Migrations\\Configuration\\Configuration\:\:setMigrationsTableName\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/modules/migration/src/ConfigurationProvider.php
+
+		-
+			message: '#^Call to function is_array\(\) with array\<string, array\<Doctrine\\Migrations\\Query\\Query\>\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 4
+			path: app/modules/migration/src/MigrationService.php
+
+		-
+			message: '#^Method Pagekit\\Migration\\MigrationService\:\:getConfigPath\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: app/modules/migration/src/MigrationService.php
+
+		-
+			message: '#^Result of \|\| is always false\.$#'
+			identifier: booleanOr.alwaysFalse
+			count: 2
+			path: app/modules/migration/src/MigrationService.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between Doctrine\\Migrations\\Version\\Version and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 2
+			path: app/modules/migration/src/MigrationService.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between int\<1, max\> and 0 will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 2
+			path: app/modules/migration/src/MigrationService.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 4
+			path: app/modules/migration/src/MigrationService.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/modules/routing/index.php
+
+		-
+			message: '#^Cannot call method getDefaults\(\) on array\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/modules/routing/src/Event/AliasListener.php
+
+		-
+			message: '#^Cannot call method getName\(\) on array\.$#'
+			identifier: method.nonObject
+			count: 4
+			path: app/modules/routing/src/Event/AliasListener.php
+
+		-
+			message: '#^Cannot call method getPath\(\) on array\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/modules/routing/src/Event/AliasListener.php
+
+		-
+			message: '#^Instanceof between Symfony\\Component\\Routing\\Matcher\\RequestMatcherInterface and Symfony\\Component\\Routing\\Matcher\\RequestMatcherInterface will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: app/modules/routing/src/Event/RouterListener.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 1
+			path: app/modules/routing/src/Event/RouterListener.php
+
+		-
+			message: '#^Call to sprintf contains 0 placeholders, 1 value given\.$#'
+			identifier: argument.sprintf
+			count: 1
+			path: app/modules/routing/src/Request/ParamFetcher.php
+
+		-
+			message: '#^Variable \$name in PHPDoc tag @var does not exist\.$#'
+			identifier: varTag.variableNotFound
+			count: 1
+			path: app/modules/routing/src/Request/ParamFetcher.php
+
+		-
+			message: '#^Variable \$name might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/modules/routing/src/Request/ParamFetcher.php
+
+		-
+			message: '#^Variable \$options in PHPDoc tag @var does not exist\.$#'
+			identifier: varTag.variableNotFound
+			count: 1
+			path: app/modules/routing/src/Request/ParamFetcher.php
+
+		-
+			message: '#^Variable \$options might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/modules/routing/src/Request/ParamFetcher.php
+
+		-
+			message: '#^Variable \$type in PHPDoc tag @var does not exist\.$#'
+			identifier: varTag.variableNotFound
+			count: 1
+			path: app/modules/routing/src/Request/ParamFetcher.php
+
+		-
+			message: '#^Variable \$type might not be defined\.$#'
+			identifier: variable.undefined
+			count: 4
+			path: app/modules/routing/src/Request/ParamFetcher.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Routing\\Request\\ParamFetcherInterface\:\:setParameters\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/modules/routing/src/Request/ParamFetcherListener.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Routing\\Request\\ParamFetcherInterface\:\:setRequest\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/modules/routing/src/Request/ParamFetcherListener.php
+
+		-
+			message: '#^Parameter \#1 \$index of method Pagekit\\Routing\\Request\\ParamFetcherInterface\:\:get\(\) expects string, int\<0, max\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/modules/routing/src/Request/ParamFetcherListener.php
+
+		-
+			message: '#^Undefined variable\: \$this$#'
+			identifier: variable.undefined
+			count: 4
+			path: app/modules/session/index.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/modules/session/index.php
+
+		-
+			message: '#^PHPDoc tag @throws with type Pagekit\\Session\\Csrf\\Event\\UnauthorizedException is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 1
+			path: app/modules/session/src/Csrf/Event/CsrfListener.php
+
+		-
+			message: '#^Parameter \#1 \$prefix of function uniqid expects string, int\<0, max\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/modules/session/src/Csrf/Provider/DefaultCsrfProvider.php
+
+		-
+			message: '#^Parameter \#1 \$prefix of function uniqid expects string, int\<0, max\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/modules/session/src/Csrf/Provider/SessionCsrfProvider.php
+
+		-
+			message: '#^Class Doctrine\\DBAL\\Platforms\\MySqlPlatform not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/modules/session/src/Handler/DatabaseSessionHandler.php
+
+		-
+			message: '#^Dead catch \- PDOException is never thrown in the try block\.$#'
+			identifier: catch.neverThrown
+			count: 1
+			path: app/modules/session/src/Handler/DatabaseSessionHandler.php
+
+		-
+			message: '#^Method Pagekit\\Session\\Handler\\DatabaseSessionHandler\:\:gc\(\) should return false but returns true\.$#'
+			identifier: return.type
+			count: 1
+			path: app/modules/session/src/Handler/DatabaseSessionHandler.php
+
+		-
+			message: '#^Method Pagekit\\Session\\Handler\\DatabaseSessionHandler\:\:getMergeSql\(\) should return string\|null but return statement is missing\.$#'
+			identifier: return.missing
+			count: 1
+			path: app/modules/session/src/Handler/DatabaseSessionHandler.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertIsArray\(\) with array will always evaluate to true\.$#'
+			identifier: method.alreadyNarrowedType
+			count: 3
+			path: app/modules/session/src/Tests/SessionTest.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertIsString\(\) with string will always evaluate to true\.$#'
+			identifier: method.alreadyNarrowedType
+			count: 2
+			path: app/modules/session/src/Tests/SessionTest.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/modules/view/index.php
+
+		-
+			message: '#^Method Pagekit\\View\\Asset\\Asset\:\:getPath\(\) should return string but returns false\.$#'
+			identifier: return.type
+			count: 1
+			path: app/modules/view/src/Asset/Asset.php
+
+		-
+			message: '#^Call to method get\(\) on an unknown class Pagekit\\View\\Asset\\FilterManager\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/modules/view/src/Asset/AssetManager.php
+
+		-
+			message: '#^Property Pagekit\\View\\Asset\\AssetManager\:\:\$filters has unknown class Pagekit\\View\\Asset\\FilterManager as its type\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/modules/view/src/Asset/AssetManager.php
+
+		-
+			message: '#^Variable \$filters might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/modules/view/src/Asset/AssetManager.php
+
+		-
+			message: '#^Variable \$pattern might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/modules/view/src/Asset/AssetManager.php
+
+		-
+			message: '#^Parameter \#2 \$source of method Pagekit\\View\\Asset\\Asset\:\:__construct\(\) expects string, null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/modules/view/src/Asset/StringAsset.php
+
+		-
+			message: '#^If condition is always false\.$#'
+			identifier: if.alwaysFalse
+			count: 1
+			path: app/modules/view/src/Engine/PhpEngine.php
+
+		-
+			message: '#^Method Pagekit\\View\\Helper\\DeferredHelper\:\:__invoke\(\) should return string but return statement is missing\.$#'
+			identifier: return.missing
+			count: 1
+			path: app/modules/view/src/Helper/DeferredHelper.php
+
+		-
+			message: '#^Parameter \#1 \$enable of function ob_implicit_flush expects bool, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/modules/view/src/Helper/SectionHelper.php
+
+		-
+			message: '#^If condition is always true\.$#'
+			identifier: if.alwaysTrue
+			count: 1
+			path: app/modules/view/src/View.php
+
+		-
+			message: '#^Variable \$config might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/app.php
+
+		-
+			message: '#^Variable \$path might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/app.php
+
+		-
+			message: '#^Variable \$path might not be defined\.$#'
+			identifier: variable.undefined
+			count: 6
+			path: app/system/config.php
+
+		-
+			message: '#^Undefined variable\: \$this$#'
+			identifier: variable.undefined
+			count: 4
+			path: app/system/index.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 6
+			path: app/system/index.php
+
+		-
+			message: '#^Anonymous function has an unused use \$app\.$#'
+			identifier: closure.unusedUse
+			count: 1
+			path: app/system/modules/cache/index.php
+
+		-
+			message: '#^Undefined variable\: \$this$#'
+			identifier: variable.undefined
+			count: 4
+			path: app/system/modules/cache/index.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/cache/index.php
+
+		-
+			message: '#^Anonymous function has an unused use \$name\.$#'
+			identifier: closure.unusedUse
+			count: 1
+			path: app/system/modules/cache/src/CacheModule.php
+
+		-
+			message: '#^Anonymous function has an unused use \$app\.$#'
+			identifier: closure.unusedUse
+			count: 1
+			path: app/system/modules/captcha/index.php
+
+		-
+			message: '#^Undefined variable\: \$this$#'
+			identifier: variable.undefined
+			count: 3
+			path: app/system/modules/captcha/index.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/captcha/index.php
+
+		-
+			message: '#^Parameter \#2 \$options of function curl_setopt_array expects array\{19913\: bool, 42\: bool, 47\: bool, 10015\: array\|string\}, array\{19913\: true, 42\: false, 47\: int\<0, max\>, 10015\: string\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/system/modules/captcha/src/CaptchaListener.php
+
+		-
+			message: '#^Access to an undefined static property static\(Pagekit\\Comment\\Model\\Comment\)\:\:\$properties\.$#'
+			identifier: staticProperty.notFound
+			count: 3
+			path: app/system/modules/comment/src/Model/Comment.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:update\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/system/modules/comment/src/Model/Comment.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/system/modules/comment/src/Model/Comment.php
+
+		-
+			message: '#^Method Pagekit\\Comment\\Model\\Comment\:\:create\(\) should return static\(Pagekit\\Comment\\Model\\Comment\) but returns object\.$#'
+			identifier: return.type
+			count: 1
+			path: app/system/modules/comment/src/Model/Comment.php
+
+		-
+			message: '#^Method Pagekit\\Comment\\Model\\Comment\:\:find\(\) should return static\(Pagekit\\Comment\\Model\\Comment\)\|null but returns object\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/system/modules/comment/src/Model/Comment.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Event\\EventInterface\:\:getContent\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/system/modules/content/src/ContentHelper.php
+
+		-
+			message: '#^Method Pagekit\\Content\\Plugin\\VideoPlugin\:\:applyPlugin\(\) should return string but empty return statement found\.$#'
+			identifier: return.empty
+			count: 1
+			path: app/system/modules/content/src/Plugin/VideoPlugin.php
+
+		-
+			message: '#^Parameter \#1 \$array of function array_pop is passed by reference, so it expects variables only\.$#'
+			identifier: argument.byRef
+			count: 1
+			path: app/system/modules/content/src/Plugin/VideoPlugin.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Module\\Module\:\:getWidget\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/system/modules/dashboard/src/Controller/DashboardController.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Module\\Module\:\:getWidgets\(\)\.$#'
+			identifier: method.notFound
+			count: 5
+			path: app/system/modules/dashboard/src/Controller/DashboardController.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Module\\Module\:\:saveWidgets\(\)\.$#'
+			identifier: method.notFound
+			count: 4
+			path: app/system/modules/dashboard/src/Controller/DashboardController.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/dashboard/views/index.php
+
+		-
+			message: '#^Undefined variable\: \$this$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/editor/index.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/editor/index.php
+
+		-
+			message: '#^Anonymous function has an unused use \$app\.$#'
+			identifier: closure.unusedUse
+			count: 1
+			path: app/system/modules/finder/index.php
+
+		-
+			message: '#^Undefined variable\: \$this$#'
+			identifier: variable.undefined
+			count: 8
+			path: app/system/modules/finder/index.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/finder/index.php
+
+		-
+			message: '#^Invalid array key type float\.$#'
+			identifier: offsetAccess.invalidOffset
+			count: 1
+			path: app/system/modules/finder/src/Controller/FinderController.php
+
+		-
+			message: '#^Parameter \#2 \$callback of function array_filter expects \(callable\(string\)\: bool\)\|null, ''strlen'' given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/system/modules/finder/src/Controller/FinderController.php
+
+		-
+			message: '#^Variable \$mode might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/finder/views/storage.php
+
+		-
+			message: '#^Variable \$root might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/finder/views/storage.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/finder/views/storage.php
+
+		-
+			message: '#^Method Pagekit\\Info\\InfoHelper\:\:get\(\) should return array\<string\> but returns array\<string, mixed\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/system/modules/info/src/InfoHelper.php
+
+		-
+			message: '#^Method Pagekit\\Info\\InfoHelper\:\:getDirectories\(\) should return array\<string\> but returns array\<string, bool\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/system/modules/info/src/InfoHelper.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/info/views/info.php
+
+		-
+			message: '#^Call to an undefined method Symfony\\Contracts\\Translation\\TranslatorInterface\:\:getCatalogue\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/system/modules/intl/functions.php
+
+		-
+			message: '#^Undefined variable\: \$this$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/intl/index.php
+
+		-
+			message: '#^Variable \$country in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.variable
+			count: 1
+			path: app/system/modules/intl/src/IntlModule.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/system/modules/intl/src/Loader/MoFileLoader.php
+
+		-
+			message: '#^PHPDoc tag @var for constant Pagekit\\Intl\\Loader\\MoFileLoader\:\:MO_BIG_ENDIAN_MAGIC with type float is incompatible with value 3725722773\.$#'
+			identifier: classConstant.phpDocType
+			count: 1
+			path: app/system/modules/intl/src/Loader/MoFileLoader.php
+
+		-
+			message: '#^PHPDoc tag @var for constant Pagekit\\Intl\\Loader\\MoFileLoader\:\:MO_LITTLE_ENDIAN_MAGIC with type float is incompatible with value 2500072158\.$#'
+			identifier: classConstant.phpDocType
+			count: 1
+			path: app/system/modules/intl/src/Loader/MoFileLoader.php
+
+		-
+			message: '#^Parameter \#1 \$filename of function fopen expects string, resource given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/system/modules/intl/src/Loader/MoFileLoader.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between null and array will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/system/modules/intl/src/Loader/MoFileLoader.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/system/modules/intl/src/Loader/PoFileLoader.php
+
+		-
+			message: '#^Parameter \#1 \$filename of function fopen expects string, resource given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/system/modules/intl/src/Loader/PoFileLoader.php
+
+		-
+			message: '#^Anonymous function has an unused use \$app\.$#'
+			identifier: closure.unusedUse
+			count: 1
+			path: app/system/modules/mail/index.php
+
+		-
+			message: '#^Left side of && is always true\.$#'
+			identifier: booleanAnd.leftAlwaysTrue
+			count: 1
+			path: app/system/modules/mail/index.php
+
+		-
+			message: '#^Undefined variable\: \$this$#'
+			identifier: variable.undefined
+			count: 13
+			path: app/system/modules/mail/index.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/mail/index.php
+
+		-
+			message: '#^Variable \$this in empty\(\) is never defined\.$#'
+			identifier: empty.variable
+			count: 1
+			path: app/system/modules/mail/index.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Mail\\MailerInterface\:\:send\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/system/modules/mail/src/Message.php
+
+		-
+			message: '#^Instanceof between Symfony\\Component\\Mime\\Part\\DataPart and Symfony\\Component\\Mime\\Part\\DataPart will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 3
+			path: app/system/modules/mail/src/Message.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertIsArray\(\) with array will always evaluate to true\.$#'
+			identifier: method.alreadyNarrowedType
+			count: 10
+			path: app/system/modules/mail/src/Tests/Controller/MailControllerTest.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertIsString\(\) with string will always evaluate to true\.$#'
+			identifier: method.alreadyNarrowedType
+			count: 2
+			path: app/system/modules/mail/src/Tests/MailerTest.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 1
+			path: app/system/modules/mail/src/Tests/MailerTest.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertIsArray\(\) with array will always evaluate to true\.$#'
+			identifier: method.alreadyNarrowedType
+			count: 2
+			path: app/system/modules/mail/src/Tests/SendmailTransportTest.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/settings/index.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/settings/views/settings.php
+
+		-
+			message: '#^Anonymous function has an unused use \$app\.$#'
+			identifier: closure.unusedUse
+			count: 2
+			path: app/system/modules/site/index.php
+
+		-
+			message: '#^Undefined variable\: \$this$#'
+			identifier: variable.undefined
+			count: 9
+			path: app/system/modules/site/index.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 5
+			path: app/system/modules/site/index.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:count\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/system/modules/site/src/Controller/MenuApiController.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:update\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/system/modules/site/src/Controller/MenuApiController.php
+
+		-
+			message: '#^Offset ''count'' does not exist on array\{id\: ''trash'', label\: mixed, fixed\: true\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/system/modules/site/src/Controller/MenuApiController.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/system/modules/site/src/Controller/NodeApiController.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Module\\Module\:\:getType\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/system/modules/site/src/Event/NodesListener.php
+
+		-
+			message: '#^Parameter \#1 \$string1 of function strcmp expects string, int\<0, max\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/system/modules/site/src/Event/NodesListener.php
+
+		-
+			message: '#^Parameter \#2 \$string2 of function strcmp expects string, int\<0, max\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/system/modules/site/src/Event/NodesListener.php
+
+		-
+			message: '#^Class Pagekit\\Site\\Model\\Node does not have a constructor and must be instantiated without any parameters\.$#'
+			identifier: new.noConstructor
+			count: 1
+			path: app/system/modules/site/src/MenuHelper.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:orderBy\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/system/modules/site/src/Model/Node.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/system/modules/site/src/Model/Node.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:whereIn\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/system/modules/site/src/Model/Node.php
+
+		-
+			message: '#^Method Pagekit\\Site\\Model\\Node\:\:create\(\) should return static\(Pagekit\\Site\\Model\\Node\) but returns object\.$#'
+			identifier: return.type
+			count: 1
+			path: app/system/modules/site/src/Model/Node.php
+
+		-
+			message: '#^Method Pagekit\\Site\\Model\\Node\:\:modelFind\(\) should return static\(Pagekit\\Site\\Model\\Node\)\|null but returns object\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/system/modules/site/src/Model/Node.php
+
+		-
+			message: '#^Access to an undefined static property static\(Pagekit\\Site\\Model\\Page\)\:\:\$properties\.$#'
+			identifier: staticProperty.notFound
+			count: 3
+			path: app/system/modules/site/src/Model/Page.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/system/modules/site/src/Model/Page.php
+
+		-
+			message: '#^Method Pagekit\\Site\\Model\\Page\:\:create\(\) should return static\(Pagekit\\Site\\Model\\Page\) but returns object\.$#'
+			identifier: return.type
+			count: 1
+			path: app/system/modules/site/src/Model/Page.php
+
+		-
+			message: '#^Method Pagekit\\Site\\Model\\Page\:\:find\(\) should return static\(Pagekit\\Site\\Model\\Page\)\|null but returns object\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/system/modules/site/src/Model/Page.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$route$#'
+			identifier: parameter.notFound
+			count: 1
+			path: app/system/modules/site/src/SiteModule.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$type$#'
+			identifier: parameter.notFound
+			count: 1
+			path: app/system/modules/site/src/SiteModule.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/site/views/admin/edit.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/site/views/admin/index.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/site/views/admin/settings.php
+
+		-
+			message: '#^Variable \$class might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/site/views/menu.php
+
+		-
+			message: '#^Variable \$root might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: app/system/modules/site/views/menu.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/site/views/menu.php
+
+		-
+			message: '#^Variable \$page might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/site/views/page.php
+
+		-
+			message: '#^Variable \$widgets might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/site/views/position.php
+
+		-
+			message: '#^Variable \$root might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: app/system/modules/site/views/widget-menu.php
+
+		-
+			message: '#^Variable \$this might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/site/views/widget-menu.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/site/views/widget-text.php
+
+		-
+			message: '#^Variable \$widget might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: app/system/modules/site/views/widget-text.php
+
+		-
+			message: '#^Undefined variable\: \$app$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/site/widgets/menu.php
+
+		-
+			message: '#^Undefined variable\: \$app$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/site/widgets/text.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: app/system/modules/theme/index.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/theme/views/blank.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/theme/views/blank.php
+
+		-
+			message: '#^Variable \$title might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/theme/views/error.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 4
+			path: app/system/modules/theme/views/error.php
+
+		-
+			message: '#^Variable \$last_username might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/theme/views/login.php
+
+		-
+			message: '#^Variable \$redirect might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/theme/views/login.php
+
+		-
+			message: '#^Variable \$this might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/theme/views/login.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 11
+			path: app/system/modules/theme/views/login.php
+
+		-
+			message: '#^Variable \$logo might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/theme/views/maintenance.php
+
+		-
+			message: '#^Variable \$message might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/theme/views/maintenance.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: app/system/modules/theme/views/maintenance.php
+
+		-
+			message: '#^Variable \$redirect might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/theme/views/migration.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 8
+			path: app/system/modules/theme/views/migration.php
+
+		-
+			message: '#^Variable \$intl might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/theme/views/template.php
+
+		-
+			message: '#^Variable \$pageClass might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/theme/views/template.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 8
+			path: app/system/modules/theme/views/template.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/user/index.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: app/system/modules/user/mails/approve.php
+
+		-
+			message: '#^Variable \$this might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/user/mails/approve.php
+
+		-
+			message: '#^Variable \$user might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: app/system/modules/user/mails/approve.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/user/mails/approve.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: app/system/modules/user/mails/reset.php
+
+		-
+			message: '#^Variable \$this might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/user/mails/reset.php
+
+		-
+			message: '#^Variable \$url might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/user/mails/reset.php
+
+		-
+			message: '#^Variable \$user might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/user/mails/reset.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: app/system/modules/user/mails/verification.php
+
+		-
+			message: '#^Variable \$this might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/user/mails/verification.php
+
+		-
+			message: '#^Variable \$user might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: app/system/modules/user/mails/verification.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/user/mails/verification.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: app/system/modules/user/mails/welcome.php
+
+		-
+			message: '#^Variable \$this might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/user/mails/welcome.php
+
+		-
+			message: '#^Variable \$user might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/user/mails/welcome.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/user/mails/welcome.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:count\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/system/modules/user/src/Controller/UserApiController.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:offset\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/system/modules/user/src/Controller/UserApiController.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
+			identifier: method.notFound
+			count: 8
+			path: app/system/modules/user/src/Controller/UserApiController.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:whereExists\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/system/modules/user/src/Controller/UserApiController.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:whereInSet\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/system/modules/user/src/Controller/UserApiController.php
+
+		-
+			message: '#^Variable \$access might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/user/src/Controller/UserApiController.php
+
+		-
+			message: '#^Variable \$order might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/user/src/Controller/UserApiController.php
+
+		-
+			message: '#^Variable \$role might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/user/src/Controller/UserApiController.php
+
+		-
+			message: '#^Variable \$search might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/user/src/Controller/UserApiController.php
+
+		-
+			message: '#^Variable \$status might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/user/src/Controller/UserApiController.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:orderBy\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: app/system/modules/user/src/Controller/UserController.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Auth\\UserInterface\:\:hasAccess\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/system/modules/user/src/Event/AccessListener.php
+
+		-
+			message: '#^Access to an undefined property Pagekit\\Auth\\UserInterface\:\:\$login\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/system/modules/user/src/Event/AuthorizationListener.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Auth\\UserInterface\:\:isBlocked\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/system/modules/user/src/Event/AuthorizationListener.php
+
+		-
+			message: '#^Parameter \#1 \$user of static method Pagekit\\User\\Model\\User\:\:updateLogin\(\) expects Pagekit\\User\\Model\\User, Pagekit\\Auth\\UserInterface\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/system/modules/user/src/Event/UserListener.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/system/modules/user/src/Model/Role.php
+
+		-
+			message: '#^Method Pagekit\\User\\Model\\Role\:\:create\(\) should return static\(Pagekit\\User\\Model\\Role\) but returns object\.$#'
+			identifier: return.type
+			count: 1
+			path: app/system/modules/user/src/Model/Role.php
+
+		-
+			message: '#^Method Pagekit\\User\\Model\\Role\:\:find\(\) should return static\(Pagekit\\User\\Model\\Role\)\|null but returns object\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/system/modules/user/src/Model/Role.php
+
+		-
+			message: '#^Access to an undefined static property static\(Pagekit\\User\\Model\\User\)\:\:\$properties\.$#'
+			identifier: staticProperty.notFound
+			count: 3
+			path: app/system/modules/user/src/Model/User.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:orWhere\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/system/modules/user/src/Model/User.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:update\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/system/modules/user/src/Model/User.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/system/modules/user/src/Model/User.php
+
+		-
+			message: '#^Function create_function not found\.$#'
+			identifier: function.notFound
+			count: 1
+			path: app/system/modules/user/src/Model/User.php
+
+		-
+			message: '#^Method Pagekit\\User\\Model\\User\:\:create\(\) should return static\(Pagekit\\User\\Model\\User\) but returns object\.$#'
+			identifier: return.type
+			count: 1
+			path: app/system/modules/user/src/Model/User.php
+
+		-
+			message: '#^Method Pagekit\\User\\Model\\User\:\:find\(\) should return static\(Pagekit\\User\\Model\\User\)\|null but returns object\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/system/modules/user/src/Model/User.php
+
+		-
+			message: '#^Parameter \#2 \$callback of function preg_replace_callback expects callable\(array\<string\>\)\: string, Closure\(mixed\)\: \(0\|1\) given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/system/modules/user/src/Model/User.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/user/views/admin/permission-index.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/user/views/admin/role-index.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/user/views/admin/settings.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/user/views/admin/user-edit.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/user/views/admin/user-index.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/user/views/login.php
+
+		-
+			message: '#^Variable \$last_username might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/user/views/login.php
+
+		-
+			message: '#^Variable \$redirect might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/user/views/login.php
+
+		-
+			message: '#^Variable \$this might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/user/views/login.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 5
+			path: app/system/modules/user/views/login.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/user/views/profile.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/user/views/registration.php
+
+		-
+			message: '#^Variable \$activation might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/user/views/reset-confirm.php
+
+		-
+			message: '#^Variable \$error might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/user/views/reset-confirm.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: app/system/modules/user/views/reset-confirm.php
+
+		-
+			message: '#^Variable \$error might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/user/views/reset-request.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/user/views/reset-request.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/user/views/widget-login.php
+
+		-
+			message: '#^Variable \$last_username might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/user/views/widget-login.php
+
+		-
+			message: '#^Variable \$redirect might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/user/views/widget-login.php
+
+		-
+			message: '#^Variable \$this might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/user/views/widget-login.php
+
+		-
+			message: '#^Variable \$user might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/user/views/widget-login.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 5
+			path: app/system/modules/user/views/widget-login.php
+
+		-
+			message: '#^Anonymous function has an unused use \$app\.$#'
+			identifier: closure.unusedUse
+			count: 1
+			path: app/system/modules/user/widgets/login.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/user/widgets/login.php
+
+		-
+			message: '#^Anonymous function has an unused use \$app\.$#'
+			identifier: closure.unusedUse
+			count: 2
+			path: app/system/modules/view/index.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/view/index.php
+
+		-
+			message: '#^Undefined variable\: \$this$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/widget/index.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 4
+			path: app/system/modules/widget/index.php
+
+		-
+			message: '#^Access to an undefined property Pagekit\\Widget\\Model\\Widget\:\:\$position\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/system/modules/widget/src/Controller/WidgetApiController.php
+
+		-
+			message: '#^Access to an undefined property Pagekit\\Widget\\Model\\Widget\:\:\$position\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/system/modules/widget/src/Controller/WidgetController.php
+
+		-
+			message: '#^Access to an undefined static property static\(Pagekit\\Widget\\Model\\Widget\)\:\:\$properties\.$#'
+			identifier: staticProperty.notFound
+			count: 3
+			path: app/system/modules/widget/src/Model/Widget.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/system/modules/widget/src/Model/Widget.php
+
+		-
+			message: '#^Method Pagekit\\Widget\\Model\\Widget\:\:create\(\) should return static\(Pagekit\\Widget\\Model\\Widget\) but returns object\.$#'
+			identifier: return.type
+			count: 1
+			path: app/system/modules/widget/src/Model/Widget.php
+
+		-
+			message: '#^Method Pagekit\\Widget\\Model\\Widget\:\:find\(\) should return static\(Pagekit\\Widget\\Model\\Widget\)\|null but returns object\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/system/modules/widget/src/Model/Widget.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: app/system/modules/widget/views/edit.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/system/modules/widget/views/index.php
+
+		-
+			message: '#^Method Composer\\Autoload\\ClassLoader\:\:loadClass\(\) should return bool\|null but return statement is missing\.$#'
+			identifier: return.missing
+			count: 1
+			path: packages/composer/ClassLoader.php
+
+		-
+			message: '#^Comparison operation "\>\=" between int\<80200, 80599\> and 50600 is always true\.$#'
+			identifier: greaterOrEqual.alwaysTrue
+			count: 1
+			path: packages/composer/autoload_real.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/blog/index.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:count\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/pagekit/blog/src/Controller/CommentApiController.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:offset\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/pagekit/blog/src/Controller/CommentApiController.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:orWhere\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/pagekit/blog/src/Controller/CommentApiController.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:orderBy\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: packages/pagekit/blog/src/Controller/CommentApiController.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
+			identifier: method.notFound
+			count: 5
+			path: packages/pagekit/blog/src/Controller/CommentApiController.php
+
+		-
+			message: '#^Variable \$order might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/blog/src/Controller/CommentApiController.php
+
+		-
+			message: '#^Variable \$search might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/blog/src/Controller/CommentApiController.php
+
+		-
+			message: '#^Variable \$status might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/blog/src/Controller/CommentApiController.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:count\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/pagekit/blog/src/Controller/PostApiController.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:offset\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/pagekit/blog/src/Controller/PostApiController.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: packages/pagekit/blog/src/Controller/PostApiController.php
+
+		-
+			message: '#^Variable \$author might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/blog/src/Controller/PostApiController.php
+
+		-
+			message: '#^Variable \$limit might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/blog/src/Controller/PostApiController.php
+
+		-
+			message: '#^Variable \$order might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/blog/src/Controller/PostApiController.php
+
+		-
+			message: '#^Variable \$search might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/blog/src/Controller/PostApiController.php
+
+		-
+			message: '#^Variable \$status might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/blog/src/Controller/PostApiController.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:limit\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/pagekit/blog/src/Controller/SiteController.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: packages/pagekit/blog/src/Controller/SiteController.php
+
+		-
+			message: '#^Access to an undefined property Pagekit\\Comment\\Model\\Comment\:\:\$post_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: packages/pagekit/blog/src/Event/PostListener.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:count\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/pagekit/blog/src/Model/Post.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:select\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/pagekit/blog/src/Model/Post.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:update\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: packages/pagekit/blog/src/Model/Post.php
+
+		-
+			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: packages/pagekit/blog/src/Model/Post.php
+
+		-
+			message: '#^Method Pagekit\\Blog\\Model\\Post\:\:create\(\) should return static\(Pagekit\\Blog\\Model\\Post\) but returns object\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/pagekit/blog/src/Model/Post.php
+
+		-
+			message: '#^Method Pagekit\\Blog\\Model\\Post\:\:find\(\) should return static\(Pagekit\\Blog\\Model\\Post\)\|null but returns object\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: packages/pagekit/blog/src/Model/Post.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: packages/pagekit/blog/views/admin/comment-index.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/blog/views/admin/post-edit.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/blog/views/admin/post-index.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/blog/views/admin/settings.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/blog/views/comments.php
+
+		-
+			message: '#^Variable \$post might not be defined\.$#'
+			identifier: variable.undefined
+			count: 7
+			path: packages/pagekit/blog/views/post.php
+
+		-
+			message: '#^Variable \$this might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/blog/views/post.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: packages/pagekit/blog/views/post.php
+
+		-
+			message: '#^Variable \$page might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/blog/views/posts.php
+
+		-
+			message: '#^Variable \$posts might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/blog/views/posts.php
+
+		-
+			message: '#^Variable \$this might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/blog/views/posts.php
+
+		-
+			message: '#^Variable \$total might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/blog/views/posts.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 8
+			path: packages/pagekit/blog/views/posts.php
+
+		-
+			message: '#^Parameter \#1 \$array \(array\{''bgy\: \-200'', ''media\: @s''\}\) to function array_filter does not contain falsy values, the array will always stay the same\.$#'
+			identifier: arrayFilter.same
+			count: 1
+			path: packages/pagekit/theme-one/functions.php
+
+		-
+			message: '#^Anonymous function has an unused use \$app\.$#'
+			identifier: closure.unusedUse
+			count: 1
+			path: packages/pagekit/theme-one/index.php
+
+		-
+			message: '#^Undefined variable\: \$this$#'
+			identifier: variable.undefined
+			count: 3
+			path: packages/pagekit/theme-one/index.php
+
+		-
+			message: '#^Variable \$app might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: packages/pagekit/theme-one/index.php
+
+		-
+			message: '#^Variable \$post might not be defined\.$#'
+			identifier: variable.undefined
+			count: 7
+			path: packages/pagekit/theme-one/views/blog/post.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: packages/pagekit/theme-one/views/blog/post.php
+
+		-
+			message: '#^Variable \$page might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/theme-one/views/blog/posts.php
+
+		-
+			message: '#^Variable \$posts might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/theme-one/views/blog/posts.php
+
+		-
+			message: '#^Variable \$total might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/theme-one/views/blog/posts.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 10
+			path: packages/pagekit/theme-one/views/blog/posts.php
+
+		-
+			message: '#^Variable \$config might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/theme-one/views/header-logo.php
+
+		-
+			message: '#^Variable \$logo might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/theme-one/views/header-logo.php
+
+		-
+			message: '#^Variable \$params might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: packages/pagekit/theme-one/views/header-logo.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/theme-one/views/header-logo.php
+
+		-
+			message: '#^Variable \$params might not be defined\.$#'
+			identifier: variable.undefined
+			count: 12
+			path: packages/pagekit/theme-one/views/header.php
+
+		-
+			message: '#^Variable \$this might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/theme-one/views/header.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 20
+			path: packages/pagekit/theme-one/views/header.php
+
+		-
+			message: '#^Variable \$class might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/theme-one/views/menu-navbar.php
+
+		-
+			message: '#^Variable \$root might not be defined\.$#'
+			identifier: variable.undefined
+			count: 8
+			path: packages/pagekit/theme-one/views/menu-navbar.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/theme-one/views/menu-navbar.php
+
+		-
+			message: '#^Variable \$config might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/theme-one/views/offcanvas.php
+
+		-
+			message: '#^Variable \$params might not be defined\.$#'
+			identifier: variable.undefined
+			count: 6
+			path: packages/pagekit/theme-one/views/offcanvas.php
+
+		-
+			message: '#^Variable \$this might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/theme-one/views/offcanvas.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 5
+			path: packages/pagekit/theme-one/views/offcanvas.php
+
+		-
+			message: '#^Variable \$widgets might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/theme-one/views/position-blank.php
+
+		-
+			message: '#^Variable \$widgets might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/theme-one/views/position-grid.php
+
+		-
+			message: '#^Variable \$widgets might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/theme-one/views/position-panel.php
+
+		-
+			message: '#^Parameter \#1 \$array \(array\{0\: ''offset\-top\: true'', 1\?\: ''offset\-bottom\: \! \+''\|''offset\-bottom\: 20''\|''offset\-bottom\: true''\}\) to function array_filter does not contain falsy values, the array will always stay the same\.$#'
+			identifier: arrayFilter.same
+			count: 1
+			path: packages/pagekit/theme-one/views/section.php
+
+		-
+			message: '#^Variable \$attrs_container in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.variable
+			count: 2
+			path: packages/pagekit/theme-one/views/section.php
+
+		-
+			message: '#^Variable \$name might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: packages/pagekit/theme-one/views/section.php
+
+		-
+			message: '#^Variable \$options might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/theme-one/views/section.php
+
+		-
+			message: '#^Variable \$params might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: packages/pagekit/theme-one/views/section.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 5
+			path: packages/pagekit/theme-one/views/section.php
+
+		-
+			message: '#^Variable \$node might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: packages/pagekit/theme-one/views/system/site/page.php
+
+		-
+			message: '#^Variable \$page might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: packages/pagekit/theme-one/views/system/site/page.php
+
+		-
+			message: '#^Variable \$intl might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: packages/pagekit/theme-one/views/template.php
+
+		-
+			message: '#^Variable \$params might not be defined\.$#'
+			identifier: variable.undefined
+			count: 5
+			path: packages/pagekit/theme-one/views/template.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 14
+			path: packages/pagekit/theme-one/views/template.php

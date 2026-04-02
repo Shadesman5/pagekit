@@ -11,18 +11,18 @@ class Markdown
     protected array $options;
 
     protected static array $defaults = [
-        'gfm'          => true,
-        'tables'       => true,
-        'breaks'       => false,
-        'pedantic'     => false,
-        'sanitize'     => false,
-        'smartLists'   => false,
-        'silent'       => false,
-        'highlight'    => false,
-        'langPrefix'   => 'lang-',
-        'smartypants'  => false,
+        'gfm' => true,
+        'tables' => true,
+        'breaks' => false,
+        'pedantic' => false,
+        'sanitize' => false,
+        'smartLists' => false,
+        'silent' => false,
+        'highlight' => false,
+        'langPrefix' => 'lang-',
+        'smartypants' => false,
         'headerPrefix' => '',
-        'xhtml'        => false
+        'xhtml' => false,
     ];
 
     /**
@@ -33,7 +33,7 @@ class Markdown
     public function __construct(array $options = [])
     {
         if (!isset($options['renderer'])) {
-            $options['renderer'] = new Renderer;
+            $options['renderer'] = new Renderer();
         }
 
         $this->options = array_merge(static::$defaults, $options);
@@ -60,11 +60,11 @@ class Markdown
      * Convert special characters to HTML entities.
      *
      * @param  string  $text
-     * @param  boolean $encode
+     * @param  bool $encode
      */
     public static function escape($text, $encode = false): string
     {
-        $text = preg_replace(!$encode ? '/&(?!#?\w+;)/':'/&/', '&amp;', $text);
+        $text = preg_replace(!$encode ? '/&(?!#?\w+;)/' : '/&/', '&amp;', $text);
 
         return str_replace(['<', '>', '"', '\''], ['&lt;', '&gt;', '&quot;', '&#39;'], $text);
     }

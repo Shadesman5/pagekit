@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Pagekit\Database\Tests;
 
-use PHPUnit\Framework\TestCase;
-use Pagekit\Database\Connection;
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\DriverManager;
+use Pagekit\Database\Connection;
+use PHPUnit\Framework\TestCase;
 
 class ConnectionTest extends TestCase
 {
@@ -21,7 +21,7 @@ class ConnectionTest extends TestCase
         $params = [
             'driver' => 'pdo_sqlite',
             'memory' => true,
-            'prefix' => 'pk_'
+            'prefix' => 'pk_',
         ];
 
         $config = new Configuration();
@@ -121,7 +121,7 @@ class ConnectionTest extends TestCase
 
         $utility = $pagekitConn->getUtility();
         $this->assertInstanceOf(\Pagekit\Database\Utility::class, $utility);
-        
+
         $pagekitConn->close();
     }
 
@@ -145,7 +145,7 @@ class ConnectionTest extends TestCase
 
         $platform = $pagekitConn->getDatabasePlatform();
         $this->assertInstanceOf(\Doctrine\DBAL\Platforms\AbstractPlatform::class, $platform);
-        
+
         $pagekitConn->close();
     }
 
@@ -177,7 +177,7 @@ class ConnectionTest extends TestCase
         // Test no result
         $noResult = $pagekitConn->fetchObject('SELECT * FROM test_fetch WHERE id = 999');
         $this->assertFalse($noResult);
-        
+
         $pagekitConn->close();
     }
 
@@ -206,7 +206,7 @@ class ConnectionTest extends TestCase
         $this->assertCount(2, $results);
         $this->assertEquals('Alice', $results[0]->name);
         $this->assertEquals('Bob', $results[1]->name);
-        
+
         $pagekitConn->close();
     }
 }

@@ -20,7 +20,7 @@ class ControllerListener implements EventSubscriberInterface
     public function __construct(ControllerResolver $resolver, ?LoggerInterface $logger = null)
     {
         $this->resolver = $resolver;
-        $this->logger   = $logger;
+        $this->logger = $logger;
     }
 
     /**
@@ -51,7 +51,7 @@ class ControllerListener implements EventSubscriberInterface
         }
 
         $arguments = $this->resolver->getArguments($request, $controller);
-        $response  = call_user_func_array($controller, $arguments);
+        $response = call_user_func_array($controller, $arguments);
 
         if ($response instanceof Response) {
             $event->setResponse($response);
@@ -68,8 +68,8 @@ class ControllerListener implements EventSubscriberInterface
         return [
             'controller' => [
                 ['resolveController', 120],
-                ['executeController', 100]
-            ]
+                ['executeController', 100],
+            ],
         ];
     }
 }

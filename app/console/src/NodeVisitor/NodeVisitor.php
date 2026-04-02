@@ -2,8 +2,6 @@
 
 namespace Pagekit\Console\NodeVisitor;
 
-use PhpParser\Lexer;
-use PhpParser\Node;
 use Symfony\Component\Templating\EngineInterface;
 
 abstract class NodeVisitor

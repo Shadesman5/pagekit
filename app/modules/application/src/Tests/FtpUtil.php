@@ -28,12 +28,14 @@ trait FtpUtil
 
         if (false === ftp_login($connection, $GLOBALS['ftp_user'], $GLOBALS['ftp_pass'])) {
             ftp_close($connection);
+
             throw new \Exception('Unable to login to ftp server.');
         }
 
         // switch to passive mode if needed
         if ($GLOBALS['ftp_passive'] && !ftp_pasv($connection, true)) {
             ftp_close($connection);
+
             throw new \Exception('Unable to switch on FTP passive mode.');
         }
 

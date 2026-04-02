@@ -18,7 +18,7 @@ $app->set('autoloader', $loader);
 $app->get('module')->register([
     'app/modules/*/index.php',
     'app/installer/index.php',
-    'app/system/index.php'
+    'app/system/index.php',
 ], $path);
 
 $app->get('module')->addLoader(new AutoLoader($app->get('autoloader')));

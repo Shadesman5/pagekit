@@ -30,7 +30,7 @@ class RouterListener implements EventSubscriberInterface
         }
 
         $this->matcher = $matcher;
-        $this->logger  = $logger;
+        $this->logger = $logger;
     }
 
     public function onRequest($event, $request): void
@@ -87,7 +87,7 @@ class RouterListener implements EventSubscriberInterface
     public function subscribe(): array
     {
         return [
-            'request' => ['onRequest', 100]
+            'request' => ['onRequest', 100],
         ];
     }
 }

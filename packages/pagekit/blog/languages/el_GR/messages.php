@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Filter by' => 'Ταξινόμηση κατα',
   'Thank you! Your comment needs approval before showing up.' => 'Σας ευχαριστούμε! Το σχόλιο σας θα χρειαστεί έγκριση πριν εμφανιστεί.',
   'Unable to comment. Please try again later.' => 'Το σχόλιο απέτυχε. Παρακαλώ προσπαθήστε σε λίγο.',
@@ -94,4 +96,4 @@
   'Written by %name% on %date%' => 'Συντάχθηκε από %name% στις %date%',
   'Read more' => 'Διαβάστε περισσότερα',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Κανένα σχόλιο|{1} %count% Σχόλιο|]1,Inf[ %count% Σχόλια',
-);
+];

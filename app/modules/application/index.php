@@ -2,7 +2,6 @@
 
 use Pagekit\Application\Response;
 use Pagekit\Application\UrlProvider;
-use Pagekit\Kernel\ExceptionHandler;
 use Symfony\Component\ErrorHandler\ErrorHandler;
 
 return [
@@ -11,15 +10,15 @@ return [
 
     'main' => function ($app) {
 
-        $app->set('version', fn() => $this->config['version']);
+        $app->set('version', fn () => $this->config['version']);
 
-        $app->set('debug', fn() => (bool) $this->config['debug']);
+        $app->set('debug', fn () => (bool) $this->config['debug']);
 
-        $app->set('url', fn($app) => new UrlProvider($app->get('router'), $app->get('file'), $app->get('locator')));
+        $app->set('url', fn ($app) => new UrlProvider($app->get('router'), $app->get('file'), $app->get('locator')));
 
-        $app->set('response', fn($app) => new Response($app->get('url')));
+        $app->set('response', fn ($app) => new Response($app->get('url')));
 
-        $app->set('symfony.event_dispatcher', function($app) {
+        $app->set('symfony.event_dispatcher', function ($app) {
             return new \Pagekit\Event\SymfonyEventDispatcherBridge($app->get('events'));
         });
 
@@ -40,15 +39,15 @@ return [
         'filesystem',
         'log',
         'session',
-        'view'
+        'view',
 
     ],
 
     'config' => [
 
         'version' => '',
-        'debug' => false
+        'debug' => false,
 
-    ]
+    ],
 
 ];

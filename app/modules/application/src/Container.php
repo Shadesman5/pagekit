@@ -62,6 +62,7 @@ class Container implements ContainerInterface
             // not stored in $raw.
             $this->values[$name] = $closure($this->values[$name], $this);
             $this->raw[$name] = $this->values[$name];
+
             return;
         }
 
@@ -71,7 +72,7 @@ class Container implements ContainerInterface
 
         $factory = $this->values[$name];
 
-        $this->values[$name] = fn($c) => $closure($factory($c), $c);
+        $this->values[$name] = fn ($c) => $closure($factory($c), $c);
     }
 
     /**

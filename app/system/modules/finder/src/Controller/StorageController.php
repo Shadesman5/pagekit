@@ -4,25 +4,27 @@ declare(strict_types=1);
 
 namespace Pagekit\Finder\Controller;
 
-use Pagekit\User\Attribute\Access;
 use function Pagekit\__;
+
+use Pagekit\User\Attribute\Access;
 
 #[Access('system: manage storage', admin: true)]
 class StorageController
 {
     public function __construct(
         private readonly mixed $module,
-    ) {}
+    ) {
+    }
 
     public function indexAction(): array
     {
         return [
             '$view' => [
                 'title' => __('Storage'),
-                'name'  => 'system:modules/finder/views/storage.php'
+                'name' => 'system:modules/finder/views/storage.php',
             ],
             'root' => $this->module->get('system/finder')->config('storage'),
-            'mode' => 'write'
+            'mode' => 'write',
         ];
     }
 }

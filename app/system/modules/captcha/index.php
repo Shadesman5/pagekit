@@ -8,13 +8,13 @@ return [
 
     'autoload' => [
 
-        'Pagekit\\Captcha\\' => 'src'
+        'Pagekit\\Captcha\\' => 'src',
 
     ],
 
     'resources' => [
 
-        'system/captcha:' => ''
+        'system/captcha:' => '',
 
     ],
 
@@ -34,8 +34,8 @@ return [
         'view.system:modules/settings/views/settings' => function ($event, $view) use ($app) {
             $view->data('$settings', [
                 'options' => [
-                    $this->name => $this->config
-                ]
+                    $this->name => $this->config,
+                ],
             ]);
         },
 
@@ -47,6 +47,6 @@ return [
         'recaptcha_sitekey' => '',
         'recaptcha_secret' => '',
 
-    ]
+    ],
 
 ];

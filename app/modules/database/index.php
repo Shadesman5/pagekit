@@ -15,7 +15,7 @@ $config = [
     'main' => function ($app) {
 
         $default = [
-            'wrapperClass' => 'Pagekit\Database\Connection'
+            'wrapperClass' => 'Pagekit\Database\Connection',
         ];
 
         $app->set('dbs', function ($app) use ($default) {
@@ -24,48 +24,48 @@ $config = [
 
             foreach ($this->config['connections'] as $name => $params) {
                 $connectionParams = array_replace($default, $params);
-                
+
                 // DBAL 3.x: Always create debug middleware - it will collect queries when enabled
-                if (class_exists('Pagekit\Debug\Middleware\DebugMiddleware') && 
+                if (class_exists('Pagekit\Debug\Middleware\DebugMiddleware') &&
                     class_exists('Pagekit\Debug\Middleware\DebugLogger')) {
-                    
+
                     try {
                         $stopwatch = null;
                         $logger = new \Pagekit\Debug\Middleware\DebugLogger($stopwatch);
-                        
+
                         $logger->enabled = true;
-                        
+
                         $middleware = new \Pagekit\Debug\Middleware\DebugMiddleware($logger);
-                        
+
                         $connectionParams['middlewares'] = [$middleware];
-                        
+
                         $app->set('db.debug_middleware', $middleware);
                         $app->set('db.debug_logger', $logger);
                     } catch (\Exception $e) {
                         // If middleware creation fails, continue without it
                     }
                 }
-                
+
                 // DBAL 3.x Bug: Middlewares are ignored when using wrapperClass
                 if (isset($connectionParams['middlewares']) && !empty($connectionParams['middlewares'])) {
                     $tempConnection = DriverManager::getConnection($connectionParams);
-                    
+
                     $driver = $tempConnection->getDriver();
-                    
+
                     foreach ($connectionParams['middlewares'] as $middleware) {
                         $driver = $middleware->wrap($driver);
                     }
-                    
+
                     $config = $tempConnection->getConfiguration();
-                    
+
                     $connection = new $connectionParams['wrapperClass'](
                         $connectionParams,
                         $driver,
                         $config
                     );
-                    
+
                     $tempConnection->close();
-                    
+
                     $dbs[$name] = $connection;
                 } else {
                     $dbs[$name] = DriverManager::getConnection($connectionParams);
@@ -96,7 +96,7 @@ $config = [
         // Override existing types
         Type::overrideType(Types::SIMPLE_ARRAY, '\Pagekit\Database\Types\SimpleArrayType');
         Type::overrideType(Types::JSON, '\Pagekit\Database\Types\JsonArrayType');
-        
+
         // Register json_array as a custom type for backward compatibility
         if (!Type::hasType('json_array')) {
             Type::addType('json_array', '\Pagekit\Database\Types\JsonArrayType');
@@ -105,7 +105,7 @@ $config = [
 
     'autoload' => [
 
-        'Pagekit\\Database\\' => 'src'
+        'Pagekit\\Database\\' => 'src',
 
     ],
 
@@ -117,15 +117,15 @@ $config = [
 
             'mysql' => [
 
-                'driver'   => 'pdo_mysql',
-                'dbname'   => '',
-                'host'     => 'localhost',
-                'user'     => 'root',
+                'driver' => 'pdo_mysql',
+                'dbname' => '',
+                'host' => 'localhost',
+                'user' => 'root',
                 'password' => '',
-                'engine'   => 'InnoDB',
-                'charset'  => 'utf8',
-                'collate'  => 'utf8_unicode_ci',
-                'prefix'   => ''
+                'engine' => 'InnoDB',
+                'charset' => 'utf8',
+                'collate' => 'utf8_unicode_ci',
+                'prefix' => '',
 
             ],
 
@@ -139,22 +139,22 @@ $config = [
                     'userDefinedFunctions' => [
                         'REGEXP' => [
                             'callback' => fn ($pattern, $subject) => preg_match("/$pattern/", $subject ?? ''),
-                            'numArgs' => 2
-                        ]
-                    ]
-                ]
+                            'numArgs' => 2,
+                        ],
+                    ],
+                ],
 
-            ]
+            ],
 
-        ]
+        ],
 
-    ]
+    ],
 
 ];
 
 if (defined('PDO::MYSQL_ATTR_INIT_COMMAND')) {
     $config['config']['connections']['mysql']['driverOptions'] = [
-        PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8 COLLATE utf8_unicode_ci'
+        PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8 COLLATE utf8_unicode_ci',
     ];
 }
 

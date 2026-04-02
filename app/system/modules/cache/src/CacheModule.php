@@ -2,13 +2,12 @@
 
 namespace Pagekit\Cache;
 
-use Pagekit\Cache\Adapter\ArrayAdapter;
+use Pagekit\Application as App;
 use Pagekit\Cache\Adapter\ApcuAdapter;
+use Pagekit\Cache\Adapter\ArrayAdapter;
 use Pagekit\Cache\Adapter\FilesystemAdapter;
 use Pagekit\Cache\Adapter\NullAdapter;
 use Pagekit\Cache\Adapter\PhpFilesAdapter;
-use Pagekit\Cache\CacheInterface;
-use Pagekit\Application as App;
 use Pagekit\Module\Module;
 use Symfony\Component\Finder\Finder;
 
@@ -22,8 +21,8 @@ class CacheModule extends Module
     public function main(App $app): void
     {
         $this->app = $app;
-        foreach ($this->config['caches'] as $name => $config)  {
-            $app->set($name, function() use ($config, $name) {
+        foreach ($this->config['caches'] as $name => $config) {
+            $app->set($name, function () use ($config, $name) {
 
                 $supports = $this->supports();
 
@@ -53,9 +52,10 @@ class CacheModule extends Module
      */
     protected function createPsr6Cache(array $config): CacheInterface
     {
-            switch ($config['storage']) {
+        switch ($config['storage']) {
             case 'array':
                 $cache = new ArrayAdapter();
+
                 break;
 
             case 'apcu':
@@ -66,18 +66,22 @@ class CacheModule extends Module
                 } else {
                     $cache = new ApcuAdapter('', 0);
                 }
+
                 break;
 
             case 'file':
                 $cache = new FilesystemAdapter($config['path'] ?? '');
+
                 break;
 
             case 'phpfile':
                 $cache = new PhpFilesAdapter($config['path'] ?? '');
+
                 break;
 
             case 'null':
                 $cache = new NullAdapter();
+
                 break;
 
             default:
@@ -88,7 +92,7 @@ class CacheModule extends Module
         if ($prefix = isset($config['prefix']) ? $config['prefix'] : false) {
             $cache->setNamespace($prefix);
         }
-        
+
         return $cache;
     }
 
@@ -97,7 +101,7 @@ class CacheModule extends Module
      * Returns list of supported caches or boolean for individual cache.
      *
      * @param  string $name
-     * @return array|boolean
+     * @return array|bool
      */
     public static function supports($name = null)
     {
@@ -126,7 +130,7 @@ class CacheModule extends Module
     {
         $this->assertBooted();
 
-        $this->app->get('events')->on('terminate', function() use ($options) {
+        $this->app->get('events')->on('terminate', function () use ($options) {
             $this->doClearCache($options);
         }, -512);
     }

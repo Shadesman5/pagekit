@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\Site\Model;
 
-use Pagekit\Application as App;
 use Pagekit\Database\ORM\Attribute as ORM;
 use Pagekit\Database\ORM\ModelTrait;
 
@@ -54,7 +53,7 @@ trait NodeModelTrait
      */
     public static function findByMenu(string $menu, bool $cached = false): array
     {
-        return array_filter(self::findAll($cached), fn($node) => $menu == $node->menu);
+        return array_filter(self::findAll($cached), fn ($node) => $menu == $node->menu);
     }
 
     /**
@@ -111,7 +110,9 @@ trait NodeModelTrait
 
         // Ensure unique slug
         while (self::where(['slug = ?', 'parent_id= ?'], [$node->slug, $node->parent_id])->where(function ($query) use ($id) {
-            if ($id) $query->where('id <> ?', [$id]);
+            if ($id) {
+                $query->where('id <> ?', [$id]);
+            }
         })->first()) {
             $node->slug = preg_replace('/-\d+$/', '', $node->slug).'-'.$i++;
         }
@@ -130,7 +131,8 @@ trait NodeModelTrait
             $db->executeStatement(
                 'UPDATE '.self::getMetadata()->getTable()
                 .' SET path = REPLACE ('.$db->getDatabasePlatform()->getConcatExpression($db->quote('//'), 'path').", {$db->quote('//' . $node->path)}, {$db->quote($path)})"
-                .' WHERE path LIKE '.$db->quote($node->path.'//%'));
+                .' WHERE path LIKE '.$db->quote($node->path.'//%')
+            );
         }
 
         $node->path = $path;

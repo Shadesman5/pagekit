@@ -44,7 +44,7 @@ class ExceptionListener implements EventSubscriberInterface
             $this->logException($e, sprintf('Exception thrown when handling an exception (%s: %s at %s line %s)', get_class($e), $e->getMessage(), $e->getFile(), $e->getLine()));
 
             $handling = false;
-            $wrapper  = $e;
+            $wrapper = $e;
 
             while ($prev = $wrapper->getPrevious()) {
                 if ($exception === $wrapper = $prev) {
@@ -70,7 +70,7 @@ class ExceptionListener implements EventSubscriberInterface
     public function subscribe(): array
     {
         return [
-            'exception' => ['onException', -100]
+            'exception' => ['onException', -100],
         ];
     }
 
@@ -102,8 +102,8 @@ class ExceptionListener implements EventSubscriberInterface
     {
         $attributes = [
             '_controller' => $this->controller,
-            'exception'   => FlattenException::create($exception),
-            'logger'      => $this->logger
+            'exception' => FlattenException::create($exception),
+            'logger' => $this->logger,
         ];
 
         $request = $request->duplicate(null, null, $attributes);

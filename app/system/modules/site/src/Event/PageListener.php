@@ -2,7 +2,6 @@
 
 namespace Pagekit\Site\Event;
 
-use Pagekit\Application as App;
 use Pagekit\Event\EventSubscriberInterface;
 use Pagekit\Site\Model\Page;
 
@@ -59,7 +58,7 @@ class PageListener implements EventSubscriberInterface
             'before@site/api/node/save' => 'onNodeSave',
             'before@site/api/node/save_1' => 'onNodeSave',
             'model.node.deleted' => 'onNodeDeleted',
-            'route.configure' => 'onRouteConfigure'
+            'route.configure' => 'onRouteConfigure',
         ];
     }
 

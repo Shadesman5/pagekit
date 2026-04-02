@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Pagekit\Mail\Tests\Plugin;
 
-use PHPUnit\Framework\TestCase;
 use Pagekit\Mail\Plugin\ImpersonatePlugin;
-use Symfony\Component\Mime\Email;
+use PHPUnit\Framework\TestCase;
 use Symfony\Component\Mime\Address;
+use Symfony\Component\Mime\Email;
 
 class ImpersonatePluginTest extends TestCase
 {
@@ -26,13 +26,13 @@ class ImpersonatePluginTest extends TestCase
     public function testBeforeSendWithoutFromAddress(): void
     {
         $plugin = new ImpersonatePlugin('default@example.com', 'Default Name');
-        
+
         $email = new Email();
         $email->to('recipient@example.com')
               ->subject('Test Subject');
 
         $plugin->beforeSend($email);
-        
+
         $from = $email->getFrom();
         $this->assertCount(1, $from);
         $this->assertEquals('default@example.com', $from[0]->getAddress());
@@ -42,14 +42,14 @@ class ImpersonatePluginTest extends TestCase
     public function testBeforeSendWithExistingFromAddress(): void
     {
         $plugin = new ImpersonatePlugin('default@example.com', 'Default Name');
-        
+
         $email = new Email();
         $email->from('existing@example.com')
               ->to('recipient@example.com')
               ->subject('Test Subject');
 
         $plugin->beforeSend($email);
-        
+
         $from = $email->getFrom();
         $this->assertCount(1, $from);
         // Should not override existing from address
@@ -59,13 +59,13 @@ class ImpersonatePluginTest extends TestCase
     public function testBeforeSendWithAddressOnly(): void
     {
         $plugin = new ImpersonatePlugin('default@example.com');
-        
+
         $email = new Email();
         $email->to('recipient@example.com')
               ->subject('Test Subject');
 
         $plugin->beforeSend($email);
-        
+
         $from = $email->getFrom();
         $this->assertCount(1, $from);
         $this->assertEquals('default@example.com', $from[0]->getAddress());
@@ -75,13 +75,13 @@ class ImpersonatePluginTest extends TestCase
     public function testBeforeSendWithoutDefaultAddress(): void
     {
         $plugin = new ImpersonatePlugin();
-        
+
         $email = new Email();
         $email->to('recipient@example.com')
               ->subject('Test Subject');
 
         $plugin->beforeSend($email);
-        
+
         $from = $email->getFrom();
         $this->assertCount(0, $from); // Should remain empty
     }
@@ -89,7 +89,7 @@ class ImpersonatePluginTest extends TestCase
     public function testAfterSend(): void
     {
         $plugin = new ImpersonatePlugin('test@example.com', 'Test Name');
-        
+
         $email = new Email();
         $email->from('sender@example.com')
               ->to('recipient@example.com')
@@ -99,21 +99,21 @@ class ImpersonatePluginTest extends TestCase
         $originalFrom = $email->getFrom();
         $plugin->afterSend($email);
         $afterFrom = $email->getFrom();
-        
+
         $this->assertEquals($originalFrom, $afterFrom);
     }
 
     public function testBeforeSendWithNamedAddress(): void
     {
         $plugin = new ImpersonatePlugin('default@example.com', 'Default Name');
-        
+
         $email = new Email();
         $email->from(new Address('existing@example.com', 'Existing Name'))
               ->to('recipient@example.com')
               ->subject('Test Subject');
 
         $plugin->beforeSend($email);
-        
+
         $from = $email->getFrom();
         $this->assertCount(1, $from);
         // Should not override existing from address
@@ -124,13 +124,13 @@ class ImpersonatePluginTest extends TestCase
     public function testBeforeSendWithNameOnlyInPlugin(): void
     {
         $plugin = new ImpersonatePlugin('default@example.com', 'Default Name');
-        
+
         $email = new Email();
         $email->to('recipient@example.com')
               ->subject('Test Subject');
 
         $plugin->beforeSend($email);
-        
+
         $from = $email->getFrom();
         $this->assertCount(1, $from);
         $this->assertEquals('default@example.com', $from[0]->getAddress());

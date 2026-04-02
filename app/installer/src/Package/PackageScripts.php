@@ -112,7 +112,7 @@ class PackageScripts
     {
         $updates = $this->get('updates');
 
-        $versions = array_filter(array_keys($updates), fn($version) => version_compare($version, $this->current, '>'));
+        $versions = array_filter(array_keys($updates), fn ($version) => version_compare($version, $this->current, '>'));
 
         $updates = array_intersect_key($updates, array_flip($versions));
         uksort($updates, 'version_compare');

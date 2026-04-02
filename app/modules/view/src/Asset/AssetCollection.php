@@ -2,8 +2,6 @@
 
 namespace Pagekit\View\Asset;
 
-use Pagekit\View\Asset\AssetInterface;
-
 class AssetCollection implements \IteratorAggregate, \Countable
 {
     /**

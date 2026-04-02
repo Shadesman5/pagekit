@@ -2,7 +2,6 @@
 
 namespace Pagekit\Debug\Event;
 
-use Pagekit\Event\Event;
 use Pagekit\Event\EventDispatcherInterface;
 use Pagekit\Event\EventInterface;
 use Symfony\Component\Stopwatch\Stopwatch;

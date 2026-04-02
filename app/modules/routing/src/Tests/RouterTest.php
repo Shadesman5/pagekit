@@ -2,11 +2,11 @@
 
 namespace Pagekit\Routing\Tests;
 
-use PHPUnit\Framework\TestCase;
+use Pagekit\Event\EventDispatcher;
+use Pagekit\Routing\Loader\RoutesLoader;
 use Pagekit\Routing\Router;
 use Pagekit\Routing\Routes;
-use Pagekit\Routing\Loader\RoutesLoader;
-use Pagekit\Event\EventDispatcher;
+use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
@@ -23,7 +23,7 @@ class RouterTest extends TestCase
         $this->routes = new Routes();
         $this->events = new EventDispatcher();
         $this->stack = new RequestStack();
-        
+
         $loader = new RoutesLoader($this->events);
         $this->router = new Router($this->routes, $loader, $this->stack);
     }
@@ -34,7 +34,7 @@ class RouterTest extends TestCase
             'name' => 'test_route',
             'path' => '/test/{id}',
             'defaults' => ['_controller' => 'TestController::testAction'],
-            'requirements' => ['id' => '\d+']
+            'requirements' => ['id' => '\d+'],
         ]);
 
         $url = $this->router->generate('test_route', ['id' => 123]);
@@ -52,14 +52,14 @@ class RouterTest extends TestCase
         $this->routes->add([
             'name' => 'test_match',
             'path' => '/match/{param}',
-            'defaults' => ['_controller' => 'TestController::matchAction']
+            'defaults' => ['_controller' => 'TestController::matchAction'],
         ]);
 
         $request = Request::create('/match/value');
         $this->stack->push($request);
 
         $params = $this->router->match('/match/value');
-        
+
         $this->assertArrayHasKey('_controller', $params);
         $this->assertArrayHasKey('param', $params);
         $this->assertEquals('value', $params['param']);
@@ -85,8 +85,8 @@ class RouterTest extends TestCase
             'path' => '/default/{page}',
             'defaults' => [
                 '_controller' => 'TestController::defaultAction',
-                'page' => 1
-            ]
+                'page' => 1,
+            ],
         ]);
 
         $url = $this->router->generate('default_route');
@@ -102,7 +102,7 @@ class RouterTest extends TestCase
             'name' => 'requirement_route',
             'path' => '/req/{id}',
             'defaults' => ['_controller' => 'TestController::reqAction'],
-            'requirements' => ['id' => '\d+']
+            'requirements' => ['id' => '\d+'],
         ]);
 
         $request = Request::create('/req/123');
@@ -117,7 +117,7 @@ class RouterTest extends TestCase
         $this->routes->add([
             'name' => 'redirect_target',
             'path' => '/target',
-            'defaults' => ['_controller' => 'TestController::targetAction']
+            'defaults' => ['_controller' => 'TestController::targetAction'],
         ]);
 
         $response = $this->router->redirect('redirect_target');
@@ -134,7 +134,7 @@ class RouterTest extends TestCase
         $this->routes->add([
             'name' => 'get_route',
             'path' => '/get',
-            'defaults' => ['_controller' => 'TestController::getAction']
+            'defaults' => ['_controller' => 'TestController::getAction'],
         ]);
 
         $route = $this->router->getRoute('get_route');
@@ -147,7 +147,7 @@ class RouterTest extends TestCase
         $this->routes->add([
             'name' => 'collection_route',
             'path' => '/collection',
-            'defaults' => ['_controller' => 'TestController::collectionAction']
+            'defaults' => ['_controller' => 'TestController::collectionAction'],
         ]);
 
         $collection = $this->router->getRouteCollection();
@@ -161,7 +161,7 @@ class RouterTest extends TestCase
         $router = new Router($this->routes, new RoutesLoader($this->events), $this->stack, $options);
 
         $this->assertEquals($options['cache'], $router->getOptions()['cache']);
-        
+
         $router->setOption('custom', 'value');
         $this->assertEquals('value', $router->getOptions()['custom']);
 
@@ -174,7 +174,7 @@ class RouterTest extends TestCase
         $this->routes->add([
             'name' => 'fragment_route',
             'path' => '/fragment',
-            'defaults' => ['_controller' => 'TestController::fragmentAction']
+            'defaults' => ['_controller' => 'TestController::fragmentAction'],
         ]);
 
         $url = $this->router->generate('fragment_route#section');
@@ -186,7 +186,7 @@ class RouterTest extends TestCase
         $this->routes->add([
             'name' => 'query_route',
             'path' => '/query',
-            'defaults' => ['_controller' => 'TestController::queryAction']
+            'defaults' => ['_controller' => 'TestController::queryAction'],
         ]);
 
         $url = $this->router->generate('query_route?foo=bar', ['baz' => 'qux']);

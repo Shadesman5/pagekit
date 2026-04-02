@@ -2,9 +2,9 @@
 
 namespace Pagekit\Intl\Loader;
 
-use Symfony\Component\Translation\MessageCatalogue;
 use Symfony\Component\Translation\Exception\InvalidResourceException;
 use Symfony\Component\Translation\Exception\NotFoundResourceException;
+use Symfony\Component\Translation\MessageCatalogue;
 
 /**
  * PhpFileLoader loads translations from PHP files returning an array of translations.

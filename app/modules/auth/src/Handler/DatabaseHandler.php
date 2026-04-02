@@ -10,9 +10,9 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 class DatabaseHandler implements HandlerInterface
 {
-    const STATUS_INACTIVE   = 0;
-    const STATUS_ACTIVE     = 1;
-    const STATUS_REMEMBERED = 2;
+    public const STATUS_INACTIVE = 0;
+    public const STATUS_ACTIVE = 1;
+    public const STATUS_REMEMBERED = 2;
 
     protected ?array $config = null;
 
@@ -49,7 +49,7 @@ class DatabaseHandler implements HandlerInterface
     {
         if ($token = $this->getToken() and $data = $this->connection->executeQuery("SELECT user_id, status, access FROM {$this->config['table']} WHERE id = :id AND status > :status", [
                 'id' => sha1($token),
-                'status' => self::STATUS_INACTIVE
+                'status' => self::STATUS_INACTIVE,
             ])->fetchAssociative()) {
 
             if (strtotime($data['access']) + $this->config['timeout'] < time()) {
@@ -92,8 +92,8 @@ class DatabaseHandler implements HandlerInterface
             'status' => $remember ? self::STATUS_REMEMBERED : self::STATUS_ACTIVE,
             'data' => json_encode([
                 'ip' => $this->getRequest()->getClientIp(),
-                'user-agent' => $this->getRequest()->headers->get('User-Agent')
-            ])
+                'user-agent' => $this->getRequest()->headers->get('User-Agent'),
+            ]),
         ]);
     }
 

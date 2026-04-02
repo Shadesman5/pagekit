@@ -2,9 +2,9 @@
 
 namespace Pagekit\Intl\Loader;
 
-use Symfony\Component\Translation\MessageCatalogue;
 use Symfony\Component\Translation\Exception\InvalidResourceException;
 use Symfony\Component\Translation\Exception\NotFoundResourceException;
+use Symfony\Component\Translation\MessageCatalogue;
 
 /**
  * @copyright Copyright (c) 2010, Union of RAD http://union-of-rad.org (http://lithify.me/)
@@ -123,7 +123,7 @@ class PoFileLoader extends ArrayLoader
                 $item['ids']['plural'] = substr($line, 14, -1);
             } elseif (substr($line, 0, 7) === 'msgstr[') {
                 $size = strpos($line, ']');
-                $item['translated'][(integer) substr($line, 7, 1)] = substr($line, $size + 3, -1);
+                $item['translated'][(int) substr($line, 7, 1)] = substr($line, $size + 3, -1);
             }
 
         }
@@ -156,13 +156,13 @@ class PoFileLoader extends ArrayLoader
                 end($plurals);
                 $count = key($plurals);
                 // Fill missing spots with '-'.
-                $empties = array_fill(0, $count+1, '-');
+                $empties = array_fill(0, $count + 1, '-');
                 $plurals += $empties;
                 ksort($plurals);
                 $messages[$item['ids']['plural']] = stripcslashes(implode('|', $plurals));
             }
         } elseif (!empty($item['ids']['singular'])) {
-              $messages[$item['ids']['singular']] = stripslashes($item['translated']);
+            $messages[$item['ids']['singular']] = stripslashes($item['translated']);
         }
     }
 }

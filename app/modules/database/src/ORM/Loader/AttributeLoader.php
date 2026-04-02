@@ -148,7 +148,7 @@ class AttributeLoader implements LoaderInterface
             // Check for event attributes: Saving, Saved, Updating, Updated, Deleting, Deleted, Created, Creating, Init
             $eventAttributes = [
                 'Saving', 'Saved', 'Updating', 'Updated',
-                'Deleting', 'Deleted', 'Created', 'Creating', 'Init'
+                'Deleting', 'Deleted', 'Created', 'Creating', 'Init',
             ];
 
             foreach ($eventAttributes as $eventName) {

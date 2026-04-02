@@ -3,8 +3,8 @@
 namespace Pagekit\Cache\Adapter;
 
 use Pagekit\Cache\CacheInterface;
-use Psr\Cache\CacheItemPoolInterface;
 use Psr\Cache\CacheItemInterface;
+use Psr\Cache\CacheItemPoolInterface;
 
 /**
  * PSR-6 Cache Adapter
@@ -60,11 +60,13 @@ class Psr6Adapter implements CacheInterface
         // PSR-6 doesn't allow certain characters in keys
         // Replace reserved characters: {}()/\@:
         $safeId = str_replace([':', '\\', '/', '@', '{', '}', '(', ')'], '_', $id);
-        
+
         if ($this->namespace) {
             $safeNamespace = str_replace([':', '\\', '/', '@', '{', '}', '(', ')'], '_', $this->namespace);
+
             return $safeNamespace . '.' . $safeId;
         }
+
         return $safeId;
     }
 
@@ -74,6 +76,7 @@ class Psr6Adapter implements CacheInterface
     public function fetch($id)
     {
         $item = $this->pool->getItem($this->getNamespacedId($id));
+
         return $item->isHit() ? $item->get() : false;
     }
 
@@ -92,11 +95,11 @@ class Psr6Adapter implements CacheInterface
     {
         $item = $this->pool->getItem($this->getNamespacedId($id));
         $item->set($data);
-        
+
         if ($lifeTime > 0) {
             $item->expiresAfter($lifeTime);
         }
-        
+
         return $this->pool->save($item);
     }
 
@@ -132,6 +135,7 @@ class Psr6Adapter implements CacheInterface
     public function getItems(array $keys = []): iterable
     {
         $namespacedKeys = array_map([$this, 'getNamespacedId'], $keys);
+
         return $this->pool->getItems($namespacedKeys);
     }
 
@@ -165,6 +169,7 @@ class Psr6Adapter implements CacheInterface
     public function deleteItems(array $keys): bool
     {
         $namespacedKeys = array_map([$this, 'getNamespacedId'], $keys);
+
         return $this->pool->deleteItems($namespacedKeys);
     }
 

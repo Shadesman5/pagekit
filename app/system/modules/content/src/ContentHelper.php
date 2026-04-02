@@ -9,7 +9,8 @@ class ContentHelper
 {
     public function __construct(
         private readonly EventDispatcherInterface $events,
-    ) {}
+    ) {
+    }
 
     /**
      * Applies content plugins

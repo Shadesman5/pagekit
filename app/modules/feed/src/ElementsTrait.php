@@ -15,6 +15,7 @@ trait ElementsTrait
     public function setElement($name, $value, $attributes = null)
     {
         unset($this->elements[$name]);
+
         return $this->addElement($name, $value, $attributes);
     }
 
@@ -24,6 +25,7 @@ trait ElementsTrait
     public function addElement($name, $value, $attributes = null): object
     {
         $this->elements[$name][] = [$name, $value, $attributes];
+
         return $this;
     }
 

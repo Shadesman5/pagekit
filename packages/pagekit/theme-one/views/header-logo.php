@@ -27,7 +27,7 @@ if ($image) {
     if ($ext == 'svg') {
         $attrs_image['class'][] = 'uk-preserve';
         $attrs_image['uk-svg'] = true;
-        $width = $height= '';
+        $width = $height = '';
         $logo = image($image, array_merge($attrs_image, ['width' => $width, 'height' => $height]));
     } else {
         $logo = image($config['image'], $attrs_image);
@@ -40,7 +40,8 @@ if ($image) {
         $attrs_image['class'][] = 'uk-logo-inverse';
 
         if (isImage($image_inverse) == 'svg') {
-            $width = ''; $height = '';
+            $width = '';
+            $height = '';
             $logo .= image($image_inverse, array_merge($attrs_image, ['width' => $width, 'height' => $height]));
         } else {
             $logo .= image($image_inverse, $attrs_image);

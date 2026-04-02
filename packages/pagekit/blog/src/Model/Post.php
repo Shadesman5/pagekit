@@ -17,7 +17,9 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(tableClass: '@blog_post')]
 class Post implements \JsonSerializable
 {
-    use AccessModelTrait, DataModelTrait, PostModelTrait;
+    use AccessModelTrait;
+    use DataModelTrait;
+    use PostModelTrait;
 
     /* Post draft status. */
     public const STATUS_DRAFT = 0;
@@ -99,7 +101,7 @@ class Post implements \JsonSerializable
     protected static array $properties = [
         'author' => 'getAuthor',
         'published' => 'isPublished',
-        'accessible' => 'isAccessible'
+        'accessible' => 'isAccessible',
     ];
 
     public static function getStatuses(): array
@@ -108,7 +110,7 @@ class Post implements \JsonSerializable
             self::STATUS_PUBLISHED => __('Published'),
             self::STATUS_UNPUBLISHED => __('Unpublished'),
             self::STATUS_DRAFT => __('Draft'),
-            self::STATUS_PENDING_REVIEW => __('Pending Review')
+            self::STATUS_PENDING_REVIEW => __('Pending Review'),
         ];
     }
 
@@ -121,7 +123,7 @@ class Post implements \JsonSerializable
 
     public function isCommentable(): bool
     {
-        $blog      = ModelServiceLocator::getModule('blog');
+        $blog = ModelServiceLocator::getModule('blog');
         $autoclose = $blog->config('comments.autoclose') ? $blog->config('comments.autoclose_days') : 0;
 
         return $this->comment_status && (!$autoclose or $this->date >= new \DateTime("-{$autoclose} day"));
@@ -134,7 +136,7 @@ class Post implements \JsonSerializable
 
     public function isPublished(): bool
     {
-        return $this->status === self::STATUS_PUBLISHED && $this->date < new \DateTime;
+        return $this->status === self::STATUS_PUBLISHED && $this->date < new \DateTime();
     }
 
     public function isAccessible(?User $user = null): bool
@@ -148,11 +150,11 @@ class Post implements \JsonSerializable
     public function jsonSerialize(): array
     {
         $data = [
-            'url' => ModelServiceLocator::getUrl()->get('@blog/id', ['id' => $this->id ?: 0], 'base')
+            'url' => ModelServiceLocator::getUrl()->get('@blog/id', ['id' => $this->id ?: 0], 'base'),
         ];
 
         if ($this->comments) {
-            $data['comments_pending'] = count(array_filter($this->comments, function($comment) {
+            $data['comments_pending'] = count(array_filter($this->comments, function ($comment) {
                 return $comment->status == Comment::STATUS_PENDING;
             }));
         }

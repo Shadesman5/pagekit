@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Select Image' => 'هە‌ڵبژاردنی وێنە‌',
   'Add Image' => '',
   'Select Video' => 'هە‌ڵبژاردنی ڤیدێئۆ',
@@ -451,4 +453,4 @@
   'You have the latest version of Pagekit. You do not need to update. However, if you want to re-install version %version%, you can download the package and re-install manually.' => '',
   'Download %version%' => '',
   'Changelog' => '',
-);
+];

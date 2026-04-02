@@ -56,7 +56,10 @@ class AuthDataCollector implements DataCollectorInterface
             'authenticated' => $user->isAuthenticated(),
             'user_class' => get_class($user),
             'user' => $user->getUsername(),
-            'roles' => array_map(fn($role) => $role->name, User::findRoles($user)), // TODO interface does not match
+            // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6 — Return Types) —
+            // Auth::getUser() returns UserInterface which lacks isAuthenticated() and roles.
+            // Either extend UserInterface or type-narrow $user to User here.
+            'roles' => array_map(fn ($role) => $role->name, User::findRoles($user)),
         ];
 
     }

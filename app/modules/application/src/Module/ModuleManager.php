@@ -29,7 +29,7 @@ class ModuleManager implements \IteratorAggregate
         'main' => null,
         'type' => 'module',
         'class' => 'Pagekit\Module\Module',
-        'config' => []
+        'config' => [],
     ];
 
     /**
@@ -157,7 +157,7 @@ class ModuleManager implements \IteratorAggregate
      * Adds a module loader.
      *
      * @param  LoaderInterface|callable $loader
-     * @param  boolean $post
+     * @param  bool $post
      */
     public function addLoader($loader, $post = false): self
     {

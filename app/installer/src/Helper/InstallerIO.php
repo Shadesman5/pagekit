@@ -11,7 +11,7 @@ use Symfony\Component\Console\Output\StreamOutput;
 
 class InstallerIO extends ConsoleIO
 {
-    const REGEX = '/((?<=<error>).+(?=<\/error>))|(\[.+Exception\])/';
+    public const REGEX = '/((?<=<error>).+(?=<\/error>))|(\[.+Exception\])/';
 
     /**
      * {@inheritdoc}

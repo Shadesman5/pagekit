@@ -2,7 +2,6 @@
 
 namespace Pagekit\Application;
 
-use Symfony\Component\Routing\RouterInterface;
 use Pagekit\Filesystem\Filesystem;
 use Pagekit\Filesystem\Locator;
 use Pagekit\Routing\Generator\UrlGenerator;
@@ -10,13 +9,14 @@ use Pagekit\Routing\Router;
 use Symfony\Component\Routing\Exception\InvalidParameterException;
 use Symfony\Component\Routing\Exception\MissingMandatoryParametersException;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
+use Symfony\Component\Routing\RouterInterface;
 
 class UrlProvider
 {
     /**
      * Generates a path relative to the executed script, e.g. "/dir/file".
      */
-    const BASE_PATH = 'base';
+    public const BASE_PATH = 'base';
 
     protected \Pagekit\Routing\Router $router;
 

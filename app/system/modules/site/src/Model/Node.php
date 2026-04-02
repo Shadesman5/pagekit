@@ -20,7 +20,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[\AllowDynamicProperties]
 class Node implements NodeInterface, \JsonSerializable
 {
-    use AccessModelTrait, DataModelTrait, NodeModelTrait, NodeTrait;
+    use AccessModelTrait;
+    use DataModelTrait;
+    use NodeModelTrait;
+    use NodeTrait;
 
     #[ORM\Column(type: 'integer')]
     #[ORM\Id]
@@ -79,7 +82,7 @@ class Node implements NodeInterface, \JsonSerializable
     public ?string $menu = '';
 
     protected static array $properties = [
-        'accessible' => 'isAccessible'
+        'accessible' => 'isAccessible',
     ];
 
     /**

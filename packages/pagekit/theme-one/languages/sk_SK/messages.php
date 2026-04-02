@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return  [
   'Title' => 'Názov',
   'Theme' => 'Šablóna',
   'Hide Title' => 'Skryť nadpis',
@@ -38,4 +40,4 @@
   'Written by %name% on %date%' => 'Napísal/a %name% dňa %date%',
   'Read more' => 'Čítať viac',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Žiadny komentár|{1} %count% komentár]1,Inf[ %count% komentárov',
-);
+];

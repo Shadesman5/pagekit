@@ -17,10 +17,11 @@ return [
         $app->set('session', function ($app) {
             $session = new Session($app->get('session.storage'));
             $session->registerBag($app->get('message'));
+
             return $session;
         });
 
-        $app->set('message', fn() => new MessageBag());
+        $app->set('message', fn () => new MessageBag());
 
         $app->set('session.storage', function ($app) {
 
@@ -93,26 +94,26 @@ return [
 
             $app->get('session')->start();
 
-        }, 100]
+        }, 100],
 
     ],
 
     'autoload' => [
 
-        'Pagekit\\Session\\' => 'src'
+        'Pagekit\\Session\\' => 'src',
 
     ],
 
     'config' => [
 
-        'storage'  => null,
+        'storage' => null,
         'lifetime' => 900,
-        'files'    => null,
-        'table'    => 'sessions',
-        'cookie'   => [
+        'files' => null,
+        'table' => 'sessions',
+        'cookie' => [
             'name' => '',
-        ]
+        ],
 
-    ]
+    ],
 
 ];

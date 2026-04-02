@@ -25,7 +25,7 @@ class BelongsTo extends Relation
         }
 
         $this->keyFrom = $mapping['keyFrom'];
-        $this->keyTo   = (isset($mapping['keyTo']) && $mapping['keyTo']) ? $mapping['keyTo'] : $this->targetMetadata->getIdentifier();
+        $this->keyTo = (isset($mapping['keyTo']) && $mapping['keyTo']) ? $mapping['keyTo'] : $this->targetMetadata->getIdentifier();
     }
 
     /**

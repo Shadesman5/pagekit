@@ -8,19 +8,19 @@ return [
 
     'main' => function ($app) {
 
-        $app->set('cookie', fn() => new CookieJar());
+        $app->set('cookie', fn () => new CookieJar());
 
     },
 
     'autoload' => [
 
-        'Pagekit\\Cookie\\' => 'src'
+        'Pagekit\\Cookie\\' => 'src',
 
     ],
 
     'config' => [
 
-        'path'   => null,
+        'path' => null,
         'domain' => null,
 
     ],
@@ -40,8 +40,8 @@ return [
             foreach ($app->get('cookie')->getQueuedCookies() as $cookie) {
                 $response->headers->setCookie($cookie);
             }
-        }
+        },
 
-    ]
+    ],
 
 ];

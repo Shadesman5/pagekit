@@ -30,8 +30,8 @@ class InstallerController
             '$installer' => [
                 'locale' => $intl->getLocale(),
                 'locales' => $intl->getAvailableLanguages(),
-                'sqlite' => class_exists('SQLite3') || (class_exists('PDO') && in_array('sqlite', \PDO::getAvailableDrivers(), true))
-            ]
+                'sqlite' => class_exists('SQLite3') || (class_exists('PDO') && in_array('sqlite', \PDO::getAvailableDrivers(), true)),
+            ],
         ];
     }
 
@@ -42,7 +42,7 @@ class InstallerController
 
             if (isset($data['config'])) {
                 $config = $data['config'];
-            } else if (isset($data['database'])) {
+            } elseif (isset($data['database'])) {
                 $database = $data['database'] ?? 'mysql';
                 unset($data['database']);
 
@@ -50,9 +50,9 @@ class InstallerController
                     'database' => [
                         'default' => $database,
                         'connections' => [
-                            $database => $data
-                        ]
-                    ]
+                            $database => $data,
+                        ],
+                    ],
                 ];
 
                 if (isset($data['locale'])) {
@@ -66,7 +66,7 @@ class InstallerController
         } catch (\Throwable $e) {
             return [
                 'error' => true,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ];
         }
     }

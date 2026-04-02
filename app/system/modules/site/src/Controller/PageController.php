@@ -4,16 +4,18 @@ declare(strict_types=1);
 
 namespace Pagekit\Site\Controller;
 
+use function Pagekit\__;
+
 use Pagekit\Site\Model\Page;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use function Pagekit\__;
 
 class PageController
 {
     public function __construct(
         private readonly mixed $content,
         private readonly mixed $node,
-    ) {}
+    ) {
+    }
 
     public function indexAction($id = 0): array
     {
@@ -26,10 +28,10 @@ class PageController
         return [
             '$view' => [
                 'title' => $page->title,
-                'name'  => 'system/site/page.php'
+                'name' => 'system/site/page.php',
             ],
             'page' => $page,
-            'node' => $this->node
+            'node' => $this->node,
         ];
     }
 }

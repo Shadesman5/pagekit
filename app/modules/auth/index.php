@@ -11,23 +11,23 @@ return [
 
     'main' => function ($app) {
 
-        $app->set('auth', fn($app) => new Auth($app->get('events'), $app->get('auth.handler')));
+        $app->set('auth', fn ($app) => new Auth($app->get('events'), $app->get('auth.handler')));
 
-        $app->set('auth.password', fn() => new NativePasswordEncoder);
+        $app->set('auth.password', fn () => new NativePasswordEncoder());
 
         // camelCase alias — PHP parameter names cannot contain dots, so controllers
         // inject `$authPassword` which resolves to this alias for `auth.password`.
-        $app->set('authPassword', fn($app) => $app->get('auth.password'));
+        $app->set('authPassword', fn ($app) => $app->get('auth.password'));
 
-        $app->set('auth.random', fn() => (new Factory)->getLowStrengthGenerator());
+        $app->set('auth.random', fn () => (new Factory())->getLowStrengthGenerator());
 
-        $app->set('auth.handler', fn($app) => new DatabaseHandler($app->get('db'), $app->get('request.stack'), $app->get('cookie'), $app->get('auth.random'), $this->config));
+        $app->set('auth.handler', fn ($app) => new DatabaseHandler($app->get('db'), $app->get('request.stack'), $app->get('cookie'), $app->get('auth.random'), $this->config));
 
     },
 
     'autoload' => [
 
-        'Pagekit\\Auth\\' => 'src'
+        'Pagekit\\Auth\\' => 'src',
 
     ],
 
@@ -35,11 +35,11 @@ return [
 
         'timeout' => 900,
         'table' => 'auth',
-        'cookie'   => [
+        'cookie' => [
             'name' => '',
-            'lifetime' => 315360000
-        ]
+            'lifetime' => 315360000,
+        ],
 
-    ]
+    ],
 
 ];

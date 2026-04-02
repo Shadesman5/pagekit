@@ -26,11 +26,11 @@ class Requirement
      */
     public function __construct($fulfilled, $testMessage, $helpHtml, $helpText = null, $optional = false)
     {
-        $this->fulfilled = (Boolean) $fulfilled;
+        $this->fulfilled = (bool) $fulfilled;
         $this->testMessage = (string) $testMessage;
         $this->helpHtml = (string) $helpHtml;
         $this->helpText = null === $helpText ? strip_tags($this->helpHtml) : (string) $helpText;
-        $this->optional = (Boolean) $optional;
+        $this->optional = (bool) $optional;
     }
 
     /**
@@ -95,7 +95,7 @@ class PhpIniRequirement extends Requirement
      * Constructor that initializes the requirement.
      *
      * @param string           $cfgName    The configuration name used for ini_get()
-     * @param Boolean|callback $evaluation Either a Boolean indicating whether the configuration should evaluate to true or false,
+     * @param Boolean|callable $evaluation Either a Boolean indicating whether the configuration should evaluate to true or false,
                                                     or a callback function receiving the configuration value as parameter to determine the fulfillment of the requirement
      * @param Boolean $approveCfgAbsence If true the Requirement will be fulfilled even if the configuration option does not exist, i.e. ini_get() returns false.
                                                     This is helpful for abandoned configs in later PHP versions or configs of an optional extension, like Suhosin.
@@ -117,7 +117,8 @@ class PhpIniRequirement extends Requirement
             $fulfilled = call_user_func($evaluation, $cfgValue);
         } else {
             if (null === $testMessage) {
-                $testMessage = sprintf('%s %s be %s in php.ini',
+                $testMessage = sprintf(
+                    '%s %s be %s in php.ini',
                     $cfgName,
                     $optional ? 'should' : 'must',
                     $evaluation ? 'enabled' : 'disabled'
@@ -125,7 +126,8 @@ class PhpIniRequirement extends Requirement
             }
 
             if (null === $helpHtml) {
-                $helpHtml = sprintf('Set <strong>%s</strong> to <strong>%s</strong> in php.ini<a href="#phpini">*</a>.',
+                $helpHtml = sprintf(
+                    'Set <strong>%s</strong> to <strong>%s</strong> in php.ini<a href="#phpini">*</a>.',
                     $cfgName,
                     $evaluation ? 'on' : 'off'
                 );
@@ -145,7 +147,7 @@ class PhpIniRequirement extends Requirement
  */
 class RequirementCollection implements IteratorAggregate
 {
-    private ?array $requirements = array();
+    private ?array $requirements = [];
 
     /**
      * Gets the current RequirementCollection as an Iterator.
@@ -197,7 +199,7 @@ class RequirementCollection implements IteratorAggregate
      * Adds a mandatory requirement in form of a php.ini configuration.
      *
      * @param string           $cfgName    The configuration name used for ini_get()
-     * @param Boolean|callback $evaluation Either a Boolean indicating whether the configuration should evaluate to true or false,
+     * @param Boolean|callable $evaluation Either a Boolean indicating whether the configuration should evaluate to true or false,
                                                     or a callback function receiving the configuration value as parameter to determine the fulfillment of the requirement
      * @param Boolean $approveCfgAbsence If true the Requirement will be fulfilled even if the configuration option does not exist, i.e. ini_get() returns false.
                                                     This is helpful for abandoned configs in later PHP versions or configs of an optional extension, like Suhosin.
@@ -215,7 +217,7 @@ class RequirementCollection implements IteratorAggregate
      * Adds an optional recommendation in form of a php.ini configuration.
      *
      * @param string           $cfgName    The configuration name used for ini_get()
-     * @param Boolean|callback $evaluation Either a Boolean indicating whether the configuration should evaluate to true or false,
+     * @param Boolean|callable $evaluation Either a Boolean indicating whether the configuration should evaluate to true or false,
                                                     or a callback function receiving the configuration value as parameter to determine the fulfillment of the requirement
      * @param Boolean $approveCfgAbsence If true the Requirement will be fulfilled even if the configuration option does not exist, i.e. ini_get() returns false.
                                                     This is helpful for abandoned configs in later PHP versions or configs of an optional extension, like Suhosin.
@@ -256,7 +258,7 @@ class RequirementCollection implements IteratorAggregate
      */
     public function getRequirements(): array
     {
-        $array = array();
+        $array = [];
         foreach ($this->requirements as $req) {
             if (!$req->isOptional()) {
                 $array[] = $req;
@@ -273,7 +275,7 @@ class RequirementCollection implements IteratorAggregate
      */
     public function getFailedRequirements(): array
     {
-        $array = array();
+        $array = [];
         foreach ($this->requirements as $req) {
             if (!$req->isFulfilled() && !$req->isOptional()) {
                 $array[] = $req;
@@ -290,7 +292,7 @@ class RequirementCollection implements IteratorAggregate
      */
     public function getRecommendations(): array
     {
-        $array = array();
+        $array = [];
         foreach ($this->requirements as $req) {
             if ($req->isOptional()) {
                 $array[] = $req;
@@ -307,7 +309,7 @@ class RequirementCollection implements IteratorAggregate
      */
     public function getFailedRecommendations(): array
     {
-        $array = array();
+        $array = [];
         foreach ($this->requirements as $req) {
             if (!$req->isFulfilled() && $req->isOptional()) {
                 $array[] = $req;
@@ -352,7 +354,7 @@ class RequirementCollection implements IteratorAggregate
  */
 class PagekitRequirements extends RequirementCollection
 {
-    const REQUIRED_PHP_VERSION = '8.2.0';
+    public const REQUIRED_PHP_VERSION = '8.2.0';
 
     /**
      * Constructor that initializes the requirements.
@@ -369,9 +371,12 @@ class PagekitRequirements extends RequirementCollection
         $this->addRequirement(
             version_compare($installedPhpVersion, self::REQUIRED_PHP_VERSION, '>='),
             sprintf('PHP version must be at least %s (%s installed)', self::REQUIRED_PHP_VERSION, $installedPhpVersion),
-            sprintf('You are running PHP version "<strong>%s</strong>", but Pagekit needs at least PHP "<strong>%s</strong>" to run.
+            sprintf(
+                'You are running PHP version "<strong>%s</strong>", but Pagekit needs at least PHP "<strong>%s</strong>" to run.
                 Before using Pagekit, upgrade your PHP installation, preferably to the latest version.',
-                $installedPhpVersion, self::REQUIRED_PHP_VERSION),
+                $installedPhpVersion,
+                self::REQUIRED_PHP_VERSION
+            ),
             sprintf('Install PHP %s or newer (installed version is %s)', self::REQUIRED_PHP_VERSION, $installedPhpVersion)
         );
 
@@ -442,7 +447,8 @@ class PagekitRequirements extends RequirementCollection
         );
 
         if (version_compare($installedPhpVersion, '5.6', '>=') && version_compare($installedPhpVersion, '7.0.0', '<')) {
-            $this->addRequirement(!(ini_get('display_startup_errors') === "1" && ini_get('always_populate_raw_post_data') !== "-1"),
+            $this->addRequirement(
+                !(ini_get('display_startup_errors') === "1" && ini_get('always_populate_raw_post_data') !== "-1"),
                 '\'display_startup_errors\' is enabled and \'always_populate_raw_post_data\' is not set to \'-1\'',
                 'Disable startup errors or set \'always_populate_raw_post_data\' to \'-1\' in php.ini.'
             );
@@ -475,7 +481,8 @@ class PagekitRequirements extends RequirementCollection
         $this->addRequirement(
             file_exists("$path/.htaccess"),
             ".htaccess does not exist",
-            "Make sure the <strong>.htaccess</strong> file has been uploaded, sometimes hidden files are not uploaded using FTP/SFTP.");
+            "Make sure the <strong>.htaccess</strong> file has been uploaded, sometimes hidden files are not uploaded using FTP/SFTP."
+        );
 
         if (function_exists('opcache_invalidate') && ini_get('opcache.enable')) {
             $this->addPhpIniRequirement('opcache.load_comments', true, true);

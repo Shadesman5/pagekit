@@ -2,25 +2,23 @@
 
 namespace Pagekit\Filter;
 
-use Pagekit\Filter\FilterInterface;
-
 class FilterManager
 {
     protected ?array $defaults = [
         'addrelnofollow' => 'Pagekit\Filter\AddRelNofollowFilter',
-        'alnum'          => 'Pagekit\Filter\AlnumFilter',
-        'alpha'          => 'Pagekit\Filter\AlphaFilter',
-        'bool'           => 'Pagekit\Filter\BooleanFilter',
-        'boolean'        => 'Pagekit\Filter\BooleanFilter',
-        'digits'         => 'Pagekit\Filter\DigitsFilter',
-        'int'            => 'Pagekit\Filter\IntFilter',
-        'integer'        => 'Pagekit\Filter\IntFilter',
-        'float'          => 'Pagekit\Filter\FloatFilter',
-        'json'           => 'Pagekit\Filter\JsonFilter',
-        'pregreplace'    => 'Pagekit\Filter\PregReplaceFilter',
-        'slugify'        => 'Pagekit\Filter\SlugifyFilter',
-        'string'         => 'Pagekit\Filter\StringFilter',
-        'stripnewlines'  => 'Pagekit\Filter\StripNewlinesFilter'
+        'alnum' => 'Pagekit\Filter\AlnumFilter',
+        'alpha' => 'Pagekit\Filter\AlphaFilter',
+        'bool' => 'Pagekit\Filter\BooleanFilter',
+        'boolean' => 'Pagekit\Filter\BooleanFilter',
+        'digits' => 'Pagekit\Filter\DigitsFilter',
+        'int' => 'Pagekit\Filter\IntFilter',
+        'integer' => 'Pagekit\Filter\IntFilter',
+        'float' => 'Pagekit\Filter\FloatFilter',
+        'json' => 'Pagekit\Filter\JsonFilter',
+        'pregreplace' => 'Pagekit\Filter\PregReplaceFilter',
+        'slugify' => 'Pagekit\Filter\SlugifyFilter',
+        'string' => 'Pagekit\Filter\StringFilter',
+        'stripnewlines' => 'Pagekit\Filter\StripNewlinesFilter',
     ];
 
     /**
@@ -82,7 +80,7 @@ class FilterManager
         }
 
         if (is_string($class = $this->filters[$name])) {
-            $this->filters[$name] = new $class;
+            $this->filters[$name] = new $class();
         }
 
         $filter = clone $this->filters[$name];

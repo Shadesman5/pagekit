@@ -58,7 +58,7 @@ abstract class Comment
      */
     public function __construct()
     {
-        $this->created = new \DateTime;
+        $this->created = new \DateTime();
     }
 
     public function __toString(): string

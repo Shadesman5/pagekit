@@ -58,53 +58,57 @@ class RollbackCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        
+
         $io->title('Pagekit Migration System');
         $io->section('Rolling Back Migrations');
 
         try {
             // Get migration service
             $migrationService = $this->container->get('migration');
-            
+
             // Check if migration system is initialized
             if (!$migrationService->isInitialized()) {
                 $io->warning('Migration system is not yet initialized. Nothing to rollback.');
+
                 return Command::SUCCESS;
             }
-            
+
             // Get target version (if specified)
             $version = $input->getOption('to');
             $dryRun = $input->getOption('dry-run');
-            
+
             if ($dryRun) {
                 $io->note('Dry-run mode: No changes will be made');
             }
-            
+
             // Confirm rollback (especially for "rollback all")
             if ($version === '0') {
                 $io->warning('This will rollback ALL migrations!');
-                
+
                 if (!$io->confirm('Are you sure you want to continue?', false)) {
                     $io->note('Rollback cancelled.');
+
                     return Command::SUCCESS;
                 }
             }
-            
+
             // Execute rollback
             $io->text($dryRun ? 'Calculating rollback (dry-run)...' : 'Rolling back migrations...');
-            
+
             $result = $migrationService->rollback($version, $dryRun);
-            
+
             if (!$result['success']) {
                 $io->error('Rollback failed: ' . $result['error']);
+
                 return Command::FAILURE;
             }
-            
+
             if ($result['executed'] === 0) {
                 $io->success('No migrations to rollback.');
+
                 return Command::SUCCESS;
             }
-            
+
             // Show results
             if ($dryRun) {
                 $io->success(sprintf(
@@ -118,20 +122,20 @@ class RollbackCommand extends Command
                     $result['time']
                 ));
             }
-            
+
             if ($output->isVerbose()) {
                 $io->note('Run "php pagekit migration:status" to see current migration status.');
             }
-            
+
             return Command::SUCCESS;
-            
+
         } catch (\Exception $e) {
             $io->error('An error occurred: ' . $e->getMessage());
-            
+
             if ($output->isVerbose()) {
                 $io->writeln($e->getTraceAsString());
             }
-            
+
             return Command::FAILURE;
         }
     }

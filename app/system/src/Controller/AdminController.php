@@ -18,7 +18,8 @@ class AdminController
         private readonly mixed $session,
         private readonly mixed $url,
         private readonly mixed $router,
-    ) {}
+    ) {
+    }
 
     #[Access(admin: true)]
     public function indexAction()
@@ -36,13 +37,13 @@ class AdminController
 
         return [
             '$view' => [
-                'title'  => __('Login'),
-                'name'   => 'system/theme:views/login.php',
-                'layout' => false
+                'title' => __('Login'),
+                'name' => 'system/theme:views/login.php',
+                'layout' => false,
             ],
             'last_username' => $this->session->get(Auth::LAST_USERNAME),
             'redirect' => $redirect ?: ($this->url)('@system'),
-            'message' => $message
+            'message' => $message,
         ];
     }
 

@@ -100,6 +100,7 @@ Include tests for real Pagekit scenarios:
 - Database connection failures (ORM error handling)
 - Invalid input (XSS attempts, SQL injection attempts)
 - Permission boundary tests (user vs admin vs anonymous)
+- **AddRelNofollowFilter XSS hardening** (from 2.1.1 review): 3 deactivated tests in `app/modules/filter/src/Tests/AddRelNofollowTest.php` cover obfuscation attacks (`<a/href=...>`, null-byte `<\0a\0>`, `rel="follow"` replacement). The filter regex needs hardening before these can pass.
 
 ---
 

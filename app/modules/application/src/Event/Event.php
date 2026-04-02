@@ -3,7 +3,6 @@
 namespace Pagekit\Event;
 
 use Pagekit\Util\Arr;
-use \Pagekit\Event\EventDispatcherInterface;
 
 class Event implements EventInterface, \ArrayAccess
 {
@@ -76,6 +75,7 @@ class Event implements EventInterface, \ArrayAccess
     public function addParameters(array $values, $replace = false): self
     {
         $this->parameters = Arr::merge($this->parameters, $values, $replace);
+
         return $this;
     }
 

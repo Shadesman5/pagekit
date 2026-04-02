@@ -28,6 +28,7 @@ class Path
 
                 if (count($parts)) {
                     array_pop($parts);
+
                     continue;
                 } elseif (!$root) {
                     continue;
@@ -41,7 +42,7 @@ class Path
         $path = implode('/', $parts);
         $info = compact('root', 'path');
 
-        $info['dirname']  = $root.substr($path, 0, strrpos($path, '/'));
+        $info['dirname'] = $root.substr($path, 0, strrpos($path, '/'));
         $info['pathname'] = $root.$path;
         $info['protocol'] = strpos($root, '://') ? substr($root, 0, -3) : 'file';
 

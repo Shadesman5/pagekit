@@ -7,7 +7,7 @@ use Pagekit\Event\EventSubscriberInterface;
 
 class SimplePlugin implements EventSubscriberInterface
 {
-    const PLUGIN_CODE = '/
+    public const PLUGIN_CODE = '/
                         \(([a-zA-Z_]\w*)\) # the plugin name
                         (\{                          # the plugin options
                             (?:
@@ -25,7 +25,7 @@ class SimplePlugin implements EventSubscriberInterface
      */
     public function onContentPlugins(ContentEvent $event): void
     {
-        $content = preg_replace_callback(self::PLUGIN_CODE, function($matches) use ($event) {
+        $content = preg_replace_callback(self::PLUGIN_CODE, function ($matches) use ($event) {
 
             $options = isset($matches[2]) ? json_decode($matches[2], true) : [];
 
@@ -44,7 +44,7 @@ class SimplePlugin implements EventSubscriberInterface
     public function subscribe(): array
     {
         return [
-            'content.plugins' => ['onContentPlugins', 10]
+            'content.plugins' => ['onContentPlugins', 10],
         ];
     }
 }

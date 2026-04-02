@@ -8,14 +8,14 @@ return [
 
     'main' => function ($app) {
 
-        $app->set('markdown', fn() => new Markdown);
+        $app->set('markdown', fn () => new Markdown());
 
     },
 
     'autoload' => [
 
-        'Pagekit\\Markdown\\' => 'src'
+        'Pagekit\\Markdown\\' => 'src',
 
-    ]
+    ],
 
 ];

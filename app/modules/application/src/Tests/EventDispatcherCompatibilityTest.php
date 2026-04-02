@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Pagekit\Tests;
 
-use PHPUnit\Framework\TestCase;
 use Pagekit\Event\Event;
 use Pagekit\Event\EventDispatcher;
 use Pagekit\Event\SymfonyEventDispatcherBridge;
+use PHPUnit\Framework\TestCase;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface as SymfonyEventSubscriberInterface;
 use Symfony\Contracts\EventDispatcher\Event as SymfonyEvent;
 
@@ -39,7 +39,7 @@ class EventDispatcherCompatibilityTest extends TestCase
     public function testAddRemoveListener()
     {
         $called = false;
-        $listener = function() use (&$called) {
+        $listener = function () use (&$called) {
             $called = true;
         };
 
@@ -68,15 +68,15 @@ class EventDispatcherCompatibilityTest extends TestCase
     {
         $order = [];
 
-        $this->bridge->addListener('test.priority', function() use (&$order) {
+        $this->bridge->addListener('test.priority', function () use (&$order) {
             $order[] = 'low';
         }, -10);
 
-        $this->bridge->addListener('test.priority', function() use (&$order) {
+        $this->bridge->addListener('test.priority', function () use (&$order) {
             $order[] = 'high';
         }, 10);
 
-        $this->bridge->addListener('test.priority', function() use (&$order) {
+        $this->bridge->addListener('test.priority', function () use (&$order) {
             $order[] = 'medium';
         }, 0);
 
@@ -108,8 +108,10 @@ class EventDispatcherCompatibilityTest extends TestCase
      */
     public function testGetListeners()
     {
-        $listener1 = function() {};
-        $listener2 = function() {};
+        $listener1 = function () {
+        };
+        $listener2 = function () {
+        };
 
         $this->bridge->addListener('test.get', $listener1);
         $this->bridge->addListener('test.get', $listener2);
@@ -123,7 +125,8 @@ class EventDispatcherCompatibilityTest extends TestCase
      */
     public function testGetListenerPriority()
     {
-        $listener = function() {};
+        $listener = function () {
+        };
         $this->bridge->addListener('test.priority', $listener, 42);
 
         $priority = $this->bridge->getListenerPriority('test.priority', $listener);
@@ -172,7 +175,7 @@ class EventDispatcherCompatibilityTest extends TestCase
         $pagekitEvent = new Event('pagekit.test');
         $called = false;
 
-        $this->dispatcher->on('pagekit.test', function($e) use (&$called) {
+        $this->dispatcher->on('pagekit.test', function ($e) use (&$called) {
             $called = true;
             $this->assertInstanceOf(Event::class, $e);
         });
@@ -199,7 +202,7 @@ class TestSymfonySubscriber implements SymfonyEventSubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
-            'test.subscriber' => 'onTestEvent'
+            'test.subscriber' => 'onTestEvent',
         ];
     }
 }

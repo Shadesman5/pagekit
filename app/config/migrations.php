@@ -25,28 +25,28 @@ return [
          * Final table name will be: pk_migration_versions
          */
         'table_name' => '@migration_versions',
-        
+
         /**
          * Version Column Name
          *
          * Column name that stores the migration version identifier.
          */
         'version_column_name' => 'version',
-        
+
         /**
          * Version Column Length
          *
          * Maximum length for the version identifier column.
          */
         'version_column_length' => 191,
-        
+
         /**
          * Executed At Column Name
          *
          * Column name that stores the timestamp when migration was executed.
          */
         'executed_at_column_name' => 'executed_at',
-        
+
         /**
          * Execution Time Column Name
          *

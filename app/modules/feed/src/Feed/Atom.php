@@ -2,8 +2,8 @@
 
 namespace Pagekit\Feed\Feed;
 
-use Pagekit\Feed\FeedInterface;
 use Pagekit\Feed\Feed;
+use Pagekit\Feed\FeedInterface;
 
 class Atom extends Feed
 {
@@ -46,6 +46,7 @@ class Atom extends Feed
         foreach ([2, 1, 1, 1, 3] as $length) {
             $uuid[] = implode('', array_splice($hash, 0, $length));
         }
+
         return $prefix.implode('-', $uuid);
     }
 
@@ -81,6 +82,7 @@ class Atom extends Feed
     protected function buildElement(\DOMDocument $doc, array $element): \DOMElement
     {
         $element[0] = 0 === strpos($element[0], 'atom:') ? substr($element[0], 5) : $element[0];
+
         return parent::buildElement($doc, $element);
     }
 

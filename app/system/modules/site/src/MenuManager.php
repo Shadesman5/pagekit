@@ -2,7 +2,6 @@
 
 namespace Pagekit\Site;
 
-use Pagekit\Application as App;
 use Pagekit\Config\Config;
 
 class MenuManager implements \JsonSerializable
@@ -14,7 +13,7 @@ class MenuManager implements \JsonSerializable
     public function __construct(Config $config, array $menus = [])
     {
         $this->config = $config;
-        $this->menus  = $menus;
+        $this->menus = $menus;
     }
 
     /**
@@ -50,7 +49,7 @@ class MenuManager implements \JsonSerializable
             $menu['positions'] = array_keys($this->config->get('_menus', []), $id);
         }
 
-        uasort($menus, fn($a, $b) => strcmp($a['label'], $b['label']));
+        uasort($menus, fn ($a, $b) => strcmp($a['label'], $b['label']));
 
         return $menus + ['' => ['id' => '', 'label' => __('Not Linked'), 'fixed' => true]];
     }

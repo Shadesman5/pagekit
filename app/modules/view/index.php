@@ -1,9 +1,11 @@
 <?php
 
 use Pagekit\Event\PrefixEventDispatcher;
-use Pagekit\Twig\TwigEngine;
 use Pagekit\View\Asset\AssetFactory;
 use Pagekit\View\Asset\AssetManager;
+use Pagekit\View\Engine\DelegatingEngine;
+use Pagekit\View\Engine\PhpEngineAdapter;
+use Pagekit\View\Engine\TwigEngineAdapter;
 use Pagekit\View\Helper\DataHelper;
 use Pagekit\View\Helper\DeferredHelper;
 use Pagekit\View\Helper\GravatarHelper;
@@ -18,9 +20,6 @@ use Pagekit\View\Helper\UrlHelper;
 use Pagekit\View\Loader\FilesystemLoader;
 use Pagekit\View\PhpEngine;
 use Pagekit\View\View;
-use Pagekit\View\Engine\PhpEngineAdapter;
-use Pagekit\View\Engine\TwigEngineAdapter;
-use Pagekit\View\Engine\DelegatingEngine;
 use Symfony\Component\HttpFoundation\Response;
 
 return [
@@ -31,19 +30,19 @@ return [
 
     'require' => [
 
-        'view/twig'
+        'view/twig',
 
     ],
 
     'main' => function ($app) {
 
-        $app->set('view', fn($app) => new View(new PrefixEventDispatcher('view.', $app->get('events'))));
+        $app->set('view', fn ($app) => new View(new PrefixEventDispatcher('view.', $app->get('events'))));
 
-        $app->set('assets', fn() => new AssetFactory());
+        $app->set('assets', fn () => new AssetFactory());
 
-        $app->set('styles', fn($app) => new AssetManager($app->get('assets')));
+        $app->set('styles', fn ($app) => new AssetManager($app->get('assets')));
 
-        $app->set('scripts', fn($app) => new AssetManager($app->get('assets')));
+        $app->set('scripts', fn ($app) => new AssetManager($app->get('assets')));
 
         $app->get('module')->addLoader(function ($module) use ($app) {
 
@@ -52,6 +51,7 @@ return [
                     foreach ((array) $module['views'] as $name => $path) {
                         $view->map($name, $path);
                     }
+
                     return $view;
                 });
             }
@@ -148,7 +148,7 @@ return [
                 new ScriptHelper($app->get('scripts')),
                 new SectionHelper(),
                 new StyleHelper($app->get('styles')),
-                new UrlHelper($app->get('url'))
+                new UrlHelper($app->get('url')),
             ]);
 
             if ($app->has('csrf')) {
@@ -159,14 +159,14 @@ return [
                 $view->addHelper(new MarkdownHelper($app->get('markdown')));
             }
 
-        }, 50]
+        }, 50],
 
     ],
 
     'autoload' => [
 
-        'Pagekit\\View\\' => 'src'
+        'Pagekit\\View\\' => 'src',
 
-    ]
+    ],
 
 ];

@@ -58,20 +58,20 @@ class MetaHelper implements HelperInterface, \IteratorAggregate
 
         return $this;
     }
-    
+
     /**
   * Removes a meta tag.
   *
   * @param  string $name
   */
- public function remove( $name ): self
-	{
-		if (isset($this->metas[$name])) {
-			unset($this->metas[$name]);			
-		} 
-        
+    public function remove($name): self
+    {
+        if (isset($this->metas[$name])) {
+            unset($this->metas[$name]);
+        }
+
         return $this;
-	}
+    }
 
     /**
      * Renders the meta tags.

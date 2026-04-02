@@ -2,20 +2,19 @@
 
 namespace Pagekit\Database;
 
-use Doctrine\DBAL\Statement;
-use Doctrine\DBAL\Result;
-use Pagekit\Database\Query\QueryBuilder;
 use Doctrine\Common\EventManager;
 use Doctrine\DBAL\Cache\QueryCacheProfile;
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Connection as BaseConnection;
 use Doctrine\DBAL\Driver;
-use Pagekit\Database\Utility;
+use Doctrine\DBAL\Result;
+use Doctrine\DBAL\Statement;
+use Pagekit\Database\Query\QueryBuilder;
 
 class Connection extends BaseConnection
 {
-    const SINGLE_QUOTED_TEXT = '\'([^\'\\\\]*(?:\\\\.[^\'\\\\]*)*)\'';
-    const DOUBLE_QUOTED_TEXT = '"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"';
+    public const SINGLE_QUOTED_TEXT = '\'([^\'\\\\]*(?:\\\\.[^\'\\\\]*)*)\'';
+    public const DOUBLE_QUOTED_TEXT = '"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"';
 
     /**
      * The database utility.
@@ -36,7 +35,7 @@ class Connection extends BaseConnection
      * The regex for parsing SQL query parts.
      */
     protected array $regex;
-    
+
     /**
      * Flag to track if type mappings have been registered.
      */
@@ -69,19 +68,19 @@ class Connection extends BaseConnection
 
         $this->regex = [
             'quotes' => "/([^'\"]+)(?:".self::DOUBLE_QUOTED_TEXT."|".self::SINGLE_QUOTED_TEXT.")?/As",
-            'placeholder' => "/".preg_quote($this->placeholder, '/')."([a-zA-Z_][a-zA-Z0-9_]*)/"
+            'placeholder' => "/".preg_quote($this->placeholder, '/')."([a-zA-Z_][a-zA-Z0-9_]*)/",
         ];
 
         parent::__construct($params, $driver, $config, $eventManager);
     }
-    
+
     /**
      * {@inheritdoc}
      */
     public function connect(): bool
     {
         $result = parent::connect();
-        
+
         // Register custom type mappings after connection is established
         if ($result && !$this->_typeMappingsRegistered) {
             try {
@@ -92,10 +91,10 @@ class Connection extends BaseConnection
                 // Connection might not be ready yet
             }
         }
-        
+
         return $result;
     }
-    
+
     /**
      * Ensure type mappings are registered when getting the platform.
      * {@inheritdoc}
@@ -103,30 +102,33 @@ class Connection extends BaseConnection
     public function getDatabasePlatform(): \Doctrine\DBAL\Platforms\AbstractPlatform
     {
         $platform = parent::getDatabasePlatform();
-        
+
         // Register type mappings if not already done
         if (!$this->_typeMappingsRegistered && $this->isConnected()) {
             $this->registerCustomTypeMappings($platform);
             $this->_typeMappingsRegistered = true;
         }
-        
+
         return $platform;
     }
-    
+
     /**
-     * Register custom type mappings for DBAL 3.x compatibility.
-     * 
+     * Registers custom Doctrine type mappings so DB column types resolve to Pagekit's
+     * array-safe JSON and SimpleArray types.
+     *
+     * TODO: Must be refactored in Step 2.1.7 (QueryBuilder API Standardization) —
+     * Once JsonArrayType is renamed to 'json' and registered as the default, the
+     * explicit json→json_array mapping becomes unnecessary. Simplify or remove.
+     *
      * @param \Doctrine\DBAL\Platforms\AbstractPlatform|null $platform
      */
     protected function registerCustomTypeMappings($platform = null): void
     {
         try {
-            // Use provided platform or get it from parent (avoiding recursion)
             if ($platform === null) {
                 $platform = parent::getDatabasePlatform();
             }
-            
-            // Map database types to our custom Doctrine types
+
             $platform->registerDoctrineTypeMapping('json', 'json_array');
             $platform->registerDoctrineTypeMapping('json_array', 'json_array');
             $platform->registerDoctrineTypeMapping('simple_array', 'simple_array');
@@ -202,6 +204,7 @@ class Connection extends BaseConnection
         foreach ($row as $key => $value) {
             $object->$key = $value;
         }
+
         return $object;
     }
 
@@ -225,6 +228,7 @@ class Connection extends BaseConnection
             }
             $objects[] = $object;
         }
+
         return $objects;
     }
 

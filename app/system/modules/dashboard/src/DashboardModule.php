@@ -15,7 +15,7 @@ class DashboardModule extends Module
     public function main(App $app): void
     {
         $this->app = $app;
-        $app->set('systemApi', fn($app) => $app->has('system.api') ? $app->get('system.api') : 'https://pagekit.com');
+        $app->set('systemApi', fn ($app) => $app->has('system.api') ? $app->get('system.api') : 'https://pagekit.com');
     }
 
     /**
@@ -38,6 +38,7 @@ class DashboardModule extends Module
         $this->assertBooted();
 
         $config = $this->app->get('config')->get('system/dashboard')->toArray();
+
         return $config ?: ($this->config('defaults') ?? []);
     }
 

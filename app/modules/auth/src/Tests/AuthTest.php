@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Pagekit\Auth\Tests;
 
-use PHPUnit\Framework\TestCase;
 use Pagekit\Auth\Auth;
+use Pagekit\Auth\Handler\HandlerInterface;
 use Pagekit\Auth\UserInterface;
 use Pagekit\Auth\UserProviderInterface;
-use Pagekit\Auth\Handler\HandlerInterface;
 use Pagekit\Event\EventDispatcherInterface;
 use Pagekit\Event\EventInterface;
+use PHPUnit\Framework\TestCase;
 
 class AuthTest extends TestCase
 {
@@ -145,7 +145,7 @@ class AuthTest extends TestCase
             ->method('destroy');
 
         $this->auth->removeUser();
-        
+
         // After removeUser, handler->read() returns null, so getUser returns null
         $this->handler->method('read')->willReturn(null);
         $this->assertNull($this->auth->getUser());

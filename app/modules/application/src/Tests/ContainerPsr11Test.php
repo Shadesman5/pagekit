@@ -2,11 +2,11 @@
 
 namespace Pagekit\Tests;
 
-use PHPUnit\Framework\TestCase;
 use Pagekit\Application;
 use Pagekit\Container;
-use Pagekit\Container\NotFoundException;
 use Pagekit\Container\ContainerException;
+use Pagekit\Container\NotFoundException;
+use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 
 /**
@@ -39,7 +39,7 @@ class ContainerPsr11Test extends TestCase
         $this->container->set('test.scalar', 'value');
         $this->assertTrue($this->container->has('test.scalar'));
 
-        $this->container->set('test.service', fn() => new \stdClass());
+        $this->container->set('test.service', fn () => new \stdClass());
         $this->assertTrue($this->container->has('test.service'));
     }
 
@@ -65,6 +65,7 @@ class ContainerPsr11Test extends TestCase
         $this->container->set('test.service', function ($container) {
             $obj = new \stdClass();
             $obj->created = true;
+
             return $obj;
         });
 
@@ -119,6 +120,7 @@ class ContainerPsr11Test extends TestCase
             $counter++;
             $obj = new \stdClass();
             $obj->id = $counter;
+
             return $obj;
         });
 
@@ -169,7 +171,7 @@ class ContainerPsr11Test extends TestCase
      */
     public function testServiceExtension(): void
     {
-        $this->container->set('test.base', fn() => 'base');
+        $this->container->set('test.base', fn () => 'base');
 
         $this->container->extend('test.base', function ($base, $container) {
             return $base . '-extended';
@@ -216,7 +218,7 @@ class ContainerPsr11Test extends TestCase
      */
     public function testRawMethod(): void
     {
-        $closure = fn() => 'resolved';
+        $closure = fn () => 'resolved';
         $this->container->set('test.closure', $closure);
 
         $raw = $this->container->raw('test.closure');

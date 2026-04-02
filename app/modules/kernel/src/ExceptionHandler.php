@@ -3,8 +3,8 @@
 namespace Pagekit\Kernel;
 
 use Pagekit\Kernel\Exception\HttpException;
-use Symfony\Component\ErrorHandler\Exception\FlattenException;
 use Symfony\Component\ErrorHandler\ErrorHandler as DebugExceptionHandler;
+use Symfony\Component\ErrorHandler\Exception\FlattenException;
 
 class ExceptionHandler extends DebugExceptionHandler
 {

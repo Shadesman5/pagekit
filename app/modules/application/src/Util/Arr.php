@@ -4,8 +4,8 @@ namespace Pagekit\Util;
 
 class Arr
 {
-    const ARRAY_FILTER_USE_BOTH = 1;
-    const ARRAY_FILTER_USE_KEY  = 2;
+    public const ARRAY_FILTER_USE_BOTH = 1;
+    public const ARRAY_FILTER_USE_KEY = 2;
 
     /**
      * Checks if the given key exists.
@@ -93,7 +93,7 @@ class Arr
                 $array[$part] = [];
             }
 
-            $array =& $array[$part];
+            $array = &$array[$part];
         }
 
         $array[array_shift($parts)] = $value;
@@ -109,7 +109,7 @@ class Arr
      */
     public static function remove(array &$array, $keys): void
     {
-        $original =& $array;
+        $original = &$array;
 
         foreach ((array) $keys as $key) {
 
@@ -120,13 +120,13 @@ class Arr
                 $part = array_shift($parts);
 
                 if (isset($array[$part]) && is_array($array[$part])) {
-                    $array =& $array[$part];
+                    $array = &$array[$part];
                 }
             }
 
             unset($array[array_shift($parts)]);
 
-            $array =& $original;
+            $array = &$original;
         }
     }
 
@@ -146,7 +146,7 @@ class Arr
             }
 
             $new = array_values($array);
-            $array =& $new;
+            $array = &$new;
         }
 
         return $array;
@@ -240,6 +240,7 @@ class Arr
             foreach ($keys as $key) {
                 if (0 === strpos($keypath, $key)) {
                     $add = $include;
+
                     break;
                 }
             }
@@ -284,7 +285,7 @@ class Arr
 
         foreach ($array as $key => $value) {
 
-            $values =& $result;
+            $values = &$result;
             $keys = explode('.', $key);
             while (count($keys) > 1) {
 
@@ -294,7 +295,7 @@ class Arr
                     $values[$key] = [];
                 }
 
-                $values =& $values[$key];
+                $values = &$values[$key];
             }
 
             $values[array_shift($keys)] = $value;

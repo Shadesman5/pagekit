@@ -40,6 +40,7 @@ class PregReplaceFilter extends AbstractFilter
     {
         if (!is_array($pattern) && !is_string($pattern)) {
             $pattern = is_object($pattern) ? get_class($pattern) : gettype($pattern);
+
             throw new \InvalidArgumentException(sprintf('%s expects pattern to be array or string; received "%s"', __METHOD__, $pattern));
         }
 
@@ -76,6 +77,7 @@ class PregReplaceFilter extends AbstractFilter
     {
         if (!is_array($replacement) && !is_string($replacement)) {
             $replacement = is_object($replacement) ? get_class($replacement) : gettype($replacement);
+
             throw new \InvalidArgumentException(sprintf('%s expects replacement to be array or string; received "%s"', __METHOD__, $replacement));
         }
 

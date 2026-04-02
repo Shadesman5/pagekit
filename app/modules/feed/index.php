@@ -8,14 +8,14 @@ return [
 
     'main' => function ($app) {
 
-        $app->set('feed', fn() => new FeedFactory);
+        $app->set('feed', fn () => new FeedFactory());
 
     },
 
     'autoload' => [
 
-        'Pagekit\\Feed\\' => 'src'
+        'Pagekit\\Feed\\' => 'src',
 
-    ]
+    ],
 
 ];

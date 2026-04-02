@@ -20,7 +20,7 @@
 
 This step only creates workflow YAML files. No application code changes. Verify workflows work by pushing the branch and checking GitHub Actions output.
 
-**Before starting:** Branch from `develop` (Step 2.1.1 merged).
+**Before starting:** Verify: Branch is Up-to-Date with `develop`. (Step 2.1.1 merged).
 
 ---
 

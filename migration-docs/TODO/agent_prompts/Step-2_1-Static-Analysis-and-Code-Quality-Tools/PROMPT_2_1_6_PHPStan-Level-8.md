@@ -23,7 +23,7 @@
 ```
 **IF ANY FAILS → STOP AND FIX!**
 
-**Before starting:** Branch from `develop` (Step 2.1.5 merged).
+**Before starting:** Verify: Branch is Up-to-Date with `develop`. (Step 2.1.5 merged).
 
 ---
 
@@ -85,9 +85,45 @@ public function getUsers(): array { ... }
 
 ---
 
-## 3. ARCHITECT DECISION POINTS
+## 3. KNOWN INTERFACE REFACTORS (from 2.1.1 review)
 
-Some Level 8 fixes may require interface changes or design decisions. If the Refactorer encounters:
+These were identified during the Step 2.1.1 code review and must be resolved in this step:
+
+### 3.1. MailerInterface split
+
+**Problem:** `Pagekit\Mail\MailerInterface` conflates two roles — the Mailer itself and mail plugins both implement it. The Mailer has no-op `beforeSend()`/`afterSend()` just to satisfy the interface.
+
+**Fix:** Split into `MailerInterface` (send, create, registerPlugin) and `MailPluginInterface` (beforeSend, afterSend). Update `ImpersonatePlugin` to implement `MailPluginInterface`, update `registerPlugin()` parameter type.
+
+**Files:** `Mailer.php`, `MailerInterface.php` (new: `MailPluginInterface.php`), `ImpersonatePlugin.php`, `Message.php`, `MessageInterface.php`
+
+### 3.2. EntityManager singleton removal
+
+**Problem:** `EntityManager` stores `static::$instance = $this` in constructor and provides `getInstance()`. This bypasses DI and will be flagged by Level 8 strict typing.
+
+**Fix:** Remove `static $instance` property and `getInstance()`. Update all call sites to use injected `EntityManager` via container.
+
+**Files:** `EntityManager.php`, all files calling `EntityManager::getInstance()`
+
+### 3.3. FileLocatorAsset static service locator
+
+**Problem:** `FileLocatorAsset` uses `static mixed $file` and `static mixed $locator` set via `setServices()` — same anti-pattern as EntityManager singleton. Properties are untyped.
+
+**Fix:** Replace static properties with constructor injection (requires asset factory changes). Type `$file` as `Filesystem`, `$locator` as `ResourceLocator`.
+
+**Files:** `FileLocatorAsset.php`, `view/index.php`
+
+### 3.4. ResponseListener mixed $url
+
+**Problem:** `ResponseListener::$url` is `mixed` but used as callable `($this->url)($path)`.
+
+**Fix:** Type-narrow to `callable` or the correct URL generator interface.
+
+**Files:** `ResponseListener.php`
+
+### 3.5. General architect decision points
+
+If the Refactorer encounters additional issues:
 - A method returning `mixed` that's used by multiple callers with different expectations → Escalate to Architect
 - An interface method that needs a generic type parameter → Architect decides if generics are worth the complexity
 - A significant refactor needed to narrow a type → Architect scopes it
@@ -116,6 +152,10 @@ Some Level 8 fixes may require interface changes or design decisions. If the Ref
 - [ ] `mixed` eliminated where avoidable
 - [ ] Justified `mixed` uses documented
 - [ ] Generic PHPDoc annotations where useful
+- [ ] `MailerInterface` split into Mailer + Plugin interfaces
+- [ ] `EntityManager` singleton pattern removed
+- [ ] `FileLocatorAsset` static service locator replaced with DI
+- [ ] `ResponseListener::$url` typed (no `mixed`)
 - [ ] `./app/vendor/bin/phpstan analyse` passes at Level 8
 - [ ] All PHPUnit tests pass
 - [ ] Baseline updated (zero or documented exceptions only)

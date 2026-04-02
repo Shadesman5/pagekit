@@ -4,6 +4,7 @@ namespace Pagekit\Tests;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
+
 trait DbUtil
 {
     /**
@@ -30,16 +31,16 @@ trait DbUtil
     public function getConnection(): Connection
     {
         if (isset($GLOBALS['db_type'], $GLOBALS['db_username'], $GLOBALS['db_password'],
-                $GLOBALS['db_host'], $GLOBALS['db_name'], $GLOBALS['db_port'],
-                $GLOBALS['tmpdb_type'], $GLOBALS['tmpdb_username'], $GLOBALS['tmpdb_password'],
-                $GLOBALS['tmpdb_host'], $GLOBALS['tmpdb_name'], $GLOBALS['tmpdb_port'])) {
+            $GLOBALS['db_host'], $GLOBALS['db_name'], $GLOBALS['db_port'],
+            $GLOBALS['tmpdb_type'], $GLOBALS['tmpdb_username'], $GLOBALS['tmpdb_password'],
+            $GLOBALS['tmpdb_host'], $GLOBALS['tmpdb_name'], $GLOBALS['tmpdb_port'])) {
             $realDbParams = [
                 'driver' => $GLOBALS['db_type'],
                 'user' => $GLOBALS['db_username'],
                 'password' => $GLOBALS['db_password'],
                 'host' => $GLOBALS['db_host'],
                 'dbname' => $GLOBALS['db_name'],
-                'port' => $GLOBALS['db_port']
+                'port' => $GLOBALS['db_port'],
             ];
             $tmpDbParams = [
                 'driver' => $GLOBALS['tmpdb_type'],
@@ -47,7 +48,7 @@ trait DbUtil
                 'password' => $GLOBALS['tmpdb_password'],
                 'host' => $GLOBALS['tmpdb_host'],
                 'dbname' => $GLOBALS['tmpdb_name'],
-                'port' => $GLOBALS['tmpdb_port']
+                'port' => $GLOBALS['tmpdb_port'],
             ];
 
             $realConn = DriverManager::getConnection($realDbParams);
@@ -73,7 +74,7 @@ trait DbUtil
                 $schema = $sm->createSchema();
                 $stmts = $schema->toDropSql($realConn->getDatabasePlatform());
 
-                foreach ($stmts AS $stmt) {
+                foreach ($stmts as $stmt) {
                     try {
                         $realConn->exec($stmt);
                     } catch (\Exception $e) {
@@ -86,7 +87,7 @@ trait DbUtil
         } else {
             $params = [
                 'driver' => 'pdo_sqlite',
-                'memory' => true
+                'memory' => true,
             ];
             if (isset($GLOBALS['db_path'])) {
                 $params['path'] = $GLOBALS['db_path'];
@@ -106,7 +107,7 @@ trait DbUtil
             'password' => $GLOBALS['tmpdb_password'],
             'host' => $GLOBALS['tmpdb_host'],
             'dbname' => $GLOBALS['tmpdb_name'],
-            'port' => $GLOBALS['tmpdb_port']
+            'port' => $GLOBALS['tmpdb_port'],
         ];
 
         // Connect to tmpdb in order to drop and create the real test db.

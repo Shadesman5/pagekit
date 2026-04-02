@@ -2,8 +2,6 @@
 
 namespace Pagekit\Auth;
 
-use Pagekit\Auth\UserInterface;
-
 interface UserProviderInterface
 {
     /**
@@ -19,7 +17,7 @@ interface UserProviderInterface
      * @param  string $username
      */
     public function findByUsername($username): ?UserInterface;
-    
+
     /**
      * Retrieves a user by the given credentials.
      *
