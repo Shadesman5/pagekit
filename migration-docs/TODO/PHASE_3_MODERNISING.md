@@ -1,275 +1,271 @@
-# 🎨 Phase 3: Frontend-Modernisierung – Das UI erneuern
+# 🎨 Phase 3: Frontend Modernization – Renewing the UI
 
-**Ziel**: Frontend auf modernen Stack migrieren (Vue 3, UIkit 3.21+, TypeScript).
-**Voraussetzung**: Phase 2 MUSS abgeschlossen sein (Build Tools in Schritt 2.4 sind Voraussetzung für Frontend-Arbeit!)
+**Goal**: Migrate frontend to a modern stack (Vue 3, UIkit 3.21+, TypeScript).
+**Prerequisite**: Phase 2 MUST be completed (Build Tools in Step 2.4 are a prerequisite for frontend work!)
 
-> **Analyse-Ergebnis (2026-02-11):** Alle Frontend-Dependencies wurden tiefgehend analysiert:
+> **Analysis Result (2026-02-11):** All frontend dependencies were analyzed in depth:
 >
-> **YOOtheme Vue-Libraries (archiviert):**
+> **YOOtheme Vue Libraries (archived):**
 >
-> - `vue-fields` (~1.1.3): **Nicht verwendet** in der Codebase → ignorieren
-> - `vue-resource` (~1.5.1): **Stark verwendet** (32 Dateien, 4 Interceptors) → ersetzen durch `axios`
-> - `vue-event-manager` (~2.1.3): **Moderat verwendet** (14 Dateien) → ersetzen durch `mitt`
-> - Entscheidung: **Ersetzen statt Forken** — aktiv gewartete Standard-Libraries statt Eigenwartung
+> - `vue-fields` (~1.1.3): **Not used** in the codebase → ignore
+> - `vue-resource` (~1.5.1): **Heavily used** (32 files, 4 interceptors) → replace with `axios`
+> - `vue-event-manager` (~2.1.3): **Moderately used** (14 files) → replace with `mitt`
+> - Decision: **Replace instead of forking** — actively maintained standard libraries over self-maintenance
 >
-> **Weitere Dependencies:**
+> **Additional Dependencies:**
 >
-> - `vue-intl`: Nutzt intern custom AngularJS-Logik (kein natives Intl!). **Komplett ersetzen** durch
->   native `Intl` API. Plattform-API-Namen (`$date`, `$number`, `$currency`, `$relativeDate`) bleiben
->   als moderne Neuimplementierung (kein Wrapper!). Extensions wie Formmaker, Listings, Events nutzen diese.
-> - `vue-nestable`: Hierarchischer Seiten-Baum. **NICHT durch UIkit sortable ersetzbar!**
->   (sortable = flache Listen, nestable = Baumstruktur mit Eltern/Kind)
-> - `lodash`: 24/300+ Funktionen in 65+ Dateien, als 70 KB globales Script geladen.
->   ~80% nativ ersetzbar, Rest durch ~45 Zeilen eigene Utilities.
-> - `$number`/`$currency` scheinen im Core ungenutzt, sind aber **Extension-APIs** (Listings, Formmaker)!
+> - `vue-intl`: Internally uses custom AngularJS logic (not native Intl!). **Completely replace** with
+>   the native `Intl` API. Platform API names (`$date`, `$number`, `$currency`, `$relativeDate`) remain
+>   as modern reimplementations (not a wrapper!). Extensions like Formmaker, Listings, Events use these.
+> - `vue-nestable`: Hierarchical page tree. **NOT replaceable by UIkit sortable!**
+>   (sortable = flat lists, nestable = tree structure with parent/child)
+> - `lodash`: 24/300+ functions in 65+ files, loaded as a 70 KB global script.
+>   ~80% natively replaceable, rest via ~45 lines of custom utilities.
+> - `$number`/`$currency` appear unused in the core but are **extension APIs** (Listings, Formmaker)!
 
-## Aktuelle Frontend-Dependencies (Ist-Zustand)
+## Current Frontend Dependencies (Status Quo)
 
-| Package             | Version          | Status                                 | Aktion in Phase 3                                                    |
+| Package             | Version          | Status                                 | Action in Phase 3                                                    |
 | ------------------- | ---------------- | -------------------------------------- | -------------------------------------------------------------------- |
-| `vue`               | ~2.6.12          | Legacy                                 | → Vue 3.x (Schritt 3.2 + 3.4)                                        |
-| `vue-resource`      | ~1.5.1           | Archiviert, Vue-3-inkompatibel         | → `axios` (Schritt 3.4.1)                                            |
-| `vue-event-manager` | ~2.1.3           | Archiviert, Vue-3-inkompatibel         | → `mitt` (Schritt 3.4.2)                                             |
-| `vue-intl`          | uatrend/vue-intl | Community-Fork, custom AngularJS-Logik | → **Löschen & neu** mit native `Intl` API (Schritt 3.4.5)            |
-| `vue-nestable`      | ~2.6.0           | Hierarchischer Seiten-Baum             | → Vue 3 Tree-Alternative (Schritt 3.4.5) — **NICHT UIkit sortable!** |
-| `vee-validate`      | ~3.3.11          | Validierung                            | → `vee-validate` v4 (Vue 3 Composition API) (Schritt 3.4.5)          |
-| `lodash`            | ~4.17.21         | 24/300+ Funktionen in 65+ Dateien      | → Native ES2020+ + `utils.js` (~1 KB) (Schritt 3.4.5)                |
+| `vue`               | ~2.6.12          | Legacy                                 | → Vue 3.x (Step 3.2 + 3.4)                                          |
+| `vue-resource`      | ~1.5.1           | Archived, Vue-3-incompatible           | → `axios` (Step 3.4.1)                                              |
+| `vue-event-manager` | ~2.1.3           | Archived, Vue-3-incompatible           | → `mitt` (Step 3.4.2)                                               |
+| `vue-intl`          | uatrend/vue-intl | Community fork, custom AngularJS logic | → **Delete & rewrite** with native `Intl` API (Step 3.4.5)          |
+| `vue-nestable`      | ~2.6.0           | Hierarchical page tree                 | → Vue 3 tree alternative (Step 3.4.5) — **NOT UIkit sortable!**     |
+| `vee-validate`      | ~3.3.11          | Validation                             | → `vee-validate` v4 (Vue 3 Composition API) (Step 3.4.5)            |
+| `lodash`            | ~4.17.21         | 24/300+ functions in 65+ files         | → Native ES2020+ + `utils.js` (~1 KB) (Step 3.4.5)                  |
 
 ---
 
-## Schritt 3.1: UIkit Update
+## Step 3.1: UIkit Update
 
-- **Branch**: `feature/uikit-update`
-- **Ziel**: UIkit 3.5 → 3.21.x (latest)
-- **Warum zuerst?**: UIkit ist unabhängig von Vue und kann isoliert aktualisiert werden
+- **Goal**: UIkit 3.5 → 3.21.x (latest)
+- **Why first?**: UIkit is independent of Vue and can be updated in isolation
 - **Tasks**:
-  - UIkit Breaking Changes zwischen 3.5 und 3.21 analysieren
-  - PHP-Templates aktualisieren (Blade-ähnliche `.php`-Views)
-  - Vue-Components anpassen (UIkit JS-Initialisierung)
-  - Visual Regression Testing mit Playwright Screenshots
-  - Custom UIkit Theme anpassen (falls vorhanden)
-- **Risiko**: Niedrig (UIkit ist CSS/JS-only, keine PHP-Abhängigkeit)
+  - Analyze UIkit breaking changes between 3.5 and 3.21
+  - Update PHP templates (Blade-like `.php` views)
+  - Adapt Vue components (UIkit JS initialization)
+  - Visual regression testing with Playwright screenshots
+  - Update custom UIkit theme (if applicable)
+- **Risk**: Low (UIkit is CSS/JS-only, no PHP dependency)
 
 ---
 
-## Schritt 3.2: Vue.js 2.7 Migration (Bridge)
+## Step 3.2: Vue.js 2.7 Migration (Bridge)
 
-- **Branch**: `feature/vue-27-migration`
-- **Ziel**: Vue 2.6 → 2.7 (Bridge-Version für sichere Migration zu Vue 3)
-- **Warum Vue 2.7?**:
-  - Vue 2.7 ist die letzte 2.x Version (Backport von Vue 3 Features)
-  - Enthält Composition API aus Vue 3 (testbar in 2.x!)
-  - Unterstützt `<script setup>` Syntax
-  - Zeigt Deprecation Warnings für Vue 3 Breaking Changes
-  - Macht Migration zu Vue 3 deutlich sicherer
-  - `vue-resource` und `vue-event-manager` funktionieren noch unter 2.7!
-- **Migration Path**: Vue 2.6 (AKTUELL) → Vue 2.7 (Bridge) → Vue 3.x (Ziel)
+- **Goal**: Vue 2.6 → 2.7 (bridge version for safe migration to Vue 3)
+- **Why Vue 2.7?**:
+  - Vue 2.7 is the last 2.x version (backport of Vue 3 features)
+  - Includes Composition API from Vue 3 (testable in 2.x!)
+  - Supports `<script setup>` syntax
+  - Shows deprecation warnings for Vue 3 breaking changes
+  - Makes migration to Vue 3 significantly safer
+  - `vue-resource` and `vue-event-manager` still work under 2.7!
+- **Migration Path**: Vue 2.6 (CURRENT) → Vue 2.7 (Bridge) → Vue 3.x (Target)
 - **Tasks**:
-  - `vue` Package auf 2.7 aktualisieren
-  - Webpack/Build-Config für Vue 2.7 anpassen
-  - Composition API in ausgewählten Komponenten testen
-  - Deprecation Warnings systematisch analysieren und dokumentieren
-  - Alle E2E-Tests durchlaufen lassen (Regression Check)
-- **Wichtig**: In diesem Schritt bleiben `vue-resource` und `vue-event-manager` noch aktiv!
+  - Update `vue` package to 2.7
+  - Adjust Webpack/build config for Vue 2.7
+  - Test Composition API in selected components
+  - Systematically analyze and document deprecation warnings
+  - Run all E2E tests (regression check)
+- **Important**: In this step, `vue-resource` and `vue-event-manager` remain active!
 
-### Schritt 3.2.1: Template Pre-compilation (CSP) - Step Two
+### Step 3.2.1: Template Pre-compilation (CSP) - Step Two
 
-- **Voraussetzung**: Schritt 1.13.5 (CSP Step One, 80% erledigt) + Schritt 3.2
-- **Ziel**: Alle Runtime-Template-Compilation eliminieren für vollständige CSP-Compliance
+- **Prerequisite**: Step 1.13.5 (CSP Step One) + Step 3.2
+- **Goal**: Eliminate all runtime template compilation for full CSP compliance
 
 ---
 
-## Schritt 3.3: TypeScript Integration
+## Step 3.3: TypeScript Integration
 
-- **Branch**: `feature/typescript`
-- **Ziel**: TypeScript schrittweise ins Frontend einführen
+- **Goal**: Gradually introduce TypeScript into the frontend
 - **Tasks**:
-  - `tsconfig.json` konfigurieren (strict mode)
-  - Webpack/Build-Pipeline für `.ts`-Dateien erweitern
-  - Shared API Types definieren (aus PHP-Backend-Routen generieren)
-  - Neue Composables/Utilities in TypeScript schreiben
-  - Bestehende Components schrittweise typisieren (nicht alles auf einmal!)
-- **Strategie**: TypeScript für neue Dateien erzwingen, bestehende `.js` schrittweise migrieren
+  - Configure `tsconfig.json` (strict mode)
+  - Extend Webpack/build pipeline for `.ts` files
+  - Define shared API types (generated from PHP backend routes)
+  - Write new composables/utilities in TypeScript
+  - Gradually type existing components (not all at once!)
+- **Strategy**: Enforce TypeScript for new files, gradually migrate existing `.js` files
 
 ---
 
-## Schritt 3.4: Vue 3 Migration (MAJOR!)
+## Step 3.4: Vue 3 Migration (MAJOR!)
 
-- **Branch**: `feature/vue-3-migration`
-- **Ziel**: Vue 2.7 → Vue 3.x (inkl. Austausch aller Vue-2-only Dependencies)
-- **Voraussetzung**: Schritt 3.2 (Vue 2.7 Bridge) MUSS abgeschlossen sein!
+- **Goal**: Vue 2.7 → Vue 3.x (including replacement of all Vue-2-only dependencies)
+- **Prerequisite**: Step 3.2 (Vue 2.7 Bridge) MUST be completed!
 
-> **⚠️ Dies ist der aufwändigste Schritt der gesamten Phase 3!**
-> Die Vue 3 Migration betrifft nicht nur Vue selbst, sondern auch den Austausch von
-> `vue-resource` und `vue-event-manager`, die Vue-3-inkompatibel sind.
+> **⚠️ This is the most complex step of the entire Phase 3!**
+> The Vue 3 migration affects not only Vue itself but also the replacement of
+> `vue-resource` and `vue-event-manager`, which are Vue-3-incompatible.
 
-- **Sub-Steps** (in dieser Reihenfolge):
+- **Sub-Steps** (in this order):
 
 ---
 
-### Schritt 3.4.1: HTTP Client Migration (vue-resource → axios)
+### Step 3.4.1: HTTP Client Migration (vue-resource → axios)
 
-- **Aufwand**: Hoch (~32 Dateien + 4 Interceptor-Module)
-- **Ziel**: `vue-resource` komplett ersetzen durch `axios`
-- **Warum axios?**:
-  - Interceptor-System ist 1:1 kompatibel mit vue-resource's Interceptors
-  - 46M+ wöchentliche Downloads, aktive Wartung, TypeScript-Support
-  - Kann als Vue Plugin registriert werden (`app.config.globalProperties.$http`)
-  - Security-Patches automatisch via Dependabot
-- **Betroffene Bereiche**:
-  - **4 Interceptor-Module** (müssen umgeschrieben werden):
+- **Effort**: High (~32 files + 4 interceptor modules)
+- **Goal**: Completely replace `vue-resource` with `axios`
+- **Why axios?**:
+  - Interceptor system is 1:1 compatible with vue-resource's interceptors
+  - 46M+ weekly downloads, active maintenance, TypeScript support
+  - Can be registered as a Vue plugin (`app.config.globalProperties.$http`)
+  - Security patches automatically via Dependabot
+- **Affected Areas**:
+  - **4 Interceptor Modules** (need to be rewritten):
     - `app/system/app/lib/csrf.js` → axios request interceptor
     - `app/system/app/lib/resourceCache.js` → axios request/response interceptor
-    - `app/system/modules/user/app/interceptor.js` → axios response interceptor (401 → Login-Modal)
+    - `app/system/modules/user/app/interceptor.js` → axios response interceptor (401 → login modal)
     - `app/system/modules/captcha/app/interceptor.js` → axios request interceptor (reCAPTCHA)
-  - **~28 Vue Components/Views** mit `this.$http.get/post` → `this.$http.get/post` (axios, fast gleiche API)
-  - **6 Dateien** mit `Vue.http` direkt → `axios` Instanz
-  - **URI-Templates** (`api/user{/id}`) → kleine Utility-Funktion (~10 Zeilen)
-  - **`Vue.url.route()`** → eigene URL-Helper Utility
-- **Kann teilweise VOR Vue 3 gemacht werden** (axios ist Vue-version-unabhängig!)
+  - **~28 Vue Components/Views** with `this.$http.get/post` → `this.$http.get/post` (axios, nearly identical API)
+  - **6 files** with `Vue.http` directly → `axios` instance
+  - **URI Templates** (`api/user{/id}`) → small utility function (~10 lines)
+  - **`Vue.url.route()`** → custom URL helper utility
+- **Can be partially done BEFORE Vue 3** (axios is Vue-version-independent!)
 
 ---
 
-### Schritt 3.4.2: Event System Migration (vue-event-manager → mitt)
+### Step 3.4.2: Event System Migration (vue-event-manager → mitt)
 
-- **Aufwand**: Mittel (~14 Dateien)
-- **Ziel**: `vue-event-manager` komplett ersetzen durch `mitt` + Composable
-- **Warum mitt?**:
-  - Offiziell vom Vue-Team als Ersatz empfohlen
-  - Winzig (~200 Bytes), zero dependencies
-  - Event Priorities von vue-event-manager werden **nicht genutzt** im Projekt (analysiert!)
-- **Betroffene Bereiche**:
-  - **9 Dateien mit `$trigger`** (Emitter) → `emitter.emit()`
-  - **6 Dateien mit `events: {}`** (Listener) → `onMounted`/`onUnmounted` + `emitter.on/off`
+- **Effort**: Medium (~14 files)
+- **Goal**: Completely replace `vue-event-manager` with `mitt` + composable
+- **Why mitt?**:
+  - Officially recommended by the Vue team as a replacement
+  - Tiny (~200 bytes), zero dependencies
+  - Event priorities from vue-event-manager are **not used** in the project (analyzed!)
+- **Affected Areas**:
+  - **9 files with `$trigger`** (emitter) → `emitter.emit()`
+  - **6 files with `events: {}`** (listener) → `onMounted`/`onUnmounted` + `emitter.on/off`
   - Events: `node-save`, `settings-save`, `user-save`, `post-save`, `widget-save`,
     `widget-cancel`, `saved:widget`, `settings-changed`, `finder-select`, `finder-ready`
 - **Migration**:
-  - Eigenes `useEventBus()` Composable erstellen (~10 Zeilen)
-  - Langfristig: Save-Flows können zu Pinia Store Actions refactored werden
+  - Create custom `useEventBus()` composable (~10 lines)
+  - Long-term: Save flows can be refactored to Pinia store actions
 
 ---
 
-### Schritt 3.4.3: Vue 3 Core Migration
+### Step 3.4.3: Vue 3 Core Migration
 
-- **Ziel**: Vue 2.7 → Vue 3.x mit Migration Build
+- **Goal**: Vue 2.7 → Vue 3.x with migration build
 - **Tasks**:
-  - Vue 3 + `@vue/compat` (Migration Build) installieren
-  - `app/system/app/vue.js` komplett umschreiben (neuer App-Bootstrap)
-  - Global API Changes: `Vue.use()` → `app.use()`, `Vue.component()` → `app.component()`
-  - Options API → Composition API (schrittweise, nicht alles auf einmal)
-  - Lifecycle Hooks: `destroyed` → `unmounted`, `beforeDestroy` → `beforeUnmount`
-  - `v-model` Changes, `$listeners` Entfernung, Filters → Computed/Methods
-  - Custom Directives API-Änderungen (`bind/update` → `mounted/updated`)
-  - `Vue.ready()` Custom Helper → Standard `createApp()` + `app.mount()`
-  - Migration Build Warnings systematisch abarbeiten
-  - Nach 0 Warnings: `@vue/compat` entfernen → pure Vue 3
+  - Install Vue 3 + `@vue/compat` (migration build)
+  - Completely rewrite `app/system/app/vue.js` (new app bootstrap)
+  - Global API changes: `Vue.use()` → `app.use()`, `Vue.component()` → `app.component()`
+  - Options API → Composition API (gradually, not all at once)
+  - Lifecycle hooks: `destroyed` → `unmounted`, `beforeDestroy` → `beforeUnmount`
+  - `v-model` changes, `$listeners` removal, filters → computed/methods
+  - Custom directives API changes (`bind/update` → `mounted/updated`)
+  - `Vue.ready()` custom helper → standard `createApp()` + `app.mount()`
+  - Systematically resolve migration build warnings
+  - After 0 warnings: remove `@vue/compat` → pure Vue 3
 
 ---
 
-### Schritt 3.4.4: State Management (Pinia)
+### Step 3.4.4: State Management (Pinia)
 
-- **Ziel**: Pinia als offiziellen State Manager einführen
-- **Warum**: Pagekit nutzt aktuell kein Vuex, aber State wird über diverse Patterns verteilt
-  (globale Variablen, Event-Bus, `window.$pagekit`)
+- **Goal**: Introduce Pinia as the official state manager
+- **Why**: Pagekit currently does not use Vuex, but state is distributed across various patterns
+  (global variables, event bus, `window.$pagekit`)
 - **Tasks**:
-  - Pinia installieren und konfigurieren
-  - Zentrale Stores erstellen: Auth Store, Site Store, Notification Store
-  - `window.$pagekit` Konfiguration → Pinia Store migrieren
-  - Event-Bus Save-Flows langfristig durch Store Actions ersetzen (optional, nach 3.4.2)
+  - Install and configure Pinia
+  - Create central stores: Auth Store, Site Store, Notification Store
+  - Migrate `window.$pagekit` configuration → Pinia store
+  - Long-term: Replace event bus save flows with store actions (optional, after 3.4.2)
 
 ---
 
-### Schritt 3.4.5: Weitere Dependency-Updates
+### Step 3.4.5: Additional Dependency Updates
 
-- **Ziel**: Alle verbleibenden Vue-2-only Dependencies aktualisieren
-- **Wichtig**: Einige APIs sind **Plattform-APIs für Extensions** (Formmaker, Listings, Events, etc.)
-  und müssen als stabile API-Oberfläche erhalten bleiben!
+- **Goal**: Update all remaining Vue-2-only dependencies
+- **Important**: Some APIs are **platform APIs for extensions** (Formmaker, Listings, Events, etc.)
+  and must be preserved as a stable API surface!
 
-- **`vue-intl`** → **Komplett ersetzen** durch native `Intl` API (KEIN Wrapper, KEIN Adapter!):
+- **`vue-intl`** → **Completely replace** with native `Intl` API (NO wrapper, NO adapter!):
 
-  - vue-intl wird **gelöscht** — kein Code überlebt (Regel 4: DELETE OVER WRAP)
-  - Neue Implementierung als Vue 3 Plugin (`useIntl()` Composable + `app.config.globalProperties`):
-    - `$date(value, format)` — neu geschrieben mit `Intl.DateTimeFormat`
-    - `$number(value, fractionSize)` — neu geschrieben mit `Intl.NumberFormat`
-    - `$currency(amount, symbol)` — neu geschrieben mit `Intl.NumberFormat` style: 'currency'
-    - `$relativeDate(date, options)` — neu geschrieben mit `Intl.RelativeTimeFormat`
-  - **Gleiche Funktionsnamen = Pagekit Plattform-API** (nicht Legacy-Compat, sondern stabile API!)
-  - Regel 3: "Breaking changes allowed internally, public behavior stays the same"
-  - CLDR-Format-Namen (`longDate`, `mediumDate`) → `Intl.DateTimeFormat` Options mappen
-  - CLDR Locale-Daten (formats.json) → prüfen ob `Intl` API native Locale-Daten ausreicht
-  - **Extensions brauchen die API-Namen**: Formmaker, Listings, Events, zukünftige Extensions
-  - Aufwand: Mittel (~12 Core-Dateien + neues Plugin)
+  - vue-intl is **deleted** — no code survives (Rule 4: DELETE OVER WRAP)
+  - New implementation as Vue 3 plugin (`useIntl()` composable + `app.config.globalProperties`):
+    - `$date(value, format)` — rewritten with `Intl.DateTimeFormat`
+    - `$number(value, fractionSize)` — rewritten with `Intl.NumberFormat`
+    - `$currency(amount, symbol)` — rewritten with `Intl.NumberFormat` style: 'currency'
+    - `$relativeDate(date, options)` — rewritten with `Intl.RelativeTimeFormat`
+  - **Same function names = Pagekit platform API** (not legacy compat, but stable API!)
+  - Rule 3: "Breaking changes allowed internally, public behavior stays the same"
+  - CLDR format names (`longDate`, `mediumDate`) → map to `Intl.DateTimeFormat` options
+  - CLDR locale data (formats.json) → check if `Intl` API native locale data is sufficient
+  - **Extensions need the API names**: Formmaker, Listings, Events, future extensions
+  - Effort: Medium (~12 core files + new plugin)
 
-- **`vue-nestable`** (~2.6.0) → Vue 3-kompatible Nested-Tree Alternative:
+- **`vue-nestable`** (~2.6.0) → Vue 3-compatible nested tree alternative:
 
-  - Wird für **hierarchischen Seiten-Baum** gebraucht (3 Dateien: site index, input-tree)
-  - **NICHT durch UIkit sortable ersetzbar!** (sortable = flache Listen, nestable = Baumstruktur)
-  - UIkit sortable wird separat verwendet (Widgets, Dashboard, Rollen) — andere Aufgabe!
-  - Optionen: `@he-tree/vue` (Vue 3), eigenes Tree-Component, oder vue-nestable Fork
-  - Aufwand: Niedrig (3 Dateien)
+  - Used for **hierarchical page tree** (3 files: site index, input-tree)
+  - **NOT replaceable by UIkit sortable!** (sortable = flat lists, nestable = tree structure)
+  - UIkit sortable is used separately (widgets, dashboard, roles) — different purpose!
+  - Options: `@he-tree/vue` (Vue 3), custom tree component, or vue-nestable fork
+  - Effort: Low (3 files)
 
-- **`lodash`** (~4.17.21) → Native ES2020+ APIs + kleine Utility-Datei:
+- **`lodash`** (~4.17.21) → Native ES2020+ APIs + small utility file:
 
-  - Aktuell: 70 KB als komplettes globales Script geladen (nur 24/300+ Funktionen genutzt)
-  - ~80% der Funktionen (19/24) haben **direkte native Ersetzungen** (find, map, filter, etc.)
-  - ~20% (5/24) brauchen kleine Utilities: `deepMerge()`, `debounce()`, `isEmpty()`,
-    `setByPath()`, `groupBy()` — zusammen ~45 Zeilen Code
-  - Eigene `app/system/app/lib/utils.js` erstellen (~1 KB vs. 70 KB lodash)
-  - **65+ Dateien** müssen aktualisiert werden (mechanisch, aber umfangreich)
-  - Aufwand: Hoch (65+ Dateien, aber mechanische Search & Replace Arbeit)
+  - Currently: 70 KB loaded as a complete global script (only 24/300+ functions used)
+  - ~80% of functions (19/24) have **direct native replacements** (find, map, filter, etc.)
+  - ~20% (5/24) need small utilities: `deepMerge()`, `debounce()`, `isEmpty()`,
+    `setByPath()`, `groupBy()` — together ~45 lines of code
+  - Create custom `app/system/app/lib/utils.js` (~1 KB vs. 70 KB lodash)
+  - **65+ files** need to be updated (mechanical but extensive)
+  - Effort: High (65+ files, but mechanical search & replace work)
 
 - **`vee-validate`** (3.3.11) → v4.x (Vue 3 Composition API):
 
-  - `ValidationObserver`/`ValidationProvider` → `useForm()`/`useField()` Composables
-  - Aufwand: Mittel
+  - `ValidationObserver`/`ValidationProvider` → `useForm()`/`useField()` composables
+  - Effort: Medium
 
 - **Build Tools**:
-  - Webpack-Config für Vue 3 Loader (`vue-loader` v17+)
-  - Alle Bundles neu bauen und testen
+  - Webpack config for Vue 3 loader (`vue-loader` v17+)
+  - Rebuild and test all bundles
 
 ---
 
-### Schritt 3.4.6: Translation System Modernization
+### Step 3.4.6: Translation System Modernization
 
-- **Ziel**: Frontend-Übersetzung und Formatierung auf native Intl-API umstellen (siehe vue-intl → Intl in 3.4.5).
-- **Inhalt**: Formale Bündelung des Intl-Plattform-APIs ($date, $number, $currency, $relativeDate) und ggf. Backend-Anbindung (Symfony Translator DI, keine globalen Funktionen).
-- **Reihenfolge**: In der Implementierung mit 3.4.5 verzahnt; in der ROADMAP als eigener Sub-Step 3.4.6 geführt.
-- **Aufgaben (aus 2.1.1 Review identifiziert):**
-  - **transChoice entfernen (PHP + Vue):**
-    - Globale `_c()` Funktion entfernen (`app/system/modules/intl/functions.php`)
-    - Namespaced `Pagekit\_c()` entfernen (`functions-pagekit-namespace.php`)
-    - `transChoice` Twig-Filter entfernen (`app/system/modules/view/index.php`)
-    - `transChoice()` aus Vue-Plugin entfernen (`app/system/app/lib/trans.js`)
-    - Alle `|transChoice`-Aufrufe in Views migrieren:
-      - `packages/pagekit/blog/views/admin/post-index.php` (3 Stellen)
-      - `packages/pagekit/blog/views/admin/comment-index.php` (3 Stellen)
-      - `app/system/modules/widget/views/index.php` (1 Stelle)
-      - `app/system/modules/user/views/admin/user-index.php` (2 Stellen)
-    - Alle `$tc()`/`transChoice`-Aufrufe in JS/Vue-Dateien (~20 Dateien) auf `$t()` mit ICU migrieren
-  - **ICU Frontend-Support:**
-    - Vue-Equivalent `$transICU()` in `app/system/app/lib/trans.js` implementieren (PHP-Seite `_i()` existiert bereits)
+- **Goal**: Migrate frontend translation and formatting to the native Intl API (see vue-intl → Intl in 3.4.5).
+- **Content**: Formal bundling of the Intl platform API ($date, $number, $currency, $relativeDate) and optional backend integration (Symfony Translator DI, no global functions).
+- **Order**: Interleaved with 3.4.5 in implementation; tracked as a separate sub-step 3.4.6 in the ROADMAP.
+- **Tasks (identified from 2.1.1 review):**
+  - **Remove transChoice (PHP + Vue):**
+    - Remove global `_c()` function (`app/system/modules/intl/functions.php`)
+    - Remove namespaced `Pagekit\_c()` (`functions-pagekit-namespace.php`)
+    - Remove `transChoice` Twig filter (`app/system/modules/view/index.php`)
+    - Remove `transChoice()` from Vue plugin (`app/system/app/lib/trans.js`)
+    - Migrate all `|transChoice` calls in views:
+      - `packages/pagekit/blog/views/admin/post-index.php` (3 occurrences)
+      - `packages/pagekit/blog/views/admin/comment-index.php` (3 occurrences)
+      - `app/system/modules/widget/views/index.php` (1 occurrence)
+      - `app/system/modules/user/views/admin/user-index.php` (2 occurrences)
+    - Migrate all `$tc()`/`transChoice` calls in JS/Vue files (~20 files) to `$t()` with ICU
+  - **ICU Frontend Support:**
+    - Implement Vue equivalent `$transICU()` in `app/system/app/lib/trans.js` (PHP-side `_i()` already exists)
 
 ---
 
-## Schritt 3.5: Component Library
+## Step 3.5: Component Library
 
-- **Ziel**: Wiederverwendbare Vue 3 Component Library für Pagekit Admin
-- **Voraussetzung**: Schritt 3.4 (Vue 3 Migration) muss abgeschlossen sein!
+- **Goal**: Reusable Vue 3 component library for Pagekit Admin
+- **Prerequisite**: Step 3.4 (Vue 3 Migration) must be completed!
 - **Components**:
-  - Design System basierend auf UIkit 3.21+ Tokens
-  - Admin UI Components (VModal, VPagination, VLoader, InputFilter, etc. — bereits vorhanden, modernisieren)
-  - Storybook Integration für Dokumentation und Testing
-  - Accessibility (a11y) Audit und Verbesserungen
-- **Strategie**: Bestehende Components in `app/system/app/components/` als Basis nehmen, nicht von Null anfangen
+  - Design system based on UIkit 3.21+ tokens
+  - Admin UI components (VModal, VPagination, VLoader, InputFilter, etc. — already existing, modernize)
+  - Storybook integration for documentation and testing
+  - Accessibility (a11y) audit and improvements
+- **Strategy**: Use existing components in `app/system/app/components/` as a base, don't start from scratch
 
 ---
 
-## Schritt 3.6: E2E Selector Strategy (data-testid)
+## Step 3.6: E2E Selector Strategy (data-testid)
 
-- **Ziel**: Stabile, sprachunabhängige E2E-Selektoren via `data-testid` statt UIkit-Klassen oder Label-Text
-- **Warum**: Reduziert Flakiness bei UI- oder Übersetzungsänderungen; Playwright empfiehlt `getByTestId()`
+- **Goal**: Stable, language-independent E2E selectors via `data-testid` instead of UIkit classes or label text
+- **Why**: Reduces flakiness on UI or translation changes; Playwright recommends `getByTestId()`
 - **Tasks**:
-  - Kritische Flows (Login, Admin-Navigation, zentrale Formulare) mit `data-testid` anreichern
-  - E2E-Specs schrittweise auf `getByTestId('…')` umstellen
-  - Konvention dokumentieren (z. B. in `tests/e2e/README.md`)
-- **Kann parallel zu 3.4/3.5** erfolgen, wenn ohnehin an Templates/Komponenten gearbeitet wird
+  - Add `data-testid` to critical flows (login, admin navigation, central forms)
+  - Gradually migrate E2E specs to `getByTestId('…')`
+  - Document convention (e.g., in `tests/e2e/README.md`)
+- **Can run in parallel with 3.4/3.5** when templates/components are being worked on anyway

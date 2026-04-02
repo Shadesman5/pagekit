@@ -1,45 +1,43 @@
 # 🚀 Phase 4: Production-Ready Release – Essential Features
 
-**Ziel**: Pagekit 2.0.0 production-ready machen mit essentiellen Features.
-**Voraussetzung**: Phasen 1-3 MÜSSEN abgeschlossen sein!
+**Goal**: Make Pagekit 2.0.0 production-ready with essential features.
+**Prerequisite**: Phases 1-3 MUST be completed!
 
 ---
 
-## Schritt 4.1: Basic Security & Modern Auth
+## Step 4.1: Basic Security & Modern Auth
 
-- **Branch**: `feature/basic-security-auth`
-- **Ziel**: Essential Security Features & Modern Authentication
+- **Goal**: Essential security features & modern authentication
 - **Features**:
   - **2FA (Two-Factor Authentication)**
-    - Pflicht für Admins (erhöhte Sicherheit)
-    - Optional für User (User Convenience)
-    - TOTP Support (Google Authenticator, etc.)
+    - Mandatory for admins (enhanced security)
+    - Optional for users (user convenience)
+    - TOTP support (Google Authenticator, etc.)
   - **OAuth2 Client (Social Login)**
     - Login via Google
     - Login via GitHub
     - Login via Microsoft
     - Login via Meta (Facebook)
-    - Erweiterbar für weitere Provider
+    - Extensible for additional providers
     - Library: league/oauth2-client
   - **Password Policies**
-    - Mindestlänge konfigurierbar
-    - Komplexitätsanforderungen
-    - Password History
-    - Breach-Check (HaveIBeenPwned API)
+    - Configurable minimum length
+    - Complexity requirements
+    - Password history
+    - Breach check (HaveIBeenPwned API)
   - **Rate Limiting**
-    - Brute-Force Protection
-    - Per IP und per User
-    - Configurable Thresholds
+    - Brute-force protection
+    - Per IP and per user
+    - Configurable thresholds
   - **Security Headers**
     - CSP, HSTS, X-Frame-Options
-    - Optimized for Modern Browsers
+    - Optimized for modern browsers
 
 ---
 
-## Schritt 4.2: REST API v2
+## Step 4.2: REST API v2
 
-- **Branch**: `feature/rest-api-v2`
-- **Ziel**: Moderne REST API
+- **Goal**: Modern REST API
 - **Components**:
   - OpenAPI 3.0 Documentation
   - JWT Authentication
@@ -48,23 +46,21 @@
 
 ---
 
-## Schritt 4.3: Performance Optimization
+## Step 4.3: Performance Optimization
 
-- **Branch**: `feature/performance-optimization`
-- **Ziel**: Production-Ready Performance
+- **Goal**: Production-ready performance
 - **Features**:
   - Redis/Memcached Support
   - Image Optimization
   - Asset Pipeline Optimization
   - Query Performance Tuning
-  - **ORM Cache Invalidation Strategy** — `EntityManager::invalidateCache()` nutzt aktuell `$cache->clear()` (löscht den gesamten Cache-Pool bei jedem `save()`/`delete()`). Ersetzen durch tag-basierte Invalidierung via `TagAwareCacheInterface` (Symfony 6.4), um nur Cache-Einträge des betroffenen Entity-Typs zu invalidieren. Siehe: `app/modules/database/src/ORM/EntityManager.php`
+  - **ORM Cache Invalidation Strategy** — `EntityManager::invalidateCache()` currently uses `$cache->clear()` (clears the entire cache pool on every `save()`/`delete()`). Replace with tag-based invalidation via `TagAwareCacheInterface` (Symfony 6.4) to only invalidate cache entries for the affected entity type. See: `app/modules/database/src/ORM/EntityManager.php`
 
 ---
 
-## Schritt 4.4: Monitoring & Health Checks
+## Step 4.4: Monitoring & Health Checks
 
-- **Branch**: `feature/monitoring`
-- **Ziel**: Production Monitoring Essentials
+- **Goal**: Production monitoring essentials
 - **Components**:
   - Health Check Endpoints
   - Basic Application Metrics
