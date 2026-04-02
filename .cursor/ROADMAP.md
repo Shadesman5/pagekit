@@ -41,72 +41,73 @@
 - ⏳ : Future work.
 - ⏸️ : Paused (Dependency in future step).
 
-| ID     | Task Name                             | Status | Audit | Issue | PR      |
-| :----- | :------------------------------------ | :----- | :---- | :---- | :------ |
-| 1.1    | Mailer Migration                      | ✅     | 🛡️    | #119  | #17     |
-| 1.2    | PHPUnit Update                        | ✅     | 🛡️    | #121  | #31     |
-| 1.3    | Security Patches                      | ✅     | 🛡️    | #122  | #30     |
-| 1.3.5  | ↳ Dependabot Updates                  | ✅     | 🛡️    | #123  | #32     |
-| 1.4    | Safe Minor Updates                    | ✅     | 🛡️    | #124  | #53     |
-| 1.5    | Doctrine DBAL 3.x                     | ✅     | 🛡️    | #125  | #54     |
-| 1.6    | PSR-11 Container Compatibility        | ✅     | 🛡️    | #126  | #55     |
-| 1.7    | Event System Compatibility            | ✅     | 🛡️    | #127  | #56     |
-| 1.8    | Routing System Compatibility          | ✅     | 🛡️    | #128  | #57     |
-| 1.9    | Symfony 6.4 LTS components            | ✅     | 🛡️    | #129  | #60-#61 |
-| 1.10   | PSR-6 Cache                           | ✅     | 🛡️    | #130  | #62     |
-| 1.10.5 | ↳ E2E Testing with Playwright         | ✅     | 🛡️    | #135  | #67     |
-| 1.11   | ORM Modernization                     | ✅     | 🛡️    | #131  | #97     |
-| 1.12   | DB Migration System                   | ✅     | 🛡️    | #132  | #107    |
-| 1.13   | Validation Update                     | ✅     | 🛡️    | #133  | #108    |
-| 1.13.5 | ↳ Template Security Hardening (CSP)   | ⏸️ 80% | 🛡️    | #136  | #110    |
-| 1.14   | Doctrine Attributes                   | ✅     | 🛡️    | #134  | #111    |
-| 2.0    | Controller Attributes                 | ✅     | 🛡️    | #142  | #111    |
-| 2.0.1  | ↳ PSR-11 Container Vollmodernisierung | ✅     | 🛡️    | #145  | #174    |
-| 2.0.1a | ↳ Container Core + Modules (S1+S2)    | ✅     | 🛡️    | #162  | #161    |
-| 2.0.1b | ↳ DI Infrastructure                   | ✅     | 🛡️    | #163  | #167    |
-| 2.0.1c | ↳ System/Installer/Console + DI       | ✅     | 🛡️    | #164  | #169    |
-| 2.0.1d | ↳ Packages + ArrayAccess Removal      | ✅     | 🛡️    | #165  | #171    |
-| 2.0.1e | ↳ StaticTrait Removal + DI Final      | ✅     | 🛡️    | #166  | #172    |
-| 2.0.2  | ↳ Validator-Translator Integration    | ✅     | 🛡️    | #146  | #175    |
-| 2.0.3  | ↳ Cache API Vollmodernisierung        | ⏳     | ⏳    | #179  | -       |
-| 2.0.4  | ↳ Package/Migration System Redesign   | ⏳     | ⏳    | #180  | -       |
-| 2.1    | **Static Analysis & Code Quality**    | ⏳     | ⏳    | #147  | -       |
-| 2.1.1  | ↳ Tooling-Setup & Baseline            | ✅     | ⏳    | #148  | #178    |
-| 2.1.2  | ↳ CI/CD Integration & Quality Gates   | ⏳     | ⏳    | #149  | -       |
-| 2.1.3  | ↳ `strict_types` Migration            | ⏳     | ⏳    | #150  | -       |
-| 2.1.4  | ↳ PHPStan Level 5→6 (Return Types)    | ⏳     | ⏳    | #151  | -       |
-| 2.1.5  | ↳ PHPStan Level 6→7 (Null Safety)     | ⏳     | ⏳    | #152  | -       |
-| 2.1.6  | ↳ PHPStan Level 7→8 (Strict Typing)   | ⏳     | ⏳    | #153  | -       |
-| 2.1.7  | ↳ QueryBuilder API Standardization    | ⏳     | ⏳    | #154  | -       |
-| 2.1.8  | ↳ Infection Mutation Testing          | ⏳     | ⏳    | #155  | -       |
-| 2.1.9  | ↳ Test Coverage Expansion             | ⏳     | ⏳    | #156  | -       |
-| 2.2    | CI/CD Pipeline                        | ⏳     | ⏳    | #157  | -       |
-| 2.3    | Docker Production                     | ⏳     | ⏳    | #158  | -       |
-| 2.4    | Build Tools                           | ⏳     | ⏳    | #159  | -       |
-| 2.5    | Extension Safety System               | ⏳     | ⏳    | #160  | -       |
-| 3.1    | UIkit Update                          | ⏳     | ⏳    | -     | -       |
-| 3.2    | Vue 2.7 Bridge                        | ⏳     | ⏳    | -     | -       |
-| 3.2.1  | ↳ Template Pre-compilation (CSP)      | ⏳ 20% | ⏳    | -     | -       |
-| 3.3    | TypeScript                            | ⏳     | ⏳    | -     | -       |
-| 3.4    | Vue 3 Migration                       | ⏳     | ⏳    | -     | -       |
-| 3.4.1  | ↳ vue-resource → axios                | ⏳     | ⏳    | -     | -       |
-| 3.4.2  | ↳ vue-event-manager → mitt            | ⏳     | ⏳    | -     | -       |
-| 3.4.3  | ↳ Vue 3 Core + @vue/compat            | ⏳     | ⏳    | -     | -       |
-| 3.4.4  | ↳ Pinia State Management              | ⏳     | ⏳    | -     | -       |
-| 3.4.5  | ↳ Deps (intl→Intl, lodash→native)     | ⏳     | ⏳    | -     | -       |
-| 3.4.6  | ↳ Translation System Modernization    | ⏳     | ⏳    | -     | -       |
-| 3.5    | Component Library                     | ⏳     | ⏳    | -     | -       |
-| 3.6    | E2E selector strategy (data-testid)   | ⏳     | ⏳    | -     | -       |
-| 4.1    | Basic Security                        | ⏳     | ⏳    | -     | -       |
-| 4.2    | REST API v2                           | ⏳     | ⏳    | -     | -       |
-| 4.3    | Performance Optimization              | ⏳     | ⏳    | -     | -       |
-| 4.4    | Monitoring & Health Checks            | ⏳     | ⏳    | -     | -       |
-| 5.1    | Modern Block Editor                   | ⏳     | ⏳    | -     | -       |
-| 5.2    | Advanced Security                     | ⏳     | ⏳    | -     | -       |
-| 5.3    | Advanced Performance                  | ⏳     | ⏳    | -     | -       |
-| 5.4    | Advanced CMS Features                 | ⏳     | ⏳    | -     | -       |
-| 5.5    | Enterprise Features                   | ⏳     | ⏳    | -     | -       |
-| 5.6    | Marketplace & Extensions              | ⏳     | ⏳    | -     | -       |
+| ID     | Task Name                           | Status | Audit | Issue | PR      |
+| :----- | :---------------------------------- | :----- | :---- | :---- | :------ |
+| 1.1    | Mailer Migration                    | ✅     | 🛡️    | #119  | #17     |
+| 1.2    | PHPUnit Update                      | ✅     | 🛡️    | #121  | #31     |
+| 1.3    | Security Patches                    | ✅     | 🛡️    | #122  | #30     |
+| 1.3.5  | ↳ Dependabot Updates                | ✅     | 🛡️    | #123  | #32     |
+| 1.4    | Safe Minor Updates                  | ✅     | 🛡️    | #124  | #53     |
+| 1.5    | Doctrine DBAL 3.x                   | ✅     | 🛡️    | #125  | #54     |
+| 1.6    | PSR-11 Container Compatibility      | ✅     | 🛡️    | #126  | #55     |
+| 1.7    | Event System Compatibility          | ✅     | 🛡️    | #127  | #56     |
+| 1.8    | Routing System Compatibility        | ✅     | 🛡️    | #128  | #57     |
+| 1.9    | Symfony 6.4 LTS components          | ✅     | 🛡️    | #129  | #60-#61 |
+| 1.10   | PSR-6 Cache                         | ✅     | 🛡️    | #130  | #62     |
+| 1.10.5 | ↳ E2E Testing with Playwright       | ✅     | 🛡️    | #135  | #67     |
+| 1.11   | ORM Modernization                   | ✅     | 🛡️    | #131  | #97     |
+| 1.12   | DB Migration System                 | ✅     | 🛡️    | #132  | #107    |
+| 1.13   | Validation Update                   | ✅     | 🛡️    | #133  | #108    |
+| 1.13.5 | ↳ Template Security Hardening (CSP) | ⏸️ 80% | 🛡️    | #136  | #110    |
+| 1.14   | Doctrine Attributes                 | ✅     | 🛡️    | #134  | #111    |
+| 2.0    | **Foundation Consolidation**        | ⏳     | ⏳    | #181  | -       |
+| 2.0.0  | ↳ Controller Attributes             | ✅     | 🛡️    | #142  | #111    |
+| 2.0.1  | ↳ PSR-11 Container Modernization    | ✅     | 🛡️    | #145  | #174    |
+| 2.0.1a | ↳ Container Core + Modules (S1+S2)  | ✅     | 🛡️    | #162  | #161    |
+| 2.0.1b | ↳ DI Infrastructure                 | ✅     | 🛡️    | #163  | #167    |
+| 2.0.1c | ↳ System/Installer/Console + DI     | ✅     | 🛡️    | #164  | #169    |
+| 2.0.1d | ↳ Packages + ArrayAccess Removal    | ✅     | 🛡️    | #165  | #171    |
+| 2.0.1e | ↳ StaticTrait Removal + DI Final    | ✅     | 🛡️    | #166  | #172    |
+| 2.0.2  | ↳ Validator-Translator Integration  | ✅     | 🛡️    | #146  | #175    |
+| 2.0.3  | ↳ Cache API Full Modernization      | ⏳     | ⏳    | #179  | -       |
+| 2.0.4  | ↳ Package/Migration System Redesign | ⏳     | ⏳    | #180  | -       |
+| 2.1    | **Static Analysis & Code Quality**  | ⏳     | ⏳    | #147  | -       |
+| 2.1.1  | ↳ Tooling-Setup & Baseline          | ✅     | ⏳    | #148  | #178    |
+| 2.1.2  | ↳ CI/CD Integration & Quality Gates | ⏳     | ⏳    | #149  | -       |
+| 2.1.3  | ↳ `strict_types` Migration          | ⏳     | ⏳    | #150  | -       |
+| 2.1.4  | ↳ PHPStan Level 5→6 (Return Types)  | ⏳     | ⏳    | #151  | -       |
+| 2.1.5  | ↳ PHPStan Level 6→7 (Null Safety)   | ⏳     | ⏳    | #152  | -       |
+| 2.1.6  | ↳ PHPStan Level 7→8 (Strict Typing) | ⏳     | ⏳    | #153  | -       |
+| 2.1.7  | ↳ QueryBuilder API Standardization  | ⏳     | ⏳    | #154  | -       |
+| 2.1.8  | ↳ Infection Mutation Testing        | ⏳     | ⏳    | #155  | -       |
+| 2.1.9  | ↳ Test Coverage Expansion           | ⏳     | ⏳    | #156  | -       |
+| 2.2    | CI/CD Pipeline                      | ⏳     | ⏳    | #157  | -       |
+| 2.3    | Docker Production                   | ⏳     | ⏳    | #158  | -       |
+| 2.4    | Build Tools                         | ⏳     | ⏳    | #159  | -       |
+| 2.5    | Extension Safety System             | ⏳     | ⏳    | #160  | -       |
+| 3.1    | UIkit Update                        | ⏳     | ⏳    | -     | -       |
+| 3.2    | Vue 2.7 Bridge                      | ⏳     | ⏳    | -     | -       |
+| 3.2.1  | ↳ Template Pre-compilation (CSP)    | ⏳ 20% | ⏳    | -     | -       |
+| 3.3    | TypeScript                          | ⏳     | ⏳    | -     | -       |
+| 3.4    | Vue 3 Migration                     | ⏳     | ⏳    | -     | -       |
+| 3.4.1  | ↳ vue-resource → axios              | ⏳     | ⏳    | -     | -       |
+| 3.4.2  | ↳ vue-event-manager → mitt          | ⏳     | ⏳    | -     | -       |
+| 3.4.3  | ↳ Vue 3 Core + @vue/compat          | ⏳     | ⏳    | -     | -       |
+| 3.4.4  | ↳ Pinia State Management            | ⏳     | ⏳    | -     | -       |
+| 3.4.5  | ↳ Deps (intl→Intl, lodash→native)   | ⏳     | ⏳    | -     | -       |
+| 3.4.6  | ↳ Translation System Modernization  | ⏳     | ⏳    | -     | -       |
+| 3.5    | Component Library                   | ⏳     | ⏳    | -     | -       |
+| 3.6    | E2E selector strategy (data-testid) | ⏳     | ⏳    | -     | -       |
+| 4.1    | Basic Security                      | ⏳     | ⏳    | -     | -       |
+| 4.2    | REST API v2                         | ⏳     | ⏳    | -     | -       |
+| 4.3    | Performance Optimization            | ⏳     | ⏳    | -     | -       |
+| 4.4    | Monitoring & Health Checks          | ⏳     | ⏳    | -     | -       |
+| 5.1    | Modern Block Editor                 | ⏳     | ⏳    | -     | -       |
+| 5.2    | Advanced Security                   | ⏳     | ⏳    | -     | -       |
+| 5.3    | Advanced Performance                | ⏳     | ⏳    | -     | -       |
+| 5.4    | Advanced CMS Features               | ⏳     | ⏳    | -     | -       |
+| 5.5    | Enterprise Features                 | ⏳     | ⏳    | -     | -       |
+| 5.6    | Marketplace & Extensions            | ⏳     | ⏳    | -     | -       |
 
 ## **🛠️ TECHNICAL STACK REFERENCE**
 
