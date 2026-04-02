@@ -1,136 +1,136 @@
-## 🔧 Phase 1: Core Backend-Modernisierung – Das Fundament erneuern
+# 🔧 Phase 1: Core Backend Modernization – Renewing the Foundation
 
-**Status**: IN ARBEIT 🚧  
-**Priorität**: HÖCHSTE  
-**Ziel**: Komplette Modernisierung der bestehenden Backend-Infrastruktur. Keine neuen Features!
+**Status**: ✅ COMPLETED
+**Priority**: HIGHEST
+**Goal**: Complete modernization of the existing backend infrastructure. No new features!
 
-> **Foundation First Prinzip**: Alle bestehenden Systeme modernisieren, bevor neue Features gebaut werden.
+> **Foundation First Principle**: Modernize all existing systems before building new features.
 
 ---
 
-### Schritt 1.1: Mailer-Migration abschließen
+## Step 1.1: Complete Mailer Migration
 
-- **Status**: ✅ ABGESCHLOSSEN
+- **Status**: ✅ COMPLETED
 - **Branch**: `feature/symfony-mailer-migration`
-- **Ergebnis**:
-  - Swift Mailer → Symfony Mailer 5.4 Migration komplett
-  - 42 Tests implementiert
-  - Dokumentation in `MAIL_MIGRATION.md`
-- **Re-Audit**: Mit `AGENT_PROMPT_AUDIT_AND_VERIFICATION.md` gegen aktuelle Modernisierungsstandards prüfen (Compatibility Layer, Legacy Code, PHP 8.2+)
+- **Result**:
+  - Swift Mailer → Symfony Mailer 5.4 migration complete
+  - 42 tests implemented
+  - Documentation in `MAIL_MIGRATION.md`
+- **Re-Audit**: Verify against current modernization standards using `AGENT_PROMPT_AUDIT_AND_VERIFICATION.md` (compatibility layers, legacy code, PHP 8.2+)
 
 ---
 
-### Schritt 1.2: Test-Suite modernisieren
+## Step 1.2: Modernize Test Suite
 
-- **Status**: ✅ ABGESCHLOSSEN
+- **Status**: ✅ COMPLETED
 - **Branch**: `feature/phpunit-11-upgrade`
-- **Ergebnis**: PHPUnit 9.6 → 11.x erfolgreich
+- **Result**: PHPUnit 9.6 → 11.x successful
 
 ---
 
-### Schritt 1.3: Kritische Abhängigkeiten patchen
+### Step 1.3: Patch Critical Dependencies
 
-- **Status**: ✅ TEILWEISE ABGESCHLOSSEN
+- **Status**: ✅ PARTIALLY COMPLETED
 - **Branch**: `feature/security-patches`
-- **Ergebnis**:
-  - ✅ Erledigt: monolog/monolog ~2.1.1 → ^3.7
-  - ✅ Erledigt: Andere Security Patches
-  - ⚠️ ZURÜCKGESTELLT: doctrine/annotations, doctrine/cache (für spätere Schritte)
+- **Result**:
+  - ✅ Done: monolog/monolog ~2.1.1 → ^3.7
+  - ✅ Done: Other security patches
+  - ⚠️ DEFERRED: doctrine/annotations, doctrine/cache (for later steps)
 
 ---
 
-### Schritt 1.3.5: Sichere Dependabot-Updates verarbeiten
+### Step 1.3.5: Process Safe Dependabot Updates
 
-- **Status**: ✅ ABGESCHLOSSEN
+- **Status**: ✅ COMPLETED
 - **Branch**: `feature/dependabot-safe-updates`
-- **Ergebnis**: Alle sicheren Updates vor Symfony-Upgrade durchgeführt
+- **Result**: All safe updates applied before Symfony upgrade
 
 ---
 
-### Schritt 1.4: Sichere Minor Dependency-Updates
+### Step 1.4: Safe Minor Dependency Updates
 
-- **Status**: ✅ ABGESCHLOSSEN
+- **Status**: ✅ COMPLETED
 - **Branch**: `feature/safe-minor-updates`
-- **Ergebnis**: Alle sicheren Minor-Updates ohne Breaking Changes durchgeführt
+- **Result**: All safe minor updates without breaking changes applied
 
 ---
 
-### Schritt 1.5: Doctrine DBAL 2.x → 3.x Update
+### Step 1.5: Doctrine DBAL 2.x → 3.x Update
 
-- **Status**: ✅ ABGESCHLOSSEN
+- **Status**: ✅ COMPLETED
 - **Branch**: `feature/doctrine-dbal-3x-update`
-- **Ergebnis**:
-  - ✅ doctrine/dbal: ~2.13 → ^3.8 erfolgreich migriert
-  - ✅ Alle Query Builder Anpassungen implementiert
-  - ✅ Result Fetching Methoden aktualisiert
-  - ✅ Connection Configuration modernisiert
-  - ℹ️ doctrine/cache: Bleibt auf ~1.13 (benötigt PSR-6 Migration)
+- **Result**:
+  - ✅ doctrine/dbal: ~2.13 → ^3.8 successfully migrated
+  - ✅ All Query Builder adaptations implemented
+  - ✅ Result fetching methods updated
+  - ✅ Connection configuration modernized
+  - ℹ️ doctrine/cache: Stays on ~1.13 (requires PSR-6 migration)
 
 ---
 
-### Schritt 1.6: Service Container PSR-11 Kompatibilität
+### Step 1.6: Service Container PSR-11 Compatibility
 
-- **Status**: ✅ ABGESCHLOSSEN
+- **Status**: ✅ COMPLETED
 - **Branch**: `feature/psr11-container-compatibility`
-- **Ziel**: Pagekit Container PSR-11 kompatibel machen
-- **Ergebnis**:
-  - ✅ PSR-11 Container Interface implementiert
-  - ✅ Service Definitionen modernisiert
-  - ✅ Dependency Injection Container erweitert
-  - ✅ Backward Compatibility für bestehende Services gewährleistet
-  - ✅ Alle Container-Tests erfolgreich
+- **Goal**: Make Pagekit Container PSR-11 compatible
+- **Result**:
+  - ✅ PSR-11 Container Interface implemented
+  - ✅ Service definitions modernized
+  - ✅ Dependency Injection Container extended
+  - ✅ Backward compatibility for existing services ensured
+  - ✅ All container tests passing
 
 ---
 
-### Schritt 1.7: Event System Symfony 6.4 Kompatibilität
+### Step 1.7: Event System Symfony 6.4 Compatibility
 
-- **Status**: ✅ ABGESCHLOSSEN
+- **Status**: ✅ COMPLETED
 - **Branch**: `feature/symfony-event-system-compatibility`
-- **Ziel**: Pagekit Event System mit Symfony 6.4 kompatibel machen
-- **Ergebnis**:
-  - ✅ Event Dispatcher Interface modernisiert
-  - ✅ Event Listener Typisierung verbessert
-  - ✅ Symfony Event System Integration abgeschlossen
-  - ✅ Alle Event-Tests erfolgreich
-  - ✅ Backward Compatibility für bestehende Event-Handler gewährleistet
+- **Goal**: Make Pagekit Event System compatible with Symfony 6.4
+- **Result**:
+  - ✅ Event Dispatcher Interface modernized
+  - ✅ Event Listener typing improved
+  - ✅ Symfony Event System integration completed
+  - ✅ All event tests passing
+  - ✅ Backward compatibility for existing event handlers ensured
 
 ---
 
-### Schritt 1.8: Routing System Symfony 6.4 Kompatibilität
+### Step 1.8: Routing System Symfony 6.4 Compatibility
 
-- **Status**: ✅ ABGESCHLOSSEN
+- **Status**: ✅ COMPLETED
 - **Branch**: `feature/symfony-routing-compatibility`
-- **Ziel**: Pagekit Routing System mit Symfony 6.4 kompatibel machen
-- **Ergebnis**:
-  - ✅ Router Klasse mit Type Hints modernisiert
-  - ✅ Route Klasse für Symfony 6.4 kompatibel gemacht
-  - ✅ UrlGenerator Interface aktualisiert
-  - ✅ LINK_URL Constant Fix implementiert (string → integer)
-  - ✅ Umfassende Test Suite erstellt (36 Tests, alle erfolgreich)
-  - ✅ 100% Backward Compatibility gewährleistet
-  - ✅ Vollständige Dokumentation erstellt
+- **Goal**: Make Pagekit Routing System compatible with Symfony 6.4
+- **Result**:
+  - ✅ Router class modernized with type hints
+  - ✅ Route class made compatible with Symfony 6.4
+  - ✅ UrlGenerator Interface updated
+  - ✅ LINK_URL Constant fix implemented (string → integer)
+  - ✅ Comprehensive test suite created (36 tests, all passing)
+  - ✅ 100% backward compatibility ensured
+  - ✅ Complete documentation created
 
 ---
 
-### Schritt 1.9: Das Symfony-Upgrade
+### Step 1.9: The Symfony Upgrade
 
-- **Status**: ✅ ABGESCHLOSSEN
+- **Status**: ✅ COMPLETED
 - **Branch**: `feature/symfony-6.4-upgrade`
-- **Ziel**: Symfony 5.4 → 6.4 LTS
-- **Ergebnis**:
-  - ✅ Alle 21 Symfony-Komponenten auf 6.4.x aktualisiert
-  - ✅ HTTP Foundation/Kernel auf 6.4 migriert
-  - ✅ Routing System für 6.4 kompatibel gemacht
-  - ✅ Console Commands auf 6.4 angepasst
-  - ✅ Symfony Mailer weiterhin auf 6.4
-  - ✅ Event System mit 6.4 kompatibel
-  - ✅ Alle Breaking Changes behoben
-  - ✅ Return Types und Parameter Types angepasst
-  - ✅ Keine Deprecation Warnings mehr
-  - ✅ Performance beibehalten/verbessert
-  - ✅ Vollständige Dokumentation in SYMFONY_64_CHANGES.md
+- **Goal**: Symfony 5.4 → 6.4 LTS
+- **Result**:
+  - ✅ All 21 Symfony components updated to 6.4.x
+  - ✅ HTTP Foundation/Kernel migrated to 6.4
+  - ✅ Routing System made compatible with 6.4
+  - ✅ Console Commands adapted for 6.4
+  - ✅ Symfony Mailer continues on 6.4
+  - ✅ Event System compatible with 6.4
+  - ✅ All breaking changes resolved
+  - ✅ Return types and parameter types adapted
+  - ✅ No more deprecation warnings
+  - ✅ Performance maintained/improved
+  - ✅ Complete documentation in SYMFONY_64_CHANGES.md
 
-**Detaillierter Agenten-Auftrag**:
+**Detailed Agent Prompt**:
 
 ```
 TASK: Upgrade Symfony from 5.4 to 6.4 LTS - COMPLETE SYSTEMATIC APPROACH
@@ -463,30 +463,30 @@ SUCCESS CRITERIA:
 
 ---
 
-### Schritt 1.10: Cache-System PSR-6 Migration & doctrine/cache Entfernung
+### Step 1.10: Cache System PSR-6 Migration & doctrine/cache Removal
 
-- **Status**: ✅ ABGESCHLOSSEN
+- **Status**: ✅ COMPLETED
 - **Branch**: `feature/psr6-cache-migration`
-- **Ziel**: Cache-System von doctrine/cache auf PSR-6 migrieren
-- **Ergebnis**:
-  - ✅ doctrine/cache vollständig entfernt
-  - ✅ symfony/cache: ^6.4 implementiert
-  - ✅ PSR-6 Adapter Layer erstellt (Psr6Adapter.php)
-  - ✅ Alle Cache-Adapter migriert:
+- **Goal**: Migrate cache system from doctrine/cache to PSR-6
+- **Result**:
+  - ✅ doctrine/cache completely removed
+  - ✅ symfony/cache: ^6.4 implemented
+  - ✅ PSR-6 Adapter Layer created (Psr6Adapter.php)
+  - ✅ All cache adapters migrated:
     - ArrayAdapter (Symfony ArrayAdapter)
     - FilesystemAdapter (Symfony FilesystemAdapter)
     - PhpFilesAdapter (Symfony PhpFilesAdapter)
     - ApcuAdapter (Symfony ApcuAdapter)
     - NullAdapter (Symfony NullAdapter)
-  - ✅ Backward Compatibility für alte Cache-API gewährleistet
-  - ✅ Namespace-Support implementiert
-  - ✅ Cache-Clear Command funktioniert
-  - ✅ Route-Caching weiterhin funktional
-  - ✅ Module-Metadata-Caching aktiv
-  - ✅ Performance beibehalten
-  - ✅ Vollständige Dokumentation in PSR6_CACHE_MIGRATION.md
+  - ✅ Backward compatibility for old cache API ensured
+  - ✅ Namespace support implemented
+  - ✅ Cache clear command working
+  - ✅ Route caching still functional
+  - ✅ Module metadata caching active
+  - ✅ Performance maintained
+  - ✅ Complete documentation in PSR6_CACHE_MIGRATION.md
 
-**Detaillierter Agenten-Auftrag**:
+**Detailed Agent Prompt**:
 
 ```
 TASK: Migrate Cache System from doctrine/cache to PSR-6
@@ -499,7 +499,7 @@ TASK: Migrate Cache System from doctrine/cache to PSR-6
    - Test cache clear: php pagekit clearcache
    IF ANY TEST FAILS → STOP AND FIX BEFORE CONTINUING!
 
-1. PREPARATION: (bereits gemacht)
+1. PREPARATION: (already done)
    - Pull latest from develop: git pull origin develop
    - Create new branch: `feature/psr6-cache-migration` from `develop`
    - Create PSR6_CACHE_MIGRATION.md to document changes
@@ -592,7 +592,7 @@ TASK: Migrate Cache System from doctrine/cache to PSR-6
       - app/system/modules/theme
       - app/system/modules/widget
       - packages/pagekit/blog
-      - eventuell another
+      - possibly others
 
    Phase 4: Remove doctrine/cache
       - Remove from composer.json
@@ -695,49 +695,49 @@ SUCCESS CRITERIA:
 
 ─────────────────────────────────────────────────────────────────────
 
-🎯 ZUSÄTZLICHE HINWEISE FÜR DEN AGENTEN:
+🎯 ADDITIONAL NOTES FOR THE AGENT:
 
-WICHTIGE DATEIEN ZUM CHECKEN:
+IMPORTANT FILES TO CHECK:
 • app/system/modules/cache/index.php - Cache Service Registration
 • app/console/src/Commands/CacheClearCommand.php - Cache Clear Command
 • app/modules/routing/src/Provider/RouteProvider.php - Route Cache Usage
 • config.php - Cache Configuration
 
-POTENZIELLE STOLPERSTEINE:
-1. Namespace-Support - doctrine/cache hat eigene Namespace-Implementation
-2. TTL-Unterschiede - 0 vs null für "nie ablaufen"
-3. Serialisierung - PSR-6 macht das automatisch
-4. Stats/Metrics - PSR-6 hat kein getStats()
+POTENTIAL PITFALLS:
+1. Namespace support - doctrine/cache has its own namespace implementation
+2. TTL differences - 0 vs null for "never expire"
+3. Serialization - PSR-6 handles this automatically
+4. Stats/Metrics - PSR-6 does not have getStats()
 
-TESTING-STRATEGIE:
-• Nach jedem Schritt testen
-• Keine großen Änderungen auf einmal
-• Immer Backup-Plan haben
-• Performance-Vergleiche dokumentieren
+TESTING STRATEGY:
+• Test after every step
+• No large changes at once
+• Always have a backup plan
+• Document performance comparisons
 ```
 
 ---
 
-### Schritt 1.10.5: E2E Testing Infrastructure mit Playwright
+### Step 1.10.5: E2E Testing Infrastructure with Playwright
 
-- **Status**: ✅ ABGESCHLOSSEN
+- **Status**: ✅ COMPLETED
 - **Branch**: `feature/e2e-testing-playwright`
-- **Ziel**: Moderne End-to-End Test-Suite als Safety Net für Core-Modernisierung
-- **Voraussetzung**: Schritt 1.10 (PSR-6 Cache) abgeschlossen
-- **Speicherverbrauch**: <1GB (Playwright ~100MB + Test-Assets ~500MB)
-- **Performance-Impact**: ≈ 0% auf Produktion (nur dev-dependencies, separate Container)
-- **Strategischer Vorteil**: Tests schützen die verbleibenden Core-Updates (1.11-1.14)
-- **Warum Playwright**: Nutzt vorhandene Node.js + Docker Infrastruktur, moderne Performance, bessere Browser-Support
+- **Goal**: Modern end-to-end test suite as a safety net for core modernization
+- **Prerequisite**: Step 1.10 (PSR-6 Cache) completed
+- **Memory Usage**: <1GB (Playwright ~100MB + test assets ~500MB)
+- **Performance Impact**: ≈ 0% on production (dev-dependencies only, separate containers)
+- **Strategic Advantage**: Tests protect the remaining core updates (1.11-1.14)
+- **Why Playwright**: Uses existing Node.js + Docker infrastructure, modern performance, better browser support
 - **Components**:
   - Playwright Framework Setup (JavaScript/Node.js)
   - Multi-Browser Automation (Chrome, Firefox, Safari, Edge)
-  - Docker Test-Umgebung (nutzt vorhandene Infrastruktur)
-  - Vollständige User-Workflow Tests (>20 Szenarien)
-  - Integration mit Vue.js 2.6 Frontend-Stack
+  - Docker Test Environment (uses existing infrastructure)
+  - Complete User Workflow Tests (>20 scenarios)
+  - Integration with Vue.js 2.6 Frontend Stack
   - UIkit 3.5 Component Testing
-  - Foundation für spätere CI/CD Integration
+  - Foundation for future CI/CD integration
 
-**Detaillierter Agenten-Auftrag**:
+**Detailed Agent Prompt**:
 
 ```
 TASK: Implement Modern E2E Testing with Playwright as Safety Net for Pagekit
@@ -922,19 +922,19 @@ TASK: Implement Modern E2E Testing with Playwright as Safety Net for Pagekit
 
 ---
 
-### Schritt 1.11: ORM Layer Modernisierung
+### Step 1.11: ORM Layer Modernization
 
-- **Status**: ✅ ABGESCHLOSSEN
+- **Status**: ✅ COMPLETED
 - **Branch**: `feature/orm-modernization`
-- **Ziel**: Pagekit ORM modernisieren und optimieren
-- **Voraussetzung**: Schritt 1.10 abgeschlossen
+- **Goal**: Modernize and optimize Pagekit ORM
+- **Prerequisite**: Step 1.10 completed
 - **Tasks**:
-  - EntityManager für PHP 8.2+ optimieren
-  - Typed Properties in Entities erweitern
-  - Besseres Lazy Loading implementieren
-  - Query Result Caching mit PSR-6 integrieren
+  - Optimize EntityManager for PHP 8.2+
+  - Extend typed properties in entities
+  - Implement improved lazy loading
+  - Integrate query result caching with PSR-6
 
-**Detaillierter Agenten-Auftrag**:
+**Detailed Agent Prompt**:
 
 ```
 TASK: Modernize Pagekit ORM Layer
@@ -1018,16 +1018,16 @@ SUCCESS CRITERIA:
 
 ---
 
-### Schritt 1.12: Database Migration System
+### Step 1.12: Database Migration System
 
-- **Status**: ✅ ABGESCHLOSSEN
+- **Status**: ✅ COMPLETED
 - **Branch**: `feature/database-migrations`
-- **Ziel**: Professionelles Database Migration System integrieren
-- **Voraussetzung**: Schritt 1.11 abgeschlossen
-- **Optionen**:
-  - Doctrine Migrations (empfohlen wegen DBAL 3.x)
+- **Goal**: Integrate a professional database migration system
+- **Prerequisite**: Step 1.11 completed
+- **Options**:
+  - Doctrine Migrations (recommended due to DBAL 3.x)
 
-**Detaillierter Agenten-Auftrag**:
+**Detailed Agent Prompt**:
 
 ```
 TASK: Implement Professional Database Migration System
@@ -1071,7 +1071,7 @@ TASK: Implement Professional Database Migration System
 6. UPDATE INSTALLER:
    - Integrate migrations in installer
    - Update app/installer/src/Installer.php
-   - Ensure compatibility with existing installs (from future visio, after Pagekit CMS is modernised, means version 2.0.0 = "existing install" -> 2.1.0 = "update")
+   - Ensure compatibility with existing installs (from future perspective, after Pagekit CMS is modernized, meaning version 2.0.0 = "existing install" → 2.1.0 = "update")
    - Add migration checks
 
 7. CREATE DOCUMENTATION:
@@ -1101,48 +1101,48 @@ SUCCESS CRITERIA:
 
 ---
 
-### Schritt 1.13: Validation System Update
+### Step 1.13: Validation System Update
 
-- **Status**: ✅ ABGESCHLOSSEN
+- **Status**: ✅ COMPLETED
 - **Branch**: `feature/symfony-validator`
-- **Ziel**: Symfony Validator integrieren
-- **Voraussetzung**: Schritt 1.12 abgeschlossen
+- **Goal**: Integrate Symfony Validator
+- **Prerequisite**: Step 1.12 completed
 - **Components**:
   - Symfony Validator (Backend)
-  - Constraints mit Attributes
-  - Integration mit bestehendem Frontend
-  - Symfony Forms (optional für Admin)
+  - Constraints with Attributes
+  - Integration with existing frontend
+  - Symfony Forms (optional for Admin)
 
-**Detaillierter Agenten-Auftrag**:
+**Detailed Agent Prompt**:
 
 ```
-<!-- migration-docs\TODO\agent_prompts\PROMPT_SYMFONY_VALIDATOR_OPTIMIZED.md -->
+<!-- migration-docs/TODO/agent_prompts/PROMPT_SYMFONY_VALIDATOR_OPTIMIZED.md -->
 ```
 
 ---
 
-### Schritt 1.13.5: Complete Template Security Modernization
+### Step 1.13.5: Complete Template Security Modernization
 
-- **Status**: ✅ ABGESCHLOSSEN
+- **Status**: ✅ COMPLETED
 - **Branch**: `feature/complete-template-security`
-- **Ziel**: Template Security auf Gold Standard bringen (keine Zwischenschritte!)
-- **Philosophie**: "Spielwiese-Ansatz" - Einmal richtig statt Iterativ
+- **Goal**: Bring template security to gold standard (no intermediate steps!)
+- **Philosophy**: "Playground Approach" — do it right the first time instead of iterating
 - **Tasks**:
-  - eval() aus PhpEngine entfernen (Dead Code)
-  - Data-Attributes statt inline scripts (Gold Standard!)
-  - Vollständige CSP ohne unsafe-inline/unsafe-eval
-  - Moderne Security Headers in .htaccess
-  - Security Audit & Tests
+  - Remove eval() from PhpEngine (dead code)
+  - Data attributes instead of inline scripts (gold standard!)
+  - Complete CSP without unsafe-inline/unsafe-eval
+  - Modern security headers in .htaccess
+  - Security audit & tests
 
-**Priorität**: 🔴 HOCH (Security!)
+**Priority**: 🔴 HIGH (Security!)
 
-**Detaillierter Agenten-Auftrag**:
+**Detailed Agent Prompt**:
 
 ```
 TASK: Complete Template Security Modernization (Gold Standard Approach)
 
 =================================================================================
-PHILOSOPHY: "Spielwiese" - Doing It Right The First Time
+PHILOSOPHY: "Playground" - Doing It Right The First Time
 =================================================================================
 
 WHY GOLD STANDARD DIRECTLY (No intermediate steps)?
@@ -1155,7 +1155,7 @@ Context:
 
 Decision: Skip intermediate solutions (like nonce), go directly to best practice
 - Avoids refactoring twice (nonce now → data-attributes later)
-- "Spielwiese" allows experimentation with modern approaches
+- "Playground" allows experimentation with modern approaches
 - Version 2.0 gets perfect security from day one
 
 THIS STEP: Complete security modernization to industry best practices!
@@ -1187,7 +1187,7 @@ PHASE 1: eval() Dead Code Removal
 
 1.2. Remove eval() from app/modules/view/src/PhpEngine.php:
    File: app/modules/view/src/PhpEngine.php
-   
+
    Line 164-176 BEFORE:
    `php
    if (file_exists($templatePath)) {
@@ -1197,7 +1197,7 @@ PHASE 1: eval() Dead Code Removal
        eval('?>' . $templatePath);  // ← REMOVE THIS!
    }
    `
-   
+
    Line 164-176 AFTER:
    `php
    if (file_exists($templatePath)) {
@@ -1206,12 +1206,12 @@ PHASE 1: eval() Dead Code Removal
        throw new \RuntimeException(sprintf('Template file not found: %s', $templatePath));
    }
    `
-   
+
    Do the same for the second occurrence (line ~174)
 
 1.3. Remove eval() from app/modules/view/src/Engine/PhpEngine.php:
    File: app/modules/view/src/Engine/PhpEngine.php
-   
+
    Line 119-125 BEFORE:
    `php
    if (isset($storage['path']) && file_exists($storage['path'])) {
@@ -1220,7 +1220,7 @@ PHASE 1: eval() Dead Code Removal
        eval('?>' . $storage['content']);  // ← REMOVE THIS!
    }
    `
-   
+
    Line 119-125 AFTER:
    `php
    if (isset($storage['path']) && file_exists($storage['path'])) {
@@ -1235,18 +1235,18 @@ PHASE 1: eval() Dead Code Removal
    # Test existing installation
    curl http://localhost:8000 | grep -i "pagekit"
    # Should return 200 OK with "Pagekit" in HTML
-   
+
    # Test admin access (check status code)
    curl -I http://localhost:8000/admin
    # Should return 302 (redirect to login) or 200 (if logged in)
-   
+
    # Test CLI
    php pagekit --version
    # Should output version number
 
-   # If no Installation detected
+   # If no installation detected
    php pagekit setup
-   # Should install the System without a Password, for testings.
+   # Should install the system without a password, for testing.
    `
 
 1.5. Commit changes:
@@ -1263,9 +1263,9 @@ Result: NO inline JavaScript at all! Perfect CSP!
 
 2.1. Update DataHelper to use data-attributes:
    File: app/modules/view/src/Helper/DataHelper.php
-   
+
    Update render() method (line ~71):
-   
+
    BEFORE:
    `php
    public function render(): string
@@ -1277,7 +1277,7 @@ Result: NO inline JavaScript at all! Perfect CSP!
        return $output;
    }
    `
-   
+
    AFTER:
    `php
    public function render(): string
@@ -1287,13 +1287,13 @@ Result: NO inline JavaScript at all! Perfect CSP!
        $config = [
            'data' => $this->data
        ];
-       
+
        // Output as data-attribute for JavaScript to consume
        $encoded = htmlspecialchars(json_encode($config, $this->encodingOptions), ENT_QUOTES, 'UTF-8');
        return sprintf("        <script id=\"pagekit-data\" type=\"application/json\" data-config='%s'></script>\n", $encoded);
    }
    `
-   
+
    Explanation:
    - NO inline JavaScript execution!
    - Config stored in data-attribute
@@ -1302,7 +1302,7 @@ Result: NO inline JavaScript at all! Perfect CSP!
 
 2.2. Create JavaScript config loader:
    File: app/assets/js/config-loader.js (NEW!)
-   
+
    `javascript
    /**
     * Pagekit Config Loader
@@ -1310,17 +1310,17 @@ Result: NO inline JavaScript at all! Perfect CSP!
     */
    (function() {
        'use strict';
-       
+
        // Read config from data-attribute
        var configScript = document.getElementById('pagekit-data');
        if (!configScript) {
            console.warn('Pagekit config not found');
            return;
        }
-       
+
        try {
            var config = JSON.parse(configScript.getAttribute('data-config'));
-           
+
            // Expose data as global variables (backward compatibility)
            if (config.data) {
                Object.keys(config.data).forEach(function(key) {
@@ -1335,19 +1335,19 @@ Result: NO inline JavaScript at all! Perfect CSP!
 
 2.3. Register config-loader in View system:
    File: app/modules/view/index.php or app/system/modules/view/index.php
-   
+
    Find the 'view.scripts' event and add:
    `php
    $scripts->register('pagekit-config', 'app/assets/js/config-loader.js', [], ['defer' => false]);
    `
-   
+
    Make sure it loads BEFORE other scripts that need the config!
 
 2.4. Update head template to ensure proper order:
    Scripts must load in this order:
    1. pagekit-config.js (reads data-attributes)
    2. other scripts (use the config)
-   
+
    The View system should handle this automatically via dependency management.
 
 2.5. Test data-attribute implementation:
@@ -1355,7 +1355,7 @@ Result: NO inline JavaScript at all! Perfect CSP!
    # Check HTML output
    curl http://localhost:8000 | grep 'data-config'
    # Should show: <script id="pagekit-data" type="application/json" data-config='{"data":{"$pagekit":{...}}}'></script>
-   
+
    # Verify NO inline scripts (except the JSON data holder)
    curl http://localhost:8000 | grep '<script>' | grep -v 'data-config' | grep -v 'src='
    # Should return NOTHING (all scripts are external or data-attributes)
@@ -1385,19 +1385,19 @@ PHASE 3: Complete Security Headers Modernization
 
 3.1. Update .htaccess with STRICT CSP (no unsafe-* needed!):
    File: .htaccess (line ~48)
-   
+
    BEFORE:
    `apache
    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self';"
    `
-   
+
    AFTER:
    `apache
    # Content Security Policy - STRICT (no unsafe-inline, no unsafe-eval!)
    # Since we use data-attributes (no inline scripts), we can be very strict
    Header set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';"
    `
-   
+
    Changes:
    - ✅ script-src: NO unsafe-inline, NO unsafe-eval (strict!)
    - ⚠️ style-src: keeps 'unsafe-inline' for now (UIkit inline styles, can fix later)
@@ -1407,24 +1407,24 @@ PHASE 3: Complete Security Headers Modernization
 
 3.2. Add additional modern security headers:
    File: .htaccess (after CSP section)
-   
+
    ADD:
    `apache
    # Additional Modern Security Headers
-   
+
    # Cross-Origin-Embedder-Policy
    Header always set Cross-Origin-Embedder-Policy "require-corp"
-   
+
    # Cross-Origin-Opener-Policy
    Header always set Cross-Origin-Opener-Policy "same-origin"
-   
+
    # Cross-Origin-Resource-Policy
    Header always set Cross-Origin-Resource-Policy "same-origin"
    `
 
 3.3. Update existing security headers (review and modernize):
    File: .htaccess (existing headers section ~22-49)
-   
+
    Review and ensure all are optimal:
    - HSTS: Already good ✅
    - X-Content-Type-Options: Already good ✅
@@ -1438,7 +1438,7 @@ PHASE 3: Complete Security Headers Modernization
    # Open http://localhost:8000
    # Open Developer Console (F12) → Console tab
    `
-   
+
    Check for:
    - ❌ NO CSP violations (all clean!)
    - ✅ All scripts load from external files
@@ -1474,16 +1474,16 @@ PHASE 4: Testing & Documentation
    `bash
    # Reset to clean state (removes config.php and database)
    ./scripts/e2e-reset.sh
-   
+
    # Start test server
    ./scripts/e2e-start.sh
-   
+
    # Test fresh installation
    npx playwright test tests/e2e/specs/01-setup/installation.spec.js
-   
+
    # Test admin functionality
    npx playwright test tests/e2e/specs/02-admin/login.spec.js
-   
+
    # Stop test server
    ./scripts/e2e-stop.sh
    `
@@ -1499,7 +1499,7 @@ PHASE 4: Testing & Documentation
 
 4.3. Create branch documentation:
    File: migration-docs/branches/feature-template-security-hardening.md
-   
+
    Document:
    - All changes made
    - Why eval() was removed
@@ -1509,18 +1509,18 @@ PHASE 4: Testing & Documentation
 
 4.4. Create PR documentation:
    File: migration-docs/pull-requests/PR_template_security.md
-   
+
    Brief summary with:
    - Security improvements
    - Breaking changes: NONE!
    - Test status
    - Link to detailed branch docs
 
-4.5. Update CHANGELOG-2025.md:
+4.5. Update CHANGELOG-NEW.md:
    Add entry:
    `markdown
    ## [1.0.X] - [Date]
-   
+
    ### Security
    - Remove eval() dead code from template engines
    - Implement data-attributes for config (no inline executable scripts!)
@@ -1554,14 +1554,14 @@ MUST NOT ❌:
 IMPORTANT NOTES FOR AGENT
 =================================================================================
 
-1. **"Spielwiese" Philosophy (BUT: Must Work!):**
+1. **"Playground" Philosophy (BUT: Must Work!):**
    This version (1.0.x) is for DEVELOPMENT, not production!
    - Version 2.0.0 will be first customer-ready release
    - We have time to do it RIGHT, not just fast
    - Skip intermediate solutions → Go directly to Gold Standard
    - Background Agent makes this feasible (minutes not weeks!)
-   
-   ⚠️ CRITICAL: "Spielwiese" means experimentation is allowed, 
+
+   ⚠️ CRITICAL: "Playground" means experimentation is allowed,
    BUT system MUST be functional after each step!
    - All existing features must work
    - No broken functionality
@@ -1572,7 +1572,7 @@ IMPORTANT NOTES FOR AGENT
    1. Data-attributes (this step!) → ✅ GOLD STANDARD
    2. Nonce-based inline scripts → Good compromise (SKIPPED!)
    3. unsafe-inline → Bad (old state)
-   
+
    Decision: Skip #2, go directly to #1
    - Avoids refactoring twice
    - Perfect CSP from day one
@@ -1596,7 +1596,7 @@ IMPORTANT NOTES FOR AGENT
    # Fresh install test:
    ./scripts/e2e-reset.sh  # Clean state first!
    npx playwright test tests/e2e/specs/01-setup/installation.spec.js
-   
+
    # Existing installation test:
    curl http://localhost:8000 | grep 'data-config'  # Check data-attributes
    curl http://localhost:8000 | grep '<script>' | grep -v 'data-config' | grep -v 'src='  # Should be empty!
@@ -1607,31 +1607,31 @@ IMPORTANT NOTES FOR AGENT
    - Should be ZERO violations!
    - Use https://csp-evaluator.withgoogle.com/ to validate policy
    - Target: A+ rating (except style-src, that's okay)
-   
-   Note: "Spielwiese" = experimentation allowed, but functionality must be verified!
+
+   Note: "Playground" = experimentation allowed, but functionality must be verified!
 ```
 
 ---
 
-### Schritt 1.14: Doctrine Annotations zu PHP 8 Attributes Migration (FINALER SCHRITT!)
+### Step 1.14: Doctrine Annotations to PHP 8 Attributes Migration (FINAL STEP!)
 
-- **Status**: ✅ ABGESCHLOSSEN
+- **Status**: ✅ COMPLETED
 - **Branch**: `feature/doctrine-annotations-to-attributes-final`
-- **Ziel**: Migration von Doctrine Annotations zu PHP 8 Attributes
-- **Voraussetzung**: ⚠️ ALLE Core-Updates (1.1 - 1.13.5) MÜSSEN abgeschlossen sein!
-- **Wichtig**: Dies ist der FINALE Schritt der Core-Modernisierung!
+- **Goal**: Migrate from Doctrine Annotations to PHP 8 Attributes
+- **Prerequisite**: ⚠️ ALL core updates (1.1 - 1.13.5) MUST be completed!
+- **Important**: This is the FINAL step of the core modernization!
 
-**Warum verschoben?**
+**Why deferred?**
 
-- PHP 8 Attributes benötigen moderne Infrastructure
-- PSR-11 Container muss vorhanden sein
-- Symfony 6.4 Event/Routing System muss kompatibel sein
-- Doctrine DBAL 3.x muss kompatibel sein
-- PSR-6 Cache-System muss implementiert sein
+- PHP 8 Attributes require modern infrastructure
+- PSR-11 Container must be available
+- Symfony 6.4 Event/Routing System must be compatible
+- Doctrine DBAL 3.x must be compatible
+- PSR-6 Cache System must be implemented
 
-**Hinweis**: Die Attribute-Klassen und der Code sind bereits vorbereitet, müssen aber erst nach Abschluss der Infrastructure-Updates aktiviert werden. Die Cache-Migration zu PSR-6 wurde als separater Schritt 1.10 eingeplant und bereits abgeschloßen.
+**Note**: The Attribute classes and the code are already prepared but must only be activated after the infrastructure updates are complete. The cache migration to PSR-6 was planned as a separate Step 1.10 and has already been completed.
 
-**Detaillierter Agenten-Auftrag**:
+**Detailed Agent Prompt**:
 
 ```
 TASK: RE-APPLY Doctrine Annotations to PHP 8 Attributes Migration
