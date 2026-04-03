@@ -94,11 +94,17 @@ Task Prompt
 
 Orchestrator (no subagent) executes **push.mdc**:
 
-1. **Version bump** — `.cursor/skills/version-bump/SKILL.md`
-2. **CHANGELOG-NEW.md** — group all commits from this task
-3. **Push** — to remote (branch from develop if needed)
-4. **PR** — `<!-- metadata -->` block (labels, milestone, `closes`). Use GitHub Issue number from invocation (`GitHub Issue: #XXX`). Include `Closes #XXX` in PR body AND metadata `closes:` field. See `push.mdc` + `github-labels.mdc`.
-5. **Do NOT merge** — user reviews and merges.
+1. **Branch documentation** — Create `migration-docs/branches/{task-name}.md` documenting:
+   - All changes made (files, what changed, why)
+   - Breaking changes for extensions (if any)
+   - Test results summary
+   - Referenced ROADMAP step and GitHub Issue
+     Use existing files in `migration-docs/branches/` as reference for format/style.
+2. **Version bump** — `.cursor/skills/version-bump/SKILL.md`
+3. **CHANGELOG-NEW.md** — group all commits from this task
+4. **Push** — to remote (branch from develop if needed)
+5. **PR** — `<!-- metadata -->` block (labels, milestone, `closes`). Use GitHub Issue number from invocation (`GitHub Issue: #XXX`). Include `Closes #XXX` in PR body AND metadata `closes:` field. See `push.mdc` + `github-labels.mdc`.
+6. **Do NOT merge** — user reviews and merges.
 
 ## On Failure (CRITICAL — do not self-fix)
 
