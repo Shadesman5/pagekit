@@ -106,6 +106,21 @@ Ideally, the baseline should shrink significantly or reach zero new entries for 
 
 ---
 
+## AUDIT FINDINGS (Phase 1 Review)
+
+The following typing issues were identified during the Phase 1 codebase audit and should be resolved at this level:
+
+- `mixed` mailer type in 3 controllers (`MailController`, `ResetPasswordController`, `RegistrationController`) — should be `Pagekit\Mail\Mailer`
+- `Mailer::send()` missing `: bool` return type
+- `Message::send(&$errors)` untyped out-parameter — type as `?array &$errors = null` or replace with return value
+- `Post` model: relation properties `$user`, `$comments` typed as `mixed` instead of `?User`, `?array`
+- Console `execute()` methods: missing `: int` return types, some use `exit` instead of `return Command::SUCCESS` (`SetupCommand`, `TranslationFetchCommand`, `ExtensionTranslateCommand`)
+- `Logger::__invoke()` without parameter/return types
+- `TwigLoader::findTemplate()` / `TwigCache::__construct()` missing parent-compatible types
+- `mail/index.php`: unused `auth_mode` config key — remove dead config
+
+---
+
 ## SUCCESS CRITERIA
 
 - PHPStan Level 6 passes

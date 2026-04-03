@@ -192,6 +192,19 @@ All `type: 'json_array'` references must become `type: 'json'`:
 
 ---
 
+## AUDIT FINDINGS (Phase 1 Review)
+
+The following DBAL cleanup tasks were identified during the Phase 1 codebase audit:
+
+- `Connection::exec()` — compatibility alias for `executeStatement()`; remove the alias and update all call sites
+- `Utility` uses deprecated `getSchemaManager()` — replace with `createSchemaManager()` (also in `Installer.php` and `DbUtil.php` test helper)
+- `Utility::migrate()` uses `new Comparator()` without Platform argument (deprecated in DBAL 3) — use `$schemaManager->createComparator()` instead
+- `Utility::migrate()` executes DDL via `executeQuery()` instead of `executeStatement()` — fix to use correct method for DDL
+- `DbUtil` test helper: `$realConn->exec()` → `executeStatement()`
+- `Utility::migrate()` — potentially dead API surface (no callers found); evaluate removal
+
+---
+
 ## SUCCESS CRITERIA
 
 - `executeQuery()` and `executeStatement()` are the public API

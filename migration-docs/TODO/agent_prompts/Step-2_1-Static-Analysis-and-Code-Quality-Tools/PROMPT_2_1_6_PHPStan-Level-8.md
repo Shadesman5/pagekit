@@ -136,6 +136,20 @@ If the Refactorer encounters additional issues:
 
 ---
 
+## AUDIT FINDINGS (Phase 1 Review)
+
+The following architectural/typing issues were identified during the Phase 1 codebase audit:
+
+- `ModelServiceLocator` + `IntlServiceLocator` — static service locators holding `ContainerInterface`; replace with proper DI chains
+- `PackageController` — uses `ContainerInterface $app` as God-DI object; inject specific services instead
+- `#[AllowDynamicProperties]` on `Node` and `Widget` models — remove attribute and fix dynamic property usage via typed properties
+- ORM `Metadata`, `Relation`, `PropertyTrait` — incomplete typing throughout (mixed params, missing return types)
+- `NodeModelTrait` — static request-scoped cache array (`static ?array $nodes`); replace with proper PSR-6 caching or explicit cache layer
+- `UrlGeneratorInterface` (Routing) — naming collision with Symfony's interface; rename to e.g. `LinkReferenceType` and move `LINK_URL` constant
+- `GetResponseEvent` (Auth) — misleading Symfony-5 naming; rename to e.g. `AuthResponseEvent`
+
+---
+
 ## SUCCESS CRITERIA
 
 - PHPStan Level 8 passes
