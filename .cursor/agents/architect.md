@@ -30,14 +30,20 @@ Write the plan to a **ticket file** so the Orchestrator and other subagents use 
 - **Deferred:** [Step X.Y - reason]
 - **Bridges:** [list with TODO-Spec]
 - **Checklist:** [1. ..., 2. ..., 3. ...]
+
+## TESTING STRATEGY
+- **Per step:** PHPUnit + PHPStan (mandatory after every checklist step)
+- **Final run (after all steps):** PHPUnit + PHPStan + `php pagekit setup` + `php pagekit list` + Playwright E2E (installation, login, dashboard)
 ```
 
 - **Chat output:** One line only, e.g. `Plan written to .cursor/tickets/PSR-11-Container-DI-Infrastructure_plan.md`.
 
 ## Reference
 
-- ROADMAP.md for step IDs and tracking table.
+- `.cursor/ROADMAP.md` for step IDs, tracking table, and the 5 aggressive rules.
+- `migration-docs/TODO/PHASE_2_MODERNISING.md` for detailed step descriptions and **"Audit findings"** sections — these contain specific issues discovered during the Phase 1 codebase audit that must be addressed in the relevant step.
 - If a sub-step is missing, add it (e.g. 2.0.5b).
+- When creating the checklist, incorporate any "Audit findings" listed for the target step in PHASE_2_MODERNISING.md as explicit checklist items.
 
 ## Output discipline (strict)
 

@@ -36,12 +36,13 @@ The Orchestrator is a **dispatcher**, not a worker. It delegates, commits, and m
 
 Plans live in `.cursor/tickets/{task-slug}_plan.md` (task-slug = task prompt filename without path/extension). Subagents read only the ticket file (and code); they do not need the full task prompt.
 
-| Delegation     | Message                                                                                                                          |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| **Architect**  | "Delegate to **architect**. Task: `migration-docs/TODO/agent_prompts/{file}.md`. Output: `.cursor/tickets/{task-slug}_plan.md`." |
-| **Refactorer** | "Ticket: `.cursor/tickets/{task-slug}_plan.md`, Step N. Delegate to **refactorer**."                                             |
-| **Verifier**   | "Ticket: `.cursor/tickets/{task-slug}_plan.md`, Step N. Changed files: [list]. Delegate to **verifier**."                        |
-| **Tester**     | "Delegate to **tester**. Run: PHPUnit (+ Playwright / php pagekit setup as needed)."                                             |
+| Delegation            | Message                                                                                                                          |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **Architect**         | "Delegate to **architect**. Task: `migration-docs/TODO/agent_prompts/{file}.md`. Output: `.cursor/tickets/{task-slug}_plan.md`." |
+| **Refactorer**        | "Ticket: `.cursor/tickets/{task-slug}_plan.md`, Step N. Delegate to **refactorer**."                                             |
+| **Verifier**          | "Ticket: `.cursor/tickets/{task-slug}_plan.md`, Step N. Changed files: [list]. Delegate to **verifier**."                        |
+| **Tester** (per step) | "Delegate to **tester**. Run: PHPUnit + PHPStan."                                                                                |
+| **Tester** (final)    | "Delegate to **tester**. Final test run: PHPUnit + PHPStan + `php pagekit setup` + `php pagekit list` + Playwright E2E."         |
 
 ## Workflow
 
@@ -64,6 +65,15 @@ Task Prompt
 │   4. COMMIT     (orchestrator) → git add + git commit        │
 │   Do NOT skip stages. Do NOT run tests yourself.            │
 │   → Next step                                               │
+└─────────────────────────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────┐
+│ FINAL TEST (after ALL steps committed, before Finalize):    │
+│   TESTER (subagent) → "Final test run" message              │
+│   Runs: PHPUnit + PHPStan + php pagekit setup               │
+│         + php pagekit list + Playwright E2E (3 specs)       │
+│   If FAIL → delegate fix to Refactorer, re-test             │
 └─────────────────────────────────────────────────────────────┘
     │
     ▼
