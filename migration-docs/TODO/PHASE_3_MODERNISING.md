@@ -70,10 +70,16 @@
   - Run all E2E tests (regression check)
 - **Important**: In this step, `vue-resource` and `vue-event-manager` remain active!
 
-### Step 3.2.1: Template Pre-compilation (CSP) - Step Two
+### Step 3.2.1: Template Pre-compilation (CSP) — Complete CSP Gold Standard
 
-- **Prerequisite**: Step 1.13.5 (CSP Step One) + Step 3.2
-- **Goal**: Eliminate all runtime template compilation for full CSP compliance
+- **Prerequisite**: Step 1.13.5 (CSP Step One, ~80%) + Step 3.2 (Vue 2.7 Bridge)
+- **Goal**: Eliminate all runtime template compilation for full CSP compliance. Complete the remaining ~20% from Step 1.13.5.
+- **Tasks**:
+  - **Pre-compile Vue templates** — remove `unsafe-eval` from CSP `script-src` (Vue 2 runtime compiler uses `new Function()` which requires `unsafe-eval`; pre-compiled templates avoid this)
+  - **CSP ResponseListener** — move CSP from `.htaccess`-only to a PHP `ResponseListener`/Middleware so that CSP is enforced on **all** servers (Apache, Nginx, PHP Built-in Server, Docker). `.htaccess` remains as defense-in-depth backup. This is critical because `php -S localhost:8080` (used by dev servers, Cloud Agents, and `AGENTS.md` setup) has no CSP without this.
+  - **Tighten `style-src`** — evaluate removing `unsafe-inline` after UIkit update (Step 3.1); if UIkit still needs inline styles, document why and keep as conscious exception
+  - **Verify:** Zero CSP violations in browser console on all pages (admin + frontend)
+- **Result**: Full CSP Gold Standard — no `unsafe-eval`, no `unsafe-inline` in `script-src`, enforced everywhere
 
 ---
 

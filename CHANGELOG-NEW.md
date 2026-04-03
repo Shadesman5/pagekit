@@ -1,5 +1,37 @@
 # Changelog
 
+## Pagekit 1.2.7 - Phase 1 Codebase Audit & Foundation Consolidation Planning (April 3, 2026)
+
+### Documentation
+
+- **Systematic Phase 1 audit** — All 17 Phase 1 steps audited against No Mercy rules. Found legacy artifacts (compatibility layers, deprecated APIs, missing types, dead code) across 13 of 17 steps. Only Steps 1.3, 1.3.5, 1.6, and 1.14 passed clean.
+- **6 new Foundation Consolidation steps** — Steps 2.0.3–2.0.8 added to ROADMAP and PHASE_2_MODERNISING.md with full descriptions and audit findings:
+  - 2.0.3: Cache API full PSR-6 modernization (Closes #179)
+  - 2.0.4: Package/Migration system redesign (Closes #180)
+  - 2.0.5: Composer & Autoload hygiene (#182)
+  - 2.0.6: Test infrastructure cleanup (#183)
+  - 2.0.7: Event Dispatcher bridge removal (#184)
+  - 2.0.8: Critical hotfix — `create_function()` removal (#185)
+- **Agent prompts created** — Detailed prompts for all 6 new steps under `Step-2_0-Foundation-Consolidation/`.
+- **Existing step prompts enriched** — Audit findings added to 2.1.3, 2.1.4, 2.1.6, 2.1.7, 2.1.9 prompts.
+- **Phase 1 prompt reorganization** — Completed Phase 1 prompts moved to `Phase1/` subdirectory.
+- **PHASE_1 correction** — Step 1.13.5 status corrected from "COMPLETED" to "~80%" (CSP `unsafe-eval` remains until Step 3.2.1).
+- **Visual roadmap updated** — `MODERNISATION_STRATEGY.md` now shows all Foundation Consolidation and Static Analysis sub-steps.
+- **ROADMAP audit columns corrected** — Steps with known legacy artifacts marked with warning instead of passed audit.
+
+### Refactor
+
+- **Tester subagent** — PHPStan added as mandatory quality gate after every step. Two-phase workflow: per-step (PHPUnit + PHPStan) and final (+ `php pagekit setup` + Playwright E2E).
+- **Verifier subagent** — New checklist item for audit findings verification.
+- **Architect subagent** — References PHASE_2 audit findings; testing strategy section in ticket template.
+- **Orchestrator workflow** — Updated handoff format and workflow diagram with final test run block.
+
+### Chores
+
+- **PHPStan baseline regenerated** — 885 errors at level 5 (updated from 883 after code changes outside this session).
+
+---
+
 ## Pagekit 1.2.6 - Static Analysis Tooling Baseline (April 2, 2026)
 
 ### Build

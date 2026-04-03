@@ -172,6 +172,15 @@ rg --files-without-match 'declare\(strict_types' app/modules/ app/system/ app/in
 
 ---
 
+## AUDIT FINDINGS (Phase 1 Review)
+
+The following was identified during the Phase 1 codebase audit:
+
+- **~28 test files** currently lack `declare(strict_types=1)` — include these in the migration alongside their respective modules
+- Test files without strict_types are spread across: Filter, Filesystem, Cookie, Auth, Database, Config, Session, Routing modules
+
+---
+
 ## SUCCESS CRITERIA
 
 - ALL PHP files have `declare(strict_types=1)`

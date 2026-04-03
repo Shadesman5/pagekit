@@ -24,62 +24,84 @@ This strategic plan guides Pagekit CMS from its current legacy base to a modern,
 
 ```
 Phase 1: Core Backend Modernization
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-    ├─ Mailer, PHPUnit, Security   ┃
-    ├─ Doctrine DBAL 3.x           ┃
-    ├─ PSR-11, Events, Routing     ┃
-    ├─ Symfony 6.4 LTS, PSR-6     ┃
-    ├─ ORM, DB Migrations          ┃
-    └─ Validation, Attributes ━━━━┛
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    ├─ Mailer (Swift → Symfony)              ┃
+    ├─ PHPUnit 9 → 11                        ┃
+    ├─ Security Patches + Dependabot         ┃
+    ├─ Safe Minor Dependency Updates         ┃
+    ├─ Doctrine DBAL 2.x → 3.x               ┃
+    ├─ PSR-11 Container Compatibility        ┃
+    ├─ Event System (Symfony 6.4)            ┃
+    ├─ Routing System (Symfony 6.4)          ┃
+    ├─ Symfony 5.4 → 6.4 LTS                 ┃
+    ├─ PSR-6 Cache (doctrine/cache removed)  ┃
+    ├─ ORM Modernization                     ┃
+    ├─ Database Migration System             ┃
+    ├─ Symfony Validator + Template Security ┃
+    └─ Doctrine Attributes ━━━━━━━━━━━━━━━━━━┛
           ⬇️
 Phase 2: Developer Experience
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-    ├─ Foundation Consolidation:         ┃
-    │  ├─ Attributes, Container, Cache   ┃
-    │  └─ Validator, Package/Migrations  ┃
-    ├─ Static Analysis (PHPStan)         ┃
-    ├─ CI/CD Pipeline                    ┃
-    ├─ Docker Production                 ┃
-    ├─ Build Tools Modernization         ┃
-    └─ Extension Safety System ━━━━━━━━━┛
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    ├─ Foundation Consolidation:              ┃
+    │  ├─ Controller Attributes               ┃
+    │  ├─ PSR-11 Container Full DI            ┃
+    │  ├─ Validator-Translator Integration    ┃
+    │  ├─ Cache API (PSR-6 only)              ┃
+    │  ├─ Package/Migration Redesign          ┃
+    │  ├─ Composer & Autoload Hygiene         ┃
+    │  ├─ Test Infrastructure Cleanup         ┃
+    │  ├─ Event Dispatcher Bridge Removal     ┃
+    │  └─ Hotfix: create_function() removal   ┃
+    ├─ Static Analysis & Code Quality:        ┃
+    │  ├─ PHPStan + PHP-CS-Fixer Setup        ┃
+    │  ├─ CI/CD Quality Gates                 ┃
+    │  ├─ strict_types Migration              ┃
+    │  ├─ PHPStan Level 5 → 8 (3 sub-steps)   ┃
+    │  ├─ QueryBuilder/DBAL Standardization   ┃
+    │  ├─ Mutation Testing (Infection)        ┃
+    │  └─ Test Coverage Expansion             ┃
+    ├─ CI/CD Pipeline                         ┃
+    ├─ Docker Production                      ┃
+    ├─ Build Tools Modernization              ┃
+    └─ Extension Safety System ━━━━━━━━━━━━━━━┛
           ⬇️
 Phase 3: Frontend Modernization
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-    ├─ UIkit 3.5 → 3.21+ Update         ┃
-    ├─ Vue 2.7 Bridge                    ┃
-    ├─ CSP Template Pre-compilation      ┃
-    ├─ TypeScript Integration            ┃
-    ├─ Vue 3 Migration:                  ┃
-    │  ├─ vue-resource → axios           ┃
-    │  ├─ vue-event-manager → mitt       ┃
-    │  ├─ Vue 3 Core + @vue/compat       ┃
-    │  ├─ Pinia State Management         ┃
-    │  └─ vee-validate v4, lodash → ES6  ┃
-    ├─ Component Library                 ┃
-    └─ E2E Selector Strategy ━━━━━━━━━━━┛
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    ├─ UIkit 3.5 → 3.21+ Update               ┃
+    ├─ Vue 2.7 Bridge                         ┃
+    │  └─ CSP Template Pre-compilation        ┃
+    ├─ TypeScript Integration                 ┃
+    ├─ Vue 3 Migration:                       ┃
+    │  ├─ vue-resource → axios                ┃
+    │  ├─ vue-event-manager → mitt            ┃
+    │  ├─ Vue 3 Core + @vue/compat            ┃
+    │  ├─ Pinia State Management              ┃
+    │  └─ Deps (Intl, lodash → native)        ┃
+    ├─ Component Library                      ┃
+    └─ E2E Selector Strategy ━━━━━━━━━━━━━━━━━┛
           ⬇️
-Phase 4: Production-Ready (→ 2.0.0)
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-    ├─ 2FA + OAuth2 Social Login 🔐┃
-    ├─ REST API v2 (OpenAPI, JWT)  ┃
-    ├─ Performance Optimization    ┃
-    └─ Monitoring & Health ━━━━━━━┛ PRODUCTION READY 🚀
+Phase 4: Production-Ready (→ 2.0.0) 🚀
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    ├─ 2FA + OAuth2 Social Login              ┃
+    ├─ REST API v2 (OpenAPI, JWT)             ┃
+    ├─ Performance (Tag Cache)                ┃
+    └─ Monitoring & Health ━━━━━━━━━━━━━━━━━━━┛ PRODUCTION READY 🚀
           ⬇️
 Phase 5: Advanced & Enterprise (Post-2.0)
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-    ├─ PKBlocks Editor 📝          ┃
-    ├─ OAuth2 Server               ┃
-    ├─ Advanced Performance        ┃
-    ├─ Advanced CMS (PWA, AI)      ┃
-    ├─ Enterprise (Multi-Tenancy)  ┃
-    └─ Marketplace & Store ━━━━━━━┛
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    ├─ PKBlocks Editor                        ┃
+    ├─ OAuth2 Server                          ┃
+    ├─ Advanced Performance                   ┃
+    ├─ Advanced CMS (PWA, AI)                 ┃
+    ├─ Enterprise (Multi-Tenancy)             ┃
+    └─ Marketplace & Store ━━━━━━━━━━━━━━━━━━━┛
           ⬇️
 Future: Next Generation (3.x+)
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-    ├─ Headless CMS Mode           ┃
-    ├─ Cloud-Native                ┃
-    ├─ Advanced AI                 ┃
-    └─ Mobile-First ━━━━━━━━━━━━━━┛
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    ├─ Headless CMS Mode                      ┃
+    ├─ Cloud-Native                           ┃
+    ├─ Advanced AI                            ┃
+    └─ Mobile-First ━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 ```
 
 ---

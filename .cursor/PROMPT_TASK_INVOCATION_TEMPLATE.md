@@ -31,7 +31,7 @@ Rules:
 - One step at a time (sequential)
 - Commit per completed step (Conventional Commits)
 - Do NOT batch commits until end of task
-- After last step: follow push.mdc (version bump → CHANGELOG → push → PR with metadata). PR must include "Closes #XXX" and the issue number in the metadata block. Do NOT merge.
+- After last step: create branch documentation in migration-docs/branches/{task-name}.md, then follow push.mdc (version bump → CHANGELOG → push → PR with metadata). PR must include "Closes #XXX" and the issue number in the metadata block. Do NOT merge.
 
 Token discipline (Orchestrator):
 - Delegate to Architect immediately. Do NOT read the full task prompt or ROADMAP yourself.

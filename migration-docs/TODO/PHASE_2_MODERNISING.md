@@ -102,9 +102,113 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
     - Modernize ZIP upload (existing upload button in the backend)
     - Per-package extension versioning in config
     - Preparation for marketplace API integration (Step 5.6)
+  - **Audit findings (Phase 1 review) — additional tasks:**
+    - `DatabaseHandler::createTable()` in `app/modules/auth/src/Handler/DatabaseHandler.php`: deprecated runtime DDL (`@deprecated since Pagekit 1.0`); schema should come exclusively from migrations. Delete method and ensure auth migration covers the table.
+    - Blog migration naming inconsistency: `Version001_CreateBlogTables` vs. core `Version20251023061532` (timestamp). Standardize to timestamp format.
+    - `MigrationServiceTest` — all tests are **skipped**; no real regression coverage for migrate/rollback. Write actual tests.
+    - `MigrationService::getConfigPath()` — unused method (dead code). Delete.
 - **Result**: One update path for everything; extensions follow a unified lifecycle; marketplace-ready
 - **Risk**: Medium-High — affects Installer, PackageManager, MigrationService, CLI, login flow
-- **Affected Files**: `scripts.php`, `system/index.php`, `MigrationService.php`, `MigrationCommand.php`, `MigrationController.php`, `PackageManager.php`, `PackageScripts.php`, `Installer.php`, `blog/scripts.php`
+- **Affected Files**: `scripts.php`, `system/index.php`, `MigrationService.php`, `MigrationCommand.php`, `MigrationController.php`, `PackageManager.php`, `PackageScripts.php`, `Installer.php`, `blog/scripts.php`, `DatabaseHandler.php`
+- **Agent Prompt**: `migration-docs/TODO/agent_prompts/Step-2_0-Foundation-Consolidation/PROMPT_2_0_4_Package-Migration-System-Redesign.md`
+
+---
+
+### Step 2.0.5: Composer & Autoload Hygiene
+
+- **Goal**: Clean up `composer.json` for reproducible builds, remove dead autoload mappings, resolve dependency anomalies, and prepare a healthy base for CI/CD (Step 2.2).
+- **Prerequisite**: Step 2.0.4 (Package/Migration System Redesign) completed
+- **Context**: Phase 1 Audit (Steps 1.3, 1.4) revealed several infrastructure issues that were not addressed during Phase 1 because they did not block functionality. With CI/CD coming in Step 2.2, these must be fixed first.
+- **Tasks**:
+  - **Lockfile versioning:**
+    - Remove `/composer.lock` from `.gitignore`
+    - Commit `composer.lock` for reproducible builds (critical for CI)
+  - **Dead PSR-4 mappings:**
+    - Remove `Pagekit\Theme\` → `app/system/modules/theme/src` (directory does not exist)
+    - Remove `Pagekit\Package\` → `app/system/modules/package/src` (module does not exist)
+  - **Unused direct dependencies (verify with `composer why` before removing):**
+    - `symfony/framework-bundle` — no PHP imports found in `app/` or `packages/`
+    - `symfony/twig-bridge` — no PHP imports found
+    - `symfony/yaml` — no PHP imports found
+    - `symfony/process` — no PHP imports found
+    - `doctrine/data-fixtures` (require-dev) — no PHP imports found
+    - `paragonie/sodium_compat` — likely only needed transitively
+  - **Version alignment:**
+    - `symfony/validator: ^7.4` vs. rest at `^6.4` — decide: align to `^6.4` or document why 7.x is needed
+    - `paragonie/random-lib: ~2.0.1` — loosen to `^2.0` or evaluate replacing with native `random_bytes()`
+  - **Verify:** `composer validate`, `composer install --dry-run`, `./app/vendor/bin/phpunit`
+- **Result**: Clean, consistent `composer.json`; lockfile versioned; no dead autoload entries; CI-ready
+- **Risk**: Low — mostly deletions and constraint changes; `composer install` + full test suite validates
+- **Agent Prompt**: `migration-docs/TODO/agent_prompts/Step-2_0-Foundation-Consolidation/PROMPT_2_0_5_Composer-Autoload-Hygiene.md`
+
+---
+
+### Step 2.0.6: Test Infrastructure Cleanup
+
+- **Goal**: Consolidate PHPUnit configuration, migrate test annotations to PHP 8 attributes, remove legacy test imports, ensure all test files follow Phase 2 standards.
+- **Prerequisite**: Step 2.0.5 (Composer & Autoload Hygiene) completed
+- **Context**: Phase 1 Audit (Step 1.2) found 4 old module-level `phpunit.xml.dist` files with PHPUnit 9 schema, case-sensitivity issues in test paths, PHPDoc annotations instead of PHP 8 attributes, and a test still importing `Doctrine\Common\Cache\ArrayCache`.
+- **Tasks**:
+  - **Remove/consolidate old PHPUnit configs:**
+    - Delete or migrate: `app/modules/filter/phpunit.xml.dist`, `app/modules/filesystem/phpunit.xml.dist`, `app/modules/cookie/phpunit.xml.dist`, `app/modules/auth/phpunit.xml.dist`
+    - All tests should run via the root `phpunit.xml.dist` (PHPUnit 11 schema)
+  - **Fix test path case-sensitivity:**
+    - Root `phpunit.xml.dist`: `tests/Unit` → match actual directory casing (`tests/unit`)
+  - **Migrate annotations → PHP 8 attributes:**
+    - `@dataProvider` → `#[DataProvider('methodName')]` (6 occurrences in 5 files)
+    - `@group` → `#[Group('name')]` (Mail test files)
+  - **Fix legacy test imports:**
+    - `ConfigManagerTest.php`: Remove `Doctrine\Common\Cache\ArrayCache` import; adapt test to current `ConfigManager` signature
+  - **Modernize mock patterns:**
+    - `ConfigManagerTest.php`: `$this->returnValue(...)` → `willReturn(...)`
+  - **Fix silent exception swallowing:**
+    - `RoutesLoader.php`: empty `catch (\InvalidArgumentException $e) {}` → log or re-throw in debug mode
+  - **Verify:** `./app/vendor/bin/phpunit` — all tests green
+- **Result**: Single PHPUnit config, modern test attributes, no legacy test imports
+- **Risk**: Low — test-only changes; PHPUnit suite validates immediately
+- **Agent Prompt**: `migration-docs/TODO/agent_prompts/Step-2_0-Foundation-Consolidation/PROMPT_2_0_6_Test-Infrastructure-Cleanup.md`
+
+---
+
+### Step 2.0.7: Event Dispatcher Bridge Removal
+
+- **Goal**: Remove the unused `SymfonyEventDispatcherBridge` compatibility layer and its associated service registration and test. Pagekit's own Event Dispatcher (`on`/`trigger`/`subscribe`) remains the sole event system — it is deeply integrated, well-tested, and provides features Symfony's dispatcher does not (extra arguments, module manifest events, `PrefixEventDispatcher`).
+- **Prerequisite**: Step 2.0.6 (Test Infrastructure Cleanup) completed
+- **Context**: Step 1.7 + 1.9 introduced a `SymfonyEventDispatcherBridge` to provide Symfony `EventDispatcherInterface` compatibility. Audit shows **zero production consumers** of the `symfony.event_dispatcher` service — the bridge is dead code. Per Rule 1 (No Compatibility Layers) and Rule 4 (Delete over Wrap), it must be removed.
+- **Decision**: Pagekit keeps its own dispatcher. Rationale:
+  - ~147 call sites (`on`/`trigger`/`subscribe`/`off`) across Kernel, modules, ORM, extensions
+  - Unique features: string events with extra arguments, module manifest `events` array, `PrefixEventDispatcher`
+  - Replacing would require a Phase-level effort with no clear benefit for extension developers
+  - The bridge has zero consumers — removing it is a 3-file change
+- **Tasks**:
+  - **Delete:** `app/modules/application/src/Event/SymfonyEventDispatcherBridge.php`
+  - **Delete:** `app/modules/application/src/Tests/EventDispatcherCompatibilityTest.php`
+  - **Update:** `app/modules/application/index.php` — remove `symfony.event_dispatcher` service registration
+  - **Verify:** No code references `symfony.event_dispatcher` or `SymfonyEventDispatcherBridge`
+  - **Verify:** `./app/vendor/bin/phpunit` green, `php pagekit list` OK
+- **Result**: No compatibility bridges in the event system; Pagekit's dispatcher is the single, documented API
+- **Risk**: Very Low — 3 files, zero production consumers
+- **Agent Prompt**: `migration-docs/TODO/agent_prompts/Step-2_0-Foundation-Consolidation/PROMPT_2_0_7_Event-Bridge-Removal.md`
+
+---
+
+### Step 2.0.8: Critical Hotfix — `User::hasAccess()` `create_function()` Removal
+
+- **Goal**: Replace `create_function()` in `User::hasAccess()` with a PHP 8.2+-compatible implementation. `create_function()` was **removed in PHP 8.0** and causes a **Fatal Error** when boolean permission expressions (`and`/`or`) are evaluated.
+- **Prerequisite**: None — this is a **critical runtime fix** that can be executed at any point.
+- **Priority**: HIGHEST — the code path is reachable in production (any permission check with composite expressions).
+- **Context**: Phase 1 Audit (Step 1.11/1.13) discovered `create_function()` still in `User::hasAccess()`. This was not caught by prior audits because simple permission checks (`'user: manage users'`) don't trigger the `and`/`or` parser branch.
+- **Tasks**:
+  - **File:** `app/system/modules/user/src/Model/User.php` (~line 221–227)
+  - Replace `create_function()` with a safe expression evaluator. Options (in order of preference):
+    1. **Simple recursive descent parser** (preferred — no new dependency, ~30 lines, handles `and`/`or`/`not`/parentheses over permission strings)
+    2. **Symfony ExpressionLanguage** (heavier dependency, more flexible — but overkill for `'perm1 and (perm2 or perm3)'`)
+    3. **`eval()`** — absolutely NOT acceptable (violates CSP and security goals)
+  - Write **unit tests** for composite permission expressions: `'a and b'`, `'a or b'`, `'not a'`, `'(a and b) or c'`, nested parentheses
+  - Verify: `./app/vendor/bin/phpunit`, `php pagekit list`, admin panel permission checks
+- **Result**: `User::hasAccess()` works on PHP 8.2+ with composite permission expressions
+- **Risk**: Low-Medium — single method, but affects authorization logic; thorough test coverage required
+- **Agent Prompt**: `migration-docs/TODO/agent_prompts/Step-2_0-Foundation-Consolidation/PROMPT_2_0_8_User-hasAccess-Hotfix.md`
 
 ---
 
@@ -196,6 +300,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - Per module: Add `strict_types` → run tests → fix `TypeError`s
   - Add type casts where needed (`(int)`, `(string)`, etc.)
   - Update PHPStan baseline after each module migration
+  - **Audit finding:** ~28 test files currently lack `declare(strict_types=1)` — include these in the migration
   - `.php-cs-fixer.php`: Only activate `declare_strict_types` rule AFTER complete migration
 - **Result**: All PHP files have `strict_types`, all tests green
 - **Risk**: Medium-High — runtime behavior changes, `TypeError` possible
@@ -227,6 +332,15 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Agent Note**: Refactorer can handle this well — high volume but repetitive patterns
 - **Identified from 2.1.1 review:**
   - `AuthDataCollector`: `Auth::getUser()` returns `UserInterface`, but code calls `isAuthenticated()` and `User::findRoles()`, which only exist on the concrete `User` class. Either extend `UserInterface` or narrow the return type of `getUser()`.
+  - **Audit findings (Phase 1 review):**
+    - `mixed` mailer type in 3 controllers (`MailController`, `ResetPasswordController`, `RegistrationController`) — should be `Pagekit\Mail\Mailer`
+    - `Mailer::send()` missing `: bool` return type
+    - `Message::send(&$errors)` untyped out-parameter
+    - `Post` model: relations as `mixed` instead of `?User`, `?array`
+    - `Console execute()` methods: missing `: int` return types, `exit` instead of `return Command::SUCCESS`
+    - `Logger::__invoke()` without parameter/return types
+    - `TwigLoader::findTemplate()` / `TwigCache::__construct()` missing parent-compatible types
+    - `mail/index.php`: unused `auth_mode` config key — remove dead config
 
 ---
 
@@ -262,6 +376,14 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
     - `EntityManager`: Remove singleton pattern (`static::$instance`), migrate all call sites to DI
     - `FileLocatorAsset`: Replace static service locator (`setServices()` with `mixed` properties) with DI, type all properties
     - `ResponseListener`: Narrow `mixed $url` property to the correct type (callable/interface)
+  - **Audit findings (Phase 1 review):**
+    - `ModelServiceLocator` + `IntlServiceLocator` — static service locators; replace with proper DI
+    - `PackageController` — `ContainerInterface $app` as God-DI; inject specific services
+    - `#[AllowDynamicProperties]` on `Node`, `Widget` — remove and fix dynamic property usage
+    - ORM `Metadata`, `Relation`, `PropertyTrait` — incomplete typing throughout
+    - `NodeModelTrait` — static request-scoped cache array; replace with proper caching
+    - `UrlGeneratorInterface` (Routing) — naming collision with Symfony; rename to `LinkReferenceType` or similar, move `LINK_URL` constant
+    - `GetResponseEvent` (Auth) — confusing Symfony-5 naming; rename to `AuthResponseEvent` or similar
 - **Result**: PHPStan Level 8 without baseline entries (or with documented, justified exceptions)
 - **Risk**: Medium — may require architectural decisions (change interfaces, introduce generics)
 - **Agent Note**: Architect decisions may be needed here before the Refactorer starts — not all `mixed` can be replaced by simple type declarations
@@ -285,6 +407,12 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
     - `database/index.php`: Remove redundant `Type::addType('json_array', ...)` registration
     - `Connection::registerCustomTypeMappings()`: Simplify/remove `json→json_array` mapping
     - `SimpleArrayType`: Update comments (not a compat layer, but JSON fallback parsing)
+  - **Audit findings (Phase 1 review) — additional DBAL cleanup:**
+    - `Connection::exec()` — compat alias for `executeStatement()`; remove alias, update call sites
+    - `Utility::getSchemaManager()` — deprecated in DBAL 3; use `createSchemaManager()` (also in `Installer.php`, `DbUtil.php`)
+    - `Utility::migrate()` — uses `new Comparator()` without Platform (deprecated); use `$schemaManager->createComparator()`
+    - `Utility::migrate()` — executes DDL via `executeQuery()` instead of `executeStatement()`
+    - `DbUtil` (test helper): `$realConn->exec()` → `executeStatement()`
   - All tests green after migration
 - **Result**: Standard Doctrine documentation usable, IDEs recognize correct return types (`Result`)
 - **Risk**: Low — purely internal API change, all call sites updated in the same step
@@ -333,6 +461,11 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
     - Concurrent admin actions (Session Handling)
     - Database connection failures (ORM Error Handling)
     - `AddRelNofollowFilter` XSS edge cases: Harden filter + activate 3 disabled tests (slash instead of space, null-byte obfuscation, `rel="follow"` replacement) — see `app/modules/filter/src/Tests/AddRelNofollowTest.php`
+  - **Audit findings (Phase 1 review):**
+    - E2E tests (Step 1.10.5): Most were poorly created, not following best practices; only first 3 tests are reasonably functional. Full E2E rework needed.
+    - `MigrationServiceTest` — all tests skipped; write real migrate/rollback coverage
+    - `MenuApiController` — manual validation without `#[Assert\...]` / `ValidatesRequestTrait`; add validation + tests
+    - `assertEquals` vs `assertSame` — ~200+ occurrences where strict comparison would be more appropriate
 - **Result**: Coverage grows organically with every change
 - **Risk**: Low — continuous improvement, no big bang
 - **Note**: No separate branch — coverage tests are delivered in every feature branch

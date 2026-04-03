@@ -116,6 +116,18 @@ Add coverage badge to README if CI generates coverage artifacts.
 
 ---
 
+## AUDIT FINDINGS (Phase 1 Review)
+
+The following test quality/coverage gaps were identified during the Phase 1 codebase audit:
+
+- **E2E tests (Step 1.10.5):** Most were poorly created, not following best practices; only the first 3 tests are reasonably functional. Full E2E rework needed before relying on them for regression testing.
+- **`MigrationServiceTest`:** All tests are currently **skipped** — write real migrate/rollback/status test coverage
+- **`MenuApiController`:** Uses manual validation (`trim`, `filter`, `BadRequestHttpException`) instead of `#[Assert\...]` + `ValidatesRequestTrait` — add proper validation + tests
+- **`assertEquals` usage:** ~200+ occurrences where `assertSame` (strict comparison) would be more appropriate — migrate incrementally as test files are touched
+- **Query cache tests (`QueryBuilderCacheTest`):** Only test key consistency and suffix; do NOT test parameter collision or cache invalidation — add regression tests
+
+---
+
 ## SUCCESS CRITERIA
 
 - Coverage increases with each change

@@ -1123,16 +1123,19 @@ SUCCESS CRITERIA:
 
 ### Step 1.13.5: Complete Template Security Modernization
 
-- **Status**: ✅ COMPLETED
+- **Status**: ⏸️ ~80% COMPLETED
 - **Branch**: `feature/complete-template-security`
 - **Goal**: Bring template security to gold standard (no intermediate steps!)
 - **Philosophy**: "Playground Approach" — do it right the first time instead of iterating
-- **Tasks**:
-  - Remove eval() from PhpEngine (dead code)
-  - Data attributes instead of inline scripts (gold standard!)
-  - Complete CSP without unsafe-inline/unsafe-eval
-  - Modern security headers in .htaccess
-  - Security audit & tests
+- **What's done (80%)**:
+  - ✅ eval() removed from PhpEngine (dead code)
+  - ✅ Data attributes instead of inline scripts (`DataHelper` uses JSON `<script>` container)
+  - ✅ `config-loader.js` reads config from DOM, sets `window.$pagekit` (backward compatible)
+  - ✅ Modern security headers in `.htaccess` (HSTS, COEP, COOP, CORP)
+- **What's remaining (20%)**:
+  - ⚠️ CSP `script-src` still includes `'unsafe-eval'` — required by Vue 2 runtime compiler (`new Function()`). Removal blocked until Step **3.2.1** (Vue Template Pre-compilation)
+  - ⚠️ CSP `style-src` still includes `'unsafe-inline'` — UIkit inline styles. Improvement possible after UIkit update (Step **3.1**)
+  - ⏳ CSP only enforced via Apache `.htaccess` — not via PHP `ResponseListener` (dev servers without Apache have no CSP)
 
 **Priority**: 🔴 HIGH (Security!)
 

@@ -36,12 +36,13 @@ The Orchestrator is a **dispatcher**, not a worker. It delegates, commits, and m
 
 Plans live in `.cursor/tickets/{task-slug}_plan.md` (task-slug = task prompt filename without path/extension). Subagents read only the ticket file (and code); they do not need the full task prompt.
 
-| Delegation     | Message                                                                                                                          |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| **Architect**  | "Delegate to **architect**. Task: `migration-docs/TODO/agent_prompts/{file}.md`. Output: `.cursor/tickets/{task-slug}_plan.md`." |
-| **Refactorer** | "Ticket: `.cursor/tickets/{task-slug}_plan.md`, Step N. Delegate to **refactorer**."                                             |
-| **Verifier**   | "Ticket: `.cursor/tickets/{task-slug}_plan.md`, Step N. Changed files: [list]. Delegate to **verifier**."                        |
-| **Tester**     | "Delegate to **tester**. Run: PHPUnit (+ Playwright / php pagekit setup as needed)."                                             |
+| Delegation            | Message                                                                                                                          |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **Architect**         | "Delegate to **architect**. Task: `migration-docs/TODO/agent_prompts/{file}.md`. Output: `.cursor/tickets/{task-slug}_plan.md`." |
+| **Refactorer**        | "Ticket: `.cursor/tickets/{task-slug}_plan.md`, Step N. Delegate to **refactorer**."                                             |
+| **Verifier**          | "Ticket: `.cursor/tickets/{task-slug}_plan.md`, Step N. Changed files: [list]. Delegate to **verifier**."                        |
+| **Tester** (per step) | "Delegate to **tester**. Run: PHPUnit + PHPStan."                                                                                |
+| **Tester** (final)    | "Delegate to **tester**. Final test run: PHPUnit + PHPStan + `php pagekit setup` + `php pagekit list` + Playwright E2E."         |
 
 ## Workflow
 
@@ -68,6 +69,15 @@ Task Prompt
     │
     ▼
 ┌─────────────────────────────────────────────────────────────┐
+│ FINAL TEST (after ALL steps committed, before Finalize):    │
+│   TESTER (subagent) → "Final test run" message              │
+│   Runs: PHPUnit + PHPStan + php pagekit setup               │
+│         + php pagekit list + Playwright E2E (3 specs)       │
+│   If FAIL → delegate fix to Refactorer, re-test             │
+└─────────────────────────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────┐
 │ FINALIZE (Orchestrator, no subagent)                        │
 │ push.mdc: version bump, CHANGELOG, push, PR + metadata      │
 │ Do NOT merge.                                               │
@@ -84,11 +94,17 @@ Task Prompt
 
 Orchestrator (no subagent) executes **push.mdc**:
 
-1. **Version bump** — `.cursor/skills/version-bump/SKILL.md`
-2. **CHANGELOG-NEW.md** — group all commits from this task
-3. **Push** — to remote (branch from develop if needed)
-4. **PR** — `<!-- metadata -->` block (labels, milestone, `closes`). Use GitHub Issue number from invocation (`GitHub Issue: #XXX`). Include `Closes #XXX` in PR body AND metadata `closes:` field. See `push.mdc` + `github-labels.mdc`.
-5. **Do NOT merge** — user reviews and merges.
+1. **Branch documentation** — Create `migration-docs/branches/{task-name}.md` documenting:
+   - All changes made (files, what changed, why)
+   - Breaking changes for extensions (if any)
+   - Test results summary
+   - Referenced ROADMAP step and GitHub Issue
+     Use existing files in `migration-docs/branches/` as reference for format/style.
+2. **Version bump** — `.cursor/skills/version-bump/SKILL.md`
+3. **CHANGELOG-NEW.md** — group all commits from this task
+4. **Push** — to remote (branch from develop if needed)
+5. **PR** — `<!-- metadata -->` block (labels, milestone, `closes`). Use GitHub Issue number from invocation (`GitHub Issue: #XXX`). Include `Closes #XXX` in PR body AND metadata `closes:` field. See `push.mdc` + `github-labels.mdc`.
+6. **Do NOT merge** — user reviews and merges.
 
 ## On Failure (CRITICAL — do not self-fix)
 
