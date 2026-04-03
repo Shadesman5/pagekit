@@ -69,6 +69,14 @@ already tracked with a GitHub Issue, **do NOT flag it as a Bug**. Instead:
 | `App::abort()`, `App::redirect()` | Step 2.0.1e (StaticTrait Removal) | #166 |
 | `App::getInstance()` temporary bridges | Step 2.0.1e (StaticTrait Removal) | #166 |
 | `$app['x'] = ...` ArrayAccess WRITE | Step 2.0.1d (ArrayAccess Removal) | #165 |
+| `Pagekit\Cache\CacheInterface` / `Psr6Adapter` | Step 2.0.3 (Cache API Modernization) | #179 |
+| `PackageScripts` without Doctrine Migrations | Step 2.0.4 (Package/Migration Redesign) | #180 |
+| `composer.lock` not versioned, dead PSR-4 mappings | Step 2.0.5 (Composer & Autoload Hygiene) | #182 |
+| Old `phpunit.xml.dist` in modules, `@dataProvider` annotations | Step 2.0.6 (Test Infrastructure Cleanup) | #183 |
+| `SymfonyEventDispatcherBridge` / `symfony.event_dispatcher` | Step 2.0.7 (Event Bridge Removal) | #184 |
+| `create_function()` in `User::hasAccess()` | Step 2.0.8 (Hotfix: create_function) | #185 |
+| `Connection::exec()` alias, `json_array` type, deprecated `getSchemaManager()` | Step 2.1.7 (QueryBuilder/DBAL) | #154 |
+| `ModelServiceLocator`, `IntlServiceLocator`, `#[AllowDynamicProperties]` | Step 2.1.6 (PHPStan Level 8) | #153 |
 
 This table MUST be updated when new deferred items are added to the ROADMAP.
 Bugbot should re-read ROADMAP.md on every review to detect changes.

@@ -499,7 +499,7 @@ parameters:
 			path: app/modules/auth/src/Handler/DatabaseHandler.php
 
 		-
-			message: '#^PHPDoc tag @param has invalid value \(UserInterface\)\: Unexpected token "\\r\\n     ", expected variable at offset 66 on line 4$#'
+			message: '#^PHPDoc tag @param has invalid value \(UserInterface\)\: Unexpected token "\\n     ", expected variable at offset 63 on line 4$#'
 			identifier: phpDoc.parseError
 			count: 1
 			path: app/modules/auth/src/Handler/HandlerInterface.php
