@@ -84,12 +84,14 @@ php pagekit list
 
 ### 3.1 Approach
 
-After steps 1–3, the expression is already reduced to a string containing only: `0`, `1`, `&`, `|`, `!`, `(`, `)`. This is a **trivial grammar**:
+After steps 1–3, the expression is already reduced to a string containing only: `0`, `1`, `&`, `|`, `!`, `(`, `)`. This is a **trivial grammar**.
+
+**CRITICAL:** The sanitization regex `preg_replace('/[^01&\(\)\|!]/', '', ...)` preserves **single** `&` and `|` characters. Users may write `perm1 | perm2` or `perm1 & perm2` (single operators). After sanitization this becomes `0|1` or `0&1`. The old `create_function("", "return 0|1;")` evaluated these as PHP bitwise OR/AND, which for `0`/`1` values produces identical results to logical `||`/`&&`. The parser **must handle both single and double operators** or permissions with single-character operators will silently fail.
 
 ```
 expr     → orExpr
-orExpr   → andExpr ( '||' andExpr )*
-andExpr  → notExpr ( '&&' notExpr )*
+orExpr   → andExpr ( ('||' | '|') andExpr )*
+andExpr  → notExpr ( ('&&' | '&') notExpr )*
 notExpr  → '!' notExpr | atom
 atom     → '(' expr ')' | '0' | '1'
 ```
@@ -111,8 +113,11 @@ private static function evaluateBooleanExpression(string $exp): bool
 
     $parseOr = function () use (&$parseAnd, &$pos, $len, $exp): bool {
         $result = $parseAnd();
-        while ($pos < $len - 1 && $exp[$pos] === '|' && $exp[$pos + 1] === '|') {
-            $pos += 2;
+        while ($pos < $len && $exp[$pos] === '|') {
+            $pos++;
+            if ($pos < $len && $exp[$pos] === '|') {
+                $pos++;
+            }
             $result = $parseAnd() || $result;
         }
         return $result;
@@ -120,8 +125,11 @@ private static function evaluateBooleanExpression(string $exp): bool
 
     $parseAnd = function () use (&$parseNot, &$pos, $len, $exp): bool {
         $result = $parseNot();
-        while ($pos < $len - 1 && $exp[$pos] === '&' && $exp[$pos + 1] === '&') {
-            $pos += 2;
+        while ($pos < $len && $exp[$pos] === '&') {
+            $pos++;
+            if ($pos < $len && $exp[$pos] === '&') {
+                $pos++;
+            }
             $result = $parseNot() && $result;
         }
         return $result;
@@ -196,13 +204,21 @@ Test cases (use a User mock/fixture with known permissions):
 $this->assertTrue($user->hasAccess('read'));
 $this->assertFalse($user->hasAccess('admin'));
 
-// AND
+// AND (double)
 $this->assertTrue($user->hasAccess('read && write'));
 $this->assertFalse($user->hasAccess('read && admin'));
 
-// OR
+// AND (single — must work identically to &&)
+$this->assertTrue($user->hasAccess('read & write'));
+$this->assertFalse($user->hasAccess('read & admin'));
+
+// OR (double)
 $this->assertTrue($user->hasAccess('read || admin'));
 $this->assertFalse($user->hasAccess('admin || superadmin'));
+
+// OR (single — must work identically to ||)
+$this->assertTrue($user->hasAccess('read | admin'));
+$this->assertFalse($user->hasAccess('admin | superadmin'));
 
 // NOT
 $this->assertTrue($user->hasAccess('!admin'));
@@ -238,6 +254,11 @@ $this->assertFalse(User::evaluateBooleanExpression('0'));
 $this->assertTrue(User::evaluateBooleanExpression('1&&1'));
 $this->assertFalse(User::evaluateBooleanExpression('1&&0'));
 $this->assertTrue(User::evaluateBooleanExpression('0||1'));
+// Single operators (bitwise-style, common in user input)
+$this->assertTrue(User::evaluateBooleanExpression('1&1'));
+$this->assertFalse(User::evaluateBooleanExpression('1&0'));
+$this->assertTrue(User::evaluateBooleanExpression('0|1'));
+$this->assertFalse(User::evaluateBooleanExpression('0|0'));
 $this->assertTrue(User::evaluateBooleanExpression('!0'));
 $this->assertFalse(User::evaluateBooleanExpression('!1'));
 $this->assertTrue(User::evaluateBooleanExpression('(1&&0)||1'));
