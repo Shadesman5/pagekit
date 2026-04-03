@@ -39,6 +39,7 @@ class QueryBuilderCacheTest extends TestCase
         $queryBuilder = $this->createMock(\Pagekit\Database\Query\QueryBuilder::class);
         $queryBuilder->method('from')->willReturnSelf();
         $queryBuilder->method('getSQL')->willReturn('SELECT * FROM test_table');
+        $queryBuilder->method('params')->willReturn([]);
 
         $connection->method('createQueryBuilder')->willReturn($queryBuilder);
 

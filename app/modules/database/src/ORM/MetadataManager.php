@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\Database\ORM;
 
-use Pagekit\Cache\CacheInterface;
 use Pagekit\Database\Connection;
 use Pagekit\Database\ORM\Loader\LoaderInterface;
 use Pagekit\Event\EventDispatcherInterface;
@@ -18,7 +17,7 @@ class MetadataManager
 
     protected ?LoaderInterface $loader = null;
 
-    protected CacheItemPoolInterface|CacheInterface|null $cache = null;
+    protected ?CacheItemPoolInterface $cache = null;
 
     /**
      * @var Metadata[]
@@ -62,7 +61,7 @@ class MetadataManager
     /**
      * Gets the cache used for caching Metadata objects.
      */
-    public function getCache(): CacheItemPoolInterface|CacheInterface|null
+    public function getCache(): ?CacheItemPoolInterface
     {
         return $this->cache;
     }
@@ -70,9 +69,9 @@ class MetadataManager
     /**
      * Sets the cache used for caching Metadata objects.
      *
-     * @param CacheItemPoolInterface|CacheInterface $cache
+     * @param CacheItemPoolInterface $cache
      */
-    public function setCache(CacheItemPoolInterface|CacheInterface $cache): void
+    public function setCache(CacheItemPoolInterface $cache): void
     {
         $this->cache = $cache;
     }
@@ -112,30 +111,17 @@ class MetadataManager
                     $current = $parent;
                 }
 
-                $id = sprintf('%s%s.%s', $this->prefix, $hash, $name);
+                $id = self::sanitizeCacheKey(sprintf('%s%s.%s', $this->prefix, $hash, $name));
 
-                // Support both PSR-6 and legacy CacheInterface
-                if ($this->cache instanceof CacheItemPoolInterface) {
-                    $item = $this->cache->getItem($id);
+                $item = $this->cache->getItem($id);
 
-                    if ($item->isHit()) {
-                        $config = $item->get();
-                        $this->metadata[$name] = new Metadata($this, $name, $config);
-                    } else {
-                        $metadata = $this->load($class);
-                        $item->set($metadata->getConfig());
-                        $this->cache->save($item);
-                    }
+                if ($item->isHit()) {
+                    $config = $item->get();
+                    $this->metadata[$name] = new Metadata($this, $name, $config);
                 } else {
-                    // Legacy CacheInterface (with PSR-6 methods via Psr6Adapter)
-                    $config = $this->cache->fetch($id);
-
-                    if ($config !== false) {
-                        $this->metadata[$name] = new Metadata($this, $name, $config);
-                    } else {
-                        $metadata = $this->load($class);
-                        $this->cache->save($id, $metadata->getConfig());
-                    }
+                    $metadata = $this->load($class);
+                    $item->set($metadata->getConfig());
+                    $this->cache->save($item);
                 }
 
             } else {
@@ -146,6 +132,18 @@ class MetadataManager
         }
 
         return $this->metadata[$name];
+    }
+
+    /**
+     * Sanitize a cache key for PSR-6 compliance.
+     *
+     * PSR-6 reserves the characters {}()/\@: in cache keys.
+     * This method replaces them with underscores, preserving the behavior
+     * of the former Psr6Adapter::getNamespacedId().
+     */
+    private static function sanitizeCacheKey(string $key): string
+    {
+        return str_replace([':', '\\', '/', '@', '{', '}', '(', ')'], '_', $key);
     }
 
     /**
