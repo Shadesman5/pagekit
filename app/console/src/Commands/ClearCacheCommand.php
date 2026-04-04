@@ -24,18 +24,7 @@ class ClearCacheCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        // Clear the PSR-6 cache pool (works for all backends: file, APCu, array)
-        if ($this->container->has('cache')) {
-            $this->container->get('cache')->clear();
-        }
-
-        // Clear compiled cache files (Symfony route/metadata caches, not PSR-6 items)
-        foreach ((array) glob($this->container->get('path.cache') . '/*.cache') as $file) {
-            if (function_exists('opcache_invalidate')) {
-                opcache_invalidate($file, true);
-            }
-            @unlink($file);
-        }
+        $this->container->get('module')->get('system/cache')->doClearCache();
 
         $this->line('Cache cleared.');
 
