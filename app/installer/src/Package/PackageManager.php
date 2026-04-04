@@ -156,6 +156,8 @@ class PackageManager
         foreach ($packages as $package) {
             $originalState = null;
             $moduleName = $package->get('module');
+            $appliedMigrationNs = null;
+            $appliedMigrationPath = null;
 
             try {
                 $previousPackageConfig = $package;
@@ -209,9 +211,12 @@ class PackageManager
                                 'Extension migration failed: ' . ($migrationResult['error'] ?? 'unknown error')
                             );
                         }
+                        if (($migrationResult['executed'] ?? 0) > 0) {
+                            $appliedMigrationNs = $migrationNamespace;
+                            $appliedMigrationPath = $packagePath . '/src/Migrations';
+                        }
                     }
 
-                    // Execute enable scripts BEFORE setting config
                     $scripts->enable();
 
                     $version = $this->getVersion($package);
@@ -230,6 +235,14 @@ class PackageManager
                     $scripts->enable();
                 }
             } catch (\Throwable $e) {
+                if ($appliedMigrationNs !== null && $this->app->has('migration')) {
+                    $this->app->get('migration')->rollbackExtension(
+                        $appliedMigrationNs,
+                        $appliedMigrationPath,
+                        '0'
+                    );
+                }
+
                 if ($originalState !== null) {
                     $this->rollbackEnable($package, $originalState);
                 }
@@ -356,9 +369,9 @@ class PackageManager
         $packagePath = $package->get('path');
 
         if ($packagePath !== null && file_exists($packagePath . '/index.php')) {
-            $config = require $packagePath . '/index.php';
-            if (is_array($config) && isset($config['autoload']) && is_array($config['autoload'])) {
-                foreach ($config['autoload'] as $ns => $dir) {
+            $autoload = $this->parseAutoloadFromIndexFile($packagePath . '/index.php');
+            if ($autoload !== null) {
+                foreach ($autoload as $ns => $dir) {
                     return rtrim((string) $ns, '\\') . '\\Migrations';
                 }
             }
@@ -383,6 +396,36 @@ class PackageManager
         }
 
         return null;
+    }
+
+    /**
+     * Extract the 'autoload' array from a package index.php without executing closures.
+     *
+     * Extension index.php files contain closures that reference variables like $app
+     * which are undefined in this scope. Using token-based extraction avoids executing
+     * the file and risking undefined-variable errors or duplicate side effects.
+     *
+     * @return array<string, string>|null The autoload map, or null if not found
+     */
+    private function parseAutoloadFromIndexFile(string $filePath): ?array
+    {
+        $content = file_get_contents($filePath);
+        if ($content === false) {
+            return null;
+        }
+
+        if (!preg_match("/['\"]autoload['\"]\s*=>\s*\[([^\]]+)\]/s", $content, $match)) {
+            return null;
+        }
+
+        $result = [];
+        if (preg_match_all("/['\"]([^'\"]+)['\"]\s*=>\s*['\"]([^'\"]+)['\"]/", $match[1], $pairs, PREG_SET_ORDER)) {
+            foreach ($pairs as $pair) {
+                $result[$pair[1]] = $pair[2];
+            }
+        }
+
+        return $result !== [] ? $result : null;
     }
 
     /**
