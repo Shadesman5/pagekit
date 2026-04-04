@@ -72,6 +72,7 @@ already tracked with a GitHub Issue, **do NOT flag it as a Bug**. Instead:
 | `Pagekit\Cache\CacheInterface` / `Psr6Adapter` | Step 2.0.3 (Cache API Modernization) | #179 |
 | `PackageScripts` without Doctrine Migrations | Step 2.0.4 (Package/Migration Redesign) | #180 |
 | `composer.lock` not versioned, dead PSR-4 mappings | Step 2.0.5 (Composer & Autoload Hygiene) | #182 |
+| ~~`.gitignore` lock files, `install.sh` rewrite~~ | ~~Step 2.0.5~~ — **shipped early** in Step 2.0.3 PR #187 | #182 |
 | Old `phpunit.xml.dist` in modules, `@dataProvider` annotations | Step 2.0.6 (Test Infrastructure Cleanup) | #183 |
 | `SymfonyEventDispatcherBridge` / `symfony.event_dispatcher` | Step 2.0.7 (Event Bridge Removal) | #184 |
 | `create_function()` in `User::hasAccess()` | Step 2.0.8 (Hotfix: create_function) | #185 |
