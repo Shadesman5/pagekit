@@ -78,10 +78,7 @@ class PackageManager
         }
     }
 
-    /**
-     * @param  array $uninstall
-     */
-    public function uninstall($uninstall): void
+    public function uninstall(string|array $uninstall): void
     {
         $packageFactory = $this->app->get('package');
 
@@ -137,11 +134,7 @@ class PackageManager
         }
     }
 
-    /**
-     * @param $packages
-     * @param $previousPackageConfigs
-     */
-    public function enable($packages, $previousPackageConfigs = []): void
+    public function enable(object|array $packages, object|array $previousPackageConfigs = []): void
     {
         if (!is_array($packages)) {
             $packages = [$packages];
@@ -250,7 +243,7 @@ class PackageManager
     /**
      * Rollback package enable on error.
      */
-    protected function rollbackEnable($package, array $originalState): void
+    protected function rollbackEnable(object $package, array $originalState): void
     {
         $moduleName = $package->get('module');
         $config = $this->app->get('config')('system');
@@ -277,10 +270,7 @@ class PackageManager
         }
     }
 
-    /**
-     * @param $packages
-     */
-    public function disable($packages): void
+    public function disable(object|array $packages): void
     {
         if (!is_array($packages)) {
             $packages = [$packages];
@@ -295,11 +285,7 @@ class PackageManager
         }
     }
 
-    /**
-     * @param  array $package
-     * @param  string $current
-     */
-    protected function getScripts($package, $current = null): PackageScripts
+    protected function getScripts(object $package, ?string $current = null): PackageScripts
     {
         if (!$scripts = $package->get('extra.scripts')) {
             return new PackageScripts(null, $current, $this->app);
@@ -312,10 +298,7 @@ class PackageManager
         return new PackageScripts($path . '/' . $scripts, $current, $this->app);
     }
 
-    /**
-     * @param  $package
-     */
-    protected function doInstall($package): string
+    protected function doInstall(object $package): string
     {
         $this->getScripts($package)->install();
         $version = $this->getVersion($package);
@@ -365,11 +348,8 @@ class PackageManager
 
     /**
      * Tries to obtain package version from 'composer.json' or installation log.
-     *
-     * @param  $package
-     * @return string
      */
-    protected function getVersion($package): string
+    protected function getVersion(object $package): string
     {
         if (!$path = $package->get('path')) {
             throw new \RuntimeException(__('Package path is missing.'));

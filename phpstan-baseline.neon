@@ -271,12 +271,6 @@ parameters:
 			path: app/installer/src/Package/PackageFactory.php
 
 		-
-			message: '#^Cannot call method get\(\) on array\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: app/installer/src/Package/PackageManager.php
-
-		-
 			message: '#^Call to an undefined method Pagekit\\Installer\\SelfUpdater\:\:writeln\(\)\.$#'
 			identifier: method.notFound
 			count: 1
