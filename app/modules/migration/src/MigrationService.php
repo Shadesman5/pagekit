@@ -73,16 +73,6 @@ class MigrationService
     }
 
     /**
-     * Get configuration file path
-     *
-     * @return string Path to migrations.php config file
-     */
-    private function getConfigPath(): string
-    {
-        return __DIR__ . '/../../../config/migrations.php';
-    }
-
-    /**
      * Replace table prefix placeholder
      *
      * Replaces '@' placeholder with actual table prefix (e.g., 'pk_').
@@ -138,26 +128,24 @@ class MigrationService
             // Execute migrations with MigratorConfiguration
             $migratorConfig = new \Doctrine\Migrations\MigratorConfiguration();
             $migratorConfig->setDryRun($dryRun);
+            /** @var \Doctrine\Migrations\MigratorConfiguration $migratorConfig */
             $result = $migrator->migrate($plan, $migratorConfig);
 
-            // TODO: Must be refactored in Step 2.0.4 (Package/Migration System Redesign) —
-            // An array result from $migrator->migrate() is treated as "0 migrations, OK"
-            // which may silently suppress errors. Validate the actual return type and
-            // distinguish between "nothing to do" and "failure".
-            if (is_array($result)) {
-                return [
-                    'success' => true,
-                    'executed' => 0,
-                    'time' => 0,
-                    'sql' => [],
-                ];
+            $executed = count($result);
+            $sql = [];
+
+            /** @var \Doctrine\Migrations\Query\Query[] $queries */
+            foreach ($result as $queries) {
+                foreach ($queries as $query) {
+                    $sql[] = $query;
+                }
             }
 
             return [
                 'success' => true,
-                'executed' => count($result->getMigrations()),
-                'time' => $result->getTime(),
-                'sql' => $result->getSql(),
+                'executed' => $executed,
+                'time' => 0.0,
+                'sql' => $sql,
             ];
 
         } catch (\Exception $e) {
@@ -249,19 +237,12 @@ class MigrationService
             $migratorConfig->setDryRun($dryRun);
             $result = $migrator->migrate($plan, $migratorConfig);
 
-            // Check if result is valid
-            if (is_array($result)) {
-                return [
-                    'success' => true,
-                    'executed' => 0,
-                    'time' => 0,
-                ];
-            }
+            $executed = count($result);
 
             return [
                 'success' => true,
-                'executed' => count($result->getMigrations()),
-                'time' => $result->getTime(),
+                'executed' => $executed,
+                'time' => 0.0,
             ];
 
         } catch (\Exception $e) {
@@ -526,21 +507,21 @@ class MigrationService
             $migratorConfig = new \Doctrine\Migrations\MigratorConfiguration();
             $result = $migrator->migrate($plan, $migratorConfig);
 
-            // Check if result is valid
-            if (is_array($result)) {
-                return [
-                    'success' => true,
-                    'executed' => 0,
-                    'time' => 0,
-                    'sql' => [],
-                ];
+            $executed = count($result);
+            $sql = [];
+
+            /** @var \Doctrine\Migrations\Query\Query[] $queries */
+            foreach ($result as $queries) {
+                foreach ($queries as $query) {
+                    $sql[] = $query;
+                }
             }
 
             return [
                 'success' => true,
-                'executed' => count($result->getMigrations()),
-                'time' => $result->getTime(),
-                'sql' => $result->getSql(),
+                'executed' => $executed,
+                'time' => 0.0,
+                'sql' => $sql,
             ];
 
         } catch (\Exception $e) {
@@ -653,18 +634,12 @@ class MigrationService
             $migratorConfig = new \Doctrine\Migrations\MigratorConfiguration();
             $result = $migrator->migrate($plan, $migratorConfig);
 
-            if (is_array($result)) {
-                return [
-                    'success' => true,
-                    'executed' => 0,
-                    'time' => 0,
-                ];
-            }
+            $executed = count($result);
 
             return [
                 'success' => true,
-                'executed' => count($result->getMigrations()),
-                'time' => $result->getTime(),
+                'executed' => $executed,
+                'time' => 0.0,
             ];
 
         } catch (\Exception $e) {

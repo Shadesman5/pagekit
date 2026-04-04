@@ -1147,18 +1147,6 @@ parameters:
 			path: app/modules/migration/src/ConfigurationProvider.php
 
 		-
-			message: '#^Call to function is_array\(\) with array\<string, array\<Doctrine\\Migrations\\Query\\Query\>\> will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 4
-			path: app/modules/migration/src/MigrationService.php
-
-		-
-			message: '#^Method Pagekit\\Migration\\MigrationService\:\:getConfigPath\(\) is unused\.$#'
-			identifier: method.unused
-			count: 1
-			path: app/modules/migration/src/MigrationService.php
-
-		-
 			message: '#^Result of \|\| is always false\.$#'
 			identifier: booleanOr.alwaysFalse
 			count: 2
@@ -1174,12 +1162,6 @@ parameters:
 			message: '#^Strict comparison using \=\=\= between int\<1, max\> and 0 will always evaluate to false\.$#'
 			identifier: identical.alwaysFalse
 			count: 2
-			path: app/modules/migration/src/MigrationService.php
-
-		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
-			count: 4
 			path: app/modules/migration/src/MigrationService.php
 
 		-
