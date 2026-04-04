@@ -42,13 +42,18 @@ class MigrationCommand extends Command
         $config = $this->container->get('config')('system');
 
         $scripts = new PackageScripts($this->container->get('path').'/app/system/scripts.php', $config->get('version'), $this->container);
-        if ($scripts->hasUpdates()) {
+        $hadScriptUpdates = $scripts->hasUpdates();
+        if ($hadScriptUpdates) {
             $scripts->update();
         }
 
         $config->set('version', $this->container->get('version'));
 
-        $this->line(sprintf('<info>%s</info>', __('Your Pagekit database has been updated successfully.')));
+        if ($result['executed'] > 0 || $hadScriptUpdates) {
+            $this->line(sprintf('<info>%s</info>', __('Your Pagekit database has been updated successfully.')));
+        } else {
+            $this->line(sprintf('<info>%s</info>', __('Your database is up to date.')));
+        }
 
         return SymfonyCommand::SUCCESS;
     }
