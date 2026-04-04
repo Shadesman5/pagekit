@@ -37,7 +37,8 @@ class MigrationController
     {
         /** @var MigrationService $migrationService */
         $migrationService = $this->app->get('migration');
-        $hasPendingMigrations = $migrationService->status()['has_pending'];
+        $migrationStatus = $migrationService->status();
+        $hasPendingMigrations = !($migrationStatus['success'] ?? false) || ($migrationStatus['has_pending'] ?? false);
 
         if (!$this->scripts->hasUpdates() && !$hasPendingMigrations) {
             return $this->router->redirect($redirect ?: '@system');

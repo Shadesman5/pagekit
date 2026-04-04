@@ -124,7 +124,8 @@ return [
             if ($event->getUser()->hasAccess('system: software updates') && version_compare($this->config('version'), $app->get('version'), '<')) {
 
                 $scripts = new PackageScripts($this->path . '/scripts.php', $this->config('version'), $app);
-                $hasPendingMigrations = $app->has('migration') && $app->get('migration')->status()['has_pending'];
+                $migrationStatus = $app->has('migration') ? $app->get('migration')->status() : ['success' => true, 'has_pending' => false];
+                $hasPendingMigrations = !($migrationStatus['success'] ?? false) || ($migrationStatus['has_pending'] ?? false);
 
                 if ($scripts->hasUpdates() || $hasPendingMigrations) {
                     $event->setResponse($app->get('response')->redirect('@system/migration', ['redirect' => $app->get('url')->getRoute('@system')]));

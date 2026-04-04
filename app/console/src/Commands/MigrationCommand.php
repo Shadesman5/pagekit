@@ -28,16 +28,15 @@ class MigrationCommand extends Command
         /** @var \Pagekit\Migration\MigrationService $migration */
         $migration = $this->container->get('migration');
 
-        try {
-            $result = $migration->migrate();
-        } catch (\Throwable $e) {
-            $this->line(sprintf('<error>Doctrine Migration failed: %s</error>', $e->getMessage()));
+        $result = $migration->migrate();
+
+        if (!$result['success']) {
+            $this->line(sprintf('<error>Doctrine Migration failed: %s</error>', $result['error'] ?? 'unknown error'));
             return SymfonyCommand::FAILURE;
         }
 
-        $executed = $result['executed'] ?? 0;
-        if ($executed > 0) {
-            $this->line(sprintf('<info>Executed %d Doctrine migration(s).</info>', $executed));
+        if ($result['executed'] > 0) {
+            $this->line(sprintf('<info>Executed %d Doctrine migration(s).</info>', $result['executed']));
         }
 
         $config = $this->container->get('config')('system');

@@ -99,11 +99,20 @@ class PackageManager
                 try {
                     $migrationNamespace = $this->resolveExtensionMigrationNamespace($package);
                     if ($migrationNamespace !== null) {
-                        $this->app->get('migration')->rollbackExtension(
+                        $rollbackResult = $this->app->get('migration')->rollbackExtension(
                             $migrationNamespace,
                             $packagePath . '/src/Migrations',
                             '0'
                         );
+                        if (!$rollbackResult['success'] && $this->app->has('log')) {
+                            $this->app->get('log')->warning(
+                                sprintf(
+                                    'Failed to rollback migrations for package "%s": %s',
+                                    $package->get('name'),
+                                    $rollbackResult['error'] ?? 'unknown error'
+                                )
+                            );
+                        }
                     }
                 } catch (\Throwable $e) {
                     if ($this->app->has('log')) {
@@ -186,10 +195,15 @@ class PackageManager
                     ) {
                         $migrationNamespace = $this->resolveExtensionMigrationNamespace($package);
                         if ($migrationNamespace !== null) {
-                            $this->app->get('migration')->migrateExtension(
+                            $migrationResult = $this->app->get('migration')->migrateExtension(
                                 $migrationNamespace,
                                 $packagePath . '/src/Migrations'
                             );
+                            if (!$migrationResult['success']) {
+                                throw new \RuntimeException(
+                                    'Extension migration failed: ' . ($migrationResult['error'] ?? 'unknown error')
+                                );
+                            }
                         }
                     }
 
