@@ -17,7 +17,8 @@ use Pagekit\Migration\ExtensionMigration;
  * - {prefix}blog_post: Blog posts
  * - {prefix}blog_comment: Post comments
  */
-final class Version001_CreateBlogTables extends ExtensionMigration
+// TODO: AUDIT FIX Step 2.0.5 — Existing installations may need migration_versions table updated from Version001_CreateBlogTables to this class name
+final class Version20251023070000_CreateBlogTables extends ExtensionMigration
 {
     /**
      * {@inheritdoc}
