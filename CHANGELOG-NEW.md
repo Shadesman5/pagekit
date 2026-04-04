@@ -1,5 +1,37 @@
 # Changelog
 
+## Pagekit 1.2.9 - Package Migration System Redesign (April 4, 2026)
+
+### Breaking Changes
+
+- **`PackageManager::enable()` auto-migration** — Extensions with a `src/Migrations/` directory now have Doctrine migrations auto-executed on enable and auto-rolled-back on uninstall. The `migration` service must be available in the container.
+- **`PackageManager` method signatures typed** — All public methods (`uninstall`, `enable`, `disable`, `getScripts`, `doInstall`, `getVersion`, `rollbackEnable`) now have PHP 8.2+ union/object type declarations.
+- **`DatabaseHandler::createTable()` removed** — The `@system_auth` table is now exclusively managed by Doctrine migration `Version20251023061532`.
+
+### Features
+
+- **Extension auto-migrate on enable** — `PackageManager::enable()` detects `src/Migrations/` directory and runs `MigrationService::migrateExtension()` before setting version. On failure, existing rollback handler triggers. (Closes #180)
+- **Extension auto-rollback on uninstall** — `PackageManager::uninstall()` rolls back extension Doctrine migrations before file removal. Failure logged as warning but does not block uninstall.
+
+### Refactor
+
+- **MigrationService hardened** — Removed `is_array($result)` guard branches from `migrate()`, `rollback()`, `migrateExtension()`, `rollbackExtension()`. Doctrine Migrations 3.x returns `array<string, ExecutionResult>`. Deleted unused `getConfigPath()` method.
+- **Login check unified** — `auth.login` handler checks `MigrationService::status()['has_pending']` before version bump. Redirects to migration wizard if Doctrine migrations OR scripts are pending.
+- **Update wizard unified** — `MigrationController::migrateAction()` runs Doctrine migrations before `PackageScripts::update()`. `indexAction()` shows wizard when pending Doctrine migrations exist. Constructor fully typed.
+- **CLI migrate command unified** — `MigrationCommand::execute()` runs Doctrine migrations first, then scripts. Version bump only after both succeed. Uses `Command::SUCCESS`/`FAILURE` constants. Added `declare(strict_types=1)`.
+- **Blog migration renamed** — `Version001_CreateBlogTables` → `Version20251023070000_CreateBlogTables` (timestamp format consistent with core migrations).
+- **PackageManager public API typed** — All public methods have proper PHP 8.2+ type declarations. Outdated `@param` PHPDoc blocks removed.
+
+### Tests
+
+- **Real MigrationServiceTest** — All `markTestSkipped()` stubs replaced with real SQLite in-memory tests: migrate, rollback, status, extension migrate/rollback, no-op migration.
+
+### Chore
+
+- **Audit cleanup** — Removed resolved TODO comments referencing Step 2.0.4 from `scripts.php`. Removed stale PHPStan baseline entries for deleted code paths.
+
+---
+
 ## Pagekit 1.2.8 - Full Cache API Modernization (April 4, 2026)
 
 ### Breaking Changes
