@@ -31,12 +31,6 @@ parameters:
 			path: app/console/src/Commands/BuildCommand.php
 
 		-
-			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:line\(\) \(void\) is used\.$#'
-			identifier: method.void
-			count: 1
-			path: app/console/src/Commands/ClearCacheCommand.php
-
-		-
 			message: '#^Return type \(void\) of method Pagekit\\Console\\Commands\\ExtensionTranslateCommand\:\:execute\(\) should be compatible with return type \(int\) of method Symfony\\Component\\Console\\Command\\Command\:\:execute\(\)$#'
 			identifier: method.childReturnType
 			count: 1
