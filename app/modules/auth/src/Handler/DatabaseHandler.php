@@ -83,8 +83,6 @@ class DatabaseHandler implements HandlerInterface
 
         $this->cookie->set($this->config['cookie']['name'], $id, $this->config['cookie']['lifetime'] + time());
 
-        $this->createTable();
-
         $this->connection->insert($this->config['table'], [
             'id' => sha1($id),
             'user_id' => $user,
@@ -127,21 +125,4 @@ class DatabaseHandler implements HandlerInterface
         return $this->requests->getCurrentRequest();
     }
 
-    /**
-     * @deprecated to be removed in Pagekit 1.0
-     */
-    protected function createTable(): void
-    {
-        $util = $this->connection->getUtility();
-        if (!$util->tableExists($this->config['table'])) {
-            $util->createTable($this->config['table'], function ($table) {
-                $table->addColumn('id', 'string', ['length' => 255]);
-                $table->addColumn('user_id', 'integer', ['unsigned' => true, 'length' => 10, 'default' => 0]);
-                $table->addColumn('access', 'datetime', ['notnull' => false]);
-                $table->addColumn('status', 'smallint');
-                $table->addColumn('data', 'json_array', ['notnull' => false]);
-                $table->setPrimaryKey(['id']);
-            });
-        }
-    }
 }
