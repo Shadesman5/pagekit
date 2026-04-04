@@ -194,16 +194,20 @@ class PackageManager
                         && $this->app->has('migration')
                     ) {
                         $migrationNamespace = $this->resolveExtensionMigrationNamespace($package);
-                        if ($migrationNamespace !== null) {
-                            $migrationResult = $this->app->get('migration')->migrateExtension(
-                                $migrationNamespace,
-                                $packagePath . '/src/Migrations'
+                        if ($migrationNamespace === null) {
+                            throw new \RuntimeException(sprintf(
+                                'Cannot resolve migration namespace for package "%s" — src/Migrations/ exists but no autoload config found',
+                                $package->get('name') ?? $moduleName
+                            ));
+                        }
+                        $migrationResult = $this->app->get('migration')->migrateExtension(
+                            $migrationNamespace,
+                            $packagePath . '/src/Migrations'
+                        );
+                        if (!$migrationResult['success']) {
+                            throw new \RuntimeException(
+                                'Extension migration failed: ' . ($migrationResult['error'] ?? 'unknown error')
                             );
-                            if (!$migrationResult['success']) {
-                                throw new \RuntimeException(
-                                    'Extension migration failed: ' . ($migrationResult['error'] ?? 'unknown error')
-                                );
-                            }
                         }
                     }
 
@@ -327,9 +331,11 @@ class PackageManager
     /**
      * Derive the PSR-4 migration namespace for an extension package.
      *
-     * Looks at the module's `autoload` config (e.g. `'Pagekit\\Blog\\' => 'src'`)
-     * and appends `Migrations`. Falls back to the module name converted to a
-     * StudlyCaps namespace segment.
+     * Resolution order:
+     *  1. Module manager autoload config (runtime)
+     *  2. Package index.php autoload config (file)
+     *  3. Package composer.json PSR-4 autoload (file)
+     *  4. Package name converted to StudlyCaps namespace
      */
     protected function resolveExtensionMigrationNamespace(object $package): ?string
     {
@@ -348,6 +354,7 @@ class PackageManager
         }
 
         $packagePath = $package->get('path');
+
         if ($packagePath !== null && file_exists($packagePath . '/index.php')) {
             $config = require $packagePath . '/index.php';
             if (is_array($config) && isset($config['autoload']) && is_array($config['autoload'])) {
@@ -355,6 +362,24 @@ class PackageManager
                     return rtrim((string) $ns, '\\') . '\\Migrations';
                 }
             }
+        }
+
+        if ($packagePath !== null && file_exists($packagePath . '/composer.json')) {
+            $composerData = json_decode((string) file_get_contents($packagePath . '/composer.json'), true);
+            $psr4 = $composerData['autoload']['psr-4'] ?? [];
+            foreach ($psr4 as $ns => $dir) {
+                return rtrim((string) $ns, '\\') . '\\Migrations';
+            }
+        }
+
+        $packageName = $package->get('name') ?? $package->getName();
+        if ($packageName !== null) {
+            $segments = explode('/', (string) $packageName);
+            $studly = implode('\\', array_map(
+                fn (string $s): string => str_replace(' ', '', ucwords(str_replace(['-', '_'], ' ', $s))),
+                $segments,
+            ));
+            return $studly . '\\Migrations';
         }
 
         return null;
