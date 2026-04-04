@@ -158,6 +158,20 @@ class PackageManager
                         $scripts->update();
                     }
 
+                    $packagePath = $package->get('path');
+                    if ($packagePath !== null
+                        && is_dir($packagePath . '/src/Migrations')
+                        && $this->app->has('migration')
+                    ) {
+                        $migrationNamespace = $this->resolveExtensionMigrationNamespace($package);
+                        if ($migrationNamespace !== null) {
+                            $this->app->get('migration')->migrateExtension(
+                                $migrationNamespace,
+                                $packagePath . '/src/Migrations'
+                            );
+                        }
+                    }
+
                     // Execute enable scripts BEFORE setting config
                     $scripts->enable();
 
@@ -283,6 +297,42 @@ class PackageManager
         }
 
         return $version;
+    }
+
+    /**
+     * Derive the PSR-4 migration namespace for an extension package.
+     *
+     * Looks at the module's `autoload` config (e.g. `'Pagekit\\Blog\\' => 'src'`)
+     * and appends `Migrations`. Falls back to the module name converted to a
+     * StudlyCaps namespace segment.
+     */
+    protected function resolveExtensionMigrationNamespace(object $package): ?string
+    {
+        $moduleName = $package->get('module');
+
+        if ($moduleName !== null && $this->app->has('module')) {
+            $module = $this->app->get('module')->get($moduleName);
+            if ($module !== null) {
+                $autoload = $module->get('autoload') ?? ($module->config['autoload'] ?? null);
+                if (is_array($autoload)) {
+                    foreach ($autoload as $ns => $dir) {
+                        return rtrim((string) $ns, '\\') . '\\Migrations';
+                    }
+                }
+            }
+        }
+
+        $packagePath = $package->get('path');
+        if ($packagePath !== null && file_exists($packagePath . '/index.php')) {
+            $config = require $packagePath . '/index.php';
+            if (is_array($config) && isset($config['autoload']) && is_array($config['autoload'])) {
+                foreach ($config['autoload'] as $ns => $dir) {
+                    return rtrim((string) $ns, '\\') . '\\Migrations';
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
