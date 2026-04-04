@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\Database\ORM;
 
-use Pagekit\Cache\CacheInterface;
 use Psr\Cache\CacheItemPoolInterface;
 
 class QueryBuilder
@@ -17,7 +16,7 @@ class QueryBuilder
 
     protected array $relations = [];
 
-    protected CacheItemPoolInterface|CacheInterface|null $cache = null;
+    protected ?CacheItemPoolInterface $cache = null;
 
     protected ?int $cacheTtl = null;
 
@@ -43,16 +42,9 @@ class QueryBuilder
         if ($this->cache && $this->cacheTtl !== null) {
             $cacheKey = $this->getCacheKey();
 
-            if ($this->cache instanceof CacheItemPoolInterface) {
-                $item = $this->cache->getItem($cacheKey);
-                if ($item->isHit()) {
-                    return $item->get();
-                }
-            } else {
-                $cached = $this->cache->fetch($cacheKey);
-                if ($cached !== false) {
-                    return $cached;
-                }
+            $item = $this->cache->getItem($cacheKey);
+            if ($item->isHit()) {
+                return $item->get();
             }
         }
 
@@ -64,14 +56,10 @@ class QueryBuilder
 
         // Save to cache if enabled
         if ($this->cache && $this->cacheTtl !== null && isset($cacheKey)) {
-            if ($this->cache instanceof CacheItemPoolInterface) {
-                $item = $this->cache->getItem($cacheKey);
-                $item->set($entities);
-                $item->expiresAfter($this->cacheTtl);
-                $this->cache->save($item);
-            } else {
-                $this->cache->save($cacheKey, $entities, $this->cacheTtl);
-            }
+            $item = $this->cache->getItem($cacheKey);
+            $item->set($entities);
+            $item->expiresAfter($this->cacheTtl);
+            $this->cache->save($item);
         }
 
         return $entities;
@@ -88,16 +76,9 @@ class QueryBuilder
         if ($this->cache && $this->cacheTtl !== null) {
             $cacheKey = $this->getCacheKey('first');
 
-            if ($this->cache instanceof CacheItemPoolInterface) {
-                $item = $this->cache->getItem($cacheKey);
-                if ($item->isHit()) {
-                    return $item->get();
-                }
-            } else {
-                $cached = $this->cache->fetch($cacheKey);
-                if ($cached !== false) {
-                    return $cached;
-                }
+            $item = $this->cache->getItem($cacheKey);
+            if ($item->isHit()) {
+                return $item->get();
             }
         }
 
@@ -109,14 +90,10 @@ class QueryBuilder
 
             // Save to cache if enabled
             if ($this->cache && $this->cacheTtl !== null && isset($cacheKey)) {
-                if ($this->cache instanceof CacheItemPoolInterface) {
-                    $item = $this->cache->getItem($cacheKey);
-                    $item->set($entity);
-                    $item->expiresAfter($this->cacheTtl);
-                    $this->cache->save($item);
-                } else {
-                    $this->cache->save($cacheKey, $entity, $this->cacheTtl);
-                }
+                $item = $this->cache->getItem($cacheKey);
+                $item->set($entity);
+                $item->expiresAfter($this->cacheTtl);
+                $this->cache->save($item);
             }
 
             return $entity;
@@ -219,11 +196,11 @@ class QueryBuilder
     /**
      * Enable query result caching with TTL in seconds.
      *
-     * @param  int               $ttl   Time to live in seconds
-     * @param  CacheItemPoolInterface|CacheInterface|null $cache Custom cache pool (optional)
+     * @param  int                          $ttl   Time to live in seconds
+     * @param  CacheItemPoolInterface|null  $cache Custom cache pool (optional)
      * @return self
      */
-    public function cache(int $ttl, CacheItemPoolInterface|CacheInterface|null $cache = null): self
+    public function cache(int $ttl, ?CacheItemPoolInterface $cache = null): self
     {
         $this->cacheTtl = $ttl;
         $this->cache = $cache ?? $this->manager->getMetadataManager()->getCache();
@@ -232,7 +209,10 @@ class QueryBuilder
     }
 
     /**
-     * Generates a cache key based on the query SQL and parameters.
+     * Generates a cache key based on the query SQL, parameters, and relations.
+     *
+     * Includes bound parameters in the hash to prevent cache collisions when
+     * the same SQL template is used with different WHERE values.
      *
      * @param  string $suffix Optional suffix for the cache key
      * @return string
@@ -241,10 +221,7 @@ class QueryBuilder
     {
         $sql = $this->query->getSQL();
 
-        // Serialize the query parts and relations for cache key
-        $key = 'orm_query_' . md5($sql . serialize($this->relations) . $suffix);
-
-        return $key;
+        return 'orm_query_' . md5($sql . serialize($this->relations) . serialize($this->query->params()) . $suffix);
     }
 
     /**

@@ -1,7 +1,7 @@
 # Step 2.0.7: Event Dispatcher Bridge Removal
 
 **ROADMAP:** 2.0.7 — Foundation Consolidation.  
-**GitHub Issue:** TBD (create before execution).  
+**GitHub Issue:** #184.
 **Prerequisite:** Step 2.0.6 (Test Infrastructure Cleanup) merged on your branch.
 
 **Also read:** `.cursor/ROADMAP.md` (5 aggressive rules), `migration-docs/TODO/PHASE_2_MODERNISING.md` (Step 2.0.7 section).

@@ -1,5 +1,33 @@
 # Changelog
 
+## Pagekit 1.2.8 - Full Cache API Modernization (April 4, 2026)
+
+### Breaking Changes
+
+- **`Pagekit\Cache\CacheInterface` removed** — Third-party extensions must migrate to `Psr\Cache\CacheItemPoolInterface` (PSR-6). The Pagekit-specific `fetch()`/`save()`/`contains()`/`delete()`/`flushAll()` API is replaced by the standard PSR-6 `getItem()`/`isHit()`/`set()`/`save()`/`deleteItem()`/`clear()` pattern.
+- **`Pagekit\Cache\Adapter\*` classes removed** — `Psr6Adapter`, `ArrayAdapter`, `FilesystemAdapter`, `PhpFilesAdapter`, `ApcuAdapter`, `NullAdapter` wrappers deleted. Use `Symfony\Component\Cache\Adapter\*` directly.
+- **ORM cache type unions removed** — `MetadataManager::getCache()` and `QueryBuilder::cache()` now accept only `CacheItemPoolInterface` (no more `CacheInterface` union type).
+
+### Refactor
+
+- **CacheModule factory rewrite** — `createCachePool()` returns `CacheItemPoolInterface` directly from Symfony adapters. Namespace/prefix passed via constructor argument instead of `setNamespace()`. (Closes #179)
+- **ORM PSR-6 consolidation** — `MetadataManager` and `QueryBuilder` use single PSR-6 code path; removed `instanceof` dual branches for legacy `CacheInterface`.
+- **MetadataManager key sanitization** — `sanitizeCacheKey()` replaces PSR-6 reserved characters (`{}()/\@:`) with `_` in metadata cache IDs containing class FQCNs.
+- **LoginAttemptListener PSR-6 migration** — Type-safe `CacheItemPoolInterface` constructor; PSR-6 API for login attempt tracking; key sanitization for usernames with reserved characters.
+- **Blog UrlResolver/RouteListener PSR-6 migration** — `UrlResolver` static cache and `RouteListener` cache clearing use PSR-6 API exclusively.
+- **`doClearCache()` modernized** — Uses PSR-6 `clear()` instead of removed `flushAll()`.
+
+### Fix
+
+- **QueryBuilder cache key collision** — `getCacheKey()` now includes bound query parameters in the hash. Previously, two queries with the same SQL template but different WHERE values produced identical cache keys, risking stale/wrong results.
+- **ClearCacheCommand alignment** — CLI `php pagekit clearcache` now calls `clear()` on the PSR-6 pool before file cleanup, matching the admin "Clear Cache" button behavior. Also adds `opcache_invalidate()` on cleared files.
+
+### Tests
+
+- **Cache tests rewritten** — `Psr6AdapterTest` renamed to `CachePoolTest`; all tests exercise PSR-6 `CacheItemPoolInterface` contract with Symfony adapters directly. Covers Array, Filesystem, PhpFiles, Null adapters, namespace isolation, TTL expiration, and performance benchmarks.
+
+---
+
 ## Pagekit 1.2.7 - Phase 1 Codebase Audit & Foundation Consolidation Planning (April 3, 2026)
 
 ### Documentation

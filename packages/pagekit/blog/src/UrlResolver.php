@@ -7,6 +7,7 @@ namespace Pagekit\Blog;
 use Pagekit\Blog\Model\Post;
 use Pagekit\Module\Module;
 use Pagekit\Routing\ParamsResolverInterface;
+use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
@@ -21,10 +22,10 @@ class UrlResolver implements ParamsResolverInterface
     // Static service references set during blog module boot,
     // required because Router instantiates resolvers via `new $class` (no DI).
     // TODO: Step 2.1 (Static Analysis) — replace with proper DI once Router supports it
-    private static mixed $cache = null;
+    private static ?CacheItemPoolInterface $cache = null;
     private static ?Module $module = null;
 
-    public static function setCache(mixed $cache): void
+    public static function setCache(?CacheItemPoolInterface $cache): void
     {
         self::$cache = $cache;
     }
@@ -39,7 +40,12 @@ class UrlResolver implements ParamsResolverInterface
      */
     public function __construct()
     {
-        $this->cacheEntries = self::$cache?->fetch(self::CACHE_KEY) ?: [];
+        if (self::$cache !== null) {
+            $item = self::$cache->getItem(self::CACHE_KEY);
+            $this->cacheEntries = $item->isHit() ? ($item->get() ?: []) : [];
+        } else {
+            $this->cacheEntries = [];
+        }
     }
 
     /**
@@ -116,7 +122,9 @@ class UrlResolver implements ParamsResolverInterface
     public function __destruct()
     {
         if ($this->cacheDirty && self::$cache !== null) {
-            self::$cache->save(self::CACHE_KEY, $this->cacheEntries);
+            $item = self::$cache->getItem(self::CACHE_KEY);
+            $item->set($this->cacheEntries);
+            self::$cache->save($item);
         }
     }
 

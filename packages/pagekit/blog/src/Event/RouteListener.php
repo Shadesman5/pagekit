@@ -8,13 +8,14 @@ use Pagekit\Blog\UrlResolver;
 use Pagekit\Event\EventSubscriberInterface;
 use Pagekit\Routing\Router;
 use Pagekit\Routing\Routes;
+use Psr\Cache\CacheItemPoolInterface;
 
 class RouteListener implements EventSubscriberInterface
 {
     public function __construct(
         private readonly Router $router,
         private readonly Routes $routes,
-        private readonly mixed $cache,
+        private readonly CacheItemPoolInterface $cache,
     ) {
     }
 
@@ -47,7 +48,7 @@ class RouteListener implements EventSubscriberInterface
      */
     public function clearCache(): void
     {
-        $this->cache->delete(UrlResolver::CACHE_KEY);
+        $this->cache->deleteItem(UrlResolver::CACHE_KEY);
     }
 
     /**

@@ -24,8 +24,6 @@
 /pagekit*.zip
 /pagekit.db
 /config.php
-/yarn.lock
-/composer.lock
 /package-lock.json
 node_modules
 .DS_Store

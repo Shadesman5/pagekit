@@ -4,7 +4,9 @@ namespace Pagekit\User\Event;
 
 use Pagekit\Auth\Event\AuthenticateEvent;
 use Pagekit\Auth\Exception\AuthException;
+use Pagekit\Cache\CacheKeyUtil;
 use Pagekit\Event\EventSubscriberInterface;
+use Psr\Cache\CacheItemPoolInterface;
 
 class LoginAttemptListener implements EventSubscriberInterface
 {
@@ -13,7 +15,7 @@ class LoginAttemptListener implements EventSubscriberInterface
     public const CACHE_KEY = 'auth.login_attempts';
 
     public function __construct(
-        private readonly mixed $cache,
+        private readonly CacheItemPoolInterface $cache,
     ) {
     }
 
@@ -29,7 +31,9 @@ class LoginAttemptListener implements EventSubscriberInterface
             return;
         }
 
-        $attempts = $this->cache->fetch($this->getCacheKey($credentials['username'])) ?: [];
+        $key = $this->getCacheKey($credentials['username']);
+        $item = $this->cache->getItem($key);
+        $attempts = $item->isHit() ? $item->get() : [];
 
         // Block if we already have >= ATTEMPTS failures and the last one was within DELAY seconds.
         // (Use end() to read last timestamp without mutating the array.)
@@ -51,11 +55,11 @@ class LoginAttemptListener implements EventSubscriberInterface
         }
 
         $key = $this->getCacheKey($credentials['username']);
-
-        $attempts = $this->cache->fetch($key) ?: [];
+        $item = $this->cache->getItem($key);
+        $attempts = $item->isHit() ? $item->get() : [];
         $attempts[] = time();
-
-        $this->cache->save($key, $attempts);
+        $item->set($attempts);
+        $this->cache->save($item);
     }
 
     /**
@@ -69,7 +73,7 @@ class LoginAttemptListener implements EventSubscriberInterface
             return;
         }
 
-        $this->cache->delete($this->getCacheKey($credentials['username']));
+        $this->cache->deleteItem($this->getCacheKey($credentials['username']));
     }
 
     /**
@@ -84,8 +88,8 @@ class LoginAttemptListener implements EventSubscriberInterface
         ];
     }
 
-    protected function getCacheKey($username): string
+    protected function getCacheKey(string $username): string
     {
-        return self::CACHE_KEY.'_'.$username;
+        return CacheKeyUtil::sanitize(self::CACHE_KEY . '_' . $username);
     }
 }

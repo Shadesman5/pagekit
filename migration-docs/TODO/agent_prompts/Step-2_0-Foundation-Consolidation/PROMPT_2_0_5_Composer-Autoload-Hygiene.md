@@ -1,7 +1,7 @@
 # Step 2.0.5: Composer & Autoload Hygiene
 
 **ROADMAP:** 2.0.5 — Foundation Consolidation.  
-**GitHub Issue:** TBD (create before execution).  
+**GitHub Issue:** #182.  
 **Prerequisite:** Step 2.0.4 (Package/Migration System Redesign) merged on your branch.
 
 **Also read:** `.cursor/ROADMAP.md` (5 aggressive rules), `migration-docs/TODO/PHASE_2_MODERNISING.md` (Step 2.0.5 section), `migration-docs/TODO/MODERNISATION_STRATEGY.md`.
@@ -42,21 +42,17 @@ If anything fails → fix before continuing.
 
 ---
 
-## 3. VERSION LOCKFILE
+## 3. VERSION LOCKFILE — ALREADY DONE
 
-### 3.1 Remove from `.gitignore`
-
-**File:** `.gitignore`
-
-Remove the line `/composer.lock` (or `composer.lock`).
-
-### 3.2 Commit the lockfile
-
-```bash
-git add composer.lock
-```
-
-This will be committed with the rest of the changes. The lockfile ensures **reproducible builds** in CI and for all developers.
+> **Shipped early in Step 2.0.3 (PR #187).** Both `/composer.lock` and `/yarn.lock`
+> were removed from `.gitignore` and committed. `.cursor/install.sh` was rewritten
+> to use `composer install` (not `update`) for reproducible builds.
+>
+> **No action needed in this step.** Verify the lockfiles are tracked:
+> ```bash
+> git ls-files composer.lock yarn.lock
+> ```
+> Expected: both listed. If not, re-add them.
 
 ---
 
@@ -176,7 +172,7 @@ All must pass. The lockfile must reflect the new state.
 
 ## 8. SUCCESS CRITERIA
 
-- [ ] `composer.lock` is tracked in git (not in `.gitignore`)
+- [x] `composer.lock` is tracked in git (done in Step 2.0.3, PR #187)
 - [ ] No dead PSR-4 mappings in `composer.json`
 - [ ] Unused direct dependencies removed (or documented if intentionally kept)
 - [ ] `symfony/validator` version aligned with stack or documented deviation

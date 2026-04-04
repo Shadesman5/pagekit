@@ -78,6 +78,13 @@ already tracked with a GitHub Issue, **do NOT flag it as a Bug**. Instead:
 | `Connection::exec()` alias, `json_array` type, deprecated `getSchemaManager()` | Step 2.1.7 (QueryBuilder/DBAL) | #154 |
 | `ModelServiceLocator`, `IntlServiceLocator`, `#[AllowDynamicProperties]` | Step 2.1.6 (PHPStan Level 8) | #153 |
 
+**Already resolved** (do NOT re-flag — these shipped intentionally):
+
+| Pattern | Resolved In | Notes |
+|---------|-------------|-------|
+| `.gitignore`: removed `/yarn.lock` + `/composer.lock` | PR #187 (Step 2.0.3) | Out-of-scope for 2.0.3 but shipped early; documented in Issue #182 comment |
+| `.cursor/install.sh` rewrite (`composer update` → `install`) | PR #187 (Step 2.0.3) | Same as above; reduces Step 2.0.5 remaining scope |
+
 This table MUST be updated when new deferred items are added to the ROADMAP.
 Bugbot should re-read ROADMAP.md on every review to detect changes.
 
