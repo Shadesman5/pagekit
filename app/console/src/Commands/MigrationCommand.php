@@ -1,16 +1,13 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Pagekit\Console\Commands;
 
 use Pagekit\Application\Console\Command;
 use Pagekit\Installer\Package\PackageScripts;
+use Symfony\Component\Console\Command\Command as SymfonyCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-// TODO: Must be refactored in Step 2.0.4 (Package/Migration System Redesign) —
-// This command ('pagekit migrate') only runs scripts.php 'updates', NOT Doctrine Migrations.
-// Developers expect 'migrate' to run DB migrations. Unify: run Doctrine Migrations first,
-// then scripts.php hooks. Rename or merge with migration:migrate for clarity.
 class MigrationCommand extends Command
 {
     /**
@@ -28,6 +25,21 @@ class MigrationCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        /** @var \Pagekit\Migration\MigrationService $migration */
+        $migration = $this->container->get('migration');
+
+        try {
+            $result = $migration->migrate();
+        } catch (\Throwable $e) {
+            $this->line(sprintf('<error>Doctrine Migration failed: %s</error>', $e->getMessage()));
+            return SymfonyCommand::FAILURE;
+        }
+
+        $executed = $result['executed'] ?? 0;
+        if ($executed > 0) {
+            $this->line(sprintf('<info>Executed %d Doctrine migration(s).</info>', $executed));
+        }
+
         $config = $this->container->get('config')('system');
 
         $scripts = new PackageScripts($this->container->get('path').'/app/system/scripts.php', $config->get('version'), $this->container);
@@ -39,6 +51,6 @@ class MigrationCommand extends Command
 
         $this->line(sprintf('<info>%s</info>', __('Your Pagekit database has been updated successfully.')));
 
-        return 0;
+        return SymfonyCommand::SUCCESS;
     }
 }
