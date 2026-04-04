@@ -31,10 +31,10 @@ class ClearCacheCommand extends Command
 
         // Clear compiled cache files (Symfony route/metadata caches, not PSR-6 items)
         foreach ((array) glob($this->container->get('path.cache') . '/*.cache') as $file) {
-            @unlink($file);
             if (function_exists('opcache_invalidate')) {
-                opcache_invalidate($file);
+                opcache_invalidate($file, true);
             }
+            @unlink($file);
         }
 
         $this->line('Cache cleared.');

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\Database\ORM;
 
+use Pagekit\Cache\CacheKeyUtil;
 use Pagekit\Database\Connection;
 use Pagekit\Database\ORM\Loader\LoaderInterface;
 use Pagekit\Event\EventDispatcherInterface;
@@ -111,7 +112,7 @@ class MetadataManager
                     $current = $parent;
                 }
 
-                $id = self::sanitizeCacheKey(sprintf('%s%s.%s', $this->prefix, $hash, $name));
+                $id = CacheKeyUtil::sanitize(sprintf('%s%s.%s', $this->prefix, $hash, $name));
 
                 $item = $this->cache->getItem($id);
 
@@ -132,18 +133,6 @@ class MetadataManager
         }
 
         return $this->metadata[$name];
-    }
-
-    /**
-     * Sanitize a cache key for PSR-6 compliance.
-     *
-     * PSR-6 reserves the characters {}()/\@: in cache keys.
-     * This method replaces them with underscores, preserving the behavior
-     * of the former Psr6Adapter::getNamespacedId().
-     */
-    private static function sanitizeCacheKey(string $key): string
-    {
-        return str_replace([':', '\\', '/', '@', '{', '}', '(', ')'], '_', $key);
     }
 
     /**

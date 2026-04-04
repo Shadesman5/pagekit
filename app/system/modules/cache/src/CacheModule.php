@@ -136,10 +136,10 @@ class CacheModule extends Module
             $app->get('cache')->clear();
 
             foreach ((array) glob($app->get('path.cache') . '/*.cache') as $file) {
-                @unlink($file);
                 if (function_exists('opcache_invalidate')) {
-                    opcache_invalidate($file);
+                    opcache_invalidate($file, true);
                 }
+                @unlink($file);
             }
         }
 

@@ -4,6 +4,7 @@ namespace Pagekit\User\Event;
 
 use Pagekit\Auth\Event\AuthenticateEvent;
 use Pagekit\Auth\Exception\AuthException;
+use Pagekit\Cache\CacheKeyUtil;
 use Pagekit\Event\EventSubscriberInterface;
 use Psr\Cache\CacheItemPoolInterface;
 
@@ -87,16 +88,8 @@ class LoginAttemptListener implements EventSubscriberInterface
         ];
     }
 
-    /**
-     * Build a PSR-6 compliant cache key for login attempts.
-     *
-     * Replaces PSR-6 reserved characters ({}()/\@:) with underscores
-     * to handle usernames that may contain these characters.
-     */
     protected function getCacheKey(string $username): string
     {
-        $key = self::CACHE_KEY . '_' . $username;
-
-        return str_replace([':', '\\', '/', '@', '{', '}', '(', ')'], '_', $key);
+        return CacheKeyUtil::sanitize(self::CACHE_KEY . '_' . $username);
     }
 }

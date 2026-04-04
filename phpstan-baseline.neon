@@ -1879,6 +1879,12 @@ parameters:
 			path: app/system/modules/site/src/Model/Node.php
 
 		-
+			message: '#^Static property Pagekit\\Site\\Model\\Node\:\:\$properties \(array\) in isset\(\) is not nullable\.$#'
+			identifier: isset.property
+			count: 2
+			path: app/system/modules/site/src/Model/Node.php
+
+		-
 			message: '#^Access to an undefined static property static\(Pagekit\\Site\\Model\\Page\)\:\:\$properties\.$#'
 			identifier: staticProperty.notFound
 			count: 3
@@ -2308,6 +2314,12 @@ parameters:
 			message: '#^Method Pagekit\\User\\Model\\Role\:\:find\(\) should return static\(Pagekit\\User\\Model\\Role\)\|null but returns object\|null\.$#'
 			identifier: return.type
 			count: 1
+			path: app/system/modules/user/src/Model/Role.php
+
+		-
+			message: '#^Static property Pagekit\\User\\Model\\Role\:\:\$properties \(array\) in isset\(\) is not nullable\.$#'
+			identifier: isset.property
+			count: 2
 			path: app/system/modules/user/src/Model/Role.php
 
 		-
@@ -2746,6 +2758,12 @@ parameters:
 			message: '#^Method Pagekit\\Blog\\Model\\Post\:\:find\(\) should return static\(Pagekit\\Blog\\Model\\Post\)\|null but returns object\|null\.$#'
 			identifier: return.type
 			count: 1
+			path: packages/pagekit/blog/src/Model/Post.php
+
+		-
+			message: '#^Static property Pagekit\\Blog\\Model\\Post\:\:\$properties \(array\) in isset\(\) is not nullable\.$#'
+			identifier: isset.property
+			count: 2
 			path: packages/pagekit/blog/src/Model/Post.php
 
 		-
