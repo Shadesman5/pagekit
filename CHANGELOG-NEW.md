@@ -1,6 +1,6 @@
 # Changelog
 
-## Pagekit 1.2.8 - Full Cache API Modernization (April 3, 2026)
+## Pagekit 1.2.8 - Full Cache API Modernization (April 4, 2026)
 
 ### Breaking Changes
 

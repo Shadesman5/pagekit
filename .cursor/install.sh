@@ -6,11 +6,8 @@ if [[ -n "${PAGEKIT_BACKGROUND_AGENT:-}" ]]; then
     export GH_TOKEN="$PAGEKIT_BACKGROUND_AGENT"
 fi
 
-# PHP dependencies (update statt install, weil lock gitignored ist)
-composer update --no-interaction --working-dir=.
-
-# Regenerate autoloader to ensure all PSR-4 mappings are current
-composer dump-autoload --optimize --working-dir=.
+# PHP dependencies (lock file is tracked — install exact versions)
+composer install --no-interaction --optimize-autoloader --working-dir=.
 
 # Node dependencies (yarn install triggert auch den Build via postinstall)
 yarn install
