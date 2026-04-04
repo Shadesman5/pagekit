@@ -94,6 +94,34 @@ class PackageManager
             $this->getScripts($package)->uninstall();
             $this->app->get('config')('system')->remove('packages.' . $package->get('module'));
 
+            $packagePath = $package->get('path');
+            if ($packagePath !== null
+                && is_dir($packagePath . '/src/Migrations')
+                && $this->app->has('migration')
+            ) {
+                try {
+                    $migrationNamespace = $this->resolveExtensionMigrationNamespace($package);
+                    if ($migrationNamespace !== null) {
+                        $this->app->get('migration')->rollbackExtension(
+                            $migrationNamespace,
+                            $packagePath . '/src/Migrations',
+                            '0'
+                        );
+                    }
+                } catch (\Throwable $e) {
+                    if ($this->app->has('log')) {
+                        $this->app->get('log')->warning(
+                            sprintf(
+                                'Failed to rollback migrations for package "%s": %s',
+                                $package->get('name'),
+                                $e->getMessage()
+                            ),
+                            ['exception' => $e]
+                        );
+                    }
+                }
+            }
+
             if ($this->composer->isInstalled($package->getName())) {
                 $this->composer->uninstall($package->getName());
             } else {
