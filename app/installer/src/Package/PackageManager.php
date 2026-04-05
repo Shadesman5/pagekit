@@ -202,6 +202,9 @@ class PackageManager
                                 $package->get('name') ?? $moduleName
                             ));
                         }
+                        $appliedMigrationNs = $migrationNamespace;
+                        $appliedMigrationPath = $packagePath . '/src/Migrations';
+
                         $migrationResult = $this->app->get('migration')->migrateExtension(
                             $migrationNamespace,
                             $packagePath . '/src/Migrations'
@@ -210,10 +213,6 @@ class PackageManager
                             throw new \RuntimeException(
                                 'Extension migration failed: ' . ($migrationResult['error'] ?? 'unknown error')
                             );
-                        }
-                        if (($migrationResult['executed'] ?? 0) > 0) {
-                            $appliedMigrationNs = $migrationNamespace;
-                            $appliedMigrationPath = $packagePath . '/src/Migrations';
                         }
                     }
 
@@ -431,18 +430,67 @@ class PackageManager
             return null;
         }
 
-        if (!preg_match("/['\"]autoload['\"]\s*=>\s*\[([^\]]+)\]/s", $content, $match)) {
+        if (!preg_match("/['\"]autoload['\"]\s*=>\s*\[/s", $content, $match, PREG_OFFSET_CAPTURE)) {
+            return null;
+        }
+
+        $bracketBody = $this->extractBracketBody($content, (int) $match[0][1] + strlen($match[0][0]) - 1);
+        if ($bracketBody === null) {
             return null;
         }
 
         $result = [];
-        if (preg_match_all("/['\"]([^'\"]+)['\"]\s*=>\s*['\"]([^'\"]+)['\"]/", $match[1], $pairs, PREG_SET_ORDER)) {
+        if (preg_match_all("/['\"]([^'\"]+)['\"]\s*=>\s*['\"]([^'\"]+)['\"]/", $bracketBody, $pairs, PREG_SET_ORDER)) {
             foreach ($pairs as $pair) {
                 $result[$this->unescapePhpString($pair[1])] = $this->unescapePhpString($pair[2]);
             }
         }
 
         return $result !== [] ? $result : null;
+    }
+
+    /**
+     * Extract content between balanced [ ] brackets, handling quoted strings.
+     *
+     * Properly skips escaped characters inside quotes (e.g. \\\\ and \\')
+     * so that strings like 'Pagekit\\\\Blog\\\\' don't prevent bracket matching.
+     */
+    private function extractBracketBody(string $content, int $openPos): ?string
+    {
+        $len = strlen($content);
+        if ($openPos >= $len || $content[$openPos] !== '[') {
+            return null;
+        }
+
+        $depth = 0;
+
+        for ($i = $openPos; $i < $len; $i++) {
+            $ch = $content[$i];
+
+            if ($ch === "'" || $ch === '"') {
+                $quote = $ch;
+                $i++;
+                while ($i < $len) {
+                    if ($content[$i] === '\\') {
+                        $i += 2;
+                        continue;
+                    }
+                    if ($content[$i] === $quote) {
+                        break;
+                    }
+                    $i++;
+                }
+            } elseif ($ch === '[') {
+                $depth++;
+            } elseif ($ch === ']') {
+                $depth--;
+                if ($depth === 0) {
+                    return substr($content, $openPos + 1, $i - $openPos - 1);
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
