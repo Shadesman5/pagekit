@@ -236,11 +236,28 @@ class PackageManager
                 }
             } catch (\Throwable $e) {
                 if ($appliedMigrationNs !== null && $this->app->has('migration')) {
-                    $this->app->get('migration')->rollbackExtension(
-                        $appliedMigrationNs,
-                        $appliedMigrationPath,
-                        '0'
-                    );
+                    try {
+                        $rollbackResult = $this->app->get('migration')->rollbackExtension(
+                            $appliedMigrationNs,
+                            $appliedMigrationPath,
+                            '0'
+                        );
+                        if (!$rollbackResult['success'] && $this->app->has('log')) {
+                            $this->app->get('log')->warning(sprintf(
+                                'Failed to rollback migrations for package "%s" during enable recovery: %s',
+                                $package->get('name'),
+                                $rollbackResult['error'] ?? 'unknown error'
+                            ));
+                        }
+                    } catch (\Throwable $rollbackError) {
+                        if ($this->app->has('log')) {
+                            $this->app->get('log')->warning(sprintf(
+                                'Failed to rollback migrations for package "%s" during enable recovery: %s',
+                                $package->get('name'),
+                                $rollbackError->getMessage()
+                            ), ['exception' => $rollbackError]);
+                        }
+                    }
                 }
 
                 if ($originalState !== null) {
