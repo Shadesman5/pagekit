@@ -421,11 +421,22 @@ class PackageManager
         $result = [];
         if (preg_match_all("/['\"]([^'\"]+)['\"]\s*=>\s*['\"]([^'\"]+)['\"]/", $match[1], $pairs, PREG_SET_ORDER)) {
             foreach ($pairs as $pair) {
-                $result[$pair[1]] = $pair[2];
+                $result[$this->unescapePhpString($pair[1])] = $this->unescapePhpString($pair[2]);
             }
         }
 
         return $result !== [] ? $result : null;
+    }
+
+    /**
+     * Unescape a PHP single-quoted string literal captured from source code.
+     *
+     * In PHP source, single-quoted strings only have two escape sequences:
+     * \\\\ → \\ and \\' → '. This converts raw source text to the runtime value.
+     */
+    private function unescapePhpString(string $raw): string
+    {
+        return str_replace(['\\\\', "\\'"], ['\\', "'"], $raw);
     }
 
     /**
