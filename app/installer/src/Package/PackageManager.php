@@ -156,8 +156,8 @@ class PackageManager
         foreach ($packages as $package) {
             $originalState = null;
             $moduleName = $package->get('module');
-            $appliedMigrationNs = null;
-            $appliedMigrationPath = null;
+            /** @var array{ns: string, path: string}|null */
+            $appliedMigration = null;
 
             try {
                 $previousPackageConfig = $package;
@@ -202,8 +202,7 @@ class PackageManager
                                 $package->get('name') ?? $moduleName
                             ));
                         }
-                        $appliedMigrationNs = $migrationNamespace;
-                        $appliedMigrationPath = $packagePath . '/src/Migrations';
+                        $appliedMigration = ['ns' => $migrationNamespace, 'path' => $packagePath . '/src/Migrations'];
 
                         $migrationResult = $this->app->get('migration')->migrateExtension(
                             $migrationNamespace,
@@ -234,11 +233,11 @@ class PackageManager
                     $scripts->enable();
                 }
             } catch (\Throwable $e) {
-                if ($appliedMigrationNs !== null && $this->app->has('migration')) {
+                if ($appliedMigration !== null && $this->app->has('migration')) {
                     try {
                         $rollbackResult = $this->app->get('migration')->rollbackExtension(
-                            $appliedMigrationNs,
-                            $appliedMigrationPath,
+                            $appliedMigration['ns'],
+                            $appliedMigration['path'],
                             '0'
                         );
                         if (!$rollbackResult['success'] && $this->app->has('log')) {
