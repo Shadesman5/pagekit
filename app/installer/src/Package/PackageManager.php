@@ -500,7 +500,7 @@ class PackageManager
      */
     private function unescapePhpString(string $raw): string
     {
-        return str_replace(['\\\\', "\\'"], ['\\', "'"], $raw);
+        return strtr($raw, ['\\\\' => '\\', "\\'" => "'"]);
     }
 
     /**
