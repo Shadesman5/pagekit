@@ -156,7 +156,7 @@ class PackageManager
         foreach ($packages as $package) {
             $originalState = null;
             $moduleName = $package->get('module');
-            /** @var array{ns: string, path: string}|null */
+            /** @var array{ns: string, path: string, previousVersion: string}|null */
             $appliedMigration = null;
 
             try {

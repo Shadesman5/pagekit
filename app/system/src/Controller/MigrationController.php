@@ -35,10 +35,13 @@ class MigrationController
     #[Request(['redirect' => 'string'])]
     public function indexAction(?string $redirect = null): array|\Symfony\Component\HttpFoundation\RedirectResponse
     {
-        /** @var MigrationService $migrationService */
-        $migrationService = $this->app->get('migration');
-        $migrationStatus = $migrationService->status();
-        $hasPendingMigrations = !($migrationStatus['success'] ?? false) || ($migrationStatus['has_pending'] ?? false);
+        $hasPendingMigrations = false;
+        if ($this->app->has('migration')) {
+            /** @var MigrationService $migrationService */
+            $migrationService = $this->app->get('migration');
+            $migrationStatus = $migrationService->status();
+            $hasPendingMigrations = !($migrationStatus['success'] ?? false) || ($migrationStatus['has_pending'] ?? false);
+        }
 
         if (!$this->scripts->hasUpdates() && !$hasPendingMigrations) {
             return $this->router->redirect($redirect ?: '@system');
@@ -57,14 +60,18 @@ class MigrationController
     #[Request(['redirect' => 'string'], csrf: true)]
     public function migrateAction(?string $redirect = null): \Symfony\Component\HttpFoundation\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse
     {
-        /** @var MigrationService $migrationService */
-        $migrationService = $this->app->get('migration');
+        $migrationResult = ['success' => true, 'executed' => 0];
 
-        $migrationResult = $migrationService->migrate();
-        if (!$migrationResult['success']) {
-            throw new \RuntimeException(
-                'Doctrine Migrations failed: ' . ($migrationResult['error'] ?? 'unknown error')
-            );
+        if ($this->app->has('migration')) {
+            /** @var MigrationService $migrationService */
+            $migrationService = $this->app->get('migration');
+
+            $migrationResult = $migrationService->migrate();
+            if (!$migrationResult['success']) {
+                throw new \RuntimeException(
+                    'Doctrine Migrations failed: ' . ($migrationResult['error'] ?? 'unknown error')
+                );
+            }
         }
 
         if ($updates = $this->scripts->hasUpdates()) {
