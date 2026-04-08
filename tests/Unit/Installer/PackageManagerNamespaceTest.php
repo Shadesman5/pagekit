@@ -49,16 +49,11 @@ class PackageManagerNamespaceTest extends TestCase
         return new PackageManager($container, new \Symfony\Component\Console\Output\NullOutput());
     }
 
-    private function invokePrivate(object $obj, string $method, array $args = []): mixed
+    private function invokeMethod(object $obj, string $method, array $args = []): mixed
     {
         $ref = new \ReflectionMethod($obj, $method);
         $ref->setAccessible(true);
         return $ref->invoke($obj, ...$args);
-    }
-
-    private function invokeProtected(object $obj, string $method, array $args = []): mixed
-    {
-        return $this->invokePrivate($obj, $method, $args);
     }
 
     // ── unescapePhpString ──
@@ -66,14 +61,14 @@ class PackageManagerNamespaceTest extends TestCase
     public function testUnescapeSimpleNamespace(): void
     {
         $pm = $this->createPackageManager();
-        $result = $this->invokePrivate($pm, 'unescapePhpString', ['Pagekit\\\\Blog\\\\']);
+        $result = $this->invokeMethod($pm, 'unescapePhpString', ['Pagekit\\\\Blog\\\\']);
         $this->assertSame('Pagekit\\Blog\\', $result);
     }
 
     public function testUnescapeEscapedQuote(): void
     {
         $pm = $this->createPackageManager();
-        $result = $this->invokePrivate($pm, 'unescapePhpString', ["it\\'s"]);
+        $result = $this->invokeMethod($pm, 'unescapePhpString', ["it\\'s"]);
         $this->assertSame("it's", $result);
     }
 
@@ -81,21 +76,21 @@ class PackageManagerNamespaceTest extends TestCase
     {
         $pm = $this->createPackageManager();
         // Raw source: \\' represents literal \ followed by literal '
-        $result = $this->invokePrivate($pm, 'unescapePhpString', ["\\\\'"]); // 3 chars: \ \ '
+        $result = $this->invokeMethod($pm, 'unescapePhpString', ["\\\\'"]); // 3 chars: \ \ '
         $this->assertSame("\\'", $result); // 2 chars: \ '
     }
 
     public function testUnescapeNoEscapes(): void
     {
         $pm = $this->createPackageManager();
-        $result = $this->invokePrivate($pm, 'unescapePhpString', ['plain text']);
+        $result = $this->invokeMethod($pm, 'unescapePhpString', ['plain text']);
         $this->assertSame('plain text', $result);
     }
 
     public function testUnescapeEmptyString(): void
     {
         $pm = $this->createPackageManager();
-        $result = $this->invokePrivate($pm, 'unescapePhpString', ['']);
+        $result = $this->invokeMethod($pm, 'unescapePhpString', ['']);
         $this->assertSame('', $result);
     }
 
@@ -105,7 +100,7 @@ class PackageManagerNamespaceTest extends TestCase
     {
         $pm = $this->createPackageManager();
         $content = "['a' => 'b']";
-        $result = $this->invokePrivate($pm, 'extractBracketBody', [$content, 0]);
+        $result = $this->invokeMethod($pm, 'extractBracketBody', [$content, 0]);
         $this->assertSame("'a' => 'b'", $result);
     }
 
@@ -113,7 +108,7 @@ class PackageManagerNamespaceTest extends TestCase
     {
         $pm = $this->createPackageManager();
         $content = "['key]val' => 'src[0]']";
-        $result = $this->invokePrivate($pm, 'extractBracketBody', [$content, 0]);
+        $result = $this->invokeMethod($pm, 'extractBracketBody', [$content, 0]);
         $this->assertSame("'key]val' => 'src[0]'", $result);
     }
 
@@ -121,7 +116,7 @@ class PackageManagerNamespaceTest extends TestCase
     {
         $pm = $this->createPackageManager();
         $content = "['outer' => ['inner']]";
-        $result = $this->invokePrivate($pm, 'extractBracketBody', [$content, 0]);
+        $result = $this->invokeMethod($pm, 'extractBracketBody', [$content, 0]);
         $this->assertSame("'outer' => ['inner']", $result);
     }
 
@@ -129,28 +124,28 @@ class PackageManagerNamespaceTest extends TestCase
     {
         $pm = $this->createPackageManager();
         $content = "['Pagekit\\\\Blog\\\\' => 'src']";
-        $result = $this->invokePrivate($pm, 'extractBracketBody', [$content, 0]);
+        $result = $this->invokeMethod($pm, 'extractBracketBody', [$content, 0]);
         $this->assertSame("'Pagekit\\\\Blog\\\\' => 'src'", $result);
     }
 
     public function testExtractBracketBodyUnclosed(): void
     {
         $pm = $this->createPackageManager();
-        $result = $this->invokePrivate($pm, 'extractBracketBody', ['[unclosed', 0]);
+        $result = $this->invokeMethod($pm, 'extractBracketBody', ['[unclosed', 0]);
         $this->assertNull($result);
     }
 
     public function testExtractBracketBodyInvalidPosition(): void
     {
         $pm = $this->createPackageManager();
-        $result = $this->invokePrivate($pm, 'extractBracketBody', ['abc', 0]);
+        $result = $this->invokeMethod($pm, 'extractBracketBody', ['abc', 0]);
         $this->assertNull($result);
     }
 
     public function testExtractBracketBodyOutOfBounds(): void
     {
         $pm = $this->createPackageManager();
-        $result = $this->invokePrivate($pm, 'extractBracketBody', ['[x]', 99]);
+        $result = $this->invokeMethod($pm, 'extractBracketBody', ['[x]', 99]);
         $this->assertNull($result);
     }
 
@@ -162,7 +157,7 @@ class PackageManagerNamespaceTest extends TestCase
         $file = $this->tmpDir . '/index.php';
         file_put_contents($file, "<?php\nreturn [\n    'autoload' => [\n        'Pagekit\\\\Blog\\\\' => 'src',\n    ],\n];");
 
-        $result = $this->invokePrivate($pm, 'parseAutoloadFromIndexFile', [$file]);
+        $result = $this->invokeMethod($pm, 'parseAutoloadFromIndexFile', [$file]);
         $this->assertSame(['Pagekit\\Blog\\' => 'src'], $result);
     }
 
@@ -172,7 +167,7 @@ class PackageManagerNamespaceTest extends TestCase
         $file = $this->tmpDir . '/index_dq.php';
         file_put_contents($file, "<?php\nreturn [\n    \"autoload\" => [\n        \"Vendor\\\\Ext\\\\\" => \"src\",\n    ],\n];");
 
-        $result = $this->invokePrivate($pm, 'parseAutoloadFromIndexFile', [$file]);
+        $result = $this->invokeMethod($pm, 'parseAutoloadFromIndexFile', [$file]);
         $this->assertSame(['Vendor\\Ext\\' => 'src'], $result);
     }
 
@@ -182,7 +177,7 @@ class PackageManagerNamespaceTest extends TestCase
         $file = $this->tmpDir . '/no_autoload.php';
         file_put_contents($file, "<?php\nreturn [\n    'name' => 'test',\n];");
 
-        $result = $this->invokePrivate($pm, 'parseAutoloadFromIndexFile', [$file]);
+        $result = $this->invokeMethod($pm, 'parseAutoloadFromIndexFile', [$file]);
         $this->assertNull($result);
     }
 
@@ -205,14 +200,14 @@ return [
 PHP;
         file_put_contents($file, $content);
 
-        $result = $this->invokePrivate($pm, 'parseAutoloadFromIndexFile', [$file]);
+        $result = $this->invokeMethod($pm, 'parseAutoloadFromIndexFile', [$file]);
         $this->assertSame(['My\\Ext\\' => 'src'], $result);
     }
 
     public function testParseAutoloadNonexistentFile(): void
     {
         $pm = $this->createPackageManager();
-        $result = @$this->invokePrivate($pm, 'parseAutoloadFromIndexFile', ['/nonexistent/path.php']);
+        $result = @$this->invokeMethod($pm, 'parseAutoloadFromIndexFile', ['/nonexistent/path.php']);
         $this->assertNull($result);
     }
 
@@ -230,7 +225,7 @@ PHP;
         file_put_contents($pkgDir . '/index.php', "<?php\nreturn [\n    'autoload' => [\n        'Vendor\\\\MyExt\\\\' => 'src',\n    ],\n];");
 
         $package = $this->createPackageStub('my-ext', $pkgDir, null);
-        $result = $this->invokeProtected($pm, 'resolveExtensionMigrationNamespace', [$package]);
+        $result = $this->invokeMethod($pm, 'resolveExtensionMigrationNamespace', [$package]);
         $this->assertSame('Vendor\\MyExt\\Migrations', $result);
     }
 
@@ -249,7 +244,7 @@ PHP;
         ]));
 
         $package = $this->createPackageStub('composer-ext', $pkgDir, null);
-        $result = $this->invokeProtected($pm, 'resolveExtensionMigrationNamespace', [$package]);
+        $result = $this->invokeMethod($pm, 'resolveExtensionMigrationNamespace', [$package]);
         $this->assertSame('Vendor\\ComposerExt\\Migrations', $result);
     }
 
@@ -264,7 +259,7 @@ PHP;
         mkdir($pkgDir, 0777, true);
 
         $package = $this->createPackageStub('no-autoload', $pkgDir, null, 'vendor/my-cool_ext');
-        $result = $this->invokeProtected($pm, 'resolveExtensionMigrationNamespace', [$package]);
+        $result = $this->invokeMethod($pm, 'resolveExtensionMigrationNamespace', [$package]);
         $this->assertSame('Vendor\\MyCoolExt\\Migrations', $result);
     }
 
@@ -284,7 +279,7 @@ PHP;
         ]));
 
         $package = $this->createPackageStub('both-ext', $pkgDir, null);
-        $result = $this->invokeProtected($pm, 'resolveExtensionMigrationNamespace', [$package]);
+        $result = $this->invokeMethod($pm, 'resolveExtensionMigrationNamespace', [$package]);
         $this->assertSame('IndexNs\\Migrations', $result);
     }
 
@@ -296,6 +291,7 @@ PHP;
         $data = [
             'module' => $module,
             'path' => $path,
+            'type' => $type,
             'name' => $name,
         ];
 
