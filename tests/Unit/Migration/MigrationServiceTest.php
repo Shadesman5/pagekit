@@ -165,6 +165,72 @@ class MigrationServiceTest extends TestCase
         self::assertSame(0, $second['executed']);
     }
 
+    public function testGetExtensionCurrentVersionReturnsZeroBeforeMigration(): void
+    {
+        $this->writeExtensionMigration();
+
+        $version = $this->service->getExtensionCurrentVersion(
+            $this->extNamespace,
+            $this->extMigrationsDir,
+        );
+
+        self::assertSame('0', $version);
+    }
+
+    public function testGetExtensionCurrentVersionReturnsVersionAfterMigration(): void
+    {
+        $this->writeExtensionMigration();
+
+        $this->service->migrateExtension($this->extNamespace, $this->extMigrationsDir);
+
+        $version = $this->service->getExtensionCurrentVersion(
+            $this->extNamespace,
+            $this->extMigrationsDir,
+        );
+
+        self::assertNotSame('0', $version);
+        self::assertStringContainsString($this->extNamespace, $version);
+    }
+
+    public function testRollbackExtensionToSpecificVersionPreservesEarlierMigrations(): void
+    {
+        $this->writeExtensionMigration();
+        $this->writeExtensionMigrationV2();
+
+        $versionBeforeMigrate = $this->service->getExtensionCurrentVersion(
+            $this->extNamespace,
+            $this->extMigrationsDir,
+        );
+        self::assertSame('0', $versionBeforeMigrate);
+
+        $up1 = $this->service->migrateExtension($this->extNamespace, $this->extMigrationsDir);
+        self::assertTrue($up1['success'], $up1['error'] ?? '');
+        self::assertSame(2, $up1['executed']);
+
+        $sm = $this->connection->createSchemaManager();
+        self::assertTrue($sm->tablesExist(['test_ext_items']));
+        self::assertTrue($sm->tablesExist(['test_ext_settings']));
+
+        $versionAfterV1 = $this->extNamespace . '\\Version20250101000001_CreateExtTable';
+
+        $rollback = $this->service->rollbackExtension(
+            $this->extNamespace,
+            $this->extMigrationsDir,
+            $versionAfterV1,
+        );
+        self::assertTrue($rollback['success'], $rollback['error'] ?? '');
+        self::assertSame(1, $rollback['executed']);
+
+        self::assertTrue(
+            $this->connection->createSchemaManager()->tablesExist(['test_ext_items']),
+            'V1 table must survive partial rollback',
+        );
+        self::assertFalse(
+            $this->connection->createSchemaManager()->tablesExist(['test_ext_settings']),
+            'V2 table must be dropped by partial rollback',
+        );
+    }
+
     // ---- helpers ----
 
     private function writeCoreMigration(): void
@@ -249,6 +315,50 @@ MIG
 
         file_put_contents(
             $this->extMigrationsDir . '/Version20250101000001_CreateExtTable.php',
+            $php,
+        );
+    }
+
+    private function writeExtensionMigrationV2(): void
+    {
+        $ns = $this->extNamespace;
+        $php = str_replace(
+            '{NS}',
+            $ns,
+            <<<'MIG'
+<?php
+declare(strict_types=1);
+namespace {NS};
+
+use Doctrine\DBAL\Schema\Schema;
+use Doctrine\Migrations\AbstractMigration;
+
+final class Version20250102000001_CreateExtSettings extends AbstractMigration
+{
+    public function getDescription(): string
+    {
+        return 'Create test_ext_settings table';
+    }
+
+    public function up(Schema $schema): void
+    {
+        $t = $schema->createTable('test_ext_settings');
+        $t->addColumn('id', 'integer', ['autoincrement' => true]);
+        $t->addColumn('key', 'string', ['length' => 255]);
+        $t->addColumn('value', 'text');
+        $t->setPrimaryKey(['id']);
+    }
+
+    public function down(Schema $schema): void
+    {
+        $schema->dropTable('test_ext_settings');
+    }
+}
+MIG
+        );
+
+        file_put_contents(
+            $this->extMigrationsDir . '/Version20250102000001_CreateExtSettings.php',
             $php,
         );
     }

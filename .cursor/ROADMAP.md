@@ -1,7 +1,7 @@
 # **🗺️ Pagekit Modernization Roadmap & Rules**
 
-> **Current Version**: 1.2.8
-> **Current Step**: 2.0.4 (Package/Migration System Redesign)
+> **Current Version**: 1.2.9
+> **Current Step**: 2.0.5 (Composer & Autoload Hygiene)
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**
 
@@ -70,7 +70,7 @@
 | 2.0.1e | ↳ StaticTrait Removal + DI Final      | ✅     | 🛡️    | #166  | #172    |
 | 2.0.2  | ↳ Validator-Translator Integration    | ✅     | 🛡️    | #146  | #175    |
 | 2.0.3  | ↳ Cache API Full Modernization        | ✅     | 🛡️    | #179  | #187    |
-| 2.0.4  | ↳ Package/Migration System Redesign   | ⏳     | ⏳    | #180  | -       |
+| 2.0.4  | ↳ Package/Migration System Redesign   | ⏳     | ⏳    | #180  | #189    |
 | 2.0.5  | ↳ Composer & Autoload Hygiene         | ⏳     | ⏳    | #182  | -       |
 | 2.0.6  | ↳ Test Infrastructure Cleanup         | ⏳     | ⏳    | #183  | -       |
 | 2.0.7  | ↳ Event Dispatcher Bridge Removal     | ⏳     | ⏳    | #184  | -       |

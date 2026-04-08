@@ -202,9 +202,19 @@ class PackageManager
                                 $package->get('name') ?? $moduleName
                             ));
                         }
-                        $appliedMigration = ['ns' => $migrationNamespace, 'path' => $packagePath . '/src/Migrations'];
+                        $migrationService = $this->app->get('migration');
+                        $preMigrationVersion = $migrationService->getExtensionCurrentVersion(
+                            $migrationNamespace,
+                            $packagePath . '/src/Migrations'
+                        );
 
-                        $migrationResult = $this->app->get('migration')->migrateExtension(
+                        $appliedMigration = [
+                            'ns' => $migrationNamespace,
+                            'path' => $packagePath . '/src/Migrations',
+                            'previousVersion' => $preMigrationVersion,
+                        ];
+
+                        $migrationResult = $migrationService->migrateExtension(
                             $migrationNamespace,
                             $packagePath . '/src/Migrations'
                         );
@@ -235,10 +245,11 @@ class PackageManager
             } catch (\Throwable $e) {
                 if ($appliedMigration !== null && $this->app->has('migration')) {
                     try {
+                        $rollbackTarget = $appliedMigration['previousVersion'];
                         $rollbackResult = $this->app->get('migration')->rollbackExtension(
                             $appliedMigration['ns'],
                             $appliedMigration['path'],
-                            '0'
+                            $rollbackTarget
                         );
                         if (!$rollbackResult['success'] && $this->app->has('log')) {
                             $this->app->get('log')->warning(sprintf(

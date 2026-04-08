@@ -70,6 +70,8 @@ class MigrationService
             new \Doctrine\Migrations\Configuration\Migration\ConfigurationArray($configArray),
             new ExistingConnection($this->connection)
         );
+
+        $this->dependencyFactory->getMetadataStorage()->ensureInitialized();
     }
 
     /**
@@ -88,6 +90,52 @@ class MigrationService
             : 'pk_';
 
         return str_replace('@', $prefix, $tableName);
+    }
+
+    /**
+     * Create a DependencyFactory scoped to a specific extension's migrations.
+     */
+    private function createExtensionDependencyFactory(string $namespace, string $path): DependencyFactory
+    {
+        $extensionConfig = $this->config;
+        $extensionConfig['migrations_paths'] = [$namespace => $path];
+
+        if (isset($extensionConfig['table_storage']['table_name'])) {
+            $extensionConfig['table_storage']['table_name'] = $this->replacePrefix(
+                $extensionConfig['table_storage']['table_name']
+            );
+        }
+
+        $factory = DependencyFactory::fromConnection(
+            new \Doctrine\Migrations\Configuration\Migration\ConfigurationArray($extensionConfig),
+            new ExistingConnection($this->connection)
+        );
+
+        $factory->getMetadataStorage()->ensureInitialized();
+
+        return $factory;
+    }
+
+    /**
+     * Get the current migration version for an extension.
+     *
+     * Returns '0' if no migrations have been executed yet,
+     * or the fully qualified version class name of the last executed migration.
+     *
+     * @param string $namespace Extension migration namespace
+     * @param string $path Absolute path to extension migrations directory
+     * @return string Current version string ('0' if none executed)
+     */
+    public function getExtensionCurrentVersion(string $namespace, string $path): string
+    {
+        try {
+            $extensionFactory = $this->createExtensionDependencyFactory($namespace, $path);
+            $aliasResolver = $extensionFactory->getVersionAliasResolver();
+
+            return (string) $aliasResolver->resolveVersionAlias('current');
+        } catch (\Exception $e) {
+            return '0';
+        }
     }
 
     /**
@@ -459,24 +507,8 @@ class MigrationService
     public function migrateExtension(string $namespace, string $path, ?string $version = null): array
     {
         try {
-            // Create temporary config for extension migrations
-            $extensionConfig = $this->config;
-            $extensionConfig['migrations_paths'] = [$namespace => $path];
+            $extensionFactory = $this->createExtensionDependencyFactory($namespace, $path);
 
-            // Replace table prefix in table name for extension config
-            if (isset($extensionConfig['table_storage']['table_name'])) {
-                $extensionConfig['table_storage']['table_name'] = $this->replacePrefix(
-                    $extensionConfig['table_storage']['table_name']
-                );
-            }
-
-            // Create temporary dependency factory for extension
-            $extensionFactory = DependencyFactory::fromConnection(
-                new \Doctrine\Migrations\Configuration\Migration\ConfigurationArray($extensionConfig),
-                new \Doctrine\Migrations\Configuration\Connection\ExistingConnection($this->connection)
-            );
-
-            // Get services from extension factory
             $migrator = $extensionFactory->getMigrator();
             $planCalculator = $extensionFactory->getMigrationPlanCalculator();
             $aliasResolver = $extensionFactory->getVersionAliasResolver();
@@ -550,24 +582,8 @@ class MigrationService
     public function rollbackExtension(string $namespace, string $path, ?string $version = null): array
     {
         try {
-            // Create temporary config for extension migrations
-            $extensionConfig = $this->config;
-            $extensionConfig['migrations_paths'] = [$namespace => $path];
+            $extensionFactory = $this->createExtensionDependencyFactory($namespace, $path);
 
-            // Replace table prefix
-            if (isset($extensionConfig['table_storage']['table_name'])) {
-                $extensionConfig['table_storage']['table_name'] = $this->replacePrefix(
-                    $extensionConfig['table_storage']['table_name']
-                );
-            }
-
-            // Create temporary dependency factory
-            $extensionFactory = DependencyFactory::fromConnection(
-                new \Doctrine\Migrations\Configuration\Migration\ConfigurationArray($extensionConfig),
-                new \Doctrine\Migrations\Configuration\Connection\ExistingConnection($this->connection)
-            );
-
-            // Get services
             $migrator = $extensionFactory->getMigrator();
             $planCalculator = $extensionFactory->getMigrationPlanCalculator();
             $aliasResolver = $extensionFactory->getVersionAliasResolver();
