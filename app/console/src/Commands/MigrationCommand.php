@@ -44,7 +44,12 @@ class MigrationCommand extends Command
         $scripts = new PackageScripts($this->container->get('path').'/app/system/scripts.php', $config->get('version'), $this->container);
         $hadScriptUpdates = $scripts->hasUpdates();
         if ($hadScriptUpdates) {
-            $scripts->update();
+            try {
+                $scripts->update();
+            } catch (\Throwable $e) {
+                $this->line(sprintf('<error>Script update failed: %s</error>', $e->getMessage()));
+                return SymfonyCommand::FAILURE;
+            }
         }
 
         $config->set('version', $this->container->get('version'));
