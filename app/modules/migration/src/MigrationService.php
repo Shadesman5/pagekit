@@ -185,7 +185,7 @@ class MigrationService
             /** @var \Doctrine\Migrations\Query\Query[] $queries */
             foreach ($result as $queries) {
                 foreach ($queries as $query) {
-                    $sql[] = $query;
+                    $sql[] = $query->getStatement();
                 }
             }
 
@@ -545,7 +545,7 @@ class MigrationService
             /** @var \Doctrine\Migrations\Query\Query[] $queries */
             foreach ($result as $queries) {
                 foreach ($queries as $query) {
-                    $sql[] = $query;
+                    $sql[] = $query->getStatement();
                 }
             }
 
