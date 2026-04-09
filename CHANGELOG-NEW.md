@@ -1,6 +1,6 @@
 # Changelog
 
-## Pagekit 1.2.9 - Package Migration System Redesign (April 4, 2026)
+## Pagekit 1.2.9 - Package Migration System Redesign (April 9, 2026)
 
 ### Breaking Changes
 
@@ -12,10 +12,19 @@
 
 - **Extension auto-migrate on enable** — `PackageManager::enable()` detects `src/Migrations/` directory and runs `MigrationService::migrateExtension()` before setting version. On failure, existing rollback handler triggers. (Closes #180)
 - **Extension auto-rollback on uninstall** — `PackageManager::uninstall()` rolls back extension Doctrine migrations before file removal. Failure logged as warning but does not block uninstall.
+- **`getExtensionCurrentVersion()`** — New `MigrationService` method returns the current migration version for an extension, used for precise rollback targeting.
+
+### Bug Fixes
+
+- **Enable rollback precision** — `PackageManager::enable()` now captures pre-migration version via `getExtensionCurrentVersion()` and only rolls back migrations applied during the current `enable()` call. Previously rolled back to version `'0'`, which would destroy pre-existing extension tables on re-enable failure.
+- **MigrationController defensive guards** — `indexAction()` and `migrateAction()` check `$this->app->has('migration')` before accessing the service, preventing `NotFoundExceptionInterface` when redirected due to pending scripts while migration service isn't registered. Consistent with the `index.php` login handler.
+- **CLI script update guard** — `MigrationCommand::execute()` wraps `$scripts->update()` in try/catch to prevent version bump on script failure and provide clean error output.
+- **Test directory case normalization** — `tests/unit/` renamed to `tests/Unit/` to match `phpunit.xml.dist` configuration. Tests were invisible on case-sensitive systems (Linux/macOS CI). Test count increased from 280 to 310.
+- **Metadata storage auto-initialization** — `ensureInitialized()` called on both core and extension `DependencyFactory`, fixing metadata storage errors on fresh databases.
 
 ### Refactor
 
-- **MigrationService hardened** — Removed `is_array($result)` guard branches from `migrate()`, `rollback()`, `migrateExtension()`, `rollbackExtension()`. Doctrine Migrations 3.x returns `array<string, ExecutionResult>`. Deleted unused `getConfigPath()` method.
+- **MigrationService hardened** — Removed `is_array($result)` guard branches from `migrate()`, `rollback()`, `migrateExtension()`, `rollbackExtension()`. Doctrine Migrations 3.x returns `array<string, ExecutionResult>`. Deleted unused `getConfigPath()` method. Extracted `createExtensionDependencyFactory()` to DRY up duplicated factory creation.
 - **Login check unified** — `auth.login` handler checks `MigrationService::status()['has_pending']` before version bump. Redirects to migration wizard if Doctrine migrations OR scripts are pending.
 - **Update wizard unified** — `MigrationController::migrateAction()` runs Doctrine migrations before `PackageScripts::update()`. `indexAction()` shows wizard when pending Doctrine migrations exist. Constructor fully typed.
 - **CLI migrate command unified** — `MigrationCommand::execute()` runs Doctrine migrations first, then scripts. Version bump only after both succeed. Uses `Command::SUCCESS`/`FAILURE` constants. Added `declare(strict_types=1)`.
@@ -24,11 +33,13 @@
 
 ### Tests
 
-- **Real MigrationServiceTest** — All `markTestSkipped()` stubs replaced with real SQLite in-memory tests: migrate, rollback, status, extension migrate/rollback, no-op migration.
+- **Real MigrationServiceTest** — All `markTestSkipped()` stubs replaced with real SQLite in-memory tests: migrate, rollback, status, extension migrate/rollback, no-op migration. Added `getExtensionCurrentVersion` and partial rollback tests (12 total, 310 suite-wide).
+- **Test helper cleanup** — `invokePrivate`/`invokeProtected` merged to single `invokeMethod`. `createPackageStub` now stores `$type` parameter correctly.
 
 ### Chore
 
 - **Audit cleanup** — Removed resolved TODO comments referencing Step 2.0.4 from `scripts.php`. Removed stale PHPStan baseline entries for deleted code paths.
+- **BUGBOT rules updated** — Added PHP 8.2+ error model rule (Rule 2.2) to prevent false positives about `\Throwable`. Updated resolved/deferred tracking tables.
 
 ---
 
