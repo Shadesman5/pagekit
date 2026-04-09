@@ -25,18 +25,24 @@ class MigrationCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        /** @var \Pagekit\Migration\MigrationService $migration */
-        $migration = $this->container->get('migration');
+        $result = ['success' => true, 'executed' => 0];
 
-        $result = $migration->migrate();
+        if ($this->container->has('migration')) {
+            /** @var \Pagekit\Migration\MigrationService $migration */
+            $migration = $this->container->get('migration');
 
-        if (!$result['success']) {
-            $this->line(sprintf('<error>Doctrine Migration failed: %s</error>', $result['error'] ?? 'unknown error'));
-            return SymfonyCommand::FAILURE;
-        }
+            $result = $migration->migrate();
 
-        if ($result['executed'] > 0) {
-            $this->line(sprintf('<info>Executed %d Doctrine migration(s).</info>', $result['executed']));
+            if (!$result['success']) {
+                $this->line(sprintf('<error>Doctrine Migration failed: %s</error>', $result['error'] ?? 'unknown error'));
+                return SymfonyCommand::FAILURE;
+            }
+
+            if ($result['executed'] > 0) {
+                $this->line(sprintf('<info>Executed %d Doctrine migration(s).</info>', $result['executed']));
+            }
+        } else {
+            $this->line('<comment>Migration service not available — skipping Doctrine migrations.</comment>');
         }
 
         $config = $this->container->get('config')('system');
