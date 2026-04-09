@@ -156,8 +156,6 @@ class PackageManager
         foreach ($packages as $package) {
             $originalState = null;
             $moduleName = $package->get('module');
-            /** @var array{ns: string, path: string, previousVersion: string}|null */
-            $appliedMigration = null;
 
             try {
                 $previousPackageConfig = $package;
@@ -190,41 +188,6 @@ class PackageManager
                         $scripts->update();
                     }
 
-                    $packagePath = $package->get('path');
-                    if ($packagePath !== null
-                        && is_dir($packagePath . '/src/Migrations')
-                        && $this->app->has('migration')
-                    ) {
-                        $migrationNamespace = $this->resolveExtensionMigrationNamespace($package);
-                        if ($migrationNamespace === null) {
-                            throw new \RuntimeException(sprintf(
-                                'Cannot resolve migration namespace for package "%s" — src/Migrations/ exists but no autoload config found',
-                                $package->get('name') ?? $moduleName
-                            ));
-                        }
-                        $migrationService = $this->app->get('migration');
-                        $preMigrationVersion = $migrationService->getExtensionCurrentVersion(
-                            $migrationNamespace,
-                            $packagePath . '/src/Migrations'
-                        );
-
-                        $appliedMigration = [
-                            'ns' => $migrationNamespace,
-                            'path' => $packagePath . '/src/Migrations',
-                            'previousVersion' => $preMigrationVersion,
-                        ];
-
-                        $migrationResult = $migrationService->migrateExtension(
-                            $migrationNamespace,
-                            $packagePath . '/src/Migrations'
-                        );
-                        if (!$migrationResult['success']) {
-                            throw new \RuntimeException(
-                                'Extension migration failed: ' . ($migrationResult['error'] ?? 'unknown error')
-                            );
-                        }
-                    }
-
                     $scripts->enable();
 
                     $version = $this->getVersion($package);
@@ -243,32 +206,6 @@ class PackageManager
                     $scripts->enable();
                 }
             } catch (\Throwable $e) {
-                if ($appliedMigration !== null && $this->app->has('migration')) {
-                    try {
-                        $rollbackTarget = $appliedMigration['previousVersion'];
-                        $rollbackResult = $this->app->get('migration')->rollbackExtension(
-                            $appliedMigration['ns'],
-                            $appliedMigration['path'],
-                            $rollbackTarget
-                        );
-                        if (!$rollbackResult['success'] && $this->app->has('log')) {
-                            $this->app->get('log')->warning(sprintf(
-                                'Failed to rollback migrations for package "%s" during enable recovery: %s',
-                                $package->get('name'),
-                                $rollbackResult['error'] ?? 'unknown error'
-                            ));
-                        }
-                    } catch (\Throwable $rollbackError) {
-                        if ($this->app->has('log')) {
-                            $this->app->get('log')->warning(sprintf(
-                                'Failed to rollback migrations for package "%s" during enable recovery: %s',
-                                $package->get('name'),
-                                $rollbackError->getMessage()
-                            ), ['exception' => $rollbackError]);
-                        }
-                    }
-                }
-
                 if ($originalState !== null) {
                     $this->rollbackEnable($package, $originalState);
                 }
