@@ -440,6 +440,8 @@ class PackageManager
             return null;
         }
 
+        $content = $this->stripPhpComments($content);
+
         if (!preg_match("/['\"]autoload['\"]\s*=>\s*\[/s", $content, $match, PREG_OFFSET_CAPTURE)) {
             return null;
         }
@@ -512,6 +514,26 @@ class PackageManager
     private function unescapePhpString(string $raw): string
     {
         return strtr($raw, ['\\\\' => '\\', "\\'" => "'"]);
+    }
+
+    /**
+     * Strip PHP comments from source code without executing it.
+     *
+     * Uses token_get_all() which parses syntax only — no code execution.
+     * Preserves newlines so byte offsets for bracket matching stay consistent.
+     */
+    private function stripPhpComments(string $source): string
+    {
+        $stripped = '';
+        foreach (token_get_all($source) as $token) {
+            if (is_array($token) && \in_array($token[0], [\T_COMMENT, \T_DOC_COMMENT], true)) {
+                $stripped .= str_repeat("\n", substr_count($token[1], "\n"));
+                continue;
+            }
+            $stripped .= is_array($token) ? $token[1] : $token;
+        }
+
+        return $stripped;
     }
 
     /**

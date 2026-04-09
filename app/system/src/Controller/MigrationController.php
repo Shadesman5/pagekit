@@ -75,7 +75,14 @@ class MigrationController
         }
 
         if ($updates = $this->scripts->hasUpdates()) {
-            $this->scripts->update();
+            try {
+                $this->scripts->update();
+            } catch (\Throwable $e) {
+                return $this->response->json([
+                    'status' => false,
+                    'message' => sprintf('Script update failed: %s', $e->getMessage()),
+                ], 500);
+            }
             $message = __('Your Pagekit database has been updated successfully.');
         } else {
             $message = $migrationResult['executed'] > 0
