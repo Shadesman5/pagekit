@@ -14,19 +14,25 @@
 return [
 
     'install' => function ($app) {
-        $app->get('migration')->migrateExtension(
+        $result = $app->get('migration')->migrateExtension(
             'Pagekit\\Blog\\Migrations',
             __DIR__ . '/src/Migrations'
         );
+
+        if (!$result['success']) {
+            throw new \RuntimeException('Blog migration failed: ' . ($result['error'] ?? 'unknown error'));
+        }
     },
 
     'enable' => function ($app) {
-        // Idempotent: only applies migrations not yet executed.
-        // Ensures schema is current whenever the extension is activated.
-        $app->get('migration')->migrateExtension(
+        $result = $app->get('migration')->migrateExtension(
             'Pagekit\\Blog\\Migrations',
             __DIR__ . '/src/Migrations'
         );
+
+        if (!$result['success']) {
+            throw new \RuntimeException('Blog migration failed: ' . ($result['error'] ?? 'unknown error'));
+        }
     },
 
     'uninstall' => function ($app) {
