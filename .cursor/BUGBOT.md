@@ -66,7 +66,6 @@ already tracked with a GitHub Issue, **do NOT flag it as a Bug**. Instead:
 | `mixed` typed constructor parameters | Steps 2.1.4–2.1.6 (PHPStan) | #151, #152, #153 |
 | Missing `declare(strict_types=1)` | Step 2.1.3 (strict_types Migration) | #150 |
 | Missing test coverage for refactors | Step 2.1.9 (Test Coverage Expansion) | #156 |
-| `PackageManager::enable()`/`uninstall()` migration integration tests | Step 2.1.9 (Test Coverage Expansion) | #156 |
 | `MigrationCommand` integration test (Doctrine + scripts flow) | Step 2.1.9 (Test Coverage Expansion) | #156 |
 | `App::abort()`, `App::redirect()` | Step 2.0.1e (StaticTrait Removal) | #166 |
 | `App::getInstance()` temporary bridges | Step 2.0.1e (StaticTrait Removal) | #166 |
@@ -89,6 +88,7 @@ already tracked with a GitHub Issue, **do NOT flag it as a Bug**. Instead:
 | `MigrationCommand` two-phase model (migrations + scripts) | PR #189 (Step 2.0.4) | By design: migrations are idempotent (tracking table), scripts are version-gated. Retry on next run works correctly. |
 | `MigrationController` `has('migration')` guard | PR #189 (Step 2.0.4) | Both `indexAction()` and `migrateAction()` defensively check service availability, consistent with `index.php` login handler. |
 | `catch (\Throwable)` in `MigrationCommand::execute()` | PR #189 (Step 2.0.4) | Catches all PHP 8.2+ errors. "Non-\Throwable error" is impossible in modern PHP — see Rule 2.2. |
+| Auto-migration/rollback removed from PackageManager | PR #189 (Step 2.0.4b) | Extensions use explicit scripts.php hooks per original Pagekit design |
 
 This table MUST be updated when new deferred items are added to the ROADMAP.
 Bugbot should re-read ROADMAP.md on every review to detect changes.
