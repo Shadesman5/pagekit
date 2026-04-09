@@ -89,6 +89,7 @@ already tracked with a GitHub Issue, **do NOT flag it as a Bug**. Instead:
 | `MigrationController` `has('migration')` guard | PR #189 (Step 2.0.4) | Both `indexAction()` and `migrateAction()` defensively check service availability, consistent with `index.php` login handler. |
 | `catch (\Throwable)` in `MigrationCommand::execute()` | PR #189 (Step 2.0.4) | Catches all PHP 8.2+ errors. "Non-\Throwable error" is impossible in modern PHP — see Rule 2.2. |
 | Auto-migration/rollback removed from PackageManager | PR #189 (Step 2.0.4b) | Extensions use explicit scripts.php hooks per original Pagekit design |
+| Commented-out `rollbackExtension()` in blog `scripts.php` uninstall hook | PR #189 (Step 2.0.4b) | Intentional API usage example for extension developers, not commented-out legacy code. Rule 4 does not apply to documentation examples. |
 
 This table MUST be updated when new deferred items are added to the ROADMAP.
 Bugbot should re-read ROADMAP.md on every review to detect changes.
