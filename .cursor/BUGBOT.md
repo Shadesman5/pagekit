@@ -66,6 +66,8 @@ already tracked with a GitHub Issue, **do NOT flag it as a Bug**. Instead:
 | `mixed` typed constructor parameters | Steps 2.1.4–2.1.6 (PHPStan) | #151, #152, #153 |
 | Missing `declare(strict_types=1)` | Step 2.1.3 (strict_types Migration) | #150 |
 | Missing test coverage for refactors | Step 2.1.9 (Test Coverage Expansion) | #156 |
+| `PackageManager::enable()`/`uninstall()` migration integration tests | Step 2.1.9 (Test Coverage Expansion) | #156 |
+| `MigrationCommand` integration test (Doctrine + scripts flow) | Step 2.1.9 (Test Coverage Expansion) | #156 |
 | `App::abort()`, `App::redirect()` | Step 2.0.1e (StaticTrait Removal) | #166 |
 | `App::getInstance()` temporary bridges | Step 2.0.1e (StaticTrait Removal) | #166 |
 | `$app['x'] = ...` ArrayAccess WRITE | Step 2.0.1d (ArrayAccess Removal) | #165 |

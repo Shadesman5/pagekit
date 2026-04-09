@@ -464,9 +464,12 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
     - `AddRelNofollowFilter` XSS edge cases: Harden filter + activate 3 disabled tests (slash instead of space, null-byte obfuscation, `rel="follow"` replacement) — see `app/modules/filter/src/Tests/AddRelNofollowTest.php`
   - **Audit findings (Phase 1 review):**
     - E2E tests (Step 1.10.5): Most were poorly created, not following best practices; only first 3 tests are reasonably functional. Full E2E rework needed.
-    - `MigrationServiceTest` — all tests skipped; write real migrate/rollback coverage
+    - ~~`MigrationServiceTest` — all tests skipped; write real migrate/rollback coverage~~ (RESOLVED in PR #189, Step 2.0.4 — 12 real tests with in-memory SQLite)
     - `MenuApiController` — manual validation without `#[Assert\...]` / `ValidatesRequestTrait`; add validation + tests
     - `assertEquals` vs `assertSame` — ~200+ occurrences where strict comparison would be more appropriate
+  - **Audit findings (Step 2.0.4 review):**
+    - `PackageManager::enable()`/`uninstall()` migration integration — no integration tests for auto-migrate on enable, auto-rollback on uninstall, or partial rollback to pre-migration version. Unit-level MigrationService methods are tested.
+    - `MigrationCommand` CLI flow — no integration test for the unified Doctrine migrations + scripts pipeline with version bump guard.
 - **Result**: Coverage grows organically with every change
 - **Risk**: Low — continuous improvement, no big bang
 - **Note**: No separate branch — coverage tests are delivered in every feature branch

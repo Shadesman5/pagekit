@@ -133,7 +133,7 @@ class MigrationService
             $aliasResolver = $extensionFactory->getVersionAliasResolver();
 
             return (string) $aliasResolver->resolveVersionAlias('current');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return '0';
         }
     }
