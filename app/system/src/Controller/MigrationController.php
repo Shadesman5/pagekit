@@ -68,9 +68,10 @@ class MigrationController
 
             $migrationResult = $migrationService->migrate();
             if (!$migrationResult['success']) {
-                throw new \RuntimeException(
-                    'Doctrine Migrations failed: ' . ($migrationResult['error'] ?? 'unknown error')
-                );
+                return $this->response->json([
+                    'status' => false,
+                    'message' => sprintf('Doctrine Migration failed: %s', $migrationResult['error'] ?? 'unknown error'),
+                ], 500);
             }
         }
 
