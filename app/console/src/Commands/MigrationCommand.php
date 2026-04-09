@@ -42,7 +42,8 @@ class MigrationCommand extends Command
                 $this->line(sprintf('<info>Executed %d Doctrine migration(s).</info>', $result['executed']));
             }
         } else {
-            $this->line('<comment>Migration service not available — skipping Doctrine migrations.</comment>');
+            $this->line('<error>Migration service not available — cannot verify Doctrine migration state.</error>');
+            return SymfonyCommand::FAILURE;
         }
 
         $config = $this->container->get('config')('system');
