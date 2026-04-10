@@ -120,16 +120,14 @@ return [
 
         ],
 
-        // TODO: Must be refactored in Step 2.0.4 (Package/Migration System Redesign) —
-        // This login check only verifies scripts.php 'updates'. If 'updates' is empty,
-        // the version is silently bumped WITHOUT running Doctrine Migrations.
-        // Must also check MigrationService for pending migrations before bumping.
         'auth.login' => [function ($event) use ($app) {
             if ($event->getUser()->hasAccess('system: software updates') && version_compare($this->config('version'), $app->get('version'), '<')) {
 
                 $scripts = new PackageScripts($this->path . '/scripts.php', $this->config('version'), $app);
+                $migrationStatus = $app->has('migration') ? $app->get('migration')->status() : ['success' => true, 'has_pending' => false];
+                $hasPendingMigrations = !($migrationStatus['success'] ?? false) || ($migrationStatus['has_pending'] ?? false);
 
-                if ($scripts->hasUpdates()) {
+                if ($scripts->hasUpdates() || $hasPendingMigrations) {
                     $event->setResponse($app->get('response')->redirect('@system/migration', ['redirect' => $app->get('url')->getRoute('@system')]));
                 } else {
                     $app->get('config')('system')->set('version', $app->get('version'));

@@ -1,16 +1,13 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Pagekit\Console\Commands;
 
 use Pagekit\Application\Console\Command;
 use Pagekit\Installer\Package\PackageScripts;
+use Symfony\Component\Console\Command\Command as SymfonyCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-// TODO: Must be refactored in Step 2.0.4 (Package/Migration System Redesign) —
-// This command ('pagekit migrate') only runs scripts.php 'updates', NOT Doctrine Migrations.
-// Developers expect 'migrate' to run DB migrations. Unify: run Doctrine Migrations first,
-// then scripts.php hooks. Rename or merge with migration:migrate for clarity.
 class MigrationCommand extends Command
 {
     /**
@@ -28,17 +25,48 @@ class MigrationCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $result = ['success' => true, 'executed' => 0];
+
+        if ($this->container->has('migration')) {
+            /** @var \Pagekit\Migration\MigrationService $migration */
+            $migration = $this->container->get('migration');
+
+            $result = $migration->migrate();
+
+            if (!$result['success']) {
+                $this->line(sprintf('<error>Doctrine Migration failed: %s</error>', $result['error'] ?? 'unknown error'));
+                return SymfonyCommand::FAILURE;
+            }
+
+            if ($result['executed'] > 0) {
+                $this->line(sprintf('<info>Executed %d Doctrine migration(s).</info>', $result['executed']));
+            }
+        } else {
+            $this->line('<error>Migration service not available — cannot verify Doctrine migration state.</error>');
+            return SymfonyCommand::FAILURE;
+        }
+
         $config = $this->container->get('config')('system');
 
         $scripts = new PackageScripts($this->container->get('path').'/app/system/scripts.php', $config->get('version'), $this->container);
-        if ($scripts->hasUpdates()) {
-            $scripts->update();
+        $hadScriptUpdates = $scripts->hasUpdates();
+        if ($hadScriptUpdates) {
+            try {
+                $scripts->update();
+            } catch (\Throwable $e) {
+                $this->line(sprintf('<error>Script update failed: %s</error>', $e->getMessage()));
+                return SymfonyCommand::FAILURE;
+            }
         }
 
         $config->set('version', $this->container->get('version'));
 
-        $this->line(sprintf('<info>%s</info>', __('Your Pagekit database has been updated successfully.')));
+        if ($result['executed'] > 0 || $hadScriptUpdates) {
+            $this->line(sprintf('<info>%s</info>', __('Your Pagekit database has been updated successfully.')));
+        } else {
+            $this->line(sprintf('<info>%s</info>', __('Your database is up to date.')));
+        }
 
-        return 0;
+        return SymfonyCommand::SUCCESS;
     }
 }

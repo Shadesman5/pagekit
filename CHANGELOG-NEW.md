@@ -1,5 +1,47 @@
 # Changelog
 
+## Pagekit 1.2.9 - Package Migration System Redesign (April 9, 2026)
+
+### Breaking Changes
+
+- **`PackageManager` method signatures typed** — All public methods (`uninstall`, `enable`, `disable`, `getScripts`, `doInstall`, `getVersion`, `rollbackEnable`) now have PHP 8.2+ union/object type declarations.
+- **`DatabaseHandler::createTable()` removed** — The `@system_auth` table is now exclusively managed by Doctrine migration `Version20251023061532`.
+- **Extension migration is now explicit** — Extensions must call `MigrationService::migrateExtension()` in their `scripts.php` `enable` hook (see blog extension for reference pattern). `PackageManager` no longer auto-detects `src/Migrations/`.
+
+### Features
+
+- **`getExtensionCurrentVersion()`** — New `MigrationService` method returns the current migration version for an extension, used for precise rollback targeting in extension `scripts.php` hooks.
+- **Explicit extension migration pattern** — Blog `scripts.php` demonstrates the recommended pattern: `install`/`enable` hooks call `migrateExtension()` explicitly, `uninstall` hook optionally rolls back. (Closes #180)
+
+### Bug Fixes
+
+- **MigrationController defensive guards** — `indexAction()` and `migrateAction()` check `$this->app->has('migration')` before accessing the service, preventing `NotFoundExceptionInterface` when redirected due to pending scripts while migration service isn't registered.
+- **CLI script update guard** — `MigrationCommand::execute()` wraps `$scripts->update()` in try/catch to prevent version bump on script failure and provide clean error output.
+- **Test directory case normalization** — `tests/unit/` renamed to `tests/Unit/` to match `phpunit.xml.dist` configuration. Tests were invisible on case-sensitive systems (Linux/macOS CI).
+- **Metadata storage auto-initialization** — `ensureInitialized()` called on both core and extension `DependencyFactory`, fixing metadata storage errors on fresh databases.
+
+### Refactor
+
+- **MigrationService hardened** — Removed `is_array($result)` guard branches from `migrate()`, `rollback()`, `migrateExtension()`, `rollbackExtension()`. Doctrine Migrations 3.x returns `array<string, ExecutionResult>`. Deleted unused `getConfigPath()` method. Extracted `createExtensionDependencyFactory()` to DRY up duplicated factory creation.
+- **Login check unified** — `auth.login` handler checks `MigrationService::status()['has_pending']` before version bump. Redirects to migration wizard if Doctrine migrations OR scripts are pending. Fail-safe: errors treated as pending.
+- **Update wizard unified** — `MigrationController::migrateAction()` runs Doctrine migrations before `PackageScripts::update()`. `indexAction()` shows wizard when pending Doctrine migrations exist. Constructor fully typed.
+- **CLI migrate command unified** — `MigrationCommand::execute()` runs Doctrine migrations first, then scripts. Version bump only after both succeed. Distinguishes "updated" vs "up to date" output. Added `declare(strict_types=1)`.
+- **Blog migration renamed** — `Version001_CreateBlogTables` → `Version20251023070000_CreateBlogTables` (timestamp format consistent with core migrations). Uses `createTableIfNotExists()` for safe re-runs.
+- **PackageManager simplified** — Removed auto-migration detection from `enable()` and auto-rollback from `uninstall()`. Deleted namespace resolution methods (`resolveExtensionMigrationNamespace`, `parseAutoloadFromIndexFile`, `extractBracketBody`, `unescapePhpString`, `stripPhpComments`). Extensions use explicit `scripts.php` hooks per original Pagekit philosophy.
+- **PackageManager public API typed** — All public methods have proper PHP 8.2+ type declarations. Outdated `@param` PHPDoc blocks removed.
+- **Blog `scripts.php` explicit pattern** — `enable` hook with idempotent `migrateExtension()` call. Simplified `install`/`uninstall` hooks. Schema changes in `src/Migrations/`, `updates` array for data migrations only.
+
+### Tests
+
+- **Real MigrationServiceTest** — All `markTestSkipped()` stubs replaced with real SQLite in-memory tests: migrate, rollback, status, extension migrate/rollback, no-op migration. Added `getExtensionCurrentVersion` and partial rollback tests (12 total).
+
+### Chore
+
+- **Audit cleanup** — Removed resolved TODO comments referencing Step 2.0.4 from `scripts.php`. Removed stale PHPStan baseline entries for deleted code paths.
+- **BUGBOT rules updated** — Added PHP 8.2+ error model rule (Rule 2.2). Updated resolved/deferred tracking tables. Auto-migration removal tracked as resolved.
+
+---
+
 ## Pagekit 1.2.8 - Full Cache API Modernization (April 4, 2026)
 
 ### Breaking Changes

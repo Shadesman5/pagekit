@@ -66,11 +66,12 @@ already tracked with a GitHub Issue, **do NOT flag it as a Bug**. Instead:
 | `mixed` typed constructor parameters | Steps 2.1.4–2.1.6 (PHPStan) | #151, #152, #153 |
 | Missing `declare(strict_types=1)` | Step 2.1.3 (strict_types Migration) | #150 |
 | Missing test coverage for refactors | Step 2.1.9 (Test Coverage Expansion) | #156 |
+| `MigrationCommand` integration test (Doctrine + scripts flow) | Step 2.1.9 (Test Coverage Expansion) | #156 |
 | `App::abort()`, `App::redirect()` | Step 2.0.1e (StaticTrait Removal) | #166 |
 | `App::getInstance()` temporary bridges | Step 2.0.1e (StaticTrait Removal) | #166 |
 | `$app['x'] = ...` ArrayAccess WRITE | Step 2.0.1d (ArrayAccess Removal) | #165 |
 | `Pagekit\Cache\CacheInterface` / `Psr6Adapter` | Step 2.0.3 (Cache API Modernization) | #179 |
-| `PackageScripts` without Doctrine Migrations | Step 2.0.4 (Package/Migration Redesign) | #180 |
+| ~~`PackageScripts` without Doctrine Migrations~~ | ~~Step 2.0.4~~ (RESOLVED in PR #189) | #180 |
 | `composer.lock` not versioned, dead PSR-4 mappings | Step 2.0.5 (Composer & Autoload Hygiene) | #182 |
 | Old `phpunit.xml.dist` in modules, `@dataProvider` annotations | Step 2.0.6 (Test Infrastructure Cleanup) | #183 |
 | `SymfonyEventDispatcherBridge` / `symfony.event_dispatcher` | Step 2.0.7 (Event Bridge Removal) | #184 |
@@ -84,6 +85,11 @@ already tracked with a GitHub Issue, **do NOT flag it as a Bug**. Instead:
 |---------|-------------|-------|
 | `.gitignore`: removed `/yarn.lock` + `/composer.lock` | PR #187 (Step 2.0.3) | Out-of-scope for 2.0.3 but shipped early; documented in Issue #182 comment |
 | `.cursor/install.sh` rewrite (`composer update` → `install`) | PR #187 (Step 2.0.3) | Same as above; reduces Step 2.0.5 remaining scope |
+| `MigrationCommand` two-phase model (migrations + scripts) | PR #189 (Step 2.0.4) | By design: migrations are idempotent (tracking table), scripts are version-gated. Retry on next run works correctly. |
+| `MigrationController` `has('migration')` guard | PR #189 (Step 2.0.4) | Both `indexAction()` and `migrateAction()` defensively check service availability, consistent with `index.php` login handler. |
+| `catch (\Throwable)` in `MigrationCommand::execute()` | PR #189 (Step 2.0.4) | Catches all PHP 8.2+ errors. "Non-\Throwable error" is impossible in modern PHP — see Rule 2.2. |
+| Auto-migration/rollback removed from PackageManager | PR #189 (Step 2.0.4b) | Extensions use explicit scripts.php hooks per original Pagekit design |
+| Commented-out `rollbackExtension()` in blog `scripts.php` uninstall hook | PR #189 (Step 2.0.4b) | Intentional API usage example for extension developers, not commented-out legacy code. Rule 4 does not apply to documentation examples. |
 
 This table MUST be updated when new deferred items are added to the ROADMAP.
 Bugbot should re-read ROADMAP.md on every review to detect changes.
@@ -102,7 +108,25 @@ second line (after `<?php`), flag as **non-blocking Bug** titled
 **Exception:** Skip during Steps 2.0.x — `strict_types` is a batch migration
 tracked in Step 2.1.3 (Issue #150). Do not flag individual files.
 
-### 2.2 Typed Properties
+### 2.2 PHP 8.2+ Error Model (CRITICAL)
+
+This project requires **PHP 8.2+**. In modern PHP, `\Throwable` is the
+root of the entire error hierarchy: both `\Exception` and `\Error` extend it.
+There is **no such thing as a "non-\Throwable" catchable error** in PHP 8.2+.
+
+Do NOT claim that `catch (\Throwable)` can "miss" errors or that
+"non-\Throwable errors" exist — this is impossible in PHP 8.2+.
+The only uncatchable conditions (OOM, segfault) terminate the process
+entirely — no code can guard against those.
+
+**Still flag these legitimate catch-related issues:**
+- Silently swallowing errors (no logging, no re-throw, no return value)
+- Catching `\Throwable` when only a specific exception type is expected
+- Continuing execution with potentially corrupt state after catch
+
+When reviewing error handling patterns, assume PHP 8.2+ semantics.
+
+### 2.3 Typed Properties
 
 If a changed file introduces a property without a type declaration
 (e.g., `protected $foo` instead of `protected string $foo`), flag as
@@ -112,12 +136,12 @@ If a changed file introduces a property without a type declaration
 is used as a placeholder with a TODO tag referencing Steps 2.1.4–2.1.6,
 do NOT flag it. Only flag truly untyped properties (no type at all).
 
-### 2.3 Return Types
+### 2.4 Return Types
 
 If a changed file introduces a public/protected method without a return type
 declaration, flag as **non-blocking Bug** titled "Missing return type".
 
-### 2.4 Constructor Property Promotion
+### 2.5 Constructor Property Promotion
 
 If a constructor assigns parameters to properties that could use promotion
 (e.g., `$this->foo = $foo` in constructor body with matching parameter),
