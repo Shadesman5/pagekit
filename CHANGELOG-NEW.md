@@ -11,6 +11,7 @@
 - **`@dataProvider` PHPDoc → `#[DataProvider]` attribute** — Migrated 6 occurrences across `app/modules/filter/src/Tests/PregReplaceTest.php`, `StripNewlinesTest.php`, `app/modules/filesystem/src/Tests/PathTest.php`, and `LocatorTest.php`. Each file now imports `PHPUnit\Framework\Attributes\DataProvider`.
 - **`@group` PHPDoc → `#[Group]` attribute** — Migrated mail module tests: `app/system/modules/mail/src/Tests/MailerTest.php`, `Integration/MailIntegrationTest.php`, `Controller/MailControllerTest.php`. Each file now imports `PHPUnit\Framework\Attributes\Group`.
 - **`ConfigManagerTest` modernized for current `ConfigManager` API** — Removed the legacy `Doctrine\Common\Cache\ArrayCache` import and obsolete `getCache()` helper. Test setup now calls the modern `ConfigManager(Connection $connection, array $config)` constructor. The remaining `->will($this->returnValue(true))` mock pattern was replaced with `->willReturn(true)`. Three stale entries in `phpstan-baseline.neon` (referencing the removed `ArrayCache` and 3-arg constructor) were pruned. DELETE OVER WRAP.
+- **`RoutesLoaderTest` covers debug-aware exception handler** — Four new tests (`testAddControllerRethrowsInDebugMode`, `testAddControllerLogsViaLoggerInProduction`, `testAddControllerFallsBackToErrorLogWhenNoLogService`, `testAddControllerFallsBackToErrorLogWhenNoApplicationInjected`) exercise all three branches of the new `InvalidArgumentException` catch in `RoutesLoader::addController()` end-to-end via the public `load()` API. The catch is triggered by passing a route whose `controller` option points to an abstract fixture class (`AttributeLoader::load()` throws `InvalidArgumentException` for abstract classes — the only `InvalidArgumentException` path reachable after the `class_exists()` precheck).
 
 ### Chore
 
@@ -22,7 +23,7 @@
 
 ### Tests
 
-- All 294 PHPUnit tests green (0 failures, pre-existing warnings/skips only).
+- All 298 PHPUnit tests green (0 failures, pre-existing warnings/skips only). +4 new `RoutesLoader` tests covering the new debug-aware exception handler.
 - PHPStan `analyse` clean against the (now smaller) baseline.
 - `php pagekit setup` and `php pagekit list` successful.
 - Playwright E2E (chromium): `installation.spec.js` (1/1), `authentication.spec.js` (14/14), `dashboard.spec.js` (10/10) all green.

@@ -35,6 +35,7 @@ PHPStan level raises without dragging legacy syntax along.
 - `phpstan-baseline.neon` — stale entries for `ConfigManagerTest.php` removed
 - `app/modules/routing/src/Loader/RoutesLoader.php` — silent catch replaced with debug-aware handler
 - `app/modules/routing/index.php` — pass `$app` into `RoutesLoader`
+- `app/modules/routing/src/Tests/RoutesLoaderTest.php` — four new tests covering the debug-aware exception handler
 
 ## Out of Scope (deferred)
 
@@ -175,6 +176,26 @@ injection (Rule 2: NO ADAPTERS).
 `php pagekit list` continues to boot the console cleanly with the updated
 loader.
 
+#### Test coverage for the new handler (Bugbot follow-up)
+
+`app/modules/routing/src/Tests/RoutesLoaderTest.php` was extended with four
+new tests that exercise all three branches of the catch end-to-end via the
+public `load()` API:
+
+- `testAddControllerRethrowsInDebugMode` — re-throw path
+- `testAddControllerLogsViaLoggerInProduction` — `$app->get('log')->warning()` path
+- `testAddControllerFallsBackToErrorLogWhenNoLogService` — `error_log` fallback when no `log` service
+- `testAddControllerFallsBackToErrorLogWhenNoApplicationInjected` — `error_log` fallback when no `Application` injected
+
+The catch is triggered by passing a route whose `controller` option points
+to an abstract fixture class (`RoutesLoaderTestAbstractController` declared
+inline at the bottom of the test file). `AttributeLoader::load()` throws
+`InvalidArgumentException` for abstract classes — the only
+`InvalidArgumentException` path reachable from `RoutesLoader::load()` after
+its `class_exists()` precheck. `error_log` redirection uses
+`ini_set('error_log', $tmp)` + `ini_set('log_errors', '1')` with a
+`try/finally` cleanup.
+
 ### 10. Final consolidated audit
 
 After Step 9 the following sweeps are all clean:
@@ -230,8 +251,10 @@ None — all existing tests still run unchanged through the root
 
 ### Final acceptance gate
 
-- ✅ `./app/vendor/bin/phpunit` — 294 tests, 736 assertions, 0 failures
-  (1 pre-existing SMTP warning, 5 pre-existing skips)
+- ✅ `./app/vendor/bin/phpunit` — 298 tests, 745 assertions, 0 failures
+  (1 pre-existing SMTP warning, 5 pre-existing skips). +4 new `RoutesLoader`
+  tests for the debug-aware exception handler (added in response to a Bugbot
+  PR review).
 - ✅ `./app/vendor/bin/phpstan analyse --no-progress --memory-limit=512M` —
   no errors beyond baseline
 - ✅ `php pagekit setup` — completes successfully
