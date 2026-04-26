@@ -50,43 +50,27 @@ module.exports = defineConfig({
         navigationTimeout: testConfig.getNavigationTimeout()
     },
 
-    /* Configure projects for major browsers */
-    projects: [
-        {
-            name: 'chromium',
-            use: { ...devices['Desktop Chrome'] }
-        },
-
-        {
-            name: 'firefox',
-            use: { ...devices['Desktop Firefox'] }
-        },
-
-        {
-            name: 'webkit',
-            use: { ...devices['Desktop Safari'] }
-        },
-
-        /* Test against mobile viewports. */
-        // {
-        //     name: 'Mobile Chrome',
-        //     use: { ...devices['Pixel 5'] }
-        // },
-        // {
-        //     name: 'Mobile Safari',
-        //     use: { ...devices['iPhone 12'] }
-        // }
-
-        /* Test against branded browsers. */
-        // {
-        //   name: 'Microsoft Edge',
-        //   use: { ...devices['Desktop Edge'], channel: 'msedge' },
-        // },
-        // {
-        //   name: 'Google Chrome',
-        //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-        // },
-    ],
+    /*
+     * Browser projects.
+     *
+     * Default (Cursor Cloud Agent, local dev): chromium only.
+     * The cloud-agent VM only ships chromium (see .cursor/Dockerfile) because
+     * firefox/webkit need root for `playwright install-deps`, which is unavailable.
+     *
+     * Full cross-browser matrix: set PW_BROWSERS=all (intended for CI/CD
+     * pipelines on hosts where `npx playwright install --with-deps` succeeds).
+     */
+    projects: (() => {
+        const chromium = { name: 'chromium', use: { ...devices['Desktop Chrome'] } };
+        if (process.env.PW_BROWSERS === 'all') {
+            return [
+                chromium,
+                { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+                { name: 'webkit', use: { ...devices['Desktop Safari'] } }
+            ];
+        }
+        return [chromium];
+    })(),
 
     /* Run your local dev server before starting the tests */
     webServer: process.env.NO_SERVER

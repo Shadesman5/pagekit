@@ -1,7 +1,5 @@
 {
   "name": "pagekit/pagekit",
-  "title": "Pagekit",
-  "version": "1.2.9",
   "type": "project",
   "description": "The Pagekit CMS",
   "keywords": [
@@ -20,34 +18,28 @@
     "php": "^8.2",
     "composer/composer": "^2.8",
     "doctrine/dbal": "^3.8",
-    "paragonie/random-lib": "~2.0.1",
-    "paragonie/sodium_compat": "^2.0",
     "php-debugbar/php-debugbar": "^1.23.3",
     "monolog/monolog": "^3.7",
     "nikic/php-parser": "^5.4",
-    "psr/log": "^2.0",
+    "psr/log": "^2.0|^3.0",
     "psr/cache": "^2.0|^3.0",
     "symfony/mailer": "^6.4",
     "symfony/error-handler": "^6.4",
     "symfony/finder": "^6.4",
     "symfony/http-foundation": "^6.4",
-    "symfony/framework-bundle": "^6.4",
     "symfony/http-kernel": "^6.4",
     "symfony/routing": "^6.4",
     "symfony/stopwatch": "^6.4",
     "symfony/console": "^6.4",
     "symfony/filesystem": "^6.4",
-    "symfony/process": "^6.4",
     "symfony/string": "^6.4",
     "symfony/deprecation-contracts": "^2.5|^3.0",
     "symfony/service-contracts": "^2.5|^3.0",
     "symfony/translation": "^6.4",
     "twig/twig": "^3.14",
-    "symfony/twig-bridge": "^6.4",
-    "symfony/yaml": "^6.4",
     "symfony/cache": "^6.4",
     "doctrine/migrations": "^3.9",
-    "symfony/validator": "^7.4"
+    "symfony/validator": "^6.4"
   },
   "require-dev": {
     "ext-dom": "*",
@@ -59,7 +51,6 @@
     "ext-zip": "*",
     "ext-simplexml": "*",
     "ext-pdo": "*",
-    "doctrine/data-fixtures": "^1.6",
     "phpunit/phpunit": "^11.0",
     "symfony/phpunit-bridge": "^6.4",
     "symfony/var-dumper": "^6.4",
@@ -98,9 +89,7 @@
       "Pagekit\\Site\\": "app/system/modules/site/src",
       "Pagekit\\User\\": "app/system/modules/user/src",
       "Pagekit\\Info\\": "app/system/modules/info/src",
-      "Pagekit\\Package\\": "app/system/modules/package/src",
-      "Pagekit\\Intl\\": "app/system/modules/intl/src",
-      "Pagekit\\Theme\\": "app/system/modules/theme/src"
+      "Pagekit\\Intl\\": "app/system/modules/intl/src"
     }
   },
   "autoload-dev": {

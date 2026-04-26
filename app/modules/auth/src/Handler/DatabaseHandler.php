@@ -4,7 +4,6 @@ namespace Pagekit\Auth\Handler;
 
 use Pagekit\Cookie\CookieJar;
 use Pagekit\Database\Connection;
-use RandomLib\Generator;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -22,23 +21,19 @@ class DatabaseHandler implements HandlerInterface
 
     protected \Pagekit\Database\Connection $connection;
 
-    protected \RandomLib\Generator $random;
-
     /**
      * Constructor.
      *
      * @param Connection   $connection
      * @param RequestStack $requests
      * @param CookieJar    $cookie
-     * @param Generator    $random
      * @param array        $config
      */
-    public function __construct(Connection $connection, RequestStack $requests, CookieJar $cookie, Generator $random, $config = null)
+    public function __construct(Connection $connection, RequestStack $requests, CookieJar $cookie, ?array $config = null)
     {
         $this->connection = $connection;
         $this->requests = $requests;
         $this->cookie = $cookie;
-        $this->random = $random;
         $this->config = $config;
     }
 
@@ -79,7 +74,7 @@ class DatabaseHandler implements HandlerInterface
             $this->connection->delete($this->config['table'], ['id' => sha1($token)]);
         }
 
-        $id = $this->random->generateString(64);
+        $id = bin2hex(random_bytes(32));
 
         $this->cookie->set($this->config['cookie']['name'], $id, $this->config['cookie']['lifetime'] + time());
 

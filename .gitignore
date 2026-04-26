@@ -48,8 +48,7 @@ node_modules
 docker.env
 *.env
 
-# Ignore Cursor files
-.cursor/environment.json
+# Ignore Cursor secret files
 .cursor/secrets.env
 
 # PHPUnit cache

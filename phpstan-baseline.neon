@@ -505,9 +505,9 @@ parameters:
 			path: app/modules/config/index.php
 
 		-
-			message: '#^Class Doctrine\\DBAL\\Platforms\\MySQLPlatform referenced with incorrect case\: Doctrine\\DBAL\\Platforms\\MySqlPlatform\.$#'
-			identifier: class.nameCase
-			count: 2
+			message: '#^Class Doctrine\\DBAL\\Platforms\\MySqlPlatform not found\.$#'
+			identifier: class.notFound
+			count: 1
 			path: app/modules/config/src/ConfigManager.php
 
 		-
@@ -625,9 +625,9 @@ parameters:
 			path: app/modules/database/src/Query/CompositeExpression.php
 
 		-
-			message: '#^Class Doctrine\\DBAL\\Platforms\\MySQLPlatform referenced with incorrect case\: Doctrine\\DBAL\\Platforms\\MySqlPlatform\.$#'
-			identifier: class.nameCase
-			count: 2
+			message: '#^Class Doctrine\\DBAL\\Platforms\\MySqlPlatform not found\.$#'
+			identifier: class.notFound
+			count: 1
 			path: app/modules/database/src/Query/QueryBuilder.php
 
 		-
@@ -1285,9 +1285,9 @@ parameters:
 			path: app/modules/session/src/Csrf/Provider/SessionCsrfProvider.php
 
 		-
-			message: '#^Class Doctrine\\DBAL\\Platforms\\MySQLPlatform referenced with incorrect case\: Doctrine\\DBAL\\Platforms\\MySqlPlatform\.$#'
-			identifier: class.nameCase
-			count: 2
+			message: '#^Class Doctrine\\DBAL\\Platforms\\MySqlPlatform not found\.$#'
+			identifier: class.notFound
+			count: 1
 			path: app/modules/session/src/Handler/DatabaseSessionHandler.php
 
 		-
@@ -1439,12 +1439,6 @@ parameters:
 			identifier: closure.unusedUse
 			count: 1
 			path: app/system/modules/cache/src/CacheModule.php
-
-		-
-			message: '#^Path in require_once\(\) "/workspace/app/vendor/autoload\.php" is not a file or it does not exist\.$#'
-			identifier: requireOnce.fileNotFound
-			count: 1
-			path: app/system/modules/cache/src/Tests/bootstrap.php
 
 		-
 			message: '#^Anonymous function has an unused use \$app\.$#'

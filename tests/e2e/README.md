@@ -8,13 +8,20 @@
 
 **Local vs. CI/remote:** When using `scripts/e2e-start.sh` (e.g. in CI or for a remote agent), the script starts the environment (Docker) on a known port; use a `test-config.json` (or env) that matches that setup.
 
+**Browser matrix:** The default Playwright run uses **chromium only**. This matches the Cursor Cloud Agent VM (which ships only chromium because firefox/webkit need root for `playwright install-deps`). To run the full matrix locally or in CI, install all browsers and set `PW_BROWSERS=all`.
+
 ## Installation
 
 1. Install Playwright and dependencies:
 
 ```bash
 npm install --save-dev @playwright/test dotenv
-npx playwright install chromium firefox webkit
+
+# Default (matches Cursor Cloud Agent VM)
+npx playwright install chromium
+
+# Full matrix (local / CI)
+npx playwright install --with-deps chromium firefox webkit
 ```
 
 2. Verify installation:
@@ -115,9 +122,12 @@ npx playwright test tests/e2e/specs/03-content/blog.spec.js
 Use `--project=...` (not `--chromium`). Examples:
 
 ```bash
+# Default: chromium only
 npx playwright test --project=chromium
-npx playwright test --project=firefox
-npx playwright test --project=webkit
+
+# Full cross-browser matrix (requires PW_BROWSERS=all + browsers installed)
+PW_BROWSERS=all npx playwright test --project=firefox
+PW_BROWSERS=all npx playwright test --project=webkit
 ```
 
 To run only the installation test in Chromium:

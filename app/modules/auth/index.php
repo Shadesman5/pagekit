@@ -3,7 +3,6 @@
 use Pagekit\Auth\Auth;
 use Pagekit\Auth\Encoder\NativePasswordEncoder;
 use Pagekit\Auth\Handler\DatabaseHandler;
-use RandomLib\Factory;
 
 return [
 
@@ -19,9 +18,7 @@ return [
         // inject `$authPassword` which resolves to this alias for `auth.password`.
         $app->set('authPassword', fn ($app) => $app->get('auth.password'));
 
-        $app->set('auth.random', fn () => (new Factory())->getLowStrengthGenerator());
-
-        $app->set('auth.handler', fn ($app) => new DatabaseHandler($app->get('db'), $app->get('request.stack'), $app->get('cookie'), $app->get('auth.random'), $this->config));
+        $app->set('auth.handler', fn ($app) => new DatabaseHandler($app->get('db'), $app->get('request.stack'), $app->get('cookie'), $this->config));
 
     },
 
