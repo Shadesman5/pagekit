@@ -22,7 +22,7 @@ return [
 
         $app->set('routes', fn () => new Routes());
 
-        $app->set('router', fn ($app) => new Router($app->get('routes'), new RoutesLoader($app->get('events')), $app->get('request.stack'), ['cache' => $app->get('path.cache')]));
+        $app->set('router', fn ($app) => new Router($app->get('routes'), new RoutesLoader($app->get('events'), null, $app), $app->get('request.stack'), ['cache' => $app->get('path.cache')]));
 
         $app->set('middleware', fn ($app) => new Middleware($app->get('events')));
 
