@@ -96,9 +96,7 @@
       "Pagekit\\Site\\": "app/system/modules/site/src",
       "Pagekit\\User\\": "app/system/modules/user/src",
       "Pagekit\\Info\\": "app/system/modules/info/src",
-      "Pagekit\\Package\\": "app/system/modules/package/src",
-      "Pagekit\\Intl\\": "app/system/modules/intl/src",
-      "Pagekit\\Theme\\": "app/system/modules/theme/src"
+      "Pagekit\\Intl\\": "app/system/modules/intl/src"
     }
   },
   "autoload-dev": {
