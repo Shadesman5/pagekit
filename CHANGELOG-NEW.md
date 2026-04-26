@@ -1,5 +1,34 @@
 # Changelog
 
+## Pagekit 1.2.11 - Test Infrastructure Cleanup (April 26, 2026)
+
+### Fix
+
+- **Silent `InvalidArgumentException` swallowing in `RoutesLoader::addController()`** — The empty `catch (\InvalidArgumentException $e) {}` block previously masked controller-loading bugs in production. The handler now re-throws when debug mode is enabled and otherwise logs the exception via the application logger (with an `error_log` fallback). `RoutesLoader::__construct()` accepts an optional `Application` so it can resolve `debug` and `log` services when available. (Closes #183)
+
+### Test
+
+- **`@dataProvider` PHPDoc → `#[DataProvider]` attribute** — Migrated 6 occurrences across `app/modules/filter/src/Tests/PregReplaceTest.php`, `StripNewlinesTest.php`, `app/modules/filesystem/src/Tests/PathTest.php`, and `LocatorTest.php`. Each file now imports `PHPUnit\Framework\Attributes\DataProvider`.
+- **`@group` PHPDoc → `#[Group]` attribute** — Migrated mail module tests: `app/system/modules/mail/src/Tests/MailerTest.php`, `Integration/MailIntegrationTest.php`, `Controller/MailControllerTest.php`. Each file now imports `PHPUnit\Framework\Attributes\Group`.
+- **`ConfigManagerTest` modernized for current `ConfigManager` API** — Removed the legacy `Doctrine\Common\Cache\ArrayCache` import and obsolete `getCache()` helper. Test setup now calls the modern `ConfigManager(Connection $connection, array $config)` constructor. The remaining `->will($this->returnValue(true))` mock pattern was replaced with `->willReturn(true)`. Three stale entries in `phpstan-baseline.neon` (referencing the removed `ArrayCache` and 3-arg constructor) were pruned. DELETE OVER WRAP.
+
+### Chore
+
+- **Obsolete module-level `phpunit.xml.dist` files removed** — Deleted `app/modules/filter/phpunit.xml.dist`, `app/modules/filesystem/phpunit.xml.dist`, `app/modules/cookie/phpunit.xml.dist`, `app/modules/auth/phpunit.xml.dist`. They used the PHPUnit 9 schema with broken bootstrap paths; their tests are already discovered by the root `phpunit.xml.dist` via the `app/modules/*/src/Tests` glob.
+
+### Internal
+
+- **Step 2.0.6 (Test Infrastructure Cleanup)** marked complete (✅ + 🛡️) in `.cursor/ROADMAP.md`; Current Step pointer advanced to 2.0.7 (Event Dispatcher Bridge Removal).
+
+### Tests
+
+- All 294 PHPUnit tests green (0 failures, pre-existing warnings/skips only).
+- PHPStan `analyse` clean against the (now smaller) baseline.
+- `php pagekit setup` and `php pagekit list` successful.
+- Playwright E2E (chromium): `installation.spec.js` (1/1), `authentication.spec.js` (14/14), `dashboard.spec.js` (10/10) all green.
+
+---
+
 ## Pagekit 1.2.10 - Composer & Autoload Hygiene (April 26, 2026)
 
 ### Breaking Changes

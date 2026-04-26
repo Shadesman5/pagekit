@@ -1,7 +1,7 @@
 # **🗺️ Pagekit Modernization Roadmap & Rules**
 
-> **Current Version**: 1.2.10
-> **Current Step**: 2.0.6 (Test Infrastructure Cleanup)
+> **Current Version**: 1.2.11
+> **Current Step**: 2.0.7 (Event Dispatcher Bridge Removal)
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**
 
@@ -72,7 +72,7 @@
 | 2.0.3  | ↳ Cache API Full Modernization        | ✅     | 🛡️    | #179  | #187    |
 | 2.0.4  | ↳ Package/Migration System Redesign   | ✅     | 🛡️    | #180  | #189    |
 | 2.0.5  | ↳ Composer & Autoload Hygiene         | ✅     | 🛡️    | #182  | #192    |
-| 2.0.6  | ↳ Test Infrastructure Cleanup         | ⏳     | ⏳    | #183  | -       |
+| 2.0.6  | ↳ Test Infrastructure Cleanup         | ✅     | 🛡️    | #183  | -       |
 | 2.0.7  | ↳ Event Dispatcher Bridge Removal     | ⏳     | ⏳    | #184  | -       |
 | 2.0.8  | ↳ Hotfix: `create_function()` in User | ⏳     | ⏳    | #185  | -       |
 | 2.1    | **Static Analysis & Code Quality**    | ⏳     | ⏳    | #147  | -       |
