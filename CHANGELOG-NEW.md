@@ -1,5 +1,37 @@
 # Changelog
 
+## Pagekit 1.2.10 - Composer & Autoload Hygiene (April 26, 2026)
+
+### Breaking Changes
+
+- **`paragonie/random-lib` removed from `composer.json`** — Extensions that depended on the `auth.random` container service or on `RandomLib\Generator` being autoloaded by core must now generate their own random tokens (e.g. `bin2hex(random_bytes(32))`).
+- **`Pagekit\Auth\Handler\DatabaseHandler::__construct()` signature tightened** — Old: `(string $key, RandomLib\Generator $random, array $config = [])`. New: `(string $key, ?array $config = null)`. Extensions instantiating `DatabaseHandler` directly must drop the `RandomLib\Generator` argument.
+
+### Refactor
+
+- **`paragonie/random-lib` replaced with native PHP** — All call sites in `app/modules/auth/index.php`, `app/modules/auth/src/Handler/DatabaseHandler.php`, and `app/installer/src/Installer.php` switched to `bin2hex(random_bytes(32))`. The transitive `ircmaxell/security-lib` is also dropped. (Closes #182)
+- **`auth.random` container service removed** — No replacement; native `random_bytes()` is now used directly. DELETE OVER WRAP.
+
+### Chore
+
+- **Composer schema cleaned** — Removed invalid `title` property and discouraged `version` field so `composer validate --strict` passes.
+- **Dead PSR-4 autoload mappings removed** — `Pagekit\Theme\` and `Pagekit\Package\` (target directories did not exist). `Pagekit\Installer\Package\*` is unaffected.
+- **Unused direct dependencies removed** — `symfony/framework-bundle`, `symfony/twig-bridge`, `symfony/yaml`, `symfony/process`, `paragonie/sodium_compat`, and (require-dev) `doctrine/data-fixtures`. All verified zero direct PHP usage.
+- **`symfony/validator` aligned to LTS** — `^7.4` → `^6.4` (resolves to `v6.4.36`); no 7.x-only Validator API in use.
+- **`psr/log` widened** — `^2.0` → `^2.0|^3.0` (matches existing `psr/cache` pattern; allows Monolog 3.x's PSR Log 3.x interfaces). Lock resolves `psr/log 3.0.2`.
+- **PHPStan baseline regenerated** — Stale `class.nameCase` suppressions for `MySqlPlatform` replaced with current `class.notFound` errors; one stale `requireOnce.fileNotFound` entry removed.
+- **`composer dump-autoload --optimize`** run as final consistency pass.
+
+### Tests
+
+- All 289 PHPUnit tests green (0 failures, pre-existing warnings/skips only).
+- PHPStan analyse clean against the regenerated baseline.
+- `php pagekit setup` and `php pagekit list` successful.
+- `composer install --dry-run` reports zero pending operations.
+- Playwright E2E (chromium): `installation.spec.js` (1/1), `authentication.spec.js` (14/14), `dashboard.spec.js` (10/10) all green.
+
+---
+
 ## Pagekit 1.2.9 - Package Migration System Redesign (April 9, 2026)
 
 ### Breaking Changes
