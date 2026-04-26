@@ -120,7 +120,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Prerequisite**: Step 2.0.4 (Package/Migration System Redesign) completed
 - **Context**: Phase 1 Audit (Steps 1.3, 1.4) revealed several infrastructure issues that were not addressed during Phase 1 because they did not block functionality. With CI/CD coming in Step 2.2, these must be fixed first.
 - **Tasks**:
-  - **~~Lockfile versioning:~~** *(shipped early in Step 2.0.3, PR #187)*
+  - **~~Lockfile versioning:~~** (shipped early in Step 2.0.3, PR #187)
     - ~~Remove `/composer.lock` and `/yarn.lock` from `.gitignore`~~
     - ~~Commit `composer.lock` and `yarn.lock` for reproducible builds~~
     - ~~Rewrite `.cursor/install.sh` to use `composer install` (not `update`)~~
