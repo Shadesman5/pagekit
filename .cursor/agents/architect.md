@@ -1,6 +1,6 @@
 ---
 name: architect
-model: claude-4.6-opus-max-thinking
+model: claude-opus-4-7
 description: Strategic Lead for Pagekit modernization. Maps task prompts to ROADMAP.md, defines scope, checklist, TODO-Spec. Use proactively when executing agent_prompts or task prompts from the modernization plan.
 ---
 
