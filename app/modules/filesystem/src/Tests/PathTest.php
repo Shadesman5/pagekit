@@ -3,21 +3,18 @@
 namespace Pagekit\Filesystem\Tests;
 
 use Pagekit\Filesystem\Path;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class PathTest extends TestCase
 {
-    /**
-     * @dataProvider dataPaths
-     */
+    #[DataProvider('dataPaths')]
     public function testParse($path, $result): void
     {
         $this->assertSame($result, Path::parse($path));
     }
 
-    /**
-     * @dataProvider dataPaths
-     */
+    #[DataProvider('dataPaths')]
     public function testIsAbsolute($path, $result): void
     {
         if ($result['root'] !== '') {
@@ -27,9 +24,7 @@ class PathTest extends TestCase
         }
     }
 
-    /**
-     * @dataProvider dataPaths
-     */
+    #[DataProvider('dataPaths')]
     public function testIsRelative($path, $result): void
     {
         if ($result['root'] === '') {

@@ -3,6 +3,7 @@
 namespace Pagekit\Filter\Tests;
 
 use Pagekit\Filter\PregReplaceFilter;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class PregReplaceTest extends TestCase
@@ -42,9 +43,7 @@ class PregReplaceTest extends TestCase
         $this->filter->setReplacement(null);
     }
 
-    /**
-     * @dataProvider provider
-     */
+    #[DataProvider('provider')]
     public function testFilter($pattern, $replacement, $in, $out): void
     {
         $this->filter->setPattern($pattern);

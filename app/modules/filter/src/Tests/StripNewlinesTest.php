@@ -3,13 +3,12 @@
 namespace Pagekit\Filter\Tests;
 
 use Pagekit\Filter\StripNewlinesFilter;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class StripNewlinesTest extends TestCase
 {
-    /**
-     * @dataProvider provideNewLineStrings
-     */
+    #[DataProvider('provideNewLineStrings')]
     public function testFilter($input, $output): void
     {
         $filter = new StripNewlinesFilter();
