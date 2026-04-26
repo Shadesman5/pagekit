@@ -190,7 +190,7 @@ class Installer
                     $configuration->set($key, $value);
                 }
 
-                $configuration->set('system.secret', $this->app->get('auth.random')->generateString(64));
+                $configuration->set('system.secret', bin2hex(random_bytes(32)));
 
                 if (!file_put_contents($this->configFile, $configuration->dump())) {
 

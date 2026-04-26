@@ -18,7 +18,6 @@
     "php": "^8.2",
     "composer/composer": "^2.8",
     "doctrine/dbal": "^3.8",
-    "paragonie/random-lib": "~2.0.1",
     "php-debugbar/php-debugbar": "^1.23.3",
     "monolog/monolog": "^3.7",
     "nikic/php-parser": "^5.4",
