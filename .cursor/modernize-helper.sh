@@ -40,7 +40,9 @@ function check_linting() {
 
 function update_changelog() {
     echo "📝 Updating changelog..."
-    local version=$(grep '"version"' composer.json | cut -d'"' -f4)
+    # Pagekit version lives in app/system/config.php (single source of truth).
+    # composer.json no longer carries a "version" field — see .cursor/skills/version-bump/SKILL.md.
+    local version=$(php -r '$c = require "app/system/config.php"; echo $c["application"]["version"] ?? "unknown";' 2>/dev/null || echo "unknown")
     local date=$(date +"%Y-%m-%d")
     echo "Version: $version, Date: $date"
 }

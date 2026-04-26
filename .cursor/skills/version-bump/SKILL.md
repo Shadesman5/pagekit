@@ -1,6 +1,6 @@
 ---
 name: version-bump
-description: Determines and applies semantic version bumps based on Conventional Commits using Pagekit's custom versioning. Updates composer.json and app/system/config.php. Use after completing a task (Orchestrator workflow finished), before pushing to remote (called by push.mdc), or when the user explicitly requests a version bump.
+description: Determines and applies semantic version bumps based on Conventional Commits using Pagekit's custom versioning. Updates app/system/config.php (single source of truth — composer.json no longer carries the version). Use after completing a task (Orchestrator workflow finished), before pushing to remote (called by push.mdc), or when the user explicitly requests a version bump.
 ---
 
 # Version Bump Skill
@@ -29,9 +29,9 @@ SYSTEM-STATE stays **1** until the user decides modernization is complete.
 
 1. **Analyze** – commits since last `chore(release):` commit
 2. **Determine** – bump type from table above (highest priority wins)
-3. **Update** both files with new version:
-   - `composer.json` → `"version": "X.Y.Z"`
+3. **Update** the single source of truth:
    - `app/system/config.php` → `'version' => 'X.Y.Z'`
+   - **Do NOT** add a `"version"` field to `composer.json` — it was removed intentionally; Pagekit reads the version from `app/system/config.php` only.
 4. **Return** new version for CHANGELOG-NEW.md
 
 ## Commit types reference
