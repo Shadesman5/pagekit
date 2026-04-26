@@ -1,7 +1,7 @@
 # **🗺️ Pagekit Modernization Roadmap & Rules**
 
-> **Current Version**: 1.2.9
-> **Current Step**: 2.0.5 (Composer & Autoload Hygiene)
+> **Current Version**: 1.2.10
+> **Current Step**: 2.0.6 (Test Infrastructure Cleanup)
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**
 
@@ -52,7 +52,7 @@
 | 1.6    | PSR-11 Container Compatibility        | ✅     | 🛡️    | #126  | #55     |
 | 1.7    | Event System Compatibility            | ✅     | ⚠️    | #127  | #56     |
 | 1.8    | Routing System Compatibility          | ✅     | ⚠️    | #128  | #57     |
-| 1.9    | Symfony 6.4 LTS components            | ✅     | ⚠️    | #129  | #60-#61 |
+| 1.9    | Symfony 6.4 LTS components            | ✅     | 🛡️    | #129  | #60-#61 |
 | 1.10   | PSR-6 Cache                           | ✅     | 🛡️    | #130  | #62     |
 | 1.10.5 | ↳ E2E Testing with Playwright         | ✅     | ⚠️    | #135  | #67     |
 | 1.11   | ORM Modernization                     | ✅     | ⚠️    | #131  | #97     |
@@ -71,7 +71,7 @@
 | 2.0.2  | ↳ Validator-Translator Integration    | ✅     | 🛡️    | #146  | #175    |
 | 2.0.3  | ↳ Cache API Full Modernization        | ✅     | 🛡️    | #179  | #187    |
 | 2.0.4  | ↳ Package/Migration System Redesign   | ✅     | 🛡️    | #180  | #189    |
-| 2.0.5  | ↳ Composer & Autoload Hygiene         | ⏳     | ⏳    | #182  | -       |
+| 2.0.5  | ↳ Composer & Autoload Hygiene         | ✅     | 🛡️    | #182  | #192    |
 | 2.0.6  | ↳ Test Infrastructure Cleanup         | ⏳     | ⏳    | #183  | -       |
 | 2.0.7  | ↳ Event Dispatcher Bridge Removal     | ⏳     | ⏳    | #184  | -       |
 | 2.0.8  | ↳ Hotfix: `create_function()` in User | ⏳     | ⏳    | #185  | -       |
