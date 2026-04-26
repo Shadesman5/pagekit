@@ -86,7 +86,21 @@ Einfach "push" im Chat eingeben!
 
 ## Wichtige Dateien
 
--   `.cursor/Dockerfile` - Container-Definition
--   `.cursor/environment.json` - Agent-Konfiguration
--   `.cursor/*.sh` - Helper Scripts
+-   `.cursor/Dockerfile` - Container-Definition (PHP 8.3, Node, Playwright **chromium-only**, gh CLI)
+-   `.cursor/environment.json` - Agent-Konfiguration (im Repo versioniert, hat Vorrang vor Personal/Team-Configs im Cursor Dashboard)
+-   `.cursor/install.sh` - Update-Script (composer install + yarn install + Tool-Verification)
+-   `.cursor/start.sh` - Start-Script (Token-Mapping + Pagekit-Server auf Port 8080)
+-   `.cursor/secrets.example.env` - Secret-Beispiel (echte Secrets ins Cursor Dashboard, nicht ins Repo!)
 -   `MODERNISATION_STRATEGY.md` - Vision & Strategie der Modernisierung
+
+## ⚠️ Bekannte Cloud-Agent-Stolperfallen
+
+### Secret-Namen ohne Leerzeichen
+
+Cursor injiziert Secret-Namen als space-separierte Liste in `CLOUD_AGENT_INJECTED_SECRET_NAMES`. **Secret-Namen mit Leerzeichen** (z. B. `PAGEKIT BACKGROUND AGENT`) brechen den plattforminternen Pre-Commit-Secret-Scanner — `git commit` schlägt dann fehl und braucht `--no-verify`.
+
+**Lösung:** Alle Secret-Namen müssen valide Bash-Identifier sein: `[A-Z_][A-Z0-9_]*` (z. B. `PAGEKIT_BACKGROUND_AGENT`, `GH_TOKEN`, `COMPOSER_GITHUB_TOKEN`). Im [Cursor Dashboard → Cloud Agents → Secrets](https://cursor.com/dashboard/cloud-agents) prüfen und ggf. umbenennen.
+
+### Playwright nur mit Chromium
+
+Die Cloud-Agent-VM hat **kein sudo** und kann daher `npx playwright install-deps` für firefox/webkit nicht ausführen. Im Dockerfile ist nur chromium installiert. Tests mit firefox/webkit gehören in CI/CD-Pipelines auf vollwertigen Hosts; dort `PW_BROWSERS=all` setzen, um die zusätzlichen Projekte zu aktivieren.

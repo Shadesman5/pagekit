@@ -22,6 +22,20 @@
 - **PHPStan baseline regenerated** — Stale `class.nameCase` suppressions for `MySqlPlatform` replaced with current `class.notFound` errors; one stale `requireOnce.fileNotFound` entry removed.
 - **`composer dump-autoload --optimize`** run as final consistency pass.
 
+### Cloud Agent & Workflow
+
+- **`.cursor/environment.json` added** — Cloud Agent environment is now repo-versioned and takes precedence over personal/team configs in the Cursor Dashboard ([resolution order](https://cursor.com/docs/cloud-agent/setup#environment-resolution-order)). Wires `Dockerfile` + `install.sh` + `start.sh` so every cloud agent (including Bugbot on PRs) uses the same setup.
+- **Playwright chromium-only by default** — `playwright.config.js` now ships only the `chromium` project; firefox/webkit are gated behind `PW_BROWSERS=all` (intended for CI/CD pipelines on full hosts). Matches the cloud agent VM, which only ships chromium because firefox/webkit need root for `playwright install-deps`.
+- **`.gitignore` cleanup** — Removed `.cursor/environment.json` ignore entry (now repo-tracked); `.cursor/secrets.env` remains ignored.
+- **Cloud Agent pitfalls documented** — New sections in `AGENTS.md` and `.cursor/README.md` covering: (1) Cursor secret names must be valid bash identifiers (`[A-Z_][A-Z0-9_]*`) — whitespace in names breaks the platform pre-commit secret scanner via `CLOUD_AGENT_INJECTED_SECRET_NAMES`. (2) Playwright browser matrix (chromium canonical, `PW_BROWSERS=all` for CI).
+- **Browser matrix doc** — `tests/e2e/README.md` updated with chromium-default install instructions and `PW_BROWSERS=all` toggle for the full matrix.
+- **Version source-of-truth clarified** — `.cursor/rules/push.mdc`, `.cursor/skills/version-bump/SKILL.md`, and `.cursor/modernize-helper.sh` updated: Pagekit version lives exclusively in `app/system/config.php`. References to `composer.json` as a version source removed (the field was dropped in this release to satisfy `composer validate --strict`).
+
+### Internal
+
+- **Step 2.0.5 (Composer & Autoload Hygiene)** marked complete (✅ + 🛡️) in `.cursor/ROADMAP.md`; Current Step pointer advanced to 2.0.6 (Test Infrastructure Cleanup).
+- **Phase 1.9 (Symfony 6.4 LTS components)** audit upgraded `⚠️ → 🛡️` — `composer.json` is now consistently `^6.4` across all `symfony/*` direct dependencies (no 7.x drift), unused Symfony components removed, and `composer validate --strict` is clean. The original 1.9 audit-debt items are fully resolved.
+
 ### Tests
 
 - All 289 PHPUnit tests green (0 failures, pre-existing warnings/skips only).
