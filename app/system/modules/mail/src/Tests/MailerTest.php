@@ -6,6 +6,7 @@ namespace Pagekit\Mail\Tests;
 
 use Pagekit\Mail\Mailer;
 use Pagekit\Mail\Plugin\ImpersonatePlugin;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Mailer\Transport\NullTransport;
 use Symfony\Component\Mime\Email;
@@ -79,9 +80,7 @@ class MailerTest extends TestCase
         $this->mailer->testSmtpConnection();
     }
 
-    /**
-     * @group network
-     */
+    #[Group('network')]
     public function testTestSmtpConnectionWithValidParameters(): void
     {
         // Skip this test if email configuration is not available

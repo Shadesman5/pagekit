@@ -8,13 +8,12 @@ use Pagekit\Mail\Controller\MailController;
 use Pagekit\Mail\Mailer;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Mailer\Transport\NullTransport;
 
-/**
- * @group integration
- */
+#[Group('integration')]
 class MailControllerTest extends TestCase
 {
     public function setUp(): void
@@ -54,9 +53,7 @@ class MailControllerTest extends TestCase
         $this->assertIsString($result['message']);
     }
 
-    /**
-     * @group network
-     */
+    #[Group('network')]
     public function testSmtpActionWithValidCredentials(): void
     {
         if (!($GLOBALS['email_smtp_host'] ?? false)) {
@@ -159,9 +156,7 @@ class MailControllerTest extends TestCase
         $this->assertTrue($result['success']);
     }
 
-    /**
-     * @group network
-     */
+    #[Group('network')]
     public function testEmailActionWithConfiguration(): void
     {
         if (!($GLOBALS['email_address'] ?? false)) {

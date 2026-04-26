@@ -7,13 +7,12 @@ namespace Pagekit\Mail\Tests\Integration;
 use Pagekit\Mail\Mailer;
 use Pagekit\Mail\Message;
 use Pagekit\Mail\Plugin\ImpersonatePlugin;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Mailer\Transport\NullTransport;
 use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 
-/**
- * @group integration
- */
+#[Group('integration')]
 class MailIntegrationTest extends TestCase
 {
     public function testCompleteMailWorkflow(): void
@@ -187,9 +186,7 @@ class MailIntegrationTest extends TestCase
         $this->assertEquals('High', $headers->get('X-Priority')->getBody());
     }
 
-    /**
-     * @group network
-     */
+    #[Group('network')]
     public function testRealSmtpConnection(): void
     {
         // Skip this test if email configuration is not available
@@ -221,9 +218,7 @@ class MailIntegrationTest extends TestCase
         $this->assertTrue($result);
     }
 
-    /**
-     * @group network
-     */
+    #[Group('network')]
     public function testActualEmailSending(): void
     {
         // Skip this test if email configuration is not available
