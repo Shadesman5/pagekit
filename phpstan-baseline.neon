@@ -373,12 +373,6 @@ parameters:
 			path: app/modules/application/src/Event/PrefixEventDispatcher.php
 
 		-
-			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 2
-			path: app/modules/application/src/Event/SymfonyEventDispatcherBridge.php
-
-		-
 			message: '#^Call to function is_a\(\) with Pagekit\\Module\\Module and ''Pagekit\\\\Event…'' will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
@@ -395,12 +389,6 @@ parameters:
 			identifier: deadCode.unreachable
 			count: 1
 			path: app/modules/application/src/Tests/DbTestCase.php
-
-		-
-			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertFalse\(\) with false will always evaluate to false\.$#'
-			identifier: method.impossibleType
-			count: 1
-			path: app/modules/application/src/Tests/EventDispatcherCompatibilityTest.php
 
 		-
 			message: '#^If condition is always true\.$#'
