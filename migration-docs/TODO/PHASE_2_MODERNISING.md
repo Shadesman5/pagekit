@@ -21,6 +21,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 - **Goal**: Fully modernize the container to a native PSR-11 container
 - **Prerequisite**: Step 1.14 (Doctrine Attributes) completed
+- **Closes Phase 1 audit:** Step 1.6 (PSR-11 Container Compatibility) ⚠️ → 🛡️ — `Psr11Adapter` wrapper deleted in sub-step 2.0.1e (StaticTrait Removal + DI Final); `Container` now natively implements `Psr\Container\ContainerInterface`. Confirmed in `migration-docs/audits/2026/03/AUDIT_REPORT_STEP_2.0-2.0.2_2026-03-27.md`.
 
 ---
 
@@ -28,6 +29,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 - **Goal**: Connect Symfony Validator to Pagekit Translator so that validation error messages are returned in the active locale (instead of raw keys like `validation.user.username_required`)
 - **Prerequisite**: Step 2.0.1 (PSR-11 Container) completed
+- **Closes Phase 1 audit:** Step 1.13 (Validation Update) ⚠️ → 🛡️ — translator gap closed (raw `validation.*` keys → translated strings via domain `validators`). Confirmed in `migration-docs/audits/2026/03/AUDIT_REPORT_STEP_2.0-2.0.2_2026-03-27.md`. The remaining `MenuApiController` manual-validation finding is tracked under **Step 2.1.9** (Test Coverage Expansion), not as a 1.13 audit finding.
 - **Tasks**:
   - `ValidatorServiceProvider`: Wire `$builder->setTranslator()` + `setTranslationDomain('validators')`
   - Rename `validation.php` → `validators.php` (system + blog, all locales)
@@ -119,6 +121,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Goal**: Clean up `composer.json` for reproducible builds, remove dead autoload mappings, resolve dependency anomalies, and prepare a healthy base for CI/CD (Step 2.2).
 - **Prerequisite**: Step 2.0.4 (Package/Migration System Redesign) completed
 - **Context**: Phase 1 Audit (Steps 1.3, 1.4) revealed several infrastructure issues that were not addressed during Phase 1 because they did not block functionality. With CI/CD coming in Step 2.2, these must be fixed first.
+- **Closes Phase 1 audit:** Step 1.4 (Safe Minor Updates) ⚠️ → 🛡️ — composer schema cleanup, dead PSR-4 mappings removed, unused dependencies dropped (`symfony/framework-bundle`, `symfony/twig-bridge`, `symfony/yaml`, `symfony/process`, `paragonie/sodium_compat`, `doctrine/data-fixtures`), `symfony/validator` aligned to `^6.4` LTS, `paragonie/random-lib` replaced with native `random_bytes()`. Step 1.3 (Security Patches) was already 🛡️.
 - **Tasks**:
   - **~~Lockfile versioning:~~** (shipped early in Step 2.0.3, PR #187)
     - ~~Remove `/composer.lock` and `/yarn.lock` from `.gitignore`~~
@@ -149,6 +152,9 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Goal**: Consolidate PHPUnit configuration, migrate test annotations to PHP 8 attributes, remove legacy test imports, ensure all test files follow Phase 2 standards.
 - **Prerequisite**: Step 2.0.5 (Composer & Autoload Hygiene) completed
 - **Context**: Phase 1 Audit (Step 1.2) found 4 old module-level `phpunit.xml.dist` files with PHPUnit 9 schema, case-sensitivity issues in test paths, PHPDoc annotations instead of PHP 8 attributes, and a test still importing `Doctrine\Common\Cache\ArrayCache`.
+- **Closes Phase 1 audit:**
+  - **Step 1.2 (PHPUnit Update) ⚠️ → 🛡️** — module-level configs deleted, `@dataProvider` / `@group` PHPDoc migrated to PHP 8 attributes, `ConfigManagerTest` modernized (`ArrayCache` import + `getCache()` helper removed, modern `ConfigManager(Connection, array)` signature, `->willReturn()` mock pattern).
+  - **Step 1.8 (Routing System Compatibility) ⚠️ → 🛡️** — silent `InvalidArgumentException` catch in `RoutesLoader::addController()` replaced with a debug-aware handler (re-throw in debug, log via `$app->get('log')`, fallback to `error_log()`), covered by 4 new `RoutesLoaderTest` cases.
 - **Tasks**:
   - **Remove/consolidate old PHPUnit configs:**
     - Delete or migrate: `app/modules/filter/phpunit.xml.dist`, `app/modules/filesystem/phpunit.xml.dist`, `app/modules/cookie/phpunit.xml.dist`, `app/modules/auth/phpunit.xml.dist`
@@ -176,6 +182,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Goal**: Remove the unused `SymfonyEventDispatcherBridge` compatibility layer and its associated service registration and test. Pagekit's own Event Dispatcher (`on`/`trigger`/`subscribe`) remains the sole event system — it is deeply integrated, well-tested, and provides features Symfony's dispatcher does not (extra arguments, module manifest events, `PrefixEventDispatcher`).
 - **Prerequisite**: Step 2.0.6 (Test Infrastructure Cleanup) completed
 - **Context**: Step 1.7 + 1.9 introduced a `SymfonyEventDispatcherBridge` to provide Symfony `EventDispatcherInterface` compatibility. Audit shows **zero production consumers** of the `symfony.event_dispatcher` service — the bridge is dead code. Per Rule 1 (No Compatibility Layers) and Rule 4 (Delete over Wrap), it must be removed.
+- **Closes Phase 1 audit:** Step 1.7 (Event System Compatibility) ⚠️ → 🛡️ — `SymfonyEventDispatcherBridge`, its `EventDispatcherCompatibilityTest`, and the `symfony.event_dispatcher` service registration all deleted; PHPStan baseline cleaned (340 lines removed, 0 added; 0 ripgrep hits for `SymfonyEventDispatcherBridge` / `symfony.event_dispatcher` / `EventDispatcherCompatibilityTest` post-merge). Step 1.9 (Symfony 6.4 LTS components) was already 🛡️.
 - **Decision**: Pagekit keeps its own dispatcher. Rationale:
   - ~147 call sites (`on`/`trigger`/`subscribe`/`off`) across Kernel, modules, ORM, extensions
   - Unique features: string events with extra arguments, module manifest `events` array, `PrefixEventDispatcher`
@@ -199,6 +206,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Prerequisite**: None — this is a **critical runtime fix** that can be executed at any point.
 - **Priority**: HIGHEST — the code path is reachable in production (any permission check with composite expressions).
 - **Context**: Phase 1 Audit (Step 1.11/1.13) discovered `create_function()` still in `User::hasAccess()`. This was not caught by prior audits because simple permission checks (`'user: manage users'`) don't trigger the `and`/`or` parser branch.
+- **Closes Phase 1 audit (partial):** Step 1.11 (ORM Modernization) — the `User::hasAccess()` `create_function()` removal closes one specific 1.11 finding (legacy code in the `User` model). The remaining 1.11 findings (`EntityManager` singleton, `ModelServiceLocator` / `IntlServiceLocator` static service locators, ORM `Metadata` / `Relation` / `PropertyTrait` typing gaps, `#[AllowDynamicProperties]` on `Node` / `Widget`) are tracked under **Step 2.1.6** (PHPStan Level 8). **1.11 ⚠️ → 🛡️ requires both 2.0.8 and 2.1.6 to land.**
 - **Tasks**:
   - **File:** `app/system/modules/user/src/Model/User.php` (~line 221–227)
   - Replace `create_function()` with a safe expression evaluator. Options (in order of preference):
@@ -324,6 +332,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Goal**: Raise PHPStan from Level 5 to Level 6
 - **Prerequisite**: Step 2.1.3 (`strict_types` Migration) completed
 - **Prompt**: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_4_PHPStan-Level-6.md`
+- **Closes Phase 1 audit:** **Step 1.1 (Mailer Migration) ⚠️ → 🛡️** — the documented 1.1 audit findings (`Mailer::send()` missing `: bool`, `Message::send(&$errors)` untyped out-parameter, `mixed` mailer type in `MailController` / `ResetPasswordController` / `RegistrationController`) are all addressed by the return-type sweep listed under "Audit findings (Phase 1 review)" below.
 - **Tasks**:
   - Add missing return types to all methods
   - Clean up union types (e.g., `string|int` → clear decision)
@@ -366,6 +375,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Goal**: Raise PHPStan from Level 7 to Level 8 (full type safety)
 - **Prerequisite**: Step 2.1.5 (PHPStan Level 7) completed
 - **Prompt**: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_6_PHPStan-Level-8.md`
+- **Closes Phase 1 audit:** **Step 1.11 (ORM Modernization) ⚠️ → 🛡️** — the remaining 1.11 audit findings (`EntityManager` singleton, `ModelServiceLocator` / `IntlServiceLocator` static service locators, ORM `Metadata` / `Relation` / `PropertyTrait` typing gaps, `#[AllowDynamicProperties]` on `Node` / `Widget`) are listed under "Audit findings (Phase 1 review)" below. **Requires Step 2.0.8 to also be done** (the `User::hasAccess()` `create_function()` removal closes the User-model portion of 1.11).
 - **Tasks**:
   - Eliminate all remaining `mixed` types where avoidable
   - Template parameters for generic collections (where sensible)
@@ -397,6 +407,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Context**: Currently Pagekit uses a wrapper (execute) that mixes parameter binding and execution. DBAL 3 strictly separates these.
 - **Prerequisite**: Step 2.1.2 (CI/CD) completed
 - **Prompt**: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_7_QueryBuilder-API.md`
+- **Closes Phase 1 audit:** **Step 1.5 (Doctrine DBAL 3.x) ⚠️ → 🛡️** — the documented 1.5 audit findings (`Connection::exec()` compat alias, `Utility::getSchemaManager()` deprecated → `createSchemaManager()`, `Utility::migrate()` legacy `Comparator()` → `$schemaManager->createComparator()`, DDL via `executeQuery()` → `executeStatement()`, `DbUtil::$realConn->exec()` → `executeStatement()`) are all listed under "Audit findings (Phase 1 review) — additional DBAL cleanup" below.
 - **Tasks**:
   - Make methods `executeQuery()` and `executeStatement()` in `Pagekit\Database\Query\QueryBuilder` public
   - Migrate all core calls from `$qb->execute()` to `$qb->executeQuery()` / `$qb->executeStatement()` (Rector or search-replace)
@@ -450,6 +461,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Prerequisite**: Step 2.1.2 (CI/CD with coverage reports) completed
 - **Time Estimate**: Ongoing (parallel to all further Phase 2 steps)
 - **Prompt**: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_9_Test-Coverage-Expansion.md`
+- **Closes Phase 1 audit:** **Step 1.10.5 (E2E Testing with Playwright) ⚠️ → 🛡️** — the documented 1.10.5 finding ("Most E2E tests were poorly created, not following best practices; only first 3 tests are reasonably functional. Full E2E rework needed.") is listed under "Audit findings (Phase 1 review)" below. Also picks up the cross-cutting `MenuApiController` manual-validation finding (carryover from the 1.13 audit, not a 1.13 audit finding itself).
 - **Tasks**:
   - Coverage targets:
     - Core Modules (`app/modules/`): 80%+
