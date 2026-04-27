@@ -523,24 +523,6 @@ parameters:
 			path: app/modules/config/src/ConfigManager.php
 
 		-
-			message: '#^Class Pagekit\\Config\\ConfigManager constructor invoked with 3 parameters, 2 required\.$#'
-			identifier: arguments.count
-			count: 1
-			path: app/modules/config/src/Tests/ConfigManagerTest.php
-
-		-
-			message: '#^Instantiated class Doctrine\\Common\\Cache\\ArrayCache not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/config/src/Tests/ConfigManagerTest.php
-
-		-
-			message: '#^Method Pagekit\\Config\\Tests\\ConfigManagerTest\:\:getCache\(\) has invalid return type Doctrine\\Common\\Cache\\ArrayCache\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/config/src/Tests/ConfigManagerTest.php
-
-		-
 			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertIsString\(\) with string will always evaluate to true\.$#'
 			identifier: method.alreadyNarrowedType
 			count: 1

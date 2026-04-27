@@ -4,6 +4,7 @@ namespace Pagekit\Filesystem\Tests;
 
 use Pagekit\Filesystem\Filesystem;
 use Pagekit\Filesystem\Locator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class LocatorTest extends TestCase
@@ -17,9 +18,7 @@ class LocatorTest extends TestCase
         $this->locator = new Locator(__DIR__);
     }
 
-    /**
-     * @dataProvider dataGetPaths
-     */
+    #[DataProvider('dataGetPaths')]
     public function testGet($path, $result, $exists): void
     {
         $this->assertSame($exists, $this->file->exists($result));

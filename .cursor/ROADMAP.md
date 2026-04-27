@@ -1,7 +1,7 @@
 # **🗺️ Pagekit Modernization Roadmap & Rules**
 
-> **Current Version**: 1.2.10
-> **Current Step**: 2.0.6 (Test Infrastructure Cleanup)
+> **Current Version**: 1.2.11
+> **Current Step**: 2.0.7 (Event Dispatcher Bridge Removal)
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**
 
@@ -44,14 +44,14 @@
 | ID     | Task Name                             | Status | Audit | Issue | PR      |
 | :----- | :------------------------------------ | :----- | :---- | :---- | :------ |
 | 1.1    | Mailer Migration                      | ✅     | ⚠️    | #119  | #17     |
-| 1.2    | PHPUnit Update                        | ✅     | ⚠️    | #121  | #31     |
+| 1.2    | PHPUnit Update                        | ✅     | 🛡️    | #121  | #31     |
 | 1.3    | Security Patches                      | ✅     | 🛡️    | #122  | #30     |
 | 1.3.5  | ↳ Dependabot Updates                  | ✅     | 🛡️    | #123  | #32     |
-| 1.4    | Safe Minor Updates                    | ✅     | ⚠️    | #124  | #53     |
+| 1.4    | Safe Minor Updates                    | ✅     | 🛡️    | #124  | #53     |
 | 1.5    | Doctrine DBAL 3.x                     | ✅     | ⚠️    | #125  | #54     |
 | 1.6    | PSR-11 Container Compatibility        | ✅     | 🛡️    | #126  | #55     |
 | 1.7    | Event System Compatibility            | ✅     | ⚠️    | #127  | #56     |
-| 1.8    | Routing System Compatibility          | ✅     | ⚠️    | #128  | #57     |
+| 1.8    | Routing System Compatibility          | ✅     | 🛡️    | #128  | #57     |
 | 1.9    | Symfony 6.4 LTS components            | ✅     | 🛡️    | #129  | #60-#61 |
 | 1.10   | PSR-6 Cache                           | ✅     | 🛡️    | #130  | #62     |
 | 1.10.5 | ↳ E2E Testing with Playwright         | ✅     | ⚠️    | #135  | #67     |
@@ -72,7 +72,7 @@
 | 2.0.3  | ↳ Cache API Full Modernization        | ✅     | 🛡️    | #179  | #187    |
 | 2.0.4  | ↳ Package/Migration System Redesign   | ✅     | 🛡️    | #180  | #189    |
 | 2.0.5  | ↳ Composer & Autoload Hygiene         | ✅     | 🛡️    | #182  | #192    |
-| 2.0.6  | ↳ Test Infrastructure Cleanup         | ⏳     | ⏳    | #183  | -       |
+| 2.0.6  | ↳ Test Infrastructure Cleanup         | ✅     | 🛡️    | #183  | #193    |
 | 2.0.7  | ↳ Event Dispatcher Bridge Removal     | ⏳     | ⏳    | #184  | -       |
 | 2.0.8  | ↳ Hotfix: `create_function()` in User | ⏳     | ⏳    | #185  | -       |
 | 2.1    | **Static Analysis & Code Quality**    | ⏳     | ⏳    | #147  | -       |

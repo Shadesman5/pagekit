@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\Routing\Loader;
 
+use Pagekit\Application;
 use Pagekit\Event\EventDispatcherInterface;
 use Pagekit\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
@@ -24,8 +25,9 @@ class RoutesLoader implements LoaderInterface
      *
      * @param EventDispatcherInterface $events
      * @param AttributeLoader|null $loader
+     * @param Application|null $app Container used for debug-aware error reporting in addController().
      */
-    public function __construct(EventDispatcherInterface $events, ?AttributeLoader $loader = null)
+    public function __construct(EventDispatcherInterface $events, ?AttributeLoader $loader = null, protected ?Application $app = null)
     {
         $this->events = $events;
         $this->loader = $loader ?: new AttributeLoader();
@@ -97,6 +99,21 @@ class RoutesLoader implements LoaderInterface
             }
 
         } catch (\InvalidArgumentException $e) {
+
+            // Debug-aware handler: re-throw in dev so broken controllers surface
+            // immediately; in production, log and skip the offending route so the
+            // rest of the route collection still loads.
+            if ($this->app && $this->app->has('debug') && $this->app->get('debug')) {
+                throw $e;
+            }
+
+            $message = sprintf('Route loading failed for controller "%s": %s', $controller, $e->getMessage());
+
+            if ($this->app && $this->app->has('log')) {
+                $this->app->get('log')->warning($message);
+            } else {
+                error_log($message);
+            }
         }
     }
 }

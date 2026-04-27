@@ -9,11 +9,16 @@ fi
 # PHP dependencies (lock file is tracked — install exact versions)
 composer install --no-interaction --optimize-autoloader --working-dir=.
 
-# Node dependencies (yarn install triggert auch den Build via postinstall)
-yarn install
+# Node dependencies (--frozen-lockfile prevents silent lockfile mutation;
+# postinstall hook also triggers the production build)
+yarn install --frozen-lockfile
 
-# Writable directories
-mkdir -p tmp/logs tmp/cache tmp/temp tmp/packages storage
+# Writable directories (tmp/sessions is required by the session handler)
+mkdir -p tmp/logs tmp/cache tmp/temp tmp/packages tmp/sessions storage
+
+# Refresh Playwright browser after dependency updates (snapshot already ships
+# chromium; this re-applies it whenever the package version changes)
+npx playwright install chromium
 
 # Verify critical tools are available
 echo "--- Tool verification ---"

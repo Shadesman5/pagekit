@@ -2,10 +2,12 @@
 
 namespace Pagekit\Routing\Tests;
 
+use Pagekit\Application;
 use Pagekit\Event\EventDispatcher;
 use Pagekit\Routing\Loader\RoutesLoader;
 use Pagekit\Routing\Route;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 
 class RoutesLoaderTest extends TestCase
 {
@@ -147,5 +149,133 @@ class RoutesLoaderTest extends TestCase
 
         $this->assertNotNull($loadedRoute);
         $this->assertEquals(['https'], $loadedRoute->getSchemes());
+    }
+
+    public function testAddControllerRethrowsInDebugMode(): void
+    {
+        $app = $this->createMock(Application::class);
+        $app->method('has')->willReturnMap([
+            ['debug', true],
+            ['log', false],
+        ]);
+        $app->method('get')->willReturnMap([
+            ['debug', true],
+        ]);
+
+        $loader = new RoutesLoader($this->events, null, $app);
+
+        $route = new Route('/abstract');
+        $route->setName('abstract_route');
+        $route->setOption('controller', RoutesLoaderTestAbstractController::class);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/abstract/i');
+
+        $loader->load([$route]);
+    }
+
+    public function testAddControllerLogsViaLoggerInProduction(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())
+            ->method('warning')
+            ->with($this->stringContains(RoutesLoaderTestAbstractController::class));
+
+        $app = $this->createMock(Application::class);
+        $app->method('has')->willReturnMap([
+            ['debug', true],
+            ['log', true],
+        ]);
+        $app->method('get')->willReturnMap([
+            ['debug', false],
+            ['log', $logger],
+        ]);
+
+        $loader = new RoutesLoader($this->events, null, $app);
+
+        $route = new Route('/abstract');
+        $route->setName('abstract_route');
+        $route->setOption('controller', RoutesLoaderTestAbstractController::class);
+
+        $collection = $loader->load([$route]);
+
+        $this->assertInstanceOf(\Symfony\Component\Routing\RouteCollection::class, $collection);
+    }
+
+    public function testAddControllerFallsBackToErrorLogWhenNoLogService(): void
+    {
+        $app = $this->createMock(Application::class);
+        $app->method('has')->willReturnMap([
+            ['debug', true],
+            ['log', false],
+        ]);
+        $app->method('get')->willReturnMap([
+            ['debug', false],
+        ]);
+
+        $loader = new RoutesLoader($this->events, null, $app);
+
+        $route = new Route('/abstract');
+        $route->setName('abstract_route');
+        $route->setOption('controller', RoutesLoaderTestAbstractController::class);
+
+        $this->assertErrorLogContainsControllerName(
+            fn () => $loader->load([$route]),
+            RoutesLoaderTestAbstractController::class
+        );
+    }
+
+    public function testAddControllerFallsBackToErrorLogWhenNoApplicationInjected(): void
+    {
+        $loader = new RoutesLoader($this->events);
+
+        $route = new Route('/abstract');
+        $route->setName('abstract_route');
+        $route->setOption('controller', RoutesLoaderTestAbstractController::class);
+
+        $this->assertErrorLogContainsControllerName(
+            fn () => $loader->load([$route]),
+            RoutesLoaderTestAbstractController::class
+        );
+    }
+
+    /**
+     * Captures error_log() output to a temp file and asserts it contains the given controller name.
+     */
+    private function assertErrorLogContainsControllerName(callable $action, string $controllerName): void
+    {
+        $tmp = tempnam(sys_get_temp_dir(), 'pk-routes-loader-test-');
+        $previousErrorLog = ini_get('error_log');
+        $previousLogErrors = ini_get('log_errors');
+
+        ini_set('error_log', $tmp);
+        ini_set('log_errors', '1');
+
+        try {
+            $action();
+
+            $contents = file_get_contents($tmp);
+            $this->assertNotFalse($contents);
+            $this->assertStringContainsString($controllerName, $contents);
+        } finally {
+            ini_set('error_log', $previousErrorLog);
+            ini_set('log_errors', $previousLogErrors);
+
+            if (file_exists($tmp)) {
+                unlink($tmp);
+            }
+        }
+    }
+}
+
+/**
+ * Fixture: an abstract controller whose loading triggers
+ * \InvalidArgumentException inside AttributeLoader::load(),
+ * exercising the catch block in RoutesLoader::addController().
+ */
+abstract class RoutesLoaderTestAbstractController
+{
+    public function indexAction(): void
+    {
     }
 }
