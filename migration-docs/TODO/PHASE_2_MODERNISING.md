@@ -210,10 +210,10 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Tasks**:
   - **File:** `app/system/modules/user/src/Model/User.php` (~line 221–227)
   - Replace `create_function()` with a safe expression evaluator. Options (in order of preference):
-    1. **Simple recursive descent parser** (preferred — no new dependency, ~30 lines, handles `and`/`or`/`not`/parentheses over permission strings)
-    2. **Symfony ExpressionLanguage** (heavier dependency, more flexible — but overkill for `'perm1 and (perm2 or perm3)'`)
+    1. **Simple recursive descent parser** (preferred — no new dependency, ~30 lines, handles `&&` / `||` / `!` and the single-character variants `&` / `|` plus parentheses over permission strings). Note: the existing sanitization regex preserves single `&` / `|` characters, so the evaluator MUST handle both forms or permissions written like `perm1 & perm2` will silently fail. See the canonical grammar in the agent prompt.
+    2. **Symfony ExpressionLanguage** (heavier dependency, more flexible — but overkill for `'perm1 && (perm2 || perm3)'`)
     3. **`eval()`** — absolutely NOT acceptable (violates CSP and security goals)
-  - Write **unit tests** for composite permission expressions: `'a and b'`, `'a or b'`, `'not a'`, `'(a and b) or c'`, nested parentheses
+  - Write **unit tests** for composite permission expressions: `'a && b'`, `'a || b'`, `'!a'`, `'(a && b) || c'`, nested parentheses, plus single-operator variants `'a & b'` / `'a | b'` to prove the bitwise / logical equivalence on `0` / `1` values is preserved.
   - Verify: `./app/vendor/bin/phpunit`, `php pagekit list`, admin panel permission checks
 - **Result**: `User::hasAccess()` works on PHP 8.2+ with composite permission expressions
 - **Risk**: Low-Medium — single method, but affects authorization logic; thorough test coverage required
