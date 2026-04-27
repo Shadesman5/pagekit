@@ -1,6 +1,6 @@
 # Changelog
 
-## Pagekit 1.2.13 - User::hasAccess() Hotfix (April 27, 2026)
+## Pagekit 1.2.13 - User::hasAccess() Hotfix (April 28, 2026)
 
 ### Fix
 
