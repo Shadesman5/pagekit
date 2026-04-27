@@ -1,5 +1,5 @@
 ---
-description: Push workflow with version bump. 1) Check git status, create smart commits (conventional-commits.mdc). 2) Use version-bump skill → update app/system/config.php (version is no longer stored in composer.json). 3) Update CHANGELOG-NEW.md; commit "chore(release): bump version to X.Y.Z". 4) If README-affected → readme-sync.mdc. 5) Push: develop (protected) → new branch + PR; other branch → push direct. 6) PR metadata: include <!-- metadata --> block with labels, milestone, and Closes #X. 7) Do not merge.
+description: Push workflow with version bump. 1) Check git status, create smart commits (conventional-commits.mdc). 2) Use version-bump skill → update app/system/config.php (version is no longer stored in composer.json). 3) Update CHANGELOG-NEW.md; commit "chore(release): bump version to X.Y.Z". 4) Update .cursor/ROADMAP.md (header pointer + step row + Phase 1 audit closures from "Closes Phase 1 audit:" lines; skip partial closures); commit "docs(roadmap): …". 5) If README-affected → readme-sync.mdc. 6) Push: develop (protected) → new branch + PR; other branch → push direct. 7) PR metadata: include <!-- metadata --> block with labels, milestone, and Closes #X. 8) Do not merge.
 alwaysApply: false
 ---
 
@@ -8,11 +8,16 @@ alwaysApply: false
 1. **Check git status** – create commits (see `conventional-commits.mdc`)
 2. **Version Bump** – use `.cursor/skills/version-bump/SKILL.md`
 3. **CHANGELOG-NEW.md** – new section with version + date + grouped commits; commit: `chore(release): bump version to X.Y.Z`
-4. **README Sync** – if relevant files changed (see `readme-sync.mdc`)
-5. **Push**:
+4. **ROADMAP Update** – update `.cursor/ROADMAP.md`:
+   - **Header**: bump `Current Version` and advance `Current Step` pointer to the next step
+   - **This step's tracking row**: Status `⏳` → `✅`, Audit `⏳` → `🛡️`, PR `-` → `#YYY`
+   - **Phase 1 audit closures**: check the `Closes Phase 1 audit:` line in the task prompt header AND in `PHASE_2_MODERNISING.md` for the step that was just executed. For each `1.X` listed there, flip the corresponding row's Audit column `⚠️` → `🛡️`. **Skip** rows tagged `(partial)` or `requires also Step Y` until the dependency has also landed.
+   - Commit: `docs(roadmap): close Step X.Y.Z + Phase 1 audit M.N` (or simply `docs(roadmap): close Step X.Y.Z` if no Phase 1 audit row is affected)
+5. **README Sync** – if relevant files changed (see `readme-sync.mdc`)
+6. **Push**:
    - On `develop` (protected) → create new branch (CC-style name), push, create/update PR
    - On any other branch → push directly
-6. **PR Metadata** – every PR body MUST end with a `<!-- metadata -->` block.
+7. **PR Metadata** – every PR body MUST end with a `<!-- metadata -->` block.
    `sync-metadata.yml` automatically applies labels + milestone from this block.
    ```markdown
    <!-- metadata
@@ -24,4 +29,4 @@ alwaysApply: false
    - **labels**: 1 phase + 1 type + 1-2 area labels (see `github-labels.mdc`)
    - **milestone**: Phase name (shorthand `Phase 1` or full `Phase 1: Foundation`)
    - **closes**: related GitHub Issues — also include `Closes #X` in visible PR body text for GitHub's auto-close linking
-7. **Do NOT merge** – user merges after CI/tests pass
+8. **Do NOT merge** – user merges after CI/tests pass
