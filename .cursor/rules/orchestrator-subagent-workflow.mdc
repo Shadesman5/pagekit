@@ -6,91 +6,121 @@ alwaysApply: false
 
 # Orchestrator Subagent Workflow
 
-When you receive a **Task Prompt** (from agent*prompts or PROMPT*\*.md), follow this workflow.
+When you receive a **Task Prompt** (from `agent_prompts/` or `PROMPT_*.md`), follow this workflow.
 Delegate to subagents; do NOT execute the prompt yourself.
+
+## Glossary (read first — naming matters)
+
+The word "step" is used on **two different levels**. Keep them apart:
+
+| Term                    | Level                       | Meaning                                                                                              |
+| ----------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------- |
+| **Roadmap Step X.Y**    | Roadmap (`.cursor/ROADMAP.md`) | A whole modernization task. **One Roadmap Step = one Task Prompt = one Ticket = one PR.**         |
+| **Checklist Step N**    | Ticket (`.cursor/tickets/*_plan.md`) | A single item in the Architect's checklist inside the ticket. The loop iterates over these. |
+
+Always qualify when there is risk of confusion: "Roadmap Step 2.0.7" vs. "Checklist Step 3".
+Inside the per-ticket loop, plain "Step N" always means **Checklist Step N**.
 
 ## Core Principle: Thin Coordinator
 
-The Orchestrator is a **dispatcher**, not a worker. It delegates, commits, and moves to the next step.
+The Orchestrator is a **dispatcher**, not a worker. It delegates, commits, and moves to the next Checklist Step.
 
 **DO:**
 
-- Delegate to **architect** first (reads task + ROADMAP, writes plan).
-- Loop per step: delegate to **refactorer** → **verifier** → **tester** → commit → next.
+- Delegate to **architect** first. The Architect reads the task prompt + ROADMAP and writes the ticket plan.
+- Loop per Checklist Step: delegate to **refactorer** → **verifier** → **tester** → commit → next.
 - Keep handoff messages to one line with the ticket path (see Handoff Format below).
-- After Tester PASS: run `git add` + `git commit`. If working tree is already clean, proceed without investigating.
+- After Tester PASS: run `git status` to inspect, then `git add` + `git commit`. If the working tree is clean even though Refactorer reported "Step N done", treat it as a refactorer failure (see On Failure).
 
 **DO NOT:**
 
-- Read the full task prompt or ROADMAP yourself; that is the Architect's job.
-- Re-interpret, merge, or reorder the Architect's checklist steps.
+- Re-interpret, merge, reorder, or summarize the Architect's checklist. Use it verbatim.
 - Read or verify changed files after Refactorer completes; that is the Verifier's job.
-- Run `git status`, `git log`, `git show`, `git diff` to investigate or understand subagent results. Trust their output ("Step N done", "PASS", "FAIL").
-- Re-do the Refactorer's, Verifier's, or Tester's work. Never run PHPUnit, Playwright, or `php pagekit setup` yourself; always delegate to **tester**.
-- Analyze or paraphrase Verifier/Tester output. Just check: PASS → proceed, FAIL → send back.
-- Fix code, edit files, or amend commits. On failure, delegate back to **refactorer** with the feedback. The Orchestrator never touches source code.
+- Run `git log`, `git show`, `git diff` to investigate or paraphrase subagent results. Trust their output (see "Subagent return values" below). `git status` is fine for staging decisions before commit.
+- Re-do the Refactorer's, Verifier's, or Tester's work. Never run PHPUnit, PHPStan, Playwright, or `php pagekit setup` yourself; always delegate to **tester**.
+- Analyze or paraphrase Verifier/Tester output. Just check: PASS → proceed, FAIL → send back to refactorer with the verbatim feedback.
+- Fix code, edit files, or amend commits. On failure, delegate back to **refactorer**. The Orchestrator never touches source code.
 - Paste the plan, step titles, or task prompt into chat. Use the ticket file path only.
-- Create a TODO list of all step names in chat; the ticket file is the single source.
+- Create a TODO list of all Checklist Steps in chat; the ticket file is the single source.
+- Use any subagent type other than `architect`, `refactorer`, `verifier`, `tester` for this workflow. (`generalPurpose`, `explore`, `shell`, etc. are not part of the modernization pipeline.)
+
+**MAY (optional, default = no):**
+
+- Read `.cursor/ROADMAP.md` for orientation if a delegation outcome is unclear (e.g. to map a Roadmap Step ID to its phase). Do **not** read it to plan, scope, or decompose work — that is exclusively the Architect's job. Default is: do not read.
+
+## Subagent return values (what to trust)
+
+| Subagent       | Expected output (one line, trust verbatim)                                          |
+| -------------- | ----------------------------------------------------------------------------------- |
+| **architect**  | `Plan written to .cursor/tickets/{task-slug}_plan.md`                               |
+| **refactorer** | `Step N done. Files: [list].`                                                       |
+| **verifier**   | `PASS` — or `FAIL` followed by a short bullet list of issues                        |
+| **tester**     | `PASS` — or `FAIL` followed by minimal RCA (command + error snippet)                |
+
+If a subagent returns something else (preamble, prose, multi-paragraph review), treat it as a protocol violation: ask the subagent to re-emit in the expected format. Do not paraphrase it yourself.
 
 ## Handoff Format
 
-Plans live in `.cursor/tickets/{task-slug}_plan.md` (task-slug = task prompt filename without path/extension). Subagents read only the ticket file (and code); they do not need the full task prompt.
+Plans live in `.cursor/tickets/{task-slug}_plan.md` (`task-slug` = task prompt filename without path/extension). Subagents read only the ticket file (and code); they do not need the full task prompt.
 
-| Delegation            | Message                                                                                                                          |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| **Architect**         | "Delegate to **architect**. Task: `migration-docs/TODO/agent_prompts/{file}.md`. Output: `.cursor/tickets/{task-slug}_plan.md`." |
-| **Refactorer**        | "Ticket: `.cursor/tickets/{task-slug}_plan.md`, Step N. Delegate to **refactorer**."                                             |
-| **Verifier**          | "Ticket: `.cursor/tickets/{task-slug}_plan.md`, Step N. Changed files: [list]. Delegate to **verifier**."                        |
-| **Tester** (per step) | "Delegate to **tester**. Run: PHPUnit + PHPStan."                                                                                |
-| **Tester** (final)    | "Delegate to **tester**. Final test run: PHPUnit + PHPStan + `php pagekit setup` + `php pagekit list` + Playwright E2E."         |
+| Delegation                      | Message                                                                                                                          |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **Architect**                   | "Delegate to **architect**. Task: `migration-docs/TODO/agent_prompts/{file}.md`. Output: `.cursor/tickets/{task-slug}_plan.md`." |
+| **Refactorer**                  | "Ticket: `.cursor/tickets/{task-slug}_plan.md`, Checklist Step N. Delegate to **refactorer**."                                   |
+| **Verifier**                    | "Ticket: `.cursor/tickets/{task-slug}_plan.md`, Checklist Step N. Changed files: [list]. Delegate to **verifier**."              |
+| **Tester** (per Checklist Step) | "Delegate to **tester**. Run: PHPUnit + PHPStan."                                                                                |
+| **Tester** (final)              | "Delegate to **tester**. Final test run: PHPUnit + PHPStan + `php pagekit setup` + `php pagekit list` + Playwright E2E."         |
 
 ## Workflow
 
 ```
-Task Prompt
+Task Prompt (one Roadmap Step X.Y)
     │
     ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ ARCHITECT (subagent)                                        │
 │ Reads task + ROADMAP → .cursor/tickets/*_plan.md            │
-│ Returns: one line ("Plan written to …")                     │
+│ Returns: "Plan written to …"                                │
 └─────────────────────────────────────────────────────────────┘
     │
     ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ LOOP per checklist step (ALL 4 stages mandatory):           │
+│ LOOP per Checklist Step (ALL 4 stages mandatory):           │
 │   1. REFACTORER (subagent) → code changes, no git commit    │
-│   2. VERIFIER   (subagent) → PASS / FAIL only               │
-│   3. TESTER     (subagent) → PASS / FAIL only               │
-│   4. COMMIT     (orchestrator) → git add + git commit        │
+│   2. VERIFIER   (subagent) → static review, PASS / FAIL     │
+│   3. TESTER     (subagent) → PHPUnit + PHPStan, PASS / FAIL │
+│   4. COMMIT     (orchestrator) → git add + git commit       │
+│   Order rationale: Verifier before Tester — static audit    │
+│   gates expensive test runs and catches issues early.       │
 │   Do NOT skip stages. Do NOT run tests yourself.            │
-│   → Next step                                               │
+│   → Next Checklist Step                                     │
 └─────────────────────────────────────────────────────────────┘
     │
     ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ FINAL TEST (after ALL steps committed, before Finalize):    │
+│ FINAL TEST (after ALL Checklist Steps committed):           │
 │   TESTER (subagent) → "Final test run" message              │
 │   Runs: PHPUnit + PHPStan + php pagekit setup               │
 │         + php pagekit list + Playwright E2E (3 specs)       │
-│   If FAIL → delegate fix to Refactorer, re-test             │
+│   On FAIL → delegate to Refactorer → Verifier → Tester      │
+│   (full mini-loop), commit fix, then re-run Final Test      │
 └─────────────────────────────────────────────────────────────┘
     │
     ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ FINALIZE (Orchestrator, no subagent)                        │
-│ push.mdc: version bump, CHANGELOG, push, PR + metadata      │
+│ push.mdc: branch doc, version bump, CHANGELOG, push, PR     │
 │ Do NOT merge.                                               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ## Rules
 
-1. **One step at a time** — never work on multiple steps in parallel.
-2. **One commit per step** — after Tester PASS. If nothing to commit, proceed. Do not batch commits.
-3. **Subagents by name** — use the exact role names (architect, refactorer, verifier, tester) so Cursor routes correctly. Subagent definitions: `.cursor/agents/`.
+1. **One Checklist Step at a time** — never work on multiple in parallel.
+2. **One commit per Checklist Step** — after Tester PASS. If `git status` shows nothing to commit although Refactorer reported "Step N done", that is a failure (see On Failure). Do not batch commits.
+3. **Subagents by exact name** — `architect`, `refactorer`, `verifier`, `tester` so Cursor routes correctly. Subagent definitions: `.cursor/agents/`.
 
-## Finalize (after all steps committed)
+## Finalize (after all Checklist Steps committed)
 
 Orchestrator (no subagent) executes **push.mdc**:
 
@@ -98,22 +128,23 @@ Orchestrator (no subagent) executes **push.mdc**:
    - All changes made (files, what changed, why)
    - Breaking changes for extensions (if any)
    - Test results summary
-   - Referenced ROADMAP step and GitHub Issue
+   - Referenced **Roadmap Step X.Y** and GitHub Issue
      Use existing files in `migration-docs/branches/` as reference for format/style.
 2. **Version bump** — `.cursor/skills/version-bump/SKILL.md`
-3. **CHANGELOG-NEW.md** — group all commits from this task
-4. **Push** — to remote (branch from develop if needed)
-5. **PR** — `<!-- metadata -->` block (labels, milestone, `closes`). Use GitHub Issue number from invocation (`GitHub Issue: #XXX`). Include `Closes #XXX` in PR body AND metadata `closes:` field. See `push.mdc` + `github-labels.mdc`.
+3. **CHANGELOG-NEW.md** — group all commits from this Roadmap Step
+4. **Push** — to remote (branch from `develop` if needed)
+5. **PR** — `<!-- metadata -->` block (labels, milestone, `closes`). Use the GitHub Issue number from the invocation (`GitHub Issue: #XXX`). Include `Closes #XXX` in PR body AND metadata `closes:` field. See `push.mdc` + `github-labels.mdc`.
 6. **Do NOT merge** — user reviews and merges.
 
 ## On Failure (CRITICAL — do not self-fix)
 
 The Orchestrator NEVER fixes code, reads files to understand errors, or runs tests to verify fixes. On ANY failure:
 
-| Failure                                        | Action                                                                                                                    |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **Verifier FAIL**                              | Pass feedback to **refactorer**: "Ticket: …, Step N. Verifier feedback: [paste FAIL output]. Delegate to **refactorer**." |
-| **Tester FAIL**                                | Pass feedback to **refactorer**: "Ticket: …, Step N. Tester feedback: [paste FAIL output]. Delegate to **refactorer**."   |
-| **Refactorer cannot fix** (architecture issue) | Escalate to **architect**: "Ticket: …, Step N. Issue: [one line]. Delegate to **architect**."                             |
+| Failure                                              | Action                                                                                                                                       |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Refactorer reported done but tree clean**          | Re-delegate to **refactorer**: "Ticket: …, Checklist Step N. No changes detected on disk. Re-execute and emit changed files."                |
+| **Verifier FAIL**                                    | Pass feedback to **refactorer**: "Ticket: …, Checklist Step N. Verifier feedback: [paste FAIL output verbatim]. Delegate to **refactorer**." |
+| **Tester FAIL**                                      | Pass feedback to **refactorer**: "Ticket: …, Checklist Step N. Tester feedback: [paste FAIL output verbatim]. Delegate to **refactorer**."   |
+| **Refactorer cannot fix** (architecture issue)       | Escalate to **architect**: "Ticket: …, Checklist Step N. Issue: [one line]. Delegate to **architect**."                                      |
 
-After the fix: restart the loop from **verifier** (not from commit). Never amend commits yourself; let the refactorer produce clean changes, then commit normally.
+After any fix: restart the loop from **verifier** (not from commit), then **tester**, then commit. Never amend commits yourself; let the refactorer produce clean changes, then commit normally.

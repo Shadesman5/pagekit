@@ -1,6 +1,6 @@
 # Changelog
 
-## Pagekit 1.2.11 - Test Infrastructure Cleanup (April 26, 2026)
+## Pagekit 1.2.11 - Test Infrastructure Cleanup (April 27, 2026)
 
 ### Fix
 
