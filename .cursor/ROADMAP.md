@@ -57,7 +57,7 @@
 | 1.10.5 | ↳ E2E Testing with Playwright         | ✅     | ⚠️    | #135  | #67     |
 | 1.11   | ORM Modernization                     | ✅     | ⚠️    | #131  | #97     |
 | 1.12   | DB Migration System                   | ✅     | 🛡️    | #132  | #107    |
-| 1.13   | Validation Update                     | ✅     | ⚠️    | #133  | #108    |
+| 1.13   | Validation Update                     | ✅     | 🛡️    | #133  | #108    |
 | 1.13.5 | ↳ Template Security Hardening (CSP)   | ⏸️ 80% | ⚠️    | #136  | #110    |
 | 1.14   | Doctrine Attributes                   | ✅     | 🛡️    | #134  | #111    |
 | 2.0    | **Foundation Consolidation**          | ⏳     | ⏳    | #181  | -       |
