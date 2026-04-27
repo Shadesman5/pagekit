@@ -18,8 +18,6 @@ class RoutesLoader implements LoaderInterface
 
     protected \Pagekit\Routing\Loader\AttributeLoader $loader;
 
-    protected ?Application $app;
-
     protected ?RouteCollection $routes = null;
 
     /**
@@ -29,11 +27,10 @@ class RoutesLoader implements LoaderInterface
      * @param AttributeLoader|null $loader
      * @param Application|null $app Container used for debug-aware error reporting in addController().
      */
-    public function __construct(EventDispatcherInterface $events, ?AttributeLoader $loader = null, ?Application $app = null)
+    public function __construct(EventDispatcherInterface $events, ?AttributeLoader $loader = null, protected ?Application $app = null)
     {
         $this->events = $events;
         $this->loader = $loader ?: new AttributeLoader();
-        $this->app = $app;
     }
 
     /**
