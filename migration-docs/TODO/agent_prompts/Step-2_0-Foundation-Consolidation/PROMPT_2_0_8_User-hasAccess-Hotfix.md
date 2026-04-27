@@ -5,6 +5,8 @@
 **Prerequisite:** None — this is a critical runtime fix that can be executed at any point.  
 **Priority:** HIGHEST.
 
+**Closes Phase 1 audit (partial):** Step 1.11 (ORM Modernization) — the `create_function()` removal closes the User-model portion of the 1.11 finding. The remaining 1.11 findings (`EntityManager` singleton, `ModelServiceLocator` / `IntlServiceLocator` static service locators, ORM `Metadata` / `Relation` / `PropertyTrait` typing gaps, `#[AllowDynamicProperties]` on `Node` / `Widget`) live in **Step 2.1.6** (PHPStan Level 8). **Step 1.11 ⚠️ → 🛡️ requires both 2.0.8 and 2.1.6 to land.** Do **not** flip 1.11 to 🛡️ in the ROADMAP after this step alone.
+
 **Also read:** `.cursor/ROADMAP.md` (5 aggressive rules).
 
 ---

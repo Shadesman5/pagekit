@@ -1,5 +1,36 @@
 # Changelog
 
+## Pagekit 1.2.12 - Event Dispatcher Bridge Removal (April 27, 2026)
+
+### Breaking Changes (Internal)
+
+- **`Pagekit\Event\SymfonyEventDispatcherBridge` deleted** — The unused `Symfony\Component\EventDispatcher\EventDispatcherInterface` adapter on top of Pagekit's own event system is gone. Audit confirmed zero production consumers in `app/` and `packages/`. Pagekit's own `EventDispatcher`, `PrefixEventDispatcher`, `Event`, and `EventInterface` API surface remains untouched (stable platform API, ~147 call sites).
+- **`symfony.event_dispatcher` container service removed** — The corresponding `$app->set('symfony.event_dispatcher', …)` registration in `app/modules/application/index.php` is removed. No replacement service. Extensions that need a Symfony-style dispatcher must now wire against `$app->get('events')` directly. (Closes #184)
+
+### Refactor
+
+- **`app/modules/application/index.php` cleaned up** — `$app->set('symfony.event_dispatcher', function ($app) { return new \Pagekit\Event\SymfonyEventDispatcherBridge($app->get('events')); });` block removed (3 lines + surrounding blank line). No other service registrations touched.
+
+### Chore
+
+- **`phpstan-baseline.neon` baseline trimmed** — Two stale ignore blocks (`function.alreadyNarrowedType` for `SymfonyEventDispatcherBridge.php`, `method.impossibleType` for `EventDispatcherCompatibilityTest.php`) removed alongside the file deletions. Baseline is internally consistent: zero "ignored error not matched" warnings.
+- **`EventDispatcherCompatibilityTest` removed** — The only consumer of the deleted bridge; no cross-test fixtures, self-contained.
+
+### Internal
+
+- **Step 2.0.7 (Event Dispatcher Bridge Removal)** marked complete in `.cursor/ROADMAP.md`. Foundation Consolidation phase 2.0 progresses; Current Step pointer advances to the next foundation step.
+- **No-Mercy compliance:** pure deletion (340 lines removed, 0 added, 4 paths touched). No shims, no adapters, no `@deprecated` markers, no new in-code TODOs. Aggressive Rules 1, 2, 4 enforced.
+
+### Tests
+
+- All **289 PHPUnit tests green** (0 failures, 0 errors). `EventDispatcherCompatibilityTest` correctly no longer discovered.
+- PHPStan clean against the trimmed baseline (`[OK] No errors`).
+- `php pagekit setup` and `php pagekit list` successful.
+- Playwright E2E (chromium-only per `AGENTS.md`): `installation.spec.js` (1/1), `authentication.spec.js` (14/14), `dashboard.spec.js` (10/10) — all green.
+- Final ripgrep audit of the live codebase: zero hits for `SymfonyEventDispatcherBridge`, `symfony.event_dispatcher`, `Symfony\Component\EventDispatcher\EventDispatcherInterface`, `EventDispatcherCompatibilityTest`.
+
+---
+
 ## Pagekit 1.2.11 - Test Infrastructure Cleanup (April 27, 2026)
 
 ### Fix
