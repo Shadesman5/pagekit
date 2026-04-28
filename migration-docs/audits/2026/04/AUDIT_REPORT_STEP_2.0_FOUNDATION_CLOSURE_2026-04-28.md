@@ -393,7 +393,7 @@ sub-steps) is documented in §4.8 Closure Verdict.
 
 ## §4.5 New Sub-Step Proposals
 
-**No new sub-steps proposed.**
+**None — all gaps routed to existing steps.**
 
 All 7 gaps in §4.4 dispose to either an existing future step (rows 1, 2 → `2.1.6` / `2.5`) or
 `informational only` (rows 3, 4, 5, 6, 7). Per §3.4 of the task prompt and Aggressive Rules 1 + 4
@@ -401,6 +401,14 @@ All 7 gaps in §4.4 dispose to either an existing future step (rows 1, 2 → `2.
 `**Audit findings (...):**` block; informational gaps are recorded here for traceability and
 require no PR-time action. No gap warrants a fresh `2.0.X` (X ≥ 9) sub-step, so Checklist Steps 14
 and 16 produce **zero** new agent-prompt skeletons and **zero** new GitHub issues respectively.
+
+**Checklist Step 14 outcome (paper deliverables for new sub-steps):** No-op by design. Step 13's
+disposition table assigned every gap to either `route to existing step` (rows 1 → `2.1.6`,
+2 → `2.5`) or `informational only` (rows 3, 4, 5, 6, 7). Because zero new `2.0.X` (X ≥ 9)
+sub-steps were proposed, the §5.3 / §5.4 paper deliverables (new ROADMAP row, new PHASE_2
+sub-section, new agent-prompt skeleton at
+`migration-docs/TODO/agent_prompts/Step-2_0-Foundation-Consolidation/PROMPT_2_0_X_*.md`) are
+**not produced** in this PR. The §4.6.4 "New agent-prompt skeletons" table below remains empty.
 
 ---
 
@@ -438,10 +446,14 @@ _TBD — exact lines added / changed in migration-docs/TODO/PHASE_2_MODERNISING.
 
 ### §4.6.4 New agent-prompt skeletons (this PR)
 
+**None.** Per §4.5, no new `2.0.X` (X ≥ 9) sub-steps are proposed; Checklist Step 14 produces
+zero new agent-prompt skeletons under
+`migration-docs/TODO/agent_prompts/Step-2_0-Foundation-Consolidation/`.
 
-| Path  | Sub-step | Status |
-| ----- | -------- | ------ |
-| *TBD* | *TBD*    | new    |
+
+| Path | Sub-step | Status                                       |
+| ---- | -------- | -------------------------------------------- |
+| —    | —        | n/a — no new sub-steps proposed (see §4.5)   |
 
 
 ### §4.6.5 GitHub issues opened (this PR)
