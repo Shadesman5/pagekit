@@ -19,30 +19,32 @@
 
 ## §4.1 Executive Summary
 
-_TBD — single paragraph summary of the closure-and-gap audit. Cross-checks every
+*TBD — single paragraph summary of the closure-and-gap audit. Cross-checks every
 claim made by Steps 2.0.0–2.0.8 against `develop` HEAD; identifies any
 Foundation-Consolidation debt that was promised, deferred, missed, or surfaced
 during 2.0.x execution but never landed and never got its own ticket; routes
 each gap to either a new 2.0.X sub-step (X ≥ 9), an existing future step
-(2.1.6 / 2.1.9 / 2.5 / …), or "informational only"._
+(2.1.6 / 2.1.9 / 2.5 / …), or "informational only".*
 
 ### Closure Verdict (10-row summary table)
 
 `2.0.1a–e` is collapsed here for readability; per-sub-step evidence blocks in
 §4.2 list each of `2.0.1a`, `2.0.1b`, `2.0.1c`, `2.0.1d`, `2.0.1e` individually.
 
-| ID         | Sub-step                                       | Audit ground-truth | New sub-step needed? |
-|------------|------------------------------------------------|--------------------|----------------------|
-| 2.0.0      | Controller Attributes                          | 🛡️                 | _TBD_                |
-| 2.0.1      | PSR-11 Container Modernization                 | _TBD_              | _TBD_                |
-| 2.0.1a–e   | Container sub-stages (Core / DI / System / Packages / StaticTrait) | _TBD_ | _TBD_      |
-| 2.0.2      | Validator-Translator Integration               | _TBD_              | _TBD_                |
-| 2.0.3      | Cache API Full Modernization                   | _TBD_              | _TBD_                |
-| 2.0.4      | Package / Migration System Redesign            | _TBD_              | _TBD_                |
-| 2.0.5      | Composer & Autoload Hygiene                    | _TBD_              | _TBD_                |
-| 2.0.6      | Test Infrastructure Cleanup                    | _TBD_              | _TBD_                |
-| 2.0.7      | Event Dispatcher Bridge Removal                | _TBD_              | _TBD_                |
-| 2.0.8      | `User::hasAccess()` Hotfix                     | _TBD_              | _TBD_                |
+
+| ID       | Sub-step                                                           | Audit ground-truth | New sub-step needed? |
+| -------- | ------------------------------------------------------------------ | ------------------ | -------------------- |
+| 2.0.0    | Controller Attributes                                              | 🛡️                | *TBD*                |
+| 2.0.1    | PSR-11 Container Modernization                                     | 🛡️                | No                   |
+| 2.0.1a–e | Container sub-stages (Core / DI / System / Packages / StaticTrait) | 🛡️                | No                   |
+| 2.0.2    | Validator-Translator Integration                                   | *TBD*              | *TBD*                |
+| 2.0.3    | Cache API Full Modernization                                       | *TBD*              | *TBD*                |
+| 2.0.4    | Package / Migration System Redesign                                | *TBD*              | *TBD*                |
+| 2.0.5    | Composer & Autoload Hygiene                                        | *TBD*              | *TBD*                |
+| 2.0.6    | Test Infrastructure Cleanup                                        | *TBD*              | *TBD*                |
+| 2.0.7    | Event Dispatcher Bridge Removal                                    | *TBD*              | *TBD*                |
+| 2.0.8    | `User::hasAccess()` Hotfix                                         | *TBD*              | *TBD*                |
+
 
 **Legend:** 🛡️ = audit ground-truth confirms scope, deletions and Phase 1
 closure claims hold on `develop` HEAD ; ⚠️ = partial / drift detected
@@ -74,144 +76,144 @@ Each block ≤ 20 lines, structured as:
 
 ### §4.2.1 Step 2.0.1 — PSR-11 Container Modernization (umbrella)
 
-**ROADMAP Status**: ✅ | **Issue**: #145 | **PR**: #174 (audit) | **Audit**: _TBD_
+**ROADMAP Status**: ✅ | **Issue**: #145 | **PR**: #174 (audit) | **Audit**: 🛡️
 
-- Scope verified: _TBD_ (`rg -n "Psr11Adapter|StaticTrait|class_alias.*Container" app/ packages/ --glob "*.php"` → expect 0 hits; `Container` natively `implements ContainerInterface` from `Psr\Container`).
-- Phase 1 closure claims verified: `Closes Phase 1 audit: Step 1.6` — confirm ROADMAP row 1.6 = 🛡️ and prior audit (`AUDIT_REPORT_STEP_2.0-2.0.2_2026-03-27.md`) corroborates.
-- No-Mercy spot-check: _TBD_.
-- Deferred items still tracked: _TBD_.
+- Scope verified: ✅ — `rg -n "Psr11Adapter|StaticTrait|class_alias.*Container" app/ packages/ --glob "*.php"` returns **0 hits** on `develop` HEAD (executed as workspace-wide `Grep` for the same pattern, scope `*.php`). `app/modules/application/src/Container.php:9` declares `class Container implements ContainerInterface` with `use Psr\Container\ContainerInterface;` at line 7 — Container is natively PSR-11, no `Psr11Adapter` wrapper, no `class_alias` indirection, no `StaticTrait`. `Container::get(string $id): mixed`, `Container::has(string $id): bool`, and `Container::set(string $id, mixed $value): void` are PSR-11-compliant signatures (typed parameters and return types per PHP 8.2+ standard).
+- Phase 1 closure claims verified: ✅ `Closes Phase 1 audit: Step 1.6` (PHASE_2_MODERNISING.md:24 — "Step 1.6 (PSR-11 Container Compatibility) ⚠️ → 🛡️"). Confirmed against `.cursor/ROADMAP.md:52` — row `1.6 PSR-11 Container Compatibility | ✅ | 🛡️ | #126 | #55`. Prior audit `AUDIT_REPORT_STEP_2.0-2.0.2_2026-03-27.md` §"Step 2.0.1 – PSR-11 Container Vollmodernisierung" corroborates: "Container implements PSR-11 natively (`get`, `has`, `set`)" and "`Psr11Adapter` from Phase 1 deleted; Container natively PSR-11" (Rule #1 row of the No-Mercy table).
+- No-Mercy spot-check: ✅ Container hierarchy is clean — `Application extends Container` (`app/modules/application/src/Application.php:9`), so `Application` inherits PSR-11 directly; no compatibility shim. `ContainerPsr11Test` (`app/modules/application/src/Tests/ContainerPsr11Test.php`) explicitly asserts both classes implement `Psr\Container\ContainerInterface`. The two `\ArrayAccess` implementations remaining in the application module (`Event/Event.php:7` and `Util/ArrObject.php:8`) are **OK / by design** — they are domain value objects, not the Container; they were never part of the 2.0.1d removal scope.
+- Deferred items still tracked: ✅ — none. The umbrella issue #145 is fully closed by the five sub-stages 2.0.1a–e (PRs #161, #167, #169, #171, #172) plus the closure audit PR #174. No `// TODO: Step 2.x` markers tied to container modernization remain.
 
 ---
 
 ### §4.2.1a Step 2.0.1a — Container Core + Modules
 
-**ROADMAP Status**: ✅ | **Issue**: #162 | **PR**: #161 | **Audit**: _TBD_
+**ROADMAP Status**: ✅ | **Issue**: #162 | **PR**: #161 | **Audit**: 🛡️
 
-- Scope verified: _TBD_ (`Container` directly implements `Psr\Container\ContainerInterface`; `get()`/`has()`/`set()` PSR-11-compliant).
-- Phase 1 closure claims verified: rolled up under 2.0.1.
-- No-Mercy spot-check: _TBD_.
-- Deferred items still tracked: _TBD_.
+- Scope verified: ✅ — `Container::get(string $id): mixed` throws `Pagekit\Container\NotFoundException` (PSR-11 `NotFoundExceptionInterface`) on missing IDs and `Pagekit\Container\ContainerException` (PSR-11 `ContainerExceptionInterface`) on resolution errors (`Container.php:113-134`). `has(string $id): bool` returns a strict boolean (`Container.php:143-146`); `set(string $id, mixed $value): void` is the canonical write API (`Container.php:153-160`).
+- Phase 1 closure claims verified: rolled up under 2.0.1 (`Closes Phase 1 audit: Step 1.6` — verified in §4.2.1).
+- No-Mercy spot-check: ✅ no `Pimple\Container` parent class, no `extends Container` chain to legacy Pimple — `class Container` has no `extends` clause (`Container.php:9`). The container is the sole authority; core modules register through `$app->set()` / `$app->factory()` (the `factory()` flag prevents singleton caching for per-call services, lines 36-40).
+- Deferred items still tracked: ✅ — none from 2.0.1a.
 
 ---
 
 ### §4.2.1b Step 2.0.1b — DI Infrastructure
 
-**ROADMAP Status**: ✅ | **Issue**: #163 | **PR**: #167 | **Audit**: _TBD_
+**ROADMAP Status**: ✅ | **Issue**: #163 | **PR**: #167 | **Audit**: 🛡️
 
-- Scope verified: _TBD_ (`ControllerResolver` resolves typed constructor parameters from container; no service-locator pattern in controller resolution).
-- Phase 1 closure claims verified: rolled up under 2.0.1.
-- No-Mercy spot-check: _TBD_.
-- Deferred items still tracked: _TBD_.
+- Scope verified: ✅ — `app/modules/kernel/src/Controller/ControllerResolver.php:128-163` (`instantiateController`) reflects on the controller's constructor and resolves each typed parameter via `$this->container->get($paramName)` (PSR-11), falling back to the parameter's default value, otherwise throwing `\RuntimeException` with a precise diagnostic. The resolver holds a typed `?ContainerInterface $container` (line 11) — no service-locator pattern (no `$container->get()` calls inside controller methods themselves).
+- Phase 1 closure claims verified: rolled up under 2.0.1 (`Closes Phase 1 audit: Step 1.6`).
+- No-Mercy spot-check: ✅ `instantiateController()` does not silently swallow missing services — it throws with the controller class name, parameter name, and missing service ID. No `try { ... } catch { return null; }` anti-pattern. Constructor signature uses constructor-promoted optional dependencies (line 14: `?ContainerInterface $container = null, ?LoggerInterface $logger = null`).
+- Deferred items still tracked: ✅ — none from 2.0.1b.
 
 ---
 
 ### §4.2.1c Step 2.0.1c — System / Installer / Console + DI
 
-**ROADMAP Status**: ✅ | **Issue**: #164 | **PR**: #169 | **Audit**: _TBD_
+**ROADMAP Status**: ✅ | **Issue**: #164 | **PR**: #169 | **Audit**: 🛡️
 
-- Scope verified: _TBD_ (System + Installer + Console controllers migrated; zero `$app['service']` array-access patterns).
-- Phase 1 closure claims verified: rolled up under 2.0.1.
-- No-Mercy spot-check: _TBD_.
-- Deferred items still tracked: _TBD_.
+- Scope verified: ✅ — `rg -n "\\\$app\\['"` over `*.php` returns **0 hits** workspace-wide (executed as `Grep` for pattern `\$app\[['"]`). Zero array-access patterns remain in System, Installer, or Console code paths. Console wiring uses `app/modules/application/src/Application/Console/Application.php:17 protected Container $container;` — typed property, no array access.
+- Phase 1 closure claims verified: rolled up under 2.0.1 (`Closes Phase 1 audit: Step 1.6`).
+- No-Mercy spot-check: ✅ `Application` (HTTP kernel) extends `Container` directly (`Application.php:9`) — no parallel "compat" subclass. Constructor injection is uniform across system, installer, and console controllers (cross-checked against §4.2.0 evidence: every controller listed there uses `#[Route]` attribute routing on typed methods).
+- Deferred items still tracked: ✅ — none from 2.0.1c.
 
 ---
 
 ### §4.2.1d Step 2.0.1d — Packages + ArrayAccess Removal
 
-**ROADMAP Status**: ✅ | **Issue**: #165 | **PR**: #171 | **Audit**: _TBD_
+**ROADMAP Status**: ✅ | **Issue**: #165 | **PR**: #171 | **Audit**: 🛡️
 
-- Scope verified: _TBD_ (`ArrayAccess` removed from `Container`; `offsetGet`/`offsetSet`/`offsetExists`/`offsetUnset` deleted; zero `$app['key']` bracket access in codebase).
-- Phase 1 closure claims verified: rolled up under 2.0.1.
-- No-Mercy spot-check: _TBD_.
-- Deferred items still tracked: _TBD_.
+- Scope verified: ✅ — `Container.php` (1-169) does **not** declare `\ArrayAccess`; `class Container implements ContainerInterface` only (line 9). `rg -n "ArrayAccess|offsetGet|offsetSet|offsetExists|offsetUnset"` over `app/modules/application/**/*.php` returns hits only in `Event/Event.php` and `Util/ArrObject.php` — both unrelated value objects, not the Container. `rg -n "\\\$app\\['"` returns **0 hits** workspace-wide; zero `$app['key']` bracket access in package or application code.
+- Phase 1 closure claims verified: rolled up under 2.0.1 (`Closes Phase 1 audit: Step 1.6`).
+- No-Mercy spot-check: ✅ Rule #4 ("Delete Over Wrap") satisfied — the four `offset*` methods were physically deleted from `Container`, not stubbed with `@deprecated`. Blog package controllers (cross-checked in §4.2.0: `PostApiController`, `CommentApiController`, `SiteController`, `BlogController`, `NodeController`) all use constructor injection, no array-access shims.
+- Deferred items still tracked: ✅ — none from 2.0.1d.
 
 ---
 
 ### §4.2.1e Step 2.0.1e — StaticTrait Removal + DI Final
 
-**ROADMAP Status**: ✅ | **Issue**: #166 | **PR**: #172 | **Audit**: _TBD_
+**ROADMAP Status**: ✅ | **Issue**: #166 | **PR**: #172 | **Audit**: 🛡️
 
-- Scope verified: _TBD_ (`StaticTrait`, `EventTrait`, `RouterTrait` physically deleted; zero `App::` static calls; zero `__call`/`__callStatic` on Container/Application).
-- Phase 1 closure claims verified: rolled up under 2.0.1.
-- No-Mercy spot-check: _TBD_.
-- Deferred items still tracked: _TBD_.
+- Scope verified: ✅ — `rg -n "StaticTrait|EventTrait|RouterTrait"` over `*.php` returns **0 hits** workspace-wide; the three traits are physically deleted from the codebase. `rg -n "\\bApp::\\w+\\("` over `*.php` returns **0 hits** — zero `App::` static calls remain. `rg -n "__callStatic|__call\\b"` over `app/modules/application/**/*.php` returns **0 hits** — `Container` and `Application` carry no magic-method routing.
+- Phase 1 closure claims verified: rolled up under 2.0.1 (`Closes Phase 1 audit: Step 1.6`).
+- No-Mercy spot-check: ✅ Rule #4 ("Delete Over Wrap") satisfied — traits were deleted, not stubbed. Rule #1 ("No Compatibility Layers") satisfied — there is no parallel `App` facade class hosting static helpers; constructor DI is the sole resolution path. Cross-corroborated by prior audit `AUDIT_REPORT_STEP_2.0-2.0.2_2026-03-27.md` §"Step 2.0.1e": "`StaticTrait` physically deleted from codebase" and "Zero `App::` static calls remain".
+- Deferred items still tracked: ✅ — none from 2.0.1e. The DI-Final completion sealed the umbrella; closure audit PR #174 verified all 10 acceptance criteria.
 
 ---
 
 ### §4.2.2 Step 2.0.2 — Validator-Translator Integration
 
-**ROADMAP Status**: ✅ | **Issue**: #146 | **PR**: #175 | **Audit**: _TBD_
+**ROADMAP Status**: ✅ | **Issue**: #146 | **PR**: #175 | **Audit**: *TBD*
 
-- Scope verified: _TBD_ (`validators.php` exists per locale (system + blog); `validation.php` deleted; `ValidatorServiceProvider` calls `setTranslator()` + `setTranslationDomain('validators')`).
+- Scope verified: *TBD* (`validators.php` exists per locale (system + blog); `validation.php` deleted; `ValidatorServiceProvider` calls `setTranslator()` + `setTranslationDomain('validators')`).
 - Phase 1 closure claims verified: confirm prior audit cell flipped 1.13 → 🛡️.
-- No-Mercy spot-check: _TBD_ (confirm `MenuApiController` manual-validation finding is **already** listed under 2.1.9 PHASE_2 — route check, no action in this PR).
-- Deferred items still tracked: _TBD_.
+- No-Mercy spot-check: *TBD* (confirm `MenuApiController` manual-validation finding is **already** listed under 2.1.9 PHASE_2 — route check, no action in this PR).
+- Deferred items still tracked: *TBD*.
 
 ---
 
 ### §4.2.3 Step 2.0.3 — Cache API Full Modernization
 
-**ROADMAP Status**: ✅ | **Issue**: #179 | **PR**: #187 | **Audit**: _TBD_
+**ROADMAP Status**: ✅ | **Issue**: #179 | **PR**: #187 | **Audit**: *TBD*
 
-- Scope verified: _TBD_ (`rg -n "Pagekit\\\\Cache\\\\CacheInterface|Psr6Adapter" app/ packages/ --glob "*.php"` → expect 0 hits; zero `fetch()` / `flushAll()` calls on cache pools; `LoginAttemptListener`, `UrlResolver`, `RouteListener`, `blog/scripts.php` consumers use PSR-6 API).
+- Scope verified: *TBD* (`rg -n "Pagekit\\\\Cache\\\\CacheInterface|Psr6Adapter" app/ packages/ --glob "*.php"` → expect 0 hits; zero `fetch()` / `flushAll()` calls on cache pools; `LoginAttemptListener`, `UrlResolver`, `RouteListener`, `blog/scripts.php` consumers use PSR-6 API).
 - Phase 1 closure claims verified: confirm 1.10 stays 🛡️.
-- No-Mercy spot-check: _TBD_ (verify `composer.lock` + `yarn.lock` committed — lockfile-versioning sub-task that shipped early in 2.0.3 PR #187).
-- Deferred items still tracked: _TBD_.
+- No-Mercy spot-check: *TBD* (verify `composer.lock` + `yarn.lock` committed — lockfile-versioning sub-task that shipped early in 2.0.3 PR #187).
+- Deferred items still tracked: *TBD*.
 
 ---
 
 ### §4.2.4 Step 2.0.4 — Package / Migration System Redesign
 
-**ROADMAP Status**: ✅ | **Issue**: #180 | **PR**: #189 | **Audit**: _TBD_
+**ROADMAP Status**: ✅ | **Issue**: #180 | **PR**: #189 | **Audit**: *TBD*
 
-- Scope verified: _TBD_ (`DatabaseHandler::createTable()` deleted (`rg -n "function createTable" app/modules/auth/`); blog migration renamed to timestamp format (`rg -n "Version001_CreateBlogTables|Version[0-9]{14}.*Blog" app/`); `MigrationServiceTest` un-skipped (no `markTestSkipped`); `MigrationService::getConfigPath()` deleted; login check + update wizard execute Doctrine Migrations before `scripts->update()`).
+- Scope verified: *TBD* (`DatabaseHandler::createTable()` deleted (`rg -n "function createTable" app/modules/auth/`); blog migration renamed to timestamp format (`rg -n "Version001_CreateBlogTables|Version[0-9]{14}.*Blog" app/`); `MigrationServiceTest` un-skipped (no `markTestSkipped`); `MigrationService::getConfigPath()` deleted; login check + update wizard execute Doctrine Migrations before `scripts->update()`).
 - Phase 1 closure claims verified: confirm 1.12 stays 🛡️.
-- No-Mercy spot-check: _TBD_ (flag any audit-findings sub-bullet still untouched as a Gap).
-- Deferred items still tracked: _TBD_.
+- No-Mercy spot-check: *TBD* (flag any audit-findings sub-bullet still untouched as a Gap).
+- Deferred items still tracked: *TBD*.
 
 ---
 
 ### §4.2.5 Step 2.0.5 — Composer & Autoload Hygiene
 
-**ROADMAP Status**: ✅ | **Issue**: #182 | **PR**: #192 | **Audit**: _TBD_
+**ROADMAP Status**: ✅ | **Issue**: #182 | **PR**: #192 | **Audit**: *TBD*
 
-- Scope verified: _TBD_ (`composer.json`: dead PSR-4 mappings `Pagekit\Theme\` and `Pagekit\Package\` removed; unused deps removed (`symfony/framework-bundle`, `symfony/twig-bridge`, `symfony/yaml`, `symfony/process`, `paragonie/sodium_compat`, `doctrine/data-fixtures`); `symfony/validator` aligned to `^6.4`; `paragonie/random-lib` resolved (replaced or loosened); `composer validate` clean and `composer.lock` consistent).
+- Scope verified: *TBD* (`composer.json`: dead PSR-4 mappings `Pagekit\Theme\` and `Pagekit\Package\` removed; unused deps removed (`symfony/framework-bundle`, `symfony/twig-bridge`, `symfony/yaml`, `symfony/process`, `paragonie/sodium_compat`, `doctrine/data-fixtures`); `symfony/validator` aligned to `^6.4`; `paragonie/random-lib` resolved (replaced or loosened); `composer validate` clean and `composer.lock` consistent).
 - Phase 1 closure claims verified: confirm 1.4 → 🛡️.
-- No-Mercy spot-check: _TBD_.
-- Deferred items still tracked: _TBD_.
+- No-Mercy spot-check: *TBD*.
+- Deferred items still tracked: *TBD*.
 
 ---
 
 ### §4.2.6 Step 2.0.6 — Test Infrastructure Cleanup
 
-**ROADMAP Status**: ✅ | **Issue**: #183 | **PR**: #193 | **Audit**: _TBD_
+**ROADMAP Status**: ✅ | **Issue**: #183 | **PR**: #193 | **Audit**: *TBD*
 
-- Scope verified: _TBD_ (zero module-level `phpunit.xml.dist` (`rg --files app/modules/ -g "phpunit.xml.dist"`); `tests/Unit` casing fixed; `@dataProvider` / `@group` migrated to `#[DataProvider]` / `#[Group]`; `Doctrine\Common\Cache\ArrayCache` import removed from `ConfigManagerTest`; `RoutesLoader::addController()` no longer silently swallows `InvalidArgumentException`).
+- Scope verified: *TBD* (zero module-level `phpunit.xml.dist` (`rg --files app/modules/ -g "phpunit.xml.dist"`); `tests/Unit` casing fixed; `@dataProvider` / `@group` migrated to `#[DataProvider]` / `#[Group]`; `Doctrine\Common\Cache\ArrayCache` import removed from `ConfigManagerTest`; `RoutesLoader::addController()` no longer silently swallows `InvalidArgumentException`).
 - Phase 1 closure claims verified: confirm 1.2 + 1.8 → 🛡️.
-- No-Mercy spot-check: _TBD_.
-- Deferred items still tracked: _TBD_.
+- No-Mercy spot-check: *TBD*.
+- Deferred items still tracked: *TBD*.
 
 ---
 
 ### §4.2.7 Step 2.0.7 — Event Dispatcher Bridge Removal
 
-**ROADMAP Status**: ✅ | **Issue**: #184 | **PR**: #195 | **Audit**: _TBD_
+**ROADMAP Status**: ✅ | **Issue**: #184 | **PR**: #195 | **Audit**: *TBD*
 
-- Scope verified: _TBD_ (`rg -n "SymfonyEventDispatcherBridge|symfony\\.event_dispatcher|EventDispatcherCompatibilityTest" app/ packages/` → expect 0 hits; PHPStan baseline does not list any of those identifiers).
+- Scope verified: *TBD* (`rg -n "SymfonyEventDispatcherBridge|symfony\\.event_dispatcher|EventDispatcherCompatibilityTest" app/ packages/` → expect 0 hits; PHPStan baseline does not list any of those identifiers).
 - Phase 1 closure claims verified: confirm 1.7 → 🛡️ (1.9 already 🛡️).
-- No-Mercy spot-check: _TBD_ (cross-check `GetResponseEvent` rename deferral is tracked in 2.1.6 PHASE_2 — if not, add it there as a routed gap in §4.4).
-- Deferred items still tracked: _TBD_.
+- No-Mercy spot-check: *TBD* (cross-check `GetResponseEvent` rename deferral is tracked in 2.1.6 PHASE_2 — if not, add it there as a routed gap in §4.4).
+- Deferred items still tracked: *TBD*.
 
 ---
 
 ### §4.2.8 Step 2.0.8 — `User::hasAccess()` Hotfix
 
-**ROADMAP Status**: ✅ | **Issue**: #185 | **PR**: #197 | **Audit**: _TBD_
+**ROADMAP Status**: ✅ | **Issue**: #185 | **PR**: #197 | **Audit**: *TBD*
 
-- Scope verified: _TBD_ (`rg -n "create_function" app/ packages/ --glob "*.php"` → expect 0 hits; PHPStan baseline entry `function.notFound: create_function` removed; parser handles `&&` / `||` / `!` AND single-character `&` / `|`).
+- Scope verified: *TBD* (`rg -n "create_function" app/ packages/ --glob "*.php"` → expect 0 hits; PHPStan baseline entry `function.notFound: create_function` removed; parser handles `&&` / `||` / `!` AND single-character `&` / `|`).
 - Phase 1 closure claims verified: confirm 1.11 still ⚠️ (only partial closure — `EntityManager` singleton etc. carry to 2.1.6).
-- No-Mercy spot-check: _TBD_ (cross-check `evaluateBooleanExpression` → `PermissionExpressionEvaluator` deferral is referenced in 2.5's PHASE_2 section; if missing, add it there as a routed gap in §4.4).
-- Deferred items still tracked: _TBD_.
+- No-Mercy spot-check: *TBD* (cross-check `evaluateBooleanExpression` → `PermissionExpressionEvaluator` deferral is referenced in 2.5's PHASE_2 section; if missing, add it there as a routed gap in §4.4).
+- Deferred items still tracked: *TBD*.
 
 ---
 
@@ -227,9 +229,11 @@ targeted sweeps from §3.5. Classify every hit as **OK / by design**,
 rg -n "Bridge|Adapter|Compat|Shim|Legacy|Wrapper" app/ packages/ --glob "*.php" --glob "!*Test.php"
 ```
 
+
 | File:Line | Match | Classification | Notes / Routing |
-|-----------|-------|----------------|-----------------|
-| _TBD_     | _TBD_ | _TBD_          | _TBD_           |
+| --------- | ----- | -------------- | --------------- |
+| *TBD*     | *TBD* | *TBD*          | *TBD*           |
+
 
 ---
 
@@ -239,9 +243,11 @@ rg -n "Bridge|Adapter|Compat|Shim|Legacy|Wrapper" app/ packages/ --glob "*.php" 
 rg -n "@deprecated" app/ packages/ --glob "*.php"
 ```
 
+
 | File:Line | Match | Classification | Notes / Routing |
-|-----------|-------|----------------|-----------------|
-| _TBD_     | _TBD_ | _TBD_          | _TBD_           |
+| --------- | ----- | -------------- | --------------- |
+| *TBD*     | *TBD* | *TBD*          | *TBD*           |
+
 
 ---
 
@@ -251,9 +257,11 @@ rg -n "@deprecated" app/ packages/ --glob "*.php"
 rg -n "class_alias" app/ packages/ --glob "*.php"
 ```
 
+
 | File:Line | Match | Classification | Notes / Routing |
-|-----------|-------|----------------|-----------------|
-| _TBD_     | _TBD_ | _TBD_          | _TBD_           |
+| --------- | ----- | -------------- | --------------- |
+| *TBD*     | *TBD* | *TBD*          | *TBD*           |
+
 
 ---
 
@@ -264,22 +272,26 @@ rg -n "TEMPORARY BRIDGE|AUDIT FIX|BACKWARD COMPATIBILITY|Must be refactored late
    app/ packages/ --glob "*.php" --glob "*.js" --glob "*.vue" --glob "*.less"
 ```
 
+
 | File:Line | Match | Classification | Notes / Routing |
-|-----------|-------|----------------|-----------------|
-| _TBD_     | _TBD_ | _TBD_          | _TBD_           |
+| --------- | ----- | -------------- | --------------- |
+| *TBD*     | *TBD* | *TBD*          | *TBD*           |
+
 
 ---
 
 ### §4.3.5 Targeted sweeps (per §3.5 of the prompt)
 
-| Sweep | Command | Hit count | Classification | Routing |
-|-------|---------|-----------|----------------|---------|
-| Stale Vue-migration TODOs | `rg -n "Refactor in Phase 3 \\(Vue Migration\\)" app/ packages/ --glob "*.php" --glob "*.js" --glob "*.vue"` | _TBD_ | _TBD_ | _TBD_ |
-| Module `phpunit.xml.dist` | `rg --files app/modules/ -g "phpunit.xml.dist"` | _TBD_ | _TBD_ | _TBD_ |
-| Module `composer.json` autoload entries | `rg -n "psr-4|psr-0" app/modules/*/composer.json packages/*/composer.json` | _TBD_ | _TBD_ | _TBD_ |
-| Pagekit own `CacheInterface` / `Psr6Adapter` | `rg -n "Pagekit\\\\Cache\\\\CacheInterface\|Psr6Adapter" app/ packages/ --glob "*.php"` | _TBD_ | _TBD_ | _TBD_ |
-| `SymfonyEventDispatcherBridge` / `symfony.event_dispatcher` | `rg -n "SymfonyEventDispatcherBridge\|symfony\\.event_dispatcher" app/ packages/` | _TBD_ | _TBD_ | _TBD_ |
-| `create_function` | `rg -n "create_function" app/ packages/ --glob "*.php"` | _TBD_ | _TBD_ | _TBD_ |
+
+| Sweep                                                       | Command                                                                                                      | Hit count                                                    | Classification | Routing |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ | -------------- | ------- |
+| Stale Vue-migration TODOs                                   | `rg -n "Refactor in Phase 3 \\(Vue Migration\\)" app/ packages/ --glob "*.php" --glob "*.js" --glob "*.vue"` | *TBD*                                                        | *TBD*          | *TBD*   |
+| Module `phpunit.xml.dist`                                   | `rg --files app/modules/ -g "phpunit.xml.dist"`                                                              | *TBD*                                                        | *TBD*          | *TBD*   |
+| Module `composer.json` autoload entries                     | `rg -n "psr-4                                                                                                | psr-0" app/modules/*/composer.json packages/*/composer.json` | *TBD*          | *TBD*   |
+| Pagekit own `CacheInterface` / `Psr6Adapter`                | `rg -n "Pagekit\\\\Cache\\\\CacheInterface|Psr6Adapter" app/ packages/ --glob "*.php"`                       | *TBD*                                                        | *TBD*          | *TBD*   |
+| `SymfonyEventDispatcherBridge` / `symfony.event_dispatcher` | `rg -n "SymfonyEventDispatcherBridge|symfony\\.event_dispatcher" app/ packages/`                             | *TBD*                                                        | *TBD*          | *TBD*   |
+| `create_function`                                           | `rg -n "create_function" app/ packages/ --glob "*.php"`                                                      | *TBD*                                                        | *TBD*          | *TBD*   |
+
 
 ---
 
@@ -293,9 +305,11 @@ integer ≥ 9. The Architect's call which gaps are **must-fix-before-2.1**
 (block 2.0 closure) vs. non-blocking (allow ✅ / 🛡️ closure with deferred
 sub-steps) is documented in §4.8 Closure Verdict.
 
-| # | Gap (one line) | Disposition | Target | Blocking? |
-|---|----------------|-------------|--------|-----------|
-| _TBD_ | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
+
+| #     | Gap (one line) | Disposition | Target | Blocking? |
+| ----- | -------------- | ----------- | ------ | --------- |
+| *TBD* | *TBD*          | *TBD*       | *TBD*  | *TBD*     |
+
 
 > If the audit detects **zero** gaps, this section MUST contain the explicit
 > phrase **"no gaps detected"** below the table header (per §8 of the
@@ -311,19 +325,19 @@ For every gap with disposition `new sub-step 2.0.X`, record the full skeleton
 
 If zero new sub-steps are proposed, this section reads: **"No new sub-steps proposed."**
 
-### §4.5.1 Step 2.0.{X} — _TBD title_
+### §4.5.1 Step 2.0.{X} — *TBD title*
 
-- **Goal**: _TBD_
-- **Prerequisite**: _TBD_
-- **Priority**: _TBD_
-- **Closes Phase 1 audit**: _TBD_ (or `none`)
-- **GitHub issue**: _TBD_ (linked as sub-issue of #181)
+- **Goal**: *TBD*
+- **Prerequisite**: *TBD*
+- **Priority**: *TBD*
+- **Closes Phase 1 audit**: *TBD* (or `none`)
+- **GitHub issue**: *TBD* (linked as sub-issue of #181)
 - **Agent prompt**: `migration-docs/TODO/agent_prompts/Step-2_0-Foundation-Consolidation/PROMPT_2_0_{X}_{Slug}.md`
-- **Affected files**: _TBD_
-- **Risk**: _TBD_
-- **Blocking 2.1 entry?**: _TBD_
+- **Affected files**: *TBD*
+- **Risk**: *TBD*
+- **Blocking 2.1 entry?**: *TBD*
 
-_(repeat for each new sub-step; numbering: next free integer ≥ 9)._
+*(repeat for each new sub-step; numbering: next free integer ≥ 9).*
 
 ---
 
@@ -334,14 +348,16 @@ new sub-step paper deliverables (per §4.5) are recorded here.
 
 ### §4.6.1 Documentation drift sweep findings
 
-| Document | Drift detected? | Notes |
-|----------|-----------------|-------|
-| `.cursor/ROADMAP.md` (rows 2.0.0–2.0.8 statuses, audit cells, issue + PR linked) | _TBD_ | _TBD_ |
-| `migration-docs/TODO/PHASE_2_MODERNISING.md` (every 2.0.x section: `Closes Phase 1 audit:`, `Agent Prompt:` path, `Audit findings (Phase 1 review):` if applicable) | _TBD_ | _TBD_ |
-| `migration-docs/branches/` (branch doc per sub-step) | _TBD_ | _TBD_ |
-| `README.md` (cache / migrations / event-dispatcher / PHPUnit module configs references) | _TBD_ | _TBD_ |
-| `AGENTS.md` (service mappings + pitfalls touched by 2.0.x) | _TBD_ | _TBD_ |
-| `CHANGELOG-NEW.md` (every 2.0.x entry coherent; version chain `1.2.5 → 1.2.13` complete) | _TBD_ | _TBD_ |
+
+| Document                                                                                                                                                            | Drift detected? | Notes |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ----- |
+| `.cursor/ROADMAP.md` (rows 2.0.0–2.0.8 statuses, audit cells, issue + PR linked)                                                                                    | *TBD*           | *TBD* |
+| `migration-docs/TODO/PHASE_2_MODERNISING.md` (every 2.0.x section: `Closes Phase 1 audit:`, `Agent Prompt:` path, `Audit findings (Phase 1 review):` if applicable) | *TBD*           | *TBD* |
+| `migration-docs/branches/` (branch doc per sub-step)                                                                                                                | *TBD*           | *TBD* |
+| `README.md` (cache / migrations / event-dispatcher / PHPUnit module configs references)                                                                             | *TBD*           | *TBD* |
+| `AGENTS.md` (service mappings + pitfalls touched by 2.0.x)                                                                                                          | *TBD*           | *TBD* |
+| `CHANGELOG-NEW.md` (every 2.0.x entry coherent; version chain `1.2.5 → 1.2.13` complete)                                                                            | *TBD*           | *TBD* |
+
 
 ### §4.6.2 ROADMAP diff (this PR)
 
@@ -359,15 +375,19 @@ _TBD — exact lines added / changed in migration-docs/TODO/PHASE_2_MODERNISING.
 
 ### §4.6.4 New agent-prompt skeletons (this PR)
 
-| Path | Sub-step | Status |
-|------|----------|--------|
-| _TBD_ | _TBD_ | new |
+
+| Path  | Sub-step | Status |
+| ----- | -------- | ------ |
+| *TBD* | *TBD*    | new    |
+
 
 ### §4.6.5 GitHub issues opened (this PR)
 
-| Issue | Title | Labels | Milestone | Parent |
-|-------|-------|--------|-----------|--------|
-| _TBD_ | _TBD_ | _TBD_ | Phase 2: Developer Experience | #181 |
+
+| Issue | Title | Labels | Milestone                     | Parent |
+| ----- | ----- | ------ | ----------------------------- | ------ |
+| *TBD* | *TBD* | *TBD*  | Phase 2: Developer Experience | #181   |
+
 
 ---
 
@@ -377,13 +397,15 @@ Pre-flight baseline (Checklist Step 1, captured against `develop` HEAD before
 any audit-machinery changes) and final-gate runs (Checklist Step 22, on the
 closure branch with all docs/skeletons in place).
 
-| Gate | Pre-flight (Step 1) | Final (Step 22) |
-|------|---------------------|-----------------|
-| `./app/vendor/bin/phpunit` | _TBD_ | _TBD_ |
-| `./app/vendor/bin/phpstan analyse --no-progress --memory-limit=512M` | _TBD_ | _TBD_ |
-| `php pagekit list` | _TBD_ | _TBD_ |
-| `php pagekit setup` | _TBD_ | _TBD_ |
-| Playwright E2E (chromium-only): `installation`, `authentication`, `dashboard` | n/a | _TBD_ |
+
+| Gate                                                                          | Pre-flight (Step 1) | Final (Step 22) |
+| ----------------------------------------------------------------------------- | ------------------- | --------------- |
+| `./app/vendor/bin/phpunit`                                                    | *TBD*               | *TBD*           |
+| `./app/vendor/bin/phpstan analyse --no-progress --memory-limit=512M`          | *TBD*               | *TBD*           |
+| `php pagekit list`                                                            | *TBD*               | *TBD*           |
+| `php pagekit setup`                                                           | *TBD*               | *TBD*           |
+| Playwright E2E (chromium-only): `installation`, `authentication`, `dashboard` | n/a                 | *TBD*           |
+
 
 ### §4.7.1 PHPUnit raw output (truncated)
 
@@ -419,23 +441,23 @@ _TBD_
 
 ## §4.8 Closure Verdict
 
-_TBD — pick exactly one of:_
+*TBD — pick exactly one of:*
 
 - ✅ **Step 2.0 can close in this PR.** New sub-steps (if any) are
-  non-blocking and may land later. ROADMAP row `2.0` flips to `✅` / `🛡️`,
-  `Current Step` header pointer advances to `2.1.2` (2.1.1 is already done).
-- ⚠️ **Step 2.0 stays `⏳` / `⏳`** until the following must-fix-before-2.1
-  new sub-steps land: _TBD list_. ROADMAP `Current Step` pointer advances
-  to the **first** new sub-step in that list (e.g. `2.0.9`). Each blocking
-  sub-step's PHASE_2 section names "must land before Step 2.1.x" on its
-  `Prerequisite` line.
+non-blocking and may land later. ROADMAP row `2.0` flips to `✅` / `🛡️`,
+`Current Step` header pointer advances to `2.1.2` (2.1.1 is already done).
+- ⚠️ **Step 2.0 stays `⏳` / `⏳*`* until the following must-fix-before-2.1
+new sub-steps land: *TBD list*. ROADMAP `Current Step` pointer advances
+to the **first** new sub-step in that list (e.g. `2.0.9`). Each blocking
+sub-step's PHASE_2 section names "must land before Step 2.1.x" on its
+`Prerequisite` line.
 
 ### Decision rationale
 
-_TBD — short paragraph explaining why each blocking gap (if any) blocks 2.1
+*TBD — short paragraph explaining why each blocking gap (if any) blocks 2.1
 entry and why each non-blocking gap can ship later. References the §4.4 Gap
 List rows by number. Closure is conditional on the §4.7 final-gate matrix
-being all-green._
+being all-green.*
 
 ---
 
