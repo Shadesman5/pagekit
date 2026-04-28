@@ -1,7 +1,7 @@
 # **🗺️ Pagekit Modernization Roadmap & Rules**
 
-> **Current Version**: 1.2.12
-> **Current Step**: 2.0.8 (Hotfix: `create_function()` in User)
+> **Current Version**: 1.2.13
+> **Current Step**: 2.0 (Foundation Consolidation — Closure & Gap Audit)
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**
 
@@ -74,7 +74,7 @@
 | 2.0.5  | ↳ Composer & Autoload Hygiene         | ✅     | 🛡️    | #182  | #192    |
 | 2.0.6  | ↳ Test Infrastructure Cleanup         | ✅     | 🛡️    | #183  | #193    |
 | 2.0.7  | ↳ Event Dispatcher Bridge Removal     | ✅     | 🛡️    | #184  | #195    |
-| 2.0.8  | ↳ Hotfix: `create_function()` in User | ⏳     | ⏳    | #185  | -       |
+| 2.0.8  | ↳ Hotfix: `create_function()` in User | ✅     | 🛡️    | #185  | #197    |
 | 2.1    | **Static Analysis & Code Quality**    | ⏳     | ⏳    | #147  | -       |
 | 2.1.1  | ↳ Tooling-Setup & Baseline            | ✅     | ⏳    | #148  | #178    |
 | 2.1.2  | ↳ CI/CD Integration & Quality Gates   | ⏳     | ⏳    | #149  | -       |

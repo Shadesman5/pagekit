@@ -1,5 +1,34 @@
 # Changelog
 
+## Pagekit 1.2.13 - User::hasAccess() Hotfix (April 28, 2026)
+
+### Fix
+
+- **`create_function()` removed from `User::hasAccess()`** — The legacy `create_function()`-based boolean evaluator inside `app/system/modules/user/src/Model/User.php` is replaced by a safe, pure-PHP recursive-descent parser. `create_function()` was deprecated in PHP 7.2 and removed in PHP 8.0; the previous code would have produced a fatal error on every non-trivial permission check (anything containing `&`, `|`, `(`, `)`, or `!`). The new evaluator is a `private static evaluateBooleanExpression(string $exp): bool` method on the same class, accepts both single (`&`, `|`) and double (`&&`, `||`) operators plus `!` and parentheses, and enforces correct precedence (`!` > `&&` > `||`). No `eval()`, no `Closure::fromCallable`, no `assert()`, no Symfony `ExpressionLanguage` dependency. Invalid expressions now raise `\InvalidArgumentException` (previously the bug surfaced as a fatal `Call to undefined function create_function()`). (Closes #185)
+
+### Refactor
+
+- **`hasAccess()` simplified** — The `if (!$fn = @create_function('', "return …;")) { throw … } return (bool) $fn();` block is physically deleted (no shim, no adapter, no compatibility flag) per the modernization "DELETE OVER WRAP" rule. The early-exit logic (administrator short-circuit, empty expression, single-permission short-circuit) and the existing regex reduction that produces the `0/1/&/|/!/()` string are unchanged.
+
+### Chore
+
+- **`phpstan-baseline.neon` baseline trimmed** — The now-stale `Function create_function not found.` ignore entry scoped to `app/system/modules/user/src/Model/User.php` is removed, since the call site no longer exists. Baseline stays internally consistent: zero "ignored error not matched" warnings.
+
+### Tests
+
+- **New test file `app/system/modules/user/src/Tests/UserAccessTest.php`** — 37 test cases (765 assertions in the suite total). Section A exercises the pure evaluator via `\ReflectionMethod` (literals, AND/OR with both single and double operators, NOT, parentheses, precedence, nested expressions). Section B covers `User::hasAccess()` end-to-end via partial PHPUnit mocks for `isAdministrator()` and `hasPermission()` — simple permissions, AND/OR (single + double), NOT, parentheses, nested, complex composites, empty/null short-circuit, administrator override, and the `\InvalidArgumentException` path on parse failure. Tests are pure unit tests; no DB, no container, no Pagekit kernel bootstrap.
+- All **326 PHPUnit tests green** (was 289 before this step), 0 failures. PHPStan clean against the trimmed baseline (`[OK] No errors`).
+- `php pagekit setup` and `php pagekit list` successful.
+- Playwright E2E (chromium-only per `AGENTS.md`): `installation.spec.js` (1/1), `authentication.spec.js` (14/14), `dashboard.spec.js` (10/10) — all green; the login flow is the closest production-shaped smoke test for the authorization stack.
+
+### Internal
+
+- **Step 2.0.8 (User::hasAccess() Hotfix)** marked complete in `.cursor/ROADMAP.md`; Current Step pointer advances to the next foundation step.
+- **Phase 1 audit closure (partial)** — Phase 1 §1.11 (ORM modernization) audit cell stays ⚠️; the remaining findings (`EntityManager` singleton, `ModelServiceLocator` / `IntlServiceLocator` static service locators, ORM `Metadata` / `Relation` / `PropertyTrait` typing gaps, `#[AllowDynamicProperties]` on `Node` / `Widget`) are deferred to Step 2.1.6 (PHPStan Level 7→8) per the task prompt's "Closes Phase 1 audit (partial)" annotation.
+- **No-Mercy compliance:** physical deletion of the `create_function()` block, no shims, no adapters, no `@deprecated` markers, no new in-code TODOs. Aggressive Rules 1, 2, 4, 5 enforced.
+
+---
+
 ## Pagekit 1.2.12 - Event Dispatcher Bridge Removal (April 27, 2026)
 
 ### Breaking Changes (Internal)

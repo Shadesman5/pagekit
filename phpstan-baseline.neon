@@ -2287,12 +2287,6 @@ parameters:
 			path: app/system/modules/user/src/Model/User.php
 
 		-
-			message: '#^Function create_function not found\.$#'
-			identifier: function.notFound
-			count: 1
-			path: app/system/modules/user/src/Model/User.php
-
-		-
 			message: '#^Method Pagekit\\User\\Model\\User\:\:create\(\) should return static\(Pagekit\\User\\Model\\User\) but returns object\.$#'
 			identifier: return.type
 			count: 1

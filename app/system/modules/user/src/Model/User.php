@@ -220,11 +220,117 @@ class User implements UserInterface, \JsonSerializable
 
         $exp = preg_replace('/[^01&\(\)\|!]/', '', preg_replace_callback('/[a-z_][a-z-_\.:\d\s]*/i', fn ($permission) => (int) $user->hasPermission(trim($permission[0])), $expression));
 
-        if (!$fn = @create_function("", "return $exp;")) {
-            throw new \InvalidArgumentException(sprintf('Unable to parse the given access string "%s"', $expression));
+        try {
+            return self::evaluateBooleanExpression((string) $exp);
+        } catch (\Throwable) {
+            throw new \InvalidArgumentException(
+                sprintf('Unable to parse the given access string "%s"', $expression)
+            );
+        }
+    }
+
+    /**
+     * Evaluate a sanitized boolean expression composed of `0`, `1`, `&`, `&&`,
+     * `|`, `||`, `!` and parentheses using a recursive-descent parser.
+     *
+     * Replaces the legacy `create_function()` based evaluator. Pure PHP — no
+     * `eval()`, no `Closure::fromCallable`, no `assert()`, no
+     * `ExpressionLanguage` dependency.
+     *
+     * Grammar:
+     *   expr    -> orExpr
+     *   orExpr  -> andExpr ( ( '||' | '|' ) andExpr )*
+     *   andExpr -> notExpr ( ( '&&' | '&' ) notExpr )*
+     *   notExpr -> '!' notExpr | atom
+     *   atom    -> '(' expr ')' | '0' | '1'
+     *
+     * Precedence: `!` > `&&` > `||`.
+     *
+     * @throws \InvalidArgumentException on malformed input.
+     */
+    private static function evaluateBooleanExpression(string $exp): bool
+    {
+        $pos = 0;
+        $len = strlen($exp);
+
+        $result = self::parseOrExpr($exp, $len, $pos);
+
+        if ($pos !== $len) {
+            throw new \InvalidArgumentException(sprintf('Unexpected trailing input at position %d', $pos));
         }
 
-        return (bool) $fn();
+        return $result;
+    }
+
+    private static function parseOrExpr(string $exp, int $len, int &$pos): bool
+    {
+        $left = self::parseAndExpr($exp, $len, $pos);
+
+        while ($pos < $len && $exp[$pos] === '|') {
+            $pos++;
+            if ($pos < $len && $exp[$pos] === '|') {
+                $pos++;
+            }
+            $right = self::parseAndExpr($exp, $len, $pos);
+            $left = $left || $right;
+        }
+
+        return $left;
+    }
+
+    private static function parseAndExpr(string $exp, int $len, int &$pos): bool
+    {
+        $left = self::parseNotExpr($exp, $len, $pos);
+
+        while ($pos < $len && $exp[$pos] === '&') {
+            $pos++;
+            if ($pos < $len && $exp[$pos] === '&') {
+                $pos++;
+            }
+            $right = self::parseNotExpr($exp, $len, $pos);
+            $left = $left && $right;
+        }
+
+        return $left;
+    }
+
+    private static function parseNotExpr(string $exp, int $len, int &$pos): bool
+    {
+        if ($pos < $len && $exp[$pos] === '!') {
+            $pos++;
+
+            return !self::parseNotExpr($exp, $len, $pos);
+        }
+
+        return self::parseAtom($exp, $len, $pos);
+    }
+
+    private static function parseAtom(string $exp, int $len, int &$pos): bool
+    {
+        if ($pos >= $len) {
+            throw new \InvalidArgumentException('Unexpected end of expression');
+        }
+
+        $ch = $exp[$pos];
+
+        if ($ch === '(') {
+            $pos++;
+            $value = self::parseOrExpr($exp, $len, $pos);
+            if ($pos >= $len || $exp[$pos] !== ')') {
+                throw new \InvalidArgumentException('Missing closing parenthesis');
+            }
+            $pos++;
+
+            return $value;
+        }
+
+        if ($ch === '0' || $ch === '1') {
+            $pos++;
+
+            return $ch === '1';
+        }
+
+        throw new \InvalidArgumentException(sprintf('Unexpected character "%s" at position %d', $ch, $pos));
     }
 
     /**
