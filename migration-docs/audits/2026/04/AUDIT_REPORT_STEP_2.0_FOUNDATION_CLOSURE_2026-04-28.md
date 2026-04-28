@@ -37,7 +37,7 @@ each gap to either a new 2.0.X sub-step (X ≥ 9), an existing future step
 | 2.0.0    | Controller Attributes                                              | 🛡️                | *TBD*                |
 | 2.0.1    | PSR-11 Container Modernization                                     | 🛡️                | No                   |
 | 2.0.1a–e | Container sub-stages (Core / DI / System / Packages / StaticTrait) | 🛡️                | No                   |
-| 2.0.2    | Validator-Translator Integration                                   | *TBD*              | *TBD*                |
+| 2.0.2    | Validator-Translator Integration                                   | 🛡️                | No                   |
 | 2.0.3    | Cache API Full Modernization                                       | *TBD*              | *TBD*                |
 | 2.0.4    | Package / Migration System Redesign                                | *TBD*              | *TBD*                |
 | 2.0.5    | Composer & Autoload Hygiene                                        | *TBD*              | *TBD*                |
@@ -142,12 +142,12 @@ Each block ≤ 20 lines, structured as:
 
 ### §4.2.2 Step 2.0.2 — Validator-Translator Integration
 
-**ROADMAP Status**: ✅ | **Issue**: #146 | **PR**: #175 | **Audit**: *TBD*
+**ROADMAP Status**: ✅ | **Issue**: #146 | **PR**: #175 | **Audit**: 🛡️
 
-- Scope verified: *TBD* (`validators.php` exists per locale (system + blog); `validation.php` deleted; `ValidatorServiceProvider` calls `setTranslator()` + `setTranslationDomain('validators')`).
-- Phase 1 closure claims verified: confirm prior audit cell flipped 1.13 → 🛡️.
-- No-Mercy spot-check: *TBD* (confirm `MenuApiController` manual-validation finding is **already** listed under 2.1.9 PHASE_2 — route check, no action in this PR).
-- Deferred items still tracked: *TBD*.
+- Scope verified: ✅ — `validators.php` exists in `app/system/languages/en_US/validators.php` and `packages/pagekit/blog/languages/en_US/validators.php` (workspace-wide `Glob` for `**/validators.php` returns exactly those 2 files; per-locale `messages.php` siblings present in all 78 system + 78 blog locale directories, ready to host translated `validators.php` overrides). `rg -n "validation\.php"` over `*.php` workspace-wide returns **0 hits** — old `validation.php` filename fully purged from source. Git history confirms the rename: commit `2ed6be0f` `refactor(i18n): rename validation.php to validators.php for Symfony domain alignment` deletes `app/system/languages/en_US/validation.php` and `packages/pagekit/blog/languages/en_US/validation.php` (no parallel old/new files left). `ValidatorServiceProvider::register()` (`app/system/src/ValidatorServiceProvider.php:30-39`) wires `$builder->setTranslator($app->get('translator'))` (line 35) and `$builder->setTranslationDomain('validators')` (line 36) inside the lazy factory closure — confirms the constraint-message domain matches the locale-file basename per `IntlModule::loadLocale()` convention.
+- Phase 1 closure claims verified: ✅ `Closes Phase 1 audit: Step 1.13 (Validation Update) ⚠️ → 🛡️` (PHASE_2_MODERNISING.md:32). Confirmed against `.cursor/ROADMAP.md:60` — row `1.13 Validation Update | ✅ | 🛡️ | #133 | #108`. Prior audit `AUDIT_REPORT_STEP_2.0-2.0.2_2026-03-27.md` corroborates: §"Step 2.0.2 – Validator-Translator Integration" lists "✅ No 'hybrid mode' or Step 1.13 references remain", `validation.php` (old filename) hits = 0, `hybrid mode` / `Step 1.13` references hits = 0, and recommended ROADMAP update "Set Step 2.0.2 to ✅ status and 🛡️ audit" is now applied.
+- No-Mercy spot-check: ✅ Rule #1 ("No Compatibility Layers") satisfied — `ValidatorServiceProvider` is the sole validator-bootstrap path (`app/system/index.php:86 \Pagekit\System\ValidatorServiceProvider::register($app)`), no parallel "hybrid" provider, no `validation.php` shim. Rule #4 ("Delete Over Wrap") satisfied — old filename was renamed via `git mv`, not stubbed with a `return require __DIR__.'/validators.php';` redirect. The `MenuApiController` manual-validation finding **is** already listed under Step 2.1.9's `**Audit findings (Phase 1 review):**` block in `migration-docs/TODO/PHASE_2_MODERNISING.md:480` ("`MenuApiController` — manual validation without `#[Assert\...]` / `ValidatesRequestTrait`; add validation + tests"), and is also explicitly cross-referenced from Step 2.0.2's section header at line 32 ("The remaining `MenuApiController` manual-validation finding is tracked under **Step 2.1.9** (Test Coverage Expansion), not as a 1.13 audit finding."). Route check passes — no action required in this PR.
+- Deferred items still tracked: ✅ — `MenuApiController` routed to 2.1.9 (cross-referenced from 2.0.2 PHASE_2 prose); no orphaned `// TODO: Step 2.0.2` markers detected (`Grep` for `Step 2.0.2` over `*.php` workspace-wide returns only the docblock self-references inside `ValidatorServiceProvider.php` and the Step 2.0.2 file-header comment in `app/system/languages/en_US/validators.php` — both legitimate provenance comments, not deferred-work markers).
 
 ---
 
