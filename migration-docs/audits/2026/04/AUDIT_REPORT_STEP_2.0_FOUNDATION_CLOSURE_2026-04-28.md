@@ -379,38 +379,28 @@ integer ≥ 9. The Architect's call which gaps are **must-fix-before-2.1**
 sub-steps) is documented in §4.8 Closure Verdict.
 
 
-| #     | Gap (one line) | Disposition | Target | Blocking? |
-| ----- | -------------- | ----------- | ------ | --------- |
-| *TBD* | *TBD*          | *TBD*       | *TBD*  | *TBD*     |
-
-
-> If the audit detects **zero** gaps, this section MUST contain the explicit
-> phrase **"no gaps detected"** below the table header (per §8 of the
-> task prompt — Definition of Done).
+| # | Gap (one line)                                                                                                                                                                                                                                                                                | Disposition               | Target  | Blocking? |
+| - | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ------- | --------- |
+| 1 | `app/modules/database/src/Logging/DebugStack.php` (42 lines, class + 2 methods marked `@deprecated since DBAL 3.x migration`) is a dead Rule-4 violation: zero consumers in `app/` / `packages/` (only `migration-docs/` + `CHANGELOG-NEW.md` mention it); replacement `DebugMiddleware` is wired and used. Must be `git rm`'d. (§4.3.2)                                                                                                          | `route to existing step`  | `2.1.6` | No        |
+| 2 | Step 2.5's PHASE_2 section (`PHASE_2_MODERNISING.md:547-565`) does **not** mention the `User::evaluateBooleanExpression()` → `PermissionExpressionEvaluator` extraction deferred from 2.0.8; branch doc `step-2-0-8-user-hasaccess-hotfix.md:213-217` routes it there but the target section needs an `**Audit findings (Step 2.0.8 review):**` bullet to formally own it. (§4.2.8)                                                                | `route to existing step`  | `2.5`   | No        |
+| 3 | `app/modules/routing/src/Matcher/Dumper/PhpMatcherDumper.php:24` carries an `@deprecated since Symfony 4.3, use CompiledUrlMatcherDumper instead.` docblock copied verbatim from upstream Symfony — misleading on Pagekit's wrapper (which is alive and used by `Router.php:154,164`). Cosmetic docblock cleanup; no behaviour change. (§4.3.2)                                                                                                  | `informational only`      | n/a     | No        |
+| 4 | `packages/pagekit/blog/src/Migrations/2025/Version20251023070000_CreateBlogTables.php:20` carries an `// TODO: AUDIT FIX Step 2.0.5 — Existing installations may need migration_versions table updated …` marker. 2.0.5 closure (composer + autoload + native `random_bytes()`) shipped without an operator-script for this one-time `migration_versions` row-rename. Pre-existing installs are very few (internal modernization). (§4.2.4 / §4.3.4) | `informational only`      | n/a     | No        |
+| 5 | `app/system/modules/dashboard/index.php:46` hardcoded OpenWeatherMap API key, tagged `// TODO: AUDIT FIX Step 4.2 — move API key to env variable / secrets management`. Already routed to a real future ROADMAP row (Step 4.2 — REST API v2 / secrets); not a Foundation-Consolidation gap. (§4.3.4)                                                                                                                                              | `informational only`      | n/a     | No        |
+| 6 | `migration-docs/TODO/PHASE_2_MODERNISING.md` 2.0.x sections **2.0.0, 2.0.1, 2.0.2, 2.0.3** lack an `Agent Prompt:` line, although the prompt files exist on disk (PSR-11 series under `Step-2_0-Foundation-Consolidation/PSR-11-Container/`, `PROMPT_VALIDATOR_TRANSLATOR_INTEGRATION.md` for 2.0.2, `PROMPT_2_0_3_Full-Cache-API-Modernization.md` for 2.0.3). 2.0.0 pre-dates the per-step prompt convention introduced in 2.0.4. (§4.6.1)         | `informational only`      | n/a     | No        |
+| 7 | `migration-docs/branches/` uses two naming conventions: older `*_MIGRATION.md` / `UPPERCASE_SNAKE.md` for 2.0.0 / 2.0.1a–e / 2.0.2 / 2.0.3 / 2.0.4 / 2.0.5 / 2.0.6, new `step-2-0-X-*.md` lowercase-kebab for 2.0.7 / 2.0.8. Closure branch doc itself follows the new convention (`step-2-0-foundation-closure.md`). No missing branch docs — purely cosmetic naming inconsistency. (§4.6.1)                                                       | `informational only`      | n/a     | No        |
 
 ---
 
 ## §4.5 New Sub-Step Proposals
 
-For every gap with disposition `new sub-step 2.0.X`, record the full skeleton
-(cross-linked to the agent-prompt file under
-`migration-docs/TODO/agent_prompts/Step-2_0-Foundation-Consolidation/`).
+**No new sub-steps proposed.**
 
-If zero new sub-steps are proposed, this section reads: **"No new sub-steps proposed."**
-
-### §4.5.1 Step 2.0.{X} — *TBD title*
-
-- **Goal**: *TBD*
-- **Prerequisite**: *TBD*
-- **Priority**: *TBD*
-- **Closes Phase 1 audit**: *TBD* (or `none`)
-- **GitHub issue**: *TBD* (linked as sub-issue of #181)
-- **Agent prompt**: `migration-docs/TODO/agent_prompts/Step-2_0-Foundation-Consolidation/PROMPT_2_0_{X}_{Slug}.md`
-- **Affected files**: *TBD*
-- **Risk**: *TBD*
-- **Blocking 2.1 entry?**: *TBD*
-
-*(repeat for each new sub-step; numbering: next free integer ≥ 9).*
+All 7 gaps in §4.4 dispose to either an existing future step (rows 1, 2 → `2.1.6` / `2.5`) or
+`informational only` (rows 3, 4, 5, 6, 7). Per §3.4 of the task prompt and Aggressive Rules 1 + 4
+(NO compatibility layers, DELETE OVER WRAP), routed gaps are owned by the target step's
+`**Audit findings (...):**` block; informational gaps are recorded here for traceability and
+require no PR-time action. No gap warrants a fresh `2.0.X` (X ≥ 9) sub-step, so Checklist Steps 14
+and 16 produce **zero** new agent-prompt skeletons and **zero** new GitHub issues respectively.
 
 ---
 
@@ -514,23 +504,70 @@ _TBD_
 
 ## §4.8 Closure Verdict
 
-*TBD — pick exactly one of:*
-
-- ✅ **Step 2.0 can close in this PR.** New sub-steps (if any) are
-non-blocking and may land later. ROADMAP row `2.0` flips to `✅` / `🛡️`,
-`Current Step` header pointer advances to `2.1.2` (2.1.1 is already done).
-- ⚠️ **Step 2.0 stays `⏳` / `⏳*`* until the following must-fix-before-2.1
-new sub-steps land: *TBD list*. ROADMAP `Current Step` pointer advances
-to the **first** new sub-step in that list (e.g. `2.0.9`). Each blocking
-sub-step's PHASE_2 section names "must land before Step 2.1.x" on its
-`Prerequisite` line.
+✅ **Step 2.0 can close in this PR.** All §4.4 gaps are non-blocking — the two
+routed rows (#1 → `2.1.6`, #2 → `2.5`) own deferred work that is bounded by
+target steps already on the ROADMAP, and the five `informational only` rows
+are either cosmetic / documentation drift (#3, #6, #7) or already routed to a
+real future step (#4 → 2.0.5 follow-up operator-script, #5 → Step 4.2).
+ROADMAP row `2.0` flips to `✅` / `🛡️`; `Current Step` header pointer advances
+to `2.1.2` (2.1.1 is already done). Zero new `2.0.X` (X ≥ 9) sub-steps are
+created; Checklist Steps 14 and 16 are no-ops by design.
 
 ### Decision rationale
 
-*TBD — short paragraph explaining why each blocking gap (if any) blocks 2.1
-entry and why each non-blocking gap can ship later. References the §4.4 Gap
-List rows by number. Closure is conditional on the §4.7 final-gate matrix
-being all-green.*
+Per Aggressive Rules 1 + 4 (NO compatibility layers, DELETE OVER WRAP) and the
+§3.4 disposition rubric of the task prompt, a gap blocks 2.0 closure only if
+it (a) leaves a Foundation-Consolidation Rule violation in production code on
+the entry path of Step 2.1.x, or (b) breaks the §4.7 final-gate matrix
+(PHPUnit + PHPStan + `php pagekit setup` + `php pagekit list` + Playwright
+chromium). None of the seven gaps meet either bar:
+
+- **Row 1** (`DebugStack.php` `@deprecated` shim) is dead code — workspace-wide
+  `Grep` finds zero consumers in `app/` / `packages/`. PHPStan ignores
+  unreferenced `@deprecated` symbols, so it does not regress the Level 6
+  baseline that 2.1.x will tighten. The 42-line `git rm` is a 2.1.6 strict-typing
+  mechanical task already adjacent to the `EntityManager` / `ModelServiceLocator`
+  / `IntlServiceLocator` typing work routed to that step's
+  `**Audit findings (Phase 1 review):**` block; co-locating it there preserves
+  one PR per Roadmap Step (per the orchestrator-subagent-workflow rule "One
+  Roadmap Step = one Task Prompt = one Ticket = one PR").
+- **Row 2** (`PermissionExpressionEvaluator` extraction route to 2.5) is a
+  documentation-only `**Audit findings (Step 2.0.8 review):**` bullet on Step
+  2.5's PHASE_2 section. Per Aggressive Rules 1 + 2, the helper stays inline on
+  `User` until a second caller emerges; routing it informationally to 2.5 just
+  records the deferral so it is not lost when Step 2.5 (Extension Safety
+  System) ships. No code change required in 2.0 closure or in 2.1.x.
+- **Row 3** (`PhpMatcherDumper.php:24` upstream-Symfony `@deprecated` docblock)
+  is a verbatim copy of Symfony's own deprecation note about a parallel class
+  inside Symfony itself. Pagekit's wrapper is alive (`Router.php:154,164` use
+  it). This is a one-line cosmetic cleanup with zero behaviour change; bundling
+  it into a 2.0.X (X ≥ 9) sub-step would violate the prompt's §10
+  "audit-machinery only — no PHP, JS, LESS, Vue, or composer changes" scope.
+- **Row 4** (`AUDIT FIX Step 2.0.5` marker on the blog timestamp migration) is
+  a one-time install-time `migration_versions` row-rename hint. Pagekit on
+  `develop` HEAD has no public release between PR #189 (2.0.4 — added the new
+  timestamp class) and now, so the population of installations affected by the
+  rename is bounded by the modernization team. The follow-up operator-script
+  (or a one-shot SQL hint in the install wizard) is owned by 2.0.5 follow-up
+  work, not by 2.0 closure; nothing in 2.1.x depends on it.
+- **Row 5** (`AUDIT FIX Step 4.2` marker on the dashboard OpenWeatherMap key)
+  is security hardening tagged for Step 4.2 (REST API v2 / secrets management).
+  Phase 4 is the canonical owner; this is not a Foundation-Consolidation gap.
+- **Rows 6 & 7** (`Agent Prompt:` line absent on 2.0.0–2.0.3 PHASE_2 sections;
+  mixed branch-doc naming convention `*_MIGRATION.md` vs `step-2-0-X-*.md`)
+  are pure documentation drift. The prompt files and branch docs all exist on
+  disk; the §4.6.1 sweep confirmed no missing artefacts. The new convention
+  starts with 2.0.7 and is followed by this closure PR's branch doc
+  (`step-2-0-foundation-closure.md`) — backfilling the older sections would
+  expand scope beyond the prompt's "no behavioural change" boundary.
+
+Closure is conditional on the §4.7 final-gate matrix being all-green. Pre-flight
+baseline (Checklist Step 1) was green before this audit-machinery PR began;
+because no PHP / JS / LESS / Vue / composer source files are touched, both
+PHPUnit and PHPStan act as regression detectors and are expected to remain
+green at Step 22. The Playwright chromium subset (`installation`,
+`authentication`, `dashboard`) likewise exercises behaviour that is unchanged
+by this PR.
 
 ---
 
