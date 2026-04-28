@@ -458,10 +458,23 @@ zero new agent-prompt skeletons under
 
 ### §4.6.5 GitHub issues opened (this PR)
 
+**None — all gaps routed to existing steps; no new sub-step issues required.**
 
-| Issue | Title | Labels | Milestone                     | Parent |
-| ----- | ----- | ------ | ----------------------------- | ------ |
-| *TBD* | *TBD* | *TBD*  | Phase 2: Developer Experience | #181   |
+Per §4.5 / Checklist Step 14, zero new `2.0.X` (X ≥ 9) sub-steps were
+proposed; every §4.4 gap is dispositioned as either `route to existing step`
+(rows 1, 2 — already owned by Step `2.1.6` and Step `2.5` respectively, whose
+GitHub issues already exist) or `informational only` (rows 3–7 — cosmetic /
+documentation-drift / already-routed markers, no issue needed). Checklist
+Step 16 (`github-issue-creator` skill invocation) is therefore a no-op by
+design — there are zero new sub-steps to file issues for, and the routed gaps
+do not get their own issues per the prompt's §3.4 disposition rubric ("Do
+**NOT** create a new agent prompt and do **NOT** open a new GitHub issue —
+the existing step already owns it").
+
+
+| Issue | Title                                              | Labels | Milestone                     | Parent |
+| ----- | -------------------------------------------------- | ------ | ----------------------------- | ------ |
+| —     | n/a — no new sub-step issues required (see §4.4)   | —      | Phase 2: Developer Experience | #181   |
 
 
 ---
