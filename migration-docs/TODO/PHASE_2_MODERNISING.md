@@ -395,6 +395,8 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
     - `NodeModelTrait` — static request-scoped cache array; replace with proper caching
     - `UrlGeneratorInterface` (Routing) — naming collision with Symfony; rename to `LinkReferenceType` or similar, move `LINK_URL` constant
     - `GetResponseEvent` (Auth) — confusing Symfony-5 naming; rename to `AuthResponseEvent` or similar
+  - **Audit findings (Step 2.0 closure review):**
+    - `app/modules/database/src/Logging/DebugStack.php` — 42-line dead `@deprecated since DBAL 3.x migration` shim (class + 2 methods) with **zero consumers** in `app/` / `packages/` source (workspace `Grep` for `DebugStack` finds only `migration-docs/` + `CHANGELOG-NEW.md` references). The replacement (`app/modules/debug/src/Middleware/DebugMiddleware.php`) is wired and used. Per Aggressive Rule 4 ("Delete Over Wrap"), this file must be `git rm`'d in 2.1.6 alongside the adjacent `EntityManager` / `ModelServiceLocator` / `IntlServiceLocator` strict-typing work. (Routed from §4.4 Gap List row 1 of `migration-docs/audits/2026/04/AUDIT_REPORT_STEP_2.0_FOUNDATION_CLOSURE_2026-04-28.md`.)
 - **Result**: PHPStan Level 8 without baseline entries (or with documented, justified exceptions)
 - **Risk**: Medium — may require architectural decisions (change interfaces, introduce generics)
 - **Agent Note**: Architect decisions may be needed here before the Refactorer starts — not all `mixed` can be replaced by simple type declarations
@@ -562,6 +564,8 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - [ ] Auto-disable: Primary via DB, fallback via `storage/disabled-extensions.json`. Boot sequence checks both sources.
   - [ ] Integration with the new migrations system (Step 1.12): On Throwable during `onInstall` → automatic DB rollback.
   - [ ] Implementation of admin alert flash messages.
+- **Audit findings (Step 2.0.8 review):**
+  - `User::evaluateBooleanExpression()` (`app/system/modules/user/src/Model/User.php:251`) — extract into a standalone `PermissionExpressionEvaluator` service **only if and when a second caller emerges**. As of 2.0.8 closure there is exactly one caller (`User::hasAccess()`), so per Aggressive Rules 1 ("No Compatibility Layers") + 2 ("No Adapters") the helper stays inline as a `private static` method on `User`. No code change required in 2.5 unless extension code or a new permission system surfaces a second caller. Documentation-only route from `migration-docs/branches/step-2-0-8-user-hasaccess-hotfix.md:213-217`. (Routed from §4.4 Gap List row 2 of `migration-docs/audits/2026/04/AUDIT_REPORT_STEP_2.0_FOUNDATION_CLOSURE_2026-04-28.md`.)
 
 ---
 

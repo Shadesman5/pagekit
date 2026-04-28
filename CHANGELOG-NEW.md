@@ -1,5 +1,28 @@
 # Changelog
 
+## Pagekit 1.2.14 - Foundation Consolidation Closure (April 28, 2026)
+
+### Audit
+
+- **Step 2.0 closure audit shipped** — `migration-docs/audits/2026/04/AUDIT_REPORT_STEP_2.0_FOUNDATION_CLOSURE_2026-04-28.md` cross-checks every scope claim and Phase 1 audit-closure claim made by the ten leaf sub-steps **2.0.0, 2.0.1 + 2.0.1a–e, 2.0.2, 2.0.3, 2.0.4, 2.0.5, 2.0.6, 2.0.7, 2.0.8** against `develop` HEAD. All 10 leaf sub-steps audit ground-truth as 🛡️: Doctrine `@Route` annotations are gone (2.0.0); `Container` natively implements PSR-11 with `Psr11Adapter` / `StaticTrait` / `\ArrayAccess` physically deleted (2.0.1 + 2.0.1a–e); `validators.php` per-locale files exist with `ValidatorServiceProvider` wiring `setTranslator()` + `setTranslationDomain()` (2.0.2); the Pagekit `CacheInterface` + `Psr6Adapter` 7-file compatibility layer is gone with consumers on PSR-6 (2.0.3); `DatabaseHandler::createTable()` is removed, the blog migration is renamed to `Version20251023070000_*`, and `MigrationServiceTest` is un-skipped with 12 in-memory SQLite tests (2.0.4); dead PSR-4 mappings + 6 unused deps are dropped, `paragonie/random-lib` is replaced by native `random_bytes()`, lockfile committed (2.0.5); module-level `phpunit.xml.dist` configs are deleted, `@dataProvider` / `@group` migrated to `#[DataProvider]` / `#[Group]`, `RoutesLoader::addController()` debug-aware exception handler shipped (2.0.6); `SymfonyEventDispatcherBridge` + `EventDispatcherCompatibilityTest` + `symfony.event_dispatcher` registration all gone (2.0.7); `create_function()` replaced by a pure-PHP recursive-descent parser supporting `&&` / `||` / `!` / `&` / `|` (2.0.8). (Closes #181)
+
+### Internal
+
+- **Step 2.0 (Foundation Consolidation — umbrella) marked ✅ / 🛡️** in `.cursor/ROADMAP.md`. `Current Step` header pointer advances from `2.0` to `2.1.2` (2.1.1 already done). Zero new `2.0.X` (X ≥ 9) sub-step rows inserted; zero new GitHub issues filed.
+- **Two routed gaps recorded** as `**Audit findings (Step 2.0[.8] closure review):**` PHASE_2 sub-blocks in `migration-docs/TODO/PHASE_2_MODERNISING.md`:
+  - **Step 2.1.6 (PHPStan Level 7→8 — Strict Typing)** — `app/modules/database/src/Logging/DebugStack.php` is a 42-line dead `@deprecated since DBAL 3.x migration` shim (class + 2 methods) with **zero consumers** in `app/` / `packages/` source. The replacement (`DebugMiddleware`) is wired and used. Per Aggressive Rule 4 ("Delete Over Wrap"), this file must be `git rm`'d in 2.1.6 alongside the adjacent `EntityManager` / `ModelServiceLocator` / `IntlServiceLocator` strict-typing work. (Routed from §4.4 Gap List row 1.)
+  - **Step 2.5 (Extension Safety System)** — `User::evaluateBooleanExpression()` (`app/system/modules/user/src/Model/User.php:251`) extraction into a standalone `PermissionExpressionEvaluator` service is documentation-only routed; today there is exactly one caller (`User::hasAccess()`), so per Aggressive Rules 1 + 2 the helper stays inline as a `private static` method. No code change required in 2.5 unless extension code or a new permission system surfaces a second caller. (Routed from §4.4 Gap List row 2.)
+- **Five informational-only gaps** recorded in audit report §4.4 (rows 3–7) and branch doc §🚦: `PhpMatcherDumper.php` upstream-Symfony `@deprecated` docblock copy; one-time `// TODO: AUDIT FIX Step 2.0.5` install-time `migration_versions` row-rename hint; hardcoded OpenWeatherMap API key already routed to Step 4.2; PHASE_2 sections 2.0.0–2.0.3 lacking an `Agent Prompt:` line (cosmetic, predates per-step prompt convention introduced in 2.0.4); `migration-docs/branches/` legacy `*_MIGRATION.md` / `UPPERCASE_SNAKE.md` naming inconsistency. None blocks 2.0 closure; none requires a new sub-step.
+- **Branch doc** added: `migration-docs/branches/step-2-0-foundation-closure.md` (verdict, 10-row closure table, routed-gap list, informational-gap list, related documents).
+- **No-Mercy compliance** — audit-only PR. **0** lines of PHP / JS / LESS / Vue source modified; **0** Composer / Yarn dependency changes; **0** new shims, adapters, `@deprecated` markers, or `// TODO: Step X.Y` markers introduced. Cross-cutting ripgrep sweeps (audit report §4.3.1–§4.3.5) confirm zero remaining Foundation-Consolidation compatibility layers in production code; all surviving Rule-5 markers in `app/` / `packages/` source point at valid future ROADMAP IDs (Steps 2.1, 2.1.4, 2.1.6, 2.1.7, 2.1.9, 3.4.6, 4.2, 4.3).
+
+### Tests
+
+- **Audit-only PR — PHPUnit + PHPStan act as regression detectors.** No PHP / JS / LESS source touched, so both gates MUST stay green from the pre-flight baseline (Checklist Step 1) to the final gate (Checklist Step 22). Raw outputs recorded in audit report §4.7.1–§4.7.5.
+- Pre-flight baseline (Checklist Step 1) and final-gate (Checklist Step 22) — `./app/vendor/bin/phpunit`, `./app/vendor/bin/phpstan analyse --no-progress --memory-limit=512M`, `php pagekit list`, `php pagekit setup`, plus Playwright E2E (chromium-only per `AGENTS.md`): `installation.spec.js` (1/1), `authentication.spec.js` (14/14), `dashboard.spec.js` (10/10).
+
+---
+
 ## Pagekit 1.2.13 - User::hasAccess() Hotfix (April 28, 2026)
 
 ### Fix
