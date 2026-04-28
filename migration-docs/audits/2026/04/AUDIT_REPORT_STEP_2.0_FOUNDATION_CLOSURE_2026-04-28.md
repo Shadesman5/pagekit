@@ -33,7 +33,7 @@ each gap to either a new 2.0.X sub-step (X ≥ 9), an existing future step
 
 | ID         | Sub-step                                       | Audit ground-truth | New sub-step needed? |
 |------------|------------------------------------------------|--------------------|----------------------|
-| 2.0.0      | Controller Attributes                          | _TBD_              | _TBD_                |
+| 2.0.0      | Controller Attributes                          | 🛡️                 | _TBD_                |
 | 2.0.1      | PSR-11 Container Modernization                 | _TBD_              | _TBD_                |
 | 2.0.1a–e   | Container sub-stages (Core / DI / System / Packages / StaticTrait) | _TBD_ | _TBD_      |
 | 2.0.2      | Validator-Translator Integration               | _TBD_              | _TBD_                |
@@ -63,12 +63,12 @@ Each block ≤ 20 lines, structured as:
 
 ### §4.2.0 Step 2.0.0 — Controller Attributes
 
-**ROADMAP Status**: ✅ | **Issue**: #142 | **PR**: #111 | **Audit**: _TBD_
+**ROADMAP Status**: ✅ | **Issue**: #142 | **PR**: #111 | **Audit**: 🛡️
 
-- Scope verified: _TBD_ (`rg -n "@Route\(" app/ packages/ --glob "*.php" --glob "!*Test.php"` → expect 0 hits; `rg -n "#\[Route\(" app/ packages/ --glob "*.php"` → expect attribute usage alive).
-- Phase 1 closure claims verified: none directly (2.0.0 has no `Closes Phase 1 audit:` line).
-- No-Mercy spot-check: _TBD_ (zero `@deprecated` markers introduced in controller layer by this step).
-- Deferred items still tracked: _TBD_.
+- Scope verified: ✅ — `rg -n "@Route\(" app/ packages/ --glob "*.php" --glob "!*Test.php"` returns **0 hits** on `develop` HEAD (executed as workspace-wide `Grep` for `@Route\(`, scope `*.php`, `!*.md`). All 21 controllers in `app/system/**/Controller/` and `packages/pagekit/blog/src/Controller/` use PHP 8 attributes — `#[Route(...)]` count: `AdminController` 1, `WidgetApiController` 9, `RoleApiController` 7, `ResetPasswordController` 3, `AuthController` 3, `UserApiController` 7, `SettingsController` 2, `PageApiController` 2, `MenuApiController` 3, `NodeController` 4, `NodeApiController` 9, `IntlApiController` 1, `IntlController` 1, `MailController` 2, `FinderController` 4, `DashboardController` 7, `CacheController` 1, `PostApiController` 9, `SiteController` 5, `CommentApiController` 7, `BlogController` 1.
+- Phase 1 closure claims verified: ✅ none directly (`PHASE_2_MODERNISING.md` Step 2.0.0 has no `Closes Phase 1 audit:` line — the Phase 1 dependency was Step 1.14 *Doctrine Attributes*, which is a `Prerequisite`, not a closure claim).
+- No-Mercy spot-check: ✅ `rg -n "@deprecated"` over `app/**/Controller/**/*.php` returns **0 hits**; controller layer is annotation-free. The two `@deprecated` markers found workspace-wide (`app/modules/database/src/Logging/DebugStack.php`, `app/modules/routing/src/Matcher/Dumper/PhpMatcherDumper.php`) are outside controller scope and predate 2.0.0; routed to §4.3.2 for cross-cutting classification.
+- Deferred items still tracked: ✅ — none. 2.0.0 has no Phase 2 follow-on items in PHASE_2_MODERNISING.md, no agent-prompt skeleton, and no `Audit findings (Phase 1 review):` block. Branch doc absent (predates the `step-2-0-X-*.md` naming convention introduced in 2.0.7); flagged in §4.6.1 documentation-drift sweep, not a code Gap.
 
 ---
 
