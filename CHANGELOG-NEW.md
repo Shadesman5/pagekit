@@ -1,6 +1,6 @@
 # Changelog
 
-## Pagekit ${NEW_VERSION} - Foundation Consolidation Closure (April 28, 2026)
+## Pagekit 1.2.14 - Foundation Consolidation Closure (April 28, 2026)
 
 ### Audit
 
