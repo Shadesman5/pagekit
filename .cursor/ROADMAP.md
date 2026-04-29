@@ -1,7 +1,7 @@
 # **🗺️ Pagekit Modernization Roadmap & Rules**
 
-> **Current Version**: 1.2.14
-> **Current Step**: 2.1.2 (CI/CD Integration & Quality Gates)
+> **Current Version**: 1.2.15
+> **Current Step**: 2.1.3 (`strict_types` Migration)
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**
 
@@ -77,7 +77,7 @@
 | 2.0.8  | ↳ Hotfix: `create_function()` in User | ✅     | 🛡️    | #185  | #197    |
 | 2.1    | **Static Analysis & Code Quality**    | ⏳     | ⏳    | #147  | -       |
 | 2.1.1  | ↳ Tooling-Setup & Baseline            | ✅     | ⏳    | #148  | #178    |
-| 2.1.2  | ↳ CI/CD Integration & Quality Gates   | ⏳     | ⏳    | #149  | -       |
+| 2.1.2  | ↳ CI/CD Integration & Quality Gates   | ✅     | 🛡️    | #149  | TBD     |
 | 2.1.3  | ↳ `strict_types` Migration            | ⏳     | ⏳    | #150  | -       |
 | 2.1.4  | ↳ PHPStan Level 5→6 (Return Types)    | ⏳     | ⏳    | #151  | -       |
 | 2.1.5  | ↳ PHPStan Level 6→7 (Null Safety)     | ⏳     | ⏳    | #152  | -       |
