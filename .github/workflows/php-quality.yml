@@ -14,12 +14,45 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # TODO: Step 2.1.2 — Real jobs (phpunit, phpstan, cs-fixer, security-audit)
-  # are added in Checklist Steps 2-5. This placeholder keeps the workflow
-  # schema-valid until then and will be removed when the first real job lands.
-  scaffold:
-    name: scaffold (placeholder)
+  phpunit:
+    name: phpunit (${{ matrix.php }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3']
     steps:
-      - name: Workflow scaffold ready
-        run: echo "PHP Quality workflow scaffold initialised; jobs added in Checklist Steps 2-5."
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: xdebug
+          tools: composer:v2
+
+      - name: Cache Composer dependencies (app/vendor)
+        uses: actions/cache@v4
+        with:
+          path: app/vendor
+          key: ${{ runner.os }}-php-${{ matrix.php }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-${{ matrix.php }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Create writable runtime directories
+        run: mkdir -p tmp/logs tmp/cache tmp/temp tmp/packages storage
+
+      - name: Run PHPUnit with coverage
+        run: ./app/vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml
+
+      - name: Upload coverage artifact
+        if: matrix.php == '8.3'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-clover
+          path: coverage.xml
+          if-no-files-found: error
