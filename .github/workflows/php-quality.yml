@@ -112,3 +112,20 @@ jobs:
 
       - name: Run PHP-CS-Fixer (dry-run)
         run: ./app/vendor/bin/php-cs-fixer fix --dry-run --diff --no-interaction --show-progress=none
+
+  security-audit:
+    name: security-audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer:v2
+
+      - name: Run Composer security audit
+        run: composer audit --no-interaction --abandoned=ignore
