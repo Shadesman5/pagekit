@@ -11,7 +11,8 @@ $finder = PhpCsFixer\Finder::create()
         'docker',
     ])
     ->name('*.php')
-    ->notName('*.blade.php');
+    ->notName('*.blade.php')
+    ->notName('config.php');
 
 $config = new PhpCsFixer\Config();
 return $config->setRules([

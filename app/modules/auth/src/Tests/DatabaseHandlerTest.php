@@ -65,6 +65,7 @@ class DatabaseHandlerTest extends TestCase
     {
         $typeName = static function (\ReflectionParameter $param): ?string {
             $type = $param->getType();
+
             return $type instanceof \ReflectionNamedType ? $type->getName() : null;
         };
 
@@ -93,7 +94,7 @@ class DatabaseHandlerTest extends TestCase
         $this->assertNull($params[3]->getDefaultValue());
 
         $this->assertFalse(
-            in_array('random', array_column(array_map(fn($p) => ['name' => $p->getName()], $params), 'name'), true),
+            in_array('random', array_column(array_map(fn ($p) => ['name' => $p->getName()], $params), 'name'), true),
             'Legacy $random parameter must be absent'
         );
     }
