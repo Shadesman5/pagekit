@@ -12,7 +12,11 @@ $finder = PhpCsFixer\Finder::create()
     ])
     ->name('*.php')
     ->notName('*.blade.php')
-    ->notName('config.php');
+    // Match only root-level runtime config.php (gitignored), NOT tracked
+    // app/system/config.php or app/installer/config.php. The anchored regex
+    // is required: notPath('config.php') would be treated as a substring
+    // match by Symfony Finder and silently exclude the tracked files too.
+    ->notPath('/^config\.php$/');
 
 $config = new PhpCsFixer\Config();
 return $config->setRules([
