@@ -1,0 +1,25 @@
+name: PHP Quality
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # TODO: Step 2.1.2 — Real jobs (phpunit, phpstan, cs-fixer, security-audit)
+  # are added in Checklist Steps 2-5. This placeholder keeps the workflow
+  # schema-valid until then and will be removed when the first real job lands.
+  scaffold:
+    name: scaffold (placeholder)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Workflow scaffold ready
+        run: echo "PHP Quality workflow scaffold initialised; jobs added in Checklist Steps 2-5."
