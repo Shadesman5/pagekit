@@ -1,5 +1,9 @@
 {
     "name": "pagekit",
+    "engines": {
+        "node": ">=20 <23",
+        "yarn": "1.x"
+    },
     "scripts": {
         "install": "yarn compile-js --mode=production --display=minimal && gulp",
         "compile-js": "webpack --progress --hide-modules",
