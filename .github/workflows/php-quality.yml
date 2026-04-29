@@ -84,3 +84,31 @@ jobs:
 
       - name: Run PHPStan (Level 5 + baseline)
         run: ./app/vendor/bin/phpstan analyse --no-progress --error-format=github
+
+  cs-fixer:
+    name: cs-fixer
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer dependencies (app/vendor)
+        uses: actions/cache@v4
+        with:
+          path: app/vendor
+          key: ${{ runner.os }}-php-8.3-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-8.3-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Run PHP-CS-Fixer (dry-run)
+        run: ./app/vendor/bin/php-cs-fixer fix --dry-run --diff --no-interaction --show-progress=none
