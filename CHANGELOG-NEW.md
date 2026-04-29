@@ -1,5 +1,32 @@
 # Changelog
 
+## Pagekit 1.2.15 - CI/CD Integration & Quality Gates (April 29, 2026)
+
+### Continuous Integration
+
+- **New GitHub Actions workflow `.github/workflows/php-quality.yml`** — every push to `main` / `develop` and every pull request targeting them now runs four independent quality jobs in CI: **`phpunit`** (matrix `php: ['8.2', '8.3']`, with code coverage via Xdebug → `--coverage-text` + `--coverage-clover=coverage.xml`, Clover XML uploaded as `coverage-clover` artifact on the `8.3` leg only), **`phpstan`** (single PHP `8.3`, runs `./app/vendor/bin/phpstan analyse --no-progress --error-format=github` against the existing `phpstan.neon` Level 5 + `phpstan-baseline.neon` — new errors above the baseline fail the job), **`cs-fixer`** (single PHP `8.3`, `./app/vendor/bin/php-cs-fixer fix --dry-run --diff --no-interaction --show-progress=none` — style violations fail the job), and **`security-audit`** (single PHP `8.3`, `composer audit --no-interaction --abandoned=ignore` operating directly on the lockfile, no `composer install` step needed). Each job mirrors the exact local command documented in `AGENTS.md`, so red CI on a PR matches red local terminal output one-for-one. (Closes #149)
+- **`composer install`-based jobs cache `app/vendor/`** via `actions/cache@v4` keyed on `${{ runner.os }}-php-${{ matrix.php }}-composer-${{ hashFiles('composer.lock') }}` (with the matching restore-key). The `vendor-dir: app/vendor` Composer config from `composer.json` is respected — Pagekit is not a stock-`vendor/` project. Pre-PHPUnit each runner also creates the writable runtime directories (`tmp/logs tmp/cache tmp/temp tmp/packages storage`) called out in `AGENTS.md`.
+- **Workflow hygiene** — top-level `permissions: contents: read` (least-privilege; no `write` scopes), `concurrency: { group: ${{ github.workflow }}-${{ github.ref }}, cancel-in-progress: true }` (superseded runs on the same PR are auto-cancelled to save CI minutes). Triggers limited to `push` / `pull_request` on `main` + `develop`.
+- **Validation** — workflow YAML parses cleanly via `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/php-quality.yml'))"`; all four `jobs.*` ids (`phpunit`, `phpstan`, `cs-fixer`, `security-audit`) are unique and present.
+
+### Documentation
+
+- **Branch documentation** added: `migration-docs/branches/step-2-1-2-cicd-quality-gates.md` — full change record (5 commits, 1 new workflow file, 0 source modifications), No-Mercy compliance table, local + Playwright E2E test results, and the **manual branch-protection runbook** (required status checks `phpunit (8.2)`, `phpunit (8.3)`, `phpstan`, `cs-fixer`, `security-audit`; "Require branches to be up to date before merging"; 1 approval for external contributors). Branch protection is intentionally **not scripted** — the workflow MUST NOT call any GitHub admin API; the user applies these settings manually in GitHub repo settings (admin-only).
+- **Coverage baseline** — Step 2.1.2 generates Clover XML on every `phpunit (8.3)` run and uploads it as a workflow artifact, but the numerical baseline is intentionally not pinned in this PR. Step 2.1.9 (Test Coverage Expansion) is the designated step to document the canonical baseline, wire Codecov / Coveralls if desired, and enforce minimum-coverage thresholds.
+
+### Internal
+
+- **Step 2.1.2 (CI/CD Integration & Quality Gates)** marked ✅ in `.cursor/ROADMAP.md`; `Current Step` header pointer advances from `2.1.2` to `2.1.3` (`strict_types` Migration). No new sub-step rows inserted; no new GitHub issues filed.
+- **No-Mercy compliance** — CI YAML is platform infrastructure, not a runtime compatibility layer (Aggressive Rule 3). **0** lines of PHP / JS / LESS / Vue source modified; **0** Composer / Yarn dependency changes; **0** new shims, adapters, `@deprecated` markers, or in-code TODOs introduced. Deferred work is explicitly listed in `.cursor/tickets/PROMPT_2_1_2_CI-CD-Quality-Gates_plan.md` ("Deferred:" section) and routed to Steps 2.1.3 / 2.1.4 / 2.1.5 / 2.1.6 / 2.1.8 / 2.1.9 / 2.2.
+
+### Tests
+
+- **Per-step gates (Tester subagent)** — after every checklist commit (Steps 1–5): `./app/vendor/bin/phpunit` (326 tests, 765 assertions, 0 failures — 1 pre-existing SMTP warning, 5 pre-existing skips, environment-only) and `./app/vendor/bin/phpstan analyse --no-progress --memory-limit=512M` (no errors beyond baseline) — both green throughout.
+- **Final gate (Tester subagent)** — full closure run: PHPUnit + PHPStan + `php pagekit setup` + `php pagekit list` + Playwright E2E on chromium (per `AGENTS.md`): `installation.spec.js` (1/1, ~11 s), `authentication.spec.js` (14/14, ~1 m), `dashboard.spec.js` (10/10, ~35 s). All green.
+- **Remote CI run** — actual GitHub Actions run materializes once the branch is pushed; the four jobs (`phpunit (8.2)`, `phpunit (8.3)`, `phpstan`, `cs-fixer`, `security-audit`) MUST go green on the resulting PR. Any remote-only failure is treated as a regression on Checklist Steps 1–5 and looped back through the standard refactorer → verifier → tester cycle.
+
+---
+
 ## Pagekit 1.2.14 - Foundation Consolidation Closure (April 28, 2026)
 
 ### Audit
