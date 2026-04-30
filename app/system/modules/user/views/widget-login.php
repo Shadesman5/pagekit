@@ -1,4 +1,4 @@
-<?php if ($user->isAuthenticated()): ?>
+<?php declare(strict_types=1); if ($user->isAuthenticated()): ?>
 
 <?= __('Hi %username%', ['%username%' => $user->username]) ?><br>
 <a href="<?= $view->url('@user/logout', ['redirect' => $redirect]) ?>"><?= __('Logout') ?></a>

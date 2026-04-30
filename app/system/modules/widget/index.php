@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Widget\Model\Widget;
 use Pagekit\Widget\PositionHelper;
 use Pagekit\Widget\PositionManager;

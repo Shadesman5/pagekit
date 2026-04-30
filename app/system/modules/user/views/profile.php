@@ -1,4 +1,4 @@
-<?php $view->script('profile', 'system/user:app/bundle/profile.js', ['vue']) ?>
+<?php declare(strict_types=1); $view->script('profile', 'system/user:app/bundle/profile.js', ['vue']) ?>
 
 <validation-observer tag="form" id="user-profile" class="uk-container uk-width-large" ref="observer" @submit.prevent="submit" v-cloak>
 

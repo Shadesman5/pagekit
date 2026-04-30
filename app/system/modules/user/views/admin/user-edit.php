@@ -1,4 +1,4 @@
-<?php $view->script('user-edit', 'system/user:app/bundle/user-edit.js', ['vue']) ?>
+<?php declare(strict_types=1); $view->script('user-edit', 'system/user:app/bundle/user-edit.js', ['vue']) ?>
 
 <validation-observer tag="form" id="user-edit" class="uk-form-horizontal" ref="observer" @submit.prevent="submit" v-cloak>
 

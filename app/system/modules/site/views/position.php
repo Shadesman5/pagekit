@@ -1,4 +1,4 @@
-<?php foreach ($widgets as $widget) : ?>
+<?php declare(strict_types=1); foreach ($widgets as $widget) : ?>
 <div>
 
     <h3><?= $widget->title ?></h3>

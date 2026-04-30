@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Site\Event;
 
 use Pagekit\Event\EventSubscriberInterface;

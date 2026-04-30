@@ -1,4 +1,4 @@
-<?php $view->script('site-settings', 'system/site:app/bundle/settings.js', ['vue', 'editor']) ?>
+<?php declare(strict_types=1); $view->script('site-settings', 'system/site:app/bundle/settings.js', ['vue', 'editor']) ?>
 
 <validation-observer tag="form" id="settings" ref="observer" @submit.prevent="submit" v-cloak>
 

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\User\Event\AccessListener;
 use Pagekit\User\Event\AuthorizationListener;
 use Pagekit\User\Event\LoginAttemptListener;

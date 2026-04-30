@@ -1,4 +1,4 @@
-<?php $view->script('role-index', 'system/user:app/bundle/role-index.js', ['vue']) ?>
+<?php declare(strict_types=1); $view->script('role-index', 'system/user:app/bundle/role-index.js', ['vue']) ?>
 
 <div id="roles" v-cloak>
 

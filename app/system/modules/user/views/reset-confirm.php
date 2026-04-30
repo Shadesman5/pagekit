@@ -1,4 +1,4 @@
-<?php $view->script('reset-confirm', 'system/user:app/bundle/reset-confirm.js', ['vue']) ?>
+<?php declare(strict_types=1); $view->script('reset-confirm', 'system/user:app/bundle/reset-confirm.js', ['vue']) ?>
 
 <validation-observer tag="form" id="reset-confirm" class="pk-user pk-user-reset uk-form-stacked uk-width-1-2@m uk-width-1-3@l uk-container" ref="resetform" action="<?= $view->url('@user/resetpassword/confirm', ['key' => $activation]) ?>" method="post" v-cloak>
 
