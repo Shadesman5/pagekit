@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Application\UrlProvider;
 
 // Static URL provider for template helper functions.

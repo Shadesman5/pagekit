@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Title' => 'ཁ་བྱང་།',
   'Theme' => 'དཔེ་སྒྲོམ།',

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 $id = "tm-{$name}";
 $class = [];
 $class[] = "tm-{$name}";

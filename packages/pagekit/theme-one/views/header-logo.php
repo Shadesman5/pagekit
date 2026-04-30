@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 $image = $params->get('logo');
 $attrs_link = [];
 $attrs_image = [];

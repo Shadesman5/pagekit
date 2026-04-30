@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Title' => '제목',
   'Theme' => '테마',
