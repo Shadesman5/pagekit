@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Auth\Auth;
 use Pagekit\Auth\Encoder\NativePasswordEncoder;
 use Pagekit\Auth\Handler\DatabaseHandler;
