@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Session\Csrf\Provider;
 
 interface CsrfProviderInterface

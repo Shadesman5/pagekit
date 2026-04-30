@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Config;
 
 use Doctrine\DBAL\Platforms\MySqlPlatform;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Session\Handler;
 
 use Doctrine\DBAL\ConnectionException;

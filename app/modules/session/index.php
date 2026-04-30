@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Session\Csrf\Event\CsrfListener;
 use Pagekit\Session\Csrf\Provider\SessionCsrfProvider;
 use Pagekit\Session\Handler\DatabaseSessionHandler;

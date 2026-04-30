@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Monolog\Handler\StreamHandler;
 use Monolog\Level;
 use Pagekit\Log\Handler\DebugBarHandler;

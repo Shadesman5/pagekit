@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Routing\Event;
 
 use Pagekit\Event\Event;
