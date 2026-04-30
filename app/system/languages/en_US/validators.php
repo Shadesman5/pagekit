@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * System Validation Messages — Symfony Validator + Translator (Step 2.0.2)
  *

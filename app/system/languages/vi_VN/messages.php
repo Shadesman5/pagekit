@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Select Image' => 'Chọn hình',
   'Add Image' => 'Thêm ảnh',

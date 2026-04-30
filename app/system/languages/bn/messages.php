@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Select Image' => 'ছবি বাছাই করুন',
   'Add Image' => 'ছবি যুক্ত করুন',
