@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
