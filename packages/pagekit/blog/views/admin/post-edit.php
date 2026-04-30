@@ -1,4 +1,5 @@
-<?php declare(strict_types=1); $view->script('post-edit', 'blog:app/bundle/post-edit.js', ['vue', 'editor', 'uikit']) ?>
+<?php declare(strict_types=1);
+$view->script('post-edit', 'blog:app/bundle/post-edit.js', ['vue', 'editor', 'uikit']) ?>
 
 <validation-observer tag="form" id="post" ref="observer" @submit.prevent="submit" v-cloak>
 

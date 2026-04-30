@@ -1,4 +1,5 @@
-<?php declare(strict_types=1); $view->script('update', 'installer:app/bundle/update.js', ['vue', 'marked']) ?>
+<?php declare(strict_types=1);
+$view->script('update', 'installer:app/bundle/update.js', ['vue', 'marked']) ?>
 
 <div id="update" v-cloak>
 

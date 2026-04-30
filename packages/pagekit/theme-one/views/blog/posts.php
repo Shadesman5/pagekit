@@ -1,4 +1,5 @@
-<?php declare(strict_types=1); $view->script('posts', 'blog:app/bundle/posts.js', 'vue') ?>
+<?php declare(strict_types=1);
+$view->script('posts', 'blog:app/bundle/posts.js', 'vue') ?>
 
 <div class="tm-container-small">
 

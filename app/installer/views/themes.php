@@ -1,4 +1,5 @@
-<?php declare(strict_types=1); $view->script('themes', 'installer:app/bundle/themes.js', ['vue', 'editor']); ?>
+<?php declare(strict_types=1);
+$view->script('themes', 'installer:app/bundle/themes.js', ['vue', 'editor']); ?>
 
 <div id="themes" v-cloak>
 

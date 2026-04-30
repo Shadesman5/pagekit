@@ -1,4 +1,5 @@
-<?php declare(strict_types=1); $view->script('post', 'blog:app/bundle/post.js', 'vue') ?>
+<?php declare(strict_types=1);
+$view->script('post', 'blog:app/bundle/post.js', 'vue') ?>
 
 <article class="uk-article">
 
