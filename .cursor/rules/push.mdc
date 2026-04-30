@@ -29,4 +29,4 @@ alwaysApply: false
    - **labels**: 1 phase + 1 type + 1-2 area labels (see `github-labels.mdc`)
    - **milestone**: Phase name (shorthand `Phase 1` or full `Phase 1: Foundation`)
    - **closes**: related GitHub Issues — also include `Closes #X` in visible PR body text for GitHub's auto-close linking
-8. **Do NOT merge** – user merges after CI/tests pass
+8. **Do NOT merge**

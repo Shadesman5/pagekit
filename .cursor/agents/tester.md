@@ -52,21 +52,33 @@ PHPStan runs **against the committed baseline** (`phpstan-baseline.neon`). It ca
 2. **Execute PHPStan** – `./app/vendor/bin/phpstan analyse --no-progress --memory-limit=512M` — mandatory for every step (installed since Step 2.1.1).
 3. **RCA on failure** – Root-Cause Analysis. Use `git diff` to identify what changed in this step. Pinpoint the failing test/analysis error and the likely cause (one line).
 
-### End-of-ticket tests (run ONCE after ALL steps in the ticket are committed)
+### End-of-ticket tests (run ONCE after the Orchestrator's Early Push)
 
-When the Orchestrator delegates with "final test run" or after the last step in the ticket:
+The Orchestrator delegates with "final test run" **after** it has pushed the feature branch and created the PR. The Final Test runs the CI wait and the local Playwright E2E **in parallel** so the wall-clock time is `max(CI, E2E)`, not `CI + E2E`.
 
-4. **Execute `php pagekit setup`** – Clean state first (`rm -f pagekit.db config.php`), then run setup as installation smoke test.
-5. **Execute `php pagekit list`** – Console smoke test (uses the instance from step 4).
-6. **Clean state again** – `rm -f pagekit.db config.php` — required because `php pagekit setup` creates a minimal instance that conflicts with Playwright's full installation test.
-7. **Execute Playwright E2E** – Run the 3 stable E2E tests sequentially:
+4. **Wait on CI** – the four PHP Quality jobs (`phpunit (8.2)`, `phpunit (8.3)`, `phpstan`, `cs-fixer`, `security-audit`) run remotely on every push. Pick the right run:
    ```bash
-   npx playwright test tests/e2e/specs/01-setup/installation.spec.js
-   npx playwright test tests/e2e/specs/02-core/authentication.spec.js
-   npx playwright test tests/e2e/specs/02-core/dashboard.spec.js
+   RUN_ID=$(gh run list --branch "$(git branch --show-current)" \
+     --workflow "PHP Quality" --limit 1 --json databaseId --jq '.[0].databaseId')
+   gh run watch "$RUN_ID" --exit-status
    ```
-   State was already cleaned in step 6. Run each spec individually — if one fails, report which one and continue with the next for maximum diagnostic value.
-8. **RCA on failure** – Same as above. For E2E failures, include the Playwright error message and the last screenshot path if available.
+   Non-zero exit = at least one CI job failed. Report which job(s) and quote the relevant error from `gh run view --log-failed "$RUN_ID"`.
+
+5. **Run Playwright E2E in parallel (locally)** – until E2E migrates to CI as a separate roadmap step:
+   - Clean state: `rm -f pagekit.db config.php`
+   - Smoke tests: `php pagekit setup` (installation smoke) and `php pagekit list` (console smoke).
+   - Clean state again: `rm -f pagekit.db config.php` — required because `php pagekit setup` creates a minimal instance that conflicts with Playwright's full installation test.
+   - Run the 3 stable E2E specs sequentially:
+     ```bash
+     npx playwright test tests/e2e/specs/01-setup/installation.spec.js
+     npx playwright test tests/e2e/specs/02-core/authentication.spec.js
+     npx playwright test tests/e2e/specs/02-core/dashboard.spec.js
+     ```
+     If one fails, report which one and continue with the next for maximum diagnostic value.
+
+6. **PASS gate** – both step 4 (CI) and step 5 (E2E) must succeed. Either failure → FAIL.
+
+7. **RCA on failure** – Same as per-step. For E2E failures, include the Playwright error message and the last screenshot path if available. For CI failures, link the failed run/job and quote the error from `gh run view --log-failed`.
 
 ## Output
 

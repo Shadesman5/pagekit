@@ -29,16 +29,16 @@ class MigrationServiceTest extends TestCase
         self::$counter++;
 
         $this->coreNamespace = 'TestCoreMig' . self::$counter;
-        $this->extNamespace  = 'TestExtMig' . self::$counter;
+        $this->extNamespace = 'TestExtMig' . self::$counter;
 
         $this->connection = DriverManager::getConnection([
             'driver' => 'pdo_sqlite',
             'memory' => true,
         ]);
 
-        $this->baseDir           = sys_get_temp_dir() . '/pk_mig_test_' . self::$counter . '_' . getmypid();
+        $this->baseDir = sys_get_temp_dir() . '/pk_mig_test_' . self::$counter . '_' . getmypid();
         $this->coreMigrationsDir = $this->baseDir . '/core';
-        $this->extMigrationsDir  = $this->baseDir . '/ext';
+        $this->extMigrationsDir = $this->baseDir . '/ext';
         mkdir($this->coreMigrationsDir, 0755, true);
         mkdir($this->extMigrationsDir, 0755, true);
 
@@ -46,18 +46,18 @@ class MigrationServiceTest extends TestCase
 
         $this->service = new MigrationService($this->connection, [
             'table_storage' => [
-                'table_name'               => 'test_migration_versions',
-                'version_column_name'      => 'version',
-                'version_column_length'    => 191,
-                'executed_at_column_name'  => 'executed_at',
+                'table_name' => 'test_migration_versions',
+                'version_column_name' => 'version',
+                'version_column_length' => 191,
+                'executed_at_column_name' => 'executed_at',
                 'execution_time_column_name' => 'execution_time',
             ],
             'migrations_paths' => [
                 $this->coreNamespace => $this->coreMigrationsDir,
             ],
-            'all_or_nothing'         => false,
+            'all_or_nothing' => false,
             'check_database_platform' => false,
-            'organize_migrations'    => 'none',
+            'organize_migrations' => 'none',
         ]);
     }
 
@@ -370,6 +370,7 @@ MIG
         }
         if (is_file($path)) {
             unlink($path);
+
             return;
         }
         foreach (array_diff((array) scandir($path), ['.', '..']) as $item) {

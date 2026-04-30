@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace Pagekit\Console\Commands;
 
@@ -35,6 +37,7 @@ class MigrationCommand extends Command
 
             if (!$result['success']) {
                 $this->line(sprintf('<error>Doctrine Migration failed: %s</error>', $result['error'] ?? 'unknown error'));
+
                 return SymfonyCommand::FAILURE;
             }
 
@@ -43,6 +46,7 @@ class MigrationCommand extends Command
             }
         } else {
             $this->line('<error>Migration service not available — cannot verify Doctrine migration state.</error>');
+
             return SymfonyCommand::FAILURE;
         }
 
@@ -55,6 +59,7 @@ class MigrationCommand extends Command
                 $scripts->update();
             } catch (\Throwable $e) {
                 $this->line(sprintf('<error>Script update failed: %s</error>', $e->getMessage()));
+
                 return SymfonyCommand::FAILURE;
             }
         }

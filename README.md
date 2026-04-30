@@ -129,7 +129,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 
 -   **PHP Version**: Minimum PHP 8.2+ (supports PHP 8.2, 8.3, 8.4)
 -   **Database Support**: MySQL 8.4+ and SQLite 3
--   **Node.js**: Minimum Node 18+ for development
+-   **Node.js**: Minimum Node 20+ (Node 22 LTS recommended) for development
 -   **Composer**: Version 2.0+ required
 -   **Yarn**: Version 1.22+ required
 -   **Framework Updates**: Symfony 6.4 LTS components with modern architecture
@@ -150,7 +150,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 
 -   **PHP**: 8.2 or higher (supports 8.2, 8.3, 8.4)
 -   **MySQL**: 8.4+ or **SQLite**: 3.x (selectable during installation)
--   **Node.js**: 18+ (for development)
+-   **Node.js**: 20+ (Node 22 LTS recommended; pinned via `.nvmrc` and `package.json` `engines`)
 -   **Composer**: 2.0+
 -   **Yarn**: 1.22+
 
@@ -237,7 +237,7 @@ The Docker setup provides a complete development environment with:
 
 -   **PHP 8.4** with Apache and all required extensions
 -   **MySQL 8.4** with phpMyAdmin
--   **Node.js 18** with Yarn 1.22 for frontend development
+-   **Node.js 22 LTS** with Yarn 1.22 for frontend development
 -   **Hot-reloading** for both PHP and frontend assets
 
 ### Frontend Development
