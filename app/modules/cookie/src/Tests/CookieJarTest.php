@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Cookie\Tests;
 
 use Pagekit\Cookie\CookieJar;

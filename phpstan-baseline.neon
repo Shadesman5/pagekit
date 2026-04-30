@@ -847,12 +847,6 @@ parameters:
 			path: app/modules/filesystem/src/StreamWrapper.php
 
 		-
-			message: '#^Parameter \#3 \$recursive of function mkdir expects bool, int\<0, 1\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/modules/filesystem/src/StreamWrapper.php
-
-		-
 			message: '#^Instantiated class Pagekit\\Tests\\IOException not found\.$#'
 			identifier: class.notFound
 			count: 1

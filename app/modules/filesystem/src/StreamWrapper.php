@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Filesystem;
 
 class StreamWrapper
@@ -71,7 +73,7 @@ class StreamWrapper
      */
     public function mkdir($path, $mode, $options): bool
     {
-        return mkdir(self::$file->getPath($path, true), $mode, $options & STREAM_MKDIR_RECURSIVE);
+        return mkdir(self::$file->getPath($path, true), $mode, (bool) ($options & STREAM_MKDIR_RECURSIVE));
     }
 
     /**

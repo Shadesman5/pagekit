@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Filesystem;
 
 use Pagekit\Filesystem\Adapter\AdapterInterface;
@@ -26,7 +28,8 @@ class Filesystem
         }
 
         if ($referenceType === UrlGenerator::ABSOLUTE_PATH) {
-            $url = strlen($path = parse_url($url, PHP_URL_PATH)) > 1 ? substr($url, strpos($url, $path)) : '/';
+            $path = (string) parse_url($url, PHP_URL_PATH);
+            $url = strlen($path) > 1 ? substr($url, strpos($url, $path)) : '/';
         } elseif ($referenceType === UrlGenerator::NETWORK_PATH) {
             $url = substr($url, strpos($url, '//'));
         }
@@ -83,9 +86,13 @@ class Filesystem
 
         foreach ($files as $file) {
 
+            if (!is_string($file) || $file === '') {
+                return false;
+            }
+
             $file = $this->getPathInfo($file, 'pathname');
 
-            if (!file_exists($file)) {
+            if (!is_string($file) || !file_exists($file)) {
                 return false;
             }
         }

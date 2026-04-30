@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Filesystem;
 
 class Path
@@ -42,7 +44,8 @@ class Path
         $path = implode('/', $parts);
         $info = compact('root', 'path');
 
-        $info['dirname'] = $root.substr($path, 0, strrpos($path, '/'));
+        $slash = strrpos($path, '/');
+        $info['dirname'] = $root.($slash !== false ? substr($path, 0, $slash) : '');
         $info['pathname'] = $root.$path;
         $info['protocol'] = strpos($root, '://') ? substr($root, 0, -3) : 'file';
 
