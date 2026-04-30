@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Filter by' => '분류',
   'Thank you! Your comment needs approval before showing up.' => '감사합니다! 작성하신 댓글은 승인 후에 보여집니다.',

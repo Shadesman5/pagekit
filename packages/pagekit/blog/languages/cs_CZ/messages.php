@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Filter by' => 'Filtrovat podle',
   'Thank you! Your comment needs approval before showing up.' => 'Děkujeme za komentář, než jej zveřejníme, musí jej správce schválit.',

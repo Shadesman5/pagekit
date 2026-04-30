@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Filter by' => '過濾條件',
   'Thank you! Your comment needs approval before showing up.' => '謝謝！您的評論在顯示之前需要先經過審核。',

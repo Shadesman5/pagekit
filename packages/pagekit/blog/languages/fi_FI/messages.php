@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Filter by' => 'Suodata',
   'Thank you! Your comment needs approval before showing up.' => 'Kiitos. Kommenttisi vaatii hyväksynnän ennen näkymistä',

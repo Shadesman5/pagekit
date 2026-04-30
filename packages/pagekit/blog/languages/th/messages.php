@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Filter by' => 'คัดกรองโดย',
   'Thank you! Your comment needs approval before showing up.' => 'ขอบคุณ! ความเห็นของคุณต้องอนุมัติก่อนขึ้นโชว์',

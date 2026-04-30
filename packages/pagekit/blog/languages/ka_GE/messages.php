@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Filter by' => 'ფილტრი',
   'Thank you! Your comment needs approval before showing up.' => 'მადლობა! თქვენს კომენტარს განიხილავენ და გამოაქვეყნებენ',

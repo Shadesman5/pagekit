@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Filter by' => 'Filtreaza',
   'Thank you! Your comment needs approval before showing up.' => 'Va multumim! Comentariul necesita aprobare.',

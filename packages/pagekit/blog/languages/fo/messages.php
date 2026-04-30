@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Filter by' => 'Síla eftir',
   'Thank you! Your comment needs approval before showing up.' => 'Takk fyri! Tín viðmerking skal góðtakast áðrenn hon vísir seg.',

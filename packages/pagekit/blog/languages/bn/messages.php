@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Filter by' => 'ফিল্টার হবে',
   'Thank you! Your comment needs approval before showing up.' => 'ধন্যবাদ!  দেখানোর আগে আপনার মন্তব্য অনুমোদনের প্রয়োজন।',

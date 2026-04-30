@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Filter by' => 'Filtr bo\'yicha',
   'Thank you! Your comment needs approval before showing up.' => 'Rahmat! Fikringizni ko\'rsatishdan oldin tasdiqlash kerak.',

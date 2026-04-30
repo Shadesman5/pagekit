@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Filter by' => 'Szűrés az alábbiak szerint',
   'Thank you! Your comment needs approval before showing up.' => 'Köszönjük! A hozzászólás jóváhagyásra kerül megjelenítés előtt.',

@@ -1,4 +1,4 @@
-<?php $view->script('posts', 'blog:app/bundle/posts.js', 'vue') ?>
+<?php declare(strict_types=1); $view->script('posts', 'blog:app/bundle/posts.js', 'vue') ?>
 
 <?php foreach ($posts as $post) : ?>
 <article class="uk-article">

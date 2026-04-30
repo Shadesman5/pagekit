@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Filter by' => 'Фільтрувати за',
   'Thank you! Your comment needs approval before showing up.' => 'Дякуємо! Вам коментар буде опубліковано після схвалення Адміністратором.',

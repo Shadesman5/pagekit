@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Filter by' => 'Şuna Göre Süz',
   'Thank you! Your comment needs approval before showing up.' => 'Teşekkürler. Yorumunuz yayınlanmak için onay bekliyor.',
