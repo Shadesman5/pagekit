@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\View\Asset;
 
 abstract class Asset implements AssetInterface, \ArrayAccess

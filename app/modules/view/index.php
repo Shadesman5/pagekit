@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Event\PrefixEventDispatcher;
 use Pagekit\View\Asset\AssetFactory;
 use Pagekit\View\Asset\AssetManager;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Application\Console;
 
 use Pagekit\Application as Container;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Debug\Middleware;
 
 use Doctrine\DBAL\Driver\Connection as ConnectionInterface;

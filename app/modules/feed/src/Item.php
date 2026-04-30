@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Feed;
 
 abstract class Item implements ItemInterface

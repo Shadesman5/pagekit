@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Event;
 
 class EventDispatcher implements EventDispatcherInterface
