@@ -1,5 +1,52 @@
 # Changelog
 
+## Pagekit 1.2.16 - `strict_types` Migration (April 30, 2026)
+
+### Strict Typing
+
+- **`declare(strict_types=1);` enforced in every PHP file** of the project. ~745 PHP files across `app/modules/`, `app/system/`, `app/installer/`, `app/console/`, `packages/pagekit/blog/`, `packages/pagekit/theme-one/`, the workspace root (`index.php`, `autoload.php`, `app/config/migrations.php`), the composer autoloader bundle, and all 82 language files now declare strict types. PHP-CS-Fixer rule **`declare_strict_types`** is flipped from disabled to `'declare_strict_types' => true`, so any future PHP file added without the declaration is blocked at the `cs-fixer` CI gate from Step 2.1.2. The placeholder `// TODO: Must be refactored in Step 2.1.3 (strict_types Migration)` in `.php-cs-fixer.php` is resolved and removed. `php-cs-fixer fix --dry-run` exits 0 across all 790 scanned files. (Closes #150)
+- **Forward-only migration — zero compatibility layers.** Per the No-Mercy / Aggressive rules (`.cursor/ROADMAP.md`), every PHP-8 strict `TypeError` surfaced by the migration is fixed at the **call site** (cast, signature widening, or `false`/`null`/`int` guard where a `string` was expected). No shim classes, no `@deprecated` markers, no in-code TODOs added.
+- **Migration order — 12 grouped checklist steps, one commit each:** filter / filesystem / cookie → auth → database → routing / session / config / markdown / migration / log → kernel / application / view / debug / feed → system user / site / widget → remaining `app/system/modules/*` + `app/system/src/` → installer / console → blog package → theme-one package → root + composer + language sweep → CS-Fixer rule flip + 34 view-template formatting fixes. Each commit was Tester-gated (PHPUnit + PHPStan, plus a `git diff --quiet phpstan-baseline.neon` regression check) before moving on.
+
+### Strict-mode TypeError Fixes (call-site only, no shims)
+
+- **`app/modules/filesystem/src/Path.php`** — `strrpos()` returns `int|false`; the result is now guarded with a `!== false` check before being passed to `substr()` / `strtr()` (under strict types these reject `false` for their `string` parameters).
+- **`app/modules/filesystem/src/Filesystem.php`** — `parse_url()` returns `string|int|null|false`; the result is cast to `(string)` before `strlen()`. Defensive `is_string` guards added in `exists()` for `getPathInfo()` return values.
+- **`app/modules/filesystem/src/StreamWrapper.php`** — `mkdir()` `$recursive` is now strictly `bool`; the bitmask `$options & STREAM_MKDIR_RECURSIVE` (an `int`) is cast to `(bool)`.
+- **`app/modules/routing/src/Router.php`** — `Router::generate()` rewritten to use `strpos()`-guarded `substr()` instead of `strstr()`/`substr()` chaining (the latter propagates `false` into strict-typed string parameters). Empty-query guard (`$query !== ''`) added before `parse_str()`.
+- **`app/modules/routing/src/Event/AliasListener.php`** — same `strstr()`/`substr()` pattern as `Router::generate()` replaced with `strpos()` + explicit `substr()` and `false` check.
+- **`app/system/modules/cache/src/CacheModule.php`** — `opcache_invalidate()` now receives `$file->getPathname()` (a `string`) instead of the `Symfony\Component\Finder\SplFileInfo` object (strict types reject implicit `__toString()` coercion). The second `$force = true` argument is also passed explicitly.
+- **`app/console/src/Commands/ExtensionTranslateCommand.php`** — same `SplFileInfo`-to-`string` issue; `extractStrings()` now receives `$file->getPathname()`.
+- **`app/console/src/Commands/ArchiveCommand.php`** — Symfony Console `addOption()` `$shortcut` parameter is `array|string|null`; the legacy `false` sentinel ("no shortcut") is replaced with `null`. Discovered by `php pagekit list` smoke test, not by PHPStan.
+- **`app/modules/application/src/Application/UrlProvider.php`** — three independent fixes: (1) `Filesystem::getUrl()` returns `string|false`, guard before `substr()` in the `BASE_PATH` branch with `if (!is_string($url)) { $url = ''; }`; (2) `parseQuery()` rewritten to use `strpos()` + `substr()` with proper `false` check, replacing the chained `strstr()` pattern; (3) `Router::generate()` `$referenceType` is now strictly `int`, so `is_int($type)` guard added with fallback to `UrlGenerator::ABSOLUTE_PATH`. Redundant `is_string()` guard later removed once PHPStan narrowed the type.
+- **`app/system/modules/site/src/Model/Node.php`** — `Node::getUrl()` default changed from `false` to `UrlGenerator::ABSOLUTE_PATH` (the corresponding `Router::generate()` `$referenceType` parameter is now strictly `int`).
+- **`app/modules/session/src/Csrf/Provider/{Default,Session}CsrfProvider.php`** — `uniqid()` `$prefix` is now strictly `string`; the `rand()` result (an `int`) is cast to `(string)` before being passed.
+- **`app/system/modules/site/src/Event/NodesListener.php`** — `strcmp(int, int)` is invalid under strict types; replaced with the spaceship operator (`<=>`) and reverse operands for descending sort. Also modernized to an arrow function (`fn($a, $b) => ...`).
+- **`app/system/modules/view/src/Asset/FileLocatorAsset.php`** + **`app/modules/view/src/Asset/FileAsset.php`** — `getPath()` was declared `: string` but returned `false` on miss; both now return `''`. Every call site uses truthiness checks (`if ($path = $this->getPath())`), so empty string still triggers the failure path identically to `false`.
+- **`packages/pagekit/theme-one/functions.php`** — `isImage()` was declared `: bool` but the function body returned `string|false` (the matched extension or `false`). Return type corrected to `string|false` to match the actual behavior; call sites in `offcanvas.php` / `header-logo.php` use the value as a string.
+
+### PHPStan Baseline (surgical removals only — no regeneration)
+
+- **6 obsolete entries removed** from `phpstan-baseline.neon`, each directly traceable to a code fix in this step that eliminated the underlying error: `StreamWrapper.php` `mkdir bool/int`, `ArchiveCommand.php` `addOption false`, `UrlProvider.php` `nullCoalesce.variable`, `DefaultCsrfProvider.php` `uniqid int`, `SessionCsrfProvider.php` `uniqid int`, two `NodesListener.php` `strcmp int/int`. Diff shape: **6 entries removed, 0 entries added.** Wholesale baseline regeneration was forbidden by the architect plan and is explicitly rejected — disappearing errors are the positive signal of strict-mode compliance, not noise to absorb.
+
+### Documentation
+
+- **Branch documentation** added: `migration-docs/branches/step-2-1-3-strict-types-migration.md` — full change record (12 checklist commits + 1 final-test mini-loop commit, ~745 file additions, 14 call-site fixes, 6 baseline removals), No-Mercy compliance table, per-step + final test results (PHPUnit / PHPStan / `php pagekit setup` / `php pagekit list` / Playwright E2E), and the deferred-work table (Steps 2.1.4 / 2.1.5 / 2.1.6 / 2.1.7 / 2.1.8 / 2.1.9).
+
+### Internal
+
+- **Step 2.1.3 (`strict_types` Migration)** marked ✅ in `.cursor/ROADMAP.md`; `Current Step` header pointer advances from `2.1.3` to `2.1.4` (PHPStan Level 5 → 6 — Return Types). No new sub-step rows inserted; no new GitHub issues filed.
+- **No-Mercy compliance** — zero shims, zero adapters, zero `@deprecated` markers, zero new in-code TODOs introduced. Deferred work explicitly listed in `.cursor/tickets/PROMPT_2_1_3_Strict-Types-Migration_plan.md` ("Deferred:" section) and routed to the relevant future steps.
+
+### Tests
+
+- **Per-step gates (Tester subagent)** — after every Checklist commit (Steps 1–12 + final mini-loop): `./app/vendor/bin/phpunit` (326 tests, 0 failures throughout), `./app/vendor/bin/phpstan analyse --no-progress --memory-limit=512M` (no errors throughout), and `git diff --quiet phpstan-baseline.neon` (clean except where surgical removals were intentional). Step 11 additionally asserted `find ... -exec grep -L 'declare(strict_types' {} \; | wc -l` → `0`. Step 12 additionally asserted `php-cs-fixer fix --dry-run` exit 0.
+- **Final gate (Tester subagent)** — full closure run on `f8b7b1c6`: PHPUnit + PHPStan + `php pagekit setup` (exit 0, "Done") + `php pagekit list` (exit 0, full command list) + Playwright E2E on chromium per `AGENTS.md`: `installation.spec.js` (1/1), `authentication.spec.js` (14/14), `dashboard.spec.js` (10/10). All green.
+- **Remote CI run** — PR #201 SHA `f8b7b1c6` run `25195012112`: `phpunit (8.2)` ✅, `phpunit (8.3)` ✅, `phpstan` ✅, `cs-fixer` ✅, `security-audit` ✅.
+- **Bugbot quick-peek** — latest Bugbot review submitted on stale SHA `e7ba5711`; per orchestrator workflow decision matrix (stale → proceed) the Finalize step proceeded. The user reviews any post-peek findings manually before merging.
+
+---
+
 ## Pagekit 1.2.15 - CI/CD Integration & Quality Gates (April 30, 2026)
 
 ### Continuous Integration
