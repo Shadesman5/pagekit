@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Intl\Loader;
 
 use Symfony\Component\Translation\Loader\LoaderInterface;

@@ -1,4 +1,4 @@
-<?php $view->script('dashboard', 'system/dashboard:app/bundle/index.js', ['vue']) ?>
+<?php declare(strict_types=1); $view->script('dashboard', 'system/dashboard:app/bundle/index.js', ['vue']) ?>
 
 <div id="dashboard" v-cloak>
 

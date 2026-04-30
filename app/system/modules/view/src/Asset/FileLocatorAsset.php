@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\View\Asset;
 
 // TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 — Strict Typing) —

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // Bootstrap for PSR-6 Cache Tests
 
 // Load composer autoloader from app directory (portable: 5 levels up = repo root)

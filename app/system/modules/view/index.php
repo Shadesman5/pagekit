@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Util\ArrObject;
 use Pagekit\View\Asset\FileLocatorAsset;
 use Pagekit\View\Event\ResponseListener;
