@@ -13,12 +13,6 @@ parameters:
 			path: app/console/app.php
 
 		-
-			message: '#^Parameter \#2 \$shortcut of method Symfony\\Component\\Console\\Command\\Command\:\:addOption\(\) expects array\|string\|null, false given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/console/src/Commands/ArchiveCommand.php
-
-		-
 			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:line\(\) \(void\) is used\.$#'
 			identifier: method.void
 			count: 1
@@ -326,12 +320,6 @@ parameters:
 
 		-
 			message: '#^Variable \$path on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.variable
-			count: 2
-			path: app/modules/application/src/Application/UrlProvider.php
-
-		-
-			message: '#^Variable \$url on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.variable
 			count: 2
 			path: app/modules/application/src/Application/UrlProvider.php
@@ -1237,18 +1225,6 @@ parameters:
 			path: app/modules/session/src/Csrf/Event/CsrfListener.php
 
 		-
-			message: '#^Parameter \#1 \$prefix of function uniqid expects string, int\<0, max\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/modules/session/src/Csrf/Provider/DefaultCsrfProvider.php
-
-		-
-			message: '#^Parameter \#1 \$prefix of function uniqid expects string, int\<0, max\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/modules/session/src/Csrf/Provider/SessionCsrfProvider.php
-
-		-
 			message: '#^Class Doctrine\\DBAL\\Platforms\\MySqlPlatform not found\.$#'
 			identifier: class.notFound
 			count: 1
@@ -1761,18 +1737,6 @@ parameters:
 		-
 			message: '#^Call to an undefined method Pagekit\\Module\\Module\:\:getType\(\)\.$#'
 			identifier: method.notFound
-			count: 1
-			path: app/system/modules/site/src/Event/NodesListener.php
-
-		-
-			message: '#^Parameter \#1 \$string1 of function strcmp expects string, int\<0, max\> given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/system/modules/site/src/Event/NodesListener.php
-
-		-
-			message: '#^Parameter \#2 \$string2 of function strcmp expects string, int\<0, max\> given\.$#'
-			identifier: argument.type
 			count: 1
 			path: app/system/modules/site/src/Event/NodesListener.php
 

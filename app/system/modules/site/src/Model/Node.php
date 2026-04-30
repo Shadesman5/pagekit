@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Site\Model;
 
 use Pagekit\Database\ORM\Attribute as ORM;
+use Pagekit\Routing\Generator\UrlGenerator;
 use Pagekit\Site\ModelServiceLocator;
 use Pagekit\System\Model\DataModelTrait;
 use Pagekit\System\Model\NodeInterface;
@@ -90,7 +91,7 @@ class Node implements NodeInterface, \JsonSerializable
      *
      * @param  mixed  $referenceType
      */
-    public function getUrl(mixed $referenceType = false): string|false
+    public function getUrl(mixed $referenceType = UrlGenerator::ABSOLUTE_PATH): string|false
     {
         return ModelServiceLocator::getUrl()->get($this->link, [], $referenceType);
     }

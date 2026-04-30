@@ -31,7 +31,7 @@ class ArchiveCommand extends Command
     protected function configure(): void
     {
         $this->addArgument('name', InputArgument::REQUIRED, 'Package name');
-        $this->addOption('dir', false, InputOption::VALUE_OPTIONAL, 'Write the archive to this directory');
+        $this->addOption('dir', null, InputOption::VALUE_OPTIONAL, 'Write the archive to this directory');
     }
 
     /**

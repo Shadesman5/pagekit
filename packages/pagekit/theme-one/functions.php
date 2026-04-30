@@ -118,7 +118,7 @@ function image($url, array $attrs = []): string
     return "<img".$attributes.">";
 }
 
-function isImage($link): bool
+function isImage($link): string|false
 {
     return $link && preg_match('#\.(gif|png|jpe?g|svg)$#', $link, $matches) ? $matches[1] : false;
 }

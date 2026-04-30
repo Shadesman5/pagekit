@@ -48,8 +48,12 @@ class AliasListener implements EventSubscriberInterface
 
             // TODO: is this still needed?
             $params = [];
-            if ($query = substr(strstr($alias->getName(), '?'), 1)) {
-                parse_str($query, $params);
+            $aliasName = $alias->getName();
+            if (false !== ($queryPos = strpos($aliasName, '?'))) {
+                $query = substr($aliasName, $queryPos + 1);
+                if ($query !== '') {
+                    parse_str($query, $params);
+                }
             }
 
             $routes->add($alias->getName(), new Route($alias->getPath(), array_merge($route->getDefaults(), $params, $alias->getDefaults(), ['_variables' => $variables])));

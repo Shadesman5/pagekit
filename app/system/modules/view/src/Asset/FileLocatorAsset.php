@@ -41,6 +41,6 @@ class FileLocatorAsset extends FileAsset
      */
     public function getPath(): string
     {
-        return self::$locator->get($this->source) ?: false;
+        return self::$locator->get($this->source) ?: '';
     }
 }

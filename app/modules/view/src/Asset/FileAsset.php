@@ -37,7 +37,7 @@ class FileAsset extends Asset
      */
     public function getPath(): string
     {
-        return file_exists($this->source) ? $this->source : false;
+        return file_exists($this->source) ? $this->source : '';
     }
 
     public function __toString()
