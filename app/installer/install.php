@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 $db = $app->get('db');
 $config = $app->get('config');
 

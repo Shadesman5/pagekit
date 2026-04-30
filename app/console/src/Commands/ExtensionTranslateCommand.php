@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Console\Commands;
 
 use Pagekit\Application\Console\Command;
@@ -60,7 +62,7 @@ class ExtensionTranslateCommand extends Command
         $progress->start();
 
         foreach ($files as $file) {
-            $strings = $this->extractStrings($file);
+            $strings = $this->extractStrings($file->getPathname());
             foreach ($strings as $domain => $messages) {
                 if (array_key_exists($domain, $result)) {
 
