@@ -1,6 +1,6 @@
 # Changelog
 
-## Pagekit 1.2.15 - CI/CD Integration & Quality Gates (April 29, 2026)
+## Pagekit 1.2.15 - CI/CD Integration & Quality Gates (April 30, 2026)
 
 ### Continuous Integration
 
@@ -18,6 +18,10 @@
 
 - **Branch documentation** added: `migration-docs/branches/step-2-1-2-cicd-quality-gates.md` — full change record (5 commits, 1 new workflow file, 0 source modifications), No-Mercy compliance table, local + Playwright E2E test results, and the **manual branch-protection runbook** (required status checks `phpunit (8.2)`, `phpunit (8.3)`, `phpstan`, `cs-fixer`, `security-audit`; "Require branches to be up to date before merging"; 1 approval for external contributors). Branch protection is intentionally **not scripted** — the workflow MUST NOT call any GitHub admin API; the user applies these settings manually in GitHub repo settings (admin-only).
 - **Coverage baseline** — Step 2.1.2 generates Clover XML on every `phpunit (8.3)` run and uploads it as a workflow artifact, but the numerical baseline is intentionally not pinned in this PR. Step 2.1.9 (Test Coverage Expansion) is the designated step to document the canonical baseline, wire Codecov / Coveralls if desired, and enforce minimum-coverage thresholds.
+
+### Workflow
+
+- **Orchestrator workflow refined for CI-driven Final Test.** `.cursor/rules/orchestrator-subagent-workflow.mdc` reorders the post-loop sequence to **Early Push → PR creation → Final Test → Bugbot quick-peek → Finalize**. Reasons: (1) the Final Test now waits on the CI workflow that this step introduced (`phpunit (8.2)` / `phpunit (8.3)` / `phpstan` / `cs-fixer` / `security-audit`), running the 3 Playwright E2E specs locally **in parallel** until E2E migrates to CI as a separate roadmap step — wall-clock cost stays at `max(CI, E2E)`, not `CI + E2E`; (2) Finalize commits (branch doc, version bump, CHANGELOG, ROADMAP closure incl. PR#) happen **after** Final Test PASS, avoiding wasted version/CHANGELOG churn on CI failures; (3) a new non-blocking **Bugbot quick-peek** (single `gh api repos/.../pulls/$PR/reviews` call, ~1 s) catches Cursor-Bugbot findings on the latest commit SHA without waiting for the up-to-15-minute Pro-tier review window — if Bugbot reports `found N potential issue` on the latest SHA the Orchestrator runs the standard mini-loop, otherwise it proceeds to Finalize. Stale Bugbot reviews on older commit SHAs are explicitly ignored. The user always reviews remaining findings manually before merging, so a late Bugbot result post-peek is a manual decision, not a workflow gate. `.cursor/agents/tester.md` extended: "End-of-ticket tests" now invoke `gh run watch` on the four PHP Quality jobs and run the 3 stable Playwright specs locally in parallel; both must pass for FINAL PASS. `.cursor/PROMPT_TASK_INVOCATION_TEMPLATE.md` ordering updated to match. `.cursor/rules/push.mdc` Step 8 simplified to a single line `**Do NOT merge**` — the merge gate is a manual user-review responsibility, not a workflow precondition.
 
 ### Internal
 

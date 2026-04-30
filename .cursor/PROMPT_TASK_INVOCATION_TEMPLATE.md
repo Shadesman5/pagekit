@@ -21,9 +21,9 @@ TASK INVOCATION
 Execute the task defined in: @PROMPT_X_Y.md
 GitHub Issue: #XXX (PR will "Closes #XXX" and metadata block will reference it)
 
-Workflow: Orchestrator (Architect → Refactorer → Verifier → Tester per step → Push + PR)
+Workflow: Orchestrator (Architect → per-step Refactorer/Verifier/Tester/Commit → Early Push + PR → Final Test → Bugbot peek → Finalize)
 Rule: @orchestrator-subagent-workflow.mdc
-Push: @push.mdc (version bump, CHANGELOG, PR with metadata block)
+Push: @push.mdc (version bump, CHANGELOG, ROADMAP closure)
 Reference: @ROADMAP.md
 Tickets: .cursor/tickets/ (Architect writes {task-slug}_plan.md; delegate by file path only)
 
@@ -31,7 +31,13 @@ Rules:
 - One step at a time (sequential)
 - Commit per completed step (Conventional Commits)
 - Do NOT batch commits until end of task
-- After last step: create branch documentation in migration-docs/branches/{task-name}.md, then follow push.mdc (version bump → CHANGELOG → ROADMAP update incl. Phase 1 audit closures → push → PR with metadata). PR must include "Closes #XXX" and the issue number in the metadata block. Do NOT merge.
+- After last checklist step:
+  1. Early Push + PR creation (Orchestrator) → triggers CI + Cursor Bugbot
+  2. Final Test (Tester): `gh run watch` on CI in parallel with local Playwright E2E
+  3. Bugbot quick-peek (Orchestrator, non-blocking via `gh api`): mini-loop on issues found on the latest SHA, otherwise proceed
+  4. Finalize (Orchestrator, push.mdc): branch documentation + version bump → CHANGELOG → ROADMAP closure incl. PR# + Phase 1 audit closures → second push
+  5. Do NOT merge.
+- PR must include "Closes #XXX" and the issue number in the metadata block.
 
 Token discipline (Orchestrator):
 - Delegate to Architect immediately. Do NOT read the full task prompt or ROADMAP yourself.

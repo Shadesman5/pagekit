@@ -98,18 +98,49 @@ Task Prompt (one Roadmap Step X.Y)
     │
     ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ FINAL TEST (after ALL Checklist Steps committed):           │
+│ EARLY PUSH (Orchestrator, no subagent)                      │
+│   git push -u origin HEAD → CI starts (PHP Quality workflow │
+│   + Cursor Bugbot review). gh pr create with metadata block │
+│   (labels, milestone, closes #XXX). PR# is now known and    │
+│   used by the Finalize step's ROADMAP update.               │
+└─────────────────────────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────┐
+│ FINAL TEST (after Early Push):                              │
 │   TESTER (subagent) → "Final test run" message              │
-│   Runs: PHPUnit + PHPStan + php pagekit setup               │
-│         + php pagekit list + Playwright E2E (3 specs)       │
+│   Runs in parallel:                                         │
+│     a) Wait on CI (gh run watch) for the four PHP Quality   │
+│        jobs: phpunit (8.2), phpunit (8.3), phpstan,         │
+│        cs-fixer, security-audit                             │
+│     b) Local Playwright E2E (3 specs) — until E2E migrates  │
+│        to CI as a separate roadmap step                     │
 │   On FAIL → delegate to Refactorer → Verifier → Tester      │
-│   (full mini-loop), commit fix, then re-run Final Test      │
+│   (full mini-loop), commit fix, push, re-run Final Test     │
+└─────────────────────────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────┐
+│ BUGBOT QUICK-PEEK (Orchestrator, non-blocking)              │
+│   Single `gh api repos/.../pulls/$PR/reviews` call. Read    │
+│   the latest review where author.login == "cursor".         │
+│   Decision matrix:                                          │
+│     • no review yet OR review on stale SHA  → proceed       │
+│     • review on latest SHA, body matches                    │
+│       /found [0-9]+ potential issue/         → mini-loop    │
+│       (Refactorer → Verifier → Tester →                     │
+│       push fix → re-run Final Test → re-peek)               │
+│     • review on latest SHA without issue text → proceed     │
+│   NEVER wait for Bugbot to finish (Pro tier ≤ ~15 min).     │
+│   The user reviews remaining findings manually before merge.│
 └─────────────────────────────────────────────────────────────┘
     │
     ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ FINALIZE (Orchestrator, no subagent)                        │
-│ push.mdc: branch doc, version bump, CHANGELOG, push, PR     │
+│ Branch doc + version bump + CHANGELOG + ROADMAP closure     │
+│ (incl. PR# from Early Push) → second push. See push.mdc     │
+│ for the per-item commit sequence and Phase 1 audit closures.│
 │ Do NOT merge.                                               │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -120,20 +151,44 @@ Task Prompt (one Roadmap Step X.Y)
 2. **One commit per Checklist Step** — after Tester PASS. If `git status` shows nothing to commit although Refactorer reported "Step N done", that is a failure (see On Failure). Do not batch commits.
 3. **Subagents by exact name** — `architect`, `refactorer`, `verifier`, `tester` so Cursor routes correctly. Subagent definitions: `.cursor/agents/`.
 
-## Finalize (after all Checklist Steps committed)
+## Early Push (after all Checklist Steps committed, before Final Test)
 
-Orchestrator (no subagent) executes **push.mdc**:
+Orchestrator (no subagent):
+
+1. **Push** — `git push -u origin HEAD` from the feature branch.
+2. **PR creation** — `gh pr create` with the `<!-- metadata -->` block (labels, milestone, `closes`). Use the GitHub Issue number from the invocation (`GitHub Issue: #XXX`). Include `Closes #XXX` in PR body AND in the metadata `closes:` field. See `push.mdc` § PR Metadata + `github-labels.mdc`.
+
+This early push triggers CI (PHP Quality workflow) and Cursor Bugbot review. The Final Test step waits on those checks; the Bugbot peek runs after Final Test PASS.
+
+## Final Test (after Early Push)
+
+Tester runs in parallel: (a) `gh run watch` on the four PHP Quality CI jobs, (b) the 3 Playwright E2E specs locally. See `tester.md` § End-of-ticket tests for exact commands.
+
+## Bugbot Quick-Peek (non-blocking, after Final Test PASS)
+
+Single `gh api repos/<owner>/<repo>/pulls/$PR/reviews` call. Decision matrix:
+
+- No Cursor-Bugbot review yet **OR** review on a stale commit SHA → proceed.
+- Review on latest SHA, body matches `/found [0-9]+ potential issue/` → mini-loop (Refactorer → Verifier → Tester → push fix → re-run Final Test → re-peek).
+- Review on latest SHA, no issue text → proceed.
+
+NEVER wait for Bugbot to finish (Pro tier can take ~15 minutes). The user reviews remaining findings manually before merging.
+
+## Finalize (after Bugbot peek → proceed)
+
+Orchestrator (no subagent) executes the relevant items of **push.mdc**:
 
 1. **Branch documentation** — Create `migration-docs/branches/{task-name}.md` documenting:
    - All changes made (files, what changed, why)
    - Breaking changes for extensions (if any)
-   - Test results summary
+   - Test results summary (CI run reference + local E2E results)
    - Referenced **Roadmap Step X.Y** and GitHub Issue
+   - PR number (now known from Early Push)
      Use existing files in `migration-docs/branches/` as reference for format/style.
 2. **Version bump** — `.cursor/skills/version-bump/SKILL.md`
 3. **CHANGELOG-NEW.md** — group all commits from this Roadmap Step
-4. **Push** — to remote (branch from `develop` if needed)
-5. **PR** — `<!-- metadata -->` block (labels, milestone, `closes`). Use the GitHub Issue number from the invocation (`GitHub Issue: #XXX`). Include `Closes #XXX` in PR body AND metadata `closes:` field. See `push.mdc` + `github-labels.mdc`.
+4. **ROADMAP update** — `.cursor/ROADMAP.md` (Header pointer, this step's row Status `⏳` → `✅`, Audit `⏳` → `🛡️`, **PR `-` → `#YYY`**, plus Phase 1 audit closures per `push.mdc`)
+5. **Push** (second push) — updates the PR with the finalize commits.
 6. **Do NOT merge** — user reviews and merges.
 
 ## On Failure (CRITICAL — do not self-fix)
