@@ -117,7 +117,8 @@ exits 0 — every PHP file in the project now satisfies the rule.
 | `7deeb69d` | `refactor(types): sweep up missed strict_types files` | #11 |
 | `e7ba5711` | `chore(cs-fixer): enable declare_strict_types rule` | #12 |
 | `f8b7b1c6` | `fix(types): resolve runtime TypeErrors surfaced by strict_types` | final-test mini-loop |
-| `5e81f74d` | `fix(types): resolve Bugbot-flagged strict_types regressions` | Bugbot stale-SHA mini-loop |
+| `5e81f74d` | `fix(types): resolve Bugbot-flagged strict_types regressions` | Bugbot stale-SHA mini-loop (1) |
+| `aad6c2df` | `fix(types): null-guard FileAsset/FileLocatorAsset under strict_types` | Bugbot stale-SHA mini-loop (2) |
 
 Commits `4627a6c4` … `e7ba5711` map 1:1 to Checklist Steps 1–12 in
 `.cursor/tickets/PROMPT_2_1_3_Strict-Types-Migration_plan.md`.
@@ -134,8 +135,17 @@ still returning `false` despite the `FileAsset` subclass having been updated, an
 `Asset::getContent()` / `FileAsset::getContent()` returning the nullable `$this->content`
 property under a `: string` return type. The findings reached HEAD via the workflow's
 new **stale-Bugbot Verifier check** (`.cursor/agents/verifier.md` § Stale-Bugbot Check) —
-when Bugbot's review SHA is older than HEAD, the Verifier statically diffs the flagged
-file against current state instead of letting the Orchestrator silently proceed.
+when Bugbot's review SHA is older than HEAD, the Verifier statically diffs each
+inline-comment finding against current state instead of letting the Orchestrator
+silently proceed.
+
+`aad6c2df` resolves a follow-up Bugbot finding: `FileAsset::getPath()` was passing the
+nullable `$this->source` (declared `?string` in the parent `Asset` class) directly to
+`file_exists()`, which under `strict_types=1` rejects `null` and throws a `TypeError`.
+The fix adds a `$this->source !== null &&` guard. Two adjacent null-safety improvements
+were folded in: `FileAsset::hash()` now null-coalesces `$this->source` before string
+concatenation, and `FileLocatorAsset::getSource()` null-coalesces the parent return
+value to satisfy its `: string` return type.
 
 ---
 
@@ -176,21 +186,32 @@ file against current state instead of letting the Orchestrator silently proceed.
 
 ### Remote CI
 
-- **Run `25195918220` (latest SHA `5e81f74d`)** — `phpunit (8.2)` ✅ (24 s), `phpunit (8.3)` ✅ (26 s), `phpstan` ✅ (25 s), `cs-fixer` ✅ (19 s), `security-audit` ✅ (12 s).
+- **Run `25196756827` (latest SHA `aad6c2df`)** — `phpunit (8.2)` ✅ (29 s), `phpunit (8.3)` ✅ (30 s), `phpstan` ✅ (24 s), `cs-fixer` ✅ (20 s), `security-audit` ✅ (12 s).
+- Run `25195918220` (SHA `5e81f74d`) — same matrix, all 5 jobs green.
 - Run `25195012112` (SHA `f8b7b1c6`) — same matrix, all 5 jobs green.
 
 ### Bugbot quick-peek
 
-The Bugbot quick-peek surfaced **three findings** on stale SHAs (`e7ba5711` and
-`38f5a04c`) — under the **revised** decision matrix (`.cursor/rules/orchestrator-subagent-workflow.mdc`
-§ Bugbot Quick-Peek), stale-SHA reviews flagging issues are no longer "blind proceed".
-The Verifier ran the new **Stale-Bugbot Check** (`.cursor/agents/verifier.md` §
-Stale-Bugbot Check), statically diffed the flagged files against HEAD, and confirmed
-all three issues were still present. The Orchestrator entered the standard mini-loop
-(Refactorer → Verifier → Tester → push fix → re-run Final Test → re-peek), produced the
-fix commit `5e81f74d`, and re-verified the same three findings as resolved on the new
-HEAD. Final CI run `25195918220` (SHA `5e81f74d`) is green; local Playwright E2E (3
-specs) green; Stale-Bugbot Check `OVERALL: PASS`.
+The Bugbot quick-peek went through **two mini-loop iterations** under the revised
+decision matrix (`.cursor/rules/orchestrator-subagent-workflow.mdc` § Bugbot Quick-Peek),
+which now reads the inline comments of each Bugbot review (the actual `path:line:body`
+findings) rather than the marketing-text top-level body, and routes stale-SHA reviews
+with findings to the **Verifier Stale-Bugbot Check** (`.cursor/agents/verifier.md` §
+Stale-Bugbot Check) instead of silently proceeding.
+
+- **Iteration 1** — three findings on stale SHAs `e7ba5711` and `38f5a04c`
+  (`Filesystem.php` NETWORK_PATH `strpos`/`substr`, `Asset::getPath()` returns `false`,
+  `Asset::getContent()` + `FileAsset::getContent()` return nullable `$content`).
+  Verifier `OVERALL: FAIL` → mini-loop → fix commit `5e81f74d` → re-verify
+  `OVERALL: PASS` against new HEAD.
+- **Iteration 2** — one follow-up finding on stale SHA `1cafe817`
+  (`FileAsset::getPath()` calls `file_exists($this->source)` without a null guard).
+  Verifier `OVERALL: FAIL` → mini-loop → fix commit `aad6c2df` → re-verify
+  `OVERALL: PASS` against new HEAD.
+
+After Iteration 2, Bugbot has not yet posted a fresh review on `aad6c2df` (Pro-tier
+reviews can take ~15 min and the workflow never waits synchronously). The user reviews
+any post-peek findings manually before merging.
 
 ---
 
