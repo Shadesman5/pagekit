@@ -100,14 +100,16 @@ class UrlProvider
     /**
      * Gets the URL appending the URI to the base URI.
      *
-     * @param  string $path
+     * @param  string|null $path
      * @param  mixed  $parameters
      * @param  mixed  $referenceType
      * @return string
      */
     public function get($path = '', $parameters = [], $referenceType = UrlGenerator::ABSOLUTE_PATH)
     {
-        if (0 === strpos($path ?? '', '@')) {
+        $path ??= '';
+
+        if (0 === strpos($path, '@')) {
             return $this->getRoute($path, $parameters, $referenceType);
         }
 
@@ -117,7 +119,7 @@ class UrlProvider
             return $path;
         }
 
-        return $this->base($referenceType).'/'.ltrim($path ?? '', '/');
+        return $this->base($referenceType).'/'.ltrim($path, '/');
     }
 
     /**

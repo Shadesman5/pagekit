@@ -319,12 +319,6 @@ parameters:
 			path: app/modules/application/src/Application/Console/Command.php
 
 		-
-			message: '#^Variable \$path on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.variable
-			count: 2
-			path: app/modules/application/src/Application/UrlProvider.php
-
-		-
 			message: '#^PHPDoc tag @param for parameter \$values with type mixed is not subtype of native type array\.$#'
 			identifier: parameter.phpDocType
 			count: 1
