@@ -42,3 +42,28 @@ You are a **code reviewer**, not a tester. Your job is to read and audit code, n
 ## Output discipline (strict)
 
 - Output only: either "PASS" or "FAIL" plus a short bullet list of issues (if FAIL). No preamble, no "I have reviewed...", no prose.
+
+## Stale-Bugbot Check (delegated by Orchestrator after Final Test PASS)
+
+When the Orchestrator delegates with a Bugbot review on a stale commit SHA that flags potential issues, your task is to **statically determine whether the flagged issue has been resolved by any commit between the Bugbot SHA and HEAD**. Same boundaries as your normal review: no test runs, no application commands.
+
+**Input from Orchestrator:**
+- Bugbot review body (verbatim)
+- Bugbot review commit SHA (`<bugbot-sha>`)
+- Current HEAD SHA
+
+**Procedure:**
+
+1. **Parse the Bugbot body** — extract the file path, line number (if given), and the specific issue (e.g. "`strpos()` returning false passed to `substr()` without guard").
+2. **Inspect the commit range** — `git log --oneline <bugbot-sha>..HEAD -- <file>` to see whether the flagged file was touched at all in that range.
+3. **Compare states** — `git diff <bugbot-sha>..HEAD -- <file>` and read the current state of the flagged code path.
+4. **Decide**:
+   - The specific issue Bugbot flagged is gone (line was rewritten, function was refactored, unsafe pattern is no longer present) → **PASS**.
+   - The flagged file was not touched at all between `<bugbot-sha>..HEAD`, OR the file was touched but the specific flagged code path is unchanged → **FAIL**.
+
+**Output:**
+
+- **PASS** — single line: `PASS — <one-line confirmation, e.g. "UrlProvider.php:34 NETWORK_PATH branch now guards strpos() return">`
+- **FAIL** — single line: `FAIL — <one-line confirmation, e.g. "UrlProvider.php:34 still calls substr(strpos(...)) without false-guard">`
+
+The Orchestrator then either proceeds to Finalize (PASS) or starts a mini-loop with the Bugbot body as Refactorer input (FAIL).

@@ -125,12 +125,17 @@ Task Prompt (one Roadmap Step X.Y)
 │   Single `gh api repos/.../pulls/$PR/reviews` call. Read    │
 │   the latest review where author.login == "cursor".         │
 │   Decision matrix:                                          │
-│     • no review yet OR review on stale SHA  → proceed       │
-│     • review on latest SHA, body matches                    │
-│       /found [0-9]+ potential issue/         → mini-loop    │
+│     • no review yet                          → proceed      │
+│     • review on latest SHA, no issue text    → proceed      │
+│     • review on latest SHA, found N issues   → mini-loop    │
 │       (Refactorer → Verifier → Tester →                     │
-│       push fix → re-run Final Test → re-peek)               │
-│     • review on latest SHA without issue text → proceed     │
+│        push fix → re-run Final Test → re-peek)              │
+│     • review on stale SHA, found N issues    → Verifier     │
+│       Stale-Bugbot Check (static code review of             │
+│        <bugbot-sha>..HEAD): PASS → proceed,                 │
+│        FAIL → mini-loop with Bugbot body as Refactorer      │
+│        input                                                │
+│     • review on stale SHA, no issue text     → proceed      │
 │   NEVER wait for Bugbot to finish (Pro tier ≤ ~15 min).     │
 │   The user reviews remaining findings manually before merge.│
 └─────────────────────────────────────────────────────────────┘
@@ -166,13 +171,17 @@ Tester runs in parallel: (a) `gh run watch` on the four PHP Quality CI jobs, (b)
 
 ## Bugbot Quick-Peek (non-blocking, after Final Test PASS)
 
-Single `gh api repos/<owner>/<repo>/pulls/$PR/reviews` call. Decision matrix:
+Single `gh api repos/<owner>/<repo>/pulls/$PR/reviews` call. Read the latest review where `author.login == "cursor"`. Decision matrix:
 
-- No Cursor-Bugbot review yet **OR** review on a stale commit SHA → proceed.
-- Review on latest SHA, body matches `/found [0-9]+ potential issue/` → mini-loop (Refactorer → Verifier → Tester → push fix → re-run Final Test → re-peek).
-- Review on latest SHA, no issue text → proceed.
+- **No Cursor-Bugbot review yet** → proceed (Bugbot still working; the user reviews remaining findings manually before merging).
+- **Review on latest SHA, no issue text** → proceed.
+- **Review on latest SHA, body matches `/found [0-9]+ potential issue/`** → mini-loop (Refactorer → Verifier → Tester → push fix → re-run Final Test → re-peek).
+- **Review on a stale commit SHA, body matches `/found [0-9]+ potential issue/`** → **delegate to Verifier** with the Bugbot review body, the Bugbot review SHA, and `HEAD` SHA. Verifier statically checks whether the specific issue Bugbot flagged has been resolved by any commit in `<bugbot-sha>..HEAD` (see `.cursor/agents/verifier.md` § Stale-Bugbot Check). Verifier output: PASS (issue resolved) → proceed to Finalize. FAIL (issue still present) → mini-loop with the Bugbot body as Refactorer input.
+- **Review on a stale commit SHA, no issue text** → proceed (the older review didn't flag anything).
 
 NEVER wait for Bugbot to finish (Pro tier can take ~15 minutes). The user reviews remaining findings manually before merging.
+
+**Why the stale-SHA branch is not "blind proceed":** Earlier versions of this workflow treated stale-SHA Bugbot reviews as "the bug is probably already fixed by a later commit" and proceeded silently. That assumption is false — a later commit can fix an unrelated bug while leaving the Bugbot-flagged one untouched. The Verifier check above closes that loophole at near-zero token cost (single static code read).
 
 ## Finalize (after Bugbot peek → proceed)
 
