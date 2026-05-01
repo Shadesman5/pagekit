@@ -29,7 +29,7 @@ class FileAsset extends Asset
             $time = filemtime($path);
         }
 
-        return hash('crc32b', $this->source.$time.$salt);
+        return hash('crc32b', ($this->source ?? '').$time.$salt);
     }
 
     /**
@@ -37,7 +37,7 @@ class FileAsset extends Asset
      */
     public function getPath(): string
     {
-        return file_exists($this->source) ? $this->source : '';
+        return $this->source !== null && file_exists($this->source) ? $this->source : '';
     }
 
     public function __toString()

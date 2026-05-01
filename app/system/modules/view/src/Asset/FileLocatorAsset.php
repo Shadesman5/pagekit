@@ -24,7 +24,7 @@ class FileLocatorAsset extends FileAsset
     public function getSource(): string
     {
         if (!($path = $this->getPath())) {
-            return parent::getSource();
+            return parent::getSource() ?? '';
         }
 
         $path = self::$file->getUrl($path);
