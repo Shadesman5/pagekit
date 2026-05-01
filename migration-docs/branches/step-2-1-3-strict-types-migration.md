@@ -79,7 +79,7 @@ request lifecycle).
 
 ### `phpstan-baseline.neon` (surgical removal only)
 
-Six entries removed because the underlying error was eliminated by a code fix:
+Seven entries removed because the underlying error was eliminated by a code fix:
 
 - `StreamWrapper.php` — `mkdir() expects bool, int given` (resolved by `(bool)` cast)
 - `ArchiveCommand.php` — `addOption() $shortcut expects array|string|null, false given` (resolved by `false` → `null`)
@@ -87,8 +87,9 @@ Six entries removed because the underlying error was eliminated by a code fix:
 - `DefaultCsrfProvider.php` — `uniqid() expects string, int given` (resolved by `(string)` cast)
 - `SessionCsrfProvider.php` — `uniqid() expects string, int given` (resolved by `(string)` cast)
 - `NodesListener.php` — two `strcmp() expects string, int given` (resolved by `<=>`)
+- `Asset.php` — `Method getPath() should return string but returns false` (resolved by returning `''` instead of `false`)
 
-Diff shape: **6 entries removed, 0 entries added.** No regeneration.
+Diff shape: **7 entries removed, 0 entries added.** No regeneration.
 
 ### `.php-cs-fixer.php`
 
@@ -116,6 +117,7 @@ exits 0 — every PHP file in the project now satisfies the rule.
 | `7deeb69d` | `refactor(types): sweep up missed strict_types files` | #11 |
 | `e7ba5711` | `chore(cs-fixer): enable declare_strict_types rule` | #12 |
 | `f8b7b1c6` | `fix(types): resolve runtime TypeErrors surfaced by strict_types` | final-test mini-loop |
+| `5e81f74d` | `fix(types): resolve Bugbot-flagged strict_types regressions` | Bugbot stale-SHA mini-loop |
 
 Commits `4627a6c4` … `e7ba5711` map 1:1 to Checklist Steps 1–12 in
 `.cursor/tickets/PROMPT_2_1_3_Strict-Types-Migration_plan.md`.
@@ -124,6 +126,16 @@ Commits `4627a6c4` … `e7ba5711` map 1:1 to Checklist Steps 1–12 in
 `php pagekit setup` and Playwright E2E exercise the strict-mode HTTP request lifecycle
 (node sorting, URL building, asset path resolution, CSRF token generation, theme
 function return paths, console option declarations).
+
+`5e81f74d` resolves three additional `strict_types` regressions surfaced by Cursor
+Bugbot's static review: a missed `strpos()`/`substr()` guard in `Filesystem::getUrl()`
+NETWORK_PATH branch (parity with the ABSOLUTE_PATH branch fixed earlier), `Asset::getPath()`
+still returning `false` despite the `FileAsset` subclass having been updated, and
+`Asset::getContent()` / `FileAsset::getContent()` returning the nullable `$this->content`
+property under a `: string` return type. The findings reached HEAD via the workflow's
+new **stale-Bugbot Verifier check** (`.cursor/agents/verifier.md` § Stale-Bugbot Check) —
+when Bugbot's review SHA is older than HEAD, the Verifier statically diffs the flagged
+file against current state instead of letting the Orchestrator silently proceed.
 
 ---
 
@@ -162,21 +174,23 @@ function return paths, console option declarations).
   - `tests/e2e/specs/02-core/authentication.spec.js` — **14/14 passed** (login, logout, CSRF, rate limiting, remember-me, sessions).
   - `tests/e2e/specs/02-core/dashboard.spec.js` — **10/10 passed** (load, widgets, navigation, responsive).
 
-### Remote CI (PR #201, latest SHA `f8b7b1c6`, run `25195012112`)
+### Remote CI
 
-- ✅ `phpunit (8.2)` — passed (22 s)
-- ✅ `phpunit (8.3)` — passed (27 s)
-- ✅ `phpstan` — passed (28 s)
-- ✅ `cs-fixer` — passed (18 s)
-- ✅ `security-audit` — passed (11 s)
+- **Run `25195918220` (latest SHA `5e81f74d`)** — `phpunit (8.2)` ✅ (24 s), `phpunit (8.3)` ✅ (26 s), `phpstan` ✅ (25 s), `cs-fixer` ✅ (19 s), `security-audit` ✅ (12 s).
+- Run `25195012112` (SHA `f8b7b1c6`) — same matrix, all 5 jobs green.
 
 ### Bugbot quick-peek
 
-The latest Cursor-Bugbot review on PR #201 was submitted against the previous SHA
-(`e7ba5711`), not the current head (`f8b7b1c6`). Per the orchestrator workflow's Bugbot
-quick-peek decision matrix (review on stale SHA → proceed) the orchestrator proceeded to
-Finalize. Any later Bugbot finding on the latest SHA is for the user to review manually
-before merging.
+The Bugbot quick-peek surfaced **three findings** on stale SHAs (`e7ba5711` and
+`38f5a04c`) — under the **revised** decision matrix (`.cursor/rules/orchestrator-subagent-workflow.mdc`
+§ Bugbot Quick-Peek), stale-SHA reviews flagging issues are no longer "blind proceed".
+The Verifier ran the new **Stale-Bugbot Check** (`.cursor/agents/verifier.md` §
+Stale-Bugbot Check), statically diffed the flagged files against HEAD, and confirmed
+all three issues were still present. The Orchestrator entered the standard mini-loop
+(Refactorer → Verifier → Tester → push fix → re-run Final Test → re-peek), produced the
+fix commit `5e81f74d`, and re-verified the same three findings as resolved on the new
+HEAD. Final CI run `25195918220` (SHA `5e81f74d`) is green; local Playwright E2E (3
+specs) green; Stale-Bugbot Check `OVERALL: PASS`.
 
 ---
 

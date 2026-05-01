@@ -1,6 +1,6 @@
 # **🗺️ Pagekit Modernization Roadmap & Rules**
 
-> **Current Version**: 1.2.16
+> **Current Version**: 1.2.17
 > **Current Step**: 2.1.4 (PHPStan Level 5→6 — Return Types)
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**
