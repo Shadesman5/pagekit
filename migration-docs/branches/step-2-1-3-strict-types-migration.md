@@ -26,8 +26,8 @@ guard against `false`/`null`/`int` where a `string` was expected). No shims, no
 
 The `phpstan-baseline.neon` was *not* regenerated. Instead, every entry that became
 "unmatched" because the underlying error was eliminated by a strict-mode fix was
-**surgically removed** (six entries total). Wholesale baseline regeneration is explicitly
-forbidden for this step — it would mask new strict-mode errors.
+**surgically removed** (seven entries total). Wholesale baseline regeneration is
+explicitly forbidden for this step — it would mask new strict-mode errors.
 
 The migration was executed in **12 sequential checklist steps** (one commit each), grouped
 by module risk profile. Steps 1–10 add `strict_types` to 651 in-scope files; Step 11

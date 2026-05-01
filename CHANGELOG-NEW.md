@@ -1,36 +1,5 @@
 # Changelog
 
-## Pagekit 1.2.17 - `strict_types` Bugbot mini-loop (May 1, 2026)
-
-### Strict Typing (continued)
-
-- **Three additional `strict_types` regressions resolved**, surfaced by Cursor Bugbot's static review and routed through the workflow's new **stale-Bugbot Verifier check** (`.cursor/agents/verifier.md` § Stale-Bugbot Check, `.cursor/rules/orchestrator-subagent-workflow.mdc` § Bugbot Quick-Peek). Previously, stale-SHA Bugbot reviews were silently skipped on the assumption that any later commit would have addressed the issue — that assumption was false. The Verifier now diffs `<bugbot-sha>..HEAD` for the flagged file(s) and only proceeds to Finalize if the specific flagged code path was demonstrably rewritten. Findings (all in PR #201, fixed by commit `5e81f74d`):
-  - **`app/modules/filesystem/src/Filesystem.php`** — `Filesystem::getUrl()` `NETWORK_PATH` branch still passed the raw `strpos($url, '//')` result directly into `substr()`. The earlier mini-loop had patched the `ABSOLUTE_PATH` branch but missed this one. Fix: capture the result, guard with `$pos !== false`, fall back to the original URL on no-match — same pattern as the sibling branch.
-  - **`app/modules/view/src/Asset/Asset.php`** — base class `Asset::getPath()` declared `: string` but returned `false` on miss. The `FileAsset` subclass had been corrected earlier in the step, but the base method was missed. Fix: return `''` instead of `false` (call sites use truthiness checks; behavior unchanged).
-  - **`app/modules/view/src/Asset/Asset.php`** + **`app/modules/view/src/Asset/FileAsset.php`** — `getContent()` declared `: string` but returned the nullable `?string $content` property; `null` is rejected under `strict_types=1`. Fix: `$this->content ?? ''` in both classes; `FileAsset::getContent()` additionally null-coalesces the `file_get_contents()` return value to `''`.
-
-### PHPStan Baseline (continued)
-
-- **One additional obsolete entry surgically removed** from `phpstan-baseline.neon`: `Method Pagekit\View\Asset\Asset::getPath() should return string but returns false` — eliminated by the `Asset::getPath()` `false` → `''` fix above. Cumulative diff for Step 2.1.3: **7 entries removed, 0 added.** No regeneration.
-
-### Workflow
-
-- **`Bugbot quick-peek decision matrix updated`** in `.cursor/rules/orchestrator-subagent-workflow.mdc`. Previous behavior: stale-SHA Bugbot review with issue text → silently proceed. New behavior: stale-SHA Bugbot review with issue text → Orchestrator delegates to **Verifier** with the Bugbot review body + Bugbot-SHA + HEAD-SHA. Verifier runs a single static `git log <bugbot-sha>..HEAD -- <file>` + `git diff <bugbot-sha>..HEAD -- <file>` plus a current-state read, and emits `PASS` (issue resolved by a later commit) or `FAIL` (issue still present, mini-loop runs with the Bugbot body as Refactorer input). Cost: one extra Verifier delegation per stale Bugbot review with findings. Benefit: stale-SHA findings can no longer slip past the gate. The fully revised text is in `.cursor/rules/orchestrator-subagent-workflow.mdc` § Bugbot Quick-Peek and the matching procedure section in `.cursor/agents/verifier.md` § Stale-Bugbot Check.
-- **Architect template + handoff message** aligned in `.cursor/agents/architect.md` to match the CI-driven Final Test ordering already documented in `.cursor/rules/orchestrator-subagent-workflow.mdc` (Early Push → Final Test → Bugbot quick-peek → Finalize). No agent runtime behavior changes; documentation parity only.
-
-### Tests
-
-- **Per-step gate (Tester subagent)** — after the mini-loop fix commit `5e81f74d`: `./app/vendor/bin/phpunit` (326 tests, 0 failures), `./app/vendor/bin/phpstan analyse` (no errors), `git diff --quiet phpstan-baseline.neon` clean except for the single intentional surgical removal.
-- **Final gate (Tester subagent)** — full closure run on `5e81f74d`: PHPUnit + PHPStan + `php pagekit setup` + `php pagekit list` (all exit 0) + Playwright E2E on chromium per `AGENTS.md`: `installation.spec.js` (1/1, ~11 s), `authentication.spec.js` (14/14, ~1 m), `dashboard.spec.js` (10/10, ~33 s). All green.
-- **Remote CI run** — PR #201 SHA `5e81f74d` run `25195918220`: `phpunit (8.2)` ✅ (24 s), `phpunit (8.3)` ✅ (26 s), `phpstan` ✅ (25 s), `cs-fixer` ✅ (19 s), `security-audit` ✅ (12 s).
-- **Bugbot re-peek** — Bugbot has not yet posted a fresh review on the new HEAD `5e81f74d` (Pro-tier reviews can take up to ~15 min; we never wait synchronously). The three findings on the previous review (stale SHA `38f5a04c`) were re-verified by the Stale-Bugbot Check against `5e81f74d` and all three are confirmed resolved (`OVERALL: PASS`). The user reviews any post-peek findings manually before merging.
-
-### Internal
-
-- **Step 2.1.3** row in `.cursor/ROADMAP.md` already closed in 1.2.16; this release adds no ROADMAP changes.
-
----
-
 ## Pagekit 1.2.16 - `strict_types` Migration (April 30, 2026)
 
 ### Strict Typing
@@ -55,26 +24,34 @@
 - **`app/system/modules/site/src/Event/NodesListener.php`** — `strcmp(int, int)` is invalid under strict types; replaced with the spaceship operator (`<=>`) and reverse operands for descending sort. Also modernized to an arrow function (`fn($a, $b) => ...`).
 - **`app/system/modules/view/src/Asset/FileLocatorAsset.php`** + **`app/modules/view/src/Asset/FileAsset.php`** — `getPath()` was declared `: string` but returned `false` on miss; both now return `''`. Every call site uses truthiness checks (`if ($path = $this->getPath())`), so empty string still triggers the failure path identically to `false`.
 - **`packages/pagekit/theme-one/functions.php`** — `isImage()` was declared `: bool` but the function body returned `string|false` (the matched extension or `false`). Return type corrected to `string|false` to match the actual behavior; call sites in `offcanvas.php` / `header-logo.php` use the value as a string.
+- **`app/modules/filesystem/src/Filesystem.php`** — `Filesystem::getUrl()` `NETWORK_PATH` branch (in addition to the `parse_url()` cast already shipped earlier) still passed the raw `strpos($url, '//')` result directly into `substr()`. The earlier mini-loop had patched the `ABSOLUTE_PATH` branch but missed this one. Fix: capture the result, guard with `$pos !== false`, fall back to the original URL on no-match — same pattern as the sibling branch. **(Bugbot mini-loop addition.)**
+- **`app/modules/view/src/Asset/Asset.php`** — base class `Asset::getPath()` declared `: string` but returned `false` on miss. The `FileAsset` and `FileLocatorAsset` subclasses had been corrected earlier, but the base method was missed. Fix: return `''` instead of `false` (call sites use truthiness checks; behavior unchanged). **(Bugbot mini-loop addition.)**
+- **`app/modules/view/src/Asset/Asset.php`** + **`app/modules/view/src/Asset/FileAsset.php`** — `getContent()` declared `: string` but returned the nullable `?string $content` property; `null` is rejected under `strict_types=1`. Fix: `$this->content ?? ''` in both classes; `FileAsset::getContent()` additionally null-coalesces the `file_get_contents()` return value to `''`. **(Bugbot mini-loop addition.)**
 
 ### PHPStan Baseline (surgical removals only — no regeneration)
 
-- **6 obsolete entries removed** from `phpstan-baseline.neon`, each directly traceable to a code fix in this step that eliminated the underlying error: `StreamWrapper.php` `mkdir bool/int`, `ArchiveCommand.php` `addOption false`, `UrlProvider.php` `nullCoalesce.variable`, `DefaultCsrfProvider.php` `uniqid int`, `SessionCsrfProvider.php` `uniqid int`, two `NodesListener.php` `strcmp int/int`. Diff shape: **6 entries removed, 0 entries added.** Wholesale baseline regeneration was forbidden by the architect plan and is explicitly rejected — disappearing errors are the positive signal of strict-mode compliance, not noise to absorb.
+- **7 obsolete entries removed** from `phpstan-baseline.neon`, each directly traceable to a code fix in this step that eliminated the underlying error: `StreamWrapper.php` `mkdir bool/int`, `ArchiveCommand.php` `addOption false`, `UrlProvider.php` `nullCoalesce.variable`, `DefaultCsrfProvider.php` `uniqid int`, `SessionCsrfProvider.php` `uniqid int`, two `NodesListener.php` `strcmp int/int`, `Asset.php` `getPath() should return string but returns false`. Diff shape: **7 entries removed, 0 entries added.** Wholesale baseline regeneration was forbidden by the architect plan and is explicitly rejected — disappearing errors are the positive signal of strict-mode compliance, not noise to absorb.
 
 ### Documentation
 
-- **Branch documentation** added: `migration-docs/branches/step-2-1-3-strict-types-migration.md` — full change record (12 checklist commits + 1 final-test mini-loop commit, ~745 file additions, 14 call-site fixes, 6 baseline removals), No-Mercy compliance table, per-step + final test results (PHPUnit / PHPStan / `php pagekit setup` / `php pagekit list` / Playwright E2E), and the deferred-work table (Steps 2.1.4 / 2.1.5 / 2.1.6 / 2.1.7 / 2.1.8 / 2.1.9).
+- **Branch documentation** added: `migration-docs/branches/step-2-1-3-strict-types-migration.md` — full change record (12 checklist commits + 2 mini-loop fix commits, ~745 file additions, 17 call-site fixes, 7 baseline removals), No-Mercy compliance table, per-step + final test results (PHPUnit / PHPStan / `php pagekit setup` / `php pagekit list` / Playwright E2E), and the deferred-work table (Steps 2.1.4 / 2.1.5 / 2.1.6 / 2.1.7 / 2.1.8 / 2.1.9).
 
 ### Internal
 
 - **Step 2.1.3 (`strict_types` Migration)** marked ✅ in `.cursor/ROADMAP.md`; `Current Step` header pointer advances from `2.1.3` to `2.1.4` (PHPStan Level 5 → 6 — Return Types). No new sub-step rows inserted; no new GitHub issues filed.
 - **No-Mercy compliance** — zero shims, zero adapters, zero `@deprecated` markers, zero new in-code TODOs introduced. Deferred work explicitly listed in `.cursor/tickets/PROMPT_2_1_3_Strict-Types-Migration_plan.md` ("Deferred:" section) and routed to the relevant future steps.
 
+### Workflow
+
+- **Bugbot quick-peek decision matrix tightened** in `.cursor/rules/orchestrator-subagent-workflow.mdc`. Previous behavior: stale-SHA Bugbot review with issue text → silently proceed. New behavior: stale-SHA Bugbot review with issue text → Orchestrator delegates to **Verifier** with the inline-comment list (`path:line:body`), Bugbot-SHA, and HEAD-SHA. Verifier runs a single static `git log <bugbot-sha>..HEAD -- <file>` + `git diff <bugbot-sha>..HEAD -- <file>` plus a current-state read per finding, and emits `OVERALL: PASS` (all issues resolved by later commits) or `OVERALL: FAIL` (one or more still present, mini-loop runs with the remaining findings as Refactorer input). Cost: one extra Verifier delegation per stale Bugbot review with findings. Benefit: stale-SHA findings can no longer slip past the gate. The actionable detail (file/line) lives in the review's per-comment payload, not in its top-level marketing body — the new procedure makes that explicit. Documented in `.cursor/rules/orchestrator-subagent-workflow.mdc` § Bugbot Quick-Peek and `.cursor/agents/verifier.md` § Stale-Bugbot Check.
+- **Architect template + handoff message** aligned in `.cursor/agents/architect.md` to match the CI-driven Final Test ordering already documented in `.cursor/rules/orchestrator-subagent-workflow.mdc` (Early Push → Final Test → Bugbot quick-peek → Finalize). Documentation parity only; no agent runtime behavior change.
+
 ### Tests
 
-- **Per-step gates (Tester subagent)** — after every Checklist commit (Steps 1–12 + final mini-loop): `./app/vendor/bin/phpunit` (326 tests, 0 failures throughout), `./app/vendor/bin/phpstan analyse --no-progress --memory-limit=512M` (no errors throughout), and `git diff --quiet phpstan-baseline.neon` (clean except where surgical removals were intentional). Step 11 additionally asserted `find ... -exec grep -L 'declare(strict_types' {} \; | wc -l` → `0`. Step 12 additionally asserted `php-cs-fixer fix --dry-run` exit 0.
-- **Final gate (Tester subagent)** — full closure run on `f8b7b1c6`: PHPUnit + PHPStan + `php pagekit setup` (exit 0, "Done") + `php pagekit list` (exit 0, full command list) + Playwright E2E on chromium per `AGENTS.md`: `installation.spec.js` (1/1), `authentication.spec.js` (14/14), `dashboard.spec.js` (10/10). All green.
-- **Remote CI run** — PR #201 SHA `f8b7b1c6` run `25195012112`: `phpunit (8.2)` ✅, `phpunit (8.3)` ✅, `phpstan` ✅, `cs-fixer` ✅, `security-audit` ✅.
-- **Bugbot quick-peek** — latest Bugbot review submitted on stale SHA `e7ba5711`; per orchestrator workflow decision matrix (stale → proceed) the Finalize step proceeded. The user reviews any post-peek findings manually before merging.
+- **Per-step gates (Tester subagent)** — after every Checklist commit (Steps 1–12) and both mini-loop fix commits: `./app/vendor/bin/phpunit` (326 tests, 0 failures throughout), `./app/vendor/bin/phpstan analyse --no-progress --memory-limit=512M` (no errors throughout), and `git diff --quiet phpstan-baseline.neon` (clean except where surgical removals were intentional). Step 11 additionally asserted `find ... -exec grep -L 'declare(strict_types' {} \; | wc -l` → `0`. Step 12 additionally asserted `php-cs-fixer fix --dry-run` exit 0.
+- **Final gate (Tester subagent)** — full closure run executed twice (after each mini-loop fix): PHPUnit + PHPStan + `php pagekit setup` (exit 0, "Done") + `php pagekit list` (exit 0, full command list) + Playwright E2E on chromium per `AGENTS.md`: `installation.spec.js` (1/1, ~11 s), `authentication.spec.js` (14/14, ~1 m), `dashboard.spec.js` (10/10, ~33 s). All green on the latest SHA.
+- **Remote CI runs** — Run `25195012112` (SHA `f8b7b1c6`): all 5 jobs ✅. Run `25195918220` (SHA `5e81f74d`): `phpunit (8.2)` ✅ (24 s), `phpunit (8.3)` ✅ (26 s), `phpstan` ✅ (25 s), `cs-fixer` ✅ (19 s), `security-audit` ✅ (12 s).
+- **Bugbot quick-peek** — three findings on stale SHAs `e7ba5711` / `38f5a04c` (`Filesystem.php` NETWORK_PATH, `Asset::getPath()`, `Asset::getContent()` + `FileAsset::getContent()`) caught by the new Stale-Bugbot Verifier check, fixed in commit `5e81f74d`, re-verified `OVERALL: PASS` against the updated HEAD. Bugbot's own re-review on the new HEAD typically lands within ~15 min — the user reviews any post-peek findings manually before merging.
 
 ---
 
