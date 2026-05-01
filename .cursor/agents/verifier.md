@@ -45,25 +45,35 @@ You are a **code reviewer**, not a tester. Your job is to read and audit code, n
 
 ## Stale-Bugbot Check (delegated by Orchestrator after Final Test PASS)
 
-When the Orchestrator delegates with a Bugbot review on a stale commit SHA that flags potential issues, your task is to **statically determine whether the flagged issue has been resolved by any commit between the Bugbot SHA and HEAD**. Same boundaries as your normal review: no test runs, no application commands.
+When the Orchestrator delegates with Bugbot inline comments on a stale commit SHA, your task is to **statically determine whether each flagged issue has been resolved by any commit between the Bugbot SHA and HEAD**. Same boundaries as your normal review: no test runs, no application commands.
 
 **Input from Orchestrator:**
-- Bugbot review body (verbatim)
-- Bugbot review commit SHA (`<bugbot-sha>`)
-- Current HEAD SHA
+- `COMMENTS` — JSON array of Bugbot inline comments, each `{path, line, body}` (the actual issue details — Bugbot's review-level `body` is just marketing text, ignore it).
+- `<bugbot-sha>` — the commit Bugbot reviewed.
+- `HEAD` — the current branch tip.
 
-**Procedure:**
+**Procedure (per comment):**
 
-1. **Parse the Bugbot body** — extract the file path, line number (if given), and the specific issue (e.g. "`strpos()` returning false passed to `substr()` without guard").
-2. **Inspect the commit range** — `git log --oneline <bugbot-sha>..HEAD -- <file>` to see whether the flagged file was touched at all in that range.
-3. **Compare states** — `git diff <bugbot-sha>..HEAD -- <file>` and read the current state of the flagged code path.
-4. **Decide**:
-   - The specific issue Bugbot flagged is gone (line was rewritten, function was refactored, unsafe pattern is no longer present) → **PASS**.
-   - The flagged file was not touched at all between `<bugbot-sha>..HEAD`, OR the file was touched but the specific flagged code path is unchanged → **FAIL**.
+1. **Inspect the commit range for this file** — `git log --oneline <bugbot-sha>..HEAD -- <comment.path>` to see whether the flagged file was touched at all.
+2. **Compare states** — `git diff <bugbot-sha>..HEAD -- <comment.path>` and read the current state of the code at `<comment.line>` (or the function/method that contained `<comment.line>` at `<bugbot-sha>` — line numbers shift after edits).
+3. **Decide for this single comment**:
+   - The specific issue Bugbot flagged in `comment.body` is gone (line was rewritten, function was refactored, unsafe pattern is no longer present, or guard was added) → **resolved**.
+   - The flagged file was not touched at all between `<bugbot-sha>..HEAD`, OR the file was touched but the specific flagged code path is unchanged → **still present**.
+
+**Aggregate:**
+
+- **All comments resolved** → emit `PASS`.
+- **One or more comments still present** → emit `FAIL` and list which.
 
 **Output:**
 
-- **PASS** — single line: `PASS — <one-line confirmation, e.g. "UrlProvider.php:34 NETWORK_PATH branch now guards strpos() return">`
-- **FAIL** — single line: `FAIL — <one-line confirmation, e.g. "UrlProvider.php:34 still calls substr(strpos(...)) without false-guard">`
+- `PASS — <count> Bugbot finding(s) verified resolved in <bugbot-sha>..HEAD`
+  - Example: `PASS — 1 Bugbot finding verified resolved in e7ba5711..HEAD`
+- `FAIL — <count> Bugbot finding(s) still present:` followed by one bullet per still-present comment in the form `<path>:<line> — <one-line restatement of the issue>`
+  - Example:
+    ```
+    FAIL — 1 Bugbot finding still present:
+    - app/system/modules/site/Providers/UrlProvider.php:34 — NETWORK_PATH branch still passes raw strpos() result to substr() without false-guard
+    ```
 
-The Orchestrator then either proceeds to Finalize (PASS) or starts a mini-loop with the Bugbot body as Refactorer input (FAIL).
+The Orchestrator either proceeds to Finalize (PASS) or starts a mini-loop with the still-present comments as Refactorer input (FAIL).

@@ -122,20 +122,25 @@ Task Prompt (one Roadmap Step X.Y)
     ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ BUGBOT QUICK-PEEK (Orchestrator, non-blocking)              │
-│   Single `gh api repos/.../pulls/$PR/reviews` call. Read    │
-│   the latest review where author.login == "cursor".         │
+│   Two `gh api` calls. The review BODY is marketing text     │
+│   only; the actual file/line/description sit in the         │
+│   review's inline COMMENTS, fetched separately.             │
+│     1. .../pulls/$PR/reviews → latest cursor-bot review     │
+│        → REVIEW_ID, REVIEW_SHA                              │
+│     2. .../pulls/$PR/reviews/$REVIEW_ID/comments            │
+│        → COMMENTS list [{path, line, body}, ...]            │
+│        → COUNT = length(COMMENTS)                           │
 │   Decision matrix:                                          │
 │     • no review yet                          → proceed      │
-│     • review on latest SHA, no issue text    → proceed      │
-│     • review on latest SHA, found N issues   → mini-loop    │
-│       (Refactorer → Verifier → Tester →                     │
-│        push fix → re-run Final Test → re-peek)              │
-│     • review on stale SHA, found N issues    → Verifier     │
-│       Stale-Bugbot Check (static code review of             │
-│        <bugbot-sha>..HEAD): PASS → proceed,                 │
-│        FAIL → mini-loop with Bugbot body as Refactorer      │
-│        input                                                │
-│     • review on stale SHA, no issue text     → proceed      │
+│     • COUNT == 0                             → proceed      │
+│     • REVIEW_SHA == HEAD, COUNT > 0          → mini-loop    │
+│       (pass COMMENTS to Refactorer as the fix list;         │
+│        Verifier → Tester → push fix → re-peek)              │
+│     • REVIEW_SHA != HEAD, COUNT > 0          → Verifier     │
+│       Stale-Bugbot Check (static review of each             │
+│        comment in <REVIEW_SHA>..HEAD): PASS → proceed,      │
+│        FAIL → mini-loop with the still-present comments     │
+│        as Refactorer input                                  │
 │   NEVER wait for Bugbot to finish (Pro tier ≤ ~15 min).     │
 │   The user reviews remaining findings manually before merge.│
 └─────────────────────────────────────────────────────────────┘
@@ -171,17 +176,33 @@ Tester runs in parallel: (a) `gh run watch` on the four PHP Quality CI jobs, (b)
 
 ## Bugbot Quick-Peek (non-blocking, after Final Test PASS)
 
-Single `gh api repos/<owner>/<repo>/pulls/$PR/reviews` call. Read the latest review where `author.login == "cursor"`. Decision matrix:
+Two `gh api` calls. The review object itself only carries marketing text in its `body` ("Cursor Bugbot has reviewed your changes and found N potential issue(s)") — the **actual issue details (file, line, description) live in the review's inline comments**, fetched via a second call.
 
-- **No Cursor-Bugbot review yet** → proceed (Bugbot still working; the user reviews remaining findings manually before merging).
-- **Review on latest SHA, no issue text** → proceed.
-- **Review on latest SHA, body matches `/found [0-9]+ potential issue/`** → mini-loop (Refactorer → Verifier → Tester → push fix → re-run Final Test → re-peek).
-- **Review on a stale commit SHA, body matches `/found [0-9]+ potential issue/`** → **delegate to Verifier** with the Bugbot review body, the Bugbot review SHA, and `HEAD` SHA. Verifier statically checks whether the specific issue Bugbot flagged has been resolved by any commit in `<bugbot-sha>..HEAD` (see `.cursor/agents/verifier.md` § Stale-Bugbot Check). Verifier output: PASS (issue resolved) → proceed to Finalize. FAIL (issue still present) → mini-loop with the Bugbot body as Refactorer input.
-- **Review on a stale commit SHA, no issue text** → proceed (the older review didn't flag anything).
+```bash
+# 1. Latest Cursor-Bugbot review (commit SHA + review id)
+LATEST=$(gh api repos/<owner>/<repo>/pulls/$PR/reviews \
+  --jq '[.[] | select(.user.login == "cursor")] | last')
+REVIEW_ID=$(echo "$LATEST" | jq -r '.id // empty')
+REVIEW_SHA=$(echo "$LATEST" | jq -r '.commit_id // empty')
+
+# 2. Inline comments of that review (the actual findings)
+COMMENTS=$(gh api repos/<owner>/<repo>/pulls/$PR/reviews/$REVIEW_ID/comments \
+  --jq '[.[] | {path, line, body}]')
+COUNT=$(echo "$COMMENTS" | jq 'length')
+```
+
+Decision matrix:
+
+- **No Cursor-Bugbot review yet** (`LATEST` empty) → proceed (Bugbot still working; the user reviews remaining findings manually before merging).
+- **Review present, COUNT == 0** → proceed (Bugbot ran and flagged nothing, regardless of the body's marketing text).
+- **REVIEW_SHA == HEAD, COUNT > 0** → mini-loop (Refactorer → Verifier → Tester → push fix → re-run Final Test → re-peek). Pass `COMMENTS` verbatim to the Refactorer as the fix list.
+- **REVIEW_SHA != HEAD, COUNT > 0** → **delegate to Verifier** with the inline comments list (`COMMENTS`), `REVIEW_SHA`, and `HEAD` SHA. Verifier statically checks each comment to determine whether its specific issue has been resolved by any commit in `<REVIEW_SHA>..HEAD` (see `.cursor/agents/verifier.md` § Stale-Bugbot Check). Verifier output: PASS (all issues resolved) → proceed to Finalize. FAIL (one or more still present) → mini-loop with the still-present comments as Refactorer input.
 
 NEVER wait for Bugbot to finish (Pro tier can take ~15 minutes). The user reviews remaining findings manually before merging.
 
-**Why the stale-SHA branch is not "blind proceed":** Earlier versions of this workflow treated stale-SHA Bugbot reviews as "the bug is probably already fixed by a later commit" and proceeded silently. That assumption is false — a later commit can fix an unrelated bug while leaving the Bugbot-flagged one untouched. The Verifier check above closes that loophole at near-zero token cost (single static code read).
+**Why two API calls and not one:** The review's `body` field is human-friendly summary text ("found 1 potential issue") and intentionally lacks file/line precision. The actionable detail — what to fix — sits in the per-file inline comments attached to that review. Reading only `body` would force the Verifier to grep blindly across the whole codebase; reading the comments gives him exact `path:line` targets.
+
+**Why the stale-SHA branch is not "blind proceed":** Earlier versions of this workflow treated stale-SHA Bugbot reviews as "the bug is probably already fixed by a later commit" and proceeded silently. That assumption is false — a later commit can fix an unrelated bug while leaving the Bugbot-flagged one untouched. The Verifier check above closes that loophole at near-zero token cost (one static code read per comment).
 
 ## Finalize (after Bugbot peek → proceed)
 
