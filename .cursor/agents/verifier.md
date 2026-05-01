@@ -45,35 +45,35 @@ You are a **code reviewer**, not a tester. Your job is to read and audit code, n
 
 ## Stale-Bugbot Check (delegated by Orchestrator after Final Test PASS)
 
-When the Orchestrator delegates with Bugbot inline comments on a stale commit SHA, your task is to **statically determine whether each flagged issue has been resolved by any commit between the Bugbot SHA and HEAD**. Same boundaries as your normal review: no test runs, no application commands.
+When the Orchestrator delegates with one or more open Bugbot review threads whose `original_commit` is older than HEAD, your task is to **statically determine whether each open thread's flagged issue has been resolved by any commit between that thread's `original_commit` and HEAD**. Same boundaries as your normal review: no test runs, no application commands.
 
 **Input from Orchestrator:**
-- `COMMENTS` — JSON array of Bugbot inline comments, each `{path, line, body}` (the actual issue details — Bugbot's review-level `body` is just marketing text, ignore it).
-- `<bugbot-sha>` — the commit Bugbot reviewed.
-- `HEAD` — the current branch tip.
+- `OPEN` — JSON array of open Bugbot threads pulled from GitHub's `reviewThreads { isResolved: false }` query, each `{path, original_line, original_commit, body}`. Each thread's `original_commit` is the SHA Bugbot reviewed when it first posted that finding (different threads on the same PR can have different `original_commit`s — process per-thread, do not assume one shared SHA).
+- `HEAD_SHA` — the current branch tip.
 
-**Procedure (per comment):**
+**Procedure (per open thread):**
 
-1. **Inspect the commit range for this file** — `git log --oneline <bugbot-sha>..HEAD -- <comment.path>` to see whether the flagged file was touched at all.
-2. **Compare states** — `git diff <bugbot-sha>..HEAD -- <comment.path>` and read the current state of the code at `<comment.line>` (or the function/method that contained `<comment.line>` at `<bugbot-sha>` — line numbers shift after edits).
-3. **Decide for this single comment**:
-   - The specific issue Bugbot flagged in `comment.body` is gone (line was rewritten, function was refactored, unsafe pattern is no longer present, or guard was added) → **resolved**.
-   - The flagged file was not touched at all between `<bugbot-sha>..HEAD`, OR the file was touched but the specific flagged code path is unchanged → **still present**.
+1. **Inspect the commit range for this file** — `git log --oneline <thread.original_commit>..HEAD -- <thread.path>` to see whether the flagged file was touched at all.
+2. **Compare states** — `git diff <thread.original_commit>..HEAD -- <thread.path>` and read the current state of the code at `<thread.original_line>` (or the function/method that contained `<thread.original_line>` at `<thread.original_commit>` — line numbers shift after edits).
+3. **Decide for this single thread**:
+   - The specific issue Bugbot flagged in `thread.body` is gone (line was rewritten, function was refactored, unsafe pattern is no longer present, or guard was added) → **resolved**.
+   - The flagged file was not touched at all between `<thread.original_commit>..HEAD`, OR the file was touched but the specific flagged code path is unchanged → **still present**.
 
 **Aggregate:**
 
-- **All comments resolved** → emit `PASS`.
-- **One or more comments still present** → emit `FAIL` and list which.
+- **All open threads resolved** → emit `OVERALL: PASS`.
+- **One or more open threads still present** → emit `OVERALL: FAIL` and list which.
 
-**Output:**
+**Output (one line per thread, then one overall verdict line):**
 
-- `PASS — <count> Bugbot finding(s) verified resolved in <bugbot-sha>..HEAD`
-  - Example: `PASS — 1 Bugbot finding verified resolved in e7ba5711..HEAD`
-- `FAIL — <count> Bugbot finding(s) still present:` followed by one bullet per still-present comment in the form `<path>:<line> — <one-line restatement of the issue>`
-  - Example:
-    ```
-    FAIL — 1 Bugbot finding still present:
-    - app/system/modules/site/Providers/UrlProvider.php:34 — NETWORK_PATH branch still passes raw strpos() result to substr() without false-guard
-    ```
+- Per thread: `Thread N (<path>:<original_line> @ <original_commit[0:7]>): PASS — <one-line confirmation>` or `Thread N (...): FAIL — <one-line>`
+- Overall verdict: `OVERALL: PASS` (only if every thread is PASS) or `OVERALL: FAIL` (any FAIL).
 
-The Orchestrator either proceeds to Finalize (PASS) or starts a mini-loop with the still-present comments as Refactorer input (FAIL).
+Example:
+```
+Thread 1 (app/modules/filesystem/src/Filesystem.php:32 @ e7ba571): PASS — NETWORK_PATH branch now stores strpos() in $pos and guards $pos !== false
+Thread 2 (app/modules/application/src/Application/UrlProvider.php:200 @ 5e81f74): FAIL — parseQuery() still calls strpos($url, '?') without null guard; $url can still be null from caller
+OVERALL: FAIL
+```
+
+The Orchestrator either proceeds to Finalize (`OVERALL: PASS`) or starts a mini-loop with the still-present threads as Refactorer input (`OVERALL: FAIL`).

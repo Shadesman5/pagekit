@@ -177,33 +177,56 @@ Tester runs in parallel: (a) `gh run watch` on the four PHP Quality CI jobs, (b)
 
 ## Bugbot Quick-Peek (non-blocking, after Final Test PASS)
 
-Two `gh api` calls. The review object itself only carries marketing text in its `body` ("Cursor Bugbot has reviewed your changes and found N potential issue(s)") — the **actual issue details (file, line, description) live in the review's inline comments**, fetched via a second call.
+**One GraphQL call** that returns every Bugbot review thread on the PR with its `isResolved` flag. This is the single source of truth — the per-review REST endpoints are insufficient because Bugbot posts only **newly discovered** findings in each review, not the cumulative list of still-open ones. The review thread state (`isResolved`) is what actually tracks whether a finding has been addressed.
 
 ```bash
-# 1. Latest Cursor-Bugbot review (commit SHA + review id)
-LATEST=$(gh api repos/<owner>/<repo>/pulls/$PR/reviews \
-  --jq '[.[] | select(.user.login == "cursor")] | last')
-REVIEW_ID=$(echo "$LATEST" | jq -r '.id // empty')
-REVIEW_SHA=$(echo "$LATEST" | jq -r '.commit_id // empty')
+THREADS=$(gh api graphql -f query='
+{
+  repository(owner: "<owner>", name: "<repo>") {
+    pullRequest(number: '"$PR"') {
+      reviewThreads(first: 100) {
+        nodes {
+          isResolved
+          comments(first: 1) {
+            nodes {
+              author { login }
+              path
+              originalLine
+              originalCommit { oid }
+              body
+            }
+          }
+        }
+      }
+    }
+  }
+}' --jq '[
+  .data.repository.pullRequest.reviewThreads.nodes[]
+  | select(.comments.nodes[0].author.login == "cursor")
+  | { resolved: .isResolved,
+      path: .comments.nodes[0].path,
+      original_line: .comments.nodes[0].originalLine,
+      original_commit: .comments.nodes[0].originalCommit.oid,
+      body: .comments.nodes[0].body }
+]')
 
-# 2. Inline comments of that review (the actual findings)
-COMMENTS=$(gh api repos/<owner>/<repo>/pulls/$PR/reviews/$REVIEW_ID/comments \
-  --jq '[.[] | {path, line, body}]')
-COUNT=$(echo "$COMMENTS" | jq 'length')
+OPEN=$(echo "$THREADS" | jq '[.[] | select(.resolved == false)]')
+OPEN_COUNT=$(echo "$OPEN" | jq 'length')
+HEAD_SHA=$(gh pr view "$PR" --json headRefOid --jq .headRefOid)
 ```
 
 Decision matrix:
 
-- **No Cursor-Bugbot review yet** (`LATEST` empty) → proceed (Bugbot still working; the user reviews remaining findings manually before merging).
-- **Review present, COUNT == 0** → proceed (Bugbot ran and flagged nothing, regardless of the body's marketing text).
-- **REVIEW_SHA == HEAD, COUNT > 0** → mini-loop (Refactorer → Verifier → Tester → push fix → re-run Final Test → re-peek). Pass `COMMENTS` verbatim to the Refactorer as the fix list.
-- **REVIEW_SHA != HEAD, COUNT > 0** → **delegate to Verifier** with the inline comments list (`COMMENTS`), `REVIEW_SHA`, and `HEAD` SHA. Verifier statically checks each comment to determine whether its specific issue has been resolved by any commit in `<REVIEW_SHA>..HEAD` (see `.cursor/agents/verifier.md` § Stale-Bugbot Check). Verifier output: PASS (all issues resolved) → proceed to Finalize. FAIL (one or more still present) → mini-loop with the still-present comments as Refactorer input.
+- **`THREADS == []`** (no Cursor-Bugbot threads at all) → proceed (Bugbot may still be working; the user reviews remaining findings manually before merging).
+- **`OPEN_COUNT == 0`** → proceed (every Bugbot finding on this PR is resolved, regardless of which commit closed it).
+- **`OPEN_COUNT > 0`, every open thread's `original_commit == HEAD_SHA`** → mini-loop (Refactorer → Verifier → Tester → push fix → re-run Final Test → re-peek). Pass `OPEN` verbatim to the Refactorer as the fix list.
+- **`OPEN_COUNT > 0`, at least one open thread's `original_commit != HEAD_SHA`** (mixed or all-stale) → **delegate to Verifier** with the full `OPEN` list, plus `HEAD_SHA`. Verifier statically checks each open thread to determine whether its specific issue has been resolved by any commit in `<original_commit>..HEAD` (see `.cursor/agents/verifier.md` § Stale-Bugbot Check). Verifier output: `OVERALL: PASS` (all open threads' issues resolved by later commits) → proceed to Finalize. `OVERALL: FAIL` (one or more still present) → mini-loop with the still-present threads as Refactorer input.
 
 NEVER wait for Bugbot to finish (Pro tier can take ~15 minutes). The user reviews remaining findings manually before merging.
 
-**Why two API calls and not one:** The review's `body` field is human-friendly summary text ("found 1 potential issue") and intentionally lacks file/line precision. The actionable detail — what to fix — sits in the per-file inline comments attached to that review. Reading only `body` would force the Verifier to grep blindly across the whole codebase; reading the comments gives him exact `path:line` targets.
+**Why GraphQL `reviewThreads` and not the REST per-review comments endpoint:** Bugbot posts each finding once, in the review where it was first detected. Subsequent reviews only carry the *new* findings from that scan — not the still-open ones from earlier reviews. Reading only the latest review's REST comments therefore systematically misses any finding that was first reported in a previous review and never resolved. GitHub's review-thread state (`isResolved`) is the only source that aggregates correctly across all reviews and tracks which findings are actually still open. The `body` field of a review object additionally carries human-friendly text like "found 1 potential issue. There are 3 total unresolved issues (including 2 from previous review)" — that wording is the symptom of the same problem, and the GraphQL query above replaces both per-review lookups with a single authoritative call.
 
-**Why the stale-SHA branch is not "blind proceed":** Earlier versions of this workflow treated stale-SHA Bugbot reviews as "the bug is probably already fixed by a later commit" and proceeded silently. That assumption is false — a later commit can fix an unrelated bug while leaving the Bugbot-flagged one untouched. The Verifier check above closes that loophole at near-zero token cost (one static code read per comment).
+**Why the stale-original-commit branch is not "blind proceed":** Earlier versions of this workflow treated stale-SHA Bugbot reviews as "the bug is probably already fixed by a later commit" and proceeded silently. That assumption is false — a later commit can fix an unrelated bug while leaving the Bugbot-flagged one untouched. The Verifier check above closes that loophole at near-zero token cost (one static code read per open thread).
 
 ## Finalize (after Bugbot peek → proceed)
 
