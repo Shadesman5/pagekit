@@ -1267,12 +1267,6 @@ parameters:
 			path: app/modules/view/index.php
 
 		-
-			message: '#^Method Pagekit\\View\\Asset\\Asset\:\:getPath\(\) should return string but returns false\.$#'
-			identifier: return.type
-			count: 1
-			path: app/modules/view/src/Asset/Asset.php
-
-		-
 			message: '#^Call to method get\(\) on an unknown class Pagekit\\View\\Asset\\FilterManager\.$#'
 			identifier: class.notFound
 			count: 1

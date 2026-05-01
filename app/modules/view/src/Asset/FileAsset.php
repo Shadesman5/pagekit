@@ -12,10 +12,10 @@ class FileAsset extends Asset
     public function getContent(): string
     {
         if ($this->content === null and $path = $this->getPath()) {
-            $this->content = file_get_contents($path);
+            $this->content = file_get_contents($path) ?: '';
         }
 
-        return $this->content;
+        return $this->content ?? '';
     }
 
     /**

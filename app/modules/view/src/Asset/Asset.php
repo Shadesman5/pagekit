@@ -53,7 +53,7 @@ abstract class Asset implements AssetInterface, \ArrayAccess
      */
     public function getPath(): string
     {
-        return false;
+        return '';
     }
 
     /**
@@ -69,7 +69,7 @@ abstract class Asset implements AssetInterface, \ArrayAccess
      */
     public function getContent(): string
     {
-        return $this->content;
+        return $this->content ?? '';
     }
 
     /**

@@ -29,9 +29,15 @@ class Filesystem
 
         if ($referenceType === UrlGenerator::ABSOLUTE_PATH) {
             $path = (string) parse_url($url, PHP_URL_PATH);
-            $url = strlen($path) > 1 ? substr($url, strpos($url, $path)) : '/';
+            if (strlen($path) > 1) {
+                $pos = strpos($url, $path);
+                $url = $pos !== false ? substr($url, $pos) : $url;
+            } else {
+                $url = '/';
+            }
         } elseif ($referenceType === UrlGenerator::NETWORK_PATH) {
-            $url = substr($url, strpos($url, '//'));
+            $pos = strpos($url, '//');
+            $url = $pos !== false ? substr($url, $pos) : $url;
         }
 
         return $url;
