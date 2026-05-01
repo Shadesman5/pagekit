@@ -26,7 +26,7 @@ guard against `false`/`null`/`int` where a `string` was expected). No shims, no
 
 The `phpstan-baseline.neon` was *not* regenerated. Instead, every entry that became
 "unmatched" because the underlying error was eliminated by a strict-mode fix was
-**surgically removed** (seven entries total). Wholesale baseline regeneration is
+**surgically removed** (eight entries total). Wholesale baseline regeneration is
 explicitly forbidden for this step — it would mask new strict-mode errors.
 
 The migration was executed in **12 sequential checklist steps** (one commit each), grouped
@@ -119,6 +119,7 @@ exits 0 — every PHP file in the project now satisfies the rule.
 | `f8b7b1c6` | `fix(types): resolve runtime TypeErrors surfaced by strict_types` | final-test mini-loop |
 | `5e81f74d` | `fix(types): resolve Bugbot-flagged strict_types regressions` | Bugbot stale-SHA mini-loop (1) |
 | `aad6c2df` | `fix(types): null-guard FileAsset/FileLocatorAsset under strict_types` | Bugbot stale-SHA mini-loop (2) |
+| `cc7a2f79` | `fix(types): null-coalesce $path at parseQuery boundary` | Bugbot stale-SHA mini-loop (3) |
 
 Commits `4627a6c4` … `e7ba5711` map 1:1 to Checklist Steps 1–12 in
 `.cursor/tickets/PROMPT_2_1_3_Strict-Types-Migration_plan.md`.
@@ -146,6 +147,26 @@ The fix adds a `$this->source !== null &&` guard. Two adjacent null-safety impro
 were folded in: `FileAsset::hash()` now null-coalesces `$this->source` before string
 concatenation, and `FileLocatorAsset::getSource()` null-coalesces the parent return
 value to satisfy its `: string` return type.
+
+`cc7a2f79` resolves a Bugbot finding from review `5e81f74d` that the previous quick-peek
+procedure had silently dropped: `UrlProvider::parseQuery()` (rewritten earlier in this PR
+to use `strpos()`/`substr()` instead of `strstr()`) had lost the `$url ?? ''` null guard
+that the original `strstr()` chain implicitly tolerated. Caller `UrlProvider::get()`
+passes `$path` which is genuinely nullable (per the existing `?? ''` guards in the same
+method), so under `strict_types=1` `strpos(null, '?')` would throw a `TypeError` at
+runtime. The fix coerces `$path ??= ''` once at the top of `get()` (replacing the two
+scattered `?? ''` expressions on its callsites) so `parseQuery()` can keep its strict
+`string $url` signature without any in-body null guard. One obsolete
+`nullCoalesce.variable` baseline entry surgically removed.
+
+The reason this finding survived the earlier mini-loops is itself worth documenting:
+the previous quick-peek procedure (`.cursor/rules/orchestrator-subagent-workflow.mdc`)
+read only the latest Bugbot review's REST inline-comments. Bugbot, however, posts each
+finding **once**, in the review where it was first detected; subsequent reviews carry
+only newly discovered findings. A finding first reported in review N and never resolved
+is invisible when only review N+1's comments are read. The procedure has been replaced
+with a single GraphQL `reviewThreads { isResolved }` query that aggregates correctly
+across all reviews on the PR — see the **Workflow** entry below for details.
 
 ---
 
@@ -186,18 +207,18 @@ value to satisfy its `: string` return type.
 
 ### Remote CI
 
-- **Run `25196756827` (latest SHA `aad6c2df`)** — `phpunit (8.2)` ✅ (29 s), `phpunit (8.3)` ✅ (30 s), `phpstan` ✅ (24 s), `cs-fixer` ✅ (20 s), `security-audit` ✅ (12 s).
+- **Run `25197422178` (latest SHA `cc7a2f79`)** — `phpunit (8.2)` ✅ (27 s), `phpunit (8.3)` ✅ (23 s), `phpstan` ✅ (26 s), `cs-fixer` ✅ (18 s), `security-audit` ✅ (12 s).
+- Run `25196756827` (SHA `aad6c2df`) — same matrix, all 5 jobs green.
 - Run `25195918220` (SHA `5e81f74d`) — same matrix, all 5 jobs green.
 - Run `25195012112` (SHA `f8b7b1c6`) — same matrix, all 5 jobs green.
 
 ### Bugbot quick-peek
 
-The Bugbot quick-peek went through **two mini-loop iterations** under the revised
-decision matrix (`.cursor/rules/orchestrator-subagent-workflow.mdc` § Bugbot Quick-Peek),
-which now reads the inline comments of each Bugbot review (the actual `path:line:body`
-findings) rather than the marketing-text top-level body, and routes stale-SHA reviews
-with findings to the **Verifier Stale-Bugbot Check** (`.cursor/agents/verifier.md` §
-Stale-Bugbot Check) instead of silently proceeding.
+The Bugbot quick-peek went through **three mini-loop iterations** under the
+decision matrix at `.cursor/rules/orchestrator-subagent-workflow.mdc` § Bugbot Quick-Peek,
+which now uses a single GraphQL `reviewThreads { isResolved }` query and routes any
+stale-`original_commit` open thread to the **Verifier Stale-Bugbot Check**
+(`.cursor/agents/verifier.md` § Stale-Bugbot Check) instead of silently proceeding.
 
 - **Iteration 1** — three findings on stale SHAs `e7ba5711` and `38f5a04c`
   (`Filesystem.php` NETWORK_PATH `strpos`/`substr`, `Asset::getPath()` returns `false`,
@@ -208,10 +229,16 @@ Stale-Bugbot Check) instead of silently proceeding.
   (`FileAsset::getPath()` calls `file_exists($this->source)` without a null guard).
   Verifier `OVERALL: FAIL` → mini-loop → fix commit `aad6c2df` → re-verify
   `OVERALL: PASS` against new HEAD.
+- **Iteration 3** — one finding from review `5e81f74d` that had been silently dropped
+  by the previous quick-peek procedure (which read only the latest review's REST
+  comments and missed cross-review unresolved findings). User-flagged on the next
+  manual peek. Verifier `OVERALL: FAIL` → mini-loop → fix commit `cc7a2f79` (plus the
+  workflow procedure repair commit `74f8e1b5` that replaced the per-review REST lookup
+  with a cumulative GraphQL `reviewThreads { isResolved }` query) → re-verify via the
+  fixed procedure: `OPEN_COUNT == 0` (all 5 historical Bugbot threads on this PR are
+  marked resolved by the GraphQL state) → proceed.
 
-After Iteration 2, Bugbot has not yet posted a fresh review on `aad6c2df` (Pro-tier
-reviews can take ~15 min and the workflow never waits synchronously). The user reviews
-any post-peek findings manually before merging.
+The user reviews any post-peek findings manually before merging.
 
 ---
 
