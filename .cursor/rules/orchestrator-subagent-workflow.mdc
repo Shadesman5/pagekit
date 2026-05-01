@@ -160,6 +160,7 @@ Task Prompt (one Roadmap Step X.Y)
 1. **One Checklist Step at a time** — never work on multiple in parallel.
 2. **One commit per Checklist Step** — after Tester PASS. If `git status` shows nothing to commit although Refactorer reported "Step N done", that is a failure (see On Failure). Do not batch commits.
 3. **Subagents by exact name** — `architect`, `refactorer`, `verifier`, `tester` so Cursor routes correctly. Subagent definitions: `.cursor/agents/`.
+4. **One version bump per PR** — the Finalize step bumps `app/system/config.php` exactly once per Roadmap Step / PR. Subsequent mini-loop fix commits (Final Test mini-loop, Bugbot quick-peek mini-loop) on the same PR/branch **must not** trigger another `chore(release): bump version to ...` commit. The CHANGELOG-NEW.md section for the already-bumped version is amended in place to include the mini-loop changes; the ROADMAP header pointer stays on the same version. Rationale: the PR is one logical release unit. Re-bumping mid-review wastes commits, confuses readers of `git log`, and creates a fictitious version that was never tagged.
 
 ## Early Push (after all Checklist Steps committed, before Final Test)
 
