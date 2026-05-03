@@ -6,7 +6,7 @@ alwaysApply: false
 # Push Workflow
 
 1. **Check git status** – create commits (see `conventional-commits.mdc`)
-2. **Version Bump** – use `.cursor/skills/version-bump/SKILL.md`
+2. **Version Bump** – use `.cursor/skills/version-bump/SKILL.md`. One Version Bump per PR.
 3. **CHANGELOG-NEW.md** – new section with version + date + grouped commits; commit: `chore(release): bump version to X.Y.Z`
 4. **ROADMAP Update** – update `.cursor/ROADMAP.md`:
    - **Header**: bump `Current Version` and advance `Current Step` pointer to the next step
