@@ -351,6 +351,8 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
     - `Logger::__invoke()` without parameter/return types
     - `TwigLoader::findTemplate()` / `TwigCache::__construct()` missing parent-compatible types
     - `mail/index.php`: unused `auth_mode` config key — remove dead config
+  - **Bugbot findings (Step 2.0.1c review):**
+    - 40+ controllers/listeners/helpers across `app/system/`, `app/installer/`, `app/console/`, `packages/pagekit/blog/` use `private readonly mixed $foo` for constructor-injected services (~155 occurrences). The PSR-11 Stage 3 migration (PR #169) deferred proper typing to Step 2.1.4 once the final container service types stabilized after Steps 2.0.1d / 2.0.1e. Replace each `mixed` with the concrete container-resolved type (`ModuleManager`, `Request`, `Response`, `Session`, `Auth`, `string`, etc.). Top-hit files: `ResetPasswordController` (11), `RegistrationController` (10), `AuthController` (10), `PackageController` (7), `ProfileController` (6), `FinderController` (6). The test file `app/modules/kernel/src/Tests/ControllerResolverTest.php` (6 occurrences) deliberately uses `readonly mixed` to test the resolver's name-based resolution — Architect decides whether to leave as-is or annotate. Routed from comment on Issue #151 (2026-03-18).
 
 ---
 
