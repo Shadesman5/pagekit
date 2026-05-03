@@ -64,7 +64,7 @@ request lifecycle).
 
 - **`app/modules/filesystem/src/Path.php`** — `strrpos()` returns `int|false`; guard the result before passing it to `substr()` / `strtr()`.
 - **`app/modules/filesystem/src/Filesystem.php`** — cast `parse_url()` result before `strlen()`; add `is_string` guards in `exists()` for `getPathInfo` return values.
-- **`app/modules/filesystem/src/StreamWrapper.php`** — cast `$options & STREAM_MKDIR_RECURSIVE` (an `int`) to `bool` for `mkdir()`.
+- **`app/modules/filesystem/src/StreamWrapper.php`** — cast `$options & STREAM_MKDIR_RECURSIVE` (an `int`) to `bool` for `mkdir()`. Follow-up fix (user-catch mini-loop): guard the `string|false` return of `Filesystem::getPath()` in all seven stream-wrapper callbacks (`dir_opendir`, `mkdir` first arg, `rename` both args, `rmdir`, `unlink`, `url_stat`, `stream_open`) — return the wrapper-spec failure value (`false`) instead of letting `false` reach `opendir`/`mkdir`/`rename`/`rmdir`/`unlink`/`fopen`/`file_exists`/`stat`. Also corrected `url_stat()`'s `@return` PHPDoc from `array` to `array|false` to match the wrapper contract.
 - **`app/modules/routing/src/Router.php`** — replace `strstr()`/`substr()` chains with `strpos()`-guarded `substr()` to avoid `string|false` propagating into strict signatures.
 - **`app/modules/routing/src/Event/AliasListener.php`** — same `strstr()`/`substr()` pattern as `Router`; replaced with `strpos()` + explicit `substr()` and `false` check.
 - **`app/system/modules/cache/src/CacheModule.php`** — `opcache_invalidate()` expects `string`, not `Symfony\Component\Finder\SplFileInfo`; use `$file->getPathname()`.
@@ -237,6 +237,27 @@ stale-`original_commit` open thread to the **Verifier Stale-Bugbot Check**
   with a cumulative GraphQL `reviewThreads { isResolved }` query) → re-verify via the
   fixed procedure: `OPEN_COUNT == 0` (all 5 historical Bugbot threads on this PR are
   marked resolved by the GraphQL state) → proceed.
+- **Iteration 4 (user-catch)** — user-reported `string|false` regression in
+  `StreamWrapper.php`: the original `mkdir()`-cast fix (commit `f8b7b1c6`) addressed
+  only the `$recursive` argument and missed that `Filesystem::getPath()` returns
+  `string|false` and reaches every other strict-typed PHP function in the wrapper
+  (`opendir`, `mkdir` first arg, `rename` both args, `rmdir`, `unlink`, `file_exists`,
+  `stat`, `fopen`). Pre-`strict_types`, `false` was silently coerced to `''`; under
+  strict mode it throws `TypeError`. Fix: guard each call site to return the wrapper-
+  spec failure value (`false`) before invoking the strict-typed function. Also fixed
+  `url_stat()`'s `@return array` PHPDoc to `array|false` (the wrapper has always been
+  allowed to return `false` per the PHP stream-wrapper contract; the PHPDoc was wrong
+  even before strict mode and surfaced now via PHPStan). PHPUnit (326/326) and
+  PHPStan (StreamWrapper-clean; the 9 unrelated `MySQLPlatform`/`MySqlPlatform`
+  case-sensitivity errors are pre-existing and tracked under Step 2.1.7) green.
+  Same iteration also reformatted the pre-existing predecessor comment
+  `// TODO: is this still needed?` in `app/modules/routing/src/Event/AliasListener.php`
+  to the canonical Rule 5 Out-of-scope tag
+  `// TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 / Strict Typing)`,
+  with a precise description of the dead inline-query-string parser to be deleted
+  (lines 50–57 + the dependent `strtok` clause in the `array_filter` on line 39).
+  The cleanup itself is routed to Step 2.1.6 — see the new "Audit findings (Step 2.1.3
+  review)" bullet in `migration-docs/TODO/PHASE_2_MODERNISING.md`.
 
 The user reviews any post-peek findings manually before merging.
 
