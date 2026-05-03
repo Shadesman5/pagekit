@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Filter by' => 'བཙག་ས།',
   'Thank you! Your comment needs approval before showing up.' => 'ཐུགས་རྗེ་ཆེ་གནང་། དྐུ་ཉིད་ཀྱི་སྤེལ་བའི་དཔྱད་བརྗོད་ལ་ཆོག་མཆན་ཐོབ་རྗེས་ད་གཟོད་འཆར་ངེས།',

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Filesystem\Tests\Adapter;
 
 use Pagekit\Filesystem\Adapter\StreamAdapter;

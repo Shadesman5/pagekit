@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Filter by' => 'فیلتر با',
   'Thank you! Your comment needs approval before showing up.' => 'متشکریم! دیدگاه شما قبل از نمایش نیاز به تایید دارد.',

@@ -1,3 +1,4 @@
+<?php declare(strict_types=1); ?>
 <html lang="<?= str_replace('_', '-', $app->get('translator')->getLocale()) ?>">
     <head>
         <meta charset="utf-8">

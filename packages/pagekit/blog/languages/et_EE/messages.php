@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Filter by' => 'Filtreeritud',
   'Thank you! Your comment needs approval before showing up.' => 'Täname teid! Teie kommentaar vajab kinnitust ennem kuvamist.',

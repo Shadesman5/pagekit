@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Twig\TwigCache;
 use Pagekit\Twig\TwigLoader;
 use Pagekit\View\Loader\FilesystemLoader;

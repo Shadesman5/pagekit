@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Filter by' => 'Lọc theo',
   'Thank you! Your comment needs approval before showing up.' => 'Cám ơn bạn! Bình luận của bạn cần được kiểm duyệt trước khi hiển thị.',

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\View\Asset;
 
 class FileAsset extends Asset
@@ -10,10 +12,10 @@ class FileAsset extends Asset
     public function getContent(): string
     {
         if ($this->content === null and $path = $this->getPath()) {
-            $this->content = file_get_contents($path);
+            $this->content = file_get_contents($path) ?: '';
         }
 
-        return $this->content;
+        return $this->content ?? '';
     }
 
     /**
@@ -27,7 +29,7 @@ class FileAsset extends Asset
             $time = filemtime($path);
         }
 
-        return hash('crc32b', $this->source.$time.$salt);
+        return hash('crc32b', ($this->source ?? '').$time.$salt);
     }
 
     /**
@@ -35,7 +37,7 @@ class FileAsset extends Asset
      */
     public function getPath(): string
     {
-        return file_exists($this->source) ? $this->source : false;
+        return $this->source !== null && file_exists($this->source) ? $this->source : '';
     }
 
     public function __toString()

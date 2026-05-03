@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 $logo = $params->get('logo_offcanvas');
 
 $attrs_offcanvas = [

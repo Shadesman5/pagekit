@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Select Image' => 'Обрати зображення',
   'Add Image' => 'Додати зображення',

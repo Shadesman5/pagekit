@@ -42,3 +42,38 @@ You are a **code reviewer**, not a tester. Your job is to read and audit code, n
 ## Output discipline (strict)
 
 - Output only: either "PASS" or "FAIL" plus a short bullet list of issues (if FAIL). No preamble, no "I have reviewed...", no prose.
+
+## Stale-Bugbot Check (delegated by Orchestrator after Final Test PASS)
+
+When the Orchestrator delegates with one or more open Bugbot review threads whose `original_commit` is older than HEAD, your task is to **statically determine whether each open thread's flagged issue has been resolved by any commit between that thread's `original_commit` and HEAD**. Same boundaries as your normal review: no test runs, no application commands.
+
+**Input from Orchestrator:**
+- `OPEN` — JSON array of open Bugbot threads pulled from GitHub's `reviewThreads { isResolved: false }` query, each `{path, original_line, original_commit, body}`. Each thread's `original_commit` is the SHA Bugbot reviewed when it first posted that finding (different threads on the same PR can have different `original_commit`s — process per-thread, do not assume one shared SHA).
+- `HEAD_SHA` — the current branch tip.
+
+**Procedure (per open thread):**
+
+1. **Inspect the commit range for this file** — `git log --oneline <thread.original_commit>..HEAD -- <thread.path>` to see whether the flagged file was touched at all.
+2. **Compare states** — `git diff <thread.original_commit>..HEAD -- <thread.path>` and read the current state of the code at `<thread.original_line>` (or the function/method that contained `<thread.original_line>` at `<thread.original_commit>` — line numbers shift after edits).
+3. **Decide for this single thread**:
+   - The specific issue Bugbot flagged in `thread.body` is gone (line was rewritten, function was refactored, unsafe pattern is no longer present, or guard was added) → **resolved**.
+   - The flagged file was not touched at all between `<thread.original_commit>..HEAD`, OR the file was touched but the specific flagged code path is unchanged → **still present**.
+
+**Aggregate:**
+
+- **All open threads resolved** → emit `OVERALL: PASS`.
+- **One or more open threads still present** → emit `OVERALL: FAIL` and list which.
+
+**Output (one line per thread, then one overall verdict line):**
+
+- Per thread: `Thread N (<path>:<original_line> @ <original_commit[0:7]>): PASS — <one-line confirmation>` or `Thread N (...): FAIL — <one-line>`
+- Overall verdict: `OVERALL: PASS` (only if every thread is PASS) or `OVERALL: FAIL` (any FAIL).
+
+Example:
+```
+Thread 1 (app/modules/filesystem/src/Filesystem.php:32 @ e7ba571): PASS — NETWORK_PATH branch now stores strpos() in $pos and guards $pos !== false
+Thread 2 (app/modules/application/src/Application/UrlProvider.php:200 @ 5e81f74): FAIL — parseQuery() still calls strpos($url, '?') without null guard; $url can still be null from caller
+OVERALL: FAIL
+```
+
+The Orchestrator either proceeds to Finalize (`OVERALL: PASS`) or starts a mini-loop with the still-present threads as Refactorer input (`OVERALL: FAIL`).

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Doctrine Migrations Configuration for Pagekit
  *

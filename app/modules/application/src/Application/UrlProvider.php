@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Application;
 
 use Pagekit\Filesystem\Filesystem;
@@ -98,14 +100,16 @@ class UrlProvider
     /**
      * Gets the URL appending the URI to the base URI.
      *
-     * @param  string $path
+     * @param  string|null $path
      * @param  mixed  $parameters
      * @param  mixed  $referenceType
      * @return string
      */
     public function get($path = '', $parameters = [], $referenceType = UrlGenerator::ABSOLUTE_PATH)
     {
-        if (0 === strpos($path ?? '', '@')) {
+        $path ??= '';
+
+        if (0 === strpos($path, '@')) {
             return $this->getRoute($path, $parameters, $referenceType);
         }
 
@@ -115,7 +119,7 @@ class UrlProvider
             return $path;
         }
 
-        return $this->base($referenceType).'/'.ltrim($path ?? '', '/');
+        return $this->base($referenceType).'/'.ltrim($path, '/');
     }
 
     /**
@@ -131,7 +135,11 @@ class UrlProvider
     {
         try {
 
-            $url = $this->router->generate($name, $parameters, $referenceType === self::BASE_PATH ? UrlGenerator::ABSOLUTE_PATH : $referenceType);
+            $type = $referenceType === self::BASE_PATH ? UrlGenerator::ABSOLUTE_PATH : $referenceType;
+            if (!is_int($type)) {
+                $type = UrlGenerator::ABSOLUTE_PATH;
+            }
+            $url = $this->router->generate($name, $parameters, $type);
 
             if ($referenceType === self::BASE_PATH) {
                 $url = substr($url, strlen($this->router->getRequest()->getBaseUrl()));
@@ -171,6 +179,10 @@ class UrlProvider
     {
         $url = $this->file->getUrl($this->locator->get($path) ?: $path, $referenceType === self::BASE_PATH ? UrlGenerator::ABSOLUTE_PATH : $referenceType);
 
+        if (!is_string($url)) {
+            $url = '';
+        }
+
         if ($referenceType === self::BASE_PATH) {
             $url = substr($url, strlen($this->router->getRequest()->getBasePath()));
         }
@@ -187,10 +199,13 @@ class UrlProvider
      */
     protected function parseQuery($url, $parameters = [])
     {
-        if ($query = substr(strstr($url ?? '', '?'), 1)) {
-            parse_str($query, $params);
-            $url = strstr($url ?? '', '?', true);
-            $parameters = array_replace($parameters, $params);
+        if (false !== ($queryPos = strpos($url, '?'))) {
+            $query = substr($url, $queryPos + 1);
+            $url = substr($url, 0, $queryPos);
+            if ($query !== '') {
+                parse_str($query, $params);
+                $parameters = array_replace($parameters, $params);
+            }
         }
 
         if ($query = http_build_query($parameters, '', '&')) {

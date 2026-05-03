@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 $layout = $params->get('header.layout');
 $fullwidth = $params->get('header.fullwidth');
 $logo_padding_remove = $fullwidth ? $params->get('header.logo_padding_remove') : false;

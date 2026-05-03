@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Select Image' => 'Dewis Delwedd',
   'Add Image' => 'Ychwanegu Delwedd',

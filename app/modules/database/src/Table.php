@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Database;
 
 use Doctrine\DBAL\Schema\Table as BaseTable;

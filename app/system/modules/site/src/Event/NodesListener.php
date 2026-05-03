@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Site\Event;
 
 use Pagekit\Event\EventSubscriberInterface;
@@ -22,9 +24,7 @@ class NodesListener implements EventSubscriberInterface
         $frontpage = $this->site->config('frontpage');
         $nodes = Node::findAll(true);
 
-        uasort($nodes, function ($a, $b) {
-            return strcmp(substr_count($a->path, '/'), substr_count($b->path, '/')) * -1;
-        });
+        uasort($nodes, fn ($a, $b) => substr_count($b->path, '/') <=> substr_count($a->path, '/'));
 
         foreach ($nodes as $node) {
             if ($node->status !== 1 || !$type = $this->site->getType($node->type)) {

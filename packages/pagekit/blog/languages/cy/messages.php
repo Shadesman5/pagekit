@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Filter by' => 'Hidlo yn ôl',
   'Thank you! Your comment needs approval before showing up.' => 'Diolch! Bydd angen cymeradwyo eich sylw cyn y caiff ei arddangos.',

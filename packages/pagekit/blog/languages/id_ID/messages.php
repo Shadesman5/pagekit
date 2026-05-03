@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Filter by' => 'Filter dengan',
   'Thank you! Your comment needs approval before showing up.' => 'Terima kasih! Komentar anda memerlukan persetujuan sebelum ditayangkan.',

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Routing;
 
 use Pagekit\Routing\Generator\UrlGenerator;
@@ -280,14 +282,19 @@ class Router implements RouterInterface, UrlGeneratorInterface
     {
         $generator = $this->getGenerator();
 
-        if ($fragment = strstr($name, '#')) {
-            $name = strstr($name, '#', true);
+        $fragment = '';
+        if (false !== ($hashPos = strpos($name, '#'))) {
+            $fragment = substr($name, $hashPos);
+            $name = substr($name, 0, $hashPos);
         }
 
-        if ($query = substr(strstr($name, '?'), 1)) {
-            parse_str($query, $params);
-            $name = strstr($name, '?', true);
-            $parameters = array_replace($parameters, $params);
+        if (false !== ($queryPos = strpos($name, '?'))) {
+            $query = substr($name, $queryPos + 1);
+            $name = substr($name, 0, $queryPos);
+            if ($query !== '') {
+                parse_str($query, $params);
+                $parameters = array_replace($parameters, $params);
+            }
         }
 
         if ($referenceType !== self::LINK_URL) {

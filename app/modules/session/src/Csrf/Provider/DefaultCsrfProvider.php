@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Session\Csrf\Provider;
 
 class DefaultCsrfProvider implements CsrfProviderInterface
@@ -64,7 +66,7 @@ class DefaultCsrfProvider implements CsrfProviderInterface
     protected function getSessionToken(): string
     {
         if (!isset($_SESSION[$this->name])) {
-            $_SESSION[$this->name] = sha1(uniqid(rand(), true));
+            $_SESSION[$this->name] = sha1(uniqid((string) rand(), true));
         }
 
         return $_SESSION[$this->name];

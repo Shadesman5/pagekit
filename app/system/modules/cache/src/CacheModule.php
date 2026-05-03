@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Cache;
 
 use Pagekit\Application as App;
@@ -148,7 +150,7 @@ class CacheModule extends Module
             foreach (Finder::create()->in($app->get('path.temp'))->depth(0)->ignoreDotFiles(true) as $file) {
                 $app->get('file')->delete($file->getPathname());
                 if (function_exists('opcache_invalidate')) {
-                    opcache_invalidate($file);
+                    opcache_invalidate($file->getPathname(), true);
                 }
             }
         }

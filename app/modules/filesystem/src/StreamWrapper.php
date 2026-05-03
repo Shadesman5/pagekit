@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Filesystem;
 
 class StreamWrapper
@@ -37,7 +39,12 @@ class StreamWrapper
      */
     public function dir_opendir($path, $options): bool
     {
-        $this->handle = opendir(self::$file->getPath($path, true));
+        $resolved = self::$file->getPath($path, true);
+        if ($resolved === false) {
+            return false;
+        }
+
+        $this->handle = opendir($resolved);
 
         return (bool) $this->handle;
     }
@@ -71,7 +78,12 @@ class StreamWrapper
      */
     public function mkdir($path, $mode, $options): bool
     {
-        return mkdir(self::$file->getPath($path, true), $mode, $options & STREAM_MKDIR_RECURSIVE);
+        $resolved = self::$file->getPath($path, true);
+        if ($resolved === false) {
+            return false;
+        }
+
+        return mkdir($resolved, $mode, (bool) ($options & STREAM_MKDIR_RECURSIVE));
     }
 
     /**
@@ -82,7 +94,13 @@ class StreamWrapper
      */
     public function rename($pathFrom, $pathTo): bool
     {
-        return rename(self::$file->getPath($pathFrom, true), self::$file->getPath($pathTo, true));
+        $resolvedFrom = self::$file->getPath($pathFrom, true);
+        $resolvedTo = self::$file->getPath($pathTo, true);
+        if ($resolvedFrom === false || $resolvedTo === false) {
+            return false;
+        }
+
+        return rename($resolvedFrom, $resolvedTo);
     }
 
     /**
@@ -93,7 +111,12 @@ class StreamWrapper
      */
     public function rmdir($path, $options): bool
     {
-        return rmdir(self::$file->getPath($path, true));
+        $resolved = self::$file->getPath($path, true);
+        if ($resolved === false) {
+            return false;
+        }
+
+        return rmdir($resolved);
     }
 
     /**
@@ -103,7 +126,12 @@ class StreamWrapper
      */
     public function unlink($path): bool
     {
-        return unlink(self::$file->getPath($path, true));
+        $resolved = self::$file->getPath($path, true);
+        if ($resolved === false) {
+            return false;
+        }
+
+        return unlink($resolved);
     }
 
     /**
@@ -111,11 +139,15 @@ class StreamWrapper
      *
      * @param  string $path
      * @param  int    $flags
-     * @return array
+     * @return array|false
      */
     public function url_stat($path, $flags)
     {
         $path = self::$file->getPath($path, true);
+
+        if ($path === false) {
+            return false;
+        }
 
         if ($flags & STREAM_URL_STAT_QUIET || !file_exists($path)) {
             return @stat($path);
@@ -183,7 +215,12 @@ class StreamWrapper
      */
     public function stream_open($path, $mode, $options, &$openedPath): bool
     {
-        $this->handle = fopen(self::$file->getPath($path, true), $mode);
+        $resolved = self::$file->getPath($path, true);
+        if ($resolved === false) {
+            return false;
+        }
+
+        $this->handle = fopen($resolved, $mode);
 
         return (bool) $this->handle;
     }

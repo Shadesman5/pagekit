@@ -1,3 +1,4 @@
+<?php declare(strict_types=1); ?>
 <!DOCTYPE html>
 <html class="<?= $params['html_class'] ?>" lang="<?= $intl->getLocaleTag() ?>">
     <head>

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Module\Loader;
 
 class ConfigLoader implements LoaderInterface

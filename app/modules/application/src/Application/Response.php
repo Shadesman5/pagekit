@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Application;
 
 use Symfony\Component\HttpFoundation\BinaryFileResponse;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Filter by' => 'Ταξινόμηση κατα',
   'Thank you! Your comment needs approval before showing up.' => 'Σας ευχαριστούμε! Το σχόλιο σας θα χρειαστεί έγκριση πριν εμφανιστεί.',

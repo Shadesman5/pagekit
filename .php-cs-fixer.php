@@ -41,6 +41,6 @@ return $config->setRules([
         // Moderate Modernisierungen (nicht zu aggressiv)
         'modernize_types_casting' => true,
         'no_unneeded_control_parentheses' => true,
-        // TODO: Must be refactored in Step 2.1.3 (strict_types Migration)
+        'declare_strict_types' => true,
     ])
     ->setFinder($finder);

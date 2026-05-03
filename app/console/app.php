@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Application as App;
 use Pagekit\Application\Console\Application as Console;
 use Pagekit\Module\Loader\AutoLoader;

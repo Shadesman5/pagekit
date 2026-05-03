@@ -1,3 +1,4 @@
+<?php declare(strict_types=1); ?>
 <article class="uk-article<?= $node->theme['alignment'] ? ' uk-text-center' : '' ?>">
 
     <?php if (!$node->theme['title_hide']) : ?>

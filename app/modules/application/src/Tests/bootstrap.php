@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 $autoload = [
     'Pagekit\\Auth\\' => '/app/modules/auth/src',
     'Pagekit\\Config\\' => '/app/modules/config/src',

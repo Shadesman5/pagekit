@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Session\Csrf\Provider;
 
 use Symfony\Component\HttpFoundation\Session\Session;
@@ -43,7 +45,7 @@ class SessionCsrfProvider extends DefaultCsrfProvider
     protected function getSessionToken(): string
     {
         if (!$this->session->has($this->name)) {
-            $this->session->set($this->name, sha1(uniqid(rand(), true)));
+            $this->session->set($this->name, sha1(uniqid((string) rand(), true)));
         }
 
         return $this->session->get($this->name);

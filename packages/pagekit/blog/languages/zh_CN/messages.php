@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Filter by' => '筛选自',
   'Thank you! Your comment needs approval before showing up.' => '谢谢您！您的评论在发布前需要经过审核。',

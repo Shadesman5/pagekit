@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Widget\Model;
 
 use Pagekit\Module\Module;

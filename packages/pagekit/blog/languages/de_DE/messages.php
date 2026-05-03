@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Filter by' => 'Filtern nach',
   'Thank you! Your comment needs approval before showing up.' => 'Vielen Dank! Dein Kommentar muss noch genehmigt werden bevor er angezeigt wird. ',

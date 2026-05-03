@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Twig;
 
 use Pagekit\View\Loader\FilesystemLoader;

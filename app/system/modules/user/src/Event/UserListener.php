@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Event;
 
 use Pagekit\Auth\Event\LoginEvent;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Kernel\Event;
 
 class ControllerEvent extends KernelEvent

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Kernel\Controller\ControllerListener;
 use Pagekit\Kernel\Controller\ControllerResolver;
 use Pagekit\Kernel\Event\JsonResponseListener;

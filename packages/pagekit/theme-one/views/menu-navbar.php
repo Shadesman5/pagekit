@@ -1,4 +1,5 @@
-<?php if ($root->getDepth() === 0) : ?>
+<?php declare(strict_types=1);
+if ($root->getDepth() === 0) : ?>
 <ul class="<?= implode(' ', (array) @$class) ?>">
 <?php endif ?>
 

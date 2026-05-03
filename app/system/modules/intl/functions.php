@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Intl\IntlServiceLocator;
 use Symfony\Component\Translation\Formatter\IntlFormatter;
 

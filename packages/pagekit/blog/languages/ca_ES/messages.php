@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Filter by' => 'Filtrar per',
   'Thank you! Your comment needs approval before showing up.' => 'Gràcies! El teu comentari ha de ser aprovat abans de publicar-lo',

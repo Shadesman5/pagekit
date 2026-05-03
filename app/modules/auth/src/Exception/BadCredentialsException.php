@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Auth\Exception;
 
 class BadCredentialsException extends AuthException

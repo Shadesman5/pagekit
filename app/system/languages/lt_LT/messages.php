@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return  [
   'Select Image' => 'Pasirinkite paveikslėlį',
   'Add Image' => 'Pridėti paveikslėlį',

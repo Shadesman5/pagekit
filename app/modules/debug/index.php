@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use DebugBar\DataCollector\MemoryCollector;
 use DebugBar\DataCollector\TimeDataCollector;
 use Pagekit\Debug\DataCollector\AuthDataCollector;
