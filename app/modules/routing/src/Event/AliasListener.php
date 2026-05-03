@@ -46,7 +46,7 @@ class AliasListener implements EventSubscriberInterface
 
         foreach ($aliases as $alias) {
 
-            // TODO: is this still needed?
+            // TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 / Strict Typing) — dead inline-query-string parser; no caller uses the `?param=value` suffix in the alias name (the `$defaults` parameter of `Routes::alias()` has fully replaced this convenience API). Delete this block together with the dependent `strtok($alias->getName(), '?')` clause in the `array_filter` above (line 39).
             $params = [];
             $aliasName = $alias->getName();
             if (false !== ($queryPos = strpos($aliasName, '?'))) {
