@@ -102,6 +102,7 @@ class DatabaseHandler implements HandlerInterface
     {
         if ($request = $this->getRequest()) {
             $value = $request->cookies->get($this->config['cookie']['name']);
+
             return is_string($value) ? $value : null;
         }
 

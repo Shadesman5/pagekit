@@ -6,7 +6,6 @@ namespace Pagekit\Filesystem\Tests;
 
 use Pagekit\Filesystem\Adapter\FileAdapter;
 use Pagekit\Filesystem\Filesystem;
-use Pagekit\Filesystem\Tests\FileUtil;
 use PHPUnit\Framework\TestCase;
 
 class FilesystemTest extends TestCase
