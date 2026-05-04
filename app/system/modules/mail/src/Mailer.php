@@ -13,6 +13,8 @@ use Symfony\Component\Mime\Email;
 class Mailer implements MailerInterface
 {
     protected TransportInterface $transport;
+
+    /** @var array<int, MailerInterface> */
     protected array $plugins = [];
 
     public function __construct(TransportInterface $transport)
@@ -30,11 +32,8 @@ class Mailer implements MailerInterface
 
     /**
      * Sends an email message.
-     *
-     * @param  Email $message
-     * @return bool
      */
-    public function send(Email $message)
+    public function send(Email $message): bool
     {
         foreach ($this->plugins as $plugin) {
             $plugin->beforeSend($message);

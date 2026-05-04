@@ -108,7 +108,6 @@ return [
         'username' => null,
         'password' => null,
         'encryption' => null,
-        'auth_mode' => null,
         'from_name' => null,
         'from_address' => null,
     ],

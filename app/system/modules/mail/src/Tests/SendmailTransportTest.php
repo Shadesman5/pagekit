@@ -59,7 +59,6 @@ class SendmailTransportTest extends TestCase
 
         $result = $controller->smtpAction();
 
-        $this->assertIsArray($result);
         $this->assertArrayHasKey('success', $result);
         $this->assertArrayHasKey('message', $result);
         $this->assertFalse($result['success']);
@@ -74,9 +73,9 @@ class SendmailTransportTest extends TestCase
 
         $result = $controller->smtpAction();
 
-        $this->assertIsArray($result);
         $this->assertArrayHasKey('success', $result);
         $this->assertArrayHasKey('message', $result);
         $this->assertFalse($result['success']);
+        $this->assertNotEmpty($result['message']);
     }
 }

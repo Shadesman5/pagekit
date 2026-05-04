@@ -31,13 +31,18 @@ class MenuApiController
     {
         $menus = $this->menu->all();
 
-        $menus['trash'] = ['id' => 'trash', 'label' => __('Trash'), 'fixed' => true];
+        $menus['trash'] = ['id' => 'trash', 'label' => __('Trash'), 'fixed' => true, 'count' => 0];
 
+        $trashCount = 0;
         foreach ($menus as &$menu) {
             $menu['count'] = Node::where(['menu' => $menu['id']])->count();
+            if ($menu['id'] === 'trash') {
+                $trashCount = $menu['count'];
+            }
         }
+        unset($menu);
 
-        if (!$menus['trash']['count']) {
+        if (!$trashCount) {
             unset($menus['trash']);
         }
 

@@ -41,7 +41,7 @@ class Message extends Email implements MessageInterface
     /**
      * {@inheritdoc}
      */
-    public function send(&$errors = null): int
+    public function send(?array &$errors = null): int
     {
         if (!$this->mailer) {
             throw new \RuntimeException('No mailer instance set. Call setMailer() first.');
@@ -63,7 +63,7 @@ class Message extends Email implements MessageInterface
     /**
      * {@inheritdoc}
      */
-    public function queue(&$errors = null): int
+    public function queue(?array &$errors = null): int
     {
         // For now, just delegate to send since we don't have a queue implementation
         // This can be extended later to add actual queuing functionality
@@ -221,6 +221,9 @@ class Message extends Email implements MessageInterface
         return $this;
     }
 
+    /**
+     * @return array<int, DataPart>
+     */
     public function getParts(): array
     {
         // getAttachments() already includes all attachments and embedded parts

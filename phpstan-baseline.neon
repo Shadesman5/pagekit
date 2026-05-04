@@ -1345,12 +1345,6 @@ parameters:
 			path: app/system/modules/mail/src/Message.php
 
 		-
-			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertIsArray\(\) with array will always evaluate to true\.$#'
-			identifier: method.alreadyNarrowedType
-			count: 10
-			path: app/system/modules/mail/src/Tests/Controller/MailControllerTest.php
-
-		-
 			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertIsString\(\) with string will always evaluate to true\.$#'
 			identifier: method.alreadyNarrowedType
 			count: 2
@@ -1361,12 +1355,6 @@ parameters:
 			identifier: nullCoalesce.expr
 			count: 1
 			path: app/system/modules/mail/src/Tests/MailerTest.php
-
-		-
-			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertIsArray\(\) with array will always evaluate to true\.$#'
-			identifier: method.alreadyNarrowedType
-			count: 2
-			path: app/system/modules/mail/src/Tests/SendmailTransportTest.php
 
 		-
 			message: '#^Variable \$app might not be defined\.$#'
@@ -1408,12 +1396,6 @@ parameters:
 			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:update\(\)\.$#'
 			identifier: method.notFound
 			count: 2
-			path: app/system/modules/site/src/Controller/MenuApiController.php
-
-		-
-			message: '#^Offset ''count'' does not exist on array\{id\: ''trash'', label\: mixed, fixed\: true\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
 			path: app/system/modules/site/src/Controller/MenuApiController.php
 
 		-
