@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace Pagekit\Routing;
 
+/**
+ * @implements \IteratorAggregate<int, Route>
+ */
 class Routes implements \Serializable, \IteratorAggregate, ResourceInterface
 {
+    /** @var array<int, Route> */
     protected array $routes = [];
 
     /**
@@ -14,21 +18,18 @@ class Routes implements \Serializable, \IteratorAggregate, ResourceInterface
     protected array $callbacks = [];
 
     /**
-     * @var array[]
+     * @var array<string, Route>
      */
     protected array $aliases = [];
 
     protected string $prefix = '@';
 
-    /**
-     * @var int
-     */
-    protected $modified = 0;
+    protected int $modified = 0;
 
     /**
      * Adds a route.
      *
-     * @param  mixed $route
+     * @param Route|array<string, mixed> $route
      */
     public function add($route): Route
     {
@@ -86,9 +87,9 @@ class Routes implements \Serializable, \IteratorAggregate, ResourceInterface
     /**
      * Adds an alias.
      *
-     * @param  string $path
-     * @param  string $name
-     * @param  array  $defaults
+     * @param string                $path
+     * @param string                $name
+     * @param array<string, mixed>  $defaults
      */
     public function alias($path, $name, array $defaults = []): Route
     {
@@ -100,9 +101,9 @@ class Routes implements \Serializable, \IteratorAggregate, ResourceInterface
     /**
      * Adds a redirect route.
      *
-     * @param  string $path
-     * @param  string $redirect
-     * @param  array  $defaults
+     * @param string                $path
+     * @param string                $redirect
+     * @param array<string, mixed>  $defaults
      */
     public function redirect($path, $redirect, array $defaults = []): Route
     {
@@ -114,7 +115,7 @@ class Routes implements \Serializable, \IteratorAggregate, ResourceInterface
     /**
      * Gets aliases.
      *
-     * @return array[]
+     * @return array<string, Route>
      */
     public function getAliases(): array
     {
@@ -123,6 +124,8 @@ class Routes implements \Serializable, \IteratorAggregate, ResourceInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return \ArrayIterator<int, Route>
      */
     public function getIterator(): \ArrayIterator
     {
@@ -156,7 +159,7 @@ class Routes implements \Serializable, \IteratorAggregate, ResourceInterface
     /**
      * Serializes the routes.
      *
-     * @return array
+     * @return array<int, Route>
      */
     public function __serialize(): array
     {
@@ -166,7 +169,7 @@ class Routes implements \Serializable, \IteratorAggregate, ResourceInterface
     /**
      * Unserializes the routes.
      *
-     * @param array $data
+     * @param array<int, Route> $data
      */
     public function __unserialize(array $data): void
     {
@@ -177,7 +180,7 @@ class Routes implements \Serializable, \IteratorAggregate, ResourceInterface
     /**
      * Creates a route from array definition.
      *
-     * @param  array $config
+     * @param array<string, mixed> $config
      */
     protected function createRoute(array $config): Route
     {
@@ -215,7 +218,7 @@ class Routes implements \Serializable, \IteratorAggregate, ResourceInterface
     /**
      * Creates a route name from the routes path.
      *
-     * @param  array $config
+     * @param array<string, mixed> $config
      */
     protected function generateRouteName(array $config): string
     {

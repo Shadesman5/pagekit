@@ -30,7 +30,7 @@ abstract class Feed implements FeedInterface
     protected array $cdata = ['description', 'content:encoded', 'summary'];
 
     /**
-     * @var string[]
+     * @var array<string, string>
      */
     protected array $namespaces = [
         'content' => 'http://purl.org/rss/1.0/modules/content/',
@@ -43,7 +43,7 @@ abstract class Feed implements FeedInterface
     ];
 
     /**
-     * @var string
+     * @var class-string<ItemInterface>
      */
     protected $item;
 
@@ -58,7 +58,7 @@ abstract class Feed implements FeedInterface
     /**
      * {@inheritdoc}
      */
-    public function setMimeType($mime)
+    public function setMimeType($mime): void
     {
         $this->mime = $mime;
     }
@@ -111,6 +111,8 @@ abstract class Feed implements FeedInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<string, mixed> $elements
      */
     public function createItem(array $elements = []): ItemInterface
     {
@@ -191,7 +193,7 @@ abstract class Feed implements FeedInterface
     /**
      * {@inheritdoc}
      */
-    public function output()
+    public function output(): void
     {
         header("Content-Type: ".$this->getMimeType()."; charset=".$this->encoding);
         echo $this->generate();
@@ -208,8 +210,8 @@ abstract class Feed implements FeedInterface
     abstract protected function build(): \DOMDocument;
 
     /**
-     * @param  \DOMDocument $doc
-     * @param  array        $element
+     * @param \DOMDocument                                                $doc
+     * @param array{0: string, 1: mixed, 2: array<string, mixed>|null}    $element
      */
     protected function buildElement(\DOMDocument $doc, array $element): \DOMElement
     {
@@ -239,8 +241,8 @@ abstract class Feed implements FeedInterface
     }
 
     /**
-     * @param  \DOMElement $element
-     * @param  array       $attributes
+     * @param \DOMElement          $element
+     * @param array<string, mixed> $attributes
      */
     protected function buildAttributes(\DOMElement $element, array $attributes = []): \DOMElement
     {

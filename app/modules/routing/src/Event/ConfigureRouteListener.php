@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Pagekit\Routing\Event;
 
+use Pagekit\Event\Event;
 use Pagekit\Event\EventSubscriberInterface;
 use Pagekit\Routing\Attribute\Request;
+use Pagekit\Routing\Route;
 
 /**
  * Reads Request attributes from controllers and configures routes.
@@ -15,7 +17,7 @@ class ConfigureRouteListener implements EventSubscriberInterface
     /**
      * Reads the #[Request] attributes.
      */
-    public function onConfigureRoute($event, $route): void
+    public function onConfigureRoute(Event $event, Route $route): void
     {
         if (!$route->getControllerClass()) {
             return;
@@ -54,6 +56,8 @@ class ConfigureRouteListener implements EventSubscriberInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, string>
      */
     public function subscribe(): array
     {

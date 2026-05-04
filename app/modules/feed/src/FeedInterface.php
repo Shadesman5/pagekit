@@ -11,7 +11,7 @@ interface FeedInterface
     /**
      * @param string $mime
      */
-    public function setMimeType($mime);
+    public function setMimeType($mime): void;
 
     /**
      * Adds an XML namespace.
@@ -48,9 +48,21 @@ interface FeedInterface
     public function addCDATA(array $properties): self;
 
     /**
-     * @param  array $elements
+     * @param array<string, mixed> $elements
      */
     public function createItem(array $elements = []): ItemInterface;
+
+    /**
+     * Adds multiple elements at once.
+     *
+     * Keys map to `set{Name}` methods when present (the values being either a
+     * scalar or an argument list); otherwise the pair is appended verbatim
+     * as a generic element.
+     *
+     * @param  array<string, mixed> $elements
+     * @return $this
+     */
+    public function addElements(array $elements): static;
 
     /**
      * Adds an item.
@@ -116,5 +128,5 @@ interface FeedInterface
     /**
      * Outputs the feed.
      */
-    public function output();
+    public function output(): void;
 }

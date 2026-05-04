@@ -7,7 +7,7 @@ namespace Pagekit\Feed;
 class FeedFactory
 {
     /**
-     * @var string[]
+     * @var array<string, class-string<FeedInterface>>
      */
     protected array $feeds = [
         Feed::ATOM => 'Pagekit\Feed\Feed\Atom',
@@ -18,8 +18,8 @@ class FeedFactory
     /**
      * Creates a feed.
      *
-     * @param  string $type
-     * @param  array  $elements
+     * @param string|null          $type
+     * @param array<string, mixed> $elements
      */
     public function create($type = null, array $elements = []): FeedInterface
     {

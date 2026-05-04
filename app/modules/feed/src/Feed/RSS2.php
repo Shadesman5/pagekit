@@ -13,10 +13,14 @@ class RSS2 extends Feed
 
     /**
      * {@inheritdoc}
+     *
+     * @return $this
      */
-    public function setDate(\DateTimeInterface $date)
+    public function setDate(\DateTimeInterface $date): self
     {
-        return $this->setElement('lastBuildDate', $date->format(\DATE_RSS));
+        $this->setElement('lastBuildDate', $date->format(\DATE_RSS));
+
+        return $this;
     }
 
     /**

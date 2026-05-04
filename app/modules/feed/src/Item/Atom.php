@@ -20,10 +20,16 @@ class Atom extends Item
 
     /**
      * {@inheritdoc}
+     *
+     * @param string                    $name
+     * @param mixed                     $value
+     * @param array<string, mixed>|null $attributes
      */
     public function setElement($name, $value, $attributes = null): ItemInterface
     {
-        return parent::setElement($this->removeNamespace($name), $value, $attributes);
+        parent::setElement($this->removeNamespace($name), $value, $attributes);
+
+        return $this;
     }
 
     /**
@@ -91,9 +97,15 @@ class Atom extends Item
 
     /**
      * {@inheritdoc}
+     *
+     * @param string                    $name
+     * @param mixed                     $value
+     * @param array<string, mixed>|null $attributes
      */
     public function addElement($name, $value, $attributes = null): ItemInterface
     {
-        return parent::addElement($this->removeNamespace($name), $value, $attributes);
+        parent::addElement($this->removeNamespace($name), $value, $attributes);
+
+        return $this;
     }
 }

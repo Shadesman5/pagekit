@@ -62,6 +62,8 @@ class AliasListener implements EventSubscriberInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, array{0: string, 1: int}>
      */
     public function subscribe(): array
     {

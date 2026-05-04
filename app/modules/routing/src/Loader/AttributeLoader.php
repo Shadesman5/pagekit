@@ -18,6 +18,8 @@ class AttributeLoader implements LoaderInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return Route[]
      */
     public function load($class): array
     {
@@ -60,6 +62,10 @@ class AttributeLoader implements LoaderInterface
 
     /**
      * Adds a new route.
+     *
+     * @param Route[]                  $routes
+     * @param \ReflectionClass<object> $class
+     * @param array<string, mixed>     $globals
      */
     protected function addRoute(array &$routes, \ReflectionClass $class, \ReflectionMethod $method, RouteAttribute $attribute, array $globals): void
     {
@@ -79,6 +85,9 @@ class AttributeLoader implements LoaderInterface
 
     /**
      * Gets global route configuration from class-level Route attribute.
+     *
+     * @param  \ReflectionClass<object> $class
+     * @return array<string, mixed>
      */
     protected function getGlobals(\ReflectionClass $class): array
     {

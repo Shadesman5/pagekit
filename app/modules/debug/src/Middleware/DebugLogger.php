@@ -16,6 +16,8 @@ class DebugLogger implements LoggerInterface
 {
     /**
      * Collected queries.
+     *
+     * @var array<int, array<string, mixed>>
      */
     public array $queries = [];
 
@@ -51,8 +53,11 @@ class DebugLogger implements LoggerInterface
 
     /**
      * Logs with an arbitrary level.
+     *
+     * @param mixed                $level
+     * @param array<string, mixed> $context
      */
-    public function log($level, $message, array $context = []): void
+    public function log($level, string|\Stringable $message, array $context = []): void
     {
         if (!$this->enabled) {
             return;
@@ -71,6 +76,9 @@ class DebugLogger implements LoggerInterface
 
     /**
      * Start logging a query.
+     *
+     * @param array<int|string, mixed>|null $params
+     * @param array<int|string, mixed>|null $types
      */
     public function startQuery(string $sql, ?array $params = null, ?array $types = null): void
     {
@@ -120,43 +128,66 @@ class DebugLogger implements LoggerInterface
         $this->start = null;
     }
 
-    // PSR-3 LoggerInterface methods
-    public function emergency($message, array $context = []): void
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function emergency(string|\Stringable $message, array $context = []): void
     {
         $this->log(LogLevel::EMERGENCY, $message, $context);
     }
 
-    public function alert($message, array $context = []): void
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function alert(string|\Stringable $message, array $context = []): void
     {
         $this->log(LogLevel::ALERT, $message, $context);
     }
 
-    public function critical($message, array $context = []): void
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function critical(string|\Stringable $message, array $context = []): void
     {
         $this->log(LogLevel::CRITICAL, $message, $context);
     }
 
-    public function error($message, array $context = []): void
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function error(string|\Stringable $message, array $context = []): void
     {
         $this->log(LogLevel::ERROR, $message, $context);
     }
 
-    public function warning($message, array $context = []): void
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function warning(string|\Stringable $message, array $context = []): void
     {
         $this->log(LogLevel::WARNING, $message, $context);
     }
 
-    public function notice($message, array $context = []): void
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function notice(string|\Stringable $message, array $context = []): void
     {
         $this->log(LogLevel::NOTICE, $message, $context);
     }
 
-    public function info($message, array $context = []): void
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function info(string|\Stringable $message, array $context = []): void
     {
         $this->log(LogLevel::INFO, $message, $context);
     }
 
-    public function debug($message, array $context = []): void
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function debug(string|\Stringable $message, array $context = []): void
     {
         $this->log(LogLevel::DEBUG, $message, $context);
     }

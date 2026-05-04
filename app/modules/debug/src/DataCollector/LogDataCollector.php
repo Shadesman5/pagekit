@@ -10,6 +10,7 @@ use Monolog\LogRecord;
 
 class LogDataCollector extends AbstractHandler implements DataCollectorInterface
 {
+    /** @var array<int, array<string, mixed>> */
     protected array $messages = [];
 
     /**
@@ -33,6 +34,8 @@ class LogDataCollector extends AbstractHandler implements DataCollectorInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array{messages: array<int, array<string, mixed>>}
      */
     public function collect(): array
     {

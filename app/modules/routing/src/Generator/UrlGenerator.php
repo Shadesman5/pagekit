@@ -10,6 +10,14 @@ class UrlGenerator extends BaseUrlGenerator implements UrlGeneratorInterface
 {
     /**
      * {@inheritdoc}
+     *
+     * @param array<int, string>             $variables
+     * @param array<string, mixed>           $defaults
+     * @param array<string, string>          $requirements
+     * @param array<int, array<int, mixed>>  $tokens
+     * @param array<string, mixed>           $parameters
+     * @param array<int, array<int, mixed>>  $hostTokens
+     * @param array<int, string>             $requiredSchemes
      */
     protected function doGenerate(array $variables, array $defaults, array $requirements, array $tokens, array $parameters, string $name, int $referenceType, array $hostTokens, array $requiredSchemes = []): string
     {
@@ -35,7 +43,7 @@ class UrlGenerator extends BaseUrlGenerator implements UrlGeneratorInterface
      * Gets the properties of a route.
      *
      * @param  string $name
-     * @return array|null
+     * @return array<int, mixed>|null
      */
     public function getRouteProperties(string $name): ?array
     {

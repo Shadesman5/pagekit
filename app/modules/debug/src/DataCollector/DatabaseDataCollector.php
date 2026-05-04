@@ -29,6 +29,8 @@ class DatabaseDataCollector extends DataCollector implements Renderable, AssetPr
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, mixed>
      */
     public function collect(): array
     {
@@ -57,10 +59,10 @@ class DatabaseDataCollector extends DataCollector implements Renderable, AssetPr
     }
 
     /**
-     * Format parameters for display
+     * Format parameters for display.
      *
-     * @param array $params
-     * @return array
+     * @param  array<int|string, mixed> $params
+     * @return array<int|string, string>
      */
     protected function formatParameters(array $params): array
     {
@@ -91,6 +93,8 @@ class DatabaseDataCollector extends DataCollector implements Renderable, AssetPr
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, array<string, mixed>>
      */
     public function getWidgets(): array
     {
@@ -110,6 +114,8 @@ class DatabaseDataCollector extends DataCollector implements Renderable, AssetPr
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, string>
      */
     public function getAssets(): array
     {

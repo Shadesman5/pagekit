@@ -14,14 +14,27 @@ final class Route
 {
     private ?string $path = null;
     private ?string $name = null;
+    /** @var array<string, string> */
     private array $requirements = [];
+    /** @var array<string, mixed> */
     private array $options = [];
+    /** @var array<string, mixed> */
     private array $defaults = [];
     private ?string $host = null;
+    /** @var array<int, string> */
     private array $methods = [];
+    /** @var array<int, string> */
     private array $schemes = [];
     private ?string $condition = null;
 
+    /**
+     * @param string|array<string, mixed>|null $path
+     * @param array<string, string>            $requirements
+     * @param array<string, mixed>             $options
+     * @param array<string, mixed>             $defaults
+     * @param array<int, string>|string        $methods
+     * @param array<int, string>|string        $schemes
+     */
     public function __construct(
         string|array|null $path = null,
         ?string $name = null,
@@ -90,31 +103,49 @@ final class Route
         $this->name = $name;
     }
 
+    /**
+     * @return array<string, string>
+     */
     public function getRequirements(): array
     {
         return $this->requirements;
     }
 
+    /**
+     * @param array<string, string> $requirements
+     */
     public function setRequirements(array $requirements): void
     {
         $this->requirements = $requirements;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getOptions(): array
     {
         return $this->options;
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function setOptions(array $options): void
     {
         $this->options = $options;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getDefaults(): array
     {
         return $this->defaults;
     }
 
+    /**
+     * @param array<string, mixed> $defaults
+     */
     public function setDefaults(array $defaults): void
     {
         $this->defaults = $defaults;
@@ -130,21 +161,33 @@ final class Route
         $this->host = $host;
     }
 
+    /**
+     * @return array<int, string>
+     */
     public function getMethods(): array
     {
         return $this->methods;
     }
 
+    /**
+     * @param array<int, string> $methods
+     */
     public function setMethods(array $methods): void
     {
         $this->methods = $methods;
     }
 
+    /**
+     * @return array<int, string>
+     */
     public function getSchemes(): array
     {
         return $this->schemes;
     }
 
+    /**
+     * @param array<int, string> $schemes
+     */
     public function setSchemes(array $schemes): void
     {
         $this->schemes = $schemes;

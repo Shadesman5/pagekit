@@ -7,14 +7,19 @@ namespace Pagekit\Feed;
 trait ElementsTrait
 {
     /**
-     * @var array[]
+     * @var array<string, array<int, array{0: string, 1: mixed, 2: array<string, mixed>|null}>>
      */
     protected array $elements;
 
     /**
      * {@inheritdoc}
+     *
+     * @param  string                    $name
+     * @param  mixed                     $value
+     * @param  array<string, mixed>|null $attributes
+     * @return $this
      */
-    public function setElement($name, $value, $attributes = null)
+    public function setElement($name, $value, $attributes = null): object
     {
         unset($this->elements[$name]);
 
@@ -23,6 +28,11 @@ trait ElementsTrait
 
     /**
      * {@inheritdoc}
+     *
+     * @param  string                    $name
+     * @param  mixed                     $value
+     * @param  array<string, mixed>|null $attributes
+     * @return $this
      */
     public function addElement($name, $value, $attributes = null): object
     {
@@ -33,8 +43,11 @@ trait ElementsTrait
 
     /**
      * {@inheritdoc}
+     *
+     * @param  array<string, mixed> $elements
+     * @return $this
      */
-    public function addElements(array $elements): object
+    public function addElements(array $elements): static
     {
         foreach ($elements as $name => $value) {
             if (method_exists($this, $method = 'set'.$name)) {
@@ -53,6 +66,8 @@ trait ElementsTrait
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<int, array{0: string, 1: mixed, 2: array<string, mixed>|null}>
      */
     public function getElements(): array
     {

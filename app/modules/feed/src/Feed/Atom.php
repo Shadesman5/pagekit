@@ -14,10 +14,14 @@ class Atom extends Feed
 
     /**
      * {@inheritdoc}
+     *
+     * @return $this
      */
-    public function setDate(\DateTimeInterface $date)
+    public function setDate(\DateTimeInterface $date): self
     {
-        return $this->setElement('updated', $date->format(\DATE_ATOM));
+        $this->setElement('updated', $date->format(\DATE_ATOM));
+
+        return $this;
     }
 
     /**
@@ -77,9 +81,8 @@ class Atom extends Feed
     }
 
     /**
-     * @param  \DOMDocument $doc
-     * @param  array        $element
-     * @return \DOMElement
+     * @param \DOMDocument                                                $doc
+     * @param array{0: string, 1: mixed, 2: array<string, mixed>|null}    $element
      */
     protected function buildElement(\DOMDocument $doc, array $element): \DOMElement
     {
@@ -90,6 +93,8 @@ class Atom extends Feed
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<string, mixed> $attributes
      */
     protected function buildAttributes(\DOMElement $element, array $attributes = []): \DOMElement
     {
