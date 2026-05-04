@@ -15,6 +15,9 @@ class PhpNodeVisitor extends NodeVisitor implements BaseVisitor
 {
     /**
      * {@inheritdoc}
+     *
+     * @param  array<int, string> $files
+     * @return array<string, array<string, mixed>>
      */
     public function traverse(array $files): array
     {

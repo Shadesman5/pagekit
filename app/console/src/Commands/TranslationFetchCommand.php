@@ -31,7 +31,7 @@ class TranslationFetchCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected function execute(InputInterface $input, OutputInterface $output): void
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $tmp = '/tmp/pagekit-languages';
         $repo = 'git@github.com:pagekit/languages.git';
@@ -65,16 +65,15 @@ class TranslationFetchCommand extends Command
 
         // rm git repo from tmp
         exec(sprintf('rm -rf %s', $tmp));
+
+        return Command::SUCCESS;
     }
 
 
     /**
      * Returns the extension path.
-     *
-     * @param $resource
-     * @return string|bool
      */
-    protected function getPath($resource)
+    protected function getPath(string $resource): string|false
     {
         $vendor = 'pagekit';
 

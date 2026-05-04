@@ -94,7 +94,7 @@ class ArchiveCommand extends Command
         return (int) $this->line(sprintf('Archive created: %s (%.2f MB)', $name, $size));
     }
 
-    protected function getPackageFilename($name)
+    protected function getPackageFilename(string $name): string
     {
         // TODO: Make this more robust.
         return preg_replace('#[^a-z0-9-_]#i', '-', $name);

@@ -25,12 +25,6 @@ parameters:
 			path: app/console/src/Commands/BuildCommand.php
 
 		-
-			message: '#^Return type \(void\) of method Pagekit\\Console\\Commands\\ExtensionTranslateCommand\:\:execute\(\) should be compatible with return type \(int\) of method Symfony\\Component\\Console\\Command\\Command\:\:execute\(\)$#'
-			identifier: method.childReturnType
-			count: 1
-			path: app/console/src/Commands/ExtensionTranslateCommand.php
-
-		-
 			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:error\(\) \(void\) is used\.$#'
 			identifier: method.void
 			count: 1
@@ -59,12 +53,6 @@ parameters:
 			identifier: method.void
 			count: 1
 			path: app/console/src/Commands/SetupCommand.php
-
-		-
-			message: '#^Return type \(void\) of method Pagekit\\Console\\Commands\\TranslationFetchCommand\:\:execute\(\) should be compatible with return type \(int\) of method Symfony\\Component\\Console\\Command\\Command\:\:execute\(\)$#'
-			identifier: method.childReturnType
-			count: 1
-			path: app/console/src/Commands/TranslationFetchCommand.php
 
 		-
 			message: '#^Parameter \#1 \$app of class Pagekit\\Installer\\Package\\PackageManager constructor expects Psr\\Container\\ContainerInterface, Symfony\\Component\\Console\\Output\\OutputInterface given\.$#'

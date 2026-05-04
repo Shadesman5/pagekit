@@ -96,11 +96,9 @@ class SelfupdateCommand extends Command
     }
 
     /**
-     * @param $url
-     * @param $file
      * @throws \Exception
      */
-    public function download($url, $file): void
+    public function download(string $url, string $file): void
     {
         if (!$url) {
             throw new \RuntimeException('Package url is missing.');
