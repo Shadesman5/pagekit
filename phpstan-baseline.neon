@@ -2473,18 +2473,6 @@ parameters:
 			path: app/system/modules/widget/views/index.php
 
 		-
-			message: '#^Method Composer\\Autoload\\ClassLoader\:\:loadClass\(\) should return bool\|null but return statement is missing\.$#'
-			identifier: return.missing
-			count: 1
-			path: packages/composer/ClassLoader.php
-
-		-
-			message: '#^Comparison operation "\>\=" between int\<80200, 80599\> and 50600 is always true\.$#'
-			identifier: greaterOrEqual.alwaysTrue
-			count: 1
-			path: packages/composer/autoload_real.php
-
-		-
 			message: '#^Variable \$app might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
