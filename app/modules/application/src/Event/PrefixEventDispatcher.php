@@ -16,24 +16,32 @@ class PrefixEventDispatcher implements EventDispatcherInterface
         $this->events = $events ?: new EventDispatcher();
     }
 
-    public function on(string $event, callable $listener, int $priority = 0): void
+    public function on(string $event, callable $listener, int $priority = 0): self
     {
         $this->events->on($this->prefix.$event, $listener, $priority);
+
+        return $this;
     }
 
-    public function off(string $event, ?callable $listener = null): void
+    public function off(string $event, ?callable $listener = null): self
     {
         $this->events->off($this->prefix.$event, $listener);
+
+        return $this;
     }
 
-    public function subscribe(EventSubscriberInterface $subscriber): void
+    public function subscribe(EventSubscriberInterface $subscriber): self
     {
         $this->events->subscribe($subscriber);
+
+        return $this;
     }
 
-    public function unsubscribe(EventSubscriberInterface $subscriber): void
+    public function unsubscribe(EventSubscriberInterface $subscriber): self
     {
         $this->events->unsubscribe($subscriber);
+
+        return $this;
     }
 
     /**

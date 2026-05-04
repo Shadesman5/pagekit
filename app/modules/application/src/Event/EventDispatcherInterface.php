@@ -9,22 +9,22 @@ interface EventDispatcherInterface
     /**
      * Adds an event listener.
      */
-    public function on(string $event, callable $listener, int $priority = 0): void;
+    public function on(string $event, callable $listener, int $priority = 0): self;
 
     /**
      * Removes one or more event listeners.
      */
-    public function off(string $event, ?callable $listener = null): void;
+    public function off(string $event, ?callable $listener = null): self;
 
     /**
      * Adds an event subscriber.
      */
-    public function subscribe(EventSubscriberInterface $subscriber): void;
+    public function subscribe(EventSubscriberInterface $subscriber): self;
 
     /**
      * Removes an event subscriber.
      */
-    public function unsubscribe(EventSubscriberInterface $subscriber): void;
+    public function unsubscribe(EventSubscriberInterface $subscriber): self;
 
     /**
      * Triggers an event.

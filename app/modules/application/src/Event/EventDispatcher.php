@@ -22,22 +22,24 @@ class EventDispatcher implements EventDispatcherInterface
         $this->event = $event;
     }
 
-    public function on(string $event, callable $listener, int $priority = 0): void
+    public function on(string $event, callable $listener, int $priority = 0): self
     {
         $this->listeners[$event][$priority][] = $listener;
         unset($this->sorted[$event]);
+
+        return $this;
     }
 
-    public function off(string $event, ?callable $listener = null): void
+    public function off(string $event, ?callable $listener = null): self
     {
         if (!isset($this->listeners[$event])) {
-            return;
+            return $this;
         }
 
         if ($listener === null) {
             unset($this->listeners[$event], $this->sorted[$event]);
 
-            return;
+            return $this;
         }
 
         foreach ($this->listeners[$event] as $priority => $listeners) {
@@ -45,12 +47,14 @@ class EventDispatcher implements EventDispatcherInterface
                 unset($this->listeners[$event][$priority][$key], $this->sorted[$event]);
             }
         }
+
+        return $this;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function subscribe(EventSubscriberInterface $subscriber): void
+    public function subscribe(EventSubscriberInterface $subscriber): self
     {
         foreach ($subscriber->subscribe() as $event => $params) {
 
@@ -73,12 +77,14 @@ class EventDispatcher implements EventDispatcherInterface
             }
 
         }
+
+        return $this;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function unsubscribe(EventSubscriberInterface $subscriber): void
+    public function unsubscribe(EventSubscriberInterface $subscriber): self
     {
         foreach ($subscriber->subscribe() as $event => $params) {
             if (is_array($params) && is_array($params[0])) {
@@ -89,6 +95,8 @@ class EventDispatcher implements EventDispatcherInterface
                 $this->off($event, [$subscriber, is_string($params) ? $params : $params[0]]);
             }
         }
+
+        return $this;
     }
 
     /**

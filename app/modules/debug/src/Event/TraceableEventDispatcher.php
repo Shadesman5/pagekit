@@ -40,12 +40,14 @@ class TraceableEventDispatcher implements EventDispatcherInterface
         $this->wrappedListeners = [];
     }
 
-    public function on(string $event, callable $listener, int $priority = 0): void
+    public function on(string $event, callable $listener, int $priority = 0): self
     {
         $this->dispatcher->on($event, $listener, $priority);
+
+        return $this;
     }
 
-    public function off(string $event, ?callable $listener = null): void
+    public function off(string $event, ?callable $listener = null): self
     {
         if (isset($this->wrappedListeners[$event])) {
             foreach ($this->wrappedListeners[$event] as $index => $wrappedListener) {
@@ -59,12 +61,14 @@ class TraceableEventDispatcher implements EventDispatcherInterface
         }
 
         $this->dispatcher->off($event, $listener);
+
+        return $this;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function subscribe(EventSubscriberInterface $subscriber): void
+    public function subscribe(EventSubscriberInterface $subscriber): self
     {
         foreach ($subscriber->subscribe() as $event => $params) {
 
@@ -87,12 +91,14 @@ class TraceableEventDispatcher implements EventDispatcherInterface
             }
 
         }
+
+        return $this;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function unsubscribe(EventSubscriberInterface $subscriber): void
+    public function unsubscribe(EventSubscriberInterface $subscriber): self
     {
         foreach ($subscriber->subscribe() as $event => $params) {
             if (is_array($params) && is_array($params[0])) {
@@ -103,6 +109,8 @@ class TraceableEventDispatcher implements EventDispatcherInterface
                 $this->off($event, [$subscriber, is_string($params) ? $params : $params[0]]);
             }
         }
+
+        return $this;
     }
 
     /**
