@@ -10,7 +10,9 @@ use Pagekit\Routing\Attribute\Route;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * API Controller for Role management.
@@ -21,11 +23,14 @@ class RoleApiController
     use ValidatesRequestTrait;
 
     public function __construct(
-        private readonly mixed $request,
-        private readonly mixed $validator,
+        private readonly Request $request,
+        protected readonly ValidatorInterface $validator,
     ) {
     }
 
+    /**
+     * @return array<int, Role>
+     */
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
@@ -40,6 +45,9 @@ class RoleApiController
 
     /**
      * Save a role (create or update).
+     *
+     * @param  array<string, mixed>|null $data
+     * @return array{message: string, role: Role}
      */
     #[Route('/', methods: ['POST'])]
     #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
@@ -55,12 +63,10 @@ class RoleApiController
             }
         }
 
-        // Get id from route or data
         if (!$id && isset($data['id'])) {
             $id = (int) $data['id'];
         }
 
-        // is new ?
         if (!$role = Role::find($id)) {
 
             if ($id) {
@@ -70,14 +76,12 @@ class RoleApiController
             $role = Role::create();
         }
 
-        // Assign data to entity for validation (without saving yet)
         foreach ($data as $key => $value) {
             if (property_exists($role, $key)) {
                 $role->$key = $value;
             }
         }
 
-        // Validate using Symfony Validator
         $this->validateOrFail($role);
 
         $role->save($data);
@@ -85,10 +89,12 @@ class RoleApiController
         return ['message' => 'success', 'role' => $role];
     }
 
+    /**
+     * @return array{message: string}
+     */
     #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\d+'])]
     public function deleteAction(int $id = 0): array
     {
-        // Get id from route if not provided (Symfony 6.4 compatibility)
         if (!$id) {
             $id = (int) $this->request->get('id', 0);
         }
@@ -100,6 +106,9 @@ class RoleApiController
         return ['message' => 'success'];
     }
 
+    /**
+     * @return array{message: string}
+     */
     #[Route('/bulk', methods: ['POST'])]
     public function bulkSaveAction(): array
     {
@@ -119,6 +128,9 @@ class RoleApiController
         return ['message' => 'success'];
     }
 
+    /**
+     * @return array{message: string}
+     */
     #[Route('/bulk', methods: ['DELETE'])]
     public function bulkDeleteAction(): array
     {

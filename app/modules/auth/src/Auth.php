@@ -12,7 +12,6 @@ use Pagekit\Auth\Exception\AuthException;
 use Pagekit\Auth\Exception\BadCredentialsException;
 use Pagekit\Auth\Handler\HandlerInterface;
 use Pagekit\Event\EventDispatcherInterface;
-use Pagekit\Event\EventInterface;
 
 class Auth
 {
@@ -137,19 +136,23 @@ class Auth
      * @param  UserInterface $user
      * @param  bool          $remember
      */
-    public function login(UserInterface $user, $remember = false): EventInterface
+    public function login(UserInterface $user, $remember = false): LoginEvent
     {
         $this->setUser($user, $remember);
 
-        return $this->events->trigger(new LoginEvent(AuthEvents::LOGIN, $user));
+        $event = new LoginEvent(AuthEvents::LOGIN, $user);
+        $this->events->trigger($event);
+
+        return $event;
     }
 
     /**
      * Logs the current user out.
      */
-    public function logout(): EventInterface
+    public function logout(): LogoutEvent
     {
-        $event = $this->events->trigger(new LogoutEvent(AuthEvents::LOGOUT, $this->getUser()));
+        $event = new LogoutEvent(AuthEvents::LOGOUT, $this->getUser());
+        $this->events->trigger($event);
         $this->removeUser();
 
         return $event;

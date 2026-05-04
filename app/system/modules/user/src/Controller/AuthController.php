@@ -6,35 +6,50 @@ namespace Pagekit\User\Controller;
 
 use function Pagekit\__;
 
+use Pagekit\Application\Response as PagekitResponse;
+use Pagekit\Application\UrlProvider;
 use Pagekit\Auth\Auth;
 use Pagekit\Auth\Exception\AuthException;
 use Pagekit\Auth\Exception\BadCredentialsException;
-use Pagekit\Routing\Attribute\Request;
+use Pagekit\Config\ConfigManager;
+use Pagekit\Routing\Attribute\Request as RequestAttr;
 use Pagekit\Routing\Attribute\Route;
+use Pagekit\Routing\Router;
 use Pagekit\Session\Csrf\Exception\CsrfException;
+use Pagekit\Session\Csrf\Provider\CsrfProviderInterface;
+use Pagekit\Session\MessageBag;
+use Pagekit\User\Model\User;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 class AuthController
 {
     public function __construct(
-        private readonly mixed $user,
-        private readonly mixed $session,
-        private readonly mixed $url,
-        private readonly mixed $config,
-        private readonly mixed $request,
-        private readonly mixed $auth,
-        private readonly mixed $csrf,
-        private readonly mixed $response,
-        private readonly mixed $message,
-        private readonly mixed $router,
+        private readonly User $user,
+        private readonly SessionInterface $session,
+        private readonly UrlProvider $url,
+        private readonly ConfigManager $config,
+        private readonly Request $request,
+        private readonly Auth $auth,
+        private readonly CsrfProviderInterface $csrf,
+        private readonly PagekitResponse $response,
+        private readonly MessageBag $message,
+        private readonly Router $router,
     ) {
     }
 
+    /**
+     * @return array<string, mixed>|HttpResponse
+     */
     #[Route(defaults: ['_maintenance' => true])]
-    #[Request(['redirect' => 'string'])]
-    public function loginAction($redirect = '')
+    #[RequestAttr(['redirect' => 'string'])]
+    public function loginAction(string $redirect = ''): array|HttpResponse
     {
         if (!$redirect) {
-            $redirect = ($this->url)(($this->config)('system/user')['login_redirect']);
+            $loginRedirect = ($this->config)('system/user')['login_redirect'] ?? '';
+            $redirect = (string) ($this->url)((string) $loginRedirect);
         }
 
         if ($this->user->isAuthenticated()) {
@@ -52,21 +67,22 @@ class AuthController
     }
 
     #[Route(defaults: ['_maintenance' => true])]
-    public function logoutAction($redirect = null)
+    public function logoutAction(?string $redirect = null): HttpResponse
     {
         if ($redirect === null) {
-            $redirect = $this->request->get('redirect', '');
+            $redirect = (string) $this->request->get('redirect', '');
         }
 
-        if (($event = $this->auth->logout()) && $event->hasResponse()) {
-            return $event->getResponse();
+        $event = $this->auth->logout();
+        if ($event->hasResponse() && ($response = $event->getResponse()) !== null) {
+            return $response;
         }
 
         return $this->doRedirect($redirect);
     }
 
     #[Route(methods: ['POST'], defaults: ['_maintenance' => true])]
-    public function authenticateAction()
+    public function authenticateAction(): HttpResponse
     {
         try {
             $credentials = $this->request->request->all()['credentials'] ?? [];
@@ -86,16 +102,17 @@ class AuthController
                 throw new CsrfException(__('Invalid token. Please try again.'));
             }
 
-            $this->auth->authorize($user = $this->auth->authenticate($credentials, false));
+            $this->auth->authorize($user = $this->auth->authenticate($credentials));
 
-            if (($event = $this->auth->login($user, $remember)) && $event->hasResponse()) {
-                return $event->getResponse();
+            $event = $this->auth->login($user, $remember);
+            if ($event->hasResponse() && ($response = $event->getResponse()) !== null) {
+                return $response;
             }
 
             if ($this->request->isXmlHttpRequest()) {
                 return $this->response->json(['csrf' => $this->csrf->generate()]);
             } else {
-                return $this->doRedirect($redirect);
+                return $this->doRedirect((string) $redirect);
             }
 
         } catch (CsrfException $e) {
@@ -104,24 +121,24 @@ class AuthController
             }
             $error = $e->getMessage();
         } catch (BadCredentialsException $e) {
-            $error = __('Invalid username or password.');
+            $error = (string) __('Invalid username or password.');
         } catch (AuthException $e) {
             $error = $e->getMessage();
         }
 
         if ($this->request->isXmlHttpRequest()) {
             return $this->response->json($error, 401);
-        } else {
-            $this->message->error($error);
-
-            return $this->doRedirect($this->url->previous());
         }
+
+        $this->message->error($error);
+
+        return $this->doRedirect((string) $this->url->previous());
     }
 
-    protected function doRedirect($url)
+    protected function doRedirect(string $url): RedirectResponse
     {
         do {
-            $url = preg_replace('#^(https?:)?//[^/]+#', '', $url, 1, $count);
+            $url = preg_replace('#^(https?:)?//[^/]+#', '', $url, 1, $count) ?? $url;
         } while ($count);
 
         return $this->router->redirect($url);

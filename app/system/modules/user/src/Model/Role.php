@@ -48,9 +48,11 @@ class Role implements \JsonSerializable
     #[Assert\PositiveOrZero(message: 'validation.role.priority_invalid')]
     public int $priority = 0;
 
+    /** @var array<int, string> */
     #[ORM\Column(type: 'simple_array')]
     public array $permissions = [];
 
+    /** @var array<string, string> */
     protected static array $properties = [
         'locked' => 'isLocked',
         'anonymous' => 'isAnonymous',

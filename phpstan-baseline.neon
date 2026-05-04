@@ -475,36 +475,6 @@ parameters:
 			path: app/modules/database/src/Connection.php
 
 		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:whereIn\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/modules/database/src/ORM/Relation/BelongsTo.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:orderBy\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/modules/database/src/ORM/Relation/HasMany.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:whereIn\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/modules/database/src/ORM/Relation/HasMany.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:whereIn\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/modules/database/src/ORM/Relation/HasOne.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:whereIn\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/modules/database/src/ORM/Relation/ManyToMany.php
-
-		-
 			message: '#^Instanceof between array\|float\|int\|string\|false\|null and Pagekit\\Database\\Query\\CompositeExpression will always evaluate to false\.$#'
 			identifier: instanceof.alwaysFalse
 			count: 1
@@ -1093,36 +1063,6 @@ parameters:
 			path: app/system/modules/captcha/src/CaptchaListener.php
 
 		-
-			message: '#^Access to an undefined static property static\(Pagekit\\Comment\\Model\\Comment\)\:\:\$properties\.$#'
-			identifier: staticProperty.notFound
-			count: 3
-			path: app/system/modules/comment/src/Model/Comment.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:update\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/comment/src/Model/Comment.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/comment/src/Model/Comment.php
-
-		-
-			message: '#^Method Pagekit\\Comment\\Model\\Comment\:\:create\(\) should return static\(Pagekit\\Comment\\Model\\Comment\) but returns object\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/comment/src/Model/Comment.php
-
-		-
-			message: '#^Method Pagekit\\Comment\\Model\\Comment\:\:find\(\) should return static\(Pagekit\\Comment\\Model\\Comment\)\|null but returns object\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/comment/src/Model/Comment.php
-
-		-
 			message: '#^Call to an undefined method Pagekit\\Event\\EventInterface\:\:getContent\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -1387,24 +1327,6 @@ parameters:
 			path: app/system/modules/site/index.php
 
 		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:count\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/site/src/Controller/MenuApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:update\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: app/system/modules/site/src/Controller/MenuApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/site/src/Controller/NodeApiController.php
-
-		-
 			message: '#^Call to an undefined method Pagekit\\Module\\Module\:\:getType\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -1415,66 +1337,6 @@ parameters:
 			identifier: new.noConstructor
 			count: 1
 			path: app/system/modules/site/src/MenuHelper.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:orderBy\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/site/src/Model/Node.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: app/system/modules/site/src/Model/Node.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:whereIn\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/site/src/Model/Node.php
-
-		-
-			message: '#^Method Pagekit\\Site\\Model\\Node\:\:create\(\) should return static\(Pagekit\\Site\\Model\\Node\) but returns object\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/site/src/Model/Node.php
-
-		-
-			message: '#^Method Pagekit\\Site\\Model\\Node\:\:modelFind\(\) should return static\(Pagekit\\Site\\Model\\Node\)\|null but returns object\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/site/src/Model/Node.php
-
-		-
-			message: '#^Static property Pagekit\\Site\\Model\\Node\:\:\$properties \(array\) in isset\(\) is not nullable\.$#'
-			identifier: isset.property
-			count: 2
-			path: app/system/modules/site/src/Model/Node.php
-
-		-
-			message: '#^Access to an undefined static property static\(Pagekit\\Site\\Model\\Page\)\:\:\$properties\.$#'
-			identifier: staticProperty.notFound
-			count: 3
-			path: app/system/modules/site/src/Model/Page.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/site/src/Model/Page.php
-
-		-
-			message: '#^Method Pagekit\\Site\\Model\\Page\:\:create\(\) should return static\(Pagekit\\Site\\Model\\Page\) but returns object\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/site/src/Model/Page.php
-
-		-
-			message: '#^Method Pagekit\\Site\\Model\\Page\:\:find\(\) should return static\(Pagekit\\Site\\Model\\Page\)\|null but returns object\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/site/src/Model/Page.php
 
 		-
 			message: '#^PHPDoc tag @param references unknown parameter\: \$route$#'
@@ -1777,36 +1639,6 @@ parameters:
 			path: app/system/modules/user/mails/welcome.php
 
 		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:count\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: app/system/modules/user/src/Controller/UserApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:offset\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/user/src/Controller/UserApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 8
-			path: app/system/modules/user/src/Controller/UserApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:whereExists\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: app/system/modules/user/src/Controller/UserApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:whereInSet\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: app/system/modules/user/src/Controller/UserApiController.php
-
-		-
 			message: '#^Variable \$access might not be defined\.$#'
 			identifier: variable.undefined
 			count: 2
@@ -1837,12 +1669,6 @@ parameters:
 			path: app/system/modules/user/src/Controller/UserApiController.php
 
 		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:orderBy\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: app/system/modules/user/src/Controller/UserController.php
-
-		-
 			message: '#^Call to an undefined method Pagekit\\Auth\\UserInterface\:\:hasAccess\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -1865,66 +1691,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/system/modules/user/src/Event/UserListener.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/user/src/Model/Role.php
-
-		-
-			message: '#^Method Pagekit\\User\\Model\\Role\:\:create\(\) should return static\(Pagekit\\User\\Model\\Role\) but returns object\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/user/src/Model/Role.php
-
-		-
-			message: '#^Method Pagekit\\User\\Model\\Role\:\:find\(\) should return static\(Pagekit\\User\\Model\\Role\)\|null but returns object\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/user/src/Model/Role.php
-
-		-
-			message: '#^Static property Pagekit\\User\\Model\\Role\:\:\$properties \(array\) in isset\(\) is not nullable\.$#'
-			identifier: isset.property
-			count: 2
-			path: app/system/modules/user/src/Model/Role.php
-
-		-
-			message: '#^Access to an undefined static property static\(Pagekit\\User\\Model\\User\)\:\:\$properties\.$#'
-			identifier: staticProperty.notFound
-			count: 3
-			path: app/system/modules/user/src/Model/User.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:orWhere\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/user/src/Model/User.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:update\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/user/src/Model/User.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/user/src/Model/User.php
-
-		-
-			message: '#^Method Pagekit\\User\\Model\\User\:\:create\(\) should return static\(Pagekit\\User\\Model\\User\) but returns object\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/user/src/Model/User.php
-
-		-
-			message: '#^Method Pagekit\\User\\Model\\User\:\:find\(\) should return static\(Pagekit\\User\\Model\\User\)\|null but returns object\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/user/src/Model/User.php
 
 		-
 			message: '#^Parameter \#2 \$callback of function preg_replace_callback expects callable\(array\<string\>\)\: string, Closure\(mixed\)\: \(0\|1\) given\.$#'
@@ -2119,30 +1885,6 @@ parameters:
 			path: app/system/modules/widget/src/Controller/WidgetController.php
 
 		-
-			message: '#^Access to an undefined static property static\(Pagekit\\Widget\\Model\\Widget\)\:\:\$properties\.$#'
-			identifier: staticProperty.notFound
-			count: 3
-			path: app/system/modules/widget/src/Model/Widget.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/widget/src/Model/Widget.php
-
-		-
-			message: '#^Method Pagekit\\Widget\\Model\\Widget\:\:create\(\) should return static\(Pagekit\\Widget\\Model\\Widget\) but returns object\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/widget/src/Model/Widget.php
-
-		-
-			message: '#^Method Pagekit\\Widget\\Model\\Widget\:\:find\(\) should return static\(Pagekit\\Widget\\Model\\Widget\)\|null but returns object\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/widget/src/Model/Widget.php
-
-		-
 			message: '#^Variable \$view might not be defined\.$#'
 			identifier: variable.undefined
 			count: 2
@@ -2161,36 +1903,6 @@ parameters:
 			path: packages/pagekit/blog/index.php
 
 		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:count\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: packages/pagekit/blog/src/Controller/CommentApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:offset\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: packages/pagekit/blog/src/Controller/CommentApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:orWhere\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: packages/pagekit/blog/src/Controller/CommentApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:orderBy\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: packages/pagekit/blog/src/Controller/CommentApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 5
-			path: packages/pagekit/blog/src/Controller/CommentApiController.php
-
-		-
 			message: '#^Variable \$order might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
@@ -2207,24 +1919,6 @@ parameters:
 			identifier: variable.undefined
 			count: 1
 			path: packages/pagekit/blog/src/Controller/CommentApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:count\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: packages/pagekit/blog/src/Controller/PostApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:offset\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: packages/pagekit/blog/src/Controller/PostApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: packages/pagekit/blog/src/Controller/PostApiController.php
 
 		-
 			message: '#^Variable \$author might not be defined\.$#'
@@ -2257,64 +1951,10 @@ parameters:
 			path: packages/pagekit/blog/src/Controller/PostApiController.php
 
 		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:limit\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: packages/pagekit/blog/src/Controller/SiteController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: packages/pagekit/blog/src/Controller/SiteController.php
-
-		-
 			message: '#^Access to an undefined property Pagekit\\Comment\\Model\\Comment\:\:\$post_id\.$#'
 			identifier: property.notFound
 			count: 1
 			path: packages/pagekit/blog/src/Event/PostListener.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:count\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: packages/pagekit/blog/src/Model/Post.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:select\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: packages/pagekit/blog/src/Model/Post.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:update\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: packages/pagekit/blog/src/Model/Post.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: packages/pagekit/blog/src/Model/Post.php
-
-		-
-			message: '#^Method Pagekit\\Blog\\Model\\Post\:\:create\(\) should return static\(Pagekit\\Blog\\Model\\Post\) but returns object\.$#'
-			identifier: return.type
-			count: 1
-			path: packages/pagekit/blog/src/Model/Post.php
-
-		-
-			message: '#^Method Pagekit\\Blog\\Model\\Post\:\:find\(\) should return static\(Pagekit\\Blog\\Model\\Post\)\|null but returns object\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: packages/pagekit/blog/src/Model/Post.php
-
-		-
-			message: '#^Static property Pagekit\\Blog\\Model\\Post\:\:\$properties \(array\) in isset\(\) is not nullable\.$#'
-			identifier: isset.property
-			count: 2
-			path: packages/pagekit/blog/src/Model/Post.php
 
 		-
 			message: '#^Variable \$view might not be defined\.$#'

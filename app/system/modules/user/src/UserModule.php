@@ -12,6 +12,8 @@ use Pagekit\User\Model\User;
 class UserModule extends Module
 {
     protected ?App $app = null;
+
+    /** @var array<string, array<string, mixed>> */
     protected array $perms = [];
 
     public function main(App $app): mixed
@@ -36,6 +38,9 @@ class UserModule extends Module
         }
     }
 
+    /**
+     * @return array<string, array<string, mixed>>
+     */
     public function getPermissions(): array
     {
         if (!$this->perms) {
@@ -56,10 +61,9 @@ class UserModule extends Module
     /**
      * Register permissions.
      *
-     * @param string $extension
-     * @param array  $permissions
+     * @param array<string, mixed> $permissions
      */
-    public function registerPermissions($extension, array $permissions = []): void
+    public function registerPermissions(string $extension, array $permissions = []): void
     {
         $this->perms[$extension] = $permissions;
     }

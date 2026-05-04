@@ -6,6 +6,39 @@ namespace Pagekit\Database\ORM;
 
 use Psr\Cache\CacheItemPoolInterface;
 
+/**
+ * ORM-aware query builder that proxies the fluent verb methods of the
+ * underlying {@see \Pagekit\Database\Query\QueryBuilder} via {@see __call()}.
+ * The `@method` tags below mirror that proxy contract so static analysis can
+ * resolve the chained calls without expanding the actual class API.
+ * Methods that read variadic arguments via `func_get_args()` (`select`,
+ * `groupBy`) are typed with a trailing `mixed ...$columns` to match.
+ *
+ * @method self where(mixed $condition, array<int|string, mixed> $params = [])
+ * @method self orWhere(mixed $condition, array<int|string, mixed> $params = [])
+ * @method self whereIn(string $column, mixed $values, bool $not = false, ?string $type = null)
+ * @method self orWhereIn(string $column, mixed $values, bool $not = false)
+ * @method self whereExists(\Closure $callback, bool $not = false, ?string $type = null)
+ * @method self orWhereExists(\Closure $callback, bool $not = false)
+ * @method self whereInSet(string $column, mixed $values, bool $not = false, ?string $type = null)
+ * @method self select(mixed $columns = ['*'], mixed ...$rest)
+ * @method self from(string $table)
+ * @method self join(string $table, ?string $condition = null, string $type = 'inner')
+ * @method self innerJoin(string $table, ?string $condition = null)
+ * @method self leftJoin(string $table, ?string $condition = null)
+ * @method self rightJoin(string $table, ?string $condition = null)
+ * @method self groupBy(mixed $groupBy, mixed ...$rest)
+ * @method self having(mixed $having, string $type = 'AND')
+ * @method self orHaving(mixed $having)
+ * @method self orderBy(string $sort, ?string $order = null)
+ * @method self offset(int $offset)
+ * @method self limit(int $limit)
+ * @method int count(string $column = '*')
+ * @method int update(array<string, mixed> $values)
+ * @method int delete()
+ * @method string getSQL()
+ * @method \Doctrine\DBAL\Result execute(mixed $columns = ['*'])
+ */
 class QueryBuilder
 {
     protected \Pagekit\Database\ORM\EntityManager $manager;

@@ -80,6 +80,8 @@ class LoginAttemptListener implements EventSubscriberInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, string>
      */
     public function subscribe(): array
     {

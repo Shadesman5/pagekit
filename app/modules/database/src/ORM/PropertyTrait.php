@@ -91,6 +91,13 @@ trait PropertyTrait
     /**
      * Gets all object properties.
      *
+     * Consumers may declare a `protected static array $properties` map of
+     * virtual property names to accessor methods; this trait does not declare
+     * the field itself, so we look it up dynamically via `get_class_vars()`
+     * to remain compatible with both consumer shapes (with and without the
+     * map). PHPStan cannot statically type-narrow `static::$properties` in a
+     * trait that does not own the property, hence this reflection lookup.
+     *
      * @return array<string, mixed>
      */
     public static function getProperties(object $object): array
@@ -101,8 +108,9 @@ trait PropertyTrait
             $properties[$name] = $object->$name;
         }
 
-        if (isset(static::$properties)) {
-            foreach (array_keys(array_diff_key(static::$properties, $properties)) as $name) {
+        $vars = get_class_vars(static::class);
+        if (isset($vars['properties']) && is_array($vars['properties'])) {
+            foreach (array_keys(array_diff_key($vars['properties'], $properties)) as $name) {
                 $properties[$name] = $object->$name;
             }
         }
@@ -137,6 +145,9 @@ trait PropertyTrait
     /**
      * Gets an object property descriptor.
      *
+     * See {@see getProperties()} for the reasoning behind the `get_class_vars()`
+     * lookup of the optional consumer-declared `$properties` map.
+     *
      * @return array<string, mixed>|null
      */
     protected static function getPropertyDescriptor(string $name): ?array
@@ -145,8 +156,9 @@ trait PropertyTrait
             return static::$_properties[$name];
         }
 
-        if (isset(static::$properties, static::$properties[$name])) {
-            return static::defineProperty($name, static::$properties[$name]);
+        $vars = get_class_vars(static::class);
+        if (isset($vars['properties'][$name]) && is_array($vars['properties'])) {
+            return static::defineProperty($name, $vars['properties'][$name]);
         }
 
         return null;

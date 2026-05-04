@@ -43,12 +43,27 @@ trait ModelTrait
     /**
      * Creates a new instance of this model.
      *
+     * `EntityManager::load()` is typed `: object` because it works for any
+     * mapped entity class; the runtime instance always matches the calling
+     * `static::class` because `Metadata::newInstance()` reflects on it.
+     * The defensive `instanceof static` check both enforces that contract at
+     * runtime and gives PHPStan the narrowing it needs to honour `: static`.
+     *
      * @param array<string, mixed> $data
      * @return static
      */
     public static function create(array $data = []): static
     {
-        return static::getManager()->load(self::getMetadata(), $data);
+        $entity = static::getManager()->load(self::getMetadata(), $data);
+        if (!$entity instanceof static) {
+            throw new \LogicException(sprintf(
+                'EntityManager::load() returned %s, expected %s',
+                get_class($entity),
+                static::class
+            ));
+        }
+
+        return $entity;
     }
 
     /**
@@ -72,12 +87,29 @@ trait ModelTrait
     /**
      * Retrieves an entity by its identifier.
      *
+     * `QueryBuilder::first()` is typed `: ?object` because the ORM query
+     * builder is shared across all mapped entities; the hydrated row is
+     * always an instance of the calling `static::class` (see
+     * {@see create()} for the same reasoning).
+     *
      * @param  mixed $id
-     * @return static
+     * @return static|null
      */
     public static function find(mixed $id): ?static
     {
-        return static::where([static::getMetadata()->getIdentifier() => $id])->first();
+        $entity = static::where([static::getMetadata()->getIdentifier() => $id])->first();
+        if ($entity === null) {
+            return null;
+        }
+        if (!$entity instanceof static) {
+            throw new \LogicException(sprintf(
+                'QueryBuilder::first() returned %s, expected %s',
+                get_class($entity),
+                static::class
+            ));
+        }
+
+        return $entity;
     }
 
     /**
