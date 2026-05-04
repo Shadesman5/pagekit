@@ -93,9 +93,12 @@ trait PropertyTrait
      *
      * Consumers may declare a `protected static array $properties` map of
      * virtual property names to accessor methods; this trait does not declare
-     * the field itself, so we look it up dynamically via `get_class_vars()`
-     * to remain compatible with both consumer shapes (with and without the
-     * map). PHPStan cannot statically type-narrow `static::$properties` in a
+     * the field itself, so we look it up dynamically via reflection to remain
+     * compatible with both consumer shapes (with and without the map).
+     * `ReflectionClass::getStaticProperties()` returns the current runtime
+     * value of static properties (unlike `get_class_vars()`, which only
+     * returns declared defaults), preserving consumer-side runtime mutations.
+     * PHPStan cannot statically type-narrow `static::$properties` from a
      * trait that does not own the property, hence this reflection lookup.
      *
      * @return array<string, mixed>
@@ -108,9 +111,9 @@ trait PropertyTrait
             $properties[$name] = $object->$name;
         }
 
-        $vars = get_class_vars(static::class);
-        if (isset($vars['properties']) && is_array($vars['properties'])) {
-            foreach (array_keys(array_diff_key($vars['properties'], $properties)) as $name) {
+        $staticProperties = (new \ReflectionClass(static::class))->getStaticProperties();
+        if (isset($staticProperties['properties']) && is_array($staticProperties['properties'])) {
+            foreach (array_keys(array_diff_key($staticProperties['properties'], $properties)) as $name) {
                 $properties[$name] = $object->$name;
             }
         }
@@ -145,7 +148,7 @@ trait PropertyTrait
     /**
      * Gets an object property descriptor.
      *
-     * See {@see getProperties()} for the reasoning behind the `get_class_vars()`
+     * See {@see getProperties()} for the reasoning behind the reflection
      * lookup of the optional consumer-declared `$properties` map.
      *
      * @return array<string, mixed>|null
@@ -156,9 +159,9 @@ trait PropertyTrait
             return static::$_properties[$name];
         }
 
-        $vars = get_class_vars(static::class);
-        if (isset($vars['properties'][$name]) && is_array($vars['properties'])) {
-            return static::defineProperty($name, $vars['properties'][$name]);
+        $staticProperties = (new \ReflectionClass(static::class))->getStaticProperties();
+        if (isset($staticProperties['properties']) && is_array($staticProperties['properties']) && isset($staticProperties['properties'][$name])) {
+            return static::defineProperty($name, $staticProperties['properties'][$name]);
         }
 
         return null;

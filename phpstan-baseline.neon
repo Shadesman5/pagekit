@@ -16,12 +16,6 @@ parameters:
 			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:line\(\) \(void\) is used\.$#'
 			identifier: method.void
 			count: 1
-			path: app/console/src/Commands/ArchiveCommand.php
-
-		-
-			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:line\(\) \(void\) is used\.$#'
-			identifier: method.void
-			count: 1
 			path: app/console/src/Commands/BuildCommand.php
 
 		-
@@ -45,12 +39,6 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$app of class Pagekit\\Installer\\Installer constructor expects Pagekit\\Application, Pagekit\\Container\|null given\.$#'
 			identifier: argument.type
-			count: 1
-			path: app/console/src/Commands/SetupCommand.php
-
-		-
-			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:line\(\) \(void\) is used\.$#'
-			identifier: method.void
 			count: 1
 			path: app/console/src/Commands/SetupCommand.php
 
