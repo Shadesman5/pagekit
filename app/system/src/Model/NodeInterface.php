@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Pagekit\System\Model;
 
+/**
+ * @extends \IteratorAggregate<string, NodeInterface>
+ */
 interface NodeInterface extends \IteratorAggregate, \Countable
 {
     public function getParent(): ?self;

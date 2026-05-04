@@ -9,8 +9,12 @@ use Pagekit\User\Model\User;
 use Pagekit\Util\ArrObject;
 use Symfony\Component\HttpFoundation\Request;
 
+/**
+ * @implements \IteratorAggregate<string, ArrObject>
+ */
 class SystemMenu implements \IteratorAggregate, \JsonSerializable
 {
+    /** @var array<string, ArrObject> */
     protected array $items = [];
 
     public function __construct(
@@ -22,6 +26,8 @@ class SystemMenu implements \IteratorAggregate, \JsonSerializable
 
     /**
      * Gets all menu items.
+     *
+     * @return array<string, ArrObject>
      */
     public function getItems(): array
     {
@@ -31,7 +37,7 @@ class SystemMenu implements \IteratorAggregate, \JsonSerializable
                 continue;
             }
 
-            while ($item = $this->getItem($item['parent'])) {
+            while ($item = $this->getItem((string) $item['parent'])) {
                 $item['active'] = true;
             }
         }
@@ -41,10 +47,8 @@ class SystemMenu implements \IteratorAggregate, \JsonSerializable
 
     /**
      * Gets a menu item.
-     *
-     * @param string $id
      */
-    public function getItem($id)
+    public function getItem(string $id): ?ArrObject
     {
         return isset($this->items[$id]) ? $this->items[$id] : null;
     }
@@ -52,10 +56,9 @@ class SystemMenu implements \IteratorAggregate, \JsonSerializable
     /**
      * Adds a menu item.
      *
-     * @param string $id
-     * @param array  $item
+     * @param array<string, mixed> $item
      */
-    public function addItem($id, array $item): void
+    public function addItem(string $id, array $item): void
     {
         $meta = $this->user->get('admin.menu', []);
         $route = $this->request->attributes->get('_route');
@@ -87,6 +90,8 @@ class SystemMenu implements \IteratorAggregate, \JsonSerializable
 
     /**
      * Implements the IteratorAggregate.
+     *
+     * @return \ArrayIterator<string, ArrObject>
      */
     public function getIterator(): \ArrayIterator
     {
@@ -95,6 +100,8 @@ class SystemMenu implements \IteratorAggregate, \JsonSerializable
 
     /**
      * Implements JsonSerializable interface.
+     *
+     * @return array<string, ArrObject>
      */
     public function jsonSerialize(): array
     {

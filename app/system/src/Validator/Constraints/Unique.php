@@ -34,7 +34,7 @@ class Unique extends Constraint
      * @param string $column The column to check for uniqueness
      * @param string|null $message Custom error message
      * @param string|null $idProperty The property name that holds the entity ID (for update exclusion)
-     * @param array|null $groups Validation groups
+     * @param array<int, string>|null $groups Validation groups
      * @param mixed $payload Additional payload data
      */
     public function __construct(
