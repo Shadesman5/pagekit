@@ -13,6 +13,8 @@ class FilterChain implements \Countable, FilterInterface
 
     /**
      * Filter chain
+     *
+     * @var \SplPriorityQueue<int, callable>
      */
     protected \SplPriorityQueue $filters;
 
@@ -35,11 +37,11 @@ class FilterChain implements \Countable, FilterInterface
     /**
      * Attach a filter to the chain
      *
-     * @param  callable|FilterInterface $callback
-     * @param  int $priority
+     * @param callable|FilterInterface $callback
+     *
      * @throws \InvalidArgumentException
      */
-    public function attach($callback, $priority = self::DEFAULT_PRIORITY): self
+    public function attach($callback, int $priority = self::DEFAULT_PRIORITY): self
     {
         if (!is_callable($callback)) {
             if (!$callback instanceof FilterInterface) {
@@ -68,6 +70,8 @@ class FilterChain implements \Countable, FilterInterface
 
     /**
      * Get all the filters.
+     *
+     * @return \SplPriorityQueue<int, callable>
      */
     public function getFilters(): \SplPriorityQueue
     {
@@ -76,11 +80,8 @@ class FilterChain implements \Countable, FilterInterface
 
     /**
      * Returns $value filtered through each filter in the chain.
-     *
-     * @param  mixed $value
-     * @return mixed
      */
-    public function filter($value)
+    public function filter(mixed $value): mixed
     {
         $chain = clone $this->filters;
 

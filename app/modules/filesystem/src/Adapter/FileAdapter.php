@@ -10,13 +10,7 @@ class FileAdapter implements AdapterInterface
 
     protected string $url;
 
-    /**
-     * Constructor.
-     *
-     * @param string $path;
-     * @param string $url;
-     */
-    public function __construct($path, $url = '')
+    public function __construct(string $path, string $url = '')
     {
         $this->path = strtr($path, '\\', '/');
         $this->url = $url;

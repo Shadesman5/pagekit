@@ -25,7 +25,7 @@ class TwigLoader extends \Twig\Loader\FilesystemLoader
     /**
      * {@inheritdoc}
      */
-    protected function findTemplate(string $name, bool $throw = true)
+    protected function findTemplate(string $name, bool $throw = true): ?string
     {
         $tpl = preg_replace('/\.twig$/', '', $name);
 

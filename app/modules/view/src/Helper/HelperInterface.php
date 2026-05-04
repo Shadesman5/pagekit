@@ -10,10 +10,8 @@ interface HelperInterface
 {
     /**
      * Registers the helper.
-     *
-     * @param View $view
      */
-    public function register(View $view);
+    public function register(View $view): void;
 
     /**
      * Returns the name.

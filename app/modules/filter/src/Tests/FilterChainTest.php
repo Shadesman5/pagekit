@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Pagekit\Filter\Tests;
 
 use Pagekit\Filter\FilterChain;
+use Pagekit\Filter\FilterInterface;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class FilterChainTest extends TestCase
@@ -59,9 +61,12 @@ class FilterChainTest extends TestCase
         $this->assertEquals('filtered_TEST', $chain->filter($value));
     }
 
-    protected function getFilterMock()
+    /**
+     * @return FilterInterface&MockObject
+     */
+    protected function getFilterMock(): FilterInterface
     {
-        $filter = $this->createMock('Pagekit\Filter\FilterInterface');
+        $filter = $this->createMock(FilterInterface::class);
         $filter->expects($this->any())
                ->method('filter');
 

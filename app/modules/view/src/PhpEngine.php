@@ -12,20 +12,35 @@ namespace Pagekit\View;
  */
 class PhpEngine
 {
-    protected $helpers = [];
-    protected $globals = [];
-    protected $current;
-    protected $parents = [];
-    protected $stack = [];
-    protected $charset = 'UTF-8';
-    protected $cache = [];
-    protected $loader;
-    protected $parser;
+    /** @var array<string, object> */
+    protected array $helpers = [];
+
+    /** @var array<string, mixed> */
+    protected array $globals = [];
+
+    protected ?string $current = null;
+
+    /** @var array<string, mixed> */
+    protected array $parents = [];
+
+    /** @var array<int, mixed> */
+    protected array $stack = [];
+
+    protected string $charset = 'UTF-8';
+
+    /** @var array<string, mixed> */
+    protected array $cache = [];
+
+    protected mixed $loader;
+
+    protected mixed $parser;
 
     /**
      * Constructor.
+     *
+     * @param array<int, object> $helpers
      */
-    public function __construct($parser = null, $loader = null, array $helpers = [])
+    public function __construct(mixed $parser = null, mixed $loader = null, array $helpers = [])
     {
         // We don't really need these anymore but keep for compatibility
         $this->parser = $parser;
@@ -38,8 +53,10 @@ class PhpEngine
 
     /**
      * Renders a template.
+     *
+     * @param array<string, mixed> $parameters
      */
-    public function render($name, array $parameters = []): string
+    public function render(string|object $name, array $parameters = []): string
     {
         $loaded = $this->load($name);
 
@@ -55,7 +72,7 @@ class PhpEngine
     /**
      * Returns true if the template exists.
      */
-    public function exists($name): bool
+    public function exists(string|object $name): bool
     {
         try {
             // For backward compatibility with Storage objects
@@ -71,7 +88,7 @@ class PhpEngine
             }
 
             // Without a loader, check if it's a file
-            if (is_string($name) && file_exists($name)) {
+            if (file_exists($name)) {
                 return true;
             }
 
@@ -84,7 +101,7 @@ class PhpEngine
     /**
      * Returns true if this engine supports the given template.
      */
-    public function supports($name): bool
+    public function supports(mixed $name): bool
     {
         if (is_string($name)) {
             // Support .php files
@@ -97,7 +114,7 @@ class PhpEngine
     /**
      * Loads a template.
      */
-    protected function load($name)
+    protected function load(string|object $name): object|false
     {
         // For backward compatibility with Storage objects
         if (is_object($name)) {
@@ -118,19 +135,16 @@ class PhpEngine
         // Without a loader, check if it's a direct file path
         if (file_exists($name)) {
             return new class ($name) {
-                private $template;
-
-                public function __construct($template)
+                public function __construct(private string $template)
                 {
-                    $this->template = $template;
                 }
 
-                public function getTemplate()
+                public function getTemplate(): string
                 {
                     return $this->template;
                 }
 
-                public function __toString()
+                public function __toString(): string
                 {
                     return $this->template;
                 }
@@ -142,8 +156,10 @@ class PhpEngine
 
     /**
      * Evaluates a template.
+     *
+     * @param array<string, mixed> $parameters
      */
-    protected function evaluate($template, array $parameters = []): string|false
+    protected function evaluate(string|object $template, array $parameters = []): string|false
     {
         // Convert template to string for use as key
         $templateKey = is_object($template) ? spl_object_hash($template) : (string) $template;
@@ -195,7 +211,7 @@ class PhpEngine
     /**
      * Adds a global parameter.
      */
-    public function addGlobal($name, $value): void
+    public function addGlobal(string $name, mixed $value): void
     {
         $this->globals[$name] = $value;
     }
@@ -203,7 +219,7 @@ class PhpEngine
     /**
      * Sets a helper.
      */
-    public function addHelper($helper): void
+    public function addHelper(object $helper): void
     {
         $this->helpers[$helper->getName()] = $helper;
     }
@@ -211,7 +227,7 @@ class PhpEngine
     /**
      * Gets a helper.
      */
-    public function get($name)
+    public function get(string $name): object
     {
         if (!isset($this->helpers[$name])) {
             throw new \InvalidArgumentException(sprintf('The helper "%s" is not defined.', $name));
@@ -223,7 +239,7 @@ class PhpEngine
     /**
      * Returns true if the helper is defined.
      */
-    public function has($name): bool
+    public function has(string $name): bool
     {
         return isset($this->helpers[$name]);
     }
@@ -231,7 +247,7 @@ class PhpEngine
     /**
      * Escapes a string by using the current charset.
      */
-    public function escape($value, $context = 'html'): string
+    public function escape(mixed $value, string $context = 'html'): string
     {
         // Handle null values (PHP 8.1+ compatibility)
         if ($value === null) {
@@ -251,7 +267,7 @@ class PhpEngine
     /**
      * Sets the charset to use.
      */
-    public function setCharset($charset): void
+    public function setCharset(string $charset): void
     {
         $this->charset = $charset;
     }
@@ -266,6 +282,8 @@ class PhpEngine
 
     /**
      * Returns the assigned globals.
+     *
+     * @return array<string, mixed>
      */
     public function getGlobals(): array
     {

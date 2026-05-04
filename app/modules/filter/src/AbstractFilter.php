@@ -8,11 +8,15 @@ abstract class AbstractFilter implements FilterInterface
 {
     /**
      * Filter options
+     *
+     * @var array<string, mixed>
      */
     protected array $options = [];
 
     /**
      * Returns the filter options.
+     *
+     * @return array<string, mixed>
      */
     public function getOptions(): array
     {
@@ -22,7 +26,8 @@ abstract class AbstractFilter implements FilterInterface
     /**
      * Sets the filter options.
      *
-     * @param  array $options
+     * @param array<string, mixed> $options
+     *
      * @throws \InvalidArgumentException
      */
     public function setOptions(array $options): self

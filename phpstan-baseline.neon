@@ -715,34 +715,10 @@ parameters:
 			path: app/modules/filesystem/src/Locator.php
 
 		-
-			message: '#^Method Pagekit\\Filesystem\\Path\:\:parse\(\) should return array but returns string\.$#'
-			identifier: return.type
-			count: 1
-			path: app/modules/filesystem/src/Path.php
-
-		-
 			message: '#^Parameter \#2 \$callback of function array_filter expects \(callable\(string\)\: bool\)\|null, ''strlen'' given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/modules/filesystem/src/Path.php
-
-		-
-			message: '#^Strict comparison using \!\=\= between array and '''' will always evaluate to true\.$#'
-			identifier: notIdentical.alwaysTrue
-			count: 1
-			path: app/modules/filesystem/src/Path.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between array and '''' will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/modules/filesystem/src/Path.php
-
-		-
-			message: '#^PHPDoc tag @return with type resource is incompatible with native type bool\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: app/modules/filesystem/src/StreamWrapper.php
 
 		-
 			message: '#^Undefined variable\: \$this$#'
@@ -769,12 +745,6 @@ parameters:
 			path: app/modules/filter/src/FilterManager.php
 
 		-
-			message: '#^If condition is always false\.$#'
-			identifier: if.alwaysFalse
-			count: 1
-			path: app/modules/filter/src/FilterManager.php
-
-		-
 			message: '#^Call to function is_object\(\) with \*NEVER\* will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 2
@@ -784,12 +754,6 @@ parameters:
 			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 2
-			path: app/modules/filter/src/PregReplaceFilter.php
-
-		-
-			message: '#^Method Pagekit\\Filter\\PregReplaceFilter\:\:validatePattern\(\) should return bool but return statement is missing\.$#'
-			identifier: return.missing
-			count: 1
 			path: app/modules/filter/src/PregReplaceFilter.php
 
 		-
@@ -815,18 +779,6 @@ parameters:
 			identifier: method.alreadyNarrowedType
 			count: 1
 			path: app/modules/filter/src/Tests/IntTest.php
-
-		-
-			message: '#^Parameter \#1 \$pattern of method Pagekit\\Filter\\PregReplaceFilter\:\:setPattern\(\) expects array\|string, null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/modules/filter/src/Tests/PregReplaceTest.php
-
-		-
-			message: '#^Parameter \#1 \$replacement of method Pagekit\\Filter\\PregReplaceFilter\:\:setReplacement\(\) expects array\|string, null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/modules/filter/src/Tests/PregReplaceTest.php
 
 		-
 			message: '#^Array has 2 duplicate keys with value 23 \(23, "23"\)\.$#'
@@ -923,12 +875,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/modules/markdown/src/Lexer/InlineLexer.php
-
-		-
-			message: '#^Method Pagekit\\Markdown\\Parser\:\:tok\(\) should return string but return statement is missing\.$#'
-			identifier: return.missing
-			count: 1
-			path: app/modules/markdown/src/Parser.php
 
 		-
 			message: '#^Call to an undefined method Doctrine\\Migrations\\Configuration\\Configuration\:\:setMigrationsColumnLength\(\)\.$#'
@@ -1123,30 +1069,6 @@ parameters:
 			path: app/modules/view/index.php
 
 		-
-			message: '#^Call to method get\(\) on an unknown class Pagekit\\View\\Asset\\FilterManager\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/view/src/Asset/AssetManager.php
-
-		-
-			message: '#^Property Pagekit\\View\\Asset\\AssetManager\:\:\$filters has unknown class Pagekit\\View\\Asset\\FilterManager as its type\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/view/src/Asset/AssetManager.php
-
-		-
-			message: '#^Variable \$filters might not be defined\.$#'
-			identifier: variable.undefined
-			count: 1
-			path: app/modules/view/src/Asset/AssetManager.php
-
-		-
-			message: '#^Variable \$pattern might not be defined\.$#'
-			identifier: variable.undefined
-			count: 1
-			path: app/modules/view/src/Asset/AssetManager.php
-
-		-
 			message: '#^Parameter \#2 \$source of method Pagekit\\View\\Asset\\Asset\:\:__construct\(\) expects string, null given\.$#'
 			identifier: argument.type
 			count: 1
@@ -1157,12 +1079,6 @@ parameters:
 			identifier: if.alwaysFalse
 			count: 1
 			path: app/modules/view/src/Engine/PhpEngine.php
-
-		-
-			message: '#^Method Pagekit\\View\\Helper\\DeferredHelper\:\:__invoke\(\) should return string but return statement is missing\.$#'
-			identifier: return.missing
-			count: 1
-			path: app/modules/view/src/Helper/DeferredHelper.php
 
 		-
 			message: '#^Parameter \#1 \$enable of function ob_implicit_flush expects bool, int given\.$#'

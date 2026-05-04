@@ -12,7 +12,7 @@ class StringFilter extends AbstractFilter
     /**
      * {@inheritdoc}
      */
-    public function filter($value): string
+    public function filter(mixed $value): string
     {
         return (string) $value;
     }

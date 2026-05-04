@@ -10,18 +10,17 @@ use Pagekit\Routing\Generator\UrlGenerator;
 class Filesystem
 {
     /**
-     * @var AdapterInterface[]
+     * @var array<string, AdapterInterface>
      */
     protected array $adapters = [];
 
     /**
      * Gets file path URL.
      *
-     * @param  string $file
-     * @param  mixed  $referenceType
-     * @return string|false
+     * @param int|bool $referenceType One of {@see UrlGenerator}'s reference type constants
+     *                                or `true` for {@see UrlGenerator::ABSOLUTE_URL} (legacy).
      */
-    public function getUrl($file, $referenceType = UrlGenerator::ABSOLUTE_PATH)
+    public function getUrl(string $file, int|bool $referenceType = UrlGenerator::ABSOLUTE_PATH): string|false
     {
         if (!$url = $this->getPathInfo($file, 'url')) {
             return false;
@@ -45,12 +44,8 @@ class Filesystem
 
     /**
      * Gets canonicalized file path or localpath.
-     *
-     * @param  string $file
-     * @param  bool   $local
-     * @return string|false
      */
-    public function getPath($file, $local = false)
+    public function getPath(string $file, bool $local = false): string|false
     {
         return $this->getPathInfo($file, $local ? 'localpath' : 'pathname') ?: false;
     }
@@ -58,11 +53,9 @@ class Filesystem
     /**
      * Gets file path info.
      *
-     * @param  string $file
-     * @param  string $option
-     * @return string|array
+     * @return string|array<string, mixed>
      */
-    public function getPathInfo($file, $option = null)
+    public function getPathInfo(string $file, ?string $option = null): string|array
     {
         $info = Path::parse($file);
 
@@ -84,9 +77,9 @@ class Filesystem
     /**
      * Checks whether a file or directory exists.
      *
-     * @param  string|array $files
+     * @param mixed $files string, array of strings, or anything else that should be treated as not existing
      */
-    public function exists($files): bool
+    public function exists(mixed $files): bool
     {
         $files = (array) $files;
 
@@ -108,11 +101,8 @@ class Filesystem
 
     /**
      * Copies a file.
-     *
-     * @param  string $source
-     * @param  string $target
      */
-    public function copy($source, $target): bool
+    public function copy(string $source, string $target): bool
     {
         $source = $this->getPathInfo($source, 'pathname');
         $target = $this->getPathInfo($target);
@@ -127,7 +117,7 @@ class Filesystem
     /**
      * Deletes a file.
      *
-     * @param  string|array $files
+     * @param string|array<int, string> $files
      */
     public function delete($files): bool
     {
@@ -164,9 +154,9 @@ class Filesystem
     /**
      * List files and directories inside the specified path.
      *
-     * @param  string $dir
+     * @return array<int, string>
      */
-    public function listDir($dir): array
+    public function listDir(string $dir): array
     {
         $dir = $this->getPathInfo($dir, 'pathname');
 
@@ -175,12 +165,8 @@ class Filesystem
 
     /**
      * Makes a directory.
-     *
-     * @param  string $dir
-     * @param  int    $mode
-     * @param  bool   $recursive
      */
-    public function makeDir($dir, $mode = 0777, $recursive = true): bool
+    public function makeDir(string $dir, int $mode = 0777, bool $recursive = true): bool
     {
         $dir = $this->getPathInfo($dir, 'pathname');
 
@@ -189,11 +175,8 @@ class Filesystem
 
     /**
      * Copies a directory.
-     *
-     * @param  string $source
-     * @param  string $target
      */
-    public function copyDir($source, $target): bool
+    public function copyDir(string $source, string $target): bool
     {
         $source = $this->getPathInfo($source, 'pathname');
         $target = $this->getPathInfo($target, 'pathname');
@@ -227,22 +210,16 @@ class Filesystem
 
     /**
      * Gets a adapter.
-     *
-     * @param  string $protocol
-     * @return AdapterInterface|null
      */
-    public function getAdapter($protocol): ?AdapterInterface
+    public function getAdapter(string $protocol): ?AdapterInterface
     {
         return isset($this->adapters[$protocol]) ? $this->adapters[$protocol] : null;
     }
 
     /**
      * Registers a adapter.
-     *
-     * @param string           $protocol
-     * @param AdapterInterface $adapter
      */
-    public function registerAdapter($protocol, AdapterInterface $adapter): void
+    public function registerAdapter(string $protocol, AdapterInterface $adapter): void
     {
         $this->adapters[$protocol] = $adapter;
 

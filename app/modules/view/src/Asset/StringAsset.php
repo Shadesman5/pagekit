@@ -8,8 +8,11 @@ class StringAsset extends Asset
 {
     /**
      * {@inheritdoc}
+     *
+     * @param array<int, string>   $dependencies
+     * @param array<string, mixed> $options
      */
-    public function __construct($name, $source, array $dependencies = [], array $options = [])
+    public function __construct(string $name, string $source, array $dependencies = [], array $options = [])
     {
         parent::__construct($name, null, $dependencies, $options);
 
@@ -19,7 +22,7 @@ class StringAsset extends Asset
     /**
      * {@inheritdoc}
      */
-    public function hash($salt = ''): string
+    public function hash(string $salt = ''): string
     {
         return hash('crc32b', $this->getContent().$salt);
     }

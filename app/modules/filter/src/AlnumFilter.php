@@ -12,7 +12,7 @@ class AlnumFilter extends AbstractFilter
     /**
      * {@inheritdoc}
      */
-    public function filter($value): ?string
+    public function filter(mixed $value): ?string
     {
         return preg_replace('/[^[:alnum:]]/u', '', (string) $value);
     }

@@ -6,6 +6,7 @@ namespace Pagekit\Filter;
 
 class FilterManager
 {
+    /** @var array<string, class-string<FilterInterface>>|null */
     protected ?array $defaults = [
         'addrelnofollow' => 'Pagekit\Filter\AddRelNofollowFilter',
         'alnum' => 'Pagekit\Filter\AlnumFilter',
@@ -24,14 +25,14 @@ class FilterManager
     ];
 
     /**
-     * @var FilterInterface[]
+     * @var array<string, FilterInterface|class-string<FilterInterface>>
      */
     protected array $filters = [];
 
     /**
      * Constructor.
      *
-     * @param array $defaults
+     * @param array<string, class-string<FilterInterface>>|null $defaults
      */
     public function __construct(?array $defaults = null)
     {
@@ -44,8 +45,10 @@ class FilterManager
      * Apply shortcut.
      *
      * @see apply()
+     *
+     * @param array<string, mixed> $options
      */
-    public function __invoke($value, $name, array $options = [])
+    public function __invoke(mixed $value, string $name, array $options = []): mixed
     {
         return $this->apply($value, $name, $options);
     }
@@ -53,12 +56,11 @@ class FilterManager
     /**
      * Apply a filter.
      *
-     * @param  mixed  $value
-     * @param  string $name
-     * @param  array  $options
+     * @param array<string, mixed> $options
+     *
      * @throws \InvalidArgumentException
      */
-    public function apply($value, $name, array $options = [])
+    public function apply(mixed $value, string $name, array $options = []): mixed
     {
         return $this->get($name, $options)->filter($value);
     }
@@ -66,12 +68,11 @@ class FilterManager
     /**
      * Gets a filter.
      *
-     * @param  string $name
-     * @param  array  $options
-     * @return FilterInterface The filter
+     * @param array<string, mixed> $options
+     *
      * @throws \InvalidArgumentException
      */
-    public function get($name, array $options = []): FilterInterface
+    public function get(string $name, array $options = []): FilterInterface
     {
         if (array_key_exists($name, $this->defaults)) {
             $this->filters[$name] = $this->defaults[$name];
@@ -94,11 +95,11 @@ class FilterManager
     /**
      * Registers a filter.
      *
-     * @param string $name
-     * @param string|FilterInterface $filter
+     * @param FilterInterface|class-string<FilterInterface> $filter
+     *
      * @throws \InvalidArgumentException
      */
-    public function register($name, $filter): void
+    public function register(string $name, $filter): void
     {
         if (array_key_exists($name, $this->filters)) {
             throw new \InvalidArgumentException(sprintf('Filter with the name "%s" is already defined.', $name));

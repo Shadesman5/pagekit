@@ -12,10 +12,12 @@ class JsonFilter extends AbstractFilter
     /**
      * {@inheritdoc}
      */
-    public function filter($value)
+    public function filter(mixed $value): mixed
     {
         if (is_string($value)) {
             return json_decode($value, true);
         }
+
+        return null;
     }
 }

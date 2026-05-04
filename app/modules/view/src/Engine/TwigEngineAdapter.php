@@ -25,7 +25,7 @@ class TwigEngineAdapter implements EngineInterface
             return $this->twig->render($this->normalizeName($name), $parameters);
         }
 
-        throw new \RuntimeException(sprintf('Template "%s" is not supported by Twig engine', $name));
+        throw new \RuntimeException(sprintf('Template "%s" is not supported by Twig engine', is_array($name) ? $name['name'] : (string) $name));
     }
 
     public function exists($name): bool
@@ -50,8 +50,15 @@ class TwigEngineAdapter implements EngineInterface
         return $this->exists($name);
     }
 
+    /**
+     * @param string|array{name: string, engine?: string} $name
+     */
     protected function normalizeName($name): string
     {
+        if (is_array($name)) {
+            $name = $name['name'];
+        }
+
         // Remove views: prefix if present
         if (str_starts_with($name, 'views:')) {
             $name = substr($name, 6);

@@ -21,12 +21,15 @@ class LocatorTest extends TestCase
     }
 
     #[DataProvider('dataGetPaths')]
-    public function testGet($path, $result, $exists): void
+    public function testGet(string $path, string|false $result, bool $exists): void
     {
         $this->assertSame($exists, $this->file->exists($result));
         $this->assertSame($result, $this->locator->get($path));
     }
 
+    /**
+     * @return array<int, array{0: string, 1: string|false, 2: bool}>
+     */
     public static function dataGetPaths(): array
     {
         $fixtures = strtr(__DIR__, '\\', '/').'/Fixtures';

@@ -15,7 +15,7 @@ class FilesystemTest extends TestCase
 
     protected ?Filesystem $file = null;
     protected ?string $fixtures = null;
-    protected $workspace;
+    protected ?string $workspace = null;
 
     public function setUp(): void
     {

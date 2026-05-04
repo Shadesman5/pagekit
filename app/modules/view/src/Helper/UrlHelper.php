@@ -25,8 +25,10 @@ class UrlHelper extends Helper
      * Get shortcut.
      *
      * @see get()
+     *
+     * @param array<string, mixed> $parameters
      */
-    public function __invoke($path = '', $parameters = [], $referenceType = UrlGenerator::ABSOLUTE_PATH)
+    public function __invoke(string $path = '', array $parameters = [], int $referenceType = UrlGenerator::ABSOLUTE_PATH): string
     {
         return $this->provider->get($path, $parameters, $referenceType);
     }
@@ -34,11 +36,9 @@ class UrlHelper extends Helper
     /**
      * Proxies all method calls to the provider.
      *
-     * @param  string $method
-     * @param  array  $args
-     * @return mixed
+     * @param array<int, mixed> $args
      */
-    public function __call($method, $args)
+    public function __call(string $method, array $args): mixed
     {
         if (!is_callable($callable = [$this->provider, $method])) {
             throw new \InvalidArgumentException(sprintf('Undefined method call "%s::%s"', get_class($this->provider), $method));

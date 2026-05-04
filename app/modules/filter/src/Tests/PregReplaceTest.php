@@ -35,16 +35,26 @@ class PregReplaceTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        $this->filter->setPattern(null);
+        /** @var mixed $invalid */
+        $invalid = null;
+        $this->filter->setPattern($invalid);
     }
 
     public function testReplacementArgument(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        $this->filter->setReplacement(null);
+        /** @var mixed $invalid */
+        $invalid = null;
+        $this->filter->setReplacement($invalid);
     }
 
+    /**
+     * @param string|array<int, string> $pattern
+     * @param string|array<int, string> $replacement
+     * @param string                    $in
+     * @param string                    $out
+     */
     #[DataProvider('provider')]
     public function testFilter($pattern, $replacement, $in, $out): void
     {
@@ -57,6 +67,9 @@ class PregReplaceTest extends TestCase
         $this->assertSame($this->filter->filter($in), $out);
     }
 
+    /**
+     * @return array<int, array{0: string|array<int, string>, 1: string|array<int, string>, 2: string, 3: string}>
+     */
     public static function provider(): array
     {
         return [

@@ -21,7 +21,7 @@ class FileAsset extends Asset
     /**
      * {@inheritdoc}
      */
-    public function hash($salt = ''): string
+    public function hash(string $salt = ''): string
     {
         $time = '';
 
@@ -40,7 +40,7 @@ class FileAsset extends Asset
         return $this->source !== null && file_exists($this->source) ? $this->source : '';
     }
 
-    public function __toString()
+    public function __toString(): string
     {
         return '';
     }

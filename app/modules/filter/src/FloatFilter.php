@@ -12,7 +12,7 @@ class FloatFilter extends AbstractFilter
     /**
      * {@inheritdoc}
      */
-    public function filter($value): float
+    public function filter(mixed $value): float
     {
         return (float) ((string) $value);
     }

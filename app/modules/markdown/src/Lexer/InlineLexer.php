@@ -5,24 +5,33 @@ declare(strict_types=1);
 namespace Pagekit\Markdown\Lexer;
 
 use Pagekit\Markdown\Markdown;
+use Pagekit\Markdown\Renderer;
 
 class InlineLexer
 {
+    /** @var array<string, array{href: string|null, title: string|null}> */
     protected array $links;
+
     protected ?bool $inLink = null;
+
+    /** @var array<string, string> */
     protected array $rules;
-    protected $renderer;
+
+    protected Renderer $renderer;
+
+    /** @var array<string, mixed> */
     protected array $options;
 
+    /** @var array<string, array<string, string>>|null */
     protected static ?array $inlines = null;
 
     /**
      * Constructor.
      *
-     * @param array $links
-     * @param array $options
+     * @param array<string, array{href: string|null, title: string|null}> $links
+     * @param array<string, mixed>                                        $options
      */
-    public function __construct($links, array $options = [])
+    public function __construct(array $links, array $options = [])
     {
         $this->links = $links;
         $this->options = $options;
@@ -33,10 +42,9 @@ class InlineLexer
     /**
      * Lexing/Compiling
      *
-     * @param  string $src
      * @throws \Exception
      */
-    public function output($src): string
+    public function output(string $src): string
     {
         $out = '';
 
@@ -64,7 +72,7 @@ class InlineLexer
                     $href = $text;
                 }
 
-                $out .= $this->renderer->link($href, null, $text);
+                $out .= $this->renderer->link($href, '', $text);
 
                 continue;
             }
@@ -75,7 +83,7 @@ class InlineLexer
                 $src = substr($src, strlen($cap[0]));
                 $text = Markdown::escape($cap[1]);
                 $href = $text;
-                $out .= $this->renderer->link($href, null, $text);
+                $out .= $this->renderer->link($href, '', $text);
 
                 continue;
             }
@@ -197,23 +205,21 @@ class InlineLexer
     /**
      * Compile link.
      *
-     * @param  array $cap
-     * @param  array $link
+     * @param array<int, string>                          $cap
+     * @param array{href: string|null, title: string|null} $link
      */
-    protected function outputLink($cap, $link): string
+    protected function outputLink(array $cap, array $link): string
     {
         $href = Markdown::escape($link['href']);
-        $title = $link['title'] ? Markdown::escape($link['title']) : null;
+        $title = $link['title'] ? Markdown::escape($link['title']) : '';
 
         return $cap[0][0] !== '!' ? $this->renderer->link($href, $title, $this->output($cap[1])) : $this->renderer->image($href, $title, Markdown::escape($cap[1]));
     }
 
     /**
      * Smartypants transformations.
-     *
-     * @param  string $text
      */
-    protected function smartypants($text): ?string
+    protected function smartypants(string $text): ?string
     {
         if (!$this->options['smartypants']) {
             return $text;
@@ -242,10 +248,8 @@ class InlineLexer
 
     /**
      * Mangle links.
-     *
-     * @param  string $text
      */
-    protected function mangle($text): string
+    protected function mangle(string $text): string
     {
         $out = '';
 
@@ -266,7 +270,9 @@ class InlineLexer
     /**
      * Get inline grammar rules for given options.
      *
-     * @param  array $options
+     * @param array<string, mixed> $options
+     *
+     * @return array<string, string>
      */
     protected static function rules(array $options): array
     {

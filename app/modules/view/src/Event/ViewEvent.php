@@ -15,11 +15,9 @@ class ViewEvent extends Event
     /**
      * Constructor.
      *
-     * @param string $name
-     * @param string $template
-     * @param array  $parameters
+     * @param array<string, mixed> $parameters
      */
-    public function __construct($name, $template, array $parameters = [])
+    public function __construct(string $name, ?string $template, array $parameters = [])
     {
         parent::__construct($name, $parameters);
 
@@ -31,10 +29,7 @@ class ViewEvent extends Event
         return $this->template;
     }
 
-    /**
-     * @param string $template
-     */
-    public function setTemplate($template): void
+    public function setTemplate(?string $template): void
     {
         $this->template = $template;
     }
@@ -44,27 +39,18 @@ class ViewEvent extends Event
         return $this->result;
     }
 
-    /**
-     * @param string $result
-     */
-    public function setResult($result): void
+    public function setResult(?string $result): void
     {
         $this->result = $result;
     }
 
-    /**
-     * @param string $result
-     */
-    public function addResult($result): void
+    public function addResult(?string $result): void
     {
         $this->result .= $result;
     }
 
-    /**
-     * @return string
-     */
-    public function __toString()
+    public function __toString(): string
     {
-        return $this->result;
+        return $this->result ?? '';
     }
 }
