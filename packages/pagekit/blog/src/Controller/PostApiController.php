@@ -7,6 +7,7 @@ namespace Pagekit\Blog\Controller;
 use function Pagekit\__;
 
 use Pagekit\Blog\Model\Post;
+use Pagekit\Database\Connection;
 use Pagekit\Filter\FilterManager;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
@@ -17,6 +18,7 @@ use Pagekit\User\Model\User;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * API Controller for Blog Post management.
@@ -34,12 +36,15 @@ class PostApiController
         private readonly User $user,
         private readonly Request $request,
         private readonly FilterManager $filter,
-        private readonly mixed $db,
-        private readonly mixed $validator,
+        private readonly Connection $db,
+        protected readonly ValidatorInterface $validator,
     ) {
         $this->blog = $module->get('blog');
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
@@ -86,13 +91,16 @@ class PostApiController
     }
 
     #[Route('/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
-    public function getAction(int $id)
+    public function getAction(int $id): ?object
     {
         return Post::where(compact('id'))->related('user', 'comments')->first();
     }
 
     /**
      * Save a post (create or update).
+     *
+     * @param  array<string, mixed>|null $data
+     * @return array<string, mixed>
      */
     #[Route('/', methods: ['POST'])]
     #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
@@ -143,6 +151,9 @@ class PostApiController
         return ['message' => 'success', 'post' => $post];
     }
 
+    /**
+     * @return array<string, string>
+     */
     #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\d+'])]
     public function deleteAction(int $id = 0): array
     {
@@ -162,6 +173,9 @@ class PostApiController
         return ['message' => 'success'];
     }
 
+    /**
+     * @return array<string, string>
+     */
     #[Route('/copy', methods: ['POST'])]
     public function copyAction(): array
     {
@@ -190,6 +204,9 @@ class PostApiController
         return ['message' => 'success'];
     }
 
+    /**
+     * @return array<string, string>
+     */
     #[Route('/bulk', methods: ['POST'])]
     public function bulkSaveAction(): array
     {
@@ -200,13 +217,16 @@ class PostApiController
         }
 
         foreach ($posts as $data) {
-            $id = isset($data['id']) ? $data['id'] : 0;
+            $id = isset($data['id']) ? (int) $data['id'] : 0;
             $this->saveAction($id, $data);
         }
 
         return ['message' => 'success'];
     }
 
+    /**
+     * @return array<string, string>
+     */
     #[Route('/bulk', methods: ['DELETE'])]
     public function bulkDeleteAction(): array
     {
@@ -217,7 +237,7 @@ class PostApiController
         }
 
         foreach (array_filter($ids) as $id) {
-            $this->deleteAction($id);
+            $this->deleteAction((int) $id);
         }
 
         return ['message' => 'success'];

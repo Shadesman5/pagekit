@@ -6,13 +6,17 @@ namespace Pagekit\Blog\Controller;
 
 use Pagekit\Blog\Model\Comment;
 use Pagekit\Blog\Model\Post;
+use Pagekit\Database\Connection;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
+use Pagekit\Routing\Router;
+use Pagekit\Session\MessageBag;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use Pagekit\User\Model\User;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -23,17 +27,21 @@ class BlogController
 
     public function __construct(
         ModuleManager $module,
-        private readonly mixed $router,
-        private readonly mixed $message,
+        private readonly Router $router,
+        private readonly MessageBag $message,
         private readonly User $user,
-        private readonly mixed $db,
+        private readonly Connection $db,
     ) {
         $this->blog = $module->get('blog');
     }
 
+    /**
+     * @param  array<string, mixed>|null $filter
+     * @return array<string, mixed>
+     */
     #[Access('blog: manage own posts || blog: manage all posts')]
     #[Request(['filter' => 'array', 'page' => 'int'])]
-    public function postAction($filter = null, $page = null): array
+    public function postAction(?array $filter = null, ?int $page = null): array
     {
         return [
             '$view' => [
@@ -52,10 +60,13 @@ class BlogController
         ];
     }
 
+    /**
+     * @return array<string, mixed>|RedirectResponse
+     */
     #[Route('/post/edit', name: 'post/edit')]
     #[Access('blog: manage own posts || blog: manage all posts')]
     #[Request(['id' => 'int'])]
-    public function editAction($id = 0)
+    public function editAction(int $id = 0): array|RedirectResponse
     {
         try {
 
@@ -116,9 +127,13 @@ class BlogController
         }
     }
 
+    /**
+     * @param  array<string, mixed> $filter
+     * @return array<string, mixed>
+     */
     #[Access('blog: manage comments')]
     #[Request(['filter' => 'array', 'post' => 'int', 'page' => 'int'])]
-    public function commentAction($filter = [], $post = 0, $page = null): array
+    public function commentAction(array $filter = [], int $post = 0, ?int $page = null): array
     {
         $post = Post::find($post);
         $filter['order'] = 'created DESC';
@@ -140,6 +155,9 @@ class BlogController
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Access('system: access settings')]
     public function settingsAction(): array
     {

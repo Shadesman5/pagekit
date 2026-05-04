@@ -89,21 +89,25 @@ class Post implements \JsonSerializable
     public int $comment_count = 0;
 
     #[ORM\BelongsTo(targetEntity: 'Pagekit\User\Model\User', keyFrom: 'user_id')]
-    public mixed $user = null;
+    public ?User $user = null;
 
+    /** @var array<int, Comment>|null */
     #[ORM\HasMany(targetEntity: 'Comment', keyFrom: 'id', keyTo: 'post_id')]
     #[ORM\OrderBy(value: 'created DESC')]
-    public mixed $comments = null;
+    public ?array $comments = null;
 
-    /** @var bool */
     public bool $readmore = false;
 
+    /** @var array<string, string> */
     protected static array $properties = [
         'author' => 'getAuthor',
         'published' => 'isPublished',
         'accessible' => 'isAccessible',
     ];
 
+    /**
+     * @return array<int, string>
+     */
     public static function getStatuses(): array
     {
         return [
@@ -146,6 +150,8 @@ class Post implements \JsonSerializable
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, mixed>
      */
     public function jsonSerialize(): array
     {

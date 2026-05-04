@@ -6,6 +6,7 @@ namespace Pagekit\Blog\Model;
 
 use Pagekit\Database\ORM\Attribute as ORM;
 use Pagekit\Database\ORM\ModelTrait;
+use Pagekit\Event\EventInterface;
 
 trait PostModelTrait
 {
@@ -13,10 +14,8 @@ trait PostModelTrait
 
     /**
      * Updates the comments info on post.
-     *
-     * @param int $id
      */
-    public static function updateCommentInfo($id): void
+    public static function updateCommentInfo(int $id): void
     {
         $query = Comment::where(['post_id' => $id, 'status' => Comment::STATUS_APPROVED]);
 
@@ -24,15 +23,17 @@ trait PostModelTrait
     }
 
     /**
-     * Get all users who have written an article
+     * Get all users who have written an article.
+     *
+     * @return array<int, array<string, mixed>>
      */
-    public static function getAuthors()
+    public static function getAuthors(): array
     {
         return self::query()->select('user_id', 'name', 'username')->groupBy('user_id', 'name', 'username')->join('@system_user', 'user_id = @system_user.id')->execute()->fetchAllAssociative();
     }
 
     #[ORM\Saving]
-    public static function saving($event, Post $post): void
+    public static function saving(EventInterface $event, Post $post): void
     {
         $post->modified = new \DateTime();
 
@@ -49,7 +50,7 @@ trait PostModelTrait
     }
 
     #[ORM\Deleting]
-    public static function deleting($event, Post $post): void
+    public static function deleting(EventInterface $event, Post $post): void
     {
         self::getConnection()->delete('@blog_comment', ['post_id' => $post->id]);
     }

@@ -109,6 +109,11 @@ interface FeedInterface
     public function setSelfLink($href): self;
 
     /**
+     * Sets the feed's last-update date.
+     */
+    public function setDate(\DateTimeInterface $date): self;
+
+    /**
      * Sets a custom link.
      *
      * @param  string $href

@@ -17,6 +17,7 @@ class UrlResolver implements ParamsResolverInterface
 
     protected bool $cacheDirty = false;
 
+    /** @var array<int|string, array<string, mixed>> */
     protected array $cacheEntries;
 
     // Static service references set during blog module boot,
@@ -50,6 +51,9 @@ class UrlResolver implements ParamsResolverInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @param  array<string, mixed> $parameters
+     * @return array<string, mixed>
      */
     public function match(array $parameters = []): array
     {
@@ -87,6 +91,9 @@ class UrlResolver implements ParamsResolverInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @param  array<string, mixed> $parameters
+     * @return array<string, mixed>
      */
     public function generate(array $parameters = []): array
     {
@@ -146,7 +153,7 @@ class UrlResolver implements ParamsResolverInterface
         return $permalink;
     }
 
-    protected function addCache($post): void
+    protected function addCache(Post $post): void
     {
         $this->cacheEntries[$post->id] = [
             'id' => $post->id,

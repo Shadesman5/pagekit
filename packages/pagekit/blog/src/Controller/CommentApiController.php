@@ -9,6 +9,7 @@ use function Pagekit\__;
 use Pagekit\Blog\Model\Comment;
 use Pagekit\Blog\Model\Post;
 use Pagekit\Captcha\Attribute\Captcha;
+use Pagekit\Content\ContentHelper;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Request;
@@ -20,6 +21,7 @@ use Symfony\Component\HttpFoundation\Request as HttpRequest;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * API Controller for Blog Comment management.
@@ -35,12 +37,16 @@ class CommentApiController
         ModuleManager $module,
         private readonly User $user,
         private readonly HttpRequest $request,
-        private readonly mixed $content,
-        private readonly mixed $validator,
+        private readonly ContentHelper $content,
+        protected readonly ValidatorInterface $validator,
     ) {
         $this->blog = $module->get('blog');
     }
 
+    /**
+     * @param  array<string, mixed> $filter
+     * @return array<string, mixed>
+     */
     #[Route('/', methods: ['GET'])]
     #[Request(['filter' => 'array', 'post' => 'int', 'page' => 'int', 'limit' => 'int'])]
     public function indexAction(array $filter = [], int $post = 0, int $page = 0, int $limit = 0): array
@@ -123,13 +129,16 @@ class CommentApiController
         }
 
         $comments = array_values($comments);
-        $posts = array_values($posts);
+        $posts = [...$posts];
 
         return compact('comments', 'posts', 'pages', 'count');
     }
 
     /**
      * Save a comment (create or update).
+     *
+     * @param  array<string, mixed> $comment
+     * @return array<string, mixed>
      */
     #[Route('/', methods: ['POST'])]
     #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
@@ -224,6 +233,9 @@ class CommentApiController
         return ['message' => 'success', 'comment' => $commentEntity];
     }
 
+    /**
+     * @return array<string, string>
+     */
     #[Access('blog: manage comments')]
     #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\d+'])]
     #[Request(['id' => 'int'])]
@@ -236,6 +248,10 @@ class CommentApiController
         return ['message' => 'success'];
     }
 
+    /**
+     * @param  array<int, array<string, mixed>> $comments
+     * @return array<string, string>
+     */
     #[Access('blog: manage comments')]
     #[Route('/bulk', methods: ['POST'])]
     #[Request(['comments' => 'array'])]
@@ -249,13 +265,17 @@ class CommentApiController
         return ['message' => 'success'];
     }
 
+    /**
+     * @param  array<int, int|string> $ids
+     * @return array<string, string>
+     */
     #[Access('blog: manage comments')]
     #[Route('/bulk', methods: ['DELETE'])]
     #[Request(['ids' => 'array'])]
     public function bulkDeleteAction(array $ids = []): array
     {
         foreach (array_filter($ids) as $id) {
-            $this->deleteAction($id);
+            $this->deleteAction((int) $id);
         }
 
         return ['message' => 'success'];

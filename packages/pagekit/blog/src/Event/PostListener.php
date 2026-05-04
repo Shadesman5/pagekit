@@ -6,22 +6,26 @@ namespace Pagekit\Blog\Event;
 
 use Pagekit\Blog\Model\Post;
 use Pagekit\Comment\Model\Comment;
+use Pagekit\Event\EventInterface;
 use Pagekit\Event\EventSubscriberInterface;
+use Pagekit\User\Model\Role;
 
 class PostListener implements EventSubscriberInterface
 {
-    public function onCommentChange($event, Comment $comment): void
+    public function onCommentChange(EventInterface $event, Comment $comment): void
     {
         Post::updateCommentInfo($comment->post_id);
     }
 
-    public function onRoleDelete($event, $role): void
+    public function onRoleDelete(EventInterface $event, Role|int $role): void
     {
         Post::removeRole($role);
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, string>
      */
     public function subscribe(): array
     {

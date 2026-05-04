@@ -39,10 +39,9 @@ class Comment extends BaseComment implements \JsonSerializable
     #[ORM\BelongsTo(targetEntity: 'Pagekit\User\Model\User', keyFrom: 'user_id')]
     public mixed $user = null;
 
-    /** @var int */
     public int $special = 0;
 
-    public function setPost($post): void
+    public function setPost(mixed $post): void
     {
         $this->post = $post;
 
@@ -58,6 +57,9 @@ class Comment extends BaseComment implements \JsonSerializable
         return $statuses[$this->status] ?? __('Unknown');
     }
 
+    /**
+     * @return array<int, string>
+     */
     public static function getStatuses(): array
     {
         return [
