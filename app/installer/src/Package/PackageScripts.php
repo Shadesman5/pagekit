@@ -70,9 +70,9 @@ class PackageScripts
     }
 
     /**
-     * @param  string $name
+     * @return array<int|string, callable>
      */
-    protected function get($name): array
+    protected function get(string $name): array
     {
         $scripts = $this->load();
 
@@ -80,9 +80,9 @@ class PackageScripts
     }
 
     /**
-     * @return array
+     * @return array<string, mixed>
      */
-    protected function load()
+    protected function load(): array
     {
         if (!$this->file || !file_exists($this->file)) {
             return [];
@@ -92,9 +92,9 @@ class PackageScripts
     }
 
     /**
-     * @param array|callable $scripts
+     * @param array<int|string, callable>|callable $scripts
      */
-    protected function run($scripts): void
+    protected function run(array|callable $scripts): void
     {
         array_map(function ($script) {
 
@@ -106,16 +106,16 @@ class PackageScripts
     }
 
     /**
-     * @return callable[]
+     * @return array<int|string, callable>
      */
     protected function getUpdates(): array
     {
         $updates = $this->get('updates');
 
-        $versions = array_filter(array_keys($updates), fn ($version) => version_compare($version, $this->current, '>'));
+        $versions = array_filter(array_keys($updates), fn ($version) => version_compare((string) $version, (string) $this->current, '>'));
 
         $updates = array_intersect_key($updates, array_flip($versions));
-        uksort($updates, 'version_compare');
+        uksort($updates, fn ($a, $b): int => version_compare((string) $a, (string) $b));
 
         return $updates;
     }

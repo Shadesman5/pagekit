@@ -38,7 +38,11 @@ class Installer
         $this->config = file_exists($this->configFile);
     }
 
-    public function check($config): array
+    /**
+     * @param  array<string, mixed> $config
+     * @return array<string, string>
+     */
+    public function check(array $config): array
     {
         $status = 'no-connection';
         $message = '';
@@ -87,7 +91,13 @@ class Installer
         return ['status' => $status, 'message' => $message];
     }
 
-    public function install($config = [], $option = [], $user = []): array
+    /**
+     * @param  array<string, mixed> $config
+     * @param  array<string, mixed> $option
+     * @param  array<string, mixed> $user
+     * @return array<string, string>
+     */
+    public function install(array $config = [], array $option = [], array $user = []): array
     {
         $status = $this->check($config);
         $message = $status['message'];

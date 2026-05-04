@@ -10,14 +10,18 @@ use Composer\IO\IOInterface;
 
 class Factory extends BaseFactory
 {
+    /** @var array<string, string> */
     protected static array $config = [];
 
-    public static function bootstrap($config): void
+    /**
+     * @param array<string, string> $config
+     */
+    public static function bootstrap(array $config): void
     {
         self::$config = $config;
     }
 
-    public static function createConfig(IOInterface $io = null, $cwd = null): Config
+    public static function createConfig(?IOInterface $io = null, ?string $cwd = null): Config
     {
         $config = new Config(true, $cwd);
         $config->merge(['config' => static::$config]);

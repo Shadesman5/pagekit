@@ -187,18 +187,6 @@ parameters:
 			path: app/installer/install.php
 
 		-
-			message: '#^PHPDoc tag @return with type Traversable is not subtype of native type ArrayIterator\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: app/installer/requirements.php
-
-		-
-			message: '#^Property RequirementCollection\:\:\$requirements \(array\|null\) is never assigned null so it can be removed from the property type\.$#'
-			identifier: property.unusedType
-			count: 1
-			path: app/installer/requirements.php
-
-		-
 			message: '#^Variable \$path might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
@@ -251,18 +239,6 @@ parameters:
 			identifier: class.notFound
 			count: 1
 			path: app/installer/src/Installer.php
-
-		-
-			message: '#^Method Pagekit\\Installer\\Package\\PackageFactory\:\:load\(\) should return Pagekit\\Installer\\Package\\Package but return statement is missing\.$#'
-			identifier: return.missing
-			count: 1
-			path: app/installer/src/Package/PackageFactory.php
-
-		-
-			message: '#^Negated boolean expression is always false\.$#'
-			identifier: booleanNot.alwaysFalse
-			count: 1
-			path: app/installer/src/Package/PackageFactory.php
 
 		-
 			message: '#^Call to an undefined method Pagekit\\Installer\\SelfUpdater\:\:writeln\(\)\.$#'

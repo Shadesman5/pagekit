@@ -10,8 +10,10 @@ use Symfony\Component\Console\Output\StreamOutput;
 
 class SelfUpdater
 {
+    /** @var array<int, string> */
     protected array $cleanFolder = ['app'];
 
+    /** @var array<int, string> */
     protected array $ignoreFolder = ['packages', 'storage'];
 
     protected string $path;
@@ -35,10 +37,9 @@ class SelfUpdater
     /**
      * Runs Pagekit self update.
      *
-     * @param $file
      * @throws \Exception
      */
-    public function update($file): void
+    public function update(string $file): void
     {
         try {
             $path = $this->path;
@@ -109,10 +110,9 @@ class SelfUpdater
     /**
      * Generates file list for given archive.
      *
-     * @param $file
-     * @return array
+     * @return array<int, string>
      */
-    protected function getFileList($file)
+    protected function getFileList(string $file): array
     {
         $list = [];
 
@@ -133,11 +133,10 @@ class SelfUpdater
     /**
      * Checks if directory is writable.
      *
-     * @param $fileList
-     * @param $path
-     * @return bool|array
+     * @param  array<int, string>     $fileList
+     * @return bool|array<int, string>
      */
-    protected function isWritable($fileList, $path)
+    protected function isWritable(array $fileList, string $path): bool|array
     {
         $notWritable = [];
 
@@ -164,11 +163,9 @@ class SelfUpdater
     /**
      * Extracts an archive.
      *
-     * @param $file
-     * @param $fileList
-     * @param $path
+     * @param array<int, string> $fileList
      */
-    protected function extract($file, $fileList, $path): void
+    protected function extract(string $file, array $fileList, string $path): void
     {
         $zip = new \ZipArchive();
         if ($zip->open($file) === true) {
@@ -183,10 +180,10 @@ class SelfUpdater
     /**
      * Scans directory for old files.
      *
-     * @param $fileList
-     * @param $path
+     * @param  array<int, string> $fileList
+     * @return array<int, string>
      */
-    protected function cleanup($fileList, $path): array
+    protected function cleanup(array $fileList, string $path): array
     {
         $errorList = [];
 
@@ -198,11 +195,10 @@ class SelfUpdater
     }
 
     /**
-     * @param $fileList
-     * @param $dir
-     * @param $path
+     * @param  array<int, string> $fileList
+     * @return array<int, string>
      */
-    protected function doCleanup($fileList, $dir, $path): array
+    protected function doCleanup(array $fileList, string $dir, string $path): array
     {
         $errorList = [];
 
@@ -225,10 +221,8 @@ class SelfUpdater
 
     /**
      * Toggles update mode without booting Pagekit application.
-     *
-     * @param $active
      */
-    protected function setUpdateMode($active): void
+    protected function setUpdateMode(bool $active): void
     {
         // TODO: Implement this.
     }

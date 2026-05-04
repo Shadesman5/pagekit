@@ -146,15 +146,18 @@ class PhpIniRequirement extends Requirement
  * A RequirementCollection represents a set of Requirement instances.
  *
  * @author Tobias Schultze <http://tobion.de>
+ *
+ * @implements IteratorAggregate<int, Requirement>
  */
 class RequirementCollection implements IteratorAggregate
 {
-    private ?array $requirements = [];
+    /** @var array<int, Requirement> */
+    private array $requirements = [];
 
     /**
      * Gets the current RequirementCollection as an Iterator.
      *
-     * @return Traversable A Traversable interface
+     * @return \ArrayIterator<int, Requirement> A Traversable interface
      */
     public function getIterator(): \ArrayIterator
     {
@@ -246,9 +249,9 @@ class RequirementCollection implements IteratorAggregate
     /**
      * Returns both requirements and recommendations.
      *
-     * @return array Array of Requirement instances
+     * @return array<int, Requirement> Array of Requirement instances
      */
-    public function all(): ?array
+    public function all(): array
     {
         return $this->requirements;
     }
@@ -256,7 +259,7 @@ class RequirementCollection implements IteratorAggregate
     /**
      * Returns all mandatory requirements.
      *
-     * @return array Array of Requirement instances
+     * @return array<int, Requirement> Array of Requirement instances
      */
     public function getRequirements(): array
     {
@@ -273,7 +276,7 @@ class RequirementCollection implements IteratorAggregate
     /**
      * Returns the mandatory requirements that were not met.
      *
-     * @return array Array of Requirement instances
+     * @return array<int, Requirement> Array of Requirement instances
      */
     public function getFailedRequirements(): array
     {
@@ -290,7 +293,7 @@ class RequirementCollection implements IteratorAggregate
     /**
      * Returns all optional recommmendations.
      *
-     * @return array Array of Requirement instances
+     * @return array<int, Requirement> Array of Requirement instances
      */
     public function getRecommendations(): array
     {
@@ -307,7 +310,7 @@ class RequirementCollection implements IteratorAggregate
     /**
      * Returns the recommendations that were not met.
      *
-     * @return array Array of Requirement instances
+     * @return array<int, Requirement> Array of Requirement instances
      */
     public function getFailedRecommendations(): array
     {
@@ -361,7 +364,7 @@ class PagekitRequirements extends RequirementCollection
     /**
      * Constructor that initializes the requirements.
      */
-    public function __construct($path)
+    public function __construct(string $path)
     {
         /* mandatory requirements follow */
 

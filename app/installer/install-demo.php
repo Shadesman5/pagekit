@@ -69,7 +69,10 @@ if ($db->getUtility()->tableExists('@blog_post')) {
 
     $db->insert('@system_config', ['name' => 'blog', 'value' => '{"comments":{"autoclose":false,"autoclose_days":14,"blacklist":"","comments_per_page":20,"gravatar":true,"max_depth":5,"maxlinks":2,"minidle":120,"nested":true,"notifications":"always","order":"ASC","replymail":true,"require_email":true},"posts":{"posts_per_page":"4","comments_enabled":true,"markdown_enabled":true},"permalink":{"type":"{slug}","custom":"{slug}"},"feed":{"type":"rss2","limit":20}}']);
 
-    function defaults($entry)
+    /**
+     * @return array<string, mixed>
+     */
+    function defaults(string $entry): array
     {
         $entries = [
             'post' => [
