@@ -202,7 +202,6 @@ class ConnectionTest extends TestCase
         $pagekitConn->executeStatement("INSERT INTO test_fetch_all (id, name) VALUES (2, 'Bob')");
 
         $results = $pagekitConn->fetchAllObjects('SELECT * FROM test_fetch_all ORDER BY id');
-        $this->assertIsArray($results);
         $this->assertCount(2, $results);
         $this->assertEquals('Alice', $results[0]->name);
         $this->assertEquals('Bob', $results[1]->name);

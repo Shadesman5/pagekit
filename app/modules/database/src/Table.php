@@ -12,25 +12,18 @@ class Table
 
     protected Connection $connection;
 
-    /**
-     * Constructor.
-     *
-     * @param BaseTable $table
-     * @param Connection $connection
-     */
-    public function __construct($table, $connection)
+    public function __construct(BaseTable $table, Connection $connection)
     {
         $this->table = $table;
         $this->connection = $connection;
     }
 
     /**
-     * @param array $columnNames
-     * @param string|null $indexName
-     * @param array $flags
-     * @param array $options
+     * @param array<int, string>   $columnNames
+     * @param array<int, string>   $flags
+     * @param array<string, mixed> $options
      */
-    public function addIndex(array $columnNames, $indexName = null, array $flags = [], array $options = []): self
+    public function addIndex(array $columnNames, ?string $indexName = null, array $flags = [], array $options = []): self
     {
         if ($indexName) {
             $indexName = $this->connection->replacePrefix($indexName);
@@ -42,11 +35,10 @@ class Table
     }
 
     /**
-     * @param array $columnNames
-     * @param string|null $indexName
-     * @param array $options
+     * @param array<int, string>   $columnNames
+     * @param array<string, mixed> $options
      */
-    public function addUniqueIndex(array $columnNames, $indexName = null, array $options = []): self
+    public function addUniqueIndex(array $columnNames, ?string $indexName = null, array $options = []): self
     {
         if ($indexName) {
             $indexName = $this->connection->replacePrefix($indexName);
@@ -58,13 +50,9 @@ class Table
     }
 
     /**
-     * @param string $columnName
-     * @param string $typeName
-     * @param array $options
-     *
-     * @return Column
+     * @param array<string, mixed> $options
      */
-    public function addColumn($columnName, $typeName, array $options = []): \Doctrine\DBAL\Schema\Column
+    public function addColumn(string $columnName, string $typeName, array $options = []): \Doctrine\DBAL\Schema\Column
     {
         if ($this->connection->getDatabasePlatform()->getName() === 'sqlite' && in_array($typeName, ['string', 'text'])) {
             $options['customSchemaOptions']['collation'] = 'NOCASE';
@@ -76,12 +64,10 @@ class Table
     /**
      * Proxy method call to table.
      *
-     * @param  string $method
-     * @param  array $args
+     * @param array<int, mixed> $args
      * @throws \BadMethodCallException
-     * @return mixed
      */
-    public function __call($method, $args)
+    public function __call(string $method, array $args): mixed
     {
         if (!method_exists($this->table, $method)) {
             throw new \BadMethodCallException(sprintf('Undefined method call "%s::%s"', get_class($this->table), $method));

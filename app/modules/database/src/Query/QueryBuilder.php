@@ -20,6 +20,8 @@ class QueryBuilder
 
     /**
      * The query parts.
+     *
+     * @var array<string, mixed>
      */
     protected array $parts = [
         'select' => [],
@@ -36,6 +38,8 @@ class QueryBuilder
 
     /**
      * The query parameters.
+     *
+     * @var array<int|string, mixed>
      */
     protected array $params = [];
 
@@ -125,10 +129,9 @@ class QueryBuilder
     /**
      * Creates and adds a "where" to the query.
      *
-     * @param  mixed $condition
-     * @param  array $params
+     * @param array<int|string, mixed> $params
      */
-    public function where($condition, array $params = []): QueryBuilder
+    public function where(mixed $condition, array $params = []): QueryBuilder
     {
         return $this->addWhere($condition, $params);
     }
@@ -136,10 +139,9 @@ class QueryBuilder
     /**
      * Creates and adds a "or where" to the query.
      *
-     * @param  mixed $condition
-     * @param  array $params
+     * @param array<int|string, mixed> $params
      */
-    public function orWhere($condition, array $params = []): QueryBuilder
+    public function orWhere(mixed $condition, array $params = []): QueryBuilder
     {
         return $this->addWhere($condition, $params, CompositeExpression::TYPE_OR);
     }
@@ -245,11 +247,9 @@ class QueryBuilder
     /**
      * Creates and adds a "where" to the query.
      *
-     * @param  mixed  $condition
-     * @param  array  $params
-     * @param  string $type
+     * @param array<int|string, mixed> $params
      */
-    protected function addWhere($condition, array $params, $type = null): QueryBuilder
+    protected function addWhere(mixed $condition, array $params, ?string $type = null): QueryBuilder
     {
         $args = [];
 
@@ -378,10 +378,10 @@ class QueryBuilder
     /**
      * Get or set multiple query parameters.
      *
-     * @param  array $params
-     * @return array|self
+     * @param array<int|string, mixed>|null $params
+     * @return array<int|string, mixed>|self
      */
-    public function params(?array $params = null)
+    public function params(?array $params = null): array|self
     {
         if ($params === null) {
             return $this->params;
@@ -405,6 +405,8 @@ class QueryBuilder
 
     /**
      * Gets all query parts.
+     *
+     * @return array<string, mixed>
      */
     public function getParts(): array
     {
@@ -454,9 +456,9 @@ class QueryBuilder
     /**
      * Execute the query and get all results.
      *
-     * @param  mixed $columns
+     * @return array<int, array<string, mixed>>
      */
-    public function get($columns = ['*']): array
+    public function get(mixed $columns = ['*']): array
     {
         return $this->execute($columns)->fetchAllAssociative();
     }
@@ -570,7 +572,7 @@ class QueryBuilder
     /**
      * Execute the "update" query with the given values.
      *
-     * @param  array $values
+     * @param array<string, mixed> $values
      */
     public function update(array $values): int
     {
@@ -724,7 +726,8 @@ class QueryBuilder
     /**
      * Tries to guess param types
      *
-     * @param  array $params
+     * @param  array<int|string, mixed> $params
+     * @return array<int|string, string>
      */
     protected function guessParamTypes(array $params = []): array
     {
@@ -739,7 +742,7 @@ class QueryBuilder
         return $types;
     }
 
-    protected function parameter($name)
+    protected function parameter(string $name): string
     {
         return preg_replace('/[^a-zA-Z0-9_]/', '_', $name);
     }

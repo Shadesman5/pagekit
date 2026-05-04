@@ -14,6 +14,7 @@ class QueryBuilder
 
     protected \Pagekit\Database\Query\QueryBuilder $query;
 
+    /** @var array<string, callable> */
     protected array $relations = [];
 
     protected ?CacheItemPoolInterface $cache = null;
@@ -35,6 +36,8 @@ class QueryBuilder
 
     /**
      * Execute the query and get all results.
+     *
+     * @return array<int|string, object>
      */
     public function get(): array
     {
@@ -150,6 +153,8 @@ class QueryBuilder
 
     /**
      * Gets all relations of the query.
+     *
+     * @return array<string, QueryBuilder>
      */
     public function getRelations(): array
     {
@@ -177,7 +182,7 @@ class QueryBuilder
     /**
      * Gets all nested relations of the query.
      *
-     * @param  string $relation
+     * @return array<string, callable>
      */
     public function getNestedRelations(string $relation): array
     {
@@ -227,10 +232,8 @@ class QueryBuilder
     /**
      * Proxy method call to query builder.
      *
-     * @param  string $method
-     * @param  array  $args
+     * @param  array<int, mixed> $args
      * @throws \BadMethodCallException
-     * @return mixed
      */
     public function __call(string $method, array $args): mixed
     {

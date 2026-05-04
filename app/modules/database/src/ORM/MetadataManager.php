@@ -138,7 +138,7 @@ class MetadataManager
     /**
      * Loads the metadata of the given class.
      *
-     * @param \ReflectionClass $class
+     * @param \ReflectionClass<object> $class
      */
     protected function load(\ReflectionClass $class): ?Metadata
     {
@@ -192,7 +192,8 @@ class MetadataManager
     /**
      * Get array of parent classes for the given class.
      *
-     * @param  \ReflectionClass $class
+     * @param  \ReflectionClass<object> $class
+     * @return array<int, \ReflectionClass<object>>
      */
     protected function getParentClasses(\ReflectionClass $class): array
     {

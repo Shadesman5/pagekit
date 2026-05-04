@@ -23,16 +23,17 @@ class CompositeExpression implements \Countable
 
     /**
      * Each expression part of the composite expression.
+     *
+     * @var array<int, mixed>
      */
     protected array $parts = [];
 
     /**
      * Constructor.
      *
-     * @param string $type
-     * @param array  $parts
+     * @param array<int, mixed> $parts
      */
-    public function __construct($type, array $parts = [])
+    public function __construct(string $type, array $parts = [])
     {
         $this->type = $type;
         $this->addMultiple($parts);
@@ -48,10 +49,8 @@ class CompositeExpression implements \Countable
 
     /**
      * Adds an expression to composite expression.
-     *
-     * @param  mixed $part
      */
-    public function add($part): self
+    public function add(mixed $part): self
     {
         if (!empty($part) || ($part instanceof self && $part->count() > 0)) {
             $this->parts[] = $part;
@@ -63,7 +62,7 @@ class CompositeExpression implements \Countable
     /**
      * Adds multiple parts to composite expression.
      *
-     * @param  array $parts
+     * @param array<int, mixed> $parts
      */
     public function addMultiple(array $parts = []): self
     {

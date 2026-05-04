@@ -43,7 +43,7 @@ trait ModelTrait
     /**
      * Creates a new instance of this model.
      *
-     * @param  array $data
+     * @param array<string, mixed> $data
      * @return static
      */
     public static function create(array $data = []): static
@@ -62,8 +62,7 @@ trait ModelTrait
     /**
      * Creates a new QueryBuilder instance and set the WHERE condition.
      *
-     * @param  mixed $condition
-     * @param  array $params
+     * @param array<int|string, mixed> $params
      */
     public static function where(mixed $condition, array $params = []): QueryBuilder
     {
@@ -84,7 +83,7 @@ trait ModelTrait
     /**
      * Retrieves all entities.
      *
-     * @return static[]
+     * @return array<int|string, object>
      */
     public static function findAll(): array
     {
@@ -94,7 +93,7 @@ trait ModelTrait
     /**
      * Saves the entity.
      *
-     * @param array $data
+     * @param array<string, mixed> $data
      */
     public function save(array $data = []): void
     {
@@ -112,11 +111,11 @@ trait ModelTrait
     /**
      * Gets model data as array.
      *
-     * @param  array $data
-     * @param  array $ignore
-     * @return array
+     * @param  array<string, mixed> $data
+     * @param  array<int, string>   $ignore
+     * @return array<string, mixed>
      */
-    public function toArray(array $data = [], array $ignore = [])
+    public function toArray(array $data = [], array $ignore = []): array
     {
         $metadata = static::getMetadata();
         $mappings = $metadata->getRelationMappings();
@@ -146,9 +145,11 @@ trait ModelTrait
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, mixed>
      */
     #[\ReturnTypeWillChange]
-    public function jsonSerialize()
+    public function jsonSerialize(): array
     {
         return $this->toArray();
     }

@@ -12,6 +12,8 @@ class HasOne extends Relation
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<string, mixed> $mapping
      */
     public function __construct(\Pagekit\Database\ORM\EntityManager $manager, \Pagekit\Database\ORM\Metadata $metadata, array $mapping)
     {
@@ -41,6 +43,8 @@ class HasOne extends Relation
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<int, object> $entities
      */
     public function resolve(array $entities, QueryBuilder $query): void
     {
@@ -57,6 +61,9 @@ class HasOne extends Relation
         $this->resolveRelations($query, $targets);
     }
 
+    /**
+     * @param array<int, object> $entities
+     */
     protected function mapBelongsTo(array $entities): void
     {
         if ($this->belongsTo) {

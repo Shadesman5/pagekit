@@ -6,6 +6,7 @@ namespace Pagekit\Database\ORM;
 
 trait PropertyTrait
 {
+    /** @var array<string, array<string, mixed>> */
     protected static array $_properties = [];
 
     /**
@@ -90,9 +91,9 @@ trait PropertyTrait
     /**
      * Gets all object properties.
      *
-     * @param  mixed $object
+     * @return array<string, mixed>
      */
-    public static function getProperties($object): array
+    public static function getProperties(object $object): array
     {
         $properties = get_object_vars($object);
 
@@ -112,9 +113,9 @@ trait PropertyTrait
     /**
      * Defines an object property.
      *
-     * @param  string                $name
-     * @param  string|callable|array $get
-     * @param  string|callable|bool  $set
+     * @param  string|callable|array<string, mixed> $get
+     * @param  string|callable|bool|null            $set
+     * @return array<string, mixed>
      */
     public static function defineProperty(string $name, mixed $get, mixed $set = null): array
     {
@@ -136,8 +137,7 @@ trait PropertyTrait
     /**
      * Gets an object property descriptor.
      *
-     * @param  string $name
-     * @return array
+     * @return array<string, mixed>|null
      */
     protected static function getPropertyDescriptor(string $name): ?array
     {

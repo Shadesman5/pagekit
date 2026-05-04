@@ -16,28 +16,31 @@ class Metadata
 
     protected string $identifier = '';
 
+    /** @var array<string, array<string, mixed>> */
     protected array $fields = [];
 
+    /** @var array<string, string> */
     protected array $fieldNames = [];
 
+    /** @var array<string, array<string, mixed>> */
     protected array $relations = [];
 
     protected bool $isMappedSuperclass = false;
 
+    /** @var array<string, array<int, string>> */
     protected array $events = [];
 
     protected string $eventPrefix = '';
 
+    /** @var \ReflectionClass<object>|null */
     protected ?\ReflectionClass $reflClass = null;
 
     /**
      * Constructor.
      *
-     * @param MetadataManager $manager
-     * @param string          $class
-     * @param array           $config
+     * @param array<string, mixed> $config
      */
-    public function __construct($manager, $class, array $config = [])
+    public function __construct(MetadataManager $manager, string $class, array $config = [])
     {
         $this->manager = $manager;
         $this->class = $class;
@@ -55,6 +58,8 @@ class Metadata
 
     /**
      * Gets the entity's reflection class.
+     *
+     * @return \ReflectionClass<object>
      */
     public function getReflectionClass(): \ReflectionClass
     {
@@ -84,21 +89,23 @@ class Metadata
     }
 
     /**
-     * Gets a field's mapping definitions.
+     * Gets a field's mapping definitions, or a single attribute thereof.
      *
-     * @param  string $name
-     * @param  string $attribute
-     * @return array|null
+     * @return array<string, mixed>|mixed|null Field mapping (when $attribute is null), the attribute value (when $attribute is set), or null when the field is unknown.
      */
-    public function getField($name, $attribute = null)
+    public function getField(string $name, ?string $attribute = null): mixed
     {
         if (isset($this->fields[$name])) {
             return $attribute !== null ? $this->fields[$name][$attribute] : $this->fields[$name];
         }
+
+        return null;
     }
 
     /**
      * Gets all field mapping definitions.
+     *
+     * @return array<string, array<string, mixed>>
      */
     public function getFields(): array
     {
@@ -107,6 +114,8 @@ class Metadata
 
     /**
      * Gets all relation mappings of the class.
+     *
+     * @return array<string, array<string, mixed>>
      */
     public function getRelationMappings(): array
     {
@@ -116,10 +125,10 @@ class Metadata
     /**
      * Gets the mapping of a relation.
      *
-     * @param  string $name
+     * @return array<string, mixed>
      * @throws \Exception If no mapping is found for relation.
      */
-    public function getRelationMapping($name): array
+    public function getRelationMapping(string $name): array
     {
         if (!isset($this->relations[$name])) {
             throw new \Exception(sprintf("No mapping found for relation '%s' on class '%s'.", $name, $this->class));
@@ -193,11 +202,9 @@ class Metadata
     /**
      * Gets all field values. The column parameter determines if the array keys are column names.
      *
-     * @param  mixed $entity
-     * @param  bool  $column
-     * @param  bool  $convert
+     * @return array<string, mixed>
      */
-    public function getValues($entity, $column = false, $convert = false): array
+    public function getValues(object $entity, bool $column = false, bool $convert = false): array
     {
         $data = [];
 
@@ -212,12 +219,9 @@ class Metadata
     /**
      * Sets multiple field values. The column parameter determines if the array keys are column names.
      *
-     * @param  mixed $entity
-     * @param  array $values
-     * @param  bool  $column
-     * @param  bool  $convert
+     * @param array<string, mixed> $values
      */
-    public function setValues($entity, array $values, $column = false, $convert = false): void
+    public function setValues(object $entity, array $values, bool $column = false, bool $convert = false): void
     {
         foreach ($values as $name => $value) {
             $this->setValue($entity, $name, $value, $column, $convert);
@@ -226,6 +230,8 @@ class Metadata
 
     /**
      * Gets the events.
+     *
+     * @return array<string, array<int, string>>
      */
     public function getEvents(): array
     {
@@ -250,6 +256,8 @@ class Metadata
 
     /**
      * Gets the config values.
+     *
+     * @return array<string, mixed>
      */
     public function getConfig(): array
     {
@@ -267,7 +275,7 @@ class Metadata
     /**
      * Sets the config values and creates the reflection objects.
      *
-     * @param array $config
+     * @param array<string, mixed> $config
      */
     protected function setConfig(array $config): void
     {
@@ -291,7 +299,7 @@ class Metadata
     /**
      * Validate a field mapping.
      *
-     * @param  array $field
+     * @param array<string, mixed> $field
      * @throws \Exception
      */
     protected function validateField(array &$field): void
@@ -331,7 +339,7 @@ class Metadata
     /**
      * Validate a relation mapping.
      *
-     * @param  array $relation
+     * @param array<string, mixed> $relation
      * @throws \Exception
      */
     protected function validateRelation(array &$relation): void
