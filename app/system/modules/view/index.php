@@ -100,7 +100,7 @@ return [
             // locale script returns JS that sets $locale, must load after config
             $scripts->register('locale', $app->get('url')->get('@system/intl', ['locale' => $app->get('module')->get('system/intl')->getLocale(), 'v' => $scripts->getFactory()->getVersion()]), ['pagekit-config'], ['type' => 'url']);
             $scripts->register('uikit', 'app/assets/uikit/dist/js/' . ($app->get('debug') ? 'uikit.js' : 'uikit.min.js'), ['pagekit-config']);
-            $scripts->register('uikit-icons', 'app/system/assets/js/' . ($app->get('debug') ? 'uikit-icons.js' : 'uikit-icons.min.js'), 'uikit');
+            $scripts->register('uikit-icons', 'app/system/assets/js/' . ($app->get('debug') ? 'uikit-icons.js' : 'uikit-icons.min.js'), ['uikit']);
             $scripts->register('vue', 'app/system/app/bundle/vue.js', ['uikit', 'uikit-icons', 'vue-dist', 'lodash', 'locale']);
         },
 
