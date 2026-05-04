@@ -7,19 +7,24 @@ namespace Pagekit\System\Controller;
 use function Pagekit\__;
 
 use Pagekit\Config\Config;
+use Pagekit\Config\ConfigManager;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\User\Attribute\Access;
+use Symfony\Component\HttpFoundation\Request;
 
 #[Access('system: access settings', admin: true)]
 class SettingsController
 {
     public function __construct(
-        private readonly mixed $request,
-        private readonly mixed $config,
-        private readonly mixed $configFile,
+        private readonly Request $request,
+        private readonly ConfigManager $config,
+        private readonly string $configFile,
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function indexAction(): array
     {
         return [
@@ -30,6 +35,9 @@ class SettingsController
         ];
     }
 
+    /**
+     * @return array{message: string}
+     */
     #[Route('/save', methods: ['POST'])]
     public function saveAction(): array
     {
@@ -61,6 +69,9 @@ class SettingsController
         return ['message' => 'success'];
     }
 
+    /**
+     * @return array{message: string}
+     */
     #[Route('/config', methods: ['POST'])]
     public function configAction(): array
     {

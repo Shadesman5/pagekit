@@ -6,11 +6,12 @@ namespace Pagekit\Content\Plugin;
 
 use Pagekit\Content\Event\ContentEvent;
 use Pagekit\Event\EventSubscriberInterface;
+use Pagekit\Markdown\Markdown;
 
 class MarkdownPlugin implements EventSubscriberInterface
 {
     public function __construct(
-        private readonly mixed $markdown,
+        private readonly Markdown $markdown,
     ) {
     }
 
@@ -33,6 +34,8 @@ class MarkdownPlugin implements EventSubscriberInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, array{string, int}>
      */
     public function subscribe(): array
     {

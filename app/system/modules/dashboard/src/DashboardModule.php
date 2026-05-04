@@ -22,7 +22,7 @@ class DashboardModule extends Module
     /**
      * Gets a widget.
      *
-     * @param  string $id
+     * @return array<string, mixed>|null
      */
     public function getWidget(string $id): ?array
     {
@@ -33,6 +33,8 @@ class DashboardModule extends Module
 
     /**
      * Gets all user widgets.
+     *
+     * @return array<string, array<string, mixed>>
      */
     public function getWidgets(): array
     {
@@ -46,7 +48,7 @@ class DashboardModule extends Module
     /**
      * Save widgets on user.
      *
-     * @param array $widgets
+     * @param array<string, array<string, mixed>> $widgets
      */
     public function saveWidgets(array $widgets): void
     {

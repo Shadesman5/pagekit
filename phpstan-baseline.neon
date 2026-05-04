@@ -1069,12 +1069,6 @@ parameters:
 			path: app/system/modules/content/src/ContentHelper.php
 
 		-
-			message: '#^Method Pagekit\\Content\\Plugin\\VideoPlugin\:\:applyPlugin\(\) should return string but empty return statement found\.$#'
-			identifier: return.empty
-			count: 1
-			path: app/system/modules/content/src/Plugin/VideoPlugin.php
-
-		-
 			message: '#^Parameter \#1 \$array of function array_pop is passed by reference, so it expects variables only\.$#'
 			identifier: argument.byRef
 			count: 1

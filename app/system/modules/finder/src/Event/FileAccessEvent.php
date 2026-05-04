@@ -61,7 +61,7 @@ class FileAccessEvent extends Event
         return $this;
     }
 
-    public function mode($path): string
+    public function mode(string $path): string
     {
         if (defined('PHP_WINDOWS_VERSION_MAJOR')) {
             $path = strtr($path, '\\', '/');

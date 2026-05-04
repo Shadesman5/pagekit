@@ -24,6 +24,8 @@ class WidgetManager extends ModuleManager
     }
 
     /**
+     * {@inheritdoc}
+     *
      * @return array<string, mixed>
      */
     public function all(): array

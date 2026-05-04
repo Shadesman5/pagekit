@@ -4,18 +4,23 @@ declare(strict_types=1);
 
 namespace Pagekit\Cache\Controller;
 
+use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\User\Attribute\Access;
+use Symfony\Component\HttpFoundation\Request;
 
 #[Access(admin: true)]
 class CacheController
 {
     public function __construct(
-        private readonly mixed $request,
-        private readonly mixed $module,
+        private readonly Request $request,
+        private readonly ModuleManager $module,
     ) {
     }
 
+    /**
+     * @return array{message: string}
+     */
     #[Route('/clear', methods: ['POST'])]
     public function clearAction(): array
     {

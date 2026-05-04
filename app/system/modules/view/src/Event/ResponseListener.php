@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Pagekit\View\Event;
 
+use Pagekit\Application\UrlProvider;
+use Pagekit\Event\EventInterface;
 use Pagekit\Event\EventSubscriberInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 class ResponseListener implements EventSubscriberInterface
 {
@@ -17,18 +21,15 @@ class ResponseListener implements EventSubscriberInterface
                         \2                              # match the previous quote
                        /xiU';
 
-    // TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 — Strict Typing) —
-    // $url is used as callable ($this->url)($path) but typed as mixed.
-    // Type-narrow to the correct interface or callable once DI is modernized.
     public function __construct(
-        private readonly mixed $url,
+        private readonly UrlProvider $url,
     ) {
     }
 
     /**
      * Filter the response content.
      */
-    public function onResponse($event, $request, $response): void
+    public function onResponse(EventInterface $event, Request $request, Response $response): void
     {
         if (!is_string($content = $response->getContent())) {
             return;
@@ -39,6 +40,8 @@ class ResponseListener implements EventSubscriberInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, array{string, int}>
      */
     public function subscribe(): array
     {

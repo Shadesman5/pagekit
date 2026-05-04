@@ -46,8 +46,7 @@ class CacheModule extends Module
     /**
      * Create PSR-6 cache pool from Symfony adapters.
      *
-     * @param array $config Cache configuration with 'storage', 'prefix', 'path' keys
-     * @return CacheItemPoolInterface Symfony cache pool instance
+     * @param array<string, mixed> $config Cache configuration with 'storage', 'prefix', 'path' keys
      */
     protected function createCachePool(array $config): CacheItemPoolInterface
     {
@@ -86,10 +85,9 @@ class CacheModule extends Module
     /**
      * Returns list of supported caches or boolean for individual cache.
      *
-     * @param  string $name
-     * @return array|bool
+     * @return array<int, string>|bool
      */
-    public static function supports($name = null)
+    public static function supports(?string $name = null): array|bool
     {
         $supports = ['file', 'phpfile', 'array'];
 
@@ -113,6 +111,8 @@ class CacheModule extends Module
 
     /**
      * Schedule cache clear on terminate event.
+     *
+     * @param array<string, mixed> $options
      */
     public function clearCache(array $options = []): void
     {
@@ -125,6 +125,8 @@ class CacheModule extends Module
 
     /**
      * Clear the cache pool and optionally temp files.
+     *
+     * @param array<string, mixed> $options
      */
     public function doClearCache(array $options = []): void
     {

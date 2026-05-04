@@ -6,9 +6,12 @@ namespace Pagekit\Dashboard\Controller;
 
 use function Pagekit\__;
 
+use Pagekit\Application\Response as PagekitResponse;
 use Pagekit\Module\Module;
+use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\User\Attribute\Access;
+use Symfony\Component\HttpFoundation\Request;
 
 #[Access(admin: true)]
 class DashboardController
@@ -20,17 +23,20 @@ class DashboardController
     protected string $apiKey;
 
     public function __construct(
-        private readonly mixed $module,
-        private readonly mixed $request,
-        private readonly mixed $response,
-        private readonly mixed $version,
-        private readonly mixed $systemApi,
+        private readonly ModuleManager $module,
+        private readonly Request $request,
+        private readonly PagekitResponse $response,
+        private readonly string $version,
+        private readonly string $systemApi,
     ) {
         $this->dashboard = $this->module->get('system/dashboard');
         $this->api = $this->dashboard->config('weather.api', 'http://api.openweathermap.org/data/2.5');
         $this->apiKey = $this->dashboard->config('weather.key', '');
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
@@ -48,6 +54,9 @@ class DashboardController
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Route('/savewidgets', methods: ['POST'])]
     public function saveWidgetsAction(): array
     {
@@ -65,12 +74,15 @@ class DashboardController
     }
 
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Route('/', methods: ['POST'])]
     #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\w+'])]
-    public function saveAction($id = 0)
+    public function saveAction(string $id = ''): array
     {
         if (!$id) {
-            $id = $this->request->request->get('id', 0);
+            $id = (string) $this->request->request->get('id', '');
         }
 
         $widget = $this->request->request->all()['widget'] ?? [];
@@ -93,11 +105,14 @@ class DashboardController
         return $widget;
     }
 
+    /**
+     * @return array{message: string}
+     */
     #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\w+'])]
-    public function deleteAction($id = null): array
+    public function deleteAction(?string $id = null): array
     {
         if (!$id) {
-            $id = $this->request->get('id');
+            $id = (string) $this->request->get('id');
         }
 
         $widgets = $this->dashboard->getWidgets();
@@ -109,6 +124,9 @@ class DashboardController
         return ['message' => __('Widget deleted.')];
     }
 
+    /**
+     * @return array{message: string}
+     */
     #[Route('/reorder', methods: ['POST'])]
     public function reorderAction(): array
     {
@@ -135,7 +153,7 @@ class DashboardController
     }
 
     #[Route('/weather', methods: ['GET'])]
-    public function weatherAction()
+    public function weatherAction(): \Symfony\Component\HttpFoundation\Response
     {
         $data = $this->request->query->all()['data'] ?? [];
         $action = $this->request->query->get('action', '');

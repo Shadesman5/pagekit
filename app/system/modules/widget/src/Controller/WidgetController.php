@@ -7,22 +7,28 @@ namespace Pagekit\Widget\Controller;
 use function Pagekit\__;
 
 use Pagekit\Routing\Attribute\Request;
+use Pagekit\Site\MenuManager;
 use Pagekit\Site\Model\Node;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use Pagekit\Widget\Model\Widget;
+use Pagekit\Widget\PositionManager;
+use Pagekit\Widget\WidgetManager;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 #[Access('system: manage widgets', admin: true)]
 class WidgetController
 {
     public function __construct(
-        private readonly mixed $widget,
-        private readonly mixed $menu,
-        private readonly mixed $position,
+        private readonly WidgetManager $widget,
+        private readonly MenuManager $menu,
+        private readonly PositionManager $position,
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function indexAction(): array
     {
         return [
@@ -41,8 +47,11 @@ class WidgetController
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Request(['id' => 'int', 'type' => 'string'])]
-    public function editAction($id = 0, $type = null): array
+    public function editAction(int $id = 0, ?string $type = null): array
     {
         if (!$id) {
             $widget = Widget::create(['type' => $type]);

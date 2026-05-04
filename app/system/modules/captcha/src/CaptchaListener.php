@@ -4,9 +4,17 @@ declare(strict_types=1);
 
 namespace Pagekit\Captcha;
 
+use Pagekit\Auth\Auth;
 use Pagekit\Captcha\Attribute\Captcha;
+use Pagekit\Event\EventInterface;
 use Pagekit\Event\EventSubscriberInterface;
 use Pagekit\Module\Module;
+use Pagekit\Routing\Route;
+use Pagekit\Routing\Router;
+use Pagekit\User\Model\User;
+use Pagekit\View\Asset\AssetManager;
+use Pagekit\View\Helper\DataHelper;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
@@ -17,16 +25,16 @@ class CaptchaListener implements EventSubscriberInterface
 {
     public function __construct(
         private readonly Module $captchaModule,
-        private readonly mixed $auth,
+        private readonly Auth $auth,
         private readonly RequestStack $requestStack,
-        private readonly mixed $router,
+        private readonly Router $router,
     ) {
     }
 
     /**
      * Reads the #[Captcha] attributes from the controller.
      */
-    public function onConfigureRoute($event, $route): void
+    public function onConfigureRoute(EventInterface $event, Route $route): void
     {
         if (!$route->getControllerClass()) {
             return;
@@ -56,8 +64,10 @@ class CaptchaListener implements EventSubscriberInterface
 
     /**
      * Process a single Captcha attribute.
+     *
+     * @param array<int, string> $routes
      */
-    private function processCaptchaAttribute(Captcha $annot, array &$routes, $route): void
+    private function processCaptchaAttribute(Captcha $annot, array &$routes, Route $route): void
     {
         if ($annot->getVerify()) {
             $route->setDefault('_captcha_verify', true);
@@ -68,12 +78,13 @@ class CaptchaListener implements EventSubscriberInterface
         }
     }
 
-    public function onData($event, $data): void
+    public function onData(EventInterface $event, DataHelper $data): void
     {
         $request = $this->requestStack->getCurrentRequest();
+        $user = $this->auth->getUser();
 
         if (!$this->captchaModule->config('recaptcha_enable')
-            || $this->auth->getUser()?->isAuthenticated()
+            || ($user instanceof User && $user->isAuthenticated())
             || !($routes = $request?->attributes->get('_captcha_routes'))
             || !($sitekey = $this->captchaModule->config('recaptcha_sitekey'))
         ) {
@@ -95,28 +106,35 @@ class CaptchaListener implements EventSubscriberInterface
         ]);
     }
 
-    public function onScripts($event, $scripts): void
+    public function onScripts(EventInterface $event, AssetManager $scripts): void
     {
         $request = $this->requestStack->getCurrentRequest();
+        $user = $this->auth->getUser();
 
         // Must match the same conditions as onData() to ensure $captcha exists
         // when the script runs
         if (!$this->captchaModule->config('recaptcha_enable')
-            || $this->auth->getUser()?->isAuthenticated()
+            || ($user instanceof User && $user->isAuthenticated())
             || !$request?->attributes->get('_captcha_routes')
             || !$this->captchaModule->config('recaptcha_sitekey')
         ) {
             return;
         }
 
-        $scripts->add('captcha-interceptor', 'system/captcha:app/bundle/captcha-interceptor.js', ['vue', 'pagekit-config']);
+        $scripts(
+            'captcha-interceptor',
+            'system/captcha:app/bundle/captcha-interceptor.js',
+            ['vue', 'pagekit-config']
+        );
     }
 
-    public function onRequest($event, $request): void
+    public function onRequest(EventInterface $event, Request $request): void
     {
+        $user = $this->auth->getUser();
+
         if (!$this->captchaModule->config('recaptcha_enable')
             || !($captcha = $request->attributes->get('_captcha_verify'))
-            || $this->auth->getUser()?->isAuthenticated()) {
+            || ($user instanceof User && $user->isAuthenticated())) {
             return;
         }
 
@@ -125,22 +143,27 @@ class CaptchaListener implements EventSubscriberInterface
         }
     }
 
-    protected function verifyToken($gRecaptchaResponse, $secret)
+    protected function verifyToken(mixed $gRecaptchaResponse, mixed $secret): ?string
     {
         if ($gRecaptchaResponse && $secret) {
             $result = json_decode($this->post('https://www.google.com/recaptcha/api/siteverify', [
                 'secret' => $secret,
                 'response' => $gRecaptchaResponse,
-            ]), true);
+            ]) ?: '{}', true);
             if (!$result['success']) {
                 return __('Invalid reCaptcha.');
             }
-        } else {
-            return __('reCaptcha not probably configured.');
+
+            return null;
         }
+
+        return __('reCaptcha not probably configured.');
     }
 
-    protected function post($url, $parameter)
+    /**
+     * @param array<string, string> $parameter
+     */
+    protected function post(string $url, array $parameter): string|false
     {
         $ch = curl_init($url);
         $parameterQuery = http_build_query($parameter);
@@ -161,6 +184,8 @@ class CaptchaListener implements EventSubscriberInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, array{string, int}|string>
      */
     public function subscribe(): array
     {

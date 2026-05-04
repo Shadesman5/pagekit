@@ -17,11 +17,9 @@ class ContentHelper
     /**
      * Applies content plugins
      *
-     * @param  string $content
-     * @param  array  $parameters
-     * @return mixed
+     * @param array<string, mixed> $parameters
      */
-    public function applyPlugins($content, $parameters = [])
+    public function applyPlugins(string $content, array $parameters = []): string
     {
         return $this->events->trigger(new ContentEvent('content.plugins', $content, $parameters))->getContent();
     }
