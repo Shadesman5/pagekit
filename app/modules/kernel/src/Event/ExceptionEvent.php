@@ -12,14 +12,7 @@ class ExceptionEvent extends KernelEvent
 
     protected ?\Exception $exception = null;
 
-    /**
-     * Construct.
-     *
-     * @param string              $name
-     * @param HttpKernelInterface $kernel
-     * @param \Exception $e
-     */
-    public function __construct($name, HttpKernelInterface $kernel, \Exception $e)
+    public function __construct(string $name, HttpKernelInterface $kernel, \Exception $e)
     {
         parent::__construct($name, $kernel);
 

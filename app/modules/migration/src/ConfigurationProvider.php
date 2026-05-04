@@ -22,15 +22,12 @@ class ConfigurationProvider
     private Connection $connection;
 
     /**
-     * @var array Configuration array
+     * @var array<string, mixed> Configuration array
      */
     private array $config;
 
     /**
-     * Constructor
-     *
-     * @param Connection $connection DBAL connection instance
-     * @param array $config Configuration array
+     * @param array<string, mixed> $config Configuration array
      */
     public function __construct(Connection $connection, array $config = [])
     {
@@ -123,7 +120,7 @@ class ConfigurationProvider
      * Load configuration from file
      *
      * @param string $path Configuration file path
-     * @return array Configuration array
+     * @return array<string, mixed> Configuration array
      */
     public static function loadFromFile(string $path): array
     {
@@ -143,7 +140,7 @@ class ConfigurationProvider
     /**
      * Get raw configuration array
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function getConfig(): array
     {

@@ -18,10 +18,7 @@ class IntlModule extends Module
 {
     protected App $app;
 
-    /**
-     * {@inheritdoc}
-     */
-    public function main(App $app): void
+    public function main(App $app): mixed
     {
         $this->app = $app;
         // Load translation functions
@@ -41,6 +38,7 @@ class IntlModule extends Module
             return $translator;
         });
 
+        return null;
     }
 
     /**

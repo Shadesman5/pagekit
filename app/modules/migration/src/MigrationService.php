@@ -31,15 +31,12 @@ class MigrationService
     private DependencyFactory $dependencyFactory;
 
     /**
-     * @var array Migration configuration
+     * @var array<string, mixed> Migration configuration
      */
     private array $config;
 
     /**
-     * Constructor
-     *
-     * @param Connection $connection DBAL connection instance
-     * @param array $config Migration configuration
+     * @param array<string, mixed> $config Migration configuration
      */
     public function __construct(Connection $connection, array $config = [])
     {
@@ -143,7 +140,7 @@ class MigrationService
      *
      * @param string|null $version Target version (null = latest)
      * @param bool $dryRun If true, only show SQL without executing
-     * @return array Result information (executed migrations, execution time, etc.)
+     * @return array<string, mixed> Result information (executed migrations, execution time, etc.)
      */
     public function migrate(?string $version = null, bool $dryRun = false): array
     {
@@ -210,7 +207,7 @@ class MigrationService
      *
      * @param string|null $version Target version (null = previous version)
      * @param bool $dryRun If true, only show SQL without executing
-     * @return array Result information
+     * @return array<string, mixed> Result information
      */
     public function rollback(?string $version = null, bool $dryRun = false): array
     {
@@ -307,7 +304,7 @@ class MigrationService
      *
      * Returns information about available and executed migrations.
      *
-     * @return array Migration status information
+     * @return array<string, mixed> Migration status information
      */
     public function status(): array
     {
@@ -378,7 +375,7 @@ class MigrationService
      *
      * @param string $name Migration name (e.g., "CreateUserTable")
      * @param string|null $namespace Target namespace (default: first configured namespace)
-     * @return array Generation result (file path, version, etc.)
+     * @return array<string, mixed> Generation result (file path, version, etc.)
      */
     public function generate(string $name, ?string $namespace = null): array
     {
@@ -449,7 +446,7 @@ class MigrationService
      *
      * Creates the migration version tracking table.
      *
-     * @return array Initialization result
+     * @return array<string, mixed> Initialization result
      */
     public function initialize(): array
     {
@@ -502,7 +499,7 @@ class MigrationService
      * @param string $namespace Extension migration namespace (e.g., 'Pagekit\\Blog\\Migrations')
      * @param string $path Absolute path to extension migrations directory
      * @param string|null $version Target version (null = latest)
-     * @return array Result information
+     * @return array<string, mixed> Result information
      */
     public function migrateExtension(string $namespace, string $path, ?string $version = null): array
     {
@@ -577,7 +574,7 @@ class MigrationService
      *                             - null = rollback one step (previous version)
      *                             - '0' or 'first' = rollback all migrations
      *                             - specific version = rollback to that version
-     * @return array Result information
+     * @return array<string, mixed> Result information
      */
     public function rollbackExtension(string $namespace, string $path, ?string $version = null): array
     {

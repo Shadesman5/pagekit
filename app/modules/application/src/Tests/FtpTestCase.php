@@ -10,8 +10,9 @@ abstract class FtpTestCase extends TestCase
 {
     use FtpUtil;
 
-    protected $workspace = null;
+    protected string|false|null $workspace = null;
     protected ?int $mode = null;
+    /** @var resource|\FTP\Connection|null */
     protected $connection;
 
     public function setUp(): void
@@ -45,10 +46,7 @@ abstract class FtpTestCase extends TestCase
         }
     }
 
-    /**
-     * @param string $file
-     */
-    private function clean($file)
+    private function clean(string $file): void
     {
         if (ftp_size($this->connection, $file) == -1) {
             $result = ftp_nlist($this->connection, $file);

@@ -12,16 +12,21 @@ use Symfony\Component\HttpFoundation\Request;
 
 class ExceptionListener implements EventSubscriberInterface
 {
+    /** @var callable|string|array{0: object|class-string, 1: string} */
     protected $controller;
+
     protected ?LoggerInterface $logger = null;
 
-    public function __construct($controller, ?LoggerInterface $logger = null)
+    /**
+     * @param callable|string|array{0: object|class-string, 1: string} $controller
+     */
+    public function __construct(callable|string|array $controller, ?LoggerInterface $logger = null)
     {
         $this->controller = $controller;
         $this->logger = $logger;
     }
 
-    public function onException($event, $request)
+    public function onException(ExceptionEvent $event, Request $request): bool|null
     {
         static $handling;
 
@@ -64,10 +69,12 @@ class ExceptionListener implements EventSubscriberInterface
         $event->setResponse($response);
 
         $handling = false;
+
+        return null;
     }
 
     /**
-     * {@inheritdoc}
+     * @return array<string, mixed>
      */
     public function subscribe(): array
     {
@@ -78,11 +85,8 @@ class ExceptionListener implements EventSubscriberInterface
 
     /**
      * Logs an exception.
-     *
-     * @param \Exception $exception
-     * @param string     $message
      */
-    protected function logException(\Exception $exception, $message): void
+    protected function logException(\Exception $exception, string $message): void
     {
         if ($this->logger !== null) {
             if (!$exception instanceof HttpException || $exception->getCode() >= 500) {

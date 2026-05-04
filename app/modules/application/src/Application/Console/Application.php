@@ -18,13 +18,7 @@ class Application extends BaseApplication
      */
     protected Container $container;
 
-    /**
-     * Constructor.
-     *
-     * @param Container $container
-     * @param string $name
-     */
-    public function __construct(Container $container, $name = 'UNKNOWN', $version = 'UNKNOWN')
+    public function __construct(Container $container, string $name = 'UNKNOWN', string $version = 'UNKNOWN')
     {
         parent::__construct($name, $version);
 

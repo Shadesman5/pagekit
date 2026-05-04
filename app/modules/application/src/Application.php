@@ -13,9 +13,7 @@ class Application extends Container
     protected bool $booted = false;
 
     /**
-     * Constructor.
-     *
-     * @param array $values
+     * @param array<string, mixed> $values
      */
     public function __construct(array $values = [])
     {

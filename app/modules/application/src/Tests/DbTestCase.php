@@ -10,7 +10,7 @@ abstract class DbTestCase extends TestCase
 {
     use DbUtil;
 
-    protected $connection;
+    protected ?\Doctrine\DBAL\Connection $connection = null;
 
     public function setUp(): void
     {

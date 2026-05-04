@@ -319,30 +319,6 @@ parameters:
 			path: app/modules/application/src/Application/Console/Command.php
 
 		-
-			message: '#^PHPDoc tag @param for parameter \$values with type mixed is not subtype of native type array\.$#'
-			identifier: parameter.phpDocType
-			count: 1
-			path: app/modules/application/src/Event/Event.php
-
-		-
-			message: '#^PHPDoc tag @param has invalid value \(array\)\: Unexpected token "\\n     ", expected variable at offset 59 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: app/modules/application/src/Event/Event.php
-
-		-
-			message: '#^PHPDoc tag @return with type array\|object is not subtype of native type array\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: app/modules/application/src/Event/Event.php
-
-		-
-			message: '#^PHPDoc tag @return with type mixed is not subtype of native type bool\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: app/modules/application/src/Event/Event.php
-
-		-
 			message: '#^Cannot call method bindTo\(\) on callable\.$#'
 			identifier: method.nonObject
 			count: 2
@@ -409,12 +385,6 @@ parameters:
 			path: app/modules/application/src/Util/Arr.php
 
 		-
-			message: '#^Strict comparison using \=\=\= between string and null will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 3
-			path: app/modules/application/src/Util/Arr.php
-
-		-
 			message: '#^Unreachable statement \- code above always terminates\.$#'
 			identifier: deadCode.unreachable
 			count: 1
@@ -445,22 +415,10 @@ parameters:
 			path: app/modules/auth/src/Auth.php
 
 		-
-			message: '#^Parameter \#1 \$user of method Pagekit\\Auth\\Handler\\HandlerInterface\:\:write\(\) expects int, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/modules/auth/src/Auth.php
-
-		-
 			message: '#^Parameter \#2 \$remember of method Pagekit\\Auth\\Handler\\DatabaseHandler\:\:write\(\) expects bool, int given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/modules/auth/src/Handler/DatabaseHandler.php
-
-		-
-			message: '#^PHPDoc tag @param has invalid value \(UserInterface\)\: Unexpected token "\\n     ", expected variable at offset 63 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: app/modules/auth/src/Handler/HandlerInterface.php
 
 		-
 			message: '#^Undefined variable\: \$this$#'
@@ -477,18 +435,6 @@ parameters:
 		-
 			message: '#^Class Doctrine\\DBAL\\Platforms\\MySqlPlatform not found\.$#'
 			identifier: class.notFound
-			count: 1
-			path: app/modules/config/src/ConfigManager.php
-
-		-
-			message: '#^Method Pagekit\\Config\\ConfigManager\:\:fetch\(\) should return Pagekit\\Config\\Config\|null but return statement is missing\.$#'
-			identifier: return.missing
-			count: 1
-			path: app/modules/config/src/ConfigManager.php
-
-		-
-			message: '#^Method Pagekit\\Config\\ConfigManager\:\:get\(\) should return Pagekit\\Config\\Config but return statement is missing\.$#'
-			identifier: return.missing
 			count: 1
 			path: app/modules/config/src/ConfigManager.php
 
@@ -829,30 +775,6 @@ parameters:
 			path: app/modules/filesystem/src/StreamWrapper.php
 
 		-
-			message: '#^Instantiated class Pagekit\\Tests\\IOException not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/filesystem/src/Tests/Adapter/StreamAdapterTest.php
-
-		-
-			message: '#^Throwing object of an unknown class Pagekit\\Tests\\IOException\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/filesystem/src/Tests/Adapter/StreamAdapterTest.php
-
-		-
-			message: '#^Instantiated class Pagekit\\Tests\\IOException not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/filesystem/src/Tests/FilesystemTest.php
-
-		-
-			message: '#^Throwing object of an unknown class Pagekit\\Tests\\IOException\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/filesystem/src/Tests/FilesystemTest.php
-
-		-
 			message: '#^Undefined variable\: \$this$#'
 			identifier: variable.undefined
 			count: 1
@@ -949,24 +871,6 @@ parameters:
 			path: app/modules/kernel/index.php
 
 		-
-			message: '#^Parameter \$logger of method Pagekit\\Kernel\\Controller\\ControllerListener\:\:__construct\(\) has invalid type Pagekit\\Kernel\\Controller\\LoggerInterface\.$#'
-			identifier: class.notFound
-			count: 2
-			path: app/modules/kernel/src/Controller/ControllerListener.php
-
-		-
-			message: '#^Property Pagekit\\Kernel\\Controller\\ControllerListener\:\:\$logger has unknown class Pagekit\\Kernel\\Controller\\LoggerInterface as its type\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/kernel/src/Controller/ControllerListener.php
-
-		-
-			message: '#^PHPDoc tag @return with type mixed is not subtype of native type array\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: app/modules/kernel/src/Controller/ControllerResolver.php
-
-		-
 			message: '#^Call to an undefined static method Symfony\\Component\\ErrorHandler\\ErrorHandler\:\:createResponse\(\)\.$#'
 			identifier: staticMethod.notFound
 			count: 1
@@ -1017,12 +921,6 @@ parameters:
 		-
 			message: '#^Class Pagekit\\Log\\Logger extends @final class Monolog\\Logger\.$#'
 			identifier: class.extendsFinalByPhpDoc
-			count: 1
-			path: app/modules/log/src/Logger.php
-
-		-
-			message: '#^Result of method Monolog\\Logger\:\:log\(\) \(void\) is used\.$#'
-			identifier: method.void
 			count: 1
 			path: app/modules/log/src/Logger.php
 
@@ -1211,12 +1109,6 @@ parameters:
 			identifier: variable.undefined
 			count: 1
 			path: app/modules/session/index.php
-
-		-
-			message: '#^PHPDoc tag @throws with type Pagekit\\Session\\Csrf\\Event\\UnauthorizedException is not subtype of Throwable$#'
-			identifier: throws.notThrowable
-			count: 1
-			path: app/modules/session/src/Csrf/Event/CsrfListener.php
 
 		-
 			message: '#^Class Doctrine\\DBAL\\Platforms\\MySqlPlatform not found\.$#'

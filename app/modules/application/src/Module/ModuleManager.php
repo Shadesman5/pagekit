@@ -9,12 +9,17 @@ use Pagekit\Module\Loader\CallableLoader;
 use Pagekit\Module\Loader\LoaderInterface;
 use Pagekit\Module\Loader\ModuleLoader;
 
+/**
+ * @implements \IteratorAggregate<string, mixed>
+ */
 class ModuleManager implements \IteratorAggregate
 {
-    protected \Pagekit\Application $app;
+    protected Application $app;
 
+    /** @var array<string, mixed> */
     protected array $modules = [];
 
+    /** @var array<string, array<string, mixed>> */
     protected array $registered = [];
 
     /**
@@ -27,6 +32,7 @@ class ModuleManager implements \IteratorAggregate
      */
     protected array $postLoaders = [];
 
+    /** @var array<string, mixed> */
     protected array $defaults = [
         'main' => null,
         'type' => 'module',
@@ -34,11 +40,6 @@ class ModuleManager implements \IteratorAggregate
         'config' => [],
     ];
 
-    /**
-     * Constructor.
-     *
-     * @param Application $app
-     */
     public function __construct(Application $app)
     {
         $this->app = $app;
@@ -50,24 +51,23 @@ class ModuleManager implements \IteratorAggregate
      *
      * @see get()
      */
-    public function __invoke($name)
+    public function __invoke(string $name): mixed
     {
         return $this->get($name);
     }
 
     /**
      * Gets a module.
-     *
-     * @param  string $name
-     * @return mixed|null
      */
-    public function get($name)
+    public function get(string $name): mixed
     {
-        return isset($this->modules[$name]) ? $this->modules[$name] : null;
+        return $this->modules[$name] ?? null;
     }
 
     /**
      * Gets all modules.
+     *
+     * @return array<string, mixed>
      */
     public function all(): array
     {
@@ -77,9 +77,9 @@ class ModuleManager implements \IteratorAggregate
     /**
      * Loads modules by name.
      *
-     * @param  string|array $modules
+     * @param string|array<int, string> $modules
      */
-    public function load($modules): self
+    public function load(string|array $modules): self
     {
         $resolved = [];
 
@@ -117,10 +117,9 @@ class ModuleManager implements \IteratorAggregate
     /**
      * Registers modules from path(s).
      *
-     * @param  string|array $paths
-     * @param  string $basePath
+     * @param string|array<int, string> $paths
      */
-    public function register($paths, $basePath = null): self
+    public function register(string|array $paths, ?string $basePath = null): self
     {
         $app = $this->app;
         $includes = [];
@@ -157,13 +156,10 @@ class ModuleManager implements \IteratorAggregate
 
     /**
      * Adds a module loader.
-     *
-     * @param  LoaderInterface|callable $loader
-     * @param  bool $post
      */
-    public function addLoader($loader, $post = false): self
+    public function addLoader(LoaderInterface|callable $loader, bool $post = false): self
     {
-        if (is_callable($loader)) {
+        if (!$loader instanceof LoaderInterface) {
             $loader = new CallableLoader($loader);
         }
 
@@ -178,6 +174,8 @@ class ModuleManager implements \IteratorAggregate
 
     /**
      * Implements the IteratorAggregate.
+     *
+     * @return \ArrayIterator<string, mixed>
      */
     public function getIterator(): \ArrayIterator
     {
@@ -187,9 +185,9 @@ class ModuleManager implements \IteratorAggregate
     /**
      * Resolves module requirements.
      *
-     * @param array $module
-     * @param array $resolved
-     * @param array $unresolved
+     * @param array<string, mixed>            $module
+     * @param array<array<string, mixed>>     $resolved
+     * @param array<array<string, mixed>>     $unresolved
      *
      * @throws \RuntimeException
      */
@@ -218,11 +216,8 @@ class ModuleManager implements \IteratorAggregate
 
     /**
      * Resolves a absolute path to a given base path.
-     *
-     * @param  string $path
-     * @param  string $basePath
      */
-    protected function resolvePath($path, $basePath = null): string
+    protected function resolvePath(string $path, ?string $basePath = null): string
     {
         $path = strtr($path, '\\', '/');
 

@@ -8,47 +8,29 @@ class PrefixEventDispatcher implements EventDispatcherInterface
 {
     protected string $prefix = '';
 
-    protected \Pagekit\Event\EventDispatcherInterface $events;
+    protected EventDispatcherInterface $events;
 
-    /**
-     * Constructor.
-     *
-     * @param  string                   $prefix
-     * @param  EventDispatcherInterface $events
-     */
-    public function __construct($prefix, ?EventDispatcherInterface $events = null)
+    public function __construct(string $prefix, ?EventDispatcherInterface $events = null)
     {
         $this->prefix = $prefix;
         $this->events = $events ?: new EventDispatcher();
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function on($event, $listener, $priority = 0): void
+    public function on(string $event, callable $listener, int $priority = 0): void
     {
         $this->events->on($this->prefix.$event, $listener, $priority);
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function off($event, $listener = null): void
+    public function off(string $event, ?callable $listener = null): void
     {
         $this->events->off($this->prefix.$event, $listener);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function subscribe(EventSubscriberInterface $subscriber): void
     {
         $this->events->subscribe($subscriber);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function unsubscribe(EventSubscriberInterface $subscriber): void
     {
         $this->events->unsubscribe($subscriber);
@@ -56,6 +38,8 @@ class PrefixEventDispatcher implements EventDispatcherInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<int|string, mixed> $arguments
      */
     public function trigger($event, array $arguments = []): EventInterface
     {
@@ -68,33 +52,24 @@ class PrefixEventDispatcher implements EventDispatcherInterface
         return $this->events->trigger($event, $arguments);
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function hasListeners($event = null): bool
+    public function hasListeners(?string $event = null): bool
     {
         return $this->events->hasListeners($event);
     }
 
     /**
-     * {@inheritdoc}
+     * @return list<callable>|array<string, list<callable>>
      */
-    public function getListeners($event = null): array
+    public function getListeners(?string $event = null): array
     {
         return $this->events->getListeners($event);
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function getListenerPriority($event, $listener): ?int
+    public function getListenerPriority(string $event, callable $listener): ?int
     {
         return $this->events->getListenerPriority($event, $listener);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getEventClass(): string
     {
         return $this->events->getEventClass();

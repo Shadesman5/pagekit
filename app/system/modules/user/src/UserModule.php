@@ -14,10 +14,7 @@ class UserModule extends Module
     protected ?App $app = null;
     protected array $perms = [];
 
-    /**
-     * {@inheritdoc}
-     */
-    public function main(App $app): void
+    public function main(App $app): mixed
     {
         $this->app = $app;
         $app->set('user', function ($app) {
@@ -28,6 +25,8 @@ class UserModule extends Module
 
             return $user;
         });
+
+        return null;
     }
 
     private function assertBooted(): void

@@ -13,10 +13,7 @@ class SiteModule extends Module
     protected ?App $app = null;
     protected ?array $types = null;
 
-    /**
-     * {@inheritdoc}
-     */
-    public function main(App $app): void
+    public function main(App $app): mixed
     {
         $this->app = $app;
 
@@ -42,6 +39,7 @@ class SiteModule extends Module
             return $menus;
         });
 
+        return null;
     }
 
     /**

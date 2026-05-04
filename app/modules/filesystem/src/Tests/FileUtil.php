@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Pagekit\Tests;
+namespace Pagekit\Filesystem\Tests;
+
+use Symfony\Component\Filesystem\Exception\IOException;
 
 trait FileUtil
 {

@@ -38,18 +38,12 @@ class TraceableEventDispatcher implements EventDispatcherInterface
         $this->wrappedListeners = [];
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function on($event, $listener, $priority = 0): void
+    public function on(string $event, callable $listener, int $priority = 0): void
     {
         $this->dispatcher->on($event, $listener, $priority);
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function off($event, $listener = null)
+    public function off(string $event, ?callable $listener = null): void
     {
         if (isset($this->wrappedListeners[$event])) {
             foreach ($this->wrappedListeners[$event] as $index => $wrappedListener) {
@@ -62,7 +56,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
             }
         }
 
-        return $this->dispatcher->off($event, $listener);
+        $this->dispatcher->off($event, $listener);
     }
 
     /**
@@ -138,26 +132,20 @@ class TraceableEventDispatcher implements EventDispatcherInterface
         return $e;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function hasListeners($event = null): bool
+    public function hasListeners(?string $event = null): bool
     {
         return $this->dispatcher->hasListeners($event);
     }
 
     /**
-     * {@inheritdoc}
+     * @return list<callable>|array<string, list<callable>>
      */
-    public function getListeners($event = null): array
+    public function getListeners(?string $event = null): array
     {
         return $this->dispatcher->getListeners($event);
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function getListenerPriority($event, $listener): ?int
+    public function getListenerPriority(string $event, callable $listener): ?int
     {
         return $this->dispatcher->getListenerPriority($event, $listener);
     }

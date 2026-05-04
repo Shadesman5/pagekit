@@ -12,15 +12,9 @@ class SessionCsrfProvider extends DefaultCsrfProvider
     /**
      * The session.
      */
-    protected \Symfony\Component\HttpFoundation\Session\Session $session;
+    protected SessionInterface $session;
 
-    /**
-     * Constructor.
-     *
-     * @param Session $session
-     * @param string  $name
-     */
-    public function __construct(SessionInterface $session, $name = '_csrf')
+    public function __construct(SessionInterface $session, string $name = '_csrf')
     {
         parent::__construct($name);
 

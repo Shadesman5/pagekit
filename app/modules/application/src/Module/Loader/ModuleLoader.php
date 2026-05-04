@@ -9,28 +9,19 @@ use Pagekit\Module\Module;
 
 class ModuleLoader implements LoaderInterface
 {
-    protected \Pagekit\Application $app;
-
-    /**
-     * Constructor.
-     *
-     * @param Application $app
-     */
-    public function __construct(Application $app)
+    public function __construct(protected Application $app)
     {
-        $this->app = $app;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function load($module)
+    public function load(mixed $module): mixed
     {
-        // Handle callable main (for modules with anonymous functions)
+        if (!is_array($module)) {
+            return $module;
+        }
+
         if (isset($module['main']) && is_callable($module['main']) && !is_string($module['main'])) {
             $moduleObj = new Module($module);
 
-            // Bind the callable to the module object so $this refers to the module
             $callable = $module['main']->bindTo($moduleObj, Module::class);
             $callable($this->app);
 
@@ -41,7 +32,6 @@ class ModuleLoader implements LoaderInterface
             return $moduleObj;
         }
 
-        // Handle class-based main
         $class = $module[is_string($module['main']) ? 'main' : 'class'];
 
         $module = new $class($module);

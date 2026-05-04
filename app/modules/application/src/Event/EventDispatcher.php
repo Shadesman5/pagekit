@@ -8,33 +8,27 @@ class EventDispatcher implements EventDispatcherInterface
 {
     protected string $event;
 
+    /** @var array<string, array<int, list<callable>>> */
     protected array $listeners = [];
 
+    /** @var array<string, list<callable>> */
     protected array $sorted = [];
 
     /**
-     * Constructor.
-     *
-     * @param string $event
+     * @param class-string<EventInterface> $event
      */
-    public function __construct($event = 'Pagekit\Event\Event')
+    public function __construct(string $event = Event::class)
     {
         $this->event = $event;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function on($event, $listener, $priority = 0): void
+    public function on(string $event, callable $listener, int $priority = 0): void
     {
         $this->listeners[$event][$priority][] = $listener;
         unset($this->sorted[$event]);
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function off($event, $listener = null): void
+    public function off(string $event, ?callable $listener = null): void
     {
         if (!isset($this->listeners[$event])) {
             return;
@@ -99,6 +93,8 @@ class EventDispatcher implements EventDispatcherInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<int|string, mixed> $arguments
      */
     public function trigger($event, array $arguments = []): EventInterface
     {
@@ -120,21 +116,18 @@ class EventDispatcher implements EventDispatcherInterface
         return $e;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function hasListeners($event = null): bool
+    public function hasListeners(?string $event = null): bool
     {
         return (bool) count($this->getListeners($event));
     }
 
     /**
-     * {@inheritdoc}
+     * @return list<callable>|array<string, list<callable>>
      */
-    public function getListeners($event = null): array
+    public function getListeners(?string $event = null): array
     {
         if ($event !== null) {
-            return isset($this->sorted[$event]) ? $this->sorted[$event] : $this->sortListeners($event);
+            return $this->sorted[$event] ?? $this->sortListeners($event);
         }
 
         foreach (array_keys($this->listeners) as $event) {
@@ -146,10 +139,7 @@ class EventDispatcher implements EventDispatcherInterface
         return array_filter($this->sorted);
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function getListenerPriority($event, $listener): ?int
+    public function getListenerPriority(string $event, callable $listener): ?int
     {
         if (!isset($this->listeners[$event])) {
             return null;
@@ -175,9 +165,9 @@ class EventDispatcher implements EventDispatcherInterface
     /**
      * Sorts all listeners of an event by their priority.
      *
-     * @param  string $event
+     * @return list<callable>
      */
-    protected function sortListeners($event): array
+    protected function sortListeners(string $event): array
     {
         $sorted = [];
 

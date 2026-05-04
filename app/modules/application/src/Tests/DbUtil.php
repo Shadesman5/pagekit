@@ -116,7 +116,7 @@ trait DbUtil
         return DriverManager::getConnection($tmpDbParams);
     }
 
-    public function getSharedConnection()
+    public function getSharedConnection(): Connection
     {
         static $connection;
         static $error;

@@ -18,10 +18,7 @@ class CacheModule extends Module
 {
     protected ?App $app = null;
 
-    /**
-     * {@inheritdoc}
-     */
-    public function main(App $app): void
+    public function main(App $app): mixed
     {
         $this->app = $app;
         foreach ($this->config['caches'] as $name => $config) {
@@ -42,6 +39,8 @@ class CacheModule extends Module
                 return $this->createCachePool($config);
             });
         }
+
+        return null;
     }
 
     /**

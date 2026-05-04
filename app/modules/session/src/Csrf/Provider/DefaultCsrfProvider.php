@@ -10,28 +10,17 @@ class DefaultCsrfProvider implements CsrfProviderInterface
 
     protected ?string $token = null;
 
-    /**
-     * Constructor.
-     *
-     * @param string $name
-     */
-    public function __construct($name = '_csrf')
+    public function __construct(string $name = '_csrf')
     {
         $this->name = $name;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function generate(): string
     {
         return sha1($this->getSessionId().$this->getSessionToken());
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function validate($token = null): bool
+    public function validate(?string $token = null): bool
     {
         if ($token === null) {
             $token = $this->token;
@@ -40,10 +29,7 @@ class DefaultCsrfProvider implements CsrfProviderInterface
         return $token === $this->generate();
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function setToken($token): void
+    public function setToken(?string $token): void
     {
         $this->token = $token;
     }

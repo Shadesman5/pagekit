@@ -100,7 +100,7 @@ class Auth
     /**
      * Attempts to authenticate the given user according to the passed credentials.
      *
-     * @param  array $credentials
+     * @param array<string, mixed> $credentials
      * @throws BadCredentialsException
      */
     public function authenticate(array $credentials): UserInterface

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Pagekit\Kernel\Event;
 
 use Pagekit\Event\EventSubscriberInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @author Fabien Potencier <fabien@symfony.com>
@@ -14,24 +16,15 @@ class ResponseListener implements EventSubscriberInterface
 {
     protected string $charset;
 
-    /**
-     * Constructor.
-     *
-     * @param string $charset
-     */
-    public function __construct($charset = 'UTF-8')
+    public function __construct(string $charset = 'UTF-8')
     {
         $this->charset = $charset;
     }
 
     /**
      * Filters the Response.
-     *
-     * @param $event
-     * @param $request
-     * @param $response
      */
-    public function onResponse($event, $request, $response): void
+    public function onResponse(KernelEvent $event, Request $request, Response $response): void
     {
         if (!$event->isMasterRequest()) {
             return;
@@ -44,6 +37,9 @@ class ResponseListener implements EventSubscriberInterface
         $response->prepare($request);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function subscribe(): array
     {
         return [

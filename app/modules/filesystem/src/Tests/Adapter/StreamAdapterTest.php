@@ -7,7 +7,7 @@ namespace Pagekit\Filesystem\Tests\Adapter;
 use Pagekit\Filesystem\Adapter\StreamAdapter;
 use Pagekit\Filesystem\Filesystem;
 use Pagekit\Filesystem\StreamWrapper;
-use Pagekit\Tests\FileUtil;
+use Pagekit\Filesystem\Tests\FileUtil;
 use PHPUnit\Framework\TestCase;
 
 class StreamAdapterTest extends TestCase

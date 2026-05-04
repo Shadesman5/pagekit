@@ -10,16 +10,17 @@ use Psr\Container\ContainerInterface;
 
 class Container implements ContainerInterface
 {
+    /** @var array<string, mixed> */
     protected array $values = [];
 
+    /** @var array<string, mixed> */
     protected array $raw = [];
 
+    /** @var array<string, true> */
     protected array $factories = [];
 
     /**
-     * Constructor.
-     *
-     * @param array $values
+     * @param array<string, mixed> $values
      */
     public function __construct(array $values = [])
     {
@@ -80,22 +81,21 @@ class Container implements ContainerInterface
     /**
      * Gets a parameter/service without resolving.
      *
-     * @param  string $name
-     * @return mixed
-     *
      * @throws \InvalidArgumentException
      */
-    public function raw($name)
+    public function raw(string $name): mixed
     {
         if (!array_key_exists($name, $this->values)) {
             throw new \InvalidArgumentException(sprintf('"%s" is not defined.', $name));
         }
 
-        return isset($this->raw[$name]) ? $this->raw[$name] : $this->values[$name];
+        return $this->raw[$name] ?? $this->values[$name];
     }
 
     /**
      * Returns all defined names.
+     *
+     * @return list<string>
      */
     public function keys(): array
     {

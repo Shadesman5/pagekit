@@ -11,9 +11,9 @@ use Symfony\Component\ErrorHandler\Exception\FlattenException;
 class ExceptionHandler extends DebugExceptionHandler
 {
     /**
-     * {@inheritdoc}
+     * @param \Throwable|FlattenException $exception
      */
-    public function sendPhpResponse($exception): void
+    public function sendPhpResponse(\Throwable|FlattenException $exception): void
     {
         if ($exception instanceof HttpException) {
             $exception = FlattenException::create($exception, $exception->getCode());
@@ -23,9 +23,9 @@ class ExceptionHandler extends DebugExceptionHandler
     }
 
     /**
-     * {@inheritdoc}
+     * @param \Throwable|FlattenException $exception
      */
-    public function createResponse($exception)
+    public function createResponse(\Throwable|FlattenException $exception): \Symfony\Component\HttpFoundation\Response
     {
         if ($exception instanceof HttpException) {
             $exception = FlattenException::create($exception, $exception->getCode());

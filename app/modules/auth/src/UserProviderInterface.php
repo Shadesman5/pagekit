@@ -23,15 +23,14 @@ interface UserProviderInterface
     /**
      * Retrieves a user by the given credentials.
      *
-     * @param  array $credentials
+     * @param array<string, mixed> $credentials
      */
     public function findByCredentials(array $credentials): ?UserInterface;
 
     /**
      * Validates a user against the given credentials.
      *
-     * @param  UserInterface $user
-     * @param  array         $credentials
+     * @param array<string, mixed> $credentials
      */
     public function validateCredentials(UserInterface $user, array $credentials): bool;
 }

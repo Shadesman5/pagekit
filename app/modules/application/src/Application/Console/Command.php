@@ -44,6 +44,8 @@ class Command extends BaseCommand
 
     /**
      * The Pagekit config.
+     *
+     * @var array<string, mixed>|null
      */
     protected ?array $config = null;
 
@@ -69,7 +71,7 @@ class Command extends BaseCommand
     /**
      * Set the Pagekit config.
      *
-     * @param array $config
+     * @param array<string, mixed> $config
      */
     public function setConfig(array $config): void
     {
@@ -88,12 +90,11 @@ class Command extends BaseCommand
     /**
      * Get the value of a command argument.
      *
-     * @param  string $key
-     * @return string|array
+     * @return string|array<string, mixed>|null
      */
-    public function argument($key = null)
+    public function argument(?string $key = null): string|array|null
     {
-        if (is_null($key)) {
+        if ($key === null) {
             return $this->input->getArguments();
         }
 
@@ -103,25 +104,18 @@ class Command extends BaseCommand
     /**
      * Get the value of a command option.
      *
-     * @param  string $key
-     * @return string|array
+     * @return string|array<string, mixed>|bool|null
      */
-    public function option($key = null)
+    public function option(?string $key = null): string|array|bool|null
     {
-        if (is_null($key)) {
+        if ($key === null) {
             return $this->input->getOptions();
         }
 
         return $this->input->getOption($key);
     }
 
-    /**
-     * Confirm a question with the user.
-     *
-     * @param  string $question
-     * @param  bool $default
-     */
-    public function confirm($question, $default = true): bool
+    public function confirm(string $question, bool $default = true): bool
     {
         $helper = $this->getHelperSet()->get('question');
         $question = new ConfirmationQuestion("<question>$question</question>", $default);
@@ -129,13 +123,7 @@ class Command extends BaseCommand
         return $helper->ask($this->input, $this->output, $question);
     }
 
-    /**
-     * Prompt the user for input.
-     *
-     * @param  string $question
-     * @param  string $default
-     */
-    public function ask($question, $default = null): string
+    public function ask(string $question, ?string $default = null): string
     {
         $helper = $this->getHelperSet()->get('question');
         $question = new Question("<question>$question</question>", $default);
@@ -143,13 +131,7 @@ class Command extends BaseCommand
         return $helper->ask($this->input, $this->output, $question);
     }
 
-    /**
-     * Prompt the user for input but hide the answer from the console.
-     *
-     * @param  string $question
-     * @param  bool $fallback
-     */
-    public function secret($question, $fallback = true): string
+    public function secret(string $question, bool $fallback = true): string
     {
         $helper = $this->getHelperSet()->get('question');
         $question = new Question("<question>$question</question>");
@@ -159,62 +141,32 @@ class Command extends BaseCommand
         return $helper->ask($this->input, $this->output, $question);
     }
 
-    /**
-     * Write a string as standard output.
-     *
-     * @param string $string
-     */
-    public function line($string): void
+    public function line(string $string): void
     {
         $this->output->writeln($string);
     }
 
-    /**
-     * Write a string as information output.
-     *
-     * @param string $string
-     */
-    public function info($string): void
+    public function info(string $string): void
     {
         $this->output->writeln("<info>$string</info>");
     }
 
-    /**
-     * Write a string as comment output.
-     *
-     * @param string $string
-     */
-    public function comment($string): void
+    public function comment(string $string): void
     {
         $this->output->writeln("<comment>$string</comment>");
     }
 
-    /**
-     * Write a string as question output.
-     *
-     * @param string $string
-     */
-    public function question($string): void
+    public function question(string $string): void
     {
         $this->output->writeln("<question>$string</question>");
     }
 
-    /**
-     * Write a string as error output.
-     *
-     * @param string $string
-     */
-    public function error($string): void
+    public function error(string $string): void
     {
         $this->output->writeln("<error>$string</error>");
     }
 
-    /**
-     * Aborts command execution.
-     *
-     * @param string $string
-     */
-    public function abort($string): void
+    public function abort(string $string): void
     {
         $this->error($string);
         exit;

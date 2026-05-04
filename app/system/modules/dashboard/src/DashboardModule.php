@@ -11,13 +11,12 @@ class DashboardModule extends Module
 {
     protected ?App $app = null;
 
-    /**
-     * {@inheritdoc}
-     */
-    public function main(App $app): void
+    public function main(App $app): mixed
     {
         $this->app = $app;
         $app->set('systemApi', fn ($app) => $app->has('system.api') ? $app->get('system.api') : 'https://pagekit.com');
+
+        return null;
     }
 
     /**
