@@ -39,7 +39,7 @@ class MoFileLoader extends ArrayLoader
     /**
      * {@inheritdoc}
      */
-    public function load($resource, $locale, $domain = 'messages'): MessageCatalogue
+    public function load(mixed $resource, string $locale, string $domain = 'messages'): MessageCatalogue
     {
         if (!stream_is_local($resource)) {
             throw new InvalidResourceException(sprintf('This is not a local file "%s".', $resource));
@@ -51,16 +51,6 @@ class MoFileLoader extends ArrayLoader
 
         $messages = $this->parse($resource);
 
-        // empty file
-        if (null === $messages) {
-            $messages = [];
-        }
-
-        // not an array
-        if (!is_array($messages)) {
-            throw new InvalidResourceException(sprintf('The file "%s" must contain a valid mo file.', $resource));
-        }
-
         return parent::load($messages, $locale, $domain);
     }
 
@@ -69,6 +59,8 @@ class MoFileLoader extends ArrayLoader
      * was created on. Both 32bit and 64bit systems are supported.
      *
      * @param resource $resource
+     *
+     * @return array<string, string>
      *
      * @throws InvalidResourceException If stream content has an invalid format.
      */

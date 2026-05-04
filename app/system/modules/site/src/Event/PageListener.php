@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace Pagekit\Site\Event;
 
+use Pagekit\Event\EventInterface;
 use Pagekit\Event\EventSubscriberInterface;
+use Pagekit\Routing\Route;
+use Pagekit\Site\Model\Node;
 use Pagekit\Site\Model\Page;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\RouteCollection;
 
 class PageListener implements EventSubscriberInterface
 {
-    public function onNodeSave($event, $request): void
+    public function onNodeSave(EventInterface $event, Request $request): void
     {
         if (null === $node = $request->get('node')
             or null === $data = $request->get('page')
@@ -27,7 +32,7 @@ class PageListener implements EventSubscriberInterface
         $request->request->set('node', $node);
     }
 
-    public function onNodeDeleted($event, $node): void
+    public function onNodeDeleted(EventInterface $event, Node $node): void
     {
         if ('page' !== $node->type) {
             return;
@@ -40,7 +45,7 @@ class PageListener implements EventSubscriberInterface
         }
     }
 
-    public function onRouteConfigure($event, $route, $routes): void
+    public function onRouteConfigure(EventInterface $event, Route $route, RouteCollection $routes): void
     {
         if ($route->getName() === '@page') {
             $routes->remove('@page');
@@ -53,6 +58,8 @@ class PageListener implements EventSubscriberInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, string>
      */
     public function subscribe(): array
     {

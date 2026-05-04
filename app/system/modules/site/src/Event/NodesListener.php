@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace Pagekit\Site\Event;
 
+use Pagekit\Event\EventInterface;
 use Pagekit\Event\EventSubscriberInterface;
 use Pagekit\Module\Module;
+use Pagekit\Routing\Routes;
 use Pagekit\Site\Model\Node;
+use Pagekit\User\Model\Role;
 
 class NodesListener implements EventSubscriberInterface
 {
     public function __construct(
         private readonly Module $site,
-        private readonly mixed $routes,
+        private readonly Routes $routes,
     ) {
     }
 
@@ -59,20 +62,22 @@ class NodesListener implements EventSubscriberInterface
         }
     }
 
-    public function onNodeInit($event, $node): void
+    public function onNodeInit(EventInterface $event, Node $node): void
     {
         if ('link' === $node->type && $node->get('redirect')) {
             $node->link = $node->path;
         }
     }
 
-    public function onRoleDelete($event, $role): void
+    public function onRoleDelete(EventInterface $event, Role $role): void
     {
         Node::removeRole($role);
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, array{string, int}|string>
      */
     public function subscribe(): array
     {

@@ -1201,12 +1201,6 @@ parameters:
 			path: app/system/modules/intl/src/IntlModule.php
 
 		-
-			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: app/system/modules/intl/src/Loader/MoFileLoader.php
-
-		-
 			message: '#^PHPDoc tag @var for constant Pagekit\\Intl\\Loader\\MoFileLoader\:\:MO_BIG_ENDIAN_MAGIC with type float is incompatible with value 3725722773\.$#'
 			identifier: classConstant.phpDocType
 			count: 1
@@ -1223,18 +1217,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/system/modules/intl/src/Loader/MoFileLoader.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between null and array will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/system/modules/intl/src/Loader/MoFileLoader.php
-
-		-
-			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: app/system/modules/intl/src/Loader/PoFileLoader.php
 
 		-
 			message: '#^Parameter \#1 \$filename of function fopen expects string, resource given\.$#'

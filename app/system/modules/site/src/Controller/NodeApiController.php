@@ -6,12 +6,17 @@ namespace Pagekit\Site\Controller;
 
 use function Pagekit\__;
 
+use Pagekit\Config\ConfigManager;
+use Pagekit\Filter\FilterManager;
+use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\Site\Model\Node;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * API Controller for Node management.
@@ -22,14 +27,17 @@ class NodeApiController
     use ValidatesRequestTrait;
 
     public function __construct(
-        private readonly mixed $request,
-        private readonly mixed $filter,
-        private readonly mixed $module,
-        private readonly mixed $config,
-        private readonly mixed $validator,
+        private readonly Request $request,
+        private readonly FilterManager $filter,
+        private readonly ModuleManager $module,
+        private readonly ConfigManager $config,
+        private readonly ValidatorInterface $validator,
     ) {
     }
 
+    /**
+     * @return array<int, Node>
+     */
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
@@ -56,6 +64,9 @@ class NodeApiController
 
     /**
      * Save a node (create or update).
+     *
+     * @param  array<string, mixed>|null $data
+     * @return array{message: string, node: Node}
      */
     #[Route('/', methods: ['POST'])]
     #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
@@ -104,6 +115,9 @@ class NodeApiController
         return ['message' => 'success', 'node' => $node];
     }
 
+    /**
+     * @return array<string, string>
+     */
     #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\d+'])]
     public function deleteAction(int $id = 0): array
     {
@@ -125,6 +139,9 @@ class NodeApiController
         return ['message' => 'success'];
     }
 
+    /**
+     * @return array<string, string>
+     */
     #[Route('/bulk', methods: ['POST'])]
     public function bulkSaveAction(): array
     {
@@ -145,6 +162,9 @@ class NodeApiController
         return ['message' => 'success'];
     }
 
+    /**
+     * @return array<string, string>
+     */
     #[Route('/bulk', methods: ['DELETE'])]
     public function bulkDeleteAction(): array
     {
@@ -163,6 +183,9 @@ class NodeApiController
         return ['message' => 'success'];
     }
 
+    /**
+     * @return array<string, string>
+     */
     #[Route('/updateOrder', methods: ['POST'])]
     public function updateOrderAction(): array
     {
@@ -194,6 +217,9 @@ class NodeApiController
         return ['message' => 'success'];
     }
 
+    /**
+     * @return array<string, string>
+     */
     #[Route('/frontpage', methods: ['POST'])]
     public function frontpageAction(): array
     {

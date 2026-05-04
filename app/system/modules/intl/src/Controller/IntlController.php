@@ -4,22 +4,27 @@ declare(strict_types=1);
 
 namespace Pagekit\Intl\Controller;
 
-use Pagekit\Routing\Attribute\Request;
+use Pagekit\Application\Response as PagekitResponse;
+use Pagekit\Module\ModuleManager;
+use Pagekit\Routing\Attribute\Request as RequestAttr;
 use Pagekit\Routing\Attribute\Route;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Translation\Translator;
 
 class IntlController
 {
     public function __construct(
-        private readonly mixed $module,
-        private readonly mixed $translator,
-        private readonly mixed $request,
-        private readonly mixed $response,
+        private readonly ModuleManager $module,
+        private readonly Translator $translator,
+        private readonly Request $request,
+        private readonly PagekitResponse $response,
     ) {
     }
 
     #[Route('/{locale}', requirements: ['locale' => '[a-zA-Z0-9_-]+'], defaults: ['_maintenance' => true])]
-    #[Request(['locale' => 'string'])]
-    public function indexAction($locale = null)
+    #[RequestAttr(['locale' => 'string'])]
+    public function indexAction(?string $locale = null): Response
     {
         $intl = $this->module->get('system/intl');
         $intl->loadLocale($locale);

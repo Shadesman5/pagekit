@@ -6,6 +6,7 @@ namespace Pagekit\Site\Model;
 
 use Pagekit\Database\ORM\Attribute as ORM;
 use Pagekit\Database\ORM\ModelTrait;
+use Pagekit\Event\EventInterface;
 
 trait NodeModelTrait
 {
@@ -13,14 +14,11 @@ trait NodeModelTrait
         find as modelFind;
     }
 
+    /** @var array<int, Node>|null */
     protected static ?array $nodes = null;
 
     /**
      * Retrieves an entity by its identifier.
-     *
-     * @param  mixed $id
-     * @param  bool  $cached
-     * @return static|null
      */
     public static function find(mixed $id, bool $cached = false): ?Node
     {
@@ -34,8 +32,7 @@ trait NodeModelTrait
     /**
      * Retrieves all entities.
      *
-     * @param  bool $cached
-     * @return static[]
+     * @return array<int, Node>
      */
     public static function findAll(bool $cached = false): array
     {
@@ -49,7 +46,7 @@ trait NodeModelTrait
     /**
      * Retrieves all nodes by menu.
      *
-     * @return static[]
+     * @return array<int, Node>
      */
     public static function findByMenu(string $menu, bool $cached = false): array
     {
@@ -79,7 +76,7 @@ trait NodeModelTrait
     }
 
     #[ORM\Saving]
-    public static function saving($event, Node $node): void
+    public static function saving(EventInterface $event, Node $node): void
     {
         $db = self::getConnection();
 
@@ -149,7 +146,7 @@ trait NodeModelTrait
     }
 
     #[ORM\Deleting]
-    public static function deleting($event, Node $node): void
+    public static function deleting(EventInterface $event, Node $node): void
     {
         // Update children's parents
         foreach (self::where('parent_id = ?', [$node->id])->get() as $child) {

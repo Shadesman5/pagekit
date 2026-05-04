@@ -8,10 +8,15 @@ use Pagekit\Config\Config;
 
 class MenuManager implements \JsonSerializable
 {
+    /** @var array<string, array{name: string, label: string}> */
     protected ?array $positions = [];
+    /** @var array<string, array<string, mixed>> */
     protected array $menus;
     protected Config $config;
 
+    /**
+     * @param array<string, array<string, mixed>> $menus
+     */
     public function __construct(Config $config, array $menus = [])
     {
         $this->config = $config;
@@ -22,8 +27,10 @@ class MenuManager implements \JsonSerializable
      * Get shortcut.
      *
      * @see get()
+     *
+     * @return array<string, mixed>|null
      */
-    public function __invoke($id)
+    public function __invoke(string $id): ?array
     {
         return $this->get($id);
     }
@@ -32,6 +39,7 @@ class MenuManager implements \JsonSerializable
      * Gets menu by id.
      *
      * @param  string $id
+     * @return array<string, mixed>|null
      */
     public function get($id): ?array
     {
@@ -42,6 +50,8 @@ class MenuManager implements \JsonSerializable
 
     /**
      * Gets menus.
+     *
+     * @return array<string, array<string, mixed>>
      */
     public function all(): array
     {
@@ -69,6 +79,8 @@ class MenuManager implements \JsonSerializable
 
     /**
      * Gets the menu positions.
+     *
+     * @return array<string, array{name: string, label: string}>|null
      */
     public function getPositions(): ?array
     {
@@ -88,8 +100,8 @@ class MenuManager implements \JsonSerializable
     /**
      * Assigns a menu to menu positions.
      *
-     * @param string $id
-     * @param array  $positions
+     * @param string             $id
+     * @param array<int, string> $positions
      */
     public function assign($id, array $positions): void
     {
@@ -105,6 +117,8 @@ class MenuManager implements \JsonSerializable
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, array<string, mixed>>
      */
     public function jsonSerialize(): array
     {

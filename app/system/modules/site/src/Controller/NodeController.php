@@ -6,11 +6,16 @@ namespace Pagekit\Site\Controller;
 
 use function Pagekit\__;
 
+use Pagekit\Application\UrlProvider;
+use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
+use Pagekit\Routing\Router;
+use Pagekit\Site\MenuManager;
 use Pagekit\Site\Model\Node;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class NodeController
@@ -18,17 +23,20 @@ class NodeController
     protected mixed $site;
 
     public function __construct(
-        private readonly mixed $module,
-        private readonly mixed $menu,
-        private readonly mixed $url,
-        private readonly mixed $router,
+        private readonly ModuleManager $module,
+        private readonly MenuManager $menu,
+        private readonly UrlProvider $url,
+        private readonly Router $router,
     ) {
         $this->site = $this->module->get('system/site');
     }
 
+    /**
+     * @return array<string, mixed>|RedirectResponse
+     */
     #[Route('site/page', name: 'page')]
     #[Access('site: manage site', admin: true)]
-    public function indexAction()
+    public function indexAction(): array|RedirectResponse
     {
         if ($test = Node::fixOrphanedNodes()) {
             return $this->router->redirect('@site/page');
@@ -48,10 +56,13 @@ class NodeController
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Route('site/page/edit', name: 'page/edit')]
     #[Access('site: manage site', admin: true)]
     #[Request(['id' => 'string', 'menu' => 'string'])]
-    public function editAction($id = '', $menu = ''): array
+    public function editAction(string $id = '', string $menu = ''): array
     {
         if (is_numeric($id)) {
 
@@ -86,6 +97,9 @@ class NodeController
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Route('site/settings')]
     #[Access('system: access settings', admin: true)]
     public function settingsAction(): array
@@ -101,10 +115,13 @@ class NodeController
         ];
     }
 
+    /**
+     * @return array{message: string, url: string}
+     */
     #[Route('api/site/link', name: 'api/link')]
     #[Request(['link' => 'string'])]
     #[Access('site: manage site')]
-    public function linkAction($link): array
+    public function linkAction(string $link): array
     {
         return ['message' => 'success', 'url' => ($this->url)($link, [], 'base') ?: $link];
     }

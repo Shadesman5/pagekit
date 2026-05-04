@@ -6,7 +6,9 @@ namespace Pagekit\Site\Event;
 
 use Pagekit\Application as App;
 use Pagekit\Event\EventSubscriberInterface;
+use Pagekit\Kernel\Event\RequestEvent;
 use Pagekit\Module\Module;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class MaintenanceListener implements EventSubscriberInterface
@@ -20,7 +22,7 @@ class MaintenanceListener implements EventSubscriberInterface
     /**
      * Puts the page in maintenance mode.
      */
-    public function onRequest($event, $request): void
+    public function onRequest(RequestEvent $event, Request $request): void
     {
         if (!$event->isMasterRequest()) {
             return;
@@ -54,6 +56,8 @@ class MaintenanceListener implements EventSubscriberInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, array{string, int}>
      */
     public function subscribe(): array
     {

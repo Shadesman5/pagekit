@@ -9,8 +9,10 @@ use Symfony\Component\Translation\Formatter\IntlFormatter;
 if (!function_exists('__')) {
     /**
      * Translates the given message, alias for method trans()
+     *
+     * @param array<string, mixed> $parameters
      */
-    function __($id, array $parameters = [], $domain = 'messages', $locale = null)
+    function __(string $id, array $parameters = [], ?string $domain = 'messages', ?string $locale = null): string
     {
         return IntlServiceLocator::getTranslator()->trans($id, $parameters, $domain, $locale);
     }
@@ -24,8 +26,10 @@ if (!function_exists('_c')) {
      * TODO: Must be refactored in Step 3.4.6 (Translation System Modernization) —
      * Remove _c() and all call sites (~28 files), migrate to __() with ICU MessageFormat.
      * Also remove transChoice() from Vue plugin (trans.js).
+     *
+     * @param array<string, mixed> $parameters
      */
-    function _c($id, $number, array $parameters = [], $domain = null, $locale = null)
+    function _c(string $id, int|float $number, array $parameters = [], ?string $domain = null, ?string $locale = null): string
     {
 
         $id = preg_replace('/(%)(.*?)(%)/', '%count%', $id);
@@ -46,8 +50,10 @@ if (!function_exists('_i')) {
      *
      * TODO: Must be refactored in Step 3.4.6 (Translation System Modernization) —
      * PHP-side (_i) is done. Add Vue equivalent $transICU() to trans.js.
+     *
+     * @param array<string, mixed> $parameters
      */
-    function _i($id, array $parameters = [], $domain = null, $locale = null)
+    function _i(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
     {
 
         if (null === $domain) {

@@ -17,7 +17,7 @@ class PoFileLoader extends ArrayLoader
     /**
      * {@inheritdoc}
      */
-    public function load($resource, $locale, $domain = 'messages'): MessageCatalogue
+    public function load(mixed $resource, string $locale, string $domain = 'messages'): MessageCatalogue
     {
         if (!stream_is_local($resource)) {
             throw new InvalidResourceException(sprintf('This is not a local file "%s".', $resource));
@@ -27,17 +27,7 @@ class PoFileLoader extends ArrayLoader
             throw new NotFoundResourceException(sprintf('File "%s" not found.', $resource));
         }
 
-        $messages = $this->parse($resource);
-
-        // empty file
-        if (null === $messages) {
-            $messages = [];
-        }
-
-        // not an array
-        if (!is_array($messages)) {
-            throw new InvalidResourceException(sprintf('The file "%s" must contain a valid po file.', $resource));
-        }
+        $messages = $this->parse($resource) ?? [];
 
         return parent::load($messages, $locale, $domain);
     }
@@ -84,6 +74,8 @@ class PoFileLoader extends ArrayLoader
      * Items with an empty id are ignored.
      *
      * @param resource $resource
+     *
+     * @return array<string, string>|null
      */
     protected function parse($resource): ?array
     {
@@ -143,8 +135,8 @@ class PoFileLoader extends ArrayLoader
      * A .po file could contain by error missing plural indexes. We need to
      * fix these before saving them.
      *
-     * @param array $messages
-     * @param array $item
+     * @param array<string, string>                                 $messages
+     * @param array{ids: array<string, string>, translated: mixed}  $item
      */
     protected function addMessage(array &$messages, array $item): void
     {
