@@ -9,6 +9,13 @@ use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
+/**
+ * Properties below are intentionally typed `mixed` to verify the ControllerResolver resolves
+ * constructor parameters by NAME (matching container service IDs), not by TYPE. See Step 2.1.4
+ * §5.1 of the modernization roadmap.
+ *
+ * @phpstan-type ResolverTestService mixed
+ */
 class ControllerResolverTest extends TestCase
 {
     public function testControllerWithNoConstructor(): void
