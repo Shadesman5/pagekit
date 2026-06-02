@@ -12,10 +12,9 @@ class Arr
     /**
      * Checks if the given key exists.
      *
-     * @param  array  $array
-     * @param  string $key
+     * @param array<int|string, mixed> $array
      */
-    public static function has(array $array, $key): bool
+    public static function has(array $array, ?string $key): bool
     {
         if (!$array || $key === null) {
             return false;
@@ -42,12 +41,9 @@ class Arr
     /**
      * Gets a value by key.
      *
-     * @param  array  $array
-     * @param  string $key
-     * @param  mixed  $default
-     * @return mixed
+     * @param array<int|string, mixed> $array
      */
-    public static function get(array $array, $key, $default = null)
+    public static function get(array $array, ?string $key, mixed $default = null): mixed
     {
         if ($key === null) {
             return $array;
@@ -74,12 +70,10 @@ class Arr
     /**
      * Sets a value.
      *
-     * @param  array  $array
-     * @param  string $key
-     * @param  mixed  $value
-     * @return array
+     * @param array<int|string, mixed> $array
+     * @return array<int|string, mixed>|mixed
      */
-    public static function set(array &$array, $key, $value)
+    public static function set(array &$array, ?string $key, mixed $value): mixed
     {
         if ($key === null) {
             return $array = $value;
@@ -106,10 +100,10 @@ class Arr
     /**
      * Removes a value from array by key.
      *
-     * @param array        $array
-     * @param array|string $keys
+     * @param array<int|string, mixed> $array
+     * @param array<int, string>|string $keys
      */
-    public static function remove(array &$array, $keys): void
+    public static function remove(array &$array, array|string $keys): void
     {
         $original = &$array;
 
@@ -135,11 +129,10 @@ class Arr
     /**
      * Removes a value from array.
      *
-     * @param  array $array
-     * @param  mixed $value
-     * @param  bool  $strict
+     * @param array<int|string, mixed> $array
+     * @return array<int|string, mixed>
      */
-    public static function pull(array &$array, $value, $strict = false): array
+    public static function pull(array &$array, mixed $value, bool $strict = false): array
     {
         if ($keys = array_keys($array, $value, $strict)) {
 
@@ -157,11 +150,11 @@ class Arr
     /**
      * Recursively merges two arrays.
      *
-     * @param  array $array1
-     * @param  array $array2
-     * @param  bool  $replace
+     * @param array<int|string, mixed> $array1
+     * @param array<int|string, mixed> $array2
+     * @return array<int|string, mixed>
      */
-    public static function merge(array $array1, array $array2, $replace = false): array
+    public static function merge(array $array1, array $array2, bool $replace = false): array
     {
         if ($replace) {
             return array_replace_recursive($array1, $array2);
@@ -189,11 +182,10 @@ class Arr
     /**
      * Filters an array using a callback function.
      *
-     * @param  array    $array
-     * @param  callable $callback
-     * @param  int      $flag
+     * @param array<int|string, mixed> $array
+     * @return array<int|string, mixed>
      */
-    public static function filter(array $array, callable $callback, $flag = 1): array
+    public static function filter(array $array, callable $callback, int $flag = 1): array
     {
         if (version_compare(PHP_VERSION, '5.6.0') >= 0) {
             return array_filter($array, $callback, $flag);
@@ -224,11 +216,11 @@ class Arr
     /**
      * Extracts values by keys.
      *
-     * @param  array $data
-     * @param  array $keys
-     * @param  bool  $include
+     * @param array<int|string, mixed> $data
+     * @param array<int, string>|null  $keys
+     * @return array<int|string, mixed>
      */
-    public static function extract(array $data, ?array $keys = null, $include = true): array
+    public static function extract(array $data, ?array $keys = null, bool $include = true): array
     {
         if (!$keys) {
             return $data;
@@ -258,10 +250,10 @@ class Arr
     /**
      * Flattens an array.
      *
-     * @param  array $array
-     * @param  string $path
+     * @param array<int|string, mixed> $array
+     * @return array<string, mixed>
      */
-    public static function flatten(array $array, $path = ''): array
+    public static function flatten(array $array, string $path = ''): array
     {
         $results = [];
 
@@ -279,7 +271,8 @@ class Arr
     /**
      * Expands an array.
      *
-     * @param  array $array
+     * @param array<int|string, mixed> $array
+     * @return array<int|string, mixed>
      */
     public static function expand(array $array): array
     {

@@ -36,8 +36,10 @@ class Router implements RouterInterface, UrlGeneratorInterface
 
     protected ?RouteCollection $routes = null;
 
+    /** @var array<string, mixed> */
     protected array $options;
 
+    /** @var array<string, mixed>|null */
     protected ?array $cache = null;
 
     /**
@@ -48,10 +50,10 @@ class Router implements RouterInterface, UrlGeneratorInterface
     /**
      * Constructor.
      *
-     * @param ResourceInterface $resource
-     * @param LoaderInterface   $loader
-     * @param RequestStack      $stack
-     * @param array             $options
+     * @param ResourceInterface    $resource
+     * @param LoaderInterface      $loader
+     * @param RequestStack         $stack
+     * @param array<string, mixed> $options
      */
     public function __construct(ResourceInterface $resource, LoaderInterface $loader, RequestStack $stack, array $options = [])
     {
@@ -92,6 +94,8 @@ class Router implements RouterInterface, UrlGeneratorInterface
 
     /**
      * Gets the router's options.
+     *
+     * @return array<string, mixed>
      */
     public function getOptions(): array
     {
@@ -101,7 +105,7 @@ class Router implements RouterInterface, UrlGeneratorInterface
     /**
      * Sets router's the options.
      *
-     * @param array $options
+     * @param array<string, mixed> $options
      */
     public function setOptions($options): void
     {
@@ -234,10 +238,10 @@ class Router implements RouterInterface, UrlGeneratorInterface
     /**
      * Returns a redirect response.
      *
-     * @param  string  $url
-     * @param  array   $parameters
-     * @param  int     $status
-     * @param  array   $headers
+     * @param string                $url
+     * @param array<string, mixed>  $parameters
+     * @param int                   $status
+     * @param array<string, string> $headers
      */
     public function redirect($url = '', $parameters = [], $status = 302, $headers = []): RedirectResponse
     {
@@ -257,6 +261,8 @@ class Router implements RouterInterface, UrlGeneratorInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, mixed>
      */
     public function match(string $pathinfo): array
     {
@@ -277,6 +283,8 @@ class Router implements RouterInterface, UrlGeneratorInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<string, mixed> $parameters
      */
     public function generate(string $name, array $parameters = [], int $referenceType = self::ABSOLUTE_PATH): string
     {
@@ -314,7 +322,7 @@ class Router implements RouterInterface, UrlGeneratorInterface
      * Gets cache info.
      *
      * @param  string $file
-     * @return array|null
+     * @return array<string, mixed>|null
      */
     protected function getCache(string $file): ?array
     {
@@ -366,7 +374,7 @@ class Router implements RouterInterface, UrlGeneratorInterface
     /**
      * Gets resolver instance from parameters.
      *
-     * @param  array $parameters
+     * @param array<string, mixed> $parameters
      */
     protected function getResolver(array $parameters = []): ?ParamsResolverInterface
     {

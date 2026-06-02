@@ -4,32 +4,39 @@ declare(strict_types=1);
 
 namespace Pagekit\System\Controller;
 
+use Pagekit\Application\UrlProvider;
 use Pagekit\Auth\Auth;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
+use Pagekit\Routing\Router;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\User;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 class AdminController
 {
     public function __construct(
-        private readonly mixed $user,
-        private readonly mixed $session,
-        private readonly mixed $url,
-        private readonly mixed $router,
+        private readonly User $user,
+        private readonly SessionInterface $session,
+        private readonly UrlProvider $url,
+        private readonly Router $router,
     ) {
     }
 
     #[Access(admin: true)]
-    public function indexAction()
+    public function indexAction(): RedirectResponse
     {
         return $this->router->redirect('@dashboard');
     }
 
+    /**
+     * @return array<string, mixed>|RedirectResponse
+     */
     #[Route('/admin/login', defaults: ['_maintenance' => true])]
     #[Request(['redirect' => 'string', 'message' => 'string'])]
-    public function loginAction($redirect = '', $message = '')
+    public function loginAction(string $redirect = '', string $message = ''): array|RedirectResponse
     {
         if ($this->user->isAuthenticated()) {
             return $this->router->redirect('@system');
@@ -47,9 +54,13 @@ class AdminController
         ];
     }
 
+    /**
+     * @param  array<string, mixed> $order
+     * @return array<string, string>
+     */
     #[Access(admin: true)]
     #[Request(['order' => 'array'])]
-    public function adminMenuAction($order): array
+    public function adminMenuAction(array $order): array
     {
         if (!$order) {
             throw new BadRequestHttpException(__('Missing order data.'));

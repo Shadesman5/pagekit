@@ -5,14 +5,15 @@ declare(strict_types=1);
 namespace Pagekit\Site;
 
 use Pagekit\Site\Model\Node;
+use Pagekit\User\Model\User;
 use Pagekit\View\Helper\Helper;
 
 class MenuHelper extends Helper
 {
     public function __construct(
         private readonly MenuManager $menus,
-        private readonly mixed $user,
-        private readonly mixed $node,
+        private readonly User $user,
+        private readonly Node $node,
     ) {
     }
 
@@ -20,8 +21,11 @@ class MenuHelper extends Helper
      * Set shortcut.
      *
      * @see render()
+     *
+     * @param array<string, mixed>|string|null $view
+     * @param array<string, mixed>             $parameters
      */
-    public function __invoke($name, $view = null, array $parameters = [])
+    public function __invoke(string $name, array|string|null $view = null, array $parameters = []): ?string
     {
         if (!$name = $this->menus->find($name)) {
             return '';
@@ -43,9 +47,9 @@ class MenuHelper extends Helper
     /**
      * Renders a menu.
      *
-     * @param  string       $name
-     * @param  array|string $view
-     * @param  array        $parameters
+     * @param  string                            $name
+     * @param  array<string, mixed>|string|null  $view
+     * @param  array<string, mixed>              $parameters
      */
     public function render($name, $view = null, array $parameters = []): ?string
     {
@@ -70,8 +74,8 @@ class MenuHelper extends Helper
     }
 
     /**
-     * @param  string $menu
-     * @param  array  $parameters
+     * @param  string                $menu
+     * @param  array<string, mixed>  $parameters
      * @return Node|null
      */
     public function getRoot($menu, $parameters = []): ?Node

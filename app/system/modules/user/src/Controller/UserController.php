@@ -6,7 +6,8 @@ namespace Pagekit\User\Controller;
 
 use function Pagekit\__;
 
-use Pagekit\Routing\Attribute\Request;
+use Pagekit\Module\ModuleManager;
+use Pagekit\Routing\Attribute\Request as RequestAttr;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use Pagekit\User\Model\User;
@@ -16,14 +17,18 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 class UserController
 {
     public function __construct(
-        private readonly mixed $user,
-        private readonly mixed $module,
+        private readonly User $user,
+        private readonly ModuleManager $module,
     ) {
     }
 
+    /**
+     * @param array<string, mixed> $filter
+     * @return array<string, mixed>
+     */
     #[Access('user: manage users')]
-    #[Request(['filter' => 'array', 'page' => 'int'])]
-    public function indexAction($filter = [], $page = null): array
+    #[RequestAttr(['filter' => 'array', 'page' => 'int'])]
+    public function indexAction(array $filter = [], ?int $page = null): array
     {
         $roles = $this->getRoles();
         unset($roles[Role::ROLE_AUTHENTICATED]);
@@ -45,9 +50,12 @@ class UserController
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Access('user: manage users')]
-    #[Request(['id' => 'int'])]
-    public function editAction($id = 0): array
+    #[RequestAttr(['id' => 'int'])]
+    public function editAction(int $id = 0): array
     {
         if (!$id) {
             $user = User::create(['roles' => [Role::ROLE_AUTHENTICATED]]);
@@ -72,6 +80,9 @@ class UserController
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Access('user: manage user permissions')]
     public function permissionsAction(): array
     {
@@ -87,9 +98,12 @@ class UserController
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Access('user: manage user permissions')]
-    #[Request(['id' => 'int'])]
-    public function rolesAction($id = null): array
+    #[RequestAttr(['id' => 'int'])]
+    public function rolesAction(?int $id = null): array
     {
         return [
             '$view' => [
@@ -106,6 +120,9 @@ class UserController
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Access('system: access settings')]
     public function settingsAction(): array
     {
@@ -120,6 +137,9 @@ class UserController
         ];
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     protected function getRoles(?User $user = null): array
     {
         $roles = [];

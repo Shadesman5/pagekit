@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Pagekit\Tests;
+namespace Pagekit\Filesystem\Tests;
+
+use Symfony\Component\Filesystem\Exception\IOException;
 
 trait FileUtil
 {
-    public function getTempFile($prefix = null)
+    public function getTempFile(?string $prefix = null): string|false
     {
         $temp = realpath(sys_get_temp_dir());
 
@@ -17,7 +19,7 @@ trait FileUtil
         return tempnam($temp, '');
     }
 
-    public function getTempDir($prefix = null, $mode = 0777)
+    public function getTempDir(?string $prefix = null, int $mode = 0777): string
     {
         $temp = realpath(sys_get_temp_dir()).DIRECTORY_SEPARATOR;
 
@@ -34,12 +36,12 @@ trait FileUtil
         return $dir;
     }
 
-    public function removeFile($file)
+    public function removeFile(string $file): bool
     {
         return unlink($file);
     }
 
-    public function removeDir($dir)
+    public function removeDir(string $dir): bool
     {
         if (is_dir($dir) && !is_link($dir)) {
 
@@ -59,7 +61,7 @@ trait FileUtil
         return !is_dir($dir);
     }
 
-    public function mirror($originDir, $targetDir): void
+    public function mirror(string $originDir, string $targetDir): void
     {
         $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($originDir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::SELF_FIRST);
 

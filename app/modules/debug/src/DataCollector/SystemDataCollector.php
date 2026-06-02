@@ -23,6 +23,8 @@ class SystemDataCollector implements DataCollectorInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, mixed>
      */
     public function collect(): array
     {

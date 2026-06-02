@@ -8,14 +8,7 @@ class StreamAdapter extends FileAdapter
 {
     protected string $wrapper;
 
-    /**
-     * Constructor.
-     *
-     * @param string $path;
-     * @param string $url;
-     * @param string $wrapper;
-     */
-    public function __construct($path, $url = '', $wrapper = 'Pagekit\Filesystem\StreamWrapper')
+    public function __construct(string $path, string $url = '', string $wrapper = 'Pagekit\Filesystem\StreamWrapper')
     {
         parent::__construct($path, $url);
 

@@ -13,7 +13,7 @@ abstract class Helper implements HelperInterface
     /**
      * {@inheritdoc}
      */
-    public function register(View $view)
+    public function register(View $view): void
     {
         $this->view = $view;
     }

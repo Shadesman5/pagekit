@@ -6,44 +6,60 @@ namespace Pagekit\Site\Controller;
 
 use function Pagekit\__;
 
+use Pagekit\Config\Config;
+use Pagekit\Config\ConfigManager;
+use Pagekit\Filter\FilterManager;
 use Pagekit\Kernel\Exception\ConflictException;
 use Pagekit\Routing\Attribute\Route;
+use Pagekit\Site\MenuManager;
 use Pagekit\Site\Model\Node;
 use Pagekit\User\Attribute\Access;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 #[Access('site: manage site')]
 class MenuApiController
 {
-    private readonly mixed $siteConfig;
+    private readonly Config $siteConfig;
 
     public function __construct(
-        private readonly mixed $config,
-        private readonly mixed $menu,
-        private readonly mixed $request,
-        private readonly mixed $filter,
+        private readonly ConfigManager $config,
+        private readonly MenuManager $menu,
+        private readonly Request $request,
+        private readonly FilterManager $filter,
     ) {
         $this->siteConfig = ($this->config)('system/site');
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
         $menus = $this->menu->all();
 
-        $menus['trash'] = ['id' => 'trash', 'label' => __('Trash'), 'fixed' => true];
+        $menus['trash'] = ['id' => 'trash', 'label' => __('Trash'), 'fixed' => true, 'count' => 0];
 
+        $trashCount = 0;
         foreach ($menus as &$menu) {
             $menu['count'] = Node::where(['menu' => $menu['id']])->count();
+            if ($menu['id'] === 'trash') {
+                $trashCount = $menu['count'];
+            }
         }
+        unset($menu);
 
-        if (!$menus['trash']['count']) {
+        if (!$trashCount) {
             unset($menus['trash']);
         }
 
         return array_values($menus);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Route('/', methods: ['POST'])]
     public function saveAction(): array
     {
@@ -80,8 +96,11 @@ class MenuApiController
         return ['message' => 'success', 'menu' => $menu];
     }
 
+    /**
+     * @return array<string, string>
+     */
     #[Route('/{id}', methods: ['DELETE'])]
-    public function deleteAction($id = null): array
+    public function deleteAction(?string $id = null): array
     {
         if (!$id) {
             $id = $this->request->attributes->get('id');

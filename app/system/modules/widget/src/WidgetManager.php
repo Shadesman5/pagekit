@@ -9,11 +9,6 @@ use Pagekit\Module\ModuleManager;
 
 class WidgetManager extends ModuleManager
 {
-    /**
-     * Constructor.
-     *
-     * @param Application $app
-     */
     public function __construct(Application $app)
     {
         parent::__construct($app);
@@ -21,10 +16,7 @@ class WidgetManager extends ModuleManager
         $this->defaults['class'] = 'Pagekit\Widget\Model\Type';
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function get($name)
+    public function get(string $name): mixed
     {
         $this->load(array_keys($this->registered));
 
@@ -33,6 +25,8 @@ class WidgetManager extends ModuleManager
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, mixed>
      */
     public function all(): array
     {

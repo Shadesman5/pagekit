@@ -16,7 +16,10 @@ class ConfigManagerTest extends TestCase
     {
     }
 
-    protected function getConnection()
+    /**
+     * @return \PHPUnit\Framework\MockObject\MockObject&\Pagekit\Database\Connection
+     */
+    protected function getConnection(): \PHPUnit\Framework\MockObject\MockObject
     {
         $mock = $this
             ->getMockBuilder('Pagekit\Database\Connection')
@@ -41,7 +44,7 @@ class ConfigManagerTest extends TestCase
         return $mock;
     }
 
-    protected function getConfig($connection = null): ConfigManager
+    protected function getConfig(?\Pagekit\Database\Connection $connection = null): ConfigManager
     {
         $connection = $connection ?: $this->getConnection();
 

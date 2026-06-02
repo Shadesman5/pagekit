@@ -22,18 +22,19 @@ class PositionHelper extends Helper
      * Set shortcut.
      *
      * @see render()
+     *
+     * @param array<string, mixed>|string|null $view
+     * @param array<string, mixed>             $parameters
      */
-    public function __invoke($name, $view = null, array $parameters = [])
+    public function __invoke(string $name, array|string|null $view = null, array $parameters = []): ?string
     {
         return $this->render($name, $view, $parameters);
     }
 
     /**
      * Checks if the position exists.
-     *
-     * @param  string $name
      */
-    public function exists($name): bool
+    public function exists(string $name): bool
     {
         return (bool) $this->getWidgets($name);
     }
@@ -41,11 +42,10 @@ class PositionHelper extends Helper
     /**
      * Renders a position.
      *
-     * @param  string       $name
-     * @param  array|string $view
-     * @param  array        $parameters
+     * @param array<string, mixed>|string|null $view
+     * @param array<string, mixed>             $parameters
      */
-    public function render($name, $view = null, array $parameters = []): ?string
+    public function render(string $name, array|string|null $view = null, array $parameters = []): ?string
     {
         if (is_array($view)) {
             $parameters = $view;
@@ -66,10 +66,9 @@ class PositionHelper extends Helper
     }
 
     /**
-     * @param  string|null $position
-     * @return Widget[]
+     * @return array<int, Widget>
      */
-    protected function getWidgets($position)
+    protected function getWidgets(?string $position): array
     {
         static $widgets, $positions = [];
 

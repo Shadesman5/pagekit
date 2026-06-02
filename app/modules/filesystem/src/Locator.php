@@ -8,14 +8,10 @@ class Locator
 {
     protected string $path;
 
+    /** @var array<int, array{0: string, 1: string}> */
     protected array $paths = [];
 
-    /**
-     * Constructor.
-     *
-     * @param string $path
-     */
-    public function __construct($path)
+    public function __construct(string $path)
     {
         $path = strtr($path, '\\', '/');
 
@@ -29,10 +25,9 @@ class Locator
     /**
      * Adds file paths to locator.
      *
-     * @param  string       $prefix
-     * @param  string|array $paths
+     * @param string|array<int, string> $paths
      */
-    public function add($prefix, $paths): self
+    public function add(string $prefix, $paths): self
     {
         $paths = array_map(function ($path) use ($prefix) {
 
@@ -52,11 +47,8 @@ class Locator
 
     /**
      * Gets a file path from locator.
-     *
-     * @param  string $file
-     * @return string|false
      */
-    public function get($file)
+    public function get(string $file): string|false
     {
         $file = ltrim(strtr($file, '\\', '/'), '/');
         $paths = array_merge($this->paths, [['', $this->path]]);

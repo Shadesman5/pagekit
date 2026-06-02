@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Pagekit\Routing\Request;
 
 use Pagekit\Event\EventSubscriberInterface;
+use Pagekit\Kernel\Event\ControllerEvent;
+use Symfony\Component\HttpFoundation\Request;
 
 class ParamFetcherListener implements EventSubscriberInterface
 {
@@ -22,10 +24,8 @@ class ParamFetcherListener implements EventSubscriberInterface
 
     /**
      * Maps the parameters to request attributes.
-     *
-     * @param $event
      */
-    public function onController($event, $request): void
+    public function onController(ControllerEvent $event, Request $request): void
     {
         $controller = $event->getController();
         $attributes = $request->attributes->get('_request', []);
@@ -83,6 +83,8 @@ class ParamFetcherListener implements EventSubscriberInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, array{0: string, 1: int}>
      */
     public function subscribe(): array
     {

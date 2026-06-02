@@ -22,7 +22,7 @@ trait ValidatesRequestTrait
      *
      * @param object $object The entity to validate
      * @param ValidatorInterface|null $validator Optional validator instance (falls back to $this->validator)
-     * @param array|null $groups Optional validation groups
+     * @param array<int, string>|null $groups Optional validation groups
      * @return JsonResponse|null Returns JsonResponse on validation failure, null on success
      */
     protected function validate(
@@ -46,7 +46,7 @@ trait ValidatesRequestTrait
      *
      * @param object $object The entity to validate
      * @param ValidatorInterface|null $validator Optional validator instance
-     * @param array|null $groups Optional validation groups
+     * @param array<int, string>|null $groups Optional validation groups
      */
     protected function validateOrFail(
         object $object,

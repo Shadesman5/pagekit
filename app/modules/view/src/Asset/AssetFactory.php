@@ -6,6 +6,7 @@ namespace Pagekit\View\Asset;
 
 class AssetFactory
 {
+    /** @var array<string, class-string<AssetInterface>> */
     protected array $types = [
         'file' => 'Pagekit\View\Asset\FileAsset',
         'string' => 'Pagekit\View\Asset\StringAsset',
@@ -16,10 +17,8 @@ class AssetFactory
 
     /**
      * Set a version number for cache breaking.
-     *
-     * @param $version
      */
-    public function setVersion($version): void
+    public function setVersion(string $version): void
     {
         $this->version = $version;
     }
@@ -35,13 +34,12 @@ class AssetFactory
     /**
      * Create an asset instance.
      *
-     * @param  string $name
-     * @param  mixed  $source
-     * @param  mixed  $dependencies
-     * @param  mixed  $options
+     * @param string|array<int, string>   $dependencies
+     * @param string|array<string, mixed> $options
+     *
      * @throws \InvalidArgumentException
      */
-    public function create($name, $source, $dependencies = [], $options = []): AssetInterface
+    public function create(string $name, mixed $source, $dependencies = [], $options = []): AssetInterface
     {
         if (is_string($dependencies)) {
             $dependencies = [$dependencies];
@@ -72,10 +70,9 @@ class AssetFactory
     /**
      * Registers an asset type.
      *
-     * @param  string $name
-     * @param  string $class
+     * @param class-string<AssetInterface> $class
      */
-    public function register($name, $class): self
+    public function register(string $name, string $class): self
     {
         $this->types[$name] = $class;
 

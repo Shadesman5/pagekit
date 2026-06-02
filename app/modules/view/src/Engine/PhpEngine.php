@@ -15,14 +15,30 @@ use Pagekit\View\Loader\LoaderInterface;
 class PhpEngine implements EngineInterface
 {
     protected LoaderInterface $loader;
+
+    /** @var array<string, object> */
     protected array $helpers = [];
+
+    /** @var array<string, mixed> */
     protected array $globals = [];
+
     protected ?string $current = null;
+
+    /** @var array<string, mixed> */
     protected array $parents = [];
+
+    /** @var array<int, string> */
     protected array $stack = [];
+
+    /** @var array<int, string> */
     protected array $charset = ['UTF-8'];
+
+    /** @var array<string, mixed> */
     protected array $cache = [];
 
+    /**
+     * @param array<int, object> $helpers
+     */
     public function __construct(LoaderInterface $loader, array $helpers = [])
     {
         $this->loader = $loader;
@@ -34,13 +50,16 @@ class PhpEngine implements EngineInterface
 
     /**
      * Renders a template
+     *
+     * @param string|array{name: string, engine?: string} $name
+     * @param array<string, mixed>                        $parameters
      */
     public function render($name, array $parameters = []): string
     {
         $storage = $this->load($name);
 
         if ($storage === false) {
-            throw new \InvalidArgumentException(sprintf('The template "%s" does not exist.', $name));
+            throw new \InvalidArgumentException(sprintf('The template "%s" does not exist.', is_array($name) ? $name['name'] : (string) $name));
         }
 
         return $this->evaluate($storage, $parameters);
@@ -48,6 +67,8 @@ class PhpEngine implements EngineInterface
 
     /**
      * Returns true if the template exists
+     *
+     * @param string|array{name: string, engine?: string} $name
      */
     public function exists($name): bool
     {
@@ -62,6 +83,8 @@ class PhpEngine implements EngineInterface
 
     /**
      * Returns true if this engine supports the given template
+     *
+     * @param string|array{name: string, engine?: string} $name
      */
     public function supports($name): bool
     {
@@ -72,8 +95,10 @@ class PhpEngine implements EngineInterface
 
     /**
      * Loads a template
+     *
+     * @param string|array{name: string, engine?: string} $name
      */
-    protected function load($name)
+    protected function load($name): mixed
     {
         $template = $this->parseTemplateName($name);
 
@@ -94,6 +119,9 @@ class PhpEngine implements EngineInterface
 
     /**
      * Evaluates a template
+     *
+     * @param array<string, mixed>|object $storage
+     * @param array<string, mixed>        $parameters
      */
     protected function evaluate($storage, array $parameters = []): string
     {
@@ -145,7 +173,7 @@ class PhpEngine implements EngineInterface
     /**
      * Extends another template
      */
-    public function extend($template): void
+    public function extend(string $template): void
     {
         $this->parents[$this->current] = $template;
     }
@@ -153,7 +181,7 @@ class PhpEngine implements EngineInterface
     /**
      * Starts a new block
      */
-    public function block($name, $default = null): void
+    public function block(string $name, mixed $default = null): void
     {
         $this->stack[] = $name;
         ob_start();
@@ -183,7 +211,7 @@ class PhpEngine implements EngineInterface
     /**
      * Outputs a block
      */
-    public function output($name, $default = null): string
+    public function output(string $name, ?string $default = null): string
     {
         return $this->globals['blocks'][$name] ?? $default ?? '';
     }
@@ -191,7 +219,7 @@ class PhpEngine implements EngineInterface
     /**
      * Sets a global parameter
      */
-    public function addGlobal($name, $value): void
+    public function addGlobal(string $name, mixed $value): void
     {
         $this->globals[$name] = $value;
     }
@@ -199,7 +227,7 @@ class PhpEngine implements EngineInterface
     /**
      * Adds a helper
      */
-    public function addHelper($helper): void
+    public function addHelper(object $helper): void
     {
         $this->helpers[$helper->getName()] = $helper;
     }
@@ -207,7 +235,7 @@ class PhpEngine implements EngineInterface
     /**
      * Gets a helper
      */
-    public function get($name)
+    public function get(string $name): object
     {
         if (!isset($this->helpers[$name])) {
             throw new \InvalidArgumentException(sprintf('The helper "%s" is not defined.', $name));
@@ -219,22 +247,29 @@ class PhpEngine implements EngineInterface
     /**
      * Escapes a value for output
      */
-    public function escape($value, $strategy = 'html'): string
+    public function escape(mixed $value, string $strategy = 'html'): string
     {
         if ($strategy === 'html') {
-            return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, $this->charset[0]);
+            return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, $this->charset[0]);
         }
 
-        return $value;
+        return (string) $value;
     }
 
     /**
      * Parses a template name
+     *
+     * @param string|array{name: string, engine?: string} $name
+     *
+     * @return array{name: string, engine: string}
      */
     protected function parseTemplateName($name): array
     {
         if (is_array($name)) {
-            return $name;
+            return [
+                'name' => $name['name'],
+                'engine' => $name['engine'] ?? 'php',
+            ];
         }
 
         // Default to PHP engine

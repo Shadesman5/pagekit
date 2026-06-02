@@ -18,10 +18,7 @@ class IntlModule extends Module
 {
     protected App $app;
 
-    /**
-     * {@inheritdoc}
-     */
-    public function main(App $app): void
+    public function main(App $app): mixed
     {
         $this->app = $app;
         // Load translation functions
@@ -41,6 +38,7 @@ class IntlModule extends Module
             return $translator;
         });
 
+        return null;
     }
 
     /**
@@ -71,8 +69,10 @@ class IntlModule extends Module
 
     /**
      * Gets the system's available languages.
+     *
+     * @return array<string, string>
      */
-    public function getAvailableLanguages($locale = null): array
+    public function getAvailableLanguages(?string $locale = null): array
     {
         $languages = $this->getLanguages($locale);
         $territories = $this->getTerritories();
@@ -101,8 +101,8 @@ class IntlModule extends Module
     /**
      * Gets the languages list.
      *
-     * @param  string $locale
-     * @return array|null
+     * @param  string|null $locale
+     * @return array<string, string>|null
      */
     public function getLanguages($locale = null): ?array
     {
@@ -112,8 +112,8 @@ class IntlModule extends Module
     /**
      * Gets the territories list.
      *
-     * @param  string $locale
-     * @return array|null
+     * @param  string|null $locale
+     * @return array<string, string>|null
      */
     public function getTerritories($locale = null): ?array
     {
@@ -123,7 +123,8 @@ class IntlModule extends Module
     /**
      * Gets the continents list.
      *
-     * @param  string $locale
+     * @param  string|null $locale
+     * @return array<string, string>
      */
     public function getContinents($locale = null): array
     {
@@ -133,7 +134,8 @@ class IntlModule extends Module
     /**
      * Gets the subcontinents list.
      *
-     * @param  string $locale
+     * @param  string|null $locale
+     * @return array<string, string>
      */
     public function getSubContinents($locale = null): array
     {
@@ -143,7 +145,8 @@ class IntlModule extends Module
     /**
      * Gets the countries list.
      *
-     * @param  string $locale
+     * @param  string|null $locale
+     * @return array<string, string>
      */
     public function getCountries($locale = null): array
     {
@@ -153,8 +156,8 @@ class IntlModule extends Module
     /**
      * Gets the locales formats data.
      *
-     * @param  string $locale
-     * @return array|null
+     * @param  string|null $locale
+     * @return array<string, mixed>|null
      */
     public function getFormats($locale = null): ?array
     {
@@ -193,7 +196,10 @@ class IntlModule extends Module
         }
     }
 
-    protected function getTerritoryContainment($level = 1, $locale = null): array
+    /**
+     * @return array<string, string>
+     */
+    protected function getTerritoryContainment(int $level = 1, ?string $locale = null): array
     {
         static $tree;
 
@@ -235,7 +241,7 @@ class IntlModule extends Module
     /**
      * @param  string      $name
      * @param  string|null $locale
-     * @return array|null
+     * @return array<string, mixed>|null
      */
     protected function getData($name, $locale = null): ?array
     {
@@ -250,7 +256,7 @@ class IntlModule extends Module
 
     /**
      * @param  string $name
-     * @return array|null
+     * @return array<string, mixed>|null
      */
     protected function getGeneric($name): ?array
     {
@@ -259,7 +265,7 @@ class IntlModule extends Module
 
     /**
      * @param  string $file
-     * @return array|null
+     * @return array<string, mixed>|null
      */
     protected function parse($file): ?array
     {

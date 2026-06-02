@@ -7,14 +7,18 @@ namespace Pagekit\User\Controller;
 use function Pagekit\__;
 
 use Pagekit\Application\Exception;
+use Pagekit\Auth\Encoder\PasswordEncoderInterface;
+use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use Pagekit\User\Model\User;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * API Controller for User management.
@@ -25,14 +29,17 @@ class UserApiController
     use ValidatesRequestTrait;
 
     public function __construct(
-        private readonly mixed $request,
-        private readonly mixed $user,
-        private readonly mixed $module,
-        private readonly mixed $authPassword,
-        private readonly mixed $validator,
+        private readonly Request $request,
+        private readonly User $user,
+        private readonly ModuleManager $module,
+        private readonly PasswordEncoderInterface $authPassword,
+        protected readonly ValidatorInterface $validator,
     ) {
     }
 
+    /**
+     * @return array{users: array<int, User>, pages: float, count: int}
+     */
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
@@ -92,6 +99,9 @@ class UserApiController
         return compact('users', 'pages', 'count');
     }
 
+    /**
+     * @return array{count: int}
+     */
     public function countAction(): array
     {
         $request = $this->request;
@@ -149,14 +159,15 @@ class UserApiController
 
     /**
      * Save a user (create or update).
+     *
+     * @return array{message: string, user: User}
      */
     #[Route('/', methods: ['POST'])]
     #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
-    public function saveAction(int $id = 0)
+    public function saveAction(int $id = 0): array
     {
         $request = $this->request;
 
-        // Get user data from POST or JSON body
         $data = $request->request->all()['user'] ?? [];
         $password = $request->request->get('password');
 
@@ -166,14 +177,12 @@ class UserApiController
             $password = $json['password'] ?? $password;
         }
 
-        // Get id from route if not provided
         if (!$id) {
             $id = (int) ($request->request->get('id') ?? $request->get('id', 0));
         }
 
         try {
 
-            // is new ?
             if (!$user = User::find($id)) {
 
                 if ($id) {
@@ -223,7 +232,6 @@ class UserApiController
 
             unset($data['login'], $data['registered']);
 
-            // Validate using Symfony Validator
             $this->validateOrFail($user);
 
             $user->save($data);
@@ -235,10 +243,12 @@ class UserApiController
         }
     }
 
+    /**
+     * @return array{message: string}
+     */
     #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\d+'])]
     public function deleteAction(int $id = 0): array
     {
-        // Get id from route if not provided (Symfony 6.4 compatibility)
         if (!$id) {
             $id = (int) $this->request->get('id', 0);
         }
@@ -258,12 +268,14 @@ class UserApiController
         return ['message' => 'success'];
     }
 
+    /**
+     * @return array{message: string}
+     */
     #[Route('/bulk', methods: ['POST'])]
     public function bulkSaveAction(): array
     {
         $request = $this->request;
 
-        // Get users data from POST or JSON body
         $users = $request->request->all()['users'] ?? [];
         if (empty($users) && $request->getContent()) {
             $json = json_decode($request->getContent(), true);
@@ -271,11 +283,9 @@ class UserApiController
         }
 
         foreach ($users as $data) {
-            // Temporarily set the data in request for saveAction
             $id = isset($data['id']) ? $data['id'] : 0;
             $password = $data['password'] ?? null;
 
-            // Create a new request with the user data
             $request->request->set('user', $data);
             if ($password) {
                 $request->request->set('password', $password);
@@ -287,12 +297,14 @@ class UserApiController
         return ['message' => 'success'];
     }
 
+    /**
+     * @return array{message: string}
+     */
     #[Route('/bulk', methods: ['DELETE'])]
     public function bulkDeleteAction(): array
     {
         $request = $this->request;
 
-        // Get ids from POST/DELETE body or JSON
         $ids = $request->request->all()['ids'] ?? [];
         if (empty($ids) && $request->getContent()) {
             $json = json_decode($request->getContent(), true);

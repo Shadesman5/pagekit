@@ -4,10 +4,18 @@ declare(strict_types=1);
 
 namespace Pagekit\Installer\Controller;
 
+use Pagekit\Application\Response as PagekitResponse;
+use Pagekit\Application\UrlProvider;
+use Pagekit\Installer\Package\PackageFactory;
+use Pagekit\Installer\Package\PackageInterface;
 use Pagekit\Installer\Package\PackageManager;
-use Pagekit\Routing\Attribute\Request;
+use Pagekit\Log\Logger;
+use Pagekit\Module\ModuleManager;
+use Pagekit\Routing\Attribute\Request as RequestAttribute;
 use Pagekit\User\Attribute\Access;
 use Psr\Container\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 #[Access('system: manage packages', admin: true)]
@@ -18,15 +26,15 @@ class PackageController
     private readonly string $systemApi;
 
     public function __construct(
-        private readonly ContainerInterface $app, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
-        private readonly mixed $package, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
-        private readonly mixed $module, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
-        private readonly mixed $url, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
-        private readonly mixed $request, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
-        private readonly mixed $response, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
-        private readonly mixed $path, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
+        private readonly ContainerInterface $app,
+        private readonly PackageFactory $package,
+        private readonly ModuleManager $module,
+        private readonly UrlProvider $url,
+        private readonly Request $request,
+        private readonly PagekitResponse $response,
+        private readonly string $path,
         private readonly bool $debug,
-        private readonly mixed $log,
+        private readonly Logger $log,
     ) {
         $this->manager = new PackageManager($this->app);
         $this->systemApi = $this->app->has('system.api')
@@ -34,6 +42,9 @@ class PackageController
             : 'https://pagekit.com';
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function themesAction(): array
     {
         $packages = array_values($this->package->all('pagekit-theme'));
@@ -63,6 +74,9 @@ class PackageController
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function extensionsAction(): array
     {
         $packages = array_values($this->package->all('pagekit-extension'));
@@ -93,8 +107,11 @@ class PackageController
         ];
     }
 
-    #[Request(['name' => 'string'], csrf: true)]
-    public function enableAction($name): array
+    /**
+     * @return array<string, mixed>
+     */
+    #[RequestAttribute(['name' => 'string'], csrf: true)]
+    public function enableAction(string $name): array
     {
         $handler = $this->errorHandler($name);
 
@@ -135,8 +152,11 @@ class PackageController
         }
     }
 
-    #[Request(['name' => 'string'], csrf: true)]
-    public function disableAction($name): array
+    /**
+     * @return array<string, mixed>
+     */
+    #[RequestAttribute(['name' => 'string'], csrf: true)]
+    public function disableAction(string $name): array
     {
         if (!$package = $this->package->get($name)) {
             throw new BadRequestHttpException(__('Unable to find "%name%".', ['%name%' => $name]));
@@ -153,8 +173,11 @@ class PackageController
         return ['message' => 'success'];
     }
 
-    #[Request(['type' => 'string'], csrf: true)]
-    public function uploadAction($type): array
+    /**
+     * @return array<string, mixed>
+     */
+    #[RequestAttribute(['type' => 'string'], csrf: true)]
+    public function uploadAction(string $type): array
     {
         $file = $this->request->files->get('file');
 
@@ -179,8 +202,11 @@ class PackageController
         return compact('package');
     }
 
-    #[Request(['package' => 'array', 'packagist' => 'boolean'], csrf: true)]
-    public function installAction($package = [], $packagist = false)
+    /**
+     * @param array<string, mixed> $package
+     */
+    #[RequestAttribute(['package' => 'array', 'packagist' => 'boolean'], csrf: true)]
+    public function installAction(array $package = [], bool $packagist = false): StreamedResponse
     {
         $file = $this->path . '/tmp/temp/composer/composer.json';
 
@@ -211,8 +237,8 @@ class PackageController
         });
     }
 
-    #[Request(['name' => 'string'], csrf: true)]
-    public function uninstallAction($name)
+    #[RequestAttribute(['name' => 'string'], csrf: true)]
+    public function uninstallAction(string $name): StreamedResponse
     {
         return $this->response->stream(function () use ($name) {
 
@@ -230,7 +256,7 @@ class PackageController
         });
     }
 
-    protected function loadPackage($file)
+    protected function loadPackage(string $file): PackageInterface
     {
         if (is_file($file)) {
 
@@ -262,7 +288,7 @@ class PackageController
         throw new BadRequestHttpException(__('Can\'t load json file from package.'));
     }
 
-    protected function errorHandler($name): ?callable
+    protected function errorHandler(string $name): ?callable
     {
         $originalErrorReporting = error_reporting();
 

@@ -9,8 +9,9 @@ interface LoaderInterface
     /**
      * Loads the module.
      *
-     * @param  mixed $module
-     * @return mixed
+     * Accepts an array module definition (during pre/post loading) or a
+     * resolved module object (after ModuleLoader has instantiated it),
+     * and returns whatever shape downstream loaders need.
      */
-    public function load($module);
+    public function load(mixed $module): mixed;
 }

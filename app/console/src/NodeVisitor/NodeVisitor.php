@@ -10,6 +10,7 @@ abstract class NodeVisitor
 {
     public ?string $file = null;
 
+    /** @var array<string, array<string, mixed>> */
     public array $results = [];
 
     public EngineInterface $engine;
@@ -27,7 +28,8 @@ abstract class NodeVisitor
     /**
      * Starts traversing an array of files.
      *
-     * @param  array $files
+     * @param  array<int, string> $files
+     * @return array<string, array<string, mixed>>
      */
     abstract public function traverse(array $files): array;
 

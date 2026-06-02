@@ -14,11 +14,7 @@ interface LoaderInterface
      *
      * @param string $name The template name
      *
-     * @return array|false An array with template data or false if not found
-     *                     Array should contain:
-     *                     - 'name' => template name
-     *                     - 'path' => file path (for file templates)
-     *                     - 'content' => template content (for string templates)
+     * @return array{name: string, path?: string, content?: string}|false An array with template data or false if not found
      */
     public function load(string $name): array|false;
 

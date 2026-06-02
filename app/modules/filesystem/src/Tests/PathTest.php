@@ -10,14 +10,20 @@ use PHPUnit\Framework\TestCase;
 
 class PathTest extends TestCase
 {
+    /**
+     * @param array<string, string> $result
+     */
     #[DataProvider('dataPaths')]
-    public function testParse($path, $result): void
+    public function testParse(string $path, array $result): void
     {
         $this->assertSame($result, Path::parse($path));
     }
 
+    /**
+     * @param array<string, string> $result
+     */
     #[DataProvider('dataPaths')]
-    public function testIsAbsolute($path, $result): void
+    public function testIsAbsolute(string $path, array $result): void
     {
         if ($result['root'] !== '') {
             $this->assertTrue(Path::isAbsolute($path));
@@ -26,8 +32,11 @@ class PathTest extends TestCase
         }
     }
 
+    /**
+     * @param array<string, string> $result
+     */
     #[DataProvider('dataPaths')]
-    public function testIsRelative($path, $result): void
+    public function testIsRelative(string $path, array $result): void
     {
         if ($result['root'] === '') {
             $this->assertTrue(Path::isRelative($path));
@@ -36,6 +45,9 @@ class PathTest extends TestCase
         }
     }
 
+    /**
+     * @return array<int, array{0: string, 1: array<string, string>}>
+     */
     public static function dataPaths(): array
     {
         return [

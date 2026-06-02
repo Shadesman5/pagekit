@@ -16,19 +16,7 @@ parameters:
 			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:line\(\) \(void\) is used\.$#'
 			identifier: method.void
 			count: 1
-			path: app/console/src/Commands/ArchiveCommand.php
-
-		-
-			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:line\(\) \(void\) is used\.$#'
-			identifier: method.void
-			count: 1
 			path: app/console/src/Commands/BuildCommand.php
-
-		-
-			message: '#^Return type \(void\) of method Pagekit\\Console\\Commands\\ExtensionTranslateCommand\:\:execute\(\) should be compatible with return type \(int\) of method Symfony\\Component\\Console\\Command\\Command\:\:execute\(\)$#'
-			identifier: method.childReturnType
-			count: 1
-			path: app/console/src/Commands/ExtensionTranslateCommand.php
 
 		-
 			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:error\(\) \(void\) is used\.$#'
@@ -53,18 +41,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/console/src/Commands/SetupCommand.php
-
-		-
-			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:line\(\) \(void\) is used\.$#'
-			identifier: method.void
-			count: 1
-			path: app/console/src/Commands/SetupCommand.php
-
-		-
-			message: '#^Return type \(void\) of method Pagekit\\Console\\Commands\\TranslationFetchCommand\:\:execute\(\) should be compatible with return type \(int\) of method Symfony\\Component\\Console\\Command\\Command\:\:execute\(\)$#'
-			identifier: method.childReturnType
-			count: 1
-			path: app/console/src/Commands/TranslationFetchCommand.php
 
 		-
 			message: '#^Parameter \#1 \$app of class Pagekit\\Installer\\Package\\PackageManager constructor expects Psr\\Container\\ContainerInterface, Symfony\\Component\\Console\\Output\\OutputInterface given\.$#'
@@ -187,18 +163,6 @@ parameters:
 			path: app/installer/install.php
 
 		-
-			message: '#^PHPDoc tag @return with type Traversable is not subtype of native type ArrayIterator\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: app/installer/requirements.php
-
-		-
-			message: '#^Property RequirementCollection\:\:\$requirements \(array\|null\) is never assigned null so it can be removed from the property type\.$#'
-			identifier: property.unusedType
-			count: 1
-			path: app/installer/requirements.php
-
-		-
 			message: '#^Variable \$path might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
@@ -253,18 +217,6 @@ parameters:
 			path: app/installer/src/Installer.php
 
 		-
-			message: '#^Method Pagekit\\Installer\\Package\\PackageFactory\:\:load\(\) should return Pagekit\\Installer\\Package\\Package but return statement is missing\.$#'
-			identifier: return.missing
-			count: 1
-			path: app/installer/src/Package/PackageFactory.php
-
-		-
-			message: '#^Negated boolean expression is always false\.$#'
-			identifier: booleanNot.alwaysFalse
-			count: 1
-			path: app/installer/src/Package/PackageFactory.php
-
-		-
 			message: '#^Call to an undefined method Pagekit\\Installer\\SelfUpdater\:\:writeln\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -317,30 +269,6 @@ parameters:
 			identifier: method.notFound
 			count: 3
 			path: app/modules/application/src/Application/Console/Command.php
-
-		-
-			message: '#^PHPDoc tag @param for parameter \$values with type mixed is not subtype of native type array\.$#'
-			identifier: parameter.phpDocType
-			count: 1
-			path: app/modules/application/src/Event/Event.php
-
-		-
-			message: '#^PHPDoc tag @param has invalid value \(array\)\: Unexpected token "\\n     ", expected variable at offset 59 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: app/modules/application/src/Event/Event.php
-
-		-
-			message: '#^PHPDoc tag @return with type array\|object is not subtype of native type array\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: app/modules/application/src/Event/Event.php
-
-		-
-			message: '#^PHPDoc tag @return with type mixed is not subtype of native type bool\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: app/modules/application/src/Event/Event.php
 
 		-
 			message: '#^Cannot call method bindTo\(\) on callable\.$#'
@@ -409,12 +337,6 @@ parameters:
 			path: app/modules/application/src/Util/Arr.php
 
 		-
-			message: '#^Strict comparison using \=\=\= between string and null will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 3
-			path: app/modules/application/src/Util/Arr.php
-
-		-
 			message: '#^Unreachable statement \- code above always terminates\.$#'
 			identifier: deadCode.unreachable
 			count: 1
@@ -445,22 +367,10 @@ parameters:
 			path: app/modules/auth/src/Auth.php
 
 		-
-			message: '#^Parameter \#1 \$user of method Pagekit\\Auth\\Handler\\HandlerInterface\:\:write\(\) expects int, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/modules/auth/src/Auth.php
-
-		-
 			message: '#^Parameter \#2 \$remember of method Pagekit\\Auth\\Handler\\DatabaseHandler\:\:write\(\) expects bool, int given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/modules/auth/src/Handler/DatabaseHandler.php
-
-		-
-			message: '#^PHPDoc tag @param has invalid value \(UserInterface\)\: Unexpected token "\\n     ", expected variable at offset 63 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: app/modules/auth/src/Handler/HandlerInterface.php
 
 		-
 			message: '#^Undefined variable\: \$this$#'
@@ -477,18 +387,6 @@ parameters:
 		-
 			message: '#^Class Doctrine\\DBAL\\Platforms\\MySqlPlatform not found\.$#'
 			identifier: class.notFound
-			count: 1
-			path: app/modules/config/src/ConfigManager.php
-
-		-
-			message: '#^Method Pagekit\\Config\\ConfigManager\:\:fetch\(\) should return Pagekit\\Config\\Config\|null but return statement is missing\.$#'
-			identifier: return.missing
-			count: 1
-			path: app/modules/config/src/ConfigManager.php
-
-		-
-			message: '#^Method Pagekit\\Config\\ConfigManager\:\:get\(\) should return Pagekit\\Config\\Config but return statement is missing\.$#'
-			identifier: return.missing
 			count: 1
 			path: app/modules/config/src/ConfigManager.php
 
@@ -527,42 +425,6 @@ parameters:
 			identifier: method.childReturnType
 			count: 1
 			path: app/modules/database/src/Connection.php
-
-		-
-			message: '#^Method Pagekit\\Database\\ORM\\Metadata\:\:getField\(\) should return array\|null but return statement is missing\.$#'
-			identifier: return.missing
-			count: 1
-			path: app/modules/database/src/ORM/Metadata.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:whereIn\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/modules/database/src/ORM/Relation/BelongsTo.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:orderBy\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/modules/database/src/ORM/Relation/HasMany.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:whereIn\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/modules/database/src/ORM/Relation/HasMany.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:whereIn\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/modules/database/src/ORM/Relation/HasOne.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:whereIn\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/modules/database/src/ORM/Relation/ManyToMany.php
 
 		-
 			message: '#^Instanceof between array\|float\|int\|string\|false\|null and Pagekit\\Database\\Query\\CompositeExpression will always evaluate to false\.$#'
@@ -649,24 +511,6 @@ parameters:
 			path: app/modules/database/src/Query/QueryBuilder.php
 
 		-
-			message: '#^Method Pagekit\\Database\\Table\:\:addColumn\(\) has invalid return type Pagekit\\Database\\Column\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/database/src/Table.php
-
-		-
-			message: '#^PHPDoc tag @return with type Pagekit\\Database\\Column is not subtype of native type Doctrine\\DBAL\\Schema\\Column\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: app/modules/database/src/Table.php
-
-		-
-			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertIsArray\(\) with array will always evaluate to true\.$#'
-			identifier: method.alreadyNarrowedType
-			count: 1
-			path: app/modules/database/src/Tests/ConnectionTest.php
-
-		-
 			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\MetadataManager\:\:expects\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -679,70 +523,16 @@ parameters:
 			path: app/modules/database/src/Tests/ORM/EntityManagerTest.php
 
 		-
-			message: '#^Parameter \#1 \$tables of method Pagekit\\Database\\Utility\:\:tablesExist\(\) expects array, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/modules/database/src/Utility.php
-
-		-
 			message: '#^Undefined variable\: \$this$#'
 			identifier: variable.undefined
 			count: 3
 			path: app/modules/debug/index.php
 
 		-
-			message: '#^Call to an undefined method Pagekit\\Auth\\UserInterface\:\:isAuthenticated\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/modules/debug/src/DataCollector/AuthDataCollector.php
-
-		-
-			message: '#^Parameter \#1 \$user of static method Pagekit\\User\\Model\\User\:\:findRoles\(\) expects Pagekit\\User\\Model\\User, Pagekit\\Auth\\UserInterface given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/modules/debug/src/DataCollector/AuthDataCollector.php
-
-		-
 			message: '#^Parameter \#1 \$string of function sha1 expects string, int\<0, max\>\|false given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/modules/debug/src/DataCollector/RoutesDataCollector.php
-
-		-
-			message: '#^Call to function is_array\(\) with callable\-object will always evaluate to false\.$#'
-			identifier: function.impossibleType
-			count: 1
-			path: app/modules/debug/src/Event/TraceableEventDispatcher.php
-
-		-
-			message: '#^Call to function is_array\(\) with object will always evaluate to false\.$#'
-			identifier: function.impossibleType
-			count: 1
-			path: app/modules/debug/src/Event/TraceableEventDispatcher.php
-
-		-
-			message: '#^Call to function is_object\(\) with callable\-object will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: app/modules/debug/src/Event/TraceableEventDispatcher.php
-
-		-
-			message: '#^Call to function is_object\(\) with object will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: app/modules/debug/src/Event/TraceableEventDispatcher.php
-
-		-
-			message: '#^Call to function is_string\(\) with object will always evaluate to false\.$#'
-			identifier: function.impossibleType
-			count: 1
-			path: app/modules/debug/src/Event/TraceableEventDispatcher.php
-
-		-
-			message: '#^Cannot call method bindTo\(\) on callable\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: app/modules/debug/src/Event/TraceableEventDispatcher.php
 
 		-
 			message: '#^Return type \(void\) of method Pagekit\\Debug\\Middleware\\DebugStatement\:\:bindParam\(\) should be compatible with return type \(bool\) of method Doctrine\\DBAL\\Driver\\Middleware\\AbstractStatementMiddleware\:\:bindParam\(\)$#'
@@ -799,58 +589,10 @@ parameters:
 			path: app/modules/filesystem/src/Locator.php
 
 		-
-			message: '#^Method Pagekit\\Filesystem\\Path\:\:parse\(\) should return array but returns string\.$#'
-			identifier: return.type
-			count: 1
-			path: app/modules/filesystem/src/Path.php
-
-		-
 			message: '#^Parameter \#2 \$callback of function array_filter expects \(callable\(string\)\: bool\)\|null, ''strlen'' given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/modules/filesystem/src/Path.php
-
-		-
-			message: '#^Strict comparison using \!\=\= between array and '''' will always evaluate to true\.$#'
-			identifier: notIdentical.alwaysTrue
-			count: 1
-			path: app/modules/filesystem/src/Path.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between array and '''' will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/modules/filesystem/src/Path.php
-
-		-
-			message: '#^PHPDoc tag @return with type resource is incompatible with native type bool\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: app/modules/filesystem/src/StreamWrapper.php
-
-		-
-			message: '#^Instantiated class Pagekit\\Tests\\IOException not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/filesystem/src/Tests/Adapter/StreamAdapterTest.php
-
-		-
-			message: '#^Throwing object of an unknown class Pagekit\\Tests\\IOException\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/filesystem/src/Tests/Adapter/StreamAdapterTest.php
-
-		-
-			message: '#^Instantiated class Pagekit\\Tests\\IOException not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/filesystem/src/Tests/FilesystemTest.php
-
-		-
-			message: '#^Throwing object of an unknown class Pagekit\\Tests\\IOException\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/filesystem/src/Tests/FilesystemTest.php
 
 		-
 			message: '#^Undefined variable\: \$this$#'
@@ -877,12 +619,6 @@ parameters:
 			path: app/modules/filter/src/FilterManager.php
 
 		-
-			message: '#^If condition is always false\.$#'
-			identifier: if.alwaysFalse
-			count: 1
-			path: app/modules/filter/src/FilterManager.php
-
-		-
 			message: '#^Call to function is_object\(\) with \*NEVER\* will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 2
@@ -892,12 +628,6 @@ parameters:
 			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 2
-			path: app/modules/filter/src/PregReplaceFilter.php
-
-		-
-			message: '#^Method Pagekit\\Filter\\PregReplaceFilter\:\:validatePattern\(\) should return bool but return statement is missing\.$#'
-			identifier: return.missing
-			count: 1
 			path: app/modules/filter/src/PregReplaceFilter.php
 
 		-
@@ -925,18 +655,6 @@ parameters:
 			path: app/modules/filter/src/Tests/IntTest.php
 
 		-
-			message: '#^Parameter \#1 \$pattern of method Pagekit\\Filter\\PregReplaceFilter\:\:setPattern\(\) expects array\|string, null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/modules/filter/src/Tests/PregReplaceTest.php
-
-		-
-			message: '#^Parameter \#1 \$replacement of method Pagekit\\Filter\\PregReplaceFilter\:\:setReplacement\(\) expects array\|string, null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/modules/filter/src/Tests/PregReplaceTest.php
-
-		-
 			message: '#^Array has 2 duplicate keys with value 23 \(23, "23"\)\.$#'
 			identifier: array.duplicateKey
 			count: 1
@@ -947,24 +665,6 @@ parameters:
 			identifier: variable.undefined
 			count: 1
 			path: app/modules/kernel/index.php
-
-		-
-			message: '#^Parameter \$logger of method Pagekit\\Kernel\\Controller\\ControllerListener\:\:__construct\(\) has invalid type Pagekit\\Kernel\\Controller\\LoggerInterface\.$#'
-			identifier: class.notFound
-			count: 2
-			path: app/modules/kernel/src/Controller/ControllerListener.php
-
-		-
-			message: '#^Property Pagekit\\Kernel\\Controller\\ControllerListener\:\:\$logger has unknown class Pagekit\\Kernel\\Controller\\LoggerInterface as its type\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/kernel/src/Controller/ControllerListener.php
-
-		-
-			message: '#^PHPDoc tag @return with type mixed is not subtype of native type array\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: app/modules/kernel/src/Controller/ControllerResolver.php
 
 		-
 			message: '#^Call to an undefined static method Symfony\\Component\\ErrorHandler\\ErrorHandler\:\:createResponse\(\)\.$#'
@@ -1021,12 +721,6 @@ parameters:
 			path: app/modules/log/src/Logger.php
 
 		-
-			message: '#^Result of method Monolog\\Logger\:\:log\(\) \(void\) is used\.$#'
-			identifier: method.void
-			count: 1
-			path: app/modules/log/src/Logger.php
-
-		-
 			message: '#^Binary operation "\+" between ''Infinite loop on…'' and int\<0, 255\> results in an error\.$#'
 			identifier: binaryOp.invalid
 			count: 1
@@ -1055,12 +749,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/modules/markdown/src/Lexer/InlineLexer.php
-
-		-
-			message: '#^Method Pagekit\\Markdown\\Parser\:\:tok\(\) should return string but return statement is missing\.$#'
-			identifier: return.missing
-			count: 1
-			path: app/modules/markdown/src/Parser.php
 
 		-
 			message: '#^Call to an undefined method Doctrine\\Migrations\\Configuration\\Configuration\:\:setMigrationsColumnLength\(\)\.$#'
@@ -1109,36 +797,6 @@ parameters:
 			identifier: variable.undefined
 			count: 2
 			path: app/modules/routing/index.php
-
-		-
-			message: '#^Cannot call method getDefaults\(\) on array\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/modules/routing/src/Event/AliasListener.php
-
-		-
-			message: '#^Cannot call method getName\(\) on array\.$#'
-			identifier: method.nonObject
-			count: 4
-			path: app/modules/routing/src/Event/AliasListener.php
-
-		-
-			message: '#^Cannot call method getPath\(\) on array\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/modules/routing/src/Event/AliasListener.php
-
-		-
-			message: '#^Instanceof between Symfony\\Component\\Routing\\Matcher\\RequestMatcherInterface and Symfony\\Component\\Routing\\Matcher\\RequestMatcherInterface will always evaluate to true\.$#'
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: app/modules/routing/src/Event/RouterListener.php
-
-		-
-			message: '#^Result of && is always false\.$#'
-			identifier: booleanAnd.alwaysFalse
-			count: 1
-			path: app/modules/routing/src/Event/RouterListener.php
 
 		-
 			message: '#^Call to sprintf contains 0 placeholders, 1 value given\.$#'
@@ -1213,12 +871,6 @@ parameters:
 			path: app/modules/session/index.php
 
 		-
-			message: '#^PHPDoc tag @throws with type Pagekit\\Session\\Csrf\\Event\\UnauthorizedException is not subtype of Throwable$#'
-			identifier: throws.notThrowable
-			count: 1
-			path: app/modules/session/src/Csrf/Event/CsrfListener.php
-
-		-
 			message: '#^Class Doctrine\\DBAL\\Platforms\\MySqlPlatform not found\.$#'
 			identifier: class.notFound
 			count: 1
@@ -1261,30 +913,6 @@ parameters:
 			path: app/modules/view/index.php
 
 		-
-			message: '#^Call to method get\(\) on an unknown class Pagekit\\View\\Asset\\FilterManager\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/view/src/Asset/AssetManager.php
-
-		-
-			message: '#^Property Pagekit\\View\\Asset\\AssetManager\:\:\$filters has unknown class Pagekit\\View\\Asset\\FilterManager as its type\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/view/src/Asset/AssetManager.php
-
-		-
-			message: '#^Variable \$filters might not be defined\.$#'
-			identifier: variable.undefined
-			count: 1
-			path: app/modules/view/src/Asset/AssetManager.php
-
-		-
-			message: '#^Variable \$pattern might not be defined\.$#'
-			identifier: variable.undefined
-			count: 1
-			path: app/modules/view/src/Asset/AssetManager.php
-
-		-
 			message: '#^Parameter \#2 \$source of method Pagekit\\View\\Asset\\Asset\:\:__construct\(\) expects string, null given\.$#'
 			identifier: argument.type
 			count: 1
@@ -1295,12 +923,6 @@ parameters:
 			identifier: if.alwaysFalse
 			count: 1
 			path: app/modules/view/src/Engine/PhpEngine.php
-
-		-
-			message: '#^Method Pagekit\\View\\Helper\\DeferredHelper\:\:__invoke\(\) should return string but return statement is missing\.$#'
-			identifier: return.missing
-			count: 1
-			path: app/modules/view/src/Helper/DeferredHelper.php
 
 		-
 			message: '#^Parameter \#1 \$enable of function ob_implicit_flush expects bool, int given\.$#'
@@ -1393,46 +1015,10 @@ parameters:
 			path: app/system/modules/captcha/src/CaptchaListener.php
 
 		-
-			message: '#^Access to an undefined static property static\(Pagekit\\Comment\\Model\\Comment\)\:\:\$properties\.$#'
-			identifier: staticProperty.notFound
-			count: 3
-			path: app/system/modules/comment/src/Model/Comment.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:update\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/comment/src/Model/Comment.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/comment/src/Model/Comment.php
-
-		-
-			message: '#^Method Pagekit\\Comment\\Model\\Comment\:\:create\(\) should return static\(Pagekit\\Comment\\Model\\Comment\) but returns object\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/comment/src/Model/Comment.php
-
-		-
-			message: '#^Method Pagekit\\Comment\\Model\\Comment\:\:find\(\) should return static\(Pagekit\\Comment\\Model\\Comment\)\|null but returns object\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/comment/src/Model/Comment.php
-
-		-
 			message: '#^Call to an undefined method Pagekit\\Event\\EventInterface\:\:getContent\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: app/system/modules/content/src/ContentHelper.php
-
-		-
-			message: '#^Method Pagekit\\Content\\Plugin\\VideoPlugin\:\:applyPlugin\(\) should return string but empty return statement found\.$#'
-			identifier: return.empty
-			count: 1
-			path: app/system/modules/content/src/Plugin/VideoPlugin.php
 
 		-
 			message: '#^Parameter \#1 \$array of function array_pop is passed by reference, so it expects variables only\.$#'
@@ -1561,12 +1147,6 @@ parameters:
 			path: app/system/modules/intl/src/IntlModule.php
 
 		-
-			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: app/system/modules/intl/src/Loader/MoFileLoader.php
-
-		-
 			message: '#^PHPDoc tag @var for constant Pagekit\\Intl\\Loader\\MoFileLoader\:\:MO_BIG_ENDIAN_MAGIC with type float is incompatible with value 3725722773\.$#'
 			identifier: classConstant.phpDocType
 			count: 1
@@ -1583,18 +1163,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/system/modules/intl/src/Loader/MoFileLoader.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between null and array will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/system/modules/intl/src/Loader/MoFileLoader.php
-
-		-
-			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: app/system/modules/intl/src/Loader/PoFileLoader.php
 
 		-
 			message: '#^Parameter \#1 \$filename of function fopen expects string, resource given\.$#'
@@ -1645,12 +1213,6 @@ parameters:
 			path: app/system/modules/mail/src/Message.php
 
 		-
-			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertIsArray\(\) with array will always evaluate to true\.$#'
-			identifier: method.alreadyNarrowedType
-			count: 10
-			path: app/system/modules/mail/src/Tests/Controller/MailControllerTest.php
-
-		-
 			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertIsString\(\) with string will always evaluate to true\.$#'
 			identifier: method.alreadyNarrowedType
 			count: 2
@@ -1661,12 +1223,6 @@ parameters:
 			identifier: nullCoalesce.expr
 			count: 1
 			path: app/system/modules/mail/src/Tests/MailerTest.php
-
-		-
-			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertIsArray\(\) with array will always evaluate to true\.$#'
-			identifier: method.alreadyNarrowedType
-			count: 2
-			path: app/system/modules/mail/src/Tests/SendmailTransportTest.php
 
 		-
 			message: '#^Variable \$app might not be defined\.$#'
@@ -1699,30 +1255,6 @@ parameters:
 			path: app/system/modules/site/index.php
 
 		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:count\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/site/src/Controller/MenuApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:update\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: app/system/modules/site/src/Controller/MenuApiController.php
-
-		-
-			message: '#^Offset ''count'' does not exist on array\{id\: ''trash'', label\: mixed, fixed\: true\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: app/system/modules/site/src/Controller/MenuApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/site/src/Controller/NodeApiController.php
-
-		-
 			message: '#^Call to an undefined method Pagekit\\Module\\Module\:\:getType\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -1733,66 +1265,6 @@ parameters:
 			identifier: new.noConstructor
 			count: 1
 			path: app/system/modules/site/src/MenuHelper.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:orderBy\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/site/src/Model/Node.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: app/system/modules/site/src/Model/Node.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:whereIn\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/site/src/Model/Node.php
-
-		-
-			message: '#^Method Pagekit\\Site\\Model\\Node\:\:create\(\) should return static\(Pagekit\\Site\\Model\\Node\) but returns object\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/site/src/Model/Node.php
-
-		-
-			message: '#^Method Pagekit\\Site\\Model\\Node\:\:modelFind\(\) should return static\(Pagekit\\Site\\Model\\Node\)\|null but returns object\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/site/src/Model/Node.php
-
-		-
-			message: '#^Static property Pagekit\\Site\\Model\\Node\:\:\$properties \(array\) in isset\(\) is not nullable\.$#'
-			identifier: isset.property
-			count: 2
-			path: app/system/modules/site/src/Model/Node.php
-
-		-
-			message: '#^Access to an undefined static property static\(Pagekit\\Site\\Model\\Page\)\:\:\$properties\.$#'
-			identifier: staticProperty.notFound
-			count: 3
-			path: app/system/modules/site/src/Model/Page.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/site/src/Model/Page.php
-
-		-
-			message: '#^Method Pagekit\\Site\\Model\\Page\:\:create\(\) should return static\(Pagekit\\Site\\Model\\Page\) but returns object\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/site/src/Model/Page.php
-
-		-
-			message: '#^Method Pagekit\\Site\\Model\\Page\:\:find\(\) should return static\(Pagekit\\Site\\Model\\Page\)\|null but returns object\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/site/src/Model/Page.php
 
 		-
 			message: '#^PHPDoc tag @param references unknown parameter\: \$route$#'
@@ -2095,36 +1567,6 @@ parameters:
 			path: app/system/modules/user/mails/welcome.php
 
 		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:count\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: app/system/modules/user/src/Controller/UserApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:offset\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/user/src/Controller/UserApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 8
-			path: app/system/modules/user/src/Controller/UserApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:whereExists\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: app/system/modules/user/src/Controller/UserApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:whereInSet\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: app/system/modules/user/src/Controller/UserApiController.php
-
-		-
 			message: '#^Variable \$access might not be defined\.$#'
 			identifier: variable.undefined
 			count: 2
@@ -2155,12 +1597,6 @@ parameters:
 			path: app/system/modules/user/src/Controller/UserApiController.php
 
 		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:orderBy\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: app/system/modules/user/src/Controller/UserController.php
-
-		-
 			message: '#^Call to an undefined method Pagekit\\Auth\\UserInterface\:\:hasAccess\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -2183,66 +1619,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/system/modules/user/src/Event/UserListener.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/user/src/Model/Role.php
-
-		-
-			message: '#^Method Pagekit\\User\\Model\\Role\:\:create\(\) should return static\(Pagekit\\User\\Model\\Role\) but returns object\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/user/src/Model/Role.php
-
-		-
-			message: '#^Method Pagekit\\User\\Model\\Role\:\:find\(\) should return static\(Pagekit\\User\\Model\\Role\)\|null but returns object\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/user/src/Model/Role.php
-
-		-
-			message: '#^Static property Pagekit\\User\\Model\\Role\:\:\$properties \(array\) in isset\(\) is not nullable\.$#'
-			identifier: isset.property
-			count: 2
-			path: app/system/modules/user/src/Model/Role.php
-
-		-
-			message: '#^Access to an undefined static property static\(Pagekit\\User\\Model\\User\)\:\:\$properties\.$#'
-			identifier: staticProperty.notFound
-			count: 3
-			path: app/system/modules/user/src/Model/User.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:orWhere\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/user/src/Model/User.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:update\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/user/src/Model/User.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/user/src/Model/User.php
-
-		-
-			message: '#^Method Pagekit\\User\\Model\\User\:\:create\(\) should return static\(Pagekit\\User\\Model\\User\) but returns object\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/user/src/Model/User.php
-
-		-
-			message: '#^Method Pagekit\\User\\Model\\User\:\:find\(\) should return static\(Pagekit\\User\\Model\\User\)\|null but returns object\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/user/src/Model/User.php
 
 		-
 			message: '#^Parameter \#2 \$callback of function preg_replace_callback expects callable\(array\<string\>\)\: string, Closure\(mixed\)\: \(0\|1\) given\.$#'
@@ -2427,7 +1803,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property Pagekit\\Widget\\Model\\Widget\:\:\$position\.$#'
 			identifier: property.notFound
-			count: 3
+			count: 2
 			path: app/system/modules/widget/src/Controller/WidgetApiController.php
 
 		-
@@ -2435,30 +1811,6 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: app/system/modules/widget/src/Controller/WidgetController.php
-
-		-
-			message: '#^Access to an undefined static property static\(Pagekit\\Widget\\Model\\Widget\)\:\:\$properties\.$#'
-			identifier: staticProperty.notFound
-			count: 3
-			path: app/system/modules/widget/src/Model/Widget.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/widget/src/Model/Widget.php
-
-		-
-			message: '#^Method Pagekit\\Widget\\Model\\Widget\:\:create\(\) should return static\(Pagekit\\Widget\\Model\\Widget\) but returns object\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/widget/src/Model/Widget.php
-
-		-
-			message: '#^Method Pagekit\\Widget\\Model\\Widget\:\:find\(\) should return static\(Pagekit\\Widget\\Model\\Widget\)\|null but returns object\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: app/system/modules/widget/src/Model/Widget.php
 
 		-
 			message: '#^Variable \$view might not be defined\.$#'
@@ -2473,52 +1825,10 @@ parameters:
 			path: app/system/modules/widget/views/index.php
 
 		-
-			message: '#^Method Composer\\Autoload\\ClassLoader\:\:loadClass\(\) should return bool\|null but return statement is missing\.$#'
-			identifier: return.missing
-			count: 1
-			path: packages/composer/ClassLoader.php
-
-		-
-			message: '#^Comparison operation "\>\=" between int\<80200, 80599\> and 50600 is always true\.$#'
-			identifier: greaterOrEqual.alwaysTrue
-			count: 1
-			path: packages/composer/autoload_real.php
-
-		-
 			message: '#^Variable \$app might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
 			path: packages/pagekit/blog/index.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:count\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: packages/pagekit/blog/src/Controller/CommentApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:offset\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: packages/pagekit/blog/src/Controller/CommentApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:orWhere\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: packages/pagekit/blog/src/Controller/CommentApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:orderBy\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: packages/pagekit/blog/src/Controller/CommentApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 5
-			path: packages/pagekit/blog/src/Controller/CommentApiController.php
 
 		-
 			message: '#^Variable \$order might not be defined\.$#'
@@ -2537,24 +1847,6 @@ parameters:
 			identifier: variable.undefined
 			count: 1
 			path: packages/pagekit/blog/src/Controller/CommentApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:count\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: packages/pagekit/blog/src/Controller/PostApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:offset\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: packages/pagekit/blog/src/Controller/PostApiController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: packages/pagekit/blog/src/Controller/PostApiController.php
 
 		-
 			message: '#^Variable \$author might not be defined\.$#'
@@ -2587,64 +1879,10 @@ parameters:
 			path: packages/pagekit/blog/src/Controller/PostApiController.php
 
 		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:limit\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: packages/pagekit/blog/src/Controller/SiteController.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: packages/pagekit/blog/src/Controller/SiteController.php
-
-		-
 			message: '#^Access to an undefined property Pagekit\\Comment\\Model\\Comment\:\:\$post_id\.$#'
 			identifier: property.notFound
 			count: 1
 			path: packages/pagekit/blog/src/Event/PostListener.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:count\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: packages/pagekit/blog/src/Model/Post.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:select\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: packages/pagekit/blog/src/Model/Post.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:update\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: packages/pagekit/blog/src/Model/Post.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Database\\ORM\\QueryBuilder\:\:where\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: packages/pagekit/blog/src/Model/Post.php
-
-		-
-			message: '#^Method Pagekit\\Blog\\Model\\Post\:\:create\(\) should return static\(Pagekit\\Blog\\Model\\Post\) but returns object\.$#'
-			identifier: return.type
-			count: 1
-			path: packages/pagekit/blog/src/Model/Post.php
-
-		-
-			message: '#^Method Pagekit\\Blog\\Model\\Post\:\:find\(\) should return static\(Pagekit\\Blog\\Model\\Post\)\|null but returns object\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: packages/pagekit/blog/src/Model/Post.php
-
-		-
-			message: '#^Static property Pagekit\\Blog\\Model\\Post\:\:\$properties \(array\) in isset\(\) is not nullable\.$#'
-			identifier: isset.property
-			count: 2
-			path: packages/pagekit/blog/src/Model/Post.php
 
 		-
 			message: '#^Variable \$view might not be defined\.$#'

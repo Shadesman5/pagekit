@@ -82,6 +82,7 @@ class Node implements NodeInterface, \JsonSerializable
     #[ORM\Column(type: 'string')]
     public ?string $menu = '';
 
+    /** @var array<string, string> */
     protected static array $properties = [
         'accessible' => 'isAccessible',
     ];
@@ -103,6 +104,8 @@ class Node implements NodeInterface, \JsonSerializable
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, mixed>
      */
     public function jsonSerialize(): array
     {

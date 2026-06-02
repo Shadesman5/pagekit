@@ -12,10 +12,7 @@ class SystemModule extends Module
 {
     protected ?App $app = null;
 
-    /**
-     * {@inheritdoc}
-     */
-    public function main(App $app): void
+    public function main(App $app): mixed
     {
         $this->app = $app;
         $app->set('system', $this);
@@ -71,6 +68,7 @@ class SystemModule extends Module
         }
         $app->set('theme', $themeModule);
 
+        return null;
     }
 
     /**

@@ -11,12 +11,10 @@ use Pagekit\Site\Model\Node;
 class SiteModule extends Module
 {
     protected ?App $app = null;
+    /** @var array<string, array<string, mixed>>|null */
     protected ?array $types = null;
 
-    /**
-     * {@inheritdoc}
-     */
-    public function main(App $app): void
+    public function main(App $app): mixed
     {
         $this->app = $app;
 
@@ -42,10 +40,12 @@ class SiteModule extends Module
             return $menus;
         });
 
+        return null;
     }
 
     /**
      * @param  string $type
+     * @return array<string, mixed>|null
      */
     public function getType($type): ?array
     {
@@ -54,6 +54,9 @@ class SiteModule extends Module
         return isset($types[$type]) ? $types[$type] : null;
     }
 
+    /**
+     * @return array<string, array<string, mixed>>|null
+     */
     public function getTypes(): ?array
     {
         if (!$this->types) {
@@ -86,6 +89,10 @@ class SiteModule extends Module
         }
     }
 
+    /**
+     * @param string                $type
+     * @param array<string, mixed>  $route
+     */
     public function registerType($type, array $route): void
     {
         $this->assertBooted();

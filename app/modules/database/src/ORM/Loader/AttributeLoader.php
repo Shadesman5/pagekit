@@ -23,6 +23,10 @@ class AttributeLoader implements LoaderInterface
 {
     /**
      * {@inheritdoc}
+     *
+     * @param \ReflectionClass<object> $class
+     * @param array<string, mixed>     $config
+     * @return array<string, mixed>
      */
     public function load(\ReflectionClass $class, array $config = []): array
     {
@@ -165,6 +169,8 @@ class AttributeLoader implements LoaderInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @param \ReflectionClass<object> $class
      */
     public function isTransient(\ReflectionClass $class): bool
     {
@@ -179,6 +185,8 @@ class AttributeLoader implements LoaderInterface
      *
      * Converts "column DESC" or "column ASC" to ['column' => 'DESC']
      * Also supports multiple columns: "col1 DESC, col2 ASC" -> ['col1' => 'DESC', 'col2' => 'ASC']
+     *
+     * @return array<string, string>
      */
     protected function parseOrderBy(string $value): array
     {
@@ -199,6 +207,8 @@ class AttributeLoader implements LoaderInterface
 
     /**
      * Gets a class attribute.
+     *
+     * @param \ReflectionClass<object> $class
      */
     protected function getClassAttribute(\ReflectionClass $class, string $attributeClass): ?object
     {

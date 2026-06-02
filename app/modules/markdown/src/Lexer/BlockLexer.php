@@ -6,16 +6,22 @@ namespace Pagekit\Markdown\Lexer;
 
 class BlockLexer
 {
+    /** @var array<string, string> */
     protected array $rules;
+
+    /** @var array<int|string, mixed>|null */
     protected ?array $tokens = null;
+
+    /** @var array<string, mixed> */
     protected array $options;
 
+    /** @var array<string, array<string, string>>|null */
     protected static ?array $blocks = null;
 
     /**
      * Constructor.
      *
-     * @param array $options
+     * @param array<string, mixed> $options
      */
     public function __construct(array $options = [])
     {
@@ -26,9 +32,9 @@ class BlockLexer
     /**
      * Lex source to tokens.
      *
-     * @param  string $src
+     * @return array<int|string, mixed>|null
      */
-    public function lex($src): ?array
+    public function lex(string $src): ?array
     {
         $src = preg_replace(['/\r\n|\r/m', '/\t/m'], ["\n", '    '], $src);
         $src = str_replace(['\\u00a0', '\\u2424'], [' ', "\n"], $src);
@@ -42,9 +48,9 @@ class BlockLexer
     /**
      * Get tokens from source.
      *
-     * @param  string $src
+     * @return array<int|string, mixed>|null
      */
-    protected function token($src, $top = false, $bq = null): ?array
+    protected function token(string $src, bool $top = false, ?bool $bq = null): ?array
     {
         $src = preg_replace('/^ +$/m', '', $src);
 
@@ -362,7 +368,9 @@ class BlockLexer
     /**
      * Get block grammar rules for given options.
      *
-     * @param  array $options
+     * @param array<string, mixed> $options
+     *
+     * @return array<string, string>
      */
     protected static function rules(array $options): array
     {

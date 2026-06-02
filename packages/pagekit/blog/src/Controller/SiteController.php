@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace Pagekit\Blog\Controller;
 
+use Pagekit\Application\Response;
 use Pagekit\Application\UrlProvider;
 use Pagekit\Blog\Model\Post;
 use Pagekit\Captcha\Attribute\Captcha;
+use Pagekit\Content\ContentHelper;
+use Pagekit\Feed\FeedFactory;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\User\Model\User;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -21,17 +25,20 @@ class SiteController
     public function __construct(
         private readonly ModuleManager $module,
         private readonly User $user,
-        private readonly mixed $content,
-        private readonly mixed $feed,
+        private readonly ContentHelper $content,
+        private readonly FeedFactory $feed,
         private readonly UrlProvider $url,
-        private readonly mixed $response,
+        private readonly Response $response,
     ) {
         $this->blog = $module->get('blog');
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Route('/')]
     #[Route('/page/{page}', name: 'page', requirements: ['page' => '\d+'])]
-    public function indexAction($page = 1): array
+    public function indexAction(int $page = 1): array
     {
         $query = Post::where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime()])->where(function ($query) {
             return $query->where('roles IS NULL')->whereInSet('roles', $this->user->roles, false, 'OR');
@@ -71,7 +78,7 @@ class SiteController
 
     #[Route('/feed')]
     #[Route('/feed/{type}')]
-    public function feedAction($type = '')
+    public function feedAction(string $type = ''): HttpResponse
     {
         // fetch locale and convert to ISO-639 (en_US -> en-us)
         $locale = $this->module->get('system')->config('site.locale');
@@ -106,13 +113,16 @@ class SiteController
             );
         }
 
-        return $this->response->create($feed->output(), 200, ['Content-Type' => $feed->getMIMEType().'; charset='.$feed->getEncoding()]);
+        return $this->response->create($feed->generate(), 200, ['Content-Type' => $feed->getMIMEType().'; charset='.$feed->getEncoding()]);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Route('/{id}', name: 'id')]
     #[Captcha(route: '@blog/api/comment/save')]
     #[Captcha(route: '@blog/api/comment/save_1')]
-    public function postAction($id = 0): array
+    public function postAction(int $id = 0): array
     {
         if (!$post = Post::where(['id = ?', 'status = ?', 'date < ?'], [$id, Post::STATUS_PUBLISHED, new \DateTime()])->related('user')->first()) {
             throw new NotFoundHttpException(__('Post not found!'));

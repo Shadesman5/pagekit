@@ -11,6 +11,9 @@ use Pagekit\User\Attribute\Access;
 #[Access('site: manage site')]
 class PageApiController
 {
+    /**
+     * @return array<int, Page>
+     */
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
@@ -18,7 +21,7 @@ class PageApiController
     }
 
     #[Route('/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
-    public function getAction($id): Page
+    public function getAction(int $id): Page
     {
         return Page::find($id);
     }

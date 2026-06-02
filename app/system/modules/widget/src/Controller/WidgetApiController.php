@@ -10,7 +10,10 @@ use Pagekit\Routing\Attribute\Route;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
 use Pagekit\Widget\Model\Widget;
+use Pagekit\Widget\PositionManager;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * API Controller for Widget management.
@@ -21,12 +24,15 @@ class WidgetApiController
     use ValidatesRequestTrait;
 
     public function __construct(
-        private readonly mixed $position,
-        private readonly mixed $request,
-        private readonly mixed $validator,
+        private readonly PositionManager $position,
+        private readonly Request $request,
+        protected readonly ValidatorInterface $validator,
     ) {
     }
 
+    /**
+     * @return array{positions: array<int, array<string, mixed>>, unassigned: array<int, Widget>}
+     */
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
@@ -68,6 +74,9 @@ class WidgetApiController
         return $widget;
     }
 
+    /**
+     * @return array{message: string}
+     */
     #[Route('/assign', methods: ['POST'])]
     public function assignAction(): array
     {
@@ -91,6 +100,9 @@ class WidgetApiController
 
     /**
      * Save a widget (create or update).
+     *
+     * @param array<string, mixed>|null $data
+     * @return array<string, mixed>
      */
     #[Route('/', methods: ['POST'])]
     #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
@@ -140,6 +152,9 @@ class WidgetApiController
         return ['message' => 'success', 'widget' => $widget, 'data' => $data];
     }
 
+    /**
+     * @return array{message: string}
+     */
     #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\d+'])]
     public function deleteAction(int $id = 0): array
     {
@@ -157,6 +172,9 @@ class WidgetApiController
         return ['message' => 'success'];
     }
 
+    /**
+     * @return array{message: string}
+     */
     #[Route('/copy', methods: ['POST'])]
     public function copyAction(): array
     {
@@ -181,6 +199,9 @@ class WidgetApiController
         return ['message' => 'success'];
     }
 
+    /**
+     * @return array{message: string}
+     */
     #[Route('/bulk', methods: ['POST'])]
     public function bulkSaveAction(): array
     {
@@ -200,6 +221,9 @@ class WidgetApiController
         return ['message' => 'success'];
     }
 
+    /**
+     * @return array{message: string}
+     */
     #[Route('/bulk', methods: ['DELETE'])]
     public function bulkDeleteAction(): array
     {

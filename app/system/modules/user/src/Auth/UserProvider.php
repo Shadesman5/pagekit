@@ -41,6 +41,8 @@ class UserProvider implements UserProviderInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<string, mixed> $credentials
      */
     public function findByCredentials(array $credentials): ?UserInterface
     {
@@ -53,6 +55,8 @@ class UserProvider implements UserProviderInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<string, mixed> $credentials
      */
     public function validateCredentials(UserInterface $user, array $credentials): bool
     {

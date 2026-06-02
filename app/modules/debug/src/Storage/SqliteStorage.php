@@ -16,10 +16,10 @@ class SqliteStorage extends PdoStorage
     /**
      * Constructor.
      *
-     * @param string $dsn
-     * @param string $tableName
-     * @param array  $sqlQueries
-     * @param int    $maxEntries Maximum number of requests to keep (default: 100)
+     * @param string                $dsn
+     * @param string                $tableName
+     * @param array<string, string> $sqlQueries
+     * @param int                   $maxEntries Maximum number of requests to keep (default: 100)
      */
     public function __construct($dsn, $tableName = 'phpdebugbar', array $sqlQueries = [], int $maxEntries = 100)
     {

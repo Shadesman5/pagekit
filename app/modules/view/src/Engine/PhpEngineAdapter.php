@@ -20,11 +20,19 @@ class PhpEngineAdapter implements EngineInterface
 
     public function render($name, array $parameters = []): string
     {
+        if (is_array($name)) {
+            $name = $name['name'];
+        }
+
         return $this->engine->render($name, $parameters);
     }
 
     public function exists($name): bool
     {
+        if (is_array($name)) {
+            $name = $name['name'];
+        }
+
         return $this->engine->exists($name);
     }
 

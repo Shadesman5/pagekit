@@ -12,7 +12,7 @@ class BooleanFilter extends AbstractFilter
     /**
      * {@inheritdoc}
      */
-    public function filter($value): bool
+    public function filter(mixed $value): bool
     {
         return (bool) @(string) $value;
     }

@@ -11,7 +11,7 @@ class Zip implements ArchiveInterface
     /**
      * {@inheritdoc}
      */
-    public static function extract($archive, $path)
+    public static function extract(string $archive, string $path): bool|int
     {
         if (!class_exists('ZipArchive')) {
             throw new RuntimeException('You need the zip extension enabled');
@@ -28,10 +28,8 @@ class Zip implements ArchiveInterface
 
     /**
      * Give a meaningful error message to the user.
-     *
-     * @param  int $error
      */
-    protected static function getErrorMessage($error): string
+    protected static function getErrorMessage(int $error): string
     {
         switch ($error) {
             case \ZipArchive::ER_EXISTS:

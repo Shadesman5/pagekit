@@ -6,6 +6,7 @@ namespace Pagekit\User\Model;
 
 use Pagekit\Database\ORM\Attribute as ORM;
 use Pagekit\Database\ORM\ModelTrait;
+use Pagekit\Event\EventInterface;
 
 trait UserModelTrait
 {
@@ -61,7 +62,7 @@ trait UserModelTrait
     }
 
     #[ORM\Saving]
-    public static function saving($event, User $user): void
+    public static function saving(EventInterface $event, User $user): void
     {
         if (!$user->hasRole(Role::ROLE_AUTHENTICATED)) {
             $user->roles[] = Role::ROLE_AUTHENTICATED;

@@ -17,6 +17,7 @@ class DebugStack
     protected ?string $callstack = null;
     protected ?Stopwatch $stopwatch = null;
     public bool $enabled = true;
+    /** @var array<int, array<string, mixed>> */
     public array $queries = [];
     protected ?int $currentQuery = null;
 
@@ -28,8 +29,11 @@ class DebugStack
 
     /**
      * @deprecated
+     *
+     * @param array<int|string, mixed>|null $params
+     * @param array<int|string, mixed>|null $types
      */
-    public function startQuery($sql, array $params = null, array $types = null): void
+    public function startQuery(string $sql, array $params = null, array $types = null): void
     {
         // No-op for compatibility
     }

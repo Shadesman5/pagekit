@@ -8,12 +8,12 @@ use Twig\Cache\FilesystemCache;
 
 class TwigCache extends FilesystemCache
 {
-    protected $dir;
+    protected string $dir;
 
     /**
      * {@inheritdoc}
      */
-    public function __construct($directory, $options = 0)
+    public function __construct(string $directory, int $options = 0)
     {
         $this->dir = $directory;
 

@@ -7,11 +7,17 @@ namespace Pagekit\User\Controller;
 use function Pagekit\__;
 
 use Pagekit\Application\Exception;
-use Pagekit\Routing\Attribute\Request;
+use Pagekit\Application\UrlProvider;
+use Pagekit\Auth\Auth;
+use Pagekit\Auth\Encoder\PasswordEncoderInterface;
+use Pagekit\Routing\Attribute\Request as RequestAttr;
+use Pagekit\Routing\Router;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Model\User;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * Controller for user profile management.
@@ -21,16 +27,19 @@ class ProfileController
     use ValidatesRequestTrait;
 
     public function __construct(
-        private readonly mixed $user,
-        private readonly mixed $url,
-        private readonly mixed $auth,
-        private readonly mixed $router,
-        private readonly mixed $authPassword,
-        private readonly mixed $validator,
+        private readonly User $user,
+        private readonly UrlProvider $url,
+        private readonly Auth $auth,
+        private readonly Router $router,
+        private readonly PasswordEncoderInterface $authPassword,
+        protected readonly ValidatorInterface $validator,
     ) {
     }
 
-    public function indexAction()
+    /**
+     * @return array<string, mixed>|HttpResponse
+     */
+    public function indexAction(): array|HttpResponse
     {
         if (!$this->user->isAuthenticated()) {
             return $this->router->redirect('@user/login', ['redirect' => $this->url->current()]);
@@ -50,8 +59,12 @@ class ProfileController
         ];
     }
 
-    #[Request(['user' => 'array'], csrf: true)]
-    public function saveAction(array $data)
+    /**
+     * @param array<string, mixed> $data
+     * @return array{message: string}
+     */
+    #[RequestAttr(['user' => 'array'], csrf: true)]
+    public function saveAction(array $data): array
     {
         if (!$this->user->isAuthenticated()) {
             throw new NotFoundHttpException();

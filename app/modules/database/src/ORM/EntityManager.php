@@ -46,10 +46,8 @@ class EntityManager
 
     /**
      * Gets the metadata object of an entity class.
-     *
-     * @param  mixed $class
      */
-    public function getMetadata($class): Metadata
+    public function getMetadata(object|string $class): Metadata
     {
         return $this->metadata->get($class);
     }
@@ -101,9 +99,7 @@ class EntityManager
     /**
      * Relate target entities to the entity's relation.
      *
-     * @param  array|object $entities
-     * @param  string       $name
-     * @param  QueryBuilder $query
+     * @param  array<int, object>|object $entities
      * @throws \LogicException
      */
     public function related(array|object $entities, string $name, QueryBuilder $query): void
@@ -126,8 +122,7 @@ class EntityManager
     /**
      * Saves an entity.
      *
-     * @param object $entity
-     * @param array  $data
+     * @param array<string, mixed> $data
      */
     public function save(object $entity, array $data = []): void
     {
@@ -211,9 +206,7 @@ class EntityManager
     /**
      * Hydrates all rows returned by the passed statement instance at once.
      *
-     * @param  object   $statement
-     * @param  Metadata $metadata
-     * @return array
+     * @return array<int|string, object>
      */
     public function hydrateAll(object $statement, Metadata $metadata): array
     {
@@ -231,10 +224,7 @@ class EntityManager
     /**
      * Loads an entity or creates a new one if it does not already exist.
      *
-     * @param  Metadata $metadata
-     * @param  array    $data
-     * @param  bool     $column
-     * @param  bool     $convert
+     * @param array<string, mixed> $data
      */
     public function load(Metadata $metadata, array $data, bool $column = false, bool $convert = false): object
     {
@@ -249,9 +239,7 @@ class EntityManager
     /**
      * Dispatches an event to all registered listeners.
      *
-     * @param  string   $name
-     * @param  Metadata $metadata
-     * @param  array    $arguments
+     * @param array<int, mixed> $arguments
      */
     public function trigger(string $name, Metadata $metadata, array $arguments): void
     {

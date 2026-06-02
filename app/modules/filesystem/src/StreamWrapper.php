@@ -33,11 +33,8 @@ class StreamWrapper
 
     /**
      * Open directory handle.
-     *
-     * @param  string $path
-     * @param  int    $options
      */
-    public function dir_opendir($path, $options): bool
+    public function dir_opendir(string $path, int $options): bool
     {
         $resolved = self::$file->getPath($path, true);
         if ($resolved === false) {
@@ -51,10 +48,8 @@ class StreamWrapper
 
     /**
      * Read entry from directory handle.
-     *
-     * @return string
      */
-    public function dir_readdir()
+    public function dir_readdir(): string|false
     {
         return readdir($this->handle);
     }
@@ -71,12 +66,8 @@ class StreamWrapper
 
     /**
      * Create a directory.
-     *
-     * @param  string $path
-     * @param  int    $mode
-     * @param  int    $options
      */
-    public function mkdir($path, $mode, $options): bool
+    public function mkdir(string $path, int $mode, int $options): bool
     {
         $resolved = self::$file->getPath($path, true);
         if ($resolved === false) {
@@ -88,11 +79,8 @@ class StreamWrapper
 
     /**
      * Renames a file or directory.
-     *
-     * @param  string $pathFrom
-     * @param  string $pathTo
      */
-    public function rename($pathFrom, $pathTo): bool
+    public function rename(string $pathFrom, string $pathTo): bool
     {
         $resolvedFrom = self::$file->getPath($pathFrom, true);
         $resolvedTo = self::$file->getPath($pathTo, true);
@@ -105,11 +93,8 @@ class StreamWrapper
 
     /**
      * Removes a directory.
-     *
-     * @param  string $path
-     * @param  int    $options
      */
-    public function rmdir($path, $options): bool
+    public function rmdir(string $path, int $options): bool
     {
         $resolved = self::$file->getPath($path, true);
         if ($resolved === false) {
@@ -121,10 +106,8 @@ class StreamWrapper
 
     /**
      * Delete a file.
-     *
-     * @param  $path string
      */
-    public function unlink($path): bool
+    public function unlink(string $path): bool
     {
         $resolved = self::$file->getPath($path, true);
         if ($resolved === false) {
@@ -137,11 +120,9 @@ class StreamWrapper
     /**
      * Retrieve information about a file.
      *
-     * @param  string $path
-     * @param  int    $flags
-     * @return array|false
+     * @return array<int|string, mixed>|false
      */
-    public function url_stat($path, $flags)
+    public function url_stat(string $path, int $flags): array|false
     {
         $path = self::$file->getPath($path, true);
 
@@ -158,11 +139,8 @@ class StreamWrapper
 
     /**
      * Retrieve the underlaying resource.
-     *
-     * @param  int $castAs
-     * @return resource
      */
-    public function stream_cast($castAs): bool
+    public function stream_cast(int $castAs): bool
     {
         return false;
     }
@@ -193,10 +171,8 @@ class StreamWrapper
 
     /**
      * Advisory file locking.
-     *
-     * @param  int $operation
      */
-    public function stream_lock($operation): bool
+    public function stream_lock(int $operation): bool
     {
         if (in_array($operation, [LOCK_SH, LOCK_EX, LOCK_UN, LOCK_NB])) {
             return flock($this->handle, $operation);
@@ -207,13 +183,8 @@ class StreamWrapper
 
     /**
      * Opens file or URL.
-     *
-     * @param  string $path
-     * @param  string $mode
-     * @param  int    $options
-     * @param  string $openedPath
      */
-    public function stream_open($path, $mode, $options, &$openedPath): bool
+    public function stream_open(string $path, string $mode, int $options, ?string &$openedPath): bool
     {
         $resolved = self::$file->getPath($path, true);
         if ($resolved === false) {
@@ -227,22 +198,16 @@ class StreamWrapper
 
     /**
      * Read from stream.
-     *
-     * @param  int $count
-     * @return bool
      */
-    public function stream_read($count)
+    public function stream_read(int $count): string|false
     {
         return fread($this->handle, $count);
     }
 
     /**
      * Seeks to specific location in a stream.
-     *
-     * @param  int $offset
-     * @param  int $whence
      */
-    public function stream_seek($offset, $whence): bool
+    public function stream_seek(int $offset, int $whence): bool
     {
         return !fseek($this->handle, $offset, $whence);
     }
@@ -250,30 +215,25 @@ class StreamWrapper
     /**
      * Retrieve information about a file resource.
      *
-     * @return array
+     * @return array<int|string, mixed>|false
      */
-    public function stream_stat()
+    public function stream_stat(): array|false
     {
         return fstat($this->handle);
     }
 
     /**
      * Retrieve the current position of a stream.
-     *
-     * @return int
      */
-    public function stream_tell()
+    public function stream_tell(): int|false
     {
         return ftell($this->handle);
     }
 
     /**
      * Write to stream.
-     *
-     * @param  string $data
-     * @return int
      */
-    public function stream_write($data)
+    public function stream_write(string $data): int|false
     {
         return fwrite($this->handle, $data);
     }

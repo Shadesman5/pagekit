@@ -12,12 +12,11 @@ use Pagekit\User\Model\User;
 class UserModule extends Module
 {
     protected ?App $app = null;
+
+    /** @var array<string, array<string, mixed>> */
     protected array $perms = [];
 
-    /**
-     * {@inheritdoc}
-     */
-    public function main(App $app): void
+    public function main(App $app): mixed
     {
         $this->app = $app;
         $app->set('user', function ($app) {
@@ -28,6 +27,8 @@ class UserModule extends Module
 
             return $user;
         });
+
+        return null;
     }
 
     private function assertBooted(): void
@@ -37,6 +38,9 @@ class UserModule extends Module
         }
     }
 
+    /**
+     * @return array<string, array<string, mixed>>
+     */
     public function getPermissions(): array
     {
         if (!$this->perms) {
@@ -57,10 +61,9 @@ class UserModule extends Module
     /**
      * Register permissions.
      *
-     * @param string $extension
-     * @param array  $permissions
+     * @param array<string, mixed> $permissions
      */
-    public function registerPermissions($extension, array $permissions = []): void
+    public function registerPermissions(string $extension, array $permissions = []): void
     {
         $this->perms[$extension] = $permissions;
     }

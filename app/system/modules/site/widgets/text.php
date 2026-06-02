@@ -13,7 +13,7 @@ return [
     'events' => [
 
         'view.scripts' => function ($event, $scripts) {
-            $scripts->register('widget-text', 'system/site:app/bundle/widget-text.js', '~widgets');
+            $scripts->register('widget-text', 'system/site:app/bundle/widget-text.js', ['~widgets']);
         },
 
     ],

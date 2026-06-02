@@ -6,6 +6,7 @@ namespace Pagekit\Database\ORM;
 
 trait PropertyTrait
 {
+    /** @var array<string, array<string, mixed>> */
     protected static array $_properties = [];
 
     /**
@@ -90,9 +91,19 @@ trait PropertyTrait
     /**
      * Gets all object properties.
      *
-     * @param  mixed $object
+     * Consumers may declare a `protected static array $properties` map of
+     * virtual property names to accessor methods; this trait does not declare
+     * the field itself, so we look it up dynamically via reflection to remain
+     * compatible with both consumer shapes (with and without the map).
+     * `ReflectionClass::getStaticProperties()` returns the current runtime
+     * value of static properties (unlike `get_class_vars()`, which only
+     * returns declared defaults), preserving consumer-side runtime mutations.
+     * PHPStan cannot statically type-narrow `static::$properties` from a
+     * trait that does not own the property, hence this reflection lookup.
+     *
+     * @return array<string, mixed>
      */
-    public static function getProperties($object): array
+    public static function getProperties(object $object): array
     {
         $properties = get_object_vars($object);
 
@@ -100,8 +111,9 @@ trait PropertyTrait
             $properties[$name] = $object->$name;
         }
 
-        if (isset(static::$properties)) {
-            foreach (array_keys(array_diff_key(static::$properties, $properties)) as $name) {
+        $staticProperties = (new \ReflectionClass(static::class))->getStaticProperties();
+        if (isset($staticProperties['properties']) && is_array($staticProperties['properties'])) {
+            foreach (array_keys(array_diff_key($staticProperties['properties'], $properties)) as $name) {
                 $properties[$name] = $object->$name;
             }
         }
@@ -112,9 +124,9 @@ trait PropertyTrait
     /**
      * Defines an object property.
      *
-     * @param  string                $name
-     * @param  string|callable|array $get
-     * @param  string|callable|bool  $set
+     * @param  string|callable|array<string, mixed> $get
+     * @param  string|callable|bool|null            $set
+     * @return array<string, mixed>
      */
     public static function defineProperty(string $name, mixed $get, mixed $set = null): array
     {
@@ -136,8 +148,10 @@ trait PropertyTrait
     /**
      * Gets an object property descriptor.
      *
-     * @param  string $name
-     * @return array
+     * See {@see getProperties()} for the reasoning behind the reflection
+     * lookup of the optional consumer-declared `$properties` map.
+     *
+     * @return array<string, mixed>|null
      */
     protected static function getPropertyDescriptor(string $name): ?array
     {
@@ -145,8 +159,9 @@ trait PropertyTrait
             return static::$_properties[$name];
         }
 
-        if (isset(static::$properties, static::$properties[$name])) {
-            return static::defineProperty($name, static::$properties[$name]);
+        $staticProperties = (new \ReflectionClass(static::class))->getStaticProperties();
+        if (isset($staticProperties['properties']) && is_array($staticProperties['properties']) && isset($staticProperties['properties'][$name])) {
+            return static::defineProperty($name, $staticProperties['properties'][$name]);
         }
 
         return null;

@@ -8,16 +8,23 @@ use Pagekit\Markdown\Lexer\InlineLexer;
 
 class Parser
 {
-    protected $token;
+    /** @var array<string, mixed>|null */
+    protected ?array $token = null;
+
+    /** @var array<int, array<string, mixed>>|null */
     protected ?array $tokens = null;
+
     protected ?InlineLexer $inline = null;
-    protected $renderer;
+
+    protected Renderer $renderer;
+
+    /** @var array<string, mixed> */
     protected array $options;
 
     /**
      * Constructor.
      *
-     * @param array $options
+     * @param array<string, mixed> $options
      */
     public function __construct(array $options = [])
     {
@@ -28,9 +35,9 @@ class Parser
     /**
      * Compiling method.
      *
-     * @param  array $src
+     * @param array{links: array<string, mixed>}&array<int|string, mixed> $src
      */
-    public function parse($src): string
+    public function parse(array $src): string
     {
         $this->inline = new InlineLexer($src['links'], $this->options);
 
@@ -49,6 +56,8 @@ class Parser
 
     /**
      * Next token.
+     *
+     * @return array<string, mixed>|null
      */
     protected function next(): ?array
     {
@@ -57,8 +66,10 @@ class Parser
 
     /**
      * Preview next token.
+     *
+     * @return array<string, mixed>|false
      */
-    protected function peek(): array
+    protected function peek(): array|false
     {
         return end($this->tokens);
     }
@@ -80,10 +91,8 @@ class Parser
 
     /**
      * Parse current token.
-     *
-     * @return string
      */
-    protected function tok()
+    protected function tok(): string
     {
         $body = '';
 
@@ -182,5 +191,7 @@ class Parser
 
                 return $this->renderer->paragraph($this->parseText());
         }
+
+        return '';
     }
 }

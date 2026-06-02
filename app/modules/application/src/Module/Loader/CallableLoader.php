@@ -11,20 +11,12 @@ class CallableLoader implements LoaderInterface
      */
     protected $callable;
 
-    /**
-     * Constructor.
-     *
-     * @param callable $callable
-     */
     public function __construct(callable $callable)
     {
         $this->callable = $callable;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function load($module)
+    public function load(mixed $module): mixed
     {
         return call_user_func($this->callable, $module);
     }

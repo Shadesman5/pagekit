@@ -6,42 +6,35 @@ namespace Pagekit\Event;
 
 use Pagekit\Util\Arr;
 
+/**
+ * @implements \ArrayAccess<string, mixed>
+ */
 class Event implements EventInterface, \ArrayAccess
 {
     protected string $name;
 
+    /** @var array<string, mixed> */
     protected array $parameters;
 
     protected bool $propagationStopped = false;
 
-    protected ?\Pagekit\Event\EventDispatcherInterface $dispatcher = null;
+    protected ?EventDispatcherInterface $dispatcher = null;
 
     /**
-     * Constructor.
-     *
-     * @param string $name
-     * @param array  $parameters
+     * @param array<string, mixed> $parameters
      */
-    public function __construct($name, array $parameters = [])
+    public function __construct(string $name, array $parameters = [])
     {
         $this->name = $name;
         $this->parameters = $parameters;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getName(): string
     {
         return $this->name;
     }
 
-    /**
-     * Sets the event name.
-     *
-     * @param  string $name
-     */
-    public function setName($name): self
+    public function setName(string $name): self
     {
         $this->name = $name;
 
@@ -49,9 +42,7 @@ class Event implements EventInterface, \ArrayAccess
     }
 
     /**
-     * Gets all parameters.
-     *
-     * @return array|object|\ArrayAccess
+     * @return array<string, mixed>
      */
     public function getParameters(): array
     {
@@ -59,9 +50,7 @@ class Event implements EventInterface, \ArrayAccess
     }
 
     /**
-     * Sets all parameters.
-     *
-     * @param  array
+     * @param array<string, mixed> $parameters
      */
     public function setParameters(array $parameters): self
     {
@@ -71,10 +60,9 @@ class Event implements EventInterface, \ArrayAccess
     }
 
     /**
-     * @param  mixed $values
-     * @param  bool  $replace
+     * @param array<string, mixed> $values
      */
-    public function addParameters(array $values, $replace = false): self
+    public function addParameters(array $values, bool $replace = false): self
     {
         $this->parameters = Arr::merge($this->parameters, $values, $replace);
 
@@ -115,46 +103,22 @@ class Event implements EventInterface, \ArrayAccess
         $this->propagationStopped = true;
     }
 
-    /**
-     * Checks if a parameter exists.
-     *
-     * @param  string $name
-     * @return mixed
-     */
-    public function offsetExists($name): bool
+    public function offsetExists(mixed $name): bool
     {
         return isset($this->parameters[$name]);
     }
 
-    /**
-     * Gets a parameter or an object.
-     *
-     * @param  string $name
-     * @return mixed
-     */
-    #[\ReturnTypeWillChange]
-    public function offsetGet($name)
+    public function offsetGet(mixed $name): mixed
     {
-        return isset($this->parameters[$name]) ? $this->parameters[$name] : null;
+        return $this->parameters[$name] ?? null;
     }
 
-    /**
-     * Sets a parameter.
-     *
-     * @param  string   $name
-     * @param  callable $callback
-     */
-    public function offsetSet($name, $callback): void
+    public function offsetSet(mixed $name, mixed $callback): void
     {
         $this->parameters[$name] = $callback;
     }
 
-    /**
-     * Unsets a parameter.
-     *
-     * @param string $name
-     */
-    public function offsetUnset($name): void
+    public function offsetUnset(mixed $name): void
     {
         unset($this->parameters[$name]);
     }

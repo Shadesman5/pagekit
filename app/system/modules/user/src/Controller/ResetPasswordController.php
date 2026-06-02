@@ -7,28 +7,42 @@ namespace Pagekit\User\Controller;
 use function Pagekit\__;
 
 use Pagekit\Application\Exception;
+use Pagekit\Application\UrlProvider;
+use Pagekit\Auth\Encoder\PasswordEncoderInterface;
+use Pagekit\Mail\Mailer;
+use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Route;
+use Pagekit\Routing\Router;
+use Pagekit\Session\Csrf\Provider\CsrfProviderInterface;
+use Pagekit\Session\MessageBag;
 use Pagekit\User\Model\User;
+use Pagekit\View\View;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 class ResetPasswordController
 {
     public function __construct(
-        private readonly mixed $user,
-        private readonly mixed $request,
-        private readonly mixed $session,
-        private readonly mixed $csrf,
-        private readonly mixed $url,
-        private readonly mixed $mailer,
-        private readonly mixed $module,
-        private readonly mixed $view,
-        private readonly mixed $message,
-        private readonly mixed $router,
-        private readonly mixed $authPassword,
+        private readonly User $user,
+        private readonly Request $request,
+        private readonly SessionInterface $session,
+        private readonly CsrfProviderInterface $csrf,
+        private readonly UrlProvider $url,
+        private readonly Mailer $mailer,
+        private readonly ModuleManager $module,
+        private readonly View $view,
+        private readonly MessageBag $message,
+        private readonly Router $router,
+        private readonly PasswordEncoderInterface $authPassword,
     ) {
     }
 
-    public function indexAction()
+    /**
+     * @return array<string, mixed>|HttpResponse
+     */
+    public function indexAction(): array|HttpResponse
     {
         if ($this->user->isAuthenticated()) {
             return $this->router->redirect();
@@ -43,8 +57,11 @@ class ResetPasswordController
         ];
     }
 
+    /**
+     * @return array<string, mixed>|HttpResponse
+     */
     #[Route('/request', methods: ['POST'])]
-    public function requestAction()
+    public function requestAction(): array|HttpResponse
     {
         $email = $this->request->request->get('email', '');
 
@@ -94,7 +111,7 @@ class ResetPasswordController
             $user->activation = $key;
             $user->save();
 
-            $this->message->success(__('Check your email for the confirmation link.'));
+            $this->message->success((string) __('Check your email for the confirmation link.'));
 
             return $this->router->redirect('@user/login');
 
@@ -109,9 +126,12 @@ class ResetPasswordController
         }
     }
 
+    /**
+     * @return array<string, mixed>|HttpResponse
+     */
     #[Route('/confirm', methods: ['GET'])]
     #[Route('/confirm', methods: ['POST'])]
-    public function confirmAction()
+    public function confirmAction(): array|HttpResponse
     {
         if ($this->request->isMethod('GET')) {
             $activation = $this->request->query->get('key', '');
@@ -186,7 +206,7 @@ class ResetPasswordController
 
                 $this->session->remove('activation');
 
-                $this->message->success(__('Your password has been reset.'));
+                $this->message->success((string) __('Your password has been reset.'));
 
                 return $this->router->redirect('@user/login');
 

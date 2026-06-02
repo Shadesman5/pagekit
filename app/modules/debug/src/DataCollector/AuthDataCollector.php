@@ -24,6 +24,8 @@ class AuthDataCollector implements DataCollectorInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, mixed>
      */
     public function collect(): array
     {
@@ -43,7 +45,7 @@ class AuthDataCollector implements DataCollectorInterface
             $user = null;
         }
 
-        if (null === $user) {
+        if (!$user instanceof User) {
             return [
                 'enabled' => true,
                 'authenticated' => false,
@@ -58,9 +60,6 @@ class AuthDataCollector implements DataCollectorInterface
             'authenticated' => $user->isAuthenticated(),
             'user_class' => get_class($user),
             'user' => $user->getUsername(),
-            // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6 — Return Types) —
-            // Auth::getUser() returns UserInterface which lacks isAuthenticated() and roles.
-            // Either extend UserInterface or type-narrow $user to User here.
             'roles' => array_map(fn ($role) => $role->name, User::findRoles($user)),
         ];
 

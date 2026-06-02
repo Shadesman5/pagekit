@@ -5,18 +5,21 @@ declare(strict_types=1);
 namespace Pagekit\User\Event;
 
 use Pagekit\Auth\Auth;
+use Pagekit\Auth\Encoder\PasswordEncoderInterface;
 use Pagekit\Auth\Event\AuthenticateEvent;
 use Pagekit\Auth\Event\AuthorizeEvent;
 use Pagekit\Auth\Exception\AuthException;
 use Pagekit\Event\EventSubscriberInterface;
 use Pagekit\User\Auth\UserProvider;
+use Pagekit\User\Model\User;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 class AuthorizationListener implements EventSubscriberInterface
 {
     public function __construct(
-        private readonly mixed $auth,
-        private readonly mixed $authPassword,
-        private readonly mixed $session,
+        private readonly Auth $auth,
+        private readonly PasswordEncoderInterface $authPassword,
+        private readonly SessionInterface $session,
     ) {
     }
 
@@ -33,7 +36,8 @@ class AuthorizationListener implements EventSubscriberInterface
      */
     public function onRequest(): void
     {
-        if ($user = $this->auth->getUser() and $user->isBlocked()) {
+        $user = $this->auth->getUser();
+        if ($user instanceof User && $user->isBlocked()) {
             $this->auth->logout();
         }
     }
@@ -41,7 +45,6 @@ class AuthorizationListener implements EventSubscriberInterface
     /**
      * Blocks users that are either not activated or blocked.
      *
-     * @param  AuthorizeEvent $event
      * @throws AuthException
      */
     public function onAuthorize(AuthorizeEvent $event): void
@@ -72,6 +75,8 @@ class AuthorizationListener implements EventSubscriberInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, mixed>
      */
     public function subscribe(): array
     {

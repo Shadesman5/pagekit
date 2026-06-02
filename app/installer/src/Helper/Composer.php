@@ -15,23 +15,25 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class Composer
 {
+    /** @var array<string, string> */
     public array $paths;
 
+    /** @var array<string, mixed> */
     public array $blueprint;
 
     protected ?InstallerIO $io = null;
 
     protected ?OutputInterface $output = null;
 
+    /** @var array<string, string> */
     protected array $packages = [];
 
     protected string $file = 'packages.php';
 
     /**
-     * @param array $config
-     * @param null  $output
+     * @param array<string, string> $config
      */
-    public function __construct($config, $output = null)
+    public function __construct(array $config, ?OutputInterface $output = null)
     {
         $this->paths = $config;
         $this->output = $output;
@@ -46,12 +48,9 @@ class Composer
     }
 
     /**
-     * @param array $install [name => version, name => version, ...]
-     * @param bool $packagist
-     * @param bool $writeConfig
-     * @param bool $preferSource
+     * @param array<string, string> $install [name => version, name => version, ...]
      */
-    public function install(array $install, $packagist = false, $writeConfig = true, $preferSource = false): void
+    public function install(array $install, bool $packagist = false, bool $writeConfig = true, bool $preferSource = false): void
     {
         $this->addPackages($install);
 
@@ -74,10 +73,9 @@ class Composer
 
 
     /**
-     * @param array|string $uninstall [name, name, ...]
-     * @param bool $writeConfig
+     * @param array<int, string>|string $uninstall [name, name, ...]
      */
-    public function uninstall($uninstall, $writeConfig = true): void
+    public function uninstall(array|string $uninstall, bool $writeConfig = true): void
     {
         $uninstall = (array) $uninstall;
 
@@ -92,10 +90,8 @@ class Composer
 
     /**
      * Checks if a package is installed by composer.
-     *
-     * @param $name
      */
-    public function isInstalled($name): bool
+    public function isInstalled(string $name): bool
     {
         $installed = $this->paths['path.packages'] . '/composer/installed.json';
         $installed = file_exists($installed) ? json_decode(file_get_contents($installed), true) : [];
@@ -108,13 +104,11 @@ class Composer
     /**
      * Runs Composer Update command.
      *
-     * @param  array|bool $updates
-     * @param array $refresh
-     * @param bool $packagist
-     * @param bool $preferSource
+     * @param  array<int, string>|bool $updates
+     * @param  array<int, Package>     $refresh
      * @throws \Exception
      */
-    protected function composerUpdate($updates = false, $refresh = [], $packagist = false, $preferSource = false): void
+    protected function composerUpdate(array|bool $updates = false, array $refresh = [], bool $packagist = false, bool $preferSource = false): void
     {
         $installed = new JsonFile($this->paths['path.vendor'] . '/composer/installed.json');
         $internal = new CompositeRepository([]);
@@ -149,10 +143,9 @@ class Composer
     /**
      * Returns composer instance.
      *
-     * @param bool $packagist
      * @return null
      */
-    protected function getComposer($packagist = false): \Composer\Composer
+    protected function getComposer(bool $packagist = false): \Composer\Composer
     {
         $config = $this->blueprint;
         $config['config'] = ['vendor-dir' => $this->paths['path.packages'], 'cache-files-ttl' => 0];
@@ -192,23 +185,25 @@ class Composer
     }
 
     /**
-     * @param $packages
+     * @param array<string, string> $packages
      */
-    protected function addPackages($packages): void
+    protected function addPackages(array $packages): void
     {
         $this->packages = array_merge($this->readConfig(), $packages);
     }
 
     /**
-     * @param $packages
+     * @param array<int, string> $packages
      */
-    protected function removePackages($packages): void
+    protected function removePackages(array $packages): void
     {
         $this->packages = array_diff_key($this->readConfig(), array_flip($packages));
     }
 
     /**
      * Reads packages from package file.
+     *
+     * @return array<string, string>
      */
     protected function readConfig(): array
     {
@@ -225,11 +220,8 @@ class Composer
 
     /**
      * Converts memory value from 'php.ini' into bytes.
-     *
-     * @param $value
-     * @return int
      */
-    protected function memoryInBytes($value)
+    protected function memoryInBytes(string $value): int
     {
         $unit = strtolower(substr($value, -1, 1));
         $value = (int) $value;

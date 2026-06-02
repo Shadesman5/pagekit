@@ -9,49 +9,34 @@ class ControllerEvent extends KernelEvent
     use ResponseTrait;
 
     /**
-     * @var callable
+     * @var callable|array{0: object|class-string, 1: string}|null
      */
-    protected $controller;
+    protected $controller = null;
+
+    protected mixed $controllerResult = null;
 
     /**
-     * @var mixed
+     * @return callable|array{0: object|class-string, 1: string}|null
      */
-    protected $controllerResult;
-
-    /**
-     * Gets the controller.
-     */
-    public function getController(): callable
+    public function getController(): callable|array|null
     {
         return $this->controller;
     }
 
     /**
-     * Sets the controller.
-     *
-     * @param callable $controller
+     * @param callable|array{0: object|class-string, 1: string} $controller
      */
-    public function setController(callable $controller): void
+    public function setController(callable|array $controller): void
     {
         $this->controller = $controller;
     }
 
-    /**
-     * Gets the controller result.
-     *
-     * @return mixed
-     */
-    public function getControllerResult()
+    public function getControllerResult(): mixed
     {
         return $this->controllerResult;
     }
 
-    /**
-     * Sets the controller result.
-     *
-     * @param mixed $controllerResult
-     */
-    public function setControllerResult($controllerResult): void
+    public function setControllerResult(mixed $controllerResult): void
     {
         $this->controllerResult = $controllerResult;
     }

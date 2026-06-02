@@ -12,7 +12,7 @@ use Symfony\Component\Routing\RouterInterface;
 class RoutesDataCollector implements DataCollectorInterface
 {
     protected \Pagekit\Routing\Router $router;
-    protected $route;
+    protected ?string $route = null;
     protected string $cache;
     protected string $file;
 
@@ -30,13 +30,16 @@ class RoutesDataCollector implements DataCollectorInterface
         $this->cache = $cache;
         $this->file = $file;
 
-        $events->on('request', function ($event, $request) {
-            $this->route = $request->attributes->get('_route');
+        $events->on('request', function ($event, $request): void {
+            $route = $request->attributes->get('_route');
+            $this->route = is_string($route) ? $route : null;
         });
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @return array{routes: array<int, array<string, mixed>>, route: string|null}
      */
     public function collect(): array
     {

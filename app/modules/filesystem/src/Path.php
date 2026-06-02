@@ -9,11 +9,9 @@ class Path
     /**
      * Parses and canonicalizes a path into root, path, dirname, pathname, protocol.
      *
-     * @param  string $path
-     * @param  string $option
-     * @return array
+     * @return string|array<string, string>
      */
-    public static function parse($path, $option = null)
+    public static function parse(string $path, ?string $option = null): string|array
     {
         $root = '';
         $path = strtr($path, '\\', '/');
@@ -58,20 +56,16 @@ class Path
 
     /**
      * Returns whether a path is absolute.
-     *
-     * @param  string $path
      */
-    public static function isAbsolute($path): bool
+    public static function isAbsolute(string $path): bool
     {
         return self::parse($path, 'root') !== '';
     }
 
     /**
      * Returns whether a path is relative.
-     *
-     * @param  string $path
      */
-    public static function isRelative($path): bool
+    public static function isRelative(string $path): bool
     {
         return self::parse($path, 'root') === '';
     }

@@ -25,11 +25,15 @@ class ManyToMany extends Relation
 
     /**
      * The order by condition
+     *
+     * @var array<string, string>
      */
     protected array $orderBy;
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<string, mixed> $mapping
      */
     public function __construct(\Pagekit\Database\ORM\EntityManager $manager, \Pagekit\Database\ORM\Metadata $metadata, array $mapping)
     {
@@ -58,6 +62,8 @@ class ManyToMany extends Relation
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<int, object> $entities
      */
     public function resolve(array $entities, QueryBuilder $query): void
     {

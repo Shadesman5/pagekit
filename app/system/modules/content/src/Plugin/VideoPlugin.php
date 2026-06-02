@@ -26,13 +26,12 @@ class VideoPlugin implements EventSubscriberInterface
     /**
      * Defines the plugins callback.
      *
-     * @param  array $options
-     * @return string
+     * @param array<string, mixed> $options
      */
-    public function applyPlugin(array $options)
+    public function applyPlugin(array $options): string
     {
         if (!isset($options['src'])) {
-            return;
+            return '';
         }
 
         $src = $options['src'];
@@ -94,6 +93,8 @@ class VideoPlugin implements EventSubscriberInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, array{string, int}>
      */
     public function subscribe(): array
     {

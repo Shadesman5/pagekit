@@ -6,7 +6,6 @@ namespace Pagekit\Filesystem\Tests;
 
 use Pagekit\Filesystem\Adapter\FileAdapter;
 use Pagekit\Filesystem\Filesystem;
-use Pagekit\Tests\FileUtil;
 use PHPUnit\Framework\TestCase;
 
 class FilesystemTest extends TestCase
@@ -15,7 +14,7 @@ class FilesystemTest extends TestCase
 
     protected ?Filesystem $file = null;
     protected ?string $fixtures = null;
-    protected $workspace;
+    protected ?string $workspace = null;
 
     public function setUp(): void
     {

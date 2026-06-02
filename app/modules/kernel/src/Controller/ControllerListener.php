@@ -5,20 +5,17 @@ declare(strict_types=1);
 namespace Pagekit\Kernel\Controller;
 
 use Pagekit\Event\EventSubscriberInterface;
+use Pagekit\Kernel\Event\ControllerEvent;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class ControllerListener implements EventSubscriberInterface
 {
-    protected \Pagekit\Kernel\Controller\ControllerResolver $resolver;
+    protected ControllerResolver $resolver;
 
-    protected ?\Pagekit\Kernel\Controller\LoggerInterface $logger = null;
+    protected ?LoggerInterface $logger = null;
 
-    /**
-     * Constructor.
-     *
-     * @param ControllerResolver $resolver
-     * @param LoggerInterface    $logger
-     */
     public function __construct(ControllerResolver $resolver, ?LoggerInterface $logger = null)
     {
         $this->resolver = $resolver;
@@ -27,11 +24,8 @@ class ControllerListener implements EventSubscriberInterface
 
     /**
      * Sets the controller.
-     *
-     * @param $event
-     * @param $request
      */
-    public function resolveController($event, $request): void
+    public function resolveController(ControllerEvent $event, Request $request): void
     {
         if (!$controller = $this->resolver->getController($request)) {
             return;
@@ -42,11 +36,8 @@ class ControllerListener implements EventSubscriberInterface
 
     /**
      * Executes the controller action and sets the response.
-     *
-     * @param $event
-     * @param $request
      */
-    public function executeController($event, $request): void
+    public function executeController(ControllerEvent $event, Request $request): void
     {
         if (!$controller = $event->getController()) {
             return;
@@ -63,7 +54,7 @@ class ControllerListener implements EventSubscriberInterface
     }
 
     /**
-     * {@inheritdoc}
+     * @return array<string, mixed>
      */
     public function subscribe(): array
     {

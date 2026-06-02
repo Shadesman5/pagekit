@@ -18,7 +18,7 @@ class UrlGeneratorDumper extends GeneratorDumper
     /**
      * Dumps a set of routes to a PHP class.
      *
-     * @param  array  $options
+     * @param array<string, string> $options
      */
     public function dump(array $options = []): string
     {

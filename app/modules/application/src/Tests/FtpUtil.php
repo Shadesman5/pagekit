@@ -44,6 +44,9 @@ trait FtpUtil
         return $connection;
     }
 
+    /**
+     * @return resource|\FTP\Connection
+     */
     public function getSharedFtpConnection()
     {
         static $connection;

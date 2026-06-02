@@ -1,7 +1,7 @@
 # **🗺️ Pagekit Modernization Roadmap & Rules**
 
-> **Current Version**: 1.2.16
-> **Current Step**: 2.1.4 (PHPStan Level 5→6 — Return Types)
+> **Current Version**: 1.2.17
+> **Current Step**: 2.1.5 (PHPStan Level 6→7 — Null Safety)
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**
 
@@ -43,7 +43,7 @@
 
 | ID     | Task Name                             | Status | Audit | Issue | PR      |
 | :----- | :------------------------------------ | :----- | :---- | :---- | :------ |
-| 1.1    | Mailer Migration                      | ✅     | ⚠️    | #119  | #17     |
+| 1.1    | Mailer Migration                      | ✅     | 🛡️    | #119  | #17     |
 | 1.2    | PHPUnit Update                        | ✅     | 🛡️    | #121  | #31     |
 | 1.3    | Security Patches                      | ✅     | 🛡️    | #122  | #30     |
 | 1.3.5  | ↳ Dependabot Updates                  | ✅     | 🛡️    | #123  | #32     |
@@ -79,7 +79,7 @@
 | 2.1.1  | ↳ Tooling-Setup & Baseline            | ✅     | ⏳    | #148  | #178    |
 | 2.1.2  | ↳ CI/CD Integration & Quality Gates   | ✅     | 🛡️    | #149  | #199    |
 | 2.1.3  | ↳ `strict_types` Migration            | ✅     | 🛡️    | #150  | #201    |
-| 2.1.4  | ↳ PHPStan Level 5→6 (Return Types)    | ⏳     | ⏳    | #151  | -       |
+| 2.1.4  | ↳ PHPStan Level 5→6 (Return Types)    | ✅     | 🛡️    | #151  | #203    |
 | 2.1.5  | ↳ PHPStan Level 6→7 (Null Safety)     | ⏳     | ⏳    | #152  | -       |
 | 2.1.6  | ↳ PHPStan Level 7→8 (Strict Typing)   | ⏳     | ⏳    | #153  | -       |
 | 2.1.7  | ↳ QueryBuilder API Standardization    | ⏳     | ⏳    | #154  | -       |

@@ -6,6 +6,39 @@ namespace Pagekit\Database\ORM;
 
 use Psr\Cache\CacheItemPoolInterface;
 
+/**
+ * ORM-aware query builder that proxies the fluent verb methods of the
+ * underlying {@see \Pagekit\Database\Query\QueryBuilder} via {@see __call()}.
+ * The `@method` tags below mirror that proxy contract so static analysis can
+ * resolve the chained calls without expanding the actual class API.
+ * Methods that read variadic arguments via `func_get_args()` (`select`,
+ * `groupBy`) are typed with a trailing `mixed ...$columns` to match.
+ *
+ * @method self where(mixed $condition, array<int|string, mixed> $params = [])
+ * @method self orWhere(mixed $condition, array<int|string, mixed> $params = [])
+ * @method self whereIn(string $column, mixed $values, bool $not = false, ?string $type = null)
+ * @method self orWhereIn(string $column, mixed $values, bool $not = false)
+ * @method self whereExists(\Closure $callback, bool $not = false, ?string $type = null)
+ * @method self orWhereExists(\Closure $callback, bool $not = false)
+ * @method self whereInSet(string $column, mixed $values, bool $not = false, ?string $type = null)
+ * @method self select(mixed $columns = ['*'], mixed ...$rest)
+ * @method self from(string $table)
+ * @method self join(string $table, ?string $condition = null, string $type = 'inner')
+ * @method self innerJoin(string $table, ?string $condition = null)
+ * @method self leftJoin(string $table, ?string $condition = null)
+ * @method self rightJoin(string $table, ?string $condition = null)
+ * @method self groupBy(mixed $groupBy, mixed ...$rest)
+ * @method self having(mixed $having, string $type = 'AND')
+ * @method self orHaving(mixed $having)
+ * @method self orderBy(string $sort, ?string $order = null)
+ * @method self offset(int $offset)
+ * @method self limit(int $limit)
+ * @method int count(string $column = '*')
+ * @method int update(array<string, mixed> $values)
+ * @method int delete()
+ * @method string getSQL()
+ * @method \Doctrine\DBAL\Result execute(mixed $columns = ['*'])
+ */
 class QueryBuilder
 {
     protected \Pagekit\Database\ORM\EntityManager $manager;
@@ -14,6 +47,7 @@ class QueryBuilder
 
     protected \Pagekit\Database\Query\QueryBuilder $query;
 
+    /** @var array<string, callable> */
     protected array $relations = [];
 
     protected ?CacheItemPoolInterface $cache = null;
@@ -35,6 +69,8 @@ class QueryBuilder
 
     /**
      * Execute the query and get all results.
+     *
+     * @return array<int|string, object>
      */
     public function get(): array
     {
@@ -150,6 +186,8 @@ class QueryBuilder
 
     /**
      * Gets all relations of the query.
+     *
+     * @return array<string, QueryBuilder>
      */
     public function getRelations(): array
     {
@@ -177,7 +215,7 @@ class QueryBuilder
     /**
      * Gets all nested relations of the query.
      *
-     * @param  string $relation
+     * @return array<string, callable>
      */
     public function getNestedRelations(string $relation): array
     {
@@ -227,10 +265,8 @@ class QueryBuilder
     /**
      * Proxy method call to query builder.
      *
-     * @param  string $method
-     * @param  array  $args
+     * @param  array<int, mixed> $args
      * @throws \BadMethodCallException
-     * @return mixed
      */
     public function __call(string $method, array $args): mixed
     {

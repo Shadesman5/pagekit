@@ -15,21 +15,17 @@ class DatabaseHandler implements HandlerInterface
     public const STATUS_ACTIVE = 1;
     public const STATUS_REMEMBERED = 2;
 
+    /** @var array<string, mixed>|null */
     protected ?array $config = null;
 
-    protected \Pagekit\Cookie\CookieJar $cookie;
+    protected CookieJar $cookie;
 
-    protected \Symfony\Component\HttpFoundation\RequestStack $requests;
+    protected RequestStack $requests;
 
-    protected \Pagekit\Database\Connection $connection;
+    protected Connection $connection;
 
     /**
-     * Constructor.
-     *
-     * @param Connection   $connection
-     * @param RequestStack $requests
-     * @param CookieJar    $cookie
-     * @param array        $config
+     * @param array<string, mixed>|null $config
      */
     public function __construct(Connection $connection, RequestStack $requests, CookieJar $cookie, ?array $config = null)
     {
@@ -67,10 +63,7 @@ class DatabaseHandler implements HandlerInterface
         return null;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function write($user, $remember = false): void
+    public function write(int|string $user, bool $remember = false): void
     {
         if ($token = $this->getToken()) {
             $this->connection->delete($this->config['table'], ['id' => sha1($token)]);
@@ -104,19 +97,18 @@ class DatabaseHandler implements HandlerInterface
 
     /**
      * Gets the token from the request.
-     *
-     * @return mixed
      */
-    protected function getToken()
+    protected function getToken(): ?string
     {
         if ($request = $this->getRequest()) {
-            return $request->cookies->get($this->config['cookie']['name']);
+            $value = $request->cookies->get($this->config['cookie']['name']);
+
+            return is_string($value) ? $value : null;
         }
+
+        return null;
     }
 
-    /**
-     * @return null|Request
-     */
     protected function getRequest(): ?Request
     {
         return $this->requests->getCurrentRequest();

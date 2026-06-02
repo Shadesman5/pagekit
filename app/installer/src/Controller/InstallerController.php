@@ -4,20 +4,26 @@ declare(strict_types=1);
 
 namespace Pagekit\Installer\Controller;
 
+use Pagekit\Application;
 use Pagekit\Installer\Installer;
+use Pagekit\Module\ModuleManager;
+use Symfony\Component\HttpFoundation\Request;
 
 class InstallerController
 {
     protected Installer $installer;
 
     public function __construct(
-        private readonly mixed $app, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
-        private readonly mixed $request, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
-        private readonly mixed $module, // TODO: Must be refactored in Step 2.1.4 (PHPStan Level 5→6)
+        private readonly Application $app,
+        private readonly Request $request,
+        private readonly ModuleManager $module,
     ) {
         $this->installer = new Installer($this->app);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function indexAction(): array
     {
         $intl = $this->module->get('system/intl');
@@ -35,6 +41,9 @@ class InstallerController
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function checkAction(): array
     {
         try {
@@ -71,6 +80,9 @@ class InstallerController
         }
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function installAction(): array
     {
         $data = json_decode($this->request->getContent(), true) ?: [];

@@ -6,8 +6,12 @@ namespace Pagekit\View\Helper;
 
 use Pagekit\View\View;
 
+/**
+ * @implements \IteratorAggregate<string, mixed>
+ */
 class MetaHelper implements HelperInterface, \IteratorAggregate
 {
+    /** @var array<string, string|array<string, string>> */
     protected array $metas = [];
 
     /**
@@ -24,10 +28,9 @@ class MetaHelper implements HelperInterface, \IteratorAggregate
     /**
      * Adds meta tags.
      *
-     * @param  $metas
-     * @return self
+     * @param array<string, string|array<string, string>> $metas
      */
-    public function __invoke(array $metas)
+    public function __invoke(array $metas): self
     {
         foreach ($metas as $name => $value) {
             $this->add($name, $value);
@@ -39,9 +42,9 @@ class MetaHelper implements HelperInterface, \IteratorAggregate
     /**
      * Gets a meta tag.
      *
-     * @param  string $name
+     * @return string|array<string, string>|null
      */
-    public function get($name): ?string
+    public function get(string $name): string|array|null
     {
         return isset($this->metas[$name]) ? $this->metas[$name] : null;
     }
@@ -49,10 +52,9 @@ class MetaHelper implements HelperInterface, \IteratorAggregate
     /**
      * Adds a meta tag.
      *
-     * @param  string $name
-     * @param  string $value
+     * @param string|array<string, string> $value
      */
-    public function add($name, $value = ''): self
+    public function add(string $name, string|array $value = ''): self
     {
         if ($value) {
             $this->metas[$name] = $value;
@@ -62,11 +64,9 @@ class MetaHelper implements HelperInterface, \IteratorAggregate
     }
 
     /**
-  * Removes a meta tag.
-  *
-  * @param  string $name
-  */
-    public function remove($name): self
+     * Removes a meta tag.
+     */
+    public function remove(string $name): self
     {
         if (isset($this->metas[$name])) {
             unset($this->metas[$name]);
@@ -119,6 +119,8 @@ class MetaHelper implements HelperInterface, \IteratorAggregate
 
     /**
      * Returns an iterator for meta tags.
+     *
+     * @return \ArrayIterator<string, string|array<string, string>>
      */
     public function getIterator(): \ArrayIterator
     {

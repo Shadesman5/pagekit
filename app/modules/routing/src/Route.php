@@ -49,7 +49,7 @@ class Route extends BaseRoute
     /**
      * Gets the controller reflection class.
      *
-     * @return \ReflectionClass|null
+     * @return \ReflectionClass<object>|null
      */
     public function getControllerClass(): ?\ReflectionClass
     {

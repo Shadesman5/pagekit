@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Pagekit\Blog\Event;
 
 use Pagekit\Blog\UrlResolver;
+use Pagekit\Event\EventInterface;
 use Pagekit\Event\EventSubscriberInterface;
+use Pagekit\Routing\Route;
 use Pagekit\Routing\Router;
 use Pagekit\Routing\Routes;
 use Psr\Cache\CacheItemPoolInterface;
@@ -30,7 +32,7 @@ class RouteListener implements EventSubscriberInterface
     /**
      * Registers permalink route alias.
      */
-    public function onConfigureRoute($event, $route): void
+    public function onConfigureRoute(EventInterface $event, Route $route): void
     {
         if ($route->getName() == '@blog/id') {
             // Always set resolver on @blog/id route for URL generation
@@ -53,6 +55,8 @@ class RouteListener implements EventSubscriberInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, array{string, int}|string>
      */
     public function subscribe(): array
     {

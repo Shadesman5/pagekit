@@ -32,6 +32,9 @@ class MigrationController
         $this->scripts = new PackageScripts($this->system->path.'/scripts.php', $this->system->config('version'), $this->app);
     }
 
+    /**
+     * @return array<string, mixed>|\Symfony\Component\HttpFoundation\RedirectResponse
+     */
     #[Request(['redirect' => 'string'])]
     public function indexAction(?string $redirect = null): array|\Symfony\Component\HttpFoundation\RedirectResponse
     {

@@ -4,7 +4,7 @@ includes:
     - app/vendor/phpstan/phpstan-symfony/extension.neon
 
 parameters:
-    level: 5
+    level: 6
 
     paths:
         - app/modules
@@ -16,6 +16,8 @@ parameters:
     excludePaths:
         - app/vendor
         - app/modules/*/vendor
+        - packages/autoload.php
+        - packages/composer
         - */node_modules/*
         - tmp
         - storage

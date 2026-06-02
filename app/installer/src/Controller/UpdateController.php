@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Pagekit\Installer\Controller;
 
+use Pagekit\Application\Response as PagekitResponse;
 use Pagekit\Installer\SelfUpdater;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\User\Attribute\Access;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\Console\Output\StreamOutput;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -20,9 +23,9 @@ class UpdateController
 
     public function __construct(
         private readonly ContainerInterface $app,
-        private readonly mixed $session,
-        private readonly mixed $response,
-        private readonly mixed $version,
+        private readonly Session $session,
+        private readonly PagekitResponse $response,
+        private readonly string $version,
         private readonly string $path,
     ) {
         $this->systemApi = $this->app->has('system.api')
@@ -33,6 +36,9 @@ class UpdateController
             : sys_get_temp_dir();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function indexAction(): array
     {
         return [
@@ -48,8 +54,11 @@ class UpdateController
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Request(['url' => 'string'], csrf: true)]
-    public function downloadAction($url): array
+    public function downloadAction(string $url): array
     {
         $file = tempnam($this->tempPath, 'update_');
         $this->session->set('system.update', $file);
@@ -62,7 +71,7 @@ class UpdateController
     }
 
     #[Request([], csrf: true)]
-    public function updateAction()
+    public function updateAction(): StreamedResponse
     {
         if (!$file = $this->session->get('system.update')) {
             throw new BadRequestHttpException(__('You may not call this step directly.'));

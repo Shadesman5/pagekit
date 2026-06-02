@@ -23,6 +23,8 @@ class ProfileDataCollector implements DataCollectorInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array{requests: array<int, array<string, mixed>>}
      */
     public function collect(): array
     {

@@ -4,18 +4,17 @@ declare(strict_types=1);
 
 namespace Pagekit\View\Helper;
 
+use Pagekit\View\Asset\AssetInterface;
 use Pagekit\View\Asset\AssetManager;
 use Pagekit\View\View;
 
+/**
+ * @implements \IteratorAggregate<string, AssetInterface>
+ */
 class ScriptHelper implements HelperInterface, \IteratorAggregate
 {
     protected \Pagekit\View\Asset\AssetManager $scripts;
 
-    /**
-     * Constructor.
-     *
-     * @param AssetManager $scripts
-     */
     public function __construct(?AssetManager $scripts = null)
     {
         $this->scripts = $scripts ?: new AssetManager();
@@ -36,8 +35,11 @@ class ScriptHelper implements HelperInterface, \IteratorAggregate
      * Add shortcut.
      *
      * @see add()
+     *
+     * @param array<int, string>   $dependencies
+     * @param array<string, mixed> $options
      */
-    public function __invoke($name, $source = null, $dependencies = [], $options = [])
+    public function __invoke(string $name, mixed $source = null, array $dependencies = [], array $options = []): ?AssetInterface
     {
         return $this->scripts->add($name, $source, $dependencies, $options);
     }
@@ -45,11 +47,9 @@ class ScriptHelper implements HelperInterface, \IteratorAggregate
     /**
      * Proxies all method calls to the manager.
      *
-     * @param  string $method
-     * @param  array $args
-     * @return mixed
+     * @param array<int, mixed> $args
      */
-    public function __call($method, $args)
+    public function __call(string $method, array $args): mixed
     {
         if (!is_callable($callable = [$this->scripts, $method])) {
             throw new \InvalidArgumentException(sprintf('Undefined method call "%s::%s"', get_class($this->scripts), $method));
@@ -99,6 +99,8 @@ class ScriptHelper implements HelperInterface, \IteratorAggregate
 
     /**
      * Returns an iterator for script tags.
+     *
+     * @return \Traversable<string, AssetInterface>
      */
     public function getIterator(): \Traversable
     {

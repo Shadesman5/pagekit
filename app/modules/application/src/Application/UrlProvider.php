@@ -42,8 +42,10 @@ class UrlProvider
      * Get shortcut.
      *
      * @see get()
+     *
+     * @param array<string, mixed> $parameters
      */
-    public function __invoke($path = '', $parameters = [], $referenceType = UrlGenerator::ABSOLUTE_PATH)
+    public function __invoke(?string $path = '', array $parameters = [], int|string $referenceType = UrlGenerator::ABSOLUTE_PATH): string|false
     {
         return $this->get($path, $parameters, $referenceType);
     }
@@ -100,12 +102,9 @@ class UrlProvider
     /**
      * Gets the URL appending the URI to the base URI.
      *
-     * @param  string|null $path
-     * @param  mixed  $parameters
-     * @param  mixed  $referenceType
-     * @return string
+     * @param array<string, mixed> $parameters
      */
-    public function get($path = '', $parameters = [], $referenceType = UrlGenerator::ABSOLUTE_PATH)
+    public function get(?string $path = '', array $parameters = [], int|string $referenceType = UrlGenerator::ABSOLUTE_PATH): string|false
     {
         $path ??= '';
 
@@ -158,12 +157,10 @@ class UrlProvider
     /**
      * Alias for getRoute(). Generates URL to a named route.
      *
-     * @param  string $name Route name (e.g. '@hello/view/id')
-     * @param  array  $parameters Route parameters
-     * @param  mixed  $referenceType UrlGenerator::ABSOLUTE_PATH (0) or UrlGenerator::ABSOLUTE_URL (1/true)
+     * @param array<string, mixed> $parameters
      * @return string|false
      */
-    public function route($name, $parameters = [], $referenceType = UrlGenerator::ABSOLUTE_PATH)
+    public function route(string $name, array $parameters = [], int|string $referenceType = UrlGenerator::ABSOLUTE_PATH)
     {
         return $this->getRoute($name, $parameters, $referenceType);
     }
@@ -193,11 +190,9 @@ class UrlProvider
     /**
      * Parses query parameters into a URL.
      *
-     * @param  string $url
-     * @param  array  $parameters
-     * @return string
+     * @param array<string, mixed> $parameters
      */
-    protected function parseQuery($url, $parameters = [])
+    protected function parseQuery(string $url, array $parameters = []): string
     {
         if (false !== ($queryPos = strpos($url, '?'))) {
             $query = substr($url, $queryPos + 1);

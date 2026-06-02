@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pagekit\System\Controller;
 
+use Pagekit\Application\Response as PagekitResponse;
+use Pagekit\View\View;
 use Symfony\Component\ErrorHandler\Exception\FlattenException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -11,16 +13,13 @@ use Symfony\Component\HttpFoundation\Response;
 class ExceptionController
 {
     public function __construct(
-        private readonly mixed $view,
-        private readonly mixed $response,
+        private readonly View $view,
+        private readonly PagekitResponse $response,
     ) {
     }
 
     /**
      * Converts an Exception to a Response.
-     *
-     * @param  Request          $request
-     * @param  FlattenException $exception
      */
     public function showAction(Request $request, FlattenException $exception): Response
     {
@@ -36,7 +35,6 @@ class ExceptionController
         $content = $this->getAndCleanOutputBuffering((int) ($request->headers->get('X-Php-Ob-Level') ?? -1));
         $rendered = ($this->view)('system/error.php', compact('title', 'exception', 'content'));
 
-        // Ensure a valid HTTP status code (must be between 100 and 599)
         $statusCode = $exception->getCode();
         if ($statusCode < 100 || $statusCode > 599) {
             $statusCode = 500;
@@ -47,11 +45,8 @@ class ExceptionController
 
     /**
      * Cleans output buffer.
-     *
-     * @param  int    $level
-     * @return string
      */
-    protected function getAndCleanOutputBuffering($level)
+    protected function getAndCleanOutputBuffering(int $level): string
     {
         if (ob_get_level() <= $level) {
             return '';
@@ -59,6 +54,6 @@ class ExceptionController
 
         Response::closeOutputBuffers($level + 1, true);
 
-        return ob_get_clean();
+        return (string) ob_get_clean();
     }
 }

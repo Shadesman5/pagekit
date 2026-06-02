@@ -6,24 +6,32 @@ namespace Pagekit\Finder\Controller;
 
 use function Pagekit\__;
 
+use Pagekit\Application\UrlProvider;
+use Pagekit\Event\EventDispatcherInterface;
+use Pagekit\Filesystem\Filesystem;
 use Pagekit\Finder\Event\FileAccessEvent;
 use Pagekit\Kernel\Exception\ForbiddenException;
+use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
 use Symfony\Component\Finder\Finder;
+use Symfony\Component\HttpFoundation\Request as HttpRequest;
 
 class FinderController
 {
     public function __construct(
-        private readonly mixed $request,
-        private readonly mixed $url,
-        private readonly mixed $file,
-        private readonly mixed $path,
-        private readonly mixed $module,
-        private readonly mixed $events,
+        private readonly HttpRequest $request,
+        private readonly UrlProvider $url,
+        private readonly Filesystem $file,
+        private readonly string $path,
+        private readonly ModuleManager $module,
+        private readonly EventDispatcherInterface $events,
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function indexAction(): array
     {
         $path = $this->request->get('path', '');
@@ -70,6 +78,9 @@ class FinderController
         return $data;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Route('/createfolder', methods: ['POST'])]
     #[Request([], csrf: true)]
     public function createFolderAction(): array
@@ -108,6 +119,9 @@ class FinderController
         }
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Route('/rename', methods: ['POST'])]
     #[Request([], csrf: true)]
     public function renameAction(): array
@@ -145,6 +159,9 @@ class FinderController
         return $this->success(__('Renamed.'));
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Route('/removefiles', methods: ['POST'])]
     #[Request([], csrf: true)]
     public function removeFilesAction(): array
@@ -178,6 +195,9 @@ class FinderController
         return $this->success(__('Removed selected.'));
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Route('/upload', methods: ['POST'])]
     #[Request([], csrf: true)]
     public function uploadAction(): array
@@ -219,9 +239,11 @@ class FinderController
         }
     }
 
-    protected function getMode($path): string
+    protected function getMode(string $path): string
     {
-        $mode = $this->events->trigger(new FileAccessEvent('system.finder'))->mode($path);
+        $event = new FileAccessEvent('system.finder');
+        $this->events->trigger($event);
+        $mode = $event->mode($path);
 
         if ('w' == $mode && !is_writable($path)) {
             $mode = 'r';
@@ -234,7 +256,7 @@ class FinderController
         return $mode;
     }
 
-    protected function formatFileSize($size): string
+    protected function formatFileSize(int $size): string
     {
         if ($size == 0) {
             return __('n/a');
@@ -246,7 +268,7 @@ class FinderController
         return sprintf($sizes[$i], $size);
     }
 
-    protected function getPath($path = '')
+    protected function getPath(string $path = ''): string|false
     {
         $root = strtr($this->path, '\\', '/');
         $path = $this->normalizePath($root.'/'.$this->request->get('root').'/'.$this->request->get('path').'/'.$path);
@@ -257,7 +279,7 @@ class FinderController
     /**
      * Normalizes the given path
      */
-    protected function normalizePath($path): string
+    protected function normalizePath(string $path): string
     {
         $path = str_replace(['\\', '//'], '/', $path);
         $prefix = preg_match('|^(?P<prefix>([a-zA-Z]+:)?//?)|', $path, $matches) ? $matches['prefix'] : '';
@@ -276,7 +298,7 @@ class FinderController
         return $prefix . implode('/', $tokens);
     }
 
-    protected function isValidFilename($name): bool
+    protected function isValidFilename(string $name): bool
     {
         if (empty($name)) {
             return false;
@@ -295,12 +317,18 @@ class FinderController
         return false === strpos($name, '/');
     }
 
-    protected function success($message): array
+    /**
+     * @return array{message: string}
+     */
+    protected function success(string $message): array
     {
         return compact('message');
     }
 
-    protected function error($message): array
+    /**
+     * @return array{error: true, message: string}
+     */
+    protected function error(string $message): array
     {
         return ['error' => true, 'message' => $message];
     }

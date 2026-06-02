@@ -11,6 +11,7 @@ class ConfigTest extends TestCase
 {
     protected ?Config $config = null;
 
+    /** @var array<string, mixed>|null */
     protected ?array $values = null;
 
     public function setUp(): void

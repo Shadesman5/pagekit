@@ -15,14 +15,16 @@ namespace Pagekit\Routing\Attribute;
 #[\Attribute(\Attribute::TARGET_CLASS | \Attribute::TARGET_METHOD)]
 final class Request
 {
+    /** @var array<string, string> */
     private array $data;
     private bool $csrf;
+    /** @var array<string, array<string, mixed>> */
     private array $options;
 
     /**
-     * @param array $data Parameter mapping configuration
-     * @param bool $csrf Whether to require CSRF validation
-     * @param array $options Filter-specific options, keyed by parameter name (e.g. ['folders' => ['pattern' => '/[^a-z0-9_-]/i']])
+     * @param array<string, string>                $data    Parameter mapping configuration
+     * @param bool                                 $csrf    Whether to require CSRF validation
+     * @param array<string, array<string, mixed>>  $options Filter-specific options, keyed by parameter name (e.g. ['folders' => ['pattern' => '/[^a-z0-9_-]/i']])
      */
     public function __construct(array $data = [], bool $csrf = false, array $options = [])
     {
@@ -33,6 +35,8 @@ final class Request
 
     /**
      * Returns the parameter mapping data.
+     *
+     * @return array<string, string>
      */
     public function getData(): array
     {
@@ -49,6 +53,8 @@ final class Request
 
     /**
      * Returns filter-specific options keyed by parameter name.
+     *
+     * @return array<string, array<string, mixed>>
      */
     public function getOptions(): array
     {

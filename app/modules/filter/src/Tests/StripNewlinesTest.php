@@ -11,13 +11,16 @@ use PHPUnit\Framework\TestCase;
 class StripNewlinesTest extends TestCase
 {
     #[DataProvider('provideNewLineStrings')]
-    public function testFilter($input, $output): void
+    public function testFilter(string $input, string $output): void
     {
         $filter = new StripNewlinesFilter();
 
         $this->assertEquals($output, $filter->filter($input));
     }
 
+    /**
+     * @return array<int, array{0: string, 1: string}>
+     */
     public static function provideNewLineStrings(): array
     {
         return [

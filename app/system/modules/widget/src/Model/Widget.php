@@ -44,6 +44,7 @@ class Widget implements \JsonSerializable
     )]
     public int $status = 1;
 
+    /** @var array<int, int|string> */
     #[ORM\Column(type: 'simple_array')]
     public array $nodes = [];
 }

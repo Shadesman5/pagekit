@@ -91,12 +91,14 @@ class ArchiveCommand extends Command
         $size = filesize($target) / 1024 / 1024;
 
         //TODO: Callback. Prev - return $target;
-        return (int) $this->line(sprintf('Archive created: %s (%.2f MB)', $name, $size));
+        $this->line(sprintf('Archive created: %s (%.2f MB)', $name, $size));
+
+        return Command::SUCCESS;
     }
 
-    protected function getPackageFilename($name)
+    protected function getPackageFilename(string $name): string
     {
         // TODO: Make this more robust.
-        return preg_replace('#[^a-z0-9-_]#i', '-', $name);
+        return preg_replace('#[^a-z0-9-_]#i', '-', $name) ?? $name;
     }
 }

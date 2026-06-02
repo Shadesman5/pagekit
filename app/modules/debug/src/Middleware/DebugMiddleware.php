@@ -6,12 +6,11 @@ namespace Pagekit\Debug\Middleware;
 
 use Doctrine\DBAL\Driver;
 
-// Only implement if Middleware interface exists (DBAL 3.x)
 if (!interface_exists('Doctrine\DBAL\Driver\Middleware')) {
     class DebugMiddleware
     {
-        protected $logger;
-        public function __construct($logger)
+        protected DebugLogger $logger;
+        public function __construct(DebugLogger $logger)
         {
             $this->logger = $logger;
         }

@@ -7,11 +7,22 @@ namespace Pagekit\User\Controller;
 use function Pagekit\__;
 
 use Pagekit\Application\Exception;
+use Pagekit\Application\UrlProvider;
+use Pagekit\Auth\Encoder\PasswordEncoderInterface;
 use Pagekit\Captcha\Attribute\Captcha;
-use Pagekit\Routing\Attribute\Request;
+use Pagekit\Mail\Mailer;
+use Pagekit\Module\ModuleManager;
+use Pagekit\Routing\Attribute\Request as RequestAttr;
+use Pagekit\Routing\Router;
+use Pagekit\Session\Csrf\Provider\CsrfProviderInterface;
+use Pagekit\Session\MessageBag;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Model\User;
+use Pagekit\View\View;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * Controller for user registration.
@@ -20,25 +31,28 @@ class RegistrationController
 {
     use ValidatesRequestTrait;
 
-    protected mixed $userModule;
+    protected mixed $userModule = null;
 
     public function __construct(
-        private readonly mixed $module,
-        private readonly mixed $user,
-        private readonly mixed $csrf,
-        private readonly mixed $message,
-        private readonly mixed $url,
-        private readonly mixed $mailer,
-        private readonly mixed $view,
-        private readonly mixed $router,
-        private readonly mixed $authPassword,
-        private readonly mixed $validator,
+        private readonly ModuleManager $module,
+        private readonly User $user,
+        private readonly CsrfProviderInterface $csrf,
+        private readonly MessageBag $message,
+        private readonly UrlProvider $url,
+        private readonly Mailer $mailer,
+        private readonly View $view,
+        private readonly Router $router,
+        private readonly PasswordEncoderInterface $authPassword,
+        protected readonly ValidatorInterface $validator,
     ) {
         $this->userModule = $this->module->get('system/user');
     }
 
+    /**
+     * @return array<string, mixed>|HttpResponse
+     */
     #[Captcha(route: '@user/registration/register')]
-    public function indexAction()
+    public function indexAction(): array|HttpResponse
     {
         if ($this->user->isAuthenticated()) {
             return $this->router->redirect();
@@ -56,9 +70,13 @@ class RegistrationController
         ];
     }
 
-    #[Request(['user' => 'array'])]
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>|HttpResponse
+     */
+    #[RequestAttr(['user' => 'array'])]
     #[Captcha(verify: true)]
-    public function registerAction(array $data)
+    public function registerAction(array $data): array|HttpResponse
     {
         try {
 
@@ -70,7 +88,7 @@ class RegistrationController
                 throw new Exception(__('Invalid token. Please try again.'));
             }
 
-            $password = @$data['password'];
+            $password = (string) (@$data['password'] ?? '');
             if (trim($password) != $password || strlen($password) < 6) {
                 throw new Exception(__('Password must be 6 characters or longer.'));
             }
@@ -112,15 +130,15 @@ class RegistrationController
             throw new BadRequestHttpException($e->getMessage(), $e);
         }
 
-        $this->message->success($message);
+        $this->message->success((string) $message);
 
         return [
             'redirect' => ($this->url)('@user/login'),
         ];
     }
 
-    #[Request(['user' => 'string', 'key' => 'string'])]
-    public function activateAction(string $username, string $activation)
+    #[RequestAttr(['user' => 'string', 'key' => 'string'])]
+    public function activateAction(string $username, string $activation): RedirectResponse
     {
         if (empty($username) || empty($activation) || !$user = User::where(['username' => $username, 'activation' => $activation, 'login IS NULL'])->first()) {
             throw new BadRequestHttpException(__('Invalid key.'));
@@ -145,7 +163,7 @@ class RegistrationController
 
         $user->save();
 
-        $this->message->success($message);
+        $this->message->success((string) $message);
 
         return $this->router->redirect('@user/login');
     }

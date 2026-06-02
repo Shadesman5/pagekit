@@ -20,9 +20,9 @@ class ControllerResolver
     }
 
     /**
-     * {@inheritdoc}
+     * @return callable|array{0: object, 1: string}|false
      */
-    public function getController(Request $request)
+    public function getController(Request $request): callable|array|false
     {
         if (!$controller = $request->attributes->get('_controller')) {
             if (null !== $this->logger) {
@@ -62,9 +62,10 @@ class ControllerResolver
     }
 
     /**
-     * {@inheritdoc}
+     * @param callable|array{0: object|class-string, 1: string} $controller
+     * @return list<mixed>
      */
-    public function getArguments(Request $request, $controller): array
+    public function getArguments(Request $request, callable|array $controller): array
     {
         if (is_array($controller)) {
             $r = new \ReflectionMethod($controller[0], $controller[1]);
@@ -78,7 +79,12 @@ class ControllerResolver
         return $this->doGetArguments($request, $controller, $r->getParameters());
     }
 
-    protected function doGetArguments(Request $request, $controller, array $parameters): array
+    /**
+     * @param callable|array{0: object|class-string, 1: string} $controller
+     * @param list<\ReflectionParameter>                        $parameters
+     * @return list<mixed>
+     */
+    protected function doGetArguments(Request $request, callable|array $controller, array $parameters): array
     {
         $attributes = $request->attributes->all();
         $arguments = [];
@@ -108,11 +114,10 @@ class ControllerResolver
     /**
      * Returns a callable for the given controller.
      *
-     * @param  string $controller A Controller string
-     * @return mixed A PHP callable
+     * @return array{0: object, 1: string}
      * @throws \InvalidArgumentException
      */
-    protected function createController($controller): array
+    protected function createController(string $controller): array
     {
         if (false === strpos($controller, '::')) {
             throw new \InvalidArgumentException(sprintf('Unable to find controller "%s".', $controller));

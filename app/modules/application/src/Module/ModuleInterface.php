@@ -10,26 +10,20 @@ interface ModuleInterface
 {
     /**
      * Main bootstrap method.
-     *
-     * @param App $app
      */
-    public function main(App $app);
+    public function main(App $app): mixed;
 
     /**
      * Gets a option value.
      *
-     * @param  mixed $key
-     * @param  mixed $default
-     * @return mixed
+     * @param string|array<int, string> $key
      */
-    public function get($key, $default = null);
+    public function get(string|array $key, mixed $default = null): mixed;
 
     /**
      * Gets a config value.
      *
-     * @param  mixed $key
-     * @param  mixed $default
-     * @return mixed
+     * @param string|array<int, string>|null $key
      */
-    public function config($key = null, $default = null);
+    public function config(string|array|null $key = null, mixed $default = null): mixed;
 }

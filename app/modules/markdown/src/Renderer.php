@@ -6,14 +6,18 @@ namespace Pagekit\Markdown;
 
 class Renderer
 {
+    /** @var array<string, mixed> */
     protected array $options = [];
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function init(array $options = []): void
     {
         $this->options = $options;
     }
 
-    public function code($code, $lang = null, $escaped = null)
+    public function code(string $code, ?string $lang = null, ?bool $escaped = null): string
     {
         if ($this->options['highlight']) {
 
@@ -31,17 +35,17 @@ class Renderer
         return "<pre><code{$class}>{$code}\n</code></pre>\n";
     }
 
-    public function blockquote($quote)
+    public function blockquote(string $quote): string
     {
         return "<blockquote>\n{$quote}</blockquote>\n";
     }
 
-    public function html($html)
+    public function html(string $html): string
     {
         return $html;
     }
 
-    public function heading($text, $level, $raw = '')
+    public function heading(string $text, int $level, string $raw = ''): string
     {
         $id = $this->options['headerPrefix'].preg_replace('/[^\w]+/m', '-', strtolower($raw));
 
@@ -53,32 +57,35 @@ class Renderer
         return $this->options['xhtml'] ? "<hr/>\n" : "<hr>\n";
     }
 
-    public function lst($body, $ordered = false): string
+    public function lst(string $body, bool $ordered = false): string
     {
         return $ordered ? "<ol>\n{$body}</ol>\n" : "<ul>\n{$body}</ul>\n";
     }
 
-    public function listitem($text)
+    public function listitem(string $text): string
     {
         return "<li>{$text}</li>\n";
     }
 
-    public function paragraph($text)
+    public function paragraph(string $text): string
     {
         return "<p>{$text}</p>\n";
     }
 
-    public function table($header, $body)
+    public function table(string $header, string $body): string
     {
         return "<table>\n<thead>\n{$header}</thead>\n<tbody>\n{$body}</tbody>\n</table>\n";
     }
 
-    public function tablerow($content): string
+    public function tablerow(string $content): string
     {
         return "<tr>\n".$content."</tr>\n";
     }
 
-    public function tablecell($content, array $flags = []): string
+    /**
+     * @param array{header?: bool, align?: string|null} $flags
+     */
+    public function tablecell(string $content, array $flags = []): string
     {
         $type = $flags['header'] ? 'th' : 'td';
         $tag = $flags['align']
@@ -89,17 +96,17 @@ class Renderer
     }
 
     // span level renderer
-    public function strong($text)
+    public function strong(string $text): string
     {
         return "<strong>{$text}</strong>";
     }
 
-    public function em($text)
+    public function em(string $text): string
     {
         return "<em>{$text}</em>";
     }
 
-    public function codespan($text)
+    public function codespan(string $text): string
     {
         return "<code>{$text}</code>";
     }
@@ -109,12 +116,12 @@ class Renderer
         return $this->options['xhtml'] ? '<br/>' : '<br>';
     }
 
-    public function del($text)
+    public function del(string $text): string
     {
         return "<del>{$text}</del>";
     }
 
-    public function link($href = '', $title = '', $text = '')
+    public function link(string $href = '', string $title = '', string $text = ''): string
     {
         if ($this->options['sanitize'] && strpos($href, 'javascript:') === 0) {
             return '';
@@ -125,7 +132,7 @@ class Renderer
         return "<a href=\"{$href}\"{$title}>{$text}</a>";
     }
 
-    public function image($href = '', $title = '', $text = '')
+    public function image(string $href = '', string $title = '', string $text = ''): string
     {
         $title = $title ? " title=\"{$title}\"" : '';
         $close = $this->options['xhtml'] ? '/>' : '>';

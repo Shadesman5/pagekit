@@ -10,8 +10,11 @@ class Markdown
 {
     protected ?BlockLexer $lexer = null;
     protected ?Parser $parser = null;
+
+    /** @var array<string, mixed> */
     protected array $options;
 
+    /** @var array<string, mixed> */
     protected static array $defaults = [
         'gfm' => true,
         'tables' => true,
@@ -30,7 +33,7 @@ class Markdown
     /**
      * Constructor.
      *
-     * @param array $options
+     * @param array<string, mixed> $options
      */
     public function __construct(array $options = [])
     {
@@ -44,10 +47,9 @@ class Markdown
     /**
      * Parses the markdown syntax and returns HTML.
      *
-     * @param  string $text
-     * @param  array  $options
+     * @param array<string, mixed> $options
      */
-    public function parse($text, array $options = []): string
+    public function parse(string $text, array $options = []): string
     {
         $options = array_merge($this->options, $options);
         $options['renderer']->init($options);
@@ -60,11 +62,8 @@ class Markdown
 
     /**
      * Convert special characters to HTML entities.
-     *
-     * @param  string  $text
-     * @param  bool $encode
      */
-    public static function escape($text, $encode = false): string
+    public static function escape(string $text, bool $encode = false): string
     {
         $text = preg_replace(!$encode ? '/&(?!#?\w+;)/' : '/&/', '&amp;', $text);
 

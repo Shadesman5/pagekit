@@ -16,7 +16,9 @@ class DebugStatement extends AbstractStatementMiddleware
 {
     protected DebugLogger $logger;
     protected string $sql;
+    /** @var array<int|string, mixed> */
     protected array $params = [];
+    /** @var array<int|string, mixed> */
     protected array $types = [];
 
     public function __construct(Statement $statement, DebugLogger $logger, string $sql)

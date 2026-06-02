@@ -6,13 +6,14 @@ namespace Pagekit\Kernel\Event;
 
 use Pagekit\Event\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 
 class JsonResponseListener implements EventSubscriberInterface
 {
     /**
      * Transforms the body of a JSON request to POST parameters.
      */
-    public function onRequest($event, $request): void
+    public function onRequest(RequestEvent $event, Request $request): void
     {
         if ('json' === $request->getContentType() && $data = @json_decode($request->getContent(), true)) {
             $request->request->replace($data);
@@ -22,7 +23,7 @@ class JsonResponseListener implements EventSubscriberInterface
     /**
      * Converts a array to a JSON response.
      */
-    public function onController($event): void
+    public function onController(ControllerEvent $event): void
     {
         $result = $event->getControllerResult();
 
@@ -32,7 +33,7 @@ class JsonResponseListener implements EventSubscriberInterface
     }
 
     /**
-     * {@inheritdoc}
+     * @return array<string, mixed>
      */
     public function subscribe(): array
     {

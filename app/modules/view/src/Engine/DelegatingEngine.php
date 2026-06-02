@@ -9,6 +9,7 @@ namespace Pagekit\View\Engine;
  */
 class DelegatingEngine implements EngineInterface
 {
+    /** @var array<int, EngineInterface> */
     protected array $engines = [];
 
     /**
@@ -30,7 +31,7 @@ class DelegatingEngine implements EngineInterface
             }
         }
 
-        throw new \RuntimeException(sprintf('No engine found for template "%s"', $name));
+        throw new \RuntimeException(sprintf('No engine found for template "%s"', is_array($name) ? $name['name'] : (string) $name));
     }
 
     /**

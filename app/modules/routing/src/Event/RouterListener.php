@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Pagekit\Routing\Event;
 
+use Pagekit\Event\Event;
 use Pagekit\Event\EventSubscriberInterface;
 use Pagekit\Kernel\Exception\MethodNotAllowedException as MethodNotAllowedHttpException;
 use Pagekit\Kernel\Exception\NotFoundException as NotFoundHttpException;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Exception\MethodNotAllowedException;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Symfony\Component\Routing\Matcher\RequestMatcherInterface;
@@ -15,27 +17,19 @@ use Symfony\Component\Routing\Matcher\UrlMatcherInterface;
 
 class RouterListener implements EventSubscriberInterface
 {
-    protected $matcher;
+    protected UrlMatcherInterface|RequestMatcherInterface $matcher;
     protected ?LoggerInterface $logger = null;
 
     /**
      * Constructor.
-     *
-     * @param  UrlMatcherInterface|RequestMatcherInterface $matcher
-     * @param  LoggerInterface|null                        $logger
-     * @throws \InvalidArgumentException
      */
-    public function __construct($matcher, ?LoggerInterface $logger = null)
+    public function __construct(UrlMatcherInterface|RequestMatcherInterface $matcher, ?LoggerInterface $logger = null)
     {
-        if (!$matcher instanceof UrlMatcherInterface && !$matcher instanceof RequestMatcherInterface) {
-            throw new \InvalidArgumentException('Matcher must either implement UrlMatcherInterface or RequestMatcherInterface.');
-        }
-
         $this->matcher = $matcher;
         $this->logger = $logger;
     }
 
-    public function onRequest($event, $request): void
+    public function onRequest(Event $event, Request $request): void
     {
         if ($request->attributes->has('_controller')) {
             return;
@@ -75,6 +69,9 @@ class RouterListener implements EventSubscriberInterface
         }
     }
 
+    /**
+     * @param array<string, mixed> $parameters
+     */
     public function parametersToString(array $parameters): string
     {
         $pieces = [];
@@ -86,6 +83,9 @@ class RouterListener implements EventSubscriberInterface
         return implode(', ', $pieces);
     }
 
+    /**
+     * @return array<string, array{0: string, 1: int}>
+     */
     public function subscribe(): array
     {
         return [

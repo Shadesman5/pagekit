@@ -43,12 +43,27 @@ trait ModelTrait
     /**
      * Creates a new instance of this model.
      *
-     * @param  array $data
+     * `EntityManager::load()` is typed `: object` because it works for any
+     * mapped entity class; the runtime instance always matches the calling
+     * `static::class` because `Metadata::newInstance()` reflects on it.
+     * The defensive `instanceof static` check both enforces that contract at
+     * runtime and gives PHPStan the narrowing it needs to honour `: static`.
+     *
+     * @param array<string, mixed> $data
      * @return static
      */
     public static function create(array $data = []): static
     {
-        return static::getManager()->load(self::getMetadata(), $data);
+        $entity = static::getManager()->load(self::getMetadata(), $data);
+        if (!$entity instanceof static) {
+            throw new \LogicException(sprintf(
+                'EntityManager::load() returned %s, expected %s',
+                get_class($entity),
+                static::class
+            ));
+        }
+
+        return $entity;
     }
 
     /**
@@ -62,8 +77,7 @@ trait ModelTrait
     /**
      * Creates a new QueryBuilder instance and set the WHERE condition.
      *
-     * @param  mixed $condition
-     * @param  array $params
+     * @param array<int|string, mixed> $params
      */
     public static function where(mixed $condition, array $params = []): QueryBuilder
     {
@@ -73,18 +87,35 @@ trait ModelTrait
     /**
      * Retrieves an entity by its identifier.
      *
+     * `QueryBuilder::first()` is typed `: ?object` because the ORM query
+     * builder is shared across all mapped entities; the hydrated row is
+     * always an instance of the calling `static::class` (see
+     * {@see create()} for the same reasoning).
+     *
      * @param  mixed $id
-     * @return static
+     * @return static|null
      */
     public static function find(mixed $id): ?static
     {
-        return static::where([static::getMetadata()->getIdentifier() => $id])->first();
+        $entity = static::where([static::getMetadata()->getIdentifier() => $id])->first();
+        if ($entity === null) {
+            return null;
+        }
+        if (!$entity instanceof static) {
+            throw new \LogicException(sprintf(
+                'QueryBuilder::first() returned %s, expected %s',
+                get_class($entity),
+                static::class
+            ));
+        }
+
+        return $entity;
     }
 
     /**
      * Retrieves all entities.
      *
-     * @return static[]
+     * @return array<int|string, object>
      */
     public static function findAll(): array
     {
@@ -94,7 +125,7 @@ trait ModelTrait
     /**
      * Saves the entity.
      *
-     * @param array $data
+     * @param array<string, mixed> $data
      */
     public function save(array $data = []): void
     {
@@ -112,11 +143,11 @@ trait ModelTrait
     /**
      * Gets model data as array.
      *
-     * @param  array $data
-     * @param  array $ignore
-     * @return array
+     * @param  array<string, mixed> $data
+     * @param  array<int, string>   $ignore
+     * @return array<string, mixed>
      */
-    public function toArray(array $data = [], array $ignore = [])
+    public function toArray(array $data = [], array $ignore = []): array
     {
         $metadata = static::getMetadata();
         $mappings = $metadata->getRelationMappings();
@@ -146,9 +177,11 @@ trait ModelTrait
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, mixed>
      */
     #[\ReturnTypeWillChange]
-    public function jsonSerialize()
+    public function jsonSerialize(): array
     {
         return $this->toArray();
     }

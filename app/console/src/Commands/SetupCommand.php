@@ -43,12 +43,13 @@ class SetupCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
 
         if (!in_array($this->option('db-driver'), ['mysql', 'sqlite'])) {
             $this->error("Unsupported db driver.");
-            exit;
+
+            return Command::FAILURE;
         }
 
         $this->line("Setting up Pagekit installation...");
@@ -107,19 +108,21 @@ class SetupCommand extends Command
                 $this->error("Trace: " . $e->getTraceAsString());
             }
 
-            return 1;
+            return Command::FAILURE;
         }
         $status = $result['status'];
         $message = $result['message'];
 
         if ($status == 'success') {
             // TODO: Callback
-            return (int) $this->line("Done");
+            $this->line("Done");
+
+            return Command::SUCCESS;
         } else {
             $this->error($message);
 
             // TODO: Callback
-            return 1;
+            return Command::FAILURE;
         }
     }
 }

@@ -37,6 +37,9 @@ function getHTML(string $content): string
     return isHTML($content) ? $content : '<p>'.$content.'</p>';
 }
 
+/**
+ * @param array<int|string, mixed> $attrs
+ */
 function attrs(array $attrs): string
 {
     $output = [];
@@ -67,7 +70,11 @@ function attrs(array $attrs): string
     return (bool) count($output) ? ' '.implode(' ', $output) : '';
 }
 
-function bgImage($url, $options): array
+/**
+ * @param array<string, mixed> $options
+ * @return array<string, mixed>
+ */
+function bgImage(string $url, array $options): array
 {
 
     $attrs = [];
@@ -105,7 +112,10 @@ function bgImage($url, $options): array
 
 }
 
-function image($url, array $attrs = []): string
+/**
+ * @param array<int|string, mixed> $attrs
+ */
+function image(string $url, array $attrs = []): string
 {
     $path = ThemeOneHelpers::getUrl()->get($url);
 
@@ -118,7 +128,7 @@ function image($url, array $attrs = []): string
     return "<img".$attributes.">";
 }
 
-function isImage($link): string|false
+function isImage(string $link): string|false
 {
     return $link && preg_match('#\.(gif|png|jpe?g|svg)$#', $link, $matches) ? $matches[1] : false;
 }

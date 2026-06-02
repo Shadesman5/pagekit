@@ -95,6 +95,7 @@ class User implements UserInterface, \JsonSerializable
     #[ORM\Column]
     public ?string $activation = null;
 
+    /** @var array<int, string>|null */
     protected ?array $permissions = null;
 
     /**
@@ -128,6 +129,9 @@ class User implements UserInterface, \JsonSerializable
         return $statuses[$this->status] ?? __('Unknown');
     }
 
+    /**
+     * @return array<int, string>
+     */
     public static function getStatuses(): array
     {
         return [
@@ -335,6 +339,8 @@ class User implements UserInterface, \JsonSerializable
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, mixed>
      */
     public function jsonSerialize(): array
     {

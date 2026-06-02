@@ -53,11 +53,9 @@ class PackageManager
     }
 
     /**
-     * @param  array $install
-     * @param bool $packagist
-     * @param bool $preferSource
+     * @param array<string, string> $install
      */
-    public function install(array $install = [], $packagist = false, $preferSource = false): void
+    public function install(array $install = [], bool $packagist = false, bool $preferSource = false): void
     {
         $packageFactory = $this->app->get('package');
 
@@ -78,6 +76,9 @@ class PackageManager
         }
     }
 
+    /**
+     * @param string|array<int, string> $uninstall
+     */
     public function uninstall(string|array $uninstall): void
     {
         $packageFactory = $this->app->get('package');
@@ -106,6 +107,10 @@ class PackageManager
         }
     }
 
+    /**
+     * @param object|array<int, object> $packages
+     * @param object|array<int, object> $previousPackageConfigs
+     */
     public function enable(object|array $packages, object|array $previousPackageConfigs = []): void
     {
         if (!is_array($packages)) {
@@ -199,6 +204,8 @@ class PackageManager
 
     /**
      * Rollback package enable on error.
+     *
+     * @param array<string, mixed> $originalState
      */
     protected function rollbackEnable(object $package, array $originalState): void
     {
@@ -227,6 +234,9 @@ class PackageManager
         }
     }
 
+    /**
+     * @param object|array<int, object> $packages
+     */
     public function disable(object|array $packages): void
     {
         if (!is_array($packages)) {

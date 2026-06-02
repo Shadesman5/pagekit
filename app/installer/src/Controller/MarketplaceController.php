@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\Installer\Controller;
 
+use Pagekit\Installer\Package\PackageFactory;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\User\Attribute\Access;
 use Psr\Container\ContainerInterface;
@@ -15,15 +16,18 @@ class MarketplaceController
 
     public function __construct(
         private readonly ContainerInterface $app,
-        private readonly mixed $package,
+        private readonly PackageFactory $package,
     ) {
         $this->systemApi = $this->app->has('system.api')
             ? $this->app->get('system.api')
             : 'https://pagekit.com';
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Request(['page' => 'int'])]
-    public function themesAction($page = null): array
+    public function themesAction(?int $page = null): array
     {
         return [
             '$view' => [
@@ -40,8 +44,11 @@ class MarketplaceController
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Request(['page' => 'int'])]
-    public function extensionsAction($page = null): array
+    public function extensionsAction(?int $page = null): array
     {
         return [
             '$view' => [

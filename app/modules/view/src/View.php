@@ -18,15 +18,18 @@ class View
 
     protected EngineInterface $engine;
 
+    /**
+     * @var array<string, mixed>
+     */
     protected array $globals = [];
 
     /**
-     * @var HelperInterface[]
+     * @var array<string, HelperInterface>
      */
     protected array $helpers = [];
 
     /**
-     * @var array[]
+     * @var array<int, array<string, mixed>>
      */
     protected array $parameters = [];
 
@@ -48,8 +51,10 @@ class View
      * Render shortcut.
      *
      * @see render()
+     *
+     * @param array<string, mixed> $parameters
      */
-    public function __invoke($name, array $parameters = [])
+    public function __invoke(string $name, array $parameters = []): ?string
     {
         return $this->render($name, $parameters);
     }
@@ -57,11 +62,9 @@ class View
     /**
      * Gets a helper or calls the helpers invoke method.
      *
-     * @param  string $name
-     * @param  array  $args
-     * @return mixed
+     * @param  array<int, mixed>  $args
      */
-    public function __call($name, $args)
+    public function __call(string $name, array $args): mixed
     {
         if (!isset($this->helpers[$name])) {
             throw new \InvalidArgumentException(sprintf('Undefined helper "%s"', $name));
@@ -72,11 +75,8 @@ class View
 
     /**
      * Gets a global parameter.
-     *
-     * @param  string $name
-     * @return mixed
      */
-    public function __get($name)
+    public function __get(string $name): mixed
     {
         return isset($this->globals[$name]) ? $this->globals[$name] : null;
     }
@@ -113,6 +113,8 @@ class View
 
     /**
      * Gets the global parameters.
+     *
+     * @return array<string, mixed>
      */
     public function getGlobals(): array
     {
@@ -121,11 +123,8 @@ class View
 
     /**
      * Adds a global parameter.
-     *
-     * @param  string $name
-     * @param  mixed  $value
      */
-    public function addGlobal($name, $value): self
+    public function addGlobal(string $name, mixed $value): self
     {
         $this->globals[$name] = $value;
 
@@ -162,12 +161,8 @@ class View
 
     /**
      * Adds an event listener.
-     *
-     * @param  string   $event
-     * @param  callable $listener
-     * @param  int      $priority
      */
-    public function on($event, $listener, $priority = 0): void
+    public function on(string $event, callable $listener, int $priority = 0): void
     {
         $this->events->on($event, $listener, $priority);
     }
@@ -175,8 +170,8 @@ class View
     /**
      * Triggers an event.
      *
-     * @param  string $event
-     * @param  array  $arguments
+     * @param string|EventInterface $event
+     * @param array<int, mixed>     $arguments
      */
     public function trigger($event, array $arguments = []): EventInterface
     {
@@ -186,7 +181,7 @@ class View
     /**
      * Returns true if the template exists.
      */
-    public function exists($name): bool
+    public function exists(string $name): bool
     {
         try {
             return $this->engine->exists($name);
@@ -197,8 +192,10 @@ class View
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<string, mixed> $parameters
      */
-    public function render($name, array $parameters = []): ?string
+    public function render(string $name, array $parameters = []): ?string
     {
         $event = new ViewEvent('render', $name);
         $event->setParameters(array_replace($this->globals, end($this->parameters) ?: [], $parameters));

@@ -35,6 +35,8 @@ class Connection extends BaseConnection
 
     /**
      * The regex for parsing SQL query parts.
+     *
+     * @var array<string, string>
      */
     protected array $regex;
 
@@ -46,10 +48,7 @@ class Connection extends BaseConnection
     /**
      * Initializes a new instance of the Connection class.
      *
-     * @param array         $params
-     * @param Driver        $driver
-     * @param Configuration $config
-     * @param EventManager  $eventManager
+     * @param array<string, mixed> $params
      */
     public function __construct(array $params, Driver $driver, ?Configuration $config = null, ?EventManager $eventManager = null)
     {
@@ -161,10 +160,8 @@ class Connection extends BaseConnection
 
     /**
      * Replaces the table prefix placeholder with actual one.
-     *
-     * @param  string $query
      */
-    public function replacePrefix($query): string
+    public function replacePrefix(string $query): string
     {
         $offset = 0;
         $length = strlen($this->prefix) - strlen($this->placeholder);
@@ -189,13 +186,10 @@ class Connection extends BaseConnection
     /**
      * Prepares and executes an SQL query and returns the first row of the result as an object.
      *
-     * @param  string $statement
-     * @param  array  $params
-     * @param  string $class
-     * @param  array  $args
-     * @return mixed
+     * @param  array<string, mixed> $params
+     * @param  array<int, mixed>    $args
      */
-    public function fetchObject($statement, array $params = [], $class = 'stdClass', $args = [])
+    public function fetchObject(string $statement, array $params = [], string $class = 'stdClass', array $args = []): object|false
     {
         $result = $this->executeQuery($statement, $params);
         $row = $result->fetchAssociative();
@@ -213,12 +207,11 @@ class Connection extends BaseConnection
     /**
      * Prepares and executes an SQL query and returns the result as an array of objects.
      *
-     * @param  string $statement
-     * @param  array  $params
-     * @param  string $class
-     * @param  array  $args
+     * @param  array<string, mixed> $params
+     * @param  array<int, mixed>    $args
+     * @return array<int, object>
      */
-    public function fetchAllObjects($statement, array $params = [], $class = 'stdClass', $args = []): array
+    public function fetchAllObjects(string $statement, array $params = [], string $class = 'stdClass', array $args = []): array
     {
         $result = $this->executeQuery($statement, $params);
         $rows = $result->fetchAllAssociative();
@@ -245,7 +238,7 @@ class Connection extends BaseConnection
     /**
      * @{inheritdoc}
      */
-    public function exec($sql): int
+    public function exec(string $sql): int
     {
         return parent::executeStatement($this->replacePrefix($sql));
     }
@@ -277,9 +270,9 @@ class Connection extends BaseConnection
     /**
      * Parses the unquoted SQL query parts.
      *
-     * @param  string $query
+     * @return array<int, array{0: string, 1: int}>
      */
-    protected function getUnquotedQueryParts($query): array
+    protected function getUnquotedQueryParts(string $query): array
     {
         preg_match_all($this->regex['quotes'], $query, $parts, PREG_OFFSET_CAPTURE);
 

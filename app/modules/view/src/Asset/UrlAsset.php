@@ -9,7 +9,7 @@ class UrlAsset extends Asset
     /**
      * {@inheritdoc}
      */
-    public function hash($salt = ''): string
+    public function hash(string $salt = ''): string
     {
         return hash('crc32b', $this->source . $salt);
     }

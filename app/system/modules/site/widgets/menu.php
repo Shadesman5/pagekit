@@ -24,7 +24,7 @@ return [
     'events' => [
 
         'view.scripts' => function ($event, $scripts) {
-            $scripts->register('widget-menu', 'system/site:app/bundle/widget-menu.js', '~widgets');
+            $scripts->register('widget-menu', 'system/site:app/bundle/widget-menu.js', ['~widgets']);
         },
 
     ],

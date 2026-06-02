@@ -19,14 +19,14 @@ interface MessageInterface
     /**
      * Sends the message.
      *
-     * @param  array $errors
+     * @param array<int, string>|null $errors Out-parameter populated with error messages on failure.
      */
-    public function send(&$errors = null): int;
+    public function send(?array &$errors = null): int;
 
     /**
      * Queues the message for later sending.
      *
-     * @param  array $errors
+     * @param array<int, string>|null $errors Out-parameter populated with error messages on failure.
      */
-    public function queue(&$errors = null): int;
+    public function queue(?array &$errors = null): int;
 }

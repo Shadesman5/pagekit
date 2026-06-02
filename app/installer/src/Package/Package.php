@@ -8,12 +8,11 @@ use Pagekit\Util\Arr;
 
 class Package implements PackageInterface
 {
+    /** @var array<string, mixed> */
     protected array $data;
 
     /**
-     * Constructor.
-     *
-     * @param array $data
+     * @param array<string, mixed> $data
      */
     public function __construct(array $data)
     {
@@ -23,7 +22,7 @@ class Package implements PackageInterface
     /**
      * {@inheritdoc}
      */
-    public function get($key, $default = null)
+    public function get(string $key, mixed $default = null): mixed
     {
         return Arr::get($this->data, $key, $default);
     }
@@ -31,29 +30,23 @@ class Package implements PackageInterface
     /**
      * {@inheritdoc}
      */
-    public function set($key, $value): void
+    public function set(string $key, mixed $value): void
     {
         Arr::set($this->data, $key, $value);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getName(): string
     {
         return $this->get('name');
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getType(): string
     {
         return $this->get('type');
     }
 
     /**
-     * {@inheritdoc}
+     * @return array<string, mixed>
      */
     public function jsonSerialize(): array
     {

@@ -7,50 +7,34 @@ namespace Pagekit\Util;
 // Removed the self-referencing use statement
 // use Pagekit\Util\ArrObject;
 
+/**
+ * @implements \ArrayAccess<string, mixed>
+ */
 class ArrObject implements \ArrayAccess, \Countable, \JsonSerializable
 {
+    /** @var array<int|string, mixed> */
     protected array $values = [];
 
     /**
-     * Constructor.
-     *
-     * @param mixed $values
-     * @param mixed $defaults
+     * @param array<int|string, mixed>|mixed $values
+     * @param array<int|string, mixed>|mixed $defaults
      */
-    public function __construct($values = [], $defaults = [])
+    public function __construct(mixed $values = [], mixed $defaults = [])
     {
         $this->values = Arr::merge((array) $defaults, (array) $values);
     }
 
-    /**
-     * Checks if the given key exists.
-     *
-     * @param  string $key
-     */
-    public function has($key): bool
+    public function has(?string $key): bool
     {
         return Arr::has($this->values, $key);
     }
 
-    /**
-     * Gets a value by key.
-     *
-     * @param  string $key
-     * @param  mixed  $default
-     * @return mixed
-     */
-    public function get($key, $default = null)
+    public function get(?string $key, mixed $default = null): mixed
     {
         return Arr::get($this->values, $key, $default);
     }
 
-    /**
-     * Sets a value.
-     *
-     * @param  string $key
-     * @param  mixed  $value
-     */
-    public function set($key, $value): self
+    public function set(?string $key, mixed $value): self
     {
         Arr::set($this->values, $key, $value);
 
@@ -60,22 +44,16 @@ class ArrObject implements \ArrayAccess, \Countable, \JsonSerializable
     /**
      * Removes one or more values.
      *
-     * @param  array|string $keys
+     * @param array<int, string>|string $keys
      */
-    public function remove($keys): self
+    public function remove(array|string $keys): self
     {
         Arr::remove($this->values, $keys);
 
         return $this;
     }
 
-    /**
-     * Push value to the end of array.
-     *
-     * @param  string $key
-     * @param  mixed  $value
-     */
-    public function push($key, $value): ArrObject
+    public function push(string $key, mixed $value): ArrObject
     {
         $values = $this->get($key);
         $values[] = $value;
@@ -83,13 +61,7 @@ class ArrObject implements \ArrayAccess, \Countable, \JsonSerializable
         return $this->set($key, $values);
     }
 
-    /**
-     * Removes a value from array.
-     *
-     * @param  string $key
-     * @param  mixed  $value
-     */
-    public function pull($key, $value): ArrObject
+    public function pull(string $key, mixed $value): ArrObject
     {
         $values = $this->get($key);
 
@@ -99,12 +71,9 @@ class ArrObject implements \ArrayAccess, \Countable, \JsonSerializable
     }
 
     /**
-     * Merges a values from another array.
-     *
-     * @param  mixed $values
-     * @param  bool  $replace
+     * @param array<int|string, mixed> $values
      */
-    public function merge($values, $replace = false): self
+    public function merge(array $values, bool $replace = false): self
     {
         $this->values = Arr::merge($this->values, $values, $replace);
 
@@ -114,24 +83,21 @@ class ArrObject implements \ArrayAccess, \Countable, \JsonSerializable
     /**
      * Extracts config values.
      *
-     * @param  array $keys
-     * @param  bool  $include
+     * @param array<int, string> $keys
+     * @return array<int|string, mixed>
      */
-    public function extract($keys, $include = true): array
+    public function extract(array $keys, bool $include = true): array
     {
         return Arr::extract($this->values, $keys, $include);
     }
 
-    /**
-     * Gets the value count.
-     */
     public function count(): int
     {
         return count($this->values);
     }
 
     /**
-     * Gets the keys as array.
+     * @return list<int|string>
      */
     public function keys(): array
     {
@@ -139,7 +105,7 @@ class ArrObject implements \ArrayAccess, \Countable, \JsonSerializable
     }
 
     /**
-     * Gets the values as a numerically indexed array.
+     * @return list<mixed>
      */
     public function values(): array
     {
@@ -147,7 +113,7 @@ class ArrObject implements \ArrayAccess, \Countable, \JsonSerializable
     }
 
     /**
-     * Gets the values as a plain array.
+     * @return array<int|string, mixed>
      */
     public function toArray(): array
     {
@@ -155,50 +121,29 @@ class ArrObject implements \ArrayAccess, \Countable, \JsonSerializable
     }
 
     /**
-     * Implements JsonSerializable interface.
+     * @return array<int|string, mixed>
      */
     public function jsonSerialize(): array
     {
         return $this->values;
     }
 
-    /**
-     * Implements ArrayAccess interface.
-     *
-     * @see has()
-     */
-    public function offsetExists($key): bool
+    public function offsetExists(mixed $key): bool
     {
         return $this->has($key);
     }
 
-    /**
-     * Implements ArrayAccess interface.
-     *
-     * @see get()
-     */
-    #[\ReturnTypeWillChange]
-    public function offsetGet($key)
+    public function offsetGet(mixed $key): mixed
     {
         return $this->get($key);
     }
 
-    /**
-     * Implements ArrayAccess interface.
-     *
-     * @see set()
-     */
-    public function offsetSet($key, $value): void
+    public function offsetSet(mixed $key, mixed $value): void
     {
         $this->set($key, $value);
     }
 
-    /**
-     * Implements ArrayAccess interface.
-     *
-     * @see remove()
-     */
-    public function offsetUnset($key): void
+    public function offsetUnset(mixed $key): void
     {
         $this->remove($key);
     }

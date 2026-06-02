@@ -8,10 +8,13 @@ use Pagekit\Database\ORM\QueryBuilder;
 
 class HasMany extends HasOne
 {
+    /** @var array<string, string> */
     protected array $orderBy;
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<string, mixed> $mapping
      */
     public function __construct(\Pagekit\Database\ORM\EntityManager $manager, \Pagekit\Database\ORM\Metadata $metadata, array $mapping)
     {
@@ -22,6 +25,8 @@ class HasMany extends HasOne
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<int, object> $entities
      */
     public function resolve(array $entities, QueryBuilder $query): void
     {
@@ -44,6 +49,9 @@ class HasMany extends HasOne
         $this->resolveRelations($query, $targets);
     }
 
+    /**
+     * @param array<int, object> $entities
+     */
     protected function mapBelongsTo(array $entities): void
     {
         if ($this->belongsTo) {

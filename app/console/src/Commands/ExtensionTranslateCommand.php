@@ -37,7 +37,7 @@ class ExtensionTranslateCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected function execute(InputInterface $input, OutputInterface $output): void
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $extension = $this->argument('extension') ?: 'system';
         $files = $this->getFiles($path = $this->getPath($extension), $extension);
@@ -102,13 +102,15 @@ class ExtensionTranslateCommand extends Command
         }
 
         $this->writeTranslationFile($result, $extension, $languages);
+
+        return Command::SUCCESS;
     }
 
     /**
      * Extracts translateable strings from a given file.
      *
      * @param  string $file Path to the file
-     * @return array Array of strings to be translated, grouped by message domain.
+     * @return array<string, array<string, string>> Array of strings to be translated, grouped by message domain.
      *               Example:
      *               ['messages' = ['Hello' => 'Hello', 'Apple' => 'Apple'], 'customdomain' => ['One' => 'One']]
      */
@@ -175,7 +177,7 @@ class ExtensionTranslateCommand extends Command
      *
      * @param  string $path
      */
-    protected function getFiles($path, $extension): Finder
+    protected function getFiles($path, string $extension): Finder
     {
         $files = Finder::create()->files()->in($path);
 
@@ -206,7 +208,7 @@ class ExtensionTranslateCommand extends Command
     /**
      * Writes the translation file for the given extension.
      *
-     * @param array  $messages
+     * @param array<string, array<string, string>> $messages
      * @param string $extension
      * @param string $path
      */

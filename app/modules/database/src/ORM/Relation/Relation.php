@@ -51,9 +51,7 @@ abstract class Relation
     /**
      * Constructor.
      *
-     * @param  EntityManager $manager
-     * @param  Metadata      $metadata
-     * @param  array         $mapping
+     * @param array<string, mixed> $mapping
      */
     public function __construct(EntityManager $manager, Metadata $metadata, array $mapping)
     {
@@ -70,18 +68,16 @@ abstract class Relation
     /**
      * Resolves the entity relation.
      *
-     * @param array        $entities
-     * @param QueryBuilder $query
+     * @param array<int, object> $entities
      */
-    abstract public function resolve(array $entities, QueryBuilder $query);
+    abstract public function resolve(array $entities, QueryBuilder $query): void;
 
     /**
      * Initialize the relationship
      *
-     * @param array $entities
-     * @param mixed $default
+     * @param array<int, object> $entities
      */
-    protected function initRelation(array $entities, $default = false)
+    protected function initRelation(array $entities, mixed $default = false): void
     {
         foreach ($entities as $entity) {
             $this->metadata->setValue($entity, $this->name, $default);
@@ -91,10 +87,10 @@ abstract class Relation
     /**
      * Gets the related keys
      *
-     * @param  array    $entities
-     * @param  string   $key
+     * @param  array<int, object> $entities
+     * @return array<int, mixed>
      */
-    protected function getKeys(array $entities, $key = null): array
+    protected function getKeys(array $entities, ?string $key = null): array
     {
 
         $key = $key ?: $this->keyFrom;
@@ -112,10 +108,10 @@ abstract class Relation
     /**
      * Map targets to entities
      *
-     * @param array    $entities
-     * @param array    $targets
+     * @param array<int, object> $entities
+     * @param array<int, object> $targets
      */
-    protected function map($entities, $targets)
+    protected function map(array $entities, array $targets): void
     {
         $identifier = $this->targetMetadata->getIdentifier();
 
@@ -142,10 +138,9 @@ abstract class Relation
     /**
      * Resolve additional relations
      *
-     * @param QueryBuilder $query
-     * @param array        $targets
+     * @param array<int, object> $targets
      */
-    protected function resolveRelations(QueryBuilder $query, $targets): void
+    protected function resolveRelations(QueryBuilder $query, array $targets): void
     {
         if (!$targets) {
             return;

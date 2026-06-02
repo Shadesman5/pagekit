@@ -10,6 +10,7 @@ use Monolog\LogRecord;
 
 class DebugBarHandler extends AbstractHandler implements DataCollectorInterface
 {
+    /** @var list<array{message: string, level: int, level_name: string, channel: string}> */
     protected array $records = [];
 
     /**
@@ -32,7 +33,7 @@ class DebugBarHandler extends AbstractHandler implements DataCollectorInterface
     }
 
     /**
-     * {@inheritdoc}
+     * @return array{records: list<array{message: string, level: int, level_name: string, channel: string}>}
      */
     public function collect(): array
     {

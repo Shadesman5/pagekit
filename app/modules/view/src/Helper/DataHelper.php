@@ -14,6 +14,7 @@ use Pagekit\View\View;
  */
 class DataHelper implements HelperInterface
 {
+    /** @var array<string, mixed> */
     protected array $data = [];
 
     /**
@@ -43,7 +44,7 @@ class DataHelper implements HelperInterface
      *
      * @see add()
      */
-    public function __invoke($name, $value)
+    public function __invoke(string $name, mixed $value): void
     {
         $this->add($name, $value);
     }
@@ -51,10 +52,9 @@ class DataHelper implements HelperInterface
     /**
      * Gets the data values or a value by name.
      *
-     * @param  null|string $name
-     * @return array
+     * @return mixed
      */
-    public function get($name = null)
+    public function get(?string $name = null): mixed
     {
         if ($name === null) {
             return $this->data;
@@ -65,11 +65,8 @@ class DataHelper implements HelperInterface
 
     /**
      * Adds a data value to an existing key name.
-     *
-     * @param  string $name
-     * @param  mixed  $value
      */
-    public function add($name, $value): void
+    public function add(string $name, mixed $value): void
     {
         if (isset($this->data[$name]) && is_array($this->data[$name])) {
             $value = array_replace_recursive($this->data[$name], $value);

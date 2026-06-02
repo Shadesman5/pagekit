@@ -8,6 +8,7 @@ use Pagekit\Database\ORM\Attribute as ORM;
 
 trait AccessModelTrait
 {
+    /** @var array<int, int> */
     #[ORM\Column(type: 'simple_array')]
     public array $roles = [];
 

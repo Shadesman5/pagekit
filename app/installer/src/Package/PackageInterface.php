@@ -8,20 +8,13 @@ interface PackageInterface extends \JsonSerializable
 {
     /**
      * Gets a package value.
-     *
-     * @param  string $key
-     * @param  mixed  $default
-     * @return mixed
      */
-    public function get($key, $default = null);
+    public function get(string $key, mixed $default = null): mixed;
 
     /**
-     * Gets a package value.
-     *
-     * @param string $key
-     * @param mixed  $value
+     * Sets a package value.
      */
-    public function set($key, $value);
+    public function set(string $key, mixed $value): void;
 
     /**
      * Gets the name.

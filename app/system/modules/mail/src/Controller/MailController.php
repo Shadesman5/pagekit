@@ -6,20 +6,26 @@ namespace Pagekit\Mail\Controller;
 
 use function Pagekit\__;
 
+use Pagekit\Mail\Mailer;
+use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\User\Attribute\Access;
 use Pagekit\Util\Arr;
+use Symfony\Component\HttpFoundation\Request;
 
 #[Access('system: access settings', admin: true)]
 class MailController
 {
     public function __construct(
-        private readonly mixed $request,
-        private readonly mixed $mailer,
-        private readonly mixed $module,
+        private readonly Request $request,
+        private readonly Mailer $mailer,
+        private readonly ModuleManager $module,
     ) {
     }
 
+    /**
+     * @return array{success: bool, message: string}
+     */
     #[Route('/smtp', methods: ['POST'])]
     public function smtpAction(): array
     {
@@ -52,6 +58,9 @@ class MailController
         }
     }
 
+    /**
+     * @return array{success: bool, message: string}
+     */
     #[Route('/email', methods: ['POST'])]
     public function emailAction(): array
     {

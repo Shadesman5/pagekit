@@ -15,8 +15,10 @@ use PHPUnit\Framework\TestCase;
 class AuthTest extends TestCase
 {
     protected ?Auth $auth = null;
-    protected $events;
-    protected $handler;
+    /** @var (\PHPUnit\Framework\MockObject\MockObject&EventDispatcherInterface)|null */
+    protected ?\PHPUnit\Framework\MockObject\MockObject $events = null;
+    /** @var (\PHPUnit\Framework\MockObject\MockObject&HandlerInterface)|null */
+    protected ?\PHPUnit\Framework\MockObject\MockObject $handler = null;
 
     public function setUp(): void
     {

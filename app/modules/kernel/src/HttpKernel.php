@@ -23,16 +23,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 class HttpKernel implements HttpKernelInterface
 {
-    protected \Pagekit\Event\EventDispatcherInterface $events;
+    protected EventDispatcherInterface $events;
 
-    protected \Symfony\Component\HttpFoundation\RequestStack $stack;
+    protected RequestStack $stack;
 
-    /**
-     * Constructor.
-     *
-     * @param EventDispatcherInterface $events
-     * @param RequestStack             $stack
-     */
     public function __construct(EventDispatcherInterface $events, ?RequestStack $stack = null)
     {
         $this->events = $events;
@@ -79,8 +73,10 @@ class HttpKernel implements HttpKernelInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<string, string> $headers
      */
-    public function abort($code, $message = null, array $headers = []): void
+    public function abort(int $code, ?string $message = null, array $headers = []): void
     {
         switch ($code) {
 

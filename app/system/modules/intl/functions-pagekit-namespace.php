@@ -9,8 +9,10 @@ use Pagekit\Intl\IntlServiceLocator;
 if (!function_exists('Pagekit\__')) {
     /**
      * Translates the given message, alias for method trans()
+     *
+     * @param array<string, mixed> $parameters
      */
-    function __($id, array $parameters = [], $domain = 'messages', $locale = null)
+    function __(string $id, array $parameters = [], ?string $domain = 'messages', ?string $locale = null): string
     {
         return IntlServiceLocator::getTranslator()->trans($id, $parameters, $domain, $locale);
     }
@@ -22,8 +24,10 @@ if (!function_exists('Pagekit\_c')) {
      *
      * TODO: Must be refactored in Step 3.4.6 (Translation System Modernization) —
      * Remove _c() once all call sites use __() with ICU MessageFormat.
+     *
+     * @param array<string, mixed> $parameters
      */
-    function _c($id, $number, array $parameters = [], $domain = null, $locale = null)
+    function _c(string $id, int|float $number, array $parameters = [], ?string $domain = null, ?string $locale = null): string
     {
         return IntlServiceLocator::getTranslator()->trans($id, array_merge(['%count%' => $number], $parameters), $domain, $locale);
     }
@@ -33,7 +37,7 @@ if (!function_exists('Pagekit\_n')) {
     /**
      * Formats a number
      */
-    function _n($number, $style = 'decimal', $pattern = '', $locale = null)
+    function _n(int|float $number, string $style = 'decimal', string $pattern = '', ?string $locale = null): string
     {
         return IntlServiceLocator::getIntl()->formatNumber($number, $style, $pattern, $locale);
     }

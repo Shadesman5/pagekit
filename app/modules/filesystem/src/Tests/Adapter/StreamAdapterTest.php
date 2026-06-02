@@ -7,7 +7,7 @@ namespace Pagekit\Filesystem\Tests\Adapter;
 use Pagekit\Filesystem\Adapter\StreamAdapter;
 use Pagekit\Filesystem\Filesystem;
 use Pagekit\Filesystem\StreamWrapper;
-use Pagekit\Tests\FileUtil;
+use Pagekit\Filesystem\Tests\FileUtil;
 use PHPUnit\Framework\TestCase;
 
 class StreamAdapterTest extends TestCase
@@ -16,7 +16,7 @@ class StreamAdapterTest extends TestCase
 
     protected ?Filesystem $file = null;
     protected ?string $fixtures = null;
-    protected $workspace;
+    protected ?string $workspace = null;
 
     public function setUp(): void
     {

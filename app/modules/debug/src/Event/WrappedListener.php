@@ -14,15 +14,16 @@ use Symfony\Component\Stopwatch\Stopwatch;
  */
 class WrappedListener
 {
+    /** @var callable */
     protected $listener;
-    protected $name;
-    protected $priority;
+    protected string $name;
+    protected ?int $priority;
     protected bool $called;
     protected bool $stoppedPropagation;
     protected Stopwatch $stopwatch;
     protected ?EventDispatcherInterface $dispatcher = null;
 
-    public function __construct($listener, $name, $priority, Stopwatch $stopwatch, ?EventDispatcherInterface $dispatcher = null)
+    public function __construct(callable $listener, string $name, ?int $priority, Stopwatch $stopwatch, ?EventDispatcherInterface $dispatcher = null)
     {
         $this->listener = $listener;
         $this->name = $name;
@@ -33,12 +34,15 @@ class WrappedListener
         $this->stoppedPropagation = false;
     }
 
+    /**
+     * @return callable
+     */
     public function getWrappedListener()
     {
         return $this->listener;
     }
 
-    public function getPriority()
+    public function getPriority(): ?int
     {
         return $this->priority;
     }
@@ -53,7 +57,7 @@ class WrappedListener
         return $this->stoppedPropagation;
     }
 
-    public function __invoke(EventInterface $event)
+    public function __invoke(EventInterface $event): void
     {
         $this->called = true;
 
