@@ -90,7 +90,6 @@ class ArchiveCommand extends Command
         $name = basename($target);
         $size = filesize($target) / 1024 / 1024;
 
-        //TODO: Callback. Prev - return $target;
         $this->line(sprintf('Archive created: %s (%.2f MB)', $name, $size));
 
         return Command::SUCCESS;
@@ -98,7 +97,11 @@ class ArchiveCommand extends Command
 
     protected function getPackageFilename(string $name): string
     {
-        // TODO: Make this more robust.
-        return preg_replace('#[^a-z0-9-_]#i', '-', $name) ?? $name;
+        $filename = preg_replace('#[^a-z0-9-_]#i', '-', $name) ?? $name;
+        $filename = preg_replace('#-+#', '-', $filename) ?? $filename;
+        $filename = trim($filename, '-');
+
+        // Guard against a name that sanitises down to nothing (e.g. "///").
+        return $filename !== '' ? $filename : 'package';
     }
 }

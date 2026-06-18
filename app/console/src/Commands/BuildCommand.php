@@ -55,7 +55,10 @@ class BuildCommand extends Command
             $config[$key] = $this->container->get($key);
         }
 
-        // TODO: Don't install packages from repo during development.
+        // TODO: Step 5.6 (Marketplace & Extensions) — optional release step: bundle the published
+        // marketplace versions of the first-party packages into the ZIP instead of the in-repo
+        // sources. Disabled in 2020 when the pagekit.com backend (system.api) was shut down;
+        // re-enable only after a self-hostable package-distribution API exists.
         // $composer = new Composer($config, $output);
         // $composer->install($packages);
 
@@ -99,7 +102,8 @@ class BuildCommand extends Command
         $name = basename($zipFile);
         $size = filesize($zipFile) / 1024 / 1024;
 
-        // TODO: Callback
-        return (int) $this->line(sprintf('Build: %s (%.2f MB)', $name, $size));
+        $this->line(sprintf('Build: %s (%.2f MB)', $name, $size));
+
+        return Command::SUCCESS;
     }
 }

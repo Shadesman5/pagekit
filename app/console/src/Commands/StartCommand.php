@@ -41,7 +41,6 @@ class StartCommand extends Command
 
         exec("php -S $server index.php");
 
-        // TODO: Callback
-        return 0;
+        return Command::SUCCESS;
     }
 }

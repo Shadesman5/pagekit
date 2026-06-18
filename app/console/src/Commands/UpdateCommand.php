@@ -37,8 +37,13 @@ class UpdateCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        // TODO
-        return (int) $this->error("The feature is disabled during development.");
+        // TODO: Step 5.6 (Marketplace & Extensions) — `pagekit update <pkg>` updates an installed
+        // extension/theme's dependencies from the marketplace. Disabled in 2020 when the
+        // pagekit.com backend (system.api) was shut down; re-enable once a self-hostable
+        // package-distribution API exists.
+        $this->error("The 'update' command is disabled: the pagekit.com marketplace backend was discontinued. To be re-enabled in roadmap Step 5.6 (Marketplace & Extensions).");
+
+        return Command::FAILURE;
         // $packages = [];
 
         // foreach ((array) $this->argument('packages') as $package) {
