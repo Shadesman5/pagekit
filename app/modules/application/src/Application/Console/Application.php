@@ -48,7 +48,8 @@ class Application extends BaseApplication
      * @param  BaseCommand $command
      * @return BaseCommand
      */
-    // TODO: Step 2.1 (Static Analysis) — convert console commands from setter injection to constructor DI
+    // TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 — Strict Typing) —
+    // convert console commands from setter injection (Command::setContainer()) to constructor DI / a command factory.
     public function add(BaseCommand $command): ?\Symfony\Component\Console\Command\Command
     {
         if ($command instanceof Command) {

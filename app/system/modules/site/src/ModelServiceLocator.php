@@ -6,7 +6,7 @@ namespace Pagekit\Site;
 
 use Psr\Container\ContainerInterface;
 
-// TODO: Must be refactored in Step 2.1 (Static Analysis) — replace ModelServiceLocator with proper DTO/presenter pattern
+// TODO: Must be refactored in Step 2.1.10 (Entity Presentation Layer) — replace ModelServiceLocator with proper DTO/presenter pattern (GitHub #204)
 
 final class ModelServiceLocator
 {
