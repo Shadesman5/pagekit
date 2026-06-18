@@ -253,6 +253,8 @@
   - **Translation-key extraction (optional, low priority):**
     - Extend `app/console/src/NodeVisitor/PhpNodeVisitor.php` to also extract message keys from PHP 8 `#[Assert\...]` attributes (the visitor currently only handles `__`, `_c`, `trans`, `transChoice` function calls). Feeds the `ExtensionTranslateCommand` extraction pipeline. (Routed from repo TODO inventory §2; carries a canonical `Step 3.4.6` TODO comment in the source.)
     - Extend the JS/Vue extraction in `app/console/src/Commands/ExtensionTranslateCommand.php` to honour the optional **domain** argument of `$trans()/$transChoice()` calls. The current regex only captures the message id and hardcodes the `'messages'` domain, so custom-domain strings in `.js` files (where the `| trans` filter is unavailable) are extracted into the wrong `.pot`. Best solved with a JS AST (mirroring `PhpNodeVisitor` on the PHP side). (Routed from repo TODO inventory §3; carries a canonical `Step 3.4.6` TODO comment in the source.)
+  - **Replace forked Intl loaders with Symfony built-ins:**
+    - Pagekit ships forks of Symfony's `ArrayLoader` / `PoFileLoader` / `MoFileLoader` in `app/system/modules/intl/src/Loader/`. The fork exists only to massage gettext plurals into Pagekit's legacy `|`-separated / `{N}`-prefixed `transChoice` format. Once transChoice → ICU lands (above), drop the forks and use `Symfony\Component\Translation\Loader\{Po,Mo}FileLoader` — which also support `msgctxt` contexts + catalogue metadata that the fork silently drops (resolves the canonical `Step 3.4.6` TODO in `PoFileLoader::parse()`). (Routed from repo TODO inventory §3.)
 
 ---
 
