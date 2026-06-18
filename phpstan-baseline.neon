@@ -385,12 +385,6 @@ parameters:
 			path: app/modules/config/index.php
 
 		-
-			message: '#^Class Doctrine\\DBAL\\Platforms\\MySqlPlatform not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/config/src/ConfigManager.php
-
-		-
 			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertIsString\(\) with string will always evaluate to true\.$#'
 			identifier: method.alreadyNarrowedType
 			count: 1
@@ -437,12 +431,6 @@ parameters:
 			identifier: booleanAnd.alwaysFalse
 			count: 1
 			path: app/modules/database/src/Query/CompositeExpression.php
-
-		-
-			message: '#^Class Doctrine\\DBAL\\Platforms\\MySqlPlatform not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/database/src/Query/QueryBuilder.php
 
 		-
 			message: '#^Unsafe usage of new static\(\)\.$#'
@@ -869,12 +857,6 @@ parameters:
 			identifier: variable.undefined
 			count: 1
 			path: app/modules/session/index.php
-
-		-
-			message: '#^Class Doctrine\\DBAL\\Platforms\\MySqlPlatform not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/session/src/Handler/DatabaseSessionHandler.php
 
 		-
 			message: '#^Dead catch \- PDOException is never thrown in the try block\.$#'
