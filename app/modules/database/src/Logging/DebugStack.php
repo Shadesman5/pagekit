@@ -11,6 +11,10 @@ use Symfony\Component\Stopwatch\Stopwatch;
  *
  * This class is kept for backward compatibility but is no longer used.
  * DBAL 3.x uses a middleware-based approach for SQL logging.
+ *
+ * TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 — Strict Typing) — delete this dead
+ * shim (zero consumers; replaced by Pagekit\Debug\Middleware\DebugMiddleware) per Aggressive
+ * Rule 4 (Delete over Wrap).
  */
 class DebugStack
 {
