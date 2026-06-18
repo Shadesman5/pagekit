@@ -39,9 +39,11 @@
         "**/*.min.js": true,
         "**/*.min.css": true
     },
+    // NOTE: Do NOT add "**/app/vendor" to files.exclude. intelephense honours files.exclude when
+    // indexing, so hiding the (non-standard) app/vendor path makes it unable to resolve Symfony/
+    // Composer types and produces false "Undefined type" errors. vendor stays in search.exclude only.
     "files.exclude": {
-        "**/node_modules": true,
-        "**/app/vendor": true
+        "**/node_modules": true
     },
     "[apache]": {
         "editor.formatOnSave": false
