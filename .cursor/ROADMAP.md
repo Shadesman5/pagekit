@@ -85,6 +85,8 @@
 | 2.1.7  | ↳ QueryBuilder API Standardization    | ⏳     | ⏳    | #154  | -       |
 | 2.1.8  | ↳ Infection Mutation Testing          | ⏳     | ⏳    | #155  | -       |
 | 2.1.9  | ↳ Test Coverage Expansion             | ⏳     | ⏳    | #156  | -       |
+| 2.1.10 | ↳ Entity Presentation Layer (DTO)     | ⏳     | ⏳    | #204  | -       |
+| 2.1.11 | ↳ EntityManager DI (remove singleton) | ⏳     | ⏳    | #205  | -       |
 | 2.2    | CI/CD Pipeline                        | ⏳     | ⏳    | #157  | -       |
 | 2.3    | Docker Production                     | ⏳     | ⏳    | #158  | -       |
 | 2.4    | Build Tools                           | ⏳     | ⏳    | #159  | -       |
