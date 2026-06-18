@@ -1,5 +1,25 @@
 # Changelog
 
+## Pagekit 1.2.18 - TODO Inventory & Legacy Cleanup (Juni 19, 2026)
+
+### Fixed
+
+- **DBAL 3 platform class name** — `Doctrine\DBAL\Platforms\MySqlPlatform` (the DBAL 2.x name, non-existent in DBAL 3) corrected to `MySQLPlatform` in `ConfigManager`, `Database\Query\QueryBuilder` and `DatabaseSessionHandler`. The old name silently made every `instanceof MySqlPlatform` evaluate to `false`, so the MySQL-specific SQL paths (config upsert, session merge) were never taken on MySQL. Three now-resolved `class.notFound` baseline entries removed.
+
+### Refactored
+
+- **Console commands** — removed the obsolete `// TODO: Callback` markers and switched to explicit `Command::SUCCESS` / `Command::FAILURE` (Archive, Build, Setup, Start, Uninstall). The disabled marketplace commands `install` / `update` / `self-update` previously returned exit `0` via `(int) $this->error(...)` (`error()` is `void`); they now return `Command::FAILURE` with a clear message so agents/CI detect the disabled state. Marketplace bundling tagged to Step 5.6. `ArchiveCommand::getPackageFilename()` hardened (collapse/trim hyphens, empty-string fallback).
+- **View engine** — removed the dead `$parser` constructor param + property from `PhpEngine` (the only caller passed `null`); clarified the `escape()` null-guard comment (it guards the PHP 8.1+ null→string deprecation, min PHP is 8.2 — not old-PHP support). Documented the intentional PHP + Twig dual-engine (`DelegatingEngine`): PHP primary, Twig optional, no consolidation planned.
+
+### Documentation / TODO inventory
+
+- **Canonical TODO retagging** — routed legacy in-code TODOs to their roadmap homes: console setter-DI / blog `UrlResolver` / theme-one helpers (2.1.6), `DbUtil` DBAL-3 test helper (2.1.7), `ModelServiceLocator` (2.1.10), `EntityManager` singleton + `db.em` boot trigger (2.1.11), `PhpNodeVisitor` + `ExtensionTranslate` custom-domain extraction + forked Intl loaders (3.4.6), dead `DebugStack` shim deletion (2.1.6).
+- **New roadmap Step 2.1.11** (EntityManager DI — remove singleton, Active-Record → Data-Mapper) created with GitHub issue **#205** (sub-issue of #147). The EntityManager singleton removal was split out of Step 2.1.6 (which now only hardens the typing). `PHASE_2`/`PHASE_3` docs expanded; issue **#153** (2.1.6) and **#154** (2.1.7) bodies updated to match. PHP-template → Twig consolidation explicitly deferred (dual-engine kept by design).
+
+### Tooling
+
+- **`.vscode/settings.json`** — `app/vendor` removed from `files.exclude` (kept in `search.exclude`) so intelephense indexes the non-standard vendor directory and stops reporting false "Undefined type" errors for Symfony/Composer classes.
+
 ## Pagekit 1.2.17 - PHPStan Level 5 → 6 (Return Types) (Mai 4, 2026)
 
 ### Static Analysis
