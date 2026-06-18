@@ -25,7 +25,7 @@ Workflow: Orchestrator (Architect → per-step Refactorer/Verifier/Tester/Commit
 Rule: @orchestrator-subagent-workflow.mdc
 Push: @push.mdc (version bump, CHANGELOG, ROADMAP closure)
 Reference: @ROADMAP.md
-Tickets: .cursor/tickets/ (Architect writes {task-slug}_plan.md; delegate by file path only)
+Tickets: migration-docs/tickets/ (Architect writes {task-slug}_plan.md; delegate by file path only)
 
 Rules:
 - One step at a time (sequential)
@@ -77,4 +77,4 @@ Each invocation runs the full Orchestrator workflow for that prompt. Commits hap
 
 Subagents live in `.cursor/agents/` (architect, refactorer, verifier, tester). The main agent invokes them in sequence. The orchestrator rule (`.cursor/rules/orchestrator-subagent-workflow.mdc`) applies when task prompts are in context (e.g. via @-mention). For rules to apply, the task prompt file must be in context.
 
-**Ticket workflow:** Plans are written to `.cursor/tickets/{task-slug}_plan.md` by the Architect. The Orchestrator delegates by file path ("Ticket: .cursor/tickets/…_plan.md, Step N"); subagents read only the ticket (and code), which keeps chat short and avoids redundant context. See `.cursor/tickets/README.md`. If you need a human-readable summary (e.g. PR doc), set "Output for human (optional): path/to/file.md" in the invocation block or in the task prompt.
+**Ticket workflow:** Plans are written to `migration-docs/tickets/{task-slug}_plan.md` by the Architect. The Orchestrator delegates by file path ("Ticket: migration-docs/tickets/…_plan.md, Step N"); subagents read only the ticket (and code), which keeps chat short and avoids redundant context. See `migration-docs/tickets/README.md`. If you need a human-readable summary (e.g. PR doc), set "Output for human (optional): path/to/file.md" in the invocation block or in the task prompt.

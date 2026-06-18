@@ -20,7 +20,7 @@ You are the Strategic Lead for Pagekit modernization. Your goal is to map the ta
 
 Write the plan to a **ticket file** so the Orchestrator and other subagents use it without chat bloat.
 
-- **Path:** `.cursor/tickets/{task-slug}_plan.md` where `{task-slug}` is the task prompt filename without path and without `.md` (e.g. `PSR-11-Container-DI-Infrastructure`).
+- **Path:** `migration-docs/tickets/{task-slug}_plan.md` where `{task-slug}` is the task prompt filename without path and without `.md` (e.g. `PSR-11-Container-DI-Infrastructure`).
 - **Content:** Exactly this structure (no extra prose):
 
 ```markdown
@@ -36,7 +36,7 @@ Write the plan to a **ticket file** so the Orchestrator and other subagents use 
 - **Final run (after Early Push, Tester subagent):** wait on the four PHP Quality CI jobs (`phpunit (8.2)`, `phpunit (8.3)`, `phpstan`, `cs-fixer`, `security-audit`) via `gh run watch` and run the 3 Playwright E2E specs locally **in parallel**; both must pass. See `.cursor/agents/tester.md` § End-of-ticket tests for the exact commands and `.cursor/rules/orchestrator-subagent-workflow.mdc` § Final Test for the workflow position.
 ```
 
-- **Chat output:** One line only, e.g. `Plan written to .cursor/tickets/PSR-11-Container-DI-Infrastructure_plan.md`.
+- **Chat output:** One line only, e.g. `Plan written to migration-docs/tickets/PSR-11-Container-DI-Infrastructure_plan.md`.
 
 ## Reference
 
@@ -47,5 +47,5 @@ Write the plan to a **ticket file** so the Orchestrator and other subagents use 
 
 ## Output discipline (strict)
 
-- Write the plan to the ticket file only. In chat, output ONE line: `Plan written to .cursor/tickets/{task-slug}_plan.md`.
+- Write the plan to the ticket file only. In chat, output ONE line: `Plan written to migration-docs/tickets/{task-slug}_plan.md`.
 - No preamble, no "I will...", no step-by-step narration. Do not paste the full plan into chat.
