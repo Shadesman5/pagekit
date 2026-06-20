@@ -13,24 +13,6 @@ parameters:
 			path: app/console/app.php
 
 		-
-			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:line\(\) \(void\) is used\.$#'
-			identifier: method.void
-			count: 1
-			path: app/console/src/Commands/BuildCommand.php
-
-		-
-			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:error\(\) \(void\) is used\.$#'
-			identifier: method.void
-			count: 1
-			path: app/console/src/Commands/InstallCommand.php
-
-		-
-			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:error\(\) \(void\) is used\.$#'
-			identifier: method.void
-			count: 1
-			path: app/console/src/Commands/SelfupdateCommand.php
-
-		-
 			message: '#^Call to an undefined method Pagekit\\Container\:\:boot\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -47,12 +29,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/console/src/Commands/UninstallCommand.php
-
-		-
-			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:error\(\) \(void\) is used\.$#'
-			identifier: method.void
-			count: 1
-			path: app/console/src/Commands/UpdateCommand.php
 
 		-
 			message: '#^Method Pagekit\\Console\\NodeVisitor\\NodeVisitor\:\:getEngine\(\) has invalid return type Symfony\\Component\\Templating\\EngineInterface\.$#'

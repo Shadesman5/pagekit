@@ -1,10 +1,12 @@
 # Changelog
 
-## Pagekit 1.2.18 - TODO Inventory & Legacy Cleanup (Juni 19, 2026)
+## Pagekit 1.2.18 - TODO Inventory & Legacy Cleanup (Juni 20, 2026)
 
 ### Fixed
 
 - **DBAL 3 platform class name** — `Doctrine\DBAL\Platforms\MySqlPlatform` (the DBAL 2.x name, non-existent in DBAL 3) corrected to `MySQLPlatform` in `ConfigManager`, `Database\Query\QueryBuilder` and `DatabaseSessionHandler`. The old name silently made every `instanceof MySqlPlatform` evaluate to `false`, so the MySQL-specific SQL paths (config upsert, session merge) were never taken on MySQL. Three now-resolved `class.notFound` baseline entries removed.
+- **CI `security-audit` job** — `composer audit` in `.github/workflows/php-quality.yml` now passes `--locked` so the lockfile is audited without `composer install`. Newer Composer 2.x on GitHub Actions runners no longer skips with exit 0 when no packages are installed (regression after PR #203 merge on `develop`).
+- **CI `phpstan` job (baseline drift)** — four stale `method.void` entries removed from `phpstan-baseline.neon` (`BuildCommand`, `InstallCommand`, `SelfupdateCommand`, `UpdateCommand`). The console refactor above fixed `(int) $this->error(...)` / `return (int) $this->line(...)` usage; leftover baseline suppressions caused “Ignored error pattern … was not matched” failures.
 
 ### Refactored
 
