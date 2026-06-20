@@ -75,9 +75,13 @@ abstract class Relation
     /**
      * Initialize the relationship
      *
+     * Single-entity relations (BelongsTo/HasOne) default to null: their typed
+     * target properties are nullable (?Entity) and cannot hold the legacy false
+     * sentinel. Collection relations (HasMany/ManyToMany) pass an empty array.
+     *
      * @param array<int, object> $entities
      */
-    protected function initRelation(array $entities, mixed $default = false): void
+    protected function initRelation(array $entities, mixed $default = null): void
     {
         foreach ($entities as $entity) {
             $this->metadata->setValue($entity, $this->name, $default);
