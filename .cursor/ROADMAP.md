@@ -1,6 +1,6 @@
 # **🗺️ Pagekit Modernization Roadmap & Rules**
 
-> **Current Version**: 1.2.18
+> **Current Version**: 1.2.19
 > **Current Step**: 2.1.5 (PHPStan Level 6→7 — Null Safety)
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**

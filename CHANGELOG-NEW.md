@@ -1,5 +1,17 @@
 # Changelog
 
+## Pagekit 1.2.19 - Strict-Typing Runtime Regression Fixes (Juni 21, 2026)
+
+### Fixed
+
+- **ORM single-entity relations crashed on typed nullable properties** — `Relation::initRelation()` seeded `BelongsTo` / `HasOne` relations with the legacy `false` sentinel. After Step 2.1.4 typed the relation properties (e.g. `Post::$user` → `?Pagekit\User\Model\User`), assigning `false` threw `TypeError: Cannot assign false to property … of type ?User` on every blog post list / Post API request (`PostApiController::indexAction()`). The default is now `null` — the natural empty value for a nullable single-entity relation. Collection relations (`HasMany` / `ManyToMany`) are unaffected; they explicitly pass `[]`.
+- **`$view->script()` rejected string dependencies at 13 call sites** — the strict `array $dependencies` parameter (Step 2.1.4) raised `TypeError: Argument #3 ($dependencies) must be of type array, string given` whenever a page registered a script with a bare string dependency. Affected: cache + mail settings (`'settings'`), theme-one site/node/widget editors (`'site-settings'` / `'site-edit'` / `'widget-edit'`), and blog/info/user/permission views (`'vue'`). All wrapped in arrays (`['settings']`, `['vue']`, …). No compatibility shim added — every call site was updated per the No-Mercy rules.
+- **`sha1(int)` TypeError in the debug `RoutesDataCollector`** — `sha1(filemtime(...))` passed an `int` (and potentially `false`) where PHP 8.2's `sha1()` requires `string`, throwing on every request while the debug bar was active. The value is now cast to `(string)`; the matching `sha1` entry was removed from `phpstan-baseline.neon`.
+
+### Notes
+
+- All three regressions were introduced by the strict-typing work in Step 2.1.4 (PR #203) and only surfaced at runtime on admin/blog pages that PHPUnit, PHPStan, and CS-Fixer do not exercise — a coverage gap that admin-facing Playwright E2E tests would catch.
+
 ## Pagekit 1.2.18 - TODO Inventory & Legacy Cleanup (Juni 20, 2026)
 
 ### Security
