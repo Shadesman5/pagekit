@@ -2,6 +2,10 @@
 
 ## Pagekit 1.2.18 - TODO Inventory & Legacy Cleanup (Juni 20, 2026)
 
+### Security
+
+- **Dependency security update** — `composer update` of all advisory-affected packages resolved **27 advisories across 10 packages** that `composer audit --locked` surfaced (the lockfile had been frozen since 2026-04-26; most CVEs were published in the May 2026 Symfony/Twig security wave). Notably **`twig/twig` `v3.24.0` → `v3.27.1`** (closes the critical `CVE-2026-46633` PHP code injection via `{% use %}` plus the Twig sandbox bypass series), **`composer/composer` → `2.10.1`** (`CVE-2026-45793` GITHUB_TOKEN disclosure), and the Symfony 6.4 components **`cache`/`http-foundation`/`http-kernel`/`routing` → `6.4.41`**, **`mailer` → `6.4.40`** (`CVE-2026-45068` SendmailTransport argument injection), **`mime` → `7.4.13`** (`CVE-2026-45067` CRLF header/SMTP injection), **`translation` → `6.4.38`**, **`dom-crawler` → `7.4.12`**, **`twig-bridge` → `6.4.40`**, and **`polyfill-intl-idn` → `1.38.1`**. `symfony/validator` was realigned `v7.4.8` → `v6.4.37` to match the project-wide `^6.4` constraint. `composer audit --locked` now reports zero advisories; PHPUnit stays green (326 tests, 752 assertions). Only `composer.lock` changed (`app/vendor/` is gitignored).
+
 ### Fixed
 
 - **DBAL 3 platform class name** — `Doctrine\DBAL\Platforms\MySqlPlatform` (the DBAL 2.x name, non-existent in DBAL 3) corrected to `MySQLPlatform` in `ConfigManager`, `Database\Query\QueryBuilder` and `DatabaseSessionHandler`. The old name silently made every `instanceof MySqlPlatform` evaluate to `false`, so the MySQL-specific SQL paths (config upsert, session merge) were never taken on MySQL. Three now-resolved `class.notFound` baseline entries removed.
