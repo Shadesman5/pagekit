@@ -7,9 +7,9 @@ namespace Pagekit\Filesystem;
 class StreamWrapper
 {
     /**
-     * @var resource
+     * @var resource|null
      */
-    protected $handle;
+    protected mixed $handle = null;
 
     protected static ?\Pagekit\Filesystem\Filesystem $file = null;
 

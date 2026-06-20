@@ -13,7 +13,7 @@ abstract class FtpTestCase extends TestCase
     protected string|false|null $workspace = null;
     protected ?int $mode = null;
     /** @var resource|\FTP\Connection|null */
-    protected $connection;
+    protected mixed $connection = null;
 
     public function setUp(): void
     {

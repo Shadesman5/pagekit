@@ -11,7 +11,7 @@ class ControllerEvent extends KernelEvent
     /**
      * @var callable|array{0: object|class-string, 1: string}|null
      */
-    protected $controller = null;
+    protected mixed $controller = null;
 
     protected mixed $controllerResult = null;
 

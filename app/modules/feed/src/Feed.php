@@ -14,10 +14,7 @@ abstract class Feed implements FeedInterface
 
     protected string $encoding = 'utf-8';
 
-    /**
-     * @var string
-     */
-    protected $mime = '';
+    protected string $mime = '';
 
     /**
      * @var ItemInterface[]
@@ -45,7 +42,7 @@ abstract class Feed implements FeedInterface
     /**
      * @var class-string<ItemInterface>
      */
-    protected $item;
+    protected string $item;
 
     /**
      * {@inheritdoc}

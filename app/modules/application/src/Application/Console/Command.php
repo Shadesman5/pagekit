@@ -15,17 +15,13 @@ class Command extends BaseCommand
 {
     /**
      * The console command name.
-     *
-     * @var string
      */
-    protected $name;
+    protected ?string $name = null;
 
     /**
      * The console command description.
-     *
-     * @var string
      */
-    protected $description;
+    protected string $description = '';
 
     /**
      * The console command input.

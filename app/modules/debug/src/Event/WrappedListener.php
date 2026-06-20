@@ -15,7 +15,7 @@ use Symfony\Component\Stopwatch\Stopwatch;
 class WrappedListener
 {
     /** @var callable */
-    protected $listener;
+    protected mixed $listener;
     protected string $name;
     protected ?int $priority;
     protected bool $called;
