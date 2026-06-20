@@ -493,12 +493,6 @@ parameters:
 			path: app/modules/debug/index.php
 
 		-
-			message: '#^Parameter \#1 \$string of function sha1 expects string, int\<0, max\>\|false given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/modules/debug/src/DataCollector/RoutesDataCollector.php
-
-		-
 			message: '#^Return type \(void\) of method Pagekit\\Debug\\Middleware\\DebugStatement\:\:bindParam\(\) should be compatible with return type \(bool\) of method Doctrine\\DBAL\\Driver\\Middleware\\AbstractStatementMiddleware\:\:bindParam\(\)$#'
 			identifier: method.childReturnType
 			count: 1
