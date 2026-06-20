@@ -127,9 +127,14 @@ return [
 
         'view.init' => [function ($event, $view) use ($app) {
 
+            // DESIGN DECISION (intentional, not legacy debt): run a DelegatingEngine with BOTH a PHP
+            // template engine (primary — core/native authoring) and an optional Twig engine (for
+            // contributors who prefer Twig). The dual-engine setup is deliberate; keep both. No
+            // PHP->Twig consolidation is planned. NOTE: PHP templates do NOT auto-escape (unlike
+            // Twig) — escape output manually (relevant to Step 1.13.5 / CSP hardening).
             $delegatingEngine = new DelegatingEngine();
 
-            $phpEngine = new PhpEngine(null, $app->has('locator') ? new FilesystemLoader($app->get('locator')) : null);
+            $phpEngine = new PhpEngine($app->has('locator') ? new FilesystemLoader($app->get('locator')) : null);
             $delegatingEngine->addEngine(new PhpEngineAdapter($phpEngine));
 
             if ($app->has('twig')) {

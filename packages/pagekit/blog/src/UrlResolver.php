@@ -22,7 +22,8 @@ class UrlResolver implements ParamsResolverInterface
 
     // Static service references set during blog module boot,
     // required because Router instantiates resolvers via `new $class` (no DI).
-    // TODO: Step 2.1 (Static Analysis) — replace with proper DI once Router supports it
+    // TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 — Strict Typing) —
+    // replace static setters with proper DI; blocked until the Router stops instantiating resolvers via `new $class`.
     private static ?CacheItemPoolInterface $cache = null;
     private static ?Module $module = null;
 

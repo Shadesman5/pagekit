@@ -206,7 +206,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Prerequisite**: None — this is a **critical runtime fix** that can be executed at any point.
 - **Priority**: HIGHEST — the code path is reachable in production (any permission check with composite expressions).
 - **Context**: Phase 1 Audit (Step 1.11/1.13) discovered `create_function()` still in `User::hasAccess()`. This was not caught by prior audits because simple permission checks (`'user: manage users'`) don't trigger the `and`/`or` parser branch.
-- **Closes Phase 1 audit (partial):** Step 1.11 (ORM Modernization) — the `User::hasAccess()` `create_function()` removal closes one specific 1.11 finding (legacy code in the `User` model). The remaining 1.11 findings (`EntityManager` singleton, `ModelServiceLocator` / `IntlServiceLocator` static service locators, ORM `Metadata` / `Relation` / `PropertyTrait` typing gaps, `#[AllowDynamicProperties]` on `Node` / `Widget`) are tracked under **Step 2.1.6** (PHPStan Level 8). **1.11 ⚠️ → 🛡️ requires both 2.0.8 and 2.1.6 to land.**
+- **Closes Phase 1 audit (partial):** Step 1.11 (ORM Modernization) — the `User::hasAccess()` `create_function()` removal closes one specific 1.11 finding (legacy code in the `User` model). The remaining 1.11 findings (`EntityManager` singleton, `ModelServiceLocator` / `IntlServiceLocator` static service locators, ORM `Metadata` / `Relation` / `PropertyTrait` typing gaps, `#[AllowDynamicProperties]` on `Node` / `Widget`) are tracked under **Step 2.1.6** (PHPStan Level 8) — except the `ModelServiceLocator` **architectural removal** (replacement by a DTO/presenter layer), which is split out to **Step 2.1.10** (Entity Presentation Layer, GitHub #204); in 2.1.6 the locator is only type-narrowed (`mixed` → concrete). **1.11 ⚠️ → 🛡️ requires 2.0.8, 2.1.6 and 2.1.10 to all land.**
 - **Tasks**:
   - **File:** `app/system/modules/user/src/Model/User.php` (~line 221–227)
   - Replace `create_function()` with a safe expression evaluator. Options (in order of preference):
@@ -248,17 +248,18 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 **Sub-steps Overview**:
 
-| Step  | Description                       | Time Estimate | Risk        |
-| ----- | --------------------------------- | ------------- | ----------- |
-| 2.1.1 | Tooling Setup & Baseline          | 1-2 days      | Low         |
-| 2.1.2 | CI/CD Integration & Quality Gates | 1-2 days      | Low         |
-| 2.1.3 | `strict_types` Migration          | 3-5 days      | Medium-High |
-| 2.1.4 | PHPStan Level 5→6 (Return Types)  | 1-2 days      | Low         |
-| 2.1.5 | PHPStan Level 6→7 (Null Safety)   | 1-2 days      | Medium      |
-| 2.1.6 | PHPStan Level 7→8 (Strict Typing) | 1-2 days      | Medium      |
-| 2.1.7 | QueryBuilder API Standardization  | 1-2 days      | Low         |
-| 2.1.8 | Infection Mutation Testing        | 2-3 days      | Low         |
-| 2.1.9 | Test Coverage Expansion           | Ongoing       | Low         |
+| Step   | Description                       | Time Estimate | Risk        |
+| ------ | --------------------------------- | ------------- | ----------- |
+| 2.1.1  | Tooling Setup & Baseline          | 1-2 days      | Low         |
+| 2.1.2  | CI/CD Integration & Quality Gates | 1-2 days      | Low         |
+| 2.1.3  | `strict_types` Migration          | 3-5 days      | Medium-High |
+| 2.1.4  | PHPStan Level 5→6 (Return Types)  | 1-2 days      | Low         |
+| 2.1.5  | PHPStan Level 6→7 (Null Safety)   | 1-2 days      | Medium      |
+| 2.1.6  | PHPStan Level 7→8 (Strict Typing) | 1-2 days      | Medium      |
+| 2.1.7  | QueryBuilder API Standardization  | 1-2 days      | Low         |
+| 2.1.8  | Infection Mutation Testing        | 2-3 days      | Low         |
+| 2.1.9  | Test Coverage Expansion           | Ongoing       | Low         |
+| 2.1.10 | Entity Presentation Layer (DTO)   | 2-3 days      | Medium-High |
 
 ---
 
@@ -377,7 +378,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Goal**: Raise PHPStan from Level 7 to Level 8 (full type safety)
 - **Prerequisite**: Step 2.1.5 (PHPStan Level 7) completed
 - **Prompt**: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_6_PHPStan-Level-8.md`
-- **Closes Phase 1 audit:** **Step 1.11 (ORM Modernization) ⚠️ → 🛡️** — the remaining 1.11 audit findings (`EntityManager` singleton, `ModelServiceLocator` / `IntlServiceLocator` static service locators, ORM `Metadata` / `Relation` / `PropertyTrait` typing gaps, `#[AllowDynamicProperties]` on `Node` / `Widget`) are listed under "Audit findings (Phase 1 review)" below. **Requires Step 2.0.8 to also be done** (the `User::hasAccess()` `create_function()` removal closes the User-model portion of 1.11).
+- **Closes Phase 1 audit (partial):** **Step 1.11 (ORM Modernization)** — the remaining 1.11 audit findings (`EntityManager` singleton, `ModelServiceLocator` / `IntlServiceLocator` static service locators, ORM `Metadata` / `Relation` / `PropertyTrait` typing gaps, `#[AllowDynamicProperties]` on `Node` / `Widget`) are listed under "Audit findings (Phase 1 review)" below. Here the `ModelServiceLocator` is only **type-narrowed** (`mixed` → concrete) to satisfy PHPStan Level 8; its **architectural removal** (replacement by a DTO/presenter layer) is split out to **Step 2.1.10** (Entity Presentation Layer, GitHub #204). **1.11 ⚠️ → 🛡️ requires Step 2.0.8, this step (2.1.6) and Step 2.1.10 to all land** (the `User::hasAccess()` `create_function()` removal closes the User-model portion of 1.11).
 - **Tasks**:
   - Eliminate all remaining `mixed` types where avoidable
   - Template parameters for generic collections (where sensible)
@@ -386,11 +387,11 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - ❌ Do NOT use Level 9 (too strict for a CMS with dynamic extension APIs)
   - **Interface design cleanups (identified from 2.1.1 review):**
     - Split `MailerInterface` into `MailerInterface` (send/create) and `MailPluginInterface` (beforeSend/afterSend) — currently mixes mailer and plugin into the same interface
-    - `EntityManager`: Remove singleton pattern (`static::$instance`), migrate all call sites to DI
+    - `EntityManager` singleton (`static::$instance` set in `__construct`; eager-bootstrapped in `app/system/index.php` `$app->get('db.em')`; consumed via `ModelTrait::getManager()` → `getInstance()`): in **2.1.6 only harden the typing** (no wrap, keep one mechanism, strict-mode green). The **full removal** (Active-Record → Data-Mapper: inject `EntityManager` / use repositories instead of static `Model::find()` + `getInstance()`, then delete `static::$instance`, the `getInstance()` accessor, and the `db.em` boot line) is **Step 2.1.11 (#205)** — EntityManager DI / Data-Mapper, not 2.1.6 — it ripples into every static model call site (small-atomic-changes rule). NOTE: this re-scopes the Phase 1 audit 1.11 remainder — full 1.11 closure now also depends on Step 2.1.11 (#205), not on 2.1.6 alone.
     - `FileLocatorAsset`: Replace static service locator (`setServices()` with `mixed` properties) with DI, type all properties
     - `ResponseListener`: Narrow `mixed $url` property to the correct type (callable/interface)
   - **Audit findings (Phase 1 review):**
-    - `ModelServiceLocator` + `IntlServiceLocator` — static service locators; replace with proper DI
+    - `IntlServiceLocator` — static service locator; replace with proper DI. `ModelServiceLocator` — **type-narrow only** here (`getUrl()` / `getUser()` / `getModule()`: `mixed` → concrete return types); the full locator removal + DTO/presenter refactor is **Step 2.1.10** (GitHub #204)
     - `PackageController` — `ContainerInterface $app` as God-DI; inject specific services
     - `#[AllowDynamicProperties]` on `Node`, `Widget` — remove and fix dynamic property usage
     - ORM `Metadata`, `Relation`, `PropertyTrait` — incomplete typing throughout
@@ -401,6 +402,10 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
     - `app/modules/database/src/Logging/DebugStack.php` — 42-line dead `@deprecated since DBAL 3.x migration` shim (class + 2 methods) with **zero consumers** in `app/` / `packages/` source (workspace `Grep` for `DebugStack` finds only `migration-docs/` + `CHANGELOG-NEW.md` references). The replacement (`app/modules/debug/src/Middleware/DebugMiddleware.php`) is wired and used. Per Aggressive Rule 4 ("Delete Over Wrap"), this file must be `git rm`'d in 2.1.6 alongside the adjacent `EntityManager` / `ModelServiceLocator` / `IntlServiceLocator` strict-typing work. (Routed from §4.4 Gap List row 1 of `migration-docs/audits/2026/04/AUDIT_REPORT_STEP_2.0_FOUNDATION_CLOSURE_2026-04-28.md`.)
   - **Audit findings (Step 2.1.3 review):**
     - `app/modules/routing/src/Event/AliasListener.php` — dead inline-query-string parser in alias names. The `if (false !== ($queryPos = strpos($aliasName, '?')))` block (lines 50–57, tagged `// TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 / Strict Typing)` per the Rule 5 flagging format) plus the dependent `$name == strtok($alias->getName(), '?')` clause in the `array_filter` (line 39) parse `?param=value` suffixes from the alias `$name` argument of `Routes::alias($path, $name, $defaults)`. Workspace-wide search confirms **zero callers** use this format — `RouteListener` (blog) passes `'@blog/id'`, `NodesListener` passes `$node->link` (a route reference). The `$defaults` parameter has fully replaced this convenience API. **Not to be confused with `Router::generate('route?foo=bar', [...])`** — that is a separate, actively used mechanism in `Router::generate()` (covered by `RouterTest::testGenerateWithQuery()`) and must remain. Per Aggressive Rule 4 ("Delete Over Wrap"), strip the parser block, the `array_filter` `strtok` clause, and the TODO comment together. (Routed from Step 2.1.3 closure — surfaced via user-catch mini-loop iteration 4. The original predecessor comment `// TODO: is this still needed?` predated Rule 5 and was reformatted to the canonical Out-of-scope tag in the same iteration-4 commit.)
+  - **Static service-locator / setter-DI cleanups (routed from codebase TODO inventory, §2 triage):**
+    - `app/modules/application/src/Application/Console/Application.php` (~line 51) — `add()` injects the container into commands via `Command::setContainer()` (setter DI). Convert console commands to constructor DI / a command factory. Stays in the static-analysis track (Console DI, not ICU). Stale-check 2026-05-05: `add()` still calls `setContainer()` — TODO relevant.
+    - `packages/pagekit/blog/src/UrlResolver.php` (~line 25) — `private static` cache/module references with setters; replace with proper DI. **Blocker:** the Router instantiates resolvers via `new $class` without DI, so the static locator cannot be removed in isolation — the routing factory (`ParamsResolver` bootstrap) must support DI first (align with Step 1.8 / routing architecture once a ticket exists). The `mixed $cache` typing portion was already completed in Step 2.0.3 (now `?CacheItemPoolInterface`); only the static-locator/DI part remains.
+    - `packages/pagekit/theme-one/functions.php` (~line 8) — `ThemeOneHelpers` static `UrlProvider` global state at the theme boundary; replace with proper DI once template helper functions support injection, and type all properties.
 - **Result**: PHPStan Level 8 without baseline entries (or with documented, justified exceptions)
 - **Risk**: Medium — may require architectural decisions (change interfaces, introduce generics)
 - **Agent Note**: Architect decisions may be needed here before the Refactorer starts — not all `mixed` can be replaced by simple type declarations
@@ -430,7 +435,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
     - `Utility::getSchemaManager()` — deprecated in DBAL 3; use `createSchemaManager()` (also in `Installer.php`, `DbUtil.php`)
     - `Utility::migrate()` — uses `new Comparator()` without Platform (deprecated); use `$schemaManager->createComparator()`
     - `Utility::migrate()` — executes DDL via `executeQuery()` instead of `executeStatement()`
-    - `DbUtil` (test helper): `$realConn->exec()` → `executeStatement()`
+    - `DbUtil` (test helper, `app/modules/application/src/Tests/DbUtil.php`) — full DBAL 3 rewrite of the `else` branch in `getConnection()`: `$realConn->exec()` → `executeStatement()`, `getSchemaManager()` → `createSchemaManager()`, `createSchema()` → `introspectSchema()`, replace removed `Schema::toDropSql()`; **decide the teardown error strategy** for the empty `catch` (line 83, `// good idea?` — currently swallows every exception): FK-ordered drop / log-and-continue / or delete the branch (DbUtil + DbTestCase are dormant: no `extends DbTestCase` in the repo)
   - All tests green after migration
 - **Result**: Standard Doctrine documentation usable, IDEs recognize correct return types (`Result`)
 - **Risk**: Low — purely internal API change, all call sites updated in the same step
@@ -491,6 +496,50 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Result**: Coverage grows organically with every change
 - **Risk**: Low — continuous improvement, no big bang
 - **Note**: No separate branch — coverage tests are delivered in every feature branch
+
+---
+
+### Step 2.1.10: Entity Presentation Layer (ModelServiceLocator → DTO/Presenter)
+
+- **Goal**: Remove the transitional static `ModelServiceLocator` and move presentation/infrastructure concerns out of the `Node` / `Post` entities into a proper DTO/presenter layer with constructor DI.
+- **Prerequisite**: Step 2.1.6 (PHPStan Level 7→8) — the locator's `getUrl()` / `getUser()` / `getModule()` return types are narrowed to concrete types there first.
+- **Issue**: GitHub #204 (sub-issue of #147 — Step 2.1)
+- **Prompt**: _to be written_ (`PROMPT_2_1_10_Entity-Presentation-Layer.md`)
+- **Context**: `ModelServiceLocator` was introduced in Step 2.0.1e (PSR-11 / StaticTrait removal) as a deliberate temporary bridge, so entities could reach the `url` / `user` / `module` services without the old global `App` anti-pattern. It is the **last static service locator in the model layer** and is tagged in-code: `// TODO: Must be refactored in Step 2.1.10 (Entity Presentation Layer) — replace ModelServiceLocator with proper DTO/presenter pattern (GitHub #204)`.
+- **Closes Phase 1 audit:** **Step 1.11 (ORM Modernization) ⚠️ → 🛡️** (final part) — removes the `ModelServiceLocator` "static service locator" finding that Step 2.1.6 only type-narrowed. The 1.11 cell flips to 🛡️ once **2.0.8 + 2.1.6 + this step (2.1.10)** have all landed.
+- **Problem** — entities currently mix persistence with presentation/infrastructure concerns:
+  - `Node::getUrl()` / `Node::jsonSerialize()` — needs the URL generator
+  - `Node::isAccessible()` / `Post::isAccessible()` — needs the current user
+  - `Post::isCommentable()` — needs the blog module config
+  - `Post::jsonSerialize()` — needs the URL generator
+- **Tasks**:
+  - Introduce per-entity presenters/serializers (e.g. `NodePresenter`, `PostPresenter`) with constructor DI (`UrlGenerator`, current `User`, blog config)
+  - Move URL / access / comment logic out of the entities, or pass dependencies explicitly via method parameters
+  - Convert API/JSON output to the presenter/DTO path (`jsonSerialize()` callers → presenter)
+  - Update all call sites in the `site` module and the `blog` package
+  - **Delete** `ModelServiceLocator` entirely (Aggressive Rule 4: Delete over Wrap) incl. its `init()` wiring in `SiteModule`
+  - All tests green (PHPUnit + Playwright E2E)
+- **Result**: Zero static service locators in the model layer; entities are pure domain/persistence objects; API serialization runs through DI-based presenters.
+- **Risk**: Medium-High — touches entity serialization and every `jsonSerialize()` / `getUrl()` call site; requires an Architect design pass before the Refactorer starts (trace all callers).
+
+---
+
+### Step 2.1.11: EntityManager DI — remove singleton (Active-Record → Data-Mapper)
+
+- **Goal**: Replace the static Active-Record access in the model layer (static `Model::find()` / `where()` backed by the `EntityManager` singleton) with an injected `EntityManager` / repositories (Data Mapper); remove the singleton and its boot hack.
+- **Prerequisite**: Step 2.1.6 (PHPStan Level 7→8) — 2.1.6 only **hardens the typing** of the singleton (no wrap, one mechanism); the architectural removal happens here. Also Step 2.1.10 (DTO/presenter layer) — presentation-layer cleanup precedes the persistence-layer refactor.
+- **Issue**: GitHub #205 (sub-issue of #147 — Step 2.1)
+- **Prompt**: _to be written_ (`PROMPT_2_1_11_EntityManager-DI.md`)
+- **Context**: The `EntityManager` registers itself as a static singleton in its constructor (`static::$instance = $this`, `EntityManager.php`), exposed via `getInstance()`. `ModelTrait::getManager()` falls back to it, and `app/system/index.php` eagerly resolves `db.em` at boot **solely** to populate the singleton so static model calls work. It is the **last global-state access in the model layer** after `ModelServiceLocator` (2.1.10).
+- **Closes Phase 1 audit:** **Step 1.11 (ORM Modernization)** — removes the `EntityManager` singleton finding (the last 1.11 item beyond `ModelServiceLocator`). Combined with 2.0.8 + 2.1.6 + 2.1.10, this completes 1.11.
+- **Tasks**:
+  - Introduce DI access to the `EntityManager` for models (injected EM / repository pattern) — no static singleton
+  - Remove `static::$instance` + `getInstance()` from `EntityManager`; refactor `ModelTrait::getManager()` to obtain the EM without the singleton fallback
+  - Migrate all `EntityManager::getInstance()` callers and static `Model::find()/where()/...` call sites
+  - **Delete** the `$app->get('db.em')` boot line in `app/system/index.php` (Aggressive Rule 4: Delete over Wrap)
+  - All tests green (PHPUnit + Playwright E2E)
+- **Result**: Zero static singletons in the model layer; the `EntityManager` is obtained via DI; no boot-time side-effect hack.
+- **Risk**: High — ripples into every static model call site; requires an Architect design pass (Active-Record → Data-Mapper migration strategy) before the Refactorer starts.
 
 ---
 

@@ -114,14 +114,12 @@ class SetupCommand extends Command
         $message = $result['message'];
 
         if ($status == 'success') {
-            // TODO: Callback
             $this->line("Done");
 
             return Command::SUCCESS;
         } else {
             $this->error($message);
 
-            // TODO: Callback
             return Command::FAILURE;
         }
     }

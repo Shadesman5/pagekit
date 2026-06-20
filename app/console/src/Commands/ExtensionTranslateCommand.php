@@ -142,7 +142,12 @@ class ExtensionTranslateCommand extends Command
         // $transChoice('foo'[, args])
         preg_match_all('/\$trans(Choice)?\((\'|")((?:(?!\2).)+)\2/', $content, $matches);
         foreach ($matches[3] as $i => $string) {
-            $domain = 'messages'; // TODO: allow custom domain
+            // TODO: Must be refactored in Step 3.4.6 (Translation System Modernization) — the regex
+            // above only captures the message id, so the optional domain argument of JS/Vue
+            // `$trans()/$transChoice()` calls is ignored and every string is forced into 'messages'.
+            // Parse the domain via a JS AST (like PhpNodeVisitor does for PHP) so custom-domain
+            // strings in .js files land in the correct .pot.
+            $domain = 'messages';
 
             $pairs[] = [$domain, $string];
         }

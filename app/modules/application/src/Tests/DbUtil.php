@@ -80,7 +80,11 @@ trait DbUtil
                     try {
                         $realConn->exec($stmt);
                     } catch (\Exception $e) {
-                        // TODO: Now is this a real good idea?
+                        // TODO: Must be refactored in Step 2.1.7 (QueryBuilder API / DBAL 3.x) — this
+                        // empty catch silently swallows every exception while dropping tables one by
+                        // one. Decide a teardown error strategy during the DBAL 3 rewrite of this
+                        // branch: drop in FK-dependency order, or log-and-continue instead of
+                        // discarding. (GitHub #154)
                     }
                 }
             }

@@ -98,7 +98,11 @@ class PoFileLoader extends ArrayLoader
                 $item = $defaults;
             } elseif (substr($line, 0, 7) === 'msgid "') {
                 // We start a new msg so save previous
-                // TODO: this fails when comments or contexts are added
+                // TODO: Must be refactored in Step 3.4.6 (Translation System Modernization) — this
+                // hand-rolled PO parser ignores `msgctxt` contexts (same msgid in different contexts
+                // collide) and has limited comment support (see class docblock). Replace this fork
+                // with Symfony\Component\Translation\Loader\PoFileLoader once the transChoice→ICU
+                // migration removes the need for Pagekit's `|`/`{N}` plural format.
                 $this->addMessage($messages, $item);
                 $item = $defaults;
                 $item['ids']['singular'] = substr($line, 7, -1);

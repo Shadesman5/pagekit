@@ -28,7 +28,7 @@ If you receive feedback from a failed Verifier or Tester run, fix the code and o
 
 ## Input
 
-- **Ticket:** Orchestrator passes a ticket file path (e.g. `.cursor/tickets/{task-slug}_plan.md`) and the current step number. Read ONLY that file for the step specification; do not ask for the full task prompt.
+- **Ticket:** Orchestrator passes a ticket file path (e.g. `migration-docs/tickets/{task-slug}_plan.md`) and the current step number. Read ONLY that file for the step specification; do not ask for the full task prompt.
 - Do NOT work on multiple steps at once.
 
 ## Reference

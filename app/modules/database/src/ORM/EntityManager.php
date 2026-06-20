@@ -32,7 +32,11 @@ class EntityManager
         $this->metadata = $metadata;
         $this->events = $events ?: new PrefixEventDispatcher('model.');
 
-        // TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 — Strict Typing) — remove EntityManager singleton pattern
+        // TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 — Strict Typing) — 2.1.6 hardens
+        // the typing only (no wrap, one mechanism). Removing this singleton entirely (Active-Record →
+        // Data-Mapper / DI: inject the EntityManager / use repositories instead of static
+        // Model::find() + getInstance(), then drop static::$instance, getInstance(), and the `db.em`
+        // boot line in app/system/index.php) is Step 2.1.11 (#205 — EntityManager DI), not 2.1.6.
         static::$instance = $this;
     }
 

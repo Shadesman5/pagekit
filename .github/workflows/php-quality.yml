@@ -132,4 +132,4 @@ jobs:
           tools: composer:v2
 
       - name: Run Composer security audit
-        run: composer audit --no-interaction --abandoned=ignore
+        run: composer audit --locked --no-interaction --abandoned=ignore

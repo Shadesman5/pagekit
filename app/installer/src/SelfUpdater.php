@@ -224,6 +224,8 @@ class SelfUpdater
      */
     protected function setUpdateMode(bool $active): void
     {
-        // TODO: Implement this.
+        // TODO: Step 5.6 (Marketplace & Extensions) — implement the maintenance-mode toggle for the
+        // self-update flow (never finished). Part of rebuilding the self-update infrastructure that
+        // depends on the discontinued pagekit.com backend.
     }
 }

@@ -23,6 +23,10 @@ RUN apt-get update && apt-get install -y \
     htop \
     # Additional tools for Pagekit modernization
     default-mysql-client \
+    # CLI search/JSON tools assumed by modernization shell workflows and
+    # agent verification sweeps (ripgrep = rg, jq)
+    ripgrep \
+    jq \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Yarn (required for Pagekit frontend builds)

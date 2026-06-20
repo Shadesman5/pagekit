@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Database\Query;
 
 use Closure;
-use Doctrine\DBAL\Platforms\MySqlPlatform;
+use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
@@ -233,7 +233,7 @@ class QueryBuilder
         $not = $not ? ' NOT' : '';
         $values = (array) $values;
 
-        if (count($values) === 1 && $this->connection->getDatabasePlatform() instanceof MySqlPlatform) {
+        if (count($values) === 1 && $this->connection->getDatabasePlatform() instanceof MySQLPlatform) {
             $value = $this->connection->quote(current($values));
 
             return $this->addWhere("{$not} FIND_IN_SET({$value}, {$column})", [], $type);

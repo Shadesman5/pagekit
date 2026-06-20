@@ -42,7 +42,7 @@ class PhpNodeVisitor extends NodeVisitor implements BaseVisitor
     /**
      * {@inheritdoc}
      */
-    // TODO: Step 2.1 - Extract #[Assert\...] message keys from PHP 8 Attributes (optional, low priority)
+    // TODO: Must be refactored in Step 3.4.6 (Translation System Modernization) — extract #[Assert\...] message keys from PHP 8 Attributes for the translation-extraction pipeline (optional, low priority)
 
     public function enterNode(Node $node)
     {

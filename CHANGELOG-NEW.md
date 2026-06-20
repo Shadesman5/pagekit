@@ -1,5 +1,31 @@
 # Changelog
 
+## Pagekit 1.2.18 - TODO Inventory & Legacy Cleanup (Juni 20, 2026)
+
+### Security
+
+- **Dependency security update** — `composer update` of all advisory-affected packages resolved **27 advisories across 10 packages** that `composer audit --locked` surfaced (the lockfile had been frozen since 2026-04-26; most CVEs were published in the May 2026 Symfony/Twig security wave). Notably **`twig/twig` `v3.24.0` → `v3.27.1`** (closes the critical `CVE-2026-46633` PHP code injection via `{% use %}` plus the Twig sandbox bypass series), **`composer/composer` → `2.10.1`** (`CVE-2026-45793` GITHUB_TOKEN disclosure), and the Symfony 6.4 components **`cache`/`http-foundation`/`http-kernel`/`routing` → `6.4.41`**, **`mailer` → `6.4.40`** (`CVE-2026-45068` SendmailTransport argument injection), **`mime` → `7.4.13`** (`CVE-2026-45067` CRLF header/SMTP injection), **`translation` → `6.4.38`**, **`dom-crawler` → `7.4.12`**, **`twig-bridge` → `6.4.40`**, and **`polyfill-intl-idn` → `1.38.1`**. `symfony/validator` was realigned `v7.4.8` → `v6.4.37` to match the project-wide `^6.4` constraint. `composer audit --locked` now reports zero advisories; PHPUnit stays green (326 tests, 752 assertions). Only `composer.lock` changed (`app/vendor/` is gitignored).
+
+### Fixed
+
+- **DBAL 3 platform class name** — `Doctrine\DBAL\Platforms\MySqlPlatform` (the DBAL 2.x name, non-existent in DBAL 3) corrected to `MySQLPlatform` in `ConfigManager`, `Database\Query\QueryBuilder` and `DatabaseSessionHandler`. The old name silently made every `instanceof MySqlPlatform` evaluate to `false`, so the MySQL-specific SQL paths (config upsert, session merge) were never taken on MySQL. Three now-resolved `class.notFound` baseline entries removed.
+- **CI `security-audit` job** — `composer audit` in `.github/workflows/php-quality.yml` now passes `--locked` so the lockfile is audited without `composer install`. Newer Composer 2.x on GitHub Actions runners no longer skips with exit 0 when no packages are installed (regression after PR #203 merge on `develop`).
+- **CI `phpstan` job (baseline drift)** — four stale `method.void` entries removed from `phpstan-baseline.neon` (`BuildCommand`, `InstallCommand`, `SelfupdateCommand`, `UpdateCommand`). The console refactor above fixed `(int) $this->error(...)` / `return (int) $this->line(...)` usage; leftover baseline suppressions caused “Ignored error pattern … was not matched” failures.
+
+### Refactored
+
+- **Console commands** — removed the obsolete `// TODO: Callback` markers and switched to explicit `Command::SUCCESS` / `Command::FAILURE` (Archive, Build, Setup, Start, Uninstall). The disabled marketplace commands `install` / `update` / `self-update` previously returned exit `0` via `(int) $this->error(...)` (`error()` is `void`); they now return `Command::FAILURE` with a clear message so agents/CI detect the disabled state. Marketplace bundling tagged to Step 5.6. `ArchiveCommand::getPackageFilename()` hardened (collapse/trim hyphens, empty-string fallback).
+- **View engine** — removed the dead `$parser` constructor param + property from `PhpEngine` (the only caller passed `null`); clarified the `escape()` null-guard comment (it guards the PHP 8.1+ null→string deprecation, min PHP is 8.2 — not old-PHP support). Documented the intentional PHP + Twig dual-engine (`DelegatingEngine`): PHP primary, Twig optional, no consolidation planned.
+
+### Documentation / TODO inventory
+
+- **Canonical TODO retagging** — routed legacy in-code TODOs to their roadmap homes: console setter-DI / blog `UrlResolver` / theme-one helpers (2.1.6), `DbUtil` DBAL-3 test helper (2.1.7), `ModelServiceLocator` (2.1.10), `EntityManager` singleton + `db.em` boot trigger (2.1.11), `PhpNodeVisitor` + `ExtensionTranslate` custom-domain extraction + forked Intl loaders (3.4.6), dead `DebugStack` shim deletion (2.1.6).
+- **New roadmap Step 2.1.11** (EntityManager DI — remove singleton, Active-Record → Data-Mapper) created with GitHub issue **#205** (sub-issue of #147). The EntityManager singleton removal was split out of Step 2.1.6 (which now only hardens the typing). `PHASE_2`/`PHASE_3` docs expanded; issue **#153** (2.1.6) and **#154** (2.1.7) bodies updated to match. PHP-template → Twig consolidation explicitly deferred (dual-engine kept by design).
+
+### Tooling
+
+- **`.vscode/settings.json`** — `app/vendor` removed from `files.exclude` (kept in `search.exclude`) so intelephense indexes the non-standard vendor directory and stops reporting false "Undefined type" errors for Symfony/Composer classes.
+
 ## Pagekit 1.2.17 - PHPStan Level 5 → 6 (Return Types) (Mai 4, 2026)
 
 ### Static Analysis

@@ -77,7 +77,8 @@ already tracked with a GitHub Issue, **do NOT flag it as a Bug**. Instead:
 | `SymfonyEventDispatcherBridge` / `symfony.event_dispatcher` | Step 2.0.7 (Event Bridge Removal) | #184 |
 | `create_function()` in `User::hasAccess()` | Step 2.0.8 (Hotfix: create_function) | #185 |
 | `Connection::exec()` alias, `json_array` type, deprecated `getSchemaManager()` | Step 2.1.7 (QueryBuilder/DBAL) | #154 |
-| `ModelServiceLocator`, `IntlServiceLocator`, `#[AllowDynamicProperties]` | Step 2.1.6 (PHPStan Level 8) | #153 |
+| `IntlServiceLocator`, `#[AllowDynamicProperties]` | Step 2.1.6 (PHPStan Level 8) | #153 |
+| `ModelServiceLocator` (static locator → DTO/presenter; type-narrow in 2.1.6, removal in 2.1.10) | Step 2.1.10 (Entity Presentation Layer) | #204 |
 
 **Already resolved** (do NOT re-flag — these shipped intentionally):
 

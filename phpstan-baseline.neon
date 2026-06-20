@@ -13,24 +13,6 @@ parameters:
 			path: app/console/app.php
 
 		-
-			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:line\(\) \(void\) is used\.$#'
-			identifier: method.void
-			count: 1
-			path: app/console/src/Commands/BuildCommand.php
-
-		-
-			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:error\(\) \(void\) is used\.$#'
-			identifier: method.void
-			count: 1
-			path: app/console/src/Commands/InstallCommand.php
-
-		-
-			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:error\(\) \(void\) is used\.$#'
-			identifier: method.void
-			count: 1
-			path: app/console/src/Commands/SelfupdateCommand.php
-
-		-
 			message: '#^Call to an undefined method Pagekit\\Container\:\:boot\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -47,12 +29,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/console/src/Commands/UninstallCommand.php
-
-		-
-			message: '#^Result of method Pagekit\\Application\\Console\\Command\:\:error\(\) \(void\) is used\.$#'
-			identifier: method.void
-			count: 1
-			path: app/console/src/Commands/UpdateCommand.php
 
 		-
 			message: '#^Method Pagekit\\Console\\NodeVisitor\\NodeVisitor\:\:getEngine\(\) has invalid return type Symfony\\Component\\Templating\\EngineInterface\.$#'
@@ -385,12 +361,6 @@ parameters:
 			path: app/modules/config/index.php
 
 		-
-			message: '#^Class Doctrine\\DBAL\\Platforms\\MySqlPlatform not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/config/src/ConfigManager.php
-
-		-
 			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertIsString\(\) with string will always evaluate to true\.$#'
 			identifier: method.alreadyNarrowedType
 			count: 1
@@ -437,12 +407,6 @@ parameters:
 			identifier: booleanAnd.alwaysFalse
 			count: 1
 			path: app/modules/database/src/Query/CompositeExpression.php
-
-		-
-			message: '#^Class Doctrine\\DBAL\\Platforms\\MySqlPlatform not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/database/src/Query/QueryBuilder.php
 
 		-
 			message: '#^Unsafe usage of new static\(\)\.$#'
@@ -869,12 +833,6 @@ parameters:
 			identifier: variable.undefined
 			count: 1
 			path: app/modules/session/index.php
-
-		-
-			message: '#^Class Doctrine\\DBAL\\Platforms\\MySqlPlatform not found\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/session/src/Handler/DatabaseSessionHandler.php
 
 		-
 			message: '#^Dead catch \- PDOException is never thrown in the try block\.$#'

@@ -33,17 +33,13 @@ class PhpEngine
 
     protected mixed $loader;
 
-    protected mixed $parser;
-
     /**
      * Constructor.
      *
      * @param array<int, object> $helpers
      */
-    public function __construct(mixed $parser = null, mixed $loader = null, array $helpers = [])
+    public function __construct(mixed $loader = null, array $helpers = [])
     {
-        // We don't really need these anymore but keep for compatibility
-        $this->parser = $parser;
         $this->loader = $loader;
 
         foreach ($helpers as $helper) {
@@ -249,7 +245,8 @@ class PhpEngine
      */
     public function escape(mixed $value, string $context = 'html'): string
     {
-        // Handle null values (PHP 8.1+ compatibility)
+        // PHP 8.1+ deprecates passing null to non-nullable string params (e.g. htmlspecialchars());
+        // guard it. Min PHP is 8.2 — this is forward-compatibility, not old-PHP support.
         if ($value === null) {
             return '';
         }

@@ -140,13 +140,25 @@ If the Refactorer encounters additional issues:
 
 The following architectural/typing issues were identified during the Phase 1 codebase audit:
 
-- `ModelServiceLocator` + `IntlServiceLocator` — static service locators holding `ContainerInterface`; replace with proper DI chains
+- `IntlServiceLocator` — static service locator holding `ContainerInterface`; replace with proper DI chains
+- `ModelServiceLocator` — **type-narrow only** in this step: give `getUrl()` / `getUser()` / `getModule()` concrete return types instead of `mixed` (do NOT remove the locator or change its call sites). The full removal + DTO/presenter refactor is **Step 2.1.10** (Entity Presentation Layer, GitHub #204).
 - `PackageController` — uses `ContainerInterface $app` as God-DI object; inject specific services instead
 - `#[AllowDynamicProperties]` on `Node` and `Widget` models — remove attribute and fix dynamic property usage via typed properties
 - ORM `Metadata`, `Relation`, `PropertyTrait` — incomplete typing throughout (mixed params, missing return types)
 - `NodeModelTrait` — static request-scoped cache array (`static ?array $nodes`); replace with proper PSR-6 caching or explicit cache layer
 - `UrlGeneratorInterface` (Routing) — naming collision with Symfony's interface; rename to e.g. `LinkReferenceType` and move `LINK_URL` constant
 - `GetResponseEvent` (Auth) — misleading Symfony-5 naming; rename to e.g. `AuthResponseEvent`
+
+---
+
+## ADDITIONAL SCOPE — Static service-locator / setter-DI cleanups (repo TODO inventory §2)
+
+Routed from the repo TODO inventory (`migration-docs/TODO/PHP-TODOs-without-roadmap-step-assignment.md`, §§1–2) and mirrored in `PHASE_2_MODERNISING.md` Step 2.1.6 + GitHub #153. These carry canonical `Step 2.1.6` TODO comments in the source.
+
+- `app/modules/routing/src/Event/AliasListener.php` (~line 49) — remove the dead inline-query-string parser: the `strpos($aliasName, '?')` block plus the dependent `strtok($alias->getName(), '?')` clause in the `array_filter` (line 39). Zero callers use the `?param=value` suffix in alias names; the `$defaults` parameter of `Routes::alias()` replaced it. Do NOT touch `Router::generate('route?foo=bar', ...)` — that is a separate, actively used mechanism. (From Step 2.1.3 closure review.)
+- `app/modules/application/src/Application/Console/Application.php` (~line 51) — convert console commands from setter injection (`Command::setContainer()` in `add()`) to constructor DI / a command factory.
+- `packages/pagekit/blog/src/UrlResolver.php` (~line 25) — replace the `private static` cache/module setters with proper DI. **Blocker:** the Router instantiates resolvers via `new $class` without DI, so the static locator cannot be removed in isolation — the routing factory (`ParamsResolver` bootstrap) must support DI first (align with Step 1.8 routing architecture). The `mixed $cache` typing portion was already completed in Step 2.0.3.
+- `packages/pagekit/theme-one/functions.php` (~line 8) — replace the `ThemeOneHelpers` static `UrlProvider` (global state at the theme boundary) with proper DI once template helper functions support injection; type all properties.
 
 ---
 
