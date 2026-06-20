@@ -96,7 +96,7 @@ return [
         'view.system:modules/settings/views/settings' => function ($event, $view) use ($app) {
             $view->data('$mail', ['ssl' => extension_loaded('openssl')]);
             $view->data('$settings', ['options' => [$this->name => $this->config]]);
-            $view->script('settings-mail', 'app/system/modules/mail/app/bundle/settings.js', 'settings');
+            $view->script('settings-mail', 'app/system/modules/mail/app/bundle/settings.js', ['settings']);
         },
 
     ],

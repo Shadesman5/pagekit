@@ -60,7 +60,7 @@ return [
 
             $view->data('$caches', $caches);
             $view->data('$settings', ['config' => [$this->name => $this->config(['caches.cache.storage', 'nocache'])]]);
-            $view->script('settings-cache', 'app/system/modules/cache/app/bundle/settings.js', 'settings');
+            $view->script('settings-cache', 'app/system/modules/cache/app/bundle/settings.js', ['settings']);
 
         },
 
