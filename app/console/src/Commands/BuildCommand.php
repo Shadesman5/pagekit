@@ -15,12 +15,12 @@ class BuildCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected $name = 'build';
+    protected ?string $name = 'build';
 
     /**
      * {@inheritdoc}
      */
-    protected $description = 'Builds a .zip release file';
+    protected string $description = 'Builds a .zip release file';
 
     /**
      * @var string[]

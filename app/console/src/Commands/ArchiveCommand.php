@@ -18,12 +18,12 @@ class ArchiveCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected $name = 'archive';
+    protected ?string $name = 'archive';
 
     /**
      * {@inheritdoc}
      */
-    protected $description = 'Archives an extension or theme';
+    protected string $description = 'Archives an extension or theme';
 
     /**
      * {@inheritdoc}

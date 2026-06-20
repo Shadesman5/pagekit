@@ -24,12 +24,12 @@ class MigrateRunCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected $name = 'migration:migrate';
+    protected ?string $name = 'migration:migrate';
 
     /**
      * {@inheritdoc}
      */
-    protected $description = 'Execute database migrations';
+    protected string $description = 'Execute database migrations';
 
     /**
      * {@inheritdoc}

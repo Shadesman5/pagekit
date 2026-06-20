@@ -17,12 +17,12 @@ class ExtensionTranslateCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected $name = 'extension:translate';
+    protected ?string $name = 'extension:translate';
 
     /**
      * {@inheritdoc}
      */
-    protected $description = 'Generates extension\'s translation .pot/.po/.php files';
+    protected string $description = 'Generates extension\'s translation .pot/.po/.php files';
 
     protected ?PhpNodeVisitor $visitor = null;
 

@@ -15,12 +15,12 @@ class UninstallCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected $name = 'uninstall';
+    protected ?string $name = 'uninstall';
 
     /**
      * {@inheritdoc}
      */
-    protected $description = 'Uninstalls a Pagekit package';
+    protected string $description = 'Uninstalls a Pagekit package';
 
     /**
      * {@inheritdoc}

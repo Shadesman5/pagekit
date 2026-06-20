@@ -13,12 +13,12 @@ class TranslationFetchCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected $name = 'translation:fetch';
+    protected ?string $name = 'translation:fetch';
 
     /**
      * {@inheritdoc}
      */
-    protected $description = 'Fetches current translation files from languages repository';
+    protected string $description = 'Fetches current translation files from languages repository';
 
     /**
      * {@inheritdoc}

@@ -14,12 +14,12 @@ class StartCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected $name = 'start';
+    protected ?string $name = 'start';
 
     /**
      * {@inheritdoc}
      */
-    protected $description = 'Starts the built-in web server';
+    protected string $description = 'Starts the built-in web server';
 
     /**
      * {@inheritdoc}

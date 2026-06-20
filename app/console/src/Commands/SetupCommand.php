@@ -15,12 +15,12 @@ class SetupCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected $name = 'setup';
+    protected ?string $name = 'setup';
 
     /**
      * {@inheritdoc}
      */
-    protected $description = 'Setup a Pagekit installation';
+    protected string $description = 'Setup a Pagekit installation';
 
     /**
      * {@inheritdoc}

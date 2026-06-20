@@ -15,12 +15,12 @@ class SelfupdateCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected $name = 'self-update';
+    protected ?string $name = 'self-update';
 
     /**
      * {@inheritdoc}
      */
-    protected $description = 'Checks for newer Pagekit versions and installs the latest';
+    protected string $description = 'Checks for newer Pagekit versions and installs the latest';
 
     /**
      * {@inheritdoc}
