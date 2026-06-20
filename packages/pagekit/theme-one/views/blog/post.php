@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-$view->script('post', 'blog:app/bundle/post.js', 'vue') ?>
+$view->script('post', 'blog:app/bundle/post.js', ['vue']) ?>
 
 <article class="uk-article tm-container-small">
 
