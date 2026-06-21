@@ -6,6 +6,7 @@ namespace Pagekit\Blog\Model;
 
 use Pagekit\Comment\Model\Comment as BaseComment;
 use Pagekit\Database\ORM\Attribute as ORM;
+use Pagekit\User\Model\User;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -34,18 +35,18 @@ class Comment extends BaseComment implements \JsonSerializable
     public ?string $ip = null;
 
     #[ORM\BelongsTo(targetEntity: 'Post', keyFrom: 'post_id')]
-    public mixed $post = null;
+    public ?Post $post = null;
 
     #[ORM\BelongsTo(targetEntity: 'Pagekit\User\Model\User', keyFrom: 'user_id')]
-    public mixed $user = null;
+    public ?User $user = null;
 
     public int $special = 0;
 
-    public function setPost(mixed $post): void
+    public function setPost(?Post $post): void
     {
         $this->post = $post;
 
-        if ($post) {
+        if ($post !== null && $post->id !== null) {
             $this->post_id = $post->id;
         }
     }

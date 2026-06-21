@@ -80,6 +80,13 @@ class UrlResolver implements ParamsResolverInterface
             if (!$post = Post::where(compact('slug'))->first()) {
                 throw new NotFoundHttpException('Post not found.');
             }
+            if (!$post instanceof Post) {
+                throw new \LogicException(sprintf(
+                    'QueryBuilder::first() returned %s, expected %s',
+                    get_class($post),
+                    Post::class
+                ));
+            }
 
             $this->addCache($post);
             $id = $post->id;
@@ -104,6 +111,13 @@ class UrlResolver implements ParamsResolverInterface
 
             if (!$post = Post::where(compact('id'))->first()) {
                 throw new RouteNotFoundException('Post not found!');
+            }
+            if (!$post instanceof Post) {
+                throw new \LogicException(sprintf(
+                    'QueryBuilder::first() returned %s, expected %s',
+                    get_class($post),
+                    Post::class
+                ));
             }
 
             $this->addCache($post);

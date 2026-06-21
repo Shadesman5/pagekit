@@ -91,7 +91,7 @@ class CommentApiController
         $page = max(0, min($pages - 1, $page));
 
         if ($limit) {
-            $query->offset($page * $limit)->limit($limit);
+            $query->offset((int) ($page * $limit))->limit($limit);
         }
 
         if (preg_match('/^(created)\s(asc|desc)$/i', $order, $match)) {
@@ -100,13 +100,22 @@ class CommentApiController
             $order = [1 => 'created', 2 => $this->blog->config('comments.order')];
         }
 
-        $comments = $query->related(['post' => function ($query) {
+        $entities = $query->related(['post' => function ($query) {
             return $query->related('comments');
         }])->related('user')->orderBy($order[1], $order[2])->get();
 
         $posts = [];
+        $comments = [];
 
-        foreach ($comments as $i => $comment) {
+        foreach ($entities as $comment) {
+
+            if (!$comment instanceof Comment) {
+                throw new \LogicException(sprintf(
+                    'QueryBuilder::get() returned %s, expected %s',
+                    get_class($comment),
+                    Comment::class
+                ));
+            }
 
             $p = $comment->post;
 
@@ -114,21 +123,24 @@ class CommentApiController
                 throw new AccessDeniedHttpException(__('Post not found.'));
             }
 
-            $comment->content = $this->content->applyPlugins($comment->content, ['comment' => true]);
+            $comment->content = $this->content->applyPlugins($comment->content ?? '', ['comment' => true]);
 
-            $comment->special = count(array_diff($comment->user ? $comment->user->roles : [], [0, 1, 2]));
+            $comment->special = count(array_diff($comment->user !== null ? $comment->user->roles : [], [0, 1, 2]));
             $comment->post = null;
             $comment->user = null;
 
             if ($this->user->hasAccess('blog: manage comments')) {
-                $posts[$p->id] = $p;
+                if ($p !== null && $p->id !== null) {
+                    $posts[$p->id] = $p;
+                }
             } else {
                 unset($comment->ip, $comment->user_id);
-                $comment->email = md5(strtolower($comment->email));
+                $comment->email = md5(strtolower($comment->email ?? ''));
             }
+
+            $comments[] = $comment;
         }
 
-        $comments = array_values($comments);
         $posts = [...$posts];
 
         return compact('comments', 'posts', 'pages', 'count');
@@ -194,6 +206,14 @@ class CommentApiController
             and $commentIdle = Comment::where($this->user->isAuthenticated() ? ['user_id' => $this->user->id] : ['ip' => $this->request->getClientIp()])->orderBy('created', 'DESC')->first()
         ) {
 
+            if (!$commentIdle instanceof Comment) {
+                throw new \LogicException(sprintf(
+                    'QueryBuilder::first() returned %s, expected %s',
+                    get_class($commentIdle),
+                    Comment::class
+                ));
+            }
+
             $diff = $commentIdle->created->diff(new \DateTime("- {$minidle} sec"));
 
             if ($diff->invert) {
@@ -205,7 +225,19 @@ class CommentApiController
             throw new NotFoundHttpException(__('Parent not found.'));
         }
 
-        if (!@$data['post_id'] || !$post = Post::where(['id' => $data['post_id']])->first() or !$this->user->hasAccess('blog: manage comments') && !($post->isCommentable() && $post->isPublished())) {
+        $post = empty($data['post_id'])
+            ? null
+            : Post::where(['id' => $data['post_id']])->first();
+
+        if ($post !== null && !$post instanceof Post) {
+            throw new \LogicException(sprintf(
+                'QueryBuilder::first() returned %s, expected %s',
+                get_class($post),
+                Post::class
+            ));
+        }
+
+        if ($post === null || (!$this->user->hasAccess('blog: manage comments') && !($post->isCommentable() && $post->isPublished()))) {
             throw new NotFoundHttpException(__('Post not found.'));
         }
 

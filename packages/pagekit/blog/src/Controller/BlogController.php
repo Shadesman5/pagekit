@@ -70,7 +70,9 @@ class BlogController
     {
         try {
 
-            if (!$post = Post::where(compact('id'))->related('user')->first()) {
+            $entity = Post::where(compact('id'))->related('user')->first();
+
+            if ($entity === null) {
 
                 if ($id) {
                     throw new NotFoundHttpException(__('Invalid post id.'));
@@ -85,6 +87,14 @@ class BlogController
 
                 $post->set('title', $this->blog->config('posts.show_title'));
                 $post->set('markdown', $this->blog->config('posts.markdown_enabled'));
+            } elseif (!$entity instanceof Post) {
+                throw new \LogicException(sprintf(
+                    'QueryBuilder::first() returned %s, expected %s',
+                    get_class($entity),
+                    Post::class
+                ));
+            } else {
+                $post = $entity;
             }
 
             if (!$this->user->hasAccess('blog: manage all posts') && $post->user_id !== $this->user->id) {

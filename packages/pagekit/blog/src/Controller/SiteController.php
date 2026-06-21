@@ -51,11 +51,20 @@ class SiteController
         $total = ceil($count / $limit);
         $page = max(1, min($total, $page));
 
-        $query->offset(($page - 1) * $limit)->limit($limit)->orderBy('date', 'DESC');
+        $query->offset((int) (($page - 1) * $limit))->limit($limit)->orderBy('date', 'DESC');
 
-        foreach ($posts = $query->get() as $post) {
-            $post->excerpt = $this->content->applyPlugins($post->excerpt, ['post' => $post, 'markdown' => $post->get('markdown')]);
-            $post->content = $this->content->applyPlugins($post->content, ['post' => $post, 'markdown' => $post->get('markdown'), 'readmore' => true]);
+        $posts = [];
+        foreach ($query->get() as $post) {
+            if (!$post instanceof Post) {
+                throw new \LogicException(sprintf(
+                    'QueryBuilder::get() returned %s, expected %s',
+                    get_class($post),
+                    Post::class
+                ));
+            }
+            $post->excerpt = $this->content->applyPlugins($post->excerpt ?? '', ['post' => $post, 'markdown' => $post->get('markdown')]);
+            $post->content = $this->content->applyPlugins($post->content ?? '', ['post' => $post, 'markdown' => $post->get('markdown'), 'readmore' => true]);
+            $posts[] = $post;
         }
 
         return [
@@ -94,20 +103,36 @@ class SiteController
         ]);
 
         if ($last = Post::where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime()])->limit(1)->orderBy('modified', 'DESC')->first()) {
-            $feed->setDate($last->modified);
+            if (!$last instanceof Post) {
+                throw new \LogicException(sprintf(
+                    'QueryBuilder::first() returned %s, expected %s',
+                    get_class($last),
+                    Post::class
+                ));
+            }
+            if ($last->modified !== null) {
+                $feed->setDate($last->modified);
+            }
         }
 
         foreach (Post::where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime()])->where(function ($query) {
             return $query->where('roles IS NULL')->whereInSet('roles', $this->user->roles, false, 'OR');
         })->related('user')->limit($this->blog->config('feed.limit'))->orderBy('date', 'DESC')->get() as $post) {
+            if (!$post instanceof Post) {
+                throw new \LogicException(sprintf(
+                    'QueryBuilder::get() returned %s, expected %s',
+                    get_class($post),
+                    Post::class
+                ));
+            }
             $url = $this->url->get('@blog/id', ['id' => $post->id], 0);
             $feed->addItem(
                 $feed->createItem([
                     'title' => $post->title,
                     'link' => $url,
-                    'description' => $this->content->applyPlugins($post->content, ['post' => $post, 'markdown' => $post->get('markdown'), 'readmore' => true]),
+                    'description' => $this->content->applyPlugins($post->content ?? '', ['post' => $post, 'markdown' => $post->get('markdown'), 'readmore' => true]),
                     'date' => $post->date,
-                    'author' => [$post->user->name, $post->user->email],
+                    'author' => [$post->user?->name, $post->user?->email],
                     'id' => $url,
                 ])
             );
@@ -124,31 +149,41 @@ class SiteController
     #[Captcha(route: '@blog/api/comment/save_1')]
     public function postAction(int $id = 0): array
     {
-        if (!$post = Post::where(['id = ?', 'status = ?', 'date < ?'], [$id, Post::STATUS_PUBLISHED, new \DateTime()])->related('user')->first()) {
+        $entity = Post::where(['id = ?', 'status = ?', 'date < ?'], [$id, Post::STATUS_PUBLISHED, new \DateTime()])->related('user')->first();
+
+        if ($entity === null) {
             throw new NotFoundHttpException(__('Post not found!'));
         }
+        if (!$entity instanceof Post) {
+            throw new \LogicException(sprintf(
+                'QueryBuilder::first() returned %s, expected %s',
+                get_class($entity),
+                Post::class
+            ));
+        }
+        $post = $entity;
 
         if (!$post->hasAccess($this->user)) {
             throw new AccessDeniedHttpException(__('Insufficient User Rights.'));
         }
 
-        $post->excerpt = $this->content->applyPlugins($post->excerpt, ['post' => $post, 'markdown' => $post->get('markdown')]);
-        $post->content = $this->content->applyPlugins($post->content, ['post' => $post, 'markdown' => $post->get('markdown')]);
+        $post->excerpt = $this->content->applyPlugins($post->excerpt ?? '', ['post' => $post, 'markdown' => $post->get('markdown')]);
+        $post->content = $this->content->applyPlugins($post->content ?? '', ['post' => $post, 'markdown' => $post->get('markdown')]);
 
         $description = $post->get('meta.og:description');
         if (!$description) {
-            $description = strip_tags($post->excerpt ?: $post->content);
+            $description = strip_tags($post->excerpt ?: ($post->content ?? ''));
             $description = rtrim(mb_substr($description, 0, 150), " \t\n\r\0\x0B.,") . '...';
         }
 
         return [
             '$view' => [
-                'title' => __($post->title),
+                'title' => __($post->title ?? ''),
                 'name' => 'blog/post.php',
                 'og:type' => 'article',
-                'article:published_time' => $post->date->format(\DateTime::ATOM),
-                'article:modified_time' => $post->modified->format(\DateTime::ATOM),
-                'article:author' => $post->user->name,
+                'article:published_time' => $post->date?->format(\DateTime::ATOM),
+                'article:modified_time' => $post->modified?->format(\DateTime::ATOM),
+                'article:author' => $post->user?->name,
                 'og:title' => $post->get('meta.og:title') ?: $post->title,
                 'og:description' => $description,
                 'og:image' => $post->get('image.src') ? $this->url->getStatic($post->get('image.src'), [], 0) : false,
