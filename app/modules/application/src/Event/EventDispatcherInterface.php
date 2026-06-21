@@ -29,10 +29,9 @@ interface EventDispatcherInterface
     /**
      * Triggers an event.
      *
-     * @param string|EventInterface    $event
      * @param array<int|string, mixed> $arguments
      */
-    public function trigger($event, array $arguments = []): EventInterface;
+    public function trigger(string|EventInterface $event, array $arguments = []): EventInterface;
 
     /**
      * Checks if a event has listeners.

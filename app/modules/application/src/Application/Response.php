@@ -42,7 +42,13 @@ class Response
      */
     public function redirect(string $url, array $parameters = [], int $status = 302, array $headers = []): RedirectResponse
     {
-        return new RedirectResponse($this->url->get($url, $parameters), $status, $headers);
+        $resolved = $this->url->get($url, $parameters);
+
+        if ($resolved === false) {
+            throw new \InvalidArgumentException(sprintf('Cannot redirect to "%s": URL or route could not be resolved.', $url));
+        }
+
+        return new RedirectResponse($resolved, $status, $headers);
     }
 
     /**

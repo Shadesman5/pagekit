@@ -12,8 +12,7 @@ abstract class FtpTestCase extends TestCase
 
     protected string|false|null $workspace = null;
     protected ?int $mode = null;
-    /** @var resource|\FTP\Connection|null */
-    protected mixed $connection = null;
+    protected ?\FTP\Connection $connection = null;
 
     public function setUp(): void
     {
@@ -41,15 +40,22 @@ abstract class FtpTestCase extends TestCase
 
     public function tearDown(): void
     {
-        if (is_resource($this->connection) && $this->workspace) {
+        if ($this->connection instanceof \FTP\Connection && $this->workspace) {
             $this->clean($this->workspace);
         }
     }
 
     private function clean(string $file): void
     {
+        if (!$this->connection instanceof \FTP\Connection) {
+            return;
+        }
+
         if (ftp_size($this->connection, $file) == -1) {
             $result = ftp_nlist($this->connection, $file);
+            if ($result === false) {
+                return;
+            }
             foreach ($result as $childFile) {
                 $this->clean($childFile);
             }

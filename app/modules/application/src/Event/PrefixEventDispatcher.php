@@ -49,11 +49,11 @@ class PrefixEventDispatcher implements EventDispatcherInterface
      *
      * @param array<int|string, mixed> $arguments
      */
-    public function trigger($event, array $arguments = []): EventInterface
+    public function trigger(string|EventInterface $event, array $arguments = []): EventInterface
     {
         if (is_string($event)) {
             $event = $this->prefix.$event;
-        } elseif ($event instanceof EventInterface) {
+        } else {
             $event->setName($this->prefix.$event->getName());
         }
 

@@ -247,63 +247,15 @@ parameters:
 			path: app/modules/application/src/Application/Console/Command.php
 
 		-
-			message: '#^Cannot call method bindTo\(\) on callable\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: app/modules/application/src/Event/EventDispatcher.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Event\\EventInterface\:\:setName\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/modules/application/src/Event/PrefixEventDispatcher.php
-
-		-
-			message: '#^Call to function is_a\(\) with Pagekit\\Module\\Module and ''Pagekit\\\\Event…'' will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: app/modules/application/src/Module/Loader/ModuleLoader.php
-
-		-
-			message: '#^Cannot call method bindTo\(\) on callable\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/modules/application/src/Module/Loader/ModuleLoader.php
-
-		-
 			message: '#^Unreachable statement \- code above always terminates\.$#'
 			identifier: deadCode.unreachable
 			count: 1
 			path: app/modules/application/src/Tests/DbTestCase.php
 
 		-
-			message: '#^If condition is always true\.$#'
-			identifier: if.alwaysTrue
-			count: 1
-			path: app/modules/application/src/Tests/FtpTestCase.php
-
-		-
-			message: '#^Method Pagekit\\Tests\\FtpTestCase\:\:getFtpConnection\(\) has invalid return type Pagekit\\Tests\\ftp\.$#'
-			identifier: class.notFound
-			count: 1
-			path: app/modules/application/src/Tests/FtpTestCase.php
-
-		-
-			message: '#^Negated boolean expression is always true\.$#'
-			identifier: booleanNot.alwaysTrue
-			count: 2
-			path: app/modules/application/src/Tests/FtpTestCase.php
-
-		-
-			message: '#^Result of or is always true\.$#'
-			identifier: logicalOr.alwaysTrue
-			count: 1
-			path: app/modules/application/src/Tests/FtpTestCase.php
-
-		-
 			message: '#^Unreachable statement \- code above always terminates\.$#'
 			identifier: deadCode.unreachable
-			count: 3
+			count: 2
 			path: app/modules/application/src/Tests/FtpTestCase.php
 
 		-
