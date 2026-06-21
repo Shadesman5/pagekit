@@ -1057,18 +1057,6 @@ parameters:
 			path: app/system/modules/intl/src/Loader/MoFileLoader.php
 
 		-
-			message: '#^Parameter \#1 \$filename of function fopen expects string, resource given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/system/modules/intl/src/Loader/MoFileLoader.php
-
-		-
-			message: '#^Parameter \#1 \$filename of function fopen expects string, resource given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/system/modules/intl/src/Loader/PoFileLoader.php
-
-		-
 			message: '#^Anonymous function has an unused use \$app\.$#'
 			identifier: closure.unusedUse
 			count: 1

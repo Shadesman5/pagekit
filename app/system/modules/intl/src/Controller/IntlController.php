@@ -32,7 +32,7 @@ class IntlController
         $messages = $intl->getFormats($locale) ?: [];
         $messages['locale'] = $locale;
         $messages['translations'] = [$locale => $this->translator->getCatalogue($locale)->all()];
-        $messages = json_encode($messages);
+        $messages = json_encode($messages, JSON_THROW_ON_ERROR);
 
         $json = $this->request->isXmlHttpRequest();
 

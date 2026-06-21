@@ -49,7 +49,19 @@ class NodeApiController
             $query->where(['menu' => $menu]);
         }
 
-        return array_values($query->get());
+        $nodes = [];
+        foreach ($query->get() as $entity) {
+            if (!$entity instanceof Node) {
+                throw new \LogicException(sprintf(
+                    'QueryBuilder::get() returned %s, expected %s',
+                    get_class($entity),
+                    Node::class
+                ));
+            }
+            $nodes[] = $entity;
+        }
+
+        return $nodes;
     }
 
     #[Route('/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
