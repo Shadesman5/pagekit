@@ -170,7 +170,9 @@ class ConnectionTest extends TestCase
         $pagekitConn->executeStatement("INSERT INTO test_fetch (id, name) VALUES (1, 'test')");
 
         $result = $pagekitConn->fetchObject('SELECT * FROM test_fetch WHERE id = 1');
-        $this->assertIsObject($result);
+        if ($result === false) {
+            $this->fail('fetchObject returned false for an existing row.');
+        }
         $this->assertEquals(1, $result->id);
         $this->assertEquals('test', $result->name);
 

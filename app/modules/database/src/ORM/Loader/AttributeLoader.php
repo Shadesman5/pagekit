@@ -208,7 +208,10 @@ class AttributeLoader implements LoaderInterface
     /**
      * Gets a class attribute.
      *
+     * @template T of object
      * @param \ReflectionClass<object> $class
+     * @param class-string<T>          $attributeClass
+     * @return T|null
      */
     protected function getClassAttribute(\ReflectionClass $class, string $attributeClass): ?object
     {
@@ -219,6 +222,10 @@ class AttributeLoader implements LoaderInterface
 
     /**
      * Gets a property attribute.
+     *
+     * @template T of object
+     * @param class-string<T> $attributeClass
+     * @return T|null
      */
     protected function getPropertyAttribute(\ReflectionProperty $property, string $attributeClass): ?object
     {
@@ -229,6 +236,10 @@ class AttributeLoader implements LoaderInterface
 
     /**
      * Gets a method attribute.
+     *
+     * @template T of object
+     * @param class-string<T> $attributeClass
+     * @return T|null
      */
     protected function getMethodAttribute(\ReflectionMethod $method, string $attributeClass): ?object
     {

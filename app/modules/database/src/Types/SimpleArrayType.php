@@ -11,13 +11,19 @@ class SimpleArrayType extends BaseSimpleArrayType
 {
     /**
      * {@inheritdoc}
+     *
+     * @return list<string>
      */
-    public function convertToPHPValue($value, AbstractPlatform $platform): mixed
+    public function convertToPHPValue($value, AbstractPlatform $platform): array
     {
-        if (is_string($value) && $array = @json_decode("[{$value}]")) {
-            return $array;
+        if (is_string($value) && is_array($array = @json_decode("[{$value}]")) && $array !== []) {
+            return array_values(array_map('strval', $array));
         }
 
-        return is_array($value) ? $value : parent::convertToPHPValue($value, $platform);
+        if (is_array($value)) {
+            return array_values(array_map('strval', $value));
+        }
+
+        return parent::convertToPHPValue($value, $platform);
     }
 }

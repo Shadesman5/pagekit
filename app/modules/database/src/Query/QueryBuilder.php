@@ -39,7 +39,10 @@ class QueryBuilder
     /**
      * The query parameters.
      *
-     * @var array<int|string, mixed>
+     * Pagekit uses named (string-keyed) parameters exclusively; the parameter name
+     * is produced by {@see parameter()} which always returns a string.
+     *
+     * @var array<string, mixed>
      */
     protected array $params = [];
 
@@ -129,7 +132,7 @@ class QueryBuilder
     /**
      * Creates and adds a "where" to the query.
      *
-     * @param array<int|string, mixed> $params
+     * @param array<string, mixed> $params
      */
     public function where(mixed $condition, array $params = []): QueryBuilder
     {
@@ -139,7 +142,7 @@ class QueryBuilder
     /**
      * Creates and adds a "or where" to the query.
      *
-     * @param array<int|string, mixed> $params
+     * @param array<string, mixed> $params
      */
     public function orWhere(mixed $condition, array $params = []): QueryBuilder
     {
@@ -169,7 +172,11 @@ class QueryBuilder
             call_user_func($values, $query);
 
             $values = $query->getSQL();
-            $params = $query->params();
+            $rawParams = $query->params();
+            if (!is_array($rawParams)) {
+                throw new \LogicException('params() getter must return an array.');
+            }
+            $params = $rawParams;
         }
 
         $not = $not ? ' NOT' : '';
@@ -206,7 +213,12 @@ class QueryBuilder
 
         $not = $not ? 'NOT ' : '';
 
-        return $this->addWhere("{$not}EXISTS ({$exists})", $query->params(), $type);
+        $params = $query->params();
+        if (!is_array($params)) {
+            throw new \LogicException('params() getter must return an array.');
+        }
+
+        return $this->addWhere("{$not}EXISTS ({$exists})", $params, $type);
     }
 
     /**
@@ -247,7 +259,7 @@ class QueryBuilder
     /**
      * Creates and adds a "where" to the query.
      *
-     * @param array<int|string, mixed> $params
+     * @param array<string, mixed> $params
      */
     protected function addWhere(mixed $condition, array $params, ?string $type = null): QueryBuilder
     {
@@ -282,7 +294,11 @@ class QueryBuilder
             call_user_func($condition, $query);
 
             $args[] = $query->getPart('where');
-            $params = $query->params();
+            $rawParams = $query->params();
+            if (!is_array($rawParams)) {
+                throw new \LogicException('params() getter must return an array.');
+            }
+            $params = $rawParams;
         }
 
         $this->params($params);
@@ -378,8 +394,12 @@ class QueryBuilder
     /**
      * Get or set multiple query parameters.
      *
-     * @param array<int|string, mixed>|null $params
-     * @return array<int|string, mixed>|self
+     * Pagekit only supports named (string-keyed) parameters; numeric keys are
+     * not accepted because they would conflict with DBAL's positional-parameter
+     * driver path.
+     *
+     * @param  array<string, mixed>|null  $params
+     * @return array<string, mixed>|self
      */
     public function params(?array $params = null): array|self
     {
@@ -582,7 +602,14 @@ class QueryBuilder
             $this->addPart('set', "$key = :$name");
         }
 
-        return $this->params($values)->executeQuery('update');
+        $this->params($values);
+
+        $result = $this->executeQuery('update');
+        if (!is_int($result)) {
+            throw new \LogicException('UPDATE must return an int affected-rows count.');
+        }
+
+        return $result;
     }
 
     /**
@@ -590,7 +617,12 @@ class QueryBuilder
      */
     public function delete(): int
     {
-        return $this->executeQuery('delete');
+        $result = $this->executeQuery('delete');
+        if (!is_int($result)) {
+            throw new \LogicException('DELETE must return an int affected-rows count.');
+        }
+
+        return $result;
     }
 
     /**
@@ -726,8 +758,8 @@ class QueryBuilder
     /**
      * Tries to guess param types
      *
-     * @param  array<int|string, mixed> $params
-     * @return array<int|string, string>
+     * @param  array<string, mixed> $params
+     * @return array<string, string>
      */
     protected function guessParamTypes(array $params = []): array
     {

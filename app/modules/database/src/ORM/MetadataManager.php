@@ -90,7 +90,7 @@ class MetadataManager
     /**
      * Gets the metadata for the given class.
      *
-     * @param  object|string $class
+     * @param object|class-string $class
      */
     public function get(object|string $class): Metadata
     {
@@ -101,14 +101,14 @@ class MetadataManager
 
             if ($this->cache) {
 
-                $hash = filemtime($class->getFileName());
+                $hash = (int) filemtime((string) $class->getFileName());
                 foreach ($class->getTraits() as $trait) {
-                    $hash += filemtime($trait->getFileName());
+                    $hash += (int) filemtime((string) $trait->getFileName());
                 }
 
                 $current = $class;
                 while ($parent = $current->getParentClass()) {
-                    $hash += filemtime($parent->getFileName());
+                    $hash += (int) filemtime((string) $parent->getFileName());
                     $current = $parent;
                 }
 
@@ -219,8 +219,13 @@ class MetadataManager
     protected function subscribe(Metadata $metadata): void
     {
         foreach ($metadata->getEvents() as $event => $methods) {
+            $class = $metadata->getClass();
             foreach ($methods as $method) {
-                $this->events->on($metadata->getEventPrefix().'.'.$event, [$metadata->getClass(), $method]);
+                if (!method_exists($class, $method)) {
+                    throw new \LogicException(sprintf("Event method '%s::%s' does not exist.", $class, $method));
+                }
+                $callable = static fn (mixed ...$args): mixed => $class::$method(...$args);
+                $this->events->on($metadata->getEventPrefix().'.'.$event, $callable);
             }
         }
     }

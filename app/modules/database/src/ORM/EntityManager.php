@@ -50,6 +50,8 @@ class EntityManager
 
     /**
      * Gets the metadata object of an entity class.
+     *
+     * @param object|class-string $class
      */
     public function getMetadata(object|string $class): Metadata
     {
@@ -103,7 +105,7 @@ class EntityManager
     /**
      * Relate target entities to the entity's relation.
      *
-     * @param  array<int, object>|object $entities
+     * @param  array<int|string, object>|object $entities
      * @throws \LogicException
      */
     public function related(array|object $entities, string $name, QueryBuilder $query): void
@@ -112,7 +114,12 @@ class EntityManager
             $entities = [$entities];
         }
 
-        $metadata = $this->getMetadata(current($entities));
+        $first = current($entities);
+        if ($first === false) {
+            return;
+        }
+
+        $metadata = $this->getMetadata($first);
         $mapping = $metadata->getRelationMapping($name);
 
         if (!class_exists($class = 'Pagekit\Database\ORM\\Relation\\'.$mapping['type'])) {
@@ -120,6 +127,9 @@ class EntityManager
         }
 
         $relation = new $class($this, $metadata, $mapping);
+        if (!$relation instanceof Relation\Relation) {
+            throw new \LogicException(sprintf("Class '%s' is not a Relation.", $class));
+        }
         $relation->resolve($entities, $query);
     }
 
@@ -193,12 +203,8 @@ class EntityManager
 
     /**
      * Hydrates only one row of the passed statement.
-     *
-     * @param  object   $statement
-     * @param  Metadata $metadata
-     * @return object|false
      */
-    public function hydrateOne(object $statement, Metadata $metadata): object|false
+    public function hydrateOne(\Doctrine\DBAL\Result $statement, Metadata $metadata): object|false
     {
         if ($row = $statement->fetchAssociative()) {
             return $this->load($metadata, $row, true, true);
@@ -212,7 +218,7 @@ class EntityManager
      *
      * @return array<int|string, object>
      */
-    public function hydrateAll(object $statement, Metadata $metadata): array
+    public function hydrateAll(\Doctrine\DBAL\Result $statement, Metadata $metadata): array
     {
         $result = [];
         $identifier = $metadata->getIdentifier();
