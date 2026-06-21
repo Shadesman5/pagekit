@@ -1,5 +1,24 @@
 # Changelog
 
+## Pagekit 1.2.20 - PHPStan Level 6 → 7 (Null Safety) (Juni 20, 2026)
+
+### Static Analysis
+
+- **PHPStan baseline raised from `level: 6` to `level: 7`.** Property types and null-safe code are now enforced across `app/modules/`, `app/system/`, `app/installer/`, `app/console/`, and `packages/pagekit/blog/`. (Closes #152)
+- **Property-type sweep** — 11 `app/modules/` core files and all 16 console commands received native property types (`?string $name`, `string $description`, `\Closure` for callables, `mixed` only where PHP cannot express the type).
+- **Null-safety sweep** — grouped by module risk profile (database ORM, view/twig, routing/feed, system modules, installer, packages). Prefer type-narrowing over null guards per the §3.1 decision tree.
+- **`phpstan-baseline.neon`** — surgical removals only; no wholesale regeneration.
+
+### Fixed
+
+- **`EventDispatcher` / `TraceableEventDispatcher` listener identity** — subscribe/unsubscribe now track exact callable references via `SplObjectStorage`; re-subscribe guard prevents duplicate listeners (Bugbot).
+- **`SimpleArrayType` scalar coercion** — removed `strval()` on JSON-decoded values; native PHP scalar types preserved (Bugbot).
+- **`MetaHelper::add()` null config values** — fresh installs with unset `meta.twitter` / `meta.facebook` keys no longer throw `TypeError` on the homepage (E2E regression caught after Bugbot mini-loop).
+
+### Removed
+
+- **`app/modules/view/src/PhpEngine.php.backup`** — stale backup artifact deleted during Step 14 cleanup.
+
 ## Pagekit 1.2.19 - Strict-Typing Runtime Regression Fixes (Juni 21, 2026)
 
 ### Fixed
