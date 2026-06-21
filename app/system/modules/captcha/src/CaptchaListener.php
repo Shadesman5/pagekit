@@ -179,7 +179,7 @@ class CaptchaListener implements EventSubscriberInterface
 
         curl_close($ch);
 
-        return $result;
+        return is_string($result) ? $result : false;
     }
 
     /**

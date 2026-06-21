@@ -36,7 +36,18 @@ class WidgetApiController
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
-        $widgets = Widget::findAll();
+        $widgets = [];
+        foreach (Widget::findAll() as $key => $widget) {
+            if (!$widget instanceof Widget) {
+                throw new \LogicException(sprintf(
+                    'Widget::findAll() returned %s, expected %s',
+                    get_debug_type($widget),
+                    Widget::class
+                ));
+            }
+            $widgets[$key] = $widget;
+        }
+
         $positions = $this->position->all();
 
         foreach ($positions as &$position) {
@@ -44,8 +55,9 @@ class WidgetApiController
 
             foreach ($position['assigned'] as $id) {
                 if (isset($widgets[$id])) {
-                    // Set the position property on the widget
-                    $widgets[$id]->position = $position['name'];
+                    // Each widget is grouped under its position key in the response,
+                    // so the position is conveyed implicitly. The edit view sets
+                    // $widget->position explicitly in getAction() when needed.
                     $position['widgets'][] = $widgets[$id];
                     unset($widgets[$id]);
                 }

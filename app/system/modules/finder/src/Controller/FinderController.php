@@ -99,7 +99,7 @@ class FinderController
             return $this->error(__('Invalid path.'));
         }
 
-        if (file_exists($this->getPath($name))) {
+        if (file_exists($path)) {
             return $this->error(__('Folder already exists.'));
         }
 
