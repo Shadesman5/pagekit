@@ -39,7 +39,8 @@ class ExtensionTranslateCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $extension = $this->argument('extension') ?: 'system';
+        $extensionArg = $this->argument('extension');
+        $extension = is_string($extensionArg) && $extensionArg !== '' ? $extensionArg : 'system';
         $files = $this->getFiles($path = $this->getPath($extension), $extension);
         $languages = "$path/languages";
 
@@ -117,6 +118,9 @@ class ExtensionTranslateCommand extends Command
     protected function extractStrings($file): array
     {
         $content = file_get_contents($file);
+        if ($content === false) {
+            return [];
+        }
 
         // collect pairs of [$domain, string] from all matches
         $pairs = [];
@@ -231,7 +235,26 @@ class ExtensionTranslateCommand extends Command
             }
 
             $refFile = $path.'/'.$domain.'.pot';
-            if (!file_exists($refFile) || !($compare = preg_replace('/^"POT-Creation-Date: (.*)$/im', '', [file_get_contents($refFile), $data]) and $compare[0] === $compare[1])) {
+            if (!file_exists($refFile)) {
+                file_put_contents($refFile, $data);
+
+                continue;
+            }
+
+            $existing = file_get_contents($refFile);
+            if ($existing === false) {
+                file_put_contents($refFile, $data);
+
+                continue;
+            }
+
+            // Strip the non-deterministic POT-Creation-Date header before comparing so
+            // unchanged catalogs are not rewritten on every run.
+            $pattern = '/^"POT-Creation-Date: (.*)$/im';
+            $existingStripped = preg_replace($pattern, '', $existing) ?? $existing;
+            $dataStripped = preg_replace($pattern, '', $data) ?? $data;
+
+            if ($existingStripped !== $dataStripped) {
                 file_put_contents($refFile, $data);
             }
         }

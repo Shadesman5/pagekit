@@ -35,8 +35,11 @@ class UninstallCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $packages = (array) $this->argument('packages');
+        $packages = array_values(array_filter($packages, 'is_string'));
+
         $updater = new PackageManager($output);
-        $updater->uninstall((array) $this->argument('packages'));
+        $updater->uninstall($packages);
 
         return Command::SUCCESS;
     }

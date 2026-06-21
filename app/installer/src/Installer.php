@@ -149,7 +149,7 @@ class Installer
                 throw new \Exception("Error creating PackageManager: " . $e->getMessage(), 0, $e);
             }
 
-            foreach (glob($this->app->get('path.packages') . '/*/*/composer.json') as $package) {
+            foreach (glob($this->app->get('path.packages') . '/*/*/composer.json') ?: [] as $package) {
                 try {
                     $package = $this->app->get('package')->load($package);
                 } catch (\Exception $e) {

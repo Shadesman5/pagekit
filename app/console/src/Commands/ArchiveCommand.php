@@ -40,7 +40,11 @@ class ArchiveCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $filesystem = new Filesystem();
-        $packageName = $this->getPackageFilename($name = $this->argument('name'));
+        $name = $this->argument('name');
+        if (!is_string($name)) {
+            throw new \LogicException('Argument "name" must be a string.');
+        }
+        $packageName = $this->getPackageFilename($name);
 
         if (!($targetDir = $this->option('dir'))) {
             $targetDir = $this->container->get('path');
@@ -75,12 +79,12 @@ class ArchiveCommand extends Command
         $filesystem->ensureDirectoryExists(dirname($tempTarget));
 
         if (!is_dir($sourcePath)) {
-            $this->error(sprintf('Package \'%s\' doesn\'t exist.', $this->argument('name')));
+            $this->error(sprintf('Package \'%s\' doesn\'t exist.', $name));
 
             return 1;
         }
 
-        $this->info(sprintf('Archiving \'%s\'', $this->argument('name')));
+        $this->info(sprintf('Archiving \'%s\'', $name));
 
         $archivePath = (new PharArchiver())->archive($sourcePath, $tempTarget, 'zip', $excludes);
         rename($archivePath, $target);

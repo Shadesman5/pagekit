@@ -34,8 +34,13 @@ class StartCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $server = $this->option('server');
+        if (!is_string($server)) {
+            throw new \LogicException('Option "server" must be a string.');
+        }
+
         $this->line(sprintf('Pagekit %s Development Server started', $this->getApplication()->getVersion()));
-        $this->line(sprintf('Listening on http://%s', $server = $this->option('server')));
+        $this->line(sprintf('Listening on http://%s', $server));
         $this->line(sprintf('Document root is %s', getcwd()));
         $this->line('Press Ctrl-C to quit');
 

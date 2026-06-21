@@ -65,6 +65,9 @@ class SetupCommand extends Command
         $installer = new Installer($app);
 
         $dbDriver = $this->option('db-driver');
+        if (!is_string($dbDriver)) {
+            throw new \LogicException('Option "db-driver" must be a string.');
+        }
 
         $config = [
             'locale' => $this->option('locale'),

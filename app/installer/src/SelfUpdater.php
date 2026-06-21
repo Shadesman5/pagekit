@@ -23,7 +23,15 @@ class SelfUpdater
     public function __construct(string $path, ?OutputInterface $output = null)
     {
         $this->path = $path;
-        $this->output = $output ?: new StreamOutput(fopen('php://output', 'w'));
+
+        if ($output === null) {
+            $stream = fopen('php://output', 'w');
+            if ($stream === false) {
+                throw new \RuntimeException('Failed to open php://output stream.');
+            }
+            $output = new StreamOutput($stream);
+        }
+        $this->output = $output;
 
         if (PHP_SAPI != 'cli') {
 
@@ -120,7 +128,10 @@ class SelfUpdater
         if ($zip->open($file) === true) {
 
             for ($i = 0; $i < $zip->numFiles; $i++) {
-                $list[] = $zip->getNameIndex($i);
+                $name = $zip->getNameIndex($i);
+                if ($name !== false) {
+                    $list[] = $name;
+                }
             }
             $zip->close();
 

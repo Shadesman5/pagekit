@@ -49,12 +49,6 @@ parameters:
 			path: app/console/src/NodeVisitor/NodeVisitor.php
 
 		-
-			message: '#^Access to an undefined property PhpParser\\Node\\Expr\:\:\$value\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/console/src/NodeVisitor/PhpNodeVisitor.php
-
-		-
 			message: '#^Access to undefined constant PhpParser\\ParserFactory\:\:PREFER_PHP5\.$#'
 			identifier: classConstant.notFound
 			count: 1
