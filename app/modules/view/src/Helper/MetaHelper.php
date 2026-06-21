@@ -28,11 +28,17 @@ class MetaHelper implements HelperInterface, \IteratorAggregate
     /**
      * Adds meta tags.
      *
-     * @param array<string, string|array<string, string>> $metas
+     * Null/false entries are silently skipped so callers can pass values
+     * straight from config lookups without pre-filtering.
+     *
+     * @param array<string, string|array<string, string>|null|false> $metas
      */
     public function __invoke(array $metas): self
     {
         foreach ($metas as $name => $value) {
+            if ($value === null || $value === false) {
+                continue;
+            }
             $this->add($name, $value);
         }
 
@@ -52,13 +58,18 @@ class MetaHelper implements HelperInterface, \IteratorAggregate
     /**
      * Adds a meta tag.
      *
-     * @param string|array<string, string> $value
+     * A null value is treated as "not set" and skipped, mirroring how
+     * Pagekit config lookups return null for unset keys.
+     *
+     * @param string|array<string, string>|null $value
      */
-    public function add(string $name, string|array $value = ''): self
+    public function add(string $name, string|array|null $value = null): self
     {
-        if ($value) {
-            $this->metas[$name] = $value;
+        if ($value === null || $value === '' || $value === []) {
+            return $this;
         }
+
+        $this->metas[$name] = $value;
 
         return $this;
     }

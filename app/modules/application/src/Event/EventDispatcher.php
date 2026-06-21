@@ -68,6 +68,10 @@ class EventDispatcher implements EventDispatcherInterface
      */
     public function subscribe(EventSubscriberInterface $subscriber): self
     {
+        if (isset($this->subscriberListeners[$subscriber])) {
+            $this->unsubscribe($subscriber);
+        }
+
         $registrations = [];
 
         foreach ($subscriber->subscribe() as $event => $params) {

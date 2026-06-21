@@ -25,6 +25,16 @@ class TraceableEventDispatcher implements EventDispatcherInterface
     protected array $wrappedListeners;
 
     /**
+     * Tracks the listeners registered for each subscriber, keyed by the
+     * subscriber object, so unsubscribe() can remove exactly what subscribe()
+     * registered. Required because subscriberMethod() returns a fresh Closure
+     * on each call and the underlying dispatcher's off() matches by identity.
+     *
+     * @var \SplObjectStorage<EventSubscriberInterface, list<array{event: string, listener: callable}>>
+     */
+    protected \SplObjectStorage $subscriberListeners;
+
+    /**
      * Constructor.
      *
      * @param EventDispatcherInterface $dispatcher
@@ -38,6 +48,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
         $this->logger = $logger;
         $this->called = [];
         $this->wrappedListeners = [];
+        $this->subscriberListeners = new \SplObjectStorage();
     }
 
     public function on(string $event, callable $listener, int $priority = 0): self
@@ -70,39 +81,59 @@ class TraceableEventDispatcher implements EventDispatcherInterface
      */
     public function subscribe(EventSubscriberInterface $subscriber): self
     {
+        if (isset($this->subscriberListeners[$subscriber])) {
+            $this->unsubscribe($subscriber);
+        }
+
+        $registrations = [];
+
         foreach ($subscriber->subscribe() as $event => $params) {
 
             if (is_string($params)) {
-                $this->on($event, $this->subscriberMethod($subscriber, $params));
+                $listener = $this->subscriberMethod($subscriber, $params);
+                $this->on($event, $listener);
+                $registrations[] = ['event' => $event, 'listener' => $listener];
             } elseif ($params instanceof \Closure) {
-                $bound = $params->bindTo($subscriber, $subscriber);
-                if ($bound !== null) {
-                    $this->on($event, $bound);
+                $listener = $params->bindTo($subscriber, $subscriber);
+                if ($listener === null) {
+                    continue;
                 }
-            } elseif (is_string($params[0])) {
-                $this->on($event, $this->subscriberMethod($subscriber, $params[0]), isset($params[1]) && is_int($params[1]) ? $params[1] : 0);
-            } elseif ($params[0] instanceof \Closure) {
-                $bound = $params[0]->bindTo($subscriber, $subscriber);
-                if ($bound !== null) {
-                    $this->on($event, $bound, isset($params[1]) && is_int($params[1]) ? $params[1] : 0);
+                $this->on($event, $listener);
+                $registrations[] = ['event' => $event, 'listener' => $listener];
+            } elseif (is_array($params) && is_string($params[0])) {
+                $listener = $this->subscriberMethod($subscriber, $params[0]);
+                $this->on($event, $listener, isset($params[1]) && is_int($params[1]) ? $params[1] : 0);
+                $registrations[] = ['event' => $event, 'listener' => $listener];
+            } elseif (is_array($params) && $params[0] instanceof \Closure) {
+                $listener = $params[0]->bindTo($subscriber, $subscriber);
+                if ($listener === null) {
+                    continue;
                 }
-            } else {
-                foreach ($params as $listener) {
-                    if (!is_array($listener)) {
+                $this->on($event, $listener, isset($params[1]) && is_int($params[1]) ? $params[1] : 0);
+                $registrations[] = ['event' => $event, 'listener' => $listener];
+            } elseif (is_array($params)) {
+                foreach ($params as $listenerSpec) {
+                    if (!is_array($listenerSpec)) {
                         continue;
                     }
-                    if (is_string($listener[0])) {
-                        $this->on($event, $this->subscriberMethod($subscriber, $listener[0]), isset($listener[1]) && is_int($listener[1]) ? $listener[1] : 0);
-                    } elseif ($listener[0] instanceof \Closure) {
-                        $bound = $listener[0]->bindTo($subscriber, $subscriber);
-                        if ($bound !== null) {
-                            $this->on($event, $bound, isset($listener[1]) && is_int($listener[1]) ? $listener[1] : 0);
+                    if (is_string($listenerSpec[0])) {
+                        $listener = $this->subscriberMethod($subscriber, $listenerSpec[0]);
+                        $this->on($event, $listener, isset($listenerSpec[1]) && is_int($listenerSpec[1]) ? $listenerSpec[1] : 0);
+                        $registrations[] = ['event' => $event, 'listener' => $listener];
+                    } elseif ($listenerSpec[0] instanceof \Closure) {
+                        $listener = $listenerSpec[0]->bindTo($subscriber, $subscriber);
+                        if ($listener === null) {
+                            continue;
                         }
+                        $this->on($event, $listener, isset($listenerSpec[1]) && is_int($listenerSpec[1]) ? $listenerSpec[1] : 0);
+                        $registrations[] = ['event' => $event, 'listener' => $listener];
                     }
                 }
             }
 
         }
+
+        $this->subscriberListeners[$subscriber] = $registrations;
 
         return $this;
     }
@@ -112,20 +143,15 @@ class TraceableEventDispatcher implements EventDispatcherInterface
      */
     public function unsubscribe(EventSubscriberInterface $subscriber): self
     {
-        foreach ($subscriber->subscribe() as $event => $params) {
-            if (is_array($params) && isset($params[0]) && is_array($params[0])) {
-                foreach ($params as $listener) {
-                    if (is_array($listener) && is_string($listener[0])) {
-                        $this->off($event, $this->subscriberMethod($subscriber, $listener[0]));
-                    }
-                }
-            } else {
-                $method = is_string($params) ? $params : (is_array($params) && is_string($params[0]) ? $params[0] : null);
-                if ($method !== null) {
-                    $this->off($event, $this->subscriberMethod($subscriber, $method));
-                }
-            }
+        if (!isset($this->subscriberListeners[$subscriber])) {
+            return $this;
         }
+
+        foreach ($this->subscriberListeners[$subscriber] as $registration) {
+            $this->off($registration['event'], $registration['listener']);
+        }
+
+        unset($this->subscriberListeners[$subscriber]);
 
         return $this;
     }
