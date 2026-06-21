@@ -184,7 +184,13 @@ abstract class Feed implements FeedInterface
         $doc->preserveWhiteSpace = false;
         $doc->formatOutput = true;
 
-        return $doc->saveXML();
+        $xml = $doc->saveXML();
+
+        if ($xml === false) {
+            throw new \RuntimeException('Failed to serialize feed document to XML.');
+        }
+
+        return $xml;
     }
 
     /**

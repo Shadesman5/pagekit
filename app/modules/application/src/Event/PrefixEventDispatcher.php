@@ -66,7 +66,7 @@ class PrefixEventDispatcher implements EventDispatcherInterface
     }
 
     /**
-     * @return list<callable>|array<string, list<callable>>
+     * @return ($event is null ? array<string, list<callable>> : list<callable>)
      */
     public function getListeners(?string $event = null): array
     {
@@ -78,6 +78,9 @@ class PrefixEventDispatcher implements EventDispatcherInterface
         return $this->events->getListenerPriority($event, $listener);
     }
 
+    /**
+     * @return class-string<EventInterface>
+     */
     public function getEventClass(): string
     {
         return $this->events->getEventClass();

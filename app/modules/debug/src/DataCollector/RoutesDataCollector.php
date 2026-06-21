@@ -43,7 +43,9 @@ class RoutesDataCollector implements DataCollectorInterface
      */
     public function collect(): array
     {
-        $path = sprintf($this->cache.'/'.$this->file, sha1((string) filemtime((new \ReflectionClass($this->router->getGenerator()))->getFileName())));
+        $generatorFile = (new \ReflectionClass($this->router->getGenerator()))->getFileName();
+        $mtime = $generatorFile !== false ? filemtime($generatorFile) : false;
+        $path = sprintf($this->cache.'/'.$this->file, sha1((string) $mtime));
 
         if (!file_exists($path)) {
 

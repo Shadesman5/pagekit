@@ -41,7 +41,7 @@ interface EventDispatcherInterface
     /**
      * Gets all listeners of an event.
      *
-     * @return list<callable>|array<string, list<callable>>
+     * @return ($event is null ? array<string, list<callable>> : list<callable>)
      */
     public function getListeners(?string $event = null): array;
 
@@ -52,6 +52,8 @@ interface EventDispatcherInterface
 
     /**
      * Gets the default Event class.
+     *
+     * @return class-string<EventInterface>
      */
     public function getEventClass(): string;
 }
