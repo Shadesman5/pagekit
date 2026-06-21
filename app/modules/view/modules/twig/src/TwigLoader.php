@@ -27,7 +27,7 @@ class TwigLoader extends \Twig\Loader\FilesystemLoader
      */
     protected function findTemplate(string $name, bool $throw = true): ?string
     {
-        $tpl = preg_replace('/\.twig$/', '', $name);
+        $tpl = (string) preg_replace('/\.twig$/', '', $name);
 
         if ($this->loader && $file = $this->loader->load($tpl)) {
             return $this->cache[$name] = (string) $file;

@@ -87,9 +87,10 @@ class Renderer
      */
     public function tablecell(string $content, array $flags = []): string
     {
-        $type = $flags['header'] ? 'th' : 'td';
-        $tag = $flags['align']
-          ? '<'.$type.' style="text-align:'.$flags['align'].'">'
+        $type = ($flags['header'] ?? false) ? 'th' : 'td';
+        $align = $flags['align'] ?? null;
+        $tag = $align !== null
+          ? '<'.$type.' style="text-align:'.$align.'">'
           : '<'.$type.'>';
 
         return $tag.$content."</".$type.">\n";

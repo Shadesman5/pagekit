@@ -86,30 +86,33 @@ class MetaHelper implements HelperInterface, \IteratorAggregate
 
             if (preg_match('/^link:?/i', $name)) {
 
-                if (!isset($value['rel'])) {
-                    $value['rel'] = substr($name, 5);
+                $attrs = is_array($value) ? $value : ['href' => $value];
+
+                if (!isset($attrs['rel'])) {
+                    $attrs['rel'] = substr($name, 5);
                 }
 
                 $attributes = '';
-                foreach ($value as $attr => $val) {
+                foreach ($attrs as $attr => $val) {
                     $attributes .= sprintf(' %s="%s"', $attr, htmlspecialchars($val));
                 }
                 $output .= sprintf("        <link%s>\n", $attributes);
 
             } else {
 
-                $value = htmlspecialchars($value);
+                $scalar = is_array($value) ? implode(' ', $value) : $value;
+                $scalar = htmlspecialchars($scalar);
 
                 if ($name == 'title') {
-                    $output .= sprintf("        <title>%s</title>\n", $value);
+                    $output .= sprintf("        <title>%s</title>\n", $scalar);
                 } elseif ($name == 'base') {
-                    $output .= sprintf("        <base href=\"%s\">\n", $value);
+                    $output .= sprintf("        <base href=\"%s\">\n", $scalar);
                 } elseif ($name == 'canonical') {
-                    $output .= sprintf("        <link rel=\"%s\" href=\"%s\">\n", $name, $value);
+                    $output .= sprintf("        <link rel=\"%s\" href=\"%s\">\n", $name, $scalar);
                 } elseif (preg_match('/^(og|fb|twitter|article):/i', $name)) {
-                    $output .= sprintf("        <meta property=\"%s\" content=\"%s\">\n", $name, $value);
+                    $output .= sprintf("        <meta property=\"%s\" content=\"%s\">\n", $name, $scalar);
                 } else {
-                    $output .= sprintf("        <meta name=\"%s\" content=\"%s\">\n", $name, $value);
+                    $output .= sprintf("        <meta name=\"%s\" content=\"%s\">\n", $name, $scalar);
                 }
             }
         }

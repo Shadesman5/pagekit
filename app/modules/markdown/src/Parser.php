@@ -11,7 +11,7 @@ class Parser
     /** @var array<string, mixed>|null */
     protected ?array $token = null;
 
-    /** @var array<int, array<string, mixed>>|null */
+    /** @var array<int|string, mixed>|null */
     protected ?array $tokens = null;
 
     protected ?InlineLexer $inline = null;
@@ -35,11 +35,15 @@ class Parser
     /**
      * Compiling method.
      *
-     * @param array{links: array<string, mixed>}&array<int|string, mixed> $src
+     * @param array<int|string, mixed> $src
      */
     public function parse(array $src): string
     {
-        $this->inline = new InlineLexer($src['links'], $this->options);
+        $links = $src['links'] ?? [];
+        if (!is_array($links)) {
+            $links = [];
+        }
+        $this->inline = new InlineLexer($links, $this->options);
 
         unset($src['links']);
 

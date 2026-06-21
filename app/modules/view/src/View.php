@@ -70,7 +70,17 @@ class View
             throw new \InvalidArgumentException(sprintf('Undefined helper "%s"', $name));
         }
 
-        return $args ? call_user_func_array($this->helpers[$name], $args) : $this->helpers[$name];
+        $helper = $this->helpers[$name];
+
+        if (!$args) {
+            return $helper;
+        }
+
+        if (!is_callable($helper)) {
+            throw new \BadMethodCallException(sprintf('Helper "%s" is not invokable.', $name));
+        }
+
+        return call_user_func_array($helper, $args);
     }
 
     /**

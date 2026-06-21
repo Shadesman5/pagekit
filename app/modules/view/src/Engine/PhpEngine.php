@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\View\Engine;
 
+use Pagekit\View\Helper\HelperInterface;
 use Pagekit\View\Loader\LoaderInterface;
 
 /**
@@ -16,7 +17,7 @@ class PhpEngine implements EngineInterface
 {
     protected LoaderInterface $loader;
 
-    /** @var array<string, object> */
+    /** @var array<string, HelperInterface> */
     protected array $helpers = [];
 
     /** @var array<string, mixed> */
@@ -33,11 +34,11 @@ class PhpEngine implements EngineInterface
     /** @var array<int, string> */
     protected array $charset = ['UTF-8'];
 
-    /** @var array<string, mixed> */
+    /** @var array<string, array{name: string, path?: string, content?: string}> */
     protected array $cache = [];
 
     /**
-     * @param array<int, object> $helpers
+     * @param array<int, HelperInterface> $helpers
      */
     public function __construct(LoaderInterface $loader, array $helpers = [])
     {
@@ -97,8 +98,10 @@ class PhpEngine implements EngineInterface
      * Loads a template
      *
      * @param string|array{name: string, engine?: string} $name
+     *
+     * @return array{name: string, path?: string, content?: string}|false
      */
-    protected function load($name): mixed
+    protected function load($name): array|false
     {
         $template = $this->parseTemplateName($name);
 
@@ -120,13 +123,15 @@ class PhpEngine implements EngineInterface
     /**
      * Evaluates a template
      *
-     * @param array<string, mixed>|object $storage
-     * @param array<string, mixed>        $parameters
+     * @param array{name?: string, path?: string, content?: string}&array<string, mixed> $storage
+     * @param array<string, mixed>                                                       $parameters
      */
-    protected function evaluate($storage, array $parameters = []): string
+    protected function evaluate(array $storage, array $parameters = []): string
     {
         $this->current = $storage['name'] ?? null;
-        $this->parents[$this->current] = null;
+        if ($this->current !== null) {
+            $this->parents[$this->current] = null;
+        }
 
         // Make parameters available to template
         if (isset($parameters['this'])) {
@@ -155,9 +160,12 @@ class PhpEngine implements EngineInterface
             }
 
             $content = ob_get_clean();
+            if ($content === false) {
+                throw new \RuntimeException('Failed to capture output buffer.');
+            }
 
             // Handle template inheritance
-            if ($this->parents[$this->current]) {
+            if ($this->current !== null && $this->parents[$this->current]) {
                 $content = $this->render($this->parents[$this->current], $parameters);
             }
 
@@ -227,7 +235,7 @@ class PhpEngine implements EngineInterface
     /**
      * Adds a helper
      */
-    public function addHelper(object $helper): void
+    public function addHelper(HelperInterface $helper): void
     {
         $this->helpers[$helper->getName()] = $helper;
     }
@@ -235,7 +243,7 @@ class PhpEngine implements EngineInterface
     /**
      * Gets a helper
      */
-    public function get(string $name): object
+    public function get(string $name): HelperInterface
     {
         if (!isset($this->helpers[$name])) {
             throw new \InvalidArgumentException(sprintf('The helper "%s" is not defined.', $name));
