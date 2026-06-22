@@ -52,9 +52,9 @@ trait ElementsTrait
         foreach ($elements as $name => $value) {
             if (method_exists($this, $method = 'set'.$name)) {
                 if (is_array($value)) {
-                    call_user_func_array([$this, $method], $value);
+                    $this->{$method}(...array_values($value));
                 } else {
-                    $this->$method($value);
+                    $this->{$method}($value);
                 }
             } else {
                 $this->addElement($name, $value);

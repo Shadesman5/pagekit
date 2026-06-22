@@ -37,7 +37,18 @@ trait NodeModelTrait
     public static function findAll(bool $cached = false): array
     {
         if (!$cached || null === self::$nodes) {
-            self::$nodes = self::query()->orderBy('priority')->get();
+            $nodes = [];
+            foreach (self::query()->orderBy('priority')->get() as $key => $entity) {
+                if (!$entity instanceof Node) {
+                    throw new \LogicException(sprintf(
+                        'QueryBuilder::get() returned %s, expected %s',
+                        get_class($entity),
+                        Node::class
+                    ));
+                }
+                $nodes[(int) $key] = $entity;
+            }
+            self::$nodes = $nodes;
         }
 
         return self::$nodes;
@@ -150,6 +161,13 @@ trait NodeModelTrait
     {
         // Update children's parents
         foreach (self::where('parent_id = ?', [$node->id])->get() as $child) {
+            if (!$child instanceof Node) {
+                throw new \LogicException(sprintf(
+                    'QueryBuilder::get() returned %s, expected %s',
+                    get_class($child),
+                    Node::class
+                ));
+            }
             $child->parent_id = $node->parent_id;
             $child->save();
         }

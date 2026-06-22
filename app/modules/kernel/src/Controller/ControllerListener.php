@@ -39,7 +39,8 @@ class ControllerListener implements EventSubscriberInterface
      */
     public function executeController(ControllerEvent $event, Request $request): void
     {
-        if (!$controller = $event->getController()) {
+        $controller = $event->getController();
+        if ($controller === null || !is_callable($controller)) {
             return;
         }
 

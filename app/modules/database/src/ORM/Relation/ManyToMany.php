@@ -63,7 +63,7 @@ class ManyToMany extends Relation
     /**
      * {@inheritdoc}
      *
-     * @param array<int, object> $entities
+     * @param array<int|string, object> $entities
      */
     public function resolve(array $entities, QueryBuilder $query): void
     {
@@ -96,6 +96,10 @@ class ManyToMany extends Relation
         foreach ($mapping as $id => $targetIds) {
 
             $entity = current(array_filter($entities, fn ($entity) => $metadata->getValue($entity, $from, true) == $id));
+
+            if ($entity === false) {
+                continue;
+            }
 
             $metadata->setValue($entity, $this->name, array_filter($targets, fn ($target) => in_array($targetMetadata->getValue($target, $to, true), $targetIds)));
         }

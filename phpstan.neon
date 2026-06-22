@@ -4,7 +4,7 @@ includes:
     - app/vendor/phpstan/phpstan-symfony/extension.neon
 
 parameters:
-    level: 6
+    level: 7
 
     paths:
         - app/modules

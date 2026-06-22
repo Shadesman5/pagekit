@@ -93,8 +93,18 @@ class Composer
      */
     public function isInstalled(string $name): bool
     {
-        $installed = $this->paths['path.packages'] . '/composer/installed.json';
-        $installed = file_exists($installed) ? json_decode(file_get_contents($installed), true) : [];
+        $installedPath = $this->paths['path.packages'] . '/composer/installed.json';
+        $installed = [];
+
+        if (file_exists($installedPath)) {
+            $contents = file_get_contents($installedPath);
+            if ($contents !== false) {
+                $decoded = json_decode($contents, true);
+                if (is_array($decoded)) {
+                    $installed = $decoded;
+                }
+            }
+        }
 
         $installed = array_map(fn ($pkg) => $pkg['name'], $installed);
 

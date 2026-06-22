@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Request;
 class ExceptionListener implements EventSubscriberInterface
 {
     /** @var callable|string|array{0: object|class-string, 1: string} */
-    protected $controller;
+    protected mixed $controller;
 
     protected ?LoggerInterface $logger = null;
 

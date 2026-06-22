@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Pagekit\Event;
 
-use Pagekit\Util\Arr;
-
 /**
  * @implements \ArrayAccess<string, mixed>
  */
@@ -64,7 +62,21 @@ class Event implements EventInterface, \ArrayAccess
      */
     public function addParameters(array $values, bool $replace = false): self
     {
-        $this->parameters = Arr::merge($this->parameters, $values, $replace);
+        if ($replace) {
+            $this->parameters = array_replace_recursive($this->parameters, $values);
+
+            return $this;
+        }
+
+        foreach ($values as $key => $value) {
+            if (!isset($this->parameters[$key])) {
+                $this->parameters[$key] = $value;
+            } elseif (is_array($value) && is_array($this->parameters[$key])) {
+                $this->parameters[$key] = array_replace_recursive($this->parameters[$key], $value);
+            } else {
+                $this->parameters[$key] = $value;
+            }
+        }
 
         return $this;
     }

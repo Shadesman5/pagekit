@@ -201,14 +201,27 @@ class Routes implements \Serializable, \IteratorAggregate, ResourceInterface
         } elseif ($options['controller']) {
             foreach ((array) $options['controller'] as $controller) {
 
-                if (is_callable($controller)) {
-                    $refl = new \ReflectionMethod($controller);
+                if (is_string($controller) && is_callable($controller) && str_contains($controller, '::')) {
+                    [$class, $method] = explode('::', $controller, 2);
+                    $refl = new \ReflectionMethod($class, $method);
                     $defaults['_controller'] = $controller;
-                } else {
+                } elseif (is_string($controller) && class_exists($controller)) {
                     $refl = new \ReflectionClass($controller);
+                } else {
+                    continue;
                 }
 
-                $this->modified = max($this->modified, filemtime($refl->getFileName()));
+                $file = $refl->getFileName();
+                if ($file === false) {
+                    continue;
+                }
+
+                $mtime = filemtime($file);
+                if ($mtime === false) {
+                    continue;
+                }
+
+                $this->modified = max($this->modified, $mtime);
             }
         }
 

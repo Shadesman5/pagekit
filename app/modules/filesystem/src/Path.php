@@ -9,9 +9,9 @@ class Path
     /**
      * Parses and canonicalizes a path into root, path, dirname, pathname, protocol.
      *
-     * @return string|array<string, string>
+     * @return array{root: string, path: string, dirname: string, pathname: string, protocol: string}
      */
-    public static function parse(string $path, ?string $option = null): string|array
+    public static function parse(string $path): array
     {
         $root = '';
         $path = strtr($path, '\\', '/');
@@ -40,18 +40,16 @@ class Path
         }
 
         $path = implode('/', $parts);
-        $info = compact('root', 'path');
 
         $slash = strrpos($path, '/');
-        $info['dirname'] = $root.($slash !== false ? substr($path, 0, $slash) : '');
-        $info['pathname'] = $root.$path;
-        $info['protocol'] = strpos($root, '://') ? substr($root, 0, -3) : 'file';
 
-        if ($option === null) {
-            return $info;
-        }
-
-        return array_key_exists($option, $info) ? $info[$option] : '';
+        return [
+            'root' => $root,
+            'path' => $path,
+            'dirname' => $root.($slash !== false ? substr($path, 0, $slash) : ''),
+            'pathname' => $root.$path,
+            'protocol' => strpos($root, '://') ? substr($root, 0, -3) : 'file',
+        ];
     }
 
     /**
@@ -59,7 +57,7 @@ class Path
      */
     public static function isAbsolute(string $path): bool
     {
-        return self::parse($path, 'root') !== '';
+        return self::parse($path)['root'] !== '';
     }
 
     /**
@@ -67,6 +65,6 @@ class Path
      */
     public static function isRelative(string $path): bool
     {
-        return self::parse($path, 'root') === '';
+        return self::parse($path)['root'] === '';
     }
 }

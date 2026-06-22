@@ -18,11 +18,21 @@ class TraceableEventDispatcher implements EventDispatcherInterface
 {
     protected ?\Psr\Log\LoggerInterface $logger = null;
     protected \Symfony\Component\Stopwatch\Stopwatch $stopwatch;
-    /** @var array<string, \SplObjectStorage<WrappedListener, mixed>> */
+    /** @var array<string, array<int, WrappedListener>> */
     protected array $called;
     protected \Pagekit\Event\EventDispatcherInterface $dispatcher;
-    /** @var array<string, list<WrappedListener>> */
+    /** @var array<string, array<int, WrappedListener>> */
     protected array $wrappedListeners;
+
+    /**
+     * Tracks the listeners registered for each subscriber, keyed by the
+     * subscriber object, so unsubscribe() can remove exactly what subscribe()
+     * registered. Required because subscriberMethod() returns a fresh Closure
+     * on each call and the underlying dispatcher's off() matches by identity.
+     *
+     * @var \SplObjectStorage<EventSubscriberInterface, list<array{event: string, listener: callable}>>
+     */
+    protected \SplObjectStorage $subscriberListeners;
 
     /**
      * Constructor.
@@ -38,6 +48,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
         $this->logger = $logger;
         $this->called = [];
         $this->wrappedListeners = [];
+        $this->subscriberListeners = new \SplObjectStorage();
     }
 
     public function on(string $event, callable $listener, int $priority = 0): self
@@ -70,27 +81,59 @@ class TraceableEventDispatcher implements EventDispatcherInterface
      */
     public function subscribe(EventSubscriberInterface $subscriber): self
     {
+        if (isset($this->subscriberListeners[$subscriber])) {
+            $this->unsubscribe($subscriber);
+        }
+
+        $registrations = [];
+
         foreach ($subscriber->subscribe() as $event => $params) {
 
             if (is_string($params)) {
-                $this->on($event, [$subscriber, $params]);
+                $listener = $this->subscriberMethod($subscriber, $params);
+                $this->on($event, $listener);
+                $registrations[] = ['event' => $event, 'listener' => $listener];
             } elseif ($params instanceof \Closure) {
-                $this->on($event, $params->bindTo($subscriber, $subscriber));
-            } elseif (is_string($params[0])) {
-                $this->on($event, [$subscriber, $params[0]], isset($params[1]) ? $params[1] : 0);
-            } elseif ($params[0] instanceof \Closure) {
-                $this->on($event, $params[0]->bindTo($subscriber, $subscriber), isset($params[1]) ? $params[1] : 0);
-            } else {
-                foreach ($params as $listener) {
-                    if (is_string($listener[0])) {
-                        $this->on($event, [$subscriber, $listener[0]], isset($listener[1]) ? $listener[1] : 0);
-                    } else {
-                        $this->on($event, $listener[0]->bindTo($subscriber, $subscriber), isset($listener[1]) ? $listener[1] : 0);
+                $listener = $params->bindTo($subscriber, $subscriber);
+                if ($listener === null) {
+                    continue;
+                }
+                $this->on($event, $listener);
+                $registrations[] = ['event' => $event, 'listener' => $listener];
+            } elseif (is_array($params) && is_string($params[0])) {
+                $listener = $this->subscriberMethod($subscriber, $params[0]);
+                $this->on($event, $listener, isset($params[1]) && is_int($params[1]) ? $params[1] : 0);
+                $registrations[] = ['event' => $event, 'listener' => $listener];
+            } elseif (is_array($params) && $params[0] instanceof \Closure) {
+                $listener = $params[0]->bindTo($subscriber, $subscriber);
+                if ($listener === null) {
+                    continue;
+                }
+                $this->on($event, $listener, isset($params[1]) && is_int($params[1]) ? $params[1] : 0);
+                $registrations[] = ['event' => $event, 'listener' => $listener];
+            } elseif (is_array($params)) {
+                foreach ($params as $listenerSpec) {
+                    if (!is_array($listenerSpec)) {
+                        continue;
+                    }
+                    if (is_string($listenerSpec[0])) {
+                        $listener = $this->subscriberMethod($subscriber, $listenerSpec[0]);
+                        $this->on($event, $listener, isset($listenerSpec[1]) && is_int($listenerSpec[1]) ? $listenerSpec[1] : 0);
+                        $registrations[] = ['event' => $event, 'listener' => $listener];
+                    } elseif ($listenerSpec[0] instanceof \Closure) {
+                        $listener = $listenerSpec[0]->bindTo($subscriber, $subscriber);
+                        if ($listener === null) {
+                            continue;
+                        }
+                        $this->on($event, $listener, isset($listenerSpec[1]) && is_int($listenerSpec[1]) ? $listenerSpec[1] : 0);
+                        $registrations[] = ['event' => $event, 'listener' => $listener];
                     }
                 }
             }
 
         }
+
+        $this->subscriberListeners[$subscriber] = $registrations;
 
         return $this;
     }
@@ -100,17 +143,29 @@ class TraceableEventDispatcher implements EventDispatcherInterface
      */
     public function unsubscribe(EventSubscriberInterface $subscriber): self
     {
-        foreach ($subscriber->subscribe() as $event => $params) {
-            if (is_array($params) && is_array($params[0])) {
-                foreach ($params as $listener) {
-                    $this->off($event, [$subscriber, $listener[0]]);
-                }
-            } else {
-                $this->off($event, [$subscriber, is_string($params) ? $params : $params[0]]);
-            }
+        if (!isset($this->subscriberListeners[$subscriber])) {
+            return $this;
         }
 
+        foreach ($this->subscriberListeners[$subscriber] as $registration) {
+            $this->off($registration['event'], $registration['listener']);
+        }
+
+        unset($this->subscriberListeners[$subscriber]);
+
         return $this;
+    }
+
+    /**
+     * Builds a Closure that invokes a method on a subscriber by name. Using
+     * first-class callable syntax lets PHPStan verify the resulting value is a
+     * Closure (callable), unlike `[$subscriber, $method]` arrays which PHPStan
+     * cannot statically prove to be callable when the method name comes from a
+     * string variable.
+     */
+    protected function subscriberMethod(EventSubscriberInterface $subscriber, string $method): \Closure
+    {
+        return $subscriber->{$method}(...);
     }
 
     /**
@@ -118,7 +173,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
      *
      * @param array<int|string, mixed> $arguments
      */
-    public function trigger($event, array $arguments = []): EventInterface
+    public function trigger(string|EventInterface $event, array $arguments = []): EventInterface
     {
         if (is_string($event)) {
             $class = $this->dispatcher->getEventClass();
@@ -127,11 +182,11 @@ class TraceableEventDispatcher implements EventDispatcherInterface
             $e = $event;
         }
 
-        $event = $e->getName();
+        $eventName = $e->getName();
 
-        $this->preProcess($event);
+        $this->preProcess($eventName);
 
-        $watch = $this->stopwatch->start($event, 'section');
+        $watch = $this->stopwatch->start($eventName, 'section');
 
         $this->dispatcher->trigger($e, $arguments);
 
@@ -139,7 +194,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
             $watch->stop();
         }
 
-        $this->postProcess($event);
+        $this->postProcess($eventName);
 
         return $e;
     }
@@ -150,7 +205,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
     }
 
     /**
-     * @return list<callable>|array<string, list<callable>>
+     * @return ($event is null ? array<string, list<callable>> : list<callable>)
      */
     public function getListeners(?string $event = null): array
     {
@@ -164,6 +219,8 @@ class TraceableEventDispatcher implements EventDispatcherInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return class-string<EventInterface>
      */
     public function getEventClass(): string
     {
@@ -202,12 +259,12 @@ class TraceableEventDispatcher implements EventDispatcherInterface
                 $this->logger->info('An exception was thrown while getting the uncalled listeners.', ['exception' => $e]);
             }
 
-            // unable to retrieve the uncalled listeners
             return [];
         }
 
         $notCalled = [];
         foreach ($allListeners as $eventName => $listeners) {
+            $eventName = (string) $eventName;
             foreach ($listeners as $listener) {
                 $called = false;
                 if (isset($this->called[$eventName])) {
@@ -235,13 +292,11 @@ class TraceableEventDispatcher implements EventDispatcherInterface
     /**
      * Proxies all method calls to the original event dispatcher.
      *
-     * @param  string                   $method
      * @param  array<int|string, mixed> $arguments
-     * @return mixed
      */
-    public function __call($method, $arguments)
+    public function __call(string $method, array $arguments): mixed
     {
-        return call_user_func_array([$this->dispatcher, $method], $arguments);
+        return $this->dispatcher->{$method}(...$arguments);
     }
 
     protected function preProcess(string $eventName): void
@@ -275,11 +330,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
                     $this->logger->debug(sprintf('Notified event "%s" to listener "%s".', $eventName, $info['pretty']));
                 }
 
-                if (!isset($this->called[$eventName])) {
-                    $this->called[$eventName] = new \SplObjectStorage();
-                }
-
-                $this->called[$eventName]->attach($listener);
+                $this->called[$eventName][] = $listener;
             }
 
             if (null !== $this->logger && $skipped) {

@@ -186,8 +186,11 @@ class Connection extends BaseConnection
     /**
      * Prepares and executes an SQL query and returns the first row of the result as an object.
      *
+     * @template T of object
      * @param  array<string, mixed> $params
+     * @param  class-string<T>      $class
      * @param  array<int, mixed>    $args
+     * @return T|false
      */
     public function fetchObject(string $statement, array $params = [], string $class = 'stdClass', array $args = []): object|false
     {
@@ -207,9 +210,11 @@ class Connection extends BaseConnection
     /**
      * Prepares and executes an SQL query and returns the result as an array of objects.
      *
+     * @template T of object
      * @param  array<string, mixed> $params
+     * @param  class-string<T>      $class
      * @param  array<int, mixed>    $args
-     * @return array<int, object>
+     * @return array<int, T>
      */
     public function fetchAllObjects(string $statement, array $params = [], string $class = 'stdClass', array $args = []): array
     {
@@ -240,7 +245,9 @@ class Connection extends BaseConnection
      */
     public function exec(string $sql): int
     {
-        return parent::executeStatement($this->replacePrefix($sql));
+        // DBAL declares executeStatement() as int|string for driver compatibility, but the
+        // value is the affected-rows count returned by Statement::rowCount(), which is int.
+        return (int) parent::executeStatement($this->replacePrefix($sql));
     }
 
     /**
@@ -256,7 +263,9 @@ class Connection extends BaseConnection
      */
     public function executeStatement($sql, array $params = [], array $types = []): int
     {
-        return parent::executeStatement($this->replacePrefix($sql), $params, $types);
+        // DBAL declares executeStatement() as int|string for driver compatibility, but the
+        // value is the affected-rows count returned by Statement::rowCount(), which is int.
+        return (int) parent::executeStatement($this->replacePrefix($sql), $params, $types);
     }
 
     /**

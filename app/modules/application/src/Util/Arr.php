@@ -269,9 +269,10 @@ class Arr
     }
 
     /**
-     * Expands an array.
+     * Expands an array. Keys are flat dot-separated paths (as produced by
+     * flatten()), so they are always string.
      *
-     * @param array<int|string, mixed> $array
+     * @param array<string, mixed> $array
      * @return array<int|string, mixed>
      */
     public static function expand(array $array): array

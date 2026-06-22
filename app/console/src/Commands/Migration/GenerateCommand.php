@@ -24,12 +24,12 @@ class GenerateCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected $name = 'migration:generate';
+    protected ?string $name = 'migration:generate';
 
     /**
      * {@inheritdoc}
      */
-    protected $description = 'Generate a new migration file';
+    protected string $description = 'Generate a new migration file';
 
     /**
      * {@inheritdoc}

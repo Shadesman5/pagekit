@@ -18,12 +18,12 @@ return [
 
             $namespace = 'Pagekit\\Console\\Commands\\';
 
-            foreach (glob(__DIR__ . '/src/Commands/*Command.php') as $file) {
+            foreach (glob(__DIR__ . '/src/Commands/*Command.php') ?: [] as $file) {
                 $class = $namespace . basename($file, '.php');
                 $console->add(new $class());
             }
 
-            foreach (glob(__DIR__ . '/src/Commands/Migration/*Command.php') as $file) {
+            foreach (glob(__DIR__ . '/src/Commands/Migration/*Command.php') ?: [] as $file) {
                 $class = $namespace . 'Migration\\' . basename($file, '.php');
                 $console->add(new $class());
             }

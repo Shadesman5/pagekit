@@ -93,7 +93,8 @@ class SectionHelper extends Helper
 
         $name = array_pop($this->openSections);
 
-        $this->sections[$name] = ob_get_clean();
+        $content = ob_get_clean();
+        $this->sections[$name] = $content === false ? '' : $content;
 
         if ($show) {
             echo $this->view->render($name);

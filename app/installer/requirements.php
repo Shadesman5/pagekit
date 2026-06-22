@@ -347,7 +347,9 @@ class RequirementCollection implements IteratorAggregate
      */
     public function getPhpIniConfigPath()
     {
-        return get_cfg_var('cfg_file_path');
+        $path = get_cfg_var('cfg_file_path');
+
+        return is_string($path) ? $path : false;
     }
 }
 
@@ -515,16 +517,18 @@ class PagekitRequirements extends RequirementCollection
         );
 
         if (extension_loaded('apcu')) {
+            $apcuVersion = phpversion('apcu');
             $this->addRecommendation(
-                version_compare(phpversion('apcu'), '4.0.2', '>='),
+                $apcuVersion !== false && version_compare($apcuVersion, '4.0.2', '>='),
                 'APCu version must be at least 4.0.2',
                 'Upgrade your <strong>APCu</strong> extension (4.0.2+).'
             );
         }
 
         if (function_exists('apc_store') && ini_get('apc.enabled')) {
+            $apcVersion = phpversion('apc');
             $this->addRequirement(
-                version_compare(phpversion('apc'), '3.1.13', '>='),
+                $apcVersion !== false && version_compare($apcVersion, '3.1.13', '>='),
                 'APC version must be at least 3.1.13 when using PHP 5.4',
                 'Upgrade your <strong>APC</strong> extension (3.1.13+).'
             );

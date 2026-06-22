@@ -231,7 +231,7 @@ class Utility
             throw new \BadMethodCallException(sprintf('Undefined method call "%s::%s"', get_class($this->manager), $method));
         }
 
-        return call_user_func_array([$this->manager, $method], $args);
+        return $this->manager->{$method}(...$args);
     }
 
     /**

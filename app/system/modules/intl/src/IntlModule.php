@@ -182,7 +182,7 @@ class IntlModule extends Module
 
             foreach ($files as $file) {
 
-                $format = substr(strrchr($file, '.'), 1);
+                $format = pathinfo($file, PATHINFO_EXTENSION);
                 $domain = basename($file, '.'.$format);
 
                 if (in_array($domain, $domains)) {
@@ -272,7 +272,12 @@ class IntlModule extends Module
         static $data = [];
 
         if (!isset($data[$file])) {
-            $data[$file] = ($file = $this->app->get('locator')->get($file)) ? json_decode(file_get_contents($file), true) : null;
+            $resolved = $this->app->get('locator')->get($file);
+            if ($resolved && ($contents = file_get_contents($resolved)) !== false) {
+                $data[$file] = json_decode($contents, true);
+            } else {
+                $data[$file] = null;
+            }
         }
 
         return $data[$file];

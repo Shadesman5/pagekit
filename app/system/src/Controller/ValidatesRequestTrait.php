@@ -60,7 +60,7 @@ trait ValidatesRequestTrait
         if (count($violations) > 0) {
             $firstViolation = $violations[0];
 
-            throw new BadRequestHttpException($firstViolation->getMessage());
+            throw new BadRequestHttpException((string) $firstViolation->getMessage());
         }
     }
 

@@ -7,9 +7,9 @@ namespace Pagekit\Filesystem;
 class StreamWrapper
 {
     /**
-     * @var resource
+     * @var resource|null
      */
-    protected $handle;
+    protected mixed $handle = null;
 
     protected static ?\Pagekit\Filesystem\Filesystem $file = null;
 
@@ -41,9 +41,14 @@ class StreamWrapper
             return false;
         }
 
-        $this->handle = opendir($resolved);
+        $handle = opendir($resolved);
+        if ($handle === false) {
+            return false;
+        }
 
-        return (bool) $this->handle;
+        $this->handle = $handle;
+
+        return true;
     }
 
     /**
@@ -191,9 +196,14 @@ class StreamWrapper
             return false;
         }
 
-        $this->handle = fopen($resolved, $mode);
+        $handle = fopen($resolved, $mode);
+        if ($handle === false) {
+            return false;
+        }
 
-        return (bool) $this->handle;
+        $this->handle = $handle;
+
+        return true;
     }
 
     /**
@@ -201,6 +211,10 @@ class StreamWrapper
      */
     public function stream_read(int $count): string|false
     {
+        if ($count < 1) {
+            return '';
+        }
+
         return fread($this->handle, $count);
     }
 

@@ -49,14 +49,15 @@ return [
             }
 
             // Set auto name based on best available option
-            $bestOption = 'file';
-            if (in_array('apcu', $supported)) {
-                $bestOption = 'apcu';
+            if (isset($caches['apcu'])) {
+                $bestName = $caches['apcu']['name'];
             } elseif (in_array('phpfile', $supported)) {
-                $bestOption = 'phpfile';
+                $bestName = $caches['phpfile']['name'];
+            } else {
+                $bestName = $caches['file']['name'];
             }
 
-            $caches['auto']['name'] = "Auto ({$caches[$bestOption]['name']})";
+            $caches['auto']['name'] = "Auto ({$bestName})";
 
             $view->data('$caches', $caches);
             $view->data('$settings', ['config' => [$this->name => $this->config(['caches.cache.storage', 'nocache'])]]);

@@ -253,9 +253,9 @@ class MigrationService
 
                 // Get all executed migrations and find previous
                 $versions = array_map(fn ($m) => $m->getVersion(), $executedMigrations->getItems());
-                $currentIndex = array_search($currentVersion, $versions);
+                $currentIndex = array_search($currentVersion, $versions, true);
 
-                if ($currentIndex === false || $currentIndex === 0) {
+                if (!is_int($currentIndex) || $currentIndex === 0) {
                     // Already at first migration, rollback it completely
                     $targetVersion = $aliasResolver->resolveVersionAlias('first');
                 } else {
@@ -620,9 +620,9 @@ class MigrationService
 
                 // Get all executed migrations and find previous
                 $versions = array_map(fn ($m) => $m->getVersion(), $executedMigrations->getItems());
-                $currentIndex = array_search($currentVersion, $versions);
+                $currentIndex = array_search($currentVersion, $versions, true);
 
-                if ($currentIndex === false || $currentIndex === 0) {
+                if (!is_int($currentIndex) || $currentIndex === 0) {
                     // Already at first migration, rollback it completely
                     $targetVersion = $aliasResolver->resolveVersionAlias('first');
                 } else {

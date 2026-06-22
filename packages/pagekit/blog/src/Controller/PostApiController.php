@@ -48,7 +48,7 @@ class PostApiController
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
-        $filter = $this->request->query->all()['filter'] ?? [];
+        $filter = (array) ($this->request->query->all()['filter'] ?? []);
         $page = (int) $this->request->query->get('page', 0);
 
         $query = Post::query();

@@ -6,10 +6,7 @@ namespace Pagekit\Tests;
 
 trait FtpUtil
 {
-    /**
-     * @return null|ftp connection resource
-     */
-    public function getFtpConnection()
+    public function getFtpConnection(): \FTP\Connection
     {
         if (!extension_loaded('ftp')) {
             throw new \Exception('FTP extension needed');
@@ -19,12 +16,12 @@ trait FtpUtil
             throw new \Exception('Function "ftp_connect" does not exist on this server.');
         }
 
-        $connection = null;
         if (!isset($GLOBALS['ftp_host'], $GLOBALS['ftp_port'], $GLOBALS['ftp_user'], $GLOBALS['ftp_pass'], $GLOBALS['ftp_passive'], $GLOBALS['ftp_mode'])) {
             throw new \Exception('FTP credentials not set.');
         }
 
-        if (false === $connection = ftp_connect($GLOBALS['ftp_host']) or !is_resource($connection)) {
+        $connection = ftp_connect($GLOBALS['ftp_host']);
+        if (!$connection instanceof \FTP\Connection) {
             throw new \Exception('Unable to connect to ftp server.');
         }
 
@@ -34,7 +31,6 @@ trait FtpUtil
             throw new \Exception('Unable to login to ftp server.');
         }
 
-        // switch to passive mode if needed
         if ($GLOBALS['ftp_passive'] && !ftp_pasv($connection, true)) {
             ftp_close($connection);
 
@@ -44,29 +40,26 @@ trait FtpUtil
         return $connection;
     }
 
-    /**
-     * @return resource|\FTP\Connection
-     */
-    public function getSharedFtpConnection()
+    public function getSharedFtpConnection(): \FTP\Connection
     {
-        static $connection;
-        static $error;
+        static $connection = null;
+        static $error = null;
 
-        if (!isset($connection) && !isset($error)) {
+        if ($connection === null && $error === null) {
 
             try {
                 $connection = $this->getFtpConnection();
             } catch (\Exception $e) {
                 $error = $e;
             }
-
-            if (!is_resource($connection)) {
-                $error = new \Exception('Unable to establish connection.');
-            }
         }
 
-        if (isset($error)) {
+        if ($error !== null) {
             throw $error;
+        }
+
+        if (!$connection instanceof \FTP\Connection) {
+            throw new \Exception('Unable to establish connection.');
         }
 
         return $connection;

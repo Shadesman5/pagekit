@@ -1,7 +1,8 @@
 # Pagekit CMS Modernisation Strategy
 
 > This document defines the **vision, philosophy, and strategic decisions** behind the Pagekit modernisation.
-> It is intentionally static — progress tracking lives exclusively in [ROADMAP.md](../../.cursor/ROADMAP.md).
+> It is intentionally static — **step-level progress tracking lives exclusively in [ROADMAP.md](../../.cursor/ROADMAP.md)**.
+> The sole exception is the [Quality Metrics Tracker](#-quality-metrics-tracker) below: a lightweight, append-only snapshot of code-quality signals (PHPStan, tests) over time, which has no natural home in the step-status table.
 
 ## Overview
 
@@ -102,6 +103,42 @@ Future: Next Generation (3.x+)
     ├─ Cloud-Native                           ┃
     ├─ Advanced AI                            ┃
     └─ Mobile-First ━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+```
+
+---
+
+## 📊 Quality Metrics Tracker
+
+> Append-only snapshot of code-quality signals at each **PHPStan level milestone**. This is the one living
+> exception to the "static document" rule above (see header). Step _status_ stays in [ROADMAP.md](../../.cursor/ROADMAP.md);
+> this table tracks _trends_ (are errors/tests going up or down over the modernisation?).
+>
+> **Note:** PHPStan was introduced **directly at Level 5** in Step 2.1.1 — there is no "pre-Level-5" data point;
+> Level 5 is the project's analysis baseline.
+
+| Date       | Milestone (PR)                       | PHPStan Level | Baseline blocks | Suppressed errors | Unit Tests | E2E Specs |
+| ---------- | ------------------------------------ | :-----------: | :-------------: | :---------------: | :--------: | :-------: |
+| 2026-03-29 | Step 2.1.1 — Baseline setup (#178)   |   5 (start)   |       517       |        891        |   326 ¹    |    25     |
+| 2026-05-04 | Step 2.1.4 — Level 5→6 (#203)        |       6       |       367       |        680        |    326     |    25     |
+| 2026-06-21 | Step 2.1.5 — Level 6→7 (#210)        |       7       |       345       |        654        |    326     |    25     |
+
+**Suppressed-error trend:** 891 → 680 (−211 / −23.7%) → 654 (−26 / −3.8%). **Lower is better** — each level bump
+fixes real issues and surgically removes baseline entries (never `--generate-baseline`, never adds entries).
+
+**E2E** is constant at 25 specs (installation 1 + authentication 14 + dashboard 10) until the suite is expanded
+in a later step (see ROADMAP Step 3.6 / 2.1.9).
+
+¹ The first **CI-verified** suite count (326 tests / 765 assertions) was recorded in Step 2.1.2 (#199), when the
+CI test gate was introduced. Step 2.1.1 predates the gate, so its suite size was not counted automatically;
+the value shown is the nearest CI-verified figure. The PHPStan-level steps (2.1.3–2.1.5) kept the count stable
+at 326 by design — pure typing work adds no tests.
+
+**How to append a row** (run from repo root after a level bump):
+
+```bash
+grep -c "message:" phpstan-baseline.neon                          # baseline blocks
+grep -oP 'count:\s*\K[0-9]+' phpstan-baseline.neon | paste -sd+ | bc   # suppressed errors
+./app/vendor/bin/phpunit --testdox | tail -1                      # unit test total
 ```
 
 ---

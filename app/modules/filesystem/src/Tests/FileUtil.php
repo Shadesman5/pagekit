@@ -11,6 +11,9 @@ trait FileUtil
     public function getTempFile(?string $prefix = null): string|false
     {
         $temp = realpath(sys_get_temp_dir());
+        if ($temp === false) {
+            return false;
+        }
 
         if ($prefix) {
             return tempnam($temp, $prefix);
@@ -21,7 +24,12 @@ trait FileUtil
 
     public function getTempDir(?string $prefix = null, int $mode = 0777): string
     {
-        $temp = realpath(sys_get_temp_dir()).DIRECTORY_SEPARATOR;
+        $base = realpath(sys_get_temp_dir());
+        if ($base === false) {
+            throw new IOException('Unable to resolve system temp directory.');
+        }
+
+        $temp = $base.DIRECTORY_SEPARATOR;
 
         if ($prefix) {
             $temp .= $prefix;

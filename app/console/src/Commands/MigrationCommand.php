@@ -15,12 +15,12 @@ class MigrationCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected $name = 'migrate';
+    protected ?string $name = 'migrate';
 
     /**
      * {@inheritdoc}
      */
-    protected $description = 'Migrates Pagekit';
+    protected string $description = 'Migrates Pagekit';
 
     /**
      * {@inheritdoc}

@@ -155,7 +155,8 @@ class DashboardController
     #[Route('/weather', methods: ['GET'])]
     public function weatherAction(): \Symfony\Component\HttpFoundation\Response
     {
-        $data = $this->request->query->all()['data'] ?? [];
+        $rawData = $this->request->query->all()['data'] ?? [];
+        $data = is_array($rawData) ? $rawData : [];
         $action = $this->request->query->get('action', '');
 
         $url = $this->api;

@@ -12,7 +12,7 @@ namespace Pagekit\View;
  */
 class PhpEngine
 {
-    /** @var array<string, object> */
+    /** @var array<string, \Pagekit\View\Helper\HelperInterface> */
     protected array $helpers = [];
 
     /** @var array<string, mixed> */
@@ -36,7 +36,7 @@ class PhpEngine
     /**
      * Constructor.
      *
-     * @param array<int, object> $helpers
+     * @param array<int, \Pagekit\View\Helper\HelperInterface> $helpers
      */
     public function __construct(mixed $loader = null, array $helpers = [])
     {
@@ -52,15 +52,20 @@ class PhpEngine
      *
      * @param array<string, mixed> $parameters
      */
-    public function render(string|object $name, array $parameters = []): string
+    public function render(string|\Stringable $name, array $parameters = []): string
     {
         $loaded = $this->load($name);
 
         if ($loaded === false) {
-            throw new \RuntimeException(sprintf('Unable to load template "%s"', $name));
+            $label = is_object($name) ? (string) $name : $name;
+
+            throw new \RuntimeException(sprintf('Unable to load template "%s"', $label));
         }
 
         $result = $this->evaluate($loaded, $parameters);
+        if ($result === false) {
+            throw new \RuntimeException('Failed to evaluate template.');
+        }
 
         return $result;
     }
@@ -68,22 +73,19 @@ class PhpEngine
     /**
      * Returns true if the template exists.
      */
-    public function exists(string|object $name): bool
+    public function exists(string|\Stringable $name): bool
     {
         try {
-            // For backward compatibility with Storage objects
             if (is_object($name)) {
                 return true;
             }
 
-            // Use the loader if available
             if ($this->loader) {
                 $storage = $this->loader->load($name);
 
                 return $storage !== false;
             }
 
-            // Without a loader, check if it's a file
             if (file_exists($name)) {
                 return true;
             }
@@ -110,27 +112,23 @@ class PhpEngine
     /**
      * Loads a template.
      */
-    protected function load(string|object $name): object|false
+    protected function load(string|\Stringable $name): \Stringable|false
     {
-        // For backward compatibility with Storage objects
         if (is_object($name)) {
             return $name;
         }
 
-        // Use the loader if available
         if ($this->loader) {
             $storage = $this->loader->load($name);
             if ($storage !== false) {
                 return $storage;
             }
 
-            // Return false if loader couldn't find it
             return false;
         }
 
-        // Without a loader, check if it's a direct file path
         if (file_exists($name)) {
-            return new class ($name) {
+            return new class ($name) implements \Stringable {
                 public function __construct(private string $template)
                 {
                 }
@@ -155,44 +153,29 @@ class PhpEngine
      *
      * @param array<string, mixed> $parameters
      */
-    protected function evaluate(string|object $template, array $parameters = []): string|false
+    protected function evaluate(string|\Stringable $template, array $parameters = []): string|false
     {
-        // Convert template to string for use as key
-        $templateKey = is_object($template) ? spl_object_hash($template) : (string) $template;
+        $templateKey = is_object($template) ? spl_object_hash($template) : $template;
         $this->current = $templateKey;
         $this->parents[$templateKey] = null;
 
-        // Add globals to parameters
         $parameters = array_replace($this->globals, $parameters);
 
-        // Add helpers
         foreach ($this->helpers as $name => $helper) {
             $parameters[$name] = $helper;
         }
 
-        // Start output buffering
         ob_start();
 
-        // Extract variables
         extract($parameters, EXTR_SKIP);
 
         try {
-            // Handle different storage types - ONLY file-based templates (security hardening)
-            if (is_object($template)) {
-                $templatePath = (string) $template;
+            $templatePath = is_object($template) ? (string) $template : $template;
 
-                // Check if it's a file path
-                if (file_exists($templatePath)) {
-                    require $templatePath;
-                } else {
-                    throw new \RuntimeException(sprintf('Template file not found: %s', $templatePath));
-                }
-            } elseif (is_string($template)) {
-                if (file_exists($template)) {
-                    require $template;
-                } else {
-                    throw new \RuntimeException(sprintf('Template file not found: %s', $template));
-                }
+            if (file_exists($templatePath)) {
+                require $templatePath;
+            } else {
+                throw new \RuntimeException(sprintf('Template file not found: %s', $templatePath));
             }
 
             return ob_get_clean();
@@ -215,7 +198,7 @@ class PhpEngine
     /**
      * Sets a helper.
      */
-    public function addHelper(object $helper): void
+    public function addHelper(\Pagekit\View\Helper\HelperInterface $helper): void
     {
         $this->helpers[$helper->getName()] = $helper;
     }
@@ -223,7 +206,7 @@ class PhpEngine
     /**
      * Gets a helper.
      */
-    public function get(string $name): object
+    public function get(string $name): \Pagekit\View\Helper\HelperInterface
     {
         if (!isset($this->helpers[$name])) {
             throw new \InvalidArgumentException(sprintf('The helper "%s" is not defined.', $name));

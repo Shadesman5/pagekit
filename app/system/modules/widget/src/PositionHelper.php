@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\Widget;
 
+use Pagekit\Site\Model\Node;
 use Pagekit\User\Model\User;
 use Pagekit\View\Helper\Helper;
 use Pagekit\Widget\Model\Widget;
@@ -13,7 +14,7 @@ class PositionHelper extends Helper
     public function __construct(
         private readonly PositionManager $positions,
         private readonly User $user,
-        private readonly object $node,
+        private readonly Node $node,
         private readonly WidgetManager $widget,
     ) {
     }

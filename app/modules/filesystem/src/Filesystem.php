@@ -22,7 +22,7 @@ class Filesystem
      */
     public function getUrl(string $file, int|bool $referenceType = UrlGenerator::ABSOLUTE_PATH): string|false
     {
-        if (!$url = $this->getPathInfo($file, 'url')) {
+        if (!$url = $this->getPathOption($file, 'url')) {
             return false;
         }
 
@@ -47,15 +47,15 @@ class Filesystem
      */
     public function getPath(string $file, bool $local = false): string|false
     {
-        return $this->getPathInfo($file, $local ? 'localpath' : 'pathname') ?: false;
+        return $this->getPathOption($file, $local ? 'localpath' : 'pathname') ?: false;
     }
 
     /**
      * Gets file path info.
      *
-     * @return string|array<string, mixed>
+     * @return array<string, mixed>
      */
-    public function getPathInfo(string $file, ?string $option = null): string|array
+    public function getPathInfo(string $file): array
     {
         $info = Path::parse($file);
 
@@ -64,14 +64,21 @@ class Filesystem
         }
 
         if ($adapter = $this->getAdapter($info['protocol'])) {
-            $info = $adapter->getPathInfo($info);
+            return $adapter->getPathInfo($info);
         }
 
-        if ($option === null) {
-            return $info;
-        }
+        return $info;
+    }
 
-        return array_key_exists($option, $info) ? $info[$option] : '';
+    /**
+     * Gets a single file path info option.
+     */
+    public function getPathOption(string $file, string $option): string
+    {
+        $info = $this->getPathInfo($file);
+        $value = $info[$option] ?? '';
+
+        return is_string($value) ? $value : '';
     }
 
     /**
@@ -89,9 +96,9 @@ class Filesystem
                 return false;
             }
 
-            $file = $this->getPathInfo($file, 'pathname');
+            $file = $this->getPathOption($file, 'pathname');
 
-            if (!is_string($file) || !file_exists($file)) {
+            if ($file === '' || !file_exists($file)) {
                 return false;
             }
         }
@@ -104,14 +111,17 @@ class Filesystem
      */
     public function copy(string $source, string $target): bool
     {
-        $source = $this->getPathInfo($source, 'pathname');
+        $source = $this->getPathOption($source, 'pathname');
         $target = $this->getPathInfo($target);
 
-        if (!is_file($source) || !$this->makeDir($target['dirname'])) {
+        $dirname = is_string($target['dirname'] ?? null) ? $target['dirname'] : '';
+        $pathname = is_string($target['pathname'] ?? null) ? $target['pathname'] : '';
+
+        if (!is_file($source) || !$this->makeDir($dirname)) {
             return false;
         }
 
-        return @copy($source, $target['pathname']);
+        return @copy($source, $pathname);
     }
 
     /**
@@ -125,7 +135,7 @@ class Filesystem
 
         foreach ($files as $file) {
 
-            $file = $this->getPathInfo($file, 'pathname');
+            $file = $this->getPathOption($file, 'pathname');
 
             if (is_dir($file)) {
 
@@ -158,7 +168,7 @@ class Filesystem
      */
     public function listDir(string $dir): array
     {
-        $dir = $this->getPathInfo($dir, 'pathname');
+        $dir = $this->getPathOption($dir, 'pathname');
 
         return array_diff(scandir($dir) ?: [], ['..', '.']);
     }
@@ -168,7 +178,7 @@ class Filesystem
      */
     public function makeDir(string $dir, int $mode = 0777, bool $recursive = true): bool
     {
-        $dir = $this->getPathInfo($dir, 'pathname');
+        $dir = $this->getPathOption($dir, 'pathname');
 
         return is_dir($dir) ? true : @mkdir($dir, $mode, $recursive);
     }
@@ -178,8 +188,8 @@ class Filesystem
      */
     public function copyDir(string $source, string $target): bool
     {
-        $source = $this->getPathInfo($source, 'pathname');
-        $target = $this->getPathInfo($target, 'pathname');
+        $source = $this->getPathOption($source, 'pathname');
+        $target = $this->getPathOption($target, 'pathname');
 
         if (!is_dir($source) || !$this->makeDir($target)) {
             return false;

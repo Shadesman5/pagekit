@@ -72,10 +72,10 @@ class EntityManagerTest extends TestCase
         $this->metadataManager
             ->expects($this->once())
             ->method('get')
-            ->with('TestClass')
+            ->with(\stdClass::class)
             ->willReturn($metadata);
 
-        $result = $this->manager->getMetadata('TestClass');
+        $result = $this->manager->getMetadata(\stdClass::class);
         $this->assertSame($metadata, $result);
     }
 

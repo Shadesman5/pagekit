@@ -35,7 +35,7 @@ class ExceptionController
         $content = $this->getAndCleanOutputBuffering((int) ($request->headers->get('X-Php-Ob-Level') ?? -1));
         $rendered = ($this->view)('system/error.php', compact('title', 'exception', 'content'));
 
-        $statusCode = $exception->getCode();
+        $statusCode = (int) $exception->getCode();
         if ($statusCode < 100 || $statusCode > 599) {
             $statusCode = 500;
         }

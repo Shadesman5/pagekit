@@ -149,7 +149,14 @@ class ResetPasswordController
             }
         }
 
-        if ($activation and $user = User::where(compact('activation'))->first()) {
+        if ($activation && ($user = User::where(compact('activation'))->first()) !== null) {
+            if (!$user instanceof User) {
+                throw new \LogicException(sprintf(
+                    'QueryBuilder::first() returned %s, expected %s',
+                    get_class($user),
+                    User::class
+                ));
+            }
 
             $this->session->set('activation', [
                 'key' => $activation,
@@ -167,7 +174,14 @@ class ResetPasswordController
         $data = $this->session->get('activation');
 
         if ($this->request->isMethod('POST') && !$data && $activation) {
-            if ($user = User::where(compact('activation'))->first()) {
+            if (($user = User::where(compact('activation'))->first()) !== null) {
+                if (!$user instanceof User) {
+                    throw new \LogicException(sprintf(
+                        'QueryBuilder::first() returned %s, expected %s',
+                        get_class($user),
+                        User::class
+                    ));
+                }
                 $data = [
                     'key' => $activation,
                     'user' => $user->id,

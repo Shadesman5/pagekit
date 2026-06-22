@@ -68,7 +68,7 @@ abstract class Relation
     /**
      * Resolves the entity relation.
      *
-     * @param array<int, object> $entities
+     * @param array<int|string, object> $entities
      */
     abstract public function resolve(array $entities, QueryBuilder $query): void;
 
@@ -79,7 +79,7 @@ abstract class Relation
      * target properties are nullable (?Entity) and cannot hold the legacy false
      * sentinel. Collection relations (HasMany/ManyToMany) pass an empty array.
      *
-     * @param array<int, object> $entities
+     * @param array<int|string, object> $entities
      */
     protected function initRelation(array $entities, mixed $default = null): void
     {
@@ -91,7 +91,7 @@ abstract class Relation
     /**
      * Gets the related keys
      *
-     * @param  array<int, object> $entities
+     * @param  array<int|string, object> $entities
      * @return array<int, mixed>
      */
     protected function getKeys(array $entities, ?string $key = null): array
@@ -106,14 +106,14 @@ abstract class Relation
             }
         }
 
-        return array_unique($keys);
+        return array_values(array_unique($keys));
     }
 
     /**
      * Map targets to entities
      *
-     * @param array<int, object> $entities
-     * @param array<int, object> $targets
+     * @param array<int|string, object> $entities
+     * @param array<int|string, object> $targets
      */
     protected function map(array $entities, array $targets): void
     {
@@ -142,7 +142,7 @@ abstract class Relation
     /**
      * Resolve additional relations
      *
-     * @param array<int, object> $targets
+     * @param array<int|string, object> $targets
      */
     protected function resolveRelations(QueryBuilder $query, array $targets): void
     {
