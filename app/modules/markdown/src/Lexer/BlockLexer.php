@@ -32,17 +32,18 @@ class BlockLexer
     /**
      * Lex source to tokens.
      *
-     * @return array<int|string, mixed>|null
+     * @return array<int|string, mixed>
      */
-    public function lex(string $src): ?array
+    public function lex(string $src): array
     {
-        $src = preg_replace(['/\r\n|\r/m', '/\t/m'], ["\n", '    '], $src);
+        $src = (string) preg_replace(['/\r\n|\r/m', '/\t/m'], ["\n", '    '], $src);
         $src = str_replace(['\\u00a0', '\\u2424'], [' ', "\n"], $src);
 
-        $this->tokens = [];
-        $this->tokens['links'] = [];
+        $this->tokens = ['links' => []];
 
-        return $this->token($src, true);
+        $this->token($src, true);
+
+        return $this->tokens;
     }
 
     /**
@@ -52,7 +53,7 @@ class BlockLexer
      */
     protected function token(string $src, bool $top = false, ?bool $bq = null): ?array
     {
-        $src = preg_replace('/^ +$/m', '', $src);
+        $src = (string) preg_replace('/^ +$/m', '', $src);
 
         while ($src) {
 
@@ -113,32 +114,34 @@ class BlockLexer
 
                 $src = substr($src, strlen($cap[0]));
 
-                $item = [
-                    'type' => 'table',
-                    'header' => preg_split('/ *\| */', preg_replace('/^ *| *\| *$/m', '', $cap[1])),
-                    'align' => preg_split('/ *\| */', preg_replace('/^ *|\| *$/m', '', $cap[2])),
-                    'cells' => preg_split('/\n/', preg_replace('/\n$/', '', $cap[3])),
-                ];
-                $itemsCount = count($item['align']);
+                $header = preg_split('/ *\| */', (string) preg_replace('/^ *| *\| *$/m', '', $cap[1])) ?: [];
+                $align = preg_split('/ *\| */', (string) preg_replace('/^ *|\| *$/m', '', $cap[2])) ?: [];
+                $cells = preg_split('/\n/', (string) preg_replace('/\n$/', '', $cap[3])) ?: [];
 
-                for ($i = 0; $i < $itemsCount; $i++) {
-                    if (preg_match('/^ *-+: *$/', $item['align'][$i])) {
-                        $item['align'][$i] = 'right';
-                    } elseif (preg_match('/^ *:-+: *$/', $item['align'][$i])) {
-                        $item['align'][$i] = 'center';
-                    } elseif (preg_match('/^ *:-+ *$/', $item['align'][$i])) {
-                        $item['align'][$i] = 'left';
+                $alignTyped = [];
+                foreach ($align as $segment) {
+                    if (preg_match('/^ *-+: *$/', $segment)) {
+                        $alignTyped[] = 'right';
+                    } elseif (preg_match('/^ *:-+: *$/', $segment)) {
+                        $alignTyped[] = 'center';
+                    } elseif (preg_match('/^ *:-+ *$/', $segment)) {
+                        $alignTyped[] = 'left';
                     } else {
-                        $item['align'][$i] = null;
+                        $alignTyped[] = null;
                     }
                 }
-                $itemsCount = count($item['cells']);
 
-                for ($i = 0; $i < $itemsCount; $i++) {
-                    $item['cells'][$i] = preg_split('/ *\| */', $item['cells'][$i]);
+                $cellsTyped = [];
+                foreach ($cells as $row) {
+                    $cellsTyped[] = preg_split('/ *\| */', $row) ?: [];
                 }
 
-                $this->tokens[] = $item;
+                $this->tokens[] = [
+                    'type' => 'table',
+                    'header' => $header,
+                    'align' => $alignTyped,
+                    'cells' => $cellsTyped,
+                ];
 
                 continue;
             }
@@ -300,32 +303,34 @@ class BlockLexer
 
                 $src = substr($src, strlen($cap[0]));
 
-                $item = [
-                    'type' => 'table',
-                    'header' => preg_split('/ *\| */', preg_replace('/^ *| *\| *$/m', '', $cap[1])),
-                    'align' => preg_split('/ *\| */', preg_replace('/^ *|\| *$/m', '', $cap[2])),
-                    'cells' => preg_split('/\n/', preg_replace('/\n$/', '', $cap[3])),
-                ];
-                $itemsCount = count($item['align']);
+                $header = preg_split('/ *\| */', (string) preg_replace('/^ *| *\| *$/m', '', $cap[1])) ?: [];
+                $align = preg_split('/ *\| */', (string) preg_replace('/^ *|\| *$/m', '', $cap[2])) ?: [];
+                $cells = preg_split('/\n/', (string) preg_replace('/\n$/', '', $cap[3])) ?: [];
 
-                for ($i = 0; $i < $itemsCount; $i++) {
-                    if (preg_match('/^ *-+: *$/', $item['align'][$i])) {
-                        $item['align'][$i] = 'right';
-                    } elseif (preg_match('/^ *:-+: *$/', $item['align'][$i])) {
-                        $item['align'][$i] = 'center';
-                    } elseif (preg_match('/^ *:-+ *$/', $item['align'][$i])) {
-                        $item['align'][$i] = 'left';
+                $alignTyped = [];
+                foreach ($align as $segment) {
+                    if (preg_match('/^ *-+: *$/', $segment)) {
+                        $alignTyped[] = 'right';
+                    } elseif (preg_match('/^ *:-+: *$/', $segment)) {
+                        $alignTyped[] = 'center';
+                    } elseif (preg_match('/^ *:-+ *$/', $segment)) {
+                        $alignTyped[] = 'left';
                     } else {
-                        $item['align'][$i] = null;
+                        $alignTyped[] = null;
                     }
                 }
-                $itemsCount = count($item['cells']);
 
-                for ($i = 0; $i < $itemsCount; $i++) {
-                    $item['cells'][$i] = preg_split('/ *\| */', preg_replace('/^ *\| *| *\| *$/m', '', $item['cells'][$i]));
+                $cellsTyped = [];
+                foreach ($cells as $row) {
+                    $cellsTyped[] = preg_split('/ *\| */', (string) preg_replace('/^ *\| *| *\| *$/m', '', $row)) ?: [];
                 }
 
-                $this->tokens[] = $item;
+                $this->tokens[] = [
+                    'type' => 'table',
+                    'header' => $header,
+                    'align' => $alignTyped,
+                    'cells' => $cellsTyped,
+                ];
 
                 continue;
             }

@@ -197,7 +197,11 @@ class QueryBuilder
             if (strpos($name, '.') === false) {
 
                 $mapping = $this->metadata->getRelationMapping($name);
-                $query = call_user_func("{$mapping['targetEntity']}::query");
+                $targetEntity = $mapping['targetEntity'];
+                if (!is_string($targetEntity) || !is_callable([$targetEntity, 'query'])) {
+                    throw new \LogicException(sprintf("Relation '%s' targetEntity '%s' does not expose a static query() method.", $name, (string) $targetEntity));
+                }
+                $query = $targetEntity::query();
 
                 if ($nested = $this->getNestedRelations($name)) {
                     $query->related($nested);
@@ -274,7 +278,7 @@ class QueryBuilder
             throw new \BadMethodCallException(sprintf('Undefined method call "%s::%s"', get_class($this), $method));
         }
 
-        $result = call_user_func_array([$this->query, $method], $args);
+        $result = $this->query->{$method}(...$args);
 
         return $result === $this->query ? $this : $result;
     }

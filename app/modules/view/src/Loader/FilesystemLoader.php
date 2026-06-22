@@ -21,16 +21,10 @@ class FilesystemLoader
     /**
      * Loads a template.
      */
-    public function load(string|object $template): object|false
+    public function load(string $template): \Stringable|false
     {
-        // Handle TemplateReference objects for backward compatibility
-        if (is_object($template) && method_exists($template, '__toString')) {
-            $template = (string) $template;
-        }
-
         if (!$this->locator) {
-            // Return a simple file storage
-            return new class ($template) {
+            return new class ($template) implements \Stringable {
                 public function __construct(private string $path)
                 {
                 }
@@ -42,14 +36,9 @@ class FilesystemLoader
             };
         }
 
-        // Try to locate the template file
-        $file = null;
-
-        // First try direct path (handles namespaced paths like system/theme:views/login.php)
         $file = $this->locator->get($template);
 
         if (!$file && strpos($template, ':') === false) {
-            // If not found and no namespace, try with views: prefix
             $file = $this->locator->get("views:{$template}");
         }
 
@@ -57,8 +46,7 @@ class FilesystemLoader
             return false;
         }
 
-        // Return a simple file storage object
-        return new class ($file) {
+        return new class ($file) implements \Stringable {
             public function __construct(private string $path)
             {
             }
@@ -73,7 +61,7 @@ class FilesystemLoader
     /**
      * Returns true if the template is still fresh.
      */
-    public function isFresh(string|object $template, int $time): bool
+    public function isFresh(string $template, int $time): bool
     {
         $storage = $this->load($template);
 

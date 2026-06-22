@@ -44,7 +44,7 @@ class HasOne extends Relation
     /**
      * {@inheritdoc}
      *
-     * @param array<int, object> $entities
+     * @param array<int|string, object> $entities
      */
     public function resolve(array $entities, QueryBuilder $query): void
     {
@@ -62,7 +62,7 @@ class HasOne extends Relation
     }
 
     /**
-     * @param array<int, object> $entities
+     * @param array<int|string, object> $entities
      */
     protected function mapBelongsTo(array $entities): void
     {

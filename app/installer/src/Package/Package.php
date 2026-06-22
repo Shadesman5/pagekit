@@ -8,11 +8,11 @@ use Pagekit\Util\Arr;
 
 class Package implements PackageInterface
 {
-    /** @var array<string, mixed> */
+    /** @var array<int|string, mixed> */
     protected array $data;
 
     /**
-     * @param array<string, mixed> $data
+     * @param array<int|string, mixed> $data
      */
     public function __construct(array $data)
     {
@@ -37,16 +37,20 @@ class Package implements PackageInterface
 
     public function getName(): string
     {
-        return $this->get('name');
+        $name = $this->get('name');
+
+        return is_string($name) ? $name : '';
     }
 
     public function getType(): string
     {
-        return $this->get('type');
+        $type = $this->get('type');
+
+        return is_string($type) ? $type : '';
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<int|string, mixed>
      */
     public function jsonSerialize(): array
     {

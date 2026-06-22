@@ -39,11 +39,17 @@ class DefaultCsrfProvider implements CsrfProviderInterface
      */
     protected function getSessionId(): string
     {
-        if (!session_id()) {
+        $id = session_id();
+        if ($id === false || $id === '') {
             session_start();
+            $id = session_id();
         }
 
-        return session_id();
+        if ($id === false) {
+            throw new \RuntimeException('Unable to determine session id; sessions are disabled in this PHP configuration.');
+        }
+
+        return $id;
     }
 
     /**
@@ -51,7 +57,7 @@ class DefaultCsrfProvider implements CsrfProviderInterface
      */
     protected function getSessionToken(): string
     {
-        if (!isset($_SESSION[$this->name])) {
+        if (!isset($_SESSION[$this->name]) || !is_string($_SESSION[$this->name])) {
             $_SESSION[$this->name] = sha1(uniqid((string) rand(), true));
         }
 

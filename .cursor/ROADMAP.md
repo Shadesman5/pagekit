@@ -1,7 +1,7 @@
 # **🗺️ Pagekit Modernization Roadmap & Rules**
 
-> **Current Version**: 1.2.19
-> **Current Step**: 2.1.5 (PHPStan Level 6→7 — Null Safety)
+> **Current Version**: 1.2.20
+> **Current Step**: 2.1.6 (PHPStan Level 7→8 — Strict Typing)
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**
 
@@ -80,7 +80,7 @@
 | 2.1.2  | ↳ CI/CD Integration & Quality Gates   | ✅     | 🛡️    | #149  | #199    |
 | 2.1.3  | ↳ `strict_types` Migration            | ✅     | 🛡️    | #150  | #201    |
 | 2.1.4  | ↳ PHPStan Level 5→6 (Return Types)    | ✅     | 🛡️    | #151  | #203    |
-| 2.1.5  | ↳ PHPStan Level 6→7 (Null Safety)     | ⏳     | ⏳    | #152  | -       |
+| 2.1.5  | ↳ PHPStan Level 6→7 (Null Safety)     | ✅     | 🛡️    | #152  | #210    |
 | 2.1.6  | ↳ PHPStan Level 7→8 (Strict Typing)   | ⏳     | ⏳    | #153  | -       |
 | 2.1.7  | ↳ QueryBuilder API Standardization    | ⏳     | ⏳    | #154  | -       |
 | 2.1.8  | ↳ Infection Mutation Testing          | ⏳     | ⏳    | #155  | -       |

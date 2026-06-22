@@ -151,39 +151,34 @@ class Router implements RouterInterface, UrlGeneratorInterface
     public function getMatcher(): UrlMatcher
     {
         if (!$this->matcher) {
+            $baseClass = $this->resolveMatcherClass();
+
             if ($cache = $this->getCache('%s/%s.matcher.cache')) {
 
                 $class = sprintf('UrlMatcher%s', $cache['key']);
 
                 if (!$cache['fresh']) {
-                    $options = ['class' => $class, 'base_class' => $this->options['matcher']];
+                    $options = ['class' => $class, 'base_class' => $baseClass];
                     $this->writeCache($cache['file'], (new PhpMatcherDumper($this->getRouteCollection()))->dump($options));
                 }
 
                 try {
                     require_once $cache['file'];
 
-                    // Verify class exists after requiring the file
                     if (!class_exists($class, false)) {
-                        // Class not found in cache file - regenerate cache
-                        $options = ['class' => $class, 'base_class' => $this->options['matcher']];
+                        $options = ['class' => $class, 'base_class' => $baseClass];
                         $this->writeCache($cache['file'], (new PhpMatcherDumper($this->getRouteCollection()))->dump($options));
                         require_once $cache['file'];
                     }
 
-                    $this->matcher = new $class($this->context);
+                    $this->matcher = $this->instantiateMatcher($class, $this->context);
 
                 } catch (\Error $e) {
-                    // Fallback to non-cached matcher if cache file is corrupted or class not found
-                    $class = $this->options['matcher'];
-                    $this->matcher = new $class($this->getRouteCollection(), $this->context);
+                    $this->matcher = new $baseClass($this->getRouteCollection(), $this->context);
                 }
 
             } else {
-
-                $class = $this->options['matcher'];
-
-                $this->matcher = new $class($this->getRouteCollection(), $this->context);
+                $this->matcher = new $baseClass($this->getRouteCollection(), $this->context);
             }
         }
 
@@ -196,43 +191,112 @@ class Router implements RouterInterface, UrlGeneratorInterface
     public function getGenerator(): UrlGenerator
     {
         if (!$this->generator) {
+            $baseClass = $this->resolveGeneratorClass();
+
             if ($cache = $this->getCache('%s/%s.generator.cache')) {
 
                 $class = sprintf('UrlGenerator%s', $cache['key']);
 
                 if (!$cache['fresh']) {
-                    $options = ['class' => $class, 'base_class' => $this->options['generator']];
+                    $options = ['class' => $class, 'base_class' => $baseClass];
                     $this->writeCache($cache['file'], (new UrlGeneratorDumper($this->getRouteCollection()))->dump($options));
                 }
 
                 try {
                     require_once $cache['file'];
 
-                    // Verify class exists after requiring the file
                     if (!class_exists($class, false)) {
-                        // Class not found in cache file - regenerate cache
-                        $options = ['class' => $class, 'base_class' => $this->options['generator']];
+                        $options = ['class' => $class, 'base_class' => $baseClass];
                         $this->writeCache($cache['file'], (new UrlGeneratorDumper($this->getRouteCollection()))->dump($options));
                         require_once $cache['file'];
                     }
 
-                    $this->generator = new $class($this->context);
+                    $this->generator = $this->instantiateGenerator($class, $this->context);
 
                 } catch (\Error $e) {
-                    // Fallback to non-cached generator if cache file is corrupted or class not found
-                    $class = $this->options['generator'];
-                    $this->generator = new $class($this->getRouteCollection(), $this->context);
+                    $this->generator = new $baseClass($this->getRouteCollection(), $this->context);
                 }
 
             } else {
-
-                $class = $this->options['generator'];
-
-                $this->generator = new $class($this->getRouteCollection(), $this->context);
+                $this->generator = new $baseClass($this->getRouteCollection(), $this->context);
             }
         }
 
         return $this->generator;
+    }
+
+    /**
+     * Instantiates a dumped matcher subclass. The dumped class overrides the
+     * Symfony UrlMatcher constructor to take only the RequestContext (routes
+     * are inlined), so we go through reflection to avoid PHPStan asserting the
+     * parent signature.
+     */
+    protected function instantiateMatcher(string $class, RequestContext $context): UrlMatcher
+    {
+        if (!class_exists($class)) {
+            throw new \LogicException(sprintf('Cached matcher class "%s" does not exist.', $class));
+        }
+
+        $instance = (new \ReflectionClass($class))->newInstance($context);
+
+        if (!$instance instanceof UrlMatcher) {
+            throw new \LogicException(sprintf('Cached matcher class "%s" must extend %s.', $class, UrlMatcher::class));
+        }
+
+        return $instance;
+    }
+
+    /**
+     * Instantiates a dumped generator subclass. The dumped class overrides the
+     * Pagekit UrlGenerator constructor to take only the RequestContext (routes
+     * are inlined), so we go through reflection to avoid PHPStan asserting the
+     * parent signature.
+     */
+    protected function instantiateGenerator(string $class, RequestContext $context): UrlGenerator
+    {
+        if (!class_exists($class)) {
+            throw new \LogicException(sprintf('Cached generator class "%s" does not exist.', $class));
+        }
+
+        $instance = (new \ReflectionClass($class))->newInstance($context);
+
+        if (!$instance instanceof UrlGenerator) {
+            throw new \LogicException(sprintf('Cached generator class "%s" must extend %s.', $class, UrlGenerator::class));
+        }
+
+        return $instance;
+    }
+
+    /**
+     * Resolves the configured base matcher class.
+     *
+     * @return class-string<UrlMatcher>
+     */
+    protected function resolveMatcherClass(): string
+    {
+        $class = $this->options['matcher'];
+
+        if (!is_string($class) || !is_subclass_of($class, UrlMatcher::class) && $class !== UrlMatcher::class) {
+            throw new \LogicException(sprintf('Router option "matcher" must be a class-string of %s.', UrlMatcher::class));
+        }
+
+        return $class;
+    }
+
+    /**
+     * Resolves the configured base generator class.
+     *
+     * @return class-string<UrlGenerator>
+     */
+    protected function resolveGeneratorClass(): string
+    {
+        $class = $this->options['generator'];
+
+        if (!is_string($class) || !is_subclass_of($class, UrlGenerator::class) && $class !== UrlGenerator::class) {
+            throw new \LogicException(sprintf('Router option "generator" must be a class-string of %s.', UrlGenerator::class));
+        }
+
+        return $class;
     }
 
     /**
@@ -301,7 +365,11 @@ class Router implements RouterInterface, UrlGeneratorInterface
             $name = substr($name, 0, $queryPos);
             if ($query !== '') {
                 parse_str($query, $params);
-                $parameters = array_replace($parameters, $params);
+                $stringKeyed = [];
+                foreach ($params as $key => $value) {
+                    $stringKeyed[(string) $key] = $value;
+                }
+                $parameters = array_replace($parameters, $stringKeyed);
             }
         }
 
@@ -378,14 +446,13 @@ class Router implements RouterInterface, UrlGeneratorInterface
      */
     protected function getResolver(array $parameters = []): ?ParamsResolverInterface
     {
-        $resolver = isset($parameters['_resolver']) ? $parameters['_resolver'] : false;
+        $resolver = $parameters['_resolver'] ?? null;
+
+        if (!is_string($resolver) || !is_subclass_of($resolver, ParamsResolverInterface::class)) {
+            return null;
+        }
 
         if (!isset($this->resolver[$resolver])) {
-
-            if (!is_subclass_of($resolver, 'Pagekit\Routing\ParamsResolverInterface')) {
-                return null;
-            }
-
             $this->resolver[$resolver] = new $resolver();
         }
 

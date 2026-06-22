@@ -15,12 +15,12 @@ class SetupCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected $name = 'setup';
+    protected ?string $name = 'setup';
 
     /**
      * {@inheritdoc}
      */
-    protected $description = 'Setup a Pagekit installation';
+    protected string $description = 'Setup a Pagekit installation';
 
     /**
      * {@inheritdoc}
@@ -65,6 +65,9 @@ class SetupCommand extends Command
         $installer = new Installer($app);
 
         $dbDriver = $this->option('db-driver');
+        if (!is_string($dbDriver)) {
+            throw new \LogicException('Option "db-driver" must be a string.');
+        }
 
         $config = [
             'locale' => $this->option('locale'),

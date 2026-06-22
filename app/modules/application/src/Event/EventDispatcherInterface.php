@@ -29,10 +29,9 @@ interface EventDispatcherInterface
     /**
      * Triggers an event.
      *
-     * @param string|EventInterface    $event
      * @param array<int|string, mixed> $arguments
      */
-    public function trigger($event, array $arguments = []): EventInterface;
+    public function trigger(string|EventInterface $event, array $arguments = []): EventInterface;
 
     /**
      * Checks if a event has listeners.
@@ -42,7 +41,7 @@ interface EventDispatcherInterface
     /**
      * Gets all listeners of an event.
      *
-     * @return list<callable>|array<string, list<callable>>
+     * @return ($event is null ? array<string, list<callable>> : list<callable>)
      */
     public function getListeners(?string $event = null): array;
 
@@ -53,6 +52,8 @@ interface EventDispatcherInterface
 
     /**
      * Gets the default Event class.
+     *
+     * @return class-string<EventInterface>
      */
     public function getEventClass(): string;
 }

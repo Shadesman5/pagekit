@@ -145,6 +145,13 @@ class UserController
         $roles = [];
         $self = $user && $user->id === $this->user->id;
         foreach (Role::where(['id <> ?'], [Role::ROLE_ANONYMOUS])->orderBy('priority')->get() as $role) {
+            if (!$role instanceof Role) {
+                throw new \LogicException(sprintf(
+                    'QueryBuilder::get() returned %s, expected %s',
+                    get_class($role),
+                    Role::class
+                ));
+            }
 
             $r = $role->jsonSerialize();
 

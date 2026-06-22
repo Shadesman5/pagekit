@@ -25,12 +25,12 @@ class RollbackCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected $name = 'migration:rollback';
+    protected ?string $name = 'migration:rollback';
 
     /**
      * {@inheritdoc}
      */
-    protected $description = 'Rollback database migrations';
+    protected string $description = 'Rollback database migrations';
 
     /**
      * {@inheritdoc}

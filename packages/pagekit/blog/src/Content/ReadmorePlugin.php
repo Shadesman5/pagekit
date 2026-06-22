@@ -18,6 +18,10 @@ class ReadmorePlugin implements EventSubscriberInterface
     {
         $content = preg_split('/\[readmore\]/i', $event->getContent());
 
+        if ($content === false) {
+            throw new \LogicException('Failed to split content on [readmore] marker.');
+        }
+
         if ($event['readmore'] && count($content) > 1) {
             $event['post']->readmore = true;
             $event->setContent($content[0]);

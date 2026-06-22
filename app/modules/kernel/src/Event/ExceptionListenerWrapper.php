@@ -24,9 +24,13 @@ class ExceptionListenerWrapper
             : \Closure::fromCallable($callback);
     }
 
-    public function __invoke(object $event): void
+    public function __invoke(ExceptionEvent $event): void
     {
         $exception = $event->getException();
+
+        if ($exception === null) {
+            return;
+        }
 
         if (!$this->shouldRun($exception)) {
             return;

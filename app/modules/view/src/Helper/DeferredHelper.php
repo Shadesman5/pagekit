@@ -28,7 +28,7 @@ class DeferredHelper implements HelperInterface
      */
     public function register(View $view): void
     {
-        $view->on('render', function ($event) {
+        $view->on('render', function (ViewEvent $event) {
 
             $name = $event->getTemplate();
 

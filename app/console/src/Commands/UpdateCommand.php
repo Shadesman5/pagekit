@@ -16,12 +16,12 @@ class UpdateCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected $name = 'update';
+    protected ?string $name = 'update';
 
     /**
      * {@inheritdoc}
      */
-    protected $description = 'Updates dependencies of Pagekit packages';
+    protected string $description = 'Updates dependencies of Pagekit packages';
 
     /**
      * {@inheritdoc}

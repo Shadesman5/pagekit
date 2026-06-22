@@ -6,18 +6,17 @@ namespace Pagekit\Module\Loader;
 
 class CallableLoader implements LoaderInterface
 {
-    /**
-     * @var callable
-     */
-    protected $callable;
+    protected \Closure $callable;
 
     public function __construct(callable $callable)
     {
-        $this->callable = $callable;
+        $this->callable = $callable instanceof \Closure
+            ? $callable
+            : \Closure::fromCallable($callable);
     }
 
     public function load(mixed $module): mixed
     {
-        return call_user_func($this->callable, $module);
+        return ($this->callable)($module);
     }
 }

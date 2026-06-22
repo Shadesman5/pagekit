@@ -28,11 +28,17 @@ class MetaHelper implements HelperInterface, \IteratorAggregate
     /**
      * Adds meta tags.
      *
-     * @param array<string, string|array<string, string>> $metas
+     * Null/false entries are silently skipped so callers can pass values
+     * straight from config lookups without pre-filtering.
+     *
+     * @param array<string, string|array<string, string>|null|false> $metas
      */
     public function __invoke(array $metas): self
     {
         foreach ($metas as $name => $value) {
+            if ($value === null || $value === false) {
+                continue;
+            }
             $this->add($name, $value);
         }
 
@@ -52,13 +58,18 @@ class MetaHelper implements HelperInterface, \IteratorAggregate
     /**
      * Adds a meta tag.
      *
-     * @param string|array<string, string> $value
+     * A null value is treated as "not set" and skipped, mirroring how
+     * Pagekit config lookups return null for unset keys.
+     *
+     * @param string|array<string, string>|null $value
      */
-    public function add(string $name, string|array $value = ''): self
+    public function add(string $name, string|array|null $value = null): self
     {
-        if ($value) {
-            $this->metas[$name] = $value;
+        if ($value === null || $value === '' || $value === []) {
+            return $this;
         }
+
+        $this->metas[$name] = $value;
 
         return $this;
     }
@@ -86,30 +97,33 @@ class MetaHelper implements HelperInterface, \IteratorAggregate
 
             if (preg_match('/^link:?/i', $name)) {
 
-                if (!isset($value['rel'])) {
-                    $value['rel'] = substr($name, 5);
+                $attrs = is_array($value) ? $value : ['href' => $value];
+
+                if (!isset($attrs['rel'])) {
+                    $attrs['rel'] = substr($name, 5);
                 }
 
                 $attributes = '';
-                foreach ($value as $attr => $val) {
+                foreach ($attrs as $attr => $val) {
                     $attributes .= sprintf(' %s="%s"', $attr, htmlspecialchars($val));
                 }
                 $output .= sprintf("        <link%s>\n", $attributes);
 
             } else {
 
-                $value = htmlspecialchars($value);
+                $scalar = is_array($value) ? implode(' ', $value) : $value;
+                $scalar = htmlspecialchars($scalar);
 
                 if ($name == 'title') {
-                    $output .= sprintf("        <title>%s</title>\n", $value);
+                    $output .= sprintf("        <title>%s</title>\n", $scalar);
                 } elseif ($name == 'base') {
-                    $output .= sprintf("        <base href=\"%s\">\n", $value);
+                    $output .= sprintf("        <base href=\"%s\">\n", $scalar);
                 } elseif ($name == 'canonical') {
-                    $output .= sprintf("        <link rel=\"%s\" href=\"%s\">\n", $name, $value);
+                    $output .= sprintf("        <link rel=\"%s\" href=\"%s\">\n", $name, $scalar);
                 } elseif (preg_match('/^(og|fb|twitter|article):/i', $name)) {
-                    $output .= sprintf("        <meta property=\"%s\" content=\"%s\">\n", $name, $value);
+                    $output .= sprintf("        <meta property=\"%s\" content=\"%s\">\n", $name, $scalar);
                 } else {
-                    $output .= sprintf("        <meta name=\"%s\" content=\"%s\">\n", $name, $value);
+                    $output .= sprintf("        <meta name=\"%s\" content=\"%s\">\n", $name, $scalar);
                 }
             }
         }

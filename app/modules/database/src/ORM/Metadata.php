@@ -10,6 +10,7 @@ class Metadata
 {
     protected MetadataManager $manager;
 
+    /** @var class-string */
     protected string $class;
 
     protected string $table;
@@ -38,6 +39,7 @@ class Metadata
     /**
      * Constructor.
      *
+     * @param class-string         $class
      * @param array<string, mixed> $config
      */
     public function __construct(MetadataManager $manager, string $class, array $config = [])
@@ -50,6 +52,8 @@ class Metadata
 
     /**
      * Gets name of the entity class.
+     *
+     * @return class-string
      */
     public function getClass(): string
     {

@@ -14,12 +14,12 @@ class ClearCacheCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected $name = 'clearcache';
+    protected ?string $name = 'clearcache';
 
     /**
      * {@inheritdoc}
      */
-    protected $description = 'Clears the system cache';
+    protected string $description = 'Clears the system cache';
 
     /**
      * {@inheritdoc}

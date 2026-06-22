@@ -9,8 +9,10 @@ use Pagekit\Feed\FeedInterface;
 
 class Atom extends Feed
 {
-    protected $mime = 'application/atom+xml';
-    protected $item = 'Pagekit\Feed\Item\Atom';
+    protected string $mime = 'application/atom+xml';
+
+    /** @var class-string<\Pagekit\Feed\ItemInterface> */
+    protected string $item = \Pagekit\Feed\Item\Atom::class;
 
     /**
      * {@inheritdoc}

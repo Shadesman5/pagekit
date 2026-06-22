@@ -34,13 +34,29 @@ class RoleApiController
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
-        return array_values(Role::findAll());
+        $roles = [];
+        foreach (Role::findAll() as $role) {
+            if (!$role instanceof Role) {
+                throw new \LogicException(sprintf(
+                    'Model::findAll() returned %s, expected %s',
+                    get_class($role),
+                    Role::class
+                ));
+            }
+            $roles[] = $role;
+        }
+
+        return $roles;
     }
 
     #[Route('/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function getAction(int $id): Role
     {
-        return Role::find($id);
+        if (!$role = Role::find($id)) {
+            throw new NotFoundHttpException(__('Role not found.'));
+        }
+
+        return $role;
     }
 
     /**

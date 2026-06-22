@@ -30,7 +30,9 @@ class UrlHelper extends Helper
      */
     public function __invoke(string $path = '', array $parameters = [], int $referenceType = UrlGenerator::ABSOLUTE_PATH): string
     {
-        return $this->provider->get($path, $parameters, $referenceType);
+        $url = $this->provider->get($path, $parameters, $referenceType);
+
+        return $url === false ? '' : $url;
     }
 
     /**

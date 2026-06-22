@@ -19,7 +19,14 @@ class PackageManager
         private readonly ContainerInterface $app,
         ?OutputInterface $output = null,
     ) {
-        $this->output = $output ?: new StreamOutput(fopen('php://output', 'w'));
+        if ($output === null) {
+            $stream = fopen('php://output', 'w');
+            if ($stream === false) {
+                throw new \RuntimeException('Failed to open php://output stream.');
+            }
+            $output = new StreamOutput($stream);
+        }
+        $this->output = $output;
 
         $path = realpath(__DIR__ . '/../../..');
         $config = [];
@@ -108,10 +115,10 @@ class PackageManager
     }
 
     /**
-     * @param object|array<int, object> $packages
-     * @param object|array<int, object> $previousPackageConfigs
+     * @param PackageInterface|array<int, PackageInterface> $packages
+     * @param PackageInterface|array<int, PackageInterface> $previousPackageConfigs
      */
-    public function enable(object|array $packages, object|array $previousPackageConfigs = []): void
+    public function enable(PackageInterface|array $packages, PackageInterface|array $previousPackageConfigs = []): void
     {
         if (!is_array($packages)) {
             $packages = [$packages];
@@ -207,7 +214,7 @@ class PackageManager
      *
      * @param array<string, mixed> $originalState
      */
-    protected function rollbackEnable(object $package, array $originalState): void
+    protected function rollbackEnable(PackageInterface $package, array $originalState): void
     {
         $moduleName = $package->get('module');
         $config = $this->app->get('config')('system');
@@ -235,9 +242,9 @@ class PackageManager
     }
 
     /**
-     * @param object|array<int, object> $packages
+     * @param PackageInterface|array<int, PackageInterface> $packages
      */
-    public function disable(object|array $packages): void
+    public function disable(PackageInterface|array $packages): void
     {
         if (!is_array($packages)) {
             $packages = [$packages];
@@ -252,7 +259,7 @@ class PackageManager
         }
     }
 
-    protected function getScripts(object $package, ?string $current = null): PackageScripts
+    protected function getScripts(PackageInterface $package, ?string $current = null): PackageScripts
     {
         if (!$scripts = $package->get('extra.scripts')) {
             return new PackageScripts(null, $current, $this->app);
@@ -265,7 +272,7 @@ class PackageManager
         return new PackageScripts($path . '/' . $scripts, $current, $this->app);
     }
 
-    protected function doInstall(object $package): string
+    protected function doInstall(PackageInterface $package): string
     {
         $this->getScripts($package)->install();
         $version = $this->getVersion($package);
@@ -280,7 +287,7 @@ class PackageManager
     /**
      * Tries to obtain package version from 'composer.json' or installation log.
      */
-    protected function getVersion(object $package): string
+    protected function getVersion(PackageInterface $package): string
     {
         if (!$path = $package->get('path')) {
             throw new \RuntimeException(__('Package path is missing.'));
@@ -290,8 +297,13 @@ class PackageManager
             throw new \RuntimeException(__('\'composer.json\' is missing.'));
         }
 
-        $composerData = json_decode(file_get_contents($file), true);
-        if (isset($composerData['version'])) {
+        $contents = file_get_contents($file);
+        if ($contents === false) {
+            throw new \RuntimeException(__('\'composer.json\' is not readable.'));
+        }
+
+        $composerData = json_decode($contents, true);
+        if (is_array($composerData) && isset($composerData['version']) && is_string($composerData['version'])) {
             return $composerData['version'];
         }
 
@@ -300,12 +312,17 @@ class PackageManager
             : realpath(__DIR__ . '/../../..') . '/packages';
         $installedFile = $packagesPath . '/composer/installed.json';
         if (file_exists($installedFile)) {
-            $installed = json_decode(file_get_contents($installedFile), true);
-            $packageName = $package->getName();
+            $installedContents = file_get_contents($installedFile);
+            if ($installedContents !== false) {
+                $installed = json_decode($installedContents, true);
+                $packageName = $package->getName();
 
-            foreach ($installed as $entry) {
-                if (($entry['name'] ?? null) === $packageName) {
-                    return $entry['version'];
+                if (is_array($installed)) {
+                    foreach ($installed as $entry) {
+                        if (is_array($entry) && ($entry['name'] ?? null) === $packageName && isset($entry['version']) && is_string($entry['version'])) {
+                            return $entry['version'];
+                        }
+                    }
                 }
             }
         }

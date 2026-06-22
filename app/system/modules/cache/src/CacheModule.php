@@ -24,7 +24,7 @@ class CacheModule extends Module
         foreach ($this->config['caches'] as $name => $config) {
             $app->set($name, function () use ($config, $name) {
 
-                $supports = $this->supports();
+                $supports = self::supports();
 
                 if (!isset($config['storage'])) {
                     throw new \RuntimeException('Cache storage missing.');
@@ -83,11 +83,11 @@ class CacheModule extends Module
     }
 
     /**
-     * Returns list of supported caches or boolean for individual cache.
+     * Returns list of supported caches.
      *
-     * @return array<int, string>|bool
+     * @return array<int, string>
      */
-    public static function supports(?string $name = null): array|bool
+    public static function supports(): array
     {
         $supports = ['file', 'phpfile', 'array'];
 
@@ -96,7 +96,15 @@ class CacheModule extends Module
             $supports[] = 'apcu';
         }
 
-        return $name ? in_array($name, $supports) : $supports;
+        return $supports;
+    }
+
+    /**
+     * Checks whether a specific cache storage backend is supported.
+     */
+    public static function isSupported(string $name): bool
+    {
+        return in_array($name, self::supports(), true);
     }
 
     /**
@@ -138,7 +146,8 @@ class CacheModule extends Module
         if (empty($options) || @$options['cache']) {
             $app->get('cache')->clear();
 
-            foreach ((array) glob($app->get('path.cache') . '/*.cache') as $file) {
+            $files = glob($app->get('path.cache') . '/*.cache') ?: [];
+            foreach ($files as $file) {
                 if (function_exists('opcache_invalidate')) {
                     opcache_invalidate($file, true);
                 }

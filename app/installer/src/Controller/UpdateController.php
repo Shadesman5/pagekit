@@ -79,7 +79,11 @@ class UpdateController
         $this->session->remove('system.update');
 
         return $this->response->stream(function () use ($file) {
-            $output = new StreamOutput(fopen('php://output', 'w'));
+            $stream = fopen('php://output', 'w');
+            if ($stream === false) {
+                throw new \RuntimeException('Failed to open php://output stream.');
+            }
+            $output = new StreamOutput($stream);
 
             try {
 

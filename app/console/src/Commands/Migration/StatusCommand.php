@@ -23,12 +23,12 @@ class StatusCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected $name = 'migration:status';
+    protected ?string $name = 'migration:status';
 
     /**
      * {@inheritdoc}
      */
-    protected $description = 'Show migration status';
+    protected string $description = 'Show migration status';
 
     /**
      * {@inheritdoc}

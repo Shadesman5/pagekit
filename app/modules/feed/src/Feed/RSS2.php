@@ -8,8 +8,10 @@ use Pagekit\Feed\Feed;
 
 class RSS2 extends Feed
 {
-    protected $mime = 'application/rss+xml';
-    protected $item = 'Pagekit\Feed\Item\RSS2';
+    protected string $mime = 'application/rss+xml';
+
+    /** @var class-string<\Pagekit\Feed\ItemInterface> */
+    protected string $item = \Pagekit\Feed\Item\RSS2::class;
 
     /**
      * {@inheritdoc}

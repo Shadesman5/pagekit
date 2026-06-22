@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Console\NodeVisitor;
 
 use PhpParser\Node;
+use PhpParser\Node\Arg;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\NodeTraverser;
@@ -49,19 +50,29 @@ class PhpNodeVisitor extends NodeVisitor implements BaseVisitor
         if ($node instanceof FuncCall
             && isset($node->name) && isset($node->name->parts)
             && ($node->name->parts[0] == '__' || $node->name->parts[0] == '_c')
-            && isset($node->args[0]) && isset($node->args[0]->value->value)
+            && isset($node->args[0])
+            && $node->args[0] instanceof Arg
+            && isset($node->args[0]->value->value)
             && is_string($string = $node->args[0]->value->value)
         ) {
             $key = $node->name->parts[0] == '__' ? 2 : 3;
-            $domain = isset($node->args[$key]) && is_string($node->args[$key]->value->value) ? $node->args[$key]->value->value : 'messages';
+            $domainArg = $node->args[$key] ?? null;
+            $domain = $domainArg instanceof Arg && is_string($domainArg->value->value ?? null)
+                ? $domainArg->value->value
+                : 'messages';
             $this->results[$domain][$string][] = ['file' => $this->file, 'line' => $node->getLine()];
         } elseif ($node instanceof MethodCall
             && isset($node->name)
             && ($node->name == 'trans' || $node->name == 'transChoice')
-            && isset($node->args[0]) && isset($node->args[0]->value->value)
+            && isset($node->args[0])
+            && $node->args[0] instanceof Arg
+            && isset($node->args[0]->value->value)
             && is_string($string = $node->args[0]->value->value)) {
             $key = $node->name == 'trans' ? 2 : 3;
-            $domain = isset($node->args[$key]) && is_string($node->args[$key]->value->value) ? $node->args[$key]->value->value : 'messages';
+            $domainArg = $node->args[$key] ?? null;
+            $domain = $domainArg instanceof Arg && is_string($domainArg->value->value ?? null)
+                ? $domainArg->value->value
+                : 'messages';
             $this->results[$domain][$string][] = ['file' => $this->file, 'line' => $node->getLine()];
         }
     }

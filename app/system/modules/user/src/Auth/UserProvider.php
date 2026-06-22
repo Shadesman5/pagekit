@@ -50,7 +50,19 @@ class UserProvider implements UserProviderInterface
             unset($credentials['password']);
         }
 
-        return User::where($credentials)->first();
+        $entity = User::where($credentials)->first();
+        if ($entity === null) {
+            return null;
+        }
+        if (!$entity instanceof User) {
+            throw new \LogicException(sprintf(
+                'QueryBuilder::first() returned %s, expected %s',
+                get_class($entity),
+                User::class
+            ));
+        }
+
+        return $entity;
     }
 
     /**

@@ -44,7 +44,7 @@ class UserApiController
     public function indexAction(): array
     {
         $request = $this->request;
-        $filter = $request->query->all()['filter'] ?? [];
+        $filter = (array) ($request->query->all()['filter'] ?? []);
         $page = (int) $request->query->get('page', 0);
         $limit = (int) $request->query->get('limit', 0);
 
@@ -94,7 +94,19 @@ class UserApiController
         $count = $query->count();
         $pages = ceil($count / $limit);
         $page = max(0, min($pages - 1, $page));
-        $users = array_values($query->offset($page * $limit)->limit($limit)->orderBy($order[1], $order[2])->get());
+        $entities = $query->offset($page * $limit)->limit($limit)->orderBy($order[1], $order[2])->get();
+
+        $users = [];
+        foreach ($entities as $entity) {
+            if (!$entity instanceof User) {
+                throw new \LogicException(sprintf(
+                    'QueryBuilder::get() returned %s, expected %s',
+                    get_class($entity),
+                    User::class
+                ));
+            }
+            $users[] = $entity;
+        }
 
         return compact('users', 'pages', 'count');
     }

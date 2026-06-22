@@ -20,6 +20,20 @@ if ! command -v rg >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
     $APT_SUDO apt-get install -y ripgrep jq
 fi
 
+# Composer bootstrap (idempotent). Installed here — not only in the Dockerfile —
+# for the same reason as rg/jq above: snapshot-based cloud environments ignore the
+# Dockerfile at runtime, so install.sh is the real source of truth for tooling on
+# a cold boot. Without this guard the snapshot boots without composer in PATH and
+# the install below fails with "composer: command not found". The command -v guard
+# keeps it a fast no-op once composer is baked into a rebuilt image.
+if ! command -v composer >/dev/null 2>&1; then
+    BIN_SUDO=""
+    [ "$(id -u)" -ne 0 ] && BIN_SUDO="sudo"
+    curl -sS https://getcomposer.org/installer | php -- --install-dir=/tmp --filename=composer
+    $BIN_SUDO install -m 0755 /tmp/composer /usr/local/bin/composer
+    rm -f /tmp/composer
+fi
+
 # PHP dependencies (lock file is tracked — install exact versions)
 composer install --no-interaction --optimize-autoloader --working-dir=.
 
@@ -37,6 +51,7 @@ npx playwright install chromium
 # Verify critical tools are available
 echo "--- Tool verification ---"
 php -v | head -1
+composer --version 2>/dev/null || echo "WARNING: Composer not available"
 ./app/vendor/bin/phpunit --version 2>/dev/null || echo "WARNING: PHPUnit not available"
 ./app/vendor/bin/phpstan --version 2>/dev/null || echo "WARNING: PHPStan not available"
 command -v rg >/dev/null 2>&1 && rg --version | head -1 || echo "WARNING: ripgrep (rg) not available"

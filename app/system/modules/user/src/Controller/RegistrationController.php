@@ -140,8 +140,19 @@ class RegistrationController
     #[RequestAttr(['user' => 'string', 'key' => 'string'])]
     public function activateAction(string $username, string $activation): RedirectResponse
     {
-        if (empty($username) || empty($activation) || !$user = User::where(['username' => $username, 'activation' => $activation, 'login IS NULL'])->first()) {
+        $user = (empty($username) || empty($activation))
+            ? null
+            : User::where(['username' => $username, 'activation' => $activation, 'login IS NULL'])->first();
+
+        if ($user === null) {
             throw new BadRequestHttpException(__('Invalid key.'));
+        }
+        if (!$user instanceof User) {
+            throw new \LogicException(sprintf(
+                'QueryBuilder::first() returned %s, expected %s',
+                get_class($user),
+                User::class
+            ));
         }
 
         $verifying = false;
