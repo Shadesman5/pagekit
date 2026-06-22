@@ -1,6 +1,6 @@
 # Changelog
 
-## Pagekit 1.2.20 - PHPStan Level 6 → 7 (Null Safety) (Juni 20, 2026)
+## Pagekit 1.2.20 - PHPStan Level 6 → 7 (Null Safety) (Juni 23, 2026)
 
 ### Static Analysis
 
@@ -18,6 +18,16 @@
 ### Removed
 
 - **`app/modules/view/src/PhpEngine.php.backup`** — stale backup artifact deleted during Step 14 cleanup.
+
+### CI / Cloud Agent
+
+- **Composer bootstrap in `.cursor/install.sh`** — snapshot-based cloud environments ignore the Dockerfile at runtime, so the install script now self-heals: an idempotent `command -v composer` guard installs Composer via the official installer (with a `sudo` fallback for non-root) before `composer install`, mirroring the existing `rg`/`jq` guard. Fixes the `composer: command not found` cold-boot failure when the pinned snapshot ships without Composer (the Dockerfile that installs it is never built because `environment.json` pins a snapshot and has no `build` block). A `composer --version` line was added to the tool-verification block.
+- **`.cursor/environment.json`** — pinned base snapshot updated to `snapshot-20260620-594c3358`.
+
+### Documentation
+
+- **Roadmap Step 2.1.6** — recorded the `app/installer/requirements.php` audit finding (legacy Symfony RequirementChecker: dead PHP 5.6/7.0 and APC branches, obsolete eAccelerator/XCache accelerator list, abandoned `magic_quotes`/`register_globals`/`detect_unicode` php.ini checks, stale APCu/PCRE/`utf8_decode` messaging) plus a "Lessons learned (from 2.1.5)" note — view-/event-layer null narrowings are E2E-regression-prone (the `MetaHelper` fresh-install 500 passed PHPStan + PHPUnit but failed Playwright).
+- **`MODERNISATION_STRATEGY.md`** — added a **Quality Metrics Tracker** under the Visual Roadmap recording the PHPStan baseline and test counts per level milestone (suppressed errors: L5 891 → L6 680 → L7 654; unit tests stable at 326; E2E 25 specs). The static-document header note was adjusted to mark the tracker as the one living exception.
 
 ## Pagekit 1.2.19 - Strict-Typing Runtime Regression Fixes (Juni 21, 2026)
 
