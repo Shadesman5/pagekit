@@ -100,10 +100,19 @@ Your four agents are **correctly set up** for Cursor:
 - **Format:** Markdown with YAML frontmatter: `name`, `description`, and optionally `model`.
 - **Names:** `architect`, `refactorer`, `verifier`, `tester` – these are the names the orchestrator rule uses for delegation.
 
+**Current model assignments** (see each agent’s YAML frontmatter in `.cursor/agents/`):
+
+| Agent | Model | Role |
+| ----- | ----- | ---- |
+| `architect` | `claude-opus-4-8[thinking=true,context=1m,effort=max,fast=false]` | Strategic planning (Opus 4.8 Max) |
+| `refactorer` | `claude-opus-4-8[thinking=true,context=1m,effort=max,fast=false]` | Code changes (Opus 4.8 Max) |
+| `verifier` | `claude-opus-4-6` | Static audit |
+| `tester` | `claude-sonnet-4-6` | Test execution |
+
 Optional tweaks:
 
-- **Verifier** has no `model` in frontmatter; others use `claude-4.5-opus-high-thinking`. You can add a `model` line to `verifier.md` if you want to fix the model there too.
 - **Descriptions** are already clear for when the main agent chooses which subagent to call.
+- To change a model, edit the `model:` line in the agent’s frontmatter; keep this table in sync.
 
 No structural changes are required for “how to create or control” them: **control** is done by the **orchestrator rule** and by **your invocation message** (task prompt + “execute with Orchestrator workflow”).
 
