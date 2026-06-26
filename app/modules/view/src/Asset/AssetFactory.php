@@ -6,7 +6,9 @@ namespace Pagekit\View\Asset;
 
 class AssetFactory
 {
-    /** @var array<string, class-string<AssetInterface>> */
+    /**
+     * @var array<string, class-string<AssetInterface>|callable(string, string, array<int, string>, array<string, mixed>): AssetInterface>
+     */
     protected array $types = [
         'file' => 'Pagekit\View\Asset\FileAsset',
         'string' => 'Pagekit\View\Asset\StringAsset',
@@ -59,7 +61,16 @@ class AssetFactory
 
         if (isset($this->types[$options['type']])) {
 
-            $class = $this->types[$options['type']];
+            $type = $this->types[$options['type']];
+
+            if (is_callable($type)) {
+                if (!is_string($source)) {
+                    throw new \InvalidArgumentException(sprintf('Asset source must be a string, %s given.', get_debug_type($source)));
+                }
+                return ($type)($name, $source, $dependencies, $options);
+            }
+
+            $class = $type;
 
             return new $class($name, $source, $dependencies, $options);
         }
@@ -70,9 +81,9 @@ class AssetFactory
     /**
      * Registers an asset type.
      *
-     * @param class-string<AssetInterface> $class
+     * @param class-string<AssetInterface>|callable(string, string, array<int, string>, array<string, mixed>): AssetInterface $class
      */
-    public function register(string $name, string $class): self
+    public function register(string $name, string|callable $class): self
     {
         $this->types[$name] = $class;
 

@@ -1642,7 +1642,7 @@ parameters:
 		-
 			message: '#^Anonymous function has an unused use \$app\.$#'
 			identifier: closure.unusedUse
-			count: 2
+			count: 1
 			path: app/system/modules/view/index.php
 
 		-
