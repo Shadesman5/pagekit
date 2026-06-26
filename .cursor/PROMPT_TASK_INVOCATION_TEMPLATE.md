@@ -21,7 +21,7 @@ TASK INVOCATION
 Execute the task defined in: @PROMPT_X_Y.md
 GitHub Issue: #XXX (PR will "Closes #XXX" and metadata block will reference it)
 
-Workflow: Orchestrator (Architect → per-step Refactorer/Verifier/Tester/Commit → Early Push + PR → Final Test → Bugbot peek → Finalize)
+Workflow: Orchestrator (Architect → per-step Refactorer/Verifier/Tester/Commit → Local Bugbot Review → Early Push + PR → Final Test → Finalize)
 Rule: @orchestrator-subagent-workflow.mdc
 Push: @push.mdc (version bump, CHANGELOG, ROADMAP closure)
 Reference: @ROADMAP.md
@@ -32,9 +32,9 @@ Rules:
 - Commit per completed step (Conventional Commits)
 - Do NOT batch commits until end of task
 - After last checklist step:
-  1. Early Push + PR creation (Orchestrator) → triggers CI + Cursor Bugbot
-  2. Final Test (Tester): `gh run watch` on CI in parallel with local Playwright E2E
-  3. Bugbot quick-peek (Orchestrator, non-blocking via `gh api`): mini-loop on issues found on the latest SHA, otherwise proceed
+  1. Local Bugbot Review (Orchestrator, /review-bugbot): once per PR on the branch diff; mini-loop on findings, otherwise proceed
+  2. Early Push + PR creation (Orchestrator) → triggers CI (remote Bugbot skips via patch-ID sync)
+  3. Final Test (Tester): `gh run watch` on CI in parallel with local Playwright E2E
   4. Finalize (Orchestrator, push.mdc): branch documentation + version bump → CHANGELOG → ROADMAP closure incl. PR# + Phase 1 audit closures → second push
   5. Do NOT merge.
 - PR must include "Closes #XXX" and the issue number in the metadata block.

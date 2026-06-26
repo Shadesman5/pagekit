@@ -3,6 +3,10 @@
 > **Canonical rules:** `.cursor/ROADMAP.md` (THE 5 AGGRESSIVE RULES).
 > Bugbot MUST read and enforce ROADMAP.md on every review. If a rule here
 > conflicts with ROADMAP.md, ROADMAP.md wins.
+>
+> **Scope:** These rules apply to **both** the remote PR Bugbot **and** the
+> local `/review-bugbot` run (the modernization workflow runs the local review
+> once per PR — see `orchestrator-subagent-workflow.mdc` § Local Bugbot Review).
 
 ---
 
