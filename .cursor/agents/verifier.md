@@ -1,6 +1,6 @@
 ---
 name: verifier
-model: claude-opus-4-6
+model: claude-opus-4-6[thinking=true,context=1m,effort=max]
 description: Quality Auditor for Pagekit modernization. Audits Refactorer output for No Mercy compliance and ROADMAP traceability. Use proactively after Refactorer completes a step.
 ---
 
