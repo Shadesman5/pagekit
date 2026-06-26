@@ -1,6 +1,6 @@
 ---
 name: tester
-model: claude-sonnet-4-6
+model: claude-sonnet-4-6[thinking=true,context=1m,effort=high]
 description: Quality Guard for Pagekit modernization. Runs php pagekit setup, PHPUnit, Playwright. Performs RCA on failure. Use proactively after Verifier passes.
 ---
 

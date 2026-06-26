@@ -11,7 +11,7 @@ Pagekit CMS is a modular PHP CMS built on Symfony 6.4 components with a Vue.js 2
 | Service | Command | Notes |
 |---|---|---|
 | PHP dev server | `php -S localhost:8080 index.php` | Serves the full app; run from workspace root |
-| PHPUnit | `./app/vendor/bin/phpunit` | 280 tests; no external DB needed |
+| PHPUnit | `./app/vendor/bin/phpunit` | 326 tests; no external DB needed |
 | ESLint | `yarn lint` | Pre-existing style errors (~13k); runs correctly |
 | Webpack (JS build) | `yarn compile-js --mode=production` | Or `yarn watch-js` for dev |
 | Gulp (LESS build) | `yarn compile-less` | Or `yarn watch-less` for dev |
@@ -21,7 +21,7 @@ Pagekit CMS is a modular PHP CMS built on Symfony 6.4 components with a Vue.js 2
 
 - **Vendor directory is `app/vendor/`**, not the standard `vendor/`. Composer is configured via `"config": {"vendor-dir": "app/vendor"}` in `composer.json`. PHPUnit binary is at `./app/vendor/bin/phpunit`.
 - **`yarn install` triggers a full production build** via its `postinstall` script (`yarn compile-js --mode=production && gulp`). This is expected and takes ~7s.
-- **First run requires Pagekit web installer.** If `/workspace/config.php` does not exist, the app redirects to the installer at `/`. Use SQLite for zero-dependency setup. The installer creates `config.php` and the SQLite database at `/workspace/pagekit.db`.
+- **First run requires a Pagekit installation.** If `/workspace/config.php` does not exist, the app redirects to the web installer at `/`. For headless/agent setups, prefer the non-interactive CLI: `php pagekit setup -u admin -p '<password>' -t "Pagekit Dev" -m admin@example.com -d sqlite --no-interaction`. Either path creates `config.php` and the SQLite database at `/workspace/pagekit.db`. Two quirks: (1) `setup` prints `Done`/`Existing Pagekit installation detected` but returns a non-zero exit code — verify success by checking that `config.php` exists; (2) re-running `setup` against an existing install is safe — it aborts instead of clobbering the DB, so it will NOT reset an existing admin password.
 - **`config.php` is gitignored** and must be created via the installer on each fresh environment. After installer completion, admin login is at `/index.php/admin/login`.
 - **PHP built-in server uses `index.php` as router file.** Always pass it: `php -S localhost:8080 index.php`.
 - **ESLint has ~13k pre-existing style errors** (indent, arrow-parens, etc.). These are not regressions; the codebase predates the current ESLint config.

@@ -42,7 +42,7 @@ The Orchestrator is a **dispatcher**, not a worker. It delegates, commits, and m
 - Fix code, edit files, or amend commits. On failure, delegate back to **refactorer**. The Orchestrator never touches source code.
 - Paste the plan, step titles, or task prompt into chat. Use the ticket file path only.
 - Create a TODO list of all Checklist Steps in chat; the ticket file is the single source.
-- Use any subagent type other than `architect`, `refactorer`, `verifier`, `tester` for this workflow. (`generalPurpose`, `explore`, `shell`, etc. are not part of the modernization pipeline.)
+- Use any subagent type other than `architect`, `refactorer`, `verifier`, `tester`, or `bugbot` for this workflow. The `bugbot` subagent is launched **only** by the Orchestrator at the Local Bugbot Review stage via the `/review-bugbot` skill (see that section); never by another subagent. (`generalPurpose`, `explore`, `shell`, etc. are not part of the modernization pipeline.)
 
 **MAY (optional, default = no):**
 
@@ -98,11 +98,23 @@ Task Prompt (one Roadmap Step X.Y)
     │
     ▼
 ┌─────────────────────────────────────────────────────────────┐
+│ LOCAL BUGBOT REVIEW (Orchestrator, /review-bugbot skill)    │
+│   Launches the `bugbot` subagent (readonly) on the local    │
+│   branch diff — NO push/PR required. Runs ONCE per PR.      │
+│   Replaces the old remote Bugbot quick-peek.                │
+│     • no findings → proceed to Early Push                   │
+│     • findings    → mini-loop (Refactorer → Verifier →      │
+│       Tester → commit) → re-run /review-bugbot until clean  │
+└─────────────────────────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────┐
 │ EARLY PUSH (Orchestrator, no subagent)                      │
-│   git push -u origin HEAD → CI starts (PHP Quality workflow │
-│   + Cursor Bugbot review). gh pr create with metadata block │
-│   (labels, milestone, closes #XXX). PR# is now known and    │
-│   used by the Finalize step's ROADMAP update.               │
+│   git push -u origin HEAD → CI starts (PHP Quality          │
+│   workflow). gh pr create with metadata block (labels,      │
+│   milestone, closes #XXX). PR# is now known and used by     │
+│   the Finalize step's ROADMAP update. Remote Cursor Bugbot  │
+│   SKIPS this diff (patch-ID sync from the local review).    │
 └─────────────────────────────────────────────────────────────┘
     │
     ▼
@@ -121,32 +133,6 @@ Task Prompt (one Roadmap Step X.Y)
     │
     ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ BUGBOT QUICK-PEEK (Orchestrator, non-blocking)              │
-│   Two `gh api` calls. The review BODY is marketing text     │
-│   only; the actual file/line/description sit in the         │
-│   review's inline COMMENTS, fetched separately.             │
-│     1. .../pulls/$PR/reviews → latest cursor-bot review     │
-│        → REVIEW_ID, REVIEW_SHA                              │
-│     2. .../pulls/$PR/reviews/$REVIEW_ID/comments            │
-│        → COMMENTS list [{path, line, body}, ...]            │
-│        → COUNT = length(COMMENTS)                           │
-│   Decision matrix:                                          │
-│     • no review yet                          → proceed      │
-│     • COUNT == 0                             → proceed      │
-│     • REVIEW_SHA == HEAD, COUNT > 0          → mini-loop    │
-│       (pass COMMENTS to Refactorer as the fix list;         │
-│        Verifier → Tester → push fix → re-peek)              │
-│     • REVIEW_SHA != HEAD, COUNT > 0          → Verifier     │
-│       Stale-Bugbot Check (static review of each             │
-│        comment in <REVIEW_SHA>..HEAD): PASS → proceed,      │
-│        FAIL → mini-loop with the still-present comments     │
-│        as Refactorer input                                  │
-│   NEVER wait for Bugbot to finish (Pro tier ≤ ~15 min).     │
-│   The user reviews remaining findings manually before merge.│
-└─────────────────────────────────────────────────────────────┘
-    │
-    ▼
-┌─────────────────────────────────────────────────────────────┐
 │ FINALIZE (Orchestrator, no subagent)                        │
 │ Branch doc + version bump + CHANGELOG + ROADMAP closure     │
 │ (incl. PR# from Early Push) → second push. See push.mdc     │
@@ -159,77 +145,35 @@ Task Prompt (one Roadmap Step X.Y)
 
 1. **One Checklist Step at a time** — never work on multiple in parallel.
 2. **One commit per Checklist Step** — after Tester PASS. If `git status` shows nothing to commit although Refactorer reported "Step N done", that is a failure (see On Failure). Do not batch commits.
-3. **Subagents by exact name** — `architect`, `refactorer`, `verifier`, `tester` so Cursor routes correctly. Subagent definitions: `.cursor/agents/`.
-4. **One version bump per PR** — the Finalize step bumps `app/system/config.php` exactly once per Roadmap Step / PR. Subsequent mini-loop fix commits (Final Test mini-loop, Bugbot quick-peek mini-loop) on the same PR/branch **must not** trigger another `chore(release): bump version to ...` commit. The CHANGELOG-NEW.md section for the already-bumped version is amended in place to include the mini-loop changes; the ROADMAP header pointer stays on the same version. Rationale: the PR is one logical release unit. Re-bumping mid-review wastes commits, confuses readers of `git log`, and creates a fictitious version that was never tagged.
+3. **Subagents by exact name** — `architect`, `refactorer`, `verifier`, `tester` so Cursor routes correctly. Subagent definitions: `.cursor/agents/`. The `bugbot` subagent is the one exception: it is not delegated by name but launched by the Orchestrator through the `/review-bugbot` skill at the Local Bugbot Review stage.
+4. **One version bump per PR** — the Finalize step bumps `app/system/config.php` exactly once per Roadmap Step / PR. Subsequent mini-loop fix commits (Local Bugbot review mini-loop, Final Test mini-loop) on the same PR/branch **must not** trigger another `chore(release): bump version to ...` commit. The CHANGELOG-NEW.md section for the already-bumped version is amended in place to include the mini-loop changes; the ROADMAP header pointer stays on the same version. Rationale: the PR is one logical release unit. Re-bumping mid-review wastes commits, confuses readers of `git log`, and creates a fictitious version that was never tagged.
 5. **Ticket is a durable artifact** — immediately after the Architect writes `migration-docs/tickets/{task-slug}_plan.md`, the Orchestrator commits it (`docs(plan): add ticket for <task-slug>`) before the Refactorer loop. Tickets are tracked and land in the PR; they are **never** left untracked or gitignored.
 
-## Early Push (after all Checklist Steps committed, before Final Test)
+## Local Bugbot Review (after all Checklist Steps committed, before Early Push)
+
+Orchestrator (no subagent in the usual sense — it runs the `/review-bugbot` skill, which launches the read-only `bugbot` subagent):
+
+1. **Run** — invoke `/review-bugbot` on `branch changes` (the full branch diff vs. the merge-base with the base branch). The `bugbot` subagent computes the diff itself; do **not** push or open a PR first, and do not compute the diff manually. See `.cursor/skills-cursor/review-bugbot/SKILL.md` for the exact prompt shape and `.cursor/BUGBOT.md` for the project-specific review criteria.
+2. **Decide** — no findings → proceed to Early Push. Findings → mini-loop: pass the findings verbatim to the **refactorer**, then **verifier** → **tester** → commit, then re-run `/review-bugbot`. Repeat until clean.
+
+Run Bugbot **once per PR** at this stage — **not** per Checklist Step. The Verifier already performs static review on every step; a per-step Bugbot run would duplicate that and waste tokens. This stage replaces the old remote Bugbot quick-peek entirely.
+
+**Why local, before the push:** `/review-bugbot` stores the patch ID of the reviewed diff. When the Early Push opens a PR with the same diff, the remote Cursor Bugbot recognizes that patch ID and **skips** its PR review — no double review, no waiting on the ~15-min remote run, no GraphQL polling. The effort level (`Default`/`High`) is a global Bugbot dashboard setting and cannot be selected per invocation; do not attempt to switch modes from the workflow.
+
+## Early Push (after Local Bugbot Review)
 
 Orchestrator (no subagent):
 
 1. **Push** — `git push -u origin HEAD` from the feature branch.
 2. **PR creation** — `gh pr create` with the `<!-- metadata -->` block (labels, milestone, `closes`). Use the GitHub Issue number from the invocation (`GitHub Issue: #XXX`). Include `Closes #XXX` in PR body AND in the metadata `closes:` field. See `push.mdc` § PR Metadata + `github-labels.mdc`.
 
-This early push triggers CI (PHP Quality workflow) and Cursor Bugbot review. The Final Test step waits on those checks; the Bugbot peek runs after Final Test PASS.
+This early push triggers CI (PHP Quality workflow). The Final Test step waits on those CI checks. The remote Cursor Bugbot skips its review thanks to the patch-ID sync from the Local Bugbot Review above; any findings were already handled locally, so there is no separate Bugbot peek step.
 
 ## Final Test (after Early Push)
 
 Tester runs in parallel: (a) `gh run watch` on the four PHP Quality CI jobs, (b) the 3 Playwright E2E specs locally. See `tester.md` § End-of-ticket tests for exact commands.
 
-## Bugbot Quick-Peek (non-blocking, after Final Test PASS)
-
-**One GraphQL call** that returns every Bugbot review thread on the PR with its `isResolved` flag. This is the single source of truth — the per-review REST endpoints are insufficient because Bugbot posts only **newly discovered** findings in each review, not the cumulative list of still-open ones. The review thread state (`isResolved`) is what actually tracks whether a finding has been addressed.
-
-```bash
-THREADS=$(gh api graphql -f query='
-{
-  repository(owner: "<owner>", name: "<repo>") {
-    pullRequest(number: '"$PR"') {
-      reviewThreads(first: 100) {
-        nodes {
-          isResolved
-          comments(first: 1) {
-            nodes {
-              author { login }
-              path
-              originalLine
-              originalCommit { oid }
-              body
-            }
-          }
-        }
-      }
-    }
-  }
-}' --jq '[
-  .data.repository.pullRequest.reviewThreads.nodes[]
-  | select(.comments.nodes[0].author.login == "cursor")
-  | { resolved: .isResolved,
-      path: .comments.nodes[0].path,
-      original_line: .comments.nodes[0].originalLine,
-      original_commit: .comments.nodes[0].originalCommit.oid,
-      body: .comments.nodes[0].body }
-]')
-
-OPEN=$(echo "$THREADS" | jq '[.[] | select(.resolved == false)]')
-OPEN_COUNT=$(echo "$OPEN" | jq 'length')
-HEAD_SHA=$(gh pr view "$PR" --json headRefOid --jq .headRefOid)
-```
-
-Decision matrix:
-
-- **`THREADS == []`** (no Cursor-Bugbot threads at all) → proceed (Bugbot may still be working; the user reviews remaining findings manually before merging).
-- **`OPEN_COUNT == 0`** → proceed (every Bugbot finding on this PR is resolved, regardless of which commit closed it).
-- **`OPEN_COUNT > 0`, every open thread's `original_commit == HEAD_SHA`** → mini-loop (Refactorer → Verifier → Tester → push fix → re-run Final Test → re-peek). Pass `OPEN` verbatim to the Refactorer as the fix list.
-- **`OPEN_COUNT > 0`, at least one open thread's `original_commit != HEAD_SHA`** (mixed or all-stale) → **delegate to Verifier** with the full `OPEN` list, plus `HEAD_SHA`. Verifier statically checks each open thread to determine whether its specific issue has been resolved by any commit in `<original_commit>..HEAD` (see `.cursor/agents/verifier.md` § Stale-Bugbot Check). Verifier output: `OVERALL: PASS` (all open threads' issues resolved by later commits) → proceed to Finalize. `OVERALL: FAIL` (one or more still present) → mini-loop with the still-present threads as Refactorer input.
-
-NEVER wait for Bugbot to finish (Pro tier can take ~15 minutes). The user reviews remaining findings manually before merging.
-
-**Why GraphQL `reviewThreads` and not the REST per-review comments endpoint:** Bugbot posts each finding once, in the review where it was first detected. Subsequent reviews only carry the _new_ findings from that scan — not the still-open ones from earlier reviews. Reading only the latest review's REST comments therefore systematically misses any finding that was first reported in a previous review and never resolved. GitHub's review-thread state (`isResolved`) is the only source that aggregates correctly across all reviews and tracks which findings are actually still open. The `body` field of a review object additionally carries human-friendly text like "found 1 potential issue. There are 3 total unresolved issues (including 2 from previous review)" — that wording is the symptom of the same problem, and the GraphQL query above replaces both per-review lookups with a single authoritative call.
-
-**Why the stale-original-commit branch is not "blind proceed":** Earlier versions of this workflow treated stale-SHA Bugbot reviews as "the bug is probably already fixed by a later commit" and proceeded silently. That assumption is false — a later commit can fix an unrelated bug while leaving the Bugbot-flagged one untouched. The Verifier check above closes that loophole at near-zero token cost (one static code read per open thread).
-
-## Finalize (after Bugbot peek → proceed)
+## Finalize (after Final Test PASS)
 
 Orchestrator (no subagent) executes the relevant items of **push.mdc**:
 
