@@ -11,8 +11,8 @@ use PHPUnit\Framework\TestCase;
 
 class LocatorTest extends TestCase
 {
-    protected ?Filesystem $file = null;
-    protected ?Locator $locator = null;
+    private Filesystem $file;
+    private Locator $locator;
 
     public function setUp(): void
     {

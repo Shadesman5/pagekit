@@ -13,8 +13,8 @@ use Symfony\Component\Mime\Email;
 
 class MailerTest extends TestCase
 {
-    protected ?Mailer $mailer = null;
-    protected ?\Symfony\Component\Mailer\Transport\TransportInterface $transport = null;
+    private Mailer $mailer;
+    private \Symfony\Component\Mailer\Transport\TransportInterface $transport;
 
     public function setUp(): void
     {
@@ -24,13 +24,13 @@ class MailerTest extends TestCase
 
     public function testConstructor(): void
     {
-        $this->assertInstanceOf(Mailer::class, $this->mailer);
+        $this->expectNotToPerformAssertions();
     }
 
     public function testCreate(): void
     {
         $email = $this->mailer->create();
-        $this->assertInstanceOf(Email::class, $email);
+        $this->assertEmpty($email->getFrom());
     }
 
     public function testSend(): void

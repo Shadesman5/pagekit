@@ -10,9 +10,7 @@ use Symfony\Component\HttpFoundation\Cookie;
 
 class CookieJarTest extends TestCase
 {
-    protected ?Cookie $cookie = null;
-
-    protected ?CookieJar $cookieJar = null;
+    private CookieJar $cookieJar;
 
     public function setUp(): void
     {
@@ -21,24 +19,24 @@ class CookieJarTest extends TestCase
 
     public function testSet(): void
     {
-        $this->cookie = $this->cookieJar->set('testCookie', 'testValue');
-        $this->assertInstanceOf('Symfony\Component\HttpFoundation\Cookie', $this->cookie);
-        $this->assertEquals('testValue', $this->cookie->getValue());
+        $cookie = $this->cookieJar->set('testCookie', 'testValue');
+        $this->assertEquals('testValue', $cookie->getValue());
     }
 
     public function testHasGet(): void
     {
         $this->cookieJar->set('testCookie', 'testValue');
         $this->assertTrue($this->cookieJar->has('testCookie'));
-        $this->assertEquals('testValue', $this->cookieJar->get('testCookie')->getValue());
+        $found = $this->cookieJar->get('testCookie');
+        $this->assertNotNull($found);
+        $this->assertEquals('testValue', $found->getValue());
     }
 
     public function testRemove(): void
     {
         $this->cookieJar->set('testCookie', 'testValue');
-        $this->cookie = $this->cookieJar->remove('testCookie');
-        $this->assertInstanceOf('Symfony\Component\HttpFoundation\Cookie', $this->cookie);
-        $this->assertTrue($this->cookie->isCleared());
+        $cookie = $this->cookieJar->remove('testCookie');
+        $this->assertTrue($cookie->isCleared());
     }
 
     public function testGetQueuedCookies(): void

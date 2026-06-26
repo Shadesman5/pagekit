@@ -13,14 +13,16 @@ class ImpersonatePluginTest extends TestCase
 {
     public function testConstructorWithoutParameters(): void
     {
+        $this->expectNotToPerformAssertions();
         $plugin = new ImpersonatePlugin();
-        $this->assertInstanceOf(ImpersonatePlugin::class, $plugin);
+        unset($plugin);
     }
 
     public function testConstructorWithParameters(): void
     {
+        $this->expectNotToPerformAssertions();
         $plugin = new ImpersonatePlugin('test@example.com', 'Test Name');
-        $this->assertInstanceOf(ImpersonatePlugin::class, $plugin);
+        unset($plugin);
     }
 
     public function testBeforeSendWithoutFromAddress(): void

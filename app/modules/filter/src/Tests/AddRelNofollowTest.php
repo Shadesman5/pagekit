@@ -13,8 +13,8 @@ class AddRelNofollowTest extends TestCase
     {
         $filter = new AddRelNofollowFilter();
 
-        $this->assertTrue(false !== strpos($filter->filter('<a href="http://www.example.com/">text</a>'), 'rel="nofollow"'));
-        $this->assertTrue(false !== strpos($filter->filter('<A href="http://www.example.com/">text</a>'), 'rel="nofollow"'));
+        $this->assertTrue(false !== strpos((string) $filter->filter('<a href="http://www.example.com/">text</a>'), 'rel="nofollow"'));
+        $this->assertTrue(false !== strpos((string) $filter->filter('<A href="http://www.example.com/">text</a>'), 'rel="nofollow"'));
 
         // TODO: Must be refactored in Step 2.1.9 (Test Coverage Expansion) —
         // These XSS/obfuscation edge cases fail because AddRelNofollowFilter uses a simple

@@ -2,6 +2,7 @@ includes:
     - phpstan-baseline.neon
     - app/vendor/phpstan/phpstan-doctrine/extension.neon
     - app/vendor/phpstan/phpstan-symfony/extension.neon
+    - app/vendor/phpstan/phpstan-phpunit/extension.neon
 
 parameters:
     level: 7

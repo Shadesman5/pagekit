@@ -9,10 +9,10 @@ use PHPUnit\Framework\TestCase;
 
 class ConfigTest extends TestCase
 {
-    protected ?Config $config = null;
+    private Config $config;
 
-    /** @var array<string, mixed>|null */
-    protected ?array $values = null;
+    /** @var array<string, mixed> */
+    private array $values;
 
     public function setUp(): void
     {

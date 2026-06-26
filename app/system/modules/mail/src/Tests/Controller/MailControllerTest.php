@@ -46,8 +46,6 @@ class MailControllerTest extends TestCase
         $controller = $this->createController($request);
         $result = $controller->smtpAction();
 
-        $this->assertArrayHasKey('success', $result);
-        $this->assertArrayHasKey('message', $result);
         $this->assertFalse($result['success']);
         $this->assertNotEmpty($result['message']);
     }
@@ -71,8 +69,6 @@ class MailControllerTest extends TestCase
         $controller = $this->createController($request);
         $result = $controller->smtpAction();
 
-        $this->assertArrayHasKey('success', $result);
-        $this->assertArrayHasKey('message', $result);
         $this->assertNotEmpty($result['message']);
     }
 
@@ -90,8 +86,6 @@ class MailControllerTest extends TestCase
         $controller = $this->createController($request);
         $result = $controller->smtpAction();
 
-        $this->assertArrayHasKey('success', $result);
-        $this->assertArrayHasKey('message', $result);
         $this->assertNotEmpty($result['message']);
     }
 
@@ -102,8 +96,6 @@ class MailControllerTest extends TestCase
         $controller = $this->createController($request);
         $result = $controller->smtpAction();
 
-        $this->assertArrayHasKey('success', $result);
-        $this->assertArrayHasKey('message', $result);
         $this->assertFalse($result['success']);
         $this->assertStringContainsString('required', $result['message']);
     }
@@ -119,8 +111,6 @@ class MailControllerTest extends TestCase
         $controller = $this->createController($request);
         $result = $controller->smtpAction();
 
-        $this->assertArrayHasKey('success', $result);
-        $this->assertArrayHasKey('message', $result);
         $this->assertFalse($result['success']);
         $this->assertNotEmpty($result['message']);
     }
@@ -141,8 +131,6 @@ class MailControllerTest extends TestCase
         $controller = $this->createController($request, null, $mailModule);
         $result = $controller->emailAction();
 
-        $this->assertArrayHasKey('success', $result);
-        $this->assertArrayHasKey('message', $result);
         $this->assertTrue($result['success']);
     }
 
@@ -167,8 +155,6 @@ class MailControllerTest extends TestCase
         $controller = $this->createController($request, null, $mailModule);
         $result = $controller->emailAction();
 
-        $this->assertArrayHasKey('success', $result);
-        $this->assertArrayHasKey('message', $result);
         $this->assertTrue($result['success']);
     }
 
@@ -188,8 +174,6 @@ class MailControllerTest extends TestCase
         $controller = $this->createController($request, null, $mailModule);
         $result = $controller->emailAction();
 
-        $this->assertArrayHasKey('success', $result);
-        $this->assertArrayHasKey('message', $result);
         $this->assertTrue($result['success']);
     }
 
@@ -201,8 +185,6 @@ class MailControllerTest extends TestCase
         $controller = $this->createController($request);
         $result = $controller->smtpAction();
 
-        $this->assertArrayHasKey('success', $result);
-        $this->assertArrayHasKey('message', $result);
         $this->assertFalse($result['success']);
         $this->assertNotEmpty($result['message']);
     }
@@ -221,8 +203,6 @@ class MailControllerTest extends TestCase
         $controller = $this->createController($request, null, $mailModule);
         $result = $controller->emailAction();
 
-        $this->assertArrayHasKey('success', $result);
-        $this->assertArrayHasKey('message', $result);
         $this->assertTrue($result['success']);
     }
 }
