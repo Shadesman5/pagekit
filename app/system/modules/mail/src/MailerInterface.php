@@ -9,12 +9,17 @@ use Symfony\Component\Mime\Email;
 interface MailerInterface
 {
     /**
-     * Called before the message is sent.
+     * Sends an email message.
      */
-    public function beforeSend(Email $message): void;
+    public function send(Email $message): bool;
 
     /**
-     * Called after the message is sent.
+     * Creates a new message instance.
      */
-    public function afterSend(Email $message): void;
+    public function create(): Message;
+
+    /**
+     * Registers a plugin.
+     */
+    public function registerPlugin(MailPluginInterface $plugin): void;
 }

@@ -335,7 +335,10 @@ class Message extends Email implements MessageInterface
                     $headers = $attachment->getHeaders();
                     $contentId = null;
                     if ($headers->has('Content-ID')) {
-                        $contentId = $headers->get('Content-ID')->getBody();
+                        $header = $headers->get('Content-ID');
+                        if ($header !== null) {
+                            $contentId = $header->getBody();
+                        }
                     }
 
                     // Check if it's inline (embedded) or attachment

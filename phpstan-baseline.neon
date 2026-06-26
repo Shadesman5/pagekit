@@ -1068,11 +1068,6 @@ parameters:
 			count: 1
 			path: app/system/modules/mail/index.php
 
-		-
-			message: '#^Call to an undefined method Pagekit\\Mail\\MailerInterface\:\:send\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/mail/src/Message.php
 
 		-
 			message: '#^Instanceof between Symfony\\Component\\Mime\\Part\\DataPart and Symfony\\Component\\Mime\\Part\\DataPart will always evaluate to true\.$#'

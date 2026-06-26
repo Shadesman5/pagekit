@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Pagekit\Mail;
 
 use Symfony\Component\Mailer\Mailer as SymfonyMailer;
-use Symfony\Component\Mailer\Transport;
 use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 use Symfony\Component\Mime\Email;
@@ -14,7 +13,7 @@ class Mailer implements MailerInterface
 {
     protected TransportInterface $transport;
 
-    /** @var array<int, MailerInterface> */
+    /** @var array<int, MailPluginInterface> */
     protected array $plugins = [];
 
     public function __construct(TransportInterface $transport)
@@ -25,9 +24,9 @@ class Mailer implements MailerInterface
     /**
      * Creates a new message instance.
      */
-    public function create(): Email
+    public function create(): Message
     {
-        return new Email();
+        return new Message();
     }
 
     /**
@@ -52,11 +51,9 @@ class Mailer implements MailerInterface
     /**
      * Registers a plugin.
      */
-    public function registerPlugin(MailerInterface $plugin): self
+    public function registerPlugin(MailPluginInterface $plugin): void
     {
         $this->plugins[] = $plugin;
-
-        return $this;
     }
 
     /**
@@ -155,6 +152,8 @@ class Mailer implements MailerInterface
                 $context = stream_context_create($contextOptions);
 
                 // Attempt to open a socket connection with 10 second timeout
+                $errno = 0;
+                $errstr = '';
                 $socket = @stream_socket_client(
                     $connectionString,
                     $errno,
@@ -168,14 +167,14 @@ class Mailer implements MailerInterface
                     // Connection failed
                     if ($errno === 0 && empty($errstr)) {
                         throw new \Exception(sprintf('Connection failed to %s:%d. Check host, port and encryption settings.', $host, $port));
-                    } elseif (strpos($errstr, 'Connection refused') !== false || $errno === 111) {
+                    } elseif (strpos($errstr ?? '', 'Connection refused') !== false || $errno === 111) {
                         throw new \Exception(sprintf('Connection refused to %s:%d. Service may not be running or port is blocked.', $host, $port));
-                    } elseif (strpos($errstr, 'timed out') !== false || $errno === 110) {
+                    } elseif (strpos($errstr ?? '', 'timed out') !== false || $errno === 110) {
                         throw new \Exception(sprintf('Connection timeout to %s:%d. Server may be unreachable or port is blocked by firewall.', $host, $port));
-                    } elseif (strpos($errstr, 'SSL') !== false || strpos($errstr, 'TLS') !== false) {
+                    } elseif (strpos($errstr ?? '', 'SSL') !== false || strpos($errstr ?? '', 'TLS') !== false) {
                         throw new \Exception(sprintf('SSL/TLS handshake failed with %s:%d. Check encryption settings (current: %s).', $host, $port, $encryption ?: 'none'));
                     } else {
-                        throw new \Exception(sprintf('Connection failed to %s:%d - %s (Error %d)', $host, $port, $errstr, $errno));
+                        throw new \Exception(sprintf('Connection failed to %s:%d - %s (Error %d)', $host, $port, $errstr ?? '', $errno));
                     }
                 }
 
@@ -266,22 +265,4 @@ class Mailer implements MailerInterface
         }
     }
 
-    /**
-     * {@inheritdoc}
-     *
-     * TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 — Strict Typing) —
-     * MailerInterface conflates the mailer and plugin roles. Split into separate
-     * MailerInterface (send/create) and MailPluginInterface (beforeSend/afterSend).
-     * These no-op methods exist only to satisfy the shared interface contract.
-     */
-    public function beforeSend(Email $message): void
-    {
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function afterSend(Email $message): void
-    {
-    }
 }

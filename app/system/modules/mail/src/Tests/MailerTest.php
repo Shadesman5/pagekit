@@ -48,9 +48,8 @@ class MailerTest extends TestCase
     public function testRegisterPlugin(): void
     {
         $plugin = new ImpersonatePlugin('from@example.com', 'Test Sender');
-        $result = $this->mailer->registerPlugin($plugin);
-
-        $this->assertSame($this->mailer, $result);
+        $this->mailer->registerPlugin($plugin);
+        $this->expectNotToPerformAssertions();
     }
 
     public function testPluginBeforeSend(): void
