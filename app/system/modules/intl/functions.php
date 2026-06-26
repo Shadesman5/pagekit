@@ -32,7 +32,7 @@ if (!function_exists('_c')) {
     function _c(string $id, int|float $number, array $parameters = [], ?string $domain = null, ?string $locale = null): string
     {
 
-        $id = preg_replace('/(%)(.*?)(%)/', '%count%', $id);
+        $id = preg_replace('/(%)(.*?)(%)/', '%count%', $id) ?? $id;
 
         $params = [];
         foreach ($parameters as $key => $value) {

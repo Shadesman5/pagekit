@@ -40,11 +40,13 @@ return [
     'events' => [
 
         'boot' => function ($event, $app) {
-            \Pagekit\Intl\IntlServiceLocator::setTranslator($app->get('translator'));
-            // $this is the IntlModule instance — it IS the intl service (provides
-            // locale, date/number formatting, territory data). No separate 'intl'
-            // service is registered; the module object is the API surface.
-            \Pagekit\Intl\IntlServiceLocator::setIntl($this);
+            $translator = $app->get('translator');
+            if (!$translator instanceof \Symfony\Component\Translation\Translator) {
+                throw new \RuntimeException('translator service must be an instance of Translator');
+            }
+            \Pagekit\Intl\IntlServiceLocator::register(
+                new \Pagekit\Intl\IntlServiceLocator($translator, $this)
+            );
         },
 
         'view.init' => function ($event, $view) {

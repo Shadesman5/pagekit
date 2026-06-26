@@ -165,6 +165,37 @@ class IntlModule extends Module
     }
 
     /**
+     * Formats a number according to the given style using PHP's intl extension.
+     *
+     * @param string $style   'decimal'|'currency'|'percent'|'spellout'|'ordinal'|'scientific'
+     * @param string $pattern Optional NumberFormatter pattern (e.g. '#,##0.##')
+     */
+    public function formatNumber(int|float $number, string $style = 'decimal', string $pattern = '', ?string $locale = null): string
+    {
+        $locale ??= $this->getLocale();
+
+        $styleConstant = match (strtolower($style)) {
+            'currency'   => \NumberFormatter::CURRENCY,
+            'percent'    => \NumberFormatter::PERCENT,
+            'spellout'   => \NumberFormatter::SPELLOUT,
+            'ordinal'    => \NumberFormatter::ORDINAL,
+            'duration'   => \NumberFormatter::DURATION,
+            'scientific' => \NumberFormatter::SCIENTIFIC,
+            default      => \NumberFormatter::DECIMAL,
+        };
+
+        $formatter = new \NumberFormatter($locale, $styleConstant);
+
+        if ($pattern !== '') {
+            $formatter->setPattern($pattern);
+        }
+
+        $result = $formatter->format($number);
+
+        return $result !== false ? $result : (string) $number;
+    }
+
+    /**
      * Loads language files.
      *
      * @param string              $locale
@@ -235,7 +266,7 @@ class IntlModule extends Module
             return $result;
         };
 
-        return array_intersect_key($this->getTerritories($locale), $getLevel($tree['001']));
+        return array_intersect_key($this->getTerritories($locale) ?? [], $getLevel($tree['001']));
     }
 
     /**

@@ -4,38 +4,49 @@ declare(strict_types=1);
 
 namespace Pagekit\Intl;
 
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\Translator;
 
+/**
+ * Static accessor bridge for PHP global translation functions.
+ *
+ * The class itself is DI-constructed (constructor injection); the static
+ * register()/get*() layer is a minimal, unavoidable bridge because PHP global
+ * functions (__(), _c(), _i(), _n()) have no DI-capable constructor of their own.
+ */
 final class IntlServiceLocator
 {
-    private static ?TranslatorInterface $translator = null;
-    private static mixed $intl = null;
+    private static ?self $instance = null;
 
-    public static function setTranslator(TranslatorInterface $translator): void
+    public function __construct(
+        private readonly Translator $translator,
+        private readonly IntlModule $intl,
+    ) {}
+
+    /**
+     * Registers the DI-constructed instance as the static accessor target.
+     * Called exactly once during module boot with a properly constructed instance.
+     */
+    public static function register(self $locator): void
     {
-        self::$translator = $translator;
+        self::$instance = $locator;
     }
 
-    public static function getTranslator(): TranslatorInterface
+    public static function getTranslator(): Translator
     {
-        if (self::$translator === null) {
-            throw new \RuntimeException('Translator not initialized. Was IntlModule booted?');
+        return self::resolve()->translator;
+    }
+
+    public static function getIntl(): IntlModule
+    {
+        return self::resolve()->intl;
+    }
+
+    private static function resolve(): self
+    {
+        if (self::$instance === null) {
+            throw new \RuntimeException('IntlServiceLocator not initialized. Was IntlModule booted?');
         }
 
-        return self::$translator;
-    }
-
-    public static function setIntl(mixed $intl): void
-    {
-        self::$intl = $intl;
-    }
-
-    public static function getIntl(): mixed
-    {
-        if (self::$intl === null) {
-            throw new \RuntimeException('Intl service not initialized. Was IntlModule booted?');
-        }
-
-        return self::$intl;
+        return self::$instance;
     }
 }
