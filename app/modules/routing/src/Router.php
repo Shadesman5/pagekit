@@ -140,6 +140,9 @@ class Router implements RouterInterface, LinkReferenceType
     {
         if (!$this->routes) {
             $this->routes = $this->loader->load($this->resource);
+            if ($this->routes === null) {
+                throw new \RuntimeException('Router: loader returned null for route collection.');
+            }
         }
 
         return $this->routes;
@@ -316,7 +319,8 @@ class Router implements RouterInterface, LinkReferenceType
         } catch (RouteNotFoundException $e) {
 
             if (filter_var($url, FILTER_VALIDATE_URL) === false && strpos($url, '/') !== 0) {
-                $url = "{$this->getRequest()->getBaseUrl()}/$url";
+                $request = $this->getRequest();
+                $url = $request !== null ? "{$request->getBaseUrl()}/$url" : "/$url";
             }
         }
 
@@ -330,7 +334,10 @@ class Router implements RouterInterface, LinkReferenceType
      */
     public function match(string $pathinfo): array
     {
-        $this->context->fromRequest($this->getRequest());
+        $request = $this->getRequest();
+        if ($request !== null) {
+            $this->context->fromRequest($request);
+        }
 
         $params = $this->getMatcher()->match($pathinfo);
 

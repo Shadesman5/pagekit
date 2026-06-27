@@ -58,6 +58,10 @@ class UrlProvider
     public function base($referenceType = UrlGenerator::ABSOLUTE_PATH): string
     {
         $request = $this->router->getRequest();
+        if ($request === null) {
+            return '';
+        }
+
         $url = $request->getBasePath();
 
         if ($referenceType === UrlGenerator::ABSOLUTE_URL) {
@@ -77,6 +81,9 @@ class UrlProvider
     public function current($referenceType = UrlGenerator::ABSOLUTE_PATH): string
     {
         $request = $this->router->getRequest();
+        if ($request === null) {
+            return '';
+        }
 
         $url = $request->getBaseUrl();
 
@@ -96,7 +103,7 @@ class UrlProvider
      */
     public function previous(): ?string
     {
-        return $this->router->getRequest()->headers->get('referer');
+        return $this->router->getRequest()?->headers->get('referer');
     }
 
     /**
@@ -141,7 +148,8 @@ class UrlProvider
             $url = $this->router->generate($name, $parameters, $type);
 
             if ($referenceType === self::BASE_PATH) {
-                $url = substr($url, strlen($this->router->getRequest()->getBaseUrl()));
+                $request = $this->router->getRequest();
+                $url = substr($url, $request !== null ? strlen($request->getBaseUrl()) : 0);
             }
 
             return $url;
@@ -181,7 +189,8 @@ class UrlProvider
         }
 
         if ($referenceType === self::BASE_PATH) {
-            $url = substr($url, strlen($this->router->getRequest()->getBasePath()));
+            $request = $this->router->getRequest();
+            $url = substr($url, $request !== null ? strlen($request->getBasePath()) : 0);
         }
 
         return $this->parseQuery($url, $parameters);

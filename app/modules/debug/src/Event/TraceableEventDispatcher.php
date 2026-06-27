@@ -322,7 +322,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
             }
             // Unwrap listener
             $this->dispatcher->off($eventName, $listener);
-            $this->dispatcher->on($eventName, $listener->getWrappedListener(), $listener->getPriority());
+            $this->dispatcher->on($eventName, $listener->getWrappedListener(), $listener->getPriority() ?? 0);
 
             $info = $this->getListenerInfo($listener->getWrappedListener(), $eventName);
             if ($listener->wasCalled()) {

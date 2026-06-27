@@ -74,7 +74,7 @@ class FilterManager
      */
     public function get(string $name, array $options = []): FilterInterface
     {
-        if (array_key_exists($name, $this->defaults)) {
+        if ($this->defaults !== null && array_key_exists($name, $this->defaults)) {
             $this->filters[$name] = $this->defaults[$name];
         }
 

@@ -86,6 +86,10 @@ class Event implements EventInterface, \ArrayAccess
      */
     public function getDispatcher(): EventDispatcherInterface
     {
+        if ($this->dispatcher === null) {
+            throw new \LogicException('Event: dispatcher has not been set.');
+        }
+
         return $this->dispatcher;
     }
 

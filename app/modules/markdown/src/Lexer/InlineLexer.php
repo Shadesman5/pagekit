@@ -123,7 +123,7 @@ class InlineLexer
             if ((preg_match($this->rules['reflink'], $src, $cap)) || (preg_match($this->rules['nolink'], $src, $cap))) {
 
                 $src = substr($src, strlen($cap[0]));
-                $link = preg_replace('/\s+/m', ' ', isset($cap[2]) ? $cap[2] : $cap[1]);
+                $link = preg_replace('/\s+/m', ' ', isset($cap[2]) ? $cap[2] : $cap[1]) ?? '';
                 $link = isset($this->links[strtolower($link)]) ? $this->links[strtolower($link)] : null;
 
                 if (!$link || !$link["href"]) {
@@ -210,7 +210,7 @@ class InlineLexer
      */
     protected function outputLink(array $cap, array $link): string
     {
-        $href = Markdown::escape($link['href']);
+        $href = Markdown::escape($link['href'] ?? '');
         $title = $link['title'] ? Markdown::escape($link['title']) : '';
 
         return $cap[0][0] !== '!' ? $this->renderer->link($href, $title, $this->output($cap[1])) : $this->renderer->image($href, $title, Markdown::escape($cap[1]));
@@ -219,7 +219,7 @@ class InlineLexer
     /**
      * Smartypants transformations.
      */
-    protected function smartypants(string $text): ?string
+    protected function smartypants(string $text): string
     {
         if (!$this->options['smartypants']) {
             return $text;
@@ -229,19 +229,19 @@ class InlineLexer
         $text = str_replace('--', '&mdash;', $text);
 
         // opening singles
-        $text = preg_replace('/(^|[-—\/(\[\{"\s])\'/m', '&mdash;', $text);
+        $text = preg_replace('/(^|[-—\/(\[\{"\s])\'/m', '&mdash;', $text) ?? $text;
 
         // closing singles & apostrophes
         $text = str_replace('\'', '&rsquo;', $text);
 
         // opening doubles
-        $text = preg_replace('/(^|[-—\/(\[\{‘\s])"/m', '$1&ldquo;', $text);
+        $text = preg_replace('/(^|[-—\/(\[\{‘\s])"/m', '$1&ldquo;', $text) ?? $text;
 
         // closing doubles
         $text = str_replace('"', '&rdquo;', $text);
 
         // opening doubles
-        $text = preg_replace('/\.{3}/m', '&hellip;', $text);
+        $text = preg_replace('/\.{3}/m', '&hellip;', $text) ?? $text;
 
         return $text;
     }

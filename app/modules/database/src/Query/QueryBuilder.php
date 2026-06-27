@@ -776,6 +776,6 @@ class QueryBuilder
 
     protected function parameter(string $name): string
     {
-        return preg_replace('/[^a-zA-Z0-9_]/', '_', $name);
+        return preg_replace('/[^a-zA-Z0-9_]/', '_', $name) ?? $name;
     }
 }

@@ -164,7 +164,7 @@ class Connection extends BaseConnection
     public function replacePrefix(string $query): string
     {
         $offset = 0;
-        $length = strlen($this->prefix) - strlen($this->placeholder);
+        $length = strlen($this->prefix ?? '') - strlen($this->placeholder);
 
         foreach ($this->getUnquotedQueryParts($query) as $part) {
 
@@ -174,7 +174,7 @@ class Connection extends BaseConnection
 
             $replace = preg_replace($this->regex['placeholder'], $this->prefix.'$1', $part[0], -1, $count);
 
-            if ($count) {
+            if ($count && $replace !== null) {
                 $query = substr_replace($query, $replace, $part[1] + $offset, strlen($part[0]));
                 $offset += $length;
             }

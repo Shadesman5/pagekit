@@ -213,7 +213,7 @@ class View
         $this->events->trigger($event, [$this]);
 
         if (!$event->isPropagationStopped()) {
-            $name = preg_replace('/\.php$/i', '', $name);
+            $name = preg_replace('/\.php$/i', '', $name) ?? $name;
             $this->events->trigger($event->setName($name), [$this]);
         }
 
@@ -225,6 +225,12 @@ class View
 
             // Special handling for 'layout' - if no layout template exists, return null
             if ($template === 'layout' && !$this->engine->exists($template)) {
+                array_pop($this->parameters);
+
+                return null;
+            }
+
+            if ($template === null) {
                 array_pop($this->parameters);
 
                 return null;

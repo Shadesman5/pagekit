@@ -47,7 +47,7 @@ class PhpMatcherDumper extends CompiledUrlMatcherDumper
         ], $options);
 
         $code = parent::dump();
-        $code = preg_replace('#\n    ([^ ].*?) // \$(\w++)$#m', "\n    \$this->$2 = $1", $code);
+        $code = preg_replace('#\n    ([^ ].*?) // \$(\w++)$#m', "\n    \$this->$2 = $1", $code) ?? $code;
         $code = str_replace(",\n    $", ";\n    $", $code);
         $code = substr($code, strpos($code, '$this') - 4, -5).";\n";
         $code = preg_replace('/^    \$this->\w++ = (?:null|false|\[\n    \]);\n/m', '', $code);

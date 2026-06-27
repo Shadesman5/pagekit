@@ -38,7 +38,8 @@ class RoutesLoader implements LoaderInterface
      */
     public function load($routes): RouteCollection
     {
-        $this->routes = new RouteCollection();
+        $collection = new RouteCollection();
+        $this->routes = $collection;
 
         foreach ($routes as $route) {
 
@@ -62,7 +63,9 @@ class RoutesLoader implements LoaderInterface
 
         }
 
-        return $this->routes;
+        $this->routes = null;
+
+        return $collection;
     }
 
     /**
@@ -72,6 +75,9 @@ class RoutesLoader implements LoaderInterface
      */
     protected function addRoute(Route $route): void
     {
+        if ($this->routes === null) {
+            return;
+        }
         $this->routes->add($route->getName(), $route);
         $this->events->trigger('route.configure', [$route, $this->routes]);
     }

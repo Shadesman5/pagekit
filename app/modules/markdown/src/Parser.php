@@ -11,8 +11,8 @@ class Parser
     /** @var array<string, mixed>|null */
     protected ?array $token = null;
 
-    /** @var array<int|string, mixed>|null */
-    protected ?array $tokens = null;
+    /** @var array<int|string, mixed> */
+    protected array $tokens = [];
 
     protected ?InlineLexer $inline = null;
 
@@ -83,6 +83,9 @@ class Parser
      */
     protected function parseText(): string
     {
+        if ($this->token === null || $this->inline === null) {
+            return '';
+        }
         $body = $this->token['text'];
 
         while (($token = $this->peek()) && $token['type'] == 'text') {
@@ -98,6 +101,10 @@ class Parser
      */
     protected function tok(): string
     {
+        if ($this->token === null || $this->inline === null) {
+            return '';
+        }
+
         $body = '';
 
         switch ($this->token['type']) {
@@ -149,7 +156,7 @@ class Parser
 
             case 'blockquote_start':
 
-                while ($this->next() && $this->token['type'] !== 'blockquote_end') {
+                while (($token = $this->next()) !== null && $token['type'] !== 'blockquote_end') {
                     $body .= $this->tok();
                 }
 
@@ -159,7 +166,7 @@ class Parser
 
                 $ordered = $this->token['ordered'];
 
-                while ($this->next() && $this->token['type'] !== 'list_end') {
+                while (($token = $this->next()) !== null && $token['type'] !== 'list_end') {
                     $body .= $this->tok();
                 }
 
@@ -167,15 +174,15 @@ class Parser
 
             case 'list_item_start':
 
-                while ($this->next() && $this->token['type'] !== 'list_item_end') {
-                    $body .= ($this->token['type'] === 'text') ? $this->parseText() : $this->tok();
+                while (($token = $this->next()) !== null && $token['type'] !== 'list_item_end') {
+                    $body .= ($token['type'] === 'text') ? $this->parseText() : $this->tok();
                 }
 
                 return $this->renderer->listitem($body);
 
             case 'loose_item_start':
 
-                while ($this->next() && $this->token['type'] !== 'list_item_end') {
+                while (($token = $this->next()) !== null && $token['type'] !== 'list_item_end') {
                     $body .= $this->tok();
                 }
 
