@@ -98,7 +98,7 @@ class ResetPasswordController
             try {
 
                 $mail = $this->mailer->create();
-                $mail->to($user->email)
+                $mail->to($user->email ?? '')
                     ->subject(__('Reset password for %site%.', ['%site%' => $this->module->get('system/site')->config('title')]))
                     ->html(($this->view)('system/user:mails/reset.php', compact('user', 'url', 'mail')));
 

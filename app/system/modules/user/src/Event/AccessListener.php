@@ -39,12 +39,12 @@ class AccessListener implements EventSubscriberInterface
      */
     public function onConfigureRoute(Event $event, Route $route): void
     {
-        if (!$route->getControllerClass()) {
-            return;
-        }
-
         $class = $route->getControllerClass();
         $method = $route->getControllerMethod();
+
+        if ($class === null || $method === null) {
+            return;
+        }
 
         $access = [];
 
@@ -95,7 +95,8 @@ class AccessListener implements EventSubscriberInterface
     public function onAuthorize(AuthorizeEvent $event): void
     {
         $redirect = $this->requestStack->getCurrentRequest()?->get('redirect');
-        if ($redirect && strpos($redirect, (string) ($this->url)('@system', [], UrlGenerator::ABSOLUTE_URL)) === 0 && !$event->getUser()->hasAccess('system: access admin area')) {
+        $eventUser = $event->getUser();
+        if ($redirect && strpos($redirect, (string) ($this->url)('@system', [], UrlGenerator::ABSOLUTE_URL)) === 0 && !($eventUser instanceof User && $eventUser->hasAccess('system: access admin area'))) {
             throw new AuthException(__('You do not have access to the administration area of this site.'));
         }
     }

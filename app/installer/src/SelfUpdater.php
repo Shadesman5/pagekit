@@ -71,13 +71,13 @@ class SelfUpdater
             }));
 
             if ($this->isWritable($fileList, $path) !== true) {
-                throw new \RuntimeException(array_reduce($fileList, fn ($carry, $file) => $carry . sprintf("'%s' not writable\n", $file)));
+                throw new \RuntimeException(array_reduce($fileList, fn ($carry, $file) => $carry . sprintf("'%s' not writable\n", $file), ''));
             }
 
             $requirements = include "zip://{$file}#app/installer/requirements.php";
             if ($failed = $requirements->getFailedRequirements()) {
 
-                throw new \RuntimeException(array_reduce($failed, fn ($carry, $problem) => $carry . "\n" . $problem->getHelpText()));
+                throw new \RuntimeException(array_reduce($failed, fn ($carry, $problem) => $carry . "\n" . $problem->getHelpText(), ''));
 
             }
 

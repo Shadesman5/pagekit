@@ -31,11 +31,12 @@ class UserModule extends Module
         return null;
     }
 
-    private function assertBooted(): void
+    private function assertBooted(): App
     {
         if ($this->app === null) {
             throw new \LogicException('UserModule::main() has not been called yet.');
         }
+        return $this->app;
     }
 
     /**
@@ -44,15 +45,15 @@ class UserModule extends Module
     public function getPermissions(): array
     {
         if (!$this->perms) {
-            $this->assertBooted();
+            $app = $this->assertBooted();
 
-            foreach ($this->app->get('module') as $module) {
+            foreach ($app->get('module') as $module) {
                 if ($perms = $module->get('permissions')) {
                     $this->registerPermissions($module->get('name'), $perms);
                 }
             }
 
-            $this->app->get('events')->trigger('user.permission', [$this]);
+            $app->get('events')->trigger('user.permission', [$this]);
         }
 
         return $this->perms;

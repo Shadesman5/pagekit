@@ -71,7 +71,7 @@ class Installer
 
             } catch (ConnectionException $e) {
 
-                if ($e->getPrevious()->getCode() == 1049) {
+                if ($e->getPrevious() !== null && $e->getPrevious()->getCode() == 1049) {
                     $this->createDatabase();
                     $status = 'no-tables';
                 } else {

@@ -179,7 +179,7 @@ class Composer
         $composer = Factory::create($this->getIO(), $config);
         $composer->setLocker(new Locker(
             $this->getIO(),
-            new JsonFile(preg_replace('/\.php$/i', '.lock', $this->file)),
+            new JsonFile(preg_replace('/\.php$/i', '.lock', $this->file) ?? $this->file),
             $composer->getRepositoryManager(),
             $composer->getInstallationManager(),
             json_encode($config)

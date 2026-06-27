@@ -59,7 +59,7 @@ class ExtensionTranslateCommand extends Command
 
         $this->line("Traversing extension files.");
 
-        $progress = new ProgressBar($this->output, count($files));
+        $progress = new ProgressBar($output, count($files));
         $progress->start();
 
         foreach ($files as $file) {
@@ -158,9 +158,10 @@ class ExtensionTranslateCommand extends Command
 
         // php matches ...->trans('foo'[, args]) or __('foo'[, args])
         // php matches ...->transChoice('foo'[, args]) or _c('foo'[, args])
-        $this->visitor->traverse([$file]);
+        $visitor = $this->visitor ?? throw new \LogicException('PhpNodeVisitor not initialized — call execute() first.');
+        $visitor->traverse([$file]);
 
-        foreach ($this->visitor->results as $domain => $strings) {
+        foreach ($visitor->results as $domain => $strings) {
             foreach (array_keys($strings) as $string) {
                 $pairs[] = [$domain, $string];
             }
@@ -268,7 +269,7 @@ class ExtensionTranslateCommand extends Command
      */
     protected function getHeader($extension, $domain): string
     {
-        $version = $this->getApplication()->getVersion();
+        $version = $this->getApplication()?->getVersion() ?? 'dev';
         $date = date("Y-m-d H:iO");
 
         return <<<EOD

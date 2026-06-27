@@ -73,6 +73,9 @@ class ProfileController
         try {
 
             $user = User::find($this->user->id);
+            if ($user === null) {
+                throw new NotFoundHttpException();
+            }
 
             if ($password = @$data['password_new']) {
 

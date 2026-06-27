@@ -74,11 +74,12 @@ class SystemModule extends Module
     /**
      * Gets the system menu.
      */
-    private function assertBooted(): void
+    private function assertBooted(): App
     {
         if ($this->app === null) {
             throw new \LogicException('SystemModule::main() has not been called yet.');
         }
+        return $this->app;
     }
 
     public function getMenu(): object
@@ -86,15 +87,15 @@ class SystemModule extends Module
         static $menu;
 
         if (!$menu) {
-            $this->assertBooted();
+            $app = $this->assertBooted();
 
             $menu = new SystemMenu(
-                $this->app->get('user'),
-                $this->app->get('request'),
-                $this->app->get('url'),
+                $app->get('user'),
+                $app->get('request'),
+                $app->get('url'),
             );
 
-            foreach ($this->app->get('module') as $module) {
+            foreach ($app->get('module') as $module) {
                 foreach ((array) $module->get('menu') as $id => $item) {
                     $menu->addItem($id, $item);
                 }
