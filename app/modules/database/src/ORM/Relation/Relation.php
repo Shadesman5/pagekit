@@ -119,6 +119,10 @@ abstract class Relation
     {
         $identifier = $this->targetMetadata->getIdentifier();
 
+        if ($identifier === null) {
+            throw new \LogicException(sprintf("No identifier found for target entity '%s'.", $this->targetEntity));
+        }
+
         foreach ($targets as $target) {
 
             $id = $this->targetMetadata->getValue($target, $this->keyTo, true);

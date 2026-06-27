@@ -54,7 +54,7 @@ class HasMany extends HasOne
      */
     protected function mapBelongsTo(array $entities): void
     {
-        if ($this->belongsTo) {
+        if ($this->belongsTo !== null) {
             foreach ($entities as $entity) {
                 foreach ($this->metadata->getValue($entity, $this->name) as $target) {
                     $this->targetMetadata->setValue($target, $this->belongsTo, $entity, true);

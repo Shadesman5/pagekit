@@ -17,7 +17,8 @@ class EntityManager
 
     protected EventDispatcherInterface $events;
 
-    protected static ?self $instance = null;
+    // TODO: Must be refactored in Step 2.1.11 (EntityManager DI)
+    private static ?self $instance = null;
 
     /**
      * Creates a new Manager instance
@@ -32,12 +33,7 @@ class EntityManager
         $this->metadata = $metadata;
         $this->events = $events ?: new PrefixEventDispatcher('model.');
 
-        // TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 — Strict Typing) — 2.1.6 hardens
-        // the typing only (no wrap, one mechanism). Removing this singleton entirely (Active-Record →
-        // Data-Mapper / DI: inject the EntityManager / use repositories instead of static
-        // Model::find() + getInstance(), then drop static::$instance, getInstance(), and the `db.em`
-        // boot line in app/system/index.php) is Step 2.1.11 (#205 — EntityManager DI), not 2.1.6.
-        static::$instance = $this;
+        self::$instance = $this;
     }
 
     /**
@@ -69,15 +65,16 @@ class EntityManager
     /**
      * Retrieve an entity by its identifier.
      *
-     * @param  string $entity
-     * @param  mixed  $identifier
+     * @param  string     $entity
+     * @param  int|string $identifier
      * @return object|null
      */
-    public function find(string $entity, mixed $identifier): ?object
+    public function find(string $entity, int|string $identifier): ?object
     {
         $callable = "{$entity}::find";
         if (is_callable($callable)) {
-            return call_user_func($callable, $identifier);
+            $result = call_user_func($callable, $identifier);
+            return is_object($result) ? $result : null;
         }
 
         return null;
@@ -143,6 +140,10 @@ class EntityManager
         $metadata = $this->getMetadata($entity);
         $identifier = $metadata->getIdentifier(true);
 
+        if ($identifier === null) {
+            throw new \LogicException(sprintf("No identifier column mapping found for entity '%s'.", get_class($entity)));
+        }
+
         $metadata->setValues($entity, $data, false, true);
 
         $this->trigger(Events::SAVING, $metadata, [$entity, $data]);
@@ -182,6 +183,10 @@ class EntityManager
     {
         $metadata = $this->getMetadata($entity);
         $identifier = $metadata->getIdentifier(true);
+
+        if ($identifier === null) {
+            throw new \LogicException(sprintf("No identifier column mapping found for entity '%s'.", get_class($entity)));
+        }
 
         if ($value = $metadata->getValue($entity, $identifier, true)) {
 
@@ -223,6 +228,10 @@ class EntityManager
         $result = [];
         $identifier = $metadata->getIdentifier();
 
+        if ($identifier === null) {
+            throw new \LogicException(sprintf("No identifier field found for entity '%s'.", $metadata->getClass()));
+        }
+
         while ($row = $statement->fetchAssociative()) {
             $entity = $this->load($metadata, $row, true, true);
             $result[$metadata->getValue($entity, $identifier)] = $entity;
@@ -256,12 +265,10 @@ class EntityManager
         $this->events->trigger("{$metadata->getEventPrefix()}.{$name}", $arguments);
     }
 
-    /**
-     * Gets the instance.
-     */
+    // TODO: Must be refactored in Step 2.1.11 (EntityManager DI)
     public static function getInstance(): ?self
     {
-        return static::$instance;
+        return self::$instance;
     }
 
     /**
