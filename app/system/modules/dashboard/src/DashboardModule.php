@@ -65,6 +65,7 @@ class DashboardModule extends Module
         if ($this->app === null) {
             throw new \LogicException('DashboardModule::main() has not been called yet.');
         }
+
         return $this->app;
     }
 }

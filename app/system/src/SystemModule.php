@@ -82,6 +82,7 @@ class SystemModule extends Module
         if ($this->app === null) {
             throw new \LogicException('SystemModule::main() has not been called yet.');
         }
+
         return $this->app;
     }
 

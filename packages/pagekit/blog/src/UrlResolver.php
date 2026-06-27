@@ -173,12 +173,12 @@ class UrlResolver implements ParamsResolverInterface
     {
         $date = $post->date;
         $this->cacheEntries[$post->id] = [
-            'id'     => $post->id,
-            'slug'   => $post->slug,
-            'year'   => $date?->format('Y') ?? '',
-            'month'  => $date?->format('m') ?? '',
-            'day'    => $date?->format('d') ?? '',
-            'hour'   => $date?->format('H') ?? '',
+            'id' => $post->id,
+            'slug' => $post->slug,
+            'year' => $date?->format('Y') ?? '',
+            'month' => $date?->format('m') ?? '',
+            'day' => $date?->format('d') ?? '',
+            'hour' => $date?->format('H') ?? '',
             'minute' => $date?->format('i') ?? '',
             'second' => $date?->format('s') ?? '',
         ];

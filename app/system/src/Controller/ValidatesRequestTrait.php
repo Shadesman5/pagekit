@@ -86,6 +86,7 @@ trait ValidatesRequestTrait
         $firstError = 'Validation failed';
         foreach ($violations as $firstViolation) {
             $firstError = $firstViolation->getMessage();
+
             break;
         }
 
