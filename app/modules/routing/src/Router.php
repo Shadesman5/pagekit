@@ -6,7 +6,7 @@ namespace Pagekit\Routing;
 
 use Pagekit\Routing\Generator\UrlGenerator;
 use Pagekit\Routing\Generator\UrlGeneratorDumper;
-use Pagekit\Routing\Generator\UrlGeneratorInterface;
+use Pagekit\Routing\Generator\LinkReferenceType;
 use Pagekit\Routing\Loader\LoaderInterface;
 use Pagekit\Routing\Matcher\Dumper\PhpMatcherDumper;
 use Pagekit\Routing\RequestContext as Context;
@@ -20,7 +20,7 @@ use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 use Symfony\Component\Routing\RouterInterface;
 
-class Router implements RouterInterface, UrlGeneratorInterface
+class Router implements RouterInterface, LinkReferenceType
 {
     protected ResourceInterface $resource;
 

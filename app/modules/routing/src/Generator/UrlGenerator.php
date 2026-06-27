@@ -6,7 +6,7 @@ namespace Pagekit\Routing\Generator;
 
 use Symfony\Component\Routing\Generator\UrlGenerator as BaseUrlGenerator;
 
-class UrlGenerator extends BaseUrlGenerator implements UrlGeneratorInterface
+class UrlGenerator extends BaseUrlGenerator implements LinkReferenceType
 {
     /**
      * {@inheritdoc}
@@ -32,7 +32,7 @@ class UrlGenerator extends BaseUrlGenerator implements UrlGeneratorInterface
             }
         }
 
-        if ($referenceType === UrlGeneratorInterface::LINK_URL) {
+        if ($referenceType === LinkReferenceType::LINK_URL) {
             return $link;
         }
 
