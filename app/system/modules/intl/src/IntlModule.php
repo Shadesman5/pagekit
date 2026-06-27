@@ -16,7 +16,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 class IntlModule extends Module
 {
-    protected App $app;
+    protected ?App $app = null;
 
     /**
      * @return mixed Genuinely unknown type — overrides Module::main(); the return value is not consumed by the framework (inherited contract from ModuleInterface).
@@ -206,9 +206,9 @@ class IntlModule extends Module
      */
     public function loadLocale($locale, ?TranslatorInterface $translator = null): void
     {
-        $translator = $translator ?: $this->app->get('translator');
+        $translator = $translator ?: $this->getApp()->get('translator');
 
-        foreach ($this->app->get('module') as $module) {
+        foreach ($this->getApp()->get('module') as $module) {
 
             $domains = [];
             $path = $module->get('path').($module->get('languages') ?: '/languages');
@@ -306,7 +306,7 @@ class IntlModule extends Module
         static $data = [];
 
         if (!isset($data[$file])) {
-            $resolved = $this->app->get('locator')->get($file);
+            $resolved = $this->getApp()->get('locator')->get($file);
             if ($resolved && ($contents = file_get_contents($resolved)) !== false) {
                 $data[$file] = json_decode($contents, true);
             } else {
@@ -315,5 +315,17 @@ class IntlModule extends Module
         }
 
         return $data[$file];
+    }
+
+    /**
+     * Returns the application instance, asserting main() has been called.
+     */
+    private function getApp(): App
+    {
+        if ($this->app === null) {
+            throw new \LogicException('IntlModule::main() has not been called yet.');
+        }
+
+        return $this->app;
     }
 }

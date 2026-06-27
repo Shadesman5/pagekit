@@ -22,17 +22,17 @@ class UrlResolver implements ParamsResolverInterface
 
     // Static service references set during blog module boot,
     // required because Router instantiates resolvers via `new $class` (no DI).
-    // TODO: TEMPORARY BRIDGE - To be removed after routing factory supports DI (prerequisite Step 1.8)
+    // TODO: TEMPORARY BRIDGE - To be removed in Step 2.5 (Extension Safety System) when routing factory gains DI support
     private static ?CacheItemPoolInterface $cache = null;
     private static ?Module $module = null;
 
-    // TODO: TEMPORARY BRIDGE - To be removed after routing factory supports DI (prerequisite Step 1.8)
+    // TODO: TEMPORARY BRIDGE - To be removed in Step 2.5 (Extension Safety System) when routing factory gains DI support
     public static function setCache(?CacheItemPoolInterface $cache): void
     {
         self::$cache = $cache;
     }
 
-    // TODO: TEMPORARY BRIDGE - To be removed after routing factory supports DI (prerequisite Step 1.8)
+    // TODO: TEMPORARY BRIDGE - To be removed in Step 2.5 (Extension Safety System) when routing factory gains DI support
     public static function setModule(Module $module): void
     {
         self::$module = $module;
