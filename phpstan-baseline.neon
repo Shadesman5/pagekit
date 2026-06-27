@@ -13,18 +13,6 @@ parameters:
 			path: app/console/app.php
 
 		-
-			message: '#^Call to an undefined method Pagekit\\Container\:\:boot\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/console/src/Commands/SetupCommand.php
-
-		-
-			message: '#^Parameter \#1 \$app of class Pagekit\\Installer\\Installer constructor expects Pagekit\\Application, Pagekit\\Container\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/console/src/Commands/SetupCommand.php
-
-		-
 			message: '#^Parameter \#1 \$app of class Pagekit\\Installer\\Package\\PackageManager constructor expects Psr\\Container\\ContainerInterface, Symfony\\Component\\Console\\Output\\OutputInterface given\.$#'
 			identifier: argument.type
 			count: 1
@@ -233,12 +221,6 @@ parameters:
 			identifier: variable.undefined
 			count: 2
 			path: app/modules/application/index.php
-
-		-
-			message: '#^Call to an undefined method Symfony\\Component\\Console\\Helper\\HelperInterface\:\:ask\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: app/modules/application/src/Application/Console/Command.php
 
 		-
 			message: '#^Unreachable statement \- code above always terminates\.$#'

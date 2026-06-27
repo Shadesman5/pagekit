@@ -7,7 +7,6 @@ namespace Pagekit\Application\Console;
 use Pagekit\Application as Container;
 use Pagekit\Event\Event;
 use Symfony\Component\Console\Application as BaseApplication;
-use Symfony\Component\Console\Command\Command as BaseCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -42,20 +41,8 @@ class Application extends BaseApplication
         return $code;
     }
 
-    /**
-     * Add a command to the console.
-     *
-     * @param  BaseCommand $command
-     * @return BaseCommand
-     */
-    // TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 — Strict Typing) —
-    // convert console commands from setter injection (Command::setContainer()) to constructor DI / a command factory.
-    public function add(BaseCommand $command): ?\Symfony\Component\Console\Command\Command
+    public function getContainer(): Container
     {
-        if ($command instanceof Command) {
-            $command->setContainer($this->container);
-        }
-
-        return parent::add($command);
+        return $this->container;
     }
 }
