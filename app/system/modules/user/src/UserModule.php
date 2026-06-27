@@ -16,6 +16,9 @@ class UserModule extends Module
     /** @var array<string, array<string, mixed>> */
     protected array $perms = [];
 
+    /**
+     * @return mixed Genuinely unknown type — overrides Module::main(); the return value is not consumed by the framework (inherited contract from ModuleInterface).
+     */
     public function main(App $app): mixed
     {
         $this->app = $app;

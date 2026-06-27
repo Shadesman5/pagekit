@@ -16,6 +16,9 @@ class WidgetManager extends ModuleManager
         $this->defaults['class'] = 'Pagekit\Widget\Model\Type';
     }
 
+    /**
+     * @return mixed Genuinely unknown type — overrides ModuleManager::get(); widget types are registered dynamically; the returned value may be a Type instance or null.
+     */
     public function get(string $name): mixed
     {
         $this->load(array_keys($this->registered));

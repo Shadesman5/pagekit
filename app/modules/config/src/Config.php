@@ -29,6 +29,9 @@ class Config implements \ArrayAccess, \Countable, \JsonSerializable
         return Arr::has($this->values, $key);
     }
 
+    /**
+     * @return mixed Genuinely unknown type — config values may be any scalar, array, or null depending on what was stored.
+     */
     public function get(?string $key, mixed $default = null): mixed
     {
         return Arr::get($this->values, $key, $default);
@@ -168,6 +171,7 @@ class Config implements \ArrayAccess, \Countable, \JsonSerializable
         return $this->has($key);
     }
 
+    /** @return mixed Genuinely unknown type — implements \ArrayAccess; value type depends on what was stored at offset. */
     public function offsetGet(mixed $key): mixed
     {
         return $this->get($key);

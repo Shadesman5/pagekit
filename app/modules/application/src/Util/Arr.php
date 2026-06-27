@@ -42,6 +42,7 @@ class Arr
      * Gets a value by key.
      *
      * @param array<int|string, mixed> $array
+     * @return mixed Genuinely unknown type — the array may contain any value; the caller is responsible for type-narrowing the result.
      */
     public static function get(array $array, ?string $key, mixed $default = null): mixed
     {
@@ -71,7 +72,7 @@ class Arr
      * Sets a value.
      *
      * @param array<int|string, mixed> $array
-     * @return array<int|string, mixed>|mixed
+     * @return array<int|string, mixed>|mixed Genuinely unknown type — returns the modified array segment; when $key is null the entire array is replaced with $value which may be of any type.
      */
     public static function set(array &$array, ?string $key, mixed $value): mixed
     {

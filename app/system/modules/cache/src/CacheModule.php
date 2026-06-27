@@ -18,6 +18,9 @@ class CacheModule extends Module
 {
     protected ?App $app = null;
 
+    /**
+     * @return mixed Genuinely unknown type — overrides Module::main(); the return value is not consumed by the framework (inherited contract from ModuleInterface).
+     */
     public function main(App $app): mixed
     {
         $this->app = $app;

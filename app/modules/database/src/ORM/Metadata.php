@@ -93,7 +93,7 @@ class Metadata
     /**
      * Gets a field's mapping definitions, or a single attribute thereof.
      *
-     * @return array<string, mixed>|mixed|null Field mapping (when $attribute is null), the attribute value (when $attribute is set), or null when the field is unknown.
+     * @return array<string, mixed>|mixed|null Field mapping (when $attribute is null), the attribute value (when $attribute is set), or null when the field is unknown. Genuinely unknown type for the attribute value — field attributes are user-defined and may be any scalar or array.
      */
     public function getField(string $name, ?string $attribute = null): mixed
     {
@@ -154,7 +154,7 @@ class Metadata
      * @param  string $name
      * @param  bool   $column
      * @param  bool   $convert
-     * @return mixed
+     * @return mixed Genuinely unknown type — entity field values may be any type: int, string, DateTime, bool, or null depending on the mapped field type.
      */
     public function getValue(object $entity, string $name, bool $column = false, bool $convert = false): mixed
     {

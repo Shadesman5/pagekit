@@ -15,6 +15,12 @@ class CallableLoader implements LoaderInterface
             : \Closure::fromCallable($callable);
     }
 
+    /**
+     * {@inheritdoc}
+     *
+     * @param  mixed $module Genuinely unknown type — see LoaderInterface::load().
+     * @return mixed Genuinely unknown type — see LoaderInterface::load().
+     */
     public function load(mixed $module): mixed
     {
         return ($this->callable)($module);

@@ -90,6 +90,8 @@ abstract class Asset implements AssetInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return mixed Genuinely unknown type — asset options are user-defined key-value pairs; any scalar, array, or null is valid.
      */
     public function getOption(string $name): mixed
     {
@@ -130,6 +132,8 @@ abstract class Asset implements AssetInterface
 
     /**
      * Gets a option value.
+     *
+     * @return mixed Genuinely unknown type — implements \ArrayAccess; value type depends on what option was stored at offset.
      */
     public function offsetGet(mixed $name): mixed
     {

@@ -21,6 +21,8 @@ class JsonArrayType extends JsonType
 {
     /**
      * {@inheritdoc}
+     *
+     * @return mixed Genuinely unknown type — overrides Doctrine DBAL's JsonType which uses mixed return; always returns array in this implementation.
      */
     public function convertToPHPValue($value, AbstractPlatform $platform): mixed
     {

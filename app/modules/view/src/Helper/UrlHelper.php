@@ -39,6 +39,7 @@ class UrlHelper extends Helper
      * Proxies all method calls to the provider.
      *
      * @param array<int, mixed> $args
+     * @return mixed Genuinely unknown type — proxied to the URL provider; return type depends on the method called.
      */
     public function __call(string $method, array $args): mixed
     {

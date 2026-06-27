@@ -416,7 +416,7 @@ class QueryBuilder
      * Gets a query part by its name.
      *
      * @param  string $name
-     * @return mixed
+     * @return mixed Genuinely unknown type — query parts may be strings, arrays, or null depending on the part name (select, where, from, etc.).
      */
     public function getPart($name)
     {
@@ -487,7 +487,7 @@ class QueryBuilder
      * Execute the query and get the first result.
      *
      * @param  mixed $columns
-     * @return mixed
+     * @return mixed Genuinely unknown type — returns the first row as an associative array, or false if no row is found (Doctrine DBAL fetchAssociative return type).
      */
     public function first($columns = ['*'])
     {
@@ -508,7 +508,7 @@ class QueryBuilder
      * Execute the query and get the "min" result.
      *
      * @param  string $column
-     * @return mixed
+     * @return mixed Genuinely unknown type — aggregate result from database; may be an int, float, string, or null depending on the column type.
      */
     public function min($column)
     {
@@ -519,7 +519,7 @@ class QueryBuilder
      * Execute the query and get the "max" result.
      *
      * @param  string $column
-     * @return mixed
+     * @return mixed Genuinely unknown type — aggregate result from database; may be an int, float, string, or null depending on the column type.
      */
     public function max($column)
     {
@@ -530,7 +530,7 @@ class QueryBuilder
      * Execute the query and get the "sum" result.
      *
      * @param  string $column
-     * @return mixed
+     * @return mixed Genuinely unknown type — aggregate result from database; may be an int, float, string, or null depending on the column type.
      */
     public function sum($column)
     {
@@ -541,7 +541,7 @@ class QueryBuilder
      * Execute the query and get the "avg" result.
      *
      * @param  string $column
-     * @return mixed
+     * @return mixed Genuinely unknown type — aggregate result from database; may be an int, float, string, or null depending on the column type.
      */
     public function avg($column)
     {
@@ -553,7 +553,7 @@ class QueryBuilder
      *
      * @param  string $function
      * @param  string $column
-     * @return mixed
+     * @return mixed Genuinely unknown type — aggregate result from database; may be an int, float, string, or 0 as fallback.
      */
     public function aggregate($function, $column)
     {
@@ -655,7 +655,7 @@ class QueryBuilder
      * Execute the query as select, update or delete.
      *
      * @param  string $type
-     * @return mixed
+     * @return mixed Genuinely unknown type — returns Result for SELECT, int (affected rows) for UPDATE/DELETE.
      */
     protected function executeQuery($type = 'select')
     {

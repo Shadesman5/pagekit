@@ -223,6 +223,7 @@ class Utility
      * Proxy method call to database schema manager.
      *
      * @param array<int, mixed> $args
+     * @return mixed Genuinely unknown type — proxied to the schema manager; return type depends on the method called.
      * @throws \BadMethodCallException
      */
     public function __call(string $method, array $args): mixed

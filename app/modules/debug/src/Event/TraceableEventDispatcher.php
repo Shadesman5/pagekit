@@ -293,6 +293,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
      * Proxies all method calls to the original event dispatcher.
      *
      * @param  array<int|string, mixed> $arguments
+     * @return mixed Genuinely unknown type — proxied to the wrapped event dispatcher; return type depends on the method called.
      */
     public function __call(string $method, array $arguments): mixed
     {

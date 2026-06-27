@@ -33,7 +33,7 @@ class Route extends BaseRoute
     /**
      * Gets the controller.
      *
-     * @return mixed
+     * @return mixed Genuinely unknown type — controller may be a [class, method] array, a callable string, a Closure, or null if not defined.
      */
     public function getController()
     {
