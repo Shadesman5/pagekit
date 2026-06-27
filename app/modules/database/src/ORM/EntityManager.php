@@ -74,6 +74,7 @@ class EntityManager
         $callable = "{$entity}::find";
         if (is_callable($callable)) {
             $result = call_user_func($callable, $identifier);
+
             return is_object($result) ? $result : null;
         }
 

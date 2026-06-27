@@ -181,6 +181,7 @@ class StreamWrapper
         if ($this->handle === null) {
             return true;
         }
+
         return feof($this->handle);
     }
 
@@ -192,6 +193,7 @@ class StreamWrapper
         if ($this->handle === null) {
             return false;
         }
+
         return fflush($this->handle);
     }
 
@@ -253,6 +255,7 @@ class StreamWrapper
         if ($this->handle === null) {
             return false;
         }
+
         return !fseek($this->handle, $offset, $whence);
     }
 
@@ -266,6 +269,7 @@ class StreamWrapper
         if ($this->handle === null) {
             return false;
         }
+
         return fstat($this->handle);
     }
 
@@ -277,6 +281,7 @@ class StreamWrapper
         if ($this->handle === null) {
             return false;
         }
+
         return ftell($this->handle);
     }
 
@@ -288,6 +293,7 @@ class StreamWrapper
         if ($this->handle === null) {
             return false;
         }
+
         return fwrite($this->handle, $data);
     }
 }

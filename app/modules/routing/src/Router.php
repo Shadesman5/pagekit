@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Pagekit\Routing;
 
+use Pagekit\Routing\Generator\LinkReferenceType;
 use Pagekit\Routing\Generator\UrlGenerator;
 use Pagekit\Routing\Generator\UrlGeneratorDumper;
-use Pagekit\Routing\Generator\LinkReferenceType;
 use Pagekit\Routing\Loader\LoaderInterface;
 use Pagekit\Routing\Matcher\Dumper\PhpMatcherDumper;
 use Pagekit\Routing\RequestContext as Context;

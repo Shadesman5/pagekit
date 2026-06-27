@@ -178,13 +178,13 @@ class IntlModule extends Module
         $locale ??= $this->getLocale();
 
         $styleConstant = match (strtolower($style)) {
-            'currency'   => \NumberFormatter::CURRENCY,
-            'percent'    => \NumberFormatter::PERCENT,
-            'spellout'   => \NumberFormatter::SPELLOUT,
-            'ordinal'    => \NumberFormatter::ORDINAL,
-            'duration'   => \NumberFormatter::DURATION,
+            'currency' => \NumberFormatter::CURRENCY,
+            'percent' => \NumberFormatter::PERCENT,
+            'spellout' => \NumberFormatter::SPELLOUT,
+            'ordinal' => \NumberFormatter::ORDINAL,
+            'duration' => \NumberFormatter::DURATION,
             'scientific' => \NumberFormatter::SCIENTIFIC,
-            default      => \NumberFormatter::DECIMAL,
+            default => \NumberFormatter::DECIMAL,
         };
 
         $formatter = new \NumberFormatter($locale, $styleConstant);

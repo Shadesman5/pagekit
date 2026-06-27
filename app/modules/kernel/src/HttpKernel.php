@@ -188,6 +188,7 @@ class HttpKernel implements HttpKernelInterface
             if ($e === null) {
                 throw new \RuntimeException('Exception event has no exception and no response.');
             }
+
             throw $e;
         }
 

@@ -6,7 +6,6 @@ namespace Pagekit\Cookie\Tests;
 
 use Pagekit\Cookie\CookieJar;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\HttpFoundation\Cookie;
 
 class CookieJarTest extends TestCase
 {

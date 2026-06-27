@@ -39,6 +39,7 @@ class UserModule extends Module
         if ($this->app === null) {
             throw new \LogicException('UserModule::main() has not been called yet.');
         }
+
         return $this->app;
     }
 

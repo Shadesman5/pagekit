@@ -118,6 +118,7 @@ class CacheModule extends Module
         if ($this->app === null) {
             throw new \LogicException('CacheModule::main() has not been called yet.');
         }
+
         return $this->app;
     }
 

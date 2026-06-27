@@ -67,6 +67,7 @@ class AssetFactory
                 if (!is_string($source)) {
                     throw new \InvalidArgumentException(sprintf('Asset source must be a string, %s given.', get_debug_type($source)));
                 }
+
                 return ($type)($name, $source, $dependencies, $options);
             }
 

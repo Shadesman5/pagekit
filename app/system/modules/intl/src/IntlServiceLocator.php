@@ -20,7 +20,8 @@ final class IntlServiceLocator
     public function __construct(
         private readonly Translator $translator,
         private readonly IntlModule $intl,
-    ) {}
+    ) {
+    }
 
     /**
      * Registers the DI-constructed instance as the static accessor target.
