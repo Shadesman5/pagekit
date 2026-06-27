@@ -27,7 +27,7 @@ class NodesListener implements EventSubscriberInterface
         $frontpage = $this->site->config('frontpage');
         $nodes = Node::findAll(true);
 
-        uasort($nodes, fn ($a, $b) => substr_count($b->path, '/') <=> substr_count($a->path, '/'));
+        uasort($nodes, fn ($a, $b) => substr_count($b->path ?? '', '/') <=> substr_count($a->path ?? '', '/'));
 
         foreach ($nodes as $node) {
             if ($node->status !== 1 || !$type = $this->site->getType($node->type)) {
@@ -40,9 +40,9 @@ class NodesListener implements EventSubscriberInterface
 
             $route = null;
             if ($node->get('alias')) {
-                $this->routes->alias($node->path, $node->link, $type['defaults']);
+                $this->routes->alias($node->path ?? '', $node->link ?? '', $type['defaults']);
             } elseif ($node->get('redirect')) {
-                $this->routes->redirect($node->path, $node->get('redirect'), $type['defaults']);
+                $this->routes->redirect($node->path ?? '', $node->get('redirect'), $type['defaults']);
             } elseif ($type['controller']) {
                 $this->routes->add($type);
             }
@@ -54,7 +54,7 @@ class NodesListener implements EventSubscriberInterface
         }
 
         if ($frontpage && isset($nodes[$frontpage])) {
-            $this->routes->alias('/', $nodes[$frontpage]->link);
+            $this->routes->alias('/', $nodes[$frontpage]->link ?? '');
         } else {
             $this->routes->get('/', function () {
                 return __('No Frontpage assigned.');

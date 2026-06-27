@@ -55,6 +55,10 @@ class PositionHelper extends Helper
 
         $parameters['widgets'] = $this->getWidgets($name);
 
+        if ($this->view === null) {
+            throw new \LogicException('PositionHelper has not been registered with a View instance.');
+        }
+
         return $this->view->render($view ?: 'system/site/position.php', $parameters);
     }
 
@@ -75,6 +79,10 @@ class PositionHelper extends Helper
 
         if (null === $widgets) {
             $widgets = Widget::where(['status' => 1])->get();
+        }
+
+        if ($position === null) {
+            return [];
         }
 
         if (!$pos = $this->positions->get($position)) {

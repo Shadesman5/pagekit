@@ -28,7 +28,7 @@ class MenuApiController
         private readonly Request $request,
         private readonly FilterManager $filter,
     ) {
-        $this->siteConfig = ($this->config)('system/site');
+        $this->siteConfig = ($this->config)('system/site') ?? new Config();
     }
 
     /**

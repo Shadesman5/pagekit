@@ -1124,18 +1124,6 @@ parameters:
 			path: app/system/modules/site/src/MenuHelper.php
 
 		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$route$#'
-			identifier: parameter.notFound
-			count: 1
-			path: app/system/modules/site/src/SiteModule.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$type$#'
-			identifier: parameter.notFound
-			count: 1
-			path: app/system/modules/site/src/SiteModule.php
-
-		-
 			message: '#^Variable \$view might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
@@ -1648,7 +1636,7 @@ parameters:
 		-
 			message: '#^Undefined variable\: \$this$#'
 			identifier: variable.undefined
-			count: 2
+			count: 1
 			path: app/system/modules/widget/index.php
 
 		-
@@ -1656,18 +1644,6 @@ parameters:
 			identifier: variable.undefined
 			count: 4
 			path: app/system/modules/widget/index.php
-
-		-
-			message: '#^Access to an undefined property Pagekit\\Widget\\Model\\Widget\:\:\$position\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/system/modules/widget/src/Controller/WidgetApiController.php
-
-		-
-			message: '#^Access to an undefined property Pagekit\\Widget\\Model\\Widget\:\:\$position\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/system/modules/widget/src/Controller/WidgetController.php
 
 		-
 			message: '#^Variable \$view might not be defined\.$#'
