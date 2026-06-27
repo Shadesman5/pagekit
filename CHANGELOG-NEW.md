@@ -1,5 +1,37 @@
 # Changelog
 
+## Pagekit 1.2.21 - PHPStan Level 7 → 8 (Strict Typing) (Juni 26, 2026)
+
+### Static Analysis
+
+- **PHPStan baseline raised from `level: 7` to `level: 8`.** Strict typing enforced across `app/modules/`, `app/system/`, `app/installer/`, `app/console/`, and `packages/pagekit/blog/`. (Closes #153)
+- Added **`phpstan/phpstan-phpunit`** extension and swept test property declarations (`protected ?Type` → `private Type`).
+- **Mixed usage audit** — all remaining justified `mixed` usages documented with `@return mixed Genuinely unknown type —` docblocks.
+- **`#[AllowDynamicProperties]` fully removed** — explicit typed properties on Node, Widget, and related models.
+
+### Changed
+
+- **`MailPluginInterface`** split from `MailerInterface`; `ImpersonatePlugin` implements plugin interface only.
+- **`IntlServiceLocator`** — static container replaced with constructor DI + boot-time registration.
+- **`FileLocatorAsset`** — constructor injection via view module factory closure.
+- **Console commands** — setter-DI removed; `Container` injected via constructor.
+- **`PackageController`** — God-DI replaced with explicit service constructor parameters.
+- **`ModelServiceLocator`** — `getUrl()`/`getUser()`/`getModule()` return types narrowed from `mixed` to concrete types (architectural removal deferred to Step 2.1.10).
+- **`EntityManager`/ORM** — typing hardened on Metadata, Relation classes, PropertyTrait (singleton removal deferred to Step 2.1.11).
+- **`UrlGeneratorInterface` → `LinkReferenceType`**, **`GetResponseEvent` → `AuthResponseEvent`** renames.
+- **Null-safety sweeps** across `app/modules/` (29 files) and `app/system/` + `app/installer/` + `app/console/` (24 files).
+
+### Removed
+
+- **`DebugStack.php`** — dead code, zero callers.
+- **`AliasListener.php`** dead query-string parser block.
+- **`requirements.php`** PHP 5.x/7.x/APC dead code blocks.
+
+### Fixed
+
+- **`IntlModule::$app`** — nullable property with guard accessor (Bugbot Rule 4.2).
+- **php-cs-fixer CI** — style fixes across branch-changed files.
+
 ## Pagekit 1.2.20 - PHPStan Level 6 → 7 (Null Safety) (Juni 23, 2026)
 
 ### Static Analysis
