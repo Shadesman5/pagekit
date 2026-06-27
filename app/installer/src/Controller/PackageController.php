@@ -13,7 +13,6 @@ use Pagekit\Log\Logger;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Request as RequestAttribute;
 use Pagekit\User\Attribute\Access;
-use Psr\Container\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -21,12 +20,8 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 #[Access('system: manage packages', admin: true)]
 class PackageController
 {
-    protected PackageManager $manager;
-
-    private readonly string $systemApi;
-
     public function __construct(
-        private readonly ContainerInterface $app,
+        protected PackageManager $manager,
         private readonly PackageFactory $package,
         private readonly ModuleManager $module,
         private readonly UrlProvider $url,
@@ -35,11 +30,8 @@ class PackageController
         private readonly string $path,
         private readonly bool $debug,
         private readonly Logger $log,
+        private readonly string $systemApi = 'https://pagekit.com',
     ) {
-        $this->manager = new PackageManager($this->app);
-        $this->systemApi = $this->app->has('system.api')
-            ? $this->app->get('system.api')
-            : 'https://pagekit.com';
     }
 
     /**

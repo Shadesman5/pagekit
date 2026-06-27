@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Pagekit\Installer\Package\PackageFactory;
+use Pagekit\Installer\Package\PackageManager;
 use Pagekit\Kernel\Event\ExceptionListenerWrapper;
 use Pagekit\Kernel\Exception\NotFoundException;
 
@@ -13,6 +14,8 @@ return [
     'main' => function ($app) {
 
         $app->set('package', fn ($app) => (new PackageFactory($app->get('url')))->addPath($app->get('path').'/packages/*/*/composer.json'));
+        $app->set('manager', fn ($app) => new PackageManager($app));
+        $app->set('systemApi', fn ($app) => $app->has('system.api') ? $app->get('system.api') : 'https://pagekit.com');
 
         if ($this->config['enabled']) {
 
