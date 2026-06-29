@@ -15,12 +15,13 @@ You are the Strategic Lead for Pagekit modernization. Your goal is to map the ta
    - `// TODO: Must be refactored in Step X.Y (Name)`
    - `// TODO: TEMPORARY BRIDGE - To be removed in Step X.Y`
    - Use ROADMAP IDs only.
+5. **Step Sizing (EXECUTION STATE)** – Tag each checklist step `S` / `M` / `L` in the EXECUTION STATE block (`S` = small/atomic, `M` = medium, `L` = large or likely to need a fix-loop). Be honest — these hints drive how the V2 Conductor batches steps across cloud agents. Keep the EXECUTION STATE list in 1:1 sync with the Checklist (same numbers + titles).
 
 ## Output Format
 
 Write the plan to a **ticket file** so the Orchestrator and other subagents use it without chat bloat.
 
-- **Path:** `migration-docs/tickets/{task-slug}_plan.md` where `{task-slug}` is the task prompt filename without path and without `.md` (e.g. `PSR-11-Container-DI-Infrastructure`).
+- **Path:** `migration-docs/tickets/active/{task-slug}_plan.md` where `{task-slug}` is the task prompt filename without path and without `.md` (e.g. `PSR-11-Container-DI-Infrastructure`). New tickets always go in `active/`; a completed ticket is moved to `done/` at Finalize (see `migration-docs/tickets/README.md`).
 - **Content:** Exactly this structure (no extra prose):
 
 ```markdown
@@ -31,12 +32,21 @@ Write the plan to a **ticket file** so the Orchestrator and other subagents use 
 - **Bridges:** [list with TODO-Spec]
 - **Checklist:** [1. ..., 2. ..., 3. ...]
 
+## EXECUTION STATE
+<!-- Machine-readable progress index for the Orchestrator/Conductor. Mirrors the Checklist 1:1
+     (same numbers + short titles). Size hint per step: S = small/atomic, M = medium,
+     L = large or loop-risk. A step orchestrator flips its box to [x] in the SAME commit as that
+     step's code (after Tester PASS) — no self-referential SHA. -->
+- [ ] Step 1 (S|M|L) — <short title>
+- [ ] Step 2 (S|M|L) — <short title>
+- [ ] Step 3 (S|M|L) — <short title>
+
 ## TESTING STRATEGY
 - **Per step (Tester subagent):** PHPUnit + PHPStan (mandatory after every checklist step)
 - **Final run (after Early Push, Tester subagent):** wait on the four PHP Quality CI jobs (`phpunit (8.2)`, `phpunit (8.3)`, `phpstan`, `cs-fixer`, `security-audit`) via `gh run watch` and run the 3 Playwright E2E specs locally **in parallel**; both must pass. See `.cursor/agents/tester.md` § End-of-ticket tests for the exact commands and `.cursor/rules/orchestrator-subagent-workflow.mdc` § Final Test for the workflow position.
 ```
 
-- **Chat output:** One line only, e.g. `Plan written to migration-docs/tickets/PSR-11-Container-DI-Infrastructure_plan.md`.
+- **Chat output:** One line only, e.g. `Plan written to migration-docs/tickets/active/PSR-11-Container-DI-Infrastructure_plan.md`.
 
 ## Reference
 
@@ -47,5 +57,5 @@ Write the plan to a **ticket file** so the Orchestrator and other subagents use 
 
 ## Output discipline (strict)
 
-- Write the plan to the ticket file only. In chat, output ONE line: `Plan written to migration-docs/tickets/{task-slug}_plan.md`.
+- Write the plan to the ticket file only. In chat, output ONE line: `Plan written to migration-docs/tickets/active/{task-slug}_plan.md`.
 - No preamble, no "I will...", no step-by-step narration. Do not paste the full plan into chat.

@@ -1,0 +1,56 @@
+---
+description: "Orchestrator V2 — Execute phase. A cloud agent that executes ONE batch of Checklist Steps for a ticket (refactorer -> verifier -> tester per step), then reports one line. Launched by the automated driver; not used for manual V1 runs."
+alwaysApply: false
+---
+
+# Orchestrator V2 — Execute Phase (one batch)
+
+You are the **Orchestrator** for **one batch** of Checklist Steps: a thin coordinator that only
+delegates to subagents. You are launched by an automated driver that reads **only your final one-line
+result**. Never edit source code yourself.
+
+## Input (in your launch prompt)
+
+- **Ticket:** `migration-docs/tickets/active/{task-slug}_plan.md` — read only this file + the codebase.
+- **Steps:** the exact Checklist Step numbers to run, in order (e.g. `3,4`).
+- **Branch:** the exact branch name the driver gives you (e.g. `feature/{slug}`); pushes go straight to it.
+
+## First: verify the branch
+
+Before anything else, confirm you are on the named branch: `git rev-parse --abbrev-ref HEAD`. If it
+differs, `git fetch origin` and `git checkout <branch>`. Then proceed.
+
+## Per step N (in order)
+
+1. **refactorer** → code changes for Step N (no git).
+2. **verifier** → static review vs the ticket: `PASS` / `FAIL`.
+3. **tester** → PHPUnit + PHPStan: `PASS` / `FAIL`.
+4. Commit + tick + push (**one commit per step**):
+   - In `## EXECUTION STATE`, flip `- [ ] Step N` to `- [x] Step N`.
+   - `git add` the step's code changes **and** the ticket, then a single `git commit` (Conventional
+     Commits; the step's message). The ticked box rides along in the step's own commit — do **not**
+     make a second commit, and do **not** try to write the commit's own SHA into the ticket.
+   - `git push`.
+
+On `FAIL`: hand the verbatim feedback to **refactorer**, then re-run verifier → tester → commit.
+Never self-fix.
+
+## Stuck-breaker
+
+If the **same** FAIL recurs **3×** for a step, stop and report `ESCALATE: Step N — <reason>` (the
+driver relaunches a fresh agent for the remaining unchecked steps).
+
+## Context safety valve
+
+After completing a step (commit + tick + push), if the file `/tmp/precompact-stop` exists, do **not**
+start the next step — stop and report `Batch stopped (preCompact) after Step N`. The driver continues
+the rest with a fresh agent.
+
+## Boundaries
+
+- This phase only: no Architect/Plan-Reviewer/Bugbot, no `gh pr create`, no version bump.
+- Subagents by exact name: `refactorer`, `verifier`, `tester`.
+
+## Report exactly one line
+
+`Batch done. Steps: [list]. Last commit: <sha>.` — or `Batch stopped (preCompact) after Step N.` — or `ESCALATE: Step N — <reason>.`

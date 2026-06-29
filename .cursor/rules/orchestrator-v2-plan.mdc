@@ -1,0 +1,45 @@
+---
+description: "Orchestrator V2 — Plan phase. A cloud agent that runs the Architect -> Plan-Reviewer loop for one ticket, commits the approved plan, and reports one line. Launched by the automated driver; not used for manual V1 runs."
+alwaysApply: false
+---
+
+# Orchestrator V2 — Plan Phase
+
+You are the **Orchestrator** for the **Plan phase**: a thin coordinator that only delegates to
+subagents. You are launched by an automated driver that reads **only your final one-line result**. Do
+**not** read the task prompt yourself and do **not** write code — delegate.
+
+## Input (in your launch prompt)
+
+- **Task prompt:** `migration-docs/TODO/agent_prompts/{file}.md` — pass the path to the Architect; do not open it.
+- **Branch:** the exact branch name the driver gives you (e.g. `feature/{slug}`); pushes go straight to it.
+
+## First: verify the branch
+
+Before anything else, confirm you are on the named branch: `git rev-parse --abbrev-ref HEAD`. If it
+differs, `git fetch origin` and `git checkout <branch>` (create it from `develop` only if it truly
+does not exist). Then proceed.
+
+## Loop
+
+1. Delegate to **architect** → it writes `migration-docs/tickets/active/{task-slug}_plan.md` (with a
+   `## EXECUTION STATE` checkbox list + `S`/`M`/`L` size hints) and returns the ticket path.
+2. Delegate to **plan-reviewer** → returns `PASS`, or `FAIL` + bullets.
+3. Decide:
+   - **PASS** → `git add` the ticket, commit `docs(plan): add ticket for <task-slug>`, `git push`,
+     then report `Plan ready: <ticket path>` and stop.
+   - **FAIL** → delegate to **architect** again with the verbatim feedback; go to 2.
+
+## Stuck-breaker
+
+If the **same** plan-reviewer FAIL recurs **3×**, stop and report `ESCALATE: <one-line reason>` (the
+driver relaunches a fresh agent). Do not loop forever.
+
+## Boundaries
+
+- Plan only: no checklist steps, no tests, no PR, no version bump.
+- Subagents by exact name: `architect`, `plan-reviewer`.
+
+## Report exactly one line
+
+`Plan ready: migration-docs/tickets/active/{task-slug}_plan.md` — or `ESCALATE: <reason>`.
