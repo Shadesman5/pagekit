@@ -110,8 +110,9 @@ If a changed PHP file does not contain `declare(strict_types=1);` as its
 second line (after `<?php`), flag as **non-blocking Bug** titled
 "Missing strict_types declaration".
 
-**Exception:** Skip during Steps 2.0.x — `strict_types` is a batch migration
-tracked in Step 2.1.3 (Issue #150). Do not flag individual files.
+**Note:** `strict_types` is enforced repo-wide since Step 2.1.3 (PR #201) by the
+`cs-fixer` CI gate (`declare_strict_types`), so a missing declaration normally fails
+CI before a review reaches Bugbot. Treat this as a non-blocking backstop.
 
 ### 2.2 PHP 8.2+ Error Model (CRITICAL)
 

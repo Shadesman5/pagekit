@@ -111,10 +111,9 @@ jobs:
         run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: Run PHP-CS-Fixer (dry-run)
-        # --allow-risky=yes: matches local invocation and the risky `modernize_types_casting`
-        # rule already enabled in `.php-cs-fixer.php`. The risky rule is tagged
-        # `// TODO: Must be refactored in Step 2.1.3 (strict_types Migration)` and stays
-        # in scope of that step; CS-Fixer remains dry-run only here (no autofix in CI).
+        # --allow-risky=yes is required because .php-cs-fixer.php enables risky rules
+        # (modernize_types_casting, declare_strict_types). Matches the local invocation.
+        # CS-Fixer runs dry-run only in CI (no autofix) — any violation fails the gate.
         run: ./app/vendor/bin/php-cs-fixer fix --dry-run --diff --no-interaction --show-progress=none --allow-risky=yes
 
   security-audit:
