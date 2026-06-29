@@ -16,7 +16,7 @@ The word "step" is used on **two different levels**. Keep them apart:
 | Term                 | Level                                       | Meaning                                                                                     |
 | -------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | **Roadmap Step X.Y** | Roadmap (`.cursor/ROADMAP.md`)              | A whole modernization task. **One Roadmap Step = one Task Prompt = one Ticket = one PR.**   |
-| **Checklist Step N** | Ticket (`migration-docs/tickets/*_plan.md`) | A single item in the Architect's checklist inside the ticket. The loop iterates over these. |
+| **Checklist Step N** | Ticket (`migration-docs/tickets/active/*_plan.md`) | A single item in the Architect's checklist inside the ticket. The loop iterates over these. |
 
 Always qualify when there is risk of confusion: "Roadmap Step 2.0.7" vs. "Checklist Step 3".
 Inside the per-ticket loop, plain "Step N" always means **Checklist Step N**.
@@ -52,7 +52,7 @@ The Orchestrator is a **dispatcher**, not a worker. It delegates, commits, and m
 
 | Subagent       | Expected output (one line, trust verbatim)                           |
 | -------------- | -------------------------------------------------------------------- |
-| **architect**  | `Plan written to migration-docs/tickets/{task-slug}_plan.md`         |
+| **architect**  | `Plan written to migration-docs/tickets/active/{task-slug}_plan.md`         |
 | **refactorer** | `Step N done. Files: [list].`                                        |
 | **verifier**   | `PASS` — or `FAIL` followed by a short bullet list of issues         |
 | **tester**     | `PASS` — or `FAIL` followed by minimal RCA (command + error snippet) |
@@ -61,13 +61,13 @@ If a subagent returns something else (preamble, prose, multi-paragraph review), 
 
 ## Handoff Format
 
-Plans live in `migration-docs/tickets/{task-slug}_plan.md` (`task-slug` = task prompt filename without path/extension). Subagents read only the ticket file (and code); they do not need the full task prompt.
+Plans live in `migration-docs/tickets/active/{task-slug}_plan.md` (`task-slug` = task prompt filename without path/extension). Subagents read only the ticket file (and code); they do not need the full task prompt.
 
 | Delegation                      | Message                                                                                                                                 |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| **Architect**                   | "Delegate to **architect**. Task: `migration-docs/TODO/agent_prompts/{file}.md`. Output: `migration-docs/tickets/{task-slug}_plan.md`." |
-| **Refactorer**                  | "Ticket: `migration-docs/tickets/{task-slug}_plan.md`, Checklist Step N. Delegate to **refactorer**."                                   |
-| **Verifier**                    | "Ticket: `migration-docs/tickets/{task-slug}_plan.md`, Checklist Step N. Changed files: [list]. Delegate to **verifier**."              |
+| **Architect**                   | "Delegate to **architect**. Task: `migration-docs/TODO/agent_prompts/{file}.md`. Output: `migration-docs/tickets/active/{task-slug}_plan.md`." |
+| **Refactorer**                  | "Ticket: `migration-docs/tickets/active/{task-slug}_plan.md`, Checklist Step N. Delegate to **refactorer**."                                   |
+| **Verifier**                    | "Ticket: `migration-docs/tickets/active/{task-slug}_plan.md`, Checklist Step N. Changed files: [list]. Delegate to **verifier**."              |
 | **Tester** (per Checklist Step) | "Delegate to **tester**. Run: PHPUnit + PHPStan."                                                                                       |
 | **Tester** (final)              | "Delegate to **tester**. Final test run: wait on CI (gh run watch on the four PHP Quality jobs) + Playwright E2E locally in parallel."  |
 
@@ -79,7 +79,7 @@ Task Prompt (one Roadmap Step X.Y)
     ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ ARCHITECT (subagent)                                        │
-│ Reads task + ROADMAP → migration-docs/tickets/*_plan.md    │
+│ Reads task + ROADMAP → tickets/active/*_plan.md            │
 │ Returns: "Plan written to …"                                │
 └─────────────────────────────────────────────────────────────┘
     │
@@ -147,7 +147,7 @@ Task Prompt (one Roadmap Step X.Y)
 2. **One commit per Checklist Step** — after Tester PASS. If `git status` shows nothing to commit although Refactorer reported "Step N done", that is a failure (see On Failure). Do not batch commits.
 3. **Subagents by exact name** — `architect`, `refactorer`, `verifier`, `tester` so Cursor routes correctly. Subagent definitions: `.cursor/agents/`. The `bugbot` subagent is the one exception: it is not delegated by name but launched by the Orchestrator through the `/review-bugbot` skill at the Local Bugbot Review stage.
 4. **One version bump per PR** — the Finalize step bumps `app/system/config.php` exactly once per Roadmap Step / PR. Subsequent mini-loop fix commits (Local Bugbot review mini-loop, Final Test mini-loop) on the same PR/branch **must not** trigger another `chore(release): bump version to ...` commit. The CHANGELOG-NEW.md section for the already-bumped version is amended in place to include the mini-loop changes; the ROADMAP header pointer stays on the same version. Rationale: the PR is one logical release unit. Re-bumping mid-review wastes commits, confuses readers of `git log`, and creates a fictitious version that was never tagged.
-5. **Ticket is a durable artifact** — immediately after the Architect writes `migration-docs/tickets/{task-slug}_plan.md`, the Orchestrator commits it (`docs(plan): add ticket for <task-slug>`) before the Refactorer loop. Tickets are tracked and land in the PR; they are **never** left untracked or gitignored.
+5. **Ticket is a durable artifact** — immediately after the Architect writes `migration-docs/tickets/active/{task-slug}_plan.md`, the Orchestrator commits it (`docs(plan): add ticket for <task-slug>`) before the Refactorer loop. Tickets are tracked and land in the PR; they are **never** left untracked or gitignored.
 
 ## Local Bugbot Review (after all Checklist Steps committed, before Early Push)
 
@@ -187,8 +187,9 @@ Orchestrator (no subagent) executes the relevant items of **push.mdc**:
 2. **Version bump** — `.cursor/skills/version-bump/SKILL.md`
 3. **CHANGELOG-NEW.md** — group all commits from this Roadmap Step
 4. **ROADMAP update** — `.cursor/ROADMAP.md` (Header pointer, this step's row Status `⏳` → `✅`, Audit `⏳` → `🛡️`, **PR `-` → `#YYY`**, plus Phase 1 audit closures per `push.mdc`)
-5. **Push** (second push) — updates the PR with the finalize commits.
-6. **Do NOT merge** — user reviews and merges.
+5. **Archive ticket** — `git mv migration-docs/tickets/active/{task-slug}_plan.md migration-docs/tickets/done/` (the step is complete; the ticket leaves the `active/` namespace). Include this in the finalize commits.
+6. **Push** (second push) — updates the PR with the finalize commits.
+7. **Do NOT merge** — user reviews and merges.
 
 ## On Failure (CRITICAL — do not self-fix)
 
