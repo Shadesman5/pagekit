@@ -44,6 +44,9 @@ node_modules
 !/migration-docs/TODO/PHASE_3_MODERNISING.md
 !/migration-docs/TODO/PHASE_4_MODERNISING.md
 
+# Exception: V2 orchestrator design doc (referenced by tracked .cursor/rules)
+!/migration-docs/TODO/ORCHESTRATOR_WORKFLOW_V2_DESIGN.md
+
 # Ignore environment files with secrets
 docker.env
 *.env
