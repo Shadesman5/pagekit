@@ -1,0 +1,10 @@
+# Code owners — protect CI, automation, agent rules, and the cloud-agent environment.
+#
+# Enforced only when "Require review from Code Owners" is enabled in branch protection
+# for `main` and `develop`. With it on, a PR (from a collaborator or a bot) cannot change
+# these paths without the owner's approval — the main guard against tampering with
+# workflows, secrets handling, agent rules, and the cloud-agent setup (install.sh etc.).
+
+/.github/    @Shadesman5
+/.cursor/    @Shadesman5
+/AGENTS.md   @Shadesman5
