@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Close issues
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           INPUT_ISSUES: ${{ inputs.issue_numbers }}
           INPUT_REASON: ${{ inputs.reason }}

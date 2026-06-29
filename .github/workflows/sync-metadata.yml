@@ -53,7 +53,7 @@ jobs:
        github.event.pull_request.head.repo.full_name == github.repository)
     steps:
       - name: Parse metadata and apply labels/milestone
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           # Use PAT so that label events trigger auto-add-to-project-phase.yml
           # (GITHUB_TOKEN events don't trigger other workflows)
