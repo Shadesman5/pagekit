@@ -225,7 +225,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 - **Goal**: Comprehensive code quality tools and static analysis
 - **Prerequisite**: Step 1.14 (Doctrine Attributes) completed
-- **Time Estimate**: Split into 9 sub-steps
+- **Time Estimate**: Split into 11 sub-steps
 - **Pagekit Principle**: Tools for developers, core stays lightweight!
 
 **Modernization Targets**:
@@ -448,6 +448,8 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - `->fetchColumn()` → `->fetchOne()`
   - `->rowCount()` → stays `->rowCount()` (only for INSERT/UPDATE/DELETE via `executeStatement()`)
   - The Refactorer agent MUST check each call site individually — no blind search-replace!
+- **Deferred from Step 2.1.6 (added 2026-06-30):**
+  - **Template parameters for generic collections** — Step 2.1.6's prompt (`PROMPT_2_1_6_PHPStan-Level-8.md` Goal + §2.3 + Validation Checklist) called for introducing `@template` PHPDoc generics for generic collections "where appropriate", but the Architect's 2.1.6 ticket (`migration-docs/tickets/PROMPT_2_1_6_PHPStan-Level-8_plan.md`) omitted it as a dedicated checklist item. Only the `@template T of object` annotations already present in `Connection::find()` and `ORM/Loader/AttributeLoader.php` were retained as a side effect of the L8 null-safety sweep — no systematic collection-generics pass happened. This belongs here: the QueryBuilder/`Result` return types and repository fetch methods (`fetchAllAssociative()` → typed entity arrays) are the natural place to add `@template` / `@return array<int, T>` annotations. Tracked as the open "template parameters" checkbox on Issue #153 and PR #212.
 
 ---
 
@@ -627,6 +629,8 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - Rework `Router::getMatcher()`/`getGenerator()` to the compiled-route-data format (no more dumping a subclass via reflection; the `instantiateMatcher()`/`instantiateGenerator()` helpers go away).
   - Re-implement the custom `UrlGenerator::doGenerate()`/`getRouteProperties()` (`LinkReferenceType` + `_variables`) on top of `CompiledUrlGenerator` — this powers the blog permalink alias system, so guard it with the existing `RouterTest` + blog permalink coverage.
   - **Why Step 2.5:** pairs with the routing factory/DI rework here (the `UrlResolver` static bridge is already tagged for this step). No functional breakage on Symfony 6.4 (the deprecated classes still ship); clears the deprecation ahead of a future Symfony 7 jump.
+- **`theme-one` static `UrlProvider` DI (deferred from Step 2.1.6) — added 2026-06-30:**
+  - `packages/pagekit/theme-one/functions.php` (~line 8): the `ThemeOneHelpers` static `UrlProvider` is global state at the theme boundary. Step 2.1.6 completed the **typing** portion (`private static ?UrlProvider $url`, no more `mixed`), but the **DI** portion was both omitted from the 2.1.6 ticket and is structurally blocked: template helper functions are invoked from PHP templates with no injection mechanism, so the static holder cannot be removed in isolation. Replace it with proper DI once template helpers support injection — this aligns with the routing factory/DI rework already scheduled here (same blocker class as the `blog/UrlResolver` static bridge). The in-source TODO tag has been retagged from `Step 2.1.6` to `Step 2.5` accordingly. Tracked as the open `theme-one/functions.php` checkbox on Issue #153 and PR #212.
 
 ---
 
