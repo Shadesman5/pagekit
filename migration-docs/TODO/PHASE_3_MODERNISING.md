@@ -208,6 +208,7 @@
   - **NOT replaceable by UIkit sortable!** (sortable = flat lists, nestable = tree structure)
   - UIkit sortable is used separately (widgets, dashboard, roles) — different purpose!
   - Options: `@he-tree/vue` (Vue 3), custom tree component, or vue-nestable fork
+  - **Drag-handle UX rework (admin page list) — added 2026-06-30:** Move the drag from the whole row to a dedicated left-side handle icon (as the mobile view already does) and stop the row/`.check-item` click from toggling selection. Removes the cosmetic "select-then-deselect" flicker on desktop reorder — a stray native `click` fires at drag-end and hits the `.check-item` click handler in `app/system/app/directives/check-all.js` (the up-vs-down asymmetry depends on whether mousedown+mouseup land on the same element). Also touches the `check-all` directive (reworked in 3.4.3). Discovered 2026-06-30 during the routing-cache fix.
   - Effort: Low (3 files)
 
 - **`lodash`** (~4.17.21) → Native ES2020+ APIs + small utility file:

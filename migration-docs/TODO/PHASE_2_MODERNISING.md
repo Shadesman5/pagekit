@@ -622,6 +622,11 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - [ ] Implementation of admin alert flash messages.
 - **Audit findings (Step 2.0.8 review):**
   - `User::evaluateBooleanExpression()` (`app/system/modules/user/src/Model/User.php:251`) — extract into a standalone `PermissionExpressionEvaluator` service **only if and when a second caller emerges**. As of 2.0.8 closure there is exactly one caller (`User::hasAccess()`), so per Aggressive Rules 1 ("No Compatibility Layers") + 2 ("No Adapters") the helper stays inline as a `private static` method on `User`. No code change required in 2.5 unless extension code or a new permission system surfaces a second caller. Documentation-only route from `migration-docs/branches/step-2-0-8-user-hasaccess-hotfix.md:213-217`. (Routed from §4.4 Gap List row 2 of `migration-docs/audits/2026/04/AUDIT_REPORT_STEP_2.0_FOUNDATION_CLOSURE_2026-04-28.md`.)
+- **Routing dumper modernization (Symfony 4.3 deprecation) — added 2026-06-30:**
+  - `app/modules/routing/src/Matcher/Dumper/PhpMatcherDumper.php` is a copied clone of Symfony's deprecated `PhpMatcherDumper` (carries `@deprecated since Symfony 4.3`). Replace it — and the paired `UrlGeneratorDumper` — with Symfony's native `CompiledUrlMatcherDumper` + `CompiledUrlMatcher` and `CompiledUrlGeneratorDumper` + `CompiledUrlGenerator`.
+  - Rework `Router::getMatcher()`/`getGenerator()` to the compiled-route-data format (no more dumping a subclass via reflection; the `instantiateMatcher()`/`instantiateGenerator()` helpers go away).
+  - Re-implement the custom `UrlGenerator::doGenerate()`/`getRouteProperties()` (`LinkReferenceType` + `_variables`) on top of `CompiledUrlGenerator` — this powers the blog permalink alias system, so guard it with the existing `RouterTest` + blog permalink coverage.
+  - **Why Step 2.5:** pairs with the routing factory/DI rework here (the `UrlResolver` static bridge is already tagged for this step). No functional breakage on Symfony 6.4 (the deprecated classes still ship); clears the deprecation ahead of a future Symfony 7 jump.
 
 ---
 
