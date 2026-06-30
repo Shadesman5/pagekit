@@ -1,6 +1,6 @@
 # Changelog
 
-## Pagekit 1.2.21 - PHPStan Level 7 → 8 (Strict Typing) (Juni 26, 2026)
+## Pagekit 1.2.21 - PHPStan Level 7 → 8 (Strict Typing) (Juni 30, 2026)
 
 ### Static Analysis
 
@@ -29,8 +29,12 @@
 
 ### Fixed
 
+- **Blog post URLs no longer show "Disabled" for the "Numeric" permalink type.** The router cache key had dropped route-affecting options (notably `blog.permalink`), so switching the permalink type kept serving a stale alias route and `UrlProvider::getRoute()` returned `false`. All router options are part of the cache key again, so each permalink type regenerates its own matcher/generator.
+- **Routing cache race condition fixed (HTTP 500 on `/api/site/node` & `/api/site/menu`).** Rapid page reordering (drag & drop) regenerates the route dump concurrently; a half-written cache file made `getMatcher()`/`getGenerator()` throw an uncaught `LogicException`. Cache files are now written atomically (temp file + atomic rename), and the router falls back to the non-cached matcher/generator on any corrupted/partial cache file instead of crashing. (Also fixes the page-reorder selection that previously had to be cleared manually.)
 - **`IntlModule::$app`** — nullable property with guard accessor (Bugbot Rule 4.2).
 - **php-cs-fixer CI** — style fixes across branch-changed files.
+
+---
 
 ## Pagekit 1.2.20 - PHPStan Level 6 → 7 (Null Safety) (Juni 23, 2026)
 
@@ -61,6 +65,8 @@
 - **Roadmap Step 2.1.6** — recorded the `app/installer/requirements.php` audit finding (legacy Symfony RequirementChecker: dead PHP 5.6/7.0 and APC branches, obsolete eAccelerator/XCache accelerator list, abandoned `magic_quotes`/`register_globals`/`detect_unicode` php.ini checks, stale APCu/PCRE/`utf8_decode` messaging) plus a "Lessons learned (from 2.1.5)" note — view-/event-layer null narrowings are E2E-regression-prone (the `MetaHelper` fresh-install 500 passed PHPStan + PHPUnit but failed Playwright).
 - **`MODERNISATION_STRATEGY.md`** — added a **Quality Metrics Tracker** under the Visual Roadmap recording the PHPStan baseline and test counts per level milestone (suppressed errors: L5 891 → L6 680 → L7 654; unit tests stable at 326; E2E 25 specs). The static-document header note was adjusted to mark the tracker as the one living exception.
 
+---
+
 ## Pagekit 1.2.19 - Strict-Typing Runtime Regression Fixes (Juni 21, 2026)
 
 ### Fixed
@@ -72,6 +78,8 @@
 ### Notes
 
 - All three regressions were introduced by the strict-typing work in Step 2.1.4 (PR #203) and only surfaced at runtime on admin/blog pages that PHPUnit, PHPStan, and CS-Fixer do not exercise — a coverage gap that admin-facing Playwright E2E tests would catch.
+
+---
 
 ## Pagekit 1.2.18 - TODO Inventory & Legacy Cleanup (Juni 20, 2026)
 
@@ -98,6 +106,8 @@
 ### Tooling
 
 - **`.vscode/settings.json`** — `app/vendor` removed from `files.exclude` (kept in `search.exclude`) so intelephense indexes the non-standard vendor directory and stops reporting false "Undefined type" errors for Symfony/Composer classes.
+
+---
 
 ## Pagekit 1.2.17 - PHPStan Level 5 → 6 (Return Types) (Mai 4, 2026)
 
