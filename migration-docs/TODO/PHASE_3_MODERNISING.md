@@ -235,9 +235,10 @@
 ### Step 3.4.6: Translation System Modernization
 
 - **Goal**: Migrate frontend translation and formatting to the native Intl API (see vue-intl → Intl in 3.4.5).
-- **Content**: Formal bundling of the Intl platform API ($date, $number, $currency, $relativeDate) and optional backend integration (Symfony Translator DI, no global functions).
+- **Content**: Formal bundling of the Intl platform API ($date, $number, $currency, $relativeDate) and optional backend integration (inject `TranslatorInterface` in service/domain code — the template-facing global helpers `__()`/`_i()` stay; see the keep-vs-remove decision below).
 - **Order**: Interleaved with 3.4.5 in implementation; tracked as a separate sub-step 3.4.6 in the ROADMAP.
 - **Tasks (identified from 2.1.1 review):**
+  - **Decision — keep vs. remove global functions** (best practice): global translation helpers are the legitimate DX API for **DI-less PHP templates/themes**, analogous to the `$date`/`$number` platform API. **Keep** `__()` (alias for `trans()`) and `_i()` (ICU MessageFormat), plus the `IntlServiceLocator` DI-glue that backs them (permanent — not a bridge to remove). **Remove** only the legacy `_c()` / `transChoice` plural bridge (below). The "no global functions" goal applies to **service/domain code** — there, inject `TranslatorInterface`. So this step *narrows* the translation API, it does not delete the template-facing helpers.
   - **Remove transChoice (PHP + Vue):**
     - Remove global `_c()` function (`app/system/modules/intl/functions.php`)
     - Remove namespaced `Pagekit\_c()` (`functions-pagekit-namespace.php`)
