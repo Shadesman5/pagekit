@@ -195,4 +195,80 @@ class RouterTest extends TestCase
         $this->assertStringContainsString('foo=bar', $url);
         $this->assertStringContainsString('baz=qux', $url);
     }
+
+    /**
+     * Regression test: route-affecting options must participate in the cache key.
+     *
+     * The blog module changes its route collection (permalink alias routes) based
+     * on the "blog.permalink" option. If that option is excluded from the cache key,
+     * the dumped matcher/generator become stale after a permalink change, which broke
+     * post URL generation (e.g. switching to the "Numeric" permalink showed every
+     * URL as "Disabled").
+     */
+    public function testCacheKeyReflectsRouteAffectingOptions(): void
+    {
+        $router = new Router($this->routes, new RoutesLoader($this->events), $this->stack, ['cache' => sys_get_temp_dir()]);
+
+        $getCache = new \ReflectionMethod($router, 'getCache');
+        $getCache->setAccessible(true);
+
+        $router->setOption('blog.permalink', '{slug}');
+        $slugCache = $getCache->invoke($router, '%s/%s.generator.cache')['file'];
+
+        $router->setOption('blog.permalink', '');
+        $numericCache = $getCache->invoke($router, '%s/%s.generator.cache')['file'];
+
+        $this->assertNotSame(
+            $slugCache,
+            $numericCache,
+            'Changing a route-affecting option (blog.permalink) must change the router cache key.'
+        );
+    }
+
+    /**
+     * Regression test: a corrupted/partial route cache file must never crash the request.
+     *
+     * Rapid page reordering (drag & drop) fires many requests that regenerate the routing
+     * dump concurrently. A reader seeing a half-written cache file used to hit an uncaught
+     * exception (LogicException from instantiate*()), surfacing as HTTP 500 on
+     * /api/site/node and /api/site/menu. The router must fall back to the non-cached
+     * matcher/generator instead.
+     */
+    public function testCorruptCacheFileFallsBackInsteadOfFatal(): void
+    {
+        $dir = sys_get_temp_dir().'/pk-route-cache-'.uniqid();
+        mkdir($dir);
+
+        try {
+            $this->routes->add([
+                'name' => 'corrupt_route',
+                'path' => '/corrupt/{id}',
+                'defaults' => ['_controller' => 'TestController::corruptAction'],
+            ]);
+
+            $router = new Router($this->routes, new RoutesLoader($this->events), $this->stack, ['cache' => $dir]);
+
+            $getCache = new \ReflectionMethod($router, 'getCache');
+            $getCache->setAccessible(true);
+
+            // Simulate a half-written dump: valid PHP, but the expected class is missing.
+            $matcherFile = $getCache->invoke($router, '%s/%s.matcher.cache')['file'];
+            $generatorFile = $getCache->invoke($router, '%s/%s.generator.cache')['file'];
+            file_put_contents($matcherFile, '<?php /* partial cache write, class missing */');
+            file_put_contents($generatorFile, '<?php /* partial cache write, class missing */');
+
+            $request = Request::create('/corrupt/42');
+            $this->stack->push($request);
+
+            // Neither matching nor generation may throw - both fall back gracefully.
+            $params = $router->match('/corrupt/42');
+            $this->assertSame('42', $params['id']);
+
+            $url = $router->generate('corrupt_route', ['id' => 42]);
+            $this->assertStringContainsString('/corrupt/42', $url);
+        } finally {
+            array_map('unlink', glob($dir.'/*') ?: []);
+            rmdir($dir);
+        }
+    }
 }

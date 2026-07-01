@@ -81,6 +81,7 @@ class Container implements ContainerInterface
     /**
      * Gets a parameter/service without resolving.
      *
+     * @return mixed Genuinely unknown type — container entries may be any type: closures, scalars, objects, or arrays, depending on what was registered.
      * @throws \InvalidArgumentException
      */
     public function raw(string $name): mixed
@@ -110,7 +111,7 @@ class Container implements ContainerInterface
      * @throws NotFoundException  No entry was found for this identifier.
      * @throws ContainerException Error while retrieving the entry.
      *
-     * @return mixed Entry.
+     * @return mixed PSR-11 contract — ContainerInterface::get() returns mixed per specification; narrowing would break PSR-11 compliance.
      */
     public function get(string $id): mixed
     {

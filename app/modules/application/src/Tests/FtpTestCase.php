@@ -11,8 +11,7 @@ abstract class FtpTestCase extends TestCase
     use FtpUtil;
 
     protected string|false|null $workspace = null;
-    protected ?int $mode = null;
-    protected ?\FTP\Connection $connection = null;
+    private \FTP\Connection $connection;
 
     public function setUp(): void
     {
@@ -26,8 +25,6 @@ abstract class FtpTestCase extends TestCase
             return;
         }
 
-        $this->mode = $GLOBALS['ftp_mode'] == 'FTP_ASCII' ? FTP_ASCII : FTP_BINARY;
-
         $this->workspace = DIRECTORY_SEPARATOR.time().rand(0, 1000);
 
         if (false === @ftp_mkdir($this->connection, $this->workspace)) {
@@ -40,17 +37,14 @@ abstract class FtpTestCase extends TestCase
 
     public function tearDown(): void
     {
-        if ($this->connection instanceof \FTP\Connection && $this->workspace) {
-            $this->clean($this->workspace);
+        $workspace = $this->workspace;
+        if (isset($this->connection) && $workspace) {
+            $this->clean($workspace);
         }
     }
 
     private function clean(string $file): void
     {
-        if (!$this->connection instanceof \FTP\Connection) {
-            return;
-        }
-
         if (ftp_size($this->connection, $file) == -1) {
             $result = ftp_nlist($this->connection, $file);
             if ($result === false) {

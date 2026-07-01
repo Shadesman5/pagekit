@@ -27,7 +27,7 @@ class BelongsTo extends Relation
         }
 
         $this->keyFrom = $mapping['keyFrom'];
-        $this->keyTo = (isset($mapping['keyTo']) && $mapping['keyTo']) ? $mapping['keyTo'] : $this->targetMetadata->getIdentifier();
+        $this->keyTo = (isset($mapping['keyTo']) && $mapping['keyTo']) ? $mapping['keyTo'] : ($this->targetMetadata->getIdentifier() ?? throw new \InvalidArgumentException(sprintf('BelongsTo relation "%s" on "%s": target entity has no identifier and "keyTo" was not specified.', $mapping['name'] ?? 'unknown', $metadata->getClass())));
     }
 
     /**

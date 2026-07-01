@@ -21,6 +21,8 @@ class Package implements PackageInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return mixed Genuinely unknown type — see PackageInterface::get().
      */
     public function get(string $key, mixed $default = null): mixed
     {

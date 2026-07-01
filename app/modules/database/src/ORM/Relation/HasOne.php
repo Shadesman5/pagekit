@@ -8,7 +8,7 @@ use Pagekit\Database\ORM\QueryBuilder;
 
 class HasOne extends Relation
 {
-    protected string $belongsTo;
+    protected ?string $belongsTo = null;
 
     /**
      * {@inheritdoc}
@@ -29,7 +29,7 @@ class HasOne extends Relation
             ));
         }
 
-        $this->keyFrom = (isset($mapping['keyFrom']) && $mapping['keyFrom']) ? $mapping['keyFrom'] : $metadata->getIdentifier();
+        $this->keyFrom = (isset($mapping['keyFrom']) && $mapping['keyFrom']) ? $mapping['keyFrom'] : ($metadata->getIdentifier() ?? throw new \InvalidArgumentException(sprintf('HasOne relation "%s" on "%s": source entity has no identifier and "keyFrom" was not specified.', $mapping['name'] ?? 'unknown', $metadata->getClass())));
         $this->keyTo = $mapping['keyTo'];
 
         foreach ($this->targetMetadata->getRelationMappings() as $relationMapping) {
@@ -66,7 +66,7 @@ class HasOne extends Relation
      */
     protected function mapBelongsTo(array $entities): void
     {
-        if ($this->belongsTo) {
+        if ($this->belongsTo !== null) {
             foreach ($entities as $entity) {
                 if ($target = $this->metadata->getValue($entity, $this->name)) {
                     $this->targetMetadata->setValue($target, $this->belongsTo, $entity, true);

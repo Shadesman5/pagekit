@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Pagekit\Mail\Plugin;
 
-use Pagekit\Mail\MailerInterface;
+use Pagekit\Mail\MailPluginInterface;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
 
-class ImpersonatePlugin implements MailerInterface
+class ImpersonatePlugin implements MailPluginInterface
 {
     protected ?string $address;
     protected ?string $name;

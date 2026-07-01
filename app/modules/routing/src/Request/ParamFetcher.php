@@ -81,7 +81,7 @@ class ParamFetcher implements ParamFetcherInterface
 
         foreach (['query', 'request'] as $bag) {
 
-            $value = $this->request->$bag->all()[$name] ?? null;
+            $value = $this->request?->$bag->all()[$name] ?? null;
 
             if ($value !== null) {
 

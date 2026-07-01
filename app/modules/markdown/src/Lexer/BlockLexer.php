@@ -71,7 +71,7 @@ class BlockLexer
             if (preg_match($this->rules['code'], $src, $cap)) {
 
                 $src = substr($src, strlen($cap[0]));
-                $cap = preg_replace('/^ {4}/m', '', $cap[0]);
+                $cap = preg_replace('/^ {4}/m', '', $cap[0]) ?? '';
 
                 $this->tokens[] = [
                     'type' => 'code',
@@ -177,7 +177,7 @@ class BlockLexer
 
                 $this->tokens[] = ['type' => 'blockquote_start'];
 
-                $cap = preg_replace('/^ *> ?/m', '', $cap[0]);
+                $cap = preg_replace('/^ *> ?/m', '', $cap[0]) ?? '';
 
                 // Pass `top` to keep the current
                 // "toplevel" state. This is exactly
@@ -216,15 +216,15 @@ class BlockLexer
                     // so it is seen as the next token.
                     $space = strlen($item);
 
-                    $item = preg_replace('/^ *([*+-]|\d+\.) +/', '', $item);
+                    $item = preg_replace('/^ *([*+-]|\d+\.) +/', '', $item) ?? '';
                     $space -= strlen($item);
 
                     // Outdent whatever the
                     // list item contains. Hacky.
                     if (strpos($item, "\n ") === false) {
-                        $item = !$this->options['pedantic'] ? preg_replace('/^ {1,'.$space.'}/m', '', $item) : preg_replace('/^ {1,4}/m', '', $item);
+                        $item = (!$this->options['pedantic'] ? preg_replace('/^ {1,'.$space.'}/m', '', $item) : preg_replace('/^ {1,4}/m', '', $item)) ?? '';
                     } else {
-                        $item = preg_replace('/^ {1,'.$space.'}/m', '', $item);
+                        $item = preg_replace('/^ {1,'.$space.'}/m', '', $item) ?? '';
                     }
 
                     // Determine whether the next list item belongs here.

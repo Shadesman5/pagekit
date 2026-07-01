@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\Routing\Generator;
 
-interface UrlGeneratorInterface
+interface LinkReferenceType
 {
     /**
      * Generates a link url.

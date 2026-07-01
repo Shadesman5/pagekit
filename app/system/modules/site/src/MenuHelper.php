@@ -62,6 +62,10 @@ class MenuHelper extends Helper
             return '';
         }
 
+        if ($this->view === null) {
+            throw new \LogicException('MenuHelper has not been registered with a View instance.');
+        }
+
         return $this->view->render($view ?: 'system/site/menu.php', array_replace($parameters, compact('root')));
     }
 

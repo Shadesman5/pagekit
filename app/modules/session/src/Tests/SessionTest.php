@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 
 class SessionTest extends TestCase
 {
-    protected ?Session $session = null;
+    private Session $session;
 
     public function setUp(): void
     {
@@ -23,10 +23,10 @@ class SessionTest extends TestCase
 
     public function tearDown(): void
     {
-        if ($this->session && $this->session->isStarted()) {
+        if ($this->session->isStarted()) {
             $this->session->save();
         }
-        $this->session = null;
+        unset($this->session);
     }
 
     /**
@@ -34,7 +34,7 @@ class SessionTest extends TestCase
      */
     public function testSessionInstantiation(): void
     {
-        $this->assertInstanceOf(Session::class, $this->session);
+        $this->assertFalse($this->session->isStarted());
     }
 
     /**
@@ -101,7 +101,6 @@ class SessionTest extends TestCase
         $this->session->set('key2', 'value2');
 
         $all = $this->session->all();
-        $this->assertIsArray($all);
         $this->assertArrayHasKey('key1', $all);
         $this->assertArrayHasKey('key2', $all);
         $this->assertEquals('value1', $all['key1']);
@@ -136,7 +135,6 @@ class SessionTest extends TestCase
 
         // Get flash message
         $messages = $this->session->getFlashBag()->get('success');
-        $this->assertIsArray($messages);
         $this->assertContains('Operation successful', $messages);
 
         // Flash message should be removed after getting
@@ -156,7 +154,6 @@ class SessionTest extends TestCase
 
         // Peek flash message (should not remove it)
         $messages = $this->session->getFlashBag()->peek('info');
-        $this->assertIsArray($messages);
         $this->assertContains('Information message', $messages);
 
         // Message should still be there
@@ -184,7 +181,6 @@ class SessionTest extends TestCase
         $this->session->start();
         $id = $this->session->getId();
         $this->assertNotEmpty($id);
-        $this->assertIsString($id);
     }
 
     /**
@@ -194,7 +190,6 @@ class SessionTest extends TestCase
     {
         $name = $this->session->getName();
         $this->assertNotEmpty($name);
-        $this->assertIsString($name);
 
         // Set new name
         $newName = 'CUSTOM_SESSION';

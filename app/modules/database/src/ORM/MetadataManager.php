@@ -121,8 +121,10 @@ class MetadataManager
                     $this->metadata[$name] = new Metadata($this, $name, $config);
                 } else {
                     $metadata = $this->load($class);
-                    $item->set($metadata->getConfig());
-                    $this->cache->save($item);
+                    if ($metadata !== null) {
+                        $item->set($metadata->getConfig());
+                        $this->cache->save($item);
+                    }
                 }
 
             } else {
@@ -142,6 +144,10 @@ class MetadataManager
      */
     protected function load(\ReflectionClass $class): ?Metadata
     {
+        if ($this->loader === null) {
+            throw new \LogicException('MetadataManager: no loader configured. Call setLoader() before loading metadata.');
+        }
+
         $parent = null;
 
         foreach ($this->getParentClasses($class) as $class) {
@@ -197,6 +203,10 @@ class MetadataManager
      */
     protected function getParentClasses(\ReflectionClass $class): array
     {
+        if ($this->loader === null) {
+            return [$class];
+        }
+
         $parents = [$class];
 
         while ($parent = $class->getParentClass()) {

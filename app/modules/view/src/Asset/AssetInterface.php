@@ -50,6 +50,8 @@ interface AssetInterface extends \ArrayAccess
 
     /**
      * Gets a option.
+     *
+     * @return mixed Genuinely unknown type — asset options are user-defined key-value pairs; any scalar, array, or null is valid.
      */
     public function getOption(string $name): mixed;
 

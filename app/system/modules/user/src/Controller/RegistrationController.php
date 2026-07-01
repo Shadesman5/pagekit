@@ -184,7 +184,7 @@ class RegistrationController
         try {
 
             $mail = $this->mailer->create();
-            $mail->to($user->email)
+            $mail->to($user->email ?? '')
                 ->subject(__('Welcome to %site%!', ['%site%' => $this->module->get('system/site')->config('title')]))
                 ->html(($this->view)('system/user:mails/welcome.php', compact('user', 'mail')));
 
@@ -199,7 +199,7 @@ class RegistrationController
         try {
 
             $mail = $this->mailer->create();
-            $mail->to($user->email)
+            $mail->to($user->email ?? '')
                 ->subject(__('Activate your %site% account.', ['%site%' => $this->module->get('system/site')->config('title')]))
                 ->html(($this->view)('system/user:mails/verification.php', compact('user', 'mail')));
 

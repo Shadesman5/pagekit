@@ -40,12 +40,17 @@ class DatabaseHandler implements HandlerInterface
      */
     public function read(): ?int
     {
-        if ($token = $this->getToken() and $data = $this->connection->executeQuery("SELECT user_id, status, access FROM {$this->config['table']} WHERE id = :id AND status > :status", [
+        $config = $this->config;
+        if ($config === null) {
+            return null;
+        }
+
+        if ($token = $this->getToken() and $data = $this->connection->executeQuery("SELECT user_id, status, access FROM {$config['table']} WHERE id = :id AND status > :status", [
                 'id' => sha1($token),
                 'status' => self::STATUS_INACTIVE,
             ])->fetchAssociative()) {
 
-            if (strtotime($data['access']) + $this->config['timeout'] < time()) {
+            if (strtotime($data['access']) + $config['timeout'] < time()) {
 
                 if ($data['status'] == self::STATUS_REMEMBERED) {
                     $this->write($data['user_id'], self::STATUS_REMEMBERED);
@@ -55,7 +60,7 @@ class DatabaseHandler implements HandlerInterface
 
             }
 
-            $this->connection->update($this->config['table'], ['access' => date('Y-m-d H:i:s')], ['id' => sha1($token)]);
+            $this->connection->update($config['table'], ['access' => date('Y-m-d H:i:s')], ['id' => sha1($token)]);
 
             return $data['user_id'];
         }
@@ -65,6 +70,10 @@ class DatabaseHandler implements HandlerInterface
 
     public function write(int|string $user, bool $remember = false): void
     {
+        if ($this->config === null) {
+            return;
+        }
+
         if ($token = $this->getToken()) {
             $this->connection->delete($this->config['table'], ['id' => sha1($token)]);
         }
@@ -73,14 +82,15 @@ class DatabaseHandler implements HandlerInterface
 
         $this->cookie->set($this->config['cookie']['name'], $id, $this->config['cookie']['lifetime'] + time());
 
+        $request = $this->getRequest();
         $this->connection->insert($this->config['table'], [
             'id' => sha1($id),
             'user_id' => $user,
             'access' => date('Y-m-d H:i:s'),
             'status' => $remember ? self::STATUS_REMEMBERED : self::STATUS_ACTIVE,
             'data' => json_encode([
-                'ip' => $this->getRequest()->getClientIp(),
-                'user-agent' => $this->getRequest()->headers->get('User-Agent'),
+                'ip' => $request?->getClientIp(),
+                'user-agent' => $request?->headers->get('User-Agent'),
             ]),
         ]);
     }
@@ -90,6 +100,10 @@ class DatabaseHandler implements HandlerInterface
      */
     public function destroy(): void
     {
+        if ($this->config === null) {
+            return;
+        }
+
         if ($token = $this->getToken()) {
             $this->connection->update($this->config['table'], ['status' => self::STATUS_INACTIVE], ['id' => sha1($token)]);
         }
@@ -100,6 +114,10 @@ class DatabaseHandler implements HandlerInterface
      */
     protected function getToken(): ?string
     {
+        if ($this->config === null) {
+            return null;
+        }
+
         if ($request = $this->getRequest()) {
             $value = $request->cookies->get($this->config['cookie']['name']);
 

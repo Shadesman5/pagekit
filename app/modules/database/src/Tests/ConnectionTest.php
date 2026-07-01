@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 
 class ConnectionTest extends TestCase
 {
-    protected ?Connection $connection = null;
+    private Connection $connection;
 
     public function setUp(): void
     {
@@ -30,10 +30,8 @@ class ConnectionTest extends TestCase
 
     public function tearDown(): void
     {
-        if ($this->connection) {
-            $this->connection->close();
-        }
-        $this->connection = null;
+        $this->connection->close();
+        unset($this->connection);
     }
 
     /**
@@ -41,7 +39,7 @@ class ConnectionTest extends TestCase
      */
     public function testConnectionInstantiation(): void
     {
-        $this->assertInstanceOf(Connection::class, $this->connection);
+        $this->expectNotToPerformAssertions();
     }
 
     /**
@@ -94,8 +92,8 @@ class ConnectionTest extends TestCase
      */
     public function testCreateQueryBuilder(): void
     {
-        $qb = $this->connection->createQueryBuilder();
-        $this->assertInstanceOf(\Pagekit\Database\Query\QueryBuilder::class, $qb);
+        $this->connection->createQueryBuilder();
+        $this->expectNotToPerformAssertions();
     }
 
     /**
@@ -120,7 +118,7 @@ class ConnectionTest extends TestCase
         $pagekitConn->executeQuery('SELECT 1');
 
         $utility = $pagekitConn->getUtility();
-        $this->assertInstanceOf(\Pagekit\Database\Utility::class, $utility);
+        $this->assertSame('pk_', $pagekitConn->getPrefix());
 
         $pagekitConn->close();
     }
@@ -144,7 +142,7 @@ class ConnectionTest extends TestCase
         $pagekitConn->executeQuery('SELECT 1');
 
         $platform = $pagekitConn->getDatabasePlatform();
-        $this->assertInstanceOf(\Doctrine\DBAL\Platforms\AbstractPlatform::class, $platform);
+        $this->assertNotEmpty($platform->getName());
 
         $pagekitConn->close();
     }

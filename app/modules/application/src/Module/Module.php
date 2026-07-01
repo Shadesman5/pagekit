@@ -31,6 +31,9 @@ class Module implements ModuleInterface, EventSubscriberInterface
         $this->options = $options;
     }
 
+    /**
+     * @return mixed Genuinely unknown type — module bootstrap closures may return a service object, an array, or nothing; the return value is not consumed by the framework.
+     */
     public function main(App $app): mixed
     {
         $main = $this->options['main'];
@@ -48,6 +51,8 @@ class Module implements ModuleInterface, EventSubscriberInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return mixed Genuinely unknown type — option values are user-supplied via module config arrays; any scalar, array, or object is valid.
      */
     public function get(string|array $key, mixed $default = null): mixed
     {
@@ -60,6 +65,8 @@ class Module implements ModuleInterface, EventSubscriberInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return mixed Genuinely unknown type — config values are user-supplied via module config arrays; any scalar, array, or object is valid.
      */
     public function config(string|array|null $key = null, mixed $default = null): mixed
     {

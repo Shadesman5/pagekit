@@ -97,7 +97,7 @@ class SectionHelper extends Helper
         $this->sections[$name] = $content === false ? '' : $content;
 
         if ($show) {
-            echo $this->view->render($name);
+            echo $this->view !== null ? $this->view->render($name) : '';
         }
     }
 

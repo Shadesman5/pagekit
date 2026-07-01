@@ -105,7 +105,7 @@ class SetupCommand extends Command
             $result = $installer->install($config, $options, $user);
         } catch (\Exception $e) {
             $this->error($e->getMessage());
-            if ($this->output->isVerbose()) {
+            if ($output->isVerbose()) {
                 $this->error("File: " . $e->getFile());
                 $this->error("Line: " . $e->getLine());
                 $this->error("Trace: " . $e->getTraceAsString());

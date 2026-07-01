@@ -80,6 +80,9 @@ class FilterChain implements \Countable, FilterInterface
 
     /**
      * Returns $value filtered through each filter in the chain.
+     *
+     * @param  mixed $value Genuinely unknown type — each chained filter may transform the value to a different type.
+     * @return mixed Genuinely unknown type — the output type depends on the last filter in the chain.
      */
     public function filter(mixed $value): mixed
     {

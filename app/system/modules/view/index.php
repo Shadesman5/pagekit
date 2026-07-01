@@ -26,15 +26,15 @@ return [
 
         $app->extend('assets', function ($assets) use ($app) {
 
-            $assets->register('file', 'Pagekit\View\Asset\FileLocatorAsset');
+            $file = $app->get('file');
+            $locator = $app->get('locator');
+
+            $assets->register('file', static function (string $name, string $source, array $dependencies, array $options) use ($file, $locator): FileLocatorAsset {
+                return new FileLocatorAsset($name, $source, $dependencies, $options, $file, $locator);
+            });
 
             return $assets;
         });
-
-        // TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 — Strict Typing) —
-        // FileLocatorAsset uses static service locator pattern (static mixed properties).
-        // Replace with proper DI once asset classes support constructor injection.
-        FileLocatorAsset::setServices($app->get('file'), $app->get('locator'));
 
     },
 

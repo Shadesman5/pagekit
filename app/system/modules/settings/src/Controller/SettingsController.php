@@ -59,7 +59,7 @@ class SettingsController
         file_put_contents($file, $fileConfig->dump());
 
         foreach ($options as $module => $value) {
-            $this->config->set($module, array_replace(($this->config)($module)->toArray(), $value));
+            $this->config->set($module, array_replace((($this->config)($module) ?? new Config())->toArray(), $value));
         }
 
         if (function_exists('opcache_invalidate')) {
@@ -85,7 +85,7 @@ class SettingsController
                 $configData = $json['config'] ?? $configData;
             }
         }
-        $this->config->set($name, array_replace(($this->config)($name)->toArray(), $configData));
+        $this->config->set($name, array_replace((($this->config)($name) ?? new Config())->toArray(), $configData));
 
         return ['message' => 'success'];
     }

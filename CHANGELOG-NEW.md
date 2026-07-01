@@ -1,5 +1,41 @@
 # Changelog
 
+## Pagekit 1.2.21 - PHPStan Level 7 → 8 (Strict Typing) (Juli 1, 2026)
+
+### Static Analysis
+
+- **PHPStan baseline raised from `level: 7` to `level: 8`.** Strict typing enforced across `app/modules/`, `app/system/`, `app/installer/`, `app/console/`, and `packages/pagekit/blog/`. (Closes #153)
+- Added **`phpstan/phpstan-phpunit`** extension and swept test property declarations (`protected ?Type` → `private Type`).
+- **Mixed usage audit** — all remaining justified `mixed` usages documented with `@return mixed Genuinely unknown type —` docblocks.
+- **`#[AllowDynamicProperties]` fully removed** — explicit typed properties on Node, Widget, and related models.
+
+### Changed
+
+- **`MailPluginInterface`** split from `MailerInterface`; `ImpersonatePlugin` implements plugin interface only.
+- **`IntlServiceLocator`** — static container replaced with constructor DI + boot-time registration.
+- **`FileLocatorAsset`** — constructor injection via view module factory closure.
+- **Console commands** — setter-DI removed; `Container` injected via constructor.
+- **`PackageController`** — God-DI replaced with explicit service constructor parameters.
+- **`ModelServiceLocator`** — `getUrl()`/`getUser()`/`getModule()` return types narrowed from `mixed` to concrete types (architectural removal deferred to Step 2.1.10).
+- **`EntityManager`/ORM** — typing hardened on Metadata, Relation classes, PropertyTrait (singleton removal deferred to Step 2.1.11).
+- **`UrlGeneratorInterface` → `LinkReferenceType`**, **`GetResponseEvent` → `AuthResponseEvent`** renames.
+- **Null-safety sweeps** across `app/modules/` (29 files) and `app/system/` + `app/installer/` + `app/console/` (24 files).
+
+### Removed
+
+- **`DebugStack.php`** — dead code, zero callers.
+- **`AliasListener.php`** dead query-string parser block.
+- **`requirements.php`** PHP 5.x/7.x/APC dead code blocks.
+
+### Fixed
+
+- **Blog post URLs no longer show "Disabled" for the "Numeric" permalink type.** The router cache key had dropped route-affecting options (notably `blog.permalink`), so switching the permalink type kept serving a stale alias route and `UrlProvider::getRoute()` returned `false`. All router options are part of the cache key again, so each permalink type regenerates its own matcher/generator.
+- **Routing cache race condition fixed (HTTP 500 on `/api/site/node` & `/api/site/menu`).** Rapid page reordering (drag & drop) regenerates the route dump concurrently; a half-written cache file made `getMatcher()`/`getGenerator()` throw an uncaught `LogicException`. Cache files are now written atomically (temp file + atomic rename), and the router falls back to the non-cached matcher/generator on any corrupted/partial cache file instead of crashing. (Also fixes the page-reorder selection that previously had to be cleared manually.)
+- **`IntlModule::$app`** — nullable property with guard accessor (Bugbot Rule 4.2).
+- **php-cs-fixer CI** — style fixes across branch-changed files.
+
+---
+
 ## Pagekit 1.2.20 - PHPStan Level 6 → 7 (Null Safety) (Juni 23, 2026)
 
 ### Static Analysis
@@ -29,6 +65,8 @@
 - **Roadmap Step 2.1.6** — recorded the `app/installer/requirements.php` audit finding (legacy Symfony RequirementChecker: dead PHP 5.6/7.0 and APC branches, obsolete eAccelerator/XCache accelerator list, abandoned `magic_quotes`/`register_globals`/`detect_unicode` php.ini checks, stale APCu/PCRE/`utf8_decode` messaging) plus a "Lessons learned (from 2.1.5)" note — view-/event-layer null narrowings are E2E-regression-prone (the `MetaHelper` fresh-install 500 passed PHPStan + PHPUnit but failed Playwright).
 - **`MODERNISATION_STRATEGY.md`** — added a **Quality Metrics Tracker** under the Visual Roadmap recording the PHPStan baseline and test counts per level milestone (suppressed errors: L5 891 → L6 680 → L7 654; unit tests stable at 326; E2E 25 specs). The static-document header note was adjusted to mark the tracker as the one living exception.
 
+---
+
 ## Pagekit 1.2.19 - Strict-Typing Runtime Regression Fixes (Juni 21, 2026)
 
 ### Fixed
@@ -40,6 +78,8 @@
 ### Notes
 
 - All three regressions were introduced by the strict-typing work in Step 2.1.4 (PR #203) and only surfaced at runtime on admin/blog pages that PHPUnit, PHPStan, and CS-Fixer do not exercise — a coverage gap that admin-facing Playwright E2E tests would catch.
+
+---
 
 ## Pagekit 1.2.18 - TODO Inventory & Legacy Cleanup (Juni 20, 2026)
 
@@ -66,6 +106,8 @@
 ### Tooling
 
 - **`.vscode/settings.json`** — `app/vendor` removed from `files.exclude` (kept in `search.exclude`) so intelephense indexes the non-standard vendor directory and stops reporting false "Undefined type" errors for Symfony/Composer classes.
+
+---
 
 ## Pagekit 1.2.17 - PHPStan Level 5 → 6 (Return Types) (Mai 4, 2026)
 
@@ -911,6 +953,8 @@
 
 ### ✨ New Features
 
+- **UrlProvider route() alias** - Added `route()` as alias for `getRoute()` for backward compatibility and clearer API
+- **#[Request] filter options** - Added `options` parameter to `#[Request]` attribute for filter-specific options (e.g. pregreplace pattern)
 - **E2E Test Architect Skill** - Added complete `.cursor/skills/e2e-test-architect/` skill with SKILL.md, selector patterns, runtime patterns, and codebase analysis script for automated E2E test generation
 
 ### 📝 Documentation
@@ -918,21 +962,6 @@
 - **Subagent Orchestration Workflow** - Added ROADMAP.md, WORKFLOW_SUBAGENTS.md, task invocation template, and orchestrator rule for structured multi-agent modernization
 - **Agent Definitions** - Added architect, refactorer, tester, and verifier agent definitions in `.cursor/agents/`
 - **Orchestrated Agent Prompts** - Added 15 agent prompts for PSR-11 container (5 stages), Doctrine attributes migration, Symfony validator (3 phases), ORM modernization, database migrations, audit tasks, and template security modernization
-
-### 🔧 Maintenance
-
-- **secrets.example.env** - Commented out placeholder values to prevent accidental use as real credentials
-- **.gitignore** - Added exception for `migration-docs/TODO/agent_prompts/` to track orchestrated prompts
-- **.prettierignore** - Added `ROADMAP.md` to formatting exceptions
-
----
-
-## Pagekit 1.1.1 - UrlProvider, Request Attribute & Finder Fixes (January 30, 2026)
-
-### ✨ New Features
-
-- **UrlProvider route() alias** - Added `route()` as alias for `getRoute()` for backward compatibility and clearer API
-- **#[Request] filter options** - Added `options` parameter to `#[Request]` attribute for filter-specific options (e.g. pregreplace pattern)
 
 ### 🐛 Bug Fixes
 
@@ -949,6 +978,9 @@
 - **install.sh** - Add flock-based lock to prevent duplicate execution; use composer update instead of removing lock files
 - **Push workflow** - Branch-specific logic: develop (protected) uses integration branch + PR; other branches push directly
 - **Cursor rules** - Fix changelog reference CHANGELOG-2025 to CHANGELOG-NEW in feature-branch and pagekit-standards
+- **secrets.example.env** - Commented out placeholder values to prevent accidental use as real credentials
+- **.gitignore** - Added exception for `migration-docs/TODO/agent_prompts/` to track orchestrated prompts
+- **.prettierignore** - Added `ROADMAP.md` to formatting exceptions
 
 ---
 
@@ -1155,6 +1187,7 @@ class User {
 - Admin interface unchanged
 
 ---
+
 ## Pagekit 1.0.47 - Routing Cache Fix (January 21, 2026)
 
 ### 🔧 Fixes
@@ -1165,6 +1198,8 @@ class User {
   - Fixed cache key calculation to only include structural options (matcher, generator, cache path)
   - Meta-options like `blog.permalink` no longer invalidate routing cache unnecessarily
   - Prevents multiple unnecessary cache files from being created
+
+---
 
 ## Pagekit 1.0.46 - Symfony Validator Integration (January 19, 2026)
 
@@ -1395,49 +1430,7 @@ class User {
 
 ---
 
-## Pagekit 1.0.43 - Project Infrastructure Modernization (October 22, 2025)
-
-### 📋 Documentation & Standards
-
-- **docs(rules): add github labels guide** - Comprehensive label system for PRs and issues
-
-  - 🏷️ Dependency labels (php, javascript, docker, github-actions)
-  - 🏷️ Conventional Commits labels (breaking-change, security, performance)
-  - 🏷️ Project area labels (frontend, backend, database, module, theme, migration)
-  - 📖 Full usage guide with examples and best practices
-
-- **docs(rules): link labels to conventional commits** - Integrated workflow
-  - 🔗 Commit types mapped to GitHub labels
-  - 📝 PR labeling guidelines
-  - 🔄 Workflow integration documentation
-
-### 🔧 Build & CI/CD
-
-- **build(git): enhance gitattributes for cross-platform consistency**
-
-  - ✅ Consistent LF line endings for all text files
-  - 🔒 Binary files properly marked
-  - 📦 Export-ignore for test and dev files
-  - 🚫 No more CRLF/LF warnings
-
-- **ci(dependabot): adopt conventional commits format**
-
-  - 🤖 All Dependabot PRs now use `chore(deps):` format
-  - ✅ Follows Conventional Commits v1.0.0 specification
-  - 📊 Better changelog integration
-  - 🔄 Automatic label assignment
-
-- **build(agent): improve background agent reliability**
-  - 🐳 Enhanced Dockerfile with explicit PATH configuration
-  - 🔍 Comprehensive error diagnostics in install.sh
-  - 💾 PDO driver checks and installation (MySQL, SQLite)
-  - 🔄 Support for both Dockerfile and Snapshot environments
-  - 📦 Automatic installation of missing dependencies
-  - ✅ Environment detection and summary
-
----
-
-## Pagekit 1.0.43 - ORM Layer Modernization for PHP 8.2+ & Critical Bugfixes (October 21, 2025)
+## Pagekit 1.0.43 - ORM Layer Modernization, Project Infrastructure & Critical Bugfixes (October 22, 2025)
 
 ### 🚀 Major Changes
 
@@ -1504,6 +1497,30 @@ class User {
 - **Query Caching**: 2-5x faster for cached results
 - **Type Safety**: Reduced runtime overhead and early error detection
 
+### 🔧 Build & CI/CD
+
+- **build(git): enhance gitattributes for cross-platform consistency**
+
+  - ✅ Consistent LF line endings for all text files
+  - 🔒 Binary files properly marked
+  - 📦 Export-ignore for test and dev files
+  - 🚫 No more CRLF/LF warnings
+
+- **ci(dependabot): adopt conventional commits format**
+
+  - 🤖 All Dependabot PRs now use `chore(deps):` format
+  - ✅ Follows Conventional Commits v1.0.0 specification
+  - 📊 Better changelog integration
+  - 🔄 Automatic label assignment
+
+- **build(agent): improve background agent reliability**
+  - 🐳 Enhanced Dockerfile with explicit PATH configuration
+  - 🔍 Comprehensive error diagnostics in install.sh
+  - 💾 PDO driver checks and installation (MySQL, SQLite)
+  - 🔄 Support for both Dockerfile and Snapshot environments
+  - 📦 Automatic installation of missing dependencies
+  - ✅ Environment detection and summary
+
 ### 🐛 Bug Fixes
 
 - **Fixed: Symfony InputBag non-scalar values** (`ParamFetcher.php`)
@@ -1526,11 +1543,27 @@ class User {
   - ✅ All permalink types now work: Numeric, Name, Date+Name, Month+Name, Custom
   - 🎨 Full flexibility for custom permalink patterns (e.g., `{day}/{slug}/{year}`)
 
+### 📋 Documentation & Standards
+
+- **docs(rules): add github labels guide** - Comprehensive label system for PRs and issues
+
+  - 🏷️ Dependency labels (php, javascript, docker, github-actions)
+  - 🏷️ Conventional Commits labels (breaking-change, security, performance)
+  - 🏷️ Project area labels (frontend, backend, database, module, theme, migration)
+  - 📖 Full usage guide with examples and best practices
+
+- **docs(rules): link labels to conventional commits** - Integrated workflow
+  - 🔗 Commit types mapped to GitHub labels
+  - 📝 PR labeling guidelines
+  - 🔄 Workflow integration documentation
+
 ### 📝 Documentation
 
 - **Migration Guide**: `migration-docs/branches/feature-orm-modernization.md`
 - **Test Coverage**: Comprehensive unit and E2E tests
 - **Breaking Changes**: None - fully backward compatible
+
+---
 
 ## Pagekit 1.0.42 - Enhanced Extension Error Handling & Transaction Safety (October 7, 2025)
 
@@ -1592,20 +1625,9 @@ class User {
 - Check debug.log file generation
 - Confirm transaction rollback on errors
 
-## Pagekit 1.0.41 - Cursor Tooling Updates (October 6, 2025)
+---
 
-### 🔧 Infrastructure
-
-- **Cursor Development Environment** - Updated tooling scripts
-  - 📦 Enhanced Docker setup and installation scripts
-  - 🚀 Improved development environment configuration
-  - 🛠️ Updated modernize helper and start scripts
-  - 🔧 Further cursor tooling improvements
-  - ⚡ Additional cursor tooling enhancements
-  - 🐳 Update Dockerfile for background agent
-  - 📁 Reorganized migration docs structure
-
-## Pagekit 1.0.41 - E2E Testing Infrastructure & Configuration Fixes (October 2, 2025)
+## Pagekit 1.0.41 - E2E Testing Infrastructure & Configuration Fixes (October 6, 2025)
 
 ### 🚀 Major Changes
 
@@ -1650,8 +1672,15 @@ class User {
 ### 🔧 Infrastructure
 
 - **Cursor Development Environment** - Updated installation script
-  - 📦 Enhanced setup process for development environment
-  - 🚀 Improved developer onboarding experience
+  - 📦 Enhanced setup process for development environment and installation scripts
+  - 🚀 Improved development onboarding experience and environment configuration
+  - 🛠️ Updated modernize helper and start scripts
+  - 🔧 Further cursor tooling improvements
+  - ⚡ Additional cursor tooling enhancements
+  - 🐳 Update Dockerfile for background agent
+  - 📁 Reorganized migration docs structure
+
+---
 
 ## Pagekit 1.0.40 - PSR-6 Cache Migration COMPLETE (September 26, 2025)
 
@@ -1697,6 +1726,8 @@ class User {
 - **Docs: Add migration-docs structure** - Comprehensive migration documentation added
 - **Chore: Update .gitignore & cleanup** - Repository maintenance and cleanup
 
+---
+
 ## Pagekit 1.0.39 - Complete Symfony 6.4 LTS Upgrade (September 25, 2025)
 
 ### 🎉 Major Upgrade
@@ -1728,6 +1759,8 @@ class User {
 - **Modernized View System** - New engine interfaces for PHP and Twig templates
 - **Fixed PHP 8.1+ compatibility** - Null handling in template functions
 
+---
+
 ## Pagekit 1.0.38 - Symfony 6.4 Routing System Compatibility (September 24, 2025)
 
 ### Changed
@@ -1749,6 +1782,8 @@ class User {
 
 - **Cleanup: Remove outdated migration docs** - Removed completed migration documentation files that are no longer needed
 
+---
+
 ## Pagekit 1.0.37 - Symfony 6.4 Event System Compatibility (September 24, 2025)
 
 ### Added
@@ -1765,6 +1800,8 @@ class User {
 - **Full Backward Compatibility** - Pagekit's event system remains unchanged
 - **Test Coverage** - 8 comprehensive tests with 100% code coverage
 - **Documentation** - Complete migration guide in SYMFONY_EVENT_MIGRATION.md
+
+---
 
 ## Pagekit 1.0.36 - PSR-11 Container Compatibility (September 24, 2025)
 
@@ -1789,6 +1826,8 @@ class User {
 - **ArrayAccess Compatibility** - Existing ArrayAccess interface fully maintained
 - **Test Coverage** - Added 25 comprehensive tests for PSR-11 compliance
 - **Documentation** - Complete migration guide in PSR11_CONTAINER_MIGRATION.md
+
+---
 
 ## Pagekit 1.0.35 - Doctrine DBAL 3.x Update (September 23, 2025)
 
@@ -1837,6 +1876,8 @@ class User {
 - **Widget System** - Complete overhaul of widget position management and theme property handling
 - **PHP 8.2+ Compatibility** - Resolved all deprecation warnings with proper attribute usage
 
+---
+
 ## Pagekit 1.0.34 - Safe Dependency Updates (September 23, 2025)
 
 ### Changed
@@ -1859,6 +1900,8 @@ class User {
 - **Tests**: 163 tests with 112 passing (68.7% - same as baseline)
 - **Manual verification**: Admin panel, debug toolbar, Twig rendering, encryption, and package management all functioning correctly
 - **Compatibility**: Fully compatible with PHP 8.2-8.4
+
+---
 
 ## Pagekit 1.0.33 - Doctrine Dependencies Rollback & System Stability (September 22, 2025)
 
@@ -1890,6 +1933,8 @@ class User {
 - All Pagekit installations that experienced system failures after Doctrine updates
 - Development environments where database operations were broken
 - Production systems requiring immediate stability restoration
+
+---
 
 ## Pagekit 1.0.32 - Mail System Sendmail Fix & Windows Compatibility (September 19, 2025)
 
@@ -1929,6 +1974,8 @@ class User {
 - Systems using Mailpit for local mail testing
 - Any system where sendmail_path doesn't include required flags
 
+---
+
 ## Pagekit 1.0.31 - Strategic Dependency Analysis & Security Patches (September 19, 2025)
 
 ### Security
@@ -1963,6 +2010,8 @@ class User {
 - **Security Audit**: Zero vulnerabilities confirmed with composer audit
 - **Manual Testing**: All core functionality verified, system performance improved
 
+---
+
 ## Pagekit 1.0.30 - PHPUnit Test Suite Modernization (September 19, 2025)
 
 ### Fixed
@@ -1991,6 +2040,8 @@ class User {
 - **Success Rate**: ~69% (110 passing tests)
 - **Remaining Issues**: 41 errors, 2 failures (mostly mock configurations)
 - **Foundation**: Ready for CI/CD integration and incremental improvements
+
+---
 
 ## Pagekit 1.0.29 - Critical Security Patches & Major Dependency Updates (September 19, 2025)
 
@@ -2053,31 +2104,22 @@ class User {
 - **Test thoroughly** in staging environment before production deployment
 - **Monitor regularly** with `composer audit` for future security updates
 
-## Pagekit 1.0.28 - Development Setup Enhancement (September 18, 2025)
+---
 
-### Added
-
-- Config: Add Docker setup scripts & env template
-
-## Pagekit 1.0.28 - Version Bump (September 17, 2025)
-
-### Added
-
-- Docker: Add containerized development setup
-- Chore: Add dev tools and update gitignore
-
-### Changed
-
-- Bump version to 1.0.28 (little fix)
-- Docs: Modernize README.md with current system
-
-## Pagekit 1.0.28 - PHPUnit 11 Upgrade & PHP 8.2+ Requirement (September 16, 2025)
+## Pagekit 1.0.28 - PHPUnit 11 Upgrade, PHP 8.2+ & Docker Development Setup (September 18, 2025)
 
 ### Changed
 
 - **Upgraded PHPUnit to version 11.x** - Modernized test suite to use PHPUnit 11 for improved testing capabilities and PHP 8.4 compatibility
 - **Increased minimum PHP version to 8.2** - Updated minimum PHP requirement from 7.4 to 8.2 for better performance, security, and modern language features
 - **Updated phpunit.xml.dist configuration** - Migrated to PHPUnit 11 XML schema with modern configuration options including coverage configuration and strict test settings
+- **Docs: Modernize README.md** - Updated README with current system requirements and setup instructions
+
+### Added
+
+- **Docker: Add containerized development setup** - Containerized local development environment
+- **Config: Add Docker setup scripts & env template** - Setup scripts and environment template for Docker workflow
+- **Chore: Add dev tools and update gitignore** - Development tooling and gitignore updates
 
 ### Fixed
 
@@ -2093,11 +2135,14 @@ class User {
 
 ---
 
-## Pagekit 1.0.27 - Symfony Mailer Migration & Comprehensive Tests (September 15-16, 2025)
+## Pagekit 1.0.27 - Symfony Mailer Migration, Login Fix & Security Improvements (September 16, 2025)
 
 ### Changed
 
 - **Completed Swift Mailer to Symfony Mailer 5.4 migration** - Fully migrated email system from deprecated Swift Mailer to modern Symfony Mailer 5.4. All email functionality now uses Symfony's modern mail component with improved performance and maintainability
+- **Updated theme-one template** - Modified template.php to load local fonts before theme CSS
+- **Replaced Google Fonts imports** - Removed external Google Fonts @import statements from theme variables.less
+- **Improved font loading performance** - Implemented font-display: swap for better loading experience
 
 ### Added
 
@@ -2105,13 +2150,18 @@ class User {
 - **SMTP connection testing functionality** - Added test connection feature in admin panel to verify SMTP settings before saving
 - **Mail plugin system** - Implemented extensible plugin architecture for mail processing with ImpersonatePlugin as default implementation
 - **Enhanced error handling** - Improved error reporting and exception handling throughout the mail system
+- **Enhanced .htaccess security configuration** - Added modern security headers including HSTS, X-Content-Type-Options, X-XSS-Protection, X-Frame-Options, Permissions-Policy, and Referrer-Policy for improved security posture
+- **DSGVO-compliant local font implementation** - Replaced Google Fonts with local font files to ensure GDPR compliance and eliminate external data transfers
+- **Content Security Policy (CSP) implementation** - Added restrictive CSP headers to prevent XSS attacks and unauthorized resource loading
+- **Local font system for theme-one** - Created `local-fonts.less` with Open Sans and Roboto Mono font definitions using local font files instead of Google Fonts
+- **GitHub Dependabot configuration** - Added `.github/dependabot.yml` for automated dependency updates across Composer (PHP), npm/Yarn (JavaScript), Docker, and GitHub Actions with weekly schedules and proper reviewer assignments
 
 ### Fixed
 
+- **Fixed modal login retry mechanism for CSRF errors** - Implemented automatic retry when session expires during login process. Users no longer need to click the login button twice when their session has expired. The system now automatically handles CSRF token refresh and retries the login request transparently.
 - **MailController SMTP test parameter handling** - Fixed parameter mismatch between controller and mailer for SMTP connection testing
 - **Message::send() error handling** - Corrected return values and error collection in message sending methods
 - **Missing EsmtpTransport import** - Added missing Symfony Mailer transport imports
-- **Email address typo in test configuration** - Corrected `email_adress` to `email_address` in phpunit.xml.dist and all related test files
 - **Improved markdown formatting** - Applied standard markdown formatting with consistent bullet point spacing in documentation files
 
 ### Technical Details
@@ -2121,28 +2171,6 @@ class User {
 - Maintains backward compatibility with existing mail configuration
 - Support for SMTP and Sendmail transports
 - Extensible plugin architecture for custom mail processing
-
----
-
-## Pagekit 1.0.27 - Login Fix & Security Improvements (September 15, 2025)
-
-### Fixed
-
-- **Fixed modal login retry mechanism for CSRF errors** - Implemented automatic retry when session expires during login process. Users no longer need to click the login button twice when their session has expired. The system now automatically handles CSRF token refresh and retries the login request transparently.
-
-### Added
-
-- **Enhanced .htaccess security configuration** - Added modern security headers including HSTS, X-Content-Type-Options, X-XSS-Protection, X-Frame-Options, Permissions-Policy, and Referrer-Policy for improved security posture
-- **DSGVO-compliant local font implementation** - Replaced Google Fonts with local font files to ensure GDPR compliance and eliminate external data transfers
-- **Content Security Policy (CSP) implementation** - Added restrictive CSP headers to prevent XSS attacks and unauthorized resource loading
-- **Local font system for theme-one** - Created `local-fonts.less` with Open Sans and Roboto Mono font definitions using local font files instead of Google Fonts
-- **GitHub Dependabot configuration** - Added `.github/dependabot.yml` for automated dependency updates across Composer (PHP), npm/Yarn (JavaScript), Docker, and GitHub Actions with weekly schedules and proper reviewer assignments
-
-### Changed
-
-- **Updated theme-one template** - Modified template.php to load local fonts before theme CSS
-- **Replaced Google Fonts imports** - Removed external Google Fonts @import statements from theme variables.less
-- **Improved font loading performance** - Implemented font-display: swap for better loading experience
 
 ---
 

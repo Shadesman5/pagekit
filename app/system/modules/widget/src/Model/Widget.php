@@ -14,7 +14,6 @@ use Symfony\Component\Validator\Constraints as Assert;
  * Widget entity with PHP 8 Attributes for ORM and Validation.
  */
 #[ORM\Entity(tableClass: '@system_widget')]
-#[\AllowDynamicProperties]
 class Widget implements \JsonSerializable
 {
     use AccessModelTrait;
@@ -47,4 +46,10 @@ class Widget implements \JsonSerializable
     /** @var array<int, int|string> */
     #[ORM\Column(type: 'simple_array')]
     public array $nodes = [];
+
+    /**
+     * Current theme position name, set by controllers or model.widget.init.
+     * Not a database column; used for response serialization and event handling.
+     */
+    public ?string $position = null;
 }

@@ -79,7 +79,7 @@ abstract class ExtensionMigration extends AbstractMigration
     {
         // Get prefix from Pagekit connection
         if ($this->connection instanceof \Pagekit\Database\Connection) {
-            return $this->connection->getPrefix();
+            return $this->connection->getPrefix() ?? 'pk_';
         }
 
         // Default prefix (standard Pagekit installation)

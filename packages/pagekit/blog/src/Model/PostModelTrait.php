@@ -45,7 +45,7 @@ trait PostModelTrait
                 $query->where('id <> ?', [$id]);
             }
         })->first()) {
-            $post->slug = preg_replace('/-\d+$/', '', $post->slug).'-'.$i++;
+            $post->slug = preg_replace('/-\d+$/', '', $post->slug ?? '').'-'.$i++;
         }
     }
 

@@ -8,6 +8,8 @@ interface PackageInterface extends \JsonSerializable
 {
     /**
      * Gets a package value.
+     *
+     * @return mixed Genuinely unknown type — package manifest values may be any scalar, array, or null depending on the composer.json/package.php key.
      */
     public function get(string $key, mixed $default = null): mixed;
 

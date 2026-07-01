@@ -88,6 +88,9 @@ class PregReplaceFilter extends AbstractFilter
 
     /**
      * {@inheritdoc}
+     *
+     * @param  mixed $value Genuinely unknown type — filter input may be any type; passed directly to preg_replace as subject.
+     * @return mixed Genuinely unknown type — returns the result of preg_replace; string or array depending on input type.
      */
     public function filter(mixed $value): mixed
     {

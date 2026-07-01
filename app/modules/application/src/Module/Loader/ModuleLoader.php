@@ -15,6 +15,12 @@ class ModuleLoader implements LoaderInterface
     {
     }
 
+    /**
+     * {@inheritdoc}
+     *
+     * @param  mixed $module Genuinely unknown type — see LoaderInterface::load().
+     * @return mixed Genuinely unknown type — see LoaderInterface::load().
+     */
     public function load(mixed $module): mixed
     {
         if (!is_array($module)) {

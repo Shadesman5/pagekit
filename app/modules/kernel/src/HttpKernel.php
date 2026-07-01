@@ -116,7 +116,7 @@ class HttpKernel implements HttpKernelInterface
                 break;
 
             default:
-                $exception = new HttpException($message);
+                $exception = new HttpException($message ?? '');
 
                 break;
         }
@@ -185,6 +185,10 @@ class HttpKernel implements HttpKernelInterface
         $e = $event->getException();
 
         if (!$event->hasResponse()) {
+            if ($e === null) {
+                throw new \RuntimeException('Exception event has no exception and no response.');
+            }
+
             throw $e;
         }
 

@@ -52,8 +52,8 @@ class ManyToMany extends Relation
             }
         }
 
-        $this->keyFrom = (isset($mapping['keyFrom']) && $mapping['keyFrom']) ? $mapping['keyFrom'] : $this->targetMetadata->getIdentifier();
-        $this->keyTo = (isset($mapping['keyTo']) && $mapping['keyTo']) ? $mapping['keyTo'] : $metadata->getIdentifier();
+        $this->keyFrom = (isset($mapping['keyFrom']) && $mapping['keyFrom']) ? $mapping['keyFrom'] : ($this->targetMetadata->getIdentifier() ?? throw new \InvalidArgumentException(sprintf('ManyToMany relation "%s" on "%s": target entity has no identifier and "keyFrom" was not specified.', $mapping['name'] ?? 'unknown', $metadata->getClass())));
+        $this->keyTo = (isset($mapping['keyTo']) && $mapping['keyTo']) ? $mapping['keyTo'] : ($metadata->getIdentifier() ?? throw new \InvalidArgumentException(sprintf('ManyToMany relation "%s" on "%s": source entity has no identifier and "keyTo" was not specified.', $mapping['name'] ?? 'unknown', $metadata->getClass())));
         $this->tableThrough = $mapping['tableThrough'];
         $this->keyThroughFrom = $mapping['keyThroughFrom'];
         $this->keyThroughTo = $mapping['keyThroughTo'];

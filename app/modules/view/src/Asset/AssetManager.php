@@ -160,7 +160,10 @@ class AssetManager implements \IteratorAggregate
         $assets = [];
 
         foreach (array_keys($this->queue) as $name) {
-            $this->resolveDependencies($this->registered->get($name), $assets);
+            $asset = $this->registered->get($name);
+            if ($asset !== null) {
+                $this->resolveDependencies($asset, $assets);
+            }
         }
 
         $assets = new AssetCollection($assets);
@@ -244,6 +247,10 @@ class AssetManager implements \IteratorAggregate
      */
     protected function doCombine(AssetCollection $assets, string $name, array $options = []): AssetCollection
     {
+        if ($this->cache === null) {
+            return $assets;
+        }
+
         $pattern = $options['pattern'] ?? '';
         $filters = $options['filters'] ?? [];
 
@@ -285,6 +292,10 @@ class AssetManager implements \IteratorAggregate
 
             $salt = array_merge([$_SERVER['SCRIPT_NAME']], array_keys($filters));
             $file = preg_replace('/(.*?)(\.[^\.]+)?$/i', '$1-'.$assets->hash(implode(',', $salt)).'$2', $file, 1);
+
+            if ($file === null) {
+                return false;
+            }
 
             if (!file_exists($file)) {
                 file_put_contents($file, $assets->dump($filters));

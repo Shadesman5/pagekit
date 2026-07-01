@@ -50,6 +50,7 @@ class ModuleManager implements \IteratorAggregate
      * Get shortcut.
      *
      * @see get()
+     * @return mixed Genuinely unknown type — the module registry may hold ModuleInterface instances, plain arrays, or null during loading; type is narrowed by callers.
      */
     public function __invoke(string $name): mixed
     {
@@ -58,6 +59,8 @@ class ModuleManager implements \IteratorAggregate
 
     /**
      * Gets a module.
+     *
+     * @return mixed Genuinely unknown type — the module registry may hold ModuleInterface instances, plain arrays, or null; type is narrowed by callers via instanceof checks.
      */
     public function get(string $name): mixed
     {

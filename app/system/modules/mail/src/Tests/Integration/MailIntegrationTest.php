@@ -156,6 +156,7 @@ class MailIntegrationTest extends TestCase
         $result = $message->send($errors);
 
         $this->assertEquals(0, $result);
+        $this->assertIsArray($errors);
         $this->assertCount(1, $errors);
         $this->assertEquals('Test transport error', $errors[0]);
     }
@@ -182,8 +183,12 @@ class MailIntegrationTest extends TestCase
         $headers = $message->getHeaders();
         $this->assertTrue($headers->has('X-Custom-ID'));
         $this->assertTrue($headers->has('X-Priority'));
-        $this->assertEquals('12345', $headers->get('X-Custom-ID')->getBody());
-        $this->assertEquals('High', $headers->get('X-Priority')->getBody());
+        $customIdHeader = $headers->get('X-Custom-ID');
+        $this->assertNotNull($customIdHeader);
+        $this->assertEquals('12345', $customIdHeader->getBody());
+        $priorityHeader = $headers->get('X-Priority');
+        $this->assertNotNull($priorityHeader);
+        $this->assertEquals('High', $priorityHeader->getBody());
     }
 
     #[Group('network')]
@@ -195,14 +200,14 @@ class MailIntegrationTest extends TestCase
         }
 
         $transport = new EsmtpTransport(
-            $GLOBALS['email_smtp_host'],
+            (string) $GLOBALS['email_smtp_host'],
             (int)$GLOBALS['email_smtp_port'],
             $GLOBALS['email_smtp_encryption'] === 'ssl'
         );
 
         if (!empty($GLOBALS['email_smtp_user'])) {
-            $transport->setUsername($GLOBALS['email_smtp_user']);
-            $transport->setPassword($GLOBALS['email_smtp_password']);
+            $transport->setUsername((string) $GLOBALS['email_smtp_user']);
+            $transport->setPassword((string) $GLOBALS['email_smtp_password']);
         }
 
         $mailer = new Mailer($transport);
@@ -227,14 +232,14 @@ class MailIntegrationTest extends TestCase
         }
 
         $transport = new EsmtpTransport(
-            $GLOBALS['email_smtp_host'],
+            (string) $GLOBALS['email_smtp_host'],
             (int)$GLOBALS['email_smtp_port'],
             $GLOBALS['email_smtp_encryption'] === 'ssl'
         );
 
         if (!empty($GLOBALS['email_smtp_user'])) {
-            $transport->setUsername($GLOBALS['email_smtp_user']);
-            $transport->setPassword($GLOBALS['email_smtp_password']);
+            $transport->setUsername((string) $GLOBALS['email_smtp_user']);
+            $transport->setPassword((string) $GLOBALS['email_smtp_password']);
         }
 
         $mailer = new Mailer($transport);
@@ -251,7 +256,7 @@ class MailIntegrationTest extends TestCase
         $result = $message->send($errors);
 
         if ($result !== 1) {
-            $this->fail('Email sending failed: ' . implode(', ', $errors));
+            $this->fail('Email sending failed: ' . implode(', ', $errors ?? []));
         }
 
         $this->assertEquals(1, $result);

@@ -110,7 +110,7 @@ class ConfigurationProvider
     {
         // Get table prefix from connection
         $prefix = $this->connection instanceof \Pagekit\Database\Connection
-            ? $this->connection->getPrefix()
+            ? ($this->connection->getPrefix() ?? 'pk_')
             : 'pk_';
 
         return str_replace('@', $prefix, $tableName);

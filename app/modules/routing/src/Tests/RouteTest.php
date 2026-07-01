@@ -100,7 +100,7 @@ class RouteTest extends TestCase
     {
         $route = new Route('/test');
 
-        $this->assertInstanceOf(\Symfony\Component\Routing\Route::class, $route);
+        $this->assertEquals('/test', $route->getPath());
     }
 
     public function testRouteDefaults(): void

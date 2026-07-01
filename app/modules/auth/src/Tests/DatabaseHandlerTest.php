@@ -47,7 +47,7 @@ class DatabaseHandlerTest extends TestCase
 
         $handler = new DatabaseHandler($connection, $requests, $cookie, self::CONFIG);
 
-        $this->assertInstanceOf(DatabaseHandler::class, $handler);
+        $this->assertSame(4, (new \ReflectionClass($handler))->getConstructor()?->getNumberOfParameters());
     }
 
     public function testConstructorAllowsNullConfig(): void
@@ -58,7 +58,7 @@ class DatabaseHandlerTest extends TestCase
 
         $handler = new DatabaseHandler($connection, $requests, $cookie);
 
-        $this->assertInstanceOf(DatabaseHandler::class, $handler);
+        $this->assertSame(4, (new \ReflectionClass($handler))->getConstructor()?->getNumberOfParameters());
     }
 
     public function testConstructorContractMatchesModernSignature(): void

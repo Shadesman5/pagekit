@@ -14,6 +14,9 @@ class SiteModule extends Module
     /** @var array<string, array<string, mixed>>|null */
     protected ?array $types = null;
 
+    /**
+     * @return mixed Genuinely unknown type — overrides Module::main(); the return value is not consumed by the framework (inherited contract from ModuleInterface).
+     */
     public function main(App $app): mixed
     {
         $this->app = $app;
@@ -62,7 +65,7 @@ class SiteModule extends Module
         if (!$this->types) {
             $this->assertBooted();
 
-            foreach ($this->app->get('module') as $module) {
+            foreach ($this->getApp()->get('module') as $module) {
                 foreach ((array) $module->get('nodes') as $type => $route) {
                     $this->registerType($type, $route);
                 }
@@ -70,23 +73,32 @@ class SiteModule extends Module
 
             $this->registerType('link', ['label' => 'Link', 'frontpage' => false]);
 
-            $this->app->get('events')->trigger('site.types', [$this]);
+            $this->getApp()->get('events')->trigger('site.types', [$this]);
         }
 
         return $this->types;
     }
 
     /**
-     * Register a node type.
-     *
-     * @param string $type
-     * @param array  $route
+     * @throws \LogicException when main() has not been called yet
      */
     private function assertBooted(): void
     {
         if ($this->app === null) {
             throw new \LogicException('SiteModule::main() has not been called yet.');
         }
+    }
+
+    /**
+     * Returns the application instance, asserting it is not null.
+     */
+    private function getApp(): App
+    {
+        if ($this->app === null) {
+            throw new \LogicException('SiteModule::main() has not been called yet.');
+        }
+
+        return $this->app;
     }
 
     /**
@@ -100,7 +112,7 @@ class SiteModule extends Module
         if (isset($route['protected']) and $route['protected'] and !array_filter(Node::findAll(true), fn ($node) => $type === $node->type)) {
             Node::create([
                 'title' => $route['label'],
-                'slug' => ($this->app->get('filter'))($route['label'], 'slugify'),
+                'slug' => ($this->getApp()->get('filter'))($route['label'], 'slugify'),
                 'type' => $type,
                 'status' => 1,
                 'link' => $route['name'],

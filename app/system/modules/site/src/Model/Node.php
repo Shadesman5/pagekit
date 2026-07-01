@@ -18,7 +18,6 @@ use Symfony\Component\Validator\Constraints as Assert;
  * Node entity with PHP 8 Attributes for ORM and Validation.
  */
 #[ORM\Entity(tableClass: '@system_node')]
-#[\AllowDynamicProperties]
 class Node implements NodeInterface, \JsonSerializable
 {
     use AccessModelTrait;

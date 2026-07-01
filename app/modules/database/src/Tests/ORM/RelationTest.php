@@ -31,7 +31,7 @@ class RelationTest extends TestCase
 
         $relation = new BelongsTo($manager, $metadata, $mapping);
 
-        $this->assertInstanceOf(BelongsTo::class, $relation);
+        $this->expectNotToPerformAssertions();
     }
 
     public function testHasManyConstructorAcceptsTypedParameters(): void
@@ -53,7 +53,7 @@ class RelationTest extends TestCase
 
         $relation = new HasMany($manager, $metadata, $mapping);
 
-        $this->assertInstanceOf(HasMany::class, $relation);
+        $this->expectNotToPerformAssertions();
     }
 
     public function testHasOneConstructorAcceptsTypedParameters(): void
@@ -75,6 +75,6 @@ class RelationTest extends TestCase
 
         $relation = new HasOne($manager, $metadata, $mapping);
 
-        $this->assertInstanceOf(HasOne::class, $relation);
+        $this->expectNotToPerformAssertions();
     }
 }

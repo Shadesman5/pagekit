@@ -251,7 +251,7 @@ class NodeApiController
             throw new BadRequestHttpException(__('Invalid node type.'));
         }
 
-        ($this->config)('system/site')->set('frontpage', $id);
+        ($this->config)('system/site')?->set('frontpage', $id);
 
         return ['message' => 'success'];
     }

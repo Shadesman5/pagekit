@@ -225,7 +225,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 - **Goal**: Comprehensive code quality tools and static analysis
 - **Prerequisite**: Step 1.14 (Doctrine Attributes) completed
-- **Time Estimate**: Split into 9 sub-steps
+- **Time Estimate**: Split into 11 sub-steps
 - **Pagekit Principle**: Tools for developers, core stays lightweight!
 
 **Modernization Targets**:
@@ -448,7 +448,8 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - `->fetchColumn()` → `->fetchOne()`
   - `->rowCount()` → stays `->rowCount()` (only for INSERT/UPDATE/DELETE via `executeStatement()`)
   - The Refactorer agent MUST check each call site individually — no blind search-replace!
-
+- **Deferred from Step 2.1.6 (added 2026-06-30):**
+  - **Template parameters for generic collections** — Step 2.1.6's prompt (`PROMPT_2_1_6_PHPStan-Level-8.md` Goal + §2.3 + Validation Checklist) called for introducing `@template` PHPDoc generics for generic collections "where appropriate", but the Architect's 2.1.6 ticket (`migration-docs/tickets/PROMPT_2_1_6_PHPStan-Level-8_plan.md`) omitted it as a dedicated checklist item. Only the `@template T of object` annotations already present in `Connection::find()` and `ORM/Loader/AttributeLoader.php` were retained as a side effect of the L8 null-safety sweep — no systematic collection-generics pass happened. This belongs here: the QueryBuilder/`Result` return types and repository fetch methods (`fetchAllAssociative()` → typed entity arrays) are the natural place to add `@template` / `@return array<int, T>` annotations. Tracked as the open "template parameters" checkbox on Issue #153 and PR #212.
 ---
 
 ### Step 2.1.8: Infection Mutation Testing
@@ -488,6 +489,8 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
     - Concurrent admin actions (Session Handling)
     - Database connection failures (ORM Error Handling)
     - `AddRelNofollowFilter` XSS edge cases: Harden filter + activate 3 disabled tests (slash instead of space, null-byte obfuscation, `rel="follow"` replacement) — see `app/modules/filter/src/Tests/AddRelNofollowTest.php`
+  - **Decouple core tests from extension config** — `RouterTest::testCacheKeyReflectsRouteAffectingOptions()` (`app/modules/routing/src/Tests/RouterTest.php:200-273`) uses `blog.permalink` as its example option. `permalink` is **not** core: it is defined by the blog package (`packages/pagekit/blog/index.php`), and core `Router` only references it in a comment. The behaviour under test (route-affecting options must participate in the router cache key) is generic core logic → use a **generic option name** (e.g. `test.route_option`). Principle: core tests must not depend on extension-specific config; extension-specific tests belong in the extension's own repo/test suite once third-party extensions ship their own coverage.
+  - **`setAccessible()` PHP 8.5 forward-compat cleanup** — `ReflectionMethod/Property::setAccessible()` is a **no-op since PHP 8.1** and **`#[\Deprecated]` since PHP 8.5** (removal targeted for PHP 9); on 8.5 it emits deprecation notices while having no effect → delete all calls (safe on PHP 8.2+, no behaviour change). Test sites (this step): `app/modules/routing/src/Tests/RouterTest.php:213,252`, `app/modules/database/src/Tests/ORM/QueryBuilderCacheTest.php:76,91`, `app/system/modules/mail/src/Tests/MessageTest.php:207`. Two adjacent production sites belong in the same sweep: `app/system/modules/mail/src/Message.php:391,403,438`, `app/modules/kernel/src/Event/ExceptionListener.php:67`.
   - **Audit findings (Phase 1 review):**
     - E2E tests (Step 1.10.5): Most were poorly created, not following best practices; only first 3 tests are reasonably functional. Full E2E rework needed.
     - ~~`MigrationServiceTest` — all tests skipped; write real migrate/rollback coverage~~ (RESOLVED in PR #189, Step 2.0.4 — 12 real tests with in-memory SQLite)
@@ -518,6 +521,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Tasks**:
   - Introduce per-entity presenters/serializers (e.g. `NodePresenter`, `PostPresenter`) with constructor DI (`UrlGenerator`, current `User`, blog config)
   - Move URL / access / comment logic out of the entities, or pass dependencies explicitly via method parameters
+  - When relocating `Node::getUrl()` here, type its `$referenceType` as `int|string` (match `UrlProvider::get()`: string `BASE_PATH` + int `LINK_URL=100`), not `mixed` — residual narrowing from the Step 2.1.6 `mixed` audit
   - Convert API/JSON output to the presenter/DTO path (`jsonSerialize()` callers → presenter)
   - Update all call sites in the `site` module and the `blog` package
   - **Delete** `ModelServiceLocator` entirely (Aggressive Rule 4: Delete over Wrap) incl. its `init()` wiring in `SiteModule`
@@ -539,10 +543,26 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - Introduce DI access to the `EntityManager` for models (injected EM / repository pattern) — no static singleton
   - Remove `static::$instance` + `getInstance()` from `EntityManager`; refactor `ModelTrait::getManager()` to obtain the EM without the singleton fallback
   - Migrate all `EntityManager::getInstance()` callers and static `Model::find()/where()/...` call sites
+  - Replace `NodeModelTrait`'s static request-scoped `$nodes` cache (`app/system/modules/site/src/Model/NodeModelTrait.php:18-21`, tagged in-code `// TODO: BACKWARD COMPATIBILITY … removed in Step 2.1.11`) with an injected `CacheItemPoolInterface` — same static-global-state removal as the singleton
   - **Delete** the `$app->get('db.em')` boot line in `app/system/index.php` (Aggressive Rule 4: Delete over Wrap)
   - All tests green (PHPUnit + Playwright E2E)
 - **Result**: Zero static singletons in the model layer; the `EntityManager` is obtained via DI; no boot-time side-effect hack.
 - **Risk**: High — ripples into every static model call site; requires an Architect design pass (Active-Record → Data-Mapper migration strategy) before the Refactorer starts.
+
+---
+
+### Step 2.1.12: Residual `mixed` narrowing (typed properties & signatures)
+
+- **Goal**: Narrow the last few *avoidable* `mixed` occurrences from the Step 2.1.6 `mixed` audit to honest, concrete types — no behaviour change, purely developer-facing type accuracy (lightweight, IDE/PHPStan-friendly).
+- **Prerequisite**: Step 2.1.6 (PHPStan Level 8) — these are the residual narrowable candidates left after the L8 sweep.
+- **Scope note**: This is **not** a blanket "remove all `mixed`" pass (there is no PHPStan-Level-9 step planned). The bulk of remaining `mixed` is legitimate and stays: docblock array shapes, magic-method proxies, filter/loader/PSR-11 contracts, polymorphic `preg_replace` returns, and `callable`-typed properties (PHP forbids `callable` as a native property type → `mixed` + `@var callable…` docblock is the idiomatic best practice). Only the genuinely narrowable cases below are in scope.
+- **Tasks**:
+  - `app/system/modules/captcha/src/CaptchaListener.php:146` — `verifyToken(mixed $gRecaptchaResponse, mixed $secret)` → `string`. Modernise the single call site (line 141) to feed real strings via Symfony 6.4 typed request accessors: `$request->request->getString('gRecaptchaResponse')` (instead of `$request->get(...)`, which may return an array/null) + `(string) $this->captchaModule->config('recaptcha_secret')`.
+  - `app/system/modules/site/src/Controller/NodeController.php:23` — `protected mixed $site` → `SiteModule`. `$this->module->get('system/site')` returns the `SiteModule` instance (used as `->getTypes()` / `->getType()` / `->config()`). Best practice: inject `SiteModule` via constructor DI instead of `ModuleManager::get()`, then declare `private readonly SiteModule $site`.
+  - `app/system/src/Model/DataModelTrait.php:13` — `public mixed $data = null` → `public ?array $data = null` with `@var array<string, mixed>|null`. All assignments are arrays (`= []`, `array_replace_recursive(...)`), the column is `json_array`, and `JsonArrayType::convertToPHPValue()` always returns an array — so the property is `?array` (the `(array)` cast in `get()` becomes redundant).
+- **Result**: Fewer avoidable `mixed`; cleaner IDE/PHPStan signals in the model, site-controller and captcha layers.
+- **Risk**: Low — signature/property narrowing plus one small call-site change; PHPUnit + PHPStan green.
+- **Note**: `Node::getUrl()`'s `mixed $referenceType` → `int|string` is handled in **Step 2.1.10** (it is relocated as a presentation concern there). `PregReplaceFilter::filter()` return, `ExceptionListener::$controller` and `WrappedListener::$listener` were reviewed and deliberately **kept `mixed`** (honest polymorphic return / PHP `callable`-property limitation).
 
 ---
 
@@ -562,6 +582,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - Quality gates as required checks for PRs
   - Dependency caching for fast CI (target: all workflows < 10 minutes)
   - Release automation
+  - **Version Single Source of Truth guard** — `composer.json` `require.php` (`^8.2`) is the authoritative minimum-PHP constraint; the CI matrix (PHP versions in Workflow 1), `app/installer/requirements.php` (`REQUIRED_PHP_VERSION`), `.cursor/Dockerfile` (`php:8.3-cli`) and `README.md` (badge + "8.2–8.4") must **consume/track** it, not redefine it. Add a CI check that fails on drift (assert `REQUIRED_PHP_VERSION` and the matrix floor equal composer's `require.php`), so the minimum version lives in exactly one place. Docker/CI pin *test/runtime targets* — they are not the source (so "put the version in Docker" is the wrong direction). Also capture the extension floors currently inline in `requirements.php` (APCu `5.1.0`, PCRE `8.0`). (Discovered during PR #212 triage; the `requirements.php` content modernization itself was handled in Step 2.1.6.)
   - ~~Deploy previews~~ (optional, later)
 - **Design Decisions**:
   - E2E tests UI interaction, NOT backend variants — PHPUnit covers the PHP/DB matrix
@@ -622,6 +643,15 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - [ ] Implementation of admin alert flash messages.
 - **Audit findings (Step 2.0.8 review):**
   - `User::evaluateBooleanExpression()` (`app/system/modules/user/src/Model/User.php:251`) — extract into a standalone `PermissionExpressionEvaluator` service **only if and when a second caller emerges**. As of 2.0.8 closure there is exactly one caller (`User::hasAccess()`), so per Aggressive Rules 1 ("No Compatibility Layers") + 2 ("No Adapters") the helper stays inline as a `private static` method on `User`. No code change required in 2.5 unless extension code or a new permission system surfaces a second caller. Documentation-only route from `migration-docs/branches/step-2-0-8-user-hasaccess-hotfix.md:213-217`. (Routed from §4.4 Gap List row 2 of `migration-docs/audits/2026/04/AUDIT_REPORT_STEP_2.0_FOUNDATION_CLOSURE_2026-04-28.md`.)
+- **Routing dumper modernization (Symfony 4.3 deprecation) — added 2026-06-30:**
+  - `app/modules/routing/src/Matcher/Dumper/PhpMatcherDumper.php` is a copied clone of Symfony's deprecated `PhpMatcherDumper` (carries `@deprecated since Symfony 4.3`). Replace it — and the paired `UrlGeneratorDumper` — with Symfony's native `CompiledUrlMatcherDumper` + `CompiledUrlMatcher` and `CompiledUrlGeneratorDumper` + `CompiledUrlGenerator`.
+  - Rework `Router::getMatcher()`/`getGenerator()` to the compiled-route-data format (no more dumping a subclass via reflection; the `instantiateMatcher()`/`instantiateGenerator()` helpers go away).
+  - Re-implement the custom `UrlGenerator::doGenerate()`/`getRouteProperties()` (`LinkReferenceType` + `_variables`) on top of `CompiledUrlGenerator` — this powers the blog permalink alias system, so guard it with the existing `RouterTest` + blog permalink coverage.
+  - **Why Step 2.5:** pairs with the routing factory/DI rework here (the `UrlResolver` static bridge is already tagged for this step). No functional breakage on Symfony 6.4 (the deprecated classes still ship); clears the deprecation ahead of a future Symfony 7 jump.
+- **`blog/UrlResolver` static bridge DI (deferred from Step 2.1.6):**
+  - `packages/pagekit/blog/src/UrlResolver.php:25,29,35` — `private static` cache/module references with setters (static service locator). The `mixed $cache` typing was already fixed in Step 2.0.3 (`?CacheItemPoolInterface`); only the static-locator/DI removal remains. **Blocker:** the Router instantiates resolvers via `new $class` without DI, so the static holder cannot be removed in isolation — the routing factory (`ParamsResolver` bootstrap) must support DI first. Same blocker class as `theme-one/functions.php` below; both are unblocked by the routing factory/DI rework scheduled in this step.
+- **`theme-one` static `UrlProvider` DI (deferred from Step 2.1.6) — added 2026-06-30:**
+  - `packages/pagekit/theme-one/functions.php` (~line 8): the `ThemeOneHelpers` static `UrlProvider` is global state at the theme boundary. Step 2.1.6 completed the **typing** portion (`private static ?UrlProvider $url`, no more `mixed`), but the **DI** portion was both omitted from the 2.1.6 ticket and is structurally blocked: template helper functions are invoked from PHP templates with no injection mechanism, so the static holder cannot be removed in isolation. Replace it with proper DI once template helpers support injection — this aligns with the routing factory/DI rework already scheduled here (same blocker class as the `blog/UrlResolver` static bridge). The in-source TODO tag has been retagged from `Step 2.1.6` to `Step 2.5` accordingly. Tracked as the open `theme-one/functions.php` checkbox on Issue #153 and PR #212.
 
 ---
 

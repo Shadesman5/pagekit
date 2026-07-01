@@ -6,7 +6,7 @@ namespace Pagekit\Auth\Event;
 
 use Symfony\Component\HttpFoundation\Response;
 
-class GetResponseEvent extends Event
+class AuthResponseEvent extends Event
 {
     protected ?\Symfony\Component\HttpFoundation\Response $response = null;
 

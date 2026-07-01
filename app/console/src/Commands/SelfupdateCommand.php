@@ -87,7 +87,7 @@ class SelfupdateCommand extends Command
     }
 
     /**
-     * @return mixed
+     * @return mixed Genuinely unknown type — returns a JSON-decoded array of available versions, or null if json_decode fails.
      * @throws \Exception
      */
     protected function getVersions()

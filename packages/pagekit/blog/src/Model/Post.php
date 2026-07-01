@@ -128,6 +128,9 @@ class Post implements \JsonSerializable
     public function isCommentable(): bool
     {
         $blog = ModelServiceLocator::getModule('blog');
+        if ($blog === null) {
+            return (bool) $this->comment_status;
+        }
         $autoclose = $blog->config('comments.autoclose') ? $blog->config('comments.autoclose_days') : 0;
 
         return $this->comment_status && (!$autoclose or $this->date >= new \DateTime("-{$autoclose} day"));

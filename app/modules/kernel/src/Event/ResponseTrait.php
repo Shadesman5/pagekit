@@ -23,6 +23,10 @@ trait ResponseTrait
      */
     public function getResponse(): Response
     {
+        if ($this->response === null) {
+            throw new \LogicException('Response has not been set.');
+        }
+
         return $this->response;
     }
 

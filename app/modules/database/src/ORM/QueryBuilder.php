@@ -270,6 +270,7 @@ class QueryBuilder
      * Proxy method call to query builder.
      *
      * @param  array<int, mixed> $args
+     * @return mixed Genuinely unknown type — proxied to the underlying query builder; return type depends on the method called.
      * @throws \BadMethodCallException
      */
     public function __call(string $method, array $args): mixed

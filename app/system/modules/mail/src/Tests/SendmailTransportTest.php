@@ -18,12 +18,13 @@ class SendmailTransportTest extends TestCase
         $expectedPath = $path . ' -t';
 
         // Test that SendmailTransport accepts the path with -t flag
-        $transport = new SendmailTransport($expectedPath);
-        $this->assertInstanceOf(SendmailTransport::class, $transport);
+        $this->expectNotToPerformAssertions();
+        new SendmailTransport($expectedPath);
     }
 
     public function testSendmailPathWithFlags(): void
     {
+        $this->expectNotToPerformAssertions();
         // Test various valid sendmail paths
         $validPaths = [
             '/usr/sbin/sendmail -bs',
@@ -33,8 +34,7 @@ class SendmailTransportTest extends TestCase
         ];
 
         foreach ($validPaths as $path) {
-            $transport = new SendmailTransport($path);
-            $this->assertInstanceOf(SendmailTransport::class, $transport);
+            new SendmailTransport($path);
         }
     }
 
@@ -59,8 +59,6 @@ class SendmailTransportTest extends TestCase
 
         $result = $controller->smtpAction();
 
-        $this->assertArrayHasKey('success', $result);
-        $this->assertArrayHasKey('message', $result);
         $this->assertFalse($result['success']);
         $this->assertStringContainsString('required', $result['message']);
     }
@@ -73,8 +71,6 @@ class SendmailTransportTest extends TestCase
 
         $result = $controller->smtpAction();
 
-        $this->assertArrayHasKey('success', $result);
-        $this->assertArrayHasKey('message', $result);
         $this->assertFalse($result['success']);
         $this->assertNotEmpty($result['message']);
     }

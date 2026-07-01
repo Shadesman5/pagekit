@@ -36,12 +36,12 @@ class CaptchaListener implements EventSubscriberInterface
      */
     public function onConfigureRoute(EventInterface $event, Route $route): void
     {
-        if (!$route->getControllerClass()) {
-            return;
-        }
-
         $class = $route->getControllerClass();
         $method = $route->getControllerMethod();
+
+        if ($class === null || $method === null) {
+            return;
+        }
 
         $routes = [];
 

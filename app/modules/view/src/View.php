@@ -63,6 +63,7 @@ class View
      * Gets a helper or calls the helpers invoke method.
      *
      * @param  array<int, mixed>  $args
+     * @return mixed Genuinely unknown type — when called with no args, returns a HelperInterface; otherwise delegates to the helper's __invoke which may return any type.
      */
     public function __call(string $name, array $args): mixed
     {
@@ -85,6 +86,8 @@ class View
 
     /**
      * Gets a global parameter.
+     *
+     * @return mixed Genuinely unknown type — global view parameters are registered by modules and templates; any type (string, array, object) is valid.
      */
     public function __get(string $name): mixed
     {
@@ -213,7 +216,7 @@ class View
         $this->events->trigger($event, [$this]);
 
         if (!$event->isPropagationStopped()) {
-            $name = preg_replace('/\.php$/i', '', $name);
+            $name = preg_replace('/\.php$/i', '', $name) ?? $name;
             $this->events->trigger($event->setName($name), [$this]);
         }
 
@@ -225,6 +228,12 @@ class View
 
             // Special handling for 'layout' - if no layout template exists, return null
             if ($template === 'layout' && !$this->engine->exists($template)) {
+                array_pop($this->parameters);
+
+                return null;
+            }
+
+            if ($template === null) {
                 array_pop($this->parameters);
 
                 return null;

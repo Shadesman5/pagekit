@@ -31,6 +31,9 @@ class ControllerEvent extends KernelEvent
         $this->controller = $controller;
     }
 
+    /**
+     * @return mixed Genuinely unknown type — the controller result may be a Response, an array for view rendering, a string, or any value returned by an action method.
+     */
     public function getControllerResult(): mixed
     {
         return $this->controllerResult;

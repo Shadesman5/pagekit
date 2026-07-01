@@ -84,7 +84,7 @@ EOF;
     }
 
     /**
-     * Generates PHP code representing the `generate` method that implements the UrlGeneratorInterface.
+     * Generates PHP code representing the `generate` method that implements the LinkReferenceType.
      */
     private function generateGenerateMethod(): string
     {

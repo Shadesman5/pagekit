@@ -52,7 +52,7 @@ class DataHelper implements HelperInterface
     /**
      * Gets the data values or a value by name.
      *
-     * @return mixed
+     * @return mixed Genuinely unknown type — view data values are user-supplied; any type (array, scalar, object) may be stored and returned.
      */
     public function get(?string $name = null): mixed
     {

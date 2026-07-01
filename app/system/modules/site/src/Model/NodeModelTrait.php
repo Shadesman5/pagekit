@@ -15,6 +15,9 @@ trait NodeModelTrait
     }
 
     /** @var array<int, Node>|null */
+    // TODO: BACKWARD COMPATIBILITY - Must be refactored later: static request-scoped cache is global
+    // mutable state; replace with injected CacheItemPoolInterface when static model access is
+    // removed in Step 2.1.11 (EntityManager DI).
     protected static ?array $nodes = null;
 
     /**
@@ -22,11 +25,17 @@ trait NodeModelTrait
      */
     public static function find(mixed $id, bool $cached = false): ?Node
     {
-        if (!$cached || !isset(self::$nodes[$id])) {
-            self::$nodes[$id] = self::modelFind($id);
+        if ($cached && isset(self::$nodes[$id])) {
+            return self::$nodes[$id];
         }
 
-        return self::$nodes[$id];
+        $node = self::modelFind($id);
+
+        if ($node !== null) {
+            self::$nodes[$id] = $node;
+        }
+
+        return $node;
     }
 
     /**
@@ -122,7 +131,7 @@ trait NodeModelTrait
                 $query->where('id <> ?', [$id]);
             }
         })->first()) {
-            $node->slug = preg_replace('/-\d+$/', '', $node->slug).'-'.$i++;
+            $node->slug = preg_replace('/-\d+$/', '', $node->slug ?? '').'-'.$i++;
         }
 
         // Update own path

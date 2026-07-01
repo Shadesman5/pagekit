@@ -47,6 +47,8 @@ class FilterManager
      * @see apply()
      *
      * @param array<string, mixed> $options
+     * @param  mixed $value Genuinely unknown type — filters accept any input type (see FilterInterface).
+     * @return mixed Genuinely unknown type — the output type depends on the applied filter implementation.
      */
     public function __invoke(mixed $value, string $name, array $options = []): mixed
     {
@@ -57,6 +59,8 @@ class FilterManager
      * Apply a filter.
      *
      * @param array<string, mixed> $options
+     * @param  mixed $value Genuinely unknown type — filters accept any input type (see FilterInterface).
+     * @return mixed Genuinely unknown type — the output type depends on the applied filter implementation.
      *
      * @throws \InvalidArgumentException
      */
@@ -74,7 +78,7 @@ class FilterManager
      */
     public function get(string $name, array $options = []): FilterInterface
     {
-        if (array_key_exists($name, $this->defaults)) {
+        if ($this->defaults !== null && array_key_exists($name, $this->defaults)) {
             $this->filters[$name] = $this->defaults[$name];
         }
 

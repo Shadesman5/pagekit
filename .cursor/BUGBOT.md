@@ -63,26 +63,22 @@ already tracked with a GitHub Issue, **do NOT flag it as a Bug**. Instead:
 - If unsure, add a single **informational** comment (not a Bug) referencing the
   step and issue: "Tracked in Step X.Y (Issue #N) — not in scope for this PR."
 
-**Known deferred patterns** (do NOT flag during Steps 2.0.x):
+**Known deferred patterns** (tracked for a later ROADMAP step — do NOT flag):
 
 | Pattern | Tracked In | Issue |
 |---------|-----------|-------|
-| `mixed` typed constructor parameters | Steps 2.1.4–2.1.6 (PHPStan) | #151, #152, #153 |
-| Missing `declare(strict_types=1)` | Step 2.1.3 (strict_types Migration) | #150 |
-| Missing test coverage for refactors | Step 2.1.9 (Test Coverage Expansion) | #156 |
-| `MigrationCommand` integration test (Doctrine + scripts flow) | Step 2.1.9 (Test Coverage Expansion) | #156 |
-| `App::abort()`, `App::redirect()` | Step 2.0.1e (StaticTrait Removal) | #166 |
-| `App::getInstance()` temporary bridges | Step 2.0.1e (StaticTrait Removal) | #166 |
-| `$app['x'] = ...` ArrayAccess WRITE | Step 2.0.1d (ArrayAccess Removal) | #165 |
-| `Pagekit\Cache\CacheInterface` / `Psr6Adapter` | Step 2.0.3 (Cache API Modernization) | #179 |
-| ~~`PackageScripts` without Doctrine Migrations~~ | ~~Step 2.0.4~~ (RESOLVED in PR #189) | #180 |
-| `composer.lock` not versioned, dead PSR-4 mappings | Step 2.0.5 (Composer & Autoload Hygiene) | #182 |
-| Old `phpunit.xml.dist` in modules, `@dataProvider` annotations | Step 2.0.6 (Test Infrastructure Cleanup) | #183 |
-| `SymfonyEventDispatcherBridge` / `symfony.event_dispatcher` | Step 2.0.7 (Event Bridge Removal) | #184 |
-| `create_function()` in `User::hasAccess()` | Step 2.0.8 (Hotfix: create_function) | #185 |
 | `Connection::exec()` alias, `json_array` type, deprecated `getSchemaManager()` | Step 2.1.7 (QueryBuilder/DBAL) | #154 |
-| `IntlServiceLocator`, `#[AllowDynamicProperties]` | Step 2.1.6 (PHPStan Level 8) | #153 |
-| `ModelServiceLocator` (static locator → DTO/presenter; type-narrow in 2.1.6, removal in 2.1.10) | Step 2.1.10 (Entity Presentation Layer) | #204 |
+| Missing test coverage for refactors; `MigrationCommand` integration test (Doctrine + scripts flow) | Step 2.1.9 (Test Coverage Expansion) | #156 |
+| `ModelServiceLocator` (static locator → DTO/presenter) | Step 2.1.10 (Entity Presentation Layer) | #204 |
+| `EntityManager` static singleton + `find(mixed $identifier)` | Step 2.1.11 (EntityManager DI) | #205 |
+
+> **Maintenance:** an entry is **removed** once its step ships — the pattern no longer exists in the
+> code, so there is nothing left to flag (history lives in `ROADMAP.md` / `CHANGELOG-NEW.md`).
+> **Resolved through Step 2.1.6** and therefore dropped from this table: all 2.0.x bridges
+> (`App::getInstance/abort/redirect`, `$app['x']=` writes, `SymfonyEventDispatcherBridge`,
+> `create_function()`, Cache `Psr6Adapter`, Composer/autoload + test-infra cleanups), `strict_types`
+> (2.1.3), and avoidable `mixed` + `IntlServiceLocator` + `#[AllowDynamicProperties]` (2.1.4–2.1.6).
+> Remaining **justified** `mixed` (PSR-11, magic methods, generic containers) is correct — see Rule 2.3.
 
 **Already resolved** (do NOT re-flag — these shipped intentionally):
 
@@ -110,8 +106,9 @@ If a changed PHP file does not contain `declare(strict_types=1);` as its
 second line (after `<?php`), flag as **non-blocking Bug** titled
 "Missing strict_types declaration".
 
-**Exception:** Skip during Steps 2.0.x — `strict_types` is a batch migration
-tracked in Step 2.1.3 (Issue #150). Do not flag individual files.
+**Note:** `strict_types` is enforced repo-wide since Step 2.1.3 (PR #201) by the
+`cs-fixer` CI gate (`declare_strict_types`), so a missing declaration normally fails
+CI before a review reaches Bugbot. Treat this rule as a non-blocking backstop.
 
 ### 2.2 PHP 8.2+ Error Model (CRITICAL)
 
@@ -137,9 +134,10 @@ If a changed file introduces a property without a type declaration
 (e.g., `protected $foo` instead of `protected string $foo`), flag as
 **non-blocking Bug** titled "Untyped property — PHP 8.2+ requires types".
 
-**Clarification:** `mixed` IS a valid PHP 8.0+ type declaration. If `mixed`
-is used as a placeholder with a TODO tag referencing Steps 2.1.4–2.1.6,
-do NOT flag it. Only flag truly untyped properties (no type at all).
+**Clarification:** `mixed` IS a valid PHP 8.0+ type declaration. The avoidable-`mixed`
+cleanup completed in Step 2.1.6 — do NOT flag **justified** `mixed` (PSR-11 `get()`, magic
+`__get`/`__set`/`__call`, generic value containers, event/config/template data). Only flag
+truly untyped properties (no type at all).
 
 ### 2.4 Return Types
 
@@ -273,11 +271,10 @@ or `app/modules/*/src/` and there are no corresponding changes in
 `**/Tests/**` or `tests/`, flag as **non-blocking Bug** titled
 "No tests for backend changes".
 
-**Exception:** Skip during infrastructure migration steps (2.0.x) where changes
-are mechanical refactors (e.g., `$app['x']` → `$app->get('x')`, constructor
-injection). Test coverage expansion for these is tracked in Step 2.1.9
-(Issue #156). Only flag if the PR introduces **new logic or behavioral changes**
-that are untested.
+**Exception:** For purely **mechanical refactors** (e.g., `$app['x']` → `$app->get('x')`,
+constructor injection, type-only changes), do not demand new tests — broader coverage
+expansion is tracked in Step 2.1.9 (Issue #156). Only flag if the PR introduces
+**new logic or behavioral changes** that are untested.
 
 ---
 

@@ -38,6 +38,10 @@ class ExceptionListener implements EventSubscriberInterface
 
         $exception = $event->getException();
 
+        if ($exception === null) {
+            return null;
+        }
+
         $this->logException($exception, sprintf('Uncaught PHP Exception %s: "%s" at %s line %s', get_class($exception), $exception->getMessage(), $exception->getFile(), $exception->getLine()));
 
         $request = $this->duplicateRequest($exception, $request);
