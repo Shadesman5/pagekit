@@ -29,6 +29,9 @@ class ArrObject implements \ArrayAccess, \Countable, \JsonSerializable
         return Arr::has($this->values, $key);
     }
 
+    /**
+     * @return mixed Genuinely unknown type — the underlying values array may contain any type; the caller is responsible for type-narrowing the result.
+     */
     public function get(?string $key, mixed $default = null): mixed
     {
         return Arr::get($this->values, $key, $default);
@@ -133,6 +136,7 @@ class ArrObject implements \ArrayAccess, \Countable, \JsonSerializable
         return $this->has($key);
     }
 
+    /** @return mixed Genuinely unknown type — implements \ArrayAccess; value type depends on what was stored at offset. */
     public function offsetGet(mixed $key): mixed
     {
         return $this->get($key);

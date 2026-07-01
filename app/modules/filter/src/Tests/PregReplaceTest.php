@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 
 class PregReplaceTest extends TestCase
 {
-    protected ?PregReplaceFilter $filter = null;
+    private PregReplaceFilter $filter;
 
     public function setUp(): void
     {

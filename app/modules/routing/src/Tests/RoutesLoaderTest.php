@@ -199,9 +199,7 @@ class RoutesLoaderTest extends TestCase
         $route->setName('abstract_route');
         $route->setOption('controller', RoutesLoaderTestAbstractController::class);
 
-        $collection = $loader->load([$route]);
-
-        $this->assertInstanceOf(\Symfony\Component\Routing\RouteCollection::class, $collection);
+        $loader->load([$route]);
     }
 
     public function testAddControllerFallsBackToErrorLogWhenNoLogService(): void

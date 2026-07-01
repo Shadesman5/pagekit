@@ -22,6 +22,8 @@ class Type extends Module implements TypeInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return mixed Genuinely unknown type — required by \JsonSerializable contract; this implementation returns an array of widget type properties.
      */
     public function jsonSerialize(): mixed
     {

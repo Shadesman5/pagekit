@@ -86,6 +86,10 @@ class Event implements EventInterface, \ArrayAccess
      */
     public function getDispatcher(): EventDispatcherInterface
     {
+        if ($this->dispatcher === null) {
+            throw new \LogicException('Event: dispatcher has not been set.');
+        }
+
         return $this->dispatcher;
     }
 
@@ -120,6 +124,7 @@ class Event implements EventInterface, \ArrayAccess
         return isset($this->parameters[$name]);
     }
 
+    /** @return mixed Genuinely unknown type — implements \ArrayAccess on event parameters; value type depends on what was registered at offset. */
     public function offsetGet(mixed $name): mixed
     {
         return $this->parameters[$name] ?? null;

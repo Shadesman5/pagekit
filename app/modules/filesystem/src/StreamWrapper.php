@@ -22,6 +22,18 @@ class StreamWrapper
     }
 
     /**
+     * Returns the filesystem, throwing if it has not been set.
+     */
+    private static function getFilesystem(): Filesystem
+    {
+        if (self::$file === null) {
+            throw new \RuntimeException('StreamWrapper: filesystem not initialized. Call setFilesystem() first.');
+        }
+
+        return self::$file;
+    }
+
+    /**
      * Close directory handle.
      */
     public function dir_closedir(): bool
@@ -36,7 +48,7 @@ class StreamWrapper
      */
     public function dir_opendir(string $path, int $options): bool
     {
-        $resolved = self::$file->getPath($path, true);
+        $resolved = self::getFilesystem()->getPath($path, true);
         if ($resolved === false) {
             return false;
         }
@@ -74,7 +86,7 @@ class StreamWrapper
      */
     public function mkdir(string $path, int $mode, int $options): bool
     {
-        $resolved = self::$file->getPath($path, true);
+        $resolved = self::getFilesystem()->getPath($path, true);
         if ($resolved === false) {
             return false;
         }
@@ -87,8 +99,8 @@ class StreamWrapper
      */
     public function rename(string $pathFrom, string $pathTo): bool
     {
-        $resolvedFrom = self::$file->getPath($pathFrom, true);
-        $resolvedTo = self::$file->getPath($pathTo, true);
+        $resolvedFrom = self::getFilesystem()->getPath($pathFrom, true);
+        $resolvedTo = self::getFilesystem()->getPath($pathTo, true);
         if ($resolvedFrom === false || $resolvedTo === false) {
             return false;
         }
@@ -101,7 +113,7 @@ class StreamWrapper
      */
     public function rmdir(string $path, int $options): bool
     {
-        $resolved = self::$file->getPath($path, true);
+        $resolved = self::getFilesystem()->getPath($path, true);
         if ($resolved === false) {
             return false;
         }
@@ -114,7 +126,7 @@ class StreamWrapper
      */
     public function unlink(string $path): bool
     {
-        $resolved = self::$file->getPath($path, true);
+        $resolved = self::getFilesystem()->getPath($path, true);
         if ($resolved === false) {
             return false;
         }
@@ -129,7 +141,7 @@ class StreamWrapper
      */
     public function url_stat(string $path, int $flags): array|false
     {
-        $path = self::$file->getPath($path, true);
+        $path = self::getFilesystem()->getPath($path, true);
 
         if ($path === false) {
             return false;
@@ -155,6 +167,9 @@ class StreamWrapper
      */
     public function stream_close(): void
     {
+        if ($this->handle === null) {
+            return;
+        }
         fclose($this->handle);
     }
 
@@ -163,6 +178,10 @@ class StreamWrapper
      */
     public function stream_eof(): bool
     {
+        if ($this->handle === null) {
+            return true;
+        }
+
         return feof($this->handle);
     }
 
@@ -171,6 +190,10 @@ class StreamWrapper
      */
     public function stream_flush(): bool
     {
+        if ($this->handle === null) {
+            return false;
+        }
+
         return fflush($this->handle);
     }
 
@@ -179,6 +202,9 @@ class StreamWrapper
      */
     public function stream_lock(int $operation): bool
     {
+        if ($this->handle === null) {
+            return false;
+        }
         if (in_array($operation, [LOCK_SH, LOCK_EX, LOCK_UN, LOCK_NB])) {
             return flock($this->handle, $operation);
         }
@@ -191,7 +217,7 @@ class StreamWrapper
      */
     public function stream_open(string $path, string $mode, int $options, ?string &$openedPath): bool
     {
-        $resolved = self::$file->getPath($path, true);
+        $resolved = self::getFilesystem()->getPath($path, true);
         if ($resolved === false) {
             return false;
         }
@@ -211,6 +237,9 @@ class StreamWrapper
      */
     public function stream_read(int $count): string|false
     {
+        if ($this->handle === null) {
+            return false;
+        }
         if ($count < 1) {
             return '';
         }
@@ -223,6 +252,10 @@ class StreamWrapper
      */
     public function stream_seek(int $offset, int $whence): bool
     {
+        if ($this->handle === null) {
+            return false;
+        }
+
         return !fseek($this->handle, $offset, $whence);
     }
 
@@ -233,6 +266,10 @@ class StreamWrapper
      */
     public function stream_stat(): array|false
     {
+        if ($this->handle === null) {
+            return false;
+        }
+
         return fstat($this->handle);
     }
 
@@ -241,6 +278,10 @@ class StreamWrapper
      */
     public function stream_tell(): int|false
     {
+        if ($this->handle === null) {
+            return false;
+        }
+
         return ftell($this->handle);
     }
 
@@ -249,6 +290,10 @@ class StreamWrapper
      */
     public function stream_write(string $data): int|false
     {
+        if ($this->handle === null) {
+            return false;
+        }
+
         return fwrite($this->handle, $data);
     }
 }

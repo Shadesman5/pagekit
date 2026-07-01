@@ -57,9 +57,7 @@ trait ValidatesRequestTrait
 
         $violations = $validator->validate($object, null, $groups);
 
-        if (count($violations) > 0) {
-            $firstViolation = $violations[0];
-
+        foreach ($violations as $firstViolation) {
             throw new BadRequestHttpException((string) $firstViolation->getMessage());
         }
     }
@@ -85,7 +83,12 @@ trait ValidatesRequestTrait
             $errors[$propertyPath][] = $message;
         }
 
-        $firstError = count($violations) > 0 ? $violations[0]->getMessage() : 'Validation failed';
+        $firstError = 'Validation failed';
+        foreach ($violations as $firstViolation) {
+            $firstError = $firstViolation->getMessage();
+
+            break;
+        }
 
         return new JsonResponse([
             'error' => true,

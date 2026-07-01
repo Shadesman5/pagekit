@@ -15,6 +15,11 @@ namespace Pagekit\Routing\Matcher\Dumper;
 
 use Symfony\Component\Routing\Matcher\Dumper\CompiledUrlMatcherDumper;
 
+// TODO: Must be refactored in Step 2.5 (Extension Safety & Fault Isolation) - this is a
+// copied clone of Symfony's deprecated PhpMatcherDumper (deprecated since Symfony 4.3).
+// Replace it with Symfony's native CompiledUrlMatcherDumper + CompiledUrlMatcher and rework
+// Router::getMatcher()/getGenerator() to the compiled-route-data format.
+
 /**
  * PhpMatcherDumper creates a PHP class able to match URLs for a given set of routes.
  *
@@ -47,7 +52,7 @@ class PhpMatcherDumper extends CompiledUrlMatcherDumper
         ], $options);
 
         $code = parent::dump();
-        $code = preg_replace('#\n    ([^ ].*?) // \$(\w++)$#m', "\n    \$this->$2 = $1", $code);
+        $code = preg_replace('#\n    ([^ ].*?) // \$(\w++)$#m', "\n    \$this->$2 = $1", $code) ?? $code;
         $code = str_replace(",\n    $", ";\n    $", $code);
         $code = substr($code, strpos($code, '$this') - 4, -5).";\n";
         $code = preg_replace('/^    \$this->\w++ = (?:null|false|\[\n    \]);\n/m', '', $code);

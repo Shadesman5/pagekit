@@ -17,6 +17,12 @@ class ConfigLoader implements LoaderInterface
         $this->values = $values;
     }
 
+    /**
+     * {@inheritdoc}
+     *
+     * @param  mixed $module Genuinely unknown type — see LoaderInterface::load().
+     * @return mixed Genuinely unknown type — see LoaderInterface::load().
+     */
     public function load(mixed $module): mixed
     {
         if (is_array($module) && isset($this->values[$module['name']])) {

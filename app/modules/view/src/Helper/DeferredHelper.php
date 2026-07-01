@@ -46,7 +46,7 @@ class DeferredHelper implements HelperInterface
 
             foreach ($this->deferred as $name => $event) {
                 $view->trigger($event->setName($name), [$view]);
-                $response->setContent(str_replace($this->placeholder[$name], $event->getResult(), $response->getContent()));
+                $response->setContent(str_replace($this->placeholder[$name], $event->getResult() ?? '', $response->getContent()));
             }
 
         }, 10);

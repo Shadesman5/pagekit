@@ -16,8 +16,8 @@ trait DataModelTrait
      * Gets a data value.
      *
      * @param  string $key
-     * @param  mixed  $default
-     * @return mixed
+     * @param  mixed  $default Genuinely unknown type — default may be any type as data values can be any scalar, array, or object.
+     * @return mixed Genuinely unknown type — data values are user-supplied JSON-decoded content; any scalar, array, or null is valid.
      */
     public function get(string $key, mixed $default = null): mixed
     {

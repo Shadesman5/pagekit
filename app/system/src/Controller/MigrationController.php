@@ -94,7 +94,7 @@ class MigrationController
                 : __('Your database is up to date.');
         }
 
-        ($this->config)('system')->set('version', $this->version);
+        ($this->config)('system')?->set('version', $this->version);
 
         if ($redirect) {
             $this->message->success($message);

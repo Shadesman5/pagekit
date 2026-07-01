@@ -11,8 +11,8 @@ use Symfony\Component\Mailer\Transport\NullTransport;
 
 class MessageTest extends TestCase
 {
-    protected ?Message $message = null;
-    protected ?Mailer $mailer = null;
+    private Message $message;
+    private Mailer $mailer;
 
     public function setUp(): void
     {
@@ -22,7 +22,7 @@ class MessageTest extends TestCase
 
     public function testConstructor(): void
     {
-        $this->assertInstanceOf(Message::class, $this->message);
+        $this->expectNotToPerformAssertions();
     }
 
     public function testSetAndGetMailer(): void
@@ -66,6 +66,7 @@ class MessageTest extends TestCase
         $result = $this->message->send($errors);
 
         $this->assertEquals(0, $result);
+        $this->assertIsArray($errors);
         $this->assertCount(1, $errors);
         $this->assertEquals('Test exception', $errors[0]);
     }
@@ -150,7 +151,9 @@ class MessageTest extends TestCase
         // Check that header was added
         $headers = $this->message->getHeaders();
         $this->assertTrue($headers->has('X-Custom-Header'));
-        $this->assertEquals('Custom Value', $headers->get('X-Custom-Header')->getBody());
+        $customHeader = $headers->get('X-Custom-Header');
+        $this->assertNotNull($customHeader);
+        $this->assertEquals('Custom Value', $customHeader->getBody());
     }
 
     public function testGetPartsIncludesEmbeded(): void

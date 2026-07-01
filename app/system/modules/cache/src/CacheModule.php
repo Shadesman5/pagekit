@@ -18,6 +18,9 @@ class CacheModule extends Module
 {
     protected ?App $app = null;
 
+    /**
+     * @return mixed Genuinely unknown type — overrides Module::main(); the return value is not consumed by the framework (inherited contract from ModuleInterface).
+     */
     public function main(App $app): mixed
     {
         $this->app = $app;
@@ -110,11 +113,13 @@ class CacheModule extends Module
     /**
      * Asserts that main() has been called.
      */
-    private function assertBooted(): void
+    private function assertBooted(): App
     {
         if ($this->app === null) {
             throw new \LogicException('CacheModule::main() has not been called yet.');
         }
+
+        return $this->app;
     }
 
     /**
@@ -124,9 +129,9 @@ class CacheModule extends Module
      */
     public function clearCache(array $options = []): void
     {
-        $this->assertBooted();
+        $app = $this->assertBooted();
 
-        $this->app->get('events')->on('terminate', function () use ($options) {
+        $app->get('events')->on('terminate', function () use ($options) {
             $this->doClearCache($options);
         }, -512);
     }
@@ -138,9 +143,7 @@ class CacheModule extends Module
      */
     public function doClearCache(array $options = []): void
     {
-        $this->assertBooted();
-
-        $app = $this->app;
+        $app = $this->assertBooted();
 
         // Clear PSR-6 cache pool + compiled cache files
         if (empty($options) || @$options['cache']) {

@@ -65,6 +65,7 @@ class Table
      * Proxy method call to table.
      *
      * @param array<int, mixed> $args
+     * @return mixed Genuinely unknown type — proxied to the underlying table; return type depends on the method called.
      * @throws \BadMethodCallException
      */
     public function __call(string $method, array $args): mixed

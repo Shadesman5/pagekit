@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Pagekit\Routing;
 
+use Pagekit\Routing\Generator\LinkReferenceType;
 use Pagekit\Routing\Generator\UrlGenerator;
 use Pagekit\Routing\Generator\UrlGeneratorDumper;
-use Pagekit\Routing\Generator\UrlGeneratorInterface;
 use Pagekit\Routing\Loader\LoaderInterface;
 use Pagekit\Routing\Matcher\Dumper\PhpMatcherDumper;
 use Pagekit\Routing\RequestContext as Context;
@@ -20,7 +20,7 @@ use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 use Symfony\Component\Routing\RouterInterface;
 
-class Router implements RouterInterface, UrlGeneratorInterface
+class Router implements RouterInterface, LinkReferenceType
 {
     protected ResourceInterface $resource;
 
@@ -140,6 +140,9 @@ class Router implements RouterInterface, UrlGeneratorInterface
     {
         if (!$this->routes) {
             $this->routes = $this->loader->load($this->resource);
+            if ($this->routes === null) {
+                throw new \RuntimeException('Router: loader returned null for route collection.');
+            }
         }
 
         return $this->routes;
@@ -150,39 +153,40 @@ class Router implements RouterInterface, UrlGeneratorInterface
      */
     public function getMatcher(): UrlMatcher
     {
-        if (!$this->matcher) {
-            $baseClass = $this->resolveMatcherClass();
-
-            if ($cache = $this->getCache('%s/%s.matcher.cache')) {
-
-                $class = sprintf('UrlMatcher%s', $cache['key']);
-
-                if (!$cache['fresh']) {
-                    $options = ['class' => $class, 'base_class' => $baseClass];
-                    $this->writeCache($cache['file'], (new PhpMatcherDumper($this->getRouteCollection()))->dump($options));
-                }
-
-                try {
-                    require_once $cache['file'];
-
-                    if (!class_exists($class, false)) {
-                        $options = ['class' => $class, 'base_class' => $baseClass];
-                        $this->writeCache($cache['file'], (new PhpMatcherDumper($this->getRouteCollection()))->dump($options));
-                        require_once $cache['file'];
-                    }
-
-                    $this->matcher = $this->instantiateMatcher($class, $this->context);
-
-                } catch (\Error $e) {
-                    $this->matcher = new $baseClass($this->getRouteCollection(), $this->context);
-                }
-
-            } else {
-                $this->matcher = new $baseClass($this->getRouteCollection(), $this->context);
-            }
+        if ($this->matcher) {
+            return $this->matcher;
         }
 
-        return $this->matcher;
+        $baseClass = $this->resolveMatcherClass();
+
+        if (!$cache = $this->getCache('%s/%s.matcher.cache')) {
+            return $this->matcher = new $baseClass($this->getRouteCollection(), $this->context);
+        }
+
+        $class = sprintf('UrlMatcher%s', $cache['key']);
+
+        try {
+            if (!class_exists($class, false)) {
+                if (!$cache['fresh'] || !is_file($cache['file'])) {
+                    $this->writeCache($cache['file'], (new PhpMatcherDumper($this->getRouteCollection()))->dump([
+                        'class' => $class,
+                        'base_class' => $baseClass,
+                    ]));
+                }
+
+                // Use require (not require_once): a freshly written file must always be
+                // evaluated, even if a previous attempt this request loaded a stale path.
+                require $cache['file'];
+            }
+
+            return $this->matcher = $this->instantiateMatcher($class, $this->context);
+
+        } catch (\Throwable $e) {
+            // A concurrent request may have left a partial/corrupted cache file (rapid
+            // route changes regenerate the dump). Never fail the request over a bad cache
+            // file - fall back to the non-cached matcher.
+            return $this->matcher = new $baseClass($this->getRouteCollection(), $this->context);
+        }
     }
 
     /**
@@ -190,39 +194,40 @@ class Router implements RouterInterface, UrlGeneratorInterface
      */
     public function getGenerator(): UrlGenerator
     {
-        if (!$this->generator) {
-            $baseClass = $this->resolveGeneratorClass();
-
-            if ($cache = $this->getCache('%s/%s.generator.cache')) {
-
-                $class = sprintf('UrlGenerator%s', $cache['key']);
-
-                if (!$cache['fresh']) {
-                    $options = ['class' => $class, 'base_class' => $baseClass];
-                    $this->writeCache($cache['file'], (new UrlGeneratorDumper($this->getRouteCollection()))->dump($options));
-                }
-
-                try {
-                    require_once $cache['file'];
-
-                    if (!class_exists($class, false)) {
-                        $options = ['class' => $class, 'base_class' => $baseClass];
-                        $this->writeCache($cache['file'], (new UrlGeneratorDumper($this->getRouteCollection()))->dump($options));
-                        require_once $cache['file'];
-                    }
-
-                    $this->generator = $this->instantiateGenerator($class, $this->context);
-
-                } catch (\Error $e) {
-                    $this->generator = new $baseClass($this->getRouteCollection(), $this->context);
-                }
-
-            } else {
-                $this->generator = new $baseClass($this->getRouteCollection(), $this->context);
-            }
+        if ($this->generator) {
+            return $this->generator;
         }
 
-        return $this->generator;
+        $baseClass = $this->resolveGeneratorClass();
+
+        if (!$cache = $this->getCache('%s/%s.generator.cache')) {
+            return $this->generator = new $baseClass($this->getRouteCollection(), $this->context);
+        }
+
+        $class = sprintf('UrlGenerator%s', $cache['key']);
+
+        try {
+            if (!class_exists($class, false)) {
+                if (!$cache['fresh'] || !is_file($cache['file'])) {
+                    $this->writeCache($cache['file'], (new UrlGeneratorDumper($this->getRouteCollection()))->dump([
+                        'class' => $class,
+                        'base_class' => $baseClass,
+                    ]));
+                }
+
+                // Use require (not require_once): a freshly written file must always be
+                // evaluated, even if a previous attempt this request loaded a stale path.
+                require $cache['file'];
+            }
+
+            return $this->generator = $this->instantiateGenerator($class, $this->context);
+
+        } catch (\Throwable $e) {
+            // A concurrent request may have left a partial/corrupted cache file (rapid
+            // route changes regenerate the dump). Never fail the request over a bad cache
+            // file - fall back to the non-cached generator.
+            return $this->generator = new $baseClass($this->getRouteCollection(), $this->context);
+        }
     }
 
     /**
@@ -316,7 +321,8 @@ class Router implements RouterInterface, UrlGeneratorInterface
         } catch (RouteNotFoundException $e) {
 
             if (filter_var($url, FILTER_VALIDATE_URL) === false && strpos($url, '/') !== 0) {
-                $url = "{$this->getRequest()->getBaseUrl()}/$url";
+                $request = $this->getRequest();
+                $url = $request !== null ? "{$request->getBaseUrl()}/$url" : "/$url";
             }
         }
 
@@ -330,7 +336,10 @@ class Router implements RouterInterface, UrlGeneratorInterface
      */
     public function match(string $pathinfo): array
     {
-        $this->context->fromRequest($this->getRequest());
+        $request = $this->getRequest();
+        if ($request !== null) {
+            $this->context->fromRequest($request);
+        }
 
         $params = $this->getMatcher()->match($pathinfo);
 
@@ -398,16 +407,14 @@ class Router implements RouterInterface, UrlGeneratorInterface
             return null;
         }
 
-        // Only include structural options in cache key (matcher/generator classes)
-        // Meta-options like 'blog.permalink' should not invalidate the cache
-        $structuralOptions = array_intersect_key($this->options, [
-            'matcher' => true,
-            'generator' => true,
-            'cache' => true,
-        ]);
-
-        // Calculate current cache key and check if it has changed
-        $currentKey = sha1(serialize($this->resource).serialize($structuralOptions));
+        // All router options participate in the cache key. Modules influence the
+        // generated route collection through options (e.g. the blog module sets
+        // "blog.permalink", which adds permalink alias routes during route.configure).
+        // Such options MUST invalidate the dumped matcher/generator, otherwise the
+        // router keeps serving routes built for a different permalink type and URL
+        // generation fails (e.g. switching the blog permalink to "Numeric" left the
+        // stale "{slug}" route cached, breaking every post URL).
+        $currentKey = sha1(serialize($this->resource).serialize($this->options));
         $currentModified = $this->resource->getModified();
 
         // Reset cache if key or modified time has changed (routes were updated)
@@ -434,7 +441,28 @@ class Router implements RouterInterface, UrlGeneratorInterface
      */
     protected function writeCache(string $file, string $content): void
     {
-        if (!file_put_contents($file, $content)) {
+        // Write to a unique temp file and atomically move it into place. Without this,
+        // concurrent requests (e.g. rapid page drag & drop, where every reorder changes
+        // the route collection and regenerates the dump) can read a half-written cache
+        // file and crash on a missing dumped class.
+        $tmp = @tempnam(dirname($file), 'route-cache');
+
+        if ($tmp !== false) {
+            if (@file_put_contents($tmp, $content) !== false) {
+                @chmod($tmp, 0666 & ~umask());
+
+                if (@rename($tmp, $file)) {
+                    return;
+                }
+            }
+
+            @unlink($tmp);
+        }
+
+        // Fallback (e.g. Windows when the destination is momentarily locked by a reader):
+        // a direct write is not atomic, but getMatcher()/getGenerator() degrade safely to
+        // the non-cached path if a reader happens to see a partial file.
+        if (@file_put_contents($file, $content, LOCK_EX) === false) {
             throw new \RuntimeException("Failed to write cache file ($file).");
         }
     }

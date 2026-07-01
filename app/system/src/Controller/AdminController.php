@@ -67,6 +67,9 @@ class AdminController
         }
 
         $user = User::find($this->user->id);
+        if ($user === null) {
+            throw new BadRequestHttpException(__('User not found.'));
+        }
         $user->set('admin.menu', $order);
         $user->save();
 

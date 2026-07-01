@@ -293,6 +293,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
      * Proxies all method calls to the original event dispatcher.
      *
      * @param  array<int|string, mixed> $arguments
+     * @return mixed Genuinely unknown type — proxied to the wrapped event dispatcher; return type depends on the method called.
      */
     public function __call(string $method, array $arguments): mixed
     {
@@ -322,7 +323,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
             }
             // Unwrap listener
             $this->dispatcher->off($eventName, $listener);
-            $this->dispatcher->on($eventName, $listener->getWrappedListener(), $listener->getPriority());
+            $this->dispatcher->on($eventName, $listener->getWrappedListener(), $listener->getPriority() ?? 0);
 
             $info = $this->getListenerInfo($listener->getWrappedListener(), $eventName);
             if ($listener->wasCalled()) {

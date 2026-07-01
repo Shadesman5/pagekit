@@ -13,18 +13,6 @@ parameters:
 			path: app/console/app.php
 
 		-
-			message: '#^Call to an undefined method Pagekit\\Container\:\:boot\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/console/src/Commands/SetupCommand.php
-
-		-
-			message: '#^Parameter \#1 \$app of class Pagekit\\Installer\\Installer constructor expects Pagekit\\Application, Pagekit\\Container\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/console/src/Commands/SetupCommand.php
-
-		-
 			message: '#^Parameter \#1 \$app of class Pagekit\\Installer\\Package\\PackageManager constructor expects Psr\\Container\\ContainerInterface, Symfony\\Component\\Console\\Output\\OutputInterface given\.$#'
 			identifier: argument.type
 			count: 1
@@ -233,12 +221,6 @@ parameters:
 			identifier: variable.undefined
 			count: 2
 			path: app/modules/application/index.php
-
-		-
-			message: '#^Call to an undefined method Symfony\\Component\\Console\\Helper\\HelperInterface\:\:ask\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: app/modules/application/src/Application/Console/Command.php
 
 		-
 			message: '#^Unreachable statement \- code above always terminates\.$#'
@@ -793,18 +775,6 @@ parameters:
 			path: app/modules/session/src/Handler/DatabaseSessionHandler.php
 
 		-
-			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertIsArray\(\) with array will always evaluate to true\.$#'
-			identifier: method.alreadyNarrowedType
-			count: 3
-			path: app/modules/session/src/Tests/SessionTest.php
-
-		-
-			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertIsString\(\) with string will always evaluate to true\.$#'
-			identifier: method.alreadyNarrowedType
-			count: 2
-			path: app/modules/session/src/Tests/SessionTest.php
-
-		-
 			message: '#^Variable \$app might not be defined\.$#'
 			identifier: variable.undefined
 			count: 2
@@ -1021,12 +991,6 @@ parameters:
 			path: app/system/modules/info/views/info.php
 
 		-
-			message: '#^Call to an undefined method Symfony\\Contracts\\Translation\\TranslatorInterface\:\:getCatalogue\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/intl/functions.php
-
-		-
 			message: '#^Undefined variable\: \$this$#'
 			identifier: variable.undefined
 			count: 2
@@ -1080,11 +1044,6 @@ parameters:
 			count: 1
 			path: app/system/modules/mail/index.php
 
-		-
-			message: '#^Call to an undefined method Pagekit\\Mail\\MailerInterface\:\:send\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/mail/src/Message.php
 
 		-
 			message: '#^Instanceof between Symfony\\Component\\Mime\\Part\\DataPart and Symfony\\Component\\Mime\\Part\\DataPart will always evaluate to true\.$#'
@@ -1145,18 +1104,6 @@ parameters:
 			identifier: new.noConstructor
 			count: 1
 			path: app/system/modules/site/src/MenuHelper.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$route$#'
-			identifier: parameter.notFound
-			count: 1
-			path: app/system/modules/site/src/SiteModule.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$type$#'
-			identifier: parameter.notFound
-			count: 1
-			path: app/system/modules/site/src/SiteModule.php
 
 		-
 			message: '#^Variable \$view might not be defined\.$#'
@@ -1477,24 +1424,6 @@ parameters:
 			path: app/system/modules/user/src/Controller/UserApiController.php
 
 		-
-			message: '#^Call to an undefined method Pagekit\\Auth\\UserInterface\:\:hasAccess\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/user/src/Event/AccessListener.php
-
-		-
-			message: '#^Access to an undefined property Pagekit\\Auth\\UserInterface\:\:\$login\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/system/modules/user/src/Event/AuthorizationListener.php
-
-		-
-			message: '#^Call to an undefined method Pagekit\\Auth\\UserInterface\:\:isBlocked\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/system/modules/user/src/Event/AuthorizationListener.php
-
-		-
 			message: '#^Parameter \#1 \$user of static method Pagekit\\User\\Model\\User\:\:updateLogin\(\) expects Pagekit\\User\\Model\\User, Pagekit\\Auth\\UserInterface\|null given\.$#'
 			identifier: argument.type
 			count: 1
@@ -1659,7 +1588,7 @@ parameters:
 		-
 			message: '#^Anonymous function has an unused use \$app\.$#'
 			identifier: closure.unusedUse
-			count: 2
+			count: 1
 			path: app/system/modules/view/index.php
 
 		-
@@ -1671,7 +1600,7 @@ parameters:
 		-
 			message: '#^Undefined variable\: \$this$#'
 			identifier: variable.undefined
-			count: 2
+			count: 1
 			path: app/system/modules/widget/index.php
 
 		-
@@ -1679,18 +1608,6 @@ parameters:
 			identifier: variable.undefined
 			count: 4
 			path: app/system/modules/widget/index.php
-
-		-
-			message: '#^Access to an undefined property Pagekit\\Widget\\Model\\Widget\:\:\$position\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/system/modules/widget/src/Controller/WidgetApiController.php
-
-		-
-			message: '#^Access to an undefined property Pagekit\\Widget\\Model\\Widget\:\:\$position\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/system/modules/widget/src/Controller/WidgetController.php
 
 		-
 			message: '#^Variable \$view might not be defined\.$#'

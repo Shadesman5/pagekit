@@ -11,6 +11,9 @@ class DashboardModule extends Module
 {
     protected ?App $app = null;
 
+    /**
+     * @return mixed Genuinely unknown type — overrides Module::main(); the return value is not consumed by the framework (inherited contract from ModuleInterface).
+     */
     public function main(App $app): mixed
     {
         $this->app = $app;
@@ -38,9 +41,9 @@ class DashboardModule extends Module
      */
     public function getWidgets(): array
     {
-        $this->assertBooted();
+        $app = $this->assertBooted();
 
-        $config = $this->app->get('config')->get('system/dashboard')->toArray();
+        $config = $app->get('config')->get('system/dashboard')->toArray();
 
         return $config ?: ($this->config('defaults') ?? []);
     }
@@ -52,15 +55,17 @@ class DashboardModule extends Module
      */
     public function saveWidgets(array $widgets): void
     {
-        $this->assertBooted();
+        $app = $this->assertBooted();
 
-        $this->app->get('config')->set('system/dashboard', $widgets);
+        $app->get('config')->set('system/dashboard', $widgets);
     }
 
-    private function assertBooted(): void
+    private function assertBooted(): App
     {
         if ($this->app === null) {
             throw new \LogicException('DashboardModule::main() has not been called yet.');
         }
+
+        return $this->app;
     }
 }

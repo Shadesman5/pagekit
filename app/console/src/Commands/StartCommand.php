@@ -39,7 +39,7 @@ class StartCommand extends Command
             throw new \LogicException('Option "server" must be a string.');
         }
 
-        $this->line(sprintf('Pagekit %s Development Server started', $this->getApplication()->getVersion()));
+        $this->line(sprintf('Pagekit %s Development Server started', $this->getApplication()?->getVersion() ?? 'dev'));
         $this->line(sprintf('Listening on http://%s', $server));
         $this->line(sprintf('Document root is %s', getcwd()));
         $this->line('Press Ctrl-C to quit');

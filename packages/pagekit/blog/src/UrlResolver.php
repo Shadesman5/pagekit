@@ -22,16 +22,17 @@ class UrlResolver implements ParamsResolverInterface
 
     // Static service references set during blog module boot,
     // required because Router instantiates resolvers via `new $class` (no DI).
-    // TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 — Strict Typing) —
-    // replace static setters with proper DI; blocked until the Router stops instantiating resolvers via `new $class`.
+    // TODO: TEMPORARY BRIDGE - To be removed in Step 2.5 (Extension Safety System) when routing factory gains DI support
     private static ?CacheItemPoolInterface $cache = null;
     private static ?Module $module = null;
 
+    // TODO: TEMPORARY BRIDGE - To be removed in Step 2.5 (Extension Safety System) when routing factory gains DI support
     public static function setCache(?CacheItemPoolInterface $cache): void
     {
         self::$cache = $cache;
     }
 
+    // TODO: TEMPORARY BRIDGE - To be removed in Step 2.5 (Extension Safety System) when routing factory gains DI support
     public static function setModule(Module $module): void
     {
         self::$module = $module;
@@ -170,15 +171,16 @@ class UrlResolver implements ParamsResolverInterface
 
     protected function addCache(Post $post): void
     {
+        $date = $post->date;
         $this->cacheEntries[$post->id] = [
             'id' => $post->id,
             'slug' => $post->slug,
-            'year' => $post->date->format('Y'),
-            'month' => $post->date->format('m'),
-            'day' => $post->date->format('d'),
-            'hour' => $post->date->format('H'),
-            'minute' => $post->date->format('i'),
-            'second' => $post->date->format('s'),
+            'year' => $date?->format('Y') ?? '',
+            'month' => $date?->format('m') ?? '',
+            'day' => $date?->format('d') ?? '',
+            'hour' => $date?->format('H') ?? '',
+            'minute' => $date?->format('i') ?? '',
+            'second' => $date?->format('s') ?? '',
         ];
 
         $this->cacheDirty = true;

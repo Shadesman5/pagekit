@@ -41,6 +41,9 @@ class ContentEvent extends Event
         return $this->plugins;
     }
 
+    /**
+     * @return mixed Genuinely unknown type — plugin callbacks are registered externally as closures, class instances, or any callable; type depends on the registered plugin.
+     */
     public function getPlugin(string $name): mixed
     {
         return $this->plugins[$name] ?? null;

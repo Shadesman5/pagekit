@@ -4,18 +4,24 @@ declare(strict_types=1);
 
 namespace Pagekit\View\Asset;
 
-// TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 — Strict Typing) —
-// Static service locator pattern with mixed types. Replace with proper DI
-// and type $file as Filesystem, $locator as ResourceLocator.
+use Pagekit\Filesystem\Filesystem;
+use Pagekit\Filesystem\Locator;
+
 class FileLocatorAsset extends FileAsset
 {
-    private static mixed $file = null;
-    private static mixed $locator = null;
-
-    public static function setServices(mixed $file, mixed $locator): void
-    {
-        self::$file = $file;
-        self::$locator = $locator;
+    /**
+     * @param array<int, string>   $dependencies
+     * @param array<string, mixed> $options
+     */
+    public function __construct(
+        string $name,
+        string $source,
+        array $dependencies,
+        array $options,
+        private readonly Filesystem $file,
+        private readonly Locator $locator,
+    ) {
+        parent::__construct($name, $source, $dependencies, $options);
     }
 
     /**
@@ -27,13 +33,16 @@ class FileLocatorAsset extends FileAsset
             return parent::getSource() ?? '';
         }
 
-        $path = self::$file->getUrl($path);
-
-        if ($version = $this->getOption('version')) {
-            $path .= (false === strpos($path, '?') ? '?' : '&') . 'v=' . $version;
+        $url = $this->file->getUrl($path);
+        if ($url === false) {
+            return '';
         }
 
-        return $path;
+        if ($version = $this->getOption('version')) {
+            $url .= (false === strpos($url, '?') ? '?' : '&') . 'v=' . (string) $version;
+        }
+
+        return $url;
     }
 
     /**
@@ -41,6 +50,6 @@ class FileLocatorAsset extends FileAsset
      */
     public function getPath(): string
     {
-        return self::$locator->get($this->source) ?: '';
+        return $this->source !== null ? ($this->locator->get($this->source) ?: '') : '';
     }
 }

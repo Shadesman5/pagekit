@@ -84,10 +84,8 @@ class Metadata
 
     /**
      * Gets the field or column name of the identifier.
-     *
-     * @param  bool $column
      */
-    public function getIdentifier($column = false): ?string
+    public function getIdentifier(bool $column = false): ?string
     {
         return $column ? $this->fieldNames[$this->identifier] : $this->identifier;
     }
@@ -95,7 +93,7 @@ class Metadata
     /**
      * Gets a field's mapping definitions, or a single attribute thereof.
      *
-     * @return array<string, mixed>|mixed|null Field mapping (when $attribute is null), the attribute value (when $attribute is set), or null when the field is unknown.
+     * @return array<string, mixed>|mixed|null Field mapping (when $attribute is null), the attribute value (when $attribute is set), or null when the field is unknown. Genuinely unknown type for the attribute value — field attributes are user-defined and may be any scalar or array.
      */
     public function getField(string $name, ?string $attribute = null): mixed
     {
@@ -156,9 +154,9 @@ class Metadata
      * @param  string $name
      * @param  bool   $column
      * @param  bool   $convert
-     * @return mixed
+     * @return mixed Genuinely unknown type — entity field values may be any type: int, string, DateTime, bool, or null depending on the mapped field type.
      */
-    public function getValue($entity, $name, $column = false, $convert = false)
+    public function getValue(object $entity, string $name, bool $column = false, bool $convert = false): mixed
     {
         if ($column && isset($this->fieldNames[$name])) {
             $name = $this->fieldNames[$name];
@@ -186,7 +184,7 @@ class Metadata
      * @param bool   $column
      * @param bool   $convert
      */
-    public function setValue($entity, $name, $value, $column = false, $convert = false): void
+    public function setValue(object $entity, string $name, mixed $value, bool $column = false, bool $convert = false): void
     {
         if ($column && isset($this->fieldNames[$name])) {
             $name = $this->fieldNames[$name];

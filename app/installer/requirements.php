@@ -372,7 +372,6 @@ class PagekitRequirements extends RequirementCollection
 
         $installedPhpVersion = phpversion();
 
-        $this->addPhpIniRequirement('detect_unicode', false);
         $this->addPhpIniRequirement('allow_url_fopen', true);
 
         $this->addRequirement(
@@ -453,14 +452,6 @@ class PagekitRequirements extends RequirementCollection
             'Install and enable the <strong>PDO</strong> extension.'
         );
 
-        if (version_compare($installedPhpVersion, '5.6', '>=') && version_compare($installedPhpVersion, '7.0.0', '<')) {
-            $this->addRequirement(
-                !(ini_get('display_startup_errors') === "1" && ini_get('always_populate_raw_post_data') !== "-1"),
-                '\'display_startup_errors\' is enabled and \'always_populate_raw_post_data\' is not set to \'-1\'',
-                'Disable startup errors or set \'always_populate_raw_post_data\' to \'-1\' in php.ini.'
-            );
-        }
-
         if (class_exists('PDO')) {
             $drivers = PDO::getAvailableDrivers();
             $this->addRequirement(
@@ -510,44 +501,24 @@ class PagekitRequirements extends RequirementCollection
             'Install and enable the <strong>iconv</strong> extension.'
         );
 
-        $this->addRecommendation(
-            function_exists('utf8_decode'),
-            'utf8_decode() should be available',
-            'Install and enable the <strong>XML Parser</strong> extension.'
-        );
-
         if (extension_loaded('apcu')) {
             $apcuVersion = phpversion('apcu');
             $this->addRecommendation(
-                $apcuVersion !== false && version_compare($apcuVersion, '4.0.2', '>='),
-                'APCu version must be at least 4.0.2',
-                'Upgrade your <strong>APCu</strong> extension (4.0.2+).'
+                $apcuVersion !== false && version_compare($apcuVersion, '5.1.0', '>='),
+                'APCu version must be at least 5.1.0',
+                'Upgrade your <strong>APCu</strong> extension (5.1.0+).'
             );
         }
 
-        if (function_exists('apc_store') && ini_get('apc.enabled')) {
-            $apcVersion = phpversion('apc');
-            $this->addRequirement(
-                $apcVersion !== false && version_compare($apcVersion, '3.1.13', '>='),
-                'APC version must be at least 3.1.13 when using PHP 5.4',
-                'Upgrade your <strong>APC</strong> extension (3.1.13+).'
-            );
-        }
-
-        $accelerator = (function_exists('apc_store') && ini_get('apc.enabled'))
-                        || (function_exists('eaccelerator_put') && ini_get('eaccelerator.enable'))
-                        || (function_exists('opcache_invalidate') && ini_get('opcache.enable'))
-                        || function_exists('xcache_set');
+        $accelerator = function_exists('opcache_invalidate') && ini_get('opcache.enable');
 
         $this->addRecommendation(
             $accelerator,
-            'a PHP accelerator should be installed',
-            'Install and enable a <strong>PHP accelerator</strong> like APC (highly recommended).'
+            'OPcache should be installed and enabled',
+            'Install and enable the <strong>OPcache</strong> extension (highly recommended for PHP 8.2+).'
         );
 
         $this->addPhpIniRecommendation('short_open_tag', false);
-        $this->addPhpIniRecommendation('magic_quotes_gpc', false, true);
-        $this->addPhpIniRecommendation('register_globals', false, true);
         $this->addPhpIniRecommendation('session.auto_start', false);
     }
 }

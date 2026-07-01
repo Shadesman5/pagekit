@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Pagekit\Application\UrlProvider;
 
 // Static URL provider for template helper functions.
-// TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 — Strict Typing) —
+// TODO: TEMPORARY BRIDGE - To be removed in Step 2.5 (Extension Safety & Fault Isolation) —
 // replace ThemeOneHelpers static UrlProvider (global state) with proper DI once template helper functions support injection.
 final class ThemeOneHelpers
 {

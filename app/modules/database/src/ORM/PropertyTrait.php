@@ -13,7 +13,7 @@ trait PropertyTrait
      * Gets an object property.
      *
      * @param  string $name
-     * @return mixed
+     * @return mixed Genuinely unknown type — virtual properties are defined by consumer classes via descriptors; the accessor callable may return any type (int, string, object, etc.).
      */
     public function __get(string $name): mixed
     {

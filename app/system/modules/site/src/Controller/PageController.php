@@ -28,7 +28,7 @@ class PageController
             throw new NotFoundHttpException(__('Page not found.'));
         }
 
-        $page->content = $this->content->applyPlugins($page->content, ['page' => $page, 'markdown' => $page->get('markdown')]);
+        $page->content = $this->content->applyPlugins($page->content ?? '', ['page' => $page, 'markdown' => $page->get('markdown')]);
 
         return [
             '$view' => [

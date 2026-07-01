@@ -222,7 +222,7 @@ class User implements UserInterface, \JsonSerializable
             return $this->hasPermission($expression);
         }
 
-        $exp = preg_replace('/[^01&\(\)\|!]/', '', preg_replace_callback('/[a-z_][a-z-_\.:\d\s]*/i', fn ($permission) => (int) $user->hasPermission(trim($permission[0])), $expression));
+        $exp = preg_replace('/[^01&\(\)\|!]/', '', preg_replace_callback('/[a-z_][a-z-_\.:\d\s]*/i', fn ($permission) => (int) $user->hasPermission(trim($permission[0])), $expression) ?? '');
 
         try {
             return self::evaluateBooleanExpression((string) $exp);

@@ -100,8 +100,6 @@ return [
 
         'boot' => function ($event, $app) {
 
-            Widget::defineProperty('position', fn () => $app->get('position')->find($this->id), true);
-
             Widget::defineProperty('theme', function () use ($app) {
 
                 $config = $app->get('theme')->config('_widgets.'.$this->id, []);
@@ -151,7 +149,9 @@ return [
         },
 
         'model.widget.saved' => function ($event, $widget) use ($app) {
-            $app->get('position')->assign($widget->position, $widget->id);
+            if ($widget->position !== null) {
+                $app->get('position')->assign($widget->position, $widget->id);
+            }
             $app->get('config')($app->get('theme')->name)->set('_widgets.'.$widget->id, $widget->theme);
         },
 

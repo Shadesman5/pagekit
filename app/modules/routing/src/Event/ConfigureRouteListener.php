@@ -26,6 +26,10 @@ class ConfigureRouteListener implements EventSubscriberInterface
         $class = $route->getControllerClass();
         $method = $route->getControllerMethod();
 
+        if ($method === null) {
+            return;
+        }
+
         // Check class-level Request attribute
         $classAttributes = $class->getAttributes(Request::class, \ReflectionAttribute::IS_INSTANCEOF);
 

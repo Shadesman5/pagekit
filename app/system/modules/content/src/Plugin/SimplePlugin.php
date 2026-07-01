@@ -37,7 +37,7 @@ class SimplePlugin implements EventSubscriberInterface
 
         }, $event->getContent());
 
-        $event->setContent($content);
+        $event->setContent($content ?? '');
     }
 
     /**

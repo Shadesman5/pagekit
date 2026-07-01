@@ -14,9 +14,9 @@ class StreamAdapterTest extends TestCase
 {
     use FileUtil;
 
-    protected ?Filesystem $file = null;
-    protected ?string $fixtures = null;
-    protected ?string $workspace = null;
+    private Filesystem $file;
+    private string $fixtures;
+    private string $workspace;
 
     public function setUp(): void
     {

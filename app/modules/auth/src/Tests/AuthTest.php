@@ -14,11 +14,11 @@ use PHPUnit\Framework\TestCase;
 
 class AuthTest extends TestCase
 {
-    protected ?Auth $auth = null;
-    /** @var (\PHPUnit\Framework\MockObject\MockObject&EventDispatcherInterface)|null */
-    protected ?\PHPUnit\Framework\MockObject\MockObject $events = null;
-    /** @var (\PHPUnit\Framework\MockObject\MockObject&HandlerInterface)|null */
-    protected ?\PHPUnit\Framework\MockObject\MockObject $handler = null;
+    private Auth $auth;
+    /** @var \PHPUnit\Framework\MockObject\MockObject&EventDispatcherInterface */
+    private \PHPUnit\Framework\MockObject\MockObject $events;
+    /** @var \PHPUnit\Framework\MockObject\MockObject&HandlerInterface */
+    private \PHPUnit\Framework\MockObject\MockObject $handler;
 
     public function setUp(): void
     {
@@ -29,9 +29,7 @@ class AuthTest extends TestCase
 
     public function tearDown(): void
     {
-        $this->auth = null;
-        $this->events = null;
-        $this->handler = null;
+        unset($this->auth, $this->events, $this->handler);
     }
 
     /**
@@ -39,7 +37,8 @@ class AuthTest extends TestCase
      */
     public function testAuthInstantiation(): void
     {
-        $this->assertInstanceOf(Auth::class, $this->auth);
+        // constructor tested implicitly by setUp(); no additional assertion needed
+        $this->expectNotToPerformAssertions();
     }
 
     /**
@@ -98,8 +97,7 @@ class AuthTest extends TestCase
             ->method('trigger')
             ->willReturn($event);
 
-        $result = $this->auth->login($user);
-        $this->assertInstanceOf(EventInterface::class, $result);
+        $this->auth->login($user);
     }
 
     /**
@@ -127,8 +125,7 @@ class AuthTest extends TestCase
         $this->handler->expects($this->once())
             ->method('destroy');
 
-        $result = $this->auth->logout();
-        $this->assertInstanceOf(EventInterface::class, $result);
+        $this->auth->logout();
         $this->assertNull($this->auth->getUser());
     }
 

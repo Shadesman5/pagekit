@@ -60,6 +60,9 @@ trait DbUtil
             if ($platform->supportsCreateDropDatabase()) {
 
                 $dbname = $realConn->getDatabase();
+                if ($dbname === null) {
+                    throw new \RuntimeException('Cannot determine database name; getDatabase() returned null.');
+                }
                 // Connect to tmpdb in order to drop and create the real test db.
                 $tmpConn = DriverManager::getConnection($tmpDbParams);
                 $realConn->close();
@@ -122,10 +125,12 @@ trait DbUtil
 
     public function getSharedConnection(): Connection
     {
-        static $connection;
-        static $error;
+        /** @var Connection|null $connection */
+        static $connection = null;
+        /** @var \Exception|null $error */
+        static $error = null;
 
-        if (!isset($connection) && !isset($error)) {
+        if ($connection === null && $error === null) {
 
             try {
                 $connection = $this->getConnection();
@@ -135,7 +140,7 @@ trait DbUtil
 
         }
 
-        if (isset($error)) {
+        if ($error !== null) {
             throw $error;
         }
 

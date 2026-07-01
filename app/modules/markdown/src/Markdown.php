@@ -65,7 +65,7 @@ class Markdown
      */
     public static function escape(string $text, bool $encode = false): string
     {
-        $text = preg_replace(!$encode ? '/&(?!#?\w+;)/' : '/&/', '&amp;', $text);
+        $text = preg_replace(!$encode ? '/&(?!#?\w+;)/' : '/&/', '&amp;', $text) ?? '';
 
         return str_replace(['<', '>', '"', '\''], ['&lt;', '&gt;', '&quot;', '&#39;'], $text);
     }

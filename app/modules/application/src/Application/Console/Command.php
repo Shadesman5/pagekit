@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Pagekit\Application\Console;
 
-use Pagekit\Container;
+use Pagekit\Application as Container;
 use Symfony\Component\Console\Command\Command as BaseCommand;
+use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
@@ -36,7 +37,7 @@ class Command extends BaseCommand
     /**
      * The Container instance.
      */
-    protected ?\Pagekit\Container $container = null;
+    protected Container $container;
 
     /**
      * The Pagekit config.
@@ -48,20 +49,11 @@ class Command extends BaseCommand
     /**
      * Create a new console command instance.
      */
-    public function __construct()
-    {
-        parent::__construct($this->name);
-        $this->setDescription($this->description);
-    }
-
-    /**
-     * Set the Pagekit application instance.
-     *
-     * @param Container $container
-     */
-    public function setContainer(Container $container): void
+    public function __construct(Container $container)
     {
         $this->container = $container;
+        parent::__construct($this->name);
+        $this->setDescription($this->description);
     }
 
     /**
@@ -90,6 +82,10 @@ class Command extends BaseCommand
      */
     public function argument(?string $key = null): string|array|null
     {
+        if ($this->input === null) {
+            throw new \LogicException('Input is not initialized. This method can only be called during command execution.');
+        }
+
         if ($key === null) {
             return $this->input->getArguments();
         }
@@ -104,6 +100,10 @@ class Command extends BaseCommand
      */
     public function option(?string $key = null): string|array|bool|null
     {
+        if ($this->input === null) {
+            throw new \LogicException('Input is not initialized. This method can only be called during command execution.');
+        }
+
         if ($key === null) {
             return $this->input->getOptions();
         }
@@ -113,52 +113,87 @@ class Command extends BaseCommand
 
     public function confirm(string $question, bool $default = true): bool
     {
-        $helper = $this->getHelperSet()->get('question');
-        $question = new ConfirmationQuestion("<question>$question</question>", $default);
+        if ($this->input === null || $this->output === null) {
+            throw new \LogicException('Input/Output is not initialized. This method can only be called during command execution.');
+        }
 
-        return $helper->ask($this->input, $this->output, $question);
+        /** @var QuestionHelper $helper */
+        $helper = $this->getHelper('question');
+        $q = new ConfirmationQuestion("<question>$question</question>", $default);
+
+        return (bool) $helper->ask($this->input, $this->output, $q);
     }
 
     public function ask(string $question, ?string $default = null): string
     {
-        $helper = $this->getHelperSet()->get('question');
-        $question = new Question("<question>$question</question>", $default);
+        if ($this->input === null || $this->output === null) {
+            throw new \LogicException('Input/Output is not initialized. This method can only be called during command execution.');
+        }
 
-        return $helper->ask($this->input, $this->output, $question);
+        /** @var QuestionHelper $helper */
+        $helper = $this->getHelper('question');
+        $q = new Question("<question>$question</question>", $default);
+
+        return (string) $helper->ask($this->input, $this->output, $q);
     }
 
     public function secret(string $question, bool $fallback = true): string
     {
-        $helper = $this->getHelperSet()->get('question');
-        $question = new Question("<question>$question</question>");
-        $question->setHidden(true);
-        $question->setHiddenFallback($fallback);
+        if ($this->input === null || $this->output === null) {
+            throw new \LogicException('Input/Output is not initialized. This method can only be called during command execution.');
+        }
 
-        return $helper->ask($this->input, $this->output, $question);
+        /** @var QuestionHelper $helper */
+        $helper = $this->getHelper('question');
+        $q = new Question("<question>$question</question>");
+        $q->setHidden(true);
+        $q->setHiddenFallback($fallback);
+
+        return (string) $helper->ask($this->input, $this->output, $q);
     }
 
     public function line(string $string): void
     {
+        if ($this->output === null) {
+            throw new \LogicException('Output is not initialized. This method can only be called during command execution.');
+        }
+
         $this->output->writeln($string);
     }
 
     public function info(string $string): void
     {
+        if ($this->output === null) {
+            throw new \LogicException('Output is not initialized. This method can only be called during command execution.');
+        }
+
         $this->output->writeln("<info>$string</info>");
     }
 
     public function comment(string $string): void
     {
+        if ($this->output === null) {
+            throw new \LogicException('Output is not initialized. This method can only be called during command execution.');
+        }
+
         $this->output->writeln("<comment>$string</comment>");
     }
 
     public function question(string $string): void
     {
+        if ($this->output === null) {
+            throw new \LogicException('Output is not initialized. This method can only be called during command execution.');
+        }
+
         $this->output->writeln("<question>$string</question>");
     }
 
     public function error(string $string): void
     {
+        if ($this->output === null) {
+            throw new \LogicException('Output is not initialized. This method can only be called during command execution.');
+        }
+
         $this->output->writeln("<error>$string</error>");
     }
 

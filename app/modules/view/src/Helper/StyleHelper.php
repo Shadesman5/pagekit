@@ -48,6 +48,7 @@ class StyleHelper implements HelperInterface, \IteratorAggregate
      * Proxies all method calls to the manager.
      *
      * @param array<int, mixed> $args
+     * @return mixed Genuinely unknown type — proxied to the StyleManager; return type depends on the method called.
      */
     public function __call(string $method, array $args): mixed
     {
