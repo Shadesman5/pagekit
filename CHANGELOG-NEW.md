@@ -1,6 +1,6 @@
 # Changelog
 
-## Pagekit 1.2.21 - PHPStan Level 7 → 8 (Strict Typing) (Juni 30, 2026)
+## Pagekit 1.2.21 - PHPStan Level 7 → 8 (Strict Typing) (Juli 1, 2026)
 
 ### Static Analysis
 
