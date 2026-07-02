@@ -40,10 +40,14 @@ validate("SLUG", SLUG, /^[A-Za-z0-9._/-]+$/);
 validate("BRANCH", BRANCH, /^[A-Za-z0-9._/-]+$/);
 validate("BASE", BASE, /^[A-Za-z0-9._/-]+$/);
 validate("TASK_PROMPT", TASK_PROMPT, /^[A-Za-z0-9._/-]+$/);
+if (TASK_PROMPT.split("/").includes("..")) fail(`TASK_PROMPT must not contain '..' path segments: ${TASK_PROMPT}`);
 validate("MODEL", MODEL, /^[A-Za-z0-9._-]+$/);
 validate("MODE", MODE_INPUT, /^(auto|full|plan)$/);
 if (ISSUE) validate("ISSUE", ISSUE, /^[0-9]+$/);
 if (!Number.isInteger(BUDGET) || BUDGET < 1) fail(`Invalid BATCH_BUDGET: ${process.env.BATCH_BUDGET}`);
+if (!Number.isInteger(MAX_ESCALATIONS) || MAX_ESCALATIONS < 0) fail(`Invalid MAX_ESCALATIONS: ${process.env.MAX_ESCALATIONS}`);
+if (!Number.isInteger(MAX_POLL_FAILS) || MAX_POLL_FAILS < 1) fail(`Invalid MAX_POLL_FAILS: ${process.env.MAX_POLL_FAILS}`);
+if (!Number.isInteger(POLL_MS) || POLL_MS < 1) fail(`Invalid POLL_MS: ${process.env.POLL_MS}`);
 
 let current = null; // { agentId, runId } of the in-flight run, for cancellation
 
@@ -58,76 +62,79 @@ let current = null; // { agentId, runId } of the in-flight run, for cancellation
   // Issue is mandatory for normal runs (PR Closes #N + stop/pause control labels); audits have none.
   if (!AUDIT && !ISSUE) fail("ISSUE is required for non-audit runs (PR Closes #N + conductor:stop/pause labels). Only audit tasks (a `conductor-mode: plan` marker in the task prompt) may omit it.");
 
-  // Fully-finalized resume guard: Finalize archives the ticket to done/. If it is there, the whole
-  // pipeline already completed for this slug — nothing to redo on a re-dispatch.
-  if (!AUDIT && existsSync(`migration-docs/tickets/done/${TICKET_SLUG}_plan.md`)) {
-    log("✅ already finalized (ticket archived to done/) — nothing to do.");
-    return;
-  }
+  // Completion signal: Finalize archives the ticket to done/ as its LAST step, so a ticket under done/
+  // means Plan+Execute finished. We still run an IDEMPOTENT Finalize below (rather than exiting early),
+  // so a re-dispatch can recover an interrupted Finalize instead of being blocked.
+  const doneTicket = `migration-docs/tickets/done/${TICKET_SLUG}_plan.md`;
+  const alreadyArchived = !AUDIT && existsSync(doneTicket);
 
-  // PLAN phase — skip only if the plan work is already done: the ticket for normal tasks, or an open PR
-  // for audits (which deliver a report, not a ticket). Keeps audits resume-safe too.
-  const planAlreadyDone = AUDIT ? openPrExists() : existsSync(TICKET);
-  let planRan = false;
-  if (!planAlreadyDone) {
-    await runPhaseWithEscalation("PLAN", () => planPrompt(AUDIT));
-    pullBranch();
-    planRan = true;
+  if (!alreadyArchived) {
+    // PLAN phase — skip only if the plan work is already done: the ticket for normal tasks, or an open
+    // PR for audits (which deliver a report, not a ticket). Keeps audits resume-safe too.
+    const planAlreadyDone = AUDIT ? openPrExists() : existsSync(TICKET);
+    let planRan = false;
+    if (!planAlreadyDone) {
+      await runPhaseWithEscalation("PLAN", () => planPrompt(AUDIT), /^Plan ready:/i);
+      pullBranch();
+      planRan = true;
+    } else {
+      log(`plan already done (${AUDIT ? `open PR for ${BRANCH}` : TICKET}) — skipping PLAN`);
+    }
+
+    // Plan-only (Step-0 gate): stop cleanly after PLAN (audit/report task or review-only gate). Normal
+    // runs (mode=full) fall through to EXECUTE.
+    if (MODE === "plan") {
+      const detail = AUDIT ? (planRan ? " (audit: report + PR opened this run)" : " (audit: PR already open)") : "";
+      log(`✅ Conductor done (mode=plan): Step-0 gate complete${detail} - EXECUTE/FINALIZE skipped by design.`);
+      return;
+    }
+
+    // EXECUTE loop — recompute the batch from the live checkboxes each iteration.
+    let escalations = 0;
+    let prevOpen = Infinity;
+    for (;;) {
+      await gate();
+      pullBranch();
+      const steps = readSteps();
+      if (steps === null) fail(`ticket not found after PLAN: ${TICKET} (audit/report task? re-dispatch with MODE=plan for a Step-0-gate-only run)`);
+      if (steps.length === 0) fail(`no parseable "## EXECUTION STATE" steps in ${TICKET} (audit/report task? use MODE=plan)`);
+
+      const open = steps.filter((s) => !s.checked);
+      if (open.length === 0) { log("all checklist steps complete"); break; }
+      // Stuck detection is progress-based: fewer open steps than the previous pass = progress (reset the
+      // counter); no reduction after a batch = a stuck round — whether the agent ESCALATEd, errored, or
+      // falsely claimed "done". Bail after MAX_ESCALATIONS stuck rounds so a no-op can't loop to the cap.
+      if (open.length < prevOpen) {
+        escalations = 0;
+      } else if (prevOpen !== Infinity) {
+        if (++escalations > MAX_ESCALATIONS) fail(`EXECUTE stuck: no progress in ${escalations} rounds (open ${open.length}/${steps.length})`);
+        log(`no progress since last batch (open ${open.length}/${steps.length}); stuck ${escalations}/${MAX_ESCALATIONS}`);
+      }
+      prevOpen = open.length;
+
+      const batch = nextBatch(open);
+      log(`next batch: steps ${batch.join(",")}  (open ${open.length}/${steps.length})`);
+
+      let result;
+      try {
+        result = await runPhase(`EXECUTE ${batch.join(",")}`, stepPrompt(batch));
+      } catch (e) {
+        log(`run error (${e.message}); relaunching fresh (stuck ${escalations}/${MAX_ESCALATIONS})`);
+        continue;
+      }
+      if (result.startsWith("ESCALATE")) {
+        log(`escalated (${result}); relaunching fresh, batch recomputed (stuck ${escalations}/${MAX_ESCALATIONS})`);
+        continue;
+      }
+      log(`EXECUTE result: ${result}`); // "Batch done" or "Batch stopped (preCompact) ..." -> loop re-reads
+    }
   } else {
-    log(`plan already done (${AUDIT ? `open PR for ${BRANCH}` : TICKET}) — skipping PLAN`);
+    log("ticket already archived to done/ — skipping PLAN/EXECUTE; running idempotent FINALIZE to verify.");
   }
 
-  // Plan-only (Step-0 gate): stop cleanly after PLAN (audit/report task or review-only gate). Normal
-  // runs (mode=full) fall through to EXECUTE.
-  if (MODE === "plan") {
-    const detail = AUDIT ? (planRan ? " (audit: report + PR opened this run)" : " (audit: PR already open)") : "";
-    log(`✅ Conductor done (mode=plan): Step-0 gate complete${detail} - EXECUTE/FINALIZE skipped by design.`);
-    return;
-  }
-
-  // EXECUTE loop — recompute the batch from the live checkboxes each iteration.
-  let escalations = 0;
-  let prevOpen = Infinity;
-  for (;;) {
-    await gate();
-    pullBranch();
-    const steps = readSteps();
-    if (steps === null) fail(`ticket not found after PLAN: ${TICKET} (audit/report task? re-dispatch with MODE=plan for a Step-0-gate-only run)`);
-    if (steps.length === 0) fail(`no parseable "## EXECUTION STATE" steps in ${TICKET} (audit/report task? use MODE=plan)`);
-
-    const open = steps.filter((s) => !s.checked);
-    if (open.length === 0) { log("all checklist steps complete"); break; }
-    // Stuck detection is progress-based: fewer open steps than the previous pass = progress (reset the
-    // counter); no reduction after a batch = a stuck round — whether the agent ESCALATEd, errored, or
-    // falsely claimed "done". Bail after MAX_ESCALATIONS stuck rounds so a no-op can't loop to the job cap.
-    if (open.length < prevOpen) {
-      escalations = 0;
-    } else if (prevOpen !== Infinity) {
-      if (++escalations > MAX_ESCALATIONS) fail(`EXECUTE stuck: no progress in ${escalations} rounds (open ${open.length}/${steps.length})`);
-      log(`no progress since last batch (open ${open.length}/${steps.length}); stuck ${escalations}/${MAX_ESCALATIONS}`);
-    }
-    prevOpen = open.length;
-
-    const batch = nextBatch(open);
-    log(`next batch: steps ${batch.join(",")}  (open ${open.length}/${steps.length})`);
-
-    let result;
-    try {
-      result = await runPhase(`EXECUTE ${batch.join(",")}`, stepPrompt(batch));
-    } catch (e) {
-      log(`run error (${e.message}); relaunching fresh (stuck ${escalations}/${MAX_ESCALATIONS})`);
-      continue;
-    }
-    if (result.startsWith("ESCALATE")) {
-      log(`escalated (${result}); relaunching fresh, batch recomputed (stuck ${escalations}/${MAX_ESCALATIONS})`);
-      continue;
-    }
-    log(`EXECUTE result: ${result}`); // "Batch done" or "Batch stopped (preCompact) ..." -> loop re-reads
-  }
-
-  // FINALIZE phase.
+  // FINALIZE phase — idempotent (safe to re-enter after a partial or complete prior run).
   await gate();
-  await runPhaseWithEscalation("FINALIZE", () => finalizePrompt());
+  await runPhaseWithEscalation("FINALIZE", () => finalizePrompt(alreadyArchived ? doneTicket : TICKET), /^Finalized\b/i);
 
   log("✅ Conductor done. Review and merge the PR (it is intentionally left open).");
 })().catch((e) => { log(`fatal: ${e.stack || e.message}`); process.exit(1); });
@@ -154,8 +161,10 @@ async function runPhase(label, prompt) {
   return text;
 }
 
-// PLAN / FINALIZE: fixed prompt, relaunch fresh on ESCALATE/run-error up to MAX_ESCALATIONS.
-async function runPhaseWithEscalation(label, makePrompt) {
+// PLAN / FINALIZE: fixed prompt, relaunch fresh on ESCALATE / run-error / unexpected result up to
+// MAX_ESCALATIONS. `expect` is the phase's success sentinel — a finished run whose one-liner does not
+// match it (empty/garbled result from the beta API) is retried, never accepted as success.
+async function runPhaseWithEscalation(label, makePrompt, expect) {
   for (let attempt = 0; ; attempt++) {
     await gate();
     let result;
@@ -169,6 +178,11 @@ async function runPhaseWithEscalation(label, makePrompt) {
     if (result.startsWith("ESCALATE")) {
       if (attempt >= MAX_ESCALATIONS) fail(`${label} escalated ${attempt + 1}x: ${result}`);
       log(`escalated (${result}); relaunching fresh (${attempt + 1}/${MAX_ESCALATIONS})`);
+      continue;
+    }
+    if (expect && !expect.test(result)) {
+      if (attempt >= MAX_ESCALATIONS) fail(`${label} unexpected result after ${attempt} retries: "${result}"`);
+      log(`unexpected result ("${result}"); relaunching fresh (${attempt + 1}/${MAX_ESCALATIONS})`);
       continue;
     }
     log(`${label} result: ${result}`);
@@ -220,10 +234,10 @@ function stepPrompt(batch) {
     "Report exactly one line as that rule specifies.",
   ].join("\n");
 }
-function finalizePrompt() {
+function finalizePrompt(ticketPath) {
   return [
     "You are the Orchestrator for the FINALIZE phase. Follow the rule .cursor/rules/orchestrator-v2-finalize.mdc exactly.",
-    `Ticket: ${TICKET}`,
+    `Ticket: ${ticketPath}`,
     `Branch: ${BRANCH} (verify you are on it first).`,
     `Base branch: ${BASE} (open the PR against this base).`,
     ISSUE ? `GitHub issue: #${ISSUE}` : "",
@@ -274,7 +288,7 @@ function readSteps() {
     seen.add(n);
     steps.push({ n, size: (step[2] || "M").toUpperCase(), checked: box[1].toLowerCase() === "x" });
   }
-  return steps;
+  return steps.sort((a, b) => a.n - b.n); // ascending step order — never trust the ticket's line order
 }
 
 function nextBatch(open) {

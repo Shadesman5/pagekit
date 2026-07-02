@@ -41,8 +41,8 @@ Finalize is **not** atomic: the driver may relaunch it after a partial run (agen
 timeout, manual cancel) that already opened the PR or bumped the version but never reached the
 `git mv … done/`. So **check-before-act** — make every step idempotent:
 
-- **PR:** if `gh pr list --head <branch> --state open` already returns a PR, **reuse** it; only
-  `gh pr create` when none exists (never open a second).
+- **PR:** if a PR for this branch already exists (`gh pr list --head <branch> --state all` → open **or**
+  already merged), **reuse** it / do nothing; only `gh pr create` when none exists (never open a second).
 - **Version / CHANGELOG:** if the target version is already in `app/system/config.php` with its
   `CHANGELOG-NEW.md` section, do **not** bump again — amend that section in place (Rule 4: one version
   bump per PR).
