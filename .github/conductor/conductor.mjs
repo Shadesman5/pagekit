@@ -22,12 +22,16 @@ const ISSUE = (process.env.ISSUE || "").trim();
 const BASE = (process.env.BASE || "develop").trim();
 const SLUG = (process.env.SLUG || basename(TASK_PROMPT).replace(/\.md$/i, "")).trim();
 const BRANCH = (process.env.BRANCH || `feature/${SLUG}`).trim();
-const TICKET = `migration-docs/tickets/active/${SLUG}_plan.md`;
+// Ticket filename ALWAYS derives from the task-prompt basename — the Architect derives it the same way,
+// so a custom slug/branch input (which only renames the branch) can never desync the ticket path.
+const TICKET_SLUG = basename(TASK_PROMPT).replace(/\.md$/i, "").trim();
+const TICKET = `migration-docs/tickets/active/${TICKET_SLUG}_plan.md`;
 const BUDGET = Number(process.env.BATCH_BUDGET || 6);
 const MODEL = (process.env.MODEL || "auto").trim();
 const MODE_INPUT = (process.env.MODE || "auto").trim().toLowerCase(); // dispatch: auto|full|plan ("auto" = task prompt self-declares, see resolveMode)
 const MAX_ESCALATIONS = Number(process.env.MAX_ESCALATIONS || 2);
 const POLL_MS = Number(process.env.POLL_MS || 15000);
+const MAX_POLL_FAILS = Number(process.env.MAX_POLL_FAILS || 6); // consecutive poll errors before a phase fails
 const WEIGHTS = { S: 1, M: 2, L: 4 };
 
 // Validate everything that flows into a shell command or a path (defense-in-depth; only
@@ -79,7 +83,15 @@ let current = null; // { agentId, runId } of the in-flight run, for cancellation
 
     const open = steps.filter((s) => !s.checked);
     if (open.length === 0) { log("all checklist steps complete"); break; }
-    if (open.length < prevOpen) escalations = 0; // progress resets the stuck counter
+    // Stuck detection is progress-based: fewer open steps than the previous pass = progress (reset the
+    // counter); no reduction after a batch = a stuck round — whether the agent ESCALATEd, errored, or
+    // falsely claimed "done". Bail after MAX_ESCALATIONS stuck rounds so a no-op can't loop to the job cap.
+    if (open.length < prevOpen) {
+      escalations = 0;
+    } else if (prevOpen !== Infinity) {
+      if (++escalations > MAX_ESCALATIONS) fail(`EXECUTE stuck: no progress in ${escalations} rounds (open ${open.length}/${steps.length})`);
+      log(`no progress since last batch (open ${open.length}/${steps.length}); stuck ${escalations}/${MAX_ESCALATIONS}`);
+    }
     prevOpen = open.length;
 
     const batch = nextBatch(open);
@@ -89,13 +101,11 @@ let current = null; // { agentId, runId } of the in-flight run, for cancellation
     try {
       result = await runPhase(`EXECUTE ${batch.join(",")}`, stepPrompt(batch));
     } catch (e) {
-      if (++escalations > MAX_ESCALATIONS) fail(`EXECUTE run error ${escalations}x: ${e.message}`);
-      log(`run error (${e.message}); relaunching fresh (${escalations}/${MAX_ESCALATIONS})`);
+      log(`run error (${e.message}); relaunching fresh (stuck ${escalations}/${MAX_ESCALATIONS})`);
       continue;
     }
     if (result.startsWith("ESCALATE")) {
-      if (++escalations > MAX_ESCALATIONS) fail(`EXECUTE escalated ${escalations}x: ${result}`);
-      log(`escalated; relaunching fresh, batch recomputed (${escalations}/${MAX_ESCALATIONS})`);
+      log(`escalated (${result}); relaunching fresh, batch recomputed (stuck ${escalations}/${MAX_ESCALATIONS})`);
       continue;
     }
     log(`EXECUTE result: ${result}`); // "Batch done" or "Batch stopped (preCompact) ..." -> loop re-reads
@@ -154,13 +164,16 @@ async function runPhaseWithEscalation(label, makePrompt) {
 
 async function poll(agentId, runId) {
   const TERMINAL = new Set(["FINISHED", "ERROR", "CANCELLED", "EXPIRED"]);
+  let fails = 0;
   for (;;) {
     await sleep(POLL_MS);
     let run;
     try {
       run = await api("GET", `/v1/agents/${agentId}/runs/${runId}`);
+      fails = 0; // a good poll clears transient errors
     } catch (e) {
-      log(`  poll error (retrying): ${e.message}`);
+      if (++fails > MAX_POLL_FAILS) throw new Error(`poll failed ${fails}x (last: ${e.message})`);
+      log(`  poll error ${fails}/${MAX_POLL_FAILS} (retrying): ${e.message}`);
       continue;
     }
     const status = String(run.status ?? run.run?.status ?? "").toUpperCase();
@@ -216,7 +229,10 @@ function resolveRun() {
   } catch (e) {
     log(`could not read ${TASK_PROMPT} for the conductor-mode marker: ${e.message}`);
   }
-  const mode = MODE_INPUT === "auto" ? (audit ? "plan" : "full") : MODE_INPUT;
+  // An audit has no executable ticket, so it is ALWAYS plan-only — an explicit mode=full cannot override
+  // that (it would only half-run: produce the report/PR in Plan, then fail the Execute guard).
+  const mode = audit ? "plan" : (MODE_INPUT === "auto" ? "full" : MODE_INPUT);
+  if (audit && MODE_INPUT === "full") log(`note: audit task is plan-only; ignoring mode=full (no executable ticket)`);
   return { mode, audit };
 }
 function readSteps() {
@@ -226,10 +242,18 @@ function readSteps() {
   if (idx < 0) return [];
   const section = md.slice(idx).split(/\n## /)[0];
   const steps = [];
-  const re = /^- \[( |x)\] Step (\d+) \(([SML])\)/gim;
-  let m;
-  while ((m = re.exec(section))) {
-    steps.push({ n: Number(m[2]), size: m[3].toUpperCase(), checked: m[1].toLowerCase() === "x" });
+  // Parse every checkbox line. The size hint is optional (defaults to M). A checkbox line that clearly
+  // means a Step but does not parse is treated as malformed and fails loudly — silently skipping it could
+  // drop an open step and finalize prematurely (PR #213 Bugbot #7).
+  for (const line of section.split("\n")) {
+    const box = line.match(/^\s*- \[( |x)\]\s*(.*)$/i);
+    if (!box) continue;
+    const step = box[2].match(/^Step\s+(\d+)\s*(?:\(([SMLsml])\))?/);
+    if (!step) {
+      if (/^step/i.test(box[2])) fail(`malformed EXECUTION STATE line in ${TICKET}: "${line.trim()}"`);
+      continue; // non-step checkbox line (e.g. a note) — ignore
+    }
+    steps.push({ n: Number(step[1]), size: (step[2] || "M").toUpperCase(), checked: box[1].toLowerCase() === "x" });
   }
   return steps;
 }
