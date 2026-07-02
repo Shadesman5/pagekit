@@ -25,6 +25,7 @@ const BRANCH = (process.env.BRANCH || `feature/${SLUG}`).trim();
 const TICKET = `migration-docs/tickets/active/${SLUG}_plan.md`;
 const BUDGET = Number(process.env.BATCH_BUDGET || 6);
 const MODEL = (process.env.MODEL || "auto").trim();
+const MODE_INPUT = (process.env.MODE || "auto").trim().toLowerCase(); // dispatch: auto|full|plan ("auto" = task prompt self-declares, see resolveMode)
 const MAX_ESCALATIONS = Number(process.env.MAX_ESCALATIONS || 2);
 const POLL_MS = Number(process.env.POLL_MS || 15000);
 const WEIGHTS = { S: 1, M: 2, L: 4 };
@@ -36,6 +37,7 @@ validate("BRANCH", BRANCH, /^[A-Za-z0-9._/-]+$/);
 validate("BASE", BASE, /^[A-Za-z0-9._/-]+$/);
 validate("TASK_PROMPT", TASK_PROMPT, /^[A-Za-z0-9._/-]+$/);
 validate("MODEL", MODEL, /^[A-Za-z0-9._-]+$/);
+validate("MODE", MODE_INPUT, /^(auto|full|plan)$/);
 if (ISSUE) validate("ISSUE", ISSUE, /^[0-9]+$/);
 if (!Number.isInteger(BUDGET) || BUDGET < 1) fail(`Invalid BATCH_BUDGET: ${process.env.BATCH_BUDGET}`);
 
@@ -43,16 +45,26 @@ let current = null; // { agentId, runId } of the in-flight run, for cancellation
 
 // ---------------------------------------------------------------- main
 (async () => {
-  log(`Conductor start — slug=${SLUG} branch=${BRANCH} base=${BASE} budget=${BUDGET} model=${MODEL}`);
+  const { mode: MODE, audit: AUDIT } = resolveRun();
+  log(`Conductor start — slug=${SLUG} branch=${BRANCH} base=${BASE} budget=${BUDGET} model=${MODEL} mode=${MODE}${AUDIT ? " (audit/report)" : ""}`);
+  // Issue is mandatory for normal runs (PR Closes #N + stop/pause control labels); audits have none.
+  if (!AUDIT && !ISSUE) fail("ISSUE is required for non-audit runs (PR Closes #N + conductor:stop/pause labels). Only audit tasks (a `conductor-mode: plan` marker in the task prompt) may omit it.");
   ensureBranch();
 
   // PLAN phase — only if the ticket does not exist yet (resume-safe).
   pullBranch();
   if (!existsSync(TICKET)) {
-    await runPhaseWithEscalation("PLAN", () => planPrompt());
+    await runPhaseWithEscalation("PLAN", () => planPrompt(AUDIT));
     pullBranch();
   } else {
     log(`ticket already present (${TICKET}) — skipping PLAN`);
+  }
+
+  // Plan-only (Step-0 gate): stop cleanly after PLAN. Either an audit/report task (report + docs-only PR
+  // handled in the Plan phase) or a review-only gate. Normal runs (mode=full) fall through to EXECUTE.
+  if (MODE === "plan") {
+    log(`✅ Conductor done (mode=plan): Step-0 gate complete${AUDIT ? " (audit: report + PR opened in Plan phase)" : ""} - EXECUTE/FINALIZE skipped by design.`);
+    return;
   }
 
   // EXECUTE loop — recompute the batch from the live checkboxes each iteration.
@@ -62,8 +74,8 @@ let current = null; // { agentId, runId } of the in-flight run, for cancellation
     await gate();
     pullBranch();
     const steps = readSteps();
-    if (steps === null) fail(`ticket not found after PLAN: ${TICKET}`);
-    if (steps.length === 0) fail(`no parseable "## EXECUTION STATE" steps in ${TICKET}`);
+    if (steps === null) fail(`ticket not found after PLAN: ${TICKET} (audit/report task? re-dispatch with MODE=plan for a Step-0-gate-only run)`);
+    if (steps.length === 0) fail(`no parseable "## EXECUTION STATE" steps in ${TICKET} (audit/report task? use MODE=plan)`);
 
     const open = steps.filter((s) => !s.checked);
     if (open.length === 0) { log("all checklist steps complete"); break; }
@@ -159,12 +171,16 @@ async function poll(agentId, runId) {
 }
 
 // ---------------------------------------------------------------- prompts
-function planPrompt() {
+function planPrompt(audit) {
   return [
     "You are the Orchestrator for the PLAN phase. Follow the rule .cursor/rules/orchestrator-v2-plan.mdc exactly.",
     `Task prompt: ${TASK_PROMPT}`,
     `Branch: ${BRANCH} (verify you are on it first; checkout/create if needed).`,
+    `Base branch: ${BASE}`,
     ISSUE ? `GitHub issue: #${ISSUE}` : "",
+    audit
+      ? `This is an AUDIT/REPORT task (report deliverable, no executable ticket): follow the rule's "Audit / report tasks" section. After the plan-reviewer PASSes, push and open a PR against ${BASE} — docs only: NO version bump, NO CHANGELOG, NO ROADMAP edits; do not merge.`
+      : "",
     "Report exactly one line as that rule specifies.",
   ].filter(Boolean).join("\n");
 }
@@ -188,6 +204,21 @@ function finalizePrompt() {
 }
 
 // ---------------------------------------------------------------- ticket state
+// Resolve the run's pipeline mode + whether it's an audit/report task. The task prompt's marker
+// `<!-- conductor-mode: plan -->` flags an AUDIT/REPORT task (report deliverable, no executable ticket);
+// an explicit dispatch input (full|plan) still overrides the *mode*. For audits the Plan phase also opens
+// a docs-only PR, since Execute/Finalize never run. Reading one small file is deterministic config, not
+// LLM context. "plan" WITHOUT the marker (explicit input) = a review-only gate: plan, then stop, no PR.
+function resolveRun() {
+  let audit = false;
+  try {
+    audit = /conductor-mode:\s*plan\b/i.test(readFileSync(TASK_PROMPT, "utf8"));
+  } catch (e) {
+    log(`could not read ${TASK_PROMPT} for the conductor-mode marker: ${e.message}`);
+  }
+  const mode = MODE_INPUT === "auto" ? (audit ? "plan" : "full") : MODE_INPUT;
+  return { mode, audit };
+}
 function readSteps() {
   if (!existsSync(TICKET)) return null;
   const md = readFileSync(TICKET, "utf8");

@@ -18,8 +18,8 @@ on:
         required: true
         type: string
       issue:
-        description: "GitHub issue number (PR Closes #N + conductor:stop / conductor:pause control labels)"
-        required: true
+        description: "GitHub issue number — required for normal tasks (PR Closes #N + conductor:stop/pause labels); leave empty for audits (which have no issue)"
+        required: false
         type: string
       slug:
         description: "Ticket slug (default: task-prompt filename without .md)"
@@ -44,6 +44,15 @@ on:
         required: false
         default: "auto"
         type: string
+      mode:
+        description: "Pipeline mode. auto = task prompt self-declares (default); full = Plan->Execute->Finalize; plan = Step-0 gate only (Plan, then stop — e.g. audits)"
+        required: false
+        default: "auto"
+        type: choice
+        options:
+          - auto
+          - full
+          - plan
 
 permissions:
   contents: write   # create/push the feature branch
@@ -77,4 +86,5 @@ jobs:
           BRANCH: ${{ inputs.branch }}
           BATCH_BUDGET: ${{ inputs.batch_budget }}
           MODEL: ${{ inputs.model }}
+          MODE: ${{ inputs.mode }}
         run: node .github/conductor/conductor.mjs
