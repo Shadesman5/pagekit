@@ -23,6 +23,14 @@ Orchestrator/Conductor passes:
 6. **Audit findings incorporated** – Any "Audit findings" for this step in `PHASE_*_MODERNISING.md` are explicit checklist items, or explicitly deferred with a ROADMAP TODO.
 7. **Testing strategy** – The per-step + final test strategy is present and matches `.cursor/agents/tester.md`.
 
+## Audit / report tasks
+
+If the task prompt is an **audit / report** task (carries `<!-- conductor-mode: plan -->`; deliverable is
+a report, not a ticket), review the **report** against the task prompt instead of the ticket checks:
+requirement / success-criteria coverage, evidence quality, and no scope drift. The ticket-only checks
+above (EXECUTION STATE block, `S/M/L` size hints, step decomposition, per-step testing) **do not apply** —
+there are no checklist steps.
+
 ## Boundary (STRICT — role separation)
 
 You review the **plan document + the requirement**, not the codebase.

@@ -19,6 +19,9 @@ You are the Strategic Lead for Pagekit modernization. Your goal is to map the ta
 
 ## Output Format
 
+> **Audit / report tasks** (task prompt carries `<!-- conductor-mode: plan -->`) are the exception —
+> their deliverable is a **report**, not a ticket. See "Audit / report tasks" below.
+
 Write the plan to a **ticket file** so the Orchestrator and other subagents use it without chat bloat.
 
 - **Path:** `migration-docs/tickets/active/{task-slug}_plan.md` where `{task-slug}` is the task prompt filename without path and without `.md` (e.g. `PSR-11-Container-DI-Infrastructure`). New tickets always go in `active/`; a completed ticket is moved to `done/` at Finalize (see `migration-docs/tickets/README.md`).
@@ -55,7 +58,20 @@ Write the plan to a **ticket file** so the Orchestrator and other subagents use 
 - If a sub-step is missing, add it (e.g. 2.0.5b).
 - When creating the checklist, incorporate any "Audit findings" listed for the target step in PHASE_2_MODERNISING.md as explicit checklist items.
 
+## Audit / report tasks (report deliverable, not a ticket)
+
+Some task prompts are **audit / report** tasks — they carry a `<!-- conductor-mode: plan -->` marker and
+their deliverable is a **report** (path + structure given in the task prompt, e.g. under
+`migration-docs/audits/…`), not a modernization ticket. For these, follow the **task prompt's own output
+spec** instead of the ticket format above:
+
+- Produce the report exactly where/how the task prompt says (path, sections, success criteria).
+- There is **no** `## EXECUTION STATE` block and **no** `S/M/L` checklist — an audit is read-only
+  investigation + findings, not executed step-by-step.
+- Chat output: ONE line = the report path, e.g.
+  `Report written to migration-docs/audits/2026/07/AUDIT_REPORT_…md`.
+
 ## Output discipline (strict)
 
-- Write the plan to the ticket file only. In chat, output ONE line: `Plan written to migration-docs/tickets/active/{task-slug}_plan.md`.
+- Write the plan to the ticket file only. In chat, output ONE line: `Plan written to migration-docs/tickets/active/{task-slug}_plan.md`. (Audit/report tasks: write the report per the task prompt and output `Report written to <report path>`.)
 - No preamble, no "I will...", no step-by-step narration. Do not paste the full plan into chat.
