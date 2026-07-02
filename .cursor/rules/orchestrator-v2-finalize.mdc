@@ -24,8 +24,8 @@ differs, `git fetch origin` and `git checkout <branch>`. Then proceed.
 
 1. **Bugbot review** — run `/review-bugbot` on the branch diff (once). Findings → fix via
    refactorer → verifier → tester → commit, then re-run until clean.
-2. **Push + PR** — `git push -u origin HEAD`; `gh pr create` with the `<!-- metadata -->` block
-   (labels, milestone, `Closes #XXX`). This opens the PR and triggers CI once.
+2. **Push + PR** — `git push -u origin HEAD`; `gh pr create --base <base branch from your launch prompt>`
+   with the `<!-- metadata -->` block (labels, milestone, `Closes #XXX`). Opens the PR and triggers CI once.
 3. **Final test** — delegate to **tester** ("final test run"): wait on the PHP Quality CI jobs and run
    the Playwright E2E specs in parallel. FAIL → fix via refactorer → verifier → tester, commit, push,
    re-run. (Intermediate fix commits on the open PR may use `[skip ci]`; the last one must not.)

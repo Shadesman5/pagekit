@@ -55,8 +55,9 @@ on:
           - plan
 
 permissions:
-  contents: write   # create/push the feature branch
-  issues: read      # read conductor:stop / conductor:pause control labels
+  contents: write        # create/push the feature branch
+  issues: read           # read conductor:stop / conductor:pause control labels
+  pull-requests: read    # openPrExists() uses `gh pr list` to make audit runs resume-safe
 
 concurrency:
   group: conductor-${{ inputs.branch || inputs.slug || inputs.task_prompt }}

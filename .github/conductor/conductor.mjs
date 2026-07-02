@@ -49,25 +49,39 @@ let current = null; // { agentId, runId } of the in-flight run, for cancellation
 
 // ---------------------------------------------------------------- main
 (async () => {
+  ensureBranch();
+  pullBranch();
+  // Resolve mode/audit AFTER checking out the feature branch, so a marker/prompt that exists on the
+  // branch (not just the base checkout) is honored.
   const { mode: MODE, audit: AUDIT } = resolveRun();
   log(`Conductor start — slug=${SLUG} branch=${BRANCH} base=${BASE} budget=${BUDGET} model=${MODEL} mode=${MODE}${AUDIT ? " (audit/report)" : ""}`);
   // Issue is mandatory for normal runs (PR Closes #N + stop/pause control labels); audits have none.
   if (!AUDIT && !ISSUE) fail("ISSUE is required for non-audit runs (PR Closes #N + conductor:stop/pause labels). Only audit tasks (a `conductor-mode: plan` marker in the task prompt) may omit it.");
-  ensureBranch();
 
-  // PLAN phase — only if the ticket does not exist yet (resume-safe).
-  pullBranch();
-  if (!existsSync(TICKET)) {
-    await runPhaseWithEscalation("PLAN", () => planPrompt(AUDIT));
-    pullBranch();
-  } else {
-    log(`ticket already present (${TICKET}) — skipping PLAN`);
+  // Fully-finalized resume guard: Finalize archives the ticket to done/. If it is there, the whole
+  // pipeline already completed for this slug — nothing to redo on a re-dispatch.
+  if (!AUDIT && existsSync(`migration-docs/tickets/done/${TICKET_SLUG}_plan.md`)) {
+    log("✅ already finalized (ticket archived to done/) — nothing to do.");
+    return;
   }
 
-  // Plan-only (Step-0 gate): stop cleanly after PLAN. Either an audit/report task (report + docs-only PR
-  // handled in the Plan phase) or a review-only gate. Normal runs (mode=full) fall through to EXECUTE.
+  // PLAN phase — skip only if the plan work is already done: the ticket for normal tasks, or an open PR
+  // for audits (which deliver a report, not a ticket). Keeps audits resume-safe too.
+  const planAlreadyDone = AUDIT ? openPrExists() : existsSync(TICKET);
+  let planRan = false;
+  if (!planAlreadyDone) {
+    await runPhaseWithEscalation("PLAN", () => planPrompt(AUDIT));
+    pullBranch();
+    planRan = true;
+  } else {
+    log(`plan already done (${AUDIT ? `open PR for ${BRANCH}` : TICKET}) — skipping PLAN`);
+  }
+
+  // Plan-only (Step-0 gate): stop cleanly after PLAN (audit/report task or review-only gate). Normal
+  // runs (mode=full) fall through to EXECUTE.
   if (MODE === "plan") {
-    log(`✅ Conductor done (mode=plan): Step-0 gate complete${AUDIT ? " (audit: report + PR opened in Plan phase)" : ""} - EXECUTE/FINALIZE skipped by design.`);
+    const detail = AUDIT ? (planRan ? " (audit: report + PR opened this run)" : " (audit: PR already open)") : "";
+    log(`✅ Conductor done (mode=plan): Step-0 gate complete${detail} - EXECUTE/FINALIZE skipped by design.`);
     return;
   }
 
@@ -211,6 +225,7 @@ function finalizePrompt() {
     "You are the Orchestrator for the FINALIZE phase. Follow the rule .cursor/rules/orchestrator-v2-finalize.mdc exactly.",
     `Ticket: ${TICKET}`,
     `Branch: ${BRANCH} (verify you are on it first).`,
+    `Base branch: ${BASE} (open the PR against this base).`,
     ISSUE ? `GitHub issue: #${ISSUE}` : "",
     "Do NOT merge. Report exactly one line as that rule specifies.",
   ].filter(Boolean).join("\n");
@@ -245,6 +260,7 @@ function readSteps() {
   // Parse every checkbox line. The size hint is optional (defaults to M). A checkbox line that clearly
   // means a Step but does not parse is treated as malformed and fails loudly — silently skipping it could
   // drop an open step and finalize prematurely (PR #213 Bugbot #7).
+  const seen = new Set();
   for (const line of section.split("\n")) {
     const box = line.match(/^\s*- \[( |x)\]\s*(.*)$/i);
     if (!box) continue;
@@ -253,7 +269,10 @@ function readSteps() {
       if (/^step/i.test(box[2])) fail(`malformed EXECUTION STATE line in ${TICKET}: "${line.trim()}"`);
       continue; // non-step checkbox line (e.g. a note) — ignore
     }
-    steps.push({ n: Number(step[1]), size: (step[2] || "M").toUpperCase(), checked: box[1].toLowerCase() === "x" });
+    const n = Number(step[1]);
+    if (seen.has(n)) fail(`duplicate Step ${n} in ${TICKET} EXECUTION STATE — step numbers must be unique`);
+    seen.add(n);
+    steps.push({ n, size: (step[2] || "M").toUpperCase(), checked: box[1].toLowerCase() === "x" });
   }
   return steps;
 }
@@ -340,6 +359,17 @@ function ensureBranch() {
 function pullBranch() {
   sh(`git fetch origin ${BRANCH}`);
   sh(`git checkout -B ${BRANCH} origin/${BRANCH}`);
+}
+
+// True if an open PR already exists for this feature branch — makes audit runs resume-safe (audits
+// deliver a report + PR, not a ticket, so there is no ticket file to detect already-completed work).
+function openPrExists() {
+  try {
+    return Number(sh(`gh pr list --head ${BRANCH} --base ${BASE} --state open --json number --jq 'length'`)) > 0;
+  } catch (e) {
+    log(`could not check for an existing PR (${e.message}); assuming none`);
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------- low-level
