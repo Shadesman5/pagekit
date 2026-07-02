@@ -35,6 +35,20 @@ differs, `git fetch origin` and `git checkout <branch>`. Then proceed.
    push (second push).
 5. **Do not merge** — the user reviews and merges.
 
+## Resume safety (a re-dispatch may re-enter Finalize)
+
+Finalize is **not** atomic: the driver may relaunch it after a partial run (agent error, Actions
+timeout, manual cancel) that already opened the PR or bumped the version but never reached the
+`git mv … done/`. So **check-before-act** — make every step idempotent:
+
+- **PR:** if `gh pr list --head <branch> --state open` already returns a PR, **reuse** it; only
+  `gh pr create` when none exists (never open a second).
+- **Version / CHANGELOG:** if the target version is already in `app/system/config.php` with its
+  `CHANGELOG-NEW.md` section, do **not** bump again — amend that section in place (Rule 4: one version
+  bump per PR).
+- **ROADMAP:** apply only closures not already present.
+- **Ticket archive:** if the ticket is already under `done/`, skip the `git mv`.
+
 ## Stuck-breaker
 
 If a fix-loop hits the **same** FAIL **3×**, stop and report `ESCALATE: <reason>`.
