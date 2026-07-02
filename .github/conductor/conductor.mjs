@@ -71,7 +71,7 @@ let current = null; // { agentId, runId } of the in-flight run, for cancellation
   if (!alreadyArchived) {
     // PLAN phase — skip only if the plan work is already done: the ticket for normal tasks, or an open
     // PR for audits (which deliver a report, not a ticket). Keeps audits resume-safe too.
-    const planAlreadyDone = AUDIT ? openPrExists() : existsSync(TICKET);
+    const planAlreadyDone = AUDIT ? donePrExists() : existsSync(TICKET);
     let planRan = false;
     if (!planAlreadyDone) {
       await runPhaseWithEscalation("PLAN", () => planPrompt(AUDIT), /^Plan ready:/i);
@@ -375,11 +375,12 @@ function pullBranch() {
   sh(`git checkout -B ${BRANCH} origin/${BRANCH}`);
 }
 
-// True if an open PR already exists for this feature branch — makes audit runs resume-safe (audits
-// deliver a report + PR, not a ticket, so there is no ticket file to detect already-completed work).
-function openPrExists() {
+// True if a PR for this feature branch is open OR already merged — makes audit runs resume-safe (audits
+// deliver a report + PR, not a ticket, so there is no ticket file to detect completed work). A closed-
+// but-unmerged PR (a rejected audit) does NOT count, so the audit can legitimately be re-run.
+function donePrExists() {
   try {
-    return Number(sh(`gh pr list --head ${BRANCH} --base ${BASE} --state open --json number --jq 'length'`)) > 0;
+    return Number(sh(`gh pr list --head ${BRANCH} --base ${BASE} --state all --json state --jq '[.[] | select(.state=="OPEN" or .state=="MERGED")] | length'`)) > 0;
   } catch (e) {
     log(`could not check for an existing PR (${e.message}); assuming none`);
     return false;
