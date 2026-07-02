@@ -93,6 +93,26 @@ Resolved after reviewing the live CI configuration and the Cursor API:
     `GITHUB_TOKEN` permissions and SHA-pinned actions; `CODEOWNERS` guards `.github/**` + `.cursor/**`
     so workflow/rule changes require owner review (§9).
 
+## Decision Log (2026-07-02)
+
+18. **Pipeline mode + self-declaration (`mode` = `auto` | `full` | `plan`).** The Conductor takes a
+    `mode` dispatch input, default **`auto`** — so choosing a mode needs **no code edit and no PR**, and
+    since the Conductor is a deterministic script (no LLM) it **resolves the mode itself**: `auto` reads
+    the task prompt and honors a machine-readable marker `<!-- conductor-mode: plan -->`. With the marker
+    (or an explicit `plan`) it runs **only** the Plan phase (the Architect ⇄ Plan-Reviewer **Step-0
+    gate**) and exits 0 — no Execute, no Finalize; otherwise it runs `full` (Plan → Execute → Finalize).
+    This makes **audit / report tasks self-selecting**: their prompt (e.g.
+    `…/AUDITS/AGENT_PROMPT_AUDIT_TECH_DEBT_INVENTORY.md`) carries the marker because the deliverable is a
+    report under `migration-docs/audits/` with **no** executable ticket (`## EXECUTION STATE`) — a `full`
+    run would (correctly) `fail()` at the Execute guard. Because Execute/Finalize never run for an audit,
+    the **Plan orchestrator itself** pushes and opens a **docs-only PR** against the base for the report
+    (no version bump / CHANGELOG / ROADMAP — a `docs(audit)` change is not a release); the Conductor
+    signals this via the plan launch prompt, since the orchestrator does not read the task prompt itself.
+    The **marker** distinguishes a real audit (report + PR) from an explicit `plan` **input**, which is a
+    review-only gate (produces a ticket, no PR — resume with `full` to execute). Plan is resume-safe, so
+    that gate-then-execute works. The Execute guard's error still points at `MODE=plan`, so a
+    mis-dispatched audit self-explains.
+
 ---
 
 ## 1. Problem Statement

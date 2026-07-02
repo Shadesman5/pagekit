@@ -1,5 +1,7 @@
 # Task: Technical Debt & Modernization Audit — Debt Inventory
 
+<!-- conductor-mode: plan --> <!-- V2 Conductor reads this marker: audit/report task = Step-0 gate only (Plan phase; no Execute/Finalize). -->
+
 Audit the Pagekit codebase and produce a prioritized **Technical Debt Inventory**: a structured report
 of everything that is still legacy / non-modern / unclean, with a clear recommendation per item. The
 most important part of the report is the **Decision-Critical Shortlist** — items that must be decided
@@ -125,8 +127,14 @@ re-auditing `✅/🛡️` steps beyond a confirm-and-link.
 
 1. **Baseline first** (for report §2): PHP version, PHPStan level + suppressed counts, test totals,
    ROADMAP `Current Step`.
-2. **Breadth via systematic search** (ripgrep / Grep). Suggested smell queries (extend as needed; record
-   the exact query next to each finding):
+2. **Breadth via systematic search** (ripgrep / Grep). **Search hygiene — apply from the first query:**
+   - **Scope to PHP by default** (`rg -t php …`, or Grep with `type: "php"`). The frontend (Vue 2.6, JS,
+     LESS, UIkit) is intentionally out of scope, so PHP-scoping blocks that noise before it starts. Widen
+     beyond PHP **only** when you deliberately hunt **NEW / untracked** frontend debt (see scope note above).
+   - **Cap noisy output.** For high-frequency tokens (e.g. `TODO`, `->config\(`), get counts/locations
+     first with `rg -c` / `rg -l` (or pipe `| head -n 50`). The goal is to identify the *pattern and its
+     spread*, not to read every hit — this protects the context window.
+   Suggested smell queries (extend as needed; record the exact query next to each finding):
    - DI / statics: `new static\(`, `::getInstance`, `public static function set[A-Z]`, `ServiceLocator`,
      `\bnew\s+[A-Z]\w*Resolver\(`
    - Deprecated: `@deprecated`, `Doctrine\\Common\\Annotations`, deprecated Symfony class names.
@@ -168,8 +176,8 @@ Write to `migration-docs/audits/{YYYY}/{MM}/AUDIT_REPORT_TECH_DEBT_INVENTORY_{YY
 2. **Current-State Baseline** — run and record:
    ```bash
    grep -c "message:" phpstan-baseline.neon                              # baseline blocks
-   grep -oP 'count:\s*\K[0-9]+' phpstan-baseline.neon | paste -sd+ | bc  # suppressed errors
-   ./app/vendor/bin/phpunit --testdox | tail -1                          # unit test total
+   grep -oP 'count:\s*\K[0-9]+' phpstan-baseline.neon | awk '{s+=$1} END{print s+0}'  # suppressed errors (awk: portable, bc is not always installed)
+   ./app/vendor/bin/phpunit --colors=never 2>&1 | grep -E '^(OK \(|Tests:)'  # unit test total (green: "OK (N tests…)"; issues/failures: "Tests: N…")
    ```
    plus PHP version and ROADMAP current step. (No full E2E run.)
 3. **Executive Summary** — overall health; counts by severity and by decision-urgency; 3–7 key takeaways.
