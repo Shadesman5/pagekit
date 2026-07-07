@@ -141,14 +141,18 @@ let current = null; // { agentId, runId } of the in-flight run, for cancellation
 
 // ---------------------------------------------------------------- phases
 async function runPhase(label, prompt) {
-  log(`▶ ${label}: launching cloud agent (model=${MODEL})`);
-  const created = await api("POST", "/v1/agents", {
+  log(`▶ ${label}: launching cloud agent (model=${MODEL === "auto" ? "Cursor default" : MODEL})`);
+  // The v1 API has no "auto"/"default" model id — sending one is a validation error. "auto" is our
+  // sentinel for "let Cursor pick", expressed by OMITTING `model` (Cursor then resolves the default:
+  // user -> team -> system). This is the configured default model, not the UI's dynamic Auto routing.
+  const body = {
     prompt: { text: prompt },
-    model: { id: MODEL },
     repos: [{ url: REPO_URL, startingRef: BRANCH }],
     workOnCurrentBranch: true,
     skipReviewerRequest: true,
-  });
+  };
+  if (MODEL !== "auto") body.model = { id: MODEL };
+  const created = await api("POST", "/v1/agents", body);
   const agentId = created.agent?.id ?? created.id;
   const runId = created.run?.id ?? created.latestRunId ?? created.run?.runId;
   if (!agentId || !runId) throw new Error(`unexpected create response: ${JSON.stringify(created).slice(0, 300)}`);
@@ -349,11 +353,12 @@ for (const signal of ["SIGINT", "SIGTERM"]) {
 async function logUsage(agentId) {
   try {
     const u = await api("GET", `/v1/agents/${agentId}/usage`);
-    log(`  tokens: in=${u.inputTokens ?? "?"} out=${u.outputTokens ?? "?"} cacheR=${u.cacheReadTokens ?? "?"} cacheW=${u.cacheWriteTokens ?? "?"} total=${u.totalTokens ?? "?"}`);
+    const t = u.totalUsage ?? {}; // v1 nests the aggregate under `totalUsage`; `runs[]` holds the per-run breakdown
+    log(`  tokens: in=${t.inputTokens ?? "?"} out=${t.outputTokens ?? "?"} cacheR=${t.cacheReadTokens ?? "?"} cacheW=${t.cacheWriteTokens ?? "?"} total=${t.totalTokens ?? "?"}`);
   } catch { /* best-effort */ }
   try {
     const a = await api("GET", `/v1/agents/${agentId}/artifacts`);
-    const n = Array.isArray(a.artifacts) ? a.artifacts.length : Array.isArray(a) ? a.length : 0;
+    const n = Array.isArray(a.items) ? a.items.length : 0; // v1 returns artifacts under `items`
     if (n) log(`  artifacts: ${n}`);
   } catch { /* best-effort */ }
 }
