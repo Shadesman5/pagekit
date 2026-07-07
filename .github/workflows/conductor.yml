@@ -40,9 +40,9 @@ on:
         default: "6"
         type: string
       model:
-        description: "Orchestrator model id, or 'auto'"
+        description: "Orchestrator model. Empty = account default (user/team/system). 'auto' or 'default' = Cursor's dynamic Auto model. Or an explicit id, e.g. claude-opus-4-8, composer-2.5, opus-latest."
         required: false
-        default: "auto"
+        default: ""
         type: string
       mode:
         description: "Pipeline mode. auto = task prompt self-declares (default); full = Plan->Execute->Finalize; plan = Step-0 gate only (Plan, then stop — e.g. audits)"

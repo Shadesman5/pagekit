@@ -27,7 +27,7 @@ const BRANCH = (process.env.BRANCH || `feature/${SLUG}`).trim();
 const TICKET_SLUG = basename(TASK_PROMPT).replace(/\.md$/i, "").trim();
 const TICKET = `migration-docs/tickets/active/${TICKET_SLUG}_plan.md`;
 const BUDGET = Number(process.env.BATCH_BUDGET || 6);
-const MODEL = (process.env.MODEL || "auto").trim();
+const MODEL = (process.env.MODEL || "").trim(); // empty -> omit `model` (account default); else passed as model.id (see runPhase)
 const MODE_INPUT = (process.env.MODE || "auto").trim().toLowerCase(); // dispatch: auto|full|plan ("auto" = task prompt self-declares, see resolveMode)
 const MAX_ESCALATIONS = Number(process.env.MAX_ESCALATIONS || 2);
 const POLL_MS = Number(process.env.POLL_MS || 15000);
@@ -141,17 +141,18 @@ let current = null; // { agentId, runId } of the in-flight run, for cancellation
 
 // ---------------------------------------------------------------- phases
 async function runPhase(label, prompt) {
-  log(`▶ ${label}: launching cloud agent (model=${MODEL === "auto" ? "Cursor default" : MODEL})`);
-  // The v1 API has no "auto"/"default" model id — sending one is a validation error. "auto" is our
-  // sentinel for "let Cursor pick", expressed by OMITTING `model` (Cursor then resolves the default:
-  // user -> team -> system). This is the configured default model, not the UI's dynamic Auto routing.
+  log(`▶ ${label}: launching cloud agent (model=${MODEL || "account default (unset)"})`);
+  // Model resolution: an empty MODEL omits `model`, so Cursor uses the configured default
+  // (user -> team -> system). Any non-empty value is passed through as `model.id` — an explicit id
+  // (e.g. claude-opus-4-8, composer-2.5), or "auto"/"default" for Cursor's dynamic Auto model (the
+  // API resolves the alias). Discover valid ids/aliases via GET /v1/models.
   const body = {
     prompt: { text: prompt },
     repos: [{ url: REPO_URL, startingRef: BRANCH }],
     workOnCurrentBranch: true,
     skipReviewerRequest: true,
   };
-  if (MODEL !== "auto") body.model = { id: MODEL };
+  if (MODEL) body.model = { id: MODEL };
   const created = await api("POST", "/v1/agents", body);
   const agentId = created.agent?.id ?? created.id;
   const runId = created.run?.id ?? created.latestRunId ?? created.run?.runId;
