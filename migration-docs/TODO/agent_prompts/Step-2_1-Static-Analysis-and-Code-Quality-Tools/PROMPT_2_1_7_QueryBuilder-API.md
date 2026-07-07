@@ -8,6 +8,7 @@
 
 - **Depends on:** Step 2.1.2 (CI/CD). Can run **in parallel** with Steps 2.1.3–2.1.6.
 - **Risk:** Low — internal API only, all call sites updated in same step
+- **Closes Phase 1 audit:** **Step 1.5 (Doctrine DBAL 3.x) ⚠️ → 🛡️** — the documented 1.5 findings (`Connection::exec()` alias, `Utility::getSchemaManager()` → `createSchemaManager()`, `Utility::migrate()` legacy `Comparator()` → `createComparator()`, DDL via `executeStatement()`, `DbUtil::$realConn->exec()`) are all covered in the **AUDIT FINDINGS** section below.
 - **Current state:**
   - `Pagekit\Database\Query\QueryBuilder` has a public `execute()` method that wraps internal `executeQuery()` (protected)
   - `executeQuery()` internally calls `Connection::executeQuery()` for SELECT and `Connection::executeStatement()` for UPDATE/DELETE
@@ -192,6 +193,16 @@ All `type: 'json_array'` references must become `type: 'json'`:
 
 ---
 
+## 7. TEMPLATE PARAMETERS FOR GENERIC COLLECTIONS (deferred from Step 2.1.6)
+
+Step 2.1.6's prompt called for introducing `@template` PHPDoc generics for generic collections "where appropriate", but the 2.1.6 ticket omitted it as a dedicated checklist item — only the `@template T of object` annotations already present in `Connection::find()` and `ORM/Loader/AttributeLoader.php` were retained as a side effect of the Level-8 null-safety sweep. No systematic collection-generics pass happened. **This step is the natural home:** the QueryBuilder / `Result` return types and repository fetch methods are exactly where typed-array generics belong.
+
+- Add `@template` / `@return array<int, T>` (or `array<string, T>`) annotations to the QueryBuilder fetch/return methods and repository fetch methods (e.g. `fetchAllAssociative()` → typed entity arrays).
+- Keep it PHPStan-Level-8 clean (no new baseline entries) — this is developer-facing type accuracy, no runtime behaviour change.
+- Tracked as the open **"template parameters" checkbox on Issue #153 and PR #212** (deferred there on 2026-06-30).
+
+---
+
 ## AUDIT FINDINGS (Phase 1 Review)
 
 The following DBAL cleanup tasks were identified during the Phase 1 codebase audit:
@@ -200,7 +211,7 @@ The following DBAL cleanup tasks were identified during the Phase 1 codebase aud
 - `Utility` uses deprecated `getSchemaManager()` — replace with `createSchemaManager()` (also in `Installer.php` and `DbUtil.php` test helper)
 - `Utility::migrate()` uses `new Comparator()` without Platform argument (deprecated in DBAL 3) — use `$schemaManager->createComparator()` instead
 - `Utility::migrate()` executes DDL via `executeQuery()` instead of `executeStatement()` — fix to use correct method for DDL
-- `DbUtil` test helper: `$realConn->exec()` → `executeStatement()`
+- `DbUtil` test helper (`app/modules/application/src/Tests/DbUtil.php`) — full DBAL 3 rewrite of the `else` branch in `getConnection()`: `$realConn->exec()` → `executeStatement()`, `getSchemaManager()` → `createSchemaManager()`, `createSchema()` → `introspectSchema()`, replace the removed `Schema::toDropSql()`; **decide the teardown error strategy** for the empty `catch` (line 83, `// good idea?` — currently swallows every exception): FK-ordered drop / log-and-continue / or delete the branch. (`DbUtil` + `DbTestCase` are dormant: no `extends DbTestCase` in the repo.)
 - `Utility::migrate()` — potentially dead API surface (no callers found); evaluate removal
 
 ---
@@ -214,6 +225,7 @@ The following DBAL cleanup tasks were identified during the Phase 1 codebase aud
 - Standard Doctrine docs are applicable
 - `JsonArrayType` registered as `json` (not `json_array`)
 - No redundant type registrations
+- Generic collection return types carry `@template` / `@return array<int, T>` annotations (QueryBuilder / `Result` / repository fetch methods)
 - All PHPUnit tests pass
 
 ---
@@ -229,4 +241,5 @@ The following DBAL cleanup tasks were identified during the Phase 1 codebase aud
 - [ ] Zero `json_array` references in entity attributes or ModelTrait
 - [ ] Redundant `Type::addType('json_array', ...)` removed
 - [ ] Connection type mappings simplified
+- [ ] `@template` / typed-array generics added to QueryBuilder / repository fetch return types (deferred from 2.1.6; #153 / PR #212)
 - [ ] All PHPUnit tests pass
