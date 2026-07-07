@@ -37,7 +37,8 @@ use Psr\Cache\CacheItemPoolInterface;
  * @method int update(array<string, mixed> $values)
  * @method int delete()
  * @method string getSQL()
- * @method \Doctrine\DBAL\Result execute(mixed $columns = ['*'])
+ * @method \Doctrine\DBAL\Result executeQuery()
+ * @method int executeStatement()
  */
 class QueryBuilder
 {
@@ -84,7 +85,7 @@ class QueryBuilder
             }
         }
 
-        if ($entities = $this->manager->hydrateAll($this->query->execute(), $this->metadata)) {
+        if ($entities = $this->manager->hydrateAll($this->query->executeQuery(), $this->metadata)) {
             foreach ($this->getRelations() as $name => $query) {
                 $this->manager->related($entities, $name, $query);
             }
@@ -118,7 +119,7 @@ class QueryBuilder
             }
         }
 
-        if ($entity = $this->manager->hydrateOne($this->query->limit(1)->execute(), $this->metadata)) {
+        if ($entity = $this->manager->hydrateOne($this->query->limit(1)->executeQuery(), $this->metadata)) {
 
             foreach ($this->getRelations() as $name => $query) {
                 $this->manager->related($entity, $name, $query);

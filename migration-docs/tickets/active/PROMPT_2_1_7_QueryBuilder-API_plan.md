@@ -32,7 +32,7 @@
      (same numbers + short titles). Size hint per step: S = small/atomic, M = medium,
      L = large or loop-risk. A step orchestrator flips its box to [x] in the SAME commit as that
      step's code (after Tester PASS) — no self-referential SHA. -->
-- [ ] Step 1 (L) — Standardize QueryBuilder execution API (executeQuery/executeStatement, delete execute, migrate call sites)
+- [x] Step 1 (L) — Standardize QueryBuilder execution API (executeQuery/executeStatement, delete execute, migrate call sites)
 - [ ] Step 2 (M) — Normalize JSON DBAL type json_array → json
 - [ ] Step 3 (M) — DBAL 3 audit-fix: Connection::exec + Utility + Installer
 - [ ] Step 4 (M) — DBAL 3 rewrite of DbUtil test-helper else branch

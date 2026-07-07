@@ -105,13 +105,15 @@ class BlogController
                 ->from('@system_role')
                 ->where(['id' => Role::ROLE_ADMINISTRATOR])
                 ->whereInSet('permissions', ['blog: manage all posts', 'blog: manage own posts'], false, 'OR')
-                ->execute('id')
+                ->select('id')
+                ->executeQuery()
                 ->fetchFirstColumn();
 
             $authors = $this->db->createQueryBuilder()
                 ->from('@system_user')
                 ->whereInSet('roles', $roles)
-                ->execute('id, username')
+                ->select('id, username')
+                ->executeQuery()
                 ->fetchAllAssociative();
 
             return [
