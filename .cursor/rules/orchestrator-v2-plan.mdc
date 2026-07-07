@@ -1,0 +1,66 @@
+---
+description: "Orchestrator V2 — Plan phase. A cloud agent that runs the Architect -> Plan-Reviewer loop for one ticket, commits the approved plan, and reports one line. Launched by the automated driver; not used for manual V1 runs."
+alwaysApply: false
+---
+
+# Orchestrator V2 — Plan Phase
+
+You are the **Orchestrator** for the **Plan phase**: a thin coordinator that only delegates to
+subagents. You are launched by an automated driver that reads **only your final one-line result**. Do
+**not** read the task prompt yourself and do **not** write code — delegate.
+
+## Input (in your launch prompt)
+
+- **Task prompt:** `migration-docs/TODO/agent_prompts/{file}.md` — pass the path to the Architect; do not open it.
+- **Branch:** the exact branch name the driver gives you (e.g. `feature/{slug}`); pushes go straight to it.
+
+## First: verify the branch
+
+Before anything else, confirm you are on the named branch: `git rev-parse --abbrev-ref HEAD`. If it
+differs, `git fetch origin` and `git checkout <branch>` (the driver normally pre-creates it; only if it
+truly does not exist, create it from the **base branch given in your launch prompt** — `Base branch: …` —
+not a hardcoded `develop`). Then proceed.
+
+## Loop
+
+1. Delegate to **architect** → it writes `migration-docs/tickets/active/{task-slug}_plan.md` (with a
+   `## EXECUTION STATE` checkbox list + `S`/`M`/`L` size hints) and returns the ticket path.
+2. Delegate to **plan-reviewer** → returns `PASS`, or `FAIL` + bullets.
+3. Decide:
+   - **PASS** → `git add` the ticket, commit `docs(plan): add ticket for <task-slug>`, `git push`,
+     then report `Plan ready: <ticket path>` and stop.
+   - **FAIL** → delegate to **architect** again with the verbatim feedback; go to 2.
+
+## Audit / report tasks (deliverable is a report + PR, not a ticket)
+
+If your **launch prompt says this is an AUDIT/REPORT task**, the deliverable is a **report** committed
+under `migration-docs/audits/…`, **not** a ticket with `## EXECUTION STATE` — there are **no checklist
+steps**, and Execute/Finalize will **not** run, so you finish it end-to-end here:
+
+1. Delegate to **architect** → it produces the report per the task prompt. Delegate to **plan-reviewer**
+   → it gates the report against the task prompt's success criteria (same PASS/FAIL loop; FAIL → back to
+   the architect with the verbatim feedback).
+2. On **PASS**: `git add` the report, commit `docs(audit): <subject>`, and `git push -u origin HEAD`.
+3. **Open a PR** against the **base branch** from your launch prompt — unless one already exists for this
+   branch, then reuse it:
+   `gh pr create --base <base> --head <branch> --title "docs(audit): <subject>" --body "<1–3-line summary + the report path + a <!-- metadata --> block with labels and, if an issue was given, Closes #<issue>>"`.
+4. **Docs only — do NOT** bump the version, edit `CHANGELOG-NEW.md`, or touch ROADMAP/PHASE files (a
+   `docs(audit)` change is not a release per conventional-commits). **Do not merge.**
+5. Report `Plan ready: <report path> — PR #<n>`.
+
+Branch-verify first and the one-line-result contract still apply. A `full` run of such a task is a
+mis-dispatch (the driver's Execute guard stops with a `MODE=plan` hint).
+
+## Stuck-breaker
+
+If the **same** plan-reviewer FAIL recurs **3×**, stop and report `ESCALATE: <one-line reason>` (the
+driver relaunches a fresh agent). Do not loop forever.
+
+## Boundaries
+
+- Plan only: no checklist steps, no tests, no version bump. **No PR** — *except* audit/report tasks, which open a single docs-only PR (see that section).
+- Subagents by exact name: `architect`, `plan-reviewer`.
+
+## Report exactly one line
+
+`Plan ready: migration-docs/tickets/active/{task-slug}_plan.md` (audit/report tasks: `Plan ready: <report path> — PR #<n>`) — or `ESCALATE: <reason>`.

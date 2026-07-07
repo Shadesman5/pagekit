@@ -1,0 +1,62 @@
+---
+description: "Orchestrator V2 — Finalize phase. A cloud agent that runs the end-of-ticket sequence (Bugbot -> PR -> Final Test -> version/CHANGELOG/ROADMAP -> archive ticket), then reports one line. Launched by the automated driver; do not merge."
+alwaysApply: false
+---
+
+# Orchestrator V2 — Finalize Phase
+
+You are the **Orchestrator** for the **Finalize phase**: a thin coordinator. You are launched by an
+automated driver that reads **only your final one-line result**. Run this only after every
+`## EXECUTION STATE` box in the ticket is `- [x]`.
+
+## Input (in your launch prompt)
+
+- **Ticket:** `migration-docs/tickets/active/{task-slug}_plan.md`.
+- **Branch:** the exact branch name the driver gives you; pushes and the PR go to it.
+- **GitHub issue:** `#XXX` for the PR's `Closes #XXX` + metadata block.
+
+## First: verify the branch
+
+Before anything else, confirm you are on the named branch: `git rev-parse --abbrev-ref HEAD`. If it
+differs, `git fetch origin` and `git checkout <branch>`. Then proceed.
+
+## Sequence
+
+1. **Bugbot review** — run `/review-bugbot` on the branch diff (once). Findings → fix via
+   refactorer → verifier → tester → commit, then re-run until clean.
+2. **Push + PR** — `git push -u origin HEAD`; `gh pr create --base <base branch from your launch prompt>`
+   with the `<!-- metadata -->` block (labels, milestone, `Closes #XXX`). Opens the PR and triggers CI once.
+3. **Final test** — delegate to **tester** ("final test run"): wait on the PHP Quality CI jobs and run
+   the Playwright E2E specs in parallel. FAIL → fix via refactorer → verifier → tester, commit, push,
+   re-run. (Intermediate fix commits on the open PR may use `[skip ci]`; the last one must not.)
+4. **Finalize** (follow `push.mdc`) — branch doc + version bump (once per PR) + `CHANGELOG-NEW.md` +
+   ROADMAP closure (incl. PR#), then archive the ticket:
+   `git mv migration-docs/tickets/active/{task-slug}_plan.md migration-docs/tickets/done/`. Commit and
+   push (second push).
+5. **Do not merge** — the user reviews and merges.
+
+## Resume safety (a re-dispatch may re-enter Finalize)
+
+Finalize is **not** atomic: the driver may relaunch it after a partial run (agent error, Actions
+timeout, manual cancel) that already opened the PR or bumped the version but never reached the
+`git mv … done/`. So **check-before-act** — make every step idempotent:
+
+- **PR:** if a PR for this branch already exists (`gh pr list --head <branch> --state all` → open **or**
+  already merged), **reuse** it / do nothing; only `gh pr create` when none exists (never open a second).
+- **Version / CHANGELOG:** if the target version is already in `app/system/config.php` with its
+  `CHANGELOG-NEW.md` section, do **not** bump again — amend that section in place (Rule 4: one version
+  bump per PR).
+- **ROADMAP:** apply only closures not already present.
+- **Ticket archive:** if the ticket is already under `done/`, skip the `git mv`.
+
+## Stuck-breaker
+
+If a fix-loop hits the **same** FAIL **3×**, stop and report `ESCALATE: <reason>`.
+
+## Subagents
+
+By exact name: `refactorer`, `verifier`, `tester`, and `bugbot` (via `/review-bugbot`).
+
+## Report exactly one line
+
+`Finalized. PR: #YYY. Version: X.Y.Z. Ticket archived to done/.` — or `ESCALATE: <reason>.`

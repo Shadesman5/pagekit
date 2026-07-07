@@ -116,11 +116,12 @@ Future: Next Generation (3.x+)
 > **Note:** PHPStan was introduced **directly at Level 5** in Step 2.1.1 — there is no "pre-Level-5" data point;
 > Level 5 is the project's analysis baseline.
 
-| Date       | Milestone (PR)                       | PHPStan Level | Baseline blocks | Suppressed errors | Unit Tests | E2E Specs |
-| ---------- | ------------------------------------ | :-----------: | :-------------: | :---------------: | :--------: | :-------: |
-| 2026-03-29 | Step 2.1.1 — Baseline setup (#178)   |   5 (start)   |       517       |        891        |   326 ¹    |    25     |
-| 2026-05-04 | Step 2.1.4 — Level 5→6 (#203)        |       6       |       367       |        680        |    326     |    25     |
-| 2026-06-21 | Step 2.1.5 — Level 6→7 (#210)        |       7       |       345       |        654        |    326     |    25     |
+| Date       | Milestone (PR)                     | PHPStan Level | Baseline blocks | Suppressed errors | Unit Tests | E2E Specs |
+| ---------- | ---------------------------------- | :-----------: | :-------------: | :---------------: | :--------: | :-------: |
+| 2026-03-29 | Step 2.1.1 — Baseline setup (#178) |   5 (start)   |       517       |        891        |   326 ¹    |    25     |
+| 2026-05-04 | Step 2.1.4 — Level 5→6 (#203)      |       6       |       367       |        680        |    326     |    25     |
+| 2026-06-21 | Step 2.1.5 — Level 6→7 (#210)      |       7       |       345       |        654        |    326     |    25     |
+| 2026-07-01 | Step 2.1.6 — Level 7→8 (#212)      |       8       |       331       |        632        |    328     |    25     |
 
 **Suppressed-error trend:** 891 → 680 (−211 / −23.7%) → 654 (−26 / −3.8%). **Lower is better** — each level bump
 fixes real issues and surgically removes baseline entries (never `--generate-baseline`, never adds entries).
@@ -137,8 +138,8 @@ at 326 by design — pure typing work adds no tests.
 
 ```bash
 grep -c "message:" phpstan-baseline.neon                          # baseline blocks
-grep -oP 'count:\s*\K[0-9]+' phpstan-baseline.neon | paste -sd+ | bc   # suppressed errors
-./app/vendor/bin/phpunit --testdox | tail -1                      # unit test total
+grep -oP 'count:\s*\K[0-9]+' phpstan-baseline.neon | awk '{s+=$1} END{print s+0}'   # suppressed errors (awk: portable, bc is not always installed)
+./app/vendor/bin/phpunit --colors=never 2>&1 | grep -E '^(OK \(|Tests:)'  # unit test total (green: "OK (N tests…)"; issues: "Tests: N…")
 ```
 
 ---
