@@ -92,6 +92,8 @@
 | 2.3    | Docker Production                     | ⏳     | ⏳    | #158  | -       |
 | 2.4    | Build Tools                           | ⏳     | ⏳    | #159  | -       |
 | 2.5    | Extension Safety System               | ⏳     | ⏳    | #160  | -       |
+| 2.6    | Automated Update System               | ⏳     | ⏳    | -     | -       |
+| 2.7    | Filesystem Write Resilience           | ⏳     | ⏳    | -     | -       |
 | 3.1    | UIkit Update                          | ⏳     | ⏳    | -     | -       |
 | 3.2    | Vue 2.7 Bridge                        | ⏳     | ⏳    | -     | -       |
 | 3.2.1  | ↳ Template Pre-compilation (CSP)      | ⏳ 20% | ⏳    | -     | -       |
@@ -109,6 +111,7 @@
 | 4.2    | REST API v2                           | ⏳     | ⏳    | -     | -       |
 | 4.3    | Performance Optimization              | ⏳     | ⏳    | -     | -       |
 | 4.4    | Monitoring & Health Checks            | ⏳     | ⏳    | -     | -       |
+| 4.5    | Rebranding: Pagekit → Kernkit         | ⏳     | ⏳    | -     | -       |
 | 5.1    | Modern Block Editor                   | ⏳     | ⏳    | -     | -       |
 | 5.2    | Advanced Security                     | ⏳     | ⏳    | -     | -       |
 | 5.3    | Advanced Performance                  | ⏳     | ⏳    | -     | -       |
