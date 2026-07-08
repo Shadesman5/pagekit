@@ -60,6 +60,10 @@ docker.env
 # PHP-CS-Fixer cache
 .php-cs-fixer.cache
 
+# Infection (only infection.json.dist is committed)
+/infection.json
+/tmp/infection/
+
 # E2E Testing
 .playwright-mcp/
 /test-results/

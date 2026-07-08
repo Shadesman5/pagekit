@@ -182,19 +182,20 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 ### Step 2.1.8: Infection Mutation Testing
 
-- **Goal**: Introduce mutation testing for security-critical modules
-- **Prerequisite**: Step 2.1.6 (PHPStan Level 8) completed + sufficient test coverage (at least 60%+)
+- **Goal**: Introduce mutation testing for the security-critical **classes** of the auth + user modules
+- **Prerequisite**: Step 2.1.6 (PHPStan Level 8) completed. A coverage driver (Xdebug/PCOV) must be available — Infection cannot run without one. **Note:** the "60%+ coverage" target is **not** a hard pre-existing prerequisite — it is **not yet met** for these modules, so this step **writes the missing security-core unit tests itself** (mutation testing needs a test base; killing a mutant = adding a targeted test).
 - **Prompt**: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_8_Infection-Mutation-Testing.md`
 - **Tasks**:
-  - Install Infection (`infection/infection`)
-  - Configure `infection.json.dist`
-  - Run only for critical modules:
-    - `app/modules/auth` (Authentication)
-    - `app/system/modules/user` (User Management)
-    - NOT for views, templates, markdown (too slow, not critical)
-  - Target: 80%+ mutation score for critical modules
-- **Result**: Security-critical code is verified through mutation testing
-- **Risk**: Low — test tooling only, no code changes
+  - Install Infection (`infection/infection`, ≥ 0.29 for PHPUnit 11) + configure `infection.json.dist`
+  - Scope to security-critical **classes only** (not whole modules):
+    - `app/modules/auth/src` (`Auth`, `DatabaseHandler`, `NativePasswordEncoder`)
+    - `app/system/modules/user/src` → `Model` (`User`, `Role`), `Auth` (`UserProvider`), `Event` (`AccessListener`, `AuthorizationListener`)
+    - NOT the 7 user controllers (→ 2.1.9), NOT views/templates/markdown (too slow, not critical)
+  - Write the missing unit tests for the untested security core (esp. `NativePasswordEncoder`, `UserProvider::validateCredentials`, `DatabaseHandler::read/destroy`, `Role`, authorization listeners)
+  - Target: 80%+ MSI **and** 80%+ Covered MSI on the configured classes
+  - CI wiring is **deferred to Step 2.2** (non-blocking scheduled/manual job) — not added here
+- **Result**: Security-critical code is verified through mutation testing; the auth + user security core gains a real unit-test baseline
+- **Risk**: Low — test tooling + tests only, no production changes to satisfy the tool (a mutant exposing a real bug is a finding, fixed/flagged). **Effort**: Medium (writes a test baseline, not just a tool install)
 
 ---
 
@@ -307,6 +308,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Tasks**:
   - **Workflow 1 — PHP Tests** (`.github/workflows/php-tests.yml`):
     PHPUnit (PHP 8.2/8.3/8.4 × MySQL 8.4/SQLite 3), PHPStan analysis, PHP-CS-Fixer dry-run, security audit
+  - **Workflow 1b — Mutation Testing (Infection)** — deferred here from Step 2.1.8. Infection was installed and configured for the auth + user security-critical classes in 2.1.8, but is intentionally **not** wired into the per-PR gate (mutation testing is slow). Add a **non-blocking, scheduled + manual-dispatch** job (`workflow_dispatch` + weekly `schedule`), mirroring the Workflow 2b cross-browser rationale. Runs `./app/vendor/bin/infection --min-msi=80` on the configured security core; regressions are surfaced without blocking every PR.
   - **Workflow 2 — E2E Tests** (`.github/workflows/e2e-tests.yml`):
     Playwright on Chromium, fixed backend (PHP 8.3 + MySQL 8.4), 3 viewport jobs (Mobile 375×667, Tablet 768×1024, Desktop 1920×1080)
   - **Workflow 2b — Cross-Browser Tests** (`.github/workflows/e2e-cross-browser.yml`):
@@ -321,6 +323,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Design Decisions**:
   - E2E tests UI interaction, NOT backend variants — PHPUnit covers the PHP/DB matrix
   - Cross-browser testing runs weekly, not per-PR (catches rendering bugs without blocking PRs)
+  - Mutation testing (Infection, from 2.1.8) runs scheduled + manual, not per-PR — too slow to gate every PR, same rationale as cross-browser
   - Edge cases (large uploads, session timeout, concurrent edits) integrated into E2E suite
   - Load/performance tests belong in staging before major releases, NOT in CI
 - **Quality Gates** (every PR must pass):
