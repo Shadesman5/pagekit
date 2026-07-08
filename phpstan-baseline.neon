@@ -271,12 +271,6 @@ parameters:
 			path: app/modules/auth/src/Auth.php
 
 		-
-			message: '#^Parameter \#2 \$remember of method Pagekit\\Auth\\Handler\\DatabaseHandler\:\:write\(\) expects bool, int given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/modules/auth/src/Handler/DatabaseHandler.php
-
-		-
 			message: '#^Undefined variable\: \$this$#'
 			identifier: variable.undefined
 			count: 1

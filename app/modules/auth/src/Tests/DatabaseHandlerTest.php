@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Pagekit\Auth\Tests;
 
+use Doctrine\DBAL\Result;
 use Pagekit\Auth\Handler\DatabaseHandler;
 use Pagekit\Cookie\CookieJar;
 use Pagekit\Database\Connection;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -35,6 +37,21 @@ class DatabaseHandlerTest extends TestCase
     {
         $stack = new RequestStack();
         $stack->push(new Request());
+
+        return $stack;
+    }
+
+    /**
+     * Build a RequestStack whose Request carries the pk_auth cookie, so getToken()
+     * resolves the given token and read()/destroy() reach their DB branches.
+     */
+    private function buildRequestStackWithToken(string $token): RequestStack
+    {
+        $request = new Request();
+        $request->cookies->set(self::CONFIG['cookie']['name'], $token);
+
+        $stack = new RequestStack();
+        $stack->push($request);
 
         return $stack;
     }
@@ -172,5 +189,187 @@ class DatabaseHandlerTest extends TestCase
             [DatabaseHandler::STATUS_REMEMBERED, DatabaseHandler::STATUS_ACTIVE],
             $capturedStatuses
         );
+    }
+
+    public function testReadReturnsNullWhenConfigIsNull(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $cookie = $this->createMock(CookieJar::class);
+        $requests = $this->createMock(RequestStack::class);
+
+        // Null config short-circuits before any request or DB access.
+        $requests->expects($this->never())->method('getCurrentRequest');
+        $connection->expects($this->never())->method('executeQuery');
+
+        $handler = new DatabaseHandler($connection, $requests, $cookie);
+
+        $this->assertNull($handler->read());
+    }
+
+    public function testReadReturnsNullWhenNoToken(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $cookie = $this->createMock(CookieJar::class);
+        $requests = $this->buildRequestStackWithEmptyRequest();
+
+        // Empty cookies -> getToken() is null -> the `and` short-circuits, SELECT never runs.
+        $connection->expects($this->never())->method('executeQuery');
+
+        $handler = new DatabaseHandler($connection, $requests, $cookie, self::CONFIG);
+
+        $this->assertNull($handler->read());
+    }
+
+    public function testReadReturnsNullWhenNoRow(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $cookie = $this->createMock(CookieJar::class);
+        $requests = $this->buildRequestStackWithToken('missing-session-token');
+
+        $result = $this->createMock(Result::class);
+        $result->method('fetchAssociative')->willReturn(false);
+
+        $connection->expects($this->once())->method('executeQuery')->willReturn($result);
+        $connection->expects($this->never())->method('update');
+
+        $handler = new DatabaseHandler($connection, $requests, $cookie, self::CONFIG);
+
+        $this->assertNull($handler->read());
+    }
+
+    public function testReadReturnsUserIdAndTouchesAccessWithinTimeout(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $cookie = $this->createMock(CookieJar::class);
+        $token = 'fresh-session-token';
+        $requests = $this->buildRequestStackWithToken($token);
+
+        $result = $this->createMock(Result::class);
+        $result->method('fetchAssociative')->willReturn([
+            'user_id' => 42,
+            'status' => DatabaseHandler::STATUS_ACTIVE,
+            'access' => date('Y-m-d H:i:s'),
+        ]);
+        $connection->method('executeQuery')->willReturn($result);
+
+        // Within timeout: only the access timestamp of this exact session id is refreshed.
+        $connection->expects($this->once())
+            ->method('update')
+            ->with(self::CONFIG['table'], $this->arrayHasKey('access'), ['id' => sha1($token)]);
+        $connection->expects($this->never())->method('insert');
+
+        $handler = new DatabaseHandler($connection, $requests, $cookie, self::CONFIG);
+
+        $this->assertSame(42, $handler->read());
+    }
+
+    public function testReadReWritesRememberedSessionWhenTimeoutExpired(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $cookie = $this->createMock(CookieJar::class);
+        $token = 'remembered-session-token';
+        $requests = $this->buildRequestStackWithToken($token);
+
+        $result = $this->createMock(Result::class);
+        $result->method('fetchAssociative')->willReturn([
+            'user_id' => 7,
+            'status' => DatabaseHandler::STATUS_REMEMBERED,
+            'access' => date('Y-m-d H:i:s', time() - (self::CONFIG['timeout'] + 3600)),
+        ]);
+        $connection->method('executeQuery')->willReturn($result);
+
+        // Expired + remembered -> write() re-issues the session: stale row deleted, fresh
+        // remembered row inserted, new cookie set. These side effects prove the re-write().
+        $connection->expects($this->once())
+            ->method('delete')
+            ->with(self::CONFIG['table'], ['id' => sha1($token)]);
+        $cookie->expects($this->once())->method('set')->willReturn(new Cookie('pk_auth', 'renewed'));
+        $connection->expects($this->once())
+            ->method('insert')
+            ->with(
+                self::CONFIG['table'],
+                $this->callback(
+                    static fn ($data): bool => is_array($data)
+                        && ($data['status'] ?? null) === DatabaseHandler::STATUS_REMEMBERED
+                )
+            );
+
+        // The access timestamp is still refreshed afterwards and the user id returned.
+        $connection->expects($this->once())
+            ->method('update')
+            ->with(self::CONFIG['table'], $this->arrayHasKey('access'), ['id' => sha1($token)]);
+
+        $handler = new DatabaseHandler($connection, $requests, $cookie, self::CONFIG);
+
+        $this->assertSame(7, $handler->read());
+    }
+
+    public function testReadReturnsNullWhenTimeoutExpiredAndNotRemembered(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $cookie = $this->createMock(CookieJar::class);
+        $requests = $this->buildRequestStackWithToken('active-session-token');
+
+        $result = $this->createMock(Result::class);
+        $result->method('fetchAssociative')->willReturn([
+            'user_id' => 9,
+            'status' => DatabaseHandler::STATUS_ACTIVE,
+            'access' => date('Y-m-d H:i:s', time() - (self::CONFIG['timeout'] + 3600)),
+        ]);
+        $connection->method('executeQuery')->willReturn($result);
+
+        // Expired + not remembered -> bail out before touching access or re-writing.
+        $connection->expects($this->never())->method('update');
+        $connection->expects($this->never())->method('insert');
+
+        $handler = new DatabaseHandler($connection, $requests, $cookie, self::CONFIG);
+
+        $this->assertNull($handler->read());
+    }
+
+    public function testDestroyReturnsEarlyWhenConfigIsNull(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $cookie = $this->createMock(CookieJar::class);
+        $requests = $this->createMock(RequestStack::class);
+
+        // Null config short-circuits before resolving the token or writing.
+        $requests->expects($this->never())->method('getCurrentRequest');
+        $connection->expects($this->never())->method('update');
+
+        $handler = new DatabaseHandler($connection, $requests, $cookie);
+        $handler->destroy();
+    }
+
+    public function testDestroyMarksSessionInactiveWhenTokenPresent(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $cookie = $this->createMock(CookieJar::class);
+        $token = 'live-session-token';
+        $requests = $this->buildRequestStackWithToken($token);
+
+        $connection->expects($this->once())
+            ->method('update')
+            ->with(
+                self::CONFIG['table'],
+                ['status' => DatabaseHandler::STATUS_INACTIVE],
+                ['id' => sha1($token)]
+            );
+
+        $handler = new DatabaseHandler($connection, $requests, $cookie, self::CONFIG);
+        $handler->destroy();
+    }
+
+    public function testDestroyDoesNothingWithoutToken(): void
+    {
+        $connection = $this->createMock(Connection::class);
+        $cookie = $this->createMock(CookieJar::class);
+        $requests = $this->buildRequestStackWithEmptyRequest();
+
+        // No cookie -> no token -> the status update is skipped entirely.
+        $connection->expects($this->never())->method('update');
+
+        $handler = new DatabaseHandler($connection, $requests, $cookie, self::CONFIG);
+        $handler->destroy();
     }
 }
