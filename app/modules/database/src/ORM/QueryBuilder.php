@@ -272,7 +272,12 @@ class QueryBuilder
      * Generates a cache key based on the query SQL, parameters, and relations.
      *
      * Includes bound parameters in the hash to prevent cache collisions when
-     * the same SQL template is used with different WHERE values.
+     * the same SQL template is used with different WHERE values. The relation
+     * fingerprint captures not only the relation names but also the definition
+     * site and bound `use` variables of each eager-load constraint closure, so
+     * that two queries sharing the same relation names but different eager-load
+     * filters produce distinct cache keys and never serve each other's cached
+     * related data.
      *
      * @param  string $suffix Optional suffix for the cache key
      * @return string
@@ -281,7 +286,100 @@ class QueryBuilder
     {
         $sql = $this->query->getSQL();
 
-        return 'orm_query_' . md5($sql . serialize(array_keys($this->relations)) . serialize($this->query->params()) . $suffix);
+        return 'orm_query_' . md5(
+            $sql
+            . serialize($this->getRelationsFingerprint())
+            . serialize($this->query->params())
+            . $suffix
+        );
+    }
+
+    /**
+     * Builds a deterministic, serialization-safe fingerprint of every
+     * eager-loaded relation constraint.
+     *
+     * Closures cannot be serialized directly (that would raise an exception),
+     * so each constraint is reduced to its definition site (file + line range)
+     * and its bound `use` variables. This distinguishes constraints that share
+     * the same relation name but differ in captured filter values — e.g.
+     * `fn ($q) => $q->where('status = ' . $status)` with different `$status`.
+     *
+     * @return array<string, mixed>
+     */
+    protected function getRelationsFingerprint(): array
+    {
+        $fingerprint = [];
+
+        foreach ($this->relations as $name => $constraint) {
+            $fingerprint[$name] = $this->fingerprintConstraint($constraint);
+        }
+
+        // Eager-load declaration order must not change the resulting cache key.
+        ksort($fingerprint);
+
+        return $fingerprint;
+    }
+
+    /**
+     * Reduces a single relation constraint callable to a serialization-safe
+     * signature: the closure's definition site plus its bound `use` variables.
+     *
+     * @param  callable $constraint
+     * @return array<string, mixed>
+     */
+    private function fingerprintConstraint(callable $constraint): array
+    {
+        // Normalize every callable shape (closure, "Class::method" string,
+        // [$object, 'method'] array, or invokable object) to a Closure so a
+        // single reflection path yields a stable signature.
+        $reflection = new \ReflectionFunction(\Closure::fromCallable($constraint));
+
+        return [
+            'file' => $reflection->getFileName(),
+            'start' => $reflection->getStartLine(),
+            'end' => $reflection->getEndLine(),
+            'use' => $this->normalizeForCacheKey($reflection->getClosureUsedVariables()),
+        ];
+    }
+
+    /**
+     * Recursively converts a value into a representation that is always safe to
+     * serialize, so a bound constraint variable can never break cache-key
+     * generation (closures, resources, or objects wrapping either of them).
+     *
+     * @param  mixed $value
+     * @return mixed
+     */
+    private function normalizeForCacheKey(mixed $value): mixed
+    {
+        if ($value === null || is_scalar($value)) {
+            return $value;
+        }
+
+        if (is_array($value)) {
+            $normalized = [];
+            foreach ($value as $key => $item) {
+                $normalized[$key] = $this->normalizeForCacheKey($item);
+            }
+
+            return $normalized;
+        }
+
+        if ($value instanceof \Closure) {
+            $reflection = new \ReflectionFunction($value);
+
+            return '__closure:' . ($reflection->getFileName() ?: '?') . ':' . ($reflection->getStartLine() ?: 0);
+        }
+
+        if (is_object($value)) {
+            try {
+                return '__object:' . md5(serialize($value));
+            } catch (\Throwable) {
+                return '__object:' . get_class($value) . ':' . spl_object_id($value);
+            }
+        }
+
+        return '__resource';
     }
 
     /**

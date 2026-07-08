@@ -95,4 +95,62 @@ class QueryBuilderCacheTest extends TestCase
 
         $this->assertNotSame($keyWithoutSuffix, $keyWithSuffix, 'Suffix should change the cache key');
     }
+
+    /**
+     * Two queries eager-loading the SAME relation name but with constraint
+     * closures capturing DIFFERENT filter values must produce DIFFERENT cache
+     * keys — otherwise the second query would serve the first query's cached
+     * related data. Both closures are defined on the same line (via the shared
+     * factory) so only the bound `use` variable differs; this proves the key
+     * reflects constraint values, not just relation names or line numbers.
+     */
+    public function testGetCacheKeyReflectsRelationConstraintValues(): void
+    {
+        $makeConstraint = static fn (int $status): \Closure => static function ($query) use ($status) {
+            $query->where('status = ' . $status);
+        };
+
+        $qb1 = new QueryBuilder($this->manager, $this->metadata);
+        $qb1->related(['comments' => $makeConstraint(1)]);
+
+        $qb2 = new QueryBuilder($this->manager, $this->metadata);
+        $qb2->related(['comments' => $makeConstraint(0)]);
+
+        $method = new \ReflectionMethod(QueryBuilder::class, 'getCacheKey');
+        $method->setAccessible(true);
+
+        $this->assertNotSame(
+            $method->invoke($qb1),
+            $method->invoke($qb2),
+            'Different eager-load constraint values must produce different cache keys'
+        );
+    }
+
+    /**
+     * Conversely, identical relation constraints must produce identical cache
+     * keys, so the cache stays usable across requests (the fingerprint is based
+     * on the closure definition site + bound variables, not on unstable object
+     * identity).
+     */
+    public function testGetCacheKeyIsStableForIdenticalRelationConstraints(): void
+    {
+        $makeConstraint = static fn (int $status): \Closure => static function ($query) use ($status) {
+            $query->where('status = ' . $status);
+        };
+
+        $qb1 = new QueryBuilder($this->manager, $this->metadata);
+        $qb1->related(['comments' => $makeConstraint(1)]);
+
+        $qb2 = new QueryBuilder($this->manager, $this->metadata);
+        $qb2->related(['comments' => $makeConstraint(1)]);
+
+        $method = new \ReflectionMethod(QueryBuilder::class, 'getCacheKey');
+        $method->setAccessible(true);
+
+        $this->assertSame(
+            $method->invoke($qb1),
+            $method->invoke($qb2),
+            'Identical eager-load constraint values must produce identical cache keys'
+        );
+    }
 }
