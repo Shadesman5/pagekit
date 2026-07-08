@@ -37,7 +37,7 @@
 - [x] Step 3 (M) — DBAL 3 audit-fix: Connection::exec + Utility + Installer
 - [x] Step 4 (M) — DBAL 3 rewrite of DbUtil test-helper else branch
 - [x] Step 5 (S) — Tests for executeQuery/executeStatement + JSON mapping
-- [ ] Step 6 (L) — @template / typed-array generics on QueryBuilder & repository fetch returns
+- [x] Step 6 (L) — @template / typed-array generics on QueryBuilder & repository fetch returns
 
 ## TESTING STRATEGY
 - **Per step (Tester subagent):** PHPUnit + PHPStan (mandatory after every checklist step)

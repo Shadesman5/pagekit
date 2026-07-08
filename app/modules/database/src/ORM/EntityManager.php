@@ -65,9 +65,10 @@ class EntityManager
     /**
      * Retrieve an entity by its identifier.
      *
-     * @param  string     $entity
-     * @param  int|string $identifier
-     * @return object|null
+     * @template T of object
+     * @param  class-string<T> $entity
+     * @param  int|string      $identifier
+     * @return T|null
      */
     public function find(string $entity, int|string $identifier): ?object
     {
@@ -75,7 +76,10 @@ class EntityManager
         if (is_callable($callable)) {
             $result = call_user_func($callable, $identifier);
 
-            return is_object($result) ? $result : null;
+            /** @var T|null $result */
+            $result = is_object($result) ? $result : null;
+
+            return $result;
         }
 
         return null;
@@ -104,6 +108,7 @@ class EntityManager
      * Relate target entities to the entity's relation.
      *
      * @param  array<int|string, object>|object $entities
+     * @param  QueryBuilder<object>             $query
      * @throws \LogicException
      */
     public function related(array|object $entities, string $name, QueryBuilder $query): void

@@ -14,25 +14,34 @@ use Psr\Cache\CacheItemPoolInterface;
  * Methods that read variadic arguments via `func_get_args()` (`select`,
  * `groupBy`) are typed with a trailing `mixed ...$columns` to match.
  *
- * @method self where(mixed $condition, array<int|string, mixed> $params = [])
- * @method self orWhere(mixed $condition, array<int|string, mixed> $params = [])
- * @method self whereIn(string $column, mixed $values, bool $not = false, ?string $type = null)
- * @method self orWhereIn(string $column, mixed $values, bool $not = false)
- * @method self whereExists(\Closure $callback, bool $not = false, ?string $type = null)
- * @method self orWhereExists(\Closure $callback, bool $not = false)
- * @method self whereInSet(string $column, mixed $values, bool $not = false, ?string $type = null)
- * @method self select(mixed $columns = ['*'], mixed ...$rest)
- * @method self from(string $table)
- * @method self join(string $table, ?string $condition = null, string $type = 'inner')
- * @method self innerJoin(string $table, ?string $condition = null)
- * @method self leftJoin(string $table, ?string $condition = null)
- * @method self rightJoin(string $table, ?string $condition = null)
- * @method self groupBy(mixed $groupBy, mixed ...$rest)
- * @method self having(mixed $having, string $type = 'AND')
- * @method self orHaving(mixed $having)
- * @method self orderBy(string $sort, ?string $order = null)
- * @method self offset(int $offset)
- * @method self limit(int $limit)
+ * `@template T of object` carries the mapped entity type through {@see get()}
+ * and {@see first()}. It resolves to its `object` bound for the shared,
+ * un-parameterized builders returned by {@see \Pagekit\Database\ORM\ModelTrait::query()}
+ * / `where()`, leaving those call sites (and their existing runtime type
+ * guards) unchanged; callers that need a concrete element type bind it
+ * explicitly via `QueryBuilder<MyEntity>`.
+ *
+ * @template T of object
+ *
+ * @method QueryBuilder<T> where(mixed $condition, array<int|string, mixed> $params = [])
+ * @method QueryBuilder<T> orWhere(mixed $condition, array<int|string, mixed> $params = [])
+ * @method QueryBuilder<T> whereIn(string $column, mixed $values, bool $not = false, ?string $type = null)
+ * @method QueryBuilder<T> orWhereIn(string $column, mixed $values, bool $not = false)
+ * @method QueryBuilder<T> whereExists(\Closure $callback, bool $not = false, ?string $type = null)
+ * @method QueryBuilder<T> orWhereExists(\Closure $callback, bool $not = false)
+ * @method QueryBuilder<T> whereInSet(string $column, mixed $values, bool $not = false, ?string $type = null)
+ * @method QueryBuilder<T> select(mixed $columns = ['*'], mixed ...$rest)
+ * @method QueryBuilder<T> from(string $table)
+ * @method QueryBuilder<T> join(string $table, ?string $condition = null, string $type = 'inner')
+ * @method QueryBuilder<T> innerJoin(string $table, ?string $condition = null)
+ * @method QueryBuilder<T> leftJoin(string $table, ?string $condition = null)
+ * @method QueryBuilder<T> rightJoin(string $table, ?string $condition = null)
+ * @method QueryBuilder<T> groupBy(mixed $groupBy, mixed ...$rest)
+ * @method QueryBuilder<T> having(mixed $having, string $type = 'AND')
+ * @method QueryBuilder<T> orHaving(mixed $having)
+ * @method QueryBuilder<T> orderBy(string $sort, ?string $order = null)
+ * @method QueryBuilder<T> offset(int $offset)
+ * @method QueryBuilder<T> limit(int $limit)
  * @method int count(string $column = '*')
  * @method int update(array<string, mixed> $values)
  * @method int delete()
@@ -71,7 +80,7 @@ class QueryBuilder
     /**
      * Execute the query and get all results.
      *
-     * @return array<int|string, object>
+     * @return array<int|string, T>
      */
     public function get(): array
     {
@@ -85,7 +94,10 @@ class QueryBuilder
             }
         }
 
-        if ($entities = $this->manager->hydrateAll($this->query->executeQuery(), $this->metadata)) {
+        /** @var array<int|string, T> $entities */
+        $entities = $this->manager->hydrateAll($this->query->executeQuery(), $this->metadata);
+
+        if ($entities) {
             foreach ($this->getRelations() as $name => $query) {
                 $this->manager->related($entities, $name, $query);
             }
@@ -105,7 +117,7 @@ class QueryBuilder
     /**
      * Execute the query and get the first result.
      *
-     * @return object|null
+     * @return T|null
      */
     public function first(): ?object
     {
@@ -119,30 +131,35 @@ class QueryBuilder
             }
         }
 
-        if ($entity = $this->manager->hydrateOne($this->query->limit(1)->executeQuery(), $this->metadata)) {
+        $hydrated = $this->manager->hydrateOne($this->query->limit(1)->executeQuery(), $this->metadata);
 
-            foreach ($this->getRelations() as $name => $query) {
-                $this->manager->related($entity, $name, $query);
-            }
-
-            // Save to cache if enabled
-            if ($this->cache && $this->cacheTtl !== null && isset($cacheKey)) {
-                $item = $this->cache->getItem($cacheKey);
-                $item->set($entity);
-                $item->expiresAfter($this->cacheTtl);
-                $this->cache->save($item);
-            }
-
-            return $entity;
+        if ($hydrated === false) {
+            return null;
         }
 
-        return null;
+        /** @var T $entity */
+        $entity = $hydrated;
+
+        foreach ($this->getRelations() as $name => $query) {
+            $this->manager->related($entity, $name, $query);
+        }
+
+        // Save to cache if enabled
+        if ($this->cache && $this->cacheTtl !== null && isset($cacheKey)) {
+            $item = $this->cache->getItem($cacheKey);
+            $item->set($entity);
+            $item->expiresAfter($this->cacheTtl);
+            $this->cache->save($item);
+        }
+
+        return $entity;
     }
 
     /**
      * Set the relations that will be eager loaded.
      *
      * @param  mixed $related
+     * @return QueryBuilder<T>
      */
     public function related(mixed $related): self
     {
@@ -188,7 +205,7 @@ class QueryBuilder
     /**
      * Gets all relations of the query.
      *
-     * @return array<string, QueryBuilder>
+     * @return array<string, QueryBuilder<object>>
      */
     public function getRelations(): array
     {
@@ -241,7 +258,7 @@ class QueryBuilder
      *
      * @param  int                          $ttl   Time to live in seconds
      * @param  CacheItemPoolInterface|null  $cache Custom cache pool (optional)
-     * @return self
+     * @return QueryBuilder<T>
      */
     public function cache(int $ttl, ?CacheItemPoolInterface $cache = null): self
     {
