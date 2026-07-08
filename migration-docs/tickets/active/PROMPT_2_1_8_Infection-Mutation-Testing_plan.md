@@ -44,7 +44,7 @@
      L = large or loop-risk. A step orchestrator flips its box to [x] in the SAME commit as that
      step's code (after Tester PASS) — no self-referential SHA. -->
 - [x] Step 1 (M) — Install Infection + infection.json.dist + verify ignore/driver prereq
-- [ ] Step 2 (S) — NativePasswordEncoderTest (hash/verify/salt-rejection)
+- [x] Step 2 (S) — NativePasswordEncoderTest (hash/verify/salt-rejection)
 - [ ] Step 3 (M) — DatabaseHandlerTest: cover read() + destroy()
 - [ ] Step 4 (M) — UserProviderTest: validateCredentials + findByCredentials guard (flag DB lookups → 2.1.9)
 - [ ] Step 5 (M) — RoleTest + UserTest (status flags, getStatusText, cached hasPermission)
