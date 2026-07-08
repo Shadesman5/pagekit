@@ -239,16 +239,6 @@ class Connection extends BaseConnection
     /**
      * @{inheritdoc}
      */
-    public function exec(string $sql): int
-    {
-        // DBAL declares executeStatement() as int|string for driver compatibility, but the
-        // value is the affected-rows count returned by Statement::rowCount(), which is int.
-        return (int) parent::executeStatement($this->replacePrefix($sql));
-    }
-
-    /**
-     * @{inheritdoc}
-     */
     public function executeQuery($sql, array $params = [], $types = [], ?QueryCacheProfile $qcp = null): Result
     {
         return parent::executeQuery($this->replacePrefix($sql), $params, $types, $qcp);

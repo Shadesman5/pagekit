@@ -237,7 +237,7 @@ class Installer
         unset($params['dbname']);
 
         $db = DriverManager::getConnection($params);
-        $db->getSchemaManager()->createDatabase($db->quoteIdentifier($name));
+        $db->createSchemaManager()->createDatabase($db->quoteIdentifier($name));
         $db->close();
     }
 
