@@ -19,9 +19,12 @@ declare(strict_types=1);
  * the global namespace. The `function_exists` guard keeps it inert if a real
  * `\__()` is ever loaded first.
  *
- * The user listeners (AuthorizationListener, LoginAttemptListener) instead import
- * `use function Pagekit\__;`, so their tests (Checklist Steps 6-7) additionally
- * need a `Pagekit\__()` stub — added when those steps land.
+ * Discovery note 5 expected the user listeners (AuthorizationListener,
+ * LoginAttemptListener) to import `use function Pagekit\__;`. The shipped code
+ * does NOT: like `User`, both call `__()` UNQUALIFIED, so the same fallback rule
+ * resolves them to the GLOBAL `\__()` stub above. `LoginAttemptListener` (Step 6)
+ * therefore reuses this stub; `AuthorizationListener` (Step 7) is expected to do
+ * the same. No `Pagekit\__()` stub is required.
  */
 
 if (!function_exists('__')) {
