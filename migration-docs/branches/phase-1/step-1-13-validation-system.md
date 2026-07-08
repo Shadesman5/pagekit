@@ -384,7 +384,7 @@ Modified:
 ```
 Created:
 - app/system/languages/en_US/validators.php (currently named validation.php — rename pending)
-- migration-docs/branches/VALIDATION_PHASE2_DISCOVERY.md
+- migration-docs/branches/phase-2/step-2-0-2-validation-phase2-discovery.md
 
 Modified:
 - app/system/modules/user/src/Model/User.php (updated to use message keys)

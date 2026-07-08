@@ -340,4 +340,4 @@ Use this checklist when migrating an extension from pre-2.0.1 Pagekit to 1.2.x+.
 
 ## Further Reading
 
-- [PSR-11 Container Full Modernization Summary](PSR11_CONTAINER_FULL_MODERNIZATION.md) — complete overview of all 2.0.1 sub-steps (a–e), architecture comparison, and breaking changes
+- [PSR-11 Container Full Modernization Summary](step-2-0-1-full-modernization.md) — complete overview of all 2.0.1 sub-steps (a–e), architecture comparison, and breaking changes

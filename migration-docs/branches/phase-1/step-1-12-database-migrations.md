@@ -1651,7 +1651,7 @@ Total: 413 lines, but NO DUPLICATION!
 - `tests/unit/Migration/MigrationServiceTest.php`
 
 **Documentation:**
-- `migration-docs/branches/feature-database-migrations.md` - Complete technical doc
+- `migration-docs/branches/phase-1/step-1-12-database-migrations.md` - Complete technical doc
 - `migration-docs/pull-requests/PR_database_migrations.md` - PR summary
 - `CHANGELOG-2025.md` - User-facing changelog
 

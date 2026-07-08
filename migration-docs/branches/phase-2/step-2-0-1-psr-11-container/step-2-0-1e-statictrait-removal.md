@@ -4,7 +4,7 @@
 **Branch:** `cursor/psr-11-static-trait-removal-464b`
 **GitHub Issue:** #166
 **Pull Request:** #172
-**Previous Stage:** [PSR-11 Container Stage 4](PSR11_CONTAINER_STAGE4.md)
+**Previous Stage:** [PSR-11 Container Stage 4](step-2-0-1d-packages-arrayaccess-removal.md)
 **Status:** Complete
 **Version:** 1.1.8 → 1.2.0 (trait removal) → 1.2.1 (bugfixes)
 
@@ -229,7 +229,7 @@ Third-party extensions must update the following patterns:
 
 ### Full Extension Migration Guide
 
-**[PSR-11 Container Extension Migration Guide](../PSR11_CONTAINER_EXTENSION_MIGRATION.md)**
+**[PSR-11 Container Extension Migration Guide](step-2-0-1-extension-migration-guide.md)**
 
 ---
 

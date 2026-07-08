@@ -42,7 +42,7 @@ to existing future steps (`2.1.6`, `2.5`), five are informational only. Zero new
   (§4.3.1–§4.3.5), Gap List (§4.4), New Sub-Step Proposals (§4.5 — empty by design),
   PHASE_2 / ROADMAP / Issue diffs (§4.6.1–§4.6.5), Final Test Summary (§4.7), and
   Closure Verdict (§4.8).
-- `migration-docs/branches/step-2-0-foundation-closure.md` — this branch doc.
+- `migration-docs/branches/phase-2/step-2-0-foundation-closure.md` — this branch doc.
 
 ### ✏️ Edited
 
@@ -153,7 +153,7 @@ rubric — the existing step already owns the work).
 | # | Gap (one line) | Source | Target Step | PHASE_2 anchor |
 | - | -------------- | ------ | ----------- | -------------- |
 | 1 | `app/modules/database/src/Logging/DebugStack.php` (42 lines, class + 2 methods marked `@deprecated since DBAL 3.x migration`) is a dead Rule-4 violation: zero consumers in `app/` / `packages/` source; replacement `DebugMiddleware` is wired and used. Must be `git rm`'d. | Audit §4.3.2 (Rule-4 sweep — `@deprecated`) → §4.4 row 1 | **Step 2.1.6** (PHPStan Level 7→8 — Strict Typing) | `**Audit findings (Step 2.0 closure review):**` block appended to 2.1.6's PHASE_2 section, alongside the existing `EntityManager` / `ModelServiceLocator` / `IntlServiceLocator` strict-typing items. |
-| 2 | `User::evaluateBooleanExpression()` (`app/system/modules/user/src/Model/User.php:251`) — extract into a standalone `PermissionExpressionEvaluator` service **only if and when a second caller emerges**. Today there is exactly one caller (`User::hasAccess()`), so per Aggressive Rules 1 + 2 the helper stays inline as a `private static` method. | Audit §4.2.8 (Step 2.0.8 deferred items) → §4.4 row 2 | **Step 2.5** (Extension Safety System) | `**Audit findings (Step 2.0.8 review):**` block appended to 2.5's PHASE_2 section. Documentation-only route from `migration-docs/branches/step-2-0-8-user-hasaccess-hotfix.md:213-217`. |
+| 2 | `User::evaluateBooleanExpression()` (`app/system/modules/user/src/Model/User.php:251`) — extract into a standalone `PermissionExpressionEvaluator` service **only if and when a second caller emerges**. Today there is exactly one caller (`User::hasAccess()`), so per Aggressive Rules 1 + 2 the helper stays inline as a `private static` method. | Audit §4.2.8 (Step 2.0.8 deferred items) → §4.4 row 2 | **Step 2.5** (Extension Safety System) | `**Audit findings (Step 2.0.8 review):**` block appended to 2.5's PHASE_2 section. Documentation-only route from `migration-docs/branches/phase-2/step-2-0-8-user-hasaccess-hotfix.md:213-217`. |
 
 ### Informational-only gaps (no action required, recorded in §4.4 of the audit report)
 
@@ -240,15 +240,15 @@ in this PR.
 - Task Prompt: `migration-docs/TODO/agent_prompts/Step-2_0-Foundation-Consolidation/PROMPT_2_0_Foundation-Consolidation-Closure.md`
 - Prior partial audit (covers 2.0 → 2.0.2 only): `migration-docs/audits/2026/03/AUDIT_REPORT_STEP_2.0-2.0.2_2026-03-27.md`
 - Phase plan: `.cursor/ROADMAP.md` → Phase 2.0 (umbrella) + leaf rows 2.0.0–2.0.8
-- Previous step (last leaf sub-step): `migration-docs/branches/step-2-0-8-user-hasaccess-hotfix.md`
+- Previous step (last leaf sub-step): `migration-docs/branches/phase-2/step-2-0-8-user-hasaccess-hotfix.md`
 - All leaf-sub-step branch docs:
-  - 2.0.0: `migration-docs/branches/ORM_ATTRIBUTES_MIGRATION.md` (older naming)
-  - 2.0.1 + 2.0.1a–e: `migration-docs/branches/PSR-11-Container/PSR11_CONTAINER_*.md` × 9 (subdirectory series)
-  - 2.0.2: `migration-docs/branches/VALIDATION_SYSTEM.md` + `VALIDATION_PHASE2_DISCOVERY.md` (older naming)
-  - 2.0.3: `migration-docs/branches/FULL_CACHE_API_MODERNIZATION.md` (older naming)
-  - 2.0.4: `migration-docs/branches/PACKAGE_MIGRATION_SYSTEM_REDESIGN.md` (older naming)
-  - 2.0.5: `migration-docs/branches/COMPOSER_AUTOLOAD_HYGIENE.md` (older naming)
-  - 2.0.6: `migration-docs/branches/TEST_INFRASTRUCTURE_CLEANUP.md` (older naming)
-  - 2.0.7: `migration-docs/branches/step-2-0-7-event-bridge-removal.md` (new naming)
-  - 2.0.8: `migration-docs/branches/step-2-0-8-user-hasaccess-hotfix.md` (new naming)
-- Closure branch doc (this file): `migration-docs/branches/step-2-0-foundation-closure.md` (new naming)
+  - 2.0.0: `migration-docs/branches/phase-1/step-1-14-orm-attributes-migration.md`
+  - 2.0.1 + 2.0.1a–e: `migration-docs/branches/phase-2/step-2-0-1-psr-11-container/step-2-0-1*.md` × 9 (subdirectory series)
+  - 2.0.2: `migration-docs/branches/phase-1/step-1-13-validation-system.md` + `migration-docs/branches/phase-2/step-2-0-2-validation-phase2-discovery.md`
+  - 2.0.3: `migration-docs/branches/phase-2/step-2-0-3-full-cache-api-modernization.md`
+  - 2.0.4: `migration-docs/branches/phase-2/step-2-0-4-package-migration-system-redesign.md`
+  - 2.0.5: `migration-docs/branches/phase-2/step-2-0-5-composer-autoload-hygiene.md`
+  - 2.0.6: `migration-docs/branches/phase-2/step-2-0-6-test-infrastructure-cleanup.md`
+  - 2.0.7: `migration-docs/branches/phase-2/step-2-0-7-event-bridge-removal.md`
+  - 2.0.8: `migration-docs/branches/phase-2/step-2-0-8-user-hasaccess-hotfix.md`
+- Closure branch doc (this file): `migration-docs/branches/phase-2/step-2-0-foundation-closure.md`
