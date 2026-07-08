@@ -281,7 +281,7 @@ class QueryBuilder
     {
         $sql = $this->query->getSQL();
 
-        return 'orm_query_' . md5($sql . serialize($this->relations) . serialize($this->query->params()) . $suffix);
+        return 'orm_query_' . md5($sql . serialize(array_keys($this->relations)) . serialize($this->query->params()) . $suffix);
     }
 
     /**
