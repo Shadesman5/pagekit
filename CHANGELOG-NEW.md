@@ -1,5 +1,29 @@
 # Changelog
 
+## Pagekit 1.2.22 - QueryBuilder API Standardization (Juli 8, 2026)
+
+### Changed
+
+- **QueryBuilder execution API split for DBAL 3.x.** Legacy `execute()` removed; use `executeQuery(): Result` for SELECT and `executeStatement(): int` for UPDATE/DELETE. All call sites migrated across database module, site, blog, and validator code. (Closes #154)
+- **`json_array` DBAL type normalized to `json`.** `JsonArrayType` registered as JSON override; redundant `json_array` type registration and mappings removed.
+- **DBAL 3 schema APIs updated.** `getSchemaManager()` → `createSchemaManager()`, `createSchema()` → `introspectSchema()` in `Utility`, `Installer`, and `DbUtil` test helper.
+- **`@template` generics** added to ORM `QueryBuilder::get()`/`first()` fetch returns (deferred from Step 2.1.6).
+
+### Removed
+
+- **`Connection::exec()` alias** — zero production callers.
+- **`Utility::migrate()`** — dead code superseded by MigrationService (Step 2.0.4).
+
+### Fixed
+
+- **Query cache key crash** when `cache()` and `related()` are combined — `getCacheKey()` now hashes relation names (`array_keys`) instead of serializing Closure objects.
+
+### Phase 1 Audit
+
+- **Step 1.5 (Doctrine DBAL 3.x) ⚠️ → 🛡️** — audit findings for `exec()`, deprecated schema manager APIs, Comparator/migrate debt, and `DbUtil` `exec()` resolved.
+
+---
+
 ## Pagekit 1.2.21 - PHPStan Level 7 → 8 (Strict Typing) (Juli 1, 2026)
 
 ### Static Analysis
