@@ -35,7 +35,7 @@
 - [x] Step 1 (L) — Standardize QueryBuilder execution API (executeQuery/executeStatement, delete execute, migrate call sites)
 - [x] Step 2 (M) — Normalize JSON DBAL type json_array → json
 - [x] Step 3 (M) — DBAL 3 audit-fix: Connection::exec + Utility + Installer
-- [ ] Step 4 (M) — DBAL 3 rewrite of DbUtil test-helper else branch
+- [x] Step 4 (M) — DBAL 3 rewrite of DbUtil test-helper else branch
 - [ ] Step 5 (S) — Tests for executeQuery/executeStatement + JSON mapping
 - [ ] Step 6 (L) — @template / typed-array generics on QueryBuilder & repository fetch returns
 

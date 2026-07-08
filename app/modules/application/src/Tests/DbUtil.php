@@ -6,6 +6,7 @@ namespace Pagekit\Tests;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Exception as DBALException;
 
 trait DbUtil
 {
@@ -67,27 +68,32 @@ trait DbUtil
                 $tmpConn = DriverManager::getConnection($tmpDbParams);
                 $realConn->close();
 
-                $tmpConn->getSchemaManager()->dropDatabase($dbname);
-                $tmpConn->getSchemaManager()->createDatabase($dbname);
+                $tmpConn->createSchemaManager()->dropDatabase($dbname);
+                $tmpConn->createSchemaManager()->createDatabase($dbname);
 
                 $tmpConn->close();
             } else {
 
-                $sm = $realConn->getSchemaManager();
+                $sm = $realConn->createSchemaManager();
 
-                /* @var $schema Schema */
-                $schema = $sm->createSchema();
-                $stmts = $schema->toDropSql($realConn->getDatabasePlatform());
+                // DBAL 3 dropped Schema::toDropSql(), so build the DROP SQL per table from the
+                // introspected schema via the platform (passing the quoted name; passing a Table
+                // object is deprecated). This branch only runs on platforms without CREATE/DROP
+                // DATABASE support (e.g. SQLite, Oracle), where dropping foreign keys first is not
+                // portable (SQLite has no "ALTER TABLE ... DROP FOREIGN KEY"). Teardown is therefore
+                // best-effort: log-and-continue so one undroppable table cannot abort the whole
+                // cleanup, and failures are surfaced via error_log() instead of being swallowed.
+                foreach ($sm->introspectSchema()->getTables() as $table) {
+                    $dropSql = $platform->getDropTableSQL($table->getQuotedName($platform));
 
-                foreach ($stmts as $stmt) {
                     try {
-                        $realConn->exec($stmt);
-                    } catch (\Exception $e) {
-                        // TODO: Must be refactored in Step 2.1.7 (QueryBuilder API / DBAL 3.x) — this
-                        // empty catch silently swallows every exception while dropping tables one by
-                        // one. Decide a teardown error strategy during the DBAL 3 rewrite of this
-                        // branch: drop in FK-dependency order, or log-and-continue instead of
-                        // discarding. (GitHub #154)
+                        $realConn->executeStatement($dropSql);
+                    } catch (DBALException $e) {
+                        error_log(sprintf(
+                            'DbUtil::getConnection(): could not drop table "%s" during test-database teardown: %s',
+                            $table->getName(),
+                            $e->getMessage(),
+                        ));
                     }
                 }
             }
