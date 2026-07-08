@@ -15,8 +15,8 @@ Step 2.1.7 modernizes the Pagekit database QueryBuilder execution API for Doctri
 normalizes the legacy `json_array` DBAL type to `json`, and closes Phase 1 audit debt for
 **Step 1.5 (Doctrine DBAL 3.x)**.
 
-The migration was executed in **6 checklist steps** plus a Bugbot mini-loop fix for query-cache
-key generation when `cache()` and `related()` are combined.
+The migration was executed in **6 checklist steps**, plus post-review hardening of three latent
+QueryBuilder bugs surfaced by follow-up review (see "Post-review hardening" below).
 
 ---
 
@@ -55,10 +55,28 @@ key generation when `cache()` and `related()` are combined.
 
 - `@template T of object` annotations on ORM `QueryBuilder::get()`/`first()` and related fetch paths.
 
-### Bugbot fix
+### Post-review hardening (follow-up bug reports)
 
-- `ORM/QueryBuilder::getCacheKey()` — use `array_keys($this->relations)` instead of
-  `serialize($this->relations)` to avoid Closure serialization crash when `cache()` + `related()` combine.
+Three latent QueryBuilder bugs surfaced by post-review (local Bugbot + follow-up reports) were fixed:
+
+- **`Query\QueryBuilder::executeStatement()` write-type guard.** The method previously fell through to a
+  `DELETE` whenever the write type was not exactly `'update'` — including when it was still unset on a
+  SELECT-configured builder. A mistaken call (also reachable via the ORM `QueryBuilder::__call` proxy)
+  could `DELETE` every row of the FROM table. It now uses a `match` that throws a `LogicException` unless
+  `update()`/`delete()` selected the write type.
+- **`ORM\QueryBuilder` result-cache key.** The key is derived from the SQL, bound parameters and
+  eager-load relation *names* (common ORM practice, cf. Doctrine's result cache) rather than by
+  serializing, reflecting or materializing the constraint closures — which respectively crashed on
+  Closures, missed values read via a bound `$this`, or executed the constraints on every lookup. A new
+  fluent `cacheKey(?string $key)` discriminator (akin to `setResultCacheId`) disambiguates queries that
+  share SQL, params and relation names but load different related data via a dynamic constraint. Bound
+  parameters are normalized so a non-serializable binding can never break key generation; the `cache()`
+  signature is unchanged.
+
+> **Scope note:** the ORM `cache()` API originates from **Step 1.11 (ORM Modernization)**, not 2.1.7 —
+> these are hotfixes that rode along on this branch.
+
+**Re-verified:** PHPUnit 338 green · PHPStan level 8 clean · local Bugbot clean.
 
 ---
 
@@ -68,6 +86,9 @@ key generation when `cache()` and `related()` are combined.
   SELECT and `executeStatement(): int` for UPDATE/DELETE.
 - **Column-argument `execute('col')` pattern removed.** Call `->select('col')->executeQuery()` instead.
 - **DBAL type name `json_array` unregistered.** Entity Column attributes should use `type: 'json'`.
+- **`executeStatement()` requires a write type.** It now throws a `LogicException` unless `update()` or
+  `delete()` was called first (previously it silently issued a `DELETE`). Callers using the normal
+  `->update([...])` / `->delete()` fluent API are unaffected.
 
 ---
 

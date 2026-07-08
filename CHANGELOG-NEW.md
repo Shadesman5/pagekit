@@ -2,6 +2,10 @@
 
 ## Pagekit 1.2.22 - QueryBuilder API Standardization (Juli 8, 2026)
 
+### Added
+
+- **`QueryBuilder::cacheKey(?string $key)`** — explicit ORM result-cache discriminator (akin to Doctrine's `setResultCacheId`) for queries that share SQL, parameters and eager-load relation names but load different related data via a dynamic `related()` constraint.
+
 ### Changed
 
 - **QueryBuilder execution API split for DBAL 3.x.** Legacy `execute()` removed; use `executeQuery(): Result` for SELECT and `executeStatement(): int` for UPDATE/DELETE. All call sites migrated across database module, site, blog, and validator code. (Closes #154)
@@ -16,7 +20,8 @@
 
 ### Fixed
 
-- **Query cache key crash** when `cache()` and `related()` are combined — `getCacheKey()` now hashes relation names (`array_keys`) instead of serializing Closure objects.
+- **`executeStatement()` no longer falls through to `DELETE`.** A builder without a write type (e.g. one configured for SELECT, also reachable via the ORM `__call` proxy) now throws a `LogicException` instead of silently issuing a `DELETE` against the FROM table.
+- **ORM query cache key correctness.** The key is derived from the SQL, bound parameters and eager-load relation names — not by serializing, reflecting or materializing constraint closures — so combining `cache()` + `related()` neither crashes on Closures nor serves the wrong cached relations. Use `cacheKey()` to disambiguate dynamic constraints; bound parameters are normalized so a non-serializable binding cannot break key generation.
 
 ### Phase 1 Audit
 
