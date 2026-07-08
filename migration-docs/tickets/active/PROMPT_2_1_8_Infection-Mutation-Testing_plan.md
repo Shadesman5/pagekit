@@ -46,7 +46,7 @@
 - [x] Step 1 (M) — Install Infection + infection.json.dist + verify ignore/driver prereq
 - [x] Step 2 (S) — NativePasswordEncoderTest (hash/verify/salt-rejection)
 - [x] Step 3 (M) — DatabaseHandlerTest: cover read() + destroy()
-- [ ] Step 4 (M) — UserProviderTest: validateCredentials + findByCredentials guard (flag DB lookups → 2.1.9)
+- [x] Step 4 (M) — UserProviderTest: validateCredentials + findByCredentials guard (flag DB lookups → 2.1.9)
 - [ ] Step 5 (M) — RoleTest + UserTest (status flags, getStatusText, cached hasPermission)
 - [ ] Step 6 (M) — LoginAttemptListenerTest (brute-force throttle boundaries)
 - [ ] Step 7 (L) — AuthorizationListenerTest + AccessListenerTest (flag UserListener → 2.1.9)
