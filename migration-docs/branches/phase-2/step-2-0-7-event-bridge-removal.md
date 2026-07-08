@@ -121,5 +121,5 @@ Each commit references `Refs #184 — Step 2.0.7` in its body for ROADMAP tracea
 
 - Plan / TODO-Spec: `.cursor/tickets/step-2-0-7-event-bridge-removal_plan.md`
 - Task Prompt: `migration-docs/TODO/agent_prompts/Step-2_0-Foundation-Consolidation/PROMPT_2_0_7_Event-Bridge-Removal.md`
-- Original migration doc (historical): `migration-docs/branches/SYMFONY_EVENT_MIGRATION.md`
+- Original migration doc (historical): `migration-docs/branches/phase-1/step-1-7-symfony-event-migration.md`
 - Phase plan: `.cursor/ROADMAP.md` → Phase 2.0 → Step 2.0.7

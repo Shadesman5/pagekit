@@ -69,6 +69,7 @@ abstract class Relation
      * Resolves the entity relation.
      *
      * @param array<int|string, object> $entities
+     * @param QueryBuilder<object>      $query
      */
     abstract public function resolve(array $entities, QueryBuilder $query): void;
 
@@ -146,6 +147,7 @@ abstract class Relation
     /**
      * Resolve additional relations
      *
+     * @param QueryBuilder<object>      $query
      * @param array<int|string, object> $targets
      */
     protected function resolveRelations(QueryBuilder $query, array $targets): void

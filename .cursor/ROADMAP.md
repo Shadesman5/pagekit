@@ -1,7 +1,7 @@
 # **🗺️ Pagekit Modernization Roadmap & Rules**
 
-> **Current Version**: 1.2.21
-> **Current Step**: 2.1.7 (QueryBuilder API Standardization)
+> **Current Version**: 1.2.22
+> **Current Step**: 2.1.8 (Infection Mutation Testing)
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**
 
@@ -48,7 +48,7 @@
 | 1.3    | Security Patches                      | ✅     | 🛡️    | #122  | #30     |
 | 1.3.5  | ↳ Dependabot Updates                  | ✅     | 🛡️    | #123  | #32     |
 | 1.4    | Safe Minor Updates                    | ✅     | 🛡️    | #124  | #53     |
-| 1.5    | Doctrine DBAL 3.x                     | ✅     | ⚠️    | #125  | #54     |
+| 1.5    | Doctrine DBAL 3.x                     | ✅     | 🛡️    | #125  | #54     |
 | 1.6    | PSR-11 Container Compatibility        | ✅     | 🛡️    | #126  | #55     |
 | 1.7    | Event System Compatibility            | ✅     | 🛡️    | #127  | #56     |
 | 1.8    | Routing System Compatibility          | ✅     | 🛡️    | #128  | #57     |
@@ -82,7 +82,7 @@
 | 2.1.4  | ↳ PHPStan Level 5→6 (Return Types)    | ✅     | 🛡️    | #151  | #203    |
 | 2.1.5  | ↳ PHPStan Level 6→7 (Null Safety)     | ✅     | 🛡️    | #152  | #210    |
 | 2.1.6  | ↳ PHPStan Level 7→8 (Strict Typing)   | ✅     | 🛡️    | #153  | #212    |
-| 2.1.7  | ↳ QueryBuilder API Standardization    | ⏳     | ⏳    | #154  | -       |
+| 2.1.7  | ↳ QueryBuilder API Standardization    | ✅     | 🛡️    | #154  | #215    |
 | 2.1.8  | ↳ Infection Mutation Testing          | ⏳     | ⏳    | #155  | -       |
 | 2.1.9  | ↳ Test Coverage Expansion             | ⏳     | ⏳    | #156  | -       |
 | 2.1.10 | ↳ Entity Presentation Layer (DTO)     | ⏳     | ⏳    | #204  | -       |

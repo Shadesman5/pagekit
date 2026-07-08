@@ -17,11 +17,11 @@ The PSR-11 Container Vollmodernisierung (Step 2.0.1) was a five-stage refactorin
 
 | Step | Name | Branch Doc | PR | Issue | Key Deliverable |
 |------|------|-----------|-----|-------|-----------------|
-| 2.0.1a | Container Core + Modules | [PSR11_CONTAINER_STAGE1.md](branches/PSR11_CONTAINER_STAGE1.md) / [PSR11_CONTAINER_MIGRATION.md](branches/PSR11_CONTAINER_MIGRATION.md) / [PSR11_CONTAINER_STAGE2.md](branches/PSR11_CONTAINER_STAGE2.md) | [#161](https://github.com/Shadesman5/pagekit/pull/161) | [#162](https://github.com/Shadesman5/pagekit/issues/162) | Native `ContainerInterface`, `get()`/`has()`, Psr11Adapter deleted, `app/modules/` ArrayAccess reads migrated |
-| 2.0.1b | DI Infrastructure | [PSR11_CONTAINER_DI_INFRASTRUCTURE.md](branches/PSR11_CONTAINER_DI_INFRASTRUCTURE.md) | [#167](https://github.com/Shadesman5/pagekit/pull/167) | [#163](https://github.com/Shadesman5/pagekit/issues/163) | `ControllerResolver` reflection-based constructor DI |
-| 2.0.1c | System / Installer / Console | [PSR11_CONTAINER_STAGE3.md](branches/PSR11_CONTAINER_STAGE3.md) | [#169](https://github.com/Shadesman5/pagekit/pull/169) | [#164](https://github.com/Shadesman5/pagekit/issues/164) | 493 call sites migrated, constructor DI for all controllers and listeners |
-| 2.0.1d | Packages + ArrayAccess Removal | [PSR11_CONTAINER_STAGE4.md](branches/PSR11_CONTAINER_STAGE4.md) | [#171](https://github.com/Shadesman5/pagekit/pull/171) | [#165](https://github.com/Shadesman5/pagekit/issues/165) | `set()` method added, all WRITEs migrated, `\ArrayAccess` deleted from Container |
-| 2.0.1e | StaticTrait Removal + DI Final | [PSR11_CONTAINER_STATICTRAIT_REMOVAL.md](branches/PSR11_CONTAINER_STATICTRAIT_REMOVAL.md) | [#172](https://github.com/Shadesman5/pagekit/pull/172) | [#166](https://github.com/Shadesman5/pagekit/issues/166) | All traits deleted, `__call()` removed, `App::getInstance()` eliminated, ~260 call sites migrated |
+| 2.0.1a | Container Core + Modules | [step-2-0-1a-native-container-interface.md](step-2-0-1a-native-container-interface.md) / [step-2-0-1a-migration.md](step-2-0-1a-migration.md) / [step-2-0-1a-core-modules-call-sites.md](step-2-0-1a-core-modules-call-sites.md) | [#161](https://github.com/Shadesman5/pagekit/pull/161) | [#162](https://github.com/Shadesman5/pagekit/issues/162) | Native `ContainerInterface`, `get()`/`has()`, Psr11Adapter deleted, `app/modules/` ArrayAccess reads migrated |
+| 2.0.1b | DI Infrastructure | [step-2-0-1b-di-infrastructure.md](step-2-0-1b-di-infrastructure.md) | [#167](https://github.com/Shadesman5/pagekit/pull/167) | [#163](https://github.com/Shadesman5/pagekit/issues/163) | `ControllerResolver` reflection-based constructor DI |
+| 2.0.1c | System / Installer / Console | [step-2-0-1c-system-installer-console.md](step-2-0-1c-system-installer-console.md) | [#169](https://github.com/Shadesman5/pagekit/pull/169) | [#164](https://github.com/Shadesman5/pagekit/issues/164) | 493 call sites migrated, constructor DI for all controllers and listeners |
+| 2.0.1d | Packages + ArrayAccess Removal | [step-2-0-1d-packages-arrayaccess-removal.md](step-2-0-1d-packages-arrayaccess-removal.md) | [#171](https://github.com/Shadesman5/pagekit/pull/171) | [#165](https://github.com/Shadesman5/pagekit/issues/165) | `set()` method added, all WRITEs migrated, `\ArrayAccess` deleted from Container |
+| 2.0.1e | StaticTrait Removal + DI Final | [step-2-0-1e-statictrait-removal.md](step-2-0-1e-statictrait-removal.md) | [#172](https://github.com/Shadesman5/pagekit/pull/172) | [#166](https://github.com/Shadesman5/pagekit/issues/166) | All traits deleted, `__call()` removed, `App::getInstance()` eliminated, ~260 call sites migrated |
 
 ---
 
@@ -132,7 +132,7 @@ All breaking changes across the five sub-steps, in order of introduction:
 
 For a complete step-by-step guide on updating third-party extensions:
 
-**[PSR-11 Container Extension Migration Guide](PSR11_CONTAINER_EXTENSION_MIGRATION.md)**
+**[PSR-11 Container Extension Migration Guide](step-2-0-1-extension-migration-guide.md)**
 
 Covers service access patterns, service registration, controller constructor injection, exception handling, and a quick migration checklist.
 

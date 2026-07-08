@@ -7,7 +7,10 @@ namespace Pagekit\Database\Tests;
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use Pagekit\Database\Connection;
+use Pagekit\Database\Types\JsonArrayType;
 use PHPUnit\Framework\TestCase;
 
 class ConnectionTest extends TestCase
@@ -205,6 +208,51 @@ class ConnectionTest extends TestCase
         $this->assertCount(2, $results);
         $this->assertEquals('Alice', $results[0]->name);
         $this->assertEquals('Bob', $results[1]->name);
+
+        $pagekitConn->close();
+    }
+
+    /**
+     * Test a json-typed column round-trips an array via JsonArrayType.
+     *
+     * Since Step 2.1.7 the DBAL 'json' type resolves to the array-safe
+     * JsonArrayType (the former 'json_array' alias was removed), mirroring the
+     * database module bootstrap's Type::overrideType(Types::JSON, ...).
+     */
+    public function testJsonColumnRoundTripsArrayViaJsonArrayType(): void
+    {
+        if (!(Type::getType(Types::JSON) instanceof JsonArrayType)) {
+            Type::overrideType(Types::JSON, JsonArrayType::class);
+        }
+
+        $type = Type::getType(Types::JSON);
+        $this->assertInstanceOf(JsonArrayType::class, $type);
+        $this->assertSame('json', $type->getName());
+
+        $conn = DriverManager::getConnection([
+            'driver' => 'pdo_sqlite',
+            'memory' => true,
+        ]);
+
+        $pagekitConn = new Connection(
+            ['driver' => 'pdo_sqlite', 'memory' => true, 'prefix' => 'pk_'],
+            $conn->getDriver(),
+            $conn->getConfiguration()
+        );
+
+        $pagekitConn->executeStatement('CREATE TABLE json_test (id INTEGER PRIMARY KEY, data TEXT)');
+
+        $platform = $pagekitConn->getDatabasePlatform();
+        $data = ['title' => 'Hello', 'tags' => ['a', 'b'], 'count' => 3];
+
+        $pagekitConn->executeStatement(
+            'INSERT INTO json_test (id, data) VALUES (1, ?)',
+            [$type->convertToDatabaseValue($data, $platform)]
+        );
+
+        $stored = $pagekitConn->executeQuery('SELECT data FROM json_test WHERE id = 1')->fetchOne();
+
+        $this->assertSame($data, $type->convertToPHPValue($stored, $platform));
 
         $pagekitConn->close();
     }

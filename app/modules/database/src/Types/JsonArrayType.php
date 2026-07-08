@@ -12,10 +12,6 @@ use Doctrine\DBAL\Types\JsonType;
  *
  * Ensures null/empty values are converted to [] instead of null, which is required
  * by DataModelTrait (Arr::get expects arrays). Non-array values are wrapped in [].
- *
- * TODO: Must be refactored in Step 2.1.7 (QueryBuilder API Standardization) —
- * Rename type from 'json_array' (DBAL 2.x name) to 'json', update all entity
- * attributes and migrations, remove redundant type registration in database/index.php.
  */
 class JsonArrayType extends JsonType
 {
@@ -54,7 +50,7 @@ class JsonArrayType extends JsonType
      */
     public function getName(): string
     {
-        return 'json_array';
+        return 'json';
     }
 
     /**

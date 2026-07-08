@@ -114,12 +114,10 @@ class Connection extends BaseConnection
     }
 
     /**
-     * Registers custom Doctrine type mappings so DB column types resolve to Pagekit's
-     * array-safe JSON and SimpleArray types.
-     *
-     * TODO: Must be refactored in Step 2.1.7 (QueryBuilder API Standardization) —
-     * Once JsonArrayType is renamed to 'json' and registered as the default, the
-     * explicit json→json_array mapping becomes unnecessary. Simplify or remove.
+     * Registers custom Doctrine type mappings so introspected DB column types resolve
+     * to Pagekit's array-safe types. The JSON type is registered globally as the 'json'
+     * type via Type::overrideType() in the database module bootstrap, so only the
+     * simple_array platform mapping needs to be established here.
      *
      * @param \Doctrine\DBAL\Platforms\AbstractPlatform|null $platform
      */
@@ -130,8 +128,6 @@ class Connection extends BaseConnection
                 $platform = parent::getDatabasePlatform();
             }
 
-            $platform->registerDoctrineTypeMapping('json', 'json_array');
-            $platform->registerDoctrineTypeMapping('json_array', 'json_array');
             $platform->registerDoctrineTypeMapping('simple_array', 'simple_array');
         } catch (\Exception $e) {
             // Silently fail if platform is not available yet
@@ -238,16 +234,6 @@ class Connection extends BaseConnection
     public function prepare($sql): Statement
     {
         return parent::prepare($this->replacePrefix($sql));
-    }
-
-    /**
-     * @{inheritdoc}
-     */
-    public function exec(string $sql): int
-    {
-        // DBAL declares executeStatement() as int|string for driver compatibility, but the
-        // value is the affected-rows count returned by Statement::rowCount(), which is int.
-        return (int) parent::executeStatement($this->replacePrefix($sql));
     }
 
     /**

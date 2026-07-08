@@ -2,7 +2,7 @@
 
 **ROADMAP Step:** 2.0.1d
 **Branch:** `cursor/psr-11-container-final-packages-73f8`
-**Previous Stage:** [PSR-11 Container Stage 3](PSR11_CONTAINER_STAGE3.md)
+**Previous Stage:** [PSR-11 Container Stage 3](step-2-0-1c-system-installer-console.md)
 **Status:** Complete
 
 ---
@@ -133,7 +133,7 @@ New test added: `testSetMethod()` — covers scalar values, closures, and factor
 
 A comprehensive migration guide for third-party extensions has been published:
 
-**[PSR-11 Container Extension Migration Guide](../PSR11_CONTAINER_EXTENSION_MIGRATION.md)**
+**[PSR-11 Container Extension Migration Guide](step-2-0-1-extension-migration-guide.md)**
 
 Covers:
 - Service access changes (`$app['x']` to `$app->get('x')`)

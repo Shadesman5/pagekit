@@ -66,7 +66,7 @@ class UniqueValidator extends ConstraintValidator
             ->from($constraint->table)
             ->where($whereConditions, $whereParams);
 
-        $result = $queryBuilder->execute();
+        $result = $queryBuilder->executeQuery();
         $count = (int) $result->fetchOne();
 
         if ($count > 0) {

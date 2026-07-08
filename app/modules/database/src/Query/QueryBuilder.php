@@ -47,6 +47,11 @@ class QueryBuilder
     protected array $params = [];
 
     /**
+     * The write-statement type ('update' or 'delete') selected by {@see update()} / {@see delete()}.
+     */
+    private ?string $type = null;
+
+    /**
      * Constructor.
      *
      * @param Connection $connection
@@ -480,7 +485,11 @@ class QueryBuilder
      */
     public function get(mixed $columns = ['*']): array
     {
-        return $this->execute($columns)->fetchAllAssociative();
+        if (empty($this->parts['select'])) {
+            $this->select($columns);
+        }
+
+        return $this->executeQuery()->fetchAllAssociative();
     }
 
     /**
@@ -491,7 +500,11 @@ class QueryBuilder
      */
     public function first($columns = ['*'])
     {
-        return $this->limit(1)->execute($columns)->fetchAssociative();
+        if (empty($this->parts['select'])) {
+            $this->select($columns);
+        }
+
+        return $this->limit(1)->executeQuery()->fetchAssociative();
     }
 
     /**
@@ -576,20 +589,6 @@ class QueryBuilder
     }
 
     /**
-     * Execute the "select" query.
-     *
-     * @param  mixed $columns
-     */
-    public function execute($columns = ['*']): Result
-    {
-        if (empty($this->parts['select'])) {
-            $this->select($columns);
-        }
-
-        return $this->executeQuery();
-    }
-
-    /**
      * Execute the "update" query with the given values.
      *
      * @param array<string, mixed> $values
@@ -604,12 +603,9 @@ class QueryBuilder
 
         $this->params($values);
 
-        $result = $this->executeQuery('update');
-        if (!is_int($result)) {
-            throw new \LogicException('UPDATE must return an int affected-rows count.');
-        }
+        $this->type = 'update';
 
-        return $result;
+        return $this->executeStatement();
     }
 
     /**
@@ -617,12 +613,9 @@ class QueryBuilder
      */
     public function delete(): int
     {
-        $result = $this->executeQuery('delete');
-        if (!is_int($result)) {
-            throw new \LogicException('DELETE must return an int affected-rows count.');
-        }
+        $this->type = 'delete';
 
-        return $result;
+        return $this->executeStatement();
     }
 
     /**
@@ -652,33 +645,32 @@ class QueryBuilder
     }
 
     /**
-     * Execute the query as select, update or delete.
-     *
-     * @param  string $type
-     * @return mixed Genuinely unknown type — returns Result for SELECT, int (affected rows) for UPDATE/DELETE.
+     * Execute the "select" query and return the DBAL result.
      */
-    protected function executeQuery($type = 'select')
+    public function executeQuery(): Result
     {
-        switch ($type) {
-            case 'update':
-                $sql = $this->getSQLForUpdate();
+        $sql = $this->getSQLForSelect();
 
-                break;
+        return $this->connection->executeQuery($sql, $this->params, $this->guessParamTypes($this->params));
+    }
 
-            case 'delete':
-                $sql = $this->getSQLForDelete();
+    /**
+     * Execute the "update"/"delete" write statement and return the affected-row count.
+     *
+     * The write type must be selected up-front via {@see update()} or {@see delete()}.
+     * Calling this on a builder without a write type (e.g. one configured for SELECT)
+     * throws instead of silently falling back to DELETE, which could wipe the whole
+     * FROM table when no WHERE is set.
+     */
+    public function executeStatement(): int
+    {
+        $sql = match ($this->type) {
+            'update' => $this->getSQLForUpdate(),
+            'delete' => $this->getSQLForDelete(),
+            default => throw new \LogicException('executeStatement() requires update() or delete() to be called first; it is not valid for SELECT queries.'),
+        };
 
-                break;
-
-            default:
-                $sql = $this->getSQLForSelect();
-        }
-
-        if ($type == 'select') {
-            return $this->connection->executeQuery($sql, $this->params, $this->guessParamTypes($this->params));
-        } else {
-            return $this->connection->executeStatement($sql, $this->params, $this->guessParamTypes($this->params));
-        }
+        return $this->connection->executeStatement($sql, $this->params, $this->guessParamTypes($this->params));
     }
 
     /**

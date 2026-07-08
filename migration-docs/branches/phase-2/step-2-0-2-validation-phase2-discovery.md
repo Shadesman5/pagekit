@@ -136,4 +136,4 @@ Message keys are stored in `app/system/languages/en_US/validators.php` (Symfony 
 
 > **Note:** File is currently named `validation.php` — rename to `validators.php` pending.
 
-The Translator integration (connecting Symfony Validator to Pagekit's `IntlModule` Translator via `setTranslator()` + `setTranslationDomain('validators')`) is tracked as a Phase 2 task. See `migration-docs/branches/VALIDATION_SYSTEM.md` for details.
+The Translator integration (connecting Symfony Validator to Pagekit's `IntlModule` Translator via `setTranslator()` + `setTranslationDomain('validators')`) is tracked as a Phase 2 task. See `migration-docs/branches/phase-1/step-1-13-validation-system.md` for details.

@@ -29,7 +29,7 @@ trait PostModelTrait
      */
     public static function getAuthors(): array
     {
-        return self::query()->select('user_id', 'name', 'username')->groupBy('user_id', 'name', 'username')->join('@system_user', 'user_id = @system_user.id')->execute()->fetchAllAssociative();
+        return self::query()->select('user_id', 'name', 'username')->groupBy('user_id', 'name', 'username')->join('@system_user', 'user_id = @system_user.id')->executeQuery()->fetchAllAssociative();
     }
 
     #[ORM\Saving]

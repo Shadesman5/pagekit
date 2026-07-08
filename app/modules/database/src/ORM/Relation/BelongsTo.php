@@ -34,6 +34,7 @@ class BelongsTo extends Relation
      * {@inheritdoc}
      *
      * @param array<int|string, object> $entities
+     * @param QueryBuilder<object>      $query
      */
     public function resolve(array $entities, QueryBuilder $query): void
     {

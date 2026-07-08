@@ -233,4 +233,4 @@ the audit cell flips from ⚠️ to 🛡️. Per `push.mdc`, partial closures ar
 - Plan / TODO-Spec: `.cursor/tickets/PROMPT_2_0_8_User-hasAccess-Hotfix_plan.md`
 - Task Prompt: `migration-docs/TODO/agent_prompts/Step-2_0-Foundation-Consolidation/PROMPT_2_0_8_User-hasAccess-Hotfix.md`
 - Phase plan: `.cursor/ROADMAP.md` → Phase 2.0 → Step 2.0.8
-- Previous step: `migration-docs/branches/step-2-0-7-event-bridge-removal.md`
+- Previous step: `migration-docs/branches/phase-2/step-2-0-7-event-bridge-removal.md`

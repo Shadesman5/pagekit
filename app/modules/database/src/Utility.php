@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Pagekit\Database;
 
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
-use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\Constraint;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Index;
@@ -27,12 +26,12 @@ class Utility
     public function __construct(Connection $connection)
     {
         $this->connection = $connection;
-        $this->manager = $this->connection->getSchemaManager();
-        $this->schema = $this->manager->createSchema();
+        $this->manager = $this->connection->createSchemaManager();
+        $this->schema = $this->manager->introspectSchema();
     }
 
     /**
-     * Return the DBAL schema manager.
+     * Returns the cached DBAL schema manager (created via Connection::createSchemaManager()).
      *
      * @return AbstractSchemaManager<\Doctrine\DBAL\Platforms\AbstractPlatform>
      */
@@ -233,19 +232,6 @@ class Utility
         }
 
         return $this->manager->{$method}(...$args);
-    }
-
-    /**
-     * Migrates the database.
-     */
-    public function migrate(): void
-    {
-        $comparator = new Comparator();
-        $diff = $comparator->compareSchemas($this->manager->createSchema(), $this->schema);
-
-        foreach ($diff->toSaveSql($this->connection->getDatabasePlatform()) as $query) {
-            $this->connection->executeQuery($query);
-        }
     }
 
     /**

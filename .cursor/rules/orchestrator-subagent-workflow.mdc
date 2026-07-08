@@ -177,13 +177,13 @@ Tester runs in parallel: (a) `gh run watch` on the four PHP Quality CI jobs, (b)
 
 Orchestrator (no subagent) executes the relevant items of **push.mdc**:
 
-1. **Branch documentation** — Create `migration-docs/branches/{task-name}.md` documenting:
+1. **Branch documentation** — Create `migration-docs/branches/phase-<N>/{task-name}.md` (where `<N>` is the major phase number of the Roadmap Step — e.g. Step 2.1.8 → `phase-2/`; create the `phase-<N>/` folder if it does not yet exist) documenting:
    - All changes made (files, what changed, why)
    - Breaking changes for extensions (if any)
    - Test results summary (CI run reference + local E2E results)
    - Referenced **Roadmap Step X.Y** and GitHub Issue
    - PR number (now known from Early Push)
-     Use existing files in `migration-docs/branches/` as reference for format/style.
+     Use existing files in the matching `migration-docs/branches/phase-<N>/` folder as reference for format/style.
 2. **Version bump** — `.cursor/skills/version-bump/SKILL.md`
 3. **CHANGELOG-NEW.md** — group all commits from this Roadmap Step
 4. **ROADMAP update** — `.cursor/ROADMAP.md` (Header pointer, this step's row Status `⏳` → `✅`, Audit `⏳` → `🛡️`, **PR `-` → `#YYY`**, plus Phase 1 audit closures per `push.mdc`)

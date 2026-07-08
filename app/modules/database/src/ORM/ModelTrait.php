@@ -68,6 +68,11 @@ trait ModelTrait
 
     /**
      * Creates a new QueryBuilder instance.
+     *
+     * The builder is shared across all mapped entities, so its element type
+     * resolves to the {@see \Pagekit\Database\ORM\QueryBuilder} `object` bound.
+     *
+     * @return QueryBuilder<object>
      */
     public static function query(): QueryBuilder
     {
@@ -78,6 +83,7 @@ trait ModelTrait
      * Creates a new QueryBuilder instance and set the WHERE condition.
      *
      * @param array<int|string, mixed> $params
+     * @return QueryBuilder<object>
      */
     public static function where(mixed $condition, array $params = []): QueryBuilder
     {
@@ -159,7 +165,7 @@ trait ModelTrait
             }
 
             switch ($metadata->getField($name, 'type')) {
-                case 'json_array':
+                case 'json':
                     $value = $value ?: new \stdClass();
 
                     break;

@@ -282,4 +282,4 @@ The user reviews any post-peek findings manually before merging.
 - Plan / TODO-Spec: `.cursor/tickets/PROMPT_2_1_3_Strict-Types-Migration_plan.md`
 - Task Prompt: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_3_Strict-Types-Migration.md`
 - Phase plan: `.cursor/ROADMAP.md` → Phase 2.1 → Step 2.1.3
-- Predecessor: `migration-docs/branches/step-2-1-2-cicd-quality-gates.md` (the CI gates that now enforce `declare_strict_types` on every PR)
+- Predecessor: `migration-docs/branches/phase-2/step-2-1-2-cicd-quality-gates.md` (the CI gates that now enforce `declare_strict_types` on every PR)
