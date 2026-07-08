@@ -656,10 +656,19 @@ class QueryBuilder
 
     /**
      * Execute the "update"/"delete" write statement and return the affected-row count.
+     *
+     * The write type must be selected up-front via {@see update()} or {@see delete()}.
+     * Calling this on a builder without a write type (e.g. one configured for SELECT)
+     * throws instead of silently falling back to DELETE, which could wipe the whole
+     * FROM table when no WHERE is set.
      */
     public function executeStatement(): int
     {
-        $sql = $this->type === 'update' ? $this->getSQLForUpdate() : $this->getSQLForDelete();
+        $sql = match ($this->type) {
+            'update' => $this->getSQLForUpdate(),
+            'delete' => $this->getSQLForDelete(),
+            default => throw new \LogicException('executeStatement() requires update() or delete() to be called first; it is not valid for SELECT queries.'),
+        };
 
         return $this->connection->executeStatement($sql, $this->params, $this->guessParamTypes($this->params));
     }
