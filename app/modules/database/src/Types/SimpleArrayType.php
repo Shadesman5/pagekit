@@ -7,6 +7,15 @@ namespace Pagekit\Database\Types;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\SimpleArrayType as BaseSimpleArrayType;
 
+/**
+ * SimpleArray type with a JSON-decode fallback when reading values.
+ *
+ * This is a genuine parser enhancement, not a backward-compatibility shim: the
+ * JSON-decode branch preserves the native scalar types (int/float/bool/null)
+ * stored in `simple_array` columns, which the base Doctrine SimpleArrayType would
+ * otherwise coerce to strings. See convertToPHPValue() for the type-preservation
+ * rationale.
+ */
 class SimpleArrayType extends BaseSimpleArrayType
 {
     /**

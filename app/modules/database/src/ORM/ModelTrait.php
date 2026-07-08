@@ -159,7 +159,7 @@ trait ModelTrait
             }
 
             switch ($metadata->getField($name, 'type')) {
-                case 'json_array':
+                case 'json':
                     $value = $value ?: new \stdClass();
 
                     break;

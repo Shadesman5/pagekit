@@ -9,7 +9,7 @@ use Pagekit\Util\Arr;
 
 trait DataModelTrait
 {
-    #[ORM\Column(type: 'json_array')]
+    #[ORM\Column(type: 'json')]
     public mixed $data = null;
 
     /**

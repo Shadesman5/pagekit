@@ -98,11 +98,6 @@ $config = [
         // Override existing types
         Type::overrideType(Types::SIMPLE_ARRAY, '\Pagekit\Database\Types\SimpleArrayType');
         Type::overrideType(Types::JSON, '\Pagekit\Database\Types\JsonArrayType');
-
-        // Register json_array as a custom type for backward compatibility
-        if (!Type::hasType('json_array')) {
-            Type::addType('json_array', '\Pagekit\Database\Types\JsonArrayType');
-        }
     },
 
     'autoload' => [

@@ -33,7 +33,7 @@
      L = large or loop-risk. A step orchestrator flips its box to [x] in the SAME commit as that
      step's code (after Tester PASS) — no self-referential SHA. -->
 - [x] Step 1 (L) — Standardize QueryBuilder execution API (executeQuery/executeStatement, delete execute, migrate call sites)
-- [ ] Step 2 (M) — Normalize JSON DBAL type json_array → json
+- [x] Step 2 (M) — Normalize JSON DBAL type json_array → json
 - [ ] Step 3 (M) — DBAL 3 audit-fix: Connection::exec + Utility + Installer
 - [ ] Step 4 (M) — DBAL 3 rewrite of DbUtil test-helper else branch
 - [ ] Step 5 (S) — Tests for executeQuery/executeStatement + JSON mapping
