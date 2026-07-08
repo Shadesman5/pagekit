@@ -3,221 +3,82 @@
 **Goal**: Build testing, CI/CD, and developer tools.
 **Important**: Can partially run in parallel with Phase 1!
 
-## Step 2.0: Foundation Consolidation
+## ✅ Step 2.0: Foundation Consolidation
 
 Apply the aggressive modernization rules (defined during Phase 1 execution) retroactively to Phase 1 deliverables. Remove compatibility layers, eliminate wrappers, and harden the architecture before building developer tools on top.
 
 - **Prerequisite**: Phase 1 completed
-- **Scope**: All sub-steps address technical debt from Phase 1 that was identified after the No-Mercy rules were established.
+- **Docs**: `migration-docs/branches/phase-2/step-2-0-foundation-closure.md`
 
-### Step 2.0.0: Controller Annotations to PHP 8 Attributes Migration
+### ✅ Step 2.0.0: Controller Annotations to PHP 8 Attributes Migration
 
 - **Goal**: Migrate Doctrine Annotations to PHP 8 Attributes for all controllers
 - **Prerequisite**: Step 1.14 (Doctrine Attributes) completed
+- **Docs**: `migration-docs/audits/2026/03/AUDIT_REPORT_STEP_2.0-2.0.2_2026-03-27.md` (2.0.0 was an audit with minimal fixes; controller attributes shipped in PR #111) + `CHANGELOG-NEW.md` § Pagekit 1.1.0
 
 ---
 
-### Step 2.0.1: Full PSR-11 Container Modernization
+### ✅ Step 2.0.1: Full PSR-11 Container Modernization
 
 - **Goal**: Fully modernize the container to a native PSR-11 container
 - **Prerequisite**: Step 1.14 (Doctrine Attributes) completed
-- **Closes Phase 1 audit:** Step 1.6 (PSR-11 Container Compatibility) ⚠️ → 🛡️ — `Psr11Adapter` wrapper deleted in sub-step 2.0.1e (StaticTrait Removal + DI Final); `Container` now natively implements `Psr\Container\ContainerInterface`. Confirmed in `migration-docs/audits/2026/03/AUDIT_REPORT_STEP_2.0-2.0.2_2026-03-27.md`.
+- **Docs**: `migration-docs/branches/phase-2/step-2-0-1-psr-11-container/` (9 docs; main: `step-2-0-1-full-modernization.md`)
 
 ---
 
-### Step 2.0.2: Validator-Translator Integration
+### ✅ Step 2.0.2: Validator-Translator Integration
 
 - **Goal**: Connect Symfony Validator to Pagekit Translator so that validation error messages are returned in the active locale (instead of raw keys like `validation.user.username_required`)
 - **Prerequisite**: Step 2.0.1 (PSR-11 Container) completed
-- **Closes Phase 1 audit:** Step 1.13 (Validation Update) ⚠️ → 🛡️ — translator gap closed (raw `validation.*` keys → translated strings via domain `validators`). Confirmed in `migration-docs/audits/2026/03/AUDIT_REPORT_STEP_2.0-2.0.2_2026-03-27.md`. The remaining `MenuApiController` manual-validation finding is tracked under **Step 2.1.9** (Test Coverage Expansion), not as a 1.13 audit finding.
-- **Tasks**:
-  - `ValidatorServiceProvider`: Wire `$builder->setTranslator()` + `setTranslationDomain('validators')`
-  - Rename `validation.php` → `validators.php` (system + blog, all locales)
-  - Verify: ValidatesRequestTrait returns translated strings in JSON responses
-  - (Optional) Extend `ExtensionTranslateCommand` for `#[Assert\...]` message keys
-  - Write tests for translated validation messages
-- **Result**: API responses contain human-readable, localized error messages
+- **Docs**: `migration-docs/branches/phase-1/step-1-13-validation-system.md` + `migration-docs/branches/phase-2/step-2-0-2-validation-phase2-discovery.md`
 
 ---
 
-### Step 2.0.3: Full Cache API Modernization
+### ✅ Step 2.0.3: Full Cache API Modernization
 
 - **Goal**: Completely replace Pagekit's own cache system (`CacheInterface`, `Psr6Adapter`, 5 adapter wrappers) with direct usage of Symfony Cache / PSR-6 `CacheItemPoolInterface`
 - **Prerequisite**: Step 2.0.2 (Validator-Translator Integration) completed
-- **Context**: Step 1.10 internally replaced `doctrine/cache` with `symfony/cache` but kept a compatibility layer (`CacheInterface` + `Psr6Adapter`). This violates Rule 1 (No Compatibility Layers) and Rule 4 (Delete over Wrap). These rules did not exist at the time of Step 1.10.
-- **Decision**: `Psr\Cache\CacheItemPoolInterface` (PSR-6) becomes the sole cache interface. No PSR-16, no Symfony Contracts, no custom Pagekit interface. `TagAwareCacheInterface` (Step 4.3) is based on PSR-6 — seamless upgrade path.
-- **Tasks**:
-  - **Delete (7 files):**
-    - `app/system/modules/cache/src/CacheInterface.php` (legacy interface)
-    - `app/system/modules/cache/src/Adapter/Psr6Adapter.php` (compatibility layer)
-    - `app/system/modules/cache/src/Adapter/ArrayAdapter.php` (thin wrapper)
-    - `app/system/modules/cache/src/Adapter/FilesystemAdapter.php` (thin wrapper)
-    - `app/system/modules/cache/src/Adapter/PhpFilesAdapter.php` (thin wrapper)
-    - `app/system/modules/cache/src/Adapter/ApcuAdapter.php` (thin wrapper)
-    - `app/system/modules/cache/src/Adapter/NullAdapter.php` (thin wrapper)
-  - **Cache Module:**
-    - `CacheModule::createPsr6Cache()`: Change return type to `CacheItemPoolInterface`, create Symfony adapters directly
-    - `CacheModule::doClearCache()`: `flushAll()` → `clear()`
-    - Namespace handling: Symfony adapters support namespaces natively via constructor parameter
-  - **ORM:**
-    - `MetadataManager`: Change property/getter/setter to `?CacheItemPoolInterface`, delete legacy else-branch
-    - `QueryBuilder`: Same cleanup (union type, legacy branch)
-    - `EntityManager`: Already cleaned up (previous review step)
-  - **Consumers (each ~3-5 lines of changes):**
-    - `LoginAttemptListener`: `mixed $cache` → `CacheItemPoolInterface`, `fetch/save/delete` → PSR-6 API
-    - `UrlResolver`: `mixed $cache` → `?CacheItemPoolInterface`, `fetch/save` → PSR-6 API
-    - `RouteListener`: `mixed $cache` → `CacheItemPoolInterface`, `delete` → `deleteItem()`
-    - `blog/scripts.php`: `clear()` stays (PSR-6 native)
-  - **Tests:** `Psr6AdapterTest` → `CachePoolTest`, adapt `QueryBuilderCacheTest`
-- **Result**: Container directly provides `CacheItemPoolInterface`, no custom Pagekit cache classes remain
-- **Risk**: Low-Medium — ~18 files (7 delete, ~11 modify)
-- **No new package needed**: `psr/cache` and `symfony/cache` already present
+- **Docs**: `migration-docs/branches/phase-2/step-2-0-3-full-cache-api-modernization.md`
 
 ---
 
-### Step 2.0.4: Package/Migration System Redesign
+### ✅ Step 2.0.4: Package/Migration System Redesign
 
 - **Goal**: Complete redesign of the update and extension lifecycle system. Unify Doctrine Migrations and scripts.php hooks into a single pipeline. Lay the foundation for a future marketplace (Step 5.6).
 - **Prerequisite**: Step 2.0.3 (Full Cache API Modernization) completed
-- **Context**: Step 1.12 (DB Migration System) was implemented without the aggressive rules. Analysis shows that the update path (login check, update wizard, CLI) does not automatically execute Doctrine Migrations. Version bumps can happen without schema checks. Extensions have no unified install/update pattern.
-- **Tasks**:
-  - **Unify update pipeline:**
-    - Login check (`app/system/index.php`): Check for pending Doctrine Migrations, not just `scripts.php`
-    - Update wizard (`MigrationController`): Execute `MigrationService::migrate()` BEFORE `scripts->update()`
-    - CLI `pagekit migrate`: Doctrine Migrations + scripts in correct order
-    - No silent version bumping without migration check
-  - **Clean up CLI:**
-    - Unify `pagekit migrate`: Doctrine Migrations + scripts in a single command
-    - `migration:*` sub-commands remain for developers (low-level)
-  - **Standardize extension lifecycle:**
-    - Unified pattern for all extensions (like Blog, but automatic)
-    - `PackageManager::enable()` automatically calls `migrateExtension()`
-    - `PackageManager::uninstall()` automatically triggers rollback
-    - Extensions only need `scripts.php` for non-SQL hooks (config, cache)
-    - Documentation/template for extension developers
-  - **Harden MigrationService:**
-    - Fix error handling in `migrate()` (properly check array return values)
-    - Ensure rollback isolation for extensions (only their own namespaces)
-    - Status API for pending migrations (for login check)
-  - **Marketplace foundation:**
-    - Clean `PackageManager` API: `install()`, `update()`, `uninstall()`, `enable()`, `disable()`
-    - Modernize ZIP upload (existing upload button in the backend)
-    - Per-package extension versioning in config
-    - Preparation for marketplace API integration (Step 5.6)
-  - **Audit findings (Phase 1 review) — additional tasks:**
-    - `DatabaseHandler::createTable()` in `app/modules/auth/src/Handler/DatabaseHandler.php`: deprecated runtime DDL (`@deprecated since Pagekit 1.0`); schema should come exclusively from migrations. Delete method and ensure auth migration covers the table.
-    - Blog migration naming inconsistency: `Version001_CreateBlogTables` vs. core `Version20251023061532` (timestamp). Standardize to timestamp format.
-    - `MigrationServiceTest` — all tests are **skipped**; no real regression coverage for migrate/rollback. Write actual tests.
-    - `MigrationService::getConfigPath()` — unused method (dead code). Delete.
-- **Result**: One update path for everything; extensions follow a unified lifecycle; marketplace-ready
-- **Risk**: Medium-High — affects Installer, PackageManager, MigrationService, CLI, login flow
-- **Affected Files**: `scripts.php`, `system/index.php`, `MigrationService.php`, `MigrationCommand.php`, `MigrationController.php`, `PackageManager.php`, `PackageScripts.php`, `Installer.php`, `blog/scripts.php`, `DatabaseHandler.php`
-- **Agent Prompt**: `migration-docs/TODO/agent_prompts/Step-2_0-Foundation-Consolidation/PROMPT_2_0_4_Package-Migration-System-Redesign.md`
+- **Docs**: `migration-docs/branches/phase-2/step-2-0-4-package-migration-system-redesign.md`
 
 ---
 
-### Step 2.0.5: Composer & Autoload Hygiene
+### ✅ Step 2.0.5: Composer & Autoload Hygiene
 
 - **Goal**: Clean up `composer.json` for reproducible builds, remove dead autoload mappings, resolve dependency anomalies, and prepare a healthy base for CI/CD (Step 2.2).
 - **Prerequisite**: Step 2.0.4 (Package/Migration System Redesign) completed
-- **Context**: Phase 1 Audit (Steps 1.3, 1.4) revealed several infrastructure issues that were not addressed during Phase 1 because they did not block functionality. With CI/CD coming in Step 2.2, these must be fixed first.
-- **Closes Phase 1 audit:** Step 1.4 (Safe Minor Updates) ⚠️ → 🛡️ — composer schema cleanup, dead PSR-4 mappings removed, unused dependencies dropped (`symfony/framework-bundle`, `symfony/twig-bridge`, `symfony/yaml`, `symfony/process`, `paragonie/sodium_compat`, `doctrine/data-fixtures`), `symfony/validator` aligned to `^6.4` LTS, `paragonie/random-lib` replaced with native `random_bytes()`. Step 1.3 (Security Patches) was already 🛡️.
-- **Tasks**:
-  - **~~Lockfile versioning:~~** (shipped early in Step 2.0.3, PR #187)
-    - ~~Remove `/composer.lock` and `/yarn.lock` from `.gitignore`~~
-    - ~~Commit `composer.lock` and `yarn.lock` for reproducible builds~~
-    - ~~Rewrite `.cursor/install.sh` to use `composer install` (not `update`)~~
-  - **Dead PSR-4 mappings:**
-    - Remove `Pagekit\Theme\` → `app/system/modules/theme/src` (directory does not exist)
-    - Remove `Pagekit\Package\` → `app/system/modules/package/src` (module does not exist)
-  - **Unused direct dependencies (verify with `composer why` before removing):**
-    - `symfony/framework-bundle` — no PHP imports found in `app/` or `packages/`
-    - `symfony/twig-bridge` — no PHP imports found
-    - `symfony/yaml` — no PHP imports found
-    - `symfony/process` — no PHP imports found
-    - `doctrine/data-fixtures` (require-dev) — no PHP imports found
-    - `paragonie/sodium_compat` — likely only needed transitively
-  - **Version alignment:**
-    - `symfony/validator: ^7.4` vs. rest at `^6.4` — decide: align to `^6.4` or document why 7.x is needed
-    - `paragonie/random-lib: ~2.0.1` — loosen to `^2.0` or evaluate replacing with native `random_bytes()`
-  - **Verify:** `composer validate`, `composer install --dry-run`, `./app/vendor/bin/phpunit`
-- **Result**: Clean, consistent `composer.json`; lockfile versioned; no dead autoload entries; CI-ready
-- **Risk**: Low — mostly deletions and constraint changes; `composer install` + full test suite validates
-- **Agent Prompt**: `migration-docs/TODO/agent_prompts/Step-2_0-Foundation-Consolidation/PROMPT_2_0_5_Composer-Autoload-Hygiene.md`
+- **Docs**: `migration-docs/branches/phase-2/step-2-0-5-composer-autoload-hygiene.md`
 
 ---
 
-### Step 2.0.6: Test Infrastructure Cleanup
+### ✅ Step 2.0.6: Test Infrastructure Cleanup
 
 - **Goal**: Consolidate PHPUnit configuration, migrate test annotations to PHP 8 attributes, remove legacy test imports, ensure all test files follow Phase 2 standards.
 - **Prerequisite**: Step 2.0.5 (Composer & Autoload Hygiene) completed
-- **Context**: Phase 1 Audit (Step 1.2) found 4 old module-level `phpunit.xml.dist` files with PHPUnit 9 schema, case-sensitivity issues in test paths, PHPDoc annotations instead of PHP 8 attributes, and a test still importing `Doctrine\Common\Cache\ArrayCache`.
-- **Closes Phase 1 audit:**
-  - **Step 1.2 (PHPUnit Update) ⚠️ → 🛡️** — module-level configs deleted, `@dataProvider` / `@group` PHPDoc migrated to PHP 8 attributes, `ConfigManagerTest` modernized (`ArrayCache` import + `getCache()` helper removed, modern `ConfigManager(Connection, array)` signature, `->willReturn()` mock pattern).
-  - **Step 1.8 (Routing System Compatibility) ⚠️ → 🛡️** — silent `InvalidArgumentException` catch in `RoutesLoader::addController()` replaced with a debug-aware handler (re-throw in debug, log via `$app->get('log')`, fallback to `error_log()`), covered by 4 new `RoutesLoaderTest` cases.
-- **Tasks**:
-  - **Remove/consolidate old PHPUnit configs:**
-    - Delete or migrate: `app/modules/filter/phpunit.xml.dist`, `app/modules/filesystem/phpunit.xml.dist`, `app/modules/cookie/phpunit.xml.dist`, `app/modules/auth/phpunit.xml.dist`
-    - All tests should run via the root `phpunit.xml.dist` (PHPUnit 11 schema)
-  - **Fix test path case-sensitivity:**
-    - Root `phpunit.xml.dist`: `tests/Unit` → match actual directory casing (`tests/unit`)
-  - **Migrate annotations → PHP 8 attributes:**
-    - `@dataProvider` → `#[DataProvider('methodName')]` (6 occurrences in 5 files)
-    - `@group` → `#[Group('name')]` (Mail test files)
-  - **Fix legacy test imports:**
-    - `ConfigManagerTest.php`: Remove `Doctrine\Common\Cache\ArrayCache` import; adapt test to current `ConfigManager` signature
-  - **Modernize mock patterns:**
-    - `ConfigManagerTest.php`: `$this->returnValue(...)` → `willReturn(...)`
-  - **Fix silent exception swallowing:**
-    - `RoutesLoader.php`: empty `catch (\InvalidArgumentException $e) {}` → log or re-throw in debug mode
-  - **Verify:** `./app/vendor/bin/phpunit` — all tests green
-- **Result**: Single PHPUnit config, modern test attributes, no legacy test imports
-- **Risk**: Low — test-only changes; PHPUnit suite validates immediately
-- **Agent Prompt**: `migration-docs/TODO/agent_prompts/Step-2_0-Foundation-Consolidation/PROMPT_2_0_6_Test-Infrastructure-Cleanup.md`
+- **Docs**: `migration-docs/branches/phase-2/step-2-0-6-test-infrastructure-cleanup.md`
 
 ---
 
-### Step 2.0.7: Event Dispatcher Bridge Removal
+### ✅ Step 2.0.7: Event Dispatcher Bridge Removal
 
 - **Goal**: Remove the unused `SymfonyEventDispatcherBridge` compatibility layer and its associated service registration and test. Pagekit's own Event Dispatcher (`on`/`trigger`/`subscribe`) remains the sole event system — it is deeply integrated, well-tested, and provides features Symfony's dispatcher does not (extra arguments, module manifest events, `PrefixEventDispatcher`).
 - **Prerequisite**: Step 2.0.6 (Test Infrastructure Cleanup) completed
-- **Context**: Step 1.7 + 1.9 introduced a `SymfonyEventDispatcherBridge` to provide Symfony `EventDispatcherInterface` compatibility. Audit shows **zero production consumers** of the `symfony.event_dispatcher` service — the bridge is dead code. Per Rule 1 (No Compatibility Layers) and Rule 4 (Delete over Wrap), it must be removed.
-- **Closes Phase 1 audit:** Step 1.7 (Event System Compatibility) ⚠️ → 🛡️ — `SymfonyEventDispatcherBridge`, its `EventDispatcherCompatibilityTest`, and the `symfony.event_dispatcher` service registration all deleted; PHPStan baseline cleaned (340 lines removed, 0 added; 0 ripgrep hits for `SymfonyEventDispatcherBridge` / `symfony.event_dispatcher` / `EventDispatcherCompatibilityTest` post-merge). Step 1.9 (Symfony 6.4 LTS components) was already 🛡️.
-- **Decision**: Pagekit keeps its own dispatcher. Rationale:
-  - ~147 call sites (`on`/`trigger`/`subscribe`/`off`) across Kernel, modules, ORM, extensions
-  - Unique features: string events with extra arguments, module manifest `events` array, `PrefixEventDispatcher`
-  - Replacing would require a Phase-level effort with no clear benefit for extension developers
-  - The bridge has zero consumers — removing it is a 3-file change
-- **Tasks**:
-  - **Delete:** `app/modules/application/src/Event/SymfonyEventDispatcherBridge.php`
-  - **Delete:** `app/modules/application/src/Tests/EventDispatcherCompatibilityTest.php`
-  - **Update:** `app/modules/application/index.php` — remove `symfony.event_dispatcher` service registration
-  - **Verify:** No code references `symfony.event_dispatcher` or `SymfonyEventDispatcherBridge`
-  - **Verify:** `./app/vendor/bin/phpunit` green, `php pagekit list` OK
-- **Result**: No compatibility bridges in the event system; Pagekit's dispatcher is the single, documented API
-- **Risk**: Very Low — 3 files, zero production consumers
-- **Agent Prompt**: `migration-docs/TODO/agent_prompts/Step-2_0-Foundation-Consolidation/PROMPT_2_0_7_Event-Bridge-Removal.md`
+- **Docs**: `migration-docs/branches/phase-2/step-2-0-7-event-bridge-removal.md`
 
 ---
 
-### Step 2.0.8: Critical Hotfix — `User::hasAccess()` `create_function()` Removal
+### ✅ Step 2.0.8: Critical Hotfix — `User::hasAccess()` `create_function()` Removal
 
 - **Goal**: Replace `create_function()` in `User::hasAccess()` with a PHP 8.2+-compatible implementation. `create_function()` was **removed in PHP 8.0** and causes a **Fatal Error** when boolean permission expressions (`and`/`or`) are evaluated.
 - **Prerequisite**: None — this is a **critical runtime fix** that can be executed at any point.
-- **Priority**: HIGHEST — the code path is reachable in production (any permission check with composite expressions).
-- **Context**: Phase 1 Audit (Step 1.11/1.13) discovered `create_function()` still in `User::hasAccess()`. This was not caught by prior audits because simple permission checks (`'user: manage users'`) don't trigger the `and`/`or` parser branch.
-- **Closes Phase 1 audit (partial):** Step 1.11 (ORM Modernization) — the `User::hasAccess()` `create_function()` removal closes one specific 1.11 finding (legacy code in the `User` model). The remaining 1.11 findings (`EntityManager` singleton, `ModelServiceLocator` / `IntlServiceLocator` static service locators, ORM `Metadata` / `Relation` / `PropertyTrait` typing gaps, `#[AllowDynamicProperties]` on `Node` / `Widget`) are tracked under **Step 2.1.6** (PHPStan Level 8) — except the `ModelServiceLocator` **architectural removal** (replacement by a DTO/presenter layer), which is split out to **Step 2.1.10** (Entity Presentation Layer, GitHub #204); in 2.1.6 the locator is only type-narrowed (`mixed` → concrete). **1.11 ⚠️ → 🛡️ requires 2.0.8, 2.1.6 and 2.1.10 to all land.**
-- **Tasks**:
-  - **File:** `app/system/modules/user/src/Model/User.php` (~line 221–227)
-  - Replace `create_function()` with a safe expression evaluator. Options (in order of preference):
-    1. **Simple recursive descent parser** (preferred — no new dependency, ~30 lines, handles `&&` / `||` / `!` and the single-character variants `&` / `|` plus parentheses over permission strings). Note: the existing sanitization regex preserves single `&` / `|` characters, so the evaluator MUST handle both forms or permissions written like `perm1 & perm2` will silently fail. See the canonical grammar in the agent prompt.
-    2. **Symfony ExpressionLanguage** (heavier dependency, more flexible — but overkill for `'perm1 && (perm2 || perm3)'`)
-    3. **`eval()`** — absolutely NOT acceptable (violates CSP and security goals)
-  - Write **unit tests** for composite permission expressions: `'a && b'`, `'a || b'`, `'!a'`, `'(a && b) || c'`, nested parentheses, plus single-operator variants `'a & b'` / `'a | b'` to prove the bitwise / logical equivalence on `0` / `1` values is preserved.
-  - Verify: `./app/vendor/bin/phpunit`, `php pagekit list`, admin panel permission checks
-- **Result**: `User::hasAccess()` works on PHP 8.2+ with composite permission expressions
-- **Risk**: Low-Medium — single method, but affects authorization logic; thorough test coverage required
-- **Agent Prompt**: `migration-docs/TODO/agent_prompts/Step-2_0-Foundation-Consolidation/PROMPT_2_0_8_User-hasAccess-Hotfix.md`
+- **Docs**: `migration-docs/branches/phase-2/step-2-0-8-user-hasaccess-hotfix.md`
 
 ---
 
@@ -263,193 +124,60 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 ---
 
-### Step 2.1.1: Tooling Setup & Baseline
+### ✅ Step 2.1.1: Tooling Setup & Baseline
 
 - **Goal**: Install quality tools, document baseline, PSR-12 formatting (without `strict_types`)
 - **Prerequisite**: Step 1.14 (Doctrine Attributes) completed
-- **Prompt**: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_1_Tooling-Setup-Baseline.md`
-- **Tasks**:
-  - Install PHPStan (`phpstan/phpstan`, `phpstan/phpstan-doctrine`, `phpstan/phpstan-symfony`)
-  - Configure `phpstan.neon` at Level 5
-  - Generate baseline (`phpstan analyse --generate-baseline`) — existing errors documented
-  - Install `roave/security-advisories:dev-latest`
-  - `.php-cs-fixer.php`: Upgrade `@PSR2` → `@PSR12` (**without** `declare_strict_types` rule!)
-  - Run PHP-CS-Fixer: `vendor/bin/php-cs-fixer fix` (formatting only)
-  - ESLint/Prettier already configured — no changes needed
-- **Result**: Tools running, code is PSR-12 formatted, baseline documented
-- **Risk**: Low — formatting only and tool installation
+- **Docs**: No dedicated branch doc (early Workflow V1, PR #178) — partial notes in `CHANGELOG-NEW.md` § Pagekit 1.2.6
 
 ---
 
-### Step 2.1.2: CI/CD Integration & Quality Gates
+### ✅ Step 2.1.2: CI/CD Integration & Quality Gates
 
 - **Goal**: Automatic quality checks for every PR
 - **Prerequisite**: Step 2.1.1 (Tooling Setup) completed
-- **Prompt**: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_2_CI-CD-Quality-Gates.md`
-- **Tasks**:
-  - GitHub Actions Workflow: PHPStan check (against baseline, new errors = fail)
-  - GitHub Actions Workflow: PHP-CS-Fixer dry-run (style violations = fail)
-  - GitHub Actions Workflow: Security audit (`composer audit`)
-  - GitHub Actions Workflow: PHPUnit tests
-  - Generate code coverage report (document current state)
-  - Activate quality gates as required checks for PRs
-- **Result**: Every PR is automatically checked, no regression possible
-- **Risk**: Low — CI configuration only
-- **Note**: Step 2.2 later extends this with E2E tests, matrix builds, and release automation
+- **Docs**: `migration-docs/branches/phase-2/step-2-1-2-cicd-quality-gates.md`
 
 ---
 
-### Step 2.1.3: `strict_types` Migration
+### ✅ Step 2.1.3: `strict_types` Migration
 
 - **Goal**: Add `declare(strict_types=1)` to all PHP files
 - **Prerequisite**: Step 2.1.2 (CI/CD) completed (so regressions are caught immediately)
-- **Prompt**: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_3_Strict-Types-Migration.md`
-- **Tasks**:
-  - Migrate **module by module** (not everything at once!)
-  - Order: Core modules → System modules → Packages
-  - Per module: Add `strict_types` → run tests → fix `TypeError`s
-  - Add type casts where needed (`(int)`, `(string)`, etc.)
-  - Update PHPStan baseline after each module migration
-  - **Audit finding:** ~28 test files currently lack `declare(strict_types=1)` — include these in the migration
-  - `.php-cs-fixer.php`: Only activate `declare_strict_types` rule AFTER complete migration
-- **Result**: All PHP files have `strict_types`, all tests green
-- **Risk**: Medium-High — runtime behavior changes, `TypeError` possible
-- **Orchestrator Note**: The Refactorer agent works per module group. After each group: tests → commit → next group. No big bang!
-- **Recommended Order**:
-  1. `app/modules/filter/` (small, well-tested)
-  2. `app/modules/filesystem/` (small, well-tested)
-  3. `app/modules/cookie/` (small, well-tested)
-  4. `app/modules/auth/` (critical, well-tested)
-  5. `app/modules/database/` (core, proceed carefully)
-  6. `app/modules/routing/`, `app/modules/view/`, etc.
-  7. `app/system/modules/*`
-  8. `app/installer/`
-  9. `packages/*` (last)
+- **Docs**: `migration-docs/branches/phase-2/step-2-1-3-strict-types-migration.md`
 
 ---
 
-### Step 2.1.4: PHPStan Level 5→6 (Return Types)
+### ✅ Step 2.1.4: PHPStan Level 5→6 (Return Types)
 
 - **Goal**: Raise PHPStan from Level 5 to Level 6
 - **Prerequisite**: Step 2.1.3 (`strict_types` Migration) completed
-- **Prompt**: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_4_PHPStan-Level-6.md`
-- **Closes Phase 1 audit:** **Step 1.1 (Mailer Migration) ⚠️ → 🛡️** — the documented 1.1 audit findings (`Mailer::send()` missing `: bool`, `Message::send(&$errors)` untyped out-parameter, `mixed` mailer type in `MailController` / `ResetPasswordController` / `RegistrationController`) are all addressed by the return-type sweep listed under "Audit findings (Phase 1 review)" below.
-- **Tasks**:
-  - Add missing return types to all methods
-  - Clean up union types (e.g., `string|int` → clear decision)
-  - Update baseline → fix errors → tests green
-- **Result**: PHPStan Level 6 without new baseline entries
-- **Risk**: Low — mechanical work, high volume, but logically simple
-- **Agent Note**: Refactorer can handle this well — high volume but repetitive patterns
-- **Identified from 2.1.1 review:**
-  - `AuthDataCollector`: `Auth::getUser()` returns `UserInterface`, but code calls `isAuthenticated()` and `User::findRoles()`, which only exist on the concrete `User` class. Either extend `UserInterface` or narrow the return type of `getUser()`.
-  - **Audit findings (Phase 1 review):**
-    - `mixed` mailer type in 3 controllers (`MailController`, `ResetPasswordController`, `RegistrationController`) — should be `Pagekit\Mail\Mailer`
-    - `Mailer::send()` missing `: bool` return type
-    - `Message::send(&$errors)` untyped out-parameter
-    - `Post` model: relations as `mixed` instead of `?User`, `?array`
-    - `Console execute()` methods: missing `: int` return types, `exit` instead of `return Command::SUCCESS`
-    - `Logger::__invoke()` without parameter/return types
-    - `TwigLoader::findTemplate()` / `TwigCache::__construct()` missing parent-compatible types
-    - `mail/index.php`: unused `auth_mode` config key — remove dead config
-  - **Bugbot findings (Step 2.0.1c review):**
-    - 40+ controllers/listeners/helpers across `app/system/`, `app/installer/`, `app/console/`, `packages/pagekit/blog/` use `private readonly mixed $foo` for constructor-injected services (~155 occurrences). The PSR-11 Stage 3 migration (PR #169) deferred proper typing to Step 2.1.4 once the final container service types stabilized after Steps 2.0.1d / 2.0.1e. Replace each `mixed` with the concrete container-resolved type (`ModuleManager`, `Request`, `Response`, `Session`, `Auth`, `string`, etc.). Top-hit files: `ResetPasswordController` (11), `RegistrationController` (10), `AuthController` (10), `PackageController` (7), `ProfileController` (6), `FinderController` (6). The test file `app/modules/kernel/src/Tests/ControllerResolverTest.php` (6 occurrences) deliberately uses `readonly mixed` to test the resolver's name-based resolution — Architect decides whether to leave as-is or annotate. Routed from comment on Issue #151 (2026-03-18).
+- **Docs**: `migration-docs/branches/phase-2/step-2-1-4-phpstan-level-6.md`
 
 ---
 
-### Step 2.1.5: PHPStan Level 6→7 (Null Safety)
+### ✅ Step 2.1.5: PHPStan Level 6→7 (Null Safety)
 
 - **Goal**: Raise PHPStan from Level 6 to Level 7
 - **Prerequisite**: Step 2.1.4 (PHPStan Level 6) completed
-- **Prompt**: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_5_PHPStan-Level-7.md`
-- **Tasks**:
-  - Enforce property types on all class properties
-  - Introduce strict null checks (`?string` instead of `string|null`, null guards)
-  - "Call to member function on null" — check whether `null` is actually possible or if the type was incorrectly declared
-  - Update baseline → fix errors → tests green
-- **Result**: PHPStan Level 7 without new baseline entries
-- **Risk**: Medium — requires logic understanding ("Can this actually be null here?")
-- **Agent Note**: For unclear null logic, involve the Verifier — Refactorer might prematurely add `!= null` guards where the actual problem is an incorrect type
+- **Docs**: `migration-docs/branches/phase-2/step-2-1-5-phpstan-level-7.md`
 
 ---
 
-### Step 2.1.6: PHPStan Level 7→8 (Strict Typing)
+### ✅ Step 2.1.6: PHPStan Level 7→8 (Strict Typing)
 
 - **Goal**: Raise PHPStan from Level 7 to Level 8 (full type safety)
 - **Prerequisite**: Step 2.1.5 (PHPStan Level 7) completed
-- **Prompt**: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_6_PHPStan-Level-8.md`
-- **Closes Phase 1 audit (partial):** **Step 1.11 (ORM Modernization)** — the remaining 1.11 audit findings (`EntityManager` singleton, `ModelServiceLocator` / `IntlServiceLocator` static service locators, ORM `Metadata` / `Relation` / `PropertyTrait` typing gaps, `#[AllowDynamicProperties]` on `Node` / `Widget`) are listed under "Audit findings (Phase 1 review)" below. Here the `ModelServiceLocator` is only **type-narrowed** (`mixed` → concrete) to satisfy PHPStan Level 8; its **architectural removal** (replacement by a DTO/presenter layer) is split out to **Step 2.1.10** (Entity Presentation Layer, GitHub #204). **1.11 ⚠️ → 🛡️ requires Step 2.0.8, this step (2.1.6) and Step 2.1.10 to all land** (the `User::hasAccess()` `create_function()` removal closes the User-model portion of 1.11).
-- **Tasks**:
-  - Eliminate all remaining `mixed` types where avoidable
-  - Template parameters for generic collections (where sensible)
-  - Documented exceptions for cases where `mixed` is unavoidable (e.g., plugin API)
-  - Update baseline → fix errors → tests green
-  - ❌ Do NOT use Level 9 (too strict for a CMS with dynamic extension APIs)
-  - **Interface design cleanups (identified from 2.1.1 review):**
-    - Split `MailerInterface` into `MailerInterface` (send/create) and `MailPluginInterface` (beforeSend/afterSend) — currently mixes mailer and plugin into the same interface
-    - `EntityManager` singleton (`static::$instance` set in `__construct`; eager-bootstrapped in `app/system/index.php` `$app->get('db.em')`; consumed via `ModelTrait::getManager()` → `getInstance()`): in **2.1.6 only harden the typing** (no wrap, keep one mechanism, strict-mode green). The **full removal** (Active-Record → Data-Mapper: inject `EntityManager` / use repositories instead of static `Model::find()` + `getInstance()`, then delete `static::$instance`, the `getInstance()` accessor, and the `db.em` boot line) is **Step 2.1.11 (#205)** — EntityManager DI / Data-Mapper, not 2.1.6 — it ripples into every static model call site (small-atomic-changes rule). NOTE: this re-scopes the Phase 1 audit 1.11 remainder — full 1.11 closure now also depends on Step 2.1.11 (#205), not on 2.1.6 alone.
-    - `FileLocatorAsset`: Replace static service locator (`setServices()` with `mixed` properties) with DI, type all properties
-    - `ResponseListener`: Narrow `mixed $url` property to the correct type (callable/interface)
-  - **Audit findings (Phase 1 review):**
-    - `IntlServiceLocator` — static service locator; replace with proper DI. `ModelServiceLocator` — **type-narrow only** here (`getUrl()` / `getUser()` / `getModule()`: `mixed` → concrete return types); the full locator removal + DTO/presenter refactor is **Step 2.1.10** (GitHub #204)
-    - `PackageController` — `ContainerInterface $app` as God-DI; inject specific services
-    - `#[AllowDynamicProperties]` on `Node`, `Widget` — remove and fix dynamic property usage
-    - ORM `Metadata`, `Relation`, `PropertyTrait` — incomplete typing throughout
-    - `NodeModelTrait` — static request-scoped cache array; replace with proper caching
-    - `UrlGeneratorInterface` (Routing) — naming collision with Symfony; rename to `LinkReferenceType` or similar, move `LINK_URL` constant
-    - `GetResponseEvent` (Auth) — confusing Symfony-5 naming; rename to `AuthResponseEvent` or similar
-  - **Audit findings (Step 2.0 closure review):**
-    - `app/modules/database/src/Logging/DebugStack.php` — 42-line dead `@deprecated since DBAL 3.x migration` shim (class + 2 methods) with **zero consumers** in `app/` / `packages/` source (workspace `Grep` for `DebugStack` finds only `migration-docs/` + `CHANGELOG-NEW.md` references). The replacement (`app/modules/debug/src/Middleware/DebugMiddleware.php`) is wired and used. Per Aggressive Rule 4 ("Delete Over Wrap"), this file must be `git rm`'d in 2.1.6 alongside the adjacent `EntityManager` / `ModelServiceLocator` / `IntlServiceLocator` strict-typing work. (Routed from §4.4 Gap List row 1 of `migration-docs/audits/2026/04/AUDIT_REPORT_STEP_2.0_FOUNDATION_CLOSURE_2026-04-28.md`.)
-  - **Audit findings (Step 2.1.3 review):**
-    - `app/modules/routing/src/Event/AliasListener.php` — dead inline-query-string parser in alias names. The `if (false !== ($queryPos = strpos($aliasName, '?')))` block (lines 50–57, tagged `// TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 / Strict Typing)` per the Rule 5 flagging format) plus the dependent `$name == strtok($alias->getName(), '?')` clause in the `array_filter` (line 39) parse `?param=value` suffixes from the alias `$name` argument of `Routes::alias($path, $name, $defaults)`. Workspace-wide search confirms **zero callers** use this format — `RouteListener` (blog) passes `'@blog/id'`, `NodesListener` passes `$node->link` (a route reference). The `$defaults` parameter has fully replaced this convenience API. **Not to be confused with `Router::generate('route?foo=bar', [...])`** — that is a separate, actively used mechanism in `Router::generate()` (covered by `RouterTest::testGenerateWithQuery()`) and must remain. Per Aggressive Rule 4 ("Delete Over Wrap"), strip the parser block, the `array_filter` `strtok` clause, and the TODO comment together. (Routed from Step 2.1.3 closure — surfaced via user-catch mini-loop iteration 4. The original predecessor comment `// TODO: is this still needed?` predated Rule 5 and was reformatted to the canonical Out-of-scope tag in the same iteration-4 commit.)
-  - **Audit findings (Step 2.1.5 review):**
-    - `app/installer/requirements.php` (`PagekitRequirements`) — Symfony RequirementChecker legacy from pre–PHP 8 era; Step 2.1.5 (PR #210) only added PHPStan null-safety fixes (`getPhpIniConfigPath()`, `phpversion('apcu'|'apc')`), not content modernization. **`REQUIRED_PHP_VERSION = '8.2.0'` is correct** (matches `composer.json` `"php": "^8.2"`). **Delete (dead on PHP 8.2+, never executes):** PHP 5.6/7.0 `display_startup_errors` / `always_populate_raw_post_data` block (~lines 456–462); entire APC (not APCu) requirement block (`apc_store` / `apc.enabled`, message references "PHP 5.4"). **Delete or replace (obsolete accelerator list):** `$accelerator` recommendation that names APC, eAccelerator, and XCache — only **OPcache** is relevant on PHP 8.2+; update help text accordingly. **Remove abandoned php.ini checks** (options removed in PHP 5.4+, only pass today via `approveCfgAbsence`): `detect_unicode`, `magic_quotes_gpc`, `register_globals`. **Update stale messaging:** APCu minimum "4.0.2" → reflect PHP 8.2 reality (APCu 5.1.x); PCRE "version 8.0+" help text; drop or replace `utf8_decode()` recommendation (deprecated PHP 8.2, removed PHP 9). Per Aggressive Rule 4 ("Delete Over Wrap"), physically remove dead branches — do not leave commented-out Symfony-era checks. (Routed from PR #210 pre-merge review — user catch during `requirements.php` inspection; out of scope for 2.1.5 null-safety work.)
-  - **Static service-locator / setter-DI cleanups (routed from codebase TODO inventory, §2 triage):**
-    - `app/modules/application/src/Application/Console/Application.php` (~line 51) — `add()` injects the container into commands via `Command::setContainer()` (setter DI). Convert console commands to constructor DI / a command factory. Stays in the static-analysis track (Console DI, not ICU). Stale-check 2026-05-05: `add()` still calls `setContainer()` — TODO relevant.
-    - `packages/pagekit/blog/src/UrlResolver.php` (~line 25) — `private static` cache/module references with setters; replace with proper DI. **Blocker:** the Router instantiates resolvers via `new $class` without DI, so the static locator cannot be removed in isolation — the routing factory (`ParamsResolver` bootstrap) must support DI first (align with Step 1.8 / routing architecture once a ticket exists). The `mixed $cache` typing portion was already completed in Step 2.0.3 (now `?CacheItemPoolInterface`); only the static-locator/DI part remains.
-    - `packages/pagekit/theme-one/functions.php` (~line 8) — `ThemeOneHelpers` static `UrlProvider` global state at the theme boundary; replace with proper DI once template helper functions support injection, and type all properties.
-- **Result**: PHPStan Level 8 without baseline entries (or with documented, justified exceptions)
-- **Risk**: Medium — may require architectural decisions (change interfaces, introduce generics)
-- **Agent Note**: Architect decisions may be needed here before the Refactorer starts — not all `mixed` can be replaced by simple type declarations
-- **Lessons learned (from Step 2.1.5):** View- and event-layer null narrowings are **regression-prone**. In 2.1.5 the `MetaHelper` `?Type` narrowing (Group C) passed per-step PHPStan + PHPUnit but caused an **E2E 500 on fresh installs** (null meta-config values from `site/index.php`), only caught by Playwright after the Early Push (fix commit `828609c9`). The same mini-loop also surfaced event-dispatcher correctness bugs (`TraceableEventDispatcher` listener identity, `EventDispatcher` re-subscribe guard). **Mitigation for 2.1.6:** before narrowing nullable types in `app/modules/view/`, `app/system/modules/site/` (meta/config consumers), or the event dispatchers, run the Playwright E2E suite locally — do **not** rely on PHPStan + PHPUnit alone, since neither exercises the fresh-install request path.
+- **Docs**: `migration-docs/branches/phase-2/step-2-1-6-phpstan-level-8.md`
 
 ---
 
-### Step 2.1.7: QueryBuilder API Standardization
+### ✅ Step 2.1.7: QueryBuilder API Standardization
 
 - **Goal**: Standardize the DB layer API to Doctrine standards
-- **Context**: Currently Pagekit uses a wrapper (execute) that mixes parameter binding and execution. DBAL 3 strictly separates these.
 - **Prerequisite**: Step 2.1.2 (CI/CD) completed
-- **Prompt**: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_7_QueryBuilder-API.md`
-- **Closes Phase 1 audit:** **Step 1.5 (Doctrine DBAL 3.x) ⚠️ → 🛡️** — the documented 1.5 audit findings (`Connection::exec()` compat alias, `Utility::getSchemaManager()` deprecated → `createSchemaManager()`, `Utility::migrate()` legacy `Comparator()` → `$schemaManager->createComparator()`, DDL via `executeQuery()` → `executeStatement()`, `DbUtil::$realConn->exec()` → `executeStatement()`) are all listed under "Audit findings (Phase 1 review) — additional DBAL cleanup" below.
-- **Tasks**:
-  - Make methods `executeQuery()` and `executeStatement()` in `Pagekit\Database\Query\QueryBuilder` public
-  - Migrate all core calls from `$qb->execute()` to `$qb->executeQuery()` / `$qb->executeStatement()` (Rector or search-replace)
-  - **Remove** the old `execute()` method (DELETE OVER WRAP — no `@deprecated` compat layer!)
-  - **DBAL Type Normalization:**
-    - `JsonArrayType`: Change `getName()` from `'json_array'` to `'json'`
-    - Change all `#[ORM\Column(type: 'json_array')]` in entity attributes to `type: 'json'` (`DataModelTrait`, `DatabaseHandler`)
-    - `ModelTrait::toArray()`: Change `case 'json_array'` to `case 'json'`
-    - `database/index.php`: Remove redundant `Type::addType('json_array', ...)` registration
-    - `Connection::registerCustomTypeMappings()`: Simplify/remove `json→json_array` mapping
-    - `SimpleArrayType`: Update comments (not a compat layer, but JSON fallback parsing)
-  - **Audit findings (Phase 1 review) — additional DBAL cleanup:**
-    - `Connection::exec()` — compat alias for `executeStatement()`; remove alias, update call sites
-    - `Utility::getSchemaManager()` — deprecated in DBAL 3; use `createSchemaManager()` (also in `Installer.php`, `DbUtil.php`)
-    - `Utility::migrate()` — uses `new Comparator()` without Platform (deprecated); use `$schemaManager->createComparator()`
-    - `Utility::migrate()` — executes DDL via `executeQuery()` instead of `executeStatement()`
-    - `DbUtil` (test helper, `app/modules/application/src/Tests/DbUtil.php`) — full DBAL 3 rewrite of the `else` branch in `getConnection()`: `$realConn->exec()` → `executeStatement()`, `getSchemaManager()` → `createSchemaManager()`, `createSchema()` → `introspectSchema()`, replace removed `Schema::toDropSql()`; **decide the teardown error strategy** for the empty `catch` (line 83, `// good idea?` — currently swallows every exception): FK-ordered drop / log-and-continue / or delete the branch (DbUtil + DbTestCase are dormant: no `extends DbTestCase` in the repo)
-  - All tests green after migration
-- **Result**: Standard Doctrine documentation usable, IDEs recognize correct return types (`Result`)
-- **Risk**: Low — purely internal API change, all call sites updated in the same step
-- **⚠️ Agent Note (DBAL 3 Return Types)**: `executeQuery()` returns a `Doctrine\DBAL\Result`, NOT a PDO Statement or Boolean like the old `execute()`. All call sites must be migrated to the DBAL 3 Result API:
-  - `->fetchAll(PDO::FETCH_ASSOC)` → `->fetchAllAssociative()`
-  - `->fetch(PDO::FETCH_ASSOC)` → `->fetchAssociative()`
-  - `->fetchColumn()` → `->fetchOne()`
-  - `->rowCount()` → stays `->rowCount()` (only for INSERT/UPDATE/DELETE via `executeStatement()`)
-  - The Refactorer agent MUST check each call site individually — no blind search-replace!
-- **Deferred from Step 2.1.6 (added 2026-06-30):**
-  - **Template parameters for generic collections** — Step 2.1.6's prompt (`PROMPT_2_1_6_PHPStan-Level-8.md` Goal + §2.3 + Validation Checklist) called for introducing `@template` PHPDoc generics for generic collections "where appropriate", but the Architect's 2.1.6 ticket (`migration-docs/tickets/PROMPT_2_1_6_PHPStan-Level-8_plan.md`) omitted it as a dedicated checklist item. Only the `@template T of object` annotations already present in `Connection::find()` and `ORM/Loader/AttributeLoader.php` were retained as a side effect of the L8 null-safety sweep — no systematic collection-generics pass happened. This belongs here: the QueryBuilder/`Result` return types and repository fetch methods (`fetchAllAssociative()` → typed entity arrays) are the natural place to add `@template` / `@return array<int, T>` annotations. Tracked as the open "template parameters" checkbox on Issue #153 and PR #212.
+- **Docs**: `migration-docs/branches/phase-2/step-2-1-7-querybuilder-api.md`
+
 ---
 
 ### Step 2.1.8: Infection Mutation Testing
@@ -491,7 +219,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
     - `AddRelNofollowFilter` XSS edge cases: Harden filter + activate 3 disabled tests (slash instead of space, null-byte obfuscation, `rel="follow"` replacement) — see `app/modules/filter/src/Tests/AddRelNofollowTest.php`
   - **Decouple core tests from extension config** — `RouterTest::testCacheKeyReflectsRouteAffectingOptions()` (`app/modules/routing/src/Tests/RouterTest.php:200-273`) uses `blog.permalink` as its example option. `permalink` is **not** core: it is defined by the blog package (`packages/pagekit/blog/index.php`), and core `Router` only references it in a comment. The behaviour under test (route-affecting options must participate in the router cache key) is generic core logic → use a **generic option name** (e.g. `test.route_option`). Principle: core tests must not depend on extension-specific config; extension-specific tests belong in the extension's own repo/test suite once third-party extensions ship their own coverage.
   - **`setAccessible()` PHP 8.5 forward-compat cleanup** — `ReflectionMethod/Property::setAccessible()` is a **no-op since PHP 8.1** and **`#[\Deprecated]` since PHP 8.5** (removal targeted for PHP 9); on 8.5 it emits deprecation notices while having no effect → delete all calls (safe on PHP 8.2+, no behaviour change). Test sites (this step): `app/modules/routing/src/Tests/RouterTest.php:213,252`, `app/modules/database/src/Tests/ORM/QueryBuilderCacheTest.php:76,91`, `app/system/modules/mail/src/Tests/MessageTest.php:207`. Two adjacent production sites belong in the same sweep: `app/system/modules/mail/src/Message.php:391,403,438`, `app/modules/kernel/src/Event/ExceptionListener.php:67`.
-  - **`StreamWrapper::$context` dynamic-property deprecation (audit 2026-07-07 — TD-16 / Proposal P3)** — PHP 8.2 emits `Creation of dynamic property Pagekit\Filesystem\StreamWrapper::$context is deprecated` because PHP assigns the stream context to `$context` while the class declares no such property. It fires **4× per test run** — it is the *single* real source behind the "4 PHP deprecations" in the current suite baseline (§2 of the audit). Fix: declare `public $context;` on `app/modules/filesystem/src/StreamWrapper.php` (**untyped** on purpose — PHP may assign `null` or a stream-context resource; this matches the stream-wrapper contract, same accept-by-design rationale as TD-10). One-line change; makes the suite deprecation-clean apart from 2 framework-internal PHPUnit metadata deprecations. Same "PHP 8.x deprecation hygiene" bucket as the `setAccessible()` cleanup above. Routed from AUDIT_REPORT_TECH_DEBT_INVENTORY_2026-07-07 §6 TD-16.
+  - **`StreamWrapper::$context` dynamic-property deprecation (audit 2026-07-07 — TD-16 / Proposal P3)** — PHP 8.2 emits `Creation of dynamic property Pagekit\Filesystem\StreamWrapper::$context is deprecated` because PHP assigns the stream context to `$context` while the class declares no such property. It fires **4× per test run** — it is the _single_ real source behind the "4 PHP deprecations" in the current suite baseline (§2 of the audit). Fix: declare `public $context;` on `app/modules/filesystem/src/StreamWrapper.php` (**untyped** on purpose — PHP may assign `null` or a stream-context resource; this matches the stream-wrapper contract, same accept-by-design rationale as TD-10). One-line change; makes the suite deprecation-clean apart from 2 framework-internal PHPUnit metadata deprecations. Same "PHP 8.x deprecation hygiene" bucket as the `setAccessible()` cleanup above. Routed from AUDIT_REPORT_TECH_DEBT_INVENTORY_2026-07-07 §6 TD-16.
   - **Audit findings (Phase 1 review):**
     - E2E tests (Step 1.10.5): Most were poorly created, not following best practices; only first 3 tests are reasonably functional. Full E2E rework needed.
     - ~~`MigrationServiceTest` — all tests skipped; write real migrate/rollback coverage~~ (RESOLVED in PR #189, Step 2.0.4 — 12 real tests with in-memory SQLite)
@@ -551,7 +279,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Result**: Zero static singletons in the model layer; the `EntityManager` is obtained via DI; no boot-time side-effect hack.
 - **Risk**: High — ripples into every static model call site; requires an Architect design pass (Active-Record → Data-Mapper migration strategy) before the Refactorer starts.
 - **In-code flag hygiene (audit 2026-07-07 — Proposal P5 / §9 RC-1, RC-2), do while touching these files:**
-  - **RC-1** — `app/system/index.php:96`: the TODO header points at the completed Step 2.1.6, but the comment body itself says the work (removing the `db.em` boot hack) is *this* step. Retag `2.1.6` → `Step 2.1.11 (#205)` — the boot line is deleted here anyway.
+  - **RC-1** — `app/system/index.php:96`: the TODO header points at the completed Step 2.1.6, but the comment body itself says the work (removing the `db.em` boot hack) is _this_ step. Retag `2.1.6` → `Step 2.1.11 (#205)` — the boot line is deleted here anyway.
   - **RC-2** — `app/system/modules/site/src/Model/NodeModelTrait.php:18`: the flag reads "Must be refactored later" with **no step ID**; add `Step 2.1.11` (this step replaces the static request-scoped `$nodes` cache with an injected `CacheItemPoolInterface`).
   - **RC-3** (docs-only, unrelated file — fix opportunistically when the blog migration is next touched): `packages/pagekit/blog/src/Migrations/2025/Version20251023070000_CreateBlogTables.php:20` carries a residual `AUDIT FIX Step 2.0.5` note; the timestamp-rename it referenced already shipped in 2.0.5 ✅, so the line now only documents a runtime data-migration note for pre-existing installs — convert it to a permanent upgrade note or remove.
 
@@ -559,7 +287,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 ### Step 2.1.12: Residual `mixed` narrowing (typed properties & signatures)
 
-- **Goal**: Narrow the last few *avoidable* `mixed` occurrences from the Step 2.1.6 `mixed` audit to honest, concrete types — no behaviour change, purely developer-facing type accuracy (lightweight, IDE/PHPStan-friendly).
+- **Goal**: Narrow the last few _avoidable_ `mixed` occurrences from the Step 2.1.6 `mixed` audit to honest, concrete types — no behaviour change, purely developer-facing type accuracy (lightweight, IDE/PHPStan-friendly).
 - **Prerequisite**: Step 2.1.6 (PHPStan Level 8) — these are the residual narrowable candidates left after the L8 sweep.
 - **Scope note**: This is **not** a blanket "remove all `mixed`" pass (there is no PHPStan-Level-9 step planned). The bulk of remaining `mixed` is legitimate and stays: docblock array shapes, magic-method proxies, filter/loader/PSR-11 contracts, polymorphic `preg_replace` returns, and `callable`-typed properties (PHP forbids `callable` as a native property type → `mixed` + `@var callable…` docblock is the idiomatic best practice). Only the genuinely narrowable cases below are in scope.
 - **Tasks**:
@@ -588,7 +316,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - Quality gates as required checks for PRs
   - Dependency caching for fast CI (target: all workflows < 10 minutes)
   - Release automation
-  - **Version Single Source of Truth guard** — `composer.json` `require.php` (`^8.2`) is the authoritative minimum-PHP constraint; the CI matrix (PHP versions in Workflow 1), `app/installer/requirements.php` (`REQUIRED_PHP_VERSION`), `.cursor/Dockerfile` (`php:8.3-cli`) and `README.md` (badge + "8.2–8.4") must **consume/track** it, not redefine it. Add a CI check that fails on drift (assert `REQUIRED_PHP_VERSION` and the matrix floor equal composer's `require.php`), so the minimum version lives in exactly one place. Docker/CI pin *test/runtime targets* — they are not the source (so "put the version in Docker" is the wrong direction). Also capture the extension floors currently inline in `requirements.php` (APCu `5.1.0`, PCRE `8.0`). (Discovered during PR #212 triage; the `requirements.php` content modernization itself was handled in Step 2.1.6.)
+  - **Version Single Source of Truth guard** — `composer.json` `require.php` (`^8.2`) is the authoritative minimum-PHP constraint; the CI matrix (PHP versions in Workflow 1), `app/installer/requirements.php` (`REQUIRED_PHP_VERSION`), `.cursor/Dockerfile` (`php:8.3-cli`) and `README.md` (badge + "8.2–8.4") must **consume/track** it, not redefine it. Add a CI check that fails on drift (assert `REQUIRED_PHP_VERSION` and the matrix floor equal composer's `require.php`), so the minimum version lives in exactly one place. Docker/CI pin _test/runtime targets_ — they are not the source (so "put the version in Docker" is the wrong direction). Also capture the extension floors currently inline in `requirements.php` (APCu `5.1.0`, PCRE `8.0`). (Discovered during PR #212 triage; the `requirements.php` content modernization itself was handled in Step 2.1.6.)
   - ~~Deploy previews~~ (optional, later)
 - **Design Decisions**:
   - E2E tests UI interaction, NOT backend variants — PHPUnit covers the PHP/DB matrix
@@ -648,13 +376,13 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - [ ] Integration with the new migrations system (Step 1.12): On Throwable during `onInstall` → automatic DB rollback.
   - [ ] Implementation of admin alert flash messages.
 - **Audit findings (Step 2.0.8 review):**
-  - `User::evaluateBooleanExpression()` (`app/system/modules/user/src/Model/User.php:251`) — extract into a standalone `PermissionExpressionEvaluator` service **only if and when a second caller emerges**. As of 2.0.8 closure there is exactly one caller (`User::hasAccess()`), so per Aggressive Rules 1 ("No Compatibility Layers") + 2 ("No Adapters") the helper stays inline as a `private static` method on `User`. No code change required in 2.5 unless extension code or a new permission system surfaces a second caller. Documentation-only route from `migration-docs/branches/step-2-0-8-user-hasaccess-hotfix.md:213-217`. (Routed from §4.4 Gap List row 2 of `migration-docs/audits/2026/04/AUDIT_REPORT_STEP_2.0_FOUNDATION_CLOSURE_2026-04-28.md`.)
+  - `User::evaluateBooleanExpression()` (`app/system/modules/user/src/Model/User.php:251`) — extract into a standalone `PermissionExpressionEvaluator` service **only if and when a second caller emerges**. As of 2.0.8 closure there is exactly one caller (`User::hasAccess()`), so per Aggressive Rules 1 ("No Compatibility Layers") + 2 ("No Adapters") the helper stays inline as a `private static` method on `User`. No code change required in 2.5 unless extension code or a new permission system surfaces a second caller. Documentation-only route from `migration-docs/branches/phase-2/step-2-0-8-user-hasaccess-hotfix.md:213-217`. (Routed from §4.4 Gap List row 2 of `migration-docs/audits/2026/04/AUDIT_REPORT_STEP_2.0_FOUNDATION_CLOSURE_2026-04-28.md`.)
 - **Routing dumper modernization (Symfony 4.3 deprecation) — added 2026-06-30:**
   - `app/modules/routing/src/Matcher/Dumper/PhpMatcherDumper.php` is a copied clone of Symfony's deprecated `PhpMatcherDumper` (carries `@deprecated since Symfony 4.3`). Replace it — and the paired `UrlGeneratorDumper` — with Symfony's native `CompiledUrlMatcherDumper` + `CompiledUrlMatcher` and `CompiledUrlGeneratorDumper` + `CompiledUrlGenerator`.
   - Rework `Router::getMatcher()`/`getGenerator()` to the compiled-route-data format (no more dumping a subclass via reflection; the `instantiateMatcher()`/`instantiateGenerator()` helpers go away).
   - Re-implement the custom `UrlGenerator::doGenerate()`/`getRouteProperties()` (`LinkReferenceType` + `_variables`) on top of `CompiledUrlGenerator` — this powers the blog permalink alias system, so guard it with the existing `RouterTest` + blog permalink coverage.
   - **Why Step 2.5:** pairs with the routing factory/DI rework here (the `UrlResolver` static bridge is already tagged for this step). No functional breakage on Symfony 6.4 (the deprecated classes still ship); clears the deprecation ahead of a future Symfony 7 jump.
-  - **Route-cache freshness axis (audit 2026-07-07 — TD-03), review while reworking `getCache()`:** `Router::getCache()` already invalidates correctly on **content/options** — the key is `sha1(serialize($this->resource).serialize($this->options))` (`app/modules/routing/src/Router.php:417`), so route-collection or option changes (e.g. `blog.permalink`) force a fresh dump (this is the 1.2.21 fix). What remains mtime-based is only the **freshness** guard: `filemtime($file) >= $this->resource->getModified()` (`:430`). `filemtime()` is an *implicit*, coarse (1-second granularity) and deploy-fragile signal — a backup restore / `rsync` / `touch` can reset mtimes so a stale dump reads as "fresh" (or a valid dump reads as stale). When moving `getMatcher()`/`getGenerator()` to `CompiledUrlMatcher/Generator` above, **prefer making the content hash the sole invalidation signal** (or an explicit `ConfigCache`/version marker) and drop the mtime heuristic at `:430`. **Low priority / already mitigated** (the key covers content + options) — this is a consolidation, not a bug; fold the review into this rework rather than opening a standalone step. Routed from AUDIT_REPORT_TECH_DEBT_INVENTORY_2026-07-07 §6 TD-03 / §7 D1.
+  - **Route-cache freshness axis (audit 2026-07-07 — TD-03), review while reworking `getCache()`:** `Router::getCache()` already invalidates correctly on **content/options** — the key is `sha1(serialize($this->resource).serialize($this->options))` (`app/modules/routing/src/Router.php:417`), so route-collection or option changes (e.g. `blog.permalink`) force a fresh dump (this is the 1.2.21 fix). What remains mtime-based is only the **freshness** guard: `filemtime($file) >= $this->resource->getModified()` (`:430`). `filemtime()` is an _implicit_, coarse (1-second granularity) and deploy-fragile signal — a backup restore / `rsync` / `touch` can reset mtimes so a stale dump reads as "fresh" (or a valid dump reads as stale). When moving `getMatcher()`/`getGenerator()` to `CompiledUrlMatcher/Generator` above, **prefer making the content hash the sole invalidation signal** (or an explicit `ConfigCache`/version marker) and drop the mtime heuristic at `:430`. **Low priority / already mitigated** (the key covers content + options) — this is a consolidation, not a bug; fold the review into this rework rather than opening a standalone step. Routed from AUDIT_REPORT_TECH_DEBT_INVENTORY_2026-07-07 §6 TD-03 / §7 D1.
 - **`blog/UrlResolver` static bridge DI (deferred from Step 2.1.6):**
   - `packages/pagekit/blog/src/UrlResolver.php:25,29,35` — `private static` cache/module references with setters (static service locator). The `mixed $cache` typing was already fixed in Step 2.0.3 (`?CacheItemPoolInterface`); only the static-locator/DI removal remains. **Blocker:** the Router instantiates resolvers via `new $class` without DI, so the static holder cannot be removed in isolation — the routing factory (`ParamsResolver` bootstrap) must support DI first. Same blocker class as `theme-one/functions.php` below; both are unblocked by the routing factory/DI rework scheduled in this step.
 - **`theme-one` static `UrlProvider` DI (deferred from Step 2.1.6) — added 2026-06-30:**
@@ -664,7 +392,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - **Resolution:** register a **container-aware `ConstraintValidatorFactory`** so `UniqueValidator` receives `db` via constructor DI; then delete `setDb()` + `static mixed $db` **and** the `UniqueValidator::setDb($app->get('db'))` boot wiring at `app/system/index.php:90` (Aggressive Rule 4: Delete over Wrap). Consistent with SL-2 (same "framework `new $class()`" theme).
   - **Rationale (DI chosen over the DNA "accept" fallback):** best practice + future-proofing — a container-aware factory establishes a **reusable DI seam** for any future validator that needs services, instead of accreting more static `setX()` bridges. The DNA-simple "accept + document like `IntlServiceLocator` / `StreamWrapper` (TD-09/TD-10)" option was considered and **explicitly rejected**.
   - The legacy `->execute()` at `:69` and the `mixed` typing are **already covered by Step 2.1.7** — only the static-locator/DI removal belongs here. Routed from AUDIT_REPORT_TECH_DEBT_INVENTORY_2026-07-07 §5 SL-2 / §6 TD-05.
-- **Sequencing guardrail (audit 2026-07-07 — Proposal P6):** Step 2.5 (extension fault isolation) **must precede Step 5.6** (Marketplace & Extensions). The "faulty extension crashes the kernel" risk (audit TD-15 / D4) is bounded *today* only because sole first-party extensions ship; a third-party marketplace makes it live.
+- **Sequencing guardrail (audit 2026-07-07 — Proposal P6):** Step 2.5 (extension fault isolation) **must precede Step 5.6** (Marketplace & Extensions). The "faulty extension crashes the kernel" risk (audit TD-15 / D4) is bounded _today_ only because sole first-party extensions ship; a third-party marketplace makes it live.
 
 ---
 
@@ -681,7 +409,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Goal**: Generalize the routing-cache resilience fix (atomic temp file + `rename()`) into a single shared filesystem primitive and route all **boot-critical** file writes (`config.php`, package registry) through it — so a crash or a concurrent read mid-write can no longer corrupt a file that is `include`d on every request. Bundle two adjacent error-handling micro-cleanups found in the same audit (dead code / silent catch).
 - **Prerequisite**: None — self-contained hardening, can run at any point. **Recommended before Step 2.6** (Automated Update System) and **reusable by Step 2.5** (the `storage/disabled-extensions.json` fallback write) — both add further write sites that should use the same helper rather than re-implementing it.
 - **Source**: `migration-docs/audits/2026/07/AUDIT_REPORT_TECH_DEBT_INVENTORY_2026-07-07.md` — Decision-Critical Shortlist **SL-3** + Master Inventory rows **TD-19** (primary), **TD-20**, **TD-18**. This is the audit's own §8 **Proposal P2** (atomic-write utility) + **P4** (opportunistic cleanups).
-- **Context**: The 1.2.21 routing hotfix proved the failure class — a **non-atomic write + narrow catch** caused an HTTP 500 on concurrent route-cache regeneration. `Router::writeCache()` (`app/modules/routing/src/Router.php:442-468`) already implements the **correct** pattern: unique temp file → `chmod` → atomic `rename()`, with a documented direct-write fallback (and `getMatcher()/getGenerator()` degrade safely to the non-cached path on a partial read). The identical non-atomic `file_put_contents()` pattern still writes higher-value files — above all `config.php`, which is `include`d on **every** boot. This step extracts the proven pattern **once** and reuses it (Pagekit DNA: no over-engineering, no new dependency — it is *extraction*, not new design).
+- **Context**: The 1.2.21 routing hotfix proved the failure class — a **non-atomic write + narrow catch** caused an HTTP 500 on concurrent route-cache regeneration. `Router::writeCache()` (`app/modules/routing/src/Router.php:442-468`) already implements the **correct** pattern: unique temp file → `chmod` → atomic `rename()`, with a documented direct-write fallback (and `getMatcher()/getGenerator()` degrade safely to the non-cached path on a partial read). The identical non-atomic `file_put_contents()` pattern still writes higher-value files — above all `config.php`, which is `include`d on **every** boot. This step extracts the proven pattern **once** and reuses it (Pagekit DNA: no over-engineering, no new dependency — it is _extraction_, not new design).
 - **Tasks**:
   - **Extract the shared helper** — add `Pagekit\Filesystem\Filesystem::dumpAtomic(string $file, string $content): void` (or an equivalent single method), implementing the temp + `chmod` + atomic `rename()` logic with the existing Windows / locked-destination direct-write fallback. Cover it with a unit test (`app/modules/filesystem/src/Tests/`).
   - **Route `config.php` writes through it** (currently non-atomic `file_put_contents`):
@@ -692,9 +420,9 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
     - `app/installer/src/Controller/PackageController.php:207` (a `{}` bootstrap write to a temp `composer.json` — lower priority than the config/registry writes; verify scope during ticket planning)
   - **Refactor `Router::writeCache()`** to delegate to the shared helper (single source of the pattern — Rules 1/2: no duplicated implementation), keeping the existing safe-fallback behaviour of `getMatcher()/getGenerator()`.
   - **Opportunistic — bundled (same audit, same D6 domain, no extra dependency):**
-    - **TD-18** — delete the commented-out `catch` block in `app/console/src/Commands/SelfupdateCommand.php:70-85` (dead code; Aggressive Rule 4 "Delete over Wrap"). The *live* self-update flow itself is Step 5.6 territory — only the dead comment block is removed here.
+    - **TD-18** — delete the commented-out `catch` block in `app/console/src/Commands/SelfupdateCommand.php:70-85` (dead code; Aggressive Rule 4 "Delete over Wrap"). The _live_ self-update flow itself is Step 5.6 territory — only the dead comment block is removed here.
     - **TD-20** — the empty `catch (\UnexpectedValueException $e) {}` in `app/installer/src/Helper/Composer.php:63-64` silently swallows an invalid version constraint during package refresh. Log it (or narrow / handle) instead of swallowing.
   - All tests green (PHPUnit + Playwright E2E).
 - **Result**: One shared atomic-write primitive; `config.php` and the package registry can no longer be corrupted by a crash / concurrent read mid-write; no duplicated temp+rename logic anywhere; two silent / dead error-handling sites cleaned.
 - **Risk**: Low-Medium — small, localized changes plus one extracted helper. The routing path already relies on the same logic and is covered by `RouterTest::testCorruptCacheFileFallsBackInsteadOfFatal`.
-- **Not in scope (tracked elsewhere):** the hardcoded OpenWeatherMap **API key** (`app/system/modules/dashboard/index.php:48-49`, audit **TD-22**, Critical) is the second half of SL-3 but is already tagged **Step 4.2** (env / secrets migration). The audit recommends *accelerating* + rotating it — decision left to the user; not folded here to keep this step a pure filesystem-resilience unit.
+- **Not in scope (tracked elsewhere):** the hardcoded OpenWeatherMap **API key** (`app/system/modules/dashboard/index.php:48-49`, audit **TD-22**, Critical) is the second half of SL-3 but is already tagged **Step 4.2** (env / secrets migration). The audit recommends _accelerating_ + rotating it — decision left to the user; not folded here to keep this step a pure filesystem-resilience unit.

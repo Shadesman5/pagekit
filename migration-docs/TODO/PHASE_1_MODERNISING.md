@@ -484,7 +484,7 @@ SUCCESS CRITERIA:
   - ✅ Route caching still functional
   - ✅ Module metadata caching active
   - ✅ Performance maintained
-  - ✅ Complete documentation in PSR6_CACHE_MIGRATION.md
+  - ✅ Complete documentation in step-1-10-psr6-cache-migration.md
 
 **Detailed Agent Prompt**:
 
@@ -502,7 +502,7 @@ TASK: Migrate Cache System from doctrine/cache to PSR-6
 1. PREPARATION: (already done)
    - Pull latest from develop: git pull origin develop
    - Create new branch: `feature/psr6-cache-migration` from `develop`
-   - Create PSR6_CACHE_MIGRATION.md to document changes
+   - Create step-1-10-psr6-cache-migration.md to document changes
    - Verify Symfony 6.4 cache component is available
    - Create backup of current cache implementation
 
@@ -648,7 +648,7 @@ TASK: Migrate Cache System from doctrine/cache to PSR-6
    [ ] No performance regression
 
 10. DOCUMENTATION:
-    10.1 In PSR6_CACHE_MIGRATION.md:
+    10.1 In step-1-10-psr6-cache-migration.md:
         - Complete API changes
         - Migration guide for extensions
         - Performance comparison
@@ -681,7 +681,7 @@ TASK: Migrate Cache System from doctrine/cache to PSR-6
         - ✅ All tests passing
         - 📊 Performance metrics included
         - 📝 Migration guide for extensions
-        - 🔗 Link to PSR6_CACHE_MIGRATION.md
+        - 🔗 Link to step-1-10-psr6-cache-migration.md
 
 SUCCESS CRITERIA:
 ✅ PSR-6 cache fully implemented
@@ -1501,7 +1501,7 @@ PHASE 4: Testing & Documentation
    - [ ] CSP violations only for expected/external sources
 
 4.3. Create branch documentation:
-   File: migration-docs/branches/feature-template-security-hardening.md
+   File: migration-docs/branches/phase-1/step-1-13-5-template-security-hardening.md
 
    Document:
    - All changes made
