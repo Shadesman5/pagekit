@@ -1,5 +1,5 @@
 ---
-description: "Orchestrator V2 — Finalize phase. A cloud agent that runs the end-of-ticket sequence (PR -> PR-Bugbot -> Final Test -> version/CHANGELOG/ROADMAP -> archive ticket), then reports one line. Launched by the automated driver; do not merge."
+description: "Orchestrator V2 — Finalize phase. A cloud agent that runs the end-of-ticket sequence (PR -> CI gate -> PR-Bugbot -> E2E -> version/CHANGELOG/ROADMAP -> archive ticket), then reports one line. Launched by the automated driver; do not merge."
 alwaysApply: false
 ---
 
@@ -22,38 +22,40 @@ differs, `git fetch origin` and `git checkout <branch>`. Then proceed.
 
 ## Sequence
 
-> **Bugbot in the cloud (why this differs from the local V1 workflow):** the local `/review-bugbot`
-> subagent is a Cursor *client* capability (Cursor 3.7+ / cursor.com/agents; CLI/headless support is
-> "coming soon" per https://cursor.com/docs/bugbot.md) and is **not** available to API-launched cloud
-> agents — the `subagent_type: "bugbot"` launch fails there. So this phase pushes + opens the PR
-> **first** and relies on the GitHub-App **PR Bugbot**, which reviews every PR update automatically.
-> Prerequisite: Bugbot enabled for the repo in the Cursor dashboard; `.cursor/BUGBOT.md` supplies the
-> review rules (same rules the local review would use).
+> **Bugbot in the cloud:** the local `/review-bugbot` subagent is not available to API-launched cloud
+> agents (`subagent_type: "bugbot"` fails there), so this phase uses the GitHub-App **PR Bugbot**,
+> triggered explicitly with a `bugbot run` comment on the PR (step 3). Review rules: `.cursor/BUGBOT.md`.
 
 1. **Push + PR** — `git push -u origin HEAD`; `gh pr create --base <base branch from your launch prompt>`
-   with the `<!-- metadata -->` block (labels, milestone, `Closes #XXX`). Opens the PR and triggers CI +
-   the automatic PR Bugbot review once.
-2. **PR-Bugbot review** — trigger explicitly with `gh pr comment <pr> --body "bugbot run"`, then wait for
-   the `Cursor Bugbot` status check to finish (e.g. `gh pr checks <pr> --watch`). Read findings via
+   with the `<!-- metadata -->` block (labels, milestone, `Closes #XXX`). This triggers the PHP Quality CI.
+2. **CI quality gate** — wait on the PHP Quality CI run for this branch yourself (a watch, not a test —
+   no tester needed):
+   ```bash
+   RUN_ID=$(gh run list --branch "$(git branch --show-current)" \
+     --workflow "PHP Quality" --limit 1 --json databaseId --jq '.[0].databaseId')
+   gh run watch "$RUN_ID" --exit-status
+   ```
+   FAIL → fix via refactorer → verifier → tester (PHPUnit + PHPStan), commit, push, re-watch until green.
+3. **PR-Bugbot review** — CI is green, so trigger the review: `gh pr comment <pr> --body "bugbot run"`,
+   then wait for the `Cursor Bugbot` status check (e.g. `gh pr checks <pr> --watch`). Read findings via
    `gh api repos/{owner}/{repo}/pulls/<pr>/comments` (or `gh pr view <pr> --comments`). Findings → fix via
-   refactorer → verifier → tester → commit → push, then re-comment `bugbot run` and re-check until clean.
-3. **Final test** — delegate to **tester** ("final test run"): wait on the PHP Quality CI jobs and run
-   the Playwright E2E specs in parallel. FAIL → fix via refactorer → verifier → tester, commit, push,
-   re-run. (Intermediate fix commits on the open PR may use `[skip ci]`; the last one must not.)
-4. **Finalize** (follow `push.mdc`) — branch doc + version bump (once per PR) + `CHANGELOG-NEW.md` +
+   refactorer → verifier → tester → commit → push; a fix re-runs CI, so re-watch it to green, then
+   re-comment `bugbot run` — repeat until Bugbot is clean **and** CI is green.
+4. **E2E test** — delegate to **tester** ("final E2E run"): run the Playwright E2E specs locally (you
+   already own the CI wait, so the tester runs E2E only). FAIL → fix via refactorer → verifier → tester,
+   commit, push, re-watch CI to green, re-run E2E until green.
+5. **Finalize** (follow `push.mdc`) — branch doc + version bump (once per PR) + `CHANGELOG-NEW.md` +
    ROADMAP closure (incl. PR#), then archive the ticket:
    `git mv migration-docs/tickets/active/{task-slug}_plan.md migration-docs/tickets/done/`. Commit and
-   push (second push).
-5. **Do not merge** — the user reviews and merges.
+   push (second push). Do not merge.
 
 <!-- FUTURE — reactivate once Cursor ships CLI/headless support for `/review-bugbot`
-     (https://cursor.com/docs/bugbot.md — "CLI support is coming soon"). Then a pre-push local review is
-     preferable: it reviews BEFORE the push (faster feedback) and its patch-id sync makes the remote PR
-     Bugbot skip the duplicate run. Restore by replacing steps 1–2 above with:
-
-       1. Bugbot review — run `/review-bugbot` on the branch diff (once). Findings → fix via
-          refactorer → verifier → tester → commit, then re-run until clean.
-       2. Push + PR — `git push -u origin HEAD`; `gh pr create --base <base> …` with the metadata block.
+     (https://cursor.com/docs/bugbot.md — "CLI support is coming soon"). A pre-push local review is then
+     preferable: it reviews BEFORE the push (faster feedback) and its patch-id sync makes any remote PR
+     Bugbot skip the duplicate run. To restore it, drop the on-demand PR-Bugbot step (3) and run the
+     review locally *before* step 1 — giving: local review → push + PR → CI gate → E2E → finalize.
+     Local review = run `/review-bugbot` on the branch diff once; findings → refactorer → verifier →
+     tester → commit; re-run until clean.
 -->
 
 ## Resume safety (a re-dispatch may re-enter Finalize)

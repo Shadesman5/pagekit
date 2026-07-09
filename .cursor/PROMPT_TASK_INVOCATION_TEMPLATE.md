@@ -34,7 +34,7 @@ Rules:
 - After last checklist step:
   1. Local Bugbot Review (Orchestrator, /review-bugbot): once per PR on the branch diff; mini-loop on findings, otherwise proceed
   2. Early Push + PR creation (Orchestrator) → triggers CI (remote Bugbot skips via patch-ID sync)
-  3. Final Test (Tester): `gh run watch` on CI in parallel with local Playwright E2E
+  3. Final Test: Orchestrator waits on CI (`gh run watch`); once green, delegates local Playwright E2E to the Tester
   4. Finalize (Orchestrator, push.mdc): branch documentation + version bump → CHANGELOG → ROADMAP closure incl. PR# + Phase 1 audit closures → second push
   5. Do NOT merge.
 - PR must include "Closes #XXX" and the issue number in the metadata block.

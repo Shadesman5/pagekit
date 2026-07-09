@@ -46,7 +46,7 @@ Write the plan to a **ticket file** so the Orchestrator and other subagents use 
 
 ## TESTING STRATEGY
 - **Per step (Tester subagent):** PHPUnit + PHPStan (mandatory after every checklist step)
-- **Final run (after Early Push, Tester subagent):** wait on the four PHP Quality CI jobs (`phpunit (8.2)`, `phpunit (8.3)`, `phpstan`, `cs-fixer`, `security-audit`) via `gh run watch` and run the 3 Playwright E2E specs locally **in parallel**; both must pass. See `.cursor/agents/tester.md` § End-of-ticket tests for the exact commands and `.cursor/rules/orchestrator-subagent-workflow.mdc` § Final Test for the workflow position.
+- **Final run (after Early Push):** two **sequential** stages — (1) the **Orchestrator** waits on the PHP Quality CI jobs (`phpunit (8.2)`, `phpunit (8.3)`, `phpstan`, `cs-fixer`, `security-audit`) via `gh run watch` (a watch, not a test) until green; (2) **then** it delegates the 3 Playwright E2E specs to the **Tester subagent** (E2E only runs once CI is green). Both must pass. See `.cursor/agents/tester.md` § End-of-ticket tests for the E2E commands and `.cursor/rules/orchestrator-subagent-workflow.mdc` § Final Test for the workflow position.
 ```
 
 - **Chat output:** One line only, e.g. `Plan written to migration-docs/tickets/active/PSR-11-Container-DI-Infrastructure_plan.md`.

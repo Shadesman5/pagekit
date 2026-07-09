@@ -52,19 +52,11 @@ PHPStan runs **against the committed baseline** (`phpstan-baseline.neon`). It ca
 2. **Execute PHPStan** – `./app/vendor/bin/phpstan analyse --no-progress --memory-limit=512M` — mandatory for every step (installed since Step 2.1.1).
 3. **RCA on failure** – Root-Cause Analysis. Use `git diff` to identify what changed in this step. Pinpoint the failing test/analysis error and the likely cause (one line).
 
-### End-of-ticket tests (run ONCE after the Orchestrator's Early Push)
+### End-of-ticket tests (run ONCE, after the Orchestrator's push + PR)
 
-The Orchestrator delegates with "final test run" **after** it has pushed the feature branch and created the PR. The Final Test runs the CI wait and the local Playwright E2E **in parallel** so the wall-clock time is `max(CI, E2E)`, not `CI + E2E`.
+The Orchestrator delegates with "final E2E run" **after** it has pushed the branch and opened the PR. You run the **local Playwright E2E suite only** — the Orchestrator owns the CI wait (`gh run watch` on the PHP Quality jobs) and does not delegate it, so do **not** wait on CI yourself.
 
-4. **Wait on CI** – the four PHP Quality jobs (`phpunit (8.2)`, `phpunit (8.3)`, `phpstan`, `cs-fixer`, `security-audit`) run remotely on every push. Pick the right run:
-   ```bash
-   RUN_ID=$(gh run list --branch "$(git branch --show-current)" \
-     --workflow "PHP Quality" --limit 1 --json databaseId --jq '.[0].databaseId')
-   gh run watch "$RUN_ID" --exit-status
-   ```
-   Non-zero exit = at least one CI job failed. Report which job(s) and quote the relevant error from `gh run view --log-failed "$RUN_ID"`.
-
-5. **Run Playwright E2E in parallel (locally)** – until E2E migrates to CI as a separate roadmap step:
+4. **Run Playwright E2E (locally)** – until E2E migrates to CI as a separate roadmap step:
    - Clean state: `rm -f pagekit.db config.php`
    - Smoke tests: `php pagekit setup` (installation smoke) and `php pagekit list` (console smoke).
    - Clean state again: `rm -f pagekit.db config.php` — required because `php pagekit setup` creates a minimal instance that conflicts with Playwright's full installation test.
@@ -76,9 +68,9 @@ The Orchestrator delegates with "final test run" **after** it has pushed the fea
      ```
      If one fails, report which one and continue with the next for maximum diagnostic value.
 
-6. **PASS gate** – both step 4 (CI) and step 5 (E2E) must succeed. Either failure → FAIL.
+5. **PASS gate** – all 3 E2E specs pass. Any failure → FAIL.
 
-7. **RCA on failure** – Same as per-step. For E2E failures, include the Playwright error message and the last screenshot path if available. For CI failures, link the failed run/job and quote the error from `gh run view --log-failed`.
+6. **RCA on failure** – Same as per-step. For E2E failures, include the Playwright error message and the last screenshot path if available.
 
 ## Output
 
