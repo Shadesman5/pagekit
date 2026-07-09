@@ -256,6 +256,22 @@ class AccessListenerTest extends TestCase
         $listener->onAuthorize(new AuthorizeEvent('auth.authorize', $this->createMock(User::class)));
     }
 
+    public function testOnAuthorizeDoesNotThrowWhenThereIsNoCurrentRequest(): void
+    {
+        [$listener, , $url, , $requestStack] = $this->make();
+
+        // No current request -> the null-safe operator yields a null redirect and
+        // the admin-area guard is skipped. Dropping `?->` would fatal on
+        // `null->get('redirect')`, so this pins the NullSafeMethodCall mutant.
+        $requestStack->method('getCurrentRequest')->willReturn(null);
+        $url->expects($this->never())->method('__invoke');
+
+        $user = $this->createMock(User::class);
+        $user->expects($this->never())->method('hasAccess');
+
+        $listener->onAuthorize(new AuthorizeEvent('auth.authorize', $user));
+    }
+
     public function testOnAuthorizeDoesNotThrowWhenRedirectIsNotWithinAdminArea(): void
     {
         [$listener, , $url, , $requestStack] = $this->make();
@@ -344,6 +360,19 @@ class AccessListenerTest extends TestCase
         $listener->onConfigureRoute(new Event('route.configure'), $route);
 
         $this->assertSame(['fixture.class', 'system: access admin area'], $route->getDefault('_access'));
+        $this->assertSame('/admin/dashboard', $route->getPath());
+    }
+
+    public function testOnConfigureRouteAdminAttributeStripsTrailingSlashWhenRewritingPath(): void
+    {
+        [$listener] = $this->make();
+
+        // Symfony's Route::setPath() preserves trailing slashes, so the rtrim() must
+        // drop the source path's trailing "/" before the "admin" prefix is applied —
+        // otherwise the rewritten path would be "/admin/dashboard/". Kills UnwrapRtrim.
+        $route = new Route('/dashboard/', ['_controller' => AccessListenerFixtureController::class . '::admin']);
+        $listener->onConfigureRoute(new Event('route.configure'), $route);
+
         $this->assertSame('/admin/dashboard', $route->getPath());
     }
 

@@ -32,6 +32,20 @@ class NativePasswordEncoderTest extends TestCase
         $this->assertTrue(password_verify('s3cr3t-p4ssw0rd', $hash));
     }
 
+    public function testHashHonoursConfiguredCost(): void
+    {
+        // Drive the cost off its default (10) so the `['cost' => $this->cost]`
+        // option is actually observable in the digest: an ArrayItem or
+        // ArrayItemRemoval mutation drops/mangles the option and password_hash()
+        // silently falls back to bcrypt's default cost 10 — which cost 5 exposes.
+        $encoder = new NativePasswordEncoder();
+        (new \ReflectionProperty(NativePasswordEncoder::class, 'cost'))->setValue($encoder, 5);
+
+        $info = password_get_info($encoder->hash('s3cr3t-p4ssw0rd'));
+
+        $this->assertSame(5, $info['options']['cost']);
+    }
+
     public function testVerifyReturnsTrueForMatchingPassword(): void
     {
         $hash = password_hash('correct-horse', PASSWORD_BCRYPT, ['cost' => 10]);

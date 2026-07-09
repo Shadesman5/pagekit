@@ -50,7 +50,7 @@
 - [x] Step 5 (M) — RoleTest + UserTest (status flags, getStatusText, cached hasPermission)
 - [x] Step 6 (M) — LoginAttemptListenerTest (brute-force throttle boundaries)
 - [x] Step 7 (L) — AuthorizationListenerTest + AccessListenerTest (flag UserListener → 2.1.9)
-- [ ] Step 8 (L) — Run Infection: reach 80% MSI + Covered MSI, kill escaped mutants (driver-dependent)
+- [x] Step 8 (L) — Run Infection: reach 80% MSI + Covered MSI, kill escaped mutants (driver-dependent)
 
 ## TESTING STRATEGY
 - **Per step (Tester subagent):** PHPUnit + PHPStan (mandatory after every checklist step). Steps 2–7 add/extend tests → suite must stay green and PHPStan-clean. Step 8 additionally requires an **Infection run** with a coverage driver enabled (PCOV/Xdebug — none installed by default, see discovery note 1) as its acceptance gate: **MSI ≥ 80% AND Covered MSI ≥ 80%** on the configured security-critical classes.

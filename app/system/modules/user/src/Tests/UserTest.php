@@ -74,6 +74,21 @@ class UserTest extends TestCase
         $this->assertSame($isAdministrator, $user->isAdministrator());
     }
 
+    /**
+     * hasRole() is public API (AccessModelTrait) consumed by callers outside the
+     * class hierarchy, not just the internal is*() flags. Invoking it directly
+     * pins its public visibility (a PublicVisibility mutant to protected would
+     * make this external call fatal) and its in_array() membership verdict.
+     */
+    public function testHasRoleIsPublicApiAndReportsMembership(): void
+    {
+        $user = new User();
+        $user->roles = [Role::ROLE_AUTHENTICATED];
+
+        $this->assertTrue($user->hasRole(Role::ROLE_AUTHENTICATED));
+        $this->assertFalse($user->hasRole(Role::ROLE_ADMINISTRATOR));
+    }
+
     // -----------------------------------------------------------------------
     // status flags: isActive / isBlocked.
     // -----------------------------------------------------------------------
@@ -126,6 +141,20 @@ class UserTest extends TestCase
         $user->status = 99;
 
         $this->assertSame('Unknown', $user->getStatusText());
+    }
+
+    /**
+     * getStatuses() is public static API (consumed by the admin user UI), not only
+     * an internal helper of getStatusText(). Calling it directly pins its public
+     * visibility (a PublicVisibility mutant to protected would fatal here) and its
+     * status-constant -> label map.
+     */
+    public function testGetStatusesIsPublicAndMapsStatusConstants(): void
+    {
+        $statuses = User::getStatuses();
+
+        $this->assertSame('Active', $statuses[User::STATUS_ACTIVE]);
+        $this->assertSame('Blocked', $statuses[User::STATUS_BLOCKED]);
     }
 
     // -----------------------------------------------------------------------

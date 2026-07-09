@@ -1052,12 +1052,6 @@ parameters:
 			path: app/system/modules/mail/src/Tests/MailerTest.php
 
 		-
-			message: '#^Expression on left side of \?\? is not nullable\.$#'
-			identifier: nullCoalesce.expr
-			count: 1
-			path: app/system/modules/mail/src/Tests/MailerTest.php
-
-		-
 			message: '#^Variable \$app might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1

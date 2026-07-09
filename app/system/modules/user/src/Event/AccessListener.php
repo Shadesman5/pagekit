@@ -42,6 +42,10 @@ class AccessListener implements EventSubscriberInterface
         $class = $route->getControllerClass();
         $method = $route->getControllerMethod();
 
+        // Infection LogicalOr equivalent mutant (Step 2.1.8, ignored in infection.json.dist):
+        // Route::getControllerClass()/getControllerMethod() both branch on the same
+        // is_array($controller) guard, so $class and $method are null together — swapping
+        // `||` for `&&` cannot change the outcome. `||` kept for readability.
         if ($class === null || $method === null) {
             return;
         }

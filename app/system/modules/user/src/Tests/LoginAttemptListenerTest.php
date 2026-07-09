@@ -37,6 +37,18 @@ use Psr\Cache\CacheItemPoolInterface;
  * pinning end() against reset()/current() mutants. The below-threshold case keeps
  * every timestamp recent so the only reason it does not throw is the count guard,
  * which pins the `>=` comparison and the `&&`.
+ *
+ * Infection ignores (Step 2.1.8, see infection.json.dist `mutators`):
+ *   - LogicalAnd, CastInt, DecrementInteger, IncrementInteger at
+ *     onPreAuthenticate:42 — on `is_array($attempts) && $attempts !== [] ?
+ *     (int) end($attempts) : 0`, the cast is a no-op for the int timestamps the
+ *     listener stores, and the `&&` / `: 0` literal only take effect when
+ *     `$attempts` is empty or non-array, where `count($attempts) >= ATTEMPTS` is
+ *     already false (or count() itself TypeErrors). Equivalent.
+ *   - LessThan at onPreAuthenticate:43 — the `(time() - $last) < DELAY`
+ *     rate-limit boundary only flips when the gap equals DELAY exactly, which is
+ *     not deterministically reproducible without an injectable clock. Deferred
+ *     to Step 2.1.9 (clock injection).
  */
 class LoginAttemptListenerTest extends TestCase
 {
@@ -192,6 +204,19 @@ class LoginAttemptListenerTest extends TestCase
         $this->listener($cache)->onAuthFailure($this->event([]));
     }
 
+    public function testOnAuthFailureReturnsEarlyWhenCredentialsPresentButUsernameMissing(): void
+    {
+        // Non-empty credentials without a 'username' key: the `!$credentials or
+        // !isset($credentials['username'])` guard must STILL return early. A
+        // LogicalLowerOr mutant (`or` -> `and`) falls through to
+        // getCacheKey($credentials['username']) and dereferences the missing key.
+        $cache = $this->pool();
+        $cache->expects($this->never())->method('getItem');
+        $cache->expects($this->never())->method('save');
+
+        $this->listener($cache)->onAuthFailure($this->event(['password' => 'secret']));
+    }
+
     // -----------------------------------------------------------------------
     // onAuthSuccess(): delete the cache item (and sanitize its key).
     // -----------------------------------------------------------------------
@@ -226,6 +251,26 @@ class LoginAttemptListenerTest extends TestCase
         $cache->expects($this->never())->method('deleteItem');
 
         $this->listener($cache)->onAuthSuccess($this->event(['password' => 'secret']));
+    }
+
+    // -----------------------------------------------------------------------
+    // getCacheKey(): protected-visibility contract.
+    // -----------------------------------------------------------------------
+
+    public function testGetCacheKeyStaysReachableFromSubclass(): void
+    {
+        // getCacheKey() is `protected` so listener subclasses can derive the same
+        // throttle key (e.g. to pre-seed or inspect it). Reaching it from a subclass
+        // pins that visibility: the ProtectedVisibility mutant narrows it to private
+        // and this forwarding call fatals.
+        $listener = new class ($this->pool()) extends LoginAttemptListener {
+            public function exposeCacheKey(string $username): string
+            {
+                return $this->getCacheKey($username);
+            }
+        };
+
+        $this->assertSame('auth.login_attempts_alice', $listener->exposeCacheKey('alice'));
     }
 
     // -----------------------------------------------------------------------
