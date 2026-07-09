@@ -112,6 +112,7 @@
 | 4.3    | Performance Optimization              | ⏳     | ⏳    | -     | -       |
 | 4.4    | Monitoring & Health Checks            | ⏳     | ⏳    | -     | -       |
 | 4.5    | Rebranding: Pagekit → Kernkit         | ⏳     | ⏳    | -     | -       |
+| 4.6    | Native Image Pipeline & Media Manager | ⏳     | ⏳    | -     | -       |
 | 5.1    | Modern Block Editor                   | ⏳     | ⏳    | -     | -       |
 | 5.2    | Advanced Security                     | ⏳     | ⏳    | -     | -       |
 | 5.3    | Advanced Performance                  | ⏳     | ⏳    | -     | -       |
