@@ -55,7 +55,7 @@
      (same numbers + short titles). Size hint per step: S = small/atomic, M = medium,
      L = large or loop-risk. A step orchestrator flips its box to [x] in the SAME commit as that
      step's code (after Tester PASS) — no self-referential SHA. -->
-- [ ] Step 1 (S) — Declare StreamWrapper::$context (TD-16, kills 4 deprecations)
+- [x] Step 1 (S) — Declare StreamWrapper::$context (TD-16, kills 4 deprecations)
 - [ ] Step 2 (S) — Remove all setAccessible() calls (tests + production)
 - [ ] Step 3 (S) — Decouple RouterTest from blog.permalink → generic option
 - [ ] Step 4 (M) — Harden AddRelNofollowFilter + 3 XSS edge-case tests
