@@ -57,6 +57,23 @@ jobs:
           path: coverage.xml
           if-no-files-found: error
 
+      # Codecov upload (Step 2.1.9, §4.3) — feeds the README badge and per-PR
+      # coverage-delta comments off the same Clover report. Kept NON-BLOCKING
+      # (fail_ci_if_error: false) so the quality gate never depends on Codecov
+      # availability. EXTERNAL ACTIVATION REQUIRED: a human must install the
+      # Codecov GitHub App on Shadesman5/pagekit and add a CODECOV_TOKEN Actions
+      # secret for reliable + fork uploads and the delta comments. Until then the
+      # step runs tokenless (best-effort) and simply no-ops on failure. See
+      # migration-docs/branches/phase-2/step-2-1-9-test-coverage-expansion.md.
+      - name: Upload coverage to Codecov
+        if: matrix.php == '8.3'
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
+        with:
+          files: ./coverage.xml
+          slug: Shadesman5/pagekit
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
       # Ratcheting minimum line-coverage gate (Step 2.1.9, §4.2). The floor is
       # pinned to this branch's measured line coverage after Steps 1-11 landed:
       # 3.86% (1833/47535 statements, PCOV 1.0.11 / PHP 8.3.6, 2026-07-09),

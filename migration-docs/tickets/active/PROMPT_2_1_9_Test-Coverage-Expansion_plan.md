@@ -67,7 +67,7 @@
 - [x] Step 10 (L) — PackageManager enable()/uninstall() migration integration + container tests
 - [x] Step 11 (M) — MigrationCommand CLI integration test (CommandTester + in-memory SQLite)
 - [x] Step 12 (M) — CI minimum line-coverage gate pinned to measured baseline
-- [ ] Step 13 (M) — Codecov upload step + README badge (external activation flagged)
+- [x] Step 13 (M) — Codecov upload step + README badge (external activation flagged)
 
 ## TESTING STRATEGY
 - **Per step (Tester subagent):** PHPUnit + PHPStan (mandatory after every checklist step). All test-adding/edit steps must keep the full suite green and PHPStan-clean. **Steps 5 and 6 additionally require an Infection run** (coverage driver required — install PCOV `sudo apt-get install -y php8.3-pcov` or Xdebug with `XDEBUG_MODE=coverage`; none ships in the VM by default) to confirm the targeted mutants are killed and `minMsi`/`minCoveredMsi` (80/80) still hold before the corresponding `infection.json.dist` ignores are removed. Step 1 must show PHP-level Deprecations drop from 4 to 0. Step 12 verifies the new CI gate parses `coverage.xml` and fails below the pinned threshold.
