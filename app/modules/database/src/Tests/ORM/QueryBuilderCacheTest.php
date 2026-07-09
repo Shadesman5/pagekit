@@ -74,7 +74,6 @@ class QueryBuilderCacheTest extends TestCase
         // Use reflection to access protected method
         $reflection = new \ReflectionClass($qb);
         $method = $reflection->getMethod('getCacheKey');
-        $method->setAccessible(true);
 
         $key1 = $method->invoke($qb);
         $key2 = $method->invoke($qb);
@@ -89,7 +88,6 @@ class QueryBuilderCacheTest extends TestCase
 
         $reflection = new \ReflectionClass($qb);
         $method = $reflection->getMethod('getCacheKey');
-        $method->setAccessible(true);
 
         $keyWithoutSuffix = $method->invoke($qb, '');
         $keyWithSuffix = $method->invoke($qb, 'first');
@@ -216,7 +214,6 @@ class QueryBuilderCacheTest extends TestCase
     private function invokeGetCacheKey(QueryBuilder $qb, string $suffix = ''): string
     {
         $method = new \ReflectionMethod(QueryBuilder::class, 'getCacheKey');
-        $method->setAccessible(true);
 
         $result = $method->invoke($qb, $suffix);
         $this->assertIsString($result);

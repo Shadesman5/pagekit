@@ -204,7 +204,6 @@ class MessageTest extends TestCase
         // Use reflection to access protected tempFiles property
         $reflection = new \ReflectionClass($this->message);
         $tempFilesProperty = $reflection->getProperty('tempFiles');
-        $tempFilesProperty->setAccessible(true);
 
         $originalTempFiles = $tempFilesProperty->getValue($this->message);
         $this->assertNotEmpty($originalTempFiles, 'Original should have temp files');

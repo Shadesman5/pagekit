@@ -210,7 +210,6 @@ class RouterTest extends TestCase
         $router = new Router($this->routes, new RoutesLoader($this->events), $this->stack, ['cache' => sys_get_temp_dir()]);
 
         $getCache = new \ReflectionMethod($router, 'getCache');
-        $getCache->setAccessible(true);
 
         $router->setOption('blog.permalink', '{slug}');
         $slugCache = $getCache->invoke($router, '%s/%s.generator.cache')['file'];
@@ -249,7 +248,6 @@ class RouterTest extends TestCase
             $router = new Router($this->routes, new RoutesLoader($this->events), $this->stack, ['cache' => $dir]);
 
             $getCache = new \ReflectionMethod($router, 'getCache');
-            $getCache->setAccessible(true);
 
             // Simulate a half-written dump: valid PHP, but the expected class is missing.
             $matcherFile = $getCache->invoke($router, '%s/%s.matcher.cache')['file'];
