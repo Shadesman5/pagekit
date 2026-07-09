@@ -69,6 +69,20 @@ done
 
 From the coverage report, find classes with 0% coverage that are important.
 
+### 2.4. Find code-level defer markers that point at this step
+
+Test files, `phpunit.xml.dist` and `infection.json.dist` carry defer markers that resolve to Step 2.1.9. The §3.4 list below is maintained by hand and **may be incomplete** — always scan for the markers directly and reconcile before planning:
+
+```bash
+# Comments/config deferring work to this step (tests, phpunit.xml.dist, production):
+rg -n "Step 2\.1\.9|deferred to 2\.1\.9|clock injection|failOn(Warning|Risky|PhpunitWarning)" app/ phpunit.xml.dist
+# Every committed Infection ignore — each ignore whose referencing test docblock
+# calls it "Deferred" (NOT "Equivalent") must be resolved and removed here:
+cat infection.json.dist
+```
+
+Each `Deferred`-tagged Infection ignore (as opposed to a permanent `Equivalent` one) is a task for this step: kill the mutant, then delete the ignore.
+
 ---
 
 ## 3. TEST WRITING STRATEGY
@@ -123,6 +137,15 @@ Concrete items tracked for 2.1.9. **Verify current state before acting** — the
 
 - **`PackageManager::enable()` / `uninstall()`** — no integration tests for auto-migrate on enable, auto-rollback on uninstall, or partial rollback to the pre-migration version (unit-level `MigrationService` methods are already covered via PR #189).
 - **`MigrationCommand` CLI flow** — no integration test for the unified Doctrine-migrations + scripts pipeline with the version-bump guard.
+
+### Test infrastructure (Step 2.1.8 Infection defer)
+
+- **Injectable clock for time-boundary tests** — two `LessThan` time-boundary mutants are Infection ignores today (Step 2.1.8, `infection.json.dist` → `mutators.LessThan`) because each only flips when the compared values are exactly equal, which the wall clock cannot reproduce deterministically:
+    - `DatabaseHandler::read:53` — session-timeout boundary `strtotime($access) + timeout < time()` (documented in `app/modules/auth/src/Tests/DatabaseHandlerTest.php`).
+    - `LoginAttemptListener::onPreAuthenticate:43` — brute-force rate-limit boundary `(time() - $last) < DELAY` (documented in `app/system/modules/user/src/Tests/LoginAttemptListenerTest.php`).
+
+  Introduce a single clock abstraction (e.g. `Psr\Clock\ClockInterface`) so both boundaries become injectable, add the boundary tests that kill both mutants, then remove both ignores.
+- **Flip PHPUnit `failOn*` gates + drop the ignores they mask** — `phpunit.xml.dist` sets `failOnWarning`, `failOnPhpunitWarning` and `failOnRisky` to `"false"`, all three flagged "→ Step 2.1.9" (pre-existing SMTP/environment warnings, fixture/data-provider warnings, and risky-test markers, to be cleared in test-suite hygiene). Clean up those warnings, then flip the three gates to `"true"`. `UserAccessTest` (`app/system/modules/user/src/Tests/UserAccessTest.php`) additionally documents that `failOnWarning="false"` currently masks two Infection ignore groups on the boolean-expression parser (`User::parseOrExpr/parseAndExpr/parseNotExpr/parseAtom`, `infection.json.dist` → `LessThan` / `LessThanNegotiation` / `GreaterThanOrEqualTo` / `LogicalOr` / `LogicalAnd`) — once the gate is `"true"`, re-run Infection and drop the ignores that are no longer needed (the "killable-but-masked" group is then killed by the existing suite).
 
 ---
 

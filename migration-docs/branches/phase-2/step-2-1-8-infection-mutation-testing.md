@@ -96,3 +96,5 @@ XDEBUG_MODE=coverage ./app/vendor/bin/infection --threads=4
 - Static DB trait methods in `UserModelTrait` / `RoleModelTrait` / `AccessModelTrait`
 - `UserListener` (static `User::` delegations; only `subscribe()` unit-testable)
 - `AccessListener::onConfigureRoute` / `processAccessAttribute` (Reflection-heavy route attribute path)
+- Time-boundary tests needing an injectable clock (e.g. `Psr\Clock\ClockInterface`) — two `LessThan` mutants only flip on exact equality and are Infection ignores today: `DatabaseHandler::read:53` (`strtotime($access) + timeout < time()`) and `LoginAttemptListener::onPreAuthenticate:43` (`(time() - $last) < DELAY`). One clock abstraction resolves both.
+- PHPUnit `failOnWarning` / `failOnPhpunitWarning` / `failOnRisky` are `"false"` in `phpunit.xml.dist` (flagged → Step 2.1.9). Flipping `failOnWarning` to `"true"` also lets the `UserAccessTest` boolean-parser ignore groups (`infection.json.dist` → `LessThan`/`LessThanNegotiation`/`GreaterThanOrEqualTo`/`LogicalOr`/`LogicalAnd` on `User::parse*`) be dropped.
