@@ -12,14 +12,18 @@ use Pagekit\Filter\FilterManager;
 use Pagekit\Kernel\Exception\ConflictException;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\Site\MenuManager;
+use Pagekit\Site\Model\Menu;
 use Pagekit\Site\Model\Node;
+use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Access('site: manage site')]
 class MenuApiController
 {
+    use ValidatesRequestTrait;
+
     private readonly Config $siteConfig;
 
     public function __construct(
@@ -27,6 +31,7 @@ class MenuApiController
         private readonly MenuManager $menu,
         private readonly Request $request,
         private readonly FilterManager $filter,
+        protected readonly ValidatorInterface $validator,
     ) {
         $this->siteConfig = ($this->config)('system/site') ?? new Config();
     }
@@ -63,37 +68,45 @@ class MenuApiController
     #[Route('/', methods: ['POST'])]
     public function saveAction(): array
     {
-        $menu = $this->request->request->all()['menu'] ?? [];
-        if (empty($menu) && $this->request->getContent()) {
+        $data = $this->request->request->all()['menu'] ?? [];
+        if (empty($data) && $this->request->getContent()) {
             $json = json_decode($this->request->getContent(), true);
-            $menu = $json['menu'] ?? [];
+            $data = $json['menu'] ?? $json ?? [];
         }
 
-        $oldId = isset($menu['id']) ? trim($menu['id']) : null;
-        $label = isset($menu['label']) ? trim($menu['label']) : '';
+        $oldId = isset($data['id']) ? (string) $data['id'] : null;
+        $label = isset($data['label']) ? (string) $data['label'] : null;
 
-        if (!$id = ($this->filter)($label, 'slugify')) {
-            throw new BadRequestHttpException(__('Invalid id.'));
-        }
+        // The id is derived from the label (business logic); the Assert
+        // constraints then guarantee a non-empty, well-formed slug.
+        $slug = ($this->filter)($label, 'slugify');
 
-        if ($id != $oldId) {
+        $menu = new Menu();
+        $menu->label = $label;
+        $menu->id = is_string($slug) && $slug !== '' ? $slug : null;
 
-            if ($this->siteConfig->has('menus.'.$id)) {
+        $this->validateOrFail($menu);
+
+        $id = (string) $menu->id;
+
+        if ($id !== $oldId) {
+
+            if ($this->siteConfig->has('menus.' . $id)) {
                 throw new ConflictException(__('Duplicate Menu Id.'));
             }
 
-            $this->siteConfig->remove('menus.'.$oldId);
+            $this->siteConfig->remove('menus.' . $oldId);
 
             Node::where(['menu = :old'], ['old' => $oldId])->update(['menu' => $id]);
         }
 
-        $this->siteConfig->merge(['menus' => [$id => compact('id', 'label')]]);
+        $this->siteConfig->merge(['menus' => [$id => ['id' => $id, 'label' => $menu->label]]]);
 
-        if (isset($menu['positions'])) {
-            $this->menu->assign($id, $menu['positions']);
+        if (isset($data['positions'])) {
+            $this->menu->assign($id, (array) $data['positions']);
         }
 
-        return ['message' => 'success', 'menu' => $menu];
+        return ['message' => 'success', 'menu' => $data];
     }
 
     /**
@@ -103,18 +116,17 @@ class MenuApiController
     public function deleteAction(?string $id = null): array
     {
         if (!$id) {
-            $id = $this->request->attributes->get('id');
-            if (!$id) {
-                $id = $this->request->get('id');
-            }
+            $attribute = $this->request->attributes->get('id') ?? $this->request->get('id');
+            $id = is_string($attribute) ? $attribute : null;
         }
 
-        if (!$id) {
-            throw new \Exception('Menu ID is required');
-        }
+        $menu = new Menu();
+        $menu->id = $id;
 
-        $this->siteConfig->remove('menus.'.$id);
-        Node::where(['menu = :id'], ['id' => $id])->update(['menu' => 'trash', 'status' => 0]);
+        $this->validateOrFail($menu, null, ['Delete']);
+
+        $this->siteConfig->remove('menus.' . (string) $menu->id);
+        Node::where(['menu = :id'], ['id' => $menu->id])->update(['menu' => 'trash', 'status' => 0]);
 
         return ['message' => 'success'];
     }

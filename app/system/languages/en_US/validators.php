@@ -85,8 +85,12 @@ return [
     'validation.page.title_required' => 'Page title is required.',
     'validation.page.title_max_length' => 'Page title cannot exceed {{ limit }} characters.',
 
-    // Menu (not entity validation, but business logic messages)
+    // Menu (config-backed DTO validation, see Pagekit\Site\Model\Menu)
+    'validation.menu.id_required' => 'Menu id is required.',
     'validation.menu.id_invalid' => 'Invalid menu id.',
+    'validation.menu.id_max_length' => 'Menu id cannot exceed {{ limit }} characters.',
+    'validation.menu.label_required' => 'Menu label is required.',
+    'validation.menu.label_max_length' => 'Menu label cannot exceed {{ limit }} characters.',
 
     // ============================================================
     // WIDGET MODULE
