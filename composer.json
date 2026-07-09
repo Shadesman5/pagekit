@@ -62,7 +62,8 @@
     "phpstan/phpstan-symfony": "^2.0",
     "roave/security-advisories": "dev-latest",
     "friendsofphp/php-cs-fixer": "^3.94",
-    "phpstan/phpstan-phpunit": "^2.0"
+    "phpstan/phpstan-phpunit": "^2.0",
+    "infection/infection": ">=0.29 <0.33"
   },
   "autoload": {
     "psr-4": {
@@ -99,6 +100,12 @@
     }
   },
   "config": {
-    "vendor-dir": "app/vendor"
+    "vendor-dir": "app/vendor",
+    "platform": {
+      "php": "8.2.0"
+    },
+    "allow-plugins": {
+      "infection/extension-installer": true
+    }
   }
 }

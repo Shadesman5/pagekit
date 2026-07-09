@@ -34,12 +34,28 @@
     whenever PHP deprecations are "not tolerated". Setting disabled suppresses that
     shutdown handler so PHPUnit's own failOn* settings (above) are the sole arbiter
     of exit codes. Owned by: Step 2.1.4 / 2.1.5.
+
+    noNamespaceSchemaLocation points at the version-matched schema vendored with
+    the installed PHPUnit (11.5) instead of the remote "11.0" URL. The
+    failOnPhpunitDeprecation / failOnPhpunitWarning attributes used above were
+    added after 11.0, so the remote 11.0 XSD rejects them. PHPUnit itself ignores
+    this attribute at runtime (it validates against its own bundled schema), but
+    Infection (Step 2.1.8) resolves and enforces it when validating the PHPUnit
+    config it generates for each mutant run — the local path keeps that green and
+    is always accurate to the resolved PHPUnit version.
+
+    executionOrder="default" pins tests to declaration order. Infection (Step
+    2.1.8) only injects a RANDOM order into its generated configs when this
+    attribute is unset (InitialConfigBuilder::addRandomTestsOrderAttributesIfNotSet);
+    setting it here keeps Infection's initial coverage run — and therefore the set
+    of reported escaped mutants — deterministic between runs. Owned by: Step 2.1.8.
 -->
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.0/phpunit.xsd"
+         xsi:noNamespaceSchemaLocation="app/vendor/phpunit/phpunit/phpunit.xsd"
          bootstrap="app/vendor/autoload.php"
          colors="true"
          cacheDirectory=".phpunit.cache"
+         executionOrder="default"
          testdox="true"
          failOnWarning="false"
          failOnDeprecation="false"

@@ -46,7 +46,7 @@ Write the plan to a **ticket file** so the Orchestrator and other subagents use 
 
 ## TESTING STRATEGY
 - **Per step (Tester subagent):** PHPUnit + PHPStan (mandatory after every checklist step)
-- **Final run (after Early Push, Tester subagent):** wait on the four PHP Quality CI jobs (`phpunit (8.2)`, `phpunit (8.3)`, `phpstan`, `cs-fixer`, `security-audit`) via `gh run watch` and run the 3 Playwright E2E specs locally **in parallel**; both must pass. See `.cursor/agents/tester.md` § End-of-ticket tests for the exact commands and `.cursor/rules/orchestrator-subagent-workflow.mdc` § Final Test for the workflow position.
+- **Final run (after Early Push):** two **sequential** stages — (1) the **Orchestrator** waits on the PHP Quality CI jobs (`phpunit (8.2)`, `phpunit (8.3)`, `phpstan`, `cs-fixer`, `security-audit`) via `gh run watch` (a watch, not a test) until green; (2) **then** it delegates the 3 Playwright E2E specs to the **Tester subagent** (E2E only runs once CI is green). Both must pass. See `.cursor/agents/tester.md` § End-of-ticket tests for the E2E commands and `.cursor/rules/orchestrator-subagent-workflow.mdc` § Final Test for the workflow position.
 ```
 
 - **Chat output:** One line only, e.g. `Plan written to migration-docs/tickets/active/PSR-11-Container-DI-Infrastructure_plan.md`.
@@ -57,6 +57,19 @@ Write the plan to a **ticket file** so the Orchestrator and other subagents use 
 - `migration-docs/TODO/PHASE_2_MODERNISING.md` for detailed step descriptions and **"Audit findings"** sections — these contain specific issues discovered during the Phase 1 codebase audit that must be addressed in the relevant step.
 - If a sub-step is missing, add it (e.g. 2.0.5b).
 - When creating the checklist, incorporate any "Audit findings" listed for the target step in PHASE_2_MODERNISING.md as explicit checklist items.
+
+## Research (optional — read-only `explore` subagents)
+
+To plan well you usually need to understand the codebase first: affected files, call sites, existing
+patterns, dependencies. You **may delegate** breadth-first investigation to read-only **`explore`**
+subagents (Task tool) and synthesize their summaries into the plan. This keeps your own context clean and
+lets you probe several areas in parallel.
+
+- **Allowed type: `explore` only** (read-only). Do **not** spawn `generalPurpose`, `shell`, or any
+  write/execute-capable subagent — you are a planner, not an author.
+- **You own the synthesis.** An explore subagent gathers facts; scope, checklist, `S`/`M`/`L` sizing, and
+  bridge decisions stay yours. Never let a subagent decide the plan.
+- **Use it when it pays off** (nested agents cost tokens/time), and keep the one-line chat output below.
 
 ## Audit / report tasks (report deliverable, not a ticket)
 

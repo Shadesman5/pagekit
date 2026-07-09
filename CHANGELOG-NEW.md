@@ -1,5 +1,23 @@
 # Changelog
 
+## Pagekit 1.2.23 - Infection Mutation Testing (Juli 9, 2026)
+
+### Added
+
+- **Infection mutation testing** for the auth + user security-critical core. Dev dependency `infection/infection` (≥0.29, capped at <0.33 for PHP 8.2 CI matrix) and `infection.json.dist` with `minMsi` / `minCoveredMsi` gates at 80%. (Closes #155)
+- **Security-core unit tests:** `NativePasswordEncoderTest`, extended `DatabaseHandlerTest` (`read()`/`destroy()`), `UserProviderTest`, `RoleTest`, `UserTest`, `LoginAttemptListenerTest`, `AuthorizationListenerTest`, `AccessListenerTest`.
+
+### Fixed
+
+- **Infection PHP 8.2 CI compatibility.** Lock pinned Infection 0.34 (PHP ≥8.3-only), breaking `composer install` on the `phpunit (8.2)` matrix leg; constraint capped at `<0.33` with `config.platform.php: 8.2.0`.
+
+### Deferred
+
+- Infection CI wiring (scheduled + manual-dispatch) → Step 2.2.
+- DB/kernel-bound coverage gaps (`UserProvider` lookups, trait static methods, `UserListener`) → Step 2.1.9.
+
+---
+
 ## Pagekit 1.2.22 - QueryBuilder API Standardization (Juli 8, 2026)
 
 ### Added

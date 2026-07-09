@@ -1,7 +1,7 @@
 # **🗺️ Pagekit Modernization Roadmap & Rules**
 
-> **Current Version**: 1.2.22
-> **Current Step**: 2.1.8 (Infection Mutation Testing)
+> **Current Version**: 1.2.23
+> **Current Step**: 2.1.9 (Test Coverage Expansion)
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**
 
@@ -83,7 +83,7 @@
 | 2.1.5  | ↳ PHPStan Level 6→7 (Null Safety)     | ✅     | 🛡️    | #152  | #210    |
 | 2.1.6  | ↳ PHPStan Level 7→8 (Strict Typing)   | ✅     | 🛡️    | #153  | #212    |
 | 2.1.7  | ↳ QueryBuilder API Standardization    | ✅     | 🛡️    | #154  | #215    |
-| 2.1.8  | ↳ Infection Mutation Testing          | ⏳     | ⏳    | #155  | -       |
+| 2.1.8  | ↳ Infection Mutation Testing          | ✅     | 🛡️    | #155  | #216    |
 | 2.1.9  | ↳ Test Coverage Expansion             | ⏳     | ⏳    | #156  | -       |
 | 2.1.10 | ↳ Entity Presentation Layer (DTO)     | ⏳     | ⏳    | #204  | -       |
 | 2.1.11 | ↳ EntityManager DI (remove singleton) | ⏳     | ⏳    | #205  | -       |
@@ -112,6 +112,7 @@
 | 4.3    | Performance Optimization              | ⏳     | ⏳    | -     | -       |
 | 4.4    | Monitoring & Health Checks            | ⏳     | ⏳    | -     | -       |
 | 4.5    | Rebranding: Pagekit → Kernkit         | ⏳     | ⏳    | -     | -       |
+| 4.6    | Native Image Pipeline & Media Manager | ⏳     | ⏳    | -     | -       |
 | 5.1    | Modern Block Editor                   | ⏳     | ⏳    | -     | -       |
 | 5.2    | Advanced Security                     | ⏳     | ⏳    | -     | -       |
 | 5.3    | Advanced Performance                  | ⏳     | ⏳    | -     | -       |

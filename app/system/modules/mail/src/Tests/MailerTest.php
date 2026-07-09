@@ -82,8 +82,11 @@ class MailerTest extends TestCase
     #[Group('network')]
     public function testTestSmtpConnectionWithValidParameters(): void
     {
-        // Skip this test if email configuration is not available
-        if (!$GLOBALS['email_smtp_host'] ?? false) {
+        // Skip this test if email configuration is not available. The `??` must be
+        // parenthesised: `!` binds tighter than `??`, so without the parentheses PHP
+        // reads the (usually undefined) global first and emits an "Undefined global
+        // variable" warning before the coalesce can supply a default.
+        if (!($GLOBALS['email_smtp_host'] ?? false)) {
             $this->markTestSkipped('Email SMTP configuration not available');
         }
 
