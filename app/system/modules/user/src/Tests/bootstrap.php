@@ -32,10 +32,24 @@ if (!function_exists('__')) {
      * Translation stub for unit tests: returns the message with parameter
      * substitution (no actual translation).
      *
-     * @param array<string, string|int|float> $args
+     * The `$args` element type MUST mirror the real global intl `\__()`
+     * (app/system/modules/intl/functions.php declares `array<string, mixed>
+     * $parameters`). PHPStan sees this guarded declaration alongside the intl one
+     * and may resolve unqualified `\__()` calls to either; a narrower type here
+     * would wrongly flag unrelated production call sites that pass `mixed`
+     * placeholders (e.g. the blog BlogController). Values are coerced to string
+     * locally so the `strtr()` body stays type-clean at level 8.
+     *
+     * @param array<string, mixed> $args
      */
     function __(string $message, array $args = []): string
     {
-        return strtr($message, $args);
+        $replacements = [];
+
+        foreach ($args as $key => $value) {
+            $replacements[$key] = is_scalar($value) ? (string) $value : '';
+        }
+
+        return strtr($message, $replacements);
     }
 }

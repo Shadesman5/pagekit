@@ -49,7 +49,7 @@
 - [x] Step 4 (M) — UserProviderTest: validateCredentials + findByCredentials guard (flag DB lookups → 2.1.9)
 - [x] Step 5 (M) — RoleTest + UserTest (status flags, getStatusText, cached hasPermission)
 - [x] Step 6 (M) — LoginAttemptListenerTest (brute-force throttle boundaries)
-- [ ] Step 7 (L) — AuthorizationListenerTest + AccessListenerTest (flag UserListener → 2.1.9)
+- [x] Step 7 (L) — AuthorizationListenerTest + AccessListenerTest (flag UserListener → 2.1.9)
 - [ ] Step 8 (L) — Run Infection: reach 80% MSI + Covered MSI, kill escaped mutants (driver-dependent)
 
 ## TESTING STRATEGY
