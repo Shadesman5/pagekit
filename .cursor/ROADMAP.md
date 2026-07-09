@@ -94,6 +94,8 @@
 | 2.5    | Extension Safety System               | ⏳     | ⏳    | #160  | -       |
 | 2.6    | Automated Update System               | ⏳     | ⏳    | -     | -       |
 | 2.7    | Filesystem Write Resilience           | ⏳     | ⏳    | -     | -       |
+| 2.8    | PHP Version Upgrade (8.2→latest)      | ⏳     | ⏳    | -     | -       |
+| 2.9    | Phase 2 Closeout (Coverage/Mutation)  | ⏳     | ⏳    | -     | -       |
 | 3.1    | UIkit Update                          | ⏳     | ⏳    | -     | -       |
 | 3.2    | Vue 2.7 Bridge                        | ⏳     | ⏳    | -     | -       |
 | 3.2.1  | ↳ Template Pre-compilation (CSP)      | ⏳ 20% | ⏳    | -     | -       |
@@ -107,6 +109,7 @@
 | 3.4.6  | ↳ Translation System Modernization    | ⏳     | ⏳    | -     | -       |
 | 3.5    | Component Library                     | ⏳     | ⏳    | -     | -       |
 | 3.6    | E2E selector strategy (data-testid)   | ⏳     | ⏳    | -     | -       |
+| 3.6.1  | ↳ E2E Test Suite Rework               | ⏳     | ⏳    | -     | -       |
 | 4.1    | Basic Security                        | ⏳     | ⏳    | -     | -       |
 | 4.2    | REST API v2                           | ⏳     | ⏳    | -     | -       |
 | 4.3    | Performance Optimization              | ⏳     | ⏳    | -     | -       |

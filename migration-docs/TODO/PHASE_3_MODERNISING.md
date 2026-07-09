@@ -282,3 +282,19 @@
   - Gradually migrate E2E specs to `getByTestId('…')`
   - Document convention (e.g., in `tests/e2e/README.md`)
 - **Can run in parallel with 3.4/3.5** when templates/components are being worked on anyway
+
+---
+
+## Step 3.6.1: ↳ E2E Test Suite Rework (best-practice migration)
+
+- **Status**: ⏳ Planned (added 2026-07-09; **re-homed from Step 2.1.9** during ticket planning — the full E2E rework is too large/orthogonal for the 2.1.9 coverage PR).
+- **Goal**: Rework the Playwright E2E suite to follow current best practices so it is trustworthy for regression testing. The Phase 1 audit found most specs poorly written — only ~3 of the 11 specs (`01-setup/installation`, `02-core/authentication`, `02-core/dashboard`) are sound, and the Orchestrator/Tester currently runs only those three at end-of-ticket.
+- **Prerequisite**: Step 3.6 (E2E Selector Strategy) — the rework should build on the `data-testid` selectors so specs are stable and language-independent (avoids reworking twice).
+- **GitHub issue**: _to be created_ via the `github-issue-creator` skill (labels `phase-3, migration, frontend`; milestone "Phase 3: Frontend Modernization"). No issue exists yet — the original 1.10.5 issue (#135) is closed. NOTE: the Cloud-Agent architect cannot create issues under the read-only-`gh` constraint; create at the next opportunity with write access.
+- **Closes Phase 1 audit:** **Step 1.10.5 (E2E Testing with Playwright) ⚠️ → 🛡️** — this step (NOT Step 2.1.9) resolves the 1.10.5 finding: "Most E2E tests were poorly created, not following best practices; only the first 3 tests are reasonably functional. Full E2E rework needed."
+- **Tasks (draft)**:
+  - Audit all 11 specs under `tests/e2e/specs/`; rewrite the weak ones (everything beyond the 3 sound specs) to Playwright best practices (web-first assertions, `getByTestId()` from 3.6, no arbitrary waits, isolated per-test state).
+  - Fix flaky setup/teardown and align with the clean-state handling documented in `.cursor/agents/tester.md`.
+  - Expand the Orchestrator/Tester end-of-ticket E2E set beyond the current 3 once the reworked specs are stable.
+  - All specs green locally; document the convention in `tests/e2e/README.md`.
+- **Risk**: Medium — broad E2E surface; orthogonal to the PHP test-coverage work in 2.1.9 / 2.9.
