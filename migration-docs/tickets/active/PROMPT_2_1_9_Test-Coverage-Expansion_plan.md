@@ -61,7 +61,7 @@
 - [x] Step 4 (M) — Harden AddRelNofollowFilter + 3 XSS edge-case tests
 - [x] Step 5 (L) — Injectable clock (DatabaseHandler + LoginAttemptListener) + boundary tests + drop 2 LessThan ignores
 - [x] Step 6 (M) — Flip failOnWarning/PhpunitWarning/Risky + re-run Infection + drop UserAccessTest-masked ignores
-- [ ] Step 7 (M) — ORM query-cache invalidation regression test (save/delete → clear)
+- [x] Step 7 (M) — ORM query-cache invalidation regression test (save/delete → clear)
 - [ ] Step 8 (M) — MenuApiController #[Assert]/ValidatesRequestTrait refactor + tests (new site Tests/ dir)
 - [ ] Step 9 (M) — DI-wiring tests (module $app fallback, factory/finder freshness)
 - [ ] Step 10 (L) — PackageManager enable()/uninstall() migration integration + container tests
