@@ -1,5 +1,41 @@
 # Changelog
 
+## Pagekit 1.2.24 - Test Coverage Expansion (Juli 9, 2026)
+
+### Added
+
+- **Injectable clock** (`psr/clock` + `symfony/clock`) for `DatabaseHandler` and `LoginAttemptListener` — deterministic boundary tests kill two Infection `LessThan` mutants. (Closes #156)
+- **Site module tests** — first `Tests/` dir with `MenuApiControllerTest` (`#[Assert]` + `ValidatesRequestTrait`).
+- **ORM query-cache invalidation regression test** — `EntityManager::save()`/`delete()` → `invalidateCache()` → `clear()`.
+- **DI-wiring integration tests** — module `$app` fallback, factory/finder freshness (`tests/Unit/Container/`).
+- **PackageManager migration integration tests** — enable/uninstall auto-migrate/rollback (`tests/Unit/Package/`).
+- **MigrationCommand CLI integration test** — `CommandTester` + in-memory SQLite (`tests/Unit/Console/`).
+- **CI minimum line-coverage gate** — ratcheting floor pinned at **3.8 %** in `phpunit (8.3)` leg.
+- **Codecov upload** — non-blocking `coverage.xml` upload + README badge (external app/token activation flagged).
+
+### Changed
+
+- **PHPUnit strictness** — `failOnWarning`/`failOnPhpunitWarning`/`failOnRisky` flipped to `"true"`; UserAccessTest-masked Infection parser ignores removed.
+- **AddRelNofollowFilter** — hardened against slash-obfuscated and null-byte XSS; replaces existing `rel="follow"` with `rel="nofollow"`.
+- **RouterTest** — decoupled from `blog.permalink` extension config.
+
+### Fixed
+
+- **`StreamWrapper::$context`** — declared property kills 4 PHP deprecation notices.
+- **PHP 8.5 forward-compat** — all `setAccessible()` calls removed (tests + production).
+- **MenuApiController** — restore `trim()` on id/label in `saveAction()` (Bugbot finding).
+- **PHP-CS-Fixer** — anonymous-class parentheses in `PackageManagerMigrationTest`.
+
+### Deferred
+
+- Breadth coverage to target table → ongoing / Step 2.9 closeout.
+- Full E2E rework (Phase 1 audit 1.10.5) → Step 3.6.1.
+- `packages/` coverage (out of measured `<source>` scope).
+- DB/kernel-bound unit gaps → Step 2.9.
+- Infection MSI ratcheting beyond auth+user → Step 2.9 closeout.
+
+---
+
 ## Pagekit 1.2.23 - Infection Mutation Testing (Juli 9, 2026)
 
 ### Added
