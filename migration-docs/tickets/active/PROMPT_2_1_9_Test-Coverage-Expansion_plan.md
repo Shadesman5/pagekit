@@ -63,7 +63,7 @@
 - [x] Step 6 (M) — Flip failOnWarning/PhpunitWarning/Risky + re-run Infection + drop UserAccessTest-masked ignores
 - [x] Step 7 (M) — ORM query-cache invalidation regression test (save/delete → clear)
 - [x] Step 8 (M) — MenuApiController #[Assert]/ValidatesRequestTrait refactor + tests (new site Tests/ dir)
-- [ ] Step 9 (M) — DI-wiring tests (module $app fallback, factory/finder freshness)
+- [x] Step 9 (M) — DI-wiring tests (module $app fallback, factory/finder freshness)
 - [ ] Step 10 (L) — PackageManager enable()/uninstall() migration integration + container tests
 - [ ] Step 11 (M) — MigrationCommand CLI integration test (CommandTester + in-memory SQLite)
 - [ ] Step 12 (M) — CI minimum line-coverage gate pinned to measured baseline
