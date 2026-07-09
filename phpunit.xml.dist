@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-    All six `failOn*` attributes are pinned to "false" so the suite exits 0 when
-    pre-existing PHP-level deprecations, PHPUnit-internal deprecations, warnings,
-    notices, or risky-test markers are emitted. This keeps the Step 2.1.2 CI
-    quality gate green without silently masking new regressions in the asserted
-    test bodies themselves.
+    The three deprecation/notice `failOn*` attributes are pinned to "false" so the
+    suite exits 0 when pre-existing PHP-level deprecations, PHPUnit-internal
+    deprecations, or notices are emitted. This keeps the Step 2.1.2 CI quality
+    gate green without silently masking new regressions in the asserted test
+    bodies themselves.
 
-    Each suppression is owned by a specific future ROADMAP step that MUST flip
-    it back to "true" once the underlying noise is fixed:
+    The three test-hygiene gates (failOnWarning / failOnPhpunitWarning /
+    failOnRisky) were flipped to "true" in Step 2.1.9 once the suite reached 0
+    warnings / 0 risky: warnings and risky-test markers now fail the run.
+
+    Each remaining suppression is owned by a specific future ROADMAP step that
+    MUST flip it back to "true" once the underlying noise is fixed:
 
       failOnDeprecation="false"        -> Step 2.1.4 / 2.1.5
                                           (PHP-level deprecation cleanup as part
@@ -19,15 +23,18 @@
                                           (PHP `E_NOTICE`-class issues, cleared
                                           alongside the deprecation pass)
 
-      failOnWarning="false"            -> Step 2.1.9 (Test Coverage Expansion /
-                                          test-suite hygiene — pre-existing SMTP
-                                          and similar environment warnings)
-      failOnPhpunitWarning="false"     -> Step 2.1.9 (PHPUnit-internal warnings
-                                          about test fixture / data-provider
-                                          shape — fixed in test-suite hygiene)
-      failOnRisky="false"              -> Step 2.1.9 (risky-test markers from
-                                          tests with no assertions or unsafe
-                                          state — fixed in test-suite hygiene)
+      failOnWarning="true"             -> flipped in Step 2.1.9 (Test Coverage
+                                          Expansion / test-suite hygiene); the
+                                          suite is warning-clean, and the flip
+                                          lets the UserAccessTest boundary tests
+                                          kill the User boolean-parser
+                                          out-of-bounds mutants Infection had to
+                                          ignore while this was "false"
+      failOnPhpunitWarning="true"      -> flipped in Step 2.1.9 (no PHPUnit-
+                                          internal fixture / data-provider
+                                          warnings remain)
+      failOnRisky="true"               -> flipped in Step 2.1.9 (no risky-test
+                                          markers remain — every test asserts)
 
     SYMFONY_DEPRECATIONS_HELPER=disabled: the symfony/phpunit-bridge bootstrap is
     auto-loaded via Composer and registers a shutdown handler that calls exit(1)
@@ -57,12 +64,12 @@
          cacheDirectory=".phpunit.cache"
          executionOrder="default"
          testdox="true"
-         failOnWarning="false"
+         failOnWarning="true"
          failOnDeprecation="false"
          failOnPhpunitDeprecation="false"
-         failOnPhpunitWarning="false"
+         failOnPhpunitWarning="true"
          failOnNotice="false"
-         failOnRisky="false"
+         failOnRisky="true"
 >
     <testsuites>
         <testsuite name="Pagekit Test Suite">

@@ -30,38 +30,14 @@
                 "Pagekit\\Auth\\Handler\\DatabaseHandler::destroy::112"
             ]
         },
-        "LessThan": {
-            "ignore": [
-                "Pagekit\\User\\Model\\User::parseOrExpr::273",
-                "Pagekit\\User\\Model\\User::parseOrExpr::275",
-                "Pagekit\\User\\Model\\User::parseAndExpr::289",
-                "Pagekit\\User\\Model\\User::parseAndExpr::291",
-                "Pagekit\\User\\Model\\User::parseNotExpr::303"
-            ]
-        },
-        "LessThanNegotiation": {
-            "ignore": [
-                "Pagekit\\User\\Model\\User::parseOrExpr::273",
-                "Pagekit\\User\\Model\\User::parseAndExpr::289"
-            ]
-        },
-        "GreaterThanOrEqualTo": {
-            "ignore": [
-                "Pagekit\\User\\Model\\User::parseAtom::314",
-                "Pagekit\\User\\Model\\User::parseAtom::323"
-            ]
-        },
         "LogicalAnd": {
             "ignore": [
-                "Pagekit\\User\\Event\\LoginAttemptListener::onPreAuthenticate::45",
-                "Pagekit\\User\\Model\\User::parseOrExpr::273",
-                "Pagekit\\User\\Model\\User::parseAndExpr::289"
+                "Pagekit\\User\\Event\\LoginAttemptListener::onPreAuthenticate::45"
             ]
         },
         "LogicalOr": {
             "ignore": [
-                "Pagekit\\User\\Event\\AccessListener::onConfigureRoute",
-                "Pagekit\\User\\Model\\User::parseAtom::323"
+                "Pagekit\\User\\Event\\AccessListener::onConfigureRoute"
             ]
         },
         "CastInt": {
