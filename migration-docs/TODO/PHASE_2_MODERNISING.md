@@ -306,7 +306,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 ---
 
-### Step 2.2: CI/CD Pipeline
+## Step 2.2: CI/CD Pipeline
 
 - **Goal**: Automated CI/CD with E2E & static analysis integration
 - **Prerequisite**: Steps 1.10.5 (E2E Tests) and 2.1 (Static Analysis) completed
@@ -342,7 +342,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 ---
 
-### Step 2.3: Docker Production Setup
+## Step 2.3: Docker Production Setup
 
 - **Goal**: Production-ready Docker
 - **Tasks**:
@@ -353,7 +353,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 ---
 
-### Step 2.4: Build Tools Modernization
+## Step 2.4: Build Tools Modernization
 
 - **Goal**: Modern build pipeline
 - **Options**:
@@ -365,7 +365,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 ---
 
-### Step 2.5: Extension Safety & Fault Isolation
+## Step 2.5: Extension Safety & Fault Isolation
 
 - **Goal**: Prevent faulty extensions from crashing the entire CMS (white screen of death).
 - **Context**: Currently extensions are loaded directly at boot time. An error in an `index.php` or `main()` function takes down the kernel.
@@ -404,7 +404,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 ---
 
-### Step 2.6: Automated Update System - External & Background Updates
+## Step 2.6: Automated Update System - External & Background Updates
 
 - **Goal**: Modern, future-proof update infrastructure for Pagekit CMS
 - **Priority**: High (required for long-term maintainability)
@@ -412,7 +412,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 ---
 
-### Step 2.7: Filesystem Write Resilience — Atomic Writes & Error-Handling Hygiene
+## Step 2.7: Filesystem Write Resilience — Atomic Writes & Error-Handling Hygiene
 
 - **Goal**: Generalize the routing-cache resilience fix (atomic temp file + `rename()`) into a single shared filesystem primitive and route all **boot-critical** file writes (`config.php`, package registry) through it — so a crash or a concurrent read mid-write can no longer corrupt a file that is `include`d on every request. Bundle two adjacent error-handling micro-cleanups found in the same audit (dead code / silent catch).
 - **Prerequisite**: None — self-contained hardening, can run at any point. **Recommended before Step 2.6** (Automated Update System) and **reusable by Step 2.5** (the `storage/disabled-extensions.json` fallback write) — both add further write sites that should use the same helper rather than re-implementing it.
@@ -434,3 +434,33 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Result**: One shared atomic-write primitive; `config.php` and the package registry can no longer be corrupted by a crash / concurrent read mid-write; no duplicated temp+rename logic anywhere; two silent / dead error-handling sites cleaned.
 - **Risk**: Low-Medium — small, localized changes plus one extracted helper. The routing path already relies on the same logic and is covered by `RouterTest::testCorruptCacheFileFallsBackInsteadOfFatal`.
 - **Not in scope (tracked elsewhere):** the hardcoded OpenWeatherMap **API key** (`app/system/modules/dashboard/index.php:48-49`, audit **TD-22**, Critical) is the second half of SL-3 but is already tagged **Step 4.2** (env / secrets migration). The audit recommends _accelerating_ + rotating it — decision left to the user; not folded here to keep this step a pure filesystem-resilience unit.
+
+---
+
+## Step 2.8: PHP Version Upgrade — Raise Minimum to Latest Stable
+
+- **Status**: 📝 Draft (added 2026-07-09) — scope to be refined during ticket planning.
+- **Goal**: Raise the minimum supported PHP version from **8.2** to the latest stable release (currently **8.4**; confirm the newest stable at execution time) with a full compatibility audit of everything the bump touches, cleanup of any newly-surfaced deprecations, and _optional_ adoption of newly-available language features where they genuinely improve readability/maintainability (no over-engineering — Pagekit DNA).
+- **Prerequisite**: Phase 2.1 complete (`strict_types` + PHPStan Level 8 + the CI test suite) — the existing green suite is the safety net for the bump. **Recommended before Step 2.9** so the final coverage/mutation push runs on the final PHP version.
+- **Tasks (draft)**:
+  - **Single source of truth (see Step 2.2 guard):** `composer.json` `require.php` is authoritative. Bump it, then update every _consumer_ so the 2.2 drift-check stays green — CI matrix floor (Workflow 1), `app/installer/requirements.php` (`REQUIRED_PHP_VERSION` + extension floors), `.cursor/Dockerfile`, and `README.md` (badge + supported-range text).
+  - **Compatibility audit:** systematically determine what the bump affects — removed/deprecated functions, behavioural changes, and each dependency's PHP constraint. Feed findings into concrete sub-fixes (this is the "genau prüfen was betroffen ist" part).
+  - **Relax dependency caps that only existed for 8.2:** e.g. `infection/infection` is capped at `<0.33` purely for the PHP-8.2 CI leg (see the Step 2.1.8 branch doc) — raise it to a current release once 8.2 is dropped. Re-scan all `composer.json` constraints for similar 8.2-only caps.
+  - **Deprecation cleanup:** resolve any new PHP deprecation notices surfaced by the higher version (relates to the `failOn*` hygiene tracked for Step 2.1.9).
+  - **Optional feature adoption:** e.g. 8.3 typed class constants / `#[\Override]` / `json_validate()`, 8.4 property hooks / asymmetric visibility — apply only where they simplify existing code.
+  - All quality gates green on the new version (PHPUnit, PHPStan L8, cs-fixer, security-audit, E2E).
+- **Risk**: Medium — broad blast radius, but bounded by the Phase 2.1 test + static-analysis net.
+
+---
+
+## Step 2.9: Phase 2 Closeout — Test Coverage & Mutation Consolidation
+
+- **Status**: 📝 Draft (added 2026-07-09) — scope to be refined during ticket planning.
+- **Goal**: Final quality push that closes out Phase 2 — consolidate the ongoing Step 2.1.9 coverage work, extend tests beyond the security-critical core, and raise the mutation-testing gates (`minMsi` / `minCoveredMsi`) on a **data-driven** basis. Widen the Infection scope past the auth + user security core.
+- **Prerequisite**: Step 2.8 (PHP upgrade) — runs on the final PHP version so gates/constraints are set once. Builds on Step 2.1.9 (ongoing coverage) and Step 2.2 (the non-blocking Infection CI job).
+- **Tasks (draft)**:
+  - **Resolve the deferred Infection markers** surfaced in 2.1.8 (if not already cleared by 2.1.9): the injectable-clock time-boundary mutants (`DatabaseHandler::read:53`, `LoginAttemptListener::onPreAuthenticate:43`) and the `failOn*` gate flip + `UserAccessTest` ignore drops. Use the §2.4 defer-marker scan in the 2.1.9 prompt to confirm none remain.
+  - **Extend coverage** to the DB-bound integration paths deferred from 2.1.9 (e.g. `UserProvider` happy-path lookups, `UserListener` handlers, `User::hasPermission` uncached branch) and to further high-risk modules (database/ORM, filesystem).
+  - **Widen the Infection scope** in `infection.json.dist` beyond auth + user, prioritising data-integrity code.
+  - **Ratchet the gates:** measure the actual MSI / Covered MSI on the widened scope, then set `minMsi` / `minCoveredMsi` just below the measured value and raise incrementally — never below (same ratchet principle as the 2.1.9 line-coverage gate).
+- **Note**: This is the Phase 2 _closeout_ consolidation of the ongoing Step 2.1.9 effort — **not** a replacement for it. Coverage keeps growing per-branch until here, where the bar is formally raised.
