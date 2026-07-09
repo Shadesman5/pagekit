@@ -199,11 +199,13 @@ class RouterTest extends TestCase
     /**
      * Regression test: route-affecting options must participate in the cache key.
      *
-     * The blog module changes its route collection (permalink alias routes) based
-     * on the "blog.permalink" option. If that option is excluded from the cache key,
-     * the dumped matcher/generator become stale after a permalink change, which broke
-     * post URL generation (e.g. switching to the "Numeric" permalink showed every
-     * URL as "Disabled").
+     * Modules can change the generated route collection based on router options
+     * (e.g. an option that adds alias routes during route.configure). If such an
+     * option is excluded from the cache key, the dumped matcher/generator become
+     * stale after the option changes, so the router keeps serving routes built for
+     * the previous value and URL generation fails. Any change to a route-affecting
+     * option must therefore produce a different cache key. This is generic core
+     * behaviour, so the test uses a neutral option name rather than an extension's.
      */
     public function testCacheKeyReflectsRouteAffectingOptions(): void
     {
@@ -211,16 +213,16 @@ class RouterTest extends TestCase
 
         $getCache = new \ReflectionMethod($router, 'getCache');
 
-        $router->setOption('blog.permalink', '{slug}');
-        $slugCache = $getCache->invoke($router, '%s/%s.generator.cache')['file'];
+        $router->setOption('test.route_option', 'variant-a');
+        $variantACache = $getCache->invoke($router, '%s/%s.generator.cache')['file'];
 
-        $router->setOption('blog.permalink', '');
-        $numericCache = $getCache->invoke($router, '%s/%s.generator.cache')['file'];
+        $router->setOption('test.route_option', 'variant-b');
+        $variantBCache = $getCache->invoke($router, '%s/%s.generator.cache')['file'];
 
         $this->assertNotSame(
-            $slugCache,
-            $numericCache,
-            'Changing a route-affecting option (blog.permalink) must change the router cache key.'
+            $variantACache,
+            $variantBCache,
+            'Changing a route-affecting option must change the router cache key.'
         );
     }
 
