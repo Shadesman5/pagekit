@@ -11,6 +11,8 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\MockClock;
 
 /**
  * Unit tests for the brute-force throttle {@see LoginAttemptListener}.
@@ -29,26 +31,30 @@ use Psr\Cache\CacheItemPoolInterface;
  * to the GLOBAL `\__()`. {@see setUp} pulls in the shared passthrough stub from
  * Tests/bootstrap.php; no `Pagekit\__()` stub is required.
  *
- * Boundary strategy for `count($attempts) >= ATTEMPTS && (time() - $last) < DELAY`:
- * the two `count === ATTEMPTS` cases isolate the *time* comparison by using
- * timestamps far inside (last = now) and far outside (last = now - 1000) the
- * DELAY window, so wall-clock jitter can never flip the outcome. Their arrays are
- * ordered so the recent/old timestamp sits where end() reads it (the LAST slot),
- * pinning end() against reset()/current() mutants. The below-threshold case keeps
- * every timestamp recent so the only reason it does not throw is the count guard,
- * which pins the `>=` comparison and the `&&`.
+ * Boundary strategy for `count($attempts) >= ATTEMPTS && (clock->now() - $last) < DELAY`:
+ * the two wall-clock `count === ATTEMPTS` cases isolate the *time* comparison by
+ * using timestamps far inside (last = now) and far outside (last = now - 1000) the
+ * DELAY window, so jitter can never flip the outcome. Their arrays are ordered so
+ * the recent/old timestamp sits where end() reads it (the LAST slot), pinning
+ * end() against reset()/current() mutants. The below-threshold case keeps every
+ * timestamp recent so the only reason it does not throw is the count guard, which
+ * pins the `>=` comparison and the `&&`. The two exact-gap cases inject a
+ * {@see MockClock} so `(now - $last)` equals DELAY exactly (and DELAY - 1).
  *
  * Infection ignores (Step 2.1.8, see infection.json.dist `mutators`):
  *   - LogicalAnd, CastInt, DecrementInteger, IncrementInteger at
- *     onPreAuthenticate:42 — on `is_array($attempts) && $attempts !== [] ?
+ *     onPreAuthenticate:45 — on `is_array($attempts) && $attempts !== [] ?
  *     (int) end($attempts) : 0`, the cast is a no-op for the int timestamps the
  *     listener stores, and the `&&` / `: 0` literal only take effect when
  *     `$attempts` is empty or non-array, where `count($attempts) >= ATTEMPTS` is
  *     already false (or count() itself TypeErrors). Equivalent.
- *   - LessThan at onPreAuthenticate:43 — the `(time() - $last) < DELAY`
- *     rate-limit boundary only flips when the gap equals DELAY exactly, which is
- *     not deterministically reproducible without an injectable clock. Deferred
- *     to Step 2.1.9 (clock injection).
+ *
+ * Step 2.1.9 (clock injection): the rate-limit boundary
+ * `(clock->now() - $last) < DELAY` reads "now" via an injected PSR-20
+ * {@see ClockInterface} (defaulting to a real {@see \Symfony\Component\Clock\Clock}),
+ * so a {@see MockClock} makes the gap equal DELAY exactly. The boundary tests below
+ * kill the LessThan mutant (`<` -> `<=`) that was previously ignored, so its
+ * infection.json.dist entry has been removed.
  */
 class LoginAttemptListenerTest extends TestCase
 {
@@ -137,8 +143,51 @@ class LoginAttemptListenerTest extends TestCase
         $this->listener($cache)->onPreAuthenticate($this->event(['username' => 'alice']));
     }
 
+    public function testOnPreAuthenticatePassesWhenGapExactlyEqualsDelay(): void
+    {
+        // Freeze "now" so the gap since the last attempt equals DELAY exactly:
+        // (now - last) === DELAY. With `<` this does NOT throttle (5 < 5 is false),
+        // so no exception is thrown. The LessThan mutant (`<` -> `<=`) would make
+        // 5 <= 5 true and throw here.
+        $now = 1_700_000_000; // arbitrary fixed instant
+        $clock = new MockClock(new \DateTimeImmutable('@' . $now));
+        $last = $now - LoginAttemptListener::DELAY;
+        $attempts = [$now - 1000, $now - 1000, $now - 1000, $now - 1000, $last];
+
+        $cache = $this->pool();
+        $cache->expects($this->once())
+            ->method('getItem')
+            ->with('auth.login_attempts_alice')
+            ->willReturn($this->hitItem($attempts));
+
+        // No exception at the exact boundary.
+        $this->listener($cache, $clock)->onPreAuthenticate($this->event(['username' => 'alice']));
+    }
+
+    public function testOnPreAuthenticateThrowsWhenGapOneSecondBelowDelay(): void
+    {
+        // One second inside the window: (now - last) === DELAY - 1 < DELAY -> throttle.
+        $now = 1_700_000_000; // arbitrary fixed instant
+        $clock = new MockClock(new \DateTimeImmutable('@' . $now));
+        $last = $now - (LoginAttemptListener::DELAY - 1);
+        $attempts = [$now - 1000, $now - 1000, $now - 1000, $now - 1000, $last];
+
+        $cache = $this->pool();
+        $cache->expects($this->once())
+            ->method('getItem')
+            ->with('auth.login_attempts_alice')
+            ->willReturn($this->hitItem($attempts));
+
+        $listener = $this->listener($cache, $clock);
+
+        $this->expectException(AuthException::class);
+        $this->expectExceptionMessage('Slow down a bit.');
+
+        $listener->onPreAuthenticate($this->event(['username' => 'alice']));
+    }
+
     // -----------------------------------------------------------------------
-    // onAuthFailure(): append time() to the array + save the item.
+    // onAuthFailure(): append clock->now() to the array + save the item.
     // -----------------------------------------------------------------------
 
     public function testOnAuthFailureAppendsTimestampAndSaves(): void
@@ -290,9 +339,11 @@ class LoginAttemptListenerTest extends TestCase
     // Fixtures.
     // -----------------------------------------------------------------------
 
-    private function listener(CacheItemPoolInterface $cache): LoginAttemptListener
+    private function listener(CacheItemPoolInterface $cache, ?ClockInterface $clock = null): LoginAttemptListener
     {
-        return new LoginAttemptListener($cache);
+        return $clock === null
+            ? new LoginAttemptListener($cache)
+            : new LoginAttemptListener($cache, $clock);
     }
 
     /**

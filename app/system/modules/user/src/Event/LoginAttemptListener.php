@@ -9,6 +9,8 @@ use Pagekit\Auth\Exception\AuthException;
 use Pagekit\Cache\CacheKeyUtil;
 use Pagekit\Event\EventSubscriberInterface;
 use Psr\Cache\CacheItemPoolInterface;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\Clock;
 
 class LoginAttemptListener implements EventSubscriberInterface
 {
@@ -18,6 +20,7 @@ class LoginAttemptListener implements EventSubscriberInterface
 
     public function __construct(
         private readonly CacheItemPoolInterface $cache,
+        private readonly ClockInterface $clock = new Clock(),
     ) {
     }
 
@@ -40,7 +43,7 @@ class LoginAttemptListener implements EventSubscriberInterface
         // Block if we already have >= ATTEMPTS failures and the last one was within DELAY seconds.
         // (Use end() to read last timestamp without mutating the array.)
         $lastAttempt = is_array($attempts) && $attempts !== [] ? (int) end($attempts) : 0;
-        if (count($attempts) >= self::ATTEMPTS && (time() - $lastAttempt) < self::DELAY) {
+        if (count($attempts) >= self::ATTEMPTS && ($this->clock->now()->getTimestamp() - $lastAttempt) < self::DELAY) {
             throw new AuthException(__('Slow down a bit.'));
         }
     }
@@ -59,7 +62,7 @@ class LoginAttemptListener implements EventSubscriberInterface
         $key = $this->getCacheKey($credentials['username']);
         $item = $this->cache->getItem($key);
         $attempts = $item->isHit() ? $item->get() : [];
-        $attempts[] = time();
+        $attempts[] = $this->clock->now()->getTimestamp();
         $item->set($attempts);
         $this->cache->save($item);
     }

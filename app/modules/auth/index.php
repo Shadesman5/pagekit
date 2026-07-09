@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Pagekit\Auth\Auth;
 use Pagekit\Auth\Encoder\NativePasswordEncoder;
 use Pagekit\Auth\Handler\DatabaseHandler;
+use Symfony\Component\Clock\Clock;
 
 return [
 
@@ -20,7 +21,7 @@ return [
         // inject `$authPassword` which resolves to this alias for `auth.password`.
         $app->set('authPassword', fn ($app) => $app->get('auth.password'));
 
-        $app->set('auth.handler', fn ($app) => new DatabaseHandler($app->get('db'), $app->get('request.stack'), $app->get('cookie'), $this->config));
+        $app->set('auth.handler', fn ($app) => new DatabaseHandler($app->get('db'), $app->get('request.stack'), $app->get('cookie'), $this->config, new Clock()));
 
     },
 
