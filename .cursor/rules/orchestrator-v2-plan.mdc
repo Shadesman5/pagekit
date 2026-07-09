@@ -59,7 +59,7 @@ driver relaunches a fresh agent). Do not loop forever.
 ## Boundaries
 
 - Plan only: no checklist steps, no tests, no version bump. **No PR** — *except* audit/report tasks, which open a single docs-only PR (see that section).
-- Subagents by exact name: `architect`, `plan-reviewer`.
+- Subagents by exact name: `architect`, `plan-reviewer`. (The `architect` may itself use read-only `explore` for research — that nesting happens inside the worker, not here in the Orchestrator.)
 
 ## Report exactly one line
 

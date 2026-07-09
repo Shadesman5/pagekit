@@ -31,6 +31,19 @@ If you receive feedback from a failed Verifier or Tester run, fix the code and o
 - **Ticket:** Orchestrator passes a ticket file path (e.g. `migration-docs/tickets/active/{task-slug}_plan.md`) and the current step number. Read ONLY that file for the step specification; do not ask for the full task prompt.
 - Do NOT work on multiple steps at once.
 
+## Research (optional — read-only `explore`, scoped)
+
+When the current step genuinely needs it — e.g. to find **all call sites** before a "No Mercy" signature
+change, or to understand an existing pattern — you **may delegate** read-only **`explore`** subagents
+(Task tool) to gather that information, then apply it to the code.
+
+- **Allowed type: `explore` only** (read-only). Never `generalPurpose`/`shell` — those can write or run
+  things and would blur the role boundary above.
+- **Stay in scope.** Use it only to inform the **current Checklist Step**. Do **not** use it to re-plan or
+  widen scope (Architect's job) or to verify your own changes (Verifier's job) — see Boundary above.
+- **Only when it pays off.** Skip it for small/local steps; nested agents cost tokens and time.
+- Output discipline is unchanged: still emit exactly one line when done.
+
 ## Reference
 
 - pagekit-context, pagekit-standards (workspace rules apply automatically).

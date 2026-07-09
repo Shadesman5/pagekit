@@ -58,6 +58,19 @@ Write the plan to a **ticket file** so the Orchestrator and other subagents use 
 - If a sub-step is missing, add it (e.g. 2.0.5b).
 - When creating the checklist, incorporate any "Audit findings" listed for the target step in PHASE_2_MODERNISING.md as explicit checklist items.
 
+## Research (optional — read-only `explore` subagents)
+
+To plan well you usually need to understand the codebase first: affected files, call sites, existing
+patterns, dependencies. You **may delegate** breadth-first investigation to read-only **`explore`**
+subagents (Task tool) and synthesize their summaries into the plan. This keeps your own context clean and
+lets you probe several areas in parallel.
+
+- **Allowed type: `explore` only** (read-only). Do **not** spawn `generalPurpose`, `shell`, or any
+  write/execute-capable subagent — you are a planner, not an author.
+- **You own the synthesis.** An explore subagent gathers facts; scope, checklist, `S`/`M`/`L` sizing, and
+  bridge decisions stay yours. Never let a subagent decide the plan.
+- **Use it when it pays off** (nested agents cost tokens/time), and keep the one-line chat output below.
+
 ## Audit / report tasks (report deliverable, not a ticket)
 
 Some task prompts are **audit / report** tasks — they carry a `<!-- conductor-mode: plan -->` marker and

@@ -42,7 +42,7 @@ The Orchestrator is a **dispatcher**, not a worker. It delegates, commits, and m
 - Fix code, edit files, or amend commits. On failure, delegate back to **refactorer**. The Orchestrator never touches source code.
 - Paste the plan, step titles, or task prompt into chat. Use the ticket file path only.
 - Create a TODO list of all Checklist Steps in chat; the ticket file is the single source.
-- Use any subagent type other than `architect`, `refactorer`, `verifier`, `tester`, or `bugbot` for this workflow. The `bugbot` subagent is launched **only** by the Orchestrator at the Local Bugbot Review stage via the `/review-bugbot` skill (see that section); never by another subagent. (`generalPurpose`, `explore`, `shell`, etc. are not part of the modernization pipeline.)
+- **As the Orchestrator, delegate only to** `architect`, `refactorer`, `verifier`, `tester`, or `bugbot` — do **not** spawn `generalPurpose`, `explore`, or `shell` yourself; you are a thin coordinator. The `bugbot` subagent is launched **only** by the Orchestrator at the Local Bugbot Review stage via the `/review-bugbot` skill (see that section); never by another subagent. **Exception (worker-level research):** the `architect` and `refactorer` subagents **may themselves** delegate to read-only **`explore`** subagents to gather codebase context — see their definitions in `.cursor/agents/`. That nesting happens *inside* a worker; it is **not** the Orchestrator calling `explore`.
 
 **MAY (optional, default = no):**
 

@@ -49,7 +49,7 @@ the rest with a fresh agent.
 ## Boundaries
 
 - This phase only: no Architect/Plan-Reviewer/Bugbot, no `gh pr create`, no version bump.
-- Subagents by exact name: `refactorer`, `verifier`, `tester`.
+- Subagents by exact name: `refactorer`, `verifier`, `tester`. (The `refactorer` may itself use read-only `explore` for scoped research — nesting inside the worker, not here in the Orchestrator.)
 
 ## Report exactly one line
 
