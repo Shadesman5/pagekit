@@ -89,7 +89,7 @@ class PackageManagerMigrationTest extends TestCase
         $this->writeScripts($this->enableMigrateScript());
 
         $system = new Config();
-        $events = new class {
+        $events = new class () {
             /** @var array<int, string> */
             public array $fired = [];
 
@@ -153,7 +153,7 @@ class PackageManagerMigrationTest extends TestCase
         $system->set('packages.test-ext', '1.0.0');
         $system->set('extensions', ['test-ext']);
 
-        $file = new class {
+        $file = new class () {
             /** @var array<int, string> */
             public array $deleted = [];
 
@@ -202,7 +202,7 @@ class PackageManagerMigrationTest extends TestCase
         $system->set('packages.test-ext', '2.0.0');
         $system->set('extensions', ['test-ext']);
 
-        $file = new class {
+        $file = new class () {
             /** @var array<int, string> */
             public array $deleted = [];
 
@@ -255,6 +255,7 @@ class PackageManagerMigrationTest extends TestCase
         // AssertionFailedError itself extends \RuntimeException, so a self::fail()
         // in the try would be swallowed by the catch.
         $thrown = null;
+
         try {
             $this->makeManager($app)->enable($package);
         } catch (\RuntimeException $e) {
@@ -276,7 +277,7 @@ class PackageManagerMigrationTest extends TestCase
         $this->writeScripts($this->throwingEnableScript());
 
         $system = new Config();
-        $log = new class {
+        $log = new class () {
             /** @var array<int, string> */
             public array $errors = [];
 
@@ -293,6 +294,7 @@ class PackageManagerMigrationTest extends TestCase
         ]);
 
         $thrown = null;
+
         try {
             $this->makeManager($app)->enable($this->makePackage());
         } catch (\RuntimeException $e) {
