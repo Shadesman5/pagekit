@@ -18,8 +18,10 @@ use PHPUnit\Framework\TestCase;
  * `User::updateLogin()` and `User::removeRole()` respectively. Both are
  * static, DB-bound `User::` calls that need a booted kernel + database and
  * belong to integration coverage, not this unit suite (ticket discovery
- * note 6). Their mutants are therefore expected to be handled as documented
- * 2.1.9 exclusions when Infection runs in Step 8, not killed here.
+ * note 6). Because only `subscribe()` is covered here, those handlers sit on
+ * uncovered lines: their mutants fall outside the Covered-MSI gate and needed
+ * no `infection.json.dist` ignore. Killing them is deferred to Step 2.1.9
+ * (integration coverage: booted kernel + database).
  */
 class UserListenerTest extends TestCase
 {
