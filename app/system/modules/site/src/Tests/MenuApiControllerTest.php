@@ -68,6 +68,24 @@ class MenuApiControllerTest extends TestCase
         $this->assertSame(['id' => 'main', 'label' => 'Main'], $siteConfig->get('menus.main'));
     }
 
+    public function testSaveActionTrimsIdAndLabelWhitespace(): void
+    {
+        // Re-saving an existing menu whose id arrives whitespace-padded: the
+        // padded id must be trimmed to match the slug so the rename branch is
+        // skipped (an untrimmed id would flag the entry as a duplicate and
+        // orphan it). The stored label is trimmed too.
+        $siteConfig = new Config(['menus' => ['main' => ['id' => 'main', 'label' => 'Main']]]);
+
+        $request = new Request();
+        $request->request->set('menu', ['id' => ' main ', 'label' => '  Main  ']);
+
+        $result = $this->createController($siteConfig, $request)->saveAction();
+
+        $this->assertSame('success', $result['message']);
+        $this->assertSame(['id' => 'main', 'label' => 'Main'], $siteConfig->get('menus.main'));
+        $this->assertFalse($siteConfig->has('menus. main '));
+    }
+
     public function testSaveActionWithInvalidIdThrowsBadRequest(): void
     {
         $siteConfig = new Config();

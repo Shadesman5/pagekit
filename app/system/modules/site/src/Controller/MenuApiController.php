@@ -74,8 +74,11 @@ class MenuApiController
             $data = $json['menu'] ?? $json ?? [];
         }
 
-        $oldId = isset($data['id']) ? (string) $data['id'] : null;
-        $label = isset($data['label']) ? (string) $data['label'] : null;
+        // Trim before use so a whitespace-padded id still matches the
+        // internally trimmed slug; otherwise the rename branch below fires
+        // spuriously and orphans the existing config entry.
+        $oldId = isset($data['id']) ? trim((string) $data['id']) : null;
+        $label = isset($data['label']) ? trim((string) $data['label']) : null;
 
         // The id is derived from the label (business logic); the Assert
         // constraints then guarantee a non-empty, well-formed slug.
