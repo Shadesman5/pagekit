@@ -66,7 +66,7 @@
 - [x] Step 9 (M) — DI-wiring tests (module $app fallback, factory/finder freshness)
 - [x] Step 10 (L) — PackageManager enable()/uninstall() migration integration + container tests
 - [x] Step 11 (M) — MigrationCommand CLI integration test (CommandTester + in-memory SQLite)
-- [ ] Step 12 (M) — CI minimum line-coverage gate pinned to measured baseline
+- [x] Step 12 (M) — CI minimum line-coverage gate pinned to measured baseline
 - [ ] Step 13 (M) — Codecov upload step + README badge (external activation flagged)
 
 ## TESTING STRATEGY
