@@ -58,7 +58,7 @@
 - [x] Step 1 (S) — Declare StreamWrapper::$context (TD-16, kills 4 deprecations)
 - [x] Step 2 (S) — Remove all setAccessible() calls (tests + production)
 - [x] Step 3 (S) — Decouple RouterTest from blog.permalink → generic option
-- [ ] Step 4 (M) — Harden AddRelNofollowFilter + 3 XSS edge-case tests
+- [x] Step 4 (M) — Harden AddRelNofollowFilter + 3 XSS edge-case tests
 - [ ] Step 5 (L) — Injectable clock (DatabaseHandler + LoginAttemptListener) + boundary tests + drop 2 LessThan ignores
 - [ ] Step 6 (M) — Flip failOnWarning/PhpunitWarning/Risky + re-run Infection + drop UserAccessTest-masked ignores
 - [ ] Step 7 (M) — ORM query-cache invalidation regression test (save/delete → clear)
