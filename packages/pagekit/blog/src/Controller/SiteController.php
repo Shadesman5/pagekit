@@ -7,6 +7,7 @@ namespace Pagekit\Blog\Controller;
 use Pagekit\Application\Response;
 use Pagekit\Application\UrlProvider;
 use Pagekit\Blog\Model\Post;
+use Pagekit\Blog\PostPresenter;
 use Pagekit\Captcha\Attribute\Captcha;
 use Pagekit\Content\ContentHelper;
 use Pagekit\Feed\FeedFactory;
@@ -29,6 +30,7 @@ class SiteController
         private readonly FeedFactory $feed,
         private readonly UrlProvider $url,
         private readonly Response $response,
+        private readonly PostPresenter $postPresenter,
     ) {
         $this->blog = $module->get('blog');
     }
@@ -62,6 +64,7 @@ class SiteController
                     Post::class
                 ));
             }
+            $post->set('commentable', $this->postPresenter->isCommentable($post));
             $post->excerpt = $this->content->applyPlugins($post->excerpt ?? '', ['post' => $post, 'markdown' => $post->get('markdown')]);
             $post->content = $this->content->applyPlugins($post->content ?? '', ['post' => $post, 'markdown' => $post->get('markdown'), 'readmore' => true]);
             $posts[] = $post;
@@ -191,7 +194,7 @@ class SiteController
             '$comments' => [
                 'config' => [
                     'post' => $post->id,
-                    'enabled' => $post->isCommentable(),
+                    'enabled' => $this->postPresenter->isCommentable($post),
                     'requireinfo' => $this->blog->config('comments.require_email'),
                     'max_depth' => $this->blog->config('comments.max_depth'),
                     'user' => [
