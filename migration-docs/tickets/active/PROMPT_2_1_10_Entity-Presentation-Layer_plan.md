@@ -89,7 +89,7 @@
      L = large or loop-risk. A step orchestrator flips its box to [x] in the SAME commit as that
      step's code (after Tester PASS) — no self-referential SHA. -->
 - [x] Step 1 (M) — NodePresenter + service + unit test
-- [ ] Step 2 (M) — PostPresenter + service + unit test (tests/Unit/Blog + bootstrap)
+- [x] Step 2 (M) — PostPresenter + service + unit test (tests/Unit/Blog + bootstrap)
 - [ ] Step 3 (L) — Site call-site migration to NodePresenter (NodeApiController, MenuHelper, menu views)
 - [ ] Step 4 (L) — Blog call-site migration to PostPresenter (PostApiController, CommentApiController, SiteController, posts views)
 - [ ] Step 5 (M) — Entity cleanup (Node/Post) + delete ModelServiceLocator + SiteModule init
