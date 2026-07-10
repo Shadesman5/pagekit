@@ -1,5 +1,27 @@
 # Changelog
 
+## Pagekit 1.2.25 - Entity Presentation Layer (Juli 10, 2026)
+
+### Added
+
+- **`NodePresenter`** — constructor-DI presenter for site nodes (`getUrl`, `isAccessible`, `toArray`) with `NodePresenterTest`. (Closes #204)
+- **`PostPresenter`** — constructor-DI presenter for blog posts (`isCommentable`, `isAccessible`, `toArray`) with `PostPresenterTest` + `tests/Unit/Blog/bootstrap.php`.
+
+### Changed
+
+- **Site API + menus** — `NodeApiController`, `MenuHelper`, and menu views use `NodePresenter` instead of entity presentation methods.
+- **Blog API + public views** — `PostApiController`, `CommentApiController`, `SiteController`, and post list views use `PostPresenter` or transient `commentable` data flags.
+
+### Removed
+
+- **`ModelServiceLocator`** — static service locator deleted; `Node`/`Post` entity presentation methods (`getUrl`, `isAccessible`, `isCommentable`, enriched `jsonSerialize`) removed.
+
+### Phase 1 Audit
+
+- **Step 1.11 (ORM Modernization) — partial:** `ModelServiceLocator` static-service-locator finding resolved. Row stays ⚠️ until Step 2.1.11 removes the `EntityManager` singleton.
+
+---
+
 ## Pagekit 1.2.24 - Test Coverage Expansion (Juli 9, 2026)
 
 ### Added
