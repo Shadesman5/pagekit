@@ -102,14 +102,13 @@ Xdebug (used by CI), and (b) general floating-point jitter.
 | Change | Location | Notes |
 |---|---|---|
 | Codecov upload step | `.github/workflows/php-quality.yml` (`phpunit` **8.3** leg) | `codecov/codecov-action` pinned by SHA `0fb7174895f61a3b6b78fc075e0cd60383518dac` |
-| Non-blocking upload | same step | `fail_ci_if_error: false` |
-| Token wiring | same step | `token: ${{ secrets.CODECOV_TOKEN }}` — best-effort until secret exists |
+| Non-blocking upload | same step | `fail_ci_if_error: false` — Codecov availability never fails the quality gate |
+| **Tokenless auth (OIDC)** | same step + `phpunit` job | `use_oidc: true` + job-level `permissions: id-token: write` — **no `CODECOV_TOKEN` secret** to manage/rotate. Added as follow-up commit `ci(test): use OIDC for tokenless Codecov upload` (replacing the initial `token:`-based wiring). PRs from forks fall back to the public-repo tokenless path. |
 | Coverage badge | `README.md` | Codecov badge alongside PHP/Symfony/Vue badges |
 
-### ⚠️ External activation required (flagged, NOT blocking)
+### ⚠️ External activation (one-time, NOT blocking)
 
-1. Install the **Codecov GitHub App** on `Shadesman5/pagekit`.
-2. Add **`CODECOV_TOKEN`** repository secret in GitHub Actions.
+Install the **Codecov GitHub App** on `Shadesman5/pagekit` so the repo is registered on Codecov (enables the badge + per-PR delta comments). With OIDC there is **no upload-token secret to add** — the app install is the only prerequisite. Confirmed active: the Codecov bot posted its "Welcome to Codecov" comment on PR #218. Per-PR coverage deltas start once a baseline exists on the default branch (i.e. after this PR merges).
 
 ---
 
