@@ -232,6 +232,7 @@ return [
                 $app->get('menu'),
                 $app->get('user'),
                 $app->get('node'),
+                $app->get('nodePresenter'),
             ));
         }, 100],
 

@@ -11,6 +11,7 @@ use Pagekit\Filter\FilterManager;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\Site\Model\Node;
+use Pagekit\Site\NodePresenter;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
 use Symfony\Component\HttpFoundation\Request;
@@ -32,11 +33,12 @@ class NodeApiController
         private readonly ModuleManager $module,
         private readonly ConfigManager $config,
         private readonly ValidatorInterface $validator,
+        private readonly NodePresenter $nodePresenter,
     ) {
     }
 
     /**
-     * @return array<int, Node>
+     * @return array<int, array<string, mixed>>
      */
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
@@ -61,24 +63,27 @@ class NodeApiController
             $nodes[] = $entity;
         }
 
-        return $nodes;
+        return array_map(fn (Node $n) => $this->nodePresenter->toArray($n), $nodes);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     #[Route('/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
-    public function getAction(int $id): Node
+    public function getAction(int $id): array
     {
         if (!$node = Node::find($id)) {
             throw new NotFoundHttpException(__('Node not found.'));
         }
 
-        return $node;
+        return $this->nodePresenter->toArray($node);
     }
 
     /**
      * Save a node (create or update).
      *
      * @param  array<string, mixed>|null $data
-     * @return array{message: string, node: Node}
+     * @return array{message: string, node: array<string, mixed>}
      */
     #[Route('/', methods: ['POST'])]
     #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
@@ -124,7 +129,7 @@ class NodeApiController
 
         $node->save($data);
 
-        return ['message' => 'success', 'node' => $node];
+        return ['message' => 'success', 'node' => $this->nodePresenter->toArray($node)];
     }
 
     /**
