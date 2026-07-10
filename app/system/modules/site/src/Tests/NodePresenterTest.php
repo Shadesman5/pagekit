@@ -14,7 +14,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Covers NodePresenter — the constructor-DI replacement for the Node entity's
- * former ModelServiceLocator reach-through. Exercises URL generation, the
+ * former static service-locator reach-through. Exercises URL generation, the
  * published/access gate and the enriched toArray() shape while staying clear of
  * the ORM: the Node's kernel-bound methods (toArray/hasAccess) are stubbed and
  * the plain public columns are set directly, so no database is required.

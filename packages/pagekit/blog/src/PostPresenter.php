@@ -15,7 +15,7 @@ use Pagekit\User\Model\User;
  *
  * Constructor-injects the URL provider, the current user and the blog module so
  * the enriched `url`/`comments_pending`/`accessible` output no longer depends on
- * the static ModelServiceLocator reach-through. The entity stays a plain ORM
+ * a static service-locator reach-through. The entity stays a plain ORM
  * model; presentation concerns live here.
  */
 final class PostPresenter

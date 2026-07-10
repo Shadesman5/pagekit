@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Pagekit\Blog\Model;
 
 use Pagekit\Database\ORM\Attribute as ORM;
-use Pagekit\Site\ModelServiceLocator;
 use Pagekit\System\Model\DataModelTrait;
 use Pagekit\User\Model\AccessModelTrait;
 use Pagekit\User\Model\User;
@@ -102,7 +101,6 @@ class Post implements \JsonSerializable
     protected static array $properties = [
         'author' => 'getAuthor',
         'published' => 'isPublished',
-        'accessible' => 'isAccessible',
     ];
 
     /**
@@ -125,17 +123,6 @@ class Post implements \JsonSerializable
         return $statuses[$this->status] ?? __('Unknown');
     }
 
-    public function isCommentable(): bool
-    {
-        $blog = ModelServiceLocator::getModule('blog');
-        if ($blog === null) {
-            return (bool) $this->comment_status;
-        }
-        $autoclose = $blog->config('comments.autoclose') ? $blog->config('comments.autoclose_days') : 0;
-
-        return $this->comment_status && (!$autoclose or $this->date >= new \DateTime("-{$autoclose} day"));
-    }
-
     public function getAuthor(): ?string
     {
         return $this->user ? $this->user->username : null;
@@ -144,30 +131,5 @@ class Post implements \JsonSerializable
     public function isPublished(): bool
     {
         return $this->status === self::STATUS_PUBLISHED && $this->date < new \DateTime();
-    }
-
-    public function isAccessible(?User $user = null): bool
-    {
-        return $this->isPublished() && $this->hasAccess($user ?: ModelServiceLocator::getUser());
-    }
-
-    /**
-     * {@inheritdoc}
-     *
-     * @return array<string, mixed>
-     */
-    public function jsonSerialize(): array
-    {
-        $data = [
-            'url' => ModelServiceLocator::getUrl()->get('@blog/id', ['id' => $this->id ?: 0], 'base'),
-        ];
-
-        if ($this->comments) {
-            $data['comments_pending'] = count(array_filter($this->comments, function ($comment) {
-                return $comment->status == Comment::STATUS_PENDING;
-            }));
-        }
-
-        return $this->toArray($data);
     }
 }

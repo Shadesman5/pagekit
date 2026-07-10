@@ -5,13 +5,10 @@ declare(strict_types=1);
 namespace Pagekit\Site\Model;
 
 use Pagekit\Database\ORM\Attribute as ORM;
-use Pagekit\Routing\Generator\UrlGenerator;
-use Pagekit\Site\ModelServiceLocator;
 use Pagekit\System\Model\DataModelTrait;
 use Pagekit\System\Model\NodeInterface;
 use Pagekit\System\Model\NodeTrait;
 use Pagekit\User\Model\AccessModelTrait;
-use Pagekit\User\Model\User;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -80,34 +77,4 @@ class Node implements NodeInterface, \JsonSerializable
 
     #[ORM\Column(type: 'string')]
     public ?string $menu = '';
-
-    /** @var array<string, string> */
-    protected static array $properties = [
-        'accessible' => 'isAccessible',
-    ];
-
-    /**
-     * Gets the node URL.
-     *
-     * @param  mixed  $referenceType
-     */
-    public function getUrl(mixed $referenceType = UrlGenerator::ABSOLUTE_PATH): string|false
-    {
-        return ModelServiceLocator::getUrl()->get($this->link, [], $referenceType);
-    }
-
-    public function isAccessible(?User $user = null): bool
-    {
-        return $this->status && $this->hasAccess($user ?: ModelServiceLocator::getUser());
-    }
-
-    /**
-     * {@inheritdoc}
-     *
-     * @return array<string, mixed>
-     */
-    public function jsonSerialize(): array
-    {
-        return $this->toArray(['url' => $this->getUrl('base')]);
-    }
 }

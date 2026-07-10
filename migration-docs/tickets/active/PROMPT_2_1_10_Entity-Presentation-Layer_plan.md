@@ -92,7 +92,7 @@
 - [x] Step 2 (M) — PostPresenter + service + unit test (tests/Unit/Blog + bootstrap)
 - [x] Step 3 (L) — Site call-site migration to NodePresenter (NodeApiController, MenuHelper, menu views)
 - [x] Step 4 (L) — Blog call-site migration to PostPresenter (PostApiController, CommentApiController, SiteController, posts views)
-- [ ] Step 5 (M) — Entity cleanup (Node/Post) + delete ModelServiceLocator + SiteModule init
+- [x] Step 5 (M) — Entity cleanup (Node/Post) + delete ModelServiceLocator + SiteModule init
 
 ## TESTING STRATEGY
 - **Per step (Tester subagent):** PHPUnit + PHPStan (mandatory after every checklist step).

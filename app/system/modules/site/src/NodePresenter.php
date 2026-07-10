@@ -13,7 +13,7 @@ use Pagekit\User\Model\User;
  * Presentation layer for {@see Node} entities.
  *
  * Constructor-injects the URL provider and the current user so the enriched
- * `url`/`accessible` output no longer depends on the static ModelServiceLocator
+ * `url`/`accessible` output no longer depends on a static service-locator
  * reach-through. The entity stays a plain ORM model; presentation concerns live
  * here.
  */
