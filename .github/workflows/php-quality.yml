@@ -17,6 +17,12 @@ jobs:
   phpunit:
     name: phpunit (${{ matrix.php }})
     runs-on: ubuntu-latest
+    # id-token: write lets the Codecov step authenticate tokenless via OIDC
+    # (no CODECOV_TOKEN secret needed). contents: read is required for checkout;
+    # job-level permissions REPLACE the workflow-level block, so restate it here.
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -60,10 +66,13 @@ jobs:
       # Codecov upload (Step 2.1.9, §4.3) — feeds the README badge and per-PR
       # coverage-delta comments off the same Clover report. Kept NON-BLOCKING
       # (fail_ci_if_error: false) so the quality gate never depends on Codecov
-      # availability. EXTERNAL ACTIVATION REQUIRED: a human must install the
-      # Codecov GitHub App on Shadesman5/pagekit and add a CODECOV_TOKEN Actions
-      # secret for reliable + fork uploads and the delta comments. Until then the
-      # step runs tokenless (best-effort) and simply no-ops on failure. See
+      # availability. Authenticates TOKENLESS via OIDC (use_oidc: true) — no
+      # CODECOV_TOKEN secret to manage or rotate; relies on the job-level
+      # id-token: write permission set above. EXTERNAL ACTIVATION REQUIRED: a
+      # human must still install the Codecov GitHub App on Shadesman5/pagekit so
+      # the repo is registered on Codecov (enables the badge + PR delta comments).
+      # Note: OIDC is unavailable for PRs from forks — those fall back to the
+      # public-repo tokenless path or simply no-op (non-blocking). See
       # migration-docs/branches/phase-2/step-2-1-9-test-coverage-expansion.md.
       - name: Upload coverage to Codecov
         if: matrix.php == '8.3'
@@ -72,7 +81,7 @@ jobs:
           files: ./coverage.xml
           slug: Shadesman5/pagekit
           fail_ci_if_error: false
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: true
 
       # Ratcheting minimum line-coverage gate (Step 2.1.9, §4.2). The floor is
       # pinned to this branch's measured line coverage after Steps 1-11 landed:
