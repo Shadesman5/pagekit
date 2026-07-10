@@ -245,9 +245,9 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Goal**: Remove the transitional static `ModelServiceLocator` and move presentation/infrastructure concerns out of the `Node` / `Post` entities into a proper DTO/presenter layer with constructor DI.
 - **Prerequisite**: Step 2.1.6 (PHPStan Level 7→8) — the locator's `getUrl()` / `getUser()` / `getModule()` return types are narrowed to concrete types there first.
 - **Issue**: GitHub #204 (sub-issue of #147 — Step 2.1)
-- **Prompt**: _to be written_ (`PROMPT_2_1_10_Entity-Presentation-Layer.md`)
+- **Prompt**: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_10_Entity-Presentation-Layer.md`
 - **Context**: `ModelServiceLocator` was introduced in Step 2.0.1e (PSR-11 / StaticTrait removal) as a deliberate temporary bridge, so entities could reach the `url` / `user` / `module` services without the old global `App` anti-pattern. It is the **last static service locator in the model layer** and is tagged in-code: `// TODO: Must be refactored in Step 2.1.10 (Entity Presentation Layer) — replace ModelServiceLocator with proper DTO/presenter pattern (GitHub #204)`.
-- **Closes Phase 1 audit:** **Step 1.11 (ORM Modernization) ⚠️ → 🛡️** (final part) — removes the `ModelServiceLocator` "static service locator" finding that Step 2.1.6 only type-narrowed. The 1.11 cell flips to 🛡️ once **2.0.8 + 2.1.6 + this step (2.1.10)** have all landed.
+- **Closes Phase 1 audit:** **Step 1.11 (ORM Modernization)** — **partial:** removes the `ModelServiceLocator` "static service locator" finding that Step 2.1.6 only type-narrowed. **1.11 stays ⚠️ after this step** and flips to 🛡️ only when the `EntityManager` singleton is also removed in **Step 2.1.11** (after 2.0.8 + 2.1.6 + 2.1.10 + 2.1.11 have all landed).
 - **Problem** — entities currently mix persistence with presentation/infrastructure concerns:
   - `Node::getUrl()` / `Node::jsonSerialize()` — needs the URL generator
   - `Node::isAccessible()` / `Post::isAccessible()` — needs the current user
@@ -272,7 +272,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Goal**: Replace the static Active-Record access in the model layer (static `Model::find()` / `where()` backed by the `EntityManager` singleton) with an injected `EntityManager` / repositories (Data Mapper); remove the singleton and its boot hack.
 - **Prerequisite**: Step 2.1.6 (PHPStan Level 7→8) — 2.1.6 only **hardens the typing** of the singleton (no wrap, one mechanism); the architectural removal happens here. Also Step 2.1.10 (DTO/presenter layer) — presentation-layer cleanup precedes the persistence-layer refactor.
 - **Issue**: GitHub #205 (sub-issue of #147 — Step 2.1)
-- **Prompt**: _to be written_ (`PROMPT_2_1_11_EntityManager-DI.md`)
+- **Prompt**: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_11_EntityManager-DI.md`
 - **Context**: The `EntityManager` registers itself as a static singleton in its constructor (`static::$instance = $this`, `EntityManager.php`), exposed via `getInstance()`. `ModelTrait::getManager()` falls back to it, and `app/system/index.php` eagerly resolves `db.em` at boot **solely** to populate the singleton so static model calls work. It is the **last global-state access in the model layer** after `ModelServiceLocator` (2.1.10).
 - **Closes Phase 1 audit:** **Step 1.11 (ORM Modernization)** — removes the `EntityManager` singleton finding (the last 1.11 item beyond `ModelServiceLocator`). Combined with 2.0.8 + 2.1.6 + 2.1.10, this completes 1.11.
 - **Tasks**:
@@ -295,6 +295,8 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 - **Goal**: Narrow the last few _avoidable_ `mixed` occurrences from the Step 2.1.6 `mixed` audit to honest, concrete types — no behaviour change, purely developer-facing type accuracy (lightweight, IDE/PHPStan-friendly).
 - **Prerequisite**: Step 2.1.6 (PHPStan Level 8) — these are the residual narrowable candidates left after the L8 sweep.
+- **Issue**: GitHub #217 (sub-issue of #147 — Step 2.1)
+- **Prompt**: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_12_Residual-Mixed-Narrowing.md`
 - **Scope note**: This is **not** a blanket "remove all `mixed`" pass (there is no PHPStan-Level-9 step planned). The bulk of remaining `mixed` is legitimate and stays: docblock array shapes, magic-method proxies, filter/loader/PSR-11 contracts, polymorphic `preg_replace` returns, and `callable`-typed properties (PHP forbids `callable` as a native property type → `mixed` + `@var callable…` docblock is the idiomatic best practice). Only the genuinely narrowable cases below are in scope.
 - **Tasks**:
   - `app/system/modules/captcha/src/CaptchaListener.php:146` — `verifyToken(mixed $gRecaptchaResponse, mixed $secret)` → `string`. Modernise the single call site (line 141) to feed real strings via Symfony 6.4 typed request accessors: `$request->request->getString('gRecaptchaResponse')` (instead of `$request->get(...)`, which may return an array/null) + `(string) $this->captchaModule->config('recaptcha_secret')`.
@@ -461,6 +463,11 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Tasks (draft)**:
   - **Resolve the deferred Infection markers** surfaced in 2.1.8 (if not already cleared by 2.1.9): the injectable-clock time-boundary mutants (`DatabaseHandler::read:53`, `LoginAttemptListener::onPreAuthenticate:43`) and the `failOn*` gate flip + `UserAccessTest` ignore drops. Use the §2.4 defer-marker scan in the 2.1.9 prompt to confirm none remain.
   - **Extend coverage** to the DB-bound integration paths deferred from 2.1.9 (e.g. `UserProvider` happy-path lookups, `UserListener` handlers, `User::hasPermission` uncached branch) and to further high-risk modules (database/ORM, filesystem).
+  - **Edge-case scenarios carried over from 2.1.9** — these real-Pagekit-scenario tests are listed in the 2.1.9 prompt/issue (#156) but were **not** implemented in PR #218 (which delivered the ORM query-cache invalidation + `AddRelNofollowFilter` XSS edge cases instead). Add them here so they land with the broader coverage push rather than piecemeal:
+    - **Large file uploads** (Storage / filesystem module)
+    - **Concurrent admin actions** (session handling)
+    - **Database connection failures** (ORM error handling)
+  - **`packages/` coverage** — deferred from 2.1.9, where `packages/` is explicitly **not** in the measured `phpunit.xml.dist <source>` scope (the coverage gate only covers `app/modules`, `app/system`, `app/console`). Add the packages to the measured `<source>` (or a dedicated testsuite) first, then raise `packages/pagekit/blog/` to 60 %+ and `packages/pagekit/theme-one/` to 30 %+ (theme is mostly views → low target).
   - **Widen the Infection scope** in `infection.json.dist` beyond auth + user, prioritising data-integrity code.
   - **Ratchet the gates:** measure the actual MSI / Covered MSI on the widened scope, then set `minMsi` / `minCoveredMsi` just below the measured value and raise incrementally — never below (same ratchet principle as the 2.1.9 line-coverage gate).
 - **Note**: This is the Phase 2 _closeout_ consolidation of the ongoing Step 2.1.9 effort — **not** a replacement for it. Coverage keeps growing per-branch until here, where the bar is formally raised.

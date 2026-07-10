@@ -25,15 +25,15 @@
 
 ## Current Frontend Dependencies (Status Quo)
 
-| Package             | Version          | Status                                 | Action in Phase 3                                                    |
-| ------------------- | ---------------- | -------------------------------------- | -------------------------------------------------------------------- |
-| `vue`               | ~2.6.12          | Legacy                                 | → Vue 3.x (Step 3.2 + 3.4)                                          |
-| `vue-resource`      | ~1.5.1           | Archived, Vue-3-incompatible           | → `axios` (Step 3.4.1)                                              |
-| `vue-event-manager` | ~2.1.3           | Archived, Vue-3-incompatible           | → `mitt` (Step 3.4.2)                                               |
-| `vue-intl`          | uatrend/vue-intl | Community fork, custom AngularJS logic | → **Delete & rewrite** with native `Intl` API (Step 3.4.5)          |
-| `vue-nestable`      | ~2.6.0           | Hierarchical page tree                 | → Vue 3 tree alternative (Step 3.4.5) — **NOT UIkit sortable!**     |
-| `vee-validate`      | ~3.3.11          | Validation                             | → `vee-validate` v4 (Vue 3 Composition API) (Step 3.4.5)            |
-| `lodash`            | ~4.17.21         | 24/300+ functions in 65+ files         | → Native ES2020+ + `utils.js` (~1 KB) (Step 3.4.5)                  |
+| Package             | Version          | Status                                 | Action in Phase 3                                               |
+| ------------------- | ---------------- | -------------------------------------- | --------------------------------------------------------------- |
+| `vue`               | ~2.6.12          | Legacy                                 | → Vue 3.x (Step 3.2 + 3.4)                                      |
+| `vue-resource`      | ~1.5.1           | Archived, Vue-3-incompatible           | → `axios` (Step 3.4.1)                                          |
+| `vue-event-manager` | ~2.1.3           | Archived, Vue-3-incompatible           | → `mitt` (Step 3.4.2)                                           |
+| `vue-intl`          | uatrend/vue-intl | Community fork, custom AngularJS logic | → **Delete & rewrite** with native `Intl` API (Step 3.4.5)      |
+| `vue-nestable`      | ~2.6.0           | Hierarchical page tree                 | → Vue 3 tree alternative (Step 3.4.5) — **NOT UIkit sortable!** |
+| `vee-validate`      | ~3.3.11          | Validation                             | → `vee-validate` v4 (Vue 3 Composition API) (Step 3.4.5)        |
+| `lodash`            | ~4.17.21         | 24/300+ functions in 65+ files         | → Native ES2020+ + `utils.js` (~1 KB) (Step 3.4.5)              |
 
 ---
 
@@ -238,7 +238,7 @@
 - **Content**: Formal bundling of the Intl platform API ($date, $number, $currency, $relativeDate) and optional backend integration (inject `TranslatorInterface` in service/domain code — the template-facing global helpers `__()`/`_i()` stay; see the keep-vs-remove decision below).
 - **Order**: Interleaved with 3.4.5 in implementation; tracked as a separate sub-step 3.4.6 in the ROADMAP.
 - **Tasks (identified from 2.1.1 review):**
-  - **Decision — keep vs. remove global functions** (best practice): global translation helpers are the legitimate DX API for **DI-less PHP templates/themes**, analogous to the `$date`/`$number` platform API. **Keep** `__()` (alias for `trans()`) and `_i()` (ICU MessageFormat), plus the `IntlServiceLocator` DI-glue that backs them (permanent — not a bridge to remove). **Remove** only the legacy `_c()` / `transChoice` plural bridge (below). The "no global functions" goal applies to **service/domain code** — there, inject `TranslatorInterface`. So this step *narrows* the translation API, it does not delete the template-facing helpers.
+  - **Decision — keep vs. remove global functions** (best practice): global translation helpers are the legitimate DX API for **DI-less PHP templates/themes**, analogous to the `$date`/`$number` platform API. **Keep** `__()` (alias for `trans()`) and `_i()` (ICU MessageFormat), plus the `IntlServiceLocator` DI-glue that backs them (permanent — not a bridge to remove). **Remove** only the legacy `_c()` / `transChoice` plural bridge (below). The "no global functions" goal applies to **service/domain code** — there, inject `TranslatorInterface`. So this step _narrows_ the translation API, it does not delete the template-facing helpers.
   - **Remove transChoice (PHP + Vue):**
     - Remove global `_c()` function (`app/system/modules/intl/functions.php`)
     - Remove namespaced `Pagekit\_c()` (`functions-pagekit-namespace.php`)
@@ -285,7 +285,7 @@
 
 ---
 
-## Step 3.6.1: ↳ E2E Test Suite Rework (best-practice migration)
+### Step 3.6.1: E2E Test Suite Rework (best-practice migration)
 
 - **Status**: ⏳ Planned (added 2026-07-09; **re-homed from Step 2.1.9** during ticket planning — the full E2E rework is too large/orthogonal for the 2.1.9 coverage PR).
 - **Goal**: Rework the Playwright E2E suite to follow current best practices so it is trustworthy for regression testing. The Phase 1 audit found most specs poorly written — only ~3 of the 11 specs (`01-setup/installation`, `02-core/authentication`, `02-core/dashboard`) are sound, and the Orchestrator/Tester currently runs only those three at end-of-ticket.
