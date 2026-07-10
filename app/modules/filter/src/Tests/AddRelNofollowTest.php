@@ -13,15 +13,35 @@ class AddRelNofollowTest extends TestCase
     {
         $filter = new AddRelNofollowFilter();
 
-        $this->assertTrue(false !== strpos((string) $filter->filter('<a href="http://www.example.com/">text</a>'), 'rel="nofollow"'));
-        $this->assertTrue(false !== strpos((string) $filter->filter('<A href="http://www.example.com/">text</a>'), 'rel="nofollow"'));
+        $this->assertStringContainsString('rel="nofollow"', (string) $filter->filter('<a href="http://www.example.com/">text</a>'));
+        $this->assertStringContainsString('rel="nofollow"', (string) $filter->filter('<A href="http://www.example.com/">text</a>'));
+    }
 
-        // TODO: Must be refactored in Step 2.1.9 (Test Coverage Expansion) —
-        // These XSS/obfuscation edge cases fail because AddRelNofollowFilter uses a simple
-        // regex that doesn't handle malformed HTML. The filter needs hardening before enabling.
-        //   - <a/href=...> (slash instead of space)
-        //   - <\0a\0 href=...> (null-byte obfuscation)
-        //   - rel="follow" should be replaced by rel="nofollow"
+    public function testFilterMatchesSlashObfuscatedAnchor(): void
+    {
+        $filter = new AddRelNofollowFilter();
+
+        $this->assertStringContainsString('rel="nofollow"', (string) $filter->filter('<a/href="http://www.example.com/">text</a>'));
+    }
+
+    public function testFilterIsSafeAgainstNullByteObfuscation(): void
+    {
+        $filter = new AddRelNofollowFilter();
+
+        $filtered = (string) $filter->filter("<\0a\0 href=\"http://www.example.com/\">text</a>");
+
+        $this->assertStringContainsString('rel="nofollow"', $filtered);
+        $this->assertStringNotContainsString("\0", $filtered);
+    }
+
+    public function testFilterReplacesExistingRelFollow(): void
+    {
+        $filter = new AddRelNofollowFilter();
+
+        $filtered = (string) $filter->filter('<a href="http://www.example.com/" rel="follow">text</a>');
+
+        $this->assertStringContainsString('rel="nofollow"', $filtered);
+        $this->assertStringNotContainsString('rel="follow"', $filtered);
     }
 
 }

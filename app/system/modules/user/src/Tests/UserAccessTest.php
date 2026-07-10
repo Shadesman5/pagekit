@@ -15,22 +15,38 @@ use PHPUnit\Framework\TestCase;
  * mock of `User` that stubs `isAdministrator()` and `hasPermission()` so the
  * tests stay pure unit tests (no DB, no kernel, no container).
  *
- * Infection ignores (Step 2.1.8, see infection.json.dist `mutators`):
- * every parser character read is guarded by `$pos < $len`, so a mutated
- * out-of-bounds read of `$exp[$pos]` only emits a benign "Uninitialized string
- * offset" warning. Because `failOnWarning="false"` (owned by Step 2.1.9) and
- * Infection forces `stopOnDefect`, that warning halts the mutant run at exit 0
- * before a real failure registers. This masks two groups:
- *   - Result-equivalent (assertions all still hold, only the warning differs):
- *     LessThan `<`->`<=` at parseOrExpr:273/275, parseAndExpr:289/291,
- *     parseNotExpr:303; GreaterThanOrEqualTo `>=`->`>` at parseAtom:314/323;
- *     LogicalOr `||`->`&&` at parseAtom:323 (a desynced parser still rejects
- *     malformed input with InvalidArgumentException).
- *   - Killable-but-masked (this suite DOES kill them — manually applying the
- *     mutants yields 17 errors for LessThanNegotiation and 8 for LogicalAnd):
- *     LessThanNegotiation `<`->`>` and LogicalAnd `&&`->`||` on the while
- *     conditions at parseOrExpr:273 / parseAndExpr:289.
- * Drop both ignore groups once Step 2.1.9 flips failOnWarning to "true".
+ * Infection resolution (Step 2.1.9): the User boolean-parser ignores that Step
+ * 2.1.8 registered in infection.json.dist have been removed and every mutant is
+ * killed outright -- no ignores, no `Equivalent` entries. Two mechanisms cooperate:
+ *
+ *   1. `failOnWarning="true"` (flipped in phpunit.xml.dist this step). Every parser
+ *      character read is guarded by `$pos < $len` / `$pos >= $len`; a mutated
+ *      boundary (`<`->`<=`, `>=`->`>`) reads `$exp[$len]`, an out-of-bounds access
+ *      emitting an "Uninitialized string offset" warning that now fails the run.
+ *      This flip alone is NOT sufficient: before this step no test drove `$pos` to
+ *      `$len` at those guards, so the warning never fired and the mutants escaped
+ *      (the Step 6 Tester finding).
+ *   2. Explicit boundary tests supply the missing triggering inputs so the
+ *      out-of-bounds reads actually execute under each mutant:
+ *        - testEvaluatorRejectsTrailingOrPipe       ('1|') -> LessThan parseOrExpr:275
+ *        - testEvaluatorRejectsTrailingAndAmpersand  ('1&') -> LessThan parseAndExpr:291
+ *        - testEvaluatorRejectsBareNot               ('!')  -> LessThan parseNotExpr:303
+ *        - testEvaluatorRejectsUnclosedParenthesisAtEnd ('(1') -> GreaterThanOrEqualTo parseAtom:323
+ *      The GreaterThanOrEqualTo mutant at parseAtom:314 is killed *behaviourally* by
+ *      the three malformed-token tests above: the mutant lets `$ch = ""` fall
+ *      through to the "Unexpected character ..." message rather than the original's
+ *      "Unexpected end of expression", which those tests assert.
+ *
+ * The LogicalOr `||`->`&&` at parseAtom:323 is killed *behaviourally* (no warning
+ * needed) by testEvaluatorRejectsUnclosedParenthesisWithTrailingInput ('(11'): the
+ * mutant skips the "Missing closing parenthesis" throw and returns a bool, so the
+ * expected exception never fires.
+ *
+ * The LessThanNegotiation `<`->`>` and LogicalAnd `&&`->`||` mutants on the while
+ * conditions at parseOrExpr:273 / parseAndExpr:289 are killed directly by the
+ * assertions in this suite once the warning no longer short-circuits the run. The
+ * LoginAttemptListener / AccessListener / ReturnRemoval ignores that remain in
+ * infection.json.dist are unrelated to this parser.
  */
 class UserAccessTest extends TestCase
 {
@@ -164,6 +180,89 @@ class UserAccessTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
 
         $this->evaluate('&');
+    }
+
+    // Boundary inputs (Step 2.1.9): each drives `$pos` to `$len` at a specific
+    // parser guard so the previously-masked Infection mutants are killed. See the
+    // class docblock for the full mutant-to-test mapping.
+
+    /**
+     * A trailing single `|` ('1|') is consumed by parseOrExpr(), leaving
+     * `$pos === $len` at the inner second-pipe guard (parseOrExpr:275). The
+     * original `$pos < $len` short-circuits without reading; the `<`->`<=` mutant
+     * reads `$exp[$len]` (out-of-bounds -> "Uninitialized string offset" warning),
+     * which fails the run under failOnWarning="true". The input also reaches
+     * parseAtom() at `$pos === $len`: the original throws "Unexpected end of
+     * expression", whereas the parseAtom:314 `>=`->`>` mutant reads OOB and throws
+     * "Unexpected character ...", so the asserted message pins that mutant too.
+     */
+    public function testEvaluatorRejectsTrailingOrPipe(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unexpected end of expression');
+
+        $this->evaluate('1|');
+    }
+
+    /**
+     * Mirror of the trailing-pipe case for the `&` branch: '1&' leaves
+     * `$pos === $len` at the inner second-ampersand guard (parseAndExpr:291),
+     * killing the `<`->`<=` mutant there via the out-of-bounds-read warning, and
+     * again reaches parseAtom() at `$pos === $len` (pins parseAtom:314 through the
+     * asserted "Unexpected end of expression" message).
+     */
+    public function testEvaluatorRejectsTrailingAndAmpersand(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unexpected end of expression');
+
+        $this->evaluate('1&');
+    }
+
+    /**
+     * A bare `!` recurses into parseNotExpr() with `$pos === $len`
+     * (parseNotExpr:303). The original guard short-circuits; the `<`->`<=` mutant
+     * reads `$exp[$len]` (out-of-bounds -> warning), killing it. Control then falls
+     * to parseAtom() at `$pos === $len`, pinning parseAtom:314 via the asserted
+     * "Unexpected end of expression" message.
+     */
+    public function testEvaluatorRejectsBareNot(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unexpected end of expression');
+
+        $this->evaluate('!');
+    }
+
+    /**
+     * An unclosed parenthesis at end-of-input ('(1') leaves `$pos === $len` at the
+     * closing-paren guard (parseAtom:323). The original `$pos >= $len` short-circuits
+     * the `||`; the `>=`->`>` mutant instead reads `$exp[$len]` (out-of-bounds ->
+     * warning), killing it under failOnWarning="true".
+     */
+    public function testEvaluatorRejectsUnclosedParenthesisAtEnd(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Missing closing parenthesis');
+
+        $this->evaluate('(1');
+    }
+
+    /**
+     * An unclosed parenthesis whose inner expression is followed by more input
+     * ('(11') pins the LogicalOr mutant at the closing-paren guard (parseAtom:323)
+     * *behaviourally* -- no warning needed. Original: `$pos >= $len || $exp[$pos]
+     * !== ')'` is true (the char is '1', not ')'), so it throws. The `||`->`&&`
+     * mutant flips the condition to false, skips the throw, consumes the '1', and
+     * the whole string parses to `true` with `$pos === $len`, so the expected
+     * exception never fires and the mutant is killed.
+     */
+    public function testEvaluatorRejectsUnclosedParenthesisWithTrailingInput(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Missing closing parenthesis');
+
+        $this->evaluate('(11');
     }
 
     // -----------------------------------------------------------------------

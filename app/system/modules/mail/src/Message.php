@@ -388,7 +388,6 @@ class Message extends Email implements MessageInterface
             // Try body property first
             if ($reflection->hasProperty('body')) {
                 $bodyProperty = $reflection->getProperty('body');
-                $bodyProperty->setAccessible(true);
                 $body = $bodyProperty->getValue($dataPart);
 
                 if (is_string($body) && file_exists($body)) {
@@ -400,7 +399,6 @@ class Message extends Email implements MessageInterface
             foreach (['path', 'filename', 'file'] as $propName) {
                 if ($reflection->hasProperty($propName)) {
                     $prop = $reflection->getProperty($propName);
-                    $prop->setAccessible(true);
                     $value = $prop->getValue($dataPart);
 
                     if (is_string($value) && file_exists($value)) {
@@ -435,7 +433,6 @@ class Message extends Email implements MessageInterface
                 $allProperties = $parentReflection->getProperties();
 
                 foreach ($allProperties as $prop) {
-                    $prop->setAccessible(true);
                     $value = $prop->getValue($this);
 
                     // Look for an array that contains our DataPart objects

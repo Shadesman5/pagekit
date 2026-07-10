@@ -6,6 +6,7 @@ use Pagekit\User\Event\AccessListener;
 use Pagekit\User\Event\AuthorizationListener;
 use Pagekit\User\Event\LoginAttemptListener;
 use Pagekit\User\Event\UserListener;
+use Symfony\Component\Clock\Clock;
 
 return [
 
@@ -159,6 +160,7 @@ return [
             ));
             $app->get('events')->subscribe(new LoginAttemptListener(
                 $app->get('cache'),
+                new Clock(),
             ));
             $app->get('events')->subscribe(new UserListener());
         },

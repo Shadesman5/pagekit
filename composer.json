@@ -23,6 +23,7 @@
     "nikic/php-parser": "^5.4",
     "psr/log": "^2.0|^3.0",
     "psr/cache": "^2.0|^3.0",
+    "psr/clock": "^1.0",
     "symfony/mailer": "^6.4",
     "symfony/error-handler": "^6.4",
     "symfony/finder": "^6.4",
@@ -38,6 +39,7 @@
     "symfony/translation": "^6.4",
     "twig/twig": "^3.14",
     "symfony/cache": "^6.4",
+    "symfony/clock": "^6.4",
     "doctrine/migrations": "^3.9",
     "symfony/validator": "^6.4"
   },

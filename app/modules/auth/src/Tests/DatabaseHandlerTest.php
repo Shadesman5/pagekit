@@ -9,6 +9,9 @@ use Pagekit\Auth\Handler\DatabaseHandler;
 use Pagekit\Cookie\CookieJar;
 use Pagekit\Database\Connection;
 use PHPUnit\Framework\TestCase;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\Clock;
+use Symfony\Component\Clock\MockClock;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -17,13 +20,16 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * Unit tests for the database-backed session {@see DatabaseHandler}.
  *
  * Infection ignores (Step 2.1.8, see infection.json.dist `mutators`):
- *   - ReturnRemoval at read:45 and destroy:107 — the `$config === null` early
+ *   - ReturnRemoval at read:50 and destroy:112 — the `$config === null` early
  *     returns are redundant: getToken() independently returns null when config
  *     is null, so both method bodies are inert without the guard. Equivalent.
- *   - LessThan at read:53 — the `strtotime($access) + timeout < time()` session
- *     timeout boundary only flips when the sum lands exactly on `time()`, which
- *     is not deterministically reproducible without an injectable clock.
- *     Deferred to Step 2.1.9 (clock injection).
+ *
+ * Step 2.1.9 (clock injection): the session-timeout boundary
+ * `strtotime($access) + timeout < clock->now()` now reads "now" via an injected
+ * PSR-20 {@see ClockInterface} (defaulting to a real {@see Clock}), so a
+ * {@see MockClock} freezes the instant and lands the sum exactly on it. The
+ * boundary tests below kill the LessThan mutant (`<` -> `<=`) that was previously
+ * ignored, so its infection.json.dist entry has been removed.
  */
 class DatabaseHandlerTest extends TestCase
 {
@@ -76,7 +82,7 @@ class DatabaseHandlerTest extends TestCase
 
         $handler = new DatabaseHandler($connection, $requests, $cookie, self::CONFIG);
 
-        $this->assertSame(4, (new \ReflectionClass($handler))->getConstructor()?->getNumberOfParameters());
+        $this->assertSame(5, (new \ReflectionClass($handler))->getConstructor()?->getNumberOfParameters());
     }
 
     public function testConstructorAllowsNullConfig(): void
@@ -87,7 +93,7 @@ class DatabaseHandlerTest extends TestCase
 
         $handler = new DatabaseHandler($connection, $requests, $cookie);
 
-        $this->assertSame(4, (new \ReflectionClass($handler))->getConstructor()?->getNumberOfParameters());
+        $this->assertSame(5, (new \ReflectionClass($handler))->getConstructor()?->getNumberOfParameters());
     }
 
     public function testConstructorContractMatchesModernSignature(): void
@@ -102,8 +108,8 @@ class DatabaseHandlerTest extends TestCase
         $ctor = $ref->getConstructor();
 
         $this->assertNotNull($ctor);
-        $this->assertSame(4, $ctor->getNumberOfParameters(), 'Constructor must take exactly 4 parameters');
-        $this->assertSame(3, $ctor->getNumberOfRequiredParameters(), 'Only the last parameter may be optional');
+        $this->assertSame(5, $ctor->getNumberOfParameters(), 'Constructor must take exactly 5 parameters (connection, requests, cookie, config, clock)');
+        $this->assertSame(3, $ctor->getNumberOfRequiredParameters(), 'connection, requests and cookie are required; config and clock are optional');
 
         $params = $ctor->getParameters();
 
@@ -121,6 +127,14 @@ class DatabaseHandlerTest extends TestCase
         $this->assertTrue($params[3]->allowsNull(), '$config must be ?array');
         $this->assertTrue($params[3]->isDefaultValueAvailable());
         $this->assertNull($params[3]->getDefaultValue());
+
+        // Clock injection (Step 2.1.9): last param is an optional PSR-20 clock
+        // defaulting to a real Symfony Clock, so existing call sites stay valid.
+        $this->assertSame('clock', $params[4]->getName());
+        $this->assertSame(ClockInterface::class, $typeName($params[4]));
+        $this->assertTrue($params[4]->isOptional(), '$clock must be optional');
+        $this->assertTrue($params[4]->isDefaultValueAvailable());
+        $this->assertInstanceOf(Clock::class, $params[4]->getDefaultValue());
 
         $this->assertFalse(
             in_array('random', array_column(array_map(fn ($p) => ['name' => $p->getName()], $params), 'name'), true),
@@ -484,6 +498,68 @@ class DatabaseHandlerTest extends TestCase
         $connection->expects($this->never())->method('insert');
 
         $handler = new DatabaseHandler($connection, $requests, $cookie, self::CONFIG);
+
+        $this->assertNull($handler->read());
+    }
+
+    public function testReadKeepsSessionValidExactlyOnTimeoutBoundary(): void
+    {
+        // Freeze "now" exactly on the timeout boundary: strtotime($access) + timeout
+        // === clock->now(). With `<` the session is NOT yet expired, so read() returns
+        // the user id and refreshes access. The LessThan mutant (`<` -> `<=`) would
+        // treat the boundary as expired and, for an ACTIVE (non-remembered) session,
+        // return null instead.
+        $boundaryNow = 1_700_000_000; // arbitrary fixed instant
+        $access = date('Y-m-d H:i:s', $boundaryNow - self::CONFIG['timeout']);
+        $clock = new MockClock(new \DateTimeImmutable('@' . $boundaryNow));
+
+        $connection = $this->createMock(Connection::class);
+        $cookie = $this->createMock(CookieJar::class);
+        $token = 'boundary-session-token';
+        $requests = $this->buildRequestStackWithToken($token);
+
+        $result = $this->createMock(Result::class);
+        $result->method('fetchAssociative')->willReturn([
+            'user_id' => 42,
+            'status' => DatabaseHandler::STATUS_ACTIVE,
+            'access' => $access,
+        ]);
+        $connection->method('executeQuery')->willReturn($result);
+
+        // Not expired -> only the access timestamp is refreshed; no re-issue (insert).
+        $connection->expects($this->once())
+            ->method('update')
+            ->with(self::CONFIG['table'], $this->arrayHasKey('access'), ['id' => sha1($token)]);
+        $connection->expects($this->never())->method('insert');
+
+        $handler = new DatabaseHandler($connection, $requests, $cookie, self::CONFIG, $clock);
+
+        $this->assertSame(42, $handler->read());
+    }
+
+    public function testReadExpiresActiveSessionOneSecondPastTimeoutBoundary(): void
+    {
+        // One second past the boundary: strtotime($access) + timeout < clock->now().
+        // An expired, non-remembered session bails out with null and touches nothing.
+        $boundaryNow = 1_700_000_000; // arbitrary fixed instant
+        $access = date('Y-m-d H:i:s', $boundaryNow - self::CONFIG['timeout']);
+        $clock = new MockClock(new \DateTimeImmutable('@' . ($boundaryNow + 1)));
+
+        $connection = $this->createMock(Connection::class);
+        $cookie = $this->createMock(CookieJar::class);
+        $requests = $this->buildRequestStackWithToken('expired-session-token');
+
+        $result = $this->createMock(Result::class);
+        $result->method('fetchAssociative')->willReturn([
+            'user_id' => 9,
+            'status' => DatabaseHandler::STATUS_ACTIVE,
+            'access' => $access,
+        ]);
+        $connection->method('executeQuery')->willReturn($result);
+        $connection->expects($this->never())->method('update');
+        $connection->expects($this->never())->method('insert');
+
+        $handler = new DatabaseHandler($connection, $requests, $cookie, self::CONFIG, $clock);
 
         $this->assertNull($handler->read());
     }

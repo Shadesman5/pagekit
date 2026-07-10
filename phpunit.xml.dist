@@ -1,54 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-    All six `failOn*` attributes are pinned to "false" so the suite exits 0 when
-    pre-existing PHP-level deprecations, PHPUnit-internal deprecations, warnings,
-    notices, or risky-test markers are emitted. This keeps the Step 2.1.2 CI
-    quality gate green without silently masking new regressions in the asserted
-    test bodies themselves.
+    Deprecation/notice gates (failOnDeprecation, failOnPhpunitDeprecation,
+    failOnNotice) are pinned to "false": a few pre-existing PHPUnit-internal
+    deprecations and notices are still emitted, and failing on them would not
+    protect anything in the asserted test bodies. They are the last gates left to
+    flip — the residual noise is cleared and all three set to "true" in the Phase 2
+    closeout (ROADMAP Step 2.9).
 
-    Each suppression is owned by a specific future ROADMAP step that MUST flip
-    it back to "true" once the underlying noise is fixed:
+    The test-hygiene gates (failOnWarning, failOnPhpunitWarning, failOnRisky) are
+    "true": the suite is warning-clean and every test asserts, so warnings and
+    risky-test markers fail the run.
 
-      failOnDeprecation="false"        -> Step 2.1.4 / 2.1.5
-                                          (PHP-level deprecation cleanup as part
-                                          of PHPStan Level 5->6->7 raises)
-      failOnPhpunitDeprecation="false" -> Step 2.1.4 / 2.1.5
-                                          (PHPUnit-emitted deprecation notices
-                                          tracking the same PHP-level cleanup)
-      failOnNotice="false"             -> Step 2.1.4 / 2.1.5
-                                          (PHP `E_NOTICE`-class issues, cleared
-                                          alongside the deprecation pass)
+    SYMFONY_DEPRECATIONS_HELPER=disabled: symfony/phpunit-bridge auto-registers a
+    shutdown handler that exit(1)s on "not tolerated" PHP deprecations. Disabling
+    it leaves the failOn* settings above as the sole arbiter of exit codes (revisit
+    together with the deprecation gates).
 
-      failOnWarning="false"            -> Step 2.1.9 (Test Coverage Expansion /
-                                          test-suite hygiene — pre-existing SMTP
-                                          and similar environment warnings)
-      failOnPhpunitWarning="false"     -> Step 2.1.9 (PHPUnit-internal warnings
-                                          about test fixture / data-provider
-                                          shape — fixed in test-suite hygiene)
-      failOnRisky="false"              -> Step 2.1.9 (risky-test markers from
-                                          tests with no assertions or unsafe
-                                          state — fixed in test-suite hygiene)
+    noNamespaceSchemaLocation points at the schema vendored with the installed
+    PHPUnit (11.5), not the remote "11.0" URL: the failOnPhpunitDeprecation /
+    failOnPhpunitWarning attributes were added after 11.0 and the remote 11.0 XSD
+    rejects them. PHPUnit ignores this attribute at runtime, but Infection resolves
+    and enforces it when validating the config it generates per mutant, so the
+    local, version-matched path keeps that green.
 
-    SYMFONY_DEPRECATIONS_HELPER=disabled: the symfony/phpunit-bridge bootstrap is
-    auto-loaded via Composer and registers a shutdown handler that calls exit(1)
-    whenever PHP deprecations are "not tolerated". Setting disabled suppresses that
-    shutdown handler so PHPUnit's own failOn* settings (above) are the sole arbiter
-    of exit codes. Owned by: Step 2.1.4 / 2.1.5.
-
-    noNamespaceSchemaLocation points at the version-matched schema vendored with
-    the installed PHPUnit (11.5) instead of the remote "11.0" URL. The
-    failOnPhpunitDeprecation / failOnPhpunitWarning attributes used above were
-    added after 11.0, so the remote 11.0 XSD rejects them. PHPUnit itself ignores
-    this attribute at runtime (it validates against its own bundled schema), but
-    Infection (Step 2.1.8) resolves and enforces it when validating the PHPUnit
-    config it generates for each mutant run — the local path keeps that green and
-    is always accurate to the resolved PHPUnit version.
-
-    executionOrder="default" pins tests to declaration order. Infection (Step
-    2.1.8) only injects a RANDOM order into its generated configs when this
-    attribute is unset (InitialConfigBuilder::addRandomTestsOrderAttributesIfNotSet);
-    setting it here keeps Infection's initial coverage run — and therefore the set
-    of reported escaped mutants — deterministic between runs. Owned by: Step 2.1.8.
+    executionOrder="default" pins tests to declaration order so Infection's initial
+    coverage run — and thus the set of reported escaped mutants — stays
+    deterministic (Infection randomizes the order only when this is unset).
 -->
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="app/vendor/phpunit/phpunit/phpunit.xsd"
@@ -57,12 +34,12 @@
          cacheDirectory=".phpunit.cache"
          executionOrder="default"
          testdox="true"
-         failOnWarning="false"
+         failOnWarning="true"
          failOnDeprecation="false"
          failOnPhpunitDeprecation="false"
-         failOnPhpunitWarning="false"
+         failOnPhpunitWarning="true"
          failOnNotice="false"
-         failOnRisky="false"
+         failOnRisky="true"
 >
     <testsuites>
         <testsuite name="Pagekit Test Suite">

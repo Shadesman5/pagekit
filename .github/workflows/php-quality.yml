@@ -17,6 +17,12 @@ jobs:
   phpunit:
     name: phpunit (${{ matrix.php }})
     runs-on: ubuntu-latest
+    # id-token: write lets the Codecov step authenticate tokenless via OIDC
+    # (no CODECOV_TOKEN secret needed). contents: read is required for checkout;
+    # job-level permissions REPLACE the workflow-level block, so restate it here.
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -56,6 +62,67 @@ jobs:
           name: coverage-clover
           path: coverage.xml
           if-no-files-found: error
+
+      # Codecov upload (Step 2.1.9, §4.3) — feeds the README badge and per-PR
+      # coverage-delta comments off the same Clover report. Kept NON-BLOCKING
+      # (fail_ci_if_error: false) so the quality gate never depends on Codecov
+      # availability. Authenticates TOKENLESS via OIDC (use_oidc: true) — no
+      # CODECOV_TOKEN secret to manage or rotate; relies on the job-level
+      # id-token: write permission set above. EXTERNAL ACTIVATION REQUIRED: a
+      # human must still install the Codecov GitHub App on Shadesman5/pagekit so
+      # the repo is registered on Codecov (enables the badge + PR delta comments).
+      # Note: OIDC is unavailable for PRs from forks — those fall back to the
+      # public-repo tokenless path or simply no-op (non-blocking). See
+      # migration-docs/branches/phase-2/step-2-1-9-test-coverage-expansion.md.
+      - name: Upload coverage to Codecov
+        if: matrix.php == '8.3'
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
+        with:
+          files: ./coverage.xml
+          slug: Shadesman5/pagekit
+          fail_ci_if_error: false
+          use_oidc: true
+
+      # Ratcheting minimum line-coverage gate (Step 2.1.9, §4.2). The floor is
+      # pinned to this branch's measured line coverage after Steps 1-11 landed:
+      # 3.86% (1833/47535 statements, PCOV 1.0.11 / PHP 8.3.6, 2026-07-09),
+      # rounded DOWN to 3.8% so the gate tolerates the PCOV-vs-Xdebug counting
+      # difference (CI measures with Xdebug) and general float jitter. Policy:
+      # ratchet MIN_LINE_COVERAGE UP as coverage grows, NEVER lower it. Plain PHP
+      # parse of the Clover <project><metrics> node — no extra tooling required.
+      # Provenance recorded in migration-docs/branches/phase-2.
+      - name: Enforce minimum line coverage
+        if: matrix.php == '8.3'
+        env:
+          MIN_LINE_COVERAGE: '3.8'
+        run: |
+          php -r '
+            $min = (float) getenv("MIN_LINE_COVERAGE");
+            $dom = new DOMDocument();
+            if (!@$dom->load("coverage.xml")) {
+                fwrite(STDERR, "ERROR: unable to load coverage.xml\n");
+                exit(2);
+            }
+            $nodes = (new DOMXPath($dom))->query("/coverage/project/metrics");
+            if ($nodes === false || $nodes->length === 0) {
+                fwrite(STDERR, "ERROR: <project><metrics> not found in coverage.xml\n");
+                exit(2);
+            }
+            $metrics = $nodes->item(0);
+            $statements = (int) $metrics->getAttribute("statements");
+            $covered = (int) $metrics->getAttribute("coveredstatements");
+            if ($statements <= 0) {
+                fwrite(STDERR, "ERROR: coverage.xml reports zero statements\n");
+                exit(2);
+            }
+            $rate = $covered / $statements * 100;
+            printf("Line coverage: %.4f%% (%d/%d statements) | required floor: %.2f%%\n", $rate, $covered, $statements, $min);
+            if ($rate + 1e-9 < $min) {
+                fwrite(STDERR, sprintf("FAIL: line coverage %.4f%% is below the required %.2f%% baseline (ratchets up, never down).\n", $rate, $min));
+                exit(1);
+            }
+            echo "PASS: line coverage meets the ratcheted baseline.\n";
+          '
 
   phpstan:
     name: phpstan

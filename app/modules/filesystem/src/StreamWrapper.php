@@ -7,6 +7,14 @@ namespace Pagekit\Filesystem;
 class StreamWrapper
 {
     /**
+     * Stream context, assigned by PHP's stream layer. Untyped on purpose: PHP
+     * populates it with either null or a stream-context resource.
+     *
+     * @var resource|null
+     */
+    public $context;
+
+    /**
      * @var resource|null
      */
     protected mixed $handle = null;

@@ -6,6 +6,8 @@ namespace Pagekit\Auth\Handler;
 
 use Pagekit\Cookie\CookieJar;
 use Pagekit\Database\Connection;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\Clock;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -24,15 +26,18 @@ class DatabaseHandler implements HandlerInterface
 
     protected Connection $connection;
 
+    protected ClockInterface $clock;
+
     /**
      * @param array<string, mixed>|null $config
      */
-    public function __construct(Connection $connection, RequestStack $requests, CookieJar $cookie, ?array $config = null)
+    public function __construct(Connection $connection, RequestStack $requests, CookieJar $cookie, ?array $config = null, ClockInterface $clock = new Clock())
     {
         $this->connection = $connection;
         $this->requests = $requests;
         $this->cookie = $cookie;
         $this->config = $config;
+        $this->clock = $clock;
     }
 
     /**
@@ -50,7 +55,7 @@ class DatabaseHandler implements HandlerInterface
                 'status' => self::STATUS_INACTIVE,
             ])->fetchAssociative()) {
 
-            if (strtotime($data['access']) + $config['timeout'] < time()) {
+            if (strtotime($data['access']) + $config['timeout'] < $this->clock->now()->getTimestamp()) {
 
                 if ($data['status'] == self::STATUS_REMEMBERED) {
                     // AUDIT FIX Step 2.1.8: write() declares `bool $remember`; under strict_types the
@@ -63,7 +68,7 @@ class DatabaseHandler implements HandlerInterface
 
             }
 
-            $this->connection->update($config['table'], ['access' => date('Y-m-d H:i:s')], ['id' => sha1($token)]);
+            $this->connection->update($config['table'], ['access' => $this->clock->now()->format('Y-m-d H:i:s')], ['id' => sha1($token)]);
 
             return $data['user_id'];
         }
@@ -83,13 +88,13 @@ class DatabaseHandler implements HandlerInterface
 
         $id = bin2hex(random_bytes(32));
 
-        $this->cookie->set($this->config['cookie']['name'], $id, $this->config['cookie']['lifetime'] + time());
+        $this->cookie->set($this->config['cookie']['name'], $id, $this->config['cookie']['lifetime'] + $this->clock->now()->getTimestamp());
 
         $request = $this->getRequest();
         $this->connection->insert($this->config['table'], [
             'id' => sha1($id),
             'user_id' => $user,
-            'access' => date('Y-m-d H:i:s'),
+            'access' => $this->clock->now()->format('Y-m-d H:i:s'),
             'status' => $remember ? self::STATUS_REMEMBERED : self::STATUS_ACTIVE,
             'data' => json_encode([
                 'ip' => $request?->getClientIp(),

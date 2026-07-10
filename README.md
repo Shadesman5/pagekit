@@ -5,6 +5,7 @@
 [![Vue](https://img.shields.io/badge/vue-2.6.12-green)](https://github.com/vuejs/vue)
 [![UIkit](https://img.shields.io/badge/uikit-3.5.8-blue)](https://github.com/uikit/uikit)
 [![MySQL](https://img.shields.io/badge/mysql-8.4-orange)](https://www.mysql.com/)
+[![codecov](https://codecov.io/gh/Shadesman5/pagekit/graph/badge.svg)](https://codecov.io/gh/Shadesman5/pagekit)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 <details>
