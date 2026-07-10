@@ -88,7 +88,7 @@
      (same numbers + short titles). Size hint per step: S = small/atomic, M = medium,
      L = large or loop-risk. A step orchestrator flips its box to [x] in the SAME commit as that
      step's code (after Tester PASS) — no self-referential SHA. -->
-- [ ] Step 1 (M) — NodePresenter + service + unit test
+- [x] Step 1 (M) — NodePresenter + service + unit test
 - [ ] Step 2 (M) — PostPresenter + service + unit test (tests/Unit/Blog + bootstrap)
 - [ ] Step 3 (L) — Site call-site migration to NodePresenter (NodeApiController, MenuHelper, menu views)
 - [ ] Step 4 (L) — Blog call-site migration to PostPresenter (PostApiController, CommentApiController, SiteController, posts views)

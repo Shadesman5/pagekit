@@ -23,6 +23,8 @@ class SiteModule extends Module
 
         ModelServiceLocator::init($app);
 
+        $app->set('nodePresenter', fn ($app) => new NodePresenter($app->get('url'), $app->get('user')));
+
         $app->set('node', function ($app) {
 
             if ($id = $app->get('request')->attributes->get('_node') and $node = Node::find($id, true)) {
