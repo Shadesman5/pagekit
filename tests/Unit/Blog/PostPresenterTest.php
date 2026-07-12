@@ -230,6 +230,26 @@ class PostPresenterTest extends TestCase
         $this->assertSame(2, $result['comments_pending']);
     }
 
+    public function testToArrayEmitsZeroPendingCommentsForEagerLoadedEmptyArray(): void
+    {
+        $post = $this->createPostMock();
+        $post->id = 12;
+        $post->comments = [];
+        $post->method('isPublished')->willReturn(true);
+        $post->method('hasAccess')->willReturn(true);
+        $post->method('toArray')->willReturnCallback(static fn (array $data = []): array => $data);
+
+        $url = $this->createMock(UrlProvider::class);
+        $url->method('get')->willReturn('/blog/12');
+
+        $presenter = new PostPresenter($url, $this->createMock(User::class), $this->createBlogModule());
+
+        $result = $presenter->toArray($post);
+
+        $this->assertArrayHasKey('comments_pending', $result);
+        $this->assertSame(0, $result['comments_pending']);
+    }
+
     /**
      * Builds a kernel-free Post double with only its ORM/access methods stubbed;
      * plain columns (id/comment_status/date/comments) are assigned directly on

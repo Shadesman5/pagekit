@@ -45,6 +45,10 @@ final class PostPresenter
      * jsonSerialize() emitted (the `accessible` value formerly flowed through
      * the entity's `$properties` map).
      *
+     * `comments_pending` is emitted whenever the `comments` relation is loaded
+     * (`!== null`), including an empty eager-loaded array which yields `0`; it is
+     * omitted only when the relation was never loaded.
+     *
      * @return array<string, mixed>
      */
     public function toArray(Post $post): array
@@ -53,7 +57,7 @@ final class PostPresenter
             'url' => $this->url->get('@blog/id', ['id' => $post->id ?: 0], UrlProvider::BASE_PATH),
         ];
 
-        if ($post->comments) {
+        if ($post->comments !== null) {
             $data['comments_pending'] = count(array_filter(
                 $post->comments,
                 static fn (Comment $comment): bool => $comment->status === Comment::STATUS_PENDING,
