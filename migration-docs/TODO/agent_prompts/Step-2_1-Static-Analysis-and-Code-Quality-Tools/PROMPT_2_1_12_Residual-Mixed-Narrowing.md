@@ -95,10 +95,29 @@ Do **not** touch these (legitimate `mixed`, reviewed):
 
 ## 4. TESTING
 
-- `./app/vendor/bin/phpunit` — all green (captcha listener, node controller, model-trait-backed entities).
+### 4.1. PHPUnit (required)
+
+**Default:** pure type/property narrowing needs **no new test** if behaviour is unchanged — existing suite + PHPStan suffice.
+
+**Add or adjust tests only where an observable contract changes:**
+
+- **`CaptchaListener::verifyToken(string, string)`** — no PHPUnit coverage exists today. Add a focused unit test for the typed request-accessor path (`$request->request->getString('gRecaptchaResponse')`) and config cast; mock HTTP/request dependencies, no kernel boot (mirror auth/user listener tests).
+- **`NodeController` → constructor `SiteModule` DI** — optional unit test: construct the controller with a mock/stub `SiteModule` + other deps, assert an action path (precedent: `MenuApiControllerTest` — direct `new Controller(...)`, no kernel).
+- **`DataModelTrait::$data` → `?array`** — no dedicated test needed; covered indirectly by entities using the trait.
+
+Match project style: constructor injection + mocks; no full `Application` / kernel boot in unit tests.
+
+### 4.2. PHPStan
+
 - `./app/vendor/bin/phpstan analyse` — no new baseline entries; the three narrowed sites drop their `mixed`.
-- Add/adjust a focused test only where the narrowing changes an observable contract (e.g. captcha typed-accessor path); pure type narrowing needs no new test.
-- Playwright E2E (3 specs) at Final Test: captcha-guarded form submit, site page create/edit (NodeController), any `data`-backed entity save/load.
+
+### 4.3. Playwright E2E (Final Test)
+
+Run the 3 sound E2E specs — smoke paths touched by the narrowings:
+
+- Captcha-guarded form submit
+- Site page create/edit (`NodeController`)
+- Any `data`-backed entity save/load
 
 ---
 

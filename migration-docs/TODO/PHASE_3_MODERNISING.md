@@ -1,7 +1,17 @@
-# 🎨 Phase 3: Frontend Modernization – Renewing the UI
+# 🎨 Phase 3: Frontend Modernization & Cross-Stack Alignment
 
-**Goal**: Migrate frontend to a modern stack (Vue 3, UIkit 3.21+, TypeScript).
+**Goal**: Migrate frontend to a modern stack (Vue 3, UIkit 3.21+, TypeScript) **and** align backend boundaries where frontend and PHP must change together (translation/Intl, service-layer DI hygiene).
+
 **Prerequisite**: Phase 2 MUST be completed (Build Tools in Step 2.4 are a prerequisite for frontend work!)
+
+### Phase scope (2026-07-12)
+
+| Track | Steps | Focus |
+| ----- | ----- | ----- |
+| **Frontend** | 3.1–3.4, 3.5, 3.6 | Vue 3, UIkit, TypeScript, components, E2E selectors |
+| **Cross-stack** | 3.4.5, 3.4.6 | Intl platform API, transChoice → ICU (PHP + Vue + loaders), `TranslatorInterface` in service layer |
+
+> **Note:** Template-facing globals (`__()`, `_i()`, `$date`, `$number`) **stay** — they are the Pagekit **platform DX API**, not legacy debt. See ROADMAP § DX & Lightweight Philosophy and Step 3.4.6 decision below.
 
 > **Analysis Result (2026-02-11):** All frontend dependencies were analyzed in depth:
 >
@@ -234,9 +244,10 @@
 
 ### Step 3.4.6: Translation System Modernization
 
-- **Goal**: Migrate frontend translation and formatting to the native Intl API (see vue-intl → Intl in 3.4.5).
-- **Content**: Formal bundling of the Intl platform API ($date, $number, $currency, $relativeDate) and optional backend integration (inject `TranslatorInterface` in service/domain code — the template-facing global helpers `__()`/`_i()` stay; see the keep-vs-remove decision below).
-- **Order**: Interleaved with 3.4.5 in implementation; tracked as a separate sub-step 3.4.6 in the ROADMAP.
+- **Goal**: Migrate frontend translation and formatting to the native Intl API (see vue-intl → Intl in 3.4.5) **and** complete backend translation alignment in one step (ICU migration + service-layer DI).
+- **Content**: Formal bundling of the Intl platform API ($date, $number, $currency, $relativeDate); remove legacy plural bridges; inject `TranslatorInterface` in DI-capable PHP — template-facing global helpers `__()`/`_i()` stay (see keep-vs-remove decision below).
+- **Prerequisite**: Step 2.0.2 (Validator-Translator Integration) — translator is already in the container.
+- **Order**: Interleaved with 3.4.5 in implementation; single ROADMAP sub-step **3.4.6** (one ticket / one pipeline run).
 - **Tasks (identified from 2.1.1 review):**
   - **Decision — keep vs. remove global functions** (best practice): global translation helpers are the legitimate DX API for **DI-less PHP templates/themes**, analogous to the `$date`/`$number` platform API. **Keep** `__()` (alias for `trans()`) and `_i()` (ICU MessageFormat), plus the `IntlServiceLocator` DI-glue that backs them (permanent — not a bridge to remove). **Remove** only the legacy `_c()` / `transChoice` plural bridge (below). The "no global functions" goal applies to **service/domain code** — there, inject `TranslatorInterface`. So this step _narrows_ the translation API, it does not delete the template-facing helpers.
   - **Remove transChoice (PHP + Vue):**
@@ -257,6 +268,14 @@
     - Extend the JS/Vue extraction in `app/console/src/Commands/ExtensionTranslateCommand.php` to honour the optional **domain** argument of `$trans()/$transChoice()` calls. The current regex only captures the message id and hardcodes the `'messages'` domain, so custom-domain strings in `.js` files (where the `| trans` filter is unavailable) are extracted into the wrong `.pot`. Best solved with a JS AST (mirroring `PhpNodeVisitor` on the PHP side). (Routed from repo TODO inventory §3; carries a canonical `Step 3.4.6` TODO comment in the source.)
   - **Replace forked Intl loaders with Symfony built-ins:**
     - Pagekit ships forks of Symfony's `ArrayLoader` / `PoFileLoader` / `MoFileLoader` in `app/system/modules/intl/src/Loader/`. The fork exists only to massage gettext plurals into Pagekit's legacy `|`-separated / `{N}`-prefixed `transChoice` format. Once transChoice → ICU lands (above), drop the forks and use `Symfony\Component\Translation\Loader\{Po,Mo}FileLoader` — which also support `msgctxt` contexts + catalogue metadata that the fork silently drops (resolves the canonical `Step 3.4.6` TODO in `PoFileLoader::parse()`). (Routed from repo TODO inventory §3.)
+  - **TranslatorInterface in service layer** (same step — backend alignment):
+    - Replace `use function Pagekit\__;` in **DI-capable** PHP with constructor-injected `Symfony\Contracts\Translation\TranslatorInterface`
+    - **Keep** `__()` / `_i()` in: PHP view templates, mail templates, theme helper functions, any path without DI (same rule as `$date` / `$number` platform API)
+    - **Migrate** in: controllers (~15+ files, e.g. `RegistrationController`, `MailController`, blog API controllers), event listeners with user-facing messages, domain services
+    - Audit: `rg 'use function Pagekit\\__' --glob '*.php'` — classify each file as **inject** vs **keep helper**
+    - Per module: add `TranslatorInterface` to constructor, replace `__('key')` with `$this->translator->trans('key', …)`, remove `use function Pagekit\__;`
+    - Document the boundary in extension developer docs (templates = helpers; services = DI)
+    - Optional: PHPStan note to flag new `use function Pagekit\__` under `src/` trees
 
 ---
 
@@ -290,7 +309,7 @@
 - **Status**: ⏳ Planned (added 2026-07-09; **re-homed from Step 2.1.9** during ticket planning — the full E2E rework is too large/orthogonal for the 2.1.9 coverage PR).
 - **Goal**: Rework the Playwright E2E suite to follow current best practices so it is trustworthy for regression testing. The Phase 1 audit found most specs poorly written — only ~3 of the 11 specs (`01-setup/installation`, `02-core/authentication`, `02-core/dashboard`) are sound, and the Orchestrator/Tester currently runs only those three at end-of-ticket.
 - **Prerequisite**: Step 3.6 (E2E Selector Strategy) — the rework should build on the `data-testid` selectors so specs are stable and language-independent (avoids reworking twice).
-- **GitHub issue**: _to be created_ via the `github-issue-creator` skill (labels `phase-3, migration, frontend`; milestone "Phase 3: Frontend Modernization"). No issue exists yet — the original 1.10.5 issue (#135) is closed. NOTE: the Cloud-Agent architect cannot create issues under the read-only-`gh` constraint; create at the next opportunity with write access.
+- **GitHub issue**: _to be created_ via the `github-issue-creator` skill (labels `phase-3, migration, frontend`; milestone "Phase 3: Frontend Modernization & Cross-Stack Alignment"). No issue exists yet — the original 1.10.5 issue (#135) is closed. NOTE: the Cloud-Agent architect cannot create issues under the read-only-`gh` constraint; create at the next opportunity with write access.
 - **Closes Phase 1 audit:** **Step 1.10.5 (E2E Testing with Playwright) ⚠️ → 🛡️** — this step (NOT Step 2.1.9) resolves the 1.10.5 finding: "Most E2E tests were poorly created, not following best practices; only the first 3 tests are reasonably functional. Full E2E rework needed."
 - **Tasks (draft)**:
   - Audit all 11 specs under `tests/e2e/specs/`; rewrite the weak ones (everything beyond the 3 sound specs) to Playwright best practices (web-first assertions, `getByTestId()` from 3.6, no arbitrary waits, isolated per-test state).

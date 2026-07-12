@@ -35,7 +35,7 @@ jobs:
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
           php-version: ${{ matrix.php }}
-          coverage: xdebug
+          coverage: pcov
           tools: composer:v2
 
       - name: Cache Composer dependencies (app/vendor)
@@ -86,10 +86,9 @@ jobs:
       # Ratcheting minimum line-coverage gate (Step 2.1.9, §4.2). The floor is
       # pinned to this branch's measured line coverage after Steps 1-11 landed:
       # 3.86% (1833/47535 statements, PCOV 1.0.11 / PHP 8.3.6, 2026-07-09),
-      # rounded DOWN to 3.8% so the gate tolerates the PCOV-vs-Xdebug counting
-      # difference (CI measures with Xdebug) and general float jitter. Policy:
-      # ratchet MIN_LINE_COVERAGE UP as coverage grows, NEVER lower it. Plain PHP
-      # parse of the Clover <project><metrics> node — no extra tooling required.
+      # rounded DOWN to 3.8% for float jitter. CI and local agents both use PCOV.
+      # Policy: ratchet MIN_LINE_COVERAGE UP as coverage grows, NEVER lower it.
+      # Plain PHP parse of the Clover <project><metrics> node — no extra tooling required.
       # Provenance recorded in migration-docs/branches/phase-2.
       - name: Enforce minimum line coverage
         if: matrix.php == '8.3'

@@ -180,7 +180,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 ---
 
-### Step 2.1.8: Infection Mutation Testing
+### ✅ Step 2.1.8: Infection Mutation Testing
 
 - **Goal**: Introduce mutation testing for the security-critical **classes** of the auth + user modules
 - **Prerequisite**: Step 2.1.6 (PHPStan Level 8) completed. A coverage driver (Xdebug/PCOV) must be available — Infection cannot run without one. **Note:** the "60%+ coverage" target is **not** a hard pre-existing prerequisite — it is **not yet met** for these modules, so this step **writes the missing security-core unit tests itself** (mutation testing needs a test base; killing a mutant = adding a targeted test).
@@ -199,7 +199,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 ---
 
-### Step 2.1.9: Test Coverage Expansion
+### ✅ Step 2.1.9: Test Coverage Expansion
 
 - **Goal**: Systematically raise test coverage to target levels
 - **Prerequisite**: Step 2.1.2 (CI/CD with coverage reports) completed
@@ -240,7 +240,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 ---
 
-### Step 2.1.10: Entity Presentation Layer (ModelServiceLocator → DTO/Presenter)
+### ✅ Step 2.1.10: Entity Presentation Layer (ModelServiceLocator → DTO/Presenter)
 
 - **Goal**: Remove the transitional static `ModelServiceLocator` and move presentation/infrastructure concerns out of the `Node` / `Post` entities into a proper DTO/presenter layer with constructor DI.
 - **Prerequisite**: Step 2.1.6 (PHPStan Level 7→8) — the locator's `getUrl()` / `getUser()` / `getModule()` return types are narrowed to concrete types there first.
@@ -282,6 +282,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - Replace `NodeModelTrait`'s static request-scoped `$nodes` cache (`app/system/modules/site/src/Model/NodeModelTrait.php:18-21`, tagged in-code `// TODO: BACKWARD COMPATIBILITY … removed in Step 2.1.11`) with an injected `CacheItemPoolInterface` — same static-global-state removal as the singleton
   - **Delete** the `$app->get('db.em')` boot line in `app/system/index.php` (Aggressive Rule 4: Delete over Wrap)
   - All tests green (PHPUnit + Playwright E2E)
+- **Testing notes**: detail in Prompt §4 — rework singleton-coupled ORM tests (`EntityManagerTest`, `UserProviderTest`); inject EM/repository with mocks (no kernel boot); Playwright CRUD at Final Test.
 - **Result**: Zero static singletons in the model layer; the `EntityManager` is obtained via DI; no boot-time side-effect hack.
 - **Risk**: High — ripples into every static model call site; requires an Architect design pass (Active-Record → Data-Mapper migration strategy) before the Refactorer starts.
 - **In-code flag hygiene (audit 2026-07-07 — Proposal P5 / §9 RC-1, RC-2), do while touching these files:**
@@ -304,43 +305,39 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - `app/system/src/Model/DataModelTrait.php:13` — `public mixed $data = null` → `public ?array $data = null` with `@var array<string, mixed>|null`. All assignments are arrays (`= []`, `array_replace_recursive(...)`), the column is `json_array`, and `JsonArrayType::convertToPHPValue()` always returns an array — so the property is `?array` (the `(array)` cast in `get()` becomes redundant).
 - **Result**: Fewer avoidable `mixed`; cleaner IDE/PHPStan signals in the model, site-controller and captcha layers.
 - **Risk**: Low — signature/property narrowing plus one small call-site change; PHPUnit + PHPStan green.
+- **Testing notes**: detail in Prompt §4 — type-only narrowings need no new tests; add focused `CaptchaListener` test if typed-accessor path is new behaviour to pin; optional `NodeController` unit test (see `MenuApiControllerTest`).
 - **Note**: `Node::getUrl()`'s `mixed $referenceType` → `int|string` is handled in **Step 2.1.10** (it is relocated as a presentation concern there). `PregReplaceFilter::filter()` return, `ExceptionListener::$controller` and `WrappedListener::$listener` were reviewed and deliberately **kept `mixed`** (honest polymorphic return / PHP `callable`-property limitation).
 
 ---
 
 ## Step 2.2: CI/CD Pipeline
 
-- **Goal**: Automated CI/CD with E2E & static analysis integration
+- **Goal**: Full CI/CD on GitHub Actions; quality metrics on GitHub only
 - **Prerequisite**: Steps 1.10.5 (E2E Tests) and 2.1 (Static Analysis) completed
 - **Tasks**:
-  - **Workflow 1 — PHP Tests** (`.github/workflows/php-tests.yml`):
-    PHPUnit (PHP 8.2/8.3/8.4 × MySQL 8.4/SQLite 3), PHPStan analysis, PHP-CS-Fixer dry-run, security audit
-  - **Workflow 1b — Mutation Testing (Infection)** — deferred here from Step 2.1.8. Infection was installed and configured for the auth + user security-critical classes in 2.1.8, but is intentionally **not** wired into the per-PR gate (mutation testing is slow). Add a **non-blocking, scheduled + manual-dispatch** job (`workflow_dispatch` + weekly `schedule`), mirroring the Workflow 2b cross-browser rationale. Runs `./app/vendor/bin/infection --min-msi=80` on the configured security core; regressions are surfaced without blocking every PR.
+  - **Workflow 1 — PHP Tests** (`.github/workflows/php-tests.yml` — replaces `php-quality.yml`):
+    PHPUnit (PHP 8.2/8.3/8.4 × MySQL 8.4/SQLite 3), PHPStan, PHP-CS-Fixer dry-run, security audit, line-coverage ratchet (`MIN_LINE_COVERAGE` from Step 2.1.9)
+  - **Workflow 1b — Infection**:
+    - Per-PR (required): diff-scoped on auth + user security core (`minMsi` / `minCoveredMsi` ≥ 80 %)
+    - Full (daily): `schedule` on `develop` + `main` + `workflow_dispatch` — full `infection.json.dist` scope
   - **Workflow 2 — E2E Tests** (`.github/workflows/e2e-tests.yml`):
-    Playwright on Chromium, fixed backend (PHP 8.3 + MySQL 8.4), 3 viewport jobs (Mobile 375×667, Tablet 768×1024, Desktop 1920×1080)
-  - **Workflow 2b — Cross-Browser Tests** (`.github/workflows/e2e-cross-browser.yml`):
-    Weekly schedule + manual trigger, Firefox + WebKit, critical test subset only
+    Trigger: **`push` to `develop` + `main` only** (not on PR). Playwright Chromium, PHP 8.3 + MySQL 8.4, 3 viewports (Mobile 375×667, Tablet 768×1024, Desktop 1920×1080)
+  - **Workflow 2b — Cross-Browser E2E** (`.github/workflows/e2e-cross-browser.yml`):
+    Weekly `schedule` + `workflow_dispatch`; Firefox + WebKit; suite grows over time
   - **Workflow 3 — Frontend Tests** (`.github/workflows/frontend-tests.yml`):
-    ESLint, Prettier, Yarn build verification
-  - Quality gates as required checks for PRs
-  - Dependency caching for fast CI (target: all workflows < 10 minutes)
+    ESLint, Prettier, Yarn build verification — per PR
+  - **Workflow 4 — Quality Reporting** (`.github/workflows/quality-report.yml` + `quality-dashboard.yml`):
+    Sticky PR comment from CI artefacts; README dashboard on `develop`/`main`
+  - Required status checks + branch protection (job names aligned)
+  - Dependency caching (target: PR workflows < 10 min)
   - Release automation
-  - **Version Single Source of Truth guard** — `composer.json` `require.php` (`^8.2`) is the authoritative minimum-PHP constraint; the CI matrix (PHP versions in Workflow 1), `app/installer/requirements.php` (`REQUIRED_PHP_VERSION`), `.cursor/Dockerfile` (`php:8.3-cli`) and `README.md` (badge + "8.2–8.4") must **consume/track** it, not redefine it. Add a CI check that fails on drift (assert `REQUIRED_PHP_VERSION` and the matrix floor equal composer's `require.php`), so the minimum version lives in exactly one place. Docker/CI pin _test/runtime targets_ — they are not the source (so "put the version in Docker" is the wrong direction). Also capture the extension floors currently inline in `requirements.php` (APCu `5.1.0`, PCRE `8.0`). (Discovered during PR #212 triage; the `requirements.php` content modernization itself was handled in Step 2.1.6.)
-  - ~~Deploy previews~~ (optional, later)
-- **Design Decisions**:
-  - E2E tests UI interaction, NOT backend variants — PHPUnit covers the PHP/DB matrix
-  - Cross-browser testing runs weekly, not per-PR (catches rendering bugs without blocking PRs)
-  - Mutation testing (Infection, from 2.1.8) runs scheduled + manual, not per-PR — too slow to gate every PR, same rationale as cross-browser
-  - Edge cases (large uploads, session timeout, concurrent edits) integrated into E2E suite
-  - Load/performance tests belong in staging before major releases, NOT in CI
-- **Quality Gates** (every PR must pass):
-  - All PHPUnit tests green
-  - PHPStan (no new errors vs. baseline)
-  - No security vulnerabilities
-  - PHP-CS-Fixer PSR-12 compliant
-  - All E2E tests green
-  - ESLint/Prettier checks
-  - Code coverage not below target (core: 75%, packages: 60%)
+  - Version SSoT guard (`composer.json` `require.php` → CI matrix, `requirements.php`, Dockerfile, README)
+- **E2E (three tiers)**:
+  - **Local — Tester (last Execute step):** 3 existing specs (installation, authentication, dashboard); PASS/FAIL only; Finalize fix-loops (CI/Bugbot) re-run E2E with PHPUnit+PHPStan
+  - **CI on merge:** Workflow 2 when code lands on `develop`/`main`
+  - **CI weekly:** Workflow 2b — cross-browser, expanded suite
+- **PR required checks**: PHPUnit matrix, PHPStan, CS-Fixer, security audit, coverage floor, Frontend, Infection diff
+- **Not on PR**: E2E Workflow 2, Infection full, cross-browser weekly; Codecov non-blocking
 
 ---
 
