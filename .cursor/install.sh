@@ -48,12 +48,37 @@ mkdir -p tmp/logs tmp/cache tmp/temp tmp/packages tmp/sessions storage
 # chromium; this re-applies it whenever the package version changes)
 npx playwright install chromium
 
+# Coverage driver (PCOV) — required for Infection and optional local coverage
+# inspection by test-writer/Tester. Snapshot-based cloud VMs may lack it even when
+# the Dockerfile lists it; install.sh is the runtime source of truth (idempotent).
+EXT_SUDO=""
+[ "$(id -u)" -ne 0 ] && EXT_SUDO="sudo"
+if ! php -m 2>/dev/null | grep -qi '^pcov$'; then
+    if ! command -v pecl >/dev/null 2>&1; then
+        $EXT_SUDO apt-get update
+        $EXT_SUDO apt-get install -y php-pear php-dev
+    fi
+    printf '\n' | $EXT_SUDO pecl install pcov
+    echo 'extension=pcov.so' | $EXT_SUDO tee /usr/local/etc/php/conf.d/99-pcov.ini >/dev/null
+    echo 'pcov.enabled=1' | $EXT_SUDO tee -a /usr/local/etc/php/conf.d/99-pcov.ini >/dev/null
+    echo 'pcov.directory=.' | $EXT_SUDO tee -a /usr/local/etc/php/conf.d/99-pcov.ini >/dev/null
+fi
+# Prefer PCOV over Xdebug in agent VMs (faster coverage collection)
+if php -m 2>/dev/null | grep -qi '^xdebug$'; then
+    for ini in /usr/local/etc/php/conf.d/*xdebug*; do
+        if [ -f "$ini" ]; then
+            $EXT_SUDO mv "$ini" "${ini}.disabled" 2>/dev/null || true
+        fi
+    done
+fi
+
 # Verify critical tools are available
 echo "--- Tool verification ---"
 php -v | head -1
 composer --version 2>/dev/null || echo "WARNING: Composer not available"
 ./app/vendor/bin/phpunit --version 2>/dev/null || echo "WARNING: PHPUnit not available"
 ./app/vendor/bin/phpstan --version 2>/dev/null || echo "WARNING: PHPStan not available"
+php -m 2>/dev/null | grep -qi '^pcov$' && echo "PCOV: enabled" || echo "WARNING: PCOV not available (coverage/Infection may fail)"
 command -v rg >/dev/null 2>&1 && rg --version | head -1 || echo "WARNING: ripgrep (rg) not available"
 command -v jq >/dev/null 2>&1 && jq --version || echo "WARNING: jq not available"
 php pagekit list 2>/dev/null | head -1 || echo "WARNING: pagekit CLI not available (config.php may be missing)"
