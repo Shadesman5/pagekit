@@ -65,8 +65,8 @@ RUN pecl install pcov \
     && echo "pcov.enabled=1" > /usr/local/etc/php/conf.d/pcov.ini \
     && echo "pcov.directory=." >> /usr/local/etc/php/conf.d/pcov.ini
 
-# Configure PHP for development
-RUN echo "memory_limit=256M" > /usr/local/etc/php/conf.d/memory.ini \
+# Configure PHP for development (512M aligns with Tester/PHPStan --memory-limit=512M)
+RUN echo "memory_limit=512M" > /usr/local/etc/php/conf.d/memory.ini \
     && echo "max_execution_time=300" >> /usr/local/etc/php/conf.d/memory.ini
 
 # Install Composer 2.0+ using the official installer

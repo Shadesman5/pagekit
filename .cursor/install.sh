@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# PHP, Composer, and other tools from the php:8.3-cli image live under
+# /usr/local/bin. Cursor terminals may not source /etc/bash.bashrc.
+export PATH="/usr/local/bin:${PATH:-}"
+
 # GitHub Token mapping
 if [[ -n "${PAGEKIT_BACKGROUND_AGENT:-}" ]]; then
     export GH_TOKEN="$PAGEKIT_BACKGROUND_AGENT"
@@ -47,30 +51,6 @@ mkdir -p tmp/logs tmp/cache tmp/temp tmp/packages tmp/sessions storage
 # Refresh Playwright browser after dependency updates (snapshot already ships
 # chromium; this re-applies it whenever the package version changes)
 npx playwright install chromium
-
-# Coverage driver (PCOV) — required for Infection and optional local coverage
-# inspection by test-writer/Tester. Snapshot-based cloud VMs may lack it even when
-# the Dockerfile lists it; install.sh is the runtime source of truth (idempotent).
-EXT_SUDO=""
-[ "$(id -u)" -ne 0 ] && EXT_SUDO="sudo"
-if ! php -m 2>/dev/null | grep -qi '^pcov$'; then
-    if ! command -v pecl >/dev/null 2>&1; then
-        $EXT_SUDO apt-get update
-        $EXT_SUDO apt-get install -y php-pear php-dev
-    fi
-    printf '\n' | $EXT_SUDO pecl install pcov
-    echo 'extension=pcov.so' | $EXT_SUDO tee /usr/local/etc/php/conf.d/99-pcov.ini >/dev/null
-    echo 'pcov.enabled=1' | $EXT_SUDO tee -a /usr/local/etc/php/conf.d/99-pcov.ini >/dev/null
-    echo 'pcov.directory=.' | $EXT_SUDO tee -a /usr/local/etc/php/conf.d/99-pcov.ini >/dev/null
-fi
-# Prefer PCOV over Xdebug in agent VMs (faster coverage collection)
-if php -m 2>/dev/null | grep -qi '^xdebug$'; then
-    for ini in /usr/local/etc/php/conf.d/*xdebug*; do
-        if [ -f "$ini" ]; then
-            $EXT_SUDO mv "$ini" "${ini}.disabled" 2>/dev/null || true
-        fi
-    done
-fi
 
 # Verify critical tools are available
 echo "--- Tool verification ---"
