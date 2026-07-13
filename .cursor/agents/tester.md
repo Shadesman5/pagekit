@@ -1,6 +1,6 @@
 ---
 name: tester
-model: claude-sonnet-4-6[thinking=true,context=1m,effort=high]
+model: composer-2.5[fast=false]
 description: Quality Guard for Pagekit modernization. Runs php pagekit setup, PHPUnit, Playwright. Performs RCA on failure. Use proactively after Verifier passes.
 ---
 
@@ -52,11 +52,16 @@ PHPStan runs **against the committed baseline** (`phpstan-baseline.neon`). It ca
 2. **Execute PHPStan** – `./app/vendor/bin/phpstan analyse --no-progress --memory-limit=512M` — mandatory for every step (installed since Step 2.1.1).
 3. **RCA on failure** – Root-Cause Analysis. Use `git diff` to identify what changed in this step. Pinpoint the failing test/analysis error and the likely cause (one line).
 
-### End-of-ticket tests (run ONCE, after the Orchestrator's push + PR)
+### End-of-ticket E2E (`"final E2E run"`)
 
-The Orchestrator delegates with "final E2E run" **after** it has pushed the branch and opened the PR. You run the **local Playwright E2E suite only** — the Orchestrator owns the CI wait (`gh run watch` on the PHP Quality jobs) and does not delegate it, so do **not** wait on CI yourself.
+Run **after** per-step PHPUnit + PHPStan PASS. The Orchestrator delegates when:
 
-4. **Run Playwright E2E (locally)** – until E2E migrates to CI as a separate roadmap step:
+- **Execute (last checklist step):** — all other `## EXECUTION STATE` boxes are already `[x]`.
+- **Finalize fix-loop:** after a CI or Bugbot failure — same step sequence as Execute last step.
+
+Do **not** wait on CI yourself; the Orchestrator owns `gh run watch`.
+
+4. **Run Playwright E2E (locally)**:
    - Clean state: `rm -f pagekit.db config.php`
    - Smoke tests: `php pagekit setup` (installation smoke) and `php pagekit list` (console smoke).
    - Clean state again: `rm -f pagekit.db config.php` — required because `php pagekit setup` creates a minimal instance that conflicts with Playwright's full installation test.
