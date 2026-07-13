@@ -1,6 +1,6 @@
 ---
 name: architect
-model: claude-opus-4-8[thinking=true,context=1m,effort=max,fast=false]
+model: claude-fable-5[thinking=true,context=1m,effort=max]
 description: Strategic Lead for Pagekit modernization. Maps task prompts to ROADMAP.md, defines scope, checklist, TODO-Spec. Use proactively when executing agent_prompts or task prompts from the modernization plan.
 ---
 
@@ -38,15 +38,17 @@ Write the plan to a **ticket file** so the Orchestrator and other subagents use 
 ## EXECUTION STATE
 <!-- Machine-readable progress index for the Orchestrator/Conductor. Mirrors the Checklist 1:1
      (same numbers + short titles). Size hint per step: S = small/atomic, M = medium,
-     L = large or loop-risk. A step orchestrator flips its box to [x] in the SAME commit as that
-     step's code (after Tester PASS) — no self-referential SHA. -->
+     L = large or loop-risk. A step orchestrator flips its box to [x] in the SAME commit as that step's code + tests (after full step PASS incl. test-writer when applicable) -->
 - [ ] Step 1 (S|M|L) — <short title>
 - [ ] Step 2 (S|M|L) — <short title>
 - [ ] Step 3 (S|M|L) — <short title>
 
 ## TESTING STRATEGY
-- **Per step (Tester subagent):** PHPUnit + PHPStan (mandatory after every checklist step)
-- **Final run (after Early Push):** two **sequential** stages — (1) the **Orchestrator** waits on the PHP Quality CI jobs (`phpunit (8.2)`, `phpunit (8.3)`, `phpstan`, `cs-fixer`, `security-audit`) via `gh run watch` (a watch, not a test) until green; (2) **then** it delegates the 3 Playwright E2E specs to the **Tester subagent** (E2E only runs once CI is green). Both must pass. See `.cursor/agents/tester.md` § End-of-ticket tests for the E2E commands and `.cursor/rules/orchestrator-subagent-workflow.mdc` § Final Test for the workflow position.
+- **Per step (production gate):** Refactorer → Verifier → Tester (PHPUnit + PHPStan) — production code must be green before any new tests are written
+- **Per step (coverage — inline light):** test-writer → Verifier (test files only) → Tester (PHPUnit + PHPStan) — **skip** when the step changes no production PHP under `app/` or `packages/` (docs/config/ROADMAP-only steps); mark those steps `test-writer: skip` here
+- **Per step notes:** [optional: target classes, edge cases, `test-writer: skip` per step number]
+- **E2E (Execute — last checklist step only):** when ticking Step N completes every `## EXECUTION STATE` box, the Orchestrator delegates `"final E2E run"` to Tester (3 Playwright specs, local PASS/FAIL). **Not** gated on PR/CI — see `.cursor/agents/tester.md` § End-of-ticket E2E
+- **Finalize:** Orchestrator opens PR → waits on PHP Quality CI (`gh run watch`) → Bugbot → version/CHANGELOG/ROADMAP.
 ```
 
 - **Chat output:** One line only, e.g. `Plan written to migration-docs/tickets/active/PSR-11-Container-DI-Infrastructure_plan.md`.

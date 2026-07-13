@@ -21,7 +21,13 @@ Orchestrator/Conductor passes:
 4. **Decomposition quality** – Steps are atomic, correctly ordered (no forward dependencies), and each is independently testable + committable.
 5. **EXECUTION STATE present + sane** – The `## EXECUTION STATE` block exists, mirrors the Checklist 1:1 (same numbers + titles), and every step has a plausible `S` / `M` / `L` size hint (loop-risk steps marked `L`).
 6. **Audit findings incorporated** – Any "Audit findings" for this step in `PHASE_*_MODERNISING.md` are explicit checklist items, or explicitly deferred with a ROADMAP TODO.
-7. **Testing strategy** – The per-step + final test strategy is present and matches `.cursor/agents/tester.md`.
+7. **Testing strategy** – `## TESTING STRATEGY` is present and matches V2 Execute: production gate (Refactorer → Verifier → Tester), inline-light coverage (test-writer → Verifier test-only → Tester) with explicit skip rules, E2E on last Execute step (not pre-CI), Finalize CI/Bugbot per `orchestrator-v2-finalize.mdc`. Cross-check `.cursor/agents/tester.md` and `.cursor/agents/test-writer.md`.
+8. **Branch doc path** – From `Current Step (ROADMAP): X.Y.Z` in the ticket, the branch doc path
+   `migration-docs/branches/phase-<X>/step-<X>-<Y>-<Z>-<kebab-title>.md` must be derivable (major phase
+   `<X>` from the ROADMAP step ID; kebab-title matches the step topic). Cross-check
+   `.cursor/ROADMAP.md` for the step ID and `migration-docs/branches/branch-doc-skeleton.md` for the
+   schema. Flag if the ROADMAP step is missing, ambiguous, or would collide with an existing branch doc
+   for the same step.
 
 ## Audit / report tasks
 

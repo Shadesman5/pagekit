@@ -7,8 +7,8 @@ Static documentation site for [GitHub Pages](https://Shadesman5.github.io/pageki
 | Path | Purpose |
 |------|---------|
 | `content/` | Published Markdown pages |
-| `javascripts/` | Client-side scripts (quality dashboard) |
-| `stylesheets/` | Custom CSS |
+| `content/javascripts/` | Client-side scripts (quality dashboard) |
+| `content/stylesheets/` | Custom CSS (MkDocs `extra_*` paths are relative to `docs_dir`) |
 | `data/` | Demo JSON for local preview |
 
 CI copies `.github/quality/quality-snapshot.json` into the built site on deploy.

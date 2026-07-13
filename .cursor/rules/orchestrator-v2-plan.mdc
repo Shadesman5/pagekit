@@ -27,7 +27,9 @@ not a hardcoded `develop`). Then proceed.
    `## EXECUTION STATE` checkbox list + `S`/`M`/`L` size hints) and returns the ticket path.
 2. Delegate to **plan-reviewer** → returns `PASS`, or `FAIL` + bullets.
 3. Decide:
-   - **PASS** → `git add` the ticket, commit `docs(plan): add ticket for <task-slug>`, `git push`,
+   - **PASS** → **doc-writer** → copy skeleton to branch doc, fill header metadata. Hand over: ticket path;
+     verbatim anything notable from Architect (ROADMAP sub-step, PHASE amendment, etc.). No git. Then
+     `git add` the ticket **and** the branch doc, commit `docs(plan): add ticket + branch doc for <task-slug>`, `git push`,
      then report `Plan ready: <ticket path>` and stop.
    - **FAIL** → delegate to **architect** again with the verbatim feedback; go to 2.
 
@@ -45,7 +47,8 @@ steps**, and Execute/Finalize will **not** run, so you finish it end-to-end here
    branch, then reuse it:
    `gh pr create --base <base> --head <branch> --title "docs(audit): <subject>" --body "<1–3-line summary + the report path + a <!-- metadata --> block with labels and, if an issue was given, Closes #<issue>>"`.
 4. **Docs only — do NOT** bump the version, edit `CHANGELOG-NEW.md`, or touch ROADMAP/PHASE files (a
-   `docs(audit)` change is not a release per conventional-commits). **Do not merge.**
+   `docs(audit)` change is not a release per conventional-commits). There is **no branch doc** for an
+   audit (the report *is* the deliverable) — do **not** involve the `doc-writer`. **Do not merge.**
 5. Report `Plan ready: <report path> — PR #<n>`.
 
 Branch-verify first and the one-line-result contract still apply. A `full` run of such a task is a
@@ -53,13 +56,15 @@ mis-dispatch (the driver's Execute guard stops with a `MODE=plan` hint).
 
 ## Stuck-breaker
 
-If the **same** plan-reviewer FAIL recurs **3×**, stop and report `ESCALATE: <one-line reason>` (the
-driver relaunches a fresh agent). Do not loop forever.
+If the **same** plan-reviewer FAIL recurs **3×**, delegate to **doc-writer** to record Plan ESCALATE in
+the branch doc (hand over the verbatim reason). `git add` the branch doc, commit
+`docs(branch): record ESCALATE (plan)`, `git push`, then stop and report `ESCALATE: <one-line reason>`
+(the driver relaunches a fresh agent). Do not loop forever.
 
 ## Boundaries
 
 - Plan only: no checklist steps, no tests, no version bump. **No PR** — *except* audit/report tasks, which open a single docs-only PR (see that section).
-- Subagents by exact name: `architect`, `plan-reviewer`. (The `architect` may itself use read-only `explore` for research — that nesting happens inside the worker, not here in the Orchestrator.)
+- Subagents by exact name: `architect`, `plan-reviewer`, `doc-writer` (the last on PASS to create the initial branch doc, or on a Plan ESCALATE to record it — never for audit/report tasks). (The `architect` may itself use read-only `explore` for research — that nesting happens inside the worker, not here in the Orchestrator.)
 
 ## Report exactly one line
 

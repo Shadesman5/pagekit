@@ -7,6 +7,9 @@
 [![MySQL](https://img.shields.io/badge/mysql-8.4-orange)](https://www.mysql.com/)
 [![codecov](https://codecov.io/gh/Shadesman5/pagekit/graph/badge.svg)](https://codecov.io/gh/Shadesman5/pagekit)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://Shadesman5.github.io/pagekit)
+
+📊 **[Documentation & Quality Dashboard](https://Shadesman5.github.io/pagekit)** — guide, project docs, CI metrics
 
 <details>
 <summary>Screenshots</summary>

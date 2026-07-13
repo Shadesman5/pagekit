@@ -59,14 +59,15 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     gd \
     zip
 
-# Install Xdebug for code coverage
-RUN pecl install xdebug \
-    && docker-php-ext-enable xdebug
+# Install PCOV for code coverage (faster than Xdebug; used by CI and cloud agents)
+RUN pecl install pcov \
+    && docker-php-ext-enable pcov \
+    && echo "pcov.enabled=1" > /usr/local/etc/php/conf.d/pcov.ini \
+    && echo "pcov.directory=." >> /usr/local/etc/php/conf.d/pcov.ini
 
-# Configure PHP for development
-RUN echo "memory_limit=256M" > /usr/local/etc/php/conf.d/memory.ini \
-    && echo "max_execution_time=300" >> /usr/local/etc/php/conf.d/memory.ini \
-    && echo "xdebug.mode=coverage" > /usr/local/etc/php/conf.d/xdebug.ini
+# Configure PHP for development (512M aligns with Tester/PHPStan --memory-limit=512M)
+RUN echo "memory_limit=512M" > /usr/local/etc/php/conf.d/memory.ini \
+    && echo "max_execution_time=300" >> /usr/local/etc/php/conf.d/memory.ini
 
 # Install Composer 2.0+ using the official installer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer

@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+export PATH="/usr/local/bin:${PATH:-}"
+
 # Map Cursor secret to standard GitHub CLI env var (gh uses GH_TOKEN)
 # Priority: PAGEKIT_BACKGROUND_AGENT > GH_TOKEN > default gh auth
 if [[ -n "${PAGEKIT_BACKGROUND_AGENT:-}" ]]; then

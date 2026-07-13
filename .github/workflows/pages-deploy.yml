@@ -6,6 +6,8 @@
 
 name: Deploy Docs to GitHub Pages
 
+run-name: "${{ github.event_name == 'workflow_dispatch' && 'Docs deploy — manual' || format('Docs deploy — {0}', github.ref_name) }}"
+
 on:
   push:
     branches: [develop]

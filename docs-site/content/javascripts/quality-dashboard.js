@@ -7,6 +7,7 @@
 
   const SNAPSHOT_CANDIDATES = [
     '../quality-snapshot.json',
+    '/pagekit/quality-snapshot.json',
     '/quality-snapshot.json',
     '../../data/quality-snapshot.demo.json'
   ];

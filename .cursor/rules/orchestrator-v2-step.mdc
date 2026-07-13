@@ -1,5 +1,5 @@
 ---
-description: "Orchestrator V2 — Execute phase. A cloud agent that executes ONE batch of Checklist Steps for a ticket (refactorer -> verifier -> tester per step), then reports one line. Launched by the automated driver; not used for manual V1 runs."
+description: 'Orchestrator V2 — Execute phase. A cloud agent that executes ONE batch of Checklist Steps for a ticket (refactorer -> verifier -> tester -> test-writer -> verifier -> tester per step), then reports one line. Launched by the automated driver; not used for manual V1 runs.'
 alwaysApply: false
 ---
 
@@ -22,23 +22,51 @@ differs, `git fetch origin` and `git checkout <branch>`. Then proceed.
 
 ## Per step N (in order)
 
-1. **refactorer** → code changes for Step N (no git).
-2. **verifier** → static review vs the ticket: `PASS` / `FAIL`.
-3. **tester** → PHPUnit + PHPStan: `PASS` / `FAIL`.
-4. Commit + tick + push (**one commit per step**):
-   - In `## EXECUTION STATE`, flip `- [ ] Step N` to `- [x] Step N`.
-   - `git add` the step's code changes **and** the ticket, then a single `git commit` (Conventional
-     Commits; the step's message). The ticked box rides along in the step's own commit — do **not**
-     make a second commit, and do **not** try to write the commit's own SHA into the ticket.
-   - `git push`.
+### A — Production gate
 
-On `FAIL`: hand the verbatim feedback to **refactorer**, then re-run verifier → tester → commit.
-Never self-fix.
+1. **refactorer** → production code changes for Step N (no git).
+2. **verifier** → static review of **production** changes vs the ticket: `PASS` / `FAIL`.
+3. **tester** → PHPUnit + PHPStan: `PASS` / `FAIL`.
+
+On `FAIL` at 2 or 3: hand verbatim feedback to **refactorer**, then re-run from step 2. Never self-fix.
+
+### B — Coverage gate (inline light; skip when not applicable)
+
+Run **B1–B3** only when **all** are true:
+
+- Ticket `## TESTING STRATEGY` does **not** mark this step `test-writer: skip`, **and**
+- Refactorer changed at least one production PHP file under `app/` or `packages/` (not only
+  `tests/` or docs).
+
+4. **test-writer** → PHPUnit tests for this step's production scope (no git). If it returns
+   `UNTESTABLE: …`, delegate to **refactorer** with that reason, then restart from step 2.
+5. **verifier** → **test files only** (scope: test-writer changed files). Message must include
+   `scope: test files only`. `PASS` / `FAIL`.
+6. **tester** → PHPUnit + PHPStan: `PASS` / `FAIL`.
+
+On `FAIL` at 5: feedback to **test-writer**, then re-run 5 → 6.
+On `FAIL` at 6: if clearly a test defect → **test-writer** with verbatim Tester output, then 5 → 6;
+if production regression → **refactorer**, then restart from step 2.
+
+### C — E2E, docs, commit
+
+7. **tester** → `"final E2E run"` — **only when** ticking Step N completes every `## EXECUTION STATE`
+   box (`- [x]`). Skip on all other steps.
+8. **doc-writer** → update branch doc for Step N. Hand over verbatim: branch doc path, ticket path,
+   `Step N`, Refactorer + test-writer changed-file lists, Verifier/Tester output (incl. FAIL
+   iterations). Once per step, after all Tester PASS — never during fix-loops. No git.
+9. Commit + tick + push (**one commit per step**):
+   - In `## EXECUTION STATE`, flip `- [ ] Step N` to `- [x] Step N`.
+   - `git add` the step's code + test changes, the ticket, **and** the branch doc, then a single
+     `git commit` (Conventional Commits; the step's message). The ticked box **and** the branch-doc
+     update ride along in the step's own commit — do **not** make a second commit.
+   - `git push`.
 
 ## Stuck-breaker
 
-If the **same** FAIL recurs **3×** for a step, stop and report `ESCALATE: Step N — <reason>` (the
-driver relaunches a fresh agent for the remaining unchecked steps).
+If the **same** FAIL recurs **3×** for a step, delegate to **doc-writer** to record the ESCALATE for
+Step N (hand over the verbatim failure), `git add` the branch doc, commit
+`docs(branch): record ESCALATE for Step N`, `git push`, then stop and report `ESCALATE: Step N — <reason>`.
 
 ## Context safety valve
 
@@ -49,7 +77,8 @@ the rest with a fresh agent.
 ## Boundaries
 
 - This phase only: no Architect/Plan-Reviewer/Bugbot, no `gh pr create`, no version bump.
-- Subagents by exact name: `refactorer`, `verifier`, `tester`. (The `refactorer` may itself use read-only `explore` for scoped research — nesting inside the worker, not here in the Orchestrator.)
+- Subagents by exact name: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`. (Workers
+  may use read-only `explore` internally — not here in the Orchestrator.)
 
 ## Report exactly one line
 

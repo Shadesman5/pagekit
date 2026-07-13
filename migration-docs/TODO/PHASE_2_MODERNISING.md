@@ -285,6 +285,10 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Testing notes**: detail in Prompt §4 — rework singleton-coupled ORM tests (`EntityManagerTest`, `UserProviderTest`); inject EM/repository with mocks (no kernel boot); Playwright CRUD at Final Test.
 - **Result**: Zero static singletons in the model layer; the `EntityManager` is obtained via DI; no boot-time side-effect hack.
 - **Risk**: High — ripples into every static model call site; requires an Architect design pass (Active-Record → Data-Mapper migration strategy) before the Refactorer starts.
+- **Explicit non-goals (defer)**:
+  - **ORM cache invalidation strategy** — Step 4.3 (`TagAwareCacheInterface`). Do not change `EntityManager::invalidateCache()` semantics here.
+  - **`blog/UrlResolver` static bridge** — Step 2.5. Out of scope.
+  - **Doctrine ORM swap** — non-goal. Remove global state in Pagekit's ORM only.
 - **In-code flag hygiene (audit 2026-07-07 — Proposal P5 / §9 RC-1, RC-2), do while touching these files:**
   - **RC-1** — `app/system/index.php:96`: the TODO header points at the completed Step 2.1.6, but the comment body itself says the work (removing the `db.em` boot hack) is _this_ step. Retag `2.1.6` → `Step 2.1.11 (#205)` — the boot line is deleted here anyway.
   - **RC-2** — `app/system/modules/site/src/Model/NodeModelTrait.php:18`: the flag reads "Must be refactored later" with **no step ID**; add `Step 2.1.11` (this step replaces the static request-scoped `$nodes` cache with an injected `CacheItemPoolInterface`).
@@ -302,7 +306,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Tasks**:
   - `app/system/modules/captcha/src/CaptchaListener.php:146` — `verifyToken(mixed $gRecaptchaResponse, mixed $secret)` → `string`. Modernise the single call site (line 141) to feed real strings via Symfony 6.4 typed request accessors: `$request->request->getString('gRecaptchaResponse')` (instead of `$request->get(...)`, which may return an array/null) + `(string) $this->captchaModule->config('recaptcha_secret')`.
   - `app/system/modules/site/src/Controller/NodeController.php:23` — `protected mixed $site` → `SiteModule`. `$this->module->get('system/site')` returns the `SiteModule` instance (used as `->getTypes()` / `->getType()` / `->config()`). Best practice: inject `SiteModule` via constructor DI instead of `ModuleManager::get()`, then declare `private readonly SiteModule $site`.
-  - `app/system/src/Model/DataModelTrait.php:13` — `public mixed $data = null` → `public ?array $data = null` with `@var array<string, mixed>|null`. All assignments are arrays (`= []`, `array_replace_recursive(...)`), the column is `json_array`, and `JsonArrayType::convertToPHPValue()` always returns an array — so the property is `?array` (the `(array)` cast in `get()` becomes redundant).
+  - `app/system/src/Model/DataModelTrait.php:13` — `public mixed $data = null` → `public ?array $data = null` with `@var array<string, mixed>|null`. The column is `json` (globally mapped to array-safe `JsonArrayType` since Step 2.1.7; the former `json_array` alias is gone). `JsonArrayType::convertToPHPValue()` always returns an array on hydration (null → `[]`), but freshly `new`/`create()`d entities keep the `null` default until `set()` — so the property stays `?array`. **Keep** the null-guard in `get()` (`(array) $this->data` or `$this->data ?? []`); it is not redundant.
 - **Result**: Fewer avoidable `mixed`; cleaner IDE/PHPStan signals in the model, site-controller and captcha layers.
 - **Risk**: Low — signature/property narrowing plus one small call-site change; PHPUnit + PHPStan green.
 - **Testing notes**: detail in Prompt §4 — type-only narrowings need no new tests; add focused `CaptchaListener` test if typed-accessor path is new behaviour to pin; optional `NodeController` unit test (see `MenuApiControllerTest`).

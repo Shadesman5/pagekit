@@ -10,6 +10,10 @@ This strategic plan guides Pagekit CMS from its current legacy base to a modern,
 
 **Key Principle: Fully modernize first, then build new features!**
 
+**Agent pipeline (how work is executed):** Autonomous modernization runs via the Conductor + subagent
+Orchestrator workflow (Plan → Execute → Finalize). Human reference:
+[`.cursor/WORKFLOW_SUBAGENTS.md`](../../.cursor/WORKFLOW_SUBAGENTS.md).
+
 ## Phase Definitions
 
 | Phase | Name                       | Goal                                                               | Detail File                                          |
@@ -17,7 +21,7 @@ This strategic plan guides Pagekit CMS from its current legacy base to a modern,
 | 0     | Preparation                | Stable, traceable baseline                                         | _(completed)_                                        |
 | 1     | Core Backend Modernisation | Renew the foundation (PHP 8.2+, Symfony 6.4, Doctrine DBAL 3)      | [PHASE_1_MODERNISING.md](PHASE_1_MODERNISING.md)     |
 | 2     | Developer Experience       | Quality tools, CI/CD, Docker, static analysis                      | [PHASE_2_MODERNISING.md](PHASE_2_MODERNISING.md)     |
-| 3     | Frontend Modernisation     | Vue 3, UIkit 3.21+, TypeScript, modern build tools                 | [PHASE_3_MODERNISING.md](PHASE_3_MODERNISING.md)     |
+| 3     | Frontend Modernization & Cross-Stack Alignment | Vue 3, UIkit 3.21+, TypeScript, translation/Intl alignment, service-layer DI | [PHASE_3_MODERNISING.md](PHASE_3_MODERNISING.md)     |
 | 4     | Production-Ready Release   | Essential features for Pagekit 2.0 (2FA, REST API v2, Performance) | [PHASE_4_MODERNISING.md](PHASE_4_MODERNISING.md)     |
 | 5     | Advanced & Enterprise      | Optional post-2.0 features, extensions, marketplace                | [PHASE_5_FUTURE_VISION.md](PHASE_5_FUTURE_VISION.md) |
 
@@ -66,7 +70,7 @@ Phase 2: Developer Experience
     ├─ Build Tools Modernization              ┃
     └─ Extension Safety System ━━━━━━━━━━━━━━━┛
           ⬇️
-Phase 3: Frontend Modernization
+Phase 3: Frontend Modernization & Cross-Stack Alignment
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
     ├─ UIkit 3.5 → 3.21+ Update               ┃
     ├─ Vue 2.7 Bridge                         ┃
@@ -78,6 +82,7 @@ Phase 3: Frontend Modernization
     │  ├─ Vue 3 Core + @vue/compat            ┃
     │  ├─ Pinia State Management              ┃
     │  └─ Deps (Intl, lodash → native)        ┃
+    ├─ Translation (3.4.6): ICU + Translator DI  ┃
     ├─ Component Library                      ┃
     └─ E2E Selector Strategy ━━━━━━━━━━━━━━━━━┛
           ⬇️
@@ -154,6 +159,8 @@ Pagekit's core philosophy:
 - ✅ **Modular** — Everything is a module/extension
 - ✅ **Simple** — Clear structure, no bloatware
 - ✅ **Developer-friendly** — Modern, but not overloaded
+
+**DX vs. minimal glue (modernization balance):** The 5 Aggressive Rules forbid compatibility layers and adapters, but **do not** forbid intentional **platform APIs** for extension and template authors. Globals like `__()`, `_i()`, `$date`, and `$number` are thin DX aliases backed by Symfony services — not legacy shims. **New or modernized platform APIs are welcome** when they improve extension/template DX, stay lean and secure under the hood, and add at most one minimal glue point per concern. Use **constructor injection** in controllers, services, and listeners; reserve globals for template/theme boundaries where PHP has no DI — never force DI there for purity alone. Static locators (`IntlServiceLocator`) are **minimal glue only** — one per concern, no chains. Full rule text: `.cursor/ROADMAP.md` § DX & Lightweight Philosophy.
 
 ### How Does Our Roadmap Align?
 

@@ -1,142 +1,145 @@
-# Pagekit Modernization: Subagent Workflow (How to Use)
+# Pagekit Modernization: Subagent Workflow (V2)
 
-**Stand:** 2026-02-03
+**Last updated:** 2026-07-13
 
-This document explains how to run the Pagekit modernization using Cursor’s **subagents** and the **Orchestrator** workflow, so the main (remote) agent delegates work and keeps context clean.
+Autonomous modernization runs via the **Conductor** (GitHub Actions) and the V2 Orchestrator rules. This document is the **human and agent reference** for that pipeline.
 
----
-
-## 0. Prompt Scope: Normal vs Exception
-
-**Normal pattern (what you usually do):**  
-**One ROADMAP step = one or more prompts.** Full concentration on that single step. Example: one prompt for step 1.5 (DBAL), another for 1.6 (PSR-11). The orchestrator then has only one step in the checklist for that run.
-
-**Exception (this audit):**  
-**One prompt = many steps.** Example: `AGENT_PROMPT_AUDIT_PHASE1.md` – one prompt that tells the agents to analyze and audit **every** step 1.1–1.14 in a single run. The orchestrator checklist has many steps (one per ROADMAP ID).
-
-**For audits you can do either:**
-
-| Approach | Description | When to use |
-|----------|-------------|-------------|
-| **Per-step audit** | One (or more) audit prompts **per** ROADMAP step (e.g. `AGENT_PROMPT_AUDIT_STEP_1_5.md`). Each run audits only that step; append to shared audit report. | Matches your normal workflow; full focus per step; easier to re-run a single step; one commit per step. |
-| **One audit for all** | One prompt for the whole phase (e.g. current `AGENT_PROMPT_AUDIT_PHASE1.md`). One run, all steps, one report. | Good for a single full Phase 1 health check run; more context in one go. |
-
-**Recommendation:** For consistency with "one step, full concentration" and with the orchestrator (commit per step), **per-step audit prompts** are the better fit. Use "one prompt for all steps" only when you explicitly want one big audit run (e.g. initial Phase 1 verification). **Template for per-step audits:** `migration-docs/TODO/agent_prompts/AGENT_PROMPT_AUDIT_STEP_TEMPLATE.md` – copy, rename (e.g. `AGENT_PROMPT_AUDIT_STEP_1_5.md`), replace step ID and topic.
+> **Manual IDE runs:** Rare — use `.cursor/rules/orchestrator-subagent-workflow.mdc` (V1; same subagent names).
 
 ---
 
-## 1. How Cursor Subagents Work
+## 1. Two roles: Conductor vs. Orchestrator
 
-- **Subagents** are separate AI “workers” the main agent can **delegate** to. Each has its own context window, so long task output doesn’t fill the main chat.
-- **Your subagents** are defined in `.cursor/agents/`:
-  - `architect.md` – Plans scope, checklist, TODO-Spec (ROADMAP-aligned).
-  - `refactorer.md` – Executes one step at a time (code/docs), “No Mercy” style.
-  - `verifier.md` – Checks Refactorer output (no shims, correct ROADMAP IDs).
-  - `tester.md` – Runs setup, PHPUnit, Playwright; does RCA on failure.
-- The **main agent** (the one you talk to) **invokes** them by **name** in natural language, e.g. “Delegate to the architect subagent to …”. Cursor then runs the matching agent from `.cursor/agents/`.
-- **Rule that ties it together:** `.cursor/rules/orchestrator-subagent-workflow.mdc`  
-  It applies when a **task prompt** is in context (e.g. `migration-docs/TODO/agent_prompts/*.md` or `**/PROMPT_*.md`). It tells the main agent: do not run the whole prompt yourself; delegate to architect first, then refactorer → verifier → tester per step, and commit per step.
+| Component | Where | LLM? | Responsibility |
+| --- | --- | --- | --- |
+| **Conductor** | GitHub Actions (`conductor.mjs`) | No | Outer loop: Plan → Execute batches → Finalize; reads ticket checkboxes; launches fresh cloud agents |
+| **Orchestrator** | Cursor Cloud Agent (per phase) | Yes | Thin coordinator: delegates to subagents, commits, reports **exactly one line** |
 
----
+**Start a run:** GitHub → Actions → **Conductor** → `workflow_dispatch` (task prompt path, issue, base branch).
 
-## 2. How You Invoke a Task (Remote Agent)
-
-**Option A – With @-mention (recommended)**
-
-1. Put the **task prompt** in context, e.g.  
-   `@migration-docs/TODO/agent_prompts/AGENT_PROMPT_AUDIT_PHASE1.md`
-2. Add the **ROADMAP** so step IDs are clear:  
-   `@.cursor/ROADMAP.md`
-3. In one message, ask the agent to execute the task, e.g.:
-
-   ```
-   Execute the task defined in the attached prompt (@AGENT_PROMPT_AUDIT_PHASE1.md).
-   Follow the Orchestrator workflow: Architect → Refactorer → Verifier → Tester per step.
-   Reference: @ROADMAP.md. Commit after each step (Conventional Commits).
-   ```
-
-Because the prompt path matches the rule’s `globs`, the **orchestrator rule** is applied and the agent should delegate to subagents instead of doing everything itself.
-
-**Option B – Use the invocation template**
-
-Use `.cursor/PROMPT_TASK_INVOCATION_TEMPLATE.md`: copy the “Invocation Block”, replace the prompt file name, and paste into the remote agent. That block already tells the agent to use the Orchestrator workflow and ROADMAP.
+Operative contracts: `orchestrator-v2-plan.mdc`, `orchestrator-v2-step.mdc`, `orchestrator-v2-finalize.mdc`.
 
 ---
 
-## 3. What Happens Step by Step
+## 2. Terminology
 
-| Phase | Who | What |
-|-------|-----|------|
-| 1 | **You** | Send task prompt + ROADMAP + “Execute … Orchestrator workflow”. |
-| 2 | **Main agent** | Reads orchestrator rule; delegates to **architect** (does not run the full prompt itself). |
-| 3 | **Architect** | Returns: scope, checklist (one entry per logical step), TODO-Spec, deferred items. |
-| 4 | **Main agent** | For **each** checklist step: delegates to **refactorer** → **verifier** → **tester**, then commits. |
-| 5 | **Refactorer** | Does only the **current** step (verify/fix code and docs, update audit report). |
-| 6 | **Verifier** | Checks Refactorer output (no adapters/shim, correct ROADMAP IDs). |
-| 7 | **Tester** | Runs `php pagekit setup`, PHPUnit, Playwright as needed. |
-| 8 | **Main agent** | Commits (Conventional Commits), then repeats for the next step until the checklist is done. |
+| Term | Meaning |
+| --- | --- |
+| **Roadmap Step X.Y** | One modernization task in `.cursor/ROADMAP.md` → **one task prompt = one ticket = one PR** |
+| **Checklist Step N** | One item in the Architect's checklist inside the ticket — Execute iterates over these |
 
-So: **you** only trigger the task once; the **main agent** is responsible for calling architect, then refactorer/verifier/tester in a loop and committing per step.
+Inside the per-ticket loop, plain "Step N" always means **Checklist Step N**.
 
 ---
 
-## 4. How to Write Task Prompts for This Workflow
+## 3. Subagents (`.cursor/agents/`)
 
-- **Keep prompts slim.** Avoid duplicating ROADMAP or `.cursor/rules`; reference them instead.
-- **State at the top** that the Orchestrator workflow applies (e.g. “Follow orchestrator-subagent-workflow; delegate to architect first …”).
-- **Define:** goal, branch, output paths, and **scope** (e.g. ROADMAP IDs 1.1–1.14). Use **ROADMAP as the source of truth** for step IDs and task names; don’t add a second “detail” doc unless you really need it.
-- If you reference a second doc (e.g. PHASE#1) for historical detail, label it as **optional – use with caution; may be outdated** so the agent verifies against code.
-- **One logical step = one Refactorer run = one commit.** So the Architect’s checklist should list steps that match “one commit each” (e.g. one ROADMAP ID or one coherent change set).
+| Agent | Phase | Role |
+| --- | --- | --- |
+| `architect` | Plan | Ticket + checklist + `EXECUTION STATE` (S/M/L) + `TESTING STRATEGY` |
+| `plan-reviewer` | Plan | Gate: plan vs. task prompt / ROADMAP → PASS / FAIL |
+| `doc-writer` | Plan, Execute, Finalize | Branch doc (living artifact); at Finalize also CHANGELOG + README |
+| `refactorer` | Execute, Finalize (fix loops) | Production code, No Mercy |
+| `verifier` | Execute, Finalize | Static review (production or `scope: test files only`) |
+| `tester` | Execute, Finalize | Sole test runner (PHPUnit, PHPStan, E2E) |
+| `test-writer` | Execute, Finalize | PHPUnit after green production gate (Execute); optional Codecov gap pass (Finalize step 3) |
 
-Example: `AGENT_PROMPT_AUDIT_PHASE1.md` – ROADMAP = truth, PHASE#1 = optional context with an explicit "may be outdated" warning.
-
----
-
-## 5. Subagent Definitions: Are Yours OK?
-
-Your four agents are **correctly set up** for Cursor:
-
-- **Location:** `.cursor/agents/` (project-level; Cursor also supports `~/.cursor/agents/` for user-wide agents).
-- **Format:** Markdown with YAML frontmatter: `name`, `description`, and optionally `model`.
-- **Names:** `architect`, `refactorer`, `verifier`, `tester` – these are the names the orchestrator rule uses for delegation.
-
-**Current model assignments** (see each agent’s YAML frontmatter in `.cursor/agents/`):
-
-| Agent | Model | Role |
-| ----- | ----- | ---- |
-| `architect` | `claude-opus-4-8[thinking=true,context=1m,effort=max,fast=false]` | Strategic planning (Opus 4.8 Max) |
-| `refactorer` | `claude-opus-4-8[thinking=true,context=1m,effort=max,fast=false]` | Code changes (Opus 4.8 Max) |
-| `verifier` | `claude-opus-4-6` | Static audit |
-| `tester` | `claude-sonnet-4-6` | Test execution |
-
-Optional tweaks:
-
-- **Descriptions** are already clear for when the main agent chooses which subagent to call.
-- To change a model, edit the `model:` line in the agent’s frontmatter; keep this table in sync.
-
-No structural changes are required for “how to create or control” them: **control** is done by the **orchestrator rule** and by **your invocation message** (task prompt + “execute with Orchestrator workflow”).
+Bugbot in the cloud: **PR Bugbot** (Finalize), not a local subagent.
 
 ---
 
-## 6. Tips and Limitations
+## 4. Pipeline (end-to-end)
 
-- **Rule must apply.** The orchestrator rule uses `globs: migration-docs/TODO/agent_prompts/*.md,**/PROMPT_*.md`. So the **task prompt file** must be in context (e.g. @-mentioned) and match one of these patterns; then the main agent gets the “delegate, don’t do it all yourself” behavior.
-- **Explicit delegation.** The rule now includes exact phrases (“Delegate to the **architect** subagent to …”). That makes it clear how the main agent should “steer” each subagent.
-- **One step at a time.** The rule forbids parallel steps and batch commits; that keeps history and rollbacks clear.
-- **If the main agent ignores the workflow:** Paste the delegation phrases from the rule into your message (e.g. “First delegate to the architect subagent to create scope and checklist, then …”) and ensure the task prompt is attached so the rule is active.
+```
+Task Prompt + ROADMAP
+        │
+        ▼
+┌─ PLAN ─────────────────────────────────────────────────────┐
+│  architect → plan-reviewer (⇄ on FAIL)                     │
+│  PASS → doc-writer (branch doc skeleton) → commit + push   │
+└────────────────────────────────────────────────────────────┘
+        │
+        ▼
+┌─ EXECUTE (per batch, Conductor) ───────────────────────────┐
+│  Per Checklist Step N:                                      │
+│    A) refactorer → verifier → tester           (production) │
+│    B) test-writer → verifier (tests) → tester   (optional)  │
+│    C) [E2E on last step] → doc-writer → commit + tick       │
+└────────────────────────────────────────────────────────────┘
+        │
+        ▼
+┌─ FINALIZE ─────────────────────────────────────────────────┐
+│  Push + PR → CI gate → [Codecov gap pass] → PR Bugbot       │
+│  → version bump → doc-writer (close branch doc + CHANGELOG) │
+│  → ROADMAP → archive ticket to done/ → push                 │
+└────────────────────────────────────────────────────────────┘
+```
+
+**State:** Progress = `- [x]` in `## EXECUTION STATE` on the ticket (one commit per Checklist Step).
+
+**Skip test-writer (Execute)** when: the ticket marks `test-writer: skip` **or** the step changed no production PHP under `app/` / `packages/`.
+
+**Skip coverage gap pass (Finalize step 3)** when: ticket `test-writer: skip`, no Codecov comment, or only non-testable gaps (views, config version).
+
+**E2E:** On the **last Execute step** (all other checkboxes already `[x]`), **before** PR/CI — not on every step.
 
 ---
 
-## 7. Quick Reference
+## 5. Writing task prompts
+
+- **Keep prompts slim** — reference ROADMAP and rules; do not duplicate them.
+- **Scope:** ROADMAP step ID(s), goal, output paths.
+- **One Checklist Step = one commit** — decompose the Architect checklist accordingly.
+- **Audits:** `<!-- conductor-mode: plan -->` in the prompt → report + docs-only PR only (no executable ticket).
+- **Per-step audit template:** `migration-docs/TODO/agent_prompts/AGENT_PROMPT_AUDIT_STEP_TEMPLATE.md`
+
+**Normal:** One ROADMAP step = one task prompt.  
+**Exception:** One prompt for many steps (e.g. full Phase 1 audit) — only when explicitly intended.
+
+---
+
+## 6. Key paths
+
+| Artifact | Path |
+| --- | --- |
+| Task prompt | `migration-docs/TODO/agent_prompts/*.md` |
+| Ticket (active) | `migration-docs/tickets/active/{task-slug}_plan.md` |
+| Ticket (done) | `migration-docs/tickets/done/{task-slug}_plan.md` |
+| Branch doc | `migration-docs/branches/phase-<X>/step-<X>-<Y>-<Z>-<kebab>.md` |
+| Branch doc skeleton | `migration-docs/branches/branch-doc-skeleton.md` |
+| Feature branch | `feature/{task-slug}` (Conductor-owned) |
+
+`task-slug` = task prompt filename without path or `.md`.
+
+---
+
+## 7. Subagent models (frontmatter)
+
+| Agent | Model (as of 2026-07) |
+| --- | --- |
+| `architect` | claude-opus-4-8 (Max thinking) |
+| `refactorer` | claude-opus-4-8 (Max thinking) |
+| `doc-writer` | claude-opus-4-8 (Max thinking) |
+| `plan-reviewer` | claude-fable-5 (Max thinking) |
+| `verifier` | claude-fable-5 (Max thinking) |
+| `tester` | claude-opus-4-6 (Max thinking) |
+| `test-writer` | composer-2.5 |
+
+Edit models in `.cursor/agents/<name>.md`; keep this table in sync.
+
+---
+
+## 8. Quick reference
 
 | You want to… | Do this… |
-|--------------|----------|
-| Run an audit/refactor task | @-mention the task prompt + ROADMAP, say “Execute … Orchestrator workflow”. |
-| Add a new task prompt | Create a `.md` under `migration-docs/TODO/agent_prompts/` or named `PROMPT_*.md`; keep it slim and reference ROADMAP. |
-| Change subagent behavior | Edit the corresponding `.cursor/agents/<name>.md` (prompt + frontmatter). |
-| Change the workflow (order, commits) | Edit `.cursor/rules/orchestrator-subagent-workflow.mdc`. |
-| Reuse the same invocation | Use `.cursor/PROMPT_TASK_INVOCATION_TEMPLATE.md` and swap the prompt file name. |
+| --- | --- |
+| Start a ticket | Conductor `workflow_dispatch` with task prompt + issue |
+| Change subagent behavior | Edit `.cursor/agents/<name>.md` |
+| Change workflow phases | Edit `orchestrator-v2-*.mdc` and optionally `conductor.mjs` |
+| Ticket / handoff conventions | `migration-docs/tickets/README.md` |
+| Branch doc format | `migration-docs/branches/branch-doc-skeleton.md` |
+| Push / version / PR metadata | `push.mdc`, `github-labels.mdc` |
 
 ---
 
-**Summary:** You trigger one task; the main agent delegates to **architect** (plan) then **refactorer** → **verifier** → **tester** per step and commits after each step. Subagents are configured in `.cursor/agents/` and “steered” by the orchestrator rule and your invocation message.
+**Summary:** The Conductor drives Plan → Execute batches → Finalize. Each phase delegates to subagents; `doc-writer` maintains documentation throughout; `test-writer` adds tests after a green production gate (Execute) and optionally closes Codecov patch gaps before Bugbot (Finalize). Progress lives in ticket checkboxes and git.

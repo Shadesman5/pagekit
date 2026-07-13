@@ -120,7 +120,7 @@ Read `.cursor/rules/github-labels.mdc` for full list.
 |-------|---------------|
 | Phase 1 | `Phase 1: Foundation` |
 | Phase 2 | `Phase 2: Developer Experience` |
-| Phase 3 | `Phase 3: Frontend Modernization` |
+| Phase 3 | `Phase 3: Frontend Modernization & Cross-Stack Alignment` |
 | Phase 4 | `Phase 4: Production Ready` |
 | Phase 5 | `Phase 5: Advanced Features` |
 

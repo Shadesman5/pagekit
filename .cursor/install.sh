@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# PHP, Composer, and other tools from the php:8.3-cli image live under
+# /usr/local/bin. Cursor terminals may not source /etc/bash.bashrc.
+export PATH="/usr/local/bin:${PATH:-}"
+
 # GitHub Token mapping
 if [[ -n "${PAGEKIT_BACKGROUND_AGENT:-}" ]]; then
     export GH_TOKEN="$PAGEKIT_BACKGROUND_AGENT"
@@ -54,6 +58,7 @@ php -v | head -1
 composer --version 2>/dev/null || echo "WARNING: Composer not available"
 ./app/vendor/bin/phpunit --version 2>/dev/null || echo "WARNING: PHPUnit not available"
 ./app/vendor/bin/phpstan --version 2>/dev/null || echo "WARNING: PHPStan not available"
+php -m 2>/dev/null | grep -qi '^pcov$' && echo "PCOV: enabled" || echo "WARNING: PCOV not available (coverage/Infection may fail)"
 command -v rg >/dev/null 2>&1 && rg --version | head -1 || echo "WARNING: ripgrep (rg) not available"
 command -v jq >/dev/null 2>&1 && jq --version || echo "WARNING: jq not available"
 php pagekit list 2>/dev/null | head -1 || echo "WARNING: pagekit CLI not available (config.php may be missing)"

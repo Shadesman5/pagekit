@@ -1,5 +1,7 @@
 name: PHP Quality
 
+run-name: "${{ github.event_name == 'pull_request' && format('PHP Quality — PR #{0} ({1})', github.event.pull_request.number, github.head_ref) || format('PHP Quality — {0}', github.ref_name) }}"
+
 on:
   push:
     branches: [main, develop]
