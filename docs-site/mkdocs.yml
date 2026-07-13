@@ -1,0 +1,120 @@
+# Pagekit CMS — GitHub Pages documentation site
+# Local preview: pip install mkdocs-material && mkdocs serve -f docs-site/mkdocs.yml
+
+site_name: Pagekit CMS
+site_description: Pagekit CMS documentation, project progress, and quality dashboard
+site_url: https://pagekit.github.io/
+repo_url: https://github.com/Shadesman5/pagekit
+repo_name: Shadesman5/pagekit
+edit_uri: edit/develop/docs-site/content/
+
+docs_dir: content
+site_dir: site
+
+hooks:
+  - hooks/copy_snapshot.py
+
+theme:
+  name: material
+  language: en
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+
+extra_javascript:
+  - javascripts/quality-dashboard.js
+
+extra_css:
+  - stylesheets/quality-dashboard.css
+
+nav:
+  - Home: index.md
+  - Guide:
+    - guide/index.md
+    - Getting Started:
+      - Introduction: guide/getting-started/introduction.md
+      - Requirements: guide/getting-started/requirements.md
+      - Installation: guide/getting-started/installation.md
+      - Updating: guide/getting-started/updating.md
+      - Configuration File: guide/getting-started/configuration-file.md
+      - Server Configuration: guide/getting-started/server-configuration.md
+      - Getting Help: guide/getting-started/getting-help.md
+    - User Interface:
+      - Dashboard: guide/user-interface/dashboard.md
+      - Site: guide/user-interface/site.md
+      - Blog: guide/user-interface/blog.md
+      - Users: guide/user-interface/users.md
+      - System: guide/user-interface/system.md
+      - Marketplace: guide/user-interface/marketplace.md
+      - Editor: guide/user-interface/editor.md
+      - Finder: guide/user-interface/finder.md
+    - Tutorials:
+      - Extension: guide/tutorials/extension.md
+      - Theme: guide/tutorials/theme.md
+      - Dashboard Widgets: guide/tutorials/dashboard-widgets.md
+      - Translate Pagekit: guide/tutorials/translation.md
+      - Marketplace: guide/tutorials/marketplace.md
+    - Developer:
+      - File Structure: guide/developer/file-structure.md
+      - Application: guide/developer/application.md
+      - Packages: guide/developer/packages.md
+      - Modules: guide/developer/modules.md
+      - Events: guide/developer/events.md
+      - Routing: guide/developer/routing.md
+      - Response: guide/developer/response.md
+      - Users & Permissions: guide/developer/users-permissions.md
+      - Theme: guide/developer/theme.md
+      - Views & Templating: guide/developer/views-templating.md
+      - Vue & Webpack: guide/developer/vuejs-and-webpack.md
+      - Widgets: guide/developer/widgets.md
+      - Database: guide/developer/database.md
+      - ORM: guide/developer/orm.md
+      - Translation: guide/developer/translation.md
+      - CLI: guide/developer/cli.md
+      - Pagekit Source: guide/developer/source.md
+    - Troubleshooting:
+      - System Information: guide/troubleshooting/system-information.md
+      - Debug Mode: guide/troubleshooting/debug-mode.md
+      - Permissions: guide/troubleshooting/permissions.md
+      - Not Found: guide/troubleshooting/not-found.md
+      - Server Error: guide/troubleshooting/server-error.md
+    - Maintenance:
+      - Translations: guide/maintain/translations.md
+  - Project:
+    - project/index.md
+    - Roadmap: project/roadmap.md
+    - Strategy: project/strategy.md
+    - Branch Docs: project/branches/index.md
+  - Quality Dashboard: quality/index.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true

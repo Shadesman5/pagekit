@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\Site;
 
+use Pagekit\Application\UrlProvider;
 use Pagekit\Site\Model\Node;
 use Pagekit\User\Model\User;
 use Pagekit\View\Helper\Helper;
@@ -14,6 +15,7 @@ class MenuHelper extends Helper
         private readonly MenuManager $menus,
         private readonly User $user,
         private readonly Node $node,
+        private readonly NodePresenter $nodePresenter,
     ) {
     }
 
@@ -104,7 +106,7 @@ class MenuHelper extends Helper
 
         if (!isset($nodes[$node->id])) {
             foreach ($nodes as $node) {
-                if ($node->getUrl('base') === $path) {
+                if ($this->nodePresenter->getUrl($node, UrlProvider::BASE_PATH) === $path) {
                     $path = $node->path;
 
                     break;
@@ -123,6 +125,7 @@ class MenuHelper extends Helper
             $parent = isset($nodes[$node->parent_id]) ? $nodes[$node->parent_id] : null;
 
             $node->set('active', 0 === strpos($path, $node->path.'/'));
+            $node->set('url', $this->nodePresenter->getUrl($node));
 
             if ($node->status !== 1
                 || $depth >= $maxDepth

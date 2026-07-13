@@ -21,7 +21,7 @@ class SiteModule extends Module
     {
         $this->app = $app;
 
-        ModelServiceLocator::init($app);
+        $app->set('nodePresenter', fn ($app) => new NodePresenter($app->get('url'), $app->get('user')));
 
         $app->set('node', function ($app) {
 

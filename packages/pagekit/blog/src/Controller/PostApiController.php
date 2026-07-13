@@ -7,6 +7,7 @@ namespace Pagekit\Blog\Controller;
 use function Pagekit\__;
 
 use Pagekit\Blog\Model\Post;
+use Pagekit\Blog\PostPresenter;
 use Pagekit\Database\Connection;
 use Pagekit\Filter\FilterManager;
 use Pagekit\Module\Module;
@@ -38,6 +39,7 @@ class PostApiController
         private readonly FilterManager $filter,
         private readonly Connection $db,
         protected readonly ValidatorInterface $validator,
+        private readonly PostPresenter $postPresenter,
     ) {
         $this->blog = $module->get('blog');
     }
@@ -85,22 +87,45 @@ class PostApiController
         $pages = ceil($count / $limit);
         $page = max(0, min($pages - 1, $page));
 
-        $posts = array_values($query->offset($page * $limit)->related('user', 'comments')->limit($limit)->orderBy($order[1], $order[2])->get());
+        $posts = [];
+        foreach ($query->offset($page * $limit)->related('user', 'comments')->limit($limit)->orderBy($order[1], $order[2])->get() as $post) {
+            if (!$post instanceof Post) {
+                throw new \LogicException(sprintf(
+                    'QueryBuilder::get() returned %s, expected %s',
+                    get_class($post),
+                    Post::class
+                ));
+            }
+            $posts[] = $this->postPresenter->toArray($post);
+        }
 
         return compact('posts', 'pages', 'count');
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     #[Route('/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
-    public function getAction(int $id): ?object
+    public function getAction(int $id): ?array
     {
-        return Post::where(compact('id'))->related('user', 'comments')->first();
+        $post = Post::where(compact('id'))->related('user', 'comments')->first();
+
+        if ($post !== null && !$post instanceof Post) {
+            throw new \LogicException(sprintf(
+                'QueryBuilder::first() returned %s, expected %s',
+                get_class($post),
+                Post::class
+            ));
+        }
+
+        return $post ? $this->postPresenter->toArray($post) : null;
     }
 
     /**
      * Save a post (create or update).
      *
      * @param  array<string, mixed>|null $data
-     * @return array<string, mixed>
+     * @return array{message: string, post: array<string, mixed>}
      */
     #[Route('/', methods: ['POST'])]
     #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
@@ -148,7 +173,7 @@ class PostApiController
 
         $post->save($data);
 
-        return ['message' => 'success', 'post' => $post];
+        return ['message' => 'success', 'post' => $this->postPresenter->toArray($post)];
     }
 
     /**

@@ -75,7 +75,8 @@ rg -n "self::\$nodes|static \?array \$nodes" app/system/modules/site/
 | DI service (KEEP) | `db.em` factory (`app/modules/database/index.php:82`) | keep — this is the legit registration |
 | Node request cache | `NodeModelTrait::$nodes` static (`NodeModelTrait.php:18-21`) | replace with injected `CacheItemPoolInterface` |
 | Call sites (~25 files) | controllers/listeners/providers in `site`, `user`, `widget`, `blog` | migrate |
-| Tests coupled to singleton | `EntityManagerTest:51` (asserts `getInstance()`), `UserProviderTest`, `UserTest` (boot singleton in isolated processes) | rework |
+| Tests coupled to singleton | `EntityManagerTest:51` (asserts `getInstance()`); `UserProviderTest` (`RunInSeparateProcess` + `primeEntityManager()` for `ModelTrait::getManager()`) | rework |
+| Deferred integration notes | `UserProviderTest` / `UserTest` docblocks defer DB happy-paths to integration — revisit after DI (inject EM + mock chain, or keep deferred) | update |
 
 ---
 
@@ -117,7 +118,7 @@ The §1 touchpoints are a starting set. Build the checklist from a fresh caller 
 - Migrate all `EntityManager::getInstance()` callers and static `Model::find()/where()/query()/create()/findAll()` call sites (site, user, widget, blog)
 - Replace `NodeModelTrait::$nodes` static cache with an injected `CacheItemPoolInterface`
 - Delete the `$app->get('db.em')` boot line (+ TODO block) in `app/system/index.php`
-- Rework ORM tests coupled to the singleton (`EntityManagerTest`, `UserProviderTest`, `UserTest`)
+- Rework ORM tests coupled to the singleton (`EntityManagerTest`, `UserProviderTest`); update deferred-integration docblocks in `UserProviderTest` / `UserTest`
 - In-code flag hygiene: RC-1, RC-2 (and RC-3 opportunistically)
 
 ---
@@ -126,9 +127,23 @@ The §1 touchpoints are a starting set. Build the checklist from a fresh caller 
 
 ### 4.1. PHPUnit (required)
 
-- **`EntityManagerTest`** (`app/modules/database/src/Tests/ORM/EntityManagerTest.php:51`) asserts `EntityManager::getInstance()` returns an instance — remove/replace with coverage of DI-based access.
-- **`UserProviderTest`** / **`UserTest`** boot the singleton via `new EntityManager(...)` in isolated processes and rely on `ModelTrait::getManager()` — rework to inject the EM (the `@runInSeparateProcess` isolation for the process-static singleton should no longer be needed).
-- Add coverage that model lookup/persistence works via the injected EM/repository with no global state.
+**Project test style (match existing suite — no full kernel boot):**
+
+- Instantiate services under test via **constructor injection** + PHPUnit mocks (`createMock()` / partial mocks). Do **not** boot `Application`, `App::getInstance()`, or a full HTTP kernel in unit tests.
+- **Mock `Connection`** (and QueryBuilder/Result stubs) for lookup/persistence behaviour — default for listeners, providers, repositories.
+- **SQLite `:memory:`** only where SQL semantics matter (existing precedent: `EntityManagerCacheInvalidationTest::bootSqliteManager()`, `MigrationServiceTest`). A bare `new EntityManager(...)` in tests is fine once the constructor no longer registers a process-static singleton.
+
+**Singleton-coupled tests to rework:**
+
+- **`EntityManagerTest`** (`app/modules/database/src/Tests/ORM/EntityManagerTest.php:51`) — `testGetInstance()` asserts `EntityManager::getInstance()`; remove/replace with DI-based access (constructor wiring, no static accessor).
+- **`UserProviderTest`** — `RunInSeparateProcess` + `primeEntityManager()` exist solely to prime the process-static singleton for `User::where()` → `ModelTrait::getManager()`. Rework to inject the EM/repository; drop `RunInSeparateProcess` / `primeEntityManager()` once the static fallback is gone.
+- **`UserTest`** — does **not** boot the singleton today (it avoids `findRoles()` via Reflection). Update its deferred-integration docblock if `hasPermission()` uncached paths become unit-testable with an injected EM.
+
+**New / extended coverage:**
+
+- Model lookup/persistence via injected EM/repository with **no global state**.
+- **`NodeModelTrait`** cache replacement — mock `CacheItemPoolInterface`, assert request-scoped cache behaviour (no static `$nodes`).
+- Revisit **`UserProviderTest`** deferred happy-path DB lookups (`find()`, `findByUsername()`, full `findByCredentials()` row hydrate): inject EM + mock chain in unit tests, or keep explicitly deferred in the class docblock (Architect decides per checklist step).
 
 ### 4.2. PHPStan
 
@@ -184,7 +199,7 @@ _Acceptance bar — not the full checklist._
 - [ ] `NodeModelTrait::$nodes` replaced with injected `CacheItemPoolInterface`
 - [ ] `app/system/index.php` eager `db.em` boot line + TODO block deleted (RC-1)
 - [ ] `db.em` service definition (`app/modules/database/index.php`) retained
-- [ ] `EntityManagerTest` / `UserProviderTest` / `UserTest` reworked off the singleton
+- [ ] `EntityManagerTest` / `UserProviderTest` reworked off the singleton; `UserTest` deferred notes updated if applicable
 - [ ] RC-2 resolved; RC-3 addressed if the blog migration was touched
 - [ ] `./app/vendor/bin/phpunit` passes
 - [ ] `./app/vendor/bin/phpstan analyse` passes (no new baseline entries)

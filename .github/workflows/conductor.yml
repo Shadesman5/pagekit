@@ -1,5 +1,9 @@
 name: Conductor (V2)
 
+# Display title in Actions / mobile app. Without run-name, GitHub falls back to the HEAD commit
+# message on the base branch (e.g. the previous merged PR), which is misleading for manual runs.
+run-name: "${{ inputs.title != '' && inputs.title || format('Conductor — {0}{1}', inputs.task_prompt, inputs.issue != '' && format(' (#{0})', inputs.issue) || '') }}"
+
 # Drives the V2 orchestrator pipeline: creates feature/<slug>, then launches ONE fresh
 # cloud agent per phase (Plan -> Execute batches -> Finalize) via the Cloud Agents API.
 # The loop lives here (plain Node, zero LLM context); the agents do the work.
@@ -16,6 +20,10 @@ on:
       task_prompt:
         description: "Path to the agent prompt (e.g. migration-docs/TODO/agent_prompts/PROMPT_X.md)"
         required: true
+        type: string
+      title:
+        description: "Run display title (e.g. 'Step 2.1.10 — Entity Presentation Layer'). Optional; defaults to task_prompt path + issue number."
+        required: false
         type: string
       issue:
         description: "GitHub issue number — required for normal tasks (PR Closes #N + conductor:stop/pause labels); leave empty for audits (which have no issue)"
@@ -65,6 +73,7 @@ concurrency:
 
 jobs:
   conduct:
+    name: "${{ inputs.title != '' && inputs.title || format('Conductor — {0}', inputs.task_prompt) }}"
     runs-on: ubuntu-latest
     timeout-minutes: 720   # safety cap; cancel the run to stop sooner (script cancels the live agent)
     steps:

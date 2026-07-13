@@ -8,6 +8,7 @@ use function Pagekit\__;
 
 use Pagekit\Blog\Model\Comment;
 use Pagekit\Blog\Model\Post;
+use Pagekit\Blog\PostPresenter;
 use Pagekit\Captcha\Attribute\Captcha;
 use Pagekit\Content\ContentHelper;
 use Pagekit\Module\Module;
@@ -39,6 +40,7 @@ class CommentApiController
         private readonly HttpRequest $request,
         private readonly ContentHelper $content,
         protected readonly ValidatorInterface $validator,
+        private readonly PostPresenter $postPresenter,
     ) {
         $this->blog = $module->get('blog');
     }
@@ -143,6 +145,8 @@ class CommentApiController
 
         $posts = [...$posts];
 
+        $posts = array_map(fn (Post $p) => $this->postPresenter->toArray($p), $posts);
+
         return compact('comments', 'posts', 'pages', 'count');
     }
 
@@ -237,7 +241,7 @@ class CommentApiController
             ));
         }
 
-        if ($post === null || (!$this->user->hasAccess('blog: manage comments') && !($post->isCommentable() && $post->isPublished()))) {
+        if ($post === null || (!$this->user->hasAccess('blog: manage comments') && !($this->postPresenter->isCommentable($post) && $post->isPublished()))) {
             throw new NotFoundHttpException(__('Post not found.'));
         }
 

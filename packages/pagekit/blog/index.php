@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Pagekit\Blog\Content\ReadmorePlugin;
 use Pagekit\Blog\Event\PostListener;
 use Pagekit\Blog\Event\RouteListener;
+use Pagekit\Blog\PostPresenter;
 use Pagekit\Blog\UrlResolver;
 
 return [
@@ -159,6 +160,8 @@ return [
         'boot' => function ($event, $app) {
             UrlResolver::setCache($app->get('cache'));
             UrlResolver::setModule($app->get('module')->get('blog'));
+
+            $app->set('postPresenter', fn ($app) => new PostPresenter($app->get('url'), $app->get('user'), $app->get('module')->get('blog')));
 
             $app->get('events')->subscribe(new RouteListener(
                 $app->get('router'),

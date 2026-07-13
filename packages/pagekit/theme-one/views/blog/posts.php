@@ -25,7 +25,7 @@ $view->script('posts', 'blog:app/bundle/posts.js', ['vue']) ?>
                 <li><a href="<?= $view->url('@blog/id', ['id' => $post->id]) ?>"><?= __('Read more') ?></a></li>
                 <?php endif ?>
 
-                <?php if ($post->isCommentable() || $post->comment_count) : ?>
+                <?php if ($post->get('commentable') || $post->comment_count) : ?>
                 <li><a href="<?= $view->url('@blog/id#comments', ['id' => $post->id]) ?>"><?= __('{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments', ['%count%' => $post->comment_count]) ?></a></li>
                 <!-- <li><a href="<?= $view->url('@blog/id#comments', ['id' => $post->id]) ?>"><?= _i('{apples, plural, =0 {There are no apples} one {There is one apple...} other {There are # apples!} }', ['apples' => $post->comment_count]) ?></a></li> -->
                 <?php endif ?>

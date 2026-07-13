@@ -5,7 +5,7 @@ if ($root->getDepth() === 0) : ?>
 
     <?php foreach ($root->getChildren() as $node) : ?>
     <li class="<?= $node->hasChildren() ? 'uk-parent' : '' ?><?= $node->get('active') ? ' uk-active' : '' ?>" <?= ($root->getDepth() === 0 && $node->hasChildren()) ? '' : '' ?>>
-        <a href="<?= $node->getUrl() ?>"><?= $node->title ?></a>
+        <a href="<?= $node->get('url') ?>"><?= $node->title ?></a>
 
         <?php if ($node->hasChildren()) : ?>
 
