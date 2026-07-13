@@ -285,6 +285,10 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Testing notes**: detail in Prompt §4 — rework singleton-coupled ORM tests (`EntityManagerTest`, `UserProviderTest`); inject EM/repository with mocks (no kernel boot); Playwright CRUD at Final Test.
 - **Result**: Zero static singletons in the model layer; the `EntityManager` is obtained via DI; no boot-time side-effect hack.
 - **Risk**: High — ripples into every static model call site; requires an Architect design pass (Active-Record → Data-Mapper migration strategy) before the Refactorer starts.
+- **Explicit non-goals (defer)**:
+  - **ORM cache invalidation strategy** — Step 4.3 (`TagAwareCacheInterface`). Do not change `EntityManager::invalidateCache()` semantics here.
+  - **`blog/UrlResolver` static bridge** — Step 2.5. Out of scope.
+  - **Doctrine ORM swap** — non-goal. Remove global state in Pagekit's ORM only.
 - **In-code flag hygiene (audit 2026-07-07 — Proposal P5 / §9 RC-1, RC-2), do while touching these files:**
   - **RC-1** — `app/system/index.php:96`: the TODO header points at the completed Step 2.1.6, but the comment body itself says the work (removing the `db.em` boot hack) is _this_ step. Retag `2.1.6` → `Step 2.1.11 (#205)` — the boot line is deleted here anyway.
   - **RC-2** — `app/system/modules/site/src/Model/NodeModelTrait.php:18`: the flag reads "Must be refactored later" with **no step ID**; add `Step 2.1.11` (this step replaces the static request-scoped `$nodes` cache with an injected `CacheItemPoolInterface`).
