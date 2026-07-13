@@ -75,3 +75,6 @@ docker.env
 
 # MkDocs build output (deployed via GitHub Actions)
 /docs-site/site/
+
+# MkDocs hook bytecode (local `mkdocs build` / Python)
+/docs-site/hooks/__pycache__/
