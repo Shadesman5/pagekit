@@ -2,7 +2,7 @@
 
 <!-- conductor-mode: full -->
 
-**ROADMAP:** 2.1.12. GitHub Issue: #217. Reference: `@ROADMAP.md`.
+**ROADMAP:** 2.1.12. GitHub Issue: #217. Reference: `@ROADMAP.md`, `PHASE_2_MODERNISING.md` §2.1.12.
 
 ---
 
@@ -40,7 +40,7 @@
 
 ## 1. DISCOVERY
 
-Confirm the three sites are still present and unchanged at planning time (line numbers may have drifted):
+Confirm the three sites are still present at planning time (line numbers may have drifted):
 
 ```bash
 rg -n "verifyToken\(mixed" app/system/modules/captcha/
@@ -78,7 +78,7 @@ rg -n "public mixed \$data" app/system/src/Model/DataModelTrait.php
 
 - `public mixed $data = null;` → `public ?array $data = null;` with `/** @var array<string, mixed>|null */`.
 - **Why `?array` (nullable), not `array`:** the column is `#[ORM\Column(type: 'json')]`; the DBAL `json` type is globally overridden to the array-safe `JsonArrayType` (`app/modules/database/index.php:100`; the former `json_array` alias was removed in Step 2.1.7). `JsonArrayType::convertToPHPValue()` always returns an array (null → `[]`), so a **hydrated** entity's `$data` is always an array — but a freshly `new`/`create()`d entity keeps the `null` default until `set()` is called. Hence the property stays nullable.
-- **Keep the null-guard in `get()`:** `Arr::get()` is typed `array $array`, and `$data` may be `null` (pre-hydration). Keep `(array) $this->data` (or switch to `$this->data ?? []`) — it is **not** redundant.
+- **Keep the null-guard in `get()`:** `Arr::get()` is typed `array $array`, and `$data` may be `null` (pre-hydration). Keep `(array) $this->data` (or switch to `$this->data ?? []`) — no compatibility shim beyond this documented guard.
 
 ---
 
@@ -86,74 +86,31 @@ rg -n "public mixed \$data" app/system/src/Model/DataModelTrait.php
 
 Do **not** touch these (legitimate `mixed`, reviewed):
 
-- Docblock array shapes, magic-method proxies (`PropertyTrait::__get/__set`), filter/loader/PSR-11 `get()` contracts.
+- Docblock array shapes, magic-method proxies (`PropertyTrait::__get/__set`), filter/loader/PSR-11 `get()` contracts, polymorphic `preg_replace` returns.
 - `PregReplaceFilter::filter()` return (honest polymorphic return).
 - `ExceptionListener::$controller`, `WrappedListener::$listener` (PHP forbids `callable` as a native property type → `mixed` + `@var callable…` is the idiomatic pattern).
 - `Node::getUrl()`'s `mixed $referenceType` → `int|string` is handled in **Step 2.1.10** (relocated there as a presentation concern), not here.
 
 ---
 
-## 4. TESTING
+## 4. TESTING (step-specific)
 
-### 4.1. PHPUnit (required)
-
-**Default:** pure type/property narrowing needs **no new test** if behaviour is unchanged — existing suite + PHPStan suffice.
+**PHPUnit — default:** pure type/property narrowing needs **no new test** if behaviour is unchanged.
 
 **Add or adjust tests only where an observable contract changes:**
 
-- **`CaptchaListener::verifyToken(string, string)`** — no PHPUnit coverage exists today. Add a focused unit test for the typed request-accessor path (`$request->request->getString('gRecaptchaResponse')`) and config cast; mock HTTP/request dependencies, no kernel boot (mirror auth/user listener tests).
-- **`NodeController` → constructor `SiteModule` DI** — optional unit test: construct the controller with a mock/stub `SiteModule` + other deps, assert an action path (precedent: `MenuApiControllerTest` — direct `new Controller(...)`, no kernel).
+- **`CaptchaListener::verifyToken(string, string)`** — no PHPUnit coverage exists today. Add a focused unit test for the typed request-accessor path and config cast; mock HTTP/request dependencies, no kernel boot.
+- **`NodeController` → constructor `SiteModule` DI** — optional unit test (precedent: `MenuApiControllerTest` — direct `new Controller(...)`, no kernel).
 - **`DataModelTrait::$data` → `?array`** — no dedicated test needed; covered indirectly by entities using the trait.
 
-Match project style: constructor injection + mocks; no full `Application` / kernel boot in unit tests.
-
-### 4.2. PHPStan
-
-- `./app/vendor/bin/phpstan analyse` — no new baseline entries; the three narrowed sites drop their `mixed`.
-
-### 4.3. Playwright E2E (Final Test)
-
-Run the 3 sound E2E specs — smoke paths touched by the narrowings:
-
-- Captcha-guarded form submit
-- Site page create/edit (`NodeController`)
-- Any `data`-backed entity save/load
-
----
-
-## 5. AGGRESSIVE MODERNIZATION RULES
-
-- **DELETE OVER WRAP** — narrow types directly; no `mixed` + runtime type-juggling shim.
-- **NO NEW BRIDGES** — no compatibility casts beyond the documented null-guard in `get()`.
-- **INTERNAL BREAKING CHANGES ALLOWED** — `verifyToken()` / `NodeController` signatures may change; update call sites in the same PR.
-
----
-
-## AUDIT FINDINGS (Phase 1 Review / Step 2.1.6 `mixed` audit — scoped to this step)
-
-- `CaptchaListener::verifyToken(mixed, mixed)` — narrowable to `string` via typed request accessors + config cast.
-- `NodeController::$site` (`mixed`) — concrete `SiteModule` via constructor DI.
-- `DataModelTrait::$data` (`mixed`) — `?array` (JSON column is array-safe; nullable pre-hydration).
+**E2E focus (final Execute step):** captcha-guarded form submit; site page create/edit (`NodeController`); any `data`-backed entity save/load.
 
 ---
 
 ## SUCCESS CRITERIA
 
-- The three sites no longer declare `mixed`; types are concrete (`string`, `SiteModule`, `?array`).
-- No behaviour change; existing tests pass.
-- PHPStan passes with no new baseline entries.
-- Playwright E2E (3 specs) pass at Final Test.
-
----
-
-## VALIDATION CHECKLIST
-
-_Acceptance bar — not the full checklist._
-
-- [ ] `CaptchaListener::verifyToken()` params typed `string`; call site uses typed request accessor + `(string)` config cast
-- [ ] `NodeController::$site` typed `SiteModule` via constructor DI; `ModuleManager` dropped if unused
-- [ ] `DataModelTrait::$data` typed `?array` with `@var array<string, mixed>|null`; `get()` null-guard retained
-- [ ] `rg "verifyToken\(mixed|protected mixed \$site|public mixed \$data"` returns nothing
-- [ ] `./app/vendor/bin/phpunit` passes
-- [ ] `./app/vendor/bin/phpstan analyse` passes (no new baseline entries)
-- [ ] Playwright E2E (3 specs) pass
+- `CaptchaListener::verifyToken()` params typed `string`; call site uses typed request accessor + `(string)` config cast
+- `NodeController::$site` typed `SiteModule` via constructor DI; `ModuleManager` dropped if unused
+- `DataModelTrait::$data` typed `?array` with `@var array<string, mixed>|null`; `get()` null-guard retained
+- `rg "verifyToken\(mixed|protected mixed \$site|public mixed \$data"` returns nothing
+- No behaviour change; `./app/vendor/bin/phpunit` + `./app/vendor/bin/phpstan analyse` pass (no new baseline entries)
