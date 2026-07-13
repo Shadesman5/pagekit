@@ -9,6 +9,8 @@
 
 name: Issue Cleanup
 
+run-name: "${{ format('Issue cleanup — {0}', inputs.issue_numbers) }}"
+
 on:
   workflow_dispatch:
     inputs:

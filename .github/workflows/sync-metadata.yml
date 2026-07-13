@@ -34,6 +34,8 @@
 
 name: Sync Metadata
 
+run-name: "${{ github.event_name == 'pull_request' && format('Sync metadata — PR #{0}', github.event.pull_request.number) || format('Sync metadata — issue #{0}', github.event.issue.number) }}"
+
 on:
   issues:
     types: [opened, edited]
