@@ -17,9 +17,9 @@
    - The system must remain **functional after each step** (all tests green).
    - Internal API endpoints (`/api/...`) may change as long as both frontend and backend
      are updated together in the same step (no external consumers exist yet).
-   - **Platform API names** (e.g. `$date`, `$number`, `$http`) may be kept when they represent
-     a stable developer-facing API for extensions — this is NOT a compatibility layer,
-     it's a clean modern reimplementation under the same function signature.
+   - **Platform API names** (e.g. `__()`, `_i()`, `$date`, `$number`, `$http`) may be kept when they represent
+     a stable developer-facing API for extensions and templates — this is NOT a compatibility layer,
+     it's a clean modern reimplementation under the same function signature. See § DX & Lightweight Philosophy.
    - The **real public API** (versioned, documented, JWT-authenticated) comes in Step 4.2.
 4. **DELETE OVER WRAP**
    - Legacy code must be physically deleted from the file.
@@ -30,6 +30,12 @@
    - Temporary bridge: `// TODO: TEMPORARY BRIDGE - To be removed in Step X.Y`
    - Backward compatibility: `// TODO: BACKWARD COMPATIBILITY - Must be refactored later`
    - Agents may add sub-steps (e.g. 2.0.5b) in ROADMAP if a step is missing for clean modernization.
+
+## **🎯 DX & LIGHTWEIGHT PHILOSOPHY**
+
+- **Platform APIs** — Template/theme helpers (`__()`, `$date`, …) are thin aliases over DI services, not legacy shims (Rule 3). New or modernized helpers welcome: stable extension signatures, one glue point per concern.
+- **Boundary** — DI in services/controllers/listeners; helpers in views/mails/themes. No DI-for-purity in templates.
+- **Lightweight core** — One minimal locator per concern, only where PHP has no constructor. Dev tooling (PHPStan, CI) wraps the core, never bloats runtime.
 
 ## **📊 TRACKING TABLE**
 
