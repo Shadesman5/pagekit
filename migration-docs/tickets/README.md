@@ -1,38 +1,73 @@
-# Ticket-based handoff
+# Ticket-based handoff (V2)
 
 Subagent tasks are delegated via files in this folder. The Orchestrator only assigns **who gets which file**; it does not carry the full plan in chat.
 
+**Workflow overview:** [`.cursor/WORKFLOW_SUBAGENTS.md`](../../.cursor/WORKFLOW_SUBAGENTS.md)
+
 ## Convention
 
-| Role      | Writes / Uses | File pattern |
-|-----------|----------------|--------------|
-| Architect | Writes plan    | `active/{task-slug}_plan.md` |
-| Refactorer| Reads plan      | Same file + current step index from Orchestrator |
-| Verifier  | Reads plan      | Same file + changed files |
-| Tester    | —               | No ticket; runs tests only |
+| Role | Reads / Writes | File pattern |
+| --- | --- | --- |
+| **Architect** | Writes plan | `active/{task-slug}_plan.md` |
+| **Plan-reviewer** | Reads task prompt + ticket | Same ticket (Plan gate only) |
+| **Refactorer** | Reads plan | Same file + Checklist Step N from Orchestrator |
+| **Verifier** | Reads plan + changed files | Production scope, or `scope: test files only` |
+| **Tester** | — | No ticket; runs tests per Orchestrator message |
+| **Test-writer** | Reads plan (testing notes) | Writes tests only; scope = Refactorer production files |
+| **Doc-writer** | Reads ticket (reference only) | **Writes** `migration-docs/branches/phase-<X>/step-*.md`; at Finalize also CHANGELOG/README — **never** the ticket |
 
 **Task-slug** = task prompt filename without path and without `.md` (e.g. `PSR-11-Container-DI-Infrastructure`).
 
+## Ticket structure (Architect)
+
+Each ticket in `active/` contains at minimum:
+
+- `## ARCHITECT OUTPUT` — scope, checklist, deferred, bridges
+- `## EXECUTION STATE` — checkboxes mirroring the checklist 1:1, each with `(S|M|L)` size hint
+- `## TESTING STRATEGY` — production gate, test-writer skip rules, E2E timing
+
+The **Conductor** reads `## EXECUTION STATE` only (never edits it). Step orchestrators flip `- [ ]` → `- [x]` in the **same commit** as that step's code.
+
 ## Lifecycle folders: `active/` vs `done/`
 
-Tickets live in two subfolders so a running agent never accidentally reads an unrelated ticket:
+- **`active/`** — in-progress tickets. Architect writes here; Execute reads and ticks here.
+- **`done/`** — completed tickets. **Finalize** runs `git mv active/{slug}_plan.md done/`.
 
-- **`active/`** — in-progress tickets. The Architect writes new plans here; the Orchestrator / step orchestrators read and tick them here.
-- **`done/`** — completed tickets. At **Finalize** (after the PR is created), the finished ticket is moved with `git mv active/{task-slug}_plan.md done/`.
+The explicit path in each handoff is the primary guard; the folder split is defense-in-depth.
 
-The primary guard against cross-reading is still the explicit path in each handoff — agents read **only** the one ticket they are given. The folder split is defense-in-depth and keeps the `active/` namespace small. (Historical tickets from before this convention were archived into `done/` in one batch.)
+## Flow by phase
 
-## Flow
+### Plan (`orchestrator-v2-plan.mdc`)
 
-1. **Orchestrator** delegates to Architect with the task prompt path. Architect reads task + ROADMAP and **writes** `migration-docs/tickets/active/{task-slug}_plan.md` (ARCHITECT OUTPUT format). Architect’s chat output: one line, e.g. `Plan written to migration-docs/tickets/active/PSR-11-Container-DI-Infrastructure_plan.md`.
-2. **Orchestrator** delegates to Refactorer: "Ticket: migration-docs/tickets/active/{task-slug}_plan.md, Step N." Refactorer **reads only that file** (and codebase); does the work; chat output: "Step N done. Files: …".
-3. **Orchestrator** delegates to Verifier: same ticket path + step N + changed files. Verifier outputs PASS or FAIL only.
-4. **Tester** runs tests; output PASS or FAIL (+ minimal RCA if FAIL).
+1. **Architect** — writes `migration-docs/tickets/active/{task-slug}_plan.md`. Chat: `Plan written to …`
+2. **Plan-reviewer** — PASS / FAIL (FAIL → Architect re-plans)
+3. **Doc-writer** — copies `branch-doc-skeleton.md` to `migration-docs/branches/phase-<X>/step-<X>-<Y>-<Z>-<kebab>.md`, fills header metadata
+4. **Orchestrator** — commits ticket **and** branch doc: `docs(plan): add ticket + branch doc for <task-slug>`, push
 
-## Optional: output for human
+Audit/report tasks (`<!-- conductor-mode: plan -->`): no ticket, no branch doc — report under `migration-docs/audits/` instead.
 
-The task prompt or invocation template can specify a summary file path for human review. This is optional — the primary output is the PR itself (created via `push.mdc`).
+### Execute (`orchestrator-v2-step.mdc`)
+
+Per **Checklist Step N**:
+
+1. **Refactorer** → **Verifier** → **Tester** (production gate)
+2. **Test-writer** → **Verifier** (`scope: test files only`) → **Tester** — skip when strategy says so or no production PHP changed
+3. **Tester** `"final E2E run"` — only when Step N completes every `EXECUTION STATE` box
+4. **Doc-writer** — updates branch doc for Step N (actual results, not plan restatement)
+5. **Orchestrator** — one commit: code + tests + ticket tick + branch doc; push
+
+### Finalize (`orchestrator-v2-finalize.mdc`)
+
+PR → CI → optional Codecov gap pass (`test-writer` → verifier → tester) → PR-Bugbot → version bump (Orchestrator) → **doc-writer** (close branch doc + CHANGELOG + README) → ROADMAP (Orchestrator) → archive ticket to `done/` → push.
+
+## Branch doc path
+
+Derived from the ticket's `Current Step (ROADMAP): X.Y.Z`:
+
+`migration-docs/branches/phase-<X>/step-<X>-<Y>-<Z>-<kebab-title>.md`
+
+Plan-reviewer verifies this is derivable at Plan gate. Schema: `migration-docs/branches/branch-doc-skeleton.md`.
 
 ## Git
 
-Ticket files (`*_plan.md`) are **durable, tracked artifacts** — commit them. The Orchestrator commits the ticket right after the Architect writes it (see `.cursor/rules/orchestrator-subagent-workflow.mdc`, Rule 5), so the plan persists beyond the ephemeral cloud-agent VM and lands in the PR next to the code it describes. Do **not** gitignore `*_plan.md`.
+Ticket files (`*_plan.md`) are **durable, tracked artifacts** — always committed. Do **not** gitignore `*_plan.md`.
