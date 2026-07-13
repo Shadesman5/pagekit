@@ -55,16 +55,18 @@ gulp.task('assets', () => {
         },
         {
             path: 'app/system/modules/editor/app/assets/',
-            assets: { tinymce: '*', marked: '*', codemirror: '*' }
+            assets: { tinymce: '*', marked: '*', codemirror: { package: 'Codemirror' } }
         }
     ];
 
     return merge.apply(null, [].concat.apply([], dirs.map((dir) => (
         Object.keys(dir.assets).map((asset) => {
             const options = dir.assets[asset];
-            const base = `${asset}/`;
+            // `package` = node_modules folder name (case-sensitive on Linux); `asset` = dest subdir
+            const packageName = (typeof options === 'object' && options.package) ? options.package : asset;
+            const base = `${packageName}/`;
             const src = path.join(__dirname, 'node_modules/') + base;
-            let dest = path.join(__dirname, dir.path) + base;
+            let dest = path.join(__dirname, dir.path) + `${asset}/`;
             let files = `${src}**`;
 
             // Check options
