@@ -13,7 +13,6 @@ use Pagekit\Site\Model\Node;
 use Pagekit\Site\Model\NodeRepository;
 use Pagekit\Site\Model\Page;
 use Pagekit\Site\SiteModule;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 

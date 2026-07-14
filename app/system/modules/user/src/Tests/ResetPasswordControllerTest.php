@@ -18,7 +18,6 @@ use Pagekit\User\Controller\ResetPasswordController;
 use Pagekit\User\Model\User;
 use Pagekit\User\Model\UserRepository;
 use Pagekit\View\View;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
