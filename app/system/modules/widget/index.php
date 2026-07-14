@@ -15,6 +15,8 @@ return [
 
         $app->set('widget', fn ($app) => new WidgetManager($app));
 
+        $app->set('widgetRepository', fn ($app) => $app->get('db.em')->getRepository(Widget::class));
+
         $app->set('position', function ($app) {
 
             $positions = new PositionManager($app->get('config')($app->get('theme')->name));

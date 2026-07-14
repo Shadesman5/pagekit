@@ -7,6 +7,9 @@ namespace Pagekit\Site;
 use Pagekit\Application as App;
 use Pagekit\Module\Module;
 use Pagekit\Site\Model\Node;
+use Pagekit\Site\Model\NodeRepository;
+use Pagekit\Site\Model\Page;
+use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
 class SiteModule extends Module
 {
@@ -22,6 +25,10 @@ class SiteModule extends Module
         $this->app = $app;
 
         $app->set('nodePresenter', fn ($app) => new NodePresenter($app->get('url'), $app->get('user')));
+
+        $app->set('nodeRepository', fn ($app) => new NodeRepository($app->get('db.em'), new ArrayAdapter(0, false)));
+
+        $app->set('pageRepository', fn ($app) => $app->get('db.em')->getRepository(Page::class));
 
         $app->set('node', function ($app) {
 

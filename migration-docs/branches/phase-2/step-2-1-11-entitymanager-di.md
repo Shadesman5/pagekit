@@ -72,6 +72,33 @@ singleton stay in place (removed in Step 8), so the existing suite stays green.
 | `app/system/modules/comment/src/Tests/Fixtures/CommentEntity.php` | **New.** Concrete subclass of the abstract mapped-superclass `Comment` so the shared `deleting()` handler can run against a real instance. |
 | `tests/Unit/Blog/PostModelTraitTest.php` | **New.** `saving()` modified-stamp + slug suffixing, `deleting()` `@blog_comment` cascade; mocked EM/repository/connection; reuses the existing blog Tests bootstrap. |
 
+### Custom repositories + container wiring (Step 3)
+
+Third additive step: three custom repositories and seven container services (three
+custom + four generic) are wired in, but **nothing consumes them yet** — the module
+`node`/`user` services, controllers, listeners and the trait statics keep their
+current shape until Steps 4–7, so the existing suite stays green. Each custom repo
+subclasses the Step 1 generic `Repository<T>` and resolves its own `Metadata`.
+
+| File | Change |
+|---|---|
+| `app/system/modules/site/src/Model/NodeRepository.php` | **New.** `extends Repository<Node>`; ctor `(EntityManager $em, CacheItemPoolInterface $cache)` resolving metadata via `$em->getMetadata(Node::class)`. Ports the former `NodeModelTrait` static `$nodes` cache onto the injected pool — `find`/`findAll`/`findByMenu` gain a `bool $cached` flag (full-set memo on `findAll(true)`, per-id memo on `find($id, true)`, shared instances) — plus `fixOrphanedNodes(): int`. |
+| `app/system/modules/user/src/Model/UserRepository.php` | **New.** `extends Repository<User>`; finders `findByUsername`/`findByEmail`/`findByCredentials`/`updateLogin`/`findRoles` ported off the `UserModelTrait` statics. `findRoles` uses `whereIn('id', $user->roles)` (no string-interpolated `IN`) with an empty-`roles` guard returning `[]`; dead `findByLogin` not ported (Rule 4); no cross-user static cache. |
+| `packages/pagekit/blog/src/Model/PostRepository.php` | **New.** `extends Repository<Post>`; `updateCommentInfo(int)` recounts approved comments via `getRepository(Comment::class)`, `getAuthors()` — ported off the `PostModelTrait` statics. |
+| `app/system/modules/site/src/SiteModule.php` | `main()` registers `nodeRepository` (`new NodeRepository($app->get('db.em'), new ArrayAdapter(0, false))` — `storeSerialized: false` preserves the static cache's shared-object semantics) + generic `pageRepository`. |
+| `app/system/modules/user/src/UserModule.php` | `main()` registers `userRepository` (`new UserRepository($app->get('db.em'))`) + generic `roleRepository`. |
+| `app/system/modules/widget/index.php` | `main` registers generic `widgetRepository` (`$app->get('db.em')->getRepository(Widget::class)`). |
+| `packages/pagekit/blog/index.php` | `boot` registers `postRepository` (`new PostRepository($app->get('db.em'))`) + generic `commentRepository` (blog `Comment::class`), alongside the existing `postPresenter`. |
+
+### Tests (Step 3)
+
+| File | Change |
+|---|---|
+| `app/system/modules/site/src/Tests/NodeRepositoryTest.php` | **New.** Cached `find`/`findAll`/`findByMenu` semantics against a real `ArrayAdapter(0, false)` — shared-instance identity, per-id vs full-set memo, `fixOrphanedNodes` delegation. |
+| `app/system/modules/user/src/Tests/UserRepositoryTest.php` | **New.** Mock-backed finder delegation (`findByUsername`/`findByEmail`/`findByCredentials`/`updateLogin`) + `findRoles` `whereIn` path and empty-`roles` guard. |
+| `tests/Unit/Blog/PostRepositoryTest.php` | **New.** Mock-backed `updateCommentInfo` (approved-comment recount via the `Comment` repository) + `getAuthors`. |
+| `tests/Unit/Blog/bootstrap.php` | Extended with the extra `require_once`s for `PostRepository` (blog classes are not on composer's autoload map). |
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
