@@ -6,6 +6,7 @@ namespace Pagekit\Widget\Model;
 
 use Pagekit\Database\ORM\Attribute as ORM;
 use Pagekit\Database\ORM\ModelTrait;
+use Pagekit\Database\ORM\SerializableModelInterface;
 use Pagekit\System\Model\DataModelTrait;
 use Pagekit\User\Model\AccessModelTrait;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -14,7 +15,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * Widget entity with PHP 8 Attributes for ORM and Validation.
  */
 #[ORM\Entity(tableClass: '@system_widget')]
-class Widget implements \JsonSerializable
+class Widget implements \JsonSerializable, SerializableModelInterface
 {
     use AccessModelTrait;
     use DataModelTrait;

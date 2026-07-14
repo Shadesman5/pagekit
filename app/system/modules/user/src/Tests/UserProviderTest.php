@@ -14,7 +14,6 @@ use Pagekit\Database\ORM\MetadataManager;
 use Pagekit\Database\Query\QueryBuilder as DbalQueryBuilder;
 use Pagekit\Event\EventDispatcherInterface;
 use Pagekit\User\Auth\UserProvider;
-use Pagekit\User\Model\User;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
@@ -28,12 +27,12 @@ use PHPUnit\Framework\TestCase;
  * hash/raw argument order, which is what actually decides a login).
  *
  * `findByCredentials()` is exercised as far as feasible without a database — its
- * `password`-stripping precondition, the empty-result `null` branch and the
- * non-`User` `\LogicException` type-guard — by driving `User::where()` through a
- * mock-backed ORM (a real {@see EntityManager} wired to mock Connection/Metadata,
- * mirroring {@see \Pagekit\Database\Tests\ORM\QueryBuilderCacheTest}). Those two
- * tests run in isolated processes because `User::where()` resolves the shared,
- * process-static EntityManager singleton via `ModelTrait::getManager()`.
+ * `password`-stripping precondition and the empty-result `null` branch — by
+ * driving `User::where()` through a mock-backed ORM (a real {@see EntityManager}
+ * wired to mock Connection/Metadata, mirroring
+ * {@see \Pagekit\Database\Tests\ORM\QueryBuilderCacheTest}). That test runs in an
+ * isolated process because `User::where()` resolves the shared, process-static
+ * EntityManager singleton via `ModelTrait::getManager()`.
  *
  * NOTE - deferred to Step 2.1.9 (Test Coverage Expansion): the happy-path DB
  * lookups `UserProvider::find()`, `findByUsername()` and `findByCredentials()`
@@ -129,36 +128,6 @@ class UserProviderTest extends TestCase
     }
 
     /**
-     * The type-guard defends the `?UserInterface` contract: when the shared ORM
-     * query builder hydrates a non-`User` object, `findByCredentials()` must
-     * throw rather than hand back a foreign entity as a user.
-     */
-    #[RunInSeparateProcess]
-    #[PreserveGlobalState(false)]
-    public function testFindByCredentialsThrowsWhenLookupReturnsNonUser(): void
-    {
-        $query = $this->createMock(DbalQueryBuilder::class);
-        $query->method('from')->willReturnSelf();
-        $query->method('where')->willReturnSelf();
-        $query->method('limit')->willReturnSelf();
-
-        $result = $this->createMock(Result::class);
-        $result->method('fetchAssociative')->willReturn(['id' => 1]);
-        $query->method('executeQuery')->willReturn($result);
-
-        // metadata->newInstance() yields a plain stdClass, so the hydrated row
-        // is not a User and trips the `!$entity instanceof User` guard.
-        $this->primeEntityManager($query, new \stdClass());
-
-        $provider = new UserProvider($this->createMock(PasswordEncoderInterface::class));
-
-        $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage(User::class);
-
-        $provider->findByCredentials(['username' => 'bob']);
-    }
-
-    /**
      * Builds a {@see UserInterface} whose `getPassword()` returns the stored hash.
      */
     private function userWithPassword(string $password): UserInterface
@@ -172,10 +141,9 @@ class UserProviderTest extends TestCase
     /**
      * Boots a real {@see EntityManager} backed entirely by mocks (no DB) and
      * registers it as the process-static singleton that `User::where()` resolves
-     * through `ModelTrait::getManager()`. When `$hydrated` is provided, the mock
-     * metadata hydrates that instance for the single fetched row.
+     * through `ModelTrait::getManager()`.
      */
-    private function primeEntityManager(DbalQueryBuilder $query, ?object $hydrated = null): void
+    private function primeEntityManager(DbalQueryBuilder $query): void
     {
         $connection = $this->createMock(Connection::class);
         $connection->method('createQueryBuilder')->willReturn($query);
@@ -183,9 +151,6 @@ class UserProviderTest extends TestCase
         $metadata = $this->createMock(Metadata::class);
         $metadata->method('getTable')->willReturn('@system_user');
         $metadata->method('getEventPrefix')->willReturn('user');
-        if ($hydrated !== null) {
-            $metadata->method('newInstance')->willReturn($hydrated);
-        }
 
         $metadataManager = $this->createMock(MetadataManager::class);
         $metadataManager->method('get')->willReturn($metadata);

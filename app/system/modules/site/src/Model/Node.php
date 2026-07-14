@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Site\Model;
 
 use Pagekit\Database\ORM\Attribute as ORM;
+use Pagekit\Database\ORM\SerializableModelInterface;
 use Pagekit\System\Model\DataModelTrait;
 use Pagekit\System\Model\NodeInterface;
 use Pagekit\System\Model\NodeTrait;
@@ -15,7 +16,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * Node entity with PHP 8 Attributes for ORM and Validation.
  */
 #[ORM\Entity(tableClass: '@system_node')]
-class Node implements NodeInterface, \JsonSerializable
+class Node implements NodeInterface, \JsonSerializable, SerializableModelInterface
 {
     use AccessModelTrait;
     use DataModelTrait;

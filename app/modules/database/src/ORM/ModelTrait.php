@@ -11,6 +11,27 @@ trait ModelTrait
     use PropertyTrait;
 
     /**
+     * Pre-computed, serialization-safe mapping data injected by
+     * {@see EntityManager::load()} for {@see toArray()}. Null on instances that
+     * were not hydrated through the EntityManager (e.g. a raw `new`), in which
+     * case {@see toArray()} falls back to the metadata lookup.
+     *
+     * @var array{relations: list<string>, fieldTypes: array<string, string>}|null
+     */
+    private ?array $_serializationMap = null;
+
+    /**
+     * Injects the pre-computed serialization map (see
+     * {@see SerializableModelInterface}).
+     *
+     * @param array{relations: list<string>, fieldTypes: array<string, string>} $map
+     */
+    public function setSerializationMap(array $map): void
+    {
+        $this->_serializationMap = $map;
+    }
+
+    /**
      * Gets the related EntityManager.
      */
     public static function getManager(): EntityManager
@@ -149,22 +170,46 @@ trait ModelTrait
     /**
      * Gets model data as array.
      *
+     * Reads the serialization map injected by {@see EntityManager::load()}.
+     * Instances created without going through the EntityManager fall back to a
+     * live metadata lookup.
+     *
      * @param  array<string, mixed> $data
      * @param  array<int, string>   $ignore
      * @return array<string, mixed>
      */
     public function toArray(array $data = [], array $ignore = []): array
     {
-        $metadata = static::getMetadata();
-        $mappings = $metadata->getRelationMappings();
+        if ($this->_serializationMap !== null) {
+            $relations = $this->_serializationMap['relations'];
+            $fieldTypes = $this->_serializationMap['fieldTypes'];
+        } else {
+            // TODO: TEMPORARY BRIDGE - To be removed in Step 2.1.11 (EntityManager DI)
+            // checklist Step 8, when the static model API is gone and every entity is
+            // guaranteed to be hydrated through EntityManager::load() (map always present).
+            $metadata = static::getMetadata();
+            $relations = array_keys($metadata->getRelationMappings());
+            $fieldTypes = [];
+            foreach ($metadata->getFields() as $name => $field) {
+                $fieldTypes[$name] = (string) $field['type'];
+            }
+        }
+
+        $relationKeys = array_flip($relations);
 
         foreach (static::getProperties($this) as $name => $value) {
 
-            if (isset($data[$name]) || isset($mappings[$name])) {
+            if (isset($data[$name]) || isset($relationKeys[$name])) {
                 continue;
             }
 
-            switch ($metadata->getField($name, 'type')) {
+            // Never leak internal scaffolding: `_`-prefixed properties (e.g. the
+            // injected serialization map) and Closure values (e.g. the role loader).
+            if (str_starts_with($name, '_') || $value instanceof \Closure) {
+                continue;
+            }
+
+            switch ($fieldTypes[$name] ?? null) {
                 case 'json':
                     $value = $value ?: new \stdClass();
 

@@ -6,6 +6,7 @@ namespace Pagekit\Site\Model;
 
 use Pagekit\Database\ORM\Attribute as ORM;
 use Pagekit\Database\ORM\ModelTrait;
+use Pagekit\Database\ORM\SerializableModelInterface;
 use Pagekit\System\Model\DataModelTrait;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -13,7 +14,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * Page entity with PHP 8 Attributes for ORM and Validation.
  */
 #[ORM\Entity(tableClass: '@system_page')]
-class Page implements \JsonSerializable
+class Page implements \JsonSerializable, SerializableModelInterface
 {
     use DataModelTrait;
     use ModelTrait;

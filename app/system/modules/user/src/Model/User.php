@@ -6,6 +6,7 @@ namespace Pagekit\User\Model;
 
 use Pagekit\Auth\UserInterface;
 use Pagekit\Database\ORM\Attribute as ORM;
+use Pagekit\Database\ORM\SerializableModelInterface;
 use Pagekit\System\Model\DataModelTrait;
 use Pagekit\System\Validator\Constraints as PagekitAssert;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -14,7 +15,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * User entity with PHP 8 Attributes for ORM and Validation.
  */
 #[ORM\Entity(tableClass: '@system_user')]
-class User implements UserInterface, \JsonSerializable
+class User implements UserInterface, \JsonSerializable, SerializableModelInterface
 {
     use AccessModelTrait;
     use DataModelTrait;
