@@ -119,7 +119,7 @@ class EntityManagerTest extends TestCase
      */
     public function testLoadInjectsSerializationMapIntoSerializableEntity(): void
     {
-        $entity = new class implements SerializableModelInterface {
+        $entity = new class () implements SerializableModelInterface {
             /** @var array{relations: list<string>, fieldTypes: array<string, string>}|null */
             public ?array $injectedMap = null;
 
