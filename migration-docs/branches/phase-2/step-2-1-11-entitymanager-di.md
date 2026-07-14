@@ -3,16 +3,27 @@
 **Branch:** `feature/entitymanager-di`
 **ROADMAP Step:** 2.1.11 (EntityManager DI — remove singleton)
 **GitHub Issue:** [#205](https://github.com/Shadesman5/pagekit/issues/205)
-**Pull Request:** _TBD_
-**Status:** 🚧 In progress
+**Pull Request:** [#222](https://github.com/Shadesman5/pagekit/pull/222)
+**Status:** ✅ Complete — Ready for Review
 **Started:** 2026-07-14 01:13
-**Completed:** _TBD_
+**Completed:** 2026-07-14 13:48
 
 ---
 
 ## 🎯 Overview
 
-_TBD_
+Removes the last global ORM state behind Phase 1 audit row 1.11: the
+`EntityManager` singleton, the `ModelTrait` static Active-Record API, and the
+RC-1 eager `db.em` boot hack. Introduces a generic `Repository<T>`,
+`EntityEvent`-driven lifecycle handlers, serialization-map injection, and three
+custom repositories (`NodeRepository`, `UserRepository`, `PostRepository`)
+registered as container services. All site, user, widget, and blog call sites
+migrate to constructor-injected repositories; Step 8 deletes the coexistence
+scaffolding. Extensions must use DI repositories or `$app->get('db.em')` — the
+static model API is gone.
+
+**Phase 1 audit 1.11 — FULL closure:** combined with Steps 2.0.8 + 2.1.6 +
+2.1.10, row **1.11 flips ⚠️ → 🛡️** at Finalize.
 
 ---
 
@@ -286,6 +297,24 @@ Decisions.
 | `app/system/index.php` | **RC-1.** Deleted the eager `db.em` boot block + its TODO comment — the `events.boot` closure no longer force-resolves the EntityManager (`db.em` is now resolved lazily by the repository factories). |
 | `app/modules/database/src/Tests/ORM/EntityManagerTest.php` | Deleted `testGetInstance()` (its subject is gone). Suite count 674 → 673. |
 
+### Coverage gap pass (Finalize)
+
+Post-PR Codecov patch-gap closure — controller and collector tests for Step 5
+user-module and debug call sites that lacked dedicated coverage after the
+repository migration. CS-Fixer follow-up on anonymous-class spacing in the new
+files and on `EntityManagerTest`.
+
+| File | Change |
+|---|---|
+| `app/modules/debug/src/Tests/AuthDataCollectorTest.php` | **New.** `findRoles()` delegation via injected `UserRepository`; disabled/unauthenticated paths. |
+| `app/system/modules/user/src/Tests/UserControllerTest.php` | **New.** Admin index/edit via mocked `UserRepository` / `Repository<Role>`. |
+| `app/system/modules/user/src/Tests/UserApiControllerTest.php` | **New.** API find/create/save/delete via mocked repos. |
+| `app/system/modules/user/src/Tests/RoleApiControllerTest.php` | **New.** Role CRUD via mocked `Repository<Role>`. |
+| `app/system/modules/user/src/Tests/RegistrationControllerTest.php` | **New.** Registration find/create/save via mocked `UserRepository`. |
+| `app/system/modules/user/src/Tests/ResetPasswordControllerTest.php` | **New.** Token lookup + password save via mocked `UserRepository`. |
+| `app/system/modules/user/src/Tests/bootstrap.php` | Extended for controller test `require_once` chain. |
+| `app/system/modules/user/src/Tests/pagekit-translation-stub.php` | **New.** Translation stub for user controller tests. |
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -358,26 +387,79 @@ that is then serialized throws `\LogicException` (no serialization map). Likewis
 
 ## ⚠️ Risks & Rollout Notes
 
-_TBD / None_
+**Extension breakage on upgrade.** Any third-party module still calling
+`Model::find()` / `save()` / `EntityManager::getInstance()` will fatal
+immediately after upgrade — see Breaking Changes. Core and bundled packages are
+fully migrated; extension authors must switch to container repository services
+or `$app->get('db.em')->getRepository()`.
+
+**`NodeRepository` cache semantics unchanged.** Request-cache invalidation on
+save remains deferred to Step 4.3 — same behaviour as the former static cache.
+
+**`UrlResolver` bridge survives this step.** The `setPostRepository()` static
+bridge is tagged `TEMPORARY BRIDGE — Step 2.5`; routing factory DI is still
+out of scope.
 
 ---
 
 ## 🔐 Security & Data Impact
 
-_TBD / None_
+**Auth chain now repository-backed.** `UserProvider`, login listeners, and all
+user controllers resolve users through `UserRepository` — no static finders.
+`User::hasPermission()` uses a per-instance role loader attached at hydration
+(`#[ORM\Init]`); un-hydrated `new User()` throws `\LogicException` instead of
+silently querying. The cross-user `static $cached` role cache is deleted.
+
+**SQL injection surface reduced.** `UserRepository::findRoles` uses
+`whereIn('id', …)` instead of string-interpolated `IN` clauses.
+
+**No schema or migration changes.** RC-3 in the blog baseline migration is
+docs-only (upgrade note for pre-rename installs).
 
 ---
 
 ## 🛡️ No-Mercy Compliance
 
-_TBD_
+| Rule | How satisfied |
+|---|---|
+| **1 — No compatibility layers** | Step 1–7 intra-PR coexistence (trait statics + repos) deleted in Step 8; no parallel APIs survive. |
+| **2 — No adapters** | All call sites updated to inject repositories directly; no wrapper shims. |
+| **3 — Breaking changes allowed internally** | Static AR API removed; platform helpers (`__()`, etc.) untouched. |
+| **4 — Delete over wrap** | Dead `findByLogin`, per-site `instanceof` guards, `AccessModelTrait::removeRole`, RC-1 boot block — all deleted, not wrapped. |
+| **5 — Flagging & audit debt** | RC-1/RC-2/RC-3 resolved; `UrlResolver::setPostRepository` tagged `TEMPORARY BRIDGE — Step 2.5`. `IntlServiceLocator` explicitly excluded from sweep gates. |
+
+One pre-existing bridge extended (`UrlResolver`), not a new global manager —
+per ticket Bridges spec.
 
 ---
 
 ## ✅ Verification (links only)
 
-- CI run: _TBD_
-- Notable deviations: _TBD / None_
+| Gate | Result |
+|---|---|
+| PHPUnit (Step 8 local) | 673 tests — 0 failures |
+| PHPStan L8 (Step 8 local) | PASS |
+| CI — cs-fixer | ✅ success |
+| CI — phpstan | ✅ success |
+| CI — phpunit (8.2) | ✅ success |
+| CI — phpunit (8.3) | ✅ success |
+| CI — security-audit | ✅ success |
+| Coverage gap pass | ✅ added controller/collector tests + cs-fixer follow-up |
+| Cursor Bugbot | ✅ pass (no findings) |
+| E2E installation.spec.js | 1/1 passed |
+| E2E authentication.spec.js | 14/14 passed |
+| E2E dashboard.spec.js | 10/10 passed |
+
+**CI run:** https://github.com/Shadesman5/pagekit/actions/runs/29337835999
+
+**Finalize fix-loop:** cs-fixer on `EntityManagerTest` anonymous class; cs-fixer
+on coverage-gap test files.
+
+**Notable deviations:** `UserAccessTest` needed no rework (plan listed it —
+see Key Decisions). `db.em` sweep gate reads as one registration + lazy factory
+consumers, not a literal single hit (see Key Decisions). `UserProviderTest`
+non-`User` guard absorbed one step early into the Step 1 central hydration
+guard.
 
 ---
 
@@ -394,7 +476,19 @@ closure; row 1.11 stayed ⚠️ pending this step.
 
 ## 📚 Deferred / Out-of-Scope
 
-_TBD_
+- **Step 4.3 (Performance Optimization)** — `EntityManager::invalidateCache()`,
+  `NodeRepository` cache invalidation on save, role-cache reintroduction.
+- **Step 2.5 (Extension Safety System)** — `UrlResolver` static bridge removal
+  (incl. `setPostRepository()` added here), `RouteListener` permalink static,
+  routing factory DI.
+- **Step 2.1.12 ([#217](https://github.com/Shadesman5/pagekit/issues/217))** —
+  `NodeController::$site` narrowing, `DataModelTrait::$data` typing, captcha
+  accessors.
+- **Step 4.2 (REST API v2)** — raw-entity JSON responses keep
+  `jsonSerialize()` for now; API v2 must use presenters/DTOs.
+- **`IntlServiceLocator`** — permanent narrow platform locator for global
+  `__()`; deliberately outside Step 8 sweep gates.
+- **Doctrine ORM swap** — non-goal; Pagekit's ORM only.
 
 ---
 
@@ -403,10 +497,4 @@ _TBD_
 - Ticket: `migration-docs/tickets/active/PROMPT_2_1_11_EntityManager-DI_plan.md` (→ move to `done/` after Finalize)
 - Task prompt: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_11_EntityManager-DI.md`
 - Predecessor: Step 2.1.10 — Entity Presentation Layer (`step-2-1-10-entity-presentation-layer.md`)
-- Successor: Step 2.1.12 ([#217](https://github.com/Shadesman5/pagekit/issues/217)) — _TBD_
-
----
-
-## 📊 <Step-specific appendix>
-
-_TBD — remove this section if not applicable._
+- Successor: Step 2.1.12 ([#217](https://github.com/Shadesman5/pagekit/issues/217)) — Property typing & captcha accessors
