@@ -143,6 +143,54 @@ the process-static EM singleton — is no longer consumed here). Full suite gree
 | `app/system/modules/site/src/Tests/SiteModuleTest.php` | **New.** `main()` registers `nodeRepository`/`pageRepository`; `registerType()` auto-creates a protected type's node via `$nodes->save($nodes->create([...]))`. Light `new Application()` boot with the `nodeRepository` factory overridden by a mock (DiWiringTest precedent) — no kernel/DB. |
 | `app/system/modules/site/src/Tests/bootstrap.php` | Extended to `require_once` the content module's `ContentHelper` — `Pagekit\Content\` is a runtime-loaded module absent from composer's autoload map, so PHPUnit cannot autoload the class `PageControllerTest` mocks (mirrors the blog Tests bootstrap). |
 
+### User module migration — auth chain + hasPermission role loader (Step 5)
+
+Second **consuming** step: the auth provider, both user listeners, the anonymous-user
+factory, all seven touched controllers (six in the user module + the system-core
+`AdminController`) and the debug auth collector now resolve the Step 3 `userRepository`
+(`UserRepository`) / `roleRepository` (generic `Repository<Role>`) instead of the
+`User`/`Role` static Active-Record finders. `User::hasPermission()` resolves roles
+through a per-instance loader closure wired at hydration (Architecture decision 6), and
+the `UserModelTrait` finders (`findByUsername`/`findByEmail`/`updateLogin`/`findRoles` +
+`static $cached`; dead `findByLogin` dropped, Rule 4) are gone — that logic moved to
+`UserRepository` in Step 3. The `EntityManager` singleton and the `ModelTrait` statics
+stay in place (removed in Step 8), so the existing suite stays green.
+
+| File | Change |
+|---|---|
+| `app/system/modules/user/src/Model/UserModelTrait.php` | Add the `#[ORM\Init]` handler `init(EntityEvent, User)` — attaches a per-instance role loader (`fn (array $ids) => $em->getRepository(Role::class)->query()->whereIn('id', $ids)->get()`; empty-ids → `[]`) wired to the *event's* EM (decision 6). Deleted the `findByUsername`/`findByEmail`/`findByLogin`/`updateLogin`/`findRoles` statics + `static $cached`. Trait now carries only `init` + `saving` (Step 2). |
+| `app/system/modules/user/src/Model/User.php` | Add `setRoleLoader(\Closure)` + private `$roleLoader`; `hasPermission()` rewritten off the loader (keeps the `$permissions` memo; loader-missing → `\LogicException` for an un-hydrated `new User()`). `jsonSerialize()` keeps its `['password', 'activation']` ignore list (the Step 1 `\Closure`-skip covers the new loader property). |
+| `app/system/modules/user/src/Auth/UserProvider.php` | Ctor `(PasswordEncoderInterface $encoder, UserRepository $users)`; `find`/`findByUsername` via the repo; `findByCredentials` strips `password` then delegates to `$users->findByCredentials()`. The local non-`User` instanceof guard is dropped (Step 1 central hydration guard — decision 5). |
+| `app/system/modules/user/src/Event/AuthorizationListener.php` | Inject `UserRepository`; `onSystemInit()` builds the `UserProvider` from the injected encoder + repo. |
+| `app/system/modules/user/src/Event/UserListener.php` | Inject `UserRepository`; `onUserLogin()` → `updateLogin($user)` (skips non-`User`), `onRoleDelete()` → `removeRole((int) $role->id)` (was `User::updateLogin` / `User::removeRole`). |
+| `app/system/modules/user/index.php` | `boot` wiring: `AuthorizationListener` (4th arg) and `UserListener` both receive `userRepository`. |
+| `app/system/modules/user/src/UserModule.php` | Anonymous `user` service now built via `$app->get('userRepository')->create(['roles' => [Role::ROLE_ANONYMOUS]])` (was the `User` static create). (`userRepository`/`roleRepository` service definitions landed in Step 3.) |
+| `app/system/src/Controller/AdminController.php` | Inject `userRepository` (system-core controller); user find + `save($user, …)` through the repo. |
+| `app/system/modules/user/src/Controller/ProfileController.php` | Inject `userRepository`; profile find + save via the repo. |
+| `app/system/modules/user/src/Controller/RegistrationController.php` | Inject `userRepository`; registration find/create/save via the repo. |
+| `app/system/modules/user/src/Controller/ResetPasswordController.php` | Inject `userRepository`; token lookups + password save via the repo. |
+| `app/system/modules/user/src/Controller/UserController.php` | Inject `userRepository` + generic `roleRepository` (`Repository<Role>`); user CRUD + role list via the repos. |
+| `app/system/modules/user/src/Controller/UserApiController.php` | Inject `userRepository` + `roleRepository`; all find/create/save/delete + `query()` through the repos. |
+| `app/system/modules/user/src/Controller/RoleApiController.php` | Inject generic `roleRepository` (`Repository<Role>`); role find/create/save/delete + `where(…)`. |
+| `app/modules/debug/src/DataCollector/AuthDataCollector.php` | Inject nullable `UserRepository`; roles column via `$this->users->findRoles($user)` (was `User::findRoles`). |
+| `app/modules/debug/index.php` | `boot` passes `$app->get('userRepository')` to the `AuthDataCollector`. |
+| `phpstan-baseline.neon` | Pruned the now-stale entries referencing the deleted `UserModelTrait` static finders (removals only — never `--generate-baseline`). |
+
+### Tests (Step 5)
+
+Reworked off the singleton harness: the user `Tests/` directory now has **zero**
+`RunInSeparateProcess` / `PreserveGlobalState` / `primeEntityManager*` (the
+process-static EM singleton they isolated is no longer consumed here). Full suite green
+at 622 tests, PHPStan L8 exit 0.
+
+| File | Change |
+|---|---|
+| `app/system/modules/user/src/Tests/UserProviderTest.php` | Reworked: dropped process isolation + `primeEntityManager()`; mocks `UserRepository` directly (`find`/`findByUsername`/`findByCredentials` delegation, password-strip, `validateCredentials` order gate). Stale `User::where()` / `ModelTrait::getManager()` docblock references rewritten to the repository mechanism. |
+| `app/system/modules/user/src/Tests/UserListenerTest.php` | Reworked for the new `UserRepository` ctor arg; `onUserLogin` → `updateLogin` (non-`User` skip) and `onRoleDelete` → `removeRole((int) id)` via a mocked repo. Stale `User::updateLogin()` / `User::removeRole()` docblock rewritten. |
+| `app/system/modules/user/src/Tests/AuthorizationListenerTest.php` | Reworked for the new 4th ctor arg (`UserRepository`); `onSystemInit` asserts the built `UserProvider` carries the injected encoder + repo (Reflection). |
+| `app/system/modules/user/src/Tests/UserTest.php` | Reworked the deferred-integration docblock; **added** the previously-deferred uncached `hasPermission()` / `hasAccess()` unit tests via an injected fake role loader (`setRoleLoader`), plus the memoization and missing-loader-guard (`\LogicException`) cases. |
+| `app/system/modules/user/src/Tests/UserModelTraitTest.php` | Extended (created in Step 2 for `saving`): added `init()` coverage — the wired loader resolves roles through the event EM (`getRepository(Role::class)->query()->whereIn('id', $ids)->get()`) and short-circuits on empty ids (`never()` on `getRepository`). |
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -166,6 +214,13 @@ the process-static EM singleton — is no longer consumed here). Full suite gree
   `setSerializationMap()` / `save()` / `delete()`). Those are still needed until the
   Step 8 static sweep, so `ModelTrait` is applied to the `Node` class directly — a
   behavior no-op, but it explains the otherwise-surprising new `use` line on the entity.
+- **`UserAccessTest` needed no rework in Step 5, despite the plan's "adjust seeding" note.**
+  The plan listed `UserAccessTest` among the Step 5 test reworks (adjust its seeding to
+  the role loader), but it is absent from the changed files. It exercises `hasAccess()`
+  with a partial `User` mock that stubs `isAdministrator()` + `hasPermission()`, so it
+  never reaches the new per-instance role loader — the `hasPermission()` rewrite is
+  invisible to it and no seeding change was required. The new uncached-loader
+  `hasPermission()` / `hasAccess()` coverage lives in `UserTest` instead.
 
 ---
 

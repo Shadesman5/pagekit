@@ -6,19 +6,26 @@ namespace Pagekit\User\Controller;
 
 use function Pagekit\__;
 
+use Pagekit\Database\ORM\Repository;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Request as RequestAttr;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use Pagekit\User\Model\User;
+use Pagekit\User\Model\UserRepository;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 #[Access(admin: true)]
 class UserController
 {
+    /**
+     * @param Repository<Role> $roleRepository
+     */
     public function __construct(
         private readonly User $user,
         private readonly ModuleManager $module,
+        private readonly UserRepository $userRepository,
+        private readonly Repository $roleRepository,
     ) {
     }
 
@@ -58,8 +65,8 @@ class UserController
     public function editAction(int $id = 0): array
     {
         if (!$id) {
-            $user = User::create(['roles' => [Role::ROLE_AUTHENTICATED]]);
-        } elseif (!$user = User::find($id)) {
+            $user = $this->userRepository->create(['roles' => [Role::ROLE_AUTHENTICATED]]);
+        } elseif (!$user = $this->userRepository->find($id)) {
             throw new NotFoundHttpException('User not found.');
         }
 
@@ -93,7 +100,7 @@ class UserController
             ],
             '$data' => [
                 'permissions' => $this->module->get('system/user')->getPermissions(),
-                'roles' => array_values(Role::query()->orderBy('priority')->get()),
+                'roles' => array_values($this->roleRepository->query()->orderBy('priority')->get()),
             ],
         ];
     }
@@ -115,7 +122,7 @@ class UserController
             ],
             '$data' => [
                 'permissions' => $this->module->get('system/user')->getPermissions(),
-                'roles' => array_values(Role::query()->orderBy('priority')->get()),
+                'roles' => array_values($this->roleRepository->query()->orderBy('priority')->get()),
             ],
         ];
     }
@@ -144,14 +151,7 @@ class UserController
     {
         $roles = [];
         $self = $user && $user->id === $this->user->id;
-        foreach (Role::where(['id <> ?'], [Role::ROLE_ANONYMOUS])->orderBy('priority')->get() as $role) {
-            if (!$role instanceof Role) {
-                throw new \LogicException(sprintf(
-                    'QueryBuilder::get() returned %s, expected %s',
-                    get_class($role),
-                    Role::class
-                ));
-            }
+        foreach ($this->roleRepository->where(['id <> ?'], [Role::ROLE_ANONYMOUS])->orderBy('priority')->get() as $role) {
 
             $r = $role->jsonSerialize();
 

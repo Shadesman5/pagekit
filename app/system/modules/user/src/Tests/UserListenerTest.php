@@ -4,32 +4,73 @@ declare(strict_types=1);
 
 namespace Pagekit\User\Tests;
 
+use Pagekit\Auth\Event\LoginEvent;
+use Pagekit\Auth\UserInterface;
+use Pagekit\Database\ORM\EntityEvent;
+use Pagekit\Database\ORM\EntityManager;
 use Pagekit\User\Event\UserListener;
+use Pagekit\User\Model\Role;
+use Pagekit\User\Model\User;
+use Pagekit\User\Model\UserRepository;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Unit tests for {@see UserListener}.
  *
- * Only `subscribe()` is unit-testable: it is a pure event -> handler map with no
- * collaborators, so it is pinned below.
- *
- * NOTE - deferred to Step 2.1.9 (Test Coverage Expansion): the two handlers
- * `onUserLogin()` and `onRoleDelete()` are thin static delegations to
- * `User::updateLogin()` and `User::removeRole()` respectively. Both are
- * static, DB-bound `User::` calls that need a booted kernel + database and
- * belong to integration coverage, not this unit suite (ticket discovery
- * note 6). Because only `subscribe()` is covered here, those handlers sit on
- * uncovered lines: their mutants fall outside the Covered-MSI gate and needed
- * no `infection.json.dist` ignore. Killing them is deferred to Step 2.1.9
- * (integration coverage: booted kernel + database).
+ * Since the Step 2.1.11 EntityManager-DI migration the listener takes an injected
+ * {@see UserRepository}, so all three members are pure unit tests against a mocked
+ * repository — no kernel, container or database:
+ *   - `onUserLogin()` stamps the last-login time through
+ *     {@see UserRepository::updateLogin()}, skipping non-`User` principals;
+ *   - `onRoleDelete()` strips the deleted role id from every user via
+ *     {@see UserRepository::removeRole()};
+ *   - `subscribe()` is the pure event -> handler map.
  */
 class UserListenerTest extends TestCase
 {
+    public function testOnUserLoginStampsLoginThroughRepository(): void
+    {
+        $user = new User();
+
+        $users = $this->createMock(UserRepository::class);
+        $users->expects($this->once())->method('updateLogin')->with($user);
+
+        (new UserListener($users))->onUserLogin(new LoginEvent('auth.login', $user));
+    }
+
+    /**
+     * A non-`User` principal (a bare {@see UserInterface}) has no persistent row
+     * to stamp, so the login handler must skip the repository call entirely.
+     */
+    public function testOnUserLoginIgnoresNonUserPrincipal(): void
+    {
+        $users = $this->createMock(UserRepository::class);
+        $users->expects($this->never())->method('updateLogin');
+
+        (new UserListener($users))->onUserLogin(
+            new LoginEvent('auth.login', $this->createMock(UserInterface::class))
+        );
+    }
+
+    public function testOnRoleDeleteRemovesRoleByIdThroughRepository(): void
+    {
+        $role = new Role();
+        $role->id = 42;
+
+        $users = $this->createMock(UserRepository::class);
+        $users->expects($this->once())->method('removeRole')->with(42);
+
+        (new UserListener($users))->onRoleDelete(
+            new EntityEvent('model.role.deleted', $this->createMock(EntityManager::class)),
+            $role
+        );
+    }
+
     public function testSubscribeMapsEventsToHandlers(): void
     {
         $this->assertSame([
             'auth.login' => 'onUserLogin',
             'model.role.deleted' => 'onRoleDelete',
-        ], (new UserListener())->subscribe());
+        ], (new UserListener($this->createMock(UserRepository::class)))->subscribe());
     }
 }

@@ -6,6 +6,7 @@ namespace Pagekit\User\Controller;
 
 use function Pagekit\__;
 
+use Pagekit\Database\ORM\Repository;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
@@ -22,9 +23,13 @@ class RoleApiController
 {
     use ValidatesRequestTrait;
 
+    /**
+     * @param Repository<Role> $roleRepository
+     */
     public function __construct(
         private readonly Request $request,
         protected readonly ValidatorInterface $validator,
+        private readonly Repository $roleRepository,
     ) {
     }
 
@@ -34,25 +39,13 @@ class RoleApiController
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
-        $roles = [];
-        foreach (Role::findAll() as $role) {
-            if (!$role instanceof Role) {
-                throw new \LogicException(sprintf(
-                    'Model::findAll() returned %s, expected %s',
-                    get_class($role),
-                    Role::class
-                ));
-            }
-            $roles[] = $role;
-        }
-
-        return $roles;
+        return array_values($this->roleRepository->findAll());
     }
 
     #[Route('/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function getAction(int $id): Role
     {
-        if (!$role = Role::find($id)) {
+        if (!$role = $this->roleRepository->find($id)) {
             throw new NotFoundHttpException(__('Role not found.'));
         }
 
@@ -83,13 +76,13 @@ class RoleApiController
             $id = (int) $data['id'];
         }
 
-        if (!$role = Role::find($id)) {
+        if (!$role = $this->roleRepository->find($id)) {
 
             if ($id) {
                 throw new NotFoundHttpException(__('Role not found.'));
             }
 
-            $role = Role::create();
+            $role = $this->roleRepository->create();
         }
 
         foreach ($data as $key => $value) {
@@ -100,7 +93,7 @@ class RoleApiController
 
         $this->validateOrFail($role);
 
-        $role->save($data);
+        $this->roleRepository->save($role, $data);
 
         return ['message' => 'success', 'role' => $role];
     }
@@ -115,8 +108,8 @@ class RoleApiController
             $id = (int) $this->request->get('id', 0);
         }
 
-        if ($role = Role::find($id)) {
-            $role->delete();
+        if ($role = $this->roleRepository->find($id)) {
+            $this->roleRepository->delete($role);
         }
 
         return ['message' => 'success'];

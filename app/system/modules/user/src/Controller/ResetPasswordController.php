@@ -16,6 +16,7 @@ use Pagekit\Routing\Router;
 use Pagekit\Session\Csrf\Provider\CsrfProviderInterface;
 use Pagekit\Session\MessageBag;
 use Pagekit\User\Model\User;
+use Pagekit\User\Model\UserRepository;
 use Pagekit\View\View;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
@@ -36,6 +37,7 @@ class ResetPasswordController
         private readonly MessageBag $message,
         private readonly Router $router,
         private readonly PasswordEncoderInterface $authPassword,
+        private readonly UserRepository $userRepository,
     ) {
     }
 
@@ -84,7 +86,7 @@ class ResetPasswordController
                 throw new Exception(__('Enter a valid email address.'));
             }
 
-            if (!$user = User::findByEmail($email)) {
+            if (!$user = $this->userRepository->findByEmail($email)) {
                 throw new Exception(__('Unknown email address.'));
             }
 
@@ -109,7 +111,7 @@ class ResetPasswordController
             }
 
             $user->activation = $key;
-            $user->save();
+            $this->userRepository->save($user);
 
             $this->message->success((string) __('Check your email for the confirmation link.'));
 
@@ -149,14 +151,7 @@ class ResetPasswordController
             }
         }
 
-        if ($activation && ($user = User::where(compact('activation'))->first()) !== null) {
-            if (!$user instanceof User) {
-                throw new \LogicException(sprintf(
-                    'QueryBuilder::first() returned %s, expected %s',
-                    get_class($user),
-                    User::class
-                ));
-            }
+        if ($activation && ($user = $this->userRepository->where(compact('activation'))->first()) !== null) {
 
             $this->session->set('activation', [
                 'key' => $activation,
@@ -164,7 +159,7 @@ class ResetPasswordController
             ]);
 
             $user->activation = null;
-            $user->save();
+            $this->userRepository->save($user);
         }
 
         if (!$this->session->isStarted()) {
@@ -174,14 +169,7 @@ class ResetPasswordController
         $data = $this->session->get('activation');
 
         if ($this->request->isMethod('POST') && !$data && $activation) {
-            if (($user = User::where(compact('activation'))->first()) !== null) {
-                if (!$user instanceof User) {
-                    throw new \LogicException(sprintf(
-                        'QueryBuilder::first() returned %s, expected %s',
-                        get_class($user),
-                        User::class
-                    ));
-                }
+            if (($user = $this->userRepository->where(compact('activation'))->first()) !== null) {
                 $data = [
                     'key' => $activation,
                     'user' => $user->id,
@@ -194,7 +182,7 @@ class ResetPasswordController
             throw new BadRequestHttpException(__('Invalid key.'));
         }
 
-        if (!$user = User::find($data['user']) or $user->isBlocked()) {
+        if (!$user = $this->userRepository->find((int) $data['user']) or $user->isBlocked()) {
             throw new BadRequestHttpException(__('Your account has not been activated or is blocked.'));
         }
 
@@ -216,7 +204,7 @@ class ResetPasswordController
 
                 $user->activation = null;
                 $user->password = $this->authPassword->hash($password);
-                $user->save();
+                $this->userRepository->save($user);
 
                 $this->session->remove('activation');
 

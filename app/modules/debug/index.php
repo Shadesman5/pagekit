@@ -54,7 +54,7 @@ return [
             $app->get('debugbar')->addCollector(new ProfileDataCollector($app->get('debugbar.storage')));
 
             if ($app->has('auth')) {
-                $app->get('debugbar')->addCollector(new AuthDataCollector($app->get('auth')));
+                $app->get('debugbar')->addCollector(new AuthDataCollector($app->get('auth'), $app->get('userRepository')));
             }
 
             if ($app->has('info')) {

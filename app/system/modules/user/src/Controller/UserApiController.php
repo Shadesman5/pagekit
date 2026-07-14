@@ -14,6 +14,7 @@ use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use Pagekit\User\Model\User;
+use Pagekit\User\Model\UserRepository;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -34,6 +35,7 @@ class UserApiController
         private readonly ModuleManager $module,
         private readonly PasswordEncoderInterface $authPassword,
         protected readonly ValidatorInterface $validator,
+        private readonly UserRepository $userRepository,
     ) {
     }
 
@@ -48,7 +50,7 @@ class UserApiController
         $page = (int) $request->query->get('page', 0);
         $limit = (int) $request->query->get('limit', 0);
 
-        $query = User::query();
+        $query = $this->userRepository->query();
         $filter = array_merge(array_fill_keys(['status', 'search', 'role', 'order', 'access'], ''), $filter);
         extract($filter, EXTR_SKIP);
 
@@ -96,17 +98,7 @@ class UserApiController
         $page = max(0, min($pages - 1, $page));
         $entities = $query->offset($page * $limit)->limit($limit)->orderBy($order[1], $order[2])->get();
 
-        $users = [];
-        foreach ($entities as $entity) {
-            if (!$entity instanceof User) {
-                throw new \LogicException(sprintf(
-                    'QueryBuilder::get() returned %s, expected %s',
-                    get_class($entity),
-                    User::class
-                ));
-            }
-            $users[] = $entity;
-        }
+        $users = array_values($entities);
 
         return compact('users', 'pages', 'count');
     }
@@ -119,7 +111,7 @@ class UserApiController
         $request = $this->request;
         $filter = $request->query->all()['filter'] ?? [];
 
-        $query = User::query();
+        $query = $this->userRepository->query();
         $filter = array_merge(array_fill_keys(['status', 'search', 'role', 'order', 'access'], ''), (array)$filter);
         extract($filter, EXTR_SKIP);
 
@@ -162,7 +154,7 @@ class UserApiController
     #[Route('/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function getAction(int $id): User
     {
-        if (!$user = User::find($id)) {
+        if (!$user = $this->userRepository->find($id)) {
             throw new NotFoundHttpException('User not found.');
         }
 
@@ -195,7 +187,7 @@ class UserApiController
 
         try {
 
-            if (!$user = User::find($id)) {
+            if (!$user = $this->userRepository->find($id)) {
 
                 if ($id) {
                     throw new NotFoundHttpException(__('User not found.'));
@@ -205,7 +197,7 @@ class UserApiController
                     throw new BadRequestHttpException(__('Password required.'));
                 }
 
-                $user = User::create(['registered' => new \DateTime()]);
+                $user = $this->userRepository->create(['registered' => new \DateTime()]);
             }
 
             if ($user->isAdministrator() && !$this->user->isAdministrator()) {
@@ -246,7 +238,7 @@ class UserApiController
 
             $this->validateOrFail($user);
 
-            $user->save($data);
+            $this->userRepository->save($user, $data);
 
             return ['message' => 'success', 'user' => $user];
 
@@ -269,12 +261,12 @@ class UserApiController
             throw new BadRequestHttpException(__('Unable to delete yourself.'));
         }
 
-        if ($user = User::find($id)) {
+        if ($user = $this->userRepository->find($id)) {
             if ($user->isAdministrator() && !$this->user->isAdministrator()) {
                 throw new BadRequestHttpException(__('Unable to delete administrator.'));
             }
 
-            $user->delete();
+            $this->userRepository->delete($user);
         }
 
         return ['message' => 'success'];

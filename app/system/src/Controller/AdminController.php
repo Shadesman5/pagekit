@@ -11,6 +11,7 @@ use Pagekit\Routing\Attribute\Route;
 use Pagekit\Routing\Router;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\User;
+use Pagekit\User\Model\UserRepository;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -22,6 +23,7 @@ class AdminController
         private readonly SessionInterface $session,
         private readonly UrlProvider $url,
         private readonly Router $router,
+        private readonly UserRepository $userRepository,
     ) {
     }
 
@@ -66,12 +68,12 @@ class AdminController
             throw new BadRequestHttpException(__('Missing order data.'));
         }
 
-        $user = User::find($this->user->id);
+        $user = $this->userRepository->find((int) $this->user->id);
         if ($user === null) {
             throw new BadRequestHttpException(__('User not found.'));
         }
         $user->set('admin.menu', $order);
-        $user->save();
+        $this->userRepository->save($user);
 
         return ['message' => __('Order saved.')];
     }

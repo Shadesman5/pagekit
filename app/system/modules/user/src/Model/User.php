@@ -99,6 +99,9 @@ class User implements UserInterface, \JsonSerializable, SerializableModelInterfa
     /** @var array<int, string>|null */
     protected ?array $permissions = null;
 
+    /** @var (\Closure(array<int, int>): array<int|string, Role>)|null */
+    private ?\Closure $roleLoader = null;
+
     /**
      * {@inheritdoc}
      */
@@ -182,17 +185,32 @@ class User implements UserInterface, \JsonSerializable, SerializableModelInterfa
     }
 
     /**
+     * Attaches the per-instance role loader wired by {@see UserModelTrait::init()}.
+     *
+     * @param \Closure(array<int, int>): array<int|string, Role> $loader
+     */
+    public function setRoleLoader(\Closure $loader): void
+    {
+        $this->roleLoader = $loader;
+    }
+
+    /**
      * Check if the user has access for a provided permission identifier
      */
     public function hasPermission(string $permission): bool
     {
         if ($this->permissions === null) {
 
-            $this->permissions = [];
-            foreach (self::findRoles($this) as $role) {
-                $this->permissions = array_merge($this->permissions, $role->permissions);
+            if ($this->roleLoader === null) {
+                throw new \LogicException('No role loader attached; the user was not hydrated through EntityManager::load().');
             }
 
+            $permissions = [];
+            foreach (($this->roleLoader)($this->roles) as $role) {
+                $permissions = array_merge($permissions, $role->permissions);
+            }
+
+            $this->permissions = $permissions;
         }
 
         return in_array($permission, $this->permissions);

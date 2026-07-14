@@ -157,12 +157,13 @@ return [
                 $app->get('auth'),
                 $app->get('auth.password'),
                 $app->get('session'),
+                $app->get('userRepository'),
             ));
             $app->get('events')->subscribe(new LoginAttemptListener(
                 $app->get('cache'),
                 new Clock(),
             ));
-            $app->get('events')->subscribe(new UserListener());
+            $app->get('events')->subscribe(new UserListener($app->get('userRepository')));
         },
 
         'view.scripts' => function ($event, $scripts) use ($app) {

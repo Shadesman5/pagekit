@@ -13,6 +13,7 @@ use Pagekit\Auth\UserInterface;
 use Pagekit\User\Auth\UserProvider;
 use Pagekit\User\Event\AuthorizationListener;
 use Pagekit\User\Model\User;
+use Pagekit\User\Model\UserRepository;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
@@ -52,13 +53,14 @@ class AuthorizationListenerTest extends TestCase
 
     public function testOnSystemInitRegistersUserProviderBackedByAuthEncoder(): void
     {
-        [$listener, $auth, $encoder] = $this->make();
+        [$listener, $auth, $encoder, , $users] = $this->make();
 
         $auth->expects($this->once())
             ->method('setUserProvider')
-            ->with($this->callback(function (mixed $provider) use ($encoder): bool {
+            ->with($this->callback(function (mixed $provider) use ($encoder, $users): bool {
                 return $provider instanceof UserProvider
-                    && (new \ReflectionProperty(UserProvider::class, 'encoder'))->getValue($provider) === $encoder;
+                    && (new \ReflectionProperty(UserProvider::class, 'encoder'))->getValue($provider) === $encoder
+                    && (new \ReflectionProperty(UserProvider::class, 'users'))->getValue($provider) === $users;
             }));
 
         $listener->onSystemInit();
@@ -225,7 +227,8 @@ class AuthorizationListenerTest extends TestCase
      *     0: AuthorizationListener,
      *     1: Auth&MockObject,
      *     2: PasswordEncoderInterface&MockObject,
-     *     3: SessionInterface&MockObject
+     *     3: SessionInterface&MockObject,
+     *     4: UserRepository&MockObject
      * }
      */
     private function make(): array
@@ -233,7 +236,8 @@ class AuthorizationListenerTest extends TestCase
         $auth = $this->createMock(Auth::class);
         $encoder = $this->createMock(PasswordEncoderInterface::class);
         $session = $this->createMock(SessionInterface::class);
+        $users = $this->createMock(UserRepository::class);
 
-        return [new AuthorizationListener($auth, $encoder, $session), $auth, $encoder, $session];
+        return [new AuthorizationListener($auth, $encoder, $session, $users), $auth, $encoder, $session, $users];
     }
 }

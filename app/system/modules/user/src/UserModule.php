@@ -7,7 +7,6 @@ namespace Pagekit\User;
 use Pagekit\Application as App;
 use Pagekit\Module\Module;
 use Pagekit\User\Model\Role;
-use Pagekit\User\Model\User;
 use Pagekit\User\Model\UserRepository;
 
 class UserModule extends Module
@@ -31,7 +30,7 @@ class UserModule extends Module
         $app->set('user', function ($app) {
 
             if (!$user = $app->get('auth')->getUser()) {
-                $user = User::create(['roles' => [Role::ROLE_ANONYMOUS]]);
+                $user = $app->get('userRepository')->create(['roles' => [Role::ROLE_ANONYMOUS]]);
             }
 
             return $user;
