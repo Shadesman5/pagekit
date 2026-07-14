@@ -160,21 +160,22 @@ return [
     'events' => [
 
         'boot' => function ($event, $app) {
-            UrlResolver::setCache($app->get('cache'));
-            UrlResolver::setModule($app->get('module')->get('blog'));
-
             $app->set('postPresenter', fn ($app) => new PostPresenter($app->get('url'), $app->get('user'), $app->get('module')->get('blog')));
 
             $app->set('postRepository', fn ($app) => new PostRepository($app->get('db.em')));
 
             $app->set('commentRepository', fn ($app) => $app->get('db.em')->getRepository(Comment::class));
 
+            UrlResolver::setCache($app->get('cache'));
+            UrlResolver::setModule($app->get('module')->get('blog'));
+            UrlResolver::setPostRepository($app->get('postRepository'));
+
             $app->get('events')->subscribe(new RouteListener(
                 $app->get('router'),
                 $app->get('routes'),
                 $app->get('cache'),
             ));
-            $app->get('events')->subscribe(new PostListener());
+            $app->get('events')->subscribe(new PostListener($app->get('postRepository')));
             $app->get('events')->subscribe(new ReadmorePlugin());
         },
 

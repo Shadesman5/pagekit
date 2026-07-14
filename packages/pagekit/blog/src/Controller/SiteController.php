@@ -7,6 +7,7 @@ namespace Pagekit\Blog\Controller;
 use Pagekit\Application\Response;
 use Pagekit\Application\UrlProvider;
 use Pagekit\Blog\Model\Post;
+use Pagekit\Blog\Model\PostRepository;
 use Pagekit\Blog\PostPresenter;
 use Pagekit\Captcha\Attribute\Captcha;
 use Pagekit\Content\ContentHelper;
@@ -31,6 +32,7 @@ class SiteController
         private readonly UrlProvider $url,
         private readonly Response $response,
         private readonly PostPresenter $postPresenter,
+        private readonly PostRepository $postRepository,
     ) {
         $this->blog = $module->get('blog');
     }
@@ -42,7 +44,7 @@ class SiteController
     #[Route('/page/{page}', name: 'page', requirements: ['page' => '\d+'])]
     public function indexAction(int $page = 1): array
     {
-        $query = Post::where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime()])->where(function ($query) {
+        $query = $this->postRepository->where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime()])->where(function ($query) {
             return $query->where('roles IS NULL')->whereInSet('roles', $this->user->roles, false, 'OR');
         })->related('user');
 
@@ -57,13 +59,6 @@ class SiteController
 
         $posts = [];
         foreach ($query->get() as $post) {
-            if (!$post instanceof Post) {
-                throw new \LogicException(sprintf(
-                    'QueryBuilder::get() returned %s, expected %s',
-                    get_class($post),
-                    Post::class
-                ));
-            }
             $post->set('commentable', $this->postPresenter->isCommentable($post));
             $post->excerpt = $this->content->applyPlugins($post->excerpt ?? '', ['post' => $post, 'markdown' => $post->get('markdown')]);
             $post->content = $this->content->applyPlugins($post->content ?? '', ['post' => $post, 'markdown' => $post->get('markdown'), 'readmore' => true]);
@@ -105,29 +100,15 @@ class SiteController
             'selfLink' => $this->url->get('@blog/feed', [], 0),
         ]);
 
-        if ($last = Post::where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime()])->limit(1)->orderBy('modified', 'DESC')->first()) {
-            if (!$last instanceof Post) {
-                throw new \LogicException(sprintf(
-                    'QueryBuilder::first() returned %s, expected %s',
-                    get_class($last),
-                    Post::class
-                ));
-            }
+        if ($last = $this->postRepository->where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime()])->limit(1)->orderBy('modified', 'DESC')->first()) {
             if ($last->modified !== null) {
                 $feed->setDate($last->modified);
             }
         }
 
-        foreach (Post::where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime()])->where(function ($query) {
+        foreach ($this->postRepository->where(['status = ?', 'date < ?'], [Post::STATUS_PUBLISHED, new \DateTime()])->where(function ($query) {
             return $query->where('roles IS NULL')->whereInSet('roles', $this->user->roles, false, 'OR');
         })->related('user')->limit($this->blog->config('feed.limit'))->orderBy('date', 'DESC')->get() as $post) {
-            if (!$post instanceof Post) {
-                throw new \LogicException(sprintf(
-                    'QueryBuilder::get() returned %s, expected %s',
-                    get_class($post),
-                    Post::class
-                ));
-            }
             $url = $this->url->get('@blog/id', ['id' => $post->id], 0);
             $feed->addItem(
                 $feed->createItem([
@@ -152,19 +133,11 @@ class SiteController
     #[Captcha(route: '@blog/api/comment/save_1')]
     public function postAction(int $id = 0): array
     {
-        $entity = Post::where(['id = ?', 'status = ?', 'date < ?'], [$id, Post::STATUS_PUBLISHED, new \DateTime()])->related('user')->first();
+        $post = $this->postRepository->where(['id = ?', 'status = ?', 'date < ?'], [$id, Post::STATUS_PUBLISHED, new \DateTime()])->related('user')->first();
 
-        if ($entity === null) {
+        if ($post === null) {
             throw new NotFoundHttpException(__('Post not found!'));
         }
-        if (!$entity instanceof Post) {
-            throw new \LogicException(sprintf(
-                'QueryBuilder::first() returned %s, expected %s',
-                get_class($entity),
-                Post::class
-            ));
-        }
-        $post = $entity;
 
         if (!$post->hasAccess($this->user)) {
             throw new AccessDeniedHttpException(__('Insufficient User Rights.'));

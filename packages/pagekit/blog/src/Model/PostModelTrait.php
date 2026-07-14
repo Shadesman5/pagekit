@@ -12,26 +12,6 @@ trait PostModelTrait
 {
     use ModelTrait;
 
-    /**
-     * Updates the comments info on post.
-     */
-    public static function updateCommentInfo(int $id): void
-    {
-        $query = Comment::where(['post_id' => $id, 'status' => Comment::STATUS_APPROVED]);
-
-        self::where(compact('id'))->update(['comment_count' => $query->count()]);
-    }
-
-    /**
-     * Get all users who have written an article.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    public static function getAuthors(): array
-    {
-        return self::query()->select('user_id', 'name', 'username')->groupBy('user_id', 'name', 'username')->join('@system_user', 'user_id = @system_user.id')->executeQuery()->fetchAllAssociative();
-    }
-
     #[ORM\Saving]
     public static function saving(EntityEvent $event, Post $post): void
     {

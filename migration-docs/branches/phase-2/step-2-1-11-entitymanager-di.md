@@ -221,6 +221,48 @@ module. Full suite green at 640 tests, PHPStan L8 exit 0.
 | `app/system/modules/widget/src/Tests/WidgetControllerTest.php` | **New.** `indexAction` widget/node/type/menu listing + `editAction` create-for-type / find / assigned-position resolution / role listing / not-found, via mocked `Repository<Widget>` / `NodeRepository` / `Repository<Role>`. |
 | `app/system/modules/widget/src/Tests/WidgetApiControllerTest.php` | **New.** `indexAction` position grouping + unassigned fall-through, `getAction`, `saveAction` create/validate/persist (+ reject-invalid, update-missing), `deleteAction`, `copyAction` clone-with-reset-identity — mocked `Repository<Widget>` + a real Symfony validator (attribute mapping, `NodeApiControllerTest` precedent) driving the `validateOrFail()` gate. |
 
+### Blog package migration — controllers + PostListener + UrlResolver bridge swap + RC-3 (Step 7)
+
+Fourth **consuming** step (the last module migration before the Step 8 sweep): all
+four blog controllers, `PostListener` and the `UrlResolver` routing bridge now
+resolve the Step 3 `postRepository` (`PostRepository`) / `commentRepository`
+(generic `Repository<Comment>`) — plus a generic `roleRepository` in the admin
+controller — instead of the `Post`/`Comment`/`Role` static Active-Record API, and
+the `PostModelTrait` `updateCommentInfo`/`getAuthors` statics are deleted. The
+`EntityManager` singleton and the `ModelTrait` statics stay in place (removed in
+Step 8), so the existing suite stays green.
+
+| File | Change |
+|---|---|
+| `packages/pagekit/blog/src/UrlResolver.php` | **Bridge swap.** Adds `private static ?PostRepository $posts` + `setPostRepository()` to the **existing** 2.5 routing bridge (the Router builds resolvers via `new $class`, no DI — same `TEMPORARY BRIDGE … Step 2.5` tag as the neighboring `setCache`/`setModule`). Both `Post::where()` calls (`match()` slug→id, `generate()` id→params) now run through `self::$posts->where(...)->first()`, null-guarded with a `\LogicException` when the bridge was never wired at boot; the local `instanceof` guards are dropped (decision 5). Scoped repo reference inside an already-flagged bridge — **not** a new global manager (see Deferred → Step 2.5). |
+| `packages/pagekit/blog/index.php` | `boot` adds `UrlResolver::setPostRepository($app->get('postRepository'))` beside the existing `setCache`/`setModule` setters, and wires `new PostListener($app->get('postRepository'))`. (The `postRepository`/`commentRepository` service *definitions* landed in Step 3.) |
+| `packages/pagekit/blog/src/Event/PostListener.php` | Inject `PostRepository`; `onCommentChange()` → `updateCommentInfo($comment->post_id)`, `onRoleDelete()` → `removeRole((int) $role->id)` (was the `Post` statics). Stays an `EventInterface` subscriber to the platform `model.comment.*` / `model.role.deleted` events (decision 3) — it reaches the DB through the **injected** repo, not `$event->getEntityManager()` like the Step 2 lifecycle handlers. |
+| `packages/pagekit/blog/src/Model/PostModelTrait.php` | Deleted the `updateCommentInfo`/`getAuthors` statics (that logic moved to `PostRepository` in Step 3). Trait now carries only the two Step 2 `EntityEvent` lifecycle handlers (`saving` slug-suffixing, `deleting` `@blog_comment` cascade) + `use ModelTrait`. |
+| `packages/pagekit/blog/src/Controller/BlogController.php` | Inject `postRepository` (`PostRepository`) + generic `roleRepository` (`Repository<Role>`); author list via `postRepository->getAuthors()`, `editAction` find/create through the repo, comment-index post lookup via `find()`, role list via `roleRepository->findAll()`. (`Post`/`Comment::getStatuses()` stay — pure static enums by design; the `editAction` role/author raw DBAL queries on the injected `Connection` are unchanged.) |
+| `packages/pagekit/blog/src/Controller/PostApiController.php` | Inject `postRepository`; `indexAction` builds off `query()`, and get/save/delete/copy + the bulk variants all find/create/save/delete through the repo. |
+| `packages/pagekit/blog/src/Controller/CommentApiController.php` | Inject generic `commentRepository` (`Repository<Comment>`) + `postRepository`; comment listing via `query()`/`where(...)`, save/delete plus the min-idle / approved-once / parent + post lookups through the two repos. |
+| `packages/pagekit/blog/src/Controller/SiteController.php` | Inject `postRepository`; front-end index / feed / single-post lookups via `where(...)->related('user')` through the repo. |
+| `packages/pagekit/blog/src/Migrations/2025/Version20251023070000_CreateBlogTables.php` | **RC-3 (docs-only).** The stale `AUDIT FIX Step 2.0.5` comment is rewritten as a permanent upgrade note: pre-rename installs carry the old `Version001_CreateBlogTables` id in `migration_versions`, which must be updated to this class name so the baseline schema is not re-applied on upgrade. No schema change. |
+
+### Tests (Step 7)
+
+Like the Step 6 widget module, the blog controllers / `PostListener` / `UrlResolver`
+had no prior unit tests, so — unlike the Step 4/5 reworks — there is no singleton
+harness to strip; the existing `tests/Unit/Blog/bootstrap.php` is extended for the
+newly-tested classes. Full suite green at 674 tests, PHPStan L8 exit 0 — after an
+in-step fix to `bootstrap.php` (a stray `*/` inside a docblock closed the comment
+early and tripped a `ParseError` on the first Tester run).
+
+| File | Change |
+|---|---|
+| `tests/Unit/Blog/bootstrap.php` | Extended with the dependency-ordered `require_once`s for `UrlResolver`, `PostListener`, the four controllers and the content module's `ContentHelper` (blog / base-comment / content are runtime-loaded, absent from composer's autoload map) alongside the existing `__()` / `Pagekit\__()` translation stubs. Fixed after a Tester `ParseError` (stray `*/` in a docblock). |
+| `tests/Unit/Blog/PostListenerTest.php` | **New.** `onCommentChange` → `updateCommentInfo(post_id)` / `onRoleDelete` → `removeRole((int) id)` delegation (asserts the Role→int narrowing the database module requires) + the subscription map, via a mocked `PostRepository`. |
+| `tests/Unit/Blog/UrlResolverTest.php` | **New.** `match()` slug→id and `generate()` id→params through the bridged `PostRepository` (mocked `QueryBuilder`), the never-wired-bridge `\LogicException` guard, the not-found paths, and the cached-entry short-circuit that never queries the repo. Resets the private bridge statics by reflection between tests. |
+| `tests/Unit/Blog/PostApiControllerTest.php` | **New.** get / save (create + validate via a real Symfony validator) / delete (ownership gate) / copy (clone-with-reset-identity) driven through a mocked `PostRepository` / `QueryBuilder`. |
+| `tests/Unit/Blog/CommentApiControllerTest.php` | **New.** delete / bulk-delete find+delete delegation and the save-action access gates (post-comments / manage-comments / not-found) asserted to precede any repository lookup, via mocked `Repository<Comment>` / `PostRepository`. |
+| `tests/Unit/Blog/SiteControllerTest.php` | **New.** `postAction` not-found + access-denied guards on a repository-loaded post (mocked `PostRepository` / `QueryBuilder`). |
+| `tests/Unit/Blog/BlogControllerTest.php` | **New.** `settingsAction` / `postAction` (authors + statuses) and `editAction` redirect-on-invalid-id / ownership-reject, via mocked `PostRepository` / `Repository<Role>` / `Router` / `MessageBag`. |
+
 ---
 
 ## 🧠 Key Decisions (Rationale)

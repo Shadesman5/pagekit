@@ -6,7 +6,9 @@ namespace Pagekit\Blog\Controller;
 
 use Pagekit\Blog\Model\Comment;
 use Pagekit\Blog\Model\Post;
+use Pagekit\Blog\Model\PostRepository;
 use Pagekit\Database\Connection;
+use Pagekit\Database\ORM\Repository;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Request;
@@ -25,12 +27,17 @@ class BlogController
 {
     protected Module $blog;
 
+    /**
+     * @param Repository<Role> $roleRepository
+     */
     public function __construct(
         ModuleManager $module,
         private readonly Router $router,
         private readonly MessageBag $message,
         private readonly User $user,
         private readonly Connection $db,
+        private readonly PostRepository $postRepository,
+        private readonly Repository $roleRepository,
     ) {
         $this->blog = $module->get('blog');
     }
@@ -50,7 +57,7 @@ class BlogController
             ],
             '$data' => [
                 'statuses' => Post::getStatuses(),
-                'authors' => Post::getAuthors(),
+                'authors' => $this->postRepository->getAuthors(),
                 'canEditAll' => $this->user->hasAccess('blog: manage all posts'),
                 'config' => [
                     'filter' => (object) $filter,
@@ -70,7 +77,7 @@ class BlogController
     {
         try {
 
-            $entity = Post::where(compact('id'))->related('user')->first();
+            $entity = $this->postRepository->where(compact('id'))->related('user')->first();
 
             if ($entity === null) {
 
@@ -78,7 +85,7 @@ class BlogController
                     throw new NotFoundHttpException(__('Invalid post id.'));
                 }
 
-                $post = Post::create([
+                $post = $this->postRepository->create([
                     'user_id' => $this->user->id,
                     'status' => Post::STATUS_DRAFT,
                     'date' => new \DateTime(),
@@ -87,12 +94,6 @@ class BlogController
 
                 $post->set('title', $this->blog->config('posts.show_title'));
                 $post->set('markdown', $this->blog->config('posts.markdown_enabled'));
-            } elseif (!$entity instanceof Post) {
-                throw new \LogicException(sprintf(
-                    'QueryBuilder::first() returned %s, expected %s',
-                    get_class($entity),
-                    Post::class
-                ));
             } else {
                 $post = $entity;
             }
@@ -124,7 +125,7 @@ class BlogController
                 '$data' => [
                     'post' => $post,
                     'statuses' => Post::getStatuses(),
-                    'roles' => array_values(Role::findAll()),
+                    'roles' => array_values($this->roleRepository->findAll()),
                     'canEditAll' => $this->user->hasAccess('blog: manage all posts'),
                     'authors' => $authors,
                 ],
@@ -147,7 +148,7 @@ class BlogController
     #[Request(['filter' => 'array', 'post' => 'int', 'page' => 'int'])]
     public function commentAction(array $filter = [], int $post = 0, ?int $page = null): array
     {
-        $post = Post::find($post);
+        $post = $this->postRepository->find($post);
         $filter['order'] = 'created DESC';
 
         return [
