@@ -1,7 +1,7 @@
 # **🗺️ Pagekit Modernization Roadmap & Rules**
 
-> **Current Version**: 1.2.25
-> **Current Step**: 2.1.11 (EntityManager DI (remove singleton))
+> **Current Version**: 1.2.26
+> **Current Step**: 2.1.12 (Residual `mixed` narrowing)
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**
 
@@ -61,7 +61,7 @@
 | 1.9    | Symfony 6.4 LTS components            | ✅     | 🛡️    | #129  | #60-#61 |
 | 1.10   | PSR-6 Cache                           | ✅     | 🛡️    | #130  | #62     |
 | 1.10.5 | ↳ E2E Testing with Playwright         | ✅     | ⚠️    | #135  | #67     |
-| 1.11   | ORM Modernization                     | ✅     | ⚠️    | #131  | #97     |
+| 1.11   | ORM Modernization                     | ✅     | 🛡️    | #131  | #97     |
 | 1.12   | DB Migration System                   | ✅     | 🛡️    | #132  | #107    |
 | 1.13   | Validation Update                     | ✅     | 🛡️    | #133  | #108    |
 | 1.13.5 | ↳ Template Security Hardening (CSP)   | ⏸️ 80% | ⚠️    | #136  | #110    |
@@ -92,7 +92,7 @@
 | 2.1.8  | ↳ Infection Mutation Testing          | ✅     | 🛡️    | #155  | #216    |
 | 2.1.9  | ↳ Test Coverage Expansion             | ✅     | 🛡️    | #156  | #218    |
 | 2.1.10 | ↳ Entity Presentation Layer (DTO)     | ✅     | 🛡️    | #204  | #219    |
-| 2.1.11 | ↳ EntityManager DI (remove singleton) | ⏳     | ⏳    | #205  | -       |
+| 2.1.11 | ↳ EntityManager DI (remove singleton) | ✅     | 🛡️    | #205  | #222    |
 | 2.1.12 | ↳ Residual `mixed` narrowing          | ⏳     | ⏳    | #217  | -       |
 | 2.2    | CI/CD Pipeline                        | ⏳     | ⏳    | #157  | -       |
 | 2.3    | Docker Production                     | ⏳     | ⏳    | #158  | -       |
