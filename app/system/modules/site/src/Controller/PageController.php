@@ -7,15 +7,20 @@ namespace Pagekit\Site\Controller;
 use function Pagekit\__;
 
 use Pagekit\Content\ContentHelper;
+use Pagekit\Database\ORM\Repository;
 use Pagekit\Site\Model\Node;
 use Pagekit\Site\Model\Page;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class PageController
 {
+    /**
+     * @param Repository<Page> $pageRepository
+     */
     public function __construct(
         private readonly ContentHelper $content,
         private readonly Node $node,
+        private readonly Repository $pageRepository,
     ) {
     }
 
@@ -24,7 +29,7 @@ class PageController
      */
     public function indexAction(int $id = 0): array
     {
-        if (!$page = Page::find($id)) {
+        if (!$page = $this->pageRepository->find($id)) {
             throw new NotFoundHttpException(__('Page not found.'));
         }
 

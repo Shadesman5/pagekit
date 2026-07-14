@@ -4,37 +4,39 @@ declare(strict_types=1);
 
 namespace Pagekit\Site\Tests;
 
-use Doctrine\DBAL\Result;
 use Pagekit\Application\UrlProvider;
+use Pagekit\Config\Config;
 use Pagekit\Config\ConfigManager;
-use Pagekit\Database\Connection;
-use Pagekit\Database\ORM\EntityManager;
-use Pagekit\Database\ORM\Metadata;
-use Pagekit\Database\ORM\MetadataManager;
-use Pagekit\Database\Query\QueryBuilder as DbalQueryBuilder;
-use Pagekit\Event\EventDispatcherInterface;
+use Pagekit\Database\ORM\QueryBuilder;
 use Pagekit\Filter\FilterManager;
 use Pagekit\Intl\Loader\PhpFileLoader;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Site\Controller\NodeApiController;
 use Pagekit\Site\Model\Node;
+use Pagekit\Site\Model\NodeRepository;
 use Pagekit\Site\NodePresenter;
+use Pagekit\Site\SiteModule;
 use Pagekit\User\Model\User;
-use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Translation\Translator;
 use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
- * Covers NodeApiController presenter wiring: index/get/save actions return
- * NodePresenter::toArray() output instead of raw entities. ORM access is
- * driven through a mock-backed EntityManager singleton (isolated process),
- * mirroring {@see UserProviderTest}. NodePresenter is final — tests inject a
- * real presenter backed by mocked UrlProvider and User.
+ * Covers NodeApiController after its Step 4 migration onto the injected
+ * NodeRepository. The read/presenter actions (index/get/save) return
+ * NodePresenter::toArray() output instead of raw entities, and the mutating
+ * actions (delete/updateOrder/frontpage) drive their find/create/save/delete and
+ * the protected/frontpage type gate through the repository. ORM access is driven
+ * through a mocked NodeRepository injected straight into the controller — the
+ * listing exercises the injected QueryBuilder<Node> returned by the repository's
+ * query()/where() finders, so there is no EntityManager, no static model API and
+ * no process isolation. NodePresenter is final — tests inject a real presenter
+ * backed by mocked UrlProvider and User.
  */
 class NodeApiControllerTest extends TestCase
 {
@@ -60,14 +62,19 @@ class NodeApiControllerTest extends TestCase
             ->getValidator();
     }
 
-    #[RunInSeparateProcess]
-    #[PreserveGlobalState(false)]
     public function testIndexActionMapsNodesThroughPresenter(): void
     {
         $nodeOne = $this->createPresenterNodeMock(1, 'Home', '@page/home');
         $nodeTwo = $this->createPresenterNodeMock(2, 'Blog', '@blog/index');
 
-        $this->primeEntityManagerForQueryGet([$nodeOne, $nodeTwo]);
+        /** @var QueryBuilder<Node>&MockObject $query */
+        $query = $this->createMock(QueryBuilder::class);
+        $query->method('get')->willReturn([$nodeOne, $nodeTwo]);
+
+        $nodeRepository = $this->createMock(NodeRepository::class);
+        $nodeRepository->method('query')->willReturn($query);
+        // No menu filter: the plain query() builder is used, never where().
+        $nodeRepository->expects($this->never())->method('where');
 
         $url = $this->createMock(UrlProvider::class);
         $url->method('get')->willReturnMap([
@@ -75,7 +82,7 @@ class NodeApiControllerTest extends TestCase
             ['@blog/index', [], UrlProvider::BASE_PATH, '/blog'],
         ]);
 
-        $result = $this->createController(new Request(), $this->createPresenter($url))->indexAction();
+        $result = $this->createController(new Request(), $this->createPresenter($url), $nodeRepository)->indexAction();
 
         $this->assertCount(2, $result);
         $this->assertSame(1, $result[0]['id']);
@@ -86,25 +93,20 @@ class NodeApiControllerTest extends TestCase
         $this->assertSame('/blog', $result[1]['url']);
     }
 
-    #[RunInSeparateProcess]
-    #[PreserveGlobalState(false)]
     public function testIndexActionFiltersByMenuQueryParameter(): void
     {
         $node = $this->createPresenterNodeMock(3, 'Footer link', '@page/footer');
 
-        $query = $this->createMock(DbalQueryBuilder::class);
-        $query->method('from')->willReturnSelf();
-        $query->expects($this->once())
+        /** @var QueryBuilder<Node>&MockObject $query */
+        $query = $this->createMock(QueryBuilder::class);
+        $query->method('get')->willReturn([$node]);
+
+        $nodeRepository = $this->createMock(NodeRepository::class);
+        // A menu query parameter must scope the listing through where().
+        $nodeRepository->expects($this->once())
             ->method('where')
             ->with(['menu' => 'footer'])
-            ->willReturnSelf();
-
-        $result = $this->createMock(Result::class);
-        $result->method('fetchAssociative')
-            ->willReturnOnConsecutiveCalls(['id' => $node->id], false);
-        $query->method('executeQuery')->willReturn($result);
-
-        $this->primeEntityManager($query, [$node]);
+            ->willReturn($query);
 
         $url = $this->createMock(UrlProvider::class);
         $url->expects($this->once())
@@ -113,20 +115,19 @@ class NodeApiControllerTest extends TestCase
             ->willReturn('/footer');
 
         $request = new Request(['menu' => 'footer']);
-        $presented = $this->createController($request, $this->createPresenter($url))->indexAction();
+        $presented = $this->createController($request, $this->createPresenter($url), $nodeRepository)->indexAction();
 
         $this->assertCount(1, $presented);
         $this->assertSame(3, $presented[0]['id']);
         $this->assertSame('/footer', $presented[0]['url']);
     }
 
-    #[RunInSeparateProcess]
-    #[PreserveGlobalState(false)]
     public function testGetActionReturnsPresenterArray(): void
     {
         $node = $this->createPresenterNodeMock(5, 'About', '@page/about');
 
-        $this->primeEntityManagerForFind($node, $node);
+        $nodeRepository = $this->createMock(NodeRepository::class);
+        $nodeRepository->expects($this->once())->method('find')->with(5)->willReturn($node);
 
         $url = $this->createMock(UrlProvider::class);
         $url->expects($this->once())
@@ -134,7 +135,7 @@ class NodeApiControllerTest extends TestCase
             ->with('@page/about', [], UrlProvider::BASE_PATH)
             ->willReturn('/about');
 
-        $result = $this->createController(new Request(), $this->createPresenter($url))->getAction(5);
+        $result = $this->createController(new Request(), $this->createPresenter($url), $nodeRepository)->getAction(5);
 
         $this->assertSame(5, $result['id']);
         $this->assertSame('About', $result['title']);
@@ -142,12 +143,10 @@ class NodeApiControllerTest extends TestCase
         $this->assertTrue($result['accessible']);
     }
 
-    #[RunInSeparateProcess]
-    #[PreserveGlobalState(false)]
     public function testSaveActionReturnsPresenterArrayInResponse(): void
     {
         $node = $this->getMockBuilder(Node::class)
-            ->onlyMethods(['save', 'toArray', 'hasAccess'])
+            ->onlyMethods(['toArray', 'hasAccess'])
             ->getMock();
         $node->id = 7;
         $node->title = 'Home';
@@ -156,13 +155,15 @@ class NodeApiControllerTest extends TestCase
         $node->link = '@page/home';
         $node->status = 1;
 
-        $node->expects($this->once())->method('save');
         $node->method('hasAccess')->willReturn(true);
         $node->method('toArray')->willReturnCallback(
             static fn (array $data = []): array => $data + ['id' => 7, 'title' => 'Home updated']
         );
 
-        $this->primeEntityManagerForFind($node, $node);
+        $nodeRepository = $this->createMock(NodeRepository::class);
+        $nodeRepository->expects($this->once())->method('find')->with(7)->willReturn($node);
+        // Persistence now flows through the repository, not the entity.
+        $nodeRepository->expects($this->once())->method('save')->with($node);
 
         $url = $this->createMock(UrlProvider::class);
         $url->expects($this->once())
@@ -170,7 +171,7 @@ class NodeApiControllerTest extends TestCase
             ->with('@page/home', [], UrlProvider::BASE_PATH)
             ->willReturn('/home-updated');
 
-        $result = $this->createController(new Request(), $this->createPresenter($url))->saveAction(7, [
+        $result = $this->createController(new Request(), $this->createPresenter($url), $nodeRepository)->saveAction(7, [
             'title' => 'Home updated',
             'slug' => 'home-updated',
             'type' => 'page',
@@ -183,16 +184,194 @@ class NodeApiControllerTest extends TestCase
         $this->assertTrue($result['node']['accessible']);
     }
 
-    private function createController(Request $request, NodePresenter $presenter): NodeApiController
+    public function testDeleteActionRejectsProtectedNodeType(): void
     {
+        $node = new Node();
+        $node->id = 3;
+        $node->type = 'link';
+
+        $nodeRepository = $this->createMock(NodeRepository::class);
+        $nodeRepository->expects($this->once())->method('find')->with(3)->willReturn($node);
+        // A protected type must block the delete before it reaches the repository.
+        $nodeRepository->expects($this->never())->method('delete');
+
+        $controller = $this->createController(
+            new Request(),
+            $this->createBarePresenter(),
+            $nodeRepository,
+            $this->createModuleManager(['protected' => true]),
+        );
+
+        $this->expectException(BadRequestHttpException::class);
+        $this->expectExceptionMessage('Invalid type.');
+
+        $controller->deleteAction(3);
+    }
+
+    public function testDeleteActionDeletesUnprotectedNodeThroughRepository(): void
+    {
+        $node = new Node();
+        $node->id = 4;
+        $node->type = 'page';
+
+        $nodeRepository = $this->createMock(NodeRepository::class);
+        $nodeRepository->expects($this->once())->method('find')->with(4)->willReturn($node);
+        $nodeRepository->expects($this->once())->method('delete')->with($node);
+
+        $result = $this->createController(
+            new Request(),
+            $this->createBarePresenter(),
+            $nodeRepository,
+            $this->createModuleManager(['protected' => false]),
+        )->deleteAction(4);
+
+        $this->assertSame('success', $result['message']);
+    }
+
+    public function testDeleteActionIsANoOpWhenNodeIsMissing(): void
+    {
+        $nodeRepository = $this->createMock(NodeRepository::class);
+        $nodeRepository->expects($this->once())->method('find')->with(999)->willReturn(null);
+        $nodeRepository->expects($this->never())->method('delete');
+
+        $result = $this->createController(new Request(), $this->createBarePresenter(), $nodeRepository)->deleteAction(999);
+
+        $this->assertSame('success', $result['message']);
+    }
+
+    public function testUpdateOrderActionAppliesOrderMenuAndParentThenSaves(): void
+    {
+        $node = new Node();
+        $node->id = 5;
+
+        $request = new Request();
+        $request->request->set('menu', 'main');
+        $request->request->set('nodes', [['id' => 5, 'order' => 7, 'parent_id' => 2]]);
+
+        $nodeRepository = $this->createMock(NodeRepository::class);
+        $nodeRepository->expects($this->once())->method('find')->with(5)->willReturn($node);
+        $nodeRepository->expects($this->once())->method('save')->with($node);
+
+        $result = $this->createController($request, $this->createBarePresenter(), $nodeRepository)->updateOrderAction();
+
+        $this->assertSame('success', $result['message']);
+        $this->assertSame(7, $node->priority);
+        $this->assertSame('main', $node->menu);
+        $this->assertSame(2, $node->parent_id);
+    }
+
+    public function testFrontpageActionThrowsWhenNodeMissing(): void
+    {
+        $request = new Request();
+        $request->request->set('id', 0);
+
+        $nodeRepository = $this->createMock(NodeRepository::class);
+        $nodeRepository->expects($this->once())->method('find')->with(0)->willReturn(null);
+
+        $controller = $this->createController($request, $this->createBarePresenter(), $nodeRepository);
+
+        $this->expectException(NotFoundHttpException::class);
+        $this->expectExceptionMessage('Node not found.');
+
+        $controller->frontpageAction();
+    }
+
+    public function testFrontpageActionRejectsNodeTypeThatCannotBeFrontpage(): void
+    {
+        $node = new Node();
+        $node->id = 6;
+        $node->type = 'link';
+
+        $request = new Request();
+        $request->request->set('id', 6);
+
+        $nodeRepository = $this->createMock(NodeRepository::class);
+        $nodeRepository->method('find')->with(6)->willReturn($node);
+
+        $controller = $this->createController(
+            $request,
+            $this->createBarePresenter(),
+            $nodeRepository,
+            $this->createModuleManager(['frontpage' => false]),
+        );
+
+        $this->expectException(BadRequestHttpException::class);
+        $this->expectExceptionMessage('Invalid node type.');
+
+        $controller->frontpageAction();
+    }
+
+    public function testFrontpageActionStoresFrontpageIdInConfig(): void
+    {
+        $node = new Node();
+        $node->id = 6;
+        $node->type = 'page';
+
+        $request = new Request();
+        $request->request->set('id', 6);
+
+        $nodeRepository = $this->createMock(NodeRepository::class);
+        $nodeRepository->expects($this->once())->method('find')->with(6)->willReturn($node);
+
+        $siteConfig = new Config();
+        $config = $this->createMock(ConfigManager::class);
+        $config->method('__invoke')->with('system/site')->willReturn($siteConfig);
+
+        $result = $this->createController(
+            $request,
+            $this->createBarePresenter(),
+            $nodeRepository,
+            $this->createModuleManager(['frontpage' => true]),
+            $config,
+        )->frontpageAction();
+
+        $this->assertSame('success', $result['message']);
+        $this->assertSame(6, $siteConfig->get('frontpage'));
+    }
+
+    private function createController(
+        Request $request,
+        NodePresenter $presenter,
+        NodeRepository $nodeRepository,
+        ?ModuleManager $module = null,
+        ?ConfigManager $config = null,
+    ): NodeApiController {
         return new NodeApiController(
             $request,
             new FilterManager(),
-            $this->createMock(ModuleManager::class),
-            $this->createMock(ConfigManager::class),
+            $module ?? $this->createMock(ModuleManager::class),
+            $config ?? $this->createMock(ConfigManager::class),
             $this->validator,
             $presenter,
+            $nodeRepository,
         );
+    }
+
+    /**
+     * Builds a ModuleManager whose `system/site` module reports the given node
+     * type descriptor (or null) — the protected/frontpage gate the mutating
+     * actions consult.
+     *
+     * @param array<string, mixed>|null $type
+     */
+    private function createModuleManager(?array $type): ModuleManager
+    {
+        $site = $this->createMock(SiteModule::class);
+        $site->method('getType')->willReturn($type);
+
+        $module = $this->createMock(ModuleManager::class);
+        $module->method('get')->with('system/site')->willReturn($site);
+
+        return $module;
+    }
+
+    /**
+     * A presenter is required by the constructor but unused by the mutating
+     * actions (they return plain success payloads), so a bare URL stub suffices.
+     */
+    private function createBarePresenter(): NodePresenter
+    {
+        return $this->createPresenter($this->createMock(UrlProvider::class));
     }
 
     private function createPresenter(UrlProvider $url): NodePresenter
@@ -222,101 +401,5 @@ class NodeApiControllerTest extends TestCase
         );
 
         return $node;
-    }
-
-    /**
-     * @param array<int, Node&MockObject> $nodes
-     */
-    private function primeEntityManagerForQueryGet(array $nodes): void
-    {
-        $rows = array_map(
-            static fn (Node $node): array => [
-                'id' => $node->id,
-                'title' => $node->title,
-                'slug' => $node->slug,
-                'type' => $node->type,
-                'link' => $node->link,
-                'status' => $node->status,
-            ],
-            $nodes
-        );
-
-        $query = $this->createMock(DbalQueryBuilder::class);
-        $query->method('from')->willReturnSelf();
-        $query->method('where')->willReturnSelf();
-
-        $fetchSequence = [...$rows, false];
-        $result = $this->createMock(Result::class);
-        $result->method('fetchAssociative')->willReturnOnConsecutiveCalls(...$fetchSequence);
-        $query->method('executeQuery')->willReturn($result);
-
-        $this->primeEntityManager($query, $nodes);
-    }
-
-    private function primeEntityManagerForFind(Node $node, ?Node $hydratedInstance = null): void
-    {
-        $query = $this->createMock(DbalQueryBuilder::class);
-        $query->method('from')->willReturnSelf();
-        $query->method('where')->willReturnSelf();
-        $query->method('limit')->willReturnSelf();
-
-        $result = $this->createMock(Result::class);
-        $result->method('fetchAssociative')
-            ->willReturnOnConsecutiveCalls(['id' => $node->id], false);
-        $query->method('executeQuery')->willReturn($result);
-
-        $this->primeEntityManager($query, $hydratedInstance !== null ? [$hydratedInstance] : []);
-    }
-
-    /**
-     * @param array<int, Node> $hydratedInstances
-     */
-    private function primeEntityManager(DbalQueryBuilder $query, array $hydratedInstances = []): void
-    {
-        $connection = $this->createMock(Connection::class);
-        $connection->method('createQueryBuilder')->willReturn($query);
-
-        $metadata = $this->createMock(Metadata::class);
-        $metadata->method('getTable')->willReturn('@system_node');
-        $metadata->method('getEventPrefix')->willReturn('node');
-        $metadata->method('getIdentifier')->willReturn('id');
-        $metadata->method('getClass')->willReturn(Node::class);
-
-        $queue = $hydratedInstances;
-        if ($queue !== []) {
-            $metadata->method('newInstance')->willReturnCallback(
-                static function () use (&$queue): Node {
-                    if ($queue === []) {
-                        return new Node();
-                    }
-
-                    return array_shift($queue);
-                }
-            );
-        } else {
-            $metadata->method('newInstance')->willReturnCallback(static fn (): Node => new Node());
-        }
-
-        $metadata->method('setValues')->willReturnCallback(
-            static function (object $entity, array $data): void {
-                if (!$entity instanceof Node) {
-                    return;
-                }
-
-                foreach ($data as $key => $value) {
-                    if (property_exists($entity, (string) $key)) {
-                        $entity->{$key} = $value;
-                    }
-                }
-            }
-        );
-        $metadata->method('getValue')->willReturnCallback(
-            static fn (object $entity, string $identifier): mixed => $entity instanceof Node ? $entity->{$identifier} : null
-        );
-
-        $metadataManager = $this->createMock(MetadataManager::class);
-        $metadataManager->method('get')->willReturn($metadata);
-
-        new EntityManager($connection, $metadataManager, $this->createMock(EventDispatcherInterface::class));
     }
 }

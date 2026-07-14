@@ -99,6 +99,50 @@ subclasses the Step 1 generic `Repository<T>` and resolves its own `Metadata`.
 | `tests/Unit/Blog/PostRepositoryTest.php` | **New.** Mock-backed `updateCommentInfo` (approved-comment recount via the `Comment` repository) + `getAuthors`. |
 | `tests/Unit/Blog/bootstrap.php` | Extended with the extra `require_once`s for `PostRepository` (blog classes are not on composer's autoload map). |
 
+### Site module migration — repositories in, statics + RC-2 cache out (Step 4)
+
+First **consuming** step: the site `node` service, both listeners, `MenuHelper` and
+all five controllers now resolve the Step 3 `nodeRepository` / `pageRepository`
+(generic `Repository<Page>`) instead of the `Node`/`Page`/`Role` static
+Active-Record API, and the `NodeModelTrait` request-cache statics (RC-2) are
+deleted. The `EntityManager` singleton and the `ModelTrait` statics stay in place
+(removed in Step 8), so the existing suite stays green.
+
+| File | Change |
+|---|---|
+| `app/system/modules/site/src/Model/NodeModelTrait.php` | **-86 lines (pure deletion).** Removed the static `$nodes` request cache + its cached `find`/`findAll`/`findByMenu`/`fixOrphanedNodes`, the `use ModelTrait { find as modelFind }` alias, and the RC-2 `TODO` block. The trait now carries **only** the two `EntityEvent` lifecycle handlers (`saving`/`deleting`, from Step 2). |
+| `app/system/modules/site/src/Model/Node.php` | Add `use ModelTrait;` to the entity directly (see Key Decisions) — the `NodeModelTrait` alias removal above dropped the transitive import that supplied `Node`'s instance serialization/persistence API. |
+| `app/system/modules/site/src/SiteModule.php` | `node` service + `registerType()` now consume the injected `nodeRepository` — `find($id, true)`, `findAll(true)`, `save($nodes->create([...]))` — replacing the `Node::find`/`findAll`/`create`/`save` statics. (The `nodeRepository`/`pageRepository` service *definitions* landed in Step 3.) |
+| `app/system/modules/site/index.php` | `boot` wiring: `NodesListener` receives `nodeRepository`, `PageListener` receives `pageRepository`; the `view.init` `MenuHelper` gains a 5th arg `nodeRepository`. |
+| `app/system/modules/site/src/Event/NodesListener.php` | Inject `NodeRepository`; `onRequest()` → `$this->nodes->findAll(true)`; `onRoleDelete()` → `$this->nodes->removeRole((int) $role->id)` (was `Node::findAll(true)` / `Node::removeRole($role)`). |
+| `app/system/modules/site/src/Event/PageListener.php` | Inject generic `Repository<Page>`; `getPage()` find/create and the node-save/-delete hooks persist through the repo (`save($page, $data)`, `delete($page)`) instead of `Page::find`/`create` + instance `save`/`delete`. |
+| `app/system/modules/site/src/MenuHelper.php` | Inject `NodeRepository` (5th ctor arg); menu tree via `$this->nodes->findByMenu($menu, true)`. Root placeholder `new Node(['path' => '/'])` kept (manually-`new`-ed, never serialized — decision 4). |
+| `app/system/modules/site/src/Controller/NodeController.php` | Inject `nodeRepository` + generic `roleRepository` (`Repository<Role>`); `fixOrphanedNodes()`, node `find`/`create`, and role list via `$this->roleRepository->findAll()`. |
+| `app/system/modules/site/src/Controller/NodeApiController.php` | Inject `nodeRepository`; list via `where(['menu' => …])` / `query()`, all find/create/save/delete through the repo. The per-site `instanceof Node` + `\LogicException` loop is **deleted** (PHPStan-dead under `QueryBuilder<Node>` typing — decision 5) → `array_values($query->get())`. |
+| `app/system/modules/site/src/Controller/MenuApiController.php` | Inject `nodeRepository`; menu counts via `where(...)->count()`, rename/trash via `where(...)->update(...)`. |
+| `app/system/modules/site/src/Controller/PageController.php` | Inject generic `Repository<Page>`; front-end page lookup via `find()`. |
+| `app/system/modules/site/src/Controller/PageApiController.php` | New ctor injecting generic `Repository<Page>`; index via `array_values($this->pageRepository->findAll())`, `getAction()` via `find()`. The per-site `instanceof Page` guard loop is **deleted** (decision 5). |
+
+### Tests (Step 4)
+
+Reworked off the singleton harness: the site `Tests/` directory now has **zero**
+`RunInSeparateProcess` / `PreserveGlobalState` / `primeEntityManager*` (their reason —
+the process-static EM singleton — is no longer consumed here). Full suite green at
+610 tests, PHPStan L8 exit 0.
+
+| File | Change |
+|---|---|
+| `app/system/modules/site/src/Tests/NodeApiControllerTest.php` | Reworked: dropped process isolation + `primeEntityManager*`; mocks `NodeRepository` / `QueryBuilder<Node>` directly; the stale "mock-backed EntityManager singleton (isolated process)" class docblock rewritten to the repository mechanism. |
+| `app/system/modules/site/src/Tests/MenuApiControllerTest.php` | Reworked for the new `nodeRepository` ctor arg; mocks the repo `where(...)->count()/update()` chain. |
+| `app/system/modules/site/src/Tests/MenuHelperTest.php` | Updated for the new 5th ctor arg (`NodeRepository`). |
+| `app/system/modules/site/src/Tests/NodeControllerTest.php` | **New.** `indexAction` orphan-repair redirect + `editAction` find/create and role listing, via mocked `NodeRepository` / `Repository<Role>` and a mocked `ModuleManager`-resolved `SiteModule`. |
+| `app/system/modules/site/src/Tests/PageControllerTest.php` | **New.** `indexAction` page lookup + content-plugin path via a mocked `Repository<Page>` + `ContentHelper`; not-found path. |
+| `app/system/modules/site/src/Tests/PageApiControllerTest.php` | **New.** `indexAction` `findAll()` + `getAction` `find()`/not-found via a mocked generic `Repository<Page>`. |
+| `app/system/modules/site/src/Tests/NodesListenerTest.php` | **New.** `onRequest` route registration via `findAll(true)` + `onRoleDelete` → `removeRole((int) $role->id)`, mocked `NodeRepository`. |
+| `app/system/modules/site/src/Tests/PageListenerTest.php` | **New.** `onNodeSave`/`onNodeDelete` + `getPage` find/create through a mocked generic `Repository<Page>`. |
+| `app/system/modules/site/src/Tests/SiteModuleTest.php` | **New.** `main()` registers `nodeRepository`/`pageRepository`; `registerType()` auto-creates a protected type's node via `$nodes->save($nodes->create([...]))`. Light `new Application()` boot with the `nodeRepository` factory overridden by a mock (DiWiringTest precedent) — no kernel/DB. |
+| `app/system/modules/site/src/Tests/bootstrap.php` | Extended to `require_once` the content module's `ContentHelper` — `Pagekit\Content\` is a runtime-loaded module absent from composer's autoload map, so PHPUnit cannot autoload the class `PageControllerTest` mocks (mirrors the blog Tests bootstrap). |
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -115,6 +159,13 @@ subclasses the Step 1 generic `Repository<T>` and resolves its own `Metadata`.
   is also why the comment module gained its first unit-test scaffolding — a concrete
   `CommentEntity` fixture + a `bootstrap.php` (the module is not on composer's autoload
   map), mirroring the blog Tests bootstrap.
+- **`Node` now `use`s `ModelTrait` directly (Step 4).** Deleting the
+  `use ModelTrait { find as modelFind }` alias from `NodeModelTrait` (its cached static
+  finders are gone) also removed the *transitive* `ModelTrait` that `Node` had been
+  inheriting for its instance serialization/persistence API (`toArray()` /
+  `setSerializationMap()` / `save()` / `delete()`). Those are still needed until the
+  Step 8 static sweep, so `ModelTrait` is applied to the `Node` class directly — a
+  behavior no-op, but it explains the otherwise-surprising new `use` line on the entity.
 
 ---
 

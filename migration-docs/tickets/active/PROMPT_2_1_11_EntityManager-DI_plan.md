@@ -105,7 +105,7 @@
 - [x] Step 1 (L) — ORM core: Repository, EntityEvent, serialization map, central guard
 - [x] Step 2 (M) — Lifecycle handlers → EntityEvent (5 model traits)
 - [x] Step 3 (L) — Custom repositories (Node/User/Post) + container wiring + repo tests
-- [ ] Step 4 (L) — Site module migration + NodeModelTrait cache → CacheItemPool (RC-2)
+- [x] Step 4 (L) — Site module migration + NodeModelTrait cache → CacheItemPool (RC-2)
 - [ ] Step 5 (L) — User module migration + auth chain + hasPermission role loader
 - [ ] Step 6 (M) — Widget module migration + PositionHelper de-static
 - [ ] Step 7 (L) — Blog package migration + UrlResolver bridge swap + RC-3

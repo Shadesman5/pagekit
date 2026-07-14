@@ -7,12 +7,13 @@ namespace Pagekit\Site\Controller;
 use function Pagekit\__;
 
 use Pagekit\Application\UrlProvider;
+use Pagekit\Database\ORM\Repository;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\Routing\Router;
 use Pagekit\Site\MenuManager;
-use Pagekit\Site\Model\Node;
+use Pagekit\Site\Model\NodeRepository;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -22,11 +23,16 @@ class NodeController
 {
     protected mixed $site;
 
+    /**
+     * @param Repository<Role> $roleRepository
+     */
     public function __construct(
         private readonly ModuleManager $module,
         private readonly MenuManager $menu,
         private readonly UrlProvider $url,
         private readonly Router $router,
+        private readonly NodeRepository $nodeRepository,
+        private readonly Repository $roleRepository,
     ) {
         $this->site = $this->module->get('system/site');
     }
@@ -38,7 +44,7 @@ class NodeController
     #[Access('site: manage site', admin: true)]
     public function indexAction(): array|RedirectResponse
     {
-        if ($test = Node::fixOrphanedNodes()) {
+        if ($test = $this->nodeRepository->fixOrphanedNodes()) {
             return $this->router->redirect('@site/page');
         }
 
@@ -66,12 +72,12 @@ class NodeController
     {
         if (is_numeric($id)) {
 
-            if (!$id or !$node = Node::find($id)) {
+            if (!$id or !$node = $this->nodeRepository->find($id)) {
                 throw new NotFoundHttpException('Node not found.');
             }
 
         } else {
-            $node = Node::create(['type' => $id]);
+            $node = $this->nodeRepository->create(['type' => $id]);
 
             if ($menu && !($this->menu)($menu)) {
                 throw new NotFoundHttpException('Menu not found.');
@@ -92,7 +98,7 @@ class NodeController
             '$data' => [
                 'node' => $node,
                 'type' => $type,
-                'roles' => array_values(Role::findAll()),
+                'roles' => array_values($this->roleRepository->findAll()),
             ],
         ];
     }

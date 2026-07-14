@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\Site\Event;
 
+use Pagekit\Database\ORM\Repository;
 use Pagekit\Event\EventInterface;
 use Pagekit\Event\EventSubscriberInterface;
 use Pagekit\Routing\Route;
@@ -14,6 +15,14 @@ use Symfony\Component\Routing\RouteCollection;
 
 class PageListener implements EventSubscriberInterface
 {
+    /**
+     * @param Repository<Page> $pages
+     */
+    public function __construct(
+        private readonly Repository $pages,
+    ) {
+    }
+
     public function onNodeSave(EventInterface $event, Request $request): void
     {
         if (null === $node = $request->get('node')
@@ -24,7 +33,7 @@ class PageListener implements EventSubscriberInterface
         }
 
         $page = $this->getPage(@$node['id']);
-        $page->save($data);
+        $this->pages->save($page, $data);
 
         $node['data']['defaults'] = ['id' => $page->id];
         $node['link'] = '@page/'.$page->id;
@@ -41,7 +50,7 @@ class PageListener implements EventSubscriberInterface
         $page = $this->getPage($node->get('defaults.id', 0));
 
         if ($page->id) {
-            $page->delete();
+            $this->pages->delete($page);
         }
     }
 
@@ -78,8 +87,8 @@ class PageListener implements EventSubscriberInterface
      */
     protected function getPage($id): Page
     {
-        if (!$id or !$page = Page::find($id)) {
-            $page = Page::create();
+        if (!$id or !$page = $this->pages->find($id)) {
+            $page = $this->pages->create();
         }
 
         return $page;

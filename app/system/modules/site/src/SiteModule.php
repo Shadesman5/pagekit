@@ -6,7 +6,6 @@ namespace Pagekit\Site;
 
 use Pagekit\Application as App;
 use Pagekit\Module\Module;
-use Pagekit\Site\Model\Node;
 use Pagekit\Site\Model\NodeRepository;
 use Pagekit\Site\Model\Page;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
@@ -32,11 +31,13 @@ class SiteModule extends Module
 
         $app->set('node', function ($app) {
 
-            if ($id = $app->get('request')->attributes->get('_node') and $node = Node::find($id, true)) {
+            $nodes = $app->get('nodeRepository');
+
+            if ($id = $app->get('request')->attributes->get('_node') and $node = $nodes->find($id, true)) {
                 return $node;
             }
 
-            return Node::create();
+            return $nodes->create();
         });
 
         $app->set('menu', function ($app) {
@@ -116,14 +117,16 @@ class SiteModule extends Module
     {
         $this->assertBooted();
 
-        if (isset($route['protected']) and $route['protected'] and !array_filter(Node::findAll(true), fn ($node) => $type === $node->type)) {
-            Node::create([
+        $nodes = $this->getApp()->get('nodeRepository');
+
+        if (isset($route['protected']) and $route['protected'] and !array_filter($nodes->findAll(true), fn ($node) => $type === $node->type)) {
+            $nodes->save($nodes->create([
                 'title' => $route['label'],
                 'slug' => ($this->getApp()->get('filter'))($route['label'], 'slugify'),
                 'type' => $type,
                 'status' => 1,
                 'link' => $route['name'],
-            ])->save();
+            ]));
         }
 
         $route['id'] = $type;

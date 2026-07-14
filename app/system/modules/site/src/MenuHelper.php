@@ -6,6 +6,7 @@ namespace Pagekit\Site;
 
 use Pagekit\Application\UrlProvider;
 use Pagekit\Site\Model\Node;
+use Pagekit\Site\Model\NodeRepository;
 use Pagekit\User\Model\User;
 use Pagekit\View\Helper\Helper;
 
@@ -16,6 +17,7 @@ class MenuHelper extends Helper
         private readonly User $user,
         private readonly Node $node,
         private readonly NodePresenter $nodePresenter,
+        private readonly NodeRepository $nodes,
     ) {
     }
 
@@ -96,7 +98,7 @@ class MenuHelper extends Helper
         $startLevel = (int) $parameters['start_level'] ?: 1;
         $maxDepth = $startLevel + ($parameters['depth'] ?: PHP_INT_MAX);
 
-        $nodes = Node::findByMenu($menu, true);
+        $nodes = $this->nodes->findByMenu($menu, true);
         $nodes[0] = new Node(['path' => '/']);
         $nodes[0]->status = 1;
         $nodes[0]->parent_id = null;
