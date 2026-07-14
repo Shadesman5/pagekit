@@ -103,7 +103,7 @@
      L = large or loop-risk. A step orchestrator flips its box to [x] in the SAME commit as that
      step's code + tests (after full step PASS incl. test-writer when applicable) -->
 - [x] Step 1 (L) — ORM core: Repository, EntityEvent, serialization map, central guard
-- [ ] Step 2 (M) — Lifecycle handlers → EntityEvent (5 model traits)
+- [x] Step 2 (M) — Lifecycle handlers → EntityEvent (5 model traits)
 - [ ] Step 3 (L) — Custom repositories (Node/User/Post) + container wiring + repo tests
 - [ ] Step 4 (L) — Site module migration + NodeModelTrait cache → CacheItemPool (RC-2)
 - [ ] Step 5 (L) — User module migration + auth chain + hasPermission role loader

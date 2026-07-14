@@ -45,6 +45,33 @@ place (removed in Step 8), so the existing suite stays green.
 | `app/modules/database/src/Tests/ORM/EntityManagerTest.php` | Hydration-guard test (mismatched `newInstance` vs `getClass` throws) + serialization-map injection; `testLoadCreatesEntityWithData` mock updated (`getClass()` → `\stdClass::class`). |
 | `app/system/modules/user/src/Tests/UserProviderTest.php` | Removed the non-`User` guard case (now covered centrally — see Key Decisions). |
 
+### Lifecycle handlers → EntityEvent (Step 2)
+
+Second additive step: the five lifecycle handlers stop reaching global model
+statics and instead use the `EntityManager` carried by the Step 1 `EntityEvent`.
+Signatures change `EventInterface` → `EntityEvent`; the trait finders and the EM
+singleton stay in place (removed in Step 8), so the existing suite stays green.
+
+| File | Change |
+|---|---|
+| `app/system/modules/site/src/Model/NodeModelTrait.php` | `saving`/`deleting` → `(EntityEvent, Node)`. `saving` pulls the EM off the event: `getConnection()`, `getRepository(Node::class)` (slug-uniqueness loop + parent lookup), `getMetadata(Node::class)->getTable()` (child-path `UPDATE`). `deleting` re-parents children via `getRepository(Node::class)->where(…)->get()` + `$em->save($child)`; the inline `instanceof Node` guard is dropped (Step 1 central hydration guard — decision 5). |
+| `app/system/modules/user/src/Model/RoleModelTrait.php` | `saving` → `(EntityEvent, Role)`; the new-role `MAX(priority)+1` lookup runs on `$event->getEntityManager()->getConnection()`. |
+| `app/system/modules/user/src/Model/UserModelTrait.php` | `saving` signature only → `(EntityEvent, User)`; body stays pure in-memory (guarantees `ROLE_AUTHENTICATED`) and never touches the EM. |
+| `packages/pagekit/blog/src/Model/PostModelTrait.php` | `saving`/`deleting` → `(EntityEvent, Post)`; slug-uniqueness via `getRepository(Post::class)`, comment cascade via `getConnection()->delete('@blog_comment', …)`. |
+| `app/system/modules/comment/src/Model/CommentModelTrait.php` | `deleting` → `(EntityEvent, Comment)`; re-parents replies via `getRepository($comment::class)` — the concrete runtime class, not `Comment::class` (see Key Decisions). |
+
+### Tests (Step 2)
+
+| File | Change |
+|---|---|
+| `app/system/modules/site/src/Tests/NodeModelTraitTest.php` | **New.** `saving()` on a real in-memory SQLite EM (`bootSqliteManager()` precedent) where SQL semantics bite — slug suffixing, parent-path nesting, cross-menu / self / missing-parent reset, parent-scoped next priority; `deleting()` re-parenting via a mocked repository/query chain with `save()`-count assertions. |
+| `app/system/modules/user/src/Tests/RoleModelTraitTest.php` | **New.** `saving()` next-priority via a mocked `Connection`/`Result` — new-role-queries-once vs persisted-role-touches-nothing. |
+| `app/system/modules/user/src/Tests/UserModelTraitTest.php` | **New.** `saving()` authenticated-role guarantee (add / preserve-and-append / no-duplicate); bare mock EM (the handler never queries). |
+| `app/system/modules/comment/src/Tests/CommentModelTraitTest.php` | **New.** `deleting()` reply re-parent delegation via a mocked repository/query; asserts the concrete-class lookup (`getRepository(CommentEntity::class)`). |
+| `app/system/modules/comment/src/Tests/bootstrap.php` | **New.** Requires the trait + abstract `Comment` + fixture in dependency order — the comment module is not on composer's autoload map (mirrors the blog Tests bootstrap). |
+| `app/system/modules/comment/src/Tests/Fixtures/CommentEntity.php` | **New.** Concrete subclass of the abstract mapped-superclass `Comment` so the shared `deleting()` handler can run against a real instance. |
+| `tests/Unit/Blog/PostModelTraitTest.php` | **New.** `saving()` modified-stamp + slug suffixing, `deleting()` `@blog_comment` cascade; mocked EM/repository/connection; reuses the existing blog Tests bootstrap. |
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -54,6 +81,13 @@ place (removed in Step 8), so the existing suite stays green.
   case redundant, so it was deleted in Step 1 rather than Step 5 (its planned home);
   the equivalent assertion now lives in the Step 1 EM hydration-guard test. Surfaced by
   the production gate (Tester) and fixed in-step.
+- **`CommentModelTrait::deleting` targets the concrete entity (`$comment::class`), not `Comment::class`.**
+  System `Comment` is an abstract mapped-superclass (blog `Comment` inherits it), so the
+  plan's literal `getRepository(X::class)` would resolve the abstract parent and miss the
+  real table; the handler reads the concrete runtime class off the instance instead. This
+  is also why the comment module gained its first unit-test scaffolding — a concrete
+  `CommentEntity` fixture + a `bootstrap.php` (the module is not on composer's autoload
+  map), mirroring the blog Tests bootstrap.
 
 ---
 
