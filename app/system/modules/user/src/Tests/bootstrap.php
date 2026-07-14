@@ -53,3 +53,5 @@ if (!function_exists('__')) {
         return strtr($message, $replacements);
     }
 }
+
+require_once __DIR__ . '/pagekit-translation-stub.php';
