@@ -6,9 +6,10 @@ namespace Pagekit\Widget\Controller;
 
 use function Pagekit\__;
 
+use Pagekit\Database\ORM\Repository;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Site\MenuManager;
-use Pagekit\Site\Model\Node;
+use Pagekit\Site\Model\NodeRepository;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use Pagekit\Widget\Model\Widget;
@@ -19,10 +20,17 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 #[Access('system: manage widgets', admin: true)]
 class WidgetController
 {
+    /**
+     * @param Repository<Widget> $widgetRepository
+     * @param Repository<Role>   $roleRepository
+     */
     public function __construct(
         private readonly WidgetManager $widget,
         private readonly MenuManager $menu,
         private readonly PositionManager $position,
+        private readonly Repository $widgetRepository,
+        private readonly NodeRepository $nodeRepository,
+        private readonly Repository $roleRepository,
     ) {
     }
 
@@ -37,11 +45,11 @@ class WidgetController
                 'name' => 'system/widget/index.php',
             ],
             '$data' => [
-                'widgets' => array_values(Widget::findAll()),
+                'widgets' => array_values($this->widgetRepository->findAll()),
                 'types' => $this->widget->all(),
                 'config' => [
                     'menus' => $this->menu,
-                    'nodes' => array_values(Node::query()->get()),
+                    'nodes' => array_values($this->nodeRepository->query()->get()),
                 ],
             ],
         ];
@@ -54,8 +62,8 @@ class WidgetController
     public function editAction(int $id = 0, ?string $type = null): array
     {
         if (!$id) {
-            $widget = Widget::create(['type' => $type]);
-        } elseif (!$widget = Widget::find($id)) {
+            $widget = $this->widgetRepository->create(['type' => $type]);
+        } elseif (!$widget = $this->widgetRepository->find($id)) {
             throw new NotFoundHttpException('Widget not found.');
         }
 
@@ -79,8 +87,8 @@ class WidgetController
                 'widget' => $widget,
                 'config' => [
                     'menus' => $this->menu,
-                    'nodes' => array_values(Node::query()->get()),
-                    'roles' => array_values(Role::findAll()),
+                    'nodes' => array_values($this->nodeRepository->query()->get()),
+                    'roles' => array_values($this->roleRepository->findAll()),
                     'types' => array_values($this->widget->all()),
                     'positions' => array_values($this->position->all()),
                 ],

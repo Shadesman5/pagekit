@@ -107,7 +107,7 @@
 - [x] Step 3 (L) — Custom repositories (Node/User/Post) + container wiring + repo tests
 - [x] Step 4 (L) — Site module migration + NodeModelTrait cache → CacheItemPool (RC-2)
 - [x] Step 5 (L) — User module migration + auth chain + hasPermission role loader
-- [ ] Step 6 (M) — Widget module migration + PositionHelper de-static
+- [x] Step 6 (M) — Widget module migration + PositionHelper de-static
 - [ ] Step 7 (L) — Blog package migration + UrlResolver bridge swap + RC-3
 - [ ] Step 8 (M) — Delete singleton, ModelTrait statics, boot hack (RC-1) + sweep gates
 

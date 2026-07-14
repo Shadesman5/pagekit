@@ -191,6 +191,36 @@ at 622 tests, PHPStan L8 exit 0.
 | `app/system/modules/user/src/Tests/UserTest.php` | Reworked the deferred-integration docblock; **added** the previously-deferred uncached `hasPermission()` / `hasAccess()` unit tests via an injected fake role loader (`setRoleLoader`), plus the memoization and missing-loader-guard (`\LogicException`) cases. |
 | `app/system/modules/user/src/Tests/UserModelTraitTest.php` | Extended (created in Step 2 for `saving`): added `init()` coverage — the wired loader resolves roles through the event EM (`getRepository(Role::class)->query()->whereIn('id', $ids)->get()`) and short-circuits on empty ids (`never()` on `getRepository`). |
 
+### Widget module migration — controllers + PositionHelper de-static (Step 6)
+
+Third **consuming** step: both widget controllers, `PositionHelper` and the `boot`
+role-delete closure now resolve the Step 3 `widgetRepository` (generic
+`Repository<Widget>`) — plus the site `nodeRepository` and generic `roleRepository`
+in the admin controller — instead of the `Widget`/`Node`/`Role` static
+Active-Record API, and `PositionHelper`'s two function-statics become instance
+properties (decision 8). The `EntityManager` singleton and the `ModelTrait` statics
+stay in place (removed in Step 8), so the existing suite stays green.
+
+| File | Change |
+|---|---|
+| `app/system/modules/widget/src/PositionHelper.php` | Inject `Repository<Widget>` positionally (5th ctor arg); the active-widget set loads via `$this->widgets->where(['status' => 1])->get()` (was the `Widget` static query). The two function-statics (decision 8) become instance properties, **renamed `$activeWidgets` / `$renderedPositions`** — the plan's `$widgets`/`$positions` names would now collide with the injected `$widgets` repo — so each per-request helper memoizes its own lookups. |
+| `app/system/modules/widget/src/Controller/WidgetController.php` | Inject `widgetRepository` (`Repository<Widget>`) + `nodeRepository` (`NodeRepository`) + generic `roleRepository` (`Repository<Role>`); widget list via `array_values(findAll())`, node list via `nodeRepository->query()->get()`, `editAction` find/create through the repo, role list via `roleRepository->findAll()` (was the `Widget`/`Node`/`Role` statics). |
+| `app/system/modules/widget/src/Controller/WidgetApiController.php` | Inject `widgetRepository` (`Repository<Widget>`); index grouping, `get`, save, delete and the copy loop all find/create/save/delete through the repo. The former static-listing no-op `instanceof` guard is **deleted** (decision 5). |
+| `app/system/modules/widget/index.php` | `view.init` `PositionHelper` gains a 5th arg `widgetRepository`; the `boot` `model.role.deleted` closure → `$app->get('widgetRepository')->removeRole((int) $role->id)` (was `Widget::removeRole`). (The `widgetRepository` service *definition* landed in Step 3.) |
+
+### Tests (Step 6)
+
+The widget module had no unit tests before, so — unlike the Step 4/5 reworks —
+there is no singleton harness to strip; a fresh `bootstrap.php` scaffolds the
+module. Full suite green at 640 tests, PHPStan L8 exit 0.
+
+| File | Change |
+|---|---|
+| `app/system/modules/widget/src/Tests/bootstrap.php` | **New.** `Pagekit\__()` translation stub + `require_once`s the widget source classes in dependency order — the widget module (`Pagekit\Widget\`) is runtime-loaded and absent from composer's autoload map (mirrors the blog/site Tests bootstrap). |
+| `app/system/modules/widget/src/Tests/PositionHelperTest.php` | **New.** Active-widget set loaded through a mocked `Repository<Widget>` (`where(['status' => 1])->get()`); asserts query-once instance memoization and that separate helper instances load their own state (the per-request isolation the former function-static could not give — the reason the old code would have needed process isolation), plus the access/node/type render gate. Mocked repo/PositionManager/WidgetManager/View — no DB or booted view. |
+| `app/system/modules/widget/src/Tests/WidgetControllerTest.php` | **New.** `indexAction` widget/node/type/menu listing + `editAction` create-for-type / find / assigned-position resolution / role listing / not-found, via mocked `Repository<Widget>` / `NodeRepository` / `Repository<Role>`. |
+| `app/system/modules/widget/src/Tests/WidgetApiControllerTest.php` | **New.** `indexAction` position grouping + unassigned fall-through, `getAction`, `saveAction` create/validate/persist (+ reject-invalid, update-missing), `deleteAction`, `copyAction` clone-with-reset-identity — mocked `Repository<Widget>` + a real Symfony validator (attribute mapping, `NodeApiControllerTest` precedent) driving the `validateOrFail()` gate. |
+
 ---
 
 ## 🧠 Key Decisions (Rationale)

@@ -6,6 +6,7 @@ namespace Pagekit\Widget\Controller;
 
 use function Pagekit\__;
 
+use Pagekit\Database\ORM\Repository;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
@@ -23,10 +24,14 @@ class WidgetApiController
 {
     use ValidatesRequestTrait;
 
+    /**
+     * @param Repository<Widget> $widgetRepository
+     */
     public function __construct(
         private readonly PositionManager $position,
         private readonly Request $request,
         protected readonly ValidatorInterface $validator,
+        private readonly Repository $widgetRepository,
     ) {
     }
 
@@ -36,17 +41,7 @@ class WidgetApiController
     #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
-        $widgets = [];
-        foreach (Widget::findAll() as $key => $widget) {
-            if (!$widget instanceof Widget) {
-                throw new \LogicException(sprintf(
-                    'Widget::findAll() returned %s, expected %s',
-                    get_debug_type($widget),
-                    Widget::class
-                ));
-            }
-            $widgets[$key] = $widget;
-        }
+        $widgets = $this->widgetRepository->findAll();
 
         $positions = $this->position->all();
 
@@ -70,7 +65,7 @@ class WidgetApiController
     #[Route('/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function getAction(int $id): Widget
     {
-        if (!$widget = Widget::find($id)) {
+        if (!$widget = $this->widgetRepository->find($id)) {
             throw new NotFoundHttpException('Widget not found.');
         }
 
@@ -136,8 +131,8 @@ class WidgetApiController
         }
 
         if (!$id) {
-            $widget = Widget::create();
-        } elseif (!$widget = Widget::find($id)) {
+            $widget = $this->widgetRepository->create();
+        } elseif (!$widget = $this->widgetRepository->find($id)) {
             throw new NotFoundHttpException('Widget not found.');
         }
 
@@ -154,7 +149,7 @@ class WidgetApiController
         // Validate using Symfony Validator
         $this->validateOrFail($widget);
 
-        $widget->save($data);
+        $this->widgetRepository->save($widget, $data);
 
         // Set position property after save for the event handler
         if ($position !== null) {
@@ -175,11 +170,11 @@ class WidgetApiController
             $id = (int) $this->request->get('id', 0);
         }
 
-        if (!$widget = Widget::find($id)) {
+        if (!$widget = $this->widgetRepository->find($id)) {
             throw new NotFoundHttpException('Widget not found.');
         }
 
-        $widget->delete();
+        $this->widgetRepository->delete($widget);
 
         return ['message' => 'success'];
     }
@@ -199,12 +194,12 @@ class WidgetApiController
         }
 
         foreach ($ids as $id) {
-            if ($widget = Widget::find((int) $id)) {
+            if ($widget = $this->widgetRepository->find((int) $id)) {
                 $copy = clone $widget;
                 $copy->id = null;
                 $copy->status = 0;
                 $copy->title = $widget->title.' - '.__('Copy');
-                $copy->save();
+                $this->widgetRepository->save($copy);
             }
         }
 
