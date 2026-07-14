@@ -263,6 +263,29 @@ early and tripped a `ParseError` on the first Tester run).
 | `tests/Unit/Blog/SiteControllerTest.php` | **New.** `postAction` not-found + access-denied guards on a repository-loaded post (mocked `PostRepository` / `QueryBuilder`). |
 | `tests/Unit/Blog/BlogControllerTest.php` | **New.** `settingsAction` / `postAction` (authors + statuses) and `editAction` redirect-on-invalid-id / ownership-reject, via mocked `PostRepository` / `Repository<Role>` / `Router` / `MessageBag`. |
 
+### Kill the singleton + ModelTrait statics + boot hack (RC-1) + sweep gates (Step 8)
+
+Terminal step — the deletion sweep that resolves the Step 1–7 coexistence (trait
+statics **and** repositories in parallel). Removes the last global state behind
+row 1.11: the `EntityManager` singleton, the `ModelTrait` static Active-Record
+API, `AccessModelTrait::removeRole()`, and the RC-1 eager `db.em` boot block. No
+new behaviour (`test-writer: skip`) — the existing suite covers the deletions.
+All five success gates confirmed by the Verifier; full suite green at **673 tests**
+(674 → 673 — the deleted `testGetInstance()`), PHPStan L8 exit 0, and the
+end-of-ticket **E2E green at 25/25** (installation, authentication, dashboard
+specs). `phpstan-baseline.neon` needed no Step 8 prune (not in the changed set —
+its stale static-finder entries were already removed in Step 5). The `db.em` gate
+reads as *one registration + many lazy factory consumers* by design — see Key
+Decisions.
+
+| File | Change |
+|---|---|
+| `app/modules/database/src/ORM/EntityManager.php` | Deleted `private static ?self $instance`, the ctor `self::$instance = $this` assignment, `getInstance()`, and both `Step 2.1.11` TODO tags. The class is singleton-free — reachable only as the `db.em` service. |
+| `app/modules/database/src/ORM/ModelTrait.php` | Reduced to a serialization/property trait: deleted `getManager()` + the static Active-Record API (`getConnection`/`getMetadata`/`create`/`query`/`where`/`find`/`findAll`) and the instance `save()`/`delete()`; dropped the Step 1 transitional `toArray()` fallback so it is **map-only** (a raw-`new` instance now throws `\LogicException` on serialize). Now carries only `use PropertyTrait`, `setSerializationMap()`, `toArray()`, `jsonSerialize()`. |
+| `app/system/modules/user/src/Model/AccessModelTrait.php` | Deleted the static `removeRole()` SQL (ported to `Repository::removeRole(int)` in Step 1; the last caller — blog `PostListener` — migrated in Step 7). Trait now carries only the `roles` column + pure `hasRole()`/`hasAccess()`. |
+| `app/system/index.php` | **RC-1.** Deleted the eager `db.em` boot block + its TODO comment — the `events.boot` closure no longer force-resolves the EntityManager (`db.em` is now resolved lazily by the repository factories). |
+| `app/modules/database/src/Tests/ORM/EntityManagerTest.php` | Deleted `testGetInstance()` (its subject is gone). Suite count 674 → 673. |
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -293,12 +316,43 @@ early and tripped a `ParseError` on the first Tester run).
   never reaches the new per-instance role loader — the `hasPermission()` rewrite is
   invisible to it and no seeding change was required. The new uncached-loader
   `hasPermission()` / `hasAccess()` coverage lives in `UserTest` instead.
+- **The `db.em` sweep gate means one *registration*, not one textual hit (Step 8).**
+  The plan's gate `rg -n 'db\.em' app/ packages/ → exactly 1 hit` reads literally,
+  but every repository service resolves `$app->get('db.em')` lazily (decision 2 —
+  `db.em` stays the sole registration, no `em` alias / top-level EM service), so the
+  search actually returns the one definition (`app/modules/database/index.php:82`)
+  plus the factory consumers in `SiteModule`, `UserModule`, and the widget/blog
+  `index.php` files (and a `SiteModuleTest` stub). The Verifier confirmed the *intent*
+  — one `$app->set('db.em', …)`, multiple consumers by design — which is how a
+  maintainer should read the gate.
 
 ---
 
 ## ⚠️ Breaking Changes (Extensions)
 
-_TBD_
+**The static Active-Record model API is removed.** Extensions, themes, and custom
+modules that call the old class-level statics now fatal with
+`Error: Call to undefined method`. Deleted in Step 8:
+
+- `Model::find()` / `findAll()` / `where()` / `query()` / `create()` and the instance
+  `save()` / `delete()` (the `ModelTrait` API), `ModelTrait::getManager()`,
+  `EntityManager::getInstance()`, and `AccessModelTrait::removeRole()`.
+
+**Migration path** — resolve a repository through DI, or go through the injected
+`db.em` EntityManager:
+
+- Container services (controllers inject **by constructor-param name**):
+  `nodeRepository`, `pageRepository`, `userRepository`, `roleRepository`,
+  `widgetRepository`, `postRepository`, `commentRepository`.
+- Generic access: `$app->get('db.em')->getRepository(Entity::class)` →
+  `find()` / `findAll()` / `where()` / `query()` / `create()` / `save()` / `delete()`;
+  role cleanup via `->getRepository(Entity::class)->removeRole((int) $roleId)`.
+
+**Serialization now requires hydration.** `toArray()` / `jsonSerialize()` stay on
+entities but read a map injected by `EntityManager::load()`; a raw `new Entity(...)`
+that is then serialized throws `\LogicException` (no serialization map). Likewise
+`User::hasPermission()` needs a hydrated `User` (its role loader is attached at load)
+— a manually-`new`-ed `User` throws.
 
 ---
 

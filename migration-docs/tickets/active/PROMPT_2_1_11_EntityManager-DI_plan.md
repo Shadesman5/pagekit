@@ -109,7 +109,7 @@
 - [x] Step 5 (L) — User module migration + auth chain + hasPermission role loader
 - [x] Step 6 (M) — Widget module migration + PositionHelper de-static
 - [x] Step 7 (L) — Blog package migration + UrlResolver bridge swap + RC-3
-- [ ] Step 8 (M) — Delete singleton, ModelTrait statics, boot hack (RC-1) + sweep gates
+- [x] Step 8 (M) — Delete singleton, ModelTrait statics, boot hack (RC-1) + sweep gates
 
 ## TESTING STRATEGY
 - **Per step (production gate):** Refactorer → Verifier → Tester (PHPUnit + PHPStan) — production code must be green before any new tests are written. **Pre-flight before Step 1:** Orchestrator delegates one baseline Tester run (`./app/vendor/bin/phpunit` + `./app/vendor/bin/phpstan analyse`) — both must PASS on the untouched branch (prompt §0 safety check; 2.1.6 + 2.1.10 are merged into `develop`).

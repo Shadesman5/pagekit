@@ -24,9 +24,6 @@ class EntityManager
      */
     private array $repositories = [];
 
-    // TODO: Must be refactored in Step 2.1.11 (EntityManager DI)
-    private static ?self $instance = null;
-
     /**
      * Creates a new Manager instance
      *
@@ -39,8 +36,6 @@ class EntityManager
         $this->connection = $connection;
         $this->metadata = $metadata;
         $this->events = $events ?: new PrefixEventDispatcher('model.');
-
-        self::$instance = $this;
     }
 
     /**
@@ -308,12 +303,6 @@ class EntityManager
         $event = new EntityEvent("{$metadata->getEventPrefix()}.{$name}", $this);
 
         $this->events->trigger($event, $arguments);
-    }
-
-    // TODO: Must be refactored in Step 2.1.11 (EntityManager DI)
-    public static function getInstance(): ?self
-    {
-        return self::$instance;
     }
 
     /**

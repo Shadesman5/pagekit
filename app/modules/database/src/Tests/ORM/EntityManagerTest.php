@@ -47,13 +47,6 @@ class EntityManagerTest extends TestCase
         $this->assertSame($this->metadataManager, $this->manager->getMetadataManager());
     }
 
-    public function testGetInstance(): void
-    {
-        $instance = EntityManager::getInstance();
-        $this->assertInstanceOf(EntityManager::class, $instance);
-        $this->assertSame($this->manager, $instance);
-    }
-
     public function testExistsReturnsFalseForNewEntity(): void
     {
         $entity = new \stdClass();
