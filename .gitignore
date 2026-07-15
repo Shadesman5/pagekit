@@ -78,3 +78,6 @@ docker.env
 
 # MkDocs hook bytecode (local `mkdocs build` / Python)
 /docs-site/hooks/__pycache__/
+
+# Local conductor metrics mirror for mkdocs serve (source of truth: .github/conductor/metrics/)
+/docs-site/data/conductor-metrics/

@@ -3,6 +3,10 @@
     "editor.codeActionsOnSave": {
         "source.fixAll.eslint": "explicit"
     },
+    "[markdown]": {
+        "editor.formatOnSave": false,
+        "editor.defaultFormatter": null
+    },
     "[javascript]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode",
         "editor.formatOnSave": true
@@ -30,6 +34,7 @@
     },
     "files.associations": {
         "*.vue": "vue",
+        "*.mdc": "markdown",
         ".htaccess": "apache"
     },
     "search.exclude": {
