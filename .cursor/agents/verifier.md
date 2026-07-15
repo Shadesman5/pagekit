@@ -15,7 +15,7 @@ When the handoff includes **`scope: test files only`**, review **only** the test
 1. **Compliance** – Did Refactorer sneak in unapproved adapters or shims?
 2. **Traceability** – Do all TODOs and BRIDGE labels match ROADMAP IDs?
 3. **No Mercy** – Is the code truly modernized or just wrapped?
-4. **Cleanliness** – No leftover debug statements or commented-out legacy code.
+4. **Cleanliness** – No leftover debug statements or commented-out legacy code, and no comment narrating project history (`Step X.Y`/ROADMAP/ticket/checklist/doc-path reference to completed work) — only forward debt `// TODO: ... Step X.Y` tags may name a step.
 5. **Completeness** – Does the step cover all files/changes specified in the ticket?
 6. **Audit Findings** – If the task prompt (referenced in `PHASE_2_MODERNISING.md`) contains an "Audit findings" section for this step, verify those items were addressed or explicitly deferred with a ROADMAP TODO.
 
@@ -24,9 +24,10 @@ When the handoff includes **`scope: test files only`**, review **only** the test
 1. **Behavior, not mirror** – Tests assert observable outcomes; they do not copy private implementation line-by-line.
 2. **No vacuous assertions** – No `assertTrue(true)`, empty tests, or assertions that cannot fail when production regresses.
 3. **Scope** – Tests cover the Refactorer's production changes for this step (or the ticket's testing notes), not unrelated modules.
-4. **Honest skips** – Deferred DB/kernel integration uses `@group`, docblocks, or explicit skip with a ROADMAP step ID — not silent omission.
+4. **Honest skips** – Deferred DB/kernel integration is flagged with `@group` or a forward `// TODO: ... Step X.Y` debt tag — not silent omission.
 5. **Cleanliness** – No debug output, commented-out tests, or duplicate test classes for the same unit.
-6. **Strict types** – New test files follow project conventions (`declare(strict_types=1);` where sibling tests do).
+6. **No history narrative** – Comments state what/why behaviorally; no `Step X.Y`, ROADMAP, ticket, checklist or doc-path reference describing completed work. Only a forward `// TODO: ... Step X.Y` debt tag may name a step.
+7. **Strict types** – New test files follow project conventions (`declare(strict_types=1);` where sibling tests do).
 
 ## Boundary (STRICT — role separation)
 
