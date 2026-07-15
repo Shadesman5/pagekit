@@ -24,12 +24,12 @@ use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
- * Covers PostApiController after its Step 7 migration off the static Post model
- * API onto the injected {@see PostRepository}: read (get), save (create/update),
- * delete and copy now drive find/create/save/delete and the query chain through
- * the repository, and the presenter (final) is fed a repository-loaded post. The
- * repository and query builder are mocked; a real Symfony validator exercises the
- * save path's validateOrFail() gate, so no database is required.
+ * Covers PostApiController against the injected {@see PostRepository}: read (get),
+ * save (create/update), delete and copy drive find/create/save/delete and the
+ * query chain through the repository, and the presenter (final) is fed a
+ * repository-loaded post. The repository and query builder are mocked; a real
+ * Symfony validator exercises the save path's validateOrFail() gate, so no
+ * database is required.
  *
  * The blog package is not on composer's autoload map, so bootstrap.php requires
  * the controller (and the entities/presenter it depends on) in dependency order.

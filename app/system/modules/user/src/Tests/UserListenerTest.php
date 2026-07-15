@@ -17,9 +17,8 @@ use PHPUnit\Framework\TestCase;
 /**
  * Unit tests for {@see UserListener}.
  *
- * Since the Step 2.1.11 EntityManager-DI migration the listener takes an injected
- * {@see UserRepository}, so all three members are pure unit tests against a mocked
- * repository — no kernel, container or database:
+ * The listener takes an injected {@see UserRepository}, so all three members are
+ * pure unit tests against a mocked repository — no kernel, container or database:
  *   - `onUserLogin()` stamps the last-login time through
  *     {@see UserRepository::updateLogin()}, skipping non-`User` principals;
  *   - `onRoleDelete()` strips the deleted role id from every user via

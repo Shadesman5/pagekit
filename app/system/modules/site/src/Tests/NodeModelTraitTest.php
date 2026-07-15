@@ -18,16 +18,14 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
 /**
- * Unit tests for the {@see \Pagekit\Site\Model\NodeModelTrait} lifecycle handlers
- * after their Step 2 migration off the model statics onto the injected
- * {@see EntityManager} carried by an {@see EntityEvent}.
+ * Unit tests for the {@see \Pagekit\Site\Model\NodeModelTrait} lifecycle handlers,
+ * which reach the injected {@see EntityManager} carried by an {@see EntityEvent}.
  *
  * `saving()` drives real SQL — slug uniqueness, parent-path assembly and the
  * next-priority lookup — so it is exercised against an in-memory SQLite
- * EntityManager (the {@see \Pagekit\Database\Tests\ORM\EntityManagerCacheInvalidationTest}
- * `bootSqliteManager()` precedent) where those semantics actually matter. The
- * fixture table maps only the string/integer columns the handler reads, so no
- * `simple_array`/`json` conversion is required.
+ * EntityManager where those semantics actually matter. The fixture table maps
+ * only the string/integer columns the handler reads, so no `simple_array`/`json`
+ * conversion is required.
  *
  * `deleting()` is pure re-parenting delegation, so it is asserted against a mock
  * EntityManager whose repository/query chain and `save()` calls are observed

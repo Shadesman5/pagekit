@@ -14,9 +14,8 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * Covers the front-end PageController after its Step 4 migration onto the
- * injected Repository<Page>: the page is resolved via the repository's find()
- * instead of the entity's former static find() model API. The repository and the
+ * Covers the front-end PageController against the injected Repository<Page>: the
+ * page is resolved via the repository's find(). The repository and the
  * ContentHelper are mocked directly, so no database is required.
  */
 class PageControllerTest extends TestCase

@@ -18,17 +18,16 @@ use PHPUnit\Framework\TestCase;
  * `$roles` array, so each test seeds `$roles` directly. `getStatusText()` /
  * `getStatuses()` call the unqualified `__()` helper; `User` lives in
  * `Pagekit\User\Model` and imports no `use function`, so PHP's fallback rule
- * resolves that to the GLOBAL `\__()` (ticket discovery note 5). {@see setUp}
- * pulls in the shared passthrough stub from Tests/bootstrap.php.
+ * resolves that to the GLOBAL `\__()`. {@see setUp} pulls in the shared
+ * passthrough stub from Tests/bootstrap.php.
  *
- * Since the Step 2.1.11 EntityManager-DI migration the *uncached* branch of
- * `User::hasPermission()` (`$this->permissions === null`) no longer performs a
- * static DB read: it resolves roles through a per-instance loader closure that
+ * The *uncached* branch of `User::hasPermission()` (`$this->permissions === null`)
+ * resolves roles through a per-instance loader closure that
  * {@see \Pagekit\User\Model\UserModelTrait::init()} wires to the EntityManager at
- * hydration time. That makes the branch a pure unit test — the cases below inject
- * a fake loader via {@see User::setRoleLoader()} and exercise `hasPermission()`,
- * its memoization, the missing-loader guard, and the `hasAccess()` path that
- * builds on it, all with no kernel, container or database.
+ * hydration time. The cases below inject a fake loader via
+ * {@see User::setRoleLoader()} and exercise `hasPermission()`, its memoization,
+ * the missing-loader guard, and the `hasAccess()` path that builds on it, all
+ * with no kernel, container or database.
  */
 class UserTest extends TestCase
 {

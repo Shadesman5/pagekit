@@ -16,8 +16,7 @@ use Symfony\Component\Console\Command\Command as SymfonyCommand;
 use Symfony\Component\Console\Tester\CommandTester;
 
 /**
- * CLI integration tests for the unified `migrate` command (ticket 2.1.9,
- * Checklist Step 11).
+ * CLI integration tests for the unified `migrate` command.
  *
  * MigrationCommand drives the two-stage update pipeline the CLI exposes:
  *   1. Doctrine migrations — MigrationService::migrate() against the core paths;

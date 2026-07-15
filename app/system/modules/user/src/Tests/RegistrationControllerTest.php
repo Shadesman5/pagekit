@@ -26,10 +26,9 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
- * Covers RegistrationController after its Step 5 migration onto the injected
- * UserRepository: registration and activation now drive create/save and
- * where()->first() through the repository instead of the former static User
- * model API. Collaborators are mocked directly, so no database is required.
+ * Covers RegistrationController against the injected UserRepository: registration
+ * and activation drive create/save and where()->first() through the repository.
+ * Collaborators are mocked directly, so no database is required.
  */
 class RegistrationControllerTest extends TestCase
 {

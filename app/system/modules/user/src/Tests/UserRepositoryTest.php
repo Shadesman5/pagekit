@@ -17,18 +17,15 @@ use Pagekit\User\Model\UserRepository;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Unit tests for {@see UserRepository} — the finders the Step 3 migration lifted
- * off the static `UserModelTrait`.
+ * Unit tests for {@see UserRepository}.
  *
  * `findByUsername`/`findByEmail`/`findByCredentials`/`updateLogin` build a query
- * through the shared ORM {@see QueryBuilder}, so — mirroring the generic
- * {@see \Pagekit\Database\Tests\ORM\RepositoryTest} — the EntityManager, its
- * connection and the inner DBAL query builder are mocked and each delegation is
- * asserted in isolation with no database. `findRoles()` is covered separately:
- * its empty-roles guard short-circuits before touching the manager, and the
- * populated path both queries the role ids (`whereIn`, replacing the old
- * string-interpolated `id IN (...)`) and intersects the result down to exactly
- * the user's role ids.
+ * through the shared ORM {@see QueryBuilder}, so the EntityManager, its connection
+ * and the inner DBAL query builder are mocked and each delegation is asserted in
+ * isolation with no database. `findRoles()` is covered separately: its empty-roles
+ * guard short-circuits before touching the manager, and the populated path both
+ * queries the role ids (`whereIn`) and intersects the result down to exactly the
+ * user's role ids.
  */
 class UserRepositoryTest extends TestCase
 {

@@ -18,14 +18,11 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Covers PositionHelper after its Step 6 migration off the static Widget model
- * API. The active-widget set is now pulled through the injected
- * Repository<Widget> (a `where(['status' => 1])->get()` finder) rather than the
- * former static model query, and the two former function statics (`$widgets` /
- * `$positions`) became the instance properties `$activeWidgets` /
+ * Covers PositionHelper. The active-widget set is pulled through the injected
+ * Repository<Widget> (a `where(['status' => 1])->get()` finder), and the two
+ * function statics became the instance properties `$activeWidgets` /
  * `$renderedPositions`, so each per-request helper memoizes its own lookups and
- * no widget state leaks across helper instances (the reason the old suite needed
- * process isolation).
+ * no widget state leaks across helper instances.
  *
  * The repository, PositionManager, WidgetManager and View collaborators are
  * mocked, so the access/node/type gate the position render applies is asserted

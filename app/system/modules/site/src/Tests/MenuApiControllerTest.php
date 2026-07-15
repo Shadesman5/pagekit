@@ -24,9 +24,9 @@ use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
- * Covers the MenuApiController validation refactor (Assert constraints +
- * ValidatesRequestTrait) plus its Step 4 migration onto the injected
- * NodeRepository. The validation paths (same-id save, validation failures,
+ * Covers MenuApiController validation (Assert constraints +
+ * ValidatesRequestTrait) and its use of the injected NodeRepository. The
+ * validation paths (same-id save, validation failures,
  * duplicate-id conflict) stay clear of the ORM, while the node-cascade paths
  * (index counts, rename and delete) drive the repository's where()->count() /
  * where()->update() chain through a mocked NodeRepository and QueryBuilder — so

@@ -26,11 +26,10 @@ use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
- * Covers ResetPasswordController after its Step 5 migration onto the injected
- * UserRepository: password-reset request/confirm flows now resolve users via
- * findByEmail/where()->first()/find() and persist through save() instead of the
- * former static User model API. Collaborators are mocked directly, so no
- * database is required.
+ * Covers ResetPasswordController against the injected UserRepository:
+ * password-reset request/confirm flows resolve users via
+ * findByEmail/where()->first()/find() and persist through save(). Collaborators
+ * are mocked directly, so no database is required.
  */
 class ResetPasswordControllerTest extends TestCase
 {

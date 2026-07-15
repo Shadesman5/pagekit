@@ -17,12 +17,11 @@ use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
- * Covers RoleApiController after its Step 5 migration onto the injected
- * Repository<Role>: listing, lookup, save (create/update), delete and bulk
- * actions now drive findAll/find/create/save/delete through the repository
- * instead of the former static Role model API. The repository is mocked
- * directly with a real Symfony validator on the save path, so no database is
- * required.
+ * Covers RoleApiController against the injected Repository<Role>: listing, lookup,
+ * save (create/update), delete and bulk actions drive
+ * findAll/find/create/save/delete through the repository. The repository is
+ * mocked directly with a real Symfony validator on the save path, so no database
+ * is required.
  */
 class RoleApiControllerTest extends TestCase
 {

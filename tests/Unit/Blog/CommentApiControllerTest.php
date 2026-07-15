@@ -23,9 +23,9 @@ use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
- * Covers CommentApiController after its Step 7 migration onto the injected
+ * Covers CommentApiController against the injected
  * Repository<Comment>/PostRepository: delete and bulk-delete drive find/delete
- * through the repository, and the save action's access gates now precede any
+ * through the repository, and the save action's access gates precede any
  * repository lookup. The repositories are mocked directly, so the delegation and
  * the security guards are asserted with no database.
  *

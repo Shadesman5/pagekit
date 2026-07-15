@@ -16,22 +16,19 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
 /**
- * Unit tests for {@see NodeRepository} — the request-scoped node cache that the
- * Step 3 migration lifted off the former static `NodeModelTrait::$nodes`.
+ * Unit tests for {@see NodeRepository} — the request-scoped node cache.
  *
- * The caching is exercised against a real in-memory SQLite EntityManager (the
- * {@see \Pagekit\Database\Tests\ORM\EntityManagerCacheInvalidationTest}
- * `bootSqliteManager()` precedent) so the find/findAll/hydration round trip is
- * genuine, and the cache pool is a real `ArrayAdapter(0, false)` — the exact
- * wiring the composition root uses. `storeSerialized: false` is what preserves
- * the shared-object semantics of the old static cache, so the shared-instance
- * assertions below (`assertSame` across cached reads, plus stale reads after an
- * out-of-band write) pin that behaviour: with the adapter's default serializing
- * mode each cached read would return a fresh clone and they would fail.
+ * The caching is exercised against a real in-memory SQLite EntityManager so the
+ * find/findAll/hydration round trip is genuine, and the cache pool is a real
+ * `ArrayAdapter(0, false)` — the exact wiring the composition root uses.
+ * `storeSerialized: false` preserves shared-object semantics, so the
+ * shared-instance assertions below (`assertSame` across cached reads, plus stale
+ * reads after an out-of-band write) pin that behaviour: with the adapter's
+ * default serializing mode each cached read would return a fresh clone and they
+ * would fail.
  *
- * Cached semantics are ported 1:1 from the trait: `findAll(true)` memoizes the
- * full set and `find($id, true)` memoizes per id, and neither is invalidated on
- * write (invalidation is deferred to Step 4.3).
+ * `findAll(true)` memoizes the full set and `find($id, true)` memoizes per id,
+ * and neither is invalidated on write.
  */
 class NodeRepositoryTest extends TestCase
 {
@@ -67,8 +64,7 @@ class NodeRepositoryTest extends TestCase
         $this->assertInstanceOf(Node::class, $first);
         $this->assertSame('about', $first->slug);
 
-        // Out-of-band write the cached read must NOT observe (no invalidation
-        // until Step 4.3).
+        // Out-of-band write the cached read must NOT observe (no invalidation).
         $connection->executeStatement("UPDATE system_node SET slug = 'changed' WHERE id = 1");
 
         $second = $repository->find(1, true);

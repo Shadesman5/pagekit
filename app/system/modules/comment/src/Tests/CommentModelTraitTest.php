@@ -13,8 +13,8 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Unit tests for the {@see \Pagekit\Comment\Model\CommentModelTrait::deleting()}
- * lifecycle handler after its Step 2 migration onto the injected
- * {@see EntityManager} carried by an {@see EntityEvent}.
+ * lifecycle handler, which reaches the injected {@see EntityManager} carried by
+ * an {@see EntityEvent}.
  *
  * Deleting a comment re-parents its direct replies onto the deleted comment's
  * own parent, resolving the concrete mapped entity from `$comment::class` so the

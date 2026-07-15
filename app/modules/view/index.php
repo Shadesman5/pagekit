@@ -131,7 +131,7 @@ return [
             // template engine (primary — core/native authoring) and an optional Twig engine (for
             // contributors who prefer Twig). The dual-engine setup is deliberate; keep both. No
             // PHP->Twig consolidation is planned. NOTE: PHP templates do NOT auto-escape (unlike
-            // Twig) — escape output manually (relevant to Step 1.13.5 / CSP hardening).
+            // Twig) — escape output manually.
             $delegatingEngine = new DelegatingEngine();
 
             $phpEngine = new PhpEngine($app->has('locator') ? new FilesystemLoader($app->get('locator')) : null);

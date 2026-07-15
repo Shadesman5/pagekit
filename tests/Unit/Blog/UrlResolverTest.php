@@ -16,11 +16,10 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 /**
- * Covers UrlResolver after its Step 7 bridge swap: the two `Post::where()` static
- * calls are replaced by the {@see PostRepository} carried on the temporary 2.5
- * bridge (`setPostRepository()`). match()/generate() now resolve an unknown
- * slug/id through the bridged repository, guarded by a LogicException when the
- * bridge was never wired during blog boot.
+ * Covers UrlResolver: match()/generate() resolve an unknown slug/id through the
+ * {@see PostRepository} carried on the temporary static bridge
+ * (`setPostRepository()`), guarded by a LogicException when the bridge was never
+ * wired during blog boot.
  *
  * The Router instantiates resolvers via `new $class` with no DI, so the bridge is
  * a set of private statics; each test resets them via reflection (there is no

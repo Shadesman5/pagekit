@@ -11,15 +11,11 @@ use PHPUnit\Framework\TestCase;
  * Unit tests for {@see \Pagekit\Database\ORM\ModelTrait::toArray()} consuming the
  * serialization map injected by {@see \Pagekit\Database\ORM\EntityManager::load()}.
  *
- * Covers the Step 2.1.11 behavior: reading relation names + field types from the
- * injected map (no live Metadata lookup), the json/datetime field conversions,
- * and the two leak-guards that keep internal scaffolding out of the serialized
- * output — `_`-prefixed properties (the injected map itself) and {@see \Closure}
- * values (the per-instance role loader).
- *
- * The transitional `_serializationMap === null` fallback to `static::getMetadata()`
- * is intentionally not unit-tested here: it resolves the process-static
- * EntityManager singleton and is deleted in checklist Step 8 (map-only).
+ * Covers reading relation names + field types from the injected map (no live
+ * Metadata lookup), the json/datetime field conversions, and the two leak-guards
+ * that keep internal scaffolding out of the serialized output — `_`-prefixed
+ * properties (the injected map itself) and {@see \Closure} values (the
+ * per-instance role loader).
  */
 class ModelTraitTest extends TestCase
 {

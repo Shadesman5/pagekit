@@ -39,7 +39,7 @@ class SelfupdateCommand extends Command
         // TODO: Step 5.6 (Marketplace & Extensions) — `pagekit self-update` updates the Pagekit
         // core itself. Needs the `GET /api/update` endpoint that the discontinued pagekit.com
         // backend (system.api) served; re-enable once that backend is rebuilt.
-        $this->error("The 'self-update' command is disabled: the pagekit.com update endpoint was discontinued. To be re-enabled in roadmap Step 5.6 (Marketplace & Extensions).");
+        $this->error("The 'self-update' command is disabled: the pagekit.com update endpoint was discontinued.");
 
         return Command::FAILURE;
         // try {

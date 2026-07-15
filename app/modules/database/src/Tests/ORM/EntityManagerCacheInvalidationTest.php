@@ -30,9 +30,8 @@ use Symfony\Component\Cache\Adapter\ArrayAdapter;
  *     cache pool is configured).
  *  2. In-memory-SQLite round trip — pins the OBSERVABLE OUTCOME: a warmed cache
  *     entry is a hit before the write and a miss after it. This layer is
- *     implementation-agnostic and is the intended safety net for the Step 4.3
- *     switch from `$cache->clear()` to tag-based invalidation — it stays valid
- *     when the eviction mechanism changes, whereas layer 1 must be updated then.
+ *     implementation-agnostic and stays valid when the eviction mechanism
+ *     changes, whereas layer 1 must be updated then.
  */
 class EntityManagerCacheInvalidationTest extends TestCase
 {

@@ -21,12 +21,11 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
- * Covers UserApiController after its Step 5 migration onto the injected
- * UserRepository: listing/counting, lookup, save (create/update), delete and
- * bulk actions now drive query/find/create/save/delete through the repository
- * instead of the former static User model API. The repository and query builder
- * are mocked; a real Symfony validator exercises the save path's validateOrFail()
- * gate, so no database is required.
+ * Covers UserApiController against the injected UserRepository: listing/counting,
+ * lookup, save (create/update), delete and bulk actions drive
+ * query/find/create/save/delete through the repository. The repository and query
+ * builder are mocked; a real Symfony validator exercises the save path's
+ * validateOrFail() gate, so no database is required.
  */
 class UserApiControllerTest extends TestCase
 {

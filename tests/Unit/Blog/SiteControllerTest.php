@@ -22,11 +22,10 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * Covers SiteController::postAction after its Step 7 migration onto the injected
- * {@see PostRepository}: the single published post is loaded via
- * where(...)->related('user')->first() instead of the static Post model API,
- * then gated on the post's access. The repository/query chain is mocked directly,
- * so the not-found and access-denied guards are asserted with no database.
+ * Covers SiteController::postAction against the injected {@see PostRepository}: the
+ * single published post is loaded via where(...)->related('user')->first(), then
+ * gated on the post's access. The repository/query chain is mocked directly, so
+ * the not-found and access-denied guards are asserted with no database.
  *
  * The blog/content classes are runtime-loaded (not in composer's autoload map);
  * bootstrap.php requires them in dependency order.

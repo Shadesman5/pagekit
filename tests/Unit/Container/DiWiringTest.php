@@ -12,26 +12,24 @@ use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\Finder\Finder;
 
 /**
- * DI-wiring integration tests for the PSR-11 container + Stage-3 module classes.
+ * DI-wiring integration tests for the PSR-11 container + module classes.
  *
- * Covers the DI-wiring audit items left open after the Step 2.1.4 ControllerResolver
- * work (ticket 2.1.9, Checklist Step 9):
- *   (a) the module app-resolution mechanism that replaced the legacy
- *       `$app ?? App::getInstance()` static fallback — Stage-3 modules resolve the
- *       *injected* Application (stored in main()) and throw when accessed before
- *       boot, so there is no silent reach for a global singleton;
+ * Covers:
+ *   (a) module app-resolution — modules resolve the *injected* Application
+ *       (stored in main()) and throw when accessed before boot, so there is no
+ *       silent reach for a global singleton;
  *   (b) factory-service freshness — a service registered via factory() (e.g. the
  *       `finder`) yields a fresh instance per resolution, while a shared service
  *       closure yields one cached singleton;
- *   (c) container resolution of a couple of Stage-3-migrated Module classes.
+ *   (c) container resolution of a couple of migrated Module classes.
  *
  * ControllerResolver constructor-injection is already covered by
- * Pagekit\Kernel\Tests\ControllerResolverTest (6 tests) and is NOT retested here.
+ * Pagekit\Kernel\Tests\ControllerResolverTest and is NOT retested here.
  */
 class DiWiringTest extends TestCase
 {
     // ------------------------------------------------------------------
-    // (a) Module app-resolution — the former $app ?? App::getInstance() fallback
+    // (a) Module app-resolution — injected Application only, no global singleton
     // ------------------------------------------------------------------
 
     public function testContainerResolvesAppServiceToItself(): void
@@ -114,7 +112,7 @@ class DiWiringTest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // (c) Container resolution of Stage-3-migrated Module classes
+    // (c) Container resolution of migrated Module classes
     // ------------------------------------------------------------------
 
     public function testCacheModuleRegistersResolvableCachePool(): void

@@ -13,8 +13,8 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Unit tests for the {@see \Pagekit\User\Model\RoleModelTrait::saving()} lifecycle
- * handler after its Step 2 migration onto the injected {@see EntityManager}
- * carried by an {@see EntityEvent}.
+ * handler, which reaches the injected {@see EntityManager} carried by an
+ * {@see EntityEvent}.
  *
  * The handler assigns the next priority (MAX + 1) to brand-new roles only. The
  * connection and its result are mocked so both the "new role queries once" and

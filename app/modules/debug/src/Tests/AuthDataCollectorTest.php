@@ -12,10 +12,9 @@ use Pagekit\User\Model\UserRepository;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Covers AuthDataCollector after its Step 5 migration onto the injected
- * UserRepository: authenticated role names now come from findRoles() instead
- * of the former static User::findRoles() model API. Auth and the repository are
- * mocked directly, so no database is required.
+ * Covers AuthDataCollector: authenticated role names come from the injected
+ * UserRepository's findRoles(). Auth and the repository are mocked directly, so
+ * no database is required.
  */
 class AuthDataCollectorTest extends TestCase
 {

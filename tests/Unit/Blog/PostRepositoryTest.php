@@ -17,15 +17,12 @@ use Pagekit\Database\Query\QueryBuilder as DbalQueryBuilder;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Unit tests for {@see PostRepository} — the helpers the Step 3 migration lifted
- * off the static `PostModelTrait`.
+ * Unit tests for {@see PostRepository}.
  *
  * `updateCommentInfo()` recounts a post's approved comments through the Comment
  * repository and writes the total back onto the post; `getAuthors()` runs a
  * grouped join against the user table. Both are asserted with a mocked
- * EntityManager / connection / DBAL query builder (the generic
- * {@see \Pagekit\Database\Tests\ORM\RepositoryTest} pattern) so no database is
- * needed.
+ * EntityManager / connection / DBAL query builder, so no database is needed.
  *
  * The blog package is not on composer's autoload map, so bootstrap.php requires
  * the Post/Comment/PostRepository classes in dependency order.

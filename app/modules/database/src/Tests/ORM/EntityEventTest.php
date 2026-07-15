@@ -19,9 +19,9 @@ use PHPUnit\Framework\TestCase;
  * {@see EntityManager::trigger()}.
  *
  * The event carries the emitting EntityManager so lifecycle handlers can reach
- * queries/persistence through DI (checklist Step 2) instead of the model
- * statics. It still extends {@see Event}, so external `model.*` subscribers that
- * type-hint {@see EventInterface} keep working unchanged.
+ * queries/persistence through DI instead of the model statics. It still extends
+ * {@see Event}, so external `model.*` subscribers that type-hint
+ * {@see EventInterface} keep working unchanged.
  */
 class EntityEventTest extends TestCase
 {

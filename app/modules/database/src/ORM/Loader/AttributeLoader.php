@@ -16,8 +16,6 @@ use Pagekit\Database\ORM\Attribute\OrderBy;
 
 /**
  * Loads entity metadata from PHP 8 Attributes.
- *
- * Replaces AnnotationLoader as part of Step 1.14 (ORM Attributes migration).
  */
 class AttributeLoader implements LoaderInterface
 {

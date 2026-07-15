@@ -19,17 +19,15 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * Unit tests for the database-backed session {@see DatabaseHandler}.
  *
- * Infection ignores (Step 2.1.8, see infection.json.dist `mutators`):
+ * Infection ignores (see infection.json.dist `mutators`):
  *   - ReturnRemoval at read:50 and destroy:112 — the `$config === null` early
  *     returns are redundant: getToken() independently returns null when config
  *     is null, so both method bodies are inert without the guard. Equivalent.
  *
- * Step 2.1.9 (clock injection): the session-timeout boundary
- * `strtotime($access) + timeout < clock->now()` now reads "now" via an injected
- * PSR-20 {@see ClockInterface} (defaulting to a real {@see Clock}), so a
- * {@see MockClock} freezes the instant and lands the sum exactly on it. The
- * boundary tests below kill the LessThan mutant (`<` -> `<=`) that was previously
- * ignored, so its infection.json.dist entry has been removed.
+ * The session-timeout boundary `strtotime($access) + timeout < clock->now()`
+ * reads "now" via an injected PSR-20 {@see ClockInterface} (defaulting to a real
+ * {@see Clock}), so a {@see MockClock} freezes the instant and lands the sum
+ * exactly on it. The boundary tests below kill the LessThan mutant (`<` -> `<=`).
  */
 class DatabaseHandlerTest extends TestCase
 {
@@ -128,8 +126,8 @@ class DatabaseHandlerTest extends TestCase
         $this->assertTrue($params[3]->isDefaultValueAvailable());
         $this->assertNull($params[3]->getDefaultValue());
 
-        // Clock injection (Step 2.1.9): last param is an optional PSR-20 clock
-        // defaulting to a real Symfony Clock, so existing call sites stay valid.
+        // Last param is an optional PSR-20 clock defaulting to a real Symfony
+        // Clock, so existing call sites stay valid.
         $this->assertSame('clock', $params[4]->getName());
         $this->assertSame(ClockInterface::class, $typeName($params[4]));
         $this->assertTrue($params[4]->isOptional(), '$clock must be optional');

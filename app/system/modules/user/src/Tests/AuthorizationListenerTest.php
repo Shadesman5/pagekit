@@ -29,12 +29,10 @@ use Symfony\Component\HttpFoundation\Session\SessionInterface;
  * state is exercised with real `User` entities (`status` + `login` are public),
  * which keeps `isBlocked()` and the `$user->login` ternary honest.
  *
- * `__()` resolution (ticket discovery note 5): `onAuthorize()` throws
- * `AuthException(__('...'))` via the UNQUALIFIED helper. `AuthorizationListener`
- * lives in `Pagekit\User\Event` and imports no `use function`, so PHP's fallback
- * rule resolves `__()` to the GLOBAL `\__()` — not `Pagekit\__()` (the exact same
- * resolution already relied on by Step 6's LoginAttemptListenerTest, which is in
- * this namespace and passes). {@see setUp} pulls in the shared passthrough stub
+ * `__()` resolution: `onAuthorize()` throws `AuthException(__('...'))` via the
+ * UNQUALIFIED helper. `AuthorizationListener` lives in `Pagekit\User\Event` and
+ * imports no `use function`, so PHP's fallback rule resolves `__()` to the GLOBAL
+ * `\__()` — not `Pagekit\__()`. {@see setUp} pulls in the shared passthrough stub
  * from Tests/bootstrap.php (guarded `if (!function_exists('__'))`); no
  * `Pagekit\__()` stub is required.
  */

@@ -19,13 +19,11 @@ use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
- * Covers WidgetApiController after its Step 6 migration off the static Widget
- * model API onto the injected Repository<Widget>: index grouping, get,
- * create/update save, delete and copy now drive find/create/save/delete through
- * the repository (the former static-listing no-op `instanceof` guard is gone).
- * The repository and PositionManager are mocked; a real Symfony validator
- * (attribute mapping, same wiring as NodeApiControllerTest) exercises the
- * save path's validateOrFail() gate, so no database is required.
+ * Covers WidgetApiController against the injected Repository<Widget>: index
+ * grouping, get, create/update save, delete and copy drive
+ * find/create/save/delete through the repository. The repository and
+ * PositionManager are mocked; a real Symfony validator (attribute mapping)
+ * exercises the save path's validateOrFail() gate, so no database is required.
  */
 class WidgetApiControllerTest extends TestCase
 {

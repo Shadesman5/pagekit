@@ -17,17 +17,16 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
- * Covers SiteModule after its Step 4 wiring change: main() registers the
- * `nodeRepository` (custom, RC-2 request-cache home) and `pageRepository`
- * services, and registerType() auto-creates a protected type's node through the
- * injected `nodeRepository` (`$nodes->save($nodes->create([...]))`) instead of
- * the former static create()/save() model API, reading the existing set via
+ * Covers SiteModule wiring: main() registers the `nodeRepository` (custom,
+ * request-cache home) and `pageRepository` services, and registerType()
+ * auto-creates a protected type's node through the injected `nodeRepository`
+ * (`$nodes->save($nodes->create([...]))`), reading the existing set via
  * findAll(true).
  *
- * Mirrors tests/Unit/Container/DiWiringTest: a lightweight `new Application()`
- * is booted through main() (no kernel), then the db.em-backed `nodeRepository`
- * factory is overridden with a mock and the `filter` service supplied, so
- * registerType() runs against mocked collaborators with no database.
+ * A lightweight `new Application()` is booted through main() (no kernel), then
+ * the db.em-backed `nodeRepository` factory is overridden with a mock and the
+ * `filter` service supplied, so registerType() runs against mocked collaborators
+ * with no database.
  */
 class SiteModuleTest extends TestCase
 {
@@ -46,7 +45,7 @@ class SiteModuleTest extends TestCase
         $this->assertTrue($app->has('pageRepository'), 'main() must register the pageRepository service');
         $this->assertFalse((new Application())->has('nodeRepository'), 'services must land in the injected container only');
 
-        // Resolving nodeRepository builds the custom NodeRepository (the RC-2
+        // Resolving nodeRepository builds the custom NodeRepository (the
         // request-cache home) from db.em plus its own ArrayAdapter; stub db.em so
         // the factory runs without a database.
         $em = $this->createMock(EntityManager::class);

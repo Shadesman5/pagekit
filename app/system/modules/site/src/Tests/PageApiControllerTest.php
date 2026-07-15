@@ -12,11 +12,9 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * Covers PageApiController after its Step 4 migration onto the injected
- * Repository<Page>: listing and single-page lookup now go through the
- * repository (findAll()/find()) instead of the entity's former static ORM API
- * (and the dead per-call instanceof guards are gone). The repository is mocked
- * directly, so no database is required.
+ * Covers PageApiController against the injected Repository<Page>: listing and
+ * single-page lookup go through the repository (findAll()/find()). The repository
+ * is mocked directly, so no database is required.
  */
 class PageApiControllerTest extends TestCase
 {

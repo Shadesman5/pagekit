@@ -17,9 +17,8 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * Covers UserController after its Step 5 migration onto the injected
- * UserRepository and Repository<Role>: admin views now resolve users and roles
- * through repository find/create/query instead of the former static model API.
+ * Covers UserController against the injected UserRepository and Repository<Role>:
+ * admin views resolve users and roles through repository find/create/query.
  * Collaborators are mocked directly, so no database is required.
  */
 class UserControllerTest extends TestCase

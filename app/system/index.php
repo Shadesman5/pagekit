@@ -83,7 +83,7 @@ return [
 
         'boot' => function ($event, $app) {
 
-            // Step 2.0.2: Symfony Validator with Translator integration ('validators' domain).
+            // Symfony Validator with Translator integration ('validators' domain).
             // Translator is registered in IntlModule::main() (container phase); validator resolves it lazily.
             \Pagekit\System\ValidatorServiceProvider::register($app);
 

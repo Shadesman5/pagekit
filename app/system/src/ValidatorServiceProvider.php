@@ -8,7 +8,7 @@ use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
- * Service provider for Symfony Validator integration (Step 2.0.2).
+ * Service provider for Symfony Validator integration.
  *
  * Sets up the Symfony Validator with PHP 8 Attribute mapping and
  * Translator-backed constraint messages via the 'validators' domain.

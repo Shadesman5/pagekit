@@ -15,14 +15,13 @@ use PHPUnit\Framework\TestCase;
 /**
  * Unit tests for the {@see \Pagekit\User\Model\UserModelTrait} lifecycle handlers.
  *
- * `saving()` (Step 2 migration to the `(EntityEvent, User)` signature) is pure
- * in-memory logic — it guarantees every saved user carries the authenticated
- * role — and never reaches the {@see EntityManager} on the event, so there the
- * event only needs to exist (its manager is a bare mock).
+ * `saving()` is pure in-memory logic — it guarantees every saved user carries the
+ * authenticated role — and never reaches the {@see EntityManager} on the event, so
+ * there the event only needs to exist (its manager is a bare mock).
  *
- * `init()` (Step 2.1.11) is the security-critical `#[ORM\Init]` handler that wires
- * the per-instance role loader consumed by {@see User::hasPermission()}
- * (Architecture decision 6): it attaches a closure resolving the user's role ids
+ * `init()` is the security-critical `#[ORM\Init]` handler that wires
+ * the per-instance role loader consumed by {@see User::hasPermission()}: it
+ * attaches a closure resolving the user's role ids
  * through the *event's* {@see EntityManager} —
  * `getRepository(Role::class)->query()->whereIn('id', $ids)->get()` — with an
  * empty-ids short-circuit. The cases below drive that wired loader end-to-end via

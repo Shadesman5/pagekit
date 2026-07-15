@@ -19,9 +19,8 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * Covers the admin WidgetController after its Step 6 migration off the static
- * Widget/Node/Role model API onto injected repositories: the widget listing and
- * the create/find + role listing now flow through the generic
+ * Covers the admin WidgetController against injected repositories: the widget
+ * listing and the create/find + role listing flow through the generic
  * Repository<Widget>, the injected NodeRepository (`query()->get()`) and the
  * generic Repository<Role>. The repositories and managers are mocked directly,
  * so the controller actions are exercised without a database.

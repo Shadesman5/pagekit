@@ -21,12 +21,12 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
- * Covers BlogController (admin) after its Step 7 migration onto the injected
- * {@see PostRepository} and Repository<Role>: the listing/comment/edit actions
- * resolve authors and posts through the repository instead of the static Post
- * model API, and editAction keeps redirecting to the index when the repository
- * lookup fails or the ownership gate rejects the user. The repositories, router
- * and message bag are mocked directly, so no database is required.
+ * Covers BlogController (admin) against the injected {@see PostRepository} and
+ * Repository<Role>: the listing/comment/edit actions resolve authors and posts
+ * through the repository, and editAction keeps redirecting to the index when the
+ * repository lookup fails or the ownership gate rejects the user. The
+ * repositories, router and message bag are mocked directly, so no database is
+ * required.
  *
  * The blog package is not on composer's autoload map, so bootstrap.php requires
  * the controller and its entities in dependency order.

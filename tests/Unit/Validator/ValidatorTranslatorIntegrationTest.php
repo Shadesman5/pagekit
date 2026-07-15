@@ -15,7 +15,7 @@ use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
- * Integration test: Symfony Validator + Translator with 'validators' domain (Step 2.0.2).
+ * Integration test: Symfony Validator + Translator with 'validators' domain.
  *
  * Verifies that constraint violation messages are resolved through the
  * Translator catalogue rather than returned as raw message keys.

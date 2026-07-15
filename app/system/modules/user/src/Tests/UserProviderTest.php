@@ -14,13 +14,11 @@ use PHPUnit\Framework\TestCase;
 /**
  * Unit tests for {@see UserProvider}.
  *
- * Since the Step 2.1.11 EntityManager-DI migration the provider is a thin adapter
- * over an injected {@see UserRepository}: `find()`, `findByUsername()` and
- * `findByCredentials()` delegate to the repository (data-mapper reads), and
- * `validateCredentials()` is the password gate. All of it is now fully unit
- * testable with a mocked repository + encoder — no booted kernel, no database and
- * no process isolation (the process-static EntityManager singleton that the old
- * static-finder reads resolved through is gone).
+ * The provider is a thin adapter over an injected {@see UserRepository}: `find()`,
+ * `findByUsername()` and `findByCredentials()` delegate to the repository
+ * (data-mapper reads), and `validateCredentials()` is the password gate. All of it
+ * is fully unit testable with a mocked repository + encoder — no booted kernel and
+ * no database.
  *
  * The central hydration type-guard (a non-`User` row surfacing from a query) is
  * covered once, at its choke point, by the EntityManager `load()` guard test

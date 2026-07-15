@@ -14,9 +14,9 @@ use Pagekit\User\Model\Role;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Covers NodesListener after its Step 4 migration onto an injected
- * {@see NodeRepository}: route registration reads the cached node set via
- * findAll(true) and role cleanup strips the role by its integer id through the
+ * Covers NodesListener against an injected {@see NodeRepository}: route
+ * registration reads the cached node set via findAll(true) and role cleanup
+ * strips the role by its integer id through the
  * repository. The Module (SiteModule) and Routes collaborators are mocked, so
  * the routing outcomes (frontpage alias vs. the "no frontpage" fallback,
  * unpublished nodes skipped) are asserted without a kernel boot or a database.

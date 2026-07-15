@@ -20,9 +20,9 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * Covers the admin NodeController after its Step 4 migration onto the injected
- * NodeRepository (orphan repair, node find/create) and the generic
- * Repository<Role> (role listing). The repositories and the SiteModule
+ * Covers the admin NodeController against the injected NodeRepository (orphan
+ * repair, node find/create) and the generic Repository<Role> (role listing). The
+ * repositories and the SiteModule
  * (resolved via a mocked ModuleManager) are mocked directly, so the controller
  * actions are exercised without a database.
  */

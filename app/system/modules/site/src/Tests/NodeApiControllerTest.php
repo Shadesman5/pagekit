@@ -27,16 +27,15 @@ use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
- * Covers NodeApiController after its Step 4 migration onto the injected
- * NodeRepository. The read/presenter actions (index/get/save) return
- * NodePresenter::toArray() output instead of raw entities, and the mutating
- * actions (delete/updateOrder/frontpage) drive their find/create/save/delete and
- * the protected/frontpage type gate through the repository. ORM access is driven
- * through a mocked NodeRepository injected straight into the controller — the
- * listing exercises the injected QueryBuilder<Node> returned by the repository's
- * query()/where() finders, so there is no EntityManager, no static model API and
- * no process isolation. NodePresenter is final — tests inject a real presenter
- * backed by mocked UrlProvider and User.
+ * Covers NodeApiController against the injected NodeRepository. The
+ * read/presenter actions (index/get/save) return NodePresenter::toArray() output
+ * instead of raw entities, and the mutating actions (delete/updateOrder/frontpage)
+ * drive their find/create/save/delete and the protected/frontpage type gate
+ * through the repository. ORM access is driven through a mocked NodeRepository
+ * injected straight into the controller — the listing exercises the injected
+ * QueryBuilder<Node> returned by the repository's query()/where() finders, so
+ * there is no EntityManager and no database. NodePresenter is final — tests
+ * inject a real presenter backed by mocked UrlProvider and User.
  */
 class NodeApiControllerTest extends TestCase
 {

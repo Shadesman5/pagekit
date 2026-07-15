@@ -12,13 +12,12 @@ use Pagekit\User\Model\Role;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Covers PostListener after its Step 7 migration onto the injected
- * {@see PostRepository}. The subscriber no longer reaches the database through
- * static model calls: the comment-change handlers recount a post's comments via
- * `updateCommentInfo()` and the role-delete handler strips the role from every
- * post via `removeRole()`, both delegated to the repository. The repository is
- * mocked directly, so the delegation (and the Role id int cast the database
- * module requires) is asserted with no database.
+ * Covers PostListener against the injected {@see PostRepository}. The
+ * comment-change handlers recount a post's comments via `updateCommentInfo()` and
+ * the role-delete handler strips the role from every post via `removeRole()`, both
+ * delegated to the repository. The repository is mocked directly, so the
+ * delegation (and the Role id int cast the database module requires) is asserted
+ * with no database.
  *
  * The blog and base-comment classes are runtime-loaded (not in composer's
  * autoload map); bootstrap.php requires them in dependency order.

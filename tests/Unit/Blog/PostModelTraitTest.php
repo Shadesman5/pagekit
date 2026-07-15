@@ -13,9 +13,8 @@ use Pagekit\Database\ORM\Repository;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Unit tests for the {@see \Pagekit\Blog\Model\PostModelTrait} lifecycle handlers
- * after their Step 2 migration onto the injected {@see EntityManager} carried by
- * an {@see EntityEvent}.
+ * Unit tests for the {@see \Pagekit\Blog\Model\PostModelTrait} lifecycle handlers,
+ * which reach the injected {@see EntityManager} carried by an {@see EntityEvent}.
  *
  * `saving()` stamps the modified timestamp and keeps the slug unique; `deleting()`
  * cascades the post's comments away. Both reach the database only through the

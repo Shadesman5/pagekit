@@ -14,12 +14,10 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
- * Covers PageListener after its Step 4 migration onto an injected
- * Repository<Page>: page persistence and deletion now flow through the
- * repository (save()/delete()/find()/create()) instead of the entity's former
- * static/instance ORM methods. The repository is mocked directly, so the
- * find-or-create resolution and the node-link rewrite are asserted with no
- * database.
+ * Covers PageListener against an injected Repository<Page>: page persistence and
+ * deletion flow through the repository (save()/delete()/find()/create()). The
+ * repository is mocked directly, so the find-or-create resolution and the
+ * node-link rewrite are asserted with no database.
  */
 class PageListenerTest extends TestCase
 {
