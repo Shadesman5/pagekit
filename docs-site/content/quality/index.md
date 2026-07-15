@@ -1,3 +1,13 @@
+---
+hide:
+  - toc
+extra_javascript:
+  - javascripts/quality-dashboard.js
+extra_css:
+  - stylesheets/dashboard-layout.css
+  - stylesheets/quality-dashboard.css
+---
+
 # Quality Dashboard
 
 Live CI metrics for the `develop` branch. Data is loaded client-side from `quality-snapshot.json`.

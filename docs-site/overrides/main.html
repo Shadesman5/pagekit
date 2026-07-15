@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block styles %}
+  {{ super() }}
+  {% if page.meta and page.meta.extra_css %}
+    {% for path in page.meta.extra_css %}
+      <link rel="stylesheet" href="{{ path | url }}">
+    {% endfor %}
+  {% endif %}
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  {% if page.meta and page.meta.extra_javascript %}
+    {% for path in page.meta.extra_javascript %}
+      <script src="{{ path | url }}"></script>
+    {% endfor %}
+  {% endif %}
+{% endblock %}

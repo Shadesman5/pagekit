@@ -1,0 +1,5 @@
+/* Shared layout for dashboard pages (TOC hidden via front matter `hide: toc`). */
+
+.md-main__inner.md-grid {
+  max-width: initial;
+}
