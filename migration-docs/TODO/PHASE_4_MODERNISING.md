@@ -1,7 +1,24 @@
 # 🚀 Phase 4: Production-Ready Release – Essential Features
 
 **Goal**: Make Pagekit 2.0.0 production-ready with essential features.
-**Prerequisite**: Phases 1-3 MUST be completed!
+**Prerequisite**: Phases 1–3 MUST be completed!
+
+**Sequencing:** Run **4.7 → 4.8** before Steps 4.2/4.3. Complete **4.0** before the 2.0.0 release.
+
+---
+
+## Step 4.0: Accessibility & WCAG Baseline
+
+- **Goal**: WCAG 2.2 Level AA verification for admin and `packages/pagekit/theme-one` before 2.0.0 release.
+- **Prerequisite**: Step 3.5.1 and Step 3.6.1 completed
+- **Tasks**:
+  - CI: `@axe-core/playwright` on critical flows (login, admin navigation, content editing, public page) — blocking gate (was report-only in 3.6.1)
+  - Manual checklist: keyboard-only navigation, screenreader spot-check, form errors, heading hierarchy, alt text, modal focus traps
+  - Theme-one: semantic HTML, skip link, landmarks, contrast, focus styles
+  - Document a11y statement and extension-author expectations (Step 5.6 precursor)
+  - DACH reference (docs): BITV 2.0 / EN 301 549
+- **Result**: Documented WCAG 2.2 AA baseline; CI prevents regressions on critical flows.
+- **Risk**: Medium — may require UI/template fixes before 2.0.0 tag.
 
 ---
 
@@ -125,3 +142,54 @@ The `<picture>` markup is produced at **render time** by a new content plugin (`
 
 - **Dependencies**: Filesystem module (present); Vue 3 (Step 3.4) for the polished UI; signed URLs relate to Step 4.1 (Security); overlaps the "Image Optimization" item in Step 4.3 (Performance).
 - **Complexity**: High — a full greenfield subsystem spanning backend, rendering, and UI.
+
+---
+
+## Step 4.7: Symfony 6.4 → 7.x Upgrade
+
+- **Goal**: Upgrade Symfony components from 6.4 LTS to 7.x.
+- **Prerequisite**: Phase 3 complete; Steps 2.5, 2.8, 2.1.11 completed
+- **Tasks**:
+  - Bump all `symfony/*` in `composer.json` from `^6.4` → `^7.0` (confirm latest 7.x patch at execution time)
+  - Resolve Symfony 7 breaking changes (HTTP Kernel, Routing, Validator, Translation, Console, etc.)
+  - Update `symfony/phpunit-bridge`, `symfony/browser-kit`, dev bundles to 7.x
+  - Re-enable / tune `SYMFONY_DEPRECATIONS_HELPER` if still disabled after Step 2.9
+  - Full PHPUnit + PHPStan L8 + Playwright E2E green
+- **Explicit non-goals:** Doctrine DBAL 4 (Step 4.8), frontend changes, new features
+- **Result**: Symfony 7.x; update ROADMAP stack reference and README badges.
+- **Risk**: Medium–High — broad component surface.
+
+---
+
+## Step 4.8: Doctrine DBAL 3 → 4 Upgrade
+
+- **Goal**: Upgrade `doctrine/dbal` from 3.x to 4.x on Pagekit's custom ORM layer.
+- **Prerequisite**: Step 4.7 completed; Steps 2.1.11, 2.1.7, 2.9 completed
+- **Tasks**:
+  - Bump `doctrine/dbal` `^3.8` → `^4.0` in `composer.json`
+  - Migrate breaking changes: type system, removed APIs (`requiresSQLCommentHint()`, type mappings), platform differences
+  - Update `doctrine/migrations` compatibility if required
+  - Audit custom DBAL usage: `Pagekit\Database\ORM`, `QueryBuilder`, connection wrappers, schema tools, migration runners
+  - Full PHPUnit (incl. ORM integration paths from 2.1.9/2.9) + PHPStan green
+  - Coordinate with Step 4.3 if tag-based cache invalidation touches DBAL types
+- **Result**: DBAL 4.x on custom ORM.
+- **Risk**: High — custom ORM + QueryBuilder + migrations.
+
+---
+
+## Step 4.9: Cross-Repo Dev Dashboard & Real-Time Conductor Metrics
+
+- **Goal**: Move modernization observability into a dedicated **`kernkit/dev-dashboard`** GitHub Pages site — Conductor metrics, CI quality, and roadmap progress **across all Kernkit repos**, visible **during feature-branch runs** (not only after merge to `develop`).
+- **Prerequisite**: Step 4.5 (rebrand + clean repo split) completed; Conductor metrics pattern proven in the Pagekit playground repo.
+- **Why Phase 4 (not earlier):**
+  - Clean repo boundaries come with the 4.5 Kernkit split — avoid building cross-repo plumbing twice on the learning sandbox.
+  - Real-time branch metrics matter most once Kernkit is the production core.
+- **Architecture sketch:**
+  - **Push model:** Conductor post-phase hook POSTs session deltas via **`gh api`** / `curl` to the dev-dashboard repo (`metrics/incoming/{repo}/{branch}/…`) — no wait for PR merge.
+  - **Dashboard repo:** static/MkDocs site; ROADMAP tracking table + accordion metrics (same UX as today).
+  - **Aggregation:** GitHub Action on dev-dashboard (`repository_dispatch` or incoming-folder merge) builds `index.json`.
+  - **Auth:** fine-grained PAT or GitHub App with `contents: write` on dev-dashboard only.
+- **Scope:** Port current `docs-site/` modernization pages; keep product docs in `kernkit/docs`; generalise backfill for any repo/workflow via `gh api`.
+- **Non-goals:** Agents writing to dashboard; replacing `.cursor/ROADMAP.md` as agent SoT.
+- **Result**: One URL for live metrics across repos/branches; intervene before the 360-minute GHA cap.
+- **Risk**: Low–Medium — mostly JSON + Pages plumbing.

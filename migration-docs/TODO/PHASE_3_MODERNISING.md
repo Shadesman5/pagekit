@@ -4,12 +4,12 @@
 
 **Prerequisite**: Phase 2 MUST be completed (Build Tools in Step 2.4 are a prerequisite for frontend work!)
 
-### Phase scope (2026-07-12)
+### Phase scope
 
 | Track | Steps | Focus |
 | ----- | ----- | ----- |
-| **Frontend** | 3.1–3.4, 3.5, 3.6 | Vue 3, UIkit, TypeScript, components, E2E selectors |
-| **Cross-stack** | 3.4.5, 3.4.6 | Intl platform API, transChoice → ICU (PHP + Vue + loaders), `TranslatorInterface` in service layer |
+| **Frontend** | 3.1–3.4, 3.5, 3.5.1, 3.6, 3.6.1 | Vue 3, UIkit, TypeScript, components, admin a11y, E2E + `@axe-core/playwright` |
+| **Cross-stack** | 3.4.5, 3.4.6 | Intl platform API, transChoice → ICU, `TranslatorInterface` in service layer |
 
 > **Note:** Template-facing globals (`__()`, `_i()`, `$date`, `$number`) **stay** — they are the Pagekit **platform DX API**, not legacy debt. See ROADMAP § DX & Lightweight Philosophy and Step 3.4.6 decision below.
 
@@ -57,6 +57,7 @@
   - Adapt Vue components (UIkit JS initialization)
   - Visual regression testing with Playwright screenshots
   - Update custom UIkit theme (if applicable)
+  - Review UIkit 3.21 a11y breaking changes (focus styles, modal/tab behaviour) for Step 3.5.1
 - **Risk**: Low (UIkit is CSS/JS-only, no PHP dependency)
 
 ---
@@ -287,8 +288,22 @@
   - Design system based on UIkit 3.21+ tokens
   - Admin UI components (VModal, VPagination, VLoader, InputFilter, etc. — already existing, modernize)
   - Storybook integration for documentation and testing
-  - Accessibility (a11y) audit and improvements
 - **Strategy**: Use existing components in `app/system/app/components/` as a base, don't start from scratch
+
+### Step 3.5.1: Admin Accessibility Baseline
+
+- **Goal**: Accessibility baseline for modernized admin Vue components (ARIA, keyboard, focus, contrast).
+- **Prerequisite**: Step 3.1 (UIkit 3.21+) completed; Step 3.5 in progress or complete
+- **Tasks**:
+  - ARIA roles/labels on custom Vue components (modals, dropdowns, pagination, filters, forms)
+  - Keyboard navigation: focus trap in modals, Escape to close, logical tab order, skip links where applicable
+  - Visible focus rings (UIkit 3.21+ tokens)
+  - Color contrast: WCAG 2.2 AA minimums (4.5:1 text, 3:1 UI components)
+  - Toast/notification components: `aria-live` regions
+  - Document component a11y conventions in Storybook (or equivalent)
+- **Explicit non-goals (Step 4.0):** WCAG production gate, `theme-one` frontend audit, CI-blocking a11y checks
+- **Result**: Admin components meet documented a11y baseline.
+- **Risk**: Medium — incremental alongside 3.5 refactors.
 
 ---
 
@@ -315,5 +330,6 @@
   - Audit all 11 specs under `tests/e2e/specs/`; rewrite the weak ones (everything beyond the 3 sound specs) to Playwright best practices (web-first assertions, `getByTestId()` from 3.6, no arbitrary waits, isolated per-test state).
   - Fix flaky setup/teardown and align with the clean-state handling documented in `.cursor/agents/tester.md`.
   - Expand the Orchestrator/Tester end-of-ticket E2E set beyond the current 3 once the reworked specs are stable.
+  - Integrate `@axe-core/playwright` (MPL-2.0) into critical-flow specs (login, dashboard, node editor); report-only until Step 4.0
   - All specs green locally; document the convention in `tests/e2e/README.md`.
 - **Risk**: Medium — broad E2E surface; orthogonal to the PHP test-coverage work in 2.1.9 / 2.9.

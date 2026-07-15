@@ -94,9 +94,10 @@
 | 2.1.10 | ↳ Entity Presentation Layer (DTO)     | ✅     | 🛡️    | #204  | #219    |
 | 2.1.11 | ↳ EntityManager DI (remove singleton) | ✅     | 🛡️    | #205  | #222    |
 | 2.1.12 | ↳ Residual `mixed` narrowing          | ⏳     | ⏳    | #217  | -       |
+| 2.1.13 | ↳ TinyMCE Security Patch (~5.10.9)    | ⏳     | ⏳    | -     | -       |
 | 2.2    | CI/CD Pipeline                        | ⏳     | ⏳    | #157  | -       |
 | 2.3    | Docker Production                     | ⏳     | ⏳    | #158  | -       |
-| 2.4    | Build Tools                           | ⏳     | ⏳    | #159  | -       |
+| 2.4    | Build Tools (pnpm + Vite)             | ⏳     | ⏳    | #159  | -       |
 | 2.5    | Extension Safety System               | ⏳     | ⏳    | #160  | -       |
 | 2.6    | Automated Update System               | ⏳     | ⏳    | -     | -       |
 | 2.7    | Filesystem Write Resilience           | ⏳     | ⏳    | -     | -       |
@@ -114,14 +115,19 @@
 | 3.4.5  | ↳ Deps (intl→Intl, lodash→native)     | ⏳     | ⏳    | -     | -       |
 | 3.4.6  | ↳ Translation System Modernization    | ⏳     | ⏳    | -     | -       |
 | 3.5    | Component Library                     | ⏳     | ⏳    | -     | -       |
+| 3.5.1  | ↳ Admin Accessibility Baseline        | ⏳     | ⏳    | -     | -       |
 | 3.6    | E2E selector strategy (data-testid)   | ⏳     | ⏳    | -     | -       |
 | 3.6.1  | ↳ E2E Test Suite Rework               | ⏳     | ⏳    | -     | -       |
+| 4.0    | Accessibility & WCAG Baseline         | ⏳     | ⏳    | -     | -       |
 | 4.1    | Basic Security                        | ⏳     | ⏳    | -     | -       |
 | 4.2    | REST API v2                           | ⏳     | ⏳    | -     | -       |
 | 4.3    | Performance Optimization              | ⏳     | ⏳    | -     | -       |
 | 4.4    | Monitoring & Health Checks            | ⏳     | ⏳    | -     | -       |
 | 4.5    | Rebranding: Pagekit → Kernkit         | ⏳     | ⏳    | -     | -       |
 | 4.6    | Native Image Pipeline & Media Manager | ⏳     | ⏳    | -     | -       |
+| 4.7    | Symfony 6.4 → 7.x Upgrade             | ⏳     | ⏳    | -     | -       |
+| 4.8    | Doctrine DBAL 3 → 4 Upgrade           | ⏳     | ⏳    | -     | -       |
+| 4.9    | ↳ Cross-Repo Dev Dashboard            | ⏳     | ⏳    | -     | -       |
 | 5.1    | Modern Block Editor                   | ⏳     | ⏳    | -     | -       |
 | 5.2    | Advanced Security                     | ⏳     | ⏳    | -     | -       |
 | 5.3    | Advanced Performance                  | ⏳     | ⏳    | -     | -       |
@@ -132,7 +138,7 @@
 ## **🛠️ TECHNICAL STACK REFERENCE**
 
 - **PHP Version**: 8.2+ (Strict types mandatory)
-- **Framework Components**: Symfony 6.4 (LTS)
+- **Framework Components**: Symfony 6.4 (LTS) → Symfony 7.x (Step 4.7, post–Phase 3)
 - **Coding Standard**: PSR-12 / Symfony
 - **Naming**: Use expressive, modern PHP naming (Constructor Property Promotion, etc.)
 - **Error Format**: Standardized JSON {"error": true, "errors": {...}}
