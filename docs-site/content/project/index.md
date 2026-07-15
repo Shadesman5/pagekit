@@ -2,7 +2,7 @@
 
 Documentation for Pagekit CMS **core platform development** — roadmap metrics, strategy, and branch docs.
 
-Covers the modernization program (Phases 1–4). End-user product documentation is deferred to `migration-docs/TODO/user-guide/` (future `pagekit/docs` repo).
+Covers the modernization program (Phases 1–4). End-user product documentation is out of scope for this site.
 
 ## Contents
 

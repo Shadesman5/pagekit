@@ -1,8 +1,6 @@
 # Pagekit CMS — Modernization Dashboard
 
-Internal documentation site for the Pagekit **modernization program** — roadmap metrics, CI quality, and branch docs.
-
-Public **product documentation** (user guide) lives in `migration-docs/TODO/user-guide/` until it moves to a dedicated `pagekit/docs` repository.
+Internal documentation site for the Pagekit **modernization program** — roadmap metrics, CI quality, and branch docs. End-user / product documentation is out of scope here (planned for a separate repository).
 
 ## Structure
 

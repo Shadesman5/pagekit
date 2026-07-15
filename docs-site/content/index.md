@@ -4,7 +4,7 @@ Internal dashboard for **Pagekit CMS core development** — Conductor metrics, C
 
 !!! info "Product docs"
     End-user and extension documentation is **not** published here.
-    See `migration-docs/TODO/user-guide/` (planned: separate `pagekit/docs` repository).
+    It will live in a dedicated documentation repository.
 
 ## Quick links
 
