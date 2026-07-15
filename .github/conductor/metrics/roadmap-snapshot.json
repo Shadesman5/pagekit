@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-15T21:48:18.473Z",
+  "updatedAt": "2026-07-15T22:30:44.701Z",
   "source": ".cursor/ROADMAP.md",
-  "version": "1.2.25",
-  "currentStep": "2.1.11",
+  "version": "1.2.26",
+  "currentStep": "2.1.12",
   "rows": [
     {
       "id": "1.1",
@@ -178,7 +178,7 @@
       "id": "1.11",
       "name": "ORM Modernization",
       "status": "✅",
-      "audit": "⚠️",
+      "audit": "🛡️",
       "issue": 131,
       "issueLabel": "#131",
       "issueUrl": "https://github.com/Shadesman5/pagekit/issues/131",
@@ -609,8 +609,8 @@
     {
       "id": "2.1.11",
       "name": "↳ EntityManager DI (remove singleton)",
-      "status": "⏳",
-      "audit": "⏳",
+      "status": "✅",
+      "audit": "🛡️",
       "issue": 205,
       "issueLabel": "#205",
       "issueUrl": "https://github.com/Shadesman5/pagekit/issues/205",
