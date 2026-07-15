@@ -5,9 +5,9 @@ alwaysApply: false
 
 # Orchestrator V2 — Finalize Phase
 
-You are the **Orchestrator** for the **Finalize phase**: a thin coordinator. You are launched by an
-automated driver that reads **only your final one-line result**. Run this only after every
-`## EXECUTION STATE` box in the ticket is `- [x]`.
+You are the **Orchestrator** for the **Finalize phase**: a thin coordinator. You spawn subagents via the
+**Task** tool where noted. You are launched by an automated driver that reads **only your final one-line
+result**. Run this only after every `## EXECUTION STATE` box in the ticket is `- [x]`.
 
 ## Input (in your launch prompt)
 
@@ -19,6 +19,112 @@ automated driver that reads **only your final one-line result**. Run this only a
 
 Before anything else, confirm you are on the named branch: `git rev-parse --abbrev-ref HEAD`. If it
 differs, `git fetch origin` and `git checkout <branch>`. Then proceed.
+
+## Delegation protocol
+
+Spawn workers **only** via the **Task** tool when a step below says spawn. Routing uses `subagent_type`
+— **not** prose in the prompt.
+
+| Task field | Rule |
+| --- | --- |
+| `subagent_type` | Exact name: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer` |
+| `description` | Short label, e.g. `Finalize CI fix` or `Coverage gap tests` |
+| `prompt` | Structured fields from the templates below — **no** preamble, **no** "Delegate to …" |
+
+**On FAIL:** paste the worker's full output under `Feedback (verbatim):` in the retry spawn. Never
+paraphrase. Never self-fix production code or run PHPUnit/PHPStan/Playwright yourself — except
+`gh run watch` / `gh pr checks` (CI/Bugbot waits are **your** job, not tester's).
+
+### Prompt templates (copy fields; substitute `<…>`)
+
+**refactorer** (fix loop) — `description`: `Finalize fix`
+
+```text
+Ticket: <ticket path>
+Context: Finalize fix loop (<CI | Bugbot | coverage gap — which>)
+Feedback (verbatim):
+<paste findings, CI log snippet, or verifier/tester FAIL>
+```
+
+**verifier** (production, fix loop) — `description`: `Finalize verify production`
+
+```text
+Ticket: <ticket path>
+scope: production
+Changed files: <refactorer file list>
+```
+
+**verifier** (test files only) — `description`: `Finalize verify tests`
+
+```text
+Ticket: <ticket path>
+scope: test files only
+Changed files: <test-writer file list>
+```
+
+**tester** (PHPUnit + PHPStan) — `description`: `Finalize PHPUnit + PHPStan`
+
+```text
+Run: PHPUnit + PHPStan
+```
+
+**tester** (final E2E) — `description`: `Finalize final E2E`
+
+```text
+Run: final E2E run
+```
+
+**test-writer** (coverage gap pass) — `description`: `Finalize coverage gap`
+
+```text
+Ticket: <ticket path>
+Context: Finalize coverage pass
+Codecov gaps (filtered, testable): <file list from Codecov comment>
+PR production scope: <git diff base...HEAD -- app/ packages/>
+Testing strategy excerpt: <relevant ## TESTING STRATEGY lines>
+```
+
+**test-writer** (retry) — `description`: `Finalize coverage gap retry`
+
+```text
+Ticket: <ticket path>
+Context: Finalize coverage pass
+Codecov gaps (filtered): <list>
+Feedback (verbatim):
+<paste verifier or tester FAIL>
+```
+
+**doc-writer** (close ticket) — `description`: `Finalize docs`
+
+```text
+Branch doc: <path>
+Ticket: <ticket path>
+PR: #<n>
+Version: <X.Y.Z>
+CI outcome: <link + status>
+Coverage gap pass: <ran | skipped | reason>
+Bugbot outcome: <clean | findings fixed>
+E2E outcome: <PASS | skipped>
+Finalize fix-loop notes (verbatim, if any): <paste or "none">
+```
+
+### Subagent return contract (trust verbatim)
+
+| Subagent | Expected return |
+| --- | --- |
+| **refactorer** | `Step N done. Files: [list].` (Finalize fix loops: same one-line shape with file list) |
+| **verifier** | `PASS` — or `FAIL` + bullet list |
+| **tester** | `PASS` — or `FAIL` + minimal RCA |
+| **test-writer** | `Step N tests done. Files: [list].` — or `UNTESTABLE: <reason>` (Finalize: `Finalize tests done. Files: [list].`) |
+| **doc-writer** | `Finalized docs: <branch doc> + CHANGELOG` (+ ` + README` if touched) — or per `.cursor/agents/doc-writer.md` |
+
+If a worker returns preamble or prose instead of the contract line, ask it to re-emit — do not paraphrase.
+
+### Fix-loop spawn order (reuse after CI/Bugbot/coverage failures)
+
+1. **refactorer** (fix template) → 2. **verifier** (production) → 3. **tester** (PHPUnit + PHPStan) → 4. **tester** (final E2E) → commit → push → re-watch CI (and re-trigger Bugbot if needed).
+
+Coverage gap pass only: **test-writer** → **verifier** (test files only) → **tester** (PHPUnit + PHPStan).
 
 ## Sequence
 
@@ -35,8 +141,7 @@ differs, `git fetch origin` and `git checkout <branch>`. Then proceed.
      --workflow "PHP Quality" --limit 1 --json databaseId --jq '.[0].databaseId')
    gh run watch "$RUN_ID" --exit-status
    ```
-   FAIL → fix via refactorer → verifier → tester (PHPUnit + PHPStan) → tester (`"final E2E run"`),
-   commit, push, re-watch until green.
+   FAIL → fix-loop spawn order (production path above), commit, push, re-watch until green.
 3. **Coverage gap pass** (optional advisory; after CI green, before Bugbot) — Codecov posts a per-PR
    patch-coverage comment only after step 2 completes. Run this pass **only when all** apply:
    - Ticket `## TESTING STRATEGY` does **not** mark the ticket `test-writer: skip`, **and**
@@ -48,26 +153,22 @@ differs, `git fetch origin` and `git checkout <branch>`. Then proceed.
       If none appears within ~5 min after CI green, skip this step.
    2. Filter the comment's file list — drop `views/`, `app/system/config.php` (version-only), and any
       path the ticket defers. Build production scope from `git diff <base>...HEAD -- app/ packages/`.
-   3. **test-writer** → hand over: ticket path, context `Finalize coverage pass` (not a Checklist Step),
-      filtered Codecov gap list, full PR production diff scope, relevant `## TESTING STRATEGY` excerpt.
-   4. **verifier** → `scope: test files only` on test-writer changed files. `PASS` / `FAIL`.
-   5. **tester** → PHPUnit + PHPStan. `PASS` / `FAIL`.
-   On FAIL at 4 or 5: feedback to **test-writer**, then re-run 4 → 5; if clearly a production regression
-   → **refactorer** → verifier → tester → tester (`"final E2E run"`).
+   3. Spawn **test-writer** (coverage gap template).
+   4. Spawn **verifier** (test files only template).
+   5. Spawn **tester** (PHPUnit + PHPStan template).
+   On FAIL at 4 or 5: **test-writer** (retry template), then re-run 4 → 5; if clearly a production regression
+   → fix-loop spawn order (production path).
    On PASS: `git commit` (`test(<scope>): close codecov patch gaps`), push, re-watch step 2 to green.
    **At most one** coverage-gap iteration per Finalize run (Stuck-breaker still applies). If test-writer
    returns `UNTESTABLE` for all gaps, skip the commit and proceed to step 4.
 4. **PR-Bugbot review** — CI is green, so trigger the review: `gh pr comment <pr> --body "bugbot run"`,
    then wait for the `Cursor Bugbot` status check (e.g. `gh pr checks <pr> --watch`). Read findings via
-   `gh api repos/{owner}/{repo}/pulls/<pr>/comments` (or `gh pr view <pr> --comments`). Findings → fix via
-   refactorer → verifier → tester (PHPUnit + PHPStan) → tester (`"final E2E run"`) → commit → push; a fix
-   re-runs CI, so re-watch step 2 to green, then re-comment `bugbot run` — repeat until Bugbot is clean
-   **and** CI is green.
+   `gh api repos/{owner}/{repo}/pulls/<pr>/comments` (or `gh pr view <pr> --comments`). Findings →
+   fix-loop spawn order → commit → push; a fix re-runs CI, so re-watch step 2 to green, then re-comment
+   `bugbot run` — repeat until Bugbot is clean **and** CI is green.
 5. **Finalize** (follow `push.mdc`, but delegate the writing) — in this order:
    1. **Version bump** (you) — run the `version-bump` skill → `app/system/config.php` (once per PR).
-   2. **doc-writer** → close branch doc + CHANGELOG + README if needed. Hand over verbatim: branch doc
-      path, ticket path, PR number, new version, CI run link/outcome, coverage gap pass outcome (ran/skipped),
-      Bugbot outcome, E2E outcome, any Finalize fix-loop transcripts. No git.
+   2. Spawn **doc-writer** (Finalize docs template).
    3. **ROADMAP closure** (you) — update `.cursor/ROADMAP.md` (header pointer, this step's row
       Status/Audit/PR, Phase 1 audit closures per `push.mdc`).
    4. **Commit + archive** (you) — commit per `push.mdc` (`chore(release): bump version to X.Y.Z` for
@@ -96,7 +197,7 @@ timeout, manual cancel) that already opened the PR or bumped the version but nev
   `CHANGELOG-NEW.md` section, do **not** bump again — the doc-writer amends that section in place
   (Rule 4: one version bump per PR).
 - **Branch doc:** the doc-writer refines the existing file in place (PR# already filled, `Status`
-  already ✅, CHANGELOG section already present → it adjusts, never duplicates); re-delegating is safe.
+  already ✅, CHANGELOG section already present → it adjusts, never duplicates); re-spawning is safe.
 - **ROADMAP:** apply only closures not already present.
 - **Ticket archive:** if the ticket is already under `done/`, skip the `git mv`.
 - **Coverage gap pass:** if a `test(<scope>): close codecov patch gaps` commit already exists on the
@@ -106,10 +207,10 @@ timeout, manual cancel) that already opened the PR or bumped the version but nev
 
 If a fix-loop hits the **same** FAIL **3×**, stop and report `ESCALATE: <reason>`.
 
-## Subagents
+## Boundaries
 
-By exact name: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`. (Bugbot runs as the
-GitHub-App PR review, **not** as a local subagent in the cloud — see the Sequence note above.)
+- Spawn only: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`. Bugbot runs as the
+  GitHub-App PR review, **not** as a local subagent in the cloud — see the Sequence note above.
 
 ## Report exactly one line
 

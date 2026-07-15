@@ -1,6 +1,6 @@
 # Pagekit Modernization: Subagent Workflow (V2)
 
-**Last updated:** 2026-07-13
+**Last updated:** 2026-07-14
 
 Autonomous modernization runs via the **Conductor** (GitHub Actions) and the V2 Orchestrator rules. This document is the **human and agent reference** for that pipeline.
 
@@ -12,12 +12,16 @@ Autonomous modernization runs via the **Conductor** (GitHub Actions) and the V2 
 
 | Component | Where | LLM? | Responsibility |
 | --- | --- | --- | --- |
-| **Conductor** | GitHub Actions (`conductor.mjs`) | No | Outer loop: Plan → Execute batches → Finalize; reads ticket checkboxes; launches fresh cloud agents |
+| **Conductor** | GitHub Actions (`conductor.mjs`) | No | Outer loop: one cloud-agent phase per GHA job (Plan → Execute batches → Finalize); auto-chains the next run; reads ticket checkboxes |
 | **Orchestrator** | Cursor Cloud Agent (per phase) | Yes | Thin coordinator: delegates to subagents, commits, reports **exactly one line** |
 
-**Start a run:** GitHub → Actions → **Conductor** → `workflow_dispatch` (task prompt path, issue, base branch).
+**Start a run:** GitHub → Actions → **Conductor** → `workflow_dispatch` (task prompt path, issue, `batch_budget`, optional `auto_chain`).
 
-Operative contracts: `orchestrator-v2-plan.mdc`, `orchestrator-v2-step.mdc`, `orchestrator-v2-finalize.mdc`.
+**Chained runs:** With `auto_chain=true` (default), each GHA job runs at most one phase — PLAN, one EXECUTE batch (sized by `batch_budget` + S/M/L hints in the ticket), or FINALIZE — then dispatches the next workflow run automatically. Progress still lives in ticket checkboxes; manual re-run works the same as before. Set `auto_chain=false` to pause between jobs.
+
+**Metrics:** Each run gets an auto-generated UUID `sessionId` (chained across jobs). Token usage and phase timing are committed to `.github/conductor/metrics/` and shown on the [GitHub Pages Roadmap](https://shadesman5.github.io/pagekit/project/roadmap/).
+
+Operative contracts: `orchestrator-v2-plan.mdc`, `orchestrator-v2-step.mdc`, `orchestrator-v2-finalize.mdc` — each defines a **Delegation protocol** (Task `subagent_type` + structured `prompt` templates).
 
 ---
 
@@ -142,4 +146,4 @@ Edit models in `.cursor/agents/<name>.md`; keep this table in sync.
 
 ---
 
-**Summary:** The Conductor drives Plan → Execute batches → Finalize. Each phase delegates to subagents; `doc-writer` maintains documentation throughout; `test-writer` adds tests after a green production gate (Execute) and optionally closes Codecov patch gaps before Bugbot (Finalize). Progress lives in ticket checkboxes and git.
+**Summary:** The Conductor drives Plan → Execute batches → Finalize as a chain of short GHA jobs (one cloud-agent call each). `batch_budget` controls how much work fits into one Execute agent; `auto_chain` controls whether the next job starts automatically. Each phase delegates to subagents; `doc-writer` maintains documentation throughout; `test-writer` adds tests after a green production gate (Execute) and optionally closes Codecov patch gaps before Bugbot (Finalize). Progress lives in ticket checkboxes and git.
