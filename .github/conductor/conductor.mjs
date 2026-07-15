@@ -1,17 +1,22 @@
 // V2 Conductor — drives the orchestrator pipeline from GitHub Actions.
 //
 // Zero npm dependencies on purpose: Node 20 (global fetch) + git + gh (preinstalled on
-// ubuntu-latest). It launches ONE fresh cloud agent per phase via the Cloud Agents REST API
-// (api.cursor.com/v1), reads progress from the ticket's `## EXECUTION STATE` checkboxes, and
-// reacts only to ESCALATE / fatal results. It holds no LLM context itself.
+// ubuntu-latest). It launches ONE fresh cloud agent per GitHub Actions job via the Cloud Agents
+// REST API (api.cursor.com/v1), reads progress from the ticket's `## EXECUTION STATE` checkboxes,
+// and reacts only to ESCALATE / fatal results. It holds no LLM context itself.
+//
+// Chained runs (auto_chain=true, default): each GHA job runs at most ONE cloud-agent phase
+// (PLAN, or one EXECUTE batch sized by batch_budget, or FINALIZE), then dispatches a fresh
+// workflow run when more work remains. This keeps every job under GitHub's 360-minute hosted cap.
 //
 // NOTE (verify on first real run): the v1 Cloud Agents API is in public beta. The field names
 // used below (`agent.id`, `run.id`, run `status`/`result`, `/usage`, `/runs/{id}/cancel`) follow
 // the documented surface; if a field name drifts, adjust the small `api()` call sites here.
 
-import { execSync } from "node:child_process";
+import { execSync, execFileSync } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
 import { basename } from "node:path";
+import { createMetricsCollector } from "./metrics.mjs";
 
 // ---------------------------------------------------------------- config (from env)
 const API = "https://api.cursor.com";
@@ -29,6 +34,10 @@ const TICKET = `migration-docs/tickets/active/${TICKET_SLUG}_plan.md`;
 const BUDGET = Number(process.env.BATCH_BUDGET || 6);
 const MODEL = (process.env.MODEL || "").trim(); // empty -> omit `model` (account default); else passed as model.id (see runPhase)
 const MODE_INPUT = (process.env.MODE || "auto").trim().toLowerCase(); // dispatch: auto|full|plan ("auto" = task prompt self-declares, see resolveMode)
+const AUTO_CHAIN = parseBool(process.env.AUTO_CHAIN, true); // when true, dispatch a fresh workflow run after each phase/batch
+const TITLE = (process.env.TITLE || "").trim(); // optional run display title (passed through on chain)
+const WORKFLOW_FILE = (process.env.WORKFLOW_FILE || "conductor.yml").trim();
+const WORKFLOW_REF = (process.env.WORKFLOW_REF || BASE).trim();
 const MAX_ESCALATIONS = Number(process.env.MAX_ESCALATIONS || 2);
 const POLL_MS = Number(process.env.POLL_MS || 15000);
 const MAX_POLL_FAILS = Number(process.env.MAX_POLL_FAILS || 6); // consecutive poll errors before a phase fails
@@ -43,22 +52,33 @@ validate("TASK_PROMPT", TASK_PROMPT, /^[A-Za-z0-9._/-]+$/);
 if (TASK_PROMPT.split("/").includes("..")) fail(`TASK_PROMPT must not contain '..' path segments: ${TASK_PROMPT}`);
 validate("MODEL", MODEL, /^[A-Za-z0-9._-]+$/);
 validate("MODE", MODE_INPUT, /^(auto|full|plan)$/);
+validate("WORKFLOW_FILE", WORKFLOW_FILE, /^[A-Za-z0-9._-]+\.ya?ml$/);
+validate("WORKFLOW_REF", WORKFLOW_REF, /^[A-Za-z0-9._/-]+$/);
 if (ISSUE) validate("ISSUE", ISSUE, /^[0-9]+$/);
 if (!Number.isInteger(BUDGET) || BUDGET < 1) fail(`Invalid BATCH_BUDGET: ${process.env.BATCH_BUDGET}`);
 if (!Number.isInteger(MAX_ESCALATIONS) || MAX_ESCALATIONS < 0) fail(`Invalid MAX_ESCALATIONS: ${process.env.MAX_ESCALATIONS}`);
 if (!Number.isInteger(MAX_POLL_FAILS) || MAX_POLL_FAILS < 1) fail(`Invalid MAX_POLL_FAILS: ${process.env.MAX_POLL_FAILS}`);
 if (!Number.isInteger(POLL_MS) || POLL_MS < 1) fail(`Invalid POLL_MS: ${process.env.POLL_MS}`);
 
-let current = null; // { agentId, runId } of the in-flight run, for cancellation
+let current = null; // { agentId, runId, label, startedAt, agentUrl } of the in-flight run, for cancellation
+const metrics = createMetricsCollector({
+  api,
+  sh,
+  log,
+  env: process.env,
+  branch: BRANCH,
+  pullBranch,
+});
 
 // ---------------------------------------------------------------- main
 (async () => {
   ensureBranch();
   pullBranch();
+  metrics.initSession();
   // Resolve mode/audit AFTER checking out the feature branch, so a marker/prompt that exists on the
   // branch (not just the base checkout) is honored.
   const { mode: MODE, audit: AUDIT } = resolveRun();
-  log(`Conductor start — slug=${SLUG} branch=${BRANCH} base=${BASE} budget=${BUDGET} model=${MODEL} mode=${MODE}${AUDIT ? " (audit/report)" : ""}`);
+  log(`Conductor start — slug=${SLUG} branch=${BRANCH} base=${BASE} budget=${BUDGET} model=${MODEL} mode=${MODE} auto_chain=${AUTO_CHAIN}${AUDIT ? " (audit/report)" : ""}`);
   // Issue is mandatory for normal runs (PR Closes #N + stop/pause control labels); audits have none.
   if (!AUDIT && !ISSUE) fail("ISSUE is required for non-audit runs (PR Closes #N + conductor:stop/pause labels). Only audit tasks (a `conductor-mode: plan` marker in the task prompt) may omit it.");
 
@@ -81,53 +101,52 @@ let current = null; // { agentId, runId } of the in-flight run, for cancellation
       log(`plan already done (${AUDIT ? `open PR for ${BRANCH}` : TICKET}) — skipping PLAN`);
     }
 
-    // Plan-only (Step-0 gate): stop cleanly after PLAN (audit/report task or review-only gate). Normal
-    // runs (mode=full) fall through to EXECUTE.
+    // Plan-only (Step-0 gate): stop cleanly after PLAN (audit/report task or review-only gate).
     if (MODE === "plan") {
       const detail = AUDIT ? (planRan ? " (audit: report + PR opened this run)" : " (audit: PR already open)") : "";
+      metrics.setSessionStatus("completed");
       log(`✅ Conductor done (mode=plan): Step-0 gate complete${detail} - EXECUTE/FINALIZE skipped by design.`);
       return;
     }
 
-    // EXECUTE loop — recompute the batch from the live checkboxes each iteration.
-    let escalations = 0;
-    let prevOpen = Infinity;
-    for (;;) {
-      await gate();
-      pullBranch();
-      const steps = readSteps();
-      if (steps === null) fail(`ticket not found after PLAN: ${TICKET} (audit/report task? re-dispatch with MODE=plan for a Step-0-gate-only run)`);
-      if (steps.length === 0) fail(`no parseable "## EXECUTION STATE" steps in ${TICKET} (audit/report task? use MODE=plan)`);
+    // After a fresh PLAN, chain so EXECUTE starts in a new GHA job (stays under the 360-minute cap).
+    if (planRan) {
+      finishJobAndMaybeChain("PLAN complete — next run will EXECUTE");
+      return;
+    }
 
-      const open = steps.filter((s) => !s.checked);
-      if (open.length === 0) { log("all checklist steps complete"); break; }
-      // Stuck detection is progress-based: fewer open steps than the previous pass = progress (reset the
-      // counter); no reduction after a batch = a stuck round — whether the agent ESCALATEd, errored, or
-      // falsely claimed "done". Bail after MAX_ESCALATIONS stuck rounds so a no-op can't loop to the cap.
-      if (open.length < prevOpen) {
-        escalations = 0;
-      } else if (prevOpen !== Infinity) {
-        if (++escalations > MAX_ESCALATIONS) fail(`EXECUTE stuck: no progress in ${escalations} rounds (open ${open.length}/${steps.length})`);
-        log(`no progress since last batch (open ${open.length}/${steps.length}); stuck ${escalations}/${MAX_ESCALATIONS}`);
-      }
-      prevOpen = open.length;
+    // EXECUTE — one batch per GHA job (batch size still governed by batch_budget + S/M/L hints).
+    await gate();
+    pullBranch();
+    const steps = readSteps();
+    if (steps === null) fail(`ticket not found after PLAN: ${TICKET} (audit/report task? re-dispatch with MODE=plan for a Step-0-gate-only run)`);
+    if (steps.length === 0) fail(`no parseable "## EXECUTION STATE" steps in ${TICKET} (audit/report task? use MODE=plan)`);
 
+    const open = steps.filter((s) => !s.checked);
+    if (open.length > 0) {
+      const openBefore = open.length;
       const batch = nextBatch(open);
       log(`next batch: steps ${batch.join(",")}  (open ${open.length}/${steps.length})`);
 
-      let result;
-      try {
-        result = await runPhase(`EXECUTE ${batch.join(",")}`, stepPrompt(batch));
-      } catch (e) {
-        log(`run error (${e.message}); relaunching fresh (stuck ${escalations}/${MAX_ESCALATIONS})`);
-        continue;
+      await runExecuteBatch(batch);
+
+      pullBranch();
+      const stepsAfter = readSteps();
+      if (!stepsAfter) fail(`ticket disappeared after EXECUTE batch: ${TICKET}`);
+      const openAfter = stepsAfter.filter((s) => !s.checked).length;
+      if (openAfter >= openBefore) {
+        fail(`EXECUTE stuck: no progress after batch steps ${batch.join(",")} (open ${openAfter}/${stepsAfter.length})`);
       }
-      if (result.startsWith("ESCALATE")) {
-        log(`escalated (${result}); relaunching fresh, batch recomputed (stuck ${escalations}/${MAX_ESCALATIONS})`);
-        continue;
+      if (openAfter > 0) {
+        finishJobAndMaybeChain(`EXECUTE batch ${batch.join(",")} done — ${openAfter} checklist step(s) remaining`);
+        return;
       }
-      log(`EXECUTE result: ${result}`); // "Batch done" or "Batch stopped (preCompact) ..." -> loop re-reads
+      log("all checklist steps complete — chaining FINALIZE to a fresh GHA job");
+      finishJobAndMaybeChain("EXECUTE complete — next run will FINALIZE");
+      return;
     }
+
+    log("all checklist steps complete — this run will FINALIZE");
   } else {
     log("ticket already archived to done/ — skipping PLAN/EXECUTE; running idempotent FINALIZE to verify.");
   }
@@ -136,11 +155,17 @@ let current = null; // { agentId, runId } of the in-flight run, for cancellation
   await gate();
   await runPhaseWithEscalation("FINALIZE", () => finalizePrompt(alreadyArchived ? doneTicket : TICKET), /^Finalized\b/i);
 
+  metrics.setSessionStatus("completed");
   log("✅ Conductor done. Review and merge the PR (it is intentionally left open).");
-})().catch((e) => { log(`fatal: ${e.stack || e.message}`); process.exit(1); });
+})().catch((e) => {
+  try { metrics.setSessionStatus("failed"); } catch { /* best-effort */ }
+  log(`fatal: ${e.stack || e.message}`);
+  process.exit(1);
+});
 
 // ---------------------------------------------------------------- phases
-async function runPhase(label, prompt) {
+async function runPhase(label, prompt, outcomeHint) {
+  const startedAt = Date.now();
   log(`▶ ${label}: launching cloud agent (model=${MODEL || "account default (unset)"})`);
   // Model resolution: an empty MODEL omits `model`, so Cursor uses the configured default
   // (user -> team -> system). Any non-empty value is passed through as `model.id` — an explicit id
@@ -157,13 +182,41 @@ async function runPhase(label, prompt) {
   const agentId = created.agent?.id ?? created.id;
   const runId = created.run?.id ?? created.latestRunId ?? created.run?.runId;
   if (!agentId || !runId) throw new Error(`unexpected create response: ${JSON.stringify(created).slice(0, 300)}`);
-  current = { agentId, runId };
-  log(`  agent=${agentId} run=${runId} ${created.agent?.url ? `url=${created.agent.url}` : ""}`);
+  const agentUrl = created.agent?.url ?? null;
+  current = { agentId, runId, label, startedAt, agentUrl };
+  log(`  agent=${agentId} run=${runId} ${agentUrl ? `url=${agentUrl}` : ""}`);
 
   const text = await poll(agentId, runId);
   current = null;
   await logUsage(agentId);
+  const outcome = outcomeHint || (text.startsWith("ESCALATE") ? "escalate" : "success");
+  await metrics.recordPhase({ label, startedAt, agentId, runId, agentUrl, result: text, outcome });
   return text;
+}
+
+// EXECUTE: one batch with in-job retries on ESCALATE / run-error (no multi-batch loop in one GHA job).
+async function runExecuteBatch(batch) {
+  for (let attempt = 0; ; attempt++) {
+    await gate();
+    let result;
+    try {
+      result = await runPhase(
+        attempt ? `EXECUTE ${batch.join(",")} (retry ${attempt})` : `EXECUTE ${batch.join(",")}`,
+        stepPrompt(batch),
+      );
+    } catch (e) {
+      if (attempt >= MAX_ESCALATIONS) fail(`EXECUTE run error after ${attempt} retries: ${e.message}`);
+      log(`run error (${e.message}); relaunching fresh (${attempt + 1}/${MAX_ESCALATIONS})`);
+      continue;
+    }
+    if (result.startsWith("ESCALATE")) {
+      if (attempt >= MAX_ESCALATIONS) fail(`EXECUTE escalated ${attempt + 1}x: ${result}`);
+      log(`escalated (${result}); relaunching fresh (${attempt + 1}/${MAX_ESCALATIONS})`);
+      continue;
+    }
+    log(`EXECUTE result: ${result}`);
+    return result;
+  }
 }
 
 // PLAN / FINALIZE: fixed prompt, relaunch fresh on ESCALATE / run-error / unexpected result up to
@@ -188,6 +241,7 @@ async function runPhaseWithEscalation(label, makePrompt, expect) {
     if (expect && !expect.test(result)) {
       if (attempt >= MAX_ESCALATIONS) fail(`${label} unexpected result after ${attempt} retries: "${result}"`);
       log(`unexpected result ("${result}"); relaunching fresh (${attempt + 1}/${MAX_ESCALATIONS})`);
+      // Phase already recorded with outcome=success; next retry creates a new phase entry.
       continue;
     }
     log(`${label} result: ${result}`);
@@ -323,10 +377,37 @@ function controlSignal() {
 }
 
 // Called at every phase boundary: honor stop/pause labels on the tracking issue.
+async function recordInflightPhase(outcome, result) {
+  if (!current) return;
+  const snap = { ...current };
+  current = null;
+  try {
+    await logUsage(snap.agentId);
+    await metrics.recordPhase({
+      label: snap.label,
+      startedAt: snap.startedAt,
+      agentId: snap.agentId,
+      runId: snap.runId,
+      agentUrl: snap.agentUrl,
+      result,
+      outcome,
+    });
+    log(`  metrics: recorded in-flight ${snap.label} (${outcome})`);
+  } catch (e) {
+    log(`  metrics: in-flight record failed (${e.message})`);
+  }
+}
+
 async function gate() {
   for (;;) {
     const s = controlSignal();
-    if (s === "stop") { log("⛔ conductor:stop — cancelling and exiting."); await cancelCurrent(); process.exit(3); }
+    if (s === "stop") {
+      log("⛔ conductor:stop — cancelling and exiting.");
+      await cancelCurrent();
+      await recordInflightPhase("cancelled", "Stopped via conductor:stop label");
+      try { metrics.setSessionStatus("cancelled"); } catch { /* best-effort */ }
+      process.exit(3);
+    }
     if (s === "pause") { log("⏸ conductor:pause — waiting (remove the label to resume)…"); await sleep(30000); continue; }
     return;
   }
@@ -345,8 +426,13 @@ async function cancelCurrent() {
 // Hard stop: cancelling the GitHub Actions run sends SIGINT/SIGTERM — cancel the live agent first.
 for (const signal of ["SIGINT", "SIGTERM"]) {
   process.on(signal, async () => {
-    log(`signal ${signal} — cancelling the in-flight run before exit.`);
+    log(`signal ${signal} — recording in-flight phase, cancelling agent, exiting.`);
     await cancelCurrent();
+    await recordInflightPhase(
+      "cancelled",
+      "GitHub Actions job cancelled (hosted runner limit or manual cancel)",
+    );
+    try { metrics.setSessionStatus("cancelled"); } catch { /* best-effort */ }
     process.exit(130);
   });
 }
@@ -384,6 +470,41 @@ function pullBranch() {
 // True if a PR for this feature branch is open OR already merged — makes audit runs resume-safe (audits
 // deliver a report + PR, not a ticket, so there is no ticket file to detect completed work). A closed-
 // but-unmerged PR (a rejected audit) does NOT count, so the audit can legitimately be re-run.
+// Dispatch a fresh workflow run with the same inputs so the next job resumes from ticket state.
+function finishJobAndMaybeChain(reason) {
+  if (!AUTO_CHAIN) {
+    log(`⏭ auto_chain=false — stopping (${reason}). Re-dispatch manually to continue.`);
+    return;
+  }
+  chainWorkflow(reason);
+}
+
+function chainWorkflow(reason) {
+  log(`🔗 chaining next workflow run — ${reason}`);
+  const args = ["workflow", "run", WORKFLOW_FILE, "--ref", WORKFLOW_REF];
+  const field = (flag, value) => {
+    if (value !== undefined && value !== "") args.push("-f", `${flag}=${value}`);
+  };
+  field("task_prompt", TASK_PROMPT);
+  field("title", TITLE);
+  field("issue", ISSUE);
+  field("slug", SLUG);
+  field("base", BASE);
+  field("branch", BRANCH);
+  field("batch_budget", String(BUDGET));
+  field("model", MODEL);
+  field("mode", MODE_INPUT);
+  field("session_id", metrics.getSessionId());
+  args.push("-f", `auto_chain=${AUTO_CHAIN ? "true" : "false"}`);
+  try {
+    execFileSync("gh", args, { stdio: ["ignore", "pipe", "pipe"], encoding: "utf8" });
+    log("  next workflow run dispatched.");
+  } catch (e) {
+    const detail = e.stderr?.trim() || e.stdout?.trim() || e.message;
+    fail(`failed to chain next workflow run: ${detail}`);
+  }
+}
+
 function donePrExists() {
   try {
     return Number(sh(`gh pr list --head ${BRANCH} --base ${BASE} --state all --json state --jq '[.[] | select(.state=="OPEN" or .state=="MERGED")] | length'`)) > 0;
@@ -424,4 +545,15 @@ function required(name) {
 function validate(name, val, re) {
   if (val && !re.test(val)) { console.error(`Invalid ${name}: ${val}`); process.exit(1); }
 }
-function fail(msg) { log(`❌ ${msg}`); process.exit(2); }
+function parseBool(raw, defaultValue) {
+  if (raw === undefined || raw === "") return defaultValue;
+  const v = String(raw).trim().toLowerCase();
+  if (v === "true" || v === "1" || v === "yes") return true;
+  if (v === "false" || v === "0" || v === "no") return false;
+  fail(`Invalid AUTO_CHAIN: ${raw} (use true/false)`);
+}
+function fail(msg) {
+  log(`❌ ${msg}`);
+  try { metrics.setSessionStatus("failed"); } catch { /* best-effort */ }
+  process.exit(2);
+}

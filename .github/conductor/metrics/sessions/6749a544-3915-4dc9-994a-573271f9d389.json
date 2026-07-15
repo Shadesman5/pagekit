@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "6749a544-3915-4dc9-994a-573271f9d389",
+  "roadmapStepId": "2.0.7",
+  "title": "↳ Event Dispatcher Bridge Removal",
+  "taskSlug": null,
+  "taskPrompt": null,
+  "issue": 184,
+  "branch": null,
+  "model": null,
+  "status": "completed",
+  "startedAt": "2026-04-27T21:27:02.790Z",
+  "completedAt": "2026-04-27T21:46:43.513Z",
+  "phases": [
+    {
+      "phaseKey": "manual-bc-bbc6eba3-f961-4133-8a33-338bec5b6844-PR #195",
+      "type": "MANUAL",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-04-27T21:27:02.790Z",
+      "durationMs": 1110240,
+      "agent": {
+        "id": "bc-bbc6eba3-f961-4133-8a33-338bec5b6844",
+        "runId": "run-7b72c86d-8f4f-420f-a891-80a63420f429",
+        "url": "https://cursor.com/agents/bc-bbc6eba3-f961-4133-8a33-338bec5b6844",
+        "model": null,
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-7b72c86d-8f4f-420f-a891-80a63420f429",
+            "index": 1,
+            "startedAt": "2026-04-27T21:27:02.790Z",
+            "completedAt": "2026-04-27T21:46:43.513Z",
+            "durationMs": 1110240,
+            "tokens": {
+              "input": 842,
+              "output": 45637,
+              "cacheRead": 5308153,
+              "cacheWrite": 297300,
+              "total": 5651932
+            }
+          }
+        ]
+      },
+      "github": null,
+      "tokens": {
+        "input": 842,
+        "output": 45637,
+        "cacheRead": 5308153,
+        "cacheWrite": 297300,
+        "total": 5651932
+      },
+      "tokensSource": "cursor-api-manual",
+      "result": "Imported manually (pre-Conductor cloud agent)",
+      "outcome": "success",
+      "manualImport": true,
+      "notes": "Manual import via import-manual-agents.mjs · Timing from Cursor API (single agent run)",
+      "completedAt": "2026-04-27T21:46:43.513Z"
+    }
+  ],
+  "totals": {
+    "tokens": {
+      "input": 842,
+      "output": 45637,
+      "cacheRead": 5308153,
+      "cacheWrite": 297300,
+      "total": 5651932
+    },
+    "durationMs": 1110240,
+    "phaseCount": 1,
+    "escalations": 0,
+    "ghaJobs": 1,
+    "cloudAgents": 1
+  },
+  "manualImport": {
+    "at": "2026-07-14T17:14:14.754Z",
+    "source": "import-manual-agents.mjs",
+    "note": "Pre-Conductor cloud agent run(s)"
+  }
+}

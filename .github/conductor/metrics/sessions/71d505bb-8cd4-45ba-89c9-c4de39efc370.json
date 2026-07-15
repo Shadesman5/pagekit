@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "71d505bb-8cd4-45ba-89c9-c4de39efc370",
+  "roadmapStepId": "2.1.2",
+  "title": "↳ CI/CD Integration & Quality Gates",
+  "taskSlug": null,
+  "taskPrompt": null,
+  "issue": 149,
+  "branch": null,
+  "model": null,
+  "status": "completed",
+  "startedAt": "2026-04-29T00:42:04.528Z",
+  "completedAt": "2026-04-29T02:15:06.524Z",
+  "phases": [
+    {
+      "phaseKey": "manual-bc-3ac0eb7a-0efd-4c23-8ac1-2ad3901089d5-PR #199",
+      "type": "MANUAL",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-04-29T00:42:04.528Z",
+      "durationMs": 4043880,
+      "agent": {
+        "id": "bc-3ac0eb7a-0efd-4c23-8ac1-2ad3901089d5",
+        "runId": "run-da665e77-f6d8-4cdd-87f3-c52727b25cf8",
+        "url": "https://cursor.com/agents/bc-3ac0eb7a-0efd-4c23-8ac1-2ad3901089d5",
+        "model": null,
+        "runCount": 3,
+        "runs": [
+          {
+            "runId": "run-ad95dd9c-01ce-41b6-a41d-f866d6af9def",
+            "index": 1,
+            "startedAt": "2026-04-29T00:42:04.528Z",
+            "completedAt": "2026-04-29T01:07:50.556Z",
+            "durationMs": 1478905,
+            "tokens": {
+              "input": 956,
+              "output": 60866,
+              "cacheRead": 7364008,
+              "cacheWrite": 417770,
+              "total": 7843600
+            }
+          },
+          {
+            "runId": "run-5ddafc02-3525-4f61-933f-051fce0684e7",
+            "index": 2,
+            "startedAt": "2026-04-29T01:23:08.807Z",
+            "completedAt": "2026-04-29T02:01:11.367Z",
+            "durationMs": 2282072,
+            "tokens": {
+              "input": 671,
+              "output": 106406,
+              "cacheRead": 15693407,
+              "cacheWrite": 663392,
+              "total": 16463876
+            }
+          },
+          {
+            "runId": "run-da665e77-f6d8-4cdd-87f3-c52727b25cf8",
+            "index": 3,
+            "startedAt": "2026-04-29T02:10:23.030Z",
+            "completedAt": "2026-04-29T02:15:06.524Z",
+            "durationMs": 282903,
+            "tokens": {
+              "input": 7017,
+              "output": 8730,
+              "cacheRead": 1960799,
+              "cacheWrite": 264813,
+              "total": 2241359
+            }
+          }
+        ]
+      },
+      "github": null,
+      "tokens": {
+        "input": 8644,
+        "output": 176002,
+        "cacheRead": 25018214,
+        "cacheWrite": 1345975,
+        "total": 26548835
+      },
+      "tokensSource": "cursor-api-manual",
+      "result": "Imported manually (pre-Conductor cloud agent)",
+      "outcome": "success",
+      "manualImport": true,
+      "notes": "Manual import via import-manual-agents.mjs · Timing from Cursor API (3 agent runs aggregated)",
+      "completedAt": "2026-04-29T02:15:06.524Z"
+    }
+  ],
+  "totals": {
+    "tokens": {
+      "input": 8644,
+      "output": 176002,
+      "cacheRead": 25018214,
+      "cacheWrite": 1345975,
+      "total": 26548835
+    },
+    "durationMs": 4043880,
+    "phaseCount": 1,
+    "escalations": 0,
+    "ghaJobs": 1,
+    "cloudAgents": 1
+  },
+  "manualImport": {
+    "at": "2026-07-14T17:14:04.552Z",
+    "source": "import-manual-agents.mjs",
+    "note": "Pre-Conductor cloud agent run(s)"
+  }
+}

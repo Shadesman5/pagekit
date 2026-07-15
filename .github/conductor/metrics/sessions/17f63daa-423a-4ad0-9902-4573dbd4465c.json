@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "17f63daa-423a-4ad0-9902-4573dbd4465c",
+  "roadmapStepId": "2.1.3",
+  "title": "↳ `strict_types` Migration",
+  "taskSlug": null,
+  "taskPrompt": null,
+  "issue": 150,
+  "branch": null,
+  "model": null,
+  "status": "completed",
+  "startedAt": "2026-04-30T22:21:27.293Z",
+  "completedAt": "2026-05-01T01:18:26.163Z",
+  "phases": [
+    {
+      "phaseKey": "manual-bc-7ecaf95d-ba92-4d4b-bb10-d05838ffadaa-PR #201",
+      "type": "MANUAL",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-04-30T22:21:27.293Z",
+      "durationMs": 7935333,
+      "agent": {
+        "id": "bc-7ecaf95d-ba92-4d4b-bb10-d05838ffadaa",
+        "runId": "run-3a1ffcfe-d825-4341-ba7d-d279989bf6ea",
+        "url": "https://cursor.com/agents/bc-7ecaf95d-ba92-4d4b-bb10-d05838ffadaa",
+        "model": null,
+        "runCount": 5,
+        "runs": [
+          {
+            "runId": "run-53c77773-68f7-4a21-b1ab-1590fc44127f",
+            "index": 1,
+            "startedAt": "2026-04-30T22:21:27.293Z",
+            "completedAt": "2026-04-30T23:52:51.985Z",
+            "durationMs": 5419564,
+            "tokens": {
+              "input": 1726,
+              "output": 208029,
+              "cacheRead": 71667052,
+              "cacheWrite": 2041270,
+              "total": 73918077
+            }
+          },
+          {
+            "runId": "run-660026d1-8d5b-43c7-82bf-754afeee36e3",
+            "index": 2,
+            "startedAt": "2026-05-01T00:13:00.396Z",
+            "completedAt": "2026-05-01T00:25:10.671Z",
+            "durationMs": 729746,
+            "tokens": {
+              "input": 1656,
+              "output": 24527,
+              "cacheRead": 10009929,
+              "cacheWrite": 698022,
+              "total": 10734134
+            }
+          },
+          {
+            "runId": "run-9c937fbb-a4fb-484e-bdab-b81103f0d700",
+            "index": 3,
+            "startedAt": "2026-05-01T00:41:15.420Z",
+            "completedAt": "2026-05-01T00:53:40.269Z",
+            "durationMs": 744328,
+            "tokens": {
+              "input": 705,
+              "output": 26965,
+              "cacheRead": 11650939,
+              "cacheWrite": 752905,
+              "total": 12431514
+            }
+          },
+          {
+            "runId": "run-bc221866-bea5-43e3-8814-d28bceeb26ea",
+            "index": 4,
+            "startedAt": "2026-05-01T01:01:03.995Z",
+            "completedAt": "2026-05-01T01:03:51.701Z",
+            "durationMs": 167232,
+            "tokens": {
+              "input": 3384,
+              "output": 42722,
+              "cacheRead": 15109762,
+              "cacheWrite": 816277,
+              "total": 15972145
+            }
+          },
+          {
+            "runId": "run-3a1ffcfe-d825-4341-ba7d-d279989bf6ea",
+            "index": 5,
+            "startedAt": "2026-05-01T01:03:51.094Z",
+            "completedAt": "2026-05-01T01:18:26.163Z",
+            "durationMs": 874463,
+            "tokens": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          }
+        ]
+      },
+      "github": null,
+      "tokens": {
+        "input": 7471,
+        "output": 302243,
+        "cacheRead": 108437682,
+        "cacheWrite": 4308474,
+        "total": 113055870
+      },
+      "tokensSource": "cursor-api-manual",
+      "result": "Imported manually (pre-Conductor cloud agent)",
+      "outcome": "success",
+      "manualImport": true,
+      "notes": "Manual import via import-manual-agents.mjs · Timing from Cursor API (5 agent runs aggregated)",
+      "completedAt": "2026-05-01T01:18:26.163Z"
+    }
+  ],
+  "totals": {
+    "tokens": {
+      "input": 7471,
+      "output": 302243,
+      "cacheRead": 108437682,
+      "cacheWrite": 4308474,
+      "total": 113055870
+    },
+    "durationMs": 7935333,
+    "phaseCount": 1,
+    "escalations": 0,
+    "ghaJobs": 1,
+    "cloudAgents": 1
+  },
+  "manualImport": {
+    "at": "2026-07-14T17:14:05.633Z",
+    "source": "import-manual-agents.mjs",
+    "note": "Pre-Conductor cloud agent run(s)"
+  }
+}
