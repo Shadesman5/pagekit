@@ -70,8 +70,15 @@ def on_serve(server, config, builder, **kwargs) -> None:
     repo_root = Path(config.config_file_path).resolve().parent.parent
     metrics_live = repo_root / ".github" / "conductor" / "metrics"
     quality_dir = repo_root / ".github" / "quality"
-    # Refresh site/conductor-metrics/ when metrics change during mkdocs serve.
-    if metrics_live.is_dir():
-        server.watch(str(metrics_live), lambda: _copy_assets(config))
+    # MkDocs ≥1.6: watch() no longer accepts a rebuild callback (TypeError). Watching a
+    # path triggers a full rebuild, which re-runs on_pre_build / on_post_build → _copy_assets.
+    # Watch sessions/ + index.json only — sync-roadmap-snapshot writes roadmap-snapshot.json
+    # during build; watching the whole metrics/ dir would loop rebuilds.
+    sessions = metrics_live / "sessions"
+    index = metrics_live / "index.json"
+    if sessions.is_dir():
+        server.watch(str(sessions))
+    if index.is_file():
+        server.watch(str(index))
     if quality_dir.is_dir():
-        server.watch(str(quality_dir), lambda: _copy_assets(config))
+        server.watch(str(quality_dir))
