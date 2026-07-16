@@ -34,6 +34,8 @@ def _copy_assets(config) -> None:
     repo_root = Path(config.config_file_path).resolve().parent.parent
     docs_root = Path(config.config_file_path).resolve().parent
     site_dir = Path(config.site_dir)
+    # on_pre_build runs before MkDocs creates site_dir (fresh CI / clean build).
+    site_dir.mkdir(parents=True, exist_ok=True)
 
     _sync_roadmap_snapshot(repo_root)
 
