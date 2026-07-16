@@ -17,8 +17,12 @@ class EntityManager
 
     protected EventDispatcherInterface $events;
 
-    // TODO: Must be refactored in Step 2.1.11 (EntityManager DI)
-    private static ?self $instance = null;
+    /**
+     * Per-EntityManager cache of generic repositories, keyed by entity class.
+     *
+     * @var array<class-string, Repository<object>>
+     */
+    private array $repositories = [];
 
     /**
      * Creates a new Manager instance
@@ -32,8 +36,6 @@ class EntityManager
         $this->connection = $connection;
         $this->metadata = $metadata;
         $this->events = $events ?: new PrefixEventDispatcher('model.');
-
-        self::$instance = $this;
     }
 
     /**
@@ -63,6 +65,29 @@ class EntityManager
     }
 
     /**
+     * Gets the generic repository for an entity class.
+     *
+     * One instance is created and cached per class on this EntityManager (no
+     * static state). Custom repositories with extra finders are registered as
+     * container services, not built here.
+     *
+     * @template T of object
+     * @param  class-string<T> $entity
+     * @return Repository<T>
+     */
+    public function getRepository(string $entity): Repository
+    {
+        if (!isset($this->repositories[$entity])) {
+            $this->repositories[$entity] = new Repository($this, $this->getMetadata($entity));
+        }
+
+        /** @var Repository<T> $repository */
+        $repository = $this->repositories[$entity];
+
+        return $repository;
+    }
+
+    /**
      * Retrieve an entity by its identifier.
      *
      * @template T of object
@@ -72,17 +97,7 @@ class EntityManager
      */
     public function find(string $entity, int|string $identifier): ?object
     {
-        $callable = "{$entity}::find";
-        if (is_callable($callable)) {
-            $result = call_user_func($callable, $identifier);
-
-            /** @var T|null $result */
-            $result = is_object($result) ? $result : null;
-
-            return $result;
-        }
-
-        return null;
+        return $this->getRepository($entity)->find($identifier);
     }
 
     /**
@@ -253,8 +268,22 @@ class EntityManager
      */
     public function load(Metadata $metadata, array $data, bool $column = false, bool $convert = false): object
     {
+        $class = $metadata->getClass();
         $entity = $metadata->newInstance();
+
+        if (!$entity instanceof $class) {
+            throw new \LogicException(sprintf(
+                'EntityManager::load() expected an instance of %s, got %s.',
+                $class,
+                get_class($entity)
+            ));
+        }
+
         $metadata->setValues($entity, $data, $column, $convert);
+
+        if ($entity instanceof SerializableModelInterface) {
+            $entity->setSerializationMap($metadata->getSerializationMap());
+        }
 
         $this->trigger(Events::INIT, $metadata, [$entity]);
 
@@ -262,19 +291,18 @@ class EntityManager
     }
 
     /**
-     * Dispatches an event to all registered listeners.
+     * Dispatches an entity lifecycle event to all registered listeners.
+     *
+     * The emitted {@see EntityEvent} carries this EntityManager, so lifecycle
+     * handlers can reach queries and persistence via DI instead of statics.
      *
      * @param array<int, mixed> $arguments
      */
     public function trigger(string $name, Metadata $metadata, array $arguments): void
     {
-        $this->events->trigger("{$metadata->getEventPrefix()}.{$name}", $arguments);
-    }
+        $event = new EntityEvent("{$metadata->getEventPrefix()}.{$name}", $this);
 
-    // TODO: Must be refactored in Step 2.1.11 (EntityManager DI)
-    public static function getInstance(): ?self
-    {
-        return self::$instance;
+        $this->events->trigger($event, $arguments);
     }
 
     /**

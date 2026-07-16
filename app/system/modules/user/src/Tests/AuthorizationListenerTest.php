@@ -13,6 +13,7 @@ use Pagekit\Auth\UserInterface;
 use Pagekit\User\Auth\UserProvider;
 use Pagekit\User\Event\AuthorizationListener;
 use Pagekit\User\Model\User;
+use Pagekit\User\Model\UserRepository;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
@@ -28,12 +29,10 @@ use Symfony\Component\HttpFoundation\Session\SessionInterface;
  * state is exercised with real `User` entities (`status` + `login` are public),
  * which keeps `isBlocked()` and the `$user->login` ternary honest.
  *
- * `__()` resolution (ticket discovery note 5): `onAuthorize()` throws
- * `AuthException(__('...'))` via the UNQUALIFIED helper. `AuthorizationListener`
- * lives in `Pagekit\User\Event` and imports no `use function`, so PHP's fallback
- * rule resolves `__()` to the GLOBAL `\__()` — not `Pagekit\__()` (the exact same
- * resolution already relied on by Step 6's LoginAttemptListenerTest, which is in
- * this namespace and passes). {@see setUp} pulls in the shared passthrough stub
+ * `__()` resolution: `onAuthorize()` throws `AuthException(__('...'))` via the
+ * UNQUALIFIED helper. `AuthorizationListener` lives in `Pagekit\User\Event` and
+ * imports no `use function`, so PHP's fallback rule resolves `__()` to the GLOBAL
+ * `\__()` — not `Pagekit\__()`. {@see setUp} pulls in the shared passthrough stub
  * from Tests/bootstrap.php (guarded `if (!function_exists('__'))`); no
  * `Pagekit\__()` stub is required.
  */
@@ -52,13 +51,14 @@ class AuthorizationListenerTest extends TestCase
 
     public function testOnSystemInitRegistersUserProviderBackedByAuthEncoder(): void
     {
-        [$listener, $auth, $encoder] = $this->make();
+        [$listener, $auth, $encoder, , $users] = $this->make();
 
         $auth->expects($this->once())
             ->method('setUserProvider')
-            ->with($this->callback(function (mixed $provider) use ($encoder): bool {
+            ->with($this->callback(function (mixed $provider) use ($encoder, $users): bool {
                 return $provider instanceof UserProvider
-                    && (new \ReflectionProperty(UserProvider::class, 'encoder'))->getValue($provider) === $encoder;
+                    && (new \ReflectionProperty(UserProvider::class, 'encoder'))->getValue($provider) === $encoder
+                    && (new \ReflectionProperty(UserProvider::class, 'users'))->getValue($provider) === $users;
             }));
 
         $listener->onSystemInit();
@@ -225,7 +225,8 @@ class AuthorizationListenerTest extends TestCase
      *     0: AuthorizationListener,
      *     1: Auth&MockObject,
      *     2: PasswordEncoderInterface&MockObject,
-     *     3: SessionInterface&MockObject
+     *     3: SessionInterface&MockObject,
+     *     4: UserRepository&MockObject
      * }
      */
     private function make(): array
@@ -233,7 +234,8 @@ class AuthorizationListenerTest extends TestCase
         $auth = $this->createMock(Auth::class);
         $encoder = $this->createMock(PasswordEncoderInterface::class);
         $session = $this->createMock(SessionInterface::class);
+        $users = $this->createMock(UserRepository::class);
 
-        return [new AuthorizationListener($auth, $encoder, $session), $auth, $encoder, $session];
+        return [new AuthorizationListener($auth, $encoder, $session, $users), $auth, $encoder, $session, $users];
     }
 }

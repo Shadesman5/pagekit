@@ -6,6 +6,7 @@ namespace Pagekit\User\Model;
 
 use Pagekit\Auth\UserInterface;
 use Pagekit\Database\ORM\Attribute as ORM;
+use Pagekit\Database\ORM\SerializableModelInterface;
 use Pagekit\System\Model\DataModelTrait;
 use Pagekit\System\Validator\Constraints as PagekitAssert;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -14,7 +15,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * User entity with PHP 8 Attributes for ORM and Validation.
  */
 #[ORM\Entity(tableClass: '@system_user')]
-class User implements UserInterface, \JsonSerializable
+class User implements UserInterface, \JsonSerializable, SerializableModelInterface
 {
     use AccessModelTrait;
     use DataModelTrait;
@@ -97,6 +98,9 @@ class User implements UserInterface, \JsonSerializable
 
     /** @var array<int, string>|null */
     protected ?array $permissions = null;
+
+    /** @var (\Closure(array<int, int>): array<int|string, Role>)|null */
+    private ?\Closure $roleLoader = null;
 
     /**
      * {@inheritdoc}
@@ -181,17 +185,32 @@ class User implements UserInterface, \JsonSerializable
     }
 
     /**
+     * Attaches the per-instance role loader wired by {@see UserModelTrait::init()}.
+     *
+     * @param \Closure(array<int, int>): array<int|string, Role> $loader
+     */
+    public function setRoleLoader(\Closure $loader): void
+    {
+        $this->roleLoader = $loader;
+    }
+
+    /**
      * Check if the user has access for a provided permission identifier
      */
     public function hasPermission(string $permission): bool
     {
         if ($this->permissions === null) {
 
-            $this->permissions = [];
-            foreach (self::findRoles($this) as $role) {
-                $this->permissions = array_merge($this->permissions, $role->permissions);
+            if ($this->roleLoader === null) {
+                throw new \LogicException('No role loader attached; the user was not hydrated through EntityManager::load().');
             }
 
+            $permissions = [];
+            foreach (($this->roleLoader)($this->roles) as $role) {
+                $permissions = array_merge($permissions, $role->permissions);
+            }
+
+            $this->permissions = $permissions;
         }
 
         return in_array($permission, $this->permissions);

@@ -15,19 +15,18 @@ use PHPUnit\Framework\TestCase;
  * mock of `User` that stubs `isAdministrator()` and `hasPermission()` so the
  * tests stay pure unit tests (no DB, no kernel, no container).
  *
- * Infection resolution (Step 2.1.9): the User boolean-parser ignores that Step
- * 2.1.8 registered in infection.json.dist have been removed and every mutant is
- * killed outright -- no ignores, no `Equivalent` entries. Two mechanisms cooperate:
+ * Infection: parser ignores in infection.json.dist are removed and every mutant
+ * is killed outright — no ignores, no `Equivalent` entries. Two mechanisms
+ * cooperate:
  *
- *   1. `failOnWarning="true"` (flipped in phpunit.xml.dist this step). Every parser
- *      character read is guarded by `$pos < $len` / `$pos >= $len`; a mutated
- *      boundary (`<`->`<=`, `>=`->`>`) reads `$exp[$len]`, an out-of-bounds access
- *      emitting an "Uninitialized string offset" warning that now fails the run.
- *      This flip alone is NOT sufficient: before this step no test drove `$pos` to
- *      `$len` at those guards, so the warning never fired and the mutants escaped
- *      (the Step 6 Tester finding).
- *   2. Explicit boundary tests supply the missing triggering inputs so the
- *      out-of-bounds reads actually execute under each mutant:
+ *   1. `failOnWarning="true"` in phpunit.xml.dist. Every parser character read is
+ *      guarded by `$pos < $len` / `$pos >= $len`; a mutated boundary (`<`->`<=`,
+ *      `>=`->`>`) reads `$exp[$len]`, an out-of-bounds access emitting an
+ *      "Uninitialized string offset" warning that fails the run. That alone is
+ *      not enough: tests must drive `$pos` to `$len` at those guards so the
+ *      warning actually fires.
+ *   2. Explicit boundary tests supply those triggering inputs so the
+ *      out-of-bounds reads execute under each mutant:
  *        - testEvaluatorRejectsTrailingOrPipe       ('1|') -> LessThan parseOrExpr:275
  *        - testEvaluatorRejectsTrailingAndAmpersand  ('1&') -> LessThan parseAndExpr:291
  *        - testEvaluatorRejectsBareNot               ('!')  -> LessThan parseNotExpr:303
@@ -182,9 +181,9 @@ class UserAccessTest extends TestCase
         $this->evaluate('&');
     }
 
-    // Boundary inputs (Step 2.1.9): each drives `$pos` to `$len` at a specific
-    // parser guard so the previously-masked Infection mutants are killed. See the
-    // class docblock for the full mutant-to-test mapping.
+    // Boundary inputs: each drives `$pos` to `$len` at a specific parser guard
+    // so Infection boundary mutants are killed. See the class docblock for the
+    // mutant-to-test mapping.
 
     /**
      * A trailing single `|` ('1|') is consumed by parseOrExpr(), leaving

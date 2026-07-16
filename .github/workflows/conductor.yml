@@ -4,13 +4,15 @@ name: Conductor (V2)
 # message on the base branch (e.g. the previous merged PR), which is misleading for manual runs.
 run-name: "${{ inputs.title != '' && inputs.title || format('Conductor — {0}{1}', inputs.task_prompt, inputs.issue != '' && format(' (#{0})', inputs.issue) || '') }}"
 
-# Drives the V2 orchestrator pipeline: creates feature/<slug>, then launches ONE fresh
-# cloud agent per phase (Plan -> Execute batches -> Finalize) via the Cloud Agents API.
-# The loop lives here (plain Node, zero LLM context); the agents do the work.
+# Drives the V2 orchestrator pipeline: creates feature/<slug>, then launches ONE fresh cloud agent
+# per GitHub Actions job (Plan, or one Execute batch, or Finalize) via the Cloud Agents API.
+# When auto_chain=true (default), each job dispatches the next run automatically so every job stays
+# under GitHub's 360-minute hosted-runner cap. batch_budget still controls how many checklist steps
+# (by S/M/L weight) fit into a single Execute cloud-agent run.
 #
 # Security:
 #   - workflow_dispatch only -> only users with write access can start it (no public trigger).
-#   - Minimal GITHUB_TOKEN permissions (create the feature branch + read control labels).
+#   - Minimal GITHUB_TOKEN permissions (create the feature branch + read control labels + chain runs).
 #   - CURSOR_API_KEY is a GitHub Actions secret, only exposed to the run step's env.
 #   - The conductor script validates all inputs before using them in shell commands.
 
@@ -61,11 +63,22 @@ on:
           - auto
           - full
           - plan
+      auto_chain:
+        description: "After each phase/batch, automatically dispatch the next workflow run (default true). Set false to pause between jobs."
+        required: false
+        default: true
+        type: boolean
+      session_id:
+        description: "Optional UUID v4 to resume or debug a metrics session. Leave empty — the Conductor auto-generates one per run and passes it through chained jobs."
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: write        # create/push the feature branch
-  issues: read           # read conductor:stop / conductor:pause control labels
-  pull-requests: read    # openPrExists() uses `gh pr list` to make audit runs resume-safe
+  actions: write       # chain the next workflow run via gh workflow run
+  issues: read         # read conductor:stop / conductor:pause control labels
+  pull-requests: read  # openPrExists() uses `gh pr list` to make audit runs resume-safe
 
 concurrency:
   group: conductor-${{ inputs.branch || inputs.slug || inputs.task_prompt }}
@@ -75,7 +88,7 @@ jobs:
   conduct:
     name: "${{ inputs.title != '' && inputs.title || format('Conductor — {0}', inputs.task_prompt) }}"
     runs-on: ubuntu-latest
-    timeout-minutes: 720   # safety cap; cancel the run to stop sooner (script cancels the live agent)
+    timeout-minutes: 360   # GitHub-hosted hard cap; one phase/batch per job keeps runs well under this
     steps:
       - name: Checkout base branch
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
@@ -97,4 +110,42 @@ jobs:
           BATCH_BUDGET: ${{ inputs.batch_budget }}
           MODEL: ${{ inputs.model }}
           MODE: ${{ inputs.mode }}
+          AUTO_CHAIN: ${{ inputs.auto_chain }}
+          TITLE: ${{ inputs.title }}
+          SESSION_ID: ${{ inputs.session_id }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_WORKFLOW: ${{ github.workflow }}
+          WORKFLOW_FILE: conductor.yml
+          WORKFLOW_REF: ${{ github.ref_name }}
         run: node .github/conductor/conductor.mjs
+
+      # After every job (success, failure, or 360m cancel): fill token gaps via the same Cursor /usage API.
+      # Checks out the feature branch where metrics live, enriches null phases, commits back.
+      - name: Enrich missing token metrics (Cursor API)
+        if: always()
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          SESSION_ID: ${{ inputs.session_id }}
+          TASK_PROMPT: ${{ inputs.task_prompt }}
+          SLUG: ${{ inputs.slug }}
+          BRANCH: ${{ inputs.branch || format('feature/{0}', inputs.slug != '' && inputs.slug || 'unknown') }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          SLUG="${SLUG:-$(basename "$TASK_PROMPT" .md)}"
+          FEATURE="${BRANCH:-feature/$SLUG}"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          if git ls-remote --heads origin "$FEATURE" | grep -q .; then
+            git fetch origin "$FEATURE"
+            git checkout -B "$FEATURE" "origin/$FEATURE"
+          else
+            echo "Feature branch $FEATURE not on origin yet — skipping metrics enrich checkout"
+            exit 0
+          fi
+          ARGS=""
+          if [ -n "$SESSION_ID" ]; then ARGS="--session $SESSION_ID"; fi
+          BRANCH="$FEATURE" node .github/conductor/enrich-metrics-cursor.mjs $ARGS --push || echo "Enrich step finished (no changes or non-fatal error)"

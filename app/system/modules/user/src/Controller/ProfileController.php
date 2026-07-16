@@ -14,6 +14,7 @@ use Pagekit\Routing\Attribute\Request as RequestAttr;
 use Pagekit\Routing\Router;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Model\User;
+use Pagekit\User\Model\UserRepository;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -33,6 +34,7 @@ class ProfileController
         private readonly Router $router,
         private readonly PasswordEncoderInterface $authPassword,
         protected readonly ValidatorInterface $validator,
+        private readonly UserRepository $userRepository,
     ) {
     }
 
@@ -72,7 +74,7 @@ class ProfileController
 
         try {
 
-            $user = User::find($this->user->id);
+            $user = $this->userRepository->find((int) $this->user->id);
             if ($user === null) {
                 throw new NotFoundHttpException();
             }
@@ -99,7 +101,7 @@ class ProfileController
 
             $this->validateOrFail($user);
 
-            $user->save();
+            $this->userRepository->save($user);
 
             return ['message' => 'success'];
 

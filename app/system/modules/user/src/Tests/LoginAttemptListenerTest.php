@@ -24,11 +24,9 @@ use Symfony\Component\Clock\MockClock;
  * object (its base ctor only stores a name + parameters), so it is constructed
  * for real rather than mocked.
  *
- * `__()` resolution: ticket discovery note 5 assumed the user listeners import
- * `use function Pagekit\__;` and thus need a namespaced stub. The shipped
- * `LoginAttemptListener` does NOT import it — it calls `__('Slow down a bit.')`
- * UNQUALIFIED, so (exactly like `User` in Step 5) PHP's fallback rule resolves it
- * to the GLOBAL `\__()`. {@see setUp} pulls in the shared passthrough stub from
+ * `__()` resolution: `LoginAttemptListener` calls `__('Slow down a bit.')`
+ * UNQUALIFIED with no `use function`, so PHP's fallback rule resolves it to the
+ * GLOBAL `\__()`. {@see setUp} pulls in the shared passthrough stub from
  * Tests/bootstrap.php; no `Pagekit\__()` stub is required.
  *
  * Boundary strategy for `count($attempts) >= ATTEMPTS && (clock->now() - $last) < DELAY`:
@@ -41,7 +39,7 @@ use Symfony\Component\Clock\MockClock;
  * pins the `>=` comparison and the `&&`. The two exact-gap cases inject a
  * {@see MockClock} so `(now - $last)` equals DELAY exactly (and DELAY - 1).
  *
- * Infection ignores (Step 2.1.8, see infection.json.dist `mutators`):
+ * Infection ignores (see infection.json.dist `mutators`):
  *   - LogicalAnd, CastInt, DecrementInteger, IncrementInteger at
  *     onPreAuthenticate:45 — on `is_array($attempts) && $attempts !== [] ?
  *     (int) end($attempts) : 0`, the cast is a no-op for the int timestamps the
@@ -49,12 +47,11 @@ use Symfony\Component\Clock\MockClock;
  *     `$attempts` is empty or non-array, where `count($attempts) >= ATTEMPTS` is
  *     already false (or count() itself TypeErrors). Equivalent.
  *
- * Step 2.1.9 (clock injection): the rate-limit boundary
- * `(clock->now() - $last) < DELAY` reads "now" via an injected PSR-20
- * {@see ClockInterface} (defaulting to a real {@see \Symfony\Component\Clock\Clock}),
- * so a {@see MockClock} makes the gap equal DELAY exactly. The boundary tests below
- * kill the LessThan mutant (`<` -> `<=`) that was previously ignored, so its
- * infection.json.dist entry has been removed.
+ * The rate-limit boundary `(clock->now() - $last) < DELAY` reads "now" via an
+ * injected PSR-20 {@see ClockInterface} (defaulting to a real
+ * {@see \Symfony\Component\Clock\Clock}), so a {@see MockClock} makes the gap
+ * equal DELAY exactly. The boundary tests below kill the LessThan mutant
+ * (`<` -> `<=`).
  */
 class LoginAttemptListenerTest extends TestCase
 {

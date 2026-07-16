@@ -18,6 +18,7 @@ use Pagekit\Session\Csrf\Provider\CsrfProviderInterface;
 use Pagekit\Session\MessageBag;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Model\User;
+use Pagekit\User\Model\UserRepository;
 use Pagekit\View\View;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
@@ -44,6 +45,7 @@ class RegistrationController
         private readonly Router $router,
         private readonly PasswordEncoderInterface $authPassword,
         protected readonly ValidatorInterface $validator,
+        private readonly UserRepository $userRepository,
     ) {
         $this->userModule = $this->module->get('system/user');
     }
@@ -93,7 +95,7 @@ class RegistrationController
                 throw new Exception(__('Password must be 6 characters or longer.'));
             }
 
-            $user = User::create([
+            $user = $this->userRepository->create([
                 'registered' => new \DateTime(),
                 'name' => @$data['name'],
                 'username' => @$data['username'],
@@ -113,7 +115,7 @@ class RegistrationController
 
             $this->validateOrFail($user, null, ['Default', 'registration']);
 
-            $user->save();
+            $this->userRepository->save($user);
 
             if ($verify) {
                 $this->sendVerificationMail($user);
@@ -142,17 +144,10 @@ class RegistrationController
     {
         $user = (empty($username) || empty($activation))
             ? null
-            : User::where(['username' => $username, 'activation' => $activation, 'login IS NULL'])->first();
+            : $this->userRepository->where(['username' => $username, 'activation' => $activation, 'login IS NULL'])->first();
 
         if ($user === null) {
             throw new BadRequestHttpException(__('Invalid key.'));
-        }
-        if (!$user instanceof User) {
-            throw new \LogicException(sprintf(
-                'QueryBuilder::first() returned %s, expected %s',
-                get_class($user),
-                User::class
-            ));
         }
 
         $verifying = false;
@@ -172,7 +167,7 @@ class RegistrationController
             $message = $verifying ? __('Your account has been activated.') : __('The user\'s account has been activated and the user has been notified about it.');
         }
 
-        $user->save();
+        $this->userRepository->save($user);
 
         $this->message->success((string) $message);
 

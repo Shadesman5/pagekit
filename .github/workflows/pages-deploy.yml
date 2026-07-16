@@ -14,6 +14,8 @@ on:
     paths:
       - 'docs-site/**'
       - '.github/quality/quality-snapshot.json'
+      - '.github/conductor/metrics/**'
+      - '.cursor/ROADMAP.md'
       - '.github/workflows/pages-deploy.yml'
   workflow_dispatch:
 

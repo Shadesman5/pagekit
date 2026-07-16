@@ -58,9 +58,9 @@ class DatabaseHandler implements HandlerInterface
             if (strtotime($data['access']) + $config['timeout'] < $this->clock->now()->getTimestamp()) {
 
                 if ($data['status'] == self::STATUS_REMEMBERED) {
-                    // AUDIT FIX Step 2.1.8: write() declares `bool $remember`; under strict_types the
-                    // int STATUS_REMEMBERED (2) raised a TypeError, breaking remembered-session renewal.
-                    // Re-issue the timed-out session while keeping it remembered.
+                    // write() takes `bool $remember`; under strict_types the int
+                    // STATUS_REMEMBERED (2) would TypeError. Re-issue the timed-out
+                    // session while keeping it remembered.
                     $this->write($data['user_id'], true);
                 } else {
                     return null;

@@ -1,5 +1,51 @@
 # Changelog
 
+## Pagekit 1.2.26 - EntityManager DI — remove singleton (Juli 14, 2026)
+
+### Added
+
+- **Generic `Repository<T>`** — `query`/`where`/`find`/`findAll`/`create`/`save`/`delete`/`removeRole(int)` with per-EM repository map on `EntityManager::getRepository()`. (Closes #205)
+- **`EntityEvent`** — lifecycle handlers receive the emitting `EntityManager` via `$event->getEntityManager()`.
+- **`SerializableModelInterface` + serialization map** — `Metadata::getSerializationMap()` injected at hydration; `toArray()`/`jsonSerialize()` map-only after Step 8.
+- **Custom repositories** — `NodeRepository` (cached finders + `fixOrphanedNodes`), `UserRepository` (auth finders + `findRoles`), `PostRepository` (`updateCommentInfo`, `getAuthors`).
+- **Container services** — `nodeRepository`, `pageRepository`, `userRepository`, `roleRepository`, `widgetRepository`, `postRepository`, `commentRepository` (constructor param names match service names).
+- **Per-instance role loader** — `User::hasPermission()` resolves roles through a closure attached at `#[ORM\Init]` hydration.
+- **Unit tests** — ORM core, site/user/widget/blog module migrations, lifecycle handlers, repositories, controllers; Finalize coverage-gap tests for user controllers + `AuthDataCollector`.
+
+### Changed
+
+- **Site, user, widget, blog modules** — all controllers, listeners, helpers, and auth chain migrated from static Active-Record finders to injected repositories.
+- **`NodeModelTrait` request cache (RC-2)** — moved to `NodeRepository` backed by `ArrayAdapter(0, false)`.
+- **`PositionHelper` function-statics** — become instance properties (`$activeWidgets` / `$renderedPositions`).
+- **`UserRepository::findRoles`** — `whereIn('id', …)` replaces string-interpolated `IN` SQL.
+- **`blog/UrlResolver`** — bridge swap: `Post::where()` → bridged `PostRepository` (`TEMPORARY BRIDGE — Step 2.5`).
+- **Blog baseline migration (RC-3)** — stale audit comment rewritten as permanent upgrade note (docs-only).
+
+### Removed
+
+- **`EntityManager` singleton** — `$instance`, ctor assignment, `getInstance()`.
+- **`ModelTrait` static Active-Record API** — `getManager()`, static finders, instance `save()`/`delete()`.
+- **`AccessModelTrait::removeRole()`** — logic lives on `Repository::removeRole(int)`.
+- **RC-1 eager `db.em` boot block** — `app/system/index.php` no longer force-resolves the EM at boot.
+- **Dead code** — `findByLogin`, per-site `instanceof` guards (central hydration guard), `RunInSeparateProcess`/`primeEntityManager*` test harnesses.
+
+### Breaking Changes (Extensions)
+
+- **Static model API removed.** Extensions calling `Model::find()` / `findAll()` / `where()` / `query()` / `create()` / instance `save()`/`delete()`, `ModelTrait::getManager()`, `EntityManager::getInstance()`, or `AccessModelTrait::removeRole()` will fatal. Migrate to container repository services or `$app->get('db.em')->getRepository(Entity::class)`.
+- **Serialization requires hydration.** Raw `new Entity(...)` then `toArray()`/`jsonSerialize()` throws `\LogicException`.
+
+### Phase 1 Audit
+
+- **Step 1.11 (ORM Modernization) — FULL:** `EntityManager` singleton + static Active-Record finding resolved. Row **⚠️ → 🛡️** (combined with Steps 2.0.8 + 2.1.6 + 2.1.10).
+
+### Deferred
+
+- `NodeRepository` cache invalidation on save → Step 4.3.
+- `UrlResolver` static bridge removal → Step 2.5.
+- Raw-entity JSON API responses → Step 4.2 presenters/DTOs.
+
+---
+
 ## Pagekit 1.2.25 - Entity Presentation Layer (Juli 10, 2026)
 
 ### Added

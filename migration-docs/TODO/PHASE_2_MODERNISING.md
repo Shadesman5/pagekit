@@ -121,6 +121,9 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 | 2.1.8  | Infection Mutation Testing        | 2-3 days      | Low         |
 | 2.1.9  | Test Coverage Expansion           | Ongoing       | Low         |
 | 2.1.10 | Entity Presentation Layer (DTO)   | 2-3 days      | Medium-High |
+| 2.1.11 | EntityManager DI (remove singleton) | 3-5 days   | High        |
+| 2.1.12 | Residual `mixed` narrowing        | 1 day         | Low         |
+| 2.1.13 | TinyMCE Security Patch (~5.10.9)  | 0.5-1 day     | Low         |
 
 ---
 
@@ -285,10 +288,12 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Testing notes**: detail in Prompt §4 — rework singleton-coupled ORM tests (`EntityManagerTest`, `UserProviderTest`); inject EM/repository with mocks (no kernel boot); Playwright CRUD at Final Test.
 - **Result**: Zero static singletons in the model layer; the `EntityManager` is obtained via DI; no boot-time side-effect hack.
 - **Risk**: High — ripples into every static model call site; requires an Architect design pass (Active-Record → Data-Mapper migration strategy) before the Refactorer starts.
-- **Explicit non-goals (defer)**:
-  - **ORM cache invalidation strategy** — Step 4.3 (`TagAwareCacheInterface`). Do not change `EntityManager::invalidateCache()` semantics here.
-  - **`blog/UrlResolver` static bridge** — Step 2.5. Out of scope.
-  - **Doctrine ORM swap** — non-goal. Remove global state in Pagekit's ORM only.
+- **Explicit non-goals (defer):**
+  - ORM cache invalidation / `NodeRepository` request-cache / optional role-lookup cache → Step 4.3
+  - `blog/UrlResolver` static bridge (+ `getPermalink` / `RouteListener`) → Step 2.5
+  - Raw-entity API `jsonSerialize()` → DI presenters/DTOs → Step 4.2
+  - Residual `mixed` narrowing → Step 2.1.12
+  - Doctrine ORM swap — non-goal
 - **In-code flag hygiene (audit 2026-07-07 — Proposal P5 / §9 RC-1, RC-2), do while touching these files:**
   - **RC-1** — `app/system/index.php:96`: the TODO header points at the completed Step 2.1.6, but the comment body itself says the work (removing the `db.em` boot hack) is _this_ step. Retag `2.1.6` → `Step 2.1.11 (#205)` — the boot line is deleted here anyway.
   - **RC-2** — `app/system/modules/site/src/Model/NodeModelTrait.php:18`: the flag reads "Must be refactored later" with **no step ID**; add `Step 2.1.11` (this step replaces the static request-scoped `$nodes` cache with an injected `CacheItemPoolInterface`).
@@ -314,10 +319,28 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 ---
 
+### Step 2.1.13: TinyMCE Security Patch (~5.10.9)
+
+- **Goal**: Close XSS/mXSS exposure from TinyMCE 5.5.1 (EOL) with a minimal same-major bump — not a full editor modernization.
+- **Prerequisite**: None (may run in parallel with 2.1.11/2.1.12). Land before Step 2.2.
+- **Source**: `migration-docs/audits/2026/04/DEPENDENCY-AUDIT-2026-04.md` §4.1
+- **Tasks**:
+  - Bump `tinymce` in `package.json` from `~5.5.1` → `~5.10.9`
+  - Smoke-test admin editor (content plugin, markdown/HTML views, image upload if applicable)
+  - Run `yarn audit` before/after; document residual findings
+  - `yarn compile-js --mode=production` + Playwright smoke (installation + dashboard)
+- **Explicit non-goals**:
+  - TinyMCE 6+ → Step 2.4 / Phase 3
+  - Remaining iframe XSS CVE (`>=6.8.1`) → mitigate via CSP (Steps 1.13.5 / 3.2.1)
+- **Result**: Patched TinyMCE 5.x; `tinymce` yarn-audit CVEs reduced (12/13 fixed on v5.10.9).
+- **Risk**: Low — same-major bump; regression surface is admin editor UI.
+
+---
+
 ## Step 2.2: CI/CD Pipeline
 
 - **Goal**: Full CI/CD on GitHub Actions; quality metrics on GitHub only
-- **Prerequisite**: Steps 1.10.5 (E2E Tests) and 2.1 (Static Analysis) completed
+- **Prerequisite**: Steps 1.10.5 (E2E Tests) and 2.1 (Static Analysis, incl. Step 2.1.13 TinyMCE patch) completed
 - **Tasks**:
   - **Workflow 1 — PHP Tests** (`.github/workflows/php-tests.yml` — replaces `php-quality.yml`):
     PHPUnit (PHP 8.2/8.3/8.4 × MySQL 8.4/SQLite 3), PHPStan, PHP-CS-Fixer dry-run, security audit, line-coverage ratchet (`MIN_LINE_COVERAGE` from Step 2.1.9)
@@ -358,13 +381,26 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 ## Step 2.4: Build Tools Modernization
 
-- **Goal**: Modern build pipeline
-- **Options**:
-  - Webpack 5 migration
-  - Yarn Berry evaluation (or stay on Yarn 1.22)
-  - Vite as an alternative to Webpack
-  - ESBuild for faster builds
-  - pnpm as a package manager alternative
+- **Goal**: Replace Yarn 1 + Webpack 4 + Gulp with **pnpm + Vite** (single frontend pipeline). Prerequisite for Phase 3.
+- **Prerequisite**: Step 2.2 (CI) completed
+- **Stack migration**:
+
+| Layer | Before (until 2.3) | After (from 2.4) |
+| --- | --- | --- |
+| Package manager | Yarn 1 (`yarn install`) | pnpm (`pnpm install`) |
+| Bundler | Webpack 4 | Vite |
+| CSS / assets | Gulp | Vite plugins + `scripts/` |
+
+- **Tasks**:
+  - **pnpm:** `pnpm import` from `yarn.lock`; set `"packageManager": "pnpm@…"`; remove `checkYarn.js`, `yarn.lock`, `engines.yarn`; update CI, Docker, `AGENTS.md`
+  - **Vite:** replace `webpack.config.js` with `vite.config.js`; Vue 2.6 via `@vitejs/plugin-vue2` until Phase 3; migrate entry points
+  - **Gulp removal:** LESS via `vite-plugin-less`; `gulp assets` → `vite-plugin-static-copy` or explicit imports; `gulp cldr` → `node scripts/cldr.js`
+  - **ESLint 9:** Flat Config (`eslint.config.js`); remove `babel-eslint`, `eslint-watch`, `gulp-eslint`
+  - **Scripts:** `postinstall` → `vite build`; remove `compile-js`, `watch-js`, `compile-less`, `watch-less`, gulp scripts
+  - **Verify:** `pnpm install && pnpm build` + Playwright smoke + PHPUnit green
+- **Explicit non-goals:** Webpack 5, Yarn Berry, Vue 3 (Phase 3), TinyMCE 6+ (Step 2.1.13)
+- **Result**: Frontend builds via pnpm + Vite only; Webpack, Gulp, and Yarn removed.
+- **Risk**: Medium–High — touches every frontend build path; complete before Phase 3 starts.
 
 ---
 
@@ -392,10 +428,12 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - `app/modules/routing/src/Matcher/Dumper/PhpMatcherDumper.php` is a copied clone of Symfony's deprecated `PhpMatcherDumper` (carries `@deprecated since Symfony 4.3`). Replace it — and the paired `UrlGeneratorDumper` — with Symfony's native `CompiledUrlMatcherDumper` + `CompiledUrlMatcher` and `CompiledUrlGeneratorDumper` + `CompiledUrlGenerator`.
   - Rework `Router::getMatcher()`/`getGenerator()` to the compiled-route-data format (no more dumping a subclass via reflection; the `instantiateMatcher()`/`instantiateGenerator()` helpers go away).
   - Re-implement the custom `UrlGenerator::doGenerate()`/`getRouteProperties()` (`LinkReferenceType` + `_variables`) on top of `CompiledUrlGenerator` — this powers the blog permalink alias system, so guard it with the existing `RouterTest` + blog permalink coverage.
-  - **Why Step 2.5:** pairs with the routing factory/DI rework here (the `UrlResolver` static bridge is already tagged for this step). No functional breakage on Symfony 6.4 (the deprecated classes still ship); clears the deprecation ahead of a future Symfony 7 jump.
+  - **Why Step 2.5:** pairs with the routing factory/DI rework here (the `UrlResolver` static bridge is already tagged for this step). No functional breakage on Symfony 6.4 (the deprecated classes still ship); clears the deprecation ahead of **Step 4.7 (Symfony 7 upgrade)**.
   - **Route-cache freshness axis (audit 2026-07-07 — TD-03), review while reworking `getCache()`:** `Router::getCache()` already invalidates correctly on **content/options** — the key is `sha1(serialize($this->resource).serialize($this->options))` (`app/modules/routing/src/Router.php:417`), so route-collection or option changes (e.g. `blog.permalink`) force a fresh dump (this is the 1.2.21 fix). What remains mtime-based is only the **freshness** guard: `filemtime($file) >= $this->resource->getModified()` (`:430`). `filemtime()` is an _implicit_, coarse (1-second granularity) and deploy-fragile signal — a backup restore / `rsync` / `touch` can reset mtimes so a stale dump reads as "fresh" (or a valid dump reads as stale). When moving `getMatcher()`/`getGenerator()` to `CompiledUrlMatcher/Generator` above, **prefer making the content hash the sole invalidation signal** (or an explicit `ConfigCache`/version marker) and drop the mtime heuristic at `:430`. **Low priority / already mitigated** (the key covers content + options) — this is a consolidation, not a bug; fold the review into this rework rather than opening a standalone step. Routed from AUDIT_REPORT_TECH_DEBT_INVENTORY_2026-07-07 §6 TD-03 / §7 D1.
-- **`blog/UrlResolver` static bridge DI (deferred from Step 2.1.6):**
-  - `packages/pagekit/blog/src/UrlResolver.php:25,29,35` — `private static` cache/module references with setters (static service locator). The `mixed $cache` typing was already fixed in Step 2.0.3 (`?CacheItemPoolInterface`); only the static-locator/DI removal remains. **Blocker:** the Router instantiates resolvers via `new $class` without DI, so the static holder cannot be removed in isolation — the routing factory (`ParamsResolver` bootstrap) must support DI first. Same blocker class as `theme-one/functions.php` below; both are unblocked by the routing factory/DI rework scheduled in this step.
+- **`blog/UrlResolver` static bridge → DI:**
+  - `packages/pagekit/blog/src/UrlResolver.php` — static holders `$cache`/`setCache()`, `$module`/`setModule()`, `$posts`/`setPostRepository()` (tagged `TEMPORARY BRIDGE — Step 2.5`). Needed because the Router builds resolvers via `new $class` with no DI; post/cache/module lookups cannot use constructor injection until the routing factory does.
+  - Also remove: static `UrlResolver::getPermalink()` and its callers in `packages/pagekit/blog/src/Event/RouteListener.php` — they depend on the bridged module; once the resolver is constructor-injected, the static permalink path goes with it.
+  - **Blocker:** routing factory (`ParamsResolver` bootstrap) must support DI first. Same blocker class as `theme-one/functions.php` below.
 - **`theme-one` static `UrlProvider` DI (deferred from Step 2.1.6) — added 2026-06-30:**
   - `packages/pagekit/theme-one/functions.php` (~line 8): the `ThemeOneHelpers` static `UrlProvider` is global state at the theme boundary. Step 2.1.6 completed the **typing** portion (`private static ?UrlProvider $url`, no more `mixed`), but the **DI** portion was both omitted from the 2.1.6 ticket and is structurally blocked: template helper functions are invoked from PHP templates with no injection mechanism, so the static holder cannot be removed in isolation. Replace it with proper DI once template helpers support injection — this aligns with the routing factory/DI rework already scheduled here (same blocker class as the `blog/UrlResolver` static bridge). The in-source TODO tag has been retagged from `Step 2.1.6` to `Step 2.5` accordingly. Tracked as the open `theme-one/functions.php` checkbox on Issue #153 and PR #212.
 - **`UniqueValidator` static service-locator → DI (audit 2026-07-07 — TD-05 / Proposal P1). DECISION (2026-07-08): DI (container-aware factory).**

@@ -215,9 +215,8 @@ class ConnectionTest extends TestCase
     /**
      * Test a json-typed column round-trips an array via JsonArrayType.
      *
-     * Since Step 2.1.7 the DBAL 'json' type resolves to the array-safe
-     * JsonArrayType (the former 'json_array' alias was removed), mirroring the
-     * database module bootstrap's Type::overrideType(Types::JSON, ...).
+     * The DBAL 'json' type resolves to the array-safe JsonArrayType, mirroring
+     * the database module bootstrap's Type::overrideType(Types::JSON, ...).
      */
     public function testJsonColumnRoundTripsArrayViaJsonArrayType(): void
     {

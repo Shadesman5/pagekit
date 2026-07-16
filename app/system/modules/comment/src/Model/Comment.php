@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace Pagekit\Comment\Model;
 
 use Pagekit\Database\ORM\Attribute as ORM;
+use Pagekit\Database\ORM\SerializableModelInterface;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Base Comment entity with PHP 8 Attributes for ORM and Validation.
  */
 #[ORM\MappedSuperclass]
-abstract class Comment
+abstract class Comment implements SerializableModelInterface
 {
     use CommentModelTrait;
 

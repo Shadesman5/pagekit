@@ -14,8 +14,6 @@ use Symfony\Component\Cache\Adapter\PhpFilesAdapter;
  * PSR-6 Cache Pool Test Suite
  *
  * Tests Symfony cache adapters via the CacheItemPoolInterface contract.
- * Validates the cache layer after removal of the Pagekit CacheInterface
- * compatibility layer (Step 2.0.3).
  */
 class CachePoolTest extends TestCase
 {

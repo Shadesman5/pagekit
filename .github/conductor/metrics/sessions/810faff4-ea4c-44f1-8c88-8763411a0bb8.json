@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "810faff4-ea4c-44f1-8c88-8763411a0bb8",
+  "roadmapStepId": null,
+  "title": "unknown",
+  "taskSlug": "unknown",
+  "taskPrompt": null,
+  "issue": null,
+  "branch": null,
+  "model": null,
+  "status": "failed",
+  "startedAt": "2026-07-07T19:43:17Z",
+  "completedAt": "2026-07-07T19:43:30Z",
+  "phases": [
+    {
+      "phaseKey": "28893748484-unknown",
+      "type": "UNKNOWN",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-07-07T19:43:17Z",
+      "durationMs": null,
+      "agent": {
+        "id": null,
+        "runId": null,
+        "url": null,
+        "model": null
+      },
+      "github": {
+        "runId": 28893748484,
+        "runAttempt": 1,
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/28893748484",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": null,
+        "output": null,
+        "cacheRead": null,
+        "cacheWrite": null,
+        "total": null
+      },
+      "result": "Log unavailable or run failed before first phase",
+      "outcome": "error",
+      "backfill": true,
+      "notes": "No parseable phases in GHA log"
+    }
+  ],
+  "totals": {
+    "tokens": {
+      "input": null,
+      "output": null,
+      "cacheRead": null,
+      "cacheWrite": null,
+      "total": null
+    },
+    "durationMs": 0,
+    "phaseCount": 1,
+    "escalations": 0,
+    "ghaJobs": 1,
+    "cloudAgents": 0
+  },
+  "backfill": {
+    "source": "github-actions-logs",
+    "workflowRunId": 28893748484,
+    "workflowRunAttempt": 1,
+    "conclusion": "failure",
+    "createdAt": "2026-07-07T19:43:17Z",
+    "displayTitle": "Conductor (V2)",
+    "logAvailable": true,
+    "jobAttemptsMerged": 1
+  }
+}

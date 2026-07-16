@@ -1,14 +1,14 @@
 # Project
 
-Documentation for Pagekit CMS **core platform development** — roadmap, strategy, and per-step branch docs.
+Documentation for Pagekit CMS **core platform development** — roadmap metrics, strategy, and branch docs.
 
-Covers the modernization program (Phases 1–4) and ongoing platform work after the stack is stable.
+Covers the modernization program (Phases 1–4). End-user product documentation is out of scope for this site.
 
 ## Contents
 
 | Page | Description |
 |------|-------------|
-| [Roadmap](roadmap.md) | Step-by-step development plan |
+| [Roadmap & Metrics](roadmap.md) | ROADMAP progress + Conductor token dashboard |
 | [Strategy](strategy.md) | High-level platform strategy |
 | [Branch Docs](branches/index.md) | Per-step branch documentation |
 

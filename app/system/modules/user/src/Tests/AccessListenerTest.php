@@ -26,7 +26,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * Unit tests for {@see AccessListener}, focused on the request-time enforcement
- * paths (the security-critical core the ticket prioritises).
+ * paths.
  *
  * All four collaborators are mockable with no kernel/DB: {@see Auth} and
  * {@see UrlProvider}/{@see Response} are plain classes (constructors bypassed by
@@ -37,11 +37,10 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
  * against real {@see Route}s pointed at the fixture controllers at the foot of
  * this file, so the reflection walk, dedup and admin path-rewrite are all pinned.
  *
- * `__()` resolution (ticket discovery note 5): `onLateRequest()`/`onAuthorize()`
- * throw messages via the UNQUALIFIED helper. `AccessListener` lives in
- * `Pagekit\User\Event` and imports no `use function`, so PHP's fallback rule
- * resolves `__()` to the GLOBAL `\__()` (same resolution as the sibling
- * listeners). {@see setUp} pulls in the shared passthrough stub from
+ * `__()` resolution: `onLateRequest()`/`onAuthorize()` throw messages via the
+ * UNQUALIFIED helper. `AccessListener` lives in `Pagekit\User\Event` and imports
+ * no `use function`, so PHP's fallback rule resolves `__()` to the GLOBAL
+ * `\__()`. {@see setUp} pulls in the shared passthrough stub from
  * Tests/bootstrap.php (guarded `if (!function_exists('__'))`).
  */
 class AccessListenerTest extends TestCase

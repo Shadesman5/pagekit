@@ -20,25 +20,21 @@ use Symfony\Component\Console\Output\NullOutput;
 /**
  * Integration tests for PackageManager::enable()/uninstall() migration orchestration.
  *
- * Since Step 2.0.4b removed auto-migration detection from PackageManager, an
- * extension's schema lifecycle runs through its scripts.php hooks: the `enable`
- * hook calls MigrationService::migrateExtension(), the `uninstall` hook calls
- * rollbackExtension(). These tests exercise that orchestration end-to-end against
- * a real in-memory-SQLite MigrationService (the pattern from
- * tests/Unit/Migration/MigrationServiceTest.php), driving actual DDL so table
+ * An extension's schema lifecycle runs through its scripts.php hooks: the
+ * `enable` hook calls MigrationService::migrateExtension(), the `uninstall` hook
+ * calls rollbackExtension(). These tests exercise that orchestration end-to-end
+ * against a real in-memory-SQLite MigrationService, driving actual DDL so table
  * existence is the assertion — not a mocked call count.
  *
- * Container-availability (the open DI-wiring audit item) is covered by running
- * enable() with a minimal container (no config/events/log) and by building the
- * manager both with and without the container-provided path.* services, so both
- * constructor branches are asserted behaviourally.
+ * Container availability is covered by running enable() with a minimal container
+ * (no config/events/log) and by building the manager both with and without the
+ * container-provided path.* services, so both constructor branches are asserted
+ * behaviourally.
  *
- * NOT covered here (genuinely needs a booted kernel + real Composer/network,
- * left for the ongoing 2.1.9 coverage effort): PackageManager::install() and the
- * low-level Composer download/update pipeline (Composer::composerUpdate()). Those
- * pull packages over the network and resolve the live module graph; this suite
- * targets the migration-integration surface of enable()/uninstall() the ticket
- * calls out, not the Composer transport.
+ * NOT covered here (needs a booted kernel + real Composer/network):
+ * PackageManager::install() and the Composer download/update pipeline
+ * (Composer::composerUpdate()). This suite targets enable()/uninstall()
+ * migration orchestration, not the Composer transport.
  */
 class PackageManagerMigrationTest extends TestCase
 {

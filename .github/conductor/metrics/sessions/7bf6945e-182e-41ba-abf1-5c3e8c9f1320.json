@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "7bf6945e-182e-41ba-abf1-5c3e8c9f1320",
+  "roadmapStepId": "2.1.5",
+  "title": "↳ PHPStan Level 6→7 (Null Safety)",
+  "taskSlug": null,
+  "taskPrompt": null,
+  "issue": 152,
+  "branch": null,
+  "model": null,
+  "status": "completed",
+  "startedAt": "2026-06-20T23:09:30.422Z",
+  "completedAt": "2026-06-21T03:05:51.486Z",
+  "phases": [
+    {
+      "phaseKey": "manual-bc-13d64ddd-c0eb-4445-98cb-38e94fa580bb-PR #210",
+      "type": "MANUAL",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-06-20T23:09:30.422Z",
+      "durationMs": 14167123,
+      "agent": {
+        "id": "bc-13d64ddd-c0eb-4445-98cb-38e94fa580bb",
+        "runId": "run-69199dea-c06e-44be-8841-c7bcf1afd068",
+        "url": "https://cursor.com/agents/bc-13d64ddd-c0eb-4445-98cb-38e94fa580bb",
+        "model": null,
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-69199dea-c06e-44be-8841-c7bcf1afd068",
+            "index": 1,
+            "startedAt": "2026-06-20T23:09:30.422Z",
+            "completedAt": "2026-06-21T03:05:51.486Z",
+            "durationMs": 14167123,
+            "tokens": {
+              "input": 228450,
+              "output": 673890,
+              "cacheRead": 123249997,
+              "cacheWrite": 3412825,
+              "total": 127565162
+            }
+          }
+        ]
+      },
+      "github": null,
+      "tokens": {
+        "input": 228450,
+        "output": 673890,
+        "cacheRead": 123249997,
+        "cacheWrite": 3412825,
+        "total": 127565162
+      },
+      "tokensSource": "cursor-api-manual",
+      "result": "Imported manually (pre-Conductor cloud agent)",
+      "outcome": "success",
+      "manualImport": true,
+      "notes": "Manual import via import-manual-agents.mjs · Timing from Cursor API (single agent run)",
+      "completedAt": "2026-06-21T03:05:51.486Z"
+    }
+  ],
+  "totals": {
+    "tokens": {
+      "input": 228450,
+      "output": 673890,
+      "cacheRead": 123249997,
+      "cacheWrite": 3412825,
+      "total": 127565162
+    },
+    "durationMs": 14167123,
+    "phaseCount": 1,
+    "escalations": 0,
+    "ghaJobs": 1,
+    "cloudAgents": 1
+  },
+  "manualImport": {
+    "at": "2026-07-14T17:14:07.158Z",
+    "source": "import-manual-agents.mjs",
+    "note": "Pre-Conductor cloud agent run(s)"
+  }
+}

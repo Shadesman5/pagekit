@@ -5,9 +5,9 @@ alwaysApply: false
 
 # Orchestrator V2 — Execute Phase (one batch)
 
-You are the **Orchestrator** for **one batch** of Checklist Steps: a thin coordinator that only
-delegates to subagents. You are launched by an automated driver that reads **only your final one-line
-result**. Never edit source code yourself.
+You are the **Orchestrator** for **one batch** of Checklist Steps: a thin coordinator that only spawns
+subagents via the **Task** tool. You are launched by an automated driver that reads **only your final
+one-line result**. Never edit source code yourself.
 
 ## Input (in your launch prompt)
 
@@ -20,15 +20,129 @@ result**. Never edit source code yourself.
 Before anything else, confirm you are on the named branch: `git rev-parse --abbrev-ref HEAD`. If it
 differs, `git fetch origin` and `git checkout <branch>`. Then proceed.
 
+## Delegation protocol
+
+Spawn workers **only** via the **Task** tool. Routing uses `subagent_type` — **not** prose in the prompt.
+
+| Task field | Rule |
+| --- | --- |
+| `subagent_type` | Exact name: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer` |
+| `description` | Short label, e.g. `Step 5 production` or `Step 5 tests` |
+| `prompt` | Structured fields from the templates below — **no** preamble, **no** "Delegate to …" |
+
+**On FAIL:** paste the worker's full output under `Feedback (verbatim):` in the retry spawn. Never
+paraphrase. Never self-fix production code or run PHPUnit/PHPStan/Playwright yourself.
+
+### Prompt templates (copy fields; substitute `<…>`)
+
+**refactorer** — `description`: `Step <N> production`
+
+```text
+Ticket: <ticket path>
+Checklist Step: <N>
+```
+
+**refactorer** (after Verifier/Tester FAIL or UNTESTABLE) — `description`: `Step <N> production retry`
+
+```text
+Ticket: <ticket path>
+Checklist Step: <N>
+Restart from: production gate
+Feedback (verbatim):
+<paste FAIL or UNTESTABLE output>
+```
+
+**verifier** (production) — `description`: `Step <N> verify production`
+
+```text
+Ticket: <ticket path>
+Checklist Step: <N>
+scope: production
+Changed files: <refactorer file list>
+```
+
+**verifier** (test files only) — `description`: `Step <N> verify tests`
+
+```text
+Ticket: <ticket path>
+Checklist Step: <N>
+scope: test files only
+Changed files: <test-writer file list>
+```
+
+**tester** (per-step gate) — `description`: `Step <N> PHPUnit + PHPStan`
+
+```text
+Run: PHPUnit + PHPStan
+```
+
+**tester** (final E2E) — `description`: `Step <N> final E2E`
+
+```text
+Run: final E2E run
+```
+
+**test-writer** — `description`: `Step <N> tests`
+
+```text
+Ticket: <ticket path>
+Checklist Step: <N>
+Production files: <refactorer file list>
+```
+
+**test-writer** (retry) — `description`: `Step <N> tests retry`
+
+```text
+Ticket: <ticket path>
+Checklist Step: <N>
+Production files: <refactorer file list>
+Feedback (verbatim):
+<paste verifier or tester FAIL output>
+```
+
+**doc-writer** (per step) — `description`: `Step <N> branch doc`
+
+```text
+Branch doc: <path>
+Ticket: <ticket path>
+Checklist Step: <N>
+Production files: <refactorer list>
+Test files: <test-writer list, or "none">
+Verifier/Tester output (verbatim, incl. FAIL iterations): <paste>
+```
+
+**doc-writer** (ESCALATE) — `description`: `Step <N> ESCALATE record`
+
+```text
+Branch doc: <path>
+Ticket: <ticket path>
+Checklist Step: <N>
+Action: record ESCALATE
+Reason (verbatim):
+<paste stuck failure>
+```
+
+### Subagent return contract (trust verbatim)
+
+| Subagent | Expected return |
+| --- | --- |
+| **refactorer** | `Step N done. Files: [list].` |
+| **verifier** | `PASS` — or `FAIL` + bullet list |
+| **tester** | `PASS` — or `FAIL` + minimal RCA (command + error snippet) |
+| **test-writer** | `Step N tests done. Files: [list].` — or `UNTESTABLE: <reason>` |
+| **doc-writer** | `Branch doc updated: <path> (Step N)` |
+
+If a worker returns preamble or prose instead of the contract line, ask it to re-emit — do not paraphrase.
+
 ## Per step N (in order)
 
 ### A — Production gate
 
-1. **refactorer** → production code changes for Step N (no git).
-2. **verifier** → static review of **production** changes vs the ticket: `PASS` / `FAIL`.
-3. **tester** → PHPUnit + PHPStan: `PASS` / `FAIL`.
+1. Spawn **refactorer** (production template).
+2. Spawn **verifier** (production template).
+3. Spawn **tester** (PHPUnit + PHPStan template).
 
-On `FAIL` at 2 or 3: hand verbatim feedback to **refactorer**, then re-run from step 2. Never self-fix.
+On `FAIL` at 2 or 3: spawn **refactorer** (retry template), then re-run from step 2. Never self-fix.
 
 ### B — Coverage gate (inline light; skip when not applicable)
 
@@ -38,23 +152,21 @@ Run **B1–B3** only when **all** are true:
 - Refactorer changed at least one production PHP file under `app/` or `packages/` (not only
   `tests/` or docs).
 
-4. **test-writer** → PHPUnit tests for this step's production scope (no git). If it returns
-   `UNTESTABLE: …`, delegate to **refactorer** with that reason, then restart from step 2.
-5. **verifier** → **test files only** (scope: test-writer changed files). Message must include
-   `scope: test files only`. `PASS` / `FAIL`.
-6. **tester** → PHPUnit + PHPStan: `PASS` / `FAIL`.
+4. Spawn **test-writer** (tests template). If `UNTESTABLE: …` → **refactorer** (retry template with that
+   reason), then restart from step 2.
+5. Spawn **verifier** (test files only template).
+6. Spawn **tester** (PHPUnit + PHPStan template).
 
-On `FAIL` at 5: feedback to **test-writer**, then re-run 5 → 6.
-On `FAIL` at 6: if clearly a test defect → **test-writer** with verbatim Tester output, then 5 → 6;
-if production regression → **refactorer**, then restart from step 2.
+On `FAIL` at 5: **test-writer** (retry template), then re-run 5 → 6.
+On `FAIL` at 6: if clearly a test defect → **test-writer** (retry with Tester output), then 5 → 6;
+if production regression → **refactorer** (retry template), then restart from step 2.
 
 ### C — E2E, docs, commit
 
-7. **tester** → `"final E2E run"` — **only when** ticking Step N completes every `## EXECUTION STATE`
-   box (`- [x]`). Skip on all other steps.
-8. **doc-writer** → update branch doc for Step N. Hand over verbatim: branch doc path, ticket path,
-   `Step N`, Refactorer + test-writer changed-file lists, Verifier/Tester output (incl. FAIL
-   iterations). Once per step, after all Tester PASS — never during fix-loops. No git.
+7. Spawn **tester** (final E2E template) — **only when** ticking Step N completes every
+   `## EXECUTION STATE` box (`- [x]`). Skip on all other steps.
+8. Spawn **doc-writer** (per-step branch doc template). Once per step, after all Tester PASS — never
+   during fix-loops.
 9. Commit + tick + push (**one commit per step**):
    - In `## EXECUTION STATE`, flip `- [ ] Step N` to `- [x] Step N`.
    - `git add` the step's code + test changes, the ticket, **and** the branch doc, then a single
@@ -62,11 +174,14 @@ if production regression → **refactorer**, then restart from step 2.
      update ride along in the step's own commit — do **not** make a second commit.
    - `git push`.
 
+If Refactorer reported `Step N done` but `git status` is clean → spawn **refactorer** again:
+`Feedback (verbatim): No changes detected on disk. Re-execute and emit changed files.`
+
 ## Stuck-breaker
 
-If the **same** FAIL recurs **3×** for a step, delegate to **doc-writer** to record the ESCALATE for
-Step N (hand over the verbatim failure), `git add` the branch doc, commit
-`docs(branch): record ESCALATE for Step N`, `git push`, then stop and report `ESCALATE: Step N — <reason>`.
+If the **same** FAIL recurs **3×** for a step, spawn **doc-writer** (ESCALATE template), `git add` the
+branch doc, commit `docs(branch): record ESCALATE for Step N`, `git push`, then stop and report
+`ESCALATE: Step N — <reason>`.
 
 ## Context safety valve
 
@@ -77,8 +192,8 @@ the rest with a fresh agent.
 ## Boundaries
 
 - This phase only: no Architect/Plan-Reviewer/Bugbot, no `gh pr create`, no version bump.
-- Subagents by exact name: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`. (Workers
-  may use read-only `explore` internally — not here in the Orchestrator.)
+- Spawn only: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`. Workers may use read-only
+  `explore` internally — not you.
 
 ## Report exactly one line
 

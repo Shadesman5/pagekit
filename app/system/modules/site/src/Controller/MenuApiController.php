@@ -13,7 +13,7 @@ use Pagekit\Kernel\Exception\ConflictException;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\Site\MenuManager;
 use Pagekit\Site\Model\Menu;
-use Pagekit\Site\Model\Node;
+use Pagekit\Site\Model\NodeRepository;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
 use Symfony\Component\HttpFoundation\Request;
@@ -32,6 +32,7 @@ class MenuApiController
         private readonly Request $request,
         private readonly FilterManager $filter,
         protected readonly ValidatorInterface $validator,
+        private readonly NodeRepository $nodeRepository,
     ) {
         $this->siteConfig = ($this->config)('system/site') ?? new Config();
     }
@@ -48,7 +49,7 @@ class MenuApiController
 
         $trashCount = 0;
         foreach ($menus as &$menu) {
-            $menu['count'] = Node::where(['menu' => $menu['id']])->count();
+            $menu['count'] = $this->nodeRepository->where(['menu' => $menu['id']])->count();
             if ($menu['id'] === 'trash') {
                 $trashCount = $menu['count'];
             }
@@ -100,7 +101,7 @@ class MenuApiController
 
             $this->siteConfig->remove('menus.' . $oldId);
 
-            Node::where(['menu = :old'], ['old' => $oldId])->update(['menu' => $id]);
+            $this->nodeRepository->where(['menu = :old'], ['old' => $oldId])->update(['menu' => $id]);
         }
 
         $this->siteConfig->merge(['menus' => [$id => ['id' => $id, 'label' => $menu->label]]]);
@@ -129,7 +130,7 @@ class MenuApiController
         $this->validateOrFail($menu, null, ['Delete']);
 
         $this->siteConfig->remove('menus.' . (string) $menu->id);
-        Node::where(['menu = :id'], ['id' => $menu->id])->update(['menu' => 'trash', 'status' => 0]);
+        $this->nodeRepository->where(['menu = :id'], ['id' => $menu->id])->update(['menu' => 'trash', 'status' => 0]);
 
         return ['message' => 'success'];
     }

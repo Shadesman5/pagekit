@@ -9,6 +9,7 @@ use Pagekit\Event\EventSubscriberInterface;
 use Pagekit\Module\Module;
 use Pagekit\Routing\Routes;
 use Pagekit\Site\Model\Node;
+use Pagekit\Site\Model\NodeRepository;
 use Pagekit\User\Model\Role;
 
 class NodesListener implements EventSubscriberInterface
@@ -16,6 +17,7 @@ class NodesListener implements EventSubscriberInterface
     public function __construct(
         private readonly Module $site,
         private readonly Routes $routes,
+        private readonly NodeRepository $nodes,
     ) {
     }
 
@@ -25,7 +27,7 @@ class NodesListener implements EventSubscriberInterface
     public function onRequest(): void
     {
         $frontpage = $this->site->config('frontpage');
-        $nodes = Node::findAll(true);
+        $nodes = $this->nodes->findAll(true);
 
         uasort($nodes, fn ($a, $b) => substr_count($b->path ?? '', '/') <=> substr_count($a->path ?? '', '/'));
 
@@ -71,7 +73,7 @@ class NodesListener implements EventSubscriberInterface
 
     public function onRoleDelete(EventInterface $event, Role $role): void
     {
-        Node::removeRole($role);
+        $this->nodes->removeRole((int) $role->id);
     }
 
     /**

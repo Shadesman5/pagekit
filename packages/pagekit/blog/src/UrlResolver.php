@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Blog;
 
 use Pagekit\Blog\Model\Post;
+use Pagekit\Blog\Model\PostRepository;
 use Pagekit\Module\Module;
 use Pagekit\Routing\ParamsResolverInterface;
 use Psr\Cache\CacheItemPoolInterface;
@@ -25,6 +26,7 @@ class UrlResolver implements ParamsResolverInterface
     // TODO: TEMPORARY BRIDGE - To be removed in Step 2.5 (Extension Safety System) when routing factory gains DI support
     private static ?CacheItemPoolInterface $cache = null;
     private static ?Module $module = null;
+    private static ?PostRepository $posts = null;
 
     // TODO: TEMPORARY BRIDGE - To be removed in Step 2.5 (Extension Safety System) when routing factory gains DI support
     public static function setCache(?CacheItemPoolInterface $cache): void
@@ -36,6 +38,12 @@ class UrlResolver implements ParamsResolverInterface
     public static function setModule(Module $module): void
     {
         self::$module = $module;
+    }
+
+    // TODO: TEMPORARY BRIDGE - To be removed in Step 2.5 (Extension Safety System) when routing factory gains DI support
+    public static function setPostRepository(?PostRepository $posts): void
+    {
+        self::$posts = $posts;
     }
 
     /**
@@ -78,15 +86,12 @@ class UrlResolver implements ParamsResolverInterface
 
         if (!$id) {
 
-            if (!$post = Post::where(compact('slug'))->first()) {
-                throw new NotFoundHttpException('Post not found.');
+            if (self::$posts === null) {
+                throw new \LogicException('UrlResolver post repository is not set; call UrlResolver::setPostRepository() during blog boot.');
             }
-            if (!$post instanceof Post) {
-                throw new \LogicException(sprintf(
-                    'QueryBuilder::first() returned %s, expected %s',
-                    get_class($post),
-                    Post::class
-                ));
+
+            if (!$post = self::$posts->where(compact('slug'))->first()) {
+                throw new NotFoundHttpException('Post not found.');
             }
 
             $this->addCache($post);
@@ -110,15 +115,12 @@ class UrlResolver implements ParamsResolverInterface
 
         if (!isset($this->cacheEntries[$id])) {
 
-            if (!$post = Post::where(compact('id'))->first()) {
-                throw new RouteNotFoundException('Post not found!');
+            if (self::$posts === null) {
+                throw new \LogicException('UrlResolver post repository is not set; call UrlResolver::setPostRepository() during blog boot.');
             }
-            if (!$post instanceof Post) {
-                throw new \LogicException(sprintf(
-                    'QueryBuilder::first() returned %s, expected %s',
-                    get_class($post),
-                    Post::class
-                ));
+
+            if (!$post = self::$posts->where(compact('id'))->first()) {
+                throw new RouteNotFoundException('Post not found!');
             }
 
             $this->addCache($post);

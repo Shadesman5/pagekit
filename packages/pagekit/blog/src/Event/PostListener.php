@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\Blog\Event;
 
-use Pagekit\Blog\Model\Post;
+use Pagekit\Blog\Model\PostRepository;
 use Pagekit\Comment\Model\Comment;
 use Pagekit\Event\EventInterface;
 use Pagekit\Event\EventSubscriberInterface;
@@ -12,14 +12,19 @@ use Pagekit\User\Model\Role;
 
 class PostListener implements EventSubscriberInterface
 {
-    public function onCommentChange(EventInterface $event, Comment $comment): void
-    {
-        Post::updateCommentInfo($comment->post_id);
+    public function __construct(
+        private readonly PostRepository $posts,
+    ) {
     }
 
-    public function onRoleDelete(EventInterface $event, Role|int $role): void
+    public function onCommentChange(EventInterface $event, Comment $comment): void
     {
-        Post::removeRole($role);
+        $this->posts->updateCommentInfo($comment->post_id);
+    }
+
+    public function onRoleDelete(EventInterface $event, Role $role): void
+    {
+        $this->posts->removeRole((int) $role->id);
     }
 
     /**

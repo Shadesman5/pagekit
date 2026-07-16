@@ -63,7 +63,7 @@
       `<strong>Branch:</strong> ${data.branch || '—'} · ` +
       `<strong>Updated:</strong> ${formatDate(data.updatedAt)}`;
     if (data.source === 'demo') {
-      meta.innerHTML += ' · <em>Demo data — Step 2.2 will enable live CI metrics</em>';
+      meta.innerHTML += ' · <em>Demo data — live CI metrics not yet wired</em>';
     }
     root.appendChild(meta);
 

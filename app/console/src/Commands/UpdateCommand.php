@@ -41,7 +41,7 @@ class UpdateCommand extends Command
         // extension/theme's dependencies from the marketplace. Disabled in 2020 when the
         // pagekit.com backend (system.api) was shut down; re-enable once a self-hostable
         // package-distribution API exists.
-        $this->error("The 'update' command is disabled: the pagekit.com marketplace backend was discontinued. To be re-enabled in roadmap Step 5.6 (Marketplace & Extensions).");
+        $this->error("The 'update' command is disabled: the pagekit.com marketplace backend was discontinued.");
 
         return Command::FAILURE;
         // $packages = [];

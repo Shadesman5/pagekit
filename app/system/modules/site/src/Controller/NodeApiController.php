@@ -11,6 +11,7 @@ use Pagekit\Filter\FilterManager;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\Site\Model\Node;
+use Pagekit\Site\Model\NodeRepository;
 use Pagekit\Site\NodePresenter;
 use Pagekit\System\Controller\ValidatesRequestTrait;
 use Pagekit\User\Attribute\Access;
@@ -34,6 +35,7 @@ class NodeApiController
         private readonly ConfigManager $config,
         private readonly ValidatorInterface $validator,
         private readonly NodePresenter $nodePresenter,
+        private readonly NodeRepository $nodeRepository,
     ) {
     }
 
@@ -45,25 +47,14 @@ class NodeApiController
     {
         $menu = $this->request->query->get('menu', false);
 
-        $query = Node::query();
+        $query = is_string($menu)
+            ? $this->nodeRepository->where(['menu' => $menu])
+            : $this->nodeRepository->query();
 
-        if (is_string($menu)) {
-            $query->where(['menu' => $menu]);
-        }
-
-        $nodes = [];
-        foreach ($query->get() as $entity) {
-            if (!$entity instanceof Node) {
-                throw new \LogicException(sprintf(
-                    'QueryBuilder::get() returned %s, expected %s',
-                    get_class($entity),
-                    Node::class
-                ));
-            }
-            $nodes[] = $entity;
-        }
-
-        return array_map(fn (Node $n) => $this->nodePresenter->toArray($n), $nodes);
+        return array_map(
+            fn (Node $n) => $this->nodePresenter->toArray($n),
+            array_values($query->get())
+        );
     }
 
     /**
@@ -72,7 +63,7 @@ class NodeApiController
     #[Route('/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function getAction(int $id): array
     {
-        if (!$node = Node::find($id)) {
+        if (!$node = $this->nodeRepository->find($id)) {
             throw new NotFoundHttpException(__('Node not found.'));
         }
 
@@ -105,8 +96,8 @@ class NodeApiController
             $id = (int) $data['id'];
         }
 
-        if (!$node = Node::find($id)) {
-            $node = Node::create();
+        if (!$node = $this->nodeRepository->find($id)) {
+            $node = $this->nodeRepository->create();
             unset($data['id']);
         }
 
@@ -127,7 +118,7 @@ class NodeApiController
         // Validate using Symfony Validator
         $this->validateOrFail($node);
 
-        $node->save($data);
+        $this->nodeRepository->save($node, $data);
 
         return ['message' => 'success', 'node' => $this->nodePresenter->toArray($node)];
     }
@@ -143,14 +134,14 @@ class NodeApiController
             $id = (int) $this->request->get('id', 0);
         }
 
-        if ($node = Node::find($id)) {
+        if ($node = $this->nodeRepository->find($id)) {
 
             // Business logic: Check if node type is protected (NOT entity validation)
             if ($type = $this->module->get('system/site')->getType($node->type) and isset($type['protected']) and $type['protected']) {
                 throw new BadRequestHttpException(__('Invalid type.'));
             }
 
-            $node->delete();
+            $this->nodeRepository->delete($node);
         }
 
         return ['message' => 'success'];
@@ -221,13 +212,13 @@ class NodeApiController
 
         foreach ($nodes as $data) {
 
-            if ($node = Node::find($data['id'])) {
+            if ($node = $this->nodeRepository->find($data['id'])) {
 
                 $node->priority = $data['order'];
                 $node->menu = $menu;
                 $node->parent_id = $data['parent_id'] ?: 0;
 
-                $node->save();
+                $this->nodeRepository->save($node);
             }
         }
 
@@ -248,7 +239,7 @@ class NodeApiController
             $id = (int) ($json['id'] ?? 0);
         }
 
-        if (!$node = Node::find($id) or !$type = $this->module->get('system/site')->getType($node->type)) {
+        if (!$node = $this->nodeRepository->find($id) or !$type = $this->module->get('system/site')->getType($node->type)) {
             throw new NotFoundHttpException(__('Node not found.'));
         }
 

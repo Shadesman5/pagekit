@@ -83,7 +83,7 @@ return [
 
         'boot' => function ($event, $app) {
 
-            // Step 2.0.2: Symfony Validator with Translator integration ('validators' domain).
+            // Symfony Validator with Translator integration ('validators' domain).
             // Translator is registered in IntlModule::main() (container phase); validator resolves it lazily.
             \Pagekit\System\ValidatorServiceProvider::register($app);
 
@@ -92,14 +92,6 @@ return [
             if (!$app->get('debug')) {
                 $app->get('events')->subscribe(new ExceptionListener('Pagekit\System\Controller\ExceptionController::showAction'));
             }
-
-            // TODO: Must be refactored in Step 2.1.6 (PHPStan Level 7→8 — Strict Typing) — this eager
-            // resolve exists only to trigger the EntityManager singleton (static::$instance in
-            // EntityManager::__construct) so static model access works (ModelTrait::getManager() →
-            // EntityManager::getInstance()). 2.1.6 only hardens the related typing (no wrap, one
-            // mechanism). Physically removing this boot line + the singleton (Active-Record →
-            // Data-Mapper / DI) is Step 2.1.11 (#205 — EntityManager DI), not 2.1.6.
-            $app->get('db.em');
 
         },
 

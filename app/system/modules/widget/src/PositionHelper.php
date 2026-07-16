@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\Widget;
 
+use Pagekit\Database\ORM\Repository;
 use Pagekit\Site\Model\Node;
 use Pagekit\User\Model\User;
 use Pagekit\View\Helper\Helper;
@@ -11,11 +12,21 @@ use Pagekit\Widget\Model\Widget;
 
 class PositionHelper extends Helper
 {
+    /** @var array<int|string, Widget>|null */
+    private ?array $activeWidgets = null;
+
+    /** @var array<string, array<int, Widget>> */
+    private array $renderedPositions = [];
+
+    /**
+     * @param Repository<Widget> $widgets
+     */
     public function __construct(
         private readonly PositionManager $positions,
         private readonly User $user,
         private readonly Node $node,
         private readonly WidgetManager $widget,
+        private readonly Repository $widgets,
     ) {
     }
 
@@ -75,10 +86,8 @@ class PositionHelper extends Helper
      */
     protected function getWidgets(?string $position): array
     {
-        static $widgets, $positions = [];
-
-        if (null === $widgets) {
-            $widgets = Widget::where(['status' => 1])->get();
+        if (null === $this->activeWidgets) {
+            $this->activeWidgets = $this->widgets->where(['status' => 1])->get();
         }
 
         if ($position === null) {
@@ -89,17 +98,22 @@ class PositionHelper extends Helper
             return [];
         }
 
-        if (!isset($positions[$position])) {
+        if (!isset($this->renderedPositions[$position])) {
 
-            $positions[$position] = [];
+            $this->renderedPositions[$position] = [];
+            $widgets = $this->activeWidgets;
 
             foreach ($pos['assigned'] as $id) {
 
-                if (!isset($widgets[$id])
-                    or !$widget = $widgets[$id]
-                    or !$widget->hasAccess($this->user)
+                if (!isset($widgets[$id])) {
+                    continue;
+                }
+
+                $widget = $widgets[$id];
+
+                if (!$widget->hasAccess($this->user)
                     or ($nodes = $widget->nodes and !in_array($this->node->id, $nodes))
-                    or !$type = $this->widget->get($widget->type)
+                    or !$type = $this->widget->get($widget->type ?? '')
                 ) {
                     continue;
                 }
@@ -107,10 +121,10 @@ class PositionHelper extends Helper
                 $result = $type->render($widget);
 
                 $widget->set('result', $result);
-                $positions[$position][] = $widget;
+                $this->renderedPositions[$position][] = $widget;
             }
         }
 
-        return $positions[$position];
+        return $this->renderedPositions[$position];
     }
 }

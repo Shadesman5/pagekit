@@ -116,7 +116,7 @@ Im Repo `Shadesman5/pagekit` → **Issues → Labels → New label**:
 | ---------- | ----------------- | -------------------- |
 | `phase-1`  | grün              | Abgeschlossene Phase |
 | `phase-2`  | blau              | Aktueller Fokus      |
-| `phase-3`  | lila              | Frontend             |
+| `phase-3`  | violett           | Frontend             |
 | `phase-4`  | orange            | Production           |
 | `phase-5`  | grau              | Ideen/Wünsche        |
 

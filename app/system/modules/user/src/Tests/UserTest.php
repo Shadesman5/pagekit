@@ -11,22 +11,23 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Unit tests for the DB-free logic of {@see User}: role flags, status flags,
- * status text and the cached branch of hasPermission().
+ * status text and both branches of hasPermission().
  *
  * `isAnonymous`/`isAuthenticated`/`isAdministrator` delegate to
  * {@see \Pagekit\User\Model\AccessModelTrait::hasRole()}, which reads the public
  * `$roles` array, so each test seeds `$roles` directly. `getStatusText()` /
  * `getStatuses()` call the unqualified `__()` helper; `User` lives in
  * `Pagekit\User\Model` and imports no `use function`, so PHP's fallback rule
- * resolves that to the GLOBAL `\__()` (ticket discovery note 5). {@see setUp}
- * pulls in the shared passthrough stub from Tests/bootstrap.php.
+ * resolves that to the GLOBAL `\__()`. {@see setUp} pulls in the shared
+ * passthrough stub from Tests/bootstrap.php.
  *
- * NOTE - deferred to Step 2.1.9 (Test Coverage Expansion): the *uncached* branch
- * of `User::hasPermission()` (`$this->permissions === null`) delegates to
- * `UserModelTrait::findRoles()`, a static `Role::where(...)->get()` read that
- * needs a booted kernel + database and belongs to integration coverage, not this
- * unit suite (ticket discovery note 6). The cached branch is pinned below by
- * pre-seeding the protected `$permissions` via Reflection.
+ * The *uncached* branch of `User::hasPermission()` (`$this->permissions === null`)
+ * resolves roles through a per-instance loader closure that
+ * {@see \Pagekit\User\Model\UserModelTrait::init()} wires to the EntityManager at
+ * hydration time. The cases below inject a fake loader via
+ * {@see User::setRoleLoader()} and exercise `hasPermission()`, its memoization,
+ * the missing-loader guard, and the `hasAccess()` path that builds on it, all
+ * with no kernel, container or database.
  */
 class UserTest extends TestCase
 {
@@ -158,17 +159,17 @@ class UserTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
-    // hasPermission(): cached branch only (uncached DB path deferred to 2.1.9).
+    // hasPermission(): cached memo branch + uncached role-loader branch.
     // -----------------------------------------------------------------------
 
     /**
      * Pre-seeding the protected `$permissions` to a non-null array drives the
-     * cached branch (`$this->permissions === null` is false), so `findRoles()`
-     * and its `Role::where(...)` DB read are never reached — the test would
-     * otherwise throw "EntityManager has not been initialized". Present + absent
-     * lookups pin the `in_array()` verdict against mutation.
+     * cached branch (`$this->permissions === null` is false), so the role loader
+     * is never consulted (none is attached here, which would otherwise trip the
+     * missing-loader guard). Present + absent lookups pin the `in_array()` verdict
+     * against mutation.
      */
-    public function testHasPermissionUsesCachedPermissionsWithoutHittingDatabase(): void
+    public function testHasPermissionUsesCachedPermissionsWithoutInvokingLoader(): void
     {
         $user = new User();
 
@@ -178,5 +179,89 @@ class UserTest extends TestCase
         $this->assertTrue($user->hasPermission('blog: manage posts'));
         $this->assertTrue($user->hasPermission('system: access admin area'));
         $this->assertFalse($user->hasPermission('system: manage users'));
+    }
+
+    /**
+     * The uncached branch resolves permissions by flattening the roles returned
+     * from the injected loader. Present + absent lookups pin the `in_array()`
+     * verdict; a grant carried by the loaded role is honoured, an unknown one is
+     * denied.
+     */
+    public function testHasPermissionResolvesPermissionsThroughInjectedLoader(): void
+    {
+        $user = new User();
+        $user->roles = [Role::ROLE_AUTHENTICATED];
+
+        $role = new Role();
+        $role->permissions = ['blog: manage posts', 'system: access admin area'];
+
+        $user->setRoleLoader(static function (array $ids) use ($role): array {
+            return [$role];
+        });
+
+        $this->assertTrue($user->hasPermission('blog: manage posts'));
+        $this->assertTrue($user->hasPermission('system: access admin area'));
+        $this->assertFalse($user->hasPermission('system: manage users'));
+    }
+
+    /**
+     * The loader must run once: the first call fills the `$permissions` memo and
+     * every later check reuses it. A counter captured by the loader closure pins
+     * the memoization against a mutant that drops the `=== null` short-circuit.
+     */
+    public function testHasPermissionMemoizesRolesAfterFirstLoad(): void
+    {
+        $user = new User();
+        $user->roles = [Role::ROLE_AUTHENTICATED];
+
+        $role = new Role();
+        $role->permissions = ['blog: manage posts'];
+
+        $calls = 0;
+        $user->setRoleLoader(static function (array $ids) use (&$calls, $role): array {
+            $calls++;
+
+            return [$role];
+        });
+
+        $user->hasPermission('blog: manage posts');
+        $user->hasPermission('system: access admin area');
+
+        $this->assertSame(1, $calls, 'the role loader must run once and then reuse the memoized permissions');
+    }
+
+    /**
+     * A `User` that was never hydrated through the EntityManager (a bare
+     * `new User()`) has no loader attached, so the uncached branch must fail
+     * loudly rather than silently granting or denying access.
+     */
+    public function testHasPermissionThrowsWhenNoRoleLoaderAttached(): void
+    {
+        $user = new User();
+
+        $this->expectException(\LogicException::class);
+
+        $user->hasPermission('system: access admin area');
+    }
+
+    /**
+     * `hasAccess()` builds directly on the uncached `hasPermission()` branch, so a
+     * boolean expression is resolved end-to-end through the injected loader — no
+     * `hasPermission()` stub, unlike the parser-focused {@see UserAccessTest}.
+     */
+    public function testHasAccessResolvesBooleanExpressionThroughInjectedLoader(): void
+    {
+        $user = new User();
+        $user->roles = [Role::ROLE_AUTHENTICATED];
+
+        $role = new Role();
+        $role->permissions = ['read', 'write'];
+
+        $user->setRoleLoader(static function (array $ids) use ($role): array {
+            return [$role];
+        });
+
+        $this->assertTrue($user->hasAccess('read && write'));
+        $this->assertFalse($user->hasAccess('read && delete'));
     }
 }

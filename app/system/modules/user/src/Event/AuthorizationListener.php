@@ -12,6 +12,7 @@ use Pagekit\Auth\Exception\AuthException;
 use Pagekit\Event\EventSubscriberInterface;
 use Pagekit\User\Auth\UserProvider;
 use Pagekit\User\Model\User;
+use Pagekit\User\Model\UserRepository;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 class AuthorizationListener implements EventSubscriberInterface
@@ -20,6 +21,7 @@ class AuthorizationListener implements EventSubscriberInterface
         private readonly Auth $auth,
         private readonly PasswordEncoderInterface $authPassword,
         private readonly SessionInterface $session,
+        private readonly UserRepository $users,
     ) {
     }
 
@@ -28,7 +30,7 @@ class AuthorizationListener implements EventSubscriberInterface
      */
     public function onSystemInit(): void
     {
-        $this->auth->setUserProvider(new UserProvider($this->authPassword));
+        $this->auth->setUserProvider(new UserProvider($this->authPassword, $this->users));
     }
 
     /**

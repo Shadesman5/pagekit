@@ -15,6 +15,8 @@ return [
 
         $app->set('widget', fn ($app) => new WidgetManager($app));
 
+        $app->set('widgetRepository', fn ($app) => $app->get('db.em')->getRepository(Widget::class));
+
         $app->set('position', function ($app) {
 
             $positions = new PositionManager($app->get('config')($app->get('theme')->name));
@@ -100,6 +102,10 @@ return [
 
         'boot' => function ($event, $app) {
 
+            $app->get('events')->on('model.role.deleted', function ($event, $role) use ($app) {
+                $app->get('widgetRepository')->removeRole((int) $role->id);
+            });
+
             Widget::defineProperty('theme', function () use ($app) {
 
                 $config = $app->get('theme')->config('_widgets.'.$this->id, []);
@@ -135,6 +141,7 @@ return [
                 $app->get('user'),
                 $app->get('node'),
                 $app->get('widget'),
+                $app->get('widgetRepository'),
             ));
         },
 
@@ -153,10 +160,6 @@ return [
                 $app->get('position')->assign($widget->position, $widget->id);
             }
             $app->get('config')($app->get('theme')->name)->set('_widgets.'.$widget->id, $widget->theme);
-        },
-
-        'model.role.deleted' => function ($event, $role) {
-            Widget::removeRole($role);
         },
 
     ],

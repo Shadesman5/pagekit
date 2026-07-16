@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "ba162b98-3973-4638-8996-bff2fb902a47",
+  "roadmapStepId": null,
+  "title": "AGENT_PROMPT_AUDIT_TECH_DEBT_INVENTORY",
+  "taskSlug": "AGENT_PROMPT_AUDIT_TECH_DEBT_INVENTORY",
+  "taskPrompt": "migration-docs/TODO/agent_prompts/AGENT_PROMPT_AUDIT_TECH_DEBT_INVENTORY.md",
+  "issue": null,
+  "branch": "feature/AGENT_PROMPT_AUDIT_TECH_DEBT_INVENTORY",
+  "model": null,
+  "status": "completed",
+  "startedAt": "2026-07-07T20:10:29.273Z",
+  "completedAt": "2026-07-07T20:31:17.235Z",
+  "phases": [
+    {
+      "phaseKey": "28895365182-1-85718414683-PLAN",
+      "type": "PLAN",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-07-07T20:10:29.273Z",
+      "durationMs": 1231544,
+      "agent": {
+        "id": "bc-08d52c19-4dbb-4605-92a8-6dc654489eff",
+        "runId": "run-fc0bb87b-7607-4293-99b3-27d8d013dcc4",
+        "url": "https://cursor.com/agents/bc-08d52c19-4dbb-4605-92a8-6dc654489eff",
+        "model": null,
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-fc0bb87b-7607-4293-99b3-27d8d013dcc4",
+            "index": 1,
+            "startedAt": "2026-07-07T20:10:29.273Z",
+            "completedAt": "2026-07-07T20:31:17.235Z",
+            "durationMs": 1231544,
+            "tokens": {
+              "input": 70697,
+              "output": 74496,
+              "cacheRead": 3695977,
+              "cacheWrite": 262937,
+              "total": 4104107
+            }
+          }
+        ]
+      },
+      "github": {
+        "runId": 28895365182,
+        "runAttempt": 1,
+        "jobId": 85718414683,
+        "jobConclusion": "success",
+        "jobUrl": "https://github.com/Shadesman5/pagekit/actions/runs/28895365182/job/85718414683",
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/28895365182",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 70697,
+        "output": 74496,
+        "cacheRead": 3695977,
+        "cacheWrite": 262937,
+        "total": 4104107
+      },
+      "result": "Plan ready: migration-docs/audits/2026/07/AUDIT_REPORT_TECH_DEBT_INVENTORY_2026-07-07.md — PR #214",
+      "outcome": "success",
+      "backfill": true,
+      "notes": "Timing from Cursor API (single agent run)",
+      "completedAt": "2026-07-07T20:31:17.235Z"
+    }
+  ],
+  "totals": {
+    "tokens": {
+      "input": 70697,
+      "output": 74496,
+      "cacheRead": 3695977,
+      "cacheWrite": 262937,
+      "total": 4104107
+    },
+    "durationMs": 1231544,
+    "phaseCount": 1,
+    "escalations": 0,
+    "ghaJobs": 1,
+    "cloudAgents": 1
+  },
+  "backfill": {
+    "source": "github-actions-logs",
+    "workflowRunId": 28895365182,
+    "workflowRunAttempt": 1,
+    "conclusion": "success",
+    "createdAt": "2026-07-07T20:10:14Z",
+    "displayTitle": "Conductor (V2)",
+    "logAvailable": true,
+    "jobAttemptsMerged": 1
+  }
+}

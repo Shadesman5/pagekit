@@ -36,6 +36,9 @@ class Metadata
     /** @var \ReflectionClass<object>|null */
     protected ?\ReflectionClass $reflClass = null;
 
+    /** @var array{relations: list<string>, fieldTypes: array<string, string>}|null */
+    protected ?array $serializationMap = null;
+
     /**
      * Constructor.
      *
@@ -137,6 +140,32 @@ class Metadata
         }
 
         return $this->relations[$name];
+    }
+
+    /**
+     * Gets the lazily-computed serialization map used by entity `toArray()`.
+     *
+     * Returns plain arrays only — deliberately not a live {@see Metadata}
+     * reference — so an entity that stores the map stays safe to `serialize()`
+     * and does not drag a Connection into the cache.
+     *
+     * @return array{relations: list<string>, fieldTypes: array<string, string>}
+     */
+    public function getSerializationMap(): array
+    {
+        if ($this->serializationMap === null) {
+            $fieldTypes = [];
+            foreach ($this->fields as $name => $field) {
+                $fieldTypes[$name] = (string) $field['type'];
+            }
+
+            $this->serializationMap = [
+                'relations' => array_keys($this->relations),
+                'fieldTypes' => $fieldTypes,
+            ];
+        }
+
+        return $this->serializationMap;
     }
 
     /**

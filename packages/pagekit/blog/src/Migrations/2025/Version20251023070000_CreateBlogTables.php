@@ -17,7 +17,9 @@ use Pagekit\Migration\ExtensionMigration;
  * - {prefix}blog_post: Blog posts
  * - {prefix}blog_comment: Post comments
  */
-// TODO: AUDIT FIX Step 2.0.5 — Existing installations may need migration_versions table updated from Version001_CreateBlogTables to this class name
+// Upgrade note: blog installations created before the Doctrine migration rename carry the old
+// `Version001_CreateBlogTables` id in their `migration_versions` table. That row must be updated
+// to this class name so the baseline schema is not re-applied on upgrade.
 final class Version20251023070000_CreateBlogTables extends ExtensionMigration
 {
     /**

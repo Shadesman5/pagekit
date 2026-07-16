@@ -8,9 +8,11 @@ use function Pagekit\__;
 
 use Pagekit\Blog\Model\Comment;
 use Pagekit\Blog\Model\Post;
+use Pagekit\Blog\Model\PostRepository;
 use Pagekit\Blog\PostPresenter;
 use Pagekit\Captcha\Attribute\Captcha;
 use Pagekit\Content\ContentHelper;
+use Pagekit\Database\ORM\Repository;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Request;
@@ -34,6 +36,9 @@ class CommentApiController
 
     protected Module $blog;
 
+    /**
+     * @param Repository<Comment> $commentRepository
+     */
     public function __construct(
         ModuleManager $module,
         private readonly User $user,
@@ -41,6 +46,8 @@ class CommentApiController
         private readonly ContentHelper $content,
         protected readonly ValidatorInterface $validator,
         private readonly PostPresenter $postPresenter,
+        private readonly Repository $commentRepository,
+        private readonly PostRepository $postRepository,
     ) {
         $this->blog = $module->get('blog');
     }
@@ -53,7 +60,7 @@ class CommentApiController
     #[Request(['filter' => 'array', 'post' => 'int', 'page' => 'int', 'limit' => 'int'])]
     public function indexAction(array $filter = [], int $post = 0, int $page = 0, int $limit = 0): array
     {
-        $query = Comment::query();
+        $query = $this->commentRepository->query();
         $filter = array_merge(array_fill_keys(['status', 'search', 'order'], ''), $filter);
 
         extract($filter, EXTR_SKIP);
@@ -111,14 +118,6 @@ class CommentApiController
 
         foreach ($entities as $comment) {
 
-            if (!$comment instanceof Comment) {
-                throw new \LogicException(sprintf(
-                    'QueryBuilder::get() returned %s, expected %s',
-                    get_class($comment),
-                    Comment::class
-                ));
-            }
-
             $p = $comment->post;
 
             if ($post && (!$p || !$p->hasAccess($this->user) || !$p->isPublished() && !$this->user->hasAccess('blog: manage comments'))) {
@@ -171,7 +170,7 @@ class CommentApiController
                 throw new AccessDeniedHttpException(__('Insufficient User Rights.'));
             }
 
-            $commentEntity = Comment::create();
+            $commentEntity = $this->commentRepository->create();
 
             if ($this->user->isAuthenticated()) {
                 $data['author'] = $this->user->name;
@@ -192,7 +191,7 @@ class CommentApiController
                 throw new AccessDeniedHttpException(__('Insufficient User Rights.'));
             }
 
-            $commentEntity = Comment::find($id);
+            $commentEntity = $this->commentRepository->find($id);
 
             if (!$commentEntity) {
                 throw new NotFoundHttpException(__('Comment not found.'));
@@ -207,16 +206,8 @@ class CommentApiController
         // check minimum idle time in between user comments (business logic)
         if (!$this->user->hasAccess('blog: skip comment min idle')
             and $minidle = $this->blog->config('comments.minidle')
-            and $commentIdle = Comment::where($this->user->isAuthenticated() ? ['user_id' => $this->user->id] : ['ip' => $this->request->getClientIp()])->orderBy('created', 'DESC')->first()
+            and $commentIdle = $this->commentRepository->where($this->user->isAuthenticated() ? ['user_id' => $this->user->id] : ['ip' => $this->request->getClientIp()])->orderBy('created', 'DESC')->first()
         ) {
-
-            if (!$commentIdle instanceof Comment) {
-                throw new \LogicException(sprintf(
-                    'QueryBuilder::first() returned %s, expected %s',
-                    get_class($commentIdle),
-                    Comment::class
-                ));
-            }
 
             $diff = $commentIdle->created->diff(new \DateTime("- {$minidle} sec"));
 
@@ -225,27 +216,19 @@ class CommentApiController
             }
         }
 
-        if (@$data['parent_id'] && !$parent = Comment::find((int) $data['parent_id'])) {
+        if (@$data['parent_id'] && !$parent = $this->commentRepository->find((int) $data['parent_id'])) {
             throw new NotFoundHttpException(__('Parent not found.'));
         }
 
         $post = empty($data['post_id'])
             ? null
-            : Post::where(['id' => $data['post_id']])->first();
-
-        if ($post !== null && !$post instanceof Post) {
-            throw new \LogicException(sprintf(
-                'QueryBuilder::first() returned %s, expected %s',
-                get_class($post),
-                Post::class
-            ));
-        }
+            : $this->postRepository->where(['id' => $data['post_id']])->first();
 
         if ($post === null || (!$this->user->hasAccess('blog: manage comments') && !($this->postPresenter->isCommentable($post) && $post->isPublished()))) {
             throw new NotFoundHttpException(__('Post not found.'));
         }
 
-        $approved_once = (bool) Comment::where(['user_id' => $this->user->id, 'status' => Comment::STATUS_APPROVED])->first();
+        $approved_once = (bool) $this->commentRepository->where(['user_id' => $this->user->id, 'status' => Comment::STATUS_APPROVED])->first();
         $commentEntity->status = $this->user->hasAccess('blog: skip comment approval') ? Comment::STATUS_APPROVED : ($this->user->hasAccess('blog: comment approval required once') && $approved_once ? Comment::STATUS_APPROVED : Comment::STATUS_PENDING);
 
         // check the max links rule (business logic)
@@ -264,7 +247,7 @@ class CommentApiController
         // Note: Some validations remain as business logic above (require_email for anonymous users)
         $this->validateOrFail($commentEntity);
 
-        $commentEntity->save($data);
+        $this->commentRepository->save($commentEntity, $data);
 
         return ['message' => 'success', 'comment' => $commentEntity];
     }
@@ -277,8 +260,8 @@ class CommentApiController
     #[Request(['id' => 'int'])]
     public function deleteAction(int $id): array
     {
-        if ($comment = Comment::find($id)) {
-            $comment->delete();
+        if ($comment = $this->commentRepository->find($id)) {
+            $this->commentRepository->delete($comment);
         }
 
         return ['message' => 'success'];

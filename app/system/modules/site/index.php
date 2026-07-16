@@ -147,8 +147,8 @@ return [
         'boot' => function ($event, $app) {
 
             $app->get('events')->subscribe(new MaintenanceListener($app, $this));
-            $app->get('events')->subscribe(new NodesListener($this, $app->get('routes')));
-            $app->get('events')->subscribe(new PageListener());
+            $app->get('events')->subscribe(new NodesListener($this, $app->get('routes'), $app->get('nodeRepository')));
+            $app->get('events')->subscribe(new PageListener($app->get('pageRepository')));
 
             Node::defineProperty('theme', function () use ($app) {
 
@@ -233,6 +233,7 @@ return [
                 $app->get('user'),
                 $app->get('node'),
                 $app->get('nodePresenter'),
+                $app->get('nodeRepository'),
             ));
         }, 100],
 

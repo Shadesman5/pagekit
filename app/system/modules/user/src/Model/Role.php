@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace Pagekit\User\Model;
 
 use Pagekit\Database\ORM\Attribute as ORM;
+use Pagekit\Database\ORM\SerializableModelInterface;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Role entity with PHP 8 Attributes for ORM and Validation.
  */
 #[ORM\Entity(tableClass: '@system_role')]
-class Role implements \JsonSerializable
+class Role implements \JsonSerializable, SerializableModelInterface
 {
     use RoleModelTrait;
 

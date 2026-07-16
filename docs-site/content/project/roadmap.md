@@ -1,19 +1,48 @@
+---
+hide:
+  - toc
+extra_javascript:
+  - javascripts/conductor-dashboard.js
+extra_css:
+  - stylesheets/dashboard-layout.css
+  - stylesheets/conductor-dashboard.css
+---
+
 # Project Roadmap
 
-!!! warning "Placeholder — sync pending"
-    The live roadmap for agents is `.cursor/ROADMAP.md`.
-    A synced copy will appear here after **Step 2.2** (or during that step).
+!!! info "Read-only mirror"
+    Agents write [`.cursor/ROADMAP.md`](https://github.com/Shadesman5/pagekit/blob/develop/.cursor/ROADMAP.md) in Git.
+    This page mirrors the tracking table and adds **Conductor metrics** when you expand a row.
 
-## Current focus
+<div id="conductor-metrics-app" class="conductor-metrics">
+  <p class="cm-loading">Loading roadmap &amp; conductor metrics…</p>
+</div>
 
-| Field | Value |
-|-------|-------|
-| Version | 1.2.25 |
-| Current step | 2.1.11 — EntityManager DI (remove singleton) |
+### Columns
 
-## Tracking
+| Column | Source | Meaning |
+|--------|--------|---------|
+| ID … PR | `.cursor/ROADMAP.md` | Same tracking table as agents use |
+| Runs | Conductor metrics | Workflow dispatches with parsed sessions |
+| Tokens | Conductor metrics | Sum of all sessions for this step |
 
-The full tracking table with status, audit, issues, and PRs will be mirrored here
-from `.cursor/ROADMAP.md` once path migration is complete.
+Expand a row for session detail, phase breakdown, charts, and links to Cursor agents / GHA jobs.
 
-[View ROADMAP in repository](https://github.com/Shadesman5/pagekit/blob/develop/.cursor/ROADMAP.md)
+!!! note "Sync commands"
+    ```bash
+    node .github/conductor/sync-roadmap-snapshot.mjs
+    node .github/conductor/backfill-metrics.mjs   # historical GHA logs
+    ```
+
+## Data sources
+
+| Item | Location |
+|------|----------|
+| Agent SoT | `.cursor/ROADMAP.md` |
+| Roadmap snapshot | `.github/conductor/metrics/roadmap-snapshot.json` |
+| Metrics index | `.github/conductor/metrics/index.json` |
+| Session files | `.github/conductor/metrics/sessions/{uuid}.json` |
+| Live collector | `.github/conductor/metrics.mjs` |
+| Future (Step 4.9) | `kernkit/dev-dashboard` — cross-repo, real-time branch metrics |
+
+<sub>Marker: conductor-metrics:v2 · roadmap table + metrics accordion</sub>

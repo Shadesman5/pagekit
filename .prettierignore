@@ -1,12 +1,6 @@
-# Ignore Markdown files to preserve manual formatting
+# Markdown / Cursor rules — no Prettier (Cursor renders MD natively; preserve source as-is)
 *.md
-
-# Don't ignore migration-docs
-!migration-docs/TODO/*
-!.cursor/ROADMAP.md
-
-# Ignore CHANGELOG files specifically
-CHANGELOG*.md
+*.mdc
 
 # Ignore compiled/bundled files
 app/bundle/
@@ -28,4 +22,3 @@ packages/composer/
 package-lock.json
 yarn.lock
 composer.lock
-

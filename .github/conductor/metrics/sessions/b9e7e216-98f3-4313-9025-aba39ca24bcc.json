@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "b9e7e216-98f3-4313-9025-aba39ca24bcc",
+  "roadmapStepId": "2.0.6",
+  "title": "↳ Test Infrastructure Cleanup",
+  "taskSlug": null,
+  "taskPrompt": null,
+  "issue": 183,
+  "branch": null,
+  "model": null,
+  "status": "completed",
+  "startedAt": "2026-04-26T22:25:07.102Z",
+  "completedAt": "2026-04-27T00:11:33.113Z",
+  "phases": [
+    {
+      "phaseKey": "manual-bc-0478522f-a927-4834-8076-6c916a6bf348-PR #193",
+      "type": "MANUAL",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-04-26T22:25:07.102Z",
+      "durationMs": 3485008,
+      "agent": {
+        "id": "bc-0478522f-a927-4834-8076-6c916a6bf348",
+        "runId": "run-9cc8c883-ecb3-4b5d-8ee7-cc1a3d33f99a",
+        "url": "https://cursor.com/agents/bc-0478522f-a927-4834-8076-6c916a6bf348",
+        "model": null,
+        "runCount": 3,
+        "runs": [
+          {
+            "runId": "run-e8419be6-6718-49bc-9004-766c84e37b1e",
+            "index": 1,
+            "startedAt": "2026-04-26T22:25:07.102Z",
+            "completedAt": "2026-04-26T23:14:32.721Z",
+            "durationMs": 2633452,
+            "tokens": {
+              "input": 1125,
+              "output": 122090,
+              "cacheRead": 14348333,
+              "cacheWrite": 824476,
+              "total": 15296024
+            }
+          },
+          {
+            "runId": "run-326eaa1d-b725-4088-b156-51622945767f",
+            "index": 2,
+            "startedAt": "2026-04-26T23:23:20.349Z",
+            "completedAt": "2026-04-26T23:33:06.789Z",
+            "durationMs": 585923,
+            "tokens": {
+              "input": 639,
+              "output": 31357,
+              "cacheRead": 3849163,
+              "cacheWrite": 252678,
+              "total": 4133837
+            }
+          },
+          {
+            "runId": "run-9cc8c883-ecb3-4b5d-8ee7-cc1a3d33f99a",
+            "index": 3,
+            "startedAt": "2026-04-27T00:07:06.928Z",
+            "completedAt": "2026-04-27T00:11:33.113Z",
+            "durationMs": 265633,
+            "tokens": {
+              "input": 573,
+              "output": 9911,
+              "cacheRead": 1671464,
+              "cacheWrite": 244020,
+              "total": 1925968
+            }
+          }
+        ]
+      },
+      "github": null,
+      "tokens": {
+        "input": 2337,
+        "output": 163358,
+        "cacheRead": 19868960,
+        "cacheWrite": 1321174,
+        "total": 21355829
+      },
+      "tokensSource": "cursor-api-manual",
+      "result": "Imported manually (pre-Conductor cloud agent)",
+      "outcome": "success",
+      "manualImport": true,
+      "notes": "Manual import via import-manual-agents.mjs · Timing from Cursor API (3 agent runs aggregated)",
+      "completedAt": "2026-04-27T00:11:33.113Z"
+    }
+  ],
+  "totals": {
+    "tokens": {
+      "input": 2337,
+      "output": 163358,
+      "cacheRead": 19868960,
+      "cacheWrite": 1321174,
+      "total": 21355829
+    },
+    "durationMs": 3485008,
+    "phaseCount": 1,
+    "escalations": 0,
+    "ghaJobs": 1,
+    "cloudAgents": 1
+  },
+  "manualImport": {
+    "at": "2026-07-14T17:14:13.796Z",
+    "source": "import-manual-agents.mjs",
+    "note": "Pre-Conductor cloud agent run(s)"
+  }
+}

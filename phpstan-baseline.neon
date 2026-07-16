@@ -1412,12 +1412,6 @@ parameters:
 			path: app/system/modules/user/src/Controller/UserApiController.php
 
 		-
-			message: '#^Parameter \#1 \$user of static method Pagekit\\User\\Model\\User\:\:updateLogin\(\) expects Pagekit\\User\\Model\\User, Pagekit\\Auth\\UserInterface\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/system/modules/user/src/Event/UserListener.php
-
-		-
 			message: '#^Parameter \#2 \$callback of function preg_replace_callback expects callable\(array\<string\>\)\: string, Closure\(mixed\)\: \(0\|1\) given\.$#'
 			identifier: argument.type
 			count: 1

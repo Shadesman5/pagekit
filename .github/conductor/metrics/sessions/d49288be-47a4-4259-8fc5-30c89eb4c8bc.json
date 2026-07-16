@@ -1,0 +1,370 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "d49288be-47a4-4259-8fc5-30c89eb4c8bc",
+  "roadmapStepId": "2.1.8",
+  "title": "PROMPT_2_1_8_Infection-Mutation-Testing",
+  "taskSlug": "PROMPT_2_1_8_Infection-Mutation-Testing",
+  "taskPrompt": "migration-docs/TODO/agent_prompts/PROMPT_2_1_8_Infection-Mutation-Testing.md",
+  "issue": 155,
+  "branch": "feature/infection-mutation-testing",
+  "model": null,
+  "status": "completed",
+  "startedAt": "2026-07-08T22:07:48.239Z",
+  "completedAt": "2026-07-09T02:58:45.306Z",
+  "phases": [
+    {
+      "phaseKey": "28979113377-1-85993366180-PLAN",
+      "type": "PLAN",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-07-08T22:07:48.239Z",
+      "durationMs": 551280,
+      "agent": {
+        "id": "bc-934ef69b-d2de-42b6-ab60-daa9af0f8b10",
+        "runId": "run-791ccd41-4723-4ca6-acdb-0a938549b9b9",
+        "url": "https://cursor.com/agents/bc-934ef69b-d2de-42b6-ab60-daa9af0f8b10",
+        "model": null,
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-791ccd41-4723-4ca6-acdb-0a938549b9b9",
+            "index": 1,
+            "startedAt": "2026-07-08T22:07:48.239Z",
+            "completedAt": "2026-07-08T22:17:02.953Z",
+            "durationMs": 551280,
+            "tokens": {
+              "input": 28336,
+              "output": 37217,
+              "cacheRead": 1853490,
+              "cacheWrite": 230265,
+              "total": 2149308
+            }
+          }
+        ]
+      },
+      "github": {
+        "runId": 28979113377,
+        "runAttempt": 1,
+        "jobId": 85993366180,
+        "jobConclusion": "success",
+        "jobUrl": "https://github.com/Shadesman5/pagekit/actions/runs/28979113377/job/85993366180",
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/28979113377",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 28336,
+        "output": 37217,
+        "cacheRead": 1853490,
+        "cacheWrite": 230265,
+        "total": 2149308
+      },
+      "result": "Plan ready: migration-docs/tickets/active/PROMPT_2_1_8_Infection-Mutation-Testing_plan.md",
+      "outcome": "success",
+      "backfill": true,
+      "notes": "Timing from Cursor API (single agent run)",
+      "completedAt": "2026-07-08T22:17:02.953Z"
+    },
+    {
+      "phaseKey": "28979113377-1-85993366180-EXECUTE 1,2,3",
+      "type": "EXECUTE",
+      "attempt": 0,
+      "batchSteps": [
+        1,
+        2,
+        3
+      ],
+      "startedAt": "2026-07-08T22:17:07.145Z",
+      "durationMs": 1356681,
+      "agent": {
+        "id": "bc-404a6bf6-7834-4288-8a93-f58682d2d869",
+        "runId": "run-945f90d7-0afd-44e4-a791-a460bae8d978",
+        "url": "https://cursor.com/agents/bc-404a6bf6-7834-4288-8a93-f58682d2d869",
+        "model": null,
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-945f90d7-0afd-44e4-a791-a460bae8d978",
+            "index": 1,
+            "startedAt": "2026-07-08T22:17:07.145Z",
+            "completedAt": "2026-07-08T22:39:48.218Z",
+            "durationMs": 1356681,
+            "tokens": {
+              "input": 108394,
+              "output": 87777,
+              "cacheRead": 5576951,
+              "cacheWrite": 577851,
+              "total": 6350973
+            }
+          }
+        ]
+      },
+      "github": {
+        "runId": 28979113377,
+        "runAttempt": 1,
+        "jobId": 85993366180,
+        "jobConclusion": "success",
+        "jobUrl": "https://github.com/Shadesman5/pagekit/actions/runs/28979113377/job/85993366180",
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/28979113377",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 108394,
+        "output": 87777,
+        "cacheRead": 5576951,
+        "cacheWrite": 577851,
+        "total": 6350973
+      },
+      "result": "Batch done. Steps: 1,2,3. Last commit: 38003e9f.",
+      "outcome": "success",
+      "backfill": true,
+      "notes": "Timing from Cursor API (single agent run)",
+      "completedAt": "2026-07-08T22:39:48.218Z"
+    },
+    {
+      "phaseKey": "28979113377-1-85993366180-EXECUTE 4,5,6",
+      "type": "EXECUTE",
+      "attempt": 0,
+      "batchSteps": [
+        4,
+        5,
+        6
+      ],
+      "startedAt": "2026-07-08T22:39:59.119Z",
+      "durationMs": 2762622,
+      "agent": {
+        "id": "bc-a3975b75-31bc-45a1-ab1e-4c1d5dc86839",
+        "runId": "run-e046cce6-ae17-4406-8744-ceb133a9ae7d",
+        "url": "https://cursor.com/agents/bc-a3975b75-31bc-45a1-ab1e-4c1d5dc86839",
+        "model": null,
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-e046cce6-ae17-4406-8744-ceb133a9ae7d",
+            "index": 1,
+            "startedAt": "2026-07-08T22:39:59.119Z",
+            "completedAt": "2026-07-08T23:26:04.896Z",
+            "durationMs": 2762622,
+            "tokens": {
+              "input": 32658,
+              "output": 184012,
+              "cacheRead": 8569982,
+              "cacheWrite": 620726,
+              "total": 9407378
+            }
+          }
+        ]
+      },
+      "github": {
+        "runId": 28979113377,
+        "runAttempt": 1,
+        "jobId": 85993366180,
+        "jobConclusion": "success",
+        "jobUrl": "https://github.com/Shadesman5/pagekit/actions/runs/28979113377/job/85993366180",
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/28979113377",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 32658,
+        "output": 184012,
+        "cacheRead": 8569982,
+        "cacheWrite": 620726,
+        "total": 9407378
+      },
+      "result": "Batch done. Steps: 4,5,6. Last commit: 7d31e665.",
+      "outcome": "success",
+      "backfill": true,
+      "notes": "Timing from Cursor API (single agent run)",
+      "completedAt": "2026-07-08T23:26:04.896Z"
+    },
+    {
+      "phaseKey": "28979113377-1-85993366180-EXECUTE 7",
+      "type": "EXECUTE",
+      "attempt": 0,
+      "batchSteps": [
+        7
+      ],
+      "startedAt": "2026-07-08T23:26:12.437Z",
+      "durationMs": 2662001,
+      "agent": {
+        "id": "bc-3e213999-8195-4893-a297-b0aee7b35920",
+        "runId": "run-80060aec-1485-448b-b006-056f16811abf",
+        "url": "https://cursor.com/agents/bc-3e213999-8195-4893-a297-b0aee7b35920",
+        "model": null,
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-80060aec-1485-448b-b006-056f16811abf",
+            "index": 1,
+            "startedAt": "2026-07-08T23:26:12.437Z",
+            "completedAt": "2026-07-09T00:10:39.476Z",
+            "durationMs": 2662001,
+            "tokens": {
+              "input": 32481,
+              "output": 182902,
+              "cacheRead": 6549447,
+              "cacheWrite": 553049,
+              "total": 7317879
+            }
+          }
+        ]
+      },
+      "github": {
+        "runId": 28979113377,
+        "runAttempt": 1,
+        "jobId": 85993366180,
+        "jobConclusion": "success",
+        "jobUrl": "https://github.com/Shadesman5/pagekit/actions/runs/28979113377/job/85993366180",
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/28979113377",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 32481,
+        "output": 182902,
+        "cacheRead": 6549447,
+        "cacheWrite": 553049,
+        "total": 7317879
+      },
+      "result": "Batch done. Steps: [7]. Last commit: 5d23272a.",
+      "outcome": "success",
+      "backfill": true,
+      "notes": "Timing from Cursor API (single agent run)",
+      "completedAt": "2026-07-09T00:10:39.476Z"
+    },
+    {
+      "phaseKey": "28979113377-1-85993366180-EXECUTE 8",
+      "type": "EXECUTE",
+      "attempt": 0,
+      "batchSteps": [
+        8
+      ],
+      "startedAt": "2026-07-09T00:10:47.402Z",
+      "durationMs": 8967175,
+      "agent": {
+        "id": "bc-fd1b03a4-0729-4a9f-ba2d-d53b962d19d8",
+        "runId": "run-fa10c0df-076a-4696-98ee-a62ab40494a2",
+        "url": "https://cursor.com/agents/bc-fd1b03a4-0729-4a9f-ba2d-d53b962d19d8",
+        "model": null,
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-fa10c0df-076a-4696-98ee-a62ab40494a2",
+            "index": 1,
+            "startedAt": "2026-07-09T00:10:47.402Z",
+            "completedAt": "2026-07-09T02:40:17.887Z",
+            "durationMs": 8967175,
+            "tokens": {
+              "input": 473934,
+              "output": 590579,
+              "cacheRead": 39950662,
+              "cacheWrite": 1108683,
+              "total": 42123858
+            }
+          }
+        ]
+      },
+      "github": {
+        "runId": 28979113377,
+        "runAttempt": 1,
+        "jobId": 85993366180,
+        "jobConclusion": "success",
+        "jobUrl": "https://github.com/Shadesman5/pagekit/actions/runs/28979113377/job/85993366180",
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/28979113377",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 473934,
+        "output": 590579,
+        "cacheRead": 39950662,
+        "cacheWrite": 1108683,
+        "total": 42123858
+      },
+      "result": "Batch done. Steps: [8]. Last commit: 9d70678e.",
+      "outcome": "success",
+      "backfill": true,
+      "notes": "Timing from Cursor API (single agent run)",
+      "completedAt": "2026-07-09T02:40:17.887Z"
+    },
+    {
+      "phaseKey": "28979113377-1-85993366180-FINALIZE",
+      "type": "FINALIZE",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-07-09T02:40:27.270Z",
+      "durationMs": 1095126,
+      "agent": {
+        "id": "bc-ff71b2ab-d49a-4bbb-ade1-4a16f04c28bb",
+        "runId": "run-71c03bd5-ef7a-47a1-a9a1-03487228db25",
+        "url": "https://cursor.com/agents/bc-ff71b2ab-d49a-4bbb-ade1-4a16f04c28bb",
+        "model": null,
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-71c03bd5-ef7a-47a1-a9a1-03487228db25",
+            "index": 1,
+            "startedAt": "2026-07-09T02:40:27.270Z",
+            "completedAt": "2026-07-09T02:58:45.306Z",
+            "durationMs": 1095126,
+            "tokens": {
+              "input": 110800,
+              "output": 50164,
+              "cacheRead": 2919311,
+              "cacheWrite": 361894,
+              "total": 3442169
+            }
+          }
+        ]
+      },
+      "github": {
+        "runId": 28979113377,
+        "runAttempt": 1,
+        "jobId": 85993366180,
+        "jobConclusion": "success",
+        "jobUrl": "https://github.com/Shadesman5/pagekit/actions/runs/28979113377/job/85993366180",
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/28979113377",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 110800,
+        "output": 50164,
+        "cacheRead": 2919311,
+        "cacheWrite": 361894,
+        "total": 3442169
+      },
+      "result": "Finalized. PR: #216. Version: 1.2.23. Ticket archived to done/.",
+      "outcome": "success",
+      "backfill": true,
+      "notes": "Timing from Cursor API (single agent run)",
+      "completedAt": "2026-07-09T02:58:45.306Z"
+    }
+  ],
+  "totals": {
+    "tokens": {
+      "input": 786603,
+      "output": 1132651,
+      "cacheRead": 65419843,
+      "cacheWrite": 3452468,
+      "total": 70791565
+    },
+    "durationMs": 17394885,
+    "phaseCount": 6,
+    "escalations": 0,
+    "ghaJobs": 1,
+    "cloudAgents": 6
+  },
+  "backfill": {
+    "source": "github-actions-logs",
+    "workflowRunId": 28979113377,
+    "workflowRunAttempt": 1,
+    "conclusion": "success",
+    "createdAt": "2026-07-08T22:07:34Z",
+    "displayTitle": "Conductor (V2)",
+    "logAvailable": true,
+    "jobAttemptsMerged": 1
+  }
+}

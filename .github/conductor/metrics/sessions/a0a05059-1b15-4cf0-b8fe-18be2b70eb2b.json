@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "a0a05059-1b15-4cf0-b8fe-18be2b70eb2b",
+  "roadmapStepId": "2.1.4",
+  "title": "↳ PHPStan Level 5→6 (Return Types)",
+  "taskSlug": null,
+  "taskPrompt": null,
+  "issue": 151,
+  "branch": null,
+  "model": null,
+  "status": "completed",
+  "startedAt": "2026-05-04T00:10:28.921Z",
+  "completedAt": "2026-05-04T19:07:06.461Z",
+  "phases": [
+    {
+      "phaseKey": "manual-bc-1ec42302-57bd-4962-bdb3-0fe97f157256-PR #203",
+      "type": "MANUAL",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-05-04T00:10:28.921Z",
+      "durationMs": 39109455,
+      "agent": {
+        "id": "bc-1ec42302-57bd-4962-bdb3-0fe97f157256",
+        "runId": "run-f2688dd0-f94d-48e5-832e-dc2137d94633",
+        "url": "https://cursor.com/agents/bc-1ec42302-57bd-4962-bdb3-0fe97f157256",
+        "model": null,
+        "runCount": 3,
+        "runs": [
+          {
+            "runId": "run-2c48029b-c153-4708-9ae4-babe161c4491",
+            "index": 1,
+            "startedAt": "2026-05-04T00:10:28.921Z",
+            "completedAt": "2026-05-04T01:32:39.848Z",
+            "durationMs": 4855462,
+            "tokens": {
+              "input": 5298,
+              "output": 2059274,
+              "cacheRead": 400503059,
+              "cacheWrite": 13096097,
+              "total": 415663728
+            }
+          },
+          {
+            "runId": "run-b7cd9a9f-5459-4a48-9fd6-6a20c443b587",
+            "index": 2,
+            "startedAt": "2026-05-04T01:32:39.288Z",
+            "completedAt": "2026-05-04T11:03:25.295Z",
+            "durationMs": 34245447,
+            "tokens": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          {
+            "runId": "run-f2688dd0-f94d-48e5-832e-dc2137d94633",
+            "index": 3,
+            "startedAt": "2026-05-04T19:06:56.980Z",
+            "completedAt": "2026-05-04T19:07:06.461Z",
+            "durationMs": 8546,
+            "tokens": {
+              "input": 520,
+              "output": 47,
+              "cacheRead": 1014,
+              "cacheWrite": 0,
+              "total": 1581
+            }
+          }
+        ]
+      },
+      "github": null,
+      "tokens": {
+        "input": 5818,
+        "output": 2059321,
+        "cacheRead": 400504073,
+        "cacheWrite": 13096097,
+        "total": 415665309
+      },
+      "tokensSource": "cursor-api-manual",
+      "result": "Imported manually (pre-Conductor cloud agent)",
+      "outcome": "success",
+      "manualImport": true,
+      "notes": "Manual import via import-manual-agents.mjs · Timing from Cursor API (3 agent runs aggregated)",
+      "completedAt": "2026-05-04T19:07:06.461Z"
+    }
+  ],
+  "totals": {
+    "tokens": {
+      "input": 5818,
+      "output": 2059321,
+      "cacheRead": 400504073,
+      "cacheWrite": 13096097,
+      "total": 415665309
+    },
+    "durationMs": 39109455,
+    "phaseCount": 1,
+    "escalations": 0,
+    "ghaJobs": 1,
+    "cloudAgents": 1
+  },
+  "manualImport": {
+    "at": "2026-07-14T17:14:06.438Z",
+    "source": "import-manual-agents.mjs",
+    "note": "Pre-Conductor cloud agent run(s)"
+  }
+}

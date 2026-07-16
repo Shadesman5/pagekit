@@ -8,6 +8,7 @@ use Pagekit\Application\UrlProvider;
 use Pagekit\Site\MenuHelper;
 use Pagekit\Site\MenuManager;
 use Pagekit\Site\Model\Node;
+use Pagekit\Site\Model\NodeRepository;
 use Pagekit\Site\NodePresenter;
 use Pagekit\User\Model\User;
 use PHPUnit\Framework\TestCase;
@@ -15,28 +16,21 @@ use PHPUnit\Framework\TestCase;
 /**
  * Covers MenuHelper presenter wiring: getRoot() resolves the active path via
  * NodePresenter::getUrl(BASE_PATH) and assigns per-node URLs through getUrl().
- * Node menu data is seeded through the request-scoped static cache so no
- * database or kernel boot is required. NodePresenter is final — tests inject a
- * real presenter backed by mocked UrlProvider and User.
+ * The menu node set is served by a mocked NodeRepository::findByMenu() — the
+ * request-cache-backed lookup that replaced the former static NodeModelTrait
+ * cache — so no database or kernel boot is required. NodePresenter is final —
+ * tests inject a real presenter backed by mocked UrlProvider and User.
  */
 class MenuHelperTest extends TestCase
 {
     protected function setUp(): void
     {
         require_once __DIR__ . '/bootstrap.php';
-
-        $this->resetNodeCache();
-    }
-
-    protected function tearDown(): void
-    {
-        $this->resetNodeCache();
     }
 
     public function testGetRootResolvesCurrentPathViaPresenterGetUrlWithBasePath(): void
     {
         $menuNode = $this->createMenuNode(2, '/blog', 'main', '@blog');
-        $this->seedNodeCache([2 => $menuNode]);
 
         $currentNode = new Node();
         $currentNode->id = 99;
@@ -65,6 +59,7 @@ class MenuHelperTest extends TestCase
             $this->createAccessibleUser(),
             $currentNode,
             new NodePresenter($url, $this->createMock(User::class)),
+            $this->createNodeRepository('main', [2 => $menuNode]),
         );
 
         $root = $helper->getRoot('main', ['start_level' => 2]);
@@ -79,7 +74,6 @@ class MenuHelperTest extends TestCase
     {
         $home = $this->createMenuNode(1, '/home', 'main', '/home');
         $about = $this->createMenuNode(2, '/about', 'main', '/about');
-        $this->seedNodeCache([1 => $home, 2 => $about]);
 
         $currentNode = new Node();
         $currentNode->id = 1;
@@ -105,6 +99,7 @@ class MenuHelperTest extends TestCase
             $this->createAccessibleUser(),
             $currentNode,
             new NodePresenter($url, $this->createMock(User::class)),
+            $this->createNodeRepository('main', [1 => $home, 2 => $about]),
         );
 
         $helper->getRoot('main');
@@ -138,21 +133,16 @@ class MenuHelperTest extends TestCase
     }
 
     /**
+     * Builds a NodeRepository whose cached findByMenu() serves the given menu's
+     * node set — the request-cache-backed lookup MenuHelper::getRoot() performs.
+     *
      * @param array<int, Node> $nodes
      */
-    private function seedNodeCache(array $nodes): void
+    private function createNodeRepository(string $menu, array $nodes): NodeRepository
     {
-        $reflection = new \ReflectionClass(Node::class);
-        $property = $reflection->getProperty('nodes');
-        $property->setAccessible(true);
-        $property->setValue(null, $nodes);
-    }
+        $repository = $this->createMock(NodeRepository::class);
+        $repository->method('findByMenu')->with($menu, true)->willReturn($nodes);
 
-    private function resetNodeCache(): void
-    {
-        $reflection = new \ReflectionClass(Node::class);
-        $property = $reflection->getProperty('nodes');
-        $property->setAccessible(true);
-        $property->setValue(null, null);
+        return $repository;
     }
 }

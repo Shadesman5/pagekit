@@ -7,6 +7,7 @@ namespace Pagekit\Blog\Controller;
 use function Pagekit\__;
 
 use Pagekit\Blog\Model\Post;
+use Pagekit\Blog\Model\PostRepository;
 use Pagekit\Blog\PostPresenter;
 use Pagekit\Database\Connection;
 use Pagekit\Filter\FilterManager;
@@ -40,6 +41,7 @@ class PostApiController
         private readonly Connection $db,
         protected readonly ValidatorInterface $validator,
         private readonly PostPresenter $postPresenter,
+        private readonly PostRepository $postRepository,
     ) {
         $this->blog = $module->get('blog');
     }
@@ -53,7 +55,7 @@ class PostApiController
         $filter = (array) ($this->request->query->all()['filter'] ?? []);
         $page = (int) $this->request->query->get('page', 0);
 
-        $query = Post::query();
+        $query = $this->postRepository->query();
         $filter = array_merge(array_fill_keys(['status', 'search', 'author', 'order', 'limit'], ''), $filter);
 
         extract($filter, EXTR_SKIP);
@@ -89,13 +91,6 @@ class PostApiController
 
         $posts = [];
         foreach ($query->offset($page * $limit)->related('user', 'comments')->limit($limit)->orderBy($order[1], $order[2])->get() as $post) {
-            if (!$post instanceof Post) {
-                throw new \LogicException(sprintf(
-                    'QueryBuilder::get() returned %s, expected %s',
-                    get_class($post),
-                    Post::class
-                ));
-            }
             $posts[] = $this->postPresenter->toArray($post);
         }
 
@@ -108,15 +103,7 @@ class PostApiController
     #[Route('/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function getAction(int $id): ?array
     {
-        $post = Post::where(compact('id'))->related('user', 'comments')->first();
-
-        if ($post !== null && !$post instanceof Post) {
-            throw new \LogicException(sprintf(
-                'QueryBuilder::first() returned %s, expected %s',
-                get_class($post),
-                Post::class
-            ));
-        }
+        $post = $this->postRepository->where(compact('id'))->related('user', 'comments')->first();
 
         return $post ? $this->postPresenter->toArray($post) : null;
     }
@@ -143,13 +130,13 @@ class PostApiController
             $id = (int) $data['id'];
         }
 
-        if (!$id || !$post = Post::find($id)) {
+        if (!$id || !$post = $this->postRepository->find($id)) {
 
             if ($id) {
                 throw new NotFoundHttpException(__('Post not found.'));
             }
 
-            $post = Post::create();
+            $post = $this->postRepository->create();
         }
 
         $data['slug'] = $this->filter->apply($data['slug'] ?: $data['title'], 'slugify');
@@ -171,7 +158,7 @@ class PostApiController
 
         $this->validateOrFail($post);
 
-        $post->save($data);
+        $this->postRepository->save($post, $data);
 
         return ['message' => 'success', 'post' => $this->postPresenter->toArray($post)];
     }
@@ -186,13 +173,13 @@ class PostApiController
             $id = (int) $this->request->get('id', 0);
         }
 
-        if ($post = Post::find($id)) {
+        if ($post = $this->postRepository->find($id)) {
 
             if (!$this->user->hasAccess('blog: manage all posts') && !$this->user->hasAccess('blog: manage own posts') && $post->user_id !== $this->user->id) {
                 throw new BadRequestHttpException(__('Access denied.'));
             }
 
-            $post->delete();
+            $this->postRepository->delete($post);
         }
 
         return ['message' => 'success'];
@@ -211,7 +198,7 @@ class PostApiController
         }
 
         foreach ($ids as $id) {
-            if ($post = Post::find((int) $id)) {
+            if ($post = $this->postRepository->find((int) $id)) {
                 if (!$this->user->hasAccess('blog: manage all posts') && !$this->user->hasAccess('blog: manage own posts') && $post->user_id !== $this->user->id) {
                     continue;
                 }
@@ -222,7 +209,7 @@ class PostApiController
                 $post->title = $post->title.' - '.__('Copy');
                 $post->comment_count = 0;
                 $post->date = new \DateTime();
-                $post->save();
+                $this->postRepository->save($post);
             }
         }
 

@@ -1,6 +1,6 @@
 ---
 name: tester
-model: composer-2.5[fast=false]
+model: grok-4.5[effort=high,fast=false]
 description: Quality Guard for Pagekit modernization. Runs php pagekit setup, PHPUnit, Playwright. Performs RCA on failure. Use proactively after Verifier passes.
 ---
 
