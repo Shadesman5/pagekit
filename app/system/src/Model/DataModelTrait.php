@@ -9,8 +9,9 @@ use Pagekit\Util\Arr;
 
 trait DataModelTrait
 {
+    /** @var array<int|string, mixed>|null */
     #[ORM\Column(type: 'json')]
-    public mixed $data = null;
+    public ?array $data = null;
 
     /**
      * Gets a data value.
@@ -21,7 +22,7 @@ trait DataModelTrait
      */
     public function get(string $key, mixed $default = null): mixed
     {
-        return Arr::get((array) $this->data, $key, $default);
+        return Arr::get($this->data ?? [], $key, $default);
     }
 
     /**

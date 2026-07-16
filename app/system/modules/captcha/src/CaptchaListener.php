@@ -138,12 +138,12 @@ class CaptchaListener implements EventSubscriberInterface
             return;
         }
 
-        if ($error = $this->verifyToken($request->get('gRecaptchaResponse'), $this->captchaModule->config('recaptcha_secret'))) {
+        if ($error = $this->verifyToken($request->request->getString('gRecaptchaResponse'), (string) $this->captchaModule->config('recaptcha_secret'))) {
             throw new BadRequestHttpException($error);
         }
     }
 
-    protected function verifyToken(mixed $gRecaptchaResponse, mixed $secret): ?string
+    protected function verifyToken(string $gRecaptchaResponse, string $secret): ?string
     {
         if ($gRecaptchaResponse && $secret) {
             $result = json_decode($this->post('https://www.google.com/recaptcha/api/siteverify', [

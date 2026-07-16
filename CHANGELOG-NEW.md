@@ -1,5 +1,28 @@
 # Changelog
 
+## Pagekit 1.2.27 - Residual `mixed` narrowing (Juli 16, 2026)
+
+### Added
+
+- **CaptchaListener unit tests** — `CaptchaListenerTest` + module `Tests/bootstrap.php` (`__()` stub + `require_once`); covers `onRequest()` via `post()` override (no network). (Closes #217)
+- **`site` container service** — `SiteModule::main()` registers `$app->set('site', $this)` for constructor DI by parameter name.
+
+### Changed
+
+- **`CaptchaListener::verifyToken()`** — params `mixed` → `string`; call site uses `$request->request->getString('gRecaptchaResponse')` + `(string)` secret cast.
+- **`NodeController`** — `protected mixed $site` + `ModuleManager` lookup replaced by promoted `private readonly SiteModule $site`; null-guards `getTypes() ?? []` and `getType($node->type ?? '')`.
+- **`DataModelTrait::$data`** — typed `?array` with `@var array<int|string, mixed>|null` (int keys required for `Arr::set` by-ref typing).
+
+### Breaking Changes (Extensions)
+
+- **Signature narrowing.** Subclasses/callers of `CaptchaListener::verifyToken()`, `NodeController`'s constructor (`SiteModule` instead of `ModuleManager`), or writers to `DataModelTrait::$data` must match the new types or TypeError under PHP 8.
+
+### Deferred
+
+- Remaining legitimate `mixed` (docblock shapes, magic `__get`/`__set`, filter/loader/PSR-11 contracts, callable properties) — permanent non-goal, not future work.
+
+---
+
 ## Pagekit 1.2.26 - EntityManager DI — remove singleton (Juli 14, 2026)
 
 ### Added

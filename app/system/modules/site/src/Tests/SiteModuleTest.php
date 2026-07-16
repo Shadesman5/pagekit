@@ -17,9 +17,10 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
- * Covers SiteModule wiring: main() registers the `nodeRepository` (custom,
- * request-cache home) and `pageRepository` services, and registerType()
- * auto-creates a protected type's node through the injected `nodeRepository`
+ * Covers SiteModule wiring: main() registers the `site` module service (for
+ * constructor DI by parameter name), the `nodeRepository` (custom, request-cache
+ * home) and `pageRepository` services, and registerType() auto-creates a
+ * protected type's node through the injected `nodeRepository`
  * (`$nodes->save($nodes->create([...]))`), reading the existing set via
  * findAll(true).
  *
@@ -33,6 +34,17 @@ class SiteModuleTest extends TestCase
     protected function setUp(): void
     {
         require_once __DIR__ . '/bootstrap.php';
+    }
+
+    public function testMainRegistersSiteServiceAsTheModuleInstance(): void
+    {
+        [$module, $app] = $this->bootModule();
+
+        // ControllerResolver resolves constructor args by parameter name, so
+        // NodeController's SiteModule $site needs a `site` container entry.
+        $this->assertTrue($app->has('site'), 'main() must register the site service');
+        $this->assertSame($module, $app->get('site'), 'site must resolve to the module instance');
+        $this->assertFalse((new Application())->has('site'), 'services must land in the injected container only');
     }
 
     public function testMainRegistersRepositoryServicesInTheInjectedApplication(): void

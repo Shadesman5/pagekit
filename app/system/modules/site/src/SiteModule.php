@@ -22,6 +22,7 @@ class SiteModule extends Module
     public function main(App $app): mixed
     {
         $this->app = $app;
+        $app->set('site', $this);
 
         $app->set('nodePresenter', fn ($app) => new NodePresenter($app->get('url'), $app->get('user')));
 

@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "158c618d-c832-42fe-aa51-de5d791f1d45",
+  "roadmapStepId": "2.1.12",
+  "title": "Step 2.1.12 Residual Mixed Narrowing",
+  "taskSlug": "PROMPT_2_1_12_Residual-Mixed-Narrowing",
+  "taskPrompt": "migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_12_Residual-Mixed-Narrowing.md",
+  "issue": 217,
+  "branch": "feature/residual-mixed-narrowing",
+  "model": "grok-4.5",
+  "status": "completed",
+  "startedAt": "2026-07-16T02:35:59.909Z",
+  "completedAt": "2026-07-16T02:47:01.647Z",
+  "phases": [
+    {
+      "phaseKey": "29466961843-1-FINALIZE",
+      "type": "FINALIZE",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-07-16T02:35:59.909Z",
+      "durationMs": 660326,
+      "agent": {
+        "id": "bc-c2fe5085-81b5-4606-9ad9-ddb1514a186f",
+        "runId": "run-c143ae65-308a-4cfe-bd66-61f06452921e",
+        "url": "https://cursor.com/agents/bc-c2fe5085-81b5-4606-9ad9-ddb1514a186f",
+        "model": "grok-4.5",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-c143ae65-308a-4cfe-bd66-61f06452921e",
+            "index": 1,
+            "startedAt": "2026-07-16T02:35:59.909Z",
+            "completedAt": "2026-07-16T02:47:01.647Z",
+            "durationMs": 660326,
+            "tokens": {
+              "input": 101711,
+              "output": 12314,
+              "cacheRead": 1351168,
+              "cacheWrite": 0,
+              "total": 1465193
+            }
+          }
+        ]
+      },
+      "github": {
+        "runId": 29466961843,
+        "runAttempt": 1,
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/29466961843",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 101711,
+        "output": 12314,
+        "cacheRead": 1351168,
+        "cacheWrite": 0,
+        "total": 1465193
+      },
+      "tokensSource": "cursor-api",
+      "result": "Finalized. PR: #227. Version: 1.2.27. Ticket archived to done/.",
+      "outcome": "success",
+      "completedAt": "2026-07-16T02:47:01.647Z",
+      "notes": "Timing from Cursor API (single agent run)"
+    }
+  ],
+  "totals": {
+    "tokens": {
+      "input": 101711,
+      "output": 12314,
+      "cacheRead": 1351168,
+      "cacheWrite": 0,
+      "total": 1465193
+    },
+    "durationMs": 660326,
+    "phaseCount": 1,
+    "escalations": 0,
+    "ghaJobs": 1,
+    "cloudAgents": 1
+  }
+}
