@@ -3,16 +3,24 @@
 **Branch:** `feature/residual-mixed-narrowing`
 **ROADMAP Step:** 2.1.12 (Residual `mixed` narrowing)
 **GitHub Issue:** [#217](https://github.com/Shadesman5/pagekit/issues/217)
-**Pull Request:** _TBD_
-**Status:** 🚧 In progress
+**Pull Request:** [#227](https://github.com/Shadesman5/pagekit/pull/227)
+**Status:** ✅ Complete — Ready for Review
 **Started:** 2026-07-16 01:13
-**Completed:** _TBD_
+**Completed:** 2026-07-16 02:45
 
 ---
 
 ## 🎯 Overview
 
-_TBD_
+Narrows the last three avoidable `mixed` sites to concrete types — no behaviour
+change; IDE/PHPStan clarity only. `CaptchaListener::verifyToken()` takes
+`string` params with a typed request accessor at the call site;
+`NodeController` injects `SiteModule` via constructor DI (with a new `site`
+container registration); `DataModelTrait::$data` is `?array` with an
+`array<int|string, mixed>|null` docblock.
+
+Legitimate remaining `mixed` (docblock shapes, magic accessors, PSR-11/filter
+contracts, callable properties) is a permanent non-goal.
 
 ---
 
@@ -69,38 +77,66 @@ None (test-writer skip per TESTING STRATEGY).
 
 ## ⚠️ Breaking Changes (Extensions)
 
-_TBD_
+**Constructor / signature narrowing (internal).** Extensions that subclass or
+manually instantiate these types must match the new shapes:
+
+- `CaptchaListener::verifyToken(string $gRecaptchaResponse, string $secret)` —
+  callers passing non-string values will TypeError under PHP 8.
+- `NodeController` — constructor takes `SiteModule $site` (no `ModuleManager`);
+  the `site` container service must exist (registered in `SiteModule::main()`).
+- `DataModelTrait::$data` — typed `?array`; assigning a non-array/non-null value
+  TypeErrors.
+
+No schema, route, or public HTTP API changes.
 
 ---
 
 ## ⚠️ Risks & Rollout Notes
 
-_TBD / None_
+None. Behaviour preserved (empty-string captcha path, null `getTypes()` → empty
+list, null `$data` pre-hydration). Core and bundled packages updated in-step;
+third-party subclasses of the three sites above need a one-line signature fix.
 
 ---
 
 ## 🔐 Security & Data Impact
 
-_TBD / None_
+None. Captcha verification flow unchanged (typed accessors only); no auth,
+schema, or storage changes.
 
 ---
 
 ## 🛡️ No-Mercy Compliance
 
-_TBD_
+| Rule | How satisfied |
+|---|---|
+| **1 — No compatibility layers** | Old `mixed` signatures deleted; no dual-typed overloads. |
+| **2 — No adapters** | Call sites updated in-step (`getString`, `(string)` cast, `SiteModule` DI); no wrappers. |
+| **3 — Breaking changes allowed internally** | Constructor/`verifyToken`/`$data` shapes narrowed; platform helpers untouched. |
+| **4 — Delete over wrap** | `ModuleManager` lookup and `protected mixed $site` removed, not shimmed. |
+| **5 — Flagging & audit debt** | No new bridges/TODOs; remaining `mixed` documented as permanent non-goal (Deferred). |
 
 ---
 
 ## ✅ Verification (links only)
 
-- CI run: _TBD_
-- Notable deviations: Step 1 coverage tester failed once on missing `CaptchaListener` autoload in the new captcha Tests bootstrap; retry PASS after `require_once` (716 tests, PHPStan clean). Production gate was green on first pass. Step 2 production tester failed once — PHPStan `argument.type` at `NodeController.php:86` (`getType()` expects `string`, `$node->type` is `string|null`); retry PASS after `$node->type ?? ''` (716 tests, PHPStan clean). Coverage gate: 718 tests, PHPStan clean. Step 3 production tester failed once — PHPStan `assign.propertyType` ×5 at `DataModelTrait.php:40` (`Arr::set` by-ref `array<int|string, mixed>` vs `array<string, mixed>|null`); retry PASS after docblock widen to `array<int|string, mixed>|null` (718 tests, PHPStan clean). Coverage skipped; Final E2E PASS (PHPUnit/PHPStan/smoke/E2E install+auth+dashboard).
+| Gate | Result |
+|---|---|
+| CI — PHP Quality | ✅ success |
+| Coverage gap pass | skipped (no codecov comment within ~5 min after CI green) |
+| Cursor Bugbot | ✅ clean |
+| E2E | ✅ PASS |
+| Finalize fix-loop | none |
+
+**CI run:** https://github.com/Shadesman5/pagekit/actions/runs/29467007309
+
+**Notable deviations:** Step 1 coverage tester failed once on missing `CaptchaListener` autoload in the new captcha Tests bootstrap; retry PASS after `require_once` (716 tests, PHPStan clean). Production gate was green on first pass. Step 2 production tester failed once — PHPStan `argument.type` at `NodeController.php:86` (`getType()` expects `string`, `$node->type` is `string|null`); retry PASS after `$node->type ?? ''` (716 tests, PHPStan clean). Coverage gate: 718 tests, PHPStan clean. Step 3 production tester failed once — PHPStan `assign.propertyType` ×5 at `DataModelTrait.php:40` (`Arr::set` by-ref `array<int|string, mixed>` vs `array<string, mixed>|null`); retry PASS after docblock widen to `array<int|string, mixed>|null` (718 tests, PHPStan clean). Coverage skipped; Final E2E PASS (PHPUnit/PHPStan/smoke/E2E install+auth+dashboard).
 
 ---
 
 ## 📋 Phase 1 Audit Closure
 
-_TBD_
+None.
 
 ---
 
@@ -112,7 +148,7 @@ None. Deferred/Bridges are empty. Task-prompt §3 remaining `mixed` (docblock ar
 
 ## 📎 Related Documents
 
-- Ticket: `migration-docs/tickets/active/PROMPT_2_1_12_Residual-Mixed-Narrowing_plan.md` (_TBD_ → move to `done/` after Finalize)
+- Ticket: `migration-docs/tickets/done/PROMPT_2_1_12_Residual-Mixed-Narrowing_plan.md` (archive after Finalize)
 - Task prompt: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_12_Residual-Mixed-Narrowing.md`
 - Predecessor: Step 2.1.11 — EntityManager DI (remove singleton)
 - Successor: Step 2.1.13 — TinyMCE Security Patch (~5.10.9)
