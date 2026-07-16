@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "158c618d-c832-42fe-aa51-de5d791f1d45",
+  "roadmapStepId": "2.1.12",
+  "title": "Step 2.1.12 Residual Mixed Narrowing",
+  "taskSlug": "PROMPT_2_1_12_Residual-Mixed-Narrowing",
+  "taskPrompt": "migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_12_Residual-Mixed-Narrowing.md",
+  "issue": 217,
+  "branch": "feature/residual-mixed-narrowing",
+  "model": "grok-4.5",
+  "status": "in_progress",
+  "startedAt": "2026-07-16T00:52:47.253Z",
+  "completedAt": null,
+  "phases": [],
+  "totals": {
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "total": 0
+    },
+    "durationMs": 0,
+    "phaseCount": 0,
+    "escalations": 0,
+    "ghaJobs": 0,
+    "cloudAgents": 0
+  }
+}

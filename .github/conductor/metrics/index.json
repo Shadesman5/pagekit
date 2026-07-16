@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-14T22:14:59.085Z",
+  "updatedAt": "2026-07-16T00:52:47.254Z",
   "steps": {
     "unknown": {
       "title": "AGENT_PROMPT_AUDIT_TECH_DEBT_INVENTORY",
@@ -107,6 +107,13 @@
       "latestSessionId": "f80004cc-8169-4ddb-8a10-fafc6ccf9645",
       "sessionIds": [
         "f80004cc-8169-4ddb-8a10-fafc6ccf9645"
+      ]
+    },
+    "2.1.12": {
+      "title": "Step 2.1.12 Residual Mixed Narrowing",
+      "latestSessionId": "158c618d-c832-42fe-aa51-de5d791f1d45",
+      "sessionIds": [
+        "158c618d-c832-42fe-aa51-de5d791f1d45"
       ]
     }
   },
