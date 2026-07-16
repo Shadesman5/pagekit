@@ -6,7 +6,6 @@ namespace Pagekit\Site\Tests;
 
 use Pagekit\Application\UrlProvider;
 use Pagekit\Database\ORM\Repository;
-use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Router;
 use Pagekit\Site\Controller\NodeController;
 use Pagekit\Site\MenuManager;
@@ -22,9 +21,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 /**
  * Covers the admin NodeController against the injected NodeRepository (orphan
  * repair, node find/create) and the generic Repository<Role> (role listing). The
- * repositories and the SiteModule
- * (resolved via a mocked ModuleManager) are mocked directly, so the controller
- * actions are exercised without a database.
+ * repositories and the SiteModule are mocked directly and passed to the
+ * controller, so the actions are exercised without a database.
  */
 class NodeControllerTest extends TestCase
 {
@@ -67,6 +65,22 @@ class NodeControllerTest extends TestCase
         $this->assertIsArray($config);
         $this->assertSame(['sidebar' => ['name' => 'sidebar', 'label' => 'Sidebar']], $config['menus']);
         $this->assertSame([['id' => 'page', 'label' => 'Page']], $data['types'], 'types must be re-indexed via array_values');
+    }
+
+    public function testIndexActionReturnsEmptyTypesWhenGetTypesIsNull(): void
+    {
+        $nodeRepository = $this->createMock(NodeRepository::class);
+        $nodeRepository->method('fixOrphanedNodes')->willReturn(0);
+
+        $site = $this->createMock(SiteModule::class);
+        $site->method('getTypes')->willReturn(null);
+
+        $result = $this->createController($nodeRepository, $this->createRoleRepository(), $site)->indexAction();
+
+        $this->assertIsArray($result);
+        $data = $result['$data'];
+        $this->assertIsArray($data);
+        $this->assertSame([], $data['types'], 'a null getTypes() result must become an empty list, not a TypeError');
     }
 
     public function testEditActionReturnsExistingNodeWithRoles(): void
@@ -138,11 +152,8 @@ class NodeControllerTest extends TestCase
         ?MenuManager $menu = null,
         ?Router $router = null,
     ): NodeController {
-        $module = $this->createMock(ModuleManager::class);
-        $module->method('get')->with('system/site')->willReturn($site);
-
         return new NodeController(
-            $module,
+            $site,
             $menu ?? $this->createMock(MenuManager::class),
             $this->createMock(UrlProvider::class),
             $router ?? $this->createMock(Router::class),

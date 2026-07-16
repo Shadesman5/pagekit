@@ -8,12 +8,12 @@ use function Pagekit\__;
 
 use Pagekit\Application\UrlProvider;
 use Pagekit\Database\ORM\Repository;
-use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\Routing\Router;
 use Pagekit\Site\MenuManager;
 use Pagekit\Site\Model\NodeRepository;
+use Pagekit\Site\SiteModule;
 use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -21,20 +21,17 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class NodeController
 {
-    protected mixed $site;
-
     /**
      * @param Repository<Role> $roleRepository
      */
     public function __construct(
-        private readonly ModuleManager $module,
+        private readonly SiteModule $site,
         private readonly MenuManager $menu,
         private readonly UrlProvider $url,
         private readonly Router $router,
         private readonly NodeRepository $nodeRepository,
         private readonly Repository $roleRepository,
     ) {
-        $this->site = $this->module->get('system/site');
     }
 
     /**
@@ -57,7 +54,7 @@ class NodeController
                 'config' => [
                     'menus' => $this->menu->getPositions(),
                 ],
-                'types' => array_values($this->site->getTypes()),
+                'types' => array_values($this->site->getTypes() ?? []),
             ],
         ];
     }
@@ -86,7 +83,7 @@ class NodeController
             $node->menu = $menu;
         }
 
-        if (!$type = $this->site->getType($node->type)) {
+        if (!$type = $this->site->getType($node->type ?? '')) {
             throw new NotFoundHttpException('Type not found.');
         }
 

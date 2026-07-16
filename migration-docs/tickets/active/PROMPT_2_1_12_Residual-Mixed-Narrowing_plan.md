@@ -28,7 +28,7 @@
      L = large or loop-risk. A step orchestrator flips its box to [x] in the SAME commit as that step's code + tests (after full step PASS incl. test-writer when applicable) -->
 
 - [x] Step 1 (M) — CaptchaListener `verifyToken()` → `string` params + typed call site
-- [ ] Step 2 (M) — NodeController `SiteModule` constructor DI + `site` service registration
+- [x] Step 2 (M) — NodeController `SiteModule` constructor DI + `site` service registration
 - [ ] Step 3 (S) — DataModelTrait `$data` → `?array` + final `mixed` sweep
 
 ## TESTING STRATEGY

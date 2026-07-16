@@ -31,12 +31,28 @@ _TBD_
 | `app/system/modules/captcha/src/Tests/CaptchaListenerTest.php` | **New.** `onRequest()` coverage via anonymous subclass overriding `post()` (no network): disabled no-op; missing token/secret → BadRequest; success/failure JSON responses. |
 | `app/system/modules/captcha/src/Tests/bootstrap.php` | **New.** `__()` stub + `require_once` of `CaptchaListener.php` — `Pagekit\Captcha\` is module-autoload only (not Composer PSR-4). |
 
+### NodeController `SiteModule` DI + `site` service (Checklist Step 2)
+
+| File | Change |
+|---|---|
+| `app/system/modules/site/src/SiteModule.php` | `main()` registers `$app->set('site', $this)` for constructor DI by parameter name. |
+| `app/system/modules/site/src/Controller/NodeController.php` | Dropped `ModuleManager` + `protected mixed $site`; promoted `private readonly SiteModule $site`. Null-guards: `getTypes() ?? []`; `getType($node->type ?? '')`. |
+| `app/system/modules/site/src/Tests/NodeControllerTest.php` | Constructor call site passes `SiteModule` mock directly (no `ModuleManager`); docblock updated. |
+
+### Tests (Step 2)
+
+| File | Change |
+|---|---|
+| `app/system/modules/site/src/Tests/SiteModuleTest.php` | Asserts `main()` registers `site` resolving to the module instance (injected container only). |
+| `app/system/modules/site/src/Tests/NodeControllerTest.php` | `testIndexActionReturnsEmptyTypesWhenGetTypesIsNull` — null `getTypes()` → empty `types` list. |
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
 
 - **Controller DI is by parameter name, not type-hint.** `ControllerResolver::instantiateController()` resolves constructor args via `$container->has($paramName)`. The task prompt's claim that the container resolves module classes by type-hint is wrong — `MigrationController`'s `SystemModule $system` works only because `SystemModule::main()` runs `$app->set('system', $this)`. Checklist Step 2 therefore registers `$app->set('site', $this)` in `SiteModule::main()` (mirror of `system`; no `site` service exists today; no container-id collision with menu/event `'site'` strings).
 - **Captcha module tests need an explicit `require_once`.** First coverage-tester run failed (`Class "Pagekit\Captcha\CaptchaListener" not found`) because the new bootstrap stubbed `__()` only. Fixed by requiring the production class — same pattern as comment/widget/blog module Tests bootstraps.
+- **Typed `$site` surfaces a second nullability gap.** Plan called out `getTypes() ?? []` only. After injection, PHPStan also flagged `getType($node->type)` (`string|null` → `string`). Fixed with `$node->type ?? ''` (empty string → existing "Type not found" path).
 
 ---
 
@@ -67,7 +83,7 @@ _TBD_
 ## ✅ Verification (links only)
 
 - CI run: _TBD_
-- Notable deviations: Step 1 coverage tester failed once on missing `CaptchaListener` autoload in the new captcha Tests bootstrap; retry PASS after `require_once` (716 tests, PHPStan clean). Production gate was green on first pass.
+- Notable deviations: Step 1 coverage tester failed once on missing `CaptchaListener` autoload in the new captcha Tests bootstrap; retry PASS after `require_once` (716 tests, PHPStan clean). Production gate was green on first pass. Step 2 production tester failed once — PHPStan `argument.type` at `NodeController.php:86` (`getType()` expects `string`, `$node->type` is `string|null`); retry PASS after `$node->type ?? ''` (716 tests, PHPStan clean). Coverage gate: 718 tests, PHPStan clean.
 
 ---
 
