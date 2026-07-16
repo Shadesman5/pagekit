@@ -30,7 +30,7 @@ _TBD_
 
 ## 🧠 Key Decisions (Rationale)
 
-_TBD / None_
+- **Controller DI is by parameter name, not type-hint.** `ControllerResolver::instantiateController()` resolves constructor args via `$container->has($paramName)`. The task prompt's claim that the container resolves module classes by type-hint is wrong — `MigrationController`'s `SystemModule $system` works only because `SystemModule::main()` runs `$app->set('system', $this)`. Checklist Step 2 therefore registers `$app->set('site', $this)` in `SiteModule::main()` (mirror of `system`; no `site` service exists today; no container-id collision with menu/event `'site'` strings).
 
 ---
 
@@ -73,7 +73,7 @@ _TBD_
 
 ## 📚 Deferred / Out-of-Scope
 
-_TBD_
+None. Deferred/Bridges are empty. Task-prompt §3 remaining `mixed` (docblock array shapes, `PropertyTrait::__get/__set`, filter/loader/PSR-11 `get()` contracts, `PregReplaceFilter::filter()` return, `ExceptionListener::$controller` / `WrappedListener::$listener` callables) is legitimate permanent non-goal — not future work. No `PHASE_*` amendment required.
 
 ---
 
