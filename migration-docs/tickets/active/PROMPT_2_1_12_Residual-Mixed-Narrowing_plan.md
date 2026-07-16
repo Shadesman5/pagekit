@@ -29,7 +29,7 @@
 
 - [x] Step 1 (M) — CaptchaListener `verifyToken()` → `string` params + typed call site
 - [x] Step 2 (M) — NodeController `SiteModule` constructor DI + `site` service registration
-- [ ] Step 3 (S) — DataModelTrait `$data` → `?array` + final `mixed` sweep
+- [x] Step 3 (S) — DataModelTrait `$data` → `?array` + final `mixed` sweep
 
 ## TESTING STRATEGY
 
