@@ -433,6 +433,18 @@ export function createMetricsCollector({ api, sh, log, env, branch, pullBranch }
       return false;
     } catch {
       sh(`git commit -m ${JSON.stringify(message)}`);
+      // Cloud agents often push to the feature branch while we poll. Rebase our
+      // metrics commit onto origin/<branch> before push — otherwise git rejects
+      // non-fast-forward and the Conductor treats it as a phase "run error" (seen on 2.1.12).
+      sh(`git fetch origin ${branch}`);
+      try {
+        sh(`git rebase origin/${branch}`);
+      } catch (e) {
+        try { sh("git rebase --abort"); } catch { /* already clean or no rebase in progress */ }
+        throw new Error(
+          `metrics rebase onto origin/${branch} failed (resolve conflict or retry): ${e.message}`,
+        );
+      }
       sh(`git push origin ${branch}`);
       log("  metrics: committed and pushed");
       if (pullBranch) pullBranch();
