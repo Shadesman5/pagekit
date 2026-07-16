@@ -8,9 +8,9 @@
   "issue": 217,
   "branch": "feature/residual-mixed-narrowing",
   "model": "grok-4.5",
-  "status": "in_progress",
+  "status": "completed",
   "startedAt": "2026-07-16T00:52:47.253Z",
-  "completedAt": null,
+  "completedAt": "2026-07-16T02:47:17.345Z",
   "phases": [
     {
       "phaseKey": "29466961843-1-FINALIZE",
