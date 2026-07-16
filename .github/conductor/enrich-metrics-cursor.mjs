@@ -94,6 +94,14 @@ function pushMetrics(branch) {
     return;
   } catch {
     sh('git commit -m "chore(metrics): enrich tokens via Cursor API"');
+    // Same race as metrics.mjs commitMetrics: feature branch may have moved ahead.
+    sh(`git fetch origin ${branch}`);
+    try {
+      sh(`git rebase origin/${branch}`);
+    } catch (e) {
+      try { sh("git rebase --abort"); } catch { /* ignore */ }
+      throw new Error(`metrics enrich rebase onto origin/${branch} failed: ${e.message}`);
+    }
     execFileSync("git", ["push", "origin", branch], { stdio: "inherit" });
     console.log(`  push: committed and pushed to ${branch}`);
   }
