@@ -60,8 +60,8 @@
   - JWT Authentication
   - API Versioning
   - Rate Limiting
-- **⚠️ Sequencing guardrail (audit 2026-07-07 — Proposal P6 / SL-1):** **Step 2.1.10 (Entity Presentation Layer / DTO) MUST land before any serialization work here.** API responses must be produced by the DI-based presenters/DTOs from Step 2.1.10 — **not** by entity `jsonSerialize()` (`Node`/`Post`), which reaches services through the transitional static `ModelServiceLocator` slated for removal. Building 4.2 endpoints on the entity-`jsonSerialize()` path means throwing that work away once 2.1.10/2.1.11 remove the locator + Active-Record singleton. See `PHASE_2_MODERNISING.md` §2.1.10.
-- **Related audit item (already tracked here):** the hardcoded OpenWeatherMap **API key** in `app/system/modules/dashboard/index.php:48-49` (audit **TD-22**, Critical-by-policy; in-code tag `AUDIT FIX Step 4.2 — move API key to env variable / secrets management`). Audit SL-3 recommends **accelerating** the move to env/secrets **and rotating** the committed key rather than waiting for the full 4.2 build.
+- **API serialization:** All API v2 responses must go through DI presenters/DTOs (`NodePresenter`, `PostPresenter`, and equivalents). Controllers that still return raw entities via `jsonSerialize()` (e.g. `UserApiController`, `RoleApiController`, `WidgetApiController`, `CommentApiController`) must move onto that path — do not add new endpoints that serialize entities directly.
+- **Secrets:** Move the hardcoded OpenWeatherMap API key in `app/system/modules/dashboard/index.php` to env / secrets management and rotate the committed key (in-code tag `AUDIT FIX Step 4.2`).
 
 ---
 
@@ -73,7 +73,9 @@
   - Image Optimization — see **Step 4.6 (Native Image Pipeline & Media Manager)** for the full media pipeline (AVIF/WebP, responsive `<picture>`, focal point). 4.3 covers general asset-level optimization; Step 4.6 Sub-Step A can be pulled forward here if the PageSpeed win is wanted inside 2.0.0.
   - Asset Pipeline Optimization
   - Query Performance Tuning
-  - **ORM Cache Invalidation Strategy** — `EntityManager::invalidateCache()` currently uses `$cache->clear()` (clears the entire cache pool on every `save()`/`delete()`). Replace with tag-based invalidation via `TagAwareCacheInterface` (Symfony 6.4) to only invalidate cache entries for the affected entity type. See: `app/modules/database/src/ORM/EntityManager.php`
+  - **ORM Cache Invalidation Strategy** — `EntityManager::invalidateCache()` currently uses `$cache->clear()` (clears the entire cache pool on every `save()`/`delete()`). Replace with tag-based invalidation via `TagAwareCacheInterface` (Symfony 6.4) to only invalidate cache entries for the affected entity type. See: `app/modules/database/src/ORM/EntityManager.php` (in-code TODO tagged Step 4.3).
+  - **`NodeRepository` request-cache invalidation:** `NodeRepository` keeps a per-request `ArrayAdapter(0, false)` cache (`find` / `findAll` / `findByMenu` with `$cached = true`) with **no invalidation on save**, so mutations can leave stale nodes in the same request. Decide and implement an invalidation strategy (tag-aware or explicit flush on `save`/`delete`).
+  - **Role-lookup cache (optional):** `User::hasPermission()` resolves roles via a per-instance loader; there is no shared role cache. If profiling shows hot `hasPermission` / `findRoles` paths, add a scoped DI-backed cache (not a process-static).
 
 ---
 
