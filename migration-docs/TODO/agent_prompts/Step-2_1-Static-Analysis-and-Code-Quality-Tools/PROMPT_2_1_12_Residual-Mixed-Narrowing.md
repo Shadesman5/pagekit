@@ -8,11 +8,11 @@
 
 ## CONTEXT
 
-- **Depends on:** Step 2.1.6 (PHPStan Level 8) — these are the residual narrowable candidates left after the L8 sweep.
+- **Depends on:** Current `develop` (PHPStan Level 8 landed; EntityManager DI / repository migration already reshaped `NodeController`'s constructor — plan against that shape).
 - **Risk:** Low — signature/property narrowing plus one small call-site change; no behaviour change.
 - **Scope:** This is **not** a blanket "remove all `mixed`" pass (there is no PHPStan Level 9 step planned). Only the three genuinely narrowable cases below are in scope; the legitimate `mixed` listed under §3 stays.
 
-**Goal:** Narrow the last few avoidable `mixed` occurrences from the Step 2.1.6 `mixed` audit to honest, concrete types — purely developer-facing type accuracy (IDE/PHPStan-friendly).
+**Goal:** Narrow the last few avoidable `mixed` occurrences left after the Level-8 typing sweep to honest, concrete types — purely developer-facing type accuracy (IDE/PHPStan-friendly).
 
 ---
 
@@ -20,7 +20,7 @@
 
 **Before starting — verify all of these:**
 
-1. **Branch up-to-date with `develop`** (Step 2.1.6 merged).
+1. **Branch up-to-date with `develop`** (includes Level-8 typing and EntityManager DI — `NodeController` already injects `NodeRepository` / `roleRepository`; only the `$site` / `ModuleManager` narrowing remains here).
 2. **Full suite green:**
    ```bash
    ./app/vendor/bin/phpunit
@@ -77,7 +77,7 @@ rg -n "public mixed \$data" app/system/src/Model/DataModelTrait.php
 **File:** `app/system/src/Model/DataModelTrait.php`
 
 - `public mixed $data = null;` → `public ?array $data = null;` with `/** @var array<string, mixed>|null */`.
-- **Why `?array` (nullable), not `array`:** the column is `#[ORM\Column(type: 'json')]`; the DBAL `json` type is globally overridden to the array-safe `JsonArrayType` (`app/modules/database/index.php:100`; the former `json_array` alias was removed in Step 2.1.7). `JsonArrayType::convertToPHPValue()` always returns an array (null → `[]`), so a **hydrated** entity's `$data` is always an array — but a freshly `new`/`create()`d entity keeps the `null` default until `set()` is called. Hence the property stays nullable.
+- **Why `?array` (nullable), not `array`:** the column is `#[ORM\Column(type: 'json')]`; the DBAL `json` type is globally overridden to the array-safe `JsonArrayType` (`app/modules/database/index.php:100`; no `json_array` alias). `JsonArrayType::convertToPHPValue()` always returns an array (null → `[]`), so a **hydrated** entity's `$data` is always an array — but a freshly `new`/`create()`d entity keeps the `null` default until `set()` is called. Hence the property stays nullable.
 - **Keep the null-guard in `get()`:** `Arr::get()` is typed `array $array`, and `$data` may be `null` (pre-hydration). Keep `(array) $this->data` (or switch to `$this->data ?? []`) — no compatibility shim beyond this documented guard.
 
 ---
@@ -89,7 +89,7 @@ Do **not** touch these (legitimate `mixed`, reviewed):
 - Docblock array shapes, magic-method proxies (`PropertyTrait::__get/__set`), filter/loader/PSR-11 `get()` contracts, polymorphic `preg_replace` returns.
 - `PregReplaceFilter::filter()` return (honest polymorphic return).
 - `ExceptionListener::$controller`, `WrappedListener::$listener` (PHP forbids `callable` as a native property type → `mixed` + `@var callable…` is the idiomatic pattern).
-- `Node::getUrl()`'s `mixed $referenceType` → `int|string` is handled in **Step 2.1.10** (relocated there as a presentation concern), not here.
+- `Node::getUrl()` / presenter URL reference typing is already on the presenter path — not here.
 
 ---
 
