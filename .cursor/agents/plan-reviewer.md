@@ -21,8 +21,9 @@ Orchestrator/Conductor passes:
 4. **Decomposition quality** – Steps are atomic, correctly ordered (no forward dependencies), and each is independently testable + committable.
 5. **EXECUTION STATE present + sane** – The `## EXECUTION STATE` block exists, mirrors the Checklist 1:1 (same numbers + titles), and every step has a plausible `S` / `M` / `L` size hint (loop-risk steps marked `L`).
 6. **Audit findings incorporated** – Any "Audit findings" for this step in `PHASE_*_MODERNISING.md` are explicit checklist items, or explicitly deferred with a ROADMAP TODO.
-7. **Testing strategy** – `## TESTING STRATEGY` is present and matches V2 Execute: production gate (Refactorer → Verifier → Tester), inline-light coverage (test-writer → Verifier test-only → Tester) with explicit skip rules, E2E on last Execute step (not pre-CI), Finalize CI/Bugbot per `orchestrator-v2-finalize.mdc`. Cross-check `.cursor/agents/tester.md` and `.cursor/agents/test-writer.md`.
-8. **Branch doc path** – From `Current Step (ROADMAP): X.Y.Z` in the ticket, the branch doc path
+7. **PHASE Deferred sync** – If the ticket's **Deferred** / **Bridges** name a future ROADMAP step, that step's section in `migration-docs/TODO/PHASE_*_MODERNISING.md` must already contain the work item as **forward-only what + why** (no completed-step narration, no "deferred from Step X.Y", no ticket/PR/branch-doc refs). Missing or history-laden prose → FAIL (Architect amends). Skip when Deferred is empty / non-goal only.
+8. **Testing strategy** – `## TESTING STRATEGY` is present and matches V2 Execute: production gate (Refactorer → Verifier → Tester), inline-light coverage (test-writer → Verifier test-only → Tester) with explicit skip rules, E2E on last Execute step (not pre-CI), Finalize CI/Bugbot per `orchestrator-v2-finalize.mdc`. Cross-check `.cursor/agents/tester.md` and `.cursor/agents/test-writer.md`.
+9. **Branch doc path** – From `Current Step (ROADMAP): X.Y.Z` in the ticket, the branch doc path
    `migration-docs/branches/phase-<X>/step-<X>-<Y>-<Z>-<kebab-title>.md` must be derivable (major phase
    `<X>` from the ROADMAP step ID; kebab-title matches the step topic). Cross-check
    `.cursor/ROADMAP.md` for the step ID and `migration-docs/branches/branch-doc-skeleton.md` for the

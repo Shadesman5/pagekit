@@ -92,8 +92,10 @@ If a worker returns preamble or prose instead of the contract line, ask it to re
 1. Spawn **architect** (template above) → ticket with `## EXECUTION STATE` + `S`/`M`/`L` hints.
 2. Spawn **plan-reviewer** → `PASS` or `FAIL` + bullets.
 3. Decide:
-   - **PASS** → spawn **doc-writer** (initial branch doc template). Then `git add` the ticket **and**
-     the branch doc, commit `docs(plan): add ticket + branch doc for <task-slug>`, `git push`, report
+   - **PASS** → spawn **doc-writer** (initial branch doc template). Then `git add` the ticket, the
+     branch doc, **and** any `migration-docs/TODO/PHASE_*_MODERNISING.md` the Architect amended for
+     Deferred/Bridges (plus ROADMAP if a new sub-step was added), commit
+     `docs(plan): add ticket + branch doc for <task-slug>`, `git push`, report
      `Plan ready: <ticket path>` and stop.
    - **FAIL** → spawn **architect** (retry template with verbatim feedback); go to 2.
 

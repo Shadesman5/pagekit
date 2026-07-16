@@ -169,10 +169,17 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
 5. **Finalize** (follow `push.mdc`, but delegate the writing) — in this order:
    1. **Version bump** (you) — run the `version-bump` skill → `app/system/config.php` (once per PR).
    2. Spawn **doc-writer** (Finalize docs template).
-   3. **ROADMAP closure** (you) — update `.cursor/ROADMAP.md` (header pointer, this step's row
+   3. **PHASE Deferred sync (you)** — if the ticket / branch-doc `## Deferred` (or ticket Bridges) is
+      non-empty, open each named future step in `migration-docs/TODO/PHASE_*_MODERNISING.md` and confirm
+      the work item is present as **forward-only what + why** (no completed-step / ticket / PR narration).
+      Missing → amend before the ROADMAP commit (same prose rules as Architect Responsibility 6). Unclear
+      target step → `ESCALATE`. Skip when Deferred is empty / non-goal only. (Plan should have done this;
+      this is the safety net.)
+   4. **ROADMAP closure** (you) — update `.cursor/ROADMAP.md` (header pointer, this step's row
       Status/Audit/PR, Phase 1 audit closures per `push.mdc`).
-   4. **Commit + archive** (you) — commit per `push.mdc` (`chore(release): bump version to X.Y.Z` for
-      config + CHANGELOG + branch doc; `docs(roadmap): …` for the ROADMAP), then archive the ticket:
+   5. **Commit + archive** (you) — commit per `push.mdc` (`chore(release): bump version to X.Y.Z` for
+      config + CHANGELOG + branch doc; `docs(roadmap): …` for the ROADMAP — include any PHASE amend from
+      step 3 in the docs commit), then archive the ticket:
       `git mv migration-docs/tickets/active/{task-slug}_plan.md migration-docs/tickets/done/`, and
       `git push` (second push). Do not merge.
 
