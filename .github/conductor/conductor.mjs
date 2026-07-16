@@ -41,6 +41,9 @@ const WORKFLOW_REF = (process.env.WORKFLOW_REF || BASE).trim();
 const MAX_ESCALATIONS = Number(process.env.MAX_ESCALATIONS || 2);
 const POLL_MS = Number(process.env.POLL_MS || 15000);
 const MAX_POLL_FAILS = Number(process.env.MAX_POLL_FAILS || 6); // consecutive poll errors before a phase fails
+// After status=FINISHED the Cloud Agents API can lag a few seconds before `result` is set.
+// Without a grace window we treat "" as failure and relaunch PLAN/FINALIZE (seen on 2.1.12).
+const RESULT_GRACE_MS = Number(process.env.RESULT_GRACE_MS || 60000);
 const WEIGHTS = { S: 1, M: 2, L: 4 };
 
 // Validate everything that flows into a shell command or a path (defense-in-depth; only
@@ -59,6 +62,7 @@ if (!Number.isInteger(BUDGET) || BUDGET < 1) fail(`Invalid BATCH_BUDGET: ${proce
 if (!Number.isInteger(MAX_ESCALATIONS) || MAX_ESCALATIONS < 0) fail(`Invalid MAX_ESCALATIONS: ${process.env.MAX_ESCALATIONS}`);
 if (!Number.isInteger(MAX_POLL_FAILS) || MAX_POLL_FAILS < 1) fail(`Invalid MAX_POLL_FAILS: ${process.env.MAX_POLL_FAILS}`);
 if (!Number.isInteger(POLL_MS) || POLL_MS < 1) fail(`Invalid POLL_MS: ${process.env.POLL_MS}`);
+if (!Number.isInteger(RESULT_GRACE_MS) || RESULT_GRACE_MS < 0) fail(`Invalid RESULT_GRACE_MS: ${process.env.RESULT_GRACE_MS}`);
 
 let current = null; // { agentId, runId, label, startedAt, agentUrl } of the in-flight run, for cancellation
 const metrics = createMetricsCollector({
@@ -94,7 +98,16 @@ const metrics = createMetricsCollector({
     const planAlreadyDone = AUDIT ? donePrExists() : existsSync(TICKET);
     let planRan = false;
     if (!planAlreadyDone) {
-      await runPhaseWithEscalation("PLAN", () => planPrompt(AUDIT), /^Plan ready:/i);
+      await runPhaseWithEscalation(
+        "PLAN",
+        () => planPrompt(AUDIT),
+        /^Plan ready:/i,
+        // Side-effect recovery: agent may have pushed the ticket/PR before `result` was readable.
+        () => {
+          pullBranch();
+          return AUDIT ? donePrExists() : existsSync(TICKET);
+        },
+      );
       pullBranch();
       planRan = true;
     } else {
@@ -153,7 +166,16 @@ const metrics = createMetricsCollector({
 
   // FINALIZE phase — idempotent (safe to re-enter after a partial or complete prior run).
   await gate();
-  await runPhaseWithEscalation("FINALIZE", () => finalizePrompt(alreadyArchived ? doneTicket : TICKET), /^Finalized\b/i);
+  await runPhaseWithEscalation(
+    "FINALIZE",
+    () => finalizePrompt(alreadyArchived ? doneTicket : TICKET),
+    /^Finalized\b/i,
+    () => {
+      pullBranch();
+      // Finalize archives the ticket and/or opens the PR — either means the phase landed.
+      return existsSync(doneTicket) || donePrExists();
+    },
+  );
 
   metrics.setSessionStatus("completed");
   log("✅ Conductor done. Review and merge the PR (it is intentionally left open).");
@@ -222,7 +244,9 @@ async function runExecuteBatch(batch) {
 // PLAN / FINALIZE: fixed prompt, relaunch fresh on ESCALATE / run-error / unexpected result up to
 // MAX_ESCALATIONS. `expect` is the phase's success sentinel — a finished run whose one-liner does not
 // match it (empty/garbled result from the beta API) is retried, never accepted as success.
-async function runPhaseWithEscalation(label, makePrompt, expect) {
+// Optional `recoverIfDone()`: after an unexpected one-liner, check git side effects (ticket/PR) so a
+// successful agent push is not discarded when the API omitted/lagged `result`.
+async function runPhaseWithEscalation(label, makePrompt, expect, recoverIfDone) {
   for (let attempt = 0; ; attempt++) {
     await gate();
     let result;
@@ -239,6 +263,23 @@ async function runPhaseWithEscalation(label, makePrompt, expect) {
       continue;
     }
     if (expect && !expect.test(result)) {
+      // Prefer a matching line if the API wraps the orchestrator one-liner in prose.
+      const matchedLine = result.split(/\r?\n/).map((l) => l.trim()).find((l) => expect.test(l));
+      if (matchedLine) {
+        log(`${label} result (extracted): ${matchedLine}`);
+        return matchedLine;
+      }
+      if (typeof recoverIfDone === "function") {
+        try {
+          if (recoverIfDone()) {
+            const recovered = result || `(recovered via side effect; API result was ${JSON.stringify(result)})`;
+            log(`${label}: unexpected one-liner ${JSON.stringify(result)} but side effect present — accepting as success`);
+            return recovered;
+          }
+        } catch (e) {
+          log(`${label}: side-effect recovery check failed (${e.message})`);
+        }
+      }
       if (attempt >= MAX_ESCALATIONS) fail(`${label} unexpected result after ${attempt} retries: "${result}"`);
       log(`unexpected result ("${result}"); relaunching fresh (${attempt + 1}/${MAX_ESCALATIONS})`);
       // Phase already recorded with outcome=success; next retry creates a new phase entry.
@@ -252,6 +293,7 @@ async function runPhaseWithEscalation(label, makePrompt, expect) {
 async function poll(agentId, runId) {
   const TERMINAL = new Set(["FINISHED", "ERROR", "CANCELLED", "EXPIRED"]);
   let fails = 0;
+  let finishedWithoutResultSince = null;
   for (;;) {
     await sleep(POLL_MS);
     let run;
@@ -264,9 +306,22 @@ async function poll(agentId, runId) {
       continue;
     }
     const status = String(run.status ?? run.run?.status ?? "").toUpperCase();
-    if (!TERMINAL.has(status)) continue;
+    if (!TERMINAL.has(status)) {
+      finishedWithoutResultSince = null;
+      continue;
+    }
     if (status !== "FINISHED") throw new Error(`run ${status}`);
-    return String(run.result ?? run.run?.result ?? "").trim();
+    const text = String(run.result ?? run.run?.result ?? "").trim();
+    if (text) return text;
+    // Race: status can become FINISHED a poll or two before `result` is populated.
+    if (finishedWithoutResultSince == null) {
+      finishedWithoutResultSince = Date.now();
+      log(`  run FINISHED but result empty — waiting up to ${RESULT_GRACE_MS}ms for result`);
+      continue;
+    }
+    if (Date.now() - finishedWithoutResultSince < RESULT_GRACE_MS) continue;
+    log(`  result still empty after ${RESULT_GRACE_MS}ms — returning empty`);
+    return "";
   }
 }
 
