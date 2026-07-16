@@ -5,8 +5,15 @@ run-name: "${{ github.event_name == 'pull_request' && format('PHP Quality — PR
 on:
   push:
     branches: [main, develop]
+    # Metrics-only commits (Conductor enrich / session updates) are pushed by
+    # github-actions[bot] and would otherwise re-trigger this workflow → GitHub
+    # requires manual approval for bot-triggered PR runs (action_required loop).
+    paths-ignore:
+      - '.github/conductor/metrics/**'
   pull_request:
     branches: [main, develop]
+    paths-ignore:
+      - '.github/conductor/metrics/**'
 
 permissions:
   contents: read
