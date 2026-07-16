@@ -1,7 +1,7 @@
 # **🗺️ Pagekit Modernization Roadmap & Rules**
 
-> **Current Version**: 1.2.26
-> **Current Step**: 2.1.12 (Residual `mixed` narrowing)
+> **Current Version**: 1.2.27
+> **Current Step**: 2.1.13 (TinyMCE Security Patch (~5.10.9))
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**
 
@@ -93,7 +93,7 @@
 | 2.1.9  | ↳ Test Coverage Expansion             | ✅     | 🛡️    | #156  | #218    |
 | 2.1.10 | ↳ Entity Presentation Layer (DTO)     | ✅     | 🛡️    | #204  | #219    |
 | 2.1.11 | ↳ EntityManager DI (remove singleton) | ✅     | 🛡️    | #205  | #222    |
-| 2.1.12 | ↳ Residual `mixed` narrowing          | ⏳     | ⏳    | #217  | -       |
+| 2.1.12 | ↳ Residual `mixed` narrowing          | ✅     | 🛡️    | #217  | #227    |
 | 2.1.13 | ↳ TinyMCE Security Patch (~5.10.9)    | ⏳     | ⏳    | -     | -       |
 | 2.2    | CI/CD Pipeline                        | ⏳     | ⏳    | #157  | -       |
 | 2.3    | Docker Production                     | ⏳     | ⏳    | #158  | -       |
