@@ -9,9 +9,291 @@
   "branch": "feature/residual-mixed-narrowing",
   "model": "grok-4.5",
   "status": "completed",
-  "startedAt": "2026-07-16T02:35:59.909Z",
+  "startedAt": "2026-07-16T00:52:50.555Z",
   "completedAt": "2026-07-16T02:47:01.647Z",
   "phases": [
+    {
+      "phaseKey": "manual-bc-ba053044-65d9-476e-837a-d46258114112-PLAN",
+      "type": "PLAN",
+      "attempt": 0,
+      "batchSteps": null,
+      "agent": {
+        "id": "bc-ba053044-65d9-476e-837a-d46258114112",
+        "url": "https://cursor.com/agents/bc-ba053044-65d9-476e-837a-d46258114112",
+        "model": null,
+        "runId": "run-02615afa-417a-48fc-aa39-45efb53db182",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-02615afa-417a-48fc-aa39-45efb53db182",
+            "index": 1,
+            "startedAt": "2026-07-16T00:52:50.555Z",
+            "completedAt": "2026-07-16T01:13:41.552Z",
+            "durationMs": 1246969,
+            "tokens": {
+              "input": 98407,
+              "output": 75678,
+              "cacheRead": 4681294,
+              "cacheWrite": 209296,
+              "total": 5064675
+            }
+          }
+        ]
+      },
+      "github": null,
+      "tokens": {
+        "input": 98407,
+        "output": 75678,
+        "cacheRead": 4681294,
+        "cacheWrite": 209296,
+        "total": 5064675
+      },
+      "tokensSource": "cursor-api-manual",
+      "result": "Imported manually (pre-Conductor cloud agent)",
+      "outcome": "success",
+      "manualImport": true,
+      "notes": "Manual import via import-manual-agents.mjs \u00b7 Timing from Cursor API (single agent run)",
+      "startedAt": "2026-07-16T00:52:50.555Z",
+      "durationMs": 1246969,
+      "completedAt": "2026-07-16T01:13:41.552Z"
+    },
+    {
+      "phaseKey": "manual-bc-5a709d4b-83d2-403c-9db6-cdc09ff2ed3e-PLAN",
+      "type": "PLAN",
+      "attempt": 1,
+      "batchSteps": null,
+      "agent": {
+        "id": "bc-5a709d4b-83d2-403c-9db6-cdc09ff2ed3e",
+        "url": "https://cursor.com/agents/bc-5a709d4b-83d2-403c-9db6-cdc09ff2ed3e",
+        "model": null,
+        "runId": "run-81d98bb9-ba77-43a0-b0de-14d1b6348bc5",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-81d98bb9-ba77-43a0-b0de-14d1b6348bc5",
+            "index": 1,
+            "startedAt": "2026-07-16T01:13:56.538Z",
+            "completedAt": "2026-07-16T01:34:43.701Z",
+            "durationMs": 1243944,
+            "tokens": {
+              "input": 87849,
+              "output": 79508,
+              "cacheRead": 2971956,
+              "cacheWrite": 198879,
+              "total": 3338192
+            }
+          }
+        ]
+      },
+      "github": null,
+      "tokens": {
+        "input": 87849,
+        "output": 79508,
+        "cacheRead": 2971956,
+        "cacheWrite": 198879,
+        "total": 3338192
+      },
+      "tokensSource": "cursor-api-manual",
+      "result": "Imported manually (pre-Conductor cloud agent)",
+      "outcome": "success",
+      "manualImport": true,
+      "notes": "Manual import via import-manual-agents.mjs \u00b7 Timing from Cursor API (single agent run) \u00b7 PLAN retry after metrics push rejected",
+      "startedAt": "2026-07-16T01:13:56.538Z",
+      "durationMs": 1243944,
+      "completedAt": "2026-07-16T01:34:43.701Z"
+    },
+    {
+      "phaseKey": "manual-bc-347a16ae-1807-4116-9c54-697df56dc1fe-PLAN",
+      "type": "PLAN",
+      "attempt": 2,
+      "batchSteps": null,
+      "agent": {
+        "id": "bc-347a16ae-1807-4116-9c54-697df56dc1fe",
+        "url": "https://cursor.com/agents/bc-347a16ae-1807-4116-9c54-697df56dc1fe",
+        "model": null,
+        "runId": "run-fa53c89d-7bce-49be-a63c-24dcd298ddb2",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-fa53c89d-7bce-49be-a63c-24dcd298ddb2",
+            "index": 1,
+            "startedAt": "2026-07-16T01:35:00.080Z",
+            "completedAt": "2026-07-16T01:45:19.362Z",
+            "durationMs": 616078,
+            "tokens": {
+              "input": 63606,
+              "output": 36394,
+              "cacheRead": 1909019,
+              "cacheWrite": 177678,
+              "total": 2186697
+            }
+          }
+        ]
+      },
+      "github": null,
+      "tokens": {
+        "input": 63606,
+        "output": 36394,
+        "cacheRead": 1909019,
+        "cacheWrite": 177678,
+        "total": 2186697
+      },
+      "tokensSource": "cursor-api-manual",
+      "result": "Imported manually (pre-Conductor cloud agent)",
+      "outcome": "success",
+      "manualImport": true,
+      "notes": "Manual import via import-manual-agents.mjs \u00b7 Timing from Cursor API (single agent run) \u00b7 PLAN retry 2 (run cancelled)",
+      "startedAt": "2026-07-16T01:35:00.080Z",
+      "durationMs": 616078,
+      "completedAt": "2026-07-16T01:45:19.362Z"
+    },
+    {
+      "phaseKey": "manual-bc-cff6c374-6eed-46f1-ba0a-c870239b7178-EXECUTE 1,2,3",
+      "type": "EXECUTE",
+      "attempt": 0,
+      "batchSteps": [
+        1,
+        2,
+        3
+      ],
+      "agent": {
+        "id": "bc-cff6c374-6eed-46f1-ba0a-c870239b7178",
+        "url": "https://cursor.com/agents/bc-cff6c374-6eed-46f1-ba0a-c870239b7178",
+        "model": null,
+        "runId": "run-2e982746-356d-4317-883f-72e800f80a15",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-2e982746-356d-4317-883f-72e800f80a15",
+            "index": 1,
+            "startedAt": "2026-07-16T01:50:44.977Z",
+            "completedAt": "2026-07-16T02:33:04.974Z",
+            "durationMs": 2536458,
+            "tokens": {
+              "input": 344181,
+              "output": 145274,
+              "cacheRead": 9050975,
+              "cacheWrite": 535436,
+              "total": 10075866
+            }
+          }
+        ]
+      },
+      "github": null,
+      "tokens": {
+        "input": 344181,
+        "output": 145274,
+        "cacheRead": 9050975,
+        "cacheWrite": 535436,
+        "total": 10075866
+      },
+      "tokensSource": "cursor-api-manual",
+      "result": "Imported manually (pre-Conductor cloud agent)",
+      "outcome": "success",
+      "manualImport": true,
+      "notes": "Manual import via import-manual-agents.mjs \u00b7 Timing from Cursor API (single agent run)",
+      "startedAt": "2026-07-16T01:50:44.977Z",
+      "durationMs": 2536458,
+      "completedAt": "2026-07-16T02:33:04.974Z"
+    },
+    {
+      "phaseKey": "manual-bc-72e5c74f-377b-4ce3-af1e-4e09c75278ac-EXECUTE 1,2,3",
+      "type": "EXECUTE",
+      "attempt": 1,
+      "batchSteps": [
+        1,
+        2,
+        3
+      ],
+      "agent": {
+        "id": "bc-72e5c74f-377b-4ce3-af1e-4e09c75278ac",
+        "url": "https://cursor.com/agents/bc-72e5c74f-377b-4ce3-af1e-4e09c75278ac",
+        "model": null,
+        "runId": "run-991e6115-81de-4fc5-ac70-4af004b2c6a9",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-991e6115-81de-4fc5-ac70-4af004b2c6a9",
+            "index": 1,
+            "startedAt": "2026-07-16T02:33:14.295Z",
+            "completedAt": "2026-07-16T02:33:55.266Z",
+            "durationMs": 38376,
+            "tokens": {
+              "input": 37130,
+              "output": 2291,
+              "cacheRead": 46848,
+              "cacheWrite": 0,
+              "total": 86269
+            }
+          }
+        ]
+      },
+      "github": null,
+      "tokens": {
+        "input": 37130,
+        "output": 2291,
+        "cacheRead": 46848,
+        "cacheWrite": 0,
+        "total": 86269
+      },
+      "tokensSource": "cursor-api-manual",
+      "result": "Imported manually (pre-Conductor cloud agent)",
+      "outcome": "success",
+      "manualImport": true,
+      "notes": "Manual import via import-manual-agents.mjs \u00b7 Timing from Cursor API (single agent run) \u00b7 EXECUTE retry after metrics push rejected",
+      "startedAt": "2026-07-16T02:33:14.295Z",
+      "durationMs": 38376,
+      "completedAt": "2026-07-16T02:33:55.266Z"
+    },
+    {
+      "phaseKey": "manual-bc-e7d39e66-544e-4199-a9e7-0183f4f73a40-EXECUTE 1,2,3",
+      "type": "EXECUTE",
+      "attempt": 2,
+      "batchSteps": [
+        1,
+        2,
+        3
+      ],
+      "agent": {
+        "id": "bc-e7d39e66-544e-4199-a9e7-0183f4f73a40",
+        "url": "https://cursor.com/agents/bc-e7d39e66-544e-4199-a9e7-0183f4f73a40",
+        "model": null,
+        "runId": "run-e3659ada-9f1d-4583-a70b-86549be56cce",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-e3659ada-9f1d-4583-a70b-86549be56cce",
+            "index": 1,
+            "startedAt": "2026-07-16T02:34:03.907Z",
+            "completedAt": "2026-07-16T02:34:38.160Z",
+            "durationMs": 32784,
+            "tokens": {
+              "input": 31230,
+              "output": 2128,
+              "cacheRead": 50816,
+              "cacheWrite": 0,
+              "total": 84174
+            }
+          }
+        ]
+      },
+      "github": null,
+      "tokens": {
+        "input": 31230,
+        "output": 2128,
+        "cacheRead": 50816,
+        "cacheWrite": 0,
+        "total": 84174
+      },
+      "tokensSource": "cursor-api-manual",
+      "result": "Imported manually (pre-Conductor cloud agent)",
+      "outcome": "success",
+      "manualImport": true,
+      "notes": "Manual import via import-manual-agents.mjs \u00b7 Timing from Cursor API (single agent run) \u00b7 EXECUTE retry 2 (run cancelled)",
+      "startedAt": "2026-07-16T02:34:03.907Z",
+      "durationMs": 32784,
+      "completedAt": "2026-07-16T02:34:38.160Z"
+    },
     {
       "phaseKey": "29466961843-1-FINALIZE",
       "type": "FINALIZE",
@@ -65,16 +347,16 @@
   ],
   "totals": {
     "tokens": {
-      "input": 101711,
-      "output": 12314,
-      "cacheRead": 1351168,
-      "cacheWrite": 0,
-      "total": 1465193
+      "input": 764114,
+      "output": 353587,
+      "cacheRead": 20062076,
+      "cacheWrite": 1121289,
+      "total": 22301066
     },
-    "durationMs": 660326,
-    "phaseCount": 1,
+    "durationMs": 6374935,
+    "phaseCount": 7,
     "escalations": 0,
     "ghaJobs": 1,
-    "cloudAgents": 1
+    "cloudAgents": 7
   }
 }
