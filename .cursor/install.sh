@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# PHP, Composer, and other tools from the php:8.3-cli image live under
+# PHP, Composer, and other tools from the php:8.5-cli image live under
 # /usr/local/bin. Cursor terminals may not source /etc/bash.bashrc.
 export PATH="/usr/local/bin:${PATH:-}"
 

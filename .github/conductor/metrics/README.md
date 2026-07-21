@@ -25,7 +25,7 @@ Token usage, run duration, and phase breakdown for V2 Conductor cloud-agent sess
 | `fail()` / fatal error | `status: failed` |
 | `conductor:stop` | `status: cancelled` |
 
-Commits land on the **feature branch** during the run and merge to `develop` with the PR.
+Commits land on the unprotected **`conductor-metrics`** branch only — never on the feature-branch tip (PR CI / bot approval) and never direct to protected `develop` (Ruleset requires PRs, no Actions bypass). The dashboard refreshes via an explicit `pages-deploy.yml` dispatch on `develop` after each metrics push; the build overlays metrics from `conductor-metrics` (`GITHUB_TOKEN` does not re-trigger workflows by itself).
 
 ## GitHub Pages
 
@@ -63,7 +63,7 @@ CURSOR_API_KEY=… node .github/conductor/enrich-metrics-cursor.mjs --copy-local
 mkdocs serve -f docs-site/mkdocs.yml
 ```
 
-**GHA:** `conductor.yml` runs enrich in an `always()` step after every job and pushes to the feature branch.
+**GHA:** `conductor.yml` runs enrich in an `always()` step after every job and pushes to **`conductor-metrics`** (`METRICS_BRANCH` / `BRANCH`).
 
 Historical backfill data on `develop` must be enriched locally once (or re-run backfill with `CURSOR_API_KEY` set) — merge alone does not call the API.
 

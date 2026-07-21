@@ -1,6 +1,9 @@
 {
   "$schema": "https://www.cursor.com/schemas/environment.schema.json",
-  "snapshot": "snapshot-20260713-86a76ee1-fa58-4190-ae22-1f821933119f",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
   "install": "bash .cursor/install.sh",
   "start": "bash .cursor/start.sh",
   "terminals": []

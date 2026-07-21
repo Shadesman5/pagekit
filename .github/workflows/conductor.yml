@@ -75,8 +75,8 @@ on:
         type: string
 
 permissions:
-  contents: write        # create/push the feature branch
-  actions: write       # chain the next workflow run via gh workflow run
+  contents: write        # feature branch + conductor-metrics metrics commits
+  actions: write       # chain next Conductor run + dispatch pages-deploy after metrics
   issues: read         # read conductor:stop / conductor:pause control labels
   pull-requests: read  # openPrExists() uses `gh pr list` to make audit runs resume-safe
 
@@ -122,30 +122,28 @@ jobs:
           WORKFLOW_REF: ${{ github.ref_name }}
         run: node .github/conductor/conductor.mjs
 
-      # After every job (success, failure, or 360m cancel): fill token gaps via the same Cursor /usage API.
-      # Checks out the feature branch where metrics live, enriches null phases, commits back.
+      # After every job: fill token gaps via Cursor /usage. Metrics live on the unprotected
+      # conductor-metrics branch (not feature tip, not protected develop).
       - name: Enrich missing token metrics (Cursor API)
         if: always()
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
           SESSION_ID: ${{ inputs.session_id }}
-          TASK_PROMPT: ${{ inputs.task_prompt }}
-          SLUG: ${{ inputs.slug }}
-          BRANCH: ${{ inputs.branch || format('feature/{0}', inputs.slug != '' && inputs.slug || 'unknown') }}
+          METRICS_BRANCH: conductor-metrics
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          SLUG="${SLUG:-$(basename "$TASK_PROMPT" .md)}"
-          FEATURE="${BRANCH:-feature/$SLUG}"
+          METRICS_BRANCH="${METRICS_BRANCH:-conductor-metrics}"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          if git ls-remote --heads origin "$FEATURE" | grep -q .; then
-            git fetch origin "$FEATURE"
-            git checkout -B "$FEATURE" "origin/$FEATURE"
-          else
-            echo "Feature branch $FEATURE not on origin yet — skipping metrics enrich checkout"
-            exit 0
+          if ! git ls-remote --heads origin "$METRICS_BRANCH" | grep -q .; then
+            echo "Creating origin/$METRICS_BRANCH from origin/develop"
+            git fetch origin develop
+            git branch -f "$METRICS_BRANCH" origin/develop
+            git push -u origin "$METRICS_BRANCH"
           fi
+          git fetch origin "$METRICS_BRANCH"
+          git checkout -B "$METRICS_BRANCH" "origin/$METRICS_BRANCH"
           ARGS=""
-          if [ -n "$SESSION_ID" ]; then ARGS="--session $SESSION_ID"; fi
-          BRANCH="$FEATURE" node .github/conductor/enrich-metrics-cursor.mjs $ARGS --push || echo "Enrich step finished (no changes or non-fatal error)"
+          if [ -n "${SESSION_ID:-}" ]; then ARGS="--session $SESSION_ID"; fi
+          BRANCH="$METRICS_BRANCH" node .github/conductor/enrich-metrics-cursor.mjs $ARGS --push || echo "Enrich step finished (no changes or non-fatal error)"

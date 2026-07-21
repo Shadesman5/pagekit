@@ -3,6 +3,9 @@
 #
 # Do NOT use the "Jekyll" or "Static HTML" workflow templates from the Pages UI.
 # This workflow is the single deploy path for the documentation site.
+#
+# Conductor session metrics live on the unprotected `conductor-metrics` branch.
+# Builds always use `develop` for docs/ROADMAP and overlay metrics from that branch.
 
 name: Deploy Docs to GitHub Pages
 
@@ -14,7 +17,6 @@ on:
     paths:
       - 'docs-site/**'
       - '.github/quality/quality-snapshot.json'
-      - '.github/conductor/metrics/**'
       - '.cursor/ROADMAP.md'
       - '.github/workflows/pages-deploy.yml'
   workflow_dispatch:
@@ -32,8 +34,22 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout develop (docs + quality snapshot)
         uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Overlay conductor metrics from conductor-metrics
+        run: |
+          set -euo pipefail
+          if git ls-remote --heads origin conductor-metrics | grep -q .; then
+            git fetch origin conductor-metrics
+            git checkout origin/conductor-metrics -- .github/conductor/metrics
+            echo "Overlays metrics from origin/conductor-metrics"
+          else
+            echo "No conductor-metrics branch yet — using metrics (if any) from develop"
+          fi
 
       - name: Setup Python
         uses: actions/setup-python@v5

@@ -86,7 +86,7 @@ Einfach "push" im Chat eingeben!
 
 ## Wichtige Dateien
 
--   `.cursor/Dockerfile` - Container-Definition (PHP 8.3, Node, Playwright **chromium-only**, gh CLI)
+-   `.cursor/Dockerfile` - Container-Definition (PHP 8.5, Node, Playwright **chromium-only**, gh CLI)
 -   `.cursor/environment.json` - Agent-Konfiguration (im Repo versioniert, hat Vorrang vor Personal/Team-Configs im Cursor Dashboard)
 -   `.cursor/install.sh` - Update-Script (composer install + yarn install + Tool-Verification)
 -   `.cursor/start.sh` - Start-Script (Token-Mapping + Pagekit-Server auf Port 8080)

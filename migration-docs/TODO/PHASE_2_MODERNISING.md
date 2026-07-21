@@ -225,19 +225,32 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 ## Step 2.2: CI/CD Pipeline
 
 - **Land after**: Step 2.1.14 (PHP matrix / images target 8.5)
-- **Goal**: Full CI/CD on GitHub Actions; quality metrics on GitHub only.
-- **Why**: Every PR needs a reliable, fast quality gate; merge/main need E2E and heavier jobs without blocking every PR.
+- **Goal**: Reliable, fast quality gates on every PR; heavier jobs on merge/schedule; documented quality numbers (coverage, Infection, E2E counts, gate conclusions) come only from GitHub Actions — via sticky PR comment + `quality-snapshot.json` + MkDocs quality dashboard — never from agents writing metric tables into branch docs.
+- **Why**: PRs need a trustworthy gate without multi-hour runs; agents burning tokens on coverage/Infection tables duplicates CI and drifts from truth; merge/`develop` still need fuller E2E and Infection.
+- **Principles**:
+  - **CI = SSoT for documented quality metrics** — no local/agent numbers in branch docs or LLM-formatted reports
+  - **Tester / test-writer = gates only** — PASS/FAIL (and new test files); no metric handoff to doc-writer
+  - **Branch doc = narrative** — what changed, deviations, deferrals; one link line to PR sticky comment + quality dashboard
+  - **No LLM metrics formatting** — sticky comment and snapshot from CI artefacts via scripts
+  - **JSON is the machine contract** — `.github/quality/quality-snapshot.json` feeds the MkDocs quality dashboard
 - **What**:
-  - **Workflow 1 — PHP Tests** (`.github/workflows/php-tests.yml`): PHPUnit matrix (PHP × MySQL/SQLite), PHPStan, CS-Fixer dry-run, security audit, line-coverage ratchet
-  - **Workflow 1b — Infection**: per-PR diff-scoped on auth + user security core (≥ 80 % MSI); full suite on schedule + `workflow_dispatch`
-  - **Workflow 2 — E2E**: Playwright Chromium on push to `develop`/`main` only; 3 viewports
-  - **Workflow 2b — Cross-Browser E2E**: weekly Firefox + WebKit
+  - **Workflow 1 — PHP Tests** (`php-tests.yml`, migrate from existing `php-quality.yml`): PHPUnit matrix (PHP × MySQL/SQLite), PHPStan, CS-Fixer dry-run, security audit, line-coverage ratchet
+  - **Workflow 1b — Infection**: PR = diff-scoped on auth + user security core (≥ 80 % MSI, required); full suite daily on `develop`/`main` + `workflow_dispatch` (not required on PR)
+  - **Workflow 2 — E2E smoke (PR)**: Playwright Chromium, **3 specs only** (installation, authentication, dashboard), **1 viewport** — required check; keeps PR signal high without full-suite cost
+  - **Workflow 2a — E2E on merge**: push → `develop`/`main` — Chromium, growing suite, **3 viewports**
+  - **Workflow 2b — Cross-browser E2E**: weekly (+ manual) Firefox + WebKit
   - **Workflow 3 — Frontend**: ESLint, Prettier, build verification per PR
-  - **Workflow 4 — Quality Reporting**: sticky PR comments + README dashboard
-  - Required status checks, branch protection, dependency caching, release automation
+  - **Workflow 4 — Quality reporting** (all in this step):
+    - `quality-report.yml` — sticky PR comment from CI artefacts (idempotent marker); agents only link it
+    - `quality-collect.yml` — on green merge to `develop`/`main`, write live `quality-snapshot.json` (`source: github-actions`); must not re-trigger PHP CI (`paths-ignore` / `[skip ci]`). Write the snapshot to an unprotected data branch (direct bot push to protected `develop` is blocked by the Ruleset — do not weaken the Ruleset with an Actions bypass)
+    - MkDocs quality dashboard — already scaffolded; point it at the live snapshot; remove demo banner
+  - Required status checks + Ruleset alignment, dependency caching, release automation hooks as needed
   - Version SSoT guard (`composer.json` `require.php` → CI matrix, `requirements.php`, Dockerfile, README)
-- **PR required**: PHPUnit matrix, PHPStan, CS-Fixer, security audit, coverage floor, Frontend, Infection diff
-- **Not on PR**: E2E Workflow 2, Infection full, cross-browser weekly; Codecov non-blocking
+  - **Agent/rule slimming (same step)**: strip metric tables from branch-doc skeleton; orchestrator handoffs pass changed files + narrative deltas only (no verbatim Tester dumps to doc-writer)
+- **Local (Conductor Tester)**: PHPUnit + PHPStan PASS/FAIL; same 3 E2E smoke specs on last Execute step + Finalize fix-loops — PASS/FAIL only, not documented as numbers
+- **PR required**: PHPUnit matrix, PHPStan, CS-Fixer, security audit, coverage floor, Frontend, Infection diff, **E2E smoke (3 specs)**
+- **Not required on PR**: full/merge E2E suite, Infection full, cross-browser weekly; Codecov non-blocking
+- **Risks**: Infection-diff false greens → daily full suite; E2E flake on PR → keep smoke tiny and Chromium-only; snapshot loops → path filters + no PHP workflow on data-only pushes
 
 ---
 

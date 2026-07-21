@@ -16,7 +16,7 @@
 import { execSync, execFileSync } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
 import { basename } from "node:path";
-import { createMetricsCollector } from "./metrics.mjs";
+import { createMetricsCollector, DEFAULT_METRICS_BRANCH } from "./metrics.mjs";
 
 // ---------------------------------------------------------------- config (from env)
 const API = "https://api.cursor.com";
@@ -51,6 +51,8 @@ const WEIGHTS = { S: 1, M: 2, L: 4 };
 validate("SLUG", SLUG, /^[A-Za-z0-9._/-]+$/);
 validate("BRANCH", BRANCH, /^[A-Za-z0-9._/-]+$/);
 validate("BASE", BASE, /^[A-Za-z0-9._/-]+$/);
+const METRICS_BRANCH = (process.env.METRICS_BRANCH || DEFAULT_METRICS_BRANCH).trim();
+validate("METRICS_BRANCH", METRICS_BRANCH, /^[A-Za-z0-9._/-]+$/);
 validate("TASK_PROMPT", TASK_PROMPT, /^[A-Za-z0-9._/-]+$/);
 if (TASK_PROMPT.split("/").includes("..")) fail(`TASK_PROMPT must not contain '..' path segments: ${TASK_PROMPT}`);
 validate("MODEL", MODEL, /^[A-Za-z0-9._-]+$/);
@@ -71,6 +73,8 @@ const metrics = createMetricsCollector({
   log,
   env: process.env,
   branch: BRANCH,
+  // Unprotected long-lived branch — develop Ruleset blocks direct bot pushes (no bypass).
+  metricsBranch: METRICS_BRANCH,
   pullBranch,
 });
 
