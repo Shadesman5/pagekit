@@ -8,9 +8,9 @@
   "issue": 231,
   "branch": "feature/php-version-upgrade",
   "model": "grok-4.5",
-  "status": "in_progress",
+  "status": "failed",
   "startedAt": "2026-07-21T22:20:18.581Z",
-  "completedAt": "2026-07-21T22:38:42.572Z",
+  "completedAt": "2026-07-21T23:03:49.306Z",
   "phases": [
     {
       "phaseKey": "manual-bc-d704c944-af5d-4b72-9dce-ffe7e5354a48-PLAN",
@@ -69,7 +69,7 @@
     "durationMs": 1100448,
     "phaseCount": 1,
     "escalations": 0,
-    "ghaJobs": 1,
+    "ghaJobs": 0,
     "cloudAgents": 1
   }
 }
