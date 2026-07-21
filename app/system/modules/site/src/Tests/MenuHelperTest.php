@@ -108,6 +108,52 @@ class MenuHelperTest extends TestCase
         $this->assertSame('/about-url', $about->get('url'));
     }
 
+    /**
+     * Synthetic menu root uses parent_id=null; null must short-circuit before any
+     * array offset. Nodes with parent_id=0 still attach under that synthetic root.
+     */
+    public function testGetRootAttachesNodesUnderSyntheticRootWithNullParentId(): void
+    {
+        $home = $this->createMenuNode(1, '/home', 'main', '/home');
+        $about = $this->createMenuNode(2, '/about', 'main', '/about');
+
+        $currentNode = new Node();
+        $currentNode->id = 1;
+        $currentNode->path = '/home';
+
+        $url = $this->createMock(UrlProvider::class);
+        $url->method('get')->willReturnCallback(
+            static function (?string $link, array $params, int|string $refType): string {
+                if ($link === null || $link === '') {
+                    return '/';
+                }
+
+                return (string) $link;
+            }
+        );
+
+        $helper = new MenuHelper(
+            $this->createMock(MenuManager::class),
+            $this->createAccessibleUser(),
+            $currentNode,
+            new NodePresenter($url, $this->createMock(User::class)),
+            $this->createNodeRepository('main', [1 => $home, 2 => $about]),
+        );
+
+        $root = $helper->getRoot('main', ['start_level' => 2]);
+
+        $this->assertSame($home, $root);
+        $this->assertNull($root->getParent(), 'Selected menu root is detached from the tree');
+
+        $syntheticRoot = $about->getParent();
+        $this->assertNotNull($syntheticRoot, 'Sibling with parent_id=0 must remain under the synthetic root');
+        $this->assertInstanceOf(Node::class, $syntheticRoot);
+        // Synthetic root is keyed at $nodes[0] with parent_id=null so the null
+        // short-circuit never treats it as array offset 0 / a parent of itself.
+        $this->assertNull($syntheticRoot->parent_id);
+        $this->assertNull($syntheticRoot->getParent(), 'Null parent_id must not resolve to a parent node');
+    }
+
     private function createMenuNode(int $id, string $path, string $menu, string $link): Node
     {
         $node = new Node();

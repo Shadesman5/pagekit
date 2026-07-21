@@ -37,6 +37,15 @@ Tests: none (test-writer skip — composer manifest/lock only; no production PHP
 
 Tests: none (test-writer skip — version-literal strings only; no logic branches).
 
+### MenuHelper null-array-offset deprecation fix (Checklist Step 3)
+
+| File | Change |
+|---|---|
+| `app/system/modules/site/src/MenuHelper.php` | Short-circuit `$node->parent_id !== null` before `$nodes[$node->parent_id]` so synthetic-root `parent_id=null` never hits a null array offset (PHP 8.5 deprecation). |
+| `phpstan-baseline.neon` | `MenuHelper.php` `offsetAccess.invalidOffset` ignore count `3` → `1` (see Notable deviations). |
+
+Tests: `app/system/modules/site/src/Tests/MenuHelperTest.php` — added `testGetRootAttachesNodesUnderSyntheticRootWithNullParentId` (null short-circuit + sibling under synthetic root).
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -72,7 +81,7 @@ _TBD_
 ## ✅ Verification (links only)
 
 - CI run: _TBD_
-- Notable deviations: Step 1 — plan commit surface was `composer.json` + `composer.lock` only; Tester (1st) FAIL regenerated `phpstan-baseline.neon` into the Step 1 surface (see Step 1 gates).
+- Notable deviations: Step 1 — plan commit surface was `composer.json` + `composer.lock` only; Tester (1st) FAIL regenerated `phpstan-baseline.neon` into the Step 1 surface (see Step 1 gates). Step 3 — after the null short-circuit, PHPStan baseline `MenuHelper.php:109` `offsetAccess.invalidOffset` count stale (`expected 3` / `occurred 1`); Refactorer lowered count to `1`. Test-writer 1st FAIL: assertion expected `null` path on synthetic root but got `'/'`; PHPStan undefined `parent_id`/`path` on `NodeInterface` — fixed on retry (see Step 3 gates).
 
 **Step 1 gates (Execute):**
 - Verifier (1st, production): PASS — `composer.json` exactly 3 approved edits; lock regenerated; Symfony 6.4.x, dbal 3.10.6, phpunit 11.5.56, infection 0.34.0
@@ -84,6 +93,18 @@ _TBD_
 **Step 2 gates (Execute):**
 - Verifier: PASS
 - Tester: PASS — PHPUnit 718 exit 0; PHPStan no errors exit 0
+
+**Step 3 gates (Execute):**
+- Verifier (prod 1st): PASS
+- Tester (prod 1st): FAIL — PHPUnit PASS (718); PHPStan FAIL `ignore.count` `MenuHelper.php:109` expected 3 times occurred 1 time. Refactorer retry: `phpstan-baseline.neon` count `3`→`1`
+- Verifier (prod 2nd): PASS
+- Tester (prod 2nd): PASS — PHPUnit 718/2039 (5 skipped, 2 deprecations); PHPStan no errors
+- Tester deprecation check: PASS — PHP deprecations 0; PHPUnit metadata deprecations 2 (owned by 2.9)
+- Test-writer: `MenuHelperTest.php`
+- Verifier (tests 1st): PASS
+- Tester (after tests 1st): FAIL — `testGetRootAttachesNodesUnderSyntheticRootWithNullParentId` Failed asserting null identical to `'/'`; PHPStan 2 errors undefined properties `parent_id`/`path` on `NodeInterface`. Test-writer retry
+- Verifier (tests 2nd): PASS
+- Tester (after tests 2nd): PASS — PHPUnit 719 tests, 2047 assertions (5 skipped, 2 deprecations); PHPStan no errors
 
 ---
 
