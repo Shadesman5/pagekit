@@ -2,8 +2,9 @@
 // Fill missing phase token counts via Cursor Cloud Agents API (cancelled GHA jobs, backfill gaps).
 //
 // Usage:
-//   CURSOR_API_KEY=… node .github/conductor/enrich-metrics-cursor.mjs [--dry-run] [--session ID] [--refresh-timing] [--push] [--copy-local]
+//   CURSOR_API_KEY=… BRANCH=conductor-metrics node .github/conductor/enrich-metrics-cursor.mjs [--dry-run] [--session ID] [--refresh-timing] [--push] [--copy-local]
 //
+// With --push, set BRANCH to conductor-metrics (never the feature branch or protected develop).
 // Safe to re-run — only phases with tokens.total == null and a known agent.id are updated.
 
 import { execSync, execFileSync } from "node:child_process";
@@ -94,7 +95,7 @@ function pushMetrics(branch) {
     return;
   } catch {
     sh('git commit -m "chore(metrics): enrich tokens via Cursor API"');
-    // Same race as metrics.mjs commitMetrics: feature branch may have moved ahead.
+    // Concurrent conductor jobs may push metrics first — rebase before push.
     sh(`git fetch origin ${branch}`);
     try {
       sh(`git rebase origin/${branch}`);
@@ -104,6 +105,14 @@ function pushMetrics(branch) {
     }
     execFileSync("git", ["push", "origin", branch], { stdio: "inherit" });
     console.log(`  push: committed and pushed to ${branch}`);
+    // GITHUB_TOKEN pushes do not trigger workflows — rebuild Pages from develop
+    // (pages-deploy overlays metrics from conductor-metrics).
+    try {
+      execFileSync("gh", ["workflow", "run", "pages-deploy.yml", "--ref", "develop"], { stdio: "inherit" });
+      console.log("  push: dispatched pages-deploy.yml (ref=develop)");
+    } catch (e) {
+      console.log(`  push: pages-deploy dispatch skipped (${e.message})`);
+    }
   }
 }
 

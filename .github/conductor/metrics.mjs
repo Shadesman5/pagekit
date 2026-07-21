@@ -1,8 +1,11 @@
 // Conductor metrics — session files + index for GitHub Pages dashboard.
-// Zero npm deps; persisted on the feature branch after each cloud-agent phase.
+// Zero npm deps. Persisted on the unprotected `conductor-metrics` branch only —
+// never on the feature-branch tip (PR CI / bot approval) and never direct to
+// protected `develop` (Ruleset requires PRs, no Actions bypass).
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
-import { basename } from "node:path";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, cpSync, rmSync, mkdtempSync } from "node:fs";
+import { basename, join } from "node:path";
+import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 
 export const METRICS_DIR = ".github/conductor/metrics";
@@ -10,6 +13,8 @@ export const SESSIONS_DIR = `${METRICS_DIR}/sessions`;
 export const INDEX_PATH = `${METRICS_DIR}/index.json`;
 export const SCHEMA_VERSION = 1;
 export const CURSOR_API = "https://api.cursor.com";
+/** Long-lived branch for session JSON only (not Ruleset-protected like develop). */
+export const DEFAULT_METRICS_BRANCH = "conductor-metrics";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -345,15 +350,18 @@ export async function enrichSessionTokensFromCursor(
   return { session, enriched, timingEnriched };
 }
 
-export function createMetricsCollector({ api, sh, log, env, branch, pullBranch }) {
+export function createMetricsCollector({ api, sh, log, env, branch, metricsBranch, pullBranch }) {
   let sessionId = resolveSessionId(env.SESSION_ID);
+  // Feature branch for agents; metrics always land on metricsBranch (conductor-metrics).
+  const featureBranch = branch;
+  const targetBranch = metricsBranch || DEFAULT_METRICS_BRANCH;
   const ctx = {
     roadmapStepId: parseRoadmapStepId(env.TITLE, env.TASK_PROMPT),
     title: (env.TITLE || "").trim() || null,
     taskSlug: basename(env.TASK_PROMPT).replace(/\.md$/i, ""),
     taskPrompt: env.TASK_PROMPT,
     issue: env.ISSUE ? Number(env.ISSUE) : null,
-    branch,
+    branch: featureBranch,
     model: (env.MODEL || "").trim() || null,
   };
 
@@ -424,31 +432,116 @@ export function createMetricsCollector({ api, sh, log, env, branch, pullBranch }
     }
   }
 
+  /** Create origin/<metricsBranch> from develop if missing (no checkout switch). */
+  function ensureMetricsBranchExists() {
+    if (sh(`git ls-remote --heads origin ${targetBranch}`)) return;
+    log(`  metrics: creating origin/${targetBranch} from origin/develop`);
+    sh("git fetch origin develop");
+    try {
+      sh(`git branch -f ${targetBranch} origin/develop`);
+    } catch {
+      sh(`git branch ${targetBranch} origin/develop`);
+    }
+    sh(`git push -u origin ${targetBranch}`);
+  }
+
+  /** Load authoritative metrics tree from origin/<metricsBranch> into the working tree. */
+  function syncMetricsFromTarget() {
+    ensureMetricsBranchExists();
+    sh(`git fetch origin ${targetBranch}`);
+    try {
+      sh(`git checkout origin/${targetBranch} -- ${METRICS_DIR}`);
+    } catch (e) {
+      log(`  metrics: no ${METRICS_DIR} on origin/${targetBranch} yet (${e.message})`);
+    }
+  }
+
+  function restoreFeatureCheckout() {
+    if (pullBranch) {
+      pullBranch();
+      return;
+    }
+    sh(`git fetch origin ${featureBranch}`);
+    sh(`git checkout -B ${featureBranch} origin/${featureBranch}`);
+  }
+
+  function discardMetricsWorkingTree() {
+    try {
+      sh(`git checkout HEAD -- ${METRICS_DIR}`);
+    } catch {
+      try {
+        sh(`git clean -fd -- ${METRICS_DIR}`);
+      } catch {
+        /* METRICS_DIR may be absent on this branch */
+      }
+    }
+  }
+
+  /**
+   * Commit metrics to metricsBranch only, then return to the feature branch.
+   * GITHUB_TOKEN pushes do not trigger other workflows — dispatch pages-deploy on develop
+   * (site build overlays metrics from conductor-metrics).
+   */
   function commitMetrics(message) {
     ensureGitIdentity();
-    sh(`git add ${METRICS_DIR}/`);
-    try {
-      sh("git diff --cached --quiet");
-      log("  metrics: no changes to commit");
+    if (!existsSync(METRICS_DIR)) {
+      log("  metrics: no metrics dir to commit");
       return false;
-    } catch {
-      sh(`git commit -m ${JSON.stringify(message)}`);
-      // Cloud agents often push to the feature branch while we poll. Rebase our
-      // metrics commit onto origin/<branch> before push — otherwise git rejects
-      // non-fast-forward and the Conductor treats it as a phase "run error" (seen on 2.1.12).
-      sh(`git fetch origin ${branch}`);
+    }
+
+    const tmp = mkdtempSync(join(tmpdir(), "pagekit-metrics-"));
+    try {
+      cpSync(METRICS_DIR, join(tmp, "metrics"), { recursive: true });
+
       try {
-        sh(`git rebase origin/${branch}`);
-      } catch (e) {
-        try { sh("git rebase --abort"); } catch { /* already clean or no rebase in progress */ }
-        throw new Error(
-          `metrics rebase onto origin/${branch} failed (resolve conflict or retry): ${e.message}`,
-        );
+        sh(`git reset HEAD -- ${METRICS_DIR}`);
+      } catch {
+        /* unstaged / untracked is fine */
       }
-      sh(`git push origin ${branch}`);
-      log("  metrics: committed and pushed");
-      if (pullBranch) pullBranch();
-      return true;
+      discardMetricsWorkingTree();
+
+      ensureMetricsBranchExists();
+      sh(`git fetch origin ${targetBranch}`);
+      sh(`git checkout -B ${targetBranch} origin/${targetBranch}`);
+
+      rmSync(METRICS_DIR, { recursive: true, force: true });
+      cpSync(join(tmp, "metrics"), METRICS_DIR, { recursive: true });
+
+      sh(`git add ${METRICS_DIR}/`);
+      try {
+        sh("git diff --cached --quiet");
+        log("  metrics: no changes to commit");
+        restoreFeatureCheckout();
+        return false;
+      } catch {
+        sh(`git commit -m ${JSON.stringify(message)}`);
+        sh(`git fetch origin ${targetBranch}`);
+        try {
+          sh(`git rebase origin/${targetBranch}`);
+        } catch (e) {
+          try {
+            sh("git rebase --abort");
+          } catch {
+            /* already clean or no rebase in progress */
+          }
+          throw new Error(
+            `metrics rebase onto origin/${targetBranch} failed (resolve conflict or retry): ${e.message}`,
+          );
+        }
+        sh(`git push origin ${targetBranch}`);
+        log(`  metrics: committed and pushed to ${targetBranch}`);
+        try {
+          // Build site from develop (fresh docs) — workflow overlays metrics from conductor-metrics.
+          sh("gh workflow run pages-deploy.yml --ref develop");
+          log("  metrics: dispatched pages-deploy.yml (ref=develop)");
+        } catch (e) {
+          log(`  metrics: pages-deploy dispatch skipped (${e.message})`);
+        }
+        restoreFeatureCheckout();
+        return true;
+      }
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
     }
   }
 
@@ -457,10 +550,12 @@ export function createMetricsCollector({ api, sh, log, env, branch, pullBranch }
   }
 
   function initSession() {
+    syncMetricsFromTarget();
     ensureDirs();
     let session = loadSession();
     if (session) {
       log(`metrics: resume session ${sessionId} (${session.phases.length} phase(s) so far)`);
+      discardMetricsWorkingTree();
       return sessionId;
     }
 
@@ -490,7 +585,7 @@ export function createMetricsCollector({ api, sh, log, env, branch, pullBranch }
     writeJson(sessionPath(), session);
     touchIndex(session);
     commitMetrics(`chore(metrics): start conductor session ${sessionId.slice(0, 8)}`);
-    log(`metrics: new session ${sessionId} (step=${ctx.roadmapStepId || "?"})`);
+    log(`metrics: new session ${sessionId} (step=${ctx.roadmapStepId || "?"}) → ${targetBranch}`);
     return sessionId;
   }
 
@@ -524,10 +619,12 @@ export function createMetricsCollector({ api, sh, log, env, branch, pullBranch }
   }
 
   async function recordPhase({ label, startedAt, agentId, runId, agentUrl, result, outcome }) {
+    syncMetricsFromTarget();
     ensureDirs();
     let session = loadSession();
     if (!session) {
       initSession();
+      syncMetricsFromTarget();
       session = loadSession();
     }
 
@@ -536,6 +633,7 @@ export function createMetricsCollector({ api, sh, log, env, branch, pullBranch }
     const phaseKey = `${gh.runId || "local"}-${gh.runAttempt || 1}-${label}`;
     if (session.phases.some((p) => p.phaseKey === phaseKey)) {
       log(`  metrics: skip duplicate phase ${phaseKey}`);
+      discardMetricsWorkingTree();
       return;
     }
 
@@ -574,8 +672,12 @@ export function createMetricsCollector({ api, sh, log, env, branch, pullBranch }
   }
 
   function setSessionStatus(status) {
+    syncMetricsFromTarget();
     const session = loadSession();
-    if (!session || session.status === status) return;
+    if (!session || session.status === status) {
+      discardMetricsWorkingTree();
+      return;
+    }
     session.status = status;
     if (status === "completed" || status === "failed" || status === "cancelled") {
       session.completedAt = new Date().toISOString();
