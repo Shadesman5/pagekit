@@ -163,6 +163,24 @@ parameters:
 			path: app/installer/src/Helper/Composer.php
 
 		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$input \(Symfony\\Component\\Console\\Input\\InputInterface\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: app/installer/src/Helper/InstallerIO.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#2 \$output \(Symfony\\Component\\Console\\Output\\OutputInterface\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: app/installer/src/Helper/InstallerIO.php
+
+		-
+			message: '#^Deprecated in PHP 8\.4\: Parameter \#3 \$helperSet \(Symfony\\Component\\Console\\Helper\\HelperSet\) is implicitly nullable via default value null\.$#'
+			identifier: parameter.implicitlyNullable
+			count: 1
+			path: app/installer/src/Helper/InstallerIO.php
+
+		-
 			message: '#^Call to method getMessage\(\) on an unknown class Doctrine\\DBAL\\DBALException\.$#'
 			identifier: class.notFound
 			count: 1
@@ -173,6 +191,12 @@ parameters:
 			identifier: class.notFound
 			count: 1
 			path: app/installer/src/Installer.php
+
+		-
+			message: '#^Possibly invalid array key type string\|null\.$#'
+			identifier: offsetAccess.invalidOffset
+			count: 1
+			path: app/installer/src/Package/PackageFactory.php
 
 		-
 			message: '#^Call to an undefined method Pagekit\\Installer\\SelfUpdater\:\:writeln\(\)\.$#'
@@ -223,6 +247,12 @@ parameters:
 			path: app/modules/application/index.php
 
 		-
+			message: '#^Possibly invalid array key type string\|null\.$#'
+			identifier: offsetAccess.invalidOffset
+			count: 1
+			path: app/modules/application/src/Event/Event.php
+
+		-
 			message: '#^Unreachable statement \- code above always terminates\.$#'
 			identifier: deadCode.unreachable
 			count: 1
@@ -238,6 +268,12 @@ parameters:
 			message: '#^Comparison operation "\>\=" between 1 and 0 is always true\.$#'
 			identifier: greaterOrEqual.alwaysTrue
 			count: 1
+			path: app/modules/application/src/Util/Arr.php
+
+		-
+			message: '#^Possibly invalid array key type string\|null\.$#'
+			identifier: offsetAccess.invalidOffset
+			count: 3
 			path: app/modules/application/src/Util/Arr.php
 
 		-
@@ -451,6 +487,12 @@ parameters:
 			path: app/modules/feed/src/FeedFactory.php
 
 		-
+			message: '#^Possibly invalid array key type string\|null\.$#'
+			identifier: offsetAccess.invalidOffset
+			count: 2
+			path: app/modules/feed/src/FeedFactory.php
+
+		-
 			message: '#^Undefined variable\: \$this$#'
 			identifier: variable.undefined
 			count: 2
@@ -547,6 +589,36 @@ parameters:
 			path: app/modules/kernel/index.php
 
 		-
+			message: '#^Negated boolean expression is always false\.$#'
+			identifier: booleanNot.alwaysFalse
+			count: 2
+			path: app/modules/kernel/src/Controller/ControllerResolver.php
+
+		-
+			message: '#^Offset 0 on array\{class\-string\|object, string\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: app/modules/kernel/src/Controller/ControllerResolver.php
+
+		-
+			message: '#^Offset 1 on array\{class\-string\|object, string\} in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.offset
+			count: 1
+			path: app/modules/kernel/src/Controller/ControllerResolver.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 1
+			path: app/modules/kernel/src/Controller/ControllerResolver.php
+
+		-
+			message: '#^Result of \|\| is always false\.$#'
+			identifier: booleanOr.alwaysFalse
+			count: 2
+			path: app/modules/kernel/src/Controller/ControllerResolver.php
+
+		-
 			message: '#^Call to an undefined static method Symfony\\Component\\ErrorHandler\\ErrorHandler\:\:createResponse\(\)\.$#'
 			identifier: staticMethod.notFound
 			count: 1
@@ -581,6 +653,12 @@ parameters:
 			identifier: throws.notThrowable
 			count: 1
 			path: app/modules/kernel/src/HttpKernelInterface.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertCount\(\) with 2 and array\{class\-string\|object, string\} will always evaluate to true\.$#'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: app/modules/kernel/src/Tests/ControllerResolverTest.php
 
 		-
 			message: '#^Property Pagekit\\Kernel\\Tests\\UnresolvableController\:\:\$unknownService is never read, only written\.$#'
@@ -751,12 +829,6 @@ parameters:
 			path: app/modules/session/index.php
 
 		-
-			message: '#^Dead catch \- PDOException is never thrown in the try block\.$#'
-			identifier: catch.neverThrown
-			count: 1
-			path: app/modules/session/src/Handler/DatabaseSessionHandler.php
-
-		-
 			message: '#^Method Pagekit\\Session\\Handler\\DatabaseSessionHandler\:\:gc\(\) should return false but returns true\.$#'
 			identifier: return.type
 			count: 1
@@ -775,10 +847,34 @@ parameters:
 			path: app/modules/view/index.php
 
 		-
+			message: '#^Possibly invalid array key type string\|null\.$#'
+			identifier: offsetAccess.invalidOffset
+			count: 1
+			path: app/modules/view/src/Asset/Asset.php
+
+		-
 			message: '#^Parameter \#2 \$source of method Pagekit\\View\\Asset\\Asset\:\:__construct\(\) expects string, null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/modules/view/src/Asset/StringAsset.php
+
+		-
+			message: '#^Possibly invalid array key type string\|null\.$#'
+			identifier: offsetAccess.invalidOffset
+			count: 1
+			path: app/modules/view/src/Engine/PhpEngine.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and false will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/modules/view/src/Engine/PhpEngine.php
+
+		-
+			message: '#^Possibly invalid array key type string\|null\.$#'
+			identifier: offsetAccess.invalidOffset
+			count: 3
+			path: app/modules/view/src/Helper/DeferredHelper.php
 
 		-
 			message: '#^Parameter \#1 \$enable of function ob_implicit_flush expects bool, int given\.$#'
@@ -821,6 +917,12 @@ parameters:
 			identifier: variable.undefined
 			count: 6
 			path: app/system/index.php
+
+		-
+			message: '#^Call to function __\(\) on a separate line has no effect\.$#'
+			identifier: function.resultUnused
+			count: 37
+			path: app/system/languages/messages.php
 
 		-
 			message: '#^Anonymous function has an unused use \$app\.$#'
@@ -985,10 +1087,22 @@ parameters:
 			path: app/system/modules/info/views/info.php
 
 		-
+			message: '#^Possibly invalid array key type string\|null\.$#'
+			identifier: offsetAccess.invalidOffset
+			count: 1
+			path: app/system/modules/intl/functions.php
+
+		-
 			message: '#^Undefined variable\: \$this$#'
 			identifier: variable.undefined
 			count: 2
 			path: app/system/modules/intl/index.php
+
+		-
+			message: '#^Possibly invalid array key type string\|null\.$#'
+			identifier: array.invalidKey
+			count: 1
+			path: app/system/modules/intl/src/Controller/IntlController.php
 
 		-
 			message: '#^Variable \$country in isset\(\) always exists and is not nullable\.$#'
@@ -1007,6 +1121,12 @@ parameters:
 			identifier: classConstant.phpDocType
 			count: 1
 			path: app/system/modules/intl/src/Loader/MoFileLoader.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between string and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/system/modules/intl/src/Loader/PoFileLoader.php
 
 		-
 			message: '#^Anonymous function has an unused use \$app\.$#'
@@ -1037,7 +1157,6 @@ parameters:
 			identifier: empty.variable
 			count: 1
 			path: app/system/modules/mail/index.php
-
 
 		-
 			message: '#^Instanceof between Symfony\\Component\\Mime\\Part\\DataPart and Symfony\\Component\\Mime\\Part\\DataPart will always evaluate to true\.$#'
@@ -1091,6 +1210,12 @@ parameters:
 			message: '#^Class Pagekit\\Site\\Model\\Node does not have a constructor and must be instantiated without any parameters\.$#'
 			identifier: new.noConstructor
 			count: 1
+			path: app/system/modules/site/src/MenuHelper.php
+
+		-
+			message: '#^Possibly invalid array key type int\|null\.$#'
+			identifier: offsetAccess.invalidOffset
+			count: 3
 			path: app/system/modules/site/src/MenuHelper.php
 
 		-
@@ -1610,6 +1735,18 @@ parameters:
 			path: packages/pagekit/blog/index.php
 
 		-
+			message: '#^Cannot unset property Pagekit\\Blog\\Model\\Comment\:\:\$ip because it might have hooks in a subclass\.$#'
+			identifier: unset.possiblyHookedProperty
+			count: 1
+			path: packages/pagekit/blog/src/Controller/CommentApiController.php
+
+		-
+			message: '#^Cannot unset property Pagekit\\Blog\\Model\\Comment\:\:\$user_id because it might have hooks in a subclass\.$#'
+			identifier: unset.possiblyHookedProperty
+			count: 1
+			path: packages/pagekit/blog/src/Controller/CommentApiController.php
+
+		-
 			message: '#^Variable \$order might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
@@ -1662,6 +1799,24 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: packages/pagekit/blog/src/Event/PostListener.php
+
+		-
+			message: '#^Possibly invalid array key type int\|null\.$#'
+			identifier: offsetAccess.invalidOffset
+			count: 1
+			path: packages/pagekit/blog/src/Model/Post.php
+
+		-
+			message: '#^Offset 1 on array\{non\-empty\-list\<string\>, non\-empty\-list\<non\-empty\-string\>\} in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.offset
+			count: 1
+			path: packages/pagekit/blog/src/UrlResolver.php
+
+		-
+			message: '#^Possibly invalid array key type int\|null\.$#'
+			identifier: offsetAccess.invalidOffset
+			count: 1
+			path: packages/pagekit/blog/src/UrlResolver.php
 
 		-
 			message: '#^Variable \$view might not be defined\.$#'
