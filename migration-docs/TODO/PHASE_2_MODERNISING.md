@@ -256,6 +256,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **What**:
   - pnpm as package manager; Vite for JS + LESS/assets; remove Webpack/Gulp/Yarn
   - ESLint 9 Flat Config; update CI, Docker, `AGENTS.md`
+  - Dropping Webpack 4 removes its vulnerable locked transitives (picomatch, braces, micromatch, serialize-javascript, elliptic — the bulk of the JS audit findings); verify the advisory drop with a before/after dependency audit
   - Verify: `pnpm install && pnpm build` + Playwright smoke + PHPUnit green
 - **Out of scope**: Webpack 5, Yarn Berry, Vue 3, TinyMCE 6+
 - **Risk**: Medium–High

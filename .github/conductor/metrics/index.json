@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-16T04:11:52.442Z",
+  "updatedAt": "2026-07-21T15:03:54.831Z",
   "steps": {
     "unknown": {
       "title": "AGENT_PROMPT_AUDIT_TECH_DEBT_INVENTORY",
@@ -115,6 +115,13 @@
       "sessionIds": [
         "158c618d-c832-42fe-aa51-de5d791f1d45"
       ]
+    },
+    "2.1.13": {
+      "title": "Step 2.1.13 — TinyMCE Security Patch",
+      "latestSessionId": "06afa15a-621f-4dce-856b-c0628e1a28de",
+      "sessionIds": [
+        "06afa15a-621f-4dce-856b-c0628e1a28de"
+      ]
     }
   },
   "backfill": {
@@ -123,7 +130,7 @@
     "note": "Historical data from GHA logs (all job attempts merged per workflow run)"
   },
   "cursorEnrich": {
-    "at": "2026-07-16T02:47:20.686Z",
+    "at": "2026-07-21T15:03:54.831Z",
     "phasesEnriched": 1,
     "sessionsTouched": 1
   }

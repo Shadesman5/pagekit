@@ -1,5 +1,18 @@
 # Changelog
 
+## Pagekit 1.2.29 - TinyMCE security patch (Juli 21, 2026)
+
+### Security
+
+- **TinyMCE `~5.5.1` → `~5.10.9`** — resolves to `5.10.9` (final community 5.x). Unique `yarn audit` TinyMCE advisories **16 → 7** (nine patched; seven remain, including high-severity media/iframe-class XSS fixed upstream only in TinyMCE ≥ 6.8.1). Commit surface `package.json` + `yarn.lock` only; gulp-refreshed editor assets stay gitignored. (Closes #230)
+
+### Deferred
+
+- Residual TinyMCE v5 advisories (CSP / major upgrade) → Step 3.2.1 / Step 5.1.
+- Webpack-locked transitive advisories → Step 2.4.
+
+---
+
 ## Pagekit 1.2.28 - Composer security advisories (Juli 21, 2026)
 
 ### Security

@@ -89,6 +89,7 @@
   - **Pre-compile Vue templates** — remove `unsafe-eval` from CSP `script-src` (Vue 2 runtime compiler uses `new Function()` which requires `unsafe-eval`; pre-compiled templates avoid this)
   - **CSP ResponseListener** — move CSP from `.htaccess`-only to a PHP `ResponseListener`/Middleware so that CSP is enforced on **all** servers (Apache, Nginx, PHP Built-in Server, Docker). `.htaccess` remains as defense-in-depth backup. This is critical because `php -S localhost:8080` (used by dev servers, Cloud Agents, and `AGENTS.md` setup) has no CSP without this.
   - **Tighten `style-src`** — evaluate removing `unsafe-inline` after UIkit update (Step 3.1); if UIkit still needs inline styles, document why and keep as conscious exception
+  - **Restrict `frame-src` / `object-src`** — the admin editor ships TinyMCE 5.x, which carries a known iframe-based XSS with no v5 fix (patched upstream only in TinyMCE ≥ 6.8.1). CSP must confine iframe/object embedding so this vector is mitigated until the editor moves to ≥ 6.8.1 or is replaced (Step 5.1 decision point)
   - **Verify:** Zero CSP violations in browser console on all pages (admin + frontend)
 - **Result**: Full CSP Gold Standard — no `unsafe-eval`, no `unsafe-inline` in `script-src`, enforced everywhere
 
