@@ -243,7 +243,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - **Workflow 4 — Quality reporting** (all in this step):
     - `quality-report.yml` — sticky PR comment from CI artefacts (idempotent marker); agents only link it
     - `quality-collect.yml` — on green merge to `develop`/`main`, write live `quality-snapshot.json` (`source: github-actions`); must not re-trigger PHP CI (`paths-ignore` / `[skip ci]`). Write the snapshot to an unprotected data branch (direct bot push to protected `develop` is blocked by the Ruleset — do not weaken the Ruleset with an Actions bypass)
-    - MkDocs quality dashboard — already scaffolded; point it at the live snapshot; remove demo banner
+    - MkDocs quality dashboard — already scaffolded; point it at the live snapshot; remove demo banner; align the PHPUnit matrix keys/labels in `docs-site/content/javascripts/quality-dashboard.js` + `docs-site/data/quality-snapshot.demo.json` with the PHP 8.5-only CI matrix (they still render 8.2/8.3 legs that no longer exist)
   - Required status checks + Ruleset alignment, dependency caching, release automation hooks as needed
   - Version SSoT guard (`composer.json` `require.php` → CI matrix, `requirements.php`, Dockerfile, README)
   - **Agent/rule slimming (same step)**: strip metric tables from branch-doc skeleton; orchestrator handoffs pass changed files + narrative deltas only (no verbatim Tester dumps to doc-writer)
@@ -354,7 +354,8 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Why**: Per-branch coverage and auth/user mutation testing already exist; closeout raises the bar on the final PHP version (after 2.1.14) and after Language/DX work (2.8) when those land.
 - **What**:
   - Clear remaining Infection defer markers (injectable-clock mutants, related ignores) if still present
-  - Flip residual `phpunit.xml.dist` gates (`failOnDeprecation`, `failOnPhpunitDeprecation`, `failOnNotice`) to `"true"` after clearing leftover metadata deprecations / notice noise
+  - Flip residual `phpunit.xml.dist` gates (`failOnDeprecation`, `failOnPhpunitDeprecation`, `failOnNotice`) to `"true"` after clearing leftover metadata deprecations / notice noise — the two known doc-comment metadata sites are `ConfigManagerTest::testGet` and `MigrationServiceTest` (migrate to PHPUnit attributes)
+  - Evaluate a PHPUnit major upgrade (12/13) once the doc-comment metadata is migrated — PHPUnit 12 drops doc-comment metadata support, so the cleanup must land first; the runtime already satisfies 12 (PHP ≥ 8.3) and 13 (PHP ≥ 8.4.1)
   - Extend coverage: DB-bound paths (`UserProvider` happy paths, `UserListener`, uncached `hasPermission`), high-risk modules (ORM, filesystem)
   - Edge scenarios: large uploads, concurrent admin actions, DB connection failures
   - Bring `packages/` into measured coverage; raise blog (~60 %+) and theme-one (~30 %+)
