@@ -65,10 +65,15 @@ Phase 2: Developer Experience
     │  ├─ QueryBuilder/DBAL Standardization   ┃
     │  ├─ Mutation Testing (Infection)        ┃
     │  └─ Test Coverage Expansion             ┃
+    │  ├─ TinyMCE patch (2.1.13)              ┃
+    │  └─ PHP 8.2 → 8.5 (2.1.14)              ┃
     ├─ CI/CD Pipeline                         ┃
     ├─ Docker Production                      ┃
     ├─ Build Tools Modernization              ┃
-    └─ Extension Safety System ━━━━━━━━━━━━━━━┛
+    ├─ Extension Safety System                ┃
+    ├─ Automated Update / Filesystem          ┃
+    ├─ PHP 8.4+ Language & DX (2.8.x)         ┃
+    └─ Phase 2 Closeout ━━━━━━━━━━━━━━━━━━━━━━┛
           ⬇️
 Phase 3: Frontend Modernization & Cross-Stack Alignment
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓

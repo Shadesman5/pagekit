@@ -319,7 +319,7 @@ class EntityManager
             return;
         }
 
-        // TODO: Must be refactored in Step 4.3 (Performance Optimization) —
+        // TODO: Must be refactored in Step 4.5 (Performance Optimization) —
         // Replace $cache->clear() with tag-based invalidation (TagAwareCacheInterface)
         // to only invalidate cache entries for this specific entity type instead of the entire pool.
         $cache->clear();
