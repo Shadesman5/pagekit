@@ -465,15 +465,22 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
     sh(`git checkout -B ${featureBranch} origin/${featureBranch}`);
   }
 
+  /**
+   * Reset tracked metrics files to HEAD, then always remove untracked leftovers.
+   * develop still carries historical metrics/; new session files synced from
+   * conductor-metrics are not in HEAD — leaving them untracked blocks
+   * `git checkout -B conductor-metrics` (would overwrite).
+   */
   function discardMetricsWorkingTree() {
     try {
       sh(`git checkout HEAD -- ${METRICS_DIR}`);
     } catch {
-      try {
-        sh(`git clean -fd -- ${METRICS_DIR}`);
-      } catch {
-        /* METRICS_DIR may be absent on this branch */
-      }
+      /* METRICS_DIR may be absent on this branch */
+    }
+    try {
+      sh(`git clean -fd -- ${METRICS_DIR}`);
+    } catch {
+      /* METRICS_DIR may be absent on this branch */
     }
   }
 
