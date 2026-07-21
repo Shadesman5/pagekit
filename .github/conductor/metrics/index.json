@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-21T15:03:54.831Z",
+  "updatedAt": "2026-07-21T22:20:11.854Z",
   "steps": {
     "unknown": {
       "title": "AGENT_PROMPT_AUDIT_TECH_DEBT_INVENTORY",
@@ -121,6 +121,13 @@
       "latestSessionId": "06afa15a-621f-4dce-856b-c0628e1a28de",
       "sessionIds": [
         "06afa15a-621f-4dce-856b-c0628e1a28de"
+      ]
+    },
+    "2.1.14": {
+      "title": "Step 2.1.14: PHP Version Upgrade",
+      "latestSessionId": "b51da69a-6c42-4260-8972-bfd1d696bdc8",
+      "sessionIds": [
+        "b51da69a-6c42-4260-8972-bfd1d696bdc8"
       ]
     }
   },
