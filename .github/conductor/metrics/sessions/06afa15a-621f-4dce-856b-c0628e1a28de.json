@@ -11,19 +11,51 @@
   "status": "in_progress",
   "startedAt": "2026-07-21T14:33:07.729Z",
   "completedAt": null,
-  "phases": [],
+  "phases": [
+    {
+      "phaseKey": "29839622870-1-PLAN",
+      "type": "PLAN",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-07-21T14:33:09.666Z",
+      "durationMs": 964732,
+      "agent": {
+        "id": "bc-7241cbc6-d198-4e11-a508-823e7c81775e",
+        "runId": "run-58c5f481-7f3a-4381-be4b-9112edc55b73",
+        "url": "https://cursor.com/agents/bc-7241cbc6-d198-4e11-a508-823e7c81775e",
+        "model": "grok-4.5"
+      },
+      "github": {
+        "runId": 29839622870,
+        "runAttempt": 1,
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/29839622870",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 88801,
+        "output": 59023,
+        "cacheRead": 2530163,
+        "cacheWrite": 197874,
+        "total": 2875861
+      },
+      "tokensSource": "cursor-api",
+      "result": "Plan ready: migration-docs/tickets/active/PROMPT_2_1_13_TinyMCE-Security-Patch_plan.md",
+      "outcome": "success"
+    }
+  ],
   "totals": {
     "tokens": {
-      "input": 0,
-      "output": 0,
-      "cacheRead": 0,
-      "cacheWrite": 0,
-      "total": 0
+      "input": 88801,
+      "output": 59023,
+      "cacheRead": 2530163,
+      "cacheWrite": 197874,
+      "total": 2875861
     },
-    "durationMs": 0,
-    "phaseCount": 0,
+    "durationMs": 964732,
+    "phaseCount": 1,
     "escalations": 0,
-    "ghaJobs": 0,
-    "cloudAgents": 0
+    "ghaJobs": 1,
+    "cloudAgents": 1
   }
 }
