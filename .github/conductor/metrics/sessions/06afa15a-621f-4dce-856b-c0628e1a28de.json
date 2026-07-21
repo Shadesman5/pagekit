@@ -9,21 +9,38 @@
   "branch": "feature/step-2-1-13-tinymce-security-patch",
   "model": "grok-4.5",
   "status": "in_progress",
-  "startedAt": "2026-07-21T14:33:07.729Z",
-  "completedAt": null,
+  "startedAt": "2026-07-21T14:33:12.425Z",
+  "completedAt": "2026-07-21T14:49:07.526Z",
   "phases": [
     {
       "phaseKey": "29839622870-1-PLAN",
       "type": "PLAN",
       "attempt": 0,
       "batchSteps": null,
-      "startedAt": "2026-07-21T14:33:09.666Z",
-      "durationMs": 964732,
+      "startedAt": "2026-07-21T14:33:12.425Z",
+      "durationMs": 940912,
       "agent": {
         "id": "bc-7241cbc6-d198-4e11-a508-823e7c81775e",
         "runId": "run-58c5f481-7f3a-4381-be4b-9112edc55b73",
         "url": "https://cursor.com/agents/bc-7241cbc6-d198-4e11-a508-823e7c81775e",
-        "model": "grok-4.5"
+        "model": "grok-4.5",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-58c5f481-7f3a-4381-be4b-9112edc55b73",
+            "index": 1,
+            "startedAt": "2026-07-21T14:33:12.425Z",
+            "completedAt": "2026-07-21T14:49:07.526Z",
+            "durationMs": 940912,
+            "tokens": {
+              "input": 88801,
+              "output": 59023,
+              "cacheRead": 2530163,
+              "cacheWrite": 197874,
+              "total": 2875861
+            }
+          }
+        ]
       },
       "github": {
         "runId": 29839622870,
@@ -41,7 +58,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "Plan ready: migration-docs/tickets/active/PROMPT_2_1_13_TinyMCE-Security-Patch_plan.md",
-      "outcome": "success"
+      "outcome": "success",
+      "completedAt": "2026-07-21T14:49:07.526Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -52,7 +71,7 @@
       "cacheWrite": 197874,
       "total": 2875861
     },
-    "durationMs": 964732,
+    "durationMs": 940912,
     "phaseCount": 1,
     "escalations": 0,
     "ghaJobs": 1,
