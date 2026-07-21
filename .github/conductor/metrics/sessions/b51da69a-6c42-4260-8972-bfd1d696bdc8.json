@@ -9,21 +9,67 @@
   "branch": "feature/php-version-upgrade",
   "model": "grok-4.5",
   "status": "in_progress",
-  "startedAt": "2026-07-21T22:20:11.854Z",
-  "completedAt": null,
-  "phases": [],
+  "startedAt": "2026-07-21T22:20:18.581Z",
+  "completedAt": "2026-07-21T22:38:42.572Z",
+  "phases": [
+    {
+      "phaseKey": "manual-bc-d704c944-af5d-4b72-9dce-ffe7e5354a48-PLAN",
+      "type": "PLAN",
+      "attempt": 0,
+      "batchSteps": null,
+      "agent": {
+        "id": "bc-d704c944-af5d-4b72-9dce-ffe7e5354a48",
+        "url": "https://cursor.com/agents/bc-d704c944-af5d-4b72-9dce-ffe7e5354a48",
+        "model": null,
+        "runId": "run-985306bb-44bd-43a3-a870-c00ad951578d",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-985306bb-44bd-43a3-a870-c00ad951578d",
+            "index": 1,
+            "startedAt": "2026-07-21T22:20:18.581Z",
+            "completedAt": "2026-07-21T22:38:42.572Z",
+            "durationMs": 1100448,
+            "tokens": {
+              "input": 62654,
+              "output": 75192,
+              "cacheRead": 3427158,
+              "cacheWrite": 205622,
+              "total": 3770626
+            }
+          }
+        ]
+      },
+      "github": null,
+      "tokens": {
+        "input": 62654,
+        "output": 75192,
+        "cacheRead": 3427158,
+        "cacheWrite": 205622,
+        "total": 3770626
+      },
+      "tokensSource": "cursor-api-manual",
+      "result": "Imported manually (pre-Conductor cloud agent)",
+      "outcome": "success",
+      "manualImport": true,
+      "notes": "Manual import via import-manual-agents.mjs · Timing from Cursor API (single agent run)",
+      "startedAt": "2026-07-21T22:20:18.581Z",
+      "durationMs": 1100448,
+      "completedAt": "2026-07-21T22:38:42.572Z"
+    }
+  ],
   "totals": {
     "tokens": {
-      "input": 0,
-      "output": 0,
-      "cacheRead": 0,
-      "cacheWrite": 0,
-      "total": 0
+      "input": 62654,
+      "output": 75192,
+      "cacheRead": 3427158,
+      "cacheWrite": 205622,
+      "total": 3770626
     },
-    "durationMs": 0,
-    "phaseCount": 0,
+    "durationMs": 1100448,
+    "phaseCount": 1,
     "escalations": 0,
-    "ghaJobs": 0,
-    "cloudAgents": 0
+    "ghaJobs": 1,
+    "cloudAgents": 1
   }
 }
