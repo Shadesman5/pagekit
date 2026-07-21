@@ -59,6 +59,9 @@
             <directory>app/modules/*/src/Tests</directory>
             <directory>app/system/modules/*/src/Tests</directory>
             <directory>app/vendor</directory>
+            <!-- No meaningful unit-test surface (align with codecov.yml ignore) -->
+            <file>app/system/config.php</file>
+            <file>index.php</file>
         </exclude>
     </source>
 
