@@ -30,7 +30,7 @@
      (same numbers + short titles). Size hint per step: S = small/atomic, M = medium,
      L = large or loop-risk. A step orchestrator flips its box to [x] in the SAME commit as that step's code + tests (after full step PASS incl. test-writer when applicable) -->
 
-- [ ] Step 1 (M) — TinyMCE `~5.5.1` → `~5.10.9` bump (package.json + yarn.lock) + rebuild + evidence
+- [x] Step 1 (M) — TinyMCE `~5.5.1` → `~5.10.9` bump (package.json + yarn.lock) + rebuild + evidence
 
 ## TESTING STRATEGY
 
