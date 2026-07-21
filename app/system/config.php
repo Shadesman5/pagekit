@@ -6,7 +6,7 @@ return [
 
     'application' => [
 
-        'version' => '1.2.27',
+        'version' => '1.2.28',
 
     ],
 

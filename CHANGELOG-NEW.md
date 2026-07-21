@@ -1,5 +1,13 @@
 # Changelog
 
+## Pagekit 1.2.28 - Composer security advisories (Juli 21, 2026)
+
+### Security
+
+- **`composer/composer` 2.10.1 → 2.10.2** — clears CVE-2026-59946 / CVE-2026-59947 / CVE-2026-59948 (path traversal, credential leak in verbose logs, arbitrary file write). Constraint raised to `^2.10.2`; `composer audit --locked` clean.
+
+---
+
 ## Pagekit 1.2.27 - Residual `mixed` narrowing (Juli 16, 2026)
 
 ### Added
