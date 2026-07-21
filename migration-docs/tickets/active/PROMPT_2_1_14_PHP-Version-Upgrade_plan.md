@@ -43,7 +43,7 @@
      L = large or loop-risk. A step orchestrator flips its box to [x] in the SAME commit as that
      step's code + tests (after full step PASS incl. test-writer when applicable) -->
 - [x] Step 1 (L) — Composer: php ^8.5 + platform 8.5.0 + Infection cap lift + lock refresh
-- [ ] Step 2 (S) — Runtime minimums: index.php guard + installer REQUIRED_PHP_VERSION → 8.5
+- [x] Step 2 (S) — Runtime minimums: index.php guard + installer REQUIRED_PHP_VERSION → 8.5
 - [ ] Step 3 (S) — Fix PHP 8.5 null-array-offset deprecation in MenuHelper
 - [ ] Step 4 (M) — CI to 8.5: php-quality.yml matrix/jobs + delete .travis.yml
 - [ ] Step 5 (M) — Runtime docs sweep: Dockerfile, README, pagekit-context, ROADMAP stack

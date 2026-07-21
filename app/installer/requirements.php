@@ -361,7 +361,7 @@ class RequirementCollection implements IteratorAggregate
  */
 class PagekitRequirements extends RequirementCollection
 {
-    public const REQUIRED_PHP_VERSION = '8.2.0';
+    public const REQUIRED_PHP_VERSION = '8.5.0';
 
     /**
      * Constructor that initializes the requirements.
@@ -515,7 +515,7 @@ class PagekitRequirements extends RequirementCollection
         $this->addRecommendation(
             $accelerator,
             'OPcache should be installed and enabled',
-            'Install and enable the <strong>OPcache</strong> extension (highly recommended for PHP 8.2+).'
+            'Install and enable the <strong>OPcache</strong> extension (highly recommended for PHP 8.5+).'
         );
 
         $this->addPhpIniRecommendation('short_open_tag', false);

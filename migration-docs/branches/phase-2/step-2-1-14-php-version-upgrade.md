@@ -28,6 +28,15 @@ _TBD_
 
 Tests: none (test-writer skip — composer manifest/lock only; no production PHP under `app/` / `packages/`).
 
+### Runtime minimums: entry guard + installer (Checklist Step 2)
+
+| File | Change |
+|---|---|
+| `index.php` | Runtime version guard `'8.2'` → `'8.5'`. |
+| `app/installer/requirements.php` | `REQUIRED_PHP_VERSION` `'8.2.0'` → `'8.5.0'`; OPcache recommendation "PHP 8.2+" → "PHP 8.5+". |
+
+Tests: none (test-writer skip — version-literal strings only; no logic branches).
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -71,6 +80,10 @@ _TBD_
 - Verifier (2nd): PASS
 - Tester (2nd): PASS — PHPUnit 718 exit 0; PHPStan no errors exit 0
 - Tester Infection smoke: PASS — Infection 0.34.0 MSI/Covered MSI ~99% (≥80); exit 0
+
+**Step 2 gates (Execute):**
+- Verifier: PASS
+- Tester: PASS — PHPUnit 718 exit 0; PHPStan no errors exit 0
 
 ---
 
