@@ -75,7 +75,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 ## Step 2.1: Static Analysis & Code Quality Tools
 
 - **Goal**: Code quality tooling and static analysis — tools for developers, core stays lightweight.
-- **Open sub-steps**: 2.1.12 (residual `mixed`), 2.1.13 (TinyMCE patch). Completed work: see Docs under each ✅ row.
+- **Open sub-steps**: 2.1.13 (TinyMCE), 2.1.14 (PHP 8.5). Completed work: see Docs under each ✅ row.
 
 **Sub-steps Overview**:
 
@@ -92,8 +92,9 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 | 2.1.9  | Test Coverage Expansion           | ✅     |
 | 2.1.10 | Entity Presentation Layer (DTO)   | ✅     |
 | 2.1.11 | EntityManager DI (remove singleton) | ✅   |
-| 2.1.12 | Residual `mixed` narrowing        | ⏳     |
+| 2.1.12 | Residual `mixed` narrowing        | ✅     |
 | 2.1.13 | TinyMCE Security Patch (~5.10.9)  | ⏳     |
+| 2.1.14 | PHP Version Upgrade (8.2 → 8.5)   | ⏳     |
 
 ---
 
@@ -166,7 +167,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 - **Goal**: Remove `ModelServiceLocator`; move URL/access/comment presentation off entities onto DI presenters.
 - **Docs**: `migration-docs/branches/phase-2/step-2-1-10-entity-presentation-layer.md`
-- **Forward**: Remaining raw-entity API `jsonSerialize()` → presenters → Step 4.2
+- **Forward**: Remaining raw-entity API `jsonSerialize()` → presenters → Step 4.4
 
 ---
 
@@ -175,22 +176,15 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Goal**: Replace static Active-Record model access with DI repositories / EntityManager; remove the EM singleton and boot hack.
 - **Why**: Last process-global state in the model layer after presenters landed — persistence must be injectable and testable without process isolation.
 - **Docs**: `migration-docs/branches/phase-2/step-2-1-11-entitymanager-di.md`
-- **Forward**: UrlResolver bridge → Step 2.5; raw-entity JSON → Step 4.2; ORM/request-cache invalidation → Step 4.3; residual `mixed` → Step 2.1.12
+- **Forward**: UrlResolver bridge → Step 2.5; raw-entity JSON → Step 4.4; ORM/request-cache invalidation → Step 4.5; residual `mixed` → Step 2.1.12
 
 ---
 
-### Step 2.1.12: Residual `mixed` narrowing (typed properties & signatures)
+### ✅ Step 2.1.12: Residual `mixed` narrowing (typed properties & signatures)
 
 - **Goal**: Narrow the last avoidable `mixed` sites to honest concrete types — no behaviour change; IDE/PHPStan clarity only.
-- **Why**: Most remaining `mixed` is legitimate (array shapes, magic methods, PSR-11, polymorphic returns, `callable` properties). Only three sites are wrongly wide.
-- **Issue**: GitHub #217 (sub-issue of #147)
-- **Prompt**: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_12_Residual-Mixed-Narrowing.md`
-- **What**:
-  - `CaptchaListener::verifyToken()` — `mixed` params → `string`; call site via `$request->request->getString(...)` + `(string)` config cast
-  - `NodeController::$site` — `mixed` → `private readonly SiteModule` via constructor DI; drop `ModuleManager` if unused
-  - `DataModelTrait::$data` — `mixed` → `?array` with `@var array<string, mixed>|null`; keep `get()` null-guard (fresh entities stay `null` until `set()`; hydrated JSON is always an array)
-- **Out of scope**: Legitimate `mixed` (docblock shapes, `__get`/`__set`, filter/loader/PSR-11, `PregReplaceFilter` return, `ExceptionListener::$controller` / `WrappedListener::$listener`). Presenter-side URL reference typing already lives on presenters.
-- **Risk**: Low
+- **Docs**: `migration-docs/branches/phase-2/step-2-1-12-residual-mixed-narrowing.md`
+- **Out of scope (permanent)**: Legitimate `mixed` (docblock shapes, `__get`/`__set`, filter/loader/PSR-11, polymorphic returns, `callable` properties). Property-hooks path → Step 2.8.1.
 
 ---
 
@@ -198,18 +192,39 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 - **Goal**: Patch TinyMCE 5.5.1 (EOL) with a minimal same-major bump to ~5.10.9 — not a full editor modernization.
 - **Why**: Close known XSS/mXSS exposure in the admin editor with the smallest safe bump before broader CI/build work.
+- **Issue**: GitHub #230 (sub-issue of #147)
+- **Prompt**: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_13_TinyMCE-Security-Patch.md`
 - **Source**: `migration-docs/audits/2026/04/DEPENDENCY-AUDIT-2026-04.md` §4.1
 - **What**:
   - Bump `tinymce` in `package.json` `~5.5.1` → `~5.10.9`
   - Smoke-test admin editor; `yarn audit` before/after; `yarn compile-js --mode=production` + Playwright smoke
 - **Out of scope**: TinyMCE 6+ (build/Vue track); remaining iframe XSS via CSP later
-- **Land before**: Step 2.2
+- **Land before**: Step 2.1.14 / 2.2
 - **Risk**: Low
+
+---
+
+### Step 2.1.14: PHP Version Upgrade (8.2 → 8.5)
+
+- **Status**: 📝 Draft — refine at ticket planning.
+- **Goal**: Raise minimum PHP from 8.2 to **8.5** (current latest stable at planning time) with a full compatibility audit.
+- **Why**: CI/Docker (2.2/2.3) and Closeout (2.9) must build on the final runtime once — avoid double-touch. Enables Step 2.8 language features.
+- **Issue**: GitHub #231 (sub-issue of #147)
+- **Prompt**: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_14_PHP-Version-Upgrade.md`
+- **What**:
+  - Bump `composer.json` `require.php` to `^8.5` and `config.platform.php` to `8.5.0`
+  - Update every version SSoT consumer: CI matrix, `requirements.php`, `.cursor/Dockerfile`, README/badges, ROADMAP stack
+  - `composer update` + resolve Dev-Tool bumps (CS-Fixer, PHPUnit, Infection, PHPStan plugins)
+  - Deprecation cleanup of **own** code; quality gates green (PHPUnit, PHPStan L8, CS-Fixer, Infection scope, Playwright smoke)
+- **Out of scope**: Symfony 7 / DBAL 4 (4.2/4.3); Property Hooks / Autowiring (2.8.x); coverage ratchet (2.9); feature-tourism syntax rewrites
+- **Land before**: Steps 2.2, 2.3, 2.8, 2.9
+- **Risk**: Medium
 
 ---
 
 ## Step 2.2: CI/CD Pipeline
 
+- **Land after**: Step 2.1.14 (PHP matrix / images target 8.5)
 - **Goal**: Full CI/CD on GitHub Actions; quality metrics on GitHub only.
 - **Why**: Every PR needs a reliable, fast quality gate; merge/main need E2E and heavier jobs without blocking every PR.
 - **What**:
@@ -283,32 +298,46 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - Add `Filesystem::dumpAtomic()` (temp + chmod + rename, with existing Windows fallback); unit-test it
   - Route `config.php` and package-registry writes through it; refactor `Router::writeCache()` to the same helper
   - Delete dead commented catch in `SelfupdateCommand`; log (don't swallow) invalid version constraints in Composer helper
-- **Out of scope**: OpenWeatherMap API key → secrets (Step 4.2)
+- **Out of scope**: OpenWeatherMap API key → secrets (Step 4.4)
 - **Recommended before**: Step 2.6; reusable by Step 2.5 fallback writes
 - **Risk**: Low–Medium
 
 ---
 
-## Step 2.8: PHP Version Upgrade — Raise Minimum to Latest Stable
+## Step 2.8: PHP 8.4+ Language Adoption & DX Hardening
 
 - **Status**: 📝 Draft — refine at ticket planning.
-- **Goal**: Raise minimum PHP from 8.2 to the current latest stable (confirm at execution) with a full compatibility audit.
-- **Why**: Drop 8.2-only caps, clear new deprecations, optionally adopt useful language features without over-engineering.
-- **What**:
-  - Bump `composer.json` `require.php` and every consumer (CI matrix, `requirements.php`, Dockerfile, README) so the version SSoT guard stays green
-  - Compatibility audit of runtime + dependencies; relax 8.2-only caps (e.g. Infection)
-  - Deprecation cleanup; optional 8.3/8.4 features where they simplify code
-  - All quality gates green on the new version
-- **Recommended before**: Step 2.9
+- **Prerequisite**: Step 2.1.14 (PHP 8.5). Prefer after 2.5 (routing/DI bridges clearer for Autowiring).
+- **Goal**: Adopt useful PHP 8.4/8.5 language features and small DX hardenings **without** bloating the core — DNA gate on every sub-step.
+- **Why here (not Phase 3/4):** Backend language/DI work belongs in Phase 2, on Symfony 6.4, **before** Vue (Phase 3) and before Symfony 7 / DBAL 4 (4.2/4.3). Closeout (2.9) then measures the hardened code.
+- **Out of scope**: “Eliminate all `mixed`” mega-rewrite (legitimate `mixed` stays); Symfony/DBAL majors; new product features.
+- **Risk**: Medium (2.8.1 may No-Go)
+
+### Step 2.8.1: Property Hooks vs PropertyTrait
+
+- **Goal**: Decide whether PHP 8.4 property hooks can replace (parts of) `PropertyTrait` magic accessors without hurting extension DX; implement only on **Go**.
+- **Spike (what that means):** A **time-boxed investigation** — small prototype + written Go/No-Go — *before* a full migration. Not the migration itself. If No-Go, keep magic + Docblocks (permanent honest contract) and close the sub-step as decided.
+- **DNA gate**: Core simpler to read? Extension DX ≥ today? Core stays light?
 - **Risk**: Medium
+
+### Step 2.8.2: Controller FQCN Autowiring
+
+- **Goal**: Resolve controller dependencies by type (FQCN) instead of magic parameter-name / string bindings where it removes fragile wiring **without** adding a heavy DI framework layer.
+- **Why after 2.5**: Extension Safety / routing factory DI reduces static bridges first.
+- **Risk**: Medium
+
+### Step 2.8.3: Fail-Fast / control-flow hygiene
+
+- **Goal**: Replace known “tooling pacifiers” (e.g. `?? ''` magic defaults that hide null domain state) with honest nullable types or explicit validation/exceptions — targeted sweep, not a repo-wide rewrite.
+- **Risk**: Low
 
 ---
 
 ## Step 2.9: Phase 2 Closeout — Test Coverage & Mutation Consolidation
 
 - **Status**: 📝 Draft — refine at ticket planning.
-- **Goal**: Final Phase 2 quality push — breadth coverage, wider Infection scope, data-driven MSI gates.
-- **Why**: Per-branch coverage and auth/user mutation testing already exist; closeout raises the bar once on the final PHP version.
+- **Goal**: Phase 2 quality push — breadth coverage, wider Infection scope, data-driven MSI gates.
+- **Why**: Per-branch coverage and auth/user mutation testing already exist; closeout raises the bar on the final PHP version (after 2.1.14) and after Language/DX work (2.8) when those land.
 - **What**:
   - Clear remaining Infection defer markers (injectable-clock mutants, related ignores) if still present
   - Flip residual `phpunit.xml.dist` gates (`failOnDeprecation`, `failOnPhpunitDeprecation`, `failOnNotice`) to `"true"` after clearing leftover metadata deprecations / notice noise
@@ -317,4 +346,4 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - Bring `packages/` into measured coverage; raise blog (~60 %+) and theme-one (~30 %+)
   - Widen `infection.json.dist` past auth + user (data-integrity first); ratchet `minMsi` / `minCoveredMsi` from measured values
   - Remaining hygiene if still open: `assertEquals`→`assertSame` where strictness matters; controller DI-wiring / factory-service integration tests; `MigrationCommand` CLI pipeline coverage
-- **Note**: Closeout of ongoing coverage work — not a replacement for per-branch tests
+- **Note**: Closeout consolidates ongoing coverage work — not a replacement for per-branch tests. **Not a hard Phase-2 end:** if new Phase-2 steps are discovered, insert them *before* 2.9 (ROADMAP SSoT) and keep Closeout last among Phase 2.

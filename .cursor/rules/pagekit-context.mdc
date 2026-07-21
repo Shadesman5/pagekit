@@ -31,7 +31,7 @@ Same rules as `.cursor/ROADMAP.md` (THE 5 AGGRESSIVE RULES). Summary:
 
 1. **NO COMPATIBILITY LAYERS** – do not keep old & new behavior in parallel.
 2. **NO ADAPTERS** – update all call sites instead of adding wrappers.
-3. **BREAKING CHANGES ALLOWED INTERNALLY** – the system must remain functional after each step (all tests green). Internal API endpoints (`/api/...`) may change as long as frontend and backend are updated together. Platform API names (e.g. `__()`, `_i()`, `$date`, `$number`) may be kept as clean modern reimplementations — stable extension/template DX, not legacy compat. The real public API (versioned, JWT, OpenAPI) comes in Step 4.2.
+3. **BREAKING CHANGES ALLOWED INTERNALLY** – the system must remain functional after each step (all tests green). Internal API endpoints (`/api/...`) may change as long as frontend and backend are updated together. Platform API names (e.g. `__()`, `_i()`, `$date`, `$number`) may be kept as clean modern reimplementations — stable extension/template DX, not legacy compat. The real public API (versioned, JWT, OpenAPI) comes in Step 4.4.
 4. **DELETE OVER WRAP** – if old logic conflicts with the new security model, delete it.
 5. **MANDATORY FLAGGING & AUDIT DEBT** – Forward debt only: mark code that still **must** change later with `// TODO:` + ROADMAP Step ID (`Must be refactored in Step X.Y`, `TEMPORARY BRIDGE - To be removed in Step X.Y`, `AUDIT FIX Step X.Y`, etc.). Completed work, successful migrations, and ticket/checklist history belong in docs — never as Step/ROADMAP/ticket references in code or tests.
 

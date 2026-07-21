@@ -12,7 +12,7 @@
    - If a method signature changes, update all usages in the codebase.
    - Never create intermediate adapters to "bridge" old and new code within the same scope.
 3. **BREAKING CHANGES ALLOWED INTERNALLY**
-   - Internal API breakage is encouraged for cleaner, stricter PHP 8.2+ code.
+   - Internal API breakage is encouraged for cleaner, stricter PHP 8.2+ code (8.5+ after Step 2.1.14).
    - Refactor over preserve.
    - The system must remain **functional after each step** (all tests green).
    - Internal API endpoints (`/api/...`) may change as long as both frontend and backend
@@ -20,7 +20,7 @@
    - **Platform API names** (e.g. `__()`, `_i()`, `$date`, `$number`, `$http`) may be kept when they represent
      a stable developer-facing API for extensions and templates — this is NOT a compatibility layer,
      it's a clean modern reimplementation under the same function signature. See § DX & Lightweight Philosophy.
-   - The **real public API** (versioned, documented, JWT-authenticated) comes in Step 4.2.
+   - The **real public API** (versioned, documented, JWT-authenticated) comes in Step 4.4.
 4. **DELETE OVER WRAP**
    - Legacy code must be physically deleted from the file.
    - Do not comment out old code; use Git history for reference.
@@ -36,6 +36,13 @@
 - **Platform APIs** — Template/theme helpers (`__()`, `$date`, …) are thin aliases over DI services, not legacy shims (Rule 3). New or modernized helpers welcome: stable extension signatures, one glue point per concern.
 - **Boundary** — DI in services/controllers/listeners; helpers in views/mails/themes. No DI-for-purity in templates.
 - **Lightweight core** — One minimal locator per concern, only where PHP has no constructor. Dev tooling (PHPStan, CI) wraps the core, never bloats runtime.
+
+## **📌 ROADMAP SSoT (how to read IDs)**
+
+- **This table is the source of truth for execution order** — top to bottom within each phase.
+- **Completed rows (✅) are fixed history.** Open rows (⏳) may be reordered, renamed, split into `x.y` / `x.y.z`, or have their *task content* redefined. **ID = slot in the sequence, not a permanent task identity.**
+- **2.9 Closeout is not a hard phase end** — if new Phase-2 work appears, insert it *before* 2.9 (or renumber) and keep Closeout last among Phase 2.
+- Historical branch docs under `migration-docs/branches/` may still mention old IDs; the living ROADMAP wins. A clean Kernkit 1.0 tree comes with Step 4.7 (Rebranding).
 
 ## **📊 TRACKING TABLE**
 
@@ -94,14 +101,18 @@
 | 2.1.10 | ↳ Entity Presentation Layer (DTO)     | ✅     | 🛡️    | #204  | #219    |
 | 2.1.11 | ↳ EntityManager DI (remove singleton) | ✅     | 🛡️    | #205  | #222    |
 | 2.1.12 | ↳ Residual `mixed` narrowing          | ✅     | 🛡️    | #217  | #227    |
-| 2.1.13 | ↳ TinyMCE Security Patch (~5.10.9)    | ⏳     | ⏳    | -     | -       |
+| 2.1.13 | ↳ TinyMCE Security Patch (~5.10.9)    | ⏳     | ⏳    | #230  | -       |
+| 2.1.14 | ↳ PHP Version Upgrade (8.2 → 8.5)     | ⏳     | ⏳    | #231  | -       |
 | 2.2    | CI/CD Pipeline                        | ⏳     | ⏳    | #157  | -       |
 | 2.3    | Docker Production                     | ⏳     | ⏳    | #158  | -       |
 | 2.4    | Build Tools (pnpm + Vite)             | ⏳     | ⏳    | #159  | -       |
 | 2.5    | Extension Safety System               | ⏳     | ⏳    | #160  | -       |
 | 2.6    | Automated Update System               | ⏳     | ⏳    | -     | -       |
 | 2.7    | Filesystem Write Resilience           | ⏳     | ⏳    | -     | -       |
-| 2.8    | PHP Version Upgrade (8.2→latest)      | ⏳     | ⏳    | -     | -       |
+| 2.8    | **PHP 8.4+ Language & DX Hardening**  | ⏳     | ⏳    | -     | -       |
+| 2.8.1  | ↳ Property Hooks vs PropertyTrait     | ⏳     | ⏳    | -     | -       |
+| 2.8.2  | ↳ Controller FQCN Autowiring          | ⏳     | ⏳    | -     | -       |
+| 2.8.3  | ↳ Fail-Fast / control-flow hygiene    | ⏳     | ⏳    | -     | -       |
 | 2.9    | Phase 2 Closeout (Coverage/Mutation)  | ⏳     | ⏳    | -     | -       |
 | 3.1    | UIkit Update                          | ⏳     | ⏳    | -     | -       |
 | 3.2    | Vue 2.7 Bridge                        | ⏳     | ⏳    | -     | -       |
@@ -120,13 +131,13 @@
 | 3.6.1  | ↳ E2E Test Suite Rework               | ⏳     | ⏳    | -     | -       |
 | 4.0    | Accessibility & WCAG Baseline         | ⏳     | ⏳    | -     | -       |
 | 4.1    | Basic Security                        | ⏳     | ⏳    | -     | -       |
-| 4.2    | REST API v2                           | ⏳     | ⏳    | -     | -       |
-| 4.3    | Performance Optimization              | ⏳     | ⏳    | -     | -       |
-| 4.4    | Monitoring & Health Checks            | ⏳     | ⏳    | -     | -       |
-| 4.5    | Rebranding: Pagekit → Kernkit         | ⏳     | ⏳    | -     | -       |
-| 4.6    | Native Image Pipeline & Media Manager | ⏳     | ⏳    | -     | -       |
-| 4.7    | Symfony 6.4 → 7.x Upgrade             | ⏳     | ⏳    | -     | -       |
-| 4.8    | Doctrine DBAL 3 → 4 Upgrade           | ⏳     | ⏳    | -     | -       |
+| 4.2    | Symfony 6.4 → 7.x Upgrade             | ⏳     | ⏳    | -     | -       |
+| 4.3    | Doctrine DBAL 3 → 4 Upgrade           | ⏳     | ⏳    | -     | -       |
+| 4.4    | REST API v2                           | ⏳     | ⏳    | -     | -       |
+| 4.5    | Performance Optimization              | ⏳     | ⏳    | -     | -       |
+| 4.6    | Monitoring & Health Checks            | ⏳     | ⏳    | -     | -       |
+| 4.7    | Rebranding: Pagekit → Kernkit         | ⏳     | ⏳    | -     | -       |
+| 4.8    | Native Image Pipeline & Media Manager | ⏳     | ⏳    | -     | -       |
 | 4.9    | ↳ Cross-Repo Dev Dashboard            | ⏳     | ⏳    | -     | -       |
 | 5.1    | Modern Block Editor                   | ⏳     | ⏳    | -     | -       |
 | 5.2    | Advanced Security                     | ⏳     | ⏳    | -     | -       |
@@ -137,8 +148,9 @@
 
 ## **🛠️ TECHNICAL STACK REFERENCE**
 
-- **PHP Version**: 8.2+ (Strict types mandatory)
-- **Framework Components**: Symfony 6.4 (LTS) → Symfony 7.x (Step 4.7, post–Phase 3)
+- **PHP Version**: 8.2+ today → **8.5+** after Step 2.1.14 (strict types mandatory)
+- **Framework Components**: Symfony 6.4 (LTS) → Symfony 7.x (Step 4.2, after Phase 3)
+- **ORM / DBAL**: Doctrine DBAL 3.x → DBAL 4.x (Step 4.3)
 - **Coding Standard**: PSR-12 / Symfony
 - **Naming**: Use expressive, modern PHP naming (Constructor Property Promotion, etc.)
 - **Error Format**: Standardized JSON {"error": true, "errors": {...}}
