@@ -1,6 +1,6 @@
 # **🗺️ Pagekit Modernization Roadmap & Rules**
 
-> **Current Version**: 1.2.28
+> **Current Version**: 1.2.27
 > **Current Step**: 2.1.13 (TinyMCE Security Patch (~5.10.9))
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**

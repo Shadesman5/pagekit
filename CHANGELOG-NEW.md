@@ -1,19 +1,5 @@
 # Changelog
 
-## Pagekit 1.2.28 - Roadmap reorder: PHP 8.5 early + Phase 4 ID remap (Juli 21, 2026)
-
-### Changed
-
-- **ROADMAP / Phase docs** — PHP upgrade moved to Step **2.1.14** (before CI/Docker); Step **2.8** repurposed for PHP 8.4+ Language & DX Hardening (`2.8.1`–`2.8.3`); Phase 4 IDs remapped so table order = execution (Symfony 7 = **4.2**, DBAL 4 = **4.3**, REST API = **4.4**, Perf = **4.5**, Rebrand = **4.7**).
-- **SSoT note** — ROADMAP documents that open step IDs are execution slots (content may change); completed rows stay fixed.
-- **Living forward tags** — dashboard secrets TODO → Step **4.4**; EntityManager cache invalidation TODO → Step **4.5**; Rule 3 public API → Step **4.4**.
-
-### Added
-
-- **Agent prompts** — `PROMPT_2_1_13_TinyMCE-Security-Patch.md`, `PROMPT_2_1_14_PHP-Version-Upgrade.md` (Issues #230, #231).
-
----
-
 ## Pagekit 1.2.27 - Residual `mixed` narrowing (Juli 16, 2026)
 
 ### Added
