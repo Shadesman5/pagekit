@@ -1,5 +1,30 @@
 # Changelog
 
+## Pagekit 1.2.30 - PHP 8.5 version upgrade (Juli 22, 2026)
+
+### Breaking Changes
+
+- **Minimum PHP raised to 8.5** — Composer `require.php` / `config.platform.php`, `index.php` runtime guard, and installer `REQUIRED_PHP_VERSION` now require PHP 8.5+. Hosts and extension Composer constraints below 8.5 will fail install / boot. (Closes #231)
+
+### Changed
+
+- **Composer lock refresh** — platform bump to 8.5.0; Infection cap `>=0.33 <0.35` (resolves `0.34.0`). Symfony stays 6.4.x; `doctrine/dbal` 3.10.6; PHPUnit 11.5.56. PHPStan baseline regenerated for the new platform.
+- **`MenuHelper` null-parent short-circuit** — synthetic-root `parent_id = null` no longer triggers PHP 8.5 null-as-array-offset deprecation; `MenuHelperTest` covers the branch.
+- **CI PHP Quality** — PHPUnit matrix `['8.5']` only; phpstan / cs-fixer / security-audit jobs on PHP 8.5. Dead `.travis.yml` removed.
+- **Runtime docs / Docker** — root `Dockerfile` `FROM php:8.5-apache`; README badge and requirements strings → PHP 8.5+; agent context / ROADMAP stack wording aligned.
+
+### Deferred
+
+- Docs-site quality dashboard matrix keys (8.2/8.3 legs) → Step 2.2.
+- PHPUnit doc-comment metadata deprecations + `failOn*` flips; PHPUnit 12/13 eval → Step 2.9.
+- Root `Dockerfile` multi-stage/Alpine redesign → Step 2.3.
+
+### Maintainer action
+
+- Update Ruleset "Protect for Develop-Branch" required status checks from `phpunit (8.2)` / `phpunit (8.3)` → `phpunit (8.5)`.
+
+---
+
 ## Pagekit 1.2.29 - TinyMCE security patch (Juli 21, 2026)
 
 ### Security

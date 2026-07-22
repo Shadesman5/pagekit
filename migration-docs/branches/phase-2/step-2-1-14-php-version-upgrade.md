@@ -3,18 +3,23 @@
 **Branch:** `feature/php-version-upgrade`
 **ROADMAP Step:** 2.1.14 (PHP Version Upgrade (8.2 → 8.5))
 **GitHub Issue:** [#231](https://github.com/Shadesman5/pagekit/issues/231)
-**Pull Request:** _TBD_
-**Status:** 🚧 In progress
+**Pull Request:** [#238](https://github.com/Shadesman5/pagekit/pull/238)
+**Status:** ✅ Complete
 **Started:** 2026-07-21 22:38
-**Completed:** _TBD_
+**Completed:** 2026-07-22 00:22
 
 ---
 
 ## 🎯 Overview
 
-_TBD_
+Raises the runtime / Composer / CI PHP floor from 8.2+ to **8.5+**. Composer
+platform + Infection cap lift, entry/installer version guards, one own-code
+PHP 8.5 deprecation fix (`MenuHelper` null array offset), CI matrix to 8.5
+(Travis deleted), and runtime docs / Docker base image aligned. Symfony stays
+6.4.x; DBAL stays 3.x; PHPUnit stays 11.x.
 
 ---
+
 
 ## ✅ What Changed
 
@@ -70,13 +75,21 @@ Tests: none (test-writer skip — docs only). Final E2E (last checklist step): P
 
 ## 🧠 Key Decisions (Rationale)
 
-_TBD / None_
+None beyond plan. Infection resolved cleanly to 0.34.0 on PHP 8.5 + PHPUnit
+11.5 (no fallback to `<0.34`). Coverage-floor provenance comment in
+`php-quality.yml` left untouched (historical measurement fact).
 
 ---
 
 ## ⚠️ Breaking Changes (Extensions)
 
-_TBD_
+**Minimum PHP raised to 8.5.** Hosts, Docker images, and extension Composer
+`require.php` must target PHP 8.5+. Runtime entry (`index.php`) and installer
+`REQUIRED_PHP_VERSION` reject lower versions. CI no longer runs PHPUnit on
+8.2/8.3.
+
+No schema, route, or public HTTP API changes. Symfony 6.4 / DBAL 3.x / PHPUnit
+11.x constraints unchanged.
 
 ---
 
@@ -88,20 +101,31 @@ _TBD_
 
 ## 🔐 Security & Data Impact
 
-_TBD / None_
+None. Version floor + one deprecation guard; `composer audit --locked` green on
+Finalize CI. No data-model or auth changes.
 
 ---
 
 ## 🛡️ No-Mercy Compliance
 
-_TBD_
+Compliant. No compatibility layers, adapters, or Rule 5 forward-debt tags —
+hard cut to PHP 8.5; Travis deleted rather than kept parallel.
 
 ---
 
 ## ✅ Verification (links only)
 
-- CI run: _TBD_
-- Notable deviations: Step 1 — plan commit surface was `composer.json` + `composer.lock` only; Tester (1st) FAIL regenerated `phpstan-baseline.neon` into the Step 1 surface (see Step 1 gates). Step 3 — after the null short-circuit, PHPStan baseline `MenuHelper.php:109` `offsetAccess.invalidOffset` count stale (`expected 3` / `occurred 1`); Refactorer lowered count to `1`. Test-writer 1st FAIL: assertion expected `null` path on synthetic root but got `'/'`; PHPStan undefined `parent_id`/`path` on `NodeInterface` — fixed on retry (see Step 3 gates).
+| Gate | Result |
+|---|---|
+| CI — PHP Quality | ✅ success (phpunit 8.5, phpstan, cs-fixer, security-audit) |
+| Coverage gap pass | skipped — no codecov bot comment on PR #238 within ~5 min after CI green |
+| Cursor Bugbot | ✅ clean — "Bugbot reviewed your changes and found no new issues!" |
+| E2E | ✅ PASS |
+| Finalize fix-loop | none |
+
+**CI run:** https://github.com/Shadesman5/pagekit/actions/runs/29879681596
+
+**Notable deviations:** Step 1 — plan commit surface was `composer.json` + `composer.lock` only; Tester (1st) FAIL regenerated `phpstan-baseline.neon` into the Step 1 surface (see Step 1 gates). Step 3 — after the null short-circuit, PHPStan baseline `MenuHelper.php:109` `offsetAccess.invalidOffset` count stale (`expected 3` / `occurred 1`); Refactorer lowered count to `1`. Test-writer 1st FAIL: assertion expected `null` path on synthetic root but got `'/'`; PHPStan undefined `parent_id`/`path` on `NodeInterface` — fixed on retry (see Step 3 gates).
 
 **Step 1 gates (Execute):**
 - Verifier (1st, production): PASS — `composer.json` exactly 3 approved edits; lock regenerated; Symfony 6.4.x, dbal 3.10.6, phpunit 11.5.56, infection 0.34.0
@@ -139,7 +163,8 @@ _TBD_
 
 ## 📋 Phase 1 Audit Closure
 
-_TBD_
+None
+
 
 ---
 
@@ -157,7 +182,8 @@ _TBD_
 
 ## 📎 Related Documents
 
-- Ticket: `migration-docs/tickets/active/PROMPT_2_1_14_PHP-Version-Upgrade_plan.md` (_TBD_ → move to `done/` after Finalize)
+- Ticket: `migration-docs/tickets/done/PROMPT_2_1_14_PHP-Version-Upgrade_plan.md` (archive after Finalize)
 - Task prompt: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_14_PHP-Version-Upgrade.md`
 - Predecessor: Step 2.1.13 — TinyMCE Security Patch (~5.10.9)
 - Successor: Step 2.2 — CI/CD Pipeline
+
