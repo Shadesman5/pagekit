@@ -46,6 +46,15 @@ Tests: none (test-writer skip — version-literal strings only; no logic branche
 
 Tests: `app/system/modules/site/src/Tests/MenuHelperTest.php` — added `testGetRootAttachesNodesUnderSyntheticRootWithNullParentId` (null short-circuit + sibling under synthetic root).
 
+### CI to 8.5 + remove dead Travis (Checklist Step 4)
+
+| File | Change |
+|---|---|
+| `.github/workflows/php-quality.yml` | PHPUnit matrix `['8.2','8.3']` → `['8.5']`; three `if: matrix.php == '8.3'` → `'8.5'`; phpstan / cs-fixer / security-audit: Setup/php-version/cache keys `8.3` → `8.5`. `MIN_LINE_COVERAGE` + floor-provenance comment unchanged. |
+| `.travis.yml` | Deleted (dead Travis matrix; CI is GitHub Actions). |
+
+Tests: none (test-writer skip — CI config only).
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -62,7 +71,7 @@ _TBD_
 
 ## ⚠️ Risks & Rollout Notes
 
-_TBD / None_
+- **Maintainer action (Finalize PR body):** Ruleset "Protect for Develop-Branch" still requires status contexts `phpunit (8.2)` and `phpunit (8.3)`. After matrix rename, jobs report as `phpunit (8.5)` — a repo admin must update required checks to `phpunit (8.5)` (agent `gh` is read-only / non-admin).
 
 ---
 
@@ -105,6 +114,10 @@ _TBD_
 - Tester (after tests 1st): FAIL — `testGetRootAttachesNodesUnderSyntheticRootWithNullParentId` Failed asserting null identical to `'/'`; PHPStan 2 errors undefined properties `parent_id`/`path` on `NodeInterface`. Test-writer retry
 - Verifier (tests 2nd): PASS
 - Tester (after tests 2nd): PASS — PHPUnit 719 tests, 2047 assertions (5 skipped, 2 deprecations); PHPStan no errors
+
+**Step 4 gates (Execute):**
+- Verifier (production): PASS
+- Tester (PHPUnit + PHPStan): PASS — PHPUnit 719 tests, OK (5 skipped); PHPStan no errors
 
 ---
 

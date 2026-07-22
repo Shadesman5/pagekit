@@ -34,7 +34,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.2', '8.3']
+        php: ['8.5']
     steps:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
@@ -64,7 +64,7 @@ jobs:
         run: ./app/vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml
 
       - name: Upload coverage artifact
-        if: matrix.php == '8.3'
+        if: matrix.php == '8.5'
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: coverage-clover
@@ -83,7 +83,7 @@ jobs:
       # public-repo tokenless path or simply no-op (non-blocking). See
       # migration-docs/branches/phase-2/step-2-1-9-test-coverage-expansion.md.
       - name: Upload coverage to Codecov
-        if: matrix.php == '8.3'
+        if: matrix.php == '8.5'
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
         with:
           files: ./coverage.xml
@@ -99,7 +99,7 @@ jobs:
       # Plain PHP parse of the Clover <project><metrics> node — no extra tooling required.
       # Provenance recorded in migration-docs/branches/phase-2.
       - name: Enforce minimum line coverage
-        if: matrix.php == '8.3'
+        if: matrix.php == '8.5'
         env:
           MIN_LINE_COVERAGE: '3.8'
         run: |
@@ -138,10 +138,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
-      - name: Setup PHP 8.3
+      - name: Setup PHP 8.5
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
-          php-version: '8.3'
+          php-version: '8.5'
           coverage: none
           tools: composer:v2
 
@@ -149,9 +149,9 @@ jobs:
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: app/vendor
-          key: ${{ runner.os }}-php-8.3-composer-${{ hashFiles('composer.lock') }}
+          key: ${{ runner.os }}-php-8.5-composer-${{ hashFiles('composer.lock') }}
           restore-keys: |
-            ${{ runner.os }}-php-8.3-composer-
+            ${{ runner.os }}-php-8.5-composer-
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
@@ -166,10 +166,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
-      - name: Setup PHP 8.3
+      - name: Setup PHP 8.5
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
-          php-version: '8.3'
+          php-version: '8.5'
           coverage: none
           tools: composer:v2
 
@@ -177,9 +177,9 @@ jobs:
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: app/vendor
-          key: ${{ runner.os }}-php-8.3-composer-${{ hashFiles('composer.lock') }}
+          key: ${{ runner.os }}-php-8.5-composer-${{ hashFiles('composer.lock') }}
           restore-keys: |
-            ${{ runner.os }}-php-8.3-composer-
+            ${{ runner.os }}-php-8.5-composer-
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
@@ -197,10 +197,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
-      - name: Setup PHP 8.3
+      - name: Setup PHP 8.5
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
-          php-version: '8.3'
+          php-version: '8.5'
           coverage: none
           tools: composer:v2
 
