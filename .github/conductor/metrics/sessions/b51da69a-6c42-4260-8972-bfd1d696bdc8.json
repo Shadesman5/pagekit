@@ -163,20 +163,51 @@
       "outcome": "success",
       "completedAt": "2026-07-22T00:13:44.513Z",
       "notes": "Timing from Cursor API (single agent run)"
+    },
+    {
+      "phaseKey": "29879633267-1-FINALIZE",
+      "type": "FINALIZE",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-07-22T00:14:16.701Z",
+      "durationMs": 570685,
+      "agent": {
+        "id": "bc-70c7948f-398e-486c-adaf-733d328f0cee",
+        "runId": "run-2e33e897-30ca-46c5-b60a-23ac2f94e840",
+        "url": "https://cursor.com/agents/bc-70c7948f-398e-486c-adaf-733d328f0cee",
+        "model": "grok-4.5"
+      },
+      "github": {
+        "runId": 29879633267,
+        "runAttempt": 1,
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/29879633267",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 104464,
+        "output": 12472,
+        "cacheRead": 817984,
+        "cacheWrite": 0,
+        "total": 934920
+      },
+      "tokensSource": "cursor-api",
+      "result": "Finalized. PR: #238. Version: 1.2.30. Ticket archived to done/.",
+      "outcome": "success"
     }
   ],
   "totals": {
     "tokens": {
-      "input": 559150,
-      "output": 308548,
-      "cacheRead": 16213685,
+      "input": 663614,
+      "output": 321020,
+      "cacheRead": 17031669,
       "cacheWrite": 1047664,
-      "total": 18129047
+      "total": 19063967
     },
-    "durationMs": 4951845,
-    "phaseCount": 3,
+    "durationMs": 5522530,
+    "phaseCount": 4,
     "escalations": 0,
-    "ghaJobs": 2,
-    "cloudAgents": 3
+    "ghaJobs": 3,
+    "cloudAgents": 4
   }
 }
