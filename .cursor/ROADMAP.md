@@ -12,7 +12,7 @@
    - If a method signature changes, update all usages in the codebase.
    - Never create intermediate adapters to "bridge" old and new code within the same scope.
 3. **BREAKING CHANGES ALLOWED INTERNALLY**
-   - Internal API breakage is encouraged for cleaner, stricter PHP 8.2+ code (8.5+ after Step 2.1.14).
+   - Internal API breakage is encouraged for cleaner, stricter PHP 8.5+ code.
    - Refactor over preserve.
    - The system must remain **functional after each step** (all tests green).
    - Internal API endpoints (`/api/...`) may change as long as both frontend and backend
@@ -148,7 +148,7 @@
 
 ## **🛠️ TECHNICAL STACK REFERENCE**
 
-- **PHP Version**: 8.2+ today → **8.5+** after Step 2.1.14 (strict types mandatory)
+- **PHP Version**: 8.5+ (strict types mandatory)
 - **Framework Components**: Symfony 6.4 (LTS) → Symfony 7.x (Step 4.2, after Phase 3)
 - **ORM / DBAL**: Doctrine DBAL 3.x → DBAL 4.x (Step 4.3)
 - **Coding Standard**: PSR-12 / Symfony

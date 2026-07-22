@@ -46,7 +46,7 @@
 - [x] Step 2 (S) — Runtime minimums: index.php guard + installer REQUIRED_PHP_VERSION → 8.5
 - [x] Step 3 (S) — Fix PHP 8.5 null-array-offset deprecation in MenuHelper
 - [x] Step 4 (M) — CI to 8.5: php-quality.yml matrix/jobs + delete .travis.yml
-- [ ] Step 5 (M) — Runtime docs sweep: Dockerfile, README, pagekit-context, ROADMAP stack
+- [x] Step 5 (M) — Runtime docs sweep: Dockerfile, README, pagekit-context, ROADMAP stack
 
 ## TESTING STRATEGY
 - **Per step (production gate):** Refactorer → Verifier → Tester (PHPUnit + PHPStan) — production code must be green before any new tests are written. All local runs execute natively on PHP 8.5.8 (agent VM).

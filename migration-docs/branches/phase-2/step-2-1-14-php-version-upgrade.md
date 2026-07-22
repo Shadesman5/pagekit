@@ -55,6 +55,17 @@ Tests: `app/system/modules/site/src/Tests/MenuHelperTest.php` — added `testGet
 
 Tests: none (test-writer skip — CI config only).
 
+### Runtime docs sweep (Checklist Step 5)
+
+| File | Change |
+|---|---|
+| `Dockerfile` | `FROM php:8.4-apache` → `FROM php:8.5-apache` (version align only; redesign stays 2.3). |
+| `README.md` | Badge `php-8.5%2B`; Key Features / Major Changes / Minimum Requirements / Docker / Extension Development strings → PHP 8.5+. |
+| `.cursor/rules/pagekit-context.mdc` | Strict typing + Backend stack "PHP 8.2+" → "PHP 8.5+". |
+| `.cursor/ROADMAP.md` | Rule 3 bullet + Technical Stack → plain "PHP 8.5+" (dropped "after Step 2.1.14" clauses). Header pointer / tracking row untouched (Finalize). |
+
+Tests: none (test-writer skip — docs only). Final E2E (last checklist step): PASS — see Step 5 gates.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -118,6 +129,11 @@ _TBD_
 **Step 4 gates (Execute):**
 - Verifier (production): PASS
 - Tester (PHPUnit + PHPStan): PASS — PHPUnit 719 tests, OK (5 skipped); PHPStan no errors
+
+**Step 5 gates (Execute):**
+- Verifier (production): PASS
+- Tester (PHPUnit + PHPStan): PASS — PHPUnit 719 tests, 2047 assertions (5 skipped, exit 0); PHPStan no errors (exit 0)
+- Tester (final E2E): PASS — PHPUnit 719 OK; PHPStan OK; `php pagekit setup` / `php pagekit list` OK; Playwright installation, authentication (14), dashboard (10) all passed
 
 ---
 
