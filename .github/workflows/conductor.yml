@@ -143,6 +143,9 @@ jobs:
             git push -u origin "$METRICS_BRANCH"
           fi
           git fetch origin "$METRICS_BRANCH"
+          # develop may still have historical metrics/; untracked session files from the
+          # Conductor step block switching to conductor-metrics — drop them first.
+          git clean -fd -- .github/conductor/metrics || true
           git checkout -B "$METRICS_BRANCH" "origin/$METRICS_BRANCH"
           ARGS=""
           if [ -n "${SESSION_ID:-}" ]; then ARGS="--session $SESSION_ID"; fi

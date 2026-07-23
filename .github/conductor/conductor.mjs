@@ -216,7 +216,12 @@ async function runPhase(label, prompt, outcomeHint) {
   current = null;
   await logUsage(agentId);
   const outcome = outcomeHint || (text.startsWith("ESCALATE") ? "escalate" : "success");
-  await metrics.recordPhase({ label, startedAt, agentId, runId, agentUrl, result: text, outcome });
+  // Metrics push must not invalidate a finished agent run (would relaunch PLAN/EXECUTE).
+  try {
+    await metrics.recordPhase({ label, startedAt, agentId, runId, agentUrl, result: text, outcome });
+  } catch (e) {
+    log(`  metrics: recordPhase failed (${e.message}) — continuing with phase result`);
+  }
   return text;
 }
 
