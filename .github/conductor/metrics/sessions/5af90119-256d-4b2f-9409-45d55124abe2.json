@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "5af90119-256d-4b2f-9409-45d55124abe2",
+  "roadmapStepId": null,
+  "title": null,
+  "taskSlug": "AGENT_PROMPT_AUDIT_STEP_2_1",
+  "taskPrompt": "migration-docs/TODO/agent_prompts/AUDITS/AGENT_PROMPT_AUDIT_STEP_2_1.md",
+  "issue": 147,
+  "branch": "feature/AGENT_PROMPT_AUDIT_STEP_2_1",
+  "model": "grok-4.5",
+  "status": "in_progress",
+  "startedAt": "2026-07-23T20:26:03.845Z",
+  "completedAt": null,
+  "phases": [],
+  "totals": {
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "total": 0
+    },
+    "durationMs": 0,
+    "phaseCount": 0,
+    "escalations": 0,
+    "ghaJobs": 0,
+    "cloudAgents": 0
+  }
+}
