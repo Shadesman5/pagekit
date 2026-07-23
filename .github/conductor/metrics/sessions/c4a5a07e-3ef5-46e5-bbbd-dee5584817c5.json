@@ -10,7 +10,7 @@
   "model": null,
   "status": "completed",
   "startedAt": "2026-03-29T20:48:25.719Z",
-  "completedAt": null,
+  "completedAt": "2026-03-30T00:03:28.000Z",
   "phases": [
     {
       "phaseKey": "manual-bc-a96ebcf7-2c32-4061-8d40-61ba33f30778-MANUAL",
@@ -18,7 +18,7 @@
       "attempt": 0,
       "batchSteps": null,
       "startedAt": "2026-03-29T20:48:25.719Z",
-      "durationMs": null,
+      "durationMs": 1617000,
       "agent": {
         "id": "bc-a96ebcf7-2c32-4061-8d40-61ba33f30778",
         "runId": null,
@@ -29,9 +29,9 @@
           {
             "runId": null,
             "index": 1,
-            "startedAt": null,
-            "completedAt": null,
-            "durationMs": null,
+            "startedAt": "2026-03-29T20:48:25.719Z",
+            "completedAt": "2026-03-29T21:11:43.719Z",
+            "durationMs": 1398000,
             "tokens": {
               "input": 1000,
               "output": 42907,
@@ -43,9 +43,9 @@
           {
             "runId": null,
             "index": 2,
-            "startedAt": null,
-            "completedAt": null,
-            "durationMs": null,
+            "startedAt": "2026-03-29T22:10:00.000Z",
+            "completedAt": "2026-03-29T22:12:11.000Z",
+            "durationMs": 131000,
             "tokens": {
               "input": 585,
               "output": 1996,
@@ -57,9 +57,9 @@
           {
             "runId": null,
             "index": 3,
-            "startedAt": null,
-            "completedAt": null,
-            "durationMs": null,
+            "startedAt": "2026-03-30T00:02:00.000Z",
+            "completedAt": "2026-03-30T00:03:28.000Z",
+            "durationMs": 88000,
             "tokens": {
               "input": 531,
               "output": 2503,
@@ -82,7 +82,8 @@
       "result": "Imported manually from Cursor Dashboard (3 runs in one follow-up chat; API usage unavailable)",
       "outcome": "success",
       "manualImport": true,
-      "notes": "Manual import (3 dashboard runs, one follow-up chat); duration unknown (no per-run timing via API)"
+      "notes": "Manual import (3 dashboard runs in one follow-up chat, ~3h15m wall-clock). Per-run start/duration are approximate values read from the Cursor Dashboard; durationMs is summed work time, not the wall-clock span.",
+      "completedAt": "2026-03-30T00:03:28.000Z"
     }
   ],
   "totals": {
@@ -93,7 +94,7 @@
       "cacheWrite": 742192,
       "total": 7940077
     },
-    "durationMs": 0,
+    "durationMs": 1617000,
     "phaseCount": 1,
     "escalations": 0,
     "ghaJobs": 0,
