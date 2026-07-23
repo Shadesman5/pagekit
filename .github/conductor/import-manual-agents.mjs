@@ -60,7 +60,9 @@ function getAllArgs(name) {
 
 function normalizeAgentId(raw) {
   const s = (raw || "").trim();
-  const fromUrl = s.match(/agents\/([0-9a-f-]{36})/i);
+  // Agent IDs are "bc-<uuid>" (39 chars), not a bare 36-char UUID. Capture the whole path segment
+  // after /agents/ (stops at the next /, ? or #) so the "bc-" prefix is never truncated.
+  const fromUrl = s.match(/agents\/([a-z0-9-]+)/i);
   if (fromUrl) return fromUrl[1].toLowerCase();
   return s;
 }

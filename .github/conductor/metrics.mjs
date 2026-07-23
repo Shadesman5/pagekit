@@ -731,6 +731,12 @@ export function parseRoadmapStepId(title, taskPrompt) {
   const two = base.match(/^PROMPT_(\d+)_(\d+)_/i);
   if (two) return `${two[1]}.${two[2]}`.toLowerCase();
 
+  // Audit/report prompts and feature branches use an underscore step form anywhere in the name
+  // (e.g. AGENT_PROMPT_AUDIT_STEP_2_1 or ..._STEP_2_1_3). Without this, audits — which usually pass
+  // no title and don't follow the PROMPT_X_Y_ convention — fall into the shared "unknown" bucket.
+  const step = base.match(/STEP_(\d+)_(\d+)(?:_(\d+[a-z]?))?/i);
+  if (step) return [step[1], step[2], step[3]].filter(Boolean).join(".").toLowerCase();
+
   return null;
 }
 
