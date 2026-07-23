@@ -13,8 +13,10 @@
 ## 🎯 Overview
 
 Raises the runtime / Composer / CI PHP floor from 8.2+ to **8.5+**. Composer
-platform + Infection cap lift, entry/installer version guards, one own-code
-PHP 8.5 deprecation fix (`MenuHelper` null array offset), CI matrix to 8.5
+platform + Infection cap lift, entry/installer version guards, four own-code
+deprecation fixes (`MenuHelper` null offset, `InstallerIO` implicitly-nullable
+params, `PDO::MYSQL_ATTR_INIT_COMMAND` → `Pdo\Mysql`, `PropertyTrait` dynamic
+properties), CI matrix to 8.5
 (Travis deleted), and runtime docs / Docker base image aligned. Symfony stays
 6.4.x; DBAL stays 3.x; PHPUnit stays 11.x.
 
@@ -70,6 +72,27 @@ Tests: none (test-writer skip — CI config only).
 | `.cursor/ROADMAP.md` | Rule 3 bullet + Technical Stack → plain "PHP 8.5+" (dropped "after Step 2.1.14" clauses). Header pointer / tracking row untouched (Finalize). |
 
 Tests: none (test-writer skip — docs only). Final E2E (last checklist step): PASS — see Step 5 gates.
+
+### Own-code runtime deprecation fixes (post-review follow-up)
+
+| File | Change |
+|---|---|
+| `app/installer/src/Helper/InstallerIO.php` | Constructor params `$input` / `$output` / `$helperSet` made explicitly nullable (`?InputInterface` / `?OutputInterface` / `?HelperSet`) — resolves the PHP 8.4 `parameter.implicitlyNullable` deprecation at source instead of baselining it. Runtime semantics unchanged (params were already nullable via `= null`). |
+| `phpstan-baseline.neon` | Removed the 3 `InstallerIO.php` `parameter.implicitlyNullable` ignore blocks (deprecation now fixed at source). |
+| `app/modules/database/index.php` | `PDO::MYSQL_ATTR_INIT_COMMAND` → `\Pdo\Mysql::ATTR_INIT_COMMAND` (and the matching `defined()` guard string) — resolves the PHP 8.5 deprecated-constant `E_DEPRECATED` emitted while building the module config whenever `pdo_mysql` is loaded. Constant value unchanged (`1002`). This premature notice was printed before the template and corrupted the installer DOM (head elements pushed into `<body>`). |
+| `app/modules/database/src/ORM/PropertyTrait.php` | Descriptor `set: true` overrides and the `__clone()` snapshot now write to a per-instance `private array $_transient` (checked first in `__get()`) instead of creating real properties — removes the PHP 8.2+ "Creation of dynamic property" `E_DEPRECATED` for `Node::$theme` / `Widget::$theme` (the only `set: true` descriptors) and on model clone. `_`-prefixed so `toArray()` never serializes it; per-instance so no cross-object leakage. |
+
+Tests: none — all changes are behavior-neutral (explicit-nullable type refinement; canonical constant rename with identical value `1002`; transient-store swap verified to preserve get/set/clone semantics and per-instance isolation). Gates: full PHPStan L8 green on PHP 8.5.8; full PHPUnit 719 OK (incl. the widget-clone test exercising `__clone`); no residual `InstallerIO` baseline entries; `\Pdo\Mysql::ATTR_INIT_COMMAND` and the `PropertyTrait` transient store both verified deprecation-free on 8.5.8. Not caught earlier: PHPStan flags neither deprecated core constants nor dynamic-property creation (no deprecation-rules extension), the affected paths (`database/index.php` module config, the `set: true` theme override, model clone) are not exercised deprecation-visibly by the unit suite, and the local runtime was PHP 8.4.5. The `PropertyTrait` notice is a PHP 8.2 deprecation surfaced now under 8.5 runtime validation. Remaining PHP 8.5 platform-bump findings (strictness / property-hook, e.g. `ControllerResolver`, `messages.php`, `CommentApiController`) stay baselined and deferred to Steps 2.8.x / 2.9.
+
+### Pre-existing bug fix: ORM eager-load relations (post-review follow-up)
+
+**Not a PHP 8.5 change** — a latent regression from Step 2.1.11 (EntityManager DI), surfaced while running the admin on 8.5.8. `QueryBuilder::getRelations()` built each relation's query via a **static** `$targetEntity::query()`, but 2.1.11 removed the static Active-Record API from `ModelTrait`. Every `related(...)->get()/first()` eager-load therefore threw `LogicException: … does not expose a static query() method`, so e.g. the admin blog post list (`GET /api/blog/post`) returned HTTP 500. Not caught by the suite: `RelationTest` only checks the Relation constructors, and no blog integration test exercises the eager-load path.
+
+| File | Change |
+|---|---|
+| `app/modules/database/src/ORM/QueryBuilder.php` | `getRelations()` builds the related query via the injected EntityManager — `$this->manager->getRepository($targetEntity)->query()` — instead of the removed static `$targetEntity::query()`; guard tightened to `class_exists()`. Stale `@template` docblock reference `ModelTrait::query()` → `Repository::query()`. |
+
+Tests: `app/modules/database/src/Tests/ORM/QueryBuilderEagerLoadTest.php` — new in-memory-SQLite regression test (+ fixtures `RelationPostFixture` / `RelationAuthorFixture` / `RelationCommentFixture`) driving `getRepository(...)->query()->related('author', 'comments')->get()` and asserting both a BelongsTo and a HasMany relation eager-load through plain entities that expose no static `query()`. Confirmed to fail against the old static `$targetEntity::query()` (same `LogicException`) and pass with the fix — closing the coverage gap that let the regression through (`RelationTest` only checks Relation constructors). Gates: full PHPStan L8 green on 8.5.8; full PHPUnit 720 OK. Also verified end-to-end against the real SQLite install: the admin blog post list (`/api/blog/post`) loads all 7 sample posts with `user` (BelongsTo) + `comments` (HasMany) resolved — the exact path that returned 500.
 
 ---
 
