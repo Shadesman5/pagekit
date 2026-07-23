@@ -79,22 +79,22 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 **Sub-steps Overview**:
 
-| Step   | Description                       | Status |
-| ------ | --------------------------------- | ------ |
-| 2.1.1  | Tooling Setup & Baseline          | ✅     |
-| 2.1.2  | CI/CD Integration & Quality Gates | ✅     |
-| 2.1.3  | `strict_types` Migration          | ✅     |
-| 2.1.4  | PHPStan Level 5→6 (Return Types)  | ✅     |
-| 2.1.5  | PHPStan Level 6→7 (Null Safety)   | ✅     |
-| 2.1.6  | PHPStan Level 7→8 (Strict Typing) | ✅     |
-| 2.1.7  | QueryBuilder API Standardization  | ✅     |
-| 2.1.8  | Infection Mutation Testing        | ✅     |
-| 2.1.9  | Test Coverage Expansion           | ✅     |
-| 2.1.10 | Entity Presentation Layer (DTO)   | ✅     |
-| 2.1.11 | EntityManager DI (remove singleton) | ✅   |
-| 2.1.12 | Residual `mixed` narrowing        | ✅     |
-| 2.1.13 | TinyMCE Security Patch (~5.10.9)  | ⏳     |
-| 2.1.14 | PHP Version Upgrade (8.2 → 8.5)   | ⏳     |
+| Step   | Description                         | Status |
+| ------ | ----------------------------------- | ------ |
+| 2.1.1  | Tooling Setup & Baseline            | ✅     |
+| 2.1.2  | CI/CD Integration & Quality Gates   | ✅     |
+| 2.1.3  | `strict_types` Migration            | ✅     |
+| 2.1.4  | PHPStan Level 5→6 (Return Types)    | ✅     |
+| 2.1.5  | PHPStan Level 6→7 (Null Safety)     | ✅     |
+| 2.1.6  | PHPStan Level 7→8 (Strict Typing)   | ✅     |
+| 2.1.7  | QueryBuilder API Standardization    | ✅     |
+| 2.1.8  | Infection Mutation Testing          | ✅     |
+| 2.1.9  | Test Coverage Expansion             | ✅     |
+| 2.1.10 | Entity Presentation Layer (DTO)     | ✅     |
+| 2.1.11 | EntityManager DI (remove singleton) | ✅     |
+| 2.1.12 | Residual `mixed` narrowing          | ✅     |
+| 2.1.13 | TinyMCE Security Patch (~5.10.9)    | ✅     |
+| 2.1.14 | PHP Version Upgrade (8.2 → 8.5)     | ✅     |
 
 ---
 
@@ -188,37 +188,21 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 ---
 
-### Step 2.1.13: TinyMCE Security Patch (~5.10.9)
+### ✅ Step 2.1.13: TinyMCE Security Patch (~5.10.9)
 
 - **Goal**: Patch TinyMCE 5.5.1 (EOL) with a minimal same-major bump to ~5.10.9 — not a full editor modernization.
 - **Why**: Close known XSS/mXSS exposure in the admin editor with the smallest safe bump before broader CI/build work.
-- **Issue**: GitHub #230 (sub-issue of #147)
-- **Prompt**: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_13_TinyMCE-Security-Patch.md`
-- **Source**: `migration-docs/audits/2026/04/DEPENDENCY-AUDIT-2026-04.md` §4.1
-- **What**:
-  - Bump `tinymce` in `package.json` `~5.5.1` → `~5.10.9`
-  - Smoke-test admin editor; `yarn audit` before/after; `yarn compile-js --mode=production` + Playwright smoke
-- **Out of scope**: TinyMCE 6+ (build/Vue track); remaining iframe XSS via CSP later
-- **Land before**: Step 2.1.14 / 2.2
-- **Risk**: Low
+- **Docs**: `migration-docs/branches/phase-2/step-2-1-13-tinymce-security-patch.md`
+- **Forward**: TinyMCE 6+ (build/Vue track); remaining iframe XSS via CSP → later security/CSP work
 
 ---
 
-### Step 2.1.14: PHP Version Upgrade (8.2 → 8.5)
+### ✅ Step 2.1.14: PHP Version Upgrade (8.2 → 8.5)
 
-- **Status**: 📝 Draft — refine at ticket planning.
-- **Goal**: Raise minimum PHP from 8.2 to **8.5** (current latest stable at planning time) with a full compatibility audit.
+- **Goal**: Raise minimum PHP from 8.2 to **8.5** with a full compatibility audit across Composer, CI, Docker, and runtime guards.
 - **Why**: CI/Docker (2.2/2.3) and Closeout (2.9) must build on the final runtime once — avoid double-touch. Enables Step 2.8 language features.
-- **Issue**: GitHub #231 (sub-issue of #147)
-- **Prompt**: `migration-docs/TODO/agent_prompts/Step-2_1-Static-Analysis-and-Code-Quality-Tools/PROMPT_2_1_14_PHP-Version-Upgrade.md`
-- **What**:
-  - Bump `composer.json` `require.php` to `^8.5` and `config.platform.php` to `8.5.0`
-  - Update every version SSoT consumer: CI matrix, `requirements.php`, `.cursor/Dockerfile`, README/badges, ROADMAP stack
-  - `composer update` + resolve Dev-Tool bumps (CS-Fixer, PHPUnit, Infection, PHPStan plugins)
-  - Deprecation cleanup of **own** code; quality gates green (PHPUnit, PHPStan L8, CS-Fixer, Infection scope, Playwright smoke)
-- **Out of scope**: Symfony 7 / DBAL 4 (4.2/4.3); Property Hooks / Autowiring (2.8.x); coverage ratchet (2.9); feature-tourism syntax rewrites
-- **Land before**: Steps 2.2, 2.3, 2.8, 2.9
-- **Risk**: Medium
+- **Docs**: `migration-docs/branches/phase-2/step-2-1-14-php-version-upgrade.md`
+- **Forward**: Symfony 7 / DBAL 4 → Steps 4.2/4.3; Property Hooks / Autowiring → Step 2.8.x; coverage ratchet → Step 2.9
 
 ---
 
@@ -343,6 +327,10 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 ### Step 2.8.3: Fail-Fast / control-flow hygiene
 
 - **Goal**: Replace known “tooling pacifiers” (e.g. `?? ''` magic defaults that hide null domain state) with honest nullable types or explicit validation/exceptions — targeted sweep, not a repo-wide rewrite.
+- **Candidate**: Menu/Node tree root sentinel — top-level nodes carry `parent_id = 0`, resolved through a synthetic in-memory root (`MenuHelper::getRoot()` builds `$nodes[0]` with `parent_id = null`). Replace this magic-0 + synthetic-root construct with an explicit, typed root so traversal no longer mixes `0` and `null` to mean “root” — removes hidden null domain state and the null-array-offset bug class.
+- **Candidate**: Clear the 3 PHP 8.4 `parameter.implicitlyNullable` baseline entries in `app/installer/src/Helper/InstallerIO.php` (Symfony Console `InputInterface`/`OutputInterface`/`HelperSet` params) by making them explicit `?Type` — enable the existing PHP-CS-Fixer `nullable_type_declaration_for_default_null_value` rule and drop the baseline ignores instead of carrying them (no new tooling — CS-Fixer already runs in CI).
+- **Candidate**: PHPStan logic-hygiene baseline burndown — surgically fix (never `--generate-baseline`) the ~30 logic-level suppressions across production and tests: dead code (`deadCode.unreachable`), redundant/constant conditions (`*.alwaysTrue` / `*.alwaysFalse`, `instanceof.alwaysTrue/False`, `*.alreadyNarrowedType`), the unsafe `new static()` in `QueryBuilder`, and the `array.duplicateKey` in `StringTest` (likely a real test bug). Remove dead branches / redundant guards, then drop the matching baseline entries. Excludes the structural `variable.undefined` view + module-`index.php` bootstrap suppressions (separate scope decision, not yet homed).
+- **Candidate**: Adopt the `#[\Override]` attribute (PHP 8.3+) on genuine overrides / interface implementations across `app/` — a compile-time net catching renamed or removed parent methods and signature drift. Mechanical, no behavior change; orthogonal to the baseline (it hardens correctness, it does not clear specific suppressions).
 - **Risk**: Low
 
 ---
