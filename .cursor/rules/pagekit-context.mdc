@@ -20,7 +20,7 @@ alwaysApply: true
     - Use standard **Symfony Components** (`dump()`, `Doctrine\Common\Collections`, etc.).
 
 3.  **STRICT TYPING (PHP):**
-    - Enforce **PHP 8.2+** standards.
+    - Enforce **PHP 8.5+** standards.
     - Use **typed properties** (`public string $name`).
     - Use **Return Types** (`: void`, `: ?array`).
     - Use **Constructor Property Promotion** where readable.
@@ -50,7 +50,7 @@ Vision detail: `migration-docs/TODO/MODERNISATION_STRATEGY.md` § Pagekit DNA.
 ### Backend (Active)
 
 - **Core:** Pagekit CMS (Symfony-based Kernel)
-- **PHP:** **8.2+** (Strict Mode)
+- **PHP:** **8.5+** (Strict Mode)
 - **Database:** Doctrine DBAL 3.x (Query Builder), ORM modernization active.
 - **Container:** PSR-11 compatible (Symfony DI).
 

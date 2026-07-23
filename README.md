@@ -1,6 +1,6 @@
 # Pagekit CMS - Modernized
 
-[![PHP](https://img.shields.io/badge/php-8.2%2B-blue)](https://www.php.net/)
+[![PHP](https://img.shields.io/badge/php-8.5%2B-blue)](https://www.php.net/)
 [![Symfony](https://img.shields.io/badge/symfony-6.4-blue)](https://github.com/symfony/symfony)
 [![Vue](https://img.shields.io/badge/vue-2.6.12-green)](https://github.com/vuejs/vue)
 [![UIkit](https://img.shields.io/badge/uikit-3.5.8-blue)](https://github.com/uikit/uikit)
@@ -110,7 +110,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 
 ### Key Features
 
--   **Modern PHP Support**: PHP 8.2 to 8.4 compatibility with modern coding standards
+-   **Modern PHP Support**: PHP 8.5+ compatibility with modern coding standards
 -   **Enterprise Security**: Zero vulnerabilities with latest security patches applied
 -   **Advanced Frontend**: Vue.js 2.6 with UIkit 3.5 for responsive, modern interfaces
 -   **Flexible Database**: Support for both MySQL 8.4 and SQLite 3 with Doctrine DBAL 3.8+
@@ -131,7 +131,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 
 ## Major Changes
 
--   **PHP Version**: Minimum PHP 8.2+ (supports PHP 8.2, 8.3, 8.4)
+-   **PHP Version**: Minimum PHP 8.5+
 -   **Database Support**: MySQL 8.4+ and SQLite 3
 -   **Node.js**: Minimum Node 20+ (Node 22 LTS recommended) for development
 -   **Composer**: Version 2.0+ required
@@ -140,7 +140,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 -   **PSR Standards**: Native PSR-11 Container with constructor dependency injection
 -   **Security Updates**: All dependencies updated to secure versions (0 vulnerabilities confirmed)
 -   **Database Layer**: Doctrine DBAL 3.8+ with modern query methods and enhanced compatibility
--   **Logging System**: Monolog 3.9+ with improved performance and PHP 8.4 support
+-   **Logging System**: Monolog 3.9+ with improved performance and PHP 8.5 support
 -   **Frontend Modernization**: Vue.js 2.6 and UIkit 3.5 (jQuery completely removed)
 -   **Build Tools**: Webpack 4 with optimized development workflow
 -   **Extension Compatibility**: Legacy extensions and themes require complete rewrite for new system
@@ -152,7 +152,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 
 ### Minimum Requirements
 
--   **PHP**: 8.2 or higher (supports 8.2, 8.3, 8.4)
+-   **PHP**: 8.5 or higher
 -   **MySQL**: 8.4+ or **SQLite**: 3.x (selectable during installation)
 -   **Node.js**: 20+ (Node 22 LTS recommended; pinned via `.nvmrc` and `package.json` `engines`)
 -   **Composer**: 2.0+
@@ -239,7 +239,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 
 The Docker setup provides a complete development environment with:
 
--   **PHP 8.4** with Apache and all required extensions
+-   **PHP 8.5** with Apache and all required extensions
 -   **MySQL 8.4** with phpMyAdmin
 -   **Node.js 22 LTS** with Yarn 1.22 for frontend development
 -   **Hot-reloading** for both PHP and frontend assets
@@ -448,7 +448,7 @@ docker-compose exec node yarn install       # Install Node dependencies
 ### Extension Development
 
 -   **Complete Rewrite Required**: Original Pagekit extensions and themes do **not work** with this modernized system
--   **Modern Architecture**: Extensions must be built from scratch using current PHP 8.2+ standards
+-   **Modern Architecture**: Extensions must be built from scratch using current PHP 8.5+ standards
 -   **Theme System**: Full theming support with modern tooling and developer APIs
 -   **Hooks & Filters**: Extensive customization capabilities for developers
 

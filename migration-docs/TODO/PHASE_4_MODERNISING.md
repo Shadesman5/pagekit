@@ -49,6 +49,10 @@
   - **Security Headers**
     - CSP, HSTS, X-Frame-Options
     - Optimized for modern browsers
+  - **Environment-based Secrets / Config**
+    - Read secrets & DB credentials from environment variables (12-factor); `config.php` stays the default and env overrides it
+    - Lightweight — no full Symfony secrets-vault migration (keeps the core light per the DX/Lightweight DNA)
+    - Practical trigger is Step 2.3 (Docker Production): containers inject config via env, not a baked-in `config.php`
 
 ---
 
@@ -197,3 +201,27 @@ The `<picture>` markup is produced at **render time** by a new content plugin (`
 - **Non-goals:** Agents writing to dashboard; replacing `.cursor/ROADMAP.md` as agent SoT.
 - **Result**: One URL for live metrics across repos/branches; intervene before the 360-minute GHA cap.
 - **Risk**: Low–Medium — mostly JSON + Pages plumbing.
+
+---
+
+## Step 4.10: Cookie Consent & Privacy Baseline
+
+- **Goal**: Give the system a GDPR/ePrivacy-compliant cookie-consent feature — essential for running EU/production sites. Provides a consent banner + preference center, script/cookie gating until consent, a server-side consent log for accountability, and an admin UI to manage cookie categories and entries. Ships as a **bundled first-party extension** (in `packages/`, installer-activated like `pagekit/blog` and `theme-one`): independently versioned and updatable, and enabled, disabled, or replaced **per site** — never forced on every install.
+- **Prerequisite**: Steps 3.4 (Vue 3), 4.1 (CSP/Security Headers), 4.3 (DBAL 4), 4.4 (REST API v2), and 4.7 (Rebranding) completed.
+- **Building blocks**: **orestbida/cookieconsent** (v3) as the vanilla-JS frontend engine; cookie definitions seeded from the **Open Cookie Database**.
+
+### Scope
+
+- **Consent banner + preference center** on the public site, styled with UIkit; runs client-side so page caching stays intact.
+- **Script & cookie gating**: block non-essential scripts/cookies until explicit consent, grouped by category (necessary / functional / analytics / marketing …).
+- **Consent log**: record consent-id, chosen categories, timestamp, and a hashed IP (no raw PII); configurable retention.
+- **Cookie registry + admin UI** (Vue 3): manage categories and cookie entries, seeded from a bundled Open Cookie Database snapshot for auto-categorization.
+- **Compliance defaults**: equal-weight Accept/Reject, no pre-ticked non-essential categories, scroll ≠ consent, a "manage preferences" revocation entry point, a consent-expiry cap, GPC signal honoring.
+- **Google Consent Mode v2 wiring**: map consent categories to Google's consent signals (default-denied → granted on consent).
+
+### Out of scope
+
+- **IAB TCF v2.x**: interface/hook only — a site with a real IAB CMP registration binds its own TCF CMP.
+- **Advanced add-ons** (automated cookie scanner, geo-targeting / per-jurisdiction rulesets, cookie-policy generator): separate opt-in extensions — see Step 5.2.1.
+
+- **Result**: The CMS ships a working privacy baseline as a bundled extension; operators enable + configure it per site; advanced/ad-tech needs are served by additional extensions via documented seams.

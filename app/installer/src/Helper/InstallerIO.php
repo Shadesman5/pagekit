@@ -18,7 +18,7 @@ class InstallerIO extends ConsoleIO
     /**
      * {@inheritdoc}
      */
-    public function __construct(InputInterface $input = null, OutputInterface $output = null, HelperSet $helperSet = null)
+    public function __construct(?InputInterface $input = null, ?OutputInterface $output = null, ?HelperSet $helperSet = null)
     {
         $this->input = $input ?: new ArrayInput([]);
 

@@ -1,7 +1,7 @@
 # **🗺️ Pagekit Modernization Roadmap & Rules**
 
-> **Current Version**: 1.2.29
-> **Current Step**: 2.1.14 (PHP Version Upgrade (8.2 → 8.5))
+> **Current Version**: 1.2.30
+> **Current Step**: 2.1 (Static Analysis & Code Quality - Audit)
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**
 
@@ -12,7 +12,7 @@
    - If a method signature changes, update all usages in the codebase.
    - Never create intermediate adapters to "bridge" old and new code within the same scope.
 3. **BREAKING CHANGES ALLOWED INTERNALLY**
-   - Internal API breakage is encouraged for cleaner, stricter PHP 8.2+ code (8.5+ after Step 2.1.14).
+   - Internal API breakage is encouraged for cleaner, stricter PHP 8.5+ code.
    - Refactor over preserve.
    - The system must remain **functional after each step** (all tests green).
    - Internal API endpoints (`/api/...`) may change as long as both frontend and backend
@@ -102,7 +102,7 @@
 | 2.1.11 | ↳ EntityManager DI (remove singleton) | ✅     | 🛡️    | #205  | #222    |
 | 2.1.12 | ↳ Residual `mixed` narrowing          | ✅     | 🛡️    | #217  | #227    |
 | 2.1.13 | ↳ TinyMCE Security Patch (~5.10.9)    | ✅     | 🛡️    | #230  | #234    |
-| 2.1.14 | ↳ PHP Version Upgrade (8.2 → 8.5)     | ⏳     | ⏳    | #231  | -       |
+| 2.1.14 | ↳ PHP Version Upgrade (8.2 → 8.5)     | ✅     | 🛡️    | #231  | #238    |
 | 2.2    | CI/CD Pipeline                        | ⏳     | ⏳    | #157  | -       |
 | 2.3    | Docker Production                     | ⏳     | ⏳    | #158  | -       |
 | 2.4    | Build Tools (pnpm + Vite)             | ⏳     | ⏳    | #159  | -       |
@@ -139,16 +139,19 @@
 | 4.7    | Rebranding: Pagekit → Kernkit         | ⏳     | ⏳    | -     | -       |
 | 4.8    | Native Image Pipeline & Media Manager | ⏳     | ⏳    | -     | -       |
 | 4.9    | ↳ Cross-Repo Dev Dashboard            | ⏳     | ⏳    | -     | -       |
+| 4.10   | Cookie Consent & Privacy Baseline     | ⏳     | ⏳    | -     | -       |
 | 5.1    | Modern Block Editor                   | ⏳     | ⏳    | -     | -       |
 | 5.2    | Advanced Security                     | ⏳     | ⏳    | -     | -       |
+| 5.2.1  | ↳ Advanced Privacy & Consent Ext.     | ⏳     | ⏳    | -     | -       |
 | 5.3    | Advanced Performance                  | ⏳     | ⏳    | -     | -       |
 | 5.4    | Advanced CMS Features                 | ⏳     | ⏳    | -     | -       |
 | 5.5    | Enterprise Features                   | ⏳     | ⏳    | -     | -       |
 | 5.6    | Marketplace & Extensions              | ⏳     | ⏳    | -     | -       |
+| 5.7    | Developer Experience (DX)             | ⏳     | ⏳    | -     | -       |
 
 ## **🛠️ TECHNICAL STACK REFERENCE**
 
-- **PHP Version**: 8.2+ today → **8.5+** after Step 2.1.14 (strict types mandatory)
+- **PHP Version**: 8.5+ (strict types mandatory)
 - **Framework Components**: Symfony 6.4 (LTS) → Symfony 7.x (Step 4.2, after Phase 3)
 - **ORM / DBAL**: Doctrine DBAL 3.x → DBAL 4.x (Step 4.3)
 - **Coding Standard**: PSR-12 / Symfony
