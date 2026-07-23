@@ -149,9 +149,9 @@ $config = [
 
 ];
 
-if (defined('PDO::MYSQL_ATTR_INIT_COMMAND')) {
+if (defined('Pdo\Mysql::ATTR_INIT_COMMAND')) {
     $config['config']['connections']['mysql']['driverOptions'] = [
-        PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8 COLLATE utf8_unicode_ci',
+        \Pdo\Mysql::ATTR_INIT_COMMAND => 'SET NAMES utf8 COLLATE utf8_unicode_ci',
     ];
 }
 

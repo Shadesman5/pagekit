@@ -163,24 +163,6 @@ parameters:
 			path: app/installer/src/Helper/Composer.php
 
 		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#1 \$input \(Symfony\\Component\\Console\\Input\\InputInterface\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: app/installer/src/Helper/InstallerIO.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#2 \$output \(Symfony\\Component\\Console\\Output\\OutputInterface\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: app/installer/src/Helper/InstallerIO.php
-
-		-
-			message: '#^Deprecated in PHP 8\.4\: Parameter \#3 \$helperSet \(Symfony\\Component\\Console\\Helper\\HelperSet\) is implicitly nullable via default value null\.$#'
-			identifier: parameter.implicitlyNullable
-			count: 1
-			path: app/installer/src/Helper/InstallerIO.php
-
-		-
 			message: '#^Call to method getMessage\(\) on an unknown class Doctrine\\DBAL\\DBALException\.$#'
 			identifier: class.notFound
 			count: 1

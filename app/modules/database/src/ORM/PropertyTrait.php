@@ -10,6 +10,16 @@ trait PropertyTrait
     protected static array $_properties = [];
 
     /**
+     * Per-instance transient values for descriptor properties: overrides set via
+     * a `set: true` descriptor and the snapshot frozen by {@see __clone()}. Held
+     * here instead of as real (dynamic) properties, whose creation PHP 8.2+
+     * deprecates. The `_` prefix keeps it out of {@see ModelTrait::toArray()}.
+     *
+     * @var array<string, mixed>
+     */
+    private array $_transient = [];
+
+    /**
      * Gets an object property.
      *
      * @param  string $name
@@ -17,6 +27,10 @@ trait PropertyTrait
      */
     public function __get(string $name): mixed
     {
+        if (array_key_exists($name, $this->_transient)) {
+            return $this->_transient[$name];
+        }
+
         if ($descriptor = static::getPropertyDescriptor($name)) {
 
             $get = $descriptor['get'];
@@ -58,7 +72,7 @@ trait PropertyTrait
             if (is_callable($set)) {
                 call_user_func($set, $value);
             } elseif ($set === true) {
-                $this->$name = $value;
+                $this->_transient[$name] = $value;
             }
 
         } else {
@@ -73,7 +87,7 @@ trait PropertyTrait
     public function __clone()
     {
         foreach (array_keys(static::$_properties) as $name) {
-            $this->$name = $this->__get($name);
+            $this->_transient[$name] = $this->__get($name);
         }
     }
 
