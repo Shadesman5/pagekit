@@ -1,7 +1,7 @@
 # **🗺️ Pagekit Modernization Roadmap & Rules**
 
 > **Current Version**: 1.2.30
-> **Current Step**: 2.2 (CI/CD Pipeline)
+> **Current Step**: 2.1 (Static Analysis & Code Quality - Audit)
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**
 
@@ -139,12 +139,15 @@
 | 4.7    | Rebranding: Pagekit → Kernkit         | ⏳     | ⏳    | -     | -       |
 | 4.8    | Native Image Pipeline & Media Manager | ⏳     | ⏳    | -     | -       |
 | 4.9    | ↳ Cross-Repo Dev Dashboard            | ⏳     | ⏳    | -     | -       |
+| 4.10   | Cookie Consent & Privacy Baseline     | ⏳     | ⏳    | -     | -       |
 | 5.1    | Modern Block Editor                   | ⏳     | ⏳    | -     | -       |
 | 5.2    | Advanced Security                     | ⏳     | ⏳    | -     | -       |
+| 5.2.1  | ↳ Advanced Privacy & Consent Ext.     | ⏳     | ⏳    | -     | -       |
 | 5.3    | Advanced Performance                  | ⏳     | ⏳    | -     | -       |
 | 5.4    | Advanced CMS Features                 | ⏳     | ⏳    | -     | -       |
 | 5.5    | Enterprise Features                   | ⏳     | ⏳    | -     | -       |
 | 5.6    | Marketplace & Extensions              | ⏳     | ⏳    | -     | -       |
+| 5.7    | Developer Experience (DX)             | ⏳     | ⏳    | -     | -       |
 
 ## **🛠️ TECHNICAL STACK REFERENCE**
 
