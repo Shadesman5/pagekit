@@ -16,7 +16,7 @@ use Psr\Cache\CacheItemPoolInterface;
  *
  * `@template T of object` carries the mapped entity type through {@see get()}
  * and {@see first()}. It resolves to its `object` bound for the shared,
- * un-parameterized builders returned by {@see \Pagekit\Database\ORM\ModelTrait::query()}
+ * un-parameterized builders returned by {@see \Pagekit\Database\ORM\Repository::query()}
  * / `where()`, leaving those call sites (and their existing runtime type
  * guards) unchanged; callers that need a concrete element type bind it
  * explicitly via `QueryBuilder<MyEntity>`.
@@ -227,10 +227,10 @@ class QueryBuilder
 
                 $mapping = $this->metadata->getRelationMapping($name);
                 $targetEntity = $mapping['targetEntity'];
-                if (!is_string($targetEntity) || !is_callable([$targetEntity, 'query'])) {
-                    throw new \LogicException(sprintf("Relation '%s' targetEntity '%s' does not expose a static query() method.", $name, (string) $targetEntity));
+                if (!is_string($targetEntity) || !class_exists($targetEntity)) {
+                    throw new \LogicException(sprintf("Relation '%s' targetEntity '%s' is not a mapped entity class.", $name, is_string($targetEntity) ? $targetEntity : get_debug_type($targetEntity)));
                 }
-                $query = $targetEntity::query();
+                $query = $this->manager->getRepository($targetEntity)->query();
 
                 if ($nested = $this->getNestedRelations($name)) {
                     $query->related($nested);
