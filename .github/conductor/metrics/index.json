@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-23T21:38:22.868Z",
+  "updatedAt": "2026-07-23T22:08:03.019Z",
   "steps": {
     "unknown": {
       "title": "AGENT_PROMPT_AUDIT_TECH_DEBT_INVENTORY",
@@ -15,6 +15,13 @@
       "latestSessionId": "5af90119-256d-4b2f-9409-45d55124abe2",
       "sessionIds": [
         "5af90119-256d-4b2f-9409-45d55124abe2"
+      ]
+    },
+    "2.1.1": {
+      "title": "↳ Tooling-Setup & Baseline",
+      "latestSessionId": "c4a5a07e-3ef5-46e5-bbbd-dee5584817c5",
+      "sessionIds": [
+        "c4a5a07e-3ef5-46e5-bbbd-dee5584817c5"
       ]
     },
     "2.1.7": {

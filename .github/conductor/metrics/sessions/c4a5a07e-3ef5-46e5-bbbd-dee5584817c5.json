@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "c4a5a07e-3ef5-46e5-bbbd-dee5584817c5",
+  "roadmapStepId": "2.1.1",
+  "title": "↳ Tooling-Setup & Baseline",
+  "taskSlug": null,
+  "taskPrompt": null,
+  "issue": 148,
+  "branch": null,
+  "model": null,
+  "status": "completed",
+  "startedAt": "2026-03-29T20:48:25.719Z",
+  "completedAt": null,
+  "phases": [
+    {
+      "phaseKey": "manual-bc-a96ebcf7-2c32-4061-8d40-61ba33f30778-MANUAL",
+      "type": "MANUAL",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-03-29T20:48:25.719Z",
+      "durationMs": null,
+      "agent": {
+        "id": "bc-a96ebcf7-2c32-4061-8d40-61ba33f30778",
+        "runId": null,
+        "url": "https://cursor.com/agents/bc-a96ebcf7-2c32-4061-8d40-61ba33f30778",
+        "model": null,
+        "runCount": 3,
+        "runs": [
+          {
+            "runId": null,
+            "index": 1,
+            "startedAt": null,
+            "completedAt": null,
+            "durationMs": null,
+            "tokens": {
+              "input": 1000,
+              "output": 42907,
+              "cacheRead": 5836996,
+              "cacheWrite": 584483,
+              "total": 6465386
+            }
+          },
+          {
+            "runId": null,
+            "index": 2,
+            "startedAt": null,
+            "completedAt": null,
+            "durationMs": null,
+            "tokens": {
+              "input": 585,
+              "output": 1996,
+              "cacheRead": 523445,
+              "cacheWrite": 76094,
+              "total": 602120
+            }
+          },
+          {
+            "runId": null,
+            "index": 3,
+            "startedAt": null,
+            "completedAt": null,
+            "durationMs": null,
+            "tokens": {
+              "input": 531,
+              "output": 2503,
+              "cacheRead": 787922,
+              "cacheWrite": 81615,
+              "total": 872571
+            }
+          }
+        ]
+      },
+      "github": null,
+      "tokens": {
+        "input": 2116,
+        "output": 47406,
+        "cacheRead": 7148363,
+        "cacheWrite": 742192,
+        "total": 7940077
+      },
+      "tokensSource": "cursor-dashboard-manual",
+      "result": "Imported manually from Cursor Dashboard (3 runs in one follow-up chat; API usage unavailable)",
+      "outcome": "success",
+      "manualImport": true,
+      "notes": "Manual import (3 dashboard runs, one follow-up chat); duration unknown (no per-run timing via API)"
+    }
+  ],
+  "totals": {
+    "tokens": {
+      "input": 2116,
+      "output": 47406,
+      "cacheRead": 7148363,
+      "cacheWrite": 742192,
+      "total": 7940077
+    },
+    "durationMs": 0,
+    "phaseCount": 1,
+    "escalations": 0,
+    "ghaJobs": 0,
+    "cloudAgents": 1
+  },
+  "manualImport": {
+    "at": "2026-07-23T22:08:03.014Z",
+    "source": "cursor-dashboard-manual",
+    "note": "Pre-Conductor cloud agent (Static analysis tooling baseline) - 3 runs, tokens from dashboard"
+  }
+}
