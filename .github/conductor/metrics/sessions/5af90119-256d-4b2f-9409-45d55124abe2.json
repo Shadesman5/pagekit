@@ -9,21 +9,38 @@
   "branch": "feature/AGENT_PROMPT_AUDIT_STEP_2_1",
   "model": "grok-4.5",
   "status": "completed",
-  "startedAt": "2026-07-23T20:26:03.845Z",
-  "completedAt": "2026-07-23T20:47:24.356Z",
+  "startedAt": "2026-07-23T20:26:10.874Z",
+  "completedAt": "2026-07-23T20:47:06.481Z",
   "phases": [
     {
       "phaseKey": "30042049662-1-PLAN",
       "type": "PLAN",
       "attempt": 0,
       "batchSteps": null,
-      "startedAt": "2026-07-23T20:26:08.158Z",
-      "durationMs": 1271623,
+      "startedAt": "2026-07-23T20:26:10.874Z",
+      "durationMs": 1252283,
       "agent": {
         "id": "bc-16f2e5e0-b26d-4d89-8e00-691b91090757",
         "runId": "run-1d49e636-b789-49b2-968b-19939aa0e41f",
         "url": "https://cursor.com/agents/bc-16f2e5e0-b26d-4d89-8e00-691b91090757",
-        "model": "grok-4.5"
+        "model": "grok-4.5",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-1d49e636-b789-49b2-968b-19939aa0e41f",
+            "index": 1,
+            "startedAt": "2026-07-23T20:26:10.874Z",
+            "completedAt": "2026-07-23T20:47:06.481Z",
+            "durationMs": 1252283,
+            "tokens": {
+              "input": 66589,
+              "output": 86174,
+              "cacheRead": 4675971,
+              "cacheWrite": 281893,
+              "total": 5110627
+            }
+          }
+        ]
       },
       "github": {
         "runId": 30042049662,
@@ -41,7 +58,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "Plan ready: migration-docs/audits/2026/07/AUDIT_REPORT_STEP_2.1_2026-07-23.md — PR #239",
-      "outcome": "success"
+      "outcome": "success",
+      "completedAt": "2026-07-23T20:47:06.481Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -52,7 +71,7 @@
       "cacheWrite": 281893,
       "total": 5110627
     },
-    "durationMs": 1271623,
+    "durationMs": 1252283,
     "phaseCount": 1,
     "escalations": 0,
     "ghaJobs": 1,
