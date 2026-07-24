@@ -9,21 +9,38 @@
   "branch": "feature/cicd-pipeline",
   "model": "grok-4.5",
   "status": "in_progress",
-  "startedAt": "2026-07-24T10:58:01.213Z",
-  "completedAt": null,
+  "startedAt": "2026-07-24T10:58:06.259Z",
+  "completedAt": "2026-07-24T11:21:04.043Z",
   "phases": [
     {
       "phaseKey": "30087965173-1-PLAN",
       "type": "PLAN",
       "attempt": 0,
       "batchSteps": null,
-      "startedAt": "2026-07-24T10:58:04.543Z",
-      "durationMs": 1389538,
+      "startedAt": "2026-07-24T10:58:06.259Z",
+      "durationMs": 1375285,
       "agent": {
         "id": "bc-7170bc58-69f4-4305-ac93-db3cffe53232",
         "runId": "run-659517eb-a197-4f21-80d3-2b741e0df6ff",
         "url": "https://cursor.com/agents/bc-7170bc58-69f4-4305-ac93-db3cffe53232",
-        "model": "grok-4.5"
+        "model": "grok-4.5",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-659517eb-a197-4f21-80d3-2b741e0df6ff",
+            "index": 1,
+            "startedAt": "2026-07-24T10:58:06.259Z",
+            "completedAt": "2026-07-24T11:21:04.043Z",
+            "durationMs": 1375285,
+            "tokens": {
+              "input": 109932,
+              "output": 79453,
+              "cacheRead": 4591873,
+              "cacheWrite": 278246,
+              "total": 5059504
+            }
+          }
+        ]
       },
       "github": {
         "runId": 30087965173,
@@ -41,7 +58,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "Plan ready: migration-docs/tickets/active/PROMPT_2_2_CI-CD-Pipeline_plan.md",
-      "outcome": "success"
+      "outcome": "success",
+      "completedAt": "2026-07-24T11:21:04.043Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -52,7 +71,7 @@
       "cacheWrite": 278246,
       "total": 5059504
     },
-    "durationMs": 1389538,
+    "durationMs": 1375285,
     "phaseCount": 1,
     "escalations": 0,
     "ghaJobs": 1,
