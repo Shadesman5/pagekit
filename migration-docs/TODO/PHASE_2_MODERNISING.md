@@ -236,11 +236,12 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Why**: Prerequisite for Phase 3; one modern toolchain instead of three legacy ones.
 - **What**:
   - pnpm as package manager; Vite for JS + LESS/assets; remove Webpack/Gulp/Yarn
+  - Minimal Vue 2.6.12 → **2.7.16** bump (pull-forward of the Step 3.2 version bump, approved 2026-07-24): the Vue-2.6-only `vite-plugin-vue2` is EOL (Vite ≤ 4), the official `@vitejs/plugin-vue2` requires Vue ≥ 2.7 — bump + plugin swap + compat verification only; Composition-API trials and deprecation analysis stay in Step 3.2
   - ESLint 9 Flat Config; update CI, Docker, `AGENTS.md`
   - Decide the final formatting policy: Prettier is pinned as an advisory devDependency and the `frontend` CI job only checks changed files (`continue-on-error`) because the tree carries ~13k pre-existing style violations — either format the tree once and make the check blocking, or drop Prettier
   - Dropping Webpack 4 removes its vulnerable locked transitives (picomatch, braces, micromatch, serialize-javascript, elliptic — the bulk of the JS audit findings); verify the advisory drop with a before/after dependency audit
   - Verify: `pnpm install && pnpm build` + Playwright smoke + PHPUnit green
-- **Out of scope**: Webpack 5, Yarn Berry, Vue 3, TinyMCE 6+
+- **Out of scope**: Webpack 5, Yarn Berry, Vue 3 / Composition-API adoption, TinyMCE 6+
 - **Risk**: Medium–High
 
 ---

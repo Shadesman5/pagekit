@@ -37,7 +37,7 @@
 
 | Package             | Version          | Status                                 | Action in Phase 3                                               |
 | ------------------- | ---------------- | -------------------------------------- | --------------------------------------------------------------- |
-| `vue`               | ~2.6.12          | Legacy                                 | → Vue 3.x (Step 3.2 + 3.3)                                      |
+| `vue`               | ~2.6.12          | Legacy                                 | → 2.7.16 in Step 2.4 (build-tools constraint) → Vue 3.x (3.3)   |
 | `vue-resource`      | ~1.5.1           | Archived, Vue-3-incompatible           | → `axios` (Step 3.3.1)                                          |
 | `vue-event-manager` | ~2.1.3           | Archived, Vue-3-incompatible           | → `mitt` (Step 3.3.2)                                           |
 | `vue-intl`          | uatrend/vue-intl | Community fork, custom AngularJS logic | → **Delete & rewrite** with native `Intl` API (Step 3.3.5)      |
@@ -64,7 +64,12 @@
 
 ## Step 3.2: Vue.js 2.7 Migration (Bridge)
 
-- **Goal**: Vue 2.6 → 2.7 (bridge version for safe migration to Vue 3)
+> **Note (2026-07-24):** The version bump itself (2.6.12 → 2.7.16, incl. the Vite plugin swap to
+> `@vitejs/plugin-vue2`) was pulled forward into **Step 2.4** (Build Tools) — the Vue-2.6-only Vite
+> plugin is EOL and caps Vite at 4. This step covers the **bridge work on the already-shipped 2.7
+> runtime**; re-scope at ticket planning.
+
+- **Goal**: Exploit Vue 2.7 as the bridge toward Vue 3 (Composition-API trials, deprecation analysis)
 - **Why Vue 2.7?**:
   - Vue 2.7 is the last 2.x version (backport of Vue 3 features)
   - Includes Composition API from Vue 3 (testable in 2.x!)
@@ -73,9 +78,7 @@
   - Makes migration to Vue 3 significantly safer
   - `vue-resource` and `vue-event-manager` still work under 2.7!
 - **Migration Path**: Vue 2.6 (CURRENT) → Vue 2.7 (Bridge) → Vue 3.x (Target)
-- **Tasks**:
-  - Update `vue` package to 2.7
-  - Adjust Webpack/build config for Vue 2.7
+- **Tasks** (on the 2.7 runtime + Vite pipeline shipped in Step 2.4):
   - Test Composition API in selected components
   - Systematically analyze and document deprecation warnings
   - Run all E2E tests (regression check)
