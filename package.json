@@ -53,7 +53,7 @@
         "@babel/runtime": "^7.12.1",
         "@playwright/test": "^1.55.1",
         "babel-eslint": "^10.1.0",
-        "babel-loader": "^8.1.0",
+        "babel-loader": "^10.0.0",
         "cldr-core": "^36.0.0",
         "cldr-localenames-modern": "^36.0.0",
         "css-loader": "^4.3.0",
