@@ -66,4 +66,5 @@ Default: **PHPUnit only**. Write Playwright specs only when the Orchestrator exp
 
 - Make test file changes only; leave them unstaged (Orchestrator commits).
 - Output exactly one short line, e.g. `Step N tests done. Files: [list].`, `Finalize coverage pass tests done. Files: [list].`, or `UNTESTABLE: <one-line reason>.`
+- Files-only output: never emit coverage percentages or other metric numbers — CI owns quality metrics.
 - No preamble, no narration, no test execution output.

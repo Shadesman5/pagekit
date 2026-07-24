@@ -108,7 +108,7 @@ Ticket: <ticket path>
 Checklist Step: <N>
 Production files: <refactorer list>
 Test files: <test-writer list, or "none">
-Verifier/Tester output (verbatim, incl. FAIL iterations): <paste>
+Gate outcomes: <PASS/FAIL per gate (verifier, PHPUnit, PHPStan), incl. FAIL iterations; one-line deviations only — no metric numbers>
 ```
 
 **doc-writer** (ESCALATE) — `description`: `Step <N> ESCALATE record`

@@ -85,3 +85,4 @@ Do **not** wait on CI yourself; the Orchestrator owns `gh run watch`.
 ## Output discipline (strict)
 
 - Output only: "PASS" or "FAIL" plus minimal RCA (command + error snippet or one-line cause). No prose, no step-by-step narration.
+- Never emit metric numbers for documentation (coverage %, MSI, test counts) — CI is the metrics SSoT; the sticky quality-report comment + dashboard own those. RCA snippets may quote a failing assertion, not a coverage report.

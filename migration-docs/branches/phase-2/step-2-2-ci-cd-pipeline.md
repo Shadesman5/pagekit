@@ -154,6 +154,20 @@ Tests: none (test-writer skip — CI YAML only). Gates: Verifier PASS; Tester PA
 
 Tests: none (test-writer skip — CI YAML only). Gates: Verifier PASS; Tester PASS — PHPUnit: 725 tests, 2057 assertions (5 skipped, 2 deprecations); PHPStan: no errors.
 
+### Agent/rule slimming — metrics discipline (Checklist Step 13)
+
+| File | Change |
+|---|---|
+| `migration-docs/branches/branch-doc-skeleton.md` | Comment-guards on Verification (links only) and 📊 appendix: never paste coverage % / MSI / test counts or build a metrics table — link PR sticky quality-report + dashboard. |
+| `.cursor/rules/orchestrator-v2-step.mdc` | Doc-writer Execute template: `Gate outcomes` (PASS/FAIL per gate + one-line deviations) replaces verbatim Verifier/Tester paste; no metric numbers. |
+| `.cursor/rules/orchestrator-subagent-workflow.mdc` | Doc-writer (Execute) row: same PASS/FAIL-only handoff wording. |
+| `.cursor/rules/orchestrator-v2-finalize.mdc` | Doc-writer Finalize template: add `Metrics: link sticky comment/dashboard only (no metric numbers)`. |
+| `.cursor/agents/tester.md` | Output discipline: never emit metric numbers for documentation; RCA may quote failing assertions only. |
+| `.cursor/agents/test-writer.md` | Files-only output: never emit coverage % or other metric numbers. |
+| `.cursor/agents/doc-writer.md` | Truth source: gate outcomes not verbatim dumps; quality numbers are CI-owned (sticky comment + dashboard). |
+
+Tests: none (test-writer skip — agent rules / skeleton only). Gates: Verifier PASS; Tester (PHPUnit + PHPStan) PASS; Tester (final E2E) PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -171,6 +185,7 @@ Tests: none (test-writer skip — CI YAML only). Gates: Verifier PASS; Tester PA
 - **E2E splits PR gate vs merge artifact.** `e2e-smoke` is the required PR context (chromium-desktop + `@ci` only); `e2e-merge` runs the same selection on push so `quality-collect` gets a develop-tip JSON report without bloating the PR job. Install happens via the web UI in the installation spec — CI must not pre-run `php pagekit setup`. Example config alone is not enough: the job fills real admin credentials + `127.0.0.1:8080` origin so the connectivity precheck and installer accept the file.
 - **Nightly is guarded, full Infection, and viewport-split.** Idle repos skip the expensive jobs via a 24h `git log` window (`workflow_dispatch` bypasses). Full-suite Infection (no `--git-diff-*`) feeds the snapshot MSI blend; tablet/mobile E2E legs stay non-blocking until Step 3.6.1 makes `@ci` specs viewport-robust — desktop remains the hard signal (`fail-fast: false` so all three legs always report).
 - **Weekly sweep is dispatch-first and cron-dormant.** Scheduled runs require repo var `E2E_WEEKLY_ENABLED=true` plus a 7-day commit window; `workflow_dispatch` always proceeds. Full 9-leg matrix (`PW_BROWSERS=all` + `PW_VIEWPORTS=all`) with no `--grep` so fixme quarantine stays skipped-not-failed; only `chromium-desktop` is blocking until Step 3.6.1. Cron sits at Sunday 03:00 UTC (clear of Nightly 02:00). Enabling the var is Manual Work — not flipped in this ticket.
+- **Quality metrics stay in CI, not agent docs.** Branch docs and Orchestrator↔subagent handoffs are PASS/FAIL (+ one-line deviations); coverage/MSI/counts live in the sticky quality-report comment and the quality dashboard. Agents must not re-paste numbers into branch docs or chat handoffs.
 
 ---
 
@@ -201,7 +216,7 @@ Deleted `.github/workflows/php-quality.yml` in the same step as the new `php-tes
 ## ✅ Verification (links only)
 
 - CI run: _TBD_
-- Notable deviations: None (Steps 1–12)
+- Notable deviations: None (Steps 1–13)
 
 ---
 

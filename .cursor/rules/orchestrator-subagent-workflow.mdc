@@ -81,7 +81,7 @@ Plans live in `migration-docs/tickets/active/{task-slug}_plan.md` (`task-slug` =
 | **Verifier** (test files only)  | Same as Verifier, plus: "`scope: test files only`. Changed files: [test-writer list]."                                                          |
 | **Tester** (per Checklist Step) | "Delegate to **tester**. Run: PHPUnit + PHPStan."                                                                                       |
 | **Test-writer**                 | "Ticket: `…/active/{task-slug}_plan.md`, Checklist Step N. Production files: [refactorer list]. Delegate to **test-writer**."                  |
-| **Doc-writer** (Execute)        | "Delegate to **doc-writer**. Branch doc: `<path>`, ticket: `…`, Step N. Hand over changed files + Verifier/Tester output."                      |
+| **Doc-writer** (Execute)        | "Delegate to **doc-writer**. Branch doc: `<path>`, ticket: `…`, Step N. Hand over changed files + gate outcomes (PASS/FAIL per gate + one-line deviations; no metric numbers)."                      |
 | **Tester** (final)              | "Delegate to **tester**. Final E2E run: run the 3 Playwright E2E specs locally (only after the CI gate is green)."                      |
 | **Doc-writer** (Finalize)       | "Delegate to **doc-writer**. Close branch doc + CHANGELOG (+ README if needed). Hand over PR#, version, CI/Bugbot/E2E outcomes."                |
 

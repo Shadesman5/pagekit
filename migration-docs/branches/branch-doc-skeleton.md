@@ -63,6 +63,9 @@ _TBD_
 
 ## ✅ Verification (links only)
 
+<!-- Links only. Quality metrics are CI-owned: link the PR sticky quality-report comment and the
+     quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
+
 - CI run: _TBD_
 - Notable deviations: _TBD / None_
 
@@ -90,5 +93,8 @@ _TBD_
 ---
 
 ## 📊 <Step-specific appendix>
+
+<!-- Narrative/structural notes only. Never a metrics table (coverage %, MSI, test counts): quality
+     numbers are CI-owned — link the sticky quality-report comment + dashboard instead. -->
 
 _TBD — remove this section if not applicable._

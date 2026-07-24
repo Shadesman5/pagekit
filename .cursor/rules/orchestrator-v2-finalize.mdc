@@ -102,6 +102,7 @@ Ticket: <ticket path>
 PR: #<n>
 Version: <X.Y.Z>
 CI outcome: <link + status>
+Metrics: link sticky comment/dashboard only (no metric numbers)
 Coverage gap pass: <ran | skipped | reason>
 Bugbot outcome: <clean | findings fixed>
 E2E outcome: <PASS | skipped>

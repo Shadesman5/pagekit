@@ -68,8 +68,8 @@
 - [x] Step 9 (M) — Playwright tags + viewport/browser projects + smoke-config deletion
 - [x] Step 10 (L) — e2e.yml: e2e-smoke (PR) + e2e-merge (push)
 - [x] Step 11 (M) — nightly.yml: guard + infection-full + e2e-viewports
-- [ ] Step 12 (M) — e2e-weekly.yml: gated full sweep (dispatch-first)
-- [ ] Step 13 (S) — Agent/rule slimming: no metric tables, PASS/FAIL-only handoffs
+- [x] Step 12 (M) — e2e-weekly.yml: gated full sweep (dispatch-first)
+- [x] Step 13 (S) — Agent/rule slimming: no metric tables, PASS/FAIL-only handoffs
 
 ## TESTING STRATEGY
 - **Per step (production gate):** Refactorer → Verifier → Tester (PHPUnit + PHPStan) — production code must be green before any new tests are written. Baseline verified green (725 tests OK; PHPStan L8 clean; PHP 8.5.8).
