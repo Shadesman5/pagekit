@@ -91,6 +91,16 @@ Tests: none (test-writer skip — docs-site JS + snapshot JSON + markdown only).
 
 Tests: none (test-writer skip — CI YAML only). Gates: Verifier PASS; Tester PASS — PHPUnit 725 tests / 2057 assertions (5 skipped, exit 0); PHPStan no errors (exit 0).
 
+### frontend.yml — PR gate (Checklist Step 8)
+
+| File | Change |
+|---|---|
+| `.github/workflows/frontend.yml` | New workflow `name: Frontend`. Trigger: `pull_request` → `develop`/`main`; concurrency per ref (cancel-in-progress); `contents: read`. Job `frontend` (required name): checkout `fetch-depth: 0`, pinned `actions/setup-node` (Node 22 + yarn cache), `yarn install --frozen-lockfile`; **blocking** `yarn compile-js --mode=production` + `yarn gulp`; fetch `origin/$GITHUB_BASE_REF`; advisory ESLint + Prettier `--check` on changed `.js`/`.vue` only (`continue-on-error: true`, skip when none). Actions pinned by commit SHA. |
+| `package.json` | Exact pin `prettier@3.9.6` under `devDependencies` (advisory tooling only). |
+| `yarn.lock` | Lockfile entry for `prettier@3.9.6`. |
+
+Tests: none (test-writer skip — CI YAML + package lock only). Gates: Verifier PASS; Tester PASS — PHPUnit 725 tests / 2057 assertions (5 skipped, 2 deprecations); PHPStan no errors.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -103,6 +113,7 @@ Tests: none (test-writer skip — CI YAML only). Gates: Verifier PASS; Tester PA
 - **Live snapshot never touches develop.** Collector is the sole writer to unprotected `quality-data`; publish only when both gate merge runs are green (half-built dashboards avoided). Missing `e2e.yml` / `nightly.yml` resolve null-safe until later checklist steps. Explicit `pages-deploy` dispatch because `GITHUB_TOKEN` pushes do not re-trigger workflows.
 - **Dashboard follows the snapshot, not hardcoded PHP rows.** PHPUnit legs are rendered from whatever keys the collector publishes; non-required legs stay informational (⚪) so the MySQL advisory job never looks like a red required gate. In-repo JSON stays a demo seed until the first post-merge collect overlays `"source": "github-actions"`.
 - **Infection PR gate mutates only the diff, and skips out-of-scope PRs.** `--git-diff-lines` + explicit base fetch keep the run under the small auth/user source scope; an early green exit when no scoped files changed avoids bootstrapping Infection on unrelated PRs. `infection.json.dist` thresholds (80 MSI) unchanged — full-suite Infection stays for Nightly (later checklist step).
+- **Frontend gate: build blocks, lint advises.** Production webpack + gulp must match a release compile; ESLint/Prettier stay `continue-on-error` and diff-scoped because the tree has ~13k pre-existing style violations — a full-tree lint would always be red. Prettier is an exact-pin advisory dep only (formatting policy lands later with Step 2.4).
 
 ---
 
@@ -114,7 +125,7 @@ None (CI / agent-rule rename only; no extension or runtime API change).
 
 ## ⚠️ Risks & Rollout Notes
 
-Collector + sticky report `workflow_run` triggers fire only from the default-branch copy — first live collect/dispatch is post-merge (or manual `workflow_dispatch`). Until E2E lands, the collector skips publish (both gates required). New required context `infection-diff` needs a develop ruleset admin add (Manual Work) — workflow lands green on out-of-scope PRs via the early-exit path.
+Collector + sticky report `workflow_run` triggers fire only from the default-branch copy — first live collect/dispatch is post-merge (or manual `workflow_dispatch`). Until E2E lands, the collector skips publish (both gates required). New required contexts `infection-diff` and `frontend` need a develop ruleset admin add (Manual Work) — Infection lands green on out-of-scope PRs via the early-exit path; Frontend is always a full build on every PR.
 
 ---
 
@@ -133,7 +144,7 @@ Deleted `.github/workflows/php-quality.yml` in the same step as the new `php-tes
 ## ✅ Verification (links only)
 
 - CI run: _TBD_
-- Notable deviations: None (Steps 1–7)
+- Notable deviations: None (Steps 1–8)
 
 ---
 
