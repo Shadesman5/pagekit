@@ -52,6 +52,15 @@ Tests: none (test-writer skip — CI YAML + PHPUnit XML only; MySQL not availabl
 
 Tests: none (test-writer skip — CI script + YAML only). Gates: Verifier PASS; Tester PASS.
 
+### quality-report.yml sticky PR comment scaffold (Checklist Step 4)
+
+| File | Change |
+|---|---|
+| `.github/workflows/quality-report.yml` | New workflow `name: Quality Report`. Triggers: `workflow_run` (`types: [completed]`) on `PHP Tests` / `Infection` / `E2E` / `Frontend` + `workflow_dispatch` (`pr` input). Job `quality-report` proceeds only for `workflow_dispatch` or when `workflow_run.event == 'pull_request'`; concurrency per head SHA/PR; permissions `contents`/`actions`/`checks` read + `pull-requests: write`; checkout pin + `node .github/scripts/quality-report.mjs`. |
+| `.github/scripts/quality-report.mjs` | Zero-dep Node renderer: resolve PR + head SHA, download gate artifacts, query check-runs for conclusions, render fixed markdown table (coverage %, floor, PHPStan, Infection-diff MSI, E2E smoke, CS-Fixer, security, frontend — "pending" when a gate has not reported), upsert one sticky comment via `gh api` keyed on hidden marker `<!-- quality-report -->`. |
+
+Tests: none (test-writer skip — CI YAML + script only). Gates: Verifier PASS; Tester PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -60,6 +69,7 @@ Tests: none (test-writer skip — CI script + YAML only). Gates: Verifier PASS; 
 - **CI watch is PR-wide.** Finalize consumers switched from a single-workflow `gh run list --workflow "PHP Quality"` to `gh pr checks … --watch` so later gates (Infection / E2E / Frontend) are covered without another rename pass.
 - **MySQL is a separate non-blocking job.** `phpunit-mysql` never shares the required `phpunit (8.5)` context; only DbUtil consumers honor the MySQL globals today, so the leg stays advisory until Step 2.9 makes the suite DB-portable.
 - **Version SSoT is PR-only and dep-free.** Drift is a review-time concern (nothing to check on a protected-branch merge); plain PHP avoids a composer install so the job stays a cheap gate.
+- **Sticky report is additive and null-safe.** One comment per PR (marker upsert); Infection / E2E / Frontend are listed now but render "pending" until those workflows land. `workflow_run` only fires from the default branch's copy — `workflow_dispatch` is the post-merge / on-demand validation path for this ticket's PR.
 
 ---
 
@@ -77,7 +87,7 @@ _TBD / None_
 
 ## 🔐 Security & Data Impact
 
-None (permissions, Codecov OIDC, and least-privilege scopes carried over unchanged).
+`quality-report.yml` adds least-privilege scopes for the sticky comment (`pull-requests: write`, `actions`/`checks`/`contents: read`); PHP Tests permissions and Codecov OIDC unchanged.
 
 ---
 
@@ -90,7 +100,7 @@ Deleted `.github/workflows/php-quality.yml` in the same step as the new `php-tes
 ## ✅ Verification (links only)
 
 - CI run: _TBD_
-- Notable deviations: None (Steps 1–3)
+- Notable deviations: None (Steps 1–4)
 
 ---
 

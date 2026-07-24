@@ -60,7 +60,7 @@
 - [x] Step 1 (M) — php-quality.yml → php-tests.yml + PR/merge split + rename consumers
 - [x] Step 2 (M) — MySQL leg: phpunit-mysql.xml.dist + non-blocking service job
 - [x] Step 3 (S) — Version SSoT guard script + job
-- [ ] Step 4 (M) — quality-report.yml sticky PR comment scaffold
+- [x] Step 4 (M) — quality-report.yml sticky PR comment scaffold
 - [ ] Step 5 (L) — quality-collect.yml + quality-data branch + pages-deploy overlay
 - [ ] Step 6 (M) — Dashboard live alignment: 8.5 keys, scope labels, demo banner removal
 - [ ] Step 7 (M) — infection.yml PR diff gate (infection-diff)
