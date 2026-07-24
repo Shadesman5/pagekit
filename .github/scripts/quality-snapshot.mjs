@@ -1,8 +1,8 @@
-// Quality Snapshot — builds the live CI quality snapshot for a protected branch and publishes it to
+// Quality Snapshot — builds the live CI quality snapshot for the develop branch and publishes it to
 // the unprotected `quality-data` branch that the docs site overlays onto the Quality Dashboard.
 //
 // Zero npm dependencies: Node 20 + git + gh, all preinstalled on ubuntu-latest. Invoked by
-// quality-collect.yml after a gate workflow (PHP Tests / E2E) completes a push to a protected branch,
+// quality-collect.yml after a gate workflow (PHP Tests / E2E) completes a push (merge) to develop,
 // or manually via workflow_dispatch.
 //
 // The snapshot blends CI results into ONE coherent branch state:
@@ -17,8 +17,8 @@
 // path-filtered, not yet uploaded, or a 404 workflow) yields no pairing / null metric, keeping the
 // blend null-safe.
 //
-// Writes land on `quality-data` only — never on the protected branch (no Ruleset bypass) — mirroring
-// the conductor-metrics push. GITHUB_TOKEN pushes do not re-trigger workflows, so the collector
+// Writes land on `quality-data` only — never on develop (no Ruleset bypass) — mirroring the
+// conductor-metrics push. GITHUB_TOKEN pushes do not re-trigger workflows, so the collector
 // dispatches pages-deploy explicitly to rebuild the site from the fresh snapshot.
 
 import { execFileSync, execSync } from "node:child_process";
@@ -66,9 +66,8 @@ function main() {
   }
   const { phpRun, e2eRun } = pair;
 
-  // Full-suite Infection MSI comes from the latest successful Nightly ON THIS BRANCH. Scheduled
-  // nightlies run on the default branch; a dispatch can target either protected branch. Scoping by
-  // branch stops a Nightly on some other ref from attaching its MSI to this branch's snapshot (the
+  // Full-suite Infection MSI comes from the latest successful Nightly on the snapshot branch. Scoping
+  // by branch stops a Nightly on some other ref from attaching its MSI to this branch's snapshot (the
   // PHP Tests + E2E gates above are already branch-scoped); the metric stays null until a Nightly has
   // run on this branch.
   const nightlyRun = latestSuccessfulRun(WF_NIGHTLY, { branch: BRANCH });
