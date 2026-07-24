@@ -51,25 +51,49 @@ module.exports = defineConfig({
     },
 
     /*
-     * Browser projects.
+     * Browser x viewport projects, composed from two env switches.
      *
-     * Default (Cursor Cloud Agent, local dev): chromium only.
-     * The cloud-agent VM only ships chromium (see .cursor/Dockerfile) because
-     * firefox/webkit need root for `playwright install-deps`, which is unavailable.
+     * Browsers (PW_BROWSERS): default chromium only — the cloud-agent VM ships
+     * only chromium (see .cursor/Dockerfile) because firefox/webkit need root
+     * for `playwright install-deps`, which is unavailable there. PW_BROWSERS=all
+     * adds firefox + webkit (CI/CD hosts where `npx playwright install
+     * --with-deps` succeeds).
      *
-     * Full cross-browser matrix: set PW_BROWSERS=all (intended for CI/CD
-     * pipelines on hosts where `npx playwright install --with-deps` succeeds).
+     * Viewports (PW_VIEWPORTS): default desktop only. PW_VIEWPORTS=all adds
+     * tablet + mobile legs. Those use explicit viewport overrides only — no
+     * isMobile/hasTouch — because Firefox does not support Playwright's
+     * isMobile, so the sizes stay uniform across every browser engine.
+     *
+     * Project names are `${browser}-${viewport}`; chromium-desktop is always
+     * first so it can act as the required leg while the others stay advisory.
      */
     projects: (() => {
-        const chromium = { name: 'chromium', use: { ...devices['Desktop Chrome'] } };
-        if (process.env.PW_BROWSERS === 'all') {
-            return [
-                chromium,
-                { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-                { name: 'webkit', use: { ...devices['Desktop Safari'] } }
-            ];
+        const browserPresets = {
+            chromium: devices['Desktop Chrome'],
+            firefox: devices['Desktop Firefox'],
+            webkit: devices['Desktop Safari']
+        };
+        const viewportSizes = {
+            tablet: { width: 820, height: 1180 },
+            mobile: { width: 390, height: 844 }
+        };
+
+        const browsers =
+            process.env.PW_BROWSERS === 'all' ? ['chromium', 'firefox', 'webkit'] : ['chromium'];
+        const viewports =
+            process.env.PW_VIEWPORTS === 'all' ? ['desktop', 'tablet', 'mobile'] : ['desktop'];
+
+        const projects = [];
+        for (const browser of browsers) {
+            for (const viewport of viewports) {
+                const use = { ...browserPresets[browser] };
+                if (viewport !== 'desktop') {
+                    use.viewport = viewportSizes[viewport];
+                }
+                projects.push({ name: `${browser}-${viewport}`, use });
+            }
         }
-        return [chromium];
+        return projects;
     })(),
 
     /* Run your local dev server before starting the tests */

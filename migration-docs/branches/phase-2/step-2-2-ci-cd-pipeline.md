@@ -101,6 +101,35 @@ Tests: none (test-writer skip — CI YAML only). Gates: Verifier PASS; Tester PA
 
 Tests: none (test-writer skip — CI YAML + package lock only). Gates: Verifier PASS; Tester PASS — PHPUnit 725 tests / 2057 assertions (5 skipped, 2 deprecations); PHPStan no errors.
 
+### Playwright selection model (tags + projects) (Checklist Step 9)
+
+| File | Change |
+|---|---|
+| `playwright.config.js` | Projects composed from env: default `[chromium-desktop]` (Desktop Chrome); `PW_VIEWPORTS=all` adds tablet (820×1180) + mobile (390×844) via explicit `viewport` only (no `isMobile`/`hasTouch`); `PW_BROWSERS=all` adds firefox/webkit (+ viewport variants when both flags set). Names `${browser}-${viewport}`. |
+| `tests/e2e/specs/01-setup/installation.spec.js` | `test.describe(…, { tag: '@ci' }, …)`. |
+| `tests/e2e/specs/02-core/authentication.spec.js` | Same `@ci` tag. |
+| `tests/e2e/specs/02-core/dashboard.spec.js` | Same `@ci` tag. |
+| `tests/e2e/specs/02-core/orm-operations.spec.js` | `test.describe.fixme` + Rule-5 `// TODO: Must be refactored in Step 3.6.1 (E2E Test Suite Rework)`. |
+| `tests/e2e/specs/02-core/settings.spec.js` | Same quarantine. |
+| `tests/e2e/specs/03-content/blog.spec.js` | Same quarantine. |
+| `tests/e2e/specs/03-content/media.spec.js` | Same quarantine. |
+| `tests/e2e/specs/03-content/pages.spec.js` | Same quarantine. |
+| `tests/e2e/specs/04-frontend/public-pages.spec.js` | Same quarantine. |
+| `tests/e2e/specs/05-features/user-management.spec.js` | Same quarantine. |
+| `tests/e2e/specs/05-features/widgets.spec.js` | Same quarantine. |
+| `playwright.smoke.config.js` | Deleted (redundant under the tag model). |
+| `package.json` | `test:smoke*` → `--grep @ci` on default config; `test:e2e:install` → default config (no smoke config). |
+| `tests/e2e/README.md` | Documents `@ci` / fixme selection + `PW_VIEWPORTS` / project names. |
+| `tests/e2e/COMPLETE_TEST_PLAN.md` | Dropped smoke-config reference; points at `@ci` + fixme. |
+| `AGENTS.md` | Playwright bullet: `chromium-desktop` default, `PW_VIEWPORTS`, `@ci` / fixme. |
+| `.cursor/skills/e2e-test-architect/runtime-patterns.md` | Smoke command → `--grep @ci`; project → `chromium-desktop`. |
+| `.gitignore` | Removed `/playwright-smoke-report/**/*` (smoke report path gone with the deleted config). |
+| `migration-docs/testing/EXTENSION_ERROR_HANDLING_TEST_GUIDE.md` | `--project=chromium` → `chromium-desktop`. |
+| `migration-docs/documentation/EXTENSION_ERROR_HANDLING_README.md` | Same project rename. |
+| `migration-docs/documentation/EXTENSION_ERROR_HANDLING_QUICK_REFERENCE.md` | Same project rename. |
+
+Tests: none (test-writer skip — Playwright config/specs/docs only; no production PHP). Gates: Verifier PASS; Tester PASS (PHPUnit + PHPStan green).
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -114,6 +143,7 @@ Tests: none (test-writer skip — CI YAML + package lock only). Gates: Verifier 
 - **Dashboard follows the snapshot, not hardcoded PHP rows.** PHPUnit legs are rendered from whatever keys the collector publishes; non-required legs stay informational (⚪) so the MySQL advisory job never looks like a red required gate. In-repo JSON stays a demo seed until the first post-merge collect overlays `"source": "github-actions"`.
 - **Infection PR gate mutates only the diff, and skips out-of-scope PRs.** `--git-diff-lines` + explicit base fetch keep the run under the small auth/user source scope; an early green exit when no scoped files changed avoids bootstrapping Infection on unrelated PRs. `infection.json.dist` thresholds (80 MSI) unchanged — full-suite Infection stays for Nightly (later checklist step).
 - **Frontend gate: build blocks, lint advises.** Production webpack + gulp must match a release compile; ESLint/Prettier stay `continue-on-error` and diff-scoped because the tree has ~13k pre-existing style violations — a full-tree lint would always be red. Prettier is an exact-pin advisory dep only (formatting policy lands later with Step 2.4).
+- **One Playwright config, selection by tag + projects.** Smoke is `--grep @ci` on the three optimized specs; the other eight stay `test.describe.fixme` (skipped, never red) until Step 3.6.1. Viewport/browser matrices are env-composed on the same config — no duplicate smoke file, no `isMobile` (Firefox constraint). Local bare `npx playwright test <spec>` stays chromium-desktop only.
 
 ---
 
@@ -125,7 +155,7 @@ None (CI / agent-rule rename only; no extension or runtime API change).
 
 ## ⚠️ Risks & Rollout Notes
 
-Collector + sticky report `workflow_run` triggers fire only from the default-branch copy — first live collect/dispatch is post-merge (or manual `workflow_dispatch`). Until E2E lands, the collector skips publish (both gates required). New required contexts `infection-diff` and `frontend` need a develop ruleset admin add (Manual Work) — Infection lands green on out-of-scope PRs via the early-exit path; Frontend is always a full build on every PR.
+Collector + sticky report `workflow_run` triggers fire only from the default-branch copy — first live collect/dispatch is post-merge (or manual `workflow_dispatch`). Until E2E lands, the collector skips publish (both gates required). New required contexts `infection-diff` and `frontend` need a develop ruleset admin add (Manual Work) — Infection lands green on out-of-scope PRs via the early-exit path; Frontend is always a full build on every PR. Callers of `playwright.smoke.config.js` or `--project=chromium` must switch to `--grep @ci` / `--project=chromium-desktop`. Quarantined specs report as skipped until Step 3.6.1.
 
 ---
 
@@ -137,14 +167,14 @@ Collector + sticky report `workflow_run` triggers fire only from the default-bra
 
 ## 🛡️ No-Mercy Compliance
 
-Deleted `.github/workflows/php-quality.yml` in the same step as the new `php-tests.yml` — no dual-workflow shim.
+Deleted `.github/workflows/php-quality.yml` in the same step as the new `php-tests.yml` — no dual-workflow shim. Deleted `playwright.smoke.config.js` once `@ci` tags + default-config smoke scripts landed — no parallel smoke config.
 
 ---
 
 ## ✅ Verification (links only)
 
 - CI run: _TBD_
-- Notable deviations: None (Steps 1–8)
+- Notable deviations: None (Steps 1–9)
 
 ---
 

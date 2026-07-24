@@ -20,11 +20,11 @@ npx playwright test tests/e2e/specs/02-core/authentication.spec.js
 # Specific test by name
 npx playwright test -g "Admin login"
 
-# Smoke tests only
-npx playwright test --config=playwright.smoke.config.js
+# Smoke tests only (the @ci-tagged specs)
+npx playwright test --grep @ci
 
-# Single browser
-npx playwright test --project=chromium
+# Single project (default is chromium-desktop)
+npx playwright test --project=chromium-desktop
 ```
 
 ### Docker Environment

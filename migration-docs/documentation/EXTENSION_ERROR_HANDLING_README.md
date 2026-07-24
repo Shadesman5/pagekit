@@ -107,7 +107,7 @@ rm -f config.php pagekit.db
 php pagekit start -s localhost:8080 --no-ansi
 
 # 2. Installation via E2E Test
-npx playwright test --project=chromium tests/e2e/specs/01-setup/installation.spec.js
+npx playwright test --project=chromium-desktop tests/e2e/specs/01-setup/installation.spec.js
 
 # 3. Logs überprüfen
 tail -f tmp/logs/debug.log | grep "Failed to enable"

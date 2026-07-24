@@ -16,7 +16,7 @@ const waitConfig = testConfig.getWaitConfig();
 const WAIT_ANIMATION = waitConfig.animation; // Full UI animation (default 500ms)
 const WAIT_INSTALLER_STEP = WAIT_ANIMATION * 2; // Installer step transitions (default ~1000ms)
 
-test.describe('Pagekit Installation Process', () => {
+test.describe('Pagekit Installation Process', { tag: '@ci' }, () => {
   test.beforeAll(async () => {
     // Start test timer
     testConfig.startTestTimer();

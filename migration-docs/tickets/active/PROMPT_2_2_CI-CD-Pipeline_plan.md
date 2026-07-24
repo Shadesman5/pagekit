@@ -65,7 +65,7 @@
 - [x] Step 6 (M) — Dashboard live alignment: 8.5 keys, scope labels, demo banner removal
 - [x] Step 7 (M) — infection.yml PR diff gate (infection-diff)
 - [x] Step 8 (M) — frontend.yml: blocking build + advisory diff-scoped lint
-- [ ] Step 9 (M) — Playwright tags + viewport/browser projects + smoke-config deletion
+- [x] Step 9 (M) — Playwright tags + viewport/browser projects + smoke-config deletion
 - [ ] Step 10 (L) — e2e.yml: e2e-smoke (PR) + e2e-merge (push)
 - [ ] Step 11 (M) — nightly.yml: guard + infection-full + e2e-viewports
 - [ ] Step 12 (M) — e2e-weekly.yml: gated full sweep (dispatch-first)

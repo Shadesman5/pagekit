@@ -14,7 +14,7 @@ const waitConfig = testConfig.getWaitConfig();
 const WAIT_ANIMATION = waitConfig.animation; // Full UI animation (default 500ms)
 const WAIT_TRANSITION = Math.round(WAIT_ANIMATION * 0.6); // Short transitions (default ~300ms)
 
-test.describe('Pagekit Authentication (Optimized)', () => {
+test.describe('Pagekit Authentication (Optimized)', { tag: '@ci' }, () => {
   test.beforeAll(async () => {
     // Setup common test environment (connectivity, timer)
     testConfig.startTestTimer();
