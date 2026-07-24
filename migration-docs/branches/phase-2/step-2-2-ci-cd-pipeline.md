@@ -6,16 +6,16 @@
 **Branch:** `feature/cicd-pipeline`
 **ROADMAP Step:** 2.2 (CI/CD Pipeline)
 **GitHub Issue:** [#157](https://github.com/Shadesman5/pagekit/issues/157)
-**Pull Request:** _TBD_
-**Status:** 🚧 In progress
+**Pull Request:** [#240](https://github.com/Shadesman5/pagekit/pull/240)
+**Status:** ✅ Complete
 **Started:** 2026-07-24 11:20
-**Completed:** _TBD_
+**Completed:** 2026-07-24 14:58
 
 ---
 
 ## 🎯 Overview
 
-_TBD_
+Replaces the single PHP Quality workflow with a full PR/merge CI surface: **PHP Tests** (rename + PR/merge split, advisory MySQL leg, version SSoT), plus Infection-diff, Frontend build, and E2E `@ci` smoke; Nightly (full Infection + viewport matrix) and dispatch-first E2E Weekly; sticky quality-report comments and live `quality-data` snapshot collection for the docs-site dashboard (8.5 keys). Playwright selection is tags + env-composed projects (`playwright.smoke.config.js` deleted). Agent/branch-doc handoffs stay PASS/FAIL-only — metrics live in the sticky comment and dashboard.
 
 ---
 
@@ -168,6 +168,13 @@ Tests: none (test-writer skip — CI YAML only). Gates: Verifier PASS; Tester PA
 
 Tests: none (test-writer skip — agent rules / skeleton only). Gates: Verifier PASS; Tester (PHPUnit + PHPStan) PASS; Tester (final E2E) PASS.
 
+### Finalize Bugbot fix-loop
+
+| File | Change |
+|---|---|
+| `.github/scripts/quality-snapshot.mjs` | Pair PHP Tests + E2E merge runs by `head_sha` (avoids blending unrelated CI runs). Nightly Infection MSI lookup scoped to the collected branch. |
+| `.github/workflows/quality-collect.yml` | Collect scoped to `develop` only (`SNAPSHOT_BRANCH: develop`) so a main merge cannot overwrite the develop dashboard snapshot; checkout + queried runs stay aligned. |
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -215,14 +222,29 @@ Deleted `.github/workflows/php-quality.yml` in the same step as the new `php-tes
 
 ## ✅ Verification (links only)
 
-- CI run: _TBD_
-- Notable deviations: None (Steps 1–13)
+| Gate | Result |
+|---|---|
+| CI — PR checks | ✅ all required green — [PR #240 checks](https://github.com/Shadesman5/pagekit/pull/240/checks) (`phpunit (8.5)`, `phpstan`, `cs-fixer`, `security-audit`, `infection-diff`, `e2e-smoke`, `frontend`; also `version-ssot`, `phpunit-mysql`) |
+| Coverage gap pass | skipped — ticket `## TESTING STRATEGY` marks `test-writer: skip` on all steps (no production PHP under `app/` / `packages/`) |
+| Cursor Bugbot | ✅ findings fixed — final review on HEAD: no new issues |
+| E2E | ✅ PASS |
+| Finalize fix-loop | Bugbot ×4 (resolved) — see below |
+
+**CI run:** https://github.com/Shadesman5/pagekit/pull/240/checks
+
+**Metrics (CI-owned):** [PR #240](https://github.com/Shadesman5/pagekit/pull/240) sticky quality-report comment (posts after merge / `workflow_dispatch`) · [Quality Dashboard](https://Shadesman5.github.io/pagekit/quality/)
+
+**Notable deviations:** None (Steps 1–13). Finalize Bugbot findings (all resolved before final clean review):
+1. Snapshot mixes unrelated CI runs — `quality-snapshot.mjs` now pairs PHP Tests + E2E by `head_sha`.
+2. Nightly MSI wrong branch — Nightly Infection MSI lookup scoped to collected branch.
+3. Main merge overwrites develop snapshot — `quality-collect` scoped to develop only.
+4. Wrong SSoT branch for main — `SNAPSHOT_BRANCH: develop` aligns checkout + queried runs.
 
 ---
 
 ## 📋 Phase 1 Audit Closure
 
-_TBD_
+None
 
 ---
 
@@ -232,18 +254,25 @@ _TBD_
 
 - **Step 2.9 (Phase 2 Closeout)** — Make the PHPUnit suite DB-portable: most DB tests hardcode in-memory-SQLite connections instead of honoring the `$GLOBALS['db_*']` parameters that `DbUtil::getConnection()` already supports — route them through the shared helper so the whole suite genuinely runs against MySQL, then flip the non-blocking `phpunit-mysql` CI leg to a required gate (drop its `continue-on-error`). Why: a MySQL gate that exercises only a handful of tests gives false cross-DB confidence. *(PHASE §2.9 amended)*
 - **Step 3.6.1 (E2E Test Suite Rework)** — Lift the CI quarantine as each spec is reworked: remove its `test.describe.fixme` marker and tag it `@ci` so the tag-driven pipelines (PR smoke, merge, nightly) pick it up automatically — spec selection is tags + Playwright projects, never per-pipeline spec copies. Make the `@ci` specs viewport-robust (tablet/mobile Playwright projects), so the nightly viewport legs and the weekly cross-browser sweep can drop their non-blocking `continue-on-error` status. Why: desktop-only specs leave responsive admin/frontend regressions invisible. *(PHASE §3.6.1 amended)*
+- **Step 2.3 (Docker)** / **Step 2.4 (Build tools)** — production images; pnpm + Vite, ESLint 9 flat config, final formatting policy (Prettier stays advisory until then).
+- **Non-goals:** release automation hooks; any 8.2/8.3/8.4 CI leg; Codecov made blocking.
+- **Bridges:** None.
+- **Manual Work (maintainer):** (1) Ruleset "Protect for Develop-Branch" — add required contexts `infection-diff`, `e2e-smoke`, `frontend`; (2) set `E2E_WEEKLY_ENABLED=true` when ready; (3) record first Nightly tablet/mobile failures; (4) un-quarantine fixme specs under 3.6.1; (5) watch advisory MySQL leg until 2.9; (6) `workflow_dispatch` Nightly + E2E Weekly once post-merge if not already proven.
 
 ---
 
 ## 📎 Related Documents
 
-- Ticket: `migration-docs/tickets/active/PROMPT_2_2_CI-CD-Pipeline_plan.md` (_TBD_ → move to `done/` after Finalize)
+- Ticket: `migration-docs/tickets/done/PROMPT_2_2_CI-CD-Pipeline_plan.md` (archive after Finalize)
 - Task prompt: `migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_2_CI-CD-Pipeline.md`
 - Predecessor: Step 2.1.14 — PHP Version Upgrade (8.2 → 8.5)
 - Successor: Step 2.3 — Docker
 
 ---
 
-## 📊 <Step-specific appendix>
+## 📊 Quality metrics (links only)
 
-_TBD — remove this section if not applicable._
+Numbers are CI-owned — do not paste coverage % / MSI / counts here.
+
+- PR sticky comment: https://github.com/Shadesman5/pagekit/pull/240 (marker `<!-- quality-report -->`; live after default-branch `workflow_run` / dispatch)
+- Dashboard: https://Shadesman5.github.io/pagekit/quality/
