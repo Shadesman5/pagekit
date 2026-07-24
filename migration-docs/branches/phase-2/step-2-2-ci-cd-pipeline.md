@@ -43,6 +43,15 @@ Tests: none (test-writer skip — CI YAML + rules/docs only). Gates: Verifier PA
 
 Tests: none (test-writer skip — CI YAML + PHPUnit XML only; MySQL not available in VM). Gates: Verifier PASS; Tester PASS.
 
+### Version SSoT guard (Checklist Step 3)
+
+| File | Change |
+|---|---|
+| `.github/scripts/check-version-ssot.php` | New plain-PHP guard (no vendor): extracts MAJOR.MINOR from `composer.json` (`require.php` + `config.platform.php`), `php-tests.yml` matrix, `app/installer/requirements.php` `REQUIRED_PHP_VERSION`, `.cursor/Dockerfile` + root `Dockerfile` base images, `README.md` PHP badge; exit 0 when all agree, non-zero + named offender on drift/unreadable. |
+| `.github/workflows/php-tests.yml` | New PR-only job `version-ssot` (checkout + setup-php 8.5 `tools: none`, no composer install) runs the script. |
+
+Tests: none (test-writer skip — CI script + YAML only). Gates: Verifier PASS; Tester PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -50,6 +59,7 @@ Tests: none (test-writer skip — CI YAML + PHPUnit XML only; MySQL not availabl
 - **Required checks stay job-name-bound.** Workflow file/`name:` changed to PHP Tests; job `name:` values left byte-identical so the develop ruleset contexts (`phpunit (8.5)`, `phpstan`, `cs-fixer`, `security-audit`) do not orphan.
 - **CI watch is PR-wide.** Finalize consumers switched from a single-workflow `gh run list --workflow "PHP Quality"` to `gh pr checks … --watch` so later gates (Infection / E2E / Frontend) are covered without another rename pass.
 - **MySQL is a separate non-blocking job.** `phpunit-mysql` never shares the required `phpunit (8.5)` context; only DbUtil consumers honor the MySQL globals today, so the leg stays advisory until Step 2.9 makes the suite DB-portable.
+- **Version SSoT is PR-only and dep-free.** Drift is a review-time concern (nothing to check on a protected-branch merge); plain PHP avoids a composer install so the job stays a cheap gate.
 
 ---
 
@@ -80,7 +90,7 @@ Deleted `.github/workflows/php-quality.yml` in the same step as the new `php-tes
 ## ✅ Verification (links only)
 
 - CI run: _TBD_
-- Notable deviations: None (Steps 1–2)
+- Notable deviations: None (Steps 1–3)
 
 ---
 

@@ -292,3 +292,26 @@ jobs:
 
       - name: Run Composer security audit
         run: composer audit --locked --no-interaction --abandoned=ignore
+
+  # Lightweight guard: asserts the supported PHP minor version is identical across
+  # composer.json, this workflow matrix, the installer requirement, both Docker base
+  # images and the README badge. Plain PHP, no composer install (tools: none) — a
+  # drifted source fails the job and names the offender. PR-only: it guards changes
+  # under review and has nothing to check on a merge to a protected branch.
+  version-ssot:
+    name: version-ssot
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Setup PHP 8.5
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: none
+
+      - name: Check PHP version single source of truth
+        run: php .github/scripts/check-version-ssot.php
