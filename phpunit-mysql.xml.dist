@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    MySQL variant of phpunit.xml.dist. Identical suite/source/gate configuration,
+    plus a <php><var> block that populates the $GLOBALS entries DbUtil reads to open
+    a REAL database connection instead of the in-memory SQLite fallback. Only the
+    DbTestCase/DbUtil consumers (ConfigManagerTest, EntityManagerTest) honor these
+    globals; the rest of the suite still runs on SQLite, so this config exercises the
+    DbUtil paths against MySQL rather than making the whole suite DB-portable.
+
+    Deprecation/notice gates (failOnDeprecation, failOnPhpunitDeprecation,
+    failOnNotice) are pinned to "false": a few pre-existing PHPUnit-internal
+    deprecations and notices are still emitted, and failing on them would not
+    protect anything in the asserted test bodies. They are the last gates left to
+    flip — the residual noise is cleared and all three set to "true" in the Phase 2
+    closeout (ROADMAP Step 2.9).
+
+    The test-hygiene gates (failOnWarning, failOnPhpunitWarning, failOnRisky) are
+    "true": the suite is warning-clean and every test asserts, so warnings and
+    risky-test markers fail the run.
+
+    SYMFONY_DEPRECATIONS_HELPER=disabled: symfony/phpunit-bridge auto-registers a
+    shutdown handler that exit(1)s on "not tolerated" PHP deprecations. Disabling
+    it leaves the failOn* settings above as the sole arbiter of exit codes (revisit
+    together with the deprecation gates).
+
+    noNamespaceSchemaLocation points at the schema vendored with the installed
+    PHPUnit (11.5), not the remote "11.0" URL: the failOnPhpunitDeprecation /
+    failOnPhpunitWarning attributes were added after 11.0 and the remote 11.0 XSD
+    rejects them. PHPUnit ignores this attribute at runtime, but Infection resolves
+    and enforces it when validating the config it generates per mutant, so the
+    local, version-matched path keeps that green.
+
+    executionOrder="default" pins tests to declaration order so Infection's initial
+    coverage run — and thus the set of reported escaped mutants — stays
+    deterministic (Infection randomizes the order only when this is unset).
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="app/vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="app/vendor/autoload.php"
+         colors="true"
+         cacheDirectory=".phpunit.cache"
+         executionOrder="default"
+         testdox="true"
+         failOnWarning="true"
+         failOnDeprecation="false"
+         failOnPhpunitDeprecation="false"
+         failOnPhpunitWarning="true"
+         failOnNotice="false"
+         failOnRisky="true"
+>
+    <testsuites>
+        <testsuite name="Pagekit Test Suite">
+            <directory>app/modules/*/src/Tests</directory>
+            <directory>app/system/modules/*/src/Tests</directory>
+            <directory>tests/Unit</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory suffix=".php">app/modules</directory>
+            <directory suffix=".php">app/system</directory>
+            <directory suffix=".php">app/console</directory>
+        </include>
+        <exclude>
+            <directory>app/modules/*/src/Tests</directory>
+            <directory>app/system/modules/*/src/Tests</directory>
+            <directory>app/vendor</directory>
+            <!-- No meaningful unit-test surface (align with codecov.yml ignore) -->
+            <file>app/system/config.php</file>
+            <file>index.php</file>
+        </exclude>
+    </source>
+
+    <php>
+        <env name="APP_ENV" value="test"/>
+        <env name="APP_DEBUG" value="1"/>
+        <env name="SYMFONY_DEPRECATIONS_HELPER" value="disabled"/>
+
+        <!--
+            DbUtil reads these $GLOBALS entries to open a real MySQL connection: db_*
+            is the disposable test database (dropped + recreated per connection) and
+            tmpdb_* is the maintenance connection that performs that DROP/CREATE.
+            tmpdb_name points at the always-present "mysql" system database because the
+            test database does not exist until DbUtil creates it. Credentials match the
+            root account of the mysql service in the phpunit-mysql CI job.
+        -->
+        <var name="db_type" value="pdo_mysql"/>
+        <var name="db_username" value="root"/>
+        <var name="db_password" value="root"/>
+        <var name="db_host" value="127.0.0.1"/>
+        <var name="db_name" value="pagekit_test"/>
+        <var name="db_port" value="3306"/>
+        <var name="tmpdb_type" value="pdo_mysql"/>
+        <var name="tmpdb_username" value="root"/>
+        <var name="tmpdb_password" value="root"/>
+        <var name="tmpdb_host" value="127.0.0.1"/>
+        <var name="tmpdb_name" value="mysql"/>
+        <var name="tmpdb_port" value="3306"/>
+    </php>
+</phpunit>

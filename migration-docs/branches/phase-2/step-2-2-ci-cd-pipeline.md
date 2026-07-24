@@ -34,12 +34,22 @@ _TBD_
 
 Tests: none (test-writer skip — CI YAML + rules/docs only). Gates: Verifier PASS; Tester PASS.
 
+### MySQL leg (non-blocking) (Checklist Step 2)
+
+| File | Change |
+|---|---|
+| `phpunit-mysql.xml.dist` | New PHPUnit config: duplicate of `phpunit.xml.dist` plus `<php><var>` block with all 12 `db_*`/`tmpdb_*` globals (`pdo_mysql`, host `127.0.0.1`, port `3306`, db `pagekit_test`, tmpdb `mysql`, root/root). |
+| `.github/workflows/php-tests.yml` | New job `phpunit-mysql` (PR + push): `mysql:8.4` service + `mysqladmin ping` healthcheck, PHP 8.5 + `pdo_mysql`, composer cache/install, `./app/vendor/bin/phpunit -c phpunit-mysql.xml.dist` (no coverage). `continue-on-error: true` + Rule-5 `# TODO: Must be refactored in Step 2.9 (Phase 2 Closeout) — flip to required once the suite is DB-portable`. Required `phpunit (8.5)` job untouched. |
+
+Tests: none (test-writer skip — CI YAML + PHPUnit XML only; MySQL not available in VM). Gates: Verifier PASS; Tester PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
 
 - **Required checks stay job-name-bound.** Workflow file/`name:` changed to PHP Tests; job `name:` values left byte-identical so the develop ruleset contexts (`phpunit (8.5)`, `phpstan`, `cs-fixer`, `security-audit`) do not orphan.
 - **CI watch is PR-wide.** Finalize consumers switched from a single-workflow `gh run list --workflow "PHP Quality"` to `gh pr checks … --watch` so later gates (Infection / E2E / Frontend) are covered without another rename pass.
+- **MySQL is a separate non-blocking job.** `phpunit-mysql` never shares the required `phpunit (8.5)` context; only DbUtil consumers honor the MySQL globals today, so the leg stays advisory until Step 2.9 makes the suite DB-portable.
 
 ---
 
@@ -70,7 +80,7 @@ Deleted `.github/workflows/php-quality.yml` in the same step as the new `php-tes
 ## ✅ Verification (links only)
 
 - CI run: _TBD_
-- Notable deviations: None (Step 1)
+- Notable deviations: None (Steps 1–2)
 
 ---
 
