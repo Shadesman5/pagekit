@@ -150,7 +150,7 @@ jobs:
   # leg genuinely exercises the DbUtil paths on MySQL without being a full portability
   # gate. It is deliberately NOT the required "phpunit (8.5)" context: kept advisory
   # via continue-on-error so a MySQL-only failure never blocks a merge.
-  # TODO: Must be refactored in Step 2.9 (Phase 2 Closeout) — flip to required once the suite is DB-portable
+  # TODO: Must be refactored in Step 2.10 (Phase 2 Closeout) — flip to required once the suite is DB-portable
   phpunit-mysql:
     name: phpunit-mysql
     runs-on: ubuntu-latest

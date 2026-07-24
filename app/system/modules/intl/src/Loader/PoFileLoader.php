@@ -105,7 +105,7 @@ class PoFileLoader extends ArrayLoader
                     $item = $defaults;
                 } elseif (substr($line, 0, 7) === 'msgid "') {
                     // We start a new msg so save previous
-                    // TODO: Must be refactored in Step 3.4.6 (Translation System Modernization) — this
+                    // TODO: Must be refactored in Step 3.3.6 (Translation System Modernization) — this
                     // hand-rolled PO parser ignores `msgctxt` contexts (same msgid in different contexts
                     // collide) and has limited comment support (see class docblock). Replace this fork
                     // with Symfony\Component\Translation\Loader\PoFileLoader once the transChoice→ICU
