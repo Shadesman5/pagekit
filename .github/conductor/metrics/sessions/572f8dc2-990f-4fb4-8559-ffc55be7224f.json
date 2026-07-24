@@ -9,21 +9,38 @@
   "branch": "feature/docker-developer-experience",
   "model": "grok-4.5",
   "status": "in_progress",
-  "startedAt": "2026-07-24T20:32:45.182Z",
-  "completedAt": null,
+  "startedAt": "2026-07-24T20:32:51.843Z",
+  "completedAt": "2026-07-24T20:59:53.369Z",
   "phases": [
     {
       "phaseKey": "30124454914-1-PLAN",
       "type": "PLAN",
       "attempt": 0,
       "batchSteps": null,
-      "startedAt": "2026-07-24T20:32:50.340Z",
-      "durationMs": 1636091,
+      "startedAt": "2026-07-24T20:32:51.843Z",
+      "durationMs": 1607098,
       "agent": {
         "id": "bc-b561001f-92c2-41af-af96-73db71382a4f",
         "runId": "run-19d7e0e9-cd8b-453b-af3e-6a5017d70ea1",
         "url": "https://cursor.com/agents/bc-b561001f-92c2-41af-af96-73db71382a4f",
-        "model": "grok-4.5"
+        "model": "grok-4.5",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-19d7e0e9-cd8b-453b-af3e-6a5017d70ea1",
+            "index": 1,
+            "startedAt": "2026-07-24T20:32:51.843Z",
+            "completedAt": "2026-07-24T20:59:53.369Z",
+            "durationMs": 1607098,
+            "tokens": {
+              "input": 37711,
+              "output": 107768,
+              "cacheRead": 5773133,
+              "cacheWrite": 521596,
+              "total": 6440208
+            }
+          }
+        ]
       },
       "github": {
         "runId": 30124454914,
@@ -41,7 +58,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "Plan ready: migration-docs/tickets/active/PROMPT_2_3_Docker-Dev-Experience_plan.md",
-      "outcome": "success"
+      "outcome": "success",
+      "completedAt": "2026-07-24T20:59:53.369Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -52,7 +71,7 @@
       "cacheWrite": 521596,
       "total": 6440208
     },
-    "durationMs": 1636091,
+    "durationMs": 1607098,
     "phaseCount": 1,
     "escalations": 0,
     "ghaJobs": 1,
