@@ -62,7 +62,7 @@
 - [x] Step 3 (S) — Version SSoT guard script + job
 - [x] Step 4 (M) — quality-report.yml sticky PR comment scaffold
 - [x] Step 5 (L) — quality-collect.yml + quality-data branch + pages-deploy overlay
-- [ ] Step 6 (M) — Dashboard live alignment: 8.5 keys, scope labels, demo banner removal
+- [x] Step 6 (M) — Dashboard live alignment: 8.5 keys, scope labels, demo banner removal
 - [ ] Step 7 (M) — infection.yml PR diff gate (infection-diff)
 - [ ] Step 8 (M) — frontend.yml: blocking build + advisory diff-scoped lint
 - [ ] Step 9 (M) — Playwright tags + viewport/browser projects + smoke-config deletion

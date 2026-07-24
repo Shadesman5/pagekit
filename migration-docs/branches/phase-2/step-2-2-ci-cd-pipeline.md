@@ -71,6 +71,18 @@ Tests: none (test-writer skip — CI YAML + script only). Gates: Verifier PASS; 
 
 Tests: none (test-writer skip — CI YAML + script only). Gates: Verifier PASS; Tester PASS.
 
+### Dashboard live alignment (8.5 keys) (Checklist Step 6)
+
+| File | Change |
+|---|---|
+| `docs-site/content/javascripts/quality-dashboard.js` | PHPUnit rows built dynamically from snapshot `phpunit` keys (`"<php>-<db>"`); non-required legs render ⚪ + conclusion; coverage label drops PHP-version suffix; E2E row uses `scope` label; demo meta copy → "awaiting the first live collection run". |
+| `docs-site/data/quality-snapshot.demo.json` | Schema-v2 seed: `"8.5-sqlite"` / `"8.5-mysql"` (`required: false`) + `e2e.scope: "smoke"` (counts refreshed to current suite size). |
+| `.github/quality/quality-snapshot.json` | Same seed shape as the demo file (in-repo seed until `quality-data` overlays). |
+| `docs-site/content/quality/index.md` | Removed "Demo data" admonition; data-source table → live snapshot on `quality-data`, collector on merge, pages-deploy overlay. |
+| `.github/quality/README.md` | Schema example → 8.5 keys + `scope`/`required`; Status → live collection wired, in-repo file is seed only. |
+
+Tests: none (test-writer skip — docs-site JS + snapshot JSON + markdown only). Gates: Verifier PASS; Tester PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -81,6 +93,7 @@ Tests: none (test-writer skip — CI YAML + script only). Gates: Verifier PASS; 
 - **Version SSoT is PR-only and dep-free.** Drift is a review-time concern (nothing to check on a protected-branch merge); plain PHP avoids a composer install so the job stays a cheap gate.
 - **Sticky report is additive and null-safe.** One comment per PR (marker upsert); Infection / E2E / Frontend are listed now but render "pending" until those workflows land. `workflow_run` only fires from the default branch's copy — `workflow_dispatch` is the post-merge / on-demand validation path for this ticket's PR.
 - **Live snapshot never touches develop.** Collector is the sole writer to unprotected `quality-data`; publish only when both gate merge runs are green (half-built dashboards avoided). Missing `e2e.yml` / `nightly.yml` resolve null-safe until later checklist steps. Explicit `pages-deploy` dispatch because `GITHUB_TOKEN` pushes do not re-trigger workflows.
+- **Dashboard follows the snapshot, not hardcoded PHP rows.** PHPUnit legs are rendered from whatever keys the collector publishes; non-required legs stay informational (⚪) so the MySQL advisory job never looks like a red required gate. In-repo JSON stays a demo seed until the first post-merge collect overlays `"source": "github-actions"`.
 
 ---
 
@@ -111,7 +124,7 @@ Deleted `.github/workflows/php-quality.yml` in the same step as the new `php-tes
 ## ✅ Verification (links only)
 
 - CI run: _TBD_
-- Notable deviations: None (Steps 1–5)
+- Notable deviations: None (Steps 1–6)
 
 ---
 
