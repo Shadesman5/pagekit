@@ -65,6 +65,14 @@ Tests: none (test-writer: skip — compose YAML, env template and shell scripts 
 
 Tests: none (test-writer: skip — E2E Docker path retirement and doc/prompt scrubs only, no production PHP under `app/`/`packages/`). Gates: Verifier PASS; Tester — PHPUnit PASS, PHPStan PASS. Tester also ran the ticket's extra Step-4 checks (`python3` JSON-parse of `test-config.example.json`; `rg --hidden` allow-list scan for `docker-compose.e2e|e2e-start|e2e-stop|e2e-reset`) — both run without a Docker CLI, so neither falls to Manual Work this step.
 
+### php.ini + `.env.example` hygiene — drop removed opcache directive (Checklist Step 5)
+
+| File | Change |
+|---|---|
+| `docker/php/php.ini` | Deleted `opcache.fast_shutdown = 1` (directive removed in PHP 7.2; dead since). Replaced the single-line header with a 3-line comment stating what the file is (dev Docker stack `php.ini`), how it's wired (mounted into the `web` service by `docker-compose.yml`), and why the remaining values are generous (dev-only — covers the already-present `display_errors = On` and the `memory_limit`/upload-size settings). `.env.example` re-checked against the checklist's dev-only-header + four-var requirement — already compliant from Checklist Step 3, so no drift and no changes needed there. |
+
+Tests: none (test-writer: skip — ini file only, no production PHP under `app/`/`packages/`). Gates: Verifier PASS; Tester — PHPUnit PASS, PHPStan PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
