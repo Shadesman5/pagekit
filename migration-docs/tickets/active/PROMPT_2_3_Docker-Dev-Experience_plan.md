@@ -40,7 +40,7 @@
      (same numbers + short titles). Size hint per step: S = small/atomic, M = medium,
      L = large or loop-risk. A step orchestrator flips its box to [x] in the SAME commit as that
      step's code + tests (after full step PASS incl. test-writer when applicable) -->
-- [ ] Step 1 (M) — Dockerfile reconciliation: capability-set extensions, apt prune, drop baked-code layers
+- [x] Step 1 (M) — Dockerfile reconciliation: capability-set extensions, apt prune, drop baked-code layers
 - [ ] Step 2 (S) — .dockerignore: exclude docs/tests/CI/agent config + report artefacts + local install files
 - [ ] Step 3 (L) — Dev compose + .env wiring + setup scripts + DB-init deletion (one functional unit)
 - [ ] Step 4 (M) — E2E Docker path retirement: compose + scripts deleted, live docs scrubbed, port realigned

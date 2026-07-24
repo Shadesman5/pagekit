@@ -21,19 +21,20 @@ _TBD_
 
 ## ✅ What Changed
 
-### <Theme> (Checklist Steps N–M)
+### Dockerfile reconciliation — capability-set extensions, apt prune, drop baked-code layers (Checklist Step 1)
 
 | File | Change |
 |---|---|
-| `path/to/file.php` | _TBD_ |
- 
-_TBD_
+| `Dockerfile` | Apt install pruned to justified-only, one-line why comment on every entry: kept `git`, `curl`, `unzip`, `libpng-dev`, `libjpeg62-turbo-dev`, `libfreetype6-dev`, `libzip-dev`; dropped `libmcrypt-dev`, `libxml2-dev`, `libonig-dev`, `libgd-dev`, `zip` (CLI, no consumer). `docker-php-ext-install` cut from 12 entries to the capability set `pdo_mysql`, `gd`, `zip` (base image already bundles `pdo`, `pdo_sqlite`, `sqlite3`, `mbstring`, `xml`, `dom`, `xmlwriter`, `simplexml`); `docker-php-ext-configure gd --with-freetype --with-jpeg` kept. Deleted the baked-code layers (`COPY . /var/www/html`, `chown`/`chmod`, `composer install --no-dev --optimize-autoloader`) — dev stack now relies on the compose bind-mount + in-container `composer install`. `FROM php:8.5-apache`, Composer binary `COPY`, `a2enmod rewrite`, vhost block, `WORKDIR`, `EXPOSE 80`, `CMD` unchanged. |
+| `.cursor/Dockerfile` | Same capability-set trim on `docker-php-ext-install`: `pdo_mysql`, `gd`, `zip` (dropped `pdo`, `pdo_sqlite`, `mbstring`, `exif`, `pcntl`, `bcmath` — bundled or unused); PCOV install block untouched. Apt list drops `libxml2-dev`, `libonig-dev`, and `libgd-dev` (consistency fix — see Key Decisions), with one-line why comments added to every remaining entry; `sqlite3`/`libsqlite3-dev` and all agent tooling (git/sudo/curl/wget, Node toolchain, editors, `default-mysql-client`, `ripgrep`/`jq`, GitHub CLI) untouched. `FROM php:8.5-cli` unchanged. |
+
+Tests: none (test-writer: skip — Dockerfiles only, no production PHP under `app/`/`packages/`). Gates: Verifier FAIL → refactorer retry → FAIL → retry → PASS (see Key Decisions); Tester — PHPUnit PASS, PHPStan PASS. hadolint + `php -m` fell through to Manual Work per the ticket's Manual Work list (item 2).
 
 ---
 
 ## 🧠 Key Decisions (Rationale)
 
-_TBD / None_
+- **`.cursor/Dockerfile` also drops `libgd-dev` (Checklist Step 1).** The ticket's checklist text named only `libxml2-dev` + `libonig-dev` for this file's apt prune. The Verifier's first FAIL caught `libgd-dev` left in with no justification comment; the Refactorer's first retry added comments elsewhere but left `libgd-dev` uncommented pending Architect input, since the checklist hadn't named it here. The Verifier's second FAIL applied the root `Dockerfile`'s own decision-1 rationale — PHP's `gd` extension builds from its bundled `libgd` source, not the system package — noting it holds identically for the agent image; the Refactorer's second retry dropped the package, and the Verifier passed. No Architect escalation was needed since the existing rationale covered it.
 
 ---
 
@@ -45,7 +46,7 @@ _TBD_
 
 ## ⚠️ Risks & Rollout Notes
 
-_TBD / None_
+- **Root `Dockerfile` no longer bakes app code (Checklist Step 1).** `COPY . /var/www/html`, the `chown`/`chmod` layer, and `composer install --no-dev --optimize-autoloader` are gone — the image alone now builds to just PHP 8.5 + Apache + extensions + Composer binary. Building/running it standalone (`docker build` / `docker run`, no compose) leaves `/var/www/html` empty; the documented dev flow (`docker compose up`) is unaffected because its bind mount already covers the same path. Production baking returns with the separate image in Step 2.5.
 
 ---
 
@@ -57,7 +58,7 @@ _TBD / None_
 
 ## 🛡️ No-Mercy Compliance
 
-_TBD_
+- **Rule 4 (Delete over wrap) — Checklist Step 1:** baked-code layers (`COPY . /var/www/html`, `chown`/`chmod`, `composer install --no-dev`) removed outright rather than gated behind a build arg or left commented out; unused apt libs (`libmcrypt-dev`, `libxml2-dev`, `libonig-dev`, `libgd-dev`, `zip` CLI) and PHP extensions (`pdo`, `pdo_sqlite`, `mbstring`, `exif`, `pcntl`, `bcmath` — all bundled by the base image or unused by Pagekit) dropped rather than kept "just in case."
 
 ---
 

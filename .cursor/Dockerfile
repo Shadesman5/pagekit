@@ -2,27 +2,35 @@ FROM php:8.5-cli
 
 # Install system dependencies and development tools
 RUN apt-get update && apt-get install -y \
+    # Base agent shell tooling: git/VCS access, privilege escalation, downloads
     git \
     sudo \
     curl \
     wget \
+    # libpng-dev: PNG support for the gd build
     libpng-dev \
-    libonig-dev \
-    libxml2-dev \
+    # libzip-dev: backend library of the zip extension
     libzip-dev \
+    # zip: archive creation from the agent shell (log/artifact hand-off bundles)
     zip \
+    # unzip: Composer extracts dist archives with it
     unzip \
+    # libfreetype6-dev: FreeType support for the gd build (--with-freetype)
     libfreetype6-dev \
+    # libjpeg62-turbo-dev: JPEG support for the gd build (--with-jpeg)
     libjpeg62-turbo-dev \
-    libgd-dev \
+    # SQLite CLI + headers for inspecting the test/dev database
     sqlite3 \
     libsqlite3-dev \
+    # Node toolchain for the frontend build and Playwright
     nodejs \
     npm \
+    # Interactive editors/monitoring for manual debugging sessions
     vim \
     nano \
     htop \
-    # Additional tools for Pagekit modernization
+    # default-mysql-client: mysql/mysqladmin CLIs to inspect a MySQL-backed dev
+    # database (SQLite-backed runs are covered by sqlite3 above)
     default-mysql-client \
     # CLI search/JSON tools assumed by modernization shell workflows and
     # agent verification sweeps (ripgrep = rg, jq)
@@ -46,18 +54,15 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | d
     && apt-get install gh -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions required by Pagekit
-# Note: xml, dom, xmlwriter, simplexml are built-in to PHP 8.5
+# PHP extensions on top of the base image, which already bundles pdo, pdo_sqlite,
+# sqlite3, mbstring and the XML family (xml, dom, xmlwriter, simplexml).
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
-    pdo \
+    # pdo_mysql: MySQL driver for MySQL-backed test/dev runs
     pdo_mysql \
-    pdo_sqlite \
-    mbstring \
-    exif \
-    pcntl \
-    bcmath \
+    # gd: image processing capability for media handling in extensions and themes
     gd \
+    # zip: package archive handling (installer, self-updater, filesystem archives)
     zip
 
 # Install PCOV for code coverage (faster than Xdebug; used by CI and cloud agents)
