@@ -361,19 +361,15 @@ PHASE 4: Testing & Documentation
 4.1. Run E2E Tests (with fresh install):
    `bash
    # Reset to clean state (removes config.php and database)
-   ./scripts/e2e-reset.sh
+   rm -f config.php pagekit.db
    
-   # Start test server
-   ./scripts/e2e-start.sh
+   # Playwright starts (or reuses) the server itself: php pagekit start --no-ansi
    
    # Test fresh installation
    npx playwright test tests/e2e/specs/01-setup/installation.spec.js
    
    # Test admin functionality
    npx playwright test tests/e2e/specs/02-admin/login.spec.js
-   
-   # Stop test server
-   ./scripts/e2e-stop.sh
    `
 
 4.2. Manual Testing Checklist:
@@ -473,7 +469,7 @@ IMPORTANT NOTES FOR AGENT
 5. **Test Commands:**
    `bash
    # Fresh install test:
-   ./scripts/e2e-reset.sh  # Clean state first!
+   rm -f config.php pagekit.db  # Clean state first!
    npx playwright test tests/e2e/specs/01-setup/installation.spec.js
    
    # Existing installation test:

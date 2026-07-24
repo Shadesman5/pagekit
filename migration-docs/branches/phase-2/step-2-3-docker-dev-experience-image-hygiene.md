@@ -51,6 +51,20 @@ Tests: none (test-writer: skip — build-context file only, no production PHP un
 
 Tests: none (test-writer: skip — compose YAML, env template and shell scripts only, no production PHP under `app/`/`packages/`). Gates: Verifier PASS; Tester — PHPUnit PASS, PHPStan PASS. Tester also ran the ticket's extra Step-3 checks (`python3` YAML-parse of `docker-compose.yml`, `bash -n docker-setup.sh`); `docker compose config` and the runtime cold start stayed Manual Work per the ticket (no Docker CLI in the VM).
 
+### E2E Docker path retirement — compose + scripts deleted, live docs scrubbed, port realigned (Checklist Step 4)
+
+| File | Change |
+|---|---|
+| `docker-compose.e2e.yml`, `scripts/e2e-start.sh`, `scripts/e2e-stop.sh`, `scripts/e2e-reset.sh` (all deleted) | Retired the standalone Docker E2E stack outright: CI already runs E2E via `php pagekit start` (never `docker-compose.e2e.yml`), the scripts' `./tests/e2e/fixtures` init mount pointed at a directory absent from the repo, and the compose file carried hardcoded test credentials. Playwright's own `webServer` (`php pagekit start --no-ansi`, `reuseExistingServer` outside CI) is now the only server-lifecycle path for E2E runs. |
+| `tests/e2e/README.md` | Prerequisites note and the "Using Docker (Recommended)" / "Manual Setup" split replaced with "Playwright-managed server (default)" / "Your own server" (`NO_SERVER=1` to opt out); fresh-install reset is now `rm -f config.php pagekit.db` instead of `./scripts/e2e-reset.sh`; `site.url` example and the `codegen` command port `8180` → `127.0.0.1:8080` throughout. |
+| `tests/e2e/COMPLETE_TEST_PLAN.md`, `tests/e2e/TEST_PLAN_ANALYSIS_2025.md` | German-language planning docs: the "Docker E2E Environment" / "Docker E2E Setup" bullets and the "Docker E2E optimieren" recommendation swapped for the Playwright-managed-server fact — command references only, no plan rewrite. |
+| `.cursor/skills/e2e-test-architect/runtime-patterns.md` | "Docker Environment" section (the 3 `e2e-*.sh` calls) replaced with "Server & Fresh State" (`webServer` / `NO_SERVER=1` / `rm -f config.php pagekit.db`); `codegen` example port `8180` → `127.0.0.1:8080`. |
+| `migration-docs/TODO/agent_prompts/PROMPT_Vue_Template_Precompilation.md`, `migration-docs/TODO/agent_prompts/phase-1/PROMPT_Complete_Template_Security_Modernization.md` | Command blocks only (§5.5; §4.1 + §"Test Commands"): `e2e-reset.sh`/`e2e-start.sh`/`e2e-stop.sh` calls swapped for `rm -f config.php pagekit.db` (+ a Playwright-manages-the-server comment); no other prompt content touched. |
+| `tests/e2e/config/test-config.example.json` | `site.url`/`site.adminUrl` realigned `http://localhost:8180` → `http://127.0.0.1:8080`, matching the `php pagekit start` default bind and CI. |
+| `.gitignore` | Dropped the now-dead `/storage-e2e/` and `/tmp-e2e/` lines — both belonged to the retired Docker E2E path. |
+
+Tests: none (test-writer: skip — E2E Docker path retirement and doc/prompt scrubs only, no production PHP under `app/`/`packages/`). Gates: Verifier PASS; Tester — PHPUnit PASS, PHPStan PASS. Tester also ran the ticket's extra Step-4 checks (`python3` JSON-parse of `test-config.example.json`; `rg --hidden` allow-list scan for `docker-compose.e2e|e2e-start|e2e-stop|e2e-reset`) — both run without a Docker CLI, so neither falls to Manual Work this step.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -82,6 +96,7 @@ _TBD / None_
 
 - **Rule 4 (Delete over wrap) — Checklist Step 1:** baked-code layers (`COPY . /var/www/html`, `chown`/`chmod`, `composer install --no-dev`) removed outright rather than gated behind a build arg or left commented out; unused apt libs (`libmcrypt-dev`, `libxml2-dev`, `libonig-dev`, `libgd-dev`, `zip` CLI) and PHP extensions (`pdo`, `pdo_sqlite`, `mbstring`, `exif`, `pcntl`, `bcmath` — all bundled by the base image or unused by Pagekit) dropped rather than kept "just in case."
 - **Rule 4 (Delete over wrap) — Checklist Step 3:** `docker/mysql/init/01-create-database.sql` and its hardcoded `pagekit`/`pagekit` credential deleted outright rather than parameterized — the mysql image's own `MYSQL_*` environment variables already produce the same database/user/grants; `docker.env.example`'s 9 dead vars and both setup scripts' `$`-escaping, `.gitignore`-append, and self-`chmod` logic removed rather than kept as unused fallback paths.
+- **Rule 4 (Delete over wrap) — Checklist Step 4:** `docker-compose.e2e.yml` and all 3 wrapper scripts deleted outright rather than kept alongside the Playwright-managed path; every live-doc pointer (both `tests/e2e/*.md` docs, the skill doc, and the two stale prompts' command blocks) was scrubbed to the new flow — scrub chosen over allow-listing so no future executing agent inherits a command pointing at a deleted script.
 
 ---
 

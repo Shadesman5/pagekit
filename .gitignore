@@ -67,8 +67,6 @@ node_modules
 .playwright-mcp/
 /test-results/
 /playwright-report/**/*
-/storage-e2e/
-/tmp-e2e/
 /tests/e2e/config/test-config.json
 
 # MkDocs build output (deployed via GitHub Actions)

@@ -43,7 +43,7 @@
 - [x] Step 1 (M) — Dockerfile reconciliation: capability-set extensions, apt prune, drop baked-code layers
 - [x] Step 2 (S) — .dockerignore: exclude docs/tests/CI/agent config + report artefacts + local install files
 - [x] Step 3 (L) — Dev compose + .env wiring + setup scripts + DB-init deletion (one functional unit)
-- [ ] Step 4 (M) — E2E Docker path retirement: compose + scripts deleted, live docs scrubbed, port realigned
+- [x] Step 4 (M) — E2E Docker path retirement: compose + scripts deleted, live docs scrubbed, port realigned
 - [ ] Step 5 (S) — php.ini hygiene (opcache.fast_shutdown) + .env.example dev-only confirmation
 - [ ] Step 6 (M) — Docs alignment: README quickstart, DOCKER.md fold+delete, AGENTS.md Docker context
 

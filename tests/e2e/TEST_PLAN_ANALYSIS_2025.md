@@ -65,7 +65,7 @@ Nach Analyse des Systems sind folgende Features **NICHT** vorhanden:
   
 - ⚠️ **Travis CI** - Veraltete Konfiguration (PHP 7.4), nicht mehr aktiv
 - ❌ **GitHub Actions** - Noch keine Workflows implementiert
-- ✅ **Docker E2E Setup** - Separate E2E Test-Umgebung vorhanden (`docker-compose.e2e.yml`)
+- ✅ **E2E Testserver** - Playwright startet den Server selbst (`webServer: php pagekit start --no-ansi`)
 
 ### Empfehlung für CI/CD:
 1. GitHub Actions Workflows implementieren für:
@@ -144,9 +144,9 @@ Basierend auf den tatsächlich vorhandenen Features:
    - SQL Fixtures für konsistente Testdaten
    - Seed-Scripts für Testumgebung
 
-4. **Docker E2E optimieren:**
-   - `docker-compose.e2e.yml` ist vorhanden
-   - Scripts für Reset/Start/Stop existieren
+4. **Testumgebung:**
+   - Playwright startet/wiederverwendet den Server selbst (`webServer: php pagekit start --no-ansi`)
+   - Frischzustand für den Installations-Spec: `config.php` + `pagekit.db` löschen
 
 ## ⚠️ Wichtige Hinweise
 

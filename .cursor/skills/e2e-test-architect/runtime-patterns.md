@@ -27,12 +27,14 @@ npx playwright test --grep @ci
 npx playwright test --project=chromium-desktop
 ```
 
-### Docker Environment
+### Server & Fresh State
+
+Playwright manages the server itself (`webServer: php pagekit start --no-ansi`, bind `127.0.0.1:8080`);
+outside CI a server already running on that URL is reused.
 
 ```bash
-./scripts/e2e-start.sh   # Start containers
-./scripts/e2e-reset.sh   # Reset database
-./scripts/e2e-stop.sh    # Stop containers
+rm -f config.php pagekit.db   # Fresh state for the installation spec
+NO_SERVER=1 npx playwright test  # Use your own already-running server instead
 ```
 
 ## Essential Imports
@@ -172,7 +174,7 @@ npx playwright show-trace test-results/*/trace.zip
 ### Record Tests
 
 ```bash
-npx playwright codegen http://localhost:8180
+npx playwright codegen http://127.0.0.1:8080
 ```
 
 ### Screenshots
