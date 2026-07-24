@@ -108,17 +108,22 @@ E2E outcome: <PASS | skipped>
 Finalize fix-loop notes (verbatim, if any): <paste or "none">
 ```
 
-### Subagent return contract (trust verbatim)
+### Subagent return contract (trust the result; match the signal, not the wording)
 
-| Subagent | Expected return |
+Trust the worker's reported result verbatim — a `PASS` means passed; do not re-verify. Match on the
+**signal**, not the exact phrasing: the forms below are the **canonical** shape, but accept any equivalent
+wording that carries the same signal. Do not force a re-emit over harmless phrasing.
+
+| Subagent | Expected signal (canonical form) |
 | --- | --- |
-| **refactorer** | `Step N done. Files: [list].` (Finalize fix loops: same one-line shape with file list) |
+| **refactorer** | completion + file list — `Step N done. Files: [list].` (fix loops carry no step number: accept any completion line + file list, e.g. `Fix done. Files: …` or `Checklist step N done. …`) |
 | **verifier** | `PASS` — or `FAIL` + bullet list |
 | **tester** | `PASS` — or `FAIL` + minimal RCA |
-| **test-writer** | `Step N tests done. Files: [list].` — or `UNTESTABLE: <reason>` (Finalize: `Finalize tests done. Files: [list].`) |
+| **test-writer** | tests-done + file list — `Finalize tests done. Files: [list].` (also accept `Finalize coverage pass tests done. …`) — or `UNTESTABLE: <reason>` |
 | **doc-writer** | `Finalized docs: <branch doc> + CHANGELOG` (+ ` + README` if touched) — or per `.cursor/agents/doc-writer.md` |
 
-If a worker returns preamble or prose instead of the contract line, ask it to re-emit — do not paraphrase.
+Re-emit is a last resort: ask again **only** when the signal itself is missing (no `PASS`/`FAIL`, no
+`done`/completion line, no `UNTESTABLE`) or is buried in prose — never for a wording variant. Do not paraphrase.
 
 ### Fix-loop spawn order (reuse after CI/Bugbot/coverage failures)
 
