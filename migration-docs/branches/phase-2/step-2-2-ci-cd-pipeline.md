@@ -61,6 +61,16 @@ Tests: none (test-writer skip — CI script + YAML only). Gates: Verifier PASS; 
 
 Tests: none (test-writer skip — CI YAML + script only). Gates: Verifier PASS; Tester PASS.
 
+### quality-collect.yml + pages-deploy overlay (Checklist Step 5)
+
+| File | Change |
+|---|---|
+| `.github/workflows/quality-collect.yml` | New workflow `name: Quality Collect`. Triggers: `workflow_run` (`types: [completed]`, branches `develop`/`main`) on `PHP Tests` / `E2E` + `workflow_dispatch` (`branch` input, default `develop`). Job `quality-collect` proceeds only for dispatch or when `conclusion == 'success'` and `workflow_run.event == 'push'`; concurrency group `quality-collect` (serialize, no cancel); permissions `contents: write` + `actions: write`; checkout develop + `node .github/scripts/quality-snapshot.mjs`. |
+| `.github/scripts/quality-snapshot.mjs` | Zero-dep Node collector: latest green push runs of `php-tests.yml` + `e2e.yml` on the branch (skip publish if either missing), download artifacts (Clover / JUnit / PHPStan JSON / Playwright JSON), Nightly Infection MSI null-safe; assemble schema-v2 snapshot (`source: github-actions`, E2E `scope: smoke`, phpunit keys `8.5-sqlite` required / `8.5-mysql` `required: false` via job conclusion); push `.github/quality/quality-snapshot.json` to unprotected `quality-data` (create from develop if absent); `gh workflow run pages-deploy.yml --ref develop`. |
+| `.github/workflows/pages-deploy.yml` | Overlay step for `origin/quality-data` → `.github/quality/quality-snapshot.json` (mirror conductor-metrics; seed from develop when branch absent). All third-party actions pinned by commit SHA (`checkout`, `setup-python`, `configure-pages`, `upload-pages-artifact`, `deploy-pages`). |
+
+Tests: none (test-writer skip — CI YAML + script only). Gates: Verifier PASS; Tester PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -70,6 +80,7 @@ Tests: none (test-writer skip — CI YAML + script only). Gates: Verifier PASS; 
 - **MySQL is a separate non-blocking job.** `phpunit-mysql` never shares the required `phpunit (8.5)` context; only DbUtil consumers honor the MySQL globals today, so the leg stays advisory until Step 2.9 makes the suite DB-portable.
 - **Version SSoT is PR-only and dep-free.** Drift is a review-time concern (nothing to check on a protected-branch merge); plain PHP avoids a composer install so the job stays a cheap gate.
 - **Sticky report is additive and null-safe.** One comment per PR (marker upsert); Infection / E2E / Frontend are listed now but render "pending" until those workflows land. `workflow_run` only fires from the default branch's copy — `workflow_dispatch` is the post-merge / on-demand validation path for this ticket's PR.
+- **Live snapshot never touches develop.** Collector is the sole writer to unprotected `quality-data`; publish only when both gate merge runs are green (half-built dashboards avoided). Missing `e2e.yml` / `nightly.yml` resolve null-safe until later checklist steps. Explicit `pages-deploy` dispatch because `GITHUB_TOKEN` pushes do not re-trigger workflows.
 
 ---
 
@@ -81,13 +92,13 @@ None (CI / agent-rule rename only; no extension or runtime API change).
 
 ## ⚠️ Risks & Rollout Notes
 
-_TBD / None_
+Collector + sticky report `workflow_run` triggers fire only from the default-branch copy — first live collect/dispatch is post-merge (or manual `workflow_dispatch`). Until E2E lands, the collector skips publish (both gates required).
 
 ---
 
 ## 🔐 Security & Data Impact
 
-`quality-report.yml` adds least-privilege scopes for the sticky comment (`pull-requests: write`, `actions`/`checks`/`contents: read`); PHP Tests permissions and Codecov OIDC unchanged.
+`quality-report.yml` adds least-privilege scopes for the sticky comment (`pull-requests: write`, `actions`/`checks`/`contents: read`). `quality-collect.yml` needs `contents: write` (push to `quality-data` only) + `actions: write` (artifact download + `pages-deploy` dispatch); never writes the protected branch. `pages-deploy.yml` action pins tightened to commit SHAs. PHP Tests permissions and Codecov OIDC unchanged.
 
 ---
 
@@ -100,7 +111,7 @@ Deleted `.github/workflows/php-quality.yml` in the same step as the new `php-tes
 ## ✅ Verification (links only)
 
 - CI run: _TBD_
-- Notable deviations: None (Steps 1–4)
+- Notable deviations: None (Steps 1–5)
 
 ---
 
