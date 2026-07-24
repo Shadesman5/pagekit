@@ -1,0 +1,194 @@
+name: E2E
+
+run-name: "${{ github.event_name == 'pull_request' && format('E2E — PR #{0} ({1})', github.event.pull_request.number, github.head_ref) || format('E2E — {0}', github.ref_name) }}"
+
+on:
+  pull_request:
+    branches: [main, develop]
+    # Narrow, dormant ignore only — never a broad filter, since e2e-smoke is a required check
+    # and a skipped required check blocks merges. conductor-metrics is bot-written on its own
+    # branch, so a normal PR never touches it.
+    paths-ignore:
+      - '.github/conductor/metrics/**'
+  push:
+    branches: [main, develop]
+    paths-ignore:
+      - '.github/conductor/metrics/**'
+      - '.github/quality/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # PR smoke gate: the 3 @ci-tagged specs (installation -> authentication -> dashboard) on
+  # chromium-desktop only. With CI set, the Playwright config resolves 1 worker and runs files
+  # in alphabetical order, so 01-setup/installation drives the web installer BEFORE the 02-core
+  # specs rely on that install — no `php pagekit setup` is run beforehand. Target < 10 minutes.
+  e2e-smoke:
+    name: e2e-smoke
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Setup PHP 8.5
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer dependencies (app/vendor)
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: app/vendor
+          key: ${{ runner.os }}-php-8.5-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-8.5-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Create writable runtime directories
+        run: mkdir -p tmp/logs tmp/cache tmp/temp tmp/packages storage
+
+      - name: Setup Node 22
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: yarn
+
+      # yarn install also runs the package `install` script (webpack + gulp), producing the JS
+      # and LESS bundles the installer and admin UI need to render during the E2E run.
+      - name: Install Node dependencies and build assets
+        run: yarn install --frozen-lockfile
+
+      # Copy the tracked example to the git-ignored config the suite reads, then fill the values
+      # it cannot ship: real admin credentials (the example's YOUR_* placeholders are rejected by
+      # the specs' connectivity precheck, and the installer needs them to create a usable admin)
+      # and the 127.0.0.1:8080 origin that `php pagekit start` — the Playwright webServer — binds.
+      - name: Prepare E2E test configuration
+        run: |
+          cp tests/e2e/config/test-config.example.json tests/e2e/config/test-config.json
+          node -e "const fs=require('fs'),p='tests/e2e/config/test-config.json',c=JSON.parse(fs.readFileSync(p,'utf8'));c.auth.admin={username:'admin',password:'pagekit-ci-admin',email:'admin@example.com'};c.site.title='Pagekit CI';c.site.url='http://127.0.0.1:8080';c.site.adminUrl='http://127.0.0.1:8080/admin';fs.writeFileSync(p,JSON.stringify(c,null,2)+'\n');"
+
+      # Browser binaries live under ~/.cache/ms-playwright; key the cache on the resolved
+      # @playwright/test version so a Playwright bump re-downloads matching browsers.
+      - name: Resolve Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('./node_modules/@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.pw.outputs.version }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install Playwright chromium + OS dependencies
+        run: npx playwright install --with-deps chromium
+
+      # --grep @ci selects only the 3 optimized specs; --project=chromium-desktop is the single
+      # required leg. The JSON report is the machine-readable artifact; HTML aids failure triage.
+      # The Playwright config starts `php pagekit start` itself (webServer), so no server step here.
+      - name: Run Playwright smoke suite (@ci, chromium-desktop)
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: playwright-results.json
+        run: npx playwright test --grep @ci --project=chromium-desktop --reporter=list,json,html
+
+      - name: Upload Playwright JSON report
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: playwright-smoke-report
+          path: playwright-results.json
+          if-no-files-found: warn
+
+      - name: Upload Playwright HTML report
+        if: failure()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: playwright-smoke-html
+          path: playwright-report/
+          if-no-files-found: warn
+
+  # Post-merge run against the develop/main tip. Same selection as the PR smoke gate; its JSON
+  # report is the artifact the Quality Collect workflow blends into the live dashboard snapshot.
+  e2e-merge:
+    name: e2e-merge
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Setup PHP 8.5
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer dependencies (app/vendor)
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: app/vendor
+          key: ${{ runner.os }}-php-8.5-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-8.5-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Create writable runtime directories
+        run: mkdir -p tmp/logs tmp/cache tmp/temp tmp/packages storage
+
+      - name: Setup Node 22
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: yarn
+
+      - name: Install Node dependencies and build assets
+        run: yarn install --frozen-lockfile
+
+      - name: Prepare E2E test configuration
+        run: |
+          cp tests/e2e/config/test-config.example.json tests/e2e/config/test-config.json
+          node -e "const fs=require('fs'),p='tests/e2e/config/test-config.json',c=JSON.parse(fs.readFileSync(p,'utf8'));c.auth.admin={username:'admin',password:'pagekit-ci-admin',email:'admin@example.com'};c.site.title='Pagekit CI';c.site.url='http://127.0.0.1:8080';c.site.adminUrl='http://127.0.0.1:8080/admin';fs.writeFileSync(p,JSON.stringify(c,null,2)+'\n');"
+
+      - name: Resolve Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('./node_modules/@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.pw.outputs.version }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install Playwright chromium + OS dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright smoke suite (@ci, chromium-desktop)
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: playwright-results.json
+        run: npx playwright test --grep @ci --project=chromium-desktop --reporter=list,json,html
+
+      # This JSON report is downloaded by quality-collect (content-detected among the run's
+      # artifacts) and blended into the live quality snapshot.
+      - name: Upload Playwright JSON report
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: playwright-merge-report
+          path: playwright-results.json
+          if-no-files-found: warn
