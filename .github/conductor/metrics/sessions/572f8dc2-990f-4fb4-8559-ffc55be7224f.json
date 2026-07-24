@@ -11,19 +11,51 @@
   "status": "in_progress",
   "startedAt": "2026-07-24T20:32:45.182Z",
   "completedAt": null,
-  "phases": [],
+  "phases": [
+    {
+      "phaseKey": "30124454914-1-PLAN",
+      "type": "PLAN",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-07-24T20:32:50.340Z",
+      "durationMs": 1636091,
+      "agent": {
+        "id": "bc-b561001f-92c2-41af-af96-73db71382a4f",
+        "runId": "run-19d7e0e9-cd8b-453b-af3e-6a5017d70ea1",
+        "url": "https://cursor.com/agents/bc-b561001f-92c2-41af-af96-73db71382a4f",
+        "model": "grok-4.5"
+      },
+      "github": {
+        "runId": 30124454914,
+        "runAttempt": 1,
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/30124454914",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 37711,
+        "output": 107768,
+        "cacheRead": 5773133,
+        "cacheWrite": 521596,
+        "total": 6440208
+      },
+      "tokensSource": "cursor-api",
+      "result": "Plan ready: migration-docs/tickets/active/PROMPT_2_3_Docker-Dev-Experience_plan.md",
+      "outcome": "success"
+    }
+  ],
   "totals": {
     "tokens": {
-      "input": 0,
-      "output": 0,
-      "cacheRead": 0,
-      "cacheWrite": 0,
-      "total": 0
+      "input": 37711,
+      "output": 107768,
+      "cacheRead": 5773133,
+      "cacheWrite": 521596,
+      "total": 6440208
     },
-    "durationMs": 0,
-    "phaseCount": 0,
+    "durationMs": 1636091,
+    "phaseCount": 1,
     "escalations": 0,
-    "ghaJobs": 0,
-    "cloudAgents": 0
+    "ghaJobs": 1,
+    "cloudAgents": 1
   }
 }
