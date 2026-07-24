@@ -66,9 +66,12 @@ function main() {
   }
   const { phpRun, e2eRun } = pair;
 
-  // Full-suite Infection MSI comes from the latest successful Nightly (schedule/dispatch on develop);
-  // null until the first nightly has run.
-  const nightlyRun = latestSuccessfulRun(WF_NIGHTLY, {});
+  // Full-suite Infection MSI comes from the latest successful Nightly ON THIS BRANCH. Scheduled
+  // nightlies run on the default branch; a dispatch can target either protected branch. Scoping by
+  // branch stops a Nightly on some other ref from attaching its MSI to this branch's snapshot (the
+  // PHP Tests + E2E gates above are already branch-scoped); the metric stays null until a Nightly has
+  // run on this branch.
+  const nightlyRun = latestSuccessfulRun(WF_NIGHTLY, { branch: BRANCH });
 
   const snapshot = buildSnapshot({ floor, baseline, phpRun, e2eRun, nightlyRun });
   publish(snapshot);
