@@ -38,6 +38,19 @@ Tests: none (test-writer: skip — Dockerfiles only, no production PHP under `ap
 
 Tests: none (test-writer: skip — build-context file only, no production PHP under `app/`/`packages/`). Gates: Verifier PASS; Tester — PHPUnit PASS, PHPStan PASS.
 
+### Dev compose + `.env` wiring + setup scripts + DB-init deletion (Checklist Step 3)
+
+| File | Change |
+|---|---|
+| `docker-compose.yml` | Removed the top-level `version:` key. Removed `profiles:` from `mysql` + `phpmyadmin` (bare `docker compose up` now starts every service, closing the trap where MySQL never started because no compose profile is named `default`). `mysql`: dropped `command: --default-authentication-plugin=mysql_native_password` (removed server option in MySQL 8.4) and `env_file:`; added a TCP `healthcheck` (`mysqladmin ping -h 127.0.0.1`, so `web`/`phpmyadmin` cannot start against the first-boot socket-only temporary server); `environment:` now interpolates `${MYSQL_DATABASE}`/`${MYSQL_USER}`/`${MYSQL_PASSWORD}`/`${MYSQL_ROOT_PASSWORD}` from `.env`, with a `${VAR:?Run ./docker-setup.sh first}` guard on both passwords; dropped the `./docker/mysql/init` bind mount. `web`: `depends_on` now gates on `condition: service_healthy`; dropped `env_file:` and the dead `APACHE_DOCUMENT_ROOT` environment entry. `phpmyadmin`: same healthy-gated `depends_on`; dropped `env_file:`; `PMA_HOST`/`PMA_PORT` are now literal `mysql`/`3306` (kept `PMA_USER: root` + `PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}`). `node` service untouched. |
+| `.env.example` (new — replaces deleted `docker.env.example`) | Dev-only header stating this is never a production template. Carries only the 4 vars actually consumed by the stack (`MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`); the old file's 9 dead vars (`DB_HOST`, `DB_PORT`, `APP_ENV`, `APP_DEBUG`, `APP_URL`, `PHPMYADMIN_URL`, `PHP_MEMORY_LIMIT`, `PHP_UPLOAD_MAX_FILESIZE`, `PHP_POST_MAX_SIZE`) are gone, and `DB_NAME`/`DB_USER`/`DB_PASSWORD` are renamed to the `MYSQL_*` spelling the mysql image itself expects. |
+| `docker-setup.sh` | Generates `.env` (not `docker.env`) from `.env.example`, copying it line-by-line and substituting only the two password lines rather than running `sed` over the file (a generated password containing a shell/regex metacharacter can no longer corrupt the substitution). Password generation now forces `LC_ALL=C`. Dropped the now-dead `$`-escaping step, the `docker.env.example`-missing fallback content block, the `.gitignore`-append logic (redundant with the tracked `*.env` rule), and the trailing self-`chmod +x`. Added `set -eu` and a guard that exits if `.env.example` is missing. Closing hint now reads `docker compose up -d` (v2 spelling). |
+| `docker-setup.ps1` | Same rewrite in lockstep: writes `.env` via `[System.IO.File]::WriteAllLines` instead of `Out-File` (writes UTF-8 without a BOM, so no stray byte lands inside the first variable name); dropped the `$`-escaping and the inline fallback content block; same missing-`.env.example` guard; closing hint → `docker compose up -d`. |
+| `docker/mysql/init/01-create-database.sql` (deleted) | Removed along with its bind mount — the mysql image's own `MYSQL_*` environment variables already create the database, user and grants on first boot; this file's hardcoded `pagekit`/`pagekit` credential was the last hardcoded credential in the compose stack. |
+| `.gitignore` | Dropped the now-redundant `docker.env` line — `*.env` already covers `.env`. |
+
+Tests: none (test-writer: skip — compose YAML, env template and shell scripts only, no production PHP under `app/`/`packages/`). Gates: Verifier PASS; Tester — PHPUnit PASS, PHPStan PASS. Tester also ran the ticket's extra Step-3 checks (`python3` YAML-parse of `docker-compose.yml`, `bash -n docker-setup.sh`); `docker compose config` and the runtime cold start stayed Manual Work per the ticket (no Docker CLI in the VM).
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -55,6 +68,7 @@ _TBD_
 ## ⚠️ Risks & Rollout Notes
 
 - **Root `Dockerfile` no longer bakes app code (Checklist Step 1).** `COPY . /var/www/html`, the `chown`/`chmod` layer, and `composer install --no-dev --optimize-autoloader` are gone — the image alone now builds to just PHP 8.5 + Apache + extensions + Composer binary. Building/running it standalone (`docker build` / `docker run`, no compose) leaves `/var/www/html` empty; the documented dev flow (`docker compose up`) is unaffected because its bind mount already covers the same path. Production baking returns with the separate image in Step 2.5.
+- **`docker-setup.sh` drops its self-`chmod` and is tracked without the exec bit (Checklist Step 3 — flagged for Step 6).** The checklist's Step 3 scope removed the script's trailing `chmod +x docker-setup.sh` along with the other now-dead fallback logic; the file itself is still git-tracked as `100644` (no exec bit), unchanged from before this step. Verifier note: Step 6's README pass must either instruct `chmod +x docker-setup.sh` before first run or the tracked file's git exec bit must be set — otherwise a fresh clone's `./docker-setup.sh` fails with "Permission denied" (invoking it as `bash docker-setup.sh` is unaffected).
 
 ---
 
@@ -67,6 +81,7 @@ _TBD / None_
 ## 🛡️ No-Mercy Compliance
 
 - **Rule 4 (Delete over wrap) — Checklist Step 1:** baked-code layers (`COPY . /var/www/html`, `chown`/`chmod`, `composer install --no-dev`) removed outright rather than gated behind a build arg or left commented out; unused apt libs (`libmcrypt-dev`, `libxml2-dev`, `libonig-dev`, `libgd-dev`, `zip` CLI) and PHP extensions (`pdo`, `pdo_sqlite`, `mbstring`, `exif`, `pcntl`, `bcmath` — all bundled by the base image or unused by Pagekit) dropped rather than kept "just in case."
+- **Rule 4 (Delete over wrap) — Checklist Step 3:** `docker/mysql/init/01-create-database.sql` and its hardcoded `pagekit`/`pagekit` credential deleted outright rather than parameterized — the mysql image's own `MYSQL_*` environment variables already produce the same database/user/grants; `docker.env.example`'s 9 dead vars and both setup scripts' `$`-escaping, `.gitignore`-append, and self-`chmod` logic removed rather than kept as unused fallback paths.
 
 ---
 
