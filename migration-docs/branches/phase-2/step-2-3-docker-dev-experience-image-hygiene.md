@@ -6,16 +6,16 @@
 **Branch:** `feature/docker-developer-experience`
 **ROADMAP Step:** 2.3 (Docker Dev Experience & Image Hygiene)
 **GitHub Issue:** [#241](https://github.com/Shadesman5/pagekit/issues/241)
-**Pull Request:** _TBD_
-**Status:** 🚧 In progress
+**Pull Request:** [#242](https://github.com/Shadesman5/pagekit/pull/242)
+**Status:** ✅ Complete
 **Started:** 2026-07-24 20:58
-**Completed:** _TBD_
+**Completed:** 2026-07-24 22:18
 
 ---
 
 ## 🎯 Overview
 
-_TBD_
+Reconciles the dev Docker stack with what the container actually needs rather than what it historically accumulated. Both Dockerfiles slim to a `pdo_mysql`/`gd`/`zip` extension set with justified-only apt build-deps, and the root image stops baking application code now that the dev compose bind-mount already covers `/var/www/html`; `.dockerignore` grows to match. `docker-compose.yml` drops the dead `profiles:`/`env_file:` wiring for Compose-native `.env` interpolation, adds a TCP-based MySQL healthcheck gating `web`/`phpmyadmin`, and — together with the deleted `docker/mysql/init` script — removes the stack's last hardcoded DB credential. The standalone Docker E2E stack (compose file + 3 scripts) is retired outright in favor of Playwright's own server lifecycle, with every live-doc pointer scrubbed to match. `docker/php/php.ini` drops a directive dead since PHP 7.2, and `README.md`/`AGENTS.md` are rewritten to document the stack as it now behaves, folding in `DOCKER.md`'s reusable content before deleting it.
 
 ---
 
@@ -93,7 +93,7 @@ Tests: none (test-writer: skip — docs only, no production PHP under `app/`/`pa
 
 ## ⚠️ Breaking Changes (Extensions)
 
-_TBD_
+None (Docker dev-tooling and docs only; no Pagekit extension or runtime API changed).
 
 ---
 
@@ -106,7 +106,7 @@ _TBD_
 
 ## 🔐 Security & Data Impact
 
-_TBD / None_
+Removes the last hardcoded DB credential from the dev stack — `docker/mysql/init/01-create-database.sql`'s `pagekit`/`pagekit` deleted along with its bind mount (Checklist Step 3); MySQL credentials now come solely from the generated, gitignored `.env`, with a `${VAR:?Run ./docker-setup.sh first}` guard against a silent empty-password start. Dev-only scope — no production secret/12-factor handling changes here (that lands with the production image in Step 2.5).
 
 ---
 
@@ -121,32 +121,47 @@ _TBD / None_
 
 ## ✅ Verification (links only)
 
-- CI run: _TBD_
-- Notable deviations: _TBD / None_
+| Gate | Result |
+|---|---|
+| CI — PR checks | ✅ success — [run #30130278880](https://github.com/Shadesman5/pagekit/actions/runs/30130278880) (`phpunit (8.5)`, `phpstan`, `cs-fixer`, `security-audit`, `version-ssot`, `phpunit-mysql`, `frontend`, `infection-diff` all pass; `e2e-smoke`/`e2e-merge` skipped by path filter) |
+| Coverage gap pass | skipped — ticket `## TESTING STRATEGY` marks `test-writer: skip` on all steps (no production PHP under `app/` / `packages/`) |
+| Cursor Bugbot | ✅ clean |
+| E2E | ✅ PASS |
+| Finalize fix-loop | None |
+
+**CI run:** https://github.com/Shadesman5/pagekit/actions/runs/30130278880
+
+**Metrics (CI-owned):** [PR #242](https://github.com/Shadesman5/pagekit/pull/242) sticky quality-report comment · [Quality Dashboard](https://Shadesman5.github.io/pagekit/quality/)
+
+**Notable deviations:** None (Steps 1–6, no Finalize fix-loop).
 
 ---
 
 ## 📋 Phase 1 Audit Closure
 
-_TBD_
+None (no `Closes Phase 1 audit:` line in the ticket header; Docker dev-tooling scope does not touch a Phase 1 audit item).
 
 ---
 
 ## 📚 Deferred / Out-of-Scope
 
-_TBD_
+- **Step 2.5 (Docker Production Image & Deploy)** — multi-stage production image, hardening, prod compose, container `HEALTHCHECK`, image build/scan/push in CI (Hadolint/Trivy/GHCR), 12-factor env/secrets, webserver choice (Apache vs nginx+FPM vs FrankenPHP), and the OpenWeatherMap API key → env + rotation (`AUDIT FIX Step 2.5` marker already in `app/system/modules/dashboard/index.php`). *PHASE §2.5 already covers this — no amendment needed.*
+- **Step 2.4 (Build Tools)** — pnpm + Vite pipeline; the compose `node` service command/docs follow then. *PHASE §2.4 already covers this — no amendment needed.*
+- **Step 3.6.1 (E2E Test Suite Rework)** — spec repair/rework and `tests/e2e` conventions; retiring the Docker E2E wrapper here touched no spec bodies. *PHASE §3.6.1 already covers this — no amendment needed.*
+- **Non-goal:** runtime `docker compose up` validation cannot run in-agent (no Docker daemon in the VM) — Manual Work for the user, not a ROADMAP step.
+- **Bridges:** None.
+- **Manual Work (maintainer):**
+  1. Runtime validation on a Docker host — cold `./docker-setup.sh` → `docker compose up` on the MySQL path (no boot race, no restart loop on a cold volume, `web`/`phpmyadmin` start only after MySQL reports healthy); SQLite path `docker compose up -d --no-deps web node` + in-container `php pagekit setup … -d sqlite`; `docker compose -f docker-compose.yml config` against a generated `.env`.
+  2. `php -m` on both `php:8.5-apache`/`php:8.5-cli` to confirm the bundled-extension assumption, plus a build of both Dockerfiles — also settles the hadolint result, since neither a Docker CLI nor hadolint was available in-agent.
+  3. Regenerate the local env via `./docker-setup.sh` / `docker-setup.ps1` (now writes `.env`); delete any stale local `docker.env`.
+  4. Remove local `storage-e2e/` / `tmp-e2e/` leftovers from the retired Docker E2E path.
+  5. Rebuild the cloud-agent environment snapshot at the next opportunity so the `.cursor/Dockerfile` extension slimming takes effect (running agents use the pinned snapshot until then — no runtime risk).
 
 ---
 
 ## 📎 Related Documents
 
-- Ticket: `migration-docs/tickets/active/PROMPT_2_3_Docker-Dev-Experience_plan.md` (_TBD_ → move to `done/` after Finalize)
+- Ticket: `migration-docs/tickets/done/PROMPT_2_3_Docker-Dev-Experience_plan.md` (archived at Finalize)
 - Task prompt: `migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_3_Docker-Dev-Experience.md`
 - Predecessor: Step 2.2 — CI/CD Pipeline
 - Successor: Step 2.4 — Build Tools (pnpm + Vite)
-
----
-
-## 📊 <Step-specific appendix>
-
-_TBD — remove this section if not applicable._
