@@ -83,6 +83,14 @@ Tests: none (test-writer skip — CI YAML + script only). Gates: Verifier PASS; 
 
 Tests: none (test-writer skip — docs-site JS + snapshot JSON + markdown only). Gates: Verifier PASS; Tester PASS.
 
+### infection.yml — PR diff gate (Checklist Step 7)
+
+| File | Change |
+|---|---|
+| `.github/workflows/infection.yml` | New workflow `name: Infection`. Trigger: `pull_request` → `develop`/`main`; concurrency per ref (cancel-in-progress); `contents: read`. Job `infection-diff` (required name): checkout `fetch-depth: 0`, PHP 8.5 + PCOV, composer cache/install, fetch `origin/$GITHUB_BASE_REF`; early-exit green when `git diff` touches none of the Infection source scope (`app/modules/auth/src`, `app/system/modules/user/src/{Model,Auth,Event}`); otherwise `./app/vendor/bin/infection --threads=max --git-diff-lines --git-diff-base=origin/$GITHUB_BASE_REF --logger-github --min-covered-msi=80`; upload `tmp/infection/` as `infection-report` when in-scope (`if: always()`). Third-party actions pinned by commit SHA. |
+
+Tests: none (test-writer skip — CI YAML only). Gates: Verifier PASS; Tester PASS — PHPUnit 725 tests / 2057 assertions (5 skipped, exit 0); PHPStan no errors (exit 0).
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -94,6 +102,7 @@ Tests: none (test-writer skip — docs-site JS + snapshot JSON + markdown only).
 - **Sticky report is additive and null-safe.** One comment per PR (marker upsert); Infection / E2E / Frontend are listed now but render "pending" until those workflows land. `workflow_run` only fires from the default branch's copy — `workflow_dispatch` is the post-merge / on-demand validation path for this ticket's PR.
 - **Live snapshot never touches develop.** Collector is the sole writer to unprotected `quality-data`; publish only when both gate merge runs are green (half-built dashboards avoided). Missing `e2e.yml` / `nightly.yml` resolve null-safe until later checklist steps. Explicit `pages-deploy` dispatch because `GITHUB_TOKEN` pushes do not re-trigger workflows.
 - **Dashboard follows the snapshot, not hardcoded PHP rows.** PHPUnit legs are rendered from whatever keys the collector publishes; non-required legs stay informational (⚪) so the MySQL advisory job never looks like a red required gate. In-repo JSON stays a demo seed until the first post-merge collect overlays `"source": "github-actions"`.
+- **Infection PR gate mutates only the diff, and skips out-of-scope PRs.** `--git-diff-lines` + explicit base fetch keep the run under the small auth/user source scope; an early green exit when no scoped files changed avoids bootstrapping Infection on unrelated PRs. `infection.json.dist` thresholds (80 MSI) unchanged — full-suite Infection stays for Nightly (later checklist step).
 
 ---
 
@@ -105,7 +114,7 @@ None (CI / agent-rule rename only; no extension or runtime API change).
 
 ## ⚠️ Risks & Rollout Notes
 
-Collector + sticky report `workflow_run` triggers fire only from the default-branch copy — first live collect/dispatch is post-merge (or manual `workflow_dispatch`). Until E2E lands, the collector skips publish (both gates required).
+Collector + sticky report `workflow_run` triggers fire only from the default-branch copy — first live collect/dispatch is post-merge (or manual `workflow_dispatch`). Until E2E lands, the collector skips publish (both gates required). New required context `infection-diff` needs a develop ruleset admin add (Manual Work) — workflow lands green on out-of-scope PRs via the early-exit path.
 
 ---
 
@@ -124,7 +133,7 @@ Deleted `.github/workflows/php-quality.yml` in the same step as the new `php-tes
 ## ✅ Verification (links only)
 
 - CI run: _TBD_
-- Notable deviations: None (Steps 1–6)
+- Notable deviations: None (Steps 1–7)
 
 ---
 
