@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "572f8dc2-990f-4fb4-8559-ffc55be7224f",
+  "roadmapStepId": "2.3",
+  "title": "Step 2.3: Docker Developer Experience & Image Hygiene",
+  "taskSlug": "PROMPT_2_3_Docker-Dev-Experience",
+  "taskPrompt": "migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_3_Docker-Dev-Experience.md",
+  "issue": 241,
+  "branch": "feature/docker-developer-experience",
+  "model": "grok-4.5",
+  "status": "in_progress",
+  "startedAt": "2026-07-24T20:32:45.182Z",
+  "completedAt": null,
+  "phases": [],
+  "totals": {
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "total": 0
+    },
+    "durationMs": 0,
+    "phaseCount": 0,
+    "escalations": 0,
+    "ghaJobs": 0,
+    "cloudAgents": 0
+  }
+}

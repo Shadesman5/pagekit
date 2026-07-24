@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-24T15:00:27.329Z",
+  "updatedAt": "2026-07-24T20:32:45.182Z",
   "steps": {
     "unknown": {
       "title": "AGENT_PROMPT_AUDIT_TECH_DEBT_INVENTORY",
@@ -149,6 +149,13 @@
       "latestSessionId": "414f4c7c-e126-4c08-af02-359d73ee93c9",
       "sessionIds": [
         "414f4c7c-e126-4c08-af02-359d73ee93c9"
+      ]
+    },
+    "2.3": {
+      "title": "Step 2.3: Docker Developer Experience & Image Hygiene",
+      "latestSessionId": "572f8dc2-990f-4fb4-8559-ffc55be7224f",
+      "sessionIds": [
+        "572f8dc2-990f-4fb4-8559-ffc55be7224f"
       ]
     }
   },
