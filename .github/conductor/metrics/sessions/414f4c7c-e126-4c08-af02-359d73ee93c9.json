@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "414f4c7c-e126-4c08-af02-359d73ee93c9",
+  "roadmapStepId": "2.2",
+  "title": "Step 2.2: CI/CD Pipeline",
+  "taskSlug": "PROMPT_2_2_CI-CD-Pipeline",
+  "taskPrompt": "migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_2_CI-CD-Pipeline.md",
+  "issue": 157,
+  "branch": "feature/cicd-pipeline",
+  "model": "grok-4.5",
+  "status": "in_progress",
+  "startedAt": "2026-07-24T10:58:01.213Z",
+  "completedAt": null,
+  "phases": [],
+  "totals": {
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "total": 0
+    },
+    "durationMs": 0,
+    "phaseCount": 0,
+    "escalations": 0,
+    "ghaJobs": 0,
+    "cloudAgents": 0
+  }
+}

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-23T22:08:03.019Z",
+  "updatedAt": "2026-07-24T10:58:01.214Z",
   "steps": {
     "unknown": {
       "title": "AGENT_PROMPT_AUDIT_TECH_DEBT_INVENTORY",
@@ -142,6 +142,13 @@
       "latestSessionId": "b51da69a-6c42-4260-8972-bfd1d696bdc8",
       "sessionIds": [
         "b51da69a-6c42-4260-8972-bfd1d696bdc8"
+      ]
+    },
+    "2.2": {
+      "title": "Step 2.2: CI/CD Pipeline",
+      "latestSessionId": "414f4c7c-e126-4c08-af02-359d73ee93c9",
+      "sessionIds": [
+        "414f4c7c-e126-4c08-af02-359d73ee93c9"
       ]
     }
   },
