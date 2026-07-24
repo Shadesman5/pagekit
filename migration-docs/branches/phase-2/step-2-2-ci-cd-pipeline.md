@@ -138,6 +138,14 @@ Tests: none (test-writer skip — Playwright config/specs/docs only; no producti
 
 Tests: none (test-writer skip — CI YAML only). Gates: Verifier PASS; Tester PASS (PHPUnit + PHPStan green).
 
+### nightly.yml — guarded Infection full + E2E viewports (Checklist Step 11)
+
+| File | Change |
+|---|---|
+| `.github/workflows/nightly.yml` | New workflow `name: Nightly`. Triggers: `schedule` cron `0 2 * * *` (~02:00 UTC) + `workflow_dispatch`; concurrency per ref with `cancel-in-progress: false`; `contents: read`. Job `guard`: `workflow_dispatch` always `should_run=true`; scheduled runs only when `git log --since='24 hours ago'` is non-empty (`fetch-depth: 0`). Job `infection-full` (`needs: guard`, `if: should_run`): PHP 8.5 + PCOV, composer cache/install, full `./app/vendor/bin/infection --threads=max` (no git-diff flags; 80/80 from `infection.json.dist`), upload `tmp/infection/infection.json` + `summary.log` as `infection-full-report` (`if: always()`). Job `e2e-viewports` (`needs: guard`, same gate): matrix `project: [chromium-desktop, chromium-tablet, chromium-mobile]` with `PW_VIEWPORTS=all`, same E2E env as Step 10 (composer, writable dirs, Node 22, yarn install, prepared `test-config.json`, Playwright chromium cache/install), `npx playwright test --grep @ci --project=${{ matrix.project }}`; `continue-on-error: ${{ matrix.project != 'chromium-desktop' }}` + Rule-5 `# TODO: Must be refactored in Step 3.6.1 (E2E Test Suite Rework) — tablet/mobile legs non-blocking until @ci specs are viewport-robust`; `fail-fast: false`; upload JSON always + HTML on failure per project. Actions pinned by commit SHA. |
+
+Tests: none (test-writer skip — CI YAML only). Gates: Verifier PASS; Tester PASS — PHPUnit: 725 tests, 2057 assertions (5 skipped, exit 0); PHPStan: No errors (exit 0).
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -153,6 +161,7 @@ Tests: none (test-writer skip — CI YAML only). Gates: Verifier PASS; Tester PA
 - **Frontend gate: build blocks, lint advises.** Production webpack + gulp must match a release compile; ESLint/Prettier stay `continue-on-error` and diff-scoped because the tree has ~13k pre-existing style violations — a full-tree lint would always be red. Prettier is an exact-pin advisory dep only (formatting policy lands later with Step 2.4).
 - **One Playwright config, selection by tag + projects.** Smoke is `--grep @ci` on the three optimized specs; the other eight stay `test.describe.fixme` (skipped, never red) until Step 3.6.1. Viewport/browser matrices are env-composed on the same config — no duplicate smoke file, no `isMobile` (Firefox constraint). Local bare `npx playwright test <spec>` stays chromium-desktop only.
 - **E2E splits PR gate vs merge artifact.** `e2e-smoke` is the required PR context (chromium-desktop + `@ci` only); `e2e-merge` runs the same selection on push so `quality-collect` gets a develop-tip JSON report without bloating the PR job. Install happens via the web UI in the installation spec — CI must not pre-run `php pagekit setup`. Example config alone is not enough: the job fills real admin credentials + `127.0.0.1:8080` origin so the connectivity precheck and installer accept the file.
+- **Nightly is guarded, full Infection, and viewport-split.** Idle repos skip the expensive jobs via a 24h `git log` window (`workflow_dispatch` bypasses). Full-suite Infection (no `--git-diff-*`) feeds the snapshot MSI blend; tablet/mobile E2E legs stay non-blocking until Step 3.6.1 makes `@ci` specs viewport-robust — desktop remains the hard signal (`fail-fast: false` so all three legs always report).
 
 ---
 
@@ -164,7 +173,7 @@ None (CI / agent-rule rename only; no extension or runtime API change).
 
 ## ⚠️ Risks & Rollout Notes
 
-Collector + sticky report `workflow_run` triggers fire only from the default-branch copy — first live collect/dispatch is post-merge (or manual `workflow_dispatch`). With `e2e.yml` present, publish can proceed once both PHP Tests and E2E merge runs are green on develop. New required contexts `infection-diff`, `e2e-smoke`, and `frontend` need a develop ruleset admin add (Manual Work) — Infection lands green on out-of-scope PRs via the early-exit path; Frontend is always a full build on every PR; E2E smoke is chromium-desktop `@ci` only. Callers of `playwright.smoke.config.js` or `--project=chromium` must switch to `--grep @ci` / `--project=chromium-desktop`. Quarantined specs report as skipped until Step 3.6.1.
+Collector + sticky report `workflow_run` triggers fire only from the default-branch copy — first live collect/dispatch is post-merge (or manual `workflow_dispatch`). With `e2e.yml` present, publish can proceed once both PHP Tests and E2E merge runs are green on develop. New required contexts `infection-diff`, `e2e-smoke`, and `frontend` need a develop ruleset admin add (Manual Work) — Infection lands green on out-of-scope PRs via the early-exit path; Frontend is always a full build on every PR; E2E smoke is chromium-desktop `@ci` only. Callers of `playwright.smoke.config.js` or `--project=chromium` must switch to `--grep @ci` / `--project=chromium-desktop`. Quarantined specs report as skipped until Step 3.6.1. `nightly.yml` also runs only from the default branch (schedule + `workflow_dispatch` for post-merge proof); Infection full MSI stays null in the snapshot until the first green Nightly; record tablet/mobile failures from the first dispatch under Manual Work.
 
 ---
 
@@ -183,7 +192,7 @@ Deleted `.github/workflows/php-quality.yml` in the same step as the new `php-tes
 ## ✅ Verification (links only)
 
 - CI run: _TBD_
-- Notable deviations: None (Steps 1–10)
+- Notable deviations: None (Steps 1–11)
 
 ---
 
