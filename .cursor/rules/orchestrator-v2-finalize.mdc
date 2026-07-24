@@ -133,13 +133,12 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
 > triggered explicitly with a `bugbot run` comment on the PR (step 4). Review rules: `.cursor/BUGBOT.md`.
 
 1. **Push + PR** — `git push -u origin HEAD`; `gh pr create --base <base branch from your launch prompt>`
-   with the `<!-- metadata -->` block (labels, milestone, `Closes #XXX`). This triggers the PHP Quality CI.
-2. **CI quality gate** — wait on the PHP Quality CI run for this branch yourself (a watch, not a test —
-   no tester needed):
+   with the `<!-- metadata -->` block (labels, milestone, `Closes #XXX`). This triggers the PR CI checks.
+2. **CI quality gate** — wait on the PR's status checks for this branch yourself (a watch, not a test —
+   no tester needed). `gh pr checks` covers every required gate (the PHP Tests jobs, `infection-diff`,
+   `e2e-smoke`, `frontend`) rather than a single workflow:
    ```bash
-   RUN_ID=$(gh run list --branch "$(git branch --show-current)" \
-     --workflow "PHP Quality" --limit 1 --json databaseId --jq '.[0].databaseId')
-   gh run watch "$RUN_ID" --exit-status
+   gh pr checks <pr> --watch --fail-fast
    ```
    FAIL → fix-loop spawn order (production path above), commit, push, re-watch until green.
 3. **Coverage gap pass** (optional advisory; after CI green, before Bugbot) — Codecov posts a per-PR

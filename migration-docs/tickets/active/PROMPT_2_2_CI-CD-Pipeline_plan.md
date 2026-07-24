@@ -57,7 +57,7 @@
      (same numbers + short titles). Size hint per step: S = small/atomic, M = medium,
      L = large or loop-risk. A step orchestrator flips its box to [x] in the SAME commit as that
      step's code + tests (after full step PASS incl. test-writer when applicable) -->
-- [ ] Step 1 (M) — php-quality.yml → php-tests.yml + PR/merge split + rename consumers
+- [x] Step 1 (M) — php-quality.yml → php-tests.yml + PR/merge split + rename consumers
 - [ ] Step 2 (M) — MySQL leg: phpunit-mysql.xml.dist + non-blocking service job
 - [ ] Step 3 (S) — Version SSoT guard script + job
 - [ ] Step 4 (M) — quality-report.yml sticky PR comment scaffold

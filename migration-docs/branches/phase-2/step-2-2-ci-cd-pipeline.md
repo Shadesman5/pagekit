@@ -21,25 +21,31 @@ _TBD_
 
 ## ✅ What Changed
 
-### <Theme> (Checklist Steps N–M)
+### php-quality.yml → php-tests.yml + rename consumers (Checklist Step 1)
 
 | File | Change |
 |---|---|
-| `path/to/file.php` | _TBD_ |
- 
-_TBD_
+| `.github/workflows/php-tests.yml` | New workflow `name: PHP Tests`. Same four required job names (`phpunit (${{ matrix.php }})` matrix `['8.5']`, `phpstan`, `cs-fixer`, `security-audit`). PR/merge split: `cs-fixer` + `security-audit` run only on `pull_request`; `phpunit` + `phpstan` on both. Artifacts: JUnit (`junit.xml`), keep Clover; PHPStan JSON report upload. Cache includes `.phpunit.cache`. Push `paths-ignore` adds `.github/quality/**`. Coverage floor `MIN_LINE_COVERAGE: '3.8'` + pins unchanged. |
+| `.github/workflows/php-quality.yml` | Deleted (No Mercy rename). |
+| `codecov.yml` | Comment path → `.github/workflows/php-tests.yml`. |
+| `.cursor/rules/orchestrator-v2-finalize.mdc` | CI gate → `gh pr checks <pr> --watch --fail-fast` (dropped `--workflow "PHP Quality"` lookup). |
+| `.cursor/rules/orchestrator-subagent-workflow.mdc` | Early Push / Final Test prose → PHP Tests / `gh pr checks`. |
+| `.cursor/agents/architect.md` | Finalize line → waits on PR checks via `gh pr checks <pr> --watch`. |
+
+Tests: none (test-writer skip — CI YAML + rules/docs only). Gates: Verifier PASS; Tester PASS.
 
 ---
 
 ## 🧠 Key Decisions (Rationale)
 
-_TBD / None_
+- **Required checks stay job-name-bound.** Workflow file/`name:` changed to PHP Tests; job `name:` values left byte-identical so the develop ruleset contexts (`phpunit (8.5)`, `phpstan`, `cs-fixer`, `security-audit`) do not orphan.
+- **CI watch is PR-wide.** Finalize consumers switched from a single-workflow `gh run list --workflow "PHP Quality"` to `gh pr checks … --watch` so later gates (Infection / E2E / Frontend) are covered without another rename pass.
 
 ---
 
 ## ⚠️ Breaking Changes (Extensions)
 
-_TBD_
+None (CI / agent-rule rename only; no extension or runtime API change).
 
 ---
 
@@ -51,20 +57,20 @@ _TBD / None_
 
 ## 🔐 Security & Data Impact
 
-_TBD / None_
+None (permissions, Codecov OIDC, and least-privilege scopes carried over unchanged).
 
 ---
 
 ## 🛡️ No-Mercy Compliance
 
-_TBD_
+Deleted `.github/workflows/php-quality.yml` in the same step as the new `php-tests.yml` — no dual-workflow shim.
 
 ---
 
 ## ✅ Verification (links only)
 
 - CI run: _TBD_
-- Notable deviations: _TBD / None_
+- Notable deviations: None (Step 1)
 
 ---
 

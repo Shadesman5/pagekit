@@ -1,14 +1,17 @@
-name: PHP Quality
+name: PHP Tests
 
-run-name: "${{ github.event_name == 'pull_request' && format('PHP Quality — PR #{0} ({1})', github.event.pull_request.number, github.head_ref) || format('PHP Quality — {0}', github.ref_name) }}"
+run-name: "${{ github.event_name == 'pull_request' && format('PHP Tests — PR #{0} ({1})', github.event.pull_request.number, github.head_ref) || format('PHP Tests — {0}', github.ref_name) }}"
 
 on:
   push:
     branches: [main, develop]
-    # Conductor session metrics live on conductor-metrics (not develop). Keep ignore as
-    # defense in depth if a metrics path ever appears on develop again.
+    # Conductor session metrics live on conductor-metrics and the live quality
+    # snapshot lives on quality-data — neither is produced on main/develop. Keep
+    # both ignores as defense in depth so a metrics-only path change never spends
+    # a CI run on a protected branch.
     paths-ignore:
       - '.github/conductor/metrics/**'
+      - '.github/quality/**'
   pull_request:
     branches: [main, develop]
     paths-ignore:
@@ -46,10 +49,12 @@ jobs:
           coverage: pcov
           tools: composer:v2
 
-      - name: Cache Composer dependencies (app/vendor)
+      - name: Cache Composer dependencies (app/vendor) and the PHPUnit result cache
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
-          path: app/vendor
+          path: |
+            app/vendor
+            .phpunit.cache
           key: ${{ runner.os }}-php-${{ matrix.php }}-composer-${{ hashFiles('composer.lock') }}
           restore-keys: |
             ${{ runner.os }}-php-${{ matrix.php }}-composer-
@@ -61,7 +66,7 @@ jobs:
         run: mkdir -p tmp/logs tmp/cache tmp/temp tmp/packages storage
 
       - name: Run PHPUnit with coverage
-        run: ./app/vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml
+        run: ./app/vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml --log-junit=junit.xml
 
       - name: Upload coverage artifact
         if: matrix.php == '8.5'
@@ -71,17 +76,25 @@ jobs:
           path: coverage.xml
           if-no-files-found: error
 
-      # Codecov upload (Step 2.1.9, §4.3) — feeds the README badge and per-PR
-      # coverage-delta comments off the same Clover report. Kept NON-BLOCKING
-      # (fail_ci_if_error: false) so the quality gate never depends on Codecov
-      # availability. Authenticates TOKENLESS via OIDC (use_oidc: true) — no
-      # CODECOV_TOKEN secret to manage or rotate; relies on the job-level
-      # id-token: write permission set above. EXTERNAL ACTIVATION REQUIRED: a
-      # human must still install the Codecov GitHub App on Shadesman5/pagekit so
-      # the repo is registered on Codecov (enables the badge + PR delta comments).
-      # Note: OIDC is unavailable for PRs from forks — those fall back to the
-      # public-repo tokenless path or simply no-op (non-blocking). See
-      # migration-docs/branches/phase-2/step-2-1-9-test-coverage-expansion.md.
+      # JUnit report feeds the sticky PR comment / quality snapshot renderers.
+      # always() so a failing suite still reports its per-test results.
+      - name: Upload JUnit report artifact
+        if: always() && matrix.php == '8.5'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: junit
+          path: junit.xml
+          if-no-files-found: warn
+
+      # Codecov upload — feeds the README badge and per-PR coverage-delta comments
+      # off the same Clover report. Kept NON-BLOCKING (fail_ci_if_error: false) so
+      # the quality gate never depends on Codecov availability. Authenticates
+      # TOKENLESS via OIDC (use_oidc: true) — no CODECOV_TOKEN secret to manage or
+      # rotate; relies on the job-level id-token: write permission set above.
+      # EXTERNAL ACTIVATION REQUIRED: a human must still install the Codecov GitHub
+      # App on Shadesman5/pagekit so the repo is registered on Codecov (enables the
+      # badge + PR delta comments). Note: OIDC is unavailable for PRs from forks —
+      # those fall back to the public-repo tokenless path or simply no-op (non-blocking).
       - name: Upload coverage to Codecov
         if: matrix.php == '8.5'
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
@@ -91,13 +104,12 @@ jobs:
           fail_ci_if_error: false
           use_oidc: true
 
-      # Ratcheting minimum line-coverage gate (Step 2.1.9, §4.2). The floor is
-      # pinned to this branch's measured line coverage after Steps 1-11 landed:
-      # 3.86% (1833/47535 statements, PCOV 1.0.11 / PHP 8.3.6, 2026-07-09),
-      # rounded DOWN to 3.8% for float jitter. CI and local agents both use PCOV.
-      # Policy: ratchet MIN_LINE_COVERAGE UP as coverage grows, NEVER lower it.
-      # Plain PHP parse of the Clover <project><metrics> node — no extra tooling required.
-      # Provenance recorded in migration-docs/branches/phase-2.
+      # Ratcheting minimum line-coverage gate. The floor is pinned to this branch's
+      # measured line coverage: 3.86% (1833/47535 statements, PCOV 1.0.11 / PHP
+      # 8.3.6, 2026-07-09), rounded DOWN to 3.8% for float jitter. CI and local
+      # agents both use PCOV. Policy: ratchet MIN_LINE_COVERAGE UP as coverage
+      # grows, NEVER lower it. Plain PHP parse of the Clover <project><metrics>
+      # node — no extra tooling required.
       - name: Enforce minimum line coverage
         if: matrix.php == '8.5'
         env:
@@ -159,9 +171,25 @@ jobs:
       - name: Run PHPStan (Level 8 + baseline)
         run: ./app/vendor/bin/phpstan analyse --no-progress --error-format=github
 
+      # Machine-readable copy for the sticky PR comment / quality snapshot renderers.
+      # PHPStan reuses its result cache, so this re-render is near-instant; || true
+      # keeps the artifact step green because the github-format run above is the gate.
+      - name: Generate PHPStan JSON report
+        if: always()
+        run: ./app/vendor/bin/phpstan analyse --no-progress --error-format=json > phpstan.json || true
+
+      - name: Upload PHPStan report artifact
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: phpstan-report
+          path: phpstan.json
+          if-no-files-found: warn
+
   cs-fixer:
     name: cs-fixer
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
     steps:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
@@ -193,6 +221,7 @@ jobs:
   security-audit:
     name: security-audit
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
     steps:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
