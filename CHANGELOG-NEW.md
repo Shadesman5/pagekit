@@ -5,7 +5,7 @@
 ### Added
 
 - **PHP Tests workflow** — `.github/workflows/php-tests.yml` replaces `php-quality.yml` (same required job names). PR/merge split (`cs-fixer` / `security-audit` on PR only); JUnit + PHPStan JSON artifacts; advisory `phpunit-mysql` leg (`phpunit-mysql.xml.dist` + `mysql:8.4`); PR-only `version-ssot` guard (`.github/scripts/check-version-ssot.php`). (Closes #157)
-- **Infection / Frontend / E2E PR gates** — `infection.yml` (`infection-diff`, git-diff MSI, out-of-scope early green); `frontend.yml` (blocking webpack+gulp, advisory diff-scoped ESLint/Prettier); `e2e.yml` (`e2e-smoke` on PR, `e2e-merge` on push for snapshot feed).
+- **Infection / Frontend / E2E PR gates** — `infection.yml` (`infection-diff`, git-diff MSI, out-of-scope early green); `frontend.yml` (blocking webpack+gulp, advisory diff-scoped ESLint/Prettier); `e2e.yml` (`e2e-smoke` on PR — opt-in via `E2E_SMOKE_PR_ENABLED`, dormant by default; `e2e-merge` on push for snapshot feed).
 - **Nightly + E2E Weekly** — `nightly.yml` (24h guard, full Infection, chromium desktop/tablet/mobile with tablet/mobile non-blocking); `e2e-weekly.yml` (dispatch-first 9-browser/viewport sweep; cron gated by `E2E_WEEKLY_ENABLED`).
 - **Quality report + live snapshot** — `quality-report.yml` sticky PR comment; `quality-collect.yml` writes schema-v2 snapshot to unprotected `quality-data`; `pages-deploy.yml` overlays it onto the docs-site dashboard.
 - **Playwright selection model** — `@ci` tags on three smoke specs; eight specs `test.describe.fixme`; env-composed projects (`PW_VIEWPORTS` / `PW_BROWSERS`); `playwright.smoke.config.js` deleted.
@@ -27,14 +27,14 @@
 
 ### Deferred
 
-- PHPUnit suite DB-portable + flip `phpunit-mysql` to required → Step 2.9.
-- Lift E2E `fixme` quarantine / viewport-robust `@ci` specs (drop non-blocking Nightly/Weekly legs) → Step 3.6.1.
-- Final Prettier/formatting policy → Step 2.4; Docker redesign → Step 2.3.
+- PHPUnit suite DB-portable + flip `phpunit-mysql` to required → Step 2.10.
+- Lift E2E `fixme` quarantine / viewport-robust `@ci` specs (drop non-blocking Nightly/Weekly legs), then activate + require `e2e-smoke` → Step 3.6.1.
+- Final Prettier/formatting policy → Step 2.4; Docker dev hygiene → Step 2.3; production image → Step 2.5.
 
 ### Maintainer action
 
-- Ruleset "Protect for Develop-Branch": add required contexts `infection-diff`, `e2e-smoke`, `frontend`.
-- Optionally set repo variable `E2E_WEEKLY_ENABLED=true`; dispatch Nightly / E2E Weekly once post-merge to prove schedules.
+- Ruleset "Protect for Develop-Branch": add required contexts `infection-diff` and `frontend`; add `e2e-smoke` only together with `E2E_SMOKE_PR_ENABLED=true`, since the job is skipped while the variable is unset.
+- Optionally set repo variables `E2E_SMOKE_PR_ENABLED=true` / `E2E_WEEKLY_ENABLED=true`; dispatch Nightly / E2E Weekly once post-merge to prove schedules.
 
 ---
 

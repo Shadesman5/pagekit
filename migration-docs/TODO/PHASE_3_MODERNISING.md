@@ -9,9 +9,9 @@
 | Track | Steps | Focus |
 | ----- | ----- | ----- |
 | **Frontend** | 3.1–3.4, 3.5, 3.5.1, 3.6, 3.6.1 | Vue 3, UIkit, TypeScript, components, admin a11y, E2E + `@axe-core/playwright` |
-| **Cross-stack** | 3.4.5, 3.4.6 | Intl platform API, transChoice → ICU, `TranslatorInterface` in service layer |
+| **Cross-stack** | 3.3.5, 3.3.6 | Intl platform API, transChoice → ICU, `TranslatorInterface` in service layer |
 
-> **Note:** Template-facing globals (`__()`, `_i()`, `$date`, `$number`) **stay** — they are the Pagekit **platform DX API**, not legacy debt. See ROADMAP § DX & Lightweight Philosophy and Step 3.4.6 decision below.
+> **Note:** Template-facing globals (`__()`, `_i()`, `$date`, `$number`) **stay** — they are the Pagekit **platform DX API**, not legacy debt. See ROADMAP § DX & Lightweight Philosophy and Step 3.3.6 decision below.
 
 > **Analysis Result (2026-02-11):** All frontend dependencies were analyzed in depth:
 >
@@ -37,13 +37,13 @@
 
 | Package             | Version          | Status                                 | Action in Phase 3                                               |
 | ------------------- | ---------------- | -------------------------------------- | --------------------------------------------------------------- |
-| `vue`               | ~2.6.12          | Legacy                                 | → Vue 3.x (Step 3.2 + 3.4)                                      |
-| `vue-resource`      | ~1.5.1           | Archived, Vue-3-incompatible           | → `axios` (Step 3.4.1)                                          |
-| `vue-event-manager` | ~2.1.3           | Archived, Vue-3-incompatible           | → `mitt` (Step 3.4.2)                                           |
-| `vue-intl`          | uatrend/vue-intl | Community fork, custom AngularJS logic | → **Delete & rewrite** with native `Intl` API (Step 3.4.5)      |
-| `vue-nestable`      | ~2.6.0           | Hierarchical page tree                 | → Vue 3 tree alternative (Step 3.4.5) — **NOT UIkit sortable!** |
-| `vee-validate`      | ~3.3.11          | Validation                             | → `vee-validate` v4 (Vue 3 Composition API) (Step 3.4.5)        |
-| `lodash`            | ~4.17.21         | 24/300+ functions in 65+ files         | → Native ES2020+ + `utils.js` (~1 KB) (Step 3.4.5)              |
+| `vue`               | ~2.6.12          | Legacy                                 | → Vue 3.x (Step 3.2 + 3.3)                                      |
+| `vue-resource`      | ~1.5.1           | Archived, Vue-3-incompatible           | → `axios` (Step 3.3.1)                                          |
+| `vue-event-manager` | ~2.1.3           | Archived, Vue-3-incompatible           | → `mitt` (Step 3.3.2)                                           |
+| `vue-intl`          | uatrend/vue-intl | Community fork, custom AngularJS logic | → **Delete & rewrite** with native `Intl` API (Step 3.3.5)      |
+| `vue-nestable`      | ~2.6.0           | Hierarchical page tree                 | → Vue 3 tree alternative (Step 3.3.5) — **NOT UIkit sortable!** |
+| `vee-validate`      | ~3.3.11          | Validation                             | → `vee-validate` v4 (Vue 3 Composition API) (Step 3.3.5)        |
+| `lodash`            | ~4.17.21         | 24/300+ functions in 65+ files         | → Native ES2020+ + `utils.js` (~1 KB) (Step 3.3.5)              |
 
 ---
 
@@ -95,20 +95,7 @@
 
 ---
 
-## Step 3.3: TypeScript Integration
-
-- **Goal**: Gradually introduce TypeScript into the frontend
-- **Tasks**:
-  - Configure `tsconfig.json` (strict mode)
-  - Extend Webpack/build pipeline for `.ts` files
-  - Define shared API types (generated from PHP backend routes)
-  - Write new composables/utilities in TypeScript
-  - Gradually type existing components (not all at once!)
-- **Strategy**: Enforce TypeScript for new files, gradually migrate existing `.js` files
-
----
-
-## Step 3.4: Vue 3 Migration (MAJOR!)
+## Step 3.3: Vue 3 Migration (MAJOR!)
 
 - **Goal**: Vue 2.7 → Vue 3.x (including replacement of all Vue-2-only dependencies)
 - **Prerequisite**: Step 3.2 (Vue 2.7 Bridge) MUST be completed!
@@ -121,7 +108,7 @@
 
 ---
 
-### Step 3.4.1: HTTP Client Migration (vue-resource → axios)
+### Step 3.3.1: HTTP Client Migration (vue-resource → axios)
 
 - **Effort**: High (~32 files + 4 interceptor modules)
 - **Goal**: Completely replace `vue-resource` with `axios`
@@ -144,7 +131,7 @@
 
 ---
 
-### Step 3.4.2: Event System Migration (vue-event-manager → mitt)
+### Step 3.3.2: Event System Migration (vue-event-manager → mitt)
 
 - **Effort**: Medium (~14 files)
 - **Goal**: Completely replace `vue-event-manager` with `mitt` + composable
@@ -163,7 +150,7 @@
 
 ---
 
-### Step 3.4.3: Vue 3 Core Migration
+### Step 3.3.3: Vue 3 Core Migration
 
 - **Goal**: Vue 2.7 → Vue 3.x with migration build
 - **Tasks**:
@@ -180,7 +167,7 @@
 
 ---
 
-### Step 3.4.4: State Management (Pinia)
+### Step 3.3.4: State Management (Pinia)
 
 - **Goal**: Introduce Pinia as the official state manager
 - **Why**: Pagekit currently does not use Vuex, but state is distributed across various patterns
@@ -189,11 +176,11 @@
   - Install and configure Pinia
   - Create central stores: Auth Store, Site Store, Notification Store
   - Migrate `window.$pagekit` configuration → Pinia store
-  - Long-term: Replace event bus save flows with store actions (optional, after 3.4.2)
+  - Long-term: Replace event bus save flows with store actions (optional, after 3.3.2)
 
 ---
 
-### Step 3.4.5: Additional Dependency Updates
+### Step 3.3.5: Additional Dependency Updates
 
 - **Goal**: Update all remaining Vue-2-only dependencies
 - **Important**: Some APIs are **platform APIs for extensions** (Formmaker, Listings, Events, etc.)
@@ -220,7 +207,7 @@
   - **NOT replaceable by UIkit sortable!** (sortable = flat lists, nestable = tree structure)
   - UIkit sortable is used separately (widgets, dashboard, roles) — different purpose!
   - Options: `@he-tree/vue` (Vue 3), custom tree component, or vue-nestable fork
-  - **Drag-handle UX rework (admin page list) — added 2026-06-30:** Move the drag from the whole row to a dedicated left-side handle icon (as the mobile view already does) and stop the row/`.check-item` click from toggling selection. Removes the cosmetic "select-then-deselect" flicker on desktop reorder — a stray native `click` fires at drag-end and hits the `.check-item` click handler in `app/system/app/directives/check-all.js` (the up-vs-down asymmetry depends on whether mousedown+mouseup land on the same element). Also touches the `check-all` directive (reworked in 3.4.3). Discovered 2026-06-30 during the routing-cache fix.
+  - **Drag-handle UX rework (admin page list) — added 2026-06-30:** Move the drag from the whole row to a dedicated left-side handle icon (as the mobile view already does) and stop the row/`.check-item` click from toggling selection. Removes the cosmetic "select-then-deselect" flicker on desktop reorder — a stray native `click` fires at drag-end and hits the `.check-item` click handler in `app/system/app/directives/check-all.js` (the up-vs-down asymmetry depends on whether mousedown+mouseup land on the same element). Also touches the `check-all` directive (reworked in 3.3.3). Discovered 2026-06-30 during the routing-cache fix.
   - Effort: Low (3 files)
 
 - **`lodash`** (~4.17.21) → Native ES2020+ APIs + small utility file:
@@ -244,12 +231,12 @@
 
 ---
 
-### Step 3.4.6: Translation System Modernization
+### Step 3.3.6: Translation System Modernization
 
-- **Goal**: Migrate frontend translation and formatting to the native Intl API (see vue-intl → Intl in 3.4.5) **and** complete backend translation alignment in one step (ICU migration + service-layer DI).
+- **Goal**: Migrate frontend translation and formatting to the native Intl API (see vue-intl → Intl in 3.3.5) **and** complete backend translation alignment in one step (ICU migration + service-layer DI).
 - **Content**: Formal bundling of the Intl platform API ($date, $number, $currency, $relativeDate); remove legacy plural bridges; inject `TranslatorInterface` in DI-capable PHP — template-facing global helpers `__()`/`_i()` stay (see keep-vs-remove decision below).
 - **Prerequisite**: Step 2.0.2 (Validator-Translator Integration) — translator is already in the container.
-- **Order**: Interleaved with 3.4.5 in implementation; single ROADMAP sub-step **3.4.6** (one ticket / one pipeline run).
+- **Order**: Interleaved with 3.3.5 in implementation; single ROADMAP sub-step **3.3.6** (one ticket / one pipeline run).
 - **Tasks (identified from 2.1.1 review):**
   - **Decision — keep vs. remove global functions** (best practice): global translation helpers are the legitimate DX API for **DI-less PHP templates/themes**, analogous to the `$date`/`$number` platform API. **Keep** `__()` (alias for `trans()`) and `_i()` (ICU MessageFormat), plus the `IntlServiceLocator` DI-glue that backs them (permanent — not a bridge to remove). **Remove** only the legacy `_c()` / `transChoice` plural bridge (below). The "no global functions" goal applies to **service/domain code** — there, inject `TranslatorInterface`. So this step _narrows_ the translation API, it does not delete the template-facing helpers.
   - **Remove transChoice (PHP + Vue):**
@@ -266,10 +253,10 @@
   - **ICU Frontend Support:**
     - Implement Vue equivalent `$transICU()` in `app/system/app/lib/trans.js` (PHP-side `_i()` already exists)
   - **Translation-key extraction (optional, low priority):**
-    - Extend `app/console/src/NodeVisitor/PhpNodeVisitor.php` to also extract message keys from PHP 8 `#[Assert\...]` attributes (the visitor currently only handles `__`, `_c`, `trans`, `transChoice` function calls). Feeds the `ExtensionTranslateCommand` extraction pipeline. (Routed from repo TODO inventory §2; carries a canonical `Step 3.4.6` TODO comment in the source.)
-    - Extend the JS/Vue extraction in `app/console/src/Commands/ExtensionTranslateCommand.php` to honour the optional **domain** argument of `$trans()/$transChoice()` calls. The current regex only captures the message id and hardcodes the `'messages'` domain, so custom-domain strings in `.js` files (where the `| trans` filter is unavailable) are extracted into the wrong `.pot`. Best solved with a JS AST (mirroring `PhpNodeVisitor` on the PHP side). (Routed from repo TODO inventory §3; carries a canonical `Step 3.4.6` TODO comment in the source.)
+    - Extend `app/console/src/NodeVisitor/PhpNodeVisitor.php` to also extract message keys from PHP 8 `#[Assert\...]` attributes (the visitor currently only handles `__`, `_c`, `trans`, `transChoice` function calls). Feeds the `ExtensionTranslateCommand` extraction pipeline. (Routed from repo TODO inventory §2; carries a canonical `Step 3.3.6` TODO comment in the source.)
+    - Extend the JS/Vue extraction in `app/console/src/Commands/ExtensionTranslateCommand.php` to honour the optional **domain** argument of `$trans()/$transChoice()` calls. The current regex only captures the message id and hardcodes the `'messages'` domain, so custom-domain strings in `.js` files (where the `| trans` filter is unavailable) are extracted into the wrong `.pot`. Best solved with a JS AST (mirroring `PhpNodeVisitor` on the PHP side). (Routed from repo TODO inventory §3; carries a canonical `Step 3.3.6` TODO comment in the source.)
   - **Replace forked Intl loaders with Symfony built-ins:**
-    - Pagekit ships forks of Symfony's `ArrayLoader` / `PoFileLoader` / `MoFileLoader` in `app/system/modules/intl/src/Loader/`. The fork exists only to massage gettext plurals into Pagekit's legacy `|`-separated / `{N}`-prefixed `transChoice` format. Once transChoice → ICU lands (above), drop the forks and use `Symfony\Component\Translation\Loader\{Po,Mo}FileLoader` — which also support `msgctxt` contexts + catalogue metadata that the fork silently drops (resolves the canonical `Step 3.4.6` TODO in `PoFileLoader::parse()`). (Routed from repo TODO inventory §3.)
+    - Pagekit ships forks of Symfony's `ArrayLoader` / `PoFileLoader` / `MoFileLoader` in `app/system/modules/intl/src/Loader/`. The fork exists only to massage gettext plurals into Pagekit's legacy `|`-separated / `{N}`-prefixed `transChoice` format. Once transChoice → ICU lands (above), drop the forks and use `Symfony\Component\Translation\Loader\{Po,Mo}FileLoader` — which also support `msgctxt` contexts + catalogue metadata that the fork silently drops (resolves the canonical `Step 3.3.6` TODO in `PoFileLoader::parse()`). (Routed from repo TODO inventory §3.)
   - **TranslatorInterface in service layer** (same step — backend alignment):
     - Replace `use function Pagekit\__;` in **DI-capable** PHP with constructor-injected `Symfony\Contracts\Translation\TranslatorInterface`
     - **Keep** `__()` / `_i()` in: PHP view templates, mail templates, theme helper functions, any path without DI (same rule as `$date` / `$number` platform API)
@@ -281,10 +268,24 @@
 
 ---
 
+## Step 3.4: TypeScript Integration
+
+- **Goal**: Gradually introduce TypeScript into the frontend
+- **Prerequisite**: Step 3.3 (Vue 3 Migration) — type the modern Composition-API components rather than the legacy Vue 2 ones
+- **Tasks**:
+  - Configure `tsconfig.json` (strict mode)
+  - Extend the Vite/build pipeline for `.ts` files
+  - Define shared API types (generated from PHP backend routes)
+  - Write new composables/utilities in TypeScript
+  - Gradually type existing components (not all at once!)
+- **Strategy**: Enforce TypeScript for new files, gradually migrate existing `.js` files
+
+---
+
 ## Step 3.5: Component Library
 
 - **Goal**: Reusable Vue 3 component library for Pagekit Admin
-- **Prerequisite**: Step 3.4 (Vue 3 Migration) must be completed!
+- **Prerequisite**: Step 3.3 (Vue 3 Migration) must be completed!
 - **Components**:
   - Design system based on UIkit 3.21+ tokens
   - Admin UI components (VModal, VPagination, VLoader, InputFilter, etc. — already existing, modernize)
@@ -316,7 +317,7 @@
   - Add `data-testid` to critical flows (login, admin navigation, central forms)
   - Gradually migrate E2E specs to `getByTestId('…')`
   - Document convention (e.g., in `tests/e2e/README.md`)
-- **Can run in parallel with 3.4/3.5** when templates/components are being worked on anyway
+- **Can run in parallel with 3.3/3.5** when templates/components are being worked on anyway
 
 ---
 
@@ -332,7 +333,8 @@
   - Fix flaky setup/teardown and align with the clean-state handling documented in `.cursor/agents/tester.md`.
   - Lift the CI quarantine as each spec is reworked: remove its `test.describe.fixme` marker and tag it `@ci` so the tag-driven pipelines (PR smoke, merge, nightly) pick it up automatically — spec selection is tags + Playwright projects, never per-pipeline spec copies.
   - Make the `@ci` specs viewport-robust (tablet/mobile Playwright projects), so the nightly viewport legs and the weekly cross-browser sweep can drop their non-blocking `continue-on-error` status. Why: desktop-only specs leave responsive admin/frontend regressions invisible.
+  - Activate the PR smoke gate once the reworked `@ci` set is worth blocking on: set repo variable `E2E_SMOKE_PR_ENABLED=true` (the `e2e-smoke` job in `e2e.yml` is dormant without it) and add `e2e-smoke` to the develop ruleset as a required context — variable and ruleset entry must be flipped together, or the required context waits on a job that never runs.
   - Expand the Orchestrator/Tester end-of-ticket E2E set beyond the current 3 once the reworked specs are stable.
   - Integrate `@axe-core/playwright` (MPL-2.0) into critical-flow specs (login, dashboard, node editor); report-only until Step 4.0
   - All specs green locally; document the convention in `tests/e2e/README.md`.
-- **Risk**: Medium — broad E2E surface; orthogonal to the PHP test-coverage work in 2.1.9 / 2.9.
+- **Risk**: Medium — broad E2E surface; orthogonal to the PHP test-coverage work in 2.1.9 / 2.10.

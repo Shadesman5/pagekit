@@ -15,7 +15,7 @@
 
 ## 🎯 Overview
 
-Replaces the single PHP Quality workflow with a full PR/merge CI surface: **PHP Tests** (rename + PR/merge split, advisory MySQL leg, version SSoT), plus Infection-diff, Frontend build, and E2E `@ci` smoke; Nightly (full Infection + viewport matrix) and dispatch-first E2E Weekly; sticky quality-report comments and live `quality-data` snapshot collection for the docs-site dashboard (8.5 keys). Playwright selection is tags + env-composed projects (`playwright.smoke.config.js` deleted). Agent/branch-doc handoffs stay PASS/FAIL-only — metrics live in the sticky comment and dashboard.
+Replaces the single PHP Quality workflow with a full PR/merge CI surface: **PHP Tests** (rename + PR/merge split, advisory MySQL leg, version SSoT), plus Infection-diff, Frontend build, and E2E `@ci` smoke (PR leg opt-in via repo variable, see Post-Finalize adjustments); Nightly (full Infection + viewport matrix) and dispatch-first E2E Weekly; sticky quality-report comments and live `quality-data` snapshot collection for the docs-site dashboard (8.5 keys). Playwright selection is tags + env-composed projects (`playwright.smoke.config.js` deleted). Agent/branch-doc handoffs stay PASS/FAIL-only — metrics live in the sticky comment and dashboard.
 
 ---
 
@@ -39,7 +39,7 @@ Tests: none (test-writer skip — CI YAML + rules/docs only). Gates: Verifier PA
 | File | Change |
 |---|---|
 | `phpunit-mysql.xml.dist` | New PHPUnit config: duplicate of `phpunit.xml.dist` plus `<php><var>` block with all 12 `db_*`/`tmpdb_*` globals (`pdo_mysql`, host `127.0.0.1`, port `3306`, db `pagekit_test`, tmpdb `mysql`, root/root). |
-| `.github/workflows/php-tests.yml` | New job `phpunit-mysql` (PR + push): `mysql:8.4` service + `mysqladmin ping` healthcheck, PHP 8.5 + `pdo_mysql`, composer cache/install, `./app/vendor/bin/phpunit -c phpunit-mysql.xml.dist` (no coverage). `continue-on-error: true` + Rule-5 `# TODO: Must be refactored in Step 2.9 (Phase 2 Closeout) — flip to required once the suite is DB-portable`. Required `phpunit (8.5)` job untouched. |
+| `.github/workflows/php-tests.yml` | New job `phpunit-mysql` (PR + push): `mysql:8.4` service + `mysqladmin ping` healthcheck, PHP 8.5 + `pdo_mysql`, composer cache/install, `./app/vendor/bin/phpunit -c phpunit-mysql.xml.dist` (no coverage). `continue-on-error: true` + Rule-5 `# TODO: Must be refactored in Step 2.10 (Phase 2 Closeout) — flip to required once the suite is DB-portable`. Required `phpunit (8.5)` job untouched. |
 
 Tests: none (test-writer skip — CI YAML + PHPUnit XML only; MySQL not available in VM). Gates: Verifier PASS; Tester PASS.
 
@@ -175,13 +175,26 @@ Tests: none (test-writer skip — agent rules / skeleton only). Gates: Verifier 
 | `.github/scripts/quality-snapshot.mjs` | Pair PHP Tests + E2E merge runs by `head_sha` (avoids blending unrelated CI runs). Nightly Infection MSI lookup scoped to the collected branch. |
 | `.github/workflows/quality-collect.yml` | Collect scoped to `develop` only (`SNAPSHOT_BRANCH: develop`) so a main merge cannot overwrite the develop dashboard snapshot; checkout + queried runs stay aligned. |
 
+### Post-Finalize adjustments (maintainer)
+
+| File | Change |
+|---|---|
+| `.github/workflows/e2e.yml` | `e2e-smoke` is **opt-in**: job condition extended to `github.event_name == 'pull_request' && vars.E2E_SMOKE_PR_ENABLED == 'true'` — the PR smoke leg stays dormant until an admin sets the repo variable. `e2e-merge` (push) is unchanged and keeps feeding the snapshot. |
+| `.github/workflows/php-tests.yml`, `phpunit.xml.dist`, `phpunit-mysql.xml.dist`, `codecov.yml` | Rule-5 forward-debt markers repointed `Step 2.9` → `Step 2.10` after the Phase-2 renumbering (Closeout moved from 2.9 to 2.10). Comments only, no behaviour change. |
+| `packages/pagekit/blog/src/UrlResolver.php` (×4), `packages/pagekit/theme-one/functions.php`, `app/modules/routing/src/Matcher/Dumper/PhpMatcherDumper.php` | Same sweep for Extension Safety: `Step 2.5` → `Step 2.7`. The bridge/refactor targets themselves are unchanged and stay listed under PHASE §2.7. Comments only. |
+| `migration-docs/TODO/PHASE_3_MODERNISING.md` | §3.6.1 task list gains the PR-smoke activation (`E2E_SMOKE_PR_ENABLED` + required context, flipped together). |
+| `migration-docs/TODO/PHASE_2_MODERNISING.md` | §2.4 gains the deferred formatting-policy decision (advisory Prettier pin from this ticket). |
+| `app/system/modules/dashboard/index.php` | `AUDIT FIX` marker repointed `Step 4.4` → `Step 2.5`: the env/secret-store mechanism now ships with the production image, so the hardcoded OpenWeatherMap key migrates there instead of waiting for REST API v2. PHASE §2.5 / §2.6 / §4.4 updated to match. Comment only. |
+
+**ROADMAP renumbering context (same commit range):** Phase 2 gained a Docker split and a resequencing — 2.3 is now *Docker Dev Experience & Image Hygiene*, the production image moved to the new **2.5 Docker Production Image & Deploy**, Filesystem Write Resilience is 2.6, Extension Safety 2.7, Automated Update 2.8, PHP 8.4+ Language & DX 2.9, and **Phase 2 Closeout is 2.10**. Phase 3 swapped 3.3/3.4 (Vue 3 Migration is 3.3 incl. 3.3.1–3.3.6, TypeScript is 3.4). E2E Test Suite Rework keeps its ID **3.6.1**, so all Playwright/Nightly/Weekly quarantine markers from this ticket stay valid.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
 
 - **Required checks stay job-name-bound.** Workflow file/`name:` changed to PHP Tests; job `name:` values left byte-identical so the develop ruleset contexts (`phpunit (8.5)`, `phpstan`, `cs-fixer`, `security-audit`) do not orphan.
 - **CI watch is PR-wide.** Finalize consumers switched from a single-workflow `gh run list --workflow "PHP Quality"` to `gh pr checks … --watch` so later gates (Infection / E2E / Frontend) are covered without another rename pass.
-- **MySQL is a separate non-blocking job.** `phpunit-mysql` never shares the required `phpunit (8.5)` context; only DbUtil consumers honor the MySQL globals today, so the leg stays advisory until Step 2.9 makes the suite DB-portable.
+- **MySQL is a separate non-blocking job.** `phpunit-mysql` never shares the required `phpunit (8.5)` context; only DbUtil consumers honor the MySQL globals today, so the leg stays advisory until Step 2.10 makes the suite DB-portable.
 - **Version SSoT is PR-only and dep-free.** Drift is a review-time concern (nothing to check on a protected-branch merge); plain PHP avoids a composer install so the job stays a cheap gate.
 - **Sticky report is additive and null-safe.** One comment per PR (marker upsert); Infection / E2E / Frontend are listed now but render "pending" until those workflows land. `workflow_run` only fires from the default branch's copy — `workflow_dispatch` is the post-merge / on-demand validation path for this ticket's PR.
 - **Live snapshot never touches develop.** Collector is the sole writer to unprotected `quality-data`; publish only when both gate merge runs are green (half-built dashboards avoided). Missing `e2e.yml` / `nightly.yml` resolve null-safe until later checklist steps. Explicit `pages-deploy` dispatch because `GITHUB_TOKEN` pushes do not re-trigger workflows.
@@ -189,10 +202,11 @@ Tests: none (test-writer skip — agent rules / skeleton only). Gates: Verifier 
 - **Infection PR gate mutates only the diff, and skips out-of-scope PRs.** `--git-diff-lines` + explicit base fetch keep the run under the small auth/user source scope; an early green exit when no scoped files changed avoids bootstrapping Infection on unrelated PRs. `infection.json.dist` thresholds (80 MSI) unchanged — full-suite Infection stays for Nightly (later checklist step).
 - **Frontend gate: build blocks, lint advises.** Production webpack + gulp must match a release compile; ESLint/Prettier stay `continue-on-error` and diff-scoped because the tree has ~13k pre-existing style violations — a full-tree lint would always be red. Prettier is an exact-pin advisory dep only (formatting policy lands later with Step 2.4).
 - **One Playwright config, selection by tag + projects.** Smoke is `--grep @ci` on the three optimized specs; the other eight stay `test.describe.fixme` (skipped, never red) until Step 3.6.1. Viewport/browser matrices are env-composed on the same config — no duplicate smoke file, no `isMobile` (Firefox constraint). Local bare `npx playwright test <spec>` stays chromium-desktop only.
-- **E2E splits PR gate vs merge artifact.** `e2e-smoke` is the required PR context (chromium-desktop + `@ci` only); `e2e-merge` runs the same selection on push so `quality-collect` gets a develop-tip JSON report without bloating the PR job. Install happens via the web UI in the installation spec — CI must not pre-run `php pagekit setup`. Example config alone is not enough: the job fills real admin credentials + `127.0.0.1:8080` origin so the connectivity precheck and installer accept the file.
+- **E2E splits PR gate vs merge artifact.** `e2e-smoke` is the opt-in PR context (chromium-desktop + `@ci` only); `e2e-merge` runs the same selection on push so `quality-collect` gets a develop-tip JSON report without bloating the PR job. Install happens via the web UI in the installation spec — CI must not pre-run `php pagekit setup`. Example config alone is not enough: the job fills real admin credentials + `127.0.0.1:8080` origin so the connectivity precheck and installer accept the file.
 - **Nightly is guarded, full Infection, and viewport-split.** Idle repos skip the expensive jobs via a 24h `git log` window (`workflow_dispatch` bypasses). Full-suite Infection (no `--git-diff-*`) feeds the snapshot MSI blend; tablet/mobile E2E legs stay non-blocking until Step 3.6.1 makes `@ci` specs viewport-robust — desktop remains the hard signal (`fail-fast: false` so all three legs always report).
 - **Weekly sweep is dispatch-first and cron-dormant.** Scheduled runs require repo var `E2E_WEEKLY_ENABLED=true` plus a 7-day commit window; `workflow_dispatch` always proceeds. Full 9-leg matrix (`PW_BROWSERS=all` + `PW_VIEWPORTS=all`) with no `--grep` so fixme quarantine stays skipped-not-failed; only `chromium-desktop` is blocking until Step 3.6.1. Cron sits at Sunday 03:00 UTC (clear of Nightly 02:00). Enabling the var is Manual Work — not flipped in this ticket.
 - **Quality metrics stay in CI, not agent docs.** Branch docs and Orchestrator↔subagent handoffs are PASS/FAIL (+ one-line deviations); coverage/MSI/counts live in the sticky quality-report comment and the quality dashboard. Agents must not re-paste numbers into branch docs or chat handoffs.
+- **The PR smoke leg is opt-in, like the weekly sweep.** `e2e-smoke` costs a full PHP + Node + Playwright bootstrap on *every* PR, while the quarantined suite means it currently proves only three specs. Gating the job on `vars.E2E_SMOKE_PR_ENABLED == 'true'` keeps that cost off doc/CI-only PRs and lets the maintainer switch the gate on when the `@ci` set is worth blocking on (realistically with Step 3.6.1). The dormant-by-default pattern mirrors `E2E_WEEKLY_ENABLED`; `e2e-merge` is untouched, so the dashboard snapshot keeps its E2E feed either way.
 
 ---
 
@@ -204,7 +218,7 @@ None (CI / agent-rule rename only; no extension or runtime API change).
 
 ## ⚠️ Risks & Rollout Notes
 
-Collector + sticky report `workflow_run` triggers fire only from the default-branch copy — first live collect/dispatch is post-merge (or manual `workflow_dispatch`). With `e2e.yml` present, publish can proceed once both PHP Tests and E2E merge runs are green on develop. New required contexts `infection-diff`, `e2e-smoke`, and `frontend` need a develop ruleset admin add (Manual Work) — Infection lands green on out-of-scope PRs via the early-exit path; Frontend is always a full build on every PR; E2E smoke is chromium-desktop `@ci` only. Callers of `playwright.smoke.config.js` or `--project=chromium` must switch to `--grep @ci` / `--project=chromium-desktop`. Quarantined specs report as skipped until Step 3.6.1. `nightly.yml` and `e2e-weekly.yml` also run only from the default branch (schedule + `workflow_dispatch` for post-merge proof); Infection full MSI stays null in the snapshot until the first green Nightly; record tablet/mobile (and weekly cross-browser) failures from the first dispatch under Manual Work. Weekly cron stays inert until `E2E_WEEKLY_ENABLED=true` is set.
+Collector + sticky report `workflow_run` triggers fire only from the default-branch copy — first live collect/dispatch is post-merge (or manual `workflow_dispatch`). With `e2e.yml` present, publish can proceed once both PHP Tests and E2E merge runs are green on develop. New required contexts `infection-diff` and `frontend` need a develop ruleset admin add (Manual Work) — Infection lands green on out-of-scope PRs via the early-exit path; Frontend is always a full build on every PR. `e2e-smoke` (chromium-desktop `@ci` only) ships dormant: only add it to the ruleset together with `E2E_SMOKE_PR_ENABLED=true`, otherwise the job never runs and the required context can leave PRs waiting. Callers of `playwright.smoke.config.js` or `--project=chromium` must switch to `--grep @ci` / `--project=chromium-desktop`. Quarantined specs report as skipped until Step 3.6.1. `nightly.yml` and `e2e-weekly.yml` also run only from the default branch (schedule + `workflow_dispatch` for post-merge proof); Infection full MSI stays null in the snapshot until the first green Nightly; record tablet/mobile (and weekly cross-browser) failures from the first dispatch under Manual Work. Weekly cron stays inert until `E2E_WEEKLY_ENABLED=true` is set.
 
 ---
 
@@ -224,7 +238,7 @@ Deleted `.github/workflows/php-quality.yml` in the same step as the new `php-tes
 
 | Gate | Result |
 |---|---|
-| CI — PR checks | ✅ all required green — [PR #240 checks](https://github.com/Shadesman5/pagekit/pull/240/checks) (`phpunit (8.5)`, `phpstan`, `cs-fixer`, `security-audit`, `infection-diff`, `e2e-smoke`, `frontend`; also `version-ssot`, `phpunit-mysql`) |
+| CI — PR checks | ✅ all required green — [PR #240 checks](https://github.com/Shadesman5/pagekit/pull/240/checks) (`phpunit (8.5)`, `phpstan`, `cs-fixer`, `security-audit`, `infection-diff`, `e2e-smoke`, `frontend`; also `version-ssot`, `phpunit-mysql`). `e2e-smoke` passed before it was switched to opt-in — later runs report it as skipped unless `E2E_SMOKE_PR_ENABLED=true`. |
 | Coverage gap pass | skipped — ticket `## TESTING STRATEGY` marks `test-writer: skip` on all steps (no production PHP under `app/` / `packages/`) |
 | Cursor Bugbot | ✅ findings fixed — final review on HEAD: no new issues |
 | E2E | ✅ PASS |
@@ -250,14 +264,15 @@ None
 
 ## 📚 Deferred / Out-of-Scope
 
-**Plan note — PHASE Deferred sync amendments (Architect):** present for §2.9 and §3.6.1; no ROADMAP sub-step added. Land with this ticket commit.
+**Plan note — PHASE Deferred sync amendments (Architect):** present for Phase 2 Closeout and §3.6.1; no ROADMAP sub-step added. Land with this ticket commit. (Closeout was §2.9 at planning time and is §2.10 after the Phase-2 renumbering.)
 
-- **Step 2.9 (Phase 2 Closeout)** — Make the PHPUnit suite DB-portable: most DB tests hardcode in-memory-SQLite connections instead of honoring the `$GLOBALS['db_*']` parameters that `DbUtil::getConnection()` already supports — route them through the shared helper so the whole suite genuinely runs against MySQL, then flip the non-blocking `phpunit-mysql` CI leg to a required gate (drop its `continue-on-error`). Why: a MySQL gate that exercises only a handful of tests gives false cross-DB confidence. *(PHASE §2.9 amended)*
-- **Step 3.6.1 (E2E Test Suite Rework)** — Lift the CI quarantine as each spec is reworked: remove its `test.describe.fixme` marker and tag it `@ci` so the tag-driven pipelines (PR smoke, merge, nightly) pick it up automatically — spec selection is tags + Playwright projects, never per-pipeline spec copies. Make the `@ci` specs viewport-robust (tablet/mobile Playwright projects), so the nightly viewport legs and the weekly cross-browser sweep can drop their non-blocking `continue-on-error` status. Why: desktop-only specs leave responsive admin/frontend regressions invisible. *(PHASE §3.6.1 amended)*
-- **Step 2.3 (Docker)** / **Step 2.4 (Build tools)** — production images; pnpm + Vite, ESLint 9 flat config, final formatting policy (Prettier stays advisory until then).
+- **Step 2.10 (Phase 2 Closeout)** — Make the PHPUnit suite DB-portable: most DB tests hardcode in-memory-SQLite connections instead of honoring the `$GLOBALS['db_*']` parameters that `DbUtil::getConnection()` already supports — route them through the shared helper so the whole suite genuinely runs against MySQL, then flip the non-blocking `phpunit-mysql` CI leg to a required gate (drop its `continue-on-error`). Why: a MySQL gate that exercises only a handful of tests gives false cross-DB confidence. *(PHASE §2.10 amended)*
+- **Step 3.6.1 (E2E Test Suite Rework)** — Lift the CI quarantine as each spec is reworked: remove its `test.describe.fixme` marker and tag it `@ci` so the tag-driven pipelines (PR smoke, merge, nightly) pick it up automatically — spec selection is tags + Playwright projects, never per-pipeline spec copies. Make the `@ci` specs viewport-robust (tablet/mobile Playwright projects), so the nightly viewport legs and the weekly cross-browser sweep can drop their non-blocking `continue-on-error` status. Also the natural point to enable `E2E_SMOKE_PR_ENABLED` and make `e2e-smoke` a required PR context. Why: desktop-only specs leave responsive admin/frontend regressions invisible. *(PHASE §3.6.1 amended)*
+- **Step 2.3 (Docker Dev Experience & Image Hygiene)** / **Step 2.5 (Docker Production Image & Deploy)** — dev-container hygiene now; the production/multi-stage image plus image build/scan/push in CI moved to 2.5 (depends on 2.4).
+- **Step 2.4 (Build tools)** — pnpm + Vite, ESLint 9 flat config, final formatting policy (Prettier stays advisory until then).
 - **Non-goals:** release automation hooks; any 8.2/8.3/8.4 CI leg; Codecov made blocking.
 - **Bridges:** None.
-- **Manual Work (maintainer):** (1) Ruleset "Protect for Develop-Branch" — add required contexts `infection-diff`, `e2e-smoke`, `frontend`; (2) set `E2E_WEEKLY_ENABLED=true` when ready; (3) record first Nightly tablet/mobile failures; (4) un-quarantine fixme specs under 3.6.1; (5) watch advisory MySQL leg until 2.9; (6) `workflow_dispatch` Nightly + E2E Weekly once post-merge if not already proven.
+- **Manual Work (maintainer):** (1) Ruleset "Protect for Develop-Branch" — add required contexts `infection-diff` and `frontend`; add `e2e-smoke` only together with (2); (2) set `E2E_SMOKE_PR_ENABLED=true` to activate the PR smoke leg (dormant by default); (3) set `E2E_WEEKLY_ENABLED=true` when ready; (4) record first Nightly tablet/mobile failures; (5) un-quarantine fixme specs under 3.6.1; (6) watch advisory MySQL leg until 2.10; (7) `workflow_dispatch` Nightly + E2E Weekly once post-merge if not already proven.
 
 ---
 
@@ -266,7 +281,7 @@ None
 - Ticket: `migration-docs/tickets/done/PROMPT_2_2_CI-CD-Pipeline_plan.md` (archive after Finalize)
 - Task prompt: `migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_2_CI-CD-Pipeline.md`
 - Predecessor: Step 2.1.14 — PHP Version Upgrade (8.2 → 8.5)
-- Successor: Step 2.3 — Docker
+- Successor: Step 2.3 — Docker Dev Experience & Image Hygiene
 
 ---
 

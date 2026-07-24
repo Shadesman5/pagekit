@@ -1,7 +1,7 @@
 # **🗺️ Pagekit Modernization Roadmap & Rules**
 
 > **Current Version**: 1.2.31
-> **Current Step**: 2.3 (Docker Production)
+> **Current Step**: 2.3 (Docker Dev Experience & Image Hygiene)
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**
 
@@ -41,7 +41,7 @@
 
 - **This table is the source of truth for execution order** — top to bottom within each phase.
 - **Completed rows (✅) are fixed history.** Open rows (⏳) may be reordered, renamed, split into `x.y` / `x.y.z`, or have their *task content* redefined. **ID = slot in the sequence, not a permanent task identity.**
-- **2.9 Closeout is not a hard phase end** — if new Phase-2 work appears, insert it *before* 2.9 (or renumber) and keep Closeout last among Phase 2.
+- **2.10 Closeout is not a hard phase end** — if new Phase-2 work appears, insert it *before* 2.10 (or renumber) and keep Closeout last among Phase 2.
 - Historical branch docs under `migration-docs/branches/` may still mention old IDs; the living ROADMAP wins. A clean Kernkit 1.0 tree comes with Step 4.7 (Rebranding).
 
 ## **📊 TRACKING TABLE**
@@ -104,27 +104,28 @@
 | 2.1.13 | ↳ TinyMCE Security Patch (~5.10.9)    | ✅     | 🛡️    | #230  | #234    |
 | 2.1.14 | ↳ PHP Version Upgrade (8.2 → 8.5)     | ✅     | 🛡️    | #231  | #238    |
 | 2.2    | CI/CD Pipeline                        | ✅     | 🛡️    | #157  | #240    |
-| 2.3    | Docker Production                     | ⏳     | ⏳    | #158  | -       |
+| 2.3    | Docker Dev Experience & Image Hygiene | ⏳     | ⏳    | #241  | -       |
 | 2.4    | Build Tools (pnpm + Vite)             | ⏳     | ⏳    | #159  | -       |
-| 2.5    | Extension Safety System               | ⏳     | ⏳    | #160  | -       |
-| 2.6    | Automated Update System               | ⏳     | ⏳    | -     | -       |
-| 2.7    | Filesystem Write Resilience           | ⏳     | ⏳    | -     | -       |
-| 2.8    | **PHP 8.4+ Language & DX Hardening**  | ⏳     | ⏳    | -     | -       |
-| 2.8.1  | ↳ Property Hooks vs PropertyTrait     | ⏳     | ⏳    | -     | -       |
-| 2.8.2  | ↳ Controller FQCN Autowiring          | ⏳     | ⏳    | -     | -       |
-| 2.8.3  | ↳ Fail-Fast / control-flow hygiene    | ⏳     | ⏳    | -     | -       |
-| 2.9    | Phase 2 Closeout (Coverage/Mutation)  | ⏳     | ⏳    | -     | -       |
+| 2.5    | Docker Production Image & Deploy      | ⏳     | ⏳    | #158  | -       |
+| 2.6    | Filesystem Write Resilience           | ⏳     | ⏳    | -     | -       |
+| 2.7    | Extension Safety System               | ⏳     | ⏳    | #160  | -       |
+| 2.8    | Automated Update System               | ⏳     | ⏳    | -     | -       |
+| 2.9    | **PHP 8.4+ Language & DX Hardening**  | ⏳     | ⏳    | -     | -       |
+| 2.9.1  | ↳ Property Hooks vs PropertyTrait     | ⏳     | ⏳    | -     | -       |
+| 2.9.2  | ↳ Controller FQCN Autowiring          | ⏳     | ⏳    | -     | -       |
+| 2.9.3  | ↳ Fail-Fast / control-flow hygiene    | ⏳     | ⏳    | -     | -       |
+| 2.10   | Phase 2 Closeout (Coverage/Mutation)  | ⏳     | ⏳    | -     | -       |
 | 3.1    | UIkit Update                          | ⏳     | ⏳    | -     | -       |
 | 3.2    | Vue 2.7 Bridge                        | ⏳     | ⏳    | -     | -       |
 | 3.2.1  | ↳ Template Pre-compilation (CSP)      | ⏳ 20% | ⏳    | -     | -       |
-| 3.3    | TypeScript                            | ⏳     | ⏳    | -     | -       |
-| 3.4    | Vue 3 Migration                       | ⏳     | ⏳    | -     | -       |
-| 3.4.1  | ↳ vue-resource → axios                | ⏳     | ⏳    | -     | -       |
-| 3.4.2  | ↳ vue-event-manager → mitt            | ⏳     | ⏳    | -     | -       |
-| 3.4.3  | ↳ Vue 3 Core + @vue/compat            | ⏳     | ⏳    | -     | -       |
-| 3.4.4  | ↳ Pinia State Management              | ⏳     | ⏳    | -     | -       |
-| 3.4.5  | ↳ Deps (intl→Intl, lodash→native)     | ⏳     | ⏳    | -     | -       |
-| 3.4.6  | ↳ Translation System Modernization    | ⏳     | ⏳    | -     | -       |
+| 3.3    | Vue 3 Migration                       | ⏳     | ⏳    | -     | -       |
+| 3.3.1  | ↳ vue-resource → axios                | ⏳     | ⏳    | -     | -       |
+| 3.3.2  | ↳ vue-event-manager → mitt            | ⏳     | ⏳    | -     | -       |
+| 3.3.3  | ↳ Vue 3 Core + @vue/compat            | ⏳     | ⏳    | -     | -       |
+| 3.3.4  | ↳ Pinia State Management              | ⏳     | ⏳    | -     | -       |
+| 3.3.5  | ↳ Deps (intl→Intl, lodash→native)     | ⏳     | ⏳    | -     | -       |
+| 3.3.6  | ↳ Translation System Modernization    | ⏳     | ⏳    | -     | -       |
+| 3.4    | TypeScript                            | ⏳     | ⏳    | -     | -       |
 | 3.5    | Component Library                     | ⏳     | ⏳    | -     | -       |
 | 3.5.1  | ↳ Admin Accessibility Baseline        | ⏳     | ⏳    | -     | -       |
 | 3.6    | E2E selector strategy (data-testid)   | ⏳     | ⏳    | -     | -       |
@@ -140,6 +141,8 @@
 | 4.8    | Native Image Pipeline & Media Manager | ⏳     | ⏳    | -     | -       |
 | 4.9    | ↳ Cross-Repo Dev Dashboard            | ⏳     | ⏳    | -     | -       |
 | 4.10   | Cookie Consent & Privacy Baseline     | ⏳     | ⏳    | -     | -       |
+| 4.11   | Container Orchestration & Deployment  | ⏳     | ⏳    | -     | -       |
+| 5.0    | Sub-Extension Platform                | ⏳     | ⏳    | -     | -       |
 | 5.1    | Modern Block Editor                   | ⏳     | ⏳    | -     | -       |
 | 5.2    | Advanced Security                     | ⏳     | ⏳    | -     | -       |
 | 5.2.1  | ↳ Advanced Privacy & Consent Ext.     | ⏳     | ⏳    | -     | -       |
