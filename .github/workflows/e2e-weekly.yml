@@ -1,0 +1,168 @@
+name: E2E Weekly
+
+run-name: "E2E Weekly — ${{ github.event_name == 'workflow_dispatch' && format('manual dispatch ({0})', github.actor) || 'scheduled' }}"
+
+on:
+  schedule:
+    # Weekly, Sunday ~03:00 UTC — one engine-wide sweep well clear of the daily Nightly (02:00).
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # One sweep at a time, and never cancel an in-progress run: a full cross-browser run is expensive
+  # and worth finishing (no superseding-commit semantics on a scheduled/dispatched sweep).
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # Dispatch-first: a manual dispatch always runs, but scheduled runs stay inert until an admin sets
+  # the E2E_WEEKLY_ENABLED repo variable (the specs are not yet cross-browser/viewport-robust, so the
+  # weekly cron is dormant by default). When enabled, still skip idle weeks by requiring a commit in
+  # the last 7 days; a dispatch bypasses that window.
+  guard:
+    name: guard
+    if: github.event_name == 'workflow_dispatch' || vars.E2E_WEEKLY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          # Full history so `git log --since` sees the real commit window, not a shallow slice.
+          fetch-depth: 0
+
+      - name: Decide whether the sweep should run
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -n "$(git log --since='7 days ago' --oneline)" ]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # Full cross-browser x viewport sweep of the @ci specs. No --grep: every project runs the whole
+  # suite, and the 8 quarantined specs (test.describe.fixme) report as skipped, never failed. Only
+  # chromium-desktop is the trusted signal; every other engine/viewport leg stays non-blocking so a
+  # single sweep run reports every combination without a red run masking the desktop result.
+  e2e-sweep:
+    name: e2e-sweep (${{ matrix.project }})
+    needs: guard
+    if: needs.guard.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    # TODO: Must be refactored in Step 3.6.1 (E2E Test Suite Rework) — non-chromium-desktop legs non-blocking until @ci specs are cross-browser/viewport-robust
+    continue-on-error: ${{ matrix.project != 'chromium-desktop' }}
+    strategy:
+      # Keep every leg running even when a non-blocking one fails, so chromium-desktop always reports.
+      fail-fast: false
+      matrix:
+        project:
+          - chromium-desktop
+          - chromium-tablet
+          - chromium-mobile
+          - firefox-desktop
+          - firefox-tablet
+          - firefox-mobile
+          - webkit-desktop
+          - webkit-tablet
+          - webkit-mobile
+    env:
+      # Compose all 9 browser x viewport projects in the Playwright config so --project can pick any.
+      PW_BROWSERS: all
+      PW_VIEWPORTS: all
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Setup PHP 8.5
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer dependencies (app/vendor)
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: app/vendor
+          key: ${{ runner.os }}-php-8.5-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-8.5-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Create writable runtime directories
+        run: mkdir -p tmp/logs tmp/cache tmp/temp tmp/packages storage
+
+      - name: Setup Node 22
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: yarn
+
+      # yarn install also runs the package `install` script (webpack + gulp), producing the JS
+      # and LESS bundles the installer and admin UI need to render during the E2E run.
+      - name: Install Node dependencies and build assets
+        run: yarn install --frozen-lockfile
+
+      # Copy the tracked example to the git-ignored config the suite reads, then fill the values
+      # it cannot ship: real admin credentials (the example's YOUR_* placeholders are rejected by
+      # the specs' connectivity precheck, and the installer needs them to create a usable admin)
+      # and the 127.0.0.1:8080 origin that `php pagekit start` — the Playwright webServer — binds.
+      - name: Prepare E2E test configuration
+        run: |
+          cp tests/e2e/config/test-config.example.json tests/e2e/config/test-config.json
+          node -e "const fs=require('fs'),p='tests/e2e/config/test-config.json',c=JSON.parse(fs.readFileSync(p,'utf8'));c.auth.admin={username:'admin',password:'pagekit-ci-admin',email:'admin@example.com'};c.site.title='Pagekit CI';c.site.url='http://127.0.0.1:8080';c.site.adminUrl='http://127.0.0.1:8080/admin';fs.writeFileSync(p,JSON.stringify(c,null,2)+'\n');"
+
+      # Browser binaries live under ~/.cache/ms-playwright; key the cache on the resolved
+      # @playwright/test version so a Playwright bump re-downloads matching browsers.
+      - name: Resolve Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('./node_modules/@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-all-${{ steps.pw.outputs.version }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-all-
+            ${{ runner.os }}-playwright-
+
+      # No browser filter: the sweep needs chromium, firefox and webkit. --with-deps pulls the OS
+      # libraries firefox/webkit require, which succeeds on the sudo-capable GitHub-hosted runner.
+      - name: Install Playwright browsers + OS dependencies
+        run: npx playwright install --with-deps
+
+      # No --grep: run the whole suite for this leg's project. The installation spec drives the web
+      # installer itself, so no `php pagekit setup` beforehand. The Playwright config starts
+      # `php pagekit start` (webServer), so no server step here.
+      - name: Run Playwright sweep (${{ matrix.project }})
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: playwright-results.json
+        run: npx playwright test --project=${{ matrix.project }} --reporter=list,json,html
+
+      - name: Upload Playwright JSON report
+        # always() so a non-blocking leg's failure still ships its report.
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: playwright-weekly-report-${{ matrix.project }}
+          path: playwright-results.json
+          if-no-files-found: warn
+
+      - name: Upload Playwright HTML report
+        if: failure()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: playwright-weekly-html-${{ matrix.project }}
+          path: playwright-report/
+          if-no-files-found: warn

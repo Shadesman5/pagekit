@@ -146,6 +146,14 @@ Tests: none (test-writer skip — CI YAML only). Gates: Verifier PASS; Tester PA
 
 Tests: none (test-writer skip — CI YAML only). Gates: Verifier PASS; Tester PASS — PHPUnit: 725 tests, 2057 assertions (5 skipped, exit 0); PHPStan: No errors (exit 0).
 
+### e2e-weekly.yml — full sweep (dispatch-first) (Checklist Step 12)
+
+| File | Change |
+|---|---|
+| `.github/workflows/e2e-weekly.yml` | New workflow `name: E2E Weekly`. Triggers: `schedule` cron `0 3 * * 0` (Sunday ~03:00 UTC) + `workflow_dispatch`; concurrency per ref with `cancel-in-progress: false`; `contents: read`. Job `guard` (job-level gate: dispatch always, else `vars.E2E_WEEKLY_ENABLED == 'true'`): dispatch always `should_run=true`; scheduled runs only when `git log --since='7 days ago'` is non-empty (`fetch-depth: 0`) — cron stays inert until an admin sets the repo variable. Job `e2e-sweep` (`needs: guard`, `if: should_run`): matrix of all 9 projects (`{chromium,firefox,webkit}-{desktop,tablet,mobile}`) with `PW_BROWSERS=all` + `PW_VIEWPORTS=all`; same E2E env as Step 10 (composer, writable dirs, Node 22, yarn install, prepared `test-config.json`) but Playwright cache key `playwright-all-*` and `npx playwright install --with-deps` (no browser filter); `npx playwright test --project=${{ matrix.project }}` with **no `--grep`** (fixme'd specs skip, never fail); `continue-on-error: ${{ matrix.project != 'chromium-desktop' }}` + Rule-5 `# TODO: Must be refactored in Step 3.6.1 (E2E Test Suite Rework) — non-chromium-desktop legs non-blocking until @ci specs are cross-browser/viewport-robust`; `fail-fast: false`; upload JSON always + HTML on failure per project. Actions pinned by commit SHA. No cron-gate flip in this ticket (Manual Work: set `E2E_WEEKLY_ENABLED=true`). |
+
+Tests: none (test-writer skip — CI YAML only). Gates: Verifier PASS; Tester PASS — PHPUnit: 725 tests, 2057 assertions (5 skipped, 2 deprecations); PHPStan: no errors.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -162,6 +170,7 @@ Tests: none (test-writer skip — CI YAML only). Gates: Verifier PASS; Tester PA
 - **One Playwright config, selection by tag + projects.** Smoke is `--grep @ci` on the three optimized specs; the other eight stay `test.describe.fixme` (skipped, never red) until Step 3.6.1. Viewport/browser matrices are env-composed on the same config — no duplicate smoke file, no `isMobile` (Firefox constraint). Local bare `npx playwright test <spec>` stays chromium-desktop only.
 - **E2E splits PR gate vs merge artifact.** `e2e-smoke` is the required PR context (chromium-desktop + `@ci` only); `e2e-merge` runs the same selection on push so `quality-collect` gets a develop-tip JSON report without bloating the PR job. Install happens via the web UI in the installation spec — CI must not pre-run `php pagekit setup`. Example config alone is not enough: the job fills real admin credentials + `127.0.0.1:8080` origin so the connectivity precheck and installer accept the file.
 - **Nightly is guarded, full Infection, and viewport-split.** Idle repos skip the expensive jobs via a 24h `git log` window (`workflow_dispatch` bypasses). Full-suite Infection (no `--git-diff-*`) feeds the snapshot MSI blend; tablet/mobile E2E legs stay non-blocking until Step 3.6.1 makes `@ci` specs viewport-robust — desktop remains the hard signal (`fail-fast: false` so all three legs always report).
+- **Weekly sweep is dispatch-first and cron-dormant.** Scheduled runs require repo var `E2E_WEEKLY_ENABLED=true` plus a 7-day commit window; `workflow_dispatch` always proceeds. Full 9-leg matrix (`PW_BROWSERS=all` + `PW_VIEWPORTS=all`) with no `--grep` so fixme quarantine stays skipped-not-failed; only `chromium-desktop` is blocking until Step 3.6.1. Cron sits at Sunday 03:00 UTC (clear of Nightly 02:00). Enabling the var is Manual Work — not flipped in this ticket.
 
 ---
 
@@ -173,7 +182,7 @@ None (CI / agent-rule rename only; no extension or runtime API change).
 
 ## ⚠️ Risks & Rollout Notes
 
-Collector + sticky report `workflow_run` triggers fire only from the default-branch copy — first live collect/dispatch is post-merge (or manual `workflow_dispatch`). With `e2e.yml` present, publish can proceed once both PHP Tests and E2E merge runs are green on develop. New required contexts `infection-diff`, `e2e-smoke`, and `frontend` need a develop ruleset admin add (Manual Work) — Infection lands green on out-of-scope PRs via the early-exit path; Frontend is always a full build on every PR; E2E smoke is chromium-desktop `@ci` only. Callers of `playwright.smoke.config.js` or `--project=chromium` must switch to `--grep @ci` / `--project=chromium-desktop`. Quarantined specs report as skipped until Step 3.6.1. `nightly.yml` also runs only from the default branch (schedule + `workflow_dispatch` for post-merge proof); Infection full MSI stays null in the snapshot until the first green Nightly; record tablet/mobile failures from the first dispatch under Manual Work.
+Collector + sticky report `workflow_run` triggers fire only from the default-branch copy — first live collect/dispatch is post-merge (or manual `workflow_dispatch`). With `e2e.yml` present, publish can proceed once both PHP Tests and E2E merge runs are green on develop. New required contexts `infection-diff`, `e2e-smoke`, and `frontend` need a develop ruleset admin add (Manual Work) — Infection lands green on out-of-scope PRs via the early-exit path; Frontend is always a full build on every PR; E2E smoke is chromium-desktop `@ci` only. Callers of `playwright.smoke.config.js` or `--project=chromium` must switch to `--grep @ci` / `--project=chromium-desktop`. Quarantined specs report as skipped until Step 3.6.1. `nightly.yml` and `e2e-weekly.yml` also run only from the default branch (schedule + `workflow_dispatch` for post-merge proof); Infection full MSI stays null in the snapshot until the first green Nightly; record tablet/mobile (and weekly cross-browser) failures from the first dispatch under Manual Work. Weekly cron stays inert until `E2E_WEEKLY_ENABLED=true` is set.
 
 ---
 
@@ -192,7 +201,7 @@ Deleted `.github/workflows/php-quality.yml` in the same step as the new `php-tes
 ## ✅ Verification (links only)
 
 - CI run: _TBD_
-- Notable deviations: None (Steps 1–11)
+- Notable deviations: None (Steps 1–12)
 
 ---
 
