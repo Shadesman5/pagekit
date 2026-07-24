@@ -5,9 +5,9 @@ run-name: "${{ github.event_name == 'pull_request' && format('E2E — PR #{0} ({
 on:
   pull_request:
     branches: [main, develop]
-    # Narrow, dormant ignore only — never a broad filter, since e2e-smoke is a required check
-    # and a skipped required check blocks merges. conductor-metrics is bot-written on its own
-    # branch, so a normal PR never touches it.
+    # Narrow, dormant ignore only — never a broad filter, since e2e-smoke is meant to become a
+    # required check and a workflow that never triggers leaves that context pending forever.
+    # conductor-metrics is bot-written on its own branch, so a normal PR never touches it.
     paths-ignore:
       - '.github/conductor/metrics/**'
   push:
@@ -28,10 +28,13 @@ jobs:
   # chromium-desktop only. With CI set, the Playwright config resolves 1 worker and runs files
   # in alphabetical order, so 01-setup/installation drives the web installer BEFORE the 02-core
   # specs rely on that install — no `php pagekit setup` is run beforehand. Target < 10 minutes.
+  # Opt-in: dormant until an admin sets repo variable E2E_SMOKE_PR_ENABLED=true, so the full
+  # PHP+Node+Playwright bootstrap does not run on every PR while only 3 specs are un-quarantined.
+  # Add e2e-smoke to the branch ruleset only together with that variable.
   e2e-smoke:
     name: e2e-smoke
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && vars.E2E_SMOKE_PR_ENABLED == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
