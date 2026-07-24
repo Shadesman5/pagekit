@@ -23,7 +23,7 @@ if (!function_exists('_c')) {
      * Legacy pluralization helper — replaces all %param% with %count% as a
      * brute-force bridge from the removed transChoice() API.
      *
-     * TODO: Must be refactored in Step 3.4.6 (Translation System Modernization) —
+     * TODO: Must be refactored in Step 3.3.6 (Translation System Modernization) —
      * Remove _c() and all call sites (~28 files), migrate to __() with ICU MessageFormat.
      * Also remove transChoice() from Vue plugin (trans.js).
      *
@@ -48,7 +48,7 @@ if (!function_exists('_i')) {
      * Translate messages using ICU MessageFormat.
      * @see https://symfony.com/doc/current/translation/message_format.html
      *
-     * TODO: Must be refactored in Step 3.4.6 (Translation System Modernization) —
+     * TODO: Must be refactored in Step 3.3.6 (Translation System Modernization) —
      * PHP-side (_i) is done. Add Vue equivalent $transICU() to trans.js.
      *
      * @param array<string, mixed> $parameters

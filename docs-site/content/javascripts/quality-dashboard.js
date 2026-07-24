@@ -39,6 +39,28 @@
     }
   }
 
+  const DB_LABELS = { sqlite: 'SQLite', mysql: 'MySQL', pgsql: 'PostgreSQL', postgres: 'PostgreSQL' };
+
+  function dbLabel(db) {
+    if (!db) return '—';
+    return DB_LABELS[db] || db.toUpperCase();
+  }
+
+  // One row per PHPUnit leg present in the snapshot (keys are "<php>-<db>", e.g. "8.5-sqlite").
+  // Required legs show their test/failure counts; non-required legs (the non-blocking MySQL leg
+  // uploads no counts) surface the job conclusion as a non-blocking (⚪) informational row.
+  function phpunitRows(phpunit) {
+    return Object.entries(phpunit || {}).map(([key, leg]) => {
+      const version = key.split('-')[0];
+      const label = `PHPUnit (${version} × ${dbLabel(leg.db || key.slice(version.length + 1))})`;
+      if (leg.required === false) {
+        return [label, '⚪', leg.conclusion ? `${leg.conclusion} · non-blocking` : 'non-blocking'];
+      }
+      if (leg.tests == null) return [label, 'ℹ️', '—'];
+      return [label, leg.failures === 0 ? '✅' : '❌', `${leg.tests} tests · ${leg.failures} failures`];
+    });
+  }
+
   async function fetchSnapshot() {
     for (const url of SNAPSHOT_CANDIDATES) {
       try {
@@ -63,7 +85,7 @@
       `<strong>Branch:</strong> ${data.branch || '—'} · ` +
       `<strong>Updated:</strong> ${formatDate(data.updatedAt)}`;
     if (data.source === 'demo') {
-      meta.innerHTML += ' · <em>Demo data — live CI metrics not yet wired</em>';
+      meta.innerHTML += ' · <em>Demo data — awaiting the first live collection run</em>';
     }
     root.appendChild(meta);
 
@@ -76,19 +98,10 @@
 
     const tbody = el('tbody');
 
-    const php82 = data.phpunit?.['8.2'];
-    const php83 = data.phpunit?.['8.3'];
+    const cov = data.coverage;
+    const e2e = data.e2e;
     const rows = [
-      [
-        'PHPUnit (8.2 × SQLite)',
-        php82?.failures === 0 ? '✅' : '❌',
-        php82 ? `${php82.tests} tests · ${php82.failures} failures` : '—'
-      ],
-      [
-        'PHPUnit (8.3 × MySQL)',
-        php83?.failures === 0 ? '✅' : '❌',
-        php83 ? `${php83.tests} tests · ${php83.failures} failures` : '—'
-      ],
+      ...phpunitRows(data.phpunit),
       [
         'PHPStan',
         data.phpstan?.errors === 0 ? '✅' : '❌',
@@ -97,17 +110,15 @@
           : '—'
       ],
       [
-        'Line coverage (8.3)',
-        data.coverage?.linePercent >= data.coverage?.pinnedFloor ? '✅' : '❌',
-        data.coverage
-          ? `${data.coverage.linePercent}% (floor ${data.coverage.pinnedFloor}%)`
-          : '—'
+        'Line coverage',
+        cov?.linePercent == null ? 'ℹ️' : cov.linePercent >= cov.pinnedFloor ? '✅' : '❌',
+        cov ? `${formatPercent(cov.linePercent)} (floor ${formatPercent(cov.pinnedFloor)})` : '—'
       ],
       [
-        'E2E (CI merge)',
-        data.e2e?.specsPassed === data.e2e?.specsTotal ? '✅' : '❌',
-        data.e2e
-          ? `${data.e2e.specsPassed}/${data.e2e.specsTotal} specs · ${(data.e2e.viewports || []).join(', ')}`
+        e2e?.scope ? `E2E (${e2e.scope})` : 'E2E',
+        e2e && e2e.specsTotal != null ? (e2e.specsPassed === e2e.specsTotal ? '✅' : '❌') : 'ℹ️',
+        e2e
+          ? `${e2e.specsPassed ?? '—'}/${e2e.specsTotal ?? '—'} specs · ${(e2e.viewports || []).join(', ')}`
           : '—'
       ],
       [

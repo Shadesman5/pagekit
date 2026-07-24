@@ -16,7 +16,7 @@ return [
         $app->extend('twig', function ($twig) use ($app) {
 
             $twig->addFilter(new TwigFilter('trans', '__'));
-            // TODO: Must be refactored in Step 3.4.6 (Translation System Modernization) —
+            // TODO: Must be refactored in Step 3.3.6 (Translation System Modernization) —
             // Remove transChoice Twig filter when _c() is removed.
             $twig->addFilter(new TwigFilter('transChoice', '_c'));
 

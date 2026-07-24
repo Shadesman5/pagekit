@@ -57,7 +57,7 @@ tests/e2e/
 ├── TEST_PLAN_ANALYSIS_2025.md
 └── README.md
 ```
-Playwright: `playwright.config.js`, `playwright.smoke.config.js` (Projektwurzel).
+Playwright: `playwright.config.js` (Projektwurzel). Smoke-Auswahl über den `@ci`-Tag der 3 optimierten Specs (`npx playwright test --grep @ci`); die übrigen 8 sind via `test.describe.fixme` quarantäniert.
 
 ### ❌ Was noch FEHLT und getestet werden MUSS:
 

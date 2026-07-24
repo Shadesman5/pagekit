@@ -1,5 +1,43 @@
 # Changelog
 
+## Pagekit 1.2.31 - CI/CD Pipeline (Juli 24, 2026)
+
+### Added
+
+- **PHP Tests workflow** — `.github/workflows/php-tests.yml` replaces `php-quality.yml` (same required job names). PR/merge split (`cs-fixer` / `security-audit` on PR only); JUnit + PHPStan JSON artifacts; advisory `phpunit-mysql` leg (`phpunit-mysql.xml.dist` + `mysql:8.4`); PR-only `version-ssot` guard (`.github/scripts/check-version-ssot.php`). (Closes #157)
+- **Infection / Frontend / E2E PR gates** — `infection.yml` (`infection-diff`, git-diff MSI, out-of-scope early green); `frontend.yml` (blocking webpack+gulp, advisory diff-scoped ESLint/Prettier); `e2e.yml` (`e2e-smoke` on PR — opt-in via `E2E_SMOKE_PR_ENABLED`, dormant by default; `e2e-merge` on push for snapshot feed).
+- **Nightly + E2E Weekly** — `nightly.yml` (24h guard, full Infection, chromium desktop/tablet/mobile with tablet/mobile non-blocking); `e2e-weekly.yml` (dispatch-first 9-browser/viewport sweep; cron gated by `E2E_WEEKLY_ENABLED`).
+- **Quality report + live snapshot** — `quality-report.yml` sticky PR comment; `quality-collect.yml` writes schema-v2 snapshot to unprotected `quality-data`; `pages-deploy.yml` overlays it onto the docs-site dashboard.
+- **Playwright selection model** — `@ci` tags on three smoke specs; eight specs `test.describe.fixme`; env-composed projects (`PW_VIEWPORTS` / `PW_BROWSERS`); `playwright.smoke.config.js` deleted.
+
+### Changed
+
+- **Quality dashboard** — dynamic PHPUnit keys (`8.5-sqlite` / `8.5-mysql`), E2E `scope` label, live data-source copy (closes 1.2.30 deferred matrix-key align).
+- **Agent / branch-doc metrics discipline** — Orchestrator handoffs and Verification sections stay PASS/FAIL + links; coverage/MSI/counts live only in the sticky comment and dashboard.
+- **Finalize CI watch** — consumers use `gh pr checks … --watch` (covers all required PR gates).
+
+### Fixed
+
+- **Snapshot pairing** — `quality-snapshot.mjs` pairs PHP Tests + E2E by `head_sha`; Nightly MSI lookup scoped to the collected branch; `quality-collect` / `SNAPSHOT_BRANCH` limited to `develop` so main merges cannot overwrite the develop dashboard snapshot.
+
+### Removed
+
+- `.github/workflows/php-quality.yml`
+- `playwright.smoke.config.js`
+
+### Deferred
+
+- PHPUnit suite DB-portable + flip `phpunit-mysql` to required → Step 2.10.
+- Lift E2E `fixme` quarantine / viewport-robust `@ci` specs (drop non-blocking Nightly/Weekly legs), then activate + require `e2e-smoke` → Step 3.6.1.
+- Final Prettier/formatting policy → Step 2.4; Docker dev hygiene → Step 2.3; production image → Step 2.5.
+
+### Maintainer action
+
+- Ruleset "Protect for Develop-Branch": add required contexts `infection-diff` and `frontend`; add `e2e-smoke` only together with `E2E_SMOKE_PR_ENABLED=true`, since the job is skipped while the variable is unset.
+- Optionally set repo variables `E2E_SMOKE_PR_ENABLED=true` / `E2E_WEEKLY_ENABLED=true`; dispatch Nightly / E2E Weekly once post-merge to prove schedules.
+
+---
+
 ## Pagekit 1.2.30 - PHP 8.5 version upgrade (Juli 22, 2026)
 
 ### Breaking Changes

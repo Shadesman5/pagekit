@@ -51,7 +51,7 @@ Write the plan to a **ticket file** so the Orchestrator and other subagents use 
 - **Per step (coverage — inline light):** test-writer → Verifier (test files only) → Tester (PHPUnit + PHPStan) — **skip** when the step changes no production PHP under `app/` or `packages/` (docs/config/ROADMAP-only steps); mark those steps `test-writer: skip` here
 - **Per step notes:** [optional: target classes, edge cases, `test-writer: skip` per step number]
 - **E2E (Execute — last checklist step only):** when ticking Step N completes every `## EXECUTION STATE` box, the Orchestrator delegates `"final E2E run"` to Tester (3 Playwright specs, local PASS/FAIL). **Not** gated on PR/CI — see `.cursor/agents/tester.md` § End-of-ticket E2E
-- **Finalize:** Orchestrator opens PR → waits on PHP Quality CI (`gh run watch`) → Bugbot → version/CHANGELOG/ROADMAP.
+- **Finalize:** Orchestrator opens PR → waits on the PR checks (`gh pr checks <pr> --watch`) → Bugbot → version/CHANGELOG/ROADMAP.
 ```
 
 - **Chat output:** One line only, e.g. `Plan written to migration-docs/tickets/active/PSR-11-Container-DI-Infrastructure_plan.md`.

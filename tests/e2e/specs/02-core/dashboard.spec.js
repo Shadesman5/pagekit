@@ -20,7 +20,7 @@ const WAIT_TICK = Math.round(WAIT_ANIMATION * 0.2); // Vue tick / micro delays (
 // Content validation threshold
 const MIN_CONTENT_LENGTH = 100;
 
-test.describe('Pagekit Dashboard', () => {
+test.describe('Pagekit Dashboard', { tag: '@ci' }, () => {
   test.beforeAll(async () => {
     // Setup common test environment (connectivity, timer)
     testConfig.startTestTimer();

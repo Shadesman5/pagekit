@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * System Validation Messages — Symfony Validator + Translator (Step 2.0.2)
+ * System Validation Messages — Symfony Validator + Translator
  *
  * Domain: "validators" (derived from filename by IntlModule::loadLocale()).
  * The ValidatorServiceProvider wires the Translator with this domain so that

@@ -108,7 +108,7 @@ Ticket: <ticket path>
 Checklist Step: <N>
 Production files: <refactorer list>
 Test files: <test-writer list, or "none">
-Verifier/Tester output (verbatim, incl. FAIL iterations): <paste>
+Gate outcomes: <PASS/FAIL per gate (verifier, PHPUnit, PHPStan), incl. FAIL iterations; one-line deviations only — no metric numbers>
 ```
 
 **doc-writer** (ESCALATE) — `description`: `Step <N> ESCALATE record`
@@ -122,17 +122,23 @@ Reason (verbatim):
 <paste stuck failure>
 ```
 
-### Subagent return contract (trust verbatim)
+### Subagent return contract (trust the result; match the signal, not the wording)
 
-| Subagent | Expected return |
+Trust the worker's reported result verbatim — a `PASS` means passed; do not re-verify. Match on the
+**signal**, not the exact phrasing: the forms below are the **canonical** shape, but accept any equivalent
+wording that carries the same signal (e.g. `Checklist step N done.` == `Step N done.`). Do not force a
+re-emit over harmless phrasing.
+
+| Subagent | Expected signal (canonical form) |
 | --- | --- |
-| **refactorer** | `Step N done. Files: [list].` |
+| **refactorer** | completion + file list — `Step N done. Files: [list].` (also accept `Checklist step N done. …`) |
 | **verifier** | `PASS` — or `FAIL` + bullet list |
 | **tester** | `PASS` — or `FAIL` + minimal RCA (command + error snippet) |
-| **test-writer** | `Step N tests done. Files: [list].` — or `UNTESTABLE: <reason>` |
+| **test-writer** | tests-done + file list — `Step N tests done. Files: [list].` — or `UNTESTABLE: <reason>` |
 | **doc-writer** | `Branch doc updated: <path> (Step N)` |
 
-If a worker returns preamble or prose instead of the contract line, ask it to re-emit — do not paraphrase.
+Re-emit is a last resort: ask again **only** when the signal itself is missing (no `PASS`/`FAIL`, no
+`done`/completion line, no `UNTESTABLE`) or is buried in prose — never for a wording variant. Do not paraphrase.
 
 ## Per step N (in order)
 
@@ -174,7 +180,8 @@ if production regression → **refactorer** (retry template), then restart from 
      update ride along in the step's own commit — do **not** make a second commit.
    - `git push`.
 
-If Refactorer reported `Step N done` but `git status` is clean → spawn **refactorer** again:
+If Refactorer reported completion (a `… done. Files: …` line, any wording) but `git status` is clean →
+spawn **refactorer** again:
 `Feedback (verbatim): No changes detected on disk. Re-execute and emit changed files.`
 
 ## Stuck-breaker

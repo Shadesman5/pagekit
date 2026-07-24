@@ -34,7 +34,7 @@ php pagekit start -s localhost:8080 --no-ansi
 ### 3. Installation durchführen
 ```bash
 # Option A: Via Playwright E2E Test
-npx playwright test --project=chromium tests/e2e/specs/01-setup/installation.spec.js
+npx playwright test --project=chromium-desktop tests/e2e/specs/01-setup/installation.spec.js
 
 # Option B: Manuell im Browser
 # http://localhost:8080/installer
@@ -67,7 +67,7 @@ ls -la packages/test/*/composer.json
 
 # Fresh Installation
 rm -f config.php pagekit.db
-npx playwright test --project=chromium tests/e2e/specs/01-setup/installation.spec.js
+npx playwright test --project=chromium-desktop tests/e2e/specs/01-setup/installation.spec.js
 ```
 
 #### 1.2 Logs überprüfen

@@ -45,7 +45,7 @@ return [
 
         'defaults' => [],
         'weather.api' => 'http://api.openweathermap.org/data/2.5',
-        // TODO: AUDIT FIX Step 4.4 — move API key to env variable / secrets management
+        // TODO: AUDIT FIX Step 2.5 — move API key to env variable / secrets management
         'weather.key' => '08c012f513db564bd6d4bae94b73cc94',
 
     ],

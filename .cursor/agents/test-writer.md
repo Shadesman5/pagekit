@@ -1,6 +1,6 @@
 ---
 name: test-writer
-model: claude-opus-4-8[thinking=true,context=1m,effort=max,fast=false]
+model: claude-opus-5[thinking=true,context=1m,effort=max,fast=false]
 description: Test Author for Pagekit modernization. Writes PHPUnit tests for production code changed in the current Checklist Step (Execute) or for Codecov patch gaps (Finalize coverage pass) — after production code passes Verifier and Tester. Does not run tests or edit production code. Use after Tester PASS on production changes.
 ---
 
@@ -66,4 +66,5 @@ Default: **PHPUnit only**. Write Playwright specs only when the Orchestrator exp
 
 - Make test file changes only; leave them unstaged (Orchestrator commits).
 - Output exactly one short line, e.g. `Step N tests done. Files: [list].`, `Finalize coverage pass tests done. Files: [list].`, or `UNTESTABLE: <one-line reason>.`
+- Files-only output: never emit coverage percentages or other metric numbers — CI owns quality metrics.
 - No preamble, no narration, no test execution output.

@@ -22,7 +22,7 @@ if (!function_exists('Pagekit\_c')) {
     /**
      * Pluralization via trans() with %count% parameter (replaces removed transChoice()).
      *
-     * TODO: Must be refactored in Step 3.4.6 (Translation System Modernization) —
+     * TODO: Must be refactored in Step 3.3.6 (Translation System Modernization) —
      * Remove _c() once all call sites use __() with ICU MessageFormat.
      *
      * @param array<string, mixed> $parameters

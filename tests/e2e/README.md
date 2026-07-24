@@ -8,7 +8,9 @@
 
 **Local vs. CI/remote:** When using `scripts/e2e-start.sh` (e.g. in CI or for a remote agent), the script starts the environment (Docker) on a known port; use a `test-config.json` (or env) that matches that setup.
 
-**Browser matrix:** The default Playwright run uses **chromium only**. This matches the Cursor Cloud Agent VM (which ships only chromium because firefox/webkit need root for `playwright install-deps`). To run the full matrix locally or in CI, install all browsers and set `PW_BROWSERS=all`.
+**Browser / viewport matrix:** Projects are composed as `${browser}-${viewport}`. The default run uses **`chromium-desktop` only** — this matches the Cursor Cloud Agent VM (which ships only chromium because firefox/webkit need root for `playwright install-deps`). Set `PW_BROWSERS=all` to add `firefox-desktop` + `webkit-desktop` (install all browsers first) and `PW_VIEWPORTS=all` to add tablet + mobile legs (explicit viewport overrides, no `isMobile`). Both are intended for CI/CD hosts.
+
+**CI selection (`@ci` tag):** The 3 CI-optimized specs (`installation`, `authentication`, `dashboard`) carry a `@ci` tag — run them with `--grep @ci`. The other 8 specs are quarantined via `test.describe.fixme` (they report as skipped, never red) until they are reworked.
 
 ## Installation
 
@@ -122,18 +124,22 @@ npx playwright test tests/e2e/specs/03-content/blog.spec.js
 Use `--project=...` (not `--chromium`). Examples:
 
 ```bash
-# Default: chromium only
-npx playwright test --project=chromium
+# Default: chromium desktop only
+npx playwright test --project=chromium-desktop
 
 # Full cross-browser matrix (requires PW_BROWSERS=all + browsers installed)
-PW_BROWSERS=all npx playwright test --project=firefox
-PW_BROWSERS=all npx playwright test --project=webkit
+PW_BROWSERS=all npx playwright test --project=firefox-desktop
+PW_BROWSERS=all npx playwright test --project=webkit-desktop
+
+# Tablet / mobile viewport legs (requires PW_VIEWPORTS=all)
+PW_VIEWPORTS=all npx playwright test --project=chromium-tablet
+PW_VIEWPORTS=all npx playwright test --project=chromium-mobile
 ```
 
 To run only the installation test in Chromium:
 
 ```bash
-npx playwright test tests/e2e/specs/01-setup/installation.spec.js --project=chromium
+npx playwright test tests/e2e/specs/01-setup/installation.spec.js --project=chromium-desktop
 ```
 
 ## Test Environment Setup
@@ -305,8 +311,8 @@ npx playwright install
 # Run tests with specific config
 npx playwright test --config=playwright.config.js
 
-# Smoke tests (quick validation)
-npx playwright test --config=playwright.smoke.config.js
+# Smoke tests (the @ci-tagged specs, quick validation)
+npx playwright test --grep @ci
 
 # Run tests in parallel
 npx playwright test --workers=4

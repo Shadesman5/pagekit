@@ -45,26 +45,19 @@
   - **Rate Limiting**
     - Brute-force protection
     - Per IP and per user
-    - Configurable thresholds
-  - **Security Headers**
-    - CSP, HSTS, X-Frame-Options
-    - Optimized for modern browsers
-  - **Environment-based Secrets / Config**
-    - Read secrets & DB credentials from environment variables (12-factor); `config.php` stays the default and env overrides it
-    - Lightweight — no full Symfony secrets-vault migration (keeps the core light per the DX/Lightweight DNA)
-    - Practical trigger is Step 2.3 (Docker Production): containers inject config via env, not a baked-in `config.php`
+      - Configurable thresholds
 
 ---
 
 ## Step 4.2: Symfony 6.4 → 7.x Upgrade
 
 - **Goal**: Upgrade Symfony components from 6.4 LTS to 7.x.
-- **Prerequisite**: Phase 3 complete; Steps 2.5, 2.1.14, 2.1.11 completed
+- **Prerequisite**: Phase 3 complete; Steps 2.7, 2.1.14, 2.1.11 completed
 - **Tasks**:
   - Bump all `symfony/*` in `composer.json` from `^6.4` → `^7.0` (confirm latest 7.x patch at execution time)
   - Resolve Symfony 7 breaking changes (HTTP Kernel, Routing, Validator, Translation, Console, etc.)
   - Update `symfony/phpunit-bridge`, `symfony/browser-kit`, dev bundles to 7.x
-  - Re-enable / tune `SYMFONY_DEPRECATIONS_HELPER` if still disabled after Step 2.9
+  - Re-enable / tune `SYMFONY_DEPRECATIONS_HELPER` if still disabled after Step 2.10
   - Full PHPUnit + PHPStan L8 + Playwright E2E green
 - **Explicit non-goals:** Doctrine DBAL 4 (Step 4.3), frontend changes, new features
 - **Result**: Symfony 7.x; update ROADMAP stack reference and README badges.
@@ -75,13 +68,13 @@
 ## Step 4.3: Doctrine DBAL 3 → 4 Upgrade
 
 - **Goal**: Upgrade `doctrine/dbal` from 3.x to 4.x on Pagekit's custom ORM layer.
-- **Prerequisite**: Step 4.2 completed; Steps 2.1.11, 2.1.7, 2.9 completed
+- **Prerequisite**: Step 4.2 completed; Steps 2.1.11, 2.1.7, 2.10 completed
 - **Tasks**:
   - Bump `doctrine/dbal` `^3.8` → `^4.0` in `composer.json`
   - Migrate breaking changes: type system, removed APIs (`requiresSQLCommentHint()`, type mappings), platform differences
   - Update `doctrine/migrations` compatibility if required
   - Audit custom DBAL usage: `Pagekit\Database\ORM`, `QueryBuilder`, connection wrappers, schema tools, migration runners
-  - Full PHPUnit (incl. ORM integration paths from 2.1.9/2.9) + PHPStan green
+  - Full PHPUnit (incl. ORM integration paths from 2.1.9/2.10) + PHPStan green
   - Coordinate with Step 4.5 if tag-based cache invalidation touches DBAL types
 - **Result**: DBAL 4.x on custom ORM.
 - **Risk**: High — custom ORM + QueryBuilder + migrations.
@@ -98,7 +91,7 @@
   - API Versioning
   - Rate Limiting
 - **API serialization:** All API v2 responses must go through DI presenters/DTOs (`NodePresenter`, `PostPresenter`, and equivalents). Controllers that still return raw entities via `jsonSerialize()` (e.g. `UserApiController`, `RoleApiController`, `WidgetApiController`, `CommentApiController`) must move onto that path — do not add new endpoints that serialize entities directly.
-- **Secrets:** Move the hardcoded OpenWeatherMap API key in `app/system/modules/dashboard/index.php` to env / secrets management and rotate the committed key (in-code tag `AUDIT FIX Step 4.4`).
+- **Secrets:** API keys and tokens read from env / secret store — the mechanism itself ships with Step 2.5, which also migrates the hardcoded OpenWeatherMap key.
 
 ---
 
@@ -127,10 +120,10 @@
 
 ---
 
-## Step 4.7: Rebranding — Pagekit → Kernkit (after the first production release)
+## Step 4.7: Rebranding — Pagekit → Kernkit
 
 - **Goal**: Give the CMS its own independent identity by renaming it from "Pagekit" to **Kernkit / KernKit**. The MIT license covers the *code*, not the "Pagekit" name or logo — this establishes a trademark-safe, independent brand while keeping the required heritage attribution.
-- **Prerequisite**: **The first production release (2.0.0) has shipped — still under the `Pagekit` name.** The rebrand is the *next* thing after that release, deliberately **not** part of the 2.0.0 release itself (so 2.0.0 stays a clean "modernization complete" milestone under the original name, and the rename is isolated from feature work).
+- **Prerequisite**: Phase 4 modernization complete.
 - **Naming decision (maintainer, 2026-07-08):**
   - **Code — uniform `Kernkit`** (single capital): PHP namespace `Pagekit\` → `Kernkit\`, class/identifier prefixes, internal string identifiers. Keep it *consistent* — do not mix casings in code.
   - **Composer / Packagist / repo / org — lowercase `kernkit`** (Composer requires a lowercase vendor): `pagekit/*` → `kernkit/*`; new home `github.com/kernkit/kernkit` (+ `kernkit/docs`).
@@ -145,8 +138,7 @@
   - **Verify**: full PHPUnit + Playwright E2E green after the namespace sweep; fresh install **and** upgrade path still boot; no stray `Pagekit` identifiers on live code paths (historical mentions in `CHANGELOG`/migration history may remain).
 - **Structure note**: may be split into sub-steps if the single pass is too large — e.g. **4.7.1** namespace/code sweep, **4.7.2** composer + CLI + config identifiers, **4.7.3** README + docs + branding assets.
 - **Legal note**: a trademark search for the chosen name is advisable before the public launch (DPMA/EUIPO) — out of scope for the code work here, tracked by the maintainer separately.
-- **Risk**: Medium — mechanical but very wide-reaching (touches every namespaced file plus build/config/CLI). Mitigated by the green-test-suite gate and by running *after* a stable, already-shipped 2.0.0 release.
-- **Note**: After this step a clean **Kernkit 1.0** repo/tree is the home for ongoing work; living ROADMAP history in `Shadesman5/pagekit` remains the modernization archive.
+- **Risk**: Medium — mechanical but very wide-reaching (touches every namespaced file plus build/config/CLI). Mitigated by the green-test-suite gate.
 
 ---
 
@@ -163,7 +155,7 @@ The `<picture>` markup is produced at **render time** by a new content plugin (`
 ### Sub-steps
 
 - **4.8 A — Backend engine + render helper (the core)**: integrate an image library (**`league/glide`** recommended — on-demand, cached, **no Messenger needed**; alternative `intervention/image` v3 with an upload trigger), storage/cache layout under `storage/media/`, size/format **presets**, the `<picture>` render helper, `ImagePipelinePlugin`, native `loading="lazy"` (+ `fetchpriority="high"` for hero images), an AVIF **capability check** with graceful WebP/JPEG fallback, and add `avif` to the finder upload whitelist. Editor-independent; delivers automatic optimization for the entire existing content base. *(Can ship as early as 4.5 if desired.)*
-- **4.8 B — Media metadata + focal-point UI**: introduce a media-asset metadata model (alt text, `display_mode` = cover/contain, `focal_point` x/y in percent); extend `<InputImageMeta>` (`app/system/app/components/input-image-meta.vue`) with a display-mode toggle, a click-to-set focal-point selector, and a live preview. **Best after Vue 3 (Step 3.4)** for the elegant `<style> v-bind()` variant; a Vue 2.6 `:style`-binding version is possible earlier.
+- **4.8 B — Media metadata + focal-point UI**: introduce a media-asset metadata model (alt text, `display_mode` = cover/contain, `focal_point` x/y in percent); extend `<InputImageMeta>` (`app/system/app/components/input-image-meta.vue`) with a display-mode toggle, a click-to-set focal-point selector, and a live preview. **Best after Vue 3 (Step 3.3)** for the elegant `<style> v-bind()` variant; a Vue 2.6 `:style`-binding version is possible earlier.
 - **4.8 C — Block editor integration (optional enhancement)**: per-placement focal point / fit via `data-*` overrides, edited directly in the **Modern Block Editor (Step 5.1)**. Non-blocking.
 
 ### Security & caching (must-haves)
@@ -174,13 +166,13 @@ The `<picture>` markup is produced at **render time** by a new content plugin (`
 
 ### Constraints corrected from the initial concept (architecture mismatches to avoid)
 
-- **`v-bind()` in CSS is Vue-3-only** → use `:style` object binding under Vue 2.6, or defer the polished UI to after Step 3.4.
+- **`v-bind()` in CSS is Vue-3-only** → use `:style` object binding under Vue 2.6, or defer the polished UI to after Step 3.3.
 - **No media entity exists today** → a media table (`pk_media`) is a new subsystem; use an **integer** id per Doctrine convention (a UUID would need a dedicated decision/ADR).
 - **Symfony Messenger is not installed** → prefer on-demand (Glide) over async pre-generation to avoid introducing a queue dependency.
 - **Do not hardcode `/media/…` URLs** → resolve via `UrlProvider`/`FileAdapter` + the `storage:` locator (base-path / sub-directory / CDN-safe).
 - **AVIF is an environment dependency** (GD+libavif or Imagick+libheif), not just a library choice → capability check + graceful fallback.
 
-- **Dependencies**: Filesystem module (present); Vue 3 (Step 3.4) for the polished UI; signed URLs relate to Step 4.1 (Security); overlaps the "Image Optimization" item in Step 4.5 (Performance).
+- **Dependencies**: Filesystem module (present); Vue 3 (Step 3.3) for the polished UI; signed URLs relate to Step 4.1 (Security); overlaps the "Image Optimization" item in Step 4.5 (Performance).
 - **Complexity**: High — a full greenfield subsystem spanning backend, rendering, and UI.
 
 ---
@@ -207,7 +199,7 @@ The `<picture>` markup is produced at **render time** by a new content plugin (`
 ## Step 4.10: Cookie Consent & Privacy Baseline
 
 - **Goal**: Give the system a GDPR/ePrivacy-compliant cookie-consent feature — essential for running EU/production sites. Provides a consent banner + preference center, script/cookie gating until consent, a server-side consent log for accountability, and an admin UI to manage cookie categories and entries. Ships as a **bundled first-party extension** (in `packages/`, installer-activated like `pagekit/blog` and `theme-one`): independently versioned and updatable, and enabled, disabled, or replaced **per site** — never forced on every install.
-- **Prerequisite**: Steps 3.4 (Vue 3), 4.1 (CSP/Security Headers), 4.3 (DBAL 4), 4.4 (REST API v2), and 4.7 (Rebranding) completed.
+- **Prerequisite**: Steps 3.3 (Vue 3), 4.1 (CSP/Security Headers), 4.3 (DBAL 4), 4.4 (REST API v2), and 4.7 (Rebranding) completed.
 - **Building blocks**: **orestbida/cookieconsent** (v3) as the vanilla-JS frontend engine; cookie definitions seeded from the **Open Cookie Database**.
 
 ### Scope
@@ -225,3 +217,19 @@ The `<picture>` markup is produced at **render time** by a new content plugin (`
 - **Advanced add-ons** (automated cookie scanner, geo-targeting / per-jurisdiction rulesets, cookie-policy generator): separate opt-in extensions — see Step 5.2.1.
 
 - **Result**: The CMS ships a working privacy baseline as a bundled extension; operators enable + configure it per site; advanced/ad-tech needs are served by additional extensions via documented seams.
+
+---
+
+## Step 4.11: Container Orchestration & Deployment
+
+- **Goal**: Run the production image on an orchestrator — manifests / Helm chart, probes, scaling, and the shared-state work that multi-replica actually requires.
+- **Why here**: Deferred out of Step 2.5, which builds and pushes the image but stops at a single-container compose. Orchestration depends on things Phase 4 delivers first: health endpoints for meaningful probes (4.6), a shared cache/session backend (4.5), and the final image name after the rebrand (4.7).
+- **Prerequisite**: Steps 2.5 (production image + GHCR push), 4.5 (Redis cache/session), 4.6 (health check endpoints), 4.7 (Rebranding).
+- **What**:
+  - **Manifests / Helm chart**: Deployment, Service, Ingress, ConfigMap for application config, external Secret references — never secrets in manifests.
+  - **Probes**: liveness / readiness (plus startup where boot is slow) wired to the 4.6 endpoints. A readiness probe that only checks TCP is worthless while migrations run.
+  - **Scaling**: HorizontalPodAutoscaler hints; resource requests/limits derived from measured 4.5 numbers, not guesses.
+  - **Shared state (the real blocker)**: `storage/` (uploads) and `tmp/` (cache, logs, packages) are node-local today. Decide PVC (ReadWriteMany) vs. object storage for uploads, and route sessions/cache to Redis instead of the filesystem — without this a second replica serves inconsistent state.
+  - **Migrations**: init container or pre-upgrade hook; never during image build, never concurrently across replicas.
+- **Out of scope**: Managed-service specifics (EKS/GKE/AKS provisioning), service mesh, GitOps tooling.
+- **Risk**: Medium–High — the shared-state decision reaches into uploads, cache, and sessions.
