@@ -330,6 +330,8 @@
 - **Tasks (draft)**:
   - Audit all 11 specs under `tests/e2e/specs/`; rewrite the weak ones (everything beyond the 3 sound specs) to Playwright best practices (web-first assertions, `getByTestId()` from 3.6, no arbitrary waits, isolated per-test state).
   - Fix flaky setup/teardown and align with the clean-state handling documented in `.cursor/agents/tester.md`.
+  - Lift the CI quarantine as each spec is reworked: remove its `test.describe.fixme` marker and tag it `@ci` so the tag-driven pipelines (PR smoke, merge, nightly) pick it up automatically — spec selection is tags + Playwright projects, never per-pipeline spec copies.
+  - Make the `@ci` specs viewport-robust (tablet/mobile Playwright projects), so the nightly viewport legs and the weekly cross-browser sweep can drop their non-blocking `continue-on-error` status. Why: desktop-only specs leave responsive admin/frontend regressions invisible.
   - Expand the Orchestrator/Tester end-of-ticket E2E set beyond the current 3 once the reworked specs are stable.
   - Integrate `@axe-core/playwright` (MPL-2.0) into critical-flow specs (login, dashboard, node editor); report-only until Step 4.0
   - All specs green locally; document the convention in `tests/e2e/README.md`.
