@@ -5,14 +5,17 @@
 // quality-collect.yml after a gate workflow (PHP Tests / E2E) completes a push to a protected branch,
 // or manually via workflow_dispatch.
 //
-// The snapshot blends the latest green MERGE runs on the branch:
-//   - PHP Tests -> line coverage (Clover), PHPStan errors (json), PHPUnit counts (junit) and the
-//     non-blocking MySQL leg's job conclusion;
-//   - E2E       -> Playwright smoke results (json report);
-//   - Nightly   -> full-suite Infection MSI (null until the first nightly ran).
-// It publishes only when BOTH gate workflows (PHP Tests + E2E) are green on the branch, so the
-// dashboard never shows a half-built snapshot. e2e.yml / nightly.yml arrive in later checklist steps;
-// a missing workflow yields no run (404 -> null), which keeps the blend null-safe until they exist.
+// The snapshot blends CI results into ONE coherent branch state:
+//   - PHP Tests + E2E -> the newest MERGE commit that is green on BOTH gates, matched by head SHA so
+//     the two halves are never stitched together from different merges. PHP Tests yields line coverage
+//     (Clover), PHPStan errors (json), PHPUnit counts (junit) and the non-blocking MySQL leg's job
+//     conclusion; E2E yields Playwright smoke results (json report).
+//   - Nightly -> full-suite Infection MSI, an independent scheduled metric (null until the first
+//     nightly ran), intentionally decoupled from the merge commit.
+// It publishes only when some commit is green on BOTH gate workflows, so the dashboard never shows a
+// half-built snapshot or numbers pulled from two unrelated merges. A gate whose run is missing (e.g.
+// path-filtered, not yet uploaded, or a 404 workflow) yields no pairing / null metric, keeping the
+// blend null-safe.
 //
 // Writes land on `quality-data` only — never on the protected branch (no Ruleset bypass) — mirroring
 // the conductor-metrics push. GITHUB_TOKEN pushes do not re-trigger workflows, so the collector
@@ -32,7 +35,7 @@ const DATA_BRANCH = "quality-data";
 const SNAPSHOT_PATH = ".github/quality/quality-snapshot.json";
 
 // Workflow files whose latest runs feed the snapshot (keyed by file, not display name, so the query
-// is exact). e2e.yml / nightly.yml land in later checklist steps — a 404 resolves to null.
+// is exact). A workflow file that does not exist yet yields a 404 -> null.
 const WF_PHP_TESTS = "php-tests.yml";
 const WF_E2E = "e2e.yml";
 const WF_NIGHTLY = "nightly.yml";
@@ -47,15 +50,22 @@ function main() {
   const floor = readFloor();
   const baseline = readBaseline();
 
-  const phpRun = latestSuccessfulRun(WF_PHP_TESTS, { branch: BRANCH, event: "push" });
-  const e2eRun = latestSuccessfulRun(WF_E2E, { branch: BRANCH, event: "push" });
-  if (!phpRun || !e2eRun) {
+  // Pair PHP Tests + E2E from the SAME merge commit (matched by head SHA). Selecting each gate's latest
+  // green run independently could blend fresh coverage/PHPUnit numbers from the tip with an older E2E
+  // report from a previous merge — misrepresenting the branch tip. Walk back to the newest commit that
+  // is green on BOTH gates instead; publish nothing until such a commit exists.
+  const phpRuns = successfulRuns(WF_PHP_TESTS, { branch: BRANCH, event: "push" });
+  const e2eRuns = successfulRuns(WF_E2E, { branch: BRANCH, event: "push" });
+  const pair = latestCommonRun(phpRuns, e2eRuns);
+  if (!pair) {
     log(
-      `skipping publish — a green merge run is required for both gates ` +
-        `(PHP Tests: ${phpRun ? "ok" : "missing"}, E2E: ${e2eRun ? "ok" : "missing"}).`,
+      `skipping publish — no commit on ${BRANCH} is green on BOTH gates ` +
+        `(PHP Tests green runs: ${phpRuns.length}, E2E green runs: ${e2eRuns.length}).`,
     );
     return;
   }
+  const { phpRun, e2eRun } = pair;
+
   // Full-suite Infection MSI comes from the latest successful Nightly (schedule/dispatch on develop);
   // null until the first nightly has run.
   const nightlyRun = latestSuccessfulRun(WF_NIGHTLY, {});
@@ -160,18 +170,36 @@ function assemble(d) {
 }
 
 // ---------------------------------------------------------------- run + artifact lookup
-function latestSuccessfulRun(workflowFile, { branch, event }) {
+// Successful runs of a workflow on the branch, newest-first. The API already returns newest-first;
+// sort by id defensively so both head-SHA pairing and "latest" selection are deterministic.
+function successfulRuns(workflowFile, { branch, event } = {}) {
   const qs = new URLSearchParams({ status: "completed", per_page: "30" });
   if (branch) qs.set("branch", branch);
   if (event) qs.set("event", event);
   const obj = ghApiObject(`/repos/${REPO}/actions/workflows/${workflowFile}/runs?${qs}`);
   const runs = Array.isArray(obj?.workflow_runs) ? obj.workflow_runs : [];
-  // The API returns newest-first; sort by id defensively and take the latest green run.
-  return (
-    runs
-      .filter((r) => r.conclusion === "success")
-      .sort((a, b) => Number(b.id) - Number(a.id))[0] || null
-  );
+  return runs
+    .filter((r) => r.conclusion === "success")
+    .sort((a, b) => Number(b.id) - Number(a.id));
+}
+
+function latestSuccessfulRun(workflowFile, filters = {}) {
+  return successfulRuns(workflowFile, filters)[0] || null;
+}
+
+// Newest commit that is green on BOTH gate workflows, returned as the matching run from each. Runs are
+// paired by head_sha (both gates run on the same push, so a merge produces the same SHA in each list),
+// so the snapshot's PHP Tests and E2E numbers always describe one coherent commit, not two merges.
+function latestCommonRun(phpRuns, e2eRuns) {
+  const e2eBySha = new Map();
+  for (const run of e2eRuns) {
+    if (run.head_sha && !e2eBySha.has(run.head_sha)) e2eBySha.set(run.head_sha, run);
+  }
+  for (const phpRun of phpRuns) {
+    const e2eRun = phpRun.head_sha ? e2eBySha.get(phpRun.head_sha) : undefined;
+    if (e2eRun) return { phpRun, e2eRun };
+  }
+  return null;
 }
 
 function downloadRunArtifacts(runId, dir) {
