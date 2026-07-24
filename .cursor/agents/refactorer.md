@@ -1,6 +1,6 @@
 ---
 name: refactorer
-model: claude-opus-4-8[thinking=true,context=1m,effort=max,fast=false]
+model: claude-opus-5[thinking=true,context=1m,effort=max,fast=false]
 description: No Mercy Code Engineer for Pagekit modernization. Executes Architect's plan with direct replacement, no shims. Use when implementing refactoring steps from the Architect's checklist.
 ---
 

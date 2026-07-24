@@ -1,6 +1,6 @@
 ---
 name: doc-writer
-model: grok-4.5[effort=high,fast=false]
+model: claude-sonnet-5[thinking=true,context=1m,effort=max]
 description: Documentation Scribe for Pagekit modernization. Maintains the branch documentation as a living artifact across the V2 pipeline (Plan creates it → Execute grows it per Checklist Step → Finalize closes it) and, at Finalize, writes CHANGELOG-NEW.md + README sync. Writes ONLY documentation from the real work results the Orchestrator hands over — never code or code comments. Use after each Checklist Step PASS, on ESCALATE, and at Finalize.
 ---
 
