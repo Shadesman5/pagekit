@@ -30,6 +30,14 @@ _TBD_
 
 Tests: none (test-writer: skip — Dockerfiles only, no production PHP under `app/`/`packages/`). Gates: Verifier FAIL → refactorer retry → FAIL → retry → PASS (see Key Decisions); Tester — PHPUnit PASS, PHPStan PASS. hadolint + `php -m` fell through to Manual Work per the ticket's Manual Work list (item 2).
 
+### `.dockerignore` extension — non-runtime paths excluded from build context (Checklist Step 2)
+
+| File | Change |
+|---|---|
+| `.dockerignore` | Kept all 16 existing entries; regrouped them under category header comments (dependencies, runtime state/logs, local install artefacts, tests/reports/coverage, docs+CI+agent config, Docker artefacts, VCS/editor/OS noise) and added the 16 new entries named in the checklist: `migration-docs/`, `docs-site/`, `tests/`, `.github/`, `.cursor/`, `*.md`, `playwright-report/`, `test-results/`, `.phpunit.cache/`, `config.php`, `pagekit.db`, `*.db`, `Dockerfile`, `.dockerignore`, `docker-compose*.yml`, `docker/`. |
+
+Tests: none (test-writer: skip — build-context file only, no production PHP under `app/`/`packages/`). Gates: Verifier PASS; Tester — PHPUnit PASS, PHPStan PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
