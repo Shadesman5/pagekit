@@ -233,7 +233,15 @@ function readJunit(path) {
 
 function readInfection(path) {
   const stats = JSON.parse(readFileSync(path, "utf8")).stats || {};
-  return { msi: stats.msi ?? null, coveredMsi: stats.coveredCodeMsi ?? stats.coveredMsi ?? null };
+  return {
+    msi: stats.msi ?? null,
+    coveredMsi: stats.coveredCodeMsi ?? stats.coveredMsi ?? null,
+    killed: stats.killedCount ?? null,
+    escaped: stats.escapedCount ?? null,
+    timedOut: stats.timeOutCount ?? null,
+    errors: stats.errorCount ?? null,
+    totalMutants: stats.totalMutantsCount ?? null,
+  };
 }
 
 function readPlaywright(path) {

@@ -104,7 +104,7 @@ function buildSnapshot({ floor, baseline, phpRun, e2eRun, nightlyRun }) {
 
 function assemble(d) {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     source: "github-actions",
     updatedAt: new Date().toISOString(),
     branch: BRANCH,
@@ -146,6 +146,11 @@ function assemble(d) {
       dailyFull: {
         msi: d.infection?.msi ?? null,
         coveredMsi: d.infection?.coveredMsi ?? null,
+        killed: d.infection?.killed ?? null,
+        escaped: d.infection?.escaped ?? null,
+        timedOut: d.infection?.timedOut ?? null,
+        errors: d.infection?.errors ?? null,
+        totalMutants: d.infection?.totalMutants ?? null,
         scope: "full",
         runAt: d.nightlyRun?.run_started_at ?? null,
       },
@@ -272,7 +277,15 @@ function readJunit(path) {
 
 function readInfection(path) {
   const stats = JSON.parse(readFileSync(path, "utf8")).stats || {};
-  return { msi: stats.msi ?? null, coveredMsi: stats.coveredCodeMsi ?? stats.coveredMsi ?? null };
+  return {
+    msi: stats.msi ?? null,
+    coveredMsi: stats.coveredCodeMsi ?? stats.coveredMsi ?? null,
+    killed: stats.killedCount ?? null,
+    escaped: stats.escapedCount ?? null,
+    timedOut: stats.timeOutCount ?? null,
+    errors: stats.errorCount ?? null,
+    totalMutants: stats.totalMutantsCount ?? null,
+  };
 }
 
 function readPlaywright(path) {
