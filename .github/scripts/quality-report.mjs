@@ -4,13 +4,19 @@
 // quality-report.yml when a gate workflow (PHP Tests / Infection / E2E / Frontend) completes for a
 // pull request, or manually via workflow_dispatch with a `pr` input.
 //
-// It renders the CURRENT state for a PR head commit, aggregating across every gate:
-//   - PASS / FAIL / pending comes from the check-runs API, which spans every workflow for the SHA;
-//   - numeric detail (coverage %, PHPStan errors, PHPUnit / E2E counts, Infection MSI) comes from the
-//     artifacts uploaded by each gate's latest run for that same SHA.
-// Gates that have not reported yet — Infection, E2E and Frontend arrive in later checklist steps —
-// render as "pending" instead of failing. The comment is upserted idempotently via a hidden marker,
-// so repeated gate completions update one comment rather than posting a new one each time.
+// This comment is the PR IMPACT REPORT — numbers only. It deliberately does NOT repeat PASS/FAIL:
+// GitHub Checks at the bottom of the PR already own the merge verdict, and duplicating it here made
+// the comment a worse copy of a surface the reader already has. Each row answers two questions:
+//   - what does this PR head measure? — from the artifacts uploaded by each gate's latest run for the
+//     head SHA (Clover coverage, JUnit counts, PHPStan errors, Infection diff MSI, Playwright specs);
+//   - how does that compare to develop? — against the live snapshot on the quality-data branch, the
+//     same file the Pages dashboard renders.
+// Check-run conclusions are still read, but only to explain a MISSING number (pending / skipped).
+//
+// The comment is upserted idempotently via a hidden marker, so repeated gate completions update one
+// comment rather than posting a new one each time. Set DRY_RUN=1 to print the body instead — the only
+// way to see the real rendering before the change reaches the default branch, since workflow_run and
+// workflow_dispatch both execute this script from there.
 
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, readdirSync, readFileSync, existsSync } from "node:fs";
@@ -30,16 +36,20 @@ const GATE_WORKFLOW_PATHS = [
   ".github/workflows/frontend.yml",
 ];
 
-// Check-run names == the job `name:` values that produce them.
+// Check-run names == the job `name:` values that produce them. Only consulted to explain a missing
+// metric — cs-fixer / security-audit / frontend produce no number and so have no row here.
 const CHECK_PHPUNIT = "phpunit (8.5)";
 const CHECK_PHPSTAN = "phpstan";
 const CHECK_INFECTION = "infection-diff";
 const CHECK_E2E = "e2e-smoke";
-const CHECK_CSFIXER = "cs-fixer";
-const CHECK_SECURITY = "security-audit";
-const CHECK_FRONTEND = "frontend";
+
+// Live develop-tip snapshot published by quality-collect.yml — the baseline every delta is measured
+// against, read from the same branch the Pages dashboard serves.
+const DATA_BRANCH = "quality-data";
+const SNAPSHOT_PATH = ".github/quality/quality-snapshot.json";
 
 const REPO = required("GITHUB_REPOSITORY");
+const DRY_RUN = process.env.DRY_RUN === "1";
 
 main();
 
@@ -55,8 +65,13 @@ function main() {
 
   const checks = indexChecks(checkRunsForSha(sha));
   const artifacts = collectArtifacts(sha);
-  const body = renderComment({ sha, checks, floor: readFloor(), ...artifacts });
+  const body = renderComment({ sha, checks, floor: readFloor(), baseline: readBaseline(), ...artifacts });
 
+  if (DRY_RUN) {
+    log("DRY_RUN=1 — rendering to stdout instead of upserting the comment:");
+    console.log(`\n${body}`);
+    return;
+  }
   upsertComment(pr, body);
 }
 
@@ -108,27 +123,6 @@ function indexChecks(list) {
     if (!prev || Date.parse(c.started_at || 0) >= Date.parse(prev.started_at || 0)) map.set(c.name, c);
   }
   return map;
-}
-
-function gateStatus(checks, name) {
-  const c = checks.get(name);
-  if (!c) return { symbol: "⏳", word: "pending" };
-  if (c.status !== "completed") return { symbol: "⏳", word: "running" };
-  switch (c.conclusion) {
-    case "success":
-      return { symbol: "✅", word: "pass" };
-    case "failure":
-    case "timed_out":
-    case "action_required":
-      return { symbol: "❌", word: "fail" };
-    case "cancelled":
-      return { symbol: "⚪", word: "cancelled" };
-    case "neutral":
-    case "skipped":
-      return { symbol: "⚪", word: c.conclusion };
-    default:
-      return { symbol: "⏳", word: c.conclusion || "pending" };
-  }
 }
 
 // What to print when a row has no number. A gate's PASS/FAIL lives in GitHub Checks, so a green gate
@@ -193,6 +187,28 @@ function readFloor() {
   return m ? Number(m[1]) : null;
 }
 
+// Develop-tip baseline, fetched from quality-data rather than the checkout: the checked-out tree is
+// develop's SOURCE, not its measured CI results. A seed/demo snapshot is not a real baseline — the PR
+// numbers would be compared against invented ones — so it is rejected and the deltas render as
+// "no baseline".
+function readBaseline() {
+  const raw = gh(
+    ["api", "-H", "Accept: application/vnd.github.raw", `/repos/${REPO}/contents/${SNAPSHOT_PATH}?ref=${DATA_BRANCH}`],
+    { allowFail: true },
+  );
+  if (!raw) {
+    log(`no baseline snapshot on ${DATA_BRANCH} — deltas omitted.`);
+    return null;
+  }
+  const parsed = safe(() => JSON.parse(raw));
+  if (!parsed) return null;
+  if (parsed.source !== "github-actions") {
+    log(`baseline snapshot is "${parsed.source}", not live CI data — deltas omitted.`);
+    return null;
+  }
+  return parsed;
+}
+
 function readCoverage(path) {
   const xml = readFileSync(path, "utf8");
   // Clover's project-level aggregate is the <metrics/> element directly before </project>.
@@ -255,15 +271,13 @@ function readPlaywright(path) {
 
 // ---------------------------------------------------------------- rendering
 function renderComment(d) {
+  const b = d.baseline;
   const rows = [
-    row("PHPUnit (8.5 · SQLite)", d.checks, CHECK_PHPUNIT, d.junit ? `${d.junit.passed} / ${d.junit.tests} passed` : null),
-    row("Line coverage", d.checks, CHECK_PHPUNIT, coverageDetail(d.coverage, d.floor)),
-    row("PHPStan (level 8)", d.checks, CHECK_PHPSTAN, d.phpstan ? plural(d.phpstan.errors, "error") : null),
-    row("Infection (diff MSI)", d.checks, CHECK_INFECTION, d.infection?.msi != null ? `MSI ${Number(d.infection.msi).toFixed(1)}%` : null),
-    row("E2E (smoke)", d.checks, CHECK_E2E, d.e2e ? `${d.e2e.passed} / ${d.e2e.total} specs` : null),
-    row("CS-Fixer", d.checks, CHECK_CSFIXER, null),
-    row("Security audit", d.checks, CHECK_SECURITY, null),
-    row("Frontend", d.checks, CHECK_FRONTEND, null),
+    row("PHPUnit (8.5 · SQLite)", d.checks, CHECK_PHPUNIT, phpunitCell(d.junit), phpunitDelta(d.junit, b)),
+    row("Line coverage", d.checks, CHECK_PHPUNIT, coverageCell(d.coverage, d.floor), coverageDelta(d.coverage, b)),
+    row("PHPStan (level 8)", d.checks, CHECK_PHPSTAN, phpstanCell(d.phpstan), phpstanDelta(b)),
+    row("Infection (diff)", d.checks, CHECK_INFECTION, infectionCell(d.infection, d.checks), infectionDelta(b)),
+    row("E2E (smoke)", d.checks, CHECK_E2E, e2eCell(d.e2e), e2eDelta(b)),
   ];
 
   return [
@@ -271,25 +285,102 @@ function renderComment(d) {
     "",
     "### 🔍 Quality Report",
     "",
-    "| Gate | Status | Detail |",
-    "| ---- | :----: | ------ |",
+    "| Metric | This PR | vs develop |",
+    "| ------ | ------- | ---------- |",
     ...rows,
     "",
-    `<sub>✅ pass · ❌ fail · ⏳ pending (gate not reported yet) · ⚪ skipped. Commit \`${d.sha.slice(0, 7)}\` · updated ${new Date().toISOString()}.</sub>`,
+    `<sub>${baselineNote(b)} · commit \`${d.sha.slice(0, 7)}\` · updated ${new Date().toISOString()}.<br>`,
+    "PASS/FAIL lives in the GitHub Checks below · project health: " +
+      "[Quality Dashboard](https://shadesman5.github.io/pagekit/quality/).</sub>",
     "",
   ].join("\n");
 }
 
-function row(label, checks, checkName, detail) {
-  const status = gateStatus(checks, checkName);
-  const cell = detail != null && detail !== "" ? detail : noMetricLabel(checks, checkName);
-  return `| ${label} | ${status.symbol} | ${cell} |`;
+// A row always shows something in both cells: the measurement, or why it is absent.
+function row(label, checks, checkName, cell, delta) {
+  const value = cell != null && cell !== "" ? cell : noMetricLabel(checks, checkName);
+  return `| ${label} | ${value} | ${delta ?? "—"} |`;
 }
 
-function coverageDetail(coverage, floor) {
+function baselineNote(baseline) {
+  if (!baseline) return "No develop baseline yet — PR numbers only";
+  return `Baseline: develop snapshot @ ${baseline.updatedAt}`;
+}
+
+// ---------------------------------------------------------------- metric cells
+function phpunitCell(junit) {
+  return junit ? `${junit.passed} / ${junit.tests} passed` : null;
+}
+
+function coverageCell(coverage, floor) {
   if (!coverage) return null;
   const pct = `${coverage.percent.toFixed(2)}%`;
   return floor != null ? `${pct} (floor ${floor.toFixed(2)}%)` : pct;
+}
+
+function phpstanCell(phpstan) {
+  return phpstan ? `${plural(phpstan.errors, "new error")}` : null;
+}
+
+// Killed/escaped say how much of the diff the run actually exercised — MSI alone can read high off a
+// handful of mutants. A green gate with no artifact means the diff touched nothing in the Infection
+// source scope, so the job exited early; say that rather than leaving the row blank.
+function infectionCell(infection, checks) {
+  if (infection?.msi != null) {
+    const parts = [`MSI ${Number(infection.msi).toFixed(1)}%`];
+    if (infection.killed != null) parts.push(`${infection.killed} killed`);
+    if (infection.escaped != null) parts.push(`${infection.escaped} escaped`);
+    return parts.join(" · ");
+  }
+  const c = checks.get(CHECK_INFECTION);
+  return c?.status === "completed" && c.conclusion === "success" ? "out of scope" : null;
+}
+
+function e2eCell(e2e) {
+  return e2e ? `${e2e.passed} / ${e2e.total} specs` : null;
+}
+
+// ---------------------------------------------------------------- deltas vs the develop snapshot
+function coverageDelta(coverage, baseline) {
+  const base = baseline?.coverage?.linePercent;
+  if (!coverage || base == null) return null;
+  return `${signed(coverage.percent - base, 2)} pp`;
+}
+
+function phpunitDelta(junit, baseline) {
+  const base = baseline?.phpunit?.["8.5-sqlite"]?.tests;
+  if (!junit || base == null) return null;
+  return `${signed(junit.tests - base, 0)} tests`;
+}
+
+// PHPStan reports only NON-baselined errors, so "this PR" is already the delta. The baseline debt is
+// the trend worth watching next to it.
+function phpstanDelta(baseline) {
+  const s = baseline?.phpstan;
+  if (!s || s.suppressedErrors == null) return null;
+  return `baseline ${s.baselineBlocks}/${s.suppressedErrors} suppressed`;
+}
+
+// Deliberately never a number: the PR runs Infection over the diff, the nightly over the whole source
+// scope. Subtracting one from the other would invent a trend that does not exist.
+function infectionDelta(baseline) {
+  const full = baseline?.infection?.dailyFull;
+  if (full?.msi == null) return "n/a (diff scope)";
+  return `n/a (diff scope) · develop full MSI ${Number(full.msi).toFixed(1)}%`;
+}
+
+function e2eDelta(baseline) {
+  const e2e = baseline?.e2e;
+  if (!e2e || e2e.specsTotal == null) return null;
+  return `develop ${e2e.specsPassed}/${e2e.specsTotal}`;
+}
+
+// toFixed keeps the sign of a value that rounds to zero ("-0.00"), which reads like a regression that
+// did not happen. No change is rendered as "±".
+function signed(n, dp) {
+  const v = n.toFixed(dp);
+  if (Number(v) === 0) return `± ${(0).toFixed(dp)}`;
+  return Number(v) > 0 ? `+${v}` : v;
 }
 
 // ---------------------------------------------------------------- comment upsert

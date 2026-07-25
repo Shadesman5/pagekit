@@ -1,10 +1,13 @@
 # Sticky "Quality Report" PR comment. Runs after a gate workflow completes for a pull request and
-# re-renders one comment from the gate check-runs + uploaded artifacts for that head commit.
+# re-renders one comment from the artifacts uploaded for that head commit, plus the develop-tip
+# snapshot on quality-data for the deltas. The comment reports NUMBERS only — PASS/FAIL is the job of
+# the GitHub Checks on the same PR.
 #
-# workflow_run fires from the DEFAULT branch's copy of this file, so it cannot be observed on the PR
-# that introduces it — the workflow_dispatch trigger allows a manual re-render (post-merge validation
-# or on demand) against any open PR. Metrics that have not reported yet (Infection / E2E / Frontend
-# land in later checklist steps) render as pending, never failing.
+# workflow_run fires from the DEFAULT branch's copy of this file AND checks out that branch's copy of
+# the renderer, so neither can be observed on the PR that introduces them — the workflow_dispatch
+# trigger allows a manual re-render (post-merge validation or on demand) against any open PR, and
+# DRY_RUN=1 renders locally without touching the comment. A metric that has not reported yet renders
+# as pending, never as a verdict.
 
 name: Quality Report
 
