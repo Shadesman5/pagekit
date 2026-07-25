@@ -44,8 +44,8 @@
 - [x] Step 2 (S) — .dockerignore: exclude docs/tests/CI/agent config + report artefacts + local install files
 - [x] Step 3 (L) — Dev compose + .env wiring + setup scripts + DB-init deletion (one functional unit)
 - [x] Step 4 (M) — E2E Docker path retirement: compose + scripts deleted, live docs scrubbed, port realigned
-- [ ] Step 5 (S) — php.ini hygiene (opcache.fast_shutdown) + .env.example dev-only confirmation
-- [ ] Step 6 (M) — Docs alignment: README quickstart, DOCKER.md fold+delete, AGENTS.md Docker context
+- [x] Step 5 (S) — php.ini hygiene (opcache.fast_shutdown) + .env.example dev-only confirmation
+- [x] Step 6 (M) — Docs alignment: README quickstart, DOCKER.md fold+delete, AGENTS.md Docker context
 
 ## TESTING STRATEGY
 - **Per step (production gate):** Refactorer → Verifier → Tester (PHPUnit + PHPStan) — both must stay green untouched on every step (baseline verified green: 725 tests OK, PHPStan clean, PHP 8.5.8; config + docs ticket — a regression means out-of-scope drift).

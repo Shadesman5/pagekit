@@ -6,16 +6,16 @@
 **Branch:** `feature/docker-developer-experience`
 **ROADMAP Step:** 2.3 (Docker Dev Experience & Image Hygiene)
 **GitHub Issue:** [#241](https://github.com/Shadesman5/pagekit/issues/241)
-**Pull Request:** _TBD_
-**Status:** 🚧 In progress
+**Pull Request:** [#242](https://github.com/Shadesman5/pagekit/pull/242)
+**Status:** ✅ Complete
 **Started:** 2026-07-24 20:58
-**Completed:** _TBD_
+**Completed:** 2026-07-24 22:18
 
 ---
 
 ## 🎯 Overview
 
-_TBD_
+Reconciles the dev Docker stack with what the container actually needs rather than what it historically accumulated. Both Dockerfiles slim to a `pdo_mysql`/`gd`/`zip` extension set with justified-only apt build-deps, and the root image stops baking application code now that the dev compose bind-mount already covers `/var/www/html`; `.dockerignore` grows to match. `docker-compose.yml` drops the dead `profiles:`/`env_file:` wiring for Compose-native `.env` interpolation, adds a TCP-based MySQL healthcheck gating `web`/`phpmyadmin`, and — together with the deleted `docker/mysql/init` script — removes the stack's last hardcoded DB credential. The standalone Docker E2E stack (compose file + 3 scripts) is retired outright in favor of Playwright's own server lifecycle, with every live-doc pointer scrubbed to match. `docker/php/php.ini` drops a directive dead since PHP 7.2, and `README.md`/`AGENTS.md` are rewritten to document the stack as it now behaves, folding in `DOCKER.md`'s reusable content before deleting it.
 
 ---
 
@@ -65,6 +65,24 @@ Tests: none (test-writer: skip — compose YAML, env template and shell scripts 
 
 Tests: none (test-writer: skip — E2E Docker path retirement and doc/prompt scrubs only, no production PHP under `app/`/`packages/`). Gates: Verifier PASS; Tester — PHPUnit PASS, PHPStan PASS. Tester also ran the ticket's extra Step-4 checks (`python3` JSON-parse of `test-config.example.json`; `rg --hidden` allow-list scan for `docker-compose.e2e|e2e-start|e2e-stop|e2e-reset`) — both run without a Docker CLI, so neither falls to Manual Work this step.
 
+### php.ini + `.env.example` hygiene — drop removed opcache directive (Checklist Step 5)
+
+| File | Change |
+|---|---|
+| `docker/php/php.ini` | Deleted `opcache.fast_shutdown = 1` (directive removed in PHP 7.2; dead since). Replaced the single-line header with a 3-line comment stating what the file is (dev Docker stack `php.ini`), how it's wired (mounted into the `web` service by `docker-compose.yml`), and why the remaining values are generous (dev-only — covers the already-present `display_errors = On` and the `memory_limit`/upload-size settings). `.env.example` re-checked against the checklist's dev-only-header + four-var requirement — already compliant from Checklist Step 3, so no drift and no changes needed there. |
+
+Tests: none (test-writer: skip — ini file only, no production PHP under `app/`/`packages/`). Gates: Verifier PASS; Tester — PHPUnit PASS, PHPStan PASS.
+
+### Docs alignment — README quickstart rewritten, DOCKER.md folded + deleted, AGENTS.md Docker context (Checklist Step 6)
+
+| File | Change |
+|---|---|
+| `README.md` | Docker sections rewritten to match what Checklist Steps 1–5 actually built: every live `docker-compose` spelling → `docker compose` (v2). Quickstart step 2 renamed "Generate the environment file" (script now writes `.env`, not `docker.env`); step 3 gives both start paths — bare `docker compose up -d` (MySQL, default) and `docker compose up -d --no-deps web node` (SQLite, no DB container) — replacing the phantom `--profile sqlite`; new step 4 documents the in-container `docker compose exec web composer install` now required since the image no longer bakes app code; new step 5 covers both install paths (web installer for MySQL — host `mysql`, credentials from `.env`; `docker compose exec web php pagekit setup … -d sqlite --no-interaction` for SQLite). "What's Included" bullets replaced the "all required extensions"/"Hot-reloading" claims with the real capability set (`pdo_mysql`, `gd`, `zip` built + bundled `pdo_sqlite`/`mbstring`/XML) and the healthcheck-gated MySQL start. Database Configuration section replaced the hardcoded `pagekit`/`pagekit` credentials with `.env`-sourced `MYSQL_*` values (no fixed default password). Useful Commands block re-spelled to `docker compose` and gained a new "Docker Troubleshooting" subsection folding in DOCKER.md's `.env`-guard / host-port-remap / `chown -R www-data:www-data` snippets plus the frontend production-build commands. Security section: `docker.env` → `.env`; the dead production-deployment bullets (HTTPS, `APP_DEBUG=false`, firewall rules — none of those mechanisms exist in this dev-only stack) replaced with a "Development only" note pointing at the Step 2.5 production image. |
+| `AGENTS.md` | New Services-table row: `Docker dev stack` — `./docker-setup.sh` then `docker compose up -d` — "Local machines only — the Cloud Agent VM has no Docker daemon". New caveat bullet under "Non-obvious caveats" spelling out the compose quickstart (setup script → `.env` → `docker compose up -d` → in-container `composer install`) and the SQLite zero-DB path (`--no-deps web node` + in-container `php pagekit setup … -d sqlite`), so an executing agent knows both the flow and that it cannot run `docker` itself in this VM. |
+| `migration-docs/documentation/DOCKER.md` (deleted) | German-language duplicate of README's Docker sections deleted per Architect decision 8. Its only reusable content — the "Nützliche Befehle" command list and the "Troubleshooting" port/permission snippets — is now folded into README's Useful Commands / new Docker Troubleshooting subsection; the rest of the file (phantom `--profile sqlite`, hardcoded `pagekit`/`pagekit` credentials, stale PHP 8.4/Node 18 claims) was already superseded by README and is gone with it. |
+
+Tests: none (test-writer: skip — docs only, no production PHP under `app/`/`packages/`). Gates: Verifier PASS; Tester (PHPUnit + PHPStan) PASS; Tester (final E2E) PASS — this Checklist Step completed every `## EXECUTION STATE` box.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -75,20 +93,20 @@ Tests: none (test-writer: skip — E2E Docker path retirement and doc/prompt scr
 
 ## ⚠️ Breaking Changes (Extensions)
 
-_TBD_
+None (Docker dev-tooling and docs only; no Pagekit extension or runtime API changed).
 
 ---
 
 ## ⚠️ Risks & Rollout Notes
 
 - **Root `Dockerfile` no longer bakes app code (Checklist Step 1).** `COPY . /var/www/html`, the `chown`/`chmod` layer, and `composer install --no-dev --optimize-autoloader` are gone — the image alone now builds to just PHP 8.5 + Apache + extensions + Composer binary. Building/running it standalone (`docker build` / `docker run`, no compose) leaves `/var/www/html` empty; the documented dev flow (`docker compose up`) is unaffected because its bind mount already covers the same path. Production baking returns with the separate image in Step 2.5.
-- **`docker-setup.sh` drops its self-`chmod` and is tracked without the exec bit (Checklist Step 3 — flagged for Step 6).** The checklist's Step 3 scope removed the script's trailing `chmod +x docker-setup.sh` along with the other now-dead fallback logic; the file itself is still git-tracked as `100644` (no exec bit), unchanged from before this step. Verifier note: Step 6's README pass must either instruct `chmod +x docker-setup.sh` before first run or the tracked file's git exec bit must be set — otherwise a fresh clone's `./docker-setup.sh` fails with "Permission denied" (invoking it as `bash docker-setup.sh` is unaffected).
+- **`docker-setup.sh` drops its self-`chmod` and is tracked without the exec bit (Checklist Step 3 — flagged for Step 6).** The checklist's Step 3 scope removed the script's trailing `chmod +x docker-setup.sh` along with the other now-dead fallback logic; the file itself is still git-tracked as `100644` (no exec bit), unchanged from before this step. Verifier note: Step 6's README pass must either instruct `chmod +x docker-setup.sh` before first run or the tracked file's git exec bit must be set — otherwise a fresh clone's `./docker-setup.sh` fails with "Permission denied" (invoking it as `bash docker-setup.sh` is unaffected). **Resolved in Step 6:** confirmed the README quickstart already carries `chmod +x docker-setup.sh` immediately before `./docker-setup.sh` (a pre-existing line, not touched by this step's rewrite) — a fresh clone following the README stays unaffected; the tracked file itself is still `100644`.
 
 ---
 
 ## 🔐 Security & Data Impact
 
-_TBD / None_
+Removes the last hardcoded DB credential from the dev stack — `docker/mysql/init/01-create-database.sql`'s `pagekit`/`pagekit` deleted along with its bind mount (Checklist Step 3); MySQL credentials now come solely from the generated, gitignored `.env`, with a `${VAR:?Run ./docker-setup.sh first}` guard against a silent empty-password start. Dev-only scope — no production secret/12-factor handling changes here (that lands with the production image in Step 2.5).
 
 ---
 
@@ -97,37 +115,53 @@ _TBD / None_
 - **Rule 4 (Delete over wrap) — Checklist Step 1:** baked-code layers (`COPY . /var/www/html`, `chown`/`chmod`, `composer install --no-dev`) removed outright rather than gated behind a build arg or left commented out; unused apt libs (`libmcrypt-dev`, `libxml2-dev`, `libonig-dev`, `libgd-dev`, `zip` CLI) and PHP extensions (`pdo`, `pdo_sqlite`, `mbstring`, `exif`, `pcntl`, `bcmath` — all bundled by the base image or unused by Pagekit) dropped rather than kept "just in case."
 - **Rule 4 (Delete over wrap) — Checklist Step 3:** `docker/mysql/init/01-create-database.sql` and its hardcoded `pagekit`/`pagekit` credential deleted outright rather than parameterized — the mysql image's own `MYSQL_*` environment variables already produce the same database/user/grants; `docker.env.example`'s 9 dead vars and both setup scripts' `$`-escaping, `.gitignore`-append, and self-`chmod` logic removed rather than kept as unused fallback paths.
 - **Rule 4 (Delete over wrap) — Checklist Step 4:** `docker-compose.e2e.yml` and all 3 wrapper scripts deleted outright rather than kept alongside the Playwright-managed path; every live-doc pointer (both `tests/e2e/*.md` docs, the skill doc, and the two stale prompts' command blocks) was scrubbed to the new flow — scrub chosen over allow-listing so no future executing agent inherits a command pointing at a deleted script.
+- **Rule 4 (Delete over wrap) — Checklist Step 6:** `migration-docs/documentation/DOCKER.md` deleted outright rather than left as a second, drifted Docker doc alongside README; its only reusable content (useful-commands + troubleshooting) was folded into README's existing Docker sections instead of being kept as a parallel source of truth.
 
 ---
 
 ## ✅ Verification (links only)
 
-- CI run: _TBD_
-- Notable deviations: _TBD / None_
+| Gate | Result |
+|---|---|
+| CI — PR checks | ✅ success — [run #30130278880](https://github.com/Shadesman5/pagekit/actions/runs/30130278880) (`phpunit (8.5)`, `phpstan`, `cs-fixer`, `security-audit`, `version-ssot`, `phpunit-mysql`, `frontend`, `infection-diff` all pass; `e2e-smoke`/`e2e-merge` skipped by path filter) |
+| Coverage gap pass | skipped — ticket `## TESTING STRATEGY` marks `test-writer: skip` on all steps (no production PHP under `app/` / `packages/`) |
+| Cursor Bugbot | ✅ clean |
+| E2E | ✅ PASS |
+| Finalize fix-loop | None |
+
+**CI run:** https://github.com/Shadesman5/pagekit/actions/runs/30130278880
+
+**Metrics (CI-owned):** [PR #242](https://github.com/Shadesman5/pagekit/pull/242) sticky quality-report comment · [Quality Dashboard](https://Shadesman5.github.io/pagekit/quality/)
+
+**Notable deviations:** None (Steps 1–6, no Finalize fix-loop).
 
 ---
 
 ## 📋 Phase 1 Audit Closure
 
-_TBD_
+None (no `Closes Phase 1 audit:` line in the ticket header; Docker dev-tooling scope does not touch a Phase 1 audit item).
 
 ---
 
 ## 📚 Deferred / Out-of-Scope
 
-_TBD_
+- **Step 2.5 (Docker Production Image & Deploy)** — multi-stage production image, hardening, prod compose, container `HEALTHCHECK`, image build/scan/push in CI (Hadolint/Trivy/GHCR), 12-factor env/secrets, webserver choice (Apache vs nginx+FPM vs FrankenPHP), and the OpenWeatherMap API key → env + rotation (`AUDIT FIX Step 2.5` marker already in `app/system/modules/dashboard/index.php`). *PHASE §2.5 already covers this — no amendment needed.*
+- **Step 2.4 (Build Tools)** — pnpm + Vite pipeline; the compose `node` service command/docs follow then. *PHASE §2.4 already covers this — no amendment needed.*
+- **Step 3.6.1 (E2E Test Suite Rework)** — spec repair/rework and `tests/e2e` conventions; retiring the Docker E2E wrapper here touched no spec bodies. *PHASE §3.6.1 already covers this — no amendment needed.*
+- **Non-goal:** runtime `docker compose up` validation cannot run in-agent (no Docker daemon in the VM) — Manual Work for the user, not a ROADMAP step.
+- **Bridges:** None.
+- **Manual Work (maintainer):**
+  1. Runtime validation on a Docker host — cold `./docker-setup.sh` → `docker compose up` on the MySQL path (no boot race, no restart loop on a cold volume, `web`/`phpmyadmin` start only after MySQL reports healthy); SQLite path `docker compose up -d --no-deps web node` + in-container `php pagekit setup … -d sqlite`; `docker compose -f docker-compose.yml config` against a generated `.env`.
+  2. `php -m` on both `php:8.5-apache`/`php:8.5-cli` to confirm the bundled-extension assumption, plus a build of both Dockerfiles — also settles the hadolint result, since neither a Docker CLI nor hadolint was available in-agent.
+  3. Regenerate the local env via `./docker-setup.sh` / `docker-setup.ps1` (now writes `.env`); delete any stale local `docker.env`.
+  4. Remove local `storage-e2e/` / `tmp-e2e/` leftovers from the retired Docker E2E path.
+  5. Rebuild the cloud-agent environment snapshot at the next opportunity so the `.cursor/Dockerfile` extension slimming takes effect (running agents use the pinned snapshot until then — no runtime risk).
 
 ---
 
 ## 📎 Related Documents
 
-- Ticket: `migration-docs/tickets/active/PROMPT_2_3_Docker-Dev-Experience_plan.md` (_TBD_ → move to `done/` after Finalize)
+- Ticket: `migration-docs/tickets/done/PROMPT_2_3_Docker-Dev-Experience_plan.md` (archived at Finalize)
 - Task prompt: `migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_3_Docker-Dev-Experience.md`
 - Predecessor: Step 2.2 — CI/CD Pipeline
 - Successor: Step 2.4 — Build Tools (pnpm + Vite)
-
----
-
-## 📊 <Step-specific appendix>
-
-_TBD — remove this section if not applicable._

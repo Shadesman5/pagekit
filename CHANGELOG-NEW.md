@@ -1,5 +1,40 @@
 # Changelog
 
+## Pagekit 1.2.32 - Docker Dev Experience & Image Hygiene (July 24, 2026)
+
+### Changed
+
+- **Dockerfile reconciliation** — root `Dockerfile` and `.cursor/Dockerfile` both slim `docker-php-ext-install` to the actually-used capability set (`pdo_mysql`, `gd`, `zip`; `pdo_sqlite`/`mbstring`/XML stay bundled in the base image) and prune apt build-deps to justified-only, with a one-line why comment on every remaining entry. The root image no longer bakes application code (`COPY . /var/www/html`, `chown`/`chmod`, `composer install --no-dev`) — the dev compose bind-mount already covers the same path; production baking returns with the Step 2.5 image. (Closes #241)
+- **`.dockerignore`** — grows from 16 to 32 entries: docs/tests/CI/agent config, report/coverage artefacts, local install files, and the Docker artefacts themselves are now excluded from the build context.
+- **Dev compose + `.env` wiring** — `docker-compose.yml` drops the dead top-level `version:` key and `profiles:` (bare `docker compose up` now actually starts MySQL); `mysql` gets a TCP healthcheck (`mysqladmin ping`) gating `web`/`phpmyadmin` via `condition: service_healthy`, replacing the MySQL-8.4-incompatible auth-plugin `command:`. `docker.env.example` → `.env.example` (dev-only header, four consumed vars); `docker-setup.sh`/`docker-setup.ps1` rewritten in lockstep to generate `.env` byte-safely (no more `sed`/`$`-escaping), with a missing-template guard.
+- **`docker/php/php.ini`** — drops `opcache.fast_shutdown` (removed since PHP 7.2).
+- **Docs alignment** — `README.md` Docker quickstart/sections and `AGENTS.md` Docker context rewritten to match the reconciled stack (`docker compose` v2 spelling throughout, the real extension capability set, `.env`-sourced credentials, both the MySQL and `--no-deps` SQLite start paths); `migration-docs/documentation/DOCKER.md`'s reusable content folded into README before the file is deleted.
+
+### Removed
+
+- **Standalone Docker E2E stack** — `docker-compose.e2e.yml`, `scripts/e2e-start.sh`, `scripts/e2e-stop.sh`, `scripts/e2e-reset.sh`; CI and the local runner already use Playwright's own `webServer` (`php pagekit start`), never this path. Live-doc pointers (`tests/e2e/README.md`, the two `tests/e2e/*PLAN*.md` docs, the `e2e-test-architect` skill doc, two open-step task prompts) scrubbed to the Playwright-managed flow; `tests/e2e/config/test-config.example.json` realigned to `http://127.0.0.1:8080`.
+- **`docker/mysql/init/01-create-database.sql`** — the mysql image's own `MYSQL_*` env vars already create the database/user/grants; this file carried the last hardcoded `pagekit`/`pagekit` credential in the compose stack.
+- `migration-docs/documentation/DOCKER.md` (German-language duplicate of README's Docker sections, folded in above).
+
+### Security
+
+- **Last hardcoded DB credential removed** — MySQL credentials now come solely from a generated, gitignored `.env`, with a `${VAR:?Run ./docker-setup.sh first}` guard against a silent empty-password start. Dev-only scope; production secret handling arrives with the Step 2.5 image.
+
+### Deferred
+
+- Production/multi-stage image, hardening, prod compose, `HEALTHCHECK`, image build/scan/push, 12-factor secrets, webserver choice → Step 2.5.
+- `node` service pipeline (pnpm + Vite) → Step 2.4.
+- E2E spec repair/rework (unaffected by the Docker-path retirement above) → Step 3.6.1.
+
+### Maintainer action
+
+- On a Docker host: cold `./docker-setup.sh` → `docker compose up` (MySQL path) and `docker compose up -d --no-deps web node` (SQLite path) end-to-end; `docker compose config` against a generated `.env`.
+- `php -m` on both `php:8.5-apache`/`php:8.5-cli` to confirm the bundled-extension assumption + build both Dockerfiles (also settles the hadolint check, since neither a Docker CLI nor hadolint was available in-agent).
+- Regenerate any local `.env` via the rewritten setup scripts; remove stale local `docker.env`, `storage-e2e/`, `tmp-e2e/`.
+- Rebuild the cloud-agent environment snapshot so the `.cursor/Dockerfile` extension slimming takes effect for future agents.
+
+---
+
 ## Pagekit 1.2.31 - CI/CD Pipeline (Juli 24, 2026)
 
 ### Added
