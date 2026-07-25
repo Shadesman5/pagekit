@@ -131,6 +131,16 @@ function gateStatus(checks, name) {
   }
 }
 
+// What to print when a row has no number. A gate's PASS/FAIL lives in GitHub Checks, so a green gate
+// that produced no artifact must NOT read "pass" here — that duplicates the Checks verdict and reads
+// as if the metric itself were fine. Only "why is there no number" is reported.
+function noMetricLabel(checks, name) {
+  const c = checks.get(name);
+  if (!c || c.status !== "completed") return "pending";
+  if (["cancelled", "neutral", "skipped"].includes(c.conclusion)) return "skipped";
+  return "—";
+}
+
 // ---------------------------------------------------------------- gate metrics (artifacts)
 function collectArtifacts(sha) {
   const latest = new Map();
@@ -264,7 +274,7 @@ function renderComment(d) {
 
 function row(label, checks, checkName, detail) {
   const status = gateStatus(checks, checkName);
-  const cell = detail != null && detail !== "" ? detail : status.word;
+  const cell = detail != null && detail !== "" ? detail : noMetricLabel(checks, checkName);
   return `| ${label} | ${status.symbol} | ${cell} |`;
 }
 
