@@ -18,6 +18,7 @@ on:
     paths:
       - 'docs-site/**'
       - '.github/quality/quality-snapshot.json'
+      - '.github/quality/quality-history.json'
       - '.cursor/ROADMAP.md'
       - '.github/workflows/pages-deploy.yml'
   workflow_dispatch:
@@ -52,13 +53,21 @@ jobs:
             echo "No conductor-metrics branch yet — using metrics (if any) from develop"
           fi
 
-      - name: Overlay live quality snapshot from quality-data
+      - name: Overlay live quality snapshot and history from quality-data
         run: |
           set -euo pipefail
           if git ls-remote --heads origin quality-data | grep -q .; then
             git fetch origin quality-data
             git checkout origin/quality-data -- .github/quality/quality-snapshot.json
             echo "Overlaid quality snapshot from origin/quality-data"
+            # The history file only appears once the collector has run with it; a branch predating
+            # that must still deploy, so probe before checking it out.
+            if git cat-file -e origin/quality-data:.github/quality/quality-history.json 2>/dev/null; then
+              git checkout origin/quality-data -- .github/quality/quality-history.json
+              echo "Overlaid quality history from origin/quality-data"
+            else
+              echo "No quality history on quality-data yet — dashboard renders without charts"
+            fi
           else
             echo "No quality-data branch yet — using the seed snapshot from develop"
           fi

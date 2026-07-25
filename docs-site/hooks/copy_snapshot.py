@@ -39,10 +39,13 @@ def _copy_assets(config) -> None:
 
     _sync_roadmap_snapshot(repo_root)
 
-    quality_src = repo_root / ".github" / "quality" / "quality-snapshot.json"
-    quality_dest = site_dir / "quality-snapshot.json"
-    if quality_src.is_file():
-        shutil.copy2(quality_src, quality_dest)
+    # The dashboard fetches both from the site root. History is absent until the collector has run
+    # with it, and the page degrades to the tip-only table in that case.
+    quality_dir = repo_root / ".github" / "quality"
+    for name in ("quality-snapshot.json", "quality-history.json"):
+        src = quality_dir / name
+        if src.is_file():
+            shutil.copy2(src, site_dir / name)
 
     metrics_live = repo_root / ".github" / "conductor" / "metrics"
     metrics_demo = docs_root / "data" / "conductor-metrics"
