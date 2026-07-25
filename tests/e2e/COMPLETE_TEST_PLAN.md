@@ -281,8 +281,7 @@ _(Hinweis: Guest Comments nicht vorhanden – nur eingeloggte User.)_
 
 ## CI/CD Status:
 - ✅ Dependabot konfiguriert (`.github/dependabot.yml` – Composer, NPM, Docker)
-- ✅ Docker E2E Environment (`docker-compose.e2e.yml`)
-- ✅ Test-Scripts: `scripts/e2e-start.sh`, `e2e-reset.sh`, `e2e-stop.sh`
+- ✅ Testserver wird von Playwright selbst gestartet (`webServer: php pagekit start --no-ansi`); Reset auf Frischzustand = `config.php` + `pagekit.db` löschen
 - ✅ Travis CI vorhanden (`.travis.yml`) – läuft **PHPUnit** mit PHP 8.2, 8.3, 8.4 (keine E2E)
 - ❌ GitHub Actions für E2E noch nicht implementiert
 

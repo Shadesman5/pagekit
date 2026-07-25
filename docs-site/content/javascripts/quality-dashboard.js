@@ -1,6 +1,9 @@
 /**
- * Quality Dashboard — client-side loader for quality-snapshot.json
- * Deployed at site root; fetched relative to the quality/ page.
+ * Quality Dashboard — client-side loader for quality-snapshot.json and quality-history.json.
+ * Both are deployed at the site root and fetched relative to the quality/ page: the snapshot renders
+ * the develop tip with its PASS/FAIL verdicts, the history the trend behind it. History is optional —
+ * it only exists once the collector has published a series — and the page falls back to the tip-only
+ * table when it is missing.
  */
 (function () {
   'use strict';
@@ -10,6 +13,24 @@
     '/pagekit/quality-snapshot.json',
     '/quality-snapshot.json',
     '../../data/quality-snapshot.demo.json'
+  ];
+
+  const HISTORY_CANDIDATES = [
+    '../quality-history.json',
+    '/pagekit/quality-history.json',
+    '/quality-history.json'
+  ];
+
+  // Mirrors minMsi / minCoveredMsi in infection.json.dist — the threshold the nightly run enforces.
+  const MSI_THRESHOLD = 80;
+
+  const CHART_JS_URL = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
+
+  const SERIES = [
+    { key: 'coverage', label: 'Line coverage %', pick: (p) => p.coverage?.linePercent },
+    { key: 'msi', label: 'Infection MSI % (full)', pick: (p) => p.infection?.msi },
+    { key: 'tests', label: 'PHPUnit tests', pick: (p) => p.phpunit?.tests },
+    { key: 'debt', label: 'PHPStan suppressed errors', pick: (p) => p.phpstan?.suppressedErrors }
   ];
 
   function el(tag, className, text) {
@@ -61,10 +82,27 @@
     });
   }
 
-  async function fetchSnapshot() {
-    for (const url of SNAPSHOT_CANDIDATES) {
+  // The nightly full-suite run is the only source of this number, and it lands independently of the
+  // merge that produced the rest of the snapshot. Until it has run, the object exists with null
+  // fields — say so, rather than formatting the nulls into "MSI — · covered — @ —". Once real numbers
+  // exist the row carries a verdict like every other, measured against the threshold Infection itself
+  // enforces.
+  function infectionRow(full) {
+    const label = 'Infection (daily full)';
+    if (!full || full.msi == null) return [label, 'ℹ️', 'awaiting nightly'];
+
+    const detail = [`MSI ${formatPercent(full.msi)}`, `covered ${formatPercent(full.coveredMsi)}`];
+    if (full.killed != null) detail.push(`${full.killed} killed`);
+    if (full.escaped != null) detail.push(`${full.escaped} escaped`);
+
+    const meetsThreshold = full.msi >= MSI_THRESHOLD && (full.coveredMsi ?? full.msi) >= MSI_THRESHOLD;
+    return [label, meetsThreshold ? '✅' : '❌', `${detail.join(' · ')} @ ${formatDate(full.runAt)}`];
+  }
+
+  async function fetchJson(candidates) {
+    for (const url of candidates) {
       try {
-        const res = await fetch(url);
+        const res = await fetch(url, { cache: 'no-store' });
         if (res.ok) return await res.json();
       } catch (_) {
         /* try next candidate */
@@ -121,13 +159,7 @@
           ? `${e2e.specsPassed ?? '—'}/${e2e.specsTotal ?? '—'} specs · ${(e2e.viewports || []).join(', ')}`
           : '—'
       ],
-      [
-        'Infection (daily full)',
-        'ℹ️',
-        data.infection?.dailyFull
-          ? `MSI ${formatPercent(data.infection.dailyFull.msi)} · covered ${formatPercent(data.infection.dailyFull.coveredMsi)} @ ${formatDate(data.infection.dailyFull.runAt)}`
-          : '—'
-      ],
+      infectionRow(data.infection?.dailyFull),
       ['CS-Fixer', gateIcon(data.gates?.csFixer), data.gates?.csFixer || '—'],
       ['Security audit', gateIcon(data.gates?.securityAudit), data.gates?.securityAudit || '—'],
       ['Frontend (lint/build)', gateIcon(data.gates?.frontendLint), data.gates?.frontendLint || '—'],
@@ -150,6 +182,88 @@
     root.appendChild(foot);
   }
 
+  // Loaded from a CDN on demand rather than vendored: the docs site has no JS build step, and the
+  // charts are the only thing on the page that needs a library.
+  function loadChartJs() {
+    if (window.Chart) return Promise.resolve(window.Chart);
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = CHART_JS_URL;
+      script.onload = () => resolve(window.Chart);
+      script.onerror = () => reject(new Error('Chart.js failed to load'));
+      document.head.appendChild(script);
+    });
+  }
+
+  function seriesPoints(points, pick) {
+    return points
+      .map((p) => ({ x: p.at, y: pick(p) }))
+      .filter((p) => p.y != null);
+  }
+
+  function renderChart(Chart, container, series, points) {
+    const data = seriesPoints(points, series.pick);
+    // A metric the collector has never captured (an MSI series before the first nightly) has nothing
+    // to draw, and a single point is a dot rather than a trend.
+    if (data.length < 2) return;
+
+    const card = el('div', 'quality-chart');
+    card.appendChild(el('h4', null, series.label));
+    const canvas = el('canvas');
+    card.appendChild(canvas);
+    container.appendChild(card);
+
+    new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: data.map((p) => new Date(p.x).toISOString().slice(0, 10)),
+        datasets: [
+          {
+            label: series.label,
+            data: data.map((p) => p.y),
+            borderColor: '#3f51b5',
+            backgroundColor: 'rgba(63, 81, 181, 0.12)',
+            borderWidth: 2,
+            pointRadius: 2,
+            fill: true,
+            tension: 0.25
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        // Height is derived from the container width. Turning this off would need a styled container
+        // with an explicit height, and the charts would collapse without it.
+        aspectRatio: 3,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: false } }
+      }
+    });
+  }
+
+  async function renderHistory(points) {
+    const root = document.getElementById('quality-dashboard-app');
+    if (!root || !Array.isArray(points) || points.length < 2) return;
+
+    const section = el('section', 'quality-history');
+    section.appendChild(el('h3', null, 'Trend'));
+    const grid = el('div', 'quality-charts');
+    section.appendChild(grid);
+    section.appendChild(
+      el('p', 'quality-foot', `${points.length} collected data points · appended only when a metric changes`)
+    );
+    root.appendChild(section);
+
+    let Chart;
+    try {
+      Chart = await loadChartJs();
+    } catch (e) {
+      grid.appendChild(el('p', 'quality-error', e.message));
+      return;
+    }
+    SERIES.forEach((series) => renderChart(Chart, grid, series, points));
+  }
+
   function renderError(message) {
     const root = document.getElementById('quality-dashboard-app');
     if (!root) return;
@@ -159,12 +273,16 @@
   async function init() {
     if (!document.getElementById('quality-dashboard-app')) return;
 
-    const data = await fetchSnapshot();
+    const [data, history] = await Promise.all([
+      fetchJson(SNAPSHOT_CANDIDATES),
+      fetchJson(HISTORY_CANDIDATES)
+    ]);
     if (!data) {
       renderError('Could not load quality-snapshot.json. Check deploy workflow or local preview setup.');
       return;
     }
     renderTable(data);
+    await renderHistory(history?.points);
   }
 
   if (document.readyState === 'loading') {

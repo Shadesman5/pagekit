@@ -30,9 +30,16 @@ const REPO = required("GITHUB_REPOSITORY");
 const BRANCH = (process.env.BRANCH || "develop").trim() || "develop";
 
 // Single-writer data branch the docs site overlays. Created from develop when absent (mirroring the
-// conductor-metrics push); the snapshot file is the only meaningful content it carries.
+// conductor-metrics push); the snapshot and its history are the only meaningful content it carries.
 const DATA_BRANCH = "quality-data";
 const SNAPSHOT_PATH = ".github/quality/quality-snapshot.json";
+const HISTORY_PATH = ".github/quality/quality-history.json";
+
+// Keeps the file small enough for the dashboard to fetch on every page load. Metrics move slowly and
+// the diff-guard already drops no-op collections, so 90 points span a long stretch of real change.
+const HISTORY_CAP = 90;
+
+const DRY_RUN = process.env.DRY_RUN === "1";
 
 // Workflow files whose latest runs feed the snapshot (keyed by file, not display name, so the query
 // is exact). A workflow file that does not exist yet yields a 404 -> null.
@@ -104,10 +111,12 @@ function buildSnapshot({ floor, baseline, phpRun, e2eRun, nightlyRun }) {
 
 function assemble(d) {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     source: "github-actions",
     updatedAt: new Date().toISOString(),
     branch: BRANCH,
+    // The merge commit both gate runs describe — also the identity of each history point.
+    commit: d.phpRun.head_sha ?? null,
     workflows: {
       phpTests: { runId: Number(d.phpRun.id), conclusion: d.phpRun.conclusion },
       e2eTests: { runId: Number(d.e2eRun.id), conclusion: d.e2eRun.conclusion },
@@ -146,6 +155,11 @@ function assemble(d) {
       dailyFull: {
         msi: d.infection?.msi ?? null,
         coveredMsi: d.infection?.coveredMsi ?? null,
+        killed: d.infection?.killed ?? null,
+        escaped: d.infection?.escaped ?? null,
+        timedOut: d.infection?.timedOut ?? null,
+        errors: d.infection?.errors ?? null,
+        totalMutants: d.infection?.totalMutants ?? null,
         scope: "full",
         runAt: d.nightlyRun?.run_started_at ?? null,
       },
@@ -169,6 +183,68 @@ function assemble(d) {
       bugbot: "n/a",
     },
   };
+}
+
+// ---------------------------------------------------------------- history series
+// One point per snapshot whose numbers actually moved. Flattened to the few series the dashboard
+// charts, so the file stays small enough to fetch client-side no matter how long the series grows.
+function historyEntry(s) {
+  const full = s.infection?.dailyFull ?? {};
+  return {
+    at: s.updatedAt,
+    sha: s.commit,
+    coverage: { linePercent: s.coverage.linePercent, pinnedFloor: s.coverage.pinnedFloor },
+    phpunit: { tests: s.phpunit["8.5-sqlite"].tests, failures: s.phpunit["8.5-sqlite"].failures },
+    phpstan: {
+      errors: s.phpstan.errors,
+      baselineBlocks: s.phpstan.baselineBlocks,
+      suppressedErrors: s.phpstan.suppressedErrors,
+    },
+    infection: {
+      msi: full.msi ?? null,
+      coveredMsi: full.coveredMsi ?? null,
+      killed: full.killed ?? null,
+      escaped: full.escaped ?? null,
+      timedOut: full.timedOut ?? null,
+      errors: full.errors ?? null,
+    },
+    e2e: { specsPassed: s.e2e.specsPassed, specsTotal: s.e2e.specsTotal, scope: s.e2e.scope },
+  };
+}
+
+// Collect runs on every merge and every nightly, but the metrics rarely move. Appending regardless
+// would bury real change under duplicate points and grow the file the dashboard fetches for nothing.
+function historyChanged(prev, next) {
+  if (!prev) return true;
+  const watched = [
+    ["coverage", "linePercent"],
+    ["phpunit", "tests"],
+    ["phpunit", "failures"],
+    ["phpstan", "errors"],
+    ["phpstan", "baselineBlocks"],
+    ["phpstan", "suppressedErrors"],
+    ["e2e", "specsPassed"],
+    ["e2e", "specsTotal"],
+  ];
+  if (watched.some(([group, key]) => next[group]?.[key] !== prev[group]?.[key])) return true;
+
+  // Infection counts only while the nightly reports. A run that is temporarily missing would
+  // otherwise register as a change on the way out and again on the way back in.
+  return ["msi", "coveredMsi", "killed", "escaped"].some((key) => {
+    const value = next.infection?.[key];
+    return value != null && value !== prev.infection?.[key];
+  });
+}
+
+function readHistoryFile() {
+  if (!existsSync(HISTORY_PATH)) return [];
+  const parsed = safe(() => JSON.parse(readFileSync(HISTORY_PATH, "utf8")));
+  return Array.isArray(parsed?.points) ? parsed.points : [];
+}
+
+function writeHistoryFile(points) {
+  const body = { schemaVersion: 3, branch: BRANCH, cap: HISTORY_CAP, points };
+  writeFileSync(HISTORY_PATH, `${JSON.stringify(body, null, 2)}\n`);
 }
 
 // ---------------------------------------------------------------- run + artifact lookup
@@ -272,7 +348,15 @@ function readJunit(path) {
 
 function readInfection(path) {
   const stats = JSON.parse(readFileSync(path, "utf8")).stats || {};
-  return { msi: stats.msi ?? null, coveredMsi: stats.coveredCodeMsi ?? stats.coveredMsi ?? null };
+  return {
+    msi: stats.msi ?? null,
+    coveredMsi: stats.coveredCodeMsi ?? stats.coveredMsi ?? null,
+    killed: stats.killedCount ?? null,
+    escaped: stats.escapedCount ?? null,
+    timedOut: stats.timeOutCount ?? null,
+    errors: stats.errorCount ?? null,
+    totalMutants: stats.totalMutantsCount ?? null,
+  };
 }
 
 function readPlaywright(path) {
@@ -313,14 +397,49 @@ function deriveViewports(report) {
 }
 
 // ---------------------------------------------------------------- publish (quality-data branch)
+// The collector only ever runs from a protected branch's checkout, so a local run must not touch git.
+// Reading the previous series over the API instead makes the diff-guard verdict real rather than a
+// guess — the one thing worth checking before this script reaches the default branch.
+function dryRunPublish(snapshot) {
+  const raw = gh(
+    ["api", "-H", "Accept: application/vnd.github.raw", `/repos/${REPO}/contents/${HISTORY_PATH}?ref=${DATA_BRANCH}`],
+    { allowFail: true },
+  );
+  const parsed = raw ? safe(() => JSON.parse(raw)) : null;
+  const points = Array.isArray(parsed?.points) ? parsed.points : [];
+  const entry = historyEntry(snapshot);
+  const changed = historyChanged(points.at(-1) ?? null, entry);
+
+  log(`DRY_RUN=1 — nothing written. ${points.length} existing history point(s) on ${DATA_BRANCH}.`);
+  log(changed ? "watched metrics changed — would append:" : "watched metrics unchanged — would NOT append:");
+  console.log(`\n--- snapshot ---\n${JSON.stringify(snapshot, null, 2)}`);
+  console.log(`\n--- history entry ---\n${JSON.stringify(entry, null, 2)}\n`);
+}
+
 function publish(snapshot) {
+  if (DRY_RUN) return dryRunPublish(snapshot);
+
   const body = `${JSON.stringify(snapshot, null, 2)}\n`;
   ensureGitIdentity();
   ensureDataBranch();
   sh(`git fetch origin ${DATA_BRANCH}`);
   sh(`git checkout -B ${DATA_BRANCH} origin/${DATA_BRANCH}`);
   writeFileSync(SNAPSHOT_PATH, body);
+
+  // The checkout above put the branch's own history on disk, so this compares against exactly what is
+  // about to be amended. An unchanged tuple still lets the snapshot refresh its updatedAt / runIds —
+  // only the series stays put.
+  const points = readHistoryFile();
+  const entry = historyEntry(snapshot);
+  if (historyChanged(points.at(-1) ?? null, entry)) {
+    writeHistoryFile([...points, entry].slice(-HISTORY_CAP));
+    log(`appended history point (${points.length + 1} total, cap ${HISTORY_CAP}).`);
+  } else {
+    log("watched metrics unchanged — history not extended.");
+  }
+
   sh(`git add ${SNAPSHOT_PATH}`);
+  if (existsSync(HISTORY_PATH)) sh(`git add ${HISTORY_PATH}`);
   if (stagedTreeIsClean()) {
     log("snapshot unchanged — nothing to publish.");
     return;

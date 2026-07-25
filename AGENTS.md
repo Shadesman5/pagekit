@@ -16,6 +16,7 @@ Pagekit CMS is a modular PHP CMS built on Symfony 6.4 components with a Vue.js 2
 | Webpack (JS build) | `yarn compile-js --mode=production` | Or `yarn watch-js` for dev |
 | Gulp (LESS build) | `yarn compile-less` | Or `yarn watch-less` for dev |
 | Both watchers | `yarn watch-all` | Runs webpack + gulp in parallel |
+| Docker dev stack | `./docker-setup.sh` then `docker compose up -d` | Local machines only — the Cloud Agent VM has no Docker daemon |
 
 ### Non-obvious caveats
 
@@ -27,6 +28,7 @@ Pagekit CMS is a modular PHP CMS built on Symfony 6.4 components with a Vue.js 2
 - **ESLint has ~13k pre-existing style errors** (indent, arrow-parens, etc.). These are not regressions; the codebase predates the current ESLint config.
 - **Writable directories needed:** `tmp/` (logs, cache, temp, packages) and `storage/` must be writable. Create them with `mkdir -p tmp/logs tmp/cache tmp/temp tmp/packages storage`.
 - **`php pagekit start`** is documented in README but just wraps `php -S 0.0.0.0:8080 index.php`. Use the direct command for more control.
+- **Docker dev stack — local machines only; there is no Docker daemon (and no `docker`/`docker compose` CLI) in the Cloud Agent VM**, so agents run the app directly with PHP's built-in server instead. On a Docker host: `./docker-setup.sh` (`docker-setup.ps1` on Windows) writes `.env` with generated MySQL passwords, then `docker compose up -d` starts web (`:8080`), mysql, phpmyadmin (`:8081`) and the node watcher. The image bakes no application code — `docker compose exec web composer install` after the first start. SQLite zero-DB path: `docker compose up -d --no-deps web node` (`--no-deps` skips the MySQL dependency of `web`) plus `docker compose exec web php pagekit setup … -d sqlite`. Compose v2 spelling only (`docker compose`); `.env` is gitignored via the `*.env` rule.
 - **E2E tests (Playwright)** require the dev server running and a completed installation. Config at `tests/e2e/config/test-config.json` (copy from `.example.json`).
 - **Playwright browsers & viewports in Cloud Agent VM:** Only **chromium** is installed (`.cursor/Dockerfile`). Firefox/webkit need root for `playwright install-deps`, which is unavailable in the cloud agent VM. `playwright.config.js` composes projects as `${browser}-${viewport}`: the default is **`chromium-desktop`** only. Set `PW_BROWSERS=all` to add firefox/webkit and `PW_VIEWPORTS=all` to add tablet + mobile legs (explicit viewport overrides, no `isMobile`); both are intended for CI/CD pipelines on full hosts. The 3 CI-optimized specs carry a `@ci` tag (select with `--grep @ci`); the other 8 are quarantined via `test.describe.fixme` (report as skipped).
 - **Modernisation workflow** is defined in `.cursor/rules/` (push.mdc, feature-branch.mdc, orchestrator-subagent-workflow.mdc) and `.cursor/ROADMAP.md`.

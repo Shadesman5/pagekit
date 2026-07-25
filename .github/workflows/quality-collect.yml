@@ -1,8 +1,11 @@
 # Publishes the live Quality Dashboard snapshot for the develop branch. Runs after a gate workflow
-# (PHP Tests / E2E) finishes a push (merge) to develop and, when BOTH gates are green, blends their
-# latest merge-run artifacts (+ the latest nightly Infection MSI) into
-# .github/quality/quality-snapshot.json on the unprotected quality-data branch, then dispatches
-# pages-deploy to rebuild the site.
+# (PHP Tests / E2E) finishes a push (merge) to develop, or after a successful Nightly, and — when both
+# gates are green on one commit — blends their latest merge-run artifacts (+ the latest nightly
+# Infection MSI) into .github/quality/quality-snapshot.json on the unprotected quality-data branch,
+# then dispatches pages-deploy to rebuild the site.
+#
+# Nightly is a trigger because its full-suite MSI is the dashboard's only Infection number: without it
+# the snapshot keeps a null MSI until some unrelated merge happens to collect again.
 #
 # Scope is develop only. The dashboard documents the develop tip, pages-deploy builds from develop, and
 # a single snapshot file lives on quality-data — also collecting main would overwrite develop's metrics
@@ -20,7 +23,7 @@ run-name: "${{ github.event_name == 'workflow_dispatch' && 'Quality Collect — 
 
 on:
   workflow_run:
-    workflows: ["PHP Tests", "E2E"]
+    workflows: ["PHP Tests", "E2E", "Nightly"]
     types: [completed]
     branches: [develop]
   workflow_dispatch:
@@ -43,11 +46,15 @@ jobs:
     # baseline) and the queried gate runs on the same branch — they can never drift apart.
     env:
       SNAPSHOT_BRANCH: develop
-    # Only a successful PUSH (merge) run yields develop-tip numbers worth publishing; PR runs and
-    # failed runs are ignored. workflow_dispatch always proceeds (the operator collects on demand).
+    # Only successful non-PR runs yield develop-tip numbers worth publishing: a PUSH (merge) of PHP
+    # Tests / E2E, or a SCHEDULED / dispatched Nightly whose full-suite Infection MSI would otherwise
+    # sit unread until the next merge. PR runs and failed runs are ignored; workflow_dispatch always
+    # proceeds (the operator collects on demand). Collecting twice is harmless — an unchanged snapshot
+    # publishes nothing.
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event != 'pull_request')
     steps:
       - name: Checkout the snapshot branch (coverage floor + PHPStan baseline SSoT)
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5

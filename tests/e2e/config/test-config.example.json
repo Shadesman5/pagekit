@@ -29,8 +29,8 @@
   },
   "site": {
     "title": "YOUR_SITE_TITLE",
-    "url": "http://localhost:8180",
-    "adminUrl": "http://localhost:8180/admin"
+    "url": "http://127.0.0.1:8080",
+    "adminUrl": "http://127.0.0.1:8080/admin"
   },
   "installation": {
     "language": "en_US",

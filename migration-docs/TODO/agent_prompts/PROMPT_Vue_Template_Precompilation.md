@@ -273,12 +273,10 @@ PHASE 5: Testing
    - Check all Vue components render
    - No console errors
 
-5.5. Run E2E tests:
+5.5. Run E2E tests (Playwright starts/reuses the server itself):
    ```bash
-   ./scripts/e2e-reset.sh
-   ./scripts/e2e-start.sh
+   rm -f config.php pagekit.db   # fresh state for the installation spec
    npx playwright test
-   ./scripts/e2e-stop.sh
    ```
 
 =================================================================================

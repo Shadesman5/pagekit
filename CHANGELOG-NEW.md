@@ -1,5 +1,56 @@
 # Changelog
 
+## Pagekit 1.2.32 - Docker Dev Experience & Quality Reporting v2 (July 26, 2026)
+
+### Added
+
+- **Quality history + dashboard charts** — `quality-collect.yml` maintains `.github/quality/quality-history.json` on `quality-data`, and the dashboard plots line coverage, full Infection MSI, PHPUnit test count and PHPStan suppressed-error debt from it. Merges and nightlies fire constantly while the metrics rarely move, so a point is appended only when a watched value changes; Infection is compared only while the nightly reports, so a temporarily missing run cannot register as a change twice. Capped at 90 points, and the page degrades to the tip-only table when no history exists yet.
+- **`DRY_RUN=1` on both quality collectors** — renders the comment body / snapshot + history verdict to stdout without writing anything. `workflow_run` and `workflow_dispatch` resolve both the workflow file **and** the checked-out script from the default branch, so neither change can be observed from the PR that makes it; this is the only way to validate against live API data beforehand.
+
+### Changed
+
+- **Dockerfile reconciliation** — root `Dockerfile` and `.cursor/Dockerfile` both slim `docker-php-ext-install` to the actually-used capability set (`pdo_mysql`, `gd`, `zip`; `pdo_sqlite`/`mbstring`/XML stay bundled in the base image) and prune apt build-deps to justified-only, with a one-line why comment on every remaining entry. The root image no longer bakes application code (`COPY . /var/www/html`, `chown`/`chmod`, `composer install --no-dev`) — the dev compose bind-mount already covers the same path; production baking returns with the Step 2.5 image. (Closes #241)
+- **`.dockerignore`** — grows from 16 to 32 entries: docs/tests/CI/agent config, report/coverage artefacts, local install files, and the Docker artefacts themselves are now excluded from the build context.
+- **Dev compose + `.env` wiring** — `docker-compose.yml` drops the dead top-level `version:` key and `profiles:` (bare `docker compose up` now actually starts MySQL); `mysql` gets a TCP healthcheck (`mysqladmin ping`) gating `web`/`phpmyadmin` via `condition: service_healthy`, replacing the MySQL-8.4-incompatible auth-plugin `command:`. `docker.env.example` → `.env.example` (dev-only header, four consumed vars); `docker-setup.sh`/`docker-setup.ps1` rewritten in lockstep to generate `.env` byte-safely (no more `sed`/`$`-escaping), with a missing-template guard.
+- **`docker/php/php.ini`** — drops `opcache.fast_shutdown` (removed since PHP 7.2).
+- **Docs alignment** — `README.md` Docker quickstart/sections and `AGENTS.md` Docker context rewritten to match the reconciled stack (`docker compose` v2 spelling throughout, the real extension capability set, `.env`-sourced credentials, both the MySQL and `--no-deps` SQLite start paths); `migration-docs/documentation/DOCKER.md`'s reusable content folded into README before the file is deleted.
+- **Sticky PR comment is a metrics table** — `| Metric | This PR | vs develop |`. Three reporting surfaces, three jobs: GitHub Checks own the merge verdict, the comment owns PR impact, the Pages dashboard owns branch health. The Status column and the CS-Fixer / Security / Frontend rows (which carry no number) are gone; deltas are measured against the live snapshot on `quality-data`, the same file the dashboard renders. Infection deliberately gets no numeric delta — the PR runs over the diff, the nightly over the whole source scope — and a seed/demo baseline is rejected rather than compared against invented numbers.
+- **Dashboard Infection row carries a verdict** — ✅/❌ against the `minMsi` / `minCoveredMsi` threshold of `infection.json.dist` (80), plus killed/escaped counts, instead of being permanently informational.
+- **Quality snapshot schema v2 → v3** — `infection.dailyFull` gains `killed`, `escaped`, `timedOut`, `errors` and `totalMutants`; the snapshot gains the `commit` it describes. The seed and demo files drop the `workflows.frontendTests` key the live builder never emitted.
+
+### Fixed
+
+- **The PR quality comment reported no metrics at all** — `quality-report.mjs` matched gate runs against workflow *display names*, but every gate declares a custom `run-name:` and the Actions API returns that evaluated string in `workflow_runs[].name` (`"PHP Tests — PR #242 (branch)"`). Nothing ever matched, so no artifact was downloaded and every row fell back to the check-run word. Matching is now keyed on the workflow `path`.
+- **A green gate with no artifact read `pass`** — indistinguishable from the GitHub Checks directly below it, and misleading about the metric itself. A row without a number now reports *why* it is missing (`pending`, `skipped`, `—`, or `out of scope` for a diff that touched nothing in Infection's source scope).
+- **Dashboard Infection row rendered `MSI — · covered — @ —`** — the nightly full-suite MSI is the only source of that number, but `quality-collect.yml` listened to PHP Tests and E2E only, so it stayed `null` until some unrelated merge happened to collect again. Nightly is now a collect trigger, and until it reports the row says `awaiting nightly`.
+
+### Removed
+
+- **Standalone Docker E2E stack** — `docker-compose.e2e.yml`, `scripts/e2e-start.sh`, `scripts/e2e-stop.sh`, `scripts/e2e-reset.sh`; CI and the local runner already use Playwright's own `webServer` (`php pagekit start`), never this path. Live-doc pointers (`tests/e2e/README.md`, the two `tests/e2e/*PLAN*.md` docs, the `e2e-test-architect` skill doc, two open-step task prompts) scrubbed to the Playwright-managed flow; `tests/e2e/config/test-config.example.json` realigned to `http://127.0.0.1:8080`.
+- **`docker/mysql/init/01-create-database.sql`** — the mysql image's own `MYSQL_*` env vars already create the database/user/grants; this file carried the last hardcoded `pagekit`/`pagekit` credential in the compose stack.
+- `migration-docs/documentation/DOCKER.md` (German-language duplicate of README's Docker sections, folded in above).
+
+### Security
+
+- **Last hardcoded DB credential removed** — MySQL credentials now come solely from a generated, gitignored `.env`, with a `${VAR:?Run ./docker-setup.sh first}` guard against a silent empty-password start. Dev-only scope; production secret handling arrives with the Step 2.5 image.
+
+### Deferred
+
+- Production/multi-stage image, hardening, prod compose, `HEALTHCHECK`, image build/scan/push, 12-factor secrets, webserver choice → Step 2.5.
+- `node` service pipeline (pnpm + Vite) → Step 2.4.
+- E2E spec repair/rework (unaffected by the Docker-path retirement above) → Step 3.6.1.
+
+### Maintainer action
+
+- On a Docker host: cold `./docker-setup.sh` → `docker compose up` (MySQL path) and `docker compose up -d --no-deps web node` (SQLite path) end-to-end; `docker compose config` against a generated `.env`.
+- `php -m` on both `php:8.5-apache`/`php:8.5-cli` to confirm the bundled-extension assumption + build both Dockerfiles (also settles the hadolint check, since neither a Docker CLI nor hadolint was available in-agent).
+- Regenerate any local `.env` via the rewritten setup scripts; remove stale local `docker.env`, `storage-e2e/`, `tmp-e2e/`.
+- Rebuild the cloud-agent environment snapshot so the `.cursor/Dockerfile` extension slimming takes effect for future agents.
+- After merge: `workflow_dispatch` **Quality Report** against an open PR and **Quality Collect**, then confirm the Pages overlay serves the enriched snapshot. The first collect writes the first history point; charts appear from the second onwards.
+- `docs-site/content/stylesheets/quality-dashboard.css` could not be extended — `.cursorignore` blocks `*.css` and its `!docs-site/content/stylesheets/*.css` whitelist is not honoured, so agents can neither read nor write it. The charts size themselves via Chart.js `aspectRatio` and need no new CSS; a grid layout stays available if the ignore rule is ever fixed.
+
+---
+
 ## Pagekit 1.2.31 - CI/CD Pipeline (Juli 24, 2026)
 
 ### Added

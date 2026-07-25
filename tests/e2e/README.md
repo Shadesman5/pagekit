@@ -3,10 +3,10 @@
 ## Prerequisites
 
 -   Node.js 18+ installed
--   Pagekit running locally (port 8080 for development, 8180 for tests)
+-   A working Pagekit checkout (`composer install` done) — every spec except the installation one also needs a completed Pagekit install
 -   Modern browser (Chrome, Firefox, Safari, or Edge)
 
-**Local vs. CI/remote:** When using `scripts/e2e-start.sh` (e.g. in CI or for a remote agent), the script starts the environment (Docker) on a known port; use a `test-config.json` (or env) that matches that setup.
+**Server management:** Playwright starts the app itself via its `webServer` config (`php pagekit start --no-ansi`, default bind `http://127.0.0.1:8080`). Outside CI `reuseExistingServer` is on, so an already-running dev server on that URL is reused. Set `NO_SERVER=1` to disable the managed server and point `test-config.json` at your own instance.
 
 **Browser / viewport matrix:** Projects are composed as `${browser}-${viewport}`. The default run uses **`chromium-desktop` only** — this matches the Cursor Cloud Agent VM (which ships only chromium because firefox/webkit need root for `playwright install-deps`). Set `PW_BROWSERS=all` to add `firefox-desktop` + `webkit-desktop` (install all browsers first) and `PW_VIEWPORTS=all` to add tablet + mobile legs (explicit viewport overrides, no `isMobile`). Both are intended for CI/CD hosts.
 
@@ -45,7 +45,7 @@ cp tests/e2e/config/test-config.example.json tests/e2e/config/test-config.json
 2. **Update the configuration with your actual test data:**
 
     - Admin credentials (username, password, email)
-    - Site URL: the example uses **8180** so it matches `scripts/e2e-start.sh` (Docker). For local dev, set `site.url` and `site.adminUrl` to your Pagekit URL/port.
+    - Site URL: the example uses `http://127.0.0.1:8080`, the bind address Playwright's managed server uses. Change `site.url` and `site.adminUrl` only if you run Pagekit on a different host/port.
     - **Workers** (optional): `testSettings.workers` sets how many tests run in parallel (default: 4 locally, 1 in CI). Use `1` for sequential runs. The env variable `PLAYWRIGHT_WORKERS` always takes priority over the config value, so CI pipelines and CLI overrides work reliably (e.g. `PLAYWRIGHT_WORKERS=8 npx playwright test`). You can also use `--workers=1` on the CLI.
     - Database settings (if using MySQL)
 
@@ -64,8 +64,8 @@ cp tests/e2e/config/test-config.example.json tests/e2e/config/test-config.json
     },
     "site": {
         "title": "YOUR_SITE_TITLE",
-        "url": "http://localhost:8180",
-        "adminUrl": "http://localhost:8180/admin"
+        "url": "http://127.0.0.1:8080",
+        "adminUrl": "http://127.0.0.1:8080/admin"
     },
     "installation": {
         "language": "en_US",
@@ -74,7 +74,7 @@ cp tests/e2e/config/test-config.example.json tests/e2e/config/test-config.json
 }
 ```
 
-The example uses port **8180** to match the Docker E2E environment (`scripts/e2e-start.sh`). For local dev, set your port in `test-config.json`.
+`site.url` must match the URL Playwright's `webServer` serves — `php pagekit start` binds `127.0.0.1:8080` by default.
 
 **Important**: Replace all `YOUR_*` placeholders with your actual values!
 
@@ -144,25 +144,25 @@ npx playwright test tests/e2e/specs/01-setup/installation.spec.js --project=chro
 
 ## Test Environment Setup
 
-### Using Docker (Recommended)
+### Playwright-managed server (default)
+
+No extra setup step: `playwright.config.js` declares a `webServer` that runs `php pagekit start --no-ansi` (binds `127.0.0.1:8080`) and waits for `site.url` from `test-config.json` before the first spec. Outside CI an already-running server on that URL is reused.
 
 ```bash
-# Start test environment
-./scripts/e2e-start.sh
+# Run the suite — the server is started (or reused) automatically
+npm run test:e2e
 
-# Reset to clean state
-./scripts/e2e-reset.sh
-
-# Stop test environment
-./scripts/e2e-stop.sh
+# Fresh state for the installation spec: remove the local install first
+rm -f config.php pagekit.db
+npx playwright test tests/e2e/specs/01-setup/installation.spec.js
 ```
 
-### Manual Setup
+### Your own server
 
-1. Start Pagekit on the **same port** as in `test-config.json` (e.g. `php -S localhost:8180` or your usual dev server).
-2. For the **installation test**: Pagekit must **not** be installed yet (no `config.php` in project root, no `pagekit.db`). If already installed, the app will not redirect to `/installer` and the test will fail.
-3. Use test database: pagekit_e2e_test (or SQLite path from config).
-4. Use test storage: ./storage-e2e (optional).
+1. Start Pagekit yourself and set `site.url` / `site.adminUrl` in `test-config.json` to that URL.
+2. Run with `NO_SERVER=1` so Playwright does not start a second server.
+3. For the **installation spec**: Pagekit must **not** be installed yet (no `config.php` in the project root, no `pagekit.db`). If it is already installed, the app will not redirect to `/installer` and the test will fail.
+4. The database comes from the install itself — SQLite (`pagekit.db`) by default, MySQL via the `database.mysql` block in `test-config.json`.
 
 ## Writing New Tests
 
@@ -323,7 +323,7 @@ npx playwright test --workers=4
 npx playwright test --timeout=60000
 
 # Generate test code (recorder)
-npx playwright codegen http://localhost:8180
+npx playwright codegen http://127.0.0.1:8080
 
 # List all projects
 npx playwright test --list

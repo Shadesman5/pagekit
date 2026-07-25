@@ -1,38 +1,34 @@
 FROM php:8.5-apache
 
-# Install system dependencies
+# System packages: Composer's own needs plus the build dependencies of the PHP
+# extensions compiled below. Nothing else: every entry has a consumer.
 RUN apt-get update && apt-get install -y \
+    # git: Composer VCS repositories and --prefer-source installs
     git \
+    # curl: HTTP checks against the running app from inside the container
     curl \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    libzip-dev \
-    zip \
+    # unzip: Composer extracts dist archives with it
     unzip \
-    libfreetype6-dev \
+    # libpng-dev: PNG support for the gd build
+    libpng-dev \
+    # libjpeg62-turbo-dev: JPEG support for the gd build (--with-jpeg)
     libjpeg62-turbo-dev \
-    libmcrypt-dev \
-    libgd-dev \
+    # libfreetype6-dev: FreeType support for the gd build (--with-freetype)
+    libfreetype6-dev \
+    # libzip-dev: backend library of the zip extension
+    libzip-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions required by Pagekit
+# PHP extensions on top of the base image, which already bundles pdo, pdo_sqlite,
+# sqlite3, mbstring and the XML family (xml, dom, xmlwriter, simplexml).
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
-    pdo \
+    # pdo_mysql: MySQL driver for the compose database service
     pdo_mysql \
-    pdo_sqlite \
-    sqlite3 \
-    mbstring \
-    exif \
-    pcntl \
-    bcmath \
+    # gd: image processing capability for media handling in extensions and themes
     gd \
-    zip \
-    xml \
-    dom \
-    xmlwriter \
-    simplexml
+    # zip: package archive handling (installer, self-updater, filesystem archives)
+    zip
 
 # Install Composer 2.0+
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -54,15 +50,8 @@ RUN echo '<VirtualHost *:80>\n\
     CustomLog ${APACHE_LOG_DIR}/access.log combined\n\
     </VirtualHost>' > /etc/apache2/sites-available/000-default.conf
 
-# Copy application code
-COPY . /var/www/html
-
-# Set proper permissions
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html
-
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader
+# No application code is baked in: the dev stack bind-mounts the project over
+# /var/www/html and Composer dependencies are installed in the running container.
 
 # Expose port 80
 EXPOSE 80
