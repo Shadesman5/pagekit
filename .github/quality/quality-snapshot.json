@@ -1,8 +1,9 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "source": "github-actions",
-  "updatedAt": "2026-07-24T19:54:55.114Z",
+  "updatedAt": "2026-07-25T23:30:25.370Z",
   "branch": "develop",
+  "commit": "5acfa67d4f21941b6a57b5fa7f83f178f8c6b0c0",
   "workflows": {
     "phpTests": {
       "runId": 30121792341,
@@ -13,8 +14,8 @@
       "conclusion": "success"
     },
     "infectionFull": {
-      "runId": null,
-      "conclusion": null,
+      "runId": 30145312202,
+      "conclusion": "success",
       "scheduled": true
     }
   },
@@ -50,10 +51,15 @@
       "scope": "diff"
     },
     "dailyFull": {
-      "msi": null,
-      "coveredMsi": null,
+      "msi": 99.19,
+      "coveredMsi": 99.19,
+      "killed": 363,
+      "escaped": 3,
+      "timedOut": 2,
+      "errors": 1,
+      "totalMutants": 369,
       "scope": "full",
-      "runAt": null
+      "runAt": "2026-07-25T05:10:55Z"
     }
   },
   "e2e": {

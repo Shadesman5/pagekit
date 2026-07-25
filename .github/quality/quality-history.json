@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 3,
+  "branch": "develop",
+  "cap": 90,
+  "points": [
+    {
+      "at": "2026-07-25T23:30:25.370Z",
+      "sha": "5acfa67d4f21941b6a57b5fa7f83f178f8c6b0c0",
+      "coverage": {
+        "linePercent": 6.1,
+        "pinnedFloor": 3.8
+      },
+      "phpunit": {
+        "tests": 725,
+        "failures": 0
+      },
+      "phpstan": {
+        "errors": 0,
+        "baselineBlocks": 351,
+        "suppressedErrors": 695
+      },
+      "infection": {
+        "msi": 99.19,
+        "coveredMsi": 99.19,
+        "killed": 363,
+        "escaped": 3,
+        "timedOut": 2,
+        "errors": 1
+      },
+      "e2e": {
+        "specsPassed": 25,
+        "specsTotal": 25,
+        "scope": "smoke"
+      }
+    }
+  ]
+}
