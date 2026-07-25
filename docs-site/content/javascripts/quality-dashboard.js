@@ -61,6 +61,19 @@
     });
   }
 
+  // The nightly full-suite run is the only source of this number, and it lands independently of the
+  // merge that produced the rest of the snapshot. Until it has run, the object exists with null
+  // fields — say so, rather than formatting the nulls into "MSI — · covered — @ —".
+  function infectionRow(full) {
+    const label = 'Infection (daily full)';
+    if (!full || full.msi == null) return [label, 'ℹ️', 'awaiting nightly'];
+    return [
+      label,
+      'ℹ️',
+      `MSI ${formatPercent(full.msi)} · covered ${formatPercent(full.coveredMsi)} @ ${formatDate(full.runAt)}`
+    ];
+  }
+
   async function fetchSnapshot() {
     for (const url of SNAPSHOT_CANDIDATES) {
       try {
@@ -121,13 +134,7 @@
           ? `${e2e.specsPassed ?? '—'}/${e2e.specsTotal ?? '—'} specs · ${(e2e.viewports || []).join(', ')}`
           : '—'
       ],
-      [
-        'Infection (daily full)',
-        'ℹ️',
-        data.infection?.dailyFull
-          ? `MSI ${formatPercent(data.infection.dailyFull.msi)} · covered ${formatPercent(data.infection.dailyFull.coveredMsi)} @ ${formatDate(data.infection.dailyFull.runAt)}`
-          : '—'
-      ],
+      infectionRow(data.infection?.dailyFull),
       ['CS-Fixer', gateIcon(data.gates?.csFixer), data.gates?.csFixer || '—'],
       ['Security audit', gateIcon(data.gates?.securityAudit), data.gates?.securityAudit || '—'],
       ['Frontend (lint/build)', gateIcon(data.gates?.frontendLint), data.gates?.frontendLint || '—'],
