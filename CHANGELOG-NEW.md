@@ -1,33 +1,5 @@
 # Changelog
 
-## Pagekit 1.2.33 - Quality Reporting v2 (July 26, 2026)
-
-Three reporting surfaces, three jobs: **GitHub Checks** own the merge verdict, the **sticky PR comment** owns PR impact, the **Pages dashboard** owns branch health. Everything below removes an overlap or fills a gap in that split.
-
-### Fixed
-
-- **PR comment reported no metrics at all** — `quality-report.mjs` matched gate runs against workflow *display names*, but every gate declares a custom `run-name:` and the Actions API returns that evaluated string in `workflow_runs[].name` (`"PHP Tests — PR #242 (branch)"`). Nothing ever matched, so no artifact was downloaded and every row fell back to the check-run word. Matching is now keyed on the workflow `path`.
-- **A green gate with no artifact read `pass`** — indistinguishable from the GitHub Checks directly below it, and misleading about the metric itself. A row without a number now reports *why* it is missing (`pending`, `skipped`, `—`, or `out of scope` for a diff that touched nothing in Infection's source scope).
-- **Dashboard Infection row rendered `MSI — · covered — @ —`** — the nightly full-suite MSI is the only source of that number, but `quality-collect.yml` listened to PHP Tests and E2E only, so it stayed `null` until some unrelated merge happened to collect again. Nightly is now a collect trigger, and until it reports the row says `awaiting nightly`.
-
-### Changed
-
-- **Sticky PR comment is a metrics table** — `| Metric | This PR | vs develop |`. The Status column and the CS-Fixer / Security / Frontend rows (which carry no number) are gone; deltas are measured against the live snapshot on `quality-data`, the same file the dashboard renders. Infection deliberately gets no numeric delta — the PR runs over the diff, the nightly over the whole source scope — and a seed/demo baseline is rejected rather than compared against invented numbers.
-- **Dashboard Infection row carries a verdict** — ✅/❌ against the `minMsi` / `minCoveredMsi` threshold of `infection.json.dist` (80), plus killed/escaped counts, instead of being permanently informational.
-- **Snapshot schema v2 → v3** — `infection.dailyFull` gains `killed`, `escaped`, `timedOut`, `errors` and `totalMutants`; the snapshot gains the `commit` it describes. The seed and demo files drop the `workflows.frontendTests` key the live builder never emitted.
-
-### Added
-
-- **Quality history + charts** — `quality-collect.yml` maintains `.github/quality/quality-history.json` on `quality-data`, and the dashboard plots line coverage, full MSI, PHPUnit test count and PHPStan suppressed-error debt from it. Merges and nightlies fire constantly while the metrics rarely move, so a point is appended only when a watched value changes; Infection is compared only while the nightly reports, so a temporarily missing run cannot register as a change twice. Capped at 90 points, and the page degrades to the tip-only table when no history exists yet.
-- **`DRY_RUN=1` on both collectors** — renders the comment body / snapshot + history verdict to stdout without writing anything. `workflow_run` and `workflow_dispatch` resolve both the workflow file and the checked-out script from the **default branch**, so neither change can be observed from the PR that makes it; this is the only way to validate against live API data beforehand.
-
-### Maintainer action
-
-- After merge to `develop`: `workflow_dispatch` **Quality Report** against an open PR and **Quality Collect**, then confirm the Pages overlay serves the enriched snapshot. The first collect writes the first history point; charts appear from the second onwards.
-- `docs-site/content/stylesheets/quality-dashboard.css` could not be extended — `.cursorignore` blocks `*.css` and its `!docs-site/content/stylesheets/*.css` whitelist is not honoured, so agents cannot read or write it. The charts size themselves via Chart.js `aspectRatio` and need no new CSS; a grid layout for them stays available if the ignore rule is ever fixed.
-
----
-
 ## Pagekit 1.2.32 - Docker Dev Experience & Image Hygiene (July 24, 2026)
 
 ### Changed

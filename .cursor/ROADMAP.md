@@ -1,6 +1,6 @@
 # **🗺️ Pagekit Modernization Roadmap & Rules**
 
-> **Current Version**: 1.2.33
+> **Current Version**: 1.2.32
 > **Current Step**: 2.4 (Build Tools — pnpm + Vite)
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**
