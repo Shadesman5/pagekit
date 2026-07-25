@@ -151,10 +151,10 @@ None (no `Closes Phase 1 audit:` line in the ticket header; Docker dev-tooling s
 - **Non-goal:** runtime `docker compose up` validation cannot run in-agent (no Docker daemon in the VM) — Manual Work for the user, not a ROADMAP step.
 - **Bridges:** None.
 - **Manual Work (maintainer):**
-  1. Runtime validation on a Docker host — cold `./docker-setup.sh` → `docker compose up` on the MySQL path (no boot race, no restart loop on a cold volume, `web`/`phpmyadmin` start only after MySQL reports healthy); SQLite path `docker compose up -d --no-deps web node` + in-container `php pagekit setup … -d sqlite`; `docker compose -f docker-compose.yml config` against a generated `.env`.
-  2. `php -m` on both `php:8.5-apache`/`php:8.5-cli` to confirm the bundled-extension assumption, plus a build of both Dockerfiles — also settles the hadolint result, since neither a Docker CLI nor hadolint was available in-agent.
-  3. Regenerate the local env via `./docker-setup.sh` / `docker-setup.ps1` (now writes `.env`); delete any stale local `docker.env`.
-  4. Remove local `storage-e2e/` / `tmp-e2e/` leftovers from the retired Docker E2E path.
+  1. ~~Runtime validation on a Docker host — cold `./docker-setup.sh` → `docker compose up` on the MySQL path (no boot race, no restart loop on a cold volume, `web`/`phpmyadmin` start only after MySQL reports healthy); SQLite path `docker compose up -d --no-deps web node` + in-container `php pagekit setup … -d sqlite`; `docker compose -f docker-compose.yml config` against a generated `.env`.~~ ✅ Done 2026-07-26 (host ports remapped when Laragon holds 3306/8080; cold MySQL healthgate confirmed; SQLite `--no-deps web` + existing-install abort OK). Follow-up: `node` yarn `EEXIST` fixed (`yarn install && yarn watch-all`).
+  2. ~~`php -m` on both `php:8.5-apache`/`php:8.5-cli` to confirm the bundled-extension assumption, plus a build of both Dockerfiles — also settles the hadolint result, since neither a Docker CLI nor hadolint was available in-agent.~~ ✅ Done 2026-07-26 (bundled set confirmed; both Dockerfiles build; hadolint via `hadolint/hadolint` image — warnings only, exit 0).
+  3. ~~Regenerate the local env via `./docker-setup.sh` / `docker-setup.ps1` (now writes `.env`); delete any stale local `docker.env`.~~ ✅ Done 2026-07-26.
+  4. ~~Remove local `storage-e2e/` / `tmp-e2e/` leftovers from the retired Docker E2E path.~~ ✅ Already absent 2026-07-26.
   5. Rebuild the cloud-agent environment snapshot at the next opportunity so the `.cursor/Dockerfile` extension slimming takes effect (running agents use the pinned snapshot until then — no runtime risk).
 
 ---
