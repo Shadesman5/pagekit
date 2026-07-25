@@ -20,9 +20,15 @@ import { join, basename } from "node:path";
 // Hidden HTML marker keying the single sticky comment (GitHub hides it from the rendered body).
 const MARKER = "<!-- quality-report -->";
 
-// Gate workflow display names — must match each workflow's `name:` value. Infection/E2E/Frontend
-// are added in later checklist steps; listing them now is harmless (no run yet -> rendered pending).
-const GATE_WORKFLOWS = ["PHP Tests", "Infection", "E2E", "Frontend"];
+// Gate workflows keyed by FILE PATH, never by display name: every gate declares a custom `run-name:`,
+// and the Actions API returns that evaluated run-name in `workflow_runs[].name` (e.g. "PHP Tests — PR
+// #242 (branch)"). Matching on the name would therefore never hit, leaving every metric unresolved.
+const GATE_WORKFLOW_PATHS = [
+  ".github/workflows/php-tests.yml",
+  ".github/workflows/infection.yml",
+  ".github/workflows/e2e.yml",
+  ".github/workflows/frontend.yml",
+];
 
 // Check-run names == the job `name:` values that produce them.
 const CHECK_PHPUNIT = "phpunit (8.5)";
@@ -129,9 +135,9 @@ function gateStatus(checks, name) {
 function collectArtifacts(sha) {
   const latest = new Map();
   for (const r of runsForSha(sha)) {
-    if (!GATE_WORKFLOWS.includes(r.name)) continue;
-    const prev = latest.get(r.name);
-    if (!prev || Number(r.id) > Number(prev.id)) latest.set(r.name, r);
+    if (!GATE_WORKFLOW_PATHS.includes(r.path)) continue;
+    const prev = latest.get(r.path);
+    if (!prev || Number(r.id) > Number(prev.id)) latest.set(r.path, r);
   }
 
   const dir = mkdtempSync(join(tmpdir(), "quality-report-"));
