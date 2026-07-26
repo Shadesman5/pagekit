@@ -56,7 +56,7 @@
      L = large or loop-risk. A step orchestrator flips its box to [x] in the SAME commit as that
      step's code + tests (after full step PASS incl. test-writer when applicable) -->
 - [x] Step 1 (M) — Baseline green + committed webpack inventory/audit ground truth
-- [ ] Step 2 (M) — Vue 2.6.12 → 2.7.16 under webpack; E2E smoke on 2.7
+- [x] Step 2 (M) — Vue 2.6.12 → 2.7.16 under webpack; E2E smoke on 2.7
 - [ ] Step 3 (L) — Vite JS pipeline (entry manifest, per-entry IIFE); delete webpack+Babel; BuildCommand exec swap
 - [ ] Step 4 (M) — LESS/assets/CLDR node scripts; delete gulp + standalone package toolchains; wire `build`
 - [ ] Step 5 (L) — pnpm swap: packageManager pin, only-allow guard, lockfile, decouple install-build; delete yarn

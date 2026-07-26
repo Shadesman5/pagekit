@@ -2,7 +2,7 @@
 
 [![PHP](https://img.shields.io/badge/php-8.5%2B-blue)](https://www.php.net/)
 [![Symfony](https://img.shields.io/badge/symfony-6.4-blue)](https://github.com/symfony/symfony)
-[![Vue](https://img.shields.io/badge/vue-2.6.12-green)](https://github.com/vuejs/vue)
+[![Vue](https://img.shields.io/badge/vue-2.7.16-green)](https://github.com/vuejs/vue)
 [![UIkit](https://img.shields.io/badge/uikit-3.5.8-blue)](https://github.com/uikit/uikit)
 [![MySQL](https://img.shields.io/badge/mysql-8.4-orange)](https://www.mysql.com/)
 [![codecov](https://codecov.io/gh/Shadesman5/pagekit/graph/badge.svg)](https://codecov.io/gh/Shadesman5/pagekit)
@@ -112,7 +112,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 
 -   **Modern PHP Support**: PHP 8.5+ compatibility with modern coding standards
 -   **Enterprise Security**: Zero vulnerabilities with latest security patches applied
--   **Advanced Frontend**: Vue.js 2.6 with UIkit 3.5 for responsive, modern interfaces
+-   **Advanced Frontend**: Vue.js 2.7 with UIkit 3.5 for responsive, modern interfaces
 -   **Flexible Database**: Support for both MySQL 8.4 and SQLite 3 with Doctrine DBAL 3.8+
 -   **Modern Logging**: Monolog 3.9+ with enhanced performance and debugging capabilities
 -   **Secure Dependencies**: Latest security patches applied (marked 4.3+, doctrine/annotations 2.0+)
@@ -141,7 +141,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 -   **Security Updates**: All dependencies updated to secure versions (0 vulnerabilities confirmed)
 -   **Database Layer**: Doctrine DBAL 3.8+ with modern query methods and enhanced compatibility
 -   **Logging System**: Monolog 3.9+ with improved performance and PHP 8.5 support
--   **Frontend Modernization**: Vue.js 2.6 and UIkit 3.5 (jQuery completely removed)
+-   **Frontend Modernization**: Vue.js 2.7 and UIkit 3.5 (jQuery completely removed)
 -   **Build Tools**: Webpack 4 with optimized development workflow
 -   **Extension Compatibility**: Legacy extensions and themes require complete rewrite for new system
 -   **Docker Support**: Complete containerized development environment
@@ -317,7 +317,7 @@ yarn lint-watch
 
 ### Frontend
 
--   **JavaScript Framework**: Vue.js 2.6 with modern component patterns
+-   **JavaScript Framework**: Vue.js 2.7 with modern component patterns
 -   **CSS Framework**: UIkit 3.5 for responsive design
 -   **Build Tools**: Webpack 4 with optimized production builds
 -   **Code Quality**: ESLint with Vue.js specific rules

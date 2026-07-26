@@ -40,7 +40,7 @@
         "tinymce": "~5.10.9",
         "uikit": "~3.5.8",
         "vee-validate": "~3.3.11",
-        "vue": "~2.6.12",
+        "vue": "~2.7.16",
         "vue-event-manager": "~2.1.3",
         "vue-intl": "github:uatrend/vue-intl#master",
         "vue-nestable": "~2.6.0",
@@ -86,7 +86,6 @@
         "vue-hot-reload-api": "~2.3.4",
         "vue-loader": "~15.11.1",
         "vue-style-loader": "~4.1.2",
-        "vue-template-compiler": "~2.6.12",
         "webpack": "^4.44.2",
         "webpack-cli": "^3.3.12"
     },

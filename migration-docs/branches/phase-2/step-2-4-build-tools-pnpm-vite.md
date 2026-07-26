@@ -30,6 +30,17 @@ _TBD_
 
 Tests: none (test-writer: skip — ticket-wide; this step touches no production PHP under `app/`/`packages/`). Gates: Verifier PASS; Tester — PHPUnit PASS, PHPStan PASS; coverage gap pass skipped per the ticket's `## TESTING STRATEGY` (`test-writer: skip` on all steps).
 
+### Vue 2.6.12 → 2.7.16 bump, still on Yarn + Webpack + Gulp (Checklist Step 2)
+
+| File | Change |
+|---|---|
+| `package.json` | `vue` `~2.6.12` → `~2.7.16`; `vue-template-compiler` removed from devDependencies (Vue 2.7 ships its own template compiler; `vue-loader` 15.11 auto-detects it). |
+| `yarn.lock` | Regenerated for the `vue` bump and the `vue-template-compiler` removal. |
+| `README.md` | Vue badge `2.6.12` → `2.7.16`; the three "Vue.js 2.6" prose mentions (Key Features, Technical Highlights, Frontend stack) → "Vue.js 2.7". |
+| `migration-docs/branches/phase-2/step-2-4-build-inventory-webpack.txt` | Re-recorded against the post-bump build: same bundle/CSS path set as the Step 1 baseline, plus ~200 new paths under `app/assets/vue/` (the 2.7.16 asset-copy layout: `src/`, `packages/`, `types/`, `compiler-sfc/`, `dist/vue.runtime.mjs`). See Risks & Rollout Notes. |
+
+Tests: none (test-writer: skip — ticket-wide; this step touches no production PHP under `app/`/`packages/`). Gates: Verifier FAIL on first pass (missed re-recording the committed webpack inventory for the post-2.7 asset layout, and the README Vue badge/prose) → PASS on retry; Tester — PHPUnit PASS, PHPStan PASS; coverage gap pass skipped per the ticket's `## TESTING STRATEGY` (`test-writer: skip` on all steps).
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -47,6 +58,7 @@ _TBD_
 ## ⚠️ Risks & Rollout Notes
 
 - **Step 9's audit-parity gate can only confirm 3 of its 5 named advisories (Checklist Step 1 discovery — flagged for Step 9).** The ticket's Step 9 gate expects the after-audit to show picomatch, braces, micromatch, serialize-javascript and elliptic all gone. The committed before-audit (`step-2-4-audit-yarn-before.txt`) shows only braces, micromatch and serialize-javascript actually present at `yarn audit --level moderate`; picomatch and elliptic never appear in the baseline output. Step 9 should verify removal of the three advisories that are actually present and not treat a missing picomatch/elliptic entry in the after-audit as a discrepancy.
+- **Webpack baseline inventory re-recorded on the Vue 2.7 layout, not left as Step 1 committed it (Checklist Step 2).** The 2.6.12 → 2.7.16 bump changes what the webpack pipeline copies into `app/assets/vue/` (~200 new paths — `src/`, `packages/`, `types/`, `compiler-sfc/`, `dist/vue.runtime.mjs`; nothing removed, nothing changed outside that directory). `step-2-4-build-inventory-webpack.txt` is updated in place rather than left for Step 9 to reconcile, so Step 9's pnpm/Vite parity diff runs against this post-bump file, not the original pre-bump one — the file's own header records the exact breakdown against that original recording.
 
 ---
 
