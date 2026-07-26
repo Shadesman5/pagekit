@@ -2,7 +2,7 @@
 
 <!-- conductor-mode: full -->
 
-**ROADMAP:** 2.4. GitHub Issue: #159. Reference: `@ROADMAP.md`, `PHASE_2_MODERNISING.md` §2.4, `migration-docs/branches/branch-doc-skeleton.md`.
+**ROADMAP:** 2.4. GitHub Issue: #159. Reference: `@ROADMAP.md`, `PHASE_2_MODERNISING.md` §2.4.
 
 ---
 
