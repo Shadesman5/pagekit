@@ -9,21 +9,38 @@
   "branch": "feature/build-tools-pnpm-vite",
   "model": "grok-4.5",
   "status": "in_progress",
-  "startedAt": "2026-07-26T00:01:04.804Z",
-  "completedAt": null,
+  "startedAt": "2026-07-26T00:01:11.833Z",
+  "completedAt": "2026-07-26T00:26:32.542Z",
   "phases": [
     {
       "phaseKey": "30180232743-2-PLAN",
       "type": "PLAN",
       "attempt": 0,
       "batchSteps": null,
-      "startedAt": "2026-07-26T00:01:10.240Z",
-      "durationMs": 1524522,
+      "startedAt": "2026-07-26T00:01:11.833Z",
+      "durationMs": 1479632,
       "agent": {
         "id": "bc-bdf4712e-d332-4d41-8dbb-03ccc7049e07",
         "runId": "run-e177237f-ffac-4e8e-ad49-47c72fb77c17",
         "url": "https://cursor.com/agents/bc-bdf4712e-d332-4d41-8dbb-03ccc7049e07",
-        "model": "grok-4.5"
+        "model": "grok-4.5",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-e177237f-ffac-4e8e-ad49-47c72fb77c17",
+            "index": 1,
+            "startedAt": "2026-07-26T00:01:11.833Z",
+            "completedAt": "2026-07-26T00:26:32.542Z",
+            "durationMs": 1479632,
+            "tokens": {
+              "input": 72631,
+              "output": 95153,
+              "cacheRead": 7218731,
+              "cacheWrite": 418755,
+              "total": 7805270
+            }
+          }
+        ]
       },
       "github": {
         "runId": 30180232743,
@@ -41,7 +58,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "Plan ready: migration-docs/tickets/active/PROMPT_2_4_Build-Tools-pnpm-Vite_plan.md",
-      "outcome": "success"
+      "outcome": "success",
+      "completedAt": "2026-07-26T00:26:32.542Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -52,7 +71,7 @@
       "cacheWrite": 418755,
       "total": 7805270
     },
-    "durationMs": 1524522,
+    "durationMs": 1479632,
     "phaseCount": 1,
     "escalations": 0,
     "ghaJobs": 1,
