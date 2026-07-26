@@ -1,7 +1,7 @@
 import settings from '../components/widget-settings.vue';
 import visibility from '../components/widget-visibility.vue';
 import TemplateSettings from '../components/template-settings';
-import { ValidationObserver, VInput } from '../../../../app/components/validation.vue';
+import VInput, { ValidationObserver } from '../../../../app/components/validation.vue';
 
 const WidgetEdit = {
   name: 'widget',

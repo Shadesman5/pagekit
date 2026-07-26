@@ -380,7 +380,7 @@
 
 <script>
 import { $, find, on, offset, remove, scrollTop } from 'uikit-util';
-import { ValidationObserver, VInput } from '@system/app/components/validation.vue';
+import VInput, { ValidationObserver } from '@system/app/components/validation.vue';
 
 const Installer = {
   name: 'installer',

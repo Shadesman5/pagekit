@@ -85,7 +85,7 @@
 </template>
 
 <script>
-import { ValidationObserver, VInput } from '@system/app/components/validation.vue';
+import VInput, { ValidationObserver } from '@system/app/components/validation.vue';
 
 export default {
   name: 'Reply',

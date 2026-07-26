@@ -1,4 +1,4 @@
-import { ValidationObserver, VInput } from '@system/app/components/validation.vue';
+import VInput, { ValidationObserver } from '@system/app/components/validation.vue';
 import settings from '../../components/post-settings.vue';
 
 window.Post = {

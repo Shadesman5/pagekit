@@ -63,7 +63,7 @@
 - [x] Step 6 (L) — ESLint 10 flat config + format-once Prettier; lint green
 - [x] Step 7 (M) — CI: 4 workflows on pnpm + explicit build; blocking lint/format; job names frozen
 - [x] Step 8 (M) — Agent env + Docker + docs + rules on pnpm/Vite; zero-reference grep gate
-- [ ] Step 9 (L) — Verification: clean rebuild, inventory parity, audit diff, E2E smoke
+- [x] Step 9 (L) — Verification: clean rebuild, inventory parity, audit diff, E2E smoke
 
 ## TESTING STRATEGY
 - **Per step (production gate):** Refactorer → Verifier → Tester (PHPUnit + PHPStan) — both must stay green untouched on every step (only Step 3 touches PHP at all: one exec line in `BuildCommand.php`; any other PHP regression = out-of-scope drift).

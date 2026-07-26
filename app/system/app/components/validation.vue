@@ -139,6 +139,13 @@ const VInput = {
   }
 };
 
+// Only the default export carries the compiled template: the build attaches the
+// render function to the component the default export points at, and drops that
+// step entirely when nothing imports it. A named re-export of `VInput` would
+// hand out the bare options object and render nothing.
 export default VInput;
-export { ValidationObserver, VInput };
+
+// Re-exported so consumers get the observer and the rules registered above from
+// a single import.
+export { ValidationObserver };
 </script>
