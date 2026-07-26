@@ -233,3 +233,19 @@ The `<picture>` markup is produced at **render time** by a new content plugin (`
   - **Migrations**: init container or pre-upgrade hook; never during image build, never concurrently across replicas.
 - **Out of scope**: Managed-service specifics (EKS/GKE/AKS provisioning), service mesh, GitOps tooling.
 - **Risk**: Medium–High — the shared-state decision reaches into uploads, cache, and sessions.
+
+---
+
+## Step 4.12: Production Runtime Engine — FrankenPHP (or nginx + PHP-FPM)
+
+- **Goal**: Replace Apache/mod_php with a modern app server serving the `public/` webroot that Step 2.4.1 already established. **FrankenPHP is the preferred direction** — a single binary with worker mode, native HTTPS, and its own static-file serving fits the project's lightweight-core philosophy (one glue point per concern) better than running nginx + PHP-FPM as two separate processes that must be kept in sync. nginx + PHP-FPM stays the fallback if FrankenPHP's PHP 8.5+ / worker-mode maturity has not held up by then.
+- **Why here (after 4.11)**: The webroot **layout** question is already solved by Step 2.4.1, independently of the webserver **engine** — `public/` works under Apache today exactly as it will under FrankenPHP. What is left for this step is purely the engine swap, and sequencing that after 4.11 keeps orchestration risk isolated: manifests, probes, and the shared-state migration (PVC/object storage, Redis) get proven once on the known-working Apache setup before the web-serving layer itself changes (Rule 3: only one unproven thing changes at a time). Waiting this long also makes the swap cheaper: Step 3.2.1 already moves CSP out of `.htaccess`/`public/.htaccess` into a server-agnostic PHP `ResponseListener`, so the remaining header/rewrite set to port is small.
+- **Prerequisite**: Step 4.11 (orchestration + shared-state groundwork); Step 4.7 (Rebranding — final namespace/image identity, so this lands once under the permanent name).
+- **What**:
+  - **Spike (re-verify, do not assume any earlier verdict still holds)**: FrankenPHP vs. nginx + PHP-FPM against current maturity data.
+  - **Security parity**: port the remaining `public/.htaccess` header/rewrite set (HSTS, X-Frame-Options, Permissions-Policy, COOP/CORP, front-controller rewrite) to the chosen server's config — CSP itself is already framework-level via 3.2.1 and needs no porting.
+  - **Orchestration follow-up**: adjust the 4.11 Helm chart / health-probe paths for the new entrypoint (FrankenPHP or PHP-FPM port/socket) — a mechanical follow-up on an already-working deployment, not a redesign.
+  - **Docker**: retire the Step 2.5 Apache production stage once the new one is proven, or keep it as a documented fallback target (Architect decides) — no permanent dual-webserver maintenance burden (Rule 4, delete over wrap).
+  - **Shared hosting / zip distribution (Step 2.8) is untouched**: it stays on Apache/PHP-FPM + the same `public/` webroot from 2.4.1 — this step only changes the container runtime.
+- **Out of scope**: Redesigning the orchestration model itself (Helm structure, scaling policy, shared-state architecture) — that is 4.11's decision. Changing the webroot layout — already done by 2.4.1.
+- **Risk**: Medium — mechanical porting work (the remaining headers, rewrites) against an already-green orchestrated baseline; the hard problems (shared state, health probes, CSP portability, webroot layout) are solved by the time this step starts.
