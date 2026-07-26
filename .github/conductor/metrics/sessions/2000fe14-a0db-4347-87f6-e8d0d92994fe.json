@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "2000fe14-a0db-4347-87f6-e8d0d92994fe",
+  "roadmapStepId": "2.4",
+  "title": "Step 2.4: Build Tools Modernization (pnpm + Vite)",
+  "taskSlug": "PROMPT_2_4_Build-Tools-pnpm-Vite",
+  "taskPrompt": "migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_4_Build-Tools-pnpm-Vite.md",
+  "issue": 159,
+  "branch": "feature/build-tools-pnpm-vite",
+  "model": "grok-4.5",
+  "status": "in_progress",
+  "startedAt": "2026-07-26T00:01:04.804Z",
+  "completedAt": null,
+  "phases": [],
+  "totals": {
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "total": 0
+    },
+    "durationMs": 0,
+    "phaseCount": 0,
+    "escalations": 0,
+    "ghaJobs": 0,
+    "cloudAgents": 0
+  }
+}

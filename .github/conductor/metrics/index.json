@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-25T23:55:23.980Z",
+  "updatedAt": "2026-07-26T00:01:04.805Z",
   "steps": {
     "unknown": {
       "title": "AGENT_PROMPT_AUDIT_TECH_DEBT_INVENTORY",
@@ -160,8 +160,9 @@
     },
     "2.4": {
       "title": "Step 2.4: Build Tools Modernization (pnpm + Vite)",
-      "latestSessionId": "dcebba1c-fca8-4ce3-bea1-5b557be1e1b9",
+      "latestSessionId": "2000fe14-a0db-4347-87f6-e8d0d92994fe",
       "sessionIds": [
+        "2000fe14-a0db-4347-87f6-e8d0d92994fe",
         "dcebba1c-fca8-4ce3-bea1-5b557be1e1b9"
       ]
     }
