@@ -1,7 +1,7 @@
 # **🗺️ Pagekit Modernization Roadmap & Rules**
 
-> **Current Version**: 1.2.32
-> **Current Step**: 2.4 (Build Tools — pnpm + Vite)
+> **Current Version**: 1.2.33
+> **Current Step**: 2.5 (Docker Production Image & Deploy)
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**
 
@@ -105,7 +105,7 @@
 | 2.1.14 | ↳ PHP Version Upgrade (8.2 → 8.5)     | ✅     | 🛡️    | #231  | #238    |
 | 2.2    | CI/CD Pipeline                        | ✅     | 🛡️    | #157  | #240    |
 | 2.3    | Docker Dev Experience & Image Hygiene | ✅     | 🛡️    | #241  | #242    |
-| 2.4    | Build Tools (pnpm + Vite)             | ⏳     | ⏳    | #159  | -       |
+| 2.4    | Build Tools (pnpm + Vite)             | ✅     | 🛡️    | #159  | #245    |
 | 2.5    | Docker Production Image & Deploy      | ⏳     | ⏳    | #158  | -       |
 | 2.6    | Filesystem Write Resilience           | ⏳     | ⏳    | -     | -       |
 | 2.7    | Extension Safety System               | ⏳     | ⏳    | #160  | -       |
