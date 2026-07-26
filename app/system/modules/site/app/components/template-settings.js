@@ -1,5 +1,5 @@
 import NodeMixin from '../mixins/node-mixin';
-import Settings from '../templates/settings.html';
+import Settings from '../templates/settings.html?raw';
 
 export default {
     name: 'template-settings',

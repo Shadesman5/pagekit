@@ -137,8 +137,8 @@
 
 <script>
 
-import TableTemplate from '../templates/table.html';
-import ThumbnailTemplate from '../templates/thumbnail.html';
+import TableTemplate from '../templates/table.html?raw';
+import ThumbnailTemplate from '../templates/thumbnail.html?raw';
 import TemplateMixin from '../mixins/template-mixin';
 
 const PanelFinder = {

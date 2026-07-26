@@ -62,14 +62,9 @@ class BuildCommand extends Command
         // $composer = new Composer($config, $output);
         // $composer->install($packages);
 
-        $this->line(sprintf('Starting: webpack'));
+        $this->line(sprintf('Starting: vite'));
 
-        // Cross-platform webpack execution
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            exec('yarn compile-js --mode=production 2>NUL');
-        } else {
-            exec('node_modules/.bin/webpack -p');
-        }
+        exec('node scripts/build-js.mjs');
 
         $this->line(sprintf('Building Package.'));
 
