@@ -158,6 +158,12 @@
 - **Goal**: Vue 2.7 → Vue 3.x with migration build
 - **Tasks**:
   - Install Vue 3 + `@vue/compat` (migration build)
+  - Swap `@vitejs/plugin-vue2` → `@vitejs/plugin-vue` and lift the Vite major pin: the Vue-2.7 SFC
+    plugin is archived and its released peer range caps at Vite 7, so the build pipeline pins Vite 7.x
+    until this swap — move to the current Vite major together with the plugin change
+  - Re-evaluate the classic-script delivery model (per-entry IIFE bundles with `Vue`/`UIkit` window
+    globals loaded via PHP script tags) against native ES modules, and introduce the Vite dev server +
+    PHP integration (HMR) once the module format allows it
   - Completely rewrite `app/system/app/vue.js` (new app bootstrap)
   - Global API changes: `Vue.use()` → `app.use()`, `Vue.component()` → `app.component()`
   - Options API → Composition API (gradually, not all at once)
