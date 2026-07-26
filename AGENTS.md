@@ -4,7 +4,7 @@
 
 ### Overview
 
-Pagekit CMS is a modular PHP CMS built on Symfony 6.4 components with a Vue.js 2.6 + UIkit 3.5 frontend. The codebase uses Webpack 4 for JS/Vue bundling and Gulp for LESS/CSS compilation.
+Pagekit CMS is a modular PHP CMS built on Symfony 6.4 components with a Vue.js 2.7 + UIkit 3.5 frontend. The codebase uses pnpm as package manager, Vite for JS/Vue bundling and Node scripts (`scripts/*.mjs`) for LESS compilation and asset copies.
 
 ### Services
 
@@ -12,20 +12,21 @@ Pagekit CMS is a modular PHP CMS built on Symfony 6.4 components with a Vue.js 2
 |---|---|---|
 | PHP dev server | `php -S localhost:8080 index.php` | Serves the full app; run from workspace root |
 | PHPUnit | `./app/vendor/bin/phpunit` | 326 tests; no external DB needed |
-| ESLint | `yarn lint` | Pre-existing style errors (~13k); runs correctly |
-| Webpack (JS build) | `yarn compile-js --mode=production` | Or `yarn watch-js` for dev |
-| Gulp (LESS build) | `yarn compile-less` | Or `yarn watch-less` for dev |
-| Both watchers | `yarn watch-all` | Runs webpack + gulp in parallel |
+| Frontend build | `pnpm build` | JS bundles + LESS + asset copies; `pnpm build:js` / `build:css` / `build:assets` run the parts |
+| Watcher | `pnpm watch` | Rebuilds bundles and stylesheets on change |
+| ESLint | `pnpm lint` | Blocking — must exit 0 |
+| Prettier | `pnpm exec prettier --check .` | Blocking — must exit 0 (`--write` to fix) |
+| Locale data | `pnpm cldr` | Regenerates the CLDR-derived language/format data |
 | Docker dev stack | `./docker-setup.sh` then `docker compose up -d` | Local machines only — the Cloud Agent VM has no Docker daemon |
 
 ### Non-obvious caveats
 
 - **Vendor directory is `app/vendor/`**, not the standard `vendor/`. Composer is configured via `"config": {"vendor-dir": "app/vendor"}` in `composer.json`. PHPUnit binary is at `./app/vendor/bin/phpunit`.
-- **`yarn install` triggers a full production build** via its `postinstall` script (`yarn compile-js --mode=production && gulp`). This is expected and takes ~7s.
+- **Install and build are separate steps.** `pnpm install` only installs; nothing rebuilds the frontend implicitly, so run `pnpm build` afterwards (and after pulling frontend changes) to get bundles, stylesheets and asset copies. A `preinstall` guard (`only-allow pnpm`) rejects installs run through any other package manager. Requires Node `^20.19.0 || >=22.12.0`; the pnpm version is pinned in `package.json` (`packageManager`) and activated via `corepack enable`, with `npm install -g pnpm@<version>` as fallback.
 - **First run requires a Pagekit installation.** If `/workspace/config.php` does not exist, the app redirects to the web installer at `/`. For headless/agent setups, prefer the non-interactive CLI: `php pagekit setup -u admin -p '<password>' -t "Pagekit Dev" -m admin@example.com -d sqlite --no-interaction`. Either path creates `config.php` and the SQLite database at `/workspace/pagekit.db`. Two quirks: (1) `setup` prints `Done`/`Existing Pagekit installation detected` but returns a non-zero exit code — verify success by checking that `config.php` exists; (2) re-running `setup` against an existing install is safe — it aborts instead of clobbering the DB, so it will NOT reset an existing admin password.
 - **`config.php` is gitignored** and must be created via the installer on each fresh environment. After installer completion, admin login is at `/index.php/admin/login`.
 - **PHP built-in server uses `index.php` as router file.** Always pass it: `php -S localhost:8080 index.php`.
-- **ESLint has ~13k pre-existing style errors** (indent, arrow-parens, etc.). These are not regressions; the codebase predates the current ESLint config.
+- **Lint and formatting are blocking, full-tree.** `pnpm lint` (ESLint flat config in `eslint.config.js`) and `pnpm exec prettier --check .` must both exit 0 — the CI `frontend` job fails otherwise. The whole tree was reformatted once with Prettier; run `git config blame.ignoreRevsFile .git-blame-ignore-revs` in your clone to keep `git blame` readable.
 - **Writable directories needed:** `tmp/` (logs, cache, temp, packages) and `storage/` must be writable. Create them with `mkdir -p tmp/logs tmp/cache tmp/temp tmp/packages storage`.
 - **`php pagekit start`** is documented in README but just wraps `php -S 0.0.0.0:8080 index.php`. Use the direct command for more control.
 - **Docker dev stack — local machines only; there is no Docker daemon (and no `docker`/`docker compose` CLI) in the Cloud Agent VM**, so agents run the app directly with PHP's built-in server instead. On a Docker host: `./docker-setup.sh` (`docker-setup.ps1` on Windows) writes `.env` with generated MySQL passwords, then `docker compose up -d` starts web (`:8080`), mysql, phpmyadmin (`:8081`) and the node watcher. The image bakes no application code — `docker compose exec web composer install` after the first start. SQLite zero-DB path: `docker compose up -d --no-deps web node` (`--no-deps` skips the MySQL dependency of `web`) plus `docker compose exec web php pagekit setup … -d sqlite`. Compose v2 spelling only (`docker compose`); `.env` is gitignored via the `*.env` rule.

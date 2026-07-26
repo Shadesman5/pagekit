@@ -89,8 +89,8 @@ function upgrade_symfony() {
 
 # Watch assets
 function watch_assets() {
-    echo "👀 Starting Webpack watch mode for real-time feedback..."
-    yarn watch-all
+    echo "👀 Starting asset watch mode for real-time feedback..."
+    pnpm watch
 }
 
 # Main menu
@@ -126,7 +126,7 @@ case "$1" in
         echo "  test       - Run test suite"
         echo "  branch     - Create a new feature branch"
         echo "  pr         - Create a pull request"
-        echo "  watch      - Start Webpack watch mode"
+        echo "  watch      - Start the asset watcher (JS + LESS)"
         exit 1
         ;;
 esac

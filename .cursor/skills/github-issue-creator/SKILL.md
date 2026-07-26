@@ -109,7 +109,7 @@ Read `.cursor/rules/github-labels.mdc` for full list.
 | Keywords in title/description | Label |
 |-------------------------------|-------|
 | PHP, Controller, Service, Container, PSR, Symfony, ORM, Auth, API, Docker, CI/CD | `backend` |
-| Vue, UIkit, JavaScript, TypeScript, Component, CSS, Webpack | `frontend` |
+| Vue, UIkit, JavaScript, TypeScript, Component, CSS, Vite | `frontend` |
 | Database, DBAL, Schema, Query | `database` |
 | Extension, Module, Plugin | `module` |
 | Theme, Template styling | `theme` |

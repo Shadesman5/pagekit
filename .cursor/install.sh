@@ -38,12 +38,24 @@ if ! command -v composer >/dev/null 2>&1; then
     rm -f /tmp/composer
 fi
 
+# pnpm bootstrap (idempotent), same reasoning as the composer guard above: a cold
+# boot on an older snapshot has no pnpm in PATH and the install below would fail.
+# Keep the version in sync with "packageManager" in package.json.
+if ! command -v pnpm >/dev/null 2>&1; then
+    NPM_SUDO=""
+    [ "$(id -u)" -ne 0 ] && NPM_SUDO="sudo"
+    $NPM_SUDO npm install -g pnpm@11.17.0
+fi
+
 # PHP dependencies (lock file is tracked — install exact versions)
 composer install --no-interaction --optimize-autoloader --working-dir=.
 
-# Node dependencies (--frozen-lockfile prevents silent lockfile mutation;
-# postinstall hook also triggers the production build)
-yarn install --frozen-lockfile
+# Node dependencies (--frozen-lockfile prevents silent lockfile mutation)
+pnpm install --frozen-lockfile
+
+# Frontend assets (bundles, stylesheets, asset copies). Installing does not
+# build them, so without this the agent boots into a tree without bundles.
+pnpm build
 
 # Writable directories (tmp/sessions is required by the session handler)
 mkdir -p tmp/logs tmp/cache tmp/temp tmp/packages tmp/sessions storage
@@ -59,6 +71,7 @@ composer --version 2>/dev/null || echo "WARNING: Composer not available"
 ./app/vendor/bin/phpunit --version 2>/dev/null || echo "WARNING: PHPUnit not available"
 ./app/vendor/bin/phpstan --version 2>/dev/null || echo "WARNING: PHPStan not available"
 php -m 2>/dev/null | grep -qi '^pcov$' && echo "PCOV: enabled" || echo "WARNING: PCOV not available (coverage/Infection may fail)"
+command -v pnpm >/dev/null 2>&1 && echo "pnpm: $(pnpm --version)" || echo "WARNING: pnpm not available"
 command -v rg >/dev/null 2>&1 && rg --version | head -1 || echo "WARNING: ripgrep (rg) not available"
 command -v jq >/dev/null 2>&1 && jq --version || echo "WARNING: jq not available"
 php pagekit list 2>/dev/null | head -1 || echo "WARNING: pagekit CLI not available (config.php may be missing)"

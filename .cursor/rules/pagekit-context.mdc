@@ -56,8 +56,8 @@ Vision detail: `migration-docs/TODO/MODERNISATION_STRATEGY.md` § Pagekit DNA.
 
 ### Frontend (Maintenance Mode - Pre-Migration)
 
-- **Framework:** **Vue.js 2.6** (Legacy).
-- **Goal:** Maintain compatibility with current build pipeline (Webpack 4).
+- **Framework:** **Vue.js 2.7** (Legacy).
+- **Goal:** Maintain compatibility with current build pipeline (Vite, per-module IIFE bundles).
 - **Future Proofing:**
   - Avoid complex "Mixins" (hard to migrate to Vue 3).
   - Prefer clear props/events interfaces.

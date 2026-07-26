@@ -127,8 +127,7 @@ async function compilePackage(pkg) {
     const result = await less.render(fs.readFileSync(source, 'utf8'), {
       ...pkg.options,
       // Imports that are written relative to the package root instead of
-      // to the importing file resolve through here; the Gulp pipeline
-      // relied on the working directory for the same thing.
+      // to the importing file resolve through here.
       paths: [path.join(root, pkg.dir)],
       filename: source
     });

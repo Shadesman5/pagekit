@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
--   Node.js 18+ installed
+-   Node.js `^20.19.0 || >=22.12.0` and pnpm (`corepack enable`) installed
 -   A working Pagekit checkout (`composer install` done) — every spec except the installation one also needs a completed Pagekit install
 -   Modern browser (Chrome, Firefox, Safari, or Edge)
 
@@ -17,7 +17,7 @@
 1. Install Playwright and dependencies:
 
 ```bash
-npm install --save-dev @playwright/test dotenv
+pnpm add -D @playwright/test dotenv
 
 # Default (matches Cursor Cloud Agent VM)
 npx playwright install chromium
@@ -83,25 +83,25 @@ cp tests/e2e/config/test-config.example.json tests/e2e/config/test-config.json
 ### Run All Tests
 
 ```bash
-npm run test:e2e
+pnpm test:e2e
 ```
 
 ### Run Tests in Headed Mode (see browser)
 
 ```bash
-npm run test:e2e:headed
+pnpm test:e2e:headed
 ```
 
 ### Debug Tests
 
 ```bash
-npm run test:e2e:debug
+pnpm test:e2e:debug
 ```
 
 ### Run Tests in UI Mode
 
 ```bash
-npm run test:e2e:ui
+pnpm test:e2e:ui
 ```
 
 ### Run Specific Test File
@@ -150,7 +150,7 @@ No extra setup step: `playwright.config.js` declares a `webServer` that runs `ph
 
 ```bash
 # Run the suite — the server is started (or reused) automatically
-npm run test:e2e
+pnpm test:e2e
 
 # Fresh state for the installation spec: remove the local install first
 rm -f config.php pagekit.db
@@ -243,7 +243,7 @@ tests/e2e/
 ### HTML Report
 
 ```bash
-npm run test:e2e:report
+pnpm test:e2e:report
 ```
 
 ### Console Output
@@ -303,7 +303,7 @@ test('debug test', async ({ page }) => {
 
 ```bash
 # Install/Update Playwright
-npm install -D @playwright/test@latest
+pnpm add -D @playwright/test@latest
 
 # Update browsers
 npx playwright install

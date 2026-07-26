@@ -62,7 +62,7 @@
 - [x] Step 5 (L) — pnpm swap: packageManager pin, only-allow guard, lockfile, decouple install-build; delete yarn
 - [x] Step 6 (L) — ESLint 10 flat config + format-once Prettier; lint green
 - [x] Step 7 (M) — CI: 4 workflows on pnpm + explicit build; blocking lint/format; job names frozen
-- [ ] Step 8 (M) — Agent env + Docker + docs + rules on pnpm/Vite; zero-reference grep gate
+- [x] Step 8 (M) — Agent env + Docker + docs + rules on pnpm/Vite; zero-reference grep gate
 - [ ] Step 9 (L) — Verification: clean rebuild, inventory parity, audit diff, E2E smoke
 
 ## TESTING STRATEGY

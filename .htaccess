@@ -1,5 +1,5 @@
 # Restricted access to files
-<FilesMatch "((\.(lock|cache|db))|installed.json|composer.json|package.json|bower.json|CHANGELOG.md|README.md|gulpfile.js|webpack.config.js|pagekit)$">
+<FilesMatch "((\.(lock|cache|db))|installed.json|composer.json|package.json|bower.json|CHANGELOG.md|README.md|pnpm-lock.yaml|pnpm-workspace.yaml|pagekit)$">
       # Apache < 2.3
         <IfModule !mod_authz_core.c>
             Order allow,deny

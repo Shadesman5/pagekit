@@ -59,7 +59,7 @@ Nach Analyse des Systems sind folgende Features **NICHT** vorhanden:
 ### Aktueller Stand:
 - ✅ **Dependabot** konfiguriert für:
   - Composer (PHP Dependencies)
-  - NPM/Yarn (JavaScript Dependencies)
+  - npm/pnpm (JavaScript Dependencies)
   - Docker
   - GitHub Actions (vorbereitet)
   

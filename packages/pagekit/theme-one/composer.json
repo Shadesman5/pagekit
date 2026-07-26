@@ -16,6 +16,6 @@
         "image": "image.jpg"
     },
     "archive": {
-        "exclude": ["node_modules", "!/app", "!/css", "/app/assets", "gulpfile.js", "package.json"]
+        "exclude": ["node_modules", "!/app", "!/css", "/app/assets"]
     }
 }

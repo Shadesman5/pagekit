@@ -133,16 +133,16 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 
 -   **PHP Version**: Minimum PHP 8.5+
 -   **Database Support**: MySQL 8.4+ and SQLite 3
--   **Node.js**: Minimum Node 20+ (Node 22 LTS recommended) for development
+-   **Node.js**: Minimum Node 20.19+ or 22.12+ (Node 22 LTS recommended) for development
 -   **Composer**: Version 2.0+ required
--   **Yarn**: Version 1.22+ required
+-   **pnpm**: Version pinned in `package.json` (`packageManager`), activated via Corepack
 -   **Framework Updates**: Symfony 6.4 LTS components with modern architecture
 -   **PSR Standards**: Native PSR-11 Container with constructor dependency injection
 -   **Security Updates**: All dependencies updated to secure versions (0 vulnerabilities confirmed)
 -   **Database Layer**: Doctrine DBAL 3.8+ with modern query methods and enhanced compatibility
 -   **Logging System**: Monolog 3.9+ with improved performance and PHP 8.5 support
 -   **Frontend Modernization**: Vue.js 2.7 and UIkit 3.5 (jQuery completely removed)
--   **Build Tools**: Webpack 4 with optimized development workflow
+-   **Build Tools**: pnpm workspace with Vite bundling and Node-based LESS/asset scripts
 -   **Extension Compatibility**: Legacy extensions and themes require complete rewrite for new system
 -   **Docker Support**: Complete containerized development environment
 
@@ -154,9 +154,9 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 
 -   **PHP**: 8.5 or higher
 -   **MySQL**: 8.4+ or **SQLite**: 3.x (selectable during installation)
--   **Node.js**: 20+ (Node 22 LTS recommended; pinned via `.nvmrc` and `package.json` `engines`)
+-   **Node.js**: `^20.19.0 || >=22.12.0` (Node 22 LTS recommended; pinned via `.nvmrc` and `package.json` `engines`)
 -   **Composer**: 2.0+
--   **Yarn**: 1.22+
+-   **pnpm**: version pinned in `package.json` (`packageManager`). Enable it with `corepack enable`, or install it globally with `npm install -g pnpm` if Corepack is unavailable. Installs run through any other package manager are rejected by a `preinstall` guard.
 
 ### Recommended Development Environment
 
@@ -206,7 +206,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
     docker compose exec web composer install
     ```
 
-    The image contains PHP, Apache and Composer only — the project itself is bind-mounted. The `node` service installs its own dependencies and starts the asset watcher when it comes up.
+    The image contains PHP, Apache and Composer only — the project itself is bind-mounted. The `node` service installs its own dependencies, builds the frontend assets and then starts the watcher when it comes up.
 
 5. **Install Pagekit**
 
@@ -234,14 +234,14 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 2. **Install Node.js dependencies**
 
     ```bash
-    yarn install
+    corepack enable
+    pnpm install
     ```
 
 3. **Build frontend assets**
 
     ```bash
-    yarn compile-js --mode=production
-    yarn compile-less
+    pnpm build
     ```
 
 4. **Set up web server**
@@ -257,7 +257,7 @@ The Docker setup provides a complete development environment with:
 
 -   **PHP 8.5** with Apache (`mod_rewrite`) and Composer. On top of the base image the build adds `pdo_mysql`, `gd` and `zip`; `pdo_sqlite`, `mbstring` and the XML extensions are already bundled
 -   **MySQL 8.4** with phpMyAdmin — `web` and `phpmyadmin` start only once the MySQL healthcheck passes
--   **Node.js 22 LTS** with Yarn 1.22 running `yarn watch-all`
+-   **Node.js 22 LTS** with pnpm (via Corepack) running `pnpm build` once and then `pnpm watch`
 -   **Live source**: the working tree is mounted into both containers, so PHP edits take effect immediately and asset changes are rebuilt by the watcher
 
 ### Frontend Development
@@ -265,31 +265,34 @@ The Docker setup provides a complete development environment with:
 **Watch mode for development:**
 
 ```bash
-# JavaScript/Vue files
-yarn watch-js
-
-# LESS/CSS files
-yarn watch-less
-
-# Watch everything simultaneously
-yarn watch-all
+# JavaScript/Vue bundles and LESS stylesheets
+pnpm watch
 ```
 
 **Production builds:**
 
 ```bash
-yarn compile-js --mode=production
-yarn compile-less
+# Everything: bundles, stylesheets, asset copies
+pnpm build
+
+# Or the individual parts
+pnpm build:js
+pnpm build:css
+pnpm build:assets
 ```
 
 **Code quality:**
 
 ```bash
 # ESLint checking
-yarn lint
+pnpm lint
 
 # ESLint with auto-fixing
-yarn lint-watch
+pnpm lint --fix
+
+# Formatting (check / write)
+pnpm exec prettier --check .
+pnpm exec prettier --write .
 ```
 
 ### Database Configuration
@@ -319,8 +322,8 @@ yarn lint-watch
 
 -   **JavaScript Framework**: Vue.js 2.7 with modern component patterns
 -   **CSS Framework**: UIkit 3.5 for responsive design
--   **Build Tools**: Webpack 4 with optimized production builds
--   **Code Quality**: ESLint with Vue.js specific rules
+-   **Build Tools**: Vite per-module bundles with optimized production builds
+-   **Code Quality**: ESLint with Vue.js specific rules, Prettier for formatting
 
 ### Admin Theme
 
@@ -405,14 +408,13 @@ Multiple editor choices available in system settings:
 
 ```bash
 # Development
-yarn watch-all                          # Watch JS and LESS files
-yarn watch-js                           # Watch JavaScript/Vue files only
-yarn watch-less                         # Watch LESS/CSS files only
+pnpm watch                               # Watch JS/Vue and LESS files
 
 # Production
-yarn compile-js --mode=production       # Build JavaScript for production
-yarn compile-less                       # Build CSS for production
-yarn install                            # Full production build
+pnpm build                               # Build bundles, stylesheets and asset copies
+pnpm build:js                            # Build JavaScript bundles only
+pnpm build:css                           # Build CSS from LESS only
+pnpm build:assets                        # Copy static assets only
 
 # Testing
 
@@ -422,15 +424,16 @@ yarn install                            # Full production build
 ./app/vendor/bin/phpunit --coverage-html coverage/  # Generate code coverage
 
 ## E2E Tests
-npm run test:e2e                         # Run all E2E tests
-npm run test:e2e:headed                  # Run tests with browser visible
-npm run test:e2e:debug                   # Debug mode for test development
-npm run test:e2e:ui                      # Interactive UI mode
+pnpm test:e2e                            # Run all E2E tests
+pnpm test:e2e:headed                     # Run tests with browser visible
+pnpm test:e2e:debug                      # Debug mode for test development
+pnpm test:e2e:ui                         # Interactive UI mode
+pnpm test:smoke                          # Run the @ci-tagged smoke specs
 
 # Utilities
-yarn lint                               # Check code quality
-yarn cldr                               # Update locale data
-yarn assets                             # Copy static assets
+pnpm lint                                # Check code quality
+pnpm exec prettier --check .             # Check formatting
+pnpm cldr                                # Update locale data
 ```
 
 ### Docker Commands
@@ -450,11 +453,10 @@ docker compose exec node sh                 # Access Node.js container
 
 # Dependencies
 docker compose exec web composer install    # Install PHP dependencies
-docker compose exec node yarn install       # Install Node dependencies
+docker compose exec node pnpm install       # Install Node dependencies
 
 # Frontend production build inside the container
-docker compose exec node yarn compile-js --mode=production
-docker compose exec node yarn compile-less
+docker compose exec node pnpm build
 ```
 
 #### Docker Troubleshooting
