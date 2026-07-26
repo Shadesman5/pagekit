@@ -20,5 +20,5 @@ packages/composer/
 
 # Ignore lock files
 package-lock.json
-yarn.lock
+pnpm-lock.yaml
 composer.lock

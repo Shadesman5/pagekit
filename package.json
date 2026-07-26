@@ -1,11 +1,11 @@
 {
     "name": "pagekit",
+    "packageManager": "pnpm@11.17.0",
     "engines": {
-        "node": ">=20 <23",
-        "yarn": "1.x"
+        "node": "^20.19.0 || >=22.12.0"
     },
     "scripts": {
-        "install": "yarn build",
+        "preinstall": "npx only-allow pnpm",
         "build": "node scripts/build-js.mjs && node scripts/copy-assets.mjs && node scripts/build-css.mjs",
         "build:js": "node scripts/build-js.mjs",
         "build:assets": "node scripts/copy-assets.mjs",
@@ -14,7 +14,6 @@
         "cldr": "node scripts/cldr.mjs",
         "lint": "eslint . --ext .js,.vue",
         "lint-watch": "esw . --ext .js,.vue --clear --watch --changed --color",
-        "preinstall": "node ./app/scripts/checkYarn.js",
         "test:e2e": "playwright test",
         "test:e2e:headed": "playwright test --headed",
         "test:e2e:debug": "playwright test --debug",
@@ -62,9 +61,5 @@
         "prettier": "3.9.6",
         "vite": "^7.3.6",
         "vue-eslint-parser": "^7.1.1"
-    },
-    "resolutions": {
-        "chokidar": "^3.4.2",
-        "source-map-resolve": "^0.6.0"
     }
 }

@@ -1,0 +1,7 @@
+# pnpm settings for the repository root. Dependency build scripts stay denied
+# unless they are listed here, so every entry is a reviewed exception.
+allowBuilds:
+  # Only prints a funding banner - nothing the build needs.
+  core-js: false
+  # Unpacks the platform binary that the Vite transform pipeline executes.
+  esbuild: true
