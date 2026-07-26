@@ -6,9 +6,9 @@
     },
     "scripts": {
         "preinstall": "npx only-allow pnpm",
-        "build": "node scripts/build-js.mjs && node scripts/copy-assets.mjs && node scripts/build-css.mjs",
+        "build": "node scripts/build.mjs",
         "build:js": "node scripts/build-js.mjs",
-        "build:assets": "node scripts/copy-assets.mjs",
+        "build:assets": "node scripts/build-assets.mjs",
         "build:css": "node scripts/build-css.mjs",
         "watch": "node scripts/watch.mjs",
         "cldr": "node scripts/cldr.mjs",

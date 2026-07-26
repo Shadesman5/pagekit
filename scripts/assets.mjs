@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * Copies the runtime assets Pagekit serves out of `node_modules`.
  *
@@ -8,8 +6,6 @@
  * published distribution has to sit at those paths. Existing files are
  * overwritten in place - the destinations also hold committed assets (the
  * TinyMCE skin) that the copies must leave alone.
- *
- * Usage: node scripts/copy-assets.mjs
  */
 
 import fs from 'node:fs';
@@ -76,7 +72,13 @@ function copyAsset(copy) {
   fs.cpSync(from, to, { recursive: true, dereference: true, filter: isServed });
 }
 
-for (const copy of copies) {
-  copyAsset(copy);
-  console.log(`copied ${copy.package} to ${copy.dest}`);
+/**
+ * Copies every asset package. A missing package stops the copy: nothing that
+ * follows can compile or run against an incomplete `app/assets/`.
+ */
+export function copyAssets() {
+  for (const copy of copies) {
+    copyAsset(copy);
+    console.log(`copied ${copy.package} to ${copy.dest}`);
+  }
 }

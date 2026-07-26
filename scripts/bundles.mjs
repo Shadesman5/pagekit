@@ -127,27 +127,39 @@ async function buildEntry(entry) {
 
 /**
  * Starts a watcher and resolves once its first build has finished, so watchers
- * come up one after another instead of all compiling at once.
+ * come up one after another instead of all compiling at once. A first build
+ * that fails rejects: there is no bundle for the watcher to keep up to date.
  *
  * @param {import('./bundle-entries.mjs').BundleEntry} entry
+ * @param {import('rollup').RollupWatcher[]} started collects the watchers that
+ *   came up, so a failed startup can shut them down again
  */
-async function watchEntry(entry) {
+async function watchEntry(entry, started) {
   const bundle = path.join(entry.dir, entry.output);
   const watcher = await build(viteConfig(entry, true));
   let firstBuild = true;
 
-  return new Promise(resolve => {
+  started.push(watcher);
+
+  return new Promise((resolve, reject) => {
     watcher.on('event', event => {
-      if (event.code === 'ERROR') {
-        console.error(`failed ${bundle}: ${event.error.message}`);
-      } else if (event.code !== 'END') {
+      const failed = event.code === 'ERROR';
+
+      if (!failed && event.code !== 'END') {
         return;
       }
 
       if (firstBuild) {
         firstBuild = false;
-        resolve();
-      } else if (event.code === 'END') {
+
+        if (failed) {
+          reject(event.error);
+        } else {
+          resolve();
+        }
+      } else if (failed) {
+        console.error(`failed ${bundle}: ${event.error.message}`);
+      } else {
         console.log(`rebuilt ${bundle}`);
       }
     });
@@ -209,8 +221,18 @@ export async function buildBundles(concurrency = defaultConcurrency()) {
 
 /**
  * Watchers stay resident, so they are started one after another rather than
- * pooled.
+ * pooled. If any entry fails to come up, the ones that did are shut down again
+ * rather than holding the process open around an incomplete set of bundles.
  */
 export async function watchBundles() {
-  await run(watchEntry, 1, 'watched');
+  /** @type {import('rollup').RollupWatcher[]} */
+  const started = [];
+
+  try {
+    await run(entry => watchEntry(entry, started), 1, 'watched');
+  } catch (error) {
+    await Promise.all(started.map(watcher => watcher.close()));
+
+    throw error;
+  }
 }

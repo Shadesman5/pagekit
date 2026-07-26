@@ -163,10 +163,17 @@ export async function buildStyles() {
 }
 
 /**
- * Recompiles a package whenever one of its LESS files changes. A broken
- * stylesheet is reported and the watcher stays up.
+ * Compiles every package once, then recompiles a package whenever one of its
+ * LESS files changes. A broken stylesheet - on the initial compile as much as
+ * on a rebuild - is reported and the watcher stays up.
  */
-export function watchStyles() {
+export async function watchStyles() {
+  try {
+    await buildStyles();
+  } catch (error) {
+    console.error(error.message);
+  }
+
   for (const pkg of packages) {
     const dirs = findStyleRoots(path.join(root, pkg.dir)).map(source => path.dirname(source));
     let timer;
