@@ -1,5 +1,64 @@
 # Changelog
 
+## Pagekit 1.2.33 - Build Tools: pnpm + Vite (July 26, 2026)
+
+### Breaking Changes
+
+- **Third-party JS bundle entries are no longer auto-discovered** — the deleted root `webpack.config.js` glob-scanned `{app/modules,app/installer,app/system,packages}/**/webpack.config.js` at build time, so a marketplace module or theme could ship its own bundle just by adding that file. The static entry manifest that replaces it (`scripts/bundle-entries.mjs`) enumerates only the 17 first-party module directories; a new bundle entry now needs a core-repo change to that manifest. No practical impact today — the marketplace backend (`system.api`) has been offline since 2020, so no live extension relies on the old auto-discovery.
+
+### Added
+
+- **Vite JS pipeline** — a static entry manifest (`scripts/bundle-entries.mjs`, 56 entries across 17 module directories) plus a library/CLI script pair (`scripts/bundles.mjs` + `scripts/build-js.mjs`) drive one `vite build` per entry via `@vitejs/plugin-vue2`, replacing the 17 module-level `webpack.config.js` files (plus the root aggregator and `.babelrc`). Runtime contract frozen: bundle paths, the three externals (`vue`/`uikit`/`uikit-util` → `Vue`/`UIkit`/`UIkit.util`), the `@installer`/`@system` aliases, and the five IIFE globals (`Debugbar`, `Captcha`, `Editor`, `Finder`, `Links`) are all unchanged. (Closes #159)
+- **Node LESS / assets / CLDR scripts** — `scripts/styles.mjs`, `scripts/assets.mjs`, `scripts/cldr.mjs` (plus their `build-css.mjs` / `build-assets.mjs` CLI wrappers and the `build.mjs` / `watch.mjs` orchestrators) replace Gulp's `less`, `assets` and `cldr` tasks with the same output layout: 3 LESS roots (installer, system theme, and now theme-one, folding in its deleted standalone gulpfile), 7 asset-copy packages, CLDR-derived locale formats.
+- **pnpm 11** — `packageManager` pin, `npx only-allow pnpm` preinstall guard, `pnpm-lock.yaml` + `pnpm-workspace.yaml` (`allowBuilds`: `esbuild` approved, `core-js` declined).
+- **ESLint 10 flat config** — `eslint.config.js` replaces `.eslintrc` / `.eslintignore`; ports the script-tag globals and the non-formatting custom rules, and disables two chronically-violated Vue rules centrally with an inline justification comment instead of per-file suppressions. `.git-blame-ignore-revs` records the one-time Prettier format-commit hash.
+
+### Changed
+
+- **Vue 2.6.12 → 2.7.16** — `vue-template-compiler` removed from devDependencies (Vue 2.7 ships its own template compiler); README badge and prose updated.
+- **Install/build decoupled** — `pnpm install` only installs; `pnpm build` (JS + CSS + assets) is now explicit everywhere the old Yarn `install` hook used to build implicitly: all 4 CI workflows, `.cursor/install.sh`, `docker-compose.yml`'s `node` service, and the README quickstart.
+- **CI moves to pnpm; lint/format become blocking full-tree** — `frontend.yml`, `e2e.yml`, `nightly.yml`, `e2e-weekly.yml` add a commit-SHA-pinned `pnpm/action-setup` step + `cache: pnpm`; `frontend.yml`'s advisory, diff-scoped ESLint/Prettier gate becomes a full-tree blocking `pnpm lint` / `pnpm exec prettier --check .` — ending the ~13k-violation advisory limbo from Step 2.2. All 5 required job names (`frontend`, `e2e-smoke`, `e2e-merge`, `e2e-viewports`, `e2e-sweep`) stay frozen.
+- **One-shot Prettier format** — 188 `.js` / `.mjs` / `.vue` files across `app/`, `packages/`, `scripts/`, `tests/`, `.github/`, `.cursor/`, `docs-site/` reformatted to the existing `.prettierrc`; 19 now-dead inline `eslint-disable-line` suppressions removed for rules the new flat config no longer enables.
+- **Agent env / Docker / docs realigned** — `.cursor/Dockerfile`, `.cursor/install.sh`, `.cursor/modernize-helper.sh`, `AGENTS.md`, `README.md`, `docker-compose.yml`, and the affected `.cursor/rules` / skill docs scrubbed of yarn/webpack/gulp; a zero-reference grep sweep confirms nothing live remains outside allow-listed history/docs paths.
+- **`php pagekit build`** (`BuildCommand.php`) — the WIN/else `webpack` / `yarn compile-js` exec split collapses to one cross-platform call into the new Node pipeline (completeness fix below).
+
+### Fixed
+
+- **`pnpm watch` skipped the initial CSS build and never copied the runtime assets** — `watchStyles()` now compiles once before watching; `watch.mjs` copies assets once, unwatched, before starting the styles/bundle watchers. Caught by the PR's Bugbot review.
+- **A failed first bundle build under `pnpm watch` still reported success** — `watchBundles()` now rejects startup on a failing first build and shuts down whatever watchers had already come up, instead of leaving a half-started session resident. Caught by the PR's Bugbot review.
+- **A release build (`php pagekit build`) omitted the compiled CSS and copied assets** — it called only the JS-bundle build script; it now runs the full JS + CSS + asset-copy pipeline in one call, with both stdout and stderr captured so a failure's real cause is visible. Caught by the PR's Bugbot review.
+- **`VInput`'s named export lost its compiled template under the Vite plugin** — `validation.vue` now keeps `VInput` as the default export only (`ValidationObserver` stays named); the 13 call sites that destructured it by name are updated. Caught by this ticket's own final E2E run (`installation.spec.js` timing out on the sitename field), not a pre-existing bug — the regression dated to the Vite swap earlier in this same ticket.
+- **The CLDR formats task was silently a no-op** — the ported `cldr.mjs` fixes a missing `$` in the formats-file template literal and points at the locale source the old Gulp task never actually populated (`node_modules/vue-intl/dist/locales/`); 46 `formats.json` files updated, 21 added.
+- **theme-one's compiled CSS banner carried a stray double space** — the empty, never-populated `copyright` segment in the old Gulp banner template is now dropped instead of rendered blank.
+- **theme-one's `composer.json` still excluded two already-deleted files** — `archive.exclude` no longer names `gulpfile.js` / `package.json`, both removed from the package earlier in this same ticket.
+
+### Removed
+
+- Root + 17 module `webpack.config.js`, `.babelrc`, and the webpack/babel/`vue-loader` dependency chain.
+- `gulpfile.js` (root + theme-one), `theme-one/package.json`, `blog/package.json`, and the `gulp` / `gulp-*` / `merge-stream` / `npm-run-all` dependency chain.
+- `yarn.lock`, `app/scripts/checkYarn.js` — superseded by `pnpm-lock.yaml` and the `only-allow` preinstall guard.
+- `.eslintrc`, `.eslintignore`, and the ESLint 7 + `eslint-config-airbnb-base` + `babel-eslint` + `eslint-plugin-import` + `eslint-watch` + `eslint-webpack-plugin` lint stack.
+
+### Security
+
+- **Dependency-audit findings drop sharply** — deleting the webpack/babel/Gulp transitive tree resolves the great majority of what `yarn audit --level moderate` reported before this ticket. The advisories that remain afterward are unrelated to build tooling (`tinymce`, pinned `~5.10.9`, unchanged scope — tracked separately under Step 3.2.1 / Step 5.1; one low-severity `vue` ReDoS) and are outside this ticket's scope. Before/after audits committed at `migration-docs/branches/phase-2/step-2-4-audit-{yarn-before,pnpm-after}.txt`.
+
+### Deferred
+
+- Vue 2.7 Composition-API bridge trials / deprecation-warning analysis → Step 3.2.
+- `@vitejs/plugin-vue2` → `@vitejs/plugin-vue` swap + lift the Vite 7 major pin, ES-module/script-tag delivery redesign, Vite dev-server/HMR-PHP integration → Step 3.3.3.
+- vue-resource → axios, vue-event-manager → mitt, vue-intl rewrite, lodash removal → Steps 3.3.1 / 3.3.2 / 3.3.5. UIkit 3.5 → 3.21, TypeScript on the Vite pipeline → Steps 3.1 / 3.4.
+- A core-repo manifest path for future third-party bundle entries, if extension distribution is ever restored (Step 5.6).
+
+### Maintainer action
+
+- Ruleset "Protect for Develop-Branch": confirm `frontend`, `e2e-smoke`, `e2e-merge`, `e2e-viewports`, `e2e-sweep` still report under their frozen names; realign if anything renamed despite the freeze.
+- Local dev machines: one-time `corepack enable` (or `npm install -g pnpm`), delete local `node_modules/`, run `pnpm install && pnpm build`; remove stale Yarn artifacts (global cache optional).
+- Per-clone: `git config blame.ignoreRevsFile .git-blame-ignore-revs` (format-once commit `e44e0f91573bd5f75a58ad76c9ce8398148ee696`).
+- Rebuild the cloud-agent environment snapshot so `.cursor/Dockerfile`'s pnpm change takes effect for future agents (`install.sh`'s idempotent bootstrap guard keeps cold boots self-sufficient until then).
+
+---
+
 ## Pagekit 1.2.32 - Docker Dev Experience & Quality Reporting v2 (July 26, 2026)
 
 ### Added

@@ -6,16 +6,16 @@
 **Branch:** `feature/build-tools-pnpm-vite`
 **ROADMAP Step:** 2.4 (Build Tools — pnpm + Vite)
 **GitHub Issue:** [#159](https://github.com/Shadesman5/pagekit/issues/159)
-**Pull Request:** _TBD_
-**Status:** 🚧 In progress
+**Pull Request:** [#245](https://github.com/Shadesman5/pagekit/pull/245)
+**Status:** ✅ Complete
 **Started:** 2026-07-26 00:25
-**Completed:** _TBD_
+**Completed:** 2026-07-26 05:25
 
 ---
 
 ## 🎯 Overview
 
-_TBD_
+Replaces Yarn 1 + Webpack 4 + Gulp with pnpm 11 + Vite as the single frontend build pipeline, folding in the approved minimal Vue 2.6.12 → 2.7.16 bump. The 17 modules' `webpack.config.js` files and `.babelrc` give way to a static entry manifest (`scripts/bundle-entries.mjs`) driving one per-entry `vite build` each via `@vitejs/plugin-vue2`; Gulp's LESS/asset/CLDR tasks move to plain Node scripts, with install-time auto-build decoupled from `pnpm install` (`pnpm build` is now explicit everywhere it's relied on). ESLint 7 + `eslint-config-airbnb-base` give way to a flat `eslint.config.js` on ESLint 10, landed together with a one-time, blocking Prettier format of the whole `.js`/`.vue` tree — ending the ~13k-violation advisory limbo. All four CI workflows move to pnpm with an explicit build step and now block on full-tree lint/format; the agent Docker image, `install.sh`, `AGENTS.md`, and `README.md` are realigned, and a zero-reference grep sweep confirms no live `yarn`/`webpack`/`gulp` references remain outside allow-listed history/docs paths. Clean-room verification (`git clean` of every ignored build-output root + `pnpm install --frozen-lockfile && pnpm build`) reproduces the exact webpack-baseline build-output path set; that same final verification pass's E2E run caught and fixed a real regression the Vite swap had silently introduced back in Checklist Step 3 (`VInput`'s named export lost its compiled template — see Key Decisions). A short post-CI Bugbot fix-loop then hardened `pnpm watch` (initial CSS compile, initial asset copy, and a failed first bundle build no longer resolve as success) and pointed `php pagekit build` at the full JS+CSS+assets pipeline instead of JS alone — see What Changed → Finalize Bugbot fix-loop.
 
 ---
 
@@ -139,6 +139,17 @@ Tests: none (test-writer: skip — ticket-wide; this step touches no production 
 
 Tests: none (test-writer: skip — ticket-wide; this step's only source changes are the `VInput` export-shape fix described above, which has no PHP surface). Gates: Verifier PASS; Tester — PHPUnit PASS, PHPStan PASS; inventory-parity diff against the Step 1/4 baseline empty; after-audit committed and free of the three webpack-transitive advisories that were ever present in the before-audit (see Risks & Rollout Notes); final E2E (3 `@ci` Playwright specs, chromium-desktop) FAILed once — `installation.spec.js` timed out on `input#form-sitename` — traced to the `VInput` wiring bug (see Key Decisions); refactorer retry (`validation.vue` export shape + 13 import-site updates) → Verifier PASS, PHPUnit PASS, PHPStan PASS, then final E2E PASS on all 3 specs. This Checklist Step completes every `## EXECUTION STATE` box.
 
+### Finalize Bugbot fix-loop
+
+| File | Change |
+|---|---|
+| `scripts/styles.mjs`, `scripts/build-css.mjs` | Bugbot finding — `pnpm watch` skipped the initial CSS build: `watchStyles()` only armed chokidar watchers on the existing `less/` roots and never compiled them first, so a fresh checkout served no `css/*.css` until the first edit. `watchStyles()` is now `async` and runs `buildStyles()` before watching (logging, not throwing, on a broken initial compile so the watcher still comes up); `build-css.mjs`'s `--watch` branch now awaits and catches that same call instead of firing it unobserved. |
+| `scripts/watch.mjs`, `scripts/assets.mjs` (renamed from `copy-assets.mjs`), `scripts/build-assets.mjs` (new) | Bugbot finding — `pnpm watch` never copied the runtime assets (uikit/vue/flatpickr/lodash/tinymce/marked/codemirror): only `pnpm build`'s script list called the copy. `copy-assets.mjs` loses its CLI shell and is renamed `assets.mjs` — now a pure `copyAssets()` library, matching the `bundles.mjs`/`styles.mjs` split from Checklist Step 4; `build-assets.mjs` is the new thin CLI wrapper `build:assets` calls; `watch.mjs` now calls `copyAssets()` once, unwatched, before starting the styles and bundle watchers. |
+| `scripts/bundles.mjs` | Bugbot finding — a failed first build of a watched bundle entry still resolved `watchEntry()`'s startup promise, so `pnpm watch` reported every bundle as watched even when one had produced no output at all. `watchEntry()` now rejects on a failing first build; `watchBundles()` closes whatever watchers did come up before propagating the failure, instead of leaving a half-started set of Vite watchers resident. |
+| `scripts/build.mjs` (new), `package.json`, `app/console/src/Commands/BuildCommand.php` | Bugbot finding — a release build (`php pagekit build`) omitted the compiled CSS (and, since Checklist Step 4, the copied assets): `BuildCommand.php` still called only `scripts/build-js.mjs`, unchanged since Checklist Step 3. New `build.mjs` runs the asset copy, the JS bundles and the stylesheets in one call; `package.json`'s `build` script and `BuildCommand.php` both call it instead of composing the three steps themselves. `BuildCommand.php`'s `exec()` also gains a `2>&1` redirect and now captures the command's exit status — a Verifier FAIL on the first attempt at this fix caught that a stdout-only capture would report a failed build with no visible cause, since `build.mjs` and its dependents report their own failures on stderr. |
+
+Tests: none (test-writer: skip — ticket-wide; this fix-loop's only PHP touch is the same `BuildCommand.php` `exec()` line Checklist Step 3 already covered under that skip reasoning — still no testable seam). Gates: Verifier FAIL once (the `BuildCommand.php` fix's first pass captured stdout only — see above) → refactorer retry → PASS; Tester — PHPUnit PASS, PHPStan PASS; PR CI green on the retry (`frontend`, PHP Tests, `infection-diff`, Cursor Bugbot); re-run of the PR-Bugbot review reported clean on the fixed HEAD.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -157,7 +168,7 @@ Tests: none (test-writer: skip — ticket-wide; this step's only source changes 
 
 ## ⚠️ Breaking Changes (Extensions)
 
-_TBD_
+**Third-party JS bundle entries are no longer auto-discovered.** The deleted root `webpack.config.js` glob-scanned `{app/modules,app/installer,app/system,packages}/**/webpack.config.js` at build time, so a marketplace module or theme could ship its own bundle just by adding that file next to its sources. The Vite pipeline replaces this with a single static entry manifest (`scripts/bundle-entries.mjs`) enumerating the same 17 first-party module directories (Checklist Step 3) — a new bundle entry now requires a core-repo change to that manifest, not just a file inside the extension's own package. Practical impact today is nil: the marketplace backend (`system.api`) has been offline since 2020 (`BuildCommand.php`'s pre-existing Step 5.6 TODO), so no live extension currently relies on the old auto-discovery. Revisit if/when Step 5.6 restores extension distribution.
 
 ---
 
@@ -173,7 +184,7 @@ _TBD_
 
 ## 🔐 Security & Data Impact
 
-_TBD / None_
+Dependency-surface security improves as a side effect of the tooling swap: deleting the webpack/babel/gulp transitive tree resolves the great majority of the audit findings that were open before this ticket (before/after breakdown recorded in What Changed → Checklist Step 9 and Risks & Rollout Notes, via the committed `step-2-4-audit-yarn-before.txt` / `step-2-4-audit-pnpm-after.txt`). The advisories that remain after the swap are unrelated to build tooling — `tinymce` (pinned `~5.10.9`, unchanged scope; tracked separately under Step 3.2.1 / Step 5.1) and one low-severity `vue` ReDoS — and are out of this ticket's scope. No production data-handling code changed; this ticket touches only dev/build tooling, CI, and (one line) release packaging in `BuildCommand.php`.
 
 ---
 
@@ -190,35 +201,47 @@ _TBD / None_
 <!-- Links only. Quality metrics are CI-owned: link the PR sticky quality-report comment and the
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
-- CI run: _TBD_
-- Notable deviations: _TBD / None_
+| Gate | Result |
+|---|---|
+| CI — PR checks | ✅ all required green — [PR #245 checks](https://github.com/Shadesman5/pagekit/pull/245/checks) (`frontend`, PHP Tests, `infection-diff`, Cursor Bugbot all pass; `e2e-smoke` skipped — dormant by default via repo variable `E2E_SMOKE_PR_ENABLED`, per the existing CHANGELOG 1.2.31 note) |
+| Coverage gap pass | skipped — ticket `## TESTING STRATEGY` marks `test-writer: skip` on all steps (no production PHP under `app/` / `packages/`, beyond the single `BuildCommand.php` exec-line touches with no testable seam) |
+| Cursor Bugbot | ✅ findings fixed — 4 findings on the first PR review, all resolved in one fix-loop commit; clean on the re-review |
+| E2E | ✅ PASS — final local run (3 `@ci` Playwright specs, chromium-desktop), re-confirmed after the Finalize Bugbot fix-loop; the PR's own `e2e-smoke` leg stayed skipped per the row above |
+| Finalize fix-loop | Bugbot ×4 + 1 Verifier FAIL (all resolved) — see What Changed → Finalize Bugbot fix-loop |
+
+**CI run:** https://github.com/Shadesman5/pagekit/pull/245/checks
+
+**Metrics (CI-owned):** [PR #245](https://github.com/Shadesman5/pagekit/pull/245) sticky quality-report comment ([comment](https://github.com/Shadesman5/pagekit/pull/245#issuecomment-5082011150)) · [Codecov](https://app.codecov.io/gh/Shadesman5/pagekit/pull/245) · [Quality Dashboard](https://Shadesman5.github.io/pagekit/quality/)
+
+**Notable deviations:** None across Checklist Steps 1–9 beyond what each step's own What Changed / Key Decisions / Risks entries already record (the Vue 2.7 inventory re-recording and its later 195-path correction, the `build-js.mjs` entry-point-guard retry, and the `VInput` export-shape fix caught by the final E2E run). Finalize: 4 Cursor Bugbot findings + 1 Verifier FAIL, all resolved in a single fix-loop commit before the PR re-review reported clean — see What Changed → Finalize Bugbot fix-loop.
 
 ---
 
 ## 📋 Phase 1 Audit Closure
 
-_TBD_
+None (no `Closes Phase 1 audit:` line in the ticket header; build-tooling scope does not touch a Phase 1 audit item).
 
 ---
 
 ## 📚 Deferred / Out-of-Scope
 
-_TBD_
+- **Step 3.2 (Vue 2.7 Bridge)** — Composition-API trials and deprecation-warning analysis, now runnable against the 2.7.16 runtime this ticket shipped. *PHASE §3.2 already carries the pull-forward note — no amendment needed.*
+- **Step 3.3.3 (Vue 3 Core)** — swap `@vitejs/plugin-vue2` → `@vitejs/plugin-vue` and lift the Vite-7 major pin recorded in Key Decisions, plus the ES-module/script-tag delivery redesign and the Vite dev-server/HMR-PHP integration. *PHASE §3.3.3 confirmed already amended — no further action.*
+- **Steps 3.3.1 / 3.3.2 / 3.3.5** (vue-resource → axios, vue-event-manager → mitt, vue-intl rewrite, lodash removal) and **Steps 3.1 / 3.4** (UIkit 3.5 → 3.21, TypeScript on the Vite pipeline) — untouched by this ticket. *PHASE §3 already covers these — no amendment needed.*
+- **Non-goals:** Webpack 5 / Yarn Berry (both evaluated and rejected — dead branches per the Architect), TinyMCE 6+ (stays `~5.10.9`), any Vue 3 syntax, coverage floors/Infection/PHP tooling (all untouched by this ticket).
+- **Bridges:** None — every change is a delete or a direct replacement; no `TEMPORARY BRIDGE` tag landed anywhere in this ticket's diff.
+- **Follow-on from Breaking Changes above:** a future extension-distribution mechanism (Step 5.6) would need its own way to register a bundle entry, since the static `scripts/bundle-entries.mjs` manifest replaced webpack's glob-based auto-discovery.
+- **Manual Work (maintainer):**
+  1. Required-check sanity on the PR: confirm `frontend`, `e2e-smoke`, `e2e-merge`, `e2e-viewports`, `e2e-sweep` still report under their frozen names; realign the develop Ruleset (admin rights) if anything renamed despite the freeze.
+  2. Local dev machines: one-time `corepack enable` (or `npm install -g pnpm`), delete local `node_modules/`, run `pnpm install && pnpm build`; remove stale Yarn artifacts (global cache optional).
+  3. Format-once follow-up: per-clone `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
+  4. Rebuild the cloud-agent environment snapshot so `.cursor/Dockerfile`'s pnpm change takes effect for future agents (`install.sh`'s idempotent bootstrap guard keeps cold boots self-sufficient until the rebuild).
 
 ---
 
 ## 📎 Related Documents
 
-- Ticket: `migration-docs/tickets/active/PROMPT_2_4_Build-Tools-pnpm-Vite_plan.md` (_TBD_ → move to `done/` after Finalize)
+- Ticket: `migration-docs/tickets/done/PROMPT_2_4_Build-Tools-pnpm-Vite_plan.md` (archived at Finalize)
 - Task prompt: `migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_4_Build-Tools-pnpm-Vite.md`
 - Predecessor: Step 2.3 — Docker Dev Experience & Image Hygiene
 - Successor: Step 2.5 — Docker Production Image & Deploy
-
----
-
-## 📊 <Step-specific appendix>
-
-<!-- Narrative/structural notes only. Never a metrics table (coverage %, MSI, test counts): quality
-     numbers are CI-owned — link the sticky quality-report comment + dashboard instead. -->
-
-_TBD — remove this section if not applicable._
