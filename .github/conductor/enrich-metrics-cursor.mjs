@@ -7,9 +7,9 @@
 // With --push, set BRANCH to conductor-metrics (never the feature branch or protected develop).
 // Safe to re-run — only phases with tokens.total == null and a known agent.id are updated.
 
-import { execSync, execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, cpSync } from "node:fs";
-import { join } from "node:path";
+import { execSync, execFileSync } from 'node:child_process';
+import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, cpSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   INDEX_PATH,
   SESSIONS_DIR,
@@ -17,14 +17,14 @@ import {
   SCHEMA_VERSION,
   createCursorClient,
   enrichSessionTokensFromCursor,
-  phaseNeedsMetricsRefresh,
-} from "./metrics.mjs";
+  phaseNeedsMetricsRefresh
+} from './metrics.mjs';
 
-const DRY_RUN = process.argv.includes("--dry-run");
-const DO_PUSH = process.argv.includes("--push");
-const COPY_LOCAL = process.argv.includes("--copy-local");
-const REFRESH_TIMING = process.argv.includes("--refresh-timing");
-const SESSION_FILTER = getArg("--session");
+const DRY_RUN = process.argv.includes('--dry-run');
+const DO_PUSH = process.argv.includes('--push');
+const COPY_LOCAL = process.argv.includes('--copy-local');
+const REFRESH_TIMING = process.argv.includes('--refresh-timing');
+const SESSION_FILTER = getArg('--session');
 
 function getArg(name) {
   const i = process.argv.indexOf(name);
@@ -33,15 +33,15 @@ function getArg(name) {
 
 function readJson(path, fallback = null) {
   if (!existsSync(path)) return fallback;
-  return JSON.parse(readFileSync(path, "utf8"));
+  return JSON.parse(readFileSync(path, 'utf8'));
 }
 
 function writeJson(path, data) {
-  writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+  writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
 }
 
 function sh(cmd) {
-  return execSync(cmd, { stdio: ["ignore", "pipe", "pipe"], encoding: "utf8" }).trim();
+  return execSync(cmd, { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' }).trim();
 }
 
 function listSessionIds(index) {
@@ -52,22 +52,24 @@ function listSessionIds(index) {
   }
   if (!ids.size && existsSync(SESSIONS_DIR)) {
     for (const name of readdirSync(SESSIONS_DIR)) {
-      if (name.endsWith(".json")) ids.add(name.replace(/\.json$/, ""));
+      if (name.endsWith('.json')) ids.add(name.replace(/\.json$/, ''));
     }
   }
   return [...ids];
 }
 
 function countMissing(session) {
-  return (session.phases || []).filter((p) => p.agent?.id && p.tokens?.total == null).length;
+  return (session.phases || []).filter(p => p.agent?.id && p.tokens?.total == null).length;
 }
 
 function countMissingTiming(session) {
-  return (session.phases || []).filter((p) => phaseNeedsMetricsRefresh(p, { refreshTiming: REFRESH_TIMING })).length;
+  return (session.phases || []).filter(p =>
+    phaseNeedsMetricsRefresh(p, { refreshTiming: REFRESH_TIMING })
+  ).length;
 }
 
 function copyToLocalPreview() {
-  const dest = "docs-site/data/conductor-metrics";
+  const dest = 'docs-site/data/conductor-metrics';
   mkdirSync(dest, { recursive: true });
   cpSync(METRICS_DIR, dest, { recursive: true, force: true });
   console.log(`Copied ${METRICS_DIR}/ → ${dest}/ (local mkdocs preview)`);
@@ -75,11 +77,11 @@ function copyToLocalPreview() {
 
 function pushMetrics(branch) {
   if (!branch) {
-    console.log("  push: skipped — no BRANCH env");
+    console.log('  push: skipped — no BRANCH env');
     return;
   }
   if (!/^[A-Za-z0-9._/-]+$/.test(branch)) {
-    console.log("  push: skipped — invalid BRANCH");
+    console.log('  push: skipped — invalid BRANCH');
     return;
   }
   try {
@@ -90,8 +92,8 @@ function pushMetrics(branch) {
   }
   sh(`git add ${METRICS_DIR}/`);
   try {
-    sh("git diff --cached --quiet");
-    console.log("  push: no metric changes to commit");
+    sh('git diff --cached --quiet');
+    console.log('  push: no metric changes to commit');
     return;
   } catch {
     sh('git commit -m "chore(metrics): enrich tokens via Cursor API"');
@@ -100,16 +102,24 @@ function pushMetrics(branch) {
     try {
       sh(`git rebase origin/${branch}`);
     } catch (e) {
-      try { sh("git rebase --abort"); } catch { /* ignore */ }
-      throw new Error(`metrics enrich rebase onto origin/${branch} failed: ${e.message}`);
+      try {
+        sh('git rebase --abort');
+      } catch {
+        /* ignore */
+      }
+      throw new Error(`metrics enrich rebase onto origin/${branch} failed: ${e.message}`, {
+        cause: e
+      });
     }
-    execFileSync("git", ["push", "origin", branch], { stdio: "inherit" });
+    execFileSync('git', ['push', 'origin', branch], { stdio: 'inherit' });
     console.log(`  push: committed and pushed to ${branch}`);
     // GITHUB_TOKEN pushes do not trigger workflows — rebuild Pages from develop
     // (pages-deploy overlays metrics from conductor-metrics).
     try {
-      execFileSync("gh", ["workflow", "run", "pages-deploy.yml", "--ref", "develop"], { stdio: "inherit" });
-      console.log("  push: dispatched pages-deploy.yml (ref=develop)");
+      execFileSync('gh', ['workflow', 'run', 'pages-deploy.yml', '--ref', 'develop'], {
+        stdio: 'inherit'
+      });
+      console.log('  push: dispatched pages-deploy.yml (ref=develop)');
     } catch (e) {
       console.log(`  push: pages-deploy dispatch skipped (${e.message})`);
     }
@@ -119,7 +129,7 @@ function pushMetrics(branch) {
 async function main() {
   const apiKey = process.env.CURSOR_API_KEY;
   if (!apiKey) {
-    console.error("CURSOR_API_KEY is required (GitHub Actions secret or local env).");
+    console.error('CURSOR_API_KEY is required (GitHub Actions secret or local env).');
     process.exit(1);
   }
 
@@ -128,7 +138,7 @@ async function main() {
   const sessionIds = listSessionIds(index);
 
   console.log(
-    `Cursor enrich: ${sessionIds.length} session(s)${DRY_RUN ? " (dry-run)" : ""}${REFRESH_TIMING ? " (refresh-timing)" : ""}`,
+    `Cursor enrich: ${sessionIds.length} session(s)${DRY_RUN ? ' (dry-run)' : ''}${REFRESH_TIMING ? ' (refresh-timing)' : ''}`
   );
 
   let totalEnriched = 0;
@@ -147,11 +157,15 @@ async function main() {
     if (!missingTokens && !missingTiming) continue;
 
     console.log(
-      `  ${sessionId.slice(0, 8)}… step=${session.roadmapStepId || "?"} — ${missingTokens} token gap(s), ${missingTiming} timing gap(s)`,
+      `  ${sessionId.slice(0, 8)}… step=${session.roadmapStepId || '?'} — ${missingTokens} token gap(s), ${missingTiming} timing gap(s)`
     );
-    const { session: updated, enriched, timingEnriched } = await enrichSessionTokensFromCursor(session, client, {
-      log: (msg) => console.log(msg),
-      refreshTiming: REFRESH_TIMING,
+    const {
+      session: updated,
+      enriched,
+      timingEnriched
+    } = await enrichSessionTokensFromCursor(session, client, {
+      log: msg => console.log(msg),
+      refreshTiming: REFRESH_TIMING
     });
 
     if (!enriched && !timingEnriched) continue;
@@ -169,24 +183,24 @@ async function main() {
     index.cursorEnrich = {
       at: index.updatedAt,
       phasesEnriched: totalEnriched,
-      sessionsTouched,
+      sessionsTouched
     };
     writeJson(INDEX_PATH, index);
   }
 
   console.log(
-    `\nDone: ${totalEnriched} phase(s) enriched across ${sessionsTouched} session(s)${DRY_RUN ? " (dry-run, no files written)" : ""}.`,
+    `\nDone: ${totalEnriched} phase(s) enriched across ${sessionsTouched} session(s)${DRY_RUN ? ' (dry-run, no files written)' : ''}.`
   );
 
   if (!DRY_RUN && sessionsTouched) {
     if (COPY_LOCAL) copyToLocalPreview();
-    if (DO_PUSH) pushMetrics((process.env.BRANCH || "").trim());
+    if (DO_PUSH) pushMetrics((process.env.BRANCH || '').trim());
   } else if (COPY_LOCAL && !DRY_RUN) {
     copyToLocalPreview();
   }
 }
 
-main().catch((e) => {
+main().catch(e => {
   console.error(e.stack || e.message);
   process.exit(1);
 });

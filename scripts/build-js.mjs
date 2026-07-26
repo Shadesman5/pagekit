@@ -16,28 +16,28 @@ import { buildBundles, watchBundles } from './bundles.mjs';
  *   concurrency leaves the default to the builder
  */
 function parseArgs(argv) {
-    const options = { watch: false, concurrency: undefined };
+  const options = { watch: false, concurrency: undefined };
 
-    for (const arg of argv) {
-        const concurrency = /^--concurrency=(\d+)$/.exec(arg);
+  for (const arg of argv) {
+    const concurrency = /^--concurrency=(\d+)$/.exec(arg);
 
-        if (arg === '--watch' || arg === '-w') {
-            options.watch = true;
-        } else if (concurrency && Number(concurrency[1]) > 0) {
-            options.concurrency = Number(concurrency[1]);
-        } else {
-            throw new Error(`Unknown argument: ${arg}`);
-        }
+    if (arg === '--watch' || arg === '-w') {
+      options.watch = true;
+    } else if (concurrency && Number(concurrency[1]) > 0) {
+      options.concurrency = Number(concurrency[1]);
+    } else {
+      throw new Error(`Unknown argument: ${arg}`);
     }
+  }
 
-    return options;
+  return options;
 }
 
 try {
-    const { watch, concurrency } = parseArgs(process.argv.slice(2));
+  const { watch, concurrency } = parseArgs(process.argv.slice(2));
 
-    await (watch ? watchBundles() : buildBundles(concurrency));
+  await (watch ? watchBundles() : buildBundles(concurrency));
 } catch (error) {
-    console.error(error.message);
-    process.exitCode = 1;
+  console.error(error.message);
+  process.exitCode = 1;
 }

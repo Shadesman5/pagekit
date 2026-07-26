@@ -60,7 +60,7 @@
 - [x] Step 3 (L) — Vite JS pipeline (entry manifest, per-entry IIFE); delete webpack+Babel; BuildCommand exec swap
 - [x] Step 4 (M) — LESS/assets/CLDR node scripts; delete gulp + standalone package toolchains; wire `build`
 - [x] Step 5 (L) — pnpm swap: packageManager pin, only-allow guard, lockfile, decouple install-build; delete yarn
-- [ ] Step 6 (L) — ESLint 10 flat config + format-once Prettier; lint green
+- [x] Step 6 (L) — ESLint 10 flat config + format-once Prettier; lint green
 - [ ] Step 7 (M) — CI: 4 workflows on pnpm + explicit build; blocking lint/format; job names frozen
 - [ ] Step 8 (M) — Agent env + Docker + docs + rules on pnpm/Vite; zero-reference grep gate
 - [ ] Step 9 (L) — Verification: clean rebuild, inventory parity, audit diff, E2E smoke

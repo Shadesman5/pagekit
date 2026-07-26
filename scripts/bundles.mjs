@@ -24,22 +24,22 @@ const require = createRequire(import.meta.url);
 const LOCAL_IIFE_NAME = '__pagekitBundle';
 
 const resolveAliases = [
-    ...Object.entries(aliases).map(([find, target]) => ({
-        find,
-        replacement: path.join(root, target)
-    })),
-    // vue-nestable 2.6 declares a `module` entry it never ships, and both of its
-    // unbundled builds require the undeclared `vue-runtime-helpers`. The bundled
-    // UMD build is the only self-contained one.
-    {
-        find: /^vue-nestable$/,
-        replacement: require.resolve('vue-nestable/dist/index.umd.min.js')
-    }
+  ...Object.entries(aliases).map(([find, target]) => ({
+    find,
+    replacement: path.join(root, target)
+  })),
+  // vue-nestable 2.6 declares a `module` entry it never ships, and both of its
+  // unbundled builds require the undeclared `vue-runtime-helpers`. The bundled
+  // UMD build is the only self-contained one.
+  {
+    find: /^vue-nestable$/,
+    replacement: require.resolve('vue-nestable/dist/index.umd.min.js')
+  }
 ];
 
 /** Every entry is a full Vite build, so the pool is capped even on large machines. */
 function defaultConcurrency() {
-    return Math.min(availableParallelism(), 8);
+  return Math.min(availableParallelism(), 8);
 }
 
 /**
@@ -48,57 +48,57 @@ function defaultConcurrency() {
  * @returns {import('vite').InlineConfig}
  */
 function viteConfig(entry, watch) {
-    return {
-        configFile: false,
-        root,
-        mode: 'production',
-        logLevel: 'warn',
-        clearScreen: false,
-        publicDir: false,
-        // Classic scripts have no `process`; libraries branching on it need the
-        // constant folded away before minification.
-        define: { 'process.env.NODE_ENV': JSON.stringify('production') },
-        resolve: { alias: resolveAliases },
-        plugins: [vue()],
-        build: {
-            // UIkit 3.5 browser floor (Safari 11.1 lacks full ES2018 regex support).
-            target: 'es2017',
-            // The bundle directory rather than the module directory: watch mode
-            // refuses an output directory that contains the entry sources.
-            outDir: path.dirname(path.join(root, entry.dir, entry.output)),
-            // Every entry of a module writes into the same bundle directory.
-            emptyOutDir: false,
-            modulePreload: false,
-            reportCompressedSize: false,
-            sourcemap: false,
-            minify: 'esbuild',
-            watch: watch ? {} : null,
-            rollupOptions: {
-                input: path.join(root, entry.dir, entry.input),
-                external: Object.keys(externals),
-                // Entry exports must survive: an SFC only gets its render function
-                // attached by the (pure-annotated) normalizer call that produces
-                // the default export, and components register themselves before
-                // that call runs.
-                preserveEntrySignatures: 'strict',
-                output: {
-                    format: 'iife',
-                    name: entry.global ?? LOCAL_IIFE_NAME,
-                    // Mirrors the `{ default, __esModule }` shape the classic
-                    // bundles exposed, which cross-bundle registrations rely on.
-                    exports: entry.global ? 'named' : 'auto',
-                    globals: externals,
-                    entryFileNames: path.basename(entry.output),
-                    inlineDynamicImports: true,
-                    // An IIFE with exports needs a name to assign them to, which
-                    // would be a new global for bundles that never published one.
-                    // An extra function scope keeps that assignment local.
-                    banner: entry.global ? '' : '(function(){',
-                    footer: entry.global ? '' : '})();'
-                }
-            }
+  return {
+    configFile: false,
+    root,
+    mode: 'production',
+    logLevel: 'warn',
+    clearScreen: false,
+    publicDir: false,
+    // Classic scripts have no `process`; libraries branching on it need the
+    // constant folded away before minification.
+    define: { 'process.env.NODE_ENV': JSON.stringify('production') },
+    resolve: { alias: resolveAliases },
+    plugins: [vue()],
+    build: {
+      // UIkit 3.5 browser floor (Safari 11.1 lacks full ES2018 regex support).
+      target: 'es2017',
+      // The bundle directory rather than the module directory: watch mode
+      // refuses an output directory that contains the entry sources.
+      outDir: path.dirname(path.join(root, entry.dir, entry.output)),
+      // Every entry of a module writes into the same bundle directory.
+      emptyOutDir: false,
+      modulePreload: false,
+      reportCompressedSize: false,
+      sourcemap: false,
+      minify: 'esbuild',
+      watch: watch ? {} : null,
+      rollupOptions: {
+        input: path.join(root, entry.dir, entry.input),
+        external: Object.keys(externals),
+        // Entry exports must survive: an SFC only gets its render function
+        // attached by the (pure-annotated) normalizer call that produces
+        // the default export, and components register themselves before
+        // that call runs.
+        preserveEntrySignatures: 'strict',
+        output: {
+          format: 'iife',
+          name: entry.global ?? LOCAL_IIFE_NAME,
+          // Mirrors the `{ default, __esModule }` shape the classic
+          // bundles exposed, which cross-bundle registrations rely on.
+          exports: entry.global ? 'named' : 'auto',
+          globals: externals,
+          entryFileNames: path.basename(entry.output),
+          inlineDynamicImports: true,
+          // An IIFE with exports needs a name to assign them to, which
+          // would be a new global for bundles that never published one.
+          // An extra function scope keeps that assignment local.
+          banner: entry.global ? '' : '(function(){',
+          footer: entry.global ? '' : '})();'
         }
-    };
+      }
+    }
+  };
 }
 
 /**
@@ -109,20 +109,20 @@ function viteConfig(entry, watch) {
  * @param {import('rollup').RollupOutput} result
  */
 function assertSingleBundle(expected, result) {
-    const unexpected = result.output
-        .map((output) => output.fileName)
-        .filter((fileName) => fileName !== expected);
+  const unexpected = result.output
+    .map(output => output.fileName)
+    .filter(fileName => fileName !== expected);
 
-    if (unexpected.length) {
-        throw new Error(`Unexpected build output: ${unexpected.join(', ')}`);
-    }
+  if (unexpected.length) {
+    throw new Error(`Unexpected build output: ${unexpected.join(', ')}`);
+  }
 }
 
 /**
  * @param {import('./bundle-entries.mjs').BundleEntry} entry
  */
 async function buildEntry(entry) {
-    assertSingleBundle(path.basename(entry.output), await build(viteConfig(entry, false)));
+  assertSingleBundle(path.basename(entry.output), await build(viteConfig(entry, false)));
 }
 
 /**
@@ -132,26 +132,26 @@ async function buildEntry(entry) {
  * @param {import('./bundle-entries.mjs').BundleEntry} entry
  */
 async function watchEntry(entry) {
-    const bundle = path.join(entry.dir, entry.output);
-    const watcher = await build(viteConfig(entry, true));
-    let firstBuild = true;
+  const bundle = path.join(entry.dir, entry.output);
+  const watcher = await build(viteConfig(entry, true));
+  let firstBuild = true;
 
-    return new Promise((resolve) => {
-        watcher.on('event', (event) => {
-            if (event.code === 'ERROR') {
-                console.error(`failed ${bundle}: ${event.error.message}`);
-            } else if (event.code !== 'END') {
-                return;
-            }
+  return new Promise(resolve => {
+    watcher.on('event', event => {
+      if (event.code === 'ERROR') {
+        console.error(`failed ${bundle}: ${event.error.message}`);
+      } else if (event.code !== 'END') {
+        return;
+      }
 
-            if (firstBuild) {
-                firstBuild = false;
-                resolve();
-            } else if (event.code === 'END') {
-                console.log(`rebuilt ${bundle}`);
-            }
-        });
+      if (firstBuild) {
+        firstBuild = false;
+        resolve();
+      } else if (event.code === 'END') {
+        console.log(`rebuilt ${bundle}`);
+      }
     });
+  });
 }
 
 /**
@@ -161,23 +161,23 @@ async function watchEntry(entry) {
  * @returns {Promise<string[]>} failure messages, one per failed entry
  */
 async function runPool(queue, concurrency, task) {
-    const pending = [...queue];
-    const failures = [];
+  const pending = [...queue];
+  const failures = [];
 
-    const worker = async () => {
-        for (let entry = pending.shift(); entry; entry = pending.shift()) {
-            try {
-                await task(entry);
-                console.log(`built ${path.join(entry.dir, entry.output)}`);
-            } catch (error) {
-                failures.push(`${path.join(entry.dir, entry.output)}: ${error.message}`);
-            }
-        }
-    };
+  const worker = async () => {
+    for (let entry = pending.shift(); entry; entry = pending.shift()) {
+      try {
+        await task(entry);
+        console.log(`built ${path.join(entry.dir, entry.output)}`);
+      } catch (error) {
+        failures.push(`${path.join(entry.dir, entry.output)}: ${error.message}`);
+      }
+    }
+  };
 
-    await Promise.all(Array.from({ length: Math.min(concurrency, pending.length) }, worker));
+  await Promise.all(Array.from({ length: Math.min(concurrency, pending.length) }, worker));
 
-    return failures;
+  return failures;
 }
 
 /**
@@ -186,23 +186,25 @@ async function runPool(queue, concurrency, task) {
  * @param {string} done past participle for the summary line
  */
 async function run(task, concurrency, done) {
-    const started = Date.now();
-    const failures = await runPool(entries, concurrency, task);
+  const started = Date.now();
+  const failures = await runPool(entries, concurrency, task);
 
-    if (failures.length) {
-        throw new Error(`${failures.length} of ${entries.length} bundles failed:\n  ${failures.join('\n  ')}`);
-    }
+  if (failures.length) {
+    throw new Error(
+      `${failures.length} of ${entries.length} bundles failed:\n  ${failures.join('\n  ')}`
+    );
+  }
 
-    const seconds = ((Date.now() - started) / 1000).toFixed(1);
+  const seconds = ((Date.now() - started) / 1000).toFixed(1);
 
-    console.log(`\n${entries.length} bundles ${done} in ${seconds}s`);
+  console.log(`\n${entries.length} bundles ${done} in ${seconds}s`);
 }
 
 /**
  * @param {number} [concurrency]
  */
 export async function buildBundles(concurrency = defaultConcurrency()) {
-    await run(buildEntry, concurrency, 'built');
+  await run(buildEntry, concurrency, 'built');
 }
 
 /**
@@ -210,5 +212,5 @@ export async function buildBundles(concurrency = defaultConcurrency()) {
  * pooled.
  */
 export async function watchBundles() {
-    await run(watchEntry, 1, 'watched');
+  await run(watchEntry, 1, 'watched');
 }

@@ -1,98 +1,92 @@
 <template>
-    <div class="pk-filter" :class="['uk-form-custom', value ? 'uk-active' : '']" uk-form-custom>
-        <span>{{ label }}</span>
-        <select v-if="isNumber" v-model="select" class="uk-select">
-            <template v-for="(option, key) in list">
-                <optgroup v-if="option.label" :key="key" :label="option.label">
-                    <option v-for="opt in option.options" :key="opt.value" :value="opt.value">
-                        {{ opt.text }}
-                    </option>
-                </optgroup>
-                <option v-else :key="key" :value="option.value">
-                    {{ option.text }}
-                </option>
-            </template>
-        </select>
-        <select v-else v-model="select" class="uk-select">
-            <template v-for="(option, key) in list">
-                <optgroup v-if="option.label" :key="key" :label="option.label">
-                    <option v-for="opt in option.options" :key="opt.value" :value="opt.value">
-                        {{ opt.text }}
-                    </option>
-                </optgroup>
-                <option v-else :key="key" :value="option.value">
-                    {{ option.text }}
-                </option>
-            </template>
-        </select>
-    </div>
+  <div class="pk-filter" :class="['uk-form-custom', value ? 'uk-active' : '']" uk-form-custom>
+    <span>{{ label }}</span>
+    <select v-if="isNumber" v-model="select" class="uk-select">
+      <template v-for="(option, key) in list">
+        <optgroup v-if="option.label" :key="key" :label="option.label">
+          <option v-for="opt in option.options" :key="opt.value" :value="opt.value">
+            {{ opt.text }}
+          </option>
+        </optgroup>
+        <option v-else :key="key" :value="option.value">
+          {{ option.text }}
+        </option>
+      </template>
+    </select>
+    <select v-else v-model="select" class="uk-select">
+      <template v-for="(option, key) in list">
+        <optgroup v-if="option.label" :key="key" :label="option.label">
+          <option v-for="opt in option.options" :key="opt.value" :value="opt.value">
+            {{ opt.text }}
+          </option>
+        </optgroup>
+        <option v-else :key="key" :value="option.value">
+          {{ option.text }}
+        </option>
+      </template>
+    </select>
+  </div>
 </template>
 
 <script>
-
 export default {
-
-    props: {
-        title: {
-            type: String,
-            default: ''
-        },
-        value: {
-            type: [Number, String],
-            default: undefined
-        },
-        options: {
-            type: Array,
-            default() {
-                return [];
-            }
-        },
-        number: {
-            type: Number,
-            default: 0
-        }
+  props: {
+    title: {
+      type: String,
+      default: ''
     },
-
-    data() {
-        return {
-            select: this.value
-        };
+    value: {
+      type: [Number, String],
+      default: undefined
     },
-
-    computed: {
-
-        isNumber() {
-            return (typeof this.number !== 'undefined');
-        },
-
-        list() {
-            return [{ value: '', text: this.title }].concat(this.options);
-        },
-
-        label() {
-            const list = this.list.concat(_.flatten(_.map(this.list, 'options')));
-            const value = _.find(list, { value: this.select });
-            return value ? value.text : this.title;
-        }
-
+    options: {
+      type: Array,
+      default() {
+        return [];
+      }
     },
-
-    watch: {
-        select(value) {
-            this.$emit('input', value);
-        },
-
-        value(value) {
-            this.select = value;
-        }
-    },
-
-    created() {
-        if (this.value === undefined) {
-            this.select = '';
-        }
+    number: {
+      type: Number,
+      default: 0
     }
+  },
 
+  data() {
+    return {
+      select: this.value
+    };
+  },
+
+  computed: {
+    isNumber() {
+      return typeof this.number !== 'undefined';
+    },
+
+    list() {
+      return [{ value: '', text: this.title }].concat(this.options);
+    },
+
+    label() {
+      const list = this.list.concat(_.flatten(_.map(this.list, 'options')));
+      const value = _.find(list, { value: this.select });
+      return value ? value.text : this.title;
+    }
+  },
+
+  watch: {
+    select(value) {
+      this.$emit('input', value);
+    },
+
+    value(value) {
+      this.select = value;
+    }
+  },
+
+  created() {
+    if (this.value === undefined) {
+      this.select = '';
+    }
+  }
 };
-
 </script>

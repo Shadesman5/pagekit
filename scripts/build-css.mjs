@@ -11,12 +11,12 @@ import process from 'node:process';
 import { buildStyles, watchStyles } from './styles.mjs';
 
 if (process.argv.includes('--watch')) {
-    watchStyles();
+  watchStyles();
 } else {
-    try {
-        await buildStyles();
-    } catch (error) {
-        console.error(error.message);
-        process.exitCode = 1;
-    }
+  try {
+    await buildStyles();
+  } catch (error) {
+    console.error(error.message);
+    process.exitCode = 1;
+  }
 }

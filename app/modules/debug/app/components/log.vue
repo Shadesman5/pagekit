@@ -1,15 +1,13 @@
 <template>
-    <a title="Log">Log ({{ data.records.length }})</a>
+  <a title="Log">Log ({{ data.records.length }})</a>
 </template>
 
 <script>
-
 export default {
-
-    section: {
-        priority: 70,
-        panel: '#panel-log',
-        template: `
+  section: {
+    priority: 70,
+    panel: '#panel-log',
+    template: `
                 <div>
                     <h1>Logs</h1>
 
@@ -28,19 +26,17 @@ export default {
                         </tbody>
                     </table>
                 </div>`
-    },
+  },
 
-    replace: false,
+  replace: false,
 
-    props: {
-        data: {
-            type: Object,
-            default() {
-                return {};
-            }
-        }
+  props: {
+    data: {
+      type: Object,
+      default() {
+        return {};
+      }
     }
-
+  }
 };
-
 </script>

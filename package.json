@@ -12,8 +12,7 @@
         "build:css": "node scripts/build-css.mjs",
         "watch": "node scripts/watch.mjs",
         "cldr": "node scripts/cldr.mjs",
-        "lint": "eslint . --ext .js,.vue",
-        "lint-watch": "esw . --ext .js,.vue --clear --watch --changed --color",
+        "lint": "eslint .",
         "test:e2e": "playwright test",
         "test:e2e:headed": "playwright test --headed",
         "test:e2e:debug": "playwright test --debug",
@@ -43,23 +42,20 @@
         "vue-resource": "~1.5.1"
     },
     "devDependencies": {
+        "@eslint/js": "^10.0.1",
         "@playwright/test": "^1.55.1",
         "@vitejs/plugin-vue2": "^2.3.4",
-        "babel-eslint": "^10.1.0",
         "chokidar": "^3.4.2",
         "cldr-core": "^36.0.0",
         "cldr-localenames-modern": "^36.0.0",
         "dotenv": "^17.2.2",
-        "eslint": "^7.10.0",
-        "eslint-config-airbnb-base": "^15.0.0",
-        "eslint-config-prettier": "^6.13.0",
-        "eslint-plugin-import": "^2.22.1",
-        "eslint-plugin-vue": "^7.20.0",
-        "eslint-watch": "^7.0.0",
-        "eslint-webpack-plugin": "^2.1.0",
+        "eslint": "^10.8.0",
+        "eslint-config-prettier": "^10.1.8",
+        "eslint-plugin-vue": "^10.10.0",
+        "globals": "^17.7.0",
         "less": "^3.12.2",
         "prettier": "3.9.6",
         "vite": "^7.3.6",
-        "vue-eslint-parser": "^7.1.1"
+        "vue-eslint-parser": "^10.4.1"
     }
 }

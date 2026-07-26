@@ -2,11 +2,11 @@ import Comment from './comment.vue';
 import Reply from './reply.vue';
 
 const Comments = {
-    el: '#comments',
+  el: '#comments',
 
-    name: 'comments',
+  name: 'comments',
 
-    template: `
+  template: `
         <div id="comments" class="uk-margin-large-top" v-show="config.enabled || comments.length">
 
             <template v-if="comments.length">
@@ -27,87 +27,89 @@ const Comments = {
 
         </div>`,
 
-    data() {
-        return _.extend(
-            {
-                post: {},
-                tree: {},
-                comments: [],
-                messages: [],
-                count: 0,
-                replyForm: false,
-                root: this,
-                config: {}
-            },
-            window.$comments
-        );
+  data() {
+    return _.extend(
+      {
+        post: {},
+        tree: {},
+        comments: [],
+        messages: [],
+        count: 0,
+        replyForm: false,
+        root: this,
+        config: {}
+      },
+      window.$comments
+    );
+  },
+
+  beforeCreate() {},
+
+  created() {
+    this.load();
+  },
+
+  mounted() {},
+
+  methods: {
+    load() {
+      if (!this.config || !this.config.post) {
+        console.warn('Comments: config or config.post not available');
+        return Promise.resolve();
+      }
+
+      return this.$http
+        .get('api/blog/comment{/id}', { params: { post: this.config.post } })
+        .then(function (res) {
+          const { data } = res;
+
+          this.$set(this, 'comments', data.comments);
+          this.$set(this, 'tree', _.groupBy(data.comments, 'parent_id'));
+          this.$set(this, 'post', data.posts[0]);
+          this.$set(this, 'count', data.count);
+
+          this.$nextTick(() => {
+            const anchor = window.location.hash;
+
+            if (anchor) {
+              document.querySelector(anchor).scrollIntoView({ behavior: 'smooth' });
+            }
+          });
+
+          this.reply();
+        });
     },
 
-    beforeCreate() {},
+    reply(parent) {
+      parent = parent || this;
 
-    created() {
-        this.load();
-    },
+      if (this.replyForm) {
+        this.replyForm.$el.parentNode.removeChild(this.replyForm.$el);
+        this.replyForm.$destroy(true);
+      }
 
-    mounted() {},
-
-    methods: {
-        load() {
-            if (!this.config || !this.config.post) {
-                console.warn('Comments: config or config.post not available');
-                return Promise.resolve();
-            }
-
-            return this.$http.get('api/blog/comment{/id}', { params: { post: this.config.post } }).then(function (res) {
-                const { data } = res;
-
-                this.$set(this, 'comments', data.comments);
-                this.$set(this, 'tree', _.groupBy(data.comments, 'parent_id'));
-                this.$set(this, 'post', data.posts[0]);
-                this.$set(this, 'count', data.count);
-
-                this.$nextTick(() => {
-                    const anchor = window.location.hash;
-
-                    if (anchor) {
-                        document.querySelector(anchor).scrollIntoView({ behavior: 'smooth' });
-                    }
-                });
-
-                this.reply();
-            });
-        },
-
-        reply(parent) {
-            parent = parent || this;
-
-            if (this.replyForm) {
-                this.replyForm.$el.parentNode.removeChild(this.replyForm.$el);
-                this.replyForm.$destroy(true);
-            }
-
-            const { reply } = this.$options.components;
-            const ReplyComponent = Vue.extend({
-                parent,
-                mixins: [reply],
-                props: ['root'],
-                data() {
-                    return {
-                        config: parent.config,
-                        parent: (parent.comment && parent.comment.id) || 0
-                    };
-                }
-            });
-            const instance = new ReplyComponent({ propsData: { root: this } });
-            this.replyForm = instance.$mount();
-            parent.$refs.reply.appendChild(this.replyForm.$el);
+      const { reply } = this.$options.components;
+      const ReplyComponent = Vue.extend({
+        parent,
+        mixins: [reply],
+        props: ['root'],
+        data() {
+          return {
+            config: parent.config,
+            parent: (parent.comment && parent.comment.id) || 0
+          };
         }
-    },
-
-    components: {
-        comment: Comment,
-        reply: Reply
+      });
+      const instance = new ReplyComponent({ propsData: { root: this } });
+      this.replyForm = instance.$mount();
+      parent.$refs.reply.appendChild(this.replyForm.$el);
     }
+  },
+
+  components: {
+    comment: Comment,
+    reply: Reply
+  }
 };
 
 export default Comments;

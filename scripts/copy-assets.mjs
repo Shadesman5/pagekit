@@ -27,16 +27,16 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 /** @type {AssetCopy[]} */
 const copies = [
-    { package: 'uikit', dest: 'app/assets/uikit' },
-    { package: 'vue', dest: 'app/assets/vue' },
-    { package: 'flatpickr', dest: 'app/assets/flatpickr' },
-    // The view module script-loads the two full builds; the per-method modules
-    // in the package root have no consumer.
-    { package: 'lodash', dest: 'app/assets/lodash/dist', files: /^lodash.*\.js$/ },
-    { package: 'tinymce', dest: 'app/system/modules/editor/app/assets/tinymce' },
-    { package: 'marked', dest: 'app/system/modules/editor/app/assets/marked' },
-    // The fork is published under a capitalized name, which matters on Linux.
-    { package: 'Codemirror', dest: 'app/system/modules/editor/app/assets/codemirror' }
+  { package: 'uikit', dest: 'app/assets/uikit' },
+  { package: 'vue', dest: 'app/assets/vue' },
+  { package: 'flatpickr', dest: 'app/assets/flatpickr' },
+  // The view module script-loads the two full builds; the per-method modules
+  // in the package root have no consumer.
+  { package: 'lodash', dest: 'app/assets/lodash/dist', files: /^lodash.*\.js$/ },
+  { package: 'tinymce', dest: 'app/system/modules/editor/app/assets/tinymce' },
+  { package: 'marked', dest: 'app/system/modules/editor/app/assets/marked' },
+  // The fork is published under a capitalized name, which matters on Linux.
+  { package: 'Codemirror', dest: 'app/system/modules/editor/app/assets/codemirror' }
 ];
 
 /**
@@ -47,36 +47,36 @@ const copies = [
  * @returns {boolean}
  */
 function isServed(source) {
-    return !path.basename(source).startsWith('.');
+  return !path.basename(source).startsWith('.');
 }
 
 /**
  * @param {AssetCopy} copy
  */
 function copyAsset(copy) {
-    const from = path.join(root, 'node_modules', copy.package);
-    const to = path.join(root, copy.dest);
+  const from = path.join(root, 'node_modules', copy.package);
+  const to = path.join(root, copy.dest);
 
-    if (!fs.existsSync(from)) {
-        throw new Error(`missing package: node_modules/${copy.package}`);
-    }
+  if (!fs.existsSync(from)) {
+    throw new Error(`missing package: node_modules/${copy.package}`);
+  }
 
-    fs.mkdirSync(to, { recursive: true });
+  fs.mkdirSync(to, { recursive: true });
 
-    if (copy.files) {
-        fs.readdirSync(from)
-            .filter((file) => copy.files.test(file))
-            .forEach((file) => fs.copyFileSync(path.join(from, file), path.join(to, file)));
+  if (copy.files) {
+    fs.readdirSync(from)
+      .filter(file => copy.files.test(file))
+      .forEach(file => fs.copyFileSync(path.join(from, file), path.join(to, file)));
 
-        return;
-    }
+    return;
+  }
 
-    // Package managers link dependencies instead of copying them, so the tree
-    // has to be dereferenced on the way out.
-    fs.cpSync(from, to, { recursive: true, dereference: true, filter: isServed });
+  // Package managers link dependencies instead of copying them, so the tree
+  // has to be dereferenced on the way out.
+  fs.cpSync(from, to, { recursive: true, dereference: true, filter: isServed });
 }
 
 for (const copy of copies) {
-    copyAsset(copy);
-    console.log(`copied ${copy.package} to ${copy.dest}`);
+  copyAsset(copy);
+  console.log(`copied ${copy.package} to ${copy.dest}`);
 }

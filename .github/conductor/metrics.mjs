@@ -3,18 +3,26 @@
 // never on the feature-branch tip (PR CI / bot approval) and never direct to
 // protected `develop` (Ruleset requires PRs, no Actions bypass).
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, cpSync, rmSync, mkdtempSync } from "node:fs";
-import { basename, join } from "node:path";
-import { tmpdir } from "node:os";
-import { randomUUID } from "node:crypto";
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  mkdirSync,
+  cpSync,
+  rmSync,
+  mkdtempSync
+} from 'node:fs';
+import { basename, join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { randomUUID } from 'node:crypto';
 
-export const METRICS_DIR = ".github/conductor/metrics";
+export const METRICS_DIR = '.github/conductor/metrics';
 export const SESSIONS_DIR = `${METRICS_DIR}/sessions`;
 export const INDEX_PATH = `${METRICS_DIR}/index.json`;
 export const SCHEMA_VERSION = 1;
-export const CURSOR_API = "https://api.cursor.com";
+export const CURSOR_API = 'https://api.cursor.com';
 /** Long-lived branch for session JSON only (not Ruleset-protected like develop). */
-export const DEFAULT_METRICS_BRANCH = "conductor-metrics";
+export const DEFAULT_METRICS_BRANCH = 'conductor-metrics';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -27,26 +35,36 @@ export function normalizeTokens(raw = {}) {
   const output = Number(raw.outputTokens ?? raw.output ?? 0) || 0;
   const cacheRead = Number(raw.cacheReadTokens ?? raw.cacheRead ?? 0) || 0;
   const cacheWrite = Number(raw.cacheWriteTokens ?? raw.cacheWrite ?? 0) || 0;
-  const total = Number(raw.totalTokens ?? raw.total ?? input + output + cacheRead + cacheWrite) || 0;
+  const total =
+    Number(raw.totalTokens ?? raw.total ?? input + output + cacheRead + cacheWrite) || 0;
   return { input, output, cacheRead, cacheWrite, total };
 }
 
 export function normalizeTokensNullable(raw = {}) {
-  if (!raw || (raw.totalTokens == null && raw.total == null && raw.inputTokens == null && raw.input == null)) {
+  if (
+    !raw ||
+    (raw.totalTokens == null && raw.total == null && raw.inputTokens == null && raw.input == null)
+  ) {
     return { input: null, output: null, cacheRead: null, cacheWrite: null, total: null };
   }
   const t = normalizeTokens(raw);
-  return { input: t.input, output: t.output, cacheRead: t.cacheRead, cacheWrite: t.cacheWrite, total: t.total };
+  return {
+    input: t.input,
+    output: t.output,
+    cacheRead: t.cacheRead,
+    cacheWrite: t.cacheWrite,
+    total: t.total
+  };
 }
 
 export function createCursorClient(apiKey) {
-  const key = (apiKey || "").trim();
+  const key = (apiKey || '').trim();
   if (!key) return null;
   return async function cursorApi(method, path, body) {
     const res = await fetch(`${CURSOR_API}${path}`, {
       method,
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: body ? JSON.stringify(body) : undefined,
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined
     });
     const text = await res.text();
     let json;
@@ -74,7 +92,7 @@ export async function fetchAgentUsageFullFromCursor(client, agentId) {
   const empty = { tokens: normalizeTokensNullable({}), runsById: new Map() };
   if (!client || !agentId) return empty;
   try {
-    const u = await client("GET", `/v1/agents/${agentId}/usage`);
+    const u = await client('GET', `/v1/agents/${agentId}/usage`);
     const runsById = new Map();
     for (const row of u.runs || []) {
       if (row.id) runsById.set(row.id, normalizeTokens(row.usage ?? row));
@@ -92,8 +110,8 @@ export async function listAgentRunsFromCursor(client, agentId, { limit = 100 } =
   let cursor = null;
   do {
     const qs = new URLSearchParams({ limit: String(limit) });
-    if (cursor) qs.set("cursor", cursor);
-    const page = await client("GET", `/v1/agents/${agentId}/runs?${qs}`);
+    if (cursor) qs.set('cursor', cursor);
+    const page = await client('GET', `/v1/agents/${agentId}/runs?${qs}`);
     items.push(...(page.items || page.runs || []));
     cursor = page.nextCursor || null;
   } while (cursor);
@@ -109,14 +127,14 @@ export async function fetchAgentMetricsFromCursor(client, agentId) {
     runId: null,
     runCount: 0,
     tokens: normalizeTokensNullable({}),
-    runs: [],
+    runs: []
   };
   if (!client || !agentId) return empty;
   try {
     const [agent, usageResp, listedRuns] = await Promise.all([
-      client("GET", `/v1/agents/${agentId}`),
-      client("GET", `/v1/agents/${agentId}/usage`),
-      listAgentRunsFromCursor(client, agentId),
+      client('GET', `/v1/agents/${agentId}`),
+      client('GET', `/v1/agents/${agentId}/usage`),
+      listAgentRunsFromCursor(client, agentId)
     ]);
 
     const runsById = new Map();
@@ -133,15 +151,15 @@ export async function fetchAgentMetricsFromCursor(client, agentId) {
     if (!runItems.length && latestRunId) runItems = [{ id: latestRunId }];
 
     const detailedRuns = await Promise.all(
-      runItems.map(async (item) => {
+      runItems.map(async item => {
         const runId = item.id;
         if ((item.durationMs != null && item.createdAt) || !runId) return item;
         try {
-          return await client("GET", `/v1/agents/${agentId}/runs/${runId}`);
+          return await client('GET', `/v1/agents/${agentId}/runs/${runId}`);
         } catch {
           return item;
         }
-      }),
+      })
     );
 
     detailedRuns.sort((a, b) => Date.parse(a.createdAt || 0) - Date.parse(b.createdAt || 0));
@@ -178,7 +196,7 @@ export async function fetchAgentMetricsFromCursor(client, agentId) {
         startedAt: run.createdAt || null,
         completedAt: run.updatedAt || null,
         durationMs: runDuration,
-        tokens: runsById.get(runId) || emptyTokens(),
+        tokens: runsById.get(runId) || emptyTokens()
       });
     }
 
@@ -197,7 +215,7 @@ export async function fetchAgentMetricsFromCursor(client, agentId) {
       runId: latestRunId,
       runCount: runs.length,
       tokens,
-      runs,
+      runs
     };
   } catch {
     return empty;
@@ -213,7 +231,7 @@ export async function fetchAgentTimingFromCursor(client, agentId) {
     durationMs: metrics.durationMs,
     runId: metrics.runId,
     runCount: metrics.runCount,
-    runs: metrics.runs,
+    runs: metrics.runs
   };
 }
 
@@ -230,8 +248,8 @@ export function applyAgentMetricsToPhase(phase, metrics) {
   const note =
     metrics.runCount > 1
       ? `Timing from Cursor API (${metrics.runCount} agent runs aggregated)`
-      : "Timing from Cursor API (single agent run)";
-  const cleaned = (phase.notes || "").replace(TIMING_NOTE_RE, "").replace(/ · $/, "").trim();
+      : 'Timing from Cursor API (single agent run)';
+  const cleaned = (phase.notes || '').replace(TIMING_NOTE_RE, '').replace(/ · $/, '').trim();
   phase.notes = cleaned ? `${cleaned} · ${note}` : note;
   return true;
 }
@@ -265,8 +283,10 @@ export function recomputeSessionTotals(session) {
     durationMs: 0,
     phaseCount: session.phases?.length || 0,
     escalations: 0,
-    ghaJobs: new Set((session.phases || []).map((p) => p.github?.jobId || p.github?.runId).filter(Boolean)).size,
-    cloudAgents: (session.phases || []).filter((p) => p.agent?.id).length,
+    ghaJobs: new Set(
+      (session.phases || []).map(p => p.github?.jobId || p.github?.runId).filter(Boolean)
+    ).size,
+    cloudAgents: (session.phases || []).filter(p => p.agent?.id).length
   };
   const add = (a, b) => (a == null && b == null ? null : (a || 0) + (b || 0));
   for (const phase of session.phases || []) {
@@ -277,7 +297,7 @@ export function recomputeSessionTotals(session) {
     totals.tokens.cacheWrite = add(totals.tokens.cacheWrite, t.cacheWrite);
     totals.tokens.total = add(totals.tokens.total, t.total);
     totals.durationMs += phase.durationMs || 0;
-    if (phase.outcome === "escalate") totals.escalations += 1;
+    if (phase.outcome === 'escalate') totals.escalations += 1;
   }
   if (totals.ghaJobs === 0 && session.phases?.length) totals.ghaJobs = 1;
   session.totals = totals;
@@ -287,14 +307,14 @@ export function recomputeSessionTotals(session) {
 function runsNeedTokenBackfill(phase) {
   const runs = phase.agent?.runs;
   if (!runs?.length || !phase.tokens?.total) return false;
-  return runs.every((r) => !(r.tokens?.total > 0));
+  return runs.every(r => !(r.tokens?.total > 0));
 }
 
 export function phaseNeedsMetricsRefresh(phase, { refreshTiming = false } = {}) {
   if (!phase.agent?.id) return false;
   if (refreshTiming) return true;
   if (phase.durationMs == null || !phase.startedAt) return true;
-  if ((phase.notes || "").includes("latest run")) return true;
+  if ((phase.notes || '').includes('latest run')) return true;
   if (!phase.agent.runs?.length) return true;
   if (runsNeedTokenBackfill(phase)) return true;
   return false;
@@ -308,7 +328,7 @@ export function phaseNeedsTimingRefresh(phase, opts = {}) {
 export async function enrichSessionTokensFromCursor(
   session,
   client,
-  { log = console.log, refreshTiming = false } = {},
+  { log = console.log, refreshTiming = false } = {}
 ) {
   if (!client || !session?.phases?.length) return { session, enriched: 0, timingEnriched: 0 };
   let enriched = 0;
@@ -324,11 +344,14 @@ export async function enrichSessionTokensFromCursor(
     const metrics = needsMetrics ? await fetchAgentMetricsFromCursor(client, agentId) : null;
 
     if (needsTokens) {
-      const tokens = metrics?.tokens?.total != null ? metrics.tokens : await fetchAgentUsageFromCursor(client, agentId);
+      const tokens =
+        metrics?.tokens?.total != null
+          ? metrics.tokens
+          : await fetchAgentUsageFromCursor(client, agentId);
       if (tokens.total != null && tokens.total !== 0) {
         phase.tokens = tokens;
-        phase.tokensSource = "cursor-api";
-        const note = "Tokens from Cursor /v1/agents/{id}/usage";
+        phase.tokensSource = 'cursor-api';
+        const note = 'Tokens from Cursor /v1/agents/{id}/usage';
         phase.notes = phase.notes ? `${phase.notes} · ${note}` : note;
         enriched += 1;
         log(`    cursor-api: ${agentId.slice(0, 12)}… → ${tokens.total} tokens (${phase.type})`);
@@ -337,9 +360,9 @@ export async function enrichSessionTokensFromCursor(
 
     if (needsMetrics && applyAgentMetricsToPhase(phase, metrics)) {
       timingEnriched += 1;
-      const runs = metrics.runCount > 1 ? ` · ${metrics.runCount} runs` : "";
+      const runs = metrics.runCount > 1 ? ` · ${metrics.runCount} runs` : '';
       log(
-        `    cursor-api: ${agentId.slice(0, 12)}… → ${metrics.startedAt?.slice(0, 10)} · ${Math.round((metrics.durationMs || 0) / 1000)}s${runs}`,
+        `    cursor-api: ${agentId.slice(0, 12)}… → ${metrics.startedAt?.slice(0, 10)} · ${Math.round((metrics.durationMs || 0) / 1000)}s${runs}`
       );
     }
   }
@@ -357,12 +380,12 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
   const targetBranch = metricsBranch || DEFAULT_METRICS_BRANCH;
   const ctx = {
     roadmapStepId: parseRoadmapStepId(env.TITLE, env.TASK_PROMPT),
-    title: (env.TITLE || "").trim() || null,
-    taskSlug: basename(env.TASK_PROMPT).replace(/\.md$/i, ""),
+    title: (env.TITLE || '').trim() || null,
+    taskSlug: basename(env.TASK_PROMPT).replace(/\.md$/i, ''),
     taskPrompt: env.TASK_PROMPT,
     issue: env.ISSUE ? Number(env.ISSUE) : null,
     branch: featureBranch,
-    model: (env.MODEL || "").trim() || null,
+    model: (env.MODEL || '').trim() || null
   };
 
   function sessionPath(id = sessionId) {
@@ -375,11 +398,11 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
 
   function readJson(path, fallback) {
     if (!existsSync(path)) return fallback;
-    return JSON.parse(readFileSync(path, "utf8"));
+    return JSON.parse(readFileSync(path, 'utf8'));
   }
 
   function writeJson(path, data) {
-    writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+    writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
   }
 
   function addTokens(a, b) {
@@ -388,7 +411,7 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
       output: (a.output || 0) + (b.output || 0),
       cacheRead: (a.cacheRead || 0) + (b.cacheRead || 0),
       cacheWrite: (a.cacheWrite || 0) + (b.cacheWrite || 0),
-      total: (a.total || 0) + (b.total || 0),
+      total: (a.total || 0) + (b.total || 0)
     };
   }
 
@@ -397,9 +420,9 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
       tokens: emptyTokens(),
       durationMs: 0,
       phaseCount: session.phases.length,
-      escalations: session.phases.filter((p) => p.outcome === "escalate").length,
-      ghaJobs: new Set(session.phases.map((p) => p.github?.runId).filter(Boolean)).size,
-      cloudAgents: session.phases.length,
+      escalations: session.phases.filter(p => p.outcome === 'escalate').length,
+      ghaJobs: new Set(session.phases.map(p => p.github?.runId).filter(Boolean)).size,
+      cloudAgents: session.phases.length
     };
     for (const phase of session.phases) {
       totals.tokens = addTokens(totals.tokens, phase.tokens || emptyTokens());
@@ -410,8 +433,8 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
   }
 
   function githubContext() {
-    const server = (env.GITHUB_SERVER_URL || "https://github.com").replace(/\/$/, "");
-    const repo = env.GITHUB_REPOSITORY || "";
+    const server = (env.GITHUB_SERVER_URL || 'https://github.com').replace(/\/$/, '');
+    const repo = env.GITHUB_REPOSITORY || '';
     const runId = env.GITHUB_RUN_ID ? Number(env.GITHUB_RUN_ID) : null;
     const runUrl = runId && repo ? `${server}/${repo}/actions/runs/${runId}` : null;
     return {
@@ -419,13 +442,13 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
       runAttempt: env.GITHUB_RUN_ATTEMPT ? Number(env.GITHUB_RUN_ATTEMPT) : null,
       workflow: env.GITHUB_WORKFLOW || null,
       runUrl,
-      repository: repo || null,
+      repository: repo || null
     };
   }
 
   function ensureGitIdentity() {
     try {
-      sh("git config user.email");
+      sh('git config user.email');
     } catch {
       sh('git config user.email "41898282+github-actions[bot]@users.noreply.github.com"');
       sh('git config user.name "github-actions[bot]"');
@@ -436,7 +459,7 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
   function ensureMetricsBranchExists() {
     if (sh(`git ls-remote --heads origin ${targetBranch}`)) return;
     log(`  metrics: creating origin/${targetBranch} from origin/develop`);
-    sh("git fetch origin develop");
+    sh('git fetch origin develop');
     try {
       sh(`git branch -f ${targetBranch} origin/develop`);
     } catch {
@@ -492,13 +515,13 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
   function commitMetrics(message) {
     ensureGitIdentity();
     if (!existsSync(METRICS_DIR)) {
-      log("  metrics: no metrics dir to commit");
+      log('  metrics: no metrics dir to commit');
       return false;
     }
 
-    const tmp = mkdtempSync(join(tmpdir(), "pagekit-metrics-"));
+    const tmp = mkdtempSync(join(tmpdir(), 'pagekit-metrics-'));
     try {
-      cpSync(METRICS_DIR, join(tmp, "metrics"), { recursive: true });
+      cpSync(METRICS_DIR, join(tmp, 'metrics'), { recursive: true });
 
       try {
         sh(`git reset HEAD -- ${METRICS_DIR}`);
@@ -512,12 +535,12 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
       sh(`git checkout -B ${targetBranch} origin/${targetBranch}`);
 
       rmSync(METRICS_DIR, { recursive: true, force: true });
-      cpSync(join(tmp, "metrics"), METRICS_DIR, { recursive: true });
+      cpSync(join(tmp, 'metrics'), METRICS_DIR, { recursive: true });
 
       sh(`git add ${METRICS_DIR}/`);
       try {
-        sh("git diff --cached --quiet");
-        log("  metrics: no changes to commit");
+        sh('git diff --cached --quiet');
+        log('  metrics: no changes to commit');
         restoreFeatureCheckout();
         return false;
       } catch {
@@ -527,20 +550,21 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
           sh(`git rebase origin/${targetBranch}`);
         } catch (e) {
           try {
-            sh("git rebase --abort");
+            sh('git rebase --abort');
           } catch {
             /* already clean or no rebase in progress */
           }
           throw new Error(
             `metrics rebase onto origin/${targetBranch} failed (resolve conflict or retry): ${e.message}`,
+            { cause: e }
           );
         }
         sh(`git push origin ${targetBranch}`);
         log(`  metrics: committed and pushed to ${targetBranch}`);
         try {
           // Build site from develop (fresh docs) — workflow overlays metrics from conductor-metrics.
-          sh("gh workflow run pages-deploy.yml --ref develop");
-          log("  metrics: dispatched pages-deploy.yml (ref=develop)");
+          sh('gh workflow run pages-deploy.yml --ref develop');
+          log('  metrics: dispatched pages-deploy.yml (ref=develop)');
         } catch (e) {
           log(`  metrics: pages-deploy dispatch skipped (${e.message})`);
         }
@@ -576,7 +600,7 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
       issue: ctx.issue,
       branch: ctx.branch,
       model: ctx.model,
-      status: "in_progress",
+      status: 'in_progress',
       startedAt: new Date().toISOString(),
       completedAt: null,
       phases: [],
@@ -586,23 +610,27 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
         phaseCount: 0,
         escalations: 0,
         ghaJobs: 0,
-        cloudAgents: 0,
-      },
+        cloudAgents: 0
+      }
     };
     writeJson(sessionPath(), session);
     touchIndex(session);
     commitMetrics(`chore(metrics): start conductor session ${sessionId.slice(0, 8)}`);
-    log(`metrics: new session ${sessionId} (step=${ctx.roadmapStepId || "?"}) → ${targetBranch}`);
+    log(`metrics: new session ${sessionId} (step=${ctx.roadmapStepId || '?'}) → ${targetBranch}`);
     return sessionId;
   }
 
   function touchIndex(session) {
-    const index = readJson(INDEX_PATH, { schemaVersion: SCHEMA_VERSION, updatedAt: null, steps: {} });
-    const stepId = session.roadmapStepId || "unknown";
+    const index = readJson(INDEX_PATH, {
+      schemaVersion: SCHEMA_VERSION,
+      updatedAt: null,
+      steps: {}
+    });
+    const stepId = session.roadmapStepId || 'unknown';
     const entry = index.steps[stepId] || {
       title: session.title || session.taskSlug,
       latestSessionId: session.sessionId,
-      sessionIds: [],
+      sessionIds: []
     };
     if (session.title) entry.title = session.title;
     if (!entry.sessionIds.includes(session.sessionId)) {
@@ -617,7 +645,7 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
 
   async function fetchAgentUsage(agentId) {
     try {
-      const u = await api("GET", `/v1/agents/${agentId}/usage`);
+      const u = await api('GET', `/v1/agents/${agentId}/usage`);
       return normalizeTokens(u.totalUsage ?? u);
     } catch (e) {
       log(`  metrics: usage fetch failed (${e.message})`);
@@ -637,8 +665,8 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
 
     const meta = parsePhaseLabel(label);
     const gh = githubContext();
-    const phaseKey = `${gh.runId || "local"}-${gh.runAttempt || 1}-${label}`;
-    if (session.phases.some((p) => p.phaseKey === phaseKey)) {
+    const phaseKey = `${gh.runId || 'local'}-${gh.runAttempt || 1}-${label}`;
+    if (session.phases.some(p => p.phaseKey === phaseKey)) {
       log(`  metrics: skip duplicate phase ${phaseKey}`);
       discardMetricsWorkingTree();
       return;
@@ -657,13 +685,13 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
         id: agentId,
         runId,
         url: agentUrl || null,
-        model: ctx.model,
+        model: ctx.model
       },
       github: gh,
       tokens,
-      tokensSource: "cursor-api",
-      result: String(result || "").slice(0, 500),
-      outcome: outcome || inferOutcome(result),
+      tokensSource: 'cursor-api',
+      result: String(result || '').slice(0, 500),
+      outcome: outcome || inferOutcome(result)
     };
 
     session.phases.push(phase);
@@ -671,10 +699,10 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
     writeJson(sessionPath(), session);
     touchIndex(session);
     commitMetrics(
-      `chore(metrics): ${meta.type}${meta.batchSteps?.length ? ` ${meta.batchSteps.join(",")}` : ""} · ${sessionId.slice(0, 8)}`,
+      `chore(metrics): ${meta.type}${meta.batchSteps?.length ? ` ${meta.batchSteps.join(',')}` : ''} · ${sessionId.slice(0, 8)}`
     );
     log(
-      `  metrics: ${meta.type} recorded — tokens total=${tokens.total} duration=${Math.round(durationMs / 1000)}s`,
+      `  metrics: ${meta.type} recorded — tokens total=${tokens.total} duration=${Math.round(durationMs / 1000)}s`
     );
   }
 
@@ -686,7 +714,7 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
       return;
     }
     session.status = status;
-    if (status === "completed" || status === "failed" || status === "cancelled") {
+    if (status === 'completed' || status === 'failed' || status === 'cancelled') {
       session.completedAt = new Date().toISOString();
     }
     recomputeTotals(session);
@@ -704,12 +732,12 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
     recordPhase,
     setSessionStatus,
     getSessionId,
-    sessionId: () => sessionId,
+    sessionId: () => sessionId
   };
 }
 
 export function resolveSessionId(raw) {
-  const trimmed = (raw || "").trim();
+  const trimmed = (raw || '').trim();
   if (trimmed) {
     if (!UUID_RE.test(trimmed)) {
       throw new Error(`Invalid SESSION_ID (expected UUID v4): ${trimmed}`);
@@ -720,11 +748,11 @@ export function resolveSessionId(raw) {
 }
 
 export function parseRoadmapStepId(title, taskPrompt) {
-  const t = (title || "").trim();
+  const t = (title || '').trim();
   const fromTitle = t.match(/(?:step\s+)?(\d+\.\d+(?:\.\d+[a-z]?)?)/i);
   if (fromTitle) return fromTitle[1].toLowerCase();
 
-  const base = basename(taskPrompt || "").replace(/\.md$/i, "");
+  const base = basename(taskPrompt || '').replace(/\.md$/i, '');
   const three = base.match(/^PROMPT_(\d+)_(\d+)_(\d+[a-z]?)_/i);
   if (three) return `${three[1]}.${three[2]}.${three[3]}`.toLowerCase();
 
@@ -735,7 +763,7 @@ export function parseRoadmapStepId(title, taskPrompt) {
   // (e.g. AGENT_PROMPT_AUDIT_STEP_2_1 or ..._STEP_2_1_3). Without this, audits — which usually pass
   // no title and don't follow the PROMPT_X_Y_ convention — fall into the shared "unknown" bucket.
   const step = base.match(/STEP_(\d+)_(\d+)(?:_(\d+[a-z]?))?/i);
-  if (step) return [step[1], step[2], step[3]].filter(Boolean).join(".").toLowerCase();
+  if (step) return [step[1], step[2], step[3]].filter(Boolean).join('.').toLowerCase();
 
   return null;
 }
@@ -743,21 +771,26 @@ export function parseRoadmapStepId(title, taskPrompt) {
 export function parsePhaseLabel(label) {
   const retry = label.match(/\(retry (\d+)\)/i);
   const attempt = retry ? Number(retry[1]) : 0;
-  const base = label.replace(/\s*\(retry \d+\)/i, "").trim();
-  if (base.startsWith("EXECUTE")) {
-    const rest = base.replace(/^EXECUTE\s*/i, "").trim();
-    const batchSteps = rest ? rest.split(",").map((s) => Number(s.trim())).filter((n) => !Number.isNaN(n)) : [];
-    return { type: "EXECUTE", batchSteps, attempt };
+  const base = label.replace(/\s*\(retry \d+\)/i, '').trim();
+  if (base.startsWith('EXECUTE')) {
+    const rest = base.replace(/^EXECUTE\s*/i, '').trim();
+    const batchSteps = rest
+      ? rest
+          .split(',')
+          .map(s => Number(s.trim()))
+          .filter(n => !Number.isNaN(n))
+      : [];
+    return { type: 'EXECUTE', batchSteps, attempt };
   }
-  if (base === "PLAN") return { type: "PLAN", batchSteps: null, attempt };
-  if (base === "FINALIZE") return { type: "FINALIZE", batchSteps: null, attempt };
+  if (base === 'PLAN') return { type: 'PLAN', batchSteps: null, attempt };
+  if (base === 'FINALIZE') return { type: 'FINALIZE', batchSteps: null, attempt };
   return { type: base, batchSteps: null, attempt };
 }
 
 function inferOutcome(result) {
-  const text = String(result || "");
-  if (text.startsWith("ESCALATE")) return "escalate";
-  if (/^Plan ready:/i.test(text) || /^Finalized\b/i.test(text)) return "success";
-  if (/^Step \d+ done:/i.test(text)) return "success";
-  return "success";
+  const text = String(result || '');
+  if (text.startsWith('ESCALATE')) return 'escalate';
+  if (/^Plan ready:/i.test(text) || /^Finalized\b/i.test(text)) return 'success';
+  if (/^Step \d+ done:/i.test(text)) return 'success';
+  return 'success';
 }

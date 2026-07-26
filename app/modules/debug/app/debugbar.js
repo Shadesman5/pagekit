@@ -24,8 +24,8 @@ Debugbar.component('Log', Log);
 Debugbar.component('Profile', Profile);
 
 Vue.ready(() => {
-    const debugbar = new Debugbar().$mount();
-    UIkit.util.append(UIkit.util.$('body'), debugbar.$el);
+  const debugbar = new Debugbar().$mount();
+  UIkit.util.append(UIkit.util.$('body'), debugbar.$el);
 });
 
 export default Debugbar;

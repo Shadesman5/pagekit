@@ -1,24 +1,27 @@
+# Prettier owns the JavaScript and Vue sources; everything else keeps its current
+# shape. Prettier 3 also reads .gitignore by default, so build output stays out.
+
 # Markdown / Cursor rules — no Prettier (Cursor renders MD natively; preserve source as-is)
 *.md
 *.mdc
 
-# Ignore compiled/bundled files
-app/bundle/
-app/assets/
+# Styles feed the LESS/CSS build, markup is imported verbatim by the bundles, and the
+# data/config files are either generated (CLDR, language packs, metrics) or hand-tuned
+# around external contracts (workflow job names, Prettier's own options).
+*.less
+*.css
+*.html
+*.json
+*.yml
+*.yaml
+.prettierrc
+
+# Compiled, bundled and vendored sources — same set the ESLint config ignores.
+**/assets/
+**/bundle/
+**/vendor/
+node_modules/
+packages/composer/
 storage/
 tmp/
-packages/*/app/bundle/
-
-# Ignore dependencies
-node_modules/
-vendor/
-packages/composer/
-
-# Ignore build artifacts
 *.min.js
-*.min.css
-
-# Ignore lock files
-package-lock.json
-pnpm-lock.yaml
-composer.lock

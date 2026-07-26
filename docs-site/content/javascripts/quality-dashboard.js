@@ -27,10 +27,10 @@
   const CHART_JS_URL = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
 
   const SERIES = [
-    { key: 'coverage', label: 'Line coverage %', pick: (p) => p.coverage?.linePercent },
-    { key: 'msi', label: 'Infection MSI % (full)', pick: (p) => p.infection?.msi },
-    { key: 'tests', label: 'PHPUnit tests', pick: (p) => p.phpunit?.tests },
-    { key: 'debt', label: 'PHPStan suppressed errors', pick: (p) => p.phpstan?.suppressedErrors }
+    { key: 'coverage', label: 'Line coverage %', pick: p => p.coverage?.linePercent },
+    { key: 'msi', label: 'Infection MSI % (full)', pick: p => p.infection?.msi },
+    { key: 'tests', label: 'PHPUnit tests', pick: p => p.phpunit?.tests },
+    { key: 'debt', label: 'PHPStan suppressed errors', pick: p => p.phpstan?.suppressedErrors }
   ];
 
   function el(tag, className, text) {
@@ -60,7 +60,12 @@
     }
   }
 
-  const DB_LABELS = { sqlite: 'SQLite', mysql: 'MySQL', pgsql: 'PostgreSQL', postgres: 'PostgreSQL' };
+  const DB_LABELS = {
+    sqlite: 'SQLite',
+    mysql: 'MySQL',
+    pgsql: 'PostgreSQL',
+    postgres: 'PostgreSQL'
+  };
 
   function dbLabel(db) {
     if (!db) return '—';
@@ -78,7 +83,11 @@
         return [label, '⚪', leg.conclusion ? `${leg.conclusion} · non-blocking` : 'non-blocking'];
       }
       if (leg.tests == null) return [label, 'ℹ️', '—'];
-      return [label, leg.failures === 0 ? '✅' : '❌', `${leg.tests} tests · ${leg.failures} failures`];
+      return [
+        label,
+        leg.failures === 0 ? '✅' : '❌',
+        `${leg.tests} tests · ${leg.failures} failures`
+      ];
     });
   }
 
@@ -95,8 +104,13 @@
     if (full.killed != null) detail.push(`${full.killed} killed`);
     if (full.escaped != null) detail.push(`${full.escaped} escaped`);
 
-    const meetsThreshold = full.msi >= MSI_THRESHOLD && (full.coveredMsi ?? full.msi) >= MSI_THRESHOLD;
-    return [label, meetsThreshold ? '✅' : '❌', `${detail.join(' · ')} @ ${formatDate(full.runAt)}`];
+    const meetsThreshold =
+      full.msi >= MSI_THRESHOLD && (full.coveredMsi ?? full.msi) >= MSI_THRESHOLD;
+    return [
+      label,
+      meetsThreshold ? '✅' : '❌',
+      `${detail.join(' · ')} @ ${formatDate(full.runAt)}`
+    ];
   }
 
   async function fetchJson(candidates) {
@@ -104,7 +118,7 @@
       try {
         const res = await fetch(url, { cache: 'no-store' });
         if (res.ok) return await res.json();
-      } catch (_) {
+      } catch {
         /* try next candidate */
       }
     }
@@ -130,7 +144,7 @@
     const table = el('table', 'quality-table');
     const thead = el('thead');
     const headRow = el('tr');
-    ['Check', 'Result', 'Details'].forEach((h) => headRow.appendChild(el('th', null, h)));
+    ['Check', 'Result', 'Details'].forEach(h => headRow.appendChild(el('th', null, h)));
     thead.appendChild(headRow);
     table.appendChild(thead);
 
@@ -162,7 +176,11 @@
       infectionRow(data.infection?.dailyFull),
       ['CS-Fixer', gateIcon(data.gates?.csFixer), data.gates?.csFixer || '—'],
       ['Security audit', gateIcon(data.gates?.securityAudit), data.gates?.securityAudit || '—'],
-      ['Frontend (lint/build)', gateIcon(data.gates?.frontendLint), data.gates?.frontendLint || '—'],
+      [
+        'Frontend (lint/build)',
+        gateIcon(data.gates?.frontendLint),
+        data.gates?.frontendLint || '—'
+      ],
       ['Codecov', gateIcon(data.gates?.codecov), data.gates?.codecov || '—']
     ];
 
@@ -196,9 +214,7 @@
   }
 
   function seriesPoints(points, pick) {
-    return points
-      .map((p) => ({ x: p.at, y: pick(p) }))
-      .filter((p) => p.y != null);
+    return points.map(p => ({ x: p.at, y: pick(p) })).filter(p => p.y != null);
   }
 
   function renderChart(Chart, container, series, points) {
@@ -216,11 +232,11 @@
     new Chart(canvas, {
       type: 'line',
       data: {
-        labels: data.map((p) => new Date(p.x).toISOString().slice(0, 10)),
+        labels: data.map(p => new Date(p.x).toISOString().slice(0, 10)),
         datasets: [
           {
             label: series.label,
-            data: data.map((p) => p.y),
+            data: data.map(p => p.y),
             borderColor: '#3f51b5',
             backgroundColor: 'rgba(63, 81, 181, 0.12)',
             borderWidth: 2,
@@ -250,7 +266,11 @@
     const grid = el('div', 'quality-charts');
     section.appendChild(grid);
     section.appendChild(
-      el('p', 'quality-foot', `${points.length} collected data points · appended only when a metric changes`)
+      el(
+        'p',
+        'quality-foot',
+        `${points.length} collected data points · appended only when a metric changes`
+      )
     );
     root.appendChild(section);
 
@@ -261,7 +281,7 @@
       grid.appendChild(el('p', 'quality-error', e.message));
       return;
     }
-    SERIES.forEach((series) => renderChart(Chart, grid, series, points));
+    SERIES.forEach(series => renderChart(Chart, grid, series, points));
   }
 
   function renderError(message) {
@@ -278,7 +298,9 @@
       fetchJson(HISTORY_CANDIDATES)
     ]);
     if (!data) {
-      renderError('Could not load quality-snapshot.json. Check deploy workflow or local preview setup.');
+      renderError(
+        'Could not load quality-snapshot.json. Check deploy workflow or local preview setup.'
+      );
       return;
     }
     renderTable(data);

@@ -1,26 +1,24 @@
 const Info = {
+  name: 'info',
 
-    name: 'info',
+  el: '#info',
 
-    el: '#info',
+  mixins: [Theme.Mixins.Helper],
 
-    mixins: [Theme.Mixins.Helper],
+  data: { info: window.$info },
 
-    data: { info: window.$info },
+  theme: {
+    hideEls: ['.pk-width-content li > h2']
+  },
 
-    theme: {
-        hideEls: ['.pk-width-content li > h2']
+  computed: {
+    VueVersion() {
+      return window.Vue ? Vue.version : '-';
     },
-
-    computed: {
-        VueVersion() {
-            return window.Vue ? Vue.version : '-';
-        },
-        UIkitVersion() {
-            return window.UIkit ? UIkit.version : '-';
-        }
+    UIkitVersion() {
+      return window.UIkit ? UIkit.version : '-';
     }
-
+  }
 };
 
 export default Info;

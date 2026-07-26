@@ -57,7 +57,7 @@ function findModules() {
             .replace(/^\.?\//, '');
           modules.push(normalized);
         });
-    } catch (e) {
+    } catch {
       // Pattern not found
     }
   });
@@ -89,7 +89,7 @@ function parseModuleRoutes(indexPath) {
     }
 
     return routes;
-  } catch (e) {
+  } catch {
     return [];
   }
 }
@@ -139,7 +139,7 @@ function findFormsInViews(modulePath) {
         }
       }
     });
-  } catch (e) {
+  } catch {
     // Views folder not found
   }
 
@@ -195,11 +195,11 @@ function findVueComponents() {
             });
           }
         }
-      } catch (e) {
+      } catch {
         // File read error
       }
     });
-  } catch (e) {
+  } catch {
     // Find command failed
   }
 
