@@ -246,19 +246,36 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 ---
 
+## Step 2.4.1: Webroot Modernization — Adopt `public/`
+
+- **Depends on**: Step 2.4 (Vite/pnpm asset build) — this step targets the final build-output paths directly, so it must land first.
+- **Goal**: Move the web-servable surface to a dedicated `public/` directory (the Symfony/Laravel convention) so that `app/`, `config.php`, `tmp/`, `vendor/`, and the non-public parts of `storage/` become **structurally** unreachable over HTTP — not just denied by `.htaccess` pattern-matching.
+- **Why now (not later, and independent of the webserver engine)**: Step 2.4 already rewrites every asset-output path in the repository (17 module build configs); targeting `public/` directly from that rewrite is one pass instead of two. The webroot **layout** is independent of the webserver/runtime **engine** (Apache today; FrankenPHP is the Step 4.12 candidate) — `public/` works fine under Apache, exactly like it does for every Symfony/Laravel app on shared hosting today. Modern hosting panels (IONOS, most Plesk-based hosts) let you point the document root at a subdirectory directly; hosts that do not offer that setting still work via the well-established root-`.htaccess` rewrite fallback (`RewriteRule ^(.*)$ public/$1`). This does **not** narrow hosting compatibility.
+- **What**:
+  - **`public/index.php`** becomes the sole front controller — thin: resolve the app root one level up (`dirname(__DIR__)`), delegate to the existing `app/$env/app.php` boot chain unchanged.
+  - **Build outputs land in `public/`**: Vite JS/CSS bundles, vendor asset copies (UIkit, TinyMCE, …), theme CSS — update the Step 2.4 build config's output targets accordingly (coordinate with 2.4 if it has not fully landed yet).
+  - **`storage/` uploads**: expose only the public subset via a symlink (`public/storage → ../storage/...`, mirroring Laravel's `storage:link` convention) — never the whole `storage/` tree.
+  - **`.htaccess` split**: move the front-controller rewrite + security headers (HSTS, X-Frame-Options, Permissions-Policy, COOP/CORP — CSP stays here until Step 3.2.1 moves it to a PHP `ResponseListener`) into `public/.htaccess`. Add a minimal root `.htaccess` with the `RewriteRule ^(.*)$ public/$1 [L,QSA]` fallback for hosts that cannot repoint their document root. Delete the now-structurally-redundant `<FilesMatch>` deny rules for files that simply no longer exist inside `public/`.
+  - **Installer & self-updater**: audit `app/installer/` and any path assumption tied to `__DIR__` being the servable root; update to the new `public/` + app-root split.
+  - **Docs**: `README.md` "Manual Installation" gets a "Shared hosting" subsection documenting both paths (document-root change vs. root-`.htaccess` fallback) — the counterpart to the zip-artefact side of the same story in Step 2.8.
+- **Out of scope**: Changing the webserver/runtime engine — stays Apache here; the Apache-vs-FrankenPHP-vs-nginx+PHP-FPM decision is Step 4.12. This step is layout-only.
+- **Risk**: Medium — touches the front controller and every static-asset path; mitigated by Step 2.4 having just rewritten those paths, and by full PHPUnit/PHPStan/Playwright E2E green as the gate.
+
+---
+
 ## Step 2.5: Docker Production Image & Deploy
 
-- **Depends on**: Step 2.4 (Vite asset build) and Step 2.2 (CI for image build/scan/push).
+- **Depends on**: Step 2.4.1 (`public/` webroot) and Step 2.2 (CI for image build/scan/push).
 - **Goal**: A small, hardened, immutable production image + a dedicated prod compose + image build/scan/push in CI.
 - **What**:
   - **Multi-stage**: Composer `--no-dev --optimize-autoloader --classmap-authoritative`; Vite asset build (pnpm); minimal runtime stage carrying only built artefacts.
   - **Hardening**: non-root user; prod `php.ini` (`display_errors=Off`, `opcache.validate_timestamps=0`); `docker-compose.prod.yml` with restart policy and resource limits.
-  - **Webserver**: decide nginx + PHP-FPM vs. Apache vs. FrankenPHP (spike) — the driver is the cost of porting the root `.htaccess` (CSP, security headers, file protection, front-controller rewrites).
-  - **Webroot**: DocumentRoot is the repo root (no `public/`) — the image must ensure `app/`, `storage/`, `config.php`, `tmp/` are never served.
+  - **Webserver**: stays **Apache**, matching the proven Step 2.3 dev baseline — the nginx + PHP-FPM vs. FrankenPHP evaluation is a deliberately separate decision, deferred to **Step 4.12** (informed by CSP moving to PHP middleware in 3.2.1 and by proven container orchestration in 4.11). No spike in this step.
+  - **Webroot**: builds on the `public/`-only webroot already established by Step 2.4.1 — the image must ensure `app/`, `config.php`, `tmp/`, and anything outside `public/` are never served.
   - **Config & secrets (12-factor)**: read config, DB credentials, and secrets from env vars; `config.php` stays the default and env overrides it — lightweight, no Symfony secrets-vault. Never bake secrets into the image; env / secret-store only.
   - **First consumer**: move the hardcoded OpenWeatherMap API key in `app/system/modules/dashboard/index.php` onto that env path and rotate the committed key (in-code tag `AUDIT FIX Step 2.5`).
   - **CI**: Hadolint + Trivy + build & push to GHCR; container `HEALTHCHECK` (HTTP/TCP). Optional Redis for cache/session.
-- **Out of scope**: Kubernetes/Helm, liveness/readiness probes, HPA, Ingress, PVCs, multi-replica → Step 4.11 (needs the 4.6 health endpoints and a shared-state decision for `storage/` / `tmp/`).
+- **Out of scope**: Kubernetes/Helm, liveness/readiness probes, HPA, Ingress, PVCs, multi-replica → Step 4.11 (needs the 4.6 health endpoints and a shared-state decision for `storage/` / `tmp/`). Webserver/runtime engine modernization → Step 4.12.
 - **Risk**: Medium.
 
 ---
@@ -302,6 +319,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Why**: Long-term maintainability without manual release friction.
 - **Priority**: High
 - **Release automation (from Step 2.2)**: the CI side of the release — publish tags / GitHub releases and the machine-readable release metadata the updater consumes, so a version bump ends in a real release feed instead of a manual upload. Step 2.2 built quality gates only and left release hooks unrouted.
+- **Two distribution artifacts, one build, one webroot layout (no forked app code)**: since Step 2.4.1, both artifacts ship the **identical `public/`-webroot layout** — (1) **classic tarball/zip**: `composer install --no-dev --optimize-autoloader` + Vite build (`pnpm build`, post-2.4) output, zipped as-is, ready to unzip onto any Apache/PHP-FPM shared host — document root pointed at `public/` (most modern panels, incl. IONOS) or the root-`.htaccess` rewrite fallback from 2.4.1 for hosts that lock the document root. This stays the **default, widest-reach** distribution — today it is still a manual, undocumented step; CI-building it and attaching it to GitHub Releases is core scope here. (2) **container image** (Step 2.5, later Step 4.12 for the runtime-engine swap): the identical build, with `public/` copied into the image the same way. Both come from the same source tree, the same build commands, and now the same webroot layout — packaging is the only difference.
 - **Context**: `migration-docs/TODO/features/AUTOMATED_UPDATE_SYSTEM.md`
 
 ---

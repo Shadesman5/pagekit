@@ -106,6 +106,7 @@
 | 2.2    | CI/CD Pipeline                        | ✅     | 🛡️    | #157  | #240    |
 | 2.3    | Docker Dev Experience & Image Hygiene | ✅     | 🛡️    | #241  | #242    |
 | 2.4    | Build Tools (pnpm + Vite)             | ⏳     | ⏳    | #159  | -       |
+| 2.4.1  | ↳ Webroot Modernization (public/)     | ⏳     | ⏳    | #243  | -       |
 | 2.5    | Docker Production Image & Deploy      | ⏳     | ⏳    | #158  | -       |
 | 2.6    | Filesystem Write Resilience           | ⏳     | ⏳    | -     | -       |
 | 2.7    | Extension Safety System               | ⏳     | ⏳    | #160  | -       |
@@ -142,6 +143,7 @@
 | 4.9    | ↳ Cross-Repo Dev Dashboard            | ⏳     | ⏳    | -     | -       |
 | 4.10   | Cookie Consent & Privacy Baseline     | ⏳     | ⏳    | -     | -       |
 | 4.11   | Container Orchestration & Deployment  | ⏳     | ⏳    | -     | -       |
+| 4.12   | Production Web Arch (FrankenPHP)      | ⏳     | ⏳    | -     | -       |
 | 5.0    | Sub-Extension Platform                | ⏳     | ⏳    | -     | -       |
 | 5.1    | Modern Block Editor                   | ⏳     | ⏳    | -     | -       |
 | 5.2    | Advanced Security                     | ⏳     | ⏳    | -     | -       |
