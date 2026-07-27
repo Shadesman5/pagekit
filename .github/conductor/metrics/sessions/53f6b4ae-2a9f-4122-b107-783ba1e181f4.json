@@ -9,21 +9,38 @@
   "branch": "feature/webroot-modernization",
   "model": "grok-4.5",
   "status": "in_progress",
-  "startedAt": "2026-07-27T17:05:28.915Z",
-  "completedAt": null,
+  "startedAt": "2026-07-27T17:05:34.400Z",
+  "completedAt": "2026-07-27T17:36:17.702Z",
   "phases": [
     {
       "phaseKey": "30287665660-1-PLAN",
       "type": "PLAN",
       "attempt": 0,
       "batchSteps": null,
-      "startedAt": "2026-07-27T17:05:32.527Z",
-      "durationMs": 1859057,
+      "startedAt": "2026-07-27T17:05:34.400Z",
+      "durationMs": 1840534,
       "agent": {
         "id": "bc-e9017011-73b9-4d2e-abf4-9c4308cd98d2",
         "runId": "run-0af96445-6215-4973-b054-4dd713e4eda4",
         "url": "https://cursor.com/agents/bc-e9017011-73b9-4d2e-abf4-9c4308cd98d2",
-        "model": "grok-4.5"
+        "model": "grok-4.5",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-0af96445-6215-4973-b054-4dd713e4eda4",
+            "index": 1,
+            "startedAt": "2026-07-27T17:05:34.400Z",
+            "completedAt": "2026-07-27T17:36:17.702Z",
+            "durationMs": 1840534,
+            "tokens": {
+              "input": 74662,
+              "output": 116792,
+              "cacheRead": 6884346,
+              "cacheWrite": 444885,
+              "total": 7520685
+            }
+          }
+        ]
       },
       "github": {
         "runId": 30287665660,
@@ -41,7 +58,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "Plan ready: migration-docs/tickets/active/PROMPT_2_4_1_Webroot-Modernization_plan.md",
-      "outcome": "success"
+      "outcome": "success",
+      "completedAt": "2026-07-27T17:36:17.702Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -52,7 +71,7 @@
       "cacheWrite": 444885,
       "total": 7520685
     },
-    "durationMs": 1859057,
+    "durationMs": 1840534,
     "phaseCount": 1,
     "escalations": 0,
     "ghaJobs": 1,
