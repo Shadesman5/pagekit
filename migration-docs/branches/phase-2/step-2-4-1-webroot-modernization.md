@@ -97,6 +97,17 @@ Tests: none (test-writer: skip — Apache config only). Gates: Verifier PASS. Te
 
 Tests: `test-writer` runs — new `StorageLinkTest` (link creation; survives a moved installation via the relative target; idempotent re-`ensure()`; an existing directory or a link already pointing nowhere is left in place rather than replaced; storage nested inside vs. outside the application root, including a sibling directory that merely shares the root's name as a prefix; trailing-slash-insensitive paths; the by-hand `ln -s` command a blocked target yields) and `InstallerStorageLinkTest` (`Installer::linkStorage()` through an anonymous subclass exposing the protected method — a successful link logs nothing, an unlinkable storage path logs the warning and leaves `public/` empty). Gates: Verifier — production PASS; tests PASS. Tester — PHPUnit + PHPStan PASS (production and after tests).
 
+### Docs sweep — README + AGENTS.md (Checklist Step 7)
+
+| File | Change |
+|---|---|
+| `README.md` | Manual Installation renarrated for the `public/` docroot: step 3 (`pnpm build`) gains a note that the build fills `public/` and a fresh checkout has nothing to serve until it runs; step 4 ("Set up web server") replaces the old generic Apache/Nginx/permissions bullets with `DocumentRoot`/`root` + `try_files` snippets, a shared-hosting subsection (root `.htaccess`'s unconditional rewrite as the fallback when a fixed docroot can't be moved), and a media-library-link subsection (manual `ln -s ../storage public/storage`, plus the rule for relinking a custom `system/finder.storage` path); new step 5 ("Install Pagekit") documents the web installer, the CLI `setup` command, and `php pagekit start` as the built-in-server dev command wrapping `-t public public/index.php`. Development section's `pnpm build`/`build:assets` one-liners reworded to name `public/` and the storage link. |
+| `AGENTS.md` | Services table: PHP dev server command → `php -S localhost:8080 -t public public/index.php`; frontend-build note calls out output landing in `public/`. Router-file caveat rewritten to cover the docroot as a whole (front controller, `.htaccess` and the storage symlink live in `public/`; everything else there is gitignored build output; sources/`config.php`/`tmp/` stay outside it) rather than just the router-file requirement. Writable-dirs caveat gains the storage-symlink note (recreate with `ln -s ../storage public/storage` if uploads 404). `php pagekit start` caveat's wrapped command updated to `-t public public/index.php`, correcting the documented bind address to the command's actual `127.0.0.1:8080` default (was stated as `0.0.0.0:8080`). |
+
+`tests/e2e/README.md` needed no change — it already names `php pagekit start`, not a root-`index.php` invocation.
+
+Tests: none (test-writer: skip — docs only). Gates: Verifier PASS. Tester — PHPUnit PASS, PHPStan PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
