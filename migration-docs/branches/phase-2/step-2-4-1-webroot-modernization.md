@@ -75,6 +75,16 @@ Tests: `test-writer` runs — new `FileAdapterTest` (mount-matching, boundary-sa
 
 Tests: none (test-writer: skip — front controller + exec-string command has no testable seam; behavior is covered by the curl smoke + E2E per the ticket's testing strategy). Gates: Verifier — production PASS. Tester — PHPUnit PASS, PHPStan PASS.
 
+### `.htaccess` split + Docker dev vhost (Checklist Step 5)
+
+| File | Change |
+|---|---|
+| `public/.htaccess` (new) | Carries the security headers (HSTS, X-Content-Type-Options, X-XSS-Protection, X-Frame-Options, Referrer-Policy, Permissions-Policy, CSP, COOP/CORP), `X-Powered-By` unset, cookie-edit, www/HTTPS redirects, front-controller rewrite, `SetEnv HTTP_MOD_REWRITE` + header fallback, `RedirectMatch` admin fallback, mime/SVG, deflate and expires rules verbatim from the old root `.htaccess`; adds the storage PHP-execution deny (`RewriteRule ^storage/.*\.php$ - [F,NC]`, decision 6) ahead of the front-controller rewrite; keeps only `Options -Indexes` plus a self-referencing `.htaccess` deny — the old `<FilesMatch>` denials for `.lock/.cache/.db/composer.json/package.json/pnpm-*/CHANGELOG/README/pagekit` and the `.htaccess|.htpasswd|.ini|.log|.sh|.inc|.bak`/backup-file classes are not carried over. |
+| `.htaccess` | Cut from the full rule set (205 lines) to the shared-hosting fallback only: `RewriteEngine On` + unconditional `RewriteRule ^(.*)$ public/$1 [L,QSA]` — every request, including for files that used to live at the root (`config.php`, `app/`), is forwarded into `public/` and 404s there once `public/.htaccess` takes over. |
+| `Dockerfile` | Dev vhost `DocumentRoot`/`<Directory>` repointed from `/var/www/html` to `/var/www/html/public`; the `<Directory>` block gains `+FollowSymLinks`, needed for Apache to traverse the `public/storage` symlink (decision 6). |
+
+Tests: none (test-writer: skip — Apache config only). Gates: Verifier PASS. Tester — PHPUnit PASS, PHPStan PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -101,6 +111,7 @@ _TBD / None_
 
 - **File-to-URL resolution is now allow-listed by mount, not approot-wide (Checklist Step 3).** `FileAdapter` previously mapped every path under the application root to a URL; it now only does so for a path under an explicit mount (`path.public`, `path.storage`) — `config.php`, `app/system/config.php`, `composer.json`, and everything else outside both mounts get no `url` regardless of what calls `getUrl()`/`getStatic()` on them, and mount matching is segment-boundary-safe (a sibling directory merely sharing a mount's name as a prefix does not match). Covered by `FileAdapterTest`.
 - **Mount allow-listing now gates live HTTP requests, not just code-level `getUrl()`/`getStatic()` calls (Checklist Step 4).** Before this step the front controller still ran from the application root, so no live request could reach the app at all; with `public/` as the docroot, everything outside `path.public`/`path.storage` — `config.php`, `app/system/config.php`, `composer.json`, `.git`, `tmp/` — sits outside the webroot entirely rather than merely outside a URL allow-list.
+- **Storage media library gets a defense-in-depth PHP-execution deny (Checklist Step 5).** `public/.htaccess` adds `RewriteRule ^storage/.*\.php$ - [F,NC]` ahead of the front-controller rewrite — `storage/` is the only admin-writable served path (finder uploads are already extension-allowlisted), so a bypass of that allowlist still cannot get a `.php` file executed there.
 
 ---
 
@@ -109,6 +120,7 @@ _TBD / None_
 - **Rule 4 (Delete over wrap) — Checklist Step 2.** `packages/pagekit/theme-one/css/theme.css`'s tracked compiled copy is untracked outright rather than kept as a committed fallback beside the new `public/`-only build output (decision 3c); the uikit-relative LESS variables (`@uikit-path`/`@image-path` and their `@internal-*-image` consumers) are deleted rather than kept as a dead alias once the imports resolve straight from `node_modules` (decision 4).
 - **Rule 4 (Delete over wrap) — Checklist Step 3.** `FileAdapter`'s single-root `$path`/`$url` mapping and `Locator`'s single-path-per-prefix registration are replaced in place by the mounts list / publish-mirror-first resolution — there is no legacy single-mount code path kept alongside the new one; a one-mount adapter is simply the one-element case of the same mechanism.
 - **Rule 4 (Delete over wrap) — Checklist Step 4.** Root `index.php` is deleted outright, not kept as a compatibility stub/redirect to `public/index.php`; the `pagekit` bin and `StartCommand`'s exec string are repointed in place rather than supporting both entry points.
+- **Rule 4 (Delete over wrap) — Checklist Step 5.** Root `.htaccess`'s `<FilesMatch>` denials for file classes that no longer exist inside the webroot (`.lock/.cache/.db/composer.json/package.json/pnpm-*/CHANGELOG/README/pagekit`, the `.htaccess|.htpasswd|.ini|.log|.sh|.inc|.bak` class, backup-file suffixes) are dropped outright rather than carried into `public/.htaccess` as dead defensive rules.
 
 ---
 

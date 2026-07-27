@@ -39,10 +39,13 @@ RUN a2enmod rewrite
 # Set working directory
 WORKDIR /var/www/html
 
-# Configure Apache
+# Configure Apache. The webroot is public/; everything else in the project stays
+# outside the document root. FollowSymLinks is required for the public/storage
+# symlink that exposes the media library.
 RUN echo '<VirtualHost *:80>\n\
-    DocumentRoot /var/www/html\n\
-    <Directory /var/www/html>\n\
+    DocumentRoot /var/www/html/public\n\
+    <Directory /var/www/html/public>\n\
+    Options -Indexes +FollowSymLinks\n\
     AllowOverride All\n\
     Require all granted\n\
     </Directory>\n\
