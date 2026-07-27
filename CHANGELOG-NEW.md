@@ -41,7 +41,7 @@
 
 ### 🔒 Security
 
-- **Dependency-audit findings drop sharply** — deleting the webpack/babel/Gulp transitive tree resolves most of what `yarn audit --level moderate` reported; remaining advisories are unrelated to build tooling (`tinymce` ~5.10.9; one low-severity `vue` ReDoS). Before/after audits at `migration-docs/branches/phase-2/step-2-4-audit-{yarn-before,pnpm-after}.txt`.
+- **Dependency-audit findings drop sharply** — deleting the webpack/babel/Gulp transitive tree resolves most of what `yarn audit --level moderate` reported; remaining advisories are unrelated to build tooling (`tinymce` ~5.10.9; one low-severity `vue` ReDoS). Before/after audits at `step-2-4-audit-{yarn-before,pnpm-after}.txt`.
 
 ---
 
