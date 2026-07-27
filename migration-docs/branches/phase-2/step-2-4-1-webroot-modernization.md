@@ -21,13 +21,13 @@ _TBD_
 
 ## ✅ What Changed
 
-### <Theme> (Checklist Steps N–M)
+### Baseline & inventory ground truth (Checklist Step 1)
 
 | File | Change |
 |---|---|
-| `path/to/file.php` | _TBD_ |
+| `migration-docs/branches/phase-2/step-2-4-1-webroot-inventory-before.txt` | New — committed inventory (1,682 lines) of today's git-ignored, build-produced served files (Vite bundles, vendor asset copies under `app/assets/`, editor asset copies, LESS-compiled CSS) via `git ls-files --others --ignored --exclude-standard`; the pre-migration ground truth for Step 8's `public/`-prefixed parity check. |
 
-_TBD_
+Tests: none (test-writer: skip — no production PHP under `app/`/`packages/`). Gates: Verifier PASS; Tester — PHPUnit PASS, PHPStan PASS.
 
 ---
 
