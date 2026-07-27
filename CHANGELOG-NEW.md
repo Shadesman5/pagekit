@@ -2,149 +2,109 @@
 
 ## Pagekit 1.2.33 - Build Tools: pnpm + Vite (July 26, 2026)
 
-### Breaking Changes
+### 💥 Breaking Changes
 
-- **Third-party JS bundle entries are no longer auto-discovered** — the deleted root `webpack.config.js` glob-scanned `{app/modules,app/installer,app/system,packages}/**/webpack.config.js` at build time, so a marketplace module or theme could ship its own bundle just by adding that file. The static entry manifest that replaces it (`scripts/bundle-entries.mjs`) enumerates only the 17 first-party module directories; a new bundle entry now needs a core-repo change to that manifest. No practical impact today — the marketplace backend (`system.api`) has been offline since 2020, so no live extension relies on the old auto-discovery.
+- **Third-party JS bundle entries are no longer auto-discovered** — the deleted root `webpack.config.js` glob-scanned `{app/modules,app/installer,app/system,packages}/**/webpack.config.js` at build time. The static entry manifest (`scripts/bundle-entries.mjs`) enumerates only the 17 first-party module directories; a new bundle entry needs a core-repo change to that manifest. Extensions and themes stay unaffected if they are PHP-only or ship prebuilt `app/bundle/*.js` in their ZIP. Source-only packages that relied on the core build to compile their sources no longer work.
 
-### Added
+### ✨ Added
 
-- **Vite JS pipeline** — a static entry manifest (`scripts/bundle-entries.mjs`, 56 entries across 17 module directories) plus a library/CLI script pair (`scripts/bundles.mjs` + `scripts/build-js.mjs`) drive one `vite build` per entry via `@vitejs/plugin-vue2`, replacing the 17 module-level `webpack.config.js` files (plus the root aggregator and `.babelrc`). Runtime contract frozen: bundle paths, the three externals (`vue`/`uikit`/`uikit-util` → `Vue`/`UIkit`/`UIkit.util`), the `@installer`/`@system` aliases, and the five IIFE globals (`Debugbar`, `Captcha`, `Editor`, `Finder`, `Links`) are all unchanged. (Closes #159)
-- **Node LESS / assets / CLDR scripts** — `scripts/styles.mjs`, `scripts/assets.mjs`, `scripts/cldr.mjs` (plus their `build-css.mjs` / `build-assets.mjs` CLI wrappers and the `build.mjs` / `watch.mjs` orchestrators) replace Gulp's `less`, `assets` and `cldr` tasks with the same output layout: 3 LESS roots (installer, system theme, and now theme-one, folding in its deleted standalone gulpfile), 7 asset-copy packages, CLDR-derived locale formats.
+- **Vite JS pipeline** — static entry manifest (`scripts/bundle-entries.mjs`, 56 entries across 17 module directories) plus `scripts/bundles.mjs` / `scripts/build-js.mjs` drive one `vite build` per entry via `@vitejs/plugin-vue2`, replacing the 17 module-level `webpack.config.js` files (plus the root aggregator and `.babelrc`). Runtime contract unchanged: bundle paths, externals (`vue`/`uikit`/`uikit-util` → `Vue`/`UIkit`/`UIkit.util`), `@installer`/`@system` aliases, and IIFE globals (`Debugbar`, `Captcha`, `Editor`, `Finder`, `Links`). (Closes #159)
+- **Node LESS / assets / CLDR scripts** — `scripts/styles.mjs`, `scripts/assets.mjs`, `scripts/cldr.mjs` (plus CLI wrappers and `build.mjs` / `watch.mjs`) replace Gulp's `less`, `assets` and `cldr` tasks with the same output layout: 3 LESS roots (installer, system theme, theme-one), 7 asset-copy packages, CLDR-derived locale formats.
 - **pnpm 11** — `packageManager` pin, `npx only-allow pnpm` preinstall guard, `pnpm-lock.yaml` + `pnpm-workspace.yaml` (`allowBuilds`: `esbuild` approved, `core-js` declined).
-- **ESLint 10 flat config** — `eslint.config.js` replaces `.eslintrc` / `.eslintignore`; ports the script-tag globals and the non-formatting custom rules, and disables two chronically-violated Vue rules centrally with an inline justification comment instead of per-file suppressions. `.git-blame-ignore-revs` records the one-time Prettier format-commit hash.
+- **ESLint 10 flat config** — `eslint.config.js` replaces `.eslintrc` / `.eslintignore`; ports script-tag globals and non-formatting custom rules; disables two chronically violated Vue rules centrally. `.git-blame-ignore-revs` records the one-time Prettier format-commit hash.
 
-### Changed
+### ♻️ Changed
 
 - **Vue 2.6.12 → 2.7.16** — `vue-template-compiler` removed from devDependencies (Vue 2.7 ships its own template compiler); README badge and prose updated.
-- **Install/build decoupled** — `pnpm install` only installs; `pnpm build` (JS + CSS + assets) is now explicit everywhere the old Yarn `install` hook used to build implicitly: all 4 CI workflows, `.cursor/install.sh`, `docker-compose.yml`'s `node` service, and the README quickstart.
-- **CI moves to pnpm; lint/format become blocking full-tree** — `frontend.yml`, `e2e.yml`, `nightly.yml`, `e2e-weekly.yml` add a commit-SHA-pinned `pnpm/action-setup` step + `cache: pnpm`; `frontend.yml`'s advisory, diff-scoped ESLint/Prettier gate becomes a full-tree blocking `pnpm lint` / `pnpm exec prettier --check .` — ending the ~13k-violation advisory limbo from Step 2.2. All 5 required job names (`frontend`, `e2e-smoke`, `e2e-merge`, `e2e-viewports`, `e2e-sweep`) stay frozen.
-- **One-shot Prettier format** — 188 `.js` / `.mjs` / `.vue` files across `app/`, `packages/`, `scripts/`, `tests/`, `.github/`, `.cursor/`, `docs-site/` reformatted to the existing `.prettierrc`; 19 now-dead inline `eslint-disable-line` suppressions removed for rules the new flat config no longer enables.
-- **Agent env / Docker / docs realigned** — `.cursor/Dockerfile`, `.cursor/install.sh`, `.cursor/modernize-helper.sh`, `AGENTS.md`, `README.md`, `docker-compose.yml`, and the affected `.cursor/rules` / skill docs scrubbed of yarn/webpack/gulp; a zero-reference grep sweep confirms nothing live remains outside allow-listed history/docs paths.
-- **`php pagekit build`** (`BuildCommand.php`) — the WIN/else `webpack` / `yarn compile-js` exec split collapses to one cross-platform call into the new Node pipeline (completeness fix below).
+- **Install/build decoupled** — `pnpm install` only installs; `pnpm build` (JS + CSS + assets) is explicit in CI workflows, `.cursor/install.sh`, `docker-compose.yml`'s `node` service, and the README quickstart.
+- **CI moves to pnpm; lint/format become blocking full-tree** — `frontend.yml`, `e2e.yml`, `nightly.yml`, `e2e-weekly.yml` use commit-SHA-pinned `pnpm/action-setup` + `cache: pnpm`; `frontend.yml` runs full-tree blocking `pnpm lint` / `pnpm exec prettier --check .`. Required job names (`frontend`, `e2e-smoke`, `e2e-merge`, `e2e-viewports`, `e2e-sweep`) stay frozen.
+- **One-shot Prettier format** — 188 `.js` / `.mjs` / `.vue` files reformatted to `.prettierrc`; 19 dead inline `eslint-disable-line` suppressions removed.
+- **Agent env / Docker / docs realigned** — `.cursor/Dockerfile`, `.cursor/install.sh`, `.cursor/modernize-helper.sh`, `AGENTS.md`, `README.md`, `docker-compose.yml`, and affected rules/skill docs scrubbed of yarn/webpack/gulp.
+- **`php pagekit build`** (`BuildCommand.php`) — one cross-platform call into the new Node pipeline (JS + CSS + assets).
 
-### Fixed
+### 🐛 Fixed
 
-- **`pnpm watch` skipped the initial CSS build and never copied the runtime assets** — `watchStyles()` now compiles once before watching; `watch.mjs` copies assets once, unwatched, before starting the styles/bundle watchers. Caught by the PR's Bugbot review.
-- **A failed first bundle build under `pnpm watch` still reported success** — `watchBundles()` now rejects startup on a failing first build and shuts down whatever watchers had already come up, instead of leaving a half-started session resident. Caught by the PR's Bugbot review.
-- **A release build (`php pagekit build`) omitted the compiled CSS and copied assets** — it called only the JS-bundle build script; it now runs the full JS + CSS + asset-copy pipeline in one call, with both stdout and stderr captured so a failure's real cause is visible. Caught by the PR's Bugbot review.
-- **`VInput`'s named export lost its compiled template under the Vite plugin** — `validation.vue` now keeps `VInput` as the default export only (`ValidationObserver` stays named); the 13 call sites that destructured it by name are updated. Caught by this ticket's own final E2E run (`installation.spec.js` timing out on the sitename field), not a pre-existing bug — the regression dated to the Vite swap earlier in this same ticket.
-- **The CLDR formats task was silently a no-op** — the ported `cldr.mjs` fixes a missing `$` in the formats-file template literal and points at the locale source the old Gulp task never actually populated (`node_modules/vue-intl/dist/locales/`); 46 `formats.json` files updated, 21 added.
-- **theme-one's compiled CSS banner carried a stray double space** — the empty, never-populated `copyright` segment in the old Gulp banner template is now dropped instead of rendered blank.
-- **theme-one's `composer.json` still excluded two already-deleted files** — `archive.exclude` no longer names `gulpfile.js` / `package.json`, both removed from the package earlier in this same ticket.
+- **`pnpm watch` skipped the initial CSS build and never copied runtime assets** — `watchStyles()` compiles once before watching; `watch.mjs` copies assets once before starting watchers.
+- **A failed first bundle build under `pnpm watch` still reported success** — `watchBundles()` rejects startup on a failing first build and shuts down started watchers.
+- **A release build (`php pagekit build`) omitted compiled CSS and copied assets** — runs the full JS + CSS + asset-copy pipeline; stdout and stderr captured on failure.
+- **`VInput`'s named export lost its compiled template under the Vite plugin** — `validation.vue` keeps `VInput` as default export only (`ValidationObserver` stays named); 13 named-destructure call sites updated.
+- **The CLDR formats task was silently a no-op** — `cldr.mjs` fixes a missing `$` in the formats-file template literal and points at `node_modules/vue-intl/dist/locales/`; 46 `formats.json` files updated, 21 added.
+- **theme-one's compiled CSS banner carried a stray double space** — empty `copyright` banner segment dropped.
+- **theme-one's `composer.json` still excluded two already-deleted files** — `archive.exclude` no longer names `gulpfile.js` / `package.json`.
 
-### Removed
+### ❌ Removed
 
 - Root + 17 module `webpack.config.js`, `.babelrc`, and the webpack/babel/`vue-loader` dependency chain.
 - `gulpfile.js` (root + theme-one), `theme-one/package.json`, `blog/package.json`, and the `gulp` / `gulp-*` / `merge-stream` / `npm-run-all` dependency chain.
 - `yarn.lock`, `app/scripts/checkYarn.js` — superseded by `pnpm-lock.yaml` and the `only-allow` preinstall guard.
 - `.eslintrc`, `.eslintignore`, and the ESLint 7 + `eslint-config-airbnb-base` + `babel-eslint` + `eslint-plugin-import` + `eslint-watch` + `eslint-webpack-plugin` lint stack.
 
-### Security
+### 🔒 Security
 
-- **Dependency-audit findings drop sharply** — deleting the webpack/babel/Gulp transitive tree resolves the great majority of what `yarn audit --level moderate` reported before this ticket. The advisories that remain afterward are unrelated to build tooling (`tinymce`, pinned `~5.10.9`, unchanged scope — tracked separately under Step 3.2.1 / Step 5.1; one low-severity `vue` ReDoS) and are outside this ticket's scope. Before/after audits committed at `migration-docs/branches/phase-2/step-2-4-audit-{yarn-before,pnpm-after}.txt`.
-
-### Deferred
-
-- Vue 2.7 Composition-API bridge trials / deprecation-warning analysis → Step 3.2.
-- `@vitejs/plugin-vue2` → `@vitejs/plugin-vue` swap + lift the Vite 7 major pin, ES-module/script-tag delivery redesign, Vite dev-server/HMR-PHP integration → Step 3.3.3.
-- vue-resource → axios, vue-event-manager → mitt, vue-intl rewrite, lodash removal → Steps 3.3.1 / 3.3.2 / 3.3.5. UIkit 3.5 → 3.21, TypeScript on the Vite pipeline → Steps 3.1 / 3.4.
-- A core-repo manifest path for future third-party bundle entries, if extension distribution is ever restored (Step 5.6).
-
-### Maintainer action
-
-- Ruleset "Protect for Develop-Branch": confirm `frontend`, `e2e-smoke`, `e2e-merge`, `e2e-viewports`, `e2e-sweep` still report under their frozen names; realign if anything renamed despite the freeze.
-- Local dev machines: one-time `corepack enable` (or `npm install -g pnpm`), delete local `node_modules/`, run `pnpm install && pnpm build`; remove stale Yarn artifacts (global cache optional).
-- Per-clone: `git config blame.ignoreRevsFile .git-blame-ignore-revs` (format-once commit `e44e0f91573bd5f75a58ad76c9ce8398148ee696`).
-- Rebuild the cloud-agent environment snapshot so `.cursor/Dockerfile`'s pnpm change takes effect for future agents (`install.sh`'s idempotent bootstrap guard keeps cold boots self-sufficient until then).
+- **Dependency-audit findings drop sharply** — deleting the webpack/babel/Gulp transitive tree resolves most of what `yarn audit --level moderate` reported; remaining advisories are unrelated to build tooling (`tinymce` ~5.10.9; one low-severity `vue` ReDoS). Before/after audits at `migration-docs/branches/phase-2/step-2-4-audit-{yarn-before,pnpm-after}.txt`.
 
 ---
 
 ## Pagekit 1.2.32 - Docker Dev Experience & Quality Reporting v2 (July 26, 2026)
 
-### Added
+### ✨ Added
 
-- **Quality history + dashboard charts** — `quality-collect.yml` maintains `.github/quality/quality-history.json` on `quality-data`, and the dashboard plots line coverage, full Infection MSI, PHPUnit test count and PHPStan suppressed-error debt from it. Merges and nightlies fire constantly while the metrics rarely move, so a point is appended only when a watched value changes; Infection is compared only while the nightly reports, so a temporarily missing run cannot register as a change twice. Capped at 90 points, and the page degrades to the tip-only table when no history exists yet.
-- **`DRY_RUN=1` on both quality collectors** — renders the comment body / snapshot + history verdict to stdout without writing anything. `workflow_run` and `workflow_dispatch` resolve both the workflow file **and** the checked-out script from the default branch, so neither change can be observed from the PR that makes it; this is the only way to validate against live API data beforehand.
+- **Quality history + dashboard charts** — `quality-collect.yml` maintains `.github/quality/quality-history.json` on `quality-data`; dashboard plots line coverage, full Infection MSI, PHPUnit test count and PHPStan suppressed-error debt. Points append only when a watched value changes (Infection compared only while nightly reports); capped at 90 points; tip-only table when no history exists.
+- **`DRY_RUN=1` on both quality collectors** — renders comment body / snapshot + history verdict to stdout without writing; `workflow_run` / `workflow_dispatch` resolve workflow file and script from the default branch.
 
-### Changed
+### ♻️ Changed
 
-- **Dockerfile reconciliation** — root `Dockerfile` and `.cursor/Dockerfile` both slim `docker-php-ext-install` to the actually-used capability set (`pdo_mysql`, `gd`, `zip`; `pdo_sqlite`/`mbstring`/XML stay bundled in the base image) and prune apt build-deps to justified-only, with a one-line why comment on every remaining entry. The root image no longer bakes application code (`COPY . /var/www/html`, `chown`/`chmod`, `composer install --no-dev`) — the dev compose bind-mount already covers the same path; production baking returns with the Step 2.5 image. (Closes #241)
-- **`.dockerignore`** — grows from 16 to 32 entries: docs/tests/CI/agent config, report/coverage artefacts, local install files, and the Docker artefacts themselves are now excluded from the build context.
-- **Dev compose + `.env` wiring** — `docker-compose.yml` drops the dead top-level `version:` key and `profiles:` (bare `docker compose up` now actually starts MySQL); `mysql` gets a TCP healthcheck (`mysqladmin ping`) gating `web`/`phpmyadmin` via `condition: service_healthy`, replacing the MySQL-8.4-incompatible auth-plugin `command:`. `docker.env.example` → `.env.example` (dev-only header, four consumed vars); `docker-setup.sh`/`docker-setup.ps1` rewritten in lockstep to generate `.env` byte-safely (no more `sed`/`$`-escaping), with a missing-template guard.
+- **Dockerfile reconciliation** — root `Dockerfile` and `.cursor/Dockerfile` slim `docker-php-ext-install` to `pdo_mysql`, `gd`, `zip` (`pdo_sqlite`/`mbstring`/XML stay in the base image) and prune apt build-deps to justified-only. Root image no longer bakes application code — the dev compose bind-mount covers that path. (Closes #241)
+- **`.dockerignore`** — 16 → 32 entries (docs/tests/CI/agent config, report/coverage artefacts, local install files, Docker artefacts).
+- **Dev compose + `.env` wiring** — `docker-compose.yml` drops top-level `version:` and `profiles:`; `mysql` TCP healthcheck gates `web`/`phpmyadmin`; `docker.env.example` → `.env.example`; `docker-setup.sh`/`docker-setup.ps1` generate `.env` byte-safely with a missing-template guard.
 - **`docker/php/php.ini`** — drops `opcache.fast_shutdown` (removed since PHP 7.2).
-- **Docs alignment** — `README.md` Docker quickstart/sections and `AGENTS.md` Docker context rewritten to match the reconciled stack (`docker compose` v2 spelling throughout, the real extension capability set, `.env`-sourced credentials, both the MySQL and `--no-deps` SQLite start paths); `migration-docs/documentation/DOCKER.md`'s reusable content folded into README before the file is deleted.
-- **Sticky PR comment is a metrics table** — `| Metric | This PR | vs develop |`. Three reporting surfaces, three jobs: GitHub Checks own the merge verdict, the comment owns PR impact, the Pages dashboard owns branch health. The Status column and the CS-Fixer / Security / Frontend rows (which carry no number) are gone; deltas are measured against the live snapshot on `quality-data`, the same file the dashboard renders. Infection deliberately gets no numeric delta — the PR runs over the diff, the nightly over the whole source scope — and a seed/demo baseline is rejected rather than compared against invented numbers.
-- **Dashboard Infection row carries a verdict** — ✅/❌ against the `minMsi` / `minCoveredMsi` threshold of `infection.json.dist` (80), plus killed/escaped counts, instead of being permanently informational.
-- **Quality snapshot schema v2 → v3** — `infection.dailyFull` gains `killed`, `escaped`, `timedOut`, `errors` and `totalMutants`; the snapshot gains the `commit` it describes. The seed and demo files drop the `workflows.frontendTests` key the live builder never emitted.
+- **Docs alignment** — `README.md` / `AGENTS.md` Docker sections match the reconciled stack; `migration-docs/documentation/DOCKER.md` folded into README then deleted.
+- **Sticky PR comment is a metrics table** — `| Metric | This PR | vs develop |`; deltas against the live `quality-data` snapshot; Infection has no numeric delta (PR diff vs nightly full scope).
+- **Dashboard Infection row carries a verdict** — ✅/❌ against `infection.json.dist` thresholds (80), plus killed/escaped counts.
+- **Quality snapshot schema v2 → v3** — `infection.dailyFull` gains `killed`, `escaped`, `timedOut`, `errors`, `totalMutants`; snapshot gains `commit`; seed/demo drop unused `workflows.frontendTests`.
 
-### Fixed
+### 🐛 Fixed
 
-- **The PR quality comment reported no metrics at all** — `quality-report.mjs` matched gate runs against workflow *display names*, but every gate declares a custom `run-name:` and the Actions API returns that evaluated string in `workflow_runs[].name` (`"PHP Tests — PR #242 (branch)"`). Nothing ever matched, so no artifact was downloaded and every row fell back to the check-run word. Matching is now keyed on the workflow `path`.
-- **A green gate with no artifact read `pass`** — indistinguishable from the GitHub Checks directly below it, and misleading about the metric itself. A row without a number now reports *why* it is missing (`pending`, `skipped`, `—`, or `out of scope` for a diff that touched nothing in Infection's source scope).
-- **Dashboard Infection row rendered `MSI — · covered — @ —`** — the nightly full-suite MSI is the only source of that number, but `quality-collect.yml` listened to PHP Tests and E2E only, so it stayed `null` until some unrelated merge happened to collect again. Nightly is now a collect trigger, and until it reports the row says `awaiting nightly`.
+- **The PR quality comment reported no metrics** — matching keyed on workflow `path` instead of display/`run-name`.
+- **A green gate with no artifact read `pass`** — rows without a number report `pending`, `skipped`, `—`, or `out of scope`.
+- **Dashboard Infection row rendered `MSI — · covered — @ —`** — Nightly is a collect trigger; until it reports the row says `awaiting nightly`.
 
-### Removed
+### ❌ Removed
 
-- **Standalone Docker E2E stack** — `docker-compose.e2e.yml`, `scripts/e2e-start.sh`, `scripts/e2e-stop.sh`, `scripts/e2e-reset.sh`; CI and the local runner already use Playwright's own `webServer` (`php pagekit start`), never this path. Live-doc pointers (`tests/e2e/README.md`, the two `tests/e2e/*PLAN*.md` docs, the `e2e-test-architect` skill doc, two open-step task prompts) scrubbed to the Playwright-managed flow; `tests/e2e/config/test-config.example.json` realigned to `http://127.0.0.1:8080`.
-- **`docker/mysql/init/01-create-database.sql`** — the mysql image's own `MYSQL_*` env vars already create the database/user/grants; this file carried the last hardcoded `pagekit`/`pagekit` credential in the compose stack.
-- `migration-docs/documentation/DOCKER.md` (German-language duplicate of README's Docker sections, folded in above).
+- **Standalone Docker E2E stack** — `docker-compose.e2e.yml`, `scripts/e2e-start.sh`, `scripts/e2e-stop.sh`, `scripts/e2e-reset.sh`; docs/config realigned to Playwright `webServer` (`php pagekit start`) at `http://127.0.0.1:8080`.
+- **`docker/mysql/init/01-create-database.sql`** — mysql image `MYSQL_*` env vars already create database/user/grants.
+- `migration-docs/documentation/DOCKER.md`.
 
-### Security
+### 🔒 Security
 
-- **Last hardcoded DB credential removed** — MySQL credentials now come solely from a generated, gitignored `.env`, with a `${VAR:?Run ./docker-setup.sh first}` guard against a silent empty-password start. Dev-only scope; production secret handling arrives with the Step 2.5 image.
-
-### Deferred
-
-- Production/multi-stage image, hardening, prod compose, `HEALTHCHECK`, image build/scan/push, 12-factor secrets, webserver choice → Step 2.5.
-- `node` service pipeline (pnpm + Vite) → Step 2.4.
-- E2E spec repair/rework (unaffected by the Docker-path retirement above) → Step 3.6.1.
-
-### Maintainer action
-
-- On a Docker host: cold `./docker-setup.sh` → `docker compose up` (MySQL path) and `docker compose up -d --no-deps web node` (SQLite path) end-to-end; `docker compose config` against a generated `.env`.
-- `php -m` on both `php:8.5-apache`/`php:8.5-cli` to confirm the bundled-extension assumption + build both Dockerfiles (also settles the hadolint check, since neither a Docker CLI nor hadolint was available in-agent).
-- Regenerate any local `.env` via the rewritten setup scripts; remove stale local `docker.env`, `storage-e2e/`, `tmp-e2e/`.
-- Rebuild the cloud-agent environment snapshot so the `.cursor/Dockerfile` extension slimming takes effect for future agents.
-- After merge: `workflow_dispatch` **Quality Report** against an open PR and **Quality Collect**, then confirm the Pages overlay serves the enriched snapshot. The first collect writes the first history point; charts appear from the second onwards.
-- `docs-site/content/stylesheets/quality-dashboard.css` could not be extended — `.cursorignore` blocks `*.css` and its `!docs-site/content/stylesheets/*.css` whitelist is not honoured, so agents can neither read nor write it. The charts size themselves via Chart.js `aspectRatio` and need no new CSS; a grid layout stays available if the ignore rule is ever fixed.
+- **Last hardcoded DB credential removed** — MySQL credentials come from a generated, gitignored `.env` with `${VAR:?Run ./docker-setup.sh first}` guard. Dev-only scope.
 
 ---
 
 ## Pagekit 1.2.31 - CI/CD Pipeline (Juli 24, 2026)
 
-### Added
+### ✨ Added
 
 - **PHP Tests workflow** — `.github/workflows/php-tests.yml` replaces `php-quality.yml` (same required job names). PR/merge split (`cs-fixer` / `security-audit` on PR only); JUnit + PHPStan JSON artifacts; advisory `phpunit-mysql` leg (`phpunit-mysql.xml.dist` + `mysql:8.4`); PR-only `version-ssot` guard (`.github/scripts/check-version-ssot.php`). (Closes #157)
 - **Infection / Frontend / E2E PR gates** — `infection.yml` (`infection-diff`, git-diff MSI, out-of-scope early green); `frontend.yml` (blocking webpack+gulp, advisory diff-scoped ESLint/Prettier); `e2e.yml` (`e2e-smoke` on PR — opt-in via `E2E_SMOKE_PR_ENABLED`, dormant by default; `e2e-merge` on push for snapshot feed).
 - **Nightly + E2E Weekly** — `nightly.yml` (24h guard, full Infection, chromium desktop/tablet/mobile with tablet/mobile non-blocking); `e2e-weekly.yml` (dispatch-first 9-browser/viewport sweep; cron gated by `E2E_WEEKLY_ENABLED`).
 - **Quality report + live snapshot** — `quality-report.yml` sticky PR comment; `quality-collect.yml` writes schema-v2 snapshot to unprotected `quality-data`; `pages-deploy.yml` overlays it onto the docs-site dashboard.
-- **Playwright selection model** — `@ci` tags on three smoke specs; eight specs `test.describe.fixme`; env-composed projects (`PW_VIEWPORTS` / `PW_BROWSERS`); `playwright.smoke.config.js` deleted.
+- **Playwright selection model** — `@ci` tags on three smoke specs; eight specs `test.describe.fixme`; env-composed projects (`PW_VIEWPORTS` / `PW_BROWSERS`).
 
-### Changed
+### ♻️ Changed
 
-- **Quality dashboard** — dynamic PHPUnit keys (`8.5-sqlite` / `8.5-mysql`), E2E `scope` label, live data-source copy (closes 1.2.30 deferred matrix-key align).
+- **Quality dashboard** — dynamic PHPUnit keys (`8.5-sqlite` / `8.5-mysql`), E2E `scope` label, live data-source copy.
 - **Agent / branch-doc metrics discipline** — Orchestrator handoffs and Verification sections stay PASS/FAIL + links; coverage/MSI/counts live only in the sticky comment and dashboard.
 - **Finalize CI watch** — consumers use `gh pr checks … --watch` (covers all required PR gates).
 
-### Fixed
+### 🐛 Fixed
 
-- **Snapshot pairing** — `quality-snapshot.mjs` pairs PHP Tests + E2E by `head_sha`; Nightly MSI lookup scoped to the collected branch; `quality-collect` / `SNAPSHOT_BRANCH` limited to `develop` so main merges cannot overwrite the develop dashboard snapshot.
+- **Snapshot pairing** — `quality-snapshot.mjs` pairs PHP Tests + E2E by `head_sha`; Nightly MSI lookup scoped to the collected branch; `quality-collect` / `SNAPSHOT_BRANCH` limited to `develop`.
 
-### Removed
+### ❌ Removed
 
 - `.github/workflows/php-quality.yml`
 - `playwright.smoke.config.js`
-
-### Deferred
-
-- PHPUnit suite DB-portable + flip `phpunit-mysql` to required → Step 2.10.
-- Lift E2E `fixme` quarantine / viewport-robust `@ci` specs (drop non-blocking Nightly/Weekly legs), then activate + require `e2e-smoke` → Step 3.6.1.
-- Final Prettier/formatting policy → Step 2.4; Docker dev hygiene → Step 2.3; production image → Step 2.5.
-
-### Maintainer action
-
-- Ruleset "Protect for Develop-Branch": add required contexts `infection-diff` and `frontend`; add `e2e-smoke` only together with `E2E_SMOKE_PR_ENABLED=true`, since the job is skipped while the variable is unset.
-- Optionally set repo variables `E2E_SMOKE_PR_ENABLED=true` / `E2E_WEEKLY_ENABLED=true`; dispatch Nightly / E2E Weekly once post-merge to prove schedules.
 
 ---
 

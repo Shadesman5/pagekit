@@ -168,7 +168,17 @@ Tests: none (test-writer: skip — ticket-wide; this fix-loop's only PHP touch i
 
 ## ⚠️ Breaking Changes (Extensions)
 
-**Third-party JS bundle entries are no longer auto-discovered.** The deleted root `webpack.config.js` glob-scanned `{app/modules,app/installer,app/system,packages}/**/webpack.config.js` at build time, so a marketplace module or theme could ship its own bundle just by adding that file next to its sources. The Vite pipeline replaces this with a single static entry manifest (`scripts/bundle-entries.mjs`) enumerating the same 17 first-party module directories (Checklist Step 3) — a new bundle entry now requires a core-repo change to that manifest, not just a file inside the extension's own package. Practical impact today is nil: the marketplace backend (`system.api`) has been offline since 2020 (`BuildCommand.php`'s pre-existing Step 5.6 TODO), so no live extension currently relies on the old auto-discovery. Revisit if/when Step 5.6 restores extension distribution.
+**Third-party JS bundle entries are no longer auto-discovered.** The deleted root `webpack.config.js` glob-scanned `{app/modules,app/installer,app/system,packages}/**/webpack.config.js` at build time, so a module or theme could ship its own bundle just by adding that file next to its sources. The Vite pipeline replaces this with a single static entry manifest (`scripts/bundle-entries.mjs`) enumerating the same 17 first-party module directories (Checklist Step 3) — a new bundle entry now requires a core-repo change to that manifest, not just a file inside the extension's own package.
+
+Who this affects — the admin upload path (Extensions/Themes → Upload → `admin/system/package/upload` → `PackageManager`) is live and independent of the offline marketplace backend, so distributed packages do reach an installation today:
+
+| Package shape | Status after this ticket |
+|---|---|
+| PHP-only (no JS build) | Unaffected. |
+| Ships prebuilt `app/bundle/*.js` in its ZIP | Unaffected — the views' `$view->script(...)` paths resolve inside the package, no core build involved. |
+| Source-only, expecting the core build to discover its `webpack.config.js` | **Broken.** No core build step will produce its bundle, and adding one requires a core-repo change to `scripts/bundle-entries.mjs`. |
+
+Only the third row is a regression. Requiring prebuilt runtime artefacts from distributed packages, plus the author-side build/zip flow that produces them, is Step 2.8 (Extension Packaging & Prebuilt Assets).
 
 ---
 
@@ -230,7 +240,7 @@ None (no `Closes Phase 1 audit:` line in the ticket header; build-tooling scope 
 - **Steps 3.3.1 / 3.3.2 / 3.3.5** (vue-resource → axios, vue-event-manager → mitt, vue-intl rewrite, lodash removal) and **Steps 3.1 / 3.4** (UIkit 3.5 → 3.21, TypeScript on the Vite pipeline) — untouched by this ticket. *PHASE §3 already covers these — no amendment needed.*
 - **Non-goals:** Webpack 5 / Yarn Berry (both evaluated and rejected — dead branches per the Architect), TinyMCE 6+ (stays `~5.10.9`), any Vue 3 syntax, coverage floors/Infection/PHP tooling (all untouched by this ticket).
 - **Bridges:** None — every change is a delete or a direct replacement; no `TEMPORARY BRIDGE` tag landed anywhere in this ticket's diff.
-- **Follow-on from Breaking Changes above:** a future extension-distribution mechanism (Step 5.6) would need its own way to register a bundle entry, since the static `scripts/bundle-entries.mjs` manifest replaced webpack's glob-based auto-discovery.
+- **Step 2.8 (Extension Packaging & Prebuilt Assets)** — follow-on from Breaking Changes above: distributed extensions and themes must ship prebuilt `app/bundle/*.js` instead of relying on a core build step. 2.8 defines that contract and the author-side build/zip flow; Step 5.6 (Marketplace) distributes against it.
 - **Manual Work (maintainer):**
   1. Required-check sanity on the PR: confirm `frontend`, `e2e-smoke`, `e2e-merge`, `e2e-viewports`, `e2e-sweep` still report under their frozen names; realign the develop Ruleset (admin rights) if anything renamed despite the freeze.
   2. Local dev machines: one-time `corepack enable` (or `npm install -g pnpm`), delete local `node_modules/`, run `pnpm install && pnpm build`; remove stale Yarn artifacts (global cache optional).

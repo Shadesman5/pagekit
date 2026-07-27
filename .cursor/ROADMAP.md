@@ -41,7 +41,7 @@
 
 - **This table is the source of truth for execution order** — top to bottom within each phase.
 - **Completed rows (✅) are fixed history.** Open rows (⏳) may be reordered, renamed, split into `x.y` / `x.y.z`, or have their *task content* redefined. **ID = slot in the sequence, not a permanent task identity.**
-- **2.10 Closeout is not a hard phase end** — if new Phase-2 work appears, insert it *before* 2.10 (or renumber) and keep Closeout last among Phase 2.
+- **2.11 Closeout is not a hard phase end** — if new Phase-2 work appears, insert it *before* 2.11 (or renumber) and keep Closeout last among Phase 2.
 - Historical branch docs under `migration-docs/branches/` may still mention old IDs; the living ROADMAP wins. A clean Kernkit 1.0 tree comes with Step 4.7 (Rebranding).
 
 ## **📊 TRACKING TABLE**
@@ -110,12 +110,13 @@
 | 2.5    | Docker Production Image & Deploy      | ⏳     | ⏳    | #158  | -       |
 | 2.6    | Filesystem Write Resilience           | ⏳     | ⏳    | -     | -       |
 | 2.7    | Extension Safety System               | ⏳     | ⏳    | #160  | -       |
-| 2.8    | Automated Update System               | ⏳     | ⏳    | -     | -       |
-| 2.9    | **PHP 8.4+ Language & DX Hardening**  | ⏳     | ⏳    | -     | -       |
-| 2.9.1  | ↳ Property Hooks vs PropertyTrait     | ⏳     | ⏳    | -     | -       |
-| 2.9.2  | ↳ Controller FQCN Autowiring          | ⏳     | ⏳    | -     | -       |
-| 2.9.3  | ↳ Fail-Fast / control-flow hygiene    | ⏳     | ⏳    | -     | -       |
-| 2.10   | Phase 2 Closeout (Coverage/Mutation)  | ⏳     | ⏳    | -     | -       |
+| 2.8    | Extension Packaging & Prebuilt Assets | ⏳     | ⏳    | -     | -       |
+| 2.9    | Automated Update System               | ⏳     | ⏳    | -     | -       |
+| 2.10   | **PHP 8.4+ Language & DX Hardening**  | ⏳     | ⏳    | -     | -       |
+| 2.10.1 | ↳ Property Hooks vs PropertyTrait     | ⏳     | ⏳    | -     | -       |
+| 2.10.2 | ↳ Controller FQCN Autowiring          | ⏳     | ⏳    | -     | -       |
+| 2.10.3 | ↳ Fail-Fast / control-flow hygiene    | ⏳     | ⏳    | -     | -       |
+| 2.11   | Phase 2 Closeout (Coverage/Mutation)  | ⏳     | ⏳    | -     | -       |
 | 3.1    | UIkit Update                          | ⏳     | ⏳    | -     | -       |
 | 3.2    | Vue 2.7 Bridge                        | ⏳     | ⏳    | -     | -       |
 | 3.2.1  | ↳ Template Pre-compilation (CSP)      | ⏳ 20% | ⏳    | -     | -       |
@@ -152,7 +153,8 @@
 | 5.4    | Advanced CMS Features                 | ⏳     | ⏳    | -     | -       |
 | 5.5    | Enterprise Features                   | ⏳     | ⏳    | -     | -       |
 | 5.6    | Marketplace & Extensions              | ⏳     | ⏳    | -     | -       |
-| 5.7    | Developer Experience (DX)             | ⏳     | ⏳    | -     | -       |
+| 5.7    | Extension Author Toolchain (npm)      | ⏳     | ⏳    | -     | -       |
+| 5.8    | Developer Experience (DX)             | ⏳     | ⏳    | -     | -       |
 
 ## **🛠️ TECHNICAL STACK REFERENCE**
 

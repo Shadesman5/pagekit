@@ -50,12 +50,17 @@ function isServed(source) {
  * @param {AssetCopy} copy
  */
 function copyAsset(copy) {
-  const from = path.join(root, 'node_modules', copy.package);
+  const linked = path.join(root, 'node_modules', copy.package);
   const to = path.join(root, copy.dest);
 
-  if (!fs.existsSync(from)) {
+  if (!fs.existsSync(linked)) {
     throw new Error(`missing package: node_modules/${copy.package}`);
   }
+
+  // pnpm (and Yarn) expose packages as symlinks. On Windows, fs.cpSync refuses
+  // to copy a symlink path onto an existing directory even with
+  // `dereference: true`; resolve to the real package tree first.
+  const from = fs.realpathSync(linked);
 
   fs.mkdirSync(to, { recursive: true });
 
@@ -67,8 +72,6 @@ function copyAsset(copy) {
     return;
   }
 
-  // Package managers link dependencies instead of copying them, so the tree
-  // has to be dereferenced on the way out.
   fs.cpSync(from, to, { recursive: true, dereference: true, filter: isServed });
 }
 

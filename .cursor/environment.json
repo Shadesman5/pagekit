@@ -1,7 +1,0 @@
-{
-  "$schema": "https://www.cursor.com/schemas/environment.schema.json",
-  "snapshot": "snapshot-20260721-8f3ed3cd-941d-4c8a-970d-16acae90dc4f",
-  "install": "bash .cursor/install.sh",
-  "start": "bash .cursor/start.sh",
-  "terminals": []
-}
