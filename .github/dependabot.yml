@@ -19,7 +19,7 @@ updates:
       - 'dependencies'
       - 'php'
 
-  # Enable version updates for npm/Yarn (JavaScript)
+  # Enable version updates for the npm ecosystem (pnpm lockfile, JavaScript)
   - package-ecosystem: 'npm'
     directory: '/'
     schedule:

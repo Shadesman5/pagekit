@@ -62,14 +62,24 @@ class BuildCommand extends Command
         // $composer = new Composer($config, $output);
         // $composer->install($packages);
 
-        $this->line(sprintf('Starting: webpack'));
+        $this->line('Starting: build');
 
-        // Cross-platform webpack execution
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            exec('yarn compile-js --mode=production 2>NUL');
-        } else {
-            exec('node_modules/.bin/webpack -p');
+        // The bundles, the copied assets and the compiled stylesheets are all
+        // untracked, so the release has to build them before packing the ZIP.
+        // Absolute path: the release may be built from any working directory.
+        // Both streams are captured - the build reports its failures on stderr,
+        // so a stdout-only capture would report everything but the cause.
+        exec('node ' . escapeshellarg("{$path}/scripts/build.mjs") . ' 2>&1', $buildOutput, $buildStatus);
+
+        $buildLog = implode(PHP_EOL, $buildOutput);
+
+        if ($buildStatus !== 0) {
+            $this->error(sprintf("Build failed:\n%s", $buildLog));
+
+            return Command::FAILURE;
         }
+
+        $this->line($buildLog);
 
         $this->line(sprintf('Building Package.'));
 

@@ -151,7 +151,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 - **Goal**: Mutation testing for the security-critical auth + user classes (80%+ MSI / Covered MSI).
 - **Docs**: `migration-docs/branches/phase-2/step-2-1-8-infection-mutation-testing.md`
-- **Forward**: Infection CI wiring → Step 2.2; MSI ratchet / wider scope → Step 2.10
+- **Forward**: Infection CI wiring → Step 2.2; MSI ratchet / wider scope → Step 2.11
 
 ---
 
@@ -159,7 +159,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 - **Goal**: Raise coverage (CI floor, Codecov, security/ORM edge cases) and grow it with every change.
 - **Docs**: `migration-docs/branches/phase-2/step-2-1-9-test-coverage-expansion.md`
-- **Forward**: Breadth targets, packages coverage, remaining DB/kernel gaps, Infection widen → Step 2.10; full E2E rework → Step 3.6.1
+- **Forward**: Breadth targets, packages coverage, remaining DB/kernel gaps, Infection widen → Step 2.11; full E2E rework → Step 3.6.1
 
 ---
 
@@ -184,7 +184,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 - **Goal**: Narrow the last avoidable `mixed` sites to honest concrete types — no behaviour change; IDE/PHPStan clarity only.
 - **Docs**: `migration-docs/branches/phase-2/step-2-1-12-residual-mixed-narrowing.md`
-- **Out of scope (permanent)**: Legitimate `mixed` (docblock shapes, `__get`/`__set`, filter/loader/PSR-11, polymorphic returns, `callable` properties). Property-hooks path → Step 2.9.1.
+- **Out of scope (permanent)**: Legitimate `mixed` (docblock shapes, `__get`/`__set`, filter/loader/PSR-11, polymorphic returns, `callable` properties). Property-hooks path → Step 2.10.1.
 
 ---
 
@@ -200,9 +200,9 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 ### ✅ Step 2.1.14: PHP Version Upgrade (8.2 → 8.5)
 
 - **Goal**: Raise minimum PHP from 8.2 to **8.5** with a full compatibility audit across Composer, CI, Docker, and runtime guards.
-- **Why**: CI/Docker (2.2/2.3/2.5) and Closeout (2.10) must build on the final runtime once — avoid double-touch. Enables Step 2.9 language features.
+- **Why**: CI/Docker (2.2/2.3/2.5) and Closeout (2.11) must build on the final runtime once — avoid double-touch. Enables Step 2.10 language features.
 - **Docs**: `migration-docs/branches/phase-2/step-2-1-14-php-version-upgrade.md`
-- **Forward**: Symfony 7 / DBAL 4 → Steps 4.2/4.3; Property Hooks / Autowiring → Step 2.9.x; coverage ratchet → Step 2.10
+- **Forward**: Symfony 7 / DBAL 4 → Steps 4.2/4.3; Property Hooks / Autowiring → Step 2.10.x; coverage ratchet → Step 2.11
 
 ---
 
@@ -211,7 +211,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Goal**: Fast required gates on every PR, heavier jobs on merge/schedule, and quality numbers owned by CI (sticky PR comment + live snapshot + dashboard) instead of agent-written metric tables.
 - **Result**: `php-tests.yml` (required PHPUnit/PHPStan/CS-Fixer/security + coverage ratchet, advisory `phpunit-mysql`, PR-only `version-ssot`), `infection.yml` diff gate, `frontend.yml` build gate, `e2e.yml` (PR smoke opt-in via `E2E_SMOKE_PR_ENABLED`, merge run feeding the snapshot), `nightly.yml`, `e2e-weekly.yml`, plus `quality-report.yml` + `quality-collect.yml` writing to the unprotected `quality-data` branch. Playwright selection is `@ci` tags + env-composed projects; agent handoffs and branch docs stay PASS/FAIL.
 - **Docs**: `migration-docs/branches/phase-2/step-2-2-ci-cd-pipeline.md`
-- **Forward**: MySQL leg to a required gate → Step 2.10; E2E quarantine lift, viewport-robust `@ci` specs and PR-smoke activation → Step 3.6.1; final Prettier/formatting policy → Step 2.4; image build/scan/push in CI → Step 2.5
+- **Forward**: MySQL leg to a required gate → Step 2.11; E2E quarantine lift, viewport-robust `@ci` specs and PR-smoke activation → Step 3.6.1; final Prettier/formatting policy → Step 2.4; image build/scan/push in CI → Step 2.5
 
 ---
 
@@ -257,7 +257,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - **`storage/` uploads**: expose only the public subset via a symlink (`public/storage → ../storage/...`, mirroring Laravel's `storage:link` convention) — never the whole `storage/` tree.
   - **`.htaccess` split**: move the front-controller rewrite + security headers (HSTS, X-Frame-Options, Permissions-Policy, COOP/CORP — CSP stays here until Step 3.2.1 moves it to a PHP `ResponseListener`) into `public/.htaccess`. Add a minimal root `.htaccess` with the `RewriteRule ^(.*)$ public/$1 [L,QSA]` fallback for hosts that cannot repoint their document root. Delete the now-structurally-redundant `<FilesMatch>` deny rules for files that simply no longer exist inside `public/`.
   - **Installer & self-updater**: audit `app/installer/` and any path assumption tied to `__DIR__` being the servable root; update to the new `public/` + app-root split.
-  - **Docs**: `README.md` "Manual Installation" gets a "Shared hosting" subsection documenting both paths (document-root change vs. root-`.htaccess` fallback) — the counterpart to the zip-artefact side of the same story in Step 2.8.
+  - **Docs**: `README.md` "Manual Installation" gets a "Shared hosting" subsection documenting both paths (document-root change vs. root-`.htaccess` fallback) — the counterpart to the zip-artefact side of the same story in Step 2.9.
 - **Out of scope**: Changing the webserver/runtime engine — stays Apache here; the Apache-vs-FrankenPHP-vs-nginx+PHP-FPM decision is Step 4.12. This step is layout-only.
 - **Risk**: Medium — touches the front controller and every static-asset path; mitigated by Step 2.4 having just rewritten those paths, and by full PHPUnit/PHPStan/Playwright E2E green as the gate.
 
@@ -288,7 +288,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - Add `Filesystem::dumpAtomic()` (temp + chmod + rename, with existing Windows fallback); unit-test it
   - Route `config.php` and package-registry writes through it; refactor `Router::writeCache()` to the same helper
   - Delete dead commented catch in `SelfupdateCommand`; log (don't swallow) invalid version constraints in Composer helper
-- **Provides**: the atomic-write primitive reused by Extension Safety (2.7) fallback writes and the Automated Update System (2.8) — hence sequenced before both.
+- **Provides**: the atomic-write primitive reused by Extension Safety (2.7) fallback writes and the Automated Update System (2.9) — hence sequenced before both.
 - **Out of scope**: OpenWeatherMap API key → secrets (Step 2.5)
 - **Risk**: Low–Medium
 
@@ -309,11 +309,28 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - **`theme-one` static `UrlProvider`**: same DI blocker as UrlResolver — inject when template helpers support it
   - **`UniqueValidator`**: container-aware `ConstraintValidatorFactory`; delete static `setDb()` + boot wiring
 - **Out of scope until a second caller**: extract `User::evaluateBooleanExpression()` only if another consumer appears
-- **Sequencing**: before Marketplace (Step 5.6)
+- **Sequencing**: before Extension Packaging (Step 2.8) and Marketplace (Step 5.6)
 
 ---
 
-## Step 2.8: Automated Update System — External & Background Updates
+## Step 2.8: Extension Packaging & Prebuilt Assets
+
+- **Depends on**: Step 2.4 (static Vite entry manifest), Step 2.7 (fault isolation).
+- **Goal**: One package shape for distributed extensions and themes — PHP/views plus **prebuilt** `app/bundle/*.js` and compiled CSS — valid for the admin upload today and for the marketplace later.
+- **Why**: Bundle entries live in the first-party-only core manifest `scripts/bundle-entries.mjs`; no core build step produces a third-party bundle. A package that ships sources only has no build path at all — `pnpm build` never sees it, and target hosts have no Node. The admin upload (`admin/system/package/upload` → `PackageManager`) installs and enables such a package today, silently without its JS.
+- **What**:
+  1. Contract: required package layout (`composer.json` `type: pagekit-extension` / `pagekit-theme`, `index.php`, views, `app/bundle/*.js`, compiled CSS); the runtime globals a bundle may rely on (`Vue` / `UIkit` / `UIkit.util` as script-tag externals); what a package must never expect (core build step, core manifest entry, Node on the host).
+  2. Author-side build preset: a documented Vite config authors copy into their own package — same externals and IIFE output shape the core pipeline emits, so a package bundle behaves like a first-party one. Documentation only here: no published package, no core dependency.
+  3. Author-side packaging: build + zip flow producing an upload-ready ZIP (build output in, sources and dev files out).
+  4. A sample extension carrying a Vue bundle uploads, installs, enables and renders without any core build run; a source-only package fails with a clear diagnostic instead of a missing bundle.
+  5. Drop the assumption that the core build serves third-party packages from `ArchiveCommand` / `BuildCommand` and the installer docs.
+- **Out of scope**: marketplace API, host, catalogue and package signing (Step 5.6); the build preset as a published, versioned npm package (Step 5.7).
+- **Sequencing**: after 2.7, before 5.6 — the marketplace distributes against this contract.
+- **Risk**: Low–Medium — contract, docs and author tooling; the only core code touch is the upload/install diagnostic.
+
+---
+
+## Step 2.9: Automated Update System — External & Background Updates
 
 - **Goal**: Modern, future-proof update infrastructure for Pagekit CMS.
 - **Why**: Long-term maintainability without manual release friction.
@@ -324,29 +341,29 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 ---
 
-## Step 2.9: PHP 8.4+ Language Adoption & DX Hardening
+## Step 2.10: PHP 8.4+ Language Adoption & DX Hardening
 
 - **Status**: 📝 Draft — refine at ticket planning.
 - **Prerequisite**: Step 2.1.14 (PHP 8.5). Prefer after 2.7 (routing/DI bridges clearer for Autowiring).
 - **Goal**: Adopt useful PHP 8.4/8.5 language features and small DX hardenings **without** bloating the core — DNA gate on every sub-step.
-- **Why here (not Phase 3/4):** Backend language/DI work belongs in Phase 2, on Symfony 6.4, **before** Vue (Phase 3) and before Symfony 7 / DBAL 4 (4.2/4.3). Closeout (2.10) then measures the hardened code.
+- **Why here (not Phase 3/4):** Backend language/DI work belongs in Phase 2, on Symfony 6.4, **before** Vue (Phase 3) and before Symfony 7 / DBAL 4 (4.2/4.3). Closeout (2.11) then measures the hardened code.
 - **Out of scope**: “Eliminate all `mixed`” mega-rewrite (legitimate `mixed` stays); Symfony/DBAL majors; new product features.
-- **Risk**: Medium (2.9.1 may No-Go)
+- **Risk**: Medium (2.10.1 may No-Go)
 
-### Step 2.9.1: Property Hooks vs PropertyTrait
+### Step 2.10.1: Property Hooks vs PropertyTrait
 
 - **Goal**: Decide whether PHP 8.4 property hooks can replace (parts of) `PropertyTrait` magic accessors without hurting extension DX; implement only on **Go**.
 - **Spike (what that means):** A **time-boxed investigation** — small prototype + written Go/No-Go — *before* a full migration. Not the migration itself. If No-Go, keep magic + Docblocks (permanent honest contract) and close the sub-step as decided.
 - **DNA gate**: Core simpler to read? Extension DX ≥ today? Core stays light?
 - **Risk**: Medium
 
-### Step 2.9.2: Controller FQCN Autowiring
+### Step 2.10.2: Controller FQCN Autowiring
 
 - **Goal**: Resolve controller dependencies by type (FQCN) instead of magic parameter-name / string bindings where it removes fragile wiring **without** adding a heavy DI framework layer.
 - **Why after 2.7**: Extension Safety / routing factory DI reduces static bridges first.
 - **Risk**: Medium
 
-### Step 2.9.3: Fail-Fast / control-flow hygiene
+### Step 2.10.3: Fail-Fast / control-flow hygiene
 
 - **Goal**: Replace known “tooling pacifiers” (e.g. `?? ''` magic defaults that hide null domain state) with honest nullable types or explicit validation/exceptions — targeted sweep, not a repo-wide rewrite.
 - **Candidate**: Menu/Node tree root sentinel — top-level nodes carry `parent_id = 0`, resolved through a synthetic in-memory root (`MenuHelper::getRoot()` builds `$nodes[0]` with `parent_id = null`). Replace this magic-0 + synthetic-root construct with an explicit, typed root so traversal no longer mixes `0` and `null` to mean “root” — removes hidden null domain state and the null-array-offset bug class.
@@ -358,11 +375,11 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 ---
 
-## Step 2.10: Phase 2 Closeout — Test Coverage & Mutation Consolidation
+## Step 2.11: Phase 2 Closeout — Test Coverage & Mutation Consolidation
 
 - **Status**: 📝 Draft — refine at ticket planning.
 - **Goal**: Phase 2 quality push — breadth coverage, wider Infection scope, data-driven MSI gates.
-- **Why**: Per-branch coverage and auth/user mutation testing already exist; closeout raises the bar on the final PHP version (after 2.1.14) and after Language/DX work (2.9) when those land.
+- **Why**: Per-branch coverage and auth/user mutation testing already exist; closeout raises the bar on the final PHP version (after 2.1.14) and after Language/DX work (2.10) when those land.
 - **What**:
   - Clear remaining Infection defer markers (injectable-clock mutants, related ignores) if still present
   - Flip residual `phpunit.xml.dist` gates (`failOnDeprecation`, `failOnPhpunitDeprecation`, `failOnNotice`) to `"true"` after clearing leftover metadata deprecations / notice noise — the two known doc-comment metadata sites are `ConfigManagerTest::testGet` and `MigrationServiceTest` (migrate to PHPUnit attributes)
@@ -373,4 +390,4 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - Make the PHPUnit suite DB-portable: most DB tests hardcode in-memory-SQLite connections instead of honoring the `$GLOBALS['db_*']` parameters that `DbUtil::getConnection()` already supports — route them through the shared helper so the whole suite genuinely runs against MySQL, then flip the non-blocking `phpunit-mysql` CI leg to a required gate (drop its `continue-on-error`). Why: a MySQL gate that exercises only a handful of tests gives false cross-DB confidence
   - Widen `infection.json.dist` past auth + user (data-integrity first); ratchet `minMsi` / `minCoveredMsi` from measured values
   - Remaining hygiene if still open: `assertEquals`→`assertSame` where strictness matters; controller DI-wiring / factory-service integration tests; `MigrationCommand` CLI pipeline coverage
-- **Note**: Closeout consolidates ongoing coverage work — not a replacement for per-branch tests. **Not a hard Phase-2 end:** if new Phase-2 steps are discovered, insert them *before* 2.10 (ROADMAP SSoT) and keep Closeout last among Phase 2.
+- **Note**: Closeout consolidates ongoing coverage work — not a replacement for per-branch tests. **Not a hard Phase-2 end:** if new Phase-2 steps are discovered, insert them *before* 2.11 (ROADMAP SSoT) and keep Closeout last among Phase 2.

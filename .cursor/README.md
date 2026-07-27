@@ -38,8 +38,8 @@ Im Background Agent Terminal (Workspace: `/workspace`) kannst du folgende Befehl
 
 # Allgemeine Befehle
 composer test                                      # Tests ausführen
-yarn compile-js                                    # Frontend builden
-yarn watch-all                                     # Frontend watchen
+pnpm build                                         # Frontend builden
+pnpm watch                                         # Frontend watchen
 
 # Git Workflow
 git checkout -b feature/my-feature                 # Neuer Branch
@@ -86,9 +86,9 @@ Einfach "push" im Chat eingeben!
 
 ## Wichtige Dateien
 
--   `.cursor/Dockerfile` - Container-Definition (PHP 8.5, Node, Playwright **chromium-only**, gh CLI)
+-   `.cursor/Dockerfile` - Container-Definition (PHP 8.5, Node + pnpm, Playwright **chromium-only**, gh CLI)
 -   `.cursor/environment.json` - Agent-Konfiguration (im Repo versioniert, hat Vorrang vor Personal/Team-Configs im Cursor Dashboard)
--   `.cursor/install.sh` - Update-Script (composer install + yarn install + Tool-Verification)
+-   `.cursor/install.sh` - Update-Script (composer install + pnpm install + pnpm build + Tool-Verification)
 -   `.cursor/start.sh` - Start-Script (Token-Mapping + Pagekit-Server auf Port 8080)
 -   `.cursor/secrets.example.env` - Secret-Beispiel (echte Secrets ins Cursor Dashboard, nicht ins Repo!)
 -   `MODERNISATION_STRATEGY.md` - Vision & Strategie der Modernisierung

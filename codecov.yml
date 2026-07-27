@@ -4,7 +4,7 @@
 # coverage gate lives in .github/workflows/php-tests.yml (the ratcheting
 # MIN_LINE_COVERAGE check). Codecov here ONLY reports project/patch deltas and
 # posts the PR comment — it must never fail a PR. Re-evaluate flipping these to
-# blocking once broad coverage lands (ROADMAP Step 2.10 — Phase 2 Closeout).
+# blocking once broad coverage lands (ROADMAP Step 2.11 — Phase 2 Closeout).
 
 # Files with no meaningful unit-test surface — exclude from Codecov reports
 # (avoids 0% patch noise on version bumps, front controllers, module manifests).

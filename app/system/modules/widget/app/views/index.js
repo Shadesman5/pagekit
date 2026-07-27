@@ -1,417 +1,455 @@
 const Widgets = {
+  name: 'widgets',
 
-    name: 'widgets',
+  el: '#widgets',
 
-    el: '#widgets',
+  mixins: [window.Widgets, Theme.Mixins.Helper],
 
-    mixins: [window.Widgets, Theme.Mixins.Helper],
+  data() {
+    return _.merge(
+      {
+        position: this.$session.get('widget.position'),
+        selected: [],
+        config: { positions: [], filter: this.$session.get('widget.filter', {}) },
+        unassignedWidgets: [],
+        type: {}
+      },
+      window.$data
+    );
+  },
 
-    data() {
-        return _.merge({
-            position: this.$session.get('widget.position'),
-            selected: [],
-            config: { positions: [], filter: this.$session.get('widget.filter', {}) },
-            unassignedWidgets: [],
-            type: {}
-        }, window.$data);
-    },
-
-    theme: {
-        hideEls: ['.pk-width-content > div:first-child'],
-        elements() {
-            const vm = this;
-            return {
-                title: {
-                    scope: 'breadcrumbs',
-                    type: 'caption',
-                    caption: () => (vm.position ? vm.position.label : vm.$trans('All'))
-                },
-                addwidget: {
-                    scope: 'topmenu-left',
-                    type: 'dropdown',
-                    caption: 'Add',
-                    class: 'uk-button uk-button-text',
-                    icon: { attrs: { 'uk-icon': 'triangle-down' } },
-                    dropdown: { options: () => 'mode: click' },
-                    items: () => Object.values(vm.types).map((type) => {
-                        const props = {
-                            caption: type.label || type.name,
-                            attrs: { href: () => vm.$url.route('admin/site/widget/edit', { type: type.name, position: (vm.position ? vm.position.name : '') }) }
-                        };
-                        return { ...type, ...props };
-                    }),
-                    priority: 0
-                },
-                search: {
-                    scope: 'navbar-right',
-                    type: 'search',
-                    class: 'uk-text-small',
-                    domProps: { value: () => vm.config.filter.search || '' },
-                    on: {
-                        input(e) {
-                            !vm.config.filter.search && vm.$set(vm.config.filter, 'search', '');
-                            vm.config.filter.search = e.target.value;
-                        }
-                    }
-                },
-                actions: {
-                    scope: 'topmenu-left',
-                    type: 'dropdown',
-                    caption: 'Actions',
-                    class: 'uk-button uk-button-text',
-                    icon: { attrs: { 'uk-icon': 'triangle-down' } },
-                    dropdown: { options: () => 'mode:click' },
-                    actionIcons: true,
-                    items: () => ({
-                        publish: { on: { click: () => vm.status(1) } },
-                        unpublish: { on: { click: () => vm.status(0) } },
-                        copy: { on: { click: () => vm.copy } },
-                        move: {
-                            type: 'dropdown',
-                            dropdown: { options: () => 'pos: right-top; delayHide: 0; offset: 0' },
-                            items: () => vm.config.positions.map((pos) => {
-                                const props = {
-                                    caption: `${pos.label} `,
-                                    on: { click: () => vm.move(pos.name, vm.selected) }
-                                };
-                                return { ...pos, ...props };
-                            })
-                        },
-                        remove: {
-                            on: { click: () => vm.remove },
-                            directives: [
-                                {
-                                    name: 'confirm',
-                                    value: 'Delete widget(s)?'
-                                }
-                            ]
-                        }
-                    }),
-                    priority: 2,
-                    disabled: () => !vm.selected.length
-                },
-                selected: {
-                    scope: 'topmenu-right',
-                    type: 'caption',
-                    caption: () => vm.$transChoice('{1} %count% Widget selected|]1,Inf[ %count% Widgets selected', vm.selected.length, { count: vm.selected.length }),
-                    class: 'uk-text-small',
-                    vif: !vm.selected.length
+  theme: {
+    hideEls: ['.pk-width-content > div:first-child'],
+    elements() {
+      const vm = this;
+      return {
+        title: {
+          scope: 'breadcrumbs',
+          type: 'caption',
+          caption: () => (vm.position ? vm.position.label : vm.$trans('All'))
+        },
+        addwidget: {
+          scope: 'topmenu-left',
+          type: 'dropdown',
+          caption: 'Add',
+          class: 'uk-button uk-button-text',
+          icon: { attrs: { 'uk-icon': 'triangle-down' } },
+          dropdown: { options: () => 'mode: click' },
+          items: () =>
+            Object.values(vm.types).map(type => {
+              const props = {
+                caption: type.label || type.name,
+                attrs: {
+                  href: () =>
+                    vm.$url.route('admin/site/widget/edit', {
+                      type: type.name,
+                      position: vm.position ? vm.position.name : ''
+                    })
                 }
-            };
-        }
-    },
-
-    mounted() {
-        this.load();
-    },
-
-    computed: {
-
-        filtered_positions() {
-            return _.filter(this.positions, (position) => {
-                if (!this.position) {
-                    return position.name !== '_unassigned' ? position.widgets.length : 0;
-                }
-
-                return this.active(position);
-            });
+              };
+              return { ...type, ...props };
+            }),
+          priority: 0
         },
-
-        positions() {
-            return this.config.positions.concat(this.unassigned);
-        },
-
-        unassigned() {
-            return { name: '_unassigned', label: this.$trans('Unassigned'), assigned: _.map(this.unassignedWidgets, 'id'), widgets: this.unassignedWidgets };
-        },
-
-        empty() {
-            return !this.position && !this.get('assigned').length;
-        },
-
-        nodes() {
-            const options = [];
-            const nodes = _(this.config.nodes).groupBy('menu').value();
-
-            _.forEach(this.config.menus, (menu, name) => {
-                const opts = nodes[name];
-
-                if (!opts) {
-                    return;
-                }
-
-                options.push({
-                    label: menu.label,
-                    options: _.map(opts, (node) => ({ text: node.title, value: node.id }))
-                });
-            }, this);
-
-            return options;
-        },
-
-        totalWidgets() {
-            return this.unassigned.widgets.length + _.reduce(this.config.positions, (a, b) => a + b.widgets.length, 0);
-        }
-
-    },
-
-    methods: {
-
-        get(filter) {
-            const filters = {
-
-                selected(widget) {
-                    return this.selected.indexOf(widget.id) !== -1;
-                },
-
-                assigned(widget) {
-                    return this.positions.some((position) => position.assigned.indexOf(widget.id) !== -1);
-                },
-
-                unassigned(widget) {
-                    return !this.positions.some((position) => position.assigned.indexOf(widget.id) !== -1);
-                }
-
-            };
-
-            return filters[filter] ? this.widgets.filter(filters[filter], this) : this.widgets;
-        },
-
-        load() {
-            return this.resource.query().then(function (res) {
-                this.config.positions = res.data.positions;
-                this.unassignedWidgets = res.data.unassigned;
-            });
-        },
-
-        active(position) {
-            return this.position === position || (position && this.position && this.position.name === position.name);
-        },
-
-        select(position) {
-            if (position) {
-                this.$set(this, 'selected', []);
+        search: {
+          scope: 'navbar-right',
+          type: 'search',
+          class: 'uk-text-small',
+          domProps: { value: () => vm.config.filter.search || '' },
+          on: {
+            input(e) {
+              !vm.config.filter.search && vm.$set(vm.config.filter, 'search', '');
+              vm.config.filter.search = e.target.value;
             }
-
-            this.$set(this, 'position', position);
-            if (position) {
-                this.$session.set('widget.position', position);
-            } else {
-                this.$session.remove('widget.position');
-            }
+          }
         },
-
-        assign(position, ids) {
-            return this.resource.save({ id: 'assign' }, { position, ids }).then(function () {
-                this.load();
-                this.$set(this, 'selected', []);
-            });
-        },
-
-        move(position, ids) {
-            position = _.find(this.positions, { name: position });
-
-            this.assign(position.name, position.assigned.concat(ids)).then(function () {
-                this.$notify(this.$transChoice('{1} %count% Widget moved|]1,Inf[ %count% Widgets moved', ids.length, { count: ids.length }));
-            });
-        },
-
-        copy() {
-            this.resource.save({ id: 'copy' }, { ids: this.selected }).then(function (res) {
-                this.load().then();
-                this.$set(this, 'selected', []);
-                this.$notify('Widget(s) copied.');
-            });
-        },
-
-        remove() {
-            this.resource.delete({ id: 'bulk' }, { ids: this.selected }).then(function () {
-                this.load();
-                this.$notify('Widget(s) removed.');
-                this.$set(this, 'selected', []);
-            });
-        },
-
-        status(status) {
-            const widgets = this.get('selected');
-
-            widgets.forEach((widget) => {
-                widget.status = status;
-            });
-
-            this.resource.save({ id: 'bulk' }, { widgets }).then(function () {
-                this.load();
-                this.$set(this, 'selected', []);
-                this.$notify('Widget(s) saved.');
-            });
-        },
-
-        toggleStatus(widget) {
-            widget.status = widget.status ? 0 : 1;
-
-            this.resource.save({ id: widget.id }, { widget }).then(function () {
-                this.load();
-                this.$notify('Widget saved.');
-            });
-        },
-
-        infilter(widget) {
-            if (this.config.filter.search) {
-                return widget.title.toLowerCase().indexOf(this.config.filter.search.toLowerCase()) !== -1;
-            }
-
-            if (this.config.filter.node && widget.nodes.length) {
-                return widget.nodes.some(function (node) {
-                    return node === this.config.filter.node;
-                }, this);
-            }
-
-            return true;
-        },
-
-        emptyafterfilter(widgets) {
-            widgets = widgets || this.config.positions.reduce((result, position) => result.concat(position.widgets), []);
-
-            return !widgets.some(function (widget) {
-                return this.infilter(widget);
-            }, this);
-        },
-
-        getPageFilter(widget) {
-            if (!widget.nodes.length) {
-                return this.$trans('All');
-            } if (widget.nodes.length > 1) {
-                return this.$trans('Selected');
-            }
-
-            return (_.find(this.config.nodes, { id: widget.nodes[0] }) || {}).title;
-        },
-
-        isSelected(id) {
-            return this.selected.indexOf(id) !== -1;
-        },
-
-        typeExist(widget) {
-            const type = _.find(window.$data.types, { name: widget.type });
-
-            if (!type) {
-                return undefined;
-            }
-
-            return type.label || type.name;
-        }
-
-    },
-
-    watch: {
-        'config.filter': {
-            handler(filter) {
-                this.$session.set('widget.filter', filter);
+        actions: {
+          scope: 'topmenu-left',
+          type: 'dropdown',
+          caption: 'Actions',
+          class: 'uk-button uk-button-text',
+          icon: { attrs: { 'uk-icon': 'triangle-down' } },
+          dropdown: { options: () => 'mode:click' },
+          actionIcons: true,
+          items: () => ({
+            publish: { on: { click: () => vm.status(1) } },
+            unpublish: { on: { click: () => vm.status(0) } },
+            copy: { on: { click: () => vm.copy } },
+            move: {
+              type: 'dropdown',
+              dropdown: { options: () => 'pos: right-top; delayHide: 0; offset: 0' },
+              items: () =>
+                vm.config.positions.map(pos => {
+                  const props = {
+                    caption: `${pos.label} `,
+                    on: { click: () => vm.move(pos.name, vm.selected) }
+                  };
+                  return { ...pos, ...props };
+                })
             },
-            deep: true
-        }
-    },
-
-    filters: {
-
-        show(position) {
-            if (!this.position) {
-                return position.name !== '_unassigned' ? position.widgets.length : 0;
-            }
-
-            return this.active(position);
-        },
-
-        type(widget) {
-            const type = _.find(window.$data.types, { name: widget.type });
-
-            if (!type) {
-                return undefined;
-            }
-
-            return type.label || type.name;
-        },
-
-        assigned(ids) {
-            return ids.map(function (id) {
-                return _.find(this.widgets, 'id', id);
-            }, this).filter((widget) => widget !== undefined);
-        }
-
-    },
-
-    directives: {
-
-        sortable: {
-
-            params: ['group'],
-
-            bind(el, binding, vnode) {
-                // disable sorting on unassigned position
-                if (el.getAttribute('data-position') === '_unassigned') {
-                    return;
+            remove: {
+              on: { click: () => vm.remove },
+              directives: [
+                {
+                  name: 'confirm',
+                  value: 'Delete widget(s)?'
                 }
-
-                binding.handler = function (e, sortable, element) {
-                    const action = e.type;
-                    if (action === 'added' || action === 'moved') {
-                        vnode.context.assign(UIkit.util.data(el, 'position'), _.map(binding.def.serialize(el, binding, vnode), 'id'));
-                    }
-                    if (action === 'removed') {
-                        if (!sortable.$el.children.length) {
-                            element.remove();
-                        }
-                    }
-                };
-
-                Vue.nextTick(() => {
-                    const sortable = UIkit.sortable(el, { group: 'position' });
-                    binding.sortable = sortable.$el;
-                    UIkit.util.on(sortable.$el, 'added moved removed', binding.handler);
-                });
-            },
-
-            unbind(el, binding, vnode) {
-                UIkit.util.off(binding.sortable, 'added moved removed', binding.handler);
-            },
-
-            serialize(el, binding, vnode) {
-                const data = []; let item; let attribute; const
-                    vm = this;
-
-                UIkit.util.toNodes(el.children).forEach((child, j) => {
-                    item = {};
-                    for (let i = 0, attr, val; i < child.attributes.length; i++) {
-                        attribute = child.attributes[i];
-                        if (attribute.name.indexOf('data-') === 0) {
-                            attr = attribute.name.substr(5);
-                            val = vm.str2json(attribute.value);
-                            item[attr] = (val || attribute.value === 'false' || attribute.value === '0') ? val : attribute.value;
-                        }
-                    }
-                    data.push(item);
-                });
-
-                return data;
-            },
-
-            str2json(str, notevil) {
-                try {
-                    if (notevil) {
-                        return JSON.parse(str
-                            // wrap keys without quote with valid double quote
-                            .replace(/([\$\w]+)\s*:/g, (_, $1) => `"${$1}":`)
-                            // replacing single quote wrapped ones to double quote
-                            .replace(/'([^']+)'/g, (_, $1) => `"${$1}"`));
-                    }
-                    return (new Function('', `var json = ${str}; return JSON.parse(JSON.stringify(json));`))(); // eslint-disable-line no-new-func
-                } catch (e) { return false; }
+              ]
             }
-
+          }),
+          priority: 2,
+          disabled: () => !vm.selected.length
+        },
+        selected: {
+          scope: 'topmenu-right',
+          type: 'caption',
+          caption: () =>
+            vm.$transChoice(
+              '{1} %count% Widget selected|]1,Inf[ %count% Widgets selected',
+              vm.selected.length,
+              { count: vm.selected.length }
+            ),
+          class: 'uk-text-small',
+          vif: !vm.selected.length
         }
-
+      };
     }
+  },
 
+  mounted() {
+    this.load();
+  },
+
+  computed: {
+    filtered_positions() {
+      return _.filter(this.positions, position => {
+        if (!this.position) {
+          return position.name !== '_unassigned' ? position.widgets.length : 0;
+        }
+
+        return this.active(position);
+      });
+    },
+
+    positions() {
+      return this.config.positions.concat(this.unassigned);
+    },
+
+    unassigned() {
+      return {
+        name: '_unassigned',
+        label: this.$trans('Unassigned'),
+        assigned: _.map(this.unassignedWidgets, 'id'),
+        widgets: this.unassignedWidgets
+      };
+    },
+
+    empty() {
+      return !this.position && !this.get('assigned').length;
+    },
+
+    nodes() {
+      const options = [];
+      const nodes = _(this.config.nodes).groupBy('menu').value();
+
+      _.forEach(
+        this.config.menus,
+        (menu, name) => {
+          const opts = nodes[name];
+
+          if (!opts) {
+            return;
+          }
+
+          options.push({
+            label: menu.label,
+            options: _.map(opts, node => ({ text: node.title, value: node.id }))
+          });
+        },
+        this
+      );
+
+      return options;
+    },
+
+    totalWidgets() {
+      return (
+        this.unassigned.widgets.length +
+        _.reduce(this.config.positions, (a, b) => a + b.widgets.length, 0)
+      );
+    }
+  },
+
+  methods: {
+    get(filter) {
+      const filters = {
+        selected(widget) {
+          return this.selected.indexOf(widget.id) !== -1;
+        },
+
+        assigned(widget) {
+          return this.positions.some(position => position.assigned.indexOf(widget.id) !== -1);
+        },
+
+        unassigned(widget) {
+          return !this.positions.some(position => position.assigned.indexOf(widget.id) !== -1);
+        }
+      };
+
+      return filters[filter] ? this.widgets.filter(filters[filter], this) : this.widgets;
+    },
+
+    load() {
+      return this.resource.query().then(function (res) {
+        this.config.positions = res.data.positions;
+        this.unassignedWidgets = res.data.unassigned;
+      });
+    },
+
+    active(position) {
+      return (
+        this.position === position ||
+        (position && this.position && this.position.name === position.name)
+      );
+    },
+
+    select(position) {
+      if (position) {
+        this.$set(this, 'selected', []);
+      }
+
+      this.$set(this, 'position', position);
+      if (position) {
+        this.$session.set('widget.position', position);
+      } else {
+        this.$session.remove('widget.position');
+      }
+    },
+
+    assign(position, ids) {
+      return this.resource.save({ id: 'assign' }, { position, ids }).then(function () {
+        this.load();
+        this.$set(this, 'selected', []);
+      });
+    },
+
+    move(position, ids) {
+      position = _.find(this.positions, { name: position });
+
+      this.assign(position.name, position.assigned.concat(ids)).then(function () {
+        this.$notify(
+          this.$transChoice('{1} %count% Widget moved|]1,Inf[ %count% Widgets moved', ids.length, {
+            count: ids.length
+          })
+        );
+      });
+    },
+
+    copy() {
+      this.resource.save({ id: 'copy' }, { ids: this.selected }).then(function (res) {
+        this.load().then();
+        this.$set(this, 'selected', []);
+        this.$notify('Widget(s) copied.');
+      });
+    },
+
+    remove() {
+      this.resource.delete({ id: 'bulk' }, { ids: this.selected }).then(function () {
+        this.load();
+        this.$notify('Widget(s) removed.');
+        this.$set(this, 'selected', []);
+      });
+    },
+
+    status(status) {
+      const widgets = this.get('selected');
+
+      widgets.forEach(widget => {
+        widget.status = status;
+      });
+
+      this.resource.save({ id: 'bulk' }, { widgets }).then(function () {
+        this.load();
+        this.$set(this, 'selected', []);
+        this.$notify('Widget(s) saved.');
+      });
+    },
+
+    toggleStatus(widget) {
+      widget.status = widget.status ? 0 : 1;
+
+      this.resource.save({ id: widget.id }, { widget }).then(function () {
+        this.load();
+        this.$notify('Widget saved.');
+      });
+    },
+
+    infilter(widget) {
+      if (this.config.filter.search) {
+        return widget.title.toLowerCase().indexOf(this.config.filter.search.toLowerCase()) !== -1;
+      }
+
+      if (this.config.filter.node && widget.nodes.length) {
+        return widget.nodes.some(function (node) {
+          return node === this.config.filter.node;
+        }, this);
+      }
+
+      return true;
+    },
+
+    emptyafterfilter(widgets) {
+      widgets =
+        widgets ||
+        this.config.positions.reduce((result, position) => result.concat(position.widgets), []);
+
+      return !widgets.some(function (widget) {
+        return this.infilter(widget);
+      }, this);
+    },
+
+    getPageFilter(widget) {
+      if (!widget.nodes.length) {
+        return this.$trans('All');
+      }
+      if (widget.nodes.length > 1) {
+        return this.$trans('Selected');
+      }
+
+      return (_.find(this.config.nodes, { id: widget.nodes[0] }) || {}).title;
+    },
+
+    isSelected(id) {
+      return this.selected.indexOf(id) !== -1;
+    },
+
+    typeExist(widget) {
+      const type = _.find(window.$data.types, { name: widget.type });
+
+      if (!type) {
+        return undefined;
+      }
+
+      return type.label || type.name;
+    }
+  },
+
+  watch: {
+    'config.filter': {
+      handler(filter) {
+        this.$session.set('widget.filter', filter);
+      },
+      deep: true
+    }
+  },
+
+  filters: {
+    show(position) {
+      if (!this.position) {
+        return position.name !== '_unassigned' ? position.widgets.length : 0;
+      }
+
+      return this.active(position);
+    },
+
+    type(widget) {
+      const type = _.find(window.$data.types, { name: widget.type });
+
+      if (!type) {
+        return undefined;
+      }
+
+      return type.label || type.name;
+    },
+
+    assigned(ids) {
+      return ids
+        .map(function (id) {
+          return _.find(this.widgets, 'id', id);
+        }, this)
+        .filter(widget => widget !== undefined);
+    }
+  },
+
+  directives: {
+    sortable: {
+      params: ['group'],
+
+      bind(el, binding, vnode) {
+        // disable sorting on unassigned position
+        if (el.getAttribute('data-position') === '_unassigned') {
+          return;
+        }
+
+        binding.handler = function (e, sortable, element) {
+          const action = e.type;
+          if (action === 'added' || action === 'moved') {
+            vnode.context.assign(
+              UIkit.util.data(el, 'position'),
+              _.map(binding.def.serialize(el, binding, vnode), 'id')
+            );
+          }
+          if (action === 'removed') {
+            if (!sortable.$el.children.length) {
+              element.remove();
+            }
+          }
+        };
+
+        Vue.nextTick(() => {
+          const sortable = UIkit.sortable(el, { group: 'position' });
+          binding.sortable = sortable.$el;
+          UIkit.util.on(sortable.$el, 'added moved removed', binding.handler);
+        });
+      },
+
+      unbind(el, binding, vnode) {
+        UIkit.util.off(binding.sortable, 'added moved removed', binding.handler);
+      },
+
+      serialize(el, binding, vnode) {
+        const data = [];
+        let item;
+        let attribute;
+        const vm = this;
+
+        UIkit.util.toNodes(el.children).forEach((child, j) => {
+          item = {};
+          for (let i = 0, attr, val; i < child.attributes.length; i++) {
+            attribute = child.attributes[i];
+            if (attribute.name.indexOf('data-') === 0) {
+              attr = attribute.name.substr(5);
+              val = vm.str2json(attribute.value);
+              item[attr] =
+                val || attribute.value === 'false' || attribute.value === '0'
+                  ? val
+                  : attribute.value;
+            }
+          }
+          data.push(item);
+        });
+
+        return data;
+      },
+
+      str2json(str, notevil) {
+        try {
+          if (notevil) {
+            return JSON.parse(
+              str
+                // wrap keys without quote with valid double quote
+                .replace(/([\$\w]+)\s*:/g, (_, $1) => `"${$1}":`)
+                // replacing single quote wrapped ones to double quote
+                .replace(/'([^']+)'/g, (_, $1) => `"${$1}"`)
+            );
+          }
+          return new Function('', `var json = ${str}; return JSON.parse(JSON.stringify(json));`)();
+        } catch {
+          return false;
+        }
+      }
+    }
+  }
 };
 
 export default Widgets;

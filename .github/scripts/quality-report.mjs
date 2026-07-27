@@ -18,57 +18,65 @@
 // way to see the real rendering before the change reaches the default branch, since workflow_run and
 // workflow_dispatch both execute this script from there.
 
-import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, readdirSync, readFileSync, existsSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, basename } from "node:path";
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, readdirSync, readFileSync, existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, basename } from 'node:path';
 
 // Hidden HTML marker keying the single sticky comment (GitHub hides it from the rendered body).
-const MARKER = "<!-- quality-report -->";
+const MARKER = '<!-- quality-report -->';
 
 // Gate workflows keyed by FILE PATH, never by display name: every gate declares a custom `run-name:`,
 // and the Actions API returns that evaluated run-name in `workflow_runs[].name` (e.g. "PHP Tests — PR
 // #242 (branch)"). Matching on the name would therefore never hit, leaving every metric unresolved.
 const GATE_WORKFLOW_PATHS = [
-  ".github/workflows/php-tests.yml",
-  ".github/workflows/infection.yml",
-  ".github/workflows/e2e.yml",
-  ".github/workflows/frontend.yml",
+  '.github/workflows/php-tests.yml',
+  '.github/workflows/infection.yml',
+  '.github/workflows/e2e.yml',
+  '.github/workflows/frontend.yml'
 ];
 
 // Check-run names == the job `name:` values that produce them. Only consulted to explain a missing
 // metric — cs-fixer / security-audit / frontend produce no number and so have no row here.
-const CHECK_PHPUNIT = "phpunit (8.5)";
-const CHECK_PHPSTAN = "phpstan";
-const CHECK_INFECTION = "infection-diff";
-const CHECK_E2E = "e2e-smoke";
+const CHECK_PHPUNIT = 'phpunit (8.5)';
+const CHECK_PHPSTAN = 'phpstan';
+const CHECK_INFECTION = 'infection-diff';
+const CHECK_E2E = 'e2e-smoke';
 
 // Live develop-tip snapshot published by quality-collect.yml — the baseline every delta is measured
 // against, read from the same branch the Pages dashboard serves.
-const DATA_BRANCH = "quality-data";
-const SNAPSHOT_PATH = ".github/quality/quality-snapshot.json";
+const DATA_BRANCH = 'quality-data';
+const SNAPSHOT_PATH = '.github/quality/quality-snapshot.json';
 
-const REPO = required("GITHUB_REPOSITORY");
-const DRY_RUN = process.env.DRY_RUN === "1";
+const REPO = required('GITHUB_REPOSITORY');
+const DRY_RUN = process.env.DRY_RUN === '1';
 
 main();
 
 function main() {
   const ctx = resolveContext();
   if (!ctx) {
-    log("no pull-request context resolved — nothing to report.");
+    log('no pull-request context resolved — nothing to report.');
     return;
   }
   const { pr, sha } = ctx;
-  const trigger = (process.env.TRIGGER_WORKFLOW || "").trim();
-  log(`rendering quality report for PR #${pr} @ ${sha}${trigger ? ` (triggered by ${trigger})` : ""}`);
+  const trigger = (process.env.TRIGGER_WORKFLOW || '').trim();
+  log(
+    `rendering quality report for PR #${pr} @ ${sha}${trigger ? ` (triggered by ${trigger})` : ''}`
+  );
 
   const checks = indexChecks(checkRunsForSha(sha));
   const artifacts = collectArtifacts(sha);
-  const body = renderComment({ sha, checks, floor: readFloor(), baseline: readBaseline(), ...artifacts });
+  const body = renderComment({
+    sha,
+    checks,
+    floor: readFloor(),
+    baseline: readBaseline(),
+    ...artifacts
+  });
 
   if (DRY_RUN) {
-    log("DRY_RUN=1 — rendering to stdout instead of upserting the comment:");
+    log('DRY_RUN=1 — rendering to stdout instead of upserting the comment:');
     console.log(`\n${body}`);
     return;
   }
@@ -77,8 +85,8 @@ function main() {
 
 // ---------------------------------------------------------------- context resolution
 function resolveContext() {
-  if ((process.env.EVENT_NAME || "").trim() === "workflow_dispatch") {
-    const raw = (process.env.DISPATCH_PR || "").trim();
+  if ((process.env.EVENT_NAME || '').trim() === 'workflow_dispatch') {
+    const raw = (process.env.DISPATCH_PR || '').trim();
     if (!raw) return null;
     if (!/^\d+$/.test(raw)) throw new Error(`invalid pr input: ${raw}`);
     const view = ghApiObject(`/repos/${REPO}/pulls/${raw}`);
@@ -86,7 +94,7 @@ function resolveContext() {
     return { pr: Number(raw), sha: view.head.sha };
   }
 
-  const sha = (process.env.HEAD_SHA || "").trim();
+  const sha = (process.env.HEAD_SHA || '').trim();
   if (!sha) return null;
   const pr = resolvePrForSha(sha);
   return pr ? { pr, sha } : null;
@@ -94,8 +102,8 @@ function resolveContext() {
 
 function resolvePrForSha(sha) {
   // The workflow_run payload already links same-repo PRs — prefer it to save an API call.
-  const payload = (process.env.PULL_REQUESTS_JSON || "").trim();
-  if (payload && payload !== "null") {
+  const payload = (process.env.PULL_REQUESTS_JSON || '').trim();
+  if (payload && payload !== 'null') {
     try {
       const arr = JSON.parse(payload);
       if (Array.isArray(arr) && arr.length && arr[0]?.number) return Number(arr[0].number);
@@ -104,7 +112,7 @@ function resolvePrForSha(sha) {
     }
   }
   const pulls = ghApiArray(`/repos/${REPO}/commits/${sha}/pulls`);
-  const chosen = pulls.find((p) => p.state === "open") || pulls[0];
+  const chosen = pulls.find(p => p.state === 'open') || pulls[0];
   return chosen ? Number(chosen.number) : null;
 }
 
@@ -120,7 +128,8 @@ function indexChecks(list) {
     if (!c?.name) continue;
     const prev = map.get(c.name);
     // Keep the most recent attempt so a re-run supersedes an earlier conclusion.
-    if (!prev || Date.parse(c.started_at || 0) >= Date.parse(prev.started_at || 0)) map.set(c.name, c);
+    if (!prev || Date.parse(c.started_at || 0) >= Date.parse(prev.started_at || 0))
+      map.set(c.name, c);
   }
   return map;
 }
@@ -130,9 +139,9 @@ function indexChecks(list) {
 // as if the metric itself were fine. Only "why is there no number" is reported.
 function noMetricLabel(checks, name) {
   const c = checks.get(name);
-  if (!c || c.status !== "completed") return "pending";
-  if (["cancelled", "neutral", "skipped"].includes(c.conclusion)) return "skipped";
-  return "—";
+  if (!c || c.status !== 'completed') return 'pending';
+  if (['cancelled', 'neutral', 'skipped'].includes(c.conclusion)) return 'skipped';
+  return '—';
 }
 
 // ---------------------------------------------------------------- gate metrics (artifacts)
@@ -144,22 +153,22 @@ function collectArtifacts(sha) {
     if (!prev || Number(r.id) > Number(prev.id)) latest.set(r.path, r);
   }
 
-  const dir = mkdtempSync(join(tmpdir(), "quality-report-"));
+  const dir = mkdtempSync(join(tmpdir(), 'quality-report-'));
   try {
     for (const [, run] of latest) {
       downloadRunArtifacts(run.id, join(dir, `run-${run.id}`));
     }
-    const coverageFile = findFileByName(dir, "coverage.xml");
-    const junitFile = findFileByName(dir, "junit.xml");
-    const phpstanFile = findFileByName(dir, "phpstan.json");
-    const infectionFile = findFileByName(dir, "infection.json");
+    const coverageFile = findFileByName(dir, 'coverage.xml');
+    const junitFile = findFileByName(dir, 'junit.xml');
+    const phpstanFile = findFileByName(dir, 'phpstan.json');
+    const infectionFile = findFileByName(dir, 'infection.json');
     const playwrightFile = findPlaywrightReport(dir);
     return {
       coverage: coverageFile ? safe(() => readCoverage(coverageFile)) : null,
       junit: junitFile ? safe(() => readJunit(junitFile)) : null,
       phpstan: phpstanFile ? safe(() => readPhpstan(phpstanFile)) : null,
       infection: infectionFile ? safe(() => readInfection(infectionFile)) : null,
-      e2e: playwrightFile ? safe(() => readPlaywright(playwrightFile)) : null,
+      e2e: playwrightFile ? safe(() => readPlaywright(playwrightFile)) : null
     };
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -174,16 +183,16 @@ function runsForSha(sha) {
 function downloadRunArtifacts(runId, dir) {
   // A gate with no artifacts (e.g. Frontend) or a run that has not uploaded yet fails here — ignore it,
   // the corresponding metric simply stays absent and its row renders from the check-run status.
-  gh(["run", "download", String(runId), "--repo", REPO, "--dir", dir], { allowFail: true });
+  gh(['run', 'download', String(runId), '--repo', REPO, '--dir', dir], { allowFail: true });
 }
 
 // ---------------------------------------------------------------- artifact parsers
 // Coverage floor is the single source of truth in php-tests.yml (MIN_LINE_COVERAGE); read it from the
 // checked-out workflow so the report never drifts from the gate that actually enforces it.
 function readFloor() {
-  const path = ".github/workflows/php-tests.yml";
+  const path = '.github/workflows/php-tests.yml';
   if (!existsSync(path)) return null;
-  const m = readFileSync(path, "utf8").match(/MIN_LINE_COVERAGE:\s*['"]?([0-9.]+)/);
+  const m = readFileSync(path, 'utf8').match(/MIN_LINE_COVERAGE:\s*['"]?([0-9.]+)/);
   return m ? Number(m[1]) : null;
 }
 
@@ -193,8 +202,13 @@ function readFloor() {
 // "no baseline".
 function readBaseline() {
   const raw = gh(
-    ["api", "-H", "Accept: application/vnd.github.raw", `/repos/${REPO}/contents/${SNAPSHOT_PATH}?ref=${DATA_BRANCH}`],
-    { allowFail: true },
+    [
+      'api',
+      '-H',
+      'Accept: application/vnd.github.raw',
+      `/repos/${REPO}/contents/${SNAPSHOT_PATH}?ref=${DATA_BRANCH}`
+    ],
+    { allowFail: true }
   );
   if (!raw) {
     log(`no baseline snapshot on ${DATA_BRANCH} — deltas omitted.`);
@@ -202,7 +216,7 @@ function readBaseline() {
   }
   const parsed = safe(() => JSON.parse(raw));
   if (!parsed) return null;
-  if (parsed.source !== "github-actions") {
+  if (parsed.source !== 'github-actions') {
     log(`baseline snapshot is "${parsed.source}", not live CI data — deltas omitted.`);
     return null;
   }
@@ -210,7 +224,7 @@ function readBaseline() {
 }
 
 function readCoverage(path) {
-  const xml = readFileSync(path, "utf8");
+  const xml = readFileSync(path, 'utf8');
   // Clover's project-level aggregate is the <metrics/> element directly before </project>.
   let attrs = xml.match(/<metrics\b([^>]*?)\/>\s*<\/project>/)?.[1];
   if (attrs == null) {
@@ -225,21 +239,25 @@ function readCoverage(path) {
 }
 
 function readPhpstan(path) {
-  const totals = JSON.parse(readFileSync(path, "utf8")).totals || {};
+  const totals = JSON.parse(readFileSync(path, 'utf8')).totals || {};
   const fileErrors = Number(totals.file_errors ?? 0);
   const generalErrors = Number(totals.errors ?? 0);
   return { errors: fileErrors + generalErrors };
 }
 
 function readJunit(path) {
-  const xml = readFileSync(path, "utf8");
+  const xml = readFileSync(path, 'utf8');
   // The grand-total suite always carries the largest `tests` count; take it regardless of nesting.
   let best = null;
   for (const tag of xml.match(/<testsuite\b[^>]*>/g) || []) {
-    const tests = attrNum(tag, "tests");
+    const tests = attrNum(tag, 'tests');
     if (tests == null) continue;
     if (!best || tests > best.tests) {
-      best = { tests, failures: attrNum(tag, "failures") ?? 0, errors: attrNum(tag, "errors") ?? 0 };
+      best = {
+        tests,
+        failures: attrNum(tag, 'failures') ?? 0,
+        errors: attrNum(tag, 'errors') ?? 0
+      };
     }
   }
   if (!best) return null;
@@ -248,7 +266,7 @@ function readJunit(path) {
 }
 
 function readInfection(path) {
-  const stats = JSON.parse(readFileSync(path, "utf8")).stats || {};
+  const stats = JSON.parse(readFileSync(path, 'utf8')).stats || {};
   return {
     msi: stats.msi ?? null,
     coveredMsi: stats.coveredCodeMsi ?? stats.coveredMsi ?? null,
@@ -256,54 +274,77 @@ function readInfection(path) {
     escaped: stats.escapedCount ?? null,
     timedOut: stats.timeOutCount ?? null,
     errors: stats.errorCount ?? null,
-    totalMutants: stats.totalMutantsCount ?? null,
+    totalMutants: stats.totalMutantsCount ?? null
   };
 }
 
 function readPlaywright(path) {
-  const stats = JSON.parse(readFileSync(path, "utf8")).stats || {};
+  const stats = JSON.parse(readFileSync(path, 'utf8')).stats || {};
   const expected = Number(stats.expected ?? 0);
   const unexpected = Number(stats.unexpected ?? 0);
   const flaky = Number(stats.flaky ?? 0);
   const skipped = Number(stats.skipped ?? 0);
-  return { passed: expected + flaky, failed: unexpected, skipped, total: expected + unexpected + flaky + skipped };
+  return {
+    passed: expected + flaky,
+    failed: unexpected,
+    skipped,
+    total: expected + unexpected + flaky + skipped
+  };
 }
 
 // ---------------------------------------------------------------- rendering
 function renderComment(d) {
   const b = d.baseline;
   const rows = [
-    row("PHPUnit (8.5 · SQLite)", d.checks, CHECK_PHPUNIT, phpunitCell(d.junit), phpunitDelta(d.junit, b)),
-    row("Line coverage", d.checks, CHECK_PHPUNIT, coverageCell(d.coverage, d.floor), coverageDelta(d.coverage, b)),
-    row("PHPStan (level 8)", d.checks, CHECK_PHPSTAN, phpstanCell(d.phpstan), phpstanDelta(b)),
-    row("Infection (diff)", d.checks, CHECK_INFECTION, infectionCell(d.infection, d.checks), infectionDelta(b)),
-    row("E2E (smoke)", d.checks, CHECK_E2E, e2eCell(d.e2e), e2eDelta(b)),
+    row(
+      'PHPUnit (8.5 · SQLite)',
+      d.checks,
+      CHECK_PHPUNIT,
+      phpunitCell(d.junit),
+      phpunitDelta(d.junit, b)
+    ),
+    row(
+      'Line coverage',
+      d.checks,
+      CHECK_PHPUNIT,
+      coverageCell(d.coverage, d.floor),
+      coverageDelta(d.coverage, b)
+    ),
+    row('PHPStan (level 8)', d.checks, CHECK_PHPSTAN, phpstanCell(d.phpstan), phpstanDelta(b)),
+    row(
+      'Infection (diff)',
+      d.checks,
+      CHECK_INFECTION,
+      infectionCell(d.infection, d.checks),
+      infectionDelta(b)
+    ),
+    row('E2E (smoke)', d.checks, CHECK_E2E, e2eCell(d.e2e), e2eDelta(b))
   ];
 
   return [
     MARKER,
-    "",
-    "### 🔍 Quality Report",
-    "",
-    "| Metric | This PR | vs develop |",
-    "| ------ | ------- | ---------- |",
+    '',
+    '### 🔍 Quality Report',
+    '',
+    '| Metric | This PR | vs develop |',
+    '| ------ | ------- | ---------- |',
     ...rows,
-    "",
+    '',
     `<sub>${baselineNote(b)} · commit \`${d.sha.slice(0, 7)}\` · updated ${new Date().toISOString()}.<br>`,
-    "PASS/FAIL lives in the GitHub Checks below · project health: " +
-      "[Quality Dashboard](https://shadesman5.github.io/pagekit/quality/).</sub>",
-    "",
-  ].join("\n");
+    'PASS/FAIL lives in the GitHub Checks below · project health: ' +
+      '[Quality Dashboard](https://shadesman5.github.io/pagekit/quality/).</sub>',
+    ''
+  ].join('\n');
 }
 
 // A row always shows something in both cells: the measurement, or why it is absent.
 function row(label, checks, checkName, cell, delta) {
-  const value = cell != null && cell !== "" ? cell : noMetricLabel(checks, checkName);
-  return `| ${label} | ${value} | ${delta ?? "—"} |`;
+  const value = cell != null && cell !== '' ? cell : noMetricLabel(checks, checkName);
+  return `| ${label} | ${value} | ${delta ?? '—'} |`;
 }
 
 function baselineNote(baseline) {
-  if (!baseline) return "No develop baseline yet — PR numbers only";
+  if (!baseline) return 'No develop baseline yet — PR numbers only';
   return `Baseline: develop snapshot @ ${baseline.updatedAt}`;
 }
 
@@ -319,7 +360,7 @@ function coverageCell(coverage, floor) {
 }
 
 function phpstanCell(phpstan) {
-  return phpstan ? `${plural(phpstan.errors, "new error")}` : null;
+  return phpstan ? `${plural(phpstan.errors, 'new error')}` : null;
 }
 
 // Killed/escaped say how much of the diff the run actually exercised — MSI alone can read high off a
@@ -330,10 +371,10 @@ function infectionCell(infection, checks) {
     const parts = [`MSI ${Number(infection.msi).toFixed(1)}%`];
     if (infection.killed != null) parts.push(`${infection.killed} killed`);
     if (infection.escaped != null) parts.push(`${infection.escaped} escaped`);
-    return parts.join(" · ");
+    return parts.join(' · ');
   }
   const c = checks.get(CHECK_INFECTION);
-  return c?.status === "completed" && c.conclusion === "success" ? "out of scope" : null;
+  return c?.status === 'completed' && c.conclusion === 'success' ? 'out of scope' : null;
 }
 
 function e2eCell(e2e) {
@@ -348,7 +389,7 @@ function coverageDelta(coverage, baseline) {
 }
 
 function phpunitDelta(junit, baseline) {
-  const base = baseline?.phpunit?.["8.5-sqlite"]?.tests;
+  const base = baseline?.phpunit?.['8.5-sqlite']?.tests;
   if (!junit || base == null) return null;
   return `${signed(junit.tests - base, 0)} tests`;
 }
@@ -365,7 +406,7 @@ function phpstanDelta(baseline) {
 // scope. Subtracting one from the other would invent a trend that does not exist.
 function infectionDelta(baseline) {
   const full = baseline?.infection?.dailyFull;
-  if (full?.msi == null) return "n/a (diff scope)";
+  if (full?.msi == null) return 'n/a (diff scope)';
   return `n/a (diff scope) · develop full MSI ${Number(full.msi).toFixed(1)}%`;
 }
 
@@ -386,13 +427,25 @@ function signed(n, dp) {
 // ---------------------------------------------------------------- comment upsert
 function upsertComment(pr, body) {
   const existing = ghApiArray(`/repos/${REPO}/issues/${pr}/comments?per_page=100`).find(
-    (c) => typeof c.body === "string" && c.body.includes(MARKER),
+    c => typeof c.body === 'string' && c.body.includes(MARKER)
   );
   if (existing) {
-    gh(["api", "--method", "PATCH", `/repos/${REPO}/issues/comments/${existing.id}`, "-F", "body=@-"], { input: body });
+    gh(
+      [
+        'api',
+        '--method',
+        'PATCH',
+        `/repos/${REPO}/issues/comments/${existing.id}`,
+        '-F',
+        'body=@-'
+      ],
+      { input: body }
+    );
     log(`updated sticky comment ${existing.id} on PR #${pr}`);
   } else {
-    gh(["api", "--method", "POST", `/repos/${REPO}/issues/${pr}/comments`, "-F", "body=@-"], { input: body });
+    gh(['api', '--method', 'POST', `/repos/${REPO}/issues/${pr}/comments`, '-F', 'body=@-'], {
+      input: body
+    });
     log(`created sticky comment on PR #${pr}`);
   }
 }
@@ -421,9 +474,9 @@ function findFileByName(root, name) {
 
 function findPlaywrightReport(root) {
   for (const path of walk(root)) {
-    if (!path.endsWith(".json")) continue;
+    if (!path.endsWith('.json')) continue;
     try {
-      const text = readFileSync(path, "utf8");
+      const text = readFileSync(path, 'utf8');
       if (!text.includes('"suites"') || !text.includes('"stats"')) continue;
       const json = JSON.parse(text);
       if (json?.stats && Array.isArray(json.suites)) return path;
@@ -436,7 +489,7 @@ function findPlaywrightReport(root) {
 
 // ---------------------------------------------------------------- low-level
 function ghApiObject(endpoint) {
-  const out = gh(["api", endpoint], { allowFail: true });
+  const out = gh(['api', endpoint], { allowFail: true });
   if (!out) return null;
   try {
     return JSON.parse(out);
@@ -447,7 +500,7 @@ function ghApiObject(endpoint) {
 
 // For endpoints whose top-level response is a JSON array; gh --paginate merges array pages into one.
 function ghApiArray(endpoint) {
-  const out = gh(["api", "--paginate", endpoint], { allowFail: true });
+  const out = gh(['api', '--paginate', endpoint], { allowFail: true });
   if (!out) return [];
   try {
     const json = JSON.parse(out);
@@ -459,16 +512,16 @@ function ghApiArray(endpoint) {
 
 function gh(args, { allowFail = false, input } = {}) {
   try {
-    return execFileSync("gh", args, {
+    return execFileSync('gh', args, {
       input,
-      stdio: [input === undefined ? "ignore" : "pipe", "pipe", "pipe"],
-      encoding: "utf8",
-      maxBuffer: 64 * 1024 * 1024,
+      stdio: [input === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'],
+      encoding: 'utf8',
+      maxBuffer: 64 * 1024 * 1024
     }).trim();
   } catch (e) {
     if (allowFail) return null;
     const detail = e.stderr?.toString().trim() || e.stdout?.toString().trim() || e.message;
-    throw new Error(`gh ${args.join(" ")} failed: ${detail}`);
+    throw new Error(`gh ${args.join(' ')} failed: ${detail}`, { cause: e });
   }
 }
 
@@ -478,7 +531,7 @@ function attrNum(tag, attr) {
 }
 
 function plural(count, noun) {
-  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+  return `${count} ${noun}${count === 1 ? '' : 's'}`;
 }
 
 function safe(fn) {

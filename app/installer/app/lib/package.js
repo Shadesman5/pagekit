@@ -7,79 +7,81 @@ const Uninstall = Vue.extend(UninstallInstance);
 const Update = Vue.extend(UpdateInstance);
 
 export default {
+  methods: {
+    queryUpdates(packages, success) {
+      const pkgs = {};
+      const options = { emulateJSON: true };
 
-    methods: {
+      _.each(packages, pkg => {
+        pkgs[pkg.name] = pkg.version;
+      });
 
-        queryUpdates(packages, success) {
-            const pkgs = {}; const
-                options = { emulateJSON: true };
+      return this.$http
+        .post(`${this.api}/api/package/update`, { packages: JSON.stringify(pkgs) }, options)
+        .then(success, this.error);
+    },
 
-            _.each(packages, (pkg) => {
-                pkgs[pkg.name] = pkg.version;
-            });
-
-            return this.$http.post(`${this.api}/api/package/update`, { packages: JSON.stringify(pkgs) }, options).then(success, this.error);
-        },
-
-        enable(pkg) {
-            return this.$http.post('admin/system/package/enable', { name: pkg.name }).then((response) => {
-                // Check if response contains an error (even with 200 status)
-                if (response.data && response.data.error) {
-                    this.$notify(response.data.error, 'danger');
-                    return;
-                }
-                
-                this.$notify(this.$trans('"%title%" enabled.', { title: pkg.title }));
-                Vue.set(pkg, 'enabled', true);
-                document.location.assign(this.$url(`admin/system/package/${pkg.type === 'pagekit-theme' ? 'themes' : 'extensions'}`));
-            }, this.error);
-        },
-
-        disable(pkg) {
-            return this.$http.post('admin/system/package/disable', { name: pkg.name }).then(() => {
-                this.$notify(this.$trans('"%title%" disabled.', { title: pkg.title }));
-                Vue.set(pkg, 'enabled', false);
-                document.location.reload();
-            }, this.error);
-        },
-
-        install(pkg, packages, onClose, packagist) {
-            const install = new Install({ parent: this });
-
-            return install.install(pkg, packages, onClose, packagist);
-        },
-
-        update(pkg, updates, onClose, packagist) {
-            const update = new Update({ parent: this });
-
-            return update.update(pkg, updates, onClose, packagist);
-        },
-
-        uninstall(pkg, packages) {
-            const uninstall = new Uninstall({ parent: this });
-
-            return uninstall.uninstall(pkg, packages);
-        },
-
-        error(response) {
-            // Handle different error response formats
-            let message = 'An error occurred';
-            
-            if (response && response.data) {
-                if (typeof response.data === 'string') {
-                    message = response.data;
-                } else if (response.data.error) {
-                    message = response.data.error;
-                } else if (response.data.message) {
-                    message = response.data.message;
-                }
-            } else if (typeof response === 'string') {
-                message = response;
-            }
-            
-            this.$notify(message, 'danger');
+    enable(pkg) {
+      return this.$http.post('admin/system/package/enable', { name: pkg.name }).then(response => {
+        // Check if response contains an error (even with 200 status)
+        if (response.data && response.data.error) {
+          this.$notify(response.data.error, 'danger');
+          return;
         }
 
-    }
+        this.$notify(this.$trans('"%title%" enabled.', { title: pkg.title }));
+        Vue.set(pkg, 'enabled', true);
+        document.location.assign(
+          this.$url(
+            `admin/system/package/${pkg.type === 'pagekit-theme' ? 'themes' : 'extensions'}`
+          )
+        );
+      }, this.error);
+    },
 
+    disable(pkg) {
+      return this.$http.post('admin/system/package/disable', { name: pkg.name }).then(() => {
+        this.$notify(this.$trans('"%title%" disabled.', { title: pkg.title }));
+        Vue.set(pkg, 'enabled', false);
+        document.location.reload();
+      }, this.error);
+    },
+
+    install(pkg, packages, onClose, packagist) {
+      const install = new Install({ parent: this });
+
+      return install.install(pkg, packages, onClose, packagist);
+    },
+
+    update(pkg, updates, onClose, packagist) {
+      const update = new Update({ parent: this });
+
+      return update.update(pkg, updates, onClose, packagist);
+    },
+
+    uninstall(pkg, packages) {
+      const uninstall = new Uninstall({ parent: this });
+
+      return uninstall.uninstall(pkg, packages);
+    },
+
+    error(response) {
+      // Handle different error response formats
+      let message = 'An error occurred';
+
+      if (response && response.data) {
+        if (typeof response.data === 'string') {
+          message = response.data;
+        } else if (response.data.error) {
+          message = response.data.error;
+        } else if (response.data.message) {
+          message = response.data.message;
+        }
+      } else if (typeof response === 'string') {
+        message = response;
+      }
+
+      this.$notify(message, 'danger');
+    }
+  }
 };

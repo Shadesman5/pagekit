@@ -1,4 +1,4 @@
-# Pagekit runtime/build CSS (gulp/webpack output) — too noisy for agents to index.
+# Pagekit runtime/build CSS (build output) — too noisy for agents to index.
 *.css
 *.less
 

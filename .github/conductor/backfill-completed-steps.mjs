@@ -17,30 +17,29 @@
 //   ✅ Steps run via Conductor V2 — agent IDs live in session JSON or GHA logs; tokens via /usage API.
 //   ⚠️ Steps completed before V2 (manual / V1 orchestrator) — no cloud-agent trail; cannot recover tokens.
 
-import { execFileSync, spawnSync } from "node:child_process";
-import { readFileSync, writeFileSync, existsSync, mkdirSync, cpSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { parseRoadmapTable } from "./sync-roadmap-snapshot.mjs";
+import { spawnSync } from 'node:child_process';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, cpSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { parseRoadmapTable } from './sync-roadmap-snapshot.mjs';
 import {
   INDEX_PATH,
   SESSIONS_DIR,
   METRICS_DIR,
   SCHEMA_VERSION,
   createCursorClient,
-  enrichSessionTokensFromCursor,
-  recomputeSessionTotals,
-} from "./metrics.mjs";
+  enrichSessionTokensFromCursor
+} from './metrics.mjs';
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
-const ROADMAP = join(ROOT, ".cursor/ROADMAP.md");
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
+const ROADMAP = join(ROOT, '.cursor/ROADMAP.md');
 
-const DRY_RUN = process.argv.includes("--dry-run");
-const SKIP_GHA = process.argv.includes("--skip-gha-backfill");
-const SKIP_CURSOR = process.argv.includes("--skip-cursor");
-const COPY_LOCAL = process.argv.includes("--copy-local");
-const STATUS_FILTER = getArg("--status") || "completed";
-const BACKFILL_LIMIT = getArg("--limit");
+const DRY_RUN = process.argv.includes('--dry-run');
+const SKIP_GHA = process.argv.includes('--skip-gha-backfill');
+const SKIP_CURSOR = process.argv.includes('--skip-cursor');
+const COPY_LOCAL = process.argv.includes('--copy-local');
+const STATUS_FILTER = getArg('--status') || 'completed';
+const BACKFILL_LIMIT = getArg('--limit');
 
 function getArg(name) {
   const i = process.argv.indexOf(name);
@@ -49,34 +48,34 @@ function getArg(name) {
 
 function readJson(path, fallback = null) {
   if (!existsSync(path)) return fallback;
-  return JSON.parse(readFileSync(path, "utf8"));
+  return JSON.parse(readFileSync(path, 'utf8'));
 }
 
 function writeJson(path, data) {
-  writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+  writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
 }
 
 function isCompletedStatus(status) {
-  return String(status || "").includes("✅");
+  return String(status || '').includes('✅');
 }
 
 function loadCompletedSteps() {
-  const md = readFileSync(ROADMAP, "utf8");
+  const md = readFileSync(ROADMAP, 'utf8');
   const { rows } = parseRoadmapTable(md);
-  if (STATUS_FILTER === "all") return rows;
-  return rows.filter((r) => isCompletedStatus(r.status));
+  if (STATUS_FILTER === 'all') return rows;
+  return rows.filter(r => isCompletedStatus(r.status));
 }
 
 function runGhaBackfill() {
-  const args = [".github/conductor/backfill-metrics.mjs"];
-  if (DRY_RUN) args.push("--dry-run");
-  if (SKIP_CURSOR) args.push("--skip-cursor");
-  if (BACKFILL_LIMIT) args.push("--limit", BACKFILL_LIMIT);
+  const args = ['.github/conductor/backfill-metrics.mjs'];
+  if (DRY_RUN) args.push('--dry-run');
+  if (SKIP_CURSOR) args.push('--skip-cursor');
+  if (BACKFILL_LIMIT) args.push('--limit', BACKFILL_LIMIT);
 
-  console.log("\n── Step 1: GHA log backfill ──");
-  const res = spawnSync("node", args, { cwd: ROOT, stdio: "inherit", env: process.env });
+  console.log('\n── Step 1: GHA log backfill ──');
+  const res = spawnSync('node', args, { cwd: ROOT, stdio: 'inherit', env: process.env });
   if (res.status !== 0) {
-    console.error("GHA backfill failed — continuing with existing session files.");
+    console.error('GHA backfill failed — continuing with existing session files.');
   }
 }
 
@@ -110,7 +109,7 @@ async function enrichSessions(sessions, client) {
   let enriched = 0;
   for (const session of sessions) {
     const { session: updated, enriched: n } = await enrichSessionTokensFromCursor(session, client, {
-      log: (msg) => console.log(msg),
+      log: msg => console.log(msg)
     });
     if (n) {
       enriched += n;
@@ -124,7 +123,7 @@ async function enrichSessions(sessions, client) {
 }
 
 function copyToLocalPreview() {
-  const dest = join(ROOT, "docs-site/data/conductor-metrics");
+  const dest = join(ROOT, 'docs-site/data/conductor-metrics');
   mkdirSync(dest, { recursive: true });
   cpSync(join(ROOT, METRICS_DIR), dest, { recursive: true, force: true });
   console.log(`\nCopied ${METRICS_DIR}/ → docs-site/data/conductor-metrics/`);
@@ -133,16 +132,16 @@ function copyToLocalPreview() {
 function printReport(title, rows) {
   console.log(`\n── ${title} ──`);
   if (!rows.length) {
-    console.log("  (none)");
+    console.log('  (none)');
     return;
   }
   const pad = (s, n) => String(s).padEnd(n);
   console.log(
-    `  ${pad("Step", 8)} ${pad("Sessions", 10)} ${pad("Phases", 8)} ${pad("Agents", 8)} ${pad("Missing", 10)} ${pad("Tokens", 14)}`,
+    `  ${pad('Step', 8)} ${pad('Sessions', 10)} ${pad('Phases', 8)} ${pad('Agents', 8)} ${pad('Missing', 10)} ${pad('Tokens', 14)}`
   );
   for (const r of rows) {
     console.log(
-      `  ${pad(r.stepId, 8)} ${pad(r.sessionCount, 10)} ${pad(r.phases, 8)} ${pad(r.agents, 8)} ${pad(r.missingTokens, 10)} ${pad(r.totalTokens ? r.totalTokens.toLocaleString("de-DE") : "—", 14)}`,
+      `  ${pad(r.stepId, 8)} ${pad(r.sessionCount, 10)} ${pad(r.phases, 8)} ${pad(r.agents, 8)} ${pad(r.missingTokens, 10)} ${pad(r.totalTokens ? r.totalTokens.toLocaleString('de-DE') : '—', 14)}`
     );
   }
 }
@@ -150,18 +149,22 @@ function printReport(title, rows) {
 async function main() {
   const completedSteps = loadCompletedSteps();
   console.log(
-    `Backfill completed steps: ${completedSteps.length} ROADMAP row(s) (${STATUS_FILTER})${DRY_RUN ? " [dry-run]" : ""}`,
+    `Backfill completed steps: ${completedSteps.length} ROADMAP row(s) (${STATUS_FILTER})${DRY_RUN ? ' [dry-run]' : ''}`
   );
 
   if (!SKIP_GHA && !DRY_RUN) {
     runGhaBackfill();
   } else if (!SKIP_GHA && DRY_RUN) {
-    console.log("\n── Step 1: GHA log backfill ── skipped (dry-run)");
+    console.log('\n── Step 1: GHA log backfill ── skipped (dry-run)');
   } else {
-    console.log("\n── Step 1: GHA log backfill ── skipped (--skip-gha-backfill)");
+    console.log('\n── Step 1: GHA log backfill ── skipped (--skip-gha-backfill)');
   }
 
-  const index = readJson(join(ROOT, INDEX_PATH), { schemaVersion: SCHEMA_VERSION, updatedAt: null, steps: {} });
+  const index = readJson(join(ROOT, INDEX_PATH), {
+    schemaVersion: SCHEMA_VERSION,
+    updatedAt: null,
+    steps: {}
+  });
 
   const withMetrics = [];
   const withoutMetrics = [];
@@ -174,15 +177,15 @@ async function main() {
       continue;
     }
     const sessions = ids.map(loadSession).filter(Boolean);
-    sessions.forEach((s) => allSessions.set(s.sessionId, s));
+    sessions.forEach(s => allSessions.set(s.sessionId, s));
     withMetrics.push(auditStep(row.id, index, sessions));
   }
 
-  console.log("\n── Step 2: Audit (before Cursor enrich) ──");
-  printReport("With Conductor metrics", withMetrics);
+  console.log('\n── Step 2: Audit (before Cursor enrich) ──');
+  printReport('With Conductor metrics', withMetrics);
   if (withoutMetrics.length) {
-    console.log("\n── Completed steps WITHOUT V2 Conductor metrics ──");
-    console.log("  (pre-V2 / manual runs — cloud agents not tracked, tokens not recoverable)");
+    console.log('\n── Completed steps WITHOUT V2 Conductor metrics ──');
+    console.log('  (pre-V2 / manual runs — cloud agents not tracked, tokens not recoverable)');
     for (const r of withoutMetrics) {
       console.log(`  ${r.stepId.padEnd(8)} ${r.name}`);
     }
@@ -190,7 +193,7 @@ async function main() {
 
   let enrichedPhases = 0;
   if (!SKIP_CURSOR && process.env.CURSOR_API_KEY) {
-    console.log("\n── Step 3: Cursor API token enrich ──");
+    console.log('\n── Step 3: Cursor API token enrich ──');
     const client = createCursorClient(process.env.CURSOR_API_KEY);
     const sessions = [...allSessions.values()];
     enrichedPhases = await enrichSessions(sessions, client);
@@ -200,14 +203,14 @@ async function main() {
       index.completedStepsBackfill = {
         at: index.updatedAt,
         phasesEnriched: enrichedPhases,
-        stepCount: withMetrics.length,
+        stepCount: withMetrics.length
       };
       writeJson(join(ROOT, INDEX_PATH), index);
     }
   } else if (!SKIP_CURSOR) {
-    console.log("\n── Step 3: Cursor API ── skipped (set CURSOR_API_KEY)");
+    console.log('\n── Step 3: Cursor API ── skipped (set CURSOR_API_KEY)');
   } else {
-    console.log("\n── Step 3: Cursor API ── skipped (--skip-cursor)");
+    console.log('\n── Step 3: Cursor API ── skipped (--skip-cursor)');
   }
 
   if (withMetrics.length) {
@@ -215,22 +218,22 @@ async function main() {
     for (const row of completedSteps) {
       const ids = sessionIdsForStep(index, row.id);
       if (!ids.length) continue;
-      const sessions = ids.map((id) => allSessions.get(id) || loadSession(id)).filter(Boolean);
+      const sessions = ids.map(id => allSessions.get(id) || loadSession(id)).filter(Boolean);
       after.push(auditStep(row.id, index, sessions));
     }
-    console.log("\n── Step 4: Audit (after enrich) ──");
-    printReport("With Conductor metrics", after);
+    console.log('\n── Step 4: Audit (after enrich) ──');
+    printReport('With Conductor metrics', after);
   }
 
   console.log(
     `\nDone. ${enrichedPhases} phase(s) enriched via Cursor API.` +
-      (COPY_LOCAL && !DRY_RUN ? " Local preview copied." : ""),
+      (COPY_LOCAL && !DRY_RUN ? ' Local preview copied.' : '')
   );
 
   if (COPY_LOCAL && !DRY_RUN) copyToLocalPreview();
 }
 
-main().catch((e) => {
+main().catch(e => {
   console.error(e.stack || e.message);
   process.exit(1);
 });

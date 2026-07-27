@@ -1,30 +1,26 @@
 <template>
-    <div>
-        <a :title="'Requests' | trans"><span class="pf-icon pf-icon-profile" /> Requests</a>
+  <div>
+    <a :title="'Requests' | trans"><span class="pf-icon pf-icon-profile" /> Requests</a>
 
-        <div class="pf-dropdown">
-            <table class="pf-table pf-table-dropdown">
-                <tbody>
-                    <tr>
-                        <td class="uk-text-nowrap">
-                            Request Id
-                        </td>
-                        <td>{{ $root.data.__meta.id }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+    <div class="pf-dropdown">
+      <table class="pf-table pf-table-dropdown">
+        <tbody>
+          <tr>
+            <td class="uk-text-nowrap">Request Id</td>
+            <td>{{ $root.data.__meta.id }}</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
+  </div>
 </template>
 
 <script>
-
 export default {
-
-    section: {
-        priority: 80,
-        panel: '#panel-requests',
-        template: `
+  section: {
+    priority: 80,
+    panel: '#panel-requests',
+    template: `
                 <div>
                     <h1>Requests</h1>
                     <table class="pf-table">
@@ -55,19 +51,17 @@ export default {
                         </tbody>
                     </table>
                 </div>`
-    },
+  },
 
-    replace: false,
+  replace: false,
 
-    props: {
-        data: {
-            type: Object,
-            default() {
-                return {};
-            }
-        }
+  props: {
+    data: {
+      type: Object,
+      default() {
+        return {};
+      }
     }
-
+  }
 };
-
 </script>

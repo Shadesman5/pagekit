@@ -101,7 +101,7 @@ docs(readme): update system requirements
 test(e2e): add playwright tests for login
 chore(deps): update doctrine/dbal to 3.x
 perf(frontend): lazy load Vue components
-build(webpack): optimize bundle splitting
+build(vite): optimize bundle output
 ```
 
 ## Integration with Existing Workflow

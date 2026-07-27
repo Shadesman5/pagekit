@@ -10,16 +10,15 @@
  */
 async function waitForVue(page, timeout = 10000) {
   // Wait for v-cloak attributes to be removed (indicates Vue is mounted)
-  await page.waitForFunction(
-    () => !document.querySelector('[v-cloak]'),
-    { timeout }
-  ).catch(() => {
-    console.log('⚠️  No v-cloak found or timeout waiting for Vue');
-  });
-  
+  await page
+    .waitForFunction(() => !document.querySelector('[v-cloak]'), { timeout })
+    .catch(() => {
+      console.log('⚠️  No v-cloak found or timeout waiting for Vue');
+    });
+
   // Wait for any Vue transitions to complete
   await page.waitForTimeout(300);
-  
+
   // Check if Vue is available globally
   const vueExists = await page.evaluate(() => typeof window.Vue !== 'undefined');
   if (!vueExists) {
@@ -36,18 +35,20 @@ async function waitForVue(page, timeout = 10000) {
 async function waitForVueComponent(page, selector, timeout = 10000) {
   // Wait for element to exist
   await page.waitForSelector(selector, { state: 'attached', timeout });
-  
+
   // Wait for Vue to process it
-  await page.waitForFunction(
-    (sel) => {
-      const el = document.querySelector(sel);
-      return el && el.__vue__ !== undefined;
-    },
-    selector,
-    { timeout: timeout / 2 }
-  ).catch(() => {
-    console.log(`⚠️  Vue component not found for ${selector}`);
-  });
+  await page
+    .waitForFunction(
+      sel => {
+        const el = document.querySelector(sel);
+        return el && el.__vue__ !== undefined;
+      },
+      selector,
+      { timeout: timeout / 2 }
+    )
+    .catch(() => {
+      console.log(`⚠️  Vue component not found for ${selector}`);
+    });
 }
 
 /**
@@ -80,19 +81,19 @@ async function clickAndWaitForVue(page, selector) {
  */
 async function fillVueInput(page, selector, value) {
   const input = page.locator(selector);
-  
+
   // Clear existing value
   await input.click();
   await page.keyboard.press('Control+A');
   await page.keyboard.press('Delete');
-  
+
   // Type new value
   await input.type(value);
-  
+
   // Trigger Vue update events
   await input.dispatchEvent('input');
   await input.dispatchEvent('change');
-  
+
   // Small wait for Vue to process
   await page.waitForTimeout(100);
 }
@@ -105,24 +106,26 @@ async function fillVueInput(page, selector, value) {
 async function waitForVueRouter(page, timeout = 5000) {
   // Wait for URL change
   await page.waitForLoadState('networkidle');
-  
+
   // Wait for Vue router to be ready
-  await page.waitForFunction(
-    () => {
-      if (window.Vue && window.Vue.$route) {
-        return true;
-      }
-      // For Pagekit's specific router setup
-      if (window.$pagekit && window.$pagekit.url) {
-        return true;
-      }
-      return false;
-    },
-    { timeout }
-  ).catch(() => {
-    console.log('⚠️  Vue router not detected');
-  });
-  
+  await page
+    .waitForFunction(
+      () => {
+        if (window.Vue && window.Vue.$route) {
+          return true;
+        }
+        // For Pagekit's specific router setup
+        if (window.$pagekit && window.$pagekit.url) {
+          return true;
+        }
+        return false;
+      },
+      { timeout }
+    )
+    .catch(() => {
+      console.log('⚠️  Vue router not detected');
+    });
+
   // Additional wait for components to mount
   await waitForVue(page, timeout);
 }
@@ -135,17 +138,19 @@ async function waitForVueRouter(page, timeout = 5000) {
 async function waitForAjax(page, timeout = 5000) {
   // Wait for no pending XHR/fetch requests
   await page.waitForLoadState('networkidle', { timeout });
-  
+
   // Additional check for jQuery AJAX if present
-  await page.waitForFunction(
-    () => {
-      if (typeof jQuery !== 'undefined') {
-        return jQuery.active === 0;
-      }
-      return true;
-    },
-    { timeout: timeout / 2 }
-  ).catch(() => {});
+  await page
+    .waitForFunction(
+      () => {
+        if (typeof jQuery !== 'undefined') {
+          return jQuery.active === 0;
+        }
+        return true;
+      },
+      { timeout: timeout / 2 }
+    )
+    .catch(() => {});
 }
 
 /**
@@ -156,10 +161,10 @@ async function waitForAjax(page, timeout = 5000) {
 async function waitForUIkitModal(page, modalSelector = '.uk-modal') {
   // Wait for modal to be visible
   await page.waitForSelector(modalSelector, { state: 'visible' });
-  
+
   // Wait for animation to complete
   await page.waitForTimeout(400);
-  
+
   // Wait for Vue components inside modal
   await waitForVue(page, 5000);
 }
@@ -177,7 +182,7 @@ async function closeUIkitModal(page) {
     // Click outside modal
     await page.keyboard.press('Escape');
   }
-  
+
   // Wait for modal to disappear
   await page.waitForTimeout(400);
 }

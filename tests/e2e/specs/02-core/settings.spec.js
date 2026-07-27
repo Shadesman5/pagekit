@@ -156,7 +156,6 @@ test.describe.fixme('Pagekit System Settings (Optimized)', () => {
     // Default language
     const languageSelect = page.locator('select[name*="locale"]').first();
     if ((await languageSelect.count()) > 0) {
-      const currentLocale = await languageSelect.inputValue();
       await languageSelect.selectOption('de_DE');
       console.log('✅ Language changed to German');
 

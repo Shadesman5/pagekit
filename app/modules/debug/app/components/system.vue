@@ -1,17 +1,15 @@
 <template>
-    <a title="System Information">
-        <div class="pf-icon-large pf-icon-pagekit" />
-    </a>
+  <a title="System Information">
+    <div class="pf-icon-large pf-icon-pagekit" />
+  </a>
 </template>
 
 <script>
-
 export default {
-
-    section: {
-        priority: 10,
-        panel: '#panel-system',
-        template: `
+  section: {
+    priority: 10,
+    panel: '#panel-system',
+    template: `
             <div>
                 <h1>Information</h1>
 
@@ -81,28 +79,26 @@ export default {
                     </tbody>
                 </table>
             </div>`
-    },
+  },
 
-    replace: false,
+  replace: false,
 
-    props: {
-        data: {
-            type: Object,
-            default() {
-                return {};
-            }
-        }
-    },
-
-    computed: {
-        VueVersion() {
-            return window.Vue ? Vue.version : '-';
-        },
-        UIkitVersion() {
-            return window.UIkit ? UIkit.version : '-';
-        }
+  props: {
+    data: {
+      type: Object,
+      default() {
+        return {};
+      }
     }
+  },
 
+  computed: {
+    VueVersion() {
+      return window.Vue ? Vue.version : '-';
+    },
+    UIkitVersion() {
+      return window.UIkit ? UIkit.version : '-';
+    }
+  }
 };
-
 </script>

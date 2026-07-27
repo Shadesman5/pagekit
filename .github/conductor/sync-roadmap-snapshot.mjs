@@ -3,40 +3,40 @@
 //
 // Usage: node .github/conductor/sync-roadmap-snapshot.mjs [--dry-run]
 
-import { readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
-const ROADMAP = join(ROOT, ".cursor/ROADMAP.md");
-const OUT = join(ROOT, ".github/conductor/metrics/roadmap-snapshot.json");
-const DRY_RUN = process.argv.includes("--dry-run");
-const REPO = process.env.GITHUB_REPOSITORY || "Shadesman5/pagekit";
-const SERVER = (process.env.GITHUB_SERVER_URL || "https://github.com").replace(/\/$/, "");
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
+const ROADMAP = join(ROOT, '.cursor/ROADMAP.md');
+const OUT = join(ROOT, '.github/conductor/metrics/roadmap-snapshot.json');
+const DRY_RUN = process.argv.includes('--dry-run');
+const REPO = process.env.GITHUB_REPOSITORY || 'Shadesman5/pagekit';
+const SERVER = (process.env.GITHUB_SERVER_URL || 'https://github.com').replace(/\/$/, '');
 
 export function parseRoadmapTable(md) {
   const version = md.match(/\*\*Current Version\*\*:\s*([\d.]+)/)?.[1] ?? null;
   const currentStep = md.match(/\*\*Current Step\*\*:\s*([\d.]+[a-z]?)/i)?.[1] ?? null;
 
-  const tableStart = md.indexOf("## **📊 TRACKING TABLE**");
+  const tableStart = md.indexOf('## **📊 TRACKING TABLE**');
   if (tableStart < 0) return { version, currentStep, rows: [] };
 
   const section = md.slice(tableStart);
-  const lines = section.split("\n");
+  const lines = section.split('\n');
   const rows = [];
 
   for (const line of lines) {
-    if (!line.trimStart().startsWith("|")) continue;
+    if (!line.trimStart().startsWith('|')) continue;
     if (/^\|\s*:?-{2,}/.test(line)) continue;
     if (/^\|\s*ID\s*\|/i.test(line)) continue;
 
     const cells = line
-      .split("|")
+      .split('|')
       .slice(1, -1)
-      .map((c) => c.trim());
+      .map(c => c.trim());
     if (cells.length < 6) continue;
 
-    const id = cells[0].replace(/\*\*/g, "").trim();
+    const id = cells[0].replace(/\*\*/g, '').trim();
     if (!/^[\d.]+[a-z]?$/i.test(id)) continue;
 
     const issue = parseRef(cells[4]);
@@ -44,7 +44,7 @@ export function parseRoadmapTable(md) {
 
     rows.push({
       id,
-      name: cells[1].replace(/\*\*/g, "").trim(),
+      name: cells[1].replace(/\*\*/g, '').trim(),
       status: cells[2].trim(),
       audit: cells[3].trim(),
       issue: issue.num,
@@ -52,7 +52,7 @@ export function parseRoadmapTable(md) {
       issueUrl: issue.num ? `${SERVER}/${REPO}/issues/${issue.num}` : null,
       pr: pr.nums,
       prLabel: pr.label,
-      prUrl: pr.nums?.length === 1 ? `${SERVER}/${REPO}/pull/${pr.nums[0]}` : null,
+      prUrl: pr.nums?.length === 1 ? `${SERVER}/${REPO}/pull/${pr.nums[0]}` : null
     });
   }
 
@@ -61,26 +61,26 @@ export function parseRoadmapTable(md) {
 
 function parseRef(cell) {
   const m = cell.match(/#(\d+)/);
-  if (!m) return { num: null, label: cell === "-" ? "—" : cell };
+  if (!m) return { num: null, label: cell === '-' ? '—' : cell };
   return { num: Number(m[1]), label: cell };
 }
 
 function parsePr(cell) {
-  if (!cell || cell === "-") return { nums: null, label: "—" };
-  const nums = [...cell.matchAll(/#(\d+)/g)].map((m) => Number(m[1]));
+  if (!cell || cell === '-') return { nums: null, label: '—' };
+  const nums = [...cell.matchAll(/#(\d+)/g)].map(m => Number(m[1]));
   return { nums: nums.length ? nums : null, label: cell };
 }
 
 function main() {
-  const md = readFileSync(ROADMAP, "utf8");
+  const md = readFileSync(ROADMAP, 'utf8');
   const parsed = parseRoadmapTable(md);
   const snapshot = {
     schemaVersion: 1,
     updatedAt: new Date().toISOString(),
-    source: ".cursor/ROADMAP.md",
+    source: '.cursor/ROADMAP.md',
     version: parsed.version,
     currentStep: parsed.currentStep,
-    rows: parsed.rows,
+    rows: parsed.rows
   };
 
   if (DRY_RUN) {

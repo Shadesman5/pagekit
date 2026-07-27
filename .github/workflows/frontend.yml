@@ -14,67 +14,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Frontend gate. The production build (webpack + gulp) is the BLOCKING signal: it must
-  # compile the JS bundles and LESS the same way a release does. ESLint and Prettier are
-  # ADVISORY and diff-scoped only — the tree carries ~13k pre-existing style violations
-  # that predate the current lint config, so a full-tree lint would always be red. They
-  # run against just the files a PR touches and never fail the gate.
+  # Frontend gate — every step blocks. The production build (Vite bundles + LESS + asset copies)
+  # must compile the way a release does, and ESLint plus Prettier run over the whole tree: the
+  # sources are lint- and format-clean, so any finding here is a regression the PR introduced.
   frontend:
     name: frontend
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-        with:
-          # Full history so the merge base with the PR base branch is reachable for the
-          # diff that scopes the advisory ESLint/Prettier steps below.
-          fetch-depth: 0
+
+      # Must precede setup-node: `cache: pnpm` below resolves the store path via the pnpm binary.
+      # No version input — the action reads it from package.json#packageManager.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
 
       - name: Setup Node 22
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
-          cache: yarn
+          cache: pnpm
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
-      - name: Build JS bundles (webpack, production)
-        run: yarn compile-js --mode=production
+      # Installing does not build (no install lifecycle hook), so the build is an explicit step.
+      - name: Build frontend assets (JS bundles, LESS, asset copies)
+        run: pnpm build
 
-      - name: Build styles (gulp)
-        run: yarn gulp
+      - name: ESLint
+        run: pnpm lint
 
-      - name: Fetch PR base ref
-        # actions/checkout does not create the origin/<base> remote-tracking ref on a
-        # pull_request build; fetch it explicitly so the diff below can resolve it.
-        run: git fetch --no-tags --prune origin "+refs/heads/${GITHUB_BASE_REF}:refs/remotes/origin/${GITHUB_BASE_REF}"
-
-      - name: Determine changed frontend files
-        id: changed
-        # Only lint what the PR changes. --diff-filter=ACMR drops deletions so the linters
-        # never receive a path that no longer exists.
-        run: |
-          git diff --name-only --diff-filter=ACMR "origin/${GITHUB_BASE_REF}...HEAD" -- '*.js' '*.vue' > changed-frontend-files.txt || true
-          if [ -s changed-frontend-files.txt ]; then
-            echo "Changed .js/.vue files in this PR:"
-            cat changed-frontend-files.txt
-            echo "any=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "No .js/.vue files changed — skipping the advisory ESLint/Prettier steps."
-            echo "any=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: ESLint changed files (advisory)
-        if: steps.changed.outputs.any == 'true'
-        # continue-on-error keeps this non-blocking: it surfaces new style issues on the
-        # touched files without gating the merge on the pre-existing tree-wide backlog.
-        continue-on-error: true
-        run: xargs -r -d '\n' -a changed-frontend-files.txt yarn eslint
-
-      - name: Prettier check changed files (advisory)
-        if: steps.changed.outputs.any == 'true'
-        # continue-on-error keeps this non-blocking: Prettier is not yet the enforced
-        # formatter, so the --check result is informational on the touched files only.
-        continue-on-error: true
-        run: xargs -r -d '\n' -a changed-frontend-files.txt yarn prettier --check
+      - name: Prettier check
+        run: pnpm exec prettier --check .

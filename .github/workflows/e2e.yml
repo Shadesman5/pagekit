@@ -60,16 +60,24 @@ jobs:
       - name: Create writable runtime directories
         run: mkdir -p tmp/logs tmp/cache tmp/temp tmp/packages storage
 
+      # Must precede setup-node: `cache: pnpm` below resolves the store path via the pnpm binary.
+      # No version input — the action reads it from package.json#packageManager.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
       - name: Setup Node 22
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
-          cache: yarn
+          cache: pnpm
 
-      # yarn install also runs the package `install` script (webpack + gulp), producing the JS
-      # and LESS bundles the installer and admin UI need to render during the E2E run.
-      - name: Install Node dependencies and build assets
-        run: yarn install --frozen-lockfile
+      - name: Install Node dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Installing does not build, so build explicitly: the JS bundles, LESS and copied assets
+      # are what the installer and admin UI need to render during the E2E run.
+      - name: Build frontend assets
+        run: pnpm build
 
       # Copy the tracked example to the git-ignored config the suite reads, then fill the values
       # it cannot ship: real admin credentials (the example's YOUR_* placeholders are rejected by
@@ -152,14 +160,20 @@ jobs:
       - name: Create writable runtime directories
         run: mkdir -p tmp/logs tmp/cache tmp/temp tmp/packages storage
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
       - name: Setup Node 22
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
-          cache: yarn
+          cache: pnpm
 
-      - name: Install Node dependencies and build assets
-        run: yarn install --frozen-lockfile
+      - name: Install Node dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend assets
+        run: pnpm build
 
       - name: Prepare E2E test configuration
         run: |

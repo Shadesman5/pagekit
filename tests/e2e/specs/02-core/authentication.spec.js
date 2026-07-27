@@ -9,11 +9,6 @@ const { test, expect } = require('@playwright/test');
 const testConfig = require('../../helpers/test-config');
 const { waitForVue, navigateAndWaitForVue, fillVueInput } = require('../../helpers/vue-helpers');
 
-// Wait-time constants derived from central test configuration
-const waitConfig = testConfig.getWaitConfig();
-const WAIT_ANIMATION = waitConfig.animation; // Full UI animation (default 500ms)
-const WAIT_TRANSITION = Math.round(WAIT_ANIMATION * 0.6); // Short transitions (default ~300ms)
-
 test.describe('Pagekit Authentication (Optimized)', { tag: '@ci' }, () => {
   test.beforeAll(async () => {
     // Setup common test environment (connectivity, timer)

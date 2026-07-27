@@ -9,7 +9,7 @@ alwaysApply: false
 2. **Version Bump** – use `.cursor/skills/version-bump/SKILL.md`. One Version Bump per PR.
    - **Exception — docs / planning only (NO bump, NO CHANGELOG):** Skip steps 2–3 entirely when the PR does **not** change runtime behaviour or ship an executed Roadmap Step. Typical examples: ROADMAP / PHASE_* reorder or wording, agent prompts, tickets/plans, analysis notes under `migration-docs/`, TODO-tag retargets in comments, Cursor rules/skills/workflow docs. In that case keep `app/system/config.php` and `CHANGELOG-NEW.md` untouched; do **not** advance the ROADMAP `Current Version` header. Still push + open the PR (steps 6–8).
    - **Do bump + CHANGELOG when:** production/runtime code, tests, CI/tooling that agents/users run, or Finalize after an **executed** Roadmap Step (Orchestrator / feature delivery).
-3. **CHANGELOG-NEW.md** – new section with version + date + grouped commits; commit: `chore(release): bump version to X.Y.Z` (**skip** when the docs/planning exception in step 2 applies)
+3. **CHANGELOG-NEW.md** – new section with version + date; **shipped-only** bullets under the heading map in `.cursor/agents/doc-writer.md`; commit: `chore(release): bump version to X.Y.Z` (**skip** when the docs/planning exception in step 2 applies)
 4. **ROADMAP Update** – update `.cursor/ROADMAP.md`:
    - **Header**: bump `Current Version` and advance `Current Step` pointer to the next step (**skip `Current Version` bump** under the docs/planning exception; optional pointer/table edits for planning PRs are fine)
    - **This step's tracking row**: Status `⏳` → `✅`, Audit `⏳` → `🛡️`, PR `-` → `#YYY` (only when closing an **executed** step)

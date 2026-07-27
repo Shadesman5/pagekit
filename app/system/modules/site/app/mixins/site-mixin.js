@@ -1,29 +1,25 @@
 export default {
+  inject: ['$components'],
 
-    inject: ['$components'],
+  props: ['value'],
 
-    props: ['value'],
+  data() {
+    return {
+      config: this.value
+    };
+  },
 
-    data() {
-        return {
-            config: this.value
-        };
+  watch: {
+    value(cfg) {
+      this.config = cfg;
     },
 
-    watch: {
-
-        value(cfg) {
-            this.config = cfg;
-        },
-
-        config(cfg) {
-            this.$emit('input', cfg);
-        }
-
-    },
-
-    created() {
-        _.extend(this.$options.components, this.$components);
+    config(cfg) {
+      this.$emit('input', cfg);
     }
+  },
 
+  created() {
+    _.extend(this.$options.components, this.$components);
+  }
 };

@@ -26,7 +26,7 @@ _TBD_
 | File | Change |
 |---|---|
 | `path/to/file.php` | _TBD_ |
- 
+
 _TBD_
 
 ---
@@ -37,9 +37,9 @@ _TBD / None_
 
 ---
 
-## ⚠️ Breaking Changes (Extensions)
+## 💥 Breaking Changes (Extensions)
 
-_TBD_
+_TBD / None_
 
 ---
 
@@ -73,13 +73,55 @@ _TBD_
 
 ## 📋 Phase 1 Audit Closure
 
-_TBD_
+_TBD / None_
+
+---
+
+## 👤 Maintainer action
+
+_TBD / None_
 
 ---
 
 ## 📚 Deferred / Out-of-Scope
 
-_TBD_
+_TBD / None_
+
+---
+
+## 📌 Follow-on (ROADMAP)
+
+_TBD / None_
+
+---
+
+## 🧊 Parked (unplanned)
+
+_TBD / None_
+
+---
+
+## 🧹 Cleanup
+
+_TBD / None_
+
+---
+
+## 🛡️ Audit
+
+_TBD / None_
+
+---
+
+## 🎁 Bonus
+
+_TBD / None_
+
+---
+
+## 🔍 Research
+
+_TBD / None_
 
 ---
 

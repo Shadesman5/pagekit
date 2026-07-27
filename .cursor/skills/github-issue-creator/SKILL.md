@@ -109,7 +109,7 @@ Read `.cursor/rules/github-labels.mdc` for full list.
 | Keywords in title/description | Label |
 |-------------------------------|-------|
 | PHP, Controller, Service, Container, PSR, Symfony, ORM, Auth, API, Docker, CI/CD | `backend` |
-| Vue, UIkit, JavaScript, TypeScript, Component, CSS, Webpack | `frontend` |
+| Vue, UIkit, JavaScript, TypeScript, Component, CSS, Vite | `frontend` |
 | Database, DBAL, Schema, Query | `database` |
 | Extension, Module, Plugin | `module` |
 | Theme, Template styling | `theme` |
@@ -193,8 +193,12 @@ Issue created/edited with <!-- metadata --> block
 - Do NOT link to agent-prompt files
 - Do NOT include internal agent workflow details
 - Keep readable for any developer (human or agent)
-- Reference ROADMAP step IDs when applicable
+- Reference ROADMAP step IDs when applicable (**only** in Context as the issue identity, e.g. `ROADMAP Step: 2.4` — not as cross-links to other work)
 - Link related PRs in the "Related" section
+- **No docs-path or branch-doc references** in the issue body (no `migration-docs/…`, no `PHASE_*.md`, no ticket/plan paths)
+- **No Step cross-references** when noting deferred / out-of-scope / incomplete work — describe the work in plain language (e.g. "Vue 3 core migration", not "Step 3.3.3")
+- **Code file paths only when necessary** (e.g. a concrete runtime bug site); prefer behaviour/API descriptions over paths
+- Same rules apply when **updating** an issue after implementation (check off tasks, note deviations) — never paste doc/step links as the audit trail; the PR is the link
 
 ## PR Linking
 

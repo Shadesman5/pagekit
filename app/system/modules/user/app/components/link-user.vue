@@ -1,52 +1,48 @@
 <template>
-    <div class="uk-margin">
-        <label class="uk-form-label">{{ 'Redirect' | trans }}</label>
-        <div class="uk-form-controls">
-            <select v-model="url" class="uk-width-1-1 uk-select">
-                <option value="@user/login">
-                    {{ 'User Login' | trans }}
-                </option>
-                <option value="@user/logout">
-                    {{ 'User Logout' | trans }}
-                </option>
-                <option value="@user/registration">
-                    {{ 'User Registration' | trans }}
-                </option>
-                <option value="@user/profile">
-                    {{ 'User Profile' | trans }}
-                </option>
-                <option value="@user/resetpassword">
-                    {{ 'User Password Reset' | trans }}
-                </option>
-            </select>
-        </div>
+  <div class="uk-margin">
+    <label class="uk-form-label">{{ 'Redirect' | trans }}</label>
+    <div class="uk-form-controls">
+      <select v-model="url" class="uk-width-1-1 uk-select">
+        <option value="@user/login">
+          {{ 'User Login' | trans }}
+        </option>
+        <option value="@user/logout">
+          {{ 'User Logout' | trans }}
+        </option>
+        <option value="@user/registration">
+          {{ 'User Registration' | trans }}
+        </option>
+        <option value="@user/profile">
+          {{ 'User Profile' | trans }}
+        </option>
+        <option value="@user/resetpassword">
+          {{ 'User Password Reset' | trans }}
+        </option>
+      </select>
     </div>
+  </div>
 </template>
 
 <script>
-
 const LinkUser = {
+  link: { label: 'User' },
 
-    link: { label: 'User' },
+  data() {
+    return { url: '' };
+  },
 
-    data() {
-        return { url: '' };
-    },
+  created() {
+    this.url = '@user/login';
+  },
 
-    created() {
-        this.url = '@user/login';
-    },
-
-    watch: {
-        url(url) {
-            this.$emit('input', url);
-        }
+  watch: {
+    url(url) {
+      this.$emit('input', url);
     }
-
+  }
 };
 
 export default LinkUser;
 
 window.Links.default.components['link-user'] = LinkUser;
-
 </script>

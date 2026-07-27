@@ -518,9 +518,6 @@ test.describe('Pagekit Dashboard', { tag: '@ci' }, () => {
     await page.goto(testConfig.getAdminUrl());
     await waitForVue(page);
 
-    // Get initial widget count
-    const initialWidgets = await page.locator('.uk-grid > div').count();
-
     // Refresh page
     await page.reload();
     await waitForVue(page);

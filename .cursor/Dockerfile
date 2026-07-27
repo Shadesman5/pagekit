@@ -38,8 +38,9 @@ RUN apt-get update && apt-get install -y \
     jq \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Yarn (required for Pagekit frontend builds)
-RUN npm install -g yarn@1.22
+# Install pnpm (required for Pagekit frontend builds). Debian's nodejs package
+# ships without corepack, so pin the version through npm instead.
+RUN npm install -g pnpm@11.17.0
 
 # Install Playwright and dependencies for E2E testing
 RUN npm install -g playwright@latest \

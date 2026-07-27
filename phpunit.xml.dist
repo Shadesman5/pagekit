@@ -5,7 +5,7 @@
     deprecations and notices are still emitted, and failing on them would not
     protect anything in the asserted test bodies. They are the last gates left to
     flip — the residual noise is cleared and all three set to "true" in the Phase 2
-    closeout (ROADMAP Step 2.10).
+    closeout (ROADMAP Step 2.11).
 
     The test-hygiene gates (failOnWarning, failOnPhpunitWarning, failOnRisky) are
     "true": the suite is warning-clean and every test asserts, so warnings and

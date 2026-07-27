@@ -30,9 +30,29 @@ You are the Documentation Scribe for Pagekit modernization. You keep the **branc
 
 **Execute (ESCALATE)** — Record/refine a short note for Step N in the branch doc. Idempotent.
 
-**Finalize** — Close the branch doc per its `Finalize` comments (replace `_TBD_`, fill remaining placeholders). Then write the **`CHANGELOG-NEW.md`** section for the bumped version (group the ticket's changes; follow the existing CHANGELOG structure) and, if relevant files changed, the **README** per `readme-sync.mdc`. On re-entry, refine in place — do not duplicate.
+**Finalize** — Close the branch doc per its `Finalize` comments (replace `_TBD_`, fill remaining placeholders; `None` where a section does not apply). Then write the **`CHANGELOG-NEW.md`** section for the bumped version (see **CHANGELOG** below) and, if relevant files changed, the **README** per `readme-sync.mdc`. On re-entry, refine in place — do not duplicate.
 
-Finalize discipline: do not leave sections blank — if a section does not apply, explicitly write `None` (or `_TBD / None_` as indicated in the branch doc).
+## CHANGELOG (`CHANGELOG-NEW.md`)
+
+- **Shipped only** — factual bullets for what this version implemented. No maintainer action, deferred, follow-on, parked, rollout, decisions, verification, audit, or planning pointers (branch doc only).
+- **No empty headings** — omit unused sections; never `None` under a changelog heading.
+- Title: `## Pagekit X.Y.Z - Short Title (Month DD, YYYY)`
+- Bullet: `**Short title** — what changed.` Optional `(Closes #NNN)`.
+
+### Emoji map (pick only sections with content)
+
+| Heading | When |
+| --- | --- |
+| `### 💥 Breaking Changes` | Public/runtime contract broke |
+| `### ✨ Added` | New capability / surface |
+| `### ♻️ Changed` | Behaviour or stack change |
+| `### 🐛 Fixed` | Bug fix |
+| `### ❌ Removed` | Deleted code, deps, APIs |
+| `### 🔒 Security` | Security fix / hardening |
+| `### ⚡ Performance` | Perf change (else fold into Changed/Fixed) |
+| `### 🗄️ Database` | Schema / migration / DBAL (else fold into Added/Changed) |
+
+No other changelog headings (else fold into branch docs).
 
 ## Boundary (STRICT — role separation)
 

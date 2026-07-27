@@ -56,8 +56,8 @@ Vision detail: `migration-docs/TODO/MODERNISATION_STRATEGY.md` § Pagekit DNA.
 
 ### Frontend (Maintenance Mode - Pre-Migration)
 
-- **Framework:** **Vue.js 2.6** (Legacy).
-- **Goal:** Maintain compatibility with current build pipeline (Webpack 4).
+- **Framework:** **Vue.js 2.7** (Legacy).
+- **Goal:** Maintain compatibility with current build pipeline (Vite, per-module IIFE bundles).
 - **Future Proofing:**
   - Avoid complex "Mixins" (hard to migrate to Vue 3).
   - Prefer clear props/events interfaces.
@@ -69,6 +69,13 @@ Vision detail: `migration-docs/TODO/MODERNISATION_STRATEGY.md` § Pagekit DNA.
 
 - **Refactoring:** Prefer small, atomic changes over "Big Bang" rewrites.
 - **Comments — what & why only.** Code and test comments explain what the code does and why (intent, trade-offs, constraints). They MUST NOT narrate project history: no `Step X.Y`, ROADMAP, ticket, checklist, or doc-path (`.md`/`.mdc`) reference describing work that is already done — that is noise and belongs in docs, not code. The ONLY permitted step reference is a forward debt marker for work that still MUST happen, in the Rule 5 tag formats (`// TODO: Must be refactored in Step X.Y (Name)`, `// TODO: TEMPORARY BRIDGE - To be removed in Step X.Y`, `// AUDIT FIX Step X.Y`). Never tag completed work.
+
+## Work Documents (ROADMAP, phase docs, branch docs, CHANGELOG)
+
+- **What & why only** — the same standard as code comments, binding for **every** agent (the workflow-scoped variant lives in `.cursor/agents/architect.md` Responsibility 6). Decisions, trade-offs, and explanations of *why a document changed* belong in the chat, never in the file.
+- **`.cursor/ROADMAP.md`** — table rows plus the fixed SSoT/legend text. Never add renumbering notes, decision logs, or a rationale for a changed ID: execution order is read top to bottom, so a reordering needs no explanation.
+- **Phase docs in `migration-docs/TODO/` (open steps)** — `PHASE_*_MODERNISING.md` and `PHASE_5_FUTURE_VISION.md`: forward-only *what remains to do* + *why*. No completed steps, ticket/checklist history, "deferred from Step X.Y", PR/issue numbers, or branch-doc paths.
+- **Branch docs / `CHANGELOG-NEW.md`** — the change and its impact. No self-referential corrections of earlier doc revisions, no commentary on how the work was organized.
 
 ## Unicode & Encoding Hygiene (STRICT)
 

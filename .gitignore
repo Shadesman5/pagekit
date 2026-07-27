@@ -35,6 +35,9 @@ node_modules
 # Ignore local planning documents
 /planning/
 
+# Ignore .bak files
+**/*.bak
+
 # Exception: agent_prompts for orchestrated task execution (referenced by .cursor/rules)
 !/migration-docs/TODO/agent_prompts/
 !/migration-docs/TODO/agent_prompts/**

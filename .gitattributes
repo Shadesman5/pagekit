@@ -53,7 +53,7 @@ Dockerfile text eol=lf
 # Lock files (generated, should use LF)
 composer.lock text eol=lf
 package-lock.json text eol=lf
-yarn.lock text eol=lf
+pnpm-lock.yaml text eol=lf
 
 # Git files
 .gitattributes text eol=lf
