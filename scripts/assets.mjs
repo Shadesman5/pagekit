@@ -3,21 +3,20 @@
  *
  * These packages are not bundled: PHP registers them as plain script and link
  * tags below `app/assets/` and the editor module's `app/assets/`, so the whole
- * published distribution has to sit at those paths. Existing files are
- * overwritten in place - the destinations also hold committed assets (the
- * TinyMCE skin) that the copies must leave alone.
+ * published distribution has to sit at those paths inside the webroot.
+ * Existing files are overwritten in place - the destinations also receive
+ * committed assets (the TinyMCE skin) that the copies must leave alone.
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+import { published, root } from './paths.mjs';
 
 /**
  * @typedef {object} AssetCopy
  * @property {string}  package  name of the `node_modules` package
- * @property {string}  dest     destination directory, relative to the repository root
+ * @property {string}  dest     served path of the copy, relative to the webroot
  * @property {RegExp} [files]   copy only the matching files from the package root
  */
 
@@ -35,6 +34,9 @@ const copies = [
   { package: 'Codemirror', dest: 'app/system/modules/editor/app/assets/codemirror' }
 ];
 
+/** The paths this module owns, for anything that walks the sources they mirror. */
+export const assetDests = copies.map(copy => copy.dest);
+
 /**
  * Dotfiles are repository leftovers of a published package (linter configs,
  * directory placeholders) and are never served.
@@ -51,7 +53,7 @@ function isServed(source) {
  */
 function copyAsset(copy) {
   const linked = path.join(root, 'node_modules', copy.package);
-  const to = path.join(root, copy.dest);
+  const to = published(copy.dest);
 
   if (!fs.existsSync(linked)) {
     throw new Error(`missing package: node_modules/${copy.package}`);
@@ -76,8 +78,8 @@ function copyAsset(copy) {
 }
 
 /**
- * Copies every asset package. A missing package stops the copy: nothing that
- * follows can compile or run against an incomplete `app/assets/`.
+ * Copies every asset package. A missing package stops the copy: the runtime
+ * script-loads these paths and has no fallback for one that is not published.
  */
 export function copyAssets() {
   for (const copy of copies) {

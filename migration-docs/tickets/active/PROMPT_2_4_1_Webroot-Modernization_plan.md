@@ -58,7 +58,7 @@
      L = large or loop-risk. A step orchestrator flips its box to [x] in the SAME commit as that
      step's code + tests (after full step PASS incl. test-writer when applicable) -->
 - [x] Step 1 (S) — Baseline green + committed served-output inventory
-- [ ] Step 2 (L) — Build outputs + publication pass + storage symlink → `public/`
+- [x] Step 2 (L) — Build outputs + publication pass + storage symlink → `public/`
 - [ ] Step 3 (L) — PHP resolution: FileAdapter mounts + locator overlay + call-site fixes
 - [ ] Step 4 (M) — Front controller flip: `public/index.php`, delete root, `pagekit` bin, StartCommand
 - [ ] Step 5 (M) — `.htaccess` split (public + root fallback) + Docker dev vhost

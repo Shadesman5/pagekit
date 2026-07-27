@@ -1,3 +1,9 @@
+# Ignore the webroot: everything below it is published by the build, except the
+# front controller and the server configuration
+/public/*
+!/public/index.php
+!/public/.htaccess
+
 # Ignor bundles
 **/app/bundle/**/*.js
 
