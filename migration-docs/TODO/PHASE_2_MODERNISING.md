@@ -301,7 +301,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **What**:
   1. Sandbox module load in `try/catch(\Throwable)`
   2. Log stack traces immediately via Monolog FileHandler (**must work without DB**)
-  3. Auto-disable in DB (own try/catch) with `storage/disabled-extensions.json` fallback; boot checks both
+  3. Auto-disable in DB (own try/catch) with a DB-less fallback file in a non-web-served path (e.g. under `tmp/`); boot checks both. Never place it under `storage/` — that tree is the public media root mounted into `public/`, so a fallback file there would be readable over HTTP and disclose which extensions are broken
   4. Admin flash on next login
   - Lifecycle interface + Blog `scripts.php` → lifecycle class; migrate install rollback on Throwable
   - **Routing dumper**: replace deprecated copied `PhpMatcherDumper` / `UrlGeneratorDumper` with Symfony compiled matcher/generator; keep blog permalink behaviour; prefer content-hash cache freshness over `filemtime`
@@ -324,6 +324,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   3. Author-side packaging: build + zip flow producing an upload-ready ZIP (build output in, sources and dev files out).
   4. A sample extension carrying a Vue bundle uploads, installs, enables and renders without any core build run; a source-only package fails with a clear diagnostic instead of a missing bundle.
   5. Drop the assumption that the core build serves third-party packages from `ArchiveCommand` / `BuildCommand` and the installer docs.
+  6. Webroot publication: only `public/` is served, and the core build publishes only in-repo packages — a runtime-installed/uploaded package has no publisher, so its bundles, CSS and icons are unreachable over HTTP. Package install/enable must copy the servable files (`app/bundle/*.js`, compiled CSS, icons/images) into the `public/` mirror and uninstall must remove them; `pagekit archive` must include built bundles from their `public/` location so a package ZIP is complete.
 - **Out of scope**: marketplace API, host, catalogue and package signing (Step 5.6); the build preset as a published, versioned npm package (Step 5.7).
 - **Sequencing**: after 2.7, before 5.6 — the marketplace distributes against this contract.
 - **Risk**: Low–Medium — contract, docs and author tooling; the only core code touch is the upload/install diagnostic.
@@ -337,6 +338,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Priority**: High
 - **Release automation (from Step 2.2)**: the CI side of the release — publish tags / GitHub releases and the machine-readable release metadata the updater consumes, so a version bump ends in a real release feed instead of a manual upload. Step 2.2 built quality gates only and left release hooks unrouted.
 - **Two distribution artifacts, one build, one webroot layout (no forked app code)**: since Step 2.4.1, both artifacts ship the **identical `public/`-webroot layout** — (1) **classic tarball/zip**: `composer install --no-dev --optimize-autoloader` + Vite build (`pnpm build`, post-2.4) output, zipped as-is, ready to unzip onto any Apache/PHP-FPM shared host — document root pointed at `public/` (most modern panels, incl. IONOS) or the root-`.htaccess` rewrite fallback from 2.4.1 for hosts that lock the document root. This stays the **default, widest-reach** distribution — today it is still a manual, undocumented step; CI-building it and attaching it to GitHub Releases is core scope here. (2) **container image** (Step 2.5, later Step 4.12 for the runtime-engine swap): the identical build, with `public/` copied into the image the same way. Both come from the same source tree, the same build commands, and now the same webroot layout — packaging is the only difference.
+- **Webroot packaging details**: both artifacts must carry a complete `public/` tree — published assets plus the `public/storage` symlink. Plain zip extraction drops symlinks, so the classic artifact (or the installer/updater on first run) must recreate it; updates must also prune stale published files under `public/` (bundle and asset names change between releases, while the self-updater's clean pass covers only `app/`).
 - **Context**: `migration-docs/TODO/features/AUTOMATED_UPDATE_SYSTEM.md`
 
 ---
