@@ -6,6 +6,7 @@ namespace Pagekit\Console\Commands;
 
 use Pagekit\Application\Console\Command;
 use Pagekit\Installer\Installer;
+use Pagekit\Installer\StorageLink;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -117,6 +118,18 @@ class SetupCommand extends Command
         $message = $result['message'];
 
         if ($status == 'success') {
+            // The installation logs a link it could not create; on the command
+            // line the log is the wrong place to learn about it.
+            $storage = new StorageLink(
+                $app->get('path'),
+                $app->get('path.public'),
+                $app->get('path.storage')
+            );
+
+            if (!$storage->exists()) {
+                $this->comment($storage->getProblem());
+            }
+
             $this->line("Done");
 
             return Command::SUCCESS;

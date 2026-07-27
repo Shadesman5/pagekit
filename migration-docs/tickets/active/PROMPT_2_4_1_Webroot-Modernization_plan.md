@@ -62,7 +62,7 @@
 - [x] Step 3 (L) — PHP resolution: FileAdapter mounts + locator overlay + call-site fixes
 - [x] Step 4 (M) — Front controller flip: `public/index.php`, delete root, `pagekit` bin, StartCommand
 - [x] Step 5 (M) — `.htaccess` split (public + root fallback) + Docker dev vhost
-- [ ] Step 6 (M) — Installer symlink ensure + SelfUpdater/Archive audit
+- [x] Step 6 (M) — Installer symlink ensure + SelfUpdater/Archive audit
 - [ ] Step 7 (S) — Docs sweep (README shared-hosting, AGENTS.md)
 - [ ] Step 8 (M) — Final verification: inventory parity, denial smoke, E2E
 
