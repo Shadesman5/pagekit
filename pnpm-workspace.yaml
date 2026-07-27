@@ -5,3 +5,11 @@ allowBuilds:
   core-js: false
   # Unpacks the platform binary that the Vite transform pipeline executes.
   esbuild: true
+
+# Disable pnpm 11's minimum-release-age supply-chain gate (default 1440 min).
+# The committed pnpm-lock.yaml is reviewed and Dependabot-managed, so exact
+# versions are pinned before they land here. With --frozen-lockfile there is no
+# fallback version, so the gate hard-fails (ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION)
+# whenever a bump lands versions published <24h ago, breaking reproducible
+# installs on fresh CI and cloud-agent environments.
+minimumReleaseAge: 0
