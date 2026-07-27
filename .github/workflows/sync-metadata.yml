@@ -45,12 +45,14 @@ on:
 jobs:
   sync-metadata:
     runs-on: ubuntu-latest
-    # Skip cursor[bot] (edits PR bodies frequently) and fork PRs
-    # (secrets.PROJECT_TOKEN unavailable). No runner is started for these.
+    # Skip cursor[bot] (edits PR bodies frequently), dependabot[bot]
+    # (repo secrets like PROJECT_TOKEN are unavailable → github-script fails),
+    # and fork PRs. No runner is started for these.
     # Other bots (e.g. Cloud Agent) are allowed through — they create
     # issues/PRs with <!-- metadata --> blocks that need processing.
     if: >-
       github.actor != 'cursor[bot]' &&
+      github.actor != 'dependabot[bot]' &&
       (github.event_name != 'pull_request' ||
        github.event.pull_request.head.repo.full_name == github.repository)
     steps:
