@@ -8,39 +8,48 @@ class Locator
 {
     protected string $path;
 
+    protected string $public;
+
     /** @var array<int, array{0: string, 1: string}> */
     protected array $paths = [];
 
-    public function __construct(string $path)
+    /**
+     * @param string $path   application root, holding the module and package sources
+     * @param string $public webroot the servable part of those sources is published into,
+     *                       empty when nothing is published
+     */
+    public function __construct(string $path, string $public = '')
     {
-        $path = strtr($path, '\\', '/');
-
-        if (substr($path, -1) != '/') {
-            $path .= '/';
-        }
-
-        $this->path = $path;
+        $this->path = Path::directory($path);
+        $this->public = $public === '' ? '' : Path::directory($public);
     }
 
     /**
      * Adds file paths to locator.
      *
+     * A path below the application root is registered together with its
+     * published copy, which wins: what a browser may request is served from
+     * the webroot, everything else - views, translations, data - is read from
+     * the source beside it.
+     *
      * @param string|array<int, string> $paths
      */
-    public function add(string $prefix, $paths): self
+    public function add(string $prefix, string|array $paths): self
     {
-        $paths = array_map(function ($path) use ($prefix) {
+        $added = [];
 
-            $path = strtr($path, '\\', '/');
+        foreach ((array) $paths as $path) {
 
-            if (substr($path, -1) != '/') {
-                $path .= '/';
+            $path = Path::directory($path);
+
+            if ($published = $this->published($path)) {
+                $added[] = [$prefix, $published];
             }
 
-            return [$prefix, $path];
-        }, (array) $paths);
+            $added[] = [$prefix, $path];
+        }
 
-        $this->paths = array_merge($paths, $this->paths);
+        $this->paths = array_merge($added, $this->paths);
 
         return $this;
     }
@@ -51,9 +60,9 @@ class Locator
     public function get(string $file): string|false
     {
         $file = ltrim(strtr($file, '\\', '/'), '/');
-        $paths = array_merge($this->paths, [['', $this->path]]);
+        $roots = $this->public !== '' ? [['', $this->public], ['', $this->path]] : [['', $this->path]];
 
-        foreach ($paths as $parts) {
+        foreach (array_merge($this->paths, $roots) as $parts) {
 
             list($prefix, $path) = $parts;
 
@@ -71,5 +80,17 @@ class Locator
         }
 
         return false;
+    }
+
+    /**
+     * Gets the webroot copy of a directory, or an empty string when it has none.
+     */
+    private function published(string $path): string
+    {
+        if ($this->public === '' || strpos($path, $this->public) === 0 || strpos($path, $this->path) !== 0) {
+            return '';
+        }
+
+        return $this->public.substr($path, strlen($this->path));
     }
 }

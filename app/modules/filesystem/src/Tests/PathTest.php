@@ -45,6 +45,39 @@ class PathTest extends TestCase
         }
     }
 
+    #[DataProvider('dataDirectories')]
+    public function testDirectory(string $path, string $result): void
+    {
+        $this->assertSame($result, Path::directory($path));
+    }
+
+    public function testDirectoryPrefixStopsAtASegmentBoundary(): void
+    {
+        // Pinning the prefix keeps the comparisons below honest: they only
+        // prove segment-boundary safety as long as directory() really appends
+        // the trailing slash to the prefix as well.
+        $webroot = '/var/www/public/';
+        $this->assertSame($webroot, Path::directory('/var/www/public'));
+
+        $this->assertStringStartsWith($webroot, Path::directory('/var/www/public/app/assets'));
+        $this->assertStringStartsNotWith($webroot, Path::directory('/var/www/publicfoo'));
+    }
+
+    /**
+     * @return array<int, array{0: string, 1: string}>
+     */
+    public static function dataDirectories(): array
+    {
+        return [
+            ['/var/www/public', '/var/www/public/'],
+            ['/var/www/public/', '/var/www/public/'],
+            ['/var/www/public///', '/var/www/public/'],
+            ['C:\var\www\public', 'C:/var/www/public/'],
+            ['C:\var\www\public\\', 'C:/var/www/public/'],
+            ['relative/dir', 'relative/dir/'],
+        ];
+    }
+
     /**
      * @return array<int, array{0: string, 1: array<string, string>}>
      */

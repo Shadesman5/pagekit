@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Installer\Package;
 
 use Pagekit\Application\UrlProvider;
+use Pagekit\Filesystem\Path;
 
 /**
  * @implements \ArrayAccess<string, Package>
@@ -18,9 +19,17 @@ class PackageFactory implements \ArrayAccess, \IteratorAggregate
     /** @var array<string, Package> */
     protected array $packages = [];
 
+    /** Application root the packages sit below, empty when it is unknown. */
+    private readonly string $root;
+
+    /**
+     * @param string $root application root, needed to address a package by the path it is published under
+     */
     public function __construct(
         private readonly ?UrlProvider $url = null,
+        string $root = '',
     ) {
+        $this->root = $root === '' ? '' : Path::directory($root);
     }
 
     /**
@@ -85,13 +94,27 @@ class PackageFactory implements \ArrayAccess, \IteratorAggregate
 
             if (isset($path)) {
                 $data['path'] = $path;
-                $data['url'] = $this->url?->getStatic($path) ?? '';
+                $data['url'] = $this->url?->getStatic($this->served($path)) ?? '';
             }
 
             return new Package($data);
         }
 
         return null;
+    }
+
+    /**
+     * Turns a package directory into the path its published files are located
+     * under, so that the package URL addresses the webroot copy and not the
+     * sources - which have none.
+     */
+    private function served(string $path): string
+    {
+        if ($this->root === '' || strpos(Path::directory($path), $this->root) !== 0) {
+            return $path;
+        }
+
+        return substr($path, strlen($this->root));
     }
 
     /**

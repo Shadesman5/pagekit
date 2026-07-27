@@ -38,6 +38,7 @@ $env = 'system';
 $path = __DIR__;
 $config = [
     'path' => $path,
+    'path.public' => $path.'/public',
     'path.packages' => $path.'/packages',
     'path.storage' => $path.'/storage',
     'path.temp' => $path.'/tmp/temp',

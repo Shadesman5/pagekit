@@ -47,11 +47,26 @@ Tests: none (test-writer: skip — no production PHP under `app/`/`packages/`). 
 
 Tests: none (test-writer: skip — Node build scripts only; the `frontend` CI job + Step 8 parity are the coverage). Gates: Verifier PASS (2 non-blocking notes — see Risks & Rollout Notes); Tester — PHPUnit PASS, PHPStan PASS.
 
+### PHP URL/path resolution → public-aware (Checklist Step 3)
+
+| File | Change |
+|---|---|
+| `app/modules/filesystem/src/Path.php` | New `Path::directory()` helper normalizes a path to forward slashes plus a single trailing slash, so every prefix comparison introduced by this step is segment-boundary-safe (`<root>/public/…` matches; `<root>/publicfoo` does not). |
+| `app/modules/filesystem/src/Adapter/FileAdapter.php` | Single `$path`/`$url` root replaced by an ordered `$mounts` list (primary = constructor's `$path`/`$url`, plus an optional `$mounts` map); `getPathInfo()` now matches a file's directory against each mount in turn and only sets `url` on a hit — a file under no mount gets no URL, whatever code calls `getUrl()`/`getStatic()` on it. |
+| `app/modules/filesystem/src/Locator.php` | Constructor takes the new `path.public` webroot; `add()` registers a path's published mirror (`published()`, when one exists under `path.public`) ahead of the path itself, so multi-path prefixes hit the webroot copy first and fall back to the module source only when nothing was published (views, translations); `get()`'s bare-root fallback tries `path.public` before the application root, so unprefixed refs (`app/assets/…`) resolve to the published copy. |
+| `app/modules/filesystem/index.php` | `locator` service now receives `path.public`; the `request` listener builds `FileAdapter` with `path.public` as the primary mount plus a `path.storage` mount (URL = storage's path relative to the app root, so a relocated `system/finder.storage` still gets a working mount), replacing the old single-root construction. |
+| `index.php` | Root config gains `'path.public' => $path.'/public'` — the value `filesystem/index.php`'s wiring above reads, and what Checklist Step 4's `public/index.php` will carry forward. |
+| `app/system/modules/editor/index.php` | `root_url` resolves through the locator (`getStatic('system/editor:')`) instead of `getStatic(__DIR__)`, so it addresses the module's published mirror; the module's own source directory has no URL under the new mounts. |
+| `app/installer/index.php` | `PackageFactory` construction gains the application root (`$app->get('path')`), needed to translate a package's source path into its published-webroot path. |
+| `app/installer/src/Package/PackageFactory.php` | Package `url` is now built from the package path relative to the application root (`served()`) rather than the raw source path, so it addresses the webroot copy; a package with no published copy resolves to a source-only path outside every mount, so `url` stays empty instead of pointing at an inaccessible file. |
+
+Tests: `test-writer` runs — new `FileAdapterTest` (mount-matching, boundary-safety, unmounted/missing-file cases) and `PackageFactoryTest` (published vs. unpublished package URL, no-`UrlProvider` construction); `LocatorTest` gains the public-overlay/dual-path resolution cases; `PathTest` gains the segment-boundary-safety case; `FileUtil` gains a `writeFile()` fixture helper shared by the new tests. Gates: Verifier — production PASS; tests FAIL once (`PathTest`'s boundary-safety claim was asserted without proving it) then PASS after retry. Tester — PHPUnit + PHPStan PASS (production); FAIL twice on the `PathTest` addition (non-empty-string typing) then PASS after retries.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
 
-_TBD / None_
+- **Locator's publish-mirror-first resolution lives in `add()`/`get()`, not at each call site (Checklist Step 3).** Any path registered via `add()` that sits under the application root gets its published-webroot mirror (`published()`) prepended ahead of the source path automatically; the module-resource loader in `filesystem/index.php` needed no change and still calls `add($prefix, $modulePath)` with the single module path it always has. The bare-root overlay is realized the same way, as `get()`'s public-then-source fallback order, rather than a separate `add('', path.public)` registration.
 
 ---
 
@@ -65,18 +80,20 @@ _TBD / None_
 
 - **Vue baseline inventory over-counts vs. the fresh `public/` copy (Checklist Step 2 — flagged for Step 8 parity).** The Step 1 baseline captured `app/assets/vue/` (418 entries) before this step moved the copy destination to `public/app/assets/vue/`; the old, git-ignored destination had accumulated leftover files from earlier builds that `scripts/assets.mjs` never pruned (overwrites/adds in place, never deletes). The fresh `public/app/assets/vue/` copy (223 entries) matches the installed `vue@2.7.16` package exactly, including its `.ts` compiler sources. Step 8's parity check must treat the ~195-entry shrinkage as pre-existing baseline staleness, not a publication regression.
 - **`app/modules/debug/assets/vendor/highlight/` is not published (Checklist Step 2 — flagged for Step 8 parity).** Decision 3d names `app/modules/debug/assets/**` as a tree that must publish in full, but `scripts/publish.mjs`'s `PRIVATE_DIRS` exclusion treats any directory literally named `vendor` as a never-served PHP/Composer source tree, so this module's own vendored front-end library (a highlight.js copy, currently unreferenced by any `$view->script()`/`style()` call site) is skipped too. Needs a rule adjustment before Step 8's parity check can close cleanly.
+- **The app is not manually browsable end-to-end yet (Checklist Step 3 — planned, resolves at Step 4).** URLs now resolve through `path.public`/the storage mount, but the front controller (`index.php`) still runs from the application root and `public/` is not yet the docroot, so a live request cannot reach any of the newly-mounted paths. PHPUnit and PHPStan stay green throughout since neither browses; manual/E2E verification resumes once Checklist Step 4 flips the docroot.
 
 ---
 
 ## 🔐 Security & Data Impact
 
-_TBD / None_
+- **File-to-URL resolution is now allow-listed by mount, not approot-wide (Checklist Step 3).** `FileAdapter` previously mapped every path under the application root to a URL; it now only does so for a path under an explicit mount (`path.public`, `path.storage`) — `config.php`, `app/system/config.php`, `composer.json`, and everything else outside both mounts get no `url` regardless of what calls `getUrl()`/`getStatic()` on them, and mount matching is segment-boundary-safe (a sibling directory merely sharing a mount's name as a prefix does not match). Covered by `FileAdapterTest`.
 
 ---
 
 ## 🛡️ No-Mercy Compliance
 
 - **Rule 4 (Delete over wrap) — Checklist Step 2.** `packages/pagekit/theme-one/css/theme.css`'s tracked compiled copy is untracked outright rather than kept as a committed fallback beside the new `public/`-only build output (decision 3c); the uikit-relative LESS variables (`@uikit-path`/`@image-path` and their `@internal-*-image` consumers) are deleted rather than kept as a dead alias once the imports resolve straight from `node_modules` (decision 4).
+- **Rule 4 (Delete over wrap) — Checklist Step 3.** `FileAdapter`'s single-root `$path`/`$url` mapping and `Locator`'s single-path-per-prefix registration are replaced in place by the mounts list / publish-mirror-first resolution — there is no legacy single-mount code path kept alongside the new one; a one-mount adapter is simply the one-element case of the same mechanism.
 
 ---
 
