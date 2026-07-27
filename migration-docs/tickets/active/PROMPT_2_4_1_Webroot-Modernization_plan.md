@@ -64,7 +64,7 @@
 - [x] Step 5 (M) — `.htaccess` split (public + root fallback) + Docker dev vhost
 - [x] Step 6 (M) — Installer symlink ensure + SelfUpdater/Archive audit
 - [x] Step 7 (S) — Docs sweep (README shared-hosting, AGENTS.md)
-- [ ] Step 8 (M) — Final verification: inventory parity, denial smoke, E2E
+- [x] Step 8 (M) — Final verification: inventory parity, denial smoke, E2E
 
 ## TESTING STRATEGY
 - **Per step (production gate):** Refactorer → Verifier → Tester (PHPUnit + PHPStan) — production code must be green before any new tests are written. Steps 4/6/8 add the curl/setup smoke gates listed in the Checklist (Tester runs them via `php pagekit start` — never leaves the server running detached without tmux).

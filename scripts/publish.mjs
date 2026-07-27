@@ -34,8 +34,13 @@ const SERVED_APP_FILES = /\.(js|css)$/;
 /** Icons a module or package ships in its root: menu entries and package thumbnails. */
 const SERVED_ROOT_FILES = /\.(ico|jpe?g|png|svg)$/;
 
-/** Sources and server-side data, none of which a browser may request. */
-const PRIVATE_DIRS = new Set(['languages', 'less', 'node_modules', 'src', 'vendor', 'views']);
+/**
+ * Sources and server-side data, none of which a browser may request. A
+ * `vendor` directory is not one of them: Composer's sits at the root of a tree,
+ * which is never walked, while one below a served directory holds a front-end
+ * library the module vendored to ship it.
+ */
+const PRIVATE_DIRS = new Set(['languages', 'less', 'node_modules', 'src', 'views']);
 
 /** Copy destinations of `copyAssets`: leftovers of an earlier build, never a source. */
 const copied = new Set(assetDests);

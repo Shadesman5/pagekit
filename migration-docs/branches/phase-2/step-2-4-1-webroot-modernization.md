@@ -108,6 +108,15 @@ Tests: `test-writer` runs — new `StorageLinkTest` (link creation; survives a m
 
 Tests: none (test-writer: skip — docs only). Gates: Verifier PASS. Tester — PHPUnit PASS, PHPStan PASS.
 
+### Final verification — inventory parity, denial smoke, E2E (Checklist Step 8)
+
+| File | Change |
+|---|---|
+| `scripts/publish.mjs` | `PRIVATE_DIRS` no longer excludes directories literally named `vendor` — closes the Checklist Step 2 gap where `app/modules/debug/assets/vendor/highlight/`'s vendored front-end library (`highlight.js`/`highlight.css`) was skipped from publication; Composer's own `vendor/` sits at a module/package tree root the publish walk never visits, so the blanket exclusion was redundant for that case and wrong for a nested vendored library under a served directory. |
+| `migration-docs/branches/phase-2/step-2-4-1-webroot-inventory-after.txt` (new) | Post-rebuild inventory (1,692 lines, `public/`-prefixed) from a clean `pnpm build` — the decision 10 parity check against the Step 1 baseline: both debug `highlight.js`/`highlight.css` are now present (closing the gap above), and the Vue tree carries exactly the 223 entries the Checklist Step 2 note predicted, confirming that count as pre-existing baseline staleness rather than a publication regression. |
+
+Tests: none (test-writer: skip — verification only). Gates: Verifier PASS (non-blocking note — stale branch-doc line about debug highlight assets resolved by this step, closed below). Tester — PHPUnit PASS, PHPStan PASS; final E2E PASS (installation, authentication, dashboard).
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -124,8 +133,8 @@ _TBD / None_
 
 ## ⚠️ Risks & Rollout Notes
 
-- **Vue baseline inventory over-counts vs. the fresh `public/` copy (Checklist Step 2 — flagged for Step 8 parity).** The Step 1 baseline captured `app/assets/vue/` (418 entries) before this step moved the copy destination to `public/app/assets/vue/`; the old, git-ignored destination had accumulated leftover files from earlier builds that `scripts/assets.mjs` never pruned (overwrites/adds in place, never deletes). The fresh `public/app/assets/vue/` copy (223 entries) matches the installed `vue@2.7.16` package exactly, including its `.ts` compiler sources. Step 8's parity check must treat the ~195-entry shrinkage as pre-existing baseline staleness, not a publication regression.
-- **`app/modules/debug/assets/vendor/highlight/` is not published (Checklist Step 2 — flagged for Step 8 parity).** Decision 3d names `app/modules/debug/assets/**` as a tree that must publish in full, but `scripts/publish.mjs`'s `PRIVATE_DIRS` exclusion treats any directory literally named `vendor` as a never-served PHP/Composer source tree, so this module's own vendored front-end library (a highlight.js copy, currently unreferenced by any `$view->script()`/`style()` call site) is skipped too. Needs a rule adjustment before Step 8's parity check can close cleanly.
+- **Vue baseline inventory over-counts vs. the fresh `public/` copy (Checklist Step 2 — flagged for Step 8 parity).** The Step 1 baseline captured `app/assets/vue/` (418 entries) before this step moved the copy destination to `public/app/assets/vue/`; the old, git-ignored destination had accumulated leftover files from earlier builds that `scripts/assets.mjs` never pruned (overwrites/adds in place, never deletes). The fresh `public/app/assets/vue/` copy (223 entries) matches the installed `vue@2.7.16` package exactly, including its `.ts` compiler sources. Step 8's parity check must treat the ~195-entry shrinkage as pre-existing baseline staleness, not a publication regression. **Closed at Checklist Step 8** — the rebuilt inventory carries exactly the predicted 223 `app/assets/vue/` entries; confirmed baseline staleness, no regression.
+- **`app/modules/debug/assets/vendor/highlight/` is not published (Checklist Step 2 — flagged for Step 8 parity).** Decision 3d names `app/modules/debug/assets/**` as a tree that must publish in full, but `scripts/publish.mjs`'s `PRIVATE_DIRS` exclusion treats any directory literally named `vendor` as a never-served PHP/Composer source tree, so this module's own vendored front-end library (a highlight.js copy, currently unreferenced by any `$view->script()`/`style()` call site) is skipped too. Needs a rule adjustment before Step 8's parity check can close cleanly. **Closed at Checklist Step 8** — `vendor` dropped from `PRIVATE_DIRS` (a root-level Composer `vendor/` is never reached by the publish walk, so excluding it there was redundant); the rebuilt inventory now carries both `highlight.js` and `highlight.css`.
 - **The app is not manually browsable end-to-end yet (Checklist Step 3 — planned, resolves at Step 4).** URLs now resolve through `path.public`/the storage mount, but the front controller (`index.php`) still runs from the application root and `public/` is not yet the docroot, so a live request cannot reach any of the newly-mounted paths. PHPUnit and PHPStan stay green throughout since neither browses; manual/E2E verification resumes once Checklist Step 4 flips the docroot. **Closed at Checklist Step 4** — `public/index.php` is now the sole front controller and `StartCommand` serves via `-t public public/index.php`; the docroot flip this note was waiting on has landed.
 
 ---
