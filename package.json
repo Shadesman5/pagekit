@@ -32,7 +32,7 @@
         "JSONStorage": "github:uatrend/JSONStorage#master",
         "lodash": "^4.17.20",
         "marked": "^4.3.0",
-        "tinymce": "~5.10.9",
+        "tinymce": "~8.8.2",
         "uikit": "~3.5.8",
         "vee-validate": "~3.3.11",
         "vue": "~2.7.16",
