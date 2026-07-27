@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "f80004cc-8169-4ddb-8a10-fafc6ccf9645",
+  "roadmapStepId": "2.0.8",
+  "title": "↳ Hotfix: `create_function()` in User",
+  "taskSlug": null,
+  "taskPrompt": null,
+  "issue": 185,
+  "branch": null,
+  "model": null,
+  "status": "completed",
+  "startedAt": "2026-04-27T23:20:02.816Z",
+  "completedAt": "2026-04-28T00:27:05.921Z",
+  "phases": [
+    {
+      "phaseKey": "manual-bc-3d93c071-8927-489f-9ed2-9f462a0860e0-PR #197",
+      "type": "MANUAL",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-04-27T23:20:02.816Z",
+      "durationMs": 2431451,
+      "agent": {
+        "id": "bc-3d93c071-8927-489f-9ed2-9f462a0860e0",
+        "runId": "run-923dd2d0-294b-4283-ab31-86ab69ef7202",
+        "url": "https://cursor.com/agents/bc-3d93c071-8927-489f-9ed2-9f462a0860e0",
+        "model": null,
+        "runCount": 3,
+        "runs": [
+          {
+            "runId": "run-da0712b6-5a97-45ff-be52-79d5db25e45a",
+            "index": 1,
+            "startedAt": "2026-04-27T23:20:02.816Z",
+            "completedAt": "2026-04-27T23:53:21.538Z",
+            "durationMs": 1946847,
+            "tokens": {
+              "input": 947,
+              "output": 97817,
+              "cacheRead": 8478776,
+              "cacheWrite": 441102,
+              "total": 9018642
+            }
+          },
+          {
+            "runId": "run-80943096-25c0-432d-989a-a82b3a33cc39",
+            "index": 2,
+            "startedAt": "2026-04-28T00:13:26.834Z",
+            "completedAt": "2026-04-28T00:21:04.212Z",
+            "durationMs": 455173,
+            "tokens": {
+              "input": 629,
+              "output": 26850,
+              "cacheRead": 2540517,
+              "cacheWrite": 177109,
+              "total": 2745105
+            }
+          },
+          {
+            "runId": "run-923dd2d0-294b-4283-ab31-86ab69ef7202",
+            "index": 3,
+            "startedAt": "2026-04-28T00:26:36.046Z",
+            "completedAt": "2026-04-28T00:27:05.921Z",
+            "durationMs": 29431,
+            "tokens": {
+              "input": 426,
+              "output": 1237,
+              "cacheRead": 539409,
+              "cacheWrite": 180354,
+              "total": 721426
+            }
+          }
+        ]
+      },
+      "github": null,
+      "tokens": {
+        "input": 2002,
+        "output": 125904,
+        "cacheRead": 11558702,
+        "cacheWrite": 798565,
+        "total": 12485173
+      },
+      "tokensSource": "cursor-api-manual",
+      "result": "Imported manually (pre-Conductor cloud agent)",
+      "outcome": "success",
+      "manualImport": true,
+      "notes": "Manual import via import-manual-agents.mjs · Timing from Cursor API (3 agent runs aggregated)",
+      "completedAt": "2026-04-28T00:27:05.921Z"
+    }
+  ],
+  "totals": {
+    "tokens": {
+      "input": 2002,
+      "output": 125904,
+      "cacheRead": 11558702,
+      "cacheWrite": 798565,
+      "total": 12485173
+    },
+    "durationMs": 2431451,
+    "phaseCount": 1,
+    "escalations": 0,
+    "ghaJobs": 1,
+    "cloudAgents": 1
+  },
+  "manualImport": {
+    "at": "2026-07-14T17:14:15.526Z",
+    "source": "import-manual-agents.mjs",
+    "note": "Pre-Conductor cloud agent run(s)"
+  }
+}

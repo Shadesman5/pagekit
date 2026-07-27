@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Filter by' => 'Фильтр по',
   'Thank you! Your comment needs approval before showing up.' => 'Спасибо! Ваш комментарий появится после модерации.',
   'Unable to comment. Please try again later.' => 'Невозможно оставить комментарий. Пожалуйста, попробуйте позже.',
@@ -97,5 +101,5 @@
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Нет комментариев|{1} %count% комментарий|]1,Inf[ %count% комментариев',
   'Approve' => 'Одобрить',
   'Unapprove' => 'Не одобрить',
-  'Mark as spam' => 'Спам'
-);
+  'Mark as spam' => 'Спам',
+];

@@ -1,9 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Event\PrefixEventDispatcher;
-use Pagekit\Twig\TwigEngine;
 use Pagekit\View\Asset\AssetFactory;
 use Pagekit\View\Asset\AssetManager;
+use Pagekit\View\Engine\DelegatingEngine;
+use Pagekit\View\Engine\PhpEngineAdapter;
+use Pagekit\View\Engine\TwigEngineAdapter;
 use Pagekit\View\Helper\DataHelper;
 use Pagekit\View\Helper\DeferredHelper;
 use Pagekit\View\Helper\GravatarHelper;
@@ -19,7 +23,6 @@ use Pagekit\View\Loader\FilesystemLoader;
 use Pagekit\View\PhpEngine;
 use Pagekit\View\View;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Templating\TemplateNameParser;
 
 return [
 
@@ -29,27 +32,28 @@ return [
 
     'require' => [
 
-        'view/twig'
+        'view/twig',
 
     ],
 
     'main' => function ($app) {
 
-        $app['view'] = fn($app) => new View(new PrefixEventDispatcher('view.', $app['events']));
+        $app->set('view', fn ($app) => new View(new PrefixEventDispatcher('view.', $app->get('events'))));
 
-        $app['assets'] = fn() => new AssetFactory();
+        $app->set('assets', fn () => new AssetFactory());
 
-        $app['styles'] = fn($app) => new AssetManager($app['assets']);
+        $app->set('styles', fn ($app) => new AssetManager($app->get('assets')));
 
-        $app['scripts'] = fn($app) => new AssetManager($app['assets']);
+        $app->set('scripts', fn ($app) => new AssetManager($app->get('assets')));
 
-        $app['module']->addLoader(function ($module) use ($app) {
+        $app->get('module')->addLoader(function ($module) use ($app) {
 
             if (isset($module['views'])) {
                 $app->extend('view', function ($view) use ($module) {
                     foreach ((array) $module['views'] as $name => $path) {
                         $view->map($name, $path);
                     }
+
                     return $view;
                 });
             }
@@ -63,7 +67,7 @@ return [
 
         'controller' => [function ($event) use ($app) {
 
-            $view = $app['view'];
+            $view = $app->get('view');
             $layout = true;
             $result = $event->getControllerResult();
 
@@ -82,7 +86,7 @@ return [
                             unset($value['layout']);
                         }
 
-                        $app->on('view.meta', function ($event, $meta) use ($value) {
+                        $app->get('events')->on('view.meta', function ($event, $meta) use ($value) {
                             $meta($value);
                         });
 
@@ -123,43 +127,53 @@ return [
 
         'view.init' => [function ($event, $view) use ($app) {
 
-            $view->addEngine(new PhpEngine(null, isset($app['locator']) ? new FilesystemLoader($app['locator']) : null));
+            // DESIGN DECISION (intentional, not legacy debt): run a DelegatingEngine with BOTH a PHP
+            // template engine (primary — core/native authoring) and an optional Twig engine (for
+            // contributors who prefer Twig). The dual-engine setup is deliberate; keep both. No
+            // PHP->Twig consolidation is planned. NOTE: PHP templates do NOT auto-escape (unlike
+            // Twig) — escape output manually.
+            $delegatingEngine = new DelegatingEngine();
 
-            if (isset($app['twig'])) {
-                $view->addEngine(new TwigEngine($app['twig'], new TemplateNameParser()));
+            $phpEngine = new PhpEngine($app->has('locator') ? new FilesystemLoader($app->get('locator')) : null);
+            $delegatingEngine->addEngine(new PhpEngineAdapter($phpEngine));
+
+            if ($app->has('twig')) {
+                $delegatingEngine->addEngine(new TwigEngineAdapter($app->get('twig')));
             }
+
+            $view->addEngine($delegatingEngine);
 
             $view->addGlobal('app', $app);
             $view->addGlobal('view', $view);
 
             $view->addHelpers([
                 new DataHelper(),
-                new DeferredHelper($app['events']),
+                new DeferredHelper($app->get('events')),
                 new GravatarHelper(),
                 new MapHelper(),
                 new MetaHelper(),
-                new ScriptHelper($app['scripts']),
+                new ScriptHelper($app->get('scripts')),
                 new SectionHelper(),
-                new StyleHelper($app['styles']),
-                new UrlHelper($app['url'])
+                new StyleHelper($app->get('styles')),
+                new UrlHelper($app->get('url')),
             ]);
 
-            if (isset($app['csrf'])) {
-                $view->addHelper(new TokenHelper($app['csrf']));
+            if ($app->has('csrf')) {
+                $view->addHelper(new TokenHelper($app->get('csrf')));
             }
 
-            if (isset($app['markdown'])) {
-                $view->addHelper(new MarkdownHelper($app['markdown']));
+            if ($app->has('markdown')) {
+                $view->addHelper(new MarkdownHelper($app->get('markdown')));
             }
 
-        }, 50]
+        }, 50],
 
     ],
 
     'autoload' => [
 
-        'Pagekit\\View\\' => 'src'
+        'Pagekit\\View\\' => 'src',
 
-    ]
+    ],
 
 ];

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Filesystem\Adapter\FileAdapter;
 use Pagekit\Filesystem\Filesystem;
 use Pagekit\Filesystem\Locator;
@@ -11,15 +13,15 @@ return [
 
     'main' => function ($app) {
 
-        $app['file'] = fn() => new Filesystem;
+        $app->set('file', fn () => new Filesystem());
 
-        $app['locator'] = fn() => new Locator($this->config['path']);
+        $app->set('locator', fn () => new Locator($this->config['path']));
 
-        $app['module']->addLoader(function ($module) use ($app) {
+        $app->get('module')->addLoader(function ($module) use ($app) {
 
             if (isset($module['resources'])) {
                 foreach ($module['resources'] as $prefix => $path) {
-                    $app['locator']->add($prefix, "{$module['path']}/$path");
+                    $app->get('locator')->add($prefix, "{$module['path']}/$path");
                 }
             }
 
@@ -32,7 +34,7 @@ return [
 
         'boot' => function ($event, $app) {
 
-            StreamWrapper::setFilesystem($app['file']);
+            StreamWrapper::setFilesystem($app->get('file'));
 
         },
 
@@ -40,21 +42,21 @@ return [
 
             $baseUrl = $request->getSchemeAndHttpHost().$request->getBasePath();
 
-            $app['file']->registerAdapter('file', new FileAdapter($this->config['path'], $baseUrl));
+            $app->get('file')->registerAdapter('file', new FileAdapter($this->config['path'], $baseUrl));
 
-        }, 100]
+        }, 100],
     ],
 
     'autoload' => [
 
-        'Pagekit\\Filesystem\\' => 'src'
+        'Pagekit\\Filesystem\\' => 'src',
 
     ],
 
     'config' => [
 
-        'path' => getcwd()
+        'path' => getcwd(),
 
-    ]
+    ],
 
 ];

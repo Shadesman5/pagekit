@@ -1,8 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Application\Response;
 use Pagekit\Application\UrlProvider;
-use Pagekit\Kernel\ExceptionHandler;
 use Symfony\Component\ErrorHandler\ErrorHandler;
 
 return [
@@ -11,20 +12,17 @@ return [
 
     'main' => function ($app) {
 
-        $app['version'] = fn() => $this->config['version'];
+        $app->set('version', fn () => $this->config['version']);
 
-        $app['debug'] = fn() => (bool) $this->config['debug'];
+        $app->set('debug', fn () => (bool) $this->config['debug']);
 
-        $app['url'] = fn($app) => new UrlProvider($app['router'], $app['file'], $app['locator']);
+        $app->set('url', fn ($app) => new UrlProvider($app->get('router'), $app->get('file'), $app->get('locator')));
 
-        $app['response'] = fn($app) => new Response($app['url']);
-
-        // use Symfony\Component\ErrorHandler\ErrorHandler instead.
-        // $app['exception'] = ExceptionHandler::register($app['debug']);
+        $app->set('response', fn ($app) => new Response($app->get('url')));
 
         ErrorHandler::register()->throwAt(E_ERROR | E_CORE_ERROR | E_COMPILE_ERROR | E_RECOVERABLE_ERROR);
 
-        ini_set('display_errors', $app->inConsole() || $app['debug'] ? 1 : 0);
+        ini_set('display_errors', $app->inConsole() || $app->get('debug') ? 1 : 0);
 
     },
 
@@ -39,15 +37,15 @@ return [
         'filesystem',
         'log',
         'session',
-        'view'
+        'view',
 
     ],
 
     'config' => [
 
         'version' => '',
-        'debug' => false
+        'debug' => false,
 
-    ]
+    ],
 
 ];

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Content\ContentHelper;
 use Pagekit\Content\Plugin\MarkdownPlugin;
 use Pagekit\Content\Plugin\SimplePlugin;
@@ -11,20 +13,18 @@ return [
 
     'main' => function ($app) {
 
-        $app->subscribe(
-            new MarkdownPlugin,
-            new SimplePlugin,
-            new VideoPlugin
-        );
+        $app->get('events')->subscribe(new MarkdownPlugin($app->get('markdown')));
+        $app->get('events')->subscribe(new SimplePlugin());
+        $app->get('events')->subscribe(new VideoPlugin());
 
-        $app['content'] = fn() => new ContentHelper;
+        $app->set('content', fn () => new ContentHelper($app->get('events')));
 
     },
 
     'autoload' => [
 
-        'Pagekit\\Content\\' => 'src'
+        'Pagekit\\Content\\' => 'src',
 
-    ]
+    ],
 
 ];

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Routing\Request;
 
 use Pagekit\Filter\FilterManager;
@@ -9,6 +11,7 @@ class ParamFetcher implements ParamFetcherInterface
 {
     protected ?Request $request = null;
 
+    /** @var array<int, array<string, mixed>>|null */
     protected ?array $params = null;
 
     protected \Pagekit\Filter\FilterManager $filterManager;
@@ -20,7 +23,7 @@ class ParamFetcher implements ParamFetcherInterface
      */
     public function __construct(?FilterManager $filterManager = null)
     {
-        $this->filterManager = $filterManager ?: new FilterManager;
+        $this->filterManager = $filterManager ?: new FilterManager();
     }
 
     /**
@@ -33,6 +36,9 @@ class ParamFetcher implements ParamFetcherInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<int|string, string>          $params
+     * @param array<string, array<string, mixed>> $options
      */
     public function setParameters(array $params, array $options): void
     {
@@ -67,15 +73,15 @@ class ParamFetcher implements ParamFetcherInterface
         }
 
         /**
-         * @var string $name
-         * @var string $type
-         * @var array  $options
+         * @var string                $name
+         * @var string                $type
+         * @var array<string, mixed>  $options
          */
         extract($this->params[$index]);
 
         foreach (['query', 'request'] as $bag) {
 
-            $value = $this->request->$bag->get($name);
+            $value = $this->request?->$bag->all()[$name] ?? null;
 
             if ($value !== null) {
 

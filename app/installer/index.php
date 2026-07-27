@@ -1,6 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Installer\Package\PackageFactory;
+use Pagekit\Installer\Package\PackageManager;
+use Pagekit\Kernel\Event\ExceptionListenerWrapper;
 use Pagekit\Kernel\Exception\NotFoundException;
 
 return [
@@ -9,36 +13,38 @@ return [
 
     'main' => function ($app) {
 
-        $app['package'] = fn($app) => (new PackageFactory())->addPath($app['path'].'/packages/*/*/composer.json');
+        $app->set('package', fn ($app) => (new PackageFactory($app->get('url')))->addPath($app->get('path').'/packages/*/*/composer.json'));
+        $app->set('manager', fn ($app) => new PackageManager($app));
+        $app->set('systemApi', fn ($app) => $app->has('system.api') ? $app->get('system.api') : 'https://pagekit.com');
 
         if ($this->config['enabled']) {
 
             $app->extend('assets', function ($factory) use ($app) {
 
-                $factory->setVersion($app['version']);
+                $factory->setVersion($app->get('version'));
 
                 return $factory;
 
             });
 
-            $app['routes']->add([
+            $app->get('routes')->add([
                 'path' => '/installer',
                 'name' => '@installer',
-                'controller' => 'Pagekit\Installer\Controller\InstallerController'
+                'controller' => 'Pagekit\Installer\Controller\InstallerController',
             ]);
 
-            $app->on('request', function ($event, $request) use ($app) {
+            $app->get('events')->on('request', function ($event, $request) use ($app) {
 
-                $locale = $request->get('locale') ?: $app['request']->getPreferredLanguage();
-                $available = $app->module('system/intl')->getAvailableLanguages();
+                $locale = $request->get('locale') ?: $app->get('request')->getPreferredLanguage();
+                $available = $app->get('module')->get('system/intl')->getAvailableLanguages();
 
                 if (isset($available[$locale])) {
-                    $app->module('system/intl')->setLocale($locale);
+                    $app->get('module')->get('system/intl')->setLocale($locale);
                 }
 
             });
 
-            $app->error(fn(NotFoundException $e) => $app['response']->redirect('@installer'));
+            $app->get('events')->on('exception', new ExceptionListenerWrapper(fn (NotFoundException $e) => $app->get('router')->redirect('@installer')), -8);
 
         }
 
@@ -47,9 +53,10 @@ return [
     'require' => [
 
         'application',
+        'migration',
         'system/cache',
         'system/intl',
-        'system/view'
+        'system/view',
 
     ],
 
@@ -57,16 +64,16 @@ return [
 
         '/system/package' => [
             'name' => '@system/package',
-            'controller' => 'Pagekit\Installer\Controller\PackageController'
+            'controller' => 'Pagekit\Installer\Controller\PackageController',
         ],
         '/system/marketplace' => [
             'name' => '@system/marketplace',
-            'controller' => 'Pagekit\Installer\Controller\MarketplaceController'
+            'controller' => 'Pagekit\Installer\Controller\MarketplaceController',
         ],
         '/system/update' => [
             'name' => '@system/update',
-            'controller' => 'Pagekit\Installer\Controller\UpdateController'
-        ]
+            'controller' => 'Pagekit\Installer\Controller\UpdateController',
+        ],
 
     ],
 
@@ -74,7 +81,7 @@ return [
 
     'resources' => [
 
-        'installer:' => ''
+        'installer:' => '',
 
     ],
 
@@ -82,12 +89,12 @@ return [
 
         'system: manage packages' => [
             'title' => 'Manage extensions and themes',
-            'description' => 'Manage extensions and themes'
+            'description' => 'Manage extensions and themes',
         ],
         'system: software updates' => [
             'title' => 'Apply system updates',
-            'trusted' => true
-        ]
+            'trusted' => true,
+        ],
 
     ],
 
@@ -98,19 +105,19 @@ return [
             'icon' => 'installer:assets/images/icon-marketplace.svg',
             'url' => '@system/marketplace/extensions',
             'access' => 'system: manage packages',
-            'priority' => 125
+            'priority' => 125,
         ],
 
         'system: marketplace extensions' => [
             'label' => 'Extensions',
             'parent' => 'system: marketplace',
-            'url' => '@system/marketplace/extensions'
+            'url' => '@system/marketplace/extensions',
         ],
 
         'system: marketplace themes' => [
             'label' => 'Themes',
             'parent' => 'system: marketplace',
-            'url' => '@system/marketplace/themes'
+            'url' => '@system/marketplace/themes',
         ],
 
         'system: extensions' => [
@@ -118,7 +125,7 @@ return [
             'parent' => 'system: system',
             'url' => '@system/package/extensions',
             'access' => 'system: manage packages',
-            'priority' => 5
+            'priority' => 5,
         ],
 
         'system: themes' => [
@@ -126,23 +133,37 @@ return [
             'parent' => 'system: system',
             'url' => '@system/package/themes',
             'access' => 'system: manage packages',
-            'priority' => 10
+            'priority' => 10,
         ],
 
         'system: update' => [
             'label' => 'Update',
             'parent' => 'system: system',
             'url' => '@system/update',
-            'priority' => 25
-        ]
+            'priority' => 25,
+        ],
+
+    ],
+
+    'events' => [
+
+        'view.data' => function ($event, $data) use ($app) {
+            $installer = $app->get('module')->get('installer');
+            if ($installer && $installer->config('enabled')) {
+                $data('$pagekit', [
+                    'url' => '/index.php',
+                    'csrf' => $app->get('csrf')->generate(),
+                ]);
+            }
+        },
 
     ],
 
     'config' => [
 
         'enabled' => false,
-        'release_channel' => 'stable'
+        'release_channel' => 'stable',
 
-    ]
+    ],
 
 ];

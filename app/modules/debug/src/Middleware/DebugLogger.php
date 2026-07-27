@@ -1,0 +1,194 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Pagekit\Debug\Middleware;
+
+use Psr\Log\LoggerInterface;
+use Psr\Log\LogLevel;
+use Symfony\Component\Stopwatch\Stopwatch;
+
+/**
+ * Logger implementation that collects SQL queries for the debug bar.
+ * Compatible with PSR-3 and DBAL 3.x.
+ */
+class DebugLogger implements LoggerInterface
+{
+    /**
+     * Collected queries.
+     *
+     * @var array<int, array<string, mixed>>
+     */
+    public array $queries = [];
+
+    /**
+     * Current query being executed.
+     */
+    protected ?int $currentQuery = null;
+
+    /**
+     * Start time of current query.
+     */
+    protected ?float $start = null;
+
+    /**
+     * Stopwatch for performance profiling.
+     */
+    public ?Stopwatch $stopwatch = null;
+
+    /**
+     * Whether logging is enabled.
+     */
+    public bool $enabled = true;
+
+    /**
+     * Call stack for debugging.
+     */
+    protected ?string $callstack = null;
+
+    public function __construct(?Stopwatch $stopwatch = null)
+    {
+        $this->stopwatch = $stopwatch;
+    }
+
+    /**
+     * Logs with an arbitrary level.
+     *
+     * @param mixed                $level
+     * @param array<string, mixed> $context
+     */
+    public function log($level, string|\Stringable $message, array $context = []): void
+    {
+        if (!$this->enabled) {
+            return;
+        }
+
+        // Handle SQL query logging
+        if ($level === LogLevel::DEBUG && isset($context['sql'])) {
+            $this->startQuery($context['sql'], $context['params'] ?? null, $context['types'] ?? null);
+        }
+
+        // Handle query completion
+        if ($level === LogLevel::DEBUG && isset($context['elapsed'])) {
+            $this->stopQuery($context['elapsed']);
+        }
+    }
+
+    /**
+     * Start logging a query.
+     *
+     * @param array<int|string, mixed>|null $params
+     * @param array<int|string, mixed>|null $types
+     */
+    public function startQuery(string $sql, ?array $params = null, ?array $types = null): void
+    {
+        // Debug: Log to error log to verify this is being called
+        if (!$this->enabled) {
+            return;
+        }
+
+        // Capture call stack for debugging
+        $e = new \Exception();
+        $this->callstack = $e->getTraceAsString();
+
+        if ($this->stopwatch !== null) {
+            $this->stopwatch->start('doctrine');
+        }
+
+        $this->start = microtime(true);
+        $this->queries[] = [
+            'sql' => $sql,
+            'params' => $params,
+            'types' => $types,
+            'executionMS' => 0,
+            'callstack' => $this->callstack,
+        ];
+        $this->currentQuery = array_key_last($this->queries);
+    }
+
+    /**
+     * Stop logging the current query.
+     */
+    public function stopQuery(?float $elapsed = null): void
+    {
+        if (!$this->enabled || $this->currentQuery === null) {
+            return;
+        }
+
+        if ($this->stopwatch !== null) {
+            $this->stopwatch->stop('doctrine');
+        }
+
+        if ($elapsed === null && $this->start !== null) {
+            $elapsed = microtime(true) - $this->start;
+        }
+
+        $this->queries[$this->currentQuery]['executionMS'] = $elapsed * 1000;
+        $this->currentQuery = null;
+        $this->start = null;
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function emergency(string|\Stringable $message, array $context = []): void
+    {
+        $this->log(LogLevel::EMERGENCY, $message, $context);
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function alert(string|\Stringable $message, array $context = []): void
+    {
+        $this->log(LogLevel::ALERT, $message, $context);
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function critical(string|\Stringable $message, array $context = []): void
+    {
+        $this->log(LogLevel::CRITICAL, $message, $context);
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function error(string|\Stringable $message, array $context = []): void
+    {
+        $this->log(LogLevel::ERROR, $message, $context);
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function warning(string|\Stringable $message, array $context = []): void
+    {
+        $this->log(LogLevel::WARNING, $message, $context);
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function notice(string|\Stringable $message, array $context = []): void
+    {
+        $this->log(LogLevel::NOTICE, $message, $context);
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function info(string|\Stringable $message, array $context = []): void
+    {
+        $this->log(LogLevel::INFO, $message, $context);
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function debug(string|\Stringable $message, array $context = []): void
+    {
+        $this->log(LogLevel::DEBUG, $message, $context);
+    }
+}

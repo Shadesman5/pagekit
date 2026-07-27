@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\View\Asset;
 
-abstract class Asset implements AssetInterface, \ArrayAccess
+abstract class Asset implements AssetInterface
 {
     protected string $name;
 
@@ -10,19 +12,19 @@ abstract class Asset implements AssetInterface, \ArrayAccess
 
     protected ?string $content = null;
 
+    /** @var array<int, string> */
     protected array $dependencies;
 
+    /** @var array<string, mixed> */
     protected array $options;
 
     /**
      * Constructor.
      *
-     * @param string $name
-     * @param string $source
-     * @param array  $dependencies
-     * @param array  $options
+     * @param array<int, string>   $dependencies
+     * @param array<string, mixed> $options
      */
-    public function __construct($name, $source, array $dependencies = [], array $options = [])
+    public function __construct(string $name, string $source, array $dependencies = [], array $options = [])
     {
         $this->name = $name;
         $this->source = $source;
@@ -51,7 +53,7 @@ abstract class Asset implements AssetInterface, \ArrayAccess
      */
     public function getPath(): string
     {
-        return false;
+        return '';
     }
 
     /**
@@ -67,13 +69,13 @@ abstract class Asset implements AssetInterface, \ArrayAccess
      */
     public function getContent(): string
     {
-        return $this->content;
+        return $this->content ?? '';
     }
 
     /**
      * {@inheritdoc}
      */
-    public function setContent($content)
+    public function setContent(string $content): void
     {
         $this->content = $content;
     }
@@ -88,8 +90,10 @@ abstract class Asset implements AssetInterface, \ArrayAccess
 
     /**
      * {@inheritdoc}
+     *
+     * @return mixed Genuinely unknown type — asset options are user-defined key-value pairs; any scalar, array, or null is valid.
      */
-    public function getOption($name)
+    public function getOption(string $name): mixed
     {
         return isset($this->options[$name]) ? $this->options[$name] : null;
     }
@@ -97,7 +101,7 @@ abstract class Asset implements AssetInterface, \ArrayAccess
     /**
      * {@inheritdoc}
      */
-    public function setOption($name, $value)
+    public function setOption(string $name, mixed $value): void
     {
         $this->options[$name] = $value;
     }
@@ -110,7 +114,9 @@ abstract class Asset implements AssetInterface, \ArrayAccess
         $asset = clone $this;
 
         foreach ($filters as $filter) {
-            $filter->filterContent($asset);
+            if (is_object($filter) && method_exists($filter, 'filterContent')) {
+                $filter->filterContent($asset);
+            }
         }
 
         return $asset->getContent();
@@ -118,12 +124,8 @@ abstract class Asset implements AssetInterface, \ArrayAccess
 
     /**
      * Sets an option.
-     *
-     * @param string $name  The option name
-     * @param mixed  $value The option value
      */
-    #[\ReturnTypeWillChange]
-    public function offsetSet($name, $value)
+    public function offsetSet(mixed $name, mixed $value): void
     {
         $this->options[$name] = $value;
     }
@@ -131,35 +133,25 @@ abstract class Asset implements AssetInterface, \ArrayAccess
     /**
      * Gets a option value.
      *
-     * @param string $name The option name
-     *
-     * @return mixed The option value
+     * @return mixed Genuinely unknown type — implements \ArrayAccess; value type depends on what option was stored at offset.
      */
-    #[\ReturnTypeWillChange]
-    public function offsetGet($name)
+    public function offsetGet(mixed $name): mixed
     {
         return isset($this->options[$name]) ? $this->options[$name] : null;
     }
 
     /**
      * Returns true if the option exists.
-     *
-     * @param string $name The option name
-     *
-     * @return bool true if the option exists, false otherwise
      */
-    public function offsetExists($name): bool
+    public function offsetExists(mixed $name): bool
     {
         return isset($this->options[$name]);
     }
 
     /**
      * Removes an option.
-     *
-     * @param string $name The option name
      */
-    #[\ReturnTypeWillChange]
-    public function offsetUnset($name)
+    public function offsetUnset(mixed $name): void
     {
         unset($this->options[$name]);
     }

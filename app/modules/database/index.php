@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 use Doctrine\DBAL\DriverManager;
-use Doctrine\DBAL\Logging\DebugStack;
 use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use Pagekit\Database\ORM\EntityManager;
-use Pagekit\Database\ORM\Loader\AnnotationLoader;
+use Pagekit\Database\ORM\Loader\AttributeLoader;
 use Pagekit\Database\ORM\MetadataManager;
 use Pagekit\Event\PrefixEventDispatcher;
 
@@ -15,44 +17,92 @@ $config = [
     'main' => function ($app) {
 
         $default = [
-            'wrapperClass' => 'Pagekit\Database\Connection'
+            'wrapperClass' => 'Pagekit\Database\Connection',
         ];
 
-        $app['dbs'] = function () use ($default) {
+        $app->set('dbs', function ($app) use ($default) {
 
             $dbs = [];
 
             foreach ($this->config['connections'] as $name => $params) {
-                $dbs[$name] = DriverManager::getConnection(array_replace($default, $params));
+                $connectionParams = array_replace($default, $params);
+
+                // DBAL 3.x: Always create debug middleware - it will collect queries when enabled
+                if (class_exists('Pagekit\Debug\Middleware\DebugMiddleware') &&
+                    class_exists('Pagekit\Debug\Middleware\DebugLogger')) {
+
+                    try {
+                        $stopwatch = null;
+                        $logger = new \Pagekit\Debug\Middleware\DebugLogger($stopwatch);
+
+                        $logger->enabled = true;
+
+                        $middleware = new \Pagekit\Debug\Middleware\DebugMiddleware($logger);
+
+                        $connectionParams['middlewares'] = [$middleware];
+
+                        $app->set('db.debug_middleware', $middleware);
+                        $app->set('db.debug_logger', $logger);
+                    } catch (\Exception $e) {
+                        // If middleware creation fails, continue without it
+                    }
+                }
+
+                // DBAL 3.x Bug: Middlewares are ignored when using wrapperClass
+                if (isset($connectionParams['middlewares']) && !empty($connectionParams['middlewares'])) {
+                    $tempConnection = DriverManager::getConnection($connectionParams);
+
+                    $driver = $tempConnection->getDriver();
+
+                    foreach ($connectionParams['middlewares'] as $middleware) {
+                        $driver = $middleware->wrap($driver);
+                    }
+
+                    $config = $tempConnection->getConfiguration();
+
+                    $connection = new $connectionParams['wrapperClass'](
+                        $connectionParams,
+                        $driver,
+                        $config
+                    );
+
+                    $tempConnection->close();
+
+                    $dbs[$name] = $connection;
+                } else {
+                    $dbs[$name] = DriverManager::getConnection($connectionParams);
+                }
             }
 
             return $dbs;
-        };
+        });
 
-        $app['db'] = fn ($app) => $app['dbs'][$this->config['default']];
+        $app->set('db', fn ($app) => $app->get('dbs')[$this->config['default']]);
 
-        $app['db.em'] = fn ($app) => new EntityManager($app['db'], $app['db.metas'], $app['db.events']);
+        $app->set('db.em', fn ($app) => new EntityManager($app->get('db'), $app->get('db.metas'), $app->get('db.events')));
 
-        $app['db.metas'] = function ($app) {
+        $app->set('db.metas', function ($app) {
 
-            $manager = new MetadataManager($app['db'], $app['db.events']);
-            $manager->setLoader(new AnnotationLoader);
-            $manager->setCache($app['cache.phpfile']);
+            $manager = new MetadataManager($app->get('db'), $app->get('db.events'));
+            $manager->setLoader(new AttributeLoader());
+            $manager->setCache($app->get('cache.phpfile'));
 
             return $manager;
-        };
+        });
 
-        $app['db.events'] = fn ($app) => new PrefixEventDispatcher('model.', $app['events']);
+        $app->set('db.events', fn ($app) => new PrefixEventDispatcher('model.', $app->get('events')));
 
-        $app['db.debug_stack'] = fn () => new DebugStack();
+        // Note: db.debug_middleware is now created inline in the dbs factory above
+        // This ensures it's available when the connection is created
 
-        Type::overrideType(Type::SIMPLE_ARRAY, '\Pagekit\Database\Types\SimpleArrayType');
-        Type::overrideType(Type::JSON_ARRAY, '\Pagekit\Database\Types\JsonArrayType');
+        // Override existing types
+        Type::overrideType(Types::SIMPLE_ARRAY, '\Pagekit\Database\Types\SimpleArrayType');
+        Type::overrideType(Types::JSON, '\Pagekit\Database\Types\JsonArrayType');
     },
 
     'autoload' => [
 
-        'Pagekit\\Database\\' => 'src'
+        'Pagekit\\Database\\' => 'src',
 
     ],
 
@@ -64,15 +114,15 @@ $config = [
 
             'mysql' => [
 
-                'driver'   => 'pdo_mysql',
-                'dbname'   => '',
-                'host'     => 'localhost',
-                'user'     => 'root',
+                'driver' => 'pdo_mysql',
+                'dbname' => '',
+                'host' => 'localhost',
+                'user' => 'root',
                 'password' => '',
-                'engine'   => 'InnoDB',
-                'charset'  => 'utf8',
-                'collate'  => 'utf8_unicode_ci',
-                'prefix'   => ''
+                'engine' => 'InnoDB',
+                'charset' => 'utf8',
+                'collate' => 'utf8_unicode_ci',
+                'prefix' => '',
 
             ],
 
@@ -86,22 +136,22 @@ $config = [
                     'userDefinedFunctions' => [
                         'REGEXP' => [
                             'callback' => fn ($pattern, $subject) => preg_match("/$pattern/", $subject ?? ''),
-                            'numArgs' => 2
-                        ]
-                    ]
-                ]
+                            'numArgs' => 2,
+                        ],
+                    ],
+                ],
 
-            ]
+            ],
 
-        ]
+        ],
 
-    ]
+    ],
 
 ];
 
-if (defined('PDO::MYSQL_ATTR_INIT_COMMAND')) {
+if (defined('Pdo\Mysql::ATTR_INIT_COMMAND')) {
     $config['config']['connections']['mysql']['driverOptions'] = [
-        PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8 COLLATE utf8_unicode_ci'
+        \Pdo\Mysql::ATTR_INIT_COMMAND => 'SET NAMES utf8 COLLATE utf8_unicode_ci',
     ];
 }
 

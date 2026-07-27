@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Filesystem;
 
 class Path
@@ -7,11 +9,9 @@ class Path
     /**
      * Parses and canonicalizes a path into root, path, dirname, pathname, protocol.
      *
-     * @param  string $path
-     * @param  string $option
-     * @return array
+     * @return array{root: string, path: string, dirname: string, pathname: string, protocol: string}
      */
-    public static function parse($path, $option = null)
+    public static function parse(string $path): array
     {
         $root = '';
         $path = strtr($path, '\\', '/');
@@ -28,6 +28,7 @@ class Path
 
                 if (count($parts)) {
                     array_pop($parts);
+
                     continue;
                 } elseif (!$root) {
                     continue;
@@ -39,36 +40,31 @@ class Path
         }
 
         $path = implode('/', $parts);
-        $info = compact('root', 'path');
 
-        $info['dirname']  = $root.substr($path, 0, strrpos($path, '/'));
-        $info['pathname'] = $root.$path;
-        $info['protocol'] = strpos($root, '://') ? substr($root, 0, -3) : 'file';
+        $slash = strrpos($path, '/');
 
-        if ($option === null) {
-            return $info;
-        }
-
-        return array_key_exists($option, $info) ? $info[$option] : '';
+        return [
+            'root' => $root,
+            'path' => $path,
+            'dirname' => $root.($slash !== false ? substr($path, 0, $slash) : ''),
+            'pathname' => $root.$path,
+            'protocol' => strpos($root, '://') ? substr($root, 0, -3) : 'file',
+        ];
     }
 
     /**
      * Returns whether a path is absolute.
-     *
-     * @param  string $path
      */
-    public static function isAbsolute($path): bool
+    public static function isAbsolute(string $path): bool
     {
-        return self::parse($path, 'root') !== '';
+        return self::parse($path)['root'] !== '';
     }
 
     /**
      * Returns whether a path is relative.
-     *
-     * @param  string $path
      */
-    public static function isRelative($path): bool
+    public static function isRelative(string $path): bool
     {
-        return self::parse($path, 'root') === '';
+        return self::parse($path)['root'] === '';
     }
 }

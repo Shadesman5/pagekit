@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Title' => '标题',
   'Theme' => '主题',
   'Hide Title' => '隐藏标题',
@@ -38,4 +42,4 @@
   'Written by %name% on %date%' => '由 %name% 于 %date% 撰写',
   'Read more' => '查看更多',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} 无评论|{1} %count% 评论|]1,Inf[ %count% 评论',
-);
+];

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Filter;
 
 /**
@@ -10,7 +12,7 @@ class StringFilter extends AbstractFilter
     /**
      * {@inheritdoc}
      */
-    public function filter($value): string
+    public function filter(mixed $value): string
     {
         return (string) $value;
     }

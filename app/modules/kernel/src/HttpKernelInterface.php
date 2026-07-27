@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Kernel;
 
 use Symfony\Component\HttpFoundation\Request;
@@ -27,18 +29,13 @@ interface HttpKernelInterface
     /**
      * Aborts the current request with HTTP exception.
      *
-     * @param  int    $code
-     * @param  string $message
-     * @param  array  $headers
+     * @param array<string, string> $headers
      * @throws HttpException
      */
-    public function abort($code, $message = null, array $headers = []);
+    public function abort(int $code, ?string $message = null, array $headers = []): void;
 
     /**
      * Terminates the current request.
-     *
-     * @param Request  $request
-     * @param Response $response
      */
-    public function terminate(Request $request, Response $response);
+    public function terminate(Request $request, Response $response): void;
 }

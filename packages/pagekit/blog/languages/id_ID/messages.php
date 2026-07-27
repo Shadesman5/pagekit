@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Filter by' => 'Filter dengan',
   'Thank you! Your comment needs approval before showing up.' => 'Terima kasih! Komentar anda memerlukan persetujuan sebelum ditayangkan.',
   'Unable to comment. Please try again later.' => 'Tidak dapat berkomentar. Silakan coba lagi nanti.',
@@ -94,4 +98,4 @@
   'Written by %name% on %date%' => 'Ditulis oleh %name% pada %date%',
   'Read more' => 'Baca selengkapnya',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Tidak ada komentar|{1} %count% Komentar|]1,Inf[ %count% Komentar',
-);
+];

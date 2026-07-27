@@ -1,23 +1,36 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Site\Model;
 
+use Pagekit\Database\ORM\Attribute as ORM;
 use Pagekit\Database\ORM\ModelTrait;
+use Pagekit\Database\ORM\SerializableModelInterface;
 use Pagekit\System\Model\DataModelTrait;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * @Entity(tableClass="@system_page")
+ * Page entity with PHP 8 Attributes for ORM and Validation.
  */
-class Page implements \JsonSerializable
+#[ORM\Entity(tableClass: '@system_page')]
+class Page implements \JsonSerializable, SerializableModelInterface
 {
-    use DataModelTrait, ModelTrait;
+    use DataModelTrait;
+    use ModelTrait;
 
-    /** @Column(type="integer") @Id */
-    public $id;
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
+    public ?int $id = null;
 
-    /** @Column(type="string") */
-    public $title;
+    #[ORM\Column(type: 'string')]
+    #[Assert\NotBlank(message: 'validation.page.title_required')]
+    #[Assert\Length(
+        max: 255,
+        maxMessage: 'validation.page.title_max_length'
+    )]
+    public ?string $title = null;
 
-    /** @Column */
-    public $content = '';
+    #[ORM\Column]
+    public ?string $content = '';
 }

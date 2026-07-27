@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Filter;
 
 /**
@@ -10,11 +12,11 @@ class SlugifyFilter extends AbstractFilter
     /**
      * {@inheritdoc}
      */
-    public function filter($value): ?string
+    public function filter(mixed $value): ?string
     {
-        $value = preg_replace('/\xE3\x80\x80/', ' ', (string) $value);
+        $value = preg_replace('/\xE3\x80\x80/', ' ', (string) $value) ?? '';
         $value = str_replace('-', ' ', $value);
-        $value = preg_replace('#[:\#\*"@+=;!><&\.%()\]\/\'\\\\|\[]#', "\x20", $value);
+        $value = preg_replace('#[:\#\*"@+=;!><&\.%()\]\/\'\\\\|\[]#', "\x20", $value) ?? '';
         $value = str_replace('?', '', $value);
         $value = trim(mb_strtolower($value, 'UTF-8'));
 

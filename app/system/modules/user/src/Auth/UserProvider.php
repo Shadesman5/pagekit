@@ -1,24 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Auth;
 
 use Pagekit\Auth\Encoder\PasswordEncoderInterface;
 use Pagekit\Auth\UserInterface;
 use Pagekit\Auth\UserProviderInterface;
-use Pagekit\User\Model\User;
+use Pagekit\User\Model\UserRepository;
 
 class UserProvider implements UserProviderInterface
 {
-    protected \Pagekit\Auth\Encoder\PasswordEncoderInterface $encoder;
-
-    /**
-     * Constructor.
-     *
-     * @param PasswordEncoderInterface $encoder
-     */
-    public function __construct(PasswordEncoderInterface $encoder)
-    {
-        $this->encoder = $encoder;
+    public function __construct(
+        private readonly PasswordEncoderInterface $encoder,
+        private readonly UserRepository $users,
+    ) {
     }
 
     /**
@@ -26,7 +22,7 @@ class UserProvider implements UserProviderInterface
      */
     public function find($id): ?UserInterface
     {
-        return User::find($id);
+        return $this->users->find($id);
     }
 
     /**
@@ -34,11 +30,13 @@ class UserProvider implements UserProviderInterface
      */
     public function findByUsername($username): ?UserInterface
     {
-        return User::findByUsername($username);
+        return $this->users->findByUsername($username);
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<string, mixed> $credentials
      */
     public function findByCredentials(array $credentials): ?UserInterface
     {
@@ -46,11 +44,13 @@ class UserProvider implements UserProviderInterface
             unset($credentials['password']);
         }
 
-        return User::where($credentials)->first();
+        return $this->users->findByCredentials($credentials);
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<string, mixed> $credentials
      */
     public function validateCredentials(UserInterface $user, array $credentials): bool
     {

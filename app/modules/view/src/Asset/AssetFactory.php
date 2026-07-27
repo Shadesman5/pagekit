@@ -1,23 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\View\Asset;
 
 class AssetFactory
 {
+    /**
+     * @var array<string, class-string<AssetInterface>|callable(string, string, array<int, string>, array<string, mixed>): AssetInterface>
+     */
     protected array $types = [
-        'file'   => 'Pagekit\View\Asset\FileAsset',
+        'file' => 'Pagekit\View\Asset\FileAsset',
         'string' => 'Pagekit\View\Asset\StringAsset',
-        'url'    => 'Pagekit\View\Asset\UrlAsset'
+        'url' => 'Pagekit\View\Asset\UrlAsset',
     ];
 
     protected string $version;
 
     /**
      * Set a version number for cache breaking.
-     *
-     * @param $version
      */
-    public function setVersion($version): void
+    public function setVersion(string $version): void
     {
         $this->version = $version;
     }
@@ -33,13 +36,12 @@ class AssetFactory
     /**
      * Create an asset instance.
      *
-     * @param  string $name
-     * @param  mixed  $source
-     * @param  mixed  $dependencies
-     * @param  mixed  $options
+     * @param string|array<int, string>   $dependencies
+     * @param string|array<string, mixed> $options
+     *
      * @throws \InvalidArgumentException
      */
-    public function create($name, $source, $dependencies = [], $options = []): AssetInterface
+    public function create(string $name, mixed $source, $dependencies = [], $options = []): AssetInterface
     {
         if (is_string($dependencies)) {
             $dependencies = [$dependencies];
@@ -59,7 +61,17 @@ class AssetFactory
 
         if (isset($this->types[$options['type']])) {
 
-            $class = $this->types[$options['type']];
+            $type = $this->types[$options['type']];
+
+            if (is_callable($type)) {
+                if (!is_string($source)) {
+                    throw new \InvalidArgumentException(sprintf('Asset source must be a string, %s given.', get_debug_type($source)));
+                }
+
+                return ($type)($name, $source, $dependencies, $options);
+            }
+
+            $class = $type;
 
             return new $class($name, $source, $dependencies, $options);
         }
@@ -70,10 +82,9 @@ class AssetFactory
     /**
      * Registers an asset type.
      *
-     * @param  string $name
-     * @param  string $class
+     * @param class-string<AssetInterface>|callable(string, string, array<int, string>, array<string, mixed>): AssetInterface $class
      */
-    public function register($name, $class): self
+    public function register(string $name, string|callable $class): self
     {
         $this->types[$name] = $class;
 

@@ -1,15 +1,13 @@
 <template>
-    <a title="Events"><span class="pf-icon pf-icon-events" /> Events</a>
+  <a title="Events"><span class="pf-icon pf-icon-events" /> Events</a>
 </template>
 
 <script>
-
 export default {
-
-    section: {
-        priority: 15,
-        panel: '#panel-events',
-        template: `
+  section: {
+    priority: 15,
+    panel: '#panel-events',
+    template: `
                 <div>
                     <h1>Events</h1>
 
@@ -79,27 +77,23 @@ export default {
                         </table>
                     </template>
                 </div>`
-    },
+  },
 
-    filters: {
+  filters: {
+    short(name) {
+      return name.split('\\').pop();
+    }
+  },
 
-        short(name) {
-            return name.split('\\').pop();
-        }
+  props: {
+    data: {
+      type: Object,
+      default() {
+        return {};
+      }
+    }
+  },
 
-    },
-
-    props: {
-        data: {
-            type: Object,
-            default() {
-                return {};
-            }
-        }
-    },
-
-    replace: false
-
+  replace: false
 };
-
 </script>

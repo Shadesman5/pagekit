@@ -1,10 +1,10 @@
 import WidgetMixin from '../mixins/widget-mixin';
-import WidgetSettings from '../templates/widget-settings.html';
+import WidgetSettings from '../templates/widget-settings.html?raw';
 
 export default {
-    name: 'template-settings',
+  name: 'template-settings',
 
-    mixins: [WidgetMixin],
+  mixins: [WidgetMixin],
 
-    template: WidgetSettings
+  template: WidgetSettings
 };

@@ -1,106 +1,113 @@
 {
-    "name": "pagekit/pagekit",
-    "title": "Pagekit",
-    "version": "1.0.31",
-    "type": "project",
-    "description": "The Pagekit CMS",
-    "keywords": [
-        "cms",
-        "pagekit"
-    ],
-    "homepage": "http://pagekit.com",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Pagekit Team",
-            "email": "info@pagekit.com"
-        }
-    ],
-    "require": {
-        "php": "^8.2",
-        "composer/composer": "~2.2",
-        "doctrine/annotations": "~2.0",
-        "doctrine/dbal": "^3.8",
-        "doctrine/cache": "^2.2",
-        "paragonie/random-lib": "~2.0.1",
-        "paragonie/sodium_compat": "~1.21",
-        "php-debugbar/php-debugbar": "~1.23",
-        "monolog/monolog": "^3.7",
-        "nikic/php-parser": "~5.4",
-        "psr/log": "^2.0",
-        "psr/cache": "~1",
-        "symfony/mailer": "~5.4",
-        "symfony/error-handler": "~5.4",
-        "symfony/finder": "~5.4",
-        "symfony/http-foundation": "~5.4",
-        "symfony/framework-bundle": "~5.4",
-        "symfony/http-kernel": "~5.4",
-        "symfony/routing": "~5.4",
-        "symfony/stopwatch": "~5.4",
-        "symfony/console": "~5.4",
-        "symfony/filesystem": "~5.4",
-        "symfony/process": "~5.4",
-        "symfony/string": "~5.4",
-        "symfony/deprecation-contracts": "~2.5",
-        "symfony/service-contracts": "~2.5",
-        "symfony/templating": "~5.4",
-        "symfony/translation": "~5.4",
-        "twig/twig": "~3.11.3",
-        "symfony/twig-bridge": "~5.4"
-    },
-    "require-dev": {
-        "ext-dom": "*",
-        "ext-json": "*",
-        "ext-libxml": "*",
-        "ext-mbstring": "*",
-        "ext-xml": "*",
-        "ext-xmlwriter": "*",
-        "ext-zip": "*",
-        "ext-simplexml": "*",
-        "ext-pdo": "*",
-        "doctrine/data-fixtures": "^1.6",
-        "phpunit/phpunit": "^11.0",
-        "symfony/phpunit-bridge": "~5.4",
-        "symfony/var-dumper": "~5.4",
-        "symfony/web-profiler-bundle": "~5.4",
-        "symfony/browser-kit": "~5.4",
-        "symfony/debug-bundle": "~5.4"
-    },
-    "autoload": {
-        "psr-4": {
-            "Pagekit\\": "app/modules/application/src",
-            "Pagekit\\Installer\\": "app/installer/src",
-            "Pagekit\\System\\": "app/system/src",
-            "Pagekit\\Config\\": "app/modules/config/src",
-            "Pagekit\\Console\\": "app/console/src",
-            "Pagekit\\Migration\\": "app/modules/migration/src",
-            "Pagekit\\Auth\\": "app/modules/auth/src",
-            "Pagekit\\Cookie\\": "app/modules/cookie/src",
-            "Pagekit\\Database\\": "app/modules/database/src",
-            "Pagekit\\Debug\\": "app/modules/debug/src",
-            "Pagekit\\Feed\\": "app/modules/feed/src",
-            "Pagekit\\Filesystem\\": "app/modules/filesystem/src",
-            "Pagekit\\Filter\\": "app/modules/filter/src",
-            "Pagekit\\Kernel\\": "app/modules/kernel/src",
-            "Pagekit\\Log\\": "app/modules/log/src",
-            "Pagekit\\Markdown\\": "app/modules/markdown/src",
-            "Pagekit\\Routing\\": "app/modules/routing/src",
-            "Pagekit\\Session\\": "app/modules/session/src",
-            "Pagekit\\View\\": "app/modules/view/src",
-            "Pagekit\\Mail\\": "app/system/modules/mail/src",
-            "Pagekit\\Site\\": "app/system/modules/site/src",
-            "Pagekit\\User\\": "app/system/modules/user/src",
-            "Pagekit\\Info\\": "app/system/modules/info/src",
-            "Pagekit\\Package\\": "app/system/modules/package/src",
-            "Pagekit\\Theme\\": "app/system/modules/theme/src"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Pagekit\\Tests\\": "tests/"
-        }
-    },
-    "config": {
-        "vendor-dir": "app/vendor"
+  "name": "pagekit/pagekit",
+  "type": "project",
+  "description": "The Pagekit CMS",
+  "keywords": [
+    "cms",
+    "pagekit"
+  ],
+  "homepage": "http://pagekit.com",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Pagekit Team",
+      "email": "info@pagekit.com"
     }
+  ],
+  "require": {
+    "php": "^8.5",
+    "composer/composer": "^2.10.2",
+    "doctrine/dbal": "^3.8",
+    "php-debugbar/php-debugbar": "^1.23.3",
+    "monolog/monolog": "^3.7",
+    "nikic/php-parser": "^5.4",
+    "psr/log": "^2.0|^3.0",
+    "psr/cache": "^2.0|^3.0",
+    "psr/clock": "^1.0",
+    "symfony/mailer": "^6.4",
+    "symfony/error-handler": "^6.4",
+    "symfony/finder": "^6.4",
+    "symfony/http-foundation": "^6.4",
+    "symfony/http-kernel": "^6.4",
+    "symfony/routing": "^6.4",
+    "symfony/stopwatch": "^6.4",
+    "symfony/console": "^6.4",
+    "symfony/filesystem": "^6.4",
+    "symfony/string": "^6.4",
+    "symfony/deprecation-contracts": "^2.5|^3.0",
+    "symfony/service-contracts": "^2.5|^3.0",
+    "symfony/translation": "^6.4",
+    "twig/twig": "^3.14",
+    "symfony/cache": "^6.4",
+    "symfony/clock": "^6.4",
+    "doctrine/migrations": "^3.9",
+    "symfony/validator": "^6.4"
+  },
+  "require-dev": {
+    "ext-dom": "*",
+    "ext-json": "*",
+    "ext-libxml": "*",
+    "ext-mbstring": "*",
+    "ext-xml": "*",
+    "ext-xmlwriter": "*",
+    "ext-zip": "*",
+    "ext-simplexml": "*",
+    "ext-pdo": "*",
+    "phpunit/phpunit": "^11.0",
+    "symfony/phpunit-bridge": "^6.4",
+    "symfony/var-dumper": "^6.4",
+    "symfony/web-profiler-bundle": "^6.4",
+    "symfony/browser-kit": "^6.4",
+    "symfony/debug-bundle": "^6.4",
+    "phpstan/phpstan": "^2.1",
+    "phpstan/phpstan-doctrine": "^2.0",
+    "phpstan/phpstan-symfony": "^2.0",
+    "roave/security-advisories": "dev-latest",
+    "friendsofphp/php-cs-fixer": "^3.94",
+    "phpstan/phpstan-phpunit": "^2.0",
+    "infection/infection": ">=0.33 <0.35"
+  },
+  "autoload": {
+    "psr-4": {
+      "Pagekit\\": "app/modules/application/src",
+      "Pagekit\\Installer\\": "app/installer/src",
+      "Pagekit\\System\\": "app/system/src",
+      "Pagekit\\Cache\\": "app/system/modules/cache/src",
+      "Pagekit\\Config\\": "app/modules/config/src",
+      "Pagekit\\Console\\": "app/console/src",
+      "Pagekit\\Migration\\": "app/modules/migration/src",
+      "Pagekit\\Auth\\": "app/modules/auth/src",
+      "Pagekit\\Cookie\\": "app/modules/cookie/src",
+      "Pagekit\\Database\\": "app/modules/database/src",
+      "Pagekit\\Debug\\": "app/modules/debug/src",
+      "Pagekit\\Feed\\": "app/modules/feed/src",
+      "Pagekit\\Filesystem\\": "app/modules/filesystem/src",
+      "Pagekit\\Filter\\": "app/modules/filter/src",
+      "Pagekit\\Kernel\\": "app/modules/kernel/src",
+      "Pagekit\\Log\\": "app/modules/log/src",
+      "Pagekit\\Markdown\\": "app/modules/markdown/src",
+      "Pagekit\\Routing\\": "app/modules/routing/src",
+      "Pagekit\\Session\\": "app/modules/session/src",
+      "Pagekit\\View\\": "app/modules/view/src",
+      "Pagekit\\Mail\\": "app/system/modules/mail/src",
+      "Pagekit\\Site\\": "app/system/modules/site/src",
+      "Pagekit\\User\\": "app/system/modules/user/src",
+      "Pagekit\\Info\\": "app/system/modules/info/src",
+      "Pagekit\\Intl\\": "app/system/modules/intl/src"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Pagekit\\Tests\\": "tests/"
+    }
+  },
+  "config": {
+    "vendor-dir": "app/vendor",
+    "platform": {
+      "php": "8.5.0"
+    },
+    "allow-plugins": {
+      "infection/extension-installer": true
+    }
+  }
 }

@@ -1,17 +1,17 @@
 import NodeMixin from '../mixins/node-mixin';
-import Settings from '../templates/settings.html';
+import Settings from '../templates/settings.html?raw';
 
 export default {
-    name: 'template-settings',
+  name: 'template-settings',
 
-    props: {
-        titleRequired: {
-            type: Boolean,
-            default: true
-        }
-    },
+  props: {
+    titleRequired: {
+      type: Boolean,
+      default: true
+    }
+  },
 
-    mixins: [NodeMixin],
+  mixins: [NodeMixin],
 
-    template: Settings
+  template: Settings
 };

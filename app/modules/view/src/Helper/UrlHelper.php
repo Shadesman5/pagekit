@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\View\Helper;
 
 use Pagekit\Application\UrlProvider;
@@ -23,20 +25,23 @@ class UrlHelper extends Helper
      * Get shortcut.
      *
      * @see get()
+     *
+     * @param array<string, mixed> $parameters
      */
-    public function __invoke($path = '', $parameters = [], $referenceType = UrlGenerator::ABSOLUTE_PATH)
+    public function __invoke(string $path = '', array $parameters = [], int $referenceType = UrlGenerator::ABSOLUTE_PATH): string
     {
-        return $this->provider->get($path, $parameters, $referenceType);
+        $url = $this->provider->get($path, $parameters, $referenceType);
+
+        return $url === false ? '' : $url;
     }
 
     /**
      * Proxies all method calls to the provider.
      *
-     * @param  string $method
-     * @param  array  $args
-     * @return mixed
+     * @param array<int, mixed> $args
+     * @return mixed Genuinely unknown type — proxied to the URL provider; return type depends on the method called.
      */
-    public function __call($method, $args)
+    public function __call(string $method, array $args): mixed
     {
         if (!is_callable($callable = [$this->provider, $method])) {
             throw new \InvalidArgumentException(sprintf('Undefined method call "%s::%s"', get_class($this->provider), $method));

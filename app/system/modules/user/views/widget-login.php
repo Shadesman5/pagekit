@@ -1,4 +1,5 @@
-<?php if ($user->isAuthenticated()): ?>
+<?php declare(strict_types=1);
+if ($user->isAuthenticated()): ?>
 
 <?= __('Hi %username%', ['%username%' => $user->username]) ?><br>
 <a href="<?= $view->url('@user/logout', ['redirect' => $redirect]) ?>"><?= __('Logout') ?></a>
@@ -22,7 +23,7 @@
     <p>
         <label><input type="checkbox" name="remember_me"> <?= __('Remember Me') ?></label>
         <br><a href="<?= $view->url('@user/resetpassword') ?>"><?= __('Forgot Password?') ?></a>
-        <?php if ($app->module('system/user')->config('registration') != 'admin'): ?>
+        <?php if ($app->get('module')->get('system/user')->config('registration') != 'admin'): ?>
         <br><a href="<?= $view->url('@user/registration') ?>"><?= __('Sign up') ?></a>
         <?php endif ?>
     </p>

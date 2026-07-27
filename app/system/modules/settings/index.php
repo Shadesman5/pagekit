@@ -1,12 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 return [
 
     'name' => 'system/settings',
 
+    'main' => function ($app) {
+        $app->set('configFile', fn ($app) => $app->get('config.file'));
+    },
+
     'autoload' => [
 
-        'Pagekit\\System\\' => 'src'
+        'Pagekit\\System\\' => 'src',
 
     ],
 
@@ -14,14 +20,14 @@ return [
 
         '/system/settings' => [
             'name' => '@system/settings',
-            'controller' => 'Pagekit\\System\\Controller\\SettingsController'
-        ]
+            'controller' => 'Pagekit\\System\\Controller\\SettingsController',
+        ],
 
     ],
 
     'resources' => [
 
-        'settings:' => ''
+        'settings:' => '',
 
     ],
 
@@ -29,8 +35,8 @@ return [
 
         'system: access settings' => [
             'title' => 'Access system settings',
-            'trusted' => true
-        ]
+            'trusted' => true,
+        ],
 
     ],
 
@@ -41,14 +47,14 @@ return [
             'icon' => 'settings:assets/images/icon-settings.svg',
             'access' => 'system: access settings',
             'url' => '@system/settings',
-            'priority' => 120
+            'priority' => 120,
         ],
 
         'system: settings' => [
             'label' => 'Settings',
             'parent' => 'system: system',
             'url' => '@system/settings',
-        ]
+        ],
 
     ],
 
@@ -57,22 +63,22 @@ return [
         'view.system:modules/settings/views/settings' => function ($event, $view) use ($app) {
 
             $view->data('$system', [
-                'locales' => $app->module('system/intl')->getAvailableLanguages(),
-                'sqlite' => class_exists('SQLite3') || (class_exists('PDO') && in_array('sqlite', \PDO::getAvailableDrivers(), true))
+                'locales' => $app->get('module')->get('system/intl')->getAvailableLanguages(),
+                'sqlite' => class_exists('SQLite3') || (class_exists('PDO') && in_array('sqlite', \PDO::getAvailableDrivers(), true)),
             ]);
 
             $view->data('$settings', [
                 'options' => [
-                    'system' => $app['system']->config(['site.', 'admin.'])
+                    'system' => $app->get('system')->config(['site.', 'admin.']),
                 ],
                 'config' => [
-                    'application' => $app->module('application')->config(['debug']),
-                    'debug' => $app->module('debug')->config(['enabled'])
-                ]
+                    'application' => $app->get('module')->get('application')->config(['debug']),
+                    'debug' => $app->get('module')->get('debug')->config(['enabled']),
+                ],
             ]);
 
-        }
+        },
 
-    ]
+    ],
 
 ];

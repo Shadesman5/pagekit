@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Kernel\Controller\ControllerListener;
 use Pagekit\Kernel\Controller\ControllerResolver;
 use Pagekit\Kernel\Event\JsonResponseListener;
@@ -14,23 +16,21 @@ return [
 
     'main' => function ($app) {
 
-        $app['kernel'] = function ($app) {
+        $app->set('kernel', function ($app) {
 
-            $app->subscribe(
-                new ControllerListener($app['resolver']),
-                new ResponseListener(),
-                new JsonResponseListener(),
-                new StringResponseListener()
-            );
+            $app->get('events')->subscribe(new ControllerListener($app->get('resolver')));
+            $app->get('events')->subscribe(new ResponseListener());
+            $app->get('events')->subscribe(new JsonResponseListener());
+            $app->get('events')->subscribe(new StringResponseListener());
 
-            return new HttpKernel($app['events'], $app['request.stack']);
-        };
+            return new HttpKernel($app->get('events'), $app->get('request.stack'));
+        });
 
-        $app['resolver'] = fn() => new ControllerResolver();
+        $app->set('resolver', fn ($app) => new ControllerResolver($app));
 
-        $app->factory('request', fn($app) => $app['request.stack']->getCurrentRequest());
+        $app->factory('request', fn ($app) => $app->get('request.stack')->getCurrentRequest());
 
-        $app['request.stack'] = fn() => new RequestStack();
+        $app->set('request.stack', fn () => new RequestStack());
 
     },
 
@@ -46,17 +46,17 @@ return [
 
             // redirect the request if it has a trailing slash
             if ('/' != $path && '/' == substr($path, -1) && '//' != substr($path, -2)) {
-                $event->setResponse($app->redirect(rtrim($request->getUriForPath($path), '/'), [], 301));
+                $event->setResponse($app->get('router')->redirect(rtrim($request->getUriForPath($path), '/'), [], 301));
             }
 
-        }, 200]
+        }, 200],
 
     ],
 
     'autoload' => [
 
-        'Pagekit\\Kernel\\' => 'src'
+        'Pagekit\\Kernel\\' => 'src',
 
-    ]
+    ],
 
 ];

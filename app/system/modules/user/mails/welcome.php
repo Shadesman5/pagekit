@@ -1,3 +1,4 @@
+<?php declare(strict_types=1); ?>
 <!DOCTYPE html>
 <html>
     <head>
@@ -88,7 +89,7 @@
                         <tr>
                             <td valign="top" align="center" style="font-size: 16px; line-height: 24px; font-family: Helvetica, Arial, sans-serif; color: #666;">
 
-                                <h1 style="margin: 0 0 30px 0; padding-bottom: 25px; border-bottom: 1px solid #e5e5e5; font-size: 34px; line-height: 40px; font-family: Helvetica, Arial, sans-serif; font-weight: normal; color: #333 !important;"><?= __('Welcome to %site%!', ['%site%' => $app->module('system/site')->config('title')]) ?></h1>
+                                <h1 style="margin: 0 0 30px 0; padding-bottom: 25px; border-bottom: 1px solid #e5e5e5; font-size: 34px; line-height: 40px; font-family: Helvetica, Arial, sans-serif; font-weight: normal; color: #333 !important;"><?= __('Welcome to %site%!', ['%site%' => $app->get('module')->get('system/site')->config('title')]) ?></h1>
 
                                 <p style="margin: 20px 0; text-align: left;"><?= __("We're really happy to have you, %name%! Just login with the username %username%.", ['%name%' => $this->escape($user->name), '%username%' => '<strong style="color: #444">'.$this->escape($user->username).'</strong>']) ?></p>
 
@@ -96,7 +97,7 @@
                                     <a style="padding: 15px 20px; background: #37a5e4; border-radius: 3px; color: #fff; text-decoration: none;" href="<?= $view->url('@user/login', [], 0) ?>"><?= __('Login Now') ?></a>
                                 </p>
 
-                                <p style="margin: 50px 0 0 0; padding-top: 30px; border-top: 1px solid #e5e5e5; font-size: 14px; line-height: 20px; font-family: Helvetica, Arial, sans-serif; color: #999;"><a style="color: #777; text-decoration: none;" href="<?= $app['url']->base(0) ?>"><?= $app['url']->base(0) ?></a></p>
+                                <p style="margin: 50px 0 0 0; padding-top: 30px; border-top: 1px solid #e5e5e5; font-size: 14px; line-height: 20px; font-family: Helvetica, Arial, sans-serif; color: #999;"><a style="color: #777; text-decoration: none;" href="<?= $app->get('url')->base(0) ?>"><?= $app->get('url')->base(0) ?></a></p>
 
                             </td>
                         </tr>

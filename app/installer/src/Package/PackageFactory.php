@@ -1,33 +1,42 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Installer\Package;
 
-use Pagekit\Application as App;
+use Pagekit\Application\UrlProvider;
 
+/**
+ * @implements \ArrayAccess<string, Package>
+ * @implements \IteratorAggregate<string, Package>
+ */
 class PackageFactory implements \ArrayAccess, \IteratorAggregate
 {
+    /** @var array<int, string> */
     protected array $paths = [];
 
+    /** @var array<string, Package> */
     protected array $packages = [];
+
+    public function __construct(
+        private readonly ?UrlProvider $url = null,
+    ) {
+    }
 
     /**
      * Get shortcut.
      *
      * @see get()
      */
-    public function __invoke($name)
+    public function __invoke(string $name): ?Package
     {
         return $this->get($name);
     }
 
     /**
      * Gets a package.
-     *
-     * @param  string $name
-     * @param  bool   $force
-     * @return mixed|null
      */
-    public function get($name, $force = false)
+    public function get(string $name, bool $force = false): ?Package
     {
         if ($force || empty($this->packages)) {
             $this->loadPackages();
@@ -39,16 +48,15 @@ class PackageFactory implements \ArrayAccess, \IteratorAggregate
     /**
      * Gets all packages.
      *
-     * @param  string $type
-     * @param bool    $force
+     * @return array<string, Package>
      */
-    public function all($type = null, $force = false): array
+    public function all(?string $type = null, bool $force = false): array
     {
         if ($force || empty($this->packages)) {
             $this->loadPackages();
         }
 
-        $filter = fn($package) => $package->get('type') == $type;
+        $filter = fn (Package $package) => $package->get('type') == $type;
 
         return $type !== null ? array_filter($this->packages, $filter) : $this->packages;
     }
@@ -56,10 +64,9 @@ class PackageFactory implements \ArrayAccess, \IteratorAggregate
     /**
      * Loads a package from data.
      *
-     * @param  string|array $data
-     * @return Package
+     * @param string|array<string, mixed> $data
      */
-    public function load($data)
+    public function load(string|array $data): ?Package
     {
         if (is_string($data) && strpos($data, '{') !== 0) {
             $path = strtr(dirname($data), '\\', '/');
@@ -78,19 +85,21 @@ class PackageFactory implements \ArrayAccess, \IteratorAggregate
 
             if (isset($path)) {
                 $data['path'] = $path;
-                $data['url'] = App::url()->getStatic($path);
+                $data['url'] = $this->url?->getStatic($path) ?? '';
             }
 
             return new Package($data);
         }
+
+        return null;
     }
 
     /**
      * Adds a package path(s).
      *
-     * @param  string|array $paths
+     * @param  string|array<int, string> $paths
      */
-    public function addPath($paths): self
+    public function addPath(string|array $paths): self
     {
         $this->paths = array_merge($this->paths, (array) $paths);
 
@@ -99,47 +108,40 @@ class PackageFactory implements \ArrayAccess, \IteratorAggregate
 
     /**
      * Checks if a package exists.
-     *
-     * @param  string $name
      */
-    public function offsetExists($name): bool
+    public function offsetExists(mixed $name): bool
     {
         return isset($this->packages[$name]);
     }
 
     /**
      * Gets a package by name.
-     *
-     * @param  string $name
      */
-    public function offsetGet($name): bool
+    public function offsetGet(mixed $name): ?Package
     {
         return $this->get($name);
     }
 
     /**
      * Sets a package.
-     *
-     * @param string $name
-     * @param string $package
      */
-    public function offsetSet($name, $package): void
+    public function offsetSet(mixed $name, mixed $package): void
     {
         $this->packages[$name] = $package;
     }
 
     /**
      * Unset a package.
-     *
-     * @param string $name
      */
-    public function offsetUnset($name): void
+    public function offsetUnset(mixed $name): void
     {
         unset($this->packages[$name]);
     }
 
     /**
      * Implements the IteratorAggregate.
+     *
+     * @return \ArrayIterator<string, Package>
      */
     public function getIterator(): \ArrayIterator
     {

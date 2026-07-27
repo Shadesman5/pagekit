@@ -1,20 +1,28 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Feed\Feed;
 
 use Pagekit\Feed\Feed;
 
 class RSS2 extends Feed
 {
-    protected $mime = 'application/rss+xml';
-    protected $item = 'Pagekit\Feed\Item\RSS2';
+    protected string $mime = 'application/rss+xml';
+
+    /** @var class-string<\Pagekit\Feed\ItemInterface> */
+    protected string $item = \Pagekit\Feed\Item\RSS2::class;
 
     /**
      * {@inheritdoc}
+     *
+     * @return $this
      */
-    public function setDate(\DateTimeInterface $date)
+    public function setDate(\DateTimeInterface $date): self
     {
-        return $this->setElement('lastBuildDate', $date->format(\DATE_RSS));
+        $this->setElement('lastBuildDate', $date->format(\DATE_RSS));
+
+        return $this;
     }
 
     /**

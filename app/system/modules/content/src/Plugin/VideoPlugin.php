@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Content\Plugin;
 
 use Pagekit\Content\Event\ContentEvent;
@@ -7,9 +9,9 @@ use Pagekit\Event\EventSubscriberInterface;
 
 class VideoPlugin implements EventSubscriberInterface
 {
-    const REGEX_YOUTUBE = '/(\/\/.*?youtube\.[a-z]+)\/watch\?v=([^&]+)&?(.*)/';
-    const REGEX_YOUTUBE_SHORT = '/youtu\.be\/(.*)/';
-    const REGEX_VIMEO = '/(\/\/.*?)vimeo\.[a-z]+\/(\d+).*?/';
+    public const REGEX_YOUTUBE = '/(\/\/.*?youtube\.[a-z]+)\/watch\?v=([^&]+)&?(.*)/';
+    public const REGEX_YOUTUBE_SHORT = '/youtu\.be\/(.*)/';
+    public const REGEX_VIMEO = '/(\/\/.*?)vimeo\.[a-z]+\/(\d+).*?/';
 
     /**
      * Content plugins callback.
@@ -18,19 +20,18 @@ class VideoPlugin implements EventSubscriberInterface
      */
     public function onContentPlugins(ContentEvent $event): void
     {
-        $event->addPlugin('video', fn(array $options) => $this->applyPlugin($options));
+        $event->addPlugin('video', fn (array $options) => $this->applyPlugin($options));
     }
 
     /**
      * Defines the plugins callback.
      *
-     * @param  array $options
-     * @return string
+     * @param array<string, mixed> $options
      */
-    public function applyPlugin(array $options)
+    public function applyPlugin(array $options): string
     {
         if (!isset($options['src'])) {
-            return;
+            return '';
         }
 
         $src = $options['src'];
@@ -92,6 +93,8 @@ class VideoPlugin implements EventSubscriberInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, array{string, int}>
      */
     public function subscribe(): array
     {

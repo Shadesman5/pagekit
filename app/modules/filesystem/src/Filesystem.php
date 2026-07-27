@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Filesystem;
 
 use Pagekit\Filesystem\Adapter\AdapterInterface;
@@ -8,27 +10,33 @@ use Pagekit\Routing\Generator\UrlGenerator;
 class Filesystem
 {
     /**
-     * @var AdapterInterface[]
+     * @var array<string, AdapterInterface>
      */
     protected array $adapters = [];
 
     /**
      * Gets file path URL.
      *
-     * @param  string $file
-     * @param  mixed  $referenceType
-     * @return string|false
+     * @param int|bool $referenceType One of {@see UrlGenerator}'s reference type constants
+     *                                or `true` for {@see UrlGenerator::ABSOLUTE_URL} (legacy).
      */
-    public function getUrl($file, $referenceType = UrlGenerator::ABSOLUTE_PATH)
+    public function getUrl(string $file, int|bool $referenceType = UrlGenerator::ABSOLUTE_PATH): string|false
     {
-        if (!$url = $this->getPathInfo($file, 'url')) {
+        if (!$url = $this->getPathOption($file, 'url')) {
             return false;
         }
 
         if ($referenceType === UrlGenerator::ABSOLUTE_PATH) {
-            $url = strlen($path = parse_url($url, PHP_URL_PATH)) > 1 ? substr($url, strpos($url, $path)) : '/';
+            $path = (string) parse_url($url, PHP_URL_PATH);
+            if (strlen($path) > 1) {
+                $pos = strpos($url, $path);
+                $url = $pos !== false ? substr($url, $pos) : $url;
+            } else {
+                $url = '/';
+            }
         } elseif ($referenceType === UrlGenerator::NETWORK_PATH) {
-            $url = substr($url, strpos($url, '//'));
+            $pos = strpos($url, '//');
+            $url = $pos !== false ? substr($url, $pos) : $url;
         }
 
         return $url;
@@ -36,24 +44,18 @@ class Filesystem
 
     /**
      * Gets canonicalized file path or localpath.
-     *
-     * @param  string $file
-     * @param  bool   $local
-     * @return string|false
      */
-    public function getPath($file, $local = false)
+    public function getPath(string $file, bool $local = false): string|false
     {
-        return $this->getPathInfo($file, $local ? 'localpath' : 'pathname') ?: false;
+        return $this->getPathOption($file, $local ? 'localpath' : 'pathname') ?: false;
     }
 
     /**
      * Gets file path info.
      *
-     * @param  string $file
-     * @param  string $option
-     * @return string|array
+     * @return array<string, mixed>
      */
-    public function getPathInfo($file, $option = null)
+    public function getPathInfo(string $file): array
     {
         $info = Path::parse($file);
 
@@ -62,30 +64,41 @@ class Filesystem
         }
 
         if ($adapter = $this->getAdapter($info['protocol'])) {
-            $info = $adapter->getPathInfo($info);
+            return $adapter->getPathInfo($info);
         }
 
-        if ($option === null) {
-            return $info;
-        }
+        return $info;
+    }
 
-        return array_key_exists($option, $info) ? $info[$option] : '';
+    /**
+     * Gets a single file path info option.
+     */
+    public function getPathOption(string $file, string $option): string
+    {
+        $info = $this->getPathInfo($file);
+        $value = $info[$option] ?? '';
+
+        return is_string($value) ? $value : '';
     }
 
     /**
      * Checks whether a file or directory exists.
      *
-     * @param  string|array $files
+     * @param mixed $files string, array of strings, or anything else that should be treated as not existing
      */
-    public function exists($files): bool
+    public function exists(mixed $files): bool
     {
         $files = (array) $files;
 
         foreach ($files as $file) {
 
-            $file = $this->getPathInfo($file, 'pathname');
+            if (!is_string($file) || $file === '') {
+                return false;
+            }
 
-            if (!file_exists($file)) {
+            $file = $this->getPathOption($file, 'pathname');
+
+            if ($file === '' || !file_exists($file)) {
                 return false;
             }
         }
@@ -95,26 +108,26 @@ class Filesystem
 
     /**
      * Copies a file.
-     *
-     * @param  string $source
-     * @param  string $target
      */
-    public function copy($source, $target): bool
+    public function copy(string $source, string $target): bool
     {
-        $source = $this->getPathInfo($source, 'pathname');
+        $source = $this->getPathOption($source, 'pathname');
         $target = $this->getPathInfo($target);
 
-        if (!is_file($source) || !$this->makeDir($target['dirname'])) {
+        $dirname = is_string($target['dirname'] ?? null) ? $target['dirname'] : '';
+        $pathname = is_string($target['pathname'] ?? null) ? $target['pathname'] : '';
+
+        if (!is_file($source) || !$this->makeDir($dirname)) {
             return false;
         }
 
-        return @copy($source, $target['pathname']);
+        return @copy($source, $pathname);
     }
 
     /**
      * Deletes a file.
      *
-     * @param  string|array $files
+     * @param string|array<int, string> $files
      */
     public function delete($files): bool
     {
@@ -122,7 +135,7 @@ class Filesystem
 
         foreach ($files as $file) {
 
-            $file = $this->getPathInfo($file, 'pathname');
+            $file = $this->getPathOption($file, 'pathname');
 
             if (is_dir($file)) {
 
@@ -151,39 +164,32 @@ class Filesystem
     /**
      * List files and directories inside the specified path.
      *
-     * @param  string $dir
+     * @return array<int, string>
      */
-    public function listDir($dir): array
+    public function listDir(string $dir): array
     {
-        $dir = $this->getPathInfo($dir, 'pathname');
+        $dir = $this->getPathOption($dir, 'pathname');
 
         return array_diff(scandir($dir) ?: [], ['..', '.']);
     }
 
     /**
      * Makes a directory.
-     *
-     * @param  string $dir
-     * @param  int    $mode
-     * @param  bool   $recursive
      */
-    public function makeDir($dir, $mode = 0777, $recursive = true): bool
+    public function makeDir(string $dir, int $mode = 0777, bool $recursive = true): bool
     {
-        $dir = $this->getPathInfo($dir, 'pathname');
+        $dir = $this->getPathOption($dir, 'pathname');
 
         return is_dir($dir) ? true : @mkdir($dir, $mode, $recursive);
     }
 
     /**
      * Copies a directory.
-     *
-     * @param  string $source
-     * @param  string $target
      */
-    public function copyDir($source, $target): bool
+    public function copyDir(string $source, string $target): bool
     {
-        $source = $this->getPathInfo($source, 'pathname');
-        $target = $this->getPathInfo($target, 'pathname');
+        $source = $this->getPathOption($source, 'pathname');
+        $target = $this->getPathOption($target, 'pathname');
 
         if (!is_dir($source) || !$this->makeDir($target)) {
             return false;
@@ -214,22 +220,16 @@ class Filesystem
 
     /**
      * Gets a adapter.
-     *
-     * @param  string $protocol
-     * @return AdapterInterface|null
      */
-    public function getAdapter($protocol): ?AdapterInterface
+    public function getAdapter(string $protocol): ?AdapterInterface
     {
         return isset($this->adapters[$protocol]) ? $this->adapters[$protocol] : null;
     }
 
     /**
      * Registers a adapter.
-     *
-     * @param string           $protocol
-     * @param AdapterInterface $adapter
      */
-    public function registerAdapter($protocol, AdapterInterface $adapter): void
+    public function registerAdapter(string $protocol, AdapterInterface $adapter): void
     {
         $this->adapters[$protocol] = $adapter;
 

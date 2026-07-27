@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Title' => 'Τίτλος',
   'Theme' => 'Θέμα',
   'Hide Title' => 'Απόκρυψη Τίτλου',
@@ -38,4 +42,4 @@
   'Written by %name% on %date%' => 'Συντάχθηκε από %name% στις %date%',
   'Read more' => 'Διαβάστε περισσότερα',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Κανένα σχόλιο|{1} %count% Σχόλιο|]1,Inf[ %count% Σχόλια',
-);
+];

@@ -1,0 +1,146 @@
+# Dependency audit of the pnpm lockfile, recorded after the toolchain swap.
+# Counterpart of step-2-4-audit-yarn-before.txt: the two files together show which advisories
+# disappear once the webpack, babel, loader, gulp and legacy-ESLint dependency chains are removed.
+#
+# Command (repository root, node_modules installed with pnpm install --frozen-lockfile):
+#
+#   pnpm audit
+#
+# Exit code 1 means advisories were found; that is the expected result, not a failure.
+#
+# 67 advisories before, 8 after. Every resolved advisory was a transitive dependency of tooling
+# that no longer exists - webpack (brace-expansion, braces, micromatch, qs, serialize-javascript),
+# babel (@babel/plugin-transform-modules-systemjs), css-loader (postcss), gulp-less (lodash.pick),
+# npm-run-all (shell-quote), the replaced ESLint 7 chain (fast-uri, flatted, js-yaml, tmp) and
+# vue-template-compiler. picomatch and elliptic never appeared in the before audit, so they cannot
+# show up as removed here either.
+#
+# What remains is runtime, not tooling: seven tinymce advisories (the editor stays pinned at
+# ~5.10.9; a TinyMCE 6+ upgrade is its own change) and one low-severity vue ReDoS advisory that
+# covers every 2.x release. The before audit was taken with yarn audit --level moderate, which
+# does not print low-severity entries - the vue line is newly visible here, not newly introduced.
+#
+# --- raw pnpm output below ---
+┌─────────────────────┬────────────────────────────────────────────────────────┐
+│ high                │ TinyMCE Cross-Site Scripting (XSS) vulnerability using │
+│                     │ media plugin `data-mce-object` injection               │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Package             │ tinymce                                                │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Vulnerable versions │ >0 <=5.10.9                                            │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Patched versions    │ >=5.10.10                                              │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Paths               │ .>tinymce                                              │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ More info           │ https://github.com/advisories/GHSA-vg35-5wq7-3x7w      │
+└─────────────────────┴────────────────────────────────────────────────────────┘
+┌─────────────────────┬────────────────────────────────────────────────────────┐
+│ high                │ TinyMCE Cross-Site Scripting (XSS) vulnerability using │
+│                     │ through data-mce- prefixed src, href, style attributes │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Package             │ tinymce                                                │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Vulnerable versions │ <=5.10.9                                               │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Patched versions    │ >=5.10.10                                              │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Paths               │ .>tinymce                                              │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ More info           │ https://github.com/advisories/GHSA-q742-qvgc-gc2f      │
+└─────────────────────┴────────────────────────────────────────────────────────┘
+┌─────────────────────┬────────────────────────────────────────────────────────┐
+│ high                │ TinyMCE Cross-Site Scripting (XSS) vulnerability       │
+│                     │ through `mce:protected` comments                       │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Package             │ tinymce                                                │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Vulnerable versions │ <=5.10.9                                               │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Patched versions    │ >=5.10.10                                              │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Paths               │ .>tinymce                                              │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ More info           │ https://github.com/advisories/GHSA-v98h-vmpc-fpqv      │
+└─────────────────────┴────────────────────────────────────────────────────────┘
+┌─────────────────────┬────────────────────────────────────────────────────────┐
+│ moderate            │ TinyMCE Cross-Site Scripting (XSS) vulnerability in    │
+│                     │ handling iframes                                       │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Package             │ tinymce                                                │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Vulnerable versions │ <6.8.1                                                 │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Patched versions    │ >=6.8.1                                                │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Paths               │ .>tinymce                                              │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ More info           │ https://github.com/advisories/GHSA-438c-3975-5x3f      │
+└─────────────────────┴────────────────────────────────────────────────────────┘
+┌─────────────────────┬────────────────────────────────────────────────────────┐
+│ moderate            │ TinyMCE Cross-Site Scripting (XSS) vulnerability in    │
+│                     │ handling external SVG files through Object or Embed    │
+│                     │ elements                                               │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Package             │ tinymce                                                │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Vulnerable versions │ <7.0.0                                                 │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Patched versions    │ >=7.0.0                                                │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Paths               │ .>tinymce                                              │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ More info           │ https://github.com/advisories/GHSA-5359-pvf2-pw78      │
+└─────────────────────┴────────────────────────────────────────────────────────┘
+┌─────────────────────┬────────────────────────────────────────────────────────┐
+│ moderate            │ TinyMCE Cross-Site Scripting (XSS) vulnerability using │
+│                     │ noneditable_regexp option                              │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Package             │ tinymce                                                │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Vulnerable versions │ <5.11.0                                                │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Patched versions    │ >=5.11.0                                               │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Paths               │ .>tinymce                                              │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ More info           │ https://github.com/advisories/GHSA-9hcv-j9pv-qmph      │
+└─────────────────────┴────────────────────────────────────────────────────────┘
+┌─────────────────────┬────────────────────────────────────────────────────────┐
+│ moderate            │ TinyMCE Cross-Site Scripting (XSS) vulnerability using │
+│                     │ noscript elements                                      │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Package             │ tinymce                                                │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Vulnerable versions │ <5.11.0                                                │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Patched versions    │ >=5.11.0                                               │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Paths               │ .>tinymce                                              │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ More info           │ https://github.com/advisories/GHSA-w9jx-4g6g-rp7x      │
+└─────────────────────┴────────────────────────────────────────────────────────┘
+┌─────────────────────┬────────────────────────────────────────────────────────┐
+│ low                 │ ReDoS vulnerability in vue package that is exploitable │
+│                     │ through inefficient regex evaluation in the parseHTML  │
+│                     │ function                                               │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Package             │ vue                                                    │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Vulnerable versions │ >=2.0.0-alpha.1 <3.0.0-alpha.0                         │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Patched versions    │ >=3.0.0-alpha.0                                        │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ Paths               │ .>vee-validate>vue                                     │
+│                     │                                                        │
+│                     │ .>vue                                                  │
+│                     │                                                        │
+│                     │ .>vue-nestable>vue                                     │
+│                     │                                                        │
+│                     │ ... Found 4 paths, run `pnpm why vue` for more         │
+│                     │ information                                            │
+├─────────────────────┼────────────────────────────────────────────────────────┤
+│ More info           │ https://github.com/advisories/GHSA-5j4c-8p2g-v4jx      │
+└─────────────────────┴────────────────────────────────────────────────────────┘
+8 vulnerabilities found
+Severity: 1 low | 4 moderate | 3 high

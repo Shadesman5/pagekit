@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Console\Commands;
 
 use Pagekit\Application\Console\Command;
@@ -15,12 +17,12 @@ class ExtensionTranslateCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected $name = 'extension:translate';
+    protected ?string $name = 'extension:translate';
 
     /**
      * {@inheritdoc}
      */
-    protected $description = 'Generates extension\'s translation .pot/.po/.php files';
+    protected string $description = 'Generates extension\'s translation .pot/.po/.php files';
 
     protected ?PhpNodeVisitor $visitor = null;
 
@@ -35,18 +37,19 @@ class ExtensionTranslateCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected function execute(InputInterface $input, OutputInterface $output): void
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $extension = $this->argument('extension') ?: 'system';
-        $files     = $this->getFiles($path = $this->getPath($extension), $extension);
+        $extensionArg = $this->argument('extension');
+        $extension = is_string($extensionArg) && $extensionArg !== '' ? $extensionArg : 'system';
+        $files = $this->getFiles($path = $this->getPath($extension), $extension);
         $languages = "$path/languages";
 
         $app = $this->container;
-        $this->visitor = new PhpNodeVisitor($app['view']->getEngine());
+        $this->visitor = new PhpNodeVisitor($app->get('view')->getEngine());
 
         $this->line("Extracting strings for extension '$extension'");
 
-        chdir($this->container->path());
+        chdir($this->container->get('path'));
 
         if (!is_dir($languages)) {
             mkdir($languages, 0755, true);
@@ -56,13 +59,13 @@ class ExtensionTranslateCommand extends Command
 
         $this->line("Traversing extension files.");
 
-        $progress = new ProgressBar($this->output, count($files));
+        $progress = new ProgressBar($output, count($files));
         $progress->start();
 
         foreach ($files as $file) {
-            $strings = $this->extractStrings($file);
+            $strings = $this->extractStrings($file->getPathname());
             foreach ($strings as $domain => $messages) {
-                if(array_key_exists($domain, $result)) {
+                if (array_key_exists($domain, $result)) {
 
                     // custom merge (array_merge would create duplicates from numeric keys)
                     foreach (array_keys($messages) as $key) {
@@ -100,19 +103,24 @@ class ExtensionTranslateCommand extends Command
         }
 
         $this->writeTranslationFile($result, $extension, $languages);
+
+        return Command::SUCCESS;
     }
 
     /**
      * Extracts translateable strings from a given file.
      *
      * @param  string $file Path to the file
-     * @return array Array of strings to be translated, grouped by message domain.
+     * @return array<string, array<string, string>> Array of strings to be translated, grouped by message domain.
      *               Example:
      *               ['messages' = ['Hello' => 'Hello', 'Apple' => 'Apple'], 'customdomain' => ['One' => 'One']]
      */
     protected function extractStrings($file): array
     {
         $content = file_get_contents($file);
+        if ($content === false) {
+            return [];
+        }
 
         // collect pairs of [$domain, string] from all matches
         $pairs = [];
@@ -138,16 +146,22 @@ class ExtensionTranslateCommand extends Command
         // $transChoice('foo'[, args])
         preg_match_all('/\$trans(Choice)?\((\'|")((?:(?!\2).)+)\2/', $content, $matches);
         foreach ($matches[3] as $i => $string) {
-            $domain = 'messages'; // TODO: allow custom domain
+            // TODO: Must be refactored in Step 3.3.6 (Translation System Modernization) — the regex
+            // above only captures the message id, so the optional domain argument of JS/Vue
+            // `$trans()/$transChoice()` calls is ignored and every string is forced into 'messages'.
+            // Parse the domain via a JS AST (like PhpNodeVisitor does for PHP) so custom-domain
+            // strings in .js files land in the correct .pot.
+            $domain = 'messages';
 
             $pairs[] = [$domain, $string];
         }
 
         // php matches ...->trans('foo'[, args]) or __('foo'[, args])
         // php matches ...->transChoice('foo'[, args]) or _c('foo'[, args])
-        $this->visitor->traverse([$file]);
+        $visitor = $this->visitor ?? throw new \LogicException('PhpNodeVisitor not initialized — call execute() first.');
+        $visitor->traverse([$file]);
 
-        foreach ($this->visitor->results as $domain => $strings) {
+        foreach ($visitor->results as $domain => $strings) {
             foreach (array_keys($strings) as $string) {
                 $pairs[] = [$domain, $string];
             }
@@ -173,13 +187,13 @@ class ExtensionTranslateCommand extends Command
      *
      * @param  string $path
      */
-    protected function getFiles($path, $extension): Finder
+    protected function getFiles($path, string $extension): Finder
     {
         $files = Finder::create()->files()->in($path);
 
         if ($extension == "system") {
             // add installer files
-            $files->in($this->container->path().'/app/installer');
+            $files->in($this->container->get('path').'/app/installer');
         }
 
         return $files->name('*.{php,vue,js,html,twig}');
@@ -192,7 +206,7 @@ class ExtensionTranslateCommand extends Command
      */
     protected function getPath($path): string
     {
-        $root = $path == 'system' ? $this->container->path().'/app' : $this->container->path().'/packages';
+        $root = $path == 'system' ? $this->container->get('path').'/app' : $this->container->get('path').'/packages';
 
         if (!is_dir($path = "$root/$path")) {
             $this->abort("Can't find extension in '$path'");
@@ -204,7 +218,7 @@ class ExtensionTranslateCommand extends Command
     /**
      * Writes the translation file for the given extension.
      *
-     * @param array  $messages
+     * @param array<string, array<string, string>> $messages
      * @param string $extension
      * @param string $path
      */
@@ -222,7 +236,26 @@ class ExtensionTranslateCommand extends Command
             }
 
             $refFile = $path.'/'.$domain.'.pot';
-            if (!file_exists($refFile) || !($compare = preg_replace('/^"POT-Creation-Date: (.*)$/im', '', [file_get_contents($refFile), $data]) and $compare[0] === $compare[1])) {
+            if (!file_exists($refFile)) {
+                file_put_contents($refFile, $data);
+
+                continue;
+            }
+
+            $existing = file_get_contents($refFile);
+            if ($existing === false) {
+                file_put_contents($refFile, $data);
+
+                continue;
+            }
+
+            // Strip the non-deterministic POT-Creation-Date header before comparing so
+            // unchanged catalogs are not rewritten on every run.
+            $pattern = '/^"POT-Creation-Date: (.*)$/im';
+            $existingStripped = preg_replace($pattern, '', $existing) ?? $existing;
+            $dataStripped = preg_replace($pattern, '', $data) ?? $data;
+
+            if ($existingStripped !== $dataStripped) {
                 file_put_contents($refFile, $data);
             }
         }
@@ -236,8 +269,8 @@ class ExtensionTranslateCommand extends Command
      */
     protected function getHeader($extension, $domain): string
     {
-        $version = $this->getApplication()->getVersion();
-        $date    = date("Y-m-d H:iO");
+        $version = $this->getApplication()?->getVersion() ?? 'dev';
+        $date = date("Y-m-d H:iO");
 
         return <<<EOD
 msgid ""

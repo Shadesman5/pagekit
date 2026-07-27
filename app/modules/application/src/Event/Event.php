@@ -1,46 +1,38 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Event;
 
-use Pagekit\Util\Arr;
-use \Pagekit\Event\EventDispatcherInterface;
-
+/**
+ * @implements \ArrayAccess<string, mixed>
+ */
 class Event implements EventInterface, \ArrayAccess
 {
     protected string $name;
 
+    /** @var array<string, mixed> */
     protected array $parameters;
 
     protected bool $propagationStopped = false;
 
-    protected ?\Pagekit\Event\EventDispatcherInterface $dispatcher = null;
+    protected ?EventDispatcherInterface $dispatcher = null;
 
     /**
-     * Constructor.
-     *
-     * @param string $name
-     * @param array  $parameters
+     * @param array<string, mixed> $parameters
      */
-    public function __construct($name, array $parameters = [])
+    public function __construct(string $name, array $parameters = [])
     {
         $this->name = $name;
         $this->parameters = $parameters;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getName(): string
     {
         return $this->name;
     }
 
-    /**
-     * Sets the event name.
-     *
-     * @param  string $name
-     */
-    public function setName($name): self
+    public function setName(string $name): self
     {
         $this->name = $name;
 
@@ -48,9 +40,7 @@ class Event implements EventInterface, \ArrayAccess
     }
 
     /**
-     * Gets all parameters.
-     *
-     * @return array|object|\ArrayAccess
+     * @return array<string, mixed>
      */
     public function getParameters(): array
     {
@@ -58,9 +48,7 @@ class Event implements EventInterface, \ArrayAccess
     }
 
     /**
-     * Sets all parameters.
-     *
-     * @param  array
+     * @param array<string, mixed> $parameters
      */
     public function setParameters(array $parameters): self
     {
@@ -70,12 +58,26 @@ class Event implements EventInterface, \ArrayAccess
     }
 
     /**
-     * @param  mixed $values
-     * @param  bool  $replace
+     * @param array<string, mixed> $values
      */
-    public function addParameters(array $values, $replace = false): self
+    public function addParameters(array $values, bool $replace = false): self
     {
-        $this->parameters = Arr::merge($this->parameters, $values, $replace);
+        if ($replace) {
+            $this->parameters = array_replace_recursive($this->parameters, $values);
+
+            return $this;
+        }
+
+        foreach ($values as $key => $value) {
+            if (!isset($this->parameters[$key])) {
+                $this->parameters[$key] = $value;
+            } elseif (is_array($value) && is_array($this->parameters[$key])) {
+                $this->parameters[$key] = array_replace_recursive($this->parameters[$key], $value);
+            } else {
+                $this->parameters[$key] = $value;
+            }
+        }
+
         return $this;
     }
 
@@ -84,6 +86,10 @@ class Event implements EventInterface, \ArrayAccess
      */
     public function getDispatcher(): EventDispatcherInterface
     {
+        if ($this->dispatcher === null) {
+            throw new \LogicException('Event: dispatcher has not been set.');
+        }
+
         return $this->dispatcher;
     }
 
@@ -113,46 +119,23 @@ class Event implements EventInterface, \ArrayAccess
         $this->propagationStopped = true;
     }
 
-    /**
-     * Checks if a parameter exists.
-     *
-     * @param  string $name
-     * @return mixed
-     */
-    public function offsetExists($name): bool
+    public function offsetExists(mixed $name): bool
     {
         return isset($this->parameters[$name]);
     }
 
-    /**
-     * Gets a parameter or an object.
-     *
-     * @param  string $name
-     * @return mixed
-     */
-    #[\ReturnTypeWillChange]
-    public function offsetGet($name)
+    /** @return mixed Genuinely unknown type — implements \ArrayAccess on event parameters; value type depends on what was registered at offset. */
+    public function offsetGet(mixed $name): mixed
     {
-        return isset($this->parameters[$name]) ? $this->parameters[$name] : null;
+        return $this->parameters[$name] ?? null;
     }
 
-    /**
-     * Sets a parameter.
-     *
-     * @param  string   $name
-     * @param  callable $callback
-     */
-    public function offsetSet($name, $callback): void
+    public function offsetSet(mixed $name, mixed $callback): void
     {
         $this->parameters[$name] = $callback;
     }
 
-    /**
-     * Unsets a parameter.
-     *
-     * @param string $name
-     */
-    public function offsetUnset($name): void
+    public function offsetUnset(mixed $name): void
     {
         unset($this->parameters[$name]);
     }

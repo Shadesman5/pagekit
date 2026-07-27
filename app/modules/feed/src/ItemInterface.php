@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Feed;
 
 interface ItemInterface
@@ -59,7 +61,7 @@ interface ItemInterface
      * Adds an attachment.
      *
      * @param  string  $url
-     * @param  integer $length
+     * @param  int $length
      * @param  string  $type
      * @param  bool    $multiple
      */
@@ -68,7 +70,19 @@ interface ItemInterface
     /**
      * Gets the items elements.
      *
-     * @return array[]
+     * @return array<int, array{0: string, 1: mixed, 2: array<string, mixed>|null}>
      */
     public function getElements(): array;
+
+    /**
+     * Adds multiple elements at once.
+     *
+     * Keys map to `set{Name}` methods when present (the values being either a
+     * scalar or an argument list); otherwise the pair is appended verbatim
+     * as a generic element.
+     *
+     * @param  array<string, mixed> $elements
+     * @return $this
+     */
+    public function addElements(array $elements): static;
 }

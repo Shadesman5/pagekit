@@ -1,4 +1,5 @@
-<?php $view->script('marketplace', 'installer:app/bundle/marketplace.js', ['vue', 'marked']) ?>
+<?php declare(strict_types=1);
+$view->script('marketplace', 'installer:app/bundle/marketplace.js', ['vue', 'marked']) ?>
 
 <div id="marketplace" v-cloak>
 

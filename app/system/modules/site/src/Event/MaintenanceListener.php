@@ -1,52 +1,68 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Site\Event;
 
 use Pagekit\Application as App;
 use Pagekit\Event\EventSubscriberInterface;
+use Pagekit\Kernel\Event\RequestEvent;
+use Pagekit\Module\Module;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class MaintenanceListener implements EventSubscriberInterface
 {
+    public function __construct(
+        private readonly App $app,
+        private readonly Module $site,
+    ) {
+    }
+
     /**
      * Puts the page in maintenance mode.
      */
-    public function onRequest($event, $request): void
+    public function onRequest(RequestEvent $event, Request $request): void
     {
         if (!$event->isMasterRequest()) {
             return;
         }
 
-        $site = App::module('system/site');
+        $user = $this->app->get('auth')->getUser();
 
-        if ($site->config('maintenance.enabled') && !(App::isAdmin() || $request->attributes->get('_maintenance') || App::user()->hasAccess('site: maintenance access') || App::user()->hasAccess('system: access admin area'))) {
+        if ($this->site->config('maintenance.enabled') && !($this->app->get('isAdmin') || $request->attributes->get('_maintenance') || $user?->hasAccess('site: maintenance access') || $user?->hasAccess('system: access admin area'))) {
 
-            $message = $site->config('maintenance.msg') ?: __("We'll be back soon.");
-            $logo = $site->config('maintenance.logo') ?: 'app/system/assets/images/pagekit-logo-large-black.svg';
-            $response = App::view('system/theme:views/maintenance.php', compact('message', 'logo'));
+            $message = $this->site->config('maintenance.msg') ?: __("We'll be back soon.");
+            $logo = $this->site->config('maintenance.logo') ?: 'app/system/assets/images/pagekit-logo-large-black.svg';
+            $view = $this->app->get('view');
+            $viewResponse = $view('system/theme:views/maintenance.php', compact('message', 'logo'));
 
             $request->attributes->set('_disable_debugbar', true);
 
             $types = $request->getAcceptableContentTypes();
+            $response = $this->app->get('response');
 
-            if (!App::user()->isAuthenticated() && $request->isXMLHttpRequest()) {
-                App::abort('401', 'Unauthorized');
+            if (!$user?->isAuthenticated() && $request->isXMLHttpRequest()) {
+                throw new HttpException(401, 'Unauthorized');
             } elseif ('json' == $request->getFormat(array_shift($types))) {
-                $response = App::response()->json($message, 503);
+                $viewResponse = $response->json($message, 503);
             } else {
-                $response = App::response($response, 503);
+                $viewResponse = $response->create($viewResponse, 503);
             }
 
-            $event->setResponse($response);
+            $event->setResponse($viewResponse);
         }
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, array{string, int}>
      */
     public function subscribe(): array
     {
         return [
-            'request' => ['onRequest', 10]
+            'request' => ['onRequest', 10],
         ];
     }
 }

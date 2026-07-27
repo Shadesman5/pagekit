@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Select Image' => 'Kép kiválasztása',
   'Add Image' => 'Kép hozzáadása',
   'Select Video' => 'Videó kiválasztása',
@@ -451,4 +455,4 @@
   'You have the latest version of Pagekit. You do not need to update. However, if you want to re-install version %version%, you can download the package and re-install manually.' => 'A legfrissebb Pagekit-et használja. Nincs szükség frissítésre, de ha szükség lenne egy újratelepítésre, akkor letöltheti és használhatja a %version% verziót.',
   'Download %version%' => '%version% letöltése',
   'Changelog' => 'Változások',
-);
+];

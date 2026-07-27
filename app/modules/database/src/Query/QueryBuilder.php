@@ -1,14 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Database\Query;
 
 use Closure;
+use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Result;
-use Doctrine\DBAL\Platforms\MySqlPlatform;
 use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use Pagekit\Database\Connection;
-use Pagekit\Database\Query\QueryBuilder;
-use PDO;
 
 class QueryBuilder
 {
@@ -19,6 +20,8 @@ class QueryBuilder
 
     /**
      * The query parts.
+     *
+     * @var array<string, mixed>
      */
     protected array $parts = [
         'select' => [],
@@ -30,13 +33,23 @@ class QueryBuilder
         'having' => null,
         'order' => [],
         'offset' => null,
-        'limit' => null
+        'limit' => null,
     ];
 
     /**
      * The query parameters.
+     *
+     * Pagekit uses named (string-keyed) parameters exclusively; the parameter name
+     * is produced by {@see parameter()} which always returns a string.
+     *
+     * @var array<string, mixed>
      */
     protected array $params = [];
+
+    /**
+     * The write-statement type ('update' or 'delete') selected by {@see update()} / {@see delete()}.
+     */
+    private ?string $type = null;
 
     /**
      * Constructor.
@@ -124,10 +137,9 @@ class QueryBuilder
     /**
      * Creates and adds a "where" to the query.
      *
-     * @param  mixed $condition
-     * @param  array $params
+     * @param array<string, mixed> $params
      */
-    public function where($condition, array $params = []): QueryBuilder
+    public function where(mixed $condition, array $params = []): QueryBuilder
     {
         return $this->addWhere($condition, $params);
     }
@@ -135,10 +147,9 @@ class QueryBuilder
     /**
      * Creates and adds a "or where" to the query.
      *
-     * @param  mixed $condition
-     * @param  array $params
+     * @param array<string, mixed> $params
      */
-    public function orWhere($condition, array $params = []): QueryBuilder
+    public function orWhere(mixed $condition, array $params = []): QueryBuilder
     {
         return $this->addWhere($condition, $params, CompositeExpression::TYPE_OR);
     }
@@ -166,7 +177,11 @@ class QueryBuilder
             call_user_func($values, $query);
 
             $values = $query->getSQL();
-            $params = $query->params();
+            $rawParams = $query->params();
+            if (!is_array($rawParams)) {
+                throw new \LogicException('params() getter must return an array.');
+            }
+            $params = $rawParams;
         }
 
         $not = $not ? ' NOT' : '';
@@ -203,7 +218,12 @@ class QueryBuilder
 
         $not = $not ? 'NOT ' : '';
 
-        return $this->addWhere("{$not}EXISTS ({$exists})", $query->params(), $type);
+        $params = $query->params();
+        if (!is_array($params)) {
+            throw new \LogicException('params() getter must return an array.');
+        }
+
+        return $this->addWhere("{$not}EXISTS ({$exists})", $params, $type);
     }
 
     /**
@@ -227,26 +247,26 @@ class QueryBuilder
      */
     public function whereInSet($column, $values, $not = false, $type = null): QueryBuilder
     {
-        $not    = $not ? ' NOT' : '';
+        $not = $not ? ' NOT' : '';
         $values = (array) $values;
 
-        if (count($values) === 1 && $this->connection->getDatabasePlatform() instanceof MySqlPlatform) {
+        if (count($values) === 1 && $this->connection->getDatabasePlatform() instanceof MySQLPlatform) {
             $value = $this->connection->quote(current($values));
+
             return $this->addWhere("{$not} FIND_IN_SET({$value}, {$column})", [], $type);
         }
 
         $values = implode('|', (array) $values);
+
         return $this->addWhere("{$column}{$not} REGEXP ".$this->connection->quote("(^|,)({$values})($|,)"), [], $type);
     }
 
     /**
      * Creates and adds a "where" to the query.
      *
-     * @param  mixed  $condition
-     * @param  array  $params
-     * @param  string $type
+     * @param array<string, mixed> $params
      */
-    protected function addWhere($condition, array $params, $type = null): QueryBuilder
+    protected function addWhere(mixed $condition, array $params, ?string $type = null): QueryBuilder
     {
         $args = [];
 
@@ -263,9 +283,9 @@ class QueryBuilder
             foreach ($condition as $key => $value) {
 
                 if (!is_numeric($key)) {
-                    $name          = $this->parameter($key);
+                    $name = $this->parameter($key);
                     $params[$name] = $value;
-                    $value         = "$key = :$name";
+                    $value = "$key = :$name";
                 }
 
                 $args[] = $value;
@@ -279,7 +299,11 @@ class QueryBuilder
             call_user_func($condition, $query);
 
             $args[] = $query->getPart('where');
-            $params = $query->params();
+            $rawParams = $query->params();
+            if (!is_array($rawParams)) {
+                throw new \LogicException('params() getter must return an array.');
+            }
+            $params = $rawParams;
         }
 
         $this->params($params);
@@ -314,7 +338,7 @@ class QueryBuilder
      */
     public function having($having, $type = CompositeExpression::TYPE_AND): QueryBuilder
     {
-        $args   = func_get_args();
+        $args = func_get_args();
         $having = $this->getPart('having');
 
         if ($having instanceof CompositeExpression && $having->getType() === $type) {
@@ -375,10 +399,14 @@ class QueryBuilder
     /**
      * Get or set multiple query parameters.
      *
-     * @param  array $params
-     * @return array|self
+     * Pagekit only supports named (string-keyed) parameters; numeric keys are
+     * not accepted because they would conflict with DBAL's positional-parameter
+     * driver path.
+     *
+     * @param  array<string, mixed>|null  $params
+     * @return array<string, mixed>|self
      */
-    public function params(?array $params = null)
+    public function params(?array $params = null): array|self
     {
         if ($params === null) {
             return $this->params;
@@ -393,7 +421,7 @@ class QueryBuilder
      * Gets a query part by its name.
      *
      * @param  string $name
-     * @return mixed
+     * @return mixed Genuinely unknown type — query parts may be strings, arrays, or null depending on the part name (select, where, from, etc.).
      */
     public function getPart($name)
     {
@@ -402,6 +430,8 @@ class QueryBuilder
 
     /**
      * Gets all query parts.
+     *
+     * @return array<string, mixed>
      */
     public function getParts(): array
     {
@@ -451,22 +481,30 @@ class QueryBuilder
     /**
      * Execute the query and get all results.
      *
-     * @param  mixed $columns
+     * @return array<int, array<string, mixed>>
      */
-    public function get($columns = ['*']): array
+    public function get(mixed $columns = ['*']): array
     {
-        return $this->execute($columns)->fetchAllAssociative();
+        if (empty($this->parts['select'])) {
+            $this->select($columns);
+        }
+
+        return $this->executeQuery()->fetchAllAssociative();
     }
 
     /**
      * Execute the query and get the first result.
      *
      * @param  mixed $columns
-     * @return mixed
+     * @return mixed Genuinely unknown type — returns the first row as an associative array, or false if no row is found (Doctrine DBAL fetchAssociative return type).
      */
     public function first($columns = ['*'])
     {
-        return $this->limit(1)->execute($columns)->fetchAssociative();
+        if (empty($this->parts['select'])) {
+            $this->select($columns);
+        }
+
+        return $this->limit(1)->executeQuery()->fetchAssociative();
     }
 
     /**
@@ -483,7 +521,7 @@ class QueryBuilder
      * Execute the query and get the "min" result.
      *
      * @param  string $column
-     * @return mixed
+     * @return mixed Genuinely unknown type — aggregate result from database; may be an int, float, string, or null depending on the column type.
      */
     public function min($column)
     {
@@ -494,7 +532,7 @@ class QueryBuilder
      * Execute the query and get the "max" result.
      *
      * @param  string $column
-     * @return mixed
+     * @return mixed Genuinely unknown type — aggregate result from database; may be an int, float, string, or null depending on the column type.
      */
     public function max($column)
     {
@@ -505,7 +543,7 @@ class QueryBuilder
      * Execute the query and get the "sum" result.
      *
      * @param  string $column
-     * @return mixed
+     * @return mixed Genuinely unknown type — aggregate result from database; may be an int, float, string, or null depending on the column type.
      */
     public function sum($column)
     {
@@ -516,7 +554,7 @@ class QueryBuilder
      * Execute the query and get the "avg" result.
      *
      * @param  string $column
-     * @return mixed
+     * @return mixed Genuinely unknown type — aggregate result from database; may be an int, float, string, or null depending on the column type.
      */
     public function avg($column)
     {
@@ -528,48 +566,46 @@ class QueryBuilder
      *
      * @param  string $function
      * @param  string $column
-     * @return mixed
+     * @return mixed Genuinely unknown type — aggregate result from database; may be an int, float, string, or 0 as fallback.
      */
     public function aggregate($function, $column)
     {
-        $select  = $this->getPart('select');
-        $results = $this->setPart('select', sprintf('%s(%s) aggregate', strtoupper($function), $column))->get();
+        $select = $this->getPart('select');
+
+        $results = $this->setPart('select', sprintf('%s(%s) AS aggregate', strtoupper($function), $column))->get();
 
         $this->setPart('select', $select);
 
-        if ($results) {
+        if ($results && isset($results[0]['aggregate'])) {
             return $results[0]['aggregate'];
         }
-    }
 
-    /**
-     * Execute the "select" query.
-     *
-     * @param  mixed $columns
-     */
-    public function execute($columns = ['*']): Result
-    {
-        if (empty($this->parts['select'])) {
-            $this->select($columns);
+        // Fallback for case-sensitive databases
+        if ($results && isset($results[0]['AGGREGATE'])) {
+            return $results[0]['AGGREGATE'];
         }
 
-        return $this->executeQuery();
+        return 0;
     }
 
     /**
      * Execute the "update" query with the given values.
      *
-     * @param  array $values
+     * @param array<string, mixed> $values
      */
     public function update(array $values): int
     {
         foreach ($values as $key => $value) {
-            $name          = $this->parameter($key);
+            $name = $this->parameter($key);
             $values[$name] = $value;
             $this->addPart('set', "$key = :$name");
         }
 
-        return $this->params($values)->executeQuery('update');
+        $this->params($values);
+
+        $this->type = 'update';
+
+        return $this->executeStatement();
     }
 
     /**
@@ -577,7 +613,9 @@ class QueryBuilder
      */
     public function delete(): int
     {
-        return $this->executeQuery('delete');
+        $this->type = 'delete';
+
+        return $this->executeStatement();
     }
 
     /**
@@ -607,31 +645,32 @@ class QueryBuilder
     }
 
     /**
-     * Execute the query as select, update or delete.
-     *
-     * @param  string $type
-     * @return mixed
+     * Execute the "select" query and return the DBAL result.
      */
-    protected function executeQuery($type = 'select')
+    public function executeQuery(): Result
     {
-        switch ($type) {
-            case 'update':
-                $sql = $this->getSQLForUpdate();
-                break;
+        $sql = $this->getSQLForSelect();
 
-            case 'delete':
-                $sql = $this->getSQLForDelete();
-                break;
+        return $this->connection->executeQuery($sql, $this->params, $this->guessParamTypes($this->params));
+    }
 
-            default:
-                $sql = $this->getSQLForSelect();
-        }
+    /**
+     * Execute the "update"/"delete" write statement and return the affected-row count.
+     *
+     * The write type must be selected up-front via {@see update()} or {@see delete()}.
+     * Calling this on a builder without a write type (e.g. one configured for SELECT)
+     * throws instead of silently falling back to DELETE, which could wipe the whole
+     * FROM table when no WHERE is set.
+     */
+    public function executeStatement(): int
+    {
+        $sql = match ($this->type) {
+            'update' => $this->getSQLForUpdate(),
+            'delete' => $this->getSQLForDelete(),
+            default => throw new \LogicException('executeStatement() requires update() or delete() to be called first; it is not valid for SELECT queries.'),
+        };
 
-        if ($type == 'select') {
-            return $this->connection->executeQuery($sql, $this->params, $this->guessParamTypes($this->params));
-        } else {
-            return $this->connection->executeStatement($sql, $this->params, $this->guessParamTypes($this->params));
-        }
+        return $this->connection->executeStatement($sql, $this->params, $this->guessParamTypes($this->params));
     }
 
     /**
@@ -711,22 +750,24 @@ class QueryBuilder
     /**
      * Tries to guess param types
      *
-     * @param  array $params
+     * @param  array<string, mixed> $params
+     * @return array<string, string>
      */
     protected function guessParamTypes(array $params = []): array
     {
         $types = [];
         foreach ($params as $key => $param) {
             if ($param instanceof \DateTimeInterface) {
-                // DBAL 2.10.2 - Make sure that the $types array has the same keys $params. https://github.com/doctrine/dbal/pull/3894
-                $types[$key] = Type::DATETIME;
+                // DBAL 3.x: Use Types::DATETIME_MUTABLE instead of Type::DATETIME
+                $types[$key] = Types::DATETIME_MUTABLE;
             }
         }
+
         return $types;
     }
 
-    protected function parameter($name)
+    protected function parameter(string $name): string
     {
-        return preg_replace('/[^a-zA-Z0-9_]/', '_', $name);
+        return preg_replace('/[^a-zA-Z0-9_]/', '_', $name) ?? $name;
     }
 }

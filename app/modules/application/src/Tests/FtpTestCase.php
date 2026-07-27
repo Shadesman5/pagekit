@@ -1,15 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Tests;
 
 use PHPUnit\Framework\TestCase;
+
 abstract class FtpTestCase extends TestCase
 {
     use FtpUtil;
 
-    protected $workspace = null;
-    protected ?int $mode = null;
-    protected $connection;
+    protected string|false|null $workspace = null;
+    private \FTP\Connection $connection;
 
     public function setUp(): void
     {
@@ -19,34 +21,35 @@ abstract class FtpTestCase extends TestCase
 
         } catch (\Exception $e) {
             $this->markTestSkipped(sprintf('Unable to establish connection. (%s)', $e->getMessage()));
+
             return;
         }
-
-        $this->mode = $GLOBALS['ftp_mode'] == 'FTP_ASCII' ? FTP_ASCII : FTP_BINARY;
 
         $this->workspace = DIRECTORY_SEPARATOR.time().rand(0, 1000);
 
         if (false === @ftp_mkdir($this->connection, $this->workspace)) {
             $this->markTestSkipped('Unable to create workspace folder');
             $this->workspace = false;
+
             return;
         }
     }
 
     public function tearDown(): void
     {
-        if (is_resource($this->connection) && $this->workspace) {
-            $this->clean($this->workspace);
+        $workspace = $this->workspace;
+        if (isset($this->connection) && $workspace) {
+            $this->clean($workspace);
         }
     }
 
-    /**
-     * @param string $file
-     */
-    private function clean($file)
+    private function clean(string $file): void
     {
         if (ftp_size($this->connection, $file) == -1) {
             $result = ftp_nlist($this->connection, $file);
+            if ($result === false) {
+                return;
+            }
             foreach ($result as $childFile) {
                 $this->clean($childFile);
             }

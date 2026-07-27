@@ -1,3 +1,4 @@
+<?php declare(strict_types=1); ?>
 <form class="pk-user pk-user-login uk-form-stacked uk-width-1-2@m uk-width-1-3@l uk-container" action="<?= $view->url('@user/authenticate') ?>" method="post">
 
     <h1 class="uk-h2 uk-text-center"><?= __('Sign in to your account') ?></h1>
@@ -31,7 +32,7 @@
         </li>
     </ul>
 
-    <?php if ($app->module('system/user')->config('registration') != 'admin') : ?>
+    <?php if ($app->get('module')->get('system/user')->config('registration') != 'admin') : ?>
     <p class="uk-text-center"><?= __('No account yet?') ?> <a href="<?= $view->url('@user/registration') ?>"><?= __('Sign up now') ?></a></p>
     <?php endif ?>
 

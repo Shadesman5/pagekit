@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Filter by' => '過濾條件',
   'Thank you! Your comment needs approval before showing up.' => '謝謝！您的評論在顯示之前需要先經過審核。',
   'Unable to comment. Please try again later.' => '無法發表評論，請稍後再試一次。',
@@ -94,4 +98,4 @@
   'Written by %name% on %date%' => '%name% 寫於 %date%',
   'Read more' => '閱讀更多',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} 無評論|{1} %count% 則評論|]1,Inf[ %count% 則評論',
-);
+];

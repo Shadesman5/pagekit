@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Captcha\CaptchaListener;
 
 return [
@@ -8,29 +10,34 @@ return [
 
     'autoload' => [
 
-        'Pagekit\\Captcha\\' => 'src'
+        'Pagekit\\Captcha\\' => 'src',
 
     ],
 
     'resources' => [
 
-        'system/captcha:' => ''
+        'system/captcha:' => '',
 
     ],
 
     'events' => [
 
         'boot' => function ($event, $app) {
-            $app->subscribe(
-                new CaptchaListener
+            $app->get('events')->subscribe(
+                new CaptchaListener(
+                    $this,
+                    $app->get('auth'),
+                    $app->get('request.stack'),
+                    $app->get('router'),
+                )
             );
         },
 
         'view.system:modules/settings/views/settings' => function ($event, $view) use ($app) {
             $view->data('$settings', [
                 'options' => [
-                    $this->name => $this->config
-                ]
+                    $this->name => $this->config,
+                ],
             ]);
         },
 
@@ -42,6 +49,6 @@ return [
         'recaptcha_sitekey' => '',
         'recaptcha_secret' => '',
 
-    ]
+    ],
 
 ];

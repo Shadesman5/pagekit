@@ -1,41 +1,52 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Site\Event;
 
-use Pagekit\Application as App;
+use Pagekit\Event\EventInterface;
 use Pagekit\Event\EventSubscriberInterface;
+use Pagekit\Module\Module;
+use Pagekit\Routing\Routes;
 use Pagekit\Site\Model\Node;
+use Pagekit\Site\Model\NodeRepository;
+use Pagekit\User\Model\Role;
 
 class NodesListener implements EventSubscriberInterface
 {
+    public function __construct(
+        private readonly Module $site,
+        private readonly Routes $routes,
+        private readonly NodeRepository $nodes,
+    ) {
+    }
+
     /**
      * Registers node routes
      */
     public function onRequest(): void
     {
-        $site      = App::module('system/site');
-        $frontpage = $site->config('frontpage');
-        $nodes     = Node::findAll(true);
+        $frontpage = $this->site->config('frontpage');
+        $nodes = $this->nodes->findAll(true);
 
-        uasort($nodes, fn($a, $b) => strcmp(substr_count($a->path, '/'), substr_count($b->path, '/')) * -1);
+        uasort($nodes, fn ($a, $b) => substr_count($b->path ?? '', '/') <=> substr_count($a->path ?? '', '/'));
 
         foreach ($nodes as $node) {
-
-            if ($node->status !== 1 || !$type = $site->getType($node->type)) {
+            if ($node->status !== 1 || !$type = $this->site->getType($node->type)) {
                 continue;
             }
 
-            $type             = array_replace(['alias' => '', 'redirect' => '', 'controller' => ''], $type);
+            $type = array_replace(['alias' => '', 'redirect' => '', 'controller' => ''], $type);
             $type['defaults'] = array_merge(isset($type['defaults']) ? $type['defaults'] : [], $node->get('defaults', []), ['_node' => $node->id]);
-            $type['path']     = $node->path;
+            $type['path'] = $node->path;
 
             $route = null;
             if ($node->get('alias')) {
-                App::routes()->alias($node->path, $node->link, $type['defaults']);
+                $this->routes->alias($node->path ?? '', $node->link ?? '', $type['defaults']);
             } elseif ($node->get('redirect')) {
-                App::routes()->redirect($node->path, $node->get('redirect'), $type['defaults']);
+                $this->routes->redirect($node->path ?? '', $node->get('redirect'), $type['defaults']);
             } elseif ($type['controller']) {
-                App::routes()->add($type);
+                $this->routes->add($type);
             }
 
             if (!$frontpage && isset($type['frontpage']) && $type['frontpage']) {
@@ -45,33 +56,37 @@ class NodesListener implements EventSubscriberInterface
         }
 
         if ($frontpage && isset($nodes[$frontpage])) {
-            App::routes()->alias('/', $nodes[$frontpage]->link);
+            $this->routes->alias('/', $nodes[$frontpage]->link ?? '');
         } else {
-            App::routes()->get('/', fn() => __('No Frontpage assigned.'));
+            $this->routes->get('/', function () {
+                return __('No Frontpage assigned.');
+            });
         }
     }
 
-    public function onNodeInit($event, $node): void
+    public function onNodeInit(EventInterface $event, Node $node): void
     {
         if ('link' === $node->type && $node->get('redirect')) {
             $node->link = $node->path;
         }
     }
 
-    public function onRoleDelete($event, $role): void
+    public function onRoleDelete(EventInterface $event, Role $role): void
     {
-        Node::removeRole($role);
+        $this->nodes->removeRole((int) $role->id);
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, array{string, int}|string>
      */
     public function subscribe(): array
     {
         return [
             'request' => ['onRequest', 110],
             'model.node.init' => 'onNodeInit',
-            'model.role.deleted' => 'onRoleDelete'
+            'model.role.deleted' => 'onRoleDelete',
         ];
     }
 }

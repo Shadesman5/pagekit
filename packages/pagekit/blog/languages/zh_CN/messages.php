@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Filter by' => '筛选自',
   'Thank you! Your comment needs approval before showing up.' => '谢谢您！您的评论在发布前需要经过审核。',
   'Unable to comment. Please try again later.' => '无法评论。请稍后再试。',
@@ -94,4 +98,4 @@
   'Written by %name% on %date%' => '作者 %name% 于 %date% 编写',
   'Read more' => '查看更多',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} 没有评论|{1} %count% 条评论|]1,Inf[ %count% 条评论',
-);
+];

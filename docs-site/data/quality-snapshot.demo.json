@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 3,
+  "source": "demo",
+  "updatedAt": "2026-07-12T00:00:00Z",
+  "branch": "develop",
+  "workflows": {
+    "phpTests": { "runId": 0, "conclusion": "success" },
+    "e2eTests": { "runId": 0, "conclusion": "success" },
+    "infectionFull": { "runId": 0, "conclusion": "success", "scheduled": true }
+  },
+  "phpunit": {
+    "8.5-sqlite": { "db": "sqlite", "required": true, "tests": 725, "failures": 0 },
+    "8.5-mysql": { "db": "mysql", "required": false, "conclusion": "success" }
+  },
+  "phpstan": { "level": 8, "errors": 0, "baselineBlocks": 331, "suppressedErrors": 632 },
+  "coverage": { "linePercent": 3.86, "pinnedFloor": 3.8, "statements": 47535, "covered": 1833 },
+  "infection": {
+    "prDiff": { "msi": null, "coveredMsi": null, "scope": "diff" },
+    "dailyFull": {
+      "msi": 82,
+      "coveredMsi": 81,
+      "killed": 302,
+      "escaped": 66,
+      "timedOut": 1,
+      "errors": 0,
+      "totalMutants": 369,
+      "scope": "full",
+      "runAt": "2026-07-11T02:00:00Z"
+    }
+  },
+  "e2e": {
+    "scope": "smoke",
+    "viewports": ["mobile", "tablet", "desktop"],
+    "specsTotal": 25,
+    "specsPassed": 25,
+    "durationMs": 104000
+  },
+  "gates": {
+    "csFixer": "pass",
+    "securityAudit": "pass",
+    "frontendLint": "pass",
+    "codecov": "non-blocking",
+    "bugbot": "n/a"
+  }
+}

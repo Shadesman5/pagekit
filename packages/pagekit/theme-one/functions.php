@@ -1,20 +1,47 @@
 <?php
 
-use Pagekit\Application as App;
+declare(strict_types=1);
 
-function isHTML(string $string) : bool
+use Pagekit\Application\UrlProvider;
+
+// Static URL provider for template helper functions.
+// TODO: TEMPORARY BRIDGE - To be removed in Step 2.7 (Extension Safety & Fault Isolation) —
+// replace ThemeOneHelpers static UrlProvider (global state) with proper DI once template helper functions support injection.
+final class ThemeOneHelpers
+{
+    private static ?UrlProvider $url = null;
+
+    public static function setUrl(UrlProvider $url): void
+    {
+        self::$url = $url;
+    }
+
+    public static function getUrl(): UrlProvider
+    {
+        if (self::$url === null) {
+            throw new \RuntimeException('ThemeOneHelpers::setUrl() must be called before using template helpers.');
+        }
+
+        return self::$url;
+    }
+}
+
+function isHTML(string $string): bool
 {
     preg_match("/<\/?\w+((\s+\w+(\s*=\s*(?:\".*?\"|'.*?'|[^'\">\s]+))?)+\s*|\s*)\/?>/", $string, $matches);
 
     return (bool) count($matches);
 }
 
-function getHTML(string $content) : string
+function getHTML(string $content): string
 {
     return isHTML($content) ? $content : '<p>'.$content.'</p>';
 }
 
-function attrs(array $attrs) : string
+/**
+ * @param array<int|string, mixed> $attrs
+ */
+function attrs(array $attrs): string
 {
     $output = [];
 
@@ -33,18 +60,22 @@ function attrs(array $attrs) : string
         }
 
         if (is_numeric($key)) {
-           $output[] = $value;
+            $output[] = $value;
         } elseif ($value === true) {
-           $output[] = $key;
+            $output[] = $key;
         } elseif ($value !== '') {
-           $output[] = sprintf('%s="%s"', $key, htmlspecialchars($value, ENT_COMPAT, 'UTF-8', false));
+            $output[] = sprintf('%s="%s"', $key, htmlspecialchars($value, ENT_COMPAT, 'UTF-8', false));
         }
     }
 
     return (bool) count($output) ? ' '.implode(' ', $output) : '';
 }
 
-function bgImage ($url, $options) : array
+/**
+ * @param array<string, mixed> $options
+ * @return array<string, mixed>
+ */
+function bgImage(string $url, array $options): array
 {
 
     $attrs = [];
@@ -67,12 +98,14 @@ function bgImage ($url, $options) : array
             break;
         case 'fixed':
             $attrs['class'][] = 'uk-background-fixed';
+
             break;
         case 'parallax':
             $parallax_options = [];
             $parallax_options[] = "bgy: -200";
             $parallax_options[] = "media: @s";
             $attrs['uk-parallax'] = implode(';', array_filter($parallax_options));
+
             break;
     }
 
@@ -80,19 +113,23 @@ function bgImage ($url, $options) : array
 
 }
 
-function image($url, array $attrs = []): string
+/**
+ * @param array<int|string, mixed> $attrs
+ */
+function image(string $url, array $attrs = []): string
 {
-    $path = App::view()->url($url);
+    $path = ThemeOneHelpers::getUrl()->get($url);
 
     if (empty($attrs['alt'])) {
         $attrs['alt'] = true;
     }
 
     $attributes = attrs(['src' => $path], $attrs);
+
     return "<img".$attributes.">";
 }
 
-function isImage($link): bool
+function isImage(string $link): string|false
 {
     return $link && preg_match('#\.(gif|png|jpe?g|svg)$#', $link, $matches) ? $matches[1] : false;
 }

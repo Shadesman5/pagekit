@@ -1,30 +1,37 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Installer;
 
 use Composer\Console\HtmlOutputFormatter;
-use Pagekit\Application as App;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Output\StreamOutput;
 
 class SelfUpdater
 {
+    /** @var array<int, string> */
     protected array $cleanFolder = ['app'];
 
+    /** @var array<int, string> */
     protected array $ignoreFolder = ['packages', 'storage'];
 
     protected string $path;
 
     protected OutputInterface $output;
 
-    /**
-     * Constructor.
-     *
-     * @param mixed  $output
-     */
-    public function __construct(OutputInterface $output = null)
+    public function __construct(string $path, ?OutputInterface $output = null)
     {
-        $this->output = $output ?: new StreamOutput(fopen('php://output', 'w'));
+        $this->path = $path;
+
+        if ($output === null) {
+            $stream = fopen('php://output', 'w');
+            if ($stream === false) {
+                throw new \RuntimeException('Failed to open php://output stream.');
+            }
+            $output = new StreamOutput($stream);
+        }
+        $this->output = $output;
 
         if (PHP_SAPI != 'cli') {
 
@@ -38,13 +45,12 @@ class SelfUpdater
     /**
      * Runs Pagekit self update.
      *
-     * @param $file
      * @throws \Exception
      */
-    public function update($file): void
+    public function update(string $file): void
     {
         try {
-            $path = App::path();
+            $path = $this->path;
 
             if (!file_exists($file)) {
                 throw new \RuntimeException('File not found.');
@@ -56,7 +62,7 @@ class SelfUpdater
 
             $fileList = array_values(array_filter($fileList, function ($file) {
                 foreach ($this->ignoreFolder as $ignore) {
-                    if(strpos($file, $ignore) === 0) {
+                    if (strpos($file, $ignore) === 0) {
                         return false;
                     }
                 }
@@ -65,13 +71,13 @@ class SelfUpdater
             }));
 
             if ($this->isWritable($fileList, $path) !== true) {
-                throw new \RuntimeException(array_reduce($fileList, fn($carry, $file) => $carry . sprintf("'%s' not writable\n", $file)));
+                throw new \RuntimeException(array_reduce($fileList, fn ($carry, $file) => $carry . sprintf("'%s' not writable\n", $file), ''));
             }
 
             $requirements = include "zip://{$file}#app/installer/requirements.php";
             if ($failed = $requirements->getFailedRequirements()) {
 
-                throw new \RuntimeException(array_reduce($failed, fn($carry, $problem) => $carry . "\n" . $problem->getHelpText()));
+                throw new \RuntimeException(array_reduce($failed, fn ($carry, $problem) => $carry . "\n" . $problem->getHelpText(), ''));
 
             }
 
@@ -103,6 +109,7 @@ class SelfUpdater
 
         } catch (\Exception $e) {
             @unlink($file);
+
             throw $e;
         }
 
@@ -111,18 +118,20 @@ class SelfUpdater
     /**
      * Generates file list for given archive.
      *
-     * @param $file
-     * @return array
+     * @return array<int, string>
      */
-    protected function getFileList($file)
+    protected function getFileList(string $file): array
     {
         $list = [];
 
-        $zip = new \ZipArchive;
+        $zip = new \ZipArchive();
         if ($zip->open($file) === true) {
 
             for ($i = 0; $i < $zip->numFiles; $i++) {
-                $list[] = $zip->getNameIndex($i);
+                $name = $zip->getNameIndex($i);
+                if ($name !== false) {
+                    $list[] = $name;
+                }
             }
             $zip->close();
 
@@ -135,11 +144,10 @@ class SelfUpdater
     /**
      * Checks if directory is writable.
      *
-     * @param $fileList
-     * @param $path
-     * @return bool|array
+     * @param  array<int, string>     $fileList
+     * @return bool|array<int, string>
      */
-    protected function isWritable($fileList, $path)
+    protected function isWritable(array $fileList, string $path): bool|array
     {
         $notWritable = [];
 
@@ -166,13 +174,11 @@ class SelfUpdater
     /**
      * Extracts an archive.
      *
-     * @param $file
-     * @param $fileList
-     * @param $path
+     * @param array<int, string> $fileList
      */
-    protected function extract($file, $fileList, $path): void
+    protected function extract(string $file, array $fileList, string $path): void
     {
-        $zip = new \ZipArchive;
+        $zip = new \ZipArchive();
         if ($zip->open($file) === true) {
 
             $zip->extractTo($path, $fileList);
@@ -185,10 +191,10 @@ class SelfUpdater
     /**
      * Scans directory for old files.
      *
-     * @param $fileList
-     * @param $path
+     * @param  array<int, string> $fileList
+     * @return array<int, string>
      */
-    protected function cleanup($fileList, $path): array
+    protected function cleanup(array $fileList, string $path): array
     {
         $errorList = [];
 
@@ -200,11 +206,10 @@ class SelfUpdater
     }
 
     /**
-     * @param $fileList
-     * @param $dir
-     * @param $path
+     * @param  array<int, string> $fileList
+     * @return array<int, string>
      */
-    protected function doCleanup($fileList, $dir, $path): array
+    protected function doCleanup(array $fileList, string $dir, string $path): array
     {
         $errorList = [];
 
@@ -227,11 +232,11 @@ class SelfUpdater
 
     /**
      * Toggles update mode without booting Pagekit application.
-     *
-     * @param $active
      */
-    protected function setUpdateMode($active): void
+    protected function setUpdateMode(bool $active): void
     {
-        // TODO: Implement this.
+        // TODO: Step 5.6 (Marketplace & Extensions) — implement the maintenance-mode toggle for the
+        // self-update flow (never finished). Part of rebuilding the self-update infrastructure that
+        // depends on the discontinued pagekit.com backend.
     }
 }

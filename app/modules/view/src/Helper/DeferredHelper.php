@@ -1,23 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\View\Helper;
 
 use Pagekit\Event\EventDispatcherInterface;
+use Pagekit\View\Event\ViewEvent;
 use Pagekit\View\View;
 
 class DeferredHelper implements HelperInterface
 {
     protected \Pagekit\Event\EventDispatcherInterface $events;
 
+    /** @var array<string, ViewEvent> */
     protected array $deferred = [];
 
+    /** @var array<string, string> */
     protected array $placeholder = [];
 
-    /**
-     * Constructor.
-
-     * @param EventDispatcherInterface $events
-     */
     public function __construct(EventDispatcherInterface $events)
     {
         $this->events = $events;
@@ -28,7 +28,7 @@ class DeferredHelper implements HelperInterface
      */
     public function register(View $view): void
     {
-        $view->on('render', function ($event) {
+        $view->on('render', function (ViewEvent $event) {
 
             $name = $event->getTemplate();
 
@@ -46,7 +46,7 @@ class DeferredHelper implements HelperInterface
 
             foreach ($this->deferred as $name => $event) {
                 $view->trigger($event->setName($name), [$view]);
-                $response->setContent(str_replace($this->placeholder[$name], $event->getResult(), $response->getContent()));
+                $response->setContent(str_replace($this->placeholder[$name], $event->getResult() ?? '', $response->getContent()));
             }
 
         }, 10);
@@ -54,10 +54,8 @@ class DeferredHelper implements HelperInterface
 
     /**
      * Defers a template render call.
-     *
-     * @return string
      */
-    public function __invoke($name)
+    public function __invoke(string $name): void
     {
         $this->placeholder[$name] = sprintf('<!-- %s -->', uniqid());
     }

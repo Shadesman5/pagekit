@@ -1,18 +1,19 @@
 <?php
 
-use Pagekit\Application as App;
+declare(strict_types=1);
 
 return [
 
     'name' => 'theme-one',
 
-    'main' => function($app) {
+    'main' => function ($app) {
 
-        if ($app->isAdmin()) {
+        if ($app->get('isAdmin')) {
             return;
         }
 
         require __DIR__.'/functions.php';
+        \ThemeOneHelpers::setUrl($app->get('url'));
     },
 
     /**
@@ -21,7 +22,7 @@ return [
     'menus' => [
 
         'main' => 'Main',
-        'offcanvas' => 'Offcanvas'
+        'offcanvas' => 'Offcanvas',
 
     ],
 
@@ -41,7 +42,7 @@ return [
         'bottom-b' => 'Bottom B',
         'bottom-c' => 'Bottom C',
         'footer' => 'Footer',
-        'offcanvas' => 'Offcanvas'
+        'offcanvas' => 'Offcanvas',
 
     ],
 
@@ -60,7 +61,7 @@ return [
             'hero' => [
                 'height' => 'full',
                 'style' => 'uk-section-secondary',
-                'size'  => 'uk-section-large',
+                'size' => 'uk-section-large',
             ],
             'top-a' => [
                 'style' => 'uk-section-muted',
@@ -73,7 +74,7 @@ return [
             ],
             'bottom-c' => [
                 'style' => 'uk-section-muted',
-            ]
+            ],
         ],
 
 
@@ -93,15 +94,15 @@ return [
             'height' => '',
             'vertical_align' => 'middle',
             'style' => 'uk-section-default',
-            'size'  => '',
+            'size' => '',
             'padding_remove_top' => false,
             'padding_remove_bottom' => false,
             'preserve_color' => false,
             'overlap' => false,
             'header_transparent' => false,
             'header_preserve_color' => false,
-            'header_transparent_noplaceholder' => false
-        ]
+            'header_transparent_noplaceholder' => false,
+        ],
 
     ],
 
@@ -114,7 +115,7 @@ return [
         'title_size' => 'uk-h3',
         'alignment' => '',
         'html_class' => '',
-        'panel' => ''
+        'panel' => '',
 
     ],
 
@@ -133,7 +134,7 @@ return [
         'header' => [
             'layout' => 'horizontal-right',
             'fullwidth' => false,
-            'logo_padding_remove' => false
+            'logo_padding_remove' => false,
         ],
         'navbar' => [
             'sticky' => 1,
@@ -143,9 +144,9 @@ return [
             'offcanvas' => [
                 'mode' => 'reveal',
                 'overlay' => false,
-                'flip' => false
-            ]
-        ]
+                'flip' => false,
+            ],
+        ],
 
     ],
 
@@ -155,17 +156,17 @@ return [
     'events' => [
 
         'view.system/site/admin/settings' => function ($event, $view) use ($app) {
-            $view->script('site-theme', 'theme:app/bundle/site-theme.js', 'site-settings');
+            $view->script('site-theme', 'theme:app/bundle/site-theme.js', ['site-settings']);
             $view->data('$theme', $this);
         },
 
         'view.system/site/admin/edit' => function ($event, $view) {
-            $view->script('node-theme', 'theme:app/bundle/node-theme.js', 'site-edit');
+            $view->script('node-theme', 'theme:app/bundle/node-theme.js', ['site-edit']);
             $view->data('$theme', $this->options);
         },
 
         'view.system/widget/edit' => function ($event, $view) {
-            $view->script('widget-theme', 'theme:app/bundle/widget-theme.js', 'widget-edit');
+            $view->script('widget-theme', 'theme:app/bundle/widget-theme.js', ['widget-edit']);
         },
 
         /**
@@ -173,7 +174,7 @@ return [
          */
         'view.layout' => function ($event, $view) use ($app) {
 
-            if ($app->isAdmin()) {
+            if ($app->get('isAdmin')) {
                 return;
             }
 
@@ -187,8 +188,8 @@ return [
                 $event->setTemplate('menu-navbar.php');
             }
 
-        }
+        },
 
-    ]
+    ],
 
 ];

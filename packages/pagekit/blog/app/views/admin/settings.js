@@ -1,42 +1,41 @@
 const Settings = {
+  el: '#settings',
 
-    el: '#settings',
+  mixins: [Theme.Mixins.Helper],
 
-    mixins: [Theme.Mixins.Helper],
+  data() {
+    return window.$data;
+  },
 
-    data() {
-        return window.$data;
-    },
-
-    theme: {
-        hideEls: ['.pk-width-content li > div.uk-flex'],
-        elements() {
-            const vm = this;
-            return {
-                submit: {
-                    scope: 'topmenu-left',
-                    type: 'button',
-                    caption: 'Save',
-                    class: 'uk-button uk-button-primary',
-                    on: { click: () => vm.save() },
-                    priority: 0
-                }
-            };
+  theme: {
+    hideEls: ['.pk-width-content li > div.uk-flex'],
+    elements() {
+      const vm = this;
+      return {
+        submit: {
+          scope: 'topmenu-left',
+          type: 'button',
+          caption: 'Save',
+          class: 'uk-button uk-button-primary',
+          on: { click: () => vm.save() },
+          priority: 0
         }
-    },
-
-    methods: {
-
-        save() {
-            this.$http.post('admin/system/settings/config', { name: 'blog', config: this.config }).then(function () {
-                this.$notify('Settings saved.');
-            }, function (res) {
-                this.$notify(res.data, 'danger');
-            });
-        }
-
+      };
     }
+  },
 
+  methods: {
+    save() {
+      this.$http.post('admin/system/settings/config', { name: 'blog', config: this.config }).then(
+        function () {
+          this.$notify('Settings saved.');
+        },
+        function (res) {
+          this.$notify(res.data, 'danger');
+        }
+      );
+    }
+  }
 };
 
 export default Settings;

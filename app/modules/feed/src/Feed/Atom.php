@@ -1,21 +1,29 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Feed\Feed;
 
-use Pagekit\Feed\FeedInterface;
 use Pagekit\Feed\Feed;
+use Pagekit\Feed\FeedInterface;
 
 class Atom extends Feed
 {
-    protected $mime = 'application/atom+xml';
-    protected $item = 'Pagekit\Feed\Item\Atom';
+    protected string $mime = 'application/atom+xml';
+
+    /** @var class-string<\Pagekit\Feed\ItemInterface> */
+    protected string $item = \Pagekit\Feed\Item\Atom::class;
 
     /**
      * {@inheritdoc}
+     *
+     * @return $this
      */
-    public function setDate(\DateTimeInterface $date)
+    public function setDate(\DateTimeInterface $date): self
     {
-        return $this->setElement('updated', $date->format(\DATE_ATOM));
+        $this->setElement('updated', $date->format(\DATE_ATOM));
+
+        return $this;
     }
 
     /**
@@ -46,6 +54,7 @@ class Atom extends Feed
         foreach ([2, 1, 1, 1, 3] as $length) {
             $uuid[] = implode('', array_splice($hash, 0, $length));
         }
+
         return $prefix.implode('-', $uuid);
     }
 
@@ -74,18 +83,20 @@ class Atom extends Feed
     }
 
     /**
-     * @param  \DOMDocument $doc
-     * @param  array        $element
-     * @return \DOMElement
+     * @param \DOMDocument                                                $doc
+     * @param array{0: string, 1: mixed, 2: array<string, mixed>|null}    $element
      */
     protected function buildElement(\DOMDocument $doc, array $element): \DOMElement
     {
         $element[0] = 0 === strpos($element[0], 'atom:') ? substr($element[0], 5) : $element[0];
+
         return parent::buildElement($doc, $element);
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<string, mixed> $attributes
      */
     protected function buildAttributes(\DOMElement $element, array $attributes = []): \DOMElement
     {

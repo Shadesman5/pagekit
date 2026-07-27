@@ -1,4 +1,5 @@
-<?php $view->script('posts', 'blog:app/bundle/posts.js', 'vue') ?>
+<?php declare(strict_types=1);
+$view->script('posts', 'blog:app/bundle/posts.js', ['vue']) ?>
 
 <div class="tm-container-small">
 
@@ -24,7 +25,7 @@
                 <li><a href="<?= $view->url('@blog/id', ['id' => $post->id]) ?>"><?= __('Read more') ?></a></li>
                 <?php endif ?>
 
-                <?php if ($post->isCommentable() || $post->comment_count) : ?>
+                <?php if ($post->get('commentable') || $post->comment_count) : ?>
                 <li><a href="<?= $view->url('@blog/id#comments', ['id' => $post->id]) ?>"><?= __('{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments', ['%count%' => $post->comment_count]) ?></a></li>
                 <!-- <li><a href="<?= $view->url('@blog/id#comments', ['id' => $post->id]) ?>"><?= _i('{apples, plural, =0 {There are no apples} one {There is one apple...} other {There are # apples!} }', ['apples' => $post->comment_count]) ?></a></li> -->
                 <?php endif ?>
@@ -37,19 +38,19 @@
 
     <?php
 
-        $range     = 3;
-        $total     = (int) $total;
-        $page      = (int) $page;
-        $pageIndex = $page - 1;
+        $range = 3;
+$total = (int) $total;
+$page = (int) $page;
+$pageIndex = $page - 1;
 
-    ?>
+?>
 
     <?php if ($total > 1) : ?>
     <ul class="uk-pagination uk-flex-center">
 
 
-        <?php for($i=1;$i<=$total;$i++): ?>
-            <?php if ($i <= ($pageIndex+$range) && $i >= ($pageIndex-$range)): ?>
+        <?php for ($i = 1;$i <= $total;$i++): ?>
+            <?php if ($i <= ($pageIndex + $range) && $i >= ($pageIndex - $range)): ?>
 
                 <?php if ($i === $page): ?>
                 <li class="uk-active"><span><?=$i?></span></li>
@@ -59,14 +60,14 @@
                 </li>
                 <?php endif; ?>
 
-            <?php elseif($i==1): ?>
+            <?php elseif ($i == 1): ?>
 
                 <li>
                     <a href="<?= $view->url('@blog/page', ['page' => 1]) ?>">1</a>
                 </li>
                 <li><span>...</span></li>
 
-            <?php elseif($i==$total): ?>
+            <?php elseif ($i == $total): ?>
 
                 <li><span>...</span></li>
                 <li>

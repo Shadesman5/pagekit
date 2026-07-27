@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Debug\DataCollector;
 
 use DebugBar\DataCollector\DataCollectorInterface;
@@ -8,47 +10,32 @@ use Monolog\LogRecord;
 
 class LogDataCollector extends AbstractHandler implements DataCollectorInterface
 {
+    /** @var array<int, array<string, mixed>> */
     protected array $messages = [];
 
     /**
      * {@inheritdoc}
      */
-    public function handle($record): bool
+    public function handle(LogRecord $record): bool
     {
-        // Support both Monolog 2.x (array) and 3.x (LogRecord)
-        if ($record instanceof LogRecord) {
-            // Monolog 3.x
-            if ($record->level->value < $this->level->value) {
-                return false;
-            }
-            
-            $this->messages[] = [
-                'message' => $record->message,
-                'level' => $record->level->value,
-                'level_name' => $record->level->name,
-                'channel' => $record->channel
-            ];
-        } else {
-            // Monolog 2.x fallback
-            if ($record['level'] < $this->level) {
-                return false;
-            }
-            
-            $keys = [
-                'message',
-                'level',
-                'level_name',
-                'channel'
-            ];
-            
-            $this->messages[] = array_intersect_key($record, array_flip($keys));
+        if ($record->level->value < $this->level->value) {
+            return false;
         }
+
+        $this->messages[] = [
+            'message' => $record->message,
+            'level' => $record->level->value,
+            'level_name' => $record->level->name,
+            'channel' => $record->channel,
+        ];
 
         return true;
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @return array{messages: array<int, array<string, mixed>>}
      */
     public function collect(): array
     {

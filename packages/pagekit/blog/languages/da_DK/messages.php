@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Filter by' => 'Filtrering',
   'Thank you! Your comment needs approval before showing up.' => 'Tak! Din kommentar skal godkendes før den bliver vist.',
   'Unable to comment. Please try again later.' => 'Kan ikke kommentere, prøv igen senere.',
@@ -94,4 +98,4 @@
   'Written by %name% on %date%' => 'Skrevet af %name% d. %date%',
   'Read more' => 'Læs mere',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Ingen kommentarer|{1} %count% Kommentar|]1,Inf[ %count% Kommentarer',
-);
+];

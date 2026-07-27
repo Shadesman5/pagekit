@@ -1,27 +1,25 @@
 export default {
+  props: ['config', 'value'],
 
-    props: ['config', 'value'],
+  inject: ['$components'],
 
-    inject: ['$components'],
+  data() {
+    return {
+      widget: this.value
+    };
+  },
 
-    data() {
-        return {
-            widget: this.value
-        };
+  watch: {
+    value(widget) {
+      this.widget = widget;
     },
 
-    watch: {
-
-        value(widget) {
-            this.widget = widget;
-        },
-
-        widget(widget) {
-            this.$emit('input', widget);
-        }
-    },
-
-    created() {
-        _.extend(this.$options.components, this.$components);
+    widget(widget) {
+      this.$emit('input', widget);
     }
+  },
+
+  created() {
+    _.extend(this.$options.components, this.$components);
+  }
 };

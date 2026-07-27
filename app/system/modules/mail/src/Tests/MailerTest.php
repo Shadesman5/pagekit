@@ -1,18 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Mail\Tests;
 
-use PHPUnit\Framework\TestCase;
 use Pagekit\Mail\Mailer;
 use Pagekit\Mail\Plugin\ImpersonatePlugin;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\TestCase;
 use Symfony\Component\Mailer\Transport\NullTransport;
-use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 use Symfony\Component\Mime\Email;
 
 class MailerTest extends TestCase
 {
-    protected ?Mailer $mailer = null;
-    protected $transport = null;
+    private Mailer $mailer;
+    private \Symfony\Component\Mailer\Transport\TransportInterface $transport;
 
     public function setUp(): void
     {
@@ -22,13 +24,13 @@ class MailerTest extends TestCase
 
     public function testConstructor(): void
     {
-        $this->assertInstanceOf(Mailer::class, $this->mailer);
+        $this->expectNotToPerformAssertions();
     }
 
     public function testCreate(): void
     {
         $email = $this->mailer->create();
-        $this->assertInstanceOf(Email::class, $email);
+        $this->assertEmpty($email->getFrom());
     }
 
     public function testSend(): void
@@ -46,9 +48,8 @@ class MailerTest extends TestCase
     public function testRegisterPlugin(): void
     {
         $plugin = new ImpersonatePlugin('from@example.com', 'Test Sender');
-        $result = $this->mailer->registerPlugin($plugin);
-        
-        $this->assertSame($this->mailer, $result);
+        $this->mailer->registerPlugin($plugin);
+        $this->expectNotToPerformAssertions();
     }
 
     public function testPluginBeforeSend(): void
@@ -63,7 +64,7 @@ class MailerTest extends TestCase
 
         // Plugin should set the from address during send
         $this->mailer->send($email);
-        
+
         $from = $email->getFrom();
         $this->assertNotEmpty($from);
         $this->assertEquals('from@example.com', $from[0]->getAddress());
@@ -72,53 +73,61 @@ class MailerTest extends TestCase
 
     public function testTestSmtpConnectionWithNullTransport(): void
     {
-        // Test with null transport should return true without error
-        $result = $this->mailer->testSmtpConnection();
-        $this->assertTrue($result);
+        // Test with null host should throw exception
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('SMTP host is required');
+        $this->mailer->testSmtpConnection();
     }
 
-    /**
-     * @group network
-     */
+    #[Group('network')]
     public function testTestSmtpConnectionWithValidParameters(): void
     {
-        // Skip this test if email configuration is not available
-        if (!$GLOBALS['email_smtp_host'] ?? false) {
+        // Skip this test if email configuration is not available. The `??` must be
+        // parenthesised: `!` binds tighter than `??`, so without the parentheses PHP
+        // reads the (usually undefined) global first and emits an "Undefined global
+        // variable" warning before the coalesce can supply a default.
+        if (!($GLOBALS['email_smtp_host'] ?? false)) {
             $this->markTestSkipped('Email SMTP configuration not available');
         }
 
-        $result = $this->mailer->testSmtpConnection(
-            $GLOBALS['email_smtp_host'],
-            (int)$GLOBALS['email_smtp_port'],
-            $GLOBALS['email_smtp_user'],
-            $GLOBALS['email_smtp_password'],
-            $GLOBALS['email_smtp_encryption']
-        );
-
-        // Result should be either true or a string with error message
-        $this->assertTrue(is_bool($result) || is_string($result));
+        try {
+            $result = $this->mailer->testSmtpConnection(
+                $GLOBALS['email_smtp_host'],
+                (int)$GLOBALS['email_smtp_port'],
+                $GLOBALS['email_smtp_user'],
+                $GLOBALS['email_smtp_password'],
+                $GLOBALS['email_smtp_encryption']
+            );
+            $this->assertTrue($result);
+        } catch (\Exception $e) {
+            // Connection failed, which is acceptable for this test
+            $this->assertIsString($e->getMessage());
+        }
     }
 
     public function testTestSmtpConnectionWithInvalidParameters(): void
     {
-        $result = $this->mailer->testSmtpConnection(
-            'invalid-host.example.com',
-            25,
-            'invalid-user',
-            'invalid-password',
-            null
-        );
-
-        // Should return error message string
-        $this->assertIsString($result);
-        $this->assertNotEmpty($result);
+        // Should throw exception with error message
+        try {
+            $this->mailer->testSmtpConnection(
+                'invalid-host.example.com',
+                25,
+                'invalid-user',
+                'invalid-password',
+                null
+            );
+            $this->fail('Expected exception was not thrown');
+        } catch (\Exception $e) {
+            $this->assertIsString($e->getMessage());
+            $this->assertNotEmpty($e->getMessage());
+        }
     }
 
     public function testSendWithMultiplePlugins(): void
     {
         $plugin1 = new ImpersonatePlugin('from1@example.com', 'Sender 1');
         $plugin2 = new ImpersonatePlugin('from2@example.com', 'Sender 2');
-        
+
         $this->mailer->registerPlugin($plugin1);
         $this->mailer->registerPlugin($plugin2);
 

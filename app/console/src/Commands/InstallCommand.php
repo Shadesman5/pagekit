@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Console\Commands;
 
 use Pagekit\Application\Console\Command;
@@ -14,12 +16,12 @@ class InstallCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected $name = 'install';
+    protected ?string $name = 'install';
 
     /**
      * {@inheritdoc}
      */
-    protected $description = 'Installs a Pagekit package';
+    protected string $description = 'Installs a Pagekit package';
 
     /**
      * {@inheritdoc}
@@ -35,8 +37,12 @@ class InstallCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        // TODO
-        return (int) $this->error("The feature is disabled during development.");
+        // TODO: Step 5.6 (Marketplace & Extensions) — `pagekit install <pkg>` installs an
+        // extension/theme from the marketplace. Disabled in 2020 when the pagekit.com backend
+        // (system.api) was shut down; re-enable once a self-hostable package-distribution API exists.
+        $this->error("The 'install' command is disabled: the pagekit.com marketplace backend was discontinued.");
+
+        return Command::FAILURE;
 
         // $packages = [];
 

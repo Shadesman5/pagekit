@@ -1,24 +1,28 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\System\Model;
 
+use Pagekit\Database\ORM\Attribute as ORM;
 use Pagekit\Util\Arr;
 
 trait DataModelTrait
 {
-    /** @Column(type="json_array") */
-    public $data;
+    /** @var array<int|string, mixed>|null */
+    #[ORM\Column(type: 'json')]
+    public ?array $data = null;
 
     /**
      * Gets a data value.
      *
      * @param  string $key
-     * @param  mixed  $default
-     * @return mixed
+     * @param  mixed  $default Genuinely unknown type — default may be any type as data values can be any scalar, array, or object.
+     * @return mixed Genuinely unknown type — data values are user-supplied JSON-decoded content; any scalar, array, or null is valid.
      */
-    public function get($key, $default = null)
+    public function get(string $key, mixed $default = null): mixed
     {
-        return Arr::get((array) $this->data, $key, $default);
+        return Arr::get($this->data ?? [], $key, $default);
     }
 
     /**
@@ -27,7 +31,7 @@ trait DataModelTrait
      * @param string $key
      * @param mixed  $value
      */
-    public function set($key, $value): void
+    public function set(string $key, mixed $value): void
     {
         if (null === $this->data) {
             $this->data = [];

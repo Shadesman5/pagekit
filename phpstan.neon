@@ -1,0 +1,39 @@
+# --- Baseline note: accepted permanent suppressions --------------------------
+# phpstan-baseline.neon carries a category that is NOT tech debt and needs no
+# future fix: "Variable $x might not be defined" (variable.undefined) inside
+# .php view templates under */views/ (and the runtime-injected $app in a few
+# module/entry bootstraps). PhpEngine::evaluate() injects template variables at
+# runtime via extract() (see Pagekit\View\Engine\PhpEngine), which static
+# analysis cannot follow — the variables do exist at render time, so these are
+# accepted false positives kept by design (no runtime bug). A stricter, per-file
+# /** @var */ convention is intentionally not adopted (low payoff for DI-less
+# template glue; add one locally only if a template grows real logic).
+# Never run --generate-baseline; remove entries surgically so genuine new errors
+# are never masked wholesale.
+includes:
+    - phpstan-baseline.neon
+    - app/vendor/phpstan/phpstan-doctrine/extension.neon
+    - app/vendor/phpstan/phpstan-symfony/extension.neon
+    - app/vendor/phpstan/phpstan-phpunit/extension.neon
+
+parameters:
+    level: 8
+
+    paths:
+        - app/modules
+        - app/system
+        - app/installer
+        - app/console
+        - packages
+
+    excludePaths:
+        - app/vendor
+        - app/modules/*/vendor
+        - packages/autoload.php
+        - packages/composer
+        - */node_modules/*
+        - tmp
+        - storage
+
+    bootstrapFiles:
+        - app/vendor/autoload.php

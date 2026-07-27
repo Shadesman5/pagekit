@@ -1,27 +1,27 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Debug\DataCollector;
 
 use DebugBar\DataCollector\DataCollectorInterface;
 use Pagekit\Auth\Auth;
+use Pagekit\User\Model\Role;
 use Pagekit\User\Model\User;
+use Pagekit\User\Model\UserRepository;
 
 class AuthDataCollector implements DataCollectorInterface
 {
-    protected ?\Pagekit\Auth\Auth $auth = null;
-
-    /**
-     * Constructor.
-     *
-     * @param Auth $auth
-     */
-    public function __construct(?Auth $auth = null)
-    {
-        $this->auth = $auth;
+    public function __construct(
+        private readonly ?Auth $auth = null,
+        private readonly ?UserRepository $users = null,
+    ) {
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, mixed>
      */
     public function collect(): array
     {
@@ -41,7 +41,7 @@ class AuthDataCollector implements DataCollectorInterface
             $user = null;
         }
 
-        if (null === $user) {
+        if (!$user instanceof User) {
             return [
                 'enabled' => true,
                 'authenticated' => false,
@@ -56,7 +56,9 @@ class AuthDataCollector implements DataCollectorInterface
             'authenticated' => $user->isAuthenticated(),
             'user_class' => get_class($user),
             'user' => $user->getUsername(),
-            'roles' => array_map(fn($role) => $role->name, User::findRoles($user)), // TODO interface does not match
+            'roles' => $this->users !== null
+                ? array_map(fn (Role $role) => $role->name, $this->users->findRoles($user))
+                : [],
         ];
 
     }

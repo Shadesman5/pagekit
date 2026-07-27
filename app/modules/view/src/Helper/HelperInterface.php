@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\View\Helper;
 
 use Pagekit\View\View;
@@ -8,10 +10,8 @@ interface HelperInterface
 {
     /**
      * Registers the helper.
-     *
-     * @param View $view
      */
-    public function register(View $view);
+    public function register(View $view): void;
 
     /**
      * Returns the name.

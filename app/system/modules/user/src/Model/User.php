@@ -1,72 +1,113 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Model;
 
-use Pagekit\Application\Exception;
 use Pagekit\Auth\UserInterface;
+use Pagekit\Database\ORM\Attribute as ORM;
+use Pagekit\Database\ORM\SerializableModelInterface;
 use Pagekit\System\Model\DataModelTrait;
-use Pagekit\User\Model\AccessModelTrait;
-use Pagekit\User\Model\UserModelTrait;
+use Pagekit\System\Validator\Constraints as PagekitAssert;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * @Entity(tableClass="@system_user")
+ * User entity with PHP 8 Attributes for ORM and Validation.
  */
-class User implements UserInterface, \JsonSerializable
+#[ORM\Entity(tableClass: '@system_user')]
+class User implements UserInterface, \JsonSerializable, SerializableModelInterface
 {
-    use AccessModelTrait, DataModelTrait, UserModelTrait;
+    use AccessModelTrait;
+    use DataModelTrait;
+    use UserModelTrait;
 
     /**
      * The blocked status.
-     *
-     * @var int
      */
-    const STATUS_BLOCKED = 0;
+    public const STATUS_BLOCKED = 0;
 
     /**
      * The active status.
-     *
-     * @var int
      */
-    const STATUS_ACTIVE = 1;
+    public const STATUS_ACTIVE = 1;
 
-    /** @Column(type="integer") @Id */
-    public $id;
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
+    public ?int $id = null;
 
-    /** @Column */
-    public $username = '';
+    #[ORM\Column]
+    #[Assert\NotBlank(message: 'validation.user.username_required')]
+    #[Assert\Length(
+        min: 3,
+        max: 255,
+        minMessage: 'validation.user.username_min_length',
+        maxMessage: 'validation.user.username_max_length'
+    )]
+    #[Assert\Regex(
+        pattern: '/^[a-zA-Z0-9._\-]+$/',
+        message: 'validation.user.username_invalid'
+    )]
+    #[PagekitAssert\Unique(
+        table: '@system_user',
+        column: 'username',
+        message: 'validation.user.username_not_available'
+    )]
+    public ?string $username = '';
 
-    /** @Column */
-    public $password = '';
+    #[ORM\Column]
+    #[Assert\NotBlank(message: 'validation.user.password_required', groups: ['registration'])]
+    public ?string $password = '';
 
-    /** @Column */
-    public $email = '';
+    #[ORM\Column]
+    #[Assert\NotBlank(message: 'validation.user.email_required')]
+    #[Assert\Email(message: 'validation.user.email_invalid')]
+    #[PagekitAssert\Unique(
+        table: '@system_user',
+        column: 'email',
+        message: 'validation.user.email_not_available'
+    )]
+    public ?string $email = '';
 
-    /** @Column */
-    public $url = '';
+    #[ORM\Column]
+    #[Assert\Url(message: 'validation.user.url_invalid')]
+    public ?string $url = '';
 
-    /** @Column(type="datetime") */
-    public $registered;
+    #[ORM\Column(type: 'datetime')]
+    public ?\DateTime $registered = null;
 
-    /** @Column(type="integer") */
-    public $status = User::STATUS_ACTIVE;
+    #[ORM\Column(type: 'integer')]
+    #[Assert\Choice(
+        choices: [self::STATUS_BLOCKED, self::STATUS_ACTIVE],
+        message: 'validation.user.status_invalid'
+    )]
+    public int $status = User::STATUS_ACTIVE;
 
-    /** @Column */
-    public $name;
+    #[ORM\Column]
+    #[Assert\NotBlank(message: 'validation.user.name_required')]
+    #[Assert\Length(
+        max: 255,
+        maxMessage: 'validation.user.name_max_length'
+    )]
+    public ?string $name = null;
 
-    /** @Column(type="datetime") */
-    public $login;
+    #[ORM\Column(type: 'datetime')]
+    public ?\DateTime $login = null;
 
-    /** @Column */
-    public $activation;
+    #[ORM\Column]
+    public ?string $activation = null;
 
+    /** @var array<int, string>|null */
     protected ?array $permissions = null;
+
+    /** @var (\Closure(array<int, int>): array<int|string, Role>)|null */
+    private ?\Closure $roleLoader = null;
 
     /**
      * {@inheritdoc}
      */
     public function getId(): string
     {
-        return $this->id;
+        return (string) $this->id;
     }
 
     /**
@@ -74,7 +115,7 @@ class User implements UserInterface, \JsonSerializable
      */
     public function getUsername(): string
     {
-        return $this->username;
+        return (string) $this->username;
     }
 
     /**
@@ -82,21 +123,24 @@ class User implements UserInterface, \JsonSerializable
      */
     public function getPassword(): string
     {
-        return $this->password;
+        return (string) $this->password;
     }
 
-    public function getStatusText()
+    public function getStatusText(): string
     {
         $statuses = self::getStatuses();
 
-        return isset($statuses[$this->status]) ? $statuses[$this->status] : __('Unknown');
+        return $statuses[$this->status] ?? __('Unknown');
     }
 
+    /**
+     * @return array<int, string>
+     */
     public static function getStatuses(): array
     {
         return [
             self::STATUS_ACTIVE => __('Active'),
-            self::STATUS_BLOCKED => __('Blocked')
+            self::STATUS_BLOCKED => __('Blocked'),
         ];
     }
 
@@ -141,19 +185,32 @@ class User implements UserInterface, \JsonSerializable
     }
 
     /**
-     * Check if the user has access for a provided permission identifier
+     * Attaches the per-instance role loader wired by {@see UserModelTrait::init()}.
      *
-     * @param  string  $permission
+     * @param \Closure(array<int, int>): array<int|string, Role> $loader
      */
-    public function hasPermission($permission): bool
+    public function setRoleLoader(\Closure $loader): void
+    {
+        $this->roleLoader = $loader;
+    }
+
+    /**
+     * Check if the user has access for a provided permission identifier
+     */
+    public function hasPermission(string $permission): bool
     {
         if ($this->permissions === null) {
 
-            $this->permissions = [];
-            foreach (self::findRoles($this) as $role) {
-                $this->permissions = array_merge($this->permissions, $role->permissions);
+            if ($this->roleLoader === null) {
+                throw new \LogicException('No role loader attached; the user was not hydrated through EntityManager::load().');
             }
 
+            $permissions = [];
+            foreach (($this->roleLoader)($this->roles) as $role) {
+                $permissions = array_merge($permissions, $role->permissions);
+            }
+
+            $this->permissions = $permissions;
         }
 
         return in_array($permission, $this->permissions);
@@ -170,10 +227,9 @@ class User implements UserInterface, \JsonSerializable
      *   - a single permission string can be "create_posts", "create posts", "posts:create" etc.
      *   - a boolean expression with multiple permissions boolean expression can be "create_posts && delete_posts", "(create posts && delete posts) || manage posts" etc.
      *
-     * @param  string $expression
      * @throws \InvalidArgumentException
      */
-    public function hasAccess($expression): bool
+    public function hasAccess(?string $expression): bool
     {
         $user = $this;
 
@@ -185,53 +241,125 @@ class User implements UserInterface, \JsonSerializable
             return $this->hasPermission($expression);
         }
 
-        $exp = preg_replace('/[^01&\(\)\|!]/', '', preg_replace_callback('/[a-z_][a-z-_\.:\d\s]*/i', fn($permission) => (int) $user->hasPermission(trim($permission[0])), $expression));
+        $exp = preg_replace('/[^01&\(\)\|!]/', '', preg_replace_callback('/[a-z_][a-z-_\.:\d\s]*/i', fn ($permission) => (int) $user->hasPermission(trim($permission[0])), $expression) ?? '');
 
-        if (!$fn = @create_function("", "return $exp;")) {
-            throw new \InvalidArgumentException(sprintf('Unable to parse the given access string "%s"', $expression));
+        try {
+            return self::evaluateBooleanExpression((string) $exp);
+        } catch (\Throwable) {
+            throw new \InvalidArgumentException(
+                sprintf('Unable to parse the given access string "%s"', $expression)
+            );
         }
-
-        return (bool) $fn();
     }
 
-    public function validate(): bool
+    /**
+     * Evaluate a sanitized boolean expression composed of `0`, `1`, `&`, `&&`,
+     * `|`, `||`, `!` and parentheses using a recursive-descent parser.
+     *
+     * Replaces the legacy `create_function()` based evaluator. Pure PHP — no
+     * `eval()`, no `Closure::fromCallable`, no `assert()`, no
+     * `ExpressionLanguage` dependency.
+     *
+     * Grammar:
+     *   expr    -> orExpr
+     *   orExpr  -> andExpr ( ( '||' | '|' ) andExpr )*
+     *   andExpr -> notExpr ( ( '&&' | '&' ) notExpr )*
+     *   notExpr -> '!' notExpr | atom
+     *   atom    -> '(' expr ')' | '0' | '1'
+     *
+     * Precedence: `!` > `&&` > `||`.
+     *
+     * @throws \InvalidArgumentException on malformed input.
+     */
+    private static function evaluateBooleanExpression(string $exp): bool
     {
-        if (empty($this->name)) {
-            throw new Exception(__('Name required.'));
+        $pos = 0;
+        $len = strlen($exp);
+
+        $result = self::parseOrExpr($exp, $len, $pos);
+
+        if ($pos !== $len) {
+            throw new \InvalidArgumentException(sprintf('Unexpected trailing input at position %d', $pos));
         }
 
-        if (empty($this->password)) {
-            throw new Exception(__('Password required.'));
+        return $result;
+    }
+
+    private static function parseOrExpr(string $exp, int $len, int &$pos): bool
+    {
+        $left = self::parseAndExpr($exp, $len, $pos);
+
+        while ($pos < $len && $exp[$pos] === '|') {
+            $pos++;
+            if ($pos < $len && $exp[$pos] === '|') {
+                $pos++;
+            }
+            $right = self::parseAndExpr($exp, $len, $pos);
+            $left = $left || $right;
         }
 
-        if (!preg_match('/^[a-zA-Z0-9._\-]{3,}$/', $this->username)) {
-            throw new Exception(__('Username is invalid.'));
+        return $left;
+    }
+
+    private static function parseAndExpr(string $exp, int $len, int &$pos): bool
+    {
+        $left = self::parseNotExpr($exp, $len, $pos);
+
+        while ($pos < $len && $exp[$pos] === '&') {
+            $pos++;
+            if ($pos < $len && $exp[$pos] === '&') {
+                $pos++;
+            }
+            $right = self::parseNotExpr($exp, $len, $pos);
+            $left = $left && $right;
         }
 
-        // TODO: email validation differs from email validation in vuejs
-        if (!filter_var($this->email, FILTER_VALIDATE_EMAIL)) {
-            throw new Exception(__('Email is invalid.'));
+        return $left;
+    }
+
+    private static function parseNotExpr(string $exp, int $len, int &$pos): bool
+    {
+        if ($pos < $len && $exp[$pos] === '!') {
+            $pos++;
+
+            return !self::parseNotExpr($exp, $len, $pos);
         }
 
-        if (self::where(['id <> :id'], ['id' => $this->id ?: 0])->where(function ($query) {
-            $query->orWhere(['LOWER(username) = :username', 'LOWER(email) = :username'], ['username' => strtolower($this->username)]);
-        })->first()
-        ) {
-            throw new Exception(__('Username not available.'));
+        return self::parseAtom($exp, $len, $pos);
+    }
+
+    private static function parseAtom(string $exp, int $len, int &$pos): bool
+    {
+        if ($pos >= $len) {
+            throw new \InvalidArgumentException('Unexpected end of expression');
         }
 
-        if (self::where(['id <> :id'], ['id' => $this->id ?: 0])->where(function ($query) {
-            $query->orWhere(['LOWER(username) = :email', 'LOWER(email) = :email'], ['email' => strtolower($this->email)]);
-        })->first()
-        ) {
-            throw new Exception(__('Email not available.'));
+        $ch = $exp[$pos];
+
+        if ($ch === '(') {
+            $pos++;
+            $value = self::parseOrExpr($exp, $len, $pos);
+            if ($pos >= $len || $exp[$pos] !== ')') {
+                throw new \InvalidArgumentException('Missing closing parenthesis');
+            }
+            $pos++;
+
+            return $value;
         }
 
-        return true;
+        if ($ch === '0' || $ch === '1') {
+            $pos++;
+
+            return $ch === '1';
+        }
+
+        throw new \InvalidArgumentException(sprintf('Unexpected character "%s" at position %d', $ch, $pos));
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, mixed>
      */
     public function jsonSerialize(): array
     {

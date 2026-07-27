@@ -1,31 +1,35 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\View;
 
 use Pagekit\Event\EventDispatcherInterface;
 use Pagekit\Event\EventInterface;
 use Pagekit\Event\PrefixEventDispatcher;
-use Pagekit\Util\ArrObject;
+use Pagekit\View\Engine\DelegatingEngine;
+use Pagekit\View\Engine\EngineInterface;
 use Pagekit\View\Event\ViewEvent;
 use Pagekit\View\Helper\HelperInterface;
-use Symfony\Component\Templating\DelegatingEngine;
-use Symfony\Component\Templating\EngineInterface;
 
 class View
 {
     protected \Pagekit\Event\EventDispatcherInterface $events;
 
-    protected \Symfony\Component\Templating\EngineInterface $engine;
+    protected EngineInterface $engine;
 
+    /**
+     * @var array<string, mixed>
+     */
     protected array $globals = [];
 
     /**
-     * @var HelperInterface[]
+     * @var array<string, HelperInterface>
      */
     protected array $helpers = [];
 
     /**
-     * @var array[]
+     * @var array<int, array<string, mixed>>
      */
     protected array $parameters = [];
 
@@ -47,8 +51,10 @@ class View
      * Render shortcut.
      *
      * @see render()
+     *
+     * @param array<string, mixed> $parameters
      */
-    public function __invoke($name, array $parameters = [])
+    public function __invoke(string $name, array $parameters = []): ?string
     {
         return $this->render($name, $parameters);
     }
@@ -56,26 +62,34 @@ class View
     /**
      * Gets a helper or calls the helpers invoke method.
      *
-     * @param  string $name
-     * @param  array  $args
-     * @return mixed
+     * @param  array<int, mixed>  $args
+     * @return mixed Genuinely unknown type — when called with no args, returns a HelperInterface; otherwise delegates to the helper's __invoke which may return any type.
      */
-    public function __call($name, $args)
+    public function __call(string $name, array $args): mixed
     {
         if (!isset($this->helpers[$name])) {
             throw new \InvalidArgumentException(sprintf('Undefined helper "%s"', $name));
         }
 
-        return $args ? call_user_func_array($this->helpers[$name], $args) : $this->helpers[$name];
+        $helper = $this->helpers[$name];
+
+        if (!$args) {
+            return $helper;
+        }
+
+        if (!is_callable($helper)) {
+            throw new \BadMethodCallException(sprintf('Helper "%s" is not invokable.', $name));
+        }
+
+        return call_user_func_array($helper, $args);
     }
 
     /**
      * Gets a global parameter.
      *
-     * @param  string $name
-     * @return mixed
+     * @return mixed Genuinely unknown type — global view parameters are registered by modules and templates; any type (string, array, object) is valid.
      */
-    public function __get($name)
+    public function __get(string $name): mixed
     {
         return isset($this->globals[$name]) ? $this->globals[$name] : null;
     }
@@ -95,13 +109,25 @@ class View
      */
     public function addEngine(EngineInterface $engine): self
     {
-        $this->engine->addEngine($engine);
+        if ($this->engine instanceof DelegatingEngine) {
+            $this->engine->addEngine($engine);
+        } else {
+            // Replace with delegating engine if needed
+            $delegating = new DelegatingEngine();
+            if ($this->engine) {
+                $delegating->addEngine($this->engine);
+            }
+            $delegating->addEngine($engine);
+            $this->engine = $delegating;
+        }
 
         return $this;
     }
 
     /**
      * Gets the global parameters.
+     *
+     * @return array<string, mixed>
      */
     public function getGlobals(): array
     {
@@ -110,11 +136,8 @@ class View
 
     /**
      * Adds a global parameter.
-     *
-     * @param  string $name
-     * @param  mixed  $value
      */
-    public function addGlobal($name, $value): self
+    public function addGlobal(string $name, mixed $value): self
     {
         $this->globals[$name] = $value;
 
@@ -151,12 +174,8 @@ class View
 
     /**
      * Adds an event listener.
-     *
-     * @param  string   $event
-     * @param  callable $listener
-     * @param  int      $priority
      */
-    public function on($event, $listener, $priority = 0): void
+    public function on(string $event, callable $listener, int $priority = 0): void
     {
         $this->events->on($event, $listener, $priority);
     }
@@ -164,8 +183,8 @@ class View
     /**
      * Triggers an event.
      *
-     * @param  string $event
-     * @param  array  $arguments
+     * @param string|EventInterface $event
+     * @param array<int, mixed>     $arguments
      */
     public function trigger($event, array $arguments = []): EventInterface
     {
@@ -173,9 +192,23 @@ class View
     }
 
     /**
-     * {@inheritdoc}
+     * Returns true if the template exists.
      */
-    public function render($name, array $parameters = []): ?string
+    public function exists(string $name): bool
+    {
+        try {
+            return $this->engine->exists($name);
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @param array<string, mixed> $parameters
+     */
+    public function render(string $name, array $parameters = []): ?string
     {
         $event = new ViewEvent('render', $name);
         $event->setParameters(array_replace($this->globals, end($this->parameters) ?: [], $parameters));
@@ -183,15 +216,36 @@ class View
         $this->events->trigger($event, [$this]);
 
         if (!$event->isPropagationStopped()) {
-            $name = preg_replace('/\.php$/i', '', $name);
+            $name = preg_replace('/\.php$/i', '', $name) ?? $name;
             $this->events->trigger($event->setName($name), [$this]);
         }
 
         $result = $event->getResult();
         $params = $this->parameters[] = $event->getParameters();
 
-        if ($result === null && $this->engine->supports($event->getTemplate())) {
-            $result = $this->engine->render($event->getTemplate(), $params);
+        if ($result === null) {
+            $template = $event->getTemplate();
+
+            // Special handling for 'layout' - if no layout template exists, return null
+            if ($template === 'layout' && !$this->engine->exists($template)) {
+                array_pop($this->parameters);
+
+                return null;
+            }
+
+            if ($template === null) {
+                array_pop($this->parameters);
+
+                return null;
+            }
+
+            // Render the template with our engine (PhpEngine or Twig)
+            try {
+                $result = $this->engine->render($template, $params);
+            } catch (\Exception $e) {
+                // Template rendering failed
+                throw new \RuntimeException(sprintf('Failed to render template "%s": %s', $template, $e->getMessage()), 0, $e);
+            }
         }
 
         array_pop($this->parameters);

@@ -1,32 +1,28 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit;
 
-use Pagekit\Application\Traits\EventTrait;
-use Pagekit\Application\Traits\RouterTrait;
-use Pagekit\Application\Traits\StaticTrait;
 use Pagekit\Event\EventDispatcher;
 use Pagekit\Module\ModuleManager;
 use Symfony\Component\HttpFoundation\Request;
 
 class Application extends Container
 {
-    use StaticTrait, EventTrait, RouterTrait;
-
     protected bool $booted = false;
 
     /**
-     * Constructor.
-     *
-     * @param array $values
+     * @param array<string, mixed> $values
      */
     public function __construct(array $values = [])
     {
         parent::__construct($values);
 
-        $this['events'] = fn() => new EventDispatcher();
+        $this->set('app', $this);
+        $this->set('events', fn () => new EventDispatcher());
 
-        $this['module'] = fn() => new ModuleManager($this);
+        $this->set('module', fn () => new ModuleManager($this));
     }
 
     /**
@@ -37,7 +33,7 @@ class Application extends Container
         if (!$this->booted) {
 
             $this->booted = true;
-            $this->trigger('boot', [$this]);
+            $this->get('events')->trigger('boot', [$this]);
 
         }
     }
@@ -57,10 +53,10 @@ class Application extends Container
             $this->boot();
         }
 
-        $response = $this['kernel']->handle($request);
+        $response = $this->get('kernel')->handle($request);
         $response->send();
 
-        $this['kernel']->terminate($request, $response);
+        $this->get('kernel')->terminate($request, $response);
     }
 
     /**
@@ -70,4 +66,5 @@ class Application extends Container
     {
         return PHP_SAPI == 'cli';
     }
+
 }

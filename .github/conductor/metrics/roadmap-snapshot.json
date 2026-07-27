@@ -1,0 +1,1116 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-07-15T22:30:44.701Z",
+  "source": ".cursor/ROADMAP.md",
+  "version": "1.2.26",
+  "currentStep": "2.1.12",
+  "rows": [
+    {
+      "id": "1.1",
+      "name": "Mailer Migration",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 119,
+      "issueLabel": "#119",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/119",
+      "pr": [
+        17
+      ],
+      "prLabel": "#17",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/17"
+    },
+    {
+      "id": "1.2",
+      "name": "PHPUnit Update",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 121,
+      "issueLabel": "#121",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/121",
+      "pr": [
+        31
+      ],
+      "prLabel": "#31",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/31"
+    },
+    {
+      "id": "1.3",
+      "name": "Security Patches",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 122,
+      "issueLabel": "#122",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/122",
+      "pr": [
+        30
+      ],
+      "prLabel": "#30",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/30"
+    },
+    {
+      "id": "1.3.5",
+      "name": "↳ Dependabot Updates",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 123,
+      "issueLabel": "#123",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/123",
+      "pr": [
+        32
+      ],
+      "prLabel": "#32",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/32"
+    },
+    {
+      "id": "1.4",
+      "name": "Safe Minor Updates",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 124,
+      "issueLabel": "#124",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/124",
+      "pr": [
+        53
+      ],
+      "prLabel": "#53",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/53"
+    },
+    {
+      "id": "1.5",
+      "name": "Doctrine DBAL 3.x",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 125,
+      "issueLabel": "#125",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/125",
+      "pr": [
+        54
+      ],
+      "prLabel": "#54",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/54"
+    },
+    {
+      "id": "1.6",
+      "name": "PSR-11 Container Compatibility",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 126,
+      "issueLabel": "#126",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/126",
+      "pr": [
+        55
+      ],
+      "prLabel": "#55",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/55"
+    },
+    {
+      "id": "1.7",
+      "name": "Event System Compatibility",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 127,
+      "issueLabel": "#127",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/127",
+      "pr": [
+        56
+      ],
+      "prLabel": "#56",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/56"
+    },
+    {
+      "id": "1.8",
+      "name": "Routing System Compatibility",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 128,
+      "issueLabel": "#128",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/128",
+      "pr": [
+        57
+      ],
+      "prLabel": "#57",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/57"
+    },
+    {
+      "id": "1.9",
+      "name": "Symfony 6.4 LTS components",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 129,
+      "issueLabel": "#129",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/129",
+      "pr": [
+        60,
+        61
+      ],
+      "prLabel": "#60-#61",
+      "prUrl": null
+    },
+    {
+      "id": "1.10",
+      "name": "PSR-6 Cache",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 130,
+      "issueLabel": "#130",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/130",
+      "pr": [
+        62
+      ],
+      "prLabel": "#62",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/62"
+    },
+    {
+      "id": "1.10.5",
+      "name": "↳ E2E Testing with Playwright",
+      "status": "✅",
+      "audit": "⚠️",
+      "issue": 135,
+      "issueLabel": "#135",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/135",
+      "pr": [
+        67
+      ],
+      "prLabel": "#67",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/67"
+    },
+    {
+      "id": "1.11",
+      "name": "ORM Modernization",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 131,
+      "issueLabel": "#131",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/131",
+      "pr": [
+        97
+      ],
+      "prLabel": "#97",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/97"
+    },
+    {
+      "id": "1.12",
+      "name": "DB Migration System",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 132,
+      "issueLabel": "#132",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/132",
+      "pr": [
+        107
+      ],
+      "prLabel": "#107",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/107"
+    },
+    {
+      "id": "1.13",
+      "name": "Validation Update",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 133,
+      "issueLabel": "#133",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/133",
+      "pr": [
+        108
+      ],
+      "prLabel": "#108",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/108"
+    },
+    {
+      "id": "1.13.5",
+      "name": "↳ Template Security Hardening (CSP)",
+      "status": "⏸️ 80%",
+      "audit": "⚠️",
+      "issue": 136,
+      "issueLabel": "#136",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/136",
+      "pr": [
+        110
+      ],
+      "prLabel": "#110",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/110"
+    },
+    {
+      "id": "1.14",
+      "name": "Doctrine Attributes",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 134,
+      "issueLabel": "#134",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/134",
+      "pr": [
+        111
+      ],
+      "prLabel": "#111",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/111"
+    },
+    {
+      "id": "2.0",
+      "name": "Foundation Consolidation",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 181,
+      "issueLabel": "#181",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/181",
+      "pr": [
+        198
+      ],
+      "prLabel": "#198",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/198"
+    },
+    {
+      "id": "2.0.0",
+      "name": "↳ Controller Attributes",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 142,
+      "issueLabel": "#142",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/142",
+      "pr": [
+        111
+      ],
+      "prLabel": "#111",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/111"
+    },
+    {
+      "id": "2.0.1",
+      "name": "↳ PSR-11 Container Modernization",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 145,
+      "issueLabel": "#145",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/145",
+      "pr": [
+        174
+      ],
+      "prLabel": "#174",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/174"
+    },
+    {
+      "id": "2.0.1a",
+      "name": "↳ Container Core + Modules (S1+S2)",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 162,
+      "issueLabel": "#162",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/162",
+      "pr": [
+        161
+      ],
+      "prLabel": "#161",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/161"
+    },
+    {
+      "id": "2.0.1b",
+      "name": "↳ DI Infrastructure",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 163,
+      "issueLabel": "#163",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/163",
+      "pr": [
+        167
+      ],
+      "prLabel": "#167",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/167"
+    },
+    {
+      "id": "2.0.1c",
+      "name": "↳ System/Installer/Console + DI",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 164,
+      "issueLabel": "#164",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/164",
+      "pr": [
+        169
+      ],
+      "prLabel": "#169",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/169"
+    },
+    {
+      "id": "2.0.1d",
+      "name": "↳ Packages + ArrayAccess Removal",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 165,
+      "issueLabel": "#165",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/165",
+      "pr": [
+        171
+      ],
+      "prLabel": "#171",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/171"
+    },
+    {
+      "id": "2.0.1e",
+      "name": "↳ StaticTrait Removal + DI Final",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 166,
+      "issueLabel": "#166",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/166",
+      "pr": [
+        172
+      ],
+      "prLabel": "#172",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/172"
+    },
+    {
+      "id": "2.0.2",
+      "name": "↳ Validator-Translator Integration",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 146,
+      "issueLabel": "#146",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/146",
+      "pr": [
+        175
+      ],
+      "prLabel": "#175",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/175"
+    },
+    {
+      "id": "2.0.3",
+      "name": "↳ Cache API Full Modernization",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 179,
+      "issueLabel": "#179",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/179",
+      "pr": [
+        187
+      ],
+      "prLabel": "#187",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/187"
+    },
+    {
+      "id": "2.0.4",
+      "name": "↳ Package/Migration System Redesign",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 180,
+      "issueLabel": "#180",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/180",
+      "pr": [
+        189
+      ],
+      "prLabel": "#189",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/189"
+    },
+    {
+      "id": "2.0.5",
+      "name": "↳ Composer & Autoload Hygiene",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 182,
+      "issueLabel": "#182",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/182",
+      "pr": [
+        192
+      ],
+      "prLabel": "#192",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/192"
+    },
+    {
+      "id": "2.0.6",
+      "name": "↳ Test Infrastructure Cleanup",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 183,
+      "issueLabel": "#183",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/183",
+      "pr": [
+        193
+      ],
+      "prLabel": "#193",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/193"
+    },
+    {
+      "id": "2.0.7",
+      "name": "↳ Event Dispatcher Bridge Removal",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 184,
+      "issueLabel": "#184",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/184",
+      "pr": [
+        195
+      ],
+      "prLabel": "#195",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/195"
+    },
+    {
+      "id": "2.0.8",
+      "name": "↳ Hotfix: `create_function()` in User",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 185,
+      "issueLabel": "#185",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/185",
+      "pr": [
+        197
+      ],
+      "prLabel": "#197",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/197"
+    },
+    {
+      "id": "2.1",
+      "name": "Static Analysis & Code Quality",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": 147,
+      "issueLabel": "#147",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/147",
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "2.1.1",
+      "name": "↳ Tooling-Setup & Baseline",
+      "status": "✅",
+      "audit": "⏳",
+      "issue": 148,
+      "issueLabel": "#148",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/148",
+      "pr": [
+        178
+      ],
+      "prLabel": "#178",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/178"
+    },
+    {
+      "id": "2.1.2",
+      "name": "↳ CI/CD Integration & Quality Gates",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 149,
+      "issueLabel": "#149",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/149",
+      "pr": [
+        199
+      ],
+      "prLabel": "#199",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/199"
+    },
+    {
+      "id": "2.1.3",
+      "name": "↳ `strict_types` Migration",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 150,
+      "issueLabel": "#150",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/150",
+      "pr": [
+        201
+      ],
+      "prLabel": "#201",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/201"
+    },
+    {
+      "id": "2.1.4",
+      "name": "↳ PHPStan Level 5→6 (Return Types)",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 151,
+      "issueLabel": "#151",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/151",
+      "pr": [
+        203
+      ],
+      "prLabel": "#203",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/203"
+    },
+    {
+      "id": "2.1.5",
+      "name": "↳ PHPStan Level 6→7 (Null Safety)",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 152,
+      "issueLabel": "#152",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/152",
+      "pr": [
+        210
+      ],
+      "prLabel": "#210",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/210"
+    },
+    {
+      "id": "2.1.6",
+      "name": "↳ PHPStan Level 7→8 (Strict Typing)",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 153,
+      "issueLabel": "#153",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/153",
+      "pr": [
+        212
+      ],
+      "prLabel": "#212",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/212"
+    },
+    {
+      "id": "2.1.7",
+      "name": "↳ QueryBuilder API Standardization",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 154,
+      "issueLabel": "#154",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/154",
+      "pr": [
+        215
+      ],
+      "prLabel": "#215",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/215"
+    },
+    {
+      "id": "2.1.8",
+      "name": "↳ Infection Mutation Testing",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 155,
+      "issueLabel": "#155",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/155",
+      "pr": [
+        216
+      ],
+      "prLabel": "#216",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/216"
+    },
+    {
+      "id": "2.1.9",
+      "name": "↳ Test Coverage Expansion",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 156,
+      "issueLabel": "#156",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/156",
+      "pr": [
+        218
+      ],
+      "prLabel": "#218",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/218"
+    },
+    {
+      "id": "2.1.10",
+      "name": "↳ Entity Presentation Layer (DTO)",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 204,
+      "issueLabel": "#204",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/204",
+      "pr": [
+        219
+      ],
+      "prLabel": "#219",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/219"
+    },
+    {
+      "id": "2.1.11",
+      "name": "↳ EntityManager DI (remove singleton)",
+      "status": "✅",
+      "audit": "🛡️",
+      "issue": 205,
+      "issueLabel": "#205",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/205",
+      "pr": [
+        222
+      ],
+      "prLabel": "#222",
+      "prUrl": "https://github.com/Shadesman5/pagekit/pull/222"
+    },
+    {
+      "id": "2.1.12",
+      "name": "↳ Residual `mixed` narrowing",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": 217,
+      "issueLabel": "#217",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/217",
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "2.1.13",
+      "name": "↳ TinyMCE Security Patch (~5.10.9)",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "2.2",
+      "name": "CI/CD Pipeline",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": 157,
+      "issueLabel": "#157",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/157",
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "2.3",
+      "name": "Docker Production",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": 158,
+      "issueLabel": "#158",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/158",
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "2.4",
+      "name": "Build Tools (pnpm + Vite)",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": 159,
+      "issueLabel": "#159",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/159",
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "2.5",
+      "name": "Extension Safety System",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": 160,
+      "issueLabel": "#160",
+      "issueUrl": "https://github.com/Shadesman5/pagekit/issues/160",
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "2.6",
+      "name": "Automated Update System",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "2.7",
+      "name": "Filesystem Write Resilience",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "2.8",
+      "name": "PHP Version Upgrade (8.2→latest)",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "2.9",
+      "name": "Phase 2 Closeout (Coverage/Mutation)",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "3.1",
+      "name": "UIkit Update",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "3.2",
+      "name": "Vue 2.7 Bridge",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "3.2.1",
+      "name": "↳ Template Pre-compilation (CSP)",
+      "status": "⏳ 20%",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "3.3",
+      "name": "TypeScript",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "3.4",
+      "name": "Vue 3 Migration",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "3.4.1",
+      "name": "↳ vue-resource → axios",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "3.4.2",
+      "name": "↳ vue-event-manager → mitt",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "3.4.3",
+      "name": "↳ Vue 3 Core + @vue/compat",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "3.4.4",
+      "name": "↳ Pinia State Management",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "3.4.5",
+      "name": "↳ Deps (intl→Intl, lodash→native)",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "3.4.6",
+      "name": "↳ Translation System Modernization",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "3.5",
+      "name": "Component Library",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "3.5.1",
+      "name": "↳ Admin Accessibility Baseline",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "3.6",
+      "name": "E2E selector strategy (data-testid)",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "3.6.1",
+      "name": "↳ E2E Test Suite Rework",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "4.0",
+      "name": "Accessibility & WCAG Baseline",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "4.1",
+      "name": "Basic Security",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "4.2",
+      "name": "REST API v2",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "4.3",
+      "name": "Performance Optimization",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "4.4",
+      "name": "Monitoring & Health Checks",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "4.5",
+      "name": "Rebranding: Pagekit → Kernkit",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "4.6",
+      "name": "Native Image Pipeline & Media Manager",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "4.7",
+      "name": "Symfony 6.4 → 7.x Upgrade",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "4.8",
+      "name": "Doctrine DBAL 3 → 4 Upgrade",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "4.9",
+      "name": "↳ Cross-Repo Dev Dashboard",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "5.1",
+      "name": "Modern Block Editor",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "5.2",
+      "name": "Advanced Security",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "5.3",
+      "name": "Advanced Performance",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "5.4",
+      "name": "Advanced CMS Features",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "5.5",
+      "name": "Enterprise Features",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    },
+    {
+      "id": "5.6",
+      "name": "Marketplace & Extensions",
+      "status": "⏳",
+      "audit": "⏳",
+      "issue": null,
+      "issueLabel": "—",
+      "issueUrl": null,
+      "pr": null,
+      "prLabel": "—",
+      "prUrl": null
+    }
+  ]
+}

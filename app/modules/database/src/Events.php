@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Database;
 
 final class Events
@@ -9,61 +11,61 @@ final class Events
      *
      * @var string
      */
-    const INIT = 'init';
+    public const INIT = 'init';
 
     /**
      * This event occurs before an entity is saved.
      *
      * @var string
      */
-    const SAVING = 'saving';
+    public const SAVING = 'saving';
 
     /**
      * This event occurs after an entity is saved.
      *
      * @var string
      */
-    const SAVED = 'saved';
+    public const SAVED = 'saved';
 
     /**
      * This event occurs before a new entity is saved.
      *
      * @var string
      */
-    const CREATING = 'creating';
+    public const CREATING = 'creating';
 
     /**
      * This event occurs after a new entity is saved.
      *
      * @var string
      */
-    const CREATED = 'created';
+    public const CREATED = 'created';
 
     /**
      * This event occurs before an existing entity is updated.
      *
      * @var string
      */
-    const UPDATING = 'updating';
+    public const UPDATING = 'updating';
 
     /**
      * This event occurs after an existing entity is updated.
      *
      * @var string
      */
-    const UPDATED = 'updated';
+    public const UPDATED = 'updated';
 
     /**
      * This event occurs before an existing entity is deleted.
      *
      * @var string
      */
-    const DELETING = 'deleting';
+    public const DELETING = 'deleting';
 
     /**
      * This event occurs after an existing entity is deleted.
      *
      * @var string
      */
-    const DELETED = 'deleted';
+    public const DELETED = 'deleted';
 }

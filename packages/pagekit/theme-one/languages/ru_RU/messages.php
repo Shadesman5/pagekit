@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Title' => 'Заголовок',
   'Theme' => 'Тема',
   'Hide Title' => 'Скрыть заголовок',
@@ -38,5 +42,5 @@
   'Written by %name% on %date%' => '%name%, %date%',
   'Read more' => 'Читать далее',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Нет комментариев|{1} %count% комментарий|]1,Inf[ %count% комментариев',
-  '{apples, plural, =0 {There are no apples} one {There is one apple...} other {There are # apples!} }' => '{apples, plural, =0 {Нет яблок} one {Одно яблоко...} other {Тут # яблок!} }'
-);
+  '{apples, plural, =0 {There are no apples} one {There is one apple...} other {There are # apples!} }' => '{apples, plural, =0 {Нет яблок} one {Одно яблоко...} other {Тут # яблок!} }',
+];

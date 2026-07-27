@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Kernel\Event;
 
 use Pagekit\Event\Event;
@@ -7,15 +9,9 @@ use Pagekit\Kernel\HttpKernelInterface;
 
 class KernelEvent extends Event
 {
-    protected \Pagekit\Kernel\HttpKernelInterface $kernel;
+    protected HttpKernelInterface $kernel;
 
-    /**
-     * Constructor.
-     *
-     * @param string              $name
-     * @param HttpKernelInterface $kernel
-     */
-    public function __construct($name, HttpKernelInterface $kernel)
+    public function __construct(string $name, HttpKernelInterface $kernel)
     {
         parent::__construct($name);
 

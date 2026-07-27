@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Intl\Loader;
 
-use Symfony\Component\Translation\MessageCatalogue;
 use Symfony\Component\Translation\Exception\InvalidResourceException;
 use Symfony\Component\Translation\Exception\NotFoundResourceException;
+use Symfony\Component\Translation\MessageCatalogue;
 
 /**
  * PhpFileLoader loads translations from PHP files returning an array of translations.
@@ -16,7 +18,7 @@ class PhpFileLoader extends ArrayLoader
     /**
      * {@inheritdoc}
      */
-    public function load($resource, $locale, $domain = 'messages'): MessageCatalogue
+    public function load(mixed $resource, string $locale, string $domain = 'messages'): MessageCatalogue
     {
         if (!stream_is_local($resource)) {
             throw new InvalidResourceException(sprintf('This is not a local file "%s".', $resource));

@@ -1,13 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Filesystem;
 
 class StreamWrapper
 {
     /**
-     * @var resource
+     * Stream context, assigned by PHP's stream layer. Untyped on purpose: PHP
+     * populates it with either null or a stream-context resource.
+     *
+     * @var resource|null
      */
-    protected $handle;
+    public $context;
+
+    /**
+     * @var resource|null
+     */
+    protected mixed $handle = null;
 
     protected static ?\Pagekit\Filesystem\Filesystem $file = null;
 
@@ -17,6 +27,18 @@ class StreamWrapper
     public static function setFilesystem(Filesystem $file): void
     {
         static::$file = $file;
+    }
+
+    /**
+     * Returns the filesystem, throwing if it has not been set.
+     */
+    private static function getFilesystem(): Filesystem
+    {
+        if (self::$file === null) {
+            throw new \RuntimeException('StreamWrapper: filesystem not initialized. Call setFilesystem() first.');
+        }
+
+        return self::$file;
     }
 
     /**
@@ -31,23 +53,28 @@ class StreamWrapper
 
     /**
      * Open directory handle.
-     *
-     * @param  string $path
-     * @param  int    $options
      */
-    public function dir_opendir($path, $options): bool
+    public function dir_opendir(string $path, int $options): bool
     {
-        $this->handle = opendir(self::$file->getPath($path, true));
+        $resolved = self::getFilesystem()->getPath($path, true);
+        if ($resolved === false) {
+            return false;
+        }
 
-        return (bool) $this->handle;
+        $handle = opendir($resolved);
+        if ($handle === false) {
+            return false;
+        }
+
+        $this->handle = $handle;
+
+        return true;
     }
 
     /**
      * Read entry from directory handle.
-     *
-     * @return string
      */
-    public function dir_readdir()
+    public function dir_readdir(): string|false
     {
         return readdir($this->handle);
     }
@@ -64,58 +91,69 @@ class StreamWrapper
 
     /**
      * Create a directory.
-     *
-     * @param  string $path
-     * @param  int    $mode
-     * @param  int    $options
      */
-    public function mkdir($path, $mode, $options): bool
+    public function mkdir(string $path, int $mode, int $options): bool
     {
-        return mkdir(self::$file->getPath($path, true), $mode, $options & STREAM_MKDIR_RECURSIVE);
+        $resolved = self::getFilesystem()->getPath($path, true);
+        if ($resolved === false) {
+            return false;
+        }
+
+        return mkdir($resolved, $mode, (bool) ($options & STREAM_MKDIR_RECURSIVE));
     }
 
     /**
      * Renames a file or directory.
-     *
-     * @param  string $pathFrom
-     * @param  string $pathTo
      */
-    public function rename($pathFrom, $pathTo): bool
+    public function rename(string $pathFrom, string $pathTo): bool
     {
-        return rename(self::$file->getPath($pathFrom, true), self::$file->getPath($pathTo, true));
+        $resolvedFrom = self::getFilesystem()->getPath($pathFrom, true);
+        $resolvedTo = self::getFilesystem()->getPath($pathTo, true);
+        if ($resolvedFrom === false || $resolvedTo === false) {
+            return false;
+        }
+
+        return rename($resolvedFrom, $resolvedTo);
     }
 
     /**
      * Removes a directory.
-     *
-     * @param  string $path
-     * @param  int    $options
      */
-    public function rmdir($path, $options): bool
+    public function rmdir(string $path, int $options): bool
     {
-        return rmdir(self::$file->getPath($path, true));
+        $resolved = self::getFilesystem()->getPath($path, true);
+        if ($resolved === false) {
+            return false;
+        }
+
+        return rmdir($resolved);
     }
 
     /**
      * Delete a file.
-     *
-     * @param  $path string
      */
-    public function unlink($path): bool
+    public function unlink(string $path): bool
     {
-        return unlink(self::$file->getPath($path, true));
+        $resolved = self::getFilesystem()->getPath($path, true);
+        if ($resolved === false) {
+            return false;
+        }
+
+        return unlink($resolved);
     }
 
     /**
      * Retrieve information about a file.
      *
-     * @param  string $path
-     * @param  int    $flags
-     * @return array
+     * @return array<int|string, mixed>|false
      */
-    public function url_stat($path, $flags)
+    public function url_stat(string $path, int $flags): array|false
     {
-        $path = self::$file->getPath($path, true);
+        $path = self::getFilesystem()->getPath($path, true);
+
+        if ($path === false) {
+            return false;
+        }
 
         if ($flags & STREAM_URL_STAT_QUIET || !file_exists($path)) {
             return @stat($path);
@@ -126,11 +164,8 @@ class StreamWrapper
 
     /**
      * Retrieve the underlaying resource.
-     *
-     * @param  int $castAs
-     * @return resource
      */
-    public function stream_cast($castAs): bool
+    public function stream_cast(int $castAs): bool
     {
         return false;
     }
@@ -140,6 +175,9 @@ class StreamWrapper
      */
     public function stream_close(): void
     {
+        if ($this->handle === null) {
+            return;
+        }
         fclose($this->handle);
     }
 
@@ -148,6 +186,10 @@ class StreamWrapper
      */
     public function stream_eof(): bool
     {
+        if ($this->handle === null) {
+            return true;
+        }
+
         return feof($this->handle);
     }
 
@@ -156,16 +198,21 @@ class StreamWrapper
      */
     public function stream_flush(): bool
     {
+        if ($this->handle === null) {
+            return false;
+        }
+
         return fflush($this->handle);
     }
 
     /**
      * Advisory file locking.
-     *
-     * @param  int $operation
      */
-    public function stream_lock($operation): bool
+    public function stream_lock(int $operation): bool
     {
+        if ($this->handle === null) {
+            return false;
+        }
         if (in_array($operation, [LOCK_SH, LOCK_EX, LOCK_UN, LOCK_NB])) {
             return flock($this->handle, $operation);
         }
@@ -175,69 +222,86 @@ class StreamWrapper
 
     /**
      * Opens file or URL.
-     *
-     * @param  string $path
-     * @param  string $mode
-     * @param  int    $options
-     * @param  string $openedPath
      */
-    public function stream_open($path, $mode, $options, &$openedPath): bool
+    public function stream_open(string $path, string $mode, int $options, ?string &$openedPath): bool
     {
-        $this->handle = fopen(self::$file->getPath($path, true), $mode);
+        $resolved = self::getFilesystem()->getPath($path, true);
+        if ($resolved === false) {
+            return false;
+        }
 
-        return (bool) $this->handle;
+        $handle = fopen($resolved, $mode);
+        if ($handle === false) {
+            return false;
+        }
+
+        $this->handle = $handle;
+
+        return true;
     }
 
     /**
      * Read from stream.
-     *
-     * @param  int $count
-     * @return bool
      */
-    public function stream_read($count)
+    public function stream_read(int $count): string|false
     {
+        if ($this->handle === null) {
+            return false;
+        }
+        if ($count < 1) {
+            return '';
+        }
+
         return fread($this->handle, $count);
     }
 
     /**
      * Seeks to specific location in a stream.
-     *
-     * @param  int $offset
-     * @param  int $whence
      */
-    public function stream_seek($offset, $whence): bool
+    public function stream_seek(int $offset, int $whence): bool
     {
+        if ($this->handle === null) {
+            return false;
+        }
+
         return !fseek($this->handle, $offset, $whence);
     }
 
     /**
      * Retrieve information about a file resource.
      *
-     * @return array
+     * @return array<int|string, mixed>|false
      */
-    public function stream_stat()
+    public function stream_stat(): array|false
     {
+        if ($this->handle === null) {
+            return false;
+        }
+
         return fstat($this->handle);
     }
 
     /**
      * Retrieve the current position of a stream.
-     *
-     * @return int
      */
-    public function stream_tell()
+    public function stream_tell(): int|false
     {
+        if ($this->handle === null) {
+            return false;
+        }
+
         return ftell($this->handle);
     }
 
     /**
      * Write to stream.
-     *
-     * @param  string $data
-     * @return int
      */
-    public function stream_write($data)
+    public function stream_write(string $data): int|false
     {
+        if ($this->handle === null) {
+            return false;
+        }
+
         return fwrite($this->handle, $data);
     }
 }

@@ -1,0 +1,116 @@
+# Emergency cleanup workflow for bulk-closing issues.
+# The Cloud Agent can CREATE issues but CANNOT close/delete them.
+# This workflow provides a manual safety net via GitHub UI.
+#
+# Trigger: workflow_dispatch (GitHub UI → Actions → "Issue Cleanup" → Run workflow)
+#
+# Requires:
+#   Secret: PROJECT_TOKEN - PAT with repo scope
+
+name: Issue Cleanup
+
+run-name: "${{ format('Issue cleanup — {0}', inputs.issue_numbers) }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_numbers:
+        description: 'Issue numbers to close (comma-separated, e.g. "139,140,141")'
+        required: true
+        type: string
+      reason:
+        description: 'Reason for closing'
+        required: true
+        default: 'Cleanup: created by agent in error'
+        type: string
+      add_label:
+        description: 'Optional: add label to closed issues (e.g. "invalid")'
+        required: false
+        default: 'invalid'
+        type: string
+
+permissions:
+  issues: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close issues
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          INPUT_ISSUES: ${{ inputs.issue_numbers }}
+          INPUT_REASON: ${{ inputs.reason }}
+          INPUT_LABEL: ${{ inputs.add_label }}
+        with:
+          github-token: ${{ secrets.PROJECT_TOKEN }}
+          script: |
+            const input = process.env.INPUT_ISSUES;
+            const reason = process.env.INPUT_REASON;
+            const addLabel = (process.env.INPUT_LABEL || '').trim();
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const parts = input.split(',').map(n => n.trim()).filter(Boolean);
+            const invalid = parts.filter(p => !/^\d+$/.test(p));
+            if (invalid.length > 0) {
+              core.setFailed(`Invalid issue number(s): ${invalid.join(', ')}. Only plain integers are accepted.`);
+              return;
+            }
+            const numbers = parts.map(Number);
+
+            if (numbers.length === 0) {
+              core.setFailed('No valid issue numbers provided');
+              return;
+            }
+
+            if (numbers.length > 50) {
+              core.setFailed(`Safety limit: max 50 issues per run (got ${numbers.length})`);
+              return;
+            }
+
+            console.log(`Closing ${numbers.length} issues: ${numbers.join(', ')}`);
+
+            let closed = 0;
+            let failed = 0;
+
+            for (const num of numbers) {
+              try {
+                // Add comment with reason
+                await github.rest.issues.createComment({
+                  owner, repo,
+                  issue_number: num,
+                  body: `Closed via cleanup workflow: ${reason}`,
+                });
+
+                // Add label if specified
+                if (addLabel) {
+                  try {
+                    await github.rest.issues.addLabels({
+                      owner, repo,
+                      issue_number: num,
+                      labels: [addLabel],
+                    });
+                  } catch (labelErr) {
+                    console.log(`Warning: could not add label "${addLabel}" to #${num}: ${labelErr.message}`);
+                  }
+                }
+
+                // Close the issue
+                await github.rest.issues.update({
+                  owner, repo,
+                  issue_number: num,
+                  state: 'closed',
+                  state_reason: 'not_planned',
+                });
+
+                console.log(`Closed #${num}`);
+                closed++;
+              } catch (err) {
+                console.log(`Failed to close #${num}: ${err.message}`);
+                failed++;
+              }
+            }
+
+            console.log(`\nDone: ${closed} closed, ${failed} failed`);
+            if (failed > 0) core.setFailed(`${failed} issue(s) could not be closed`);

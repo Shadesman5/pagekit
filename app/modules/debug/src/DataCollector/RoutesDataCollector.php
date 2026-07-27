@@ -1,16 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Debug\DataCollector;
 
-use Symfony\Component\Routing\RouterInterface;
 use DebugBar\DataCollector\DataCollectorInterface;
 use Pagekit\Event\EventDispatcherInterface;
 use Pagekit\Routing\Router;
+use Symfony\Component\Routing\RouterInterface;
 
 class RoutesDataCollector implements DataCollectorInterface
 {
     protected \Pagekit\Routing\Router $router;
-    protected $route;
+    protected ?string $route = null;
     protected string $cache;
     protected string $file;
 
@@ -28,17 +30,22 @@ class RoutesDataCollector implements DataCollectorInterface
         $this->cache = $cache;
         $this->file = $file;
 
-        $events->on('request', function ($event, $request) {
-            $this->route = $request->attributes->get('_route');
+        $events->on('request', function ($event, $request): void {
+            $route = $request->attributes->get('_route');
+            $this->route = is_string($route) ? $route : null;
         });
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @return array{routes: array<int, array<string, mixed>>, route: string|null}
      */
     public function collect(): array
     {
-        $path = sprintf($this->cache.'/'.$this->file, sha1(filemtime((new \ReflectionClass($this->router->getGenerator()))->getFileName())));
+        $generatorFile = (new \ReflectionClass($this->router->getGenerator()))->getFileName();
+        $mtime = $generatorFile !== false ? filemtime($generatorFile) : false;
+        $path = sprintf($this->cache.'/'.$this->file, sha1((string) $mtime));
 
         if (!file_exists($path)) {
 

@@ -1,6 +1,14 @@
+# Pagekit runtime/build CSS (build output) — too noisy for agents to index.
 *.css
 *.less
+
+# Whitelist: docs-site dashboard styles (hand-written, not build output)
+!docs-site/
+!docs-site/content/
+!docs-site/content/stylesheets/
+!docs-site/content/stylesheets/*.css
+
 /node_modules
-**/*/languages/**
+# **/*/languages/**
 **/*/tmp/**
-/app/vendor
+# /app/vendor

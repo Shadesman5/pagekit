@@ -1,34 +1,66 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Blog\Controller;
 
-use Pagekit\Application as App;
+use function Pagekit\__;
+
 use Pagekit\Blog\Model\Comment;
 use Pagekit\Blog\Model\Post;
-use Pagekit\User\Model\User;
+use Pagekit\Blog\Model\PostRepository;
+use Pagekit\Blog\PostPresenter;
+use Pagekit\Captcha\Attribute\Captcha;
+use Pagekit\Content\ContentHelper;
+use Pagekit\Database\ORM\Repository;
 use Pagekit\Module\Module;
+use Pagekit\Module\ModuleManager;
+use Pagekit\Routing\Attribute\Request;
+use Pagekit\Routing\Attribute\Route;
+use Pagekit\System\Controller\ValidatesRequestTrait;
+use Pagekit\User\Attribute\Access;
+use Pagekit\User\Model\User;
+use Symfony\Component\HttpFoundation\Request as HttpRequest;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
- * @Route("comment", name="comment")
+ * API Controller for Blog Comment management.
  */
+#[Route('comment', name: 'comment')]
 class CommentApiController
 {
-    protected Module $blog;
-    protected User $user;
+    use ValidatesRequestTrait;
 
-    public function __construct()
-    {
-        $this->blog = App::module('blog');
-        $this->user = App::user();
+    protected Module $blog;
+
+    /**
+     * @param Repository<Comment> $commentRepository
+     */
+    public function __construct(
+        ModuleManager $module,
+        private readonly User $user,
+        private readonly HttpRequest $request,
+        private readonly ContentHelper $content,
+        protected readonly ValidatorInterface $validator,
+        private readonly PostPresenter $postPresenter,
+        private readonly Repository $commentRepository,
+        private readonly PostRepository $postRepository,
+    ) {
+        $this->blog = $module->get('blog');
     }
 
     /**
-     * @Route("/", methods="GET")
-     * @Request({"filter": "array", "post":"int", "page":"int", "limit":"int"})
+     * @param  array<string, mixed> $filter
+     * @return array<string, mixed>
      */
-    public function indexAction($filter = [], $post = 0, $page = 0, $limit = 0): array
+    #[Route('/', methods: ['GET'])]
+    #[Request(['filter' => 'array', 'post' => 'int', 'page' => 'int', 'limit' => 'int'])]
+    public function indexAction(array $filter = [], int $post = 0, int $page = 0, int $limit = 0): array
     {
-        $query = Comment::query();
+        $query = $this->commentRepository->query();
         $filter = array_merge(array_fill_keys(['status', 'search', 'order'], ''), $filter);
 
         extract($filter, EXTR_SKIP);
@@ -36,7 +68,7 @@ class CommentApiController
         if ($post) {
             $query->where(['post_id = ?'], [$post]);
         } elseif (!$this->user->hasAccess('blog: manage comments')) {
-            App::abort(403, __('Insufficient user rights.'));
+            throw new AccessDeniedHttpException(__('Insufficient user rights.'));
         }
 
         if (!$this->user->hasAccess('blog: manage comments')) {
@@ -45,7 +77,7 @@ class CommentApiController
 
             if ($this->user->isAuthenticated()) {
                 $query->orWhere(function ($query) {
-                    $query->where(['status = ?', 'user_id = ?'], [Comment::STATUS_PENDING, App::user()->id]);
+                    $query->where(['status = ?', 'user_id = ?'], [Comment::STATUS_PENDING, $this->user->id]);
                 });
             }
 
@@ -68,149 +100,181 @@ class CommentApiController
         $page = max(0, min($pages - 1, $page));
 
         if ($limit) {
-            $query->offset($page * $limit)->limit($limit);
+            $query->offset((int) ($page * $limit))->limit($limit);
         }
 
         if (preg_match('/^(created)\s(asc|desc)$/i', $order, $match)) {
             $order = $match;
         } else {
-            $order = [1 => 'created', 2 => App::module('blog')->config('comments.order')];
+            $order = [1 => 'created', 2 => $this->blog->config('comments.order')];
         }
 
-        $comments = $query->related(['post' => fn($query) => $query->related('comments')])->related('user')->orderBy($order[1], $order[2])->get();
+        $entities = $query->related(['post' => function ($query) {
+            return $query->related('comments');
+        }])->related('user')->orderBy($order[1], $order[2])->get();
 
         $posts = [];
+        $comments = [];
 
-        foreach ($comments as $i => $comment) {
+        foreach ($entities as $comment) {
 
             $p = $comment->post;
 
             if ($post && (!$p || !$p->hasAccess($this->user) || !$p->isPublished() && !$this->user->hasAccess('blog: manage comments'))) {
-                App::abort(403, __('Post not found.'));
+                throw new AccessDeniedHttpException(__('Post not found.'));
             }
 
-            $comment->content = App::content()->applyPlugins($comment->content, ['comment' => true]);
+            $comment->content = $this->content->applyPlugins($comment->content ?? '', ['comment' => true]);
 
-            $comment->special = count(array_diff($comment->user ? $comment->user->roles : [], [0, 1, 2]));
+            $comment->special = count(array_diff($comment->user !== null ? $comment->user->roles : [], [0, 1, 2]));
             $comment->post = null;
             $comment->user = null;
 
             if ($this->user->hasAccess('blog: manage comments')) {
-                $posts[$p->id] = $p;
+                if ($p !== null && $p->id !== null) {
+                    $posts[$p->id] = $p;
+                }
             } else {
-                // unset($comment->ip, $comment->email, $comment->user_id);
                 unset($comment->ip, $comment->user_id);
-                $comment->email = md5(strtolower($comment->email));
+                $comment->email = md5(strtolower($comment->email ?? ''));
             }
+
+            $comments[] = $comment;
         }
 
-        $comments = array_values($comments);
-        $posts = array_values($posts);
+        $posts = [...$posts];
+
+        $posts = array_map(fn (Post $p) => $this->postPresenter->toArray($p), $posts);
 
         return compact('comments', 'posts', 'pages', 'count');
     }
 
     /**
-     * @Route("/", methods="POST")
-     * @Route("/{id}", methods="POST", requirements={"id"="\d+"})
-     * @Request({"comment": "array", "id": "int"}, csrf=true)
-     * @Captcha(verify="true")
+     * Save a comment (create or update).
+     *
+     * @param  array<string, mixed> $comment
+     * @return array<string, mixed>
      */
-    public function saveAction($data, $id = 0): array
+    #[Route('/', methods: ['POST'])]
+    #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
+    #[Request(['comment' => 'array', 'id' => 'int'])]
+    #[Captcha(verify: true)]
+    public function saveAction(array $comment = [], int $id = 0): array
     {
+        // Use $data internally for backwards compatibility with the rest of the code
+        $data = $comment;
+
         if (!$id) {
 
             if (!$this->user->hasAccess('blog: post comments')) {
-                App::abort(403, __('Insufficient User Rights.'));
+                throw new AccessDeniedHttpException(__('Insufficient User Rights.'));
             }
 
-            $comment = Comment::create();
+            $commentEntity = $this->commentRepository->create();
 
             if ($this->user->isAuthenticated()) {
                 $data['author'] = $this->user->name;
                 $data['email'] = $this->user->email;
                 $data['url'] = $this->user->url;
             } elseif ($this->blog->config('comments.require_email') && (!@$data['author'] || !@$data['email'])) {
-                App::abort(400, __('Please provide valid name and email.'));
+                throw new BadRequestHttpException(__('Please provide valid name and email.'));
             }
 
-            $comment->user_id = $this->user->isAuthenticated() ? (int) $this->user->id : 0;
-            $comment->ip = App::request()->getClientIp();
-            $comment->created = new \DateTime;
+            // user_id stored as string in database (legacy), use '0' for anonymous users
+            $commentEntity->user_id = $this->user->isAuthenticated() ? (string) $this->user->id : '0';
+            $commentEntity->ip = $this->request->getClientIp();
+            $commentEntity->created = new \DateTime();
 
         } else {
 
             if (!$this->user->hasAccess('blog: manage comments')) {
-                App::abort(403, __('Insufficient User Rights.'));
+                throw new AccessDeniedHttpException(__('Insufficient User Rights.'));
             }
 
-            $comment = Comment::find($id);
+            $commentEntity = $this->commentRepository->find($id);
 
-            if (!$comment) {
-                App::abort(404, __('Comment not found.'));
+            if (!$commentEntity) {
+                throw new NotFoundHttpException(__('Comment not found.'));
             }
 
         }
 
-        unset($data['created']);
+        // Security: Remove server-controlled fields from client data to prevent spoofing
+        // These fields are set by the server (user_id, ip, created) and must not be overwritten by client
+        unset($data['created'], $data['user_id'], $data['ip']);
 
-        // check minimum idle time in between user comments
+        // check minimum idle time in between user comments (business logic)
         if (!$this->user->hasAccess('blog: skip comment min idle')
             and $minidle = $this->blog->config('comments.minidle')
-            and $commentIdle = Comment::where($this->user->isAuthenticated() ? ['user_id' => $this->user->id] : ['ip' => App::request()->getClientIp()])->orderBy('created', 'DESC')->first()
+            and $commentIdle = $this->commentRepository->where($this->user->isAuthenticated() ? ['user_id' => $this->user->id] : ['ip' => $this->request->getClientIp()])->orderBy('created', 'DESC')->first()
         ) {
 
             $diff = $commentIdle->created->diff(new \DateTime("- {$minidle} sec"));
 
             if ($diff->invert) {
-                App::abort(403, __('Please wait another %seconds% seconds before commenting again.', ['%seconds%' => $diff->s + $diff->i * 60 + $diff->h * 3600]));
+                throw new AccessDeniedHttpException(__('Please wait another %seconds% seconds before commenting again.', ['%seconds%' => $diff->s + $diff->i * 60 + $diff->h * 3600]));
             }
         }
 
-        if (@$data['parent_id'] && !$parent = Comment::find((int) $data['parent_id'])) {
-            App::abort(404, __('Parent not found.'));
+        if (@$data['parent_id'] && !$parent = $this->commentRepository->find((int) $data['parent_id'])) {
+            throw new NotFoundHttpException(__('Parent not found.'));
         }
 
-        if (!@$data['post_id'] || !$post = Post::where(['id' => $data['post_id']])->first() or !$this->user->hasAccess('blog: manage comments') && !($post->isCommentable() && $post->isPublished())) {
-            App::abort(404, __('Post not found.'));
+        $post = empty($data['post_id'])
+            ? null
+            : $this->postRepository->where(['id' => $data['post_id']])->first();
+
+        if ($post === null || (!$this->user->hasAccess('blog: manage comments') && !($this->postPresenter->isCommentable($post) && $post->isPublished()))) {
+            throw new NotFoundHttpException(__('Post not found.'));
         }
 
-        $approved_once = (boolean) Comment::where(['user_id' => $this->user->id, 'status' => Comment::STATUS_APPROVED])->first();
-        $comment->status = $this->user->hasAccess('blog: skip comment approval') ? Comment::STATUS_APPROVED : ($this->user->hasAccess('blog: comment approval required once') && $approved_once ? Comment::STATUS_APPROVED : Comment::STATUS_PENDING);
+        $approved_once = (bool) $this->commentRepository->where(['user_id' => $this->user->id, 'status' => Comment::STATUS_APPROVED])->first();
+        $commentEntity->status = $this->user->hasAccess('blog: skip comment approval') ? Comment::STATUS_APPROVED : ($this->user->hasAccess('blog: comment approval required once') && $approved_once ? Comment::STATUS_APPROVED : Comment::STATUS_PENDING);
 
-        // check the max links rule
-        if ($comment->status == Comment::STATUS_APPROVED && $this->blog->config('comments.maxlinks') <= preg_match_all('/<a [^>]*href/i', @$data['content'])) {
-            $comment->status = Comment::STATUS_PENDING;
+        // check the max links rule (business logic)
+        if ($commentEntity->status == Comment::STATUS_APPROVED && $this->blog->config('comments.maxlinks') <= preg_match_all('/<a [^>]*href/i', @$data['content'])) {
+            $commentEntity->status = Comment::STATUS_PENDING;
         }
 
-        // check for spam
-        //App::trigger('system.comment.spam_check', new CommentEvent($comment));
+        // Assign data to entity for validation (without saving yet)
+        foreach ($data as $key => $value) {
+            if (property_exists($commentEntity, $key)) {
+                $commentEntity->$key = $value;
+            }
+        }
 
-        $comment->save($data);
+        // Validate using Symfony Validator
+        // Note: Some validations remain as business logic above (require_email for anonymous users)
+        $this->validateOrFail($commentEntity);
 
-        return ['message' => 'success', 'comment' => $comment];
+        $this->commentRepository->save($commentEntity, $data);
+
+        return ['message' => 'success', 'comment' => $commentEntity];
     }
 
     /**
-     * @Access("blog: manage comments")
-     * @Route("/{id}", methods="DELETE", requirements={"id"="\d+"})
-     * @Request({"id": "int"}, csrf=true)
+     * @return array<string, string>
      */
-    public function deleteAction($id): array
+    #[Access('blog: manage comments')]
+    #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\d+'])]
+    #[Request(['id' => 'int'])]
+    public function deleteAction(int $id): array
     {
-        if ($comment = Comment::find($id)) {
-            $comment->delete();
+        if ($comment = $this->commentRepository->find($id)) {
+            $this->commentRepository->delete($comment);
         }
 
         return ['message' => 'success'];
     }
 
     /**
-     * @Access("blog: manage comments")
-     * @Route("/bulk", methods="POST")
-     * @Request({"comments": "array"}, csrf=true)
+     * @param  array<int, array<string, mixed>> $comments
+     * @return array<string, string>
      */
-    public function bulkSaveAction($comments = []): array
+    #[Access('blog: manage comments')]
+    #[Route('/bulk', methods: ['POST'])]
+    #[Request(['comments' => 'array'])]
+    public function bulkSaveAction(array $comments = []): array
     {
 
         foreach ($comments as $data) {
@@ -221,14 +285,16 @@ class CommentApiController
     }
 
     /**
-     * @Access("blog: manage comments")
-     * @Route("/bulk", methods="DELETE")
-     * @Request({"ids": "array"}, csrf=true)
+     * @param  array<int, int|string> $ids
+     * @return array<string, string>
      */
-    public function bulkDeleteAction($ids = []): array
+    #[Access('blog: manage comments')]
+    #[Route('/bulk', methods: ['DELETE'])]
+    #[Request(['ids' => 'array'])]
+    public function bulkDeleteAction(array $ids = []): array
     {
         foreach (array_filter($ids) as $id) {
-            $this->deleteAction($id);
+            $this->deleteAction((int) $id);
         }
 
         return ['message' => 'success'];

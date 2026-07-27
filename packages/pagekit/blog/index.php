@@ -1,8 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Blog\Content\ReadmorePlugin;
 use Pagekit\Blog\Event\PostListener;
 use Pagekit\Blog\Event\RouteListener;
+use Pagekit\Blog\Model\Comment;
+use Pagekit\Blog\Model\PostRepository;
+use Pagekit\Blog\PostPresenter;
+use Pagekit\Blog\UrlResolver;
 
 return [
 
@@ -10,7 +16,7 @@ return [
 
     'autoload' => [
 
-        'Pagekit\\Blog\\' => 'src'
+        'Pagekit\\Blog\\' => 'src',
 
     ],
 
@@ -21,8 +27,8 @@ return [
             'label' => 'Blog',
             'controller' => 'Pagekit\\Blog\\Controller\\SiteController',
             'protected' => true,
-            'frontpage' => true
-        ]
+            'frontpage' => true,
+        ],
 
     ],
 
@@ -30,15 +36,15 @@ return [
 
         '/blog' => [
             'name' => '@blog',
-            'controller' => 'Pagekit\\Blog\\Controller\\BlogController'
+            'controller' => 'Pagekit\\Blog\\Controller\\BlogController',
         ],
         '/api/blog' => [
             'name' => '@blog/api',
             'controller' => [
                 'Pagekit\\Blog\\Controller\\PostApiController',
-                'Pagekit\\Blog\\Controller\\CommentApiController'
-            ]
-        ]
+                'Pagekit\\Blog\\Controller\\CommentApiController',
+            ],
+        ],
 
     ],
 
@@ -46,32 +52,32 @@ return [
 
         'blog: manage own posts' => [
             'title' => 'Manage own posts',
-            'description' => 'Create, edit, delete and publish posts of their own'
+            'description' => 'Create, edit, delete and publish posts of their own',
         ],
         'blog: manage all posts' => [
             'title' => 'Manage all posts',
-            'description' => 'Create, edit, delete and publish posts by all users'
+            'description' => 'Create, edit, delete and publish posts by all users',
         ],
         'blog: manage comments' => [
             'title' => 'Manage comments',
-            'description' => 'Approve, edit and delete comments'
+            'description' => 'Approve, edit and delete comments',
         ],
         'blog: post comments' => [
             'title' => 'Post comments',
-            'description' => 'Allowed to write comments on the site'
+            'description' => 'Allowed to write comments on the site',
         ],
         'blog: skip comment approval' => [
             'title' => 'Skip comment approval',
-            'description' => 'User can write comments without admin approval'
+            'description' => 'User can write comments without admin approval',
         ],
         'blog: comment approval required once' => [
             'title' => 'Comment approval required only once',
-            'description' => 'First comment needs to be approved, later comments are approved automatically'
+            'description' => 'First comment needs to be approved, later comments are approved automatically',
         ],
         'blog: skip comment min idle' => [
             'title' => 'Skip comment minimum idle time',
-            'description' => 'User can write multiple comments without having to wait in between'
-        ]
+            'description' => 'User can write multiple comments without having to wait in between',
+        ],
 
     ],
 
@@ -83,29 +89,29 @@ return [
             'url' => '@blog/post',
             'active' => '@blog/post*',
             'access' => 'blog: manage own posts || blog: manage all posts || blog: manage comments || system: access settings',
-            'priority' => 110
+            'priority' => 110,
         ],
         'blog: posts' => [
             'label' => 'Posts',
             'parent' => 'blog',
             'url' => '@blog/post',
             'active' => '@blog/post*',
-            'access' => 'blog: manage own posts || blog: manage all posts'
+            'access' => 'blog: manage own posts || blog: manage all posts',
         ],
         'blog: comments' => [
             'label' => 'Comments',
             'parent' => 'blog',
             'url' => '@blog/comment',
             'active' => '@blog/comment*',
-            'access' => 'blog: manage comments'
+            'access' => 'blog: manage comments',
         ],
         'blog: settings' => [
             'label' => 'Settings',
             'parent' => 'blog',
             'url' => '@blog/settings',
             'active' => '@blog/settings*',
-            'access' => 'system: access settings'
-        ]
+            'access' => 'system: access settings',
+        ],
 
     ],
 
@@ -127,7 +133,7 @@ return [
             'notifications' => 'always',
             'order' => 'ASC',
             'replymail' => true,
-            'require_email' => true
+            'require_email' => true,
 
         ],
 
@@ -135,39 +141,51 @@ return [
 
             'posts_per_page' => 20,
             'comments_enabled' => true,
-            'markdown_enabled' => true
+            'markdown_enabled' => true,
 
         ],
 
         'permalink' => [
             'type' => '',
-            'custom' => '{slug}'
+            'custom' => '{slug}',
         ],
 
         'feed' => [
             'type' => 'rss2',
-            'limit' => 20
-        ]
+            'limit' => 20,
+        ],
 
     ],
 
     'events' => [
 
         'boot' => function ($event, $app) {
-            $app->subscribe(
-                new RouteListener,
-                new PostListener(),
-                new ReadmorePlugin
-            );
+            $app->set('postPresenter', fn ($app) => new PostPresenter($app->get('url'), $app->get('user'), $app->get('module')->get('blog')));
+
+            $app->set('postRepository', fn ($app) => new PostRepository($app->get('db.em')));
+
+            $app->set('commentRepository', fn ($app) => $app->get('db.em')->getRepository(Comment::class));
+
+            UrlResolver::setCache($app->get('cache'));
+            UrlResolver::setModule($app->get('module')->get('blog'));
+            UrlResolver::setPostRepository($app->get('postRepository'));
+
+            $app->get('events')->subscribe(new RouteListener(
+                $app->get('router'),
+                $app->get('routes'),
+                $app->get('cache'),
+            ));
+            $app->get('events')->subscribe(new PostListener($app->get('postRepository')));
+            $app->get('events')->subscribe(new ReadmorePlugin());
         },
 
         'view.scripts' => function ($event, $scripts) {
-            $scripts->register('link-blog', 'blog:app/bundle/link-blog.js', '~panel-link');
-            $scripts->register('post-meta', 'blog:app/bundle/post-meta.js', '~post-edit');
+            $scripts->register('link-blog', 'blog:app/bundle/link-blog.js', ['~panel-link']);
+            $scripts->register('post-meta', 'blog:app/bundle/post-meta.js', ['~post-edit']);
         },
 
         'view.data' => function ($event, $data) use ($app) {
-            if (!$app->isAdmin()) {
+            if (!$app->get('isAdmin')) {
                 return;
             }
             $data->add('Theme', [
@@ -175,14 +193,14 @@ return [
                     'additem' => [
                         'addpost' => [
                             'caption' => 'Add Post',
-                            'attrs' => [ 'href' => $app['url']->get('admin/blog/post/edit') ],
-                            'priority' => 1
-                        ]
-                    ]
-                ]
+                            'attrs' => [ 'href' => $app->get('url')->get('admin/blog/post/edit') ],
+                            'priority' => 1,
+                        ],
+                    ],
+                ],
             ]);
-        }
+        },
 
-    ]
+    ],
 
 ];

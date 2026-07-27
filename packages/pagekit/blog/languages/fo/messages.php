@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Filter by' => 'Síla eftir',
   'Thank you! Your comment needs approval before showing up.' => 'Takk fyri! Tín viðmerking skal góðtakast áðrenn hon vísir seg.',
   'Unable to comment. Please try again later.' => 'Ber ikki til at viðmerkja. Vinaliga royn aftur seinni.',
@@ -94,4 +98,4 @@
   'Written by %name% on %date%' => 'Skrivað av %name% tann %date%',
   'Read more' => 'Les meira',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Eingin viðmerking|{1} %count% Viðmerking|]1,Inf[ %count% Viðmerkingar',
-);
+];

@@ -1,23 +1,54 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Mail\Controller;
 
-use Pagekit\Application as App;
-use Pagekit\Util\Arr;
+use function Pagekit\__;
 
-/**
- * @Access("system: access settings", admin=true)
- */
+use Pagekit\Mail\Mailer;
+use Pagekit\Module\ModuleManager;
+use Pagekit\Routing\Attribute\Route;
+use Pagekit\User\Attribute\Access;
+use Pagekit\Util\Arr;
+use Symfony\Component\HttpFoundation\Request;
+
+#[Access('system: access settings', admin: true)]
 class MailController
 {
-    /**
-     * @Request({"option": "array"}, csrf=true)
-     */
-    public function smtpAction($option = []): array
-    {
-        try {
+    public function __construct(
+        private readonly Request $request,
+        private readonly Mailer $mailer,
+        private readonly ModuleManager $module,
+    ) {
+    }
 
-            App::mailer()->testSmtpConnection($option['host'], $option['port'], $option['username'], $option['password'], $option['encryption']);
+    /**
+     * @return array{success: bool, message: string}
+     */
+    #[Route('/smtp', methods: ['POST'])]
+    public function smtpAction(): array
+    {
+        $option = $this->request->request->all()['option'] ?? [];
+        if (empty($option) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
+            if (is_array($json)) {
+                $option = $json['option'] ?? [];
+            }
+        }
+
+        try {
+            if (empty($option['host'])) {
+                return ['success' => false, 'message' => __('SMTP host is required for connection testing.')];
+            }
+
+            $this->mailer->testSmtpConnection(
+                $option['host'] ?? null,
+                isset($option['port']) ? (int) $option['port'] : null,
+                $option['username'] ?? null,
+                $option['password'] ?? null,
+                $option['encryption'] ?? null
+            );
 
             return ['success' => true, 'message' => __('Connection established!')];
 
@@ -28,27 +59,45 @@ class MailController
     }
 
     /**
-     * Note: If the mailer is accessed prior to this controller action, this will possibly test the wrong mailer
-     *
-     * @Request({"option": "array"}, csrf=true)
+     * @return array{success: bool, message: string}
      */
-    public function emailAction($option = []): array
+    #[Route('/email', methods: ['POST'])]
+    public function emailAction(): array
     {
+        $mailModule = $this->module->get('system/mail');
+
+        $option = $this->request->request->all()['option'] ?? [];
+        if (empty($option) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
+            if (is_array($json)) {
+                $option = $json['option'] ?? [];
+            }
+        }
+
         try {
-            $config = Arr::merge(App::module('system/mail')->config(), $option);
-            
-            $mailer = App::mailer();
-            $email = $mailer->create()
+            $config = Arr::merge($mailModule->config(), $option);
+
+            if (empty($config['from_address'])) {
+                return ['success' => false, 'message' => __('From email address is required. Please configure it in the mail settings.')];
+            }
+
+            $email = $this->mailer->create()
                 ->subject(__('Test email!'))
-                ->text(__('Testemail'))
-                ->from($config['from_address'])
-                ->to($config['from_address']); // Send to the same address as the from address
-                
-            $mailer->send($email);
-            
+                ->text(__('Testemail'));
+
+            if (!empty($config['from_name'])) {
+                $email->from(new \Symfony\Component\Mime\Address($config['from_address'], $config['from_name']));
+            } else {
+                $email->from($config['from_address']);
+            }
+
+            $email->to($config['from_address']);
+
+            $this->mailer->send($email);
+
             return ['success' => true, 'message' => __('Mail successfully sent!')];
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return ['success' => false, 'message' => sprintf(__('Mail delivery failed! (%s)'), $e->getMessage())];
         }
     }

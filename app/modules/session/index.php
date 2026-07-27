@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Session\Csrf\Event\CsrfListener;
 use Pagekit\Session\Csrf\Provider\SessionCsrfProvider;
 use Pagekit\Session\Handler\DatabaseSessionHandler;
@@ -14,37 +16,38 @@ return [
 
     'main' => function ($app) {
 
-        $app['session'] = function ($app) {
-            $session = new Session($app['session.storage']);
-            $session->registerBag($app['message']);
+        $app->set('session', function ($app) {
+            $session = new Session($app->get('session.storage'));
+            $session->registerBag($app->get('message'));
+
             return $session;
-        };
+        });
 
-        $app['message'] = fn() => new MessageBag();
+        $app->set('message', fn () => new MessageBag());
 
-        $app['session.storage'] = function ($app) {
+        $app->set('session.storage', function ($app) {
 
             switch ($this->config['storage']) {
 
                 case 'database':
 
-                    $handler = new DatabaseSessionHandler($app['db'], $this->config['table']);
-                    $storage = new NativeSessionStorage($app['session.options'], $handler);
+                    $handler = new DatabaseSessionHandler($app->get('db'), $this->config['table']);
+                    $storage = new NativeSessionStorage($app->get('session.options'), $handler);
 
                     break;
 
                 default:
 
                     $handler = new NativeFileSessionHandler($this->config['files']);
-                    $storage = new NativeSessionStorage($app['session.options'], $handler);
+                    $storage = new NativeSessionStorage($app->get('session.options'), $handler);
 
                     break;
             }
 
             return $storage;
-        };
+        });
 
-        $app['session.options'] = function () {
+        $app->set('session.options', function () {
 
             $options = $this->config(['cookie', 'lifetime']);
 
@@ -62,9 +65,11 @@ return [
             }
 
             return $options;
-        };
+        });
 
-        $app['csrf'] = fn($app) => new SessionCsrfProvider($app['session']);
+        $app->set('csrf', function ($app) {
+            return new SessionCsrfProvider($app->get('session'));
+        });
 
     },
 
@@ -72,40 +77,45 @@ return [
 
         'boot' => function ($event, $app) {
 
-            $app->subscribe(new CsrfListener($app['csrf']));
+            $app->get('events')->subscribe(new CsrfListener($app->get('csrf')));
 
         },
 
         'request' => [function ($event, $request) use ($app) {
 
-            if (!isset($app['session.options']['cookie_path'])) {
-                $app['session.storage']->setOptions(['cookie_path' => $request->getBasePath() ?: '/']);
+            // Skip session initialization in CLI context
+            if ($app->inConsole()) {
+                return;
             }
 
-            $request->setSession($app['session']);
+            if (!$app->has('session.options') || !isset($app->get('session.options')['cookie_path'])) {
+                $app->get('session.storage')->setOptions(['cookie_path' => $request->getBasePath() ?: '/']);
+            }
 
-            $app['session']->start();
+            $request->setSession($app->get('session'));
 
-        }, 100]
+            $app->get('session')->start();
+
+        }, 100],
 
     ],
 
     'autoload' => [
 
-        'Pagekit\\Session\\' => 'src'
+        'Pagekit\\Session\\' => 'src',
 
     ],
 
     'config' => [
 
-        'storage'  => null,
+        'storage' => null,
         'lifetime' => 900,
-        'files'    => null,
-        'table'    => 'sessions',
-        'cookie'   => [
+        'files' => null,
+        'table' => 'sessions',
+        'cookie' => [
             'name' => '',
-        ]
+        ],
 
-    ]
+    ],
 
 ];

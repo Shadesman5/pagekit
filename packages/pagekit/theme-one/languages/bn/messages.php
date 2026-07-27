@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Title' => 'শিরোনাম',
   'Theme' => 'থিম',
   'Hide Title' => 'শিরোনাম লুকান',
@@ -38,4 +42,4 @@
   'Written by %name% on %date%' => 'লিখেছেন %name% %date% তারিখে',
   'Read more' => 'আরও পড়ুন',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} কমেন্ট নাই|{1} %count% কমেন্ট|]1,Inf[ %count% কমেন্টগুলি',
-);
+];

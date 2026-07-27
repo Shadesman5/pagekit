@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Kernel\Event;
 
 use Pagekit\Event\EventSubscriberInterface;
@@ -10,16 +12,21 @@ use Symfony\Component\HttpFoundation\Request;
 
 class ExceptionListener implements EventSubscriberInterface
 {
-    protected $controller;
+    /** @var callable|string|array{0: object|class-string, 1: string} */
+    protected mixed $controller;
+
     protected ?LoggerInterface $logger = null;
 
-    public function __construct($controller, ?LoggerInterface $logger = null)
+    /**
+     * @param callable|string|array{0: object|class-string, 1: string} $controller
+     */
+    public function __construct(callable|string|array $controller, ?LoggerInterface $logger = null)
     {
         $this->controller = $controller;
         $this->logger = $logger;
     }
 
-    public function onException($event, $request)
+    public function onException(ExceptionEvent $event, Request $request): bool|null
     {
         static $handling;
 
@@ -30,6 +37,10 @@ class ExceptionListener implements EventSubscriberInterface
         $handling = true;
 
         $exception = $event->getException();
+
+        if ($exception === null) {
+            return null;
+        }
 
         $this->logException($exception, sprintf('Uncaught PHP Exception %s: "%s" at %s line %s', get_class($exception), $exception->getMessage(), $exception->getFile(), $exception->getLine()));
 
@@ -44,7 +55,7 @@ class ExceptionListener implements EventSubscriberInterface
             $this->logException($e, sprintf('Exception thrown when handling an exception (%s: %s at %s line %s)', get_class($e), $e->getMessage(), $e->getFile(), $e->getLine()));
 
             $handling = false;
-            $wrapper  = $e;
+            $wrapper = $e;
 
             while ($prev = $wrapper->getPrevious()) {
                 if ($exception === $wrapper = $prev) {
@@ -53,7 +64,6 @@ class ExceptionListener implements EventSubscriberInterface
             }
 
             $prev = new \ReflectionProperty('Exception', 'previous');
-            $prev->setAccessible(true);
             $prev->setValue($wrapper, $exception);
 
             throw $e;
@@ -62,25 +72,24 @@ class ExceptionListener implements EventSubscriberInterface
         $event->setResponse($response);
 
         $handling = false;
+
+        return null;
     }
 
     /**
-     * {@inheritdoc}
+     * @return array<string, mixed>
      */
     public function subscribe(): array
     {
         return [
-            'exception' => ['onException', -100]
+            'exception' => ['onException', -100],
         ];
     }
 
     /**
      * Logs an exception.
-     *
-     * @param \Exception $exception
-     * @param string     $message
      */
-    protected function logException(\Exception $exception, $message): void
+    protected function logException(\Exception $exception, string $message): void
     {
         if ($this->logger !== null) {
             if (!$exception instanceof HttpException || $exception->getCode() >= 500) {
@@ -102,8 +111,8 @@ class ExceptionListener implements EventSubscriberInterface
     {
         $attributes = [
             '_controller' => $this->controller,
-            'exception'   => FlattenException::create($exception),
-            'logger'      => $this->logger
+            'exception' => FlattenException::create($exception),
+            'logger' => $this->logger,
         ];
 
         $request = $request->duplicate(null, null, $attributes);

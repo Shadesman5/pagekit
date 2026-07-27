@@ -1,137 +1,136 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Blog\Model;
 
-use Pagekit\Application as App;
+use Pagekit\Database\ORM\Attribute as ORM;
+use Pagekit\Database\ORM\SerializableModelInterface;
 use Pagekit\System\Model\DataModelTrait;
 use Pagekit\User\Model\AccessModelTrait;
 use Pagekit\User\Model\User;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * @Entity(tableClass="@blog_post")
+ * Blog Post entity with PHP 8 Attributes for ORM and Validation.
  */
-class Post implements \JsonSerializable
+#[ORM\Entity(tableClass: '@blog_post')]
+class Post implements \JsonSerializable, SerializableModelInterface
 {
-    use AccessModelTrait, DataModelTrait, PostModelTrait;
+    use AccessModelTrait;
+    use DataModelTrait;
+    use PostModelTrait;
 
     /* Post draft status. */
-    const STATUS_DRAFT = 0;
+    public const STATUS_DRAFT = 0;
 
     /* Post pending review status. */
-    const STATUS_PENDING_REVIEW = 1;
+    public const STATUS_PENDING_REVIEW = 1;
 
     /* Post published. */
-    const STATUS_PUBLISHED = 2;
+    public const STATUS_PUBLISHED = 2;
 
     /* Post unpublished. */
-    const STATUS_UNPUBLISHED = 3;
+    public const STATUS_UNPUBLISHED = 3;
 
-    /** @Column(type="integer") @Id */
-    public $id;
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
+    public ?int $id = null;
 
-    /** @Column(type="string") */
-    public $title;
+    #[ORM\Column(type: 'string')]
+    #[Assert\NotBlank(message: 'validation.post.title_required')]
+    #[Assert\Length(
+        max: 255,
+        maxMessage: 'validation.post.title_max_length'
+    )]
+    public ?string $title = null;
 
-    /** @Column(type="string") */
-    public $slug;
+    #[ORM\Column(type: 'string')]
+    #[Assert\NotBlank(message: 'validation.post.slug_required')]
+    #[Assert\Regex(
+        pattern: '/^[a-z0-9\-_]+$/',
+        message: 'validation.post.slug_invalid'
+    )]
+    #[Assert\Length(
+        max: 255,
+        maxMessage: 'validation.post.slug_max_length'
+    )]
+    public ?string $slug = null;
 
-    /** @Column(type="integer") */
-    public $user_id;
+    #[ORM\Column(type: 'integer')]
+    #[Assert\NotBlank(message: 'validation.post.user_required')]
+    #[Assert\Positive]
+    public ?int $user_id = null;
 
-    /** @Column(type="datetime") */
-    public $date;
+    #[ORM\Column(type: 'datetime')]
+    public ?\DateTime $date = null;
 
-    /** @Column(type="text") */
-    public $content = '';
+    #[ORM\Column(type: 'text')]
+    public ?string $content = '';
 
-    /** @Column(type="text") */
-    public $excerpt = '';
+    #[ORM\Column(type: 'text')]
+    public ?string $excerpt = '';
 
-    /** @Column(type="smallint") */
-    public $status;
+    #[ORM\Column(type: 'smallint')]
+    #[Assert\Choice(
+        choices: [self::STATUS_DRAFT, self::STATUS_PENDING_REVIEW, self::STATUS_PUBLISHED, self::STATUS_UNPUBLISHED],
+        message: 'validation.post.status_invalid'
+    )]
+    public ?int $status = null;
 
-    /** @Column(type="datetime") */
-    public $modified;
+    #[ORM\Column(type: 'datetime')]
+    public ?\DateTime $modified = null;
 
-    /** @Column(type="boolean") */
-    public $comment_status;
+    #[ORM\Column(type: 'boolean')]
+    public ?bool $comment_status = null;
 
-    /** @Column(type="integer") */
-    public $comment_count = 0;
+    #[ORM\Column(type: 'integer')]
+    #[Assert\PositiveOrZero]
+    public int $comment_count = 0;
 
-    /**
-     * @BelongsTo(targetEntity="Pagekit\User\Model\User", keyFrom="user_id")
-     */
-    public $user;
+    #[ORM\BelongsTo(targetEntity: 'Pagekit\User\Model\User', keyFrom: 'user_id')]
+    public ?User $user = null;
 
-    /**
-     * @HasMany(targetEntity="Comment", keyFrom="id", keyTo="post_id")
-     * @OrderBy({"created" = "DESC"})
-     */
-    public $comments;
+    /** @var array<int, Comment>|null */
+    #[ORM\HasMany(targetEntity: 'Comment', keyFrom: 'id', keyTo: 'post_id')]
+    #[ORM\OrderBy(value: 'created DESC')]
+    public ?array $comments = null;
 
-    /** @var bool */
-    public $readmore = false;
+    public bool $readmore = false;
 
+    /** @var array<string, string> */
     protected static array $properties = [
         'author' => 'getAuthor',
         'published' => 'isPublished',
-        'accessible' => 'isAccessible'
     ];
 
+    /**
+     * @return array<int, string>
+     */
     public static function getStatuses(): array
     {
         return [
             self::STATUS_PUBLISHED => __('Published'),
             self::STATUS_UNPUBLISHED => __('Unpublished'),
             self::STATUS_DRAFT => __('Draft'),
-            self::STATUS_PENDING_REVIEW => __('Pending Review')
+            self::STATUS_PENDING_REVIEW => __('Pending Review'),
         ];
     }
 
-    public function getStatusText()
+    public function getStatusText(): string
     {
         $statuses = self::getStatuses();
 
-        return isset($statuses[$this->status]) ? $statuses[$this->status] : __('Unknown');
+        return $statuses[$this->status] ?? __('Unknown');
     }
 
-    public function isCommentable(): bool
-    {
-        $blog      = App::module('blog');
-        $autoclose = $blog->config('comments.autoclose') ? $blog->config('comments.autoclose_days') : 0;
-
-        return $this->comment_status && (!$autoclose or $this->date >= new \DateTime("-{$autoclose} day"));
-    }
-
-    public function getAuthor()
+    public function getAuthor(): ?string
     {
         return $this->user ? $this->user->username : null;
     }
 
     public function isPublished(): bool
     {
-        return $this->status === self::STATUS_PUBLISHED && $this->date < new \DateTime;
-    }
-
-    public function isAccessible(?User $user = null): bool
-    {
-        return $this->isPublished() && $this->hasAccess($user ?: App::user());
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function jsonSerialize(): array
-    {
-        $data = [
-            'url' => App::url('@blog/id', ['id' => $this->id ?: 0], 'base')
-        ];
-
-        if ($this->comments) {
-            $data['comments_pending'] = count(array_filter($this->comments, fn ($comment) => $comment->status == Comment::STATUS_PENDING));
-        }
-
-        return $this->toArray($data);
+        return $this->status === self::STATUS_PUBLISHED && $this->date < new \DateTime();
     }
 }

@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Routing\Event;
 
-use Pagekit\Routing\ResourceInterface;
 use Pagekit\Event\Event;
 use Pagekit\Event\EventSubscriberInterface;
+use Pagekit\Routing\ResourceInterface;
 use Pagekit\Routing\Route;
 use Pagekit\Routing\Routes;
 use Symfony\Component\Routing\RouteCollection;
@@ -34,7 +36,7 @@ class AliasListener implements EventSubscriberInterface
     {
         $name = $route->getName();
 
-        $aliases = array_filter($this->routes->getAliases(), fn($alias) => $name == $alias->getName() || $name == strtok($alias->getName(), '?'));
+        $aliases = array_filter($this->routes->getAliases(), fn ($alias) => $name == $alias->getName());
 
         if (!$aliases) {
             return;
@@ -44,23 +46,19 @@ class AliasListener implements EventSubscriberInterface
 
         foreach ($aliases as $alias) {
 
-            // TODO: is this still needed?
-            $params = [];
-            if ($query = substr(strstr($alias->getName(), '?'), 1)) {
-                parse_str($query, $params);
-            }
-
-            $routes->add($alias->getName(), new Route($alias->getPath(), array_merge($route->getDefaults(), $params, $alias->getDefaults(), ['_variables' => $variables])));
+            $routes->add($alias->getName(), new Route($alias->getPath(), array_merge($route->getDefaults(), $alias->getDefaults(), ['_variables' => $variables])));
         }
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, array{0: string, 1: int}>
      */
     public function subscribe(): array
     {
         return [
-            'route.configure' => ['onConfigureRoute', -16]
+            'route.configure' => ['onConfigureRoute', -16],
         ];
     }
 }

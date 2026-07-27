@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Title' => 'Başlık',
   'Theme' => 'Tema',
   'Hide Title' => 'Başlığı Gizle',
@@ -38,4 +42,4 @@
   'Written by %name% on %date%' => '%name% tarafından, %date% tarihinde yazıldı',
   'Read more' => 'Devamını oku',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Yorum yok|{1} %count% Yorum|]1,Inf[ %count% Yorum',
-);
+];

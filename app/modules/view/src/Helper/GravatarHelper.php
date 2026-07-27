@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\View\Helper;
 
 class GravatarHelper extends Helper
@@ -7,23 +9,21 @@ class GravatarHelper extends Helper
     /**
      * Get either a Gravatar URL or complete image tag for a specified email address.
      *
-     * @param  string $email  The email to be used for fetching the gravatar
-     * @param  array  $params Parameter array as follows:
-     *                        size    => Size in pixels, defaults to 80px [ 1 - 2048 ]
-     *                        default => Default imageset to use [ 404 | mm | identicon | monsterid | wavatar ]
-     *                        rating  => Maximum rating (inclusive) [ g | pg | r | x ]
-     *                        img     => True to return a complete IMG tag False for just the URL
-     *                        attrs   => Optional, additional key/value attributes to include in the IMG tag (array)
-     * @return string         Generated gravatar string (url or <img>)
+     * @param array<string, mixed> $params Parameter array as follows:
+     *                                     size    => Size in pixels, defaults to 80px [ 1 - 2048 ]
+     *                                     default => Default imageset to use [ 404 | mm | identicon | monsterid | wavatar ]
+     *                                     rating  => Maximum rating (inclusive) [ g | pg | r | x ]
+     *                                     img     => True to return a complete IMG tag False for just the URL
+     *                                     attrs   => Optional, additional key/value attributes to include in the IMG tag (array)
      */
-    public function __invoke($email, $params = [])
+    public function __invoke(string $email, array $params = []): string
     {
         $params = array_merge([
-            'size'    => 80,
+            'size' => 80,
             'default' => 'mm',
-            'rating'  => 'g',
-            'img'     => true,
-            'attrs'   => []
+            'rating' => 'g',
+            'img' => true,
+            'attrs' => [],
         ], $params);
 
         $url = sprintf('//gravatar.com/avatar/%s?s=%s&d=%s&r=%s', md5(strtolower(trim($email))), $params['size'], $params['default'], $params['rating']);
@@ -31,12 +31,12 @@ class GravatarHelper extends Helper
         if ($params['img']) {
 
             $attrs = array_merge([
-                'src'    => $url,
-                'width'  => $params['size'],
-                'height' => $params['size']
+                'src' => $url,
+                'width' => $params['size'],
+                'height' => $params['size'],
             ], $params['attrs']);
 
-            $attrs = array_map(fn($name, $value) => sprintf('%s="%s"', $name, htmlspecialchars($value)), array_keys($attrs), $attrs);
+            $attrs = array_map(fn ($name, $value) => sprintf('%s="%s"', $name, htmlspecialchars($value)), array_keys($attrs), $attrs);
 
             return '<img '.implode(' ', $attrs).'/>';
         }

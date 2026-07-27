@@ -1,39 +1,41 @@
 <?php
 
-use Twig\Environment;
-use Twig\Extension\DebugExtension;
+declare(strict_types=1);
+
 use Pagekit\Twig\TwigCache;
 use Pagekit\Twig\TwigLoader;
 use Pagekit\View\Loader\FilesystemLoader;
-use Symfony\Component\Templating\Loader\FilesystemLoader as SymfonyFilesystemLoader;
+use Twig\Environment;
+use Twig\Extension\DebugExtension;
+
 return [
 
     'name' => 'view/twig',
 
     'main' => function ($app) {
 
-        $app['twig'] = function ($app) {
+        $app->set('twig', function ($app) {
 
-            $twig = new Environment(new TwigLoader(isset($app['locator']) ? new FilesystemLoader($app['locator']) : new SymfonyFilesystemLoader([])), [
-                'cache' => new TwigCache($app['path.cache']),
+            $twig = new Environment(new TwigLoader($app->has('locator') ? new FilesystemLoader($app->get('locator')) : null), [
+                'cache' => new TwigCache($app->get('path.cache')),
                 'auto_reload' => true,
-                'debug' => $app['debug'],
+                'debug' => $app->get('debug'),
             ]);
 
-            if (isset($app['debug']) && $app['debug']) {
+            if ($app->has('debug') && $app->get('debug')) {
                 $twig->addExtension(new DebugExtension());
             }
 
             return $twig;
 
-         };
+        });
 
     },
 
     'autoload' => [
 
-        'Pagekit\\Twig\\' => 'src'
+        'Pagekit\\Twig\\' => 'src',
 
-    ]
+    ],
 
 ];

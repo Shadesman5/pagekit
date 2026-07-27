@@ -1,51 +1,62 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Database\ORM;
 
 use Doctrine\DBAL\Types\Type;
-use Pagekit\Database\ORM\MetadataManager;
 
 class Metadata
 {
     protected MetadataManager $manager;
 
+    /** @var class-string */
     protected string $class;
 
     protected string $table;
 
     protected string $identifier = '';
 
+    /** @var array<string, array<string, mixed>> */
     protected array $fields = [];
 
+    /** @var array<string, string> */
     protected array $fieldNames = [];
 
+    /** @var array<string, array<string, mixed>> */
     protected array $relations = [];
 
     protected bool $isMappedSuperclass = false;
 
+    /** @var array<string, array<int, string>> */
     protected array $events = [];
 
     protected string $eventPrefix = '';
 
+    /** @var \ReflectionClass<object>|null */
     protected ?\ReflectionClass $reflClass = null;
+
+    /** @var array{relations: list<string>, fieldTypes: array<string, string>}|null */
+    protected ?array $serializationMap = null;
 
     /**
      * Constructor.
      *
-     * @param MetadataManager $manager
-     * @param string          $class
-     * @param array           $config
+     * @param class-string         $class
+     * @param array<string, mixed> $config
      */
-    public function __construct($manager, $class, array $config = [])
+    public function __construct(MetadataManager $manager, string $class, array $config = [])
     {
         $this->manager = $manager;
-        $this->class   = $class;
+        $this->class = $class;
 
         $this->setConfig($config);
     }
 
     /**
      * Gets name of the entity class.
+     *
+     * @return class-string
      */
     public function getClass(): string
     {
@@ -54,6 +65,8 @@ class Metadata
 
     /**
      * Gets the entity's reflection class.
+     *
+     * @return \ReflectionClass<object>
      */
     public function getReflectionClass(): \ReflectionClass
     {
@@ -74,30 +87,30 @@ class Metadata
 
     /**
      * Gets the field or column name of the identifier.
-     *
-     * @param  bool $column
      */
-    public function getIdentifier($column = false): ?string
+    public function getIdentifier(bool $column = false): ?string
     {
         return $column ? $this->fieldNames[$this->identifier] : $this->identifier;
     }
 
     /**
-     * Gets a field's mapping definitions.
+     * Gets a field's mapping definitions, or a single attribute thereof.
      *
-     * @param  string $name
-     * @param  string $attribute
-     * @return array|null
+     * @return array<string, mixed>|mixed|null Field mapping (when $attribute is null), the attribute value (when $attribute is set), or null when the field is unknown. Genuinely unknown type for the attribute value — field attributes are user-defined and may be any scalar or array.
      */
-    public function getField($name, $attribute = null)
+    public function getField(string $name, ?string $attribute = null): mixed
     {
         if (isset($this->fields[$name])) {
             return $attribute !== null ? $this->fields[$name][$attribute] : $this->fields[$name];
         }
+
+        return null;
     }
 
     /**
      * Gets all field mapping definitions.
+     *
+     * @return array<string, array<string, mixed>>
      */
     public function getFields(): array
     {
@@ -106,6 +119,8 @@ class Metadata
 
     /**
      * Gets all relation mappings of the class.
+     *
+     * @return array<string, array<string, mixed>>
      */
     public function getRelationMappings(): array
     {
@@ -115,16 +130,42 @@ class Metadata
     /**
      * Gets the mapping of a relation.
      *
-     * @param  string $name
+     * @return array<string, mixed>
      * @throws \Exception If no mapping is found for relation.
      */
-    public function getRelationMapping($name): array
+    public function getRelationMapping(string $name): array
     {
         if (!isset($this->relations[$name])) {
             throw new \Exception(sprintf("No mapping found for relation '%s' on class '%s'.", $name, $this->class));
         }
 
         return $this->relations[$name];
+    }
+
+    /**
+     * Gets the lazily-computed serialization map used by entity `toArray()`.
+     *
+     * Returns plain arrays only — deliberately not a live {@see Metadata}
+     * reference — so an entity that stores the map stays safe to `serialize()`
+     * and does not drag a Connection into the cache.
+     *
+     * @return array{relations: list<string>, fieldTypes: array<string, string>}
+     */
+    public function getSerializationMap(): array
+    {
+        if ($this->serializationMap === null) {
+            $fieldTypes = [];
+            foreach ($this->fields as $name => $field) {
+                $fieldTypes[$name] = (string) $field['type'];
+            }
+
+            $this->serializationMap = [
+                'relations' => array_keys($this->relations),
+                'fieldTypes' => $fieldTypes,
+            ];
+        }
+
+        return $this->serializationMap;
     }
 
     /**
@@ -142,9 +183,9 @@ class Metadata
      * @param  string $name
      * @param  bool   $column
      * @param  bool   $convert
-     * @return mixed
+     * @return mixed Genuinely unknown type — entity field values may be any type: int, string, DateTime, bool, or null depending on the mapped field type.
      */
-    public function getValue($entity, $name, $column = false, $convert = false)
+    public function getValue(object $entity, string $name, bool $column = false, bool $convert = false): mixed
     {
         if ($column && isset($this->fieldNames[$name])) {
             $name = $this->fieldNames[$name];
@@ -172,7 +213,7 @@ class Metadata
      * @param bool   $column
      * @param bool   $convert
      */
-    public function setValue($entity, $name, $value, $column = false, $convert = false): void
+    public function setValue(object $entity, string $name, mixed $value, bool $column = false, bool $convert = false): void
     {
         if ($column && isset($this->fieldNames[$name])) {
             $name = $this->fieldNames[$name];
@@ -192,16 +233,14 @@ class Metadata
     /**
      * Gets all field values. The column parameter determines if the array keys are column names.
      *
-     * @param  mixed $entity
-     * @param  bool  $column
-     * @param  bool  $convert
+     * @return array<string, mixed>
      */
-    public function getValues($entity, $column = false, $convert = false): array
+    public function getValues(object $entity, bool $column = false, bool $convert = false): array
     {
         $data = [];
 
         foreach ($this->fields as $name => $field) {
-            $key        = $column ? $field['column'] : $name;
+            $key = $column ? $field['column'] : $name;
             $data[$key] = $this->getValue($entity, $name, false, $convert);
         }
 
@@ -211,12 +250,9 @@ class Metadata
     /**
      * Sets multiple field values. The column parameter determines if the array keys are column names.
      *
-     * @param  mixed $entity
-     * @param  array $values
-     * @param  bool  $column
-     * @param  bool  $convert
+     * @param array<string, mixed> $values
      */
-    public function setValues($entity, array $values, $column = false, $convert = false): void
+    public function setValues(object $entity, array $values, bool $column = false, bool $convert = false): void
     {
         foreach ($values as $name => $value) {
             $this->setValue($entity, $name, $value, $column, $convert);
@@ -225,6 +261,8 @@ class Metadata
 
     /**
      * Gets the events.
+     *
+     * @return array<string, array<int, string>>
      */
     public function getEvents(): array
     {
@@ -249,6 +287,8 @@ class Metadata
 
     /**
      * Gets the config values.
+     *
+     * @return array<string, mixed>
      */
     public function getConfig(): array
     {
@@ -259,14 +299,14 @@ class Metadata
             'fields' => $this->fields,
             'isMappedSuperclass' => $this->isMappedSuperclass,
             'relations' => $this->relations,
-            'table' => $this->table
+            'table' => $this->table,
         ];
     }
 
     /**
      * Sets the config values and creates the reflection objects.
      *
-     * @param array $config
+     * @param array<string, mixed> $config
      */
     protected function setConfig(array $config): void
     {
@@ -290,7 +330,7 @@ class Metadata
     /**
      * Validate a field mapping.
      *
-     * @param  array $field
+     * @param array<string, mixed> $field
      * @throws \Exception
      */
     protected function validateField(array &$field): void
@@ -330,7 +370,7 @@ class Metadata
     /**
      * Validate a relation mapping.
      *
-     * @param  array $relation
+     * @param array<string, mixed> $relation
      * @throws \Exception
      */
     protected function validateRelation(array &$relation): void

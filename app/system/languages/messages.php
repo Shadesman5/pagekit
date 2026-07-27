@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // Numbers
 __('1');
 __('2');

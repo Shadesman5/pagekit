@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Filter by' => 'Hidlo yn ôl',
   'Thank you! Your comment needs approval before showing up.' => 'Diolch! Bydd angen cymeradwyo eich sylw cyn y caiff ei arddangos.',
   'Unable to comment. Please try again later.' => 'Methu postio\'r sylw. Rhowch gynnig arall arni yn nes ymlaen os gwelwch yn dda.',
@@ -94,4 +98,4 @@
   'Written by %name% on %date%' => 'Ysgrifennwyd gan %name% ar %date%',
   'Read more' => 'Darllen mwy',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Dim sylw|{1} %count% Sylw|]1,Inf[ %count% Sylw',
-);
+];

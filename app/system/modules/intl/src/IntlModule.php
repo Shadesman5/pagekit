@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Intl;
 
 use Pagekit\Application as App;
@@ -14,25 +16,32 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 class IntlModule extends Module
 {
+    protected ?App $app = null;
+
     /**
-     * {@inheritdoc}
+     * @return mixed Genuinely unknown type — overrides Module::main(); the return value is not consumed by the framework (inherited contract from ModuleInterface).
      */
-    public function main(App $app): void
+    public function main(App $app): mixed
     {
-        $app['translator'] = function () {
+        $this->app = $app;
+        // Load translation functions
+        require_once __DIR__ . '/../functions.php';
+        require_once __DIR__ . '/../functions-pagekit-namespace.php';
+
+        $app->set('translator', function () {
 
             $translator = new Translator($this->getLocale());
             $translator->addLoader('php', new PhpFileLoader());
             $translator->addLoader('mo', new MoFileLoader());
-            $translator->addLoader('po', new PoFileLoader);
-            $translator->addLoader('array', new ArrayLoader);
+            $translator->addLoader('po', new PoFileLoader());
+            $translator->addLoader('array', new ArrayLoader());
 
             $this->loadLocale($this->getLocale(), $translator);
 
             return $translator;
-        };
+        });
 
-        require __DIR__.'/../functions.php';
+        return null;
     }
 
     /**
@@ -63,8 +72,10 @@ class IntlModule extends Module
 
     /**
      * Gets the system's available languages.
+     *
+     * @return array<string, string>
      */
-    public function getAvailableLanguages($locale = null): array
+    public function getAvailableLanguages(?string $locale = null): array
     {
         $languages = $this->getLanguages($locale);
         $territories = $this->getTerritories();
@@ -93,8 +104,8 @@ class IntlModule extends Module
     /**
      * Gets the languages list.
      *
-     * @param  string $locale
-     * @return array|null
+     * @param  string|null $locale
+     * @return array<string, string>|null
      */
     public function getLanguages($locale = null): ?array
     {
@@ -104,8 +115,8 @@ class IntlModule extends Module
     /**
      * Gets the territories list.
      *
-     * @param  string $locale
-     * @return array|null
+     * @param  string|null $locale
+     * @return array<string, string>|null
      */
     public function getTerritories($locale = null): ?array
     {
@@ -115,7 +126,8 @@ class IntlModule extends Module
     /**
      * Gets the continents list.
      *
-     * @param  string $locale
+     * @param  string|null $locale
+     * @return array<string, string>
      */
     public function getContinents($locale = null): array
     {
@@ -125,7 +137,8 @@ class IntlModule extends Module
     /**
      * Gets the subcontinents list.
      *
-     * @param  string $locale
+     * @param  string|null $locale
+     * @return array<string, string>
      */
     public function getSubContinents($locale = null): array
     {
@@ -135,7 +148,8 @@ class IntlModule extends Module
     /**
      * Gets the countries list.
      *
-     * @param  string $locale
+     * @param  string|null $locale
+     * @return array<string, string>
      */
     public function getCountries($locale = null): array
     {
@@ -145,12 +159,43 @@ class IntlModule extends Module
     /**
      * Gets the locales formats data.
      *
-     * @param  string $locale
-     * @return array|null
+     * @param  string|null $locale
+     * @return array<string, mixed>|null
      */
     public function getFormats($locale = null): ?array
     {
         return $this->getData('formats', $locale);
+    }
+
+    /**
+     * Formats a number according to the given style using PHP's intl extension.
+     *
+     * @param string $style   'decimal'|'currency'|'percent'|'spellout'|'ordinal'|'scientific'
+     * @param string $pattern Optional NumberFormatter pattern (e.g. '#,##0.##')
+     */
+    public function formatNumber(int|float $number, string $style = 'decimal', string $pattern = '', ?string $locale = null): string
+    {
+        $locale ??= $this->getLocale();
+
+        $styleConstant = match (strtolower($style)) {
+            'currency' => \NumberFormatter::CURRENCY,
+            'percent' => \NumberFormatter::PERCENT,
+            'spellout' => \NumberFormatter::SPELLOUT,
+            'ordinal' => \NumberFormatter::ORDINAL,
+            'duration' => \NumberFormatter::DURATION,
+            'scientific' => \NumberFormatter::SCIENTIFIC,
+            default => \NumberFormatter::DECIMAL,
+        };
+
+        $formatter = new \NumberFormatter($locale, $styleConstant);
+
+        if ($pattern !== '') {
+            $formatter->setPattern($pattern);
+        }
+
+        $result = $formatter->format($number);
+
+        return $result !== false ? $result : (string) $number;
     }
 
     /**
@@ -161,9 +206,9 @@ class IntlModule extends Module
      */
     public function loadLocale($locale, ?TranslatorInterface $translator = null): void
     {
-        $translator = $translator ?: App::translator();
+        $translator = $translator ?: $this->getApp()->get('translator');
 
-        foreach (App::module() as $module) {
+        foreach ($this->getApp()->get('module') as $module) {
 
             $domains = [];
             $path = $module->get('path').($module->get('languages') ?: '/languages');
@@ -171,7 +216,7 @@ class IntlModule extends Module
 
             foreach ($files as $file) {
 
-                $format = substr(strrchr($file, '.'), 1);
+                $format = pathinfo($file, PATHINFO_EXTENSION);
                 $domain = basename($file, '.'.$format);
 
                 if (in_array($domain, $domains)) {
@@ -185,7 +230,10 @@ class IntlModule extends Module
         }
     }
 
-    protected function getTerritoryContainment($level = 1, $locale = null): array
+    /**
+     * @return array<string, string>
+     */
+    protected function getTerritoryContainment(int $level = 1, ?string $locale = null): array
     {
         static $tree;
 
@@ -217,16 +265,17 @@ class IntlModule extends Module
             foreach ($node as $child) {
                 $result += $getLevel($child, $depth + 1);
             }
+
             return $result;
         };
 
-        return array_intersect_key($this->getTerritories($locale), $getLevel($tree['001']));
+        return array_intersect_key($this->getTerritories($locale) ?? [], $getLevel($tree['001']));
     }
 
     /**
      * @param  string      $name
      * @param  string|null $locale
-     * @return array|null
+     * @return array<string, mixed>|null
      */
     protected function getData($name, $locale = null): ?array
     {
@@ -241,7 +290,7 @@ class IntlModule extends Module
 
     /**
      * @param  string $name
-     * @return array|null
+     * @return array<string, mixed>|null
      */
     protected function getGeneric($name): ?array
     {
@@ -250,16 +299,33 @@ class IntlModule extends Module
 
     /**
      * @param  string $file
-     * @return array|null
+     * @return array<string, mixed>|null
      */
     protected function parse($file): ?array
     {
         static $data = [];
 
         if (!isset($data[$file])) {
-            $data[$file] = ($file = App::locator()->get($file)) ? json_decode(file_get_contents($file), true) : null;
+            $resolved = $this->getApp()->get('locator')->get($file);
+            if ($resolved && ($contents = file_get_contents($resolved)) !== false) {
+                $data[$file] = json_decode($contents, true);
+            } else {
+                $data[$file] = null;
+            }
         }
 
         return $data[$file];
+    }
+
+    /**
+     * Returns the application instance, asserting main() has been called.
+     */
+    private function getApp(): App
+    {
+        if ($this->app === null) {
+            throw new \LogicException('IntlModule::main() has not been called yet.');
+        }
+
+        return $this->app;
     }
 }

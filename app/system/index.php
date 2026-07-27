@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Installer\Package\PackageScripts;
 use Pagekit\Kernel\Event\ExceptionListener;
 
@@ -17,6 +19,7 @@ return [
         'feed',
         'markdown',
         'installer',
+        'migration',
         'system/captcha',
         'system/view',
         'system/widget',
@@ -32,7 +35,7 @@ return [
         'system/settings',
         'system/site',
         'system/theme',
-        'system/user'
+        'system/user',
 
     ],
 
@@ -40,18 +43,18 @@ return [
 
         '/' => [
             'name' => '@system',
-            'controller' => 'Pagekit\\System\\Controller\\AdminController'
+            'controller' => 'Pagekit\\System\\Controller\\AdminController',
         ],
         '/system/migration' => [
             'name' => '@system/migration',
-            'controller' => 'Pagekit\\System\\Controller\\MigrationController'
-        ]
+            'controller' => 'Pagekit\\System\\Controller\\MigrationController',
+        ],
 
     ],
 
     'resources' => [
 
-        'system:' => ''
+        'system:' => '',
 
     ],
 
@@ -60,19 +63,19 @@ return [
         'site' => [
 
             'theme' => null,
-            'locale' => 'en_US'
+            'locale' => 'en_US',
 
         ],
 
         'admin' => [
 
-            'locale' => 'en_US'
+            'locale' => 'en_US',
 
         ],
 
         'extensions' => [],
 
-        'packages' => []
+        'packages' => [],
 
     ],
 
@@ -80,11 +83,15 @@ return [
 
         'boot' => function ($event, $app) {
 
-            if (!$app['debug']) {
-                $app->subscribe(new ExceptionListener('Pagekit\System\Controller\ExceptionController::showAction'));
-            }
+            // Symfony Validator with Translator integration ('validators' domain).
+            // Translator is registered in IntlModule::main() (container phase); validator resolves it lazily.
+            \Pagekit\System\ValidatorServiceProvider::register($app);
 
-            $app['db.em']; // -TODO- fix me
+            \Pagekit\System\Validator\Constraints\UniqueValidator::setDb($app->get('db'));
+
+            if (!$app->get('debug')) {
+                $app->get('events')->subscribe(new ExceptionListener('Pagekit\System\Controller\ExceptionController::showAction'));
+            }
 
         },
 
@@ -96,8 +103,8 @@ return [
                     return;
                 }
 
-                $app['isAdmin'] = $admin = (bool) preg_match('#^/admin(/?$|/.+)#', $request->getPathInfo());
-                $app->module('system/intl')->setLocale($this->config($admin ? 'admin.locale' : 'site.locale'));
+                $app->set('isAdmin', $admin = (bool) preg_match('#^/admin(/?$|/.+)#', $request->getPathInfo()));
+                $app->get('module')->get('system/intl')->setLocale($this->config($admin ? 'admin.locale' : 'site.locale'));
 
             }, 150],
 
@@ -107,38 +114,40 @@ return [
                     return;
                 }
 
-                $app->trigger($app->isAdmin() ? 'admin' : 'site', [$app]);
+                $app->get('events')->trigger($app->get('isAdmin') ? 'admin' : 'site', [$app]);
 
-            }]
+            }],
 
         ],
 
         'auth.login' => [function ($event) use ($app) {
-            if ($event->getUser()->hasAccess('system: software updates') && version_compare($this->config('version'), $app->version(), '<')) {
+            if ($event->getUser()->hasAccess('system: software updates') && version_compare($this->config('version'), $app->get('version'), '<')) {
 
-                $scripts = new PackageScripts($this->path . '/scripts.php', $this->config('version'));
+                $scripts = new PackageScripts($this->path . '/scripts.php', $this->config('version'), $app);
+                $migrationStatus = $app->has('migration') ? $app->get('migration')->status() : ['success' => true, 'has_pending' => false];
+                $hasPendingMigrations = !($migrationStatus['success'] ?? false) || ($migrationStatus['has_pending'] ?? false);
 
-                if ($scripts->hasUpdates()) {
-                    $event->setResponse($app['response']->redirect('@system/migration', ['redirect' => $app['url']->getRoute('@system')]));
+                if ($scripts->hasUpdates() || $hasPendingMigrations) {
+                    $event->setResponse($app->get('response')->redirect('@system/migration', ['redirect' => $app->get('url')->getRoute('@system')]));
                 } else {
-                    $app->config('system')->set('version', $app->version());
+                    $app->get('config')('system')->set('version', $app->get('version'));
                 }
             }
         }, 8],
 
         'view.init' => function ($event, $view) use ($app) {
-            $theme = $app->isAdmin() ? $app->module('system/theme') : $app['theme'];
+            $theme = $app->get('isAdmin') ? $app->get('module')->get('system/theme') : $app->get('theme');
             $view->map('layout', $theme->get('layout', 'views:template.php'));
-            $view->addGlobal('theme', $app['theme']);
+            $view->addGlobal('theme', $app->get('theme'));
         },
 
         'view.messages' => function ($event) use ($app) {
 
             $result = '';
 
-            if ($app['message']->peekAll()) {
-                foreach ($app['message']->levels() as $level) {
-                    if ($messages = $app['message']->get($level)) {
+            if ($app->get('message')->peekAll()) {
+                foreach ($app->get('message')->levels() as $level) {
+                    if ($messages = $app->get('message')->get($level)) {
                         foreach ($messages as $message) {
                             $result .= sprintf('<div class="uk-alert uk-alert-%1$s" data-status="%1$s">%2$s</div>', $level == 'error' ? 'danger' : $level, $message);
                         }
@@ -154,14 +163,14 @@ return [
             if ($meta->get('title')) {
                 $title[] = $meta->get('title');
             }
-            $title[] = $app->config('system/site')->get('title');
-            if ($app->request()->getPathInfo() === '/') {
+            $title[] = $app->get('config')('system/site')->get('title');
+            if ($app->get('request')->getPathInfo() === '/') {
                 $title = array_reverse($title);
             }
 
             $meta->add('title', implode(' | ', $title));
-        }, -50]
+        }, -50],
 
-    ]
+    ],
 
 ];

@@ -9,14 +9,18 @@ $finder = PhpCsFixer\Finder::create()
         'app/assets',
         'node_modules',
         'docker',
-        'packages'
     ])
     ->name('*.php')
-    ->notName('*.blade.php');
+    ->notName('*.blade.php')
+    // Match only root-level runtime config.php (gitignored), NOT tracked
+    // app/system/config.php or app/installer/config.php. The anchored regex
+    // is required: notPath('config.php') would be treated as a substring
+    // match by Symfony Finder and silently exclude the tracked files too.
+    ->notPath('/^config\.php$/');
 
 $config = new PhpCsFixer\Config();
 return $config->setRules([
-        '@PSR2' => true,
+        '@PSR12' => true,
         'array_syntax' => ['syntax' => 'short'],
         'ordered_imports' => ['sort_algorithm' => 'alpha'],
         'no_unused_imports' => true,
@@ -36,6 +40,7 @@ return $config->setRules([
         ],
         // Moderate Modernisierungen (nicht zu aggressiv)
         'modernize_types_casting' => true,
-        'no_unneeded_control_parentheses' => true
+        'no_unneeded_control_parentheses' => true,
+        'declare_strict_types' => true,
     ])
     ->setFinder($finder);

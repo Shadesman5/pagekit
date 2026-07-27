@@ -1,4 +1,5 @@
-<?php $view->script('widget-edit', 'system/widget:app/bundle/edit.js', ['widgets', 'editor', 'input-tree']) ?>
+<?php declare(strict_types=1);
+$view->script('widget-edit', 'system/widget:app/bundle/edit.js', ['widgets', 'editor', 'input-tree']) ?>
 
 <validation-observer tag="form" id="widget-edit" ref="observer" @submit.prevent="submit" v-cloak>
 

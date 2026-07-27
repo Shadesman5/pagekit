@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Filter;
 
 class FilterChain implements \Countable, FilterInterface
@@ -7,10 +9,12 @@ class FilterChain implements \Countable, FilterInterface
     /**
      * Default priority at which filters are added
      */
-    const DEFAULT_PRIORITY = 1000;
+    public const DEFAULT_PRIORITY = 1000;
 
     /**
      * Filter chain
+     *
+     * @var \SplPriorityQueue<int, callable>
      */
     protected \SplPriorityQueue $filters;
 
@@ -19,7 +23,7 @@ class FilterChain implements \Countable, FilterInterface
      */
     public function __construct()
     {
-        $this->filters = new \SplPriorityQueue;
+        $this->filters = new \SplPriorityQueue();
     }
 
     /**
@@ -33,11 +37,11 @@ class FilterChain implements \Countable, FilterInterface
     /**
      * Attach a filter to the chain
      *
-     * @param  callable|FilterInterface $callback
-     * @param  int $priority
+     * @param callable|FilterInterface $callback
+     *
      * @throws \InvalidArgumentException
      */
-    public function attach($callback, $priority = self::DEFAULT_PRIORITY): self
+    public function attach($callback, int $priority = self::DEFAULT_PRIORITY): self
     {
         if (!is_callable($callback)) {
             if (!$callback instanceof FilterInterface) {
@@ -66,6 +70,8 @@ class FilterChain implements \Countable, FilterInterface
 
     /**
      * Get all the filters.
+     *
+     * @return \SplPriorityQueue<int, callable>
      */
     public function getFilters(): \SplPriorityQueue
     {
@@ -75,10 +81,10 @@ class FilterChain implements \Countable, FilterInterface
     /**
      * Returns $value filtered through each filter in the chain.
      *
-     * @param  mixed $value
-     * @return mixed
+     * @param  mixed $value Genuinely unknown type — each chained filter may transform the value to a different type.
+     * @return mixed Genuinely unknown type — the output type depends on the last filter in the chain.
      */
-    public function filter($value)
+    public function filter(mixed $value): mixed
     {
         $chain = clone $this->filters;
 

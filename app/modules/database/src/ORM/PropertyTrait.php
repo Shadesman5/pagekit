@@ -1,19 +1,36 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Database\ORM;
 
 trait PropertyTrait
 {
+    /** @var array<string, array<string, mixed>> */
     protected static array $_properties = [];
+
+    /**
+     * Per-instance transient values for descriptor properties: overrides set via
+     * a `set: true` descriptor and the snapshot frozen by {@see __clone()}. Held
+     * here instead of as real (dynamic) properties, whose creation PHP 8.2+
+     * deprecates. The `_` prefix keeps it out of {@see ModelTrait::toArray()}.
+     *
+     * @var array<string, mixed>
+     */
+    private array $_transient = [];
 
     /**
      * Gets an object property.
      *
      * @param  string $name
-     * @return mixed
+     * @return mixed Genuinely unknown type — virtual properties are defined by consumer classes via descriptors; the accessor callable may return any type (int, string, object, etc.).
      */
-    public function __get($name)
+    public function __get(string $name): mixed
     {
+        if (array_key_exists($name, $this->_transient)) {
+            return $this->_transient[$name];
+        }
+
         if ($descriptor = static::getPropertyDescriptor($name)) {
 
             $get = $descriptor['get'];
@@ -29,6 +46,8 @@ trait PropertyTrait
         } else {
 
             trigger_error(sprintf('Undefined property: %s::$%s', __CLASS__, $name), E_USER_NOTICE);
+
+            return null;
         }
     }
 
@@ -38,7 +57,7 @@ trait PropertyTrait
      * @param string $name
      * @param mixed  $value
      */
-    public function __set($name, $value)
+    public function __set(string $name, mixed $value): void
     {
         if ($descriptor = static::getPropertyDescriptor($name)) {
 
@@ -53,7 +72,7 @@ trait PropertyTrait
             if (is_callable($set)) {
                 call_user_func($set, $value);
             } elseif ($set === true) {
-                $this->$name = $value;
+                $this->_transient[$name] = $value;
             }
 
         } else {
@@ -65,9 +84,10 @@ trait PropertyTrait
     /**
      * Clones the object properties.
      */
-    public function __clone() {
+    public function __clone()
+    {
         foreach (array_keys(static::$_properties) as $name) {
-            $this->$name = $this->__get($name);
+            $this->_transient[$name] = $this->__get($name);
         }
     }
 
@@ -77,7 +97,7 @@ trait PropertyTrait
      * @param  string $name
      * @return bool
      */
-    public function __isset($name)
+    public function __isset(string $name): bool
     {
         return isset(static::$_properties[$name]);
     }
@@ -85,9 +105,19 @@ trait PropertyTrait
     /**
      * Gets all object properties.
      *
-     * @param  mixed $object
+     * Consumers may declare a `protected static array $properties` map of
+     * virtual property names to accessor methods; this trait does not declare
+     * the field itself, so we look it up dynamically via reflection to remain
+     * compatible with both consumer shapes (with and without the map).
+     * `ReflectionClass::getStaticProperties()` returns the current runtime
+     * value of static properties (unlike `get_class_vars()`, which only
+     * returns declared defaults), preserving consumer-side runtime mutations.
+     * PHPStan cannot statically type-narrow `static::$properties` from a
+     * trait that does not own the property, hence this reflection lookup.
+     *
+     * @return array<string, mixed>
      */
-    public static function getProperties($object): array
+    public static function getProperties(object $object): array
     {
         $properties = get_object_vars($object);
 
@@ -95,8 +125,9 @@ trait PropertyTrait
             $properties[$name] = $object->$name;
         }
 
-        if (isset(static::$properties)) {
-            foreach (array_keys(array_diff_key(static::$properties, $properties)) as $name) {
+        $staticProperties = (new \ReflectionClass(static::class))->getStaticProperties();
+        if (isset($staticProperties['properties']) && is_array($staticProperties['properties'])) {
+            foreach (array_keys(array_diff_key($staticProperties['properties'], $properties)) as $name) {
                 $properties[$name] = $object->$name;
             }
         }
@@ -107,11 +138,11 @@ trait PropertyTrait
     /**
      * Defines an object property.
      *
-     * @param  string                $name
-     * @param  string|callable|array $get
-     * @param  string|callable|bool  $set
+     * @param  string|callable|array<string, mixed> $get
+     * @param  string|callable|bool|null            $set
+     * @return array<string, mixed>
      */
-    public static function defineProperty($name, $get, $set = null): array
+    public static function defineProperty(string $name, mixed $get, mixed $set = null): array
     {
         $descriptor = is_array($get) ? $get : compact('get', 'set');
 
@@ -131,17 +162,22 @@ trait PropertyTrait
     /**
      * Gets an object property descriptor.
      *
-     * @param  string $name
-     * @return array
+     * See {@see getProperties()} for the reasoning behind the reflection
+     * lookup of the optional consumer-declared `$properties` map.
+     *
+     * @return array<string, mixed>|null
      */
-    protected static function getPropertyDescriptor($name)
+    protected static function getPropertyDescriptor(string $name): ?array
     {
         if (isset(static::$_properties[$name])) {
             return static::$_properties[$name];
         }
 
-        if (isset(static::$properties, static::$properties[$name])) {
-            return static::defineProperty($name, static::$properties[$name]);
+        $staticProperties = (new \ReflectionClass(static::class))->getStaticProperties();
+        if (isset($staticProperties['properties']) && is_array($staticProperties['properties']) && isset($staticProperties['properties'][$name])) {
+            return static::defineProperty($name, $staticProperties['properties'][$name]);
         }
+
+        return null;
     }
 }

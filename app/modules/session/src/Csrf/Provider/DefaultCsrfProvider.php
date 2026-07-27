@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Session\Csrf\Provider;
 
 class DefaultCsrfProvider implements CsrfProviderInterface
@@ -8,28 +10,17 @@ class DefaultCsrfProvider implements CsrfProviderInterface
 
     protected ?string $token = null;
 
-    /**
-     * Constructor.
-     *
-     * @param string $name
-     */
-    public function __construct($name = '_csrf')
+    public function __construct(string $name = '_csrf')
     {
         $this->name = $name;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function generate(): string
     {
         return sha1($this->getSessionId().$this->getSessionToken());
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function validate($token = null): bool
+    public function validate(?string $token = null): bool
     {
         if ($token === null) {
             $token = $this->token;
@@ -38,10 +29,7 @@ class DefaultCsrfProvider implements CsrfProviderInterface
         return $token === $this->generate();
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function setToken($token): void
+    public function setToken(?string $token): void
     {
         $this->token = $token;
     }
@@ -51,11 +39,17 @@ class DefaultCsrfProvider implements CsrfProviderInterface
      */
     protected function getSessionId(): string
     {
-        if (!session_id()) {
+        $id = session_id();
+        if ($id === false || $id === '') {
             session_start();
+            $id = session_id();
         }
 
-        return session_id();
+        if ($id === false) {
+            throw new \RuntimeException('Unable to determine session id; sessions are disabled in this PHP configuration.');
+        }
+
+        return $id;
     }
 
     /**
@@ -63,8 +57,8 @@ class DefaultCsrfProvider implements CsrfProviderInterface
      */
     protected function getSessionToken(): string
     {
-        if (!isset($_SESSION[$this->name])) {
-            $_SESSION[$this->name] = sha1(uniqid(rand(), true));
+        if (!isset($_SESSION[$this->name]) || !is_string($_SESSION[$this->name])) {
+            $_SESSION[$this->name] = sha1(uniqid((string) rand(), true));
         }
 
         return $_SESSION[$this->name];

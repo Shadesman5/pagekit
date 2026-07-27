@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Console\Commands;
 
 use Composer\Json\JsonFile;
@@ -16,12 +18,12 @@ class ArchiveCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected $name = 'archive';
+    protected ?string $name = 'archive';
 
     /**
      * {@inheritdoc}
      */
-    protected $description = 'Archives an extension or theme';
+    protected string $description = 'Archives an extension or theme';
 
     /**
      * {@inheritdoc}
@@ -29,7 +31,7 @@ class ArchiveCommand extends Command
     protected function configure(): void
     {
         $this->addArgument('name', InputArgument::REQUIRED, 'Package name');
-        $this->addOption('dir', false, InputOption::VALUE_OPTIONAL, 'Write the archive to this directory');
+        $this->addOption('dir', null, InputOption::VALUE_OPTIONAL, 'Write the archive to this directory');
     }
 
     /**
@@ -38,10 +40,14 @@ class ArchiveCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $filesystem = new Filesystem();
-        $packageName = $this->getPackageFilename($name = $this->argument('name'));
+        $name = $this->argument('name');
+        if (!is_string($name)) {
+            throw new \LogicException('Argument "name" must be a string.');
+        }
+        $packageName = $this->getPackageFilename($name);
 
         if (!($targetDir = $this->option('dir'))) {
-            $targetDir = $this->container->path();
+            $targetDir = $this->container->get('path');
         }
 
         $sourcePath = $this->container->get('path.packages').'/'.$name;
@@ -73,11 +79,12 @@ class ArchiveCommand extends Command
         $filesystem->ensureDirectoryExists(dirname($tempTarget));
 
         if (!is_dir($sourcePath)) {
-            $this->error(sprintf('Package \'%s\' doesn\'t exist.', $this->argument('name')));
+            $this->error(sprintf('Package \'%s\' doesn\'t exist.', $name));
+
             return 1;
         }
 
-        $this->info(sprintf('Archiving \'%s\'', $this->argument('name')));
+        $this->info(sprintf('Archiving \'%s\'', $name));
 
         $archivePath = (new PharArchiver())->archive($sourcePath, $tempTarget, 'zip', $excludes);
         rename($archivePath, $target);
@@ -87,13 +94,18 @@ class ArchiveCommand extends Command
         $name = basename($target);
         $size = filesize($target) / 1024 / 1024;
 
-        //TODO: Callback. Prev - return $target;
-        return (int) $this->line(sprintf('Archive created: %s (%.2f MB)', $name, $size));
+        $this->line(sprintf('Archive created: %s (%.2f MB)', $name, $size));
+
+        return Command::SUCCESS;
     }
 
-    protected function getPackageFilename($name)
+    protected function getPackageFilename(string $name): string
     {
-        // TODO: Make this more robust.
-        return preg_replace('#[^a-z0-9-_]#i', '-', $name);
+        $filename = preg_replace('#[^a-z0-9-_]#i', '-', $name) ?? $name;
+        $filename = preg_replace('#-+#', '-', $filename) ?? $filename;
+        $filename = trim($filename, '-');
+
+        // Guard against a name that sanitises down to nothing (e.g. "///").
+        return $filename !== '' ? $filename : 'package';
     }
 }

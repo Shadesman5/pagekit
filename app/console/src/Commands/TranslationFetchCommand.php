@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Console\Commands;
 
 use Pagekit\Application\Console\Command;
@@ -11,12 +13,12 @@ class TranslationFetchCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected $name = 'translation:fetch';
+    protected ?string $name = 'translation:fetch';
 
     /**
      * {@inheritdoc}
      */
-    protected $description = 'Fetches current translation files from languages repository';
+    protected string $description = 'Fetches current translation files from languages repository';
 
     /**
      * {@inheritdoc}
@@ -29,13 +31,13 @@ class TranslationFetchCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected function execute(InputInterface $input, OutputInterface $output): void
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $tmp  = '/tmp/pagekit-languages';
+        $tmp = '/tmp/pagekit-languages';
         $repo = 'git@github.com:pagekit/languages.git';
 
         // if cloned repo exists? rm
-        if(file_exists($tmp)) {
+        if (file_exists($tmp)) {
             exec(sprintf('rm -rf %s', $tmp));
         }
 
@@ -49,7 +51,7 @@ class TranslationFetchCommand extends Command
         foreach ($resources as $resource) {
             $from = sprintf("%s/%s/*", $tmp, $resource);
 
-            if($to = $this->getPath($resource)) {
+            if ($to = $this->getPath($resource)) {
 
                 $this->info("[{$resource}] Moving languages files to: ".$to);
                 exec(sprintf('rsync -av %s %s', $from, $to));
@@ -63,26 +65,27 @@ class TranslationFetchCommand extends Command
 
         // rm git repo from tmp
         exec(sprintf('rm -rf %s', $tmp));
+
+        return Command::SUCCESS;
     }
 
 
     /**
      * Returns the extension path.
-     *
-     * @param $resource
-     * @return string|boolean
      */
-    protected function getPath($resource)
+    protected function getPath(string $resource): string|false
     {
         $vendor = 'pagekit';
 
         if ($resource == "system") {
-            $path = sprintf('%s/app/system', $this->container['path']);
+            $path = sprintf('%s/app/system', $this->container->get('path'));
         } else {
-            $path = sprintf('%s/%s/%s',
-                $this->container['path.packages'],
+            $path = sprintf(
+                '%s/%s/%s',
+                $this->container->get('path.packages'),
                 $vendor,
-                $resource);
+                $resource
+            );
         }
 
         if (!is_dir($path)) {

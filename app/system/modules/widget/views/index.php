@@ -1,3 +1,4 @@
+<?php declare(strict_types=1); // TODO: Must be refactored in Step 3.3.6 (Translation System Modernization) — replace |transChoice with |trans using ICU MessageFormat?>
 <?php $view->script('widget-index', 'system/widget:app/bundle/index.js', ['widgets']) ?>
 
 <style media="screen">

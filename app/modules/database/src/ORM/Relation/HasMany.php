@@ -1,25 +1,33 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Database\ORM\Relation;
 
 use Pagekit\Database\ORM\QueryBuilder;
 
 class HasMany extends HasOne
 {
+    /** @var array<string, string> */
     protected array $orderBy;
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<string, mixed> $mapping
      */
-    public function __construct($manager, $metadata, $mapping)
+    public function __construct(\Pagekit\Database\ORM\EntityManager $manager, \Pagekit\Database\ORM\Metadata $metadata, array $mapping)
     {
         parent::__construct($manager, $metadata, $mapping);
 
-        $this->orderBy = $mapping['orderBy'];
+        $this->orderBy = $mapping['orderBy'] ?? [];
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<int|string, object> $entities
+     * @param QueryBuilder<object>      $query
      */
     public function resolve(array $entities, QueryBuilder $query): void
     {
@@ -42,9 +50,12 @@ class HasMany extends HasOne
         $this->resolveRelations($query, $targets);
     }
 
-    protected function mapBelongsTo($entities): void
+    /**
+     * @param array<int|string, object> $entities
+     */
+    protected function mapBelongsTo(array $entities): void
     {
-        if ($this->belongsTo) {
+        if ($this->belongsTo !== null) {
             foreach ($entities as $entity) {
                 foreach ($this->metadata->getValue($entity, $this->name) as $target) {
                     $this->targetMetadata->setValue($target, $this->belongsTo, $entity, true);

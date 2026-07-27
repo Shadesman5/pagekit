@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Title' => 'დასახელება',
   'Theme' => 'თემა',
   'Hide Title' => 'სათაურის დამალვა',
@@ -38,4 +42,4 @@
   'Written by %name% on %date%' => 'პოსტის ავტორი: %name%, გამოქვეყნების თარიღი:  %date% ',
   'Read more' => 'კიდევ...',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '0} უკომენტაროდ |{1} %count% კომენტარი|]1,Inf[ %count% კომენტარი',
-);
+];

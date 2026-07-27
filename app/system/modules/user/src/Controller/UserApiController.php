@@ -1,24 +1,56 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Controller;
 
-use Pagekit\Application as App;
+use function Pagekit\__;
+
 use Pagekit\Application\Exception;
+use Pagekit\Auth\Encoder\PasswordEncoderInterface;
+use Pagekit\Module\ModuleManager;
+use Pagekit\Routing\Attribute\Route;
+use Pagekit\System\Controller\ValidatesRequestTrait;
+use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use Pagekit\User\Model\User;
+use Pagekit\User\Model\UserRepository;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
- * @Access("user: manage users")
+ * API Controller for User management.
  */
+#[Access('user: manage users')]
 class UserApiController
 {
+    use ValidatesRequestTrait;
+
+    public function __construct(
+        private readonly Request $request,
+        private readonly User $user,
+        private readonly ModuleManager $module,
+        private readonly PasswordEncoderInterface $authPassword,
+        protected readonly ValidatorInterface $validator,
+        private readonly UserRepository $userRepository,
+    ) {
+    }
+
     /**
-     * @Route("/", methods="GET")
-     * @Request({"filter": "array", "page":"int", "limit":"int"})
+     * @return array{users: array<int, User>, pages: float, count: int}
      */
-    public function indexAction($filter = [], $page = 0, $limit = 0): array
+    #[Route('/', methods: ['GET'])]
+    public function indexAction(): array
     {
-        $query  = User::query();
+        $request = $this->request;
+        $filter = (array) ($request->query->all()['filter'] ?? []);
+        $page = (int) $request->query->get('page', 0);
+        $limit = (int) $request->query->get('limit', 0);
+
+        $query = $this->userRepository->query();
         $filter = array_merge(array_fill_keys(['status', 'search', 'role', 'order', 'access'], ''), $filter);
         extract($filter, EXTR_SKIP);
 
@@ -45,7 +77,7 @@ class UserApiController
         }
 
         if ($access) {
-            $query->whereExists(function($query) use ($access) {
+            $query->whereExists(function ($query) use ($access) {
                 $query
                     ->select('id')->from('@system_auth as a')
                     ->where('a.user_id = @system_user.id')
@@ -56,25 +88,30 @@ class UserApiController
         if (preg_match('/^(username|name|email|registered|login)\s(asc|desc)$/i', $order, $match)) {
             $order = $match;
         } else {
-            $order = [1=>'username', 2=>'asc'];
+            $order = [1 => 'username', 2 => 'asc'];
         }
 
-        $default = App::module('system/user')->config('users_per_page');
-        $limit   = min(max(0, $limit), $default) ?: $default;
-        $count   = $query->count();
-        $pages   = ceil($count / $limit);
-        $page    = max(0, min($pages - 1, $page));
-        $users   = array_values($query->offset($page * $limit)->limit($limit)->orderBy($order[1], $order[2])->get());
+        $default = $this->module->get('system/user')->config('users_per_page');
+        $limit = min(max(0, $limit), $default) ?: $default;
+        $count = $query->count();
+        $pages = ceil($count / $limit);
+        $page = max(0, min($pages - 1, $page));
+        $entities = $query->offset($page * $limit)->limit($limit)->orderBy($order[1], $order[2])->get();
+
+        $users = array_values($entities);
 
         return compact('users', 'pages', 'count');
     }
 
     /**
-     * @Request({"filter": "array"})
+     * @return array{count: int}
      */
-    public function countAction($filter = []): array
+    public function countAction(): array
     {
-        $query  = User::query();
+        $request = $this->request;
+        $filter = $request->query->all()['filter'] ?? [];
+
+        $query = $this->userRepository->query();
         $filter = array_merge(array_fill_keys(['status', 'search', 'role', 'order', 'access'], ''), (array)$filter);
         extract($filter, EXTR_SKIP);
 
@@ -101,7 +138,7 @@ class UserApiController
         }
 
         if ($access) {
-            $query->whereExists(function($query) use ($access) {
+            $query->whereExists(function ($query) use ($access) {
                 $query
                     ->select('id')->from('@system_auth as a')
                     ->where('a.user_id = @system_user.id')
@@ -114,52 +151,66 @@ class UserApiController
         return compact('count');
     }
 
-    /**
-     * @Route("/{id}", methods="GET", requirements={"id"="\d+"})
-     */
-    public function getAction($id): User
+    #[Route('/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
+    public function getAction(int $id): User
     {
-        if (!$user = User::find($id)) {
-            App::abort(404, 'User not found.');
+        if (!$user = $this->userRepository->find($id)) {
+            throw new NotFoundHttpException('User not found.');
         }
 
         return $user;
     }
 
     /**
-     * @Route("/", methods="POST")
-     * @Route("/{id}", methods="POST", requirements={"id"="\d+"})
-     * @Request({"user": "array", "password", "id": "int"}, csrf=true)
+     * Save a user (create or update).
+     *
+     * @return array{message: string, user: User}
      */
-    public function saveAction($data, $password = null, $id = 0)
+    #[Route('/', methods: ['POST'])]
+    #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function saveAction(int $id = 0): array
     {
+        $request = $this->request;
+
+        $data = $request->request->all()['user'] ?? [];
+        $password = $request->request->get('password');
+
+        if (empty($data) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $data = $json['user'] ?? [];
+            $password = $json['password'] ?? $password;
+        }
+
+        if (!$id) {
+            $id = (int) ($request->request->get('id') ?? $request->get('id', 0));
+        }
+
         try {
 
-            // is new ?
-            if (!$user = User::find($id)) {
+            if (!$user = $this->userRepository->find($id)) {
 
                 if ($id) {
-                    App::abort(404, __('User not found.'));
+                    throw new NotFoundHttpException(__('User not found.'));
                 }
 
                 if (!$password) {
-                    App::abort(400, __('Password required.'));
+                    throw new BadRequestHttpException(__('Password required.'));
                 }
 
-                $user = User::create(['registered' => new \DateTime]);
+                $user = $this->userRepository->create(['registered' => new \DateTime()]);
             }
 
-            if ($user->isAdministrator() && !App::user()->isAdministrator()) {
-                App::abort(400, __('Unable to edit administrator.'));
+            if ($user->isAdministrator() && !$this->user->isAdministrator()) {
+                throw new BadRequestHttpException(__('Unable to edit administrator.'));
             }
 
             $user->name = @$data['name'];
             $user->username = @$data['username'];
             $user->email = @$data['email'];
 
-            $self = App::user()->id == $user->id;
+            $self = $this->user->id == $user->id;
             if ($self && @$data['status'] == User::STATUS_BLOCKED) {
-                App::abort(400, __('Unable to block yourself.'));
+                throw new BadRequestHttpException(__('Unable to block yourself.'));
             }
 
             if (@$data['email'] != $user->email) {
@@ -172,69 +223,98 @@ class UserApiController
                     throw new Exception(__('Invalid Password.'));
                 }
 
-                $user->password = App::get('auth.password')->hash($password);
+                $user->password = $this->authPassword->hash($password);
             }
 
-            $key    = array_search(Role::ROLE_ADMINISTRATOR, @$data['roles'] ?: []);
-            $add    = false !== $key && !$user->isAdministrator();
+            $key = array_search(Role::ROLE_ADMINISTRATOR, @$data['roles'] ?: []);
+            $add = false !== $key && !$user->isAdministrator();
             $remove = false === $key && $user->isAdministrator();
 
-            if (($self && $remove) || !App::user()->isAdministrator() && ($remove || $add)) {
-                App::abort(403, 'Cannot add/remove Admin Role.');
+            if (($self && $remove) || !$this->user->isAdministrator() && ($remove || $add)) {
+                throw new AccessDeniedHttpException('Cannot add/remove Admin Role.');
             }
 
             unset($data['login'], $data['registered']);
 
-            $user->validate();
-            $user->save($data);
+            $this->validateOrFail($user);
+
+            $this->userRepository->save($user, $data);
 
             return ['message' => 'success', 'user' => $user];
 
         } catch (Exception $e) {
-            App::abort(400, $e->getMessage());
+            throw new BadRequestHttpException($e->getMessage(), $e);
         }
     }
 
     /**
-     * @Route("/{id}", methods="DELETE", requirements={"id"="\d+"})
-     * @Request({"id": "int"}, csrf=true)
+     * @return array{message: string}
      */
-    public function deleteAction($id): array
+    #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\d+'])]
+    public function deleteAction(int $id = 0): array
     {
-        if (App::user()->id == $id) {
-            App::abort(400, __('Unable to delete yourself.'));
+        if (!$id) {
+            $id = (int) $this->request->get('id', 0);
         }
 
-        if ($user = User::find($id)) {
-            if ($user->isAdministrator() && !App::user()->isAdministrator()) {
-                App::abort(400, __('Unable to delete administrator.'));
+        if ($this->user->id == $id) {
+            throw new BadRequestHttpException(__('Unable to delete yourself.'));
+        }
+
+        if ($user = $this->userRepository->find($id)) {
+            if ($user->isAdministrator() && !$this->user->isAdministrator()) {
+                throw new BadRequestHttpException(__('Unable to delete administrator.'));
             }
 
-            $user->delete();
+            $this->userRepository->delete($user);
         }
 
         return ['message' => 'success'];
     }
 
     /**
-     * @Route("/bulk", methods="POST")
-     * @Request({"users": "array"}, csrf=true)
+     * @return array{message: string}
      */
-    public function bulkSaveAction($users = []): array
+    #[Route('/bulk', methods: ['POST'])]
+    public function bulkSaveAction(): array
     {
+        $request = $this->request;
+
+        $users = $request->request->all()['users'] ?? [];
+        if (empty($users) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $users = $json['users'] ?? [];
+        }
+
         foreach ($users as $data) {
-            $this->saveAction($data, null, isset($data['id']) ? $data['id'] : 0);
+            $id = isset($data['id']) ? $data['id'] : 0;
+            $password = $data['password'] ?? null;
+
+            $request->request->set('user', $data);
+            if ($password) {
+                $request->request->set('password', $password);
+            }
+
+            $this->saveAction($id);
         }
 
         return ['message' => 'success'];
     }
 
     /**
-     * @Route("/bulk", methods="DELETE")
-     * @Request({"ids": "array"}, csrf=true)
+     * @return array{message: string}
      */
-    public function bulkDeleteAction($ids = []): array
+    #[Route('/bulk', methods: ['DELETE'])]
+    public function bulkDeleteAction(): array
     {
+        $request = $this->request;
+
+        $ids = $request->request->all()['ids'] ?? [];
+        if (empty($ids) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $ids = $json['ids'] ?? [];
+        }
+
         foreach (array_filter($ids) as $id) {
             $this->deleteAction($id);
         }

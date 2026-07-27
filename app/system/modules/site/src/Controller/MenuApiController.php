@@ -1,38 +1,62 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Site\Controller;
 
-use Pagekit\Application as App;
-use Pagekit\Config\Config;
-use Pagekit\Kernel\Exception\ConflictException;
-use Pagekit\Site\Model\Node;
+use function Pagekit\__;
 
-/**
- * @Access("site: manage site")
- */
+use Pagekit\Config\Config;
+use Pagekit\Config\ConfigManager;
+use Pagekit\Filter\FilterManager;
+use Pagekit\Kernel\Exception\ConflictException;
+use Pagekit\Routing\Attribute\Route;
+use Pagekit\Site\MenuManager;
+use Pagekit\Site\Model\Menu;
+use Pagekit\Site\Model\NodeRepository;
+use Pagekit\System\Controller\ValidatesRequestTrait;
+use Pagekit\User\Attribute\Access;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
+
+#[Access('site: manage site')]
 class MenuApiController
 {
-    protected Config $config;
+    use ValidatesRequestTrait;
 
-    public function __construct()
-    {
-        $this->config = App::config('system/site');
+    private readonly Config $siteConfig;
+
+    public function __construct(
+        private readonly ConfigManager $config,
+        private readonly MenuManager $menu,
+        private readonly Request $request,
+        private readonly FilterManager $filter,
+        protected readonly ValidatorInterface $validator,
+        private readonly NodeRepository $nodeRepository,
+    ) {
+        $this->siteConfig = ($this->config)('system/site') ?? new Config();
     }
 
     /**
-     * @Route("/", methods="GET")
+     * @return array<int, array<string, mixed>>
      */
+    #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
-        $menus = App::menu()->all();
+        $menus = $this->menu->all();
 
-        $menus['trash'] = ['id' => 'trash', 'label' => __('Trash'), 'fixed' => true];
+        $menus['trash'] = ['id' => 'trash', 'label' => __('Trash'), 'fixed' => true, 'count' => 0];
 
+        $trashCount = 0;
         foreach ($menus as &$menu) {
-            $menu['count'] = Node::where(['menu' => $menu['id']])->count();
+            $menu['count'] = $this->nodeRepository->where(['menu' => $menu['id']])->count();
+            if ($menu['id'] === 'trash') {
+                $trashCount = $menu['count'];
+            }
         }
+        unset($menu);
 
-        if (!$menus['trash']['count']) {
+        if (!$trashCount) {
             unset($menus['trash']);
         }
 
@@ -40,44 +64,73 @@ class MenuApiController
     }
 
     /**
-     * @Route("/", methods="POST")
-     * @Request({"menu":"array"}, csrf=true)
+     * @return array<string, mixed>
      */
-    public function saveAction($menu): array
+    #[Route('/', methods: ['POST'])]
+    public function saveAction(): array
     {
-        $oldId = isset($menu['id']) ? trim($menu['id']) : null;
-        $label = trim($menu['label']);
-
-        if (!$id = App::filter($label, 'slugify')) {
-            App::abort(400, __('Invalid id.'));
+        $data = $this->request->request->all()['menu'] ?? [];
+        if (empty($data) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
+            $data = $json['menu'] ?? $json ?? [];
         }
 
-        if ($id != $oldId) {
+        // Trim before use so a whitespace-padded id still matches the
+        // internally trimmed slug; otherwise the rename branch below fires
+        // spuriously and orphans the existing config entry.
+        $oldId = isset($data['id']) ? trim((string) $data['id']) : null;
+        $label = isset($data['label']) ? trim((string) $data['label']) : null;
 
-            if ($this->config->has('menus.'.$id)) {
+        // The id is derived from the label (business logic); the Assert
+        // constraints then guarantee a non-empty, well-formed slug.
+        $slug = ($this->filter)($label, 'slugify');
+
+        $menu = new Menu();
+        $menu->label = $label;
+        $menu->id = is_string($slug) && $slug !== '' ? $slug : null;
+
+        $this->validateOrFail($menu);
+
+        $id = (string) $menu->id;
+
+        if ($id !== $oldId) {
+
+            if ($this->siteConfig->has('menus.' . $id)) {
                 throw new ConflictException(__('Duplicate Menu Id.'));
             }
 
-            $this->config->remove('menus.'.$oldId);
+            $this->siteConfig->remove('menus.' . $oldId);
 
-            Node::where(['menu = :old'], [':old' => $oldId])->update(['menu' => $id]);
+            $this->nodeRepository->where(['menu = :old'], ['old' => $oldId])->update(['menu' => $id]);
         }
 
-        $this->config->merge(['menus' => [$id => compact('id', 'label')]]);
+        $this->siteConfig->merge(['menus' => [$id => ['id' => $id, 'label' => $menu->label]]]);
 
-        App::menu()->assign($id, $menu['positions']);
+        if (isset($data['positions'])) {
+            $this->menu->assign($id, (array) $data['positions']);
+        }
 
-        return ['message' => 'success', 'menu' => $menu];
+        return ['message' => 'success', 'menu' => $data];
     }
 
     /**
-     * @Route("/{id}", methods="DELETE")
-     * @Request({"id"}, csrf=true)
+     * @return array<string, string>
      */
-    public function deleteAction($id): array
+    #[Route('/{id}', methods: ['DELETE'])]
+    public function deleteAction(?string $id = null): array
     {
-        App::config('system/site')->remove('menus.'.$id);
-        Node::where(['menu = :id'], [':id' => $id])->update(['menu' => 'trash', 'status' => 0]);
+        if (!$id) {
+            $attribute = $this->request->attributes->get('id') ?? $this->request->get('id');
+            $id = is_string($attribute) ? $attribute : null;
+        }
+
+        $menu = new Menu();
+        $menu->id = $id;
+
+        $this->validateOrFail($menu, null, ['Delete']);
+
+        $this->siteConfig->remove('menus.' . (string) $menu->id);
+        $this->nodeRepository->where(['menu = :id'], ['id' => $menu->id])->update(['menu' => 'trash', 'status' => 0]);
 
         return ['message' => 'success'];
     }

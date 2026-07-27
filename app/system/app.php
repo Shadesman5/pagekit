@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Application as App;
 use Pagekit\Module\Loader\AutoLoader;
 use Pagekit\Module\Loader\ConfigLoader;
@@ -7,18 +9,22 @@ use Pagekit\Module\Loader\ConfigLoader;
 $loader = require $path.'/autoload.php';
 
 $app = new App($config);
-$app['autoloader'] = $loader;
+$app->set('autoloader', $loader);
 
-$app['module']->register([
+$app->get('module')->register([
     'packages/*/*/index.php',
     'app/modules/*/index.php',
     'app/installer/index.php',
-    'app/system/index.php'
+    'app/system/index.php',
 ], $path);
 
-$app['module']->addLoader(new AutoLoader($app['autoloader']));
-$app['module']->addLoader(new ConfigLoader(require __DIR__.'/config.php'));
-$app['module']->addLoader(new ConfigLoader(require $app['config.file']));
-$app['module']->load('system');
+$app->get('module')->addLoader(new AutoLoader($app->get('autoloader')));
+$app->get('module')->addLoader(new ConfigLoader(require __DIR__.'/config.php'));
+
+if ($app->get('config.file') && file_exists($app->get('config.file'))) {
+    $app->get('module')->addLoader(new ConfigLoader(require $app->get('config.file')));
+}
+
+$app->get('module')->load('system');
 
 $app->run();

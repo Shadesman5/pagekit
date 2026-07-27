@@ -1,13 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Info;
 
-use Doctrine\DBAL\Driver\PDOConnection;
-use Pagekit\Application as App;
+use Doctrine\DBAL\Connection;
+use Symfony\Component\Finder\Finder;
 use Symfony\Component\HttpFoundation\ServerBag;
 
 class InfoHelper
 {
+    public function __construct(
+        private readonly Connection $db,
+        private readonly string $version,
+        private readonly string $pathStorage,
+        private readonly string $pathTemp,
+        private readonly string $pathPackages,
+        private readonly string $configFile,
+        private readonly string $basePath,
+    ) {
+    }
+
     /**
      * Method to get the system information
      *
@@ -17,22 +30,34 @@ class InfoHelper
     {
         $server = new ServerBag($GLOBALS['_SERVER']);
 
-        $info                  = [];
-        $info['php']           = php_uname();
+        $info = [];
+        $info['php'] = php_uname();
 
-        if ($pdo = App::db()->getWrappedConnection() and $pdo instanceof PDOConnection) {
-            $info['dbdriver']  = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
-            $info['dbversion'] = $pdo->getAttribute(\PDO::ATTR_SERVER_VERSION);
-            $info['dbclient']  = $pdo->getAttribute(\PDO::ATTR_CLIENT_VERSION);
+        try {
+            $native = $this->db->getNativeConnection();
+
+            if ($native instanceof \PDO) {
+                $info['dbdriver'] = $native->getAttribute(\PDO::ATTR_DRIVER_NAME);
+                $info['dbversion'] = $native->getAttribute(\PDO::ATTR_SERVER_VERSION);
+                $info['dbclient'] = $native->getAttribute(\PDO::ATTR_CLIENT_VERSION);
+            } else {
+                $info['dbdriver'] = 'Non-PDO driver';
+                $info['dbversion'] = 'N/A';
+                $info['dbclient'] = 'N/A';
+            }
+        } catch (\Exception $e) {
+            $info['dbdriver'] = 'Not connected';
+            $info['dbversion'] = 'N/A';
+            $info['dbclient'] = 'N/A';
         }
 
-        $info['phpversion']    = phpversion();
-        $info['server']        = $server->get('SERVER_SOFTWARE', getenv('SERVER_SOFTWARE'));
-        $info['sapi_name']     = php_sapi_name();
-        $info['version']       = App::version();
-        $info['useragent']     = $server->get('HTTP_USER_AGENT');
-        $info['extensions']    = implode(", ", get_loaded_extensions());
-        $info['directories']   = $this->getDirectories();
+        $info['phpversion'] = phpversion();
+        $info['server'] = $server->get('SERVER_SOFTWARE', getenv('SERVER_SOFTWARE'));
+        $info['sapi_name'] = php_sapi_name();
+        $info['version'] = $this->version;
+        $info['useragent'] = $server->get('HTTP_USER_AGENT');
+        $info['extensions'] = implode(", ", get_loaded_extensions());
+        $info['directories'] = $this->getDirectories();
 
         return $info;
     }
@@ -44,13 +69,11 @@ class InfoHelper
      */
     protected function getDirectories(): array
     {
-        // -TODO-
-
         $directories = [
-            App::get('path.storage'),
-            App::get('path.temp'),
-            App::get('path.packages'),
-            App::get('config.file')
+            $this->pathStorage,
+            $this->pathTemp,
+            $this->pathPackages,
+            $this->configFile,
         ];
 
         $result = [];
@@ -60,7 +83,7 @@ class InfoHelper
             $result[$this->getRelativePath($directory)] = is_writable($directory);
 
             if (is_dir($directory)) {
-                foreach (App::finder()->depth('< 2')->in($directory)->directories() as $dir) {
+                foreach (Finder::create()->depth('< 2')->in($directory)->directories() as $dir) {
                     if (!is_writable($dir->getPathname())) {
                         $result[$this->getRelativePath($dir->getPathname())] = false;
                     }
@@ -79,8 +102,8 @@ class InfoHelper
      */
     protected function getRelativePath($path): string
     {
-        if (0 === strpos($path, App::path())) {
-            $path = ltrim(str_replace('\\', '/', substr($path, strlen(App::path()))), '/');
+        if (0 === strpos($path, $this->basePath)) {
+            $path = ltrim(str_replace('\\', '/', substr($path, strlen($this->basePath))), '/');
         }
 
         return $path;

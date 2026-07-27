@@ -1,30 +1,34 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Config;
 
-use Doctrine\DBAL\Platforms\MySqlPlatform;
+use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Pagekit\Database\Connection;
 
+/**
+ * @implements \IteratorAggregate<string, Config>
+ */
 class ConfigManager implements \IteratorAggregate
 {
-    protected \Pagekit\Database\Connection $connection;
+    protected Connection $connection;
 
     protected string $table;
 
+    /** @var array<string, string>|null */
     protected ?array $cache = null;
 
+    /** @var array<string, Config> */
     protected array $configs = [];
 
     /**
-     * Constructor.
-     *
-     * @param Connection $connection
-     * @param array      $config
+     * @param array<string, mixed> $config
      */
     public function __construct(Connection $connection, array $config)
     {
         $this->connection = $connection;
-        $this->table      = $config['table'];
+        $this->table = $config['table'];
     }
 
     /**
@@ -32,45 +36,32 @@ class ConfigManager implements \IteratorAggregate
      *
      * @see get()
      */
-    public function __invoke($name)
+    public function __invoke(string $name): ?Config
     {
         return $this->get($name);
     }
 
-    /**
-     * Checks if a config exists.
-     *
-     * @param  string $name
-     */
-    public function has($name): bool
+    public function has(string $name): bool
     {
-        return isset($this->configs[$name]) || $this->fetch($name);
+        return isset($this->configs[$name]) || (bool) $this->fetch($name);
     }
 
     /**
      * Gets a config, creates a new config if none existent.
-     *
-     * @param  string $name
-     * @return Config
      */
-    public function get($name)
+    public function get(string $name): ?Config
     {
         if (!$this->has($name)) {
             $this->set($name, new Config());
         }
 
-        if (isset($this->configs[$name])) {
-            return $this->configs[$name];
-        }
+        return $this->configs[$name] ?? null;
     }
 
     /**
-     * Sets a config.
-     *
-     * @param string $name
-     * @param mixed  $config
+     * @param Config|array<int|string, mixed> $config
      */
-    public function set($name, $config): void
+    public function set(string $name, Config|array $config): void
     {
         if (is_array($config)) {
             $config = (new Config())->merge($config);
@@ -82,7 +73,7 @@ class ConfigManager implements \IteratorAggregate
 
             $data = ['name' => $name, 'value' => json_encode($config, JSON_UNESCAPED_UNICODE)];
 
-            if ($this->connection->getDatabasePlatform() instanceof MySqlPlatform) {
+            if ($this->connection->getDatabasePlatform() instanceof MySQLPlatform) {
                 $this->connection->executeQuery("INSERT INTO {$this->table} (name, value) VALUES (:name, :value) ON DUPLICATE KEY UPDATE value = :value", $data);
             } elseif (!$this->connection->update($this->table, $data, compact('name'))) {
                 $this->connection->insert($this->table, $data);
@@ -90,18 +81,15 @@ class ConfigManager implements \IteratorAggregate
         }
     }
 
-    /**
-     * Removes a config.
-     *
-     * @param string $name
-     */
-    public function remove($name): void
+    public function remove(string $name): void
     {
         $this->connection->delete($this->table, compact('name'));
     }
 
     /**
      * Returns an iterator.
+     *
+     * @return \ArrayIterator<string, Config>
      */
     public function getIterator(): \ArrayIterator
     {
@@ -110,11 +98,8 @@ class ConfigManager implements \IteratorAggregate
 
     /**
      * Fetches config from database.
-     *
-     * @param  string $name
-     * @return null|Config
      */
-    protected function fetch($name)
+    protected function fetch(string $name): ?Config
     {
         if ($this->cache === null) {
             $result = $this->connection->executeQuery("SELECT name, value FROM {$this->table}")->fetchAllNumeric();
@@ -127,5 +112,7 @@ class ConfigManager implements \IteratorAggregate
         if (isset($this->cache[$name]) && $values = @json_decode($this->cache[$name], true)) {
             return $this->configs[$name] = new Config($values);
         }
+
+        return null;
     }
 }

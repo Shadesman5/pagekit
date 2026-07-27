@@ -1,29 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Module\Loader;
 
 use Composer\Autoload\ClassLoader;
 
 class AutoLoader implements LoaderInterface
 {
-    protected \Composer\Autoload\ClassLoader $loader;
-
-    /**
-     * Constructor.
-     *
-     * @param ClassLoader $loader
-     */
-    public function __construct(ClassLoader $loader)
+    public function __construct(protected ClassLoader $loader)
     {
-        $this->loader = $loader;
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @param  mixed $module Genuinely unknown type — see LoaderInterface::load().
+     * @return mixed Genuinely unknown type — see LoaderInterface::load().
      */
-    public function load($module)
+    public function load(mixed $module): mixed
     {
-        if (isset($module['autoload'])) {
+        if (is_array($module) && isset($module['autoload'])) {
             foreach ($module['autoload'] as $namespace => $path) {
                 $this->loader->addPsr4($namespace, $this->resolvePath($module, $path));
             }
@@ -35,10 +32,9 @@ class AutoLoader implements LoaderInterface
     /**
      * Resolves a path to a absolute module path.
      *
-     * @param  array  $module
-     * @param  string $path
+     * @param array<string, mixed> $module
      */
-    protected function resolvePath($module, $path): string
+    protected function resolvePath(array $module, string $path): string
     {
         $path = strtr($path, '\\', '/');
 

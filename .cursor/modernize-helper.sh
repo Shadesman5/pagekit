@@ -5,9 +5,18 @@ set -e
 export GH_TOKEN="${PAGEKIT_BACKGROUND_AGENT}"
 
 # Helper script for Pagekit modernization tasks
+# The background agent works in the current workspace directory
 
-PROJECT_DIR="/home/ubuntu/pagekit"
-cd "$PROJECT_DIR"
+echo "📍 Working in current workspace: $(pwd)"
+
+# Find composer command
+if command -v composer >/dev/null 2>&1; then
+    COMPOSER_CMD="composer"
+else
+    echo "❌ Error: Composer not found in system"
+    echo "🔍 Note: This background agent may need Composer to be installed"
+    exit 1
+fi
 
 function create_branch() {
     local branch_name=$1
@@ -15,6 +24,7 @@ function create_branch() {
     git checkout develop
     git pull origin develop
     git checkout -b "$branch_name"
+    echo "✅ Branch '$branch_name' created and checked out"
 }
 
 function run_tests() {
@@ -25,12 +35,14 @@ function run_tests() {
 function check_linting() {
     echo "🔍 Checking PHP code style..."
     # Add phpcs or other linting tools if configured
-    composer validate
+    $COMPOSER_CMD validate
 }
 
 function update_changelog() {
     echo "📝 Updating changelog..."
-    local version=$(grep '"version"' composer.json | cut -d'"' -f4)
+    # Pagekit version lives in app/system/config.php (single source of truth).
+    # composer.json no longer carries a "version" field — see .cursor/skills/version-bump/SKILL.md.
+    local version=$(php -r '$c = require "app/system/config.php"; echo $c["application"]["version"] ?? "unknown";' 2>/dev/null || echo "unknown")
     local date=$(date +"%Y-%m-%d")
     echo "Version: $version, Date: $date"
 }
@@ -51,7 +63,7 @@ function upgrade_phpunit() {
     sed -i 's/"php": ">=7.4"/"php": ">=8.2"/' composer.json
     
     # Update PHPUnit
-    composer require --dev phpunit/phpunit:^11.0
+    $COMPOSER_CMD require --dev phpunit/phpunit:^11.0
     
     run_tests
 }
@@ -61,7 +73,7 @@ function patch_security() {
     create_branch "feature/security-patches"
     
     # Run composer audit
-    composer audit
+    $COMPOSER_CMD audit
     
     # Update packages one by one
     # Add specific update commands here
@@ -73,6 +85,12 @@ function upgrade_symfony() {
     
     # Update all Symfony packages
     # Add specific update commands here
+}
+
+# Watch assets
+function watch_assets() {
+    echo "👀 Starting asset watch mode for real-time feedback..."
+    pnpm watch
 }
 
 # Main menu
@@ -95,8 +113,11 @@ case "$1" in
     "pr")
         create_pr "$2" "$3"
         ;;
+    "watch")
+        watch_assets
+        ;;
     *)
-        echo "Usage: $0 {phpunit|security|symfony|test|branch|pr}"
+        echo "Usage: $0 {phpunit|security|symfony|test|branch|pr|watch}"
         echo ""
         echo "Available commands:"
         echo "  phpunit    - Upgrade PHPUnit to 11.x"
@@ -105,6 +126,7 @@ case "$1" in
         echo "  test       - Run test suite"
         echo "  branch     - Create a new feature branch"
         echo "  pr         - Create a pull request"
+        echo "  watch      - Start the asset watcher (JS + LESS)"
         exit 1
         ;;
 esac

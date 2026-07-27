@@ -1,19 +1,29 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Intl\Controller;
 
-use Pagekit\Application as App;
+use Pagekit\Module\ModuleManager;
+use Pagekit\Routing\Attribute\Request;
+use Pagekit\Routing\Attribute\Route;
 
 class IntlApiController
 {
+    public function __construct(
+        private readonly ModuleManager $module,
+    ) {
+    }
+
     /**
-     * @Route("/{locales}", requirements={"locale"="[a-zA-Z0-9_-]+"}, defaults={"_maintenance" = true}, methods="GET")
-     * @Request({"locale"})
+     * @return array{locales: array<string, string>}
      */
-    public function localesAction($locale = null): array
+    #[Route('/{locales}', requirements: ['locale' => '[a-zA-Z0-9_-]+'], defaults: ['_maintenance' => true], methods: ['GET'])]
+    #[Request(['locale' => 'string'])]
+    public function localesAction(?string $locale = null): array
     {
-        $intl = App::module('system/intl');
-        
+        $intl = $this->module->get('system/intl');
+
         return ['locales' => $intl->getAvailableLanguages($locale)];
     }
 }

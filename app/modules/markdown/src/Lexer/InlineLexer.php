@@ -1,26 +1,37 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Markdown\Lexer;
 
 use Pagekit\Markdown\Markdown;
+use Pagekit\Markdown\Renderer;
 
 class InlineLexer
 {
+    /** @var array<string, array{href: string|null, title: string|null}> */
     protected array $links;
+
     protected ?bool $inLink = null;
+
+    /** @var array<string, string> */
     protected array $rules;
-    protected $renderer;
+
+    protected Renderer $renderer;
+
+    /** @var array<string, mixed> */
     protected array $options;
 
+    /** @var array<string, array<string, string>>|null */
     protected static ?array $inlines = null;
 
     /**
      * Constructor.
      *
-     * @param array $links
-     * @param array $options
+     * @param array<string, array{href: string|null, title: string|null}> $links
+     * @param array<string, mixed>                                        $options
      */
-    public function __construct($links, array $options = [])
+    public function __construct(array $links, array $options = [])
     {
         $this->links = $links;
         $this->options = $options;
@@ -31,10 +42,9 @@ class InlineLexer
     /**
      * Lexing/Compiling
      *
-     * @param  string $src
      * @throws \Exception
      */
-    public function output($src): string
+    public function output(string $src): string
     {
         $out = '';
 
@@ -43,7 +53,7 @@ class InlineLexer
             // escape
             if (preg_match($this->rules['escape'], $src, $cap)) {
 
-                $src  = substr($src, strlen($cap[0]));
+                $src = substr($src, strlen($cap[0]));
                 $out .= $cap[1];
 
                 continue;
@@ -62,7 +72,7 @@ class InlineLexer
                     $href = $text;
                 }
 
-                $out .= $this->renderer->link($href, null, $text);
+                $out .= $this->renderer->link($href, '', $text);
 
                 continue;
             }
@@ -70,10 +80,10 @@ class InlineLexer
             // url (gfm)
             if (!$this->inLink && (preg_match($this->rules['url'], $src, $cap))) {
 
-                $src  = substr($src, strlen($cap[0]));
+                $src = substr($src, strlen($cap[0]));
                 $text = Markdown::escape($cap[1]);
                 $href = $text;
-                $out .= $this->renderer->link($href, null, $text);
+                $out .= $this->renderer->link($href, '', $text);
 
                 continue;
             }
@@ -87,7 +97,7 @@ class InlineLexer
                     $this->inLink = false;
                 }
 
-                $src  = substr($src, strlen($cap[0]));
+                $src = substr($src, strlen($cap[0]));
                 $out .= $this->options['sanitize'] ? Markdown::escape($cap[0]) : $cap[0];
 
                 continue;
@@ -101,8 +111,8 @@ class InlineLexer
                 $this->inLink = true;
 
                 $out .= $this->outputLink($cap, [
-                    'href'  => @$cap[2],
-                    'title' => @$cap[3]
+                    'href' => @$cap[2],
+                    'title' => @$cap[3],
                 ]);
 
                 $this->inLink = false;
@@ -112,13 +122,14 @@ class InlineLexer
 
             if ((preg_match($this->rules['reflink'], $src, $cap)) || (preg_match($this->rules['nolink'], $src, $cap))) {
 
-                $src  = substr($src, strlen($cap[0]));
-                $link = preg_replace('/\s+/m', ' ', isset($cap[2]) ? $cap[2] : $cap[1]);
+                $src = substr($src, strlen($cap[0]));
+                $link = preg_replace('/\s+/m', ' ', isset($cap[2]) ? $cap[2] : $cap[1]) ?? '';
                 $link = isset($this->links[strtolower($link)]) ? $this->links[strtolower($link)] : null;
 
                 if (!$link || !$link["href"]) {
                     $out .= $cap[0][0];
                     $src = substr($cap[0], 1) + $src;
+
                     continue;
                 }
 
@@ -132,7 +143,7 @@ class InlineLexer
             // strong
             if (preg_match($this->rules['strong'], $src, $cap)) {
 
-                $src  = substr($src, strlen($cap[0]));
+                $src = substr($src, strlen($cap[0]));
                 $out .= $this->renderer->strong($this->output(isset($cap[2]) ? $cap[2] : $cap[1]));
 
                 continue;
@@ -141,7 +152,7 @@ class InlineLexer
             // em
             if (preg_match($this->rules['em'], $src, $cap)) {
 
-                $src  = substr($src, strlen($cap[0]));
+                $src = substr($src, strlen($cap[0]));
                 $out .= $this->renderer->em($this->output(isset($cap[2]) ? $cap[2] : $cap[1]));
 
                 continue;
@@ -150,7 +161,7 @@ class InlineLexer
             // code
             if (preg_match($this->rules['code'], $src, $cap)) {
 
-                $src  = substr($src, strlen($cap[0]));
+                $src = substr($src, strlen($cap[0]));
                 $out .= $this->renderer->codespan(Markdown::escape($cap[2]));
 
                 continue;
@@ -159,7 +170,7 @@ class InlineLexer
             // br
             if (preg_match($this->rules['br'], $src, $cap)) {
 
-                $src  = substr($src, strlen($cap[0]));
+                $src = substr($src, strlen($cap[0]));
                 $out .= $this->renderer->br();
 
                 continue;
@@ -168,7 +179,7 @@ class InlineLexer
             // del (gfm)
             if (preg_match($this->rules['del'], $src, $cap)) {
 
-                $src  = substr($src, strlen($cap[0]));
+                $src = substr($src, strlen($cap[0]));
                 $out .= $this->renderer->del($this->output($cap[1]));
 
                 continue;
@@ -177,14 +188,14 @@ class InlineLexer
             // text
             if (preg_match($this->rules['text'], $src, $cap)) {
 
-                $src  = substr($src, strlen($cap[0]));
+                $src = substr($src, strlen($cap[0]));
                 $out .= Markdown::escape($this->smartypants($cap[0]));
 
                 continue;
             }
 
             if ($src) {
-                throw new \Exception('Infinite loop on byte: ' + ord(substr($src,0)));
+                throw new \Exception('Infinite loop on byte: ' + ord(substr($src, 0)));
             }
         }
 
@@ -194,23 +205,21 @@ class InlineLexer
     /**
      * Compile link.
      *
-     * @param  array $cap
-     * @param  array $link
+     * @param array<int, string>                          $cap
+     * @param array{href: string|null, title: string|null} $link
      */
-    protected function outputLink($cap, $link): string
+    protected function outputLink(array $cap, array $link): string
     {
-        $href  = Markdown::escape($link['href']);
-        $title = $link['title'] ? Markdown::escape($link['title']) : null;
+        $href = Markdown::escape($link['href'] ?? '');
+        $title = $link['title'] ? Markdown::escape($link['title']) : '';
 
         return $cap[0][0] !== '!' ? $this->renderer->link($href, $title, $this->output($cap[1])) : $this->renderer->image($href, $title, Markdown::escape($cap[1]));
     }
 
     /**
      * Smartypants transformations.
-     *
-     * @param  string $text
      */
-    protected function smartypants($text): ?string
+    protected function smartypants(string $text): string
     {
         if (!$this->options['smartypants']) {
             return $text;
@@ -220,29 +229,27 @@ class InlineLexer
         $text = str_replace('--', '&mdash;', $text);
 
         // opening singles
-        $text = preg_replace('/(^|[-—\/(\[\{"\s])\'/m', '&mdash;', $text);
+        $text = preg_replace('/(^|[-—\/(\[\{"\s])\'/m', '&mdash;', $text) ?? $text;
 
         // closing singles & apostrophes
         $text = str_replace('\'', '&rsquo;', $text);
 
         // opening doubles
-        $text = preg_replace('/(^|[-—\/(\[\{‘\s])"/m', '$1&ldquo;', $text);
+        $text = preg_replace('/(^|[-—\/(\[\{‘\s])"/m', '$1&ldquo;', $text) ?? $text;
 
         // closing doubles
         $text = str_replace('"', '&rdquo;', $text);
 
         // opening doubles
-        $text = preg_replace('/\.{3}/m', '&hellip;', $text);
+        $text = preg_replace('/\.{3}/m', '&hellip;', $text) ?? $text;
 
         return $text;
     }
 
     /**
      * Mangle links.
-     *
-     * @param  string $text
      */
-    protected function mangle($text): string
+    protected function mangle(string $text): string
     {
         $out = '';
 
@@ -263,7 +270,9 @@ class InlineLexer
     /**
      * Get inline grammar rules for given options.
      *
-     * @param  array $options
+     * @param array<string, mixed> $options
+     *
+     * @return array<string, string>
      */
     protected static function rules(array $options): array
     {
@@ -273,41 +282,41 @@ class InlineLexer
 
             // normal
             $inlines['normal'] = [
-                '_href'      => '/\s*<?([\s\S]*?)>?(?:\s+[\'"]([\s\S]*?)[\'"])?\s*/',
-                '_inside'    => '/(?:\[[^\]]*\]|[^\[\]]|\](?=[^\[]*\]))*/',
-                'autolink'   => '/^<([^ >]+(@|:\/)[^ >]+)>/',
-                'br'         => '/^ {2,}\n(?!\s*$)/',
-                'code'       => '/^(`+)\s*([\s\S]*?[^`])\s*\1(?!`)/',
-                'del'        => '/nooooop/',
-                'em'         => '/^\b_((?:__|[\s\S])+?)_\b|^\*((?:\*\*|[\s\S])+?)\*(?!\*)/',
-                'escape'     => '/^\\\([\\`*{}\[\]()#+\-.!_>])/',
-                'link'       => '/^!?\[((?:\[[^\]]*\]|[^\[\]]|\](?=[^\[]*\]))*)\]\(\s*<?([\s\S]*?)>?(?:\s+[\'"]([\s\S]*?)[\'"])?\s*\)/',
-                'nolink'     => '/^!?\[((?:\[[^\]]*\]|[^\[\]])*)\]/',
-                'reflink'    => '/^!?\[((?:\[[^\]]*\]|[^\[\]]|\](?=[^\[]*\]))*)\]\s*\[([^\]]*)\]/',
-                'strong'     => '/^__([\s\S]+?)__(?!_)|^\*\*([\s\S]+?)\*\*(?!\*)/',
-                'tag'        => '/^<!--[\s\S]*?-->|^<\/?\w+(?:"[^"]*"|\'[^\']*\'|[^\'">])*?>/',
-                'text'       => '/^[\s\S]+?(?=[\\<!\[_*`]| {2,}\n|$)/',
-                'url'        => '/nooooop/'
+                '_href' => '/\s*<?([\s\S]*?)>?(?:\s+[\'"]([\s\S]*?)[\'"])?\s*/',
+                '_inside' => '/(?:\[[^\]]*\]|[^\[\]]|\](?=[^\[]*\]))*/',
+                'autolink' => '/^<([^ >]+(@|:\/)[^ >]+)>/',
+                'br' => '/^ {2,}\n(?!\s*$)/',
+                'code' => '/^(`+)\s*([\s\S]*?[^`])\s*\1(?!`)/',
+                'del' => '/nooooop/',
+                'em' => '/^\b_((?:__|[\s\S])+?)_\b|^\*((?:\*\*|[\s\S])+?)\*(?!\*)/',
+                'escape' => '/^\\\([\\`*{}\[\]()#+\-.!_>])/',
+                'link' => '/^!?\[((?:\[[^\]]*\]|[^\[\]]|\](?=[^\[]*\]))*)\]\(\s*<?([\s\S]*?)>?(?:\s+[\'"]([\s\S]*?)[\'"])?\s*\)/',
+                'nolink' => '/^!?\[((?:\[[^\]]*\]|[^\[\]])*)\]/',
+                'reflink' => '/^!?\[((?:\[[^\]]*\]|[^\[\]]|\](?=[^\[]*\]))*)\]\s*\[([^\]]*)\]/',
+                'strong' => '/^__([\s\S]+?)__(?!_)|^\*\*([\s\S]+?)\*\*(?!\*)/',
+                'tag' => '/^<!--[\s\S]*?-->|^<\/?\w+(?:"[^"]*"|\'[^\']*\'|[^\'">])*?>/',
+                'text' => '/^[\s\S]+?(?=[\\<!\[_*`]| {2,}\n|$)/',
+                'url' => '/nooooop/',
             ];
 
             // pedantic
             $inlines['pedantic'] = array_merge($inlines['normal'], [
                 'strong' => '/^__(?=\S)([\s\S]*?\S)__(?!_)|^\*\*(?=\S)([\s\S]*?\S)\*\*(?!\*)/',
-                'em'     => '/^_(?=\S)([\s\S]*?\S)_(?!_)|^\*(?=\S)([\s\S]*?\S)\*(?!\*)/'
+                'em' => '/^_(?=\S)([\s\S]*?\S)_(?!_)|^\*(?=\S)([\s\S]*?\S)\*(?!\*)/',
             ]);
 
             // github flavored markdown
             $inlines['gfm'] = array_merge($inlines['normal'], [
                 'escape' => '/^\\\([\\`*{}\[\]()#+\-.!_>~|])/',
-                'url'    => '/^(https?:\/\/[^\s<]+[^<.,:;"\')\]\s])/',
-                'del'    => '/^~~(?=\S)([\s\S]*?\S)~~/',
-                'text'   => '/^[\s\S]+?(?=[\\<!\[_*`~]|https?:\/\/| {2,}\n|$)/'
+                'url' => '/^(https?:\/\/[^\s<]+[^<.,:;"\')\]\s])/',
+                'del' => '/^~~(?=\S)([\s\S]*?\S)~~/',
+                'text' => '/^[\s\S]+?(?=[\\<!\[_*`~]|https?:\/\/| {2,}\n|$)/',
             ]);
 
             // github flavored markdown + line breaks
             $inlines['breaks'] = array_merge($inlines['gfm'], [
-                'br'   => '/^ *\n(?!\s*$)/',
-                'text' => '/^[\s\S]+?(?=[\\<!\[_*`~]|https?:\/\/| *\n|$)/'
+                'br' => '/^ *\n(?!\s*$)/',
+                'text' => '/^[\s\S]+?(?=[\\<!\[_*`~]|https?:\/\/| *\n|$)/',
             ]);
 
             static::$inlines = $inlines;

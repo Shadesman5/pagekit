@@ -1,20 +1,36 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Cache\Controller;
 
-use Pagekit\Application as App;
+use Pagekit\Module\ModuleManager;
+use Pagekit\Routing\Attribute\Route;
+use Pagekit\User\Attribute\Access;
+use Symfony\Component\HttpFoundation\Request;
 
-/**
- * @Access(admin=true)
- */
+#[Access(admin: true)]
 class CacheController
 {
+    public function __construct(
+        private readonly Request $request,
+        private readonly ModuleManager $module,
+    ) {
+    }
+
     /**
-     * @Request({"caches": "array"}, csrf=true)
+     * @return array{message: string}
      */
-    public function clearAction($caches): array
+    #[Route('/clear', methods: ['POST'])]
+    public function clearAction(): array
     {
-        App::module('system/cache')->clearCache($caches);
+        $caches = $this->request->request->all()['caches'] ?? [];
+        if (empty($caches) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
+            $caches = $json['caches'] ?? [];
+        }
+
+        $this->module->get('system/cache')->clearCache($caches);
 
         return ['message' => 'success'];
     }

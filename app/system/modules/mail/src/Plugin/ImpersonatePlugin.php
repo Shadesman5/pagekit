@@ -1,30 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Mail\Plugin;
 
-use Pagekit\Mail\MailerInterface;
-use Symfony\Component\Mime\Email;
+use Pagekit\Mail\MailPluginInterface;
 use Symfony\Component\Mime\Address;
+use Symfony\Component\Mime\Email;
 
-class ImpersonatePlugin implements MailerInterface
+class ImpersonatePlugin implements MailPluginInterface
 {
-    /**
-     * @var string
-     */
-    protected $address;
+    protected ?string $address;
+    protected ?string $name;
 
-    /**
-     * @var string
-     */
-    protected $name;
-
-    /**
-     * Constructor.
-     *
-     * @param string $address
-     * @param string $name
-     */
-    public function __construct($address = null, $name = null)
+    public function __construct(?string $address = null, ?string $name = null)
     {
         $this->address = $address;
         $this->name = $name;
@@ -33,7 +22,7 @@ class ImpersonatePlugin implements MailerInterface
     /**
      * {@inheritdoc}
      */
-    public function beforeSend(Email $message)
+    public function beforeSend(Email $message): void
     {
         if ($this->address && !$message->getFrom()) {
             if ($this->name) {
@@ -47,7 +36,7 @@ class ImpersonatePlugin implements MailerInterface
     /**
      * {@inheritdoc}
      */
-    public function afterSend(Email $message)
+    public function afterSend(Email $message): void
     {
         // No action needed after sending
     }

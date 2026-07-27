@@ -1,7 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Model;
 
+use Pagekit\Database\ORM\Attribute as ORM;
+use Pagekit\Database\ORM\EntityEvent;
 use Pagekit\Database\ORM\ModelTrait;
 
 trait UserModelTrait
@@ -9,58 +13,28 @@ trait UserModelTrait
     use ModelTrait;
 
     /**
-     * {@inheritdoc}
-     */
-    public static function findByUsername($username)
-    {
-        return static::where(compact('username'))->first();
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function findByEmail($email)
-    {
-        return static::where(compact('email'))->first();
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function findByLogin($login)
-    {
-        return static::where(['username' => $login])->orWhere(['email' => $login])->first();
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function updateLogin(User $user): void
-    {
-        static::where(['id' => $user->id])->update(['login' => date('Y-m-d H:i:s')]);
-    }
-
-    /**
-     * Finds user's roles.
+     * Attaches the per-instance role loader used by {@see User::hasPermission()}.
      *
-     * @param  User $user
-     * @return Role[]
+     * Every production `User` is hydrated through {@see \Pagekit\Database\ORM\EntityManager::load()},
+     * which fires this handler and wires the loader to the same EntityManager —
+     * so permission checks resolve roles through DI without any global model state.
      */
-    public static function findRoles(User $user): array
+    #[ORM\Init]
+    public static function init(EntityEvent $event, User $user): void
     {
-        static $cached = [];
+        $em = $event->getEntityManager();
 
-        if ($ids = array_diff($user->roles, array_keys($cached))) {
-            $cached += Role::where('id IN ('.implode(',', $user->roles).')')->get();
-        }
+        $user->setRoleLoader(static function (array $ids) use ($em): array {
+            if (!$ids) {
+                return [];
+            }
 
-        return array_intersect_key($cached, array_flip($user->roles));
+            return $em->getRepository(Role::class)->query()->whereIn('id', $ids)->get();
+        });
     }
 
-    /**
-     * @Saving
-     */
-    public static function saving($event, User $user): void
+    #[ORM\Saving]
+    public static function saving(EntityEvent $event, User $user): void
     {
         if (!$user->hasRole(Role::ROLE_AUTHENTICATED)) {
             $user->roles[] = Role::ROLE_AUTHENTICATED;

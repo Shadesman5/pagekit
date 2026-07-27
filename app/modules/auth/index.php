@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Auth\Auth;
 use Pagekit\Auth\Encoder\NativePasswordEncoder;
 use Pagekit\Auth\Handler\DatabaseHandler;
-use RandomLib\Factory;
+use Symfony\Component\Clock\Clock;
 
 return [
 
@@ -11,19 +13,21 @@ return [
 
     'main' => function ($app) {
 
-        $app['auth'] = fn($app) => new Auth($app['events'], $app['auth.handler']);
+        $app->set('auth', fn ($app) => new Auth($app->get('events'), $app->get('auth.handler')));
 
-        $app['auth.password'] = fn() => new NativePasswordEncoder;
+        $app->set('auth.password', fn () => new NativePasswordEncoder());
 
-        $app['auth.random'] = fn() => (new Factory)->getLowStrengthGenerator();
+        // camelCase alias — PHP parameter names cannot contain dots, so controllers
+        // inject `$authPassword` which resolves to this alias for `auth.password`.
+        $app->set('authPassword', fn ($app) => $app->get('auth.password'));
 
-        $app['auth.handler'] = fn($app) => new DatabaseHandler($app['db'], $app['request.stack'], $app['cookie'], $app['auth.random'], $this->config);
+        $app->set('auth.handler', fn ($app) => new DatabaseHandler($app->get('db'), $app->get('request.stack'), $app->get('cookie'), $this->config, new Clock()));
 
     },
 
     'autoload' => [
 
-        'Pagekit\\Auth\\' => 'src'
+        'Pagekit\\Auth\\' => 'src',
 
     ],
 
@@ -31,11 +35,11 @@ return [
 
         'timeout' => 900,
         'table' => 'auth',
-        'cookie'   => [
+        'cookie' => [
             'name' => '',
-            'lifetime' => 315360000
-        ]
+            'lifetime' => 315360000,
+        ],
 
-    ]
+    ],
 
 ];

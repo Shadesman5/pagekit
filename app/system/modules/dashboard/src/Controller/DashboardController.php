@@ -1,53 +1,70 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Dashboard\Controller;
 
-use Pagekit\Application as App;
-use Pagekit\Module\Module;
+use function Pagekit\__;
 
-/**
- * @Access(admin=true)
- */
+use Pagekit\Application\Response as PagekitResponse;
+use Pagekit\Module\Module;
+use Pagekit\Module\ModuleManager;
+use Pagekit\Routing\Attribute\Route;
+use Pagekit\User\Attribute\Access;
+use Symfony\Component\HttpFoundation\Request;
+
+#[Access(admin: true)]
 class DashboardController
 {
     protected Module $dashboard;
 
-    protected string $api = 'http://api.openweathermap.org/data/2.5';
+    protected string $api;
 
-    protected string $apiKey = '08c012f513db564bd6d4bae94b73cc94';
+    protected string $apiKey;
 
-    /**
-     * Constructor.
-     */
-    public function __construct()
-    {
-        $this->dashboard = App::module('system/dashboard');
+    public function __construct(
+        private readonly ModuleManager $module,
+        private readonly Request $request,
+        private readonly PagekitResponse $response,
+        private readonly string $version,
+        private readonly string $systemApi,
+    ) {
+        $this->dashboard = $this->module->get('system/dashboard');
+        $this->api = $this->dashboard->config('weather.api', 'http://api.openweathermap.org/data/2.5');
+        $this->apiKey = $this->dashboard->config('weather.key', '');
     }
 
     /**
-     * @Route("/", methods="GET")
+     * @return array<string, mixed>
      */
+    #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
         return [
             '$view' => [
                 'title' => __('Dashboard'),
-                'name' => 'system/dashboard:views/index.php'
+                'name' => 'system/dashboard:views/index.php',
             ],
             '$data' => [
                 'widgets' => array_values($this->dashboard->getWidgets()),
-                'api' => App::get('system.api'),
-                'version' => App::version(),
-                'channel' => 'stable'
-            ]
+                'api' => $this->systemApi,
+                'version' => $this->version,
+                'channel' => 'stable',
+            ],
         ];
     }
 
     /**
-     * @Request({"widgets": "array"}, csrf=true)
+     * @return array<string, mixed>
      */
-    public function saveWidgetsAction($widgets = []): array
+    #[Route('/savewidgets', methods: ['POST'])]
+    public function saveWidgetsAction(): array
     {
+        $widgets = $this->request->request->all()['widgets'] ?? [];
+        if (empty($widgets) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
+            $widgets = $json['widgets'] ?? [];
+        }
 
         $widgets = array_replace($this->dashboard->getWidgets(), $widgets);
 
@@ -58,12 +75,25 @@ class DashboardController
 
 
     /**
-     * @Route("/", methods="POST")
-     * @Route("/{id}", methods="POST", requirements={"id"="\w+"})
-     * @Request({"id", "widget": "array"}, csrf=true)
+     * @return array<string, mixed>
      */
-    public function saveAction($id = 0, $widget = [])
+    #[Route('/', methods: ['POST'])]
+    #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\w+'])]
+    public function saveAction(string $id = ''): array
     {
+        if (!$id) {
+            $id = (string) $this->request->request->get('id', '');
+        }
+
+        $widget = $this->request->request->all()['widget'] ?? [];
+        if (empty($widget) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
+            $widget = $json['widget'] ?? [];
+            if (!$id && isset($json['id'])) {
+                $id = $json['id'];
+            }
+        }
+
         if ($new = !$id) {
             $id = uniqid();
         }
@@ -76,11 +106,15 @@ class DashboardController
     }
 
     /**
-     * @Route("/{id}", methods="DELETE", requirements={"id"="\w+"})
-     * @Request({"id"}, csrf=true)
+     * @return array{message: string}
      */
-    public function deleteAction($id): array
+    #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\w+'])]
+    public function deleteAction(?string $id = null): array
     {
+        if (!$id) {
+            $id = (string) $this->request->get('id');
+        }
+
         $widgets = $this->dashboard->getWidgets();
 
         unset($widgets[$id]);
@@ -91,10 +125,17 @@ class DashboardController
     }
 
     /**
-     * @Request({"order": "array"}, csrf=true)
+     * @return array{message: string}
      */
-    public function reorderAction($order = []): array
+    #[Route('/reorder', methods: ['POST'])]
+    public function reorderAction(): array
     {
+        $order = $this->request->request->all()['order'] ?? [];
+        if (empty($order) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
+            $order = $json['order'] ?? [];
+        }
+
         $widgets = $this->dashboard->getWidgets();
         $reordered = [];
 
@@ -111,11 +152,13 @@ class DashboardController
         return ['message' => __('Widgets reordered.')];
     }
 
-    /**
-     * @Request({"data": "array", "action": "string",})
-     */
-    public function weatherAction($data, $action)
+    #[Route('/weather', methods: ['GET'])]
+    public function weatherAction(): \Symfony\Component\HttpFoundation\Response
     {
+        $rawData = $this->request->query->all()['data'] ?? [];
+        $data = is_array($rawData) ? $rawData : [];
+        $action = $this->request->query->get('action', '');
+
         $url = $this->api;
 
         if ($action === 'weather') {
@@ -127,6 +170,6 @@ class DashboardController
         $data['APPID'] = $this->apiKey;
         $url .= '?' . http_build_query($data);
 
-        return App::response(file_get_contents((string) $url), 200, ['Content-Type' => 'application/json']);
+        return ($this->response)(file_get_contents((string) $url), 200, ['Content-Type' => 'application/json']);
     }
 }

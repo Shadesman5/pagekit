@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Filter by' => 'Filtr bo\'yicha',
   'Thank you! Your comment needs approval before showing up.' => 'Rahmat! Fikringizni ko\'rsatishdan oldin tasdiqlash kerak.',
   'Unable to comment. Please try again later.' => 'Fikr bildirilmadi. Iltimos keyinroq qayta urinib ko\'ring.',
@@ -94,4 +98,4 @@
   'Written by %name% on %date%' => '%name% tomonidan %date% da yozilgan',
   'Read more' => 'Davomini o\'qish',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Izohsiz|{1} %count% Izoh|]1,Inf[ %count% Izohlar',
-);
+];

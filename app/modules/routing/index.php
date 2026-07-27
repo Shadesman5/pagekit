@@ -1,6 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Filter\FilterManager;
+use Pagekit\Kernel\Event\ExceptionListenerWrapper;
 use Pagekit\Kernel\Exception\HttpException;
 use Pagekit\Routing\Event\AliasListener;
 use Pagekit\Routing\Event\ConfigureRouteListener;
@@ -19,17 +22,17 @@ return [
 
     'main' => function ($app) {
 
-        $app['routes'] = fn() => new Routes();
+        $app->set('routes', fn () => new Routes());
 
-        $app['router'] = fn($app) => new Router($app['routes'], new RoutesLoader($app['events']), $app['request.stack'], ['cache' => $app['path.cache']]);
+        $app->set('router', fn ($app) => new Router($app->get('routes'), new RoutesLoader($app->get('events'), null, $app), $app->get('request.stack'), ['cache' => $app->get('path.cache')]));
 
-        $app['middleware'] = fn($app) => new Middleware($app['events']);
+        $app->set('middleware', fn ($app) => new Middleware($app->get('events')));
 
-        $app['module']->addLoader(function ($module) use ($app) {
+        $app->get('module')->addLoader(function ($module) use ($app) {
 
             if (isset($module['routes'])) {
                 foreach ($module['routes'] as $path => $route) {
-                    $app['routes']->add(array_merge(['path' => $path], $route));
+                    $app->get('routes')->add(array_merge(['path' => $path], $route));
                 }
             }
 
@@ -42,57 +45,60 @@ return [
 
         'boot' => function ($event, $app) {
 
-            $app->subscribe(
-                new ConfigureRouteListener,
-                new ParamFetcherListener(new ParamFetcher(new FilterManager)),
-                new RouterListener($app['router']),
-                new AliasListener($app['routes'])
-            );
+            $app->get('events')->subscribe(new ConfigureRouteListener());
+            $app->get('events')->subscribe(new ParamFetcherListener(new ParamFetcher(new FilterManager())));
+            $app->get('events')->subscribe(new RouterListener($app->get('router')));
+            $app->get('events')->subscribe(new AliasListener($app->get('routes')));
 
-            $app['middleware'];
+            $app->get('middleware');
 
-            $app->error(function (HttpException $e) use ($app) {
+            $app->get('events')->on('exception', new ExceptionListenerWrapper(function (\Throwable $e, int $code) use ($app) {
 
-                $request = $app['router']->getRequest();
-                $types   = $request->getAcceptableContentTypes();
-
-                if ('json' == $request->getFormat(array_shift($types))) {
-                    return new JsonResponse($e->getMessage(), $e->getCode());
+                if (!($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface)
+                    && !($e instanceof HttpException)) {
+                    return;
                 }
 
-            }, -10);
+                $request = $app->get('router')->getRequest();
+                $types = $request->getAcceptableContentTypes();
+
+                if ('json' == $request->getFormat(array_shift($types))) {
+                    return new JsonResponse($e->getMessage(), $code);
+                }
+
+            }), -10);
 
         },
 
         'request' => [function ($event, $request) use ($app) {
 
             if ($redirect = $request->attributes->get('_redirect')) {
-                $event->setResponse($app->redirect($redirect), [], 301);
+                $event->setResponse($app->get('router')->redirect($redirect, [], 301));
             };
 
         }, 90],
 
         'controller' => [function ($event, $request) use ($app) {
 
-            if (!$request->attributes->get('_controller') && $callback = $app['routes']->getCallback($request->attributes->get('_route', ''))) {
+            if (!$request->attributes->get('_controller') && $callback = $app->get('routes')->getCallback($request->attributes->get('_route', ''))) {
                 $request->attributes->set('_controller', $callback);
             };
 
-        }, 130]
+        }, 130],
 
     ],
 
     'require' => [
 
         'kernel',
-        'filter'
+        'filter',
 
     ],
 
     'autoload' => [
 
-        'Pagekit\\Routing\\' => 'src'
+        'Pagekit\\Routing\\' => 'src',
 
-    ]
+    ],
 
 ];

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Session\Csrf\Provider;
 
 interface CsrfProviderInterface
@@ -7,19 +9,15 @@ interface CsrfProviderInterface
     /**
      * Generates a CSRF token.
      */
-    public function generate();
+    public function generate(): string;
 
     /**
      * Validates a CSRF token.
-     *
-     * @param  string $token
      */
-    public function validate($token = null): bool;
+    public function validate(?string $token = null): bool;
 
     /**
      * Sets a CSRF token to validate.
-     *
-     * @param string $token
      */
-    public function setToken($token);
+    public function setToken(?string $token): void;
 }

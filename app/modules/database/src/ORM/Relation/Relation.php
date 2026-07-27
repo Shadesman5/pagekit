@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Database\ORM\Relation;
 
 use Pagekit\Database\ORM\EntityManager;
@@ -49,37 +51,38 @@ abstract class Relation
     /**
      * Constructor.
      *
-     * @param  EntityManager $manager
-     * @param  Metadata      $metadata
-     * @param  array         $mapping
+     * @param array<string, mixed> $mapping
      */
     public function __construct(EntityManager $manager, Metadata $metadata, array $mapping)
     {
-        $this->manager  = $manager;
+        $this->manager = $manager;
         $this->metadata = $metadata;
 
         if (!$this->name = $mapping['name']) {
             throw new \InvalidArgumentException('The parameter "name" may not be omitted in relations.');
         }
-        $this->targetEntity   = $mapping['targetEntity'];
+        $this->targetEntity = $mapping['targetEntity'];
         $this->targetMetadata = $manager->getMetadata($mapping['targetEntity']);
     }
 
     /**
      * Resolves the entity relation.
      *
-     * @param array        $entities
-     * @param QueryBuilder $query
+     * @param array<int|string, object> $entities
+     * @param QueryBuilder<object>      $query
      */
-    abstract public function resolve(array $entities, QueryBuilder $query);
+    abstract public function resolve(array $entities, QueryBuilder $query): void;
 
     /**
      * Initialize the relationship
      *
-     * @param array $entities
-     * @param mixed $default
+     * Single-entity relations (BelongsTo/HasOne) default to null: their typed
+     * target properties are nullable (?Entity) and cannot hold the legacy false
+     * sentinel. Collection relations (HasMany/ManyToMany) pass an empty array.
+     *
+     * @param array<int|string, object> $entities
      */
-    protected function initRelation(array $entities, $default = false)
+    protected function initRelation(array $entities, mixed $default = null): void
     {
         foreach ($entities as $entity) {
             $this->metadata->setValue($entity, $this->name, $default);
@@ -89,12 +92,13 @@ abstract class Relation
     /**
      * Gets the related keys
      *
-     * @param  array    $entities
-     * @param  string   $key
+     * @param  array<int|string, object> $entities
+     * @return array<int, mixed>
      */
-    protected function getKeys(array $entities, $key = null): array {
+    protected function getKeys(array $entities, ?string $key = null): array
+    {
 
-        $key  = $key ?: $this->keyFrom;
+        $key = $key ?: $this->keyFrom;
         $keys = [];
 
         foreach ($entities as $entity) {
@@ -103,18 +107,22 @@ abstract class Relation
             }
         }
 
-        return array_unique($keys);
+        return array_values(array_unique($keys));
     }
 
     /**
      * Map targets to entities
      *
-     * @param array    $entities
-     * @param array    $targets
+     * @param array<int|string, object> $entities
+     * @param array<int|string, object> $targets
      */
-    protected function map($entities, $targets)
+    protected function map(array $entities, array $targets): void
     {
         $identifier = $this->targetMetadata->getIdentifier();
+
+        if ($identifier === null) {
+            throw new \LogicException(sprintf("No identifier found for target entity '%s'.", $this->targetEntity));
+        }
 
         foreach ($targets as $target) {
 
@@ -139,10 +147,10 @@ abstract class Relation
     /**
      * Resolve additional relations
      *
-     * @param QueryBuilder $query
-     * @param array        $targets
+     * @param QueryBuilder<object>      $query
+     * @param array<int|string, object> $targets
      */
-    protected function resolveRelations(QueryBuilder $query, $targets): void
+    protected function resolveRelations(QueryBuilder $query, array $targets): void
     {
         if (!$targets) {
             return;

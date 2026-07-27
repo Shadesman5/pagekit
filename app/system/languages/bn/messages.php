@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Select Image' => 'ছবি বাছাই করুন',
   'Add Image' => 'ছবি যুক্ত করুন',
   'Select Video' => 'ভিডিও বাছাই করুন',
@@ -451,4 +455,4 @@
   'You have the latest version of Pagekit. You do not need to update. However, if you want to re-install version %version%, you can download the package and re-install manually.' => 'আপনার পেজকিট এর সর্বশেষ সংস্করণ আছে। তারপরেও যদি আপনি %version% ভার্সন ইন্সটল করতে চান তবে ম্যানুয়ালি প্যাকেজটি ডাউনলোড করে পুনরায় ইনস্টল করতে পারবেন।',
   'Download %version%' => 'ডাউনলোড %version%',
   'Changelog' => 'পরিবর্তনগুলো',
-);
+];

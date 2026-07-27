@@ -1,26 +1,41 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Database\ORM\Relation;
 
 use Pagekit\Database\ORM\QueryBuilder;
 
 class HasOne extends Relation
 {
-    protected string $belongsTo;
+    protected ?string $belongsTo = null;
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<string, mixed> $mapping
      */
-    public function __construct($manager, $metadata, $mapping)
+    public function __construct(\Pagekit\Database\ORM\EntityManager $manager, \Pagekit\Database\ORM\Metadata $metadata, array $mapping)
     {
         parent::__construct($manager, $metadata, $mapping);
 
-        $this->keyFrom = (isset($mapping['keyFrom']) && $mapping['keyFrom']) ? $mapping['keyFrom'] : $metadata->getIdentifier();
-        $this->keyTo   = $mapping['keyTo'];
+        // Validate required parameter
+        if (empty($mapping['keyTo'])) {
+            throw new \InvalidArgumentException(sprintf(
+                '%s relation "%s" on "%s" requires "keyTo" parameter.',
+                (new \ReflectionClass($this))->getShortName(),
+                $mapping['name'] ?? 'unknown',
+                $metadata->getClass()
+            ));
+        }
 
-        foreach ($this->targetMetadata->getRelationMappings() as $mapping) {
-            if ($mapping['type'] == 'BelongsTo' && $mapping['targetEntity'] == $this->metadata->getClass()) {
-                $this->belongsTo = $mapping['name'];
+        $this->keyFrom = (isset($mapping['keyFrom']) && $mapping['keyFrom']) ? $mapping['keyFrom'] : ($metadata->getIdentifier() ?? throw new \InvalidArgumentException(sprintf('HasOne relation "%s" on "%s": source entity has no identifier and "keyFrom" was not specified.', $mapping['name'] ?? 'unknown', $metadata->getClass())));
+        $this->keyTo = $mapping['keyTo'];
+
+        foreach ($this->targetMetadata->getRelationMappings() as $relationMapping) {
+            if ($relationMapping['type'] == 'BelongsTo' && $relationMapping['targetEntity'] == $this->metadata->getClass()) {
+                $this->belongsTo = $relationMapping['name'];
+
                 break;
             }
         }
@@ -28,6 +43,9 @@ class HasOne extends Relation
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<int|string, object> $entities
+     * @param QueryBuilder<object>      $query
      */
     public function resolve(array $entities, QueryBuilder $query): void
     {
@@ -44,9 +62,12 @@ class HasOne extends Relation
         $this->resolveRelations($query, $targets);
     }
 
-    protected function mapBelongsTo($entities): void
+    /**
+     * @param array<int|string, object> $entities
+     */
+    protected function mapBelongsTo(array $entities): void
     {
-        if ($this->belongsTo) {
+        if ($this->belongsTo !== null) {
             foreach ($entities as $entity) {
                 if ($target = $this->metadata->getValue($entity, $this->name)) {
                     $this->targetMetadata->setValue($target, $this->belongsTo, $entity, true);

@@ -1,17 +1,28 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Event;
 
-use Pagekit\Application as App;
 use Pagekit\Auth\Event\AuthenticateEvent;
 use Pagekit\Auth\Exception\AuthException;
+use Pagekit\Cache\CacheKeyUtil;
 use Pagekit\Event\EventSubscriberInterface;
+use Psr\Cache\CacheItemPoolInterface;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\Clock;
 
 class LoginAttemptListener implements EventSubscriberInterface
 {
-    const DELAY     = 5;
-    const ATTEMPTS  = 5;
-    const CACHE_KEY = 'auth.login_attempts';
+    public const DELAY = 5;
+    public const ATTEMPTS = 5;
+    public const CACHE_KEY = 'auth.login_attempts';
+
+    public function __construct(
+        private readonly CacheItemPoolInterface $cache,
+        private readonly ClockInterface $clock = new Clock(),
+    ) {
+    }
 
     /**
      * Prevent authentication attempts if time in between failed attempts is too short
@@ -25,9 +36,14 @@ class LoginAttemptListener implements EventSubscriberInterface
             return;
         }
 
-        $attempts = App::cache()->fetch($this->getCacheKey($credentials['username'])) ?: [];
+        $key = $this->getCacheKey($credentials['username']);
+        $item = $this->cache->getItem($key);
+        $attempts = $item->isHit() ? $item->get() : [];
 
-        if (count($attempts) > self::ATTEMPTS && time() - (int) array_pop($attempts) < self::DELAY) {
+        // Block if we already have >= ATTEMPTS failures and the last one was within DELAY seconds.
+        // (Use end() to read last timestamp without mutating the array.)
+        $lastAttempt = is_array($attempts) && $attempts !== [] ? (int) end($attempts) : 0;
+        if (count($attempts) >= self::ATTEMPTS && ($this->clock->now()->getTimestamp() - $lastAttempt) < self::DELAY) {
             throw new AuthException(__('Slow down a bit.'));
         }
     }
@@ -44,11 +60,11 @@ class LoginAttemptListener implements EventSubscriberInterface
         }
 
         $key = $this->getCacheKey($credentials['username']);
-
-        $attempts = App::cache()->fetch($key) ?: [];
-        $attempts[] = time();
-
-        App::cache()->save($key, $attempts);
+        $item = $this->cache->getItem($key);
+        $attempts = $item->isHit() ? $item->get() : [];
+        $attempts[] = $this->clock->now()->getTimestamp();
+        $item->set($attempts);
+        $this->cache->save($item);
     }
 
     /**
@@ -62,22 +78,25 @@ class LoginAttemptListener implements EventSubscriberInterface
             return;
         }
 
-        App::cache()->delete($this->getCacheKey($credentials['username']));
+        $this->cache->deleteItem($this->getCacheKey($credentials['username']));
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, string>
      */
     public function subscribe(): array
     {
         return [
             'auth.pre_authenticate' => 'onPreAuthenticate',
-            'auth.failure'          => 'onAuthFailure',
-            'auth.success'          => 'onAuthSuccess'
+            'auth.failure' => 'onAuthFailure',
+            'auth.success' => 'onAuthSuccess',
         ];
     }
 
-    protected function getCacheKey($username): string {
-        return self::CACHE_KEY.'_'.$username;
+    protected function getCacheKey(string $username): string
+    {
+        return CacheKeyUtil::sanitize(self::CACHE_KEY . '_' . $username);
     }
 }

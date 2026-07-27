@@ -1,24 +1,29 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Filesystem\Tests;
 
-use PHPUnit\Framework\TestCase;
 use Pagekit\Filesystem\Path;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
 
 class PathTest extends TestCase
 {
     /**
-     * @dataProvider dataPaths
+     * @param array<string, string> $result
      */
-    public function testParse($path, $result): void
+    #[DataProvider('dataPaths')]
+    public function testParse(string $path, array $result): void
     {
         $this->assertSame($result, Path::parse($path));
     }
 
     /**
-     * @dataProvider dataPaths
+     * @param array<string, string> $result
      */
-    public function testIsAbsolute($path, $result): void
+    #[DataProvider('dataPaths')]
+    public function testIsAbsolute(string $path, array $result): void
     {
         if ($result['root'] !== '') {
             $this->assertTrue(Path::isAbsolute($path));
@@ -28,9 +33,10 @@ class PathTest extends TestCase
     }
 
     /**
-     * @dataProvider dataPaths
+     * @param array<string, string> $result
      */
-    public function testIsRelative($path, $result): void
+    #[DataProvider('dataPaths')]
+    public function testIsRelative(string $path, array $result): void
     {
         if ($result['root'] === '') {
             $this->assertTrue(Path::isRelative($path));
@@ -39,15 +45,18 @@ class PathTest extends TestCase
         }
     }
 
+    /**
+     * @return array<int, array{0: string, 1: array<string, string>}>
+     */
     public static function dataPaths(): array
     {
         return [
             ['dir/file.txt', ['root' => '', 'path' => 'dir/file.txt', 'dirname' => 'dir', 'pathname' => 'dir/file.txt', 'protocol' => 'file']],
-            ['dir/./file.txt', ['root' =>'', 'path' => 'dir/file.txt', 'dirname' => 'dir', 'pathname' => 'dir/file.txt', 'protocol' => 'file']],
+            ['dir/./file.txt', ['root' => '', 'path' => 'dir/file.txt', 'dirname' => 'dir', 'pathname' => 'dir/file.txt', 'protocol' => 'file']],
             ['dir/../file.txt', ['root' => '', 'path' => 'file.txt', 'dirname' => '', 'pathname' => 'file.txt', 'protocol' => 'file']],
             ['/dir/file.txt', ['root' => '/', 'path' => 'dir/file.txt', 'dirname' => '/dir', 'pathname' => '/dir/file.txt', 'protocol' => 'file']],
             ['C:\dir\file.txt', ['root' => 'C:/', 'path' => 'dir/file.txt', 'dirname' => 'C:/dir', 'pathname' => 'C:/dir/file.txt', 'protocol' => 'file']],
-            ['http://dir/file.txt', ['root' => 'http://', 'path' => 'dir/file.txt', 'dirname' => 'http://dir', 'pathname' => 'http://dir/file.txt', 'protocol' => 'http']]
+            ['http://dir/file.txt', ['root' => 'http://', 'path' => 'dir/file.txt', 'dirname' => 'http://dir', 'pathname' => 'http://dir/file.txt', 'protocol' => 'http']],
         ];
     }
 }

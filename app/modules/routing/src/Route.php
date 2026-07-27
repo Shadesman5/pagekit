@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Routing;
 
 use Symfony\Component\Routing\Route as BaseRoute;
@@ -21,7 +23,7 @@ class Route extends BaseRoute
      *
      * @param  string $name
      */
-    public function setName($name): self
+    public function setName(string $name): self
     {
         $this->name = trim((string) $name, '/');
 
@@ -31,7 +33,7 @@ class Route extends BaseRoute
     /**
      * Gets the controller.
      *
-     * @return mixed
+     * @return mixed Genuinely unknown type — controller may be a [class, method] array, a callable string, a Closure, or null if not defined.
      */
     public function getController()
     {
@@ -47,28 +49,32 @@ class Route extends BaseRoute
     /**
      * Gets the controller reflection class.
      *
-     * @return \ReflectionClass
+     * @return \ReflectionClass<object>|null
      */
-    public function getControllerClass()
+    public function getControllerClass(): ?\ReflectionClass
     {
         $controller = $this->getController();
 
         if (is_array($controller)) {
             return new \ReflectionClass($controller[0]);
         }
+
+        return null;
     }
 
     /**
      * Gets the controller reflection method.
      *
-     * @return \ReflectionMethod
+     * @return \ReflectionMethod|null
      */
-    public function getControllerMethod()
+    public function getControllerMethod(): ?\ReflectionMethod
     {
         $controller = $this->getController();
 
         if (is_array($controller)) {
             return new \ReflectionMethod($controller[0], $controller[1]);
         }
+
+        return null;
     }
 }

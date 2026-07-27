@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Select Image' => 'Выбрать изображение',
   'Add Image' => 'Добавить изображение',
   'Select Video' => 'Выбрать видео',
@@ -510,8 +514,8 @@
   'Search' => 'Поиск',
   'Actions' => 'Действия',
   'Publish' => 'Опубликовать',
-  'Unpublish'=> 'Снять с публикации',
-  'Move'=> 'Перенести',
+  'Unpublish' => 'Снять с публикации',
+  'Move' => 'Перенести',
   'Users per page' => 'Пользователей на странице',
   'Update to Pagekit %version% automatically or download the package and install it manually! Read the changelog below to see what\'s new.' => 'Обновите до Pagekit %version% автоматически или загрузите пакет и установите его вручную! Прочитайте список изменений ниже, чтобы увидеть, что нового.',
   'Update now!' => 'Обновить сейчас!',
@@ -522,4 +526,4 @@
   'Display mode' => 'Режим отображения',
   'Spliting visual and code editor' => 'Разделение визуального редактора и редактора кода',
   'By default, only one editor is displayed; in split mode, visual and code editors are displayed at the same time.' => 'По умолчанию отображается только один редактор; в режиме разделения визуальный и редактор кода отображаются одновременно.',
-);
+];

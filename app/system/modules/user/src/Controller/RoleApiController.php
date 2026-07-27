@@ -1,85 +1,156 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Controller;
 
-use Pagekit\Application as App;
+use function Pagekit\__;
+
+use Pagekit\Database\ORM\Repository;
+use Pagekit\Routing\Attribute\Route;
+use Pagekit\System\Controller\ValidatesRequestTrait;
+use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
- * @Access("user: manage user permissions")
+ * API Controller for Role management.
  */
+#[Access('user: manage user permissions')]
 class RoleApiController
 {
+    use ValidatesRequestTrait;
+
     /**
-     * @Route("/", methods="GET")
+     * @param Repository<Role> $roleRepository
      */
+    public function __construct(
+        private readonly Request $request,
+        protected readonly ValidatorInterface $validator,
+        private readonly Repository $roleRepository,
+    ) {
+    }
+
+    /**
+     * @return array<int, Role>
+     */
+    #[Route('/', methods: ['GET'])]
     public function indexAction(): array
     {
-        return array_values(Role::findAll());
+        return array_values($this->roleRepository->findAll());
     }
 
-    /**
-     * @Route("/{id}", methods="GET", requirements={"id"="\d+"})
-     */
-    public function getAction($id): Role
+    #[Route('/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
+    public function getAction(int $id): Role
     {
-        return Role::find($id);
-    }
-
-    /**
-     * @Route("/", methods="POST")
-     * @Route("/{id}", methods="POST", requirements={"id"="\d+"})
-     * @Request({"role": "array", "id": "int"}, csrf=true)
-     */
-    public function saveAction($data, $id = 0): array
-    {
-        // is new ?
-        if (!$role = Role::find($id)) {
-
-            if ($id) {
-                App::abort(404, __('Role not found.'));
-            }
-
-            $role = Role::create();
+        if (!$role = $this->roleRepository->find($id)) {
+            throw new NotFoundHttpException(__('Role not found.'));
         }
 
-        $role->save($data);
+        return $role;
+    }
+
+    /**
+     * Save a role (create or update).
+     *
+     * @param  array<string, mixed>|null $data
+     * @return array{message: string, role: Role}
+     */
+    #[Route('/', methods: ['POST'])]
+    #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function saveAction(int $id = 0, ?array $data = null): array
+    {
+        if ($data === null) {
+            $request = $this->request;
+
+            $data = $request->request->all()['role'] ?? [];
+            if (empty($data) && $request->getContent()) {
+                $json = json_decode($request->getContent(), true);
+                $data = $json['role'] ?? [];
+            }
+        }
+
+        if (!$id && isset($data['id'])) {
+            $id = (int) $data['id'];
+        }
+
+        if (!$role = $this->roleRepository->find($id)) {
+
+            if ($id) {
+                throw new NotFoundHttpException(__('Role not found.'));
+            }
+
+            $role = $this->roleRepository->create();
+        }
+
+        foreach ($data as $key => $value) {
+            if (property_exists($role, $key)) {
+                $role->$key = $value;
+            }
+        }
+
+        $this->validateOrFail($role);
+
+        $this->roleRepository->save($role, $data);
 
         return ['message' => 'success', 'role' => $role];
     }
 
     /**
-     * @Route("/{id}", methods="DELETE", requirements={"id"="\d+"})
-     * @Request({"id": "int"}, csrf=true)
+     * @return array{message: string}
      */
-    public function deleteAction($id = 0): array
+    #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\d+'])]
+    public function deleteAction(int $id = 0): array
     {
-        if ($role = Role::find($id)) {
-            $role->delete();
+        if (!$id) {
+            $id = (int) $this->request->get('id', 0);
+        }
+
+        if ($role = $this->roleRepository->find($id)) {
+            $this->roleRepository->delete($role);
         }
 
         return ['message' => 'success'];
     }
 
     /**
-     * @Route("/bulk", methods="POST")
-     * @Request({"roles": "array"}, csrf=true)
+     * @return array{message: string}
      */
-    public function bulkSaveAction($roles = []): array
+    #[Route('/bulk', methods: ['POST'])]
+    public function bulkSaveAction(): array
     {
+        $request = $this->request;
+
+        $roles = $request->request->all()['roles'] ?? [];
+        if (empty($roles) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $roles = $json['roles'] ?? [];
+        }
+
         foreach ($roles as $data) {
-            $this->saveAction($data, isset($data['id']) ? $data['id'] : 0);
+            $id = isset($data['id']) ? $data['id'] : 0;
+            $this->saveAction($id, $data);
         }
 
         return ['message' => 'success'];
     }
 
     /**
-     * @Route("/bulk", methods="DELETE")
-     * @Request({"ids": "array"}, csrf=true)
+     * @return array{message: string}
      */
-    public function bulkDeleteAction($ids = []): array
+    #[Route('/bulk', methods: ['DELETE'])]
+    public function bulkDeleteAction(): array
     {
+        $request = $this->request;
+
+        $ids = $request->request->all()['ids'] ?? [];
+        if (empty($ids) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $ids = $json['ids'] ?? [];
+        }
+
         foreach (array_filter($ids) as $id) {
             $this->deleteAction($id);
         }

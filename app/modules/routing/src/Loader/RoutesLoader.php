@@ -1,16 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Routing\Loader;
 
+use Pagekit\Application;
 use Pagekit\Event\EventDispatcherInterface;
 use Pagekit\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 
+/**
+ * Loads routes from route definitions and controller classes.
+ */
 class RoutesLoader implements LoaderInterface
 {
     protected \Pagekit\Event\EventDispatcherInterface $events;
 
-    protected \Pagekit\Routing\Loader\AnnotationLoader $loader;
+    protected \Pagekit\Routing\Loader\AttributeLoader $loader;
 
     protected ?RouteCollection $routes = null;
 
@@ -18,12 +24,13 @@ class RoutesLoader implements LoaderInterface
      * Constructor.
      *
      * @param EventDispatcherInterface $events
-     * @param AnnotationLoader         $loader
+     * @param AttributeLoader|null $loader
+     * @param Application|null $app Container used for debug-aware error reporting in addController().
      */
-    public function __construct(EventDispatcherInterface $events, ?AnnotationLoader $loader = null)
+    public function __construct(EventDispatcherInterface $events, ?AttributeLoader $loader = null, protected ?Application $app = null)
     {
         $this->events = $events;
-        $this->loader = $loader ?: new AnnotationLoader();
+        $this->loader = $loader ?: new AttributeLoader();
     }
 
     /**
@@ -31,7 +38,8 @@ class RoutesLoader implements LoaderInterface
      */
     public function load($routes): RouteCollection
     {
-        $this->routes = new RouteCollection();
+        $collection = new RouteCollection();
+        $this->routes = $collection;
 
         foreach ($routes as $route) {
 
@@ -48,14 +56,16 @@ class RoutesLoader implements LoaderInterface
                 }
 
             } else {
-                
+
                 $this->addRoute($route);
 
             }
 
         }
 
-        return $this->routes;
+        $this->routes = null;
+
+        return $collection;
     }
 
     /**
@@ -63,8 +73,11 @@ class RoutesLoader implements LoaderInterface
      *
      * @param Route $route
      */
-    protected function addRoute($route): void
+    protected function addRoute(Route $route): void
     {
+        if ($this->routes === null) {
+            return;
+        }
         $this->routes->add($route->getName(), $route);
         $this->events->trigger('route.configure', [$route, $this->routes]);
     }
@@ -75,7 +88,7 @@ class RoutesLoader implements LoaderInterface
      * @param Route  $route
      * @param string $controller
      */
-    protected function addController($route, $controller): void
+    protected function addController(Route $route, string $controller): void
     {
         try {
 
@@ -92,6 +105,21 @@ class RoutesLoader implements LoaderInterface
             }
 
         } catch (\InvalidArgumentException $e) {
+
+            // Debug-aware handler: re-throw in dev so broken controllers surface
+            // immediately; in production, log and skip the offending route so the
+            // rest of the route collection still loads.
+            if ($this->app && $this->app->has('debug') && $this->app->get('debug')) {
+                throw $e;
+            }
+
+            $message = sprintf('Route loading failed for controller "%s": %s', $controller, $e->getMessage());
+
+            if ($this->app && $this->app->has('log')) {
+                $this->app->get('log')->warning($message);
+            } else {
+                error_log($message);
+            }
         }
     }
 }

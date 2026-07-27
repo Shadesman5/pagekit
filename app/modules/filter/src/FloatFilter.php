@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Filter;
 
 /**
@@ -10,8 +12,8 @@ class FloatFilter extends AbstractFilter
     /**
      * {@inheritdoc}
      */
-    public function filter($value): float
+    public function filter(mixed $value): float
     {
-        return floatval((string) $value);
+        return (float) ((string) $value);
     }
 }

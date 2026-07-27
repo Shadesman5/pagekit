@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Console\Commands;
 
 use Pagekit\Application\Console\Command;
@@ -12,12 +14,12 @@ class StartCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected $name = 'start';
+    protected ?string $name = 'start';
 
     /**
      * {@inheritdoc}
      */
-    protected $description = 'Starts the built-in web server';
+    protected string $description = 'Starts the built-in web server';
 
     /**
      * {@inheritdoc}
@@ -32,14 +34,18 @@ class StartCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $this->line(sprintf('Pagekit %s Development Server started', $this->getApplication()->getVersion()));
-        $this->line(sprintf('Listening on http://%s', $server = $this->option('server')));
+        $server = $this->option('server');
+        if (!is_string($server)) {
+            throw new \LogicException('Option "server" must be a string.');
+        }
+
+        $this->line(sprintf('Pagekit %s Development Server started', $this->getApplication()?->getVersion() ?? 'dev'));
+        $this->line(sprintf('Listening on http://%s', $server));
         $this->line(sprintf('Document root is %s', getcwd()));
         $this->line('Press Ctrl-C to quit');
 
         exec("php -S $server index.php");
 
-        // TODO: Callback
-        return 0;
+        return Command::SUCCESS;
     }
 }

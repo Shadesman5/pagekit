@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Filter by' => 'Filtrar por',
   'Thank you! Your comment needs approval before showing up.' => '¡Gracias! Su comentario necesita ser aprobado antes de ser publicado.',
   'Unable to comment. Please try again later.' => 'No se pudo comentar. Inténtelo más tarde.',
@@ -94,4 +98,4 @@
   'Written by %name% on %date%' => 'Escrito por %name%, el %date%',
   'Read more' => 'Leer más',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Ningun comentario|{1} %count% Comentario|]1,Inf[ %count% Comentarios',
-);
+];

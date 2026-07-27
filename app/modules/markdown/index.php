@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Markdown\Markdown;
 
 return [
@@ -8,14 +10,14 @@ return [
 
     'main' => function ($app) {
 
-        $app['markdown'] = fn() => new Markdown;
+        $app->set('markdown', fn () => new Markdown());
 
     },
 
     'autoload' => [
 
-        'Pagekit\\Markdown\\' => 'src'
+        'Pagekit\\Markdown\\' => 'src',
 
-    ]
+    ],
 
 ];

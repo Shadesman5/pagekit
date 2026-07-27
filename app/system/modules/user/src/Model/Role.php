@@ -1,72 +1,84 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Model;
 
+use Pagekit\Database\ORM\Attribute as ORM;
+use Pagekit\Database\ORM\SerializableModelInterface;
+use Symfony\Component\Validator\Constraints as Assert;
+
 /**
- * @Entity(tableClass="@system_role")
+ * Role entity with PHP 8 Attributes for ORM and Validation.
  */
-class Role implements \JsonSerializable
+#[ORM\Entity(tableClass: '@system_role')]
+class Role implements \JsonSerializable, SerializableModelInterface
 {
     use RoleModelTrait;
 
     /**
      * The identifier of the anonymous role.
-     *
-     * @var int
      */
-    const ROLE_ANONYMOUS = 1;
+    public const ROLE_ANONYMOUS = 1;
 
     /**
      * The identifier of the authenticated role.
-     *
-     * @var int
      */
-    const ROLE_AUTHENTICATED = 2;
+    public const ROLE_AUTHENTICATED = 2;
 
     /**
      * The identifier of the administrator role.
-     *
-     * @var int
      */
-    const ROLE_ADMINISTRATOR = 3;
+    public const ROLE_ADMINISTRATOR = 3;
 
-    /** @Column(type="integer") @Id */
-    public $id;
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
+    public ?int $id = null;
 
-    /** @Column(type="string") */
-    public $name;
+    #[ORM\Column(type: 'string')]
+    #[Assert\NotBlank(message: 'validation.role.name_required')]
+    #[Assert\Length(
+        min: 2,
+        max: 255,
+        minMessage: 'validation.role.name_min_length',
+        maxMessage: 'validation.role.name_max_length'
+    )]
+    public ?string $name = null;
 
-    /** @Column(type="integer") */
-    public $priority = 0;
+    #[ORM\Column(type: 'integer')]
+    #[Assert\PositiveOrZero(message: 'validation.role.priority_invalid')]
+    public int $priority = 0;
 
-    /** @Column(type="simple_array") */
+    /** @var array<int, string> */
+    #[ORM\Column(type: 'simple_array')]
     public array $permissions = [];
 
+    /** @var array<string, string> */
     protected static array $properties = [
         'locked' => 'isLocked',
         'anonymous' => 'isAnonymous',
         'authenticated' => 'isAuthenticated',
-        'administrator' => 'isAdministrator'
+        'administrator' => 'isAdministrator',
     ];
 
     /**
-     * {@inheritdoc}
+     * Check if the role has a specific permission.
      */
-    public function hasPermission($permission): bool
+    public function hasPermission(string $permission): bool
     {
         return in_array($permission, $this->permissions);
     }
 
     /**
-     * {@inheritdoc}
+     * Add a permission to the role.
      */
-    public function addPermission($permission): void
+    public function addPermission(string $permission): void
     {
-        $this->permissions[] = (string) $permission;
+        $this->permissions[] = $permission;
     }
 
     /**
-     * {@inheritdoc}
+     * Clear all permissions from the role.
      */
     public function clearPermissions(): void
     {
@@ -74,7 +86,7 @@ class Role implements \JsonSerializable
     }
 
     /**
-     * {@inheritdoc}
+     * Check if this is a system-locked role.
      */
     public function isLocked(): bool
     {
@@ -82,7 +94,7 @@ class Role implements \JsonSerializable
     }
 
     /**
-     * {@inheritdoc}
+     * Check if this is the anonymous role.
      */
     public function isAnonymous(): bool
     {
@@ -90,7 +102,7 @@ class Role implements \JsonSerializable
     }
 
     /**
-     * {@inheritdoc}
+     * Check if this is the authenticated role.
      */
     public function isAuthenticated(): bool
     {
@@ -98,7 +110,7 @@ class Role implements \JsonSerializable
     }
 
     /**
-     * {@inheritdoc}
+     * Check if this is the administrator role.
      */
     public function isAdministrator(): bool
     {
@@ -108,7 +120,8 @@ class Role implements \JsonSerializable
     /**
      * {@inheritdoc}
      */
-    public function __toString() {
+    public function __toString(): string
+    {
         return (string) $this->name;
     }
 }

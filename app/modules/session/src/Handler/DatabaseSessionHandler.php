@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Session\Handler;
 
 use Doctrine\DBAL\ConnectionException;
-use Doctrine\DBAL\Platforms\MySqlPlatform;
+use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Platforms\SqlitePlatform;
 use Pagekit\Database\Connection;
 
@@ -102,6 +104,7 @@ class DatabaseSessionHandler implements \SessionHandlerInterface
 
             if (null !== $sql = $this->getMergeSql()) {
                 $this->connection->executeQuery($sql, $params);
+
                 return true;
             }
 
@@ -135,7 +138,7 @@ class DatabaseSessionHandler implements \SessionHandlerInterface
     {
         $platform = $this->connection->getDatabasePlatform();
 
-        if ($platform instanceof MySqlPlatform) {
+        if ($platform instanceof MySQLPlatform) {
             return "INSERT INTO {$this->table} (id, data, time) VALUES (:id, :data, :time) "
             . "ON DUPLICATE KEY UPDATE data = VALUES(data), time = CASE WHEN time = :time THEN (VALUES(time) + INTERVAL 1 SECOND) ELSE VALUES(time) END";
         } elseif ($platform instanceof SqlitePlatform) {

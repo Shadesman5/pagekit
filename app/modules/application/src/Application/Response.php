@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Application;
 
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -10,93 +12,73 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class Response
 {
-    protected \Pagekit\Application\UrlProvider $url;
-
-    /**
-     * Constructor.
-     *
-     * @param UrlProvider $url
-     */
-    public function __construct(UrlProvider $url)
+    public function __construct(protected UrlProvider $url)
     {
-        $this->url = $url;
     }
 
     /**
      * Create shortcut.
      *
      * @see create()
+     *
+     * @param array<string, string> $headers
      */
-    public function __invoke($content = '', $status = 200, $headers = [])
+    public function __invoke(mixed $content = '', int $status = 200, array $headers = []): HttpResponse
     {
         return $this->create($content, $status, $headers);
     }
 
-	/**
-	 * Returns a response.
-	 *
-	 * @param  mixed $content
-	 * @param  int   $status
-	 * @param  array $headers
-	 * @return HttpResponse
-	 */
-	public function create($content = '', $status = 200, $headers = []): HttpResponse
-	{
-		return new HttpResponse($content, $status, $headers);
-	}
+    /**
+     * @param array<string, string> $headers
+     */
+    public function create(mixed $content = '', int $status = 200, array $headers = []): HttpResponse
+    {
+        return new HttpResponse($content, $status, $headers);
+    }
 
-	/**
-	 * Returns a redirect response.
-	 *
-	 * @param  string  $url
-	 * @param  array   $parameters
-	 * @param  int     $status
-	 * @param  array   $headers
-	 */
-	public function redirect($url, $parameters = [], $status = 302, $headers = []): RedirectResponse
-	{
-		return new RedirectResponse($this->url->get($url, $parameters), $status, $headers);
-	}
+    /**
+     * @param array<string, mixed>  $parameters
+     * @param array<string, string> $headers
+     */
+    public function redirect(string $url, array $parameters = [], int $status = 302, array $headers = []): RedirectResponse
+    {
+        $resolved = $this->url->get($url, $parameters);
 
-	/**
-	 * Returns a JSON response.
-	 *
-	 * @param  string|array $data
-	 * @param  int          $status
-	 * @param  array        $headers
-	 */
-	public function json($data = [], $status = 200, $headers = []): JsonResponse
-	{
-		return new JsonResponse($data, $status, $headers);
-	}
+        if ($resolved === false) {
+            throw new \InvalidArgumentException(sprintf('Cannot redirect to "%s": URL or route could not be resolved.', $url));
+        }
 
-	/**
-	 * Returns a streamed response.
-	 *
-	 * @param  callable $callback
-	 * @param  int      $status
-	 * @param  array    $headers
-	 */
-	public function stream(callable $callback, $status = 200, $headers = []): StreamedResponse
-	{
-		return new StreamedResponse($callback, $status, $headers);
-	}
+        return new RedirectResponse($resolved, $status, $headers);
+    }
 
-	/**
-	 * Returns a binary file download response.
-	 *
-	 * @param  string $file
-	 * @param  string $name
-	 * @param  array  $headers
-	 */
-	public function download($file, $name = null, $headers = []): BinaryFileResponse
-	{
-		$response = new BinaryFileResponse($file, 200, $headers, true, 'attachment');
+    /**
+     * @param string|array<int|string, mixed> $data
+     * @param array<string, string>           $headers
+     */
+    public function json(string|array $data = [], int $status = 200, array $headers = []): JsonResponse
+    {
+        return new JsonResponse($data, $status, $headers);
+    }
 
-		if (!is_null($name)) {
-			$response->setContentDisposition('attachment', $name);
-		}
+    /**
+     * @param array<string, string> $headers
+     */
+    public function stream(callable $callback, int $status = 200, array $headers = []): StreamedResponse
+    {
+        return new StreamedResponse($callback, $status, $headers);
+    }
 
-		return $response;
-	}
+    /**
+     * @param array<string, string> $headers
+     */
+    public function download(string $file, ?string $name = null, array $headers = []): BinaryFileResponse
+    {
+        $response = new BinaryFileResponse($file, 200, $headers, true, 'attachment');
+
+        if ($name !== null) {
+            $response->setContentDisposition('attachment', $name);
+        }
+
+        return $response;
+    }
 }

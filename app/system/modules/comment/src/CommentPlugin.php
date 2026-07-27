@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Comment;
 
 use Pagekit\Content\Event\ContentEvent;
@@ -19,8 +21,8 @@ class CommentPlugin implements EventSubscriberInterface
         }
 
         // remove all html tags or escape if in [code] tag
-        $content = preg_replace_callback('/\[code\](.+?)\[\/code\]/is', fn($matches) => htmlspecialchars($matches[0]), $event->getContent());
-        $content = strip_tags($content);
+        $content = preg_replace_callback('/\[code\](.+?)\[\/code\]/is', fn ($matches) => htmlspecialchars($matches[0]), $event->getContent());
+        $content = strip_tags($content ?? '');
 
         $content = ' '.$content.' ';
         $content = preg_replace_callback('/(?:(?:https?|ftp|file):\/\/|www\.|ftp\.)(?:\([-A-Z0-9+&@#\/%=~_|$?!:;,.]*\)|[-A-Z0-9+&@#\/%=~_|$?!:;,.])*(?:\([-A-Z0-9+&@#\/%=~_|$?!:;,.]*\)|[A-Z0-9+&@#\/%=~_|$])/ix', function ($matches) {
@@ -32,7 +34,7 @@ class CommentPlugin implements EventSubscriberInterface
             }
 
             // Prepend scheme if URL appears to contain no scheme (unless a relative link starting with / or a php file).
-            if (strpos($url, ':') === false &&	substr($url, 0, 1) != '/' && substr($url, 0, 1) != '#' && !preg_match('/^[a-z0-9-]+?\.php/i', $url)) {
+            if (strpos($url, ':') === false && substr($url, 0, 1) != '/' && substr($url, 0, 1) != '#' && !preg_match('/^[a-z0-9-]+?\.php/i', $url)) {
                 $url = 'http://' . $url;
             }
 
@@ -40,8 +42,8 @@ class CommentPlugin implements EventSubscriberInterface
 
         }, $content);
 
-        $content = preg_replace("/\s([a-zA-Z][a-zA-Z0-9\_\.\-]*[a-zA-Z]*\@[a-zA-Z][a-zA-Z0-9\_\.\-]*[a-zA-Z]{2,6})([\s|\.|\,])/i"," <a href=\"mailto:$1\" rel=\"nofollow\">$1</a>$2", $content);
-        $content = substr($content, 1);
+        $content = preg_replace("/\s([a-zA-Z][a-zA-Z0-9\_\.\-]*[a-zA-Z]*\@[a-zA-Z][a-zA-Z0-9\_\.\-]*[a-zA-Z]{2,6})([\s|\.|\,])/i", " <a href=\"mailto:$1\" rel=\"nofollow\">$1</a>$2", $content ?? '');
+        $content = substr($content ?? '', 1);
         $content = substr($content, 0, -1);
 
         $event->setContent(nl2br($content));
@@ -49,11 +51,13 @@ class CommentPlugin implements EventSubscriberInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, string>
      */
     public function subscribe(): array
     {
         return [
-            'content.plugins' => 'onContentPlugins'
+            'content.plugins' => 'onContentPlugins',
         ];
     }
 }

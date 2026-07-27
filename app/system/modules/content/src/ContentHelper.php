@@ -1,21 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Content;
 
-use Pagekit\Application as App;
 use Pagekit\Content\Event\ContentEvent;
+use Pagekit\Event\EventDispatcherInterface;
 
 class ContentHelper
 {
+    public function __construct(
+        private readonly EventDispatcherInterface $events,
+    ) {
+    }
+
     /**
      * Applies content plugins
      *
-     * @param  string $content
-     * @param  array  $parameters
-     * @return mixed
+     * @param array<string, mixed> $parameters
      */
-    public function applyPlugins($content, $parameters = [])
+    public function applyPlugins(string $content, array $parameters = []): string
     {
-        return App::trigger(new ContentEvent('content.plugins', $content, $parameters))->getContent();
+        return $this->events->trigger(new ContentEvent('content.plugins', $content, $parameters))->getContent();
     }
 }

@@ -1,0 +1,59 @@
+# Sticky "Quality Report" PR comment. Runs after a gate workflow completes for a pull request and
+# re-renders one comment from the artifacts uploaded for that head commit, plus the develop-tip
+# snapshot on quality-data for the deltas. The comment reports NUMBERS only — PASS/FAIL is the job of
+# the GitHub Checks on the same PR.
+#
+# workflow_run fires from the DEFAULT branch's copy of this file AND checks out that branch's copy of
+# the renderer, so neither can be observed on the PR that introduces them — the workflow_dispatch
+# trigger allows a manual re-render (post-merge validation or on demand) against any open PR, and
+# DRY_RUN=1 renders locally without touching the comment. A metric that has not reported yet renders
+# as pending, never as a verdict.
+
+name: Quality Report
+
+run-name: "${{ github.event_name == 'workflow_dispatch' && format('Quality Report — manual (PR #{0})', github.event.inputs.pr) || format('Quality Report — {0} #{1}', github.event.workflow_run.name, github.event.workflow_run.run_number) }}"
+
+on:
+  workflow_run:
+    workflows: ["PHP Tests", "Infection", "E2E", "Frontend"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: "Open PR number to (re)render the Quality Report comment on."
+        required: true
+        type: string
+
+permissions:
+  contents: read        # checkout the renderer script + the coverage-floor SSoT (php-tests.yml)
+  actions: read         # list the gate runs for the head SHA and download their artifacts
+  checks: read          # read the gate check-run conclusions for the head SHA
+  pull-requests: write  # upsert the single sticky Quality Report comment
+
+concurrency:
+  # Serialize re-renders per commit so overlapping gate completions cannot clobber the comment.
+  group: quality-report-${{ github.event.workflow_run.head_sha || github.event.inputs.pr }}
+  cancel-in-progress: false
+
+jobs:
+  report:
+    name: quality-report
+    runs-on: ubuntu-latest
+    # workflow_run fires for every upstream event; only pull-request gate runs have a PR to comment on.
+    # workflow_dispatch always proceeds (the operator supplies the PR number explicitly).
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.event == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      # ubuntu-latest ships Node 20 (global fetch) + gh — no extra setup needed.
+      - name: Render sticky Quality Report comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          TRIGGER_WORKFLOW: ${{ github.event.workflow_run.name }}
+          PULL_REQUESTS_JSON: ${{ toJSON(github.event.workflow_run.pull_requests) }}
+          DISPATCH_PR: ${{ github.event.inputs.pr }}
+        run: node .github/scripts/quality-report.mjs

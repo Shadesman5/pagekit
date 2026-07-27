@@ -1,29 +1,35 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Site;
 
-use Pagekit\Application as App;
+use Pagekit\Application\UrlProvider;
 use Pagekit\Site\Model\Node;
+use Pagekit\Site\Model\NodeRepository;
+use Pagekit\User\Model\User;
 use Pagekit\View\Helper\Helper;
 
 class MenuHelper extends Helper
 {
-    protected \Pagekit\Site\MenuManager $menus;
-
-    /**
-     * @param MenuManager $menus
-     */
-    public function __construct(MenuManager $menus)
-    {
-        $this->menus = $menus;
+    public function __construct(
+        private readonly MenuManager $menus,
+        private readonly User $user,
+        private readonly Node $node,
+        private readonly NodePresenter $nodePresenter,
+        private readonly NodeRepository $nodes,
+    ) {
     }
 
     /**
      * Set shortcut.
      *
      * @see render()
+     *
+     * @param array<string, mixed>|string|null $view
+     * @param array<string, mixed>             $parameters
      */
-    public function __invoke($name, $view = null, array $parameters = [])
+    public function __invoke(string $name, array|string|null $view = null, array $parameters = []): ?string
     {
         if (!$name = $this->menus->find($name)) {
             return '';
@@ -45,9 +51,9 @@ class MenuHelper extends Helper
     /**
      * Renders a menu.
      *
-     * @param  string       $name
-     * @param  array|string $view
-     * @param  array        $parameters
+     * @param  string                            $name
+     * @param  array<string, mixed>|string|null  $view
+     * @param  array<string, mixed>              $parameters
      */
     public function render($name, $view = null, array $parameters = []): ?string
     {
@@ -58,6 +64,10 @@ class MenuHelper extends Helper
 
         if (!$root = $this->getRoot($name, $parameters)) {
             return '';
+        }
+
+        if ($this->view === null) {
+            throw new \LogicException('MenuHelper has not been registered with a View instance.');
         }
 
         return $this->view->render($view ?: 'system/site/menu.php', array_replace($parameters, compact('root')));
@@ -72,8 +82,8 @@ class MenuHelper extends Helper
     }
 
     /**
-     * @param  string $menu
-     * @param  array  $parameters
+     * @param  string                $menu
+     * @param  array<string, mixed>  $parameters
      * @return Node|null
      */
     public function getRoot($menu, $parameters = []): ?Node
@@ -81,25 +91,26 @@ class MenuHelper extends Helper
         $parameters = array_replace([
             'start_level' => 1,
             'depth' => PHP_INT_MAX,
-            'mode' => 'all'
+            'mode' => 'all',
         ], $parameters);
 
-        $user = App::user();
+        $user = $this->user;
         $startLevel = (int) $parameters['start_level'] ?: 1;
         $maxDepth = $startLevel + ($parameters['depth'] ?: PHP_INT_MAX);
 
-        $nodes = Node::findByMenu($menu, true);
+        $nodes = $this->nodes->findByMenu($menu, true);
         $nodes[0] = new Node(['path' => '/']);
         $nodes[0]->status = 1;
         $nodes[0]->parent_id = null;
 
-        $node = App::node();
+        $node = $this->node;
         $path = $node->path;
 
         if (!isset($nodes[$node->id])) {
             foreach ($nodes as $node) {
-                if ($node->getUrl('base') === $path) {
+                if ($this->nodePresenter->getUrl($node, UrlProvider::BASE_PATH) === $path) {
                     $path = $node->path;
+
                     break;
                 }
             }
@@ -113,9 +124,10 @@ class MenuHelper extends Helper
         foreach ($nodes as $node) {
 
             $depth = substr_count($node->path ?? '', '/');
-            $parent = isset($nodes[$node->parent_id]) ? $nodes[$node->parent_id] : null;
+            $parent = $node->parent_id !== null && isset($nodes[$node->parent_id]) ? $nodes[$node->parent_id] : null;
 
             $node->set('active', 0 === strpos($path, $node->path.'/'));
+            $node->set('url', $this->nodePresenter->getUrl($node));
 
             if ($node->status !== 1
                 || $depth >= $maxDepth
@@ -127,6 +139,7 @@ class MenuHelper extends Helper
                     || $depth === $startLevel)
             ) {
                 $node->setParent();
+
                 continue;
             }
 

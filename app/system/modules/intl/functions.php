@@ -1,52 +1,66 @@
 <?php
 
-use Pagekit\Application as App;
+declare(strict_types=1);
+
+use Pagekit\Intl\IntlServiceLocator;
 use Symfony\Component\Translation\Formatter\IntlFormatter;
 
+// Global namespace functions
 if (!function_exists('__')) {
-
     /**
      * Translates the given message, alias for method trans()
+     *
+     * @param array<string, mixed> $parameters
      */
-    function __($id, array $parameters = [], $domain = 'messages', $locale = null) {
-        return App::translator()->trans($id, $parameters, $domain, $locale);
+    function __(string $id, array $parameters = [], ?string $domain = 'messages', ?string $locale = null): string
+    {
+        return IntlServiceLocator::getTranslator()->trans($id, $parameters, $domain, $locale);
     }
 }
 
 if (!function_exists('_c')) {
-
     /**
-     * The transChoice() method is deprecated since Symfony 4.2, use the trans() one instead with a "%%count%%" parameter.
-     * Trying replace '%value%'' to '%count%' in source string and parameters property.
-     * TODO - remove _.c() from php and transChoice() from vue.
+     * Legacy pluralization helper — replaces all %param% with %count% as a
+     * brute-force bridge from the removed transChoice() API.
+     *
+     * TODO: Must be refactored in Step 3.3.6 (Translation System Modernization) —
+     * Remove _c() and all call sites (~28 files), migrate to __() with ICU MessageFormat.
+     * Also remove transChoice() from Vue plugin (trans.js).
+     *
+     * @param array<string, mixed> $parameters
      */
-    function _c($id, $number, array $parameters = [], $domain = null, $locale = null) {
-        
-        $id = preg_replace('/(%)(.*?)(%)/', '%count%', $id);
+    function _c(string $id, int|float $number, array $parameters = [], ?string $domain = null, ?string $locale = null): string
+    {
+
+        $id = preg_replace('/(%)(.*?)(%)/', '%count%', $id) ?? $id;
 
         $params = [];
         foreach ($parameters as $key => $value) {
             $params[preg_replace('/(%)(.*?)(%)/', '%count%', $key)] = $value;
         }
 
-        return App::translator()->trans($id, $params, $domain, $locale);
+        return IntlServiceLocator::getTranslator()->trans($id, $params, $domain, $locale);
     }
 }
 
 if (!function_exists('_i')) {
-
     /**
-     * Translate Messages using the ICU MessageFormat:
-     * https://symfony.com/doc/current/translation/message_format.html#using-the-icu-message-format
-     * TODO - add _.i() to php and transICU() to vue.
+     * Translate messages using ICU MessageFormat.
+     * @see https://symfony.com/doc/current/translation/message_format.html
+     *
+     * TODO: Must be refactored in Step 3.3.6 (Translation System Modernization) —
+     * PHP-side (_i) is done. Add Vue equivalent $transICU() to trans.js.
+     *
+     * @param array<string, mixed> $parameters
      */
-    function _i($id, array $parameters = [], $domain = null, $locale = null) {
+    function _i(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
+    {
 
         if (null === $domain) {
             $domain = 'messages';
         }
 
-        $catalogue = App::translator()->getCatalogue($locale);
+        $catalogue = IntlServiceLocator::getTranslator()->getCatalogue($locale);
         $locale = $catalogue->getLocale();
         while (!$catalogue->defines($id, $domain)) {
             if ($cat = $catalogue->getFallbackCatalogue()) {

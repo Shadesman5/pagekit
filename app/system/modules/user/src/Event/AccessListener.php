@@ -1,68 +1,65 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Event;
 
-use Doctrine\Common\Annotations\Reader;
-use Doctrine\Common\Annotations\SimpleAnnotationReader;
-use Pagekit\Application as App;
+use Pagekit\Application\Response as PagekitResponse;
+use Pagekit\Application\UrlProvider;
+use Pagekit\Auth\Auth;
 use Pagekit\Auth\Event\AuthorizeEvent;
 use Pagekit\Auth\Exception\AuthException;
+use Pagekit\Event\Event;
 use Pagekit\Event\EventSubscriberInterface;
-use Pagekit\User\Annotation\Access;
+use Pagekit\Kernel\Event\RequestEvent;
+use Pagekit\Routing\Generator\UrlGenerator;
+use Pagekit\Routing\Route;
+use Pagekit\User\Attribute\Access;
+use Pagekit\User\Model\User;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
+/**
+ * Reads Access attributes from controllers and enforces access control.
+ */
 class AccessListener implements EventSubscriberInterface
 {
-    /**
-     * @var Reader
-     */
-    protected $reader;
-
-    /**
-     * Constructor.
-     *
-     * @param Reader $reader
-     */
-    public function __construct(?Reader $reader = null)
-    {
-        $this->reader = $reader;
+    public function __construct(
+        private readonly Auth $auth,
+        private readonly UrlProvider $url,
+        private readonly PagekitResponse $response,
+        private readonly RequestStack $requestStack,
+    ) {
     }
 
     /**
-     * Reads the "@Access" annotations from the controller stores them in the "access" route option.
+     * Reads the #[Access] attributes from the controller and stores them in the "access" route option.
      */
-    public function onConfigureRoute($event, $route): void
+    public function onConfigureRoute(Event $event, Route $route): void
     {
-        if (!$this->reader) {
-            $this->reader = new SimpleAnnotationReader;
-            $this->reader->addNamespace('Pagekit\User\Annotation');
-        }
+        $class = $route->getControllerClass();
+        $method = $route->getControllerMethod();
 
-        if (!$route->getControllerClass()) {
+        // Infection LogicalOr equivalent (ignored in infection.json.dist):
+        // Route::getControllerClass()/getControllerMethod() both branch on the same
+        // is_array($controller) guard, so $class and $method are null together —
+        // swapping `||` for `&&` cannot change the outcome. `||` kept for readability.
+        if ($class === null || $method === null) {
             return;
         }
 
         $access = [];
 
-        foreach (array_merge($this->reader->getClassAnnotations($route->getControllerClass()), $this->reader->getMethodAnnotations($route->getControllerMethod())) as $annot) {
-            if (!$annot instanceof Access) {
-                continue;
-            }
+        $classAttributes = $class->getAttributes(Access::class, \ReflectionAttribute::IS_INSTANCEOF);
+        foreach ($classAttributes as $attr) {
+            $this->processAccessAttribute($attr->newInstance(), $access, $route);
+        }
 
-            if ($expression = $annot->getExpression()) {
-                $access[] = $expression;
-            }
-
-            if ($admin = $annot->getAdmin() !== null) {
-
-                $route->setPath('admin'.rtrim($route->getPath(), '/'));
-                $permission = 'system: access admin area';
-
-                if ($admin) {
-                    $access[] = $permission;
-                } elseif ($key = array_search($permission, $access)) {
-                    unset($access[$key]);
-                }
-            }
+        $methodAttributes = $method->getAttributes(Access::class, \ReflectionAttribute::IS_INSTANCEOF);
+        foreach ($methodAttributes as $attr) {
+            $this->processAccessAttribute($attr->newInstance(), $access, $route);
         }
 
         if ($access) {
@@ -71,15 +68,39 @@ class AccessListener implements EventSubscriberInterface
     }
 
     /**
+     * Process a single Access attribute.
+     *
+     * @param array<int, string> $access
+     */
+    private function processAccessAttribute(Access $annot, array &$access, Route $route): void
+    {
+        if ($expression = $annot->getExpression()) {
+            $access[] = $expression;
+        }
+
+        $adminValue = $annot->getAdmin();
+        if ($adminValue !== null) {
+            $route->setPath('admin' . rtrim($route->getPath(), '/'));
+            $permission = 'system: access admin area';
+
+            if ($adminValue) {
+                $access[] = $permission;
+            } elseif (($key = array_search($permission, $access)) !== false) {
+                unset($access[$key]);
+            }
+        }
+    }
+
+    /**
      * Checks if the user is authorized to login to administration section.
      *
-     * @param  AuthorizeEvent $event
      * @throws AuthException
      */
     public function onAuthorize(AuthorizeEvent $event): void
     {
-        $redirect = App::request()->get('redirect');
-        if ($redirect && strpos($redirect, App::url('@system', [], true)) === 0 && !$event->getUser()->hasAccess('system: access admin area')) {
+        $redirect = $this->requestStack->getCurrentRequest()?->get('redirect');
+        $eventUser = $event->getUser();
+        if ($redirect && strpos($redirect, (string) ($this->url)('@system', [], UrlGenerator::ABSOLUTE_URL)) === 0 && !($eventUser instanceof User && $eventUser->hasAccess('system: access admin area'))) {
             throw new AuthException(__('You do not have access to the administration area of this site.'));
         }
     }
@@ -87,18 +108,21 @@ class AccessListener implements EventSubscriberInterface
     /**
      * Reads the access expressions and evaluates them on the current user.
      */
-    public function onLateRequest($event, $request): void
+    public function onLateRequest(RequestEvent $event, Request $request): void
     {
         if (!$access = $request->attributes->get('_access')) {
             return;
         }
 
+        $authUser = $this->auth->getUser();
+        $user = $authUser instanceof User ? $authUser : null;
+
         foreach ($access as $expression) {
-            if (!App::user()->hasAccess($expression)) {
-                if (!App::user()->isAuthenticated()) {
-                    App::abort(401, __('Unauthorized'));
+            if (!$user?->hasAccess($expression)) {
+                if (!$user?->isAuthenticated()) {
+                    throw new HttpException(401, __('Unauthorized'));
                 } else {
-                    App::abort(403, __('Insufficient User Rights.'));
+                    throw new AccessDeniedHttpException(__('Insufficient User Rights.'));
                 }
             }
         }
@@ -107,24 +131,25 @@ class AccessListener implements EventSubscriberInterface
     /**
      * Checks for the "system: access admin area" and redirects to login.
      */
-    public function onRequest($event, $request): void
+    public function onRequest(RequestEvent $event, Request $request): void
     {
-        if ($request->isXmlHttpRequest() || App::auth()->getUser() || !in_array('system: access admin area', $request->attributes->get('_access', []))) {
+        if ($request->isXmlHttpRequest() || $this->auth->getUser() || !in_array('system: access admin area', $request->attributes->get('_access', []))) {
             return;
         }
 
         $params = [];
 
-        // redirect to default URL for POST requests and don't explicitly redirect the default URL
         if ('POST' !== $request->getMethod() && $request->attributes->get('_route') != '@system') {
-            $params['redirect'] = App::url()->current();
+            $params['redirect'] = $this->url->current();
         }
 
-        $event->setResponse(App::response()->redirect('@system/login', $params));
+        $event->setResponse($this->response->redirect('@system/login', $params));
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, mixed>
      */
     public function subscribe(): array
     {
@@ -133,8 +158,8 @@ class AccessListener implements EventSubscriberInterface
             'auth.authorize' => 'onAuthorize',
             'request' => [
                 ['onLateRequest', -100],
-                ['onRequest', -50]
-            ]
+                ['onRequest', -50],
+            ],
         ];
     }
 }

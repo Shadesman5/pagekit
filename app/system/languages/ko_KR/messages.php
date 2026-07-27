@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Select Image' => '이미지 선택',
   'Add Image' => '이미지 추가',
   'Select Video' => '비디오 선택',
@@ -452,4 +456,4 @@
   'You have the latest version of Pagekit. You do not need to update. However, if you want to re-install version %version%, you can download the package and re-install manually.' => 'Pagekit가 현재 최신버전입니다. 업데이트 할 필요가 없습니다. 만약 %version%버전 재설치를 원하신다면 수동으로 압축파일을 다운 받아 다시 설치하실 수 있습니다.',
   'Download %version%' => '%version%버전 다운로드',
   'Changelog' => '로그수정',
-);
+];

@@ -1,30 +1,69 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Blog;
 
-use Pagekit\Application as App;
 use Pagekit\Blog\Model\Post;
+use Pagekit\Blog\Model\PostRepository;
+use Pagekit\Module\Module;
 use Pagekit\Routing\ParamsResolverInterface;
+use Psr\Cache\CacheItemPoolInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 class UrlResolver implements ParamsResolverInterface
 {
-    const CACHE_KEY = 'blog.routing';
+    public const CACHE_KEY = 'blog.routing';
 
     protected bool $cacheDirty = false;
 
+    /** @var array<int|string, array<string, mixed>> */
     protected array $cacheEntries;
+
+    // Static service references set during blog module boot,
+    // required because Router instantiates resolvers via `new $class` (no DI).
+    // TODO: TEMPORARY BRIDGE - To be removed in Step 2.7 (Extension Safety System) when routing factory gains DI support
+    private static ?CacheItemPoolInterface $cache = null;
+    private static ?Module $module = null;
+    private static ?PostRepository $posts = null;
+
+    // TODO: TEMPORARY BRIDGE - To be removed in Step 2.7 (Extension Safety System) when routing factory gains DI support
+    public static function setCache(?CacheItemPoolInterface $cache): void
+    {
+        self::$cache = $cache;
+    }
+
+    // TODO: TEMPORARY BRIDGE - To be removed in Step 2.7 (Extension Safety System) when routing factory gains DI support
+    public static function setModule(Module $module): void
+    {
+        self::$module = $module;
+    }
+
+    // TODO: TEMPORARY BRIDGE - To be removed in Step 2.7 (Extension Safety System) when routing factory gains DI support
+    public static function setPostRepository(?PostRepository $posts): void
+    {
+        self::$posts = $posts;
+    }
 
     /**
      * Constructor.
      */
     public function __construct()
     {
-        $this->cacheEntries = App::cache()->fetch(self::CACHE_KEY) ?: [];
+        if (self::$cache !== null) {
+            $item = self::$cache->getItem(self::CACHE_KEY);
+            $this->cacheEntries = $item->isHit() ? ($item->get() ?: []) : [];
+        } else {
+            $this->cacheEntries = [];
+        }
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @param  array<string, mixed> $parameters
+     * @return array<string, mixed>
      */
     public function match(array $parameters = []): array
     {
@@ -33,7 +72,7 @@ class UrlResolver implements ParamsResolverInterface
         }
 
         if (!isset($parameters['slug'])) {
-            App::abort(404, 'Post not found.');
+            throw new NotFoundHttpException('Post not found.');
         }
 
         $slug = $parameters['slug'];
@@ -47,8 +86,12 @@ class UrlResolver implements ParamsResolverInterface
 
         if (!$id) {
 
-            if (!$post = Post::where(compact('slug'))->first()) {
-                App::abort(404, 'Post not found.');
+            if (self::$posts === null) {
+                throw new \LogicException('UrlResolver post repository is not set; call UrlResolver::setPostRepository() during blog boot.');
+            }
+
+            if (!$post = self::$posts->where(compact('slug'))->first()) {
+                throw new NotFoundHttpException('Post not found.');
             }
 
             $this->addCache($post);
@@ -62,6 +105,9 @@ class UrlResolver implements ParamsResolverInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @param  array<string, mixed> $parameters
+     * @return array<string, mixed>
      */
     public function generate(array $parameters = []): array
     {
@@ -69,7 +115,11 @@ class UrlResolver implements ParamsResolverInterface
 
         if (!isset($this->cacheEntries[$id])) {
 
-            if (!$post = Post::where(compact('id'))->first()) {
+            if (self::$posts === null) {
+                throw new \LogicException('UrlResolver post repository is not set; call UrlResolver::setPostRepository() during blog boot.');
+            }
+
+            if (!$post = self::$posts->where(compact('id'))->first()) {
                 throw new RouteNotFoundException('Post not found!');
             }
 
@@ -78,24 +128,28 @@ class UrlResolver implements ParamsResolverInterface
 
         $meta = $this->cacheEntries[$id];
 
-        preg_match_all('#{([a-z]+)}#i', self::getPermalink(), $matches);
+        $permalink = self::getPermalink();
 
-        if ($matches) {
-            foreach($matches[1] as $attribute) {
+        $matchCount = preg_match_all('#{([a-z]+)}#i', $permalink, $matches);
+
+        if ($matchCount > 0 && !empty($matches[1])) {
+            foreach ($matches[1] as $attribute) {
                 if (isset($meta[$attribute])) {
                     $parameters[$attribute] = $meta[$attribute];
                 }
             }
+            unset($parameters['id']);
         }
 
-        unset($parameters['id']);
         return $parameters;
     }
 
     public function __destruct()
     {
-        if ($this->cacheDirty) {
-            App::cache()->save(self::CACHE_KEY, $this->cacheEntries);
+        if ($this->cacheDirty && self::$cache !== null) {
+            $item = self::$cache->getItem(self::CACHE_KEY);
+            $item->set($this->cacheEntries);
+            self::$cache->save($item);
         }
     }
 
@@ -104,33 +158,31 @@ class UrlResolver implements ParamsResolverInterface
      */
     public static function getPermalink(): string
     {
-        static $permalink;
+        if (self::$module === null) {
+            return '';
+        }
 
-        if (null === $permalink) {
+        $permalink = self::$module->config('permalink.type');
 
-            $blog = App::module('blog');
-            $permalink = $blog->config('permalink.type');
-
-            if ($permalink == 'custom') {
-                $permalink = $blog->config('permalink.custom');
-            }
-
+        if ($permalink == 'custom') {
+            $permalink = self::$module->config('permalink.custom');
         }
 
         return $permalink;
     }
 
-    protected function addCache($post): void
+    protected function addCache(Post $post): void
     {
+        $date = $post->date;
         $this->cacheEntries[$post->id] = [
-            'id'     => $post->id,
-            'slug'   => $post->slug,
-            'year'   => $post->date->format('Y'),
-            'month'  => $post->date->format('m'),
-            'day'    => $post->date->format('d'),
-            'hour'   => $post->date->format('H'),
-            'minute' => $post->date->format('i'),
-            'second' => $post->date->format('s'),
+            'id' => $post->id,
+            'slug' => $post->slug,
+            'year' => $date?->format('Y') ?? '',
+            'month' => $date?->format('m') ?? '',
+            'day' => $date?->format('d') ?? '',
+            'hour' => $date?->format('H') ?? '',
+            'minute' => $date?->format('i') ?? '',
+            'second' => $date?->format('s') ?? '',
         ];
 
         $this->cacheDirty = true;

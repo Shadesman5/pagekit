@@ -1,2 +1,73 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Shell scripts must always use LF
+*.sh text eol=lf
+
+# Markdown and documentation files should use LF (for consistency across platforms)
+*.md text eol=lf
+*.mdc text eol=lf
+
+# Config files should use LF
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.env text eol=lf
+
+# Docker and shell config
+Dockerfile text eol=lf
+
+# PHP, JavaScript, and CSS files should use LF
+*.php text eol=lf
+*.js text eol=lf
+*.vue text eol=lf
+*.css text eol=lf
+*.less text eol=lf
+
+# Binary files
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.gif binary
+*.webp binary
+*.svg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.otf binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.mp3 binary
+*.mp4 binary
+*.webm binary
+
+# Database files
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
+
+# Lock files (generated, should use LF)
+composer.lock text eol=lf
+package-lock.json text eol=lf
+pnpm-lock.yaml text eol=lf
+
+# Git files
+.gitattributes text eol=lf
+.gitignore text eol=lf
+
+# Exclude files from export (for releases)
+.gitattributes export-ignore
+.gitignore export-ignore
+.github/ export-ignore
+.cursor/ export-ignore
+tests/ export-ignore
+migration-docs/ export-ignore
+*.md export-ignore
+phpunit.xml.dist export-ignore
+playwright.config.js export-ignore
+docker-compose*.yml export-ignore
+Dockerfile export-ignore

@@ -1,48 +1,38 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Twig;
 
-use Twig\Error\LoaderError;
 use Pagekit\View\Loader\FilesystemLoader;
-use Symfony\Component\Templating\TemplateNameParser;
-use Symfony\Component\Templating\TemplateNameParserInterface;
 
 class TwigLoader extends \Twig\Loader\FilesystemLoader
 {
-    protected \Pagekit\View\Loader\FilesystemLoader $loader;
-    protected \Symfony\Component\Templating\TemplateNameParserInterface $parser;
+    protected ?FilesystemLoader $loader;
 
     /**
      * Constructor.
      *
-     * @param FilesystemLoader            $loader
-     * @param TemplateNameParserInterface $parser
+     * @param FilesystemLoader|null $loader
      */
-    public function __construct(FilesystemLoader $loader, ?TemplateNameParserInterface $parser = null)
+    public function __construct(?FilesystemLoader $loader = null)
     {
         parent::__construct([]);
 
         $this->loader = $loader;
-        $this->parser = $parser ?: new TemplateNameParser();
     }
 
     /**
      * {@inheritdoc}
      */
-    protected function findTemplate($template, $throw = true)
+    protected function findTemplate(string $name, bool $throw = true): ?string
     {
-        $key = (string) $template;
+        $tpl = (string) preg_replace('/\.twig$/', '', $name);
 
-        if (isset($this->cache[$key])) {
-            return $this->cache[$key];
+        if ($this->loader && $file = $this->loader->load($tpl)) {
+            return $this->cache[$name] = (string) $file;
         }
 
-        $file = $this->loader->load($this->parser->parse($template));
-
-        if (false === $file || null === $file) {
-            throw new LoaderError(sprintf('Unable to find template "%s".', $key));
-        }
-
-        return $this->cache[$key] = $file;
+        return parent::findTemplate($name, $throw);
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Site\Event\MaintenanceListener;
 use Pagekit\Site\Event\NodesListener;
 use Pagekit\Site\Event\PageListener;
@@ -14,7 +16,7 @@ return [
 
     'autoload' => [
 
-        'Pagekit\\Site\\' => 'src'
+        'Pagekit\\Site\\' => 'src',
 
     ],
 
@@ -23,8 +25,8 @@ return [
         'page' => [
             'name' => '@page',
             'label' => 'Page',
-            'controller' => 'Pagekit\\Site\\Controller\\PageController'
-        ]
+            'controller' => 'Pagekit\\Site\\Controller\\PageController',
+        ],
 
     ],
 
@@ -32,45 +34,45 @@ return [
 
         '/' => [
             'name' => '@site',
-            'controller' => 'Pagekit\\Site\\Controller\\NodeController'
+            'controller' => 'Pagekit\\Site\\Controller\\NodeController',
         ],
         '/api/site/menu' => [
             'name' => '@site/api/menu',
-            'controller' => 'Pagekit\\Site\\Controller\\MenuApiController'
+            'controller' => 'Pagekit\\Site\\Controller\\MenuApiController',
         ],
         '/api/site/node' => [
             'name' => '@site/api/node',
-            'controller' => 'Pagekit\\Site\\Controller\\NodeApiController'
+            'controller' => 'Pagekit\\Site\\Controller\\NodeApiController',
         ],
         '/api/site/page' => [
             'name' => '@site/api/page',
-            'controller' => 'Pagekit\\Site\\Controller\\PageApiController'
-        ]
+            'controller' => 'Pagekit\\Site\\Controller\\PageApiController',
+        ],
 
     ],
 
     'widgets' => [
 
         'widgets/menu.php',
-        'widgets/text.php'
+        'widgets/text.php',
 
     ],
 
     'resources' => [
 
         'system/site:' => '',
-        'views:system/site' => 'views'
+        'views:system/site' => 'views',
 
     ],
 
     'permissions' => [
 
         'site: manage site' => [
-            'title' => 'Manage site'
+            'title' => 'Manage site',
         ],
         'site: maintenance access' => [
-            'title' => 'Use the site in maintenance mode'
-        ]
+            'title' => 'Use the site in maintenance mode',
+        ],
 
     ],
 
@@ -82,22 +84,22 @@ return [
             'url' => '@site/page',
             'access' => 'site: manage site || system: manage widgets || system: manage storage || system: access settings',
             'active' => '@site(/*)?',
-            'priority' => 105
+            'priority' => 105,
         ],
         'site: pages' => [
             'label' => 'Pages',
             'parent' => 'site',
             'url' => '@site/page',
             'access' => 'site: manage site',
-            'active' => '@site/page(/edit)?'
+            'active' => '@site/page(/edit)?',
         ],
         'site: settings' => [
             'label' => 'Settings',
             'parent' => 'site',
             'url' => '@site/settings',
             'access' => 'system: access settings',
-            'priority' => 30
-        ]
+            'priority' => 30,
+        ],
 
     ],
 
@@ -112,31 +114,31 @@ return [
         'maintenance' => [
             'enabled' => false,
             'logo' => '',
-            'msg' => ''
+            'msg' => '',
         ],
 
         'meta' => [
             'description' => '',
             'image' => '',
             'facebook' => '',
-            'twitter' => ''
+            'twitter' => '',
         ],
 
         'icons' => [
             'favicon' => '',
-            'appicon' => ''
+            'appicon' => '',
         ],
 
         'code' => [
             'header' => '',
-            'footer' => ''
+            'footer' => '',
         ],
 
         'view' => [
 
-            'logo' => ''
+            'logo' => '',
 
-        ]
+        ],
 
     ],
 
@@ -144,64 +146,62 @@ return [
 
         'boot' => function ($event, $app) {
 
-            $app->subscribe(
-                new MaintenanceListener(),
-                new NodesListener(),
-                new PageListener()
-            );
+            $app->get('events')->subscribe(new MaintenanceListener($app, $this));
+            $app->get('events')->subscribe(new NodesListener($this, $app->get('routes'), $app->get('nodeRepository')));
+            $app->get('events')->subscribe(new PageListener($app->get('pageRepository')));
 
             Node::defineProperty('theme', function () use ($app) {
 
-                $config = $app['theme']->config('_nodes.' . $this->id, []);
-                $default = $app['theme']->get('node', []);
+                $config = $app->get('theme')->config('_nodes.' . $this->id, []);
+                $default = $app->get('theme')->get('node', []);
 
                 return array_replace_recursive($default, $config);
             }, true);
 
         },
 
-        'request' => [function() use ($app) {
-            if (!$app['node']->hasAccess($app['user'])) {
-                $app['kernel']->abort(403, __('Insufficient User Rights.'));
+        'request' => [function () use ($app) {
+            if (!$app->get('node')->hasAccess($app->get('user'))) {
+                $app->get('kernel')->abort(403, __('Insufficient User Rights.'));
             }
         }, -100],
 
         'site' => function ($event, $app) {
 
-            $app->on('view.head', function ($event) use ($app) {
+            $app->get('events')->on('view.head', function ($event) use ($app) {
                 $event->addResult($this->config('code.header'));
             }, -10);
 
-            $app->on('view.footer', function ($event) use ($app) {
+            $app->get('events')->on('view.footer', function ($event) use ($app) {
                 $event->addResult($this->config('code.footer'));
             }, -10);
 
-            $app->on('view.init', function ($event, $view) use ($app) {
+            $app->get('events')->on('view.init', function ($event, $view) use ($app) {
                 $view->params->set('title', $this->config('title'));
                 $view->params->merge($this->config('view'));
-                $view->params->merge($app['theme']->config);
-                $view->params->merge($app['node']->theme);
+                $view->params->merge($app->get('theme')->config);
+                $view->params->merge($app->get('node')->theme);
             }, 10);
 
-            $app->on('view.meta', function ($event, $meta) use ($app) {
+            $app->get('events')->on('view.meta', function ($event, $meta) use ($app) {
 
-                $config = $app->config('system/site');
+                $config = $app->get('config')('system/site');
 
                 $meta([
                     'twitter:card' => 'summary_large_image',
                     'twitter:site' => $config->get('meta.twitter'),
                     'fb:app_id' => $config->get('meta.facebook'),
                     'og:site_name' => $config->get('title'),
-                    'og:title' => $app['node']->title,
-                    'og:image' => $config->get('meta.image') ? $app['url']->getStatic($config->get('meta.image'), [], 0) : false,
+                    'og:title' => $app->get('node')->title,
+                    'og:image' => $config->get('meta.image') ? $app->get('url')->getStatic($config->get('meta.image'), [], 0) : false,
                     'og:description' => $config->get('meta.description'),
                     'og:url' => $meta->get('canonical'),
                 ]);
 
-				if ($config = $app['node']->get('meta')) {
+                if ($config = $app->get('node')->get('meta')) {
 
-					if (!empty($config['og:image'])) {
-                        $config['og:image'] = $app['url']->getStatic($config['og:image'], [], 0);
+                    if (!empty($config['og:image'])) {
+                        $config['og:image'] = $app->get('url')->getStatic($config['og:image'], [], 0);
                     }
 
                     $meta($config);
@@ -213,8 +213,8 @@ return [
 
         'package.enable' => function ($event, $package) use ($app) {
             if ($package->getType() === 'pagekit-theme') {
-                $new = $app->config($package->get('module'));
-                $old = $app->config($app['theme']->name);
+                $new = $app->get('config')($package->get('module'));
+                $old = $app->get('config')($app->get('theme')->name);
 
                 foreach ((array) $old->get('_menus') as $menu => $position) {
                     if (!$new->has('_menus.' . $menu)) {
@@ -225,40 +225,46 @@ return [
         },
 
         'view.init' => [function ($event, $view) use ($app) {
-            if ($app->isAdmin()) {
+            if ($app->get('isAdmin')) {
                 return;
             }
-            $view->addHelper(new MenuHelper($app['menu']));
+            $view->addHelper(new MenuHelper(
+                $app->get('menu'),
+                $app->get('user'),
+                $app->get('node'),
+                $app->get('nodePresenter'),
+                $app->get('nodeRepository'),
+            ));
         }, 100],
 
         'view.meta' => function ($event, $meta) use ($app) {
 
             $meta->add('link:favicon', [
-                'href' => $app['url']->getStatic($this->config('icons.favicon') ?: 'system/theme:favicon.ico'),
+                'href' => $app->get('url')->getStatic($this->config('icons.favicon') ?: 'system/theme:favicon.ico'),
                 'rel' => 'shortcut icon',
-                'type' => 'image/x-icon'
+                'type' => 'image/x-icon',
             ]);
 
             $meta->add('link:appicon', [
-                'href' => $app['url']->getStatic($this->config('icons.appicon') ?: 'system/theme:apple_touch_icon.png'),
-                'rel' => 'apple-touch-icon-precomposed'
+                'href' => $app->get('url')->getStatic($this->config('icons.appicon') ?: 'system/theme:apple_touch_icon.png'),
+                'rel' => 'apple-touch-icon-precomposed',
             ]);
 
         },
 
         'view.scripts' => function ($event, $scripts) {
-            $scripts->register('panel-link', 'system/site:app/bundle/panel-link.js', 'vue');
-            $scripts->register('input-link', 'system/site:app/bundle/input-link.js', 'panel-link');
-            $scripts->register('input-tree', 'system/site:app/bundle/input-tree.js', 'vue');
-            $scripts->register('link-page', 'system/site:app/bundle/link-page.js', '~panel-link');
+            $scripts->register('panel-link', 'system/site:app/bundle/panel-link.js', ['vue']);
+            $scripts->register('input-link', 'system/site:app/bundle/input-link.js', ['panel-link']);
+            $scripts->register('input-tree', 'system/site:app/bundle/input-tree.js', ['vue']);
+            $scripts->register('link-page', 'system/site:app/bundle/link-page.js', ['~panel-link']);
             $scripts->register('node-page', 'system/site:app/bundle/node-page.js', ['~site-edit', 'editor']);
-            $scripts->register('node-meta', 'system/site:app/bundle/node-meta.js', '~site-edit');
+            $scripts->register('node-meta', 'system/site:app/bundle/node-meta.js', ['~site-edit']);
         },
 
         'model.node.saved' => function ($event, $node) use ($app) {
-            $app->config($app['theme']->name)->set('_nodes.' . $node->id, $node->theme);
-        }
+            $app->get('config')($app->get('theme')->name)->set('_nodes.' . $node->id, $node->theme);
+        },
 
-    ]
+    ],
 
 ];

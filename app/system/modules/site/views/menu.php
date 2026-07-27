@@ -1,10 +1,11 @@
-<?php if ($root->getDepth() === 0) : ?>
+<?php declare(strict_types=1);
+if ($root->getDepth() === 0) : ?>
 <ul class="uk-nav<?= ' '.implode(' ', (array) @$class) ?>">
 <?php endif ?>
 
     <?php foreach ($root->getChildren() as $node) : ?>
     <li class="<?= $node->hasChildren() ? 'uk-parent' : '' ?><?= $node->get('active') ? ' uk-active' : '' ?>">
-        <a href="<?= $node->getUrl() ?>"><?= $node->title ?></a>
+        <a href="<?= $node->get('url') ?>"><?= $node->title ?></a>
 
         <?php if ($node->hasChildren()) : ?>
         <ul class="uk-nav-sub">

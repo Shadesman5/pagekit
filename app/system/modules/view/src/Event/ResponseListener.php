@@ -1,13 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\View\Event;
 
-use Pagekit\Application as App;
+use Pagekit\Application\UrlProvider;
+use Pagekit\Event\EventInterface;
 use Pagekit\Event\EventSubscriberInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 class ResponseListener implements EventSubscriberInterface
 {
-    const REGEX_URL = '/
+    public const REGEX_URL = '/
                         \s                              # match a space
                         (?<attr>href|src|poster)=       # match the attribute
                         ([\"\'])                        # start with a single or double quote
@@ -16,25 +21,32 @@ class ResponseListener implements EventSubscriberInterface
                         \2                              # match the previous quote
                        /xiU';
 
+    public function __construct(
+        private readonly UrlProvider $url,
+    ) {
+    }
+
     /**
      * Filter the response content.
      */
-    public function onResponse($event, $request, $response): void
+    public function onResponse(EventInterface $event, Request $request, Response $response): void
     {
         if (!is_string($content = $response->getContent())) {
             return;
         }
 
-        $response->setContent(preg_replace_callback(self::REGEX_URL, fn($matches) => sprintf(' %s="%s"', $matches['attr'], App::url($matches['url'])), $content));
+        $response->setContent(preg_replace_callback(self::REGEX_URL, fn ($matches) => sprintf(' %s="%s"', $matches['attr'], ($this->url)($matches['url'])), $content));
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, array{string, int}>
      */
     public function subscribe(): array
     {
         return [
-            'response' => ['onResponse', -20]
+            'response' => ['onResponse', -20],
         ];
     }
 }

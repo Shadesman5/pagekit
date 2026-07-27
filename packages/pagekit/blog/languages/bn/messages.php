@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Filter by' => 'ফিল্টার হবে',
   'Thank you! Your comment needs approval before showing up.' => 'ধন্যবাদ!  দেখানোর আগে আপনার মন্তব্য অনুমোদনের প্রয়োজন।',
   'Unable to comment. Please try again later.' => 'মন্তব্য করতে অক্ষম। অনুগ্রহ করে একটু পরে আবার চেষ্টা করুন।',
@@ -94,4 +98,4 @@
   'Written by %name% on %date%' => 'লিখেছেন %name% %date% তারিখে',
   'Read more' => 'আরও পড়ুন',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} কমেন্ট নাই|{1} %count% কমেন্ট|]1,Inf[ %count% কমেন্টগুলি',
-);
+];

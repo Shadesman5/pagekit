@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Routing;
 
 use Symfony\Component\HttpFoundation\Request;
@@ -10,7 +12,7 @@ class RequestContext extends BaseContext
     /**
      * {@inheritdoc}
      */
-    public function fromRequest(Request $request): self
+    public function fromRequest(Request $request): static
     {
         parent::fromRequest($request);
 

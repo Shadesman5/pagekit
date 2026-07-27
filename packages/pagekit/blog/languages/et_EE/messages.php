@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Filter by' => 'Filtreeritud',
   'Thank you! Your comment needs approval before showing up.' => 'Täname teid! Teie kommentaar vajab kinnitust ennem kuvamist.',
   'Unable to comment. Please try again later.' => 'Kommenteerimine võimatu. Palun proovige uuesti.',
@@ -94,4 +98,4 @@
   'Written by %name% on %date%' => 'Kirjutatud %name% poolt %date%',
   'Read more' => 'Loe edasi',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Kommentaare ei ole|{1} %count% Kommentaar|]1,Inf[ %count% Kommentaari',
-);
+];

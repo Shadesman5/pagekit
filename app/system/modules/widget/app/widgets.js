@@ -1,19 +1,17 @@
 const Widgets = {
+  data() {
+    return { widgets: [] };
+  },
 
-    data() {
-        return { widgets: [] };
-    },
+  created() {
+    this.resource = this.$resource('api/site/widget{/id}');
+  },
 
-    created() {
-        this.resource = this.$resource('api/site/widget{/id}');
-    },
-
-    components: {
-        /*
-         * Moved to widget/app/views/edit.js
-         */
-    }
-
+  components: {
+    /*
+     * Moved to widget/app/views/edit.js
+     */
+  }
 };
 
 export default Widgets;

@@ -1,0 +1,152 @@
+name: Conductor (V2)
+
+# Display title in Actions / mobile app. Without run-name, GitHub falls back to the HEAD commit
+# message on the base branch (e.g. the previous merged PR), which is misleading for manual runs.
+run-name: "${{ inputs.title != '' && inputs.title || format('Conductor — {0}{1}', inputs.task_prompt, inputs.issue != '' && format(' (#{0})', inputs.issue) || '') }}"
+
+# Drives the V2 orchestrator pipeline: creates feature/<slug>, then launches ONE fresh cloud agent
+# per GitHub Actions job (Plan, or one Execute batch, or Finalize) via the Cloud Agents API.
+# When auto_chain=true (default), each job dispatches the next run automatically so every job stays
+# under GitHub's 360-minute hosted-runner cap. batch_budget still controls how many checklist steps
+# (by S/M/L weight) fit into a single Execute cloud-agent run.
+#
+# Security:
+#   - workflow_dispatch only -> only users with write access can start it (no public trigger).
+#   - Minimal GITHUB_TOKEN permissions (create the feature branch + read control labels + chain runs).
+#   - CURSOR_API_KEY is a GitHub Actions secret, only exposed to the run step's env.
+#   - The conductor script validates all inputs before using them in shell commands.
+
+on:
+  workflow_dispatch:
+    inputs:
+      task_prompt:
+        description: "Path to the agent prompt (e.g. migration-docs/TODO/agent_prompts/PROMPT_X.md)"
+        required: true
+        type: string
+      title:
+        description: "Run display title (e.g. 'Step 2.1.10 — Entity Presentation Layer'). Optional; defaults to task_prompt path + issue number."
+        required: false
+        type: string
+      issue:
+        description: "GitHub issue number — required for normal tasks (PR Closes #N + conductor:stop/pause labels); leave empty for audits (which have no issue)"
+        required: false
+        type: string
+      slug:
+        description: "Ticket slug (default: task-prompt filename without .md)"
+        required: false
+        type: string
+      base:
+        description: "Base branch"
+        required: false
+        default: "develop"
+        type: string
+      branch:
+        description: "Feature branch (default: feature/<slug>)"
+        required: false
+        type: string
+      batch_budget:
+        description: "Batch weight budget (S=1, M=2, L=4)"
+        required: false
+        default: "6"
+        type: string
+      model:
+        description: "Orchestrator model. Empty = account default (user/team/system). 'auto' or 'default' = Cursor's dynamic Auto model. Or an explicit id, e.g. claude-opus-4-8, composer-2.5, opus-latest."
+        required: false
+        default: ""
+        type: string
+      mode:
+        description: "Pipeline mode. auto = task prompt self-declares (default); full = Plan->Execute->Finalize; plan = Step-0 gate only (Plan, then stop — e.g. audits)"
+        required: false
+        default: "auto"
+        type: choice
+        options:
+          - auto
+          - full
+          - plan
+      auto_chain:
+        description: "After each phase/batch, automatically dispatch the next workflow run (default true). Set false to pause between jobs."
+        required: false
+        default: true
+        type: boolean
+      session_id:
+        description: "Optional UUID v4 to resume or debug a metrics session. Leave empty — the Conductor auto-generates one per run and passes it through chained jobs."
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: write        # feature branch + conductor-metrics metrics commits
+  actions: write       # chain next Conductor run + dispatch pages-deploy after metrics
+  issues: read         # read conductor:stop / conductor:pause control labels
+  pull-requests: read  # openPrExists() uses `gh pr list` to make audit runs resume-safe
+
+concurrency:
+  group: conductor-${{ inputs.branch || inputs.slug || inputs.task_prompt }}
+  cancel-in-progress: false
+
+jobs:
+  conduct:
+    name: "${{ inputs.title != '' && inputs.title || format('Conductor — {0}', inputs.task_prompt) }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 360   # GitHub-hosted hard cap; one phase/batch per job keeps runs well under this
+    steps:
+      - name: Checkout base branch
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ inputs.base }}
+          fetch-depth: 0
+
+      # ubuntu-latest ships Node 20 (has global fetch) and gh — no extra setup needed.
+      - name: Run Conductor
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+          TASK_PROMPT: ${{ inputs.task_prompt }}
+          ISSUE: ${{ inputs.issue }}
+          SLUG: ${{ inputs.slug }}
+          BASE: ${{ inputs.base }}
+          BRANCH: ${{ inputs.branch }}
+          BATCH_BUDGET: ${{ inputs.batch_budget }}
+          MODEL: ${{ inputs.model }}
+          MODE: ${{ inputs.mode }}
+          AUTO_CHAIN: ${{ inputs.auto_chain }}
+          TITLE: ${{ inputs.title }}
+          SESSION_ID: ${{ inputs.session_id }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_WORKFLOW: ${{ github.workflow }}
+          WORKFLOW_FILE: conductor.yml
+          WORKFLOW_REF: ${{ github.ref_name }}
+        run: node .github/conductor/conductor.mjs
+
+      # After every job: fill token gaps via Cursor /usage. Metrics live on the unprotected
+      # conductor-metrics branch (not feature tip, not protected develop).
+      - name: Enrich missing token metrics (Cursor API)
+        if: always()
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          SESSION_ID: ${{ inputs.session_id }}
+          METRICS_BRANCH: conductor-metrics
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          METRICS_BRANCH="${METRICS_BRANCH:-conductor-metrics}"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          if ! git ls-remote --heads origin "$METRICS_BRANCH" | grep -q .; then
+            echo "Creating origin/$METRICS_BRANCH from origin/develop"
+            git fetch origin develop
+            git branch -f "$METRICS_BRANCH" origin/develop
+            git push -u origin "$METRICS_BRANCH"
+          fi
+          git fetch origin "$METRICS_BRANCH"
+          # develop may still have historical metrics/; untracked session files from the
+          # Conductor step block switching to conductor-metrics — drop them first.
+          git clean -fd -- .github/conductor/metrics || true
+          git checkout -B "$METRICS_BRANCH" "origin/$METRICS_BRANCH"
+          ARGS=""
+          if [ -n "${SESSION_ID:-}" ]; then ARGS="--session $SESSION_ID"; fi
+          BRANCH="$METRICS_BRANCH" node .github/conductor/enrich-metrics-cursor.mjs $ARGS --push || echo "Enrich step finished (no changes or non-fatal error)"

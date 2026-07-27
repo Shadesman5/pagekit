@@ -1,37 +1,39 @@
 <?php
 
+declare(strict_types=1);
+
 return [
 
     'name' => 'system/finder',
 
     'autoload' => [
 
-        'Pagekit\\Finder\\' => 'src'
+        'Pagekit\\Finder\\' => 'src',
 
     ],
 
     'main' => function ($app) {
         $this->config['storage'] = '/' . trim(($this->config['storage'] ?: 'storage'), '/');
-        $app['path.storage'] = $app['path'] . $this->config['storage'];
-        $app['locator']->add('storage:', $app['path.storage']);
+        $app->set('path.storage', $app->get('path') . $this->config['storage']);
+        $app->get('locator')->add('storage:', $app->get('path.storage'));
     },
 
     'routes' => [
 
         '/system/finder' => [
             'name' => '@system/finder',
-            'controller' => 'Pagekit\\Finder\\Controller\\FinderController'
+            'controller' => 'Pagekit\\Finder\\Controller\\FinderController',
         ],
         '/site/storage' => [
             'name' => '@site/storage',
-            'controller' => 'Pagekit\\Finder\\Controller\\StorageController'
-        ]
+            'controller' => 'Pagekit\\Finder\\Controller\\StorageController',
+        ],
 
     ],
 
     'resources' => [
 
-        'system/finder:' => ''
+        'system/finder:' => '',
 
     ],
 
@@ -42,24 +44,26 @@ return [
             $scripts->register('input-image', 'system/finder:app/bundle/input-image.js', ['vue', 'panel-finder']);
             $scripts->register('input-video', 'system/finder:app/bundle/input-video.js', ['vue', 'panel-finder']);
             $scripts->register('link-storage', 'system/finder:app/bundle/link-storage.js', ['~panel-link']);
+            // Storage page Vue initialization (CSP-compliant, no inline script)
+            $scripts->register('storage-init', 'system/finder:app/storage.js', ['vue', 'panel-finder']);
         },
 
         'view.system:modules/settings/views/settings' => function ($event, $view) use ($app) {
             $view->data('$settings', [
                 'config' => [
-                    $this->name => ['storage' => $this->config['storage'] === '/storage' ? '' : $this->config['storage']]
+                    $this->name => ['storage' => $this->config['storage'] === '/storage' ? '' : $this->config['storage']],
                 ],
                 'options' => [
-                    $this->name => ['extensions' => $this->config['extensions']]
-                ]
+                    $this->name => ['extensions' => $this->config['extensions']],
+                ],
             ]);
         },
 
         'system.finder' => function ($event) use ($app) {
-            if ($app['user']->hasAccess('system: manage storage | system: manage storage read only')) {
-                $event->path('#^' . preg_quote(strtr($app['path.storage'], '\\', '/'), '#') . '($|\/.*)#', $app['user']->hasAccess('system: manage storage') ? 'w' : 'r');
+            if ($app->get('user')->hasAccess('system: manage storage | system: manage storage read only')) {
+                $event->path('#^' . preg_quote(strtr($app->get('path.storage'), '\\', '/'), '#') . '($|\/.*)#', $app->get('user')->hasAccess('system: manage storage') ? 'w' : 'r');
             }
-        }
+        },
 
     ],
 
@@ -67,11 +71,11 @@ return [
 
         'system: manage storage' => [
             'title' => 'Manage storage',
-            'trusted' => true
+            'trusted' => true,
         ],
         'system: manage storage read only' => [
-            'title' => 'Manage storage (Read only)'
-        ]
+            'title' => 'Manage storage (Read only)',
+        ],
 
     ],
 
@@ -82,8 +86,8 @@ return [
             'parent' => 'site',
             'url' => '@site/storage',
             'access' => 'system: manage storage',
-            'priority' => 21
-        ]
+            'priority' => 21,
+        ],
 
     ],
 
@@ -91,8 +95,8 @@ return [
 
         'storage' => false,
 
-        'extensions' => 'bmp,gif,jpeg,jpg,png,svgz,svg,ico,webp,mpeg,ogv,mp4,m4v,webm,wmv,ogg,wma,mp3,m4a,aac,pdf,txt,xls,xlsx,doc,docx,zip,7z,rar,tar.gz'
+        'extensions' => 'bmp,gif,jpeg,jpg,png,svgz,svg,ico,webp,mpeg,ogv,mp4,m4v,webm,wmv,ogg,wma,mp3,m4a,aac,pdf,txt,xls,xlsx,doc,docx,zip,7z,rar,tar.gz',
 
-    ]
+    ],
 
 ];

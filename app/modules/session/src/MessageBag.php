@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Session;
 
 use Symfony\Component\HttpFoundation\Session\Flash\AutoExpireFlashBag;
@@ -9,93 +11,64 @@ class MessageBag extends AutoExpireFlashBag
     /**
      * Detailed debug information
      */
-    const DEBUG = 'debug';
+    public const DEBUG = 'debug';
 
     /**
      * Interesting events
      */
-    const INFO = 'info';
+    public const INFO = 'info';
 
     /**
      * Exceptional occurrences that are not errors
      */
-    const WARNING = 'warning';
+    public const WARNING = 'warning';
 
     /**
      * Runtime errors
      */
-    const ERROR = 'error';
+    public const ERROR = 'error';
 
     /**
      * Success messages
      */
-    const SUCCESS = 'success';
+    public const SUCCESS = 'success';
 
-    /**
-     * Constructor.
-     *
-     * @param string $name
-     * @param string $storageKey
-     */
-    public function __construct($name = 'messages', $storageKey = '_pk_messages')
+    public function __construct(string $name = 'messages', string $storageKey = '_pk_messages')
     {
         parent::__construct($storageKey);
 
         $this->setName($name);
     }
 
-    /**
-     * Adds debug message
-     *
-     * @param string $message
-     */
-    public function debug($message): void
+    public function debug(string $message): void
     {
         $this->add(self::DEBUG, $message);
     }
 
-    /**
-     * Adds info message
-     *
-     * @param string $message
-     */
-    public function info($message): void
+    public function info(string $message): void
     {
         $this->add(self::INFO, $message);
     }
 
-    /**
-     * Adds warning message
-     *
-     * @param string $message
-     */
-    public function warning($message): void
+    public function warning(string $message): void
     {
         $this->add(self::WARNING, $message);
     }
 
-    /**
-     * Adds error message
-     *
-     * @param string $message
-     */
-    public function error($message): void
+    public function error(string $message): void
     {
         $this->add(self::ERROR, $message);
     }
 
-    /**
-     * Adds success message
-     *
-     * @param string $message
-     */
-    public function success($message): void
+    public function success(string $message): void
     {
         $this->add(self::SUCCESS, $message);
     }
 
     /**
      * Gets array of message levels
+     *
+     * @return list<string>
      */
     public static function levels(): array
     {
@@ -104,7 +77,7 @@ class MessageBag extends AutoExpireFlashBag
             self::INFO,
             self::WARNING,
             self::ERROR,
-            self::SUCCESS
+            self::SUCCESS,
         ];
     }
 }

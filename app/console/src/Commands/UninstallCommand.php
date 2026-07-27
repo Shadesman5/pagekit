@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Console\Commands;
 
 use Pagekit\Application\Console\Command;
@@ -13,12 +15,12 @@ class UninstallCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected $name = 'uninstall';
+    protected ?string $name = 'uninstall';
 
     /**
      * {@inheritdoc}
      */
-    protected $description = 'Uninstalls a Pagekit package';
+    protected string $description = 'Uninstalls a Pagekit package';
 
     /**
      * {@inheritdoc}
@@ -33,10 +35,12 @@ class UninstallCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $updater = new PackageManager($output);
-        $updater->uninstall((array) $this->argument('packages'));
+        $packages = (array) $this->argument('packages');
+        $packages = array_values(array_filter($packages, 'is_string'));
 
-        // TODO: Callback
-        return 0;
+        $updater = new PackageManager($output);
+        $updater->uninstall($packages);
+
+        return Command::SUCCESS;
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Auth\Handler;
 
 interface HandlerInterface
@@ -13,16 +15,11 @@ interface HandlerInterface
 
     /**
      * Sets the current user.
-     *
-     * @param  int  $user
-     * @param  bool $remember
      */
-    public function write($user, $remember = false);
+    public function write(int|string $user, bool $remember = false): void;
 
     /**
      * Removes the user.
-     *
-     * @param UserInterface
      */
-    public function destroy();
+    public function destroy(): void;
 }

@@ -1,8 +1,8 @@
 <?php
 
-namespace Pagekit\Auth;
+declare(strict_types=1);
 
-use Pagekit\Auth\UserInterface;
+namespace Pagekit\Auth;
 
 interface UserProviderInterface
 {
@@ -19,19 +19,18 @@ interface UserProviderInterface
      * @param  string $username
      */
     public function findByUsername($username): ?UserInterface;
-    
+
     /**
      * Retrieves a user by the given credentials.
      *
-     * @param  array $credentials
+     * @param array<string, mixed> $credentials
      */
     public function findByCredentials(array $credentials): ?UserInterface;
 
     /**
      * Validates a user against the given credentials.
      *
-     * @param  UserInterface $user
-     * @param  array         $credentials
+     * @param array<string, mixed> $credentials
      */
     public function validateCredentials(UserInterface $user, array $credentials): bool;
 }

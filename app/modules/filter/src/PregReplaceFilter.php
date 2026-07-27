@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Filter;
 
 /**
@@ -23,7 +25,7 @@ class PregReplaceFilter extends AbstractFilter
     /**
      * Returns the regex pattern.
      *
-     * @return string|array
+     * @return string|array<int, string>|null
      */
     public function getPattern()
     {
@@ -33,13 +35,14 @@ class PregReplaceFilter extends AbstractFilter
     /**
      * Set the regex pattern.
      *
-     * @param  string|array $pattern
+     * @param  string|array<int, string> $pattern
      * @throws \InvalidArgumentException
      */
     public function setPattern($pattern): void
     {
         if (!is_array($pattern) && !is_string($pattern)) {
             $pattern = is_object($pattern) ? get_class($pattern) : gettype($pattern);
+
             throw new \InvalidArgumentException(sprintf('%s expects pattern to be array or string; received "%s"', __METHOD__, $pattern));
         }
 
@@ -59,7 +62,7 @@ class PregReplaceFilter extends AbstractFilter
     /**
      * Returns the replacement value.
      *
-     * @return string|array
+     * @return string|array<int, string>
      */
     public function getReplacement()
     {
@@ -69,13 +72,14 @@ class PregReplaceFilter extends AbstractFilter
     /**
      * Sets the replacement array/string
      *
-     * @param  array|string $replacement
+     * @param  array<int, string>|string $replacement
      * @throws \InvalidArgumentException
      */
     public function setReplacement($replacement): void
     {
         if (!is_array($replacement) && !is_string($replacement)) {
             $replacement = is_object($replacement) ? get_class($replacement) : gettype($replacement);
+
             throw new \InvalidArgumentException(sprintf('%s expects replacement to be array or string; received "%s"', __METHOD__, $replacement));
         }
 
@@ -84,8 +88,11 @@ class PregReplaceFilter extends AbstractFilter
 
     /**
      * {@inheritdoc}
+     *
+     * @param  mixed $value Genuinely unknown type — filter input may be any type; passed directly to preg_replace as subject.
+     * @return mixed Genuinely unknown type — returns the result of preg_replace; string or array depending on input type.
      */
-    public function filter($value)
+    public function filter(mixed $value): mixed
     {
         if ($this->options['pattern'] === null) {
             throw new \RuntimeException(sprintf('Filter %s does not have a valid pattern set', get_called_class()));
@@ -97,11 +104,9 @@ class PregReplaceFilter extends AbstractFilter
     /**
      * Validate a pattern and ensure it does not contain the "e" modifier.
      *
-     * @param  string $pattern
-     * @return bool
      * @throws \InvalidArgumentException
      */
-    protected function validatePattern($pattern)
+    protected function validatePattern(string $pattern): bool
     {
         if (!preg_match('/(?<modifier>[imsxeADSUXJu]+)$/', $pattern, $matches)) {
             return true;
@@ -110,5 +115,7 @@ class PregReplaceFilter extends AbstractFilter
         if (false !== strstr($matches['modifier'], 'e')) {
             throw new \InvalidArgumentException(sprintf('Pattern for a PregReplace filter may not contain the "e" pattern modifier; received "%s"', $pattern));
         }
+
+        return true;
     }
 }

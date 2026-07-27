@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Widget;
 
-use Pagekit\Application as App;
 use Pagekit\Config\Config;
 
 class PositionManager implements \JsonSerializable
 {
+    /** @var array<string, array<string, mixed>> */
     protected array $positions = [];
     protected Config $config;
 
@@ -19,8 +21,10 @@ class PositionManager implements \JsonSerializable
      * Get shortcut.
      *
      * @see get()
+     *
+     * @return array<string, mixed>|null
      */
-    public function __invoke($name)
+    public function __invoke(string $name): ?array
     {
         return $this->get($name);
     }
@@ -28,20 +32,23 @@ class PositionManager implements \JsonSerializable
     /**
      * Gets position by name.
      *
-     * @param  string $name
+     * @return array<string, mixed>|null
      */
-    public function get($name): ?array
+    public function get(string $name): ?array
     {
         $positions = $this->all();
-        return isset($positions[$name]) ? $positions[$name] : null;
+
+        return $positions[$name] ?? null;
     }
 
     /**
      * Gets menus.
+     *
+     * @return array<string, array<string, mixed>>
      */
     public function all(): array
     {
-        array_walk($this->positions, function(&$position, $name) {
+        array_walk($this->positions, function (&$position, $name): void {
             $position['assigned'] = $this->config->get("_positions.$name", []);
         });
 
@@ -50,22 +57,16 @@ class PositionManager implements \JsonSerializable
 
     /**
      * Registers a position.
-     *
-     * @param string $name
-     * @param string $label
      */
-    public function register($name, $label): void
+    public function register(string $name, string $label): void
     {
         $this->positions[$name] = compact('name', 'label');
     }
 
     /**
      * Finds a theme position by widget id.
-     *
-     * @param  integer $id
-     * @return string
      */
-    public function find($id)
+    public function find(int $id): string
     {
         foreach ($this->all() as $name => $position) {
             if (in_array($id, $position['assigned'])) {
@@ -79,10 +80,9 @@ class PositionManager implements \JsonSerializable
     /**
      * Assigns widgets to a theme position.
      *
-     * @param string        $position
-     * @param array|integer $id
+     * @param array<int, int>|int $id
      */
-    public function assign($position, $id): void
+    public function assign(string $position, array|int $id): void
     {
         $positions = $this->config->get('_positions', []);
 
@@ -105,6 +105,8 @@ class PositionManager implements \JsonSerializable
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, array<string, mixed>>
      */
     public function jsonSerialize(): array
     {

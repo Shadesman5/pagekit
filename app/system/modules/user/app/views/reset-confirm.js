@@ -1,40 +1,44 @@
-import { ValidationObserver, VInput } from '@system/app/components/validation.vue';
+import VInput, { ValidationObserver } from '@system/app/components/validation.vue';
 
 const ResetConfirm = {
+  el: '#reset-confirm',
 
-    el: '#reset-confirm',
+  data() {
+    return {
+      error: null,
+      hidePassword: true,
+      view: {
+        type: 'icon',
+        containerClass: 'uk-margin',
+        class: 'uk-input uk-form-width-large',
+        icon: () => (this.hidePassword ? 'lock' : 'unlock'),
+        iconClick: () => {
+          this.hidePassword = !this.hidePassword;
+        },
+        iconTag: 'a',
+        iconDir: 'right'
+      }
+    };
+  },
 
-    data() {
-        return {
-            error: null,
-            hidePassword: true,
-            view: {
-                type: 'icon',
-                containerClass: 'uk-margin',
-                class: 'uk-input uk-form-width-large',
-                icon: () => (this.hidePassword ? 'lock' : 'unlock'),
-                iconClick: () => { this.hidePassword = !this.hidePassword; },
-                iconTag: 'a',
-                iconDir: 'right'
-            }
-        };
+  methods: {
+    async submit() {
+      const isValid = await this.$refs.resetform.validate();
+      if (isValid) {
+        this.$el.submit();
+      }
     },
 
-    methods: {
-
-        async valid() {
-            const isValid = await this.$refs.resetform.validate();
-            if (isValid) {
-                this.$el.submit();
-            }
-        }
-
-    },
-
-    components: {
-        ValidationObserver,
-        VInput
+    // Keep old method for compatibility
+    async valid() {
+      return this.submit();
     }
+  },
+
+  components: {
+    ValidationObserver,
+    VInput
+  }
 };
 
 export default ResetConfirm;

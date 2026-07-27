@@ -1,11 +1,15 @@
 # Pagekit CMS - Modernized
 
-[![PHP](https://img.shields.io/badge/php-8.2%2B-blue)](https://www.php.net/)
-[![Symfony](https://img.shields.io/badge/symfony-5.4-blue)](https://github.com/symfony/symfony)
-[![Vue](https://img.shields.io/badge/vue-2.6.12-green)](https://github.com/vuejs/vue)
+[![PHP](https://img.shields.io/badge/php-8.5%2B-blue)](https://www.php.net/)
+[![Symfony](https://img.shields.io/badge/symfony-6.4-blue)](https://github.com/symfony/symfony)
+[![Vue](https://img.shields.io/badge/vue-2.7.16-green)](https://github.com/vuejs/vue)
 [![UIkit](https://img.shields.io/badge/uikit-3.5.8-blue)](https://github.com/uikit/uikit)
 [![MySQL](https://img.shields.io/badge/mysql-8.4-orange)](https://www.mysql.com/)
+[![codecov](https://codecov.io/gh/Shadesman5/pagekit/graph/badge.svg)](https://codecov.io/gh/Shadesman5/pagekit)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://Shadesman5.github.io/pagekit)
+
+📊 **[Documentation & Quality Dashboard](https://Shadesman5.github.io/pagekit)** — guide, project docs, CI metrics
 
 <details>
 <summary>Screenshots</summary>
@@ -106,13 +110,13 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 
 ### Key Features
 
--   **Modern PHP Support**: PHP 8.2 to 8.4 compatibility with modern coding standards
+-   **Modern PHP Support**: PHP 8.5+ compatibility with modern coding standards
 -   **Enterprise Security**: Zero vulnerabilities with latest security patches applied
--   **Advanced Frontend**: Vue.js 2.6 with UIkit 3.5 for responsive, modern interfaces
--   **Flexible Database**: Support for both MySQL 8.4 and SQLite 3 with Doctrine DBAL 3.10+
+-   **Advanced Frontend**: Vue.js 2.7 with UIkit 3.5 for responsive, modern interfaces
+-   **Flexible Database**: Support for both MySQL 8.4 and SQLite 3 with Doctrine DBAL 3.8+
 -   **Modern Logging**: Monolog 3.9+ with enhanced performance and debugging capabilities
 -   **Secure Dependencies**: Latest security patches applied (marked 4.3+, doctrine/annotations 2.0+)
--   **Developer-Friendly**: Full Docker development environment with hot-reloading
+-   **Developer-Friendly**: Docker development stack with the working tree bind-mounted and an asset watcher
 -   **Built-in Extensions**: Blog, Admin Theme, Theme One, and Demo Content included
 -   **Mobile-Optimized**: Responsive design across all devices
 
@@ -127,17 +131,18 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 
 ## Major Changes
 
--   **PHP Version**: Minimum PHP 8.2+ (supports PHP 8.2, 8.3, 8.4)
+-   **PHP Version**: Minimum PHP 8.5+
 -   **Database Support**: MySQL 8.4+ and SQLite 3
--   **Node.js**: Minimum Node 18+ for development
+-   **Node.js**: Minimum Node 20.19+ or 22.12+ (Node 22 LTS recommended) for development
 -   **Composer**: Version 2.0+ required
--   **Yarn**: Version 1.22+ required
--   **Framework Updates**: Symfony 5.4 components with modern architecture
+-   **pnpm**: Version pinned in `package.json` (`packageManager`), activated via Corepack
+-   **Framework Updates**: Symfony 6.4 LTS components with modern architecture
+-   **PSR Standards**: Native PSR-11 Container with constructor dependency injection
 -   **Security Updates**: All dependencies updated to secure versions (0 vulnerabilities confirmed)
--   **Database Layer**: Doctrine DBAL 3.10+ with modern query methods and enhanced compatibility
--   **Logging System**: Monolog 3.9+ with improved performance and PHP 8.4 support
--   **Frontend Modernization**: Vue.js 2.6 and UIkit 3.5 (jQuery completely removed)
--   **Build Tools**: Webpack 4 with optimized development workflow
+-   **Database Layer**: Doctrine DBAL 3.8+ with modern query methods and enhanced compatibility
+-   **Logging System**: Monolog 3.9+ with improved performance and PHP 8.5 support
+-   **Frontend Modernization**: Vue.js 2.7 and UIkit 3.5 (jQuery completely removed)
+-   **Build Tools**: pnpm workspace with Vite bundling and Node-based LESS/asset scripts
 -   **Extension Compatibility**: Legacy extensions and themes require complete rewrite for new system
 -   **Docker Support**: Complete containerized development environment
 
@@ -147,15 +152,15 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 
 ### Minimum Requirements
 
--   **PHP**: 8.2 or higher (supports 8.2, 8.3, 8.4)
+-   **PHP**: 8.5 or higher
 -   **MySQL**: 8.4+ or **SQLite**: 3.x (selectable during installation)
--   **Node.js**: 18+ (for development)
+-   **Node.js**: `^20.19.0 || >=22.12.0` (Node 22 LTS recommended; pinned via `.nvmrc` and `package.json` `engines`)
 -   **Composer**: 2.0+
--   **Yarn**: 1.22+
+-   **pnpm**: version pinned in `package.json` (`packageManager`). Enable it with `corepack enable`, or install it globally with `npm install -g pnpm` if Corepack is unavailable. Installs run through any other package manager are rejected by a `preinstall` guard.
 
 ### Recommended Development Environment
 
--   **Docker**: Latest version with Docker Compose
+-   **Docker**: Recent version with Compose v2 (`docker compose`)
 -   **Git**: For version control
 -   **Modern Browser**: Chrome, Firefox, Safari, Edge
 
@@ -170,7 +175,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
     cd pagekit
     ```
 
-2. **Setup secure environment**
+2. **Generate the environment file**
 
     ```bash
     # Windows (PowerShell)
@@ -181,26 +186,42 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
     ./docker-setup.sh
     ```
 
-    This script will:
+    The script copies `.env.example` to `.env` and replaces both MySQL passwords with generated values. `.env` is gitignored, and Compose reads it automatically.
 
-    - Generate secure passwords automatically
-    - Create a `docker.env` file with your configuration
-    - Ensure sensitive data is not committed to git
-
-3. **Start with Docker**
+3. **Start the stack**
 
     ```bash
-    # With MySQL (default)
-    docker-compose up -d
+    # With MySQL (default): web, mysql, phpmyadmin and the node watcher
+    docker compose up -d
 
-    # SQLite only (lightweight)
-    docker-compose --profile sqlite up -d web node
+    # Without a database server (SQLite path): web and node only
+    docker compose up -d --no-deps web node
     ```
 
-4. **Access the application**
+    `--no-deps` skips the MySQL dependency of the `web` service, so no database container is started.
+
+4. **Install the PHP dependencies in the container**
+
+    ```bash
+    docker compose exec web composer install
+    ```
+
+    The image contains PHP, Apache and Composer only — the project itself is bind-mounted. The `node` service installs its own dependencies, builds the frontend assets and then starts the watcher when it comes up.
+
+5. **Install Pagekit**
+
+    - **MySQL path**: open http://localhost:8080 and complete the web installer. Database host is `mysql`, port `3306`; database name, user and password are the `MYSQL_*` values from your `.env`.
+    - **SQLite path**: install from the command line, no database server involved:
+
+        ```bash
+        docker compose exec web php pagekit setup -u admin -p '<password>' \
+            -t "Pagekit Dev" -m admin@example.com -d sqlite --no-interaction
+        ```
+
+6. **Access the application**
     - **Website**: http://localhost:8080
     - **Admin Panel**: http://localhost:8080/admin
-    - **phpMyAdmin**: http://localhost:8081 (MySQL only)
+    - **phpMyAdmin**: http://localhost:8081 (MySQL path only, signed in as the MySQL root user)
 
 ### Manual Installation
 
@@ -213,14 +234,14 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 2. **Install Node.js dependencies**
 
     ```bash
-    yarn install
+    corepack enable
+    pnpm install
     ```
 
 3. **Build frontend assets**
 
     ```bash
-    yarn compile-js --mode=production
-    yarn compile-less
+    pnpm build
     ```
 
 4. **Set up web server**
@@ -234,51 +255,54 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 
 The Docker setup provides a complete development environment with:
 
--   **PHP 8.4** with Apache and all required extensions
--   **MySQL 8.4** with phpMyAdmin
--   **Node.js 18** with Yarn 1.22 for frontend development
--   **Hot-reloading** for both PHP and frontend assets
+-   **PHP 8.5** with Apache (`mod_rewrite`) and Composer. On top of the base image the build adds `pdo_mysql`, `gd` and `zip`; `pdo_sqlite`, `mbstring` and the XML extensions are already bundled
+-   **MySQL 8.4** with phpMyAdmin — `web` and `phpmyadmin` start only once the MySQL healthcheck passes
+-   **Node.js 22 LTS** with pnpm (via Corepack) running `pnpm build` once and then `pnpm watch`
+-   **Live source**: the working tree is mounted into both containers, so PHP edits take effect immediately and asset changes are rebuilt by the watcher
 
 ### Frontend Development
 
 **Watch mode for development:**
 
 ```bash
-# JavaScript/Vue files
-yarn watch-js
-
-# LESS/CSS files
-yarn watch-less
-
-# Watch everything simultaneously
-yarn watch-all
+# JavaScript/Vue bundles and LESS stylesheets
+pnpm watch
 ```
 
 **Production builds:**
 
 ```bash
-yarn compile-js --mode=production
-yarn compile-less
+# Everything: bundles, stylesheets, asset copies
+pnpm build
+
+# Or the individual parts
+pnpm build:js
+pnpm build:css
+pnpm build:assets
 ```
 
 **Code quality:**
 
 ```bash
 # ESLint checking
-yarn lint
+pnpm lint
 
 # ESLint with auto-fixing
-yarn lint-watch
+pnpm lint --fix
+
+# Formatting (check / write)
+pnpm exec prettier --check .
+pnpm exec prettier --write .
 ```
 
 ### Database Configuration
 
-**Docker (Automatic):**
+**Docker:**
 
--   **MySQL Host**: mysql (internal) / localhost:3306 (external)
--   **Database**: pagekit
--   **Username**: pagekit
--   **Password**: pagekit
+-   **Host**: `mysql` from inside the stack, `localhost:3306` from the host
+-   **Database / Username**: `MYSQL_DATABASE` / `MYSQL_USER` from `.env` (both default to `pagekit`)
+-   **Password**: `MYSQL_PASSWORD` from `.env`, generated by the setup script — there is no fixed default
+-   The MySQL image creates the database, the user and its grants on the first boot of an empty data volume
 
 **Manual Setup:**
 
@@ -289,17 +313,17 @@ yarn lint-watch
 
 ### Backend
 
--   **Framework**: Symfony 5.4 components
+-   **Framework**: Symfony 6.4 LTS components
 -   **Architecture**: Modular system with clean separation of concerns
 -   **Database**: Doctrine ORM with migration support
 -   **Authentication**: User management and permission system
 
 ### Frontend
 
--   **JavaScript Framework**: Vue.js 2.6 with modern component patterns
+-   **JavaScript Framework**: Vue.js 2.7 with modern component patterns
 -   **CSS Framework**: UIkit 3.5 for responsive design
--   **Build Tools**: Webpack 4 with optimized production builds
--   **Code Quality**: ESLint with Vue.js specific rules
+-   **Build Tools**: Vite per-module bundles with optimized production builds
+-   **Code Quality**: ESLint with Vue.js specific rules, Prettier for formatting
 
 ### Admin Theme
 
@@ -360,7 +384,7 @@ theme: {
                 'addpost' => [
                     'caption' => 'Add Post',
                     'attrs' => [
-                        'href' => $app['url']->get('admin/blog/post/edit')
+                        'href' => $app->get('url')->get('admin/blog/post/edit')
                     ],
                     'priority' => 1
                 ]
@@ -384,42 +408,67 @@ Multiple editor choices available in system settings:
 
 ```bash
 # Development
-yarn watch-all                          # Watch JS and LESS files
-yarn watch-js                           # Watch JavaScript/Vue files only
-yarn watch-less                         # Watch LESS/CSS files only
+pnpm watch                               # Watch JS/Vue and LESS files
 
 # Production
-yarn compile-js --mode=production       # Build JavaScript for production
-yarn compile-less                       # Build CSS for production
-yarn install                            # Full production build
+pnpm build                               # Build bundles, stylesheets and asset copies
+pnpm build:js                            # Build JavaScript bundles only
+pnpm build:css                           # Build CSS from LESS only
+pnpm build:assets                        # Copy static assets only
 
 # Testing
-./app/vendor/bin/phpunit                 # Run PHPUnit test suite (159 tests)
+
+## Unit Tests
+./app/vendor/bin/phpunit                 # Run PHPUnit test suite (275 tests)
 ./app/vendor/bin/phpunit --testdox       # Run tests with detailed output
 ./app/vendor/bin/phpunit --coverage-html coverage/  # Generate code coverage
 
+## E2E Tests
+pnpm test:e2e                            # Run all E2E tests
+pnpm test:e2e:headed                     # Run tests with browser visible
+pnpm test:e2e:debug                      # Debug mode for test development
+pnpm test:e2e:ui                         # Interactive UI mode
+pnpm test:smoke                          # Run the @ci-tagged smoke specs
+
 # Utilities
-yarn lint                               # Check code quality
-yarn cldr                               # Update locale data
-yarn assets                             # Copy static assets
+pnpm lint                                # Check code quality
+pnpm exec prettier --check .             # Check formatting
+pnpm cldr                                # Update locale data
 ```
 
 ### Docker Commands
 
 ```bash
 # Container management
-docker-compose up -d           # Start all services
-docker-compose down            # Stop all services
-docker-compose down -v         # Stop and remove volumes
+docker compose up -d                        # Start all services
+docker compose up -d --no-deps web node     # Start without MySQL (SQLite path)
+docker compose ps                           # Show container status
+docker compose down                         # Stop all services
+docker compose down -v                      # Stop and remove volumes (deletes the MySQL data)
 
 # Development
-docker-compose logs -f web     # View web server logs
-docker-compose exec web bash   # Access PHP container
-docker-compose exec node sh    # Access Node.js container
+docker compose logs -f web                  # View web server logs
+docker compose exec web bash                # Access PHP container
+docker compose exec node sh                 # Access Node.js container
 
-# Database
-docker-compose exec web composer install    # Install PHP dependencies
-docker-compose exec node yarn install       # Install Node dependencies
+# Dependencies
+docker compose exec web composer install    # Install PHP dependencies
+docker compose exec node pnpm install       # Install Node dependencies
+
+# Frontend production build inside the container
+docker compose exec node pnpm build
+```
+
+#### Docker Troubleshooting
+
+**Compose aborts with `Run ./docker-setup.sh first`**: the MySQL passwords come from `.env`. Run the setup script before starting the stack.
+
+**Port already in use**: change the host side of the port mapping in `docker-compose.yml`, for example `"8090:80"` instead of `"8080:80"` on the `web` service.
+
+**Permission errors on written files** (cache, storage, uploads):
+
+```bash
+docker compose exec web chown -R www-data:www-data /var/www/html
 ```
 
 ## Extensions & Themes
@@ -430,11 +479,12 @@ docker-compose exec node yarn install       # Install Node dependencies
 -   **Modern Admin Theme**: UIkit 3 based administration interface
 -   **Theme One**: Responsive frontend theme
 -   **Demo Content**: Sample data for testing
+-   **E2E Testing**: Comprehensive Playwright-based testing framework
 
 ### Extension Development
 
 -   **Complete Rewrite Required**: Original Pagekit extensions and themes do **not work** with this modernized system
--   **Modern Architecture**: Extensions must be built from scratch using current PHP 8.2+ standards
+-   **Modern Architecture**: Extensions must be built from scratch using current PHP 8.5+ standards
 -   **Theme System**: Full theming support with modern tooling and developer APIs
 -   **Hooks & Filters**: Extensive customization capabilities for developers
 
@@ -444,17 +494,11 @@ docker-compose exec node yarn install       # Install Node dependencies
 
 ### Docker Environment Security
 
-1. **Never commit environment files**: The `docker.env` file contains sensitive passwords and should never be committed to version control. It's automatically added to `.gitignore`.
+1. **Never commit environment files**: `.env` holds the generated database passwords. The `*.env` rule in `.gitignore` keeps it out of version control.
 
-2. **Use the setup scripts**: Always use the provided setup scripts (`docker-setup.ps1` for Windows or `docker-setup.sh` for Linux/Mac) to generate secure passwords automatically.
+2. **Use the setup scripts**: Always use the provided setup scripts (`docker-setup.ps1` for Windows or `docker-setup.sh` for Linux/Mac) to generate secure passwords automatically. No credentials are hardcoded in any tracked file.
 
-3. **Production deployment**:
-
-    - Generate new, strong passwords for production environments
-    - Use environment-specific configuration files
-    - Enable HTTPS/SSL certificates
-    - Disable debug mode (`APP_DEBUG=false`)
-    - Use proper firewall rules to restrict database access
+3. **Development only**: the image, `docker-compose.yml`, `.env.example` and `docker/php/php.ini` are development artefacts — errors are displayed, MySQL is published on `localhost:3306` and the working tree is mounted into the container. Do not deploy them; a production image ships with its own configuration and secret handling.
 
 4. **Regular updates**: Keep all Docker images and dependencies up to date for security patches.
 
@@ -486,11 +530,10 @@ This modernized version builds upon the work of many contributors:
 
 ## Documentation & Support
 
--   **Documentation**: Currently being updated. For reference, see the original [Pagekit Documentation](https://github.com/pagekit/docs)
+-   **Documentation**: Currently being rewritten for the modernized system. For legacy reference, see the original [Pagekit Documentation](https://github.com/pagekit/docs)
 -   **Issues**: Report bugs via GitHub Issues
 -   **Discussions**: Use GitHub Discussions for questions and feature requests
--   **Migration Guide**: Documentation for upgrading from legacy Pagekit versions is in development
 
 ---
 
-**Note**: This is a modernized version with significant improvements. Please review the upgrade guide before migrating from older Pagekit versions.
+**Note**: This is a fully modernized version. Original Pagekit extensions and themes are not compatible and must be rewritten for the new architecture.

@@ -1,13 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Content\Plugin;
 
-use Pagekit\Application as App;
 use Pagekit\Content\Event\ContentEvent;
 use Pagekit\Event\EventSubscriberInterface;
+use Pagekit\Markdown\Markdown;
 
 class MarkdownPlugin implements EventSubscriberInterface
 {
+    public function __construct(
+        private readonly Markdown $markdown,
+    ) {
+    }
+
     /**
      * Content plugins callback.
      *
@@ -20,18 +27,20 @@ class MarkdownPlugin implements EventSubscriberInterface
         }
 
         $content = $event->getContent();
-        $content = App::markdown()->parse($content, is_array($event['markdown']) ? $event['markdown'] : []);
+        $content = $this->markdown->parse($content, is_array($event['markdown']) ? $event['markdown'] : []);
 
         $event->setContent($content);
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, array{string, int}>
      */
     public function subscribe(): array
     {
         return [
-            'content.plugins' => ['onContentPlugins', 5]
+            'content.plugins' => ['onContentPlugins', 5],
         ];
     }
 }

@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Title' => '제목',
   'Theme' => '테마',
   'Hide Title' => '제목 숨김',
@@ -38,4 +42,4 @@
   'Written by %name% on %date%' => '%date%에 %name% 작성',
   'Read more' => '더보기',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} 코멘트가 없습니다|{1} %count%개 코멘트|]1,Inf[ %count%개 코멘트',
-);
+];

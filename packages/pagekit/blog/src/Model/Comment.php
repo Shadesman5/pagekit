@@ -1,60 +1,72 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Blog\Model;
 
 use Pagekit\Comment\Model\Comment as BaseComment;
+use Pagekit\Database\ORM\Attribute as ORM;
+use Pagekit\User\Model\User;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * @Entity(tableClass="@blog_comment")
+ * Blog Comment entity with PHP 8 Attributes for ORM and Validation.
  */
+#[ORM\Entity(tableClass: '@blog_comment')]
 class Comment extends BaseComment implements \JsonSerializable
 {
-    /** @Column(type="integer") */
+    #[ORM\Column(type: 'integer')]
+    #[Assert\NotBlank(message: 'validation.comment.post_required')]
+    #[Assert\Positive]
     public int $post_id;
 
-    /** @Column(type="string") */
-    public $user_id;
+    #[ORM\Column(type: 'string')]
+    public ?string $user_id = null;
 
-    /** @Column(type="string") */
-    public $email;
+    #[ORM\Column(type: 'string')]
+    #[Assert\Email(message: 'validation.comment.email_invalid')]
+    public ?string $email = null;
 
-    /** @Column(type="string") */
-    public $url = '';
+    #[ORM\Column(type: 'string')]
+    #[Assert\Url(message: 'validation.comment.url_invalid')]
+    public ?string $url = '';
 
-    /** @Column(type="string") */
-    public $ip;
+    #[ORM\Column(type: 'string')]
+    public ?string $ip = null;
 
-    /** @BelongsTo(targetEntity="Post", keyFrom="post_id") */
-    public $post;
+    #[ORM\BelongsTo(targetEntity: 'Post', keyFrom: 'post_id')]
+    public ?Post $post = null;
 
-    /** @BelongsTo(targetEntity="Pagekit\User\Model\User", keyFrom="user_id") */
-    public $user;
+    #[ORM\BelongsTo(targetEntity: 'Pagekit\User\Model\User', keyFrom: 'user_id')]
+    public ?User $user = null;
 
-    /** @var int */
-    public $special = 0;
+    public int $special = 0;
 
-    public function setPost($post): void
+    public function setPost(?Post $post): void
     {
         $this->post = $post;
 
-        if ($post) {
+        if ($post !== null && $post->id !== null) {
             $this->post_id = $post->id;
         }
     }
 
-    public function getStatusText()
+    public function getStatusText(): string
     {
         $statuses = self::getStatuses();
 
-        return isset($statuses[$this->status]) ? $statuses[$this->status] : __('Unknown');
+        return $statuses[$this->status] ?? __('Unknown');
     }
 
+    /**
+     * @return array<int, string>
+     */
     public static function getStatuses(): array
     {
         return [
             self::STATUS_APPROVED => __('Approved'),
-            self::STATUS_PENDING  => __('Pending'),
-            self::STATUS_SPAM     => __('Spam')
+            self::STATUS_PENDING => __('Pending'),
+            self::STATUS_SPAM => __('Spam'),
         ];
     }
 }

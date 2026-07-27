@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Filter by' => 'Филтрирай по',
   'Thank you! Your comment needs approval before showing up.' => 'Благодарим Ви! Вашият коментар се нуждае от одобрение, преди да се появи.',
   'Unable to comment. Please try again later.' => 'Не е възможно да коментирате. Моля, опитайте пак по-късно.',
@@ -94,4 +98,4 @@
   'Written by %name% on %date%' => 'Написан от %name% на %date%',
   'Read more' => 'Прочети още',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Няма коментари|{1} %count% коментар|]1,Inf[ %count% коментари',
-);
+];

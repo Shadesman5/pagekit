@@ -1,18 +1,41 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Finder\Controller;
 
-use Pagekit\Application as App;
+use function Pagekit\__;
+
+use Pagekit\Application\UrlProvider;
+use Pagekit\Event\EventDispatcherInterface;
+use Pagekit\Filesystem\Filesystem;
 use Pagekit\Finder\Event\FileAccessEvent;
 use Pagekit\Kernel\Exception\ForbiddenException;
+use Pagekit\Module\ModuleManager;
+use Pagekit\Routing\Attribute\Request;
+use Pagekit\Routing\Attribute\Route;
+use Symfony\Component\Finder\Finder;
+use Symfony\Component\HttpFoundation\Request as HttpRequest;
 
 class FinderController
 {
+    public function __construct(
+        private readonly HttpRequest $request,
+        private readonly UrlProvider $url,
+        private readonly Filesystem $file,
+        private readonly string $path,
+        private readonly ModuleManager $module,
+        private readonly EventDispatcherInterface $events,
+    ) {
+    }
+
     /**
-     * @Request({"path"})
+     * @return array<string, mixed>
      */
-    public function indexAction($path): array
+    public function indexAction(): array
     {
+        $path = $this->request->get('path', '');
+
         if (!$dir = $this->getPath()) {
             return $this->error(__('Invalid path.'));
         }
@@ -24,9 +47,9 @@ class FinderController
         $data = array_fill_keys(['items'], []);
         $data['mode'] = $mode;
 
-        $finder = App::finder();
+        $finder = Finder::create();
 
-        $finder->sort(fn($a, $b) => $b->getRealpath() > $a->getRealpath() ? -1 : 1);
+        $finder->sort(fn ($a, $b) => $b->getRealpath() > $a->getRealpath() ? -1 : 1);
 
         foreach ($finder->depth(0)->in($dir) as $file) {
 
@@ -35,17 +58,17 @@ class FinderController
             }
 
             $info = [
-                'name'     => $file->getFilename(),
-                'mime'     => 'application/'.($file->isDir() ? 'folder':'file'),
-                'path'     => $this->normalizePath($path.'/'.$file->getFilename()),
-                'url'      => ltrim(App::url()->getStatic($file->getPathname(), [], 'base'), '/'),
-                'writable' => $mode == 'w'
+                'name' => $file->getFilename(),
+                'mime' => 'application/'.($file->isDir() ? 'folder' : 'file'),
+                'path' => $this->normalizePath($path.'/'.$file->getFilename()),
+                'url' => ltrim($this->url->getStatic($file->getPathname(), [], 'base'), '/'),
+                'writable' => $mode == 'w',
             ];
 
             if (!$file->isDir()) {
                 $info = array_merge($info, [
-                    'size'         => $this->formatFileSize($file->getSize()),
-                    'lastmodified' => date(\DateTime::ATOM, $file->getMTime())
+                    'size' => $this->formatFileSize($file->getSize()),
+                    'lastmodified' => date(\DateTime::ATOM, $file->getMTime()),
                 ]);
             }
 
@@ -56,10 +79,18 @@ class FinderController
     }
 
     /**
-     * @Request({"name"}, csrf=true)
+     * @return array<string, mixed>
      */
-    public function createFolderAction($name): array
+    #[Route('/createfolder', methods: ['POST'])]
+    #[Request([], csrf: true)]
+    public function createFolderAction(): array
     {
+        $name = $this->request->request->get('name', '');
+        if (empty($name) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
+            $name = $json['name'] ?? '';
+        }
+
         if (!$this->isValidFilename($name)) {
             return $this->error(__('Invalid file name.'));
         }
@@ -68,7 +99,7 @@ class FinderController
             return $this->error(__('Invalid path.'));
         }
 
-        if (file_exists($this->getPath($name))) {
+        if (file_exists($path)) {
             return $this->error(__('Folder already exists.'));
         }
 
@@ -78,27 +109,43 @@ class FinderController
 
         try {
 
-            App::file()->makeDir($path);
+            $this->file->makeDir($path);
 
             return $this->success(__('Directory created.'));
 
-        } catch(\Exception $e) {
+        } catch (\Exception $e) {
 
             return $this->error(__('Unable to create directory.'));
         }
     }
 
     /**
-     * @Request({"oldname", "newname"}, csrf=true)
+     * @return array<string, mixed>
      */
-    public function renameAction($oldname, $newname): array
+    #[Route('/rename', methods: ['POST'])]
+    #[Request([], csrf: true)]
+    public function renameAction(): array
     {
+        $oldname = $this->request->request->get('oldname', '');
+        $newname = $this->request->request->get('newname', '');
+
+        if ((empty($oldname) || empty($newname)) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
+            $oldname = $json['oldname'] ?? $oldname;
+            $newname = $json['newname'] ?? $newname;
+        }
+
         if (!$this->isValidFilename($newname)) {
             return $this->error(__('Invalid file name.'));
         }
 
         if (!$source = $this->getPath($oldname) or !$target = $this->getPath($newname)) {
             return $this->error(__('Invalid path.'));
+        }
+
+        // No-op: user saved without changing the name
+        if ($source === $target) {
+            return $this->success(__('Renamed.'));
         }
 
         if ('w' !== $this->getMode($source) || file_exists($target) || 'w' !== $this->getMode(dirname($target))) {
@@ -113,10 +160,18 @@ class FinderController
     }
 
     /**
-     * @Request({"names": "array"}, csrf=true)
+     * @return array<string, mixed>
      */
-    public function removeFilesAction($names): array
+    #[Route('/removefiles', methods: ['POST'])]
+    #[Request([], csrf: true)]
+    public function removeFilesAction(): array
     {
+        $names = $this->request->request->all()['names'] ?? [];
+        if (empty($names) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
+            $names = $json['names'] ?? [];
+        }
+
         foreach ($names as $name) {
 
             if (!$path = $this->getPath($name)) {
@@ -129,7 +184,7 @@ class FinderController
 
             try {
 
-                App::file()->delete($path);
+                $this->file->delete($path);
 
             } catch (\Exception $e) {
 
@@ -141,8 +196,10 @@ class FinderController
     }
 
     /**
-     * @Request(csrf=true)
+     * @return array<string, mixed>
      */
+    #[Route('/upload', methods: ['POST'])]
+    #[Request([], csrf: true)]
     public function uploadAction(): array
     {
         try {
@@ -155,7 +212,7 @@ class FinderController
                 throw new ForbiddenException(__('Permission denied.'));
             }
 
-            $files = App::request()->files->get('files');
+            $files = $this->request->files->get('files');
 
             if (!$files) {
                 return $this->error(__('No files uploaded.'));
@@ -176,15 +233,17 @@ class FinderController
 
             return $this->success(__('Upload complete.'));
 
-        } catch(\Exception $e) {
+        } catch (\Exception $e) {
 
             return $this->error(__('Unable to upload.'));
         }
     }
 
-    protected function getMode($path): string
+    protected function getMode(string $path): string
     {
-        $mode = App::trigger(new FileAccessEvent('system.finder'))->mode($path);
+        $event = new FileAccessEvent('system.finder');
+        $this->events->trigger($event);
+        $mode = $event->mode($path);
 
         if ('w' == $mode && !is_writable($path)) {
             $mode = 'r';
@@ -197,36 +256,35 @@ class FinderController
         return $mode;
     }
 
-    protected function formatFileSize($size): string
+    protected function formatFileSize(int $size): string
     {
-      if ($size == 0) {
-          return __('n/a');
-      }
+        if ($size == 0) {
+            return __('n/a');
+        }
 
-      $sizes = [__('%d Bytes'), __('%d  KB'), __('%d  MB'), __('%d  GB'), __('%d TB'), __('%d PB'), __('%d EB'), __('%d ZB'), __('%d YB')];
-      $size  = round($size/pow(1024, ($i = floor(log($size, 1024)))), 2);
-      return sprintf($sizes[$i], $size);
+        $sizes = [__('%d Bytes'), __('%d  KB'), __('%d  MB'), __('%d  GB'), __('%d TB'), __('%d PB'), __('%d EB'), __('%d ZB'), __('%d YB')];
+        $size = round($size / pow(1024, ($i = floor(log($size, 1024)))), 2);
+
+        return sprintf($sizes[$i], $size);
     }
 
-    protected function getPath($path = '')
+    protected function getPath(string $path = ''): string|false
     {
-        $root = strtr(App::path(), '\\', '/');
-        $path = $this->normalizePath($root.'/'.App::request()->get('root').'/'.App::request()->get('path').'/'.$path);
+        $root = strtr($this->path, '\\', '/');
+        $path = $this->normalizePath($root.'/'.$this->request->get('root').'/'.$this->request->get('path').'/'.$path);
 
         return 0 === strpos($path, $root) ? $path : false;
     }
 
     /**
      * Normalizes the given path
-     *
-     * @param  string $path
      */
-    protected function normalizePath($path): string
+    protected function normalizePath(string $path): string
     {
-        $path   = str_replace(['\\', '//'], '/', $path);
+        $path = str_replace(['\\', '//'], '/', $path);
         $prefix = preg_match('|^(?P<prefix>([a-zA-Z]+:)?//?)|', $path, $matches) ? $matches['prefix'] : '';
-        $path   = substr($path, strlen($prefix));
-        $parts  = array_filter(explode('/', $path), 'strlen');
+        $path = substr($path, strlen($prefix));
+        $parts = array_filter(explode('/', $path), 'strlen');
         $tokens = [];
 
         foreach ($parts as $part) {
@@ -240,14 +298,14 @@ class FinderController
         return $prefix . implode('/', $tokens);
     }
 
-    protected function isValidFilename($name): bool
+    protected function isValidFilename(string $name): bool
     {
         if (empty($name)) {
             return false;
         }
 
         $extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-        $allowed = App::module('system/finder')->config['extensions'];
+        $allowed = $this->module->get('system/finder')->config['extensions'];
         if (!empty($extension) && !in_array($extension, explode(',', $allowed))) {
             return false;
         }
@@ -259,11 +317,19 @@ class FinderController
         return false === strpos($name, '/');
     }
 
-    protected function success($message): array {
+    /**
+     * @return array{message: string}
+     */
+    protected function success(string $message): array
+    {
         return compact('message');
     }
 
-    protected function error($message): array {
+    /**
+     * @return array{error: true, message: string}
+     */
+    protected function error(string $message): array
+    {
         return ['error' => true, 'message' => $message];
     }
 }

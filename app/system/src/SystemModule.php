@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\System;
 
 use Pagekit\Application as App;
@@ -8,20 +10,23 @@ use Symfony\Component\Finder\Finder;
 
 class SystemModule extends Module
 {
-    /**
-     * {@inheritdoc}
-     */
-    public function main(App $app): void
-    {
-        $app['system'] = $this;
-        $app['isAdmin'] = false;
+    protected ?App $app = null;
 
-        $app->factory('finder', fn() => Finder::create());
+    /**
+     * @return mixed Genuinely unknown type — overrides Module::main(); the return value is not consumed by the framework (inherited contract from ModuleInterface).
+     */
+    public function main(App $app): mixed
+    {
+        $this->app = $app;
+        $app->set('system', $this);
+        $app->set('isAdmin', false);
+
+        $app->factory('finder', fn () => Finder::create());
 
         $app->extend('assets', function ($factory) use ($app) {
 
             $secret = $this->config['secret'];
-            $version = substr(sha1($app['version'] . $secret), 0, 4);
+            $version = substr(sha1($app->get('version') . $secret), 0, 4);
             $factory->setVersion($version);
 
             return $factory;
@@ -30,16 +35,16 @@ class SystemModule extends Module
 
         $theme = $this->config('site.theme');
 
-        $app['module']->addLoader(function ($module) use ($app, $theme) {
+        $app->get('module')->addLoader(function ($module) use ($app, $theme) {
 
             if (in_array($module['name'], $this->config['extensions'])) {
                 $module['type'] = 'extension';
-                $app['locator']->add("{$module['name']}:", $module['path']);
-                $app['locator']->add("views:{$module['name']}", "{$module['path']}/views");
+                $app->get('locator')->add("{$module['name']}:", $module['path']);
+                $app->get('locator')->add("views:{$module['name']}", "{$module['path']}/views");
             } elseif ($module['name'] == $theme) {
                 $module['type'] = 'theme';
-                $app['locator']->add('theme:', $module['path']);
-                $app['locator']->add('views:', "{$module['path']}/views");
+                $app->get('locator')->add('theme:', $module['path']);
+                $app->get('locator')->add('views:', "{$module['path']}/views");
             }
 
             return $module;
@@ -47,37 +52,54 @@ class SystemModule extends Module
 
         foreach (array_merge($this->config['extensions'], (array) $theme) as $module) {
             try {
-                $app['module']->load($module);
+                $app->get('module')->load($module);
             } catch (\RuntimeException $e) {
                 $module = ucfirst($module);
-                $app['log']->error("[$module exception]: {$e->getMessage()}");
+                $app->get('log')->error("[$module exception]: {$e->getMessage()}");
             }
         }
 
-        if (!$app['theme'] = $app->module($theme)) {
-            $app['theme'] = new Module([
+        $themeModule = $app->get('module')->get($theme);
+        if (!$themeModule) {
+            $themeModule = new Module([
                 'name' => 'theme-default',
                 'type' => 'theme',
                 'path' => '',
                 'config' => [],
-                'layout' => 'views:system/blank.php'
+                'layout' => 'views:system/blank.php',
             ]);
         }
+        $app->set('theme', $themeModule);
 
+        return null;
     }
 
     /**
      * Gets the system menu.
      */
+    private function assertBooted(): App
+    {
+        if ($this->app === null) {
+            throw new \LogicException('SystemModule::main() has not been called yet.');
+        }
+
+        return $this->app;
+    }
+
     public function getMenu(): object
     {
         static $menu;
 
         if (!$menu) {
+            $app = $this->assertBooted();
 
-            $menu = new SystemMenu();
+            $menu = new SystemMenu(
+                $app->get('user'),
+                $app->get('request'),
+                $app->get('url'),
+            );
 
-            foreach (App::module() as $module) {
+            foreach ($app->get('module') as $module) {
                 foreach ((array) $module->get('menu') as $id => $item) {
                     $menu->addItem($id, $item);
                 }

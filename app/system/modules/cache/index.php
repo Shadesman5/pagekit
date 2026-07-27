@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
 
     'name' => 'system/cache',
@@ -8,7 +10,7 @@ return [
 
     'autoload' => [
 
-        'Pagekit\\Cache\\' => 'src'
+        'Pagekit\\Cache\\' => 'src',
 
     ],
 
@@ -16,15 +18,15 @@ return [
 
         '/system/cache' => [
             'name' => '@system/cache',
-            'controller' => 'Pagekit\\Cache\\Controller\\CacheController'
-        ]
+            'controller' => 'Pagekit\\Cache\\Controller\\CacheController',
+        ],
 
     ],
 
     'config' => [
 
         'caches' => [],
-        'nocache' => false
+        'nocache' => false,
 
     ],
 
@@ -34,25 +36,39 @@ return [
 
             $supported = $this->supports();
 
+            // Modern cache options only
             $caches = [
-                'auto'   => ['name' => '', 'supported' => true],
-                'apc'    => ['name' => 'APC', 'supported' => in_array('apc', $supported)],
-                'xcache' => ['name' => 'XCache', 'supported' => in_array('xcache', $supported)],
-                'file'   => ['name' => 'File', 'supported' => in_array('file', $supported)]
+                'auto' => ['name' => '', 'supported' => true],
+                'file' => ['name' => 'File', 'supported' => in_array('file', $supported)],
+                'phpfile' => ['name' => 'PHP File', 'supported' => in_array('phpfile', $supported)],
             ];
 
-            $caches['auto']['name'] = "Auto ({$caches[end($supported)]['name']})";
+            // Add APCu only if available (modern PHP opcode cache)
+            if (in_array('apcu', $supported)) {
+                $caches['apcu'] = ['name' => 'APCu Memory', 'supported' => true];
+            }
+
+            // Set auto name based on best available option
+            if (isset($caches['apcu'])) {
+                $bestName = $caches['apcu']['name'];
+            } elseif (in_array('phpfile', $supported)) {
+                $bestName = $caches['phpfile']['name'];
+            } else {
+                $bestName = $caches['file']['name'];
+            }
+
+            $caches['auto']['name'] = "Auto ({$bestName})";
 
             $view->data('$caches', $caches);
             $view->data('$settings', ['config' => [$this->name => $this->config(['caches.cache.storage', 'nocache'])]]);
-            $view->script('settings-cache', 'app/system/modules/cache/app/bundle/settings.js', 'settings');
+            $view->script('settings-cache', 'app/system/modules/cache/app/bundle/settings.js', ['settings']);
 
         },
 
         'after@system/settings/save' => function () {
             $this->clearCache();
-        }
+        },
 
-    ]
+    ],
 
 ];

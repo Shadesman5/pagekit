@@ -1,24 +1,25 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Filesystem\Tests;
 
-use PHPUnit\Framework\TestCase;
-use Pagekit\Tests\FileUtil;
 use Pagekit\Filesystem\Adapter\FileAdapter;
 use Pagekit\Filesystem\Filesystem;
+use PHPUnit\Framework\TestCase;
 
 class FilesystemTest extends TestCase
 {
     use FileUtil;
 
-    protected ?Filesystem $file = null;
-    protected ?string $fixtures = null;
-    protected $workspace;
+    private Filesystem $file;
+    private string $fixtures;
+    private string $workspace;
 
     public function setUp(): void
     {
-        $this->file      = new Filesystem;
-        $this->fixtures  = __DIR__.'/Fixtures';
+        $this->file = new Filesystem();
+        $this->fixtures = __DIR__.'/Fixtures';
         $this->workspace = $this->getTempDir('filesystem_');
 
         $this->file->registerAdapter('file', new FileAdapter(__DIR__, 'http://localhost'));
@@ -38,7 +39,7 @@ class FilesystemTest extends TestCase
 
     public function testGetUrlExternal(): void
     {
-        $ftp  = 'ftp://example.com';
+        $ftp = 'ftp://example.com';
         $http = 'http://username:password@example.com/path?arg=value#anchor';
 
         $this->assertSame('/', $this->file->getUrl($ftp));

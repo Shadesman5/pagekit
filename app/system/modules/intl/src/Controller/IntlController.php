@@ -1,37 +1,48 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Intl\Controller;
 
-use Pagekit\Application as App;
+use Pagekit\Application\Response as PagekitResponse;
+use Pagekit\Module\ModuleManager;
+use Pagekit\Routing\Attribute\Request as RequestAttr;
+use Pagekit\Routing\Attribute\Route;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Translation\Translator;
 
 class IntlController
 {
-    /**
-     * TODO: Limit catalogue if maintenance mode is enabled?
-     * @Route("/{locale}", requirements={"locale"="[a-zA-Z0-9_-]+"}, defaults={"_maintenance" = true})
-     * @Request({"locale"})
-     */
-    public function indexAction($locale = null)
+    public function __construct(
+        private readonly ModuleManager $module,
+        private readonly Translator $translator,
+        private readonly Request $request,
+        private readonly PagekitResponse $response,
+    ) {
+    }
+
+    #[Route('/{locale}', requirements: ['locale' => '[a-zA-Z0-9_-]+'], defaults: ['_maintenance' => true])]
+    #[RequestAttr(['locale' => 'string'])]
+    public function indexAction(?string $locale = null): Response
     {
-        $intl = App::module('system/intl');
+        $intl = $this->module->get('system/intl');
         $intl->loadLocale($locale);
 
         $messages = $intl->getFormats($locale) ?: [];
         $messages['locale'] = $locale;
-        $messages['translations'] = [$locale => App::translator()->getCatalogue($locale)->all()];
-        $messages = json_encode($messages);
+        $messages['translations'] = [$locale => $this->translator->getCatalogue($locale)->all()];
+        $messages = json_encode($messages, JSON_THROW_ON_ERROR);
 
-        $request = App::request();
+        $json = $this->request->isXmlHttpRequest();
 
-        $json = $request->isXmlHttpRequest();
+        $httpResponse = ($json ? $this->response->json() : $this->response->create('', 200, ['Content-Type' => 'application/javascript']));
+        $httpResponse->setETag(md5($json . $messages))->setPublic();
 
-        $response = ($json ? App::response()->json() : App::response('', 200, ['Content-Type' => 'application/javascript']));
-        $response->setETag(md5($json . $messages))->setPublic();
-
-        if ($response->isNotModified($request)) {
-            return $response;
+        if ($httpResponse->isNotModified($this->request)) {
+            return $httpResponse;
         }
 
-        return $response->setContent($json ? $messages : sprintf('var $locale = %s;', $messages));
+        return $httpResponse->setContent($json ? $messages : sprintf('var $locale = %s;', $messages));
     }
 }

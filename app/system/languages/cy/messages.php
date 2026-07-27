@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Select Image' => 'Dewis Delwedd',
   'Add Image' => 'Ychwanegu Delwedd',
   'Select Video' => 'Dewis Fideo',
@@ -451,4 +455,4 @@
   'You have the latest version of Pagekit. You do not need to update. However, if you want to re-install version %version%, you can download the package and re-install manually.' => 'Mae gennych chi\'r fersiwn ddiweddaraf o Pagekit. Does dim angen i chi ddiweddaru. Fodd bynnag, os hoffech chi ail-osod fersiwn %version%, gallwch lawrlwytho\'r pecyn a\'i ail-osod eich hun.',
   'Download %version%' => 'Lawrlwytho %version%',
   'Changelog' => 'Changelog',
-);
+];

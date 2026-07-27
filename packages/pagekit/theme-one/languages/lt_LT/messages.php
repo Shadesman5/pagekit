@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Title' => 'Pavadinimas',
   'Theme' => 'Tema',
   'Hide Title' => 'Slėpti pavadinimą',
@@ -38,4 +42,4 @@
   'Written by %name% on %date%' => 'Parašyta pagal %name%, %date%',
   'Read more' => 'Skaityti toliau',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Komentarų nėra|{1} %count% komentaras|]1,Inf[ %count% komentarų',
-);
+];

@@ -1,29 +1,67 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Blog\Controller;
 
-use Pagekit\Application as App;
+use function Pagekit\__;
+
 use Pagekit\Blog\Model\Post;
+use Pagekit\Blog\Model\PostRepository;
+use Pagekit\Blog\PostPresenter;
+use Pagekit\Database\Connection;
+use Pagekit\Filter\FilterManager;
+use Pagekit\Module\Module;
+use Pagekit\Module\ModuleManager;
+use Pagekit\Routing\Attribute\Route;
+use Pagekit\System\Controller\ValidatesRequestTrait;
+use Pagekit\User\Attribute\Access;
+use Pagekit\User\Model\User;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
- * @Access("blog: manage own posts || blog: manage all posts")
- * @Route("post", name="post")
+ * API Controller for Blog Post management.
  */
+#[Access('blog: manage own posts || blog: manage all posts')]
+#[Route('post', name: 'post')]
 class PostApiController
 {
+    use ValidatesRequestTrait;
+
+    protected Module $blog;
+
+    public function __construct(
+        ModuleManager $module,
+        private readonly User $user,
+        private readonly Request $request,
+        private readonly FilterManager $filter,
+        private readonly Connection $db,
+        protected readonly ValidatorInterface $validator,
+        private readonly PostPresenter $postPresenter,
+        private readonly PostRepository $postRepository,
+    ) {
+        $this->blog = $module->get('blog');
+    }
+
     /**
-     * @Route("/", methods="GET")
-     * @Request({"filter": "array", "page":"int"})
+     * @return array<string, mixed>
      */
-    public function indexAction($filter = [], $page = 0): array
+    #[Route('/', methods: ['GET'])]
+    public function indexAction(): array
     {
-        $query  = Post::query();
+        $filter = (array) ($this->request->query->all()['filter'] ?? []);
+        $page = (int) $this->request->query->get('page', 0);
+
+        $query = $this->postRepository->query();
         $filter = array_merge(array_fill_keys(['status', 'search', 'author', 'order', 'limit'], ''), $filter);
 
         extract($filter, EXTR_SKIP);
 
-        if(!App::user()->hasAccess('blog: manage all posts')) {
-            $author = App::user()->id;
+        if (!$this->user->hasAccess('blog: manage all posts')) {
+            $author = $this->user->id;
         }
 
         if (is_numeric($status)) {
@@ -46,86 +84,122 @@ class PostApiController
             $order = [1 => 'date', 2 => 'desc'];
         }
 
-        $limit = (int) $limit ?: App::module('blog')->config('posts.posts_per_page');
+        $limit = (int) $limit ?: $this->blog->config('posts.posts_per_page');
         $count = $query->count();
         $pages = ceil($count / $limit);
-        $page  = max(0, min($pages - 1, $page));
+        $page = max(0, min($pages - 1, $page));
 
-        $posts = array_values($query->offset($page * $limit)->related('user', 'comments')->limit($limit)->orderBy($order[1], $order[2])->get());
+        $posts = [];
+        foreach ($query->offset($page * $limit)->related('user', 'comments')->limit($limit)->orderBy($order[1], $order[2])->get() as $post) {
+            $posts[] = $this->postPresenter->toArray($post);
+        }
 
         return compact('posts', 'pages', 'count');
     }
 
     /**
-     * @Route("/{id}", methods="GET", requirements={"id"="\d+"})
+     * @return array<string, mixed>|null
      */
-    public function getAction($id)
+    #[Route('/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
+    public function getAction(int $id): ?array
     {
-        return Post::where(compact('id'))->related('user', 'comments')->first();
+        $post = $this->postRepository->where(compact('id'))->related('user', 'comments')->first();
+
+        return $post ? $this->postPresenter->toArray($post) : null;
     }
 
     /**
-     * @Route("/", methods="POST")
-     * @Route("/{id}", methods="POST", requirements={"id"="\d+"})
-     * @Request({"post": "array", "id": "int"}, csrf=true)
+     * Save a post (create or update).
+     *
+     * @param  array<string, mixed>|null $data
+     * @return array{message: string, post: array<string, mixed>}
      */
-    public function saveAction($data, $id = 0): array
+    #[Route('/', methods: ['POST'])]
+    #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function saveAction(int $id = 0, ?array $data = null): array
     {
-        if (!$id || !$post = Post::find($id)) {
+        if ($data === null) {
+            $data = $this->request->request->all()['post'] ?? [];
+            if (empty($data) && $this->request->getContent()) {
+                $json = json_decode($this->request->getContent(), true);
+                $data = $json['post'] ?? [];
+            }
+        }
+
+        if (!$id && isset($data['id'])) {
+            $id = (int) $data['id'];
+        }
+
+        if (!$id || !$post = $this->postRepository->find($id)) {
 
             if ($id) {
-                App::abort(404, __('Post not found.'));
+                throw new NotFoundHttpException(__('Post not found.'));
             }
 
-            $post = Post::create();
+            $post = $this->postRepository->create();
         }
 
-        if (!$data['slug'] = App::filter($data['slug'] ?: $data['title'], 'slugify')) {
-            App::abort(400, __('Invalid slug.'));
+        $data['slug'] = $this->filter->apply($data['slug'] ?: $data['title'], 'slugify');
+
+        if (!$this->user->hasAccess('blog: manage all posts')) {
+            $data['user_id'] = $this->user->id;
         }
 
-        // user without universal access is not allowed to assign posts to other users
-        if(!App::user()->hasAccess('blog: manage all posts')) {
-            $data['user_id'] = App::user()->id;
+        if (!$this->user->hasAccess('blog: manage all posts') && !$this->user->hasAccess('blog: manage own posts') && $post->user_id !== $this->user->id) {
+            throw new BadRequestHttpException(__('Access denied.'));
         }
 
-        // user without universal access can only edit their own posts
-        if(!App::user()->hasAccess('blog: manage all posts') && !App::user()->hasAccess('blog: manage own posts') && $post->user_id !== App::user()->id) {
-            App::abort(400, __('Access denied.'));
+        $skipFields = ['date', 'modified', 'created'];
+        foreach ($data as $key => $value) {
+            if (property_exists($post, $key) && !in_array($key, $skipFields, true)) {
+                $post->$key = $value;
+            }
         }
 
-        $post->save($data);
+        $this->validateOrFail($post);
 
-        return ['message' => 'success', 'post' => $post];
+        $this->postRepository->save($post, $data);
+
+        return ['message' => 'success', 'post' => $this->postPresenter->toArray($post)];
     }
 
     /**
-     * @Route("/{id}", methods="DELETE", requirements={"id"="\d+"})
-     * @Request({"id": "int"}, csrf=true)
+     * @return array<string, string>
      */
-    public function deleteAction($id): array
+    #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\d+'])]
+    public function deleteAction(int $id = 0): array
     {
-        if ($post = Post::find($id)) {
+        if (!$id) {
+            $id = (int) $this->request->get('id', 0);
+        }
 
-            if(!App::user()->hasAccess('blog: manage all posts') && !App::user()->hasAccess('blog: manage own posts') && $post->user_id !== App::user()->id) {
-                App::abort(400, __('Access denied.'));
+        if ($post = $this->postRepository->find($id)) {
+
+            if (!$this->user->hasAccess('blog: manage all posts') && !$this->user->hasAccess('blog: manage own posts') && $post->user_id !== $this->user->id) {
+                throw new BadRequestHttpException(__('Access denied.'));
             }
 
-            $post->delete();
+            $this->postRepository->delete($post);
         }
 
         return ['message' => 'success'];
     }
 
     /**
-     * @Route(methods="POST")
-     * @Request({"ids": "int[]"}, csrf=true)
+     * @return array<string, string>
      */
-    public function copyAction($ids = []): array
+    #[Route('/copy', methods: ['POST'])]
+    public function copyAction(): array
     {
+        $ids = $this->request->request->all()['ids'] ?? [];
+        if (empty($ids) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
+            $ids = $json['ids'] ?? [];
+        }
+
         foreach ($ids as $id) {
-            if ($post = Post::find((int) $id)) {
-                if(!App::user()->hasAccess('blog: manage all posts') && !App::user()->hasAccess('blog: manage own posts') && $post->user_id !== App::user()->id) {
+            if ($post = $this->postRepository->find((int) $id)) {
+                if (!$this->user->hasAccess('blog: manage all posts') && !$this->user->hasAccess('blog: manage own posts') && $post->user_id !== $this->user->id) {
                     continue;
                 }
 
@@ -135,7 +209,7 @@ class PostApiController
                 $post->title = $post->title.' - '.__('Copy');
                 $post->comment_count = 0;
                 $post->date = new \DateTime();
-                $post->save();
+                $this->postRepository->save($post);
             }
         }
 
@@ -143,26 +217,39 @@ class PostApiController
     }
 
     /**
-     * @Route("/bulk", methods="POST")
-     * @Request({"posts": "array"}, csrf=true)
+     * @return array<string, string>
      */
-    public function bulkSaveAction($posts = []): array
+    #[Route('/bulk', methods: ['POST'])]
+    public function bulkSaveAction(): array
     {
+        $posts = $this->request->request->all()['posts'] ?? [];
+        if (empty($posts) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
+            $posts = $json['posts'] ?? [];
+        }
+
         foreach ($posts as $data) {
-            $this->saveAction($data, isset($data['id']) ? $data['id'] : 0);
+            $id = isset($data['id']) ? (int) $data['id'] : 0;
+            $this->saveAction($id, $data);
         }
 
         return ['message' => 'success'];
     }
 
     /**
-     * @Route("/bulk", methods="DELETE")
-     * @Request({"ids": "array"}, csrf=true)
+     * @return array<string, string>
      */
-    public function bulkDeleteAction($ids = []): array
+    #[Route('/bulk', methods: ['DELETE'])]
+    public function bulkDeleteAction(): array
     {
+        $ids = $this->request->request->all()['ids'] ?? [];
+        if (empty($ids) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
+            $ids = $json['ids'] ?? [];
+        }
+
         foreach (array_filter($ids) as $id) {
-            $this->deleteAction($id);
+            $this->deleteAction((int) $id);
         }
 
         return ['message' => 'success'];

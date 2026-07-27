@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Installer\Package;
 
-use Pagekit\Application as App;
 use Pagekit\Installer\Helper\Composer;
+use Psr\Container\ContainerInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Output\StreamOutput;
 
@@ -13,37 +15,64 @@ class PackageManager
 
     protected Composer $composer;
 
-    /**
-     * Constructor.
-     *
-     * @param mixed $output
-     */
-    public function __construct($output = null)
-    {
-        $this->output = $output ?: new StreamOutput(fopen('php://output', 'w'));
+    public function __construct(
+        private readonly ContainerInterface $app,
+        ?OutputInterface $output = null,
+    ) {
+        if ($output === null) {
+            $stream = fopen('php://output', 'w');
+            if ($stream === false) {
+                throw new \RuntimeException('Failed to open php://output stream.');
+            }
+            $output = new StreamOutput($stream);
+        }
+        $this->output = $output;
 
+        $path = realpath(__DIR__ . '/../../..');
         $config = [];
-        foreach (['path.temp', 'path.cache', 'path.vendor', 'path.artifact', 'path.packages', 'system.api'] as $key) {
-            $config[$key] = App::get($key);
+
+        try {
+            if ($this->app->has('path.temp')) {
+                $config['path.temp'] = $this->app->get('path.temp');
+                $config['path.cache'] = $this->app->get('path.cache');
+                $config['path.vendor'] = $this->app->get('path.vendor');
+                $config['path.artifact'] = $this->app->get('path.artifact');
+                $config['path.packages'] = $this->app->get('path.packages');
+                $config['system.api'] = $this->app->has('system.api') ? $this->app->get('system.api') : 'https://pagekit.com';
+            } else {
+                $config['path.temp'] = $path . '/tmp/temp';
+                $config['path.cache'] = $path . '/tmp/cache';
+                $config['path.vendor'] = $path . '/vendor';
+                $config['path.artifact'] = $path . '/tmp/packages';
+                $config['path.packages'] = $path . '/packages';
+                $config['system.api'] = 'https://pagekit.com';
+            }
+        } catch (\Exception $e) {
+            $config['path.temp'] = $path . '/tmp/temp';
+            $config['path.cache'] = $path . '/tmp/cache';
+            $config['path.vendor'] = $path . '/vendor';
+            $config['path.artifact'] = $path . '/tmp/packages';
+            $config['path.packages'] = $path . '/packages';
+            $config['system.api'] = 'https://pagekit.com';
         }
 
         $this->composer = new Composer($config, $output);
     }
 
     /**
-     * @param  array $install
-     * @param bool $packagist
-     * @param bool $preferSource
+     * @param array<string, string> $install
      */
-    public function install(array $install = [], $packagist = false, $preferSource = false): void
+    public function install(array $install = [], bool $packagist = false, bool $preferSource = false): void
     {
-        $previousPackageConfigs = App::package()->all(null, true);
+        $packageFactory = $this->app->get('package');
+
+        $previousPackageConfigs = $packageFactory->all(null, true);
 
         $this->composer->install($install, $packagist, $preferSource);
 
-        $packages = App::package()->all(null, true);
+        $packages = $packageFactory->all(null, true);
         foreach (array_keys($install) as $name) {
-            $moduleAlreadyExisted = isset($previousPackageConfigs[$name]) && App::module($previousPackageConfigs[$name]->get('module'));
+            $moduleAlreadyExisted = isset($previousPackageConfigs[$name]) && $this->app->get('module')->get($previousPackageConfigs[$name]->get('module'));
 
             if ($moduleAlreadyExisted == true) {
                 $previousPackageConfig = isset($previousPackageConfigs[$name]) ? $previousPackageConfigs[$name] : null;
@@ -55,18 +84,20 @@ class PackageManager
     }
 
     /**
-     * @param  array $uninstall
+     * @param string|array<int, string> $uninstall
      */
-    public function uninstall($uninstall): void
+    public function uninstall(string|array $uninstall): void
     {
+        $packageFactory = $this->app->get('package');
+
         foreach ((array) $uninstall as $name) {
-            if (!$package = App::package($name)) {
+            if (!$package = $packageFactory->get($name)) {
                 throw new \RuntimeException(__('Unable to find "%name%".', ['%name%' => $name]));
             }
 
             $this->disable($package);
             $this->getScripts($package)->uninstall();
-            App::config('system')->remove('packages.' . $package->get('module'));
+            $this->app->get('config')('system')->remove('packages.' . $package->get('module'));
 
             if ($this->composer->isInstalled($package->getName())) {
                 $this->composer->uninstall($package->getName());
@@ -77,17 +108,17 @@ class PackageManager
 
                 $this->output->writeln(__("Removing package folder."));
 
-                App::file()->delete($path);
+                $this->app->get('file')->delete($path);
                 @rmdir(dirname($path));
             }
         }
     }
 
     /**
-     * @param $packages
-     * @param $previousPackageConfigs
+     * @param PackageInterface|array<int, PackageInterface> $packages
+     * @param PackageInterface|array<int, PackageInterface> $previousPackageConfigs
      */
-    public function enable($packages, $previousPackageConfigs = []): void
+    public function enable(PackageInterface|array $packages, PackageInterface|array $previousPackageConfigs = []): void
     {
         if (!is_array($packages)) {
             $packages = [$packages];
@@ -98,44 +129,122 @@ class PackageManager
         }
 
         foreach ($packages as $package) {
+            $originalState = null;
+            $moduleName = $package->get('module');
 
-            // Get the old package config if provided. If there is no old config available, then use the new config (usually fist installation).
-            $previousPackageConfig = $package;
-            foreach ($previousPackageConfigs as $packageConfig) {
-                if ($packageConfig->get('name') == $package->get('name')) {
-                    $previousPackageConfig = $packageConfig;
-                    break;
+            try {
+                $previousPackageConfig = $package;
+                foreach ($previousPackageConfigs as $packageConfig) {
+                    if ($packageConfig->get('name') == $package->get('name')) {
+                        $previousPackageConfig = $packageConfig;
+
+                        break;
+                    }
                 }
-            }
 
-            App::trigger('package.enable', [$package]);
+                if ($this->app->has('events')) {
+                    $this->app->get('events')->trigger('package.enable', [$package]);
+                }
+                if ($this->app->has('config')) {
+                    $sysConfig = $this->app->get('config')('system');
 
-            if (!$current = App::config('system')->get('packages.' . $previousPackageConfig->get('module'))) {
-                $current = $this->doInstall($package);
-            }
+                    $originalState = [
+                        'version' => $sysConfig->get('packages.' . $moduleName),
+                        'enabled' => in_array($moduleName, (array) $sysConfig->get('extensions', [])),
+                        'theme' => $sysConfig->get('site.theme') === $moduleName,
+                    ];
 
-            $scripts = $this->getScripts($package, $current);
-            if ($scripts->hasUpdates()) {
-                $scripts->update();
-            }
+                    if (!$current = $sysConfig->get('packages.' . $previousPackageConfig->get('module'))) {
+                        $current = $this->doInstall($package);
+                    }
 
-            $version = $this->getVersion($package);
-            App::config('system')->set('packages.' . $package->get('module'), $version);
+                    $scripts = $this->getScripts($package, $current);
+                    if ($scripts->hasUpdates()) {
+                        $scripts->update();
+                    }
 
-            $scripts->enable();
+                    $scripts->enable();
 
-            if ($package->getType() == 'pagekit-theme') {
-                App::config('system')->set('site.theme', $package->get('module'));
-            } elseif ($package->getType() == 'pagekit-extension') {
-                App::config('system')->push('extensions', $package->get('module'));
+                    $version = $this->getVersion($package);
+                    $sysConfig->set('packages.' . $moduleName, $version);
+
+                    if ($package->getType() == 'pagekit-theme') {
+                        $sysConfig->set('site.theme', $moduleName);
+                    } elseif ($package->getType() == 'pagekit-extension') {
+                        if (!$originalState['enabled']) {
+                            $sysConfig->push('extensions', $moduleName);
+                        }
+                    }
+                } else {
+                    $current = $this->doInstall($package);
+                    $scripts = $this->getScripts($package, $current);
+                    $scripts->enable();
+                }
+            } catch (\Throwable $e) {
+                if ($originalState !== null) {
+                    $this->rollbackEnable($package, $originalState);
+                }
+
+                if ($this->app->has('log')) {
+                    $this->app->get('log')->error(
+                        sprintf(
+                            'Failed to enable package "%s": %s',
+                            $package->get('name'),
+                            $e->getMessage()
+                        ),
+                        ['exception' => $e, 'package' => $moduleName]
+                    );
+                }
+
+                throw new \RuntimeException(
+                    sprintf(
+                        'Unable to enable "%s": %s',
+                        $package->get('title') ?? $package->get('name'),
+                        $e->getMessage()
+                    ),
+                    0,
+                    $e
+                );
             }
         }
     }
 
     /**
-     * @param $packages
+     * Rollback package enable on error.
+     *
+     * @param array<string, mixed> $originalState
      */
-    public function disable($packages): void
+    protected function rollbackEnable(PackageInterface $package, array $originalState): void
+    {
+        $moduleName = $package->get('module');
+        $config = $this->app->get('config')('system');
+
+        if ($originalState['version'] !== null) {
+            $config->set('packages.' . $moduleName, $originalState['version']);
+        } else {
+            $config->remove('packages.' . $moduleName);
+        }
+
+        $currentlyEnabled = in_array($moduleName, (array) $config->get('extensions', []));
+        if ($originalState['enabled'] && !$currentlyEnabled) {
+            $config->push('extensions', $moduleName);
+        } elseif (!$originalState['enabled'] && $currentlyEnabled) {
+            $config->pull('extensions', $moduleName);
+        }
+
+        if ($package->getType() == 'pagekit-theme') {
+            if ($originalState['theme']) {
+                $config->set('site.theme', $moduleName);
+            } elseif ($config->get('site.theme') === $moduleName) {
+                $config->remove('site.theme');
+            }
+        }
+    }
+
+    /**
+     * @param PackageInterface|array<int, PackageInterface> $packages
+     */
+    public function disable(PackageInterface|array $packages): void
     {
         if (!is_array($packages)) {
             $packages = [$packages];
@@ -145,48 +254,40 @@ class PackageManager
             $this->getScripts($package)->disable();
 
             if ($package->getType() == 'pagekit-extension') {
-                App::config('system')->pull('extensions', $package->get('module'));
+                $this->app->get('config')('system')->pull('extensions', $package->get('module'));
             }
         }
     }
 
-    /**
-     * @param  array $package
-     * @param  string $current
-     */
-    protected function getScripts($package, $current = null): PackageScripts
+    protected function getScripts(PackageInterface $package, ?string $current = null): PackageScripts
     {
         if (!$scripts = $package->get('extra.scripts')) {
-            return new PackageScripts(null, $current);
+            return new PackageScripts(null, $current, $this->app);
         }
 
         if (!$path = $package->get('path')) {
             throw new \RuntimeException(__('Package path is missing.'));
         }
 
-        return new PackageScripts($path . '/' . $scripts, $current);
+        return new PackageScripts($path . '/' . $scripts, $current, $this->app);
     }
 
-    /**
-     * @param  $package
-     */
-    protected function doInstall($package): string
+    protected function doInstall(PackageInterface $package): string
     {
         $this->getScripts($package)->install();
         $version = $this->getVersion($package);
 
-        App::config('system')->set('packages.' . $package->get('module'), $version);
+        if ($this->app->has('config')) {
+            $this->app->get('config')('system')->set('packages.' . $package->get('module'), $version);
+        }
 
         return $version;
     }
 
     /**
      * Tries to obtain package version from 'composer.json' or installation log.
-     *
-     * @param  $package
-     * @return string
      */
-    protected function getVersion($package)
+    protected function getVersion(PackageInterface $package): string
     {
         if (!$path = $package->get('path')) {
             throw new \RuntimeException(__('Package path is missing.'));
@@ -196,17 +297,32 @@ class PackageManager
             throw new \RuntimeException(__('\'composer.json\' is missing.'));
         }
 
-        $package = json_decode(file_get_contents($file), true);
-        if (isset($package['version'])) {
-            return $package['version'];
+        $contents = file_get_contents($file);
+        if ($contents === false) {
+            throw new \RuntimeException(__('\'composer.json\' is not readable.'));
         }
 
-        if (file_exists(App::get('path.packages') . '/composer/installed.json')) {
-            $installed = json_decode(file_get_contents($file), true);
+        $composerData = json_decode($contents, true);
+        if (is_array($composerData) && isset($composerData['version']) && is_string($composerData['version'])) {
+            return $composerData['version'];
+        }
 
-            foreach ($installed as $package) {
-                if ($package['name'] === $package->getName()) {
-                    return $package['version'];
+        $packagesPath = $this->app->has('path.packages')
+            ? $this->app->get('path.packages')
+            : realpath(__DIR__ . '/../../..') . '/packages';
+        $installedFile = $packagesPath . '/composer/installed.json';
+        if (file_exists($installedFile)) {
+            $installedContents = file_get_contents($installedFile);
+            if ($installedContents !== false) {
+                $installed = json_decode($installedContents, true);
+                $packageName = $package->getName();
+
+                if (is_array($installed)) {
+                    foreach ($installed as $entry) {
+                        if (is_array($entry) && ($entry['name'] ?? null) === $packageName && isset($entry['version']) && is_string($entry['version'])) {
+                            return $entry['version'];
+                        }
+                    }
                 }
             }
         }

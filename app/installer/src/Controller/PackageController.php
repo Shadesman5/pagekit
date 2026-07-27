@@ -1,31 +1,51 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Installer\Controller;
 
-use Pagekit\Application as App;
+use Pagekit\Application\Response as PagekitResponse;
+use Pagekit\Application\UrlProvider;
+use Pagekit\Installer\Package\PackageFactory;
+use Pagekit\Installer\Package\PackageInterface;
 use Pagekit\Installer\Package\PackageManager;
+use Pagekit\Log\Logger;
+use Pagekit\Module\ModuleManager;
+use Pagekit\Routing\Attribute\Request as RequestAttribute;
+use Pagekit\User\Attribute\Access;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
-/**
- * @Access("system: manage packages", admin=true)
- */
+#[Access('system: manage packages', admin: true)]
 class PackageController
 {
-    protected PackageManager $manager;
-
-    public function __construct()
-    {
-        $this->manager = new PackageManager();
+    public function __construct(
+        protected PackageManager $manager,
+        private readonly PackageFactory $package,
+        private readonly ModuleManager $module,
+        private readonly UrlProvider $url,
+        private readonly Request $request,
+        private readonly PagekitResponse $response,
+        private readonly string $path,
+        private readonly bool $debug,
+        private readonly Logger $log,
+        private readonly string $systemApi = 'https://pagekit.com',
+    ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function themesAction(): array
     {
-        $packages = array_values(App::package()->all('pagekit-theme'));
+        $packages = array_values($this->package->all('pagekit-theme'));
 
         foreach ($packages as $package) {
-            if ($module = App::module($package->get('module'))) {
+            if ($module = $this->module->get($package->get('module'))) {
 
                 if ($settings = $module->get('settings') and $settings[0] === '@') {
-                    $settings = App::url($settings);
+                    $settings = $this->url->get($settings);
                 }
 
                 $package->set('enabled', true);
@@ -37,24 +57,27 @@ class PackageController
         return [
             '$view' => [
                 'title' => __('Themes'),
-                'name' => 'installer:views/themes.php'
+                'name' => 'installer:views/themes.php',
             ],
             '$data' => [
-                'api' => App::get('system.api'),
-                'packages' => $packages
-            ]
+                'api' => $this->systemApi,
+                'packages' => $packages,
+            ],
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function extensionsAction(): array
     {
-        $packages = array_values(App::package()->all('pagekit-extension'));
+        $packages = array_values($this->package->all('pagekit-extension'));
 
         foreach ($packages as $package) {
-            if ($module = App::module($package->get('module'))) {
+            if ($module = $this->module->get($package->get('module'))) {
 
                 if ($settings = $module->get('settings') and $settings[0] === '@') {
-                    $settings = App::url($settings);
+                    $settings = $this->url->get($settings);
                 }
 
                 $package->set('enabled', true);
@@ -67,38 +90,54 @@ class PackageController
         return [
             '$view' => [
                 'title' => __('Extensions'),
-                'name' => 'installer:views/extensions.php'
+                'name' => 'installer:views/extensions.php',
             ],
             '$data' => [
-                'api' => App::get('system.api'),
-                'packages' => $packages
-            ]
+                'api' => $this->systemApi,
+                'packages' => $packages,
+            ],
         ];
     }
 
     /**
-     * @Request({"name"}, csrf=true)
+     * @return array<string, mixed>
      */
-    public function enableAction($name): array
+    #[RequestAttribute(['name' => 'string'], csrf: true)]
+    public function enableAction(string $name): array
     {
         $handler = $this->errorHandler($name);
 
         try {
-            if (!$package = App::package($name)) {
-                App::abort(400, __('Unable to find "%name%".', ['%name%' => $name]));
+            if (!$package = $this->package->get($name)) {
+                throw new BadRequestHttpException(__('Unable to find "%name%".', ['%name%' => $name]));
             }
 
-            App::module()->load($package->get('module'));
+            $this->module->load($package->get('module'));
 
-            if (!$module = App::module($package->get('module'))) {
-                App::abort(400, __('Unable to enable "%name%".', ['%name%' => $package->get('title')]));
+            if (!$module = $this->module->get($package->get('module'))) {
+                throw new BadRequestHttpException(__('Unable to enable "%name%".', ['%name%' => $package->get('title')]));
             }
 
             $this->manager->enable($package);
 
+            $this->module->get('system/cache')->clearCache();
+
             return ['message' => 'success'];
+
+        } catch (\Throwable $e) {
+            $this->log->error(sprintf(
+                'Failed to enable extension "%s": %s',
+                $name,
+                $e->getMessage()
+            ), ['exception' => $e]);
+
+            $errorMessage = $this->debug
+                ? sprintf('%s', $e->getMessage())
+                : __('Unable to enable "%name%". See error log for details.', ['%name%' => $name]);
+
+            return ['error' => $errorMessage];
+
         } finally {
-            // Restore original error handlers
             if ($handler) {
                 $handler();
             }
@@ -106,72 +145,73 @@ class PackageController
     }
 
     /**
-     * @Request({"name"}, csrf=true)
+     * @return array<string, mixed>
      */
-    public function disableAction($name): array
+    #[RequestAttribute(['name' => 'string'], csrf: true)]
+    public function disableAction(string $name): array
     {
-        if (!$package = App::package($name)) {
-            App::abort(400, __('Unable to find "%name%".', ['%name%' => $name]));
+        if (!$package = $this->package->get($name)) {
+            throw new BadRequestHttpException(__('Unable to find "%name%".', ['%name%' => $name]));
         }
 
-        if (!$module = App::module($package->get('module'))) {
-            App::abort(400, __('"%name%" has not been loaded.', ['%name%' => $package->get('title')]));
+        if (!$module = $this->module->get($package->get('module'))) {
+            throw new BadRequestHttpException(__('"%name%" has not been loaded.', ['%name%' => $package->get('title')]));
         }
 
         $this->manager->disable($package);
 
-        App::module('system/cache')->clearCache();
+        $this->module->get('system/cache')->clearCache();
 
         return ['message' => 'success'];
     }
 
     /**
-     * @Request({"type": "string"}, csrf=true)
+     * @return array<string, mixed>
      */
-    public function uploadAction($type): array
+    #[RequestAttribute(['type' => 'string'], csrf: true)]
+    public function uploadAction(string $type): array
     {
-        $file = App::request()->files->get('file');
+        $file = $this->request->files->get('file');
 
         if ($file === null || !$file->isValid()) {
-            App::abort(400, __('No file uploaded.'));
+            throw new BadRequestHttpException(__('No file uploaded.'));
         }
 
         $package = $this->loadPackage($file->getPathname());
 
         if (!$package->getName() || !$package->get('title') || !$package->get('version')) {
-            App::abort(400, __('"composer.json" file not valid.'));
+            throw new BadRequestHttpException(__('"composer.json" file not valid.'));
         }
 
         if ($package->get('type') !== 'pagekit-' . $type) {
-            App::abort(400, __('No Pagekit %type%', ['%type%' => $type]));
+            throw new BadRequestHttpException(__('No Pagekit %type%', ['%type%' => $type]));
         }
 
         $filename = str_replace('/', '-', $package->getName()) . '-' . $package->get('version') . '.zip';
 
-        $file->move(App::get('path') . '/tmp/packages', $filename);
+        $file->move($this->path . '/tmp/packages', $filename);
 
         return compact('package');
     }
 
     /**
-     * @Request({"package": "array", "packagist": "boolean"}, csrf=true)
+     * @param array<string, mixed> $package
      */
-    public function installAction($package = [], $packagist = false)
+    #[RequestAttribute(['package' => 'array', 'packagist' => 'boolean'], csrf: true)]
+    public function installAction(array $package = [], bool $packagist = false): StreamedResponse
     {
-
-        // TODO
-        $file = App::path().'/tmp/temp/composer/composer.json';
+        $file = $this->path . '/tmp/temp/composer/composer.json';
 
         if (!file_exists(dirname($file))) {
             mkdir(dirname($file), 0755, true);
             file_put_contents($file, '{}');
         }
 
-        return App::response()->stream(function () use ($package, $packagist) {
+        return $this->response->stream(function () use ($package, $packagist) {
 
             try {
 
-                $package = App::package()->load($package);
+                $package = $this->package->load($package);
 
                 if (!$package) {
                     throw new \RuntimeException('Invalid parameters.');
@@ -189,12 +229,10 @@ class PackageController
         });
     }
 
-    /**
-     * @Request({"name"}, csrf=true)
-     */
-    public function uninstallAction($name)
+    #[RequestAttribute(['name' => 'string'], csrf: true)]
+    public function uninstallAction(string $name): StreamedResponse
     {
-        return App::response()->stream(function () use ($name) {
+        return $this->response->stream(function () use ($name) {
 
             try {
 
@@ -210,16 +248,16 @@ class PackageController
         });
     }
 
-    protected function loadPackage($file)
+    protected function loadPackage(string $file): PackageInterface
     {
         if (is_file($file)) {
 
-            $zip = new \ZipArchive;
+            $zip = new \ZipArchive();
 
             if ($zip->open($file) === true) {
                 $json = $zip->getFromName('composer.json');
 
-                if ($json && $package = App::package()->load($json)) {
+                if ($json && $package = $this->package->load($json)) {
                     $extra = $package->get('extra');
 
                     if (isset($extra['icon']) || isset($extra['image'])) {
@@ -239,46 +277,34 @@ class PackageController
             return $package;
         }
 
-        App::abort(400, __('Can\'t load json file from package.'));
+        throw new BadRequestHttpException(__('Can\'t load json file from package.'));
     }
 
-    /**
-     * @param  string $name
-     * @return callable|null
-     */
-    protected function errorHandler($name): ?callable
+    protected function errorHandler(string $name): ?callable
     {
-        // Store original error reporting level
         $originalErrorReporting = error_reporting();
-        
-        // Disable error display temporarily
+
         ini_set('display_errors', 0);
-        
-        // Set error handler that converts errors to exceptions
+
         $originalErrorHandler = set_error_handler(function ($severity, $message, $file, $line) use ($name) {
-            // Only handle errors that would normally be fatal
             if ($severity & (E_ERROR | E_CORE_ERROR | E_COMPILE_ERROR | E_RECOVERABLE_ERROR)) {
-                // Clean output buffer
                 while (ob_get_level()) {
                     ob_get_clean();
                 }
 
                 $errorMessage = __('Unable to activate "%name%".<br>A fatal error occured.', ['%name%' => $name]);
-                
-                if (App::debug()) {
+
+                if ($this->debug) {
                     $errorMessage .= '<br><br>' . sprintf('%s in %s on line %d', $message, $file, $line);
                 }
 
-                // Send JSON response
-                App::response()->json($errorMessage, 500)->send();
+                $this->response->json($errorMessage, 500)->send();
                 exit;
             }
-            
-            // For other errors, return false to let PHP handle them normally
+
             return false;
         });
 
-        // Set exception handler for uncaught exceptions
         $originalExceptionHandler = set_exception_handler(function ($exception) use ($name) {
             while (ob_get_level()) {
                 ob_get_clean();
@@ -286,15 +312,14 @@ class PackageController
 
             $message = __('Unable to activate "%name%".<br>A fatal error occured.', ['%name%' => $name]);
 
-            if (App::debug()) {
+            if ($this->debug) {
                 $message .= '<br><br>' . $exception->getMessage();
             }
 
-            App::response()->json($message, 500)->send();
+            $this->response->json($message, 500)->send();
             exit;
         });
 
-        // Return a function to restore original handlers
         return function () use ($originalErrorHandler, $originalExceptionHandler, $originalErrorReporting) {
             if ($originalErrorHandler !== null) {
                 set_error_handler($originalErrorHandler);

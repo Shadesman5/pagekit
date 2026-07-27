@@ -1,9 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Tests;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Exception as DBALException;
+
 trait DbUtil
 {
     /**
@@ -30,16 +34,16 @@ trait DbUtil
     public function getConnection(): Connection
     {
         if (isset($GLOBALS['db_type'], $GLOBALS['db_username'], $GLOBALS['db_password'],
-                $GLOBALS['db_host'], $GLOBALS['db_name'], $GLOBALS['db_port'],
-                $GLOBALS['tmpdb_type'], $GLOBALS['tmpdb_username'], $GLOBALS['tmpdb_password'],
-                $GLOBALS['tmpdb_host'], $GLOBALS['tmpdb_name'], $GLOBALS['tmpdb_port'])) {
+            $GLOBALS['db_host'], $GLOBALS['db_name'], $GLOBALS['db_port'],
+            $GLOBALS['tmpdb_type'], $GLOBALS['tmpdb_username'], $GLOBALS['tmpdb_password'],
+            $GLOBALS['tmpdb_host'], $GLOBALS['tmpdb_name'], $GLOBALS['tmpdb_port'])) {
             $realDbParams = [
                 'driver' => $GLOBALS['db_type'],
                 'user' => $GLOBALS['db_username'],
                 'password' => $GLOBALS['db_password'],
                 'host' => $GLOBALS['db_host'],
                 'dbname' => $GLOBALS['db_name'],
-                'port' => $GLOBALS['db_port']
+                'port' => $GLOBALS['db_port'],
             ];
             $tmpDbParams = [
                 'driver' => $GLOBALS['tmpdb_type'],
@@ -47,7 +51,7 @@ trait DbUtil
                 'password' => $GLOBALS['tmpdb_password'],
                 'host' => $GLOBALS['tmpdb_host'],
                 'dbname' => $GLOBALS['tmpdb_name'],
-                'port' => $GLOBALS['tmpdb_port']
+                'port' => $GLOBALS['tmpdb_port'],
             ];
 
             $realConn = DriverManager::getConnection($realDbParams);
@@ -57,27 +61,39 @@ trait DbUtil
             if ($platform->supportsCreateDropDatabase()) {
 
                 $dbname = $realConn->getDatabase();
+                if ($dbname === null) {
+                    throw new \RuntimeException('Cannot determine database name; getDatabase() returned null.');
+                }
                 // Connect to tmpdb in order to drop and create the real test db.
                 $tmpConn = DriverManager::getConnection($tmpDbParams);
                 $realConn->close();
 
-                $tmpConn->getSchemaManager()->dropDatabase($dbname);
-                $tmpConn->getSchemaManager()->createDatabase($dbname);
+                $tmpConn->createSchemaManager()->dropDatabase($dbname);
+                $tmpConn->createSchemaManager()->createDatabase($dbname);
 
                 $tmpConn->close();
             } else {
 
-                $sm = $realConn->getSchemaManager();
+                $sm = $realConn->createSchemaManager();
 
-                /* @var $schema Schema */
-                $schema = $sm->createSchema();
-                $stmts = $schema->toDropSql($realConn->getDatabasePlatform());
+                // DBAL 3 dropped Schema::toDropSql(), so build the DROP SQL per table from the
+                // introspected schema via the platform (passing the quoted name; passing a Table
+                // object is deprecated). This branch only runs on platforms without CREATE/DROP
+                // DATABASE support (e.g. SQLite, Oracle), where dropping foreign keys first is not
+                // portable (SQLite has no "ALTER TABLE ... DROP FOREIGN KEY"). Teardown is therefore
+                // best-effort: log-and-continue so one undroppable table cannot abort the whole
+                // cleanup, and failures are surfaced via error_log() instead of being swallowed.
+                foreach ($sm->introspectSchema()->getTables() as $table) {
+                    $dropSql = $platform->getDropTableSQL($table->getQuotedName($platform));
 
-                foreach ($stmts AS $stmt) {
                     try {
-                        $realConn->exec($stmt);
-                    } catch (\Exception $e) {
-                        // TODO: Now is this a real good idea?
+                        $realConn->executeStatement($dropSql);
+                    } catch (DBALException $e) {
+                        error_log(sprintf(
+                            'DbUtil::getConnection(): could not drop table "%s" during test-database teardown: %s',
+                            $table->getName(),
+                            $e->getMessage(),
+                        ));
                     }
                 }
             }
@@ -86,7 +102,7 @@ trait DbUtil
         } else {
             $params = [
                 'driver' => 'pdo_sqlite',
-                'memory' => true
+                'memory' => true,
             ];
             if (isset($GLOBALS['db_path'])) {
                 $params['path'] = $GLOBALS['db_path'];
@@ -106,19 +122,21 @@ trait DbUtil
             'password' => $GLOBALS['tmpdb_password'],
             'host' => $GLOBALS['tmpdb_host'],
             'dbname' => $GLOBALS['tmpdb_name'],
-            'port' => $GLOBALS['tmpdb_port']
+            'port' => $GLOBALS['tmpdb_port'],
         ];
 
         // Connect to tmpdb in order to drop and create the real test db.
         return DriverManager::getConnection($tmpDbParams);
     }
 
-    public function getSharedConnection()
+    public function getSharedConnection(): Connection
     {
-        static $connection;
-        static $error;
+        /** @var Connection|null $connection */
+        static $connection = null;
+        /** @var \Exception|null $error */
+        static $error = null;
 
-        if (!isset($connection) && !isset($error)) {
+        if ($connection === null && $error === null) {
 
             try {
                 $connection = $this->getConnection();
@@ -128,7 +146,7 @@ trait DbUtil
 
         }
 
-        if (isset($error)) {
+        if ($error !== null) {
             throw $error;
         }
 

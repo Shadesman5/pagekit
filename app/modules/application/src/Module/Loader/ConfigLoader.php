@@ -1,15 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Module\Loader;
 
 class ConfigLoader implements LoaderInterface
 {
+    /** @var array<string, mixed> */
     protected array $values = [];
 
     /**
-     * Constructor.
-     *
-     * @param array $values
+     * @param array<string, mixed> $values
      */
     public function __construct(array $values)
     {
@@ -18,12 +19,15 @@ class ConfigLoader implements LoaderInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @param  mixed $module Genuinely unknown type — see LoaderInterface::load().
+     * @return mixed Genuinely unknown type — see LoaderInterface::load().
      */
-    public function load($module)
+    public function load(mixed $module): mixed
     {
-        if (isset($this->values[$module['name']])) {
+        if (is_array($module) && isset($this->values[$module['name']])) {
             $module = array_replace_recursive($module, [
-                'config' => $this->values[$module['name']]
+                'config' => $this->values[$module['name']],
             ]);
         }
 

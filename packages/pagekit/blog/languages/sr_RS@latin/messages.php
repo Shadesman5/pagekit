@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Filter by' => 'Filtriraj po',
   'Thank you! Your comment needs approval before showing up.' => 'Hvala! Vašem komentaru potrebno je odobrenje prije prikazivanja.',
   'Unable to comment. Please try again later.' => 'Nije moguće komentirati. Molimo pokušajte ponovo kasnije.',
@@ -94,4 +98,4 @@
   'Written by %name% on %date%' => 'Napisao %name%  %date%',
   'Read more' => 'Pročitajte Više',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Nema komentara|{1} %count% Komentar|]1,Inf[ %count% Komentara',
-);
+];

@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Filter by' => 'Filtreaza',
   'Thank you! Your comment needs approval before showing up.' => 'Va multumim! Comentariul necesita aprobare.',
   'Unable to comment. Please try again later.' => 'Comentariile nu sunt posibile. Va rugam sa incercati mai tarziu.',
@@ -94,4 +98,4 @@
   'Written by %name% on %date%' => 'Publicat de %name% la %date%',
   'Read more' => 'Citeste in continuare',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Fara comentarii|{1} %count% Comentariu|]1,Inf[ %count% Comentarii',
-);
+];

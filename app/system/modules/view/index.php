@@ -1,8 +1,12 @@
 <?php
 
-use Twig\TwigFilter;
+declare(strict_types=1);
+
 use Pagekit\Util\ArrObject;
+use Pagekit\View\Asset\FileLocatorAsset;
 use Pagekit\View\Event\ResponseListener;
+use Twig\TwigFilter;
+
 return [
 
     'name' => 'system/view',
@@ -12,6 +16,8 @@ return [
         $app->extend('twig', function ($twig) use ($app) {
 
             $twig->addFilter(new TwigFilter('trans', '__'));
+            // TODO: Must be refactored in Step 3.3.6 (Translation System Modernization) —
+            // Remove transChoice Twig filter when _c() is removed.
             $twig->addFilter(new TwigFilter('transChoice', '_c'));
 
             return $twig;
@@ -20,7 +26,12 @@ return [
 
         $app->extend('assets', function ($assets) use ($app) {
 
-            $assets->register('file', 'Pagekit\View\Asset\FileLocatorAsset');
+            $file = $app->get('file');
+            $locator = $app->get('locator');
+
+            $assets->register('file', static function (string $name, string $source, array $dependencies, array $options) use ($file, $locator): FileLocatorAsset {
+                return new FileLocatorAsset($name, $source, $dependencies, $options, $file, $locator);
+            });
 
             return $assets;
         });
@@ -29,19 +40,19 @@ return [
 
     'autoload' => [
 
-        'Pagekit\\View\\' => 'src'
+        'Pagekit\\View\\' => 'src',
 
     ],
 
     'events' => [
 
         'boot' => function ($event, $app) {
-            $app->subscribe(new ResponseListener());
+            $app->get('events')->subscribe(new ResponseListener($app->get('url')));
         },
 
         'site' => function ($event, $app) {
-            $app->on('view.meta', function ($event, $meta) use ($app) {
-                $meta->add('canonical', $app['url']->get($app['request']->attributes->get('_route'), $app['request']->attributes->get('_route_params', []), 0));
+            $app->get('events')->on('view.meta', function ($event, $meta) use ($app) {
+                $meta->add('canonical', $app->get('url')->get($app->get('request')->attributes->get('_route'), $app->get('request')->attributes->get('_route_params', []), 0));
             }, 60);
         },
 
@@ -52,9 +63,22 @@ return [
         }, 20],
 
         'view.data' => function ($event, $data) use ($app) {
+            // Get base URL from router context
+            // - With mod_rewrite: '' (empty string) - URLs like /admin
+            // - Without mod_rewrite: '/index.php' - URLs like /index.php/admin
+            $baseUrl = $app->get('router')->getContext()->getBaseUrl();
+
+            // Only use fallback in installer context (no config.php yet)
+            // In normal operation, empty baseUrl is correct for mod_rewrite
+            if (empty($baseUrl) && !file_exists($app->get('path') . '/config.php')) {
+                // Installer context: router not fully configured
+                // Use /index.php as safe fallback for API calls
+                $baseUrl = '/index.php';
+            }
+
             $data->add('$pagekit', [
-                'url' => $app['router']->getContext()->getBaseUrl(),
-                'csrf' => $app['csrf']->generate()
+                'url' => $baseUrl,
+                'csrf' => $app->get('csrf')->generate(),
             ]);
         },
 
@@ -64,16 +88,22 @@ return [
         },
 
         'view.scripts' => function ($event, $scripts) use ($app) {
-            $scripts->register('codemirror', 'app/system/modules/editor/app/assets/codemirror/codemirror.min.js');
-            $scripts->register('marked', 'app/system/modules/editor/app/assets/marked/marked.min.js');
-            $scripts->register('lodash', 'app/assets/lodash/dist/'  . ($app->debug() ? 'lodash.js' : 'lodash.min.js'));
-            $scripts->register('vue', 'app/system/app/bundle/vue.js', ['uikit', 'uikit-icons', 'vue-dist', 'lodash', 'locale']);
-            $scripts->register('vue-dist', 'app/assets/vue/dist/' . ($app->debug() ? 'vue.js' : 'vue.min.js'));
-            $scripts->register('locale', $app->url('@system/intl', ['locale' => $app->module('system/intl')->getLocale(), 'v' => $scripts->getFactory()->getVersion()]), [], ['type' => 'url']);
-            $scripts->register('uikit', 'app/assets/uikit/dist/js/' . ($app->debug() ? 'uikit.js' : 'uikit.min.js'));
-            $scripts->register('uikit-icons', 'app/system/assets/js/' . ($app->debug() ? 'uikit-icons.js' : 'uikit-icons.min.js'), 'uikit');
-        }
+            // Config loader must be first - reads JSON config and exposes global variables
+            // All scripts that might need $pagekit or other globals must depend on this
+            $scripts->register('pagekit-config', 'app/system/app/lib/config-loader.js', [], ['defer' => false]);
 
-    ]
+            $scripts->register('codemirror', 'app/system/modules/editor/app/assets/codemirror/codemirror.min.js', ['pagekit-config']);
+            $scripts->register('marked', 'app/system/modules/editor/app/assets/marked/marked.min.js', ['pagekit-config']);
+            $scripts->register('lodash', 'app/assets/lodash/dist/'  . ($app->get('debug') ? 'lodash.js' : 'lodash.min.js'), ['pagekit-config']);
+            // vue-dist must load AFTER pagekit-config so $pagekit is available
+            $scripts->register('vue-dist', 'app/assets/vue/dist/' . ($app->get('debug') ? 'vue.js' : 'vue.min.js'), ['pagekit-config']);
+            // locale script returns JS that sets $locale, must load after config
+            $scripts->register('locale', $app->get('url')->get('@system/intl', ['locale' => $app->get('module')->get('system/intl')->getLocale(), 'v' => $scripts->getFactory()->getVersion()]), ['pagekit-config'], ['type' => 'url']);
+            $scripts->register('uikit', 'app/assets/uikit/dist/js/' . ($app->get('debug') ? 'uikit.js' : 'uikit.min.js'), ['pagekit-config']);
+            $scripts->register('uikit-icons', 'app/system/assets/js/' . ($app->get('debug') ? 'uikit-icons.js' : 'uikit-icons.min.js'), ['uikit']);
+            $scripts->register('vue', 'app/system/app/bundle/vue.js', ['uikit', 'uikit-icons', 'vue-dist', 'lodash', 'locale']);
+        },
+
+    ],
 
 ];

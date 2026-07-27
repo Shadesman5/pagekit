@@ -1,21 +1,30 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Markdown;
 
 use Pagekit\Markdown\Lexer\InlineLexer;
 
 class Parser
 {
-    protected $token;
-    protected ?array $tokens = null;
+    /** @var array<string, mixed>|null */
+    protected ?array $token = null;
+
+    /** @var array<int|string, mixed> */
+    protected array $tokens = [];
+
     protected ?InlineLexer $inline = null;
-    protected $renderer;
+
+    protected Renderer $renderer;
+
+    /** @var array<string, mixed> */
     protected array $options;
 
     /**
      * Constructor.
      *
-     * @param array $options
+     * @param array<string, mixed> $options
      */
     public function __construct(array $options = [])
     {
@@ -26,11 +35,15 @@ class Parser
     /**
      * Compiling method.
      *
-     * @param  array $src
+     * @param array<int|string, mixed> $src
      */
-    public function parse($src): string
+    public function parse(array $src): string
     {
-        $this->inline = new InlineLexer($src['links'], $this->options);
+        $links = $src['links'] ?? [];
+        if (!is_array($links)) {
+            $links = [];
+        }
+        $this->inline = new InlineLexer($links, $this->options);
 
         unset($src['links']);
 
@@ -47,6 +60,8 @@ class Parser
 
     /**
      * Next token.
+     *
+     * @return array<string, mixed>|null
      */
     protected function next(): ?array
     {
@@ -55,8 +70,10 @@ class Parser
 
     /**
      * Preview next token.
+     *
+     * @return array<string, mixed>|false
      */
-    protected function peek(): array
+    protected function peek(): array|false
     {
         return end($this->tokens);
     }
@@ -66,11 +83,14 @@ class Parser
      */
     protected function parseText(): string
     {
+        if ($this->token === null || $this->inline === null) {
+            return '';
+        }
         $body = $this->token['text'];
 
         while (($token = $this->peek()) && $token['type'] == 'text') {
-          $body .= "\n".$token['text'];
-          $this->next();
+            $body .= "\n".$token['text'];
+            $this->next();
         }
 
         return $this->inline->output($body);
@@ -78,11 +98,13 @@ class Parser
 
     /**
      * Parse current token.
-     *
-     * @return string
      */
-    protected function tok()
+    protected function tok(): string
     {
+        if ($this->token === null || $this->inline === null) {
+            return '';
+        }
+
         $body = '';
 
         switch ($this->token['type']) {
@@ -106,7 +128,7 @@ class Parser
             case 'table':
 
                 $header = '';
-                $cell   = '';
+                $cell = '';
                 $itemsCount = count($this->token['header']);
 
                 for ($i = 0; $i < $itemsCount; $i++) {
@@ -119,7 +141,7 @@ class Parser
 
                 for ($i = 0; $i < $itemsCount; $i++) {
 
-                    $row  = $this->token['cells'][$i];
+                    $row = $this->token['cells'][$i];
                     $cell = '';
 
                     foreach ($row as $j => $row) {
@@ -134,7 +156,7 @@ class Parser
 
             case 'blockquote_start':
 
-                while ($this->next() && $this->token['type'] !== 'blockquote_end') {
+                while (($token = $this->next()) !== null && $token['type'] !== 'blockquote_end') {
                     $body .= $this->tok();
                 }
 
@@ -144,7 +166,7 @@ class Parser
 
                 $ordered = $this->token['ordered'];
 
-                while ($this->next() && $this->token['type'] !== 'list_end') {
+                while (($token = $this->next()) !== null && $token['type'] !== 'list_end') {
                     $body .= $this->tok();
                 }
 
@@ -152,15 +174,15 @@ class Parser
 
             case 'list_item_start':
 
-                while ($this->next() && $this->token['type'] !== 'list_item_end') {
-                    $body .= ($this->token['type'] === 'text') ? $this->parseText() : $this->tok();
+                while (($token = $this->next()) !== null && $token['type'] !== 'list_item_end') {
+                    $body .= ($token['type'] === 'text') ? $this->parseText() : $this->tok();
                 }
 
                 return $this->renderer->listitem($body);
 
             case 'loose_item_start':
 
-                while ($this->next() && $this->token['type'] !== 'list_item_end') {
+                while (($token = $this->next()) !== null && $token['type'] !== 'list_item_end') {
                     $body .= $this->tok();
                 }
 
@@ -180,5 +202,7 @@ class Parser
 
                 return $this->renderer->paragraph($this->parseText());
         }
+
+        return '';
     }
 }

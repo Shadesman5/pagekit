@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Module;
 
 use Pagekit\Application as App;
@@ -12,14 +14,14 @@ class Module implements ModuleInterface, EventSubscriberInterface
 
     public string $path;
 
+    /** @var array<string, mixed> */
     public array $config;
 
+    /** @var array<string, mixed> */
     public array $options;
 
     /**
-     * Constructor.
-     *
-     * @param array $options
+     * @param array<string, mixed> $options
      */
     public function __construct(array $options = [])
     {
@@ -30,9 +32,9 @@ class Module implements ModuleInterface, EventSubscriberInterface
     }
 
     /**
-     * {@inheritdoc}
+     * @return mixed Genuinely unknown type — module bootstrap closures may return a service object, an array, or nothing; the return value is not consumed by the framework.
      */
-    public function main(App $app)
+    public function main(App $app): mixed
     {
         $main = $this->options['main'];
 
@@ -43,12 +45,16 @@ class Module implements ModuleInterface, EventSubscriberInterface
         if (is_callable($main)) {
             return call_user_func($main, $app);
         }
+
+        return null;
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @return mixed Genuinely unknown type — option values are user-supplied via module config arrays; any scalar, array, or object is valid.
      */
-    public function get($key, $default = null)
+    public function get(string|array $key, mixed $default = null): mixed
     {
         if (is_array($key)) {
             return Arr::extract($this->options, $key);
@@ -59,8 +65,10 @@ class Module implements ModuleInterface, EventSubscriberInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return mixed Genuinely unknown type — config values are user-supplied via module config arrays; any scalar, array, or object is valid.
      */
-    public function config($key = null, $default = null)
+    public function config(string|array|null $key = null, mixed $default = null): mixed
     {
         if (is_array($key)) {
             return Arr::extract($this->config, $key);
@@ -70,10 +78,10 @@ class Module implements ModuleInterface, EventSubscriberInterface
     }
 
     /**
-     * {@inheritdoc}
+     * @return array<string, mixed>
      */
     public function subscribe(): array
     {
-        return isset($this->options['events']) ? $this->options['events'] : [];
+        return $this->options['events'] ?? [];
     }
 }

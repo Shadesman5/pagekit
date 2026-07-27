@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Cookie\CookieJar;
 
 return [
@@ -8,19 +10,19 @@ return [
 
     'main' => function ($app) {
 
-        $app['cookie'] = fn() => new CookieJar();
+        $app->set('cookie', fn () => new CookieJar());
 
     },
 
     'autoload' => [
 
-        'Pagekit\\Cookie\\' => 'src'
+        'Pagekit\\Cookie\\' => 'src',
 
     ],
 
     'config' => [
 
-        'path'   => null,
+        'path' => null,
         'domain' => null,
 
     ],
@@ -33,15 +35,15 @@ return [
                 $path = $request->getBasePath() ?: '/';
             }
 
-            $app['cookie']->setDefaultPathAndDomain($path, $this->config['domain']);
+            $app->get('cookie')->setDefaultPathAndDomain($path, $this->config['domain']);
         },
 
         'response' => function ($event, $request, $response) use ($app) {
-            foreach ($app['cookie']->getQueuedCookies() as $cookie) {
+            foreach ($app->get('cookie')->getQueuedCookies() as $cookie) {
                 $response->headers->setCookie($cookie);
             }
-        }
+        },
 
-    ]
+    ],
 
 ];

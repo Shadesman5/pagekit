@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Installer\Helper;
 
 use Composer\Installer;
-use Composer\IO\ConsoleIO;
 use Composer\Json\JsonFile;
 use Composer\Package\Locker;
 use Composer\Package\Package;
@@ -14,23 +15,25 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class Composer
 {
+    /** @var array<string, string> */
     public array $paths;
 
+    /** @var array<string, mixed> */
     public array $blueprint;
 
     protected ?InstallerIO $io = null;
 
     protected ?OutputInterface $output = null;
 
+    /** @var array<string, string> */
     protected array $packages = [];
 
     protected string $file = 'packages.php';
 
     /**
-     * @param array $config
-     * @param null  $output
+     * @param array<string, string> $config
      */
-    public function __construct($config, $output = null)
+    public function __construct(array $config, ?OutputInterface $output = null)
     {
         $this->paths = $config;
         $this->output = $output;
@@ -39,18 +42,15 @@ class Composer
         $this->blueprint = [
             'repositories' => [
                 ['type' => 'artifact', 'url' => $config['path.artifact']],
-                ['type' => 'composer', 'url' => $config['system.api']]
-            ]
+                ['type' => 'composer', 'url' => $config['system.api']],
+            ],
         ];
     }
 
     /**
-     * @param array $install [name => version, name => version, ...]
-     * @param bool $packagist
-     * @param bool $writeConfig
-     * @param bool $preferSource
+     * @param array<string, string> $install [name => version, name => version, ...]
      */
-    public function install(array $install, $packagist = false, $writeConfig = true, $preferSource = false): void
+    public function install(array $install, bool $packagist = false, bool $writeConfig = true, bool $preferSource = false): void
     {
         $this->addPackages($install);
 
@@ -60,7 +60,8 @@ class Composer
             try {
                 $normalized = $versionParser->normalize($version);
                 $refresh[] = new Package($name, $normalized, $version);
-            } catch (\UnexpectedValueException $e) {}
+            } catch (\UnexpectedValueException $e) {
+            }
         }
 
         $this->composerUpdate(array_keys($install), $refresh, $packagist, $preferSource);
@@ -72,10 +73,9 @@ class Composer
 
 
     /**
-     * @param array|string $uninstall [name, name, ...]
-     * @param bool $writeConfig
+     * @param array<int, string>|string $uninstall [name, name, ...]
      */
-    public function uninstall($uninstall, $writeConfig = true): void
+    public function uninstall(array|string $uninstall, bool $writeConfig = true): void
     {
         $uninstall = (array) $uninstall;
 
@@ -90,15 +90,23 @@ class Composer
 
     /**
      * Checks if a package is installed by composer.
-     *
-     * @param $name
      */
-    public function isInstalled($name): bool
+    public function isInstalled(string $name): bool
     {
-        $installed = $this->paths['path.packages'] . '/composer/installed.json';
-        $installed = file_exists($installed) ? json_decode(file_get_contents($installed), true) : [];
+        $installedPath = $this->paths['path.packages'] . '/composer/installed.json';
+        $installed = [];
 
-        $installed = array_map(fn($pkg) => $pkg['name'], $installed);
+        if (file_exists($installedPath)) {
+            $contents = file_get_contents($installedPath);
+            if ($contents !== false) {
+                $decoded = json_decode($contents, true);
+                if (is_array($decoded)) {
+                    $installed = $decoded;
+                }
+            }
+        }
+
+        $installed = array_map(fn ($pkg) => $pkg['name'], $installed);
 
         return in_array($name, $installed);
     }
@@ -106,13 +114,11 @@ class Composer
     /**
      * Runs Composer Update command.
      *
-     * @param  array|bool $updates
-     * @param array $refresh
-     * @param bool $packagist
-     * @param bool $preferSource
+     * @param  array<int, string>|bool $updates
+     * @param  array<int, Package>     $refresh
      * @throws \Exception
      */
-    protected function composerUpdate($updates = false, $refresh = [], $packagist = false, $preferSource = false): void
+    protected function composerUpdate(array|bool $updates = false, array $refresh = [], bool $packagist = false, bool $preferSource = false): void
     {
         $installed = new JsonFile($this->paths['path.vendor'] . '/composer/installed.json');
         $internal = new CompositeRepository([]);
@@ -147,10 +153,9 @@ class Composer
     /**
      * Returns composer instance.
      *
-     * @param bool $packagist
      * @return null
      */
-    protected function getComposer($packagist = false): \Composer\Composer
+    protected function getComposer(bool $packagist = false): \Composer\Composer
     {
         $config = $this->blueprint;
         $config['config'] = ['vendor-dir' => $this->paths['path.packages'], 'cache-files-ttl' => 0];
@@ -168,13 +173,13 @@ class Composer
 
         Factory::bootstrap([
             'home' => $this->paths['path.temp'] . '/composer',
-            'cache-dir' => $this->paths['path.temp'] . '/composer/cache'
+            'cache-dir' => $this->paths['path.temp'] . '/composer/cache',
         ]);
 
         $composer = Factory::create($this->getIO(), $config);
         $composer->setLocker(new Locker(
             $this->getIO(),
-            new JsonFile(preg_replace('/\.php$/i', '.lock', $this->file)),
+            new JsonFile(preg_replace('/\.php$/i', '.lock', $this->file) ?? $this->file),
             $composer->getRepositoryManager(),
             $composer->getInstallationManager(),
             json_encode($config)
@@ -190,23 +195,25 @@ class Composer
     }
 
     /**
-     * @param $packages
+     * @param array<string, string> $packages
      */
-    protected function addPackages($packages): void
+    protected function addPackages(array $packages): void
     {
         $this->packages = array_merge($this->readConfig(), $packages);
     }
 
     /**
-     * @param $packages
+     * @param array<int, string> $packages
      */
-    protected function removePackages($packages): void
+    protected function removePackages(array $packages): void
     {
         $this->packages = array_diff_key($this->readConfig(), array_flip($packages));
     }
 
     /**
      * Reads packages from package file.
+     *
+     * @return array<string, string>
      */
     protected function readConfig(): array
     {
@@ -223,11 +230,8 @@ class Composer
 
     /**
      * Converts memory value from 'php.ini' into bytes.
-     *
-     * @param $value
-     * @return int
      */
-    protected function memoryInBytes($value)
+    protected function memoryInBytes(string $value): int
     {
         $unit = strtolower(substr($value, -1, 1));
         $value = (int) $value;
@@ -235,10 +239,10 @@ class Composer
         switch ($unit) {
             case 'g':
                 $value *= 1024;
-            // no break (cumulative multiplier)
+                // no break (cumulative multiplier)
             case 'm':
                 $value *= 1024;
-            // no break (cumulative multiplier)
+                // no break (cumulative multiplier)
             case 'k':
                 $value *= 1024;
         }

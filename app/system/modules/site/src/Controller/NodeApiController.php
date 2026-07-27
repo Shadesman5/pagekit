@@ -1,100 +1,189 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Site\Controller;
 
-use Pagekit\Application as App;
+use function Pagekit\__;
+
+use Pagekit\Config\ConfigManager;
+use Pagekit\Filter\FilterManager;
+use Pagekit\Module\ModuleManager;
+use Pagekit\Routing\Attribute\Route;
 use Pagekit\Site\Model\Node;
+use Pagekit\Site\Model\NodeRepository;
+use Pagekit\Site\NodePresenter;
+use Pagekit\System\Controller\ValidatesRequestTrait;
+use Pagekit\User\Attribute\Access;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
- * @Access("site: manage site")
+ * API Controller for Node management.
  */
+#[Access('site: manage site')]
 class NodeApiController
 {
-    /**
-     * @Route("/", methods="GET")
-     * @Request({"menu"})
-     */
-    public function indexAction($menu = false): array
-    {
-        $query = Node::query();
+    use ValidatesRequestTrait;
 
-        if (is_string($menu)) {
-            $query->where(['menu' => $menu]);
-        }
-
-        return array_values($query->get());
+    public function __construct(
+        private readonly Request $request,
+        private readonly FilterManager $filter,
+        private readonly ModuleManager $module,
+        private readonly ConfigManager $config,
+        private readonly ValidatorInterface $validator,
+        private readonly NodePresenter $nodePresenter,
+        private readonly NodeRepository $nodeRepository,
+    ) {
     }
 
     /**
-     * @Route("/{id}", methods="GET", requirements={"id"="\d+"})
+     * @return array<int, array<string, mixed>>
      */
-    public function getAction($id): Node
+    #[Route('/', methods: ['GET'])]
+    public function indexAction(): array
     {
-        if (!$node = Node::find($id)) {
-            App::abort(404, __('Node not found.'));
-        }
+        $menu = $this->request->query->get('menu', false);
 
-        return $node;
+        $query = is_string($menu)
+            ? $this->nodeRepository->where(['menu' => $menu])
+            : $this->nodeRepository->query();
+
+        return array_map(
+            fn (Node $n) => $this->nodePresenter->toArray($n),
+            array_values($query->get())
+        );
     }
 
     /**
-     * @Route("/", methods="POST")
-     * @Route("/{id}", methods="POST", requirements={"id"="\d+"})
-     * @Request({"node": "array", "id": "int"}, csrf=true)
+     * @return array<string, mixed>
      */
-    public function saveAction($data, $id = 0): array
+    #[Route('/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
+    public function getAction(int $id): array
     {
-        if (!$node = Node::find($id)) {
-            $node = Node::create();
+        if (!$node = $this->nodeRepository->find($id)) {
+            throw new NotFoundHttpException(__('Node not found.'));
+        }
+
+        return $this->nodePresenter->toArray($node);
+    }
+
+    /**
+     * Save a node (create or update).
+     *
+     * @param  array<string, mixed>|null $data
+     * @return array{message: string, node: array<string, mixed>}
+     */
+    #[Route('/', methods: ['POST'])]
+    #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function saveAction(int $id = 0, ?array $data = null): array
+    {
+        if ($data === null) {
+            $request = $this->request;
+
+            // Get node data from POST or JSON body
+            $data = $request->request->all()['node'] ?? [];
+            if (empty($data) && $request->getContent()) {
+                $json = json_decode($request->getContent(), true);
+                $data = $json['node'] ?? $json ?? [];
+            }
+        }
+
+        // Get id from route or data
+        if (!$id && isset($data['id'])) {
+            $id = (int) $data['id'];
+        }
+
+        if (!$node = $this->nodeRepository->find($id)) {
+            $node = $this->nodeRepository->create();
             unset($data['id']);
         }
 
-        if (!$data['slug'] = App::filter($data['slug'] ?: $data['title'], 'slugify')) {
-            App::abort(400, __('Invalid slug.'));
+        // Generate slug from title if not provided (business logic, not validation)
+        $slug = isset($data['slug']) ? $data['slug'] : '';
+        $title = isset($data['title']) ? $data['title'] : '';
+
+        // Apply slug filter - this is business logic that generates a valid slug
+        $data['slug'] = ($this->filter)($slug ?: $title, 'slugify');
+
+        // Assign data to entity for validation (without saving yet)
+        foreach ($data as $key => $value) {
+            if (property_exists($node, $key)) {
+                $node->$key = $value;
+            }
         }
 
-        $node->save($data);
+        // Validate using Symfony Validator
+        $this->validateOrFail($node);
 
-        return ['message' => 'success', 'node' => $node];
+        $this->nodeRepository->save($node, $data);
+
+        return ['message' => 'success', 'node' => $this->nodePresenter->toArray($node)];
     }
 
     /**
-     * @Route("/{id}", methods="DELETE", requirements={"id"="\d+"})
-     * @Request({"id": "int"}, csrf=true)
+     * @return array<string, string>
      */
-    public function deleteAction($id): array
+    #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\d+'])]
+    public function deleteAction(int $id = 0): array
     {
-        if ($node = Node::find($id)) {
+        // Get id from route if not provided (Symfony 6.4 compatibility)
+        if (!$id) {
+            $id = (int) $this->request->get('id', 0);
+        }
 
-            if ($type = App::module('system/site')->getType($node->type) and isset($type['protected']) and $type['protected']) {
-                App::abort(400, __('Invalid type.'));
+        if ($node = $this->nodeRepository->find($id)) {
+
+            // Business logic: Check if node type is protected (NOT entity validation)
+            if ($type = $this->module->get('system/site')->getType($node->type) and isset($type['protected']) and $type['protected']) {
+                throw new BadRequestHttpException(__('Invalid type.'));
             }
 
-            $node->delete();
+            $this->nodeRepository->delete($node);
         }
 
         return ['message' => 'success'];
     }
 
     /**
-     * @Route("/bulk", methods="POST")
-     * @Request({"nodes": "array"}, csrf=true)
+     * @return array<string, string>
      */
-    public function bulkSaveAction($nodes = []): array
+    #[Route('/bulk', methods: ['POST'])]
+    public function bulkSaveAction(): array
     {
+        $request = $this->request;
+
+        $nodes = $request->request->all()['nodes'] ?? [];
+        if (empty($nodes) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $nodes = $json['nodes'] ?? [];
+        }
+
         foreach ($nodes as $data) {
-            $this->saveAction($data, isset($data['id']) ? $data['id'] : 0);
+            // Call saveAction with each node's id and data
+            $id = isset($data['id']) ? $data['id'] : 0;
+            $this->saveAction($id, $data);
         }
 
         return ['message' => 'success'];
     }
 
     /**
-     * @Route("/bulk", methods="DELETE")
-     * @Request({"ids": "array"}, csrf=true)
+     * @return array<string, string>
      */
-    public function bulkDeleteAction($ids = []): array
+    #[Route('/bulk', methods: ['DELETE'])]
+    public function bulkDeleteAction(): array
     {
+        $request = $this->request;
+
+        $ids = $request->request->all()['ids'] ?? [];
+        if (empty($ids) && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $ids = $json['ids'] ?? [];
+        }
+
         foreach (array_filter($ids) as $id) {
             $this->deleteAction($id);
         }
@@ -103,20 +192,33 @@ class NodeApiController
     }
 
     /**
-     * @Route("/updateOrder", methods="POST")
-     * @Request({"menu", "nodes": "array"}, csrf=true)
+     * @return array<string, string>
      */
-    public function updateOrderAction($menu, $nodes = []): array
+    #[Route('/updateOrder', methods: ['POST'])]
+    public function updateOrderAction(): array
     {
+        $request = $this->request;
+
+        $menu = $request->request->get('menu', '');
+        $nodes = $request->request->all()['nodes'] ?? [];
+
+        if ($request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            if ($json) {
+                $menu = $json['menu'] ?? $menu;
+                $nodes = $json['nodes'] ?? $nodes;
+            }
+        }
+
         foreach ($nodes as $data) {
 
-            if ($node = Node::find($data['id'])) {
+            if ($node = $this->nodeRepository->find($data['id'])) {
 
-                $node->priority  = $data['order'];
-                $node->menu      = $menu;
+                $node->priority = $data['order'];
+                $node->menu = $menu;
                 $node->parent_id = $data['parent_id'] ?: 0;
 
-                $node->save();
+                $this->nodeRepository->save($node);
             }
         }
 
@@ -124,20 +226,29 @@ class NodeApiController
     }
 
     /**
-     * @Route("/frontpage", methods="POST")
-     * @Request({"id": "int"}, csrf=true)
+     * @return array<string, string>
      */
-    public function frontpageAction($id): array
+    #[Route('/frontpage', methods: ['POST'])]
+    public function frontpageAction(): array
     {
-        if (!$node = Node::find($id) or !$type = App::module('system/site')->getType($node->type)) {
-            App::abort(404, __('Node not found.'));
+        $request = $this->request;
+
+        $id = (int) $request->request->get('id', 0);
+        if (!$id && $request->getContent()) {
+            $json = json_decode($request->getContent(), true);
+            $id = (int) ($json['id'] ?? 0);
+        }
+
+        if (!$node = $this->nodeRepository->find($id) or !$type = $this->module->get('system/site')->getType($node->type)) {
+            throw new NotFoundHttpException(__('Node not found.'));
         }
 
         if (isset($type['frontpage']) and !$type['frontpage']) {
-            App::abort(400, __('Invalid node type.'));
+            throw new BadRequestHttpException(__('Invalid node type.'));
         }
 
-        App::config('system/site')->set('frontpage', $id);
+        ($this->config)('system/site')?->set('frontpage', $id);
+
         return ['message' => 'success'];
     }
 }

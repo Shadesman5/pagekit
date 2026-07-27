@@ -1,4 +1,5 @@
-<?php $view->script('blog-settings', 'blog:app/bundle/settings.js', 'vue') ?>
+<?php declare(strict_types=1);
+$view->script('blog-settings', 'blog:app/bundle/settings.js', ['vue']) ?>
 
 <div id="settings" class="uk-form-horizontal" v-cloak>
 

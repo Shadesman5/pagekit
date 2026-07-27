@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "0475d3b6-2e8b-4a9b-93ce-5a0e2dc80a07",
+  "roadmapStepId": "2.0.5",
+  "title": "↳ Composer & Autoload Hygiene",
+  "taskSlug": null,
+  "taskPrompt": null,
+  "issue": 182,
+  "branch": null,
+  "model": null,
+  "status": "completed",
+  "startedAt": "2026-04-26T19:07:22.805Z",
+  "completedAt": "2026-04-26T21:51:35.469Z",
+  "phases": [
+    {
+      "phaseKey": "manual-bc-9238f533-b142-4f5a-869a-3469cc697733-PR #192",
+      "type": "MANUAL",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-04-26T19:07:22.805Z",
+      "durationMs": 3696675,
+      "agent": {
+        "id": "bc-9238f533-b142-4f5a-869a-3469cc697733",
+        "runId": "run-23b26ea9-03f6-419f-98cf-c8673e837b0a",
+        "url": "https://cursor.com/agents/bc-9238f533-b142-4f5a-869a-3469cc697733",
+        "model": null,
+        "runCount": 2,
+        "runs": [
+          {
+            "runId": "run-b5b0a274-0d78-44c9-85f4-72fd0d31c9ba",
+            "index": 1,
+            "startedAt": "2026-04-26T19:07:22.805Z",
+            "completedAt": "2026-04-26T19:59:12.276Z",
+            "durationMs": 3012760,
+            "tokens": {
+              "input": 1125,
+              "output": 132856,
+              "cacheRead": 15383673,
+              "cacheWrite": 851062,
+              "total": 16368716
+            }
+          },
+          {
+            "runId": "run-23b26ea9-03f6-419f-98cf-c8673e837b0a",
+            "index": 2,
+            "startedAt": "2026-04-26T21:40:11.005Z",
+            "completedAt": "2026-04-26T21:51:35.469Z",
+            "durationMs": 683915,
+            "tokens": {
+              "input": 663,
+              "output": 31943,
+              "cacheRead": 4308167,
+              "cacheWrite": 292154,
+              "total": 4632927
+            }
+          }
+        ]
+      },
+      "github": null,
+      "tokens": {
+        "input": 1788,
+        "output": 164799,
+        "cacheRead": 19691840,
+        "cacheWrite": 1143216,
+        "total": 21001643
+      },
+      "tokensSource": "cursor-api-manual",
+      "result": "Imported manually (pre-Conductor cloud agent)",
+      "outcome": "success",
+      "manualImport": true,
+      "notes": "Manual import via import-manual-agents.mjs · Timing from Cursor API (2 agent runs aggregated)",
+      "completedAt": "2026-04-26T21:51:35.469Z"
+    }
+  ],
+  "totals": {
+    "tokens": {
+      "input": 1788,
+      "output": 164799,
+      "cacheRead": 19691840,
+      "cacheWrite": 1143216,
+      "total": 21001643
+    },
+    "durationMs": 3696675,
+    "phaseCount": 1,
+    "escalations": 0,
+    "ghaJobs": 1,
+    "cloudAgents": 1
+  },
+  "manualImport": {
+    "at": "2026-07-14T17:14:12.589Z",
+    "source": "import-manual-agents.mjs",
+    "note": "Pre-Conductor cloud agent run(s)"
+  }
+}

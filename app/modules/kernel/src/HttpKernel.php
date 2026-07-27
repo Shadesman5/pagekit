@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Kernel;
 
 use Pagekit\Event\EventDispatcherInterface;
@@ -21,20 +23,14 @@ use Symfony\Component\HttpFoundation\Response;
 
 class HttpKernel implements HttpKernelInterface
 {
-    protected \Pagekit\Event\EventDispatcherInterface $events;
+    protected EventDispatcherInterface $events;
 
-    protected \Symfony\Component\HttpFoundation\RequestStack $stack;
+    protected RequestStack $stack;
 
-    /**
-     * Constructor.
-     *
-     * @param EventDispatcherInterface $events
-     * @param RequestStack             $stack
-     */
     public function __construct(EventDispatcherInterface $events, ?RequestStack $stack = null)
     {
         $this->events = $events;
-        $this->stack  = $stack ?: new RequestStack();
+        $this->stack = $stack ?: new RequestStack();
     }
 
     /**
@@ -77,41 +73,51 @@ class HttpKernel implements HttpKernelInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<string, string> $headers
      */
-    public function abort($code, $message = null, array $headers = []): void
+    public function abort(int $code, ?string $message = null, array $headers = []): void
     {
         switch ($code) {
 
             case 400:
                 $exception = new BadRequestException($message);
+
                 break;
 
             case 401:
                 $exception = new UnauthorizedException($message);
+
                 break;
 
             case 403:
                 $exception = new ForbiddenException($message);
+
                 break;
 
             case 404:
                 $exception = new NotFoundException($message);
+
                 break;
 
             case 405:
                 $exception = new MethodNotAllowedException($message);
+
                 break;
 
             case 409:
                 $exception = new ConflictException($message);
+
                 break;
 
             case 500:
                 $exception = new InternalErrorException($message);
+
                 break;
 
             default:
-                $exception = new HttpException($message);
+                $exception = new HttpException($message ?? '');
+
                 break;
         }
 
@@ -179,6 +185,10 @@ class HttpKernel implements HttpKernelInterface
         $e = $event->getException();
 
         if (!$event->hasResponse()) {
+            if ($e === null) {
+                throw new \RuntimeException('Exception event has no exception and no response.');
+            }
+
             throw $e;
         }
 

@@ -1,30 +1,56 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Widget\Model;
 
+use Pagekit\Database\ORM\Attribute as ORM;
 use Pagekit\Database\ORM\ModelTrait;
+use Pagekit\Database\ORM\SerializableModelInterface;
 use Pagekit\System\Model\DataModelTrait;
 use Pagekit\User\Model\AccessModelTrait;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * @Entity(tableClass="@system_widget")
+ * Widget entity with PHP 8 Attributes for ORM and Validation.
  */
-class Widget implements \JsonSerializable
+#[ORM\Entity(tableClass: '@system_widget')]
+class Widget implements \JsonSerializable, SerializableModelInterface
 {
-    use AccessModelTrait, DataModelTrait, ModelTrait;
+    use AccessModelTrait;
+    use DataModelTrait;
+    use ModelTrait;
 
-    /** @Column(type="integer") @Id */
-    public $id;
+    #[ORM\Column(type: 'integer')]
+    #[ORM\Id]
+    public ?int $id = null;
 
-    /** @Column */
-    public $title = '';
+    #[ORM\Column]
+    #[Assert\NotBlank(message: 'validation.widget.title_required')]
+    #[Assert\Length(
+        max: 255,
+        maxMessage: 'validation.widget.title_max_length'
+    )]
+    public ?string $title = '';
 
-    /** @Column(type="string") */
-    public $type;
+    #[ORM\Column(type: 'string')]
+    #[Assert\NotBlank(message: 'validation.widget.type_required')]
+    public ?string $type = null;
 
-    /** @Column(type="integer") */
-    public $status = 1;
+    #[ORM\Column(type: 'integer')]
+    #[Assert\Choice(
+        choices: [0, 1],
+        message: 'validation.widget.status_invalid'
+    )]
+    public int $status = 1;
 
-    /** @Column(type="simple_array") */
-    public $nodes = [];
+    /** @var array<int, int|string> */
+    #[ORM\Column(type: 'simple_array')]
+    public array $nodes = [];
+
+    /**
+     * Current theme position name, set by controllers or model.widget.init.
+     * Not a database column; used for response serialization and event handling.
+     */
+    public ?string $position = null;
 }

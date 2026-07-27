@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Filter by' => 'Şuna Göre Süz',
   'Thank you! Your comment needs approval before showing up.' => 'Teşekkürler. Yorumunuz yayınlanmak için onay bekliyor.',
   'Unable to comment. Please try again later.' => 'Yorum yapılamıyor. Lütfen daha sonra yeniden deneyin.',
@@ -94,4 +98,4 @@
   'Written by %name% on %date%' => '%date% tarihinde %name% tarafından yazılmıştır.',
   'Read more' => 'Devamını oku',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Yorum Yok|{1} %count% Yorum|]1,Inf[ %count% Yorum',
-);
+];

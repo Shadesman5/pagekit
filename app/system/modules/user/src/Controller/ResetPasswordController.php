@@ -1,18 +1,53 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Controller;
 
-use Pagekit\Application as App;
+use function Pagekit\__;
+
 use Pagekit\Application\Exception;
+use Pagekit\Application\UrlProvider;
+use Pagekit\Auth\Encoder\PasswordEncoderInterface;
+use Pagekit\Mail\Mailer;
+use Pagekit\Module\ModuleManager;
+use Pagekit\Routing\Attribute\Route;
+use Pagekit\Routing\Router;
+use Pagekit\Session\Csrf\Provider\CsrfProviderInterface;
+use Pagekit\Session\MessageBag;
 use Pagekit\User\Model\User;
+use Pagekit\User\Model\UserRepository;
+use Pagekit\View\View;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 class ResetPasswordController
 {
+    public function __construct(
+        private readonly User $user,
+        private readonly Request $request,
+        private readonly SessionInterface $session,
+        private readonly CsrfProviderInterface $csrf,
+        private readonly UrlProvider $url,
+        private readonly Mailer $mailer,
+        private readonly ModuleManager $module,
+        private readonly View $view,
+        private readonly MessageBag $message,
+        private readonly Router $router,
+        private readonly PasswordEncoderInterface $authPassword,
+        private readonly UserRepository $userRepository,
+    ) {
+    }
 
-    public function indexAction()
+    /**
+     * @return array<string, mixed>|HttpResponse
+     */
+    public function indexAction(): array|HttpResponse
     {
-        if (App::user()->isAuthenticated()) {
-            return App::redirect();
+        if ($this->user->isAuthenticated()) {
+            return $this->router->redirect();
         }
 
         return [
@@ -20,22 +55,30 @@ class ResetPasswordController
                 'title' => __('Reset'),
                 'name' => 'system/user/reset-request.php',
             ],
-            'error' => ''
+            'error' => '',
         ];
     }
 
     /**
-     * @Request({"email"})
+     * @return array<string, mixed>|HttpResponse
      */
-    public function requestAction($email)
+    #[Route('/request', methods: ['POST'])]
+    public function requestAction(): array|HttpResponse
     {
+        $email = $this->request->request->get('email', '');
+
+        if (empty($email) && $this->request->getContent()) {
+            $json = json_decode($this->request->getContent(), true);
+            $email = $json['email'] ?? '';
+        }
+
         try {
 
-            if (App::user()->isAuthenticated()) {
-                return App::redirect();
+            if ($this->user->isAuthenticated()) {
+                return $this->router->redirect();
             }
 
-            if (!App::csrf()->validate()) {
+            if (!$this->csrf->validate()) {
                 throw new Exception(__('Invalid token. Please try again.'));
             }
 
@@ -43,7 +86,7 @@ class ResetPasswordController
                 throw new Exception(__('Enter a valid email address.'));
             }
 
-            if (!$user = User::findByEmail($email)) {
+            if (!$user = $this->userRepository->findByEmail($email)) {
                 throw new Exception(__('Unknown email address.'));
             }
 
@@ -51,27 +94,28 @@ class ResetPasswordController
                 throw new Exception(__('Your account has not been activated or is blocked.'));
             }
 
-            $key = App::get('auth.random')->generateString(32);
-            $url = App::url('@user/resetpassword/confirm', compact('key'), 0);
+            $key = bin2hex(random_bytes(16));
+            $url = ($this->url)('@user/resetpassword/confirm', compact('key'), 0);
 
             try {
 
-                $mail = App::mailer()->create();
-                $mail->setTo($user->email)
-                    ->setSubject(__('Reset password for %site%.', ['%site%' => App::module('system/site')->config('title')]))
-                    ->setBody(App::view('system/user:mails/reset.php', compact('user', 'url', 'mail')), 'text/html')
-                    ->send();
+                $mail = $this->mailer->create();
+                $mail->to($user->email ?? '')
+                    ->subject(__('Reset password for %site%.', ['%site%' => $this->module->get('system/site')->config('title')]))
+                    ->html(($this->view)('system/user:mails/reset.php', compact('user', 'url', 'mail')));
+
+                $this->mailer->send($mail);
 
             } catch (\Exception $e) {
                 throw new Exception(__('Unable to send confirmation link.'));
             }
 
             $user->activation = $key;
-            $user->save();
+            $this->userRepository->save($user);
 
-            App::message()->success(__('Check your email for the confirmation link.'));
+            $this->message->success((string) __('Check your email for the confirmation link.'));
 
-            return App::redirect('@user/login');
+            return $this->router->redirect('@user/login');
 
         } catch (Exception $e) {
             return [
@@ -79,40 +123,74 @@ class ResetPasswordController
                     'title' => __('Reset'),
                     'name' => 'system/user/reset-request.php',
                 ],
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ];
         }
     }
 
     /**
-     * @Request({"key", "password"})
+     * @return array<string, mixed>|HttpResponse
      */
-    public function confirmAction($activation = '', $password = '')
+    #[Route('/confirm', methods: ['GET'])]
+    #[Route('/confirm', methods: ['POST'])]
+    public function confirmAction(): array|HttpResponse
     {
-        if ($activation and $user = User::where(compact('activation'))->first()) {
+        if ($this->request->isMethod('GET')) {
+            $activation = $this->request->query->get('key', '');
+            $password = '';
+        } else {
+            $activation = $this->request->request->get('key', '');
+            $password = $this->request->request->get('password', '');
 
-            App::session()->set('activation', [
+            if ($this->request->getContent()) {
+                $json = json_decode($this->request->getContent(), true);
+                if ($json) {
+                    $activation = $json['key'] ?? $activation;
+                    $password = $json['password'] ?? $password;
+                }
+            }
+        }
+
+        if ($activation && ($user = $this->userRepository->where(compact('activation'))->first()) !== null) {
+
+            $this->session->set('activation', [
                 'key' => $activation,
                 'user' => $user->id,
             ]);
 
             $user->activation = null;
-            $user->save();
+            $this->userRepository->save($user);
         }
 
-        if (!$data = App::session()->get('activation') or $data['key'] != $activation) {
-            App::abort(400, __('Invalid key.'));
+        if (!$this->session->isStarted()) {
+            $this->session->start();
         }
 
-        if (!$user = User::find($data['user']) or $user->isBlocked()) {
-            App::abort(400, __('Your account has not been activated or is blocked.'));
+        $data = $this->session->get('activation');
+
+        if ($this->request->isMethod('POST') && !$data && $activation) {
+            if (($user = $this->userRepository->where(compact('activation'))->first()) !== null) {
+                $data = [
+                    'key' => $activation,
+                    'user' => $user->id,
+                ];
+                $this->session->set('activation', $data);
+            }
         }
 
-        if ('POST' === App::request()->getMethod()) {
+        if (!$data || $data['key'] != $activation) {
+            throw new BadRequestHttpException(__('Invalid key.'));
+        }
+
+        if (!$user = $this->userRepository->find((int) $data['user']) or $user->isBlocked()) {
+            throw new BadRequestHttpException(__('Your account has not been activated or is blocked.'));
+        }
+
+        if ('POST' === $this->request->getMethod()) {
 
             try {
 
-                if (!App::csrf()->validate()) {
+                if (!$this->csrf->validate()) {
                     throw new Exception(__('Invalid token. Please try again.'));
                 }
 
@@ -125,13 +203,14 @@ class ResetPasswordController
                 }
 
                 $user->activation = null;
-                $user->password = App::get('auth.password')->hash($password);
-                $user->save();
+                $user->password = $this->authPassword->hash($password);
+                $this->userRepository->save($user);
 
-                App::session()->remove('activation');
-                App::message()->success(__('Your password has been reset.'));
+                $this->session->remove('activation');
 
-                return App::redirect('@user/login');
+                $this->message->success((string) __('Your password has been reset.'));
+
+                return $this->router->redirect('@user/login');
 
             } catch (Exception $e) {
                 $error = $e->getMessage();
@@ -141,10 +220,10 @@ class ResetPasswordController
         return [
             '$view' => [
                 'title' => __('Reset Confirm'),
-                'name' => 'system/user/reset-confirm.php'
+                'name' => 'system/user/reset-confirm.php',
             ],
             'activation' => $activation,
-            'error' => isset($error) ? $error : ''
+            'error' => isset($error) ? $error : '',
         ];
     }
 

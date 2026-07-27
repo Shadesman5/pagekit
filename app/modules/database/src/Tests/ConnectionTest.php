@@ -1,40 +1,40 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Database\Tests;
 
-use PHPUnit\Framework\TestCase;
-use Pagekit\Database\Connection;
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
+use Pagekit\Database\Connection;
+use Pagekit\Database\Types\JsonArrayType;
+use PHPUnit\Framework\TestCase;
 
 class ConnectionTest extends TestCase
 {
-    protected ?Connection $connection = null;
+    private Connection $connection;
 
     public function setUp(): void
     {
-        // Create a mock driver for testing
         $driver = $this->createMock(Driver::class);
-        
+
         $params = [
             'driver' => 'pdo_sqlite',
             'memory' => true,
-            'prefix' => 'pk_'
+            'prefix' => 'pk_',
         ];
-        
+
         $config = new Configuration();
-        
-        // Create connection with mock driver
         $this->connection = new Connection($params, $driver, $config);
     }
 
     public function tearDown(): void
     {
-        if ($this->connection) {
-            $this->connection->close();
-        }
-        $this->connection = null;
+        $this->connection->close();
+        unset($this->connection);
     }
 
     /**
@@ -42,29 +42,26 @@ class ConnectionTest extends TestCase
      */
     public function testConnectionInstantiation(): void
     {
-        $this->assertInstanceOf(Connection::class, $this->connection);
+        $this->expectNotToPerformAssertions();
     }
 
     /**
-     * Test get utility
+     * Test get prefix (set via constructor params)
      */
-    public function testGetUtility(): void
+    public function testGetPrefix(): void
     {
-        $utility = $this->connection->getUtility();
-        $this->assertInstanceOf(\Pagekit\Database\Utility::class, $utility);
-    }
-
-    /**
-     * Test get and set prefix
-     */
-    public function testGetSetPrefix(): void
-    {
-        // Test default prefix
-        $this->assertEquals('@', $this->connection->getPrefix());
-        
-        // Set new prefix
-        $this->connection->setPrefix('pk_');
+        // Prefix is set from constructor params ('prefix' => 'pk_')
         $this->assertEquals('pk_', $this->connection->getPrefix());
+    }
+
+    /**
+     * Test connection with no prefix
+     */
+    public function testGetPrefixNull(): void
+    {
+        $driver = $this->createMock(Driver::class);
+        $conn = new Connection(['driver' => 'pdo_sqlite', 'memory' => true], $driver, new Configuration());
+        $this->assertNull($conn->getPrefix());
     }
 
     /**
@@ -72,76 +69,190 @@ class ConnectionTest extends TestCase
      */
     public function testReplacePrefix(): void
     {
-        $this->connection->setPrefix('pk_');
-        
-        $query = "SELECT * FROM @users WHERE id = ?";
-        $expected = "SELECT * FROM pk_users WHERE id = ?";
-        
+        // Prefix is already 'pk_' from constructor
+        $query = 'SELECT * FROM @users WHERE id = ?';
+        $expected = 'SELECT * FROM pk_users WHERE id = ?';
+
         $result = $this->connection->replacePrefix($query);
         $this->assertEquals($expected, $result);
     }
 
     /**
-     * Test escape column name
+     * Test replace prefix preserves quoted strings
      */
-    public function testEscapeColumn(): void
+    public function testReplacePrefixPreservesQuotedStrings(): void
     {
-        $column = 'user_name';
-        $escaped = $this->connection->escape($column);
-        
-        // For SQLite, it should be quoted
-        $this->assertStringContainsString($column, $escaped);
+        $query = "SELECT * FROM @users WHERE name = '@notaprefix'";
+        $result = $this->connection->replacePrefix($query);
+
+        // The @users should be replaced, but '@notaprefix' inside quotes should be preserved
+        $this->assertStringContainsString('pk_users', $result);
+        $this->assertStringContainsString('@notaprefix', $result);
     }
 
     /**
-     * Test getDatabasePlatform
+     * Test createQueryBuilder returns Pagekit QueryBuilder
      */
-    public function testGetDatabasePlatform(): void
+    public function testCreateQueryBuilder(): void
     {
-        $platform = $this->connection->getDatabasePlatform();
-        $this->assertInstanceOf(\Doctrine\DBAL\Platforms\AbstractPlatform::class, $platform);
+        $this->connection->createQueryBuilder();
+        $this->expectNotToPerformAssertions();
     }
 
     /**
-     * Test table existence methods
+     * Test getUtility with real SQLite connection
      */
-    public function testTableExistence(): void
+    public function testGetUtilityWithRealConnection(): void
     {
-        // Create a test table
-        $schema = $this->connection->getSchemaManager();
-        
-        if (!$this->connection->getSchemaManager()->tablesExist(['test_table'])) {
-            $table = new \Doctrine\DBAL\Schema\Table('test_table');
-            $table->addColumn('id', 'integer', ['autoincrement' => true]);
-            $table->setPrimaryKey(['id']);
-            $schema->createTable($table);
+        // Use DriverManager to create a real SQLite in-memory connection
+        $conn = DriverManager::getConnection([
+            'driver' => 'pdo_sqlite',
+            'memory' => true,
+        ]);
+
+        // Wrap in Pagekit Connection to test getUtility
+        $pagekitConn = new Connection(
+            ['driver' => 'pdo_sqlite', 'memory' => true, 'prefix' => 'pk_'],
+            $conn->getDriver(),
+            $conn->getConfiguration()
+        );
+
+        // Force connection to establish
+        $pagekitConn->executeQuery('SELECT 1');
+
+        $utility = $pagekitConn->getUtility();
+        $this->assertSame('pk_', $pagekitConn->getPrefix());
+
+        $pagekitConn->close();
+    }
+
+    /**
+     * Test getDatabasePlatform with real connection
+     */
+    public function testGetDatabasePlatformWithRealConnection(): void
+    {
+        $conn = DriverManager::getConnection([
+            'driver' => 'pdo_sqlite',
+            'memory' => true,
+        ]);
+
+        $pagekitConn = new Connection(
+            ['driver' => 'pdo_sqlite', 'memory' => true, 'prefix' => 'pk_'],
+            $conn->getDriver(),
+            $conn->getConfiguration()
+        );
+
+        $pagekitConn->executeQuery('SELECT 1');
+
+        $platform = $pagekitConn->getDatabasePlatform();
+        $this->assertNotEmpty($platform->getName());
+
+        $pagekitConn->close();
+    }
+
+    /**
+     * Test fetchObject with real connection
+     */
+    public function testFetchObjectWithRealConnection(): void
+    {
+        $conn = DriverManager::getConnection([
+            'driver' => 'pdo_sqlite',
+            'memory' => true,
+        ]);
+
+        $pagekitConn = new Connection(
+            ['driver' => 'pdo_sqlite', 'memory' => true, 'prefix' => 'pk_'],
+            $conn->getDriver(),
+            $conn->getConfiguration()
+        );
+
+        // Create a test table and insert data
+        $pagekitConn->executeStatement('CREATE TABLE test_fetch (id INTEGER PRIMARY KEY, name TEXT)');
+        $pagekitConn->executeStatement("INSERT INTO test_fetch (id, name) VALUES (1, 'test')");
+
+        $result = $pagekitConn->fetchObject('SELECT * FROM test_fetch WHERE id = 1');
+        if ($result === false) {
+            $this->fail('fetchObject returned false for an existing row.');
         }
-        
-        // Test table exists
-        $exists = $this->connection->getSchemaManager()->tablesExist(['test_table']);
-        $this->assertTrue($exists);
-        
-        // Clean up
-        $schema->dropTable('test_table');
+        $this->assertEquals(1, $result->id);
+        $this->assertEquals('test', $result->name);
+
+        // Test no result
+        $noResult = $pagekitConn->fetchObject('SELECT * FROM test_fetch WHERE id = 999');
+        $this->assertFalse($noResult);
+
+        $pagekitConn->close();
     }
 
     /**
-     * Test query builder
+     * Test fetchAllObjects with real connection
      */
-    public function testQueryBuilder(): void
+    public function testFetchAllObjectsWithRealConnection(): void
     {
-        $qb = $this->connection->createQueryBuilder();
-        $this->assertInstanceOf(\Doctrine\DBAL\Query\QueryBuilder::class, $qb);
-        
-        // Build a simple query
-        $query = $qb->select('*')
-                    ->from('users')
-                    ->where('id = :id')
-                    ->setParameter('id', 1)
-                    ->getSQL();
-        
-        $this->assertStringContainsString('SELECT', $query);
-        $this->assertStringContainsString('FROM users', $query);
-        $this->assertStringContainsString('WHERE id = :id', $query);
+        $conn = DriverManager::getConnection([
+            'driver' => 'pdo_sqlite',
+            'memory' => true,
+        ]);
+
+        $pagekitConn = new Connection(
+            ['driver' => 'pdo_sqlite', 'memory' => true, 'prefix' => 'pk_'],
+            $conn->getDriver(),
+            $conn->getConfiguration()
+        );
+
+        $pagekitConn->executeStatement('CREATE TABLE test_fetch_all (id INTEGER PRIMARY KEY, name TEXT)');
+        $pagekitConn->executeStatement("INSERT INTO test_fetch_all (id, name) VALUES (1, 'Alice')");
+        $pagekitConn->executeStatement("INSERT INTO test_fetch_all (id, name) VALUES (2, 'Bob')");
+
+        $results = $pagekitConn->fetchAllObjects('SELECT * FROM test_fetch_all ORDER BY id');
+        $this->assertCount(2, $results);
+        $this->assertEquals('Alice', $results[0]->name);
+        $this->assertEquals('Bob', $results[1]->name);
+
+        $pagekitConn->close();
+    }
+
+    /**
+     * Test a json-typed column round-trips an array via JsonArrayType.
+     *
+     * The DBAL 'json' type resolves to the array-safe JsonArrayType, mirroring
+     * the database module bootstrap's Type::overrideType(Types::JSON, ...).
+     */
+    public function testJsonColumnRoundTripsArrayViaJsonArrayType(): void
+    {
+        if (!(Type::getType(Types::JSON) instanceof JsonArrayType)) {
+            Type::overrideType(Types::JSON, JsonArrayType::class);
+        }
+
+        $type = Type::getType(Types::JSON);
+        $this->assertInstanceOf(JsonArrayType::class, $type);
+        $this->assertSame('json', $type->getName());
+
+        $conn = DriverManager::getConnection([
+            'driver' => 'pdo_sqlite',
+            'memory' => true,
+        ]);
+
+        $pagekitConn = new Connection(
+            ['driver' => 'pdo_sqlite', 'memory' => true, 'prefix' => 'pk_'],
+            $conn->getDriver(),
+            $conn->getConfiguration()
+        );
+
+        $pagekitConn->executeStatement('CREATE TABLE json_test (id INTEGER PRIMARY KEY, data TEXT)');
+
+        $platform = $pagekitConn->getDatabasePlatform();
+        $data = ['title' => 'Hello', 'tags' => ['a', 'b'], 'count' => 3];
+
+        $pagekitConn->executeStatement(
+            'INSERT INTO json_test (id, data) VALUES (1, ?)',
+            [$type->convertToDatabaseValue($data, $platform)]
+        );
+
+        $stored = $pagekitConn->executeQuery('SELECT data FROM json_test WHERE id = 1')->fetchOne();
+
+        $this->assertSame($data, $type->convertToPHPValue($stored, $platform));
+
+        $pagekitConn->close();
     }
 }

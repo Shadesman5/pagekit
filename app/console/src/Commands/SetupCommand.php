@@ -1,27 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Console\Commands;
 
 use Pagekit\Application\Console\Command;
 use Pagekit\Installer\Installer;
-use Pagekit\Application as App;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Pagekit\Module\Loader\ConfigLoader;
-
 
 class SetupCommand extends Command
 {
     /**
      * {@inheritdoc}
      */
-    protected $name = 'setup';
+    protected ?string $name = 'setup';
 
     /**
      * {@inheritdoc}
      */
-    protected $description = 'Setup a Pagekit installation';
+    protected string $description = 'Setup a Pagekit installation';
 
     /**
      * {@inheritdoc}
@@ -44,27 +43,31 @@ class SetupCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
 
         if (!in_array($this->option('db-driver'), ['mysql', 'sqlite'])) {
             $this->error("Unsupported db driver.");
-            exit;
+
+            return Command::FAILURE;
         }
 
         $this->line("Setting up Pagekit installation...");
 
         $app = $this->container;
 
-        App::module('session')->config['storage'] = 'array';
+        $app->get('module')->get('session')->config['storage'] = 'array';
 
         $app->boot();
 
-        $app['module']->load('installer');
+        $app->get('module')->load('installer');
 
         $installer = new Installer($app);
 
         $dbDriver = $this->option('db-driver');
+        if (!is_string($dbDriver)) {
+            throw new \LogicException('Option "db-driver" must be a string.');
+        }
 
         $config = [
             'locale' => $this->option('locale'),
@@ -76,10 +79,10 @@ class SetupCommand extends Command
                         'host' => $this->option('db-host'),
                         'user' => $this->option('db-user'),
                         'password' => $this->option('db-pass'),
-                        'prefix' => $this->option('db-prefix')
-                    ]
-                ]
-            ]
+                        'prefix' => $this->option('db-prefix'),
+                    ],
+                ],
+            ],
         ];
 
         $user = [
@@ -91,24 +94,36 @@ class SetupCommand extends Command
         $options = [
             'system' => [
                 'site' => ['locale' => $this->option('locale')],
-                'admin' => ['locale' => $this->option('locale')]
+                'admin' => ['locale' => $this->option('locale')],
             ],
             'system/site' => [
-                'title' => $this->option('title')
-            ]
+                'title' => $this->option('title'),
+            ],
         ];
 
-        $result = $installer->install($config, $options, $user);
+        try {
+            $result = $installer->install($config, $options, $user);
+        } catch (\Exception $e) {
+            $this->error($e->getMessage());
+            if ($output->isVerbose()) {
+                $this->error("File: " . $e->getFile());
+                $this->error("Line: " . $e->getLine());
+                $this->error("Trace: " . $e->getTraceAsString());
+            }
+
+            return Command::FAILURE;
+        }
         $status = $result['status'];
         $message = $result['message'];
 
         if ($status == 'success') {
-            // TODO: Callback
-            return (int) $this->line("Done");
+            $this->line("Done");
+
+            return Command::SUCCESS;
         } else {
             $this->error($message);
-            // TODO: Callback
-            return 1;
+
+            return Command::FAILURE;
         }
     }
 }

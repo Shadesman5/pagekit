@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Filter\FilterManager;
 
 return [
@@ -8,19 +10,19 @@ return [
 
     'main' => function ($app) {
 
-        $app['filter'] = fn() => new FilterManager($this->config['defaults']);
+        $app->set('filter', fn () => new FilterManager($this->config['defaults']));
 
     },
 
     'autoload' => [
 
-        'Pagekit\\Filter\\' => 'src'
+        'Pagekit\\Filter\\' => 'src',
 
     ],
 
     'config' => [
 
-        'defaults' => null
+        'defaults' => null,
 
-    ]
+    ],
 ];

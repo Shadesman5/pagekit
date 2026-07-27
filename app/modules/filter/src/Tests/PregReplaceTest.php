@@ -1,17 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Filter\Tests;
 
-use PHPUnit\Framework\TestCase;
 use Pagekit\Filter\PregReplaceFilter;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
 
 class PregReplaceTest extends TestCase
 {
-    protected ?PregReplaceFilter $filter = null;
+    private PregReplaceFilter $filter;
 
     public function setUp(): void
     {
-        $this->filter = new PregReplaceFilter;
+        $this->filter = new PregReplaceFilter();
     }
 
     public function testRuntimeException(): void
@@ -32,19 +35,27 @@ class PregReplaceTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        $this->filter->setPattern(null);
+        /** @var mixed $invalid */
+        $invalid = null;
+        $this->filter->setPattern($invalid);
     }
 
     public function testReplacementArgument(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        $this->filter->setReplacement(null);
+        /** @var mixed $invalid */
+        $invalid = null;
+        $this->filter->setReplacement($invalid);
     }
 
     /**
-     * @dataProvider provider
+     * @param string|array<int, string> $pattern
+     * @param string|array<int, string> $replacement
+     * @param string                    $in
+     * @param string                    $out
      */
+    #[DataProvider('provider')]
     public function testFilter($pattern, $replacement, $in, $out): void
     {
         $this->filter->setPattern($pattern);
@@ -56,11 +67,14 @@ class PregReplaceTest extends TestCase
         $this->assertSame($this->filter->filter($in), $out);
     }
 
+    /**
+     * @return array<int, array{0: string|array<int, string>, 1: string|array<int, string>, 2: string, 3: string}>
+     */
     public static function provider(): array
     {
         return [
             ['/foo/i', '', 'Foobar', 'bar'],
-            [['/foo/', '/bar/'], ['FOO', 'BAR'], 'foobar', 'FOOBAR']
+            [['/foo/', '/bar/'], ['FOO', 'BAR'], 'foobar', 'FOOBAR'],
         ];
     }
 

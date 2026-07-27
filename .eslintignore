@@ -1,8 +1,0 @@
-/.git
-/.vscode
-/node_modules/*
-**/assets/**
-**/vendor/**
-**/bundle/**
-**/theme/**/theme.js
-**/theme/**/components/**

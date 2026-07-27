@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Comment\CommentPlugin;
 
 return [
@@ -8,14 +10,14 @@ return [
 
     'main' => function ($app) {
 
-        $app->subscribe(new CommentPlugin);
+        $app->get('events')->subscribe(new CommentPlugin());
 
     },
 
     'autoload' => [
 
-        'Pagekit\\Comment\\' => 'src'
+        'Pagekit\\Comment\\' => 'src',
 
-    ]
+    ],
 
 ];

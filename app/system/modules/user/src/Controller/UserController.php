@@ -1,21 +1,41 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Controller;
 
-use Pagekit\Application as App;
+use function Pagekit\__;
+
+use Pagekit\Database\ORM\Repository;
+use Pagekit\Module\ModuleManager;
+use Pagekit\Routing\Attribute\Request as RequestAttr;
+use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
 use Pagekit\User\Model\User;
+use Pagekit\User\Model\UserRepository;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
-/**
- * @Access(admin=true)
- */
+#[Access(admin: true)]
 class UserController
 {
     /**
-     * @Access("user: manage users")
-     * @Request({"filter": "array", "page":"int"})
+     * @param Repository<Role> $roleRepository
      */
-    public function indexAction($filter = [], $page = null): array
+    public function __construct(
+        private readonly User $user,
+        private readonly ModuleManager $module,
+        private readonly UserRepository $userRepository,
+        private readonly Repository $roleRepository,
+    ) {
+    }
+
+    /**
+     * @param array<string, mixed> $filter
+     * @return array<string, mixed>
+     */
+    #[Access('user: manage users')]
+    #[RequestAttr(['filter' => 'array', 'page' => 'int'])]
+    public function indexAction(array $filter = [], ?int $page = null): array
     {
         $roles = $this->getRoles();
         unset($roles[Role::ROLE_AUTHENTICATED]);
@@ -23,113 +43,115 @@ class UserController
         return [
             '$view' => [
                 'title' => __('Users'),
-                'name' => 'system/user/admin/user-index.php'
+                'name' => 'system/user/admin/user-index.php',
             ],
             '$data' => [
                 'config' => [
                     'statuses' => User::getStatuses(),
                     'roles' => array_values($roles),
-                    'emailVerification' => App::module('system/user')->config('require_verification'),
+                    'emailVerification' => $this->module->get('system/user')->config('require_verification'),
                     'filter' => (object) $filter,
-                    'page' => $page
-                ]
-            ]
+                    'page' => $page,
+                ],
+            ],
         ];
     }
 
     /**
-     * @Access("user: manage users")
-     * @Request({"id": "int"})
+     * @return array<string, mixed>
      */
-    public function editAction($id = 0): array
+    #[Access('user: manage users')]
+    #[RequestAttr(['id' => 'int'])]
+    public function editAction(int $id = 0): array
     {
         if (!$id) {
-            $user = User::create(['roles' => [Role::ROLE_AUTHENTICATED]]);
-        } elseif (!$user = User::find($id)) {
-            App::abort(404, 'User not found.');
+            $user = $this->userRepository->create(['roles' => [Role::ROLE_AUTHENTICATED]]);
+        } elseif (!$user = $this->userRepository->find($id)) {
+            throw new NotFoundHttpException('User not found.');
         }
 
         return [
             '$view' => [
                 'title' => $id ? __('Edit User') : __('Add User'),
-                'name' => 'system/user/admin/user-edit.php'
+                'name' => 'system/user/admin/user-edit.php',
             ],
             '$data' => [
                 'user' => $user,
                 'config' => [
                     'statuses' => User::getStatuses(),
                     'roles' => array_values($this->getRoles($user)),
-                    'emailVerification' => App::module('system/user')->config('require_verification'),
-                    'currentUser' => App::user()->id
-                ]
-            ]
+                    'emailVerification' => $this->module->get('system/user')->config('require_verification'),
+                    'currentUser' => $this->user->id,
+                ],
+            ],
         ];
     }
 
     /**
-     * @Access("user: manage user permissions")
+     * @return array<string, mixed>
      */
+    #[Access('user: manage user permissions')]
     public function permissionsAction(): array
     {
         return [
             '$view' => [
                 'title' => __('Permissions'),
-                'name' => 'system/user/admin/permission-index.php'
+                'name' => 'system/user/admin/permission-index.php',
             ],
             '$data' => [
-                'permissions' => App::module('system/user')->getPermissions(),
-                'roles' => array_values(Role::query()->orderBy('priority')->get())
-            ]
+                'permissions' => $this->module->get('system/user')->getPermissions(),
+                'roles' => array_values($this->roleRepository->query()->orderBy('priority')->get()),
+            ],
         ];
     }
 
     /**
-     * @Access("user: manage user permissions")
-     * @Request({"id": "int"})
+     * @return array<string, mixed>
      */
-    public function rolesAction($id = null): array
+    #[Access('user: manage user permissions')]
+    #[RequestAttr(['id' => 'int'])]
+    public function rolesAction(?int $id = null): array
     {
         return [
             '$view' => [
                 'title' => __('Roles'),
-                'name' => 'system/user/admin/role-index.php'
+                'name' => 'system/user/admin/role-index.php',
             ],
             '$config' => [
-                'role' => $id
+                'role' => $id,
             ],
             '$data' => [
-                'permissions' => App::module('system/user')->getPermissions(),
-                'roles' => array_values(Role::query()->orderBy('priority')->get())
-            ]
+                'permissions' => $this->module->get('system/user')->getPermissions(),
+                'roles' => array_values($this->roleRepository->query()->orderBy('priority')->get()),
+            ],
         ];
     }
 
     /**
-     * @Access("system: access settings")
+     * @return array<string, mixed>
      */
+    #[Access('system: access settings')]
     public function settingsAction(): array
     {
         return [
             '$view' => [
                 'title' => __('User Settings'),
-                'name' => 'system/user/admin/settings.php'
+                'name' => 'system/user/admin/settings.php',
             ],
             '$data' => [
-                'config' => App::module('system/user')->config()
-            ]
+                'config' => $this->module->get('system/user')->config(),
+            ],
         ];
     }
 
     /**
-     * Gets the user roles.
-     *
-     * @param  User $user
+     * @return array<int, array<string, mixed>>
      */
     protected function getRoles(?User $user = null): array
     {
         $roles = [];
-        $self  = $user && $user->id === App::user()->id;
-        foreach (Role::where(['id <> ?'], [Role::ROLE_ANONYMOUS])->orderBy('priority')->get() as $role) {
+        $self = $user && $user->id === $this->user->id;
+        foreach ($this->roleRepository->where(['id <> ?'], [Role::ROLE_ANONYMOUS])->orderBy('priority')->get() as $role) {
 
             $r = $role->jsonSerialize();
 
@@ -137,7 +159,7 @@ class UserController
                 $r['disabled'] = true;
             }
 
-            if ($user && $role->isAdministrator() && (!App::user()->isAdministrator() || $self)) {
+            if ($user && $role->isAdministrator() && (!$this->user->isAdministrator() || $self)) {
                 $r['disabled'] = true;
             }
 

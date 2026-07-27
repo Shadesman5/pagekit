@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Debug\DataCollector;
 
 use DebugBar\DataCollector\DataCollectorInterface;
@@ -8,11 +10,12 @@ use Pagekit\Event\EventDispatcherInterface;
 
 class EventDataCollector implements DataCollectorInterface
 {
+    /** @var array<string, mixed> */
     protected array $data = [];
     protected EventDispatcherInterface $dispatcher;
-    protected $base;
+    protected string $base;
 
-    public function __construct(EventDispatcherInterface $dispatcher, $base = '')
+    public function __construct(EventDispatcherInterface $dispatcher, string $base = '')
     {
         $this->dispatcher = $dispatcher;
         $this->base = $base;
@@ -20,6 +23,8 @@ class EventDataCollector implements DataCollectorInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, mixed>
      */
     public function collect(): array
     {
@@ -31,7 +36,11 @@ class EventDataCollector implements DataCollectorInterface
         return $this->data;
     }
 
-    public function attachLink($listeners)
+    /**
+     * @param  array<string, array<string, mixed>> $listeners
+     * @return array<string, array<string, mixed>>
+     */
+    public function attachLink(array $listeners): array
     {
         foreach ($listeners as &$listener) {
             if (isset($listener['file'], $listener['line'])) {
@@ -43,10 +52,10 @@ class EventDataCollector implements DataCollectorInterface
         return $listeners;
     }
 
-    protected function getFileLink($file, $line)
+    protected function getFileLink(string $file, int $line): string|false
     {
         if ($fileLinkFormat = ini_get('xdebug.file_link_format') and file_exists($file)) {
-            return strtr($fileLinkFormat, array('%f' => $file, '%l' => $line));
+            return strtr($fileLinkFormat, ['%f' => $file, '%l' => $line]);
         }
 
         return false;

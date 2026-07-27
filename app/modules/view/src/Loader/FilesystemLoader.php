@@ -1,53 +1,80 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\View\Loader;
 
 use Pagekit\Filesystem\Locator;
-use Symfony\Component\Templating\Loader\LoaderInterface;
-use Symfony\Component\Templating\Storage\FileStorage;
-use Symfony\Component\Templating\TemplateReferenceInterface;
 
-class FilesystemLoader implements LoaderInterface
+/**
+ * Filesystem Template Loader - Independent from Symfony
+ */
+class FilesystemLoader
 {
-    protected \Pagekit\Filesystem\Locator $locator;
+    protected ?Locator $locator;
 
-    /**
-     * Constructor.
-     *
-     * @param Locator $locator
-     */
-    public function __construct(Locator $locator)
+    public function __construct(?Locator $locator = null)
     {
         $this->locator = $locator;
     }
 
     /**
-     * {@inheritdoc}
+     * Loads a template.
      */
-    public function load(TemplateReferenceInterface $template)
+    public function load(string $template): \Stringable|false
     {
-        if (!strpos($template, ':') && $file = $this->locator->get("views:{$template}")) {
-            return new FileStorage($file);
-        } elseif ($file = $this->locator->get($template)) {
-            return new FileStorage($file);
+        if (!$this->locator) {
+            return new class ($template) implements \Stringable {
+                public function __construct(private string $path)
+                {
+                }
+
+                public function __toString(): string
+                {
+                    return $this->path;
+                }
+            };
         }
 
-        return false;
+        $file = $this->locator->get($template);
+
+        if (!$file && strpos($template, ':') === false) {
+            $file = $this->locator->get("views:{$template}");
+        }
+
+        if (!$file) {
+            return false;
+        }
+
+        return new class ($file) implements \Stringable {
+            public function __construct(private string $path)
+            {
+            }
+
+            public function __toString(): string
+            {
+                return $this->path;
+            }
+        };
     }
 
     /**
-     * {@inheritdoc}
+     * Returns true if the template is still fresh.
      */
-    public function isFresh(TemplateReferenceInterface $template, $time): bool
+    public function isFresh(string $template, int $time): bool
     {
-        if (false === $storage = $this->load($template)) {
+        $storage = $this->load($template);
+
+        if ($storage === false) {
             return false;
         }
 
-        if (!is_readable((string) $storage)) {
+        $path = (string) $storage;
+
+        if (!is_readable($path)) {
             return false;
         }
 
-        return filemtime((string) $storage) < $time;
+        return filemtime($path) < $time;
     }
 }

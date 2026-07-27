@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\System\Model;
 
-use Pagekit\System\Model\NodeInterface;
-
+/**
+ * @extends \IteratorAggregate<string, NodeInterface>
+ */
 interface NodeInterface extends \IteratorAggregate, \Countable
 {
     public function getParent(): ?self;
@@ -50,7 +53,7 @@ interface NodeInterface extends \IteratorAggregate, \Countable
      *
      * @param  NodeInterface|string $node
      */
-    public function remove($node): bool;
+    public function remove(NodeInterface|string $node): bool;
 
     /**
      * Removes all nodes or an given array of nodes.
@@ -65,7 +68,7 @@ interface NodeInterface extends \IteratorAggregate, \Countable
      * @param  string $hash
      * @param  bool   $recursive
      */
-    public function findChild($hash, $recursive = true): ?self;
+    public function findChild(string $hash, bool $recursive = true): ?self;
 
 
     /**
@@ -74,7 +77,7 @@ interface NodeInterface extends \IteratorAggregate, \Countable
      * @param  NodeInterface|string $node
      * @param  bool        $recursive
      */
-    public function contains($node, $recursive = true): bool;
+    public function contains(NodeInterface|string $node, bool $recursive = true): bool;
 
     /**
      * Gets the nodes depth.

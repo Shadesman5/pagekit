@@ -1,53 +1,87 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\User\Controller;
 
-use Pagekit\Application as App;
-use Pagekit\Application\Exception;
-use Pagekit\User\Model\User;
+use function Pagekit\__;
 
+use Pagekit\Application\Exception;
+use Pagekit\Application\UrlProvider;
+use Pagekit\Auth\Auth;
+use Pagekit\Auth\Encoder\PasswordEncoderInterface;
+use Pagekit\Routing\Attribute\Request as RequestAttr;
+use Pagekit\Routing\Router;
+use Pagekit\System\Controller\ValidatesRequestTrait;
+use Pagekit\User\Model\User;
+use Pagekit\User\Model\UserRepository;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
+
+/**
+ * Controller for user profile management.
+ */
 class ProfileController
 {
-    public function indexAction()
-    {
-        $user = App::user();
+    use ValidatesRequestTrait;
 
-        if (!$user->isAuthenticated()) {
-            return App::redirect('@user/login', ['redirect' => App::url()->current()]);
+    public function __construct(
+        private readonly User $user,
+        private readonly UrlProvider $url,
+        private readonly Auth $auth,
+        private readonly Router $router,
+        private readonly PasswordEncoderInterface $authPassword,
+        protected readonly ValidatorInterface $validator,
+        private readonly UserRepository $userRepository,
+    ) {
+    }
+
+    /**
+     * @return array<string, mixed>|HttpResponse
+     */
+    public function indexAction(): array|HttpResponse
+    {
+        if (!$this->user->isAuthenticated()) {
+            return $this->router->redirect('@user/login', ['redirect' => $this->url->current()]);
         }
 
         return [
             '$view' => [
                 'title' => __('Profile'),
-                'name'  => 'system/user/profile.php'
+                'name' => 'system/user/profile.php',
             ],
             '$data' => [
                 'user' => [
-                    'name' => $user->name,
-                    'email' => $user->email
-                ]
-            ]
+                    'name' => $this->user->name,
+                    'email' => $this->user->email,
+                ],
+            ],
         ];
     }
 
     /**
-     * @Request({"user": "array"}, csrf=true)
+     * @param array<string, mixed> $data
+     * @return array{message: string}
      */
-    public function saveAction($data)
+    #[RequestAttr(['user' => 'array'], csrf: true)]
+    public function saveAction(array $data): array
     {
-        $user = App::user();
-
-        if (!$user->isAuthenticated()) {
-            App::abort(404);
+        if (!$this->user->isAuthenticated()) {
+            throw new NotFoundHttpException();
         }
 
         try {
 
-            $user = User::find($user->id);
+            $user = $this->userRepository->find((int) $this->user->id);
+            if ($user === null) {
+                throw new NotFoundHttpException();
+            }
 
             if ($password = @$data['password_new']) {
 
-                if (!App::auth()->getUserProvider()->validateCredentials($user, ['password' => @$data['password_old']])) {
+                if (!$this->auth->getUserProvider()->validateCredentials($user, ['password' => @$data['password_old']])) {
                     throw new Exception(__('Invalid Password.'));
                 }
 
@@ -55,7 +89,7 @@ class ProfileController
                     throw new Exception(__('Invalid Password.'));
                 }
 
-                $user->password = App::get('auth.password')->hash($password);
+                $user->password = $this->authPassword->hash($password);
             }
 
             if (@$data['email'] != $user->email) {
@@ -65,13 +99,14 @@ class ProfileController
             $user->name = @$data['name'];
             $user->email = @$data['email'];
 
-            $user->validate();
-            $user->save();
+            $this->validateOrFail($user);
+
+            $this->userRepository->save($user);
 
             return ['message' => 'success'];
 
         } catch (Exception $e) {
-            App::abort(400, $e->getMessage());
+            throw new BadRequestHttpException($e->getMessage(), $e);
         }
     }
 }

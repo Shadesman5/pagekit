@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Auth;
 
 final class AuthEvents
@@ -9,40 +11,40 @@ final class AuthEvents
      *
      * @var string
      */
-    const PRE_AUTHENTICATE = 'auth.pre_authenticate';
+    public const PRE_AUTHENTICATE = 'auth.pre_authenticate';
 
     /**
      * This event occurs after a user is authenticated.
      *
      * @var string
      */
-    const SUCCESS = 'auth.success';
+    public const SUCCESS = 'auth.success';
 
     /**
      * This event occurs after a user cannot be authenticated.
      *
      * @var string
      */
-    const FAILURE = 'auth.failure';
+    public const FAILURE = 'auth.failure';
 
     /**
      * This event occurs when a user needs to be authorized.
      *
      * @var string
      */
-    const AUTHORIZE = 'auth.authorize';
+    public const AUTHORIZE = 'auth.authorize';
 
     /**
      * This event occurs after a user is logged in interactively for authentication based on http, cookies or X509.
      *
      * @var string
      */
-    const LOGIN = 'auth.login';
+    public const LOGIN = 'auth.login';
 
     /**
      * This event occurs after a user is logged out.
      *
      * @var string
      */
-    const LOGOUT = 'auth.logout';
+    public const LOGOUT = 'auth.logout';
 }

@@ -1,41 +1,33 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit;
 
-class Container implements \ArrayAccess
+use Pagekit\Container\ContainerException;
+use Pagekit\Container\NotFoundException;
+use Psr\Container\ContainerInterface;
+
+class Container implements ContainerInterface
 {
+    /** @var array<string, mixed> */
     protected array $values = [];
 
+    /** @var array<string, mixed> */
     protected array $raw = [];
 
+    /** @var array<string, true> */
     protected array $factories = [];
 
     /**
-     * Constructor.
-     *
-     * @param array $values
+     * @param array<string, mixed> $values
      */
     public function __construct(array $values = [])
     {
         foreach ($values as $name => $value) {
-            $this->offsetSet($name, $value);
+            $this->set($name, $value);
         }
 
-        if (in_array('Pagekit\Application\Traits\StaticTrait', class_uses($this))) {
-            static::$instance = $this;
-        }
-    }
-
-    /**
-     * Gets a parameter/service or calls the invoke method.
-     *
-     * @param  string $name
-     * @param  array  $args
-     * @return mixed
-     */
-    public function __call($name, $args)
-    {
-        return $args ? call_user_func_array($this->offsetGet($name), $args) : $this->offsetGet($name);
     }
 
     /**
@@ -44,9 +36,9 @@ class Container implements \ArrayAccess
      * @param string   $name
      * @param \Closure $closure
      */
-    public function factory($name, \Closure $closure): void
+    public function factory(string $name, \Closure $closure): void
     {
-        $this->offsetSet($name, $closure);
+        $this->set($name, $closure);
         $this->factories[$name] = true;
     }
 
@@ -58,10 +50,23 @@ class Container implements \ArrayAccess
      *
      * @throws \InvalidArgumentException
      */
-    public function extend($name, \Closure $closure): void
+    public function extend(string $name, \Closure $closure): void
     {
         if (!array_key_exists($name, $this->values)) {
             throw new \InvalidArgumentException(sprintf('"%s" is not defined.', $name));
+        }
+
+        if (array_key_exists($name, $this->raw)) {
+            // Service already resolved — apply decorator to the live instance.
+            // Use case: debug module wraps EventDispatcher with TraceableEventDispatcher.
+            // NOTE for extension developers: this branch only runs if get() was called
+            // before extend(). The result replaces the resolved singleton; factory
+            // services (registered via factory()) are never affected since they are
+            // not stored in $raw.
+            $this->values[$name] = $closure($this->values[$name], $this);
+            $this->raw[$name] = $this->values[$name];
+
+            return;
         }
 
         if (!($this->values[$name] instanceof \Closure)) {
@@ -70,28 +75,28 @@ class Container implements \ArrayAccess
 
         $factory = $this->values[$name];
 
-        $this->offsetSet($name, fn($c) => $closure($factory($c), $c));
+        $this->values[$name] = fn ($c) => $closure($factory($c), $c);
     }
 
     /**
      * Gets a parameter/service without resolving.
      *
-     * @param  string $name
-     * @return mixed
-     *
+     * @return mixed Genuinely unknown type — container entries may be any type: closures, scalars, objects, or arrays, depending on what was registered.
      * @throws \InvalidArgumentException
      */
-    public function raw($name)
+    public function raw(string $name): mixed
     {
         if (!array_key_exists($name, $this->values)) {
             throw new \InvalidArgumentException(sprintf('"%s" is not defined.', $name));
         }
 
-        return isset($this->raw[$name]) ? $this->raw[$name] : $this->values[$name];
+        return $this->raw[$name] ?? $this->values[$name];
     }
 
     /**
      * Returns all defined names.
+     *
+     * @return list<string>
      */
     public function keys(): array
     {
@@ -99,69 +104,69 @@ class Container implements \ArrayAccess
     }
 
     /**
-     * Checks if a parameter/service is defined.
+     * PSR-11: Finds an entry of the container by its identifier and returns it.
      *
-     * @param  string $name
+     * @param string $id Identifier of the entry to look for.
+     *
+     * @throws NotFoundException  No entry was found for this identifier.
+     * @throws ContainerException Error while retrieving the entry.
+     *
+     * @return mixed PSR-11 contract — ContainerInterface::get() returns mixed per specification; narrowing would break PSR-11 compliance.
      */
-    public function offsetExists($name): bool
+    public function get(string $id): mixed
     {
-        return array_key_exists($name, $this->values);
+        if (!array_key_exists($id, $this->values)) {
+            throw new NotFoundException(sprintf('"%s" is not defined.', $id));
+        }
+
+        try {
+            if (array_key_exists($id, $this->raw) || !($this->values[$id] instanceof \Closure)) {
+                return $this->values[$id];
+            }
+
+            if (isset($this->factories[$id])) {
+                return $this->values[$id]($this);
+            }
+
+            $this->raw[$id] = $this->values[$id];
+
+            return $this->values[$id] = $this->values[$id]($this);
+        } catch (\Exception $e) {
+            throw new ContainerException(sprintf('Error while retrieving "%s"', $id), 0, $e);
+        }
     }
 
     /**
-     * Gets a parameter/service.
+     * PSR-11: Returns true if the container can return an entry for the given identifier.
      *
-     * @param  string $name
-     * @return mixed
+     * @param string $id Identifier of the entry to look for.
      *
-     * @throws \InvalidArgumentException
+     * @return bool
      */
-    #[\ReturnTypeWillChange]
-    public function offsetGet($name)
+    public function has(string $id): bool
     {
-        if (!array_key_exists($name, $this->values)) {
-            throw new \InvalidArgumentException(sprintf('"%s" is not defined.', $name));
-        }
-
-        if (array_key_exists($name, $this->raw) || !($this->values[$name] instanceof \Closure)) {
-            return $this->values[$name];
-        }
-
-        if (isset($this->factories[$name])) {
-            return $this->values[$name]($this);
-        }
-
-        $this->raw[$name] = $this->values[$name];
-
-        return $this->values[$name] = $this->values[$name]($this);
+        return array_key_exists($id, $this->values);
     }
 
     /**
      * Sets a parameter/service.
      *
-     * @param string $name
-     * @param mixed  $value
-     *
      * @throws \RuntimeException
      */
-    public function offsetSet($name, $value): void
+    public function set(string $id, mixed $value): void
     {
-        if (array_key_exists($name, $this->raw)) {
-            throw new \RuntimeException(sprintf('Cannot override service definition "%s".', $name));
+        if (array_key_exists($id, $this->raw)) {
+            throw new \RuntimeException(sprintf('Cannot override service definition "%s".', $id));
         }
 
-        $this->values[$name] = $value;
+        $this->values[$id] = $value;
     }
 
     /**
      * Removes a parameter/service.
-     *
-     * @param string $name
      */
-    public function offsetUnset($name): void
+    public function remove(string $id): void
     {
-        if (array_key_exists($name, $this->values)) {
-            unset($this->values[$name], $this->raw[$name], $this->factories[$name]);
-        }
+        unset($this->values[$id], $this->raw[$id], $this->factories[$id]);
     }
 }

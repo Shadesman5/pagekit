@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Filter;
 
 /**
@@ -10,8 +12,8 @@ class BooleanFilter extends AbstractFilter
     /**
      * {@inheritdoc}
      */
-    public function filter($value): bool
+    public function filter(mixed $value): bool
     {
-        return (bool) @strval($value);
+        return (bool) @(string) $value;
     }
 }

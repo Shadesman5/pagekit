@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Filter by' => 'Filtrar per',
   'Thank you! Your comment needs approval before showing up.' => 'Gràcies! El teu comentari ha de ser aprovat abans de publicar-lo',
   'Unable to comment. Please try again later.' => 'No es pot desar el comentari. Si us plau, prova-ho més tard.',
@@ -94,4 +98,4 @@
   'Written by %name% on %date%' => 'Escrit per %name% el %date%',
   'Read more' => 'Llegir-ne més',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Cap comentari|{1} %count% Comentaris|]1,Inf[ %count% comentaris',
-);
+];

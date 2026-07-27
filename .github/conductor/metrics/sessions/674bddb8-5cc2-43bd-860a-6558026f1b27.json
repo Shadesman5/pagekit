@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "674bddb8-5cc2-43bd-860a-6558026f1b27",
+  "roadmapStepId": "2.1.11",
+  "title": "Step 2.1.11: EntityManager DI",
+  "taskSlug": "EntityManager-DI",
+  "taskPrompt": "migration-docs/TODO/agent_prompts/EntityManager-DI.md",
+  "issue": 205,
+  "branch": null,
+  "model": null,
+  "status": "failed",
+  "startedAt": "2026-07-14T00:03:30Z",
+  "completedAt": "2026-07-14T00:03:41Z",
+  "phases": [
+    {
+      "phaseKey": "29294848720-unknown",
+      "type": "UNKNOWN",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-07-14T00:03:30Z",
+      "durationMs": null,
+      "agent": {
+        "id": null,
+        "runId": null,
+        "url": null,
+        "model": null
+      },
+      "github": {
+        "runId": 29294848720,
+        "runAttempt": 1,
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/29294848720",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": null,
+        "output": null,
+        "cacheRead": null,
+        "cacheWrite": null,
+        "total": null
+      },
+      "result": "Log unavailable or run failed before first phase",
+      "outcome": "error",
+      "backfill": true,
+      "notes": "No parseable phases in GHA log"
+    }
+  ],
+  "totals": {
+    "tokens": {
+      "input": null,
+      "output": null,
+      "cacheRead": null,
+      "cacheWrite": null,
+      "total": null
+    },
+    "durationMs": 0,
+    "phaseCount": 1,
+    "escalations": 0,
+    "ghaJobs": 1,
+    "cloudAgents": 0
+  },
+  "backfill": {
+    "source": "github-actions-logs",
+    "workflowRunId": 29294848720,
+    "workflowRunAttempt": 1,
+    "conclusion": "failure",
+    "createdAt": "2026-07-14T00:03:30Z",
+    "displayTitle": "Step 2.1.11: EntityManager DI",
+    "logAvailable": true,
+    "jobAttemptsMerged": 1
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-07-21T15:03:54.831Z",
+  "steps": {
+    "unknown": {
+      "title": "AGENT_PROMPT_AUDIT_TECH_DEBT_INVENTORY",
+      "latestSessionId": "ba162b98-3973-4638-8996-bff2fb902a47",
+      "sessionIds": [
+        "810faff4-ea4c-44f1-8c88-8763411a0bb8",
+        "ba162b98-3973-4638-8996-bff2fb902a47"
+      ]
+    },
+    "2.1.7": {
+      "title": "PROMPT_2_1_7_QueryBuilder-API",
+      "latestSessionId": "e9a4986b-1e7b-40d5-83ee-554cad750bcc",
+      "sessionIds": [
+        "e9a4986b-1e7b-40d5-83ee-554cad750bcc"
+      ]
+    },
+    "2.1.8": {
+      "title": "PROMPT_2_1_8_Infection-Mutation-Testing",
+      "latestSessionId": "d49288be-47a4-4259-8fc5-30c89eb4c8bc",
+      "sessionIds": [
+        "d49288be-47a4-4259-8fc5-30c89eb4c8bc"
+      ]
+    },
+    "2.1.9": {
+      "title": "PROMPT_2_1_9_Test-Coverage-Expansion",
+      "latestSessionId": "8743845c-1a2f-4b58-8b4e-519a016dd416",
+      "sessionIds": [
+        "8743845c-1a2f-4b58-8b4e-519a016dd416"
+      ]
+    },
+    "2.1.10": {
+      "title": "PROMPT_2_1_10_Entity-Presentation-Layer",
+      "latestSessionId": "61f1aea0-124b-44ad-861c-02ad76a01c3a",
+      "sessionIds": [
+        "61f1aea0-124b-44ad-861c-02ad76a01c3a"
+      ]
+    },
+    "2.1.11": {
+      "title": "Step 2.1.11: EntityManager DI",
+      "latestSessionId": "79fdc249-3a78-4349-833c-187e2fc277d5",
+      "sessionIds": [
+        "674bddb8-5cc2-43bd-860a-6558026f1b27",
+        "79fdc249-3a78-4349-833c-187e2fc277d5"
+      ]
+    },
+    "2.1.2": {
+      "title": "↳ CI/CD Integration & Quality Gates",
+      "latestSessionId": "71d505bb-8cd4-45ba-89c9-c4de39efc370",
+      "sessionIds": [
+        "71d505bb-8cd4-45ba-89c9-c4de39efc370"
+      ]
+    },
+    "2.1.3": {
+      "title": "↳ `strict_types` Migration",
+      "latestSessionId": "17f63daa-423a-4ad0-9902-4573dbd4465c",
+      "sessionIds": [
+        "17f63daa-423a-4ad0-9902-4573dbd4465c"
+      ]
+    },
+    "2.1.4": {
+      "title": "↳ PHPStan Level 5→6 (Return Types)",
+      "latestSessionId": "a0a05059-1b15-4cf0-b8fe-18be2b70eb2b",
+      "sessionIds": [
+        "a0a05059-1b15-4cf0-b8fe-18be2b70eb2b"
+      ]
+    },
+    "2.1.5": {
+      "title": "↳ PHPStan Level 6→7 (Null Safety)",
+      "latestSessionId": "7bf6945e-182e-41ba-abf1-5c3e8c9f1320",
+      "sessionIds": [
+        "7bf6945e-182e-41ba-abf1-5c3e8c9f1320"
+      ]
+    },
+    "2.1.6": {
+      "title": "↳ PHPStan Level 7→8 (Strict Typing)",
+      "latestSessionId": "ce0c9546-8953-430f-b423-32603b80694d",
+      "sessionIds": [
+        "ce0c9546-8953-430f-b423-32603b80694d"
+      ]
+    },
+    "2.0.5": {
+      "title": "↳ Composer & Autoload Hygiene",
+      "latestSessionId": "0475d3b6-2e8b-4a9b-93ce-5a0e2dc80a07",
+      "sessionIds": [
+        "0475d3b6-2e8b-4a9b-93ce-5a0e2dc80a07"
+      ]
+    },
+    "2.0.6": {
+      "title": "↳ Test Infrastructure Cleanup",
+      "latestSessionId": "b9e7e216-98f3-4313-9025-aba39ca24bcc",
+      "sessionIds": [
+        "b9e7e216-98f3-4313-9025-aba39ca24bcc"
+      ]
+    },
+    "2.0.7": {
+      "title": "↳ Event Dispatcher Bridge Removal",
+      "latestSessionId": "6749a544-3915-4dc9-994a-573271f9d389",
+      "sessionIds": [
+        "6749a544-3915-4dc9-994a-573271f9d389"
+      ]
+    },
+    "2.0.8": {
+      "title": "↳ Hotfix: `create_function()` in User",
+      "latestSessionId": "f80004cc-8169-4ddb-8a10-fafc6ccf9645",
+      "sessionIds": [
+        "f80004cc-8169-4ddb-8a10-fafc6ccf9645"
+      ]
+    },
+    "2.1.12": {
+      "title": "Step 2.1.12 Residual Mixed Narrowing",
+      "latestSessionId": "158c618d-c832-42fe-aa51-de5d791f1d45",
+      "sessionIds": [
+        "158c618d-c832-42fe-aa51-de5d791f1d45"
+      ]
+    },
+    "2.1.13": {
+      "title": "Step 2.1.13 — TinyMCE Security Patch",
+      "latestSessionId": "06afa15a-621f-4dce-856b-c0628e1a28de",
+      "sessionIds": [
+        "06afa15a-621f-4dce-856b-c0628e1a28de"
+      ]
+    }
+  },
+  "backfill": {
+    "at": "2026-07-14T16:45:46.159Z",
+    "runCount": 8,
+    "note": "Historical data from GHA logs (all job attempts merged per workflow run)"
+  },
+  "cursorEnrich": {
+    "at": "2026-07-21T15:03:54.831Z",
+    "phasesEnriched": 1,
+    "sessionsTouched": 1
+  }
+}

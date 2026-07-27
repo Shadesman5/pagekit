@@ -1,20 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\View\Asset;
 
-use Pagekit\View\Asset\AssetInterface;
-
+/**
+ * @implements \IteratorAggregate<string, AssetInterface>
+ */
 class AssetCollection implements \IteratorAggregate, \Countable
 {
     /**
-     * @var AssetInterface[]
+     * @var array<string, AssetInterface>
      */
     protected array $assets;
 
     /**
      * Constructor.
      *
-     * @param array $assets
+     * @param array<string, AssetInterface> $assets
      */
     public function __construct(array $assets = [])
     {
@@ -23,18 +26,14 @@ class AssetCollection implements \IteratorAggregate, \Countable
 
     /**
      * Gets asset from collection.
-     *
-     * @param  string $name
      */
-    public function get($name): ?AssetInterface
+    public function get(string $name): ?AssetInterface
     {
         return isset($this->assets[$name]) ? $this->assets[$name] : null;
     }
 
     /**
      * Adds asset to collection.
-     *
-     * @param AssetInterface $asset
      */
     public function add(AssetInterface $asset): void
     {
@@ -43,11 +42,8 @@ class AssetCollection implements \IteratorAggregate, \Countable
 
     /**
      * Replace asset in collection.
-     *
-     * @param string         $name
-     * @param AssetInterface $asset
      */
-    public function replace($name, AssetInterface $asset): void
+    public function replace(string $name, AssetInterface $asset): void
     {
         $assets = [];
 
@@ -65,7 +61,7 @@ class AssetCollection implements \IteratorAggregate, \Countable
     /**
      * Removes assets from collection.
      *
-     * @param string|array $name
+     * @param string|array<int, string> $name
      */
     public function remove($name): void
     {
@@ -78,10 +74,8 @@ class AssetCollection implements \IteratorAggregate, \Countable
 
     /**
      * Gets the unique hash of the collection.
-     *
-     * @param  string $salt
      */
-    public function hash($salt = ''): string
+    public function hash(string $salt = ''): string
     {
         $hashes = [];
 
@@ -95,7 +89,7 @@ class AssetCollection implements \IteratorAggregate, \Countable
     /**
      * Dumps collection to a string.
      *
-     * @param  array $filters
+     * @param array<int, callable|object> $filters
      */
     public function dump(array $filters = []): string
     {
@@ -110,6 +104,8 @@ class AssetCollection implements \IteratorAggregate, \Countable
 
     /**
      * Gets all asset names.
+     *
+     * @return array<int, string>
      */
     public function names(): array
     {
@@ -126,6 +122,8 @@ class AssetCollection implements \IteratorAggregate, \Countable
 
     /**
      * IteratorAggregate interface implementation.
+     *
+     * @return \ArrayIterator<string, AssetInterface>
      */
     public function getIterator(): \ArrayIterator
     {

@@ -1,28 +1,31 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Feed;
 
 class FeedFactory
 {
     /**
-     * @var string[]
+     * @var array<string, class-string<FeedInterface>>
      */
     protected array $feeds = [
         Feed::ATOM => 'Pagekit\Feed\Feed\Atom',
         Feed::RSS1 => 'Pagekit\Feed\Feed\RSS1',
-        Feed::RSS2 => 'Pagekit\Feed\Feed\RSS2'
+        Feed::RSS2 => 'Pagekit\Feed\Feed\RSS2',
     ];
 
     /**
      * Creates a feed.
      *
-     * @param  string $type
-     * @param  array  $elements
+     * @param string|null          $type
+     * @param array<string, mixed> $elements
      */
     public function create($type = null, array $elements = []): FeedInterface
     {
         $class = isset($this->feeds[$type]) ? $this->feeds[$type] : $this->feeds[Feed::RSS2];
-        return (new $class)->addElements($elements);
+
+        return (new $class())->addElements($elements);
     }
 
     /**

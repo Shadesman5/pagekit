@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Filesystem\Adapter;
 
 interface AdapterInterface
@@ -12,7 +14,9 @@ interface AdapterInterface
     /**
      * Gets file path info.
      *
-     * @param  array $info
+     * @param array<string, mixed> $info
+     *
+     * @return array<string, mixed>
      */
     public function getPathInfo(array $info): array;
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Widget\Model\Widget;
 use Pagekit\Widget\PositionHelper;
 use Pagekit\Widget\PositionManager;
@@ -11,23 +13,25 @@ return [
 
     'main' => function ($app) {
 
-        $app['widget'] = fn($app) => new WidgetManager($app);
+        $app->set('widget', fn ($app) => new WidgetManager($app));
 
-        $app['position'] = function ($app) {
+        $app->set('widgetRepository', fn ($app) => $app->get('db.em')->getRepository(Widget::class));
 
-            $positions = new PositionManager($app->config($app['theme']->name));
+        $app->set('position', function ($app) {
 
-            foreach ($app['theme']->get('positions', []) as $name => $label) {
+            $positions = new PositionManager($app->get('config')($app->get('theme')->name));
+
+            foreach ($app->get('theme')->get('positions', []) as $name => $label) {
                 $positions->register($name, $label);
             }
 
             return $positions;
-        };
+        });
 
-        $app['module']->addLoader(function ($module) use ($app) {
+        $app->get('module')->addLoader(function ($module) use ($app) {
 
             if (isset($module['widgets'])) {
-                $app['widget']->register($module['widgets'], $module['path']);
+                $app->get('widget')->register($module['widgets'], $module['path']);
             }
 
             return $module;
@@ -37,7 +41,7 @@ return [
 
     'autoload' => [
 
-        'Pagekit\\Widget\\' => 'src'
+        'Pagekit\\Widget\\' => 'src',
 
     ],
 
@@ -45,27 +49,27 @@ return [
 
         '/site/widget' => [
             'name' => '@site/widget',
-            'controller' => 'Pagekit\\Widget\\Controller\\WidgetController'
+            'controller' => 'Pagekit\\Widget\\Controller\\WidgetController',
         ],
         '/api/site/widget' => [
             'name' => '@site/api/widget',
-            'controller' => 'Pagekit\\Widget\\Controller\\WidgetApiController'
-        ]
+            'controller' => 'Pagekit\\Widget\\Controller\\WidgetApiController',
+        ],
 
     ],
 
     'resources' => [
 
         'system/widget:' => '',
-        'views:system/widget' => 'views'
+        'views:system/widget' => 'views',
 
     ],
 
     'permissions' => [
 
         'system: manage widgets' => [
-            'title' => 'Manage widgets'
-        ]
+            'title' => 'Manage widgets',
+        ],
 
     ],
 
@@ -77,8 +81,8 @@ return [
             'url' => '@site/widget',
             'access' => 'system: manage widgets',
             'active' => '@site/widget(/edit)?',
-            'priority' => 20
-        ]
+            'priority' => 20,
+        ],
 
     ],
 
@@ -88,9 +92,9 @@ return [
 
             'positions' => [],
             'config' => [],
-            'defaults' => []
+            'defaults' => [],
 
-        ]
+        ],
 
     ],
 
@@ -98,12 +102,14 @@ return [
 
         'boot' => function ($event, $app) {
 
-            Widget::defineProperty('position', fn() => $app['position']->find($this->id), true);
+            $app->get('events')->on('model.role.deleted', function ($event, $role) use ($app) {
+                $app->get('widgetRepository')->removeRole((int) $role->id);
+            });
 
             Widget::defineProperty('theme', function () use ($app) {
 
-                $config  = $app['theme']->config('_widgets.'.$this->id, []);
-                $default = $app['theme']->get('widget', []);
+                $config = $app->get('theme')->config('_widgets.'.$this->id, []);
+                $default = $app->get('theme')->get('widget', []);
 
                 return array_replace_recursive($default, $config);
             }, true);
@@ -111,8 +117,8 @@ return [
 
         'package.enable' => function ($event, $package) use ($app) {
             if ($package->getType() === 'pagekit-theme') {
-                $new = $app->config($package->get('module'));
-                $old = $app->config($app['theme']->name);
+                $new = $app->get('config')($package->get('module'));
+                $old = $app->get('config')($app->get('theme')->name);
                 $assigned = [];
 
                 foreach ((array) $new->get('_positions') as $position => $modules) {
@@ -130,28 +136,32 @@ return [
         },
 
         'view.init' => function ($event, $view) use ($app) {
-            $view->addHelper(new PositionHelper($app['position']));
+            $view->addHelper(new PositionHelper(
+                $app->get('position'),
+                $app->get('user'),
+                $app->get('node'),
+                $app->get('widget'),
+                $app->get('widgetRepository'),
+            ));
         },
 
         'view.scripts' => function ($event, $scripts) {
-            $scripts->register('widgets', 'system/widget:app/bundle/widgets.js', 'vue');
+            $scripts->register('widgets', 'system/widget:app/bundle/widgets.js', ['vue']);
         },
 
         'model.widget.init' => function ($event, $widget) use ($app) {
-            if ($type = $app->widget($widget->type)) {
+            if ($type = $app->get('widget')->get($widget->type)) {
                 $widget->data = array_replace_recursive($type->get('defaults', []), $widget->data ?: []);
             }
         },
 
         'model.widget.saved' => function ($event, $widget) use ($app) {
-            $app['position']->assign($widget->position, $widget->id);
-            $app->config($app['theme']->name)->set('_widgets.'.$widget->id, $widget->theme);
+            if ($widget->position !== null) {
+                $app->get('position')->assign($widget->position, $widget->id);
+            }
+            $app->get('config')($app->get('theme')->name)->set('_widgets.'.$widget->id, $widget->theme);
         },
 
-        'model.role.deleted' => function ($event, $role) {
-            Widget::removeRole($role);
-        }
-
-    ]
+    ],
 
 ];

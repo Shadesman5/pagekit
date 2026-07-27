@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Represents a single PHP requirement, e.g. an installed extension.
  * It can be a mandatory requirement or an optional recommendation.
@@ -26,11 +28,11 @@ class Requirement
      */
     public function __construct($fulfilled, $testMessage, $helpHtml, $helpText = null, $optional = false)
     {
-        $this->fulfilled = (Boolean) $fulfilled;
+        $this->fulfilled = (bool) $fulfilled;
         $this->testMessage = (string) $testMessage;
         $this->helpHtml = (string) $helpHtml;
         $this->helpText = null === $helpText ? strip_tags($this->helpHtml) : (string) $helpText;
-        $this->optional = (Boolean) $optional;
+        $this->optional = (bool) $optional;
     }
 
     /**
@@ -95,7 +97,7 @@ class PhpIniRequirement extends Requirement
      * Constructor that initializes the requirement.
      *
      * @param string           $cfgName    The configuration name used for ini_get()
-     * @param Boolean|callback $evaluation Either a Boolean indicating whether the configuration should evaluate to true or false,
+     * @param Boolean|callable $evaluation Either a Boolean indicating whether the configuration should evaluate to true or false,
                                                     or a callback function receiving the configuration value as parameter to determine the fulfillment of the requirement
      * @param Boolean $approveCfgAbsence If true the Requirement will be fulfilled even if the configuration option does not exist, i.e. ini_get() returns false.
                                                     This is helpful for abandoned configs in later PHP versions or configs of an optional extension, like Suhosin.
@@ -117,7 +119,8 @@ class PhpIniRequirement extends Requirement
             $fulfilled = call_user_func($evaluation, $cfgValue);
         } else {
             if (null === $testMessage) {
-                $testMessage = sprintf('%s %s be %s in php.ini',
+                $testMessage = sprintf(
+                    '%s %s be %s in php.ini',
                     $cfgName,
                     $optional ? 'should' : 'must',
                     $evaluation ? 'enabled' : 'disabled'
@@ -125,7 +128,8 @@ class PhpIniRequirement extends Requirement
             }
 
             if (null === $helpHtml) {
-                $helpHtml = sprintf('Set <strong>%s</strong> to <strong>%s</strong> in php.ini<a href="#phpini">*</a>.',
+                $helpHtml = sprintf(
+                    'Set <strong>%s</strong> to <strong>%s</strong> in php.ini<a href="#phpini">*</a>.',
                     $cfgName,
                     $evaluation ? 'on' : 'off'
                 );
@@ -142,15 +146,18 @@ class PhpIniRequirement extends Requirement
  * A RequirementCollection represents a set of Requirement instances.
  *
  * @author Tobias Schultze <http://tobion.de>
+ *
+ * @implements IteratorAggregate<int, Requirement>
  */
 class RequirementCollection implements IteratorAggregate
 {
-    private ?array $requirements = array();
+    /** @var array<int, Requirement> */
+    private array $requirements = [];
 
     /**
      * Gets the current RequirementCollection as an Iterator.
      *
-     * @return Traversable A Traversable interface
+     * @return \ArrayIterator<int, Requirement> A Traversable interface
      */
     public function getIterator(): \ArrayIterator
     {
@@ -197,7 +204,7 @@ class RequirementCollection implements IteratorAggregate
      * Adds a mandatory requirement in form of a php.ini configuration.
      *
      * @param string           $cfgName    The configuration name used for ini_get()
-     * @param Boolean|callback $evaluation Either a Boolean indicating whether the configuration should evaluate to true or false,
+     * @param Boolean|callable $evaluation Either a Boolean indicating whether the configuration should evaluate to true or false,
                                                     or a callback function receiving the configuration value as parameter to determine the fulfillment of the requirement
      * @param Boolean $approveCfgAbsence If true the Requirement will be fulfilled even if the configuration option does not exist, i.e. ini_get() returns false.
                                                     This is helpful for abandoned configs in later PHP versions or configs of an optional extension, like Suhosin.
@@ -215,7 +222,7 @@ class RequirementCollection implements IteratorAggregate
      * Adds an optional recommendation in form of a php.ini configuration.
      *
      * @param string           $cfgName    The configuration name used for ini_get()
-     * @param Boolean|callback $evaluation Either a Boolean indicating whether the configuration should evaluate to true or false,
+     * @param Boolean|callable $evaluation Either a Boolean indicating whether the configuration should evaluate to true or false,
                                                     or a callback function receiving the configuration value as parameter to determine the fulfillment of the requirement
      * @param Boolean $approveCfgAbsence If true the Requirement will be fulfilled even if the configuration option does not exist, i.e. ini_get() returns false.
                                                     This is helpful for abandoned configs in later PHP versions or configs of an optional extension, like Suhosin.
@@ -242,9 +249,9 @@ class RequirementCollection implements IteratorAggregate
     /**
      * Returns both requirements and recommendations.
      *
-     * @return array Array of Requirement instances
+     * @return array<int, Requirement> Array of Requirement instances
      */
-    public function all(): ?array
+    public function all(): array
     {
         return $this->requirements;
     }
@@ -252,11 +259,11 @@ class RequirementCollection implements IteratorAggregate
     /**
      * Returns all mandatory requirements.
      *
-     * @return array Array of Requirement instances
+     * @return array<int, Requirement> Array of Requirement instances
      */
     public function getRequirements(): array
     {
-        $array = array();
+        $array = [];
         foreach ($this->requirements as $req) {
             if (!$req->isOptional()) {
                 $array[] = $req;
@@ -269,11 +276,11 @@ class RequirementCollection implements IteratorAggregate
     /**
      * Returns the mandatory requirements that were not met.
      *
-     * @return array Array of Requirement instances
+     * @return array<int, Requirement> Array of Requirement instances
      */
     public function getFailedRequirements(): array
     {
-        $array = array();
+        $array = [];
         foreach ($this->requirements as $req) {
             if (!$req->isFulfilled() && !$req->isOptional()) {
                 $array[] = $req;
@@ -286,11 +293,11 @@ class RequirementCollection implements IteratorAggregate
     /**
      * Returns all optional recommmendations.
      *
-     * @return array Array of Requirement instances
+     * @return array<int, Requirement> Array of Requirement instances
      */
     public function getRecommendations(): array
     {
-        $array = array();
+        $array = [];
         foreach ($this->requirements as $req) {
             if ($req->isOptional()) {
                 $array[] = $req;
@@ -303,11 +310,11 @@ class RequirementCollection implements IteratorAggregate
     /**
      * Returns the recommendations that were not met.
      *
-     * @return array Array of Requirement instances
+     * @return array<int, Requirement> Array of Requirement instances
      */
     public function getFailedRecommendations(): array
     {
-        $array = array();
+        $array = [];
         foreach ($this->requirements as $req) {
             if (!$req->isFulfilled() && $req->isOptional()) {
                 $array[] = $req;
@@ -340,7 +347,9 @@ class RequirementCollection implements IteratorAggregate
      */
     public function getPhpIniConfigPath()
     {
-        return get_cfg_var('cfg_file_path');
+        $path = get_cfg_var('cfg_file_path');
+
+        return is_string($path) ? $path : false;
     }
 }
 
@@ -352,26 +361,28 @@ class RequirementCollection implements IteratorAggregate
  */
 class PagekitRequirements extends RequirementCollection
 {
-    const REQUIRED_PHP_VERSION = '8.2.0';
+    public const REQUIRED_PHP_VERSION = '8.5.0';
 
     /**
      * Constructor that initializes the requirements.
      */
-    public function __construct($path)
+    public function __construct(string $path)
     {
         /* mandatory requirements follow */
 
         $installedPhpVersion = phpversion();
 
-        $this->addPhpIniRequirement('detect_unicode', false);
         $this->addPhpIniRequirement('allow_url_fopen', true);
 
         $this->addRequirement(
             version_compare($installedPhpVersion, self::REQUIRED_PHP_VERSION, '>='),
             sprintf('PHP version must be at least %s (%s installed)', self::REQUIRED_PHP_VERSION, $installedPhpVersion),
-            sprintf('You are running PHP version "<strong>%s</strong>", but Pagekit needs at least PHP "<strong>%s</strong>" to run.
+            sprintf(
+                'You are running PHP version "<strong>%s</strong>", but Pagekit needs at least PHP "<strong>%s</strong>" to run.
                 Before using Pagekit, upgrade your PHP installation, preferably to the latest version.',
-                $installedPhpVersion, self::REQUIRED_PHP_VERSION),
+                $installedPhpVersion,
+                self::REQUIRED_PHP_VERSION
+            ),
             sprintf('Install PHP %s or newer (installed version is %s)', self::REQUIRED_PHP_VERSION, $installedPhpVersion)
         );
 
@@ -441,13 +452,6 @@ class PagekitRequirements extends RequirementCollection
             'Install and enable the <strong>PDO</strong> extension.'
         );
 
-        if (version_compare($installedPhpVersion, '5.6', '>=') && version_compare($installedPhpVersion, '7.0.0', '<')) {
-            $this->addRequirement(!(ini_get('display_startup_errors') === "1" && ini_get('always_populate_raw_post_data') !== "-1"),
-                '\'display_startup_errors\' is enabled and \'always_populate_raw_post_data\' is not set to \'-1\'',
-                'Disable startup errors or set \'always_populate_raw_post_data\' to \'-1\' in php.ini.'
-            );
-        }
-
         if (class_exists('PDO')) {
             $drivers = PDO::getAvailableDrivers();
             $this->addRequirement(
@@ -475,7 +479,8 @@ class PagekitRequirements extends RequirementCollection
         $this->addRequirement(
             file_exists("$path/.htaccess"),
             ".htaccess does not exist",
-            "Make sure the <strong>.htaccess</strong> file has been uploaded, sometimes hidden files are not uploaded using FTP/SFTP.");
+            "Make sure the <strong>.htaccess</strong> file has been uploaded, sometimes hidden files are not uploaded using FTP/SFTP."
+        );
 
         if (function_exists('opcache_invalidate') && ini_get('opcache.enable')) {
             $this->addPhpIniRequirement('opcache.load_comments', true, true);
@@ -496,42 +501,24 @@ class PagekitRequirements extends RequirementCollection
             'Install and enable the <strong>iconv</strong> extension.'
         );
 
-        $this->addRecommendation(
-            function_exists('utf8_decode'),
-            'utf8_decode() should be available',
-            'Install and enable the <strong>XML Parser</strong> extension.'
-        );
-
         if (extension_loaded('apcu')) {
+            $apcuVersion = phpversion('apcu');
             $this->addRecommendation(
-                version_compare(phpversion('apcu'), '4.0.2', '>='),
-                'APCu version must be at least 4.0.2',
-                'Upgrade your <strong>APCu</strong> extension (4.0.2+).'
+                $apcuVersion !== false && version_compare($apcuVersion, '5.1.0', '>='),
+                'APCu version must be at least 5.1.0',
+                'Upgrade your <strong>APCu</strong> extension (5.1.0+).'
             );
         }
 
-        if (function_exists('apc_store') && ini_get('apc.enabled')) {
-            $this->addRequirement(
-                version_compare(phpversion('apc'), '3.1.13', '>='),
-                'APC version must be at least 3.1.13 when using PHP 5.4',
-                'Upgrade your <strong>APC</strong> extension (3.1.13+).'
-            );
-        }
-
-        $accelerator = (function_exists('apc_store') && ini_get('apc.enabled'))
-                        || (function_exists('eaccelerator_put') && ini_get('eaccelerator.enable'))
-                        || (function_exists('opcache_invalidate') && ini_get('opcache.enable'))
-                        || function_exists('xcache_set');
+        $accelerator = function_exists('opcache_invalidate') && ini_get('opcache.enable');
 
         $this->addRecommendation(
             $accelerator,
-            'a PHP accelerator should be installed',
-            'Install and enable a <strong>PHP accelerator</strong> like APC (highly recommended).'
+            'OPcache should be installed and enabled',
+            'Install and enable the <strong>OPcache</strong> extension (highly recommended for PHP 8.5+).'
         );
 
         $this->addPhpIniRecommendation('short_open_tag', false);
-        $this->addPhpIniRecommendation('magic_quotes_gpc', false, true);
-        $this->addPhpIniRecommendation('register_globals', false, true);
         $this->addPhpIniRecommendation('session.auto_start', false);
     }
 }

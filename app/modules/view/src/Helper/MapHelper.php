@@ -1,11 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\View\Helper;
 
 use Pagekit\View\View;
 
+/**
+ * @implements \IteratorAggregate<string, string>
+ */
 class MapHelper implements HelperInterface, \IteratorAggregate
 {
+    /** @var array<string, string> */
     protected array $map = [];
 
     /**
@@ -24,18 +30,18 @@ class MapHelper implements HelperInterface, \IteratorAggregate
      * Add shortcut.
      *
      * @see add()
+     *
+     * @param string|array<string, string> $name
      */
-    public function __invoke($name, $path = null)
+    public function __invoke($name, ?string $path = null): void
     {
         $this->add($name, $path);
     }
 
     /**
      * Gets a template.
-     *
-     * @param  string $name
      */
-    public function get($name): ?string
+    public function get(string $name): ?string
     {
         return isset($this->map[$name]) ? $this->map[$name] : null;
     }
@@ -43,10 +49,9 @@ class MapHelper implements HelperInterface, \IteratorAggregate
     /**
      * Adds a template.
      *
-     * @param string|array $name
-     * @param string       $path
+     * @param string|array<string, string> $name
      */
-    public function add($name, $path = null): void
+    public function add($name, ?string $path = null): void
     {
         if (is_string($name) && $path) {
             $this->map[$name] = $path;
@@ -59,16 +64,16 @@ class MapHelper implements HelperInterface, \IteratorAggregate
 
     /**
      * Checks if the template exists.
-     *
-     * @param  string $name
      */
-    public function has($name): bool
+    public function has(string $name): bool
     {
         return isset($this->map[$name]);
     }
 
     /**
      * Implements the IteratorAggregate.
+     *
+     * @return \ArrayIterator<string, string>
      */
     public function getIterator(): \ArrayIterator
     {

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Feed\FeedFactory;
 
 return [
@@ -8,14 +10,14 @@ return [
 
     'main' => function ($app) {
 
-        $app['feed'] = fn() => new FeedFactory;
+        $app->set('feed', fn () => new FeedFactory());
 
     },
 
     'autoload' => [
 
-        'Pagekit\\Feed\\' => 'src'
+        'Pagekit\\Feed\\' => 'src',
 
-    ]
+    ],
 
 ];

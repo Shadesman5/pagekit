@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Filter by' => 'Filter op',
   'Thank you! Your comment needs approval before showing up.' => 'Bedankt! Je reactie zal worden gepubliceerd nadat deze is goedgekeurd.',
   'Unable to comment. Please try again later.' => 'Reactie plaatsen is niet gelukt. Probeer het later opnieuw.',
@@ -94,4 +98,4 @@
   'Written by %name% on %date%' => 'Geschreven door %name% op %date%',
   'Read more' => 'Lees meer',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} Geen reacties|{1} %count% reactie|]1,Inf[ %count% reacties',
-);
+];

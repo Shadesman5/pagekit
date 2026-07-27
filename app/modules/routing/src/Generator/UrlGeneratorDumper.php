@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Routing\Generator;
 
 use Symfony\Component\Routing\Generator\Dumper\GeneratorDumper;
@@ -16,12 +18,12 @@ class UrlGeneratorDumper extends GeneratorDumper
     /**
      * Dumps a set of routes to a PHP class.
      *
-     * @param  array  $options
+     * @param array<string, string> $options
      */
     public function dump(array $options = []): string
     {
         $options = array_merge([
-            'class'      => 'ProjectUrlGenerator',
+            'class' => 'ProjectUrlGenerator',
             'base_class' => 'Symfony\\Component\\Routing\\Generator\\UrlGenerator',
         ], $options);
 
@@ -82,12 +84,12 @@ EOF;
     }
 
     /**
-     * Generates PHP code representing the `generate` method that implements the UrlGeneratorInterface.
+     * Generates PHP code representing the `generate` method that implements the LinkReferenceType.
      */
     private function generateGenerateMethod(): string
     {
         return <<<EOF
-    public function generate(\$name, \$parameters = [], \$referenceType = self::ABSOLUTE_PATH)
+    public function generate(string \$name, array \$parameters = [], int \$referenceType = self::ABSOLUTE_PATH): string
     {
         if (!isset(self::\$declaredRoutes[\$name])) {
             throw new RouteNotFoundException(sprintf('Unable to generate a URL for the named route "%s" as such route does not exist.', \$name));

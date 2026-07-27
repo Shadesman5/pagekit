@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Title' => 'ཁ་བྱང་།',
   'Theme' => 'དཔེ་སྒྲོམ།',
   'Hide Title' => 'ཁ་བྱང་སྦས།',
@@ -38,4 +42,4 @@
   'Written by %name% on %date%' => '%name% ནས་on %date%ལ་བྲིས།',
   'Read more' => 'འཕྲོ་མའི་ནང་དོན།',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} དཔྱད་བརྗོད་མེད།|{1} %count% དཔྱད་བརྗོད།|]1,Inf[ %count% དཔྱད་བརྗོད།',
-);
+];

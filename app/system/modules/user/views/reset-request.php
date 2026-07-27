@@ -1,8 +1,9 @@
+<?php declare(strict_types=1); ?>
 <form class="pk-user pk-user-reset uk-form-stacked uk-width-1-2@m uk-width-1-3@l uk-container" action="<?= $view->url('@user/resetpassword/request') ?>" method="post">
 
     <h1 class="uk-h2 uk-text-center"><?= __('Forgot Password') ?></h1>
 
-    <?php if($error): ?>
+    <?php if ($error): ?>
         <div class="uk-alert-danger" uk-alert>
             <?= $error; ?>
         </div>

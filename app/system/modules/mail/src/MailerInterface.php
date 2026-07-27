@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Mail;
 
 use Symfony\Component\Mime\Email;
@@ -7,16 +9,17 @@ use Symfony\Component\Mime\Email;
 interface MailerInterface
 {
     /**
-     * Called before the message is sent.
-     *
-     * @param Email $message
+     * Sends an email message.
      */
-    public function beforeSend(Email $message);
+    public function send(Email $message): bool;
 
     /**
-     * Called after the message is sent.
-     *
-     * @param Email $message
+     * Creates a new message instance.
      */
-    public function afterSend(Email $message);
+    public function create(): Message;
+
+    /**
+     * Registers a plugin.
+     */
+    public function registerPlugin(MailPluginInterface $plugin): void;
 }

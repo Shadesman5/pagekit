@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 $autoload = [
     'Pagekit\\Auth\\' => '/app/modules/auth/src',
     'Pagekit\\Config\\' => '/app/modules/config/src',
@@ -12,7 +14,7 @@ $autoload = [
     'Pagekit\\Routing\\' => '/app/modules/routing/src',
     'Pagekit\\Session\\' => '/app/modules/session/src',
     'Pagekit\\Tree\\' => '/app/modules/tree/src',
-    'Pagekit\\View\\' => '/app/modules/view/src'
+    'Pagekit\\View\\' => '/app/modules/view/src',
 ];
 
 $path = realpath(__DIR__.'/../../../../../');

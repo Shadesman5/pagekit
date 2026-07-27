@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Finder\Event;
 
 use Pagekit\Event\Event;
@@ -40,23 +42,26 @@ class FileAccessEvent extends Event
             case 'r':
             case 'read':
                 $this->readPaths[] = $this->toRegex($pattern);
+
                 break;
 
             case 'w':
             case 'write':
                 $this->writePaths[] = $this->toRegex($pattern);
+
                 break;
 
             case '-':
             case 'deny':
                 $this->notPaths[] = $this->toRegex($pattern);
+
                 break;
         }
 
         return $this;
     }
 
-    public function mode($path): string
+    public function mode(string $path): string
     {
         if (defined('PHP_WINDOWS_VERSION_MAJOR')) {
             $path = strtr($path, '\\', '/');
@@ -100,7 +105,7 @@ class FileAccessEvent extends Event
                 return !preg_match('/[*?[:alnum:] \\\\]/', $start);
             }
 
-            foreach (array(array('{', '}'), array('(', ')'), array('[', ']'), array('<', '>')) as $delimiters) {
+            foreach ([['{', '}'], ['(', ')'], ['[', ']'], ['<', '>']] as $delimiters) {
                 if ($start === $delimiters[0] && $end === $delimiters[1]) {
                     return true;
                 }

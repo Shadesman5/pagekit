@@ -1,20 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Filter\Tests;
 
-use PHPUnit\Framework\TestCase;
 use Pagekit\Filter\BooleanFilter;
+use PHPUnit\Framework\TestCase;
 
 class BooleanTest extends TestCase
 {
     public function testFilter(): void
     {
-        $filter = new BooleanFilter;
+        $filter = new BooleanFilter();
 
         $values = [
-            0   => false,
-            ""  => false,
-            "1" => true
+            0 => false,
+            "" => false,
+            "1" => true,
 
         ];
         foreach ($values as $in => $out) {

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Content\Event;
 
 use Pagekit\Event\Event;
@@ -8,16 +10,13 @@ class ContentEvent extends Event
 {
     protected string $content;
 
+    /** @var array<string, mixed> */
     protected array $plugins = [];
 
     /**
-     * Constructor.
-     *
-     * @param string $name
-     * @param string $content
-     * @param array  $parameters
+     * @param array<string, mixed> $parameters
      */
-    public function __construct($name, $content, array $parameters = [])
+    public function __construct(string $name, string $content, array $parameters = [])
     {
         parent::__construct($name, $parameters);
 
@@ -29,33 +28,28 @@ class ContentEvent extends Event
         return $this->content;
     }
 
-    /**
-     * @param string $content
-     */
-    public function setContent($content): void
+    public function setContent(string $content): void
     {
         $this->content = $content;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getPlugins(): array
     {
         return $this->plugins;
     }
 
     /**
-     * @param  string $name
-     * @return mixed
+     * @return mixed Genuinely unknown type — plugin callbacks are registered externally as closures, class instances, or any callable; type depends on the registered plugin.
      */
-    public function getPlugin($name)
+    public function getPlugin(string $name): mixed
     {
-        return isset($this->plugins[$name]) ? $this->plugins[$name] : null;
+        return $this->plugins[$name] ?? null;
     }
 
-    /**
-     * @param string $name
-     * @param mixed  $callback
-     */
-    public function addPlugin($name, $callback): void
+    public function addPlugin(string $name, mixed $callback): void
     {
         $this->plugins[$name] = $callback;
     }

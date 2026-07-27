@@ -1,4 +1,93 @@
 ---
-description: Pagekit Context Rules - Apply when working with specific technologies or implementing features. Primary source: Pagekit Original Documentation as reference; Modernization: Update old code examples with modern technologies; Evolution: Compatibility requirements can be adjusted as needed; Always base new implementations on Pagekit documentation patterns; PHP Versions: Currently 7.4 to 8.4, flexibly adjustable as needed; Databases: MySQL 8.4 and SQLite 3 (selectable during installation); Frontend: Vue.js 2.6 and UIkit 3.5; Build Tools: Yarn 1.22, Composer 2, Webpack 4; Future-proofing: Requirements can be adjusted when needed; Use Vue.js 2.6 patterns and best practices; Follow UIkit 3.5 component structure
-alwaysApply: false
+description: Pagekit Context Rules - Tech Stack & Critical Constraints for Modernization.
+globs: *.php,*.js,*.vue,composer.json,package.json
+alwaysApply: true
 ---
+
+# Pagekit Context & Constraints
+
+## 🛑 CRITICAL CONSTRAINTS (STRICT)
+
+1.  **NO WORDPRESS CODE:**
+
+    - **NEVER** use WordPress-specific functions (e.g., `add_action`, `do_shortcode`, `WP_Query`, `get_post_meta`).
+    - **NEVER** assume a WordPress database structure (`wp_posts`, `wp_options`).
+    - This is a **Symfony/Pagekit** application, not WordPress.
+
+2.  **NO LARAVEL FACADES:**
+
+    - Do not use Laravel-specific helpers (e.g., `dd()`, `collect()`, `Str::`) unless explicitly polyfilled in `composer.json`.
+    - Use standard **Symfony Components** (`dump()`, `Doctrine\Common\Collections`, etc.).
+
+3.  **STRICT TYPING (PHP):**
+    - Enforce **PHP 8.5+** standards.
+    - Use **typed properties** (`public string $name`).
+    - Use **Return Types** (`: void`, `: ?array`).
+    - Use **Constructor Property Promotion** where readable.
+
+## 🚀 AGGRESSIVE MODERNIZATION RULES
+
+Same rules as `.cursor/ROADMAP.md` (THE 5 AGGRESSIVE RULES). Summary:
+
+1. **NO COMPATIBILITY LAYERS** – do not keep old & new behavior in parallel.
+2. **NO ADAPTERS** – update all call sites instead of adding wrappers.
+3. **BREAKING CHANGES ALLOWED INTERNALLY** – the system must remain functional after each step (all tests green). Internal API endpoints (`/api/...`) may change as long as frontend and backend are updated together. Platform API names (e.g. `__()`, `_i()`, `$date`, `$number`) may be kept as clean modern reimplementations — stable extension/template DX, not legacy compat. The real public API (versioned, JWT, OpenAPI) comes in Step 4.4.
+4. **DELETE OVER WRAP** – if old logic conflicts with the new security model, delete it.
+5. **MANDATORY FLAGGING & AUDIT DEBT** – Forward debt only: mark code that still **must** change later with `// TODO:` + ROADMAP Step ID (`Must be refactored in Step X.Y`, `TEMPORARY BRIDGE - To be removed in Step X.Y`, `AUDIT FIX Step X.Y`, etc.). Completed work, successful migrations, and ticket/checklist history belong in docs — never as Step/ROADMAP/ticket references in code or tests.
+
+## 🎯 DX & LIGHTWEIGHT PHILOSOPHY
+
+Same as `.cursor/ROADMAP.md` § DX & Lightweight Philosophy:
+
+- **Platform APIs** — thin DI-backed helpers in templates/themes; new/modernized welcome (Rule 3).
+- **Boundary** — DI in services; helpers in views/mails/themes.
+- **Lightweight core** — one glue point per concern; tooling wraps, never bloats runtime.
+
+Vision detail: `migration-docs/TODO/MODERNISATION_STRATEGY.md` § Pagekit DNA.
+
+## 🛠 Technology Stack (Modernization Phase)
+
+### Backend (Active)
+
+- **Core:** Pagekit CMS (Symfony-based Kernel)
+- **PHP:** **8.5+** (Strict Mode)
+- **Database:** Doctrine DBAL 3.x (Query Builder), ORM modernization active.
+- **Container:** PSR-11 compatible (Symfony DI).
+
+### Frontend (Maintenance Mode - Pre-Migration)
+
+- **Framework:** **Vue.js 2.7** (Legacy).
+- **Goal:** Maintain compatibility with current build pipeline (Vite, per-module IIFE bundles).
+- **Future Proofing:**
+  - Avoid complex "Mixins" (hard to migrate to Vue 3).
+  - Prefer clear props/events interfaces.
+  - **DO NOT** use Vue 3 syntax (`<script setup>`, Composition API) yet, unless Vue 2.7 bridge is active.
+  - Keep logic separate from template to ease future extraction.
+- **UI Framework:** UIkit 3.5.
+
+## Coding Style
+
+- **Refactoring:** Prefer small, atomic changes over "Big Bang" rewrites.
+- **Comments — what & why only.** Code and test comments explain what the code does and why (intent, trade-offs, constraints). They MUST NOT narrate project history: no `Step X.Y`, ROADMAP, ticket, checklist, or doc-path (`.md`/`.mdc`) reference describing work that is already done — that is noise and belongs in docs, not code. The ONLY permitted step reference is a forward debt marker for work that still MUST happen, in the Rule 5 tag formats (`// TODO: Must be refactored in Step X.Y (Name)`, `// TODO: TEMPORARY BRIDGE - To be removed in Step X.Y`, `// AUDIT FIX Step X.Y`). Never tag completed work.
+
+## Work Documents (ROADMAP, phase docs, branch docs, CHANGELOG)
+
+- **What & why only** — the same standard as code comments, binding for **every** agent (the workflow-scoped variant lives in `.cursor/agents/architect.md` Responsibility 6). Decisions, trade-offs, and explanations of *why a document changed* belong in the chat, never in the file.
+- **`.cursor/ROADMAP.md`** — table rows plus the fixed SSoT/legend text. Never add renumbering notes, decision logs, or a rationale for a changed ID: execution order is read top to bottom, so a reordering needs no explanation.
+- **Phase docs in `migration-docs/TODO/` (open steps)** — `PHASE_*_MODERNISING.md` and `PHASE_5_FUTURE_VISION.md`: forward-only *what remains to do* + *why*. No completed steps, ticket/checklist history, "deferred from Step X.Y", PR/issue numbers, or branch-doc paths.
+- **Branch docs / `CHANGELOG-NEW.md`** — the change and its impact. No self-referential corrections of earlier doc revisions, no commentary on how the work was organized.
+
+## Unicode & Encoding Hygiene (STRICT)
+
+All generated text output (commits, PRs, changelogs, docs, code) **MUST be clean UTF-8**. Remote/background agents are prone to encoding corruption — these rules prevent it.
+
+### General
+- **Verify every output is valid UTF-8.** Never produce U+FFFD replacement characters (`�`), raw escape sequences, or garbled byte sequences.
+- **ASCII content must stay ASCII.** Standard code keywords (`bash`, `php`, `function`) must never contain corrupted characters (e.g., `◆ash` instead of `bash`).
+- **Code fences must be intact.** Triple-backtick language tags (` ```bash `, ` ```php `) are critical — a corrupted tag breaks rendering.
+- If encoding issues are detected in own output, **fix immediately** before submitting.
+
+### Emojis
+- **Emojis are welcome** in headings, changelogs, PR descriptions, and docs — they improve scannability (e.g., `🔍 Review Checklist`, `🚀 Deployment Notes`).
+- Use only **standard, widely-supported emojis** that render on GitHub, terminals, and IDEs. Avoid obscure Unicode symbols, combining characters, or multi-codepoint sequences.
+- **Keep emojis functional** — use them to convey status (✅/❌), warnings (⚠️), or categories at a glance, not as filler or decoration.

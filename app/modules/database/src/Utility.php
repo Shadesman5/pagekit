@@ -1,39 +1,39 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Database;
 
-use Pagekit\Database\Table;
-
-use Doctrine\DBAL\Schema\SchemaException;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
-use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\Constraint;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\Schema;
+use Doctrine\DBAL\Schema\SchemaException;
 
 class Utility
 {
     protected \Pagekit\Database\Connection $connection;
 
+    /** @var AbstractSchemaManager<\Doctrine\DBAL\Platforms\AbstractPlatform> */
     protected AbstractSchemaManager $manager;
 
     protected Schema $schema;
 
     /**
      * Constructor.
-     *
-     * @param Connection $connection
      */
     public function __construct(Connection $connection)
     {
         $this->connection = $connection;
-        $this->manager = $this->connection->getSchemaManager();
-        $this->schema = $this->manager->createSchema();
+        $this->manager = $this->connection->createSchemaManager();
+        $this->schema = $this->manager->introspectSchema();
     }
 
     /**
-     * Return the DBAL schema manager.
+     * Returns the cached DBAL schema manager (created via Connection::createSchemaManager()).
+     *
+     * @return AbstractSchemaManager<\Doctrine\DBAL\Platforms\AbstractPlatform>
      */
     public function getSchemaManager(): AbstractSchemaManager
     {
@@ -42,10 +42,8 @@ class Utility
 
     /**
      * Returns true if the given table exists.
-     *
-     * @param  string $table
      */
-    public function tableExists($table): bool
+    public function tableExists(string $table): bool
     {
         return $this->tablesExist($table);
     }
@@ -53,12 +51,9 @@ class Utility
     /**
      * Returns an existing database table.
      *
-     * @param string $table
-     *
-     *
      * @throws SchemaException
      */
-    public function getTable($table): Table
+    public function getTable(string $table): Table
     {
         return new Table($this->schema->getTable($this->replacePrefix($table)), $this->connection);
     }
@@ -66,22 +61,19 @@ class Utility
     /**
      * Returns true if all the given tables exist.
      *
-     * @param  array $tables
+     * @param string|array<int, string> $tables
      */
-    public function tablesExist($tables): bool
+    public function tablesExist(string|array $tables): bool
     {
-        $tables = array_map(fn($query) => $this->replacePrefix($query), (array) $tables);
+        $tables = array_map(fn ($query) => $this->replacePrefix($query), (array) $tables);
 
         return $this->manager->tablesExist($tables);
     }
 
     /**
      * Creates a new database table.
-     *
-     * @param string $table
-     * @param \Closure $callback
      */
-    public function createTable($table, \Closure $callback): void
+    public function createTable(string $table, \Closure $callback): void
     {
         $table = $this->schema->createTable($this->replacePrefix($table));
 
@@ -93,7 +85,7 @@ class Utility
     /**
      * {@see AbstractSchemaManager::createConstraint}
      */
-    public function createConstraint(Constraint $constraint, $table): void
+    public function createConstraint(Constraint $constraint, string $table): void
     {
         $this->manager->createConstraint($constraint, $this->replacePrefix($table));
     }
@@ -101,7 +93,7 @@ class Utility
     /**
      * {@see AbstractSchemaManager::createIndex}
      */
-    public function createIndex(Index $index, $table): void
+    public function createIndex(Index $index, string $table): void
     {
         $this->manager->createIndex($index, $this->replacePrefix($table));
     }
@@ -109,7 +101,7 @@ class Utility
     /**
      * {@see AbstractSchemaManager::createForeignKey}
      */
-    public function createForeignKey(ForeignKeyConstraint $foreignKey, $table): void
+    public function createForeignKey(ForeignKeyConstraint $foreignKey, string $table): void
     {
         $this->manager->createForeignKey($foreignKey, $this->replacePrefix($table));
     }
@@ -117,7 +109,7 @@ class Utility
     /**
      * {@see AbstractSchemaManager::dropAndCreateConstraint}
      */
-    public function dropAndCreateConstraint(Constraint $constraint, $table): void
+    public function dropAndCreateConstraint(Constraint $constraint, string $table): void
     {
         $this->manager->dropAndCreateConstraint($constraint, $this->replacePrefix($table));
     }
@@ -125,7 +117,7 @@ class Utility
     /**
      * {@see AbstractSchemaManager::dropAndCreateIndex}
      */
-    public function dropAndCreateIndex(Index $index, $table): void
+    public function dropAndCreateIndex(Index $index, string $table): void
     {
         $this->manager->dropAndCreateIndex($index, $this->replacePrefix($table));
     }
@@ -133,7 +125,7 @@ class Utility
     /**
      * {@see AbstractSchemaManager::dropAndCreateForeignKey}
      */
-    public function dropAndCreateForeignKey(ForeignKeyConstraint $foreignKey, $table): void
+    public function dropAndCreateForeignKey(ForeignKeyConstraint $foreignKey, string $table): void
     {
         $this->manager->dropAndCreateForeignKey($foreignKey, $this->replacePrefix($table));
     }
@@ -141,7 +133,7 @@ class Utility
     /**
      * {@see AbstractSchemaManager::dropAndCreateTable}
      */
-    public function dropAndCreateTable($table): void
+    public function dropAndCreateTable(\Doctrine\DBAL\Schema\Table $table): void
     {
         $this->manager->dropAndCreateTable($table);
     }
@@ -149,7 +141,7 @@ class Utility
     /**
      * {@see AbstractSchemaManager::renameTable}
      */
-    public function renameTable($name, $newName): void
+    public function renameTable(string $name, string $newName): void
     {
         $this->manager->renameTable($this->replacePrefix($name), $this->replacePrefix($newName));
     }
@@ -157,7 +149,7 @@ class Utility
     /**
      * @see AbstractSchemaManager::dropTable
      */
-    public function dropTable($table): void
+    public function dropTable(string $table): void
     {
         $this->manager->dropTable($this->replacePrefix($table));
     }
@@ -165,7 +157,7 @@ class Utility
     /**
      * {@see AbstractSchemaManager::dropIndex}
      */
-    public function dropIndex($index, $table): void
+    public function dropIndex(string $index, string $table): void
     {
         $this->manager->dropIndex($index, $this->replacePrefix($table));
     }
@@ -173,31 +165,37 @@ class Utility
     /**
      * {@see AbstractSchemaManager::dropConstraint}
      */
-    public function dropConstraint(Constraint $constraint, $table): void
+    public function dropConstraint(Constraint $constraint, string $table): void
     {
         $this->manager->dropConstraint($constraint, $this->replacePrefix($table));
     }
 
     /**
      * {@see AbstractSchemaManager::dropForeignKey}
+     *
+     * @param ForeignKeyConstraint|string $foreignKey
      */
-    public function dropForeignKey($foreignKey, $table): void
+    public function dropForeignKey(ForeignKeyConstraint|string $foreignKey, string $table): void
     {
         $this->manager->dropForeignKey($foreignKey, $this->replacePrefix($table));
     }
 
     /**
      * {@see AbstractSchemaManager::listTableColumns}
+     *
+     * @return array<string, \Doctrine\DBAL\Schema\Column>
      */
-    public function listTableColumns($table, $database = null): array
+    public function listTableColumns(string $table, ?string $database = null): array
     {
         return $this->manager->listTableColumns($this->replacePrefix($table), $database);
     }
 
     /**
      * {@see AbstractSchemaManager::listTableIndexes}
+     *
+     * @return array<string, \Doctrine\DBAL\Schema\Index>
      */
-    public function listTableIndexes($table): array
+    public function listTableIndexes(string $table): array
     {
         return $this->manager->listTableIndexes($this->replacePrefix($table));
     }
@@ -205,15 +203,17 @@ class Utility
     /**
      * {@see AbstractSchemaManager::listTableDetails}
      */
-    public function listTableDetails($tableName): \Doctrine\DBAL\Schema\Table
+    public function listTableDetails(string $tableName): \Doctrine\DBAL\Schema\Table
     {
         return $this->manager->listTableDetails($this->replacePrefix($tableName));
     }
 
     /**
      * {@see AbstractSchemaManager::listTableForeignKeys}
+     *
+     * @return array<int, \Doctrine\DBAL\Schema\ForeignKeyConstraint>
      */
-    public function listTableForeignKeys($table, $database = null): array
+    public function listTableForeignKeys(string $table, ?string $database = null): array
     {
         return $this->manager->listTableForeignKeys($this->replacePrefix($table), $database);
     }
@@ -221,38 +221,23 @@ class Utility
     /**
      * Proxy method call to database schema manager.
      *
-     * @param  string $method
-     * @param  array $args
+     * @param array<int, mixed> $args
+     * @return mixed Genuinely unknown type — proxied to the schema manager; return type depends on the method called.
      * @throws \BadMethodCallException
-     * @return mixed
      */
-    public function __call($method, $args)
+    public function __call(string $method, array $args): mixed
     {
         if (!method_exists($this->manager, $method)) {
             throw new \BadMethodCallException(sprintf('Undefined method call "%s::%s"', get_class($this->manager), $method));
         }
 
-        return call_user_func_array([$this->manager, $method], $args);
-    }
-
-    /**
-     * Migrates the database.
-     */
-    public function migrate(): void {
-        $comparator = new Comparator();
-        $diff = $comparator->compareSchemas($this->manager->createSchema(), $this->schema);
-
-        foreach ($diff->toSaveSql($this->connection->getDatabasePlatform()) as $query) {
-            $this->connection->executeQuery($query);
-        }
+        return $this->manager->{$method}(...$args);
     }
 
     /**
      * Replaces the table prefix placeholder with actual one.
-     *
-     * @param  string $query
      */
-    protected function replacePrefix($query): string
+    protected function replacePrefix(string $query): string
     {
         return $this->connection->replacePrefix($query);
     }

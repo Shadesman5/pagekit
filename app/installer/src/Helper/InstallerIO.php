@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Installer\Helper;
 
 use Composer\IO\ConsoleIO;
@@ -11,15 +13,24 @@ use Symfony\Component\Console\Output\StreamOutput;
 
 class InstallerIO extends ConsoleIO
 {
-    const REGEX = '/((?<=<error>).+(?=<\/error>))|(\[.+Exception\])/';
+    public const REGEX = '/((?<=<error>).+(?=<\/error>))|(\[.+Exception\])/';
 
     /**
      * {@inheritdoc}
      */
-    public function __construct(InputInterface $input = null, OutputInterface $output = null, HelperSet $helperSet = null)
+    public function __construct(?InputInterface $input = null, ?OutputInterface $output = null, ?HelperSet $helperSet = null)
     {
         $this->input = $input ?: new ArrayInput([]);
-        $this->output = $output ?: new StreamOutput(fopen('php://output', 'w'));
+
+        if ($output === null) {
+            $stream = fopen('php://output', 'w');
+            if ($stream === false) {
+                throw new \RuntimeException('Failed to open php://output stream.');
+            }
+            $output = new StreamOutput($stream);
+        }
+        $this->output = $output;
+
         $this->helperSet = $helperSet ?: new HelperSet();
 
         parent::__construct($this->input, $this->output, $this->helperSet);

@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Title' => 'عنوان',
   'Theme' => 'پوسته',
   'Hide Title' => 'پنهان کردن عنوان',
@@ -38,4 +42,4 @@
   'Written by %name% on %date%' => 'نوشته شده توسط %name% در %date%',
   'Read more' => 'بیشتر بخوانید',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} بدون نظر|{1} %count% نظر|]1,Inf[ %count% نظرها',
-);
+];

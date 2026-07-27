@@ -1,108 +1,131 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Site\Controller;
 
-use Pagekit\Application as App;
-use Pagekit\Site\Model\Node;
+use function Pagekit\__;
+
+use Pagekit\Application\UrlProvider;
+use Pagekit\Database\ORM\Repository;
+use Pagekit\Routing\Attribute\Request;
+use Pagekit\Routing\Attribute\Route;
+use Pagekit\Routing\Router;
+use Pagekit\Site\MenuManager;
+use Pagekit\Site\Model\NodeRepository;
+use Pagekit\Site\SiteModule;
+use Pagekit\User\Attribute\Access;
 use Pagekit\User\Model\Role;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class NodeController
 {
-    protected $site;
-
-    public function __construct()
-    {
-        $this->site = App::module('system/site');
+    /**
+     * @param Repository<Role> $roleRepository
+     */
+    public function __construct(
+        private readonly SiteModule $site,
+        private readonly MenuManager $menu,
+        private readonly UrlProvider $url,
+        private readonly Router $router,
+        private readonly NodeRepository $nodeRepository,
+        private readonly Repository $roleRepository,
+    ) {
     }
 
     /**
-     * @Route("site/page", name="page")
-     * @Access("site: manage site", admin=true)
+     * @return array<string, mixed>|RedirectResponse
      */
-    public function indexAction()
+    #[Route('site/page', name: 'page')]
+    #[Access('site: manage site', admin: true)]
+    public function indexAction(): array|RedirectResponse
     {
-        if ($test = Node::fixOrphanedNodes()) {
-            return App::redirect('@site/page');
+        if ($test = $this->nodeRepository->fixOrphanedNodes()) {
+            return $this->router->redirect('@site/page');
         }
 
         return [
             '$view' => [
                 'title' => __('Pages'),
-                'name'  => 'system/site/admin/index.php'
+                'name' => 'system/site/admin/index.php',
             ],
             '$data' => [
                 'config' => [
-                    'menus' => App::menu()->getPositions()
+                    'menus' => $this->menu->getPositions(),
                 ],
-                'types' => array_values($this->site->getTypes())
-            ]
+                'types' => array_values($this->site->getTypes() ?? []),
+            ],
         ];
     }
 
     /**
-     * @Route("site/page/edit", name="page/edit")
-     * @Access("site: manage site", admin=true)
-     * @Request({"id", "menu"})
+     * @return array<string, mixed>
      */
-    public function editAction($id = '', $menu = ''): array
+    #[Route('site/page/edit', name: 'page/edit')]
+    #[Access('site: manage site', admin: true)]
+    #[Request(['id' => 'string', 'menu' => 'string'])]
+    public function editAction(string $id = '', string $menu = ''): array
     {
         if (is_numeric($id)) {
 
-            if (!$id or !$node = Node::find($id)) {
-                App::abort(404, 'Node not found.');
+            if (!$id or !$node = $this->nodeRepository->find($id)) {
+                throw new NotFoundHttpException('Node not found.');
             }
 
         } else {
-            $node = Node::create(['type' => $id]);
+            $node = $this->nodeRepository->create(['type' => $id]);
 
-            if ($menu && !App::menu($menu)) {
-                App::abort(404, 'Menu not found.');
+            if ($menu && !($this->menu)($menu)) {
+                throw new NotFoundHttpException('Menu not found.');
             }
 
             $node->menu = $menu;
         }
 
-        if (!$type = $this->site->getType($node->type)) {
-            App::abort(404, 'Type not found.');
+        if (!$type = $this->site->getType($node->type ?? '')) {
+            throw new NotFoundHttpException('Type not found.');
         }
 
         return [
             '$view' => [
                 'title' => __('Pages'),
-                'name'  => 'system/site/admin/edit.php'
+                'name' => 'system/site/admin/edit.php',
             ],
             '$data' => [
                 'node' => $node,
                 'type' => $type,
-                'roles' => array_values(Role::findAll())
-            ]
+                'roles' => array_values($this->roleRepository->findAll()),
+            ],
         ];
     }
 
     /**
-     * @Route("site/settings")
-     * @Access("system: access settings", admin=true)
+     * @return array<string, mixed>
      */
+    #[Route('site/settings')]
+    #[Access('system: access settings', admin: true)]
     public function settingsAction(): array
     {
         return [
             '$view' => [
                 'title' => __('Settings'),
-                'name'  => 'system/site/admin/settings.php'
+                'name' => 'system/site/admin/settings.php',
             ],
             '$data' => [
-                'config' => $this->site->config(['title', 'description', 'maintenance.', 'meta.', 'logo', 'icons.', 'code.', 'view.'])
-            ]
+                'config' => $this->site->config(['title', 'description', 'maintenance.', 'meta.', 'logo', 'icons.', 'code.', 'view.']),
+            ],
         ];
     }
 
     /**
-     * @Route("api/site/link", name="api/link")
-     * @Request({"link"})
-     * @Access("site: manage site")
+     * @return array{message: string, url: string}
      */
-    public function linkAction($link): array
+    #[Route('api/site/link', name: 'api/link')]
+    #[Request(['link' => 'string'])]
+    #[Access('site: manage site')]
+    public function linkAction(string $link): array
     {
-        return ['message' => 'success', 'url' => App::url($link, [], 'base') ?: $link];
+        return ['message' => 'success', 'url' => ($this->url)($link, [], 'base') ?: $link];
     }
 }

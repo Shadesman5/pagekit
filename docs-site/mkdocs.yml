@@ -1,0 +1,64 @@
+# Pagekit CMS — GitHub Pages documentation site
+# Local preview: pip install mkdocs-material && mkdocs serve -f docs-site/mkdocs.yml
+
+site_name: Pagekit Modernization
+site_description: Modernization dashboard — roadmap metrics, Conductor tokens, CI quality
+site_url: https://shadesman5.github.io/pagekit/
+repo_url: https://github.com/Shadesman5/pagekit
+repo_name: Shadesman5/pagekit
+edit_uri: edit/develop/docs-site/content/
+
+docs_dir: content
+site_dir: site
+
+hooks:
+  - hooks/copy_snapshot.py
+
+theme:
+  name: material
+  custom_dir: overrides
+  language: en
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md
+  - Project:
+    - project/index.md
+    - Roadmap & Metrics: project/roadmap.md
+    - Strategy: project/strategy.md
+    - Branch Docs: project/branches/index.md
+  - Quality Dashboard: quality/index.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true

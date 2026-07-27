@@ -1,0 +1,166 @@
+---
+description: 'GitHub Labels Guide (28 labels, synced 2026-02-14). Available labels for issues and PRs in Pagekit. Includes: phase labels (phase-1..phase-5), dependency labels (auto-applied by Dependabot), commit-type labels (breaking-change, security, performance), project area labels (frontend, backend, database, module, theme, migration), and standard GitHub labels. Use when creating or updating PRs/issues.'
+alwaysApply: false
+---
+
+# GitHub Labels Guide
+
+Available labels for the Pagekit project (`Shadesman5/pagekit`).
+Use these when creating or updating issues and pull requests.
+
+**Total: 28 labels** | Last synced with GitHub: 2026-07-14
+
+## Phase Labels (Modernization Roadmap)
+
+Track which modernization phase an issue/PR belongs to. See `.cursor\ROADMAP.md` for phase details.
+
+| Label     | Description                     | Color     |
+| --------- | ------------------------------- | --------- |
+| `phase-1` | Phase 1: Foundation (completed) | `#0E8A16` |
+| `phase-2` | Phase 2: Developer Experience   | `#0052CC` |
+| `phase-3` | Phase 3: Frontend Modernization & Cross-Stack Alignment | `#8250DF` |
+| `phase-4` | Phase 4: Production Ready       | `#D93F0B` |
+| `phase-5` | Phase 5: Innovation and Future  | `#BFDADC` |
+
+## Dependency Management Labels
+
+These are **automatically applied by Dependabot**:
+
+| Label            | Description                                 | Color     | Auto-Applied By             |
+| ---------------- | ------------------------------------------- | --------- | --------------------------- |
+| `dependencies`   | Pull requests that update a dependency file | `#0366d6` | Dependabot (all ecosystems) |
+| `php`            | PHP dependencies and Composer updates       | `#8892BF` | Dependabot (composer)       |
+| `javascript`     | Pull requests that update javascript code   | `#168700` | Dependabot (npm)            |
+| `docker`         | Docker and container updates                | `#2496ED` | Dependabot (docker)         |
+| `github-actions` | GitHub Actions workflow updates             | `#2088FF` | Dependabot (github-actions) |
+
+## Conventional Commits Related Labels
+
+Correlate with commit types from `conventional-commits.mdc`:
+
+| Label             | Commit Type         | Description                                      | Color     |
+| ----------------- | ------------------- | ------------------------------------------------ | --------- |
+| `breaking-change` | `feat!:` or `fix!:` | Breaking changes that require major version bump | `#D93F0B` |
+| `enhancement`     | `feat:`             | New feature or request                           | `#a2eeef` |
+| `bug`             | `fix:`              | Something isn't working                          | `#d73a4a` |
+| `documentation`   | `docs:`             | Improvements or additions to documentation       | `#0075ca` |
+| `performance`     | `perf:`             | Performance improvements                         | `#1D76DB` |
+| `security`        | `fix:` or `feat:`   | Security-related issues and updates              | `#EE0701` |
+
+## Pagekit Project Area Labels
+
+Identify which part of the system is affected:
+
+| Label       | Description                       | Color     | When to Use                              |
+| ----------- | --------------------------------- | --------- | ---------------------------------------- |
+| `frontend`  | Frontend/Vue.js related changes   | `#42B883` | Vue components, UIkit themes, JavaScript |
+| `backend`   | Backend/PHP related changes       | `#777BB4` | PHP code, Controllers, Services          |
+| `database`  | Database and ORM related changes  | `#336791` | Doctrine entities, migrations, queries   |
+| `module`    | Extensions and modules            | `#BFD4F2` | Module development, extensions           |
+| `theme`     | Theme related changes             | `#FFA500` | Theme templates, styles                  |
+| `migration` | Migration and modernization tasks | `#C5DEF5` | PHP 8.x upgrades, Symfony updates        |
+
+## Standard GitHub Labels
+
+Default labels for general use:
+
+| Label              | Description                               | Color     | When to Use                      |
+| ------------------ | ----------------------------------------- | --------- | -------------------------------- |
+| `good first issue` | Good for newcomers                        | `#7057ff` | Easy issues for new contributors |
+| `help wanted`      | Extra attention is needed                 | `#008672` | Issues needing community help    |
+| `question`         | Further information is requested          | `#d876e3` | Clarification requests           |
+| `duplicate`        | This issue or pull request already exists | `#cfd3d7` | Already exists elsewhere         |
+| `invalid`          | This doesn't seem right                   | `#e4e669` | Not applicable or incorrect      |
+| `wontfix`          | This will not be worked on                | `#ffffff` | Intentionally not fixing         |
+
+## Label Usage Guidelines
+
+### Label Combination Formula
+
+Every issue/PR should have: **1 phase label + 1 commit-type label + 1-2 area labels**
+
+### For Modernization Issues
+
+```yaml
+# Phase 2 backend step
+Step 2.0.5: PSR-11 Container Modernisation
+Labels: phase-2, migration, backend
+
+# Phase 3 frontend step
+Step 3.4.1: HTTP Client Migration (vue-resource to axios)
+Labels: phase-3, migration, frontend
+
+# Phase 4 security feature
+Step 4.1: Basic Security and Modern Auth
+Labels: phase-4, enhancement, security, backend
+```
+
+### For Pull Requests
+
+**Automated (Dependabot PRs)**:
+
+```yaml
+chore(deps): bump symfony/http-foundation from 6.4.1 to 6.4.2
+Labels: dependencies, php
+```
+
+**Manual PRs - commit type + phase + area**:
+
+```yaml
+feat(auth): add two-factor authentication
+Labels: phase-4, enhancement, security, backend
+
+fix(blog): sanitize user input in comments
+Labels: bug, security, frontend
+
+refactor(container): modernize PSR-11 container
+Labels: phase-2, migration, backend
+```
+
+### Conventional Commits to Labels Mapping
+
+| Commit Type         | Suggested Labels                                    |
+| ------------------- | --------------------------------------------------- |
+| `feat:`             | `enhancement` + phase label + area label            |
+| `fix:`              | `bug` + area label (+ phase label if modernization) |
+| `feat!:` or `fix!:` | `breaking-change` + area label                      |
+| `docs:`             | `documentation`                                     |
+| `perf:`             | `performance` + area label                          |
+| `refactor:`         | `migration` (if modernization) + phase + area label |
+| `chore(deps):`      | Auto-labeled by Dependabot                          |
+
+## Quick Reference
+
+### By Activity Type
+
+| What You're Doing             | Labels to Use                          |
+| ----------------------------- | -------------------------------------- |
+| Phase 2 modernization step    | `phase-2`, `migration`, `backend`      |
+| Phase 3 frontend migration    | `phase-3`, `migration`, `frontend`     |
+| Fixing a bug in Vue component | `bug`, `frontend`                      |
+| Adding new module feature     | `enhancement`, `module`, `backend`     |
+| Upgrading Symfony components  | `migration`, `dependencies`, `backend` |
+| Optimizing database queries   | `performance`, `database`, `backend`   |
+| Security patch                | `security`, `bug`, appropriate area    |
+| Breaking API change           | `breaking-change`, appropriate area    |
+| Documentation update          | `documentation`                        |
+
+## Managing Labels via CLI
+
+Labels can be created, edited, and deleted using `gh` CLI from Cursor:
+
+```bash
+# List all labels
+gh label list --repo Shadesman5/pagekit
+
+# Create a new label
+gh label create "label-name" --description "Description" --color "HEX" --repo Shadesman5/pagekit
+
+# Edit a label
+gh label edit "label-name" --description "New description" --repo Shadesman5/pagekit
+
+# Delete a label
+gh label delete "label-name" --repo Shadesman5/pagekit --yes
+```
+
+After any label changes, update this file to keep it in sync with GitHub.

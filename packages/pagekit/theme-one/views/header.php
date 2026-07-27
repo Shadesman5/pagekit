@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 $layout = $params->get('header.layout');
 $fullwidth = $params->get('header.fullwidth');
 $logo_padding_remove = $fullwidth ? $params->get('header.logo_padding_remove') : false;
@@ -21,8 +23,8 @@ $attrs_navbar = [
         'boundary-align' => $params->get('navbar.dropdown_boundary'),
         'dropbar' => $params->get('navbar.dropbar') ? true : null,
         'dropbar-anchor' => $params->get('navbar.dropbar') ? '!.uk-navbar-container' : null,
-        'dropbar-mode' => $params->get('navbar.dropbar')
-    ]))
+        'dropbar-mode' => $params->get('navbar.dropbar'),
+    ])),
 ];
 
 // Sticky

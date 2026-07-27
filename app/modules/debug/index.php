@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use DebugBar\DataCollector\MemoryCollector;
 use DebugBar\DataCollector\TimeDataCollector;
 use Pagekit\Debug\DataCollector\AuthDataCollector;
@@ -23,16 +25,17 @@ return [
             return;
         }
 
-        $app['debugbar'] = function ($app) {
+        $app->set('debugbar', function ($app) {
             $debugbar = new DebugBar();
-            return $debugbar->setStorage($app['debugbar.storage']);
-        };
 
-        $app['debugbar.storage'] = fn() => new SqliteStorage($this->config['file']);
+            return $debugbar->setStorage($app->get('debugbar.storage'));
+        });
 
-        $app['debugbar.stopwatch'] = fn() => new Stopwatch();
+        $app->set('debugbar.storage', fn () => new SqliteStorage($this->config['file']));
 
-        $app->extend('events', fn($dispatcher, $app) => new TraceableEventDispatcher($dispatcher, $app['debugbar.stopwatch']));
+        $app->set('debugbar.stopwatch', fn () => new Stopwatch());
+
+        $app->extend('events', fn ($dispatcher, $app) => new TraceableEventDispatcher($dispatcher, $app->get('debugbar.stopwatch')));
 
     },
 
@@ -40,45 +43,63 @@ return [
 
         'boot' => function ($event, $app) {
 
-            if (!isset($app['debugbar'])) {
+            if (!$app->has('debugbar')) {
                 return;
             }
 
-            $app['debugbar']->addCollector(new MemoryCollector());
-            $app['debugbar']->addCollector(new TimeDataCollector());
-            $app['debugbar']->addCollector(new RoutesDataCollector($app['router'], $app['events'], $app['path.cache']));
-            $app['debugbar']->addCollector(new EventDataCollector($app['events'], $app['path']));
-            $app['debugbar']->addCollector(new ProfileDataCollector($app['debugbar.storage']));
+            $app->get('debugbar')->addCollector(new MemoryCollector());
+            $app->get('debugbar')->addCollector(new TimeDataCollector());
+            $app->get('debugbar')->addCollector(new RoutesDataCollector($app->get('router'), $app->get('events'), $app->get('path.cache')));
+            $app->get('debugbar')->addCollector(new EventDataCollector($app->get('events'), $app->get('path')));
+            $app->get('debugbar')->addCollector(new ProfileDataCollector($app->get('debugbar.storage')));
 
-            if (isset($app['auth'])) {
-                $app['debugbar']->addCollector(new AuthDataCollector($app['auth']));
+            if ($app->has('auth')) {
+                $app->get('debugbar')->addCollector(new AuthDataCollector($app->get('auth'), $app->get('userRepository')));
             }
 
-            if (isset($app['info'])) {
-                $app['debugbar']->addCollector(new SystemDataCollector($app['info']));
+            if ($app->has('info')) {
+                $app->get('debugbar')->addCollector(new SystemDataCollector($app->get('info')));
             }
 
-            if (isset($app['db'])) {
-                $app['db']->getConfiguration()->setSQLLogger($app['db.debug_stack']);
-                $app['debugbar']->addCollector(new DatabaseDataCollector($app['db'], $app['db.debug_stack']));
+            if ($app->has('db')) {
+                try {
+                    if ($app->has('db.debug_logger')) {
+                        $logger = $app->get('db.debug_logger');
+                        if ($app->has('debugbar.stopwatch') && $logger->stopwatch === null) {
+                            $logger->stopwatch = $app->get('debugbar.stopwatch');
+                        }
+                        $app->get('debugbar')->addCollector(new DatabaseDataCollector($app->get('db'), $logger));
+                    } elseif ($app->has('db.debug_middleware')) {
+                        $middleware = $app->get('db.debug_middleware');
+                        $logger = $middleware->getLogger();
+                        if ($app->has('debugbar.stopwatch') && $logger->stopwatch === null) {
+                            $logger->stopwatch = $app->get('debugbar.stopwatch');
+                        }
+                        $app->get('debugbar')->addCollector(new DatabaseDataCollector($app->get('db'), $logger));
+                    } else {
+                        $app->get('debugbar')->addCollector(new DatabaseDataCollector($app->get('db'), null));
+                    }
+                } catch (\Exception $e) {
+                    $app->get('debugbar')->addCollector(new DatabaseDataCollector($app->get('db'), null));
+                }
             }
 
-            if (isset($app['log.debug'])) {
-                $app['debugbar']->addCollector($app['log.debug']);
+            if ($app->has('log.debug')) {
+                $app->get('debugbar')->addCollector($app->get('log.debug'));
             }
 
-            $app->on('view.head', function ($event, $view) use ($app) {
+            $app->get('events')->on('view.head', function ($event, $view) use ($app) {
 
-                if ($app['request']->get('_disable_debugbar')) {
+                if ($app->get('request')->get('_disable_debugbar')) {
                     return;
                 }
 
-                $view->data('$debugbar', ['current' => $app['debugbar']->getCurrentRequestId()]);
+                $view->data('$debugbar', ['current' => $app->get('debugbar')->getCurrentRequestId()]);
                 $view->style('debugbar', 'app/modules/debug/assets/css/debugbar.css');
                 $view->script('debugbar', 'app/modules/debug/app/bundle/debugbar.js', ['vue']);
             }, 50);
 
-            $app->on('terminate', function ($event, $request) use ($app) {
+            $app->get('events')->on('terminate', function ($event, $request) use ($app) {
 
                 $route = $request->attributes->get('_route');
 
@@ -86,39 +107,39 @@ return [
                     return;
                 }
 
-                $app['debugbar']->collect();
+                $app->get('debugbar')->collect();
 
             }, -1000);
 
-            $app['routes']->add([
+            $app->get('routes')->add([
                 'name' => '_debugbar',
                 'path' => '_debugbar/{id}',
                 'defaults' => ['_debugbar' => false],
-                'controller' => fn($id) => $app['response']->json($app['debugbar']->getStorage()->get($id))
+                'controller' => fn ($id) => $app->get('response')->json($app->get('debugbar')->getStorage()->get($id)),
             ]);
 
-        }
+        },
 
     ],
 
     'require' => [
 
         'view',
-        'routing'
+        'routing',
 
     ],
 
     'autoload' => [
 
-        'Pagekit\\Debug\\' => 'src'
+        'Pagekit\\Debug\\' => 'src',
 
     ],
 
     'config' => [
 
-        'file'    => null,
-        'enabled' => false
+        'file' => null,
+        'enabled' => false,
 
-    ]
+    ],
 
 ];

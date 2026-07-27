@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Select Image' => 'Rasmni tanlash',
   'Add Image' => 'Rasm qo\'shish',
   'Select Video' => 'Video-ni tanlash',
@@ -451,4 +455,4 @@
   'You have the latest version of Pagekit. You do not need to update. However, if you want to re-install version %version%, you can download the package and re-install manually.' => 'Sizda Pagekitning eng so\'nggi versiyasi mavjud. Yangilash shart emas. Ammo %version% versiyasini qayta tiklashni istasangiz, siz paketni yuklab olishingiz va qo\'lda qayta o\'rnatishingiz mumkin.',
   'Download %version%' => 'Yuklab olish %version%',
   'Changelog' => 'O\'zgarishlar',
-);
+];

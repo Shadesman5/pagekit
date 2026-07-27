@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Filter;
 
 /**
@@ -10,8 +12,10 @@ class DigitsFilter extends AbstractFilter
     /**
      * {@inheritdoc}
      */
-    public function filter($value): string
+    public function filter(mixed $value): string
     {
-        return str_replace(['-', '+'], '', filter_var((string) $value, FILTER_SANITIZE_NUMBER_INT));
+        $sanitized = filter_var((string) $value, FILTER_SANITIZE_NUMBER_INT);
+
+        return str_replace(['-', '+'], '', $sanitized === false ? '' : $sanitized);
     }
 }

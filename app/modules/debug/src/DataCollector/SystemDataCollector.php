@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Debug\DataCollector;
 
 use DebugBar\DataCollector\DataCollectorInterface;
@@ -14,13 +16,15 @@ class SystemDataCollector implements DataCollectorInterface
      *
      * @param InfoHelper $info
      */
-    function __construct(InfoHelper $info)
+    public function __construct(InfoHelper $info)
     {
         $this->info = $info;
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, mixed>
      */
     public function collect(): array
     {

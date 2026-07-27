@@ -1,23 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Auth;
 
-use Pagekit\Auth\UserProviderInterface;
-use Pagekit\Auth\UserInterface;
-use Pagekit\Auth\Exception\AuthException;
-use Pagekit\Event\EventInterface;
 use Pagekit\Auth\Event\AuthenticateEvent;
 use Pagekit\Auth\Event\AuthorizeEvent;
 use Pagekit\Auth\Event\LoginEvent;
 use Pagekit\Auth\Event\LogoutEvent;
+use Pagekit\Auth\Exception\AuthException;
 use Pagekit\Auth\Exception\BadCredentialsException;
 use Pagekit\Auth\Handler\HandlerInterface;
 use Pagekit\Event\EventDispatcherInterface;
-use Symfony\Component\HttpFoundation\Response;
 
 class Auth
 {
-    const LAST_USERNAME     = '_auth.last_username';
+    public const LAST_USERNAME = '_auth.last_username';
 
     protected \Pagekit\Event\EventDispatcherInterface $events;
 
@@ -101,7 +99,7 @@ class Auth
     /**
      * Attempts to authenticate the given user according to the passed credentials.
      *
-     * @param  array $credentials
+     * @param array<string, mixed> $credentials
      * @throws BadCredentialsException
      */
     public function authenticate(array $credentials): UserInterface
@@ -138,19 +136,23 @@ class Auth
      * @param  UserInterface $user
      * @param  bool          $remember
      */
-    public function login(UserInterface $user, $remember = false): EventInterface
+    public function login(UserInterface $user, $remember = false): LoginEvent
     {
         $this->setUser($user, $remember);
 
-        return $this->events->trigger(new LoginEvent(AuthEvents::LOGIN, $user));
+        $event = new LoginEvent(AuthEvents::LOGIN, $user);
+        $this->events->trigger($event);
+
+        return $event;
     }
 
     /**
      * Logs the current user out.
      */
-    public function logout(): EventInterface
+    public function logout(): LogoutEvent
     {
-        $event = $this->events->trigger(new LogoutEvent(AuthEvents::LOGOUT, $this->getUser()));
+        $event = new LogoutEvent(AuthEvents::LOGOUT, $this->getUser());
+        $this->events->trigger($event);
         $this->removeUser();
 
         return $event;

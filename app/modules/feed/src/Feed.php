@@ -1,21 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Feed;
 
 abstract class Feed implements FeedInterface
 {
     use ElementsTrait;
 
-    const ATOM = 'atom';
-    const RSS1 = 'rss1';
-    const RSS2 = 'rss2';
+    public const ATOM = 'atom';
+    public const RSS1 = 'rss1';
+    public const RSS2 = 'rss2';
 
     protected string $encoding = 'utf-8';
 
-    /**
-     * @var string
-     */
-    protected $mime = '';
+    protected string $mime = '';
 
     /**
      * @var ItemInterface[]
@@ -28,22 +27,22 @@ abstract class Feed implements FeedInterface
     protected array $cdata = ['description', 'content:encoded', 'summary'];
 
     /**
-     * @var string[]
+     * @var array<string, string>
      */
     protected array $namespaces = [
         'content' => 'http://purl.org/rss/1.0/modules/content/',
-        'wfw'     => 'http://wellformedweb.org/CommentAPI/',
-        'atom'    => 'http://www.w3.org/2005/Atom',
-        'rdf'     => 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
-        'rss1'    => 'http://purl.org/rss/1.0/',
-        'dc'      => 'http://purl.org/dc/elements/1.1/',
-        'sy'      => 'http://purl.org/rss/1.0/modules/syndication/'
+        'wfw' => 'http://wellformedweb.org/CommentAPI/',
+        'atom' => 'http://www.w3.org/2005/Atom',
+        'rdf' => 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+        'rss1' => 'http://purl.org/rss/1.0/',
+        'dc' => 'http://purl.org/dc/elements/1.1/',
+        'sy' => 'http://purl.org/rss/1.0/modules/syndication/',
     ];
 
     /**
-     * @var string
+     * @var class-string<ItemInterface>
      */
-    protected $item;
+    protected string $item;
 
     /**
      * {@inheritdoc}
@@ -56,7 +55,7 @@ abstract class Feed implements FeedInterface
     /**
      * {@inheritdoc}
      */
-    public function setMimeType($mime)
+    public function setMimeType($mime): void
     {
         $this->mime = $mime;
     }
@@ -67,6 +66,7 @@ abstract class Feed implements FeedInterface
     public function addNamespace($prefix, $uri): FeedInterface
     {
         $this->namespaces[$prefix] = $uri;
+
         return $this;
     }
 
@@ -84,6 +84,7 @@ abstract class Feed implements FeedInterface
     public function setEncoding($encoding): FeedInterface
     {
         $this->encoding = $encoding;
+
         return $this;
     }
 
@@ -101,15 +102,18 @@ abstract class Feed implements FeedInterface
     public function addCDATA(array $properties): FeedInterface
     {
         $this->cdata += $properties;
+
         return $this;
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<string, mixed> $elements
      */
     public function createItem(array $elements = []): ItemInterface
     {
-        return (new $this->item)->addElements($elements);
+        return (new $this->item())->addElements($elements);
     }
 
     /**
@@ -118,6 +122,7 @@ abstract class Feed implements FeedInterface
     public function addItem(ItemInterface $item): FeedInterface
     {
         $this->items[] = $item;
+
         return $this;
     }
 
@@ -177,15 +182,21 @@ abstract class Feed implements FeedInterface
         $doc = $this->build();
 
         $doc->preserveWhiteSpace = false;
-        $doc->formatOutput       = true;
+        $doc->formatOutput = true;
 
-        return $doc->saveXML();
+        $xml = $doc->saveXML();
+
+        if ($xml === false) {
+            throw new \RuntimeException('Failed to serialize feed document to XML.');
+        }
+
+        return $xml;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function output()
+    public function output(): void
     {
         header("Content-Type: ".$this->getMimeType()."; charset=".$this->encoding);
         echo $this->generate();
@@ -202,8 +213,8 @@ abstract class Feed implements FeedInterface
     abstract protected function build(): \DOMDocument;
 
     /**
-     * @param  \DOMDocument $doc
-     * @param  array        $element
+     * @param \DOMDocument                                                $doc
+     * @param array{0: string, 1: mixed, 2: array<string, mixed>|null}    $element
      */
     protected function buildElement(\DOMDocument $doc, array $element): \DOMElement
     {
@@ -233,14 +244,15 @@ abstract class Feed implements FeedInterface
     }
 
     /**
-     * @param  \DOMElement $element
-     * @param  array       $attributes
+     * @param \DOMElement          $element
+     * @param array<string, mixed> $attributes
      */
     protected function buildAttributes(\DOMElement $element, array $attributes = []): \DOMElement
     {
         foreach ($attributes as $name => $value) {
             $element->setAttribute($name, $value);
         }
+
         return $element;
     }
 }

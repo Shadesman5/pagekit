@@ -1,7 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Auth\Event;
 
-class LoginEvent extends GetResponseEvent
+class LoginEvent extends AuthResponseEvent
 {
 }

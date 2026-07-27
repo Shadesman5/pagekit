@@ -1,24 +1,33 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Cache;
 
-use Doctrine\Common\Cache\ApcCache;
-use Doctrine\Common\Cache\ArrayCache;
-use Doctrine\Common\Cache\XcacheCache;
 use Pagekit\Application as App;
 use Pagekit\Module\Module;
+use Psr\Cache\CacheItemPoolInterface;
+use Symfony\Component\Cache\Adapter\ApcuAdapter;
+use Symfony\Component\Cache\Adapter\ArrayAdapter;
+use Symfony\Component\Cache\Adapter\FilesystemAdapter;
+use Symfony\Component\Cache\Adapter\NullAdapter;
+use Symfony\Component\Cache\Adapter\PhpFilesAdapter;
+use Symfony\Component\Finder\Finder;
 
 class CacheModule extends Module
 {
-    /**
-     * {@inheritdoc}
-     */
-    public function main(App $app): void
-    {
-        foreach ($this->config['caches'] as $name => $config)  {
-            $app[$name] = function() use ($config) {
+    protected ?App $app = null;
 
-                $supports = $this->supports();
+    /**
+     * @return mixed Genuinely unknown type — overrides Module::main(); the return value is not consumed by the framework (inherited contract from ModuleInterface).
+     */
+    public function main(App $app): mixed
+    {
+        $this->app = $app;
+        foreach ($this->config['caches'] as $name => $config) {
+            $app->set($name, function () use ($config, $name) {
+
+                $supports = self::supports();
 
                 if (!isset($config['storage'])) {
                     throw new \RuntimeException('Cache storage missing.');
@@ -30,98 +39,131 @@ class CacheModule extends Module
                     $config['storage'] = end($supports);
                 }
 
-                switch ($config['storage']) {
-
-                    case 'array':
-                        $cache = new ArrayCache;
-                        break;
-
-                    case 'apc':
-                        $cache = new ApcCache;
-                        break;
-
-                    case 'xcache':
-                        $cache = new XcacheCache;
-                        break;
-
-                    case 'file':
-                        $cache = new FilesystemCache($config['path']);
-                        break;
-
-                    case 'phpfile':
-                        $cache = new PhpFileCache($config['path']);
-                        break;
-
-                    default:
-                        throw new \RuntimeException('Unknown cache storage.');
-                        break;
-                }
-
-                if ($prefix = isset($config['prefix']) ? $config['prefix'] : false) {
-                    $cache->setNamespace($prefix);
-                }
-
-                return $cache;
-            };
+                return $this->createCachePool($config);
+            });
         }
+
+        return null;
     }
 
     /**
-     * Returns list of supported caches or boolean for individual cache.
+     * Create PSR-6 cache pool from Symfony adapters.
      *
-     * @param  string $name
-     * @return array|boolean
+     * @param array<string, mixed> $config Cache configuration with 'storage', 'prefix', 'path' keys
      */
-    public static function supports($name = null)
+    protected function createCachePool(array $config): CacheItemPoolInterface
     {
-        $supports = ['phpfile', 'array', 'file'];
+        $prefix = $config['prefix'] ?? '';
+        $path = $config['path'] ?? '';
 
-        if (extension_loaded('apc') && class_exists('\APCIterator') && (!extension_loaded('apcu') || version_compare(phpversion('apcu'), '4.0.2', '>='))) {
-            $supports[] = 'apc';
+        if (empty($path)) {
+            $path = sys_get_temp_dir() . '/pagekit-cache';
         }
 
-        if (extension_loaded('xcache') && ini_get('xcache.var_size')) {
-            $supports[] = 'xcache';
-        }
+        switch ($config['storage']) {
+            case 'array':
+                return new ArrayAdapter();
 
-        return $name? in_array($name, $supports) : $supports;
+            case 'apcu':
+                if (!function_exists('apcu_fetch') || !ini_get('apc.enabled')) {
+                    return new PhpFilesAdapter($prefix, 0, $path);
+                }
+
+                return new ApcuAdapter($prefix, 0);
+
+            case 'file':
+                return new FilesystemAdapter($prefix, 0, $path);
+
+            case 'phpfile':
+                return new PhpFilesAdapter($prefix, 0, $path);
+
+            case 'null':
+                return new NullAdapter();
+
+            default:
+                throw new \RuntimeException('Unknown cache storage: ' . $config['storage']);
+        }
     }
 
     /**
-     * Clear cache on terminate event.
+     * Returns list of supported caches.
+     *
+     * @return array<int, string>
+     */
+    public static function supports(): array
+    {
+        $supports = ['file', 'phpfile', 'array'];
+
+        // APCu support
+        if (function_exists('apcu_fetch') && ini_get('apc.enabled')) {
+            $supports[] = 'apcu';
+        }
+
+        return $supports;
+    }
+
+    /**
+     * Checks whether a specific cache storage backend is supported.
+     */
+    public static function isSupported(string $name): bool
+    {
+        return in_array($name, self::supports(), true);
+    }
+
+    /**
+     * Asserts that main() has been called.
+     */
+    private function assertBooted(): App
+    {
+        if ($this->app === null) {
+            throw new \LogicException('CacheModule::main() has not been called yet.');
+        }
+
+        return $this->app;
+    }
+
+    /**
+     * Schedule cache clear on terminate event.
+     *
+     * @param array<string, mixed> $options
      */
     public function clearCache(array $options = []): void
     {
-        App::on('terminate', function() use ($options) {
+        $app = $this->assertBooted();
+
+        $app->get('events')->on('terminate', function () use ($options) {
             $this->doClearCache($options);
         }, -512);
     }
 
     /**
-     * TODO: clear opcache
+     * Clear the cache pool and optionally temp files.
+     *
+     * @param array<string, mixed> $options
      */
     public function doClearCache(array $options = []): void
     {
-        // clear cache
-        if (empty($options) || @$options['cache']) {
-            App::cache()->flushAll();
+        $app = $this->assertBooted();
 
-            foreach ((array) glob(App::get('path.cache') . '/*.cache') as $file) {
-                @unlink($file);
-                // opcache
+        // Clear PSR-6 cache pool + compiled cache files
+        if (empty($options) || @$options['cache']) {
+            $app->get('cache')->clear();
+
+            $files = glob($app->get('path.cache') . '/*.cache') ?: [];
+            foreach ($files as $file) {
                 if (function_exists('opcache_invalidate')) {
-                    opcache_invalidate($file);
+                    opcache_invalidate($file, true);
                 }
+                @unlink($file);
             }
         }
 
-        // clear temp folder
+        // Clear temp folder
         if (@$options['temp']) {
-            foreach (App::finder()->in(App::get('path.temp'))->depth(0)->ignoreDotFiles(true) as $file) {
-                App::file()->delete($file->getPathname());
-                // opcache
+            foreach (Finder::create()->in($app->get('path.temp'))->depth(0)->ignoreDotFiles(true) as $file) {
+                $app->get('file')->delete($file->getPathname());
                 if (function_exists('opcache_invalidate')) {
-                    opcache_invalidate($file);
+                    opcache_invalidate($file->getPathname(), true);
                 }
             }
         }

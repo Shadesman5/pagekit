@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Database\ORM;
 
-use Doctrine\Common\Cache\Cache;
+use Pagekit\Cache\CacheKeyUtil;
 use Pagekit\Database\Connection;
-use Pagekit\Database\ORM\Metadata;
 use Pagekit\Database\ORM\Loader\LoaderInterface;
 use Pagekit\Event\EventDispatcherInterface;
+use Psr\Cache\CacheItemPoolInterface;
 
 class MetadataManager
 {
@@ -16,7 +18,7 @@ class MetadataManager
 
     protected ?LoaderInterface $loader = null;
 
-    protected ?Cache $cache = null;
+    protected ?CacheItemPoolInterface $cache = null;
 
     /**
      * @var Metadata[]
@@ -36,7 +38,7 @@ class MetadataManager
     public function __construct(Connection $connection, EventDispatcherInterface $events)
     {
         $this->connection = $connection;
-        $this->events     = $events;
+        $this->events = $events;
     }
 
     /**
@@ -60,7 +62,7 @@ class MetadataManager
     /**
      * Gets the cache used for caching Metadata objects.
      */
-    public function getCache(): ?Cache
+    public function getCache(): ?CacheItemPoolInterface
     {
         return $this->cache;
     }
@@ -68,9 +70,9 @@ class MetadataManager
     /**
      * Sets the cache used for caching Metadata objects.
      *
-     * @param Cache $cache
+     * @param CacheItemPoolInterface $cache
      */
-    public function setCache(Cache $cache): void
+    public function setCache(CacheItemPoolInterface $cache): void
     {
         $this->cache = $cache;
     }
@@ -80,7 +82,7 @@ class MetadataManager
      *
      * @param  string $class
      */
-    public function has($class): bool
+    public function has(string $class): bool
     {
         return isset($this->metadata[$class]);
     }
@@ -88,34 +90,41 @@ class MetadataManager
     /**
      * Gets the metadata for the given class.
      *
-     * @param  object|string $class
+     * @param object|class-string $class
      */
-    public function get($class): Metadata
+    public function get(object|string $class): Metadata
     {
         $class = new \ReflectionClass($class);
-        $name  = $class->getName();
+        $name = $class->getName();
 
         if (!isset($this->metadata[$name])) {
 
             if ($this->cache) {
 
-                $hash = filemtime($class->getFileName());
+                $hash = (int) filemtime((string) $class->getFileName());
                 foreach ($class->getTraits() as $trait) {
-                    $hash += filemtime($trait->getFileName());
+                    $hash += (int) filemtime((string) $trait->getFileName());
                 }
 
                 $current = $class;
                 while ($parent = $current->getParentClass()) {
-                    $hash += filemtime($parent->getFileName());
+                    $hash += (int) filemtime((string) $parent->getFileName());
                     $current = $parent;
                 }
 
-                $id = sprintf('%s%s.%s', $this->prefix, $hash, $name);
+                $id = CacheKeyUtil::sanitize(sprintf('%s%s.%s', $this->prefix, $hash, $name));
 
-                if ($config = $this->cache->fetch($id)) {
+                $item = $this->cache->getItem($id);
+
+                if ($item->isHit()) {
+                    $config = $item->get();
                     $this->metadata[$name] = new Metadata($this, $name, $config);
                 } else {
-                    $this->cache->save($id, $this->load($class)->getConfig());
+                    $metadata = $this->load($class);
+                    if ($metadata !== null) {
+                        $item->set($metadata->getConfig());
+                        $this->cache->save($item);
+                    }
                 }
 
             } else {
@@ -131,10 +140,14 @@ class MetadataManager
     /**
      * Loads the metadata of the given class.
      *
-     * @param \ReflectionClass $class
+     * @param \ReflectionClass<object> $class
      */
     protected function load(\ReflectionClass $class): ?Metadata
     {
+        if ($this->loader === null) {
+            throw new \LogicException('MetadataManager: no loader configured. Call setLoader() before loading metadata.');
+        }
+
         $parent = null;
 
         foreach ($this->getParentClasses($class) as $class) {
@@ -143,6 +156,7 @@ class MetadataManager
 
             if (isset($this->metadata[$name])) {
                 $parent = $this->metadata[$name];
+
                 continue;
             }
 
@@ -184,10 +198,15 @@ class MetadataManager
     /**
      * Get array of parent classes for the given class.
      *
-     * @param  \ReflectionClass $class
+     * @param  \ReflectionClass<object> $class
+     * @return array<int, \ReflectionClass<object>>
      */
     protected function getParentClasses(\ReflectionClass $class): array
     {
+        if ($this->loader === null) {
+            return [$class];
+        }
+
         $parents = [$class];
 
         while ($parent = $class->getParentClass()) {
@@ -210,8 +229,13 @@ class MetadataManager
     protected function subscribe(Metadata $metadata): void
     {
         foreach ($metadata->getEvents() as $event => $methods) {
+            $class = $metadata->getClass();
             foreach ($methods as $method) {
-                $this->events->on($metadata->getEventPrefix().'.'.$event, [$metadata->getClass(), $method]);
+                if (!method_exists($class, $method)) {
+                    throw new \LogicException(sprintf("Event method '%s::%s' does not exist.", $class, $method));
+                }
+                $callable = static fn (mixed ...$args): mixed => $class::$method(...$args);
+                $this->events->on($metadata->getEventPrefix().'.'.$event, $callable);
             }
         }
     }

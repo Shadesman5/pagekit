@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Pagekit\Config\ConfigManager;
 
 return [
@@ -8,14 +10,15 @@ return [
 
     'main' => function ($app) {
 
-        $app['config'] = fn($app) => new ConfigManager($app['db'], $this->config);
+        $app->set('config', fn ($app) => new ConfigManager($app->get('db'), $this->config));
 
-        if ($app['config.file']) {
-            $app['module']->addLoader(function ($module) use ($app) {
+        if ($app->get('config.file') && file_exists($app->get('config.file'))) {
+            $app->get('module')->addLoader(function ($module) use ($app) {
 
-                if ($app['config']->has($module['name'])) {
-                    $module['config'] = array_replace($module['config'],
-                        $app['config']->get($module['name'])->toArray()
+                if ($app->get('config')->has($module['name'])) {
+                    $module['config'] = array_replace(
+                        $module['config'],
+                        $app->get('config')->get($module['name'])->toArray()
                     );
                 }
 
@@ -27,30 +30,30 @@ return [
 
     'require' => [
 
-        'database'
+        'database',
 
     ],
 
     'autoload' => [
 
-        'Pagekit\\Config\\' => 'src'
+        'Pagekit\\Config\\' => 'src',
 
     ],
 
     'config' => [
 
-        'table'  => '@system_config'
+        'table' => '@system_config',
 
     ],
 
     'events' => [
 
         'terminate' => [function () use ($app) {
-            foreach ($app['config'] as $name => $config) {
-                $app['config']->set($name, $config);
+            foreach ($app->get('config') as $name => $config) {
+                $app->get('config')->set($name, $config);
             }
-        }, 100]
+        }, 100],
 
-    ]
+    ],
 
 ];

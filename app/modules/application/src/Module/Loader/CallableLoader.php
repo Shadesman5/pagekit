@@ -1,29 +1,28 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Module\Loader;
 
 class CallableLoader implements LoaderInterface
 {
-    /**
-     * @var callable
-     */
-    protected $callable;
+    protected \Closure $callable;
 
-    /**
-     * Constructor.
-     *
-     * @param callable $callable
-     */
     public function __construct(callable $callable)
     {
-        $this->callable = $callable;
+        $this->callable = $callable instanceof \Closure
+            ? $callable
+            : \Closure::fromCallable($callable);
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @param  mixed $module Genuinely unknown type — see LoaderInterface::load().
+     * @return mixed Genuinely unknown type — see LoaderInterface::load().
      */
-    public function load($module)
+    public function load(mixed $module): mixed
     {
-        return call_user_func($this->callable, $module);
+        return ($this->callable)($module);
     }
 }

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "hooks": {
+    "preCompact": [
+      {
+        "command": "touch /tmp/precompact-stop 2>/dev/null; echo '{}'"
+      }
+    ]
+  }
+}

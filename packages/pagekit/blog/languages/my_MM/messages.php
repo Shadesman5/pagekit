@@ -1,4 +1,8 @@
-<?php return array (
+<?php
+
+declare(strict_types=1);
+
+return  [
   'Filter by' => '',
   'Thank you! Your comment needs approval before showing up.' => 'ကျေးဇူးတင်ပါတယ်။ သင့်ထင်မြင်ချက်ကို စစ်ဆေးပြီးပါက ပြသပေးပါမည်။',
   'Unable to comment. Please try again later.' => 'ထင်မြင်ချက်ပေး၍ မရဖြစ်နေပါတယ်။ ကျေးဇူးပြု၍ နောက်မှ ကြိုးစားကြည့်ပါ။',
@@ -94,4 +98,4 @@
   'Written by %name% on %date%' => '%name% မှ %date% တွင်ရေးသားသည်',
   'Read more' => 'ဆက်ဖတ်ရန်',
   '{0} No comments|{1} %count% Comment|]1,Inf[ %count% Comments' => '{0} ထင်မြင်ချက်မရှိပါ|{1} ထင်မြင်ချက် %count% ခု|]1,Inf[ ထင်မြင်ချက် %count% ခု',
-);
+];

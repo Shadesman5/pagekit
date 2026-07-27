@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Filesystem\Archive;
 
 interface ArchiveInterface
@@ -7,11 +9,8 @@ interface ArchiveInterface
     /**
      * Extracts an archive to a destination path.
      *
-     * @param string $archive
-     * @param string $path
-     *
      * @throws \UnexpectedValueException
      * @throws \RuntimeException
      */
-    public static function extract($archive, $path);
+    public static function extract(string $archive, string $path): bool|int;
 }

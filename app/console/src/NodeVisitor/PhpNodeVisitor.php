@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Console\NodeVisitor;
 
+use PhpParser\Node;
+use PhpParser\Node\Arg;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Expr\MethodCall;
-use PhpParser\Lexer;
-use PhpParser\Node;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor as BaseVisitor;
 use PhpParser\ParserFactory;
@@ -14,10 +16,13 @@ class PhpNodeVisitor extends NodeVisitor implements BaseVisitor
 {
     /**
      * {@inheritdoc}
+     *
+     * @param  array<int, string> $files
+     * @return array<string, array<string, mixed>>
      */
     public function traverse(array $files): array
     {
-        $parser = (new ParserFactory)->create(ParserFactory::PREFER_PHP5);
+        $parser = (new ParserFactory())->create(ParserFactory::PREFER_PHP5);
 
         $traverser = new NodeTraverser(true);
         $traverser->addVisitor($this);
@@ -38,24 +43,36 @@ class PhpNodeVisitor extends NodeVisitor implements BaseVisitor
     /**
      * {@inheritdoc}
      */
+    // TODO: Must be refactored in Step 3.3.6 (Translation System Modernization) — extract #[Assert\...] message keys from PHP 8 Attributes for the translation-extraction pipeline (optional, low priority)
+
     public function enterNode(Node $node)
     {
         if ($node instanceof FuncCall
             && isset($node->name) && isset($node->name->parts)
             && ($node->name->parts[0] == '__' || $node->name->parts[0] == '_c')
-            && isset($node->args[0]) && isset($node->args[0]->value->value)
+            && isset($node->args[0])
+            && $node->args[0] instanceof Arg
+            && isset($node->args[0]->value->value)
             && is_string($string = $node->args[0]->value->value)
         ) {
-            $key                               = $node->name->parts[0] == '__' ? 2 : 3;
-            $domain                            = isset($node->args[$key]) && is_string($node->args[$key]->value->value) ? $node->args[$key]->value->value : 'messages';
+            $key = $node->name->parts[0] == '__' ? 2 : 3;
+            $domainArg = $node->args[$key] ?? null;
+            $domain = $domainArg instanceof Arg && is_string($domainArg->value->value ?? null)
+                ? $domainArg->value->value
+                : 'messages';
             $this->results[$domain][$string][] = ['file' => $this->file, 'line' => $node->getLine()];
         } elseif ($node instanceof MethodCall
             && isset($node->name)
             && ($node->name == 'trans' || $node->name == 'transChoice')
-            && isset($node->args[0]) && isset($node->args[0]->value->value)
+            && isset($node->args[0])
+            && $node->args[0] instanceof Arg
+            && isset($node->args[0]->value->value)
             && is_string($string = $node->args[0]->value->value)) {
-            $key                               = $node->name == 'trans' ? 2 : 3;
-            $domain                            = isset($node->args[$key]) && is_string($node->args[$key]->value->value) ? $node->args[$key]->value->value : 'messages';
+            $key = $node->name == 'trans' ? 2 : 3;
+            $domainArg = $node->args[$key] ?? null;
+            $domain = $domainArg instanceof Arg && is_string($domainArg->value->value ?? null)
+                ? $domainArg->value->value
+                : 'messages';
             $this->results[$domain][$string][] = ['file' => $this->file, 'line' => $node->getLine()];
         }
     }

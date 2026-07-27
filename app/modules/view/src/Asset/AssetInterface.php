@@ -1,8 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\View\Asset;
 
-interface AssetInterface
+/**
+ * @extends \ArrayAccess<string, mixed>
+ */
+interface AssetInterface extends \ArrayAccess
 {
     /**
      * Gets the name.
@@ -21,6 +26,8 @@ interface AssetInterface
 
     /**
      * Gets the dependencies.
+     *
+     * @return array<int, string>
      */
     public function getDependencies(): array;
 
@@ -31,43 +38,37 @@ interface AssetInterface
 
     /**
      * Sets the content.
-     *
-     * @param string $content
      */
-    public function setContent($content);
+    public function setContent(string $content): void;
 
     /**
      * Gets all options.
+     *
+     * @return array<string, mixed>
      */
     public function getOptions(): array;
 
     /**
      * Gets a option.
      *
-     * @param  string $name
-     * @return mixed
+     * @return mixed Genuinely unknown type — asset options are user-defined key-value pairs; any scalar, array, or null is valid.
      */
-    public function getOption($name);
+    public function getOption(string $name): mixed;
 
     /**
      * Sets a option.
-     *
-     * @param string $name
-     * @param mixed $value
      */
-    public function setOption($name, $value);
+    public function setOption(string $name, mixed $value): void;
 
     /**
      * Gets the unique hash.
-     *
-     * @param  string $salt
      */
-    public function hash($salt = ''): string;
+    public function hash(string $salt = ''): string;
 
     /**
      * Applies filters and returns the asset as a string.
      *
-     * @param  array $filters
+     * @param array<int, callable|object> $filters
      */
     public function dump(array $filters = []): string;
 }

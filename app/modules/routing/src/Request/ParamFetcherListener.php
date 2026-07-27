@@ -1,8 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Routing\Request;
 
 use Pagekit\Event\EventSubscriberInterface;
+use Pagekit\Kernel\Event\ControllerEvent;
+use Symfony\Component\HttpFoundation\Request;
 
 class ParamFetcherListener implements EventSubscriberInterface
 {
@@ -15,31 +19,63 @@ class ParamFetcherListener implements EventSubscriberInterface
      */
     public function __construct(?ParamFetcherInterface $paramFetcher = null)
     {
-        $this->paramFetcher = $paramFetcher ?: new ParamFetcher;
+        $this->paramFetcher = $paramFetcher ?: new ParamFetcher();
     }
 
     /**
      * Maps the parameters to request attributes.
-     *
-     * @param $event
      */
-    public function onController($event, $request): void
+    public function onController(ControllerEvent $event, Request $request): void
     {
         $controller = $event->getController();
         $attributes = $request->attributes->get('_request', []);
         $parameters = isset($attributes['value']) ? $attributes['value'] : false;
         $options = isset($attributes['options']) ? $attributes['options'] : [];
 
-        if (is_array($controller) && $parameters) {
-
-            $this->paramFetcher->setRequest($request);
-            $this->paramFetcher->setParameters($parameters, $options);
-
+        // Symfony 6.4 compatibility: If no parameters from annotation, try to get from request
+        if (is_array($controller)) {
             $r = new \ReflectionMethod($controller[0], $controller[1]);
 
-            foreach ($r->getParameters() as $index => $param) {
-                if (null !== $value = $this->paramFetcher->get($index)) {
-                    $request->attributes->set($param->getName(), $value);
+            if ($parameters) {
+                $this->paramFetcher->setRequest($request);
+                $this->paramFetcher->setParameters($parameters, $options);
+
+                foreach ($r->getParameters() as $index => $param) {
+                    if (null !== $value = $this->paramFetcher->get($index)) {
+                        $request->attributes->set($param->getName(), $value);
+                    }
+                }
+            } else {
+                // Fallback: Get parameters directly from request
+                foreach ($r->getParameters() as $param) {
+                    $name = $param->getName();
+
+                    // Try different sources
+                    $value = null;
+
+                    // Cache request data (use all() to support both scalar and array values)
+                    $postData = $request->request->all();
+                    $queryData = $request->query->all();
+
+                    // Try POST data
+                    if (isset($postData[$name])) {
+                        $value = $postData[$name];
+                    }
+                    // Try query string
+                    elseif (isset($queryData[$name])) {
+                        $value = $queryData[$name];
+                    }
+                    // Try JSON body
+                    elseif ($request->getContent()) {
+                        $data = json_decode($request->getContent(), true);
+                        if (isset($data[$name])) {
+                            $value = $data[$name];
+                        }
+                    }
+
+                    if ($value !== null) {
+                        $request->attributes->set($name, $value);
+                    }
                 }
             }
         }
@@ -47,11 +83,13 @@ class ParamFetcherListener implements EventSubscriberInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, array{0: string, 1: int}>
      */
     public function subscribe(): array
     {
         return [
-            'controller' => ['onController', 110]
+            'controller' => ['onController', 110],
         ];
     }
 }

@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pagekit\Debug\Event;
 
-use Pagekit\Event\EventInterface;
 use Pagekit\Event\EventDispatcherInterface;
+use Pagekit\Event\EventInterface;
 use Pagekit\Event\EventSubscriberInterface;
-use Symfony\Component\Stopwatch\Stopwatch;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Stopwatch\Stopwatch;
 
 /**
  * @author    Fabien Potencier <fabien@symfony.com>
@@ -16,9 +18,21 @@ class TraceableEventDispatcher implements EventDispatcherInterface
 {
     protected ?\Psr\Log\LoggerInterface $logger = null;
     protected \Symfony\Component\Stopwatch\Stopwatch $stopwatch;
+    /** @var array<string, array<int, WrappedListener>> */
     protected array $called;
     protected \Pagekit\Event\EventDispatcherInterface $dispatcher;
+    /** @var array<string, array<int, WrappedListener>> */
     protected array $wrappedListeners;
+
+    /**
+     * Tracks the listeners registered for each subscriber, keyed by the
+     * subscriber object, so unsubscribe() can remove exactly what subscribe()
+     * registered. Required because subscriberMethod() returns a fresh Closure
+     * on each call and the underlying dispatcher's off() matches by identity.
+     *
+     * @var \SplObjectStorage<EventSubscriberInterface, list<array{event: string, listener: callable}>>
+     */
+    protected \SplObjectStorage $subscriberListeners;
 
     /**
      * Constructor.
@@ -34,82 +48,132 @@ class TraceableEventDispatcher implements EventDispatcherInterface
         $this->logger = $logger;
         $this->called = [];
         $this->wrappedListeners = [];
+        $this->subscriberListeners = new \SplObjectStorage();
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function on($event, $listener, $priority = 0): void
+    public function on(string $event, callable $listener, int $priority = 0): self
     {
         $this->dispatcher->on($event, $listener, $priority);
+
+        return $this;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function off($event, $listener = null)
+    public function off(string $event, ?callable $listener = null): self
     {
         if (isset($this->wrappedListeners[$event])) {
             foreach ($this->wrappedListeners[$event] as $index => $wrappedListener) {
                 if ($wrappedListener->getWrappedListener() === $listener) {
                     $listener = $wrappedListener;
                     unset($this->wrappedListeners[$event][$index]);
+
                     break;
                 }
             }
         }
 
-        return $this->dispatcher->off($event, $listener);
+        $this->dispatcher->off($event, $listener);
+
+        return $this;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function subscribe(EventSubscriberInterface $subscriber): void
+    public function subscribe(EventSubscriberInterface $subscriber): self
     {
+        if (isset($this->subscriberListeners[$subscriber])) {
+            $this->unsubscribe($subscriber);
+        }
+
+        $registrations = [];
+
         foreach ($subscriber->subscribe() as $event => $params) {
 
             if (is_string($params)) {
-                $this->on($event, [$subscriber, $params]);
-            } elseif (is_callable($params)) {
-                $this->on($event, $params->bindTo($subscriber, $subscriber));
-            } elseif (is_string($params[0])) {
-                $this->on($event, [$subscriber, $params[0]], isset($params[1]) ? $params[1] : 0);
-            } elseif (is_callable($params[0])) {
-                $this->on($event, $params[0]->bindTo($subscriber, $subscriber), isset($params[1]) ? $params[1] : 0);
-            } else {
-                foreach ($params as $listener) {
-                    if (is_string($listener[0])) {
-                        $this->on($event, [$subscriber, $listener[0]], isset($listener[1]) ? $listener[1] : 0);
-                    } else {
-                        $this->on($event, $listener[0]->bindTo($subscriber, $subscriber), isset($listener[1]) ? $listener[1] : 0);
+                $listener = $this->subscriberMethod($subscriber, $params);
+                $this->on($event, $listener);
+                $registrations[] = ['event' => $event, 'listener' => $listener];
+            } elseif ($params instanceof \Closure) {
+                $listener = $params->bindTo($subscriber, $subscriber);
+                if ($listener === null) {
+                    continue;
+                }
+                $this->on($event, $listener);
+                $registrations[] = ['event' => $event, 'listener' => $listener];
+            } elseif (is_array($params) && is_string($params[0])) {
+                $listener = $this->subscriberMethod($subscriber, $params[0]);
+                $this->on($event, $listener, isset($params[1]) && is_int($params[1]) ? $params[1] : 0);
+                $registrations[] = ['event' => $event, 'listener' => $listener];
+            } elseif (is_array($params) && $params[0] instanceof \Closure) {
+                $listener = $params[0]->bindTo($subscriber, $subscriber);
+                if ($listener === null) {
+                    continue;
+                }
+                $this->on($event, $listener, isset($params[1]) && is_int($params[1]) ? $params[1] : 0);
+                $registrations[] = ['event' => $event, 'listener' => $listener];
+            } elseif (is_array($params)) {
+                foreach ($params as $listenerSpec) {
+                    if (!is_array($listenerSpec)) {
+                        continue;
+                    }
+                    if (is_string($listenerSpec[0])) {
+                        $listener = $this->subscriberMethod($subscriber, $listenerSpec[0]);
+                        $this->on($event, $listener, isset($listenerSpec[1]) && is_int($listenerSpec[1]) ? $listenerSpec[1] : 0);
+                        $registrations[] = ['event' => $event, 'listener' => $listener];
+                    } elseif ($listenerSpec[0] instanceof \Closure) {
+                        $listener = $listenerSpec[0]->bindTo($subscriber, $subscriber);
+                        if ($listener === null) {
+                            continue;
+                        }
+                        $this->on($event, $listener, isset($listenerSpec[1]) && is_int($listenerSpec[1]) ? $listenerSpec[1] : 0);
+                        $registrations[] = ['event' => $event, 'listener' => $listener];
                     }
                 }
             }
 
         }
+
+        $this->subscriberListeners[$subscriber] = $registrations;
+
+        return $this;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function unsubscribe(EventSubscriberInterface $subscriber): void
+    public function unsubscribe(EventSubscriberInterface $subscriber): self
     {
-        foreach ($subscriber->subscribe() as $event => $params) {
-            if (is_array($params) && is_array($params[0])) {
-                foreach ($params as $listener) {
-                    $this->off($event, [$subscriber, $listener[0]]);
-                }
-            } else {
-                $this->off($event, [$subscriber, is_string($params) ? $params : $params[0]]);
-            }
+        if (!isset($this->subscriberListeners[$subscriber])) {
+            return $this;
         }
+
+        foreach ($this->subscriberListeners[$subscriber] as $registration) {
+            $this->off($registration['event'], $registration['listener']);
+        }
+
+        unset($this->subscriberListeners[$subscriber]);
+
+        return $this;
+    }
+
+    /**
+     * Builds a Closure that invokes a method on a subscriber by name. Using
+     * first-class callable syntax lets PHPStan verify the resulting value is a
+     * Closure (callable), unlike `[$subscriber, $method]` arrays which PHPStan
+     * cannot statically prove to be callable when the method name comes from a
+     * string variable.
+     */
+    protected function subscriberMethod(EventSubscriberInterface $subscriber, string $method): \Closure
+    {
+        return $subscriber->{$method}(...);
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @param array<int|string, mixed> $arguments
      */
-    public function trigger($event, array $arguments = []): EventInterface
+    public function trigger(string|EventInterface $event, array $arguments = []): EventInterface
     {
         if (is_string($event)) {
             $class = $this->dispatcher->getEventClass();
@@ -118,11 +182,11 @@ class TraceableEventDispatcher implements EventDispatcherInterface
             $e = $event;
         }
 
-        $event = $e->getName();
+        $eventName = $e->getName();
 
-        $this->preProcess($event);
+        $this->preProcess($eventName);
 
-        $watch = $this->stopwatch->start($event, 'section');
+        $watch = $this->stopwatch->start($eventName, 'section');
 
         $this->dispatcher->trigger($e, $arguments);
 
@@ -130,37 +194,33 @@ class TraceableEventDispatcher implements EventDispatcherInterface
             $watch->stop();
         }
 
-        $this->postProcess($event);
+        $this->postProcess($eventName);
 
         return $e;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function hasListeners($event = null): bool
+    public function hasListeners(?string $event = null): bool
     {
         return $this->dispatcher->hasListeners($event);
     }
 
     /**
-     * {@inheritdoc}
+     * @return ($event is null ? array<string, list<callable>> : list<callable>)
      */
-    public function getListeners($event = null): array
+    public function getListeners(?string $event = null): array
     {
         return $this->dispatcher->getListeners($event);
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function getListenerPriority($event, $listener): ?int
+    public function getListenerPriority(string $event, callable $listener): ?int
     {
         return $this->dispatcher->getListenerPriority($event, $listener);
     }
 
     /**
      * {@inheritdoc}
+     *
+     * @return class-string<EventInterface>
      */
     public function getEventClass(): string
     {
@@ -169,6 +229,8 @@ class TraceableEventDispatcher implements EventDispatcherInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, array<string, mixed>>
      */
     public function getCalledListeners(): array
     {
@@ -185,6 +247,8 @@ class TraceableEventDispatcher implements EventDispatcherInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<string, array<string, mixed>>
      */
     public function getNotCalledListeners(): array
     {
@@ -195,12 +259,12 @@ class TraceableEventDispatcher implements EventDispatcherInterface
                 $this->logger->info('An exception was thrown while getting the uncalled listeners.', ['exception' => $e]);
             }
 
-            // unable to retrieve the uncalled listeners
             return [];
         }
 
         $notCalled = [];
         foreach ($allListeners as $eventName => $listeners) {
+            $eventName = (string) $eventName;
             foreach ($listeners as $listener) {
                 $called = false;
                 if (isset($this->called[$eventName])) {
@@ -220,7 +284,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
             }
         }
 
-        uasort($notCalled, fn($a, $b) => $this->sortListenersByPriority($a, $b));
+        uasort($notCalled, fn ($a, $b) => $this->sortListenersByPriority($a, $b));
 
         return $notCalled;
     }
@@ -228,16 +292,15 @@ class TraceableEventDispatcher implements EventDispatcherInterface
     /**
      * Proxies all method calls to the original event dispatcher.
      *
-     * @param  string $method
-     * @param  array  $arguments
-     * @return mixed
+     * @param  array<int|string, mixed> $arguments
+     * @return mixed Genuinely unknown type — proxied to the wrapped event dispatcher; return type depends on the method called.
      */
-    public function __call($method, $arguments)
+    public function __call(string $method, array $arguments): mixed
     {
-        return call_user_func_array([$this->dispatcher, $method], $arguments);
+        return $this->dispatcher->{$method}(...$arguments);
     }
 
-    protected function preProcess($eventName): void
+    protected function preProcess(string $eventName): void
     {
         foreach ($this->dispatcher->getListeners($eventName) as $listener) {
             $priority = $this->getListenerPriority($eventName, $listener);
@@ -250,7 +313,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
         }
     }
 
-    protected function postProcess($eventName): void
+    protected function postProcess(string $eventName): void
     {
         unset($this->wrappedListeners[$eventName]);
         $skipped = false;
@@ -260,7 +323,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
             }
             // Unwrap listener
             $this->dispatcher->off($eventName, $listener);
-            $this->dispatcher->on($eventName, $listener->getWrappedListener(), $listener->getPriority());
+            $this->dispatcher->on($eventName, $listener->getWrappedListener(), $listener->getPriority() ?? 0);
 
             $info = $this->getListenerInfo($listener->getWrappedListener(), $eventName);
             if ($listener->wasCalled()) {
@@ -268,11 +331,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
                     $this->logger->debug(sprintf('Notified event "%s" to listener "%s".', $eventName, $info['pretty']));
                 }
 
-                if (!isset($this->called[$eventName])) {
-                    $this->called[$eventName] = new \SplObjectStorage();
-                }
-
-                $this->called[$eventName]->attach($listener);
+                $this->called[$eventName][] = $listener;
             }
 
             if (null !== $this->logger && $skipped) {
@@ -292,8 +351,9 @@ class TraceableEventDispatcher implements EventDispatcherInterface
     /**
      * Returns information about the listener.
      *
-     * @param  object $listener
-     * @param  string $eventName
+     * @param  callable               $listener
+     * @param  string                 $eventName
+     * @return array<string, mixed>
      */
     protected function getListenerInfo($listener, $eventName): array
     {
@@ -310,7 +370,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
                 'file' => $refl->getFileName(),
                 'line' => $refl->getStartLine(),
                 'endline' => $refl->getEndLine(),
-                'pretty' => (string) $refl
+                'pretty' => (string) $refl,
             ];
         } elseif (is_string($listener)) {
             try {
@@ -328,11 +388,12 @@ class TraceableEventDispatcher implements EventDispatcherInterface
                 'line' => $line,
                 'pretty' => $listener,
             ];
-        } elseif (is_array($listener) || (is_object($listener) && is_callable($listener))) {
+        } elseif (is_array($listener) || is_object($listener)) {
             if (!is_array($listener)) {
                 $listener = [$listener, '__invoke'];
             }
             $class = is_object($listener[0]) ? get_class($listener[0]) : $listener[0];
+
             try {
                 $r = new \ReflectionMethod($class, $listener[1]);
                 $file = $r->getFileName();
@@ -354,7 +415,11 @@ class TraceableEventDispatcher implements EventDispatcherInterface
         return $info;
     }
 
-    protected function sortListenersByPriority($a, $b): int
+    /**
+     * @param array<string, mixed> $a
+     * @param array<string, mixed> $b
+     */
+    protected function sortListenersByPriority(array $a, array $b): int
     {
         if (is_int($a['priority']) && !is_int($b['priority'])) {
             return 1;
