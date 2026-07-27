@@ -62,6 +62,19 @@ Tests: none (test-writer: skip — Node build scripts only; the `frontend` CI jo
 
 Tests: `test-writer` runs — new `FileAdapterTest` (mount-matching, boundary-safety, unmounted/missing-file cases) and `PackageFactoryTest` (published vs. unpublished package URL, no-`UrlProvider` construction); `LocatorTest` gains the public-overlay/dual-path resolution cases; `PathTest` gains the segment-boundary-safety case; `FileUtil` gains a `writeFile()` fixture helper shared by the new tests. Gates: Verifier — production PASS; tests FAIL once (`PathTest`'s boundary-safety claim was asserted without proving it) then PASS after retry. Tester — PHPUnit + PHPStan PASS (production); FAIL twice on the `PathTest` addition (non-empty-string typing) then PASS after retries.
 
+### Front controller flip → `public/` becomes the docroot (Checklist Step 4)
+
+| File | Change |
+|---|---|
+| `public/index.php` (new) | Sole front controller. Byte-equivalent to the deleted root `index.php` except: `$path = dirname(__DIR__)` (was `__DIR__`); the config map gains `'path.public' => __DIR__`; the cli-server static-file short-circuit and the debug-log path resolve from the new `$path`/`__DIR__` (decision 7). |
+| `index.php` (deleted) | Root front controller removed outright — no parallel or proxy copy kept at the old location. |
+| `pagekit` | Bin's `require_once` repointed from `__DIR__.'/index.php'` to `__DIR__.'/public/index.php'`. |
+| `app/console/src/Commands/StartCommand.php` | Dev server now execs `php -S $server -t public public/index.php` (was `index.php` from the approot); the printed "Document root is …" line reports `getcwd().'/public'`. |
+| `phpunit.xml.dist`, `phpunit-mysql.xml.dist` | Coverage `<source><exclude>` entry for the front controller tracks the move: `index.php` → `public/index.php`. |
+| `codecov.yml` | Redundant standalone `index.php` ignore line removed — the pre-existing `**/index.php` glob already covers the relocated file. |
+
+Tests: none (test-writer: skip — front controller + exec-string command has no testable seam; behavior is covered by the curl smoke + E2E per the ticket's testing strategy). Gates: Verifier — production PASS. Tester — PHPUnit PASS, PHPStan PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -80,13 +93,14 @@ _TBD / None_
 
 - **Vue baseline inventory over-counts vs. the fresh `public/` copy (Checklist Step 2 — flagged for Step 8 parity).** The Step 1 baseline captured `app/assets/vue/` (418 entries) before this step moved the copy destination to `public/app/assets/vue/`; the old, git-ignored destination had accumulated leftover files from earlier builds that `scripts/assets.mjs` never pruned (overwrites/adds in place, never deletes). The fresh `public/app/assets/vue/` copy (223 entries) matches the installed `vue@2.7.16` package exactly, including its `.ts` compiler sources. Step 8's parity check must treat the ~195-entry shrinkage as pre-existing baseline staleness, not a publication regression.
 - **`app/modules/debug/assets/vendor/highlight/` is not published (Checklist Step 2 — flagged for Step 8 parity).** Decision 3d names `app/modules/debug/assets/**` as a tree that must publish in full, but `scripts/publish.mjs`'s `PRIVATE_DIRS` exclusion treats any directory literally named `vendor` as a never-served PHP/Composer source tree, so this module's own vendored front-end library (a highlight.js copy, currently unreferenced by any `$view->script()`/`style()` call site) is skipped too. Needs a rule adjustment before Step 8's parity check can close cleanly.
-- **The app is not manually browsable end-to-end yet (Checklist Step 3 — planned, resolves at Step 4).** URLs now resolve through `path.public`/the storage mount, but the front controller (`index.php`) still runs from the application root and `public/` is not yet the docroot, so a live request cannot reach any of the newly-mounted paths. PHPUnit and PHPStan stay green throughout since neither browses; manual/E2E verification resumes once Checklist Step 4 flips the docroot.
+- **The app is not manually browsable end-to-end yet (Checklist Step 3 — planned, resolves at Step 4).** URLs now resolve through `path.public`/the storage mount, but the front controller (`index.php`) still runs from the application root and `public/` is not yet the docroot, so a live request cannot reach any of the newly-mounted paths. PHPUnit and PHPStan stay green throughout since neither browses; manual/E2E verification resumes once Checklist Step 4 flips the docroot. **Closed at Checklist Step 4** — `public/index.php` is now the sole front controller and `StartCommand` serves via `-t public public/index.php`; the docroot flip this note was waiting on has landed.
 
 ---
 
 ## 🔐 Security & Data Impact
 
 - **File-to-URL resolution is now allow-listed by mount, not approot-wide (Checklist Step 3).** `FileAdapter` previously mapped every path under the application root to a URL; it now only does so for a path under an explicit mount (`path.public`, `path.storage`) — `config.php`, `app/system/config.php`, `composer.json`, and everything else outside both mounts get no `url` regardless of what calls `getUrl()`/`getStatic()` on them, and mount matching is segment-boundary-safe (a sibling directory merely sharing a mount's name as a prefix does not match). Covered by `FileAdapterTest`.
+- **Mount allow-listing now gates live HTTP requests, not just code-level `getUrl()`/`getStatic()` calls (Checklist Step 4).** Before this step the front controller still ran from the application root, so no live request could reach the app at all; with `public/` as the docroot, everything outside `path.public`/`path.storage` — `config.php`, `app/system/config.php`, `composer.json`, `.git`, `tmp/` — sits outside the webroot entirely rather than merely outside a URL allow-list.
 
 ---
 
@@ -94,6 +108,7 @@ _TBD / None_
 
 - **Rule 4 (Delete over wrap) — Checklist Step 2.** `packages/pagekit/theme-one/css/theme.css`'s tracked compiled copy is untracked outright rather than kept as a committed fallback beside the new `public/`-only build output (decision 3c); the uikit-relative LESS variables (`@uikit-path`/`@image-path` and their `@internal-*-image` consumers) are deleted rather than kept as a dead alias once the imports resolve straight from `node_modules` (decision 4).
 - **Rule 4 (Delete over wrap) — Checklist Step 3.** `FileAdapter`'s single-root `$path`/`$url` mapping and `Locator`'s single-path-per-prefix registration are replaced in place by the mounts list / publish-mirror-first resolution — there is no legacy single-mount code path kept alongside the new one; a one-mount adapter is simply the one-element case of the same mechanism.
+- **Rule 4 (Delete over wrap) — Checklist Step 4.** Root `index.php` is deleted outright, not kept as a compatibility stub/redirect to `public/index.php`; the `pagekit` bin and `StartCommand`'s exec string are repointed in place rather than supporting both entry points.
 
 ---
 

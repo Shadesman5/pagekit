@@ -18,8 +18,11 @@ if (!isset($_SERVER['HTTP_MOD_REWRITE']) && !isset($_SERVER['REDIRECT_HTTP_MOD_R
 
 date_default_timezone_set('UTC');
 
+$env = 'system';
+$path = dirname(__DIR__);
+
 // Global exception handler for debugging
-if (file_exists($debugLog = __DIR__.'/tmp/logs/debug.log')) {
+if (file_exists($debugLog = $path.'/tmp/logs/debug.log')) {
     set_exception_handler(function ($e) use ($debugLog) {
         $message = sprintf(
             "\n[UNCAUGHT EXCEPTION] [%s]\nType: %s\nMessage: %s\nFile: %s:%d\nTrace:\n%s\n\n",
@@ -34,11 +37,9 @@ if (file_exists($debugLog = __DIR__.'/tmp/logs/debug.log')) {
     });
 }
 
-$env = 'system';
-$path = __DIR__;
 $config = [
     'path' => $path,
-    'path.public' => $path.'/public',
+    'path.public' => __DIR__,
     'path.packages' => $path.'/packages',
     'path.storage' => $path.'/storage',
     'path.temp' => $path.'/tmp/temp',

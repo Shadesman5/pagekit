@@ -61,7 +61,7 @@
             <directory>app/vendor</directory>
             <!-- No meaningful unit-test surface (align with codecov.yml ignore) -->
             <file>app/system/config.php</file>
-            <file>index.php</file>
+            <file>public/index.php</file>
         </exclude>
     </source>
 
