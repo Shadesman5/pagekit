@@ -6,16 +6,16 @@
 **Branch:** `feature/webroot-modernization`
 **ROADMAP Step:** 2.4.1 (Webroot Modernization (public/))
 **GitHub Issue:** [#243](https://github.com/Shadesman5/pagekit/issues/243)
-**Pull Request:** _TBD_
-**Status:** 🚧 In progress
+**Pull Request:** [#256](https://github.com/Shadesman5/pagekit/pull/256)
+**Status:** ✅ Complete
 **Started:** 2026-07-27 17:34
-**Completed:** _TBD_
+**Completed:** 2026-07-27 21:23
 
 ---
 
 ## 🎯 Overview
 
-_TBD_
+Adopts a dedicated `public/` webroot so application code, configuration and internal state are structurally unreachable over HTTP — the URL namespace itself is frozen (`/app/assets/…`, `/packages/…`, `/storage/…`, `/index.php` stay byte-identical); only the filesystem home of servable files moves. The Node build (`scripts/bundles.mjs`/`assets.mjs`/`styles.mjs`) now emits every bundle, vendor-asset copy and compiled stylesheet under `public/`, joined by a new publication pass (`scripts/publish.mjs`) that copies each module/package/theme's committed servable statics into the same tree and links `public/storage → ../storage`. PHP URL resolution follows suit: `FileAdapter` maps an ordered mount list (`path.public` primary, `path.storage` secondary) instead of the old approot-wide mapping, so a file outside both mounts gets no URL by construction; `Locator` gains a publish-mirror-first overlay so `$view->script()`/`style()` and template asset references keep resolving without a call-site change. `public/index.php` becomes the sole front controller (root `index.php` deleted outright), `public/.htaccess` carries the security/rewrite rules forward plus a storage PHP-execution deny, and root `.htaccess` shrinks to a one-line shared-hosting fallback rewrite. The installer and CLI setup now ensure the `public/storage` symlink on unzipped installs, and `SelfUpdater`/`ArchiveCommand` pick up forward-debt tags for the `public/` gaps Steps 2.8/2.9 must still close. README and AGENTS.md document both hosting paths (fixed docroot vs. shared-hosting fallback) plus the storage-symlink recovery command. Final verification rebuilt the served-output inventory from a clean tree and confirmed its path set matches the pre-migration baseline (plus the enumerated published-statics additions), closing the two parity gaps Checklist Step 2 had flagged for this gate.
 
 ---
 
@@ -127,7 +127,7 @@ Tests: none (test-writer: skip — verification only). Gates: Verifier PASS (non
 
 ## 💥 Breaking Changes (Extensions)
 
-_TBD / None_
+None for the checked-out module/package/theme tree — the URL namespace is frozen and every servable path publishes into `public/` at build time, so `$view->script()`/`style()` and `getStatic()` calls behave exactly as before (decision verified via the Checklist Step 3 audit greps). One real consequence for a package installed at runtime through the admin upload flow (`admin/system/package/upload`), outside the core build: before this step its bundle/CSS/icon files got a URL from the old approot-wide `FileAdapter` mapping regardless of build state; now nothing publishes them into `public/`, so they have no URL until Step 2.8 ships a runtime publisher. Tracked under Deferred / Out-of-Scope below, not an actively-exercised path today (the marketplace backend that would source such installs stays discontinued).
 
 ---
 
@@ -163,79 +163,85 @@ _TBD / None_
 <!-- Links only. Quality metrics are CI-owned: link the PR sticky quality-report comment and the
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
-- CI run: _TBD_
-- Notable deviations: _TBD / None_
+| Gate | Result |
+|---|---|
+| CI — PR checks | ✅ green — [PR #256 checks](https://github.com/Shadesman5/pagekit/pull/256/checks) (`phpunit (8.5)`, `phpunit-mysql`, `phpstan`, `cs-fixer`, `frontend`, `infection-diff`, `version-ssot`, `security-audit`, `sync-metadata` all pass; `e2e-smoke`/`e2e-merge` skipped by workflow) |
+| Coverage gap pass | skipped — no Codecov bot comment appeared within ~5 min after CI green |
+| Cursor Bugbot | ✅ clean |
+| E2E | ✅ PASS — local `@ci` specs already green on the final tree at Checklist Step 8; the PR's own `e2e-smoke` leg stayed skipped by workflow |
+| Finalize fix-loop | None |
+
+**CI run:** https://github.com/Shadesman5/pagekit/pull/256/checks
+
+**Metrics (CI-owned):** [PR #256](https://github.com/Shadesman5/pagekit/pull/256) sticky quality-report comment ([comment](https://github.com/Shadesman5/pagekit/pull/256#issuecomment-5096851399)) · [Codecov](https://app.codecov.io/gh/Shadesman5/pagekit/pull/256) · [Quality Dashboard](https://Shadesman5.github.io/pagekit/quality/)
+
+**Notable deviations:** None beyond what each Checklist Step's own What Changed / Risks entries already record (Step 2's two Verifier notes, both closed at Step 8; Step 3's test-writer retries — `PathTest` boundary-safety proof, then non-empty-string typing). No Finalize fix-loop.
 
 ---
 
 ## 📋 Phase 1 Audit Closure
 
-_TBD / None_
+None (no `Closes Phase 1 audit:` line in the task prompt header; webroot/hosting-layout scope does not touch a Phase 1 audit item).
 
 ---
 
 ## 👤 Maintainer action
 
-_TBD / None_
+None beyond the 3 items already routed to Deferred / Out-of-Scope → Manual Work below (the ticket's own placement — agent-can't-verify items on a real webserver/Docker host, not a separate maintainer action here).
 
 ---
 
 ## 📚 Deferred / Out-of-Scope
 
 - **Steps 2.7 / 2.8 / 2.9** — `PHASE_2_MODERNISING.md` §2.7, §2.8, §2.9 amended in this plan with the deferred webroot consequences: DB-less extension-fallback file kept out of the now-public `storage/` tree (2.7), runtime-installed/uploaded package assets need a `public/` publisher on install/enable (2.8), release artifacts must recreate the `public/storage` symlink and prune stale published assets (2.9).
-
-_TBD_
+- **Non-goals:** webserver/runtime engine choice (Apache stays; nginx/FrankenPHP is Step 4.12), Docker production image hardening (Step 2.5), CSP delivery mechanism (Step 3.2.1 — CSP content itself moved verbatim into `public/.htaccess`).
+- **Bridges:** None — the locator publish-mirror overlay and `FileAdapter` mounts are the permanent publication architecture, not a transitional compat layer. The two `// TODO` tags this ticket left (`SelfUpdater` → Step 2.9, `ArchiveCommand` → Step 2.8) are forward-debt audit markers, not bridges.
+- **Manual Work (maintainer — agents cannot perform; no Docker daemon or real webserver in the agent VM):**
+  1. Fresh install + upgrade end-to-end on a real Apache webserver, both paths (the `Dockerfile` dev-vhost change needs an actual `docker compose up` run).
+  2. HTTP denial proof on real Apache: `app/`, `config.php`, `tmp/` return the front-controller 404 page, never file contents.
+  3. Shared-hosting fallback verification: root-`.htaccess`'s unconditional rewrite on a host where the document root cannot be changed (or a local Apache config simulating one).
 
 ---
 
 ## 📌 Follow-on (ROADMAP)
 
-_TBD / None_
+None — no new ROADMAP step created; the webroot consequences for Steps 2.7/2.8/2.9 are amendments to existing PHASE items, not new follow-on work (see Deferred / Out-of-Scope above).
 
 ---
 
 ## 🧊 Parked (unplanned)
 
-_TBD / None_
+None — the two parity gaps discovered mid-ticket (Vue baseline inventory over-count, debug module's un-published `highlight.js`/`highlight.css`) were both closed within this ticket at Checklist Step 8 rather than set aside.
 
 ---
 
 ## 🧹 Cleanup
 
-_TBD / None_
+None beyond the forward-debt `// TODO` tags already recorded under No-Mercy Compliance (Checklist Step 6) — no additional repo cleanup identified.
 
 ---
 
 ## 🛡️ Audit
 
-_TBD / None_
+None beyond the No-Mercy Compliance and Phase 1 Audit Closure sections above.
 
 ---
 
 ## 🎁 Bonus
 
-_TBD / None_
+None — all shipped work traces to the ticket's 8 Checklist Steps.
 
 ---
 
 ## 🔍 Research
 
-_TBD / None_
+None.
 
 ---
 
 ## 📎 Related Documents
 
-- Ticket: `migration-docs/tickets/active/PROMPT_2_4_1_Webroot-Modernization_plan.md` (moves to `done/` at Finalize)
+- Ticket: `migration-docs/tickets/done/PROMPT_2_4_1_Webroot-Modernization_plan.md` (archived at Finalize)
 - Task prompt: `migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_4_1_Webroot-Modernization.md`
 - Predecessor: Step 2.4 — Build Tools (pnpm + Vite)
 - Successor: Step 2.5 — Docker Production Image & Deploy
-
----
-
-## 📊 <Step-specific appendix>
-
-<!-- Narrative/structural notes only. Never a metrics table (coverage %, MSI, test counts): quality
-     numbers are CI-owned — link the sticky quality-report comment + dashboard instead. -->
-
-_TBD — remove this section if not applicable._

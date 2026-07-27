@@ -1,5 +1,33 @@
 # Changelog
 
+## Pagekit 1.2.34 - Webroot Modernization: adopt `public/` (July 27, 2026)
+
+### 💥 Breaking Changes
+
+- **Runtime-installed extension/theme assets can go unreachable** — only `public/` is served now, and the build publishes only checked-out (in-repo) module/package/theme trees; a package installed through the admin upload flow (`admin/system/package/upload`) has no `public/` mirror, so its bundles, CSS and icons — previously reachable through the old approot-wide URL mapping regardless of build state — now resolve to no URL. PHP-only packages and views are unaffected.
+
+### ✨ Added
+
+- **Dedicated `public/` webroot** — `public/index.php` is the sole front controller (root `index.php` deleted outright); `public/.htaccess` carries the security headers and rewrite rules forward plus a new storage PHP-execution deny; root `.htaccess` shrinks to a one-line shared-hosting fallback (`RewriteRule ^(.*)$ public/$1 [L,QSA]`) for hosts that can't move the document root. `php pagekit start` and the dev Docker vhost now serve `-t public public/index.php`. (Closes #243)
+- **Build-time static publication pass** (`scripts/publish.mjs`) — copies every module/package/theme's committed servable files (`assets/`, `css/`, `js/`, `images/`, `fonts/`, root icons, `app/**/*.{js,css}`) into `public/` alongside the relocated Vite bundles, vendor-asset copies and compiled CSS; `public/storage` is symlinked to `../storage` by the Node build and, for zip-unpacked installs, by the installer and CLI setup (warns instead of failing when `symlink()` is unavailable).
+
+### ♻️ Changed
+
+- **URL resolution is mount-based, not approot-wide** — `FileAdapter` maps an ordered mount list (`path.public` primary, `path.storage` secondary) instead of the whole application root, so a file outside both mounts gets no URL by construction; `Locator` gains a publish-mirror-first overlay (published copy checked ahead of the module source) so `$view->script()`/`style()` and template asset references resolve unchanged — extension DX is unaffected.
+- **README / AGENTS.md** — Manual Installation documents both hosting paths (fixed `public/` docroot vs. the shared-hosting rewrite fallback) plus the storage-symlink recovery command; the dev-server command and router-file caveat now name `public/`.
+
+### 🐛 Fixed
+
+- **The debug module's vendored `highlight.js`/`highlight.css` were not published** — the static-publication pass excluded any directory literally named `vendor` (aimed at Composer/`node_modules` trees), which also skipped this module's own vendored front-end library; the exclusion no longer applies to a nested vendored library under a served directory.
+
+### 🔒 Security
+
+- **Everything outside `public/`/`storage/` is now structurally unreachable** — `config.php`, `app/system/config.php`, `composer.json`, `.git`, `tmp/` sit outside the webroot entirely once `public/` is the docroot, rather than merely outside a URL allow-list.
+- **Storage media library gets a defense-in-depth PHP-execution deny** — `public/.htaccess` blocks `.php` execution under `/storage` ahead of the front-controller rewrite, since finder uploads are the only admin-writable served path.
+- **`config.php` no longer resolves relative to the running process's working directory** — the installer now reads/writes it via the application root explicitly, independent of hosting mode.
+
+---
+
 ## Pagekit 1.2.33 - Build Tools: pnpm + Vite (July 26, 2026)
 
 ### 💥 Breaking Changes
