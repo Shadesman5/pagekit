@@ -47,6 +47,21 @@ if ! command -v pnpm >/dev/null 2>&1; then
     $NPM_SUDO npm install -g pnpm@11.17.0
 fi
 
+# Remove Yarn (idempotent). The project standardized on pnpm — enforced by the
+# "only-allow pnpm" preinstall guard and the "packageManager" field — so a stray
+# Yarn shipped by the base image only invites accidental "yarn install" runs that
+# would ignore pnpm-lock.yaml. Strip the binaries and the npm-global package from
+# every Node install on the box; the loops and rm -f keep it a fast no-op once the
+# base image no longer bundles Yarn.
+if command -v yarn >/dev/null 2>&1 || ls "$HOME"/.nvm/versions/node/*/bin/yarn >/dev/null 2>&1; then
+    npm uninstall -g yarn >/dev/null 2>&1 || true
+    for node_bin in "$HOME"/.nvm/versions/node/*/bin /usr/local/bin /usr/bin; do
+        rm -f "$node_bin/yarn" "$node_bin/yarnpkg" 2>/dev/null || true
+    done
+    rm -rf "$HOME"/.nvm/versions/node/*/lib/node_modules/yarn 2>/dev/null || true
+    rm -rf /usr/local/lib/node_modules/yarn 2>/dev/null || true
+fi
+
 # PHP dependencies (lock file is tracked — install exact versions)
 composer install --no-interaction --optimize-autoloader --working-dir=.
 
