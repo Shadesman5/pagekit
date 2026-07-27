@@ -8,7 +8,7 @@
 
 | Track | Steps | Focus |
 | ----- | ----- | ----- |
-| **Frontend** | 3.1–3.4, 3.5, 3.5.1, 3.6, 3.6.1 | Vue 3, UIkit, TypeScript, components, admin a11y, E2E + `@axe-core/playwright` |
+| **Frontend** | 3.1–3.4 (incl. 3.4.1–3.4.4), 3.5, 3.5.1, 3.6, 3.6.1 | Vue 3, UIkit, TypeScript, components, admin a11y, E2E + `@axe-core/playwright` |
 | **Cross-stack** | 3.3.5, 3.3.6 | Intl platform API, transChoice → ICU, `TranslatorInterface` in service layer |
 
 > **Note:** Template-facing globals (`__()`, `_i()`, `$date`, `$number`) **stay** — they are the Pagekit **platform DX API**, not legacy debt. See ROADMAP § DX & Lightweight Philosophy and Step 3.3.6 decision below.
@@ -279,15 +279,30 @@
 
 ## Step 3.4: TypeScript Integration
 
-- **Goal**: Gradually introduce TypeScript into the frontend
-- **Prerequisite**: Step 3.3 (Vue 3 Migration) — type the modern Composition-API components rather than the legacy Vue 2 ones
-- **Tasks**:
-  - Configure `tsconfig.json` (strict mode)
-  - Extend the Vite/build pipeline for `.ts` files
-  - Define shared API types (generated from PHP backend routes)
-  - Write new composables/utilities in TypeScript
-  - Gradually type existing components (not all at once!)
-- **Strategy**: Enforce TypeScript for new files, gradually migrate existing `.js` files
+- **Goal**: Introduce TypeScript on the Vue 3 frontend without a big-bang rewrite — split like Step 2.1 so each ticket stays shippable.
+- **Prerequisite**: Step 3.3 (Vue 3 Migration) — type Composition-API code, not Vue 2 leftovers.
+- **Strategy**: New files in TypeScript; existing `.js`/`.vue` only where a sub-step explicitly touches them.
+
+### Step 3.4.1: Prettier defaults cutover
+
+- **Goal**: Switch `.prettierrc` to Prettier 3 defaults and run one format-once over the JS/Vue scope; record the hash in `.git-blame-ignore-revs`.
+- **Why first**: TS-era files are born on the modern style; keep this out of Vue-3-compat diffs.
+- **Risk**: Low (mechanical; large diff, ignore-revs)
+
+### Step 3.4.2: TS toolchain (strict + Vite)
+
+- **Goal**: `tsconfig.json` (strict), Vite/build pipeline for `.ts` / `.vue` with `lang="ts"`, lint/CI green for the empty-or-minimal TS surface; enforce TypeScript for **new** frontend files.
+- **Risk**: Low–Medium
+
+### Step 3.4.3: Shared API types
+
+- **Goal**: Shared request/response types for frontend↔backend (prefer generated from PHP routes / OpenAPI once available; hand-written stubs acceptable until 4.4).
+- **Risk**: Medium (contract drift until REST API v2)
+
+### Step 3.4.4: Incremental typing (new + hotspots)
+
+- **Goal**: Type new composables/utilities in TS; migrate existing hotspots only when touched for other reasons — never a repo-wide `.js` → `.ts` rewrite in one ticket.
+- **Risk**: Low if scoped; High if treated as “type everything”
 
 ---
 

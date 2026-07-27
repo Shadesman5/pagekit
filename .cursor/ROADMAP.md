@@ -75,7 +75,7 @@
 | 1.14   | Doctrine Attributes                   | ✅     | 🛡️    | #134  | #111    |
 | 2.0    | **Foundation Consolidation**          | ✅     | 🛡️    | #181  | #198    |
 | 2.0.0  | ↳ Controller Attributes               | ✅     | 🛡️    | #142  | #111    |
-| 2.0.1  | ↳ PSR-11 Container Modernization      | ✅     | 🛡️    | #145  | #174    |
+| 2.0.1  | **↳ PSR-11 Container Modernization**  | ✅     | 🛡️    | #145  | #174    |
 | 2.0.1a | ↳ Container Core + Modules (S1+S2)    | ✅     | 🛡️    | #162  | #161    |
 | 2.0.1b | ↳ DI Infrastructure                   | ✅     | 🛡️    | #163  | #167    |
 | 2.0.1c | ↳ System/Installer/Console + DI       | ✅     | 🛡️    | #164  | #169    |
@@ -105,7 +105,7 @@
 | 2.1.14 | ↳ PHP Version Upgrade (8.2 → 8.5)     | ✅     | 🛡️    | #231  | #238    |
 | 2.2    | CI/CD Pipeline                        | ✅     | 🛡️    | #157  | #240    |
 | 2.3    | Docker Dev Experience & Image Hygiene | ✅     | 🛡️    | #241  | #242    |
-| 2.4    | Build Tools (pnpm + Vite)             | ✅     | 🛡️    | #159  | #245    |
+| 2.4    | **Build Tools (pnpm + Vite)**         | ✅     | 🛡️    | #159  | #245    |
 | 2.4.1  | ↳ Webroot Modernization (public/)     | ⏳     | ⏳    | #243  | -       |
 | 2.5    | Docker Production Image & Deploy      | ⏳     | ⏳    | #158  | -       |
 | 2.6    | Filesystem Write Resilience           | ⏳     | ⏳    | -     | -       |
@@ -118,20 +118,24 @@
 | 2.10.3 | ↳ Fail-Fast / control-flow hygiene    | ⏳     | ⏳    | -     | -       |
 | 2.11   | Phase 2 Closeout (Coverage/Mutation)  | ⏳     | ⏳    | -     | -       |
 | 3.1    | UIkit Update                          | ⏳     | ⏳    | -     | -       |
-| 3.2    | Vue 2.7 Bridge                        | ⏳     | ⏳    | -     | -       |
+| 3.2    | **Vue 2.7 Bridge**                    | ⏳     | ⏳    | -     | -       |
 | 3.2.1  | ↳ Template Pre-compilation (CSP)      | ⏳ 20% | ⏳    | -     | -       |
-| 3.3    | Vue 3 Migration                       | ⏳     | ⏳    | -     | -       |
+| 3.3    | **Vue 3 Migration**                   | ⏳     | ⏳    | -     | -       |
 | 3.3.1  | ↳ vue-resource → axios                | ⏳     | ⏳    | -     | -       |
 | 3.3.2  | ↳ vue-event-manager → mitt            | ⏳     | ⏳    | -     | -       |
 | 3.3.3  | ↳ Vue 3 Core + @vue/compat            | ⏳     | ⏳    | -     | -       |
 | 3.3.4  | ↳ Pinia State Management              | ⏳     | ⏳    | -     | -       |
 | 3.3.5  | ↳ Deps (intl→Intl, lodash→native)     | ⏳     | ⏳    | -     | -       |
 | 3.3.6  | ↳ Translation System Modernization    | ⏳     | ⏳    | -     | -       |
-| 3.4    | TypeScript                            | ⏳     | ⏳    | -     | -       |
-| 3.5    | Component Library                     | ⏳     | ⏳    | -     | -       |
+| 3.4    | **TypeScript**                        | ⏳     | ⏳    | -     | -       |
+| 3.4.1  | ↳ Prettier defaults cutover           | ⏳     | ⏳    | -     | -       |
+| 3.4.2  | ↳ TS toolchain (strict + Vite)        | ⏳     | ⏳    | -     | -       |
+| 3.4.3  | ↳ Shared API types                    | ⏳     | ⏳    | -     | -       |
+| 3.4.4  | ↳ Incremental typing (new + hotspots) | ⏳     | ⏳    | -     | -       |
+| 3.5    | **Component Library**                 | ⏳     | ⏳    | -     | -       |
 | 3.5.1  | ↳ Admin Accessibility Baseline        | ⏳     | ⏳    | -     | -       |
-| 3.6    | E2E selector strategy (data-testid)   | ⏳     | ⏳    | -     | -       |
-| 3.6.1  | ↳ E2E Test Suite Rework               | ⏳     | ⏳    | -     | -       |
+| 3.6    | **E2E selector strategy**             | ⏳     | ⏳    | -     | -       |
+| 3.6.1  | ↳ E2E Test Suite Rework (data-testid) | ⏳     | ⏳    | -     | -       |
 | 4.0    | Accessibility & WCAG Baseline         | ⏳     | ⏳    | -     | -       |
 | 4.1    | Basic Security                        | ⏳     | ⏳    | -     | -       |
 | 4.2    | Symfony 6.4 → 7.x Upgrade             | ⏳     | ⏳    | -     | -       |
@@ -140,14 +144,14 @@
 | 4.5    | Performance Optimization              | ⏳     | ⏳    | -     | -       |
 | 4.6    | Monitoring & Health Checks            | ⏳     | ⏳    | -     | -       |
 | 4.7    | Rebranding: Pagekit → Kernkit         | ⏳     | ⏳    | -     | -       |
-| 4.8    | Native Image Pipeline & Media Manager | ⏳     | ⏳    | -     | -       |
+| 4.8    | **Image Pipeline & Media Manager**    | ⏳     | ⏳    | -     | -       |
 | 4.9    | ↳ Cross-Repo Dev Dashboard            | ⏳     | ⏳    | -     | -       |
 | 4.10   | Cookie Consent & Privacy Baseline     | ⏳     | ⏳    | -     | -       |
 | 4.11   | Container Orchestration & Deployment  | ⏳     | ⏳    | -     | -       |
 | 4.12   | Production Web Arch (FrankenPHP)      | ⏳     | ⏳    | -     | -       |
 | 5.0    | Sub-Extension Platform                | ⏳     | ⏳    | -     | -       |
 | 5.1    | Modern Block Editor                   | ⏳     | ⏳    | -     | -       |
-| 5.2    | Advanced Security                     | ⏳     | ⏳    | -     | -       |
+| 5.2    | **Advanced Security**                 | ⏳     | ⏳    | -     | -       |
 | 5.2.1  | ↳ Advanced Privacy & Consent Ext.     | ⏳     | ⏳    | -     | -       |
 | 5.3    | Advanced Performance                  | ⏳     | ⏳    | -     | -       |
 | 5.4    | Advanced CMS Features                 | ⏳     | ⏳    | -     | -       |
