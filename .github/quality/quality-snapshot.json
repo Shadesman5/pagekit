@@ -1,7 +1,7 @@
 {
   "schemaVersion": 3,
   "source": "github-actions",
-  "updatedAt": "2026-07-28T05:14:16.888Z",
+  "updatedAt": "2026-07-29T05:17:54.407Z",
   "branch": "develop",
   "commit": "6d89c675f799550b96a93fcbfa2fb1389590cc31",
   "workflows": {
@@ -14,7 +14,7 @@
       "conclusion": "success"
     },
     "infectionFull": {
-      "runId": 30330864283,
+      "runId": 30424642566,
       "conclusion": "success",
       "scheduled": true
     }
@@ -51,15 +51,15 @@
       "scope": "diff"
     },
     "dailyFull": {
-      "msi": 99.19,
-      "coveredMsi": 99.19,
-      "killed": 363,
-      "escaped": 3,
-      "timedOut": 2,
-      "errors": 1,
-      "totalMutants": 369,
+      "msi": null,
+      "coveredMsi": null,
+      "killed": null,
+      "escaped": null,
+      "timedOut": null,
+      "errors": null,
+      "totalMutants": null,
       "scope": "full",
-      "runAt": "2026-07-28T05:10:39Z"
+      "runAt": "2026-07-29T05:17:27Z"
     }
   },
   "e2e": {
