@@ -44,6 +44,8 @@ final class StorageLinkTest extends TestCase
 
     public function testEnsurePutsTheMediaLibraryIntoTheWebroot(): void
     {
+        $this->requireSymlink();
+
         $link = new StorageLink($this->root, $this->public, $this->storage);
 
         self::assertSame($this->public.'/storage', $link->getPath());
@@ -57,6 +59,8 @@ final class StorageLinkTest extends TestCase
 
     public function testTheLinkSurvivesTheInstallationBeingMoved(): void
     {
+        $this->requireSymlink();
+
         self::assertTrue((new StorageLink($this->root, $this->public, $this->storage))->ensure());
         self::assertSame('../storage', readlink($this->public.'/storage'));
 
@@ -68,6 +72,8 @@ final class StorageLinkTest extends TestCase
 
     public function testEnsureLeavesALinkItAlreadyFindsInPlace(): void
     {
+        $this->requireSymlink();
+
         $link = new StorageLink($this->root, $this->public, $this->storage);
 
         self::assertTrue($link->ensure());
@@ -90,6 +96,8 @@ final class StorageLinkTest extends TestCase
 
     public function testALinkPointingNowhereIsLeftAsItIs(): void
     {
+        $this->requireSymlink();
+
         symlink('../gone', $this->public.'/storage');
 
         $link = new StorageLink($this->root, $this->public, $this->storage);
@@ -101,6 +109,8 @@ final class StorageLinkTest extends TestCase
 
     public function testAMediaLibraryNestedInTheApplicationIsLinkedFromTheSamePlaceInTheWebroot(): void
     {
+        $this->requireSymlink();
+
         // Media URLs are derived from where the library sits relative to the
         // application, so the link has to answer under that same path.
         $nested = $this->root.'/var/media';
@@ -154,6 +164,8 @@ final class StorageLinkTest extends TestCase
 
     public function testTrailingSlashesOnTheConfiguredPathsChangeNothing(): void
     {
+        $this->requireSymlink();
+
         $link = new StorageLink($this->root.'/', $this->public.'/', $this->storage.'/');
 
         self::assertSame($this->public.'/storage', $link->getPath());
@@ -173,6 +185,46 @@ final class StorageLinkTest extends TestCase
             'ln -s ../storage '.$this->public.'/storage',
             $link->getProblem(),
         );
+    }
+
+    /**
+     * Skips when the host cannot create directory symlinks (common on Windows
+     * without Developer Mode / elevated privileges).
+     */
+    private function requireSymlink(): void
+    {
+        if (!self::canCreateSymlink()) {
+            $this->markTestSkipped('symlink() is unavailable on this host');
+        }
+    }
+
+    private static function canCreateSymlink(): bool
+    {
+        static $available;
+
+        if ($available !== null) {
+            return $available;
+        }
+
+        if (!function_exists('symlink')) {
+            return $available = false;
+        }
+
+        $dir = strtr(sys_get_temp_dir(), '\\', '/').'/pk_symlink_probe_'.getmypid().'_'.uniqid();
+        $target = $dir.'/target';
+        $link = $dir.'/link';
+
+        mkdir($target, 0755, true);
+
+        $available = @symlink($target, $link) && is_link($link);
+
+        if (is_link($link) || is_file($link)) {
+            @unlink($link);
+        }
+        @rmdir($target);
+        @rmdir($dir);
+
+        return $available;
     }
 
     /**

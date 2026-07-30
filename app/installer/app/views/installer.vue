@@ -449,13 +449,10 @@ const Installer = {
     resource(action, body) {
       // Force reload $pagekit from window object
       const pagekit = window.$pagekit || {};
-      const url = pagekit.url || '/index.php';
+      // Empty string is valid when mod_rewrite is on — do not coerce it to '/index.php'
+      // (falsy || fallback), which breaks FastCGI hosts that reject PATH_INFO URLs.
+      const url = typeof pagekit.url === 'string' ? pagekit.url : '';
       const fullUrl = `${url}/installer/${action}`;
-
-      // Don't add CSRF for installer - no session yet
-      // if (pagekit.csrf) {
-      //     body.csrf = pagekit.csrf;
-      // }
 
       return this.$http.post(fullUrl, body);
     },

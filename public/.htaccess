@@ -1,6 +1,15 @@
-# Deny access to this file. Only the front controller, published build output and
-# the media library live below this directory, so no other denial rules are needed.
-<FilesMatch "^\.htaccess$">
+# Deny sensitive files that must never be served from the webroot (defense-in-depth;
+# sources and config live outside public/, but stray copies or mis-deploys still happen).
+<FilesMatch "((\.(lock|cache|db))|installed.json|composer.json|package.json|bower.json|CHANGELOG.md|README.md|pnpm-lock.yaml|pnpm-workspace.yaml|pagekit)$">
+    Require all denied
+</FilesMatch>
+
+<FilesMatch "\.(htaccess|htpasswd|ini|log|sh|inc|bak)$">
+    Require all denied
+</FilesMatch>
+
+# Prevent access to backup files
+<FilesMatch "\.(bak|backup|old|orig|save|swp|tmp)$">
     Require all denied
 </FilesMatch>
 

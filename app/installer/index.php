@@ -38,7 +38,7 @@ return [
                 $locale = $request->get('locale') ?: $app->get('request')->getPreferredLanguage();
                 $available = $app->get('module')->get('system/intl')->getAvailableLanguages();
 
-                if (isset($available[$locale])) {
+                if (is_string($locale) && $locale !== '' && isset($available[$locale])) {
                     $app->get('module')->get('system/intl')->setLocale($locale);
                 }
 
@@ -142,20 +142,6 @@ return [
             'url' => '@system/update',
             'priority' => 25,
         ],
-
-    ],
-
-    'events' => [
-
-        'view.data' => function ($event, $data) use ($app) {
-            $installer = $app->get('module')->get('installer');
-            if ($installer && $installer->config('enabled')) {
-                $data('$pagekit', [
-                    'url' => '/index.php',
-                    'csrf' => $app->get('csrf')->generate(),
-                ]);
-            }
-        },
 
     ],
 

@@ -9,23 +9,74 @@ use Pagekit\Database\ORM\EntityManager;
 use Pagekit\Database\ORM\Loader\AttributeLoader;
 use Pagekit\Database\ORM\MetadataManager;
 use Pagekit\Event\PrefixEventDispatcher;
+use Pagekit\Filesystem\Path;
+
+/**
+ * Resolves a filesystem path for prefix comparison. Prefers realpath; when the
+ * file does not exist yet, resolves an existing parent directory and appends
+ * the basename so a not-yet-created SQLite file is still comparable.
+ */
+$canonicalizeFilesystemPath = static function (string $path): string {
+    $normalized = Path::parse(strtr($path, '\\', '/'))['pathname'];
+    $real = realpath($normalized);
+    if ($real !== false) {
+        return strtr($real, '\\', '/');
+    }
+
+    $dir = dirname($normalized);
+    $realDir = realpath($dir);
+    if ($realDir !== false) {
+        return strtr($realDir, '\\', '/').'/'.basename($normalized);
+    }
+
+    return $normalized;
+};
 
 $config = [
 
     'name' => 'database',
 
-    'main' => function ($app) {
+    'main' => function ($app) use ($canonicalizeFilesystemPath) {
 
         $default = [
             'wrapperClass' => 'Pagekit\Database\Connection',
         ];
 
-        $app->set('dbs', function ($app) use ($default) {
+        $app->set('dbs', function ($app) use ($default, $canonicalizeFilesystemPath) {
 
             $dbs = [];
 
             foreach ($this->config['connections'] as $name => $params) {
                 $connectionParams = array_replace($default, $params);
+
+                // SQLite file paths are always relative to the application root
+                // (next to config.php), never to getcwd() — docroots like public/
+                // must not create a world-readable DB under the webroot.
+                if (($connectionParams['driver'] ?? '') === 'pdo_sqlite'
+                    && empty($connectionParams['memory'])
+                    && isset($connectionParams['path'])
+                    && is_string($connectionParams['path'])
+                    && $connectionParams['path'] !== ''
+                ) {
+                    if (Path::isRelative($connectionParams['path'])) {
+                        $connectionParams['path'] = $app->get('path').'/'.$connectionParams['path'];
+                    }
+
+                    // Reject any resolved path under the document root — Apache
+                    // .htaccess is not universal (Nginx / php -S).
+                    $publicRoot = $app->has('path.public')
+                        ? (string) $app->get('path.public')
+                        : $app->get('path').'/public';
+                    $dbPath = $canonicalizeFilesystemPath($connectionParams['path']);
+                    $publicDir = Path::directory($canonicalizeFilesystemPath($publicRoot));
+                    if (str_starts_with($dbPath, $publicDir) || $dbPath === rtrim($publicDir, '/')) {
+                        throw new \InvalidArgumentException(sprintf(
+                            'SQLite database path "%s" must not be under the public webroot "%s".',
+                            $connectionParams['path'],
+                            $publicRoot,
+                        ));
+                    }
+                }
 
                 // DBAL 3.x: Always create debug middleware - it will collect queries when enabled
                 if (class_exists('Pagekit\Debug\Middleware\DebugMiddleware') &&
@@ -129,7 +180,8 @@ $config = [
             'sqlite' => [
 
                 'driver' => 'pdo_sqlite',
-                'path' => "pagekit.db",
+                // Relative to application root (container "path"); resolved at connection time.
+                'path' => 'pagekit.db',
                 'charset' => 'utf8',
                 'prefix' => 'pk_',
                 'driverOptions' => [

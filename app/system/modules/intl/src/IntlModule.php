@@ -24,7 +24,8 @@ class IntlModule extends Module
     public function main(App $app): mixed
     {
         $this->app = $app;
-        // Load translation functions
+        // Load translation functions together with their locator: __() / _c() / _i()
+        // resolve through IntlServiceLocator, so registering must not wait for boot.
         require_once __DIR__ . '/../functions.php';
         require_once __DIR__ . '/../functions-pagekit-namespace.php';
 
@@ -40,6 +41,20 @@ class IntlModule extends Module
 
             return $translator;
         });
+
+        // Register without resolving the translator: loadLocale() walks the
+        // module graph, which is incomplete while IntlModule::main() runs.
+        IntlServiceLocator::register(new IntlServiceLocator(
+            function () use ($app): Translator {
+                $translator = $app->get('translator');
+                if (!$translator instanceof Translator) {
+                    throw new \RuntimeException('translator service must be an instance of Translator');
+                }
+
+                return $translator;
+            },
+            $this,
+        ));
 
         return null;
     }
@@ -81,7 +96,8 @@ class IntlModule extends Module
         $territories = $this->getTerritories();
 
         $available = [];
-        foreach (Finder::create()->directories()->depth(0)->in('app/system/languages')->name('/^[a-z]{2,3}(_[A-Z]{2})?$/') as $dir) {
+        $languagesPath = $this->getApp()->get('path').'/app/system/languages';
+        foreach (Finder::create()->directories()->depth(0)->in($languagesPath)->name('/^[a-z]{2,3}(_[A-Z]{2})?$/') as $dir) {
 
             $id = $dir->getFilename();
             @list($lang, $country) = explode('_', $id);

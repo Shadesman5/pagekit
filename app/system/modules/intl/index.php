@@ -39,16 +39,6 @@ return [
 
     'events' => [
 
-        'boot' => function ($event, $app) {
-            $translator = $app->get('translator');
-            if (!$translator instanceof \Symfony\Component\Translation\Translator) {
-                throw new \RuntimeException('translator service must be an instance of Translator');
-            }
-            \Pagekit\Intl\IntlServiceLocator::register(
-                new \Pagekit\Intl\IntlServiceLocator($translator, $this)
-            );
-        },
-
         'view.init' => function ($event, $view) {
             $view->addGlobal('intl', $this);
         },

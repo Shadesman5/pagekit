@@ -251,7 +251,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
     Point the document root at the `public/` directory. Sources, configuration, `tmp/` and the media library itself stay outside it and are never reachable over HTTP.
 
     - **Apache**: `DocumentRoot /path/to/pagekit/public`, with `AllowOverride All` (the shipped `public/.htaccess` carries the rewrite rules and security headers), `Options FollowSymLinks` (the media library is a symlink) and `mod_rewrite` enabled
-    - **Nginx**: `root /path/to/pagekit/public;` and route unknown paths to the front controller: `try_files $uri /index.php$is_args$args;`
+    - **Nginx**: `root /path/to/pagekit/public;` and route unknown paths to the front controller: `try_files $uri /index.php$is_args$args;` — also deny `*.db` (e.g. `location ~* \.db$ { deny all; }`) since `.htaccess` does not apply.
     - **Permissions**: `tmp/` and `storage/` must be writable by the web server user
 
     **Shared hosting with a fixed document root**: leave it on the project directory. The root `.htaccess` rewrites every request into `public/`, so files beside it — `config.php`, `app/`, `tmp/` — resolve to nothing there and end up on the 404 page. This needs `mod_rewrite` and `AllowOverride All`, and it is the fallback: a document root on `public/` is the safer setup.

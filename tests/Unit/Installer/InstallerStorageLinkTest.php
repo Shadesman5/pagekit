@@ -40,6 +40,10 @@ final class InstallerStorageLinkTest extends TestCase
 
     public function testInstallationLinksTheMediaLibraryIntoTheWebroot(): void
     {
+        if (!self::canCreateSymlink()) {
+            $this->markTestSkipped('symlink() is unavailable on this host');
+        }
+
         $log = $this->createMock(LoggerInterface::class);
         $log->expects($this->never())->method('warning');
 
@@ -86,6 +90,35 @@ final class InstallerStorageLinkTest extends TestCase
             'path.storage' => $storage,
             'log' => $log,
         ]);
+    }
+
+    private static function canCreateSymlink(): bool
+    {
+        static $available;
+
+        if ($available !== null) {
+            return $available;
+        }
+
+        if (!function_exists('symlink')) {
+            return $available = false;
+        }
+
+        $dir = strtr(sys_get_temp_dir(), '\\', '/').'/pk_symlink_probe_'.getmypid().'_'.uniqid();
+        $target = $dir.'/target';
+        $link = $dir.'/link';
+
+        mkdir($target, 0755, true);
+
+        $available = @symlink($target, $link) && is_link($link);
+
+        if (is_link($link) || is_file($link)) {
+            @unlink($link);
+        }
+        @rmdir($target);
+        @rmdir($dir);
+
+        return $available;
     }
 
     /**
