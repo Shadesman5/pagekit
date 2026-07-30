@@ -1,32 +1,32 @@
 /**
- * Pagekit Config Loader - CSP-Compliant Configuration Reader
+ * Pagekit Config Loader — CSP-compliant configuration bootstrap
  *
- * Reads configuration from JSON script container (no inline scripts needed).
- * This enables strict Content Security Policy without 'unsafe-inline'.
+ * Reads server-rendered config from a JSON script container (no inline JS).
+ * Enables strict Content Security Policy without 'unsafe-inline' in script-src.
  *
  * How it works:
  * 1. Server renders: <script id="pagekit-data" type="application/json">{"data":...}</script>
- * 2. Browser does NOT execute type="application/json" (it's data, not code)
- * 3. This loader reads the JSON and exposes data as global variables
- * 4. Result: Backward compatible with existing code ($pagekit, etc.)
+ * 2. Browser does NOT execute type="application/json" (data, not code)
+ * 3. This loader parses the JSON and exposes named keys on window
+ * 4. Classic-script consumers read window.$pagekit (and other keys) synchronously
  *
- * IMPORTANT: This script MUST run synchronously before other scripts!
+ * IMPORTANT: This script MUST run synchronously before other scripts.
  * The pagekit-data element must appear BEFORE this script in the HTML.
  *
- * @since 1.0.x (Template Security Modernization)
+ * The JSON container + loader is the current CSP delivery path.
+ * Window globals for config remain until Pinia owns that state.
  */
 (function () {
   'use strict';
 
   /**
-   * Initialize configuration from JSON container - SYNCHRONOUS
+   * Initialize configuration from JSON container — SYNCHRONOUS
    */
   function initConfig() {
     var configElement = document.getElementById('pagekit-data');
 
     if (!configElement) {
-      // This is a problem - the pagekit-data element should exist
-      // It must be rendered BEFORE this script in the HTML
+      // pagekit-data must be rendered BEFORE this script in the HTML
       if (console && console.warn) {
         console.warn(
           '[Pagekit] Config element #pagekit-data not found. Make sure it appears before config-loader.js in the HTML.'
@@ -36,7 +36,6 @@
     }
 
     try {
-      // Parse JSON content from script tag
       var content = configElement.textContent || configElement.innerText;
       if (!content || content.trim() === '') {
         return false;
@@ -44,18 +43,17 @@
 
       var config = JSON.parse(content);
 
-      // Expose data as global variables (backward compatibility)
-      // This MUST happen synchronously before other scripts run!
+      // Expose named config keys on window for classic-script consumers ($pagekit, …).
+      // Must run synchronously before dependent scripts.
+      // TODO: Must be refactored in Step 3.3.4 (Pinia State Management)
       if (config.data && typeof config.data === 'object') {
         Object.keys(config.data).forEach(function (key) {
-          // Set on window object for global access
           window[key] = config.data[key];
         });
       }
 
       return true;
     } catch (e) {
-      // Log error but don't break the page
       if (console && console.error) {
         console.error('[Pagekit] Failed to parse configuration:', e);
       }
@@ -67,7 +65,7 @@
   // The pagekit-data script tag MUST appear before this script in the HTML
   var success = initConfig();
 
-  // Expose for debugging (only the API, no console output)
+  // Debug API only — no console output
   window.PagekitConfigLoader = {
     init: initConfig,
     wasSuccessful: function () {
