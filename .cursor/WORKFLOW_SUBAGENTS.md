@@ -1,6 +1,6 @@
 # Pagekit Modernization: Subagent Workflow (V2)
 
-**Last updated:** 2026-07-14
+**Last updated:** 2026-07-31
 
 Autonomous modernization runs via the **Conductor** (GitHub Actions) and the V2 Orchestrator rules. This document is the **human and agent reference** for that pipeline.
 
@@ -17,7 +17,7 @@ Autonomous modernization runs via the **Conductor** (GitHub Actions) and the V2 
 
 **Start a run:** GitHub → Actions → **Conductor** → `workflow_dispatch` (task prompt path, issue, `batch_budget`, optional `auto_chain`).
 
-**Chained runs:** With `auto_chain=true` (default), each GHA job runs at most one phase — PLAN, one EXECUTE batch (sized by `batch_budget` + S/M/L hints in the ticket), or FINALIZE — then dispatches the next workflow run automatically. Progress still lives in ticket checkboxes; manual re-run works the same as before. Set `auto_chain=false` to pause between jobs.
+**Chained runs:** With `auto_chain=true` (default), each GHA job runs at most one phase — PLAN, one EXECUTE batch (sized by `batch_budget` + S/M/L/XL hints in the ticket), or FINALIZE — then dispatches the next workflow run automatically. Progress still lives in ticket checkboxes; manual re-run works the same as before. Set `auto_chain=false` to pause between jobs.
 
 **Metrics:** Each run gets an auto-generated UUID `sessionId` (chained across jobs). Token usage and phase timing are committed to `.github/conductor/metrics/` and shown on the [GitHub Pages Roadmap](https://shadesman5.github.io/pagekit/project/roadmap/).
 
@@ -40,15 +40,18 @@ Inside the per-ticket loop, plain "Step N" always means **Checklist Step N**.
 
 | Agent | Phase | Role |
 | --- | --- | --- |
-| `architect` | Plan | Ticket + checklist + `EXECUTION STATE` (S/M/L) + `TESTING STRATEGY` |
+| `architect` | Plan | Ticket + checklist + `EXECUTION STATE` (S/M/L/XL) + `TESTING STRATEGY` |
 | `plan-reviewer` | Plan | Gate: plan vs. task prompt / ROADMAP → PASS / FAIL |
 | `doc-writer` | Plan, Execute, Finalize | Branch doc (living artifact); at Finalize also CHANGELOG + README |
 | `refactorer` | Execute, Finalize (fix loops) | Production code, No Mercy |
 | `verifier` | Execute, Finalize | Static review (production or `scope: test files only`) |
 | `tester` | Execute, Finalize | Sole test runner (PHPUnit, PHPStan, E2E) |
 | `test-writer` | Execute, Finalize | PHPUnit after green production gate (Execute); optional Codecov gap pass (Finalize step 3) |
+| `bugbot` / `security-review` | Execute `(XL)` only | Pre-PR Bugbot + Security on branch diff (Task subagents) |
 
-Bugbot in the cloud: **PR Bugbot** (Finalize), not a local subagent.
+Batch weights: `S=1`, `M=2`, `L=4`, `XL=8`. The last checklist step is always `(XL) — Review (Bugbot + Security) + E2E` and runs alone when `batch_budget` &lt; 8 (default 6).
+
+PR Bugbot in Finalize is a **safety net** (patch-ID sync from the XL review usually skips a duplicate).
 
 ---
 
@@ -65,16 +68,19 @@ Task Prompt + ROADMAP
         │
         ▼
 ┌─ EXECUTE (per batch, Conductor) ───────────────────────────┐
-│  Per Checklist Step N:                                      │
+│  Work steps (S/M/L):                                        │
 │    A) refactorer → verifier → tester           (production) │
 │    B) test-writer → verifier (tests) → tester   (optional)  │
-│    C) [E2E on last step] → doc-writer → commit + tick       │
+│    C) doc-writer → commit + tick                            │
+│  Last step (XL) — own batch under default budget:           │
+│    Bugbot ⇄ fix-loop → Security ⇄ fix-loop → E2E            │
+│    → doc-writer → commit + tick                             │
 └────────────────────────────────────────────────────────────┘
         │
         ▼
 ┌─ FINALIZE ─────────────────────────────────────────────────┐
 │  Push + PR → CI gate → [Codecov gap pass] → PR Bugbot       │
-│  → version bump → doc-writer (close branch doc + CHANGELOG) │
+│  (safety net) → version bump → doc-writer (close + CHANGELOG)│
 │  → ROADMAP → archive ticket to done/ → push                 │
 └────────────────────────────────────────────────────────────┘
 ```
@@ -85,7 +91,7 @@ Task Prompt + ROADMAP
 
 **Skip coverage gap pass (Finalize step 3)** when: ticket `test-writer: skip`, no Codecov comment, or only non-testable gaps (views, config version).
 
-**E2E:** On the **last Execute step** (all other checkboxes already `[x]`), **before** PR/CI — not on every step.
+**Review + E2E:** Only on the mandatory last `(XL)` Execute step — before PR/CI.
 
 ---
 
@@ -146,4 +152,4 @@ Edit models in `.cursor/agents/<name>.md`; keep this table in sync.
 
 ---
 
-**Summary:** The Conductor drives Plan → Execute batches → Finalize as a chain of short GHA jobs (one cloud-agent call each). `batch_budget` controls how much work fits into one Execute agent; `auto_chain` controls whether the next job starts automatically. Each phase delegates to subagents; `doc-writer` maintains documentation throughout; `test-writer` adds tests after a green production gate (Execute) and optionally closes Codecov patch gaps before Bugbot (Finalize). Progress lives in ticket checkboxes and git.
+**Summary:** The Conductor drives Plan → Execute batches → Finalize as a chain of short GHA jobs (one cloud-agent call each). `batch_budget` (S=1, M=2, L=4, XL=8) controls how much work fits into one Execute agent; the last `(XL)` Review+E2E step runs alone under the default budget of 6. `auto_chain` controls whether the next job starts automatically. Each phase delegates to subagents; `doc-writer` maintains documentation throughout; `test-writer` adds tests after a green production gate (Execute) and optionally closes Codecov patch gaps before Bugbot (Finalize). Progress lives in ticket checkboxes and git.

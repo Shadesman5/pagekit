@@ -94,7 +94,7 @@ Re-emit is a last resort: ask again **only** when the signal itself is missing (
 
 ## Loop
 
-1. Spawn **architect** (template above) → ticket with `## EXECUTION STATE` + `S`/`M`/`L` hints.
+1. Spawn **architect** (template above) → ticket with `## EXECUTION STATE` + `S`/`M`/`L`/`XL` hints (last step always `(XL)` Review + E2E).
 2. Spawn **plan-reviewer** → `PASS` or `FAIL` + bullets.
 3. Decide:
    - **PASS** → spawn **doc-writer** (initial branch doc template). Then `git add` the ticket, the

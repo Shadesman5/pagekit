@@ -19,10 +19,10 @@ Orchestrator/Conductor passes:
 2. **No scope drift / gold-plating** – Does the plan add work the requirement did not ask for, or pull in work the ROADMAP defers to a later step? Flag both directions.
 3. **ROADMAP alignment** – Correct `Current Step` ID, correct Scope vs Deferred split, Bridges/TODOs use valid ROADMAP IDs only.
 4. **Decomposition quality** – Steps are atomic, correctly ordered (no forward dependencies), and each is independently testable + committable.
-5. **EXECUTION STATE present + sane** – The `## EXECUTION STATE` block exists, mirrors the Checklist 1:1 (same numbers + titles), and every step has a plausible `S` / `M` / `L` size hint (loop-risk steps marked `L`).
+5. **EXECUTION STATE present + sane** – The `## EXECUTION STATE` block exists, mirrors the Checklist 1:1 (same numbers + titles), and every step has a plausible `S` / `M` / `L` / `XL` size hint (loop-risk steps marked `L`). The **last** step MUST be `(XL) — Review (Bugbot + Security) + E2E` (or equivalent title); no other step may use `XL`; `XL` is never a production-refactor step.
 6. **Audit findings incorporated** – Any "Audit findings" for this step in `PHASE_*_MODERNISING.md` are explicit checklist items, or explicitly deferred with a ROADMAP TODO.
 7. **PHASE Deferred sync** – If the ticket's **Deferred** / **Bridges** name a future ROADMAP step, that step's section in `migration-docs/TODO/PHASE_*_MODERNISING.md` must already contain the work item as **forward-only what + why** (no completed-step narration, no "deferred from Step X.Y", no ticket/PR/branch-doc refs). Missing or history-laden prose → FAIL (Architect amends). Skip when Deferred is empty / non-goal only.
-8. **Testing strategy** – `## TESTING STRATEGY` is present and matches V2 Execute: production gate (Refactorer → Verifier → Tester), inline-light coverage (test-writer → Verifier test-only → Tester) with explicit skip rules, E2E on last Execute step (not pre-CI), Finalize CI/Bugbot per `orchestrator-v2-finalize.mdc`. Cross-check `.cursor/agents/tester.md` and `.cursor/agents/test-writer.md`.
+8. **Testing strategy** – `## TESTING STRATEGY` is present and matches V2 Execute: production gate (Refactorer → Verifier → Tester), inline-light coverage (test-writer → Verifier test-only → Tester) with explicit skip rules, **Review + E2E on the mandatory last `(XL)` Execute step** (Bugbot → Security → E2E; not pre-CI), Finalize CI/Bugbot per `orchestrator-v2-finalize.mdc`. Cross-check `.cursor/agents/tester.md` and `.cursor/rules/orchestrator-v2-step.mdc` § XL Review step.
 9. **Branch doc path** – From `Current Step (ROADMAP): X.Y.Z` in the ticket, the branch doc path
    `migration-docs/branches/phase-<X>/step-<X>-<Y>-<Z>-<kebab-title>.md` must be derivable (major phase
    `<X>` from the ROADMAP step ID; kebab-title matches the step topic). Cross-check
@@ -35,7 +35,7 @@ Orchestrator/Conductor passes:
 If the task prompt is an **audit / report** task (carries `<!-- conductor-mode: plan -->`; deliverable is
 a report, not a ticket), review the **report** against the task prompt instead of the ticket checks:
 requirement / success-criteria coverage, evidence quality, and no scope drift. The ticket-only checks
-above (EXECUTION STATE block, `S/M/L` size hints, step decomposition, per-step testing) **do not apply** —
+above (EXECUTION STATE block, `S/M/L/XL` size hints, step decomposition, per-step testing) **do not apply** —
 there are no checklist steps.
 
 ## Boundary (STRICT — role separation)

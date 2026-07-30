@@ -47,7 +47,7 @@ The Orchestrator is a **dispatcher**, not a worker. It delegates, commits, and m
 - Fix code, edit files, or amend commits. On failure, delegate back to **refactorer**. The Orchestrator never touches source code.
 - Paste the plan, step titles, or task prompt into chat. Use the ticket file path only.
 - Create a TODO list of all Checklist Steps in chat; the ticket file is the single source.
-- **As the Orchestrator, delegate only to** `architect`, `plan-reviewer`, `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`, or `bugbot` — do **not** spawn `generalPurpose`, `explore`, or `shell` yourself; you are a thin coordinator. The `bugbot` subagent is launched **only** by the Orchestrator at the Local Bugbot Review stage via the `/review-bugbot` skill (see that section); never by another subagent. **Exception (worker-level research):** the `architect` and `refactorer` subagents **may themselves** delegate to read-only **`explore`** subagents to gather codebase context — see their definitions in `.cursor/agents/`. That nesting happens *inside* a worker; it is **not** the Orchestrator calling `explore`.
+- **As the Orchestrator, delegate only to** `architect`, `plan-reviewer`, `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`, `bugbot`, or `security-review` — do **not** spawn `generalPurpose`, `explore`, or `shell` yourself; you are a thin coordinator. `bugbot` and `security-review` are launched **only** at the Local Review stage (V1) / Execute `(XL)` step (V2); never by another subagent. **Exception (worker-level research):** the `architect` and `refactorer` subagents **may themselves** delegate to read-only **`explore`** subagents to gather codebase context — see their definitions in `.cursor/agents/`. That nesting happens *inside* a worker; it is **not** the Orchestrator calling `explore`.
 
 **MAY (optional, default = no):**
 
@@ -109,13 +109,13 @@ Task Prompt (one Roadmap Step X.Y)
     │
     ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ LOCAL BUGBOT REVIEW (Orchestrator, /review-bugbot skill)    │
-│   … (unchanged)                                             │
+│ LOCAL REVIEW (Bugbot → Security → E2E)                      │
+│   … (see § Local Bugbot + Security Review)                  │
 └─────────────────────────────────────────────────────────────┘
     │
     ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ EARLY PUSH → FINAL TEST (CI then E2E) → …                   │
+│ EARLY PUSH → FINAL TEST (CI; re-E2E only after fix-loop) → …│
 └─────────────────────────────────────────────────────────────┘
     │
     ▼
@@ -131,33 +131,37 @@ Task Prompt (one Roadmap Step X.Y)
 
 1. **One Checklist Step at a time** — never work on multiple in parallel.
 2. **One commit per Checklist Step** — after all Tester PASS gates for the step (production + optional test-writer), **doc-writer** updates the branch doc, then in that **same commit** tick the step's `## EXECUTION STATE` box (`- [ ]` → `- [x]`) and include code, tests, ticket, and branch doc. If `git status` shows nothing to commit although Refactorer reported "Step N done", that is a failure (see On Failure). Do not batch commits.
-3. **Subagents by exact name** — `architect`, `plan-reviewer`, `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer` so Cursor routes correctly. Subagent definitions: `.cursor/agents/`. The `bugbot` subagent is the one exception: it is not delegated by name but launched by the Orchestrator through the `/review-bugbot` skill at the Local Bugbot Review stage.
+3. **Subagents by exact name** — `architect`, `plan-reviewer`, `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer` so Cursor routes correctly. Subagent definitions: `.cursor/agents/`. `bugbot` and `security-review` are the exceptions: launched at Local Review / Execute `(XL)` via the review skills (or Task `subagent_type`), not as ordinary work-step delegates.
 4. **One version bump per PR** — the Finalize step bumps `app/system/config.php` exactly once per Roadmap Step / PR. Subsequent mini-loop fix commits (Local Bugbot review mini-loop, Final Test mini-loop) on the same PR/branch **must not** trigger another `chore(release): bump version to ...` commit. The CHANGELOG-NEW.md section for the already-bumped version is amended in place to include the mini-loop changes; the ROADMAP header pointer stays on the same version. Rationale: the PR is one logical release unit. Re-bumping mid-review wastes commits, confuses readers of `git log`, and creates a fictitious version that was never tagged.
 5. **Ticket is a durable artifact** — after **plan-reviewer PASS**, the Orchestrator commits the ticket, the initial branch doc, and any Architect `PHASE_*` amendments for Deferred/Bridges (`docs(plan): add ticket + branch doc for <task-slug>`) before the Refactorer loop. Tickets are tracked and land in the PR; they are **never** left untracked or gitignored.
 
-## Local Bugbot Review (after all Checklist Steps committed, before Early Push)
+## Local Bugbot + Security Review (after all work Checklist Steps, before Early Push)
 
-Orchestrator (no subagent in the usual sense — it runs the `/review-bugbot` skill, which launches the read-only `bugbot` subagent):
+> **V2:** This stage is the mandatory last `(XL)` checklist step inside Execute — see
+> `orchestrator-v2-step.mdc` § XL Review step. The section below is for **manual V1** IDE runs.
 
-1. **Run** — invoke `/review-bugbot` on `branch changes` (the full branch diff vs. the merge-base with the base branch). The `bugbot` subagent computes the diff itself; do **not** push or open a PR first, and do not compute the diff manually. See `.cursor/skills-cursor/review-bugbot/SKILL.md` for the exact prompt shape and `.cursor/BUGBOT.md` for the project-specific review criteria.
-2. **Decide** — no findings → proceed to Early Push. Findings → mini-loop: pass the findings verbatim to the **refactorer**, then **verifier** → **tester** → commit, then re-run `/review-bugbot`. Repeat until clean.
+Orchestrator (spawns Task `bugbot` / `security-review` via the `/review-bugbot` and `/review-security` skills):
 
-Run Bugbot **once per PR** at this stage — **not** per Checklist Step. The Verifier already performs static review on every step; a per-step Bugbot run would duplicate that and waste tokens. This stage replaces the old remote Bugbot quick-peek entirely.
+1. **Bugbot** — invoke `/review-bugbot` on `branch changes` (full branch diff vs. merge-base). Findings → mini-loop: **refactorer** → **verifier** → **tester** → commit → re-run Bugbot until clean.
+2. **Security** — invoke `/review-security` on the same diff. Findings → same mini-loop → **restart from Bugbot** until both are clean in sequence.
+3. **E2E** — delegate `"final E2E run"` to **tester**. FAIL → mini-loop → restart from Bugbot.
 
-**Why local, before the push:** `/review-bugbot` stores the patch ID of the reviewed diff. When the Early Push opens a PR with the same diff, the remote Cursor Bugbot recognizes that patch ID and **skips** its PR review — no double review, no waiting on the ~15-min remote run, no GraphQL polling. The effort level (`Default`/`High`) is a global Bugbot dashboard setting and cannot be selected per invocation; do not attempt to switch modes from the workflow.
+See `.cursor/skills-cursor/review-bugbot/SKILL.md` / `review-security/SKILL.md` for prompt shapes and `.cursor/BUGBOT.md` for project criteria.
 
-## Early Push (after Local Bugbot Review)
+**Why before the push:** `/review-bugbot` stores the patch ID of the reviewed diff. When Early Push opens a PR with the same diff, remote Cursor Bugbot recognizes that patch ID and **skips** its PR review.
+
+## Early Push (after Local Bugbot + Security Review + E2E)
 
 Orchestrator (no subagent):
 
 1. **Push** — `git push -u origin HEAD` from the feature branch.
 2. **PR creation** — `gh pr create` with the `<!-- metadata -->` block (labels, milestone, `closes`). Use the GitHub Issue number from the invocation (`GitHub Issue: #XXX`). Include `Closes #XXX` in PR body AND in the metadata `closes:` field. See `push.mdc` § PR Metadata + `github-labels.mdc`.
 
-This early push triggers the PR CI checks (the PHP Tests workflow plus the other required gates). The Final Test step waits on those CI checks. The remote Cursor Bugbot skips its review thanks to the patch-ID sync from the Local Bugbot Review above; any findings were already handled locally, so there is no separate Bugbot peek step.
+This early push triggers the PR CI checks (the PHP Tests workflow plus the other required gates). The Final Test step waits on those CI checks. The remote Cursor Bugbot usually skips its review thanks to the patch-ID sync from the Local Bugbot + Security stage above.
 
 ## Final Test (after Early Push)
 
-Sequential: (a) the **Orchestrator** waits on CI itself — `gh pr checks <pr> --watch` on the PR's status checks (a watch, not a test, so no subagent) — until green; (b) **then** it delegates the 3 Playwright E2E specs to the **tester** ("final E2E run"), so the expensive E2E run only happens on code that already passes CI. See `tester.md` § End-of-ticket tests for the E2E commands. On FAIL (either side) → Refactorer → Verifier → Tester mini-loop, commit, push, re-run.
+Sequential: (a) the **Orchestrator** waits on CI itself — `gh pr checks <pr> --watch` on the PR's status checks (a watch, not a test, so no subagent) — until green; (b) E2E already ran in the Local Review stage above — re-run `"final E2E run"` via **tester** only after a CI fix-loop changed code. See `tester.md` § End-of-ticket E2E. On FAIL → Refactorer → Verifier → Tester mini-loop, commit, push, re-run.
 
 ## Finalize (after Final Test PASS)
 

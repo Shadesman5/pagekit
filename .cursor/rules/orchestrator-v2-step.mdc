@@ -1,5 +1,5 @@
 ---
-description: 'Orchestrator V2 — Execute phase. A cloud agent that executes ONE batch of Checklist Steps for a ticket (refactorer -> verifier -> tester -> test-writer -> verifier -> tester per step), then reports one line. Launched by the automated driver; not used for manual V1 runs.'
+description: 'Orchestrator V2 — Execute phase. A cloud agent that executes ONE batch of Checklist Steps for a ticket (S/M/L: refactorer pipeline; XL: Bugbot + Security + E2E), then reports one line. Launched by the automated driver; not used for manual V1 runs.'
 alwaysApply: false
 ---
 
@@ -14,11 +14,24 @@ one-line result**. Never edit source code yourself.
 - **Ticket:** `migration-docs/tickets/active/{task-slug}_plan.md` — read only this file + the codebase.
 - **Steps:** the exact Checklist Step numbers to run, in order (e.g. `3,4`).
 - **Branch:** the exact branch name the driver gives you (e.g. `feature/{slug}`); pushes go straight to it.
+- **Base:** the merge-base branch (e.g. `develop`) — required for XL Bugbot/Security `Base Branch`.
 
 ## First: verify the branch
 
 Before anything else, confirm you are on the named branch: `git rev-parse --abbrev-ref HEAD`. If it
 differs, `git fetch origin` and `git checkout <branch>`. Then proceed.
+
+## Step type: read size from the ticket
+
+For each Step N in the batch, read its size hint from `## EXECUTION STATE` (`(S)`, `(M)`, `(L)`, or `(XL)`).
+
+| Size | Path |
+| --- | --- |
+| `S` / `M` / `L` | **Work step** — sections A → B → C below |
+| `XL` | **Review step** — section **XL** below (Bugbot → Security → E2E). Never run A/B on an XL step. |
+
+`XL` is always the ticket's last checklist step. Conductor weight is 8, so with default `batch_budget` 6 it
+runs alone in its batch.
 
 ## Delegation protocol
 
@@ -26,8 +39,8 @@ Spawn workers **only** via the **Task** tool. Routing uses `subagent_type` — *
 
 | Task field | Rule |
 | --- | --- |
-| `subagent_type` | Exact name: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer` |
-| `description` | Short label, e.g. `Step 5 production` or `Step 5 tests` |
+| `subagent_type` | Exact name: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`, `bugbot`, `security-review` |
+| `description` | Short label, e.g. `Step 5 production` or `Step 6 Bugbot` |
 | `prompt` | Structured fields from the templates below — **no** preamble, **no** "Delegate to …" |
 
 **On FAIL:** paste the worker's full output under `Feedback (verbatim):` in the retry spawn. Never
@@ -50,6 +63,16 @@ Checklist Step: <N>
 Restart from: production gate
 Feedback (verbatim):
 <paste FAIL or UNTESTABLE output>
+```
+
+**refactorer** (review / E2E fix-loop) — `description`: `Step <N> review fix`
+
+```text
+Ticket: <ticket path>
+Checklist Step: <N>
+Context: Review fix loop (<Bugbot | Security | E2E>)
+Feedback (verbatim):
+<paste review findings table or tester FAIL>
 ```
 
 **verifier** (production) — `description`: `Step <N> verify production`
@@ -100,15 +123,31 @@ Feedback (verbatim):
 <paste verifier or tester FAIL output>
 ```
 
+**bugbot** — `description`: `Step <N> Bugbot` — `subagent_type`: `bugbot` — `run_in_background`: false
+
+```text
+Full Repository Path: <absolute path from git rev-parse --show-toplevel>
+Diff: branch changes
+Base Branch: <Base from launch prompt>
+```
+
+**security-review** — `description`: `Step <N> Security` — `subagent_type`: `security-review` — `run_in_background`: false
+
+```text
+Full Repository Path: <absolute path from git rev-parse --show-toplevel>
+Diff: branch changes
+Base Branch: <Base from launch prompt>
+```
+
 **doc-writer** (per step) — `description`: `Step <N> branch doc`
 
 ```text
 Branch doc: <path>
 Ticket: <ticket path>
 Checklist Step: <N>
-Production files: <refactorer list>
+Production files: <refactorer list, or "none" for XL with no fixes>
 Test files: <test-writer list, or "none">
-Gate outcomes: <PASS/FAIL per gate (verifier, PHPUnit, PHPStan), incl. FAIL iterations; one-line deviations only — no metric numbers>
+Gate outcomes: <PASS/FAIL per gate; for XL: Bugbot/Security/E2E outcomes + fix-loop notes; one-line deviations only — no metric numbers>
 ```
 
 **doc-writer** (ESCALATE) — `description`: `Step <N> ESCALATE record`
@@ -131,16 +170,29 @@ re-emit over harmless phrasing.
 
 | Subagent | Expected signal (canonical form) |
 | --- | --- |
-| **refactorer** | completion + file list — `Step N done. Files: [list].` (also accept `Checklist step N done. …`) |
+| **refactorer** | completion + file list — `Step N done. Files: [list].` (also accept `Checklist step N done. …` / `Fix done. Files: …`) |
 | **verifier** | `PASS` — or `FAIL` + bullet list |
 | **tester** | `PASS` — or `FAIL` + minimal RCA (command + error snippet) |
 | **test-writer** | tests-done + file list — `Step N tests done. Files: [list].` — or `UNTESTABLE: <reason>` |
+| **bugbot** / **security-review** | clean (no findings / no bugs / no issues) — or a findings table (Severity / Location / Finding). Treat empty-diff / no-diff as clean for this step. |
 | **doc-writer** | `Branch doc updated: <path> (Step N)` |
 
 Re-emit is a last resort: ask again **only** when the signal itself is missing (no `PASS`/`FAIL`, no
-`done`/completion line, no `UNTESTABLE`) or is buried in prose — never for a wording variant. Do not paraphrase.
+`done`/completion line, no `UNTESTABLE`, no clean/findings signal from review) or is buried in prose —
+never for a wording variant. Do not paraphrase.
 
-## Per step N (in order)
+### Review fix-loop spawn order
+
+After Bugbot, Security, or E2E findings/FAIL:
+
+1. **refactorer** (review fix template) → 2. **verifier** (production) → 3. **tester** (PHPUnit + PHPStan)
+   → commit (Conventional Commits; do **not** tick the XL box yet) → `git push`.
+
+Then re-enter the review sequence at the point the rule says (see XL below).
+
+---
+
+## Work step N (`S` / `M` / `L`) — in order
 
 ### A — Production gate
 
@@ -167,13 +219,11 @@ On `FAIL` at 5: **test-writer** (retry template), then re-run 5 → 6.
 On `FAIL` at 6: if clearly a test defect → **test-writer** (retry with Tester output), then 5 → 6;
 if production regression → **refactorer** (retry template), then restart from step 2.
 
-### C — E2E, docs, commit
+### C — Docs, commit
 
-7. Spawn **tester** (final E2E template) — **only when** ticking Step N completes every
-   `## EXECUTION STATE` box (`- [x]`). Skip on all other steps.
-8. Spawn **doc-writer** (per-step branch doc template). Once per step, after all Tester PASS — never
-   during fix-loops.
-9. Commit + tick + push (**one commit per step**):
+7. Spawn **doc-writer** (per-step branch doc template). Once per step, after all Tester PASS — never
+   during fix-loops. **Do not** run E2E here — E2E belongs only to the XL Review step.
+8. Commit + tick + push (**one commit per step**):
    - In `## EXECUTION STATE`, flip `- [ ] Step N` to `- [x] Step N`.
    - `git add` the step's code + test changes, the ticket, **and** the branch doc, then a single
      `git commit` (Conventional Commits; the step's message). The ticked box **and** the branch-doc
@@ -184,11 +234,55 @@ If Refactorer reported completion (a `… done. Files: …` line, any wording) b
 spawn **refactorer** again:
 `Feedback (verbatim): No changes detected on disk. Re-execute and emit changed files.`
 
+---
+
+## XL Review step N — Bugbot → Security → E2E
+
+Run this path **only** when Step N is tagged `(XL)` in `## EXECUTION STATE`. Do **not** spawn
+refactorer/test-writer for greenfield work on this step — only review subagents, fix-loops, E2E, and
+doc-writer.
+
+Project review rules: `.cursor/BUGBOT.md`. Compute `Full Repository Path` once via
+`git rev-parse --show-toplevel`.
+
+### R1 — Bugbot
+
+1. Spawn **bugbot** (template above).
+2. **Clean** → proceed to R2.
+3. **Findings** → review fix-loop → commit + push → re-run from R1. Repeat until clean.
+
+### R2 — Security Review
+
+4. Spawn **security-review** (template above).
+5. **Clean** → proceed to R3.
+6. **Findings** → review fix-loop → commit + push → **restart from R1** (Bugbot again, then Security).
+   Security fixes can introduce bugs; both reviews must be clean in sequence before E2E.
+
+### R3 — E2E
+
+7. Spawn **tester** (final E2E template).
+8. **PASS** → proceed to R4.
+9. **FAIL** → review fix-loop → commit + push → **restart from R1** (full review sequence, then E2E).
+
+### R4 — Docs, commit, tick
+
+10. Spawn **doc-writer** (per-step template; include Bugbot/Security/E2E outcomes). Once after all
+    reviews + E2E PASS — never mid-loop.
+11. Commit + tick + push (**one commit for the tick + branch doc**; fix-loop commits already pushed):
+    - Flip `- [ ] Step N` to `- [x] Step N` in `## EXECUTION STATE`.
+    - `git add` the ticket + branch doc (+ any leftover fix files), commit, `git push`.
+
+If `bugbot` or `security-review` Task spawn fails (unavailable in this environment), report
+`ESCALATE: Step N — review subagent unavailable: <error>` after one corrected retry — do not invent a
+substitute review.
+
+---
+
 ## Stuck-breaker
 
-If the **same** FAIL recurs **3×** for a step, spawn **doc-writer** (ESCALATE template), `git add` the
-branch doc, commit `docs(branch): record ESCALATE for Step N`, `git push`, then stop and report
-`ESCALATE: Step N — <reason>`.
+If the **same** FAIL / finding set recurs **3×** for a step, spawn **doc-writer** (ESCALATE template),
+`git add` the branch doc, commit `docs(branch): record ESCALATE for Step N`, `git push`, then stop and
+report `ESCALATE: Step N — <reason>`.
 
 ## Context safety valve
 
@@ -198,9 +292,9 @@ the rest with a fresh agent.
 
 ## Boundaries
 
-- This phase only: no Architect/Plan-Reviewer/Bugbot, no `gh pr create`, no version bump.
-- Spawn only: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`. Workers may use read-only
-  `explore` internally — not you.
+- This phase only: no Architect/Plan-Reviewer, no `gh pr create`, no version bump.
+- Spawn only: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`, plus `bugbot` and
+  `security-review` on XL steps. Workers may use read-only `explore` internally — not you.
 
 ## Report exactly one line
 
