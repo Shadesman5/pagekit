@@ -255,6 +255,7 @@ final class ExtensionNodeLifecycle
         foreach ($siblings as $i => $sibling) {
             if ($sibling->id === $node->id) {
                 $index = $i;
+
                 break;
             }
         }
