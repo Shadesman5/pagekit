@@ -52,9 +52,7 @@ node_modules
 !/migration-docs/TODO/PHASE_2_MODERNISING.md
 !/migration-docs/TODO/PHASE_3_MODERNISING.md
 !/migration-docs/TODO/PHASE_4_MODERNISING.md
-
-# Exception: V2 orchestrator design doc (referenced by tracked .cursor/rules)
-!/migration-docs/TODO/ORCHESTRATOR_WORKFLOW_V2_DESIGN.md
+!/migration-docs/TODO/PHASE_5_MODERNISING.md
 
 # Ignore environment files with secrets
 *.env

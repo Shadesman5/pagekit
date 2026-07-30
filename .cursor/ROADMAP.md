@@ -110,6 +110,8 @@
 | 2.5    | Docker Production Image & Deploy      | ⏳     | ⏳    | #158  | -       |
 | 2.6    | Filesystem Write Resilience           | ⏳     | ⏳    | -     | -       |
 | 2.7    | Extension Safety System               | ⏳     | ⏳    | #160  | -       |
+| 2.7.1  | ↳ Snapshot & Three-Stage Uninstall    | ⏳     | ⏳    | -     | -       |
+| 2.7.2  | ↳ Module Dependency Integrity         | ⏳     | ⏳    | -     | -       |
 | 2.8    | Extension Packaging & Prebuilt Assets | ⏳     | ⏳    | -     | -       |
 | 2.9    | Automated Update System               | ⏳     | ⏳    | -     | -       |
 | 2.10   | **PHP 8.4+ Language & DX Hardening**  | ⏳     | ⏳    | -     | -       |
@@ -145,20 +147,34 @@
 | 4.6    | Monitoring & Health Checks            | ⏳     | ⏳    | -     | -       |
 | 4.7    | Rebranding: Pagekit → Kernkit         | ⏳     | ⏳    | -     | -       |
 | 4.8    | **Image Pipeline & Media Manager**    | ⏳     | ⏳    | -     | -       |
-| 4.9    | ↳ Cross-Repo Dev Dashboard            | ⏳     | ⏳    | -     | -       |
+| 4.9    | Cross-Repo Dev Dashboard              | ⏳     | ⏳    | -     | -       |
 | 4.10   | Cookie Consent & Privacy Baseline     | ⏳     | ⏳    | -     | -       |
 | 4.11   | Container Orchestration & Deployment  | ⏳     | ⏳    | -     | -       |
 | 4.12   | Production Web Arch (FrankenPHP)      | ⏳     | ⏳    | -     | -       |
+| 4.13   | Repo Topology Spike (Mono vs Split)   | ⏳     | ⏳    | -     | -       |
 | 5.0    | Sub-Extension Platform                | ⏳     | ⏳    | -     | -       |
+| 5.0.1  | ↳ Package metadata + parent model     | ⏳     | ⏳    | -     | -       |
+| 5.0.2  | ↳ Parent-aware PackageManager         | ⏳     | ⏳    | -     | -       |
+| 5.0.3  | ↳ Accordion admin UI                  | ⏳     | ⏳    | -     | -       |
+| 5.0.4  | ↳ Module Usage Advisor                | ⏳     | ⏳    | -     | -       |
 | 5.1    | Modern Block Editor                   | ⏳     | ⏳    | -     | -       |
 | 5.2    | **Advanced Security**                 | ⏳     | ⏳    | -     | -       |
 | 5.2.1  | ↳ Advanced Privacy & Consent Ext.     | ⏳     | ⏳    | -     | -       |
 | 5.3    | Advanced Performance                  | ⏳     | ⏳    | -     | -       |
 | 5.4    | Advanced CMS Features                 | ⏳     | ⏳    | -     | -       |
+| 5.4.1  | ↳ Event Sourcing Module (opt-in)      | ⏳     | ⏳    | -     | -       |
+| 5.4.2  | ↳ GraphQL API Extension               | ⏳     | ⏳    | -     | -       |
 | 5.5    | Enterprise Features                   | ⏳     | ⏳    | -     | -       |
+| 5.5.1  | ↳ Multi-Tenancy Extension             | ⏳     | ⏳    | -     | -       |
 | 5.6    | Marketplace & Extensions              | ⏳     | ⏳    | -     | -       |
 | 5.7    | Extension Author Toolchain (npm)      | ⏳     | ⏳    | -     | -       |
 | 5.8    | Developer Experience (DX)             | ⏳     | ⏳    | -     | -       |
+| 5.9    | **Agentic DevOps & Self-Healing**     | ⏳     | ⏳    | -     | -       |
+| 5.9.1  | ↳ Sentinel / Deterministic Self-Heal  | ⏳     | ⏳    | -     | -       |
+| 5.9.2  | ↳ Agentic Fix Loop (PR create/update) | ⏳     | ⏳    | -     | -       |
+| 5.9.3  | ↳ Review & Merge-Prep Pipelines       | ⏳     | ⏳    | -     | -       |
+| 5.9.4  | ↳ Controlled Auto-Merge + Verify      | ⏳     | ⏳    | -     | -       |
+| 5.9.5  | ↳ Issue/PR Ideation Automation        | ⏳     | ⏳    | -     | -       |
 
 ## **🛠️ TECHNICAL STACK REFERENCE**
 

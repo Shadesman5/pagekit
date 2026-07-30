@@ -23,7 +23,7 @@ Orchestrator workflow (Plan → Execute → Finalize). Human reference:
 | 2     | Developer Experience       | Quality tools, CI/CD, Docker, static analysis                      | [PHASE_2_MODERNISING.md](PHASE_2_MODERNISING.md)     |
 | 3     | Frontend Modernization & Cross-Stack Alignment | Vue 3, UIkit 3.21+, TypeScript, translation/Intl alignment, service-layer DI | [PHASE_3_MODERNISING.md](PHASE_3_MODERNISING.md)     |
 | 4     | Production-Ready Release   | Essential features for Pagekit 2.0 (2FA, REST API v2, Performance) | [PHASE_4_MODERNISING.md](PHASE_4_MODERNISING.md)     |
-| 5     | Advanced & Enterprise      | Optional post-2.0 features, extensions, marketplace                | [PHASE_5_FUTURE_VISION.md](PHASE_5_FUTURE_VISION.md) |
+| 5     | Advanced & Enterprise      | Optional post-2.0 features, extensions, marketplace                | [PHASE_5_MODERNISING.md](PHASE_5_MODERNISING.md) |
 
 ---
 

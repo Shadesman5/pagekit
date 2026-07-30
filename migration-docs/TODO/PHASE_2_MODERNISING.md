@@ -309,7 +309,41 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - **`theme-one` static `UrlProvider`**: same DI blocker as UrlResolver — inject when template helpers support it
   - **`UniqueValidator`**: container-aware `ConstraintValidatorFactory`; delete static `setDb()` + boot wiring
 - **Out of scope until a second caller**: extract `User::evaluateBooleanExpression()` only if another consumer appears
-- **Sequencing**: before Extension Packaging (Step 2.8) and Marketplace (Step 5.6)
+- **Sequencing**: before Snapshot (**2.7.1**), Dependency Integrity (**2.7.2**), Extension Packaging (**2.8**) and Marketplace (**5.6**)
+- **Out of scope here**: full Snapshot/Backup UI and Three-Stage Uninstall retention — **Step 2.7.1**
+
+---
+
+## Step 2.7.1: Snapshot & Three-Stage Uninstall
+
+- **Depends on**: Step 2.6 (atomic writes), Step 2.7 (fault isolation / lifecycle seams).
+- **Goal**: Automatic snapshots before destructive package operations, plus a three-stage uninstall path (disable → uninstall → purge after retention) with restore.
+- **Why separate from 2.7**: Fault isolation (sandbox / auto-disable) is already a full step; dump/restore + retention UI would overload it. Updates (**2.9**) reuse the same snapshot primitive for rollback.
+- **What**:
+  - Snapshot store under `tmp/snapshots/` (never DocRoot): metadata, DB dump, config, optional files
+  - Trigger before uninstall / major package ops; retention (e.g. 30 days) + one-click restore
+  - Three-stage uninstall: disable → uninstall (code/data soft-removed) → purge after retention window
+  - Admin UX for list / restore / purge
+  - This path is the **only** route for a removal that no one explicitly requested: automatic dependency cleanup (**5.0**) may deactivate, but any deletion it triggers goes through disable → uninstall → purge with a snapshot first, so the data stays restorable
+- **Out of scope**: Marketplace signing; background update orchestration (**2.9**)
+- **Risk**: Medium — DB dump portability (SQLite/MySQL), storage growth
+
+---
+
+## Step 2.7.2: Module Dependency Integrity
+
+- **Depends on**: Step 2.7 (fault isolation, auto-disable, admin flash — this step reuses that enforcement seam).
+- **Goal**: Make the module dependency graph honest and answerable in both directions, so activation can never leave a half-wired application and no destructive package operation runs blind.
+- **Why**: `ModuleManager::resolveModules()` skips a `require` entry that is not registered — silently. `load()` throws only for a directly requested unknown module name, so a missing dependency yields a partially booted application whose failure surfaces later as a missing service. `PackageManager::disable()` performs no dependency check at all. Both are tolerable while the `require` lists are maintained in code; they become a fault source the moment operators activate and deactivate modules themselves (Step 5.0).
+- **What**:
+  - **Fail closed on unsatisfied requirements**: an unregistered or inactive `require` entry must refuse the activation, or disable the dependent module and report it through the Step 2.7 admin flash. The failure must name the missing module — never a silent skip.
+  - **Circular requirements at validation time**: `resolveModules()` already detects cycles but raises them during boot; surface them when a package is validated or activated instead.
+  - **Reverse index**: derive `requiredBy` from the registered manifests so "what depends on this module" is answerable without scanning at call time.
+  - **The active theme counts as a dependent**: the activation registry is two keys — the `extensions` list and `site.theme` (`SystemModule` loads `array_merge($this->config['extensions'], (array) $theme)`). A check that reads only `extensions` will happily disable a module the active theme requires and break the frontend.
+  - **Pre-flight for destructive operations**: before disable or uninstall, report what would happen — active dependents that block it, modules that would be left orphaned, and whether the module owns tables or settings of its own (data risk). One query that both the admin UI and the API consume.
+- **Out of scope**: Automatic removal of orphaned dependencies and the install-reason bookkeeping it needs (**5.0**); snapshots and retention for destructive operations (**2.7.1**).
+- **Sequencing**: before **5.0** — operator-managed activation of core modules must not ship while unsatisfied dependencies stay quiet.
+- **Risk**: Low–Medium — one resolver behaviour change plus a read-only graph. The behaviour change can strand an installation whose manifests were already inconsistent, which is why the failure has to be explicit about the missing module.
 
 ---
 
@@ -324,7 +358,8 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   3. Author-side packaging: build + zip flow producing an upload-ready ZIP (build output in, sources and dev files out).
   4. A sample extension carrying a Vue bundle uploads, installs, enables and renders without any core build run; a source-only package fails with a clear diagnostic instead of a missing bundle.
   5. Drop the assumption that the core build serves third-party packages from `ArchiveCommand` / `BuildCommand` and the installer docs.
-  6. Webroot publication: only `public/` is served, and the core build publishes only in-repo packages — a runtime-installed/uploaded package has no publisher, so its bundles, CSS and icons are unreachable over HTTP. Package install/enable must copy the servable files (`app/bundle/*.js`, compiled CSS, icons/images) into the `public/` mirror and uninstall must remove them; `pagekit archive` must include built bundles from their `public/` location so a package ZIP is complete.
+  6. Dependency declarations must agree: a package's Composer `require` (what must exist on disk, carrying the version constraints) and its module manifest `require` (what must be loaded first) may not contradict each other. Validate at packaging time, so an installed package cannot present a dependency graph the loader disagrees with.
+  7. Webroot publication: only `public/` is served, and the core build publishes only in-repo packages — a runtime-installed/uploaded package has no publisher, so its bundles, CSS and icons are unreachable over HTTP. Package install/enable must copy the servable files (`app/bundle/*.js`, compiled CSS, icons/images) into the `public/` mirror and uninstall must remove them; `pagekit archive` must include built bundles from their `public/` location so a package ZIP is complete.
 - **Out of scope**: marketplace API, host, catalogue and package signing (Step 5.6); the build preset as a published, versioned npm package (Step 5.7).
 - **Sequencing**: after 2.7, before 5.6 — the marketplace distributes against this contract.
 - **Risk**: Low–Medium — contract, docs and author tooling; the only core code touch is the upload/install diagnostic.
