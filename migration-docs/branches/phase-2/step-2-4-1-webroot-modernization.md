@@ -9,13 +9,13 @@
 **Pull Request:** [#256](https://github.com/Shadesman5/pagekit/pull/256)
 **Status:** ✅ Complete
 **Started:** 2026-07-27 17:34
-**Completed:** 2026-07-27 21:23
+**Completed:** 2026-07-31
 
 ---
 
 ## 🎯 Overview
 
-Adopts a dedicated `public/` webroot so application code, configuration and internal state are structurally unreachable over HTTP — the URL namespace itself is frozen (`/app/assets/…`, `/packages/…`, `/storage/…`, `/index.php` stay byte-identical); only the filesystem home of servable files moves. The Node build (`scripts/bundles.mjs`/`assets.mjs`/`styles.mjs`) now emits every bundle, vendor-asset copy and compiled stylesheet under `public/`, joined by a new publication pass (`scripts/publish.mjs`) that copies each module/package/theme's committed servable statics into the same tree and links `public/storage → ../storage`. PHP URL resolution follows suit: `FileAdapter` maps an ordered mount list (`path.public` primary, `path.storage` secondary) instead of the old approot-wide mapping, so a file outside both mounts gets no URL by construction; `Locator` gains a publish-mirror-first overlay so `$view->script()`/`style()` and template asset references keep resolving without a call-site change. `public/index.php` becomes the sole front controller (root `index.php` deleted outright), `public/.htaccess` carries the security/rewrite rules forward plus a storage PHP-execution deny, and root `.htaccess` shrinks to a one-line shared-hosting fallback rewrite. The installer and CLI setup now ensure the `public/storage` symlink on unzipped installs, and `SelfUpdater`/`ArchiveCommand` pick up forward-debt tags for the `public/` gaps Steps 2.8/2.9 must still close. README and AGENTS.md document both hosting paths (fixed docroot vs. shared-hosting fallback) plus the storage-symlink recovery command. Final verification rebuilt the served-output inventory from a clean tree and confirmed its path set matches the pre-migration baseline (plus the enumerated published-statics additions), closing the two parity gaps Checklist Step 2 had flagged for this gate.
+Adopts a dedicated `public/` webroot so application code, configuration and internal state are structurally unreachable over HTTP — the URL namespace itself is frozen (`/app/assets/…`, `/packages/…`, `/storage/…`, `/index.php` stay byte-identical); only the filesystem home of servable files moves. The Node build (`scripts/bundles.mjs`/`assets.mjs`/`styles.mjs`) now emits every bundle, vendor-asset copy and compiled stylesheet under `public/`, joined by a new publication pass (`scripts/publish.mjs`) that copies each module/package/theme's committed servable statics into the same tree and links `public/storage → ../storage`. PHP URL resolution follows suit: `FileAdapter` maps an ordered mount list (`path.public` primary, `path.storage` secondary) instead of the old approot-wide mapping, so a file outside both mounts gets no URL by construction; `Locator` gains a publish-mirror-first overlay so `$view->script()`/`style()` and template asset references keep resolving without a call-site change. `public/index.php` becomes the sole front controller (root `index.php` deleted outright), `public/.htaccess` carries the security/rewrite rules forward plus a storage PHP-execution deny, and root `.htaccess` shrinks to a one-line shared-hosting fallback rewrite. The installer and CLI setup now ensure the `public/storage` symlink on unzipped installs, and `SelfUpdater`/`ArchiveCommand` pick up forward-debt tags for the `public/` gaps Steps 2.8/2.9 must still close. README and AGENTS.md document both hosting paths (fixed docroot vs. shared-hosting fallback) plus the storage-symlink recovery command. Final verification rebuilt the served-output inventory from a clean tree and confirmed its path set matches the pre-migration baseline (plus the enumerated published-statics additions), closing the two parity gaps Checklist Step 2 had flagged for this gate. Post-finalize hardening keeps SQLite/locale paths on the application root (never under `public/`), restores Apache sensitive-file denials, snapshots extension-owned site nodes across package disable/enable/uninstall, and drops the invent-`/index.php` `$pagekit.url` fallback that broke FastCGI.
 
 ---
 
@@ -117,6 +117,21 @@ Tests: none (test-writer: skip — docs only). Gates: Verifier PASS. Tester — 
 
 Tests: none (test-writer: skip — verification only). Gates: Verifier PASS (non-blocking note — stale branch-doc line about debug highlight assets resolved by this step, closed below). Tester — PHPUnit PASS, PHPStan PASS; final E2E PASS (installation, authentication, dashboard).
 
+### Post-finalize hardening — paths, nodes, Apache denies, `$pagekit.url` (after Checklist Step 8)
+
+| File | Change |
+|---|---|
+| `app/modules/database/index.php` | Relative `pdo_sqlite` paths resolve against `path` (application root); resolved paths under `path.public` throw — a `public/` docroot must never create a world-readable DB via `getcwd()`. |
+| `app/system/modules/intl/src/IntlModule.php`, `IntlServiceLocator.php` | Language-directory discovery uses `$app->get('path').'/app/system/languages'`; locator registers at `main()` with a lazy translator factory so `loadLocale()` does not freeze the module graph mid-boot. Globals (`__()`, …) stay thin Platform-API aliases over those DI services. |
+| `app/system/modules/view/index.php`, `app/installer/index.php`, `installer.vue` | `$pagekit.url` is the router `RequestContext` base only — the invent-`/index.php` installer fallback is gone (breaks FastCGI). Installer locale handling requires a non-empty string locale key. |
+| `public/.htaccess` | Restores defense-in-depth `<FilesMatch>` denials for `.db`/`.lock`/`.cache`, manifests, changelogs, shell/ini/log/backup suffixes (sources stay outside `public/`; stray copies still must not be served). |
+| `README.md` | Nginx snippet documents an explicit `*.db` deny (`.htaccess` does not apply). |
+| `app/installer/src/Package/PackageManager.php`, `app/system/modules/site/src/ExtensionNodeLifecycle.php`, `PackageNodeTypes.php`, `site/index.php`, admin node UI | Extension-owned site nodes snapshot across disable (park under "Not Linked"), enable (restore placement, stay unpublished), uninstall (soft-delete to Trash); `package.enable` fires only after enable scripts succeed; disable/uninstall emit matching events while the package folder still exists. |
+| `.github/scripts/quality-report.mjs`, `quality-report.yml` | Sticky quality-report CREATE deferred until a number-bearing artifact exists (GitHub emails create, not later PATCHes). |
+| `ExtensionNodeLifecycle.php` (follow-up) | PHP-CS-Fixer blank line before `break` after sibling index lookup. |
+
+Tests: `SqlitePathResolutionTest`, `IntlModuleLanguagesTest`, `IntlServiceLocatorTest`, `ExtensionNodeLifecycleTest`, `PackageLifecycleWiringTest`, `PackageNodeTypesTest`, `NodeControllerTest`/`NodeRepositoryTest` additions, `InstallerLocaleTest`, `ViewDataTest`, expanded `PackageManagerMigrationTest` / `StorageLinkTest`. Gates: PHPUnit + PHPStan; CS-Fixer dry-run green after the blank-line fix.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -145,6 +160,8 @@ None for the checked-out module/package/theme tree — the URL namespace is froz
 - **Mount allow-listing now gates live HTTP requests, not just code-level `getUrl()`/`getStatic()` calls (Checklist Step 4).** Before this step the front controller still ran from the application root, so no live request could reach the app at all; with `public/` as the docroot, everything outside `path.public`/`path.storage` — `config.php`, `app/system/config.php`, `composer.json`, `.git`, `tmp/` — sits outside the webroot entirely rather than merely outside a URL allow-list.
 - **Storage media library gets a defense-in-depth PHP-execution deny (Checklist Step 5).** `public/.htaccess` adds `RewriteRule ^storage/.*\.php$ - [F,NC]` ahead of the front-controller rewrite — `storage/` is the only admin-writable served path (finder uploads are already extension-allowlisted), so a bypass of that allowlist still cannot get a `.php` file executed there.
 - **`config.php` no longer resolves relative to the running process's working directory (Checklist Step 6).** `Installer::$configFile` was the bare literal `'config.php'`; with `public/` as the docroot (Checklist Step 4), a webserver that runs PHP from the script's own directory would read and write the credentials file at `public/config.php` — inside the webroot — instead of the application root. It now resolves as `$app->get('path').'/config.php'`, independent of hosting mode.
+- **SQLite under `public/` is rejected; relative DB paths use the application root (post-finalize).** Connection setup resolves `pdo_sqlite` paths against `path` and throws if the result sits under `path.public` — Apache `.htaccess` denials are not universal (Nginx / `php -S`). Covered by `SqlitePathResolutionTest`.
+- **`public/.htaccess` restores sensitive-file denials (post-finalize).** `.db`/`.lock`/`.cache`, Composer/package manifests, changelogs, and shell/ini/log/backup suffixes are denied again as defense-in-depth for stray copies inside the webroot.
 
 ---
 
@@ -169,13 +186,13 @@ None for the checked-out module/package/theme tree — the URL namespace is froz
 | Coverage gap pass | skipped — no Codecov bot comment appeared within ~5 min after CI green |
 | Cursor Bugbot | ✅ clean |
 | E2E | ✅ PASS — local `@ci` specs already green on the final tree at Checklist Step 8; the PR's own `e2e-smoke` leg stayed skipped by workflow |
-| Finalize fix-loop | None |
+| Finalize fix-loop | Post-finalize hardening on the open PR (paths/nodes/Apache/`$pagekit.url`, quality-report defer, CS-Fixer blank line) — see What Changed |
 
 **CI run:** https://github.com/Shadesman5/pagekit/pull/256/checks
 
 **Metrics (CI-owned):** [PR #256](https://github.com/Shadesman5/pagekit/pull/256) sticky quality-report comment ([comment](https://github.com/Shadesman5/pagekit/pull/256#issuecomment-5096851399)) · [Codecov](https://app.codecov.io/gh/Shadesman5/pagekit/pull/256) · [Quality Dashboard](https://Shadesman5.github.io/pagekit/quality/)
 
-**Notable deviations:** None beyond what each Checklist Step's own What Changed / Risks entries already record (Step 2's two Verifier notes, both closed at Step 8; Step 3's test-writer retries — `PathTest` boundary-safety proof, then non-empty-string typing). No Finalize fix-loop.
+**Notable deviations:** Checklist Steps 1–8 as recorded above. After Finalize, follow-up commits on the same PR amended path safety, extension node lifecycle, Apache denies, `$pagekit.url`, the quality-report create deferral, and Conductor/ROADMAP tooling (see Bonus / Follow-on) — CHANGELOG `1.2.34` amended in place (no second version bump).
 
 ---
 
@@ -205,7 +222,8 @@ None beyond the 3 items already routed to Deferred / Out-of-Scope → Manual Wor
 
 ## 📌 Follow-on (ROADMAP)
 
-None — no new ROADMAP step created; the webroot consequences for Steps 2.7/2.8/2.9 are amendments to existing PHASE items, not new follow-on work (see Deferred / Out-of-Scope above).
+- **Planning expansion landed on this branch (docs only):** ROADMAP / `PHASE_2`–`PHASE_5` sub-steps, new `PHASE_5_MODERNISING.md`, and Docker build-stage guidance on `PROMPT_2_5_Docker-Production-Image.md` — not webroot runtime work; tracks future Conductor tickets.
+- No new ROADMAP step created for the webroot itself; consequences for Steps 2.7/2.8/2.9 remain PHASE amendments (see Deferred / Out-of-Scope above).
 
 ---
 
@@ -229,7 +247,8 @@ None beyond the No-Mercy Compliance and Phase 1 Audit Closure sections above.
 
 ## 🎁 Bonus
 
-None — all shipped work traces to the ticket's 8 Checklist Steps.
+- **Conductor XL Review step** — Execute’s mandatory last checklist step is `(XL)` (weight 8): Bugbot → Security → E2E in its own batch under the default `batch_budget` of 6; Finalize PR-Bugbot stays a patch-ID safety net.
+- **`config-loader.js` comment refresh** — CSP bootstrap comments clarified; `window` globals marked as forward debt for Pinia ownership in Step 3.3.4 (comments only).
 
 ---
 

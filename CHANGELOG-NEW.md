@@ -10,21 +10,27 @@
 
 - **Dedicated `public/` webroot** — `public/index.php` is the sole front controller (root `index.php` deleted outright); `public/.htaccess` carries the security headers and rewrite rules forward plus a new storage PHP-execution deny; root `.htaccess` shrinks to a one-line shared-hosting fallback (`RewriteRule ^(.*)$ public/$1 [L,QSA]`) for hosts that can't move the document root. `php pagekit start` and the dev Docker vhost now serve `-t public public/index.php`. (Closes #243)
 - **Build-time static publication pass** (`scripts/publish.mjs`) — copies every module/package/theme's committed servable files (`assets/`, `css/`, `js/`, `images/`, `fonts/`, root icons, `app/**/*.{js,css}`) into `public/` alongside the relocated Vite bundles, vendor-asset copies and compiled CSS; `public/storage` is symlinked to `../storage` by the Node build and, for zip-unpacked installs, by the installer and CLI setup (warns instead of failing when `symlink()` is unavailable).
+- **Extension page lifecycle across package disable/enable/uninstall** — `ExtensionNodeLifecycle` snapshots menu/parent/neighbor placement, parks nodes under "Not Linked" on disable, restores placement (still unpublished) on enable, and soft-deletes into Trash on uninstall; `package.enable` fires only after enable scripts succeed so a failed script cannot leave partial node state.
 
 ### ♻️ Changed
 
 - **URL resolution is mount-based, not approot-wide** — `FileAdapter` maps an ordered mount list (`path.public` primary, `path.storage` secondary) instead of the whole application root, so a file outside both mounts gets no URL by construction; `Locator` gains a publish-mirror-first overlay (published copy checked ahead of the module source) so `$view->script()`/`style()` and template asset references resolve unchanged — extension DX is unaffected.
-- **README / AGENTS.md** — Manual Installation documents both hosting paths (fixed `public/` docroot vs. the shared-hosting rewrite fallback) plus the storage-symlink recovery command; the dev-server command and router-file caveat now name `public/`.
+- **SQLite and locale paths resolve against the application root** — `pdo_sqlite` relative DB paths and `IntlModule` language-directory discovery use `path` (next to `config.php`), never `getcwd()`, so a docroot of `public/` cannot create or scan files under the webroot by accident.
+- **`$pagekit.url` follows the router context only** — the installer no longer invents a `/index.php` fallback that breaks FastCGI (`No input file specified`); rewrite and non-rewrite bases come from `RequestContext` as before.
+- **README / AGENTS.md** — Manual Installation documents both hosting paths (fixed `public/` docroot vs. the shared-hosting rewrite fallback) plus the storage-symlink recovery command; the dev-server command and router-file caveat now name `public/`; Nginx docs call out an explicit `*.db` deny (`.htaccess` does not apply).
 
 ### 🐛 Fixed
 
 - **The debug module's vendored `highlight.js`/`highlight.css` were not published** — the static-publication pass excluded any directory literally named `vendor` (aimed at Composer/`node_modules` trees), which also skipped this module's own vendored front-end library; the exclusion no longer applies to a nested vendored library under a served directory.
+- **Quality-report sticky comment no longer emails an empty first post** — the first CREATE waits until at least one number-bearing artifact exists (GitHub notifies on create, not later PATCHes); subsequent gate completions still update the same comment.
 
 ### 🔒 Security
 
 - **Everything outside `public/`/`storage/` is now structurally unreachable** — `config.php`, `app/system/config.php`, `composer.json`, `.git`, `tmp/` sit outside the webroot entirely once `public/` is the docroot, rather than merely outside a URL allow-list.
 - **Storage media library gets a defense-in-depth PHP-execution deny** — `public/.htaccess` blocks `.php` execution under `/storage` ahead of the front-controller rewrite, since finder uploads are the only admin-writable served path.
 - **`config.php` no longer resolves relative to the running process's working directory** — the installer now reads/writes it via the application root explicitly, independent of hosting mode.
+- **SQLite databases under `public/` are rejected** — connection setup throws if the resolved DB path sits under `path.public` (Apache denials are not universal on Nginx / `php -S`).
+- **`public/.htaccess` restores sensitive-file denials** — `.db`/`.lock`/`.cache`, Composer/package manifests, changelogs, shell/ini/log/backup suffixes stay denied inside the webroot as defense-in-depth for stray copies or mis-deploys.
 
 ---
 
