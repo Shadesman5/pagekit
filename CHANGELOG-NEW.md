@@ -1,6 +1,6 @@
 # Changelog
 
-## Pagekit 1.2.34 - Webroot Modernization: adopt `public/` (July 27, 2026)
+## Pagekit 1.2.34 - Webroot Modernization: adopt `public/` (July 31, 2026)
 
 ### 💥 Breaking Changes
 
