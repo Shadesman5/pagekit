@@ -98,8 +98,9 @@
   // enforces.
   function infectionRow(full) {
     const label = 'Infection (daily full)';
-    if (!full || full.msi == null) return [label, 'ℹ️', 'awaiting nightly'];
-
+    if (!full || full.msi == null) {
+      return [label, 'ℹ️', 'awaiting infection-full (last Nightly had no commits → suite skipped)'];
+    }
     const detail = [`MSI ${formatPercent(full.msi)}`, `covered ${formatPercent(full.coveredMsi)}`];
     if (full.killed != null) detail.push(`${full.killed} killed`);
     if (full.escaped != null) detail.push(`${full.escaped} escaped`);
@@ -259,7 +260,24 @@
 
   async function renderHistory(points) {
     const root = document.getElementById('quality-dashboard-app');
-    if (!root || !Array.isArray(points) || points.length < 2) return;
+    if (!root) return;
+
+    if (!Array.isArray(points) || points.length === 0) {
+      const note = el('p', 'quality-foot');
+      note.textContent =
+        'Trend: no history points yet — the collector appends only when a watched metric changes.';
+      root.appendChild(note);
+      return;
+    }
+
+    if (points.length < 2) {
+      const note = el('p', 'quality-foot');
+      note.textContent =
+        `Trend: ${points.length} history point so far — charts appear once a watched metric changes a second time ` +
+        `(coverage, PHPUnit, PHPStan, E2E, or Infection MSI).`;
+      root.appendChild(note);
+      return;
+    }
 
     const section = el('section', 'quality-history');
     section.appendChild(el('h3', null, 'Trend'));

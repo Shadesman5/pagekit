@@ -204,7 +204,11 @@ None (no `Closes Phase 1 audit:` line in the task prompt header; webroot/hosting
 
 ## 👤 Maintainer action
 
-None beyond the 3 items already routed to Deferred / Out-of-Scope → Manual Work below (the ticket's own placement — agent-can't-verify items on a real webserver/Docker host, not a separate maintainer action here).
+Agents cannot perform these (no Docker daemon / real Apache in the agent VM):
+
+1. Fresh install + upgrade end-to-end on a real Apache webserver, both paths (the `Dockerfile` dev-vhost change needs an actual `docker compose up` run).
+2. HTTP denial proof on real Apache: `app/`, `config.php`, `tmp/` return the front-controller 404 page, never file contents.
+3. Shared-hosting fallback verification: root-`.htaccess`'s unconditional rewrite on a host where the document root cannot be changed (or a local Apache config simulating one).
 
 ---
 
@@ -213,10 +217,6 @@ None beyond the 3 items already routed to Deferred / Out-of-Scope → Manual Wor
 - **Steps 2.7 / 2.8 / 2.9** — `PHASE_2_MODERNISING.md` §2.7, §2.8, §2.9 amended in this plan with the deferred webroot consequences: DB-less extension-fallback file kept out of the now-public `storage/` tree (2.7), runtime-installed/uploaded package assets need a `public/` publisher on install/enable (2.8), release artifacts must recreate the `public/storage` symlink and prune stale published assets (2.9).
 - **Non-goals:** webserver/runtime engine choice (Apache stays; nginx/FrankenPHP is Step 4.12), Docker production image hardening (Step 2.5), CSP delivery mechanism (Step 3.2.1 — CSP content itself moved verbatim into `public/.htaccess`).
 - **Bridges:** None — the locator publish-mirror overlay and `FileAdapter` mounts are the permanent publication architecture, not a transitional compat layer. The two `// TODO` tags this ticket left (`SelfUpdater` → Step 2.9, `ArchiveCommand` → Step 2.8) are forward-debt audit markers, not bridges.
-- **Manual Work (maintainer — agents cannot perform; no Docker daemon or real webserver in the agent VM):**
-  1. Fresh install + upgrade end-to-end on a real Apache webserver, both paths (the `Dockerfile` dev-vhost change needs an actual `docker compose up` run).
-  2. HTTP denial proof on real Apache: `app/`, `config.php`, `tmp/` return the front-controller 404 page, never file contents.
-  3. Shared-hosting fallback verification: root-`.htaccess`'s unconditional rewrite on a host where the document root cannot be changed (or a local Apache config simulating one).
 
 ---
 

@@ -15,7 +15,9 @@ concurrency:
 
 jobs:
   # Mutation-testing gate scoped to the PR diff. Infection only mutates lines changed
-  # against the base branch, keeping the run fast (source scope is auth + user only).
+  # against the base branch, keeping the run fast. Source directories are intentionally narrow
+  # (auth + user only — see infection.json.dist); PRs that touch none of them skip the
+  # Infection binary (job stays green) — that is expected, not a broken check.
   infection-diff:
     name: infection-diff
     runs-on: ubuntu-latest
@@ -71,6 +73,14 @@ jobs:
           else
             echo "No files under the Infection source scope changed — skipping mutation testing (green)."
             echo "in_scope=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "### Infection skipped (out of scope)"
+              echo ""
+              echo "This PR does not change any file under the configured Infection source directories"
+              echo "(\`app/modules/auth/src\`, \`app/system/modules/user/src/{Model,Auth,Event}\`)."
+              echo "Diff-scoped mutation testing is intentionally skipped; the check stays green."
+              echo "Full-suite MSI still comes from the Nightly \`infection-full\` job on \`develop\`."
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Run Infection on the PR diff

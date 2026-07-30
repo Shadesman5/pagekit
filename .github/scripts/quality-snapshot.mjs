@@ -73,11 +73,11 @@ function main() {
   }
   const { phpRun, e2eRun } = pair;
 
-  // Full-suite Infection MSI comes from the latest successful Nightly on the snapshot branch. Scoping
-  // by branch stops a Nightly on some other ref from attaching its MSI to this branch's snapshot (the
-  // PHP Tests + E2E gates above are already branch-scoped); the metric stays null until a Nightly has
-  // run on this branch.
-  const nightlyRun = latestSuccessfulRun(WF_NIGHTLY, { branch: BRANCH });
+  // Full-suite Infection MSI comes from the latest Nightly on this branch whose infection-full
+  // job actually ran (conclusion success). Idle Nightlies only run the guard and skip infection-
+  // full — those still conclude the workflow as success, but have no infection.json. Picking the
+  // newest workflow success blindly would null out a previously published MSI after an idle night.
+  const nightlyRun = latestNightlyWithInfection({ branch: BRANCH });
 
   const snapshot = buildSnapshot({ floor, baseline, phpRun, e2eRun, nightlyRun });
   publish(snapshot);
@@ -273,6 +273,16 @@ function successfulRuns(workflowFile, { branch, event } = {}) {
 
 function latestSuccessfulRun(workflowFile, filters = {}) {
   return successfulRuns(workflowFile, filters)[0] || null;
+}
+
+// Prefer a Nightly whose infection-full job succeeded (produced MSI artifacts). Idle scheduled
+// Nightlies skip that job via the 24h guard but still mark the workflow success — those must not
+// replace a real full-suite result with nulls on the dashboard.
+function latestNightlyWithInfection({ branch } = {}) {
+  for (const run of successfulRuns(WF_NIGHTLY, { branch })) {
+    if (jobConclusion(run.id, 'infection-full') === 'success') return run;
+  }
+  return null;
 }
 
 // Newest commit that is green on BOTH gate workflows, returned as the matching run from each. Runs are
