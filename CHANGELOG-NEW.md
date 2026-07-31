@@ -1,5 +1,18 @@
 # Changelog
 
+## Pagekit 1.2.35 - CI Gates: coverage ratchet, complete quality report (July 31, 2026)
+
+### ♻️ Changed
+
+- **Minimum line-coverage floor raised from 3.8% to 7.1%** — pinned to the measured line coverage on PHP 8.5 (3403/47657 statements, PCOV), rounded down for float jitter. The gate ratchets up only, never down.
+- **E2E smoke always runs on Dependabot pull requests** — dependency bumps get the Playwright smoke signal without waiting on a local run, while every other branch stays opt-in through the `E2E_SMOKE_PR_ENABLED` repository variable, so a feature PR does not pay for the PHP + Node + Playwright bootstrap.
+
+### 🐛 Fixed
+
+- **The quality-report comment no longer emails a table with pending rows** — the first create waits until every gate run for the commit has finished, instead of firing as soon as one of them uploaded a number. PHPStan publishes its report seconds after PHPUnit publishes coverage, so a create triggered in between mailed out a "pending" PHPStan row that only the silent follow-up edit ever resolved. Waiting cannot strand the comment: each gate that is waited for triggers the renderer again when it completes, and a gate that never ran on the pull request is not waited for.
+
+---
+
 ## Pagekit 1.2.34 - Webroot Modernization: adopt `public/` (July 31, 2026)
 
 ### 💥 Breaking Changes

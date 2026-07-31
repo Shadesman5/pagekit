@@ -1,6 +1,6 @@
 # **🗺️ Pagekit Modernization Roadmap & Rules**
 
-> **Current Version**: 1.2.34
+> **Current Version**: 1.2.35
 > **Current Step**: 2.5 (Docker Production Image & Deploy)
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**
