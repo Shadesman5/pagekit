@@ -184,15 +184,7 @@ class Installer
                 }
             }
 
-            // $app is used by the require'd install scripts (install.php / install-demo.php)
-            $app = $this->app;
-            if (!$demo_content) {
-                if (file_exists(__DIR__.'/../install.php')) {
-                    require_once __DIR__.'/../install.php';
-                }
-            } elseif (file_exists(__DIR__.'/../install-demo.php')) {
-                require_once __DIR__.'/../install-demo.php';
-            }
+            $this->runContentScript(__DIR__.'/../'.($demo_content ? 'install-demo.php' : 'install.php'), $user);
 
             if (!$this->config) {
 
@@ -231,6 +223,30 @@ class Installer
         }
 
         return ['status' => $status, 'message' => $message];
+    }
+
+    /**
+     * Fills a fresh installation with its initial content.
+     *
+     * The script is included rather than called, and declares variables of its
+     * own - $db and $config among them. A scope of its own is what keeps those
+     * from landing in the caller's, whose $config is the configuration still to
+     * be written to config.php. What the script may read is therefore only what
+     * this scope hands it: the application as $app and, because the demo content
+     * signs one of its comments as the site owner, that account as $user. A
+     * second call cannot insert the content twice.
+     *
+     * @param array<string, mixed> $user The administrator the installation created.
+     */
+    protected function runContentScript(string $file, array $user): void
+    {
+        if (!file_exists($file)) {
+            return;
+        }
+
+        $app = $this->app;
+
+        require_once $file;
     }
 
     protected function createDatabase(): void
