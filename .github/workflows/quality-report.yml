@@ -7,9 +7,9 @@
 # the renderer, so neither can be observed on the PR that introduces them — the workflow_dispatch
 # trigger allows a manual re-render (post-merge validation or on demand) against any open PR, and
 # DRY_RUN=1 renders locally without touching the comment. A metric that has not reported yet renders
-# as pending, never as a verdict. The first CREATE is deferred until at least one number-bearing
-# artifact exists (GitHub emails the create, not later PATCHes); subsequent gate completions still
-# update the sticky comment in place.
+# as pending, never as a verdict. The first CREATE waits until every gate for the commit has finished
+# and at least one uploaded a number, so the emailed comment is complete (GitHub emails the create,
+# not later PATCHes); subsequent gate completions still update the sticky comment in place.
 
 name: Quality Report
 
@@ -51,6 +51,10 @@ jobs:
       # ubuntu-latest ships Node 20 (global fetch) + gh — no extra setup needed.
       - name: Render sticky Quality Report comment
         env:
+          # TODO: Must be refactored in Step 4.9 (Cross-Repo Dev Dashboard) — swap for a GitHub App
+          # installation token so the comment posts under the project's own bot identity. The author
+          # name follows the token: github-actions[bot] is the fixed identity of the built-in Actions
+          # token and cannot be renamed.
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           EVENT_NAME: ${{ github.event_name }}

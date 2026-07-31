@@ -14,11 +14,12 @@
 // Check-run conclusions are still read, but only to explain a MISSING number (pending / skipped).
 //
 // The comment is upserted idempotently via a hidden marker, so repeated gate completions update one
-// comment rather than posting a new one each time. The first CREATE is deferred until at least one
-// number-bearing artifact exists — GitHub emails the create, not later PATCHes, so an empty first
-// post would leave subscribers staring at "pending". Set DRY_RUN=1 to print the body instead — the
-// only way to see the real rendering before the change reaches the default branch, since
-// workflow_run and workflow_dispatch both execute this script from there.
+// comment rather than posting a new one each time. The first CREATE waits until every gate for the
+// commit has finished and at least one of them uploaded a number — GitHub emails the create and not
+// the later PATCHes, so a create posted between two gates mails out rows that read "pending" and are
+// only ever resolved silently. Set DRY_RUN=1 to print the body instead — the only way to see the
+// real rendering before the change reaches the default branch, since workflow_run and
+// workflow_dispatch both execute this script from there.
 
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, readdirSync, readFileSync, existsSync } from 'node:fs';
@@ -68,7 +69,8 @@ function main() {
   );
 
   const checks = indexChecks(checkRunsForSha(sha));
-  const artifacts = collectArtifacts(sha);
+  const gateRuns = latestGateRuns(sha);
+  const artifacts = collectArtifacts(gateRuns);
   const hasMetrics = !!(
     artifacts.coverage ||
     artifacts.junit ||
@@ -76,14 +78,22 @@ function main() {
     artifacts.infection ||
     artifacts.e2e
   );
-  // Codecov-style: never CREATE an empty comment (GitHub emails the first post, not later
-  // PATCHes). A fast gate like Frontend produces no table metrics — defer until at least one
-  // number-bearing artifact exists. Once a sticky comment is present, keep updating it.
-  if (!hasMetrics && !DRY_RUN) {
+  // Codecov-style: never CREATE a comment the reader has to read twice. GitHub emails the first post
+  // and none of the later PATCHes, so the create waits for two conditions: at least one
+  // number-bearing artifact exists (a fast gate like Frontend produces none), and no gate is still
+  // running. Jobs inside one gate finish at different times — PHPStan uploads its report seconds
+  // after PHPUnit uploads coverage — so creating on the first gate completion mails a table whose
+  // "pending" rows only the silent PATCH resolves. Waiting cannot strand the comment: every gate
+  // being waited for fires its own completion event and brings this script back. Once a sticky
+  // comment exists, keep updating it regardless.
+  const running = runningGates(gateRuns);
+  if (!DRY_RUN && (!hasMetrics || running.length > 0)) {
     const existing = findStickyComment(pr);
     if (!existing) {
       log(
-        'no number-bearing artifacts yet and no sticky comment — deferring create until a gate uploads metrics'
+        running.length > 0
+          ? `deferring create — gates still running: ${running.join(', ')}`
+          : 'deferring create — no gate has uploaded a number-bearing artifact yet'
       );
       return;
     }
@@ -167,17 +177,28 @@ function noMetricLabel(checks, name) {
 }
 
 // ---------------------------------------------------------------- gate metrics (artifacts)
-function collectArtifacts(sha) {
+// Latest run per gate workflow for this head SHA: a re-run supersedes its earlier attempt, and the
+// artifact download and the "still running" check must agree on which run they are talking about.
+function latestGateRuns(sha) {
   const latest = new Map();
   for (const r of runsForSha(sha)) {
     if (!GATE_WORKFLOW_PATHS.includes(r.path)) continue;
     const prev = latest.get(r.path);
     if (!prev || Number(r.id) > Number(prev.id)) latest.set(r.path, r);
   }
+  return latest;
+}
 
+// Gate workflows that have not finished for this commit, named by workflow file for the log. A gate
+// that never ran here (path filter, fork) has no run to wait for and must not hold up the comment.
+function runningGates(gateRuns) {
+  return [...gateRuns.values()].filter(r => r.status !== 'completed').map(r => basename(r.path));
+}
+
+function collectArtifacts(gateRuns) {
   const dir = mkdtempSync(join(tmpdir(), 'quality-report-'));
   try {
-    for (const [, run] of latest) {
+    for (const [, run] of gateRuns) {
       downloadRunArtifacts(run.id, join(dir, `run-${run.id}`));
     }
     const coverageFile = findFileByName(dir, 'coverage.xml');

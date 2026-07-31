@@ -28,13 +28,18 @@ jobs:
   # chromium-desktop only. With CI set, the Playwright config resolves 1 worker and runs files
   # in alphabetical order, so 01-setup/installation drives the web installer BEFORE the 02-core
   # specs rely on that install — no `php pagekit setup` is run beforehand. Target < 10 minutes.
-  # Opt-in: dormant until an admin sets repo variable E2E_SMOKE_PR_ENABLED=true, so the full
-  # PHP+Node+Playwright bootstrap does not run on every PR while only 3 specs are un-quarantined.
-  # Add e2e-smoke to the branch ruleset only together with that variable.
+  # Always on for Dependabot (head_ref prefix), so dependency bumps get the smoke signal without
+  # waiting on a human/agent local run. For everyone else: opt-in via E2E_SMOKE_PR_ENABLED=true,
+  # so feature/agent PRs stay cheap while only 3 specs are un-quarantined. Do not add e2e-smoke
+  # to the branch ruleset until it should gate all PRs (skipped required checks block merges).
   e2e-smoke:
     name: e2e-smoke
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && vars.E2E_SMOKE_PR_ENABLED == 'true'
+    if: >
+      github.event_name == 'pull_request' && (
+        startsWith(github.head_ref, 'dependabot/') ||
+        vars.E2E_SMOKE_PR_ENABLED == 'true'
+      )
     steps:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5

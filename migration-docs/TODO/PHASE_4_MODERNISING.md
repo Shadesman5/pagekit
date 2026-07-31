@@ -190,7 +190,8 @@ The `<picture>` markup is produced at **render time** by a new content plugin (`
   - **Push model:** Conductor post-phase hook POSTs session deltas via **`gh api`** / `curl` to the dev-dashboard repo (`metrics/incoming/{repo}/{branch}/…`) — no wait for PR merge.
   - **Dashboard repo:** static/MkDocs site; ROADMAP tracking table + accordion metrics (same UX as today).
   - **Aggregation:** GitHub Action on dev-dashboard (`repository_dispatch` or incoming-folder merge) builds `index.json`.
-  - **Auth:** fine-grained PAT or GitHub App with `contents: write` on dev-dashboard only.
+  - **Auth — one GitHub App, not a PAT:** `contents: write` on dev-dashboard only, plus the pull-request permission the comment bot needs. It hands out short-lived installation tokens instead of a long-lived personal token, and unlike the built-in Actions token its activity triggers downstream workflows — the reason the metadata and project automation still depends on a personal access token today.
+  - **Bot identity:** the author of an automated comment is the App slug, so the sticky quality-report comment posts as `kernkit[bot]` instead of `github-actions[bot]`, which is the fixed and unrenameable identity of the built-in Actions token. Reserve the slug together with the wordmark — App slugs are globally unique across GitHub.
 - **Scope:** Port current `docs-site/` modernization pages; keep product docs in `kernkit/docs`; generalise backfill for any repo/workflow via `gh api`.
 - **Non-goals:** Agents writing to dashboard; replacing `.cursor/ROADMAP.md` as agent SoT.
 - **Result**: One URL for live metrics across repos/branches; intervene before the 360-minute GHA cap.
