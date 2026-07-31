@@ -312,11 +312,11 @@ The production runtime is the last stage of the same `Dockerfile`, so a plain bu
     docker compose -f docker-compose.prod.yml --env-file prod.env up -d
     ```
 
-    Two services come up: Pagekit on http://localhost:8080 and MySQL beside it, reachable from the compose network only. To run without a database server, on SQLite instead, set `PAGEKIT_DB_DRIVER=sqlite` and `PAGEKIT_DB_PATH=/var/www/data/pagekit.db` in `prod.env` and append `--no-deps web`.
+    Two services come up: Pagekit on port 8080 and MySQL beside it, reachable from the compose network only. Visitors arrive through the TLS proxy in front of that port rather than on it: `public/.htaccess` answers a plain HTTP request with a redirect to HTTPS, so `http://localhost:8080` in a browser leads to the proxy's address or nowhere. To run without a database server, on SQLite instead, set `PAGEKIT_DB_DRIVER=sqlite` and `PAGEKIT_DB_PATH=/var/www/data/pagekit.db` in `prod.env` and append `--no-deps web`.
 
 4. **Install Pagekit**
 
-    Open the site and complete the web installer, or have the container install itself on its first start: `PAGEKIT_AUTO_SETUP=1` together with `PAGEKIT_ADMIN_PASSWORD` and the other administrator variables. A start that finds an existing installation leaves it untouched, so the switch can stay on. `PAGEKIT_AUTO_MIGRATE=1` additionally applies pending migrations on every start; leaving it off keeps the moment the schema of a live site changes a decision of yours.
+    `PAGEKIT_AUTO_SETUP=1`, together with `PAGEKIT_ADMIN_PASSWORD` and the other administrator variables, installs the site on the first start without a browser. That is the way in while nothing terminates TLS yet — the web installer is a page like any other and is redirected to HTTPS along with them — and the way to install a stack that is deployed rather than clicked through. With the proxy in place, opening the site walks through the web installer instead. A start that finds an existing installation leaves it untouched, so the switch can stay on. `PAGEKIT_AUTO_MIGRATE=1` additionally applies pending migrations on every start; leaving it off keeps the moment the schema of a live site changes a decision of yours.
 
 #### Configuration through the environment
 
@@ -348,6 +348,8 @@ MySQL keeps its data in `mysql_data`. Everything else is disposable: `tmp/` is a
 #### TLS and reverse proxies
 
 The container speaks plain HTTP, so TLS is terminated in front of it. That proxy has to send `X-Forwarded-Proto: https`: `public/.htaccess` redirects plain requests to HTTPS and skips the redirect only when the header says the request already arrived encrypted — without it, every request through the proxy is sent back through it for ever. List the proxy in `PAGEKIT_TRUSTED_PROXIES` as well, so Pagekit takes scheme, host, port and client address from the forwarded headers instead of from the internal connection it sees; absolute URLs, redirects and the decision to mark cookies secure all depend on that.
+
+Until a proxy is in front, the same rule is what a browser runs into: every page redirects to an HTTPS address nothing answers on. Install such a stack with `PAGEKIT_AUTO_SETUP` and check it with `curl -H 'X-Forwarded-Proto: https'`, which the redirect lets past for exactly the reason a proxy is let past.
 
 #### Running the stack
 

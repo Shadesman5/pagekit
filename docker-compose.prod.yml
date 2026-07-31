@@ -72,7 +72,9 @@ services:
     restart: unless-stopped
     # A ceiling for the host's sake, sized for a handful of concurrent requests at
     # the 256M per-process limit the image sets. Raise it along with the traffic:
-    # reaching it is an out-of-memory kill, not a slowdown.
+    # reaching it is an out-of-memory kill, not a slowdown. Compose v2 applies
+    # these to a plain "up" as well; only the retired docker-compose v1 binary
+    # treats them as Swarm-only and drops them without saying so.
     deploy:
       resources:
         limits:

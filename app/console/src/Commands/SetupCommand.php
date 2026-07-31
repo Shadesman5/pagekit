@@ -35,9 +35,11 @@ class SetupCommand extends Command
         $this->addOption('db-driver', 'd', InputOption::VALUE_REQUIRED, 'DB driver (\'sqlite\' or \'mysql\')', 'sqlite');
         $this->addOption('db-prefix', null, InputOption::VALUE_OPTIONAL, 'DB prefix', 'pk_');
         $this->addOption('db-host', 'H', InputOption::VALUE_OPTIONAL, 'MySQL host');
+        $this->addOption('db-port', null, InputOption::VALUE_OPTIONAL, 'MySQL port');
         $this->addOption('db-name', 'N', InputOption::VALUE_OPTIONAL, 'MySQL database name');
         $this->addOption('db-user', 'U', InputOption::VALUE_OPTIONAL, 'MySQL user');
         $this->addOption('db-pass', 'P', InputOption::VALUE_OPTIONAL, 'MySQL password');
+        $this->addOption('db-path', null, InputOption::VALUE_OPTIONAL, 'SQLite database file');
         $this->addOption('locale', 'l', InputOption::VALUE_OPTIONAL, 'Locale', 'en_GB');
     }
 
@@ -70,18 +72,36 @@ class SetupCommand extends Command
             throw new \LogicException('Option "db-driver" must be a string.');
         }
 
+        $connection = [
+            'dbname' => $this->option('db-name'),
+            'host' => $this->option('db-host'),
+            'user' => $this->option('db-user'),
+            'password' => $this->option('db-pass'),
+            'prefix' => $this->option('db-prefix'),
+        ];
+
+        // Whichever of the two belongs to the chosen driver, and only when it was
+        // given: an absent key leaves the module default in place, where an empty
+        // one would override it with nothing. What is given is installed with and
+        // written into config.php alongside the rest of the connection, so an
+        // installation configured from a container environment keeps finding its
+        // database once that environment no longer supplies it.
+        $dbPort = $this->option('db-port');
+        if ($dbDriver === 'mysql' && is_string($dbPort) && $dbPort !== '') {
+            $connection['port'] = (int) $dbPort;
+        }
+
+        $dbPath = $this->option('db-path');
+        if ($dbDriver === 'sqlite' && is_string($dbPath) && $dbPath !== '') {
+            $connection['path'] = $dbPath;
+        }
+
         $config = [
             'locale' => $this->option('locale'),
             'database' => [
                 'default' => $dbDriver,
                 'connections' => [
-                    $dbDriver => [
-                        'dbname' => $this->option('db-name'),
-                        'host' => $this->option('db-host'),
-                        'user' => $this->option('db-user'),
-                        'password' => $this->option('db-pass'),
-                        'prefix' => $this->option('db-prefix'),
-                    ],
+                    $dbDriver => $connection,
                 ],
             ],
         ];

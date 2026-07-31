@@ -22,9 +22,10 @@ enabled() {
 
 # Installs Pagekit into the configured database. A flag is passed only for a
 # variable that is set, so the defaults stay in the setup command instead of being
-# repeated here. The SQLite file has no flag of its own: PAGEKIT_DB_PATH reaches
-# the installer through the configuration chain, which the console shares with
-# the web request.
+# repeated here. Every connection parameter gets a flag of its own, the port and
+# the SQLite file included: setup writes what it is given into config.php, and an
+# installation that knew its database from the environment alone would lose it
+# the day a deployment stopped setting the variable.
 install_pagekit() {
     set -- setup --no-interaction --password "$PAGEKIT_ADMIN_PASSWORD"
 
@@ -34,6 +35,14 @@ install_pagekit() {
 
     if [ -n "${PAGEKIT_DB_HOST:-}" ]; then
         set -- "$@" --db-host "$PAGEKIT_DB_HOST"
+    fi
+
+    if [ -n "${PAGEKIT_DB_PORT:-}" ]; then
+        set -- "$@" --db-port "$PAGEKIT_DB_PORT"
+    fi
+
+    if [ -n "${PAGEKIT_DB_PATH:-}" ]; then
+        set -- "$@" --db-path "$PAGEKIT_DB_PATH"
     fi
 
     if [ -n "${PAGEKIT_DB_NAME:-}" ]; then

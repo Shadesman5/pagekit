@@ -222,6 +222,61 @@ jobs:
         if: always() && steps.start.conclusion == 'success'
         run: docker logs "$CONTAINER"
 
+      # The other kind of first start: a container that is not told to install itself has to arrive
+      # at the web installer. Its config.php is a link onto an empty data volume, so the file does
+      # not exist while the application root the link sits in is deliberately not writable — the
+      # arrangement the installer's own requirement check has to understand, or the container stops
+      # at the requirements page and the documented "open the site and install it" path is dead.
+      - name: Start the image without an automatic install
+        id: start_installer
+        run: |
+          docker run -d --name "$CONTAINER-installer" \
+            -p 127.0.0.1:8081:8080 \
+            -e PAGEKIT_DB_DRIVER=sqlite \
+            -e PAGEKIT_DB_PATH=/var/www/data/pagekit.db \
+            "$IMAGE"
+
+      - name: Probe the web installer
+        env:
+          BASE_URL: http://127.0.0.1:8081
+        run: |
+          body="$RUNNER_TEMP/installer-body"
+          code=000
+
+          # There is no installation to wait for here, only Apache, so this polls the page instead
+          # of the container's healthcheck interval.
+          for _ in $(seq 1 30); do
+            code="$(curl -sS -o "$body" -w '%{http_code}' -H 'X-Forwarded-Proto: https' "$BASE_URL/installer" || echo 000)"
+            if [ "$code" = 200 ]; then
+              break
+            fi
+            sleep 2
+          done
+
+          if [ "$code" != 200 ]; then
+            echo "::error::/installer answered $code instead of serving the installer"
+            head -c 2000 "$body"
+            exit 1
+          fi
+
+          if grep -q 'System Requirements' "$body"; then
+            echo "::error::the requirements check refuses the layout of the image itself"
+            cat "$body"
+            exit 1
+          fi
+
+          if ! grep -q 'id="installer"' "$body"; then
+            echo "::error::/installer answered 200 without rendering the installer"
+            head -c 2000 "$body"
+            exit 1
+          fi
+
+          echo "ok: a container without an automatic install serves the web installer (200)"
+
+      - name: Web installer container log
+        if: always() && steps.start_installer.conclusion == 'success'
+        run: docker logs "$CONTAINER-installer"
+
       # Fixed CRITICAL/HIGH findings fail the gate. Unfixed ones are left out: no rebuild of ours
       # can clear them, and a gate that stays red on them stops being read.
       - name: Scan the image for known vulnerabilities

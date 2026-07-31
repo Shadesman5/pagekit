@@ -463,9 +463,10 @@ class PagekitRequirements extends RequirementCollection
 
         $writable_directories = ["$path/tmp", "$path/tmp/cache", "$path/tmp/logs", "$path/tmp/sessions"];
 
-        // If config.php doesn't exist, we need the root directory of the app to be writable.
+        // An installation without config.php has to be able to create it, so the
+        // directory receiving the file must be writable.
         if (!file_exists("$path/config.php")) {
-            array_unshift($writable_directories, $path);
+            array_unshift($writable_directories, self::configDirectory($path));
         }
 
         foreach ($writable_directories as $dir) {
@@ -520,6 +521,37 @@ class PagekitRequirements extends RequirementCollection
 
         $this->addPhpIniRecommendation('short_open_tag', false);
         $this->addPhpIniRecommendation('session.auto_start', false);
+    }
+
+    /**
+     * The directory the installer will create config.php in.
+     *
+     * Normally the application root. Where config.php is a link that does not
+     * resolve yet, writing through it lands at the other end instead, and that
+     * is the directory that has to accept the file: a container keeps the
+     * configuration on a data volume precisely so the application root can stay
+     * read-only.
+     */
+    private static function configDirectory(string $path): string
+    {
+        $file = "$path/config.php";
+        $target = is_link($file) ? readlink($file) : false;
+
+        if ($target === false) {
+            return $path;
+        }
+
+        $directory = dirname($target);
+
+        // A link may name its target relative to the directory it sits in.
+        return self::isAbsolutePath($directory) ? $directory : "$path/$directory";
+    }
+
+    private static function isAbsolutePath(string $path): bool
+    {
+        return str_starts_with($path, '/')
+            || str_starts_with($path, '\\')
+            || preg_match('#^[A-Za-z]:[\\\\/]#', $path) === 1;
     }
 }
 
