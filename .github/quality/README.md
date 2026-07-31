@@ -57,7 +57,7 @@ Top-level shape (see `quality-snapshot.json` for a full example):
 - **`phpunit`** — one entry per test leg, keyed `"<php>-<db>"` (e.g. `"8.5-sqlite"`, `"8.5-mysql"`). Required legs carry `tests`/`failures` counts; non-required legs (`"required": false`, e.g. the non-blocking MySQL leg) carry only a job `conclusion`. The dashboard renders these rows dynamically and marks non-required legs as informational (⚪).
 - **`e2e.scope`** — `"smoke"` for the per-merge run, `"full"` for the weekly sweep.
 - **`infection.prDiff`** — always `null` here. Diff-scoped MSI is a per-PR number and belongs in the PR comment, not in the branch snapshot.
-- **`infection.dailyFull`** — full-suite MSI and mutant counts from the latest successful Nightly; `null` until the first nightly has run, which the dashboard shows as `awaiting nightly`. The dashboard marks the row ✅/❌ against the `minMsi` / `minCoveredMsi` threshold of `infection.json.dist` (80).
+- **`infection.dailyFull`** — full-suite MSI and mutant counts from the latest Nightly whose `infection-full` job succeeded; `null` until such a run exists (dashboard: `awaiting infection-full`). Idle Nightlies that only run the guard and skip `infection-full` are ignored so they cannot wipe a previously published MSI. The dashboard marks the row ✅/❌ against the `minMsi` / `minCoveredMsi` threshold of `infection.json.dist` (80).
 
 ## History
 
@@ -118,6 +118,6 @@ Three surfaces, three jobs — no duplication:
 
 ## Status
 
-Live collection is wired: `quality-collect.yml` blends the latest green merge runs (PHP Tests + E2E, plus the latest Nightly for full Infection MSI) and publishes to the unprotected **`quality-data`** branch — never via a Ruleset bypass on `develop`.
+Live collection is wired: `quality-collect.yml` blends the latest green merge runs (PHP Tests + E2E, plus the latest Nightly whose `infection-full` job succeeded) and publishes to the unprotected **`quality-data`** branch — never via a Ruleset bypass on `develop`. History charts on the dashboard need **at least two** points with different watched metrics; a single point (or unchanged numbers across collects) shows a short tip instead of empty charts.
 
 The in-repo `quality-snapshot.json` is the **seed** (`"source": "demo"`), served until a live collection run overlays it (`"source": "github-actions"`). Both collector scripts accept `DRY_RUN=1` to render their output locally without writing anything — the only way to see the real result before the change reaches the default branch, since `workflow_run` and `workflow_dispatch` always execute the copy that lives there.

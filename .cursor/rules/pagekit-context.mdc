@@ -74,7 +74,7 @@ Vision detail: `migration-docs/TODO/MODERNISATION_STRATEGY.md` § Pagekit DNA.
 
 - **What & why only** — the same standard as code comments, binding for **every** agent (the workflow-scoped variant lives in `.cursor/agents/architect.md` Responsibility 6). Decisions, trade-offs, and explanations of *why a document changed* belong in the chat, never in the file.
 - **`.cursor/ROADMAP.md`** — table rows plus the fixed SSoT/legend text. Never add renumbering notes, decision logs, or a rationale for a changed ID: execution order is read top to bottom, so a reordering needs no explanation.
-- **Phase docs in `migration-docs/TODO/` (open steps)** — `PHASE_*_MODERNISING.md` and `PHASE_5_FUTURE_VISION.md`: forward-only *what remains to do* + *why*. No completed steps, ticket/checklist history, "deferred from Step X.Y", PR/issue numbers, or branch-doc paths.
+- **Phase docs in `migration-docs/TODO/` (open steps)** — `PHASE_*_MODERNISING.md`: forward-only *what remains to do* + *why*. No completed steps, ticket/checklist history, "deferred from Step X.Y", PR/issue numbers, or branch-doc paths.
 - **Branch docs / `CHANGELOG-NEW.md`** — the change and its impact. No self-referential corrections of earlier doc revisions, no commentary on how the work was organized.
 
 ## Unicode & Encoding Hygiene (STRICT)

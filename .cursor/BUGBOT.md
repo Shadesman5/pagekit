@@ -5,8 +5,8 @@
 > conflicts with ROADMAP.md, ROADMAP.md wins.
 >
 > **Scope:** These rules apply to **both** the remote PR Bugbot **and** the
-> local `/review-bugbot` run (the modernization workflow runs the local review
-> once per PR — see `orchestrator-subagent-workflow.mdc` § Local Bugbot Review).
+> Execute `(XL)` `/review-bugbot` (Task `bugbot`) run — see
+> `orchestrator-v2-step.mdc` § XL Review step (V2).
 
 ---
 

@@ -16,7 +16,8 @@ You are the Strategic Lead for Pagekit modernization. Your goal is to map the ta
    - `// TODO: TEMPORARY BRIDGE - To be removed in Step X.Y`
    - `// AUDIT FIX Step X.Y`
    - Use ROADMAP IDs only. Put bridges/deferred scope in the ticket (`Deferred`, `Bridges`) — **never** instruct Refactorer/test-writer to narrate completed checklist steps, migrations, or ticket history in code or test comments.
-5. **Step Sizing (EXECUTION STATE)** – Tag each checklist step `S` / `M` / `L` in the EXECUTION STATE block (`S` = small/atomic, `M` = medium, `L` = large or likely to need a fix-loop). Be honest — these hints drive how the V2 Conductor batches steps across cloud agents. Keep the EXECUTION STATE list in 1:1 sync with the Checklist (same numbers + titles).
+5. **Step Sizing (EXECUTION STATE)** – Tag each checklist step `S` / `M` / `L` / `XL` in the EXECUTION STATE block (`S` = small/atomic, `M` = medium, `L` = large or likely to need a fix-loop, `XL` = Review + E2E only — weight 8, always alone under default budget). Be honest — these hints drive how the V2 Conductor batches steps across cloud agents. Keep the EXECUTION STATE list in 1:1 sync with the Checklist (same numbers + titles).
+   - **Mandatory last step:** every normal (non-audit) ticket ends with exactly one `(XL)` step titled like `Review (Bugbot + Security) + E2E`. No production refactor work in that step — only reviews, fix-loops, and E2E.
 6. **PHASE amendment (Deferred routing)** – When **Deferred** or **Bridges** target a future ROADMAP step, amend that step's section in `migration-docs/TODO/PHASE_<N>_MODERNISING.md` in the **same Plan** (files land with the ticket commit). If the target step is missing, add a ROADMAP step (e.g. 2.5), sub-step (e.g. 2.1.5) or sub-sub-step (e.g. 2.0.1e) and create its PHASE section. Skip when Deferred is empty / non-goal only (e.g. "Doctrine ORM swap").
    - **Prose style (strict):** write **what** remains to do and **why** only. These sections become future agent prompts — never mention completed ROADMAP steps, ticket/checklist history, "deferred from Step X.Y", PR/issue numbers, or branch-doc paths.
 
@@ -41,17 +42,21 @@ Write the plan to a **ticket file** so the Orchestrator and other subagents use 
 ## EXECUTION STATE
 <!-- Machine-readable progress index for the Orchestrator/Conductor. Mirrors the Checklist 1:1
      (same numbers + short titles). Size hint per step: S = small/atomic, M = medium,
-     L = large or loop-risk. A step orchestrator flips its box to [x] in the SAME commit as that step's code + tests (after full step PASS incl. test-writer when applicable) -->
+     L = large or loop-risk, XL = Review (Bugbot + Security) + E2E (mandatory last step, weight 8).
+     A step orchestrator flips its box to [x] in the SAME commit as that step's code + tests
+     (after full step PASS incl. test-writer when applicable; for XL after reviews + E2E PASS) -->
 - [ ] Step 1 (S|M|L) — <short title>
 - [ ] Step 2 (S|M|L) — <short title>
-- [ ] Step 3 (S|M|L) — <short title>
+- [ ] Step N (XL) — Review (Bugbot + Security) + E2E
 
 ## TESTING STRATEGY
 - **Per step (production gate):** Refactorer → Verifier → Tester (PHPUnit + PHPStan) — production code must be green before any new tests are written
 - **Per step (coverage — inline light):** test-writer → Verifier (test files only) → Tester (PHPUnit + PHPStan) — **skip** when the step changes no production PHP under `app/` or `packages/` (docs/config/ROADMAP-only steps); mark those steps `test-writer: skip` here
 - **Per step notes:** [optional: target classes, edge cases, `test-writer: skip` per step number]
-- **E2E (Execute — last checklist step only):** when ticking Step N completes every `## EXECUTION STATE` box, the Orchestrator delegates `"final E2E run"` to Tester (3 Playwright specs, local PASS/FAIL). **Not** gated on PR/CI — see `.cursor/agents/tester.md` § End-of-ticket E2E
-- **Finalize:** Orchestrator opens PR → waits on the PR checks (`gh pr checks <pr> --watch`) → Bugbot → version/CHANGELOG/ROADMAP.
+- **Review + E2E (Execute — mandatory last `(XL)` step):** Orchestrator runs Bugbot → Security Review (fix-loops until both clean), then Tester `"final E2E run"` (3 Playwright specs). **Not** gated on PR/CI
+- **Finalize:** Orchestrator opens PR → waits on the PR checks (`gh pr checks <pr> --watch`) → Bugbot (patch-ID sync usually skips after XL review) → version/CHANGELOG/ROADMAP
+- **Maintainer action (optional):** human-only follow-ups (real Docker/Apache, ruleset flips, …). In the branch doc these go under `## Maintainer action` — **not** under Deferred / Out-of-Scope
+- **Deferred / Out-of-Scope (optional):** future ROADMAP/PHASE work, non-goals, bridges only — never maintainer Manual Work
 ```
 
 - **Chat output:** One line only, e.g. `Plan written to migration-docs/tickets/active/PSR-11-Container-DI-Infrastructure_plan.md`.
@@ -72,7 +77,7 @@ lets you probe several areas in parallel.
 
 - **Allowed type: `explore` only** (read-only). Do **not** spawn `generalPurpose`, `shell`, or any
   write/execute-capable subagent — you are a planner, not an author.
-- **You own the synthesis.** An explore subagent gathers facts; scope, checklist, `S`/`M`/`L` sizing, and
+- **You own the synthesis.** An explore subagent gathers facts; scope, checklist, `S`/`M`/`L`/`XL` sizing, and
   bridge decisions stay yours. Never let a subagent decide the plan.
 - **Use it when it pays off** (nested agents cost tokens/time), and keep the one-line chat output below.
 
@@ -84,7 +89,7 @@ their deliverable is a **report** (path + structure given in the task prompt, e.
 spec** instead of the ticket format above:
 
 - Produce the report exactly where/how the task prompt says (path, sections, success criteria).
-- There is **no** `## EXECUTION STATE` block and **no** `S/M/L` checklist — an audit is read-only
+- There is **no** `## EXECUTION STATE` block and **no** `S/M/L/XL` checklist — an audit is read-only
   investigation + findings, not executed step-by-step.
 - Chat output: ONE line = the report path, e.g.
   `Report written to migration-docs/audits/2026/07/AUDIT_REPORT_…md`.

@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 
 /**
- * Builds everything the runtime serves: the copied assets, the JS bundles and
- * the stylesheets. None of it is committed, so a checkout is only servable
- * once this has run.
+ * Builds the webroot: the storage link, the published files, the copied
+ * assets, the JS bundles and the stylesheets. None of it is committed, so a
+ * checkout serves nothing until this has run.
  *
- * The asset copy goes first: the LESS roots import uikit's sources from
- * `app/assets/uikit/`.
+ * The publication pass goes first. It mirrors the sources, so anything a
+ * previous build left in them is overwritten by the builder that owns the
+ * path.
  *
  * Usage: node scripts/build.mjs
  */
@@ -15,9 +16,12 @@ import process from 'node:process';
 
 import { copyAssets } from './assets.mjs';
 import { buildBundles } from './bundles.mjs';
+import { linkStorage, publishStatics } from './publish.mjs';
 import { buildStyles } from './styles.mjs';
 
 try {
+  linkStorage();
+  publishStatics();
   copyAssets();
   await buildBundles();
   await buildStyles();

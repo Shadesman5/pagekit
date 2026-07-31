@@ -7,7 +7,9 @@
 # the renderer, so neither can be observed on the PR that introduces them — the workflow_dispatch
 # trigger allows a manual re-render (post-merge validation or on demand) against any open PR, and
 # DRY_RUN=1 renders locally without touching the comment. A metric that has not reported yet renders
-# as pending, never as a verdict.
+# as pending, never as a verdict. The first CREATE is deferred until at least one number-bearing
+# artifact exists (GitHub emails the create, not later PATCHes); subsequent gate completions still
+# update the sticky comment in place.
 
 name: Quality Report
 

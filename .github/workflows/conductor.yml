@@ -8,7 +8,8 @@ run-name: "${{ inputs.title != '' && inputs.title || format('Conductor — {0}{1
 # per GitHub Actions job (Plan, or one Execute batch, or Finalize) via the Cloud Agents API.
 # When auto_chain=true (default), each job dispatches the next run automatically so every job stays
 # under GitHub's 360-minute hosted-runner cap. batch_budget still controls how many checklist steps
-# (by S/M/L weight) fit into a single Execute cloud-agent run.
+# (by S/M/L/XL weight) fit into a single Execute cloud-agent run. XL (8) is the
+# mandatory last checklist step (Review + E2E) and runs alone when budget stays under 8.
 #
 # Security:
 #   - workflow_dispatch only -> only users with write access can start it (no public trigger).
@@ -45,7 +46,7 @@ on:
         required: false
         type: string
       batch_budget:
-        description: "Batch weight budget (S=1, M=2, L=4)"
+        description: "Batch weight budget (S=1, M=2, L=4, XL=8). XL is the last Review+E2E step and runs alone when budget < 8."
         required: false
         default: "6"
         type: string

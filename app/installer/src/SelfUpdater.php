@@ -10,11 +10,24 @@ use Symfony\Component\Console\Output\StreamOutput;
 
 class SelfUpdater
 {
+    // TODO: Must be refactored in Step 2.9 (Automated Update System) - an update cannot leave the
+    // webroot consistent yet: it neither recreates the public/storage link an archive drops nor
+    // removes published assets under public/ that the new release renamed, and the clean pass
+    // below reaches app/ only.
     /** @var array<int, string> */
     protected array $cleanFolder = ['app'];
 
     /** @var array<int, string> */
     protected array $ignoreFolder = ['packages', 'storage'];
+
+    /**
+     * Files an update never overwrites because the host adapts them: the rules
+     * the webroot is served under, and the fallback rewrite for a document root
+     * that cannot be moved.
+     *
+     * @var array<int, string>
+     */
+    protected array $keepFile = ['.htaccess', 'public/.htaccess'];
 
     protected string $path;
 
@@ -57,10 +70,12 @@ class SelfUpdater
             }
 
             $this->output->write('Preparing update...');
-            $fileList = $this->getFileList($file);
-            unset($fileList[array_search('.htaccess', $fileList)]);
 
-            $fileList = array_values(array_filter($fileList, function ($file) {
+            $fileList = array_values(array_filter($this->getFileList($file), function (string $file): bool {
+                if (in_array($file, $this->keepFile, true)) {
+                    return false;
+                }
+
                 foreach ($this->ignoreFolder as $ignore) {
                     if (strpos($file, $ignore) === 0) {
                         return false;

@@ -182,6 +182,43 @@ class NodeRepositoryTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
+    // clearCache(): drop the memoized set after writes that bypass save().
+    // -----------------------------------------------------------------------
+
+    public function testClearCacheForcesTheNextFullSetToBeReRead(): void
+    {
+        [$repository, $connection] = $this->bootRepository();
+        $this->insertNode($connection, ['id' => 1, 'slug' => 'a', 'menu' => 'main']);
+
+        $this->assertCount(1, $repository->findAll(true));
+
+        $this->insertNode($connection, ['id' => 2, 'slug' => 'b', 'menu' => 'main']);
+        $this->assertCount(1, $repository->findAll(true), 'the memoized set is what makes clearing necessary');
+
+        $repository->clearCache();
+
+        $this->assertCount(2, $repository->findAll(true), 'a cleared cache must re-read every row');
+    }
+
+    public function testClearCacheDropsPerIdCachedNodes(): void
+    {
+        [$repository, $connection] = $this->bootRepository();
+        $this->insertNode($connection, ['id' => 1, 'slug' => 'about', 'menu' => 'main']);
+
+        $first = $repository->find(1, true);
+        $this->assertInstanceOf(Node::class, $first);
+
+        $connection->executeStatement("UPDATE system_node SET slug = 'changed' WHERE id = 1");
+        $repository->clearCache();
+
+        $second = $repository->find(1, true);
+
+        $this->assertInstanceOf(Node::class, $second);
+        $this->assertNotSame($first, $second, 'the stale instance must not survive the clear');
+        $this->assertSame('changed', $second->slug, 'the re-hydrated node must carry the out-of-band write');
+    }
+
+    // -----------------------------------------------------------------------
     // Helpers.
     // -----------------------------------------------------------------------
 

@@ -90,6 +90,8 @@
   - JWT Authentication
   - API Versioning
   - Rate Limiting
+  - **Token scopes, including read-only scopes** — so an integration (or an agent) can be granted read access without write capability
+  - **Outbound webhooks**: publish domain events to registered subscriber URLs with signing and retry. The existing Event Dispatcher is the seam — keep domain events stable rather than inventing a parallel notification path.
 - **API serialization:** All API v2 responses must go through DI presenters/DTOs (`NodePresenter`, `PostPresenter`, and equivalents). Controllers that still return raw entities via `jsonSerialize()` (e.g. `UserApiController`, `RoleApiController`, `WidgetApiController`, `CommentApiController`) must move onto that path — do not add new endpoints that serialize entities directly.
 - **Secrets:** API keys and tokens read from env / secret store — the mechanism itself ships with Step 2.5, which also migrates the hardcoded OpenWeatherMap key.
 
@@ -122,18 +124,18 @@
 
 ## Step 4.7: Rebranding — Pagekit → Kernkit
 
-- **Goal**: Give the CMS its own independent identity by renaming it from "Pagekit" to **Kernkit / KernKit**. The MIT license covers the *code*, not the "Pagekit" name or logo — this establishes a trademark-safe, independent brand while keeping the required heritage attribution.
+- **Goal**: Give the CMS its own independent identity by renaming it from "Pagekit" to **Kernkit**. The MIT license covers the *code*, not the "Pagekit" name or logo — this establishes a trademark-safe, independent brand while keeping the required heritage attribution.
 - **Prerequisite**: Phase 4 modernization complete.
-- **Naming decision (maintainer, 2026-07-08):**
-  - **Code — uniform `Kernkit`** (single capital): PHP namespace `Pagekit\` → `Kernkit\`, class/identifier prefixes, internal string identifiers. Keep it *consistent* — do not mix casings in code.
+- **Naming — one wordmark `Kernkit`** (first capital only; never `KernKit`, because inner capitals hurt SEO/typing and read dated on a wordmark):
+  - **Code — `Kernkit`**: PHP namespace `Pagekit\` → `Kernkit\`, class/identifier prefixes, internal string identifiers. Keep it *consistent* — do not mix casings in code.
   - **Composer / Packagist / repo / org — lowercase `kernkit`** (Composer requires a lowercase vendor): `pagekit/*` → `kernkit/*`; new home `github.com/kernkit/kernkit` (+ `kernkit/docs`).
-  - **Branding / logo / display name — `KernKit`** (camelCase): README title, UI branding, wordmark, marketing copy.
+  - **Branding / logo / display name — `Kernkit`**: README title, UI branding, wordmark, marketing copy.
 - **Scope (CMS only — public open-source rebrand):**
   - **Namespaces & code**: sweep `Pagekit\` → `Kernkit\` across `app/`, `packages/`, and tests; update the PSR-4 autoload prefix in `composer.json` and regenerate the autoloader; sweep remaining `pagekit` string identifiers (config keys, cookie/session names, cache namespaces) and the log file name (`pagekit.log` → `kernkit.log`).
   - **CLI**: rename the `pagekit` console binary/entry point to `kernkit` (behaviour identical; `php kernkit …`).
   - **composer.json**: package `name`, `description`, `homepage`, support URLs → `kernkit`.
-  - **README.md & docs**: title (`# Pagekit CMS - Modernized` → KernKit), badges, screenshot alt-text, clone/install URLs (`Shadesman5/pagekit` → `kernkit/kernkit`); fresh docs home at `kernkit/docs`.
-  - **Branding assets**: create a new **KernKit** logo/wordmark. **Do NOT reuse the original Pagekit logo** (copyright YOOtheme — only the code is MIT).
+  - **README.md & docs**: title (`# Pagekit CMS - Modernized` → Kernkit), badges, screenshot alt-text, clone/install URLs (`Shadesman5/pagekit` → `kernkit/kernkit`); fresh docs home at `kernkit/docs`.
+  - **Branding assets**: create a new **Kernkit** logo/wordmark. **Do NOT reuse the original Pagekit logo** (copyright YOOtheme — only the code is MIT).
   - **Heritage attribution (keep!)**: retain the MIT copyright in `LICENSE` and add a README/footer note: _"Originally based on Pagekit CMS (MIT License)."_
   - **Verify**: full PHPUnit + Playwright E2E green after the namespace sweep; fresh install **and** upgrade path still boot; no stray `Pagekit` identifiers on live code paths (historical mentions in `CHANGELOG`/migration history may remain).
 - **Structure note**: may be split into sub-steps if the single pass is too large — e.g. **4.7.1** namespace/code sweep, **4.7.2** composer + CLI + config identifiers, **4.7.3** README + docs + branding assets.
@@ -249,3 +251,16 @@ The `<picture>` markup is produced at **render time** by a new content plugin (`
   - **Shared hosting / zip distribution (Step 2.9) is untouched**: it stays on Apache/PHP-FPM + the same `public/` webroot from 2.4.1 — this step only changes the container runtime.
 - **Out of scope**: Redesigning the orchestration model itself (Helm structure, scaling policy, shared-state architecture) — that is 4.11's decision. Changing the webroot layout — already done by 2.4.1.
 - **Risk**: Medium — mechanical porting work (the remaining headers, rewrites) against an already-green orchestrated baseline; the hard problems (shared state, health probes, CSP portability, webroot layout) are solved by the time this step starts.
+
+---
+
+## Step 4.13: Repo Topology Spike — Monolith vs Packages vs Multi-Repo
+
+- **Goal**: Time-boxed Go/No-Go on whether the application repo stays a single tree, extracts Composer packages inside one repo, or splits into multiple repos — driven by agent context/token limits and CI blast radius.
+- **What (spike only)**:
+  - Map extractable seams (`app/modules`, `packages/*`) and cyclic coupling hotspots
+  - Compare: (A) stay monolith + stricter module boundaries, (B) path-repo Composer packages, (C) multi-repo + Packagist/GH packages
+  - Estimate agent/CI cost: context size, cross-repo PR choreography, version skew
+  - Written Go/No-Go + follow-up tickets only if Go
+- **Out of scope**: Executing a split inside this step; Agentic pipelines (**5.9**)
+- **Risk**: Low for the spike; High if a premature split is forced

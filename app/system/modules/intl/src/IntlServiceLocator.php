@@ -7,20 +7,38 @@ namespace Pagekit\Intl;
 use Symfony\Component\Translation\Translator;
 
 /**
- * Static accessor bridge for PHP global translation functions.
+ * Static accessor bridge for PHP global translation helpers.
  *
- * The class itself is DI-constructed (constructor injection); the static
- * register()/get*() layer is a minimal, unavoidable bridge because PHP global
- * functions (__(), _c(), _i(), _n()) have no DI-capable constructor of their own.
+ * This class is DI-constructed (translator + IntlModule). The globals
+ * (__(), _c(), _i(), _n()) are thin Platform-API aliases over those
+ * services — they resolve through this locator because a PHP function
+ * cannot receive constructor injection itself.
+ *
+ * The translator may be supplied eagerly (tests) or as a factory so module boot
+ * can register the locator without building the translator — and freezing
+ * locales — before the full module graph is loaded.
  */
 final class IntlServiceLocator
 {
     private static ?self $instance = null;
 
+    private ?Translator $translator = null;
+
+    /** @var (callable(): mixed)|null */
+    private $translatorFactory = null;
+
+    /**
+     * @param Translator|callable(): mixed $translator Eager instance or lazy factory
+     */
     public function __construct(
-        private readonly Translator $translator,
+        Translator|callable $translator,
         private readonly IntlModule $intl,
     ) {
+        if ($translator instanceof Translator) {
+            $this->translator = $translator;
+        } else {
+            $this->translatorFactory = $translator;
+        }
     }
 
     /**
@@ -34,7 +52,7 @@ final class IntlServiceLocator
 
     public static function getTranslator(): Translator
     {
-        return self::resolve()->translator;
+        return self::resolve()->resolveTranslator();
     }
 
     public static function getIntl(): IntlModule
@@ -49,5 +67,25 @@ final class IntlServiceLocator
         }
 
         return self::$instance;
+    }
+
+    private function resolveTranslator(): Translator
+    {
+        if ($this->translator !== null) {
+            return $this->translator;
+        }
+
+        if ($this->translatorFactory === null) {
+            throw new \RuntimeException('IntlServiceLocator has no translator');
+        }
+
+        $translator = ($this->translatorFactory)();
+        if (!$translator instanceof Translator) {
+            throw new \RuntimeException('translator factory must return an instance of Translator');
+        }
+
+        $this->translator = $translator;
+
+        return $this->translator;
     }
 }

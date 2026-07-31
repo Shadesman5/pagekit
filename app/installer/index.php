@@ -13,7 +13,7 @@ return [
 
     'main' => function ($app) {
 
-        $app->set('package', fn ($app) => (new PackageFactory($app->get('url')))->addPath($app->get('path').'/packages/*/*/composer.json'));
+        $app->set('package', fn ($app) => (new PackageFactory($app->get('url'), $app->get('path')))->addPath($app->get('path').'/packages/*/*/composer.json'));
         $app->set('manager', fn ($app) => new PackageManager($app));
         $app->set('systemApi', fn ($app) => $app->has('system.api') ? $app->get('system.api') : 'https://pagekit.com');
 
@@ -38,7 +38,7 @@ return [
                 $locale = $request->get('locale') ?: $app->get('request')->getPreferredLanguage();
                 $available = $app->get('module')->get('system/intl')->getAvailableLanguages();
 
-                if (isset($available[$locale])) {
+                if (is_string($locale) && $locale !== '' && isset($available[$locale])) {
                     $app->get('module')->get('system/intl')->setLocale($locale);
                 }
 
@@ -142,20 +142,6 @@ return [
             'url' => '@system/update',
             'priority' => 25,
         ],
-
-    ],
-
-    'events' => [
-
-        'view.data' => function ($event, $data) use ($app) {
-            $installer = $app->get('module')->get('installer');
-            if ($installer && $installer->config('enabled')) {
-                $data('$pagekit', [
-                    'url' => '/index.php',
-                    'csrf' => $app->get('csrf')->generate(),
-                ]);
-            }
-        },
 
     ],
 

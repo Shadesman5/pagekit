@@ -10,6 +10,7 @@ use Pagekit\Config\Config;
 use Pagekit\Config\ConfigManager;
 use Pagekit\Installer\Package\Package;
 use Pagekit\Installer\Package\PackageFactory;
+use Pagekit\Installer\Package\PackageInterface;
 use Pagekit\Installer\Package\PackageManager;
 use Pagekit\Migration\MigrationService;
 use PHPUnit\Framework\TestCase;
@@ -18,13 +19,20 @@ use Psr\Container\NotFoundExceptionInterface;
 use Symfony\Component\Console\Output\NullOutput;
 
 /**
- * Integration tests for PackageManager::enable()/uninstall() migration orchestration.
+ * Integration tests for PackageManager::enable()/disable()/uninstall() orchestration.
  *
  * An extension's schema lifecycle runs through its scripts.php hooks: the
  * `enable` hook calls MigrationService::migrateExtension(), the `uninstall` hook
  * calls rollbackExtension(). These tests exercise that orchestration end-to-end
  * against a real in-memory-SQLite MigrationService, driving actual DDL so table
  * existence is the assertion — not a mocked call count.
+ *
+ * Beyond schema work the manager announces `package.disable` / `package.uninstall`
+ * so other modules can archive the content an extension owns. A recording
+ * dispatcher pins when those events fire relative to the extension's own hooks
+ * and to the removal of the package folder (listeners may still need the package
+ * object while the folder exists; node types themselves come from the loaded
+ * module or remembered system config, never from requiring index.php).
  *
  * Container availability is covered by running enable() with a minimal container
  * (no config/events/log) and by building the manager both with and without the
@@ -33,8 +41,8 @@ use Symfony\Component\Console\Output\NullOutput;
  *
  * NOT covered here (needs a booted kernel + real Composer/network):
  * PackageManager::install() and the Composer download/update pipeline
- * (Composer::composerUpdate()). This suite targets enable()/uninstall()
- * migration orchestration, not the Composer transport.
+ * (Composer::composerUpdate()). This suite targets the enable()/disable()/
+ * uninstall() orchestration, not the Composer transport.
  */
 class PackageManagerMigrationTest extends TestCase
 {
@@ -111,6 +119,40 @@ class PackageManagerMigrationTest extends TestCase
         self::assertSame('1.0.0', $system->get('packages.test-ext'));
         self::assertContains('test-ext', (array) $system->get('extensions'));
         self::assertContains('package.enable', $events->fired);
+    }
+
+    public function testEnableFiresPackageEnableOnlyAfterScriptsSucceed(): void
+    {
+        $this->writeComposerJson('1.0.0');
+        $this->writeScripts($this->announcingScript('enable'));
+
+        $system = new Config();
+        $system->set('packages.test-ext', '1.0.0');
+
+        $events = new class () {
+            /** @var array<int, string> */
+            public array $fired = [];
+
+            /** @param array<int, mixed> $params */
+            public function trigger(string $event, array $params = []): void
+            {
+                $this->fired[] = $event;
+            }
+        };
+
+        $app = $this->makeContainer([
+            'config' => $this->configService($system),
+            'events' => $events,
+        ]);
+
+        $this->makeManager($app)->enable($this->makePackage());
+
+        self::assertSame(
+            ['script.enable', 'package.enable'],
+            $events->fired,
+            'package.enable must fire only after scripts->enable() succeeds so listeners never see a half-enabled package',
+        );
+        self::assertContains('test-ext', (array) $system->get('extensions'));
     }
 
     public function testEnableWithoutContainerConfigStillRunsMigration(): void
@@ -231,6 +273,121 @@ class PackageManagerMigrationTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // disable()/uninstall() — extension lifecycle events
+    // ------------------------------------------------------------------
+
+    public function testDisableFiresPackageDisableAfterTheExtensionsOwnHook(): void
+    {
+        $this->writeScripts($this->announcingScript('disable'));
+
+        $system = new Config();
+        $system->set('extensions', ['test-ext']);
+
+        $events = new class () {
+            /** @var array<int, string> */
+            public array $fired = [];
+
+            /** @param array<int, mixed> $params */
+            public function trigger(string $event, array $params = []): void
+            {
+                $this->fired[] = $event;
+            }
+        };
+
+        $app = $this->makeContainer([
+            'config' => $this->configService($system),
+            'events' => $events,
+        ]);
+
+        $this->makeManager($app)->disable($this->makePackage());
+
+        self::assertSame(
+            ['script.disable', 'package.disable'],
+            $events->fired,
+            'listeners that archive extension content must run after the extension had its own say',
+        );
+        self::assertSame([], (array) $system->get('extensions'), 'disable() must drop the module from the enabled extensions');
+    }
+
+    public function testUninstallFiresPackageUninstallWhileThePackageFolderStillExists(): void
+    {
+        $this->writeScripts($this->announcingScript('uninstall'));
+
+        $system = new Config();
+        $system->set('packages.test-ext', '1.0.0');
+        $system->set('extensions', ['test-ext']);
+
+        $events = new class () {
+            /** @var array<int, string> */
+            public array $fired = [];
+
+            /** @var array<string, bool> */
+            public array $packageOnDisk = [];
+
+            /** @param array<int, mixed> $params */
+            public function trigger(string $event, array $params = []): void
+            {
+                $this->fired[] = $event;
+
+                $package = $params[0] ?? null;
+                if ($package instanceof PackageInterface) {
+                    $path = $package->get('path');
+                    $this->packageOnDisk[$event] = is_string($path) && is_dir($path);
+                }
+            }
+        };
+
+        // The production `file` service really removes the folder; doing the same
+        // here is what gives the "still on disk" assertion below any meaning.
+        $file = new class () {
+            /** @var array<int, string> */
+            public array $deleted = [];
+
+            public function delete(string $path): bool
+            {
+                $this->deleted[] = $path;
+
+                return $this->remove($path);
+            }
+
+            private function remove(string $path): bool
+            {
+                if (!is_dir($path)) {
+                    return unlink($path);
+                }
+
+                foreach (array_diff((array) scandir($path), ['.', '..']) as $item) {
+                    $this->remove($path . '/' . $item);
+                }
+
+                return rmdir($path);
+            }
+        };
+
+        $package = $this->makePackage();
+        $app = $this->makeContainer(array_merge($this->pathServices(), [
+            'config' => $this->configService($system),
+            'package' => $this->makePackageFactory($package),
+            'file' => $file,
+            'events' => $events,
+        ]));
+
+        $this->makeManager($app)->uninstall('pagekit/test-ext');
+
+        self::assertSame(
+            ['package.disable', 'script.uninstall', 'package.uninstall'],
+            $events->fired,
+            'the extension runs its own uninstall hook first, then listeners get to archive its content',
+        );
+        self::assertTrue(
+            $events->packageOnDisk['package.uninstall'] ?? false,
+            'package.uninstall must fire while the package folder still exists so listeners can finish cleanup',
+        );
+        self::assertSame([$this->packageDir], $file->deleted);
+        self::assertNull($system->get('packages.test-ext'));
+    }
+
+    // ------------------------------------------------------------------
     // enable() — failure rolls back to the pre-migration state
     // ------------------------------------------------------------------
 
@@ -243,8 +400,21 @@ class PackageManagerMigrationTest extends TestCase
         // version, then the enable hook throws: rollbackEnable() must restore the
         // pre-migration (absent) state.
         $system = new Config();
+        $events = new class () {
+            /** @var array<int, string> */
+            public array $fired = [];
 
-        $app = $this->makeContainer(['config' => $this->configService($system)]);
+            /** @param array<int, mixed> $params */
+            public function trigger(string $event, array $params = []): void
+            {
+                $this->fired[] = $event;
+            }
+        };
+
+        $app = $this->makeContainer([
+            'config' => $this->configService($system),
+            'events' => $events,
+        ]);
         $package = $this->makePackage();
 
         // Capture rather than self::fail() inside the catch: PHPUnit's
@@ -265,6 +435,12 @@ class PackageManagerMigrationTest extends TestCase
             $system->get('packages.test-ext'),
             'A failed enable() must roll the package version back to its pre-migration (absent) state',
         );
+        self::assertNotContains(
+            'package.enable',
+            $events->fired,
+            'package.enable must not fire when scripts->enable() fails — node restore / type forget stay unrestored',
+        );
+        self::assertSame([], (array) $system->get('extensions'));
     }
 
     public function testFailedEnableLogsErrorWhenLogServiceAvailable(): void
@@ -478,6 +654,26 @@ class PackageManagerMigrationTest extends TestCase
                 },
             ];
             PHP;
+    }
+
+    /**
+     * A scripts.php whose hook announces itself on the event dispatcher, so the
+     * order of the extension's own hook and the manager's lifecycle event is
+     * observable in one recorded sequence.
+     */
+    private function announcingScript(string $hook): string
+    {
+        return str_replace('{HOOK}', $hook, <<<'PHP'
+            <?php
+
+            declare(strict_types=1);
+
+            return [
+                '{HOOK}' => function ($app) {
+                    $app->get('events')->trigger('script.{HOOK}', []);
+                },
+            ];
+            PHP);
     }
 
     private function throwingEnableScript(): string

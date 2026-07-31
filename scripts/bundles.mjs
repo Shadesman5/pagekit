@@ -3,21 +3,20 @@
  *
  * One `vite build` per entry: Rollup cannot emit `iife` for a multi-input build,
  * and the bundles are classic `<script>` tags, so each one has to be a
- * self-contained IIFE. Bundles land in `<module>/app/bundle/<name>.js`, which is
- * the path PHP registers them under.
+ * self-contained IIFE. Bundles are published as `<module>/app/bundle/<name>.js`,
+ * which is the path PHP registers them under.
  */
 
 import { createRequire } from 'node:module';
 import { availableParallelism } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import vue from '@vitejs/plugin-vue2';
 import { build } from 'vite';
 
 import { aliases, entries, externals } from './bundle-entries.mjs';
+import { published, root } from './paths.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
 
 /** Holds the exports of a bundle that publishes no global; never read. */
@@ -63,9 +62,9 @@ function viteConfig(entry, watch) {
     build: {
       // UIkit 3.5 browser floor (Safari 11.1 lacks full ES2018 regex support).
       target: 'es2017',
-      // The bundle directory rather than the module directory: watch mode
-      // refuses an output directory that contains the entry sources.
-      outDir: path.dirname(path.join(root, entry.dir, entry.output)),
+      // The published bundle directory, which mirrors the module path below
+      // the webroot; the entry sources stay outside it.
+      outDir: path.dirname(published(path.join(entry.dir, entry.output))),
       // Every entry of a module writes into the same bundle directory.
       emptyOutDir: false,
       modulePreload: false,

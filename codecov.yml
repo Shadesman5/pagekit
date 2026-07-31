@@ -10,7 +10,6 @@
 # (avoids 0% patch noise on version bumps, front controllers, module manifests).
 ignore:
   - "app/system/config.php"
-  - "index.php"
   - "**/index.php"
 
 coverage:

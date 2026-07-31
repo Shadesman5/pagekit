@@ -79,11 +79,17 @@ _TBD / None_
 
 ## 👤 Maintainer action
 
+<!-- Human-only follow-ups the maintainer must do (ruleset flips, real Docker/Apache
+     verification, secrets, etc.). Not ROADMAP deferrals — those go under Deferred. -->
+
 _TBD / None_
 
 ---
 
 ## 📚 Deferred / Out-of-Scope
+
+<!-- Future ROADMAP/PHASE work, explicit non-goals, bridges. Do NOT put maintainer
+     Manual Work here — that belongs under Maintainer action above. -->
 
 _TBD / None_
 

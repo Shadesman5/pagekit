@@ -134,9 +134,10 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
 
 ## Sequence
 
-> **Bugbot in the cloud:** the local `/review-bugbot` subagent is not available to API-launched cloud
-> agents (`subagent_type: "bugbot"` fails there), so this phase uses the GitHub-App **PR Bugbot**,
-> triggered explicitly with a `bugbot run` comment on the PR (step 4). Review rules: `.cursor/BUGBOT.md`.
+> **Bugbot in Execute:** the mandatory last checklist step `(XL)` already ran Bugbot + Security on the
+> branch diff (`orchestrator-v2-step.mdc` § XL Review step). Patch-ID sync usually makes the GitHub-App
+> PR Bugbot **skip** a duplicate review. Step 4 below remains as a **safety net** (explicit `bugbot run`
+> if the check did not skip / findings appear). Review rules: `.cursor/BUGBOT.md`.
 
 1. **Push + PR** — `git push -u origin HEAD`; `gh pr create --base <base branch from your launch prompt>`
    with the `<!-- metadata -->` block (labels, milestone, `Closes #XXX`). This triggers the PR CI checks.
@@ -169,8 +170,8 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
 4. **PR-Bugbot review** — CI is green, so trigger the review: `gh pr comment <pr> --body "bugbot run"`,
    then wait for the `Cursor Bugbot` status check (e.g. `gh pr checks <pr> --watch`). Read findings via
    `gh api repos/{owner}/{repo}/pulls/<pr>/comments` (or `gh pr view <pr> --comments`). Findings →
-   fix-loop spawn order → commit → push; a fix re-runs CI, so re-watch step 2 to green, then re-comment
-   `bugbot run` — repeat until Bugbot is clean **and** CI is green.
+   fix-loop spawn order → commit → push; a fix re-runs CI, so re-watch step 2 to green, then re-trigger
+   Bugbot if needed — repeat until Bugbot is clean **and** CI is green.
 5. **Finalize** (follow `push.mdc`, but delegate the writing) — in this order:
    1. **Version bump** (you) — run the `version-bump` skill → `app/system/config.php` (once per PR).
    2. Spawn **doc-writer** (Finalize docs template).
@@ -188,14 +189,6 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
       `git mv migration-docs/tickets/active/{task-slug}_plan.md migration-docs/tickets/done/`, and
       `git push` (second push). Do not merge.
 
-<!-- FUTURE — reactivate once Cursor ships CLI/headless support for `/review-bugbot`
-     (https://cursor.com/docs/bugbot.md — "CLI support is coming soon"). A pre-push local review is then
-     preferable: it reviews BEFORE the push (faster feedback) and its patch-id sync makes any remote PR
-     Bugbot skip the duplicate run. To restore it, drop the on-demand PR-Bugbot step (4) and run the
-     review locally *before* step 1 — giving: local review → push + PR → CI gate → coverage gap pass → finalize.
-     Local review = run `/review-bugbot` on the branch diff once; findings → refactorer → verifier →
-     tester → commit; re-run until clean.
--->
 
 ## Resume safety (a re-dispatch may re-enter Finalize)
 
@@ -221,8 +214,8 @@ If a fix-loop hits the **same** FAIL **3×**, stop and report `ESCALATE: <reason
 
 ## Boundaries
 
-- Spawn only: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`. Bugbot runs as the
-  GitHub-App PR review, **not** as a local subagent in the cloud — see the Sequence note above.
+- Spawn only: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`. Primary Bugbot + Security
+  already ran in Execute `(XL)`; PR Bugbot here is the GitHub-App safety net — see the Sequence note above.
 
 ## Report exactly one line
 

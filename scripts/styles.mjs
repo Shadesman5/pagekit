@@ -2,25 +2,31 @@
  * Compiles the LESS stylesheets of the core packages and the One theme.
  *
  * A stylesheet root is any `.less` file sitting directly in a `less/`
- * directory; it is compiled into the sibling `css/` directory, which is where
- * PHP loads the result from. Everything one level deeper is a partial of such
- * a root and is never compiled on its own.
- *
- * All three roots import uikit's LESS sources from `app/assets/uikit/`, so the
- * asset copy has to have run before this.
+ * directory; it is published as the `css/` directory beside it, which is the
+ * path PHP loads the result from. Everything one level deeper is a partial of
+ * such a root and is never compiled on its own.
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import chokidar from 'chokidar';
 import less from 'less';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+import { published, root } from './paths.mjs';
 
 /** Coalesces the burst of watch events an editor emits for a single save. */
 const REBUILD_DELAY = 100;
+
+/**
+ * Resolution roots every stylesheet gets: all three roots import uikit's LESS
+ * sources from the installed package, and uikit references its background SVGs
+ * relative to that source directory, which is where they are inlined from.
+ */
+const lessPaths = [
+  path.join(root, 'node_modules'),
+  path.join(root, 'node_modules/uikit/src/less/components')
+];
 
 /**
  * The version lives in the PHP config, so the banner cannot drift from it.
@@ -107,12 +113,12 @@ function findStyleRoots(dir) {
 
 /**
  * @param {string} source absolute path of a `less/<name>.less` root
- * @returns {string} absolute path of the stylesheet it compiles to
+ * @returns {string} absolute path of the published stylesheet it compiles to
  */
 function outputPath(source) {
-  const lessDir = path.dirname(source);
+  const cssDir = path.join(path.dirname(path.dirname(source)), 'css');
 
-  return path.join(path.dirname(lessDir), 'css', `${path.basename(source, '.less')}.css`);
+  return published(path.relative(root, path.join(cssDir, `${path.basename(source, '.less')}.css`)));
 }
 
 /**
@@ -128,7 +134,7 @@ async function compilePackage(pkg) {
       ...pkg.options,
       // Imports that are written relative to the package root instead of
       // to the importing file resolve through here.
-      paths: [path.join(root, pkg.dir)],
+      paths: [path.join(root, pkg.dir), ...lessPaths],
       filename: source
     });
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Pagekit\Filesystem\Adapter\FileAdapter;
 use Pagekit\Filesystem\Filesystem;
 use Pagekit\Filesystem\Locator;
+use Pagekit\Filesystem\Path;
 use Pagekit\Filesystem\StreamWrapper;
 
 return [
@@ -15,7 +16,7 @@ return [
 
         $app->set('file', fn () => new Filesystem());
 
-        $app->set('locator', fn () => new Locator($this->config['path']));
+        $app->set('locator', fn () => new Locator($this->config['path'], $app->get('path.public')));
 
         $app->get('module')->addLoader(function ($module) use ($app) {
 
@@ -41,8 +42,18 @@ return [
         'request' => [function ($event, $request) use ($app) {
 
             $baseUrl = $request->getSchemeAndHttpHost().$request->getBasePath();
+            $root = Path::directory($this->config['path']);
+            $storage = Path::directory($app->get('path.storage'));
 
-            $app->get('file')->registerAdapter('file', new FileAdapter($this->config['path'], $baseUrl));
+            // The media library is reached through a link into the webroot that the
+            // application never resolves paths through, so its URL comes from where
+            // it sits relative to the application root. A storage configured outside
+            // that root cannot be linked and keeps the URL-less state every
+            // unpublished directory has.
+            $relative = strpos($storage, $root) === 0 ? trim(substr($storage, strlen($root)), '/') : '';
+            $mounts = $relative !== '' ? [$storage => "$baseUrl/$relative"] : [];
+
+            $app->get('file')->registerAdapter('file', new FileAdapter($app->get('path.public'), $baseUrl, $mounts));
 
         }, 100],
     ],

@@ -5,8 +5,10 @@ declare(strict_types=1);
 use Pagekit\Site\Event\MaintenanceListener;
 use Pagekit\Site\Event\NodesListener;
 use Pagekit\Site\Event\PageListener;
+use Pagekit\Site\ExtensionNodeLifecycle;
 use Pagekit\Site\MenuHelper;
 use Pagekit\Site\Model\Node;
+use Pagekit\Site\PackageNodeTypes;
 
 return [
 
@@ -222,6 +224,46 @@ return [
                     }
                 }
             }
+
+            if ($package->getType() === 'pagekit-extension') {
+                $systemConfig = $app->get('config')('system');
+                $types = PackageNodeTypes::fromPackage($package, $app->get('module'), $systemConfig);
+                (new ExtensionNodeLifecycle(
+                    $app->get('nodeRepository'),
+                    $app->get('config')('system/site')
+                ))->enable($types);
+                PackageNodeTypes::forget($systemConfig, (string) $package->get('module'));
+            }
+        },
+
+        // Disable: snapshot placement, then unpublish into "Not Linked".
+        'package.disable' => function ($event, $package) use ($app) {
+            if ($package->getType() !== 'pagekit-extension') {
+                return;
+            }
+
+            $systemConfig = $app->get('config')('system');
+            $types = PackageNodeTypes::fromPackage($package, $app->get('module'), $systemConfig);
+            PackageNodeTypes::remember($systemConfig, (string) $package->get('module'), $types);
+            (new ExtensionNodeLifecycle(
+                $app->get('nodeRepository'),
+                $app->get('config')('system/site')
+            ))->disable($types);
+        },
+
+        // Uninstall: soft-delete into Trash (keeps snapshot for a later reinstall).
+        'package.uninstall' => function ($event, $package) use ($app) {
+            if ($package->getType() !== 'pagekit-extension') {
+                return;
+            }
+
+            $systemConfig = $app->get('config')('system');
+            $types = PackageNodeTypes::fromPackage($package, $app->get('module'), $systemConfig);
+            (new ExtensionNodeLifecycle(
+                $app->get('nodeRepository'),
+                $app->get('config')('system/site')
+            ))->uninstall($types);
+            PackageNodeTypes::forget($systemConfig, (string) $package->get('module'));
         },
 
         'view.init' => [function ($event, $view) use ($app) {

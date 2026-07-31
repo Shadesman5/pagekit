@@ -14,9 +14,11 @@
 // Check-run conclusions are still read, but only to explain a MISSING number (pending / skipped).
 //
 // The comment is upserted idempotently via a hidden marker, so repeated gate completions update one
-// comment rather than posting a new one each time. Set DRY_RUN=1 to print the body instead — the only
-// way to see the real rendering before the change reaches the default branch, since workflow_run and
-// workflow_dispatch both execute this script from there.
+// comment rather than posting a new one each time. The first CREATE is deferred until at least one
+// number-bearing artifact exists — GitHub emails the create, not later PATCHes, so an empty first
+// post would leave subscribers staring at "pending". Set DRY_RUN=1 to print the body instead — the
+// only way to see the real rendering before the change reaches the default branch, since
+// workflow_run and workflow_dispatch both execute this script from there.
 
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, readdirSync, readFileSync, existsSync } from 'node:fs';
@@ -67,6 +69,26 @@ function main() {
 
   const checks = indexChecks(checkRunsForSha(sha));
   const artifacts = collectArtifacts(sha);
+  const hasMetrics = !!(
+    artifacts.coverage ||
+    artifacts.junit ||
+    artifacts.phpstan ||
+    artifacts.infection ||
+    artifacts.e2e
+  );
+  // Codecov-style: never CREATE an empty comment (GitHub emails the first post, not later
+  // PATCHes). A fast gate like Frontend produces no table metrics — defer until at least one
+  // number-bearing artifact exists. Once a sticky comment is present, keep updating it.
+  if (!hasMetrics && !DRY_RUN) {
+    const existing = findStickyComment(pr);
+    if (!existing) {
+      log(
+        'no number-bearing artifacts yet and no sticky comment — deferring create until a gate uploads metrics'
+      );
+      return;
+    }
+  }
+
   const body = renderComment({
     sha,
     checks,
@@ -425,10 +447,14 @@ function signed(n, dp) {
 }
 
 // ---------------------------------------------------------------- comment upsert
-function upsertComment(pr, body) {
-  const existing = ghApiArray(`/repos/${REPO}/issues/${pr}/comments?per_page=100`).find(
+function findStickyComment(pr) {
+  return ghApiArray(`/repos/${REPO}/issues/${pr}/comments?per_page=100`).find(
     c => typeof c.body === 'string' && c.body.includes(MARKER)
   );
+}
+
+function upsertComment(pr, body) {
+  const existing = findStickyComment(pr);
   if (existing) {
     gh(
       [

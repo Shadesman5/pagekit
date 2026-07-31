@@ -410,7 +410,13 @@ Vue.ready({
     },
 
     type(node) {
-      return this.getType(node) || {};
+      return (
+        this.getType(node) || {
+          label: this.$trans('Unavailable'),
+          unavailable: true,
+          frontpage: false
+        }
+      );
     },
 
     setFrontpage(node) {

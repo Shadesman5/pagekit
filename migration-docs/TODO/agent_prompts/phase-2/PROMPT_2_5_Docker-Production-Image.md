@@ -167,6 +167,7 @@ Architect: decompose into ordered, individually-green checklist steps. Suggested
 
 - **No webserver spike in this ticket** — that decision belongs to Step 4.12. This step ships Apache serving `public/`; do not re-litigate the engine choice here.
 - **`.dockerignore` currently excludes `docker/`** — fix this deliberately for prod configs; do not silently `COPY` paths that never enter the build context.
+- **Node build-stage base (multi-stage prod image):** prefer `node:22-bookworm` / `node:22-bookworm-slim` for the Vite/pnpm build stage so it shares the glibc family with the Debian PHP runtime stage — do **not** default to Alpine for that stage unless Discovery proves the asset build has zero musl-sensitive native addons. The **dev** compose `node` service (`node:22-alpine` watcher only) stays out of scope here; switch it later only if a real trigger hits (native addon failure, build drift vs host/CI, or the line is already being touched for another reason).
 - Env override design should stay thin (DNA): one glue point, `config.php` remains the default for classic installs, env wins in containers — no second configuration framework.
 - Optional Redis: only if cache/session wiring is already clear; otherwise skip and note under Deferred for a later step — do not invent a Redis integration layer here.
 - One ticket / one PR; Conventional Commits; version bump once at Finalize — never inside checklist steps.

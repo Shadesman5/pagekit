@@ -41,10 +41,10 @@ class StartCommand extends Command
 
         $this->line(sprintf('Pagekit %s Development Server started', $this->getApplication()?->getVersion() ?? 'dev'));
         $this->line(sprintf('Listening on http://%s', $server));
-        $this->line(sprintf('Document root is %s', getcwd()));
+        $this->line(sprintf('Document root is %s', getcwd().'/public'));
         $this->line('Press Ctrl-C to quit');
 
-        exec("php -S $server index.php");
+        exec("php -S $server -t public public/index.php");
 
         return Command::SUCCESS;
     }

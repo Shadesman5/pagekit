@@ -53,6 +53,15 @@ class Path
     }
 
     /**
+     * Normalizes a directory to forward slashes and a single trailing slash, so
+     * that a prefix comparison cannot match halfway through a path segment.
+     */
+    public static function directory(string $path): string
+    {
+        return rtrim(strtr($path, '\\', '/'), '/').'/';
+    }
+
+    /**
      * Returns whether a path is absolute.
      */
     public static function isAbsolute(string $path): bool

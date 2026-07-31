@@ -102,6 +102,7 @@ class NodeControllerTest extends TestCase
 
         $result = $this->createController($nodeRepository, $this->createRoleRepository([2 => $role]), $site)->editAction('8');
 
+        $this->assertIsArray($result);
         $data = $result['$data'];
         $this->assertIsArray($data);
         $this->assertSame($node, $data['node']);
@@ -136,10 +137,32 @@ class NodeControllerTest extends TestCase
 
         $result = $this->createController($nodeRepository, $this->createRoleRepository(), $site)->editAction('link');
 
+        $this->assertIsArray($result);
         $data = $result['$data'];
         $this->assertIsArray($data);
         $this->assertSame($node, $data['node']);
         $this->assertSame('', $node->menu, 'an empty menu argument is assigned verbatim to the new node');
+    }
+
+    public function testEditActionRedirectsWhenNodeTypeIsUnavailable(): void
+    {
+        $node = new Node();
+        $node->id = 4;
+        $node->type = 'blog';
+
+        $nodeRepository = $this->createMock(NodeRepository::class);
+        $nodeRepository->expects($this->once())->method('find')->with('4')->willReturn($node);
+
+        $site = $this->createMock(SiteModule::class);
+        $site->method('getType')->with('blog')->willReturn(null);
+
+        $redirect = new RedirectResponse('/admin/site/page');
+        $router = $this->createMock(Router::class);
+        $router->expects($this->once())->method('redirect')->with('@site/page')->willReturn($redirect);
+
+        $result = $this->createController($nodeRepository, $this->createRoleRepository(), $site, null, $router)->editAction('4');
+
+        $this->assertSame($redirect, $result, 'a node whose extension type is gone must return to the page list');
     }
 
     /**

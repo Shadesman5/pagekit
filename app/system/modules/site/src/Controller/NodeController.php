@@ -60,12 +60,12 @@ class NodeController
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<string, mixed>|RedirectResponse
      */
     #[Route('site/page/edit', name: 'page/edit')]
     #[Access('site: manage site', admin: true)]
     #[Request(['id' => 'string', 'menu' => 'string'])]
-    public function editAction(string $id = '', string $menu = ''): array
+    public function editAction(string $id = '', string $menu = ''): array|RedirectResponse
     {
         if (is_numeric($id)) {
 
@@ -83,8 +83,9 @@ class NodeController
             $node->menu = $menu;
         }
 
+        // Type comes from a loaded extension — missing after disable/uninstall.
         if (!$type = $this->site->getType($node->type ?? '')) {
-            throw new NotFoundHttpException('Type not found.');
+            return $this->router->redirect('@site/page');
         }
 
         return [

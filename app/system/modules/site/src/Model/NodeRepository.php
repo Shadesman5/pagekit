@@ -113,4 +113,12 @@ class NodeRepository extends Repository
 
         return 0;
     }
+
+    /**
+     * Drops the request-scoped node cache after entity writes that leave it stale.
+     */
+    public function clearCache(): void
+    {
+        $this->cache->deleteItem(self::CACHE_KEY);
+    }
 }

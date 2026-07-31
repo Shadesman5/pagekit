@@ -17,7 +17,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 class Installer
 {
-    protected string $configFile = 'config.php';
+    protected string $configFile;
 
 
     /**
@@ -35,6 +35,9 @@ class Installer
             opcache_reset();
         }
 
+        // The configuration belongs next to the application, not in the webroot
+        // the front controller happens to run from.
+        $this->configFile = $app->get('path').'/config.php';
         $this->config = file_exists($this->configFile);
     }
 
@@ -210,6 +213,8 @@ class Installer
                 }
             }
 
+            $this->linkStorage();
+
             $this->app->get('module')->get('system/cache')->clearCache();
 
             $status = 'success';
@@ -272,6 +277,26 @@ class Installer
             throw new \RuntimeException(
                 'Migration failed: ' . ($result['error'] ?? 'Unknown error')
             );
+        }
+    }
+
+    /**
+     * Link the media library into the webroot.
+     *
+     * An installation unpacked from an archive starts without that link. Where it
+     * cannot be created the media loses its URLs while the site itself works, so
+     * the problem is reported instead of failing the installation.
+     */
+    protected function linkStorage(): void
+    {
+        $link = new StorageLink(
+            $this->app->get('path'),
+            $this->app->get('path.public'),
+            $this->app->get('path.storage')
+        );
+
+        if (!$link->ensure()) {
+            $this->app->get('log')->warning($link->getProblem());
         }
     }
 

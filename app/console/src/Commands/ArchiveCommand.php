@@ -86,6 +86,10 @@ class ArchiveCommand extends Command
 
         $this->info(sprintf('Archiving \'%s\'', $name));
 
+        // TODO: Must be refactored in Step 2.8 (Extension Packaging & Prebuilt Assets) - only the
+        // package sources end up in the archive. A package's built bundles and its published
+        // assets live under public/, outside the directory read here, so the archive ships
+        // without them.
         $archivePath = (new PharArchiver())->archive($sourcePath, $tempTarget, 'zip', $excludes);
         rename($archivePath, $target);
 

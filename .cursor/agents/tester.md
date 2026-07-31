@@ -54,10 +54,10 @@ PHPStan runs **against the committed baseline** (`phpstan-baseline.neon`). It ca
 
 ### End-of-ticket E2E (`"final E2E run"`)
 
-Run **after** per-step PHPUnit + PHPStan PASS. The Orchestrator delegates when:
+Run **after** per-step PHPUnit + PHPStan PASS when the Orchestrator delegates. Triggers:
 
-- **Execute (last checklist step):** — all other `## EXECUTION STATE` boxes are already `[x]`.
-- **Finalize fix-loop:** after a CI or Bugbot failure — same step sequence as Execute last step.
+- **Execute `(XL)` Review step:** after Bugbot and Security Review are clean.
+- **Finalize fix-loop:** after a CI or Bugbot failure — same E2E commands as the XL step.
 
 Do **not** wait on CI yourself; the Orchestrator owns `gh run watch`.
 

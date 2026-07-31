@@ -7,6 +7,7 @@ module.exports = [
   {
     ignores: [
       '.vscode/',
+      'public/',
       'storage/',
       'tmp/',
       '**/assets/**',

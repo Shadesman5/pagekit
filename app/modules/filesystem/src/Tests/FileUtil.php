@@ -44,6 +44,20 @@ trait FileUtil
         return $dir;
     }
 
+    /**
+     * Writes a file, creating the directories it sits in.
+     */
+    public function writeFile(string $file, string $content = ''): void
+    {
+        $dir = dirname($file);
+
+        if (!is_dir($dir)) {
+            mkdir($dir, 0777, true);
+        }
+
+        file_put_contents($file, $content);
+    }
+
     public function removeFile(string $file): bool
     {
         return unlink($file);

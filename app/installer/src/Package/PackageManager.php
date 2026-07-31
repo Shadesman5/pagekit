@@ -97,6 +97,13 @@ class PackageManager
 
             $this->disable($package);
             $this->getScripts($package)->uninstall();
+
+            // After scripts, while the package folder still exists: site listeners
+            // soft-delete nodes for types declared in the extension's index.php.
+            if ($this->app->has('events')) {
+                $this->app->get('events')->trigger('package.uninstall', [$package]);
+            }
+
             $this->app->get('config')('system')->remove('packages.' . $package->get('module'));
 
             if ($this->composer->isInstalled($package->getName())) {
@@ -142,9 +149,8 @@ class PackageManager
                     }
                 }
 
-                if ($this->app->has('events')) {
-                    $this->app->get('events')->trigger('package.enable', [$package]);
-                }
+                // Fire package.enable only after scripts succeed so node restore /
+                // type forget cannot leave partial state when enable scripts throw.
                 if ($this->app->has('config')) {
                     $sysConfig = $this->app->get('config')('system');
 
@@ -179,6 +185,10 @@ class PackageManager
                     $current = $this->doInstall($package);
                     $scripts = $this->getScripts($package, $current);
                     $scripts->enable();
+                }
+
+                if ($this->app->has('events')) {
+                    $this->app->get('events')->trigger('package.enable', [$package]);
                 }
             } catch (\Throwable $e) {
                 if ($originalState !== null) {
@@ -252,6 +262,10 @@ class PackageManager
 
         foreach ($packages as $package) {
             $this->getScripts($package)->disable();
+
+            if ($this->app->has('events')) {
+                $this->app->get('events')->trigger('package.disable', [$package]);
+            }
 
             if ($package->getType() == 'pagekit-extension') {
                 $this->app->get('config')('system')->pull('extensions', $package->get('module'));

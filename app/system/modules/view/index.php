@@ -63,21 +63,14 @@ return [
         }, 20],
 
         'view.data' => function ($event, $data) use ($app) {
-            // Get base URL from router context
-            // - With mod_rewrite: '' (empty string) - URLs like /admin
-            // - Without mod_rewrite: '/index.php' - URLs like /index.php/admin
-            $baseUrl = $app->get('router')->getContext()->getBaseUrl();
-
-            // Only use fallback in installer context (no config.php yet)
-            // In normal operation, empty baseUrl is correct for mod_rewrite
-            if (empty($baseUrl) && !file_exists($app->get('path') . '/config.php')) {
-                // Installer context: router not fully configured
-                // Use /index.php as safe fallback for API calls
-                $baseUrl = '/index.php';
-            }
-
+            // Router context already encodes rewrite state (RequestContext):
+            // - With mod_rewrite: '' (or the subdirectory base path)
+            // - Without mod_rewrite: '…/index.php'
+            // Do not invent a '/index.php' fallback — under FastCGI that PATH_INFO
+            // form returns "No input file specified", and an empty base URL is the
+            // correct value whenever rewrite served this request.
             $data->add('$pagekit', [
-                'url' => $baseUrl,
+                'url' => $app->get('router')->getContext()->getBaseUrl(),
                 'csrf' => $app->get('csrf')->generate(),
             ]);
         },

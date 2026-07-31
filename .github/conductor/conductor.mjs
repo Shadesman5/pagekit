@@ -44,7 +44,7 @@ const MAX_POLL_FAILS = Number(process.env.MAX_POLL_FAILS || 6); // consecutive p
 // After status=FINISHED the Cloud Agents API can lag a few seconds before `result` is set.
 // Without a grace window we treat "" as failure and relaunch PLAN/FINALIZE (seen on 2.1.12).
 const RESULT_GRACE_MS = Number(process.env.RESULT_GRACE_MS || 60000);
-const WEIGHTS = { S: 1, M: 2, L: 4 };
+const WEIGHTS = { S: 1, M: 2, L: 4, XL: 8 }; // XL = Review+E2E last step; alone when budget < 8
 
 // Validate everything that flows into a shell command or a path (defense-in-depth; only
 // collaborators can dispatch this workflow, but never trust interpolation).
@@ -148,7 +148,7 @@ const metrics = createMetricsCollector({
       return;
     }
 
-    // EXECUTE — one batch per GHA job (batch size still governed by batch_budget + S/M/L hints).
+    // EXECUTE — one batch per GHA job (batch size still governed by batch_budget + S/M/L/XL hints).
     await gate();
     pullBranch();
     const steps = readSteps();
@@ -407,6 +407,7 @@ function stepPrompt(batch) {
     `Ticket: ${TICKET}`,
     `Steps: ${batch.join(',')}`,
     `Branch: ${BRANCH} (verify you are on it first).`,
+    `Base: ${BASE}`,
     'Report exactly one line as that rule specifies.'
   ].join('\n');
 }
@@ -457,7 +458,7 @@ function readSteps() {
   for (const line of section.split('\n')) {
     const box = line.match(/^\s*- \[( |x)\]\s*(.*)$/i);
     if (!box) continue;
-    const step = box[2].match(/^Step\s+(\d+)\s*(?:\(([SMLsml])\))?/);
+    const step = box[2].match(/^Step\s+(\d+)\s*(?:\((XL|xl|[SMLsml])\))?/);
     if (!step) {
       if (/^step/i.test(box[2]))
         fail(`malformed EXECUTION STATE line in ${TICKET}: "${line.trim()}"`);

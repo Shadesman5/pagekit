@@ -79,7 +79,8 @@ $view->script('site-index', 'system/site:app/bundle/index.js', ['vue']) ?>
                     <vue-nestable-handle :class="{'uk-active': isSelected(item)}" :data-id="item.id" slot-scope="{ item }" :item="item" v-if="!isMobile">
                         <div class="pk-table-width-minimum"><input class="uk-checkbox" type="checkbox" name="id" :value="item.id"></div>
                         <div class="pk-table-min-width-150">
-                            <a :href="$url.route('admin/site/page/edit', { id: item.id })">{{ item.title }}</a>
+                            <a :href="$url.route('admin/site/page/edit', { id: item.id })" v-if="!type(item).unavailable">{{ item.title }}</a>
+                            <span class="uk-text-muted" v-else :uk-tooltip="'Extension disabled' | trans">{{ item.title }}</span>
                             <span class="uk-text-muted uk-text-small uk-margin-small-left" v-if="item.data.menu_hide">{{ 'Hidden' | trans }}</span>
                         </div>
                         <div class="uk-position-absolute uk-padding-remove uk-height-1-1">
@@ -107,7 +108,8 @@ $view->script('site-index', 'system/site:app/bundle/index.js', ['vue']) ?>
                         </vue-nestable-handle>
                         <div class="pk-table-width-minimum"><input class="uk-checkbox" type="checkbox" name="id" :value="item.id"></div>
                         <div class="pk-table-min-width-150">
-                            <a :href="$url.route('admin/site/page/edit', { id: item.id })">{{ item.title }}</a>
+                            <a :href="$url.route('admin/site/page/edit', { id: item.id })" v-if="!type(item).unavailable">{{ item.title }}</a>
+                            <span class="uk-text-muted" v-else :uk-tooltip="'Extension disabled' | trans">{{ item.title }}</span>
                             <span class="uk-text-muted uk-text-small uk-margin-small-left" v-if="item.data.menu_hide">{{ 'Hidden' | trans }}</span>
                         </div>
                         <div class="uk-position-absolute uk-padding-remove uk-height-1-1">

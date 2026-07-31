@@ -31,7 +31,9 @@ return [
         'view.data' => function ($event, $data) use ($app) {
             $presets = $this->config('presets');
             $editor = [
-                'root_url' => $app->get('url')->getStatic(__DIR__),
+                // The editor's JS appends its asset paths, so this must stay the
+                // module's published directory without a trailing slash.
+                'root_url' => $app->get('url')->getStatic('system/editor:'),
                 'locale' => $app->get('module')->get('system/intl')->getLocale(),
                 'content_js' => [],
             ];
