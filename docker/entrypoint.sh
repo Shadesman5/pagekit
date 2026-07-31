@@ -20,6 +20,13 @@ enabled() {
     esac
 }
 
+# Whether a proxy list names one. The application splits the value on commas and
+# trims the parts, so a value of nothing but separators and whitespace leaves it
+# trusting no proxy, and this has to read such a value the same way.
+names_a_proxy() {
+    [ -n "$(printf '%s' "${1:-}" | tr -d '[:space:],')" ]
+}
+
 # Installs Pagekit into the configured database. A flag is passed only for a
 # variable that is set, so the defaults stay in the setup command instead of being
 # repeated here. Every connection parameter gets a flag of its own, the port and
@@ -147,10 +154,12 @@ fi
 # The redirect to HTTPS in public/.htaccess believes X-Forwarded-Proto only on a
 # server started with this define, and the deployment naming its proxies is what
 # says a proxy is in front. Deciding it here rather than in the image is what
-# keeps the header from being a way around the redirect for everyone else. Only
-# the server takes the flag; the image is run with a command of its own often
-# enough - a migration, a shell - and those would refuse it.
-if [ -n "${PAGEKIT_TRUSTED_PROXIES:-}" ]; then
+# keeps the header from being a way around the redirect for everyone else - and
+# why a list that names nobody defines nothing: PHP trusts no proxy for such a
+# value, and Apache taking the header on it would be that way around. Only the
+# server takes the flag; the image is run with a command of its own often enough
+# - a migration, a shell - and those would refuse it.
+if names_a_proxy "${PAGEKIT_TRUSTED_PROXIES:-}"; then
     case "${1:-}" in
         *apache2*) set -- "$@" -D PAGEKIT_TRUSTED_PROXY ;;
     esac

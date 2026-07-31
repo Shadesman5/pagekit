@@ -326,7 +326,7 @@ The production runtime is the last stage of the same `Dockerfile`, so a plain bu
 
 #### Configuration through the environment
 
-Every `PAGEKIT_*` variable overrides the module defaults and `config.php` alike. One that is not set changes nothing, which is why an installation outside a container behaves exactly as it did before; one that is set to an empty string still counts as a value and overrides with it.
+Every `PAGEKIT_*` variable overrides the module defaults and `config.php` alike. One that is not set changes nothing, which is why an installation outside a container behaves exactly as it did before; one that is set to an empty string still counts as a value and overrides with it. The database driver and port are the exception, having no empty value to name: a blank `PAGEKIT_DB_DRIVER` selects no connection rather than ending the boot over a name nobody gave, and a blank `PAGEKIT_DB_PORT` leaves MySQL's default in place rather than a cast of nothing over it. Both arrive that way from an env file carrying the line without a value, or a compose file passing an unset one through.
 
 | Variable                                                             | Purpose                                                                                                     |
 | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |

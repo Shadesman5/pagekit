@@ -14,9 +14,9 @@ namespace Pagekit\Module\Loader;
  *
  * Values are read with getenv(), not from $_ENV, which is only populated when
  * the variables_order INI setting includes "E". A variable that is set but
- * empty counts as set and overrides with the empty value - the port aside,
- * which has no empty value to be given and is read as unset when it arrives
- * blank.
+ * empty counts as set and overrides with the empty value - the database driver
+ * and port aside, which have no empty value to be given and are read as unset
+ * when they arrive blank.
  */
 final class EnvConfigLoader extends ConfigLoader
 {
@@ -80,7 +80,11 @@ final class EnvConfigLoader extends ConfigLoader
     {
         $database = [];
 
-        if (($driver = self::env('PAGEKIT_DB_DRIVER')) !== null) {
+        // A blank value names no connection. A variable arrives that way from an
+        // env file carrying the line without a value, or a compose file passing
+        // an unset one through, and reads as the omission it amounts to instead
+        // of ending every boot over a name nobody gave.
+        if (($driver = self::env('PAGEKIT_DB_DRIVER')) !== null && $driver !== '') {
             $database['default'] = self::connection($driver);
         }
 
@@ -92,10 +96,8 @@ final class EnvConfigLoader extends ConfigLoader
             }
         }
 
-        // There is no port 0 to configure, so a variable that arrives blank - an
-        // env file carrying the line without a value, a compose file passing one
-        // through - leaves MySQL's default in place instead of casting nothing
-        // over it.
+        // Blank the same way, and there is no port 0 to configure, so MySQL's
+        // default stays in place instead of a cast of nothing over it.
         if (($port = self::env('PAGEKIT_DB_PORT')) !== null && $port !== '') {
             $mysql['port'] = (int) $port;
         }
