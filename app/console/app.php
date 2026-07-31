@@ -42,4 +42,10 @@ if ($configFile) {
 $app->get('module')->load('console');
 
 $console = new Console($app, 'Pagekit', $app->get('version'));
-$console->run();
+
+// Auto-exit is off, so the command hands its code back here instead of ending
+// the process on it, and this is where a failing command becomes a failing
+// process - what a container start or a CI step goes by. Codes above a byte wrap
+// around, 256 arriving as success, and are capped the way the console caps them
+// when it exits by itself.
+exit(min($console->run(), 255));

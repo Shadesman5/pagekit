@@ -14,7 +14,9 @@ namespace Pagekit\Module\Loader;
  *
  * Values are read with getenv(), not from $_ENV, which is only populated when
  * the variables_order INI setting includes "E". A variable that is set but
- * empty counts as set and overrides with the empty value.
+ * empty counts as set and overrides with the empty value - the port aside,
+ * which has no empty value to be given and is read as unset when it arrives
+ * blank.
  */
 final class EnvConfigLoader extends ConfigLoader
 {
@@ -90,7 +92,11 @@ final class EnvConfigLoader extends ConfigLoader
             }
         }
 
-        if (($port = self::env('PAGEKIT_DB_PORT')) !== null) {
+        // There is no port 0 to configure, so a variable that arrives blank - an
+        // env file carrying the line without a value, a compose file passing one
+        // through - leaves MySQL's default in place instead of casting nothing
+        // over it.
+        if (($port = self::env('PAGEKIT_DB_PORT')) !== null && $port !== '') {
             $mysql['port'] = (int) $port;
         }
 

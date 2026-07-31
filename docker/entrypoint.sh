@@ -126,23 +126,19 @@ if enabled "${PAGEKIT_AUTO_SETUP:-0}" && [ ! -f "$config_link" ]; then
 
     echo "entrypoint: no installation found, running setup"
 
-    # The command reports through the file it writes rather than its exit status,
-    # which is unreliable: the console never propagates the command's code.
-    install_pagekit || true
-
-    if [ ! -f "$config_link" ]; then
-        echo "entrypoint: setup did not write $config_link" >&2
-        exit 1
-    fi
+    # set -e ends the start on a failed setup: a container that came up anyway
+    # would put the web installer on whatever address it is reachable at.
+    install_pagekit
 
     echo "entrypoint: setup complete"
 fi
 
 # Schema updates belong to a start, never to an image build: the image is built
-# once and started against as many databases as it is deployed to. Every replica
-# that starts runs this, so a deployment that scales out migrates the same
-# database from several containers at once - keep it to one, or migrate as a job
-# of its own before the rest come up.
+# once and started against as many databases as it is deployed to. A migration
+# that fails ends the start with it, rather than serving the new code against the
+# schema it did not get. Every replica that starts runs this, so a deployment
+# that scales out migrates the same database from several containers at once -
+# keep it to one, or migrate as a job of its own before the rest come up.
 if enabled "${PAGEKIT_AUTO_MIGRATE:-0}" && [ -f "$config_link" ]; then
     echo "entrypoint: migrating"
     php pagekit migration:migrate --no-interaction
