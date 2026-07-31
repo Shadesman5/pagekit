@@ -51,6 +51,10 @@ jobs:
       # ubuntu-latest ships Node 20 (global fetch) + gh — no extra setup needed.
       - name: Render sticky Quality Report comment
         env:
+          # TODO: Must be refactored in Step 4.9 (Cross-Repo Dev Dashboard) — swap for a GitHub App
+          # installation token so the comment posts under the project's own bot identity. The author
+          # name follows the token: github-actions[bot] is the fixed identity of the built-in Actions
+          # token and cannot be renamed.
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           EVENT_NAME: ${{ github.event_name }}
