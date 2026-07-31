@@ -271,10 +271,6 @@ function successfulRuns(workflowFile, { branch, event } = {}) {
   return runs.filter(r => r.conclusion === 'success').sort((a, b) => Number(b.id) - Number(a.id));
 }
 
-function latestSuccessfulRun(workflowFile, filters = {}) {
-  return successfulRuns(workflowFile, filters)[0] || null;
-}
-
 // Prefer a Nightly whose infection-full job succeeded (produced MSI artifacts). Idle scheduled
 // Nightlies skip that job via the 24h guard but still mark the workflow success — those must not
 // replace a real full-suite result with nulls on the dashboard.
