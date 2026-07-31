@@ -57,6 +57,15 @@ Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer PASS
 
 Tests: none (test-writer: skip — Dockerfile/ini/shell/`.htaccess`, no production PHP under `app/`/`packages/`). Gates: Verifier (production) FAIL → PASS (comment fix on an opcache-invalidation claim — see Key Decisions); Tester PHPUnit+PHPStan PASS.
 
+### Production compose stack & prod env finalization (Checklist Step 3)
+
+| File | Change |
+|---|---|
+| `docker-compose.prod.yml` (new) | Named project `pagekit-prod` (see Key Decisions). `web`: `image: ghcr.io/shadesman5/pagekit:${PAGEKIT_IMAGE_TAG:-develop}` with a `build: {context: ., target: prod}` fallback; `ports: "8080:8080"`; `environment` passes `PAGEKIT_DEBUG`, `PAGEKIT_SECRET`, `PAGEKIT_DB_PREFIX`, `PAGEKIT_DB_PATH`, `PAGEKIT_TRUSTED_PROXIES`, `PAGEKIT_WEATHER_API_KEY` straight through and the entrypoint-only vars (`PAGEKIT_AUTO_SETUP`, `PAGEKIT_ADMIN_USERNAME`/`PASSWORD`/`MAIL`, `PAGEKIT_SITE_TITLE`, `PAGEKIT_LOCALE`, `PAGEKIT_AUTO_MIGRATE`) unset by default; `PAGEKIT_DB_HOST`/`PORT` default to the bundled service (`mysql`/`3306`) while `PAGEKIT_DB_NAME`/`USER`/`PASSWORD` derive from `MYSQL_DATABASE`/`USER`/`PASSWORD` instead of a separate set (see Key Decisions); named volumes `pagekit_data:/var/www/data` + `pagekit_storage:/var/www/html/storage` (no host bind-mounts; `tmp/` stays container-local); `depends_on: mysql: condition: service_healthy`; `restart: unless-stopped`; `deploy.resources.limits` (`cpus: "2.0"`, `memory: 1G` — see Risks). `mysql`: `mysql:8.4`, named volume `mysql_data`, credentials from `MYSQL_DATABASE`/`USER`/`PASSWORD`/`ROOT_PASSWORD`, TCP `mysqladmin ping` healthcheck (see Key Decisions), no host port published, `restart: unless-stopped`. No phpmyadmin/node services. |
+| `prod.env.example` | Reworked into the two-audience shape decision 8 calls for: a new `--- Image ---` section (`PAGEKIT_IMAGE_TAG`) and a new `--- Database server ---` section (`MYSQL_DATABASE`/`USER`/`PASSWORD`/`ROOT_PASSWORD`) for what Compose itself reads, ahead of the existing `PAGEKIT_*` sections for the container. `PAGEKIT_DB_NAME`/`USER`/`PASSWORD` dropped (superseded by the `MYSQL_*` block); `PAGEKIT_DB_HOST`/`PORT` changed from set to commented-out, since `docker-compose.prod.yml` now supplies the same defaults itself. Header comment rewritten around the compose invocation (`docker compose -f docker-compose.prod.yml --env-file prod.env up -d`) and the SQLite/`--no-deps web` zero-DB path. |
+
+Tests: none (test-writer: skip — compose YAML + env example only). Gates: Verifier (production — compose YAML reviewed mechanically, no compose CLI in the VM) PASS; Tester PHPUnit+PHPStan PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -64,6 +73,9 @@ Tests: none (test-writer: skip — Dockerfile/ini/shell/`.htaccess`, no producti
 - **`composer-deps`'s autoloader dump uses `--optimize`, not an authoritative classmap (Checklist Step 2).** Extensions and themes register their own PSR-4 namespaces with the class loader while the application boots; a classmap that answers authoritatively for every class would resolve those namespaces before PSR-4 is ever consulted and break their autoloading. `--optimize` still collapses the PSR-4 lookup into a classmap for everything already known at build time, without claiming to be the last word on every class.
 - **`public/.htaccess`'s `X-Forwarded-Proto` guard is scoped to the HTTPS-forcing rule only (Checklist Step 2).** The `www.`-host redirect above it fires on a hostname mismatch, which a proxy's declared scheme can't repeatedly trigger, so it can't loop behind a TLS-terminating proxy the way the scheme-only `RewriteCond %{HTTPS} off` rule can; the guard went only on the rule that actually needs it.
 - **`docker/php/php-prod.ini`'s opcache comment corrected after a Verifier FAIL (Checklist Step 2).** `opcache.validate_timestamps=0` requires every cached path to actually stay unwritten after the build; the Verifier's first pass on this Checklist Step rejected the comment justifying that setting, and the corrected version scopes the guarantee to the two paths that actually hold it — `config.php` (self-invalidated by whichever module writes it) and the root-owned `packages/` registry (unwritable by the request-time `www-data` user) — instead of claiming it for the tree as a whole.
+- **`PAGEKIT_DB_NAME`/`USER`/`PASSWORD` derive from `MYSQL_DATABASE`/`MYSQL_USER`/`MYSQL_PASSWORD` instead of a second, duplicate set of variables (Checklist Step 3).** The bundled `mysql` service creates its database/user/grants from the `MYSQL_*` vars on first boot; wiring `docker-compose.prod.yml`'s `web.environment` to those same vars means the application always opens the connection the database container actually created — an operator who fills in only the `MYSQL_*` block cannot get the two sides out of sync.
+- **MySQL healthcheck pings over TCP, not the local socket (Checklist Step 3).** First-boot initialization runs a temporary socket-only `mysqld` while it builds the data directory; a socket-based ping would report `healthy` while the port `web`'s `depends_on: condition: service_healthy` waits on is still closed. `mysqladmin ping -h 127.0.0.1` only succeeds once the real, TCP-listening server is up.
+- **The prod stack is a separately named Compose project (Checklist Step 3).** `docker-compose.prod.yml` sets `name: pagekit-prod`; without it, Compose would default to the working-copy directory name — the same default `docker-compose.yml` (dev) uses — so starting one stack in a checkout that already ran the other could reuse, and clobber, its containers/volumes.
 
 ---
 
@@ -77,6 +89,7 @@ _TBD / None_
 
 - **Weather widget default changes from a shared key to empty (Checklist Step 1).** `system/dashboard`'s `weather.key` no longer ships a working default; the dashboard's location widget shows its "unavailable" state on upgrade until an operator sets `PAGEKIT_WEATHER_API_KEY` or `config.php`'s `system/dashboard.weather.key`. Provider-side rotation of the old key is tracked under Maintainer action (Finalize).
 - **`base` now enables `mod_headers`/`mod_expires`, which also reaches the `dev` target (Checklist Step 2).** `a2enmod rewrite headers expires` moved into the shared `base` stage, so a rebuilt dev container starts enforcing `public/.htaccess`'s security headers and cache-expiry rules for the first time — both had silently no-op'd for want of the modules. A running dev container only picks this up on its next image rebuild.
+- **`web`'s resource limit is a hard ceiling, not a throttle (Checklist Step 3).** `docker-compose.prod.yml`'s `deploy.resources.limits` caps the container at `cpus: "2.0"` / `memory: 1G`, sized for a handful of concurrent requests at the image's 256M per-process PHP limit; reaching the memory ceiling under real traffic is an OOM kill, not a slowdown, so the limit needs raising before traffic does.
 
 ---
 
@@ -88,6 +101,7 @@ _TBD / None_
 - **Error detail and PHP fingerprinting are off by default (Checklist Step 2).** `docker/php/php-prod.ini` sets `display_errors`/`display_startup_errors` and `expose_php` off on top of `php.ini-production`; errors still reach the container's own log stream via `log_errors`/`error_log`, never the response.
 - **Auto-setup credentials come only from the process environment (Checklist Step 2).** `docker/entrypoint.sh`'s `PAGEKIT_AUTO_SETUP` path reads `PAGEKIT_ADMIN_PASSWORD` and the other setup flags from the environment when it calls `php pagekit setup`; none of it is baked into an image layer.
 - **The HTTPS-forcing redirect now resolves behind a TLS-terminating proxy (Checklist Step 2).** The `X-Forwarded-Proto` guard (see Key Decisions) stops that rule from redirecting a request the proxy already delivered over HTTPS, pairing with `PAGEKIT_TRUSTED_PROXIES` (Checklist Step 1) for `isSecure()`/absolute-URL generation.
+- **The database is reachable only on the compose network (Checklist Step 3).** `docker-compose.prod.yml`'s `mysql` service publishes no host port; only `web`, on the same Compose network, can open a connection — the credentials in `prod.env` never have to survive exposure to the host's network interfaces, let alone the open internet.
 
 ---
 

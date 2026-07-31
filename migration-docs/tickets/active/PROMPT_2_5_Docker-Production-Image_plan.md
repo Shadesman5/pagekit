@@ -57,7 +57,7 @@
      (after full step PASS incl. test-writer when applicable; for XL after reviews + E2E PASS) -->
 - [x] Step 1 (M) — Env-override layer + weather key removal + trusted proxies
 - [x] Step 2 (L) — Multi-target Dockerfile + prod php.ini + entrypoint + `.dockerignore` + proxy-aware redirects
-- [ ] Step 3 (M) — `docker-compose.prod.yml` + prod env finalization
+- [x] Step 3 (M) — `docker-compose.prod.yml` + prod env finalization
 - [ ] Step 4 (M) — CI `docker-image.yml` (Hadolint + build + smoke + Trivy + GHCR)
 - [ ] Step 5 (S) — Docs (README production section, AGENTS.md)
 - [ ] Step 6 (XL) — Review (Bugbot + Security) + E2E
