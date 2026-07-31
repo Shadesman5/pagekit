@@ -143,10 +143,12 @@ FROM base AS prod
 ENV PAGEKIT_DATA_DIR=/var/www/data
 
 # php.ini-production is the shipped baseline; docker/php/php-prod.ini below
-# overrides what Pagekit needs on top of it. OPcache is built into the base
-# image but left disabled there.
+# overrides what Pagekit needs on top of it. OPcache ships with PHP but the base
+# image builds no shared module for it, so it is compiled here - in this stage
+# rather than in `base`, whose extension set every other target inherits, because
+# only the production runtime requires it.
 RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
-    && docker-php-ext-enable opcache
+    && docker-php-ext-install -j"$(nproc)" opcache
 
 COPY docker/php/php-prod.ini "$PHP_INI_DIR/conf.d/zz-pagekit-prod.ini"
 
