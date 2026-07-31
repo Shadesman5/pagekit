@@ -111,8 +111,12 @@
     RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
     RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
 
-    # Redirect requests to access the site with HTTPS
+    # Redirect requests to access the site with HTTPS. Behind a proxy that
+    # terminates TLS the connection Apache sees is plain HTTP, and redirecting it
+    # would send the visitor back through the proxy for ever; the header the proxy
+    # sets is what says the request already arrived over HTTPS.
     RewriteCond %{HTTPS} off
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
     RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 
     # Never hand a PHP file below /storage to the interpreter. Storage is the media
