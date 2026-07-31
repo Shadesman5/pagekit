@@ -105,15 +105,15 @@ jobs:
           use_oidc: true
 
       # Ratcheting minimum line-coverage gate. The floor is pinned to this branch's
-      # measured line coverage: 3.86% (1833/47535 statements, PCOV 1.0.11 / PHP
-      # 8.3.6, 2026-07-09), rounded DOWN to 3.8% for float jitter. CI and local
-      # agents both use PCOV. Policy: ratchet MIN_LINE_COVERAGE UP as coverage
-      # grows, NEVER lower it. Plain PHP parse of the Clover <project><metrics>
-      # node — no extra tooling required.
+      # measured line coverage: 7.1406% (3403/47657 statements, PCOV / PHP 8.5,
+      # 2026-07-31), rounded DOWN to 7.1% for float jitter. CI and local agents
+      # both use PCOV. Policy: ratchet MIN_LINE_COVERAGE UP as coverage grows,
+      # NEVER lower it. Plain PHP parse of the Clover <project><metrics> node —
+      # no extra tooling required.
       - name: Enforce minimum line coverage
         if: matrix.php == '8.5'
         env:
-          MIN_LINE_COVERAGE: '3.8'
+          MIN_LINE_COVERAGE: '7.1'
         run: |
           php -r '
             $min = (float) getenv("MIN_LINE_COVERAGE");
