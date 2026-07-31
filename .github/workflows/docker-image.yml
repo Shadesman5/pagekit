@@ -186,7 +186,7 @@ jobs:
           # Nothing outside the webroot is served. Each of these exists in the image and none of
           # them below public/, so the request has to end in the application's own 404 — never in
           # the contents of the file.
-          for path in /config.php /composer.json /app/console/app.php /tmp/; do
+          for path in /config.php /composer.json /app/console/app.php /tmp; do
             code="$(probe "$path")"
             if [ "$code" != 403 ] && [ "$code" != 404 ]; then
               echo "::error::$path answered $code instead of denying the request"
@@ -198,6 +198,33 @@ jobs:
               echo "ok: $path is not served ($code)"
             fi
           done
+
+          # The same directory, asked for with the trailing slash a browser sends. A trailing
+          # slash is the application's to normalise — the front controller redirects it away
+          # before a route is looked up — so this request answers that redirect rather than the
+          # denial above. It says the same thing as long as the redirect points at the path just
+          # denied: what comes back is a pointer at a 404, never a listing of a directory
+          # outside the webroot.
+          answer="$(curl -sS -o /dev/null -w '%{http_code}|%{redirect_url}' -H 'X-Forwarded-Proto: https' "$BASE_URL/tmp/")"
+          code="${answer%%|*}"
+          target="${answer#*|}"
+
+          case "$code" in
+            30[12378])
+              case "$target" in
+                */tmp) echo "ok: /tmp/ is normalised to the denied /tmp ($code)" ;;
+                *)
+                  echo "::error::/tmp/ answered $code pointing at '$target' rather than at /tmp"
+                  failed=1
+                  ;;
+              esac
+              ;;
+            403 | 404) echo "ok: /tmp/ is not served ($code)" ;;
+            *)
+              echo "::error::/tmp/ answered $code instead of denying the request"
+              failed=1
+              ;;
+          esac
 
           # The security headers of public/.htaccess are in effect, which is also the proof that
           # mod_headers is enabled in the image — without it the whole block is silently skipped.
