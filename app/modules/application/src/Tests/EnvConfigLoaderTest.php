@@ -253,6 +253,30 @@ final class EnvConfigLoaderTest extends TestCase
     }
 
     /**
+     * There is no port 0 to connect to, so a variable that arrives blank - an
+     * env file carrying the line without a value, a compose file passing an
+     * unset one through - has to read as unset here. Cast over the connection
+     * it would point every such container at a port nothing listens on.
+     */
+    public function testABlankPortIsNoPortAtAll(): void
+    {
+        putenv('PAGEKIT_DB_PORT=');
+        putenv('PAGEKIT_DB_HOST=db.internal');
+
+        $database = $this->configure('database', self::databaseDefaults());
+        $mysql = $database->config('connections.mysql');
+
+        self::assertIsArray($mysql);
+        self::assertArrayNotHasKey('port', $mysql, 'the connection keeps the port the environment did not name');
+
+        self::assertSame(
+            'db.internal',
+            $database->config('connections.mysql.host'),
+            'the rest of the environment still arrives',
+        );
+    }
+
+    /**
      * A driver the module has no connection for would otherwise surface much
      * later, as a missing array key while the connection is being built.
      */
