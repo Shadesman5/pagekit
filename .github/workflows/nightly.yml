@@ -88,7 +88,7 @@ jobs:
       - name: Upload Infection logs
         # always() so a threshold failure still ships the report the snapshot blend reads.
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: infection-full-report
           path: |
@@ -194,7 +194,7 @@ jobs:
 
       - name: Upload Playwright JSON report
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: playwright-nightly-report-${{ matrix.project }}
           path: playwright-results.json
@@ -202,7 +202,7 @@ jobs:
 
       - name: Upload Playwright HTML report
         if: failure()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: playwright-nightly-html-${{ matrix.project }}
           path: playwright-report/
