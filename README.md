@@ -250,7 +250,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 
     Point the document root at the `public/` directory. Sources, configuration, `tmp/` and the media library itself stay outside it and are never reachable over HTTP.
 
-    - **Apache**: `DocumentRoot /path/to/pagekit/public`, with `AllowOverride All` (the shipped `public/.htaccess` carries the rewrite rules and security headers), `Options FollowSymLinks` (the media library is a symlink) and `mod_rewrite` enabled
+    - **Apache**: `DocumentRoot /path/to/pagekit/public`, with `AllowOverride All` (the shipped `public/.htaccess` carries the rewrite rules and security headers), `Options FollowSymLinks` (the media library is a symlink) and `mod_rewrite` enabled. Behind anything that terminates TLS in front of Apache — Cloudflare, an nginx proxy, a load balancer — add `Define PAGEKIT_TRUSTED_PROXY` to the server configuration as well: the redirect to HTTPS steps aside for `X-Forwarded-Proto: https` only on a server that has been told a proxy is there, and until it has been, every request through the proxy is redirected back through it for ever. A server reached directly must not define it, or the header becomes anyone's way around the redirect.
     - **Nginx**: `root /path/to/pagekit/public;` and route unknown paths to the front controller: `try_files $uri /index.php$is_args$args;` — also deny `*.db` (e.g. `location ~* \.db$ { deny all; }`) since `.htaccess` does not apply.
     - **Permissions**: `tmp/` and `storage/` must be writable by the web server user
 
@@ -316,7 +316,13 @@ The production runtime is the last stage of the same `Dockerfile`, so a plain bu
 
 4. **Install Pagekit**
 
-    `PAGEKIT_AUTO_SETUP=1`, together with `PAGEKIT_ADMIN_PASSWORD` and the other administrator variables, installs the site on the first start without a browser. That is the way in while nothing terminates TLS yet — the web installer is a page like any other and is redirected to HTTPS along with them — and the way to install a stack that is deployed rather than clicked through. With the proxy in place, opening the site walks through the web installer instead. A start that finds an existing installation leaves it untouched, so the switch can stay on. `PAGEKIT_AUTO_MIGRATE=1` additionally applies pending migrations on every start; leaving it off keeps the moment the schema of a live site changes a decision of yours.
+    `PAGEKIT_AUTO_SETUP=1`, together with `PAGEKIT_ADMIN_PASSWORD` and the other administrator variables, installs the site on the first start without a browser. That is the way in while nothing terminates TLS yet — the web installer is a page like any other and is redirected to HTTPS along with them — and the way to install a stack that is deployed rather than clicked through. With the proxy in place, opening the site walks through the web installer instead. A start that finds an existing installation leaves it untouched, so the switch can stay on.
+
+    `PAGEKIT_AUTO_MIGRATE=1` additionally applies pending migrations on every start; leaving it off keeps the moment the schema of a live site changes a decision of yours. It suits a single container. Replicas start together and would each migrate the same database, so a stack that runs more than one wants the migration as a job of its own before the new build comes up:
+
+    ```bash
+    docker compose -f docker-compose.prod.yml --env-file prod.env run --rm web php pagekit migration:migrate
+    ```
 
 #### Configuration through the environment
 
@@ -329,7 +335,7 @@ Every `PAGEKIT_*` variable overrides the module defaults and `config.php` alike.
 | `PAGEKIT_DB_DRIVER`                                                  | Which connection is opened: `mysql` or `sqlite`                                                              |
 | `PAGEKIT_DB_HOST`, `_PORT`, `_NAME`, `_USER`, `_PASSWORD`, `_PREFIX` | The MySQL connection                                                                                         |
 | `PAGEKIT_DB_PATH`                                                    | SQLite database file; it has to sit on the data volume, the only writable place in the image                 |
-| `PAGEKIT_TRUSTED_PROXIES`                                            | Proxies whose forwarded headers describe the real request, as addresses or CIDR ranges                       |
+| `PAGEKIT_TRUSTED_PROXIES`                                            | Proxies whose forwarded headers describe the real request, as addresses or CIDR ranges; also what lets `X-Forwarded-Proto` stand in for TLS in the HTTPS redirect |
 | `PAGEKIT_WEATHER_API_KEY`                                            | OpenWeatherMap key for the dashboard's location widget                                                       |
 
 The startup script of the container reads a few more of its own: `PAGEKIT_DATA_DIR`, `PAGEKIT_AUTO_SETUP`, `PAGEKIT_ADMIN_USERNAME` / `_PASSWORD` / `_MAIL`, `PAGEKIT_SITE_TITLE`, `PAGEKIT_LOCALE` and `PAGEKIT_AUTO_MIGRATE`. All of them are documented in place in `prod.env.example`.
@@ -347,9 +353,11 @@ MySQL keeps its data in `mysql_data`. Everything else is disposable: `tmp/` is a
 
 #### TLS and reverse proxies
 
-The container speaks plain HTTP, so TLS is terminated in front of it. That proxy has to send `X-Forwarded-Proto: https`: `public/.htaccess` redirects plain requests to HTTPS and skips the redirect only when the header says the request already arrived encrypted — without it, every request through the proxy is sent back through it for ever. List the proxy in `PAGEKIT_TRUSTED_PROXIES` as well, so Pagekit takes scheme, host, port and client address from the forwarded headers instead of from the internal connection it sees; absolute URLs, redirects and the decision to mark cookies secure all depend on that.
+The container speaks plain HTTP, so TLS is terminated in front of it. Set `PAGEKIT_TRUSTED_PROXIES` to that proxy, as an address or a CIDR range, and have it send `X-Forwarded-Proto: https`. Both halves are needed. Pagekit reads scheme, host, port and client address from the forwarded headers of a listed proxy instead of from the internal connection it sees — absolute URLs, redirects and the decision to mark cookies secure all depend on that — and the container tells Apache that the same header may stand in for TLS, which is what keeps `public/.htaccess` from sending every request through the proxy back through it for ever.
 
-Until a proxy is in front, the same rule is what a browser runs into: every page redirects to an HTTPS address nothing answers on. Install such a stack with `PAGEKIT_AUTO_SETUP` and check it with `curl -H 'X-Forwarded-Proto: https'`, which the redirect lets past for exactly the reason a proxy is let past.
+A container that is given no proxy believes no header: it answers a plain request with the redirect to HTTPS however the request describes itself, so anything that reaches port 8080 directly cannot claim its way past the redirect. The consequence is that the variable is not optional once a proxy is in front — without it the site loops instead of loading — and that a stack without one has no plain-HTTP way in.
+
+Until the proxy is there, then, install with `PAGEKIT_AUTO_SETUP` rather than through the browser. Setting `PAGEKIT_TRUSTED_PROXIES` to the network the requests come from is what makes `curl -H 'X-Forwarded-Proto: https'` reach such a stack, for exactly the reason a proxy reaches it.
 
 #### Running the stack
 

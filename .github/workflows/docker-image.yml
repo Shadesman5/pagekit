@@ -96,7 +96,9 @@ jobs:
 
       # SQLite on the data volume and an automatic install: the container brings up a complete
       # installation on its own, which is what the probes below need and what the zero-database
-      # deployment path documents.
+      # deployment path documents. The bridge network the published port is reached over is named
+      # as the proxy in front, because the probes speak for one — a container that was told of no
+      # proxy answers every plain request with the redirect to HTTPS, header or not.
       - name: Start the image on SQLite with an automatic install
         id: start
         run: |
@@ -106,6 +108,7 @@ jobs:
             -p 127.0.0.1:8080:8080 \
             -e PAGEKIT_DB_DRIVER=sqlite \
             -e PAGEKIT_DB_PATH=/var/www/data/pagekit.db \
+            -e PAGEKIT_TRUSTED_PROXIES=172.16.0.0/12 \
             -e PAGEKIT_AUTO_SETUP=1 \
             -e PAGEKIT_ADMIN_USERNAME=admin \
             -e PAGEKIT_ADMIN_PASSWORD="$(openssl rand -hex 24)" \
@@ -156,10 +159,10 @@ jobs:
           }
 
           # The redirect the header suppresses is itself part of the contract, so it is checked
-          # without one.
+          # without one, on the same container that honours it with one.
           code="$(curl -sS -o /dev/null -w '%{http_code}' "$BASE_URL/")"
           case "$code" in
-            30[12378]) echo "ok: / redirects an unproxied plain request to HTTPS ($code)" ;;
+            30[12378]) echo "ok: / redirects a plain request to HTTPS ($code)" ;;
             *)
               echo "::error::/ answered $code where a redirect to HTTPS was expected"
               failed=1
@@ -234,6 +237,7 @@ jobs:
             -p 127.0.0.1:8081:8080 \
             -e PAGEKIT_DB_DRIVER=sqlite \
             -e PAGEKIT_DB_PATH=/var/www/data/pagekit.db \
+            -e PAGEKIT_TRUSTED_PROXIES=172.16.0.0/12 \
             "$IMAGE"
 
       - name: Probe the web installer
@@ -276,6 +280,43 @@ jobs:
       - name: Web installer container log
         if: always() && steps.start_installer.conclusion == 'success'
         run: docker logs "$CONTAINER-installer"
+
+      # The forwarded protocol is a client's to claim, and the two containers above believe it
+      # because they were told a proxy sits in front. One that was not has to keep redirecting:
+      # otherwise whoever reaches the port sends themselves past the redirect to HTTPS, which is
+      # the downgrade it exists against.
+      - name: Start the image without a declared proxy
+        run: |
+          docker run -d --name "$CONTAINER-unproxied" \
+            -p 127.0.0.1:8082:8080 \
+            -e PAGEKIT_DB_DRIVER=sqlite \
+            -e PAGEKIT_DB_PATH=/var/www/data/pagekit.db \
+            "$IMAGE"
+
+      - name: Probe the forwarded protocol against it
+        env:
+          BASE_URL: http://127.0.0.1:8082
+        run: |
+          code=000
+
+          # Apache is all this waits for: an installation the container has not been asked to
+          # make is beside the point when the answer under test is a redirect.
+          for _ in $(seq 1 30); do
+            code="$(curl -sS -o /dev/null -w '%{http_code}' -H 'X-Forwarded-Proto: https' "$BASE_URL/")" || code=000
+            if [ "$code" != 000 ]; then
+              break
+            fi
+            sleep 2
+          done
+
+          case "$code" in
+            30[12378]) echo "ok: a container told of no proxy redirects to HTTPS whatever the request claims ($code)" ;;
+            *)
+              echo "::error::/ answered $code — X-Forwarded-Proto was believed from an undeclared peer"
+              docker logs "$CONTAINER-unproxied"
+              exit 1
+              ;;
+          esac
 
       # Fixed CRITICAL/HIGH findings fail the gate. Unfixed ones are left out: no rebuild of ours
       # can clear them, and a gate that stays red on them stops being read.

@@ -115,8 +115,17 @@
     # terminates TLS the connection Apache sees is plain HTTP, and redirecting it
     # would send the visitor back through the proxy for ever; the header the proxy
     # sets is what says the request already arrived over HTTPS.
+    #
+    # That header is anyone's to send, so it only counts on a server started with
+    # PAGEKIT_TRUSTED_PROXY defined - a deployment that has said it sits behind a
+    # proxy. The production container defines it once PAGEKIT_TRUSTED_PROXIES
+    # names the proxies; elsewhere, add `Define PAGEKIT_TRUSTED_PROXY` to the
+    # server configuration. Without it a plain request is a plain request and no
+    # header talks the redirect away.
     RewriteCond %{HTTPS} off
-    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    <IfDefine PAGEKIT_TRUSTED_PROXY>
+        RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    </IfDefine>
     RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 
     # Never hand a PHP file below /storage to the interpreter. Storage is the media

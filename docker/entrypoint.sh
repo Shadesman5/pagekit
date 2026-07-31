@@ -94,12 +94,26 @@ mkdir -p "$data_dir" storage tmp/cache tmp/logs tmp/packages tmp/sessions tmp/te
 # decision to keep the configuration in the image and is left untouched.
 config_target=$data_dir/config.php
 
+# Writing the link is what can fail, for the one reason named above. It says so
+# and where the choice was made, rather than leaving the bare "Permission denied"
+# of a link nobody asked for.
+link_config() {
+    if ln -sfn "$config_target" "$config_link" 2>/dev/null; then
+        return
+    fi
+
+    echo "entrypoint: cannot point $config_link at $config_target" >&2
+    echo "entrypoint: the application root is read-only here, so config.php stays the link the image was built with" >&2
+    echo "entrypoint: leave PAGEKIT_DATA_DIR at the path the image uses and mount the data volume there instead" >&2
+    exit 1
+}
+
 if [ -L "$config_link" ]; then
     if [ "$(readlink "$config_link")" != "$config_target" ]; then
-        ln -sfn "$config_target" "$config_link"
+        link_config
     fi
 elif [ ! -e "$config_link" ]; then
-    ln -sfn "$config_target" "$config_link"
+    link_config
 fi
 
 # The link dangles until an installation writes the file, which is therefore what
@@ -125,10 +139,25 @@ if enabled "${PAGEKIT_AUTO_SETUP:-0}" && [ ! -f "$config_link" ]; then
 fi
 
 # Schema updates belong to a start, never to an image build: the image is built
-# once and started against as many databases as it is deployed to.
+# once and started against as many databases as it is deployed to. Every replica
+# that starts runs this, so a deployment that scales out migrates the same
+# database from several containers at once - keep it to one, or migrate as a job
+# of its own before the rest come up.
 if enabled "${PAGEKIT_AUTO_MIGRATE:-0}" && [ -f "$config_link" ]; then
     echo "entrypoint: migrating"
     php pagekit migration:migrate --no-interaction
+fi
+
+# The redirect to HTTPS in public/.htaccess believes X-Forwarded-Proto only on a
+# server started with this define, and the deployment naming its proxies is what
+# says a proxy is in front. Deciding it here rather than in the image is what
+# keeps the header from being a way around the redirect for everyone else. Only
+# the server takes the flag; the image is run with a command of its own often
+# enough - a migration, a shell - and those would refuse it.
+if [ -n "${PAGEKIT_TRUSTED_PROXIES:-}" ]; then
+    case "${1:-}" in
+        *apache2*) set -- "$@" -D PAGEKIT_TRUSTED_PROXY ;;
+    esac
 fi
 
 exec "$@"

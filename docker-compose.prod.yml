@@ -11,8 +11,10 @@
 # "--no-deps web", which starts the application on its own.
 #
 # TLS is not terminated here. Put a proxy in front that does, have it send
-# X-Forwarded-Proto, and list it in PAGEKIT_TRUSTED_PROXIES — an installation that
-# does not trust the proxy builds its URLs from the plain HTTP request it sees.
+# X-Forwarded-Proto, and list it in PAGEKIT_TRUSTED_PROXIES — that list is what
+# makes the header count. Until it is set, the stack builds its URLs from the
+# plain HTTP request it sees and answers every request with the redirect to HTTPS
+# the header would have satisfied.
 
 # The development stack in docker-compose.yml takes its project name from the
 # directory. Naming this one keeps the two apart, so that starting production in a
