@@ -11,19 +11,51 @@
   "status": "in_progress",
   "startedAt": "2026-07-31T02:46:32.053Z",
   "completedAt": null,
-  "phases": [],
+  "phases": [
+    {
+      "phaseKey": "30599845905-1-PLAN",
+      "type": "PLAN",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-07-31T02:46:36.209Z",
+      "durationMs": 1463488,
+      "agent": {
+        "id": "bc-3d1f49ee-2065-46eb-8be6-c4d1fc2369ae",
+        "runId": "run-36a28992-ec89-458b-a956-71736ac79a55",
+        "url": "https://cursor.com/agents/bc-3d1f49ee-2065-46eb-8be6-c4d1fc2369ae",
+        "model": "grok-4.5"
+      },
+      "github": {
+        "runId": 30599845905,
+        "runAttempt": 1,
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/30599845905",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 72294,
+        "output": 86981,
+        "cacheRead": 6022024,
+        "cacheWrite": 398015,
+        "total": 6579314
+      },
+      "tokensSource": "cursor-api",
+      "result": "Committe Ticket und Branch-Doku und pushe sie.",
+      "outcome": "success"
+    }
+  ],
   "totals": {
     "tokens": {
-      "input": 0,
-      "output": 0,
-      "cacheRead": 0,
-      "cacheWrite": 0,
-      "total": 0
+      "input": 72294,
+      "output": 86981,
+      "cacheRead": 6022024,
+      "cacheWrite": 398015,
+      "total": 6579314
     },
-    "durationMs": 0,
-    "phaseCount": 0,
+    "durationMs": 1463488,
+    "phaseCount": 1,
     "escalations": 0,
-    "ghaJobs": 0,
-    "cloudAgents": 0
+    "ghaJobs": 1,
+    "cloudAgents": 1
   }
 }
