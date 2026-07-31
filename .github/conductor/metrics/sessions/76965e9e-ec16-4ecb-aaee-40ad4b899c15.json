@@ -9,21 +9,38 @@
   "branch": "feature/docker-production-image",
   "model": "grok-4.5",
   "status": "in_progress",
-  "startedAt": "2026-07-31T02:46:32.053Z",
-  "completedAt": null,
+  "startedAt": "2026-07-31T02:46:37.827Z",
+  "completedAt": "2026-07-31T03:10:43.084Z",
   "phases": [
     {
       "phaseKey": "30599845905-1-PLAN",
       "type": "PLAN",
       "attempt": 0,
       "batchSteps": null,
-      "startedAt": "2026-07-31T02:46:36.209Z",
-      "durationMs": 1463488,
+      "startedAt": "2026-07-31T02:46:37.827Z",
+      "durationMs": 1424240,
       "agent": {
         "id": "bc-3d1f49ee-2065-46eb-8be6-c4d1fc2369ae",
         "runId": "run-36a28992-ec89-458b-a956-71736ac79a55",
         "url": "https://cursor.com/agents/bc-3d1f49ee-2065-46eb-8be6-c4d1fc2369ae",
-        "model": "grok-4.5"
+        "model": "grok-4.5",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-36a28992-ec89-458b-a956-71736ac79a55",
+            "index": 1,
+            "startedAt": "2026-07-31T02:46:37.827Z",
+            "completedAt": "2026-07-31T03:10:43.084Z",
+            "durationMs": 1424240,
+            "tokens": {
+              "input": 72294,
+              "output": 86981,
+              "cacheRead": 6022024,
+              "cacheWrite": 398015,
+              "total": 6579314
+            }
+          }
+        ]
       },
       "github": {
         "runId": 30599845905,
@@ -41,7 +58,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "Committe Ticket und Branch-Doku und pushe sie.",
-      "outcome": "success"
+      "outcome": "success",
+      "completedAt": "2026-07-31T03:10:43.084Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -52,7 +71,7 @@
       "cacheWrite": 398015,
       "total": 6579314
     },
-    "durationMs": 1463488,
+    "durationMs": 1424240,
     "phaseCount": 1,
     "escalations": 0,
     "ghaJobs": 1,
