@@ -11,7 +11,8 @@ run-name: "${{ github.event_name == 'pull_request' && format('Docker Image — P
 
 on:
   # Docker-relevant paths only: a build is minutes of runner time, and a pull request that leaves
-  # the image alone has nothing to rebuild.
+  # the image alone has nothing to rebuild. .trivyignore is in the list because it is an input to
+  # the scan below: a pull request that adds, renews or drops a waiver has to run the gate it moves.
   pull_request:
     branches: [main, develop]
     paths:
@@ -20,6 +21,7 @@ on:
       - 'docker-compose*.yml'
       - '.dockerignore'
       - 'prod.env.example'
+      - '.trivyignore'
       - '.github/workflows/docker-image.yml'
   # No path filter here: the image bakes the application, so every merge makes the published one
   # stale whether or not it touched a Docker file.
@@ -341,13 +343,17 @@ jobs:
           esac
 
       # Fixed CRITICAL/HIGH findings fail the gate. Unfixed ones are left out: no rebuild of ours
-      # can clear them, and a gate that stays red on them stops being read.
+      # can clear them, and a gate that stays red on them stops being read. The named exceptions
+      # to that — findings a rebuild cannot clear either, because their fix is a major version
+      # away — live in .trivyignore with the reason and a review date each. The action prints
+      # that file before it scans, so what is being waived stands in the log of every run.
       - name: Scan the image for known vulnerabilities
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ env.IMAGE }}
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
+          trivyignores: .trivyignore
           exit-code: '1'
 
       # Handing the finished image to the publish job rather than rebuilding it there: what reaches

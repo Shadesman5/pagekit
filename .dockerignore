@@ -36,13 +36,15 @@ test-results/
 coverage
 .nyc_output
 
-# Documentation, CI and agent configuration
+# Documentation, CI and agent configuration. .trivyignore belongs to the workflow
+# that scans the finished image, not to the build that produces it.
 *.md
 README.md
 migration-docs/
 docs-site/
 .github/
 .cursor/
+.trivyignore
 
 # Docker artefacts — read by the daemon and Compose, never copied into an image.
 # docker/ itself is not excluded: the production stage copies the PHP
