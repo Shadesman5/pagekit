@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-27T21:30:32.350Z",
+  "updatedAt": "2026-07-31T02:46:32.054Z",
   "steps": {
     "unknown": {
       "title": "AGENT_PROMPT_AUDIT_TECH_DEBT_INVENTORY",
@@ -171,6 +171,13 @@
       "latestSessionId": "53f6b4ae-2a9f-4122-b107-783ba1e181f4",
       "sessionIds": [
         "53f6b4ae-2a9f-4122-b107-783ba1e181f4"
+      ]
+    },
+    "2.5": {
+      "title": "Step 2.5: Docker Production Image & Deploy",
+      "latestSessionId": "76965e9e-ec16-4ecb-aaee-40ad4b899c15",
+      "sessionIds": [
+        "76965e9e-ec16-4ecb-aaee-40ad4b899c15"
       ]
     }
   },

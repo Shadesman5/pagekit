@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "76965e9e-ec16-4ecb-aaee-40ad4b899c15",
+  "roadmapStepId": "2.5",
+  "title": "Step 2.5: Docker Production Image & Deploy",
+  "taskSlug": "PROMPT_2_5_Docker-Production-Image",
+  "taskPrompt": "migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_5_Docker-Production-Image.md",
+  "issue": 158,
+  "branch": "feature/docker-production-image",
+  "model": "grok-4.5",
+  "status": "in_progress",
+  "startedAt": "2026-07-31T02:46:32.053Z",
+  "completedAt": null,
+  "phases": [],
+  "totals": {
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "total": 0
+    },
+    "durationMs": 0,
+    "phaseCount": 0,
+    "escalations": 0,
+    "ghaJobs": 0,
+    "cloudAgents": 0
+  }
+}
