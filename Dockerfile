@@ -60,16 +60,22 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # Configure Apache. The webroot is public/; everything else in the project stays
 # outside the document root. FollowSymLinks is required for the public/storage
 # symlink that exposes the media library.
-RUN echo '<VirtualHost *:80>\n\
-    DocumentRoot /var/www/html/public\n\
-    <Directory /var/www/html/public>\n\
-    Options -Indexes +FollowSymLinks\n\
-    AllowOverride All\n\
-    Require all granted\n\
-    </Directory>\n\
-    ErrorLog ${APACHE_LOG_DIR}/error.log\n\
-    CustomLog ${APACHE_LOG_DIR}/access.log combined\n\
-    </VirtualHost>' > /etc/apache2/sites-available/000-default.conf
+#
+# The log paths reach the file verbatim, ${APACHE_LOG_DIR} included: Apache
+# expands it from its own envvars, so the shell writing the file must not.
+# hadolint ignore=SC2016
+RUN printf '%s\n' \
+    '<VirtualHost *:80>' \
+    '    DocumentRoot /var/www/html/public' \
+    '    <Directory /var/www/html/public>' \
+    '        Options -Indexes +FollowSymLinks' \
+    '        AllowOverride All' \
+    '        Require all granted' \
+    '    </Directory>' \
+    '    ErrorLog ${APACHE_LOG_DIR}/error.log' \
+    '    CustomLog ${APACHE_LOG_DIR}/access.log combined' \
+    '</VirtualHost>' \
+    > /etc/apache2/sites-available/000-default.conf
 
 # No application code is baked in: the dev stack bind-mounts the project over
 # /var/www/html and Composer dependencies are installed in the running container.
@@ -154,16 +160,18 @@ RUN sed -ri 's/^Listen 80$/Listen 8080/' /etc/apache2/ports.conf \
     && grep -q '^Listen 8080$' /etc/apache2/ports.conf \
     # Without a server name Apache resolves one per start and logs a warning for it.
     && echo 'ServerName localhost' >> /etc/apache2/apache2.conf \
-    && echo '<VirtualHost *:8080>\n\
-    DocumentRoot /var/www/html/public\n\
-    <Directory /var/www/html/public>\n\
-    Options -Indexes +FollowSymLinks\n\
-    AllowOverride All\n\
-    Require all granted\n\
-    </Directory>\n\
-    ErrorLog /proc/self/fd/2\n\
-    CustomLog /proc/self/fd/1 combined\n\
-    </VirtualHost>' > /etc/apache2/sites-available/000-default.conf
+    && printf '%s\n' \
+    '<VirtualHost *:8080>' \
+    '    DocumentRoot /var/www/html/public' \
+    '    <Directory /var/www/html/public>' \
+    '        Options -Indexes +FollowSymLinks' \
+    '        AllowOverride All' \
+    '        Require all granted' \
+    '    </Directory>' \
+    '    ErrorLog /proc/self/fd/2' \
+    '    CustomLog /proc/self/fd/1 combined' \
+    '</VirtualHost>' \
+    > /etc/apache2/sites-available/000-default.conf
 
 # The application, without the parts a build produces: dependencies and webroot
 # come from the builder stages, everything below public/ is source.
@@ -189,14 +197,21 @@ RUN set -eux; \
     ln -sfn ../storage public/storage; \
     ln -sfn "$PAGEKIT_DATA_DIR/config.php" config.php; \
     chown -R www-data:www-data tmp storage "$PAGEKIT_DATA_DIR"; \
-    chown www-data:www-data /var/run/apache2 /var/lock/apache2 /var/log/apache2
+    chown www-data:www-data /var/run/apache2 /var/lock/apache2 /var/log/apache2; \
+    # The USER below is the same account by number, which is what a host reading
+    # the image sees. Should a base image ever renumber www-data, the build has
+    # to fail here rather than hand out an account that owns none of the above.
+    [ "$(id -u www-data)" = 33 ]; \
+    [ "$(id -g www-data)" = 33 ]
 
 LABEL org.opencontainers.image.title="Pagekit" \
     org.opencontainers.image.description="Pagekit CMS production runtime (Apache + PHP)" \
     org.opencontainers.image.source="https://github.com/Shadesman5/pagekit" \
     org.opencontainers.image.licenses="MIT"
 
-USER www-data
+# www-data, by the number an orchestrator can check against a runAsNonRoot policy
+# without a copy of the image's passwd file.
+USER 33:33
 
 EXPOSE 8080
 
@@ -204,7 +219,7 @@ EXPOSE 8080
 # 4xx/5xx only, so the redirect to HTTPS that a direct HTTP request receives
 # still counts as healthy.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-    CMD curl -fsS -o /dev/null http://127.0.0.1:8080/
+    CMD ["curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/"]
 
 ENTRYPOINT ["entrypoint.sh"]
 
