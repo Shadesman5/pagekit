@@ -200,6 +200,16 @@ RUN set -eux; \
     "$PAGEKIT_DATA_DIR" /var/run/apache2 /var/lock/apache2; \
     ln -sfn ../storage public/storage; \
     ln -sfn "$PAGEKIT_DATA_DIR/config.php" config.php; \
+    # The base image leaves the application root world-writable and sticky. On
+    # such a directory the kernel refuses to follow a symlink owned by neither
+    # the follower nor the directory (fs.protected_symlinks), and the link above
+    # is exactly that: owned by root, followed by www-data. Creating the file
+    # through it while it still dangles is allowed, so an installation would
+    # report success and leave a configuration nothing can read afterwards.
+    # Owning the tree by root is therefore not only the hardening described
+    # above; it is what makes the link followable at all.
+    chown root:root /var/www/html; \
+    chmod 755 /var/www/html; \
     chown -R www-data:www-data tmp storage "$PAGEKIT_DATA_DIR"; \
     chown www-data:www-data /var/run/apache2 /var/lock/apache2 /var/log/apache2; \
     # The USER below is the same account by number, which is what a host reading
