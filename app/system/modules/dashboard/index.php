@@ -45,8 +45,10 @@ return [
 
         'defaults' => [],
         'weather.api' => 'http://api.openweathermap.org/data/2.5',
-        // TODO: AUDIT FIX Step 2.5 — move API key to env variable / secrets management
-        'weather.key' => '08c012f513db564bd6d4bae94b73cc94',
+        // Every installation brings its own OpenWeatherMap key, through
+        // PAGEKIT_WEATHER_API_KEY or config.php. Without one the location widget
+        // reports that the weather is unavailable.
+        'weather.key' => '',
 
     ],
 
