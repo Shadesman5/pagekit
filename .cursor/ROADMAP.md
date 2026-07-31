@@ -1,7 +1,7 @@
 # **🗺️ Pagekit Modernization Roadmap & Rules**
 
-> **Current Version**: 1.2.35
-> **Current Step**: 2.5 (Docker Production Image & Deploy)
+> **Current Version**: 1.2.36
+> **Current Step**: 2.6 (Filesystem Write Resilience)
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**
 
@@ -107,7 +107,7 @@
 | 2.3    | Docker Dev Experience & Image Hygiene | ✅     | 🛡️    | #241  | #242    |
 | 2.4    | **Build Tools (pnpm + Vite)**         | ✅     | 🛡️    | #159  | #245    |
 | 2.4.1  | ↳ Webroot Modernization (public/)     | ✅     | 🛡️    | #243  | #256    |
-| 2.5    | Docker Production Image & Deploy      | ⏳     | ⏳    | #158  | -       |
+| 2.5    | Docker Production Image & Deploy      | ✅     | 🛡️    | #158  | #259    |
 | 2.6    | Filesystem Write Resilience           | ⏳     | ⏳    | #257  | -       |
 | 2.7    | Extension Safety System               | ⏳     | ⏳    | #160  | -       |
 | 2.7.1  | ↳ Snapshot & Three-Stage Uninstall    | ⏳     | ⏳    | -     | -       |
