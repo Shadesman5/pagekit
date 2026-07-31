@@ -60,7 +60,7 @@
 - [x] Step 3 (M) — `docker-compose.prod.yml` + prod env finalization
 - [x] Step 4 (M) — CI `docker-image.yml` (Hadolint + build + smoke + Trivy + GHCR)
 - [x] Step 5 (S) — Docs (README production section, AGENTS.md)
-- [ ] Step 6 (XL) — Review (Bugbot + Security) + E2E
+- [x] Step 6 (XL) — Review (Bugbot + Security) + E2E
 
 ## TESTING STRATEGY
 - **Per step (production gate):** Refactorer → Verifier → Tester (PHPUnit + PHPStan) — production code must be green before any new tests are written.
