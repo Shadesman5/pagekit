@@ -299,14 +299,14 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Goal**: Prevent a faulty extension from taking down the whole CMS.
 - **Why**: Today a throwable in extension `index.php` / `main()` whitescreens the kernel; admins must still reach the panel to disable the offender. Also needed before a third-party marketplace.
 - **What**:
-  1. Sandbox module load in `try/catch(\Throwable)`
+  1. Sandbox module load in `try/catch(\Throwable)` — registration is part of the window: it `include`s every `packages/*/*/index.php` on disk before anything is enabled, so a top-level throwable in a *disabled* extension still kills the boot and auto-disable alone does not protect against it
   2. Log stack traces immediately via Monolog FileHandler (**must work without DB**)
-  3. Auto-disable in DB (own try/catch) with a DB-less fallback file in a non-web-served path (e.g. under `tmp/`); boot checks both. Never place it under `storage/` — that tree is the public media root mounted into `public/`, so a fallback file there would be readable over HTTP and disclose which extensions are broken
-  4. Admin flash on next login
+  3. Auto-disable in DB (own try/catch) with a DB-less fallback file in a non-web-served path (e.g. under `tmp/`); boot checks both. Never place it under `storage/` — that tree is the public media root mounted into `public/`, so a fallback file there would be readable over HTTP and disclose which extensions are broken. Keep it out of `tmp/temp` as well: clearing the cache with the temp option empties that directory at depth 0, which would silently re-enable a broken extension
+  4. Admin notice on the next admin request, derived from the durable disable record — a session flash written at failure time auto-expires and usually lands in an anonymous visitor's session
   - Lifecycle interface + Blog `scripts.php` → lifecycle class; migrate install rollback on Throwable
   - **Routing dumper**: replace deprecated copied `PhpMatcherDumper` / `UrlGeneratorDumper` with Symfony compiled matcher/generator; keep blog permalink behaviour; prefer content-hash cache freshness over `filemtime`
   - **`UrlResolver` static bridge → DI**: remove `$cache` / `$module` / `$posts` setters and static `getPermalink()` (+ `RouteListener` callers) once routing factory supports DI
-  - **`theme-one` static `UrlProvider`**: same DI blocker as UrlResolver — inject when template helpers support it
+  - **`theme-one` template-helper statics**: the helpers are plain functions in a required file, so their URL provider is parked in a static property (`ThemeOneHelpers::$url`) — a different blocker than UrlResolver's `new $resolver()`, and it needs an injectable seam for template-level helpers
   - **`UniqueValidator`**: container-aware `ConstraintValidatorFactory`; delete static `setDb()` + boot wiring
 - **Out of scope until a second caller**: extract `User::evaluateBooleanExpression()` only if another consumer appears
 - **Sequencing**: before Snapshot (**2.7.1**), Dependency Integrity (**2.7.2**), Extension Packaging (**2.8**) and Marketplace (**5.6**)

@@ -108,7 +108,7 @@
 | 2.4    | **Build Tools (pnpm + Vite)**         | ✅     | 🛡️    | #159  | #245    |
 | 2.4.1  | ↳ Webroot Modernization (public/)     | ✅     | 🛡️    | #243  | #256    |
 | 2.5    | Docker Production Image & Deploy      | ⏳     | ⏳    | #158  | -       |
-| 2.6    | Filesystem Write Resilience           | ⏳     | ⏳    | -     | -       |
+| 2.6    | Filesystem Write Resilience           | ⏳     | ⏳    | #257  | -       |
 | 2.7    | Extension Safety System               | ⏳     | ⏳    | #160  | -       |
 | 2.7.1  | ↳ Snapshot & Three-Stage Uninstall    | ⏳     | ⏳    | -     | -       |
 | 2.7.2  | ↳ Module Dependency Integrity         | ⏳     | ⏳    | -     | -       |
