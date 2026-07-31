@@ -66,6 +66,14 @@ Tests: none (test-writer: skip — Dockerfile/ini/shell/`.htaccess`, no producti
 
 Tests: none (test-writer: skip — compose YAML + env example only). Gates: Verifier (production — compose YAML reviewed mechanically, no compose CLI in the VM) PASS; Tester PHPUnit+PHPStan PASS.
 
+### Docker image CI: lint, build, runtime smoke, scan & GHCR publish (Checklist Step 4)
+
+| File | Change |
+|---|---|
+| `.github/workflows/docker-image.yml` (new) | New workflow `name: Docker Image`, jobs `hadolint` and `docker-image` (`needs: hadolint`) — no collision with existing job names. Triggers: `pull_request` → `main`/`develop`, paths-scoped to `Dockerfile`, `docker/**`, `docker-compose*.yml`, `.dockerignore`, `prod.env.example` and the workflow file itself (lint + build + smoke + scan, no push); `push` → `develop`, unfiltered (the image bakes the application, so any merge can make the published tag stale); `workflow_dispatch`. Workflow-level `contents: read`; the `docker-image` job restates that and adds `packages: write` for its own push steps. `docker-image` steps: Buildx → `docker/build-push-action` (`target: prod`, `load: true`, `push: false`, GHA cache) → `docker compose -f docker-compose.prod.yml --env-file prod.env.example config --quiet` (validates by interpolating the example env directly rather than a copied `prod.env`) → runs the built image with SQLite + `PAGEKIT_AUTO_SETUP=1` + a random admin password, then polls `docker inspect` for the image's own `HEALTHCHECK` status (5-minute budget; fails fast on a container that exits or reports `unhealthy`) → a smoke script that collects every failure instead of stopping at the first: unproxied `/` must redirect (30x) while `/` and `/admin/login` sent with `X-Forwarded-Proto: https` must render (200 + expected markup); `/config.php`, `/composer.json`, `/app/console/app.php`, `/tmp/` must each answer 403/404 and never leak `<?php`/`"require"` content; `X-Frame-Options`/`Content-Security-Policy` must be present on a proxied response → container log dump (`if: always()`) → Trivy scan (`severity: CRITICAL,HIGH`, `ignore-unfixed: true`, `exit-code: 1`) → on `push`/`workflow_dispatch` only: GHCR login via `docker/login-action` with the run's own `GITHUB_TOKEN`, `docker/metadata-action` resolves `type=ref,event=branch` + `type=sha,format=short` tags, then the already-built-and-scanned image is retagged and pushed (no rebuild). `hadolint` job: `hadolint/hadolint-action` on `Dockerfile` at its default (info) threshold. All seven third-party actions pinned by commit SHA with a version comment. |
+
+Tests: none (test-writer: skip — CI workflow YAML only). Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -76,6 +84,7 @@ Tests: none (test-writer: skip — compose YAML + env example only). Gates: Veri
 - **`PAGEKIT_DB_NAME`/`USER`/`PASSWORD` derive from `MYSQL_DATABASE`/`MYSQL_USER`/`MYSQL_PASSWORD` instead of a second, duplicate set of variables (Checklist Step 3).** The bundled `mysql` service creates its database/user/grants from the `MYSQL_*` vars on first boot; wiring `docker-compose.prod.yml`'s `web.environment` to those same vars means the application always opens the connection the database container actually created — an operator who fills in only the `MYSQL_*` block cannot get the two sides out of sync.
 - **MySQL healthcheck pings over TCP, not the local socket (Checklist Step 3).** First-boot initialization runs a temporary socket-only `mysqld` while it builds the data directory; a socket-based ping would report `healthy` while the port `web`'s `depends_on: condition: service_healthy` waits on is still closed. `mysqladmin ping -h 127.0.0.1` only succeeds once the real, TCP-listening server is up.
 - **The prod stack is a separately named Compose project (Checklist Step 3).** `docker-compose.prod.yml` sets `name: pagekit-prod`; without it, Compose would default to the working-copy directory name — the same default `docker-compose.yml` (dev) uses — so starting one stack in a checkout that already ran the other could reuse, and clobber, its containers/volumes.
+- **Runtime smoke proves both halves of the Step 2 proxy guard in one run (Checklist Step 4).** `docker-image.yml` probes `/` twice — unproxied, where it must redirect to HTTPS, and with `X-Forwarded-Proto: https`, where it must render 200 — so the workflow demonstrates the `public/.htaccess` rule enforces HTTPS for a direct request and steps aside for one a trusted proxy already terminated, rather than asserting only an aggregate "200 or 30x".
 
 ---
 
@@ -90,6 +99,7 @@ _TBD / None_
 - **Weather widget default changes from a shared key to empty (Checklist Step 1).** `system/dashboard`'s `weather.key` no longer ships a working default; the dashboard's location widget shows its "unavailable" state on upgrade until an operator sets `PAGEKIT_WEATHER_API_KEY` or `config.php`'s `system/dashboard.weather.key`. Provider-side rotation of the old key is tracked under Maintainer action (Finalize).
 - **`base` now enables `mod_headers`/`mod_expires`, which also reaches the `dev` target (Checklist Step 2).** `a2enmod rewrite headers expires` moved into the shared `base` stage, so a rebuilt dev container starts enforcing `public/.htaccess`'s security headers and cache-expiry rules for the first time — both had silently no-op'd for want of the modules. A running dev container only picks this up on its next image rebuild.
 - **`web`'s resource limit is a hard ceiling, not a throttle (Checklist Step 3).** `docker-compose.prod.yml`'s `deploy.resources.limits` caps the container at `cpus: "2.0"` / `memory: 1G`, sized for a handful of concurrent requests at the image's 256M per-process PHP limit; reaching the memory ceiling under real traffic is an OOM kill, not a slowdown, so the limit needs raising before traffic does.
+- **The Trivy gate can turn a `develop` push red on an unrelated CVE (Checklist Step 4).** `docker-image.yml`'s scan step has no allow-list, so a newly-disclosed CRITICAL/HIGH in a base-image package blocks that push's GHCR publish — and the required `docker-image` check — until a rebuild picks up the fix, regardless of whether the triggering commit touched anything Docker-related.
 
 ---
 
@@ -102,6 +112,7 @@ _TBD / None_
 - **Auto-setup credentials come only from the process environment (Checklist Step 2).** `docker/entrypoint.sh`'s `PAGEKIT_AUTO_SETUP` path reads `PAGEKIT_ADMIN_PASSWORD` and the other setup flags from the environment when it calls `php pagekit setup`; none of it is baked into an image layer.
 - **The HTTPS-forcing redirect now resolves behind a TLS-terminating proxy (Checklist Step 2).** The `X-Forwarded-Proto` guard (see Key Decisions) stops that rule from redirecting a request the proxy already delivered over HTTPS, pairing with `PAGEKIT_TRUSTED_PROXIES` (Checklist Step 1) for `isSecure()`/absolute-URL generation.
 - **The database is reachable only on the compose network (Checklist Step 3).** `docker-compose.prod.yml`'s `mysql` service publishes no host port; only `web`, on the same Compose network, can open a connection — the credentials in `prod.env` never have to survive exposure to the host's network interfaces, let alone the open internet.
+- **A CVE gate and a scoped, ephemeral token stand between the built image and GHCR (Checklist Step 4).** `docker-image.yml` Trivy-scans the image (`CRITICAL,HIGH`, `ignore-unfixed`, non-zero exit on a hit) before any push step runs; the push itself authenticates with the workflow run's own `GITHUB_TOKEN` under a `packages: write` scope added only on the `docker-image` job (the workflow default stays `contents: read`), and is skipped entirely on `pull_request` events.
 
 ---
 
