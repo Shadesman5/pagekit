@@ -1,7 +1,7 @@
 {
   "schemaVersion": 3,
   "source": "github-actions",
-  "updatedAt": "2026-07-30T04:54:54.971Z",
+  "updatedAt": "2026-07-31T00:20:07.487Z",
   "branch": "develop",
   "commit": "6d89c675f799550b96a93fcbfa2fb1389590cc31",
   "workflows": {
@@ -14,7 +14,7 @@
       "conclusion": "success"
     },
     "infectionFull": {
-      "runId": 30515135893,
+      "runId": 30330864283,
       "conclusion": "success",
       "scheduled": true
     }
@@ -35,7 +35,7 @@
   "phpstan": {
     "level": 8,
     "errors": 0,
-    "baselineBlocks": 351,
+    "baselineBlocks": 350,
     "suppressedErrors": 695
   },
   "coverage": {
@@ -51,15 +51,15 @@
       "scope": "diff"
     },
     "dailyFull": {
-      "msi": null,
-      "coveredMsi": null,
-      "killed": null,
-      "escaped": null,
-      "timedOut": null,
-      "errors": null,
-      "totalMutants": null,
+      "msi": 99.19,
+      "coveredMsi": 99.19,
+      "killed": 363,
+      "escaped": 3,
+      "timedOut": 2,
+      "errors": 1,
+      "totalMutants": 369,
       "scope": "full",
-      "runAt": "2026-07-30T04:54:28Z"
+      "runAt": "2026-07-28T05:10:39Z"
     }
   },
   "e2e": {

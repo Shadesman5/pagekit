@@ -32,6 +32,36 @@
         "specsTotal": 25,
         "scope": "smoke"
       }
+    },
+    {
+      "at": "2026-07-31T00:20:07.487Z",
+      "sha": "6d89c675f799550b96a93fcbfa2fb1389590cc31",
+      "coverage": {
+        "linePercent": 6.1,
+        "pinnedFloor": 3.8
+      },
+      "phpunit": {
+        "tests": 725,
+        "failures": 0
+      },
+      "phpstan": {
+        "errors": 0,
+        "baselineBlocks": 350,
+        "suppressedErrors": 695
+      },
+      "infection": {
+        "msi": 99.19,
+        "coveredMsi": 99.19,
+        "killed": 363,
+        "escaped": 3,
+        "timedOut": 2,
+        "errors": 1
+      },
+      "e2e": {
+        "specsPassed": 25,
+        "specsTotal": 25,
+        "scope": "smoke"
+      }
     }
   ]
 }
