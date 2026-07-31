@@ -1,5 +1,36 @@
 # Changelog
 
+## Pagekit 1.2.36 - Docker Production Image & Deploy (July 31, 2026)
+
+### ✨ Added
+
+- **Production Docker image** — the `Dockerfile` grows from one stage to five (`base`/`dev`/`composer-deps`/`assets`/`prod`); `prod` is the default `docker build` target and produces a non-root (`33:33`/`www-data`) Apache runtime on `:8080` with a read-only application tree, a prod-tuned `php.ini` overlay, and an `entrypoint.sh` that recreates writable state on every start, symlinks `config.php` onto a data volume, and can run `setup`/`migration:migrate` automatically. (Closes #158)
+- **12-factor container configuration** — `EnvConfigLoader` maps a fixed set of `PAGEKIT_*` variables onto the `application`/`system`/`database`/dashboard config (registered last in all three boot files, so the environment always outranks `config.php`); a `TrustedProxies` helper configures `Request::setTrustedProxies()` from `PAGEKIT_TRUSTED_PROXIES` before the request is built.
+- **Production compose stack** — `docker-compose.prod.yml` (Pagekit + healthchecked MySQL 8.4, named volumes for `config.php`/storage/data, resource limits, no published DB port) and `prod.env.example` documenting every variable it or the image consumes.
+- **`docker-image.yml` CI workflow** — Hadolint → image build → runtime smoke (webroot denial, security headers, proxy-aware HTTPS redirect) → Trivy scan → GHCR publish (`develop` / `sha-<short>` tags), publish split into its own job so `packages: write` never reaches the build that runs on a pull request.
+
+### ♻️ Changed
+
+- **The dev image also gains `mod_headers`/`mod_expires`** — both moved into the shared `base` stage alongside the existing `mod_rewrite`, since the production vhost needs them; a rebuilt dev container starts enforcing `public/.htaccess`'s security-header and cache-expiry rules for the first time (they had silently no-op'd for want of the modules).
+
+### 🐛 Fixed
+
+- **A demo install's content script could blank out `config.php`** — `Installer::runContentScript()` now runs `install.php`/`install-demo.php` in a scope of their own; previously the script's own `$config`/`$db` assignments overwrote the array `install()` was about to write, so a completed installation could come out of it missing `database`/`locale`.
+- **A blank `PAGEKIT_DB_PORT` or `PAGEKIT_DB_DRIVER` no longer miscasts or throws** — both now read as unset (MySQL's own default port; no connection selected) instead of casting an empty string to `0` or rejecting an empty driver name.
+- **`php pagekit …` now exits with the command's own status** — the console previously always exited `0`, so a failing `setup` or `migration:migrate` reported success to whatever ran it; the entrypoint no longer masks a failed `setup` either, and now stops the container start on one.
+- **The `config.php` symlink is now followable under `fs.protected_symlinks`** — the application root is `chown root:root` + `chmod 755` instead of inheriting the base image's world-writable, sticky default.
+- **OPcache is asserted rather than (incorrectly) installed** — PHP 8.5 links Zend OPcache into the interpreter; the build now asserts it's loaded instead of calling `docker-php-ext-enable`/`-install` against a module that was never built as a shared library.
+
+### 🔒 Security
+
+- **Committed OpenWeatherMap API key removed** — `app/system/modules/dashboard/index.php` defaults `weather.key` to `''`; every installation now supplies its own via `PAGEKIT_WEATHER_API_KEY` or `config.php`.
+- **Production runtime is non-root with a read-only application tree** — only `tmp/`, `storage/`, and the data volume are writable by `www-data`; error detail and PHP fingerprinting are off by default; the database is reachable only on the compose network.
+- **The HTTPS redirect trusts a declared proxy, not just its header** — `public/.htaccess`'s `X-Forwarded-Proto` bypass is gated behind an Apache `<IfDefine PAGEKIT_TRUSTED_PROXY>` that `entrypoint.sh` sets only when `PAGEKIT_TRUSTED_PROXIES` actually names one.
+- **GHCR publish carries its own, minimal permission** — `packages: write` lives only on the `publish-image` job (gated off pull requests), never on the job that builds and smoke-tests untrusted branch content.
+- **Trivy CVE gate, with a named and dated exception** — the image is scanned for CRITICAL/HIGH findings before any push; `.trivyignore` waives three TinyMCE 5.10.9 stored-XSS advisories with no available fix short of a TinyMCE major, each reviewed by 2027-02-01.
+
+---
+
 ## Pagekit 1.2.35 - CI Gates: coverage ratchet, complete quality report (July 31, 2026)
 
 ### ♻️ Changed

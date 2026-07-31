@@ -6,16 +6,16 @@
 **Branch:** `feature/docker-production-image`
 **ROADMAP Step:** 2.5 (Docker Production Image & Deploy)
 **GitHub Issue:** [#158](https://github.com/Shadesman5/pagekit/issues/158)
-**Pull Request:** _TBD_
-**Status:** 🚧 In progress
+**Pull Request:** [#259](https://github.com/Shadesman5/pagekit/pull/259)
+**Status:** ✅ Complete
 **Started:** 2026-07-31 03:10
-**Completed:** _TBD_
+**Completed:** 2026-07-31 11:03
 
 ---
 
 ## 🎯 Overview
 
-_TBD_
+Ships the production Docker image and its deploy path. A `Dockerfile` grown from one stage to five (`base`/`dev`/`composer-deps`/`assets`/`prod`) builds a non-root (`33:33`/`www-data`), read-only-application-tree Apache runtime on `:8080`; a fixed-map `EnvConfigLoader` plus a trusted-proxy helper let the same `config.php`-driven boot take its configuration from the container environment instead, with the committed OpenWeatherMap key removed in favor of `PAGEKIT_WEATHER_API_KEY`. `docker-compose.prod.yml` + `prod.env.example` wire a two-service stack (Pagekit + MySQL, named volumes for `config.php`/storage/data) behind a documented TLS-proxy contract; `docker-image.yml` (Hadolint → build → runtime smoke incl. webroot denial → Trivy → GHCR publish, the last gated off pull requests) is the real build/boot proof the Cloud Agent VM's missing Docker daemon cannot give locally. A mandatory Bugbot + Security review closed out Checklist Step 6, and a further round of fixes — one set surfaced by the image's first real boot in CI, the other by the remote PR Bugbot pass — hardened the installer's content-script scope, the `config.php` symlink's followability, OPcache, and a handful of env-var edge cases before the PR went green.
 
 ---
 
@@ -99,6 +99,24 @@ Tests: none (test-writer: skip — docs only). Gates: Verifier (production) FAIL
 
 Tests: none (test-writer: skip — this Checklist Step is the mandatory Review + E2E pass with no production refactor work of its own; every row above is a Bugbot/Security fix-loop correction to files Checklist Steps 1–5 already introduced). Gates: Bugbot — 2 fix-loops to clean (round 1: `requirements.php` writability via the `config.php` symlink target, `SetupCommand`/entrypoint DB port+path persistence, docs; round 2: the `.htaccess` proxy-redirect `<IfDefine>` gate, entrypoint symlink-failure diagnostics, `PAGEKIT_AUTO_MIGRATE` race note). Security — 1 fix-loop to clean (`packages: write` isolated to the new `publish-image` job; `docker-image` itself never carries registry-write). Tester — final E2E PASS (3 Playwright `@ci` specs, chromium-desktop, via `php pagekit start`).
 
+### Finalize fix-loop — CI runtime + Bugbot (post-Step-6)
+
+| File | Change |
+|---|---|
+| `Dockerfile` | OPcache: the `prod` stage's first pass called `docker-php-ext-enable opcache` against a shared module the `php:8.5-apache` base never builds; a second pass tried compiling it from source instead. Neither was needed — PHP 8.5 links Zend OPcache into the interpreter and loads it unconditionally — so the stage now asserts `extension_loaded('Zend OPcache')` at build time and leaves the rest to the `php-prod.ini` overlay (see Key Decisions). App root: `chown root:root` + `chmod 755` on `/var/www/html`, added because the base image's world-writable, sticky application root made the `config.php` symlink unfollowable under `fs.protected_symlinks` (see Key Decisions). |
+| `app/installer/src/Installer.php` | New `runContentScript()` protected method isolates the include scope of `install.php`/`install-demo.php`. Previously `require_once`'d straight inside `install()`'s own scope, either script's own `$config = $app->get('config')` overwrote the array `install()` was about to write to `config.php`, so a completed installation — including the CI auto-setup container — came out of it missing `database`/`locale`. The method now hands the script only `$app` and the just-created administrator (`$user`, which the demo content signs a comment as); a missing script is a no-op, not a failure. |
+| `tests/Unit/Installer/InstallerContentScriptTest.php` (new) | Regression coverage for the row above: the shipped `install.php` still fills a fresh install from scope alone; every variable `install()` is holding (`$config`, `$option`, `$status`, `$demo_content`, …) stays out of the script's scope; a script's own variables don't leak back to the caller; a second run doesn't insert the demo content twice; a stripped-out script is not a failure. |
+| `app/modules/application/src/Tests/EnvConfigLoaderTest.php` | New case: a blank `PAGEKIT_DB_PORT` (an env-file line with no value, or a compose file forwarding one that was never set) leaves the connection with no `port` key — MySQL's own default — instead of casting `''` to `0`. |
+| `app/modules/application/src/Module/Loader/EnvConfigLoader.php` | `PAGEKIT_DB_PORT` and `PAGEKIT_DB_DRIVER` become the two exceptions to "empty counts as set" (Checklist Step 1): a blank port no longer casts to `0`, and a blank driver no longer selects a connection and throws — both now read as unset, matching how a variable actually arrives blank. |
+| `app/console/app.php` | `$console->run()`'s return code is now the process's own (`exit(min($console->run(), 255))`) instead of being discarded — `Console` runs with auto-exit off, so a failing `php pagekit …` (setup, migration) previously reported success to whatever called it. |
+| `docker/entrypoint.sh` | `install_pagekit`'s `\|\| true` and the follow-up file-existence check are gone; `set -e` now ends the start itself on a failed setup, and the same is now true of a failed `migration:migrate`. New `names_a_proxy()` helper reads `PAGEKIT_TRUSTED_PROXIES` exactly as `TrustedProxies::parse()` does before appending `-D PAGEKIT_TRUSTED_PROXY` — a value of only commas/whitespace now defines the same "nobody trusted" state on the Apache side that it already did on the PHP side. |
+| `.github/workflows/docker-image.yml` | Webroot-denial probe: `/tmp/` (trailing slash) now accepts the front controller's own redirect to the slashless `/tmp` denial, instead of only the slashless path itself. Trivy step gains `trivyignores: .trivyignore`; the `pull_request` path filter adds `.trivyignore` so a PR touching the waiver runs the gate it changes. |
+| `.trivyignore` (new) | Waives the image's three TinyMCE 5.10.9 stored-XSS advisories (`CVE-2026-47759`/`47761`/`47762`) — patched in TinyMCE 7.9.3/8.5.1, and on the 5.x line only under a commercial support contract, so no rebuild here can clear them. Each entry carries `exp:2027-02-01`; the file carries `// TODO: Must be refactored in Step 5.1 (Modern Block Editor)`. A finding not named here still fails the gate. |
+| `.dockerignore` | Excludes the new `.trivyignore` from the build context — it's an input the Trivy *action* reads from the repo checkout, not from the image it scans. |
+| `prod.env.example`, `README.md`, `AGENTS.md` | Comment/prose-only updates matching the rows above: the env-var reference and the `PAGEKIT_*` override caveat both now name the driver/port blank-is-unset exception; the proxy caveat now describes `names_a_proxy()`'s alignment with `TrustedProxies::parse()`. |
+
+Tests: `InstallerContentScriptTest.php` (new) + `EnvConfigLoaderTest.php`'s added case cover the Installer and blank-port fixes directly; the console exit-code, entrypoint fail-fast, and workflow/Trivy changes are what the CI run itself proves. Gates: Cursor Bugbot — findings fixed, final check on HEAD: PASS; CI (PR #259, run [30624839565](https://github.com/Shadesman5/pagekit/actions/runs/30624839565)) — `docker-image`, `hadolint`, `phpunit (8.5)`, `phpstan`, `cs-fixer`, `security-audit`, `version-ssot`, `phpunit-mysql`, `infection-diff`, `frontend`, `codecov/patch` all green; end-of-ticket E2E — PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -113,12 +131,15 @@ Tests: none (test-writer: skip — this Checklist Step is the mandatory Review +
 - **`public/.htaccess`'s proxy-trust guard is gated behind an Apache `<IfDefine>`, not the header alone (Checklist Step 6).** `X-Forwarded-Proto` is a request header any client can send; scoping trust to `PAGEKIT_TRUSTED_PROXIES` (Checklist Step 1) constrains what PHP believes but does nothing to Apache's own `.htaccess` evaluation, which runs before PHP ever sees the request. `docker/entrypoint.sh` now mirrors the same variable into `-D PAGEKIT_TRUSTED_PROXY` on the `apache2-foreground` invocation, and the redirect rule only honours the header inside `<IfDefine PAGEKIT_TRUSTED_PROXY>` — a container started without the variable keeps redirecting every plain request regardless of what headers arrive with it.
 - **`config.php`'s writability check resolves the symlink to its target, not the link's own directory (Checklist Step 6).** Decision 4 (Checklist Step 2) makes `config.php` a dangling symlink onto `$PAGEKIT_DATA_DIR`, deliberately outside the read-only application root; the pre-existing requirements check tested the link's own directory, which the container's non-root runtime makes unwritable by design. The new `configDirectory()` helper follows the link first, so the check exercises the directory that actually has to accept the file.
 - **GHCR publish moves to its own job instead of a permission block inside `docker-image` (Checklist Step 6 — Security).** `packages: write` on the whole `docker-image` job meant every PR-triggered build/smoke/scan run — the one path that executes untrusted branch content — held registry-write it could never use, since the push steps were already skipped there. The new `publish-image` job (`needs: docker-image`, same `if` gate) carries the permission alone, and reloads the already-built-and-scanned image from a build artifact instead of rebuilding it, so the published digest is still the one the smoke tests and Trivy ran against.
+- **OPcache is asserted, not installed (Finalize fix-loop).** Two attempts at the `prod` stage's opcache handling assumed a shared module — Checklist Step 2's `docker-php-ext-enable` against one the base image never builds, then the Finalize fix-loop's first pass compiling one from source — before the real cause surfaced: PHP 8.5 links Zend OPcache into the interpreter and loads it unconditionally, so there is no `opcache.so` to install in the first place. The `prod` stage now asserts `extension_loaded('Zend OPcache')` at build time, which fails the build the day that stops being true rather than leaving the `php-prod.ini` overlay's settings read by nobody.
+- **The application root's ownership is what makes the `config.php` symlink followable, not only what hardens the tree (Finalize fix-loop).** The base image leaves `/var/www/html` world-writable and sticky; on such a directory the kernel's `fs.protected_symlinks` refuses to follow a link owned by neither the follower nor the directory — exactly the shape of the root-owned `config.php → $PAGEKIT_DATA_DIR/config.php` link (Checklist Step 2, decision 4) crossed by `www-data`. `chown root:root` + `chmod 755` on the root is therefore load-bearing, not only the read-only hardening it reads like a restatement of: without it, an install reports success and leaves a `config.php` nothing can read back.
+- **The Trivy waiver is a named, expiring exception file, not a scan-wide allow-list (Finalize fix-loop).** `.trivyignore` names only the three TinyMCE CVEs a TinyMCE major (Step 5.1) will actually fix, each with its own review date; every other CRITICAL/HIGH finding — the risk the Checklist Step 4 gate was built for — still fails `docker-image`. This narrows that Risk entry's original "no allow-list" framing (below) without reopening the gate itself.
 
 ---
 
 ## 💥 Breaking Changes (Extensions)
 
-_TBD / None_
+None. `EnvConfigLoader`/`TrustedProxies` are additive loader/request-configuration infrastructure; the weather-key default changes (`''` instead of a shared key) but the `config('weather.key', '')` call site an extension would use is unchanged. Docker/CI/docs-only otherwise — no extension-facing PHP, JS, or REST surface changed.
 
 ---
 
@@ -127,8 +148,9 @@ _TBD / None_
 - **Weather widget default changes from a shared key to empty (Checklist Step 1).** `system/dashboard`'s `weather.key` no longer ships a working default; the dashboard's location widget shows its "unavailable" state on upgrade until an operator sets `PAGEKIT_WEATHER_API_KEY` or `config.php`'s `system/dashboard.weather.key`. Provider-side rotation of the old key is tracked under Maintainer action (Finalize).
 - **`base` now enables `mod_headers`/`mod_expires`, which also reaches the `dev` target (Checklist Step 2).** `a2enmod rewrite headers expires` moved into the shared `base` stage, so a rebuilt dev container starts enforcing `public/.htaccess`'s security headers and cache-expiry rules for the first time — both had silently no-op'd for want of the modules. A running dev container only picks this up on its next image rebuild.
 - **`web`'s resource limit is a hard ceiling, not a throttle (Checklist Step 3).** `docker-compose.prod.yml`'s `deploy.resources.limits` caps the container at `cpus: "2.0"` / `memory: 1G`, sized for a handful of concurrent requests at the image's 256M per-process PHP limit; reaching the memory ceiling under real traffic is an OOM kill, not a slowdown, so the limit needs raising before traffic does.
-- **The Trivy gate can turn a `develop` push red on an unrelated CVE (Checklist Step 4).** `docker-image.yml`'s scan step has no allow-list, so a newly-disclosed CRITICAL/HIGH in a base-image package blocks that push's GHCR publish — and the required `docker-image` check — until a rebuild picks up the fix, regardless of whether the triggering commit touched anything Docker-related.
+- **The Trivy gate can turn a `develop` push red on an unrelated CVE (Checklist Step 4; scope narrowed by the Finalize fix-loop's `.trivyignore`).** The gate still has no general allow-list — only the three named, expiring TinyMCE waivers described under Key Decisions and Security & Data Impact — so a newly-disclosed CRITICAL/HIGH in any other package still blocks that push's GHCR publish, and the required `docker-image` check, until a rebuild picks up the fix or the finding earns a waiver of its own.
 - **`PAGEKIT_AUTO_MIGRATE` is safe for one replica, documented rather than enforced (Checklist Step 6).** The entrypoint comment and `prod.env.example` both now say so, but nothing stops a multi-replica start from running `migration:migrate` from every container against the same database at once; a stack that scales `web` beyond one instance must run the migration as its own step (`docker compose … run --rm web php pagekit migration:migrate`) before the new build comes up. Orchestration (Step 4.11) is where replica-aware startup would actually enforce this.
+- **The entrypoint no longer starts on a failed setup or migration (Finalize fix-loop).** `install_pagekit`'s `|| true` and the follow-up file-existence check are gone; `set -e` now ends the start itself on either failure. A container that previously came up anyway — serving the web installer, or the previous schema, at whatever address it's reachable on — now exits instead, so anything orchestrating restarts should expect that exit rather than a silently half-configured instance.
 
 ---
 
@@ -144,6 +166,7 @@ _TBD / None_
 - **A CVE gate and a scoped, ephemeral token stand between the built image and GHCR (Checklist Step 4).** `docker-image.yml` Trivy-scans the image (`CRITICAL,HIGH`, `ignore-unfixed`, non-zero exit on a hit) before any push step runs; the push itself authenticates with the workflow run's own `GITHUB_TOKEN` under a `packages: write` scope added only on the `docker-image` job (the workflow default stays `contents: read`), and is skipped entirely on `pull_request` events.
 - **The forwarded-protocol bypass on the HTTPS redirect now requires the server to have declared a proxy, not just the header (Checklist Step 6).** Closes a self-declared-header gap in the Checklist Step 2 guard: previously a request reaching the container's port directly could send `X-Forwarded-Proto: https` and skip the redirect itself. `public/.htaccess` now honours that header only inside `<IfDefine PAGEKIT_TRUSTED_PROXY>`, which `docker/entrypoint.sh` defines only when `PAGEKIT_TRUSTED_PROXIES` (Checklist Step 1) is actually set — proven in CI by a third container started with no proxy declared, asserted to still redirect when sent the header.
 - **`packages: write` no longer reaches a job that runs on pull requests (Checklist Step 6 — supersedes the Checklist Step 4 scoping).** The permission sat on the whole `docker-image` job, which is where every PR's build/boot/smoke/Trivy steps also run; it now lives only on the new `publish-image` job, downstream of a green scan and gated the same way (`github.event_name != 'pull_request'`).
+- **A dated, named exception is the only thing standing between three known TinyMCE CVEs and the Trivy gate (Finalize fix-loop).** `.trivyignore` waives `CVE-2026-47759`/`47761`/`47762` — stored-XSS bypasses in the admin content editor's own parser, reachable only by a user already trusted to author content — because their fix is a TinyMCE major (7.9.3/8.5.1) and the 5.x-line patch (5.11.1) ships under a commercial contract only. Each entry expires `2027-02-01` and the file carries a `Step 5.1` forward-debt tag, so the waiver cannot silently outlive the editor it covers.
 
 ---
 
@@ -153,6 +176,7 @@ _TBD / None_
 - **Rule 5 (audit debt closed) — Checklist Step 1:** the `AUDIT FIX Step 2.5` marker in `app/system/modules/dashboard/index.php` is removed now that the work it flagged is done.
 - **Rule 4 (Delete over wrap) — Checklist Step 2:** the prior single-target `Dockerfile` content is absorbed into the `base`/`dev` stages rather than kept beside a new, separate "prod" file — one `Dockerfile`, multi-stage, with `prod` as the default (last) target.
 - **Rule 4 (Delete over wrap) — Checklist Step 6:** the GHCR login/tag-resolve/push steps are removed from `docker-image` outright and re-created in the new `publish-image` job — no parallel push path, feature flag, or duplicate permission block bridges the two.
+- **Rule 5 (mandatory flagging) — Finalize fix-loop:** the three `.trivyignore` TinyMCE waivers carry a `// TODO: Must be refactored in Step 5.1 (Modern Block Editor)` forward-debt tag plus a per-line `exp:` review date each — the exception is dated and pointed at the step that closes it, not an open-ended carve-out.
 
 ---
 
@@ -161,14 +185,32 @@ _TBD / None_
 <!-- Links only. Quality metrics are CI-owned: link the PR sticky quality-report comment and the
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
-- CI run: _TBD_
-- Notable deviations: _TBD / None_
+| Gate | Result |
+|---|---|
+| CI — PR checks | ✅ success — [run #30624839565](https://github.com/Shadesman5/pagekit/actions/runs/30624839565) (`docker-image`, `hadolint`, `phpunit (8.5)`, `phpstan`, `cs-fixer`, `security-audit`, `version-ssot`, `phpunit-mysql`, `infection-diff`, `frontend`, `codecov/patch` all pass; `publish-image` skips by design on a PR event, `e2e-smoke`/`e2e-merge` skip — opt-in / push-only) |
+| Coverage gap pass | skipped — Codecov's patch diff flagged only `SetupCommand`/`app.php` boot wiring, which the ticket's `## TESTING STRATEGY` defers to the in-CI container proof (the workflow's web-installer and auto-setup containers); `Installer::runContentScript()` is covered directly by the Finalize fix-loop's own test instead |
+| Cursor Bugbot | ✅ findings fixed — final check on HEAD: pass |
+| E2E | ✅ PASS |
+| Finalize fix-loop | CI runtime + Bugbot, 10 commits (all resolved) — see above |
+
+**CI run:** https://github.com/Shadesman5/pagekit/actions/runs/30624839565
+
+**Metrics (CI-owned):** [PR #259](https://github.com/Shadesman5/pagekit/pull/259) sticky quality-report comment · [Quality Dashboard](https://Shadesman5.github.io/pagekit/quality/)
+
+**Notable deviations:** None (Checklist Steps 1–5). Checklist Step 6 + Finalize fix-loop (all resolved before the final clean Bugbot review):
+1. Hadolint info-level findings on `Dockerfile` (printf vhosts, numeric `USER 33:33`, JSON-form `HEALTHCHECK`) — folded into the Checklist Step 2 `Dockerfile` row and its Security & Data Impact bullet above.
+2. OPcache — the base image builds no shared module for it; PHP 8.5 links it in instead, so the stage asserts rather than installs it (see Key Decisions).
+3. `fs.protected_symlinks` on the base image's world-writable app root blocked the `config.php` symlink; `chown root:root` + `chmod 755` fixes it (see Key Decisions).
+4. `Installer::runContentScript()` scope isolation — a container's `config.php` was missing `database`/`locale` after auto-setup ran the demo content script.
+5. CI's `/tmp/` denial probe didn't account for the front controller's own trailing-slash redirect.
+6. Trivy gate — three TinyMCE CVEs waived by a dated `.trivyignore` (see Key Decisions + Security & Data Impact).
+7. Bugbot — blank `PAGEKIT_DB_PORT`/`PAGEKIT_DB_DRIVER` treated as unset, console exit status propagated, entrypoint's Apache `-D` define aligned with `TrustedProxies::parse()`; regression tests added alongside.
 
 ---
 
 ## 📋 Phase 1 Audit Closure
 
-_TBD / None_
+None (no `Closes Phase 1 audit:` line in the ticket header; Docker production-image scope does not touch a Phase 1 audit item).
 
 ---
 
@@ -177,7 +219,11 @@ _TBD / None_
 <!-- Human-only follow-ups the maintainer must do (ruleset flips, real Docker/Apache
      verification, secrets, etc.). Not ROADMAP deferrals — those go under Deferred. -->
 
-_TBD / None_
+1. **Runtime validation on a real Docker host** — build the `prod` target, `docker compose -f docker-compose.prod.yml --env-file prod.env up -d`, complete an install (or boot against an existing database), and browse both the frontend and `/admin`. CI run [#30624839565](https://github.com/Shadesman5/pagekit/actions/runs/30624839565) already proves build/boot/smoke on a real daemon (GitHub Actions runners have one); what it cannot prove is a persistent host — named volumes surviving a `down`/`up` cycle, the `pagekit-prod` alias commands, day-to-day manual browsing.
+2. **Webroot denial, from the running container** — confirm `/config.php`, `/app/`, `/tmp/` and `/tmp` (and any other sensitive path Discovery turns up) serve no file contents, matching what the CI smoke probes already assert in the ephemeral runner container.
+3. **Header/rewrite parity against `public/.htaccess`** — with and without `X-Forwarded-Proto`, including the `<IfDefine PAGEKIT_TRUSTED_PROXY>` gate (Checklist Step 6).
+4. **Rotate the OpenWeatherMap key** in the provider dashboard — the key removed from `app/system/modules/dashboard/index.php` (Checklist Step 1) remains readable in prior git history; code removal alone does not revoke it.
+5. **GHCR package visibility** — confirm the first `develop`-branch run of `publish-image` pushes successfully with the workflow's own `GITHUB_TOKEN`, and link the package to the repo if the `org.opencontainers.image.source` OCI label did not do it automatically.
 
 ---
 
@@ -186,58 +232,55 @@ _TBD / None_
 <!-- Future ROADMAP/PHASE work, explicit non-goals, bridges. Do NOT put maintainer
      Manual Work here — that belongs under Maintainer action above. -->
 
-_TBD / None_
+- **Step 2.9 (Automated Update System)** — release-tagged container images (semver + `latest`); this step's CI publishes only moving `develop` / commit-SHA tags. *PHASE §2.9 already names this — no further amendment needed.*
+- **Step 4.5 (Performance)** — Redis/Memcached cache & session backend; the cache module has no Redis storage and sessions are DB-backed today, so wiring either now would invent an integration layer rather than use one. *PHASE §4.5 already covers this.*
+- **Step 4.6 (Monitoring)** — real health-check endpoints (the image `HEALTHCHECK` probes only the front controller) and container-native application log routing (Monolog → stderr; only Apache's own logs stream today). *PHASE §4.6 already names both.*
+- **Step 4.11 (Orchestration)** — Kubernetes/Helm, probes, HPA, and the multi-replica shared state `storage/`/`tmp/` would need. *PHASE §4.11 already covers this, prerequisite on 2.5.*
+- **Step 4.12 (Runtime engine)** — FrankenPHP / nginx+FPM evaluation; this step ships Apache throughout. *PHASE §4.12 already covers this.*
+- **Non-goals:** a Symfony secrets vault (env-only by design); a dev-container redesign beyond the surgical `target: dev` / `.dockerignore` touches.
+- **Bridges:** None.
 
 ---
 
 ## 📌 Follow-on (ROADMAP)
 
-_TBD / None_
+None — no ROADMAP sub-step created (contrast Step 2.4 → 2.4.1); all Deferred items above already have a PHASE home.
 
 ---
 
 ## 🧊 Parked (unplanned)
 
-_TBD / None_
+None.
 
 ---
 
 ## 🧹 Cleanup
 
-_TBD / None_
+None beyond the OpenWeatherMap key/marker removal already recorded under No-Mercy Compliance and Security & Data Impact.
 
 ---
 
 ## 🛡️ Audit
 
-_TBD / None_
+None (no Phase 1 audit item in scope; see Phase 1 Audit Closure above).
 
 ---
 
 ## 🎁 Bonus
 
-_TBD / None_
+None.
 
 ---
 
 ## 🔍 Research
 
-_TBD / None_
+None.
 
 ---
 
 ## 📎 Related Documents
 
-- Ticket: `migration-docs/tickets/active/PROMPT_2_5_Docker-Production-Image_plan.md` (_TBD_ → move to `done/` after Finalize)
+- Ticket: `migration-docs/tickets/done/PROMPT_2_5_Docker-Production-Image_plan.md` (archive after Finalize)
 - Task prompt: `migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_5_Docker-Production-Image.md`
 - Predecessor: Step 2.4.1 — Webroot Modernization (public/)
 - Successor: Step 2.6 — Filesystem Write Resilience
-
----
-
-## 📊 <Step-specific appendix>
-
-<!-- Narrative/structural notes only. Never a metrics table (coverage %, MSI, test counts): quality
-     numbers are CI-owned — link the sticky quality-report comment + dashboard instead. -->
-
-_TBD — remove this section if not applicable._
