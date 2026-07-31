@@ -143,12 +143,14 @@ FROM base AS prod
 ENV PAGEKIT_DATA_DIR=/var/www/data
 
 # php.ini-production is the shipped baseline; docker/php/php-prod.ini below
-# overrides what Pagekit needs on top of it. OPcache ships with PHP but the base
-# image builds no shared module for it, so it is compiled here - in this stage
-# rather than in `base`, whose extension set every other target inherits, because
-# only the production runtime requires it.
+# overrides what Pagekit needs on top of it. OPcache is neither built nor
+# enabled here: PHP 8.5 links it into the interpreter and loads it
+# unconditionally, so there is no opcache.so left to install and the overlay's
+# settings are the whole of the work. Were it ever absent, those settings would
+# be read by nobody and the image would compile every request anew without a
+# probe noticing, so the extension is asserted rather than assumed.
 RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
-    && docker-php-ext-install -j"$(nproc)" opcache
+    && php -r 'exit(extension_loaded("Zend OPcache") ? 0 : 1);'
 
 COPY docker/php/php-prod.ini "$PHP_INI_DIR/conf.d/zz-pagekit-prod.ini"
 
