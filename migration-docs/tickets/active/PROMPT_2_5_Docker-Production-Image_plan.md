@@ -59,7 +59,7 @@
 - [x] Step 2 (L) — Multi-target Dockerfile + prod php.ini + entrypoint + `.dockerignore` + proxy-aware redirects
 - [x] Step 3 (M) — `docker-compose.prod.yml` + prod env finalization
 - [x] Step 4 (M) — CI `docker-image.yml` (Hadolint + build + smoke + Trivy + GHCR)
-- [ ] Step 5 (S) — Docs (README production section, AGENTS.md)
+- [x] Step 5 (S) — Docs (README production section, AGENTS.md)
 - [ ] Step 6 (XL) — Review (Bugbot + Security) + E2E
 
 ## TESTING STRATEGY

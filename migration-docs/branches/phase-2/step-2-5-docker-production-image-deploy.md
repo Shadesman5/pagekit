@@ -74,6 +74,15 @@ Tests: none (test-writer: skip — compose YAML + env example only). Gates: Veri
 
 Tests: none (test-writer: skip — CI workflow YAML only). Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS.
 
+### Docs: README production guide & AGENTS.md caveats (Checklist Step 5)
+
+| File | Change |
+|---|---|
+| `README.md` | New `### Production (Docker)` subsection under Installation: image pull/build (`docker build --target prod`), the `prod.env.example` → `prod.env` copy step, `docker compose -f docker-compose.prod.yml --env-file prod.env up -d`, the SQLite `--no-deps web` path, and the `PAGEKIT_AUTO_SETUP`/`PAGEKIT_AUTO_MIGRATE` install note; a `PAGEKIT_*` env-var reference table (`DEBUG`/`SECRET`/`DB_*`/`TRUSTED_PROXIES`/`WEATHER_API_KEY`) plus prose for the entrypoint-only vars; a persistence subsection naming `pagekit_data`/`pagekit_storage`/`mysql_data` against what stays disposable (`tmp/`); a TLS/reverse-proxy subsection tying the `X-Forwarded-Proto` guard to `PAGEKIT_TRUSTED_PROXIES`; a `pagekit-prod` compose alias for day-2 operations; and a closing comparison of the two compose files (stage, mounts, ports, resource limits, project name). Elsewhere: the overview bullet now mentions the production image sharing the same `Dockerfile`, and the "Quick Start with Docker (Recommended)" heading drops "(Recommended)" for "(Development)" now that a production path exists too; the Development section's Apache bullet gains `mod_headers`/`mod_expires` (enabled on `base` since Checklist Step 2); the `docker compose up -d` comment and the Docker Environment Security bullets (env-file names, dev-only deploy warning) are reworded to cover both stacks instead of dev alone. |
+| `AGENTS.md` | Services table gains a `Docker prod stack` row (`cp prod.env.example prod.env` then `docker compose -f docker-compose.prod.yml --env-file prod.env up -d`; local machines only, no daemon in the VM). Four new caveat bullets: the multi-target `Dockerfile`'s stage order, with `prod` as the default target and `--target dev` as the explicit exception; static-only Docker validation in the VM (hadolint/shellcheck) versus the real build+boot+smoke+Trivy+push proof in `docker-image.yml`; the `prod.env`-not-`.env.prod` naming rationale (the `*.env` gitignore match); and `PAGEKIT_*` vars outranking `config.php` through the last-registered `EnvConfigLoader` (unset = no-op, `getenv()` not `$_ENV`), plus the test-side `putenv()`/`setTrustedProxies()` cleanup note. |
+
+Tests: none (test-writer: skip — docs only). Gates: Verifier (production) FAIL → PASS (AGENTS.md's GHCR publish-scope wording corrected to match Checklist Step 4's `push`/`workflow_dispatch` gating and its `develop`/dispatched-branch + `sha-<short>` tag set); Tester PHPUnit+PHPStan PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
