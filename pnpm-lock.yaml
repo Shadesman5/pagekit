@@ -30,8 +30,8 @@ importers:
         specifier: ^4.3.0
         version: 4.3.0
       tinymce:
-        specifier: ~5.10.9
-        version: 5.10.9
+        specifier: ~8.8.2
+        version: 8.8.2
       uikit:
         specifier: ~3.5.8
         version: 3.5.17
@@ -1080,8 +1080,8 @@ packages:
     resolution: {integrity: sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==}
     engines: {node: '>=12.0.0'}
 
-  tinymce@5.10.9:
-    resolution: {integrity: sha512-5bkrors87X9LhYX2xq8GgPHrIgJYHl87YNs+kBcjQ5I3CiUgzo/vFcGvT3MZQ9QHsEeYMhYO6a5CLGGffR8hMg==}
+  tinymce@8.8.2:
+    resolution: {integrity: sha512-wcUGaaAf4XFrQtbZtClbDN/QCqklXLlPt3+7UWliEoosuhnTOJUkXwf7Fzlq7agPnwkKKp1e4JGOhx3O1gWH3g==}
 
   to-regex-range@5.0.1:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
@@ -2045,7 +2045,7 @@ snapshots:
       fdir: 6.5.0(picomatch@4.0.5)
       picomatch: 4.0.5
 
-  tinymce@5.10.9: {}
+  tinymce@8.8.2: {}
 
   to-regex-range@5.0.1:
     dependencies:
