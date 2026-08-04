@@ -16,8 +16,14 @@ FROM php:8.5-apache AS base
 # Versions are deliberately unpinned - Debian moves point releases out of the
 # archive, so a pin turns into a build that cannot be reproduced at all.
 # The `prod` stage drops the ones only the compilation needed.
-# hadolint ignore=DL3008
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# The upgrade carries the base image's own packages past the state its
+# publication froze them in. It is not the answer to every advisory the image
+# scan raises - the ones against build dependencies are answered by dropping
+# those in `prod` - but libraries the runtime links against, libexpat1 through
+# the XML extensions being the standing example, can only be answered by taking
+# Debian's fix for them.
+# hadolint ignore=DL3005,DL3008
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     # git: Composer VCS repositories and --prefer-source installs
     git \
     # curl: HTTP checks against the running app from inside the container
