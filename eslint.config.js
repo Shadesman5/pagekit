@@ -37,8 +37,7 @@ module.exports = [
         grecaptcha: 'readonly',
         $pagekit: 'readonly',
         $editor: 'readonly',
-        CodeMirror: 'readonly',
-        tinyMCE: 'readonly'
+        CodeMirror: 'readonly'
       }
     },
     rules: {

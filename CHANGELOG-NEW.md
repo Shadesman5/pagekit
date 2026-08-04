@@ -1,6 +1,12 @@
 # Changelog
 
-## Pagekit 1.2.36 - Docker Production Image & Deploy (July 31, 2026)
+## Pagekit 1.2.36 - Docker Production Image & Deploy, TinyMCE removal (August 4, 2026)
+
+### 💥 Breaking Changes
+
+- **The TinyMCE editor is gone** — the `tinymce` option disappears from Settings → Misc, and with it the split visual/code view and the two UIkit presets (`Preload UIkit framework scripts`, `Add UIkit container class`) that only ever configured it. An installation whose stored `system/editor` config still names `tinymce` falls back to a plain textarea until an administrator picks **HTML** or **Codemirror** again. No migration ships for this: the modernization tree carries no production installations.
+- **`$editor` no longer carries `locale`, `content_css`, `content_js` or `body_class`** — all four were TinyMCE init options that reached it through a wholesale merge of the view data into the editor config; the HTML and CodeMirror editors never read them. Only `root_url` remains. A theme or extension that reads one of the dropped keys has to stop.
+- **`<v-editor>` drops its `mode` prop** — split view was a TinyMCE-only display mode, so the prop, the matching `system/editor.mode` config key, and the tab markup around the textarea are gone.
 
 ### ✨ Added
 
@@ -12,6 +18,7 @@
 ### ♻️ Changed
 
 - **The dev image also gains `mod_headers`/`mod_expires`** — both moved into the shared `base` stage alongside the existing `mod_rewrite`, since the production vhost needs them; a rebuilt dev container starts enforcing `public/.htaccess`'s security-header and cache-expiry rules for the first time (they had silently no-op'd for want of the modules).
+- **`editor.vue` and `editor-code.js` lost their dead split branches** — `editorMode`, the `unsplit` list, the switcher wiring in `mounted()`, `addCode()`, the second textarea and CodeMirror's split-only resize path all existed solely to serve TinyMCE.
 
 ### 🐛 Fixed
 
@@ -21,13 +28,17 @@
 - **The `config.php` symlink is now followable under `fs.protected_symlinks`** — the application root is `chown root:root` + `chmod 755` instead of inheriting the base image's world-writable, sticky default.
 - **OPcache is asserted rather than (incorrectly) installed** — PHP 8.5 links Zend OPcache into the interpreter; the build now asserts it's loaded instead of calling `docker-php-ext-enable`/`-install` against a module that was never built as a shared library.
 
+### ❌ Removed
+
+- **The editor module sheds roughly a third of its surface** — four component files (`editor-tinymce.js` plus the `pagekitLink`/`pagekitImage`/`pagekitVideo` plugin bridges), eleven committed skin stylesheets and the ~200-file published `tinymce/` asset tree are deleted, along with the `tinymce` npm dependency and its copy step in `scripts/assets.mjs`. The HTML editor (UIkit + CodeMirror + Markdown) and the plain CodeMirror editor cover the ground it held.
+
 ### 🔒 Security
 
 - **Committed OpenWeatherMap API key removed** — `app/system/modules/dashboard/index.php` defaults `weather.key` to `''`; every installation now supplies its own via `PAGEKIT_WEATHER_API_KEY` or `config.php`.
 - **Production runtime is non-root with a read-only application tree** — only `tmp/`, `storage/`, and the data volume are writable by `www-data`; error detail and PHP fingerprinting are off by default; the database is reachable only on the compose network.
 - **The HTTPS redirect trusts a declared proxy, not just its header** — `public/.htaccess`'s `X-Forwarded-Proto` bypass is gated behind an Apache `<IfDefine PAGEKIT_TRUSTED_PROXY>` that `entrypoint.sh` sets only when `PAGEKIT_TRUSTED_PROXIES` actually names one.
 - **GHCR publish carries its own, minimal permission** — `packages: write` lives only on the `publish-image` job (gated off pull requests), never on the job that builds and smoke-tests untrusted branch content.
-- **Trivy CVE gate, with a named and dated exception** — the image is scanned for CRITICAL/HIGH findings before any push; `.trivyignore` waives three TinyMCE 5.10.9 stored-XSS advisories with no available fix short of a TinyMCE major, each reviewed by 2027-02-01.
+- **Trivy CVE gate, passed without an exception** — the image is scanned for CRITICAL/HIGH findings before any push; `.trivyignore` is the one place a finding can be waived and needs a reason and a review date per entry, and it ends this release empty. The three stored-XSS advisories it was written for (`CVE-2026-47759`, `CVE-2026-47761`, `CVE-2026-47762`, in TinyMCE 5.10.9's content parser, with no fix short of an editor major) left with the editor.
 
 ---
 

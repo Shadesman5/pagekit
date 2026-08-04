@@ -4,8 +4,7 @@
  * These packages are not bundled: PHP registers them as plain script and link
  * tags below `app/assets/` and the editor module's `app/assets/`, so the whole
  * published distribution has to sit at those paths inside the webroot.
- * Existing files are overwritten in place - the destinations also receive
- * committed assets (the TinyMCE skin) that the copies must leave alone.
+ * Existing files are overwritten in place.
  */
 
 import fs from 'node:fs';
@@ -28,7 +27,6 @@ const copies = [
   // The view module script-loads the two full builds; the per-method modules
   // in the package root have no consumer.
   { package: 'lodash', dest: 'app/assets/lodash/dist', files: /^lodash.*\.js$/ },
-  { package: 'tinymce', dest: 'app/system/modules/editor/app/assets/tinymce' },
   { package: 'marked', dest: 'app/system/modules/editor/app/assets/marked' },
   // The fork is published under a capitalized name, which matters on Linux.
   { package: 'Codemirror', dest: 'app/system/modules/editor/app/assets/codemirror' }

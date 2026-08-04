@@ -523,10 +523,9 @@ theme: {
 
 ### Editor Options
 
-Multiple editor choices available in system settings:
+Two editor choices available in system settings:
 
--   **HTML Editor**: Simple WYSIWYG editing
--   **TinyMCE**: Advanced rich text editor with split-view mode
+-   **HTML Editor**: WYSIWYG editing with Markdown and code view
 -   **CodeMirror**: Syntax-highlighted code editor for developers
 
 ## Development Tools

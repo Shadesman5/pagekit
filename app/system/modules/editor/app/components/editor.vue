@@ -1,50 +1,16 @@
 <template>
-  <div :class="['pk-editor', editorMode, { 'uk-invisible': !ready && !editorMode }]">
-    <template v-if="editorMode === 'split'">
-      <ul ref="tab" class="uk-subnav uk-flex-right" uk-switcher>
-        <li>
-          <a href="">{{ 'Visual' | trans }}</a>
-        </li>
-        <li>
-          <a href="">{{ 'Code' | trans }}</a>
-        </li>
-      </ul>
-      <ul class="uk-switcher" :class="{ 'uk-invisible': !ready }">
-        <li ref="visual">
-          <textarea
-            ref="editor"
-            v-model="content"
-            autocomplete="off"
-            :style="{ height: height + 'px' }"
-            :class="{ 'uk-invisible': !show }"
-          />
-        </li>
-        <li ref="code">
-          <textarea
-            ref="editor-code"
-            v-model="content"
-            autocomplete="off"
-            :style="{ height: height + 'px' }"
-            :class="{ 'uk-invisible': !show }"
-          />
-        </li>
-      </ul>
-    </template>
-    <template v-else>
-      <textarea
-        ref="editor"
-        v-model="content"
-        autocomplete="off"
-        :style="{ height: height + 'px' }"
-        :class="{ 'uk-invisible': !show }"
-      />
-    </template>
+  <div :class="['pk-editor', { 'uk-invisible': !ready }]">
+    <textarea
+      ref="editor"
+      v-model="content"
+      autocomplete="off"
+      :style="{ height: height + 'px' }"
+      :class="{ 'uk-invisible': !show }"
+    />
   </div>
 </template>
 
 <script>
-import { $, on, addClass, closest } from 'uikit-util';
-
 // Utils
 import ImagePicker from './image-picker.vue';
 import VideoPicker from './video-picker.vue';
@@ -60,12 +26,6 @@ import EditorHtmlPluginImage from './htmleditor/image';
 import EditorHtmlPluginVideo from './htmleditor/video';
 import EditorHtmlPluginUrl from './htmleditor/url';
 
-// TinyMCE
-import TinyMCE from './tinymce/editor-tinymce';
-import TinyMCEPluginLink from './tinymce/link';
-import TinyMCEPluginImage from './tinymce/image';
-import TinyMCEPluginVideo from './tinymce/video';
-
 const VEditor = {
   components: {
     'editor-textarea': {
@@ -78,14 +38,13 @@ const VEditor = {
     'editor-code': EditorCode
   },
 
-  props: ['type', 'mode', 'value', 'options'],
+  props: ['type', 'value', 'options'],
 
   data() {
     return {
       editor: {},
       height: 500,
       show: false,
-      active: 0,
       ready: false,
       // TODO
       content: this.value
@@ -101,27 +60,12 @@ const VEditor = {
       'plugin-video': EditorHtmlPluginVideo,
       'plugin-url': EditorHtmlPluginUrl
     },
-    tinymce: {
-      'editor-html': TinyMCE,
-      'plugin-link': TinyMCEPluginLink,
-      'plugin-image': TinyMCEPluginImage,
-      'plugin-video': TinyMCEPluginVideo
-    },
     code: { 'editor-html': EditorCode }
   },
-
-  unsplit: ['html', 'code', 'textarea'],
 
   computed: {
     editorType() {
       return this.type || window.$pagekit.editor.editor || 'textarea';
-    },
-
-    editorMode() {
-      const editors = this.$options.unsplit;
-      return editors.indexOf(this.editorType) !== -1
-        ? ''
-        : this.mode || window.$pagekit.editor.mode || '';
     }
   },
 
@@ -141,27 +85,6 @@ const VEditor = {
     this.$on('hook:mounted', this.init);
   },
 
-  mounted() {
-    const vm = this;
-
-    if (this.editorMode === 'split') {
-      this.tab = UIkit.switcher(this.$refs.tab);
-
-      on(this.tab.connects, 'show', (e, tab) => {
-        if (tab !== vm.tab) return false;
-        for (let i = 0; i < Object.keys(tab.toggles).length; i++) {
-          const index = Object.keys(tab.toggles)[i];
-          if (closest($(tab.toggles[index]), 'li').classList.contains('uk-active')) {
-            vm.active = index;
-            break;
-          }
-        }
-      });
-
-      this.tab.show(this.active);
-    }
-  },
-
   methods: {
     createEditor() {
       const editors = Object.keys(this.$options.editors);
@@ -172,11 +95,6 @@ const VEditor = {
     },
 
     init() {
-      if (this.editorMode === 'split') {
-        const el = this.$el.previousElementSibling || this.$el.parentNode.previousElementSibling;
-        el && addClass(el, 'uk-position-absolute');
-      }
-
       if (this.options && this.options.height) {
         this.height = this.options.height;
       }
@@ -211,16 +129,7 @@ const VEditor = {
           },
           this
         );
-
-        if (self.editorMode === 'split') {
-          self.addCode();
-        }
       });
-    },
-
-    addCode() {
-      const CodeEditor = Vue.extend(this.$options.components['editor-code']);
-      new CodeEditor({ parent: this });
     }
   },
 

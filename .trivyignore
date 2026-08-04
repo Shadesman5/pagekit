@@ -1,16 +1,6 @@
 # The findings the image scan of .github/workflows/docker-image.yml accepts; everything not
-# named here still fails it. Each entry carries the date it is due back for review: past that
-# date Trivy counts the finding again and the gate goes red until someone has looked a second
-# time.
+# named here still fails it. An entry belongs here only where no rebuild of ours can clear the
+# finding, and it carries the reason plus the date it is due back for review: past that date
+# Trivy counts the finding again and the gate goes red until someone has looked a second time.
 #
-# TinyMCE 5.10.9, the admin content editor: three stored cross-site-scripting bypasses in its
-# own content parser (data-mce-* attributes, the media plugin's data-mce-object, mce:protected
-# comments). They are patched in 7.9.3 and 8.5.1, and on the 5.x line in 5.11.1, which is
-# published under a commercial support contract - so nothing installable closes them here,
-# while Trivy reports them as fixed and ignore-unfixed therefore leaves them in. The fix is the
-# editor major, which is a piece of work of its own. Until it happens, the exposure is an
-# editor served to authenticated administrators and content authored through it.
-# TODO: Must be refactored in Step 5.1 (Modern Block Editor) - these go with the editor they cover
-CVE-2026-47759 exp:2027-02-01
-CVE-2026-47761 exp:2027-02-01
-CVE-2026-47762 exp:2027-02-01
+# No waiver is currently active.
