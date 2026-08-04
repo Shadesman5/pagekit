@@ -15,13 +15,9 @@ FROM php:8.5-apache AS base
 # extensions compiled below. Nothing else: every entry has a consumer.
 # Versions are deliberately unpinned - Debian moves point releases out of the
 # archive, so a pin turns into a build that cannot be reproduced at all.
-# The upgrade carries the base image's Debian packages past the state they were
-# frozen in when it was published. Its own build predates the security updates
-# released since, and the image scan counts those as fixable findings against
-# us - the toolchain the extensions are compiled with pulls in libc6-dev and
-# with it the kernel headers, which is where they accumulate.
-# hadolint ignore=DL3005,DL3008
-RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
+# The `prod` stage drops the ones only the compilation needed.
+# hadolint ignore=DL3008
+RUN apt-get update && apt-get install -y --no-install-recommends \
     # git: Composer VCS repositories and --prefer-source installs
     git \
     # curl: HTTP checks against the running app from inside the container
@@ -158,6 +154,39 @@ RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
     && php -r 'exit(extension_loaded("Zend OPcache") ? 0 : 1);'
 
 COPY docker/php/php-prod.ini "$PHP_INI_DIR/conf.d/zz-pagekit-prod.ini"
+
+# The headers and the C toolchain the extensions were compiled against have no
+# consumer once they are built, and carrying them costs more than the space:
+# libc6-dev pulls in linux-libc-dev, and Debian publishes its kernel advisories
+# against the source package, so every one of them lands on those headers with
+# a fix the image scan then holds against us. The extensions need only the
+# shared libraries, which ldd names - marking those manual first is what keeps
+# `--auto-remove` from taking them along with the -dev packages that brought
+# them in. Their paths are matched as globs, so multiarch directories and
+# symlinks still resolve to the package that ships them, and the ones below
+# /usr/local are skipped: they are PHP's own and no package owns them. Both
+# halves of the result are asserted, because a package too many should fail
+# the build rather than ship a runtime whose gd or zip is gone.
+
+# The lookup is a pipeline, and the default shell (dash) reports only its last
+# command's status - a failing ldd or dpkg-query would pass for an empty
+# result, and an empty result marks nothing for the purge below to spare.
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# hadolint ignore=SC2016
+RUN set -eux; \
+    ldd "$(php -r 'echo ini_get("extension_dir");')"/*.so \
+    | awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); printf "*%s\n", so }' \
+    | sort -u \
+    | xargs -r dpkg-query --search \
+    | awk 'sub(":$", "", $1) { print $1 }' \
+    | sort -u \
+    | xargs -r apt-mark manual > /dev/null; \
+    apt-get purge -y --auto-remove \
+    libpng-dev libjpeg62-turbo-dev libfreetype6-dev libzip-dev linux-libc-dev; \
+    rm -rf /var/lib/apt/lists/*; \
+    php -r 'foreach (["gd", "zip", "pdo_mysql", "pdo_sqlite", "mbstring"] as $e) { extension_loaded($e) or exit(1); }'; \
+    ! dpkg-query --show linux-libc-dev 2>/dev/null
 
 # An unprivileged port, because the server runs as www-data and cannot bind 80.
 # AllowOverride keeps the committed public/.htaccess in charge of rewrites and
