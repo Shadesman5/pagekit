@@ -15,8 +15,13 @@ FROM php:8.5-apache AS base
 # extensions compiled below. Nothing else: every entry has a consumer.
 # Versions are deliberately unpinned - Debian moves point releases out of the
 # archive, so a pin turns into a build that cannot be reproduced at all.
-# hadolint ignore=DL3008
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# The upgrade carries the base image's Debian packages past the state they were
+# frozen in when it was published. Its own build predates the security updates
+# released since, and the image scan counts those as fixable findings against
+# us - the toolchain the extensions are compiled with pulls in libc6-dev and
+# with it the kernel headers, which is where they accumulate.
+# hadolint ignore=DL3005,DL3008
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     # git: Composer VCS repositories and --prefer-source installs
     git \
     # curl: HTTP checks against the running app from inside the container
