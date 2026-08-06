@@ -312,7 +312,7 @@ The production runtime is the last stage of the same `Dockerfile`, so a plain bu
     docker compose -f docker-compose.prod.yml --env-file prod.env up -d
     ```
 
-    Two services come up: Pagekit on port 8080 and MySQL beside it, reachable from the compose network only. Visitors arrive through the TLS proxy in front of that port rather than on it: `public/.htaccess` answers a plain HTTP request with a redirect to HTTPS, so `http://localhost:8080` in a browser leads to the proxy's address or nowhere. To run without a database server, on SQLite instead, set `PAGEKIT_DB_DRIVER=sqlite` and `PAGEKIT_DB_PATH=/var/www/data/pagekit.db` in `prod.env` and append `--no-deps web`.
+    Two services come up: Pagekit on port 8080 and MySQL beside it, reachable from the compose network only. Visitors arrive through the TLS proxy in front of that port rather than on it: `public/.htaccess` answers a plain HTTP request with a redirect to HTTPS, so `http://localhost:8080` in a browser leads to the proxy's address or nowhere. To run without a database server, on SQLite instead, set `PAGEKIT_DB_DRIVER=sqlite` in `prod.env` and append `--no-deps web`; the database file lands on the data volume, where the image puts it unless `PAGEKIT_DB_PATH` names somewhere else on that volume.
 
 4. **Install Pagekit**
 
@@ -334,7 +334,7 @@ Every `PAGEKIT_*` variable overrides the module defaults and `config.php` alike.
 | `PAGEKIT_SECRET`                                                     | Key the installation signs internal values with; set it to keep replicas identical (`openssl rand -hex 32`)  |
 | `PAGEKIT_DB_DRIVER`                                                  | Which connection is opened: `mysql` or `sqlite`                                                              |
 | `PAGEKIT_DB_HOST`, `_PORT`, `_NAME`, `_USER`, `_PASSWORD`, `_PREFIX` | The MySQL connection                                                                                         |
-| `PAGEKIT_DB_PATH`                                                    | SQLite database file; it has to sit on the data volume, the only writable place in the image                 |
+| `PAGEKIT_DB_PATH`                                                    | SQLite database file; the image puts it on the data volume, the only writable place in it, and a value of your own has to stay there |
 | `PAGEKIT_TRUSTED_PROXIES`                                            | Proxies whose forwarded headers describe the real request, as addresses or CIDR ranges; also what lets `X-Forwarded-Proto` stand in for TLS in the HTTPS redirect |
 | `PAGEKIT_WEATHER_API_KEY`                                            | OpenWeatherMap key for the dashboard's location widget                                                       |
 

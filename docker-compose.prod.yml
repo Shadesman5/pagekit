@@ -7,8 +7,9 @@
 #   docker compose -f docker-compose.prod.yml --env-file prod.env up -d
 #
 # To run without a database server, on SQLite instead: set PAGEKIT_DB_DRIVER=sqlite
-# and PAGEKIT_DB_PATH=/var/www/data/pagekit.db in prod.env and append
-# "--no-deps web", which starts the application on its own.
+# in prod.env and append "--no-deps web", which starts the application on its own.
+# The database file goes on the data volume below, where the image puts it unless
+# PAGEKIT_DB_PATH names somewhere else on that volume.
 #
 # TLS is not terminated here. Put a proxy in front that does, have it send
 # X-Forwarded-Proto, and list it in PAGEKIT_TRUSTED_PROXIES — that list is what

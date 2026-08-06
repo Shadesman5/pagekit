@@ -93,9 +93,12 @@ jobs:
 
       # SQLite on the data volume and an automatic install: the container brings up a complete
       # installation on its own, which is what the probes below need and what the zero-database
-      # deployment path documents. The bridge network the published port is reached over is named
-      # as the proxy in front, because the probes speak for one — a container that was told of no
-      # proxy answers every plain request with the redirect to HTTPS, header or not.
+      # deployment path documents. Where the database file goes is deliberately not said — the
+      # image's own default is what a deployment that names nothing gets, and the step after the
+      # healthcheck is what holds it to landing on the writable volume. The bridge network the
+      # published port is reached over is named as the proxy in front, because the probes speak
+      # for one — a container that was told of no proxy answers every plain request with the
+      # redirect to HTTPS, header or not.
       - name: Start the image on SQLite with an automatic install
         id: start
         run: |
@@ -104,7 +107,6 @@ jobs:
           docker run -d --name "$CONTAINER" \
             -p 127.0.0.1:8080:8080 \
             -e PAGEKIT_DB_DRIVER=sqlite \
-            -e PAGEKIT_DB_PATH=/var/www/data/pagekit.db \
             -e PAGEKIT_TRUSTED_PROXIES=172.16.0.0/12 \
             -e PAGEKIT_AUTO_SETUP=1 \
             -e PAGEKIT_ADMIN_USERNAME=admin \
@@ -139,6 +141,25 @@ jobs:
 
           echo "::error::the container did not become healthy within five minutes"
           exit 1
+
+      # The container above was told which driver to open and nothing about where to put the file,
+      # so this is the image's own default under test: the application root it would otherwise
+      # land in is read-only here, and an install that tried it would fail on a file it may not
+      # create. config.php has to name the same path, because a deployment that later stops
+      # passing the variable reads its database location from there and from nowhere else.
+      - name: Check the installation used the image's own SQLite default
+        run: |
+          if ! docker exec "$CONTAINER" test -s /var/www/data/pagekit.db; then
+            echo "::error::the installation did not write its database to the data volume"
+            exit 1
+          fi
+
+          if ! docker exec "$CONTAINER" php -r '$c = require "/var/www/data/config.php"; exit((($c["database"]["connections"]["sqlite"]["path"] ?? "") === "/var/www/data/pagekit.db") ? 0 : 1);'; then
+            echo "::error::config.php does not name the database file the installation used"
+            exit 1
+          fi
+
+          echo "ok: the installation put its database on the data volume without being told where"
 
       - name: Smoke-test the running container
         env:
@@ -260,7 +281,6 @@ jobs:
           docker run -d --name "$CONTAINER-installer" \
             -p 127.0.0.1:8081:8080 \
             -e PAGEKIT_DB_DRIVER=sqlite \
-            -e PAGEKIT_DB_PATH=/var/www/data/pagekit.db \
             -e PAGEKIT_TRUSTED_PROXIES=172.16.0.0/12 \
             "$IMAGE"
 
@@ -314,7 +334,6 @@ jobs:
           docker run -d --name "$CONTAINER-unproxied" \
             -p 127.0.0.1:8082:8080 \
             -e PAGEKIT_DB_DRIVER=sqlite \
-            -e PAGEKIT_DB_PATH=/var/www/data/pagekit.db \
             "$IMAGE"
 
       - name: Probe the forwarded protocol against it

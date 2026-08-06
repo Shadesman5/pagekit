@@ -149,6 +149,15 @@ FROM base AS prod
 # and, for an SQLite installation, the database file.
 ENV PAGEKIT_DATA_DIR=/var/www/data
 
+# The database module puts the SQLite file next to config.php, in an application
+# root this image leaves unwritable on purpose - an installation on SQLite would
+# fail on a file it is not allowed to create, and the file is the one thing about
+# a database server-less deployment that has to outlive the container anyway. It
+# is named here rather than left to the deployment because the image is what
+# knows where it can be written: the startup script hands the value to setup,
+# which writes it into config.php with the rest of the connection.
+ENV PAGEKIT_DB_PATH=$PAGEKIT_DATA_DIR/pagekit.db
+
 # php.ini-production is the shipped baseline; docker/php/php-prod.ini below
 # overrides what Pagekit needs on top of it. OPcache is neither built nor
 # enabled here: PHP 8.5 links it into the interpreter and loads it
