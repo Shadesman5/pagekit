@@ -115,7 +115,17 @@ class Installer
         try {
 
             if ('no-connection' == $status) {
-                throw new BadRequestHttpException(__('No database connection.'));
+                // Whatever check() has to say about it is the whole of what there
+                // is to go on: the file SQLite could not open, the host that
+                // refused. Answering with the sentence alone leaves an
+                // installation that failed without saying what of, and a
+                // container that ended its start with nothing in its log but the
+                // sentence.
+                throw new BadRequestHttpException(
+                    '' !== $message
+                        ? __('No database connection: %error%', ['%error%' => $message])
+                        : __('No database connection.')
+                );
             }
 
             if ('tables-exist' == $status) {
