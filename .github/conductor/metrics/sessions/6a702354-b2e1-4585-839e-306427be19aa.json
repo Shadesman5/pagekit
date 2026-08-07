@@ -11,19 +11,51 @@
   "status": "in_progress",
   "startedAt": "2026-08-07T20:39:10.674Z",
   "completedAt": null,
-  "phases": [],
+  "phases": [
+    {
+      "phaseKey": "31216765910-1-PLAN",
+      "type": "PLAN",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-08-07T20:39:15.572Z",
+      "durationMs": 1096498,
+      "agent": {
+        "id": "bc-6c2562c1-7dea-448e-9dfd-abf982e3b713",
+        "runId": "run-fafa5609-e282-4a73-8dca-1cca1ca1faf4",
+        "url": "https://cursor.com/agents/bc-6c2562c1-7dea-448e-9dfd-abf982e3b713",
+        "model": "grok-4.5"
+      },
+      "github": {
+        "runId": 31216765910,
+        "runAttempt": 1,
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/31216765910",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 82511,
+        "output": 71872,
+        "cacheRead": 4792334,
+        "cacheWrite": 382291,
+        "total": 5329008
+      },
+      "tokensSource": "cursor-api",
+      "result": "Plan ready: migration-docs/tickets/active/PROMPT_2_6_Filesystem-Write-Resilience_plan.md",
+      "outcome": "success"
+    }
+  ],
   "totals": {
     "tokens": {
-      "input": 0,
-      "output": 0,
-      "cacheRead": 0,
-      "cacheWrite": 0,
-      "total": 0
+      "input": 82511,
+      "output": 71872,
+      "cacheRead": 4792334,
+      "cacheWrite": 382291,
+      "total": 5329008
     },
-    "durationMs": 0,
-    "phaseCount": 0,
+    "durationMs": 1096498,
+    "phaseCount": 1,
     "escalations": 0,
-    "ghaJobs": 0,
-    "cloudAgents": 0
+    "ghaJobs": 1,
+    "cloudAgents": 1
   }
 }
