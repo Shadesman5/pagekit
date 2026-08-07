@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Pagekit\Installer\Package;
 
+use Pagekit\Filesystem\Filesystem;
 use Pagekit\Installer\Helper\Composer;
 use Psr\Container\ContainerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Output\StreamOutput;
 
@@ -56,7 +58,19 @@ class PackageManager
             $config['system.api'] = 'https://pagekit.com';
         }
 
-        $this->composer = new Composer($config, $output);
+        // ContainerInterface guarantees neither that these ids are registered nor
+        // what they resolve to — has() answers presence, get() returns mixed. Both
+        // collaborators therefore stay optional, and anything that is not the
+        // expected type leaves the helper on its own defaults.
+        $files = $this->app->has('file') ? $this->app->get('file') : null;
+        $logger = $this->app->has('log') ? $this->app->get('log') : null;
+
+        $this->composer = new Composer(
+            $config,
+            $output,
+            $files instanceof Filesystem ? $files : null,
+            $logger instanceof LoggerInterface ? $logger : null
+        );
     }
 
     /**

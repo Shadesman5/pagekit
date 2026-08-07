@@ -11,6 +11,9 @@ use Composer\Package\Package;
 use Composer\Repository\CompositeRepository;
 use Composer\Repository\InstalledFilesystemRepository;
 use Composer\Semver\VersionParser;
+use Pagekit\Filesystem\Filesystem;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class Composer
@@ -25,6 +28,10 @@ class Composer
 
     protected ?OutputInterface $output = null;
 
+    protected Filesystem $files;
+
+    protected LoggerInterface $logger;
+
     /** @var array<string, string> */
     protected array $packages = [];
 
@@ -32,11 +39,15 @@ class Composer
 
     /**
      * @param array<string, string> $config
+     * @param Filesystem|null       $files  Writer for the package registry, defaults to a plain local one
+     * @param LoggerInterface|null  $logger Defaults to discarding what it is given
      */
-    public function __construct(array $config, ?OutputInterface $output = null)
+    public function __construct(array $config, ?OutputInterface $output = null, ?Filesystem $files = null, ?LoggerInterface $logger = null)
     {
         $this->paths = $config;
         $this->output = $output;
+        $this->files = $files ?? new Filesystem();
+        $this->logger = $logger ?? new NullLogger();
 
         $this->file = $config['path.packages'] . '/' . $this->file;
         $this->blueprint = [
@@ -222,10 +233,16 @@ class Composer
 
     /**
      * Writes changes to packages file.
+     *
+     * The registry is read back with require, so a half-written file would be a fatal
+     * error for every later request, and a compiled copy of the previous one would
+     * outlive the write wherever opcache does not validate timestamps.
+     *
+     * @throws \RuntimeException if the registry could not be written
      */
     protected function writeConfig(): void
     {
-        file_put_contents($this->file, '<?php return ' . var_export($this->packages, true) . ';');
+        $this->files->dumpAtomic($this->file, '<?php return ' . var_export($this->packages, true) . ';');
     }
 
     /**

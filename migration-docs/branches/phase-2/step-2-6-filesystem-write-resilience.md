@@ -65,11 +65,28 @@ Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done
 
 Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done (Installer write-failed regression + SettingsController ignored-write-failure regression); Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
 
+### Package registry onto the primitive: Composer helper + PackageManager wiring (Checklist Step 4)
+
+| File | Change |
+|---|---|
+| `app/installer/src/Helper/Composer.php` | Constructor gains a trailing `?Filesystem $files = null, ?LoggerInterface $logger = null` (`$files ??= new Filesystem()`, `$logger ??= new NullLogger()` — `psr/log` was already a direct dependency). `writeConfig()`'s `file_put_contents($this->file, '<?php return ' . var_export($this->packages, true) . ';')` — whose return value was never checked — is replaced by `$this->files->dumpAtomic($this->file, ...)`; the docblock now documents `@throws \RuntimeException`. `readConfig()`'s `require` path, the `packages.php` layout and the `blueprint`/install/uninstall flow are unchanged. |
+| `app/installer/src/Package/PackageManager.php` | Constructor resolves the container's `file`/`log` services (each read only after its own `has()` check) and passes them into `new Composer(...)`, but only when each is actually `instanceof Filesystem` / `instanceof LoggerInterface` — `ContainerInterface::get()` returns `mixed`, so a container that registers either id with a non-conforming value now leaves the helper on its own `Filesystem`/`NullLogger` default instead of a `TypeError` at construction. |
+
+### Tests (Checklist Step 4)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Package/PackageRegistryWriteTest.php` (new) | Builds the `Composer` helper directly (a `RegistryComposer` subclass exposing `writeRegistry()`/`readRegistry()`) against a real temp `path.packages` directory: a written registry `require`s back to the exact package list and is readable through a second helper instance; a helper given a recording `Filesystem` writes through that instance, not a default one; replacing an existing registry leaves only `packages.php` in the vendor directory (no temp-file residue); a registry directory hardened read-only (skipped when still writable) makes the write throw `\RuntimeException` naming the target file, leaving the previous registry content and directory listing untouched; a helper built with no `Filesystem` argument still writes the registry itself via its own default. |
+| `tests/Unit/Package/PackageManagerMigrationTest.php` | One new test, `testConstructorGivesTheRegistryHelperTheContainersFilesystemAndLogger`: builds the manager against a container exposing a recording `Filesystem` and a mocked `LoggerInterface`, drives `addPackages()`/`writeConfig()` on the `Composer` helper the manager built (via a new `registryHelperOf()` reflection helper, since `install()`/`uninstall()` reach the registry write only behind a live Composer run), and asserts the write happened through the container's own filesystem service — not a default one the helper made for itself — and that the helper's `logger` property is the container's mock, not a discarding default. |
+
+Gates: Verifier (production) PASS after a comment-hygiene fix-loop; Tester PHPUnit+PHPStan PASS after adding the `instanceof` guards in `PackageManager` so a non-conforming stub `file`/`log` container service can't reach the `Composer` constructor untyped; test-writer done; Verifier (test files) PASS after a fix pinning that the manager passes its *own* filesystem/logger through to the `Composer` helper it builds, not merely that the helper accepts one; Tester PHPUnit+PHPStan PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
 
 - **`dumpAtomic()` resolves a symlinked target before the temp+rename dance (Checklist Step 1).** A `rename()` replaces whatever directory entry it is pointed at, so renaming straight over a symlinked `config.php` would replace the link itself with a plain file and orphan whatever it pointed at — a Docker deployment's `$PAGEKIT_DATA_DIR` volume (Step 2.5) is the concrete case this guards against. `dumpAtomic()` resolves the target to `realpath()` first whenever it is a symlink, so the temp file, the permission carry-over and the final `rename()` all act on the file the link points at, and the link itself survives untouched.
+- **`PackageManager` guards the container's `file`/`log` services with `instanceof` before handing them to `Composer` (Checklist Step 4).** `ContainerInterface::has()` only proves a service id is registered; `get()` returns `mixed` and guarantees nothing about the value's type. `Composer`'s constructor types its collaborators as `?Filesystem`/`?LoggerInterface`, so without the guard a container that registers `file`/`log` as something else (a test stub built for a different purpose, or any future non-conforming registration) would hit a `TypeError` at `new Composer(...)` instead of falling through to the helper's own `Filesystem`/`NullLogger` defaults.
 
 ---
 
@@ -90,6 +107,7 @@ _TBD / None_
 - **A symlinked `config.php` keeps pointing at its target after a write (Checklist Step 1).** Resolving the link before the temp+rename dance (see Key Decisions) means the first write through `dumpAtomic()` cannot silently sever the link a Docker deployment relies on to keep `config.php` on `$PAGEKIT_DATA_DIR` (Step 2.5).
 - **An existing target's permission bits survive a rewrite (Checklist Step 1).** `dumpAtomic()` carries `fileperms($target) & 0777` onto the replacement when the target already exists, so an operator-hardened `config.php` (e.g. `0600`) is not silently widened back to a fresh-file default by the next write through it.
 - **A failed settings save now fails loudly instead of reporting success (Checklist Step 3).** `SettingsController::saveAction()` used to ignore the return value of its `config.php` write, so a hardened or read-only application tree got back `['message' => 'success']` over a file that was never touched. The write now throws and the exception is left to propagate, so a failed save surfaces as an error instead of a false positive that hides unsaved settings from the administrator.
+- **A failed package-registry write no longer disappears silently (Checklist Step 4).** `Composer::writeConfig()`'s own `file_put_contents()` call ignored its return value entirely, so a `path.packages` directory an install/uninstall could not write left `packages.php` stale with no indication anything had failed. The write now throws `\RuntimeException` through `dumpAtomic()`, the same fail-loud fix Checklist Step 3 applied to the config writers.
 
 ---
 
@@ -97,6 +115,7 @@ _TBD / None_
 
 - **Rule 4 (Delete over wrap) — Checklist Step 2:** `Router::writeCache()`'s own temp+rename+fallback body is deleted outright in favor of delegating to `Filesystem::dumpAtomic()` — no parallel write path or flag keeps the old logic alive alongside the primitive.
 - **Rule 4 (Delete over wrap) — Checklist Step 3:** `SettingsController`'s own trailing `opcache_invalidate()` call is deleted outright now that `dumpAtomic()` invalidates centrally — no double invalidation kept alongside the primitive.
+- **Rule 4 (Delete over wrap) — Checklist Step 4:** `Composer::writeConfig()`'s own `file_put_contents()` call is replaced outright by delegation to `Filesystem::dumpAtomic()` — no parallel write path survives for callers without an injected `Filesystem`; the helper's `$files ??= new Filesystem()` default is what stands in for a missing collaborator, not a second write branch.
 
 ---
 
