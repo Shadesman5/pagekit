@@ -207,11 +207,13 @@ class Installer
 
                 $configuration->set('system.secret', bin2hex(random_bytes(32)));
 
-                if (!file_put_contents($this->configFile, $configuration->dump())) {
+                try {
+                    $this->app->get('file')->dumpAtomic($this->configFile, $configuration->dump());
+                } catch (\RuntimeException $e) {
 
                     $status = 'write-failed';
 
-                    throw new BadRequestHttpException(__('Can\'t write config.'));
+                    throw new BadRequestHttpException(__('Can\'t write config.'), $e);
                 }
             }
 

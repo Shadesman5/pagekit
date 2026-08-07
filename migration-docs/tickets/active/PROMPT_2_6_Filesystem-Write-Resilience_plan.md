@@ -48,7 +48,7 @@
      (after full step PASS incl. test-writer when applicable; for XL after reviews + E2E PASS) -->
 - [x] Step 1 (L) — Safety gates + `Filesystem::dumpAtomic()` primitive
 - [x] Step 2 (S) — Router `writeCache()` delegates to the primitive
-- [ ] Step 3 (M) — Config writers (Installer + SettingsController)
+- [x] Step 3 (M) — Config writers (Installer + SettingsController)
 - [ ] Step 4 (M) — Package registry (Composer helper + PackageManager wiring)
 - [ ] Step 5 (S) — Error-handling hygiene (constraint log + SelfupdateCommand cleanup)
 - [ ] Step 6 (XL) — Review (Bugbot + Security) + E2E

@@ -49,6 +49,22 @@ Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done
 
 Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done (delegation test + unwritable-cache degrade test); Verifier (test files) PASS; Tester FAIL once (an assertion on the post-`match()` generated URL required an exact path, too strict once the request context's base URL is prefixed onto it) → test-writer retry; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
 
+### Config writers onto the primitive: Installer + SettingsController (Checklist Step 3)
+
+| File | Change |
+|---|---|
+| `app/installer/src/Installer.php` | The install-time `config.php` write — previously `if (!file_put_contents($this->configFile, $configuration->dump()))` — is replaced by `try { $this->app->get('file')->dumpAtomic($this->configFile, $configuration->dump()); } catch (\RuntimeException $e) { $status = 'write-failed'; throw new BadRequestHttpException(__('Can\'t write config.'), $e); }`. The `write-failed` status and the user-facing message are unchanged; the caught primitive exception is now chained onto the `BadRequestHttpException` instead of being discarded. |
+| `app/system/modules/settings/src/Controller/SettingsController.php` | Constructor gains a trailing `private readonly Filesystem $file`, resolved by the container against the `file` service id (parameter-name matching — no `index.php` change). `saveAction()`'s `file_put_contents($file, $fileConfig->dump())` — whose return value was previously ignored — is replaced by `$this->file->dumpAtomic($file, $fileConfig->dump())`, which throws instead of silently returning `['message' => 'success']` on a failed write; the method's own trailing `opcache_invalidate($file)` call is deleted (the primitive now does it centrally). Docblock documents the new `@throws \RuntimeException` and that the failure is left to propagate. |
+
+### Tests (Checklist Step 3)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Installer/InstallerConfigWriteTest.php` (new) | Runs `Installer::install()` end-to-end against a real temp application root and a real `Filesystem` service (DB, password hashing, module cache and content script are stubs — only the config write is real): a successful install's `config.php` reads back the posted database connection, a `false` debug flag and a 64-char secret, with nothing else left in the root; a root `chmod`'d `0555` (skipped when the test user can still write it) makes the install report `status: write-failed` with the `Can't write config.` message and leaves no partial file behind. |
+| `tests/Unit/Settings/SettingsControllerTest.php` (new) | Constructs the controller directly — with a `require_once` of the settings-module file, since `Pagekit\System\` autoloads to `app/system/src`, not the module — against a real temp `config.php` and a real `Filesystem`: a save rewrites the edited key, carries the untouched connection and secret over, and leaves only `config.php` in the root; the database-backed options are recorded separately from the file; and hardening both the file and its directory to read-only (skipped when still writable) makes `saveAction()` throw instead of returning `['message' => 'success']`, leaves the original `config.php` content and the options store untouched, and leaves no stray file behind — the regression this step fixes. |
+
+Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done (Installer write-failed regression + SettingsController ignored-write-failure regression); Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -73,12 +89,14 @@ _TBD / None_
 
 - **A symlinked `config.php` keeps pointing at its target after a write (Checklist Step 1).** Resolving the link before the temp+rename dance (see Key Decisions) means the first write through `dumpAtomic()` cannot silently sever the link a Docker deployment relies on to keep `config.php` on `$PAGEKIT_DATA_DIR` (Step 2.5).
 - **An existing target's permission bits survive a rewrite (Checklist Step 1).** `dumpAtomic()` carries `fileperms($target) & 0777` onto the replacement when the target already exists, so an operator-hardened `config.php` (e.g. `0600`) is not silently widened back to a fresh-file default by the next write through it.
+- **A failed settings save now fails loudly instead of reporting success (Checklist Step 3).** `SettingsController::saveAction()` used to ignore the return value of its `config.php` write, so a hardened or read-only application tree got back `['message' => 'success']` over a file that was never touched. The write now throws and the exception is left to propagate, so a failed save surfaces as an error instead of a false positive that hides unsaved settings from the administrator.
 
 ---
 
 ## 🛡️ No-Mercy Compliance
 
 - **Rule 4 (Delete over wrap) — Checklist Step 2:** `Router::writeCache()`'s own temp+rename+fallback body is deleted outright in favor of delegating to `Filesystem::dumpAtomic()` — no parallel write path or flag keeps the old logic alive alongside the primitive.
+- **Rule 4 (Delete over wrap) — Checklist Step 3:** `SettingsController`'s own trailing `opcache_invalidate()` call is deleted outright now that `dumpAtomic()` invalidates centrally — no double invalidation kept alongside the primitive.
 
 ---
 
