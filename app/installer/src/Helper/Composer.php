@@ -71,7 +71,15 @@ class Composer
             try {
                 $normalized = $versionParser->normalize($version);
                 $refresh[] = new Package($name, $normalized, $version);
-            } catch (\UnexpectedValueException $e) {
+            } catch (\UnexpectedValueException) {
+                // Range constraints like ^1.0 or ~2.3 are legitimate input but cannot be
+                // normalized to a single version. Dropping the package from $refresh only
+                // skips the forced re-download; the install itself proceeds unchanged.
+                $this->logger->info(sprintf(
+                    'Version constraint for %s is not an exact version (%s); skipping forced refresh.',
+                    $name,
+                    $version
+                ));
             }
         }
 

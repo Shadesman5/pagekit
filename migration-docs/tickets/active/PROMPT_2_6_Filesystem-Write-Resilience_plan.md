@@ -50,7 +50,7 @@
 - [x] Step 2 (S) — Router `writeCache()` delegates to the primitive
 - [x] Step 3 (M) — Config writers (Installer + SettingsController)
 - [x] Step 4 (M) — Package registry (Composer helper + PackageManager wiring)
-- [ ] Step 5 (S) — Error-handling hygiene (constraint log + SelfupdateCommand cleanup)
+- [x] Step 5 (S) — Error-handling hygiene (constraint log + SelfupdateCommand cleanup)
 - [ ] Step 6 (XL) — Review (Bugbot + Security) + E2E
 
 ## TESTING STRATEGY

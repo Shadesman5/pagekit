@@ -81,12 +81,29 @@ Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done
 
 Gates: Verifier (production) PASS after a comment-hygiene fix-loop; Tester PHPUnit+PHPStan PASS after adding the `instanceof` guards in `PackageManager` so a non-conforming stub `file`/`log` container service can't reach the `Composer` constructor untyped; test-writer done; Verifier (test files) PASS after a fix pinning that the manager passes its *own* filesystem/logger through to the `Composer` helper it builds, not merely that the helper accepts one; Tester PHPUnit+PHPStan PASS.
 
+### Error-handling hygiene: constraint log line + `SelfupdateCommand` cleanup (Checklist Step 5)
+
+| File | Change |
+|---|---|
+| `app/installer/src/Helper/Composer.php` | `install()`'s `catch (\UnexpectedValueException $e)` block — previously empty, silently dropping a range-constrained package out of the forced-refresh list with no trace — now calls `$this->logger->info()` naming the package and its constraint (e.g. `^1.0`) before the loop continues; the package still installs and lands in the registry, only its forced re-download from `$refresh` is skipped. No other branch of `install()` changed. |
+| `app/console/src/Commands/SelfupdateCommand.php` | The commented-out former `execute()` body (the pre-discontinuation download/update/migrate flow) and the now-unused `use Pagekit\Installer\SelfUpdater;` import are deleted. The `// TODO: Step 5.6` marker, the `error()` + `Command::FAILURE` refusal, `getVersions()` and `download()` are untouched. |
+
+### Tests (Checklist Step 5)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Package/PackageInstallConstraintTest.php` (new) | Drives `Composer::install()` through a `RecordingComposer` subclass (overrides `composerUpdate()` so no real Composer run happens) and a recording PSR-3 logger: a range constraint (`^1.0`) logs exactly one info record naming the package and the constraint while the package still lands in `$updated` and in the on-disk registry read back via `require`; an exact version (`1.2.3`) is dropped into the refresh list with no log line; a mixed install of both kinds logs once per range constraint and accounts for every package in both the update list and the registry; the log record's `context` is empty and its message never contains the marketplace URL's credentials. |
+| `tests/Unit/Console/SelfupdateCommandTest.php` (new) | Drives `SelfupdateCommand` through a `CommandTester` against a `RecordingApplication` (records every container service id resolved): `execute()` returns `Command::FAILURE` and prints the discontinuation message both with and without `--url`, resolving no container service either time; `download()` (untouched by this step) still throws `\RuntimeException` for a missing URL and leaves no file behind — pinned as a regression guard alongside the cleanup. |
+
+Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
 
 - **`dumpAtomic()` resolves a symlinked target before the temp+rename dance (Checklist Step 1).** A `rename()` replaces whatever directory entry it is pointed at, so renaming straight over a symlinked `config.php` would replace the link itself with a plain file and orphan whatever it pointed at — a Docker deployment's `$PAGEKIT_DATA_DIR` volume (Step 2.5) is the concrete case this guards against. `dumpAtomic()` resolves the target to `realpath()` first whenever it is a symlink, so the temp file, the permission carry-over and the final `rename()` all act on the file the link points at, and the link itself survives untouched.
 - **`PackageManager` guards the container's `file`/`log` services with `instanceof` before handing them to `Composer` (Checklist Step 4).** `ContainerInterface::has()` only proves a service id is registered; `get()` returns `mixed` and guarantees nothing about the value's type. `Composer`'s constructor types its collaborators as `?Filesystem`/`?LoggerInterface`, so without the guard a container that registers `file`/`log` as something else (a test stub built for a different purpose, or any future non-conforming registration) would hit a `TypeError` at `new Composer(...)` instead of falling through to the helper's own `Filesystem`/`NullLogger` defaults.
+- **A range version constraint is logged, not skipped (Checklist Step 5).** `VersionParser::normalize()` only accepts exact versions, so a legitimate range constraint (`^1.0`, `~2.3`) throws `\UnexpectedValueException` inside `Composer::install()`'s per-package normalize loop; dropping the package itself there, instead of just its forced refresh, would break every install pinned to a range. The catch now logs at `info` level, naming the package and its constraint, and the install proceeds exactly as before — only the forced local-repository refresh (meaningful only for exact versions) is skipped.
 
 ---
 
@@ -108,6 +125,7 @@ _TBD / None_
 - **An existing target's permission bits survive a rewrite (Checklist Step 1).** `dumpAtomic()` carries `fileperms($target) & 0777` onto the replacement when the target already exists, so an operator-hardened `config.php` (e.g. `0600`) is not silently widened back to a fresh-file default by the next write through it.
 - **A failed settings save now fails loudly instead of reporting success (Checklist Step 3).** `SettingsController::saveAction()` used to ignore the return value of its `config.php` write, so a hardened or read-only application tree got back `['message' => 'success']` over a file that was never touched. The write now throws and the exception is left to propagate, so a failed save surfaces as an error instead of a false positive that hides unsaved settings from the administrator.
 - **A failed package-registry write no longer disappears silently (Checklist Step 4).** `Composer::writeConfig()`'s own `file_put_contents()` call ignored its return value entirely, so a `path.packages` directory an install/uninstall could not write left `packages.php` stale with no indication anything had failed. The write now throws `\RuntimeException` through `dumpAtomic()`, the same fail-loud fix Checklist Step 3 applied to the config writers.
+- **The new constraint-skip log line carries no marketplace credentials (Checklist Step 5).** `Composer::install()`'s info-level log names only the package and its version constraint; the `system.api` marketplace URL — which can embed a token — never reaches the message, so a range-constrained install's log trail cannot leak it.
 
 ---
 
@@ -116,6 +134,7 @@ _TBD / None_
 - **Rule 4 (Delete over wrap) — Checklist Step 2:** `Router::writeCache()`'s own temp+rename+fallback body is deleted outright in favor of delegating to `Filesystem::dumpAtomic()` — no parallel write path or flag keeps the old logic alive alongside the primitive.
 - **Rule 4 (Delete over wrap) — Checklist Step 3:** `SettingsController`'s own trailing `opcache_invalidate()` call is deleted outright now that `dumpAtomic()` invalidates centrally — no double invalidation kept alongside the primitive.
 - **Rule 4 (Delete over wrap) — Checklist Step 4:** `Composer::writeConfig()`'s own `file_put_contents()` call is replaced outright by delegation to `Filesystem::dumpAtomic()` — no parallel write path survives for callers without an injected `Filesystem`; the helper's `$files ??= new Filesystem()` default is what stands in for a missing collaborator, not a second write branch.
+- **Rule 4 (Delete over wrap) — Checklist Step 5:** `SelfupdateCommand`'s commented-out former `execute()` body and its now-unused `SelfUpdater` import are deleted outright — git history is the record of the discontinued implementation, not a comment block left beside the code that disabled it.
 
 ---
 
