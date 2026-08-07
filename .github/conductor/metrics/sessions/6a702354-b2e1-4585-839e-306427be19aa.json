@@ -9,21 +9,38 @@
   "branch": "feature/filesystem-write-resilience",
   "model": "grok-4.5",
   "status": "in_progress",
-  "startedAt": "2026-08-07T20:39:10.674Z",
-  "completedAt": null,
+  "startedAt": "2026-08-07T20:39:17.357Z",
+  "completedAt": "2026-08-07T20:57:29.671Z",
   "phases": [
     {
       "phaseKey": "31216765910-1-PLAN",
       "type": "PLAN",
       "attempt": 0,
       "batchSteps": null,
-      "startedAt": "2026-08-07T20:39:15.572Z",
-      "durationMs": 1096498,
+      "startedAt": "2026-08-07T20:39:17.357Z",
+      "durationMs": 1091478,
       "agent": {
         "id": "bc-6c2562c1-7dea-448e-9dfd-abf982e3b713",
         "runId": "run-fafa5609-e282-4a73-8dca-1cca1ca1faf4",
         "url": "https://cursor.com/agents/bc-6c2562c1-7dea-448e-9dfd-abf982e3b713",
-        "model": "grok-4.5"
+        "model": "grok-4.5",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-fafa5609-e282-4a73-8dca-1cca1ca1faf4",
+            "index": 1,
+            "startedAt": "2026-08-07T20:39:17.357Z",
+            "completedAt": "2026-08-07T20:57:29.671Z",
+            "durationMs": 1091478,
+            "tokens": {
+              "input": 82511,
+              "output": 71872,
+              "cacheRead": 4792334,
+              "cacheWrite": 382291,
+              "total": 5329008
+            }
+          }
+        ]
       },
       "github": {
         "runId": 31216765910,
@@ -41,7 +58,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "Plan ready: migration-docs/tickets/active/PROMPT_2_6_Filesystem-Write-Resilience_plan.md",
-      "outcome": "success"
+      "outcome": "success",
+      "completedAt": "2026-08-07T20:57:29.671Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -52,7 +71,7 @@
       "cacheWrite": 382291,
       "total": 5329008
     },
-    "durationMs": 1096498,
+    "durationMs": 1091478,
     "phaseCount": 1,
     "escalations": 0,
     "ghaJobs": 1,
