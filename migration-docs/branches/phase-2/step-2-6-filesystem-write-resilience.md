@@ -35,6 +35,20 @@ _TBD_
 
 Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
 
+### Router `writeCache()` delegates to the primitive (Checklist Step 2)
+
+| File | Change |
+|---|---|
+| `app/modules/routing/src/Router.php` | Constructor gains a trailing `Filesystem $files = new Filesystem()` collaborator (new-in-initializer default; no `index.php`/manifest change, no `filesystem` module dependency added). `writeCache()`'s own `tempnam()`/`chmod()`/`rename()`/`file_put_contents()` fallback body is deleted and replaced with a single delegation to `$this->files->dumpAtomic($file, $content)`; the method's `@throws \RuntimeException` contract is unchanged. `getCache()` freshness logic, the matcher/generator dumpers, and the corrupt-cache fallback in `getMatcher()`/`getGenerator()` are untouched. |
+
+### Tests (Checklist Step 2)
+
+| File | Change |
+|---|---|
+| `app/modules/routing/src/Tests/RouterTest.php` | Three new tests: `testDumpedCacheIsWrittenThroughTheFilesystem` (a stub `Filesystem` records each call; asserts `dumpAtomic()` receives the cache file path and the dumped matcher content, and that the real file lands on disk); `testUnwritableCacheDegradesToTheUncachedRouter` (a stub `Filesystem` throws `\RuntimeException` from every `dumpAtomic()` call — matching and generation still succeed from the non-cached path, both dumps were attempted, and the cache directory is left empty); `testCacheIsWrittenWithoutAnInjectedFilesystem` (a router built with the constructor's default `Filesystem` still writes a real cache file). Existing `testCorruptCacheFileFallsBackInsteadOfFatal` and `testCacheKeyReflectsRouteAffectingOptions` are unmodified. |
+
+Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done (delegation test + unwritable-cache degrade test); Verifier (test files) PASS; Tester FAIL once (an assertion on the post-`match()` generated URL required an exact path, too strict once the request context's base URL is prefixed onto it) → test-writer retry; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -64,7 +78,7 @@ _TBD / None_
 
 ## 🛡️ No-Mercy Compliance
 
-_TBD_
+- **Rule 4 (Delete over wrap) — Checklist Step 2:** `Router::writeCache()`'s own temp+rename+fallback body is deleted outright in favor of delegating to `Filesystem::dumpAtomic()` — no parallel write path or flag keeps the old logic alive alongside the primitive.
 
 ---
 
