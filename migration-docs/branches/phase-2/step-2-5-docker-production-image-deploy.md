@@ -294,7 +294,8 @@ None.
 
 ## 🧹 Cleanup
 
-None beyond the OpenWeatherMap key/marker removal already recorded under No-Mercy Compliance and Security & Data Impact.
+- The OpenWeatherMap key and its marker, already recorded under No-Mercy Compliance and Security & Data Impact.
+- `app/system/modules/theme/views/template.php`: the admin navbar's help icon, a link to the Pagekit community Discord that this project does not run. The icon is removed rather than repointed — where help lives for this fork is not this step's to decide, and a question mark leading somewhere abandoned is worse than none.
 
 ---
 

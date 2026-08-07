@@ -32,6 +32,7 @@
 ### ❌ Removed
 
 - **The editor module sheds roughly a third of its surface** — four component files (`editor-tinymce.js` plus the `pagekitLink`/`pagekitImage`/`pagekitVideo` plugin bridges), eleven committed skin stylesheets and the ~200-file published `tinymce/` asset tree are deleted, along with the `tinymce` npm dependency and its copy step in `scripts/assets.mjs`. The HTML editor (UIkit + CodeMirror + Markdown) and the plain CodeMirror editor cover the ground it held.
+- **The admin navbar's help icon is gone** — it linked to the Pagekit community Discord, which this project does not run; the "Visit Site" and "Logout" icons beside it are unchanged.
 - **The dashboard's location widget is deleted** — the component, its 13 weather icons, the `admin/dashboard/weather` proxy, the `weather.api`/`weather.key` configuration and `PAGEKIT_WEATHER_API_KEY`. Neither provider it depended on can be switched on by a new installation any more: OpenWeatherMap's `data/2.5` endpoints (the `/find` autocomplete among them) are closed to newly issued free keys, and the clock's time zone came from the Google Time Zone API, which requires a billing-enabled Google Cloud project. The panel and feed widgets are unaffected.
 
 ### 🔒 Security
