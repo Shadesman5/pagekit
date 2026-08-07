@@ -44,11 +44,6 @@ return [
     'config' => [
 
         'defaults' => [],
-        'weather.api' => 'http://api.openweathermap.org/data/2.5',
-        // Every installation brings its own OpenWeatherMap key, through
-        // PAGEKIT_WEATHER_API_KEY or config.php. Without one the location widget
-        // reports that the weather is unavailable.
-        'weather.key' => '',
 
     ],
 

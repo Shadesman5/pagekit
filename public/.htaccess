@@ -65,9 +65,7 @@
     # - img-src: Allow Gravatar and general HTTPS images
     # - connect-src: Allow external APIs for Dashboard widgets:
     #   * reCAPTCHA - Form protection
-    #   * OpenWeatherMap - Weather widget
     #   * pagekit.com - Update checks, marketplace
-    #   * maps.googleapis.com - Location widget (timezone API)
     #   * api.rss2json.com - Feed widget (RSS to JSON converter)
     # - frame-src: Allow reCAPTCHA iframe
     # - object-src: 'none' - No Flash/plugins
@@ -76,7 +74,7 @@
     # Note: chrome-extension: and moz-extension: allowed for browser extensions (LanguageTool, password managers, etc.)
     #       Extensions are user-installed and trusted, so allowing them is safe and improves UX
     #       LanguageTool inline script hash added to allow extension's injected scripts
-    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-eval' chrome-extension: moz-extension: 'sha256-tq5fHKUNWCWMHbqZJgps3MZdMB//nQ7ZNRkFNo18098=' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; style-src 'self' 'unsafe-inline' chrome-extension: moz-extension:; img-src 'self' data: https: blob: chrome-extension: moz-extension:; font-src 'self' data: chrome-extension: moz-extension:; connect-src 'self' chrome-extension: moz-extension: https://www.google.com/recaptcha/ https://api.openweathermap.org https://pagekit.com https://maps.googleapis.com https://api.rss2json.com; frame-src 'self' chrome-extension: moz-extension: https://www.google.com/recaptcha/; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';"
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-eval' chrome-extension: moz-extension: 'sha256-tq5fHKUNWCWMHbqZJgps3MZdMB//nQ7ZNRkFNo18098=' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; style-src 'self' 'unsafe-inline' chrome-extension: moz-extension:; img-src 'self' data: https: blob: chrome-extension: moz-extension:; font-src 'self' data: chrome-extension: moz-extension:; connect-src 'self' chrome-extension: moz-extension: https://www.google.com/recaptcha/ https://pagekit.com https://api.rss2json.com; frame-src 'self' chrome-extension: moz-extension: https://www.google.com/recaptcha/; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';"
 
     # Cross-Origin-Opener-Policy - Isolate browsing context (prevents window.opener attacks)
     # This protects against malicious sites that open Pagekit in a popup and try to access the window
@@ -89,7 +87,7 @@
     # Cross-Origin-Embedder-Policy: REMOVED
     # COEP is primarily needed for SharedArrayBuffer (used by WebAssembly, Web Workers)
     # Pagekit doesn't use these features, so COEP causes more problems than it solves:
-    # - Blocks external resources (reCAPTCHA, OpenWeatherMap) that don't send CORP headers
+    # - Blocks external resources (reCAPTCHA, the feed widget's converter) that don't send CORP headers
     # - Breaks browser extensions (password managers, etc.)
     # - No security benefit for Pagekit's use case
     # COOP and CORP provide sufficient protection for Pagekit's needs

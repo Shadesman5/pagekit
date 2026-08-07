@@ -336,11 +336,8 @@ Every `PAGEKIT_*` variable overrides the module defaults and `config.php` alike.
 | `PAGEKIT_DB_HOST`, `_PORT`, `_NAME`, `_USER`, `_PASSWORD`, `_PREFIX` | The MySQL connection                                                                                         |
 | `PAGEKIT_DB_PATH`                                                    | SQLite database file; the image puts it on the data volume, the only writable place in it, and a value of your own has to stay there |
 | `PAGEKIT_TRUSTED_PROXIES`                                            | Proxies whose forwarded headers describe the real request, as addresses or CIDR ranges; also what lets `X-Forwarded-Proto` stand in for TLS in the HTTPS redirect |
-| `PAGEKIT_WEATHER_API_KEY`                                            | OpenWeatherMap key for the dashboard's location widget                                                       |
 
 The startup script of the container reads a few more of its own: `PAGEKIT_DATA_DIR`, `PAGEKIT_AUTO_SETUP`, `PAGEKIT_ADMIN_USERNAME` / `_PASSWORD` / `_MAIL`, `PAGEKIT_SITE_TITLE`, `PAGEKIT_LOCALE` and `PAGEKIT_AUTO_MIGRATE`. All of them are documented in place in `prod.env.example`.
-
-No OpenWeatherMap key ships with Pagekit: every installation brings its own, from https://openweathermap.org, through `PAGEKIT_WEATHER_API_KEY` or `'system/dashboard' => ['weather.key' => '…']` in `config.php`. Without one the dashboard's location widget reports the weather as unavailable, and nothing else is affected.
 
 #### What the container keeps
 

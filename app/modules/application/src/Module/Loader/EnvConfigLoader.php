@@ -62,14 +62,6 @@ final class EnvConfigLoader extends ConfigLoader
             $values['database'] = $database;
         }
 
-        if (($key = self::env('PAGEKIT_WEATHER_API_KEY')) !== null) {
-            // The dashboard module stores its key under the literal, flat key
-            // "weather.key". Arr::get() answers a flat key before it treats the
-            // dot as a path, so the override has to use the same shape to be
-            // the value that is found.
-            $values['system/dashboard'] = ['weather.key' => $key];
-        }
-
         return $values;
     }
 

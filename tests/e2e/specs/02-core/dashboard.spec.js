@@ -100,7 +100,6 @@ test.describe('Pagekit Dashboard', { tag: '@ci' }, () => {
       // Check for actual Pagekit widgets (based on live dashboard analysis - language independent)
       const commonWidgets = [
         { name: 'User Stats', selector: 'heading[level="3"]', icon: '👥' },
-        { name: 'Weather Widget', selector: 'heading[level="1"]', icon: '🌤️' },
         { name: 'Pagekit News', selector: 'heading:has-text("News")', icon: '📰' },
         {
           name: 'Add Widget Button',

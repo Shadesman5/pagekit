@@ -53,7 +53,6 @@ services:
       - PAGEKIT_DB_PREFIX
       - PAGEKIT_DB_PATH
       - PAGEKIT_TRUSTED_PROXIES
-      - PAGEKIT_WEATHER_API_KEY
       # Read by the startup script of the image, not by the application.
       - PAGEKIT_AUTO_SETUP
       - PAGEKIT_ADMIN_USERNAME

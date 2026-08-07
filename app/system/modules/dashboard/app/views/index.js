@@ -5,7 +5,6 @@ import Version from '@installer/app/lib/version';
 
 import Panel from '../components/widget-panel.vue';
 import Feed from '../components/widget-feed.vue';
-import Location from '../components/widget-location.vue';
 
 window.Dashboard = {
   name: 'dashboard',
@@ -209,8 +208,7 @@ window.Dashboard = {
 
   components: {
     panel: Panel,
-    feed: Feed,
-    location: Location
+    feed: Feed
   }
 };
 

@@ -41,7 +41,6 @@ final class EnvConfigLoaderTest extends TestCase
         'PAGEKIT_DB_PASSWORD',
         'PAGEKIT_DB_PREFIX',
         'PAGEKIT_DB_PATH',
-        'PAGEKIT_WEATHER_API_KEY',
     ];
 
     /** @var array<string, string> */
@@ -81,7 +80,7 @@ final class EnvConfigLoaderTest extends TestCase
     {
         $loader = new EnvConfigLoader();
 
-        foreach (['application', 'system', 'database', 'system/dashboard'] as $name) {
+        foreach (['application', 'system', 'database'] as $name) {
             $definition = ['name' => $name, 'config' => ['keep' => 'this']];
 
             self::assertSame(
@@ -291,45 +290,6 @@ final class EnvConfigLoaderTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
-    // system/dashboard: the OpenWeatherMap key.
-    // -----------------------------------------------------------------------
-
-    /**
-     * No OpenWeatherMap key ships with the repository. An installation that
-     * supplies none gets the widget's unavailable state, which is the only
-     * acceptable default for a credential.
-     */
-    public function testNoWeatherKeyShipsWithTheDashboard(): void
-    {
-        $dashboard = $this->configure('system/dashboard', self::dashboardDefaults());
-
-        self::assertSame('', $dashboard->config('weather.key'));
-    }
-
-    /**
-     * The dashboard reads its key under the flat, literal key "weather.key",
-     * and the module's own default is that flat key set to "". Arr::get()
-     * answers a flat key before it treats the dot as a path, so an override
-     * nested under a "weather" array would be shadowed by that empty default
-     * and never reach the controller.
-     */
-    public function testTheWeatherKeyArrivesUnderTheKeyTheDashboardReads(): void
-    {
-        putenv('PAGEKIT_WEATHER_API_KEY=weather-key-from-the-environment');
-
-        $dashboard = $this->configure('system/dashboard', self::dashboardDefaults());
-
-        self::assertSame('weather-key-from-the-environment', $dashboard->config('weather.key'));
-        self::assertSame('http://api.openweathermap.org/data/2.5', $dashboard->config('weather.api'));
-
-        $config = $dashboard->config();
-
-        self::assertIsArray($config);
-        self::assertArrayHasKey('weather.key', $config);
-        self::assertArrayNotHasKey('weather', $config);
-    }
-
-    // -----------------------------------------------------------------------
     // Precedence in the chain the boot files build.
     // -----------------------------------------------------------------------
 
@@ -420,14 +380,6 @@ final class EnvConfigLoaderTest extends TestCase
     private static function databaseDefaults(): array
     {
         return self::defaultsOf(dirname(__DIR__, 3).'/database/index.php');
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private static function dashboardDefaults(): array
-    {
-        return self::defaultsOf(dirname(__DIR__, 4).'/system/modules/dashboard/index.php');
     }
 
     /**
