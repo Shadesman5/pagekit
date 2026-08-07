@@ -1,16 +1,16 @@
 {
   "schemaVersion": 3,
   "source": "github-actions",
-  "updatedAt": "2026-08-07T19:03:56.190Z",
+  "updatedAt": "2026-08-07T19:06:12.311Z",
   "branch": "develop",
-  "commit": "ef013099fc208117735f99562354d7699df3197d",
+  "commit": "30387f23f9bb3e97f1971feb4786f0dbbfcfff2c",
   "workflows": {
     "phpTests": {
-      "runId": 30599396914,
+      "runId": 31209720421,
       "conclusion": "success"
     },
     "e2eTests": {
-      "runId": 30599396918,
+      "runId": 31209720491,
       "conclusion": "success"
     },
     "infectionFull": {
@@ -23,7 +23,7 @@
     "8.5-sqlite": {
       "db": "sqlite",
       "required": true,
-      "tests": 820,
+      "tests": 867,
       "failures": 0
     },
     "8.5-mysql": {
@@ -39,10 +39,10 @@
     "suppressedErrors": 694
   },
   "coverage": {
-    "linePercent": 7.14,
+    "linePercent": 7.3,
     "pinnedFloor": 7.1,
-    "statements": 47657,
-    "covered": 3403
+    "statements": 47680,
+    "covered": 3479
   },
   "infection": {
     "prDiff": {
@@ -69,7 +69,7 @@
     ],
     "specsTotal": 25,
     "specsPassed": 25,
-    "durationMs": 117405
+    "durationMs": 131213
   },
   "gates": {
     "csFixer": "pass",
