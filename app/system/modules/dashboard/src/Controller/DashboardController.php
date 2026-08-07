@@ -6,7 +6,6 @@ namespace Pagekit\Dashboard\Controller;
 
 use function Pagekit\__;
 
-use Pagekit\Application\Response as PagekitResponse;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Route;
@@ -18,20 +17,13 @@ class DashboardController
 {
     protected Module $dashboard;
 
-    protected string $api;
-
-    protected string $apiKey;
-
     public function __construct(
         private readonly ModuleManager $module,
         private readonly Request $request,
-        private readonly PagekitResponse $response,
         private readonly string $version,
         private readonly string $systemApi,
     ) {
         $this->dashboard = $this->module->get('system/dashboard');
-        $this->api = $this->dashboard->config('weather.api', 'http://api.openweathermap.org/data/2.5');
-        $this->apiKey = $this->dashboard->config('weather.key', '');
     }
 
     /**
@@ -150,26 +142,5 @@ class DashboardController
         }
 
         return ['message' => __('Widgets reordered.')];
-    }
-
-    #[Route('/weather', methods: ['GET'])]
-    public function weatherAction(): \Symfony\Component\HttpFoundation\Response
-    {
-        $rawData = $this->request->query->all()['data'] ?? [];
-        $data = is_array($rawData) ? $rawData : [];
-        $action = $this->request->query->get('action', '');
-
-        $url = $this->api;
-
-        if ($action === 'weather') {
-            $url .= '/weather';
-        } elseif ($action === 'find') {
-            $url .= '/find';
-        }
-
-        $data['APPID'] = $this->apiKey;
-        $url .= '?' . http_build_query($data);
-
-        return ($this->response)(file_get_contents((string) $url), 200, ['Content-Type' => 'application/json']);
     }
 }

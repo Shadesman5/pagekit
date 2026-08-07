@@ -17,9 +17,6 @@
 /app/system/modules/theme/js/theme.js
 /app/system/modules/theme/assets/css/theme.css
 
-# Don't ignore editor assets
-!/app/system/modules/editor/app/assets/tinymce_skin
-
 # Ignore vendor folder
 /app/vendor/*
 

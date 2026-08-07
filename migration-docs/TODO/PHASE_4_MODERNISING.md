@@ -119,6 +119,7 @@
   - Basic Application Metrics
   - Error Tracking (Sentry/Rollbar)
   - Performance Monitoring
+  - Container-native log routing — route Monolog to stderr when running containerized so `docker logs` / orchestrators capture application errors; today only the webserver streams to stdout/stderr while application logs land in `tmp/logs` inside the container. File logs stay the classic-install default.
 
 ---
 

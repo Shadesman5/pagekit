@@ -7,7 +7,11 @@
 services:
   # PHP + Apache. The project is mounted live, so edits need no image rebuild.
   web:
-    build: .
+    build:
+      context: .
+      # The Dockerfile builds the production runtime by default; development
+      # stops at the stage that bakes no code.
+      target: dev
     container_name: pagekit_web
     ports:
       - "8080:80"

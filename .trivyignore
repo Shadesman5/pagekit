@@ -1,0 +1,6 @@
+# The findings the image scan of .github/workflows/docker-image.yml accepts; everything not
+# named here still fails it. An entry belongs here only where no rebuild of ours can clear the
+# finding, and it carries the reason plus the date it is due back for review: past that date
+# Trivy counts the finding again and the gate goes red until someone has looked a second time.
+#
+# No waiver is currently active.

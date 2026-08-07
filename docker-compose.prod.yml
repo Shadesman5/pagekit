@@ -1,0 +1,111 @@
+# Production stack: the published image with a database server beside it. Nothing
+# is mounted from the host — the application lives in the image, and what has to
+# outlive it lives in named volumes.
+#
+# Copy prod.env.example to prod.env, fill it in, then start the stack with it:
+#
+#   docker compose -f docker-compose.prod.yml --env-file prod.env up -d
+#
+# To run without a database server, on SQLite instead: set PAGEKIT_DB_DRIVER=sqlite
+# in prod.env and append "--no-deps web", which starts the application on its own.
+# The database file goes on the data volume below, where the image puts it unless
+# PAGEKIT_DB_PATH names somewhere else on that volume.
+#
+# TLS is not terminated here. Put a proxy in front that does, have it send
+# X-Forwarded-Proto, and list it in PAGEKIT_TRUSTED_PROXIES — that list is what
+# makes the header count. Until it is set, the stack builds its URLs from the
+# plain HTTP request it sees and answers every request with the redirect to HTTPS
+# the header would have satisfied.
+
+# The development stack in docker-compose.yml takes its project name from the
+# directory. Naming this one keeps the two apart, so that starting production in a
+# working copy cannot replace development containers or reuse their volumes.
+name: pagekit-prod
+
+services:
+  # Pagekit itself: Apache and PHP from the image, serving as www-data on an
+  # unprivileged port.
+  web:
+    image: "ghcr.io/shadesman5/pagekit:${PAGEKIT_IMAGE_TAG:-develop}"
+    # Compose builds this stage whenever that tag is not on the host, which is how
+    # an installation following its own fork runs the same runtime from source.
+    # "docker compose ... pull" fetches the published build instead.
+    build:
+      context: .
+      target: prod
+    ports:
+      - "8080:8080"
+    # A variable listed without a value reaches the container only when prod.env
+    # or the shell defines it. That matters: the application reads an empty
+    # variable as an override with nothing, while an absent one leaves config.php
+    # and the module defaults in charge.
+    environment:
+      - PAGEKIT_DEBUG
+      - PAGEKIT_SECRET
+      # The database service below, addressed by its name on the compose network
+      # and opened with the credentials that create it.
+      - "PAGEKIT_DB_DRIVER=${PAGEKIT_DB_DRIVER:-mysql}"
+      - "PAGEKIT_DB_HOST=${PAGEKIT_DB_HOST:-mysql}"
+      - "PAGEKIT_DB_PORT=${PAGEKIT_DB_PORT:-3306}"
+      - "PAGEKIT_DB_NAME=${MYSQL_DATABASE:-pagekit}"
+      - "PAGEKIT_DB_USER=${MYSQL_USER:-pagekit}"
+      - "PAGEKIT_DB_PASSWORD=${MYSQL_PASSWORD}"
+      - PAGEKIT_DB_PREFIX
+      - PAGEKIT_DB_PATH
+      - PAGEKIT_TRUSTED_PROXIES
+      # Read by the startup script of the image, not by the application.
+      - PAGEKIT_AUTO_SETUP
+      - PAGEKIT_ADMIN_USERNAME
+      - PAGEKIT_ADMIN_PASSWORD
+      - PAGEKIT_ADMIN_MAIL
+      - PAGEKIT_SITE_TITLE
+      - PAGEKIT_LOCALE
+      - PAGEKIT_AUTO_MIGRATE
+    # config.php and, on SQLite, the database file; and the media library. Named
+    # volumes rather than host directories: they are created from what the image
+    # has at that path, ownership included, and www-data can therefore write them.
+    # tmp/ stays inside the container, where a cache belongs.
+    volumes:
+      - pagekit_data:/var/www/data
+      - pagekit_storage:/var/www/html/storage
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+    # A ceiling for the host's sake, sized for a handful of concurrent requests at
+    # the 256M per-process limit the image sets. Raise it along with the traffic:
+    # reaching it is an out-of-memory kill, not a slowdown. Compose v2 applies
+    # these to a plain "up" as well; only the retired docker-compose v1 binary
+    # treats them as Swarm-only and drops them without saying so.
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+
+  # The database. Deliberately unpublished: only the compose network reaches it,
+  # so the credentials below never have to survive the open internet.
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: "${MYSQL_DATABASE:-pagekit}"
+      MYSQL_USER: "${MYSQL_USER:-pagekit}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    # Ping over TCP, not the socket: first-boot initialization runs a temporary
+    # socket-only server, and a socket ping would report healthy while the port is
+    # still unreachable and the application already trying to connect.
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  pagekit_data:
+  pagekit_storage:
+  mysql_data:

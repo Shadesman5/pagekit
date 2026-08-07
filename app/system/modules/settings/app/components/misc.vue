@@ -27,46 +27,6 @@
         </select>
       </div>
     </div>
-    <div v-if="type === 'tinymce'" class="uk-margin-small">
-      <label for="form-user-editor" class="uk-form-label">{{ 'Display mode' | trans }}</label>
-      <div class="uk-form-controls uk-form-controls-text">
-        <div class="uk-margin-small">
-          <label
-            ><input v-model="mode" type="radio" class="uk-radio" value="" />
-            {{ 'Default' | trans }}</label
-          >
-        </div>
-        <div class="uk-margin-small">
-          <label
-            ><input v-model="mode" type="radio" class="uk-radio" value="split" />
-            {{ 'Spliting visual and code editor' | trans }}</label
-          >
-        </div>
-        <div class="uk-inline uk-form-width-large uk-text-meta">
-          <span>{{
-            'By default, only one editor is displayed; in split mode, visual and code editors are displayed at the same time.'
-              | trans
-          }}</span>
-        </div>
-      </div>
-    </div>
-    <div v-if="type === 'tinymce'" class="uk-margin-small">
-      <label for="form-tinymce-uikit" class="uk-form-label">{{ 'Presets' | trans }}</label>
-      <div class="uk-form-controls uk-form-controls-text">
-        <div class="uk-margin-small">
-          <label
-            ><input v-model="presets.tinymce_uikit" type="checkbox" class="uk-checkbox" />
-            {{ 'Preload UIkit framework scripts' | trans }}</label
-          >
-        </div>
-        <div class="uk-margin-small">
-          <label
-            ><input v-model="presets.tinymce_body_class" type="checkbox" class="uk-checkbox" />
-            {{ 'Add UIkit container class' | trans }}</label
-          >
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -85,9 +45,7 @@ export default {
   data() {
     return _.extend(
       {
-        type: window.$pagekit.editor.editor || '',
-        mode: window.$pagekit.editor.mode || '',
-        presets: window.$pagekit.editor.presets || {}
+        type: window.$pagekit.editor.editor || ''
       },
       window.$system
     );
@@ -99,36 +57,15 @@ export default {
       name: 'HTML',
       value: 'html'
     },
-    tinymce: {
-      name: 'TinyMCE',
-      value: 'tinymce',
-      split: true
-    },
     codemirror: {
       name: 'Codemirror',
       value: 'code'
     }
   },
 
-  computed: {
-    editor() {
-      return _.find(this.$options.editors, { value: this.type });
-    }
-  },
-
-  watch: {
-    type(value) {
-      if (!this.editor.split) {
-        this.mode = '';
-      }
-    }
-  },
-
   events: {
     'settings-save': function ($event, settings) {
-      const option = {
-        'system/editor': { editor: this.type, mode: this.mode, presets: this.presets }
-      };
+      const option = { 'system/editor': { editor: this.type } };
       _.extend(settings.options, option);
     }
   }

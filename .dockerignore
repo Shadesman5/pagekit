@@ -1,10 +1,18 @@
 # Build context: only what an image build actually needs is sent to the daemon.
-# The dev stack bind-mounts the project over /var/www/html at runtime, so nothing
-# below is required inside the image.
+# The dev image bakes no code at all - the dev stack bind-mounts the project over
+# /var/www/html at runtime - while the production build takes the sources and
+# produces the rest of the image from them.
 
 # Dependencies — installed in the image or in the running container
 node_modules
 app/vendor/
+
+# Webroot build output — the production build runs its own, and a copy from the
+# host would shadow it. The front controller and the server configuration below
+# it are committed and stay in the context.
+public/app
+public/packages
+public/storage
 
 # Runtime state and logs — the container writes its own
 tmp/
@@ -16,7 +24,9 @@ npm-debug.log
 config.php
 pagekit.db
 *.db
-.env
+
+# Environment files hold real credentials and are never part of a build
+*.env
 
 # Tests, reports and coverage output
 tests/
@@ -26,19 +36,22 @@ test-results/
 coverage
 .nyc_output
 
-# Documentation, CI and agent configuration
+# Documentation, CI and agent configuration. .trivyignore belongs to the workflow
+# that scans the finished image, not to the build that produces it.
 *.md
 README.md
 migration-docs/
 docs-site/
 .github/
 .cursor/
+.trivyignore
 
-# Docker artefacts — read by the daemon and Compose, never from inside the image
+# Docker artefacts — read by the daemon and Compose, never copied into an image.
+# docker/ itself is not excluded: the production stage copies the PHP
+# configuration and the entrypoint out of it.
 Dockerfile
 .dockerignore
 docker-compose*.yml
-docker/
 
 # Version control, editor and OS noise
 .git

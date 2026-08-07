@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit;
 
+use Pagekit\Application\TrustedProxies;
 use Pagekit\Event\EventDispatcher;
 use Pagekit\Module\ModuleManager;
 use Symfony\Component\HttpFoundation\Request;
@@ -46,6 +47,11 @@ class Application extends Container
     public function run(?Request $request = null): void
     {
         if ($request === null) {
+            // The request we build ourselves is the one that has to know about
+            // the proxy in front of it. A caller handing one in has already
+            // decided what to trust.
+            TrustedProxies::configureFromEnvironment();
+
             $request = Request::createFromGlobals();
         }
 

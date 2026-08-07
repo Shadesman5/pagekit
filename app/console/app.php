@@ -6,6 +6,7 @@ use Pagekit\Application as App;
 use Pagekit\Application\Console\Application as Console;
 use Pagekit\Module\Loader\AutoLoader;
 use Pagekit\Module\Loader\ConfigLoader;
+use Pagekit\Module\Loader\EnvConfigLoader;
 
 $loader = require $path.'/autoload.php';
 
@@ -23,11 +24,28 @@ $app->get('module')->register([
 $app->get('module')->addLoader(new AutoLoader($app->get('autoloader')));
 $app->get('module')->addLoader(new ConfigLoader(require $path.'/app/system/config.php'));
 
-if ($app->get('config.file')) {
-    $app->get('module')->addLoader(new ConfigLoader(require $app->get('config.file')));
+$configFile = $app->get('config.file');
+
+if ($configFile) {
+    $app->get('module')->addLoader(new ConfigLoader(require $configFile));
+}
+
+// Last loader wins, so the environment overrides config.php.
+$app->get('module')->addLoader(new EnvConfigLoader());
+
+// An installation without a configuration has no system to talk to; its console
+// is limited to the commands that set one up.
+if ($configFile) {
     $app->get('module')->load('system');
 }
+
 $app->get('module')->load('console');
 
 $console = new Console($app, 'Pagekit', $app->get('version'));
-$console->run();
+
+// Auto-exit is off, so the command hands its code back here instead of ending
+// the process on it, and this is where a failing command becomes a failing
+// process - what a container start or a CI step goes by. Codes above a byte wrap
+// around, 256 arriving as success, and are capped the way the console caps them
+// when it exits by itself.
+exit(min($console->run(), 255));

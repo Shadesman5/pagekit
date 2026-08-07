@@ -1,5 +1,50 @@
 # Changelog
 
+## Pagekit 1.2.36 - Docker Production Image & Deploy, TinyMCE removal (August 4, 2026)
+
+### 💥 Breaking Changes
+
+- **The TinyMCE editor is gone** — the `tinymce` option disappears from Settings → Misc, and with it the split visual/code view and the two UIkit presets (`Preload UIkit framework scripts`, `Add UIkit container class`) that only ever configured it. An installation whose stored `system/editor` config still names `tinymce` falls back to a plain textarea until an administrator picks **HTML** or **Codemirror** again. No migration ships for this: the modernization tree carries no production installations.
+- **`$editor` no longer carries `locale`, `content_css`, `content_js` or `body_class`** — all four were TinyMCE init options that reached it through a wholesale merge of the view data into the editor config; the HTML and CodeMirror editors never read them. Only `root_url` remains. A theme or extension that reads one of the dropped keys has to stop.
+- **`<v-editor>` drops its `mode` prop** — split view was a TinyMCE-only display mode, so the prop, the matching `system/editor.mode` config key, and the tab markup around the textarea are gone.
+- **The dashboard's location widget is gone** — a saved one disappears from the dashboard on the next load, since only widget types that still have a component are rendered; its entry stays in the stored widget configuration and is ignored until the dashboard is next saved. The `admin/dashboard/weather` route, the `weather.api`/`weather.key` module configuration an extension could have read, and `PAGEKIT_WEATHER_API_KEY` go with it.
+
+### ✨ Added
+
+- **Production Docker image** — the `Dockerfile` grows from one stage to five (`base`/`dev`/`composer-deps`/`assets`/`prod`); `prod` is the default `docker build` target and produces a non-root (`33:33`/`www-data`) Apache runtime on `:8080` with a read-only application tree, a prod-tuned `php.ini` overlay, and an `entrypoint.sh` that recreates writable state on every start, symlinks `config.php` onto a data volume, and can run `setup`/`migration:migrate` automatically. (Closes #158)
+- **12-factor container configuration** — `EnvConfigLoader` maps a fixed set of `PAGEKIT_*` variables onto the `application`/`system`/`database` config (registered last in all three boot files, so the environment always outranks `config.php`); a `TrustedProxies` helper configures `Request::setTrustedProxies()` from `PAGEKIT_TRUSTED_PROXIES` before the request is built.
+- **Production compose stack** — `docker-compose.prod.yml` (Pagekit + healthchecked MySQL 8.4, named volumes for `config.php`/storage/data, resource limits, no published DB port) and `prod.env.example` documenting every variable it or the image consumes.
+- **`docker-image.yml` CI workflow** — Hadolint → image build → runtime smoke (webroot denial, security headers, proxy-aware HTTPS redirect) → Trivy scan → GHCR publish (`develop` / `sha-<short>` tags), publish split into its own job so `packages: write` never reaches the build that runs on a pull request.
+
+### ♻️ Changed
+
+- **The dev image also gains `mod_headers`/`mod_expires`** — both moved into the shared `base` stage alongside the existing `mod_rewrite`, since the production vhost needs them; a rebuilt dev container starts enforcing `public/.htaccess`'s security-header and cache-expiry rules for the first time (they had silently no-op'd for want of the modules).
+- **`editor.vue` and `editor-code.js` lost their dead split branches** — `editorMode`, the `unsplit` list, the switcher wiring in `mounted()`, `addCode()`, the second textarea and CodeMirror's split-only resize path all existed solely to serve TinyMCE.
+
+### 🐛 Fixed
+
+- **A demo install's content script could blank out `config.php`** — `Installer::runContentScript()` now runs `install.php`/`install-demo.php` in a scope of their own; previously the script's own `$config`/`$db` assignments overwrote the array `install()` was about to write, so a completed installation could come out of it missing `database`/`locale`.
+- **A blank `PAGEKIT_DB_PORT` or `PAGEKIT_DB_DRIVER` no longer miscasts or throws** — both now read as unset (MySQL's own default port; no connection selected) instead of casting an empty string to `0` or rejecting an empty driver name.
+- **`php pagekit …` now exits with the command's own status** — the console previously always exited `0`, so a failing `setup` or `migration:migrate` reported success to whatever ran it; the entrypoint no longer masks a failed `setup` either, and now stops the container start on one.
+- **The `config.php` symlink is now followable under `fs.protected_symlinks`** — the application root is `chown root:root` + `chmod 755` instead of inheriting the base image's world-writable, sticky default.
+- **OPcache is asserted rather than (incorrectly) installed** — PHP 8.5 links Zend OPcache into the interpreter; the build now asserts it's loaded instead of calling `docker-php-ext-enable`/`-install` against a module that was never built as a shared library.
+
+### ❌ Removed
+
+- **The editor module sheds roughly a third of its surface** — four component files (`editor-tinymce.js` plus the `pagekitLink`/`pagekitImage`/`pagekitVideo` plugin bridges), eleven committed skin stylesheets and the ~200-file published `tinymce/` asset tree are deleted, along with the `tinymce` npm dependency and its copy step in `scripts/assets.mjs`. The HTML editor (UIkit + CodeMirror + Markdown) and the plain CodeMirror editor cover the ground it held.
+- **The admin navbar's help icon is gone** — it linked to the Pagekit community Discord, which this project does not run; the "Visit Site" and "Logout" icons beside it are unchanged.
+- **The dashboard's location widget is deleted** — the component, its 13 weather icons, the `admin/dashboard/weather` proxy, the `weather.api`/`weather.key` configuration and `PAGEKIT_WEATHER_API_KEY`. Neither provider it depended on can be switched on by a new installation any more: OpenWeatherMap's `data/2.5` endpoints (the `/find` autocomplete among them) are closed to newly issued free keys, and the clock's time zone came from the Google Time Zone API, which requires a billing-enabled Google Cloud project. The panel and feed widgets are unaffected.
+
+### 🔒 Security
+
+- **Committed OpenWeatherMap API key removed, along with the widget that needed one** — the hardcoded key first moved into the environment, and then the dashboard's location widget went with it, so no credential and no third-party destination remains: the CSP `connect-src` drops `api.openweathermap.org` and `maps.googleapis.com`, and the administrator's Google key that the widget sent from the browser is gone with them. The key arrived with the imported upstream sources and belongs to the upstream Pagekit project, whose own history carries it too — it cannot be revoked from here, so no longer using it is the whole of the available answer.
+- **Production runtime is non-root with a read-only application tree** — only `tmp/`, `storage/`, and the data volume are writable by `www-data`; error detail and PHP fingerprinting are off by default; the database is reachable only on the compose network.
+- **The HTTPS redirect trusts a declared proxy, not just its header** — `public/.htaccess`'s `X-Forwarded-Proto` bypass is gated behind an Apache `<IfDefine PAGEKIT_TRUSTED_PROXY>` that `entrypoint.sh` sets only when `PAGEKIT_TRUSTED_PROXIES` actually names one.
+- **GHCR publish carries its own, minimal permission** — `packages: write` lives only on the `publish-image` job (gated off pull requests), never on the job that builds and smoke-tests untrusted branch content.
+- **Trivy CVE gate, passed without an exception** — the image is scanned for CRITICAL/HIGH findings before any push; `.trivyignore` is the one place a finding can be waived and needs a reason and a review date per entry, and it ends this release empty. The three stored-XSS advisories it was written for (`CVE-2026-47759`, `CVE-2026-47761`, `CVE-2026-47762`, in TinyMCE 5.10.9's content parser, with no fix short of an editor major) left with the editor.
+
+---
+
 ## Pagekit 1.2.35 - CI Gates: coverage ratchet, complete quality report (July 31, 2026)
 
 ### ♻️ Changed

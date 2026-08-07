@@ -985,12 +985,6 @@ parameters:
 			path: app/system/modules/dashboard/views/index.php
 
 		-
-			message: '#^Undefined variable\: \$this$#'
-			identifier: variable.undefined
-			count: 1
-			path: app/system/modules/editor/index.php
-
-		-
 			message: '#^Variable \$app might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1

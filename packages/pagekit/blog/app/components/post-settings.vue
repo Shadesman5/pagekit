@@ -30,7 +30,7 @@
           <v-editor
             id="post-excerpt"
             v-model="post.excerpt"
-            :options="{ markdown: post.data.markdown, height: 150, scripts: false }"
+            :options="{ markdown: post.data.markdown, height: 150 }"
           />
         </div>
       </div>

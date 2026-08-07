@@ -115,7 +115,17 @@ class Installer
         try {
 
             if ('no-connection' == $status) {
-                throw new BadRequestHttpException(__('No database connection.'));
+                // Whatever check() has to say about it is the whole of what there
+                // is to go on: the file SQLite could not open, the host that
+                // refused. Answering with the sentence alone leaves an
+                // installation that failed without saying what of, and a
+                // container that ended its start with nothing in its log but the
+                // sentence.
+                throw new BadRequestHttpException(
+                    '' !== $message
+                        ? __('No database connection: %error%', ['%error%' => $message])
+                        : __('No database connection.')
+                );
             }
 
             if ('tables-exist' == $status) {
@@ -184,15 +194,7 @@ class Installer
                 }
             }
 
-            // $app is used by the require'd install scripts (install.php / install-demo.php)
-            $app = $this->app;
-            if (!$demo_content) {
-                if (file_exists(__DIR__.'/../install.php')) {
-                    require_once __DIR__.'/../install.php';
-                }
-            } elseif (file_exists(__DIR__.'/../install-demo.php')) {
-                require_once __DIR__.'/../install-demo.php';
-            }
+            $this->runContentScript(__DIR__.'/../'.($demo_content ? 'install-demo.php' : 'install.php'), $user);
 
             if (!$this->config) {
 
@@ -231,6 +233,30 @@ class Installer
         }
 
         return ['status' => $status, 'message' => $message];
+    }
+
+    /**
+     * Fills a fresh installation with its initial content.
+     *
+     * The script is included rather than called, and declares variables of its
+     * own - $db and $config among them. A scope of its own is what keeps those
+     * from landing in the caller's, whose $config is the configuration still to
+     * be written to config.php. What the script may read is therefore only what
+     * this scope hands it: the application as $app and, because the demo content
+     * signs one of its comments as the site owner, that account as $user. A
+     * second call cannot insert the content twice.
+     *
+     * @param array<string, mixed> $user The administrator the installation created.
+     */
+    protected function runContentScript(string $file, array $user): void
+    {
+        if (!file_exists($file)) {
+            return;
+        }
+
+        $app = $this->app;
+
+        require_once $file;
     }
 
     protected function createDatabase(): void

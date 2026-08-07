@@ -144,7 +144,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 -   **Frontend Modernization**: Vue.js 2.7 and UIkit 3.5 (jQuery completely removed)
 -   **Build Tools**: pnpm workspace with Vite bundling and Node-based LESS/asset scripts
 -   **Extension Compatibility**: Legacy extensions and themes require complete rewrite for new system
--   **Docker Support**: Complete containerized development environment
+-   **Docker Support**: Containerized development environment and a production image built from the same `Dockerfile`
 
 **Important Note**: Original Pagekit extensions and themes are **not compatible** with this modernized version and must be completely rewritten to work with the new architecture.
 
@@ -166,7 +166,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 
 ## Installation
 
-### Quick Start with Docker (Recommended)
+### Quick Start with Docker (Development)
 
 1. **Clone the repository**
 
@@ -250,7 +250,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 
     Point the document root at the `public/` directory. Sources, configuration, `tmp/` and the media library itself stay outside it and are never reachable over HTTP.
 
-    - **Apache**: `DocumentRoot /path/to/pagekit/public`, with `AllowOverride All` (the shipped `public/.htaccess` carries the rewrite rules and security headers), `Options FollowSymLinks` (the media library is a symlink) and `mod_rewrite` enabled
+    - **Apache**: `DocumentRoot /path/to/pagekit/public`, with `AllowOverride All` (the shipped `public/.htaccess` carries the rewrite rules and security headers), `Options FollowSymLinks` (the media library is a symlink) and `mod_rewrite` enabled. Behind anything that terminates TLS in front of Apache — Cloudflare, an nginx proxy, a load balancer — add `Define PAGEKIT_TRUSTED_PROXY` to the server configuration as well: the redirect to HTTPS steps aside for `X-Forwarded-Proto: https` only on a server that has been told a proxy is there, and until it has been, every request through the proxy is redirected back through it for ever. A server reached directly must not define it, or the header becomes anyone's way around the redirect.
     - **Nginx**: `root /path/to/pagekit/public;` and route unknown paths to the front controller: `try_files $uri /index.php$is_args$args;` — also deny `*.db` (e.g. `location ~* \.db$ { deny all; }`) since `.htaccess` does not apply.
     - **Permissions**: `tmp/` and `storage/` must be writable by the web server user
 
@@ -282,13 +282,104 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 
     It wraps `php -S <server> -t public public/index.php` and has to run from the project root.
 
+### Production (Docker)
+
+The production runtime is the last stage of the same `Dockerfile`, so a plain build produces it. It bakes the sources, the Composer dependencies without their development requirements and the built webroot; Apache serves `public/` as `www-data` on port 8080, nothing is mounted from the host, and the application tree stays read-only to the server that runs it.
+
+1. **Get the image**
+
+    ```bash
+    # Published builds: "develop" follows the branch, sha-<short> pins one commit
+    docker pull ghcr.io/shadesman5/pagekit:develop
+
+    # Or build it from a checkout
+    docker build --target prod -t ghcr.io/shadesman5/pagekit:develop .
+    ```
+
+    Building under the published name is what lets the compose file below find the result; if neither a pull nor a build has happened, `docker compose … up` builds the `prod` stage itself.
+
+2. **Write the environment file**
+
+    ```bash
+    cp prod.env.example prod.env
+    ```
+
+    `prod.env.example` carries every variable with a comment on what it does. The two MySQL passwords in it are placeholders and have to be replaced before the first start: they become the credentials the database container is created with. The `*.env` rule in `.gitignore` keeps `prod.env` out of the repository — it matches this name but not `.env.prod`, so leave the file called as it is.
+
+3. **Start the stack**
+
+    ```bash
+    docker compose -f docker-compose.prod.yml --env-file prod.env up -d
+    ```
+
+    Two services come up: Pagekit on port 8080 and MySQL beside it, reachable from the compose network only. Visitors arrive through the TLS proxy in front of that port rather than on it: `public/.htaccess` answers a plain HTTP request with a redirect to HTTPS, so `http://localhost:8080` in a browser leads to the proxy's address or nowhere. To run without a database server, on SQLite instead, set `PAGEKIT_DB_DRIVER=sqlite` in `prod.env` and append `--no-deps web`; the database file lands on the data volume, where the image puts it unless `PAGEKIT_DB_PATH` names somewhere else on that volume.
+
+4. **Install Pagekit**
+
+    `PAGEKIT_AUTO_SETUP=1`, together with `PAGEKIT_ADMIN_PASSWORD` and the other administrator variables, installs the site on the first start without a browser. That is the way in while nothing terminates TLS yet — the web installer is a page like any other and is redirected to HTTPS along with them — and the way to install a stack that is deployed rather than clicked through. With the proxy in place, opening the site walks through the web installer instead. A start that finds an existing installation leaves it untouched, so the switch can stay on.
+
+    `PAGEKIT_AUTO_MIGRATE=1` additionally applies pending migrations on every start; leaving it off keeps the moment the schema of a live site changes a decision of yours. It suits a single container. Replicas start together and would each migrate the same database, so a stack that runs more than one wants the migration as a job of its own before the new build comes up:
+
+    ```bash
+    docker compose -f docker-compose.prod.yml --env-file prod.env run --rm web php pagekit migration:migrate
+    ```
+
+#### Configuration through the environment
+
+Every `PAGEKIT_*` variable overrides the module defaults and `config.php` alike. One that is not set changes nothing, which is why an installation outside a container behaves exactly as it did before; one that is set to an empty string still counts as a value and overrides with it. The database driver and port are the exception, having no empty value to name: a blank `PAGEKIT_DB_DRIVER` selects no connection rather than ending the boot over a name nobody gave, and a blank `PAGEKIT_DB_PORT` leaves MySQL's default in place rather than a cast of nothing over it. Both arrive that way from an env file carrying the line without a value, or a compose file passing an unset one through.
+
+| Variable                                                             | Purpose                                                                                                     |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `PAGEKIT_DEBUG`                                                      | Error reporting and the debug toolbar (`1/true/on` or `0/false/off`). Never on for a public site             |
+| `PAGEKIT_SECRET`                                                     | Key the installation signs internal values with; set it to keep replicas identical (`openssl rand -hex 32`)  |
+| `PAGEKIT_DB_DRIVER`                                                  | Which connection is opened: `mysql` or `sqlite`                                                              |
+| `PAGEKIT_DB_HOST`, `_PORT`, `_NAME`, `_USER`, `_PASSWORD`, `_PREFIX` | The MySQL connection                                                                                         |
+| `PAGEKIT_DB_PATH`                                                    | SQLite database file; the image puts it on the data volume, the only writable place in it, and a value of your own has to stay there |
+| `PAGEKIT_TRUSTED_PROXIES`                                            | Proxies whose forwarded headers describe the real request, as addresses or CIDR ranges; also what lets `X-Forwarded-Proto` stand in for TLS in the HTTPS redirect |
+
+The startup script of the container reads a few more of its own: `PAGEKIT_DATA_DIR`, `PAGEKIT_AUTO_SETUP`, `PAGEKIT_ADMIN_USERNAME` / `_PASSWORD` / `_MAIL`, `PAGEKIT_SITE_TITLE`, `PAGEKIT_LOCALE` and `PAGEKIT_AUTO_MIGRATE`. All of them are documented in place in `prod.env.example`.
+
+#### What the container keeps
+
+Two named volumes hold what has to outlive it:
+
+-   `pagekit_data` → `/var/www/data`: `config.php` and, for an SQLite installation, the database file. The installer writes `config.php` and the settings screens rewrite it while the site runs, so the image ships it as a link into this directory rather than a file of its own.
+-   `pagekit_storage` → `/var/www/html/storage`: the media library.
+
+MySQL keeps its data in `mysql_data`. Everything else is disposable: `tmp/` is a cache the container recreates on each start, and the application comes from the image. A backup therefore covers the volumes, not the container.
+
+#### TLS and reverse proxies
+
+The container speaks plain HTTP, so TLS is terminated in front of it. Set `PAGEKIT_TRUSTED_PROXIES` to that proxy, as an address or a CIDR range, and have it send `X-Forwarded-Proto: https`. Both halves are needed. Pagekit reads scheme, host, port and client address from the forwarded headers of a listed proxy instead of from the internal connection it sees — absolute URLs, redirects and the decision to mark cookies secure all depend on that — and the container tells Apache that the same header may stand in for TLS, which is what keeps `public/.htaccess` from sending every request through the proxy back through it for ever.
+
+A container that is given no proxy believes no header: it answers a plain request with the redirect to HTTPS however the request describes itself, so anything that reaches port 8080 directly cannot claim its way past the redirect. The consequence is that the variable is not optional once a proxy is in front — without it the site loops instead of loading — and that a stack without one has no plain-HTTP way in.
+
+Until the proxy is there, then, install with `PAGEKIT_AUTO_SETUP` rather than through the browser. Setting `PAGEKIT_TRUSTED_PROXIES` to the network the requests come from is what makes `curl -H 'X-Forwarded-Proto: https'` reach such a stack, for exactly the reason a proxy reaches it.
+
+#### Running the stack
+
+Every command reaches the stack through the same two flags, which an alias keeps out of the way:
+
+```bash
+alias pagekit-prod='docker compose -f docker-compose.prod.yml --env-file prod.env'
+
+pagekit-prod ps                             # Service and health status
+pagekit-prod logs -f web                    # Apache and PHP write to the container's streams
+pagekit-prod pull && pagekit-prod up -d     # Move to a newer build of the configured tag
+pagekit-prod down                           # Stop the stack; the named volumes survive
+```
+
+#### Development stack and production stack
+
+Both are built from the same `Dockerfile` and are otherwise opposites. `docker-compose.yml` stops the build at the `dev` stage, mounts the working tree over the webroot, publishes MySQL and phpMyAdmin on the host and runs the asset watcher — a container to work in. `docker-compose.prod.yml` runs the finished `prod` image with no host mounts, no database port, memory and CPU limits and `restart: unless-stopped`. The two carry different compose project names, so a production stack started in a working copy cannot take over the development containers or their volumes.
+
 ## Development
 
 ### Docker Development Environment
 
 The Docker setup provides a complete development environment with:
 
--   **PHP 8.5** with Apache (`mod_rewrite`) and Composer. On top of the base image the build adds `pdo_mysql`, `gd` and `zip`; `pdo_sqlite`, `mbstring` and the XML extensions are already bundled
+-   **PHP 8.5** with Apache and Composer. Apache runs with `mod_rewrite`, `mod_headers` and `mod_expires`, the modules the shipped `public/.htaccess` needs for routing, security headers and cache lifetimes. On top of the base image the build adds `pdo_mysql`, `gd` and `zip`; `pdo_sqlite`, `mbstring` and the XML extensions are already bundled
 -   **MySQL 8.4** with phpMyAdmin — `web` and `phpmyadmin` start only once the MySQL healthcheck passes
 -   **Node.js 22 LTS** with pnpm (via Corepack) running `pnpm build` once and then `pnpm watch`
 -   **Live source**: the working tree is mounted into both containers, so PHP edits take effect immediately and asset changes are rebuilt by the watcher
@@ -429,10 +520,9 @@ theme: {
 
 ### Editor Options
 
-Multiple editor choices available in system settings:
+Two editor choices available in system settings:
 
--   **HTML Editor**: Simple WYSIWYG editing
--   **TinyMCE**: Advanced rich text editor with split-view mode
+-   **HTML Editor**: WYSIWYG editing with Markdown and code view
 -   **CodeMirror**: Syntax-highlighted code editor for developers
 
 ## Development Tools
@@ -473,7 +563,7 @@ pnpm cldr                                # Update locale data
 ### Docker Commands
 
 ```bash
-# Container management
+# Container management (development stack; see Production (Docker) for the other one)
 docker compose up -d                        # Start all services
 docker compose up -d --no-deps web node     # Start without MySQL (SQLite path)
 docker compose ps                           # Show container status
@@ -528,11 +618,11 @@ docker compose exec web chown -R www-data:www-data /var/www/html
 
 ### Docker Environment Security
 
-1. **Never commit environment files**: `.env` holds the generated database passwords. The `*.env` rule in `.gitignore` keeps it out of version control.
+1. **Never commit environment files**: `.env` holds the generated development passwords and `prod.env` the real ones. The `*.env` rule in `.gitignore` keeps both out of version control; only the `*.example` templates are tracked, and they carry placeholders.
 
 2. **Use the setup scripts**: Always use the provided setup scripts (`docker-setup.ps1` for Windows or `docker-setup.sh` for Linux/Mac) to generate secure passwords automatically. No credentials are hardcoded in any tracked file.
 
-3. **Development only**: the image, `docker-compose.yml`, `.env.example` and `docker/php/php.ini` are development artefacts — errors are displayed, MySQL is published on `localhost:3306` and the working tree is mounted into the container. Do not deploy them; a production image ships with its own configuration and secret handling.
+3. **Do not deploy the development stack**: the `dev` stage of the `Dockerfile`, `docker-compose.yml`, `.env.example` and `docker/php/php.ini` are made for local work — errors are displayed, MySQL is published on `localhost:3306` and the working tree is mounted into the container. Production is the `prod` stage with `docker-compose.prod.yml`: it serves as `www-data` from a read-only application tree, keeps errors in the container log, and receives its secrets from the environment instead of carrying them in a layer.
 
 4. **Regular updates**: Keep all Docker images and dependencies up to date for security patches.
 

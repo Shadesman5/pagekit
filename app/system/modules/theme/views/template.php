@@ -69,7 +69,6 @@
                                 <div class="uk-navbar-item uk-visible@m">
                                     <theme-navbar-items dir="right"></theme-navbar-items>
                                     <ul class="uk-iconnav uk-margin-right">
-                                        <li><a uk-icon="question" href="https://discord.gg/e7Kw47E" :title="'Get Help' | trans " target="_blank"></a></li>
                                         <li><a uk-icon="home" :href="$url.route('')" :title="'Visit Site' | trans " target="_blank"></a></li>
                                         <li><a uk-icon="sign-out" href="<?= $view->url('@user/logout', ['redirect' => 'admin/login']) ?>" :title="'Logout' | trans "></a></li>
                                     </ul>

@@ -1,0 +1,444 @@
+# The image gate: lint the Dockerfile, build the production target, prove the container serves
+# Pagekit and nothing beside it, scan the result, and publish it.
+#
+# The build and the runtime proof live here because they live nowhere else: the agent VMs have no
+# Docker daemon, so this workflow is the only place the production image is built and booted before
+# it reaches a registry.
+
+name: Docker Image
+
+run-name: "${{ github.event_name == 'pull_request' && format('Docker Image — PR #{0} ({1})', github.event.pull_request.number, github.head_ref) || format('Docker Image — {0}', github.ref_name) }}"
+
+on:
+  # Docker-relevant paths only: a build is minutes of runner time, and a pull request that leaves
+  # the image alone has nothing to rebuild. .trivyignore is in the list because it is an input to
+  # the scan below: a pull request that adds, renews or drops a waiver has to run the gate it moves.
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'Dockerfile'
+      - 'docker/**'
+      - 'docker-compose*.yml'
+      - '.dockerignore'
+      - 'prod.env.example'
+      - '.trivyignore'
+      - '.github/workflows/docker-image.yml'
+  # No path filter here: the image bakes the application, so every merge makes the published one
+  # stale whether or not it touched a Docker file.
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The tag the build loads into the runner's daemon. Smoke test, scan and the registry push all
+  # address this one build, so what is published is exactly what was proven.
+  IMAGE: 'pagekit:ci'
+  CONTAINER: pagekit-smoke
+
+jobs:
+  hadolint:
+    name: hadolint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5
+
+      # The action's default failure threshold (info) is the one the Dockerfile is kept clean at;
+      # its single exception is an inline `hadolint ignore` carrying the reason for it.
+      - name: Lint the Dockerfile
+        uses: hadolint/hadolint-action@2a66e89f53d0771bb131a7fa31f3136336094aa6 # v3.4.0
+        with:
+          dockerfile: Dockerfile
+
+  docker-image:
+    name: docker-image
+    runs-on: ubuntu-latest
+    # The build does not need the linter, but the registry does: a Dockerfile that fails review is
+    # not something to publish an image from.
+    needs: hadolint
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      # load: true keeps the result in the runner's daemon instead of sending it to a registry: the
+      # smoke test and the scan below both need it locally, and the push at the end retags this
+      # build rather than producing a second, unproven one. The cache export ignores its errors
+      # because a run with a read-only token (a fork or Dependabot pull request) cannot write it,
+      # and a cache nobody can fill is no reason to fail a build.
+      - name: Build the production image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          target: prod
+          load: true
+          push: false
+          tags: ${{ env.IMAGE }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max,ignore-error=true
+
+      # The example env file doubles as the fixture: interpolating it is what an operator's first
+      # "copy it, fill it in, bring the stack up" actually does.
+      - name: Validate the production compose file
+        run: docker compose -f docker-compose.prod.yml --env-file prod.env.example config --quiet
+
+      # SQLite on the data volume and an automatic install: the container brings up a complete
+      # installation on its own, which is what the probes below need and what the zero-database
+      # deployment path documents. Where the database file goes is deliberately not said — the
+      # image's own default is what a deployment that names nothing gets, and the step after the
+      # healthcheck is what holds it to landing on the writable volume. The bridge network the
+      # published port is reached over is named as the proxy in front, because the probes speak
+      # for one — a container that was told of no proxy answers every plain request with the
+      # redirect to HTTPS, header or not.
+      - name: Start the image on SQLite with an automatic install
+        id: start
+        run: |
+          # A throwaway administrator for a container thrown away with the runner. Setup insists on
+          # a password, and a workflow file is no place to keep a constant one.
+          docker run -d --name "$CONTAINER" \
+            -p 127.0.0.1:8080:8080 \
+            -e PAGEKIT_DB_DRIVER=sqlite \
+            -e PAGEKIT_TRUSTED_PROXIES=172.16.0.0/12 \
+            -e PAGEKIT_AUTO_SETUP=1 \
+            -e PAGEKIT_ADMIN_USERNAME=admin \
+            -e PAGEKIT_ADMIN_PASSWORD="$(openssl rand -hex 24)" \
+            -e PAGEKIT_ADMIN_MAIL=admin@example.com \
+            -e PAGEKIT_SITE_TITLE='Pagekit CI' \
+            "$IMAGE"
+
+      # The image's own HEALTHCHECK is the readiness signal, so waiting on it tests that too: the
+      # install has to finish and Apache has to answer before the container reports healthy.
+      - name: Wait for the container to report healthy
+        run: |
+          for _ in $(seq 1 60); do
+            if [ "$(docker inspect -f '{{.State.Running}}' "$CONTAINER")" != "true" ]; then
+              echo "::error::the container exited before it became healthy"
+              exit 1
+            fi
+
+            case "$(docker inspect -f '{{.State.Health.Status}}' "$CONTAINER")" in
+              healthy)
+                echo "container is healthy"
+                exit 0
+                ;;
+              unhealthy)
+                echo "::error::the container reported itself unhealthy"
+                exit 1
+                ;;
+            esac
+
+            sleep 5
+          done
+
+          echo "::error::the container did not become healthy within five minutes"
+          exit 1
+
+      # The container above was told which driver to open and nothing about where to put the file,
+      # so this is the image's own default under test: the application root it would otherwise
+      # land in is read-only here, and an install that tried it would fail on a file it may not
+      # create. config.php has to name the same path, because a deployment that later stops
+      # passing the variable reads its database location from there and from nowhere else.
+      - name: Check the installation used the image's own SQLite default
+        run: |
+          if ! docker exec "$CONTAINER" test -s /var/www/data/pagekit.db; then
+            echo "::error::the installation did not write its database to the data volume"
+            exit 1
+          fi
+
+          if ! docker exec "$CONTAINER" php -r '$c = require "/var/www/data/config.php"; exit((($c["database"]["connections"]["sqlite"]["path"] ?? "") === "/var/www/data/pagekit.db") ? 0 : 1);'; then
+            echo "::error::config.php does not name the database file the installation used"
+            exit 1
+          fi
+
+          echo "ok: the installation put its database on the data volume without being told where"
+
+      - name: Smoke-test the running container
+        env:
+          BASE_URL: http://127.0.0.1:8080
+        run: |
+          # Every probe that wants a real response declares the header a TLS-terminating proxy
+          # would: without it public/.htaccess redirects the plain request to HTTPS. Probes are
+          # collected rather than aborted on, so one run reports every broken assumption.
+          failed=0
+          body="$RUNNER_TEMP/probe-body"
+
+          # Prints the response code and leaves the response body in $body.
+          probe() {
+            curl -sS -o "$body" -w '%{http_code}' -H 'X-Forwarded-Proto: https' "$BASE_URL$1"
+          }
+
+          # The redirect the header suppresses is itself part of the contract, so it is checked
+          # without one, on the same container that honours it with one.
+          code="$(curl -sS -o /dev/null -w '%{http_code}' "$BASE_URL/")"
+          case "$code" in
+            30[12378]) echo "ok: / redirects a plain request to HTTPS ($code)" ;;
+            *)
+              echo "::error::/ answered $code where a redirect to HTTPS was expected"
+              failed=1
+              ;;
+          esac
+
+          # The front controller renders the site.
+          code="$(probe /)"
+          if [ "$code" = 200 ] && grep -qi '<html' "$body"; then
+            echo "ok: / is served by the front controller (200)"
+          else
+            echo "::error::/ answered $code and did not render a page"
+            failed=1
+          fi
+
+          # The admin login form is reachable for an anonymous visitor, which needs routing,
+          # sessions and the built assets' theme to all be present in the image.
+          code="$(probe /admin/login)"
+          if [ "$code" = 200 ] && grep -q 'credentials\[username\]' "$body"; then
+            echo "ok: /admin/login renders the login form (200)"
+          else
+            echo "::error::/admin/login answered $code without a login form"
+            failed=1
+          fi
+
+          # Nothing outside the webroot is served. Each of these exists in the image and none of
+          # them below public/, so the request has to end in the application's own 404 — never in
+          # the contents of the file.
+          for path in /config.php /composer.json /app/console/app.php /tmp; do
+            code="$(probe "$path")"
+            if [ "$code" != 403 ] && [ "$code" != 404 ]; then
+              echo "::error::$path answered $code instead of denying the request"
+              failed=1
+            elif grep -qE '<\?php|"require"' "$body"; then
+              echo "::error::$path served the contents of the file"
+              failed=1
+            else
+              echo "ok: $path is not served ($code)"
+            fi
+          done
+
+          # The same directory, asked for with the trailing slash a browser sends. A trailing
+          # slash is the application's to normalise — the front controller redirects it away
+          # before a route is looked up — so this request answers that redirect rather than the
+          # denial above. It says the same thing as long as the redirect points at the path just
+          # denied: what comes back is a pointer at a 404, never a listing of a directory
+          # outside the webroot.
+          answer="$(curl -sS -o /dev/null -w '%{http_code}|%{redirect_url}' -H 'X-Forwarded-Proto: https' "$BASE_URL/tmp/")"
+          code="${answer%%|*}"
+          target="${answer#*|}"
+
+          case "$code" in
+            30[12378])
+              case "$target" in
+                */tmp) echo "ok: /tmp/ is normalised to the denied /tmp ($code)" ;;
+                *)
+                  echo "::error::/tmp/ answered $code pointing at '$target' rather than at /tmp"
+                  failed=1
+                  ;;
+              esac
+              ;;
+            403 | 404) echo "ok: /tmp/ is not served ($code)" ;;
+            *)
+              echo "::error::/tmp/ answered $code instead of denying the request"
+              failed=1
+              ;;
+          esac
+
+          # The security headers of public/.htaccess are in effect, which is also the proof that
+          # mod_headers is enabled in the image — without it the whole block is silently skipped.
+          headers="$(curl -sS -o /dev/null -D - -H 'X-Forwarded-Proto: https' "$BASE_URL/")"
+          for header in X-Frame-Options Content-Security-Policy; do
+            if printf '%s' "$headers" | grep -qi "^$header:"; then
+              echo "ok: $header is set"
+            else
+              echo "::error::$header is missing — public/.htaccess is not being applied"
+              failed=1
+            fi
+          done
+
+          exit "$failed"
+
+      # Apache and the entrypoint write to the container's own streams, so this is the only record
+      # of what the installation did — printed whenever there was a container, whether the probes
+      # above passed or failed.
+      - name: Container log
+        if: always() && steps.start.conclusion == 'success'
+        run: docker logs "$CONTAINER"
+
+      # The other kind of first start: a container that is not told to install itself has to arrive
+      # at the web installer. Its config.php is a link onto an empty data volume, so the file does
+      # not exist while the application root the link sits in is deliberately not writable — the
+      # arrangement the installer's own requirement check has to understand, or the container stops
+      # at the requirements page and the documented "open the site and install it" path is dead.
+      - name: Start the image without an automatic install
+        id: start_installer
+        run: |
+          docker run -d --name "$CONTAINER-installer" \
+            -p 127.0.0.1:8081:8080 \
+            -e PAGEKIT_DB_DRIVER=sqlite \
+            -e PAGEKIT_TRUSTED_PROXIES=172.16.0.0/12 \
+            "$IMAGE"
+
+      - name: Probe the web installer
+        env:
+          BASE_URL: http://127.0.0.1:8081
+        run: |
+          body="$RUNNER_TEMP/installer-body"
+          code=000
+
+          # There is no installation to wait for here, only Apache, so this polls the page instead
+          # of the container's healthcheck interval.
+          for _ in $(seq 1 30); do
+            code="$(curl -sS -o "$body" -w '%{http_code}' -H 'X-Forwarded-Proto: https' "$BASE_URL/installer" || echo 000)"
+            if [ "$code" = 200 ]; then
+              break
+            fi
+            sleep 2
+          done
+
+          if [ "$code" != 200 ]; then
+            echo "::error::/installer answered $code instead of serving the installer"
+            head -c 2000 "$body"
+            exit 1
+          fi
+
+          if grep -q 'System Requirements' "$body"; then
+            echo "::error::the requirements check refuses the layout of the image itself"
+            cat "$body"
+            exit 1
+          fi
+
+          if ! grep -q 'id="installer"' "$body"; then
+            echo "::error::/installer answered 200 without rendering the installer"
+            head -c 2000 "$body"
+            exit 1
+          fi
+
+          echo "ok: a container without an automatic install serves the web installer (200)"
+
+      - name: Web installer container log
+        if: always() && steps.start_installer.conclusion == 'success'
+        run: docker logs "$CONTAINER-installer"
+
+      # The forwarded protocol is a client's to claim, and the two containers above believe it
+      # because they were told a proxy sits in front. One that was not has to keep redirecting:
+      # otherwise whoever reaches the port sends themselves past the redirect to HTTPS, which is
+      # the downgrade it exists against.
+      - name: Start the image without a declared proxy
+        run: |
+          docker run -d --name "$CONTAINER-unproxied" \
+            -p 127.0.0.1:8082:8080 \
+            -e PAGEKIT_DB_DRIVER=sqlite \
+            "$IMAGE"
+
+      - name: Probe the forwarded protocol against it
+        env:
+          BASE_URL: http://127.0.0.1:8082
+        run: |
+          code=000
+
+          # Apache is all this waits for: an installation the container has not been asked to
+          # make is beside the point when the answer under test is a redirect.
+          for _ in $(seq 1 30); do
+            code="$(curl -sS -o /dev/null -w '%{http_code}' -H 'X-Forwarded-Proto: https' "$BASE_URL/")" || code=000
+            if [ "$code" != 000 ]; then
+              break
+            fi
+            sleep 2
+          done
+
+          case "$code" in
+            30[12378]) echo "ok: a container told of no proxy redirects to HTTPS whatever the request claims ($code)" ;;
+            *)
+              echo "::error::/ answered $code — X-Forwarded-Proto was believed from an undeclared peer"
+              docker logs "$CONTAINER-unproxied"
+              exit 1
+              ;;
+          esac
+
+      # Fixed CRITICAL/HIGH findings fail the gate. Unfixed ones are left out: no rebuild of ours
+      # can clear them, and a gate that stays red on them stops being read. The named exceptions
+      # to that — findings a rebuild cannot clear either, because their fix is a major version
+      # away — live in .trivyignore with the reason and a review date each. The action prints
+      # that file before it scans, so what is being waived stands in the log of every run.
+      - name: Scan the image for known vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          exit-code: '1'
+
+      # Handing the finished image to the publish job rather than rebuilding it there: what reaches
+      # the registry is then byte for byte what the probes and the scan above ran against. The
+      # tarball is gzipped once and stored without further compression, since packing an image a
+      # second time buys nothing but runner minutes.
+      - name: Save the image for the publish job
+        if: github.event_name != 'pull_request'
+        run: docker save "$IMAGE" | gzip --fast > "$RUNNER_TEMP/pagekit-image.tar.gz"
+
+      - name: Upload the image
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pagekit-image
+          path: ${{ runner.temp }}/pagekit-image.tar.gz
+          retention-days: 1
+          compression-level: 0
+
+  # The one job allowed to write a package, and the one job a pull request never reaches. Keeping
+  # the registry token out of the job above means the build, the smoke tests and the scan — the
+  # steps that run untrusted branch content — hold nothing but the workflow's read-only default.
+  publish:
+    name: publish-image
+    runs-on: ubuntu-latest
+    needs: docker-image
+    if: github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Download the image
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: pagekit-image
+          path: ${{ runner.temp }}
+
+      - name: Load the image
+        run: docker load -i "$RUNNER_TEMP/pagekit-image.tar.gz"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Moving tags only: the branch a build came from, and the commit it was built at. Publishing
+      # release-tagged images (semver, latest) needs a release process this repository does not
+      # have yet.
+      - name: Resolve the registry tags
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          # The owner is mixed case on GitHub and lowercase in a registry; the action converts it.
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=sha,format=short
+
+      - name: Push the image to GHCR
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
+            docker tag "$IMAGE" "$tag"
+            docker push "$tag"
+          done <<< "$TAGS"

@@ -1,4 +1,4 @@
-import { css, closest, removeAttr, height, trigger } from 'uikit-util';
+import { closest, trigger } from 'uikit-util';
 
 export default {
   name: 'editor-code',
@@ -15,8 +15,7 @@ export default {
   methods: {
     init() {
       const self = this;
-      const mode = this.$parent.editorMode;
-      const $el = mode !== 'split' ? this.$parent.$refs.editor : this.$parent.$refs['editor-code'];
+      const $el = this.$parent.$refs.editor;
 
       this.editor = CodeMirror.fromTextArea(
         $el,
@@ -50,20 +49,11 @@ export default {
 
       this.editor.refresh();
 
-      if (mode !== 'split') {
-        this.$parent.ready = true;
-      }
+      this.$parent.ready = true;
 
       this.editor.on('change', () => {
         self.editor.save();
         trigger($el, 'input');
-      });
-
-      this.$watch('$parent.active', function (state) {
-        if (mode === 'split' && Number.parseInt(state) === 1) {
-          this.editor.setSize(null, this.getHeight(this.$parent.$refs.visual) - 2);
-          this.editor.refresh();
-        }
       });
 
       this.$watch('$parent.content', function (value) {
@@ -73,29 +63,15 @@ export default {
         }
       });
 
-      this.observe($el, mode);
+      this.observe($el);
 
       this.$emit('ready');
     },
 
-    getHeight(el) {
-      let h;
-
-      if (css(el, 'display') !== 'none') {
-        return height(el);
-      }
-      css(el, { position: 'absolute', visibility: 'hidden', display: 'block' });
-      h = height(el);
-      removeAttr(el, 'style');
-
-      return h;
-    },
-
-    observe(el, mode) {
+    observe(el) {
       const vm = this;
       const element = closest(el, '.uk-switcher>*');
 
-      if (mode === 'split') return;
       if (!element) return;
 
       const observer = new MutationObserver(() => {
