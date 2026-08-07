@@ -46,7 +46,7 @@
      L = large or loop-risk, XL = Review (Bugbot + Security) + E2E (mandatory last step, weight 8).
      A step orchestrator flips its box to [x] in the SAME commit as that step's code + tests
      (after full step PASS incl. test-writer when applicable; for XL after reviews + E2E PASS) -->
-- [ ] Step 1 (L) — Safety gates + `Filesystem::dumpAtomic()` primitive
+- [x] Step 1 (L) — Safety gates + `Filesystem::dumpAtomic()` primitive
 - [ ] Step 2 (S) — Router `writeCache()` delegates to the primitive
 - [ ] Step 3 (M) — Config writers (Installer + SettingsController)
 - [ ] Step 4 (M) — Package registry (Composer helper + PackageManager wiring)

@@ -107,6 +107,83 @@ class Filesystem
     }
 
     /**
+     * Writes a file in a single step, so that no reader can observe it half-written.
+     *
+     * The content goes into a temp file in the target's own directory and is moved into
+     * place with rename(). That move is atomic only within one filesystem, which is why
+     * the temp file lives next to the target instead of in the system temp directory.
+     * Where the platform refuses the move because a reader holds the target open
+     * (Windows), the write degrades to a direct locked write, which is NOT atomic - a
+     * concurrent reader can still see a partial file there.
+     *
+     * An existing target keeps its own permission bits, so that replacing a hardened
+     * file does not loosen it. A file that is created gets $mode masked by the umask,
+     * exactly as a plain write would create it.
+     *
+     * @param  int|null $mode Permissions for a file that is created, default 0666
+     * @throws \InvalidArgumentException if the target is not a plain local path
+     * @throws \RuntimeException         if the content could not be written at all
+     */
+    public function dumpAtomic(string $file, string $content, ?int $mode = null): void
+    {
+        $info = $this->getPathInfo($file);
+        $protocol = is_string($info['protocol'] ?? null) ? $info['protocol'] : '';
+        $target = is_string($info['pathname'] ?? null) ? $info['pathname'] : '';
+
+        // Only a local path can be replaced by a rename. An adapter- or stream-backed
+        // path is refused instead of being written non-atomically behind the caller's back.
+        if ($protocol !== 'file' || $target === '') {
+            throw new \InvalidArgumentException("Not a local file path ($file).");
+        }
+
+        // A rename replaces a symlink itself, which would leave a regular file here and
+        // orphan whatever the link points at - an installation that keeps its config on a
+        // separate data volume, for one - so the write lands on the resolved path.
+        if (is_link($target) && ($resolved = realpath($target)) !== false) {
+            $target = $resolved;
+        }
+
+        $current = is_file($target) ? @fileperms($target) : false;
+        $perms = $current !== false ? $current & 0777 : ($mode ?? 0666) & ~umask();
+
+        $tmp = @tempnam(dirname($target), 'dump');
+
+        if ($tmp !== false) {
+            // A temp file whose permissions could not be set must not be renamed into
+            // place: it would carry tempnam()'s owner-only mode into the target and could
+            // become unreadable for whoever reads it back - a web server after a CLI
+            // install, for instance. The direct write below keeps the target's own mode.
+            if (@file_put_contents($tmp, $content) !== false && @chmod($tmp, $perms) && @rename($tmp, $target)) {
+                $this->invalidateOpcache($target);
+
+                return;
+            }
+
+            @unlink($tmp);
+        }
+
+        if (@file_put_contents($target, $content, LOCK_EX) === false) {
+            throw new \RuntimeException("Failed to write file ($target).");
+        }
+
+        $this->invalidateOpcache($target);
+    }
+
+    /**
+     * Drops a written file from the opcode cache.
+     *
+     * Everything written through dumpAtomic() is a PHP file that is read back with
+     * require, and where opcache does not validate timestamps a stale compiled copy
+     * would otherwise outlive the write.
+     */
+    private function invalidateOpcache(string $file): void
+    {
+        if (function_exists('opcache_invalidate')) {
+            opcache_invalidate($file, true);
+        }
+    }
+
+    /**
      * Copies a file.
      */
     public function copy(string $source, string $target): bool
