@@ -10,7 +10,7 @@
   "model": "grok-4.5",
   "status": "failed",
   "startedAt": "2026-08-07T20:39:17.357Z",
-  "completedAt": "2026-08-07T23:24:44.435Z",
+  "completedAt": "2026-08-07T23:24:38.310Z",
   "phases": [
     {
       "phaseKey": "31216765910-1-PLAN",
@@ -176,13 +176,30 @@
       "batchSteps": [
         6
       ],
-      "startedAt": "2026-08-07T23:22:51.873Z",
-      "durationMs": 35210,
+      "startedAt": "2026-08-07T23:22:55.395Z",
+      "durationMs": 28137,
       "agent": {
         "id": "bc-a07bc37e-717b-47b9-bb61-59b00c5a6d3f",
         "runId": "run-de97bdc7-46e4-40c8-bf91-01cb5484f78d",
         "url": "https://cursor.com/agents/bc-a07bc37e-717b-47b9-bb61-59b00c5a6d3f",
-        "model": "grok-4.5"
+        "model": "grok-4.5",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-de97bdc7-46e4-40c8-bf91-01cb5484f78d",
+            "index": 1,
+            "startedAt": "2026-08-07T23:22:55.395Z",
+            "completedAt": "2026-08-07T23:23:24.282Z",
+            "durationMs": 28137,
+            "tokens": {
+              "input": 42579,
+              "output": 1790,
+              "cacheRead": 257472,
+              "cacheWrite": 0,
+              "total": 301841
+            }
+          }
+        ]
       },
       "github": {
         "runId": 31226933995,
@@ -200,7 +217,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "ESCALATE: Step 6 — review subagent unavailable: Invalid enum value. Expected 'generalPurpose' | 'explore' | 'debug' | 'computerUse' | 'videoReview' | 'cursor-guide' | 'best-of-n-runner' | 'architect' | 'doc-writer' | 'plan-reviewer' | 'refactorer' | 'test-writer' | 'tester' | 'verifier', received 'bugbot'",
-      "outcome": "escalate"
+      "outcome": "escalate",
+      "completedAt": "2026-08-07T23:23:24.282Z",
+      "notes": "Timing from Cursor API (single agent run)"
     },
     {
       "phaseKey": "31226933995-1-EXECUTE 6 (retry 1)",
@@ -209,13 +228,30 @@
       "batchSteps": [
         6
       ],
-      "startedAt": "2026-08-07T23:23:30.357Z",
-      "durationMs": 32776,
+      "startedAt": "2026-08-07T23:23:31.410Z",
+      "durationMs": 25851,
       "agent": {
         "id": "bc-873eed99-5e82-48f1-be64-d0d6bf2f1922",
         "runId": "run-efcfebef-7324-4db9-9665-25e75ef44313",
         "url": "https://cursor.com/agents/bc-873eed99-5e82-48f1-be64-d0d6bf2f1922",
-        "model": "grok-4.5"
+        "model": "grok-4.5",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-efcfebef-7324-4db9-9665-25e75ef44313",
+            "index": 1,
+            "startedAt": "2026-08-07T23:23:31.410Z",
+            "completedAt": "2026-08-07T23:23:58.186Z",
+            "durationMs": 25851,
+            "tokens": {
+              "input": 42646,
+              "output": 1788,
+              "cacheRead": 216384,
+              "cacheWrite": 0,
+              "total": 260818
+            }
+          }
+        ]
       },
       "github": {
         "runId": 31226933995,
@@ -233,7 +269,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "ESCALATE: Step 6 — review subagent unavailable: Invalid enum value. Expected 'generalPurpose' | 'explore' | 'debug' | 'computerUse' | 'videoReview' | 'cursor-guide' | 'best-of-n-runner' | 'architect' | 'doc-writer' | 'plan-reviewer' | 'refactorer' | 'test-writer' | 'tester' | 'verifier', received 'bugbot'",
-      "outcome": "escalate"
+      "outcome": "escalate",
+      "completedAt": "2026-08-07T23:23:58.186Z",
+      "notes": "Timing from Cursor API (single agent run)"
     },
     {
       "phaseKey": "31226933995-1-EXECUTE 6 (retry 2)",
@@ -242,13 +280,30 @@
       "batchSteps": [
         6
       ],
-      "startedAt": "2026-08-07T23:24:07.363Z",
-      "durationMs": 33315,
+      "startedAt": "2026-08-07T23:24:08.345Z",
+      "durationMs": 28928,
       "agent": {
         "id": "bc-3cfb68f0-3773-41c9-83e6-db0c6be78991",
         "runId": "run-34910e5c-57e7-44da-ad17-7ec185f8cd1b",
         "url": "https://cursor.com/agents/bc-3cfb68f0-3773-41c9-83e6-db0c6be78991",
-        "model": "grok-4.5"
+        "model": "grok-4.5",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-34910e5c-57e7-44da-ad17-7ec185f8cd1b",
+            "index": 1,
+            "startedAt": "2026-08-07T23:24:08.345Z",
+            "completedAt": "2026-08-07T23:24:38.310Z",
+            "durationMs": 28928,
+            "tokens": {
+              "input": 43089,
+              "output": 1818,
+              "cacheRead": 217152,
+              "cacheWrite": 0,
+              "total": 262059
+            }
+          }
+        ]
       },
       "github": {
         "runId": 31226933995,
@@ -266,7 +321,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "ESCALATE: Step 6 — review subagent unavailable: Invalid enum value for subagent_type 'bugbot' (Task tool accepts only generalPurpose|explore|debug|computerUse|videoReview|cursor-guide|best-of-n-runner|architect|doc-writer|plan-reviewer|refactorer|test-writer|tester|verifier; corrected retry failed with the same error)",
-      "outcome": "escalate"
+      "outcome": "escalate",
+      "completedAt": "2026-08-07T23:24:38.310Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -277,7 +334,7 @@
       "cacheWrite": 3799241,
       "total": 59466139
     },
-    "durationMs": 9810300,
+    "durationMs": 9791915,
     "phaseCount": 6,
     "escalations": 3,
     "ghaJobs": 4,
