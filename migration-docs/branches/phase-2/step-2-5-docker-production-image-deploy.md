@@ -132,6 +132,24 @@ A run of the image on a real Docker host, with nothing passed but the driver, en
 
 Tests: `InstallerConnectionDiagnosticsTest.php` (new) covers the message; the image default is proven by the workflow step above and by the host run below. Gates: PHPUnit PASS (869 tests); PHPStan PASS; cs-fixer PASS; Prettier PASS; hadolint PASS; actionlint (shellcheck over the workflow's `run` blocks) PASS; Docker-host validation PASS (see Verification).
 
+### Location widget removed
+
+Checklist Step 1 moved the committed OpenWeatherMap key onto `PAGEKIT_WEATHER_API_KEY`, which left the question of what the key is for. The dashboard's location widget — a clock with the local weather — reaches two third-party services, and neither can be switched on by a new installation any more: OpenWeatherMap's `data/2.5` endpoints, the `/find` autocomplete among them, are closed to newly issued free keys, and the clock's time zone came from the Google Time Zone API, which needs a billing-enabled Google Cloud project. The widget goes, and the variable with it.
+
+| File | Change |
+|---|---|
+| `app/system/modules/dashboard/app/components/widget-location.vue`, `assets/images/weather-*.svg` (deleted) | The component and the 13 weather icons it addressed by name. Its Google key was typed into the widget's own settings and sent to `maps.googleapis.com` from the browser — an administrator's API key handed to the client, with nothing saying it has to be referrer-restricted. |
+| `app/system/modules/dashboard/app/views/index.js` | Import and `location` component registration dropped. The dashboard already filters saved widgets whose type has no registered component, so an existing installation's location widget disappears on the next load rather than erroring — no migration. |
+| `app/system/modules/dashboard/src/Controller/DashboardController.php` | `weatherAction()` and the `admin/dashboard/weather` route it carried: a `file_get_contents()` against a URL assembled from client-supplied query parameters, with no timeout and no error handling, whose `false` on failure became the response body. The `$api`/`$apiKey` properties and the `Response` dependency only it used go with it. |
+| `app/system/modules/dashboard/index.php` | `weather.api` and `weather.key` removed from the module configuration. |
+| `app/modules/application/src/Module/Loader/EnvConfigLoader.php`, `src/Tests/EnvConfigLoaderTest.php` | `PAGEKIT_WEATHER_API_KEY` and its flat-key `system/dashboard` mapping removed, along with the two cases that covered the mapping. |
+| `public/.htaccess` | The CSP `connect-src` drops `https://api.openweathermap.org` and `https://maps.googleapis.com`; reCAPTCHA, `pagekit.com` and the feed widget's converter are what remains. |
+| `prod.env.example`, `docker-compose.prod.yml`, `README.md` | The variable leaves the production env file, the compose environment list and the env-var reference. |
+| `tests/e2e/specs/02-core/dashboard.spec.js` | The widget leaves the list of dashboard widgets the spec looks for. |
+| `migration-docs/security/process/DSGVO_ISSUES.md` (deleted) | Both entries it held were this widget's two third-party calls; nothing references the file. |
+
+Tests: `EnvConfigLoaderTest.php` loses the two weather cases with the mapping they covered; the remaining dashboard surface has no unit-test coverage of its own. Gates: PHPUnit PASS; PHPStan PASS; cs-fixer PASS; Prettier PASS; ESLint PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -156,13 +174,15 @@ Tests: `InstallerConnectionDiagnosticsTest.php` (new) covers the message; the im
 
 ## 💥 Breaking Changes (Extensions)
 
-None. `EnvConfigLoader`/`TrustedProxies` are additive loader/request-configuration infrastructure; the weather-key default changes (`''` instead of a shared key) but the `config('weather.key', '')` call site an extension would use is unchanged. Docker/CI/docs-only otherwise — no extension-facing PHP, JS, or REST surface changed.
+The dashboard's location widget is gone, and with it the `admin/dashboard/weather` route, the `weather.api`/`weather.key` module configuration an extension could have read, and `PAGEKIT_WEATHER_API_KEY`. A saved location widget is dropped from the dashboard on the next load, since the dashboard only renders widget types that still have a component.
+
+Otherwise none: `EnvConfigLoader`/`TrustedProxies` are additive loader/request-configuration infrastructure, and the rest is Docker/CI/docs — no other extension-facing PHP, JS, or REST surface changed.
 
 ---
 
 ## ⚠️ Risks & Rollout Notes
 
-- **Weather widget default changes from a shared key to empty (Checklist Step 1).** `system/dashboard`'s `weather.key` no longer ships a working default; the dashboard's location widget shows its "unavailable" state on upgrade until an operator sets `PAGEKIT_WEATHER_API_KEY` or `config.php`'s `system/dashboard.weather.key`. Provider-side rotation of the old key is tracked under Maintainer action (Finalize).
+- **The dashboard loses a widget on upgrade.** An installation whose dashboard shows the location widget finds it gone after the update — its saved entry stays in the widget configuration until the dashboard is next saved, and is ignored meanwhile. Nothing replaces it; the panel and feed widgets are unaffected. Provider-side rotation of the removed OpenWeatherMap key is tracked under Maintainer action.
 - **`base` now enables `mod_headers`/`mod_expires`, which also reaches the `dev` target (Checklist Step 2).** `a2enmod rewrite headers expires` moved into the shared `base` stage, so a rebuilt dev container starts enforcing `public/.htaccess`'s security headers and cache-expiry rules for the first time — both had silently no-op'd for want of the modules. A running dev container only picks this up on its next image rebuild.
 - **`web`'s resource limit is a hard ceiling, not a throttle (Checklist Step 3).** `docker-compose.prod.yml`'s `deploy.resources.limits` caps the container at `cpus: "2.0"` / `memory: 1G`, sized for a handful of concurrent requests at the image's 256M per-process PHP limit; reaching the memory ceiling under real traffic is an OOM kill, not a slowdown, so the limit needs raising before traffic does.
 - **The Trivy gate can turn a `develop` push red on an unrelated CVE (Checklist Step 4).** The gate has no general allow-list and `.trivyignore` currently waives nothing, so a newly-disclosed CRITICAL/HIGH in any package blocks that push's GHCR publish, and the required `docker-image` check, until a rebuild picks up the fix or the finding earns a named, dated waiver of its own.
@@ -173,7 +193,7 @@ None. `EnvConfigLoader`/`TrustedProxies` are additive loader/request-configurati
 
 ## 🔐 Security & Data Impact
 
-- **Committed OpenWeatherMap API key removed (Checklist Step 1).** `app/system/modules/dashboard/index.php`'s hardcoded key and its `AUDIT FIX Step 2.5` marker are gone; the module now defaults `weather.key` to `''` and takes it instead from `PAGEKIT_WEATHER_API_KEY` (via `EnvConfigLoader`) or `config.php`. The key remains in prior git history — provider-side rotation is Maintainer action.
+- **Committed OpenWeatherMap API key removed (Checklist Step 1), and then the widget that needed one.** `app/system/modules/dashboard/index.php`'s hardcoded key and its `AUDIT FIX Step 2.5` marker went first, with the value moving to `PAGEKIT_WEATHER_API_KEY`; removing the location widget removes the credential from the product altogether, along with the administrator's Google key that the widget sent to `maps.googleapis.com` from the browser. Two outbound destinations leave the CSP with them. The old key remains in prior git history — provider-side rotation is Maintainer action.
 - **Signing secret and DB credentials become environment-settable (Checklist Step 1).** `EnvConfigLoader` lets `PAGEKIT_SECRET` and the MySQL/SQLite connection parameters come from the process environment instead of a writable `config.php` — the basis the immutable-image config model (later Checklist Steps) builds on.
 - **Production runtime is non-root, with the application tree read-only (Checklist Step 2).** The `prod` stage's final `USER 33:33` — `www-data` by number, so an orchestrator's `runAsNonRoot` policy can read it — runs Apache on the unprivileged `8080`; only `tmp/`, `storage/`, and `$PAGEKIT_DATA_DIR` are `chown`'d to `www-data` — `app/`, `packages/`, and `public/` stay root-owned, so a compromised request can't rewrite the code serving it.
 - **Error detail and PHP fingerprinting are off by default (Checklist Step 2).** `docker/php/php-prod.ini` sets `display_errors`/`display_startup_errors` and `expose_php` off on top of `php.ini-production`; errors still reach the container's own log stream via `log_errors`/`error_log`, never the response.
@@ -192,6 +212,7 @@ None. `EnvConfigLoader`/`TrustedProxies` are additive loader/request-configurati
 
 - **Rule 4 (Delete over wrap) — Checklist Step 1:** the hardcoded OpenWeatherMap key is deleted outright, not gated behind an env check with the old value kept as fallback; the empty-string default is what the module's own `config('weather.key', '')` call already handles.
 - **Rule 5 (audit debt closed) — Checklist Step 1:** the `AUDIT FIX Step 2.5` marker in `app/system/modules/dashboard/index.php` is removed now that the work it flagged is done.
+- **Rule 4 (Delete over wrap) — location widget:** the widget is deleted with its route, its configuration, its environment variable and its two CSP destinations, rather than kept behind a key check or a feature flag that would leave a permanently unavailable panel in the dashboard.
 - **Rule 4 (Delete over wrap) — Checklist Step 2:** the prior single-target `Dockerfile` content is absorbed into the `base`/`dev` stages rather than kept beside a new, separate "prod" file — one `Dockerfile`, multi-stage, with `prod` as the default (last) target.
 - **Rule 4 (Delete over wrap) — Checklist Step 6:** the GHCR login/tag-resolve/push steps are removed from `docker-image` outright and re-created in the new `publish-image` job — no parallel push path, feature flag, or duplicate permission block bridges the two.
 - **Rule 5 (mandatory flagging) — Finalize fix-loop:** `.trivyignore` accepts an entry only with a reason and a per-line `exp:` review date — a waiver there is dated, never an open-ended carve-out.
