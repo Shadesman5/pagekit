@@ -14,9 +14,9 @@ use PHPUnit\Framework\TestCase;
  * one request reads back with require while another one rewrites them. Writing
  * them means: a reader sees either the whole old file or the whole new one, a
  * write that cannot be completed damages neither the target nor its permissions
- * and leaves no temp file behind, a target that cannot be replaced by a move is
- * refused rather than written some other way, and where the move cannot be
- * staged at all the content still reaches a target that is already there.
+ * and leaves no temp file behind, and a target no move can reach - one the write
+ * cannot be staged beside, one behind a link that leads nowhere, one that is no
+ * plain local path - is refused rather than written some other way.
  */
 class DumpAtomicTest extends TestCase
 {
@@ -77,7 +77,7 @@ class DumpAtomicTest extends TestCase
     public function testAReaderHoldingTheFileOpenNeverSeesAHalfWrittenReplacement(): void
     {
         if (!$this->canRenameOverAnOpenFile()) {
-            $this->markTestSkipped('This platform refuses to move a file that is held open, which is the documented non-atomic fallback');
+            $this->markTestSkipped('This platform refuses to move a file that is held open, where the write fails instead of replacing it');
         }
 
         $file = $this->workspace.'/config.php';
@@ -126,9 +126,60 @@ class DumpAtomicTest extends TestCase
         }
     }
 
+    public function testALinkToAFileThatIsNotThereYetIsFollowedRatherThanReplaced(): void
+    {
+        // Before its first write, an installation whose configuration lives on a
+        // data volume has the link in place and nothing at the end of it. A write
+        // that took the missing file for a reason to replace the link would put a
+        // regular file in the application root and leave the volume empty.
+        $data = $this->workspace.'/data';
+        mkdir($data);
+
+        $target = $data.'/config.php';
+        $link = $this->workspace.'/config.php';
+
+        if (!@symlink($target, $link)) {
+            $this->markTestSkipped('This host does not link to a file that is not there yet');
+        }
+
+        try {
+            $this->file->dumpAtomic($link, self::NEW_CONFIG);
+
+            $this->assertTrue(is_link($link));
+            $this->assertSame(self::NEW_CONFIG, file_get_contents($target));
+            $this->assertSame(['config.php'], $this->entries($data));
+        } finally {
+            unlink($link);
+        }
+    }
+
+    public function testALinkThatLeadsToNoFileAtAllFailsTheWrite(): void
+    {
+        // A link pointing back at itself has no file at the end of it to write.
+        // Falling back to the link's own path would replace the link with a
+        // regular file, which is the one outcome a write through a link must not
+        // have, so it fails instead.
+        $link = $this->workspace.'/config.php';
+
+        if (!@symlink($link, $link)) {
+            $this->markTestSkipped('This host does not link a path to itself');
+        }
+
+        try {
+            $error = $this->failedWrite(\RuntimeException::class, $link);
+
+            $this->assertStringContainsString($link, $error->getMessage());
+            $this->assertTrue(is_link($link));
+        } finally {
+            unlink($link);
+        }
+    }
+
     #[DataProvider('provideCreateModes')]
     public function testACreatedFileGetsTheModeAPlainWriteWouldGiveIt(?int $mode, int $expected): void
     {
+        $this->requirePermissionBits();
+
         $file = $this->workspace.'/config.php';
 
         $this->file->dumpAtomic($file, self::NEW_CONFIG, $mode);
@@ -154,6 +205,8 @@ class DumpAtomicTest extends TestCase
     {
         // An operator who tightened the configuration must not have it widened
         // again by the next write from the settings screen.
+        $this->requirePermissionBits();
+
         $file = $this->workspace.'/config.php';
         file_put_contents($file, self::OLD_CONFIG);
         chmod($file, 0600);
@@ -168,10 +221,15 @@ class DumpAtomicTest extends TestCase
     {
         $file = $this->workspace.'/nested/config.php';
 
+        $staged = $this->stagedFiles();
+
         $error = $this->failedWrite(\RuntimeException::class, $file);
 
         $this->assertStringContainsString($file, $error->getMessage());
         $this->assertSame([], $this->entries($this->workspace));
+        // There is no directory beside the target to stage in, so this is the
+        // failure that puts the staging file in the system temp directory.
+        $this->assertSame($staged, $this->stagedFiles());
     }
 
     public function testATargetOccupiedByADirectoryFailsWithoutLeavingATempFileBehind(): void
@@ -195,41 +253,43 @@ class DumpAtomicTest extends TestCase
         chmod($dir, 0555);
 
         try {
-            $this->requireUnwritable($dir);
+            $this->requireStagingRefused($dir);
+
+            $staged = $this->stagedFiles();
 
             $error = $this->failedWrite(\RuntimeException::class, $dir.'/config.php');
 
             $this->assertStringContainsString($dir, $error->getMessage());
             $this->assertSame([], $this->entries($dir));
+            $this->assertSame($staged, $this->stagedFiles());
         } finally {
             chmod($dir, 0755);
         }
     }
 
-    public function testAnUnwritableTargetDirectoryStillRewritesAFileThatIsAlreadyThere(): void
+    public function testAWriteThatCannotBeStagedLeavesTheFileThatIsAlreadyThereAsItIs(): void
     {
         // A hardened installation can leave the directory itself unwritable while
         // the configuration inside it stays writable. No move can be staged there,
-        // so the write degrades to the plain one it replaced - not atomic, and
-        // documented as such, but the settings screen still saves rather than
-        // failing over a permission the write never needed before.
+        // and rewriting the file in place instead is the very half-written state a
+        // reader running require cannot survive - so the write fails and the
+        // configuration the site is serving from stays whole.
         $dir = $this->workspace.'/readonly';
         mkdir($dir);
 
         $file = $dir.'/config.php';
         file_put_contents($file, self::OLD_CONFIG);
-        chmod($file, 0600);
         chmod($dir, 0555);
 
         try {
-            $this->requireUnwritable($dir);
+            $this->requireStagingRefused($dir);
 
             $staged = $this->stagedFiles();
 
-            $this->file->dumpAtomic($file, self::NEW_CONFIG);
+            $error = $this->failedWrite(\RuntimeException::class, $file);
 
-            $this->assertSame(self::NEW_CONFIG, file_get_contents($file));
-            $this->assertSame(0600, $this->permissions($file));
+            $this->assertStringContainsString($file, $error->getMessage());
+            $this->assertSame(self::OLD_CONFIG, file_get_contents($file));
             $this->assertSame(['config.php'], $this->entries($dir));
             $this->assertSame($staged, $this->stagedFiles());
         } finally {
@@ -288,14 +348,39 @@ class DumpAtomicTest extends TestCase
     }
 
     /**
-     * Skips when the test user writes into the directory regardless of its
-     * permissions - root does, and so does a platform that does not carry the
-     * permission bits in the first place.
+     * Skips where a file can still be created in the directory, which is the
+     * only thing that keeps a write from being staged there. Root creates one
+     * regardless of the permission bits, and a platform that answers a
+     * read-only directory with a flag rather than with a refusal (Windows) lets
+     * the write happen as well - so a failure over staging cannot be provoked
+     * there, and pretending otherwise would test the guard instead of the write.
      */
-    private function requireUnwritable(string $dir): void
+    private function requireStagingRefused(string $dir): void
     {
-        if (is_writable($dir)) {
-            $this->markTestSkipped('The test user writes into a read-only directory on this host');
+        $probe = $dir.'/probe-staging';
+
+        if (@file_put_contents($probe, '') !== false) {
+            unlink($probe);
+
+            $this->markTestSkipped('This host creates files in a read-only directory, where a write can be staged after all');
+        }
+    }
+
+    /**
+     * Skips where the platform does not keep the permission bits of a file -
+     * Windows carries a read-only flag and reports the rest as a mode nobody
+     * set, so there is nothing there for a write to preserve or to narrow.
+     */
+    private function requirePermissionBits(): void
+    {
+        $probe = $this->workspace.'/probe-permissions';
+
+        file_put_contents($probe, '');
+        $kept = @chmod($probe, 0640) && $this->permissions($probe) === 0640;
+        unlink($probe);
+
+        if (!$kept) {
+            $this->markTestSkipped('This platform does not keep the permission bits of a file');
         }
     }
 
@@ -352,12 +437,14 @@ class DumpAtomicTest extends TestCase
      * Lists the staging files of a write, which the platform puts in the system
      * temp directory when the target's own directory refuses to hold one, so a
      * file left behind there shows up as an entry that was not there before.
+     * The name is shortened to the first three letters of the prefix where the
+     * platform does that (Windows), so both spellings are collected.
      *
      * @return array<int, string>
      */
     private function stagedFiles(): array
     {
-        $files = glob(sys_get_temp_dir().'/dump*') ?: [];
+        $files = glob(sys_get_temp_dir().'/dum*') ?: [];
         sort($files);
 
         return $files;

@@ -10,6 +10,12 @@ use Pagekit\Routing\Generator\UrlGenerator;
 class Filesystem
 {
     /**
+     * How many links a write follows before it gives up, so that a link pointing
+     * back at itself cannot spin. Deeper than any real layout goes.
+     */
+    private const MAX_LINK_HOPS = 16;
+
+    /**
      * @var array<string, AdapterInterface>
      */
     protected array $adapters = [];
@@ -112,9 +118,9 @@ class Filesystem
      * The content goes into a temp file in the target's own directory and is moved into
      * place with rename(). That move is atomic only within one filesystem, which is why
      * the temp file lives next to the target instead of in the system temp directory.
-     * Where the platform refuses the move because a reader holds the target open
-     * (Windows), the write degrades to a direct locked write, which is NOT atomic - a
-     * concurrent reader can still see a partial file there.
+     * A write that cannot be staged or moved fails, and it fails without a temp file
+     * left behind: the target is either fully replaced or untouched, never rewritten in
+     * a way a concurrent reader could observe half-finished.
      *
      * An existing target keeps its own permission bits, so that replacing a hardened
      * file does not loosen it. A file that is created gets $mode masked by the umask,
@@ -122,7 +128,8 @@ class Filesystem
      *
      * @param  int|null $mode Permissions for a file that is created, default 0666
      * @throws \InvalidArgumentException if the target is not a plain local path
-     * @throws \RuntimeException         if the content could not be written at all
+     * @throws \RuntimeException         if the content could not be staged next to the
+     *                                   target or moved into place
      */
     public function dumpAtomic(string $file, string $content, ?int $mode = null): void
     {
@@ -139,34 +146,100 @@ class Filesystem
         // A rename replaces a symlink itself, which would leave a regular file here and
         // orphan whatever the link points at - an installation that keeps its config on a
         // separate data volume, for one - so the write lands on the resolved path.
-        if (is_link($target) && ($resolved = realpath($target)) !== false) {
-            $target = $resolved;
+        if (is_link($target)) {
+            $target = $this->resolveLink($target);
         }
 
         $current = is_file($target) ? @fileperms($target) : false;
         $perms = $current !== false ? $current & 0777 : ($mode ?? 0666) & ~umask();
 
-        $tmp = @tempnam(dirname($target), 'dump');
+        $dir = dirname($target);
+        $tmp = @tempnam($dir, 'dump');
 
-        if ($tmp !== false) {
-            // A temp file whose permissions could not be set must not be renamed into
-            // place: it would carry tempnam()'s owner-only mode into the target and could
-            // become unreadable for whoever reads it back - a web server after a CLI
-            // install, for instance. The direct write below keeps the target's own mode.
-            if (@file_put_contents($tmp, $content) !== false && @chmod($tmp, $perms) && @rename($tmp, $target)) {
-                $this->invalidateOpcache($target);
-
-                return;
-            }
-
-            @unlink($tmp);
+        if ($tmp === false) {
+            throw new \RuntimeException("Failed to stage an atomic write ($target).");
         }
 
-        if (@file_put_contents($target, $content, LOCK_EX) === false) {
+        // A directory tempnam() cannot write is answered with the system temp directory
+        // instead of a failure. A move out of there crosses filesystems, where rename()
+        // copies and unlinks - a write that reports success without ever having been a
+        // single step - so a staging file anywhere but next to the target is refused.
+        if (!$this->isSameDir(dirname($tmp), $dir)) {
+            $this->discard($tmp);
+
+            throw new \RuntimeException("Failed to stage an atomic write next to the target ($target).");
+        }
+
+        // The permissions belong on the temp file, before it becomes the target: a file
+        // renamed into place while still carrying tempnam()'s owner-only mode could be
+        // unreadable for whoever reads it back - a web server after a CLI install, for
+        // instance - and there is no moment afterwards in which to correct that without
+        // reopening the window this write exists to close.
+        if (@file_put_contents($tmp, $content) === false || !@chmod($tmp, $perms) || !@rename($tmp, $target)) {
+            $this->discard($tmp);
+
             throw new \RuntimeException("Failed to write file ($target).");
         }
 
         $this->invalidateOpcache($target);
+    }
+
+    /**
+     * Follows a link to the file a write should land on.
+     *
+     * The last hop may point at a file that is not there yet - that is how an
+     * installation keeping its configuration on a data volume looks before its first
+     * write - so a link is followed even when nothing is at the end of it, and only
+     * the directory it ends up in is resolved for real. A hop that cannot be read
+     * fails the write instead of letting it replace the link.
+     *
+     * @throws \RuntimeException if the link does not lead to a path to write
+     */
+    private function resolveLink(string $link): string
+    {
+        $file = $link;
+
+        for ($hop = 0; is_link($file); $hop++) {
+            $next = @readlink($file);
+
+            if ($next === false || $hop >= self::MAX_LINK_HOPS) {
+                throw new \RuntimeException("Failed to resolve the link ($link).");
+            }
+
+            $file = Path::isAbsolute($next) ? $next : dirname($file).'/'.$next;
+        }
+
+        $dir = realpath(dirname($file));
+
+        return $dir !== false ? Path::directory($dir).basename($file) : $file;
+    }
+
+    /**
+     * Compares two directories by what they resolve to, so that a link or a
+     * relative segment on either side does not read as a different directory.
+     */
+    private function isSameDir(string $dir, string $other): bool
+    {
+        $resolved = realpath($dir);
+
+        return $resolved !== false && $resolved === realpath($other);
+    }
+
+    /**
+     * Removes a staging file that never became the target.
+     *
+     * By then it can already carry the permissions of the file it was to replace, and
+     * a target that is read-only is one of the ways the move fails. Where a missing
+     * write permission is enforced against deletion as well (Windows), those are the
+     * very permissions that would leave the staging file lying around next to the
+     * target, so the write permission goes back on first - owner-only, because what
+     * the file holds is the content meant for the target, a configuration with its
+     * secret in it for one.
+     */
+    private function discard(string $tmp): void
+    {
+        @chmod($tmp, 0600);
+        @unlink($tmp);
     }
 
     /**

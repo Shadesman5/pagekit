@@ -54,12 +54,6 @@ final class InstallerConfigWriteTest extends TestCase
 
     protected function tearDown(): void
     {
-        // A test that provoked an unwritable root has to hand it back before the
-        // workspace can be removed.
-        if (is_dir($this->root)) {
-            chmod($this->root, 0755);
-        }
-
         $this->removeTree($this->workspace);
     }
 
@@ -88,44 +82,46 @@ final class InstallerConfigWriteTest extends TestCase
 
     /**
      * The application root an archive was unpacked into is regularly one the web
-     * server may read and not write. Everything up to here has already happened -
-     * schema, administrator, extensions - so the one thing the installation must
-     * not do is call that a success.
+     * server may read and not write, and a configuration that cannot be moved
+     * into place there is not written at all. Everything up to here has already
+     * happened - schema, administrator, extensions - so the one thing the
+     * installation must not do is call that a success. Which targets a write
+     * refuses is the write's own affair; what is pinned here is what the
+     * installation makes of one that failed.
      */
     public function testAConfigurationThatCannotBeWrittenFailsTheInstallation(): void
     {
-        chmod($this->root, 0555);
-
-        if (is_writable($this->root)) {
-            self::markTestSkipped('The test user writes into a read-only directory on this host');
-        }
-
-        $result = $this->install();
+        $result = $this->install(new UnwritableFilesystem());
 
         self::assertSame('write-failed', $result['status']);
         self::assertSame("Can't write config.", $result['message']);
-        self::assertSame([], $this->entries($this->root), 'A failed write leaves nothing behind either');
+        self::assertSame(
+            [],
+            $this->entries($this->root),
+            'The configuration reaches disk through the filesystem service and by no other route',
+        );
     }
 
     /**
      * @return array<string, string>
      */
-    private function install(): array
+    private function install(?Filesystem $file = null): array
     {
-        return (new ConfigWriteInstaller($this->application()))
+        return (new ConfigWriteInstaller($this->application($file ?? new Filesystem())))
             ->install(self::DATABASE, [], self::ADMINISTRATOR);
     }
 
     /**
      * The services the installation reaches for between the schema and the
-     * configuration write. Only the write itself runs for real.
+     * configuration write. Everything but the filesystem stands in for what only
+     * a connected installation has - the write is what is under test here.
      */
-    private function application(): Application
+    private function application(Filesystem $file): Application
     {
         $app = new Application([
             'path' => $this->root,
             'path.packages' => $this->workspace.'/packages',
-            'file' => new Filesystem(),
+            'file' => $file,
             'db' => new ConfigWriteDatabase(),
             'auth.password' => new ConfigWritePasswords(),
             'config' => new ConfigWriteOptions(),
@@ -199,6 +195,18 @@ final class ConfigWriteInstaller extends Installer
 
     protected function linkStorage(): void
     {
+    }
+}
+
+/**
+ * A filesystem whose write never reaches its target, the way an atomic write
+ * reports a configuration it can neither stage beside nor move into place.
+ */
+final class UnwritableFilesystem extends Filesystem
+{
+    public function dumpAtomic(string $file, string $content, ?int $mode = null): void
+    {
+        throw new \RuntimeException("Failed to write file ($file).");
     }
 }
 
