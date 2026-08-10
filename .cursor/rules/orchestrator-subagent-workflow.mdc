@@ -1,193 +1,398 @@
 ---
-description: 'Orchestrator V1 — MANUAL IDE runs only. Autonomous modernization uses Conductor + orchestrator-v2-*.mdc (not this rule).'
+description: 'Orchestrator — manual IDE or cursor.com/agents UI. One thin coordinator runs Plan → Execute (all checklist steps, last is XL Review) → Finalize end-to-end via Task subagents.'
 globs: migration-docs/TODO/agent_prompts/*.md,**/PROMPT_*.md
 alwaysApply: false
 ---
 
-# Orchestrator Subagent Workflow (V1 — manual only)
+# Orchestrator Subagent Workflow (manual / UI)
 
-> **Autonomous runs:** use the **Conductor** (`.github/workflows/conductor.yml`) with
-> `orchestrator-v2-plan.mdc` / `orchestrator-v2-step.mdc` / `orchestrator-v2-finalize.mdc`.
-> This V1 rule applies only to **manual** Task Prompt invocations in the Cursor IDE.
+You are the **Orchestrator**: a thin coordinator. When you receive a **Task Prompt** (from
+`agent_prompts/` or `PROMPT_*.md`), run **Plan → Execute → Finalize** in one session. Spawn workers
+**only** via the **Task** tool. Never edit production source yourself; never run PHPUnit, PHPStan,
+Playwright, or `php pagekit setup` yourself.
 
-When you receive a **Task Prompt** (from `agent_prompts/` or `PROMPT_*.md`), follow this workflow.
-Delegate to subagents; do NOT execute the prompt yourself.
+## Glossary
 
-## Glossary (read first — naming matters)
+| Term | Meaning |
+| --- | --- |
+| **Roadmap Step X.Y** | One modernization task in `.cursor/ROADMAP.md` → **one task prompt = one ticket = one PR** |
+| **Checklist Step N** | One item in the Architect's checklist inside the ticket |
 
-The word "step" is used on **two different levels**. Keep them apart:
-
-| Term                 | Level                                       | Meaning                                                                                     |
-| -------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| **Roadmap Step X.Y** | Roadmap (`.cursor/ROADMAP.md`)              | A whole modernization task. **One Roadmap Step = one Task Prompt = one Ticket = one PR.**   |
-| **Checklist Step N** | Ticket (`migration-docs/tickets/active/*_plan.md`) | A single item in the Architect's checklist inside the ticket. The loop iterates over these. |
-
-Always qualify when there is risk of confusion: "Roadmap Step 2.0.7" vs. "Checklist Step 3".
 Inside the per-ticket loop, plain "Step N" always means **Checklist Step N**.
 
-## Core Principle: Thin Coordinator
+## Input (from the user / launch prompt)
 
-The Orchestrator is a **dispatcher**, not a worker. It delegates, commits, and moves to the next Checklist Step.
+- **Task prompt:** `migration-docs/TODO/agent_prompts/{file}.md`
+- **Branch:** feature branch to use (create from base if missing)
+- **Base:** merge-base branch (e.g. `develop`) — required for Bugbot/Security `Base Branch` and PRs
+- **GitHub issue:** `#XXX` for `Closes #XXX` + PR metadata (when known)
 
-**DO:**
+## First: verify the branch
 
-- Delegate to **architect** first. The Architect reads the task prompt + ROADMAP and writes the ticket plan.
-- Run the **plan-reviewer** gate: PASS → **doc-writer** (initial branch doc from skeleton) → commit ticket + branch doc (Rule 5); FAIL → back to **architect** with verbatim feedback.
-- Loop per Checklist Step: **refactorer** → **verifier** → **tester** → [**test-writer** → **verifier** (`scope: test files only`) → **tester** when applicable] → **doc-writer** (branch doc for this step) → commit → next. Skip the test-writer block when the ticket's `## TESTING STRATEGY` marks the step `test-writer: skip` or the step changed no production PHP under `app/` / `packages/`.
-- Keep handoff messages to one line with the ticket path (see Handoff Format below).
-- After Tester PASS: run `git status` to inspect, then `git add` + `git commit`. If the working tree is clean even though Refactorer reported "Step N done", treat it as a refactorer failure (see On Failure).
+Confirm `git rev-parse --abbrev-ref HEAD` matches the named branch. If not: `git fetch origin` and
+`git checkout <branch>` (create from **Base** only if it does not exist). Then proceed.
+
+## Core principle: thin coordinator
+
+**DO:** Spawn Task workers with structured prompts; commit; tick `## EXECUTION STATE`; push; move on.
+Trust worker output by **signal** (see return contract). On FAIL, paste verbatim under
+`Feedback (verbatim):` — never paraphrase.
 
 **DO NOT:**
 
-- Re-interpret, merge, reorder, or summarize the Architect's checklist. Use it verbatim.
-- Read or verify changed files after Refactorer completes; that is the Verifier's job.
-- Run `git log`, `git show`, `git diff` to investigate or paraphrase subagent results. Trust their output (see "Subagent return values" below). `git status` is fine for staging decisions before commit.
-- Re-do the Refactorer's, Verifier's, or Tester's work. Never run PHPUnit, PHPStan, Playwright, or `php pagekit setup` yourself; always delegate to **tester**. (Waiting on CI with `gh run watch` is **not** a test run — the Orchestrator does that itself at Final Test.)
-- Analyze or paraphrase Verifier/Tester output. Just check: PASS → proceed, FAIL → send back to refactorer with the verbatim feedback.
-- Fix code, edit files, or amend commits. On failure, delegate back to **refactorer**. The Orchestrator never touches source code.
-- Paste the plan, step titles, or task prompt into chat. Use the ticket file path only.
-- Create a TODO list of all Checklist Steps in chat; the ticket file is the single source.
-- **As the Orchestrator, delegate only to** `architect`, `plan-reviewer`, `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`, `bugbot`, or `security-review` — do **not** spawn `generalPurpose`, `explore`, or `shell` yourself; you are a thin coordinator. `bugbot` and `security-review` are launched **only** at the Local Review stage (V1) / Execute `(XL)` step (V2); never by another subagent. **Exception (worker-level research):** the `architect` and `refactorer` subagents **may themselves** delegate to read-only **`explore`** subagents to gather codebase context — see their definitions in `.cursor/agents/`. That nesting happens *inside* a worker; it is **not** the Orchestrator calling `explore`.
+- Re-interpret, merge, reorder, or summarize the Architect's checklist
+- Read or verify changed files after Refactorer (Verifier's job)
+- Run `git log` / `git show` / `git diff` to investigate worker results (`git status` for staging is OK)
+- Fix code, amend commits, or self-fix
+- Paste the full plan or task prompt into chat — use ticket path only
+- Spawn `generalPurpose`, `explore`, or `shell` yourself (`architect` / `refactorer` may use read-only
+  `explore` internally)
+- Spawn `bugbot` / `security-review` except on the ticket's last `(XL)` checklist step
 
-**MAY (optional, default = no):**
+**MAY (default = no):** Read `.cursor/ROADMAP.md` only to map a Roadmap Step ID — never to plan or
+decompose work (Architect only).
 
-- Read `.cursor/ROADMAP.md` for orientation if a delegation outcome is unclear (e.g. to map a Roadmap Step ID to its phase). Do **not** read it to plan, scope, or decompose work — that is exclusively the Architect's job. Default is: do not read.
+## Delegation protocol
 
-## Subagent return values (what to trust)
+| Task field | Rule |
+| --- | --- |
+| `subagent_type` | Exact name: `architect`, `plan-reviewer`, `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`, `bugbot`, `security-review` |
+| `description` | Short UI label, e.g. `Plan architect`, `Step 3 production`, `Step 6 Bugbot` |
+| `prompt` | Structured fields from the templates below — **no** preamble, **no** "Delegate to …" |
 
-| Subagent         | Expected output (one line, trust verbatim)                           |
-| ---------------- | -------------------------------------------------------------------- |
-| **architect**    | `Plan written to migration-docs/tickets/active/{task-slug}_plan.md`         |
-| **plan-reviewer**| `PASS` — or `FAIL` followed by a short bullet list of issues         |
-| **refactorer**   | `Step N done. Files: [list].`                                        |
-| **verifier**     | `PASS` — or `FAIL` followed by a short bullet list of issues         |
-| **tester**       | `PASS` — or `FAIL` followed by minimal RCA (command + error snippet) |
-| **test-writer**  | `Step N tests done. Files: [list].` — or `UNTESTABLE: <reason>`      |
-| **doc-writer**   | `Branch doc updated: <path> (Step N)` — or Finalize variants per `.cursor/agents/doc-writer.md` |
+For Bugbot / Security you may equivalently follow the `/review-bugbot` and `/review-security` skills;
+they spawn the same Task types with the same prompt shape. Prefer `run_in_background: false`.
 
-If a subagent returns something else (preamble, prose, multi-paragraph review), treat it as a protocol violation: ask the subagent to re-emit in the expected format. Do not paraphrase it yourself.
+### Prompt templates (copy fields; substitute `<…>`)
 
-## Handoff Format
+**architect** — `description`: `Plan architect`
 
-Plans live in `migration-docs/tickets/active/{task-slug}_plan.md` (`task-slug` = task prompt filename without path/extension). Subagents read only the ticket file (and code); they do not need the full task prompt.
-
-| Delegation                      | Message                                                                                                                                 |
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| **Architect**                   | "Delegate to **architect**. Task: `migration-docs/TODO/agent_prompts/{file}.md`. Output: `migration-docs/tickets/active/{task-slug}_plan.md`." |
-| **Plan-reviewer**               | "Task: `{task prompt path}`. Ticket: `migration-docs/tickets/active/{task-slug}_plan.md`. Delegate to **plan-reviewer**."                      |
-| **Doc-writer** (Plan)           | "Delegate to **doc-writer**. Copy skeleton → branch doc; fill header from ticket. Ticket: `…/active/{task-slug}_plan.md`."                     |
-| **Refactorer**                  | "Ticket: `migration-docs/tickets/active/{task-slug}_plan.md`, Checklist Step N. Delegate to **refactorer**."                                   |
-| **Verifier**                    | "Ticket: `…/active/{task-slug}_plan.md`, Checklist Step N. Changed files: [list]. Delegate to **verifier**."                                   |
-| **Verifier** (test files only)  | Same as Verifier, plus: "`scope: test files only`. Changed files: [test-writer list]."                                                          |
-| **Tester** (per Checklist Step) | "Delegate to **tester**. Run: PHPUnit + PHPStan."                                                                                       |
-| **Test-writer**                 | "Ticket: `…/active/{task-slug}_plan.md`, Checklist Step N. Production files: [refactorer list]. Delegate to **test-writer**."                  |
-| **Doc-writer** (Execute)        | "Delegate to **doc-writer**. Branch doc: `<path>`, ticket: `…`, Step N. Hand over changed files + gate outcomes (PASS/FAIL per gate + one-line deviations; no metric numbers)."                      |
-| **Tester** (final)              | "Delegate to **tester**. Final E2E run: run the 3 Playwright E2E specs locally (only after the CI gate is green)."                      |
-| **Doc-writer** (Finalize)       | "Delegate to **doc-writer**. Close branch doc + CHANGELOG (+ README if needed). Hand over PR#, version, CI/Bugbot/E2E outcomes."                |
-
-## Workflow
-
-```
-Task Prompt (one Roadmap Step X.Y)
-    │
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ ARCHITECT → PLAN-REVIEWER (⇄ on FAIL)                       │
-│ Writes ticket → PASS → DOC-WRITER (branch doc skeleton)     │
-│ Orchestrator commits ticket + branch doc                    │
-└─────────────────────────────────────────────────────────────┘
-    │
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ LOOP per Checklist Step:                                    │
-│   A) REFACTORER → VERIFIER → TESTER        (production)   │
-│   B) TEST-WRITER → VERIFIER (tests) → TESTER  (optional)    │
-│   C) DOC-WRITER (branch doc for Step N)                     │
-│   D) COMMIT (orchestrator) — tick EXECUTION STATE box     │
-│   → Next Checklist Step                                     │
-└─────────────────────────────────────────────────────────────┘
-    │
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ LOCAL REVIEW (Bugbot → Security → E2E)                      │
-│   … (see § Local Bugbot + Security Review)                  │
-└─────────────────────────────────────────────────────────────┘
-    │
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ EARLY PUSH → FINAL TEST (CI; re-E2E only after fix-loop) → …│
-└─────────────────────────────────────────────────────────────┘
-    │
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ FINALIZE                                                    │
-│   Version bump (Orchestrator) → DOC-WRITER (close branch    │
-│   doc + CHANGELOG + README) → ROADMAP → archive ticket      │
-│   → push. See push.mdc. Do NOT merge.                       │
-└─────────────────────────────────────────────────────────────┘
+```text
+Task prompt: <path>
+Output ticket: migration-docs/tickets/active/<task-slug>_plan.md
 ```
 
-## Rules
+**architect** (re-plan) — `description`: `Plan architect retry`
 
-1. **One Checklist Step at a time** — never work on multiple in parallel.
-2. **One commit per Checklist Step** — after all Tester PASS gates for the step (production + optional test-writer), **doc-writer** updates the branch doc, then in that **same commit** tick the step's `## EXECUTION STATE` box (`- [ ]` → `- [x]`) and include code, tests, ticket, and branch doc. If `git status` shows nothing to commit although Refactorer reported "Step N done", that is a failure (see On Failure). Do not batch commits.
-3. **Subagents by exact name** — `architect`, `plan-reviewer`, `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer` so Cursor routes correctly. Subagent definitions: `.cursor/agents/`. `bugbot` and `security-review` are the exceptions: launched at Local Review / Execute `(XL)` via the review skills (or Task `subagent_type`), not as ordinary work-step delegates.
-4. **One version bump per PR** — the Finalize step bumps `app/system/config.php` exactly once per Roadmap Step / PR. Subsequent mini-loop fix commits (Local Bugbot review mini-loop, Final Test mini-loop) on the same PR/branch **must not** trigger another `chore(release): bump version to ...` commit. The CHANGELOG-NEW.md section for the already-bumped version is amended in place to include the mini-loop changes; the ROADMAP header pointer stays on the same version. Rationale: the PR is one logical release unit. Re-bumping mid-review wastes commits, confuses readers of `git log`, and creates a fictitious version that was never tagged.
-5. **Ticket is a durable artifact** — after **plan-reviewer PASS**, the Orchestrator commits the ticket, the initial branch doc, and any Architect `PHASE_*` amendments for Deferred/Bridges (`docs(plan): add ticket + branch doc for <task-slug>`) before the Refactorer loop. Tickets are tracked and land in the PR; they are **never** left untracked or gitignored.
+```text
+Task prompt: <path>
+Output ticket: migration-docs/tickets/active/<task-slug>_plan.md
+Feedback (verbatim):
+<paste plan-reviewer FAIL>
+```
 
-## Local Bugbot + Security Review (after all work Checklist Steps, before Early Push)
+**plan-reviewer** — `description`: `Plan review`
 
-> **V2:** This stage is the mandatory last `(XL)` checklist step inside Execute — see
-> `orchestrator-v2-step.mdc` § XL Review step. The section below is for **manual V1** IDE runs.
+```text
+Task prompt: <path>
+Ticket: migration-docs/tickets/active/<task-slug>_plan.md
+```
 
-Orchestrator (spawns Task `bugbot` / `security-review` via the `/review-bugbot` and `/review-security` skills):
+**doc-writer** (initial branch doc) — `description`: `Plan branch doc`
 
-1. **Bugbot** — invoke `/review-bugbot` on `branch changes` (full branch diff vs. merge-base). Findings → mini-loop: **refactorer** → **verifier** → **tester** → commit → re-run Bugbot until clean.
-2. **Security** — invoke `/review-security` on the same diff. Findings → same mini-loop → **restart from Bugbot** until both are clean in sequence.
-3. **E2E** — delegate `"final E2E run"` to **tester**. FAIL → mini-loop → restart from Bugbot.
+```text
+Action: copy skeleton → branch doc; fill header from ticket
+Ticket: migration-docs/tickets/active/<task-slug>_plan.md
+Notable from architect (verbatim, if any): <ROADMAP sub-step, PHASE amendment, etc. — or "none">
+```
 
-See `.cursor/skills-cursor/review-bugbot/SKILL.md` / `review-security/SKILL.md` for prompt shapes and `.cursor/BUGBOT.md` for project criteria.
+**refactorer** — `description`: `Step <N> production`
 
-**Why before the push:** `/review-bugbot` stores the patch ID of the reviewed diff. When Early Push opens a PR with the same diff, remote Cursor Bugbot recognizes that patch ID and **skips** its PR review.
+```text
+Ticket: <ticket path>
+Checklist Step: <N>
+```
 
-## Early Push (after Local Bugbot + Security Review + E2E)
+**refactorer** (retry) — `description`: `Step <N> production retry`
 
-Orchestrator (no subagent):
+```text
+Ticket: <ticket path>
+Checklist Step: <N>
+Restart from: production gate
+Feedback (verbatim):
+<paste FAIL or UNTESTABLE>
+```
 
-1. **Push** — `git push -u origin HEAD` from the feature branch.
-2. **PR creation** — `gh pr create` with the `<!-- metadata -->` block (labels, milestone, `closes`). Use the GitHub Issue number from the invocation (`GitHub Issue: #XXX`). Include `Closes #XXX` in PR body AND in the metadata `closes:` field. See `push.mdc` § PR Metadata + `github-labels.mdc`.
+**refactorer** (review / E2E / Finalize fix) — `description`: `Step <N> review fix` or `Finalize fix`
 
-This early push triggers the PR CI checks (the PHP Tests workflow plus the other required gates). The Final Test step waits on those CI checks. The remote Cursor Bugbot usually skips its review thanks to the patch-ID sync from the Local Bugbot + Security stage above.
+```text
+Ticket: <ticket path>
+Checklist Step: <N>
+Context: Review fix loop (<Bugbot | Security | E2E>)   # or: Finalize fix loop (<CI | Bugbot | coverage>)
+Feedback (verbatim):
+<paste findings / FAIL>
+```
 
-## Final Test (after Early Push)
+**verifier** (production) — `description`: `Step <N> verify production`
 
-Sequential: (a) the **Orchestrator** waits on CI itself — `gh pr checks <pr> --watch` on the PR's status checks (a watch, not a test, so no subagent) — until green; (b) E2E already ran in the Local Review stage above — re-run `"final E2E run"` via **tester** only after a CI fix-loop changed code. See `tester.md` § End-of-ticket E2E. On FAIL → Refactorer → Verifier → Tester mini-loop, commit, push, re-run.
+```text
+Ticket: <ticket path>
+Checklist Step: <N>
+scope: production
+Changed files: <refactorer file list>
+```
 
-## Finalize (after Final Test PASS)
+**verifier** (test files only) — `description`: `Step <N> verify tests`
 
-Orchestrator executes the relevant items of **push.mdc** (delegate writing to **doc-writer**):
+```text
+Ticket: <ticket path>
+Checklist Step: <N>
+scope: test files only
+Changed files: <test-writer file list>
+```
 
-1. **Version bump** — `.cursor/skills/version-bump/SKILL.md` (Orchestrator runs the skill once per PR).
-2. **Doc-writer** — close branch doc + `CHANGELOG-NEW.md` + README if needed (hand over PR#, version, CI/E2E/Bugbot outcomes). Schema: `migration-docs/branches/branch-doc-skeleton.md`.
-3. **PHASE Deferred sync** — if ticket / branch-doc Deferred is non-empty, confirm each future step in `PHASE_*_MODERNISING.md` has the item as forward-only what+why (Architect prose rules); amend if missing. Skip when empty / non-goal only.
-4. **ROADMAP update** — `.cursor/ROADMAP.md` (Header pointer, this step's row Status `⏳` → `✅`, Audit `⏳` → `🛡️`, **PR `-` → `#YYY`**, plus Phase 1 audit closures per `push.mdc`) — Orchestrator.
-5. **Archive ticket** — `git mv migration-docs/tickets/active/{task-slug}_plan.md migration-docs/tickets/done/`.
-6. **Push** (second push) — updates the PR with the finalize commits.
-6. **Do NOT merge** — user reviews and merges.
+**tester** (per-step) — `description`: `Step <N> PHPUnit + PHPStan`
 
-## On Failure (CRITICAL — do not self-fix)
+```text
+Run: PHPUnit + PHPStan
+```
 
-The Orchestrator NEVER fixes code, reads files to understand errors, or runs tests to verify fixes. On ANY failure:
+**tester** (final E2E) — `description`: `Step <N> final E2E` or `Finalize final E2E`
 
-| Failure                                        | Action                                                                                                                                       |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Plan-reviewer FAIL**                         | Pass verbatim feedback to **architect**; re-run plan-reviewer after re-plan.                                                                 |
-| **Refactorer reported done but tree clean**    | Re-delegate to **refactorer**: "Ticket: …, Checklist Step N. No changes detected on disk. Re-execute and emit changed files."                |
-| **Verifier FAIL** (production)                 | Pass feedback to **refactorer**: "Ticket: …, Checklist Step N. Verifier feedback: [paste FAIL output verbatim]. Delegate to **refactorer**." |
-| **Tester FAIL** (production gate)              | Pass feedback to **refactorer**: "Ticket: …, Checklist Step N. Tester feedback: [paste FAIL output verbatim]. Delegate to **refactorer**."   |
-| **Verifier FAIL** (`scope: test files only`)   | Pass feedback to **test-writer**; re-run verifier (tests) → tester.                                                                          |
-| **Tester FAIL** (after test-writer)            | If clearly a test defect → **test-writer**; if production regression → **refactorer**, restart from production verifier.                     |
-| **Test-writer UNTESTABLE**                     | Pass reason to **refactorer**; restart from production verifier after fix.                                                                   |
-| **Refactorer cannot fix** (architecture issue) | Escalate to **architect**: "Ticket: …, Checklist Step N. Issue: [one line]. Delegate to **architect**."                                      |
+```text
+Run: final E2E run
+```
 
-After any production fix: restart from **verifier** (production), then **tester**, then optional test-writer block, then **doc-writer**, then commit. Never amend commits yourself.
+**test-writer** — `description`: `Step <N> tests`
+
+```text
+Ticket: <ticket path>
+Checklist Step: <N>
+Production files: <refactorer file list>
+```
+
+**test-writer** (retry) — `description`: `Step <N> tests retry`
+
+```text
+Ticket: <ticket path>
+Checklist Step: <N>
+Production files: <refactorer file list>
+Feedback (verbatim):
+<paste verifier or tester FAIL>
+```
+
+**test-writer** (Finalize coverage gap) — `description`: `Finalize coverage gap`
+
+```text
+Ticket: <ticket path>
+Context: Finalize coverage pass
+Codecov gaps (filtered, testable): <file list>
+PR production scope: <git diff base...HEAD -- app/ packages/>
+Testing strategy excerpt: <relevant ## TESTING STRATEGY lines>
+```
+
+**bugbot** — `description`: `Step <N> Bugbot` — `subagent_type`: `bugbot` — `run_in_background`: false
+
+```text
+Full Repository Path: <absolute path from git rev-parse --show-toplevel>
+Diff: branch changes
+Base Branch: <Base>
+```
+
+**security-review** — `description`: `Step <N> Security` — `subagent_type`: `security-review` — `run_in_background`: false
+
+```text
+Full Repository Path: <absolute path from git rev-parse --show-toplevel>
+Diff: branch changes
+Base Branch: <Base>
+```
+
+**doc-writer** (per step) — `description`: `Step <N> branch doc`
+
+```text
+Branch doc: <path>
+Ticket: <ticket path>
+Checklist Step: <N>
+Production files: <refactorer list, or "none" for XL with no fixes>
+Test files: <test-writer list, or "none">
+Gate outcomes: <PASS/FAIL per gate; for XL: Bugbot/Security/E2E + fix-loop notes; one-line deviations only — no metric numbers>
+```
+
+**doc-writer** (ESCALATE) — `description`: `Step <N> ESCALATE record`
+
+```text
+Branch doc: <path>
+Ticket: <ticket path>
+Checklist Step: <N>
+Action: record ESCALATE
+Reason (verbatim):
+<paste stuck failure>
+```
+
+**doc-writer** (Finalize) — `description`: `Finalize docs`
+
+```text
+Branch doc: <path>
+Ticket: <ticket path>
+PR: #<n>
+Version: <X.Y.Z>
+CI outcome: <link + status>
+Metrics: link sticky comment/dashboard only (no metric numbers)
+Coverage gap pass: <ran | skipped | reason>
+Bugbot outcome: <clean | findings fixed>
+E2E outcome: <PASS | skipped>
+Finalize fix-loop notes (verbatim, if any): <paste or "none">
+```
+
+### Subagent return contract (signal, not wording)
+
+| Subagent | Expected signal (canonical) |
+| --- | --- |
+| **architect** | `Plan written to migration-docs/tickets/active/{task-slug}_plan.md` (audit: `Report written to …`) |
+| **plan-reviewer** | `PASS` — or `FAIL` + bullets |
+| **refactorer** | `Step N done. Files: [list].` (also `Checklist step N done.` / `Fix done. Files: …`) |
+| **verifier** | `PASS` — or `FAIL` + bullets |
+| **tester** | `PASS` — or `FAIL` + minimal RCA |
+| **test-writer** | `Step N tests done. Files: [list].` — or `UNTESTABLE: …` (Finalize: `Finalize tests done. …`) |
+| **bugbot** / **security-review** | clean (no findings / no bugs / no issues) — or findings table. Empty-diff = clean |
+| **doc-writer** | `Branch doc updated: <path> (Step N)` / `(Plan)` — Finalize: `Finalized docs: …` |
+
+Re-emit only when the signal is missing or buried in prose — never for harmless wording variants.
+
+### Review / Finalize fix-loop spawn order
+
+1. **refactorer** (fix template) → 2. **verifier** (production) → 3. **tester** (PHPUnit + PHPStan)
+   → commit → `git push` (do **not** tick the XL box mid-loop).
+
+Finalize CI/Bugbot fixes additionally re-run **tester** (final E2E) before re-watching CI.
+Coverage-gap-only: **test-writer** → **verifier** (tests) → **tester** (PHPUnit + PHPStan).
+
+---
+
+## Phase A — Plan
+
+1. Spawn **architect** → ticket with `## EXECUTION STATE` and `S`/`M`/`L`/`XL` hints (last step always
+   `(XL)` Review + E2E).
+2. Spawn **plan-reviewer** → `PASS` or `FAIL`.
+3. **FAIL** → **architect** (retry) → back to 2.
+4. **PASS** → **doc-writer** (initial branch doc). Then `git add` ticket, branch doc, and any
+   `migration-docs/TODO/PHASE_*_MODERNISING.md` (plus ROADMAP if a sub-step was added), commit
+   `docs(plan): add ticket + branch doc for <task-slug>`, `git push`.
+
+### Audit / report tasks
+
+If the user says this is an **AUDIT/REPORT** task: deliverable is a report under `migration-docs/audits/…`
+(no checklist, no Execute/Finalize). Architect → plan-reviewer loop; on PASS commit `docs(audit): …`,
+push, open a docs-only PR against **Base**, do **not** bump version / CHANGELOG / ROADMAP, do **not**
+spawn doc-writer. Stop after `Plan ready: <report path> — PR #<n>`.
+
+### Plan stuck-breaker
+
+Same plan-reviewer FAIL **3×** → **doc-writer** (ESCALATE) → commit → push → stop with
+`ESCALATE: <reason>`.
+
+---
+
+## Phase B — Execute (all checklist steps, in order)
+
+For each unticked Step N in `## EXECUTION STATE`, read the size hint:
+
+| Size | Path |
+| --- | --- |
+| `S` / `M` / `L` | Work step A → B → C |
+| `XL` | Review step R1 → R4 only (never A/B). Always the **last** checklist step |
+
+One Checklist Step at a time. One commit per step (after gates + doc-writer). Ticket boxes are the
+progress source of truth — resume from the first unticked step if the session is continued.
+
+### Work step N (`S` / `M` / `L`)
+
+**A — Production**
+
+1. **refactorer** → 2. **verifier** (production) → 3. **tester** (PHPUnit + PHPStan).
+   On FAIL at 2/3: **refactorer** (retry), re-run from 2.
+
+**B — Coverage** (only if `## TESTING STRATEGY` does not mark `test-writer: skip` **and** Refactorer
+changed production PHP under `app/` or `packages/`)
+
+4. **test-writer** (`UNTESTABLE` → refactorer retry, restart from 2)
+5. **verifier** (test files only) → 6. **tester**
+   FAIL at 5 → test-writer retry → 5–6. FAIL at 6: test defect → test-writer; production → refactorer from 2.
+
+**C — Docs, commit, push**
+
+7. **doc-writer** (per step) — once after all Tester PASS, never mid fix-loop. No E2E here.
+8. Flip `- [ ] Step N` → `- [x] Step N`; `git add` code + tests + ticket + branch doc; one Conventional
+   Commit; `git push`.
+
+If Refactorer reported done but `git status` is clean → refactorer again with
+`Feedback (verbatim): No changes detected on disk. Re-execute and emit changed files.`
+
+### XL Review step N — Bugbot → Security → E2E
+
+Only when Step N is `(XL)`. No greenfield refactorer/test-writer — only reviews, fix-loops, E2E, doc-writer.
+Project rules: `.cursor/BUGBOT.md`. `Full Repository Path` = `git rev-parse --show-toplevel`.
+
+**R1 — Bugbot:** spawn **bugbot** → clean → R2; findings → fix-loop → push → R1 again.
+
+**R2 — Security:** spawn **security-review** → clean → R3; findings → fix-loop → push → **restart R1**.
+
+**R3 — E2E:** **tester** (final E2E) → PASS → R4; FAIL → fix-loop → push → **restart R1**.
+
+**R4 — Docs, tick:** **doc-writer** (include Bugbot/Security/E2E outcomes) → tick Step N → commit → push.
+
+If `bugbot` / `security-review` Task spawn fails (unavailable): one corrected retry, then
+`ESCALATE: Step N — review subagent unavailable: <error>` — do not invent a substitute review.
+
+Pre-PR Bugbot stores a patch ID; when Finalize opens a PR with the same diff, GitHub Bugbot often skips
+a duplicate review. Finalize still has a PR-Bugbot safety net.
+
+### Execute stuck-breaker
+
+Same FAIL / finding set **3×** on a step → **doc-writer** (ESCALATE) → commit
+`docs(branch): record ESCALATE for Step N` → push → stop `ESCALATE: Step N — <reason>`.
+
+---
+
+## Phase C — Finalize
+
+Run only when every `## EXECUTION STATE` box is `- [x]`.
+
+1. **Push + PR** — `git push -u origin HEAD`; `gh pr create --base <Base>` with `<!-- metadata -->`
+   (labels, milestone, `Closes #XXX`). Reuse an existing PR for this branch if one exists.
+2. **CI gate** — you wait (not tester):
+   ```bash
+   gh pr checks <pr> --watch --fail-fast
+   ```
+   FAIL → Finalize fix-loop → commit → push → re-watch.
+3. **Coverage gap pass** (optional; after CI green, before PR Bugbot) — only when
+   `## TESTING STRATEGY` is not `test-writer: skip` **and** the latest Codecov PR comment lists testable
+   uncovered production files under `app/` / `packages/` (not views, not version-only `config.php`).
+   Poll Codecov comment (~5 min); filter; spawn coverage **test-writer** → verifier (tests) → tester.
+   At most one coverage-gap iteration. `UNTESTABLE` for all → skip commit, continue.
+4. **PR-Bugbot safety net** — `gh pr comment <pr> --body "bugbot run"`; watch `Cursor Bugbot` check;
+   findings → fix-loop → push → re-CI → re-trigger until clean + CI green.
+5. **Release docs** (follow `push.mdc`; delegate writing):
+   1. **Version bump** (you) — `version-bump` skill → `app/system/config.php` (**once** per PR)
+   2. **doc-writer** (Finalize docs)
+   3. **PHASE Deferred sync** (you) — if Deferred/Bridges non-empty, ensure forward-only what+why in
+      `PHASE_*_MODERNISING.md`; unclear target → `ESCALATE`
+   4. **ROADMAP** (you) — header pointer, Status/Audit/PR, Phase 1 audit closures per `push.mdc`
+   5. Commit (`chore(release): …`, `docs(roadmap): …`), archive ticket
+      `git mv …/active/…_plan.md …/tickets/done/`, `git push`. **Do not merge.**
+
+### Finalize idempotency (resume-safe)
+
+- Existing PR for branch → reuse; never open a second
+- Version already bumped + CHANGELOG section present → do not bump again; amend section in place
+- Ticket already under `done/` → skip `git mv`
+- Coverage-gap commit already on branch → skip step 3
+
+### Finalize stuck-breaker
+
+Same FAIL **3×** → stop `ESCALATE: <reason>`.
+
+---
+
+## Standing rules
+
+1. **One Checklist Step at a time** — never parallel steps.
+2. **One commit per Checklist Step** — after gates + doc-writer; tick box in that commit.
+3. **One version bump per PR** — Finalize only; mini-loop fixes must not re-bump; amend CHANGELOG in place.
+4. **Ticket is durable** — after plan-reviewer PASS, commit ticket + branch doc before Execute.
+5. **Conventional Commits** for all commits you create.
+
+## End state
+
+Prefer a short status when done, e.g.
+`Finalized. PR: #YYY. Version: X.Y.Z. Ticket archived to done/.` — or `ESCALATE: <reason>`.
