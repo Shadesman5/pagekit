@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\Routing;
 
+use Pagekit\Filesystem\Filesystem;
 use Pagekit\Routing\Generator\LinkReferenceType;
 use Pagekit\Routing\Generator\UrlGenerator;
 use Pagekit\Routing\Generator\UrlGeneratorDumper;
@@ -30,6 +31,8 @@ class Router implements RouterInterface, LinkReferenceType
 
     protected RequestContext $context;
 
+    protected Filesystem $files;
+
     protected ?UrlMatcher $matcher = null;
 
     protected ?UrlGenerator $generator = null;
@@ -54,12 +57,14 @@ class Router implements RouterInterface, LinkReferenceType
      * @param LoaderInterface      $loader
      * @param RequestStack         $stack
      * @param array<string, mixed> $options
+     * @param Filesystem           $files    Writer for the dumped matcher/generator cache
      */
-    public function __construct(ResourceInterface $resource, LoaderInterface $loader, RequestStack $stack, array $options = [])
+    public function __construct(ResourceInterface $resource, LoaderInterface $loader, RequestStack $stack, array $options = [], Filesystem $files = new Filesystem())
     {
         $this->resource = $resource;
         $this->loader = $loader;
         $this->stack = $stack;
+        $this->files = $files;
         $this->context = new Context();
         $this->options = array_replace([
             'cache' => null,
@@ -441,30 +446,12 @@ class Router implements RouterInterface, LinkReferenceType
      */
     protected function writeCache(string $file, string $content): void
     {
-        // Write to a unique temp file and atomically move it into place. Without this,
-        // concurrent requests (e.g. rapid page drag & drop, where every reorder changes
-        // the route collection and regenerates the dump) can read a half-written cache
-        // file and crash on a missing dumped class.
-        $tmp = @tempnam(dirname($file), 'route-cache');
-
-        if ($tmp !== false) {
-            if (@file_put_contents($tmp, $content) !== false) {
-                @chmod($tmp, 0666 & ~umask());
-
-                if (@rename($tmp, $file)) {
-                    return;
-                }
-            }
-
-            @unlink($tmp);
-        }
-
-        // Fallback (e.g. Windows when the destination is momentarily locked by a reader):
-        // a direct write is not atomic, but getMatcher()/getGenerator() degrade safely to
-        // the non-cached path if a reader happens to see a partial file.
-        if (@file_put_contents($file, $content, LOCK_EX) === false) {
-            throw new \RuntimeException("Failed to write cache file ($file).");
-        }
+        // The write has to land in one step: concurrent requests (e.g. rapid page drag &
+        // drop, where every reorder changes the route collection and regenerates the
+        // dump) would otherwise read a half-written cache file and crash on a missing
+        // dumped class. Where the platform cannot deliver that, getMatcher()/
+        // getGenerator() still degrade safely to the non-cached path.
+        $this->files->dumpAtomic($file, $content);
     }
 
     /**

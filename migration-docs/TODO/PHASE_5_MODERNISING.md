@@ -31,6 +31,7 @@
 | **CDN Integration**  | ⚠️    | ✅         | Better as a plugin/service binding           |
 | **Marketplace**      | ✅    | ❌         | Central to the extension ecosystem           |
 | **Sub-Extensions**   | ✅    | ❌         | Platform mechanics, not a feature            |
+| **Process-isolated extension runtime** | ❌ | ✅ (candidate) | Optional after marketplace trust exists — never Core; see §5.6 Future candidate |
 | **Event Sourcing**   | ❌    | ✅         | Opt-in side database — **5.4.1**             |
 | **Agentic DevOps**   | —     | Tooling     | Internal — **5.9**, not a CMS feature        |
 
@@ -357,6 +358,21 @@ foundation (clean `PackageManager` API: `install()`, `update()`, `uninstall()`, 
 - The **public, versioned, JWT-authenticated** API patterns are defined in Step 4.4 (REST API v2);
   the marketplace API should follow those conventions rather than reviving the legacy ad-hoc
   `emulateJSON` endpoints.
+
+### Future candidate (not scheduled): Process-isolated extension runtime
+
+- **What**: Optional process-level isolation for *enabled* third-party PHP (separate worker /
+  restricted capabilities), so malicious or hostile code cannot share the Core process.
+- **Why not Core / not 2.7**: Step 2.7 is **fault isolation** (survive bugs, auto-disable, notify).
+  Process sandboxing is **security isolation** against untrusted code — a different product and a
+  different runtime model. In-process extensions remain the default CMS contract.
+- **When to reconsider**: only after **5.6** has a working marketplace **and** a trust model
+  (signing / integrity / review). Until then, trust is distribution-side, not execution-side.
+- **Placement if pursued**: Extension or Sub-Extension (builds on **5.0**), never a Core
+  requirement — same DNA as Multi-Tenancy (**5.5.1**). Distinct from the **build-time**
+  `archive.scripts` sandbox note in Task 3 above.
+- **Not a ROADMAP row yet**: community / threat-model demand decides; do not invent a step ID
+  before that.
 
 ---
 

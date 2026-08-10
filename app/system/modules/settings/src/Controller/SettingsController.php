@@ -8,6 +8,7 @@ use function Pagekit\__;
 
 use Pagekit\Config\Config;
 use Pagekit\Config\ConfigManager;
+use Pagekit\Filesystem\Filesystem;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\User\Attribute\Access;
 use Symfony\Component\HttpFoundation\Request;
@@ -19,6 +20,7 @@ class SettingsController
         private readonly Request $request,
         private readonly ConfigManager $config,
         private readonly string $configFile,
+        private readonly Filesystem $file,
     ) {
     }
 
@@ -36,7 +38,13 @@ class SettingsController
     }
 
     /**
+     * Persists the file configuration and the database-backed options.
+     *
+     * A write that fails leaves the settings screen with an error rather than a
+     * success it never earned, so the exception is left to propagate.
+     *
      * @return array{message: string}
+     * @throws \RuntimeException if config.php could not be written
      */
     #[Route('/save', methods: ['POST'])]
     public function saveAction(): array
@@ -56,14 +64,10 @@ class SettingsController
             $fileConfig->set($module, $value);
         }
 
-        file_put_contents($file, $fileConfig->dump());
+        $this->file->dumpAtomic($file, $fileConfig->dump());
 
         foreach ($options as $module => $value) {
             $this->config->set($module, array_replace((($this->config)($module) ?? new Config())->toArray(), $value));
-        }
-
-        if (function_exists('opcache_invalidate')) {
-            opcache_invalidate($file);
         }
 
         return ['message' => 'success'];

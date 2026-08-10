@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Routing\Tests;
 
 use Pagekit\Event\EventDispatcher;
+use Pagekit\Filesystem\Filesystem;
 use Pagekit\Routing\Loader\RoutesLoader;
 use Pagekit\Routing\Router;
 use Pagekit\Routing\Routes;
@@ -270,5 +271,149 @@ class RouterTest extends TestCase
             array_map('unlink', glob($dir.'/*') ?: []);
             rmdir($dir);
         }
+    }
+
+    /**
+     * The dumped matcher must reach disk through the filesystem service, which puts
+     * the file in place in a single step. The router requires the file straight back
+     * and instantiates the class it declares, so a reader that catches the dump
+     * half-written crashes on a missing class - and rapid route changes (page drag &
+     * drop) make writing while others read the normal case, not the rare one.
+     */
+    public function testDumpedCacheIsWrittenThroughTheFilesystem(): void
+    {
+        $files = new class () extends Filesystem {
+            /** @var list<array{file: string, content: string}> */
+            public array $writes = [];
+
+            public function dumpAtomic(string $file, string $content, ?int $mode = null): void
+            {
+                $this->writes[] = ['file' => $file, 'content' => $content];
+
+                parent::dumpAtomic($file, $content, $mode);
+            }
+        };
+
+        $dir = $this->createCacheDir();
+
+        try {
+            $this->routes->add([
+                'name' => 'cached_route',
+                'path' => '/cached/{id}',
+                'defaults' => ['_controller' => 'TestController::cachedAction'],
+            ]);
+
+            $router = new Router($this->routes, new RoutesLoader($this->events), $this->stack, ['cache' => $dir], $files);
+
+            $cache = (new \ReflectionMethod($router, 'getCache'))->invoke($router, '%s/%s.matcher.cache');
+
+            $request = Request::create('/cached/7');
+            $this->stack->push($request);
+
+            $params = $router->match('/cached/7');
+            $this->assertSame('7', $params['id']);
+
+            $this->assertCount(1, $files->writes);
+            $this->assertSame($cache['file'], $files->writes[0]['file']);
+            $this->assertStringContainsString('class UrlMatcher'.$cache['key'], $files->writes[0]['content']);
+            $this->assertFileExists($cache['file']);
+        } finally {
+            $this->removeCacheDir($dir);
+        }
+    }
+
+    /**
+     * A cache the process cannot write costs the request its cache, never its
+     * response: matcher and generator are built from the route collection instead.
+     * The failed write must also leave the directory untouched - anything dropped
+     * there would be picked up as a cache by the next request.
+     */
+    public function testUnwritableCacheDegradesToTheUncachedRouter(): void
+    {
+        $files = new class () extends Filesystem {
+            public int $attempts = 0;
+
+            public function dumpAtomic(string $file, string $content, ?int $mode = null): void
+            {
+                ++$this->attempts;
+
+                throw new \RuntimeException("Failed to write file ($file).");
+            }
+        };
+
+        $dir = $this->createCacheDir();
+
+        try {
+            $this->routes->add([
+                'name' => 'unwritable_route',
+                'path' => '/unwritable/{id}',
+                'defaults' => ['_controller' => 'TestController::unwritableAction'],
+            ]);
+
+            $router = new Router($this->routes, new RoutesLoader($this->events), $this->stack, ['cache' => $dir], $files);
+
+            $request = Request::create('/unwritable/5');
+            $this->stack->push($request);
+
+            $params = $router->match('/unwritable/5');
+            $this->assertSame('5', $params['id']);
+
+            // Matching adopted the request context, so the generated URL carries its
+            // base URL in front of the route path.
+            $url = $router->generate('unwritable_route', ['id' => 5]);
+            $this->assertStringContainsString('/unwritable/5', $url);
+
+            // Both dumps were attempted, both were refused, and neither wrote anything.
+            $this->assertSame(2, $files->attempts);
+            $this->assertSame([], glob($dir.'/*') ?: []);
+        } finally {
+            $this->removeCacheDir($dir);
+        }
+    }
+
+    /**
+     * Naming the filesystem is optional, and the router the routing module builds
+     * does not name one. Such a router still has to cache, otherwise every request
+     * would redump the routes.
+     */
+    public function testCacheIsWrittenWithoutAnInjectedFilesystem(): void
+    {
+        $dir = $this->createCacheDir();
+
+        try {
+            $this->routes->add([
+                'name' => 'plain_route',
+                'path' => '/plain/{id}',
+                'defaults' => ['_controller' => 'TestController::plainAction'],
+            ]);
+
+            $router = new Router($this->routes, new RoutesLoader($this->events), $this->stack, ['cache' => $dir]);
+
+            $cache = (new \ReflectionMethod($router, 'getCache'))->invoke($router, '%s/%s.generator.cache');
+
+            $this->assertSame('/plain/9', $router->generate('plain_route', ['id' => 9]));
+
+            $this->assertFileExists($cache['file']);
+
+            $dump = file_get_contents($cache['file']);
+            $this->assertIsString($dump);
+            $this->assertStringContainsString('class UrlGenerator'.$cache['key'], $dump);
+        } finally {
+            $this->removeCacheDir($dir);
+        }
+    }
+
+    private function createCacheDir(): string
+    {
+        $dir = sys_get_temp_dir().'/pk-route-cache-'.uniqid();
+        mkdir($dir);
+
+        return $dir;
+    }
+
+    private function removeCacheDir(string $dir): void
+    {
+        array_map('unlink', glob($dir.'/*') ?: []);
+        rmdir($dir);
     }
 }

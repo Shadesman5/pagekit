@@ -285,7 +285,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Goal**: One shared atomic-write primitive for boot-critical files; clean two silent/dead error-handling sites.
 - **Why**: Non-atomic writes can corrupt `config.php` / package registry on crash or concurrent read; the routing cache already has the correct temp+rename pattern — extract and reuse it (no new dependency).
 - **What**:
-  - Add `Filesystem::dumpAtomic()` (temp + chmod + rename, with existing Windows fallback); unit-test it
+  - Add `Filesystem::dumpAtomic()` (temp + chmod + rename; **atomic or throw** — no non-atomic `LOCK_EX` degrade); unit-test it
   - Route `config.php` and package-registry writes through it; refactor `Router::writeCache()` to the same helper
   - Delete dead commented catch in `SelfupdateCommand`; log (don't swallow) invalid version constraints in Composer helper
 - **Provides**: the atomic-write primitive reused by Extension Safety (2.7) fallback writes and the Automated Update System (2.9) — hence sequenced before both.
@@ -299,18 +299,18 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Goal**: Prevent a faulty extension from taking down the whole CMS.
 - **Why**: Today a throwable in extension `index.php` / `main()` whitescreens the kernel; admins must still reach the panel to disable the offender. Also needed before a third-party marketplace.
 - **What**:
-  1. Sandbox module load in `try/catch(\Throwable)` — registration is part of the window: it `include`s every `packages/*/*/index.php` on disk before anything is enabled, so a top-level throwable in a *disabled* extension still kills the boot and auto-disable alone does not protect against it
+  1. Sandbox module load in `try/catch(\Throwable)` — registration is part of the window: it `include`s every `packages/*/*/index.php` on disk before anything is enabled, so a top-level throwable in a *disabled* extension still kills the boot and auto-disable alone does not protect against it. Harden that window inside the barrier; do **not** replace PHP discovery with a static manifest here (**2.7.3**)
   2. Log stack traces immediately via Monolog FileHandler (**must work without DB**)
-  3. Auto-disable in DB (own try/catch) with a DB-less fallback file in a non-web-served path (e.g. under `tmp/`); boot checks both. Never place it under `storage/` — that tree is the public media root mounted into `public/`, so a fallback file there would be readable over HTTP and disclose which extensions are broken. Keep it out of `tmp/temp` as well: clearing the cache with the temp option empties that directory at depth 0, which would silently re-enable a broken extension
+  3. Auto-disable in DB (own try/catch) with a DB-less fallback file under a dedicated private path (prefer `tmp/system/`, own path key — never `storage/`, never `tmp/temp` / `path.cache`); boot checks both. A routine cache/temp clear must not sweep the record and silently re-enable a broken extension
   4. Admin notice on the next admin request, derived from the durable disable record — a session flash written at failure time auto-expires and usually lands in an anonymous visitor's session
-  - Lifecycle interface + Blog `scripts.php` → lifecycle class; migrate install rollback on Throwable
+  - Lifecycle interface + Blog `scripts.php` → lifecycle class; migrate install rollback on Throwable, including the double-fault case when migration rollback itself throws (log separately, keep the original error reportable, recovery must not throw uncaught)
   - **Routing dumper**: replace deprecated copied `PhpMatcherDumper` / `UrlGeneratorDumper` with Symfony compiled matcher/generator; keep blog permalink behaviour; prefer content-hash cache freshness over `filemtime`
   - **`UrlResolver` static bridge → DI**: remove `$cache` / `$module` / `$posts` setters and static `getPermalink()` (+ `RouteListener` callers) once routing factory supports DI
   - **`theme-one` template-helper statics**: the helpers are plain functions in a required file, so their URL provider is parked in a static property (`ThemeOneHelpers::$url`) — a different blocker than UrlResolver's `new $resolver()`, and it needs an injectable seam for template-level helpers
   - **`UniqueValidator`**: container-aware `ConstraintValidatorFactory`; delete static `setDb()` + boot wiring
 - **Out of scope until a second caller**: extract `User::evaluateBooleanExpression()` only if another consumer appears
-- **Sequencing**: before Snapshot (**2.7.1**), Dependency Integrity (**2.7.2**), Extension Packaging (**2.8**) and Marketplace (**5.6**)
-- **Out of scope here**: full Snapshot/Backup UI and Three-Stage Uninstall retention — **Step 2.7.1**
+- **Sequencing**: before Snapshot (**2.7.1**), Dependency Integrity (**2.7.2**), Static Module Registration (**2.7.3**), Extension Packaging (**2.8**) and Marketplace (**5.6**)
+- **Out of scope here**: full Snapshot/Backup UI and Three-Stage Uninstall retention — **Step 2.7.1**; module dependency graph fail-closed — **Step 2.7.2**; static discovery so inactive packages never execute PHP — **Step 2.7.3**
 
 ---
 
@@ -341,27 +341,44 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - **Reverse index**: derive `requiredBy` from the registered manifests so "what depends on this module" is answerable without scanning at call time.
   - **The active theme counts as a dependent**: the activation registry is two keys — the `extensions` list and `site.theme` (`SystemModule` loads `array_merge($this->config['extensions'], (array) $theme)`). A check that reads only `extensions` will happily disable a module the active theme requires and break the frontend.
   - **Pre-flight for destructive operations**: before disable or uninstall, report what would happen — active dependents that block it, modules that would be left orphaned, and whether the module owns tables or settings of its own (data risk). One query that both the admin UI and the API consume.
-- **Out of scope**: Automatic removal of orphaned dependencies and the install-reason bookkeeping it needs (**5.0**); snapshots and retention for destructive operations (**2.7.1**).
-- **Sequencing**: before **5.0** — operator-managed activation of core modules must not ship while unsatisfied dependencies stay quiet.
+- **Out of scope**: Automatic removal of orphaned dependencies and the install-reason bookkeeping it needs (**5.0**); snapshots and retention for destructive operations (**2.7.1**); replacing PHP-executed package discovery (**2.7.3**).
+- **Sequencing**: before **5.0** — operator-managed activation of core modules must not ship while unsatisfied dependencies stay quiet. Prefer before **2.7.3** so the graph hardens against the current registration model first; **2.7.3** then re-homes discovery without reopening the fail-closed rules.
 - **Risk**: Low–Medium — one resolver behaviour change plus a read-only graph. The behaviour change can strand an installation whose manifests were already inconsistent, which is why the failure has to be explicit about the missing module.
+
+---
+
+## Step 2.7.3: Static Module Registration
+
+- **Depends on**: Step 2.7 (fault barrier / auto-disable seams), prefer after Step 2.7.2 (dependency graph already fail-closed against registered names).
+- **Goal**: Discover packages from static metadata so boot never executes PHP for inactive / on-disk-only packages; run module PHP (`index.php` / equivalent) only for packages that are actually being loaded.
+- **Why**: Step 2.7 can wrap `ModuleManager::register()`'s `include` in `\Throwable`, but that is still execution-to-discover. A parse error in a disabled extension's `index.php` remains uncatchable; a malicious or broken top-level statement still runs for every package on disk. Before third-party packaging (**2.8**) and the marketplace (**5.6**) distribute arbitrary trees, discovery must not require executing those trees.
+- **What**:
+  1. Static package identity/metadata file (e.g. `module.json` beside `composer.json`, or a constrained subset of an existing manifest) carrying at least name and the fields registration needs before load — no PHP evaluation to learn that a package exists
+  2. `ModuleManager::register()` (or its successor) reads static metadata for on-disk packages; `include` / require of executable module entry points is restricted to enabled packages (and core modules that must always load)
+  3. Migrate first-party packages (`packages/pagekit/*`, `app/modules/*`, installer/system) onto the static manifest; delete any dual path that still discovers via blind `include` of every `index.php`
+  4. Keep the Step 2.7 fault barrier for the remaining load / `main()` / lifecycle windows — static discovery removes the registration window's PHP hazard, it does not replace load isolation
+  5. Package contract alignment: whatever shape 2.7.3 settles becomes required input for Extension Packaging (**2.8**)
+- **Out of scope**: prebuilt JS/CSS author tooling and upload ZIP shape (**2.8**); marketplace signing (**5.6**); process-level sandboxing of enabled extension PHP (not Core / not 2.x debt — optional Phase 5 candidate after marketplace trust, see PHASE_5 §5.6 Future candidate)
+- **Sequencing**: after 2.7 (+ preferably 2.7.2), before 2.8 — the packaging contract must not freeze `index.php`-as-discovery if this step is about to retire it
+- **Risk**: High — boot discovery rewrite touching every module manifest; parse-error class of failures finally becomes containable for inactive packages
 
 ---
 
 ## Step 2.8: Extension Packaging & Prebuilt Assets
 
-- **Depends on**: Step 2.4 (static Vite entry manifest), Step 2.7 (fault isolation).
+- **Depends on**: Step 2.4 (static Vite entry manifest), Step 2.7 (fault isolation); absorb the manifest shape from Step **2.7.3** when that step has landed (do not freeze `index.php`-only discovery in the published contract if 2.7.3 replaces it).
 - **Goal**: One package shape for distributed extensions and themes — PHP/views plus **prebuilt** `app/bundle/*.js` and compiled CSS — valid for the admin upload today and for the marketplace later.
 - **Why**: Bundle entries live in the first-party-only core manifest `scripts/bundle-entries.mjs`; no core build step produces a third-party bundle. A package that ships sources only has no build path at all — `pnpm build` never sees it, and target hosts have no Node. The admin upload (`admin/system/package/upload` → `PackageManager`) installs and enables such a package today, silently without its JS.
 - **What**:
-  1. Contract: required package layout (`composer.json` `type: pagekit-extension` / `pagekit-theme`, `index.php`, views, `app/bundle/*.js`, compiled CSS); the runtime globals a bundle may rely on (`Vue` / `UIkit` / `UIkit.util` as script-tag externals); what a package must never expect (core build step, core manifest entry, Node on the host).
+  1. Contract: required package layout (`composer.json` `type: pagekit-extension` / `pagekit-theme`, static module metadata from **2.7.3** once available / `index.php` until then, views, `app/bundle/*.js`, compiled CSS); the runtime globals a bundle may rely on (`Vue` / `UIkit` / `UIkit.util` as script-tag externals); what a package must never expect (core build step, core manifest entry, Node on the host).
   2. Author-side build preset: a documented Vite config authors copy into their own package — same externals and IIFE output shape the core pipeline emits, so a package bundle behaves like a first-party one. Documentation only here: no published package, no core dependency.
   3. Author-side packaging: build + zip flow producing an upload-ready ZIP (build output in, sources and dev files out).
   4. A sample extension carrying a Vue bundle uploads, installs, enables and renders without any core build run; a source-only package fails with a clear diagnostic instead of a missing bundle.
   5. Drop the assumption that the core build serves third-party packages from `ArchiveCommand` / `BuildCommand` and the installer docs.
   6. Dependency declarations must agree: a package's Composer `require` (what must exist on disk, carrying the version constraints) and its module manifest `require` (what must be loaded first) may not contradict each other. Validate at packaging time, so an installed package cannot present a dependency graph the loader disagrees with.
   7. Webroot publication: only `public/` is served, and the core build publishes only in-repo packages — a runtime-installed/uploaded package has no publisher, so its bundles, CSS and icons are unreachable over HTTP. Package install/enable must copy the servable files (`app/bundle/*.js`, compiled CSS, icons/images) into the `public/` mirror and uninstall must remove them; `pagekit archive` must include built bundles from their `public/` location so a package ZIP is complete.
-- **Out of scope**: marketplace API, host, catalogue and package signing (Step 5.6); the build preset as a published, versioned npm package (Step 5.7).
-- **Sequencing**: after 2.7, before 5.6 — the marketplace distributes against this contract.
+- **Out of scope**: marketplace API, host, catalogue and package signing (Step 5.6); the build preset as a published, versioned npm package (Step 5.7); rewriting boot discovery itself (Step 2.7.3).
+- **Sequencing**: after 2.7 (and 2.7.3 when scheduled ahead of packaging), before 5.6 — the marketplace distributes against this contract.
 - **Risk**: Low–Medium — contract, docs and author tooling; the only core code touch is the upload/install diagnostic.
 
 ---
@@ -374,6 +391,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Release automation (from Step 2.2)**: the CI side of the release — publish tags / GitHub releases and the machine-readable release metadata the updater consumes, so a version bump ends in a real release feed instead of a manual upload. Step 2.2 built quality gates only and left release hooks unrouted. The same release hook must also push **release-tagged container images** (semver + `latest`) to GHCR: the `docker-image` workflow publishes only moving `develop` / commit-SHA tags, so deployments have no stable image tag to pin until releases produce one.
 - **Two distribution artifacts, one build, one webroot layout (no forked app code)**: since Step 2.4.1, both artifacts ship the **identical `public/`-webroot layout** — (1) **classic tarball/zip**: `composer install --no-dev --optimize-autoloader` + Vite build (`pnpm build`, post-2.4) output, zipped as-is, ready to unzip onto any Apache/PHP-FPM shared host — document root pointed at `public/` (most modern panels, incl. IONOS) or the root-`.htaccess` rewrite fallback from 2.4.1 for hosts that lock the document root. This stays the **default, widest-reach** distribution — today it is still a manual, undocumented step; CI-building it and attaching it to GitHub Releases is core scope here. (2) **container image** (Step 2.5, later Step 4.12 for the runtime-engine swap): the identical build, with `public/` copied into the image the same way. Both come from the same source tree, the same build commands, and now the same webroot layout — packaging is the only difference.
 - **Webroot packaging details**: both artifacts must carry a complete `public/` tree — published assets plus the `public/storage` symlink. Plain zip extraction drops symlinks, so the classic artifact (or the installer/updater on first run) must recreate it; updates must also prune stale published files under `public/` (bundle and asset names change between releases, while the self-updater's clean pass covers only `app/`).
+- **Atomic writes (from Step 2.6)**: reuse `Filesystem::dumpAtomic()` for PHP state the next boot `require`s (registry, manifests, dumped caches). If this step also writes non-PHP artefacts (zip payloads, checksums, JSON feeds, binary blobs), either keep those on a separate write path or extend `dumpAtomic()` so `opcache_invalidate()` runs only for `.php` targets — today every dumpAtomic write invalidates OPcache unconditionally because all current callers are PHP-only.
 - **Context**: `migration-docs/TODO/features/AUTOMATED_UPDATE_SYSTEM.md`
 
 ---
