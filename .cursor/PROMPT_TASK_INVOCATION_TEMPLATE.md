@@ -11,4 +11,4 @@ If you have several task prompts to run one after another (e.g. Phase 1, then Ph
 
 Each invocation runs the full Orchestrator workflow for that prompt. Commits happen per checklist
 step within each prompt. V1 token/phase metrics are a **manual post-ticket** step (not Orchestrator) —
-see `.github/conductor/metrics/README.md`.
+see `.github/conductor/metrics/README.md` (`import-manual-agents.mjs`).

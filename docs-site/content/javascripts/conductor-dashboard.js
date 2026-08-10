@@ -1001,7 +1001,7 @@
       return ' <span class="cm-muted" title="Backfilled via Cursor API">↻</span>';
     }
     if (tokensSource === 'cursor-api-v1') {
-      return ' <span class="cm-muted" title="V1 UI usage delta (record-v1-phase)">◇</span>';
+      return ' <span class="cm-muted" title="V1 UI import (import-manual-agents)">◇</span>';
     }
     if (tokensSource === 'cursor-api-manual' || tokensSource === 'cursor-dashboard-manual') {
       return ' <span class="cm-muted" title="Manual import">⤴</span>';

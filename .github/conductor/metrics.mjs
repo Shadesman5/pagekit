@@ -12,6 +12,7 @@ import {
   rmSync,
   mkdtempSync
 } from 'node:fs';
+import { execSync } from 'node:child_process';
 import { basename, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
@@ -845,4 +846,140 @@ function inferOutcome(result) {
   if (/^Plan ready:/i.test(text) || /^Finalized\b/i.test(text)) return 'success';
   if (/^Step \d+ done:/i.test(text)) return 'success';
   return 'success';
+}
+
+/**
+ * Standalone git helpers for CLI importers (import-manual-agents.mjs).
+ * Commits only to `conductor-metrics`, never to the feature branch tip.
+ */
+function metricsSh(root, cmd) {
+  return execSync(cmd, {
+    cwd: root,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    encoding: 'utf8'
+  }).trim();
+}
+
+export function currentGitBranch(root = process.cwd()) {
+  try {
+    return metricsSh(root, 'git rev-parse --abbrev-ref HEAD');
+  } catch {
+    return null;
+  }
+}
+
+export function syncMetricsFromRemote({
+  root = process.cwd(),
+  metricsBranch = DEFAULT_METRICS_BRANCH,
+  log = msg => console.log(msg)
+} = {}) {
+  const remote = metricsSh(root, `git ls-remote --heads origin ${metricsBranch}`);
+  if (!remote) {
+    log(`metrics: creating origin/${metricsBranch} from origin/develop`);
+    metricsSh(root, 'git fetch origin develop');
+    try {
+      metricsSh(root, `git branch -f ${metricsBranch} origin/develop`);
+    } catch {
+      metricsSh(root, `git branch ${metricsBranch} origin/develop`);
+    }
+    metricsSh(root, `git push -u origin ${metricsBranch}`);
+  }
+  metricsSh(root, `git fetch origin ${metricsBranch}`);
+  try {
+    metricsSh(root, `git checkout origin/${metricsBranch} -- ${METRICS_DIR}`);
+  } catch (e) {
+    log(`metrics: no ${METRICS_DIR} on origin/${metricsBranch} yet (${e.message})`);
+    mkdirSync(join(root, SESSIONS_DIR), { recursive: true });
+  }
+}
+
+export function pushMetricsToRemote({
+  root = process.cwd(),
+  message,
+  metricsBranch = DEFAULT_METRICS_BRANCH,
+  returnBranch = null,
+  log = msg => console.log(msg)
+} = {}) {
+  if (!message) throw new Error('pushMetricsToRemote: message required');
+
+  try {
+    metricsSh(root, 'git config user.email');
+  } catch {
+    metricsSh(root, 'git config user.email "41898282+github-actions[bot]@users.noreply.github.com"');
+    metricsSh(root, 'git config user.name "github-actions[bot]"');
+  }
+
+  const absMetrics = join(root, METRICS_DIR);
+  if (!existsSync(absMetrics)) {
+    log('metrics: no metrics dir to commit');
+    return false;
+  }
+
+  const tmp = mkdtempSync(join(tmpdir(), 'pagekit-metrics-cli-'));
+  try {
+    cpSync(absMetrics, join(tmp, 'metrics'), { recursive: true });
+
+    try {
+      metricsSh(root, `git reset HEAD -- ${METRICS_DIR}`);
+    } catch {
+      /* unstaged is fine */
+    }
+    try {
+      metricsSh(root, `git checkout HEAD -- ${METRICS_DIR}`);
+    } catch {
+      /* may be absent on this branch */
+    }
+    try {
+      metricsSh(root, `git clean -fd -- ${METRICS_DIR}`);
+    } catch {
+      /* ok */
+    }
+
+    syncMetricsFromRemote({ root, metricsBranch, log });
+    metricsSh(root, `git checkout -B ${metricsBranch} origin/${metricsBranch}`);
+
+    rmSync(absMetrics, { recursive: true, force: true });
+    cpSync(join(tmp, 'metrics'), absMetrics, { recursive: true });
+
+    metricsSh(root, `git add ${METRICS_DIR}/`);
+    try {
+      metricsSh(root, 'git diff --cached --quiet');
+      log('metrics: no changes to commit');
+      if (returnBranch && returnBranch !== metricsBranch) {
+        metricsSh(root, `git fetch origin ${returnBranch}`);
+        metricsSh(root, `git checkout -B ${returnBranch} origin/${returnBranch}`);
+      }
+      return false;
+    } catch {
+      metricsSh(root, `git commit -m ${JSON.stringify(message)}`);
+      metricsSh(root, `git fetch origin ${metricsBranch}`);
+      try {
+        metricsSh(root, `git rebase origin/${metricsBranch}`);
+      } catch (e) {
+        try {
+          metricsSh(root, 'git rebase --abort');
+        } catch {
+          /* clean */
+        }
+        throw new Error(`metrics rebase onto origin/${metricsBranch} failed: ${e.message}`, {
+          cause: e
+        });
+      }
+      metricsSh(root, `git push origin ${metricsBranch}`);
+      log(`metrics: pushed to ${metricsBranch}`);
+      try {
+        metricsSh(root, 'gh workflow run pages-deploy.yml --ref develop');
+        log('metrics: dispatched pages-deploy.yml (ref=develop)');
+      } catch (e) {
+        log(`metrics: pages-deploy dispatch skipped (${e.message})`);
+      }
+      if (returnBranch && returnBranch !== metricsBranch) {
+        metricsSh(root, `git fetch origin ${returnBranch}`);
+        metricsSh(root, `git checkout -B ${returnBranch} origin/${returnBranch}`);
+      }
+      return true;
+    }
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
 }

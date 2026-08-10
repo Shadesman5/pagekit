@@ -7,7 +7,7 @@ Autonomous modernization runs via the **Conductor** (GitHub Actions) and the V2 
 > **V1 (cursor.com/agents UI):** use `.cursor/rules/orchestrator-subagent-workflow.mdc` — same subagent
 > names. Launch Input: Task prompt / Branch / Base / Issue only. Token/phase metrics for V1 UI runs are
 > **not** recorded mid-Orchestrator (Cursor usage settles after the agent finishes); import manually
-> after the ticket with `record-v1-phase.mjs` / the importer (see `.github/conductor/metrics/README.md`).
+> after the ticket with `import-manual-agents.mjs` (see `.github/conductor/metrics/README.md`).
 
 ---
 
@@ -22,7 +22,7 @@ Autonomous modernization runs via the **Conductor** (GitHub Actions) and the V2 
 
 **Chained runs:** With `auto_chain=true` (default), each GHA job runs at most one phase — PLAN, one EXECUTE batch (sized by `batch_budget` + S/M/L/XL hints in the ticket), or FINALIZE — then dispatches the next workflow run automatically. Progress still lives in ticket checkboxes; manual re-run works the same as before. Set `auto_chain=false` to pause between jobs.
 
-**Metrics:** Each Conductor run gets an auto-generated UUID `sessionId` (chained across jobs). Token usage and phase timing are committed to `.github/conductor/metrics/` and shown on the [GitHub Pages Roadmap](https://shadesman5.github.io/pagekit/project/roadmap/). V1 UI runs can use the same store via manual `record-v1-phase.mjs` / importer after the ticket (`source: v1-ui`) — not during the Orchestrator loop.
+**Metrics:** Each Conductor run gets an auto-generated UUID `sessionId` (chained across jobs). Token usage and phase timing are committed to `.github/conductor/metrics/` and shown on the [GitHub Pages Roadmap](https://shadesman5.github.io/pagekit/project/roadmap/). V1 UI runs can use the same store via post-hoc `import-manual-agents.mjs --push` (`source: v1-ui`) — not during the Orchestrator loop.
 
 Operative contracts: `orchestrator-v2-plan.mdc`, `orchestrator-v2-step.mdc`, `orchestrator-v2-finalize.mdc` — each defines a **Delegation protocol** (Task `subagent_type` + structured `prompt` templates).
 

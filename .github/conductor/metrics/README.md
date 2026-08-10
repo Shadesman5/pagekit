@@ -13,7 +13,7 @@ Token usage, run duration, and phase breakdown for **V2 Conductor** (GHA) and **
 ## Session ID
 
 - **Conductor:** auto-generated (`crypto.randomUUID()`) on the first GHA job; passed through chained jobs via `session_id`.
-- **V1 UI:** created by `record-v1-phase.mjs` (printed as `SESSION_ID=…`) when you record after the ticket. Pass `--session <uuid>` to resume or to append onto a Conductor session (hybrid).
+- **V1 UI / Automations:** created by `import-manual-agents.mjs` (printed as `SESSION_ID=…`) when you import after the ticket. Pass `--session <uuid>` to append.
 
 ## When data is written
 
@@ -21,43 +21,42 @@ Token usage, run duration, and phase breakdown for **V2 Conductor** (GHA) and **
 |-------|--------|
 | Conductor start | Create session + index entry (`status: in_progress`) |
 | After each Conductor cloud-agent phase | Append `phases[]`, recompute `totals`, commit |
-| V1 UI **after** the Orchestrator ticket finishes | Maintainer runs `record-v1-phase.mjs` (or the historical importer) — Cursor usage settles only after the cloud agent ends, so mid-run recording is unreliable |
+| V1 UI **after** the Orchestrator ticket finishes | Maintainer or Automation runs `import-manual-agents.mjs --push` — Cursor usage settles only after the cloud agent ends |
 | FINALIZE / plan-only done | `status: completed` |
 | `fail()` / fatal error | `status: failed` |
 | `conductor:stop` | `status: cancelled` |
 
 Commits land on the unprotected **`conductor-metrics`** branch only — never on the feature-branch tip (PR CI / bot approval) and never direct to protected `develop` (Ruleset requires PRs, no Actions bypass). The dashboard refreshes via an explicit `pages-deploy.yml` dispatch on `develop` after each metrics push; the build overlays metrics from `conductor-metrics` (`GITHUB_TOKEN` does not re-trigger workflows by itself).
 
-## V1 UI (`cursor.com/agents`)
+## V1 UI (`cursor.com/agents`) / Automations
 
-The Orchestrator rule (`.cursor/rules/orchestrator-subagent-workflow.mdc`) does **not** record metrics.
-Launch Input stays Task prompt / Branch / Base / Issue only. After Finalize (or ESCALATE), record
-manually with the Orchestrator `bc-…` id from [cursor.com/agents](https://cursor.com/agents).
-
-On a Cursor-managed Cloud VM, `record-v1-phase.mjs` can resolve `bc-…` via OIDC on
-`CURSOR_AGENT_SOCKET` when `--agent` is omitted — that only helps if you run the script **inside** the
-same finished agent VM (rare). For post-ticket maintainer runs, pass `--agent bc-…` explicitly
-([identity docs](https://cursor.com/docs/cloud-agent/identity)).
+The Orchestrator rule does **not** record metrics mid-run. After Finalize (or on PR merge via Automation), import the **parent** Orchestrator agent:
 
 ```bash
-# After ticket (agent id from cursor.com/agents URL)
-CURSOR_API_KEY=… node .github/conductor/record-v1-phase.mjs \
-  --step 2.7 --type PLAN --agent bc-… --push
-
-# Optional: finer phase slices if you still want PLAN / EXECUTE / FINALIZE rows
-CURSOR_API_KEY=… node .github/conductor/record-v1-phase.mjs \
-  --step 2.7 --type EXECUTE --batch-steps 6 --session <uuid> --agent bc-… --push
-
-# Hybrid Conductor→V1: seed usage cursor on an existing session
-CURSOR_API_KEY=… node .github/conductor/record-v1-phase.mjs \
-  --step 2.6 --session <conductor-session-uuid> --seed-cursor --agent bc-… --push
-
-# Finalize
-CURSOR_API_KEY=… node .github/conductor/record-v1-phase.mjs \
-  --step 2.7 --type FINALIZE --session <uuid> --status completed --agent bc-… --push
+CURSOR_API_KEY=… node .github/conductor/import-manual-agents.mjs \
+  --step 2.7 \
+  --agent bc-9590820d-aecf-42eb-98d5-ada024446917 \
+  --branch feature/extension-safety-fault-isolation \
+  --push
 ```
 
-Token **deltas** use `session.v1UsageCursor[agentId]` (last cumulative `/usage` snapshot). Dashboard shows a **V1 UI** badge and a ◇ marker on `cursor-api-v1` phases. Maintainer runs always pass `--agent bc-…` (OIDC self-id only works inside that agent’s VM).
+- Accepts a full `https://cursor.com/agents/bc-…` URL (path id = parent).
+- **Task child agents** (`?child-id=bc-…`) usually report **zero** usage via `/v1/agents/{id}/usage` — tokens roll up on the parent. Do not pass child ids expecting a split.
+- Default tagging: `source: "v1-ui"`, phase `tokensSource: "cursor-api-v1"` (dashboard V1 badge). Use `--no-v1-ui` only for legacy historical imports.
+- `--push` syncs/commits to `conductor-metrics` and dispatches `pages-deploy.yml`.
+- Optional: `--issue`, `--task-slug`, `--title`, `--label`, `--session`, `--dry-run`, `--copy-local`.
+
+When the Cursor API returns zero but the [Dashboard](https://cursor.com/dashboard) still shows usage, copy totals manually:
+
+```bash
+node .github/conductor/import-manual-agents.mjs \
+  --step 2.1.1 \
+  --agent bc-a96ebcf7-2c32-4061-8d40-61ba33f30778 \
+  --tokens-total 1234567 \
+  --tokens-input 100 --tokens-output 200 \
+  --tokens-cache-read 0 --tokens-cache-write 0 \
+  --copy-local
+```
 
 ## GitHub Pages
 
@@ -88,59 +87,18 @@ CURSOR_API_KEY=… node .github/conductor/enrich-metrics-cursor.mjs [--dry-run] 
 
 Phases enriched from the API get `tokensSource: "cursor-api"` and a ↻ marker in the dashboard.
 
-**Local preview** (after enrich — not automatic on merge):
-
-```bash
-CURSOR_API_KEY=… node .github/conductor/enrich-metrics-cursor.mjs --copy-local
-mkdocs serve -f docs-site/mkdocs.yml
-```
-
 **GHA:** `conductor.yml` runs enrich in an `always()` step after every job and pushes to **`conductor-metrics`** (`METRICS_BRANCH` / `BRANCH`).
 
-Historical backfill data on `develop` must be enriched locally once (or re-run backfill with `CURSOR_API_KEY` set) — merge alone does not call the API.
-
-## One-shot: all completed ROADMAP steps
-
-Orchestrates GHA log backfill + Cursor token enrich + audit report:
+## Completed-steps report
 
 ```bash
-CURSOR_API_KEY=… node .github/conductor/backfill-completed-steps.mjs --copy-local
+node .github/conductor/backfill-completed-steps.mjs [--status all] [--copy-local]
 ```
 
 - **With metrics** (Conductor V2 steps like 2.1.7–2.1.10): finds cloud agents in session JSON / GHA logs, fills token gaps via `/usage`.
 - **Without metrics** (older ✅ steps): listed in the report — no cloud-agent trail, tokens not recoverable.
 
 Options: `--dry-run`, `--skip-gha-backfill`, `--skip-cursor`, `--status all`.
-
-## Manual import (pre-Conductor cloud agents)
-
-Steps completed via Cursor Cloud Agents **without** Conductor have no GHA log trail. Import by agent ID from [cursor.com/agents](https://cursor.com/agents) (URL or `bc-…` UUID). Prefer **`record-v1-phase.mjs`** for live V1 UI runs; keep this importer for one-shot historical backfills:
-
-```bash
-CURSOR_API_KEY=… node .github/conductor/import-manual-agents.mjs \
-  --step 2.1.5 \
-  --agent bc-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx \
-  --agent https://cursor.com/agents/bc-… \
-  --copy-local
-```
-
-`/usage` returns **cumulative tokens per agent** (`totalUsage`) plus a **`runs[]` breakdown** (per follow-up chat). Enrich/import store `agent.runs[]` on each phase; the dashboard shows an expandable sub-table when a phase has more than one run.
-
-Test fetch only: add `--dry-run`.
-
-When the Cursor API returns zero but the [Dashboard](https://cursor.com/dashboard) still shows usage, copy totals manually:
-
-```bash
-node .github/conductor/import-manual-agents.mjs \
-  --step 2.1.1 \
-  --agent bc-a96ebcf7-2c32-4061-8d40-61ba33f30778 \
-  --tokens-total 1234567 \
-  --tokens-input 100 --tokens-output 200 \
-  --tokens-cache-read 0 --tokens-cache-write 0 \
-  --copy-local
-```
-
-Only `--tokens-total` is required; breakdown fields are optional.
 
 ## Schema (`schemaVersion: 1`)
 
