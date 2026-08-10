@@ -8,9 +8,9 @@
   "issue": 257,
   "branch": "feature/filesystem-write-resilience",
   "model": "grok-4.5",
-  "status": "failed",
+  "status": "completed",
   "startedAt": "2026-08-07T20:39:17.357Z",
-  "completedAt": "2026-08-07T23:24:38.310Z",
+  "completedAt": "2026-08-10T12:44:29.643Z",
   "phases": [
     {
       "phaseKey": "31216765910-1-PLAN",
@@ -324,6 +324,31 @@
       "outcome": "escalate",
       "completedAt": "2026-08-07T23:24:38.310Z",
       "notes": "Timing from Cursor API (single agent run)"
+    },
+    {
+      "phaseKey": "manual-bc-d63ab579-6258-4771-9467-6cc2678765a0-EXECUTE XL + FINALIZE",
+      "type": "EXECUTE",
+      "attempt": 0,
+      "batchSteps": null,
+      "agent": {
+        "id": "bc-d63ab579-6258-4771-9467-6cc2678765a0",
+        "url": "https://cursor.com/agents/bc-d63ab579-6258-4771-9467-6cc2678765a0",
+        "model": null
+      },
+      "github": null,
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 15600000
+      },
+      "tokensSource": "cursor-dashboard-manual",
+      "result": "Finalized. PR: #265. Version: 1.2.37. Ticket archived to done/. (manual UI: XL + Finalize)",
+      "outcome": "success",
+      "manualImport": true,
+      "notes": "Manual import via import-manual-agents.mjs; tokens from Cursor Dashboard usage row linked to this agent (15.6M). Duration ~37m 6s from agent UI.",
+      "durationMs": 2226000
     }
   ],
   "totals": {
@@ -332,12 +357,12 @@
       "output": 672646,
       "cacheRead": 54316310,
       "cacheWrite": 3799241,
-      "total": 59466139
+      "total": 75066139
     },
-    "durationMs": 9791915,
-    "phaseCount": 6,
+    "durationMs": 12017915,
+    "phaseCount": 7,
     "escalations": 3,
     "ghaJobs": 4,
-    "cloudAgents": 6
+    "cloudAgents": 7
   }
 }
