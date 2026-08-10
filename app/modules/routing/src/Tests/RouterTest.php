@@ -282,7 +282,7 @@ class RouterTest extends TestCase
      */
     public function testDumpedCacheIsWrittenThroughTheFilesystem(): void
     {
-        $files = new class extends Filesystem {
+        $files = new class () extends Filesystem {
             /** @var list<array{file: string, content: string}> */
             public array $writes = [];
 
@@ -330,7 +330,7 @@ class RouterTest extends TestCase
      */
     public function testUnwritableCacheDegradesToTheUncachedRouter(): void
     {
-        $files = new class extends Filesystem {
+        $files = new class () extends Filesystem {
             public int $attempts = 0;
 
             public function dumpAtomic(string $file, string $content, ?int $mode = null): void
