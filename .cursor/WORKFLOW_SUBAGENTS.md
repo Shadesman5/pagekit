@@ -1,10 +1,13 @@
 # Pagekit Modernization: Subagent Workflow (V2)
 
-**Last updated:** 2026-07-31
+**Last updated:** 2026-08-10
 
 Autonomous modernization runs via the **Conductor** (GitHub Actions) and the V2 Orchestrator rules. This document is the **human and agent reference** for that pipeline.
 
-> **Manual IDE runs:** Rare — use `.cursor/rules/orchestrator-subagent-workflow.mdc` (V1; same subagent names).
+> **V1 (cursor.com/agents UI):** use `.cursor/rules/orchestrator-subagent-workflow.mdc` — same subagent
+> names. Launch Input: Task prompt / Branch / Base / Issue only. The Orchestrator Cloud Agent resolves
+> its own `bc-…` via the VM OIDC socket and records phases with `record-v1-phase.mjs` (see
+> `.github/conductor/metrics/README.md`). Local IDE runs skip Roadmap token metrics.
 
 ---
 
@@ -19,7 +22,7 @@ Autonomous modernization runs via the **Conductor** (GitHub Actions) and the V2 
 
 **Chained runs:** With `auto_chain=true` (default), each GHA job runs at most one phase — PLAN, one EXECUTE batch (sized by `batch_budget` + S/M/L/XL hints in the ticket), or FINALIZE — then dispatches the next workflow run automatically. Progress still lives in ticket checkboxes; manual re-run works the same as before. Set `auto_chain=false` to pause between jobs.
 
-**Metrics:** Each run gets an auto-generated UUID `sessionId` (chained across jobs). Token usage and phase timing are committed to `.github/conductor/metrics/` and shown on the [GitHub Pages Roadmap](https://shadesman5.github.io/pagekit/project/roadmap/).
+**Metrics:** Each Conductor run gets an auto-generated UUID `sessionId` (chained across jobs). Token usage and phase timing are committed to `.github/conductor/metrics/` and shown on the [GitHub Pages Roadmap](https://shadesman5.github.io/pagekit/project/roadmap/). V1 UI runs use the same store via `record-v1-phase.mjs` (`source: v1-ui`, per-step EXECUTE batches).
 
 Operative contracts: `orchestrator-v2-plan.mdc`, `orchestrator-v2-step.mdc`, `orchestrator-v2-finalize.mdc` — each defines a **Delegation protocol** (Task `subagent_type` + structured `prompt` templates).
 

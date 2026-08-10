@@ -433,3 +433,40 @@ html .md-typeset .cm-accordion-item > .cm-accordion-body:last-child {
 .cm-agent-runs-table code {
   font-size: 0.76rem;
 }
+
+/* Session source badges (Conductor / V1 UI / Manual) */
+.cm-session-header .cm-badge-v1,
+.cm-session-header .cm-badge-manual,
+.cm-session-header .cm-badge-conductor {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+}
+.cm-session-header .cm-badge-v1 {
+  background: rgba(0, 150, 136, 0.18);
+  color: #00796b;
+}
+.cm-session-header .cm-badge-manual {
+  background: rgba(239, 108, 0, 0.18);
+  color: #e65100;
+}
+.cm-session-header .cm-badge-conductor {
+  background: rgba(92, 107, 192, 0.18);
+  color: #3949ab;
+}
+[data-md-color-scheme="slate"] .cm-session-header .cm-badge-v1 {
+  background: rgba(0, 150, 136, 0.28);
+  color: #80cbc4;
+}
+[data-md-color-scheme="slate"] .cm-session-header .cm-badge-manual {
+  background: rgba(239, 108, 0, 0.28);
+  color: #ffb74d;
+}
+[data-md-color-scheme="slate"] .cm-session-header .cm-badge-conductor {
+  background: rgba(92, 107, 192, 0.28);
+  color: #9fa8da;
+}

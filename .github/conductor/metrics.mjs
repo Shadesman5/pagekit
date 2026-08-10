@@ -82,6 +82,58 @@ export function createCursorClient(apiKey) {
   };
 }
 
+/**
+ * Resolve this Cloud Agent's own `bc-…` id from the VM identity socket (OIDC JWT claim
+ * `cloud_agent_id`). Documented at https://cursor.com/docs/cloud-agent/identity — no user
+ * paste of the agent URL required. Returns null outside a Cursor-managed cloud VM.
+ */
+export async function resolveSelfCloudAgentId({
+  aud = 'pagekit-v1-metrics',
+  socketPath = process.env.CURSOR_AGENT_SOCKET || '/run/cursor/api.sock'
+} = {}) {
+  if (!existsSync(socketPath)) return null;
+
+  let token;
+  try {
+    // Node has no built-in unix-socket fetch helper across all versions — curl is on the VM.
+    const { execFileSync } = await import('node:child_process');
+    const raw = execFileSync(
+      'curl',
+      [
+        '-sS',
+        '--max-time',
+        '5',
+        '--unix-socket',
+        socketPath,
+        '-H',
+        'Content-Type: application/json',
+        '-d',
+        JSON.stringify({ aud }),
+        'http://localhost/v1/tokens/oidc'
+      ],
+      { encoding: 'utf8' }
+    );
+    const parsed = JSON.parse(raw);
+    token = parsed.token;
+  } catch {
+    return null;
+  }
+  if (!token || typeof token !== 'string') return null;
+
+  try {
+    const payloadB64 = token.split('.')[1];
+    if (!payloadB64) return null;
+    const json = Buffer.from(payloadB64, 'base64url').toString('utf8');
+    const claims = JSON.parse(json);
+    const id = claims.cloud_agent_id;
+    if (!id || typeof id !== 'string') return null;
+    const normalized = id.trim().toLowerCase();
+    return normalized.startsWith('bc-') ? normalized : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchAgentUsageFromCursor(client, agentId) {
   const full = await fetchAgentUsageFullFromCursor(client, agentId);
   return full.tokens;
