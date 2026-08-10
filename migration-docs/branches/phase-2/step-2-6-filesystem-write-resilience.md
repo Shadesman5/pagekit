@@ -122,6 +122,15 @@ Gates: cs-fixer FAIL → fixed → PASS; coverage gap pass → PHPUnit + PHPStan
 
 Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS (one flaky unrelated `CachePoolTest` TTL hit on first run, green on re-run); Verifier (test files) PASS; Tester PASS after test-writer.
 
+### Finalize fix-loop — coverage gap: `createStagingFile()` seam (post-Step-6)
+
+| File | Change |
+|---|---|
+| `app/modules/filesystem/src/Filesystem.php` | Coverage gap pass closing a Codecov patch-diff gap (1 missing patch line): `dumpAtomic()`'s `tempnam()` call is extracted into a new `protected createStagingFile(string $directory): string\|false`, wrapping `@tempnam($directory, 'dump')` — a directory that accepts no staging file at all has no portable way to arrange on a real filesystem, so the `false`-return throw it leads to was otherwise unreachable from a test. `dumpAtomic()` now calls `$this->createStagingFile($dir)` in place of the direct `tempnam()` call; the throw itself (`\RuntimeException` on `false`) and the rest of the write are unchanged. |
+| `app/modules/filesystem/src/Tests/DumpAtomicTest.php` | New coverage for the seam's throw branch via a `filesystemThatStagesNothing()` helper (a `Filesystem` subclass overriding `createStagingFile()` to return `false`): `testADirectoryThatAcceptsNoStagingFileFailsTheWrite` asserts `dumpAtomic()` throws `\RuntimeException` naming the target and leaves the workspace directory empty; `testADirectoryThatAcceptsNoStagingFileLeavesAnExistingTargetAsItIs` runs the same failure against a target that already exists and asserts its content and the directory listing are untouched. |
+
+Gates: Verifier (production) PASS; Tester PASS; test-writer done; Verifier (test files) PASS; Tester PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)

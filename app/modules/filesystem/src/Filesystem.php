@@ -154,7 +154,7 @@ class Filesystem
         $perms = $current !== false ? $current & 0777 : ($mode ?? 0666) & ~umask();
 
         $dir = dirname($target);
-        $tmp = @tempnam($dir, 'dump');
+        $tmp = $this->createStagingFile($dir);
 
         if ($tmp === false) {
             throw new \RuntimeException("Failed to stage an atomic write ($target).");
@@ -212,6 +212,20 @@ class Filesystem
         $dir = realpath(dirname($file));
 
         return $dir !== false ? Path::directory($dir).basename($file) : $file;
+    }
+
+    /**
+     * Creates the file the content is staged in before it is moved onto the target.
+     *
+     * A method of its own because a directory that accepts no staging file at all is
+     * a state a real filesystem gives no portable way to arrange, so the refusal it
+     * leads to is reachable only by standing in for this one call.
+     *
+     * @return string|false the staging file, or false if none could be created
+     */
+    protected function createStagingFile(string $directory): string|false
+    {
+        return @tempnam($directory, 'dump');
     }
 
     /**

@@ -297,6 +297,34 @@ class DumpAtomicTest extends TestCase
         }
     }
 
+    public function testADirectoryThatAcceptsNoStagingFileFailsTheWrite(): void
+    {
+        // With nowhere to stage the content there is no second way to write that
+        // is still a single step - rewriting the target in place is the very
+        // half-written state this write exists to prevent - so the write is
+        // refused and nothing is left in the directory.
+        $file = $this->workspace.'/config.php';
+
+        $error = $this->failedWrite(\RuntimeException::class, $file, $this->filesystemThatStagesNothing());
+
+        $this->assertStringContainsString($file, $error->getMessage());
+        $this->assertSame([], $this->entries($this->workspace));
+    }
+
+    public function testADirectoryThatAcceptsNoStagingFileLeavesAnExistingTargetAsItIs(): void
+    {
+        // A write that never gets off the ground leaves the configuration the
+        // site is serving from where it was, whole and with no temp file beside it.
+        $file = $this->workspace.'/config.php';
+        file_put_contents($file, self::OLD_CONFIG);
+
+        $error = $this->failedWrite(\RuntimeException::class, $file, $this->filesystemThatStagesNothing());
+
+        $this->assertStringContainsString($file, $error->getMessage());
+        $this->assertSame(self::OLD_CONFIG, file_get_contents($file));
+        $this->assertSame(['config.php'], $this->entries($this->workspace));
+    }
+
     #[DataProvider('provideNonLocalPaths')]
     public function testAPathThatIsNotALocalFileIsRefused(string $path): void
     {
@@ -333,11 +361,12 @@ class DumpAtomicTest extends TestCase
      * Runs a write that must not succeed and returns the error it raised.
      *
      * @param class-string<\Throwable> $expected
+     * @param Filesystem|null          $filesystem the filesystem to write through, where it is not the default one
      */
-    private function failedWrite(string $expected, string $file): \Throwable
+    private function failedWrite(string $expected, string $file, ?Filesystem $filesystem = null): \Throwable
     {
         try {
-            $this->file->dumpAtomic($file, self::NEW_CONFIG);
+            ($filesystem ?? $this->file)->dumpAtomic($file, self::NEW_CONFIG);
         } catch (\Throwable $error) {
             $this->assertInstanceOf($expected, $error);
 
@@ -345,6 +374,22 @@ class DumpAtomicTest extends TestCase
         }
 
         $this->fail("Writing to '$file' must not succeed.");
+    }
+
+    /**
+     * A filesystem whose staging never produces a file, which is how a directory
+     * that accepts none at all reaches the write. A real one cannot be talked
+     * into that portably - root and Windows create a file in a read-only
+     * directory all the same - so the call that stages is stood in for instead.
+     */
+    private function filesystemThatStagesNothing(): Filesystem
+    {
+        return new class () extends Filesystem {
+            protected function createStagingFile(string $directory): string|false
+            {
+                return false;
+            }
+        };
     }
 
     /**
