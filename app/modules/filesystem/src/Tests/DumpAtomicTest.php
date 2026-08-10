@@ -14,8 +14,9 @@ use PHPUnit\Framework\TestCase;
  * one request reads back with require while another one rewrites them. Writing
  * them means: a reader sees either the whole old file or the whole new one, a
  * write that cannot be completed damages neither the target nor its permissions
- * and leaves no temp file behind, and a target that cannot be replaced by a move
- * is refused rather than written some other way.
+ * and leaves no temp file behind, a target that cannot be replaced by a move is
+ * refused rather than written some other way, and where the move cannot be
+ * staged at all the content still reaches a target that is already there.
  */
 class DumpAtomicTest extends TestCase
 {
@@ -205,6 +206,37 @@ class DumpAtomicTest extends TestCase
         }
     }
 
+    public function testAnUnwritableTargetDirectoryStillRewritesAFileThatIsAlreadyThere(): void
+    {
+        // A hardened installation can leave the directory itself unwritable while
+        // the configuration inside it stays writable. No move can be staged there,
+        // so the write degrades to the plain one it replaced - not atomic, and
+        // documented as such, but the settings screen still saves rather than
+        // failing over a permission the write never needed before.
+        $dir = $this->workspace.'/readonly';
+        mkdir($dir);
+
+        $file = $dir.'/config.php';
+        file_put_contents($file, self::OLD_CONFIG);
+        chmod($file, 0600);
+        chmod($dir, 0555);
+
+        try {
+            $this->requireUnwritable($dir);
+
+            $staged = $this->stagedFiles();
+
+            $this->file->dumpAtomic($file, self::NEW_CONFIG);
+
+            $this->assertSame(self::NEW_CONFIG, file_get_contents($file));
+            $this->assertSame(0600, $this->permissions($file));
+            $this->assertSame(['config.php'], $this->entries($dir));
+            $this->assertSame($staged, $this->stagedFiles());
+        } finally {
+            chmod($dir, 0755);
+        }
+    }
+
     #[DataProvider('provideNonLocalPaths')]
     public function testAPathThatIsNotALocalFileIsRefused(string $path): void
     {
@@ -314,5 +346,20 @@ class DumpAtomicTest extends TestCase
         sort($entries);
 
         return $entries;
+    }
+
+    /**
+     * Lists the staging files of a write, which the platform puts in the system
+     * temp directory when the target's own directory refuses to hold one, so a
+     * file left behind there shows up as an entry that was not there before.
+     *
+     * @return array<int, string>
+     */
+    private function stagedFiles(): array
+    {
+        $files = glob(sys_get_temp_dir().'/dump*') ?: [];
+        sort($files);
+
+        return $files;
     }
 }
