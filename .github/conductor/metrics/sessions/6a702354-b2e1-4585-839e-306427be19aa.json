@@ -10,7 +10,7 @@
   "model": "grok-4.5",
   "status": "completed",
   "startedAt": "2026-08-07T20:39:17.357Z",
-  "completedAt": "2026-08-10T12:44:29.643Z",
+  "completedAt": "2026-08-10T12:18:27.924Z",
   "phases": [
     {
       "phaseKey": "31216765910-1-PLAN",
@@ -333,33 +333,53 @@
       "agent": {
         "id": "bc-d63ab579-6258-4771-9467-6cc2678765a0",
         "url": "https://cursor.com/agents/bc-d63ab579-6258-4771-9467-6cc2678765a0",
-        "model": null
+        "model": null,
+        "runId": "run-0d4a6366-05bc-4def-8231-3094805b6bb1",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-0d4a6366-05bc-4def-8231-3094805b6bb1",
+            "index": 1,
+            "startedAt": "2026-08-10T11:41:03.826Z",
+            "completedAt": "2026-08-10T12:18:27.924Z",
+            "durationMs": 2243289,
+            "tokens": {
+              "input": 745163,
+              "output": 120953,
+              "cacheRead": 14161522,
+              "cacheWrite": 600196,
+              "total": 15627834
+            }
+          }
+        ]
       },
       "github": null,
       "tokens": {
-        "input": 0,
-        "output": 0,
-        "cacheRead": 0,
-        "cacheWrite": 0,
-        "total": 15600000
+        "input": 745163,
+        "output": 120953,
+        "cacheRead": 14161522,
+        "cacheWrite": 600196,
+        "total": 15627834
       },
-      "tokensSource": "cursor-dashboard-manual",
+      "tokensSource": "cursor-api-manual",
       "result": "Finalized. PR: #265. Version: 1.2.37. Ticket archived to done/. (manual UI: XL + Finalize)",
       "outcome": "success",
       "manualImport": true,
-      "notes": "Manual import via import-manual-agents.mjs; tokens from Cursor Dashboard usage row linked to this agent (15.6M). Duration ~37m 6s from agent UI.",
-      "durationMs": 2226000
+      "notes": "Manual UI agent; tokens+timing refreshed from Cursor /v1/agents/{id}/usage",
+      "durationMs": 2243289,
+      "startedAt": "2026-08-10T11:41:03.826Z",
+      "completedAt": "2026-08-10T12:18:27.924Z"
     }
   ],
   "totals": {
     "tokens": {
-      "input": 677942,
-      "output": 672646,
-      "cacheRead": 54316310,
-      "cacheWrite": 3799241,
-      "total": 75066139
+      "input": 1423105,
+      "output": 793599,
+      "cacheRead": 68477832,
+      "cacheWrite": 4399437,
+      "total": 75093973
     },
-    "durationMs": 12017915,
+    "durationMs": 12035204,
     "phaseCount": 7,
     "escalations": 3,
     "ghaJobs": 4,
