@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Pagekit\Installer\Package\PackageScripts;
 use Pagekit\Kernel\Event\ExceptionListener;
+use Pagekit\System\Extension\ExtensionFailureStore;
 
 return [
 
@@ -153,6 +154,37 @@ return [
                         }
                     }
                 }
+            }
+
+            // A failed package is named from the durable record on every admin
+            // render, not queued as a message when it fails: the request that
+            // hit the failure usually belongs to a visitor, and a per-session
+            // message would be spent on whoever was there instead of reaching
+            // someone who can act on it. Read from the record, the notice stands
+            // until the record is cleared, with no session state to expire.
+            // Only the name is shown; what it failed with stays in the log.
+            try {
+                $store = $app->get('isAdmin') && $app->has('extension.failures') ? $app->get('extension.failures') : null;
+                $failures = $store instanceof ExtensionFailureStore ? $store->all() : [];
+
+                // Who is asking comes last: answering it takes the database the
+                // site may just have lost, and with nothing to report it is a
+                // question nobody needs answered.
+                if ($failures !== [] && $app->get('user')->hasAccess('system: manage packages')) {
+                    foreach ($failures as $failure) {
+                        $name = htmlspecialchars($failure['name'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+                        $notice = $failure['type'] === ExtensionFailureStore::TYPE_THEME
+                            ? __('The theme "%name%" could not be loaded. See the error log for details.', ['%name%' => $name])
+                            : __('The extension "%name%" failed and was disabled. See the error log for details.', ['%name%' => $name]);
+
+                        $result .= sprintf('<div class="uk-alert uk-alert-warning" data-status="warning">%s</div>', $notice);
+                    }
+                }
+            } catch (\Throwable) {
+                // Reporting a failure must not become one. This renders in the
+                // panel the site is put back together from, which has to come
+                // up even when deriving the notice is what breaks.
             }
 
             $event->setResult(sprintf('<div class="pk-system-messages">%s</div>', $result));

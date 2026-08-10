@@ -6,6 +6,7 @@ namespace Pagekit\Installer\Package;
 
 use Pagekit\Filesystem\Filesystem;
 use Pagekit\Installer\Helper\Composer;
+use Pagekit\System\Extension\ExtensionFailureStore;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -16,6 +17,12 @@ class PackageManager
     protected OutputInterface $output;
 
     protected Composer $composer;
+
+    /**
+     * Where a package that failed to load is on record, or null in an
+     * environment that keeps no record.
+     */
+    private readonly ?ExtensionFailureStore $failures;
 
     public function __construct(
         private readonly ContainerInterface $app,
@@ -64,6 +71,12 @@ class PackageManager
         // expected type leaves the helper on its own defaults.
         $files = $this->app->has('file') ? $this->app->get('file') : null;
         $logger = $this->app->has('log') ? $this->app->get('log') : null;
+
+        // The failure record belongs to the system module, which the installer
+        // environment does not load. Without it there is nothing to read and
+        // nothing to clear; every other operation is unaffected.
+        $failures = $this->app->has('extension.failures') ? $this->app->get('extension.failures') : null;
+        $this->failures = $failures instanceof ExtensionFailureStore ? $failures : null;
 
         $this->composer = new Composer(
             $config,
@@ -132,6 +145,10 @@ class PackageManager
                 $this->app->get('file')->delete($path);
                 @rmdir(dirname($path));
             }
+
+            // The package is gone, so a record of it would go on naming
+            // something that is no longer installed.
+            $this->clearFailure($package);
         }
     }
 
@@ -204,6 +221,8 @@ class PackageManager
                 if ($this->app->has('events')) {
                     $this->app->get('events')->trigger('package.enable', [$package]);
                 }
+
+                $this->clearFailure($package);
             } catch (\Throwable $e) {
                 if ($originalState !== null) {
                     $this->rollbackEnable($package, $originalState);
@@ -284,6 +303,51 @@ class PackageManager
             if ($package->getType() == 'pagekit-extension') {
                 $this->app->get('config')('system')->pull('extensions', $package->get('module'));
             }
+
+            $this->clearFailure($package);
+        }
+    }
+
+    /**
+     * The modules on record as having failed to load.
+     *
+     * @return array<int, string> module names, in no particular order
+     */
+    public function getFailedModules(): array
+    {
+        return array_keys($this->failures?->all() ?? []);
+    }
+
+    /**
+     * Takes a package off the failure record.
+     *
+     * Enabling, disabling or uninstalling a package is an administrator acting
+     * on the failure, and the record is what keeps a failed extension out of
+     * the boot and named in the admin notice. Left behind, it would go on doing
+     * both against the decision that was just made.
+     */
+    private function clearFailure(PackageInterface $package): void
+    {
+        $module = $package->get('module');
+
+        if ($this->failures === null || !is_string($module) || $module === '') {
+            return;
+        }
+
+        if ($this->failures->clear($module)) {
+            return;
+        }
+
+        try {
+            if ($this->app->has('log')) {
+                $this->app->get('log')->error(
+                    sprintf('Failed to clear the failure record of "%s", which will keep it out of the next boot.', $module),
+                    ['package' => $module]
+                );
+            }
+        } catch (\Throwable) {
+            // A record that could neither be cleared nor reported is not worth
+            // failing the operation that was meant to clear it.
         }
     }
 

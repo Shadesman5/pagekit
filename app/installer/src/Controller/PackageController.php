@@ -72,8 +72,18 @@ class PackageController
     public function extensionsAction(): array
     {
         $packages = array_values($this->package->all('pagekit-extension'));
+        $failed = $this->manager->getFailedModules();
 
         foreach ($packages as $package) {
+            $name = $package->get('module');
+
+            // An extension a failure switched off and one an administrator
+            // switched off both read as simply not enabled here, and only one of
+            // the two is waiting for someone to look at the log.
+            if (is_string($name) && in_array($name, $failed, true)) {
+                $package->set('failure', true);
+            }
+
             if ($module = $this->module->get($package->get('module'))) {
 
                 if ($settings = $module->get('settings') and $settings[0] === '@') {
