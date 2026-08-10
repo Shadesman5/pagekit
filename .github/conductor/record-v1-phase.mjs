@@ -244,10 +244,7 @@ function pushMetrics(message, returnBranch) {
         } catch {
           /* clean */
         }
-        throw new Error(
-          `metrics rebase onto origin/${target} failed: ${e.message}`,
-          { cause: e }
-        );
+        throw new Error(`metrics rebase onto origin/${target} failed: ${e.message}`, { cause: e });
       }
       sh(`git push origin ${target}`);
       log(`metrics: pushed to ${target}`);
@@ -407,9 +404,7 @@ async function main() {
 
   if (SEED_CURSOR && !typeRaw) {
     session.v1UsageCursor[primaryAgentId] = cumulative;
-    log(
-      `seeded cursor ${primaryAgentId.slice(0, 12)}… total=${cumulative.total} (no phase)`
-    );
+    log(`seeded cursor ${primaryAgentId.slice(0, 12)}… total=${cumulative.total} (no phase)`);
     if (DRY_RUN) {
       console.log(JSON.stringify({ sessionId, seeded: cumulative, session }, null, 2));
       return;
@@ -516,7 +511,9 @@ async function main() {
   );
 
   if (DRY_RUN) {
-    console.log(JSON.stringify({ sessionId, created, phase, cursor: session.v1UsageCursor }, null, 2));
+    console.log(
+      JSON.stringify({ sessionId, created, phase, cursor: session.v1UsageCursor }, null, 2)
+    );
     console.log(`SESSION_ID=${sessionId}`);
     return;
   }
@@ -532,9 +529,7 @@ async function main() {
 
   if (DO_PUSH) {
     const label =
-      typeRaw === 'EXECUTE' && batchSteps?.length
-        ? `EXECUTE ${batchSteps.join(',')}`
-        : typeRaw;
+      typeRaw === 'EXECUTE' && batchSteps?.length ? `EXECUTE ${batchSteps.join(',')}` : typeRaw;
     pushMetrics(
       `chore(metrics): v1 ${label} · ${sessionId.slice(0, 8)}`,
       returnBranch && returnBranch !== DEFAULT_METRICS_BRANCH ? returnBranch : null
