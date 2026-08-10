@@ -22,6 +22,9 @@ class ModuleManager implements \IteratorAggregate
     /** @var array<string, array<string, mixed>> */
     protected array $registered = [];
 
+    /** @var array<string, \Throwable> */
+    protected array $registrationFailures = [];
+
     /**
      * @var LoaderInterface[]
      */
@@ -120,6 +123,20 @@ class ModuleManager implements \IteratorAggregate
     /**
      * Registers modules from path(s).
      *
+     * Discovery learns what a module declares by executing its file, so a
+     * broken package throws here - before anything has been loaded, and long
+     * before there is a site left to report it on. Each include is therefore
+     * isolated: the throwing file registers no module and is kept for the boot
+     * to log, while every other package registers as usual.
+     *
+     * The isolation reaches as far as userland code can reach. A file throwing
+     * at top level is caught, and so is a ParseError, which PHP raises as a
+     * throwable. A genuinely fatal compile error - a duplicate class or
+     * function declaration - along with exit/die and exhausted memory or time
+     * still ends the request, because none of those is a throwable. That
+     * residue goes away only once discovery no longer executes the file to
+     * find out what is in it.
+     *
      * @param string|array<int, string> $paths
      */
     public function register(string|array $paths, ?string $basePath = null): self
@@ -133,7 +150,16 @@ class ModuleManager implements \IteratorAggregate
 
             foreach ($files as $file) {
 
-                if (!is_array($module = include $file) || !isset($module['name'])) {
+                // TODO: Must be refactored in Step 2.7.3 (Static Module Registration)
+                try {
+                    $module = include $file;
+                } catch (\Throwable $e) {
+                    $this->registrationFailures[$file] = $e;
+
+                    continue;
+                }
+
+                if (!is_array($module) || !isset($module['name'])) {
                     continue;
                 }
 
@@ -155,6 +181,20 @@ class ModuleManager implements \IteratorAggregate
         }
 
         return $this;
+    }
+
+    /**
+     * The module files that failed to register, keyed by path.
+     *
+     * Registration runs before the first module is loaded, so nothing that
+     * could report a failure exists yet. The throwables wait here until the
+     * boot has a logger to hand them to.
+     *
+     * @return array<string, \Throwable>
+     */
+    public function getRegistrationFailures(): array
+    {
+        return $this->registrationFailures;
     }
 
     /**

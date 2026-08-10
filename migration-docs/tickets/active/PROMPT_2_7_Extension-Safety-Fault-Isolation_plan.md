@@ -69,7 +69,7 @@
      A step orchestrator flips its box to [x] in the SAME commit as that step's code + tests
      (after full step PASS incl. test-writer when applicable; for XL after reviews + E2E PASS) -->
 - [x] Step 1 (M) — Safety gates + `ExtensionFailureStore` + `path.system`
-- [ ] Step 2 (M) — Registration-window barrier + last-resort handler
+- [x] Step 2 (M) — Registration-window barrier + last-resort handler
 - [ ] Step 3 (L) — Load-window barrier + auto-disable + boot merge
 - [ ] Step 4 (M) — Admin notification + re-enable clearing + manager UI state
 - [ ] Step 5 (L) — Lifecycle interface + runner replaces `PackageScripts`

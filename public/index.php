@@ -21,21 +21,31 @@ date_default_timezone_set('UTC');
 $env = 'system';
 $path = dirname(__DIR__);
 
-// Global exception handler for debugging
-if (file_exists($debugLog = $path.'/tmp/logs/debug.log')) {
-    set_exception_handler(function ($e) use ($debugLog) {
-        $message = sprintf(
-            "\n[UNCAUGHT EXCEPTION] [%s]\nType: %s\nMessage: %s\nFile: %s:%d\nTrace:\n%s\n\n",
-            date('Y-m-d H:i:s'),
-            get_class($e),
-            $e->getMessage(),
-            $e->getFile(),
-            $e->getLine(),
-            $e->getTraceAsString()
-        );
-        error_log($message, 3, $debugLog);
-    });
-}
+// A throwable escaping the application leaves a blank page and nothing else -
+// the one failure nobody can diagnose. The handler is registered before the
+// boot, so a fault in the boot itself is written down as well, and the log
+// directory is created the first time a failure needs it: an install that
+// never fails never grows one. Neither the directory nor the write reports
+// its own trouble, because recording a failure must not add a second one.
+set_exception_handler(function (\Throwable $e) use ($path): void {
+    $logs = $path.'/tmp/logs';
+
+    if (!is_dir($logs) && !@mkdir($logs, 0755, true) && !is_dir($logs)) {
+        return;
+    }
+
+    $message = sprintf(
+        "\n[UNCAUGHT EXCEPTION] [%s]\nType: %s\nMessage: %s\nFile: %s:%d\nTrace:\n%s\n\n",
+        date('Y-m-d H:i:s'),
+        get_class($e),
+        $e->getMessage(),
+        $e->getFile(),
+        $e->getLine(),
+        $e->getTraceAsString()
+    );
+
+    @error_log($message, 3, $logs.'/debug.log');
+});
 
 $config = [
     'path' => $path,

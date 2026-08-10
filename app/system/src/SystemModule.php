@@ -50,6 +50,15 @@ class SystemModule extends Module
             return $module;
         });
 
+        // Discovery ran before any module was loaded, so a package that threw
+        // while being registered has had nowhere to be reported until now.
+        foreach ($app->get('module')->getRegistrationFailures() as $file => $error) {
+            $app->get('log')->error(
+                sprintf('Extension failure [%s] during registration: %s', $file, $error->getMessage()),
+                ['exception' => $error]
+            );
+        }
+
         foreach (array_merge($this->config['extensions'], (array) $theme) as $module) {
             try {
                 $app->get('module')->load($module);
