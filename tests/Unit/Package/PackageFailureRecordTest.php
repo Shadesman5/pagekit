@@ -427,7 +427,21 @@ final class PackageFailureRecordTest extends TestCase
     {
         file_put_contents(
             $this->packageDir . '/scripts.php',
-            sprintf("<?php\n\ndeclare(strict_types=1);\n\nreturn [\n    '%s' => function (\$app) {\n        %s\n    },\n];\n", $hook, $body),
+            str_replace(['{HOOK}', '{BODY}'], [$hook, $body], <<<'PHP'
+                <?php
+
+                declare(strict_types=1);
+
+                use Pagekit\Installer\Package\Lifecycle\PackageLifecycle;
+                use Psr\Container\ContainerInterface;
+
+                return new class () extends PackageLifecycle {
+                    public function {HOOK}(ContainerInterface $app): void
+                    {
+                        {BODY}
+                    }
+                };
+                PHP),
         );
     }
 

@@ -9,8 +9,8 @@ use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Exception\ConnectionException;
 use Pagekit\Application;
 use Pagekit\Config\Config;
+use Pagekit\Installer\Package\Lifecycle\LifecycleRunner;
 use Pagekit\Installer\Package\PackageManager;
-use Pagekit\Installer\Package\PackageScripts;
 use Pagekit\Util\Arr;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -136,9 +136,9 @@ class Installer
             $this->runMigrations();
 
             // Execute additional setup (config initialization, etc.)
-            // NOTE: scripts.php 'install' hook is executed AFTER migrations
-            $scripts = new PackageScripts($this->app->get('path').'/app/system/scripts.php', null, $this->app);
-            $scripts->install();
+            // NOTE: the system install hook is executed AFTER migrations
+            $lifecycle = new LifecycleRunner($this->app->get('path').'/app/system/scripts.php', null, $this->app);
+            $lifecycle->install();
 
             $this->app->get('db')->insert('@system_user', [
                 'name' => $user['username'],

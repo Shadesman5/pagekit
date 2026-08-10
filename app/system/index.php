@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Pagekit\Installer\Package\PackageScripts;
+use Pagekit\Installer\Package\Lifecycle\LifecycleRunner;
 use Pagekit\Kernel\Event\ExceptionListener;
 use Pagekit\System\Extension\ExtensionFailureStore;
 
@@ -124,11 +124,11 @@ return [
         'auth.login' => [function ($event) use ($app) {
             if ($event->getUser()->hasAccess('system: software updates') && version_compare($this->config('version'), $app->get('version'), '<')) {
 
-                $scripts = new PackageScripts($this->path . '/scripts.php', $this->config('version'), $app);
+                $lifecycle = new LifecycleRunner($this->path . '/scripts.php', $this->config('version'), $app);
                 $migrationStatus = $app->has('migration') ? $app->get('migration')->status() : ['success' => true, 'has_pending' => false];
                 $hasPendingMigrations = !($migrationStatus['success'] ?? false) || ($migrationStatus['has_pending'] ?? false);
 
-                if ($scripts->hasUpdates() || $hasPendingMigrations) {
+                if ($lifecycle->hasUpdates() || $hasPendingMigrations) {
                     $event->setResponse($app->get('response')->redirect('@system/migration', ['redirect' => $app->get('url')->getRoute('@system')]));
                 } else {
                     $app->get('config')('system')->set('version', $app->get('version'));

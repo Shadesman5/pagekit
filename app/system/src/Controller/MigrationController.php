@@ -7,7 +7,7 @@ namespace Pagekit\System\Controller;
 use Pagekit\Application;
 use Pagekit\Application\Response;
 use Pagekit\Config\ConfigManager;
-use Pagekit\Installer\Package\PackageScripts;
+use Pagekit\Installer\Package\Lifecycle\LifecycleRunner;
 use Pagekit\Migration\MigrationService;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Router;
@@ -18,7 +18,7 @@ use Pagekit\User\Attribute\Access;
 #[Access('system: software updates', admin: true)]
 class MigrationController
 {
-    protected PackageScripts $scripts;
+    protected LifecycleRunner $lifecycle;
 
     public function __construct(
         private readonly SystemModule $system,
@@ -29,7 +29,7 @@ class MigrationController
         private readonly Router $router,
         private readonly Application $app,
     ) {
-        $this->scripts = new PackageScripts($this->system->path.'/scripts.php', $this->system->config('version'), $this->app);
+        $this->lifecycle = new LifecycleRunner($this->system->path.'/scripts.php', $this->system->config('version'), $this->app);
     }
 
     /**
@@ -46,7 +46,7 @@ class MigrationController
             $hasPendingMigrations = !($migrationStatus['success'] ?? false) || ($migrationStatus['has_pending'] ?? false);
         }
 
-        if (!$this->scripts->hasUpdates() && !$hasPendingMigrations) {
+        if (!$this->lifecycle->hasUpdates() && !$hasPendingMigrations) {
             return $this->router->redirect($redirect ?: '@system');
         }
 
@@ -78,9 +78,9 @@ class MigrationController
             }
         }
 
-        if ($updates = $this->scripts->hasUpdates()) {
+        if ($updates = $this->lifecycle->hasUpdates()) {
             try {
-                $this->scripts->update();
+                $this->lifecycle->update();
             } catch (\Throwable $e) {
                 return $this->response->json([
                     'status' => false,

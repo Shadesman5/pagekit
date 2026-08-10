@@ -6,6 +6,7 @@ namespace Pagekit\Installer\Package;
 
 use Pagekit\Filesystem\Filesystem;
 use Pagekit\Installer\Helper\Composer;
+use Pagekit\Installer\Package\Lifecycle\LifecycleRunner;
 use Pagekit\System\Extension\ExtensionFailureStore;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
@@ -123,10 +124,18 @@ class PackageManager
             }
 
             $this->disable($package);
-            $this->getScripts($package)->uninstall();
 
-            // After scripts, while the package folder still exists: site listeners
-            // soft-delete nodes for types declared in the extension's index.php.
+            $lifecycle = $this->getLifecycle($package);
+
+            try {
+                $lifecycle->uninstall();
+            } catch (\Throwable $e) {
+                $this->reportHookFailure($package, 'uninstall', $e);
+            }
+
+            // After the hook, while the package folder still exists: site
+            // listeners soft-delete nodes for types declared in the extension's
+            // index.php.
             if ($this->app->has('events')) {
                 $this->app->get('events')->trigger('package.uninstall', [$package]);
             }
@@ -180,8 +189,9 @@ class PackageManager
                     }
                 }
 
-                // Fire package.enable only after scripts succeed so node restore /
-                // type forget cannot leave partial state when enable scripts throw.
+                // Fire package.enable only after the hooks succeed so node
+                // restore / type forget cannot leave partial state when the
+                // enable hook throws.
                 if ($this->app->has('config')) {
                     $sysConfig = $this->app->get('config')('system');
 
@@ -195,12 +205,12 @@ class PackageManager
                         $current = $this->doInstall($package);
                     }
 
-                    $scripts = $this->getScripts($package, $current);
-                    if ($scripts->hasUpdates()) {
-                        $scripts->update();
+                    $lifecycle = $this->getLifecycle($package, $current);
+                    if ($lifecycle->hasUpdates()) {
+                        $lifecycle->update();
                     }
 
-                    $scripts->enable();
+                    $lifecycle->enable();
 
                     $version = $this->getVersion($package);
                     $sysConfig->set('packages.' . $moduleName, $version);
@@ -214,8 +224,7 @@ class PackageManager
                     }
                 } else {
                     $current = $this->doInstall($package);
-                    $scripts = $this->getScripts($package, $current);
-                    $scripts->enable();
+                    $this->getLifecycle($package, $current)->enable();
                 }
 
                 if ($this->app->has('events')) {
@@ -294,7 +303,13 @@ class PackageManager
         }
 
         foreach ($packages as $package) {
-            $this->getScripts($package)->disable();
+            $lifecycle = $this->getLifecycle($package);
+
+            try {
+                $lifecycle->disable();
+            } catch (\Throwable $e) {
+                $this->reportHookFailure($package, 'disable', $e);
+            }
 
             if ($this->app->has('events')) {
                 $this->app->get('events')->trigger('package.disable', [$package]);
@@ -351,22 +366,51 @@ class PackageManager
         }
     }
 
-    protected function getScripts(PackageInterface $package, ?string $current = null): PackageScripts
+    /**
+     * Reports a lifecycle hook that threw on the package's way out.
+     *
+     * Disabling and uninstalling are how an administrator gets out from under a
+     * broken package, so the package gets no say in whether they happen: its
+     * hook is given its chance, and a throw costs the hook rather than the
+     * operation. Enabling and installing keep propagating - there the failure
+     * means the package is not ready to run, which is the caller's business.
+     */
+    private function reportHookFailure(PackageInterface $package, string $hook, \Throwable $e): void
+    {
+        try {
+            if ($this->app->has('log')) {
+                $this->app->get('log')->error(
+                    sprintf(
+                        'The %s hook of package "%s" failed: %s',
+                        $hook,
+                        $package->get('name'),
+                        $e->getMessage()
+                    ),
+                    ['exception' => $e, 'package' => $package->get('module')]
+                );
+            }
+        } catch (\Throwable) {
+            // Nothing is left that could take the report, and the operation the
+            // barrier keeps alive still has to finish.
+        }
+    }
+
+    protected function getLifecycle(PackageInterface $package, ?string $current = null): LifecycleRunner
     {
         if (!$scripts = $package->get('extra.scripts')) {
-            return new PackageScripts(null, $current, $this->app);
+            return new LifecycleRunner(null, $current, $this->app);
         }
 
         if (!$path = $package->get('path')) {
             throw new \RuntimeException(__('Package path is missing.'));
         }
 
-        return new PackageScripts($path . '/' . $scripts, $current, $this->app);
+        return new LifecycleRunner($path . '/' . $scripts, $current, $this->app);
     }
 
     protected function doInstall(PackageInterface $package): string
     {
-        $this->getScripts($package)->install();
+        $this->getLifecycle($package)->install();
         $version = $this->getVersion($package);
 
         if ($this->app->has('config')) {
