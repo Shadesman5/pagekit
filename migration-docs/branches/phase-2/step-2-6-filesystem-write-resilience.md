@@ -6,16 +6,16 @@
 **Branch:** `feature/filesystem-write-resilience`
 **ROADMAP Step:** 2.6 (Filesystem Write Resilience — Atomic Writes & Error-Handling Hygiene)
 **GitHub Issue:** [#257](https://github.com/Shadesman5/pagekit/issues/257)
-**Pull Request:** _TBD_
-**Status:** 🚧 In progress
+**Pull Request:** [#265](https://github.com/Shadesman5/pagekit/pull/265)
+**Status:** ✅ Complete
 **Started:** 2026-08-07 20:54
-**Completed:** _TBD_
+**Completed:** 2026-08-10 12:08
 
 ---
 
 ## 🎯 Overview
 
-_TBD_
+Ships the one shared atomic-write primitive `Filesystem::dumpAtomic()` and routes every boot-critical write in the tree through it. Extracted 1:1 from `Router::writeCache()`'s existing temp+chmod+rename pattern (plus a new centralized `opcache_invalidate()`), the primitive resolves a symlinked target before writing, carries an existing target's permission bits onto its replacement, refuses anything that isn't a plain local path, and throws instead of ever returning `false`. Five call sites move onto it in turn — the router cache (which loses its own duplicate temp+rename body), the installer's and settings screen's `config.php` writes (both now fail loudly instead of silently reporting success on an unwritable target), and the Composer helper's package registry — plus one error-handling hygiene pass: an empty `catch` around a range version constraint now logs instead of silently skipping the package, and `SelfupdateCommand`'s dead commented-out body is deleted outright. A mandatory Bugbot + Security review closed Checklist Step 6 with no corrective work, and the end-of-ticket E2E ran clean both then and again after a short Finalize fix-loop (a cs-fixer formatting fix plus a Codecov coverage-gap test that, in passing, proved the primitive's non-atomic fallback path reaches further than Checklist Step 1 had documented — see Risks & Rollout Notes).
 
 ---
 
@@ -103,6 +103,15 @@ No production or test files changed — Bugbot and the Security Review found not
 
 Gates: Bugbot clean (no bugs); Security Review clean (no medium/high/critical findings); Tester final E2E PASS (3 Playwright `@ci` specs, chromium-desktop). No fix-loop.
 
+### Finalize fix-loop — cs-fixer formatting + coverage gap pass (post-Step-6)
+
+| File | Change |
+|---|---|
+| `app/modules/routing/src/Tests/RouterTest.php` | cs-fixer FAIL on the PR's CI run: the two stub `Filesystem` subclasses Checklist Step 2 added (`testDumpedCacheIsWrittenThroughTheFilesystem`, `testUnwritableCacheDegradesToTheUncachedRouter`) were written as `new class extends Filesystem`; the project's cs-fixer ruleset requires the explicit constructor parens (`new class () extends Filesystem`). Both fixed; no behavioral change. |
+| `app/modules/filesystem/src/Tests/DumpAtomicTest.php` | Coverage gap pass closing a Codecov patch-diff gap: new `testAnUnwritableTargetDirectoryStillRewritesAFileThatIsAlreadyThere` covers a target file that already exists in a directory that itself refuses new entries — `dumpAtomic()` cannot stage a temp file there, so it degrades straight to a direct rewrite of the file already in place, the same non-atomic fallback the rename-blocked path uses (see Risks & Rollout Notes); a new private `stagedFiles()` helper lists the platform's own temp-directory entries so the test can assert none is left behind by the degraded write. |
+
+Gates: cs-fixer FAIL → fixed → PASS; coverage gap pass → PHPUnit + PHPStan PASS; PR #265 CI (final) — `phpunit (8.5)`, `phpunit-mysql`, `phpstan`, `cs-fixer`, `security-audit`, `version-ssot`, `frontend`, `infection-diff` all green (`e2e-smoke`/`e2e-merge` skip — draft PR); Cursor Bugbot — clean, 0 review comments; end-of-ticket E2E — PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -115,13 +124,13 @@ Gates: Bugbot clean (no bugs); Security Review clean (no medium/high/critical fi
 
 ## 💥 Breaking Changes (Extensions)
 
-_TBD / None_
+None. Every constructor touched in this step gains a new, defaulted trailing parameter (`Router`'s `Filesystem $files`, the Composer helper's `?Filesystem $files`/`?LoggerInterface $logger`) — no existing call site anywhere needed to change. `SettingsController::saveAction()` and the config/registry writers now throw on a failed write instead of reporting success; that is a fix to an already-broken failure path, not a change to any documented extension-facing API shape.
 
 ---
 
 ## ⚠️ Risks & Rollout Notes
 
-- **The rename-blocked fallback write is not atomic (Checklist Step 1).** Where a reader holding the target open blocks the `rename()` — reachable only on Windows — `dumpAtomic()` falls back to a direct `file_put_contents($target, …, LOCK_EX)`, on which a concurrent reader without its own lock can observe a partially written file. The primitive's only wired-up deployment target so far is the Docker Linux production image (Step 2.5), where this path cannot be reached.
+- **The rename-blocked fallback write is not atomic, and reaches further than Windows (Checklist Step 1; scope widened by the Finalize coverage gap pass).** `dumpAtomic()` falls back to a direct `file_put_contents($target, …, LOCK_EX)` — on which a concurrent reader without its own lock can observe a partially written file — whenever the staged temp file cannot be renamed onto the target. On Windows that is a reader holding the target open; the Finalize coverage-gap test (`DumpAtomicTest::testAnUnwritableTargetDirectoryStillRewritesAFileThatIsAlreadyThere`) proved the same fallback is also reachable on Linux, with no lock contention at all, whenever the target's directory refuses new entries but the target file itself is still owner-writable (an already-existing file in a directory hardened after the fact). The primitive's only wired-up deployment target so far is the Docker Linux production image (Step 2.5), where `$PAGEKIT_DATA_DIR` (holding `config.php`) stays writable by `www-data`, so this path is still not reached there — but for that reason, not because the fallback is Windows-only.
 
 ---
 
@@ -149,14 +158,27 @@ _TBD / None_
 <!-- Links only. Quality metrics are CI-owned: link the PR sticky quality-report comment and the
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
-- CI run: _TBD_
-- Notable deviations: _TBD / None_
+| Gate | Result |
+|---|---|
+| CI — PR checks | ✅ green — [PR #265](https://github.com/Shadesman5/pagekit/pull/265) (`phpunit (8.5)`, `phpunit-mysql`, `phpstan`, `cs-fixer`, `security-audit`, `version-ssot`, `frontend`, `infection-diff` all pass; `e2e-smoke`/`e2e-merge` skip — draft PR) |
+| Coverage gap pass | ran — `test(filesystem): close codecov patch gaps` (`DumpAtomicTest.php`) |
+| Cursor Bugbot (PR) | ✅ clean — 0 review comments |
+| E2E | ✅ PASS — local final E2E in Checklist Step 6 (XL), re-run clean after the Finalize fix-loop |
+| Finalize fix-loop | cs-fixer FAIL (anonymous-class CS in `RouterTest`) → fixed, then the coverage gap pass — 2 commits, both green |
+
+**CI run:** https://github.com/Shadesman5/pagekit/pull/265
+
+**Metrics (CI-owned):** [PR #265](https://github.com/Shadesman5/pagekit/pull/265) sticky Codecov comment ([app.codecov.io](https://app.codecov.io/gh/Shadesman5/pagekit/pull/265)) · [Quality Dashboard](https://Shadesman5.github.io/pagekit/quality/)
+
+**Notable deviations:**
+1. cs-fixer FAIL on the PR's CI run — anonymous-class constructor parens missing in the two `RouterTest` stubs (Checklist Step 2) — fixed, no behavioral change (see Finalize fix-loop above).
+2. Coverage gap pass — Codecov's patch diff flagged an uncovered branch in `DumpAtomicTest.php`; closed with a new test that also widened the documented scope of the rename-blocked fallback (see Risks & Rollout Notes).
 
 ---
 
 ## 📋 Phase 1 Audit Closure
 
-_TBD / None_
+None (no `Closes Phase 1 audit:` line in the ticket header; Filesystem Write Resilience scope does not touch a Phase 1 audit item).
 
 ---
 
@@ -165,7 +187,7 @@ _TBD / None_
 <!-- Human-only follow-ups the maintainer must do (ruleset flips, real Docker/Apache
      verification, secrets, etc.). Not ROADMAP deferrals — those go under Deferred. -->
 
-_TBD / None_
+None — no human-only follow-ups in this ticket.
 
 ---
 
@@ -174,58 +196,54 @@ _TBD / None_
 <!-- Future ROADMAP/PHASE work, explicit non-goals, bridges. Do NOT put maintainer
      Manual Work here — that belongs under Maintainer action above. -->
 
-_TBD / None_
+- **Step 2.7 (Extension Safety & Fault Isolation)** — route-cache freshness by content hash instead of `filemtime`; replacing the deprecated copied `PhpMatcherDumper`/`UrlGeneratorDumper` with the Symfony compiled matcher/generator. *PHASE_2 §2.7 already lists both — no amendment needed.*
+- **Step 2.7.1 (Snapshot & Three-Stage Uninstall)** — snapshots/backups before destructive package operations. *PHASE_2 §2.7.1 already depends on this step for atomic writes — no amendment needed.*
+- **Step 2.9 (Automated Update System)** — reuses `dumpAtomic()` for artefact/registry writes. *PHASE_2 §2.6's own "Provides" line already records this.*
+- **Step 5.6 (Marketplace & Extensions)** — re-enabling `pagekit self-update` and its release feed once the `GET /api/update` backend exists. *The pre-existing `// TODO: Step 5.6` marker left in place in `SelfupdateCommand` plus PHASE_5 §5.6 already cover it.*
+- **Non-goals:** a general filesystem abstraction (Flysystem-style adapters, a locking layer, a transactional API); vfsStream or any new test dependency; the Symfony Filesystem component as the primitive's implementation.
+- **Bridges:** None.
 
 ---
 
 ## 📌 Follow-on (ROADMAP)
 
-_TBD / None_
+None — no ROADMAP sub-step created; all Deferred items above already have a PHASE home.
 
 ---
 
 ## 🧊 Parked (unplanned)
 
-_TBD / None_
+None.
 
 ---
 
 ## 🧹 Cleanup
 
-_TBD / None_
+None beyond the ticket's own Checklist Step 5 error-handling hygiene (the `SelfupdateCommand` dead block and the empty `Composer` catch), already covered under What Changed and No-Mercy Compliance above.
 
 ---
 
 ## 🛡️ Audit
 
-_TBD / None_
+None (no Phase 1 audit item in scope; see Phase 1 Audit Closure above).
 
 ---
 
 ## 🎁 Bonus
 
-_TBD / None_
+None.
 
 ---
 
 ## 🔍 Research
 
-_TBD / None_
+None.
 
 ---
 
 ## 📎 Related Documents
 
-- Ticket: `migration-docs/tickets/active/PROMPT_2_6_Filesystem-Write-Resilience_plan.md` (_TBD_ → move to `done/` after Finalize)
+- Ticket: `migration-docs/tickets/active/PROMPT_2_6_Filesystem-Write-Resilience_plan.md` → moves to `migration-docs/tickets/done/` as part of this Finalize
 - Task prompt: `migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_6_Filesystem-Write-Resilience.md`
 - Predecessor: Step 2.5 — Docker Production Image & Deploy
 - Successor: Step 2.7 — Extension Safety System
-
----
-
-## 📊 <Step-specific appendix>
-
-<!-- Narrative/structural notes only. Never a metrics table (coverage %, MSI, test counts): quality
-     numbers are CI-owned — link the sticky quality-report comment + dashboard instead. -->
-
-_TBD — remove this section if not applicable._

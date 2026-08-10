@@ -1,5 +1,27 @@
 # Changelog
 
+## Pagekit 1.2.37 - Filesystem Write Resilience: Atomic Writes (August 10, 2026)
+
+### ✨ Added
+
+- **One shared atomic-write primitive: `Filesystem::dumpAtomic()`** — writes through a same-directory temp file, carries an existing target's permission bits onto the replacement (or applies the umask-narrowed default for a fresh file), `rename()`s over the target, and centrally invalidates OPcache; refuses anything that isn't a plain local path rather than silently degrading a stream-wrapper or adapter-backed write. (Closes #257)
+
+### ♻️ Changed
+
+- **`Router::writeCache()`, the installer's and settings screen's `config.php` writes, and the Composer helper's package-registry write now go through the shared primitive** — each drops its own ad hoc temp-file/rename/permission logic, and the two `config.php` writers drop their own separate OPcache invalidation now that the primitive does it centrally.
+
+### 🐛 Fixed
+
+- **A failed settings save used to report success anyway** — `SettingsController::saveAction()` ignored the return value of its `config.php` write, so a hardened or read-only application tree got back a success message over a file that was never touched. The write now throws and the failure propagates instead of hiding unsaved settings from the administrator.
+- **A failed package-registry write left a stale `packages.php` with no trace** — `Composer::writeConfig()`'s own write call ignored its return value the same way; it now throws through the shared primitive.
+- **An install pinned to a version range (`^1.0`, `~2.3`) dropped out of Composer's forced-refresh list with no record of why** — the previously empty `catch` around that case now logs the package and its constraint; the package still installs and lands in the registry exactly as before.
+
+### ❌ Removed
+
+- **`SelfupdateCommand`'s long-dead commented-out update flow and its unused `SelfUpdater` import** — the command has refused to run since self-update was discontinued; git history is the record of the old implementation now, not a comment block beside the code that disabled it.
+
+---
+
 ## Pagekit 1.2.36 - Docker Production Image & Deploy, TinyMCE removal (August 4, 2026)
 
 ### 💥 Breaking Changes
