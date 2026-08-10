@@ -10,12 +10,13 @@
 //     --step 2.7 --agent bc-… [--push]
 //
 // Options:
-//   --step ID          ROADMAP step ID (required)
+//   --step ID          ROADMAP step ID (required unless inferable from --title)
 //   --agent ID         Cloud agent ID (repeatable); accepts cursor.com/agents/… URLs
 //                      (path id = parent; ignore ?child-id= for usage)
+//   --pr-url URL       GitHub PR URL — resolve parent agent via Cursor API (prUrl, then branch)
 //   --label TEXT       Phase label (default: V1 for --v1-ui, else MANUAL)
-//   --title TEXT       Session title (default: from ROADMAP row)
-//   --branch NAME      Feature branch recorded on the session
+//   --title TEXT       Session title (default: from ROADMAP row); also used to infer --step
+//   --branch NAME      Feature branch recorded on the session (+ agent resolve fallback)
 //   --issue N          GitHub issue number
 //   --task-slug SLUG   Task prompt slug (without .md)
 //   --session UUID     Append to existing session instead of creating one
@@ -48,7 +49,9 @@ import {
   resolveSessionId,
   currentGitBranch,
   syncMetricsFromRemote,
-  pushMetricsToRemote
+  pushMetricsToRemote,
+  resolveOrchestratorAgentForPr,
+  parseRoadmapStepId
 } from './metrics.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -165,21 +168,22 @@ function phaseTypeFromLabel(label) {
 }
 
 async function main() {
-  const stepId = getArg('--step');
-  const agentIds = getAllArgs('--agent').map(normalizeAgentId).filter(Boolean);
+  let stepId = getArg('--step');
+  let agentIds = getAllArgs('--agent').map(normalizeAgentId).filter(Boolean);
+  const prUrl = getArg('--pr-url');
   const defaultLabel = V1_UI ? 'V1' : 'MANUAL';
   const label = getArg('--label') || defaultLabel;
   const existingSessionId = getArg('--session');
   const branchArg = getArg('--branch');
   const taskSlug = getArg('--task-slug') || null;
   const issueArg = getArg('--issue');
+  const titleArg = getArg('--title');
 
-  if (!stepId) {
-    console.error('Missing --step (ROADMAP step ID, e.g. 2.7)');
-    process.exit(1);
+  if (!stepId && titleArg) {
+    stepId = parseRoadmapStepId(titleArg, taskSlug ? `${taskSlug}.md` : null);
   }
-  if (!agentIds.length) {
-    console.error('Missing --agent (one or more cloud agent IDs or cursor.com/agents/… URLs)');
+  if (!stepId) {
+    console.error('Missing --step (ROADMAP step ID, e.g. 2.7) — or pass --title containing Step X.Y');
     process.exit(1);
   }
 
@@ -190,11 +194,29 @@ async function main() {
     process.exit(1);
   }
 
+  const client = manualTokensTemplate ? null : createCursorClient(apiKey);
+
+  if (!agentIds.length && (prUrl || branchArg) && client) {
+    const resolved = await resolveOrchestratorAgentForPr(client, {
+      prUrl,
+      branch: branchArg,
+      log: msg => console.log(msg)
+    });
+    if (resolved) agentIds = [resolved];
+  }
+
+  if (!agentIds.length) {
+    console.error(
+      'Missing --agent (or could not resolve via --pr-url / --branch). ' +
+        'Pass parent bc-… or a PR URL linked to the Orchestrator agent.'
+    );
+    process.exit(1);
+  }
+
   const row = lookupRoadmapRow(stepId);
-  const title = getArg('--title') || (row ? row.name : `Step ${stepId}`);
+  const title = titleArg || (row ? row.name : `Step ${stepId}`);
   const issue = issueArg ? Number(issueArg) : (row?.issue ?? null);
   const returnBranch = currentGitBranch(ROOT);
-  const client = manualTokensTemplate ? null : createCursorClient(apiKey);
 
   console.log(
     `Import ${agentIds.length} agent(s) → step ${stepId}` +

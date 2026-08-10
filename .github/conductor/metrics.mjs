@@ -171,6 +171,106 @@ export async function listAgentRunsFromCursor(client, agentId, { limit = 100 } =
   return items;
 }
 
+/**
+ * List cloud agents (newest first). Optional `prUrl` filters to agents linked to that PR.
+ * @see https://cursor.com/docs/cloud-agent/api/endpoints
+ */
+export async function listAgentsFromCursor(
+  client,
+  { limit = 20, cursor = null, prUrl = null, includeArchived = true } = {}
+) {
+  if (!client) return { items: [], nextCursor: null };
+  const qs = new URLSearchParams();
+  qs.set('limit', String(Math.min(100, Math.max(1, limit))));
+  if (cursor) qs.set('cursor', cursor);
+  if (prUrl) qs.set('prUrl', prUrl);
+  if (includeArchived === false) qs.set('includeArchived', 'false');
+  const page = await client('GET', `/v1/agents?${qs}`);
+  return {
+    items: Array.isArray(page?.items) ? page.items : Array.isArray(page?.agents) ? page.agents : [],
+    nextCursor: page?.nextCursor || null
+  };
+}
+
+export async function fetchAgentFromCursor(client, agentId) {
+  if (!client || !agentId) return null;
+  return client('GET', `/v1/agents/${agentId}`);
+}
+
+/**
+ * Resolve the best parent Orchestrator agent for a merged PR.
+ * Prefers `prUrl` filter; falls back to recent agents whose target branch matches.
+ * Skips agents with zero /usage (typical Task child agents).
+ */
+export async function resolveOrchestratorAgentForPr(
+  client,
+  { prUrl = null, branch = null, log = msg => console.log(msg) } = {}
+) {
+  if (!client) return null;
+
+  const candidates = [];
+  if (prUrl) {
+    const { items } = await listAgentsFromCursor(client, { limit: 50, prUrl });
+    candidates.push(...items);
+    log(`resolve-agent: prUrl match count=${items.length}`);
+  }
+
+  if (!candidates.length && branch) {
+    const branchNorm = String(branch).replace(/^refs\/heads\//, '').toLowerCase();
+    let cursor = null;
+    for (let page = 0; page < 5; page += 1) {
+      const res = await listAgentsFromCursor(client, { limit: 50, cursor });
+      for (const item of res.items) {
+        let detail = item;
+        try {
+          detail = (await fetchAgentFromCursor(client, item.id)) || item;
+        } catch {
+          /* list fields only */
+        }
+        const targetBranch = (
+          detail?.target?.branchName ||
+          detail?.branchName ||
+          detail?.source?.ref ||
+          ''
+        )
+          .replace(/^refs\/heads\//, '')
+          .toLowerCase();
+        const name = String(detail?.name || item.name || '').toLowerCase();
+        if (targetBranch === branchNorm || name.includes(branchNorm)) {
+          candidates.push(detail.id ? detail : item);
+        }
+      }
+      cursor = res.nextCursor;
+      if (!cursor) break;
+    }
+    log(`resolve-agent: branch=${branch} candidate count=${candidates.length}`);
+  }
+
+  if (!candidates.length) return null;
+
+  const scored = [];
+  for (const item of candidates) {
+    const id = String(item.id || '').toLowerCase();
+    if (!id.startsWith('bc-')) continue;
+    let total = 0;
+    try {
+      const metrics = await fetchAgentMetricsFromCursor(client, id);
+      total = Number(metrics?.tokens?.total) || 0;
+    } catch {
+      total = 0;
+    }
+    if (total <= 0) {
+      log(`resolve-agent: skip ${id.slice(0, 12)}… (zero usage — likely child)`);
+      continue;
+    }
+    scored.push({ id, total, item });
+  }
+  scored.sort((a, b) => b.total - a.total);
+  if (!scored.length) return null;
+  log(`resolve-agent: picked ${scored[0].id} total=${scored[0].total}`);
+  return scored[0].id;
+}
+
 /** Timing + tokens + per-run breakdown for manual / backfilled sessions. */
 export async function fetchAgentMetricsFromCursor(client, agentId) {
   const empty = {

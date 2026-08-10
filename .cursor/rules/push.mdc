@@ -23,12 +23,14 @@ alwaysApply: false
    `sync-metadata.yml` automatically applies labels + milestone from this block.
    ```markdown
    <!-- metadata
-   labels: phase-2, migration, backend
+   labels: phase-2, migration, backend, v1-metrics
    milestone: Phase 2: Developer Experience
    closes: #42, #43
    -->
    ```
-   - **labels**: 1 phase + 1 type + 1-2 area labels (see `github-labels.mdc`)
+   - **labels**: 1 phase + 1 type + 1-2 area labels (see `github-labels.mdc`). For **V1 UI**
+     (`cursor.com/agents`) Orchestrator PRs also add `v1-metrics` so merge into `develop` runs
+     `.github/workflows/import-v1-metrics.yml`.
    - **milestone**: Phase name (shorthand `Phase 1` or full `Phase 1: Foundation`)
    - **closes**: related GitHub Issues — also include `Closes #X` in visible PR body text for GitHub's auto-close linking
 8. **Do NOT merge**

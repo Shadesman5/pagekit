@@ -28,20 +28,25 @@ Token usage, run duration, and phase breakdown for **V2 Conductor** (GHA) and **
 
 Commits land on the unprotected **`conductor-metrics`** branch only — never on the feature-branch tip (PR CI / bot approval) and never direct to protected `develop` (Ruleset requires PRs, no Actions bypass). The dashboard refreshes via an explicit `pages-deploy.yml` dispatch on `develop` after each metrics push; the build overlays metrics from `conductor-metrics` (`GITHUB_TOKEN` does not re-trigger workflows by itself).
 
-## V1 UI (`cursor.com/agents`) / Automations
+## V1 UI (`cursor.com/agents`) / Automations / GHA
 
-The Orchestrator rule does **not** record metrics mid-run. After Finalize (or on PR merge via Automation), import the **parent** Orchestrator agent:
+The Orchestrator rule does **not** record metrics mid-run. After a V1 modernization PR merges into
+`develop` with label **`v1-metrics`**, `.github/workflows/import-v1-metrics.yml` imports the parent
+Orchestrator agent automatically (`import-manual-agents.mjs --push`).
+
+Manual / local:
 
 ```bash
 CURSOR_API_KEY=… node .github/conductor/import-manual-agents.mjs \
   --step 2.7 \
-  --agent bc-9590820d-aecf-42eb-98d5-ada024446917 \
+  --pr-url https://github.com/Shadesman5/pagekit/pull/123 \
   --branch feature/extension-safety-fault-isolation \
   --push
 ```
 
-- Accepts a full `https://cursor.com/agents/bc-…` URL (path id = parent).
-- **Task child agents** (`?child-id=bc-…`) usually report **zero** usage via `/v1/agents/{id}/usage` — tokens roll up on the parent. Do not pass child ids expecting a split.
+- Accepts a full `https://cursor.com/agents/bc-…` URL via `--agent` (path id = parent).
+- **`--pr-url`** resolves the parent agent (Cursor `prUrl` filter, then branch match); skips zero-usage child agents.
+- **Task child agents** (`?child-id=bc-…`) usually report **zero** usage via `/v1/agents/{id}/usage` — tokens roll up on the parent.
 - Default tagging: `source: "v1-ui"`, phase `tokensSource: "cursor-api-v1"` (dashboard V1 badge). Use `--no-v1-ui` only for legacy historical imports.
 - `--push` syncs/commits to `conductor-metrics` and dispatches `pages-deploy.yml`.
 - Optional: `--issue`, `--task-slug`, `--title`, `--label`, `--session`, `--dry-run`, `--copy-local`.

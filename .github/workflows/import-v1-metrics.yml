@@ -1,0 +1,81 @@
+# Import V1 (cursor.com/agents UI) Orchestrator token metrics after a modernization PR merges.
+#
+# Gate: PR must carry label `v1-metrics` (see .cursor/rules/github-labels.mdc) and merge into develop.
+# Resolves the parent Orchestrator `bc-…` via Cursor API (prUrl, then branch), then runs
+# import-manual-agents.mjs --push onto the conductor-metrics branch.
+#
+# Requires secret: CURSOR_API_KEY (same as Conductor).
+
+name: Import V1 Metrics
+
+run-name: "V1 metrics — PR #${{ github.event.pull_request.number }}"
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [develop]
+
+permissions:
+  contents: write # push to conductor-metrics
+  actions: write # dispatch pages-deploy after metrics push
+  pull-requests: read
+
+concurrency:
+  group: v1-metrics-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  import:
+    name: Import V1 metrics
+    if: >-
+      github.event.pull_request.merged == true &&
+      contains(join(github.event.pull_request.labels.*.name, ','), 'v1-metrics')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Resolve step + import
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CURSOR_API_KEY:-}" ]; then
+            echo "::error::CURSOR_API_KEY secret is missing"
+            exit 1
+          fi
+
+          STEP=""
+          # Prefer explicit "Step X.Y" / "close Step X.Y" in title or body
+          for SRC in "$PR_TITLE" "$PR_BODY"; do
+            if [ -z "$STEP" ]; then
+              STEP=$(printf '%s' "$SRC" | grep -oE '[Ss]tep[[:space:]]+[0-9]+(\.[0-9]+[a-z]?){1,2}' | head -1 | grep -oE '[0-9]+(\.[0-9]+[a-z]?){1,2}' || true)
+            fi
+          done
+          # Fallback: ROADMAP table row flipped to done in the merge commit range is not available here;
+          # last resort — first X.Y-looking id in the title.
+          if [ -z "$STEP" ]; then
+            STEP=$(printf '%s' "$PR_TITLE" | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+[a-z]?)?' | head -1 || true)
+          fi
+          if [ -z "$STEP" ]; then
+            echo "::error::Could not infer ROADMAP step id from PR title/body. Pass Step X.Y in the title."
+            exit 1
+          fi
+          echo "Resolved step=$STEP branch=$PR_BRANCH pr=$PR_URL"
+
+          node .github/conductor/import-manual-agents.mjs \
+            --step "$STEP" \
+            --pr-url "$PR_URL" \
+            --branch "$PR_BRANCH" \
+            --title "$PR_TITLE" \
+            --push
