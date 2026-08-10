@@ -13,7 +13,7 @@ Token usage, run duration, and phase breakdown for **V2 Conductor** (GHA) and **
 ## Session ID
 
 - **Conductor:** auto-generated (`crypto.randomUUID()`) on the first GHA job; passed through chained jobs via `session_id`.
-- **V1 UI:** created by `record-v1-phase.mjs` (printed as `SESSION_ID=…`); store on the ticket under `## METRICS` and reuse for later phases. Pass `--session <uuid>` to resume or to append onto a Conductor session (hybrid).
+- **V1 UI:** created by `record-v1-phase.mjs` (printed as `SESSION_ID=…`) when you record after the ticket. Pass `--session <uuid>` to resume or to append onto a Conductor session (hybrid).
 
 ## When data is written
 
@@ -21,7 +21,7 @@ Token usage, run duration, and phase breakdown for **V2 Conductor** (GHA) and **
 |-------|--------|
 | Conductor start | Create session + index entry (`status: in_progress`) |
 | After each Conductor cloud-agent phase | Append `phases[]`, recompute `totals`, commit |
-| V1 UI after Plan / each Checklist Step / Finalize | `record-v1-phase.mjs` appends PLAN / EXECUTE / FINALIZE (`tokensSource: cursor-api-v1`) |
+| V1 UI **after** the Orchestrator ticket finishes | Maintainer runs `record-v1-phase.mjs` (or the historical importer) — Cursor usage settles only after the cloud agent ends, so mid-run recording is unreliable |
 | FINALIZE / plan-only done | `status: completed` |
 | `fail()` / fatal error | `status: failed` |
 | `conductor:stop` | `status: cancelled` |
@@ -30,34 +30,34 @@ Commits land on the unprotected **`conductor-metrics`** branch only — never on
 
 ## V1 UI (`cursor.com/agents`)
 
-Live path for the manual Orchestrator rule (`.cursor/rules/orchestrator-subagent-workflow.mdc`).
-Launch Input stays Task prompt / Branch / Base / Issue only — **no** agent URL or session UUID from the user.
+The Orchestrator rule (`.cursor/rules/orchestrator-subagent-workflow.mdc`) does **not** record metrics.
+Launch Input stays Task prompt / Branch / Base / Issue only. After Finalize (or ESCALATE), record
+manually with the Orchestrator `bc-…` id from [cursor.com/agents](https://cursor.com/agents).
 
-On a Cursor-managed Cloud VM the Orchestrator resolves its own `bc-…` id by minting an OIDC token on
-`CURSOR_AGENT_SOCKET` (default `/run/cursor/api.sock`) and reading JWT claim `cloud_agent_id`
-([identity docs](https://cursor.com/docs/cloud-agent/identity)). `record-v1-phase.mjs` does this when
-`--agent` is omitted. Session UUIDs are created by the first PLAN record and stored on the ticket under
-`## METRICS` for later `--session` reuse (Orchestrator-owned, not a user follow-up).
+On a Cursor-managed Cloud VM, `record-v1-phase.mjs` can resolve `bc-…` via OIDC on
+`CURSOR_AGENT_SOCKET` when `--agent` is omitted — that only helps if you run the script **inside** the
+same finished agent VM (rare). For post-ticket maintainer runs, pass `--agent bc-…` explicitly
+([identity docs](https://cursor.com/docs/cloud-agent/identity)).
 
 ```bash
-# After Plan (creates session; agent id auto-resolved on the Cloud VM)
+# After ticket (agent id from cursor.com/agents URL)
 CURSOR_API_KEY=… node .github/conductor/record-v1-phase.mjs \
-  --step 2.7 --type PLAN --push
+  --step 2.7 --type PLAN --agent bc-… --push
 
-# After Checklist Step N
+# Optional: finer phase slices if you still want PLAN / EXECUTE / FINALIZE rows
 CURSOR_API_KEY=… node .github/conductor/record-v1-phase.mjs \
-  --step 2.7 --type EXECUTE --batch-steps 6 --session <uuid> --push
+  --step 2.7 --type EXECUTE --batch-steps 6 --session <uuid> --agent bc-… --push
 
 # Hybrid Conductor→V1: seed usage cursor on an existing session
 CURSOR_API_KEY=… node .github/conductor/record-v1-phase.mjs \
-  --step 2.6 --session <conductor-session-uuid> --seed-cursor --push
+  --step 2.6 --session <conductor-session-uuid> --seed-cursor --agent bc-… --push
 
 # Finalize
 CURSOR_API_KEY=… node .github/conductor/record-v1-phase.mjs \
-  --step 2.7 --type FINALIZE --session <uuid> --status completed --push
+  --step 2.7 --type FINALIZE --session <uuid> --status completed --agent bc-… --push
 ```
 
-Token **deltas** use `session.v1UsageCursor[agentId]` (last cumulative `/usage` snapshot). Dashboard shows a **V1 UI** badge and a ◇ marker on `cursor-api-v1` phases. Local IDE (no OIDC socket) cannot auto-resolve agent id → metrics skipped unless `--agent` is passed explicitly.
+Token **deltas** use `session.v1UsageCursor[agentId]` (last cumulative `/usage` snapshot). Dashboard shows a **V1 UI** badge and a ◇ marker on `cursor-api-v1` phases. Maintainer runs always pass `--agent bc-…` (OIDC self-id only works inside that agent’s VM).
 
 ## GitHub Pages
 
