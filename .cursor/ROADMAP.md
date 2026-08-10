@@ -110,8 +110,9 @@
 | 2.5    | Docker Production Image & Deploy      | ✅     | 🛡️    | #158  | #259    |
 | 2.6    | Filesystem Write Resilience           | ✅     | 🛡️    | #257  | #265    |
 | 2.7    | Extension Safety System               | ⏳     | ⏳    | #160  | -       |
-| 2.7.1  | ↳ Snapshot & Three-Stage Uninstall    | ⏳     | ⏳    | -     | -       |
-| 2.7.2  | ↳ Module Dependency Integrity         | ⏳     | ⏳    | -     | -       |
+| 2.7.1  | ↳ Snapshot & Three-Stage Uninstall    | ⏳     | ⏳    | #267  | -       |
+| 2.7.2  | ↳ Module Dependency Integrity         | ⏳     | ⏳    | #268  | -       |
+| 2.7.3  | ↳ Static Module Registration          | ⏳     | ⏳    | #266  | -       |
 | 2.8    | Extension Packaging & Prebuilt Assets | ⏳     | ⏳    | -     | -       |
 | 2.9    | Automated Update System               | ⏳     | ⏳    | -     | -       |
 | 2.10   | **PHP 8.4+ Language & DX Hardening**  | ⏳     | ⏳    | -     | -       |
