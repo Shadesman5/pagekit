@@ -976,6 +976,39 @@
       </table>`;
   }
 
+  function isV1UiSession(session) {
+    if (!session) return false;
+    if (session.source === 'v1-ui') return true;
+    if (session.v1Continued) return true;
+    return (session.phases || []).some(p => p.v1 === true || p.tokensSource === 'cursor-api-v1');
+  }
+
+  function sourceBadge(session) {
+    if (isV1UiSession(session)) {
+      return '<span class="cm-badge cm-badge-v1" title="cursor.com/agents UI (V1 orchestrator)">V1 UI</span>';
+    }
+    if (session?.manualImport) {
+      return '<span class="cm-badge cm-badge-manual" title="Pre-Conductor manual import">Manual</span>';
+    }
+    if ((session?.phases || []).some(p => p.github?.runUrl || p.github?.runId)) {
+      return '<span class="cm-badge cm-badge-conductor" title="Conductor (GHA)">Conductor</span>';
+    }
+    return '';
+  }
+
+  function tokensSourceMarker(tokensSource) {
+    if (tokensSource === 'cursor-api') {
+      return ' <span class="cm-muted" title="Backfilled via Cursor API">↻</span>';
+    }
+    if (tokensSource === 'cursor-api-v1') {
+      return ' <span class="cm-muted" title="V1 UI usage delta (record-v1-phase)">◇</span>';
+    }
+    if (tokensSource === 'cursor-api-manual' || tokensSource === 'cursor-dashboard-manual') {
+      return ' <span class="cm-muted" title="Manual import">⤴</span>';
+    }
+    return '';
+  }
+
   function renderPhaseTable(phases) {
     const scroll = el('div', 'cm-table-scroll');
     const table = el('table', 'cm-table');
@@ -1011,7 +1044,7 @@
           ? ` <span class="cm-muted" title="${runCount} follow-up runs in this agent chat">· ${runCount} runs</span>`
           : '';
       tr.innerHTML = `
-        <td><strong>${p.type}</strong>${p.attempt ? ` <span class="cm-muted">retry ${p.attempt}</span>` : ''}${runBadge}${p.tokensSource === 'cursor-api' ? ' <span class="cm-muted" title="Backfilled via Cursor API">↻</span>' : ''}</td>
+        <td><strong>${p.type}</strong>${p.attempt ? ` <span class="cm-muted">retry ${p.attempt}</span>` : ''}${runBadge}${tokensSourceMarker(p.tokensSource)}</td>
         <td>${batch}</td>
         <td>${formatDuration(p.durationMs)}</td>
         <td title="${p.notes || ''}">${formatNumber(p.tokens?.total)}</td>
@@ -1043,6 +1076,7 @@
         'header',
         'cm-session-header cm-session-header-compact',
         `<span><code>${session.sessionId.slice(0, 8)}…</code></span>
+         ${sourceBadge(session)}
          <span>${statusBadge(session.status)}</span>
          <span title="${formatNumber(t.total)} tokens"><strong>${formatCompactNumber(t.total)}</strong> tokens</span>
          <span>${formatDuration(sessionDurationMs(session))}</span>
