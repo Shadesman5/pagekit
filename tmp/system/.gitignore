@@ -1,0 +1,5 @@
+# Ignore the state the application writes here
+*
+# But keep .htaccess and .gitignore
+!.htaccess
+!.gitignore

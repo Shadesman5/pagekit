@@ -45,6 +45,10 @@ $config = [
     'path.temp' => $path.'/tmp/temp',
     'path.cache' => $path.'/tmp/cache',
     'path.logs' => $path.'/tmp/logs',
+    // State the application has to find again after a fault, kept apart from the
+    // temp and cache directories because clearing the cache empties those - and
+    // outside storage/, which the webroot links to.
+    'path.system' => $path.'/tmp/system',
     'path.vendor' => $path.'/vendor',
     'path.artifact' => $path.'/tmp/packages',
     'config.file' => realpath($path.'/config.php'),

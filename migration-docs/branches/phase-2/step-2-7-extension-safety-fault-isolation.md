@@ -21,19 +21,30 @@ _TBD_
 
 ## ✅ What Changed
 
-### <Theme> (Checklist Steps N–M)
+### Durable failure record: `ExtensionFailureStore` + `path.system` (Checklist Step 1)
 
 | File | Change |
 |---|---|
-| `path/to/file.php` | _TBD_ |
+| `app/system/src/Extension/ExtensionFailureStore.php` (new) | New final `Pagekit\System\Extension\ExtensionFailureStore`, constructed from a directory path and the `Filesystem` service (the Step 2.6 `dumpAtomic()` primitive). API: `record(name, type, \Throwable): bool`, `all(): array`, `has(name): bool`, `clear(name): bool`. Every method catches `\Throwable` internally and reports success as a `bool` — nothing escapes to a caller that is itself already handling a fault. Backed by one JSON file (`extension-failures.json`, one entry per module keyed by name — `name`, `type` (`extension`\|`theme`), `class`, `message`, `file`, `line`, `time`; no stack trace) written through `dumpAtomic()` so a concurrent boot never reads a half-written record. A missing, empty, truncated, non-object or foreign-shaped file — and any entry inside it with missing or mistyped fields — reads back as empty/defaulted rather than failing the read. Its directory is created on first write, not eagerly. Not yet called from anywhere; this step lands the primitive only. |
+| `public/index.php` | New `path.system` key in `$config` (`$path.'/tmp/system'`), alongside the existing `path.temp`/`path.cache`/`path.logs` entries — the directory the store above uses. No other change: the existing conditional last-resort exception handler (gated on `tmp/logs/debug.log` already existing) is untouched here. |
+| `docker/entrypoint.sh` | `tmp/system` added to the `mkdir -p` list of directories the container recreates on every start, alongside `tmp/cache`, `tmp/logs`, `tmp/packages`, `tmp/sessions`, `tmp/temp`. |
+| `tmp/system/.gitignore` (new) | Ignores everything written into the directory except its own `.gitignore`/`.htaccess`. |
+| `tmp/system/.htaccess` (new) | `Require all denied`. |
 
-_TBD_
+### Tests (Checklist Step 1)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Extension/ExtensionFailureStoreTest.php` (new) | Real-filesystem coverage (per-test temp dir, no vfsStream) of `ExtensionFailureStore`: record/read/has/clear round-trip via a second store instance standing in for the next request; the directory is created by the first write, not upfront; the on-disk file is JSON, never executable PHP, and carries no stack trace; a second failure for the same module replaces the first; multiple modules coexist and clear independently; a missing/empty/whitespace-only/truncated/non-object/foreign-keyed record (data-provider cases) reads as no failures rather than throwing; an entry with missing or wrongly-typed fields still reads back in the full expected shape; a non-UTF-8 exception message is substituted rather than dropping the record; the atomic-write collaborator is asserted to receive the same target file on every write, never a second path; an unwritable directory, a path already occupied by a file, and a filesystem collaborator that throws (`\RuntimeException` and `\Error` alike) each fail only the call in progress and leave any prior record intact. Root-guarded permission tests skip under `posix_geteuid() === 0`, matching the Step 2.6 suite's convention. |
+
+Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
 
 ---
 
 ## 🧠 Key Decisions (Rationale)
 
-_TBD / None_
+- **`path.system` is a directory of its own, not `path.cache`/`path.temp`/`storage` (Checklist Step 1).** The extension-failure record has to survive exactly the operations those existing paths do not: `CacheModule::doClearCache()` sweeps `path.cache` and `path.temp`, and `storage/` is reachable over HTTP through the `public/storage` mount. A record that is the only thing telling the next boot which extension to leave off needs a home a routine cache clear does not empty and a browser cannot request.
+- **`ExtensionFailureStore` never throws (Checklist Step 1).** Every public method catches `\Throwable` internally and reports success as a `bool`. It is only ever called while another fault is already being handled — a throw here would replace the failure an administrator needs to see with one of its own, on the request that is trying to keep booting.
 
 ---
 
@@ -51,7 +62,7 @@ _TBD / None_
 
 ## 🔐 Security & Data Impact
 
-_TBD / None_
+- **The failure record is denied over HTTP and lives outside the webroot (Checklist Step 1).** `tmp/system/.htaccess` adds `Require all denied` on top of the directory already sitting outside `public/`; the record holds a throwable's class, message and `file:line` — no stack trace — for whichever extensions/themes fail, and neither the directory nor its content is reachable by a request.
 
 ---
 

@@ -1,0 +1,4 @@
+# Deny access to the state files kept here. This directory lies outside the
+# webroot, so nothing here is reachable to begin with; the denial holds for an
+# installation whose document root was pointed at the application instead.
+Require all denied
