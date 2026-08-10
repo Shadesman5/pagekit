@@ -51,7 +51,7 @@
 - [x] Step 3 (M) — Config writers (Installer + SettingsController)
 - [x] Step 4 (M) — Package registry (Composer helper + PackageManager wiring)
 - [x] Step 5 (S) — Error-handling hygiene (constraint log + SelfupdateCommand cleanup)
-- [ ] Step 6 (XL) — Review (Bugbot + Security) + E2E
+- [x] Step 6 (XL) — Review (Bugbot + Security) + E2E
 
 ## TESTING STRATEGY
 - **Per step (production gate):** Refactorer → Verifier → Tester (PHPUnit + PHPStan) — production code must be green before any new tests are written.

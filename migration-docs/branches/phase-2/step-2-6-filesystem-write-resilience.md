@@ -97,6 +97,12 @@ Gates: Verifier (production) PASS after a comment-hygiene fix-loop; Tester PHPUn
 
 Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
 
+### Review (Bugbot + Security) + E2E — clean, no fix-loop (Checklist Step 6)
+
+No production or test files changed — Bugbot and the Security Review found nothing to correct on the Checklist Steps 1–5 diff, so this step's mandatory review pass closed with no corrective work.
+
+Gates: Bugbot clean (no bugs); Security Review clean (no medium/high/critical findings); Tester final E2E PASS (3 Playwright `@ci` specs, chromium-desktop). No fix-loop.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
