@@ -159,7 +159,9 @@ class PackageManager
 
             // The package is gone, so a record of it would go on naming
             // something that is no longer installed.
-            $this->clearFailure($package);
+            if (!$this->clearFailure($package)) {
+                $this->reportUnclearedFailure($package);
+            }
         }
     }
 
@@ -235,11 +237,28 @@ class PackageManager
                     $lifecycle->enable();
                 }
 
+                // The next boot reads the record before the configuration, so
+                // an extension that cannot be taken off it is one this enable
+                // cannot deliver - reporting success would put "enabled" in the
+                // panel for something no boot loads. A theme is executed
+                // whether or not it is on the record, and taken off it by the
+                // boot that loads it, so there the same failed write costs a
+                // notice that clears itself. Settled before the event either
+                // way, so that a refusal leaves nothing to unwind.
+                if (!$this->clearFailure($package)) {
+                    if ($package->getType() === 'pagekit-extension') {
+                        throw new \RuntimeException(sprintf(
+                            'The failure record of "%s" could not be cleared, so the next boot would leave it disabled.',
+                            $moduleName
+                        ));
+                    }
+
+                    $this->reportUnclearedFailure($package);
+                }
+
                 if ($this->app->has('events')) {
                     $this->app->get('events')->trigger('package.enable', [$package]);
                 }
-
-                $this->clearFailure($package);
             } catch (\Throwable $e) {
                 // The schema this attempt applied goes first, and the
                 // configuration rollback runs after it whatever it ran into:
@@ -335,7 +354,9 @@ class PackageManager
                 $this->app->get('config')('system')->pull('extensions', $package->get('module'));
             }
 
-            $this->clearFailure($package);
+            if (!$this->clearFailure($package)) {
+                $this->reportUnclearedFailure($package);
+            }
         }
     }
 
@@ -356,24 +377,41 @@ class PackageManager
      * on the failure, and the record is what keeps a failed extension out of
      * the boot and named in the admin notice. Left behind, it would go on doing
      * both against the decision that was just made.
+     *
+     * @return bool whether the package is off the record, which a package that
+     *              was never on one - or that runs where no record is kept -
+     *              already is
      */
-    private function clearFailure(PackageInterface $package): void
+    private function clearFailure(PackageInterface $package): bool
     {
         $module = $package->get('module');
 
         if ($this->failures === null || !is_string($module) || $module === '') {
-            return;
+            return true;
         }
 
-        if ($this->failures->clear($module)) {
-            return;
-        }
+        return $this->failures->clear($module);
+    }
 
+    /**
+     * Reports a record that stayed behind.
+     *
+     * Where the record does not decide whether the package runs, a file that
+     * could not be rewritten does not get to refuse the operation: disabling
+     * and uninstalling are how an administrator gets out from under a broken
+     * package, and a theme is loaded whether or not it is on the record. What
+     * it costs is a notice standing until someone reads this line.
+     */
+    private function reportUnclearedFailure(PackageInterface $package): void
+    {
         try {
             if ($this->app->has('log')) {
                 $this->app->get('log')->error(
-                    sprintf('Failed to clear the failure record of "%s", which will keep it out of the next boot.', $module),
-                    ['package' => $module]
+                    sprintf(
+                        'Failed to clear the failure record of "%s", which is therefore still named as broken.',
+                        $package->get('module')
+                    ),
+                    ['package' => $package->get('module')]
                 );
             }
         } catch (\Throwable) {

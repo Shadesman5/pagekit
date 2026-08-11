@@ -35,6 +35,13 @@ use Symfony\Component\HttpFoundation\Request;
  * loads the package explicitly on that path, so a still-broken extension fails
  * inside the enable and the record has to survive to keep doing both its jobs.
  *
+ * An enable that cannot clear it is the case that must not report success. The
+ * record is read before the configuration on the next boot, so an extension
+ * left on it stays out however the configuration reads - "enabled" in the panel
+ * and absent from every boot is the one answer the administrator may not get.
+ * The theme is the exception on both counts: it is executed whether or not it
+ * is on the record, and the boot that loads it takes it off.
+ *
  * Until it is cleared, the manager screen is where the difference shows: an
  * extension a failure switched off and one an administrator switched off are
  * both simply not enabled, and only one of the two is waiting for someone to
@@ -175,6 +182,82 @@ final class PackageFailureRecordTest extends TestCase
         // the record here would let the next boot execute it again and take the
         // failure out of the panel that is the only place naming it.
         self::assertTrue($this->store()->has('test-ext'));
+    }
+
+    public function testAnEnableThatCannotTakeAnExtensionOffTheRecordIsRefused(): void
+    {
+        $this->record('test-ext');
+
+        $log = $this->logService();
+        $events = $this->eventService();
+
+        $system = new Config();
+        $system->set('packages.test-ext', '1.0.0');
+
+        $app = $this->container(config: $system, writer: new RecordWriterThatFails());
+        $app->set('log', $log);
+        $app->set('events', $events);
+
+        // AssertionFailedError extends RuntimeException, so a failed assertion
+        // inside the try would be swallowed by the catch instead of reported.
+        $thrown = null;
+
+        try {
+            $this->manager($app)->enable($this->package());
+        } catch (\RuntimeException $e) {
+            $thrown = $e;
+        }
+
+        self::assertInstanceOf(\RuntimeException::class, $thrown, 'An enable that leaves the record standing must say so');
+        self::assertStringContainsString('Test Extension', $thrown->getMessage());
+        self::assertStringContainsString('test-ext', $thrown->getMessage());
+        self::assertTrue($this->store()->has('test-ext'));
+
+        // The record outranks the configuration on the next boot. Enabling in a
+        // configuration the boot then overrules is the silent half-state the
+        // record exists to prevent, so the configuration goes back to what it
+        // said before and the administrator is told the enable did not happen.
+        self::assertSame([], (array) $system->get('extensions'));
+        self::assertSame('1.0.0', $system->get('packages.test-ext'));
+        self::assertNotContains(
+            'package.enable',
+            $events->fired,
+            'listeners restore what a package owns, and nothing was enabled for them to restore it for',
+        );
+
+        self::assertCount(1, $log->errors);
+        self::assertStringContainsString('could not be cleared', $log->errors[0]);
+    }
+
+    public function testSelectingAThemeGoesThroughWhenTheRecordCannotBeCleared(): void
+    {
+        $this->record('test-theme', ExtensionFailureStore::TYPE_THEME);
+
+        $log = $this->logService();
+        $events = $this->eventService();
+
+        $system = new Config();
+        $system->set('packages.test-theme', '1.0.0');
+
+        $app = $this->container(config: $system, writer: new RecordWriterThatFails());
+        $app->set('log', $log);
+        $app->set('events', $events);
+
+        $this->manager($app)->enable($this->package([
+            'name' => 'pagekit/test-theme',
+            'type' => 'pagekit-theme',
+            'module' => 'test-theme',
+        ]));
+
+        // A theme is loaded whether or not it is on the record, and the boot
+        // that loads it takes it off. Refusing the selection over a file that
+        // could not be rewritten would cost the administrator a theme switch
+        // for a notice the next request clears by itself.
+        self::assertSame('test-theme', $system->get('site.theme'));
+        self::assertContains('package.enable', $events->fired);
+        self::assertTrue($this->store()->has('test-theme'));
+        self::assertCount(1, $log->errors);
+        self::assertStringContainsString('test-theme', $log->errors[0]);
     }
 
     public function testDisablingAPackageTakesItOffTheRecord(): void
@@ -383,11 +466,13 @@ final class PackageFailureRecordTest extends TestCase
 
     /**
      * Puts a failure on record, the way the boot that ran into it does.
+     *
+     * @param ExtensionFailureStore::TYPE_* $type
      */
-    private function record(string $name): void
+    private function record(string $name, string $type = ExtensionFailureStore::TYPE_EXTENSION): void
     {
         self::assertTrue(
-            $this->store()->record($name, ExtensionFailureStore::TYPE_EXTENSION, new \RuntimeException('The module could not be loaded')),
+            $this->store()->record($name, $type, new \RuntimeException('The module could not be loaded')),
             'The record has to be on disk before the manager can be asked to clear it',
         );
     }
@@ -459,6 +544,23 @@ final class PackageFailureRecordTest extends TestCase
                 $this->deleted[] = $path;
 
                 return true;
+            }
+        };
+    }
+
+    /**
+     * The dispatcher the manager announces a finished package operation on.
+     */
+    private function eventService(): object
+    {
+        return new class () {
+            /** @var array<int, string> */
+            public array $fired = [];
+
+            /** @param array<int, mixed> $params */
+            public function trigger(string $event, array $params = []): void
+            {
+                $this->fired[] = $event;
             }
         };
     }
