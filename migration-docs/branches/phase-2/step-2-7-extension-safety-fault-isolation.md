@@ -275,6 +275,14 @@ The round above closed CI, but PR-Bugbot's and PR-Security's own mandatory revie
 
 Gates: PR-Bugbot cycled through six review outcomes across the round — an initial finding, clean, two new findings, one new finding, a "found no new issues" review that still named a stale leftover, then (once the coverage-gap commit above was pushed) one more finding pair fixed together in a single commit — before a final review reported 0 issues and 0 open threads, closing the stale leftover's own thread with it; PR-Security's one finding fixed and the loop restarted from Bugbot per the mandatory sequence, and Security's own re-run after the last fix stayed clean; `gh pr checks 270` re-watched green after every fix; coverage-gap #2 → PHPUnit + PHPStan PASS. 9 commits (5 fixes + 4 workflow-rule hardening passes) plus the coverage-gap test above.
 
+### Finalize follow-up — PR-Security command-injection finding (post-open)
+
+| File | Change |
+|---|---|
+| `.github/conductor/metrics.mjs` | PR-Security (Medium, off-ticket — same V1 Conductor metrics script as the findings above): the standalone git helper behind `syncMetricsFromRemote()`/`pushMetricsToRemote()` built every git command as an interpolated string and ran it through `execSync`, so `returnBranch` — the ref the importer restores after pushing metrics, read off whatever branch happens to be checked out when it runs — reached a shell unvalidated; a ref containing shell metacharacters could inject arbitrary commands under the importer's account. Fixed: the helper now runs `git` via `execFileSync` with argv arrays and `shell: false` across its fetch/checkout/add/commit/push helpers, so no command string is ever parsed by a shell; a new `assertSafeBranch()` guard additionally rejects any `metricsBranch`/`returnBranch` that is not a plain ref name (no `..` segment, no `.lock` suffix) before it reaches git. |
+
+Gates: Cursor Bugbot re-review (commit `c5db1ddd`) — 0 new issues.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -357,7 +365,7 @@ Gates: PR-Bugbot cycled through six review outcomes across the round — an init
 | CI — PR checks | ✅ green — [PR #270](https://github.com/Shadesman5/pagekit/pull/270) (`phpunit (8.5)`, `phpunit-mysql`, `phpstan`, `cs-fixer`, `frontend`, `docker-image`, `hadolint`, `security-audit`, `version-ssot`, `infection-diff`, `codecov/patch` all pass; `e2e-smoke`/`e2e-merge`/`publish-image` skip — not required on this PR); re-watched green again after every Finalize follow-up fix (see below) |
 | Coverage gap pass | ran twice — round 1: `test(system): cover MigrationController lifecycle update path` (`MigrationControllerTest.php`); round 2 (Finalize follow-up): closed the one gap round 1 left `UNTESTABLE` — see Notable deviations |
 | Cursor Bugbot (PR) | ✅ clean — 0 issues, 0 open threads on the final (HEAD) review — but only after a Finalize follow-up round worked through a real finding left over from the original close, four more findings the fixes themselves triggered (one of them from the round's own second `PackageManager` fix), and one stale leftover resolved without a code change; see Notable deviations and What Changed → Finalize follow-up |
-| Cursor Security Reviewer (PR) | ✅ pass on the final review — after a Finalize follow-up fix for one Medium finding (stored-XSS in the off-ticket V1 Conductor metrics dashboard's rendering of a merged PR's own title); a further re-run after the round's last fix stayed clean; see Notable deviations |
+| Cursor Security Reviewer (PR) | ✅ pass on the final review — after a Finalize follow-up fix for one Medium finding (stored-XSS in the off-ticket V1 Conductor metrics dashboard's rendering of a merged PR's own title); a further re-run after the round's last fix stayed clean; see Notable deviations. A second off-ticket Medium finding surfaced after that pass — command injection via `returnBranch` in `metrics.mjs`'s git helper — fixed in commit `c5db1ddd`; see What Changed → Finalize follow-up. |
 | E2E | ✅ PASS — Checklist Step 11 (XL) final run, 3 Playwright `@ci` specs |
 | Finalize fix-loop | Round 1 — cs-fixer + ESLint + Prettier, then a coverage-gap test (2 commits, both green). Round 2 (follow-up) — PR-Bugbot/PR-Security findings plus workflow-rule hardening plus a second coverage-gap test (9 commits, all green) — see What Changed → Finalize follow-up |
 

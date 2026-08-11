@@ -34,6 +34,7 @@
 
 - **The failure record is denied over HTTP and never carries a stack trace** — `tmp/system/.htaccess` adds `Require all denied` on top of a directory that already sits outside `public/`; the admin notice it backs names only the failing module, HTML-escaped, never the throwable's own message.
 - **A route cache can no longer be mistaken for executable code** — both the matcher and generator dumps are validated arrays now, never a `require`d PHP class; a half-written or tampered cache file degrades to the non-cached router instead of being instantiated.
+- **The metrics git helper no longer interpolates branch names into a shell** — `.github/conductor/metrics.mjs`'s standalone git helper (`syncMetricsFromRemote()`/`pushMetricsToRemote()`) now runs `git` via `execFileSync` with argv arrays (`shell: false`) instead of an interpolated command string, and validates every branch/ref name before use — closing a command-injection path through `pushMetricsToRemote()`'s `returnBranch`.
 
 ---
 
