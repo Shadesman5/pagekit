@@ -54,9 +54,8 @@ Inside the per-ticket loop, plain "Step N" always means **Checklist Step N**.
 
 Batch weights: `S=1`, `M=2`, `L=4`, `XL=8`. The last checklist step is always `(XL) — Review (Bugbot + Security) + E2E` and runs alone when `batch_budget` &lt; 8 (default 6).
 
-PR Bugbot + PR Security in Finalize are **mandatory** (`bugbot run` / `security run` + wait for new
-`cursor[bot]` outcomes). Execute `(XL)` Task reviews do not replace them. CI `security-audit` is not
-Cursor Security Review.
+PR Bugbot/Security in Finalize: post `bugbot run` / `security run`, then judge **only** the newest
+matching `cursor[bot]` review body. Not checks, not HEAD, not CI `security-audit`.
 
 ---
 

@@ -143,10 +143,9 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
 
 ## Sequence
 
-> **Bugbot / Security in Execute vs Finalize:** `(XL)` already ran Task Bugbot + Security on the branch
-> diff. That does **not** replace Finalize PR reviews. Patch-ID sync may skip the GitHub App’s *automatic*
-> review when the PR opens — which is why steps 4–5 **always** post `bugbot run` / `security run` and wait
-> for a **new** `cursor[bot]` outcome on the PR. Review rules: `.cursor/BUGBOT.md`.
+> **Finalize PR reviews:** judge **only** the newest matching `cursor[bot]` PR review text after
+> `bugbot run` / `security run`. Never use check rows, HEAD SHA, `commit_id`, XL Task reviews, or CI
+> `security-audit` as the verdict. Details: steps 4–5. Rules: `.cursor/BUGBOT.md`.
 
 1. **Push + PR** — `git push -u origin HEAD`; `gh pr create --base <base branch from your launch prompt>`
    with the `<!-- metadata -->` block (labels, milestone, `Closes #XXX`). For V1 UI Orchestrator
@@ -178,32 +177,21 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
    On PASS: `git commit` (`test(<scope>): close codecov patch gaps`), push, re-watch step 2 to green.
    **At most one** coverage-gap iteration per Finalize run (Stuck-breaker still applies). If test-writer
    returns `UNTESTABLE` for all gaps, skip the commit and proceed to step 4.
-4. **PR-Bugbot (mandatory — never skip)** — Execute `(XL)` Task Bugbot does **not** satisfy this step.
-   1. Snapshot baseline: newest `cursor[bot]` PR review with `<!-- BUGBOT_REVIEW -->` (or none) + `submitted_at`.
-   2. Trigger: `gh pr comment <pr> --body "bugbot run"`.
-   3. Poll **only** for a **new** Bugbot **PR review** after the trigger (`<!-- BUGBOT_REVIEW -->` +
-      `submitted_at` after trigger). **Stop immediately** when it exists — findings or “no issues”
-      (ceiling ~10 min, typical 3–5 min) — then step 4 (fix-loop) or step 5 (clean). `Cursor Bugbot`
-      check `pending` / `skipping` / missing must **never** keep polling; do not `gh pr checks --watch`
-      for Bugbot.
-   4. Read findings via `gh api repos/{owner}/{repo}/pulls/<pr>/comments` (and reviews). New finding
-      comments after the trigger → fix-loop → push → re-watch step 2 green → re-trigger from 4.1 until
-      the post-trigger Bugbot review reports no potential issues **and** CI is green.
-   5. Forbidden: clean-because-XL; clean-because-duplicate/patch-ID; clean-because-no check row;
-      **waiting on check `skipping`/`pending` after a matched review.**
-5. **PR-Security (mandatory — never skip)** — after step 4 is clean. Execute `(XL)` Task Security does
-   **not** satisfy this step. **Never** treat CI `security-audit` as Cursor Security Review.
-   1. Snapshot baseline: newest `cursor[bot]` review/comment with `CURSOR_AUTOMATION_ID` or
-      `Agentic Security Review` (or none).
-   2. Trigger: `gh pr comment <pr> --body "security run"`.
-   3. Poll for a **new** Cursor Security **review/comment** after the trigger; **stop as soon as it
-      appears** — findings or clean (ceiling ~15 min, typical 3–7 min). Do **not** wait on any status
-      check; **never** substitute `security-audit`.
-   4. Read that finding text. Findings → fix-loop → push → re-CI green → **restart from step 4**.
-      Clean → step 6.
-   5. Forbidden: watching only `gh pr checks` / `security-audit`; waiting on check `pending`/`skipping`
-      after a matched Security review; proceeding without a post-trigger Security `cursor[bot]` review;
-      treating XL Security as enough.
+4. **PR-Bugbot (mandatory)** — sole source of truth: newest `cursor[bot]` PR **review** with
+   `<!-- BUGBOT_REVIEW -->`. Ignore checks, HEAD, `commit_id`.
+   1. `gh pr comment <pr> --body "bugbot run"`.
+   2. Poll until a **newer** such review appears (`submitted_at` after that comment). Stop at once
+      (ceiling ~10 min, typical 3–5 min).
+   3. Read **that review body** (exact Bugbot wording): **Clean** only if `found no new issues`
+      (typically ✅) and no unresolved leftovers (`total unresolved issues` / `potential issue`).
+      **Dirty** otherwise → fix-loop → push → re-CI green → 4.1. Clean → step 5.
+   4. Never invent HEAD matching, `NO_HEAD_REVIEW`, or `gh pr checks --watch` for Bugbot.
+5. **PR-Security (mandatory)** — after Bugbot clean. Sole source of truth: newest `cursor[bot]`
+   review/comment with `CURSOR_AUTOMATION_ID` or `Agentic Security Review`. Not CI `security-audit`.
+   1. `gh pr comment <pr> --body "security run"`.
+   2. Poll until a **newer** such review/comment appears after that comment (ceiling ~15 min, typical
+      3–7 min). Stop at once.
+   3. Findings → fix-loop → push → re-CI green → **restart step 4**; clean → step 6.
 6. **Finalize** (follow `push.mdc`, but delegate the writing) — in this order:
    1. **Version bump** (you) — run the `version-bump` skill → `app/system/config.php` (once per PR).
    2. Spawn **doc-writer** (Finalize docs template).
@@ -246,10 +234,9 @@ If a fix-loop hits the **same** FAIL **3×**, stop and report `ESCALATE: <reason
 
 ## Boundaries
 
-- Spawn only: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`. Execute `(XL)` Task
-  Bugbot/Security already ran on the branch; Finalize steps 4–5 are the **mandatory** GitHub-App /
-  automation PR reviews (`bugbot run` / `security run` + wait for new `cursor[bot]` outcomes) — see
-  Sequence steps 4–5. Do not spawn Task `bugbot` / `security-review` here.
+- Spawn only: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`. Finalize steps 4–5:
+  post `bugbot run` / `security run`, then judge **only** the newest matching `cursor[bot]` review
+  body. Do not spawn Task `bugbot` / `security-review` here.
 
 ## Report exactly one line
 
