@@ -61,6 +61,14 @@ final class LifecycleRunner
     }
 
     /**
+     * Where the package keeps its schema migrations, or null where it has none.
+     */
+    public function migrations(): ?MigrationSet
+    {
+        return $this->lifecycle()?->migrations();
+    }
+
+    /**
      * Runs the pending updates, oldest version first.
      */
     public function update(): void

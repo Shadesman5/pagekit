@@ -367,20 +367,31 @@ final class LifecycleRunnerTest extends TestCase
     // What a package declares about its migrations
     // ------------------------------------------------------------------
 
-    public function testAPackageDeclaresWhereItsMigrationsLive(): void
+    public function testTheMigrationsAPackageDeclaresReachTheOperationThatRunsThem(): void
     {
-        $lifecycle = new class () extends PackageLifecycle {
-            public function migrations(): ?MigrationSet
-            {
-                return new MigrationSet('Pagekit\Blog\Migrations', '/packages/pagekit/blog/src/Migrations');
-            }
-        };
+        $this->write(<<<'PHP'
+            <?php
 
-        $set = $lifecycle->migrations();
+            declare(strict_types=1);
+
+            use Pagekit\Installer\Package\Lifecycle\MigrationSet;
+            use Pagekit\Installer\Package\Lifecycle\PackageLifecycle;
+
+            return new class () extends PackageLifecycle {
+                public function migrations(): ?MigrationSet
+                {
+                    return new MigrationSet('Pagekit\Blog\Migrations', '/packages/pagekit/blog/src/Migrations');
+                }
+            };
+            PHP);
+
+        $set = (new LifecycleRunner($this->file, '1.0.0', $this->container()))->migrations();
 
         // A namespace and a directory are all it takes to run a package's
-        // migrations, which is why declaring them is enough and the package
-        // does not have to execute them itself.
+        // migrations, which is why declaring them is enough and the package does
+        // not have to execute them itself. What the file declares is what the
+        // operation is handed, unchanged: the installation runs that set and not
+        // one inferred from where the package happens to live.
         self::assertInstanceOf(MigrationSet::class, $set);
         self::assertSame('Pagekit\Blog\Migrations', $set->namespace);
         self::assertSame('/packages/pagekit/blog/src/Migrations', $set->path);
@@ -392,6 +403,15 @@ final class LifecycleRunnerTest extends TestCase
         // and saying so has to be the default rather than something they opt in
         // to.
         self::assertNull((new class () extends PackageLifecycle {})->migrations());
+    }
+
+    public function testAPackageWithNoLifecycleFileAtAllHasNoMigrationsEither(): void
+    {
+        // The operation asks every package where its schema lives, including
+        // the ones that ship no lifecycle file at all. Answering that there is
+        // none is what keeps it from running one on their behalf.
+        self::assertNull((new LifecycleRunner(null, '1.0.0', $this->container()))->migrations());
+        self::assertNull((new LifecycleRunner($this->workspace . '/absent.php', '1.0.0', $this->container()))->migrations());
     }
 
     // ------------------------------------------------------------------

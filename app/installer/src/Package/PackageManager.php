@@ -7,6 +7,8 @@ namespace Pagekit\Installer\Package;
 use Pagekit\Filesystem\Filesystem;
 use Pagekit\Installer\Helper\Composer;
 use Pagekit\Installer\Package\Lifecycle\LifecycleRunner;
+use Pagekit\Installer\Package\Lifecycle\MigrationSet;
+use Pagekit\Migration\MigrationService;
 use Pagekit\System\Extension\ExtensionFailureStore;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
@@ -177,6 +179,7 @@ class PackageManager
 
         foreach ($packages as $package) {
             $originalState = null;
+            $applied = null;
             $moduleName = $package->get('module');
 
             try {
@@ -202,10 +205,12 @@ class PackageManager
                     ];
 
                     if (!$current = $sysConfig->get('packages.' . $previousPackageConfig->get('module'))) {
-                        $current = $this->doInstall($package);
+                        $current = $this->doInstall($package, $applied);
                     }
 
                     $lifecycle = $this->getLifecycle($package, $current);
+                    $this->migrateSchema($package, $lifecycle, $applied);
+
                     if ($lifecycle->hasUpdates()) {
                         $lifecycle->update();
                     }
@@ -223,8 +228,11 @@ class PackageManager
                         }
                     }
                 } else {
-                    $current = $this->doInstall($package);
-                    $this->getLifecycle($package, $current)->enable();
+                    $current = $this->doInstall($package, $applied);
+
+                    $lifecycle = $this->getLifecycle($package, $current);
+                    $this->migrateSchema($package, $lifecycle, $applied);
+                    $lifecycle->enable();
                 }
 
                 if ($this->app->has('events')) {
@@ -233,6 +241,14 @@ class PackageManager
 
                 $this->clearFailure($package);
             } catch (\Throwable $e) {
+                // The schema this attempt applied goes first, and the
+                // configuration rollback runs after it whatever it ran into:
+                // what is recorded as installed and enabled is what the next
+                // boot reads, so that is the step that may not be skipped.
+                if ($applied !== null) {
+                    $this->rollbackSchema($package, $applied, $e);
+                }
+
                 if ($originalState !== null) {
                     $this->rollbackEnable($package, $originalState);
                 }
@@ -395,6 +411,115 @@ class PackageManager
         }
     }
 
+    /**
+     * Brings a package's schema up to date, noting where it stood before.
+     *
+     * A package declares its migrations and the installation runs them, so an
+     * extension no longer needs a hook that reaches for the migration service -
+     * and what a run applied can be unwound by whoever failed halfway through
+     * it. The note is taken once per attempt: an attempt that installs and then
+     * enables migrates twice, and the second run starts from a schema the first
+     * one produced, so rolling back to that would leave the first run standing.
+     *
+     * Where the container has no migration service there is nothing to run
+     * against; a container that can reach a database has one.
+     *
+     * @param array{set: MigrationSet, version: string}|null $applied
+     *
+     * @param-out array{set: MigrationSet, version: string}|null $applied
+     *
+     * @throws \RuntimeException where a migration fails, so the caller unwinds the attempt
+     */
+    private function migrateSchema(PackageInterface $package, LifecycleRunner $lifecycle, ?array &$applied): void
+    {
+        $set = $lifecycle->migrations();
+
+        if ($set === null) {
+            return;
+        }
+
+        $migration = $this->app->has('migration') ? $this->app->get('migration') : null;
+
+        if (!$migration instanceof MigrationService) {
+            return;
+        }
+
+        $applied ??= [
+            'set' => $set,
+            'version' => $migration->getExtensionCurrentVersion($set->namespace, $set->path),
+        ];
+
+        $result = $migration->migrateExtension($set->namespace, $set->path);
+
+        if (empty($result['success'])) {
+            $error = $result['error'] ?? null;
+
+            throw new \RuntimeException(sprintf(
+                'Migrating "%s" failed: %s',
+                $package->get('name'),
+                is_string($error) ? $error : 'unknown error'
+            ));
+        }
+    }
+
+    /**
+     * Unwinds the migrations one failed attempt applied.
+     *
+     * Recovery may not throw. The failure that started it is the one the
+     * administrator has to hear about, and a second one raised here would take
+     * its place and leave the configuration unrolled as well. So both outcomes
+     * the rollback can have - the service reporting what it caught, and an
+     * Error out of a broken migration class passing through it - are reported
+     * together with the original failure and swallowed.
+     *
+     * @param array{set: MigrationSet, version: string} $applied
+     */
+    private function rollbackSchema(PackageInterface $package, array $applied, \Throwable $cause): void
+    {
+        $set = $applied['set'];
+        $error = null;
+        $thrown = null;
+
+        try {
+            $migration = $this->app->has('migration') ? $this->app->get('migration') : null;
+
+            if (!$migration instanceof MigrationService) {
+                return;
+            }
+
+            $result = $migration->rollbackExtension($set->namespace, $set->path, $applied['version']);
+
+            if (empty($result['success'])) {
+                $reported = $result['error'] ?? null;
+                $error = is_string($reported) ? $reported : 'unknown error';
+            }
+        } catch (\Throwable $e) {
+            $thrown = $e;
+            $error = $e->getMessage();
+        }
+
+        if ($error === null) {
+            return;
+        }
+
+        try {
+            if ($this->app->has('log')) {
+                $this->app->get('log')->error(
+                    sprintf(
+                        'Failed to roll the schema of package "%s" back to "%s" after a failed enable: %s',
+                        $package->get('name'),
+                        $applied['version'],
+                        $error
+                    ),
+                    ['exception' => $cause, 'rollback' => $thrown, 'package' => $package->get('module')]
+                );
+            }
+        } catch (\Throwable) {
+            // Nothing is left that could take the report, and the failure that
+            // started the recovery still has to reach the caller.
+        }
+    }
+
     protected function getLifecycle(PackageInterface $package, ?string $current = null): LifecycleRunner
     {
         if (!$scripts = $package->get('extra.scripts')) {
@@ -408,9 +533,20 @@ class PackageManager
         return new LifecycleRunner($path . '/' . $scripts, $current, $this->app);
     }
 
-    protected function doInstall(PackageInterface $package): string
+    /**
+     * @param array{set: MigrationSet, version: string}|null $applied where the schema stood before this attempt, once it has migrated
+     *
+     * @param-out array{set: MigrationSet, version: string}|null $applied
+     */
+    protected function doInstall(PackageInterface $package, ?array &$applied = null): string
     {
-        $this->getLifecycle($package)->install();
+        $lifecycle = $this->getLifecycle($package);
+
+        // The schema before the hook: an install hook that seeds rows needs the
+        // tables it seeds them into.
+        $this->migrateSchema($package, $lifecycle, $applied);
+        $lifecycle->install();
+
         $version = $this->getVersion($package);
 
         if ($this->app->has('config')) {

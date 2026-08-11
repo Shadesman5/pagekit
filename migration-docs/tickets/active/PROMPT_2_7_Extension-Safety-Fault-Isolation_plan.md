@@ -73,7 +73,7 @@
 - [x] Step 3 (L) — Load-window barrier + auto-disable + boot merge
 - [x] Step 4 (M) — Admin notification + re-enable clearing + manager UI state
 - [x] Step 5 (L) — Lifecycle interface + runner replaces `PackageScripts`
-- [ ] Step 6 (L) — Blog lifecycle class + install rollback + double fault
+- [x] Step 6 (L) — Blog lifecycle class + install rollback + double fault
 - [ ] Step 7 (L) — Routing dumper replacement + content-hash freshness
 - [ ] Step 8 (L) — Blog `UrlResolver` DI + resolver factory seam
 - [ ] Step 9 (S) — theme-one helper purification
