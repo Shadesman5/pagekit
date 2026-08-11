@@ -34,7 +34,8 @@ use PHPUnit\Framework\TestCase;
  *
  * The theme is the deliberate exception. Which theme a site uses is an
  * administrator's setting, so a failing one is logged and recorded but never
- * switched off, and it is tried again on the request after it.
+ * switched off, and it is tried again on the request after it - which is also
+ * how it comes off the record once it works again.
  */
 final class ExtensionLoaderTest extends TestCase
 {
@@ -210,6 +211,36 @@ final class ExtensionLoaderTest extends TestCase
         // layout with nothing to do about it.
         self::assertSame(['fixture-healthy'], $this->loaded());
         self::assertSame([], $this->log->getRecords());
+
+        // Coming back means coming off the record. Nothing else on this path
+        // ever finds out that a recorded theme runs again - an extension on the
+        // record is not executed at all - so a record left behind here would go
+        // on naming a working theme as broken in the admin panel until some
+        // unrelated package operation happened to clear it.
+        self::assertSame([], $store->all());
+    }
+
+    public function testAThemeThatCannotBeTakenOffTheRecordIsReportedAndKeepsRunning(): void
+    {
+        $this->store()->record('fixture-healthy', ExtensionFailureStore::TYPE_THEME, new \RuntimeException('the fault of the request before'));
+
+        $store = new ExtensionFailureStore($this->path, new FilesystemThatCannotWrite());
+
+        $this->loader($store)->load([], 'fixture-healthy');
+
+        // What is wrong is the notice, not the site: the theme is running and
+        // the boot it is part of finishes. Ending the request over a warning
+        // that stays up too long would cost more than the warning does.
+        self::assertSame(['fixture-healthy'], $this->loaded());
+        self::assertTrue($this->store()->has('fixture-healthy'));
+
+        $messages = $this->messages();
+
+        // Said out loud all the same, because an administrator looking at a
+        // notice for a theme that works has no other way to find out why.
+        self::assertCount(1, $messages);
+        self::assertStringContainsString('fixture-healthy', $messages[0]);
+        self::assertStringContainsString('could not be taken off the failure record', $messages[0]);
     }
 
     public function testAFailureIsRecordedEvenWhenTheExtensionCouldNotBeDisabled(): void

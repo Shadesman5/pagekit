@@ -37,6 +37,8 @@ use Psr\Log\LoggerInterface;
  * and a site whose theme cannot be loaded already falls back to a blank layout
  * while the admin panel keeps a theme of its own. A failing theme is logged and
  * recorded; it is never switched off, and it is tried again on the next request.
+ * Being tried again is also how it gets off the record: a theme that loads is a
+ * theme that is no longer broken, and here is the only place that can tell.
  */
 final class ExtensionLoader
 {
@@ -72,8 +74,19 @@ final class ExtensionLoader
             $this->loadModule($name, ExtensionFailureStore::TYPE_EXTENSION);
         }
 
-        if ($theme !== null) {
-            $this->loadModule($theme, ExtensionFailureStore::TYPE_THEME);
+        if ($theme === null) {
+            return;
+        }
+
+        // An extension on the record is never executed, so a record is only
+        // ever cleared by an administrator acting on the package. The theme is
+        // executed regardless, which makes it the one module that can be on the
+        // record and working at the same time - and nothing else on this path
+        // would notice. Left there, the record would keep the theme named as
+        // broken in the admin panel until some unrelated package operation
+        // happened to clear it.
+        if ($this->loadModule($theme, ExtensionFailureStore::TYPE_THEME) && isset($recorded[$theme])) {
+            $this->clearFailure($theme);
         }
     }
 
@@ -97,14 +110,19 @@ final class ExtensionLoader
     }
 
     /**
-     * @param ExtensionFailureStore::TYPE_* $type
+     * @param  ExtensionFailureStore::TYPE_* $type
+     * @return bool                          whether the module ran its own code to the end
      */
-    private function loadModule(string $name, string $type): void
+    private function loadModule(string $name, string $type): bool
     {
         try {
             $this->modules->load($name);
+
+            return true;
         } catch (\Throwable $e) {
             $this->fail($name, $type, $e);
+
+            return false;
         }
     }
 
@@ -153,6 +171,22 @@ final class ExtensionLoader
         if (!$this->failures->record($name, $type, $e)) {
             $this->report(sprintf('The failure of [%s] could not be recorded, so the next boot will run it again.', $name));
         }
+    }
+
+    /**
+     * Takes a module off the record now that it has loaded.
+     *
+     * A record that cannot be cleared is reported and nothing more: the module
+     * is running, and the boot it is part of will not be stopped over a notice
+     * that stays up too long.
+     */
+    private function clearFailure(string $name): void
+    {
+        if ($this->failures === null || $this->failures->clear($name)) {
+            return;
+        }
+
+        $this->report(sprintf('[%s] loaded again but could not be taken off the failure record, so it stays named as broken.', $name));
     }
 
     /**
