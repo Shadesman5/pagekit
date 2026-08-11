@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-08-10T12:44:29.497Z",
+  "updatedAt": "2026-08-11T16:41:14.308Z",
   "steps": {
     "unknown": {
       "title": "AGENT_PROMPT_AUDIT_TECH_DEBT_INVENTORY",
@@ -185,6 +185,13 @@
       "latestSessionId": "6a702354-b2e1-4585-839e-306427be19aa",
       "sessionIds": [
         "6a702354-b2e1-4585-839e-306427be19aa"
+      ]
+    },
+    "2.7": {
+      "title": "Extension Safety System",
+      "latestSessionId": "5f44860b-2fc8-491e-91e0-064f9f489299",
+      "sessionIds": [
+        "5f44860b-2fc8-491e-91e0-064f9f489299"
       ]
     }
   },

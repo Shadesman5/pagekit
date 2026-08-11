@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "5f44860b-2fc8-491e-91e0-064f9f489299",
+  "roadmapStepId": "2.7",
+  "title": "Extension Safety System",
+  "taskSlug": "PROMPT_2_7_Extension-Safety-Fault-Isolation",
+  "taskPrompt": null,
+  "issue": 160,
+  "branch": "feature/extension-safety-fault-isolation",
+  "model": null,
+  "status": "completed",
+  "startedAt": "2026-08-10T19:56:06.025Z",
+  "completedAt": "2026-08-11T16:33:45.399Z",
+  "phases": [
+    {
+      "phaseKey": "manual-bc-9590820d-aecf-42eb-98d5-ada024446917-V1",
+      "type": "FINALIZE",
+      "attempt": 0,
+      "batchSteps": null,
+      "agent": {
+        "id": "bc-9590820d-aecf-42eb-98d5-ada024446917",
+        "url": "https://cursor.com/agents/bc-9590820d-aecf-42eb-98d5-ada024446917",
+        "model": null,
+        "runId": "run-5732eb42-c88a-4730-86b8-76b34fc3efbb",
+        "runCount": 2,
+        "runs": [
+          {
+            "runId": "run-4496599d-6a3d-4357-815e-9fec9fd6d160",
+            "index": 1,
+            "startedAt": "2026-08-10T19:56:06.025Z",
+            "completedAt": "2026-08-11T05:06:13.038Z",
+            "durationMs": 33006211,
+            "tokens": {
+              "input": 2437264,
+              "output": 2179957,
+              "cacheRead": 252936100,
+              "cacheWrite": 10773747,
+              "total": 268327068
+            }
+          },
+          {
+            "runId": "run-5732eb42-c88a-4730-86b8-76b34fc3efbb",
+            "index": 2,
+            "startedAt": "2026-08-11T12:51:03.170Z",
+            "completedAt": "2026-08-11T16:33:45.399Z",
+            "durationMs": 13361295,
+            "tokens": {
+              "input": 965204,
+              "output": 509614,
+              "cacheRead": 64165040,
+              "cacheWrite": 2772518,
+              "total": 68412376
+            }
+          }
+        ]
+      },
+      "github": null,
+      "tokens": {
+        "input": 3402468,
+        "output": 2689571,
+        "cacheRead": 317101140,
+        "cacheWrite": 13546265,
+        "total": 336739444
+      },
+      "tokensSource": "cursor-api-v1",
+      "result": "Imported post-hoc (cursor.com/agents UI / Automations)",
+      "outcome": "success",
+      "manualImport": true,
+      "notes": "Import via import-manual-agents.mjs · Timing from Cursor API (2 agent runs aggregated)",
+      "v1": true,
+      "startedAt": "2026-08-10T19:56:06.025Z",
+      "durationMs": 46367506,
+      "completedAt": "2026-08-11T16:33:45.399Z"
+    }
+  ],
+  "totals": {
+    "tokens": {
+      "input": 3402468,
+      "output": 2689571,
+      "cacheRead": 317101140,
+      "cacheWrite": 13546265,
+      "total": 336739444
+    },
+    "durationMs": 46367506,
+    "phaseCount": 1,
+    "escalations": 0,
+    "ghaJobs": 1,
+    "cloudAgents": 1
+  },
+  "manualImport": {
+    "at": "2026-08-11T16:41:14.302Z",
+    "source": "import-manual-agents.mjs",
+    "note": "Post-hoc V1 UI / Automations import (parent agent usage)"
+  },
+  "source": "v1-ui"
+}
