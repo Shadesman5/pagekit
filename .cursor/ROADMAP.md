@@ -109,7 +109,7 @@
 | 2.4.1  | ↳ Webroot Modernization (public/)     | ✅     | 🛡️    | #243  | #256    |
 | 2.5    | Docker Production Image & Deploy      | ✅     | 🛡️    | #158  | #259    |
 | 2.6    | Filesystem Write Resilience           | ✅     | 🛡️    | #257  | #265    |
-| 2.7    | Extension Safety System               | ⏳     | ⏳    | #160  | -       |
+| 2.7    | Extension Safety System               | ✅     | 🛡️    | #160  | #270    |
 | 2.7.1  | ↳ Snapshot & Three-Stage Uninstall    | ⏳     | ⏳    | #267  | -       |
 | 2.7.2  | ↳ Module Dependency Integrity         | ⏳     | ⏳    | #268  | -       |
 | 2.7.3  | ↳ Static Module Registration          | ⏳     | ⏳    | #266  | -       |
