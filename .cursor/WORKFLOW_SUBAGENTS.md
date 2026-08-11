@@ -54,7 +54,9 @@ Inside the per-ticket loop, plain "Step N" always means **Checklist Step N**.
 
 Batch weights: `S=1`, `M=2`, `L=4`, `XL=8`. The last checklist step is always `(XL) — Review (Bugbot + Security) + E2E` and runs alone when `batch_budget` &lt; 8 (default 6).
 
-PR Bugbot in Finalize is a **safety net** (patch-ID sync from the XL review usually skips a duplicate).
+PR Bugbot + PR Security in Finalize are **mandatory** (`bugbot run` / `security run` + wait for new
+`cursor[bot]` outcomes). Execute `(XL)` Task reviews do not replace them. CI `security-audit` is not
+Cursor Security Review.
 
 ---
 
@@ -83,7 +85,8 @@ Task Prompt + ROADMAP
         ▼
 ┌─ FINALIZE ─────────────────────────────────────────────────┐
 │  Push + PR → CI gate → [Codecov gap pass] → PR Bugbot       │
-│  (safety net) → version bump → doc-writer (close + CHANGELOG)│
+│  (mandatory) → PR Security (mandatory; ≠ security-audit)   │
+│  → version bump → doc-writer (close + CHANGELOG)             │
 │  → ROADMAP → archive ticket to done/ → push                 │
 └────────────────────────────────────────────────────────────┘
 ```

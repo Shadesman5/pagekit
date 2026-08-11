@@ -356,8 +356,9 @@ Project rules: `.cursor/BUGBOT.md`. `Full Repository Path` = `git rev-parse --sh
 If `bugbot` / `security-review` Task spawn fails (unavailable): one corrected retry, then
 `ESCALATE: Step N — review subagent unavailable: <error>` — do not invent a substitute review.
 
-Pre-PR Bugbot stores a patch ID; when Finalize opens a PR with the same diff, GitHub Bugbot often skips
-a duplicate review. Finalize still has PR-Bugbot (`bugbot run`) and PR-Security (`security run`) safety nets.
+Execute `(XL)` Task reviews are **not** a substitute for Finalize PR reviews. Patch-ID sync may skip the
+GitHub App's *automatic* PR review on open — that is why Finalize **always** posts `bugbot run` /
+`security run` and waits for the **new** Cursor bot outcome on the PR (see Phase C steps 4–5).
 
 ### Execute stuck-breaker
 
@@ -384,12 +385,34 @@ Run only when every `## EXECUTION STATE` box is `- [x]`.
    uncovered production files under `app/` / `packages/` (not views, not version-only `config.php`).
    Poll Codecov comment (~5 min); filter; spawn coverage **test-writer** → verifier (tests) → tester.
    At most one coverage-gap iteration. `UNTESTABLE` for all → skip commit, continue.
-4. **PR-Bugbot safety net** — `gh pr comment <pr> --body "bugbot run"`; watch `Cursor Bugbot` check;
-   findings → fix-loop → push → re-CI → re-trigger until clean + CI green.
-5. **PR-Security safety net** — after Bugbot is clean: `gh pr comment <pr> --body "security run"`; wait for
-   the Cursor Security Review automation to finish (inline/review comments and/or status check). Findings →
-   fix-loop → push → re-CI → **restart from Bugbot** (step 4), then Security again, until both are clean
-   and CI is green.
+4. **PR-Bugbot (mandatory — never skip)** — Execute `(XL)` Task Bugbot does **not** satisfy this step.
+   1. Snapshot baseline: note the newest `cursor[bot]` PR review whose body contains `<!-- BUGBOT_REVIEW -->`
+      (or none), plus its `submitted_at`.
+   2. Trigger: `gh pr comment <pr> --body "bugbot run"`.
+   3. Poll for a **new** Bugbot outcome **after** that trigger; **stop as soon as it appears** (ceiling
+      ~10 min, typical 3–5 min). Prefer a new PR review with `<!-- BUGBOT_REVIEW -->` and `submitted_at`
+      after the trigger. A `Cursor Bugbot` status check, if present, is optional corroboration — **do not**
+      require it, and **do not** treat a missing check or an XL-era patch-ID note as “skipped / clean”.
+   4. Read findings: `gh api repos/{owner}/{repo}/pulls/<pr>/comments` (and reviews). Any new Bugbot
+      finding comments after the trigger → fix-loop → push → re-CI green → re-trigger from step 4.1 until
+      the post-trigger Bugbot review reports **no** potential issues **and** CI is green.
+   5. Forbidden: declaring clean because XL was clean; because “duplicate / patch-ID skip”; or because
+      `gh pr checks` has no `Cursor Bugbot` row.
+5. **PR-Security (mandatory — never skip)** — after step 4 is clean. Execute `(XL)` Task Security does
+   **not** satisfy this step. **Never** treat the CI job `security-audit` (PHP Tests / Composer audit) as
+   Cursor Security Review.
+   1. Snapshot baseline: newest `cursor[bot]` review/comment with `CURSOR_AUTOMATION_ID` or
+      `Agentic Security Review` (or none).
+   2. Trigger: `gh pr comment <pr> --body "security run"`.
+   3. Poll for a **new** Cursor Security outcome **after** that trigger; **stop as soon as it appears**
+      (ceiling ~15 min, typical 3–7 min): a new review or inline comment from `cursor[bot]` containing
+      `CURSOR_AUTOMATION_ID` and/or `Agentic Security Review`. A dedicated Cursor Security status check is
+      optional if present — **never** substitute `security-audit`.
+   4. Read that review’s finding text / inline comments. Findings → fix-loop → push → re-CI green →
+      **restart from Bugbot** (step 4), then Security again. Clean (no medium+ / no open findings per the
+      bot’s own summary) → step 6.
+   5. Forbidden: watching only `gh pr checks` / `security-audit`; proceeding without a post-trigger
+      `cursor[bot]` Security review/comment; treating XL Security as enough.
 6. **Release docs** (follow `push.mdc`; delegate writing):
    1. **Version bump** (you) — `version-bump` skill → `app/system/config.php` (**once** per PR)
    2. **doc-writer** (Finalize docs)

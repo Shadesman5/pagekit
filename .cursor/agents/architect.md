@@ -63,7 +63,10 @@ Write the plan to a **ticket file** so the Orchestrator and other subagents use 
 - **Per step (coverage — inline light):** test-writer → Verifier (test files only) → Tester (PHPUnit + PHPStan) — **skip** when the step changes no production PHP under `app/` or `packages/` (docs/config/ROADMAP-only steps); mark those steps `test-writer: skip` here
 - **Per step notes:** [optional: target classes, edge cases, `test-writer: skip` per step number]
 - **Review + E2E (Execute — mandatory last `(XL)` step):** Orchestrator runs Bugbot → Security Review (fix-loops until both clean), then Tester `"final E2E run"` (3 Playwright specs). **Not** gated on PR/CI
-- **Finalize:** Orchestrator opens PR → waits on the PR checks (`gh pr checks <pr> --watch`) → Bugbot (patch-ID sync usually skips after XL review) → version/CHANGELOG/ROADMAP
+- **Finalize:** Orchestrator opens PR → waits on PR CI (`gh pr checks`) → **mandatory** PR Bugbot
+  (`bugbot run` + wait for new `<!-- BUGBOT_REVIEW -->`) → **mandatory** PR Security (`security run` +
+  wait for new `cursor[bot]` Agentic Security Review; **not** CI `security-audit`) → version/CHANGELOG/ROADMAP.
+  Execute `(XL)` Task reviews do not replace Finalize PR reviews.
 - **Maintainer action (optional):** human-only follow-ups (real Docker/Apache, ruleset flips, …). In the branch doc these go under `## Maintainer action` — **not** under Deferred / Out-of-Scope
 - **Deferred / Out-of-Scope (optional):** future ROADMAP/PHASE work, non-goals, bridges only — never maintainer Manual Work
 ```
