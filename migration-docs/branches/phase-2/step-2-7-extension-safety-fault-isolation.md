@@ -226,6 +226,22 @@ Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done
 
 Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
 
+### Review (Bugbot + Security) + E2E — theme failure clear + login-check guard (Checklist Step 11)
+
+| File | Change |
+|---|---|
+| `app/system/src/Extension/ExtensionLoader.php` | Bugbot fix: `loadModule()` now returns `bool` (whether the module ran to completion) instead of `void`, and `load()` uses that to clear a theme's failure record — via a new private `clearFailure()` — once a previously-recorded theme loads successfully. The theme is the one module type the barrier still executes on every request (Checklist Step 3); until this fix, it was also the one type whose record never came off on its own, so a theme that recovered kept reading as broken in the admin notice until an unrelated package operation happened to clear it. A clear that fails is reported and does not stop the boot. Extensions are unaffected: one on the record is never re-executed, so it never reaches this path — only an administrator action (`PackageManager::enable()`) clears an extension's record. |
+| `app/system/index.php` | Bugbot fix: the `auth.login` listener's update check (`LifecycleRunner::hasUpdates()` + the migration service's `status()`) is now wrapped in its own `try/catch (\Throwable)`. On catch: logged at `error`, a flash notice tells the administrator the check failed without repeating the throwable's own message, and the recorded version is left untouched so the next login asks again rather than marking an unfinished upgrade as done. The report itself carries a second `try/catch` so a log or session write failure costs only the notice, never the login. |
+
+### Tests (Checklist Step 11)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Extension/ExtensionLoaderTest.php` | 2 tests added: a theme that failed on a prior boot and then loads cleanly comes off the failure record; a theme whose record cannot be cleared (a `Filesystem` collaborator that cannot write) still finishes loading and reports the clear failure rather than blocking the boot. |
+| `tests/Unit/System/UpdateCheckOnLoginTest.php` (new) | 5 tests against the `auth.login` listener, bound from a real `require` of `app/system/index.php`: an installation with nothing owed records the running version; one with pending migrations redirects to the migration screen without recording it; a migration-status check that throws leaves the login unredirected, the recorded version untouched, logs the throwable once, and flashes a notice naming no implementation detail (asserted absent: the query fragment `pk_migrations`); a logger that cannot write costs only the report; a session that cannot queue the flash still finishes the login with the failure already logged. |
+
+Gates: Bugbot findings fixed then clean; Security clean (no medium+ findings); E2E PASS (installation, authentication, dashboard `@ci`).
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -251,6 +267,8 @@ Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done
 - **`permalinkFor()` takes the module as an argument rather than a resolver reading it (Checklist Step 8).** `RouteListener::onAppRequest()` publishes the permalink as a router option before any resolver would exist for that request; deriving it from a constructed resolver would pay for the blog resolver's own metadata-cache read on every request, including ones that never touch a post URL. Keeping the derivation static and argument-based lets both callers reach the same pattern without either one constructing the other.
 - **`image()` is made pure by deleting the bridge, not by adding a second URL-resolution seam (Checklist Step 9).** Both call-site templates already resolved their link `href` through the view's own `$view->url()` helper; the fix threads the same call through the six logo call sites and lets `image()` render whatever `$src` it is handed, so `ThemeOneHelpers` and its `setUrl()` wiring have nothing left to do.
 - **`UniqueValidator` moves from a static locator to a container entry the factory resolves by class name (Checklist Step 10).** Symfony's default `ConstraintValidatorFactory` builds every validator with `new $class()`, which cannot supply a connection; swapping in `ContainerConstraintValidatorFactory` costs nothing for the validators Symfony ships — its fallback is that same `new $class()` — and needs exactly one container entry, keyed by `UniqueValidator::class`, for the one validator here that has a dependency.
+- **A theme's failure record clears on its next successful load, not only through an administrator action (Checklist Step 11 — Bugbot fix).** Every other module on the record stays off the load list until `PackageManager` clears it explicitly (Checklist Step 4); the theme is the one type still executed every request (Decision 1), which makes `ExtensionLoader::load()` the only place able to tell it has recovered — so that is where the clear happens too, immediately on the same load that succeeds.
+- **The `auth.login` update check is fault-isolated the same way the boot barriers are, not left to propagate (Checklist Step 11 — Bugbot fix).** `LifecycleRunner::hasUpdates()` and the migration service's `status()` both depend on exactly the half-finished-upgrade state the check exists to detect; failing there previously answered a login attempt with an uncaught exception, keeping the administrator out of `/admin` — the one screen the repair is made from. A failed check is now reported and the recorded version left alone, so the same question is asked again on the next login instead of an unrun update being marked done.
 
 ---
 
@@ -275,6 +293,7 @@ Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done
 - **The failure record is denied over HTTP and lives outside the webroot (Checklist Step 1).** `tmp/system/.htaccess` adds `Require all denied` on top of the directory already sitting outside `public/`; the record holds a throwable's class, message and `file:line` — no stack trace — for whichever extensions/themes fail, and neither the directory nor its content is reachable by a request.
 - **The admin notice names the module only, never the throwable's own message (Checklist Step 4).** The store's `message`/`file`/`line` fields stay in the log; the panel renders just the module name — HTML-escaped, since it originates from the package's own `composer.json` — so a database error, filesystem path, or other detail a failure happened to carry never reaches the page every administrator with package-management rights can see. The notice is also gated on that same permission, resolved only once the record is non-empty.
 - **Route dumps are data, never executable code, once read back (Checklist Step 7).** The deleted dumpers wrote PHP classes that were `require`d and instantiated through reflection; both cache files are now plain `<?php return [...];` arrays (`var_export()`), validated `is_array()` in `Router::readCache()` before use. A half-written, truncated or tampered dump can no longer be mistaken for a class to instantiate — it fails validation and the router falls back to the non-cached matcher/generator, the same graceful-degradation contract `testCorruptCacheFileFallsBackInsteadOfFatal` already pinned.
+- **The login-check failure notice never repeats the throwable's own message (Checklist Step 11 — Bugbot fix).** The administrator-facing flash names only that the check failed; the throwable — which can carry a query fragment or a connection detail, as the regression test's `pk_migrations` assertion pins — stays in the log only, the same boundary the admin notice already holds for extension/theme failures (Checklist Step 4).
 
 ---
 

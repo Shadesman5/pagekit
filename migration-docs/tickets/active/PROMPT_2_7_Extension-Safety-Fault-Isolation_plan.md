@@ -78,7 +78,7 @@
 - [x] Step 8 (L) — Blog `UrlResolver` DI + resolver factory seam
 - [x] Step 9 (S) — theme-one helper purification
 - [x] Step 10 (M) — `UniqueValidator` container-aware factory
-- [ ] Step 11 (XL) — Review (Bugbot + Security) + E2E
+- [x] Step 11 (XL) — Review (Bugbot + Security) + E2E
 
 ## TESTING STRATEGY
 - **Per step (production gate):** Refactorer → Verifier → Tester (PHPUnit + PHPStan) — production code must be green before any new tests are written.
