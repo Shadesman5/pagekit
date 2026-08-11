@@ -216,7 +216,9 @@ export async function resolveOrchestratorAgentForPr(
   }
 
   if (!candidates.length && branch) {
-    const branchNorm = String(branch).replace(/^refs\/heads\//, '').toLowerCase();
+    const branchNorm = String(branch)
+      .replace(/^refs\/heads\//, '')
+      .toLowerCase();
     let cursor = null;
     for (let page = 0; page < 5; page += 1) {
       const res = await listAgentsFromCursor(client, { limit: 50, cursor });
@@ -1005,7 +1007,10 @@ export function pushMetricsToRemote({
   try {
     metricsSh(root, 'git config user.email');
   } catch {
-    metricsSh(root, 'git config user.email "41898282+github-actions[bot]@users.noreply.github.com"');
+    metricsSh(
+      root,
+      'git config user.email "41898282+github-actions[bot]@users.noreply.github.com"'
+    );
     metricsSh(root, 'git config user.name "github-actions[bot]"');
   }
 

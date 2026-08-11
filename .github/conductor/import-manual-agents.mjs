@@ -162,7 +162,8 @@ function phaseTypeFromLabel(label) {
     .trim()
     .split(/\s+/)[0]
     .toUpperCase();
-  if (head === 'PLAN' || head === 'EXECUTE' || head === 'FINALIZE' || head === 'MANUAL') return head;
+  if (head === 'PLAN' || head === 'EXECUTE' || head === 'FINALIZE' || head === 'MANUAL')
+    return head;
   if (V1_UI) return 'FINALIZE';
   return 'MANUAL';
 }
@@ -183,7 +184,9 @@ async function main() {
     stepId = parseRoadmapStepId(titleArg, taskSlug ? `${taskSlug}.md` : null);
   }
   if (!stepId) {
-    console.error('Missing --step (ROADMAP step ID, e.g. 2.7) — or pass --title containing Step X.Y');
+    console.error(
+      'Missing --step (ROADMAP step ID, e.g. 2.7) — or pass --title containing Step X.Y'
+    );
     process.exit(1);
   }
 
@@ -379,8 +382,7 @@ async function main() {
       root: ROOT,
       message: `chore(metrics): import ${stepId} · ${session.sessionId.slice(0, 8)}`,
       metricsBranch: DEFAULT_METRICS_BRANCH,
-      returnBranch:
-        returnBranch && returnBranch !== DEFAULT_METRICS_BRANCH ? returnBranch : null,
+      returnBranch: returnBranch && returnBranch !== DEFAULT_METRICS_BRANCH ? returnBranch : null,
       log: msg => console.log(msg)
     });
   }
