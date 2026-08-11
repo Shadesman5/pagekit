@@ -1,5 +1,5 @@
 ---
-description: Push workflow with version bump. 1) Check git status, create smart commits (conventional-commits.mdc). 2) Docs/planning-only PRs → skip version bump + CHANGELOG (see exception). Otherwise use version-bump skill → update app/system/config.php. 3) Update CHANGELOG-NEW.md; commit "chore(release): bump version to X.Y.Z". 4) Update .cursor/ROADMAP.md (header pointer + step row + Phase 1 audit closures from "Closes Phase 1 audit:" lines; skip partial closures); commit "docs(roadmap): …". 5) If README-affected → readme-sync.mdc. 6) Push: develop (protected) → new branch + PR; other branch → push direct. 7) PR metadata: include <!-- metadata --> block with labels, milestone, and Closes #X. 8) Do not merge.
+description: Push workflow with version bump. 1) Check git status, create smart commits (conventional-commits.mdc). 2) Docs/planning-only PRs → skip version bump + CHANGELOG (see exception). Otherwise use version-bump skill → update app/system/config.php. 3) Update CHANGELOG-NEW.md; commit "chore(release): bump version to X.Y.Z". 4) Update .cursor/ROADMAP.md (header pointer + step row + Phase 1 audit closures from "Closes Phase 1 audit:" lines; skip partial closures); commit "docs(roadmap): …". 5) If README-affected → readme-sync.mdc. 6) Push: develop (protected) → new branch + PR; other branch → push direct. 7) PR metadata: include <!-- metadata --> block with labels, milestone, and Closes #X; v1-metrics PRs also need "Step X.Y" in the title or body. 8) Do not merge.
 alwaysApply: false
 ---
 
@@ -31,6 +31,9 @@ alwaysApply: false
    - **labels**: 1 phase + 1 type + 1-2 area labels (see `github-labels.mdc`). For **V1 UI**
      (`cursor.com/agents`) Orchestrator PRs also add `v1-metrics` so merge into `develop` runs
      `.github/workflows/import-v1-metrics.yml`.
+   - **title (`v1-metrics` PRs)**: the PR title — or, failing that, the body — MUST contain the
+     ROADMAP step id as `Step X.Y`. The workflow reads it from the merge event; when it is missing
+     the import fails after merge and the only recovery is a manual `import-manual-agents.mjs` run.
    - **milestone**: Phase name (shorthand `Phase 1` or full `Phase 1: Foundation`)
    - **closes**: related GitHub Issues — also include `Closes #X` in visible PR body text for GitHub's auto-close linking
 8. **Do NOT merge**

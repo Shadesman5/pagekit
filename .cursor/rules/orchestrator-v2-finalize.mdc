@@ -149,7 +149,9 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
 
 1. **Push + PR** — `git push -u origin HEAD`; `gh pr create --base <base branch from your launch prompt>`
    with the `<!-- metadata -->` block (labels, milestone, `Closes #XXX`). For V1 UI Orchestrator
-   runs include `v1-metrics` in labels (merge → `import-v1-metrics.yml`). This triggers the PR CI checks.
+   runs include `v1-metrics` in labels (merge → `import-v1-metrics.yml`) and the Roadmap step id as
+   `Step X.Y` in the PR title (or body) — the workflow reads it at merge time and has no recovery
+   path when it is missing. This triggers the PR CI checks.
 2. **CI quality gate** — wait on the PR's status checks for this branch yourself (a watch, not a test —
    no tester needed). `gh pr checks` covers every required gate (the PHP Tests jobs, `infection-diff`,
    `e2e-smoke`, `frontend`) rather than a single workflow:

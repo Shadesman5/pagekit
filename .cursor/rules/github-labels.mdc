@@ -64,7 +64,7 @@ Identify which part of the system is affected:
 
 | Label        | Description                                      | Color     | When to Use                                                                 |
 | ------------ | ------------------------------------------------ | --------- | --------------------------------------------------------------------------- |
-| `v1-metrics` | Import V1 UI Orchestrator metrics after PR merge | `#6F42C1` | V1 (`cursor.com/agents`) modernization PRs — triggers `import-v1-metrics.yml` |
+| `v1-metrics` | Import V1 UI Orchestrator metrics after PR merge | `#6F42C1` | V1 (`cursor.com/agents`) modernization PRs — triggers `import-v1-metrics.yml`; requires `Step X.Y` in the PR title or body |
 
 ## Standard GitHub Labels
 
@@ -84,7 +84,8 @@ Default labels for general use:
 ### Label Combination Formula
 
 Every issue/PR should have: **1 phase label + 1 commit-type label + 1-2 area labels**.
-V1 UI Orchestrator PRs additionally add **`v1-metrics`**.
+V1 UI Orchestrator PRs additionally add **`v1-metrics`** and name the ROADMAP step as
+**`Step X.Y`** in the PR title or body.
 
 ### For Modernization Issues
 
@@ -134,6 +135,12 @@ Add `v1-metrics` in the `<!-- metadata -->` block when the PR was driven by a cu
 Orchestrator run. After merge, `.github/workflows/import-v1-metrics.yml` imports parent-agent
 usage into `conductor-metrics`.
 
+The PR **title** (or, failing that, the body) must contain the ROADMAP step id as `Step X.Y` —
+that is where the workflow reads the step from, and it reads it from the merge event. A PR merged
+without it fails the import with no in-workflow recovery: re-running replays the same payload and
+a merged PR fires no second `closed` event, so the metrics have to be imported manually with
+`node .github/conductor/import-manual-agents.mjs --step … --pr-url … --push`.
+
 ### Conventional Commits to Labels Mapping
 
 | Commit Type         | Suggested Labels                                    |
@@ -161,7 +168,7 @@ usage into `conductor-metrics`.
 | Security patch                | `security`, `bug`, appropriate area    |
 | Breaking API change           | `breaking-change`, appropriate area    |
 | Documentation update          | `documentation`                        |
-| V1 UI Orchestrator modernization PR | phase + `migration` + area + `v1-metrics` |
+| V1 UI Orchestrator modernization PR | phase + `migration` + area + `v1-metrics` (+ `Step X.Y` in title/body) |
 
 ## Managing Labels via CLI
 

@@ -373,8 +373,9 @@ Run only when every `## EXECUTION STATE` box is `- [x]`.
 
 1. **Push + PR** — `git push -u origin HEAD`; `gh pr create --base <Base>` with `<!-- metadata -->`
    (labels, milestone, `Closes #XXX`). For V1 UI Orchestrator runs include `v1-metrics` in labels
-   so merge into develop triggers `.github/workflows/import-v1-metrics.yml`. Reuse an existing PR
-   for this branch if one exists.
+   so merge into develop triggers `.github/workflows/import-v1-metrics.yml`, and put the Roadmap
+   step id as `Step X.Y` in the PR title (or body) — the workflow reads it at merge time and has no
+   recovery path when it is missing. Reuse an existing PR for this branch if one exists.
 2. **CI gate** — you wait (not tester):
    ```bash
    gh pr checks <pr> --watch --fail-fast
