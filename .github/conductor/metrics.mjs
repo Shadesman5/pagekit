@@ -12,7 +12,7 @@ import {
   rmSync,
   mkdtempSync
 } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { basename, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
@@ -97,7 +97,6 @@ export async function resolveSelfCloudAgentId({
   let token;
   try {
     // Node has no built-in unix-socket fetch helper across all versions — curl is on the VM.
-    const { execFileSync } = await import('node:child_process');
     const raw = execFileSync(
       'curl',
       [
@@ -958,18 +957,40 @@ function inferOutcome(result) {
 /**
  * Standalone git helpers for CLI importers (import-manual-agents.mjs).
  * Commits only to `conductor-metrics`, never to the feature branch tip.
+ *
+ * Branch names are untrusted input here — the importer reads the checked-out ref, and git
+ * allows shell metacharacters in it. Commands therefore run as argv without a shell, and
+ * every branch name passes `assertSafeBranch` first so it cannot arrive as a git option.
  */
-function metricsSh(root, cmd) {
-  return execSync(cmd, {
+const SAFE_BRANCH_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/;
+
+/** @returns {string} the branch name, or throws when git could read it as an option or path escape. */
+export function assertSafeBranch(label, branch) {
+  const name = String(branch ?? '');
+  if (!SAFE_BRANCH_RE.test(name) || name.includes('..') || name.endsWith('.lock')) {
+    throw new Error(`${label}: unsafe branch name ${JSON.stringify(name)}`);
+  }
+  return name;
+}
+
+function metricsRun(root, bin, args) {
+  return execFileSync(bin, args, {
     cwd: root,
     stdio: ['ignore', 'pipe', 'pipe'],
-    encoding: 'utf8'
+    encoding: 'utf8',
+    shell: false
   }).trim();
+}
+
+function metricsGit(root, ...args) {
+  return metricsRun(root, 'git', args);
 }
 
 export function currentGitBranch(root = process.cwd()) {
   try {
-    return metricsSh(root, 'git rev-parse --abbrev-ref HEAD');
+    const branch = metricsGit(root, 'rev-parse', '--abbrev-ref', 'HEAD');
+    // A detached HEAD reports the literal "HEAD" — no branch to return to.
+    return branch && branch !== 'HEAD' ? branch : null;
   } catch {
     return null;
   }
@@ -980,20 +1001,22 @@ export function syncMetricsFromRemote({
   metricsBranch = DEFAULT_METRICS_BRANCH,
   log = msg => console.log(msg)
 } = {}) {
-  const remote = metricsSh(root, `git ls-remote --heads origin ${metricsBranch}`);
+  assertSafeBranch('metricsBranch', metricsBranch);
+
+  const remote = metricsGit(root, 'ls-remote', '--heads', 'origin', metricsBranch);
   if (!remote) {
     log(`metrics: creating origin/${metricsBranch} from origin/develop`);
-    metricsSh(root, 'git fetch origin develop');
+    metricsGit(root, 'fetch', 'origin', 'develop');
     try {
-      metricsSh(root, `git branch -f ${metricsBranch} origin/develop`);
+      metricsGit(root, 'branch', '-f', metricsBranch, 'origin/develop');
     } catch {
-      metricsSh(root, `git branch ${metricsBranch} origin/develop`);
+      metricsGit(root, 'branch', metricsBranch, 'origin/develop');
     }
-    metricsSh(root, `git push -u origin ${metricsBranch}`);
+    metricsGit(root, 'push', '-u', 'origin', metricsBranch);
   }
-  metricsSh(root, `git fetch origin ${metricsBranch}`);
+  metricsGit(root, 'fetch', 'origin', metricsBranch);
   try {
-    metricsSh(root, `git checkout origin/${metricsBranch} -- ${METRICS_DIR}`);
+    metricsGit(root, 'checkout', `origin/${metricsBranch}`, '--', METRICS_DIR);
   } catch (e) {
     log(`metrics: no ${METRICS_DIR} on origin/${metricsBranch} yet (${e.message})`);
     mkdirSync(join(root, SESSIONS_DIR), { recursive: true });
@@ -1008,15 +1031,25 @@ export function pushMetricsToRemote({
   log = msg => console.log(msg)
 } = {}) {
   if (!message) throw new Error('pushMetricsToRemote: message required');
+  assertSafeBranch('metricsBranch', metricsBranch);
+  if (returnBranch) assertSafeBranch('returnBranch', returnBranch);
+
+  const restoreReturnBranch = () => {
+    if (!returnBranch || returnBranch === metricsBranch) return;
+    metricsGit(root, 'fetch', 'origin', returnBranch);
+    metricsGit(root, 'checkout', '-B', returnBranch, `origin/${returnBranch}`);
+  };
 
   try {
-    metricsSh(root, 'git config user.email');
+    metricsGit(root, 'config', 'user.email');
   } catch {
-    metricsSh(
+    metricsGit(
       root,
-      'git config user.email "41898282+github-actions[bot]@users.noreply.github.com"'
+      'config',
+      'user.email',
+      '41898282+github-actions[bot]@users.noreply.github.com'
     );
-    metricsSh(root, 'git config user.name "github-actions[bot]"');
+    metricsGit(root, 'config', 'user.name', 'github-actions[bot]');
   }
 
   const absMetrics = join(root, METRICS_DIR);
@@ -1030,44 +1063,41 @@ export function pushMetricsToRemote({
     cpSync(absMetrics, join(tmp, 'metrics'), { recursive: true });
 
     try {
-      metricsSh(root, `git reset HEAD -- ${METRICS_DIR}`);
+      metricsGit(root, 'reset', 'HEAD', '--', METRICS_DIR);
     } catch {
       /* unstaged is fine */
     }
     try {
-      metricsSh(root, `git checkout HEAD -- ${METRICS_DIR}`);
+      metricsGit(root, 'checkout', 'HEAD', '--', METRICS_DIR);
     } catch {
       /* may be absent on this branch */
     }
     try {
-      metricsSh(root, `git clean -fd -- ${METRICS_DIR}`);
+      metricsGit(root, 'clean', '-fd', '--', METRICS_DIR);
     } catch {
       /* ok */
     }
 
     syncMetricsFromRemote({ root, metricsBranch, log });
-    metricsSh(root, `git checkout -B ${metricsBranch} origin/${metricsBranch}`);
+    metricsGit(root, 'checkout', '-B', metricsBranch, `origin/${metricsBranch}`);
 
     rmSync(absMetrics, { recursive: true, force: true });
     cpSync(join(tmp, 'metrics'), absMetrics, { recursive: true });
 
-    metricsSh(root, `git add ${METRICS_DIR}/`);
+    metricsGit(root, 'add', `${METRICS_DIR}/`);
     try {
-      metricsSh(root, 'git diff --cached --quiet');
+      metricsGit(root, 'diff', '--cached', '--quiet');
       log('metrics: no changes to commit');
-      if (returnBranch && returnBranch !== metricsBranch) {
-        metricsSh(root, `git fetch origin ${returnBranch}`);
-        metricsSh(root, `git checkout -B ${returnBranch} origin/${returnBranch}`);
-      }
+      restoreReturnBranch();
       return false;
     } catch {
-      metricsSh(root, `git commit -m ${JSON.stringify(message)}`);
-      metricsSh(root, `git fetch origin ${metricsBranch}`);
+      metricsGit(root, 'commit', '-m', message);
+      metricsGit(root, 'fetch', 'origin', metricsBranch);
       try {
-        metricsSh(root, `git rebase origin/${metricsBranch}`);
+        metricsGit(root, 'rebase', `origin/${metricsBranch}`);
       } catch (e) {
         try {
-          metricsSh(root, 'git rebase --abort');
+          metricsGit(root, 'rebase', '--abort');
         } catch {
           /* clean */
         }
@@ -1075,18 +1105,15 @@ export function pushMetricsToRemote({
           cause: e
         });
       }
-      metricsSh(root, `git push origin ${metricsBranch}`);
+      metricsGit(root, 'push', 'origin', metricsBranch);
       log(`metrics: pushed to ${metricsBranch}`);
       try {
-        metricsSh(root, 'gh workflow run pages-deploy.yml --ref develop');
+        metricsRun(root, 'gh', ['workflow', 'run', 'pages-deploy.yml', '--ref', 'develop']);
         log('metrics: dispatched pages-deploy.yml (ref=develop)');
       } catch (e) {
         log(`metrics: pages-deploy dispatch skipped (${e.message})`);
       }
-      if (returnBranch && returnBranch !== metricsBranch) {
-        metricsSh(root, `git fetch origin ${returnBranch}`);
-        metricsSh(root, `git checkout -B ${returnBranch} origin/${returnBranch}`);
-      }
+      restoreReturnBranch();
       return true;
     }
   } finally {
