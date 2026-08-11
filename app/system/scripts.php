@@ -13,7 +13,7 @@ use Psr\Container\ContainerInterface;
  * preferences a fresh installation starts with, and the one-off data changes an
  * update to a newer version needs.
  */
-return new class extends PackageLifecycle {
+return new class () extends PackageLifecycle {
     /**
      * Runs after the migrations have created the schema.
      */

@@ -14,10 +14,10 @@ use Pagekit\Config\ConfigManager;
 use Pagekit\Log\Logger;
 use Pagekit\Session\MessageBag;
 use Pagekit\System\SystemModule;
+use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use PHPUnit\Framework\TestCase;
 
 /**
  * What logging in does when the installation is behind the code it runs on.

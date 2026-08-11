@@ -14,9 +14,9 @@ use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
 use Pagekit\System\Extension\ExtensionFailureStore;
 use Pagekit\System\Extension\ExtensionLoader;
+use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;
 use Psr\Log\LoggerInterface;
-use PHPUnit\Framework\TestCase;
 
 /**
  * Loading an extension means running its own code, and an extension that throws

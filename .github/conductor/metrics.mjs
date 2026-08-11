@@ -252,7 +252,7 @@ export async function resolveOrchestratorAgentForPr(
   for (const item of candidates) {
     const id = String(item.id || '').toLowerCase();
     if (!id.startsWith('bc-')) continue;
-    let total = 0;
+    let total;
     try {
       const metrics = await fetchAgentMetricsFromCursor(client, id);
       total = Number(metrics?.tokens?.total) || 0;
