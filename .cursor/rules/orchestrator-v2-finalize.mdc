@@ -181,26 +181,29 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
 4. **PR-Bugbot (mandatory — never skip)** — Execute `(XL)` Task Bugbot does **not** satisfy this step.
    1. Snapshot baseline: newest `cursor[bot]` PR review with `<!-- BUGBOT_REVIEW -->` (or none) + `submitted_at`.
    2. Trigger: `gh pr comment <pr> --body "bugbot run"`.
-   3. Poll for a **new** Bugbot outcome **after** the trigger; **stop as soon as it appears** (ceiling
-      ~10 min, typical 3–5 min): prefer a new review whose body contains `<!-- BUGBOT_REVIEW -->` and
-      `submitted_at` after the trigger. A `Cursor Bugbot` check is optional corroboration only — never
-      require it; never treat a missing check or “patch-ID skip” as clean.
+   3. Poll **only** for a **new** Bugbot **PR review** after the trigger (`<!-- BUGBOT_REVIEW -->` +
+      `submitted_at` after trigger). **Stop immediately** when it exists — findings or “no issues”
+      (ceiling ~10 min, typical 3–5 min) — then step 4 (fix-loop) or step 5 (clean). `Cursor Bugbot`
+      check `pending` / `skipping` / missing must **never** keep polling; do not `gh pr checks --watch`
+      for Bugbot.
    4. Read findings via `gh api repos/{owner}/{repo}/pulls/<pr>/comments` (and reviews). New finding
       comments after the trigger → fix-loop → push → re-watch step 2 green → re-trigger from 4.1 until
       the post-trigger Bugbot review reports no potential issues **and** CI is green.
-   5. Forbidden: clean-because-XL; clean-because-duplicate/patch-ID; clean-because-no `Cursor Bugbot` check row.
+   5. Forbidden: clean-because-XL; clean-because-duplicate/patch-ID; clean-because-no check row;
+      **waiting on check `skipping`/`pending` after a matched review.**
 5. **PR-Security (mandatory — never skip)** — after step 4 is clean. Execute `(XL)` Task Security does
    **not** satisfy this step. **Never** treat CI `security-audit` as Cursor Security Review.
    1. Snapshot baseline: newest `cursor[bot]` review/comment with `CURSOR_AUTOMATION_ID` or
       `Agentic Security Review` (or none).
    2. Trigger: `gh pr comment <pr> --body "security run"`.
-   3. Poll for a **new** Cursor Security outcome **after** the trigger; **stop as soon as it appears**
-      (ceiling ~15 min, typical 3–7 min): new `cursor[bot]` review/inline comment containing
-      `CURSOR_AUTOMATION_ID` and/or `Agentic Security Review`.
+   3. Poll for a **new** Cursor Security **review/comment** after the trigger; **stop as soon as it
+      appears** — findings or clean (ceiling ~15 min, typical 3–7 min). Do **not** wait on any status
+      check; **never** substitute `security-audit`.
    4. Read that finding text. Findings → fix-loop → push → re-CI green → **restart from step 4**.
       Clean → step 6.
-   5. Forbidden: watching only `gh pr checks` / `security-audit`; proceeding without a post-trigger
-      Security `cursor[bot]` review; treating XL Security as enough.
+   5. Forbidden: watching only `gh pr checks` / `security-audit`; waiting on check `pending`/`skipping`
+      after a matched Security review; proceeding without a post-trigger Security `cursor[bot]` review;
+      treating XL Security as enough.
 6. **Finalize** (follow `push.mdc`, but delegate the writing) — in this order:
    1. **Version bump** (you) — run the `version-bump` skill → `app/system/config.php` (once per PR).
    2. Spawn **doc-writer** (Finalize docs template).
