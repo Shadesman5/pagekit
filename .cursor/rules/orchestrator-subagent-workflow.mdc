@@ -389,23 +389,25 @@ Run only when every `## EXECUTION STATE` box is `- [x]`.
 4. **PR-Bugbot (mandatory)** — sole source of truth: the newest `cursor[bot]` PR **review** whose body
    contains `<!-- BUGBOT_REVIEW -->`. Ignore check rows, HEAD, and `commit_id`.
    1. `gh pr comment <pr> --body "bugbot run"`.
-   2. Poll until a **newer** such review appears (`submitted_at` after that comment). Stop at once when
-      it does (ceiling ~10 min, typical 3–5 min). No other exit condition.
-   3. Read **that review body** (exact Bugbot wording):
-      - **Dirty** if the body mentions any open leftover — including
-        `remains unresolved` / `from previous review` / `total unresolved issues` / `potential issue`
-        — even when it also says `found no new issues`. Example dirty:
-        `found no new issues!` + `1 issue from previous review remains unresolved.`
-      - **Clean** only if it says `found no new issues` (typically ✅) **and** has **none** of those
-        unresolved phrases.
-      - Dirty → collect open inline Bugbot comments → fix-loop → push → re-CI green → back to 4.1.
+   2. Poll with `gh` only (reviews API / GraphQL). **No** homemade `node`/`[eval]` poll scripts, **no**
+      HEAD/`commit_id` filters, **no** `OPEN_BUG`/`CLEAN`/`DIRTY` state machines. Exit as soon as a
+      review with `<!-- BUGBOT_REVIEW -->` has `submitted_at` after the trigger (ceiling ~10 min).
+   3. **Stop polling** the moment that review exists, then decide from **its body text only**:
+      - **Dirty** (immediate fix-loop — do **not** keep polling) if **any** of:
+        `potential issue`, `remains unresolved`, `from previous review`, `total unresolved issues`
+        — **including** when the same body also says `found no new issues` / `issues=0`.
+        Example dirty: `found no new issues!` + `1 issue from previous review remains unresolved.`
+      - **Clean** only if `found no new issues` (typically ✅) **and** none of those leftover phrases.
+      - Dirty → open Bugbot inline comments → fix-loop → push → re-CI green → back to 4.1.
+        Resolving a GitHub thread without fixing the finding does **not** make it clean.
       - Clean → step 5.
-   4. Never invent HEAD/`commit_id` matching, `NO_HEAD_REVIEW`, or `gh pr checks --watch` for Bugbot.
+   4. Forbidden limbo: `issues=0` + `unresolvedMention=true` must be treated as **Dirty**, never as
+      “wait more”. Never invent `NO_HEAD_REVIEW` / `WAITING` after a matching review body exists.
 5. **PR-Security (mandatory)** — after Bugbot clean. Sole source of truth: the newest `cursor[bot]`
    review/comment with `CURSOR_AUTOMATION_ID` or `Agentic Security Review`. **Not** CI `security-audit`.
    1. `gh pr comment <pr> --body "security run"`.
-   2. Poll until a **newer** such review/comment appears after that comment (ceiling ~15 min, typical
-      3–7 min). Stop at once when it does.
+   2. Poll with `gh` only until a **newer** such review/comment appears (ceiling ~15 min, typical
+      3–7 min). Stop at once — no custom scripts / check-row waits.
    3. Read **that** text + its inline comments: findings → fix-loop → push → re-CI green → **restart
       step 4**; clean → step 6.
    4. Never wait on check rows or treat `security-audit` as this step.
