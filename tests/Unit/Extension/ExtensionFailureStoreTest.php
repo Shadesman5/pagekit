@@ -199,6 +199,64 @@ final class ExtensionFailureStoreTest extends TestCase
         self::assertIsArray(json_decode((string) file_get_contents($this->path.'/'.self::FILE), true, 512, JSON_THROW_ON_ERROR));
     }
 
+    public function testAFailurePutBackOnTheRecordIsTheOneThatWasTakenOff(): void
+    {
+        // Clearing a record is part of an operation that can still fail after
+        // it, and the operation then has to undo its own clear. Recording the
+        // module again is not the same thing: the failure an administrator acts
+        // on is the one that happened, at the time it happened.
+        $store = $this->store();
+
+        $store->record('blog', ExtensionFailureStore::TYPE_EXTENSION, new \RuntimeException('boom'));
+        $store->record('theme-one', ExtensionFailureStore::TYPE_THEME, new \RuntimeException('bang'));
+
+        $entry = $store->all()['blog'];
+
+        self::assertTrue($store->clear('blog'));
+        self::assertTrue($store->restore($entry));
+
+        $entries = $this->store()->all();
+
+        self::assertSame(['theme-one', 'blog'], array_keys($entries));
+        self::assertSame($entry, $entries['blog']);
+    }
+
+    public function testAFailurePutBackWhereTheModuleFailedAgainIsTheFailureItHasNow(): void
+    {
+        $store = $this->store();
+
+        $store->record('blog', ExtensionFailureStore::TYPE_EXTENSION, new \RuntimeException('the fault it had'));
+
+        $entry = $store->all()['blog'];
+
+        $store->clear('blog');
+        $store->record('blog', ExtensionFailureStore::TYPE_EXTENSION, new \LogicException('the fault it has now'));
+
+        self::assertTrue($store->restore($entry));
+
+        // One module is one record here as everywhere else. A caller putting
+        // back what it took off is the only one that knows its entry is still
+        // the current one; a boot that recorded a newer failure in between has
+        // written the record this replaces.
+        self::assertSame('the fault it had', $this->store()->all()['blog']['message']);
+    }
+
+    public function testAnEntryWithoutAModuleNameIsRefusedInsteadOfFiledUnderNothing(): void
+    {
+        $entry = [
+            'name' => '',
+            'type' => ExtensionFailureStore::TYPE_EXTENSION,
+            'class' => \RuntimeException::class,
+            'message' => 'boom',
+            'file' => '/app/packages/pagekit/blog/index.php',
+            'line' => 7,
+            'time' => 1700000000,
+        ];
+
+        self::assertFalse($this->store()->restore($entry));
+        self::assertDirectoryDoesNotExist($this->path);
+    }
+
     public function testTheRecordIsReplacedInOneStepSoNoBootReadsItHalfWritten(): void
     {
         // One request rewrites this file while another one reads it on its way
@@ -394,7 +452,7 @@ final class ExtensionFailureStoreTest extends TestCase
     }
 
     /**
-     * Runs both writing calls through a filesystem that cannot write, which the
+     * Runs every writing call through a filesystem that cannot write, which the
      * store has to survive: it reports what it could not do, and the failures
      * already on record stay readable.
      */
@@ -406,6 +464,7 @@ final class ExtensionFailureStoreTest extends TestCase
 
         self::assertFalse($store->record('theme-one', ExtensionFailureStore::TYPE_THEME, new \RuntimeException('boom')));
         self::assertFalse($store->clear('blog'));
+        self::assertFalse($store->restore($store->all()['blog']));
         self::assertTrue($store->has('blog'));
         self::assertSame(['blog'], array_keys($store->all()));
     }

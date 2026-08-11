@@ -15,6 +15,9 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Output\StreamOutput;
 
+/**
+ * @phpstan-import-type ExtensionFailure from ExtensionFailureStore
+ */
 class PackageManager
 {
     protected OutputInterface $output;
@@ -182,6 +185,7 @@ class PackageManager
         foreach ($packages as $package) {
             $originalState = null;
             $applied = null;
+            $cleared = null;
             $moduleName = $package->get('module');
 
             try {
@@ -245,14 +249,19 @@ class PackageManager
                 // boot that loads it, so there the same failed write costs a
                 // notice that clears itself. Settled before the event either
                 // way, so that a refusal leaves nothing to unwind.
-                if (!$this->clearFailure($package)) {
-                    if ($package->getType() === 'pagekit-extension') {
-                        throw new \RuntimeException(sprintf(
-                            'The failure record of "%s" could not be cleared, so the next boot would leave it disabled.',
-                            $moduleName
-                        ));
-                    }
+                $recorded = $this->recordedFailure($package);
 
+                if ($this->clearFailure($package)) {
+                    // Held for the rollback: everything from here on can still
+                    // fail, and an enable that did not happen may not take the
+                    // record of the failure that came before it with it.
+                    $cleared = $recorded;
+                } elseif ($package->getType() === 'pagekit-extension') {
+                    throw new \RuntimeException(sprintf(
+                        'The failure record of "%s" could not be cleared, so the next boot would leave it disabled.',
+                        $moduleName
+                    ));
+                } else {
                     $this->reportUnclearedFailure($package);
                 }
 
@@ -270,6 +279,15 @@ class PackageManager
 
                 if ($originalState !== null) {
                     $this->rollbackEnable($package, $originalState);
+                }
+
+                // The configuration is back to a package that is not enabled,
+                // and the record is the other half of that state: it is what
+                // keeps the extension out of the next boot and the only thing
+                // that names it as broken in the panel. Dropping it here would
+                // leave a package switched off with nothing saying why.
+                if ($cleared !== null) {
+                    $this->restoreFailure($package, $cleared);
                 }
 
                 if ($this->app->has('log')) {
@@ -391,6 +409,54 @@ class PackageManager
         }
 
         return $this->failures->clear($module);
+    }
+
+    /**
+     * What the record says about a package.
+     *
+     * @return ExtensionFailure|null null where the package is not on record, or
+     *                               where no record is kept
+     */
+    private function recordedFailure(PackageInterface $package): ?array
+    {
+        $module = $package->get('module');
+
+        if ($this->failures === null || !is_string($module) || $module === '') {
+            return null;
+        }
+
+        return $this->failures->all()[$module] ?? null;
+    }
+
+    /**
+     * Puts back a record that an operation cleared before it failed.
+     *
+     * A record that cannot be written back is reported and nothing more: the
+     * failure the caller ran into is the one it has to hear about, and raising
+     * a second one from the recovery path would take its place.
+     *
+     * @param ExtensionFailure $entry
+     */
+    private function restoreFailure(PackageInterface $package, array $entry): void
+    {
+        if ($this->failures === null || $this->failures->restore($entry)) {
+            return;
+        }
+
+        try {
+            if ($this->app->has('log')) {
+                $this->app->get('log')->error(
+                    sprintf(
+                        'Failed to restore the failure record of "%s" after a failed enable, so nothing names it as broken any more.',
+                        $package->get('module')
+                    ),
+                    ['package' => $package->get('module')]
+                );
+            }
+        } catch (\Throwable) {
+            // A record that could neither be restored nor reported is not worth
+            // replacing the failure that made the rollback necessary.
+        }
     }
 
     /**

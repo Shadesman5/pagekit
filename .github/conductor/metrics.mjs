@@ -904,7 +904,12 @@ export function resolveSessionId(raw) {
 
 export function parseRoadmapStepId(title, taskPrompt) {
   const t = (title || '').trim();
-  const fromTitle = t.match(/(?:step\s+)?(\d+\.\d+(?:\.\d+[a-z]?)?)/i);
+  // The title only counts when it says "Step X.Y", or when it is nothing but the
+  // id. A bare X.Y anywhere in the text also matches a release title ("Pagekit
+  // 1.2.38 — …"), which would file the run under an id the ROADMAP has no row
+  // for; the task prompt below is the better guess in that case.
+  const fromTitle =
+    t.match(/\bstep\s+(\d+\.\d+(?:\.\d+[a-z]?)?)\b/i) || t.match(/^(\d+\.\d+(?:\.\d+[a-z]?)?)$/);
   if (fromTitle) return fromTitle[1].toLowerCase();
 
   const base = basename(taskPrompt || '').replace(/\.md$/i, '');

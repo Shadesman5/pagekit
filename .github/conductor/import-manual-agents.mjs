@@ -10,12 +10,13 @@
 //     --step 2.7 --agent bc-… [--push]
 //
 // Options:
-//   --step ID          ROADMAP step ID (required unless inferable from --title)
+//   --step ID          ROADMAP step ID (required unless --title says "Step X.Y")
 //   --agent ID         Cloud agent ID (repeatable); accepts cursor.com/agents/… URLs
 //                      (path id = parent; ignore ?child-id= for usage)
 //   --pr-url URL       GitHub PR URL — resolve parent agent via Cursor API (prUrl, then branch)
 //   --label TEXT       Phase label (default: V1 for --v1-ui, else MANUAL)
-//   --title TEXT       Session title (default: from ROADMAP row); also used to infer --step
+//   --title TEXT       Session title (default: from ROADMAP row); infers --step only when it
+//                      names one ("Step X.Y") — a release title ("Pagekit 1.2.38 - …") does not
 //   --branch NAME      Feature branch recorded on the session (+ agent resolve fallback)
 //   --issue N          GitHub issue number
 //   --task-slug SLUG   Task prompt slug (without .md)

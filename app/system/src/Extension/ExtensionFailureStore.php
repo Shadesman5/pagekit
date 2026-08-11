@@ -139,6 +139,32 @@ final class ExtensionFailureStore
     }
 
     /**
+     * Puts an entry back on the record, replacing any current one for its module.
+     *
+     * Clearing a record is part of an operation that can still fail after it,
+     * and an operation that did not happen may not take the record with it: what
+     * the entry says is the failure that actually occurred, at the time it
+     * occurred, so it goes back as it was rather than being rewritten from
+     * whatever the caller ran into afterwards.
+     *
+     * @param  ExtensionFailure $entry as it was read from this store
+     * @return bool             whether the entry is on disk
+     */
+    public function restore(array $entry): bool
+    {
+        $name = $entry['name'];
+
+        if ($name === '') {
+            return false;
+        }
+
+        $entries = $this->all();
+        $entries[$name] = $entry;
+
+        return $this->write($entries);
+    }
+
+    /**
      * Replaces the record with the given entries.
      *
      * The write is atomic, so a boot reading the file while it is replaced sees

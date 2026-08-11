@@ -229,6 +229,138 @@ final class PackageFailureRecordTest extends TestCase
         self::assertStringContainsString('could not be cleared', $log->errors[0]);
     }
 
+    public function testAnEnableThatFailsAfterClearingTheRecordPutsItBack(): void
+    {
+        $this->record('test-ext');
+        $this->record('theme-one');
+
+        $before = $this->store()->all();
+
+        $system = new Config();
+        $system->set('packages.test-ext', '1.0.0');
+
+        $app = $this->container(config: $system);
+        $app->set('events', $this->eventService(failOn: 'package.enable'));
+
+        // AssertionFailedError extends RuntimeException, so a failed assertion
+        // inside the try would be swallowed by the catch instead of reported.
+        $thrown = null;
+
+        try {
+            $this->manager($app)->enable($this->package());
+        } catch (\RuntimeException $e) {
+            $thrown = $e;
+        }
+
+        self::assertInstanceOf(\RuntimeException::class, $thrown, 'An enable that did not finish must report it');
+        self::assertStringContainsString('The listener failed', $thrown->getMessage());
+
+        // The configuration is back where it was, and the record is the other
+        // half of that state: an extension the rollback switched off again with
+        // nothing on record is one the panel shows as merely not enabled and no
+        // notice names - the failure it was carrying would be gone for good.
+        self::assertSame([], (array) $system->get('extensions'));
+        self::assertSame('1.0.0', $system->get('packages.test-ext'));
+
+        $after = $this->store()->all();
+
+        // What goes back is the failure that was recorded, not the one this
+        // enable ran into: that failure is what the administrator acts on, and
+        // it happened when it happened. The rest of the record is untouched -
+        // this attempt only ever took one entry off it.
+        self::assertSame($before['test-ext'], $after['test-ext']);
+        self::assertSame($before['theme-one'], $after['theme-one']);
+        self::assertCount(2, $after);
+    }
+
+    public function testAnEnableThatFailsPutsBackTheRecordOfAThemeToo(): void
+    {
+        $this->record('test-theme', ExtensionFailureStore::TYPE_THEME);
+
+        $before = $this->store()->all();
+
+        $system = new Config();
+        $system->set('packages.test-theme', '1.0.0');
+
+        $app = $this->container(config: $system);
+        $app->set('events', $this->eventService(failOn: 'package.enable'));
+
+        try {
+            $this->manager($app)->enable($this->package([
+                'name' => 'pagekit/test-theme',
+                'type' => 'pagekit-theme',
+                'module' => 'test-theme',
+            ]));
+        } catch (\RuntimeException) {
+            // The rollback is what this asserts on, not the report of it.
+        }
+
+        // A theme is never kept out of the boot by the record, but it is named
+        // by the notice, and the theme the site fell back from is still the
+        // broken one after a selection that did not go through.
+        self::assertNotSame('test-theme', $system->get('site.theme'));
+        self::assertSame($before, $this->store()->all());
+    }
+
+    public function testAnEnableThatFailsRecordsNothingForAPackageThatWasNotOnTheRecord(): void
+    {
+        $system = new Config();
+        $system->set('packages.test-ext', '1.0.0');
+
+        $app = $this->container(config: $system);
+        $app->set('events', $this->eventService(failOn: 'package.enable'));
+
+        try {
+            $this->manager($app)->enable($this->package());
+        } catch (\RuntimeException) {
+            // The report is the caller's business; the record is this one's.
+        }
+
+        // The record is written by the boot that ran into a failure, and the
+        // rollback only undoes what this attempt did. An enable that failed is
+        // reported to the administrator who asked for it - putting the package
+        // on the record would leave a notice standing for a package that is
+        // simply not enabled, and nothing but another enable clears it.
+        self::assertSame([], $this->store()->all());
+    }
+
+    public function testARecordThatCannotBePutBackIsReportedAndTheEnableFailureStillWins(): void
+    {
+        $this->record('test-ext');
+
+        $log = $this->logService();
+
+        $system = new Config();
+        $system->set('packages.test-ext', '1.0.0');
+
+        // The clear goes through and the write that would undo it does not, as
+        // a disk that fills up between the two makes it.
+        $app = $this->container(config: $system, writer: new RecordWriterThatStopsAfterTheFirstWrite());
+        $app->set('log', $log);
+        $app->set('events', $this->eventService(failOn: 'package.enable'));
+
+        $thrown = null;
+
+        try {
+            $this->manager($app)->enable($this->package());
+        } catch (\RuntimeException $e) {
+            $thrown = $e;
+        }
+
+        // Recovery may not throw and may not take the failure's place: the
+        // administrator hears about the enable that failed, and the record that
+        // was lost with it is a log line, not a second exception.
+        self::assertInstanceOf(\RuntimeException::class, $thrown);
+        self::assertStringContainsString('The listener failed', $thrown->getMessage());
+        self::assertSame([], (array) $system->get('extensions'));
+        self::assertFalse($this->store()->has('test-ext'));
+
+        $reported = array_values(array_filter($log->errors, fn (string $line) => str_contains($line, 'restore the failure record')));
+
+        self::assertCount(1, $reported);
+        self::assertStringContainsString('test-ext', $reported[0]);
+    }
+
     public function testSelectingAThemeGoesThroughWhenTheRecordCannotBeCleared(): void
     {
         $this->record('test-theme', ExtensionFailureStore::TYPE_THEME);
@@ -550,17 +682,29 @@ final class PackageFailureRecordTest extends TestCase
 
     /**
      * The dispatcher the manager announces a finished package operation on.
+     *
+     * @param string|null $failOn the event a listener throws on, as one that
+     *                            restores content for a package the site cannot
+     *                            take back does
      */
-    private function eventService(): object
+    private function eventService(?string $failOn = null): object
     {
-        return new class () {
+        return new class ($failOn) {
             /** @var array<int, string> */
             public array $fired = [];
+
+            public function __construct(private readonly ?string $failOn = null)
+            {
+            }
 
             /** @param array<int, mixed> $params */
             public function trigger(string $event, array $params = []): void
             {
                 $this->fired[] = $event;
+
+                if ($event === $this->failOn) {
+                    throw new \RuntimeException('The listener failed');
+                }
             }
         };
     }
@@ -616,5 +760,26 @@ final class RecordWriterThatFails extends Filesystem
     public function dumpAtomic(string $file, string $content, ?int $mode = null): void
     {
         throw new \RuntimeException("Failed to write file ($file).");
+    }
+}
+
+/**
+ * A filesystem that takes one write and no more, as a disk that fills up in the
+ * middle of an operation does. What it leaves behind is a record an operation
+ * changed and could not change back.
+ */
+final class RecordWriterThatStopsAfterTheFirstWrite extends Filesystem
+{
+    private int $writes = 0;
+
+    public function dumpAtomic(string $file, string $content, ?int $mode = null): void
+    {
+        $this->writes += 1;
+
+        if ($this->writes > 1) {
+            throw new \RuntimeException("Failed to write file ($file).");
+        }
+
+        parent::dumpAtomic($file, $content, $mode);
     }
 }
