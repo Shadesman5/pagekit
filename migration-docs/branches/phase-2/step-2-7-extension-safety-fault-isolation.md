@@ -6,16 +6,18 @@
 **Branch:** `feature/extension-safety-fault-isolation`
 **ROADMAP Step:** 2.7 (Extension Safety System — Extension Safety & Fault Isolation)
 **GitHub Issue:** [#160](https://github.com/Shadesman5/pagekit/issues/160)
-**Pull Request:** _TBD_
-**Status:** 🚧 In progress
+**Pull Request:** [#270](https://github.com/Shadesman5/pagekit/pull/270)
+**Status:** ✅ Complete
 **Started:** 2026-08-10 20:22
-**Completed:** _TBD_
+**Completed:** 2026-08-11 04:50
 
 ---
 
 ## 🎯 Overview
 
-_TBD_
+Closes the three failure windows a broken extension, theme or package could previously take the whole boot down through: a per-include `try/catch` barrier around module registration (`ModuleManager::register()`), a new `ExtensionLoader` barrier around the load/`main()` window that auto-disables a failing extension and merges the failure record into the effective load list before the loop runs, and a `disable`/`uninstall` hook barrier that never blocks an administrator's way out of a misbehaving package. Every failure lands in a new durable, never-throws `ExtensionFailureStore` (`tmp/system/extension-failures.json`, outside the webroot, written through the Step 2.6 `dumpAtomic()` primitive) that survives the request that hit it, drives the boot merge on the next one, and surfaces as a standing admin notice (`view.messages`) and a manager-UI warning icon until an administrator re-enables the module or the theme recovers on its own. `PackageScripts`'s array-of-closures contract is replaced outright by `PackageLifecycleInterface`/`LifecycleRunner` (a package's lifecycle file now returns a typed object, not an array a typo could silently no-op); `PackageManager` gains framework-run extension migrations with a pre-attempt schema snapshot and a guarded rollback (schema before config, a rollback fault logged and swallowed rather than replacing the original error) on top of the existing enable-rollback.
+
+The routing layer's two deprecated, hand-copied dumpers (`PhpMatcherDumper`, `UrlGeneratorDumper`) are deleted in favor of Symfony's own `CompiledUrlMatcherDumper` and a new Pagekit-owned `CompiledUrlGenerator`, both consuming data-only `<?php return [...];` dumps instead of a generated PHP class per cache key; route-cache freshness moves from a `filemtime()` comparison to a content-hash key, closing the clock-based staleness risk Step 2.6 had already flagged for this step. The three remaining static-locator bridges this ticket named (`UrlResolver`'s cache/module/repository statics, `ThemeOneHelpers`'s URL provider, `UniqueValidator`'s db setter) are all deleted in favor of constructor injection — `Router::addResolver()` adds a per-class factory seam for a resolver with dependencies, the two `theme-one` logo templates resolve their own image URLs before calling a now-pure `image()`, and `ValidatorServiceProvider` wires `UniqueValidator` through Symfony's `ContainerConstraintValidatorFactory`. The mandatory Checklist Step 11 review (Bugbot + Security + E2E) closed two Bugbot findings — a theme's failure record never cleared on its own successful reload, and the `auth.login` pending-update check had no fault barrier of its own — both fixed in the same step; Finalize then cleared a cs-fixer/ESLint/Prettier fix-loop (import order, anonymous-class parens, and formatting on unrelated pre-existing conductor tooling files caught by the repo-wide lint gate) and one Codecov coverage-gap test before PR #270 went green across every required check.
 
 ---
 
@@ -242,6 +244,18 @@ Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done
 
 Gates: Bugbot findings fixed then clean; Security clean (no medium+ findings); E2E PASS (installation, authentication, dashboard `@ci`).
 
+### Finalize fix-loop — CI lint/format fixes + coverage gap (post-Step-11)
+
+| File | Change |
+|---|---|
+| `app/system/scripts.php` | cs-fixer FAIL on the PR's CI run: the Checklist Step 5 anonymous class (`return new class extends PackageLifecycle`) needed the ruleset's explicit constructor parens (`new class () extends PackageLifecycle`). No behavioral change. |
+| `tests/Unit/Extension/ExtensionLoaderTest.php`, `tests/Unit/System/UpdateCheckOnLoginTest.php` | Same cs-fixer run: `use PHPUnit\Framework\TestCase;` reordered ahead of the two `Psr\Log\*` imports it followed out of alphabetical order. No behavioral change. |
+| `.github/conductor/metrics.mjs` | Off-ticket: a pre-existing V2 Conductor tooling script already on this branch (unrelated to Extension Safety) failed the repo-wide blocking ESLint gate (`no-useless-assignment` on a `let total = 0` immediately overwritten) and, on a later run, Prettier's formatting check — caught only because `pnpm lint`/`pnpm exec prettier --check .` run against the whole tree, not this ticket's own diff. Both fixed in place, formatting/dead-initializer only. |
+| `.github/conductor/import-manual-agents.mjs` | Same off-ticket Prettier fix, formatting only. |
+| `tests/Unit/System/MigrationControllerTest.php` (new) | Coverage gap pass: Codecov's patch diff flagged the `LifecycleRunner` construction site in `MigrationController` (Checklist Step 5's runner swap) as uncovered. New suite drives the pending-update screen end to end: nothing owed records the running version; pending migrations redirect without recording it; a `hasUpdates()`/`status()` throw leaves the login unredirected and the recorded version untouched — the same regression `UpdateCheckOnLoginTest.php` (Checklist Step 11) already pinned at the listener level, now also pinned at the controller's own construction site. |
+
+Gates: cs-fixer FAIL → fixed → PASS; ESLint FAIL → fixed → PASS; Prettier FAIL → fixed → PASS; coverage gap pass → PHPUnit + PHPStan PASS; PR #270 CI (final) — `phpunit (8.5)`, `phpunit-mysql`, `phpstan`, `cs-fixer`, `frontend`, `docker-image`, `hadolint`, `security-audit`, `version-ssot`, `infection-diff`, `codecov/patch` all green (`e2e-smoke`/`e2e-merge`/`publish-image` skip — not required on this PR); Cursor Bugbot (PR) — clean; Cursor Security Reviewer (PR) — pass.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -316,14 +330,28 @@ Gates: Bugbot findings fixed then clean; Security clean (no medium+ findings); E
 <!-- Links only. Quality metrics are CI-owned: link the PR sticky quality-report comment and the
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
-- CI run: _TBD_
-- Notable deviations: _TBD / None_
+| Gate | Result |
+|---|---|
+| CI — PR checks | ✅ green — [PR #270](https://github.com/Shadesman5/pagekit/pull/270) (`phpunit (8.5)`, `phpunit-mysql`, `phpstan`, `cs-fixer`, `frontend`, `docker-image`, `hadolint`, `security-audit`, `version-ssot`, `infection-diff`, `codecov/patch` all pass; `e2e-smoke`/`e2e-merge`/`publish-image` skip — not required on this PR) |
+| Coverage gap pass | ran — `test(system): cover MigrationController lifecycle update path` (`MigrationControllerTest.php`); one further gap left `UNTESTABLE` — see Notable deviations |
+| Cursor Bugbot (PR) | ✅ clean — no open findings on the final review (Checklist Step 11's own pre-PR findings were fixed there, see What Changed) |
+| Cursor Security Reviewer (PR) | ✅ pass |
+| E2E | ✅ PASS — Checklist Step 11 (XL) final run, 3 Playwright `@ci` specs |
+| Finalize fix-loop | cs-fixer + ESLint + Prettier, then a coverage-gap test — 2 commits, both green (see What Changed) |
+
+**CI run:** https://github.com/Shadesman5/pagekit/pull/270
+
+**Metrics (CI-owned):** [PR #270](https://github.com/Shadesman5/pagekit/pull/270) sticky Codecov comment ([app.codecov.io](https://app.codecov.io/gh/Shadesman5/pagekit/pull/270)) · [Quality Dashboard](https://Shadesman5.github.io/pagekit/quality/)
+
+**Notable deviations:**
+1. Finalize's CI run failed cs-fixer (import ordering plus a missing anonymous-class constructor-parens on the Checklist Step 5 lifecycle class in `app/system/scripts.php`) and ESLint (`no-useless-assignment` on a dead initializer in the pre-existing, ticket-unrelated `.github/conductor/metrics.mjs`) — fixed in one commit; a follow-up Prettier failure on the same conductor scripts (`metrics.mjs`, `import-manual-agents.mjs`) was fixed in a second. Neither touched Extension Safety production code.
+2. Coverage gap pass — Codecov's patch diff flagged the `LifecycleRunner` construction site in `MigrationController`; closed with a new `MigrationControllerTest.php`. A second flagged line — `ExtensionFailureStore::write()`'s `json_encode()` failure guard (`!is_string($json)`) — stays uncovered and is reported `UNTESTABLE`: `$entries` is always built from typed scalars under `JSON_INVALID_UTF8_SUBSTITUTE`, so there is no reachable input that makes `json_encode()` return `false` without mocking the function itself, which the suite's real-filesystem, no-vfsStream convention (Checklist Step 1) rules out.
 
 ---
 
 ## 📋 Phase 1 Audit Closure
 
-_TBD / None_
+None (no `Closes Phase 1 audit:` line in the ticket header; Extension Safety & Fault Isolation scope does not touch a Phase 1 audit item).
 
 ---
 
@@ -332,7 +360,7 @@ _TBD / None_
 <!-- Human-only follow-ups the maintainer must do (ruleset flips, real Docker/Apache
      verification, secrets, etc.). Not ROADMAP deferrals — those go under Deferred. -->
 
-_TBD / None_
+None — the ticket's one optional maintainer action (a real Docker prod-image boot check that `tmp/system` is writable for `www-data`) is resolved by CI itself: the `docker-image` workflow ran and passed on this PR's push, so no local re-verification is needed.
 
 ---
 
@@ -341,58 +369,55 @@ _TBD / None_
 <!-- Future ROADMAP/PHASE work, explicit non-goals, bridges. Do NOT put maintainer
      Manual Work here — that belongs under Maintainer action above. -->
 
-_TBD / None_
+- **Step 2.7.1 (Snapshot & Three-Stage Uninstall)** — snapshots/backups before destructive package operations, three-stage uninstall. *PHASE_2 §2.7.1 already scoped against this step — no amendment needed.*
+- **Step 2.7.2 (Module Dependency Integrity)** — fail-closed dependency graph; `resolveModules()`'s silent skip of an unregistered `require` entry is deliberately left as-is. *PHASE_2 §2.7.2 amended (Plan) to point at this step's durable failure record + admin notification as the enforcement seam, in place of the session flash it previously named.*
+- **Step 2.7.3 (Static Module Registration)** — the registration barrier here still executes every on-disk `index.php`; a genuinely fatal compile error, `exit`/`die`, or resource exhaustion inside one still ends the request (forward-debt tag on `ModuleManager::register()`'s `try`, see No-Mercy Compliance). *PHASE_2 §2.7.3 amended (Plan) with this precise residual risk.*
+- **Step 2.8 (Extension Packaging & Prebuilt Assets)** — the packaging contract absorbs the lifecycle file shape (`extra.scripts` returning a `PackageLifecycleInterface` implementation). *PHASE_2 §2.8 amended (Plan) to name it.*
+- **Step 2.10.2 (Controller FQCN autowiring)** — already sequenced after this step; no amendment needed.
+- **Non-goals:** sandboxing an enabled extension's PHP (Phase 5 §5.6 future candidate); fixing a broken extension's own bug; `User::evaluateBooleanExpression()` extraction (no second caller); extending or forking the Step 2.6 atomic-write primitive.
+- **Bridges removed, none new:** the three static-locator bridges this ticket named — `UrlResolver`'s cache/module/repository statics, `ThemeOneHelpers`'s URL provider, `UniqueValidator`'s db setter — are deleted along with their `TEMPORARY BRIDGE` tags (Checklist Steps 8–10). One forward-debt tag remains: `ModuleManager::register()`'s per-include barrier carries `// TODO: Must be refactored in Step 2.7.3 (Static Module Registration)`.
 
 ---
 
 ## 📌 Follow-on (ROADMAP)
 
-_TBD / None_
+None — no new ROADMAP sub-step created. Every deferred item above (2.7.1, 2.7.2, 2.7.3, 2.8, 2.10.2) already exists in `.cursor/ROADMAP.md`.
 
 ---
 
 ## 🧊 Parked (unplanned)
 
-_TBD / None_
+None.
 
 ---
 
 ## 🧹 Cleanup
 
-_TBD / None_
+None beyond the bridge deletions, dumper replacements and `PackageScripts` removal already covered under What Changed and No-Mercy Compliance above.
 
 ---
 
 ## 🛡️ Audit
 
-_TBD / None_
+None (see Phase 1 Audit Closure above).
 
 ---
 
 ## 🎁 Bonus
 
-_TBD / None_
+- **`RoutesDataCollector` cache-key ripple-effect fix** — outside the ticket's listed file scope, discovered and fixed inside Checklist Step 7 once the routing dumper replacement made the collector's own cache key stale-by-construction; see What Changed and Key Decisions.
 
 ---
 
 ## 🔍 Research
 
-_TBD / None_
+None.
 
 ---
 
 ## 📎 Related Documents
 
-- Ticket: `migration-docs/tickets/active/PROMPT_2_7_Extension-Safety-Fault-Isolation_plan.md` (_TBD_ → move to `done/` after Finalize)
+- Ticket: `migration-docs/tickets/active/PROMPT_2_7_Extension-Safety-Fault-Isolation_plan.md` → moves to `migration-docs/tickets/done/` as part of this Finalize
 - Task prompt: `migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_7_Extension-Safety-Fault-Isolation.md`
 - Predecessor: Step 2.6 — Filesystem Write Resilience
 - Successor: Step 2.7.1 — Snapshot & Three-Stage Uninstall
-
----
-
-## 📊 <Step-specific appendix>
-
-<!-- Narrative/structural notes only. Never a metrics table (coverage %, MSI, test counts): quality
-     numbers are CI-owned — link the sticky quality-report comment + dashboard instead. -->
-
-_TBD — remove this section if not applicable._

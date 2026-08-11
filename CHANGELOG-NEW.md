@@ -1,5 +1,40 @@
 # Changelog
 
+## Pagekit 1.2.38 - Extension Safety & Fault Isolation (August 11, 2026)
+
+### 💥 Breaking Changes
+
+- **A package's lifecycle file must return a `PackageLifecycleInterface` implementation, not an array of closures** — `extra.scripts` still names the file, but `LifecycleRunner` rejects the previous `['install' => fn, ...]` shape with a `\RuntimeException` naming what it got instead. The two shipped lifecycle files (the system's own, the blog's) convert to the new contract in this same release.
+
+### ✨ Added
+
+- **A durable, never-throws record of which extensions and themes have failed** — `ExtensionFailureStore` (`tmp/system/extension-failures.json`, denied over HTTP, written atomically) survives the request that hit the failure, keeps a recovered extension off the next boot even when the database write that would have disabled it also failed, and backs a standing admin notice plus a warning icon in the extension manager until the module is re-enabled or a theme recovers on its own load. (Closes #160)
+- **Fault isolation around every extension boot window** — module registration, the load/`main()` window (new `ExtensionLoader`), and a package's `disable`/`uninstall` lifecycle hooks each run behind their own `\Throwable` barrier, so one broken package can no longer take the whole boot, a sibling module's registration, or an administrator's way out of it down too. `public/index.php`'s last-resort exception handler is now registered unconditionally instead of only once a `tmp/logs/debug.log` already existed.
+- **`PackageLifecycleInterface` + `LifecycleRunner`**, replacing the array-of-closures `PackageScripts`; `PackageManager` now runs an extension's declared schema migrations itself, snapshotting the pre-attempt version so a failed enable rolls the schema back alongside the existing config rollback.
+- **`Router::addResolver()`** — a per-class factory seam for a route resolver that needs constructor dependencies (a metadata cache, an entity repository), replacing a resolver's own static-locator bridge.
+
+### ♻️ Changed
+
+- **The routing cache is data-only and content-addressed** — the two deprecated, hand-copied dumpers (`PhpMatcherDumper`, `UrlGeneratorDumper`) are replaced by Symfony's own `CompiledUrlMatcherDumper` and a new Pagekit-owned `CompiledUrlGenerator`, both dumping a plain `<?php return [...];` array instead of a generated PHP class per cache key. Cache freshness is now a content hash instead of a `filemtime()` comparison, which a deployment that resets file mtimes (or runs with `opcache.validate_timestamps=0`) could previously fool into serving a stale route set.
+- **Three static-locator bridges are gone** — the blog's `UrlResolver`, `theme-one`'s `ThemeOneHelpers`, and `UniqueValidator` all move to constructor injection (the last resolved through Symfony's `ContainerConstraintValidatorFactory`); nothing reaches a database connection, a cache pool or a URL provider through a static setter any more.
+
+### 🐛 Fixed
+
+- **A theme that recovered still read as broken in the admin notice** — until an unrelated package action happened to clear it. `ExtensionLoader` now clears a theme's failure record itself the moment it loads successfully again.
+- **A broken pending-update check could lock an administrator out of `/admin`** — the `auth.login` listener's migration-status check now has its own fault barrier: a failure is logged and flashed without repeating the throwable's own message, and the recorded version is left alone so the next login asks again instead of marking an unfinished upgrade as done.
+- **The debug bar's route list could go stale for an entire deployment's lifetime** — `RoutesDataCollector` keyed its cache on the routing generator's own file, which used to be regenerated per route set and is now one shared file; it keys on the route collection itself instead, so a route change invalidates the panel's cache again.
+
+### ❌ Removed
+
+- **`PackageScripts`, `PhpMatcherDumper`, `UrlGeneratorDumper`**, and the three `UrlResolver`/`ThemeOneHelpers`/`UniqueValidator` static bridges above — all deleted outright, with no dual path kept alongside their replacements.
+
+### 🔒 Security
+
+- **The failure record is denied over HTTP and never carries a stack trace** — `tmp/system/.htaccess` adds `Require all denied` on top of a directory that already sits outside `public/`; the admin notice it backs names only the failing module, HTML-escaped, never the throwable's own message.
+- **A route cache can no longer be mistaken for executable code** — both the matcher and generator dumps are validated arrays now, never a `require`d PHP class; a half-written or tampered cache file degrades to the non-cached router instead of being instantiated.
+
+---
+
 ## Pagekit 1.2.37 - Filesystem Write Resilience: Atomic Writes (August 10, 2026)
 
 ### ✨ Added
