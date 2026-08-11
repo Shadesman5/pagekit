@@ -29,7 +29,7 @@ jobs:
     name: Import V1 metrics
     if: >-
       github.event.pull_request.merged == true &&
-      contains(join(github.event.pull_request.labels.*.name, ','), 'v1-metrics')
+      contains(github.event.pull_request.labels.*.name, 'v1-metrics')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
