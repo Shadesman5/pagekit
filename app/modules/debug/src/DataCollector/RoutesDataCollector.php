@@ -43,14 +43,16 @@ class RoutesDataCollector implements DataCollectorInterface
      */
     public function collect(): array
     {
-        $generatorFile = (new \ReflectionClass($this->router->getGenerator()))->getFileName();
-        $mtime = $generatorFile !== false ? filemtime($generatorFile) : false;
-        $path = sprintf($this->cache.'/'.$this->file, sha1((string) $mtime));
+        $collection = $this->router->getRouteCollection();
+
+        // Key the collected list on the routes themselves: they are what makes it
+        // stale, and no file of the router's tracks them.
+        $path = sprintf($this->cache.'/'.$this->file, sha1(serialize($collection)));
 
         if (!file_exists($path)) {
 
             $routes = [];
-            foreach ($this->router->getRouteCollection() as $name => $route) {
+            foreach ($collection as $name => $route) {
                 $routes[] = [
                     'name' => $name,
                     'path' => $route->getPath(),

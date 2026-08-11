@@ -6,13 +6,18 @@ namespace Pagekit\Routing\Tests;
 
 use Pagekit\Event\EventDispatcher;
 use Pagekit\Filesystem\Filesystem;
+use Pagekit\Routing\Generator\CompiledUrlGenerator;
 use Pagekit\Routing\Loader\RoutesLoader;
+use Pagekit\Routing\ParamsResolverInterface;
+use Pagekit\Routing\Route;
 use Pagekit\Routing\Router;
 use Pagekit\Routing\Routes;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
+use Symfony\Component\Routing\Matcher\Dumper\CompiledUrlMatcherDumper;
+use Symfony\Component\Routing\RouteCollection;
 
 class RouterTest extends TestCase
 {
@@ -232,9 +237,8 @@ class RouterTest extends TestCase
      *
      * Rapid page reordering (drag & drop) fires many requests that regenerate the routing
      * dump concurrently. A reader seeing a half-written cache file used to hit an uncaught
-     * exception (LogicException from instantiate*()), surfacing as HTTP 500 on
-     * /api/site/node and /api/site/menu. The router must fall back to the non-cached
-     * matcher/generator instead.
+     * exception, surfacing as HTTP 500 on /api/site/node and /api/site/menu. The router
+     * must fall back to the non-cached matcher/generator instead.
      */
     public function testCorruptCacheFileFallsBackInsteadOfFatal(): void
     {
@@ -252,7 +256,7 @@ class RouterTest extends TestCase
 
             $getCache = new \ReflectionMethod($router, 'getCache');
 
-            // Simulate a half-written dump: valid PHP, but the expected class is missing.
+            // Simulate a half-written dump: valid PHP that holds no route data.
             $matcherFile = $getCache->invoke($router, '%s/%s.matcher.cache')['file'];
             $generatorFile = $getCache->invoke($router, '%s/%s.generator.cache')['file'];
             file_put_contents($matcherFile, '<?php /* partial cache write, class missing */');
@@ -276,9 +280,10 @@ class RouterTest extends TestCase
     /**
      * The dumped matcher must reach disk through the filesystem service, which puts
      * the file in place in a single step. The router requires the file straight back
-     * and instantiates the class it declares, so a reader that catches the dump
-     * half-written crashes on a missing class - and rapid route changes (page drag &
-     * drop) make writing while others read the normal case, not the rare one.
+     * and matches on the data it returns, so a reader that catches the dump
+     * half-written gets a truncated file instead of routes - and rapid route changes
+     * (page drag & drop) make writing while others read the normal case, not the
+     * rare one.
      */
     public function testDumpedCacheIsWrittenThroughTheFilesystem(): void
     {
@@ -315,7 +320,7 @@ class RouterTest extends TestCase
 
             $this->assertCount(1, $files->writes);
             $this->assertSame($cache['file'], $files->writes[0]['file']);
-            $this->assertStringContainsString('class UrlMatcher'.$cache['key'], $files->writes[0]['content']);
+            $this->assertStringContainsString('return [', $files->writes[0]['content']);
             $this->assertFileExists($cache['file']);
         } finally {
             $this->removeCacheDir($dir);
@@ -397,10 +402,336 @@ class RouterTest extends TestCase
 
             $dump = file_get_contents($cache['file']);
             $this->assertIsString($dump);
-            $this->assertStringContainsString('class UrlGenerator'.$cache['key'], $dump);
+            $this->assertStringContainsString("'plain_route' =>", $dump);
         } finally {
             $this->removeCacheDir($dir);
         }
+    }
+
+    /**
+     * A request is matched on the dumped route data, not on the route
+     * collection: a dump holding the route under another path takes the request
+     * there, which is an answer the collection cannot give.
+     */
+    public function testTheDumpedRoutesAreWhatARequestIsMatchedOn(): void
+    {
+        $dir = $this->createCacheDir();
+        $files = new RouterTestWriteCountingFilesystem();
+
+        try {
+            $router = new Router($this->cachedRoutes(), new RoutesLoader($this->events), $this->stack, ['cache' => $dir], $files);
+
+            $dumped = $this->dumpedRoutes('cached_pair', '/dumped/{id}', ['_controller' => 'TestController::pairAction']);
+
+            $dump = $this->cacheFile($router, '%s/%s.matcher.cache');
+            file_put_contents($dump, (new CompiledUrlMatcherDumper($dumped))->dump());
+
+            $this->stack->push(Request::create('/dumped/7'));
+
+            $params = $router->match('/dumped/7');
+
+            // The route and everything declared with it come out of the file.
+            $this->assertSame('cached_pair', $params['_route']);
+            $this->assertSame('7', $params['id']);
+            $this->assertSame('TestController::pairAction', $params['_controller']);
+
+            // A dump that is there is a dump that is used: nothing was written
+            // over it, and nothing was put next to it.
+            $this->assertSame(0, $files->writes);
+            $this->assertSame([$dump], glob($dir.'/*') ?: []);
+        } finally {
+            $this->removeCacheDir($dir);
+        }
+    }
+
+    /**
+     * The same for URL generation: the URL comes out of the dumped values, so a
+     * dump holding the route under another path generates that path.
+     */
+    public function testTheDumpedRoutesAreWhatUrlsAreGeneratedFrom(): void
+    {
+        $dir = $this->createCacheDir();
+        $files = new RouterTestWriteCountingFilesystem();
+
+        try {
+            $router = new Router($this->cachedRoutes(), new RoutesLoader($this->events), $this->stack, ['cache' => $dir], $files);
+
+            $dumped = $this->dumpedRoutes('cached_pair', '/dumped/{id}', ['_controller' => 'TestController::pairAction']);
+
+            $dump = $this->cacheFile($router, '%s/%s.generator.cache');
+            file_put_contents($dump, CompiledUrlGenerator::dump($dumped));
+
+            $this->assertSame('/dumped/7', $router->generate('cached_pair', ['id' => 7]));
+
+            $this->assertSame(0, $files->writes);
+            $this->assertSame([$dump], glob($dir.'/*') ?: []);
+        } finally {
+            $this->removeCacheDir($dir);
+        }
+    }
+
+    /**
+     * The dumps a request writes are the ones the next request finds: a dump is
+     * named after the routes it holds, so routes that did not change are not
+     * dumped a second time.
+     */
+    public function testTheDumpsARequestWritesAreFoundByTheNextRequest(): void
+    {
+        $dir = $this->createCacheDir();
+
+        try {
+            // Matching and generating each dump their own file.
+            (new Router($this->cachedRoutes(), new RoutesLoader($this->events), $this->stack, ['cache' => $dir]))->match('/pair/7');
+            (new Router($this->cachedRoutes(), new RoutesLoader($this->events), $this->stack, ['cache' => $dir]))->generate('cached_pair', ['id' => 7]);
+
+            $dumps = glob($dir.'/*') ?: [];
+            $this->assertCount(2, $dumps);
+
+            $files = new RouterTestWriteCountingFilesystem();
+            $matching = new Router($this->cachedRoutes(), new RoutesLoader($this->events), $this->stack, ['cache' => $dir], $files);
+            $generating = new Router($this->cachedRoutes(), new RoutesLoader($this->events), $this->stack, ['cache' => $dir], $files);
+
+            $this->stack->push(Request::create('/pair/7'));
+
+            $this->assertSame('7', $matching->match('/pair/7')['id']);
+            $this->assertSame('/pair/7', $generating->generate('cached_pair', ['id' => 7]));
+
+            // The same two dumps: neither was written again, and no third one
+            // appeared under a name only this request would look up.
+            $this->assertSame(0, $files->writes);
+            $this->assertSame($dumps, glob($dir.'/*') ?: []);
+        } finally {
+            $this->removeCacheDir($dir);
+        }
+    }
+
+    /**
+     * A dump is current because it exists, not because of its age: its name is
+     * derived from the routes it was written for. Dating it instead would hand
+     * that decision to file times - a deployment that resets them, or a
+     * production opcache that does not revalidate them, would leave a dump that
+     * is stale but looks current, or force a rewrite on every request.
+     */
+    public function testTheDumpIsReadRegardlessOfHowItsAgeComparesToTheRoutes(): void
+    {
+        $dir = $this->createCacheDir();
+        $files = new RouterTestWriteCountingFilesystem();
+
+        try {
+            // Routes whose modified marker sits in the far future against a dump
+            // dated before everything - the pair an age comparison rejects.
+            $router = new Router($this->cachedRoutes(new RouterTestPinnedRoutes()), new RoutesLoader($this->events), $this->stack, ['cache' => $dir], $files);
+
+            $dumped = $this->dumpedRoutes('cached_pair', '/dumped/{id}', ['_controller' => 'TestController::pairAction']);
+
+            $dump = $this->cacheFile($router, '%s/%s.generator.cache');
+            file_put_contents($dump, CompiledUrlGenerator::dump($dumped));
+            touch($dump, 1);
+
+            $this->assertSame('/dumped/7', $router->generate('cached_pair', ['id' => 7]));
+            $this->assertSame(0, $files->writes);
+        } finally {
+            $this->removeCacheDir($dir);
+        }
+    }
+
+    /**
+     * Declaring a route changes which dump the router reads, so the new route is
+     * served straight away instead of being shadowed by the previous dump. The
+     * superseded file stays behind for the cache clear to sweep.
+     */
+    public function testChangedRoutesAreServedFromANewDump(): void
+    {
+        $dir = $this->createCacheDir();
+
+        try {
+            $router = new Router($this->cachedRoutes(), new RoutesLoader($this->events), $this->stack, ['cache' => $dir]);
+
+            $this->assertSame('/pair/7', $router->generate('cached_pair', ['id' => 7]));
+
+            $routes = $this->cachedRoutes();
+            $routes->add([
+                'name' => 'added_pair',
+                'path' => '/added/{id}',
+                'defaults' => ['_controller' => 'TestController::addedAction'],
+            ]);
+
+            $files = new RouterTestWriteCountingFilesystem();
+            $next = new Router($routes, new RoutesLoader($this->events), $this->stack, ['cache' => $dir], $files);
+
+            $this->assertSame('/added/3', $next->generate('added_pair', ['id' => 3]));
+
+            $this->assertSame(1, $files->writes);
+            $this->assertCount(2, glob($dir.'/*') ?: []);
+        } finally {
+            $this->removeCacheDir($dir);
+        }
+    }
+
+    /**
+     * A dump can be caught half-written, with the routes in it stopping mid
+     * array. Reading such a file back raises a parse error, which must cost the
+     * request its cache and nothing else - it is served from the route
+     * collection instead.
+     */
+    public function testTruncatedDumpFallsBackInsteadOfFatal(): void
+    {
+        $dir = $this->createCacheDir();
+
+        try {
+            // Two requests fill the pair of dumps, one file each.
+            (new Router($this->cachedRoutes(), new RoutesLoader($this->events), $this->stack, ['cache' => $dir]))->match('/pair/7');
+            (new Router($this->cachedRoutes(), new RoutesLoader($this->events), $this->stack, ['cache' => $dir]))->generate('cached_pair', ['id' => 7]);
+
+            $dumps = glob($dir.'/*') ?: [];
+            $this->assertCount(2, $dumps);
+
+            foreach ($dumps as $dump) {
+                file_put_contents($dump, '<?php return [');
+            }
+
+            $this->stack->push(Request::create('/pair/7'));
+
+            $matching = new Router($this->cachedRoutes(), new RoutesLoader($this->events), $this->stack, ['cache' => $dir]);
+            $generating = new Router($this->cachedRoutes(), new RoutesLoader($this->events), $this->stack, ['cache' => $dir]);
+
+            $this->assertSame('7', $matching->match('/pair/7')['id']);
+            $this->assertSame('/pair/7', $generating->generate('cached_pair', ['id' => 7]));
+
+            // Reading the ruined files through did not leave anything else behind.
+            $this->assertCount(2, glob($dir.'/*') ?: []);
+        } finally {
+            $this->removeCacheDir($dir);
+        }
+    }
+
+    /**
+     * A dump the router was told it had written but that is not on disk - it was
+     * swept between writing and reading - must not take the request with it:
+     * reading a file that is not there would be fatal, so the route collection
+     * answers instead.
+     */
+    public function testDumpThatNeverReachedDiskFallsBackInsteadOfFatal(): void
+    {
+        $dir = $this->createCacheDir();
+
+        try {
+            $router = new Router($this->cachedRoutes(), new RoutesLoader($this->events), $this->stack, ['cache' => $dir], new RouterTestSilentFilesystem());
+
+            $this->stack->push(Request::create('/pair/7'));
+
+            $this->assertSame('7', $router->match('/pair/7')['id']);
+            $this->assertStringContainsString('/pair/7', $router->generate('cached_pair', ['id' => 7]));
+            $this->assertSame([], glob($dir.'/*') ?: []);
+        } finally {
+            $this->removeCacheDir($dir);
+        }
+    }
+
+    /**
+     * A route's params resolver keeps its say once the routes are dumped - the
+     * seam an extension uses to turn a post id into the parameters its
+     * permalink is built from, and to read them back off a matched request. The
+     * resolver is named by the route's defaults, so it only runs at all if the
+     * dumped values were read back with the route it belongs to.
+     */
+    public function testParamsResolverKeepsTransformingParametersOnDumpedRoutes(): void
+    {
+        $dir = $this->createCacheDir();
+        $files = new RouterTestWriteCountingFilesystem();
+
+        $dumped = $this->dumpedRoutes('resolved_post', '/dumped-post/{id}', [
+            '_controller' => 'TestController::postAction',
+            '_resolver' => RouterTestUrlResolver::class,
+        ]);
+
+        try {
+            $generating = new Router($this->resolverRoutes(), new RoutesLoader($this->events), $this->stack, ['cache' => $dir], $files);
+
+            $generatorDump = $this->cacheFile($generating, '%s/%s.generator.cache');
+            file_put_contents($generatorDump, CompiledUrlGenerator::dump($dumped));
+
+            // The resolver rewrote the id, the dumped route built the URL from it.
+            $this->assertSame('/dumped-post/42', $generating->generate('resolved_post', ['id' => 1]));
+
+            $matching = new Router($this->resolverRoutes(), new RoutesLoader($this->events), $this->stack, ['cache' => $dir], $files);
+
+            $matcherDump = $this->cacheFile($matching, '%s/%s.matcher.cache');
+            file_put_contents($matcherDump, (new CompiledUrlMatcherDumper($dumped))->dump());
+
+            $this->stack->push(Request::create('/dumped-post/42'));
+
+            $params = $matching->match('/dumped-post/42');
+
+            $this->assertSame('42', $params['id']);
+            $this->assertSame('resolved', $params['slug']);
+
+            $this->assertSame(0, $files->writes);
+        } finally {
+            $this->removeCacheDir($dir);
+        }
+    }
+
+    /**
+     * The routes of a single request. Dumping compiles the routes it writes and
+     * a compiled route carries that state, so a router standing in for the next
+     * request gets its own set - the way a request builds its routes from
+     * scratch.
+     */
+    private function cachedRoutes(Routes $routes = new Routes()): Routes
+    {
+        $routes->add([
+            'name' => 'cached_pair',
+            'path' => '/pair/{id}',
+            'defaults' => ['_controller' => 'TestController::pairAction'],
+            'requirements' => ['id' => '\d+'],
+        ]);
+
+        return $routes;
+    }
+
+    private function resolverRoutes(): Routes
+    {
+        $routes = new Routes();
+        $routes->add([
+            'name' => 'resolved_post',
+            'path' => '/post/{id}',
+            'defaults' => [
+                '_controller' => 'TestController::postAction',
+                '_resolver' => RouterTestUrlResolver::class,
+            ],
+        ]);
+
+        return $routes;
+    }
+
+    /**
+     * The routes of a dump lying in the cache directory: the route the router
+     * was given, under a path its own route collection has never heard of. An
+     * answer carrying that path can only have been read back out of the file.
+     *
+     * @param array<string, mixed> $defaults
+     */
+    private function dumpedRoutes(string $name, string $path, array $defaults): RouteCollection
+    {
+        $routes = new RouteCollection();
+        $routes->add($name, new Route($path, $defaults, ['id' => '\d+']));
+
+        return $routes;
+    }
+
+    /**
+     * The path a router reads one of its two dumps from. A dump is named after
+     * the routes it holds, so the router is asked where one has to lie to be
+     * found instead of the name being spelled out here.
+     */
+    private function cacheFile(Router $router, string $file): string
+    {
+        $path = (new \ReflectionMethod($router, 'getCache'))->invoke($router, $file)['file'];
+
+        $this->assertIsString($path);
+
+        return $path;
     }
 
     private function createCacheDir(): string
@@ -415,5 +746,74 @@ class RouterTest extends TestCase
     {
         array_map('unlink', glob($dir.'/*') ?: []);
         rmdir($dir);
+    }
+}
+
+/**
+ * Fixture: a filesystem that counts what the router puts on disk, so a test can
+ * tell a dump that was reused from one that was written again.
+ */
+final class RouterTestWriteCountingFilesystem extends Filesystem
+{
+    public int $writes = 0;
+
+    public function dumpAtomic(string $file, string $content, ?int $mode = null): void
+    {
+        ++$this->writes;
+
+        parent::dumpAtomic($file, $content, $mode);
+    }
+}
+
+/**
+ * Fixture: a filesystem that reports a write it never performed, leaving the
+ * state a dump swept between writing and reading leaves behind.
+ */
+final class RouterTestSilentFilesystem extends Filesystem
+{
+    public function dumpAtomic(string $file, string $content, ?int $mode = null): void
+    {
+    }
+}
+
+/**
+ * Fixture: routes whose modified marker sits far ahead of any file, so a dump
+ * written for them is always the older of the two.
+ */
+final class RouterTestPinnedRoutes extends Routes
+{
+    public function getModified(): int
+    {
+        // 2100-01-01, later than anything a file on disk can be dated.
+        return 4102444800;
+    }
+}
+
+/**
+ * Fixture: a params resolver in the shape an extension registers - it rewrites
+ * the parameters a URL is generated from and enriches the ones a match returns.
+ */
+final class RouterTestUrlResolver implements ParamsResolverInterface
+{
+    /**
+     * @param  array<string, mixed> $parameters
+     * @return array<string, mixed>
+     */
+    public function match(array $parameters = []): array
+    {
+        $parameters['slug'] = 'resolved';
+
+        return $parameters;
+    }
+
+    /**
+     * @param  array<string, mixed> $parameters
+     * @return array<string, mixed>
+     */
+    public function generate(array $parameters = []): array
+    {
+        $parameters['id'] = 42;
+
+        return $parameters;
     }
 }
