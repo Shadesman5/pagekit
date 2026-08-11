@@ -76,7 +76,7 @@
 - [x] Step 6 (L) — Blog lifecycle class + install rollback + double fault
 - [x] Step 7 (L) — Routing dumper replacement + content-hash freshness
 - [x] Step 8 (L) — Blog `UrlResolver` DI + resolver factory seam
-- [ ] Step 9 (S) — theme-one helper purification
+- [x] Step 9 (S) — theme-one helper purification
 - [ ] Step 10 (M) — `UniqueValidator` container-aware factory
 - [ ] Step 11 (XL) — Review (Bugbot + Security) + E2E
 

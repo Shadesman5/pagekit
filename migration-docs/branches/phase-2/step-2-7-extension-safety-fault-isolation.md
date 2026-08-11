@@ -190,6 +190,26 @@ Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer FAIL
 
 Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
 
+### theme-one helper purification (Checklist Step 9)
+
+| File | Change |
+|---|---|
+| `packages/pagekit/theme-one/functions.php` | `ThemeOneHelpers` (static `UrlProvider $url` property, `setUrl()`/`getUrl()`, the `\RuntimeException` "not set" guard) — the second of the three `TEMPORARY BRIDGE` tags this ticket named — is deleted. `image(string $url, array $attrs = []): string` becomes `image(string $src, array $attrs = []): string`: the body drops its `ThemeOneHelpers::getUrl()->get($url)` resolution and renders `$src` exactly as handed in; a new docblock states the src must already be a resolved URL, resolved by the caller via the view's `url()` helper. |
+| `packages/pagekit/theme-one/index.php` | The `\ThemeOneHelpers::setUrl($app->get('url'))` call in the `main` closure (frontend-only, `isAdmin`-guarded) is deleted along with the class it wired. |
+| `packages/pagekit/theme-one/views/header-logo.php` | Its 4 `image(...)` call sites (raster + svg branches, for both the primary logo and its contrast/inverse variant) now wrap the stored config value in `$view->url(...)` before handing it to `image()`, resolving the path at the call site instead of inside the function. |
+| `packages/pagekit/theme-one/views/offcanvas.php` | Its 2 `image(...)` call sites (raster + svg branches for the panel's own logo setting) resolve the same way. |
+| `phpstan-baseline.neon` | The two pre-existing `variable.undefined` (`$view might not be defined`) baseline entries for these two files have their counts adjusted to match the new call sites — `header-logo.php` 1 → 5, `offcanvas.php` 5 → 7 (4 and 2 more `$view->` references respectively) — the same pre-existing identifier on the same path; no new entry added. |
+
+### Tests (Checklist Step 9)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Theme/bootstrap.php` (new) | `require_once`s `functions.php` directly, mirroring `tests/Unit/Blog/bootstrap.php`'s pattern for a file the theme only ever `require`s at boot, with no composer autoload entry of its own. |
+| `tests/Unit/Theme/ThemeOneImageTest.php` (new) | 5 tests against the now-pure `image()` in isolation: a src renders exactly as handed in, with no second resolution; an image with no `alt` still carries the attribute as a bare flag (decorative, not read out by a screen reader); attribute values are escaped without double-encoding text that is already entity-encoded; a crafted src containing a quote cannot close the `src` attribute and add one of its own (e.g. an `onerror` handler); the svg branch's class list, boolean flag and empty-dimension handling render as before. |
+| `tests/Unit/Theme/ThemeOneLogoTemplateTest.php` (new) | 4 tests rendering the real `header-logo.php`/`offcanvas.php` templates end to end through a `View` + `PhpEngine` with a mocked `UrlProvider` standing in for a subdirectory install: the header's raster logo and its contrast/inverse variant, the header's svg logo and its inverse, and the offcanvas panel's raster and svg logos all render an `<img src="...">` carrying the resolved (subdirectory-prefixed) URL rather than the raw stored path — pinning the call sites themselves, not only the pure function they call. |
+
+Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -213,6 +233,7 @@ Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done
 - **The debug bar's route-list cache is keyed on the route collection, not the generator's own file (Checklist Step 7).** `RoutesDataCollector::collect()` (outside the ticket's listed scope — see What Changed) used to key its cache on the *generated matcher/generator class's own file* mtime, which only worked because each distinct route set got a uniquely-named, freshly dumped class. Once the generator stopped being one class per route set and started reading the same `CompiledUrlGenerator.php` for all of them, that file's mtime freezes at deploy time; keying on `serialize($router->getRouteCollection())` instead ties the panel's own cache to the same thing that actually makes its list stale.
 - **`Router::addResolver()` is a per-class factory map, not general constructor autowiring (Checklist Step 8).** A route only ever carries its resolver as a class name — the one thing that survives being dumped to the routing cache — so a resolver with constructor dependencies needs an explicit way to say how to build it, registered by the module that owns it; a bare `new $resolver()` stays the supported default for a resolver that needs nothing, not a fallback the barrier degrades to.
 - **`permalinkFor()` takes the module as an argument rather than a resolver reading it (Checklist Step 8).** `RouteListener::onAppRequest()` publishes the permalink as a router option before any resolver would exist for that request; deriving it from a constructed resolver would pay for the blog resolver's own metadata-cache read on every request, including ones that never touch a post URL. Keeping the derivation static and argument-based lets both callers reach the same pattern without either one constructing the other.
+- **`image()` is made pure by deleting the bridge, not by adding a second URL-resolution seam (Checklist Step 9).** Both call-site templates already resolved their link `href` through the view's own `$view->url()` helper; the fix threads the same call through the six logo call sites and lets `image()` render whatever `$src` it is handed, so `ThemeOneHelpers` and its `setUrl()` wiring have nothing left to do.
 
 ---
 
@@ -249,6 +270,7 @@ Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done
 - **Rule 4 (Delete over wrap) — Checklist Step 6:** the blog's interim anonymous lifecycle class (Step 5, inlining its own `migrate()` call in `scripts.php`) is deleted outright in favor of the named `BlogLifecycle` class plus framework-run migrations in `PackageManager` — no path keeps an extension-run migrate call alongside the manager's own.
 - **Rule 4 (Delete over wrap) — Checklist Step 7:** `PhpMatcherDumper` (Symfony's own deprecated dumper, copied into the tree, carrying the file's own `// TODO: Must be refactored in Step 2.7` tag) and the hand-rolled `UrlGeneratorDumper` are both deleted outright in favor of Symfony's `CompiledUrlMatcherDumper`/`CompiledUrlMatcher` and the new data-only `CompiledUrlGenerator`; the reflection-based `instantiateMatcher()`/`instantiateGenerator()` pair goes with them — no dual dump format, no fallback reflection path, and no orphaned forward-debt tag survive alongside the replacement.
 - **Rule 4 (Delete over wrap) — Checklist Step 8:** `UrlResolver`'s three static bridge properties, four setters and both `\LogicException` guards — the first of the three `TEMPORARY BRIDGE` tags this ticket named — are deleted outright in favor of constructor injection and `Router::addResolver()`'s factory seam; no static fallback survives alongside the injected instance.
+- **Rule 4 (Delete over wrap) — Checklist Step 9:** `ThemeOneHelpers`'s static `UrlProvider` property, its `setUrl()`/`getUrl()` methods and `\RuntimeException` guard — the second of the three `TEMPORARY BRIDGE` tags this ticket named — are deleted outright in favor of a pure `image()` and the two templates' own `$view->url()` calls; no static fallback survives alongside the call sites.
 
 ---
 
