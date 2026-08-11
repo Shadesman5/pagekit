@@ -52,6 +52,11 @@ class Router implements RouterInterface, LinkReferenceType
     protected array $resolver = [];
 
     /**
+     * @var array<string, callable(): ParamsResolverInterface>
+     */
+    protected array $resolverFactories = [];
+
+    /**
      * Constructor.
      *
      * @param ResourceInterface    $resource
@@ -451,6 +456,22 @@ class Router implements RouterInterface, LinkReferenceType
     }
 
     /**
+     * Registers how to build a resolver class.
+     *
+     * Routes name their resolver as a class string, so a resolver with
+     * constructor dependencies cannot be built from that name alone. The module
+     * that owns the resolver registers a factory for it here; resolvers without
+     * dependencies need none.
+     *
+     * @param class-string<ParamsResolverInterface> $class
+     * @param callable(): ParamsResolverInterface   $factory
+     */
+    public function addResolver(string $class, callable $factory): void
+    {
+        $this->resolverFactories[$class] = $factory;
+    }
+
+    /**
      * Gets resolver instance from parameters.
      *
      * @param array<string, mixed> $parameters
@@ -464,7 +485,8 @@ class Router implements RouterInterface, LinkReferenceType
         }
 
         if (!isset($this->resolver[$resolver])) {
-            $this->resolver[$resolver] = new $resolver();
+            $factory = $this->resolverFactories[$resolver] ?? null;
+            $this->resolver[$resolver] = $factory !== null ? $factory() : new $resolver();
         }
 
         return $this->resolver[$resolver];

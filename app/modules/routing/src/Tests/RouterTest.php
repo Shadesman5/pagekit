@@ -673,6 +673,62 @@ class RouterTest extends TestCase
     }
 
     /**
+     * A route names its resolver by class, because that name is what survives
+     * being dumped - but a resolver that needs collaborators cannot be built
+     * from a name. The module that owns it says how to build it instead, and
+     * the router takes that way when it meets the class the route names.
+     */
+    public function testARegisteredFactoryBuildsTheResolverARouteNames(): void
+    {
+        $router = new Router($this->injectedResolverRoutes(), new RoutesLoader($this->events), $this->stack);
+
+        $router->addResolver(RouterTestInjectedResolver::class, fn () => new RouterTestInjectedResolver('injected'));
+
+        // Building this resolver from its name alone is an ArgumentCountError,
+        // so an answer at all is the factory having been used.
+        $this->assertSame('/post/injected', $router->generate('injected_post', ['id' => 1]));
+    }
+
+    /**
+     * A resolver that needs nothing keeps being built from the name the route
+     * carries, so registering a factory is what a resolver with dependencies
+     * does, not what every resolver has to do.
+     */
+    public function testAResolverWithoutAFactoryIsBuiltFromTheNameTheRouteCarries(): void
+    {
+        $router = new Router($this->resolverRoutes(), new RoutesLoader($this->events), $this->stack);
+
+        $this->assertSame('/post/42', $router->generate('resolved_post', ['id' => 1]));
+    }
+
+    /**
+     * The resolver of a request is built once and then reused. Building it is
+     * what an extension does its own setup in - the blog resolver reads its
+     * post metadata cache there - so a page full of post links must not pay for
+     * that per link.
+     */
+    public function testTheResolverIsBuiltOncePerRouter(): void
+    {
+        $built = 0;
+
+        $router = new Router($this->injectedResolverRoutes(), new RoutesLoader($this->events), $this->stack);
+
+        $router->addResolver(RouterTestInjectedResolver::class, function () use (&$built) {
+            ++$built;
+
+            return new RouterTestInjectedResolver('injected');
+        });
+
+        $router->generate('injected_post', ['id' => 1]);
+        $router->generate('injected_post', ['id' => 2]);
+
+        $this->stack->push(Request::create('/post/injected'));
+        $this->assertSame('injected', $router->match('/post/injected')['slug']);
+
+        $this->assertSame(1, $built, 'the resolver of a request is built once, for matching and generating alike');
+    }
+
+    /**
      * The routes of a single request. Dumping compiles the routes it writes and
      * a compiled route carries that state, so a router standing in for the next
      * request gets its own set - the way a request builds its routes from
@@ -699,6 +755,25 @@ class RouterTest extends TestCase
             'defaults' => [
                 '_controller' => 'TestController::postAction',
                 '_resolver' => RouterTestUrlResolver::class,
+            ],
+        ]);
+
+        return $routes;
+    }
+
+    /**
+     * The same route, resolved by a resolver that has to be handed its
+     * collaborators - the shape of an extension's resolver.
+     */
+    private function injectedResolverRoutes(): Routes
+    {
+        $routes = new Routes();
+        $routes->add([
+            'name' => 'injected_post',
+            'path' => '/post/{id}',
+            'defaults' => [
+                '_controller' => 'TestController::postAction',
+                '_resolver' => RouterTestInjectedResolver::class,
             ],
         ]);
 
@@ -813,6 +888,40 @@ final class RouterTestUrlResolver implements ParamsResolverInterface
     public function generate(array $parameters = []): array
     {
         $parameters['id'] = 42;
+
+        return $parameters;
+    }
+}
+
+/**
+ * Fixture: a params resolver in the shape of one that reaches for services of
+ * its own - the blog resolver takes a cache pool, its module and a repository.
+ * Its class name is all a route holds, and that is not enough to build it.
+ */
+final class RouterTestInjectedResolver implements ParamsResolverInterface
+{
+    public function __construct(private readonly string $slug)
+    {
+    }
+
+    /**
+     * @param  array<string, mixed> $parameters
+     * @return array<string, mixed>
+     */
+    public function match(array $parameters = []): array
+    {
+        $parameters['slug'] = $this->slug;
+
+        return $parameters;
+    }
+
+    /**
+     * @param  array<string, mixed> $parameters
+     * @return array<string, mixed>
+     */
+    public function generate(array $parameters = []): array
+    {
+        $parameters['id'] = $this->slug;
 
         return $parameters;
     }

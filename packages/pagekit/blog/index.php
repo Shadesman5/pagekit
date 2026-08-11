@@ -166,14 +166,17 @@ return [
 
             $app->set('commentRepository', fn ($app) => $app->get('db.em')->getRepository(Comment::class));
 
-            UrlResolver::setCache($app->get('cache'));
-            UrlResolver::setModule($app->get('module')->get('blog'));
-            UrlResolver::setPostRepository($app->get('postRepository'));
+            $app->get('router')->addResolver(UrlResolver::class, fn () => new UrlResolver(
+                $app->get('cache'),
+                $app->get('module')->get('blog'),
+                $app->get('postRepository'),
+            ));
 
             $app->get('events')->subscribe(new RouteListener(
                 $app->get('router'),
                 $app->get('routes'),
                 $app->get('cache'),
+                $app->get('module')->get('blog'),
             ));
             $app->get('events')->subscribe(new PostListener($app->get('postRepository')));
             $app->get('events')->subscribe(new ReadmorePlugin());

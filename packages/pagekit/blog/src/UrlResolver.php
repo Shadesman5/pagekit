@@ -21,42 +21,19 @@ class UrlResolver implements ParamsResolverInterface
     /** @var array<int|string, array<string, mixed>> */
     protected array $cacheEntries;
 
-    // Static service references set during blog module boot,
-    // required because Router instantiates resolvers via `new $class` (no DI).
-    // TODO: TEMPORARY BRIDGE - To be removed in Step 2.7 (Extension Safety System) when routing factory gains DI support
-    private static ?CacheItemPoolInterface $cache = null;
-    private static ?Module $module = null;
-    private static ?PostRepository $posts = null;
-
-    // TODO: TEMPORARY BRIDGE - To be removed in Step 2.7 (Extension Safety System) when routing factory gains DI support
-    public static function setCache(?CacheItemPoolInterface $cache): void
-    {
-        self::$cache = $cache;
-    }
-
-    // TODO: TEMPORARY BRIDGE - To be removed in Step 2.7 (Extension Safety System) when routing factory gains DI support
-    public static function setModule(Module $module): void
-    {
-        self::$module = $module;
-    }
-
-    // TODO: TEMPORARY BRIDGE - To be removed in Step 2.7 (Extension Safety System) when routing factory gains DI support
-    public static function setPostRepository(?PostRepository $posts): void
-    {
-        self::$posts = $posts;
-    }
-
     /**
      * Constructor.
+     *
+     * The router builds this resolver through the factory the blog module
+     * registers during boot ({@see \Pagekit\Routing\Router::addResolver()}).
      */
-    public function __construct()
-    {
-        if (self::$cache !== null) {
-            $item = self::$cache->getItem(self::CACHE_KEY);
-            $this->cacheEntries = $item->isHit() ? ($item->get() ?: []) : [];
-        } else {
-            $this->cacheEntries = [];
-        }
+    public function __construct(
+        private readonly CacheItemPoolInterface $cache,
+        private readonly Module $module,
+        private readonly PostRepository $posts,
+    ) {
+        $item = $this->cache->getItem(self::CACHE_KEY);
+        $this->cacheEntries = $item->isHit() ? ($item->get() ?: []) : [];
     }
 
     /**
@@ -86,11 +63,7 @@ class UrlResolver implements ParamsResolverInterface
 
         if (!$id) {
 
-            if (self::$posts === null) {
-                throw new \LogicException('UrlResolver post repository is not set; call UrlResolver::setPostRepository() during blog boot.');
-            }
-
-            if (!$post = self::$posts->where(compact('slug'))->first()) {
+            if (!$post = $this->posts->where(compact('slug'))->first()) {
                 throw new NotFoundHttpException('Post not found.');
             }
 
@@ -115,11 +88,7 @@ class UrlResolver implements ParamsResolverInterface
 
         if (!isset($this->cacheEntries[$id])) {
 
-            if (self::$posts === null) {
-                throw new \LogicException('UrlResolver post repository is not set; call UrlResolver::setPostRepository() during blog boot.');
-            }
-
-            if (!$post = self::$posts->where(compact('id'))->first()) {
+            if (!$post = $this->posts->where(compact('id'))->first()) {
                 throw new RouteNotFoundException('Post not found!');
             }
 
@@ -128,7 +97,7 @@ class UrlResolver implements ParamsResolverInterface
 
         $meta = $this->cacheEntries[$id];
 
-        $permalink = self::getPermalink();
+        $permalink = self::permalinkFor($this->module);
 
         $matchCount = preg_match_all('#{([a-z]+)}#i', $permalink, $matches);
 
@@ -146,29 +115,29 @@ class UrlResolver implements ParamsResolverInterface
 
     public function __destruct()
     {
-        if ($this->cacheDirty && self::$cache !== null) {
-            $item = self::$cache->getItem(self::CACHE_KEY);
+        if ($this->cacheDirty) {
+            $item = $this->cache->getItem(self::CACHE_KEY);
             $item->set($this->cacheEntries);
-            self::$cache->save($item);
+            $this->cache->save($item);
         }
     }
 
     /**
-     * Gets the blog's permalink setting.
+     * Derives the blog's permalink pattern from its configuration.
+     *
+     * Pure by design: the resolver and the route listener both read the pattern,
+     * the listener before any resolver exists, so the derivation must not depend
+     * on either one's state or the two would be able to disagree.
      */
-    public static function getPermalink(): string
+    public static function permalinkFor(Module $module): string
     {
-        if (self::$module === null) {
-            return '';
+        $permalink = $module->config('permalink.type');
+
+        if ($permalink === 'custom') {
+            $permalink = $module->config('permalink.custom');
         }
 
-        $permalink = self::$module->config('permalink.type');
-
-        if ($permalink == 'custom') {
-            $permalink = self::$module->config('permalink.custom');
-        }
-
-        return $permalink;
+        return is_string($permalink) ? $permalink : '';
     }
 
     protected function addCache(Post $post): void

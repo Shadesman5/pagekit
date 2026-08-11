@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 /**
  * Bootstrap for the blog package unit tests (PostModelTrait, PostRepository,
- * PostPresenter, UrlResolver, PostListener and the blog controllers).
+ * PostPresenter, UrlResolver, the event listeners, the content plugin the
+ * package boot subscribes and the blog controllers).
  *
  * Two things are missing under PHPUnit and supplied here:
  *
@@ -19,8 +20,11 @@ declare(strict_types=1);
  *  2. Runtime-loaded classes. The blog package namespace (Pagekit\Blog\), the base
  *     comment module (Pagekit\Comment\) and the content module (Pagekit\Content\)
  *     are NOT registered in composer's autoload map, so PHPUnit cannot autoload the
- *     entities, the PostRepository/PostPresenter, the UrlResolver, the PostListener,
- *     the controllers under test or the ContentHelper two of them constructor-inject.
+ *     entities, the PostRepository/PostPresenter, the UrlResolver, the event
+ *     listeners, the content plugin, the controllers under test or the
+ *     ContentHelper two of them constructor-inject. A test that runs the package's
+ *     own boot definition needs every class that boot instantiates, which is why
+ *     they are required here rather than per test.
  *     They are required here in dependency order (traits + parents before the classes
  *     that use/extend them).
  *
@@ -70,6 +74,8 @@ namespace {
     require_once $root . '/packages/pagekit/blog/src/PostPresenter.php';
     require_once $root . '/packages/pagekit/blog/src/UrlResolver.php';
     require_once $root . '/packages/pagekit/blog/src/Event/PostListener.php';
+    require_once $root . '/packages/pagekit/blog/src/Event/RouteListener.php';
+    require_once $root . '/packages/pagekit/blog/src/Content/ReadmorePlugin.php';
     require_once $root . '/packages/pagekit/blog/src/Controller/BlogController.php';
     require_once $root . '/packages/pagekit/blog/src/Controller/PostApiController.php';
     require_once $root . '/packages/pagekit/blog/src/Controller/CommentApiController.php';
