@@ -184,9 +184,11 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
    1. `gh pr comment <pr> --body "bugbot run"`.
    2. Poll until a **newer** such review appears (`submitted_at` after that comment). Stop at once
       (ceiling ~10 min, typical 3–5 min).
-   3. Read **that review body** (exact Bugbot wording): **Clean** only if `found no new issues`
-      (typically ✅) and no unresolved leftovers (`total unresolved issues` / `potential issue`).
-      **Dirty** otherwise → fix-loop → push → re-CI green → 4.1. Clean → step 5.
+   3. Read **that review body** (exact Bugbot wording): **Dirty** if any open leftover phrase appears
+      (`remains unresolved` / `from previous review` / `total unresolved issues` / `potential issue`) —
+      even alongside `found no new issues` (e.g. `1 issue from previous review remains unresolved`).
+      **Clean** only if `found no new issues` (typically ✅) **and** none of those phrases. Dirty →
+      fix-loop → push → re-CI green → 4.1. Clean → step 5.
    4. Never invent HEAD matching, `NO_HEAD_REVIEW`, or `gh pr checks --watch` for Bugbot.
 5. **PR-Security (mandatory)** — after Bugbot clean. Sole source of truth: newest `cursor[bot]`
    review/comment with `CURSOR_AUTOMATION_ID` or `Agentic Security Review`. Not CI `security-audit`.

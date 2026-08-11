@@ -392,10 +392,13 @@ Run only when every `## EXECUTION STATE` box is `- [x]`.
    2. Poll until a **newer** such review appears (`submitted_at` after that comment). Stop at once when
       it does (ceiling ~10 min, typical 3–5 min). No other exit condition.
    3. Read **that review body** (exact Bugbot wording):
-      - **Clean** only if it contains `found no new issues` (typically with ✅) **and** does **not**
-        mention unresolved leftovers (no `total unresolved issues` / no `potential issue`).
-      - **Dirty** otherwise (e.g. `found 1 potential issue`, `2 total unresolved issues`) → collect
-        open inline Bugbot comments → fix-loop → push → re-CI green → back to 4.1.
+      - **Dirty** if the body mentions any open leftover — including
+        `remains unresolved` / `from previous review` / `total unresolved issues` / `potential issue`
+        — even when it also says `found no new issues`. Example dirty:
+        `found no new issues!` + `1 issue from previous review remains unresolved.`
+      - **Clean** only if it says `found no new issues` (typically ✅) **and** has **none** of those
+        unresolved phrases.
+      - Dirty → collect open inline Bugbot comments → fix-loop → push → re-CI green → back to 4.1.
       - Clean → step 5.
    4. Never invent HEAD/`commit_id` matching, `NO_HEAD_REVIEW`, or `gh pr checks --watch` for Bugbot.
 5. **PR-Security (mandatory)** — after Bugbot clean. Sole source of truth: the newest `cursor[bot]`
