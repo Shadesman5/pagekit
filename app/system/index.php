@@ -88,8 +88,6 @@ return [
             // Translator is registered in IntlModule::main() (container phase); validator resolves it lazily.
             \Pagekit\System\ValidatorServiceProvider::register($app);
 
-            \Pagekit\System\Validator\Constraints\UniqueValidator::setDb($app->get('db'));
-
             if (!$app->get('debug')) {
                 $app->get('events')->subscribe(new ExceptionListener('Pagekit\System\Controller\ExceptionController::showAction'));
             }

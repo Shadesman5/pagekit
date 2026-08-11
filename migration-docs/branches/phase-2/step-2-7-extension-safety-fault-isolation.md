@@ -210,6 +210,22 @@ Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done
 
 Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
 
+### `UniqueValidator` container-aware factory (Checklist Step 10)
+
+| File | Change |
+|---|---|
+| `app/system/src/Validator/Constraints/UniqueValidator.php` | The static `$db` property, `setDb()` setter and the "db service not initialized" `\RuntimeException` guard are deleted. The class gains `__construct(private readonly Connection $db)`; `validate()` reads `$this->db` in place of the removed static — no other behaviour change. |
+| `app/system/src/ValidatorServiceProvider.php` | `register()` gains a container entry keyed by `UniqueValidator::class` (`fn ($app) => new UniqueValidator($app->get('db'))`), registered ahead of the `validator` service closure, and calls `$builder->setConstraintValidatorFactory(new ContainerConstraintValidatorFactory($app))` before the existing translator wiring. The factory resolves `UniqueValidator` from the container by its class name and falls back to its own `new $class()` for every validator Symfony ships — none of those need a container entry. |
+| `app/system/index.php` | The `UniqueValidator::setDb($app->get('db'))` boot call, immediately after `ValidatorServiceProvider::register($app)`, is deleted — the validator now reaches its connection through the container entry the provider itself registers. |
+
+### Tests (Checklist Step 10)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Validator/UniqueValidatorContainerTest.php` (new) | 10 tests against a real in-memory SQLite connection, no stub: `ContainerConstraintValidatorFactory` resolves `UniqueValidator` from the container under the constraint's own `validatedBy()` name; two applications each validate against the connection their own container holds, never a shared process-wide one; a standard Symfony constraint (`NotBlank`) still resolves through the factory's `new $class()` fallback with no container entry of its own; a taken username is rejected with the translated message, in any letter-case; editing a row excludes it from colliding with itself while a different row's name stays rejected; an absent value (`''`/`null`) is never looked up, proven against a stored empty-string row a lookup would have matched; a constraint the validator does not declare itself for is refused with `UnexpectedTypeException`. |
+
+Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -234,6 +250,7 @@ Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done
 - **`Router::addResolver()` is a per-class factory map, not general constructor autowiring (Checklist Step 8).** A route only ever carries its resolver as a class name — the one thing that survives being dumped to the routing cache — so a resolver with constructor dependencies needs an explicit way to say how to build it, registered by the module that owns it; a bare `new $resolver()` stays the supported default for a resolver that needs nothing, not a fallback the barrier degrades to.
 - **`permalinkFor()` takes the module as an argument rather than a resolver reading it (Checklist Step 8).** `RouteListener::onAppRequest()` publishes the permalink as a router option before any resolver would exist for that request; deriving it from a constructed resolver would pay for the blog resolver's own metadata-cache read on every request, including ones that never touch a post URL. Keeping the derivation static and argument-based lets both callers reach the same pattern without either one constructing the other.
 - **`image()` is made pure by deleting the bridge, not by adding a second URL-resolution seam (Checklist Step 9).** Both call-site templates already resolved their link `href` through the view's own `$view->url()` helper; the fix threads the same call through the six logo call sites and lets `image()` render whatever `$src` it is handed, so `ThemeOneHelpers` and its `setUrl()` wiring have nothing left to do.
+- **`UniqueValidator` moves from a static locator to a container entry the factory resolves by class name (Checklist Step 10).** Symfony's default `ConstraintValidatorFactory` builds every validator with `new $class()`, which cannot supply a connection; swapping in `ContainerConstraintValidatorFactory` costs nothing for the validators Symfony ships — its fallback is that same `new $class()` — and needs exactly one container entry, keyed by `UniqueValidator::class`, for the one validator here that has a dependency.
 
 ---
 
@@ -271,6 +288,7 @@ Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done
 - **Rule 4 (Delete over wrap) — Checklist Step 7:** `PhpMatcherDumper` (Symfony's own deprecated dumper, copied into the tree, carrying the file's own `// TODO: Must be refactored in Step 2.7` tag) and the hand-rolled `UrlGeneratorDumper` are both deleted outright in favor of Symfony's `CompiledUrlMatcherDumper`/`CompiledUrlMatcher` and the new data-only `CompiledUrlGenerator`; the reflection-based `instantiateMatcher()`/`instantiateGenerator()` pair goes with them — no dual dump format, no fallback reflection path, and no orphaned forward-debt tag survive alongside the replacement.
 - **Rule 4 (Delete over wrap) — Checklist Step 8:** `UrlResolver`'s three static bridge properties, four setters and both `\LogicException` guards — the first of the three `TEMPORARY BRIDGE` tags this ticket named — are deleted outright in favor of constructor injection and `Router::addResolver()`'s factory seam; no static fallback survives alongside the injected instance.
 - **Rule 4 (Delete over wrap) — Checklist Step 9:** `ThemeOneHelpers`'s static `UrlProvider` property, its `setUrl()`/`getUrl()` methods and `\RuntimeException` guard — the second of the three `TEMPORARY BRIDGE` tags this ticket named — are deleted outright in favor of a pure `image()` and the two templates' own `$view->url()` calls; no static fallback survives alongside the call sites.
+- **Rule 4 (Delete over wrap) — Checklist Step 10:** `UniqueValidator`'s static `$db` property, `setDb()` setter and "not initialized" guard are deleted outright in favor of constructor injection resolved through `ContainerConstraintValidatorFactory`; no static fallback survives alongside the container entry.
 
 ---
 

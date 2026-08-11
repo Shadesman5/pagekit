@@ -77,7 +77,7 @@
 - [x] Step 7 (L) — Routing dumper replacement + content-hash freshness
 - [x] Step 8 (L) — Blog `UrlResolver` DI + resolver factory seam
 - [x] Step 9 (S) — theme-one helper purification
-- [ ] Step 10 (M) — `UniqueValidator` container-aware factory
+- [x] Step 10 (M) — `UniqueValidator` container-aware factory
 - [ ] Step 11 (XL) — Review (Bugbot + Security) + E2E
 
 ## TESTING STRATEGY

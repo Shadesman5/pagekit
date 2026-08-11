@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\System\Validator\Constraints;
 
+use Pagekit\Database\Connection;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
@@ -13,17 +14,11 @@ use Symfony\Component\Validator\Exception\UnexpectedTypeException;
  *
  * Checks if a value already exists in the database, excluding the current
  * entity when updating (based on ID).
- *
- * Uses a static service locator for `db` because Symfony's default
- * ConstraintValidatorFactory instantiates validators via `new $class()`.
  */
 class UniqueValidator extends ConstraintValidator
 {
-    private static mixed $db = null;
-
-    public static function setDb(mixed $db): void
+    public function __construct(private readonly Connection $db)
     {
-        self::$db = $db;
     }
 
     public function validate(mixed $value, Constraint $constraint): void
@@ -35,12 +30,6 @@ class UniqueValidator extends ConstraintValidator
         if (null === $value || '' === $value) {
             return;
         }
-
-        if (self::$db === null) {
-            throw new \RuntimeException('UniqueValidator: db service not initialized. Was ValidatorServiceProvider booted?');
-        }
-
-        $db = self::$db;
 
         $lowerValue = strtolower((string) $value);
         $whereConditions = ["LOWER({$constraint->column}) = :value"];
@@ -61,7 +50,7 @@ class UniqueValidator extends ConstraintValidator
             }
         }
 
-        $queryBuilder = $db->createQueryBuilder()
+        $queryBuilder = $this->db->createQueryBuilder()
             ->select('COUNT(*)')
             ->from($constraint->table)
             ->where($whereConditions, $whereParams);
