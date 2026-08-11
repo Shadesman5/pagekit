@@ -325,9 +325,11 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - Three-stage uninstall: disable → uninstall (code/data soft-removed) → purge after retention window
   - Admin UX for list / restore / purge
   - Admin feedback when a package's `disable` / `uninstall` lifecycle hook throws: the stage must still complete (an administrator must be able to leave a misbehaving package), but the panel must show that the hook failed and point at the log — today that failure is log-only and the action reports plain success
+  - Theme circuit breaker: a failing theme is retried on every request today (never auto-disabled — recovery + per-request fallback). After N consecutive load failures, stop executing that theme and serve `theme-default` (or the existing blank fallback) until an administrator clears the failure / re-selects the theme — otherwise an expensive theme bug (memory exhaustion, hanging query) is a visitor-facing DoS
+  - Harden `ExtensionFailureStore` against concurrent read-modify-write: `dumpAtomic()` prevents torn reads, but two workers that each `all()` → mutate → `write()` can lose one entry; serialize the RMW cycle (e.g. `flock`) so parallel failures and clears do not overwrite each other
   - This path is the **only** route for a removal that no one explicitly requested: automatic dependency cleanup (**5.0**) may deactivate, but any deletion it triggers goes through disable → uninstall → purge with a snapshot first, so the data stays restorable
-- **Out of scope**: Marketplace signing; background update orchestration (**2.9**)
-- **Risk**: Medium — DB dump portability (SQLite/MySQL), storage growth
+- **Out of scope**: Marketplace signing; background update orchestration (**2.9**); process-level PHP sandboxing for enabled packages (Phase 5 §5.6 future candidate)
+- **Risk**: Medium — DB dump portability (SQLite/MySQL), storage growth; theme circuit-breaker threshold must not strand a site that is mid-fix without a clear admin reset path
 
 ---
 

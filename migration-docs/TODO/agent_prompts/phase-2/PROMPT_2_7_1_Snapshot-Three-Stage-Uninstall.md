@@ -10,9 +10,9 @@
 
 - **Land after:** Step 2.6 (#257) for atomic writes, and Step 2.7 (#160) for fault isolation / lifecycle seams. If either is missing, STOP and sequence correctly — snapshots must reuse `dumpAtomic()`, and automatic removals must not invent a second disable/notify path.
 - **Provides:** the snapshot + staged-removal primitive that Automated Updates (2.9) reuse for rollback, and that Sub-Extension automatic cleanup (5.0) must call whenever a removal was not explicitly requested by an operator.
-- **Risk:** Medium. DB dump portability (SQLite/MySQL), storage growth under `tmp/snapshots/`, and a destructive package path that today deletes code from disk with only a browser `confirm()`.
-- **Goal:** Before any destructive package operation, a restorable snapshot exists; uninstall becomes disable → uninstall (soft) → purge after retention, with admin UX to list / restore / purge; and when a package's `disable` / `uninstall` lifecycle hook throws, the stage still completes but the admin sees that the hook failed (not log-only success).
-- **Why:** Today `PackageManager::uninstall()` disables, runs the lifecycle uninstall hook, fires events, removes the package version key, then **deletes the package folder from disk** (or via Composer) with no DB dump and no retention window. Site nodes are soft-trashed by `ExtensionNodeLifecycle`, but schema/data and the code tree are not uniformly recoverable. Step 2.7 keeps a broken site alive and deliberately swallows broken exit hooks into the log so an administrator can always leave a misbehaving package — but the panel still reports plain success, so operators never learn the hook failed. This step keeps removal restorable and makes that swallowed-hook case visible without giving the package a veto.
+- **Risk:** Medium. DB dump portability (SQLite/MySQL), storage growth under `tmp/snapshots/`, a destructive package path that today deletes code from disk with only a browser `confirm()`, theme-retry DoS until a circuit breaker lands, and concurrent failure-store RMW races under multi-worker PHP.
+- **Goal:** Before any destructive package operation, a restorable snapshot exists; uninstall becomes disable → uninstall (soft) → purge after retention, with admin UX to list / restore / purge; swallowed `disable` / `uninstall` lifecycle-hook failures become visible to the admin; a repeatedly failing theme trips a circuit breaker instead of re-executing on every visitor request; and `ExtensionFailureStore` RMW is safe under concurrent workers.
+- **Why:** Today `PackageManager::uninstall()` disables, runs the lifecycle uninstall hook, fires events, removes the package version key, then **deletes the package folder from disk** (or via Composer) with no DB dump and no retention window. Site nodes are soft-trashed by `ExtensionNodeLifecycle`, but schema/data and the code tree are not uniformly recoverable. Step 2.7 keeps a broken site alive, swallows broken exit hooks into the log (panel still reports success), retries a failing theme on every request (recovery by design — also a visitor-facing DoS if the theme is expensive to fail), and writes the failure store with atomic file replace but no lock around read-modify-write. This step keeps removal restorable, closes those admin/visibility and theme-retry gaps without giving packages a veto, and hardens the store when this ticket already touches that seam.
 
 ### Current state (verified 2026-08-10 — confirm in Discovery, then build; do not rediscover blindly)
 
@@ -43,6 +43,11 @@
 - Extensions list: `app/installer/views/extensions.php` — uninstall control only when disabled; `v-confirm="'Uninstall extension?'"` (single confirm, no stages). Failed auto-disable shows a warning icon via `pkg.failure` (Step 2.7) — unrelated to a swallowed exit-hook failure on a deliberate disable/uninstall.
 - Controller: `PackageController::uninstallAction()` streams status; `disableAction()` / `enableAction()` clear cache after. Uninstall path does **not** schedule the same cache clear as enable/disable. Disable/uninstall responses do not currently carry a "lifecycle hook failed" signal.
 - Vue: `app/installer/app/lib/uninstall.vue` + `package.js` `uninstall()` — progress modal calling `GET admin/system/package/uninstall`. Themes page is analogous.
+
+**Theme load + failure store (Step 2.7 residual).**
+
+- `ExtensionLoader` logs and records a failing theme but **never** removes it from `site.theme`; the next request loads it again (recovery path + per-request fallback to the synthetic `theme-default`). An expensive failure therefore re-runs for every visitor.
+- `ExtensionFailureStore` (`tmp/system/extension-failures.json`): each `record()` / `clear()` / `restore()` does `all()` → mutate → `dumpAtomic()`. Atomic replace prevents torn JSON; concurrent workers can still lose an entry (last writer wins). No `flock` (or equivalent) around the RMW cycle today.
 
 **Database targets for a dump.**
 
@@ -99,9 +104,10 @@ pnpm install --frozen-lockfile && pnpm build
 ```bash
 rg -n 'function uninstall|function disable|package\.uninstall|package\.disable' app/installer/ app/system/ --glob '!app/vendor/**'
 rg -n 'ExtensionNodeLifecycle|_extension_restore|PackageNodeTypes' app/ --glob '!app/vendor/**'
-rg -n 'tmp/snapshots|path\.temp|doClearCache|dumpAtomic' app/ public/index.php --glob '!app/vendor/**'
+rg -n 'tmp/snapshots|path\.temp|doClearCache|dumpAtomic|ExtensionFailureStore|TYPE_THEME' app/ public/index.php --glob '!app/vendor/**'
 rg -n 'uninstall\.vue|v-confirm.*Uninstall|uninstallAction' app/installer/ --glob '!app/vendor/**'
 rg -n 'PAGEKIT_DB_|database\.default|pdo_sqlite|pdo_mysql' app/ --glob '!app/vendor/**'
+rg -n 'theme-default|loadModule|ExtensionLoader' app/system/ --glob '!app/vendor/**'
 ```
 
 Resolve before writing code:
@@ -113,6 +119,8 @@ Resolve before writing code:
 - **Trigger points** — which `PackageManager` / controller entry points must snapshot first (uninstall today; major package ops; leave 2.9 update orchestration as a consumer, not implemented here).
 - **Admin API + UI** — list / restore / purge surfaces; replace the single `v-confirm` uninstall with a staged flow without inventing a second package manager.
 - **Swallowed exit-hook feedback** — how disable / soft-uninstall / purge report a lifecycle hook that threw: stage still succeeds (no package veto), but the admin sees a warning (flash, stream message, and/or package list state) naming that the hook failed and pointing at the log — without rendering the throwable's own message (same boundary as Step 2.7's failure notices).
+- **Theme circuit breaker** — threshold N, where consecutive failures are counted (store fields vs. separate counter), what "open" means for boot (skip theme module load, keep using `theme-default` / blank fallback), how an administrator resets it, and how a successful theme load still clears the record as today.
+- **Failure-store RMW** — serialize `record` / `clear` / `restore` across workers (e.g. `flock` for the duration of read-modify-write) without turning a lock failure into a boot-killing throw (store methods stay never-throw / bool success).
 - **Storage growth** — caps, cleanup on purge, and what happens if the snapshot write fails (destructive op must not proceed).
 - **Atomic metadata** — snapshot index format and write path via 2.6.
 
@@ -126,24 +134,24 @@ Architect: decompose into ordered, individually-green checklist steps. Suggested
 2. **DB dump + restore for SQLite and MySQL** — round-trip tested; failure blocks destructive ops.
 3. **Wire snapshot-before-uninstall** — `PackageManager` / controller take the snapshot first; on snapshot failure, abort.
 4. **Three-stage uninstall** — disable → soft uninstall → purge after retention; align node lifecycle and package-file deletion with stages (hard disk delete moves to purge, not soft uninstall — decide explicitly if PHASE's "soft-removed" means code stays until purge). Keep the Step 2.7 exit-hook barrier (log + continue — never block the stage).
-5. **Admin UX** — list / restore / purge; replace one-shot confirm uninstall; surface swallowed `disable` / `uninstall` lifecycle-hook failures to the admin (stage still OK) without leaking throwable messages into the page.
+5. **Admin UX + residual fault seams** — list / restore / purge; replace one-shot confirm uninstall; surface swallowed `disable` / `uninstall` lifecycle-hook failures; theme circuit breaker after N consecutive failures; serialize `ExtensionFailureStore` RMW for concurrent workers.
 6. **Retention + purge path** — enforceable window; purge is irreversible and audited in the log.
 7. **Mandatory final `(XL)` step** — Review (Bugbot + Security) + E2E.
 
-Sizing hints: (2) and (4) carry the design weight; (5) is the UX fix-loop risk; (1) and (6) are smaller once the model exists.
+Sizing hints: (2) and (4) carry the design weight; (5) is the UX + fault-seam fix-loop risk; (1) and (6) are smaller once the model exists.
 
 ### Notes per group
 
 - **(4) Soft vs hard:** today uninstall already deletes the package folder. Three-stage uninstall is a **behaviour change** — soft uninstall must not be today's hard delete under a new name. State the new contract in the ticket and cover it with tests.
 - **(2) Drivers:** prefer mechanisms already available in the environment (PHP + existing DBAL connection). Do not add a mandatory external `mysqldump` binary unless Discovery proves there is no acceptable pure-PHP path — and if you require a binary, document the operator dependency.
-- **(5) UX:** keep Vue 2.7 patterns (no `<script setup>` / Composition API unless already used in this module). Hook-failure feedback must not reopen the Step 2.7 contract that exit hooks never veto disable/uninstall — only make the logged failure visible.
+- **(5) UX / seams:** keep Vue 2.7 patterns (no `<script setup>` / Composition API unless already used in this module). Hook-failure feedback must not reopen the Step 2.7 contract that exit hooks never veto disable/uninstall — only make the logged failure visible. Theme circuit breaker must not auto-rewrite `site.theme` unless Discovery proves that is safer than "skip load + fallback"; either way an administrator must have a clear reset. Failure-store locking must stay never-throw on the recovery path.
 - **Do not rename** `extra.scripts` / `scripts.php` here — that is Step **2.8** (`extra.lifecycle` / `lifecycle.php`).
 
 ---
 
 ## 3. OUT OF SCOPE
 
-- **Fault barrier, auto-disable, standing admin notice from durable failure records, lifecycle interface / runner, routing dumpers, static bridges** → Step 2.7 (reuse; do not reopen). Exit-hook **visibility** in the package UI is in scope here; the non-blocking barrier itself is not.
+- **Fault barrier, auto-disable, standing admin notice from durable failure records, lifecycle interface / runner, routing dumpers, static bridges** → Step 2.7 (reuse; do not reopen). In scope here as residual seams: exit-hook **visibility**, theme **circuit breaker**, failure-store **RMW locking**. The non-blocking exit-hook barrier and the "themes are not auto-removed from config" product choice stay — this step only stops unbounded theme retries and lost concurrent store updates.
 - **Module dependency fail-closed / pre-flight "what would break"** → Step 2.7.2 (this step may call into that pre-flight once it exists, but must not implement the graph).
 - **Static module registration** → Step 2.7.3.
 - **`extra.lifecycle` / `lifecycle.php` rename** → Step 2.8.
@@ -158,7 +166,7 @@ Sizing hints: (2) and (4) carry the design weight; (5) is the UX fix-loop risk; 
 
 - **Per checklist step (Conductor Tester):** PHPUnit + PHPStan PASS/FAIL.
 - **`test-writer` applies to every step** that changes production PHP. No blanket `test-writer: skip`.
-- **Core coverage from scratch:** snapshot write/restore round-trip (SQLite mandatory; MySQL if the test harness can provide it), snapshot failure blocks uninstall, soft uninstall leaves code/data recoverable, purge after retention removes retained artefacts, restore brings back a known fixture package state, and a throwing disable/uninstall lifecycle hook still completes the stage while the admin-facing signal marks the hook failure. Keep `PackageLifecycleWiringTest` green — node soft-trash/restore must still work with the new stages.
+- **Core coverage from scratch:** snapshot write/restore round-trip (SQLite mandatory; MySQL if the test harness can provide it), snapshot failure blocks uninstall, soft uninstall leaves code/data recoverable, purge after retention removes retained artefacts, restore brings back a known fixture package state, a throwing disable/uninstall lifecycle hook still completes the stage while the admin-facing signal marks the hook failure, theme circuit breaker opens after N consecutive failures and skips re-execution until reset, and concurrent `ExtensionFailureStore` RMW does not drop a sibling entry (lock / serialized write coverage). Keep `PackageLifecycleWiringTest` green — node soft-trash/restore must still work with the new stages.
 - **Frontend:** any Vue/JS touched → `pnpm lint` and `pnpm exec prettier --check .` (blocking in CI).
 - **E2E (final `(XL)` step):** the 3 `@ci` specs. Manual or documented maintainer action for a full uninstall → restore cycle if agents cannot run MySQL dump reliably — record under `## Maintainer action` in the branch doc, never claim it automated.
 
@@ -171,6 +179,8 @@ Sizing hints: (2) and (4) carry the design weight; (5) is the UX fix-loop risk; 
 - Three stages exist: disable, soft uninstall, purge-after-retention; hard deletion of retained package artefacts happens at purge, not at soft uninstall.
 - Admin can list snapshots, restore one, and purge; the old one-shot "Uninstall extension?" path is gone.
 - A thrown `disable` / `uninstall` lifecycle hook still lets the stage complete, but the admin UI (or streamed status) reports that the hook failed and points at the log — without repeating the throwable message.
+- After N consecutive theme load failures the broken theme is no longer executed on every request; `theme-default` (or the existing blank fallback) serves until an administrator resets; a successful theme load still clears the failure record as today.
+- Concurrent `ExtensionFailureStore` record/clear/restore calls do not lose sibling entries (RMW serialized; store methods remain never-throw / bool success).
 - SQLite snapshot round-trip works in automated tests; MySQL path is implemented and either tested or explicitly listed under maintainer verification.
 - `ExtensionNodeLifecycle` behaviour remains coherent across stages (no second competing trash mechanism).
 - No `Step 2.7.1` references in code or tests; PHPUnit + PHPStan green with no new baseline entries.

@@ -109,7 +109,7 @@
 | 2.4.1  | ↳ Webroot Modernization (public/)     | ✅     | 🛡️    | #243  | #256    |
 | 2.5    | Docker Production Image & Deploy      | ✅     | 🛡️    | #158  | #259    |
 | 2.6    | Filesystem Write Resilience           | ✅     | 🛡️    | #257  | #265    |
-| 2.7    | Extension Safety System               | ✅     | 🛡️    | #160  | #270    |
+| 2.7    | **Extension Safety System**           | ✅     | 🛡️    | #160  | #270    |
 | 2.7.1  | ↳ Snapshot & Three-Stage Uninstall    | ⏳     | ⏳    | #267  | -       |
 | 2.7.2  | ↳ Module Dependency Integrity         | ⏳     | ⏳    | #268  | -       |
 | 2.7.3  | ↳ Static Module Registration          | ⏳     | ⏳    | #266  | -       |
@@ -147,7 +147,7 @@
 | 4.5    | Performance Optimization              | ⏳     | ⏳    | -     | -       |
 | 4.6    | Monitoring & Health Checks            | ⏳     | ⏳    | -     | -       |
 | 4.7    | Rebranding: Pagekit → Kernkit         | ⏳     | ⏳    | -     | -       |
-| 4.8    | **Image Pipeline & Media Manager**    | ⏳     | ⏳    | -     | -       |
+| 4.8    | Image Pipeline & Media Manager        | ⏳     | ⏳    | -     | -       |
 | 4.9    | Cross-Repo Dev Dashboard              | ⏳     | ⏳    | -     | -       |
 | 4.10   | Cookie Consent & Privacy Baseline     | ⏳     | ⏳    | -     | -       |
 | 4.11   | Container Orchestration & Deployment  | ⏳     | ⏳    | -     | -       |
@@ -162,10 +162,10 @@
 | 5.2    | **Advanced Security**                 | ⏳     | ⏳    | -     | -       |
 | 5.2.1  | ↳ Advanced Privacy & Consent Ext.     | ⏳     | ⏳    | -     | -       |
 | 5.3    | Advanced Performance                  | ⏳     | ⏳    | -     | -       |
-| 5.4    | Advanced CMS Features                 | ⏳     | ⏳    | -     | -       |
+| 5.4    | **Advanced CMS Features**             | ⏳     | ⏳    | -     | -       |
 | 5.4.1  | ↳ Event Sourcing Module (opt-in)      | ⏳     | ⏳    | -     | -       |
 | 5.4.2  | ↳ GraphQL API Extension               | ⏳     | ⏳    | -     | -       |
-| 5.5    | Enterprise Features                   | ⏳     | ⏳    | -     | -       |
+| 5.5    | **Enterprise Features**               | ⏳     | ⏳    | -     | -       |
 | 5.5.1  | ↳ Multi-Tenancy Extension             | ⏳     | ⏳    | -     | -       |
 | 5.6    | Marketplace & Extensions              | ⏳     | ⏳    | -     | -       |
 | 5.7    | Extension Author Toolchain (npm)      | ⏳     | ⏳    | -     | -       |
