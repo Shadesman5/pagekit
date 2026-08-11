@@ -23,6 +23,7 @@
 - **A theme that recovered still read as broken in the admin notice** — until an unrelated package action happened to clear it. `ExtensionLoader` now clears a theme's failure record itself the moment it loads successfully again.
 - **A broken pending-update check could lock an administrator out of `/admin`** — the `auth.login` listener's migration-status check now has its own fault barrier: a failure is logged and flashed without repeating the throwable's own message, and the recorded version is left alone so the next login asks again instead of marking an unfinished upgrade as done.
 - **The debug bar's route list could go stale for an entire deployment's lifetime** — `RoutesDataCollector` keyed its cache on the routing generator's own file, which used to be regenerated per route set and is now one shared file; it keys on the route collection itself instead, so a route change invalidates the panel's cache again.
+- **An extension could report "enabled" while staying excluded from every boot** — `PackageManager::enable()` cleared the durable failure record best-effort and moved on regardless of whether that succeeded, so a record that could not be rewritten stayed on disk while the panel and the configuration both called the module enabled. An extension enable that cannot clear its own record is now refused, through the same rollback an enable failure already triggers; a theme's enable still proceeds, since a theme is executed — and cleared — on its very next load regardless of the record.
 
 ### ❌ Removed
 

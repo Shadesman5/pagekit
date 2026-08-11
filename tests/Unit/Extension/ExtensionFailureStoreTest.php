@@ -312,6 +312,30 @@ final class ExtensionFailureStoreTest extends TestCase
         self::assertStringContainsString('message', $entries['blog']['message']);
     }
 
+    public function testASetOfEntriesThatCannotBeEncodedLeavesTheRecordOnDiskAlone(): void
+    {
+        // Substituted bytes keep a record that was never valid UTF-8, but a set
+        // of entries with no JSON at all cannot be kept. Encoding reports that
+        // by handing back no string rather than by raising, and a store writing
+        // that out would replace a readable record with nothing.
+        $this->writeRecord($this->recordOf('blog'));
+
+        $writer = new AtomicWriteRecorder();
+        $store = new ExtensionFailureStore($this->path, $writer);
+
+        // Entries that carry themselves have no JSON. No caller can hand the
+        // store such a set - it builds every entry itself out of a throwable -
+        // so the write is driven directly to reach the encoder failing on it.
+        $entries = ['theme-one' => ['name' => 'theme-one', 'type' => ExtensionFailureStore::TYPE_THEME]];
+        $entries['theme-one']['self'] = &$entries;
+
+        $written = (new \ReflectionMethod(ExtensionFailureStore::class, 'write'))->invoke($store, $entries);
+
+        self::assertFalse($written);
+        self::assertSame([], $writer->written, 'A set of entries with no JSON is reported as lost instead of written as one');
+        self::assertSame(['blog'], array_keys($store->all()), 'The failure already on record stays readable');
+    }
+
     public function testADirectoryThatCannotBeWrittenCostsTheRecordAndNothingElse(): void
     {
         mkdir($this->path, 0755, true);
