@@ -205,6 +205,20 @@ class Installer
                     $configuration->set($key, $value);
                 }
 
+                // The installer form sends only what the user typed (e.g. SQLite
+                // prefix). Fill in scalar connection defaults (driver, path, …)
+                // from the merged module config — never dump closures such as
+                // SQLite user-defined functions into config.php.
+                if (isset($config['database']) && is_array($config['database'])) {
+                    $database = $this->app->get('module')->get('database');
+                    if (is_object($database) && isset($database->config) && is_array($database->config)) {
+                        $configuration->set(
+                            'database',
+                            $this->persistableDatabaseConfig($config['database'], $database->config)
+                        );
+                    }
+                }
+
                 $configuration->set('system.secret', bin2hex(random_bytes(32)));
 
                 try {
@@ -223,6 +237,10 @@ class Installer
 
             $status = 'success';
 
+        } catch (BadRequestHttpException $e) {
+
+            $message = $e->getMessage();
+
         } catch (DBALException $e) {
 
             $status = 'db-sql-failed';
@@ -230,11 +248,89 @@ class Installer
 
         } catch (\Exception $e) {
 
-            $message = $e->getMessage();
+            // Keep check() outcomes (no-connection / tables-exist); only mark a
+            // failure that happened after the connection was accepted.
+            if ($status === 'no-tables') {
+                $status = 'failed';
+            }
+
+            $message = $this->formatInstallError($e);
 
         }
 
         return ['status' => $status, 'message' => $message];
+    }
+
+    /**
+     * Builds a user-facing install error from a throwable chain.
+     *
+     * Container lookups wrap the real fault as "Error while retrieving …";
+     * the installer must surface the previous messages or the person installing
+     * only sees the wrapper.
+     */
+    private function formatInstallError(\Throwable $e): string
+    {
+        $parts = [];
+        $current = $e;
+
+        while ($current !== null) {
+            $part = trim($current->getMessage());
+
+            if ($part !== '' && !in_array($part, $parts, true)) {
+                $parts[] = $part;
+            }
+
+            $current = $current->getPrevious();
+        }
+
+        return $parts !== [] ? implode(': ', $parts) : __('Installation failed.');
+    }
+
+    /**
+     * Merges form database settings with resolved scalar defaults for config.php.
+     *
+     * @param array<string, mixed> $form
+     * @param array<string, mixed> $resolved
+     *
+     * @return array<string, mixed>
+     */
+    private function persistableDatabaseConfig(array $form, array $resolved): array
+    {
+        $out = $form;
+
+        if (isset($resolved['default']) && is_string($resolved['default'])) {
+            $out['default'] = $resolved['default'];
+        }
+
+        $keys = ['driver', 'path', 'dbname', 'host', 'port', 'user', 'password', 'prefix', 'charset', 'collate', 'engine'];
+
+        foreach ($out['connections'] ?? [] as $name => $params) {
+            if (!is_array($params)) {
+                continue;
+            }
+
+            $resolvedParams = $resolved['connections'][$name] ?? [];
+            if (!is_array($resolvedParams)) {
+                continue;
+            }
+
+            foreach ($keys as $key) {
+                if (array_key_exists($key, $params)) {
+                    continue;
+                }
+
+                if (!array_key_exists($key, $resolvedParams)) {
+                    continue;
+                }
+
+                $value = $resolvedParams[$key];
+                if (is_scalar($value) || $value === null) {
+                    $out['connections'][$name][$key] = $value;
+                }
+            }
+        }
+
+        return $out;
     }
 
     /**

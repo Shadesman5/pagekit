@@ -74,7 +74,12 @@ class SystemModule extends Module
 
         $loader->load((array) $this->config['extensions'], $theme);
 
-        $themeModule = $app->get('module')->get($theme);
+        // A fresh or partial install may have no site.theme yet — ModuleManager
+        // requires a string name, so fall back before asking for the module.
+        $themeModule = is_string($theme) && $theme !== ''
+            ? $app->get('module')->get($theme)
+            : null;
+
         if (!$themeModule) {
             $themeModule = new Module([
                 'name' => 'theme-default',

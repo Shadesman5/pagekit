@@ -67,6 +67,17 @@ class MigrationServiceTest extends TestCase
         $this->recursiveRemove($this->baseDir);
     }
 
+    public function testConstructionDoesNotCreateMetadataTable(): void
+    {
+        self::assertFalse(
+            $this->service->isInitialized(),
+            'Resolving MigrationService must not create the versions table',
+        );
+        self::assertFalse(
+            $this->connection->createSchemaManager()->tablesExist(['test_migration_versions']),
+        );
+    }
+
     public function testMigrateRunsPendingMigrations(): void
     {
         $result = $this->service->migrate();

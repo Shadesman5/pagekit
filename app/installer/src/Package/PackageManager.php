@@ -57,7 +57,7 @@ class PackageManager
             } else {
                 $config['path.temp'] = $path . '/tmp/temp';
                 $config['path.cache'] = $path . '/tmp/cache';
-                $config['path.vendor'] = $path . '/vendor';
+                $config['path.vendor'] = $path . '/app/vendor';
                 $config['path.artifact'] = $path . '/tmp/packages';
                 $config['path.packages'] = $path . '/packages';
                 $config['system.api'] = 'https://pagekit.com';
@@ -65,7 +65,7 @@ class PackageManager
         } catch (\Exception $e) {
             $config['path.temp'] = $path . '/tmp/temp';
             $config['path.cache'] = $path . '/tmp/cache';
-            $config['path.vendor'] = $path . '/vendor';
+            $config['path.vendor'] = $path . '/app/vendor';
             $config['path.artifact'] = $path . '/tmp/packages';
             $config['path.packages'] = $path . '/packages';
             $config['system.api'] = 'https://pagekit.com';

@@ -59,7 +59,7 @@ $config = [
     // temp and cache directories because clearing the cache empties those - and
     // outside storage/, which the webroot links to.
     'path.system' => $path.'/tmp/system',
-    'path.vendor' => $path.'/vendor',
+    'path.vendor' => $path.'/app/vendor',
     'path.artifact' => $path.'/tmp/packages',
     'config.file' => realpath($path.'/config.php'),
     'system.api' => 'https://pagekit.com',

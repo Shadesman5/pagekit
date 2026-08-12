@@ -62,13 +62,14 @@ class MigrationService
             );
         }
 
-        // Create dependency factory from configuration array
+        // Build the factory only. Creating the metadata table is initialize()'s
+        // job (and migrate() will ensure it as well): resolving the service from
+        // the container must not write to the database, or a transient SQLite
+        // lock / permission fault surfaces as "Error while retrieving migration".
         $this->dependencyFactory = DependencyFactory::fromConnection(
             new \Doctrine\Migrations\Configuration\Migration\ConfigurationArray($configArray),
             new ExistingConnection($this->connection)
         );
-
-        $this->dependencyFactory->getMetadataStorage()->ensureInitialized();
     }
 
     /**
@@ -144,11 +145,13 @@ class MigrationService
      */
     public function migrate(?string $version = null, bool $dryRun = false): array
     {
-        $migrator = $this->dependencyFactory->getMigrator();
-        $planCalculator = $this->dependencyFactory->getMigrationPlanCalculator();
-        $aliasResolver = $this->dependencyFactory->getVersionAliasResolver();
-
         try {
+            $this->ensureMetadataStorage();
+
+            $migrator = $this->dependencyFactory->getMigrator();
+            $planCalculator = $this->dependencyFactory->getMigrationPlanCalculator();
+            $aliasResolver = $this->dependencyFactory->getVersionAliasResolver();
+
             // Resolve target version
             if ($version) {
                 $targetVersion = new \Doctrine\Migrations\Version\Version($version);
@@ -211,12 +214,14 @@ class MigrationService
      */
     public function rollback(?string $version = null, bool $dryRun = false): array
     {
-        $migrator = $this->dependencyFactory->getMigrator();
-        $planCalculator = $this->dependencyFactory->getMigrationPlanCalculator();
-        $aliasResolver = $this->dependencyFactory->getVersionAliasResolver();
-        $metadataStorage = $this->dependencyFactory->getMetadataStorage();
-
         try {
+            $this->ensureMetadataStorage();
+
+            $migrator = $this->dependencyFactory->getMigrator();
+            $planCalculator = $this->dependencyFactory->getMigrationPlanCalculator();
+            $aliasResolver = $this->dependencyFactory->getVersionAliasResolver();
+            $metadataStorage = $this->dependencyFactory->getMetadataStorage();
+
             // Get executed migrations
             $executedMigrations = $metadataStorage->getExecutedMigrations();
 
@@ -451,8 +456,7 @@ class MigrationService
     public function initialize(): array
     {
         try {
-            $storage = $this->dependencyFactory->getMetadataStorage();
-            $storage->ensureInitialized();
+            $this->ensureMetadataStorage();
 
             return [
                 'success' => true,
@@ -465,6 +469,14 @@ class MigrationService
                 'error' => $e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * Creates the Doctrine migration versions table when it is still missing.
+     */
+    private function ensureMetadataStorage(): void
+    {
+        $this->dependencyFactory->getMetadataStorage()->ensureInitialized();
     }
 
     /**
