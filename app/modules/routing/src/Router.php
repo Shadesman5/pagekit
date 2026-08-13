@@ -402,24 +402,15 @@ class Router implements RouterInterface, LinkReferenceType
             return null;
         }
 
-        // Everything that can change the dumped routes goes into the key, so a
-        // change produces a different file instead of a file whose age has to be
-        // compared to something:
-        //
-        // - the resource carries the declared routes,
-        // - the options carry route-affecting module state (e.g. the blog module
-        //   sets "blog.permalink", which adds permalink alias routes during
-        //   route.configure - a stale dump would keep serving the routes of the
-        //   previous permalink type and break every post URL),
-        // - the resource's modified marker is the only signal for routes derived
-        //   from controller attributes, which the loader expands from files this
-        //   key never sees.
-        //
-        // Dating the dump by its own mtime instead would tie the cache to clocks:
-        // a deployment that resets file times, or a production opcache that does
-        // not revalidate timestamps, leaves a dump that is stale but looks
-        // current. A key cannot be wrong about that.
-        $currentKey = sha1(serialize($this->resource).serialize($this->options).$this->resource->getModified());
+        $currentKey = $this->cacheKey();
+
+        if ($currentKey === null) {
+            // No key means no way to tell a dump apart from a stale one, so
+            // there is nothing safe to read or write. The request runs off the
+            // route collection, the same degradation an unusable cache file
+            // gets.
+            return null;
+        }
 
         if (!$this->cache || $this->cache['key'] !== $currentKey) {
             $this->cache = ['key' => $currentKey];
@@ -436,6 +427,41 @@ class Router implements RouterInterface, LinkReferenceType
         $fresh = file_exists($file);
 
         return array_merge(compact('fresh', 'file'), $this->cache);
+    }
+
+    /**
+     * Identity of the routes a dump would hold, or null where it cannot be taken.
+     *
+     * Everything that can change the dumped routes goes into the key, so a
+     * change produces a different file instead of a file whose age has to be
+     * compared to something:
+     *
+     * - the resource carries the declared routes,
+     * - the options carry route-affecting module state (e.g. the blog module
+     *   sets "blog.permalink", which adds permalink alias routes during
+     *   route.configure - a stale dump would keep serving the routes of the
+     *   previous permalink type and break every post URL),
+     * - the resource's modified marker is the only signal for routes derived
+     *   from controller attributes, which the loader expands from files this
+     *   key never sees.
+     *
+     * Dating the dump by its own mtime instead would tie the cache to clocks:
+     * a deployment that resets file times, or a production opcache that does
+     * not revalidate timestamps, leaves a dump that is stale but looks
+     * current. A key cannot be wrong about that.
+     *
+     * Reading the two of them can fail, though - a closure or a connection
+     * among the options or on the resource has no serialized form - and
+     * routing is not something a router may refuse to do. An unreadable
+     * identity turns the cache off for the request instead.
+     */
+    private function cacheKey(): ?string
+    {
+        try {
+            return sha1(serialize($this->resource).serialize($this->options).$this->resource->getModified());
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**

@@ -7,6 +7,7 @@ namespace Pagekit\Debug\DataCollector;
 use DebugBar\DataCollector\DataCollectorInterface;
 use Pagekit\Event\EventDispatcherInterface;
 use Pagekit\Routing\Router;
+use Symfony\Component\Routing\Route as SymfonyRoute;
 use Symfony\Component\Routing\RouterInterface;
 
 class RoutesDataCollector implements DataCollectorInterface
@@ -45,9 +46,21 @@ class RoutesDataCollector implements DataCollectorInterface
     {
         $collection = $this->router->getRouteCollection();
 
-        // Key the collected list on the routes themselves: they are what makes it
-        // stale, and no file of the router's tracks them.
-        $path = sprintf($this->cache.'/'.$this->file, sha1(serialize($collection)));
+        // Key the collected list on the routes themselves: they are what makes
+        // it stale, and no file of the router's tracks them. Read as the fields
+        // the list shows rather than as the collection object, because a route
+        // whose controller is a closure cannot be serialized at all - a panel
+        // that a route definition can throw out of is a panel that takes the
+        // request down with it.
+        $signature = '';
+        foreach ($collection as $name => $route) {
+            $signature .= $name."\0"
+                .$route->getPath()."\0"
+                .implode(',', $route->getMethods())."\0"
+                .$this->controllerOf($route)."\n";
+        }
+
+        $path = sprintf($this->cache.'/'.$this->file, sha1($signature));
 
         if (!file_exists($path)) {
 
@@ -57,7 +70,7 @@ class RoutesDataCollector implements DataCollectorInterface
                     'name' => $name,
                     'path' => $route->getPath(),
                     'methods' => $route->getMethods(),
-                    'controller' => is_string($ctrl = $route->getDefault('_controller')) ? $ctrl : 'Closure',
+                    'controller' => $this->controllerOf($route),
                 ];
             }
 
@@ -70,6 +83,17 @@ class RoutesDataCollector implements DataCollectorInterface
         $route = $this->route;
 
         return compact('routes', 'route');
+    }
+
+    /**
+     * Names the controller a route runs, for a panel that can only show text.
+     *
+     * A callback route carries no controller name to show: the router keeps the
+     * callable aside and the route default stays empty.
+     */
+    private function controllerOf(SymfonyRoute $route): string
+    {
+        return is_string($controller = $route->getDefault('_controller')) ? $controller : 'Closure';
     }
 
     /**

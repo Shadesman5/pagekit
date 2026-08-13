@@ -117,22 +117,26 @@ class MigrationService
     /**
      * Get the current migration version for an extension.
      *
-     * Returns '0' if no migrations have been executed yet,
-     * or the fully qualified version class name of the last executed migration.
+     * '0' is the answer for an extension that has never migrated, and
+     * rollbackExtension() reads it as "unwind everything", so a lookup that
+     * failed may not answer the same thing: a caller holding it as the point to
+     * unwind to would drop tables it merely could not read the version of.
+     * An unreadable version is therefore reported as such and left for the
+     * caller to decide what an unknown schema is worth.
      *
      * @param string $namespace Extension migration namespace
      * @param string $path Absolute path to extension migrations directory
-     * @return string Current version string ('0' if none executed)
+     * @return string|null Last executed version, '0' where none ran, null where it could not be read
      */
-    public function getExtensionCurrentVersion(string $namespace, string $path): string
+    public function getExtensionCurrentVersion(string $namespace, string $path): ?string
     {
         try {
             $extensionFactory = $this->createExtensionDependencyFactory($namespace, $path);
             $aliasResolver = $extensionFactory->getVersionAliasResolver();
 
             return (string) $aliasResolver->resolveVersionAlias('current');
-        } catch (\Throwable $e) {
-            return '0';
+        } catch (\Throwable) {
+            return null;
         }
     }
 
@@ -579,6 +583,10 @@ class MigrationService
      *
      * This method allows extensions to rollback their own migrations.
      * Behavior is consistent with rollback() method.
+     *
+     * '0' names an empty schema, so it is only a safe target for a caller that
+     * knows the schema was empty - a version that could not be read is not '0',
+     * and passing it as one drops every table the extension has.
      *
      * @param string $namespace Extension migration namespace
      * @param string $path Absolute path to extension migrations directory

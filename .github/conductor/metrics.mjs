@@ -1037,11 +1037,13 @@ export function pushMetricsToRemote({
   const restoreReturnBranch = () => {
     if (!returnBranch || returnBranch === metricsBranch) return;
     // Nothing to put back while the tree is still where the caller left it: a
-    // failure before the metrics checkout never moved it, and resetting its
-    // branch to origin here would throw away commits it has not pushed yet.
+    // failure before the metrics checkout never moved it.
     if (currentGitBranch(root) === returnBranch) return;
-    metricsGit(root, 'fetch', 'origin', returnBranch);
-    metricsGit(root, 'checkout', '-B', returnBranch, `origin/${returnBranch}`);
+    // Switch back to the branch as it stands here. Leaving the metrics branch
+    // never touched it, so it still points at the caller's work - pointing it
+    // at origin instead would throw away every commit that has not been pushed
+    // yet, and every local branch that is ahead of its remote is exactly that.
+    metricsGit(root, 'checkout', returnBranch);
   };
 
   try {

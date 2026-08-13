@@ -225,6 +225,24 @@ class MigrationServiceTest extends TestCase
         self::assertSame('0', $version);
     }
 
+    public function testGetExtensionCurrentVersionIsUnansweredWhereItCannotBeRead(): void
+    {
+        // Reading the version means reading the migrations the extension
+        // declares, and the directory it named them in is not there - a package
+        // half removed from disk, or a manifest pointing at a path it does not
+        // ship.
+        $version = $this->service->getExtensionCurrentVersion(
+            $this->extNamespace,
+            $this->baseDir . '/absent',
+        );
+
+        // Not '0'. That is the answer for an extension whose schema is empty,
+        // and rollbackExtension() reads it as the point to unwind everything
+        // to, so a caller holding it would drop every table of an extension
+        // whose version it merely could not read.
+        self::assertNull($version);
+    }
+
     public function testGetExtensionCurrentVersionReturnsVersionAfterMigration(): void
     {
         $this->writeExtensionMigration();

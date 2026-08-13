@@ -589,11 +589,17 @@ class PackageManager
      * Where the container has no migration service there is nothing to run
      * against; a container that can reach a database has one.
      *
+     * A note that could not be taken stops the run before it starts. The
+     * alternative is a run whose failure has nowhere to unwind to: an
+     * unreadable version is indistinguishable from an empty schema by value
+     * alone, and unwinding to an empty schema means dropping every table the
+     * package has in production. An attempt that never ran costs a retry.
+     *
      * @param array{set: MigrationSet, version: string}|null $applied
      *
      * @param-out array{set: MigrationSet, version: string}|null $applied
      *
-     * @throws \RuntimeException where a migration fails, so the caller unwinds the attempt
+     * @throws \RuntimeException where a migration fails or cannot be unwound, so the caller unwinds the attempt
      */
     private function migrateSchema(PackageInterface $package, LifecycleRunner $lifecycle, ?array &$applied): void
     {
@@ -609,10 +615,18 @@ class PackageManager
             return;
         }
 
-        $applied ??= [
-            'set' => $set,
-            'version' => $migration->getExtensionCurrentVersion($set->namespace, $set->path),
-        ];
+        if ($applied === null) {
+            $version = $migration->getExtensionCurrentVersion($set->namespace, $set->path);
+
+            if ($version === null) {
+                throw new \RuntimeException(sprintf(
+                    'Migrating "%s" was not attempted: the schema version it starts from could not be read, so a failed migration could not be rolled back.',
+                    $package->get('name')
+                ));
+            }
+
+            $applied = ['set' => $set, 'version' => $version];
+        }
 
         $result = $migration->migrateExtension($set->namespace, $set->path);
 

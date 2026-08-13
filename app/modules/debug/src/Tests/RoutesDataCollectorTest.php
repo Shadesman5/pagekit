@@ -90,6 +90,74 @@ class RoutesDataCollectorTest extends TestCase
         }
     }
 
+    /**
+     * A route can be declared with its controller as a closure - route defaults
+     * are passed through as they are given. Reading the routes as a whole to
+     * name the collected list would throw on such a route, and a debug panel is
+     * not something a request may be lost to: the list is named after the
+     * fields it shows instead, and a closure has one of those like any other
+     * route.
+     */
+    public function testARouteCarryingAClosureIsCollectedRatherThanThrownOn(): void
+    {
+        $dir = $this->createCacheDir();
+
+        try {
+            $routes = $this->siteRoutes();
+            $routes->add([
+                'name' => '@callback',
+                'path' => '/callback',
+                'defaults' => ['_controller' => fn (): string => ''],
+            ]);
+
+            $data = (new RoutesDataCollector($this->router($routes), new EventDispatcher(), $dir))->collect();
+
+            $this->assertSame(['@blog/id', '@feed', '@callback'], array_column($data['routes'], 'name'));
+            $this->assertSame(
+                ['name' => '@callback', 'path' => '/callback', 'methods' => [], 'controller' => 'Closure'],
+                $data['routes'][2],
+            );
+            $this->assertCount(1, glob($dir.'/*') ?: []);
+        } finally {
+            $this->removeCacheDir($dir);
+        }
+    }
+
+    /**
+     * Reading the routes by field rather than as a whole is what keeps the
+     * closure out of the way, and the fields are the ones that make the list
+     * stale: a route declared next to the closure is collected instead of being
+     * shadowed by the list the previous set left behind.
+     */
+    public function testTheCollectedListStillTracksRoutesDeclaredAroundAClosure(): void
+    {
+        $dir = $this->createCacheDir();
+
+        try {
+            $callback = ['name' => '@callback', 'path' => '/callback', 'defaults' => ['_controller' => fn (): string => '']];
+
+            $routes = $this->siteRoutes();
+            $routes->add($callback);
+
+            (new RoutesDataCollector($this->router($routes), new EventDispatcher(), $dir))->collect();
+
+            $changed = $this->siteRoutes();
+            $changed->add($callback);
+            $changed->add([
+                'name' => '@blog/comments',
+                'path' => '/blog/{id}/comments',
+                'defaults' => ['_controller' => 'BlogController::commentsAction'],
+            ]);
+
+            $data = (new RoutesDataCollector($this->router($changed), new EventDispatcher(), $dir))->collect();
+
+            $this->assertSame(['@blog/id', '@feed', '@callback', '@blog/comments'], array_column($data['routes'], 'name'));
+            $this->assertCount(2, glob($dir.'/*') ?: []);
+        } finally {
+            $this->removeCacheDir($dir);
+        }
+    }
+
     public function testReportsTheRouteTheRequestWasMatchedTo(): void
     {
         $dir = $this->createCacheDir();

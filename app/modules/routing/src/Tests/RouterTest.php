@@ -629,6 +629,43 @@ class RouterTest extends TestCase
     }
 
     /**
+     * The dump is named after the routes and the options that shape them, and
+     * reading either of them can fail: an option is whatever the module that
+     * set it put there, and a closure or a database connection has no
+     * serialized form. Naming the dump is the router's problem, routing is the
+     * request's - so an identity that cannot be taken costs the request its
+     * cache and nothing else.
+     */
+    public function testAnUnreadableCacheKeyDegradesToTheUncachedRouter(): void
+    {
+        $dir = $this->createCacheDir();
+        $files = new RouterTestWriteCountingFilesystem();
+
+        try {
+            $router = new Router($this->cachedRoutes(), new RoutesLoader($this->events), $this->stack, ['cache' => $dir], $files);
+
+            $router->setOption('test.route_option', fn (): string => 'nothing serializes this');
+
+            $this->stack->push(Request::create('/pair/7'));
+
+            $this->assertSame('7', $router->match('/pair/7')['id']);
+
+            // Matching adopted the request context, so the generated URL carries
+            // its base URL in front of the route path.
+            $this->assertStringContainsString('/pair/7', $router->generate('cached_pair', ['id' => 7]));
+
+            // Without a key there is nothing to tell a dump apart from a stale
+            // one, so neither is written nor read. Writing under a key that
+            // stands for less than the routes it holds would be worse than not
+            // caching: the next request would find it and believe it.
+            $this->assertSame(0, $files->writes);
+            $this->assertSame([], glob($dir.'/*') ?: []);
+        } finally {
+            $this->removeCacheDir($dir);
+        }
+    }
+
+    /**
      * A route's params resolver keeps its say once the routes are dumped - the
      * seam an extension uses to turn a post id into the parameters its
      * permalink is built from, and to read them back off a matched request. The

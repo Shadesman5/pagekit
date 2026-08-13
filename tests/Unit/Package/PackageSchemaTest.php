@@ -236,6 +236,36 @@ final class PackageSchemaTest extends TestCase
         self::assertSame([], (array) $system->get('extensions'));
     }
 
+    public function testAnAttemptThatCouldNotBeUnwoundIsNotStarted(): void
+    {
+        $migration = new RecordedSchemaRuns($this->connection);
+        $migration->version = null;
+
+        $this->writeMigrationCreatingItems();
+        $this->writeLifecycle(schema: true, hook: 'enable', body: '');
+
+        $system = new Config();
+
+        $thrown = $this->failureOf($this->container($system, $migration));
+
+        // Where the schema stands could not be read, and the value that reads
+        // like "nowhere" is the one a rollback unwinds everything to reach.
+        // Running the migrations on a note like that puts an attempt in the air
+        // whose failure drops every table the package has in production, so it
+        // does not run at all - a retry costs less than that.
+        self::assertSame([], $migration->migrated);
+        self::assertSame([], $migration->rolledBack);
+
+        // The refusal has to read as one: an administrator who is told the
+        // activation failed, but not that nothing was tried, goes looking for
+        // what it left behind.
+        self::assertStringContainsString('was not attempted', $thrown->getMessage());
+        self::assertStringContainsString('pagekit/test-ext', $thrown->getMessage());
+
+        self::assertNull($system->get('packages.test-ext'));
+        self::assertSame([], (array) $system->get('extensions'));
+    }
+
     // ------------------------------------------------------------------
     // When the recovery itself fails
     // ------------------------------------------------------------------
@@ -596,11 +626,16 @@ final class RecordedSchemaRuns extends MigrationService
     /** @var array<int, array{0: string, 1: string, 2: string|null}> */
     public array $rolledBack = [];
 
-    public function getExtensionCurrentVersion(string $namespace, string $path): string
+    /**
+     * Where the schema stands, or null for a version that could not be read.
+     */
+    public ?string $version = '0';
+
+    public function getExtensionCurrentVersion(string $namespace, string $path): ?string
     {
         $this->snapshots[] = [$namespace, $path];
 
-        return '0';
+        return $this->version;
     }
 
     /**
