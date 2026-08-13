@@ -1,5 +1,17 @@
 # Changelog
 
+## Pagekit 1.2.39 - Pages deploy queue & V1 metrics reuse (August 13, 2026)
+
+### ♻️ Changed
+
+- **GitHub Pages deploys wait their turn instead of cancelling the run already in flight** — a newer docs deploy queues behind the current one (GitHub still keeps only one pending request, so a burst still publishes once). `actions/configure-pages` 6.0.0 and `actions/deploy-pages` 5.0.0 run on Node 24, matching the runner default.
+
+### 🐛 Fixed
+
+- **Importing the same Orchestrator chat twice no longer draws two session cards and double-counts tokens** — a manual V1 import before merge plus the post-merge importer used to create a second session for the same parent `bc-…` agent; the importer now refreshes that session in place, and the dashboard collapses any remaining pair so the step total is the chat once.
+
+---
+
 ## Pagekit 1.2.38 - Extension Safety & Fault Isolation (August 11, 2026)
 
 ### 💥 Breaking Changes

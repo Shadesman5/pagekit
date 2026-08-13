@@ -347,9 +347,56 @@
     return text;
   }
 
+  function sessionParentAgentIds(session) {
+    return (session?.phases || []).map(p => (p.agent?.id || '').toLowerCase()).filter(Boolean);
+  }
+
+  function sessionAgentRunCount(session) {
+    return (session?.phases || []).reduce((n, p) => {
+      const runs = p.agent?.runs?.length || p.agent?.runCount || 0;
+      return n + runs;
+    }, 0);
+  }
+
+  /**
+   * One Cursor parent agent (one chat) is one session card. A manual import plus
+   * the post-merge V1 workflow can otherwise list the same chat twice and
+   * double-count tokens.
+   */
+  function dedupeSessionsByParentAgent(sessions) {
+    const result = [];
+    const used = new Set();
+    for (let i = 0; i < sessions.length; i += 1) {
+      if (used.has(i)) continue;
+      const ids = new Set(sessionParentAgentIds(sessions[i]));
+      if (!ids.size) {
+        result.push(sessions[i]);
+        continue;
+      }
+      let winner = sessions[i];
+      for (let j = i + 1; j < sessions.length; j += 1) {
+        if (used.has(j)) continue;
+        const otherIds = sessionParentAgentIds(sessions[j]);
+        if (!otherIds.some(id => ids.has(id))) continue;
+        used.add(j);
+        otherIds.forEach(id => ids.add(id));
+        const aRuns = sessionAgentRunCount(winner);
+        const bRuns = sessionAgentRunCount(sessions[j]);
+        const aDone = winner.completedAt || '';
+        const bDone = sessions[j].completedAt || '';
+        if (bRuns > aRuns || (bRuns === aRuns && bDone > aDone)) {
+          winner = sessions[j];
+        }
+      }
+      result.push(winner);
+    }
+    return result;
+  }
+
   function sessionsForEntry(entry, cache) {
     if (!entry?.sessionIds?.length) return [];
-    return entry.sessionIds.map(id => cache.get(id)).filter(Boolean);
+    const sessions = entry.sessionIds.map(id => cache.get(id)).filter(Boolean);
+    return dedupeSessionsByParentAgent(sessions);
   }
 
   function compareStepIds(a, b) {
@@ -1222,12 +1269,12 @@
   }
 
   function renderRoadmapAccordion(row, metricsEntry, sessionCache, Chart, ctx, currentStep) {
-    const runCount = metricsEntry?.sessionIds?.length || 0;
+    const sessions = sessionsForEntry(metricsEntry, sessionCache);
+    const runCount = sessions.length;
     const item = el('details', accordionItemClasses(row, currentStep, runCount > 0));
     item.dataset.stepId = row.id;
     applyPhaseColor(item, phaseOf(row.id));
 
-    const sessions = sessionsForEntry(metricsEntry, sessionCache);
     const agg = aggregateStepSessions(sessions);
 
     const summary = el('summary', 'cm-accordion-summary cm-tracking-row');

@@ -13,7 +13,7 @@ Token usage, run duration, and phase breakdown for **V2 Conductor** (GHA) and **
 ## Session ID
 
 - **Conductor:** auto-generated (`crypto.randomUUID()`) on the first GHA job; passed through chained jobs via `session_id`.
-- **V1 UI / Automations:** created by `import-manual-agents.mjs` (printed as `SESSION_ID=…`) when you import after the ticket. Pass `--session <uuid>` to append.
+- **V1 UI / Automations:** created by `import-manual-agents.mjs` (printed as `SESSION_ID=…`) when you import after the ticket. A later import of the same parent agent on that step updates that session; pass `--session <uuid>` only to force a specific file.
 
 ## When data is written
 
@@ -54,6 +54,7 @@ CURSOR_API_KEY=… node .github/conductor/import-manual-agents.mjs \
 - **Task child agents** (`?child-id=bc-…`) usually report **zero** usage via `/v1/agents/{id}/usage` — tokens roll up on the parent.
 - Default tagging: `source: "v1-ui"`, phase `tokensSource: "cursor-api-v1"` (dashboard V1 badge). Use `--no-v1-ui` only for legacy historical imports.
 - `--push` syncs/commits to `conductor-metrics` and dispatches `pages-deploy.yml`.
+- A second import of the **same parent agent** on that step (manual `--push` before merge, then `import-v1-metrics.yml` after) **updates** the existing session instead of creating another card. Pass `--session` only to target a specific UUID.
 - Optional: `--issue`, `--task-slug`, `--title`, `--label`, `--session`, `--dry-run`, `--copy-local`.
 
 When the Cursor API returns zero but the [Dashboard](https://cursor.com/dashboard) still shows usage, copy totals manually:

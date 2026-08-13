@@ -20,7 +20,7 @@
 //   --branch NAME      Feature branch recorded on the session (+ agent resolve fallback)
 //   --issue N          GitHub issue number
 //   --task-slug SLUG   Task prompt slug (without .md)
-//   --session UUID     Append to existing session instead of creating one
+//   --session UUID     Append to this session; default is reuse by parent agent id
 //   --v1-ui            (default) Tag session source=v1-ui (dashboard badge)
 //   --no-v1-ui         Legacy manualImport-only tagging (historical backfills)
 //   --push             Commit + push to conductor-metrics (+ pages-deploy dispatch)
@@ -52,7 +52,9 @@ import {
   syncMetricsFromRemote,
   pushMetricsToRemote,
   resolveOrchestratorAgentForPr,
-  parseRoadmapStepId
+  parseRoadmapStepId,
+  findReusableSessionByAgent,
+  mergeImportedPhases
 } from './metrics.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -326,14 +328,32 @@ async function main() {
       console.error(`Session not found: ${sessionId}`);
       process.exit(1);
     }
-    for (const p of phases) {
-      if (!session.phases.some(x => x.phaseKey === p.phaseKey)) session.phases.push(p);
+  } else {
+    const candidates = (index.steps[stepId]?.sessionIds || [])
+      .map(id => readJson(join(ROOT, SESSIONS_DIR, `${id}.json`)))
+      .filter(Boolean);
+    session = findReusableSessionByAgent(candidates, agentIds);
+    if (session) {
+      console.log(
+        `Reusing session ${session.sessionId} (same parent agent as an existing ${stepId} import)`
+      );
     }
+  }
+
+  if (session) {
+    mergeImportedPhases(session, phases);
     if (V1_UI && session.source !== 'v1-ui') session.v1Continued = true;
-    if (title && !session.title) session.title = title;
-    if (issue != null && session.issue == null) session.issue = issue;
-    if (branchArg && !session.branch) session.branch = branchArg;
+    if (title) session.title = title;
+    if (issue != null) session.issue = issue;
+    if (branchArg) session.branch = branchArg;
     if (taskSlug && !session.taskSlug) session.taskSlug = taskSlug;
+    session.manualImport = {
+      at: new Date().toISOString(),
+      source: 'import-manual-agents.mjs',
+      note: V1_UI
+        ? 'Post-hoc V1 UI / Automations import (parent agent usage)'
+        : 'Pre-Conductor / historical cloud agent run(s)'
+    };
   } else {
     session = {
       schemaVersion: SCHEMA_VERSION,
