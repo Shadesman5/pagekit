@@ -324,19 +324,22 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - Trigger before uninstall / major package ops; retention (e.g. 30 days) + one-click restore
   - Three-stage uninstall: disable → uninstall (code/data soft-removed) → purge after retention window
   - Admin UX for list / restore / purge
+  - Admin feedback when a package's `disable` / `uninstall` lifecycle hook throws: the stage must still complete (an administrator must be able to leave a misbehaving package), but the panel must show that the hook failed and point at the log — today that failure is log-only and the action reports plain success
+  - Theme circuit breaker: a failing theme is retried on every request today (never auto-disabled — recovery + per-request fallback). After N consecutive load failures, stop executing that theme and serve `theme-default` (or the existing blank fallback) until an administrator clears the failure / re-selects the theme — otherwise an expensive theme bug (memory exhaustion, hanging query) is a visitor-facing DoS
+  - Harden `ExtensionFailureStore` against concurrent read-modify-write: `dumpAtomic()` prevents torn reads, but two workers that each `all()` → mutate → `write()` can lose one entry; serialize the RMW cycle (e.g. `flock`) so parallel failures and clears do not overwrite each other
   - This path is the **only** route for a removal that no one explicitly requested: automatic dependency cleanup (**5.0**) may deactivate, but any deletion it triggers goes through disable → uninstall → purge with a snapshot first, so the data stays restorable
-- **Out of scope**: Marketplace signing; background update orchestration (**2.9**)
-- **Risk**: Medium — DB dump portability (SQLite/MySQL), storage growth
+- **Out of scope**: Marketplace signing; background update orchestration (**2.9**); process-level PHP sandboxing for enabled packages (Phase 5 §5.6 future candidate)
+- **Risk**: Medium — DB dump portability (SQLite/MySQL), storage growth; theme circuit-breaker threshold must not strand a site that is mid-fix without a clear admin reset path
 
 ---
 
 ## Step 2.7.2: Module Dependency Integrity
 
-- **Depends on**: Step 2.7 (fault isolation, auto-disable, admin flash — this step reuses that enforcement seam).
+- **Depends on**: Step 2.7 (fault isolation, auto-disable, durable failure record + admin notification — this step reuses that enforcement seam).
 - **Goal**: Make the module dependency graph honest and answerable in both directions, so activation can never leave a half-wired application and no destructive package operation runs blind.
 - **Why**: `ModuleManager::resolveModules()` skips a `require` entry that is not registered — silently. `load()` throws only for a directly requested unknown module name, so a missing dependency yields a partially booted application whose failure surfaces later as a missing service. `PackageManager::disable()` performs no dependency check at all. Both are tolerable while the `require` lists are maintained in code; they become a fault source the moment operators activate and deactivate modules themselves (Step 5.0).
 - **What**:
-  - **Fail closed on unsatisfied requirements**: an unregistered or inactive `require` entry must refuse the activation, or disable the dependent module and report it through the Step 2.7 admin flash. The failure must name the missing module — never a silent skip.
+  - **Fail closed on unsatisfied requirements**: an unregistered or inactive `require` entry must refuse the activation, or disable the dependent module and report it through the Step 2.7 admin notification (durable failure record surfaced on admin requests — not a session flash, which auto-expires and usually lands in an anonymous visitor's session). The failure must name the missing module — never a silent skip.
   - **Circular requirements at validation time**: `resolveModules()` already detects cycles but raises them during boot; surface them when a package is validated or activated instead.
   - **Reverse index**: derive `requiredBy` from the registered manifests so "what depends on this module" is answerable without scanning at call time.
   - **The active theme counts as a dependent**: the activation registry is two keys — the `extensions` list and `site.theme` (`SystemModule` loads `array_merge($this->config['extensions'], (array) $theme)`). A check that reads only `extensions` will happily disable a module the active theme requires and break the frontend.
@@ -351,7 +354,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 - **Depends on**: Step 2.7 (fault barrier / auto-disable seams), prefer after Step 2.7.2 (dependency graph already fail-closed against registered names).
 - **Goal**: Discover packages from static metadata so boot never executes PHP for inactive / on-disk-only packages; run module PHP (`index.php` / equivalent) only for packages that are actually being loaded.
-- **Why**: Step 2.7 can wrap `ModuleManager::register()`'s `include` in `\Throwable`, but that is still execution-to-discover. A parse error in a disabled extension's `index.php` remains uncatchable; a malicious or broken top-level statement still runs for every package on disk. Before third-party packaging (**2.8**) and the marketplace (**5.6**) distribute arbitrary trees, discovery must not require executing those trees.
+- **Why**: The Step 2.7 registration barrier (per-include `try/catch (\Throwable)`) is still execution-to-discover: every on-disk package's top-level `index.php` runs, side effects included, and failures the engine does not raise as catchable throwables — fatal compile errors such as duplicate class/function declarations, `exit`/`die` at top level, resource exhaustion — still kill the boot. Before third-party packaging (**2.8**) and the marketplace (**5.6**) distribute arbitrary trees, discovery must not require executing those trees.
 - **What**:
   1. Static package identity/metadata file (e.g. `module.json` beside `composer.json`, or a constrained subset of an existing manifest) carrying at least name and the fields registration needs before load — no PHP evaluation to learn that a package exists
   2. `ModuleManager::register()` (or its successor) reads static metadata for on-disk packages; `include` / require of executable module entry points is restricted to enabled packages (and core modules that must always load)
@@ -364,13 +367,30 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 ---
 
+## Step 2.7.4: Standard Composer Layout (`vendor/` at root)
+
+- **Depends on**: Step 2.4.1 (`public/` is already the document root, so Composer files no longer need to hide under `app/` for HTTP safety). Independent of 2.7.3 discovery.
+- **Goal**: Composer default layout — dependencies in `./vendor`, binaries in `./vendor/bin`, one `path.vendor`. Delete `config.vendor-dir` / `app/vendor`. No shim, no second path.
+- **Why**: The custom `app/vendor` dir is leftover from when the app root was the webroot. With `public/` as the only served tree, it is no longer a boundary — it is a dual path (`app/vendor` vs `/vendor`) that boot, CI, Docker, and docs already disagree on. Extension packaging (**2.8**) and release artefacts (**2.9**) would freeze `app/vendor` into zips, updater clean-passes, and author docs if this stays.
+- **What**:
+  1. Remove `"vendor-dir": "app/vendor"` from Composer config; `composer install` writes `./vendor`
+  2. Root autoloader, container `path.vendor`, installer / package-manager fallbacks, Docker image copies, and CI Composer caches all use that one directory
+  3. PHPUnit / PHPStan / CS-Fixer invocations and every documented binary path become `./vendor/bin/…`
+  4. Delete leftover `app/vendor`, symlinks, and dual-path fallbacks (including defaults that still point at a non-existent root `vendor/` while Composer writes `app/vendor`)
+  5. Any self-update / artefact path that currently assumes vendor lives under `app/` follows in this step, so an update after the move does not leave a stale `app/vendor` or skip `./vendor`
+- **Out of scope**: the installed-package Composer overlay (`packages/composer` + the root autoloader merge) — that is how uploaded extensions register PSR-4, and it stays until packaging / marketplace decide a Composer-native install; renaming `app/`; repo split (**4.13**); extension ZIP/JS contract (**2.8**); static module discovery (**2.7.3**)
+- **Sequencing**: after 2.7.3 (2.7 family stays contiguous), before **2.8** and **2.9**
+- **Risk**: Medium — mechanical path sweep with a wide blast radius (CI, Docker, docs, updater); no application behaviour change if the single path is consistent
+
+---
+
 ## Step 2.8: Extension Packaging & Prebuilt Assets
 
-- **Depends on**: Step 2.4 (static Vite entry manifest), Step 2.7 (fault isolation); absorb the manifest shape from Step **2.7.3** when that step has landed (do not freeze `index.php`-only discovery in the published contract if 2.7.3 replaces it).
+- **Depends on**: Step 2.4 (static Vite entry manifest), Step 2.7 (fault isolation); absorb the manifest shape from Step **2.7.3** when that step has landed (do not freeze `index.php`-only discovery in the published contract if 2.7.3 replaces it); absorb the Composer vendor layout from Step **2.7.4** (do not document or pack `app/vendor`).
 - **Goal**: One package shape for distributed extensions and themes — PHP/views plus **prebuilt** `app/bundle/*.js` and compiled CSS — valid for the admin upload today and for the marketplace later.
 - **Why**: Bundle entries live in the first-party-only core manifest `scripts/bundle-entries.mjs`; no core build step produces a third-party bundle. A package that ships sources only has no build path at all — `pnpm build` never sees it, and target hosts have no Node. The admin upload (`admin/system/package/upload` → `PackageManager`) installs and enables such a package today, silently without its JS.
 - **What**:
-  1. Contract: required package layout (`composer.json` `type: pagekit-extension` / `pagekit-theme`, static module metadata from **2.7.3** once available / `index.php` until then, views, `app/bundle/*.js`, compiled CSS); the runtime globals a bundle may rely on (`Vue` / `UIkit` / `UIkit.util` as script-tag externals); what a package must never expect (core build step, core manifest entry, Node on the host).
+  1. Contract: required package layout (`composer.json` `type: pagekit-extension` / `pagekit-theme`, static module metadata from **2.7.3** once available / `index.php` until then, the lifecycle file — `extra.lifecycle` pointing to `lifecycle.php` (or another path the package names) that returns a `PackageLifecycleInterface` implementation and `require`s its class file itself, because at install time the package's own autoload is not yet registered — views, `app/bundle/*.js`, compiled CSS); the runtime globals a bundle may rely on (`Vue` / `UIkit` / `UIkit.util` as script-tag externals); what a package must never expect (core build step, core manifest entry, Node on the host). Rename the current `extra.scripts` / `scripts.php` names to `extra.lifecycle` / `lifecycle.php` in core readers, shipped packages (`app/system`, Blog), and the published contract — one key and one conventional filename only (no dual-key compat).
   2. Author-side build preset: a documented Vite config authors copy into their own package — same externals and IIFE output shape the core pipeline emits, so a package bundle behaves like a first-party one. Documentation only here: no published package, no core dependency.
   3. Author-side packaging: build + zip flow producing an upload-ready ZIP (build output in, sources and dev files out).
   4. A sample extension carrying a Vue bundle uploads, installs, enables and renders without any core build run; a source-only package fails with a clear diagnostic instead of a missing bundle.
@@ -378,19 +398,20 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   6. Dependency declarations must agree: a package's Composer `require` (what must exist on disk, carrying the version constraints) and its module manifest `require` (what must be loaded first) may not contradict each other. Validate at packaging time, so an installed package cannot present a dependency graph the loader disagrees with.
   7. Webroot publication: only `public/` is served, and the core build publishes only in-repo packages — a runtime-installed/uploaded package has no publisher, so its bundles, CSS and icons are unreachable over HTTP. Package install/enable must copy the servable files (`app/bundle/*.js`, compiled CSS, icons/images) into the `public/` mirror and uninstall must remove them; `pagekit archive` must include built bundles from their `public/` location so a package ZIP is complete.
 - **Out of scope**: marketplace API, host, catalogue and package signing (Step 5.6); the build preset as a published, versioned npm package (Step 5.7); rewriting boot discovery itself (Step 2.7.3).
-- **Sequencing**: after 2.7 (and 2.7.3 when scheduled ahead of packaging), before 5.6 — the marketplace distributes against this contract.
+- **Sequencing**: after 2.7, **2.7.3** (static discovery), and **2.7.4** (root `vendor/`), before 5.6 — the marketplace distributes against this contract.
 - **Risk**: Low–Medium — contract, docs and author tooling; the only core code touch is the upload/install diagnostic.
 
 ---
 
 ## Step 2.9: Automated Update System — External & Background Updates
 
+- **Depends on**: Step 2.4.1 (identical `public/` webroot in both artefacts); Step 2.7.4 (Composer `vendor/` at the repository root — release zips and the updater clean-pass must not still assume `app/vendor`).
 - **Goal**: Modern, future-proof update infrastructure for Pagekit CMS.
 - **Why**: Long-term maintainability without manual release friction.
 - **Priority**: High
 - **Release automation (from Step 2.2)**: the CI side of the release — publish tags / GitHub releases and the machine-readable release metadata the updater consumes, so a version bump ends in a real release feed instead of a manual upload. Step 2.2 built quality gates only and left release hooks unrouted. The same release hook must also push **release-tagged container images** (semver + `latest`) to GHCR: the `docker-image` workflow publishes only moving `develop` / commit-SHA tags, so deployments have no stable image tag to pin until releases produce one.
 - **Two distribution artifacts, one build, one webroot layout (no forked app code)**: since Step 2.4.1, both artifacts ship the **identical `public/`-webroot layout** — (1) **classic tarball/zip**: `composer install --no-dev --optimize-autoloader` + Vite build (`pnpm build`, post-2.4) output, zipped as-is, ready to unzip onto any Apache/PHP-FPM shared host — document root pointed at `public/` (most modern panels, incl. IONOS) or the root-`.htaccess` rewrite fallback from 2.4.1 for hosts that lock the document root. This stays the **default, widest-reach** distribution — today it is still a manual, undocumented step; CI-building it and attaching it to GitHub Releases is core scope here. (2) **container image** (Step 2.5, later Step 4.12 for the runtime-engine swap): the identical build, with `public/` copied into the image the same way. Both come from the same source tree, the same build commands, and now the same webroot layout — packaging is the only difference.
-- **Webroot packaging details**: both artifacts must carry a complete `public/` tree — published assets plus the `public/storage` symlink. Plain zip extraction drops symlinks, so the classic artifact (or the installer/updater on first run) must recreate it; updates must also prune stale published files under `public/` (bundle and asset names change between releases, while the self-updater's clean pass covers only `app/`).
+- **Webroot packaging details**: both artifacts must carry a complete `public/` tree — published assets plus the `public/storage` symlink. Plain zip extraction drops symlinks, so the classic artifact (or the installer/updater on first run) must recreate it; updates must also prune stale published files under `public/` (bundle and asset names change between releases). The updater clean-pass must cover application code **and** root `vendor/` (Composer layout from **2.7.4**), not only `app/`.
 - **Atomic writes (from Step 2.6)**: reuse `Filesystem::dumpAtomic()` for PHP state the next boot `require`s (registry, manifests, dumped caches). If this step also writes non-PHP artefacts (zip payloads, checksums, JSON feeds, binary blobs), either keep those on a separate write path or extend `dumpAtomic()` so `opcache_invalidate()` runs only for `.php` targets — today every dumpAtomic write invalidates OPcache unconditionally because all current callers are PHP-only.
 - **Context**: `migration-docs/TODO/features/AUTOMATED_UPDATE_SYSTEM.md`
 

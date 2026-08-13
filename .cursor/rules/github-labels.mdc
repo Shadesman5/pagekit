@@ -1,5 +1,5 @@
 ---
-description: 'GitHub Labels Guide (28 labels, synced 2026-02-14). Available labels for issues and PRs in Pagekit. Includes: phase labels (phase-1..phase-5), dependency labels (auto-applied by Dependabot), commit-type labels (breaking-change, security, performance), project area labels (frontend, backend, database, module, theme, migration), and standard GitHub labels. Use when creating or updating PRs/issues.'
+description: 'GitHub Labels Guide (29 labels, synced 2026-08-10). Available labels for issues and PRs in Pagekit. Includes: phase labels (phase-1..phase-5), dependency labels (auto-applied by Dependabot), commit-type labels (breaking-change, security, performance), project area labels (frontend, backend, database, module, theme, migration), automation labels (v1-metrics), and standard GitHub labels. Use when creating or updating PRs/issues.'
 alwaysApply: false
 ---
 
@@ -8,7 +8,7 @@ alwaysApply: false
 Available labels for the Pagekit project (`Shadesman5/pagekit`).
 Use these when creating or updating issues and pull requests.
 
-**Total: 28 labels** | Last synced with GitHub: 2026-07-14
+**Total: 29 labels** | Last synced with GitHub: 2026-08-10
 
 ## Phase Labels (Modernization Roadmap)
 
@@ -60,6 +60,12 @@ Identify which part of the system is affected:
 | `theme`     | Theme related changes             | `#FFA500` | Theme templates, styles                  |
 | `migration` | Migration and modernization tasks | `#C5DEF5` | PHP 8.x upgrades, Symfony updates        |
 
+## Automation Labels
+
+| Label        | Description                                      | Color     | When to Use                                                                 |
+| ------------ | ------------------------------------------------ | --------- | --------------------------------------------------------------------------- |
+| `v1-metrics` | Import V1 UI Orchestrator metrics after PR merge | `#6F42C1` | V1 (`cursor.com/agents`) modernization PRs — triggers `import-v1-metrics.yml`; requires `Step X.Y` in the PR title or body |
+
 ## Standard GitHub Labels
 
 Default labels for general use:
@@ -77,7 +83,9 @@ Default labels for general use:
 
 ### Label Combination Formula
 
-Every issue/PR should have: **1 phase label + 1 commit-type label + 1-2 area labels**
+Every issue/PR should have: **1 phase label + 1 commit-type label + 1-2 area labels**.
+V1 UI Orchestrator PRs additionally add **`v1-metrics`** and name the ROADMAP step as
+**`Step X.Y`** in the PR title or body.
 
 ### For Modernization Issues
 
@@ -117,6 +125,22 @@ refactor(container): modernize PSR-11 container
 Labels: phase-2, migration, backend
 ```
 
+**V1 UI Orchestrator PRs** (metrics import after merge into `develop`):
+
+```yaml
+Labels: phase-2, migration, backend, v1-metrics
+```
+
+Add `v1-metrics` in the `<!-- metadata -->` block when the PR was driven by a cursor.com/agents
+Orchestrator run. After merge, `.github/workflows/import-v1-metrics.yml` imports parent-agent
+usage into `conductor-metrics`.
+
+The PR **title** (or, failing that, the body) must contain the ROADMAP step id as `Step X.Y` —
+that is where the workflow reads the step from, and it reads it from the merge event. A PR merged
+without it fails the import with no in-workflow recovery: re-running replays the same payload and
+a merged PR fires no second `closed` event, so the metrics have to be imported manually with
+`node .github/conductor/import-manual-agents.mjs --step … --pr-url … --push`.
+
 ### Conventional Commits to Labels Mapping
 
 | Commit Type         | Suggested Labels                                    |
@@ -144,6 +168,7 @@ Labels: phase-2, migration, backend
 | Security patch                | `security`, `bug`, appropriate area    |
 | Breaking API change           | `breaking-change`, appropriate area    |
 | Documentation update          | `documentation`                        |
+| V1 UI Orchestrator modernization PR | phase + `migration` + area + `v1-metrics` (+ `Step X.Y` in title/body) |
 
 ## Managing Labels via CLI
 

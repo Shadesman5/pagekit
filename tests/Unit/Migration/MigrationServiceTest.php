@@ -67,6 +67,54 @@ class MigrationServiceTest extends TestCase
         $this->recursiveRemove($this->baseDir);
     }
 
+    public function testConstructionDoesNotCreateMetadataTable(): void
+    {
+        self::assertFalse(
+            $this->service->isInitialized(),
+            'Resolving MigrationService must not create the versions table',
+        );
+        self::assertFalse(
+            $this->connection->createSchemaManager()->tablesExist(['test_migration_versions']),
+        );
+    }
+
+    public function testInitializeCreatesTheMetadataTable(): void
+    {
+        $result = $this->service->initialize();
+
+        self::assertTrue($result['success'], $result['error'] ?? '');
+        self::assertTrue($this->service->isInitialized());
+        self::assertTrue(
+            $this->connection->createSchemaManager()->tablesExist(['test_migration_versions']),
+        );
+
+        // Creating the versions table is not running the migrations: what was
+        // pending before is still pending afterwards.
+        $status = $this->service->status();
+
+        self::assertTrue($status['success'], $status['error'] ?? '');
+        self::assertTrue($status['has_pending']);
+    }
+
+    public function testInitializeLeavesAnAlreadyMigratedDatabaseAlone(): void
+    {
+        $migrate = $this->service->migrate();
+        self::assertTrue($migrate['success'], $migrate['error'] ?? '');
+
+        $result = $this->service->initialize();
+
+        self::assertTrue($result['success'], $result['error'] ?? '');
+
+        // The versions table is already there and keeps its rows. An
+        // installation that is initialized a second time must not forget which
+        // migrations have run, or it would run them again.
+        $status = $this->service->status();
+
+        self::assertTrue($status['success'], $status['error'] ?? '');
+        self::assertFalse($status['has_pending']);
+        self::assertCount(1, $status['executed']);
+    }
+
     public function testMigrateRunsPendingMigrations(): void
     {
         $result = $this->service->migrate();
@@ -175,6 +223,24 @@ class MigrationServiceTest extends TestCase
         );
 
         self::assertSame('0', $version);
+    }
+
+    public function testGetExtensionCurrentVersionIsUnansweredWhereItCannotBeRead(): void
+    {
+        // Reading the version means reading the migrations the extension
+        // declares, and the directory it named them in is not there - a package
+        // half removed from disk, or a manifest pointing at a path it does not
+        // ship.
+        $version = $this->service->getExtensionCurrentVersion(
+            $this->extNamespace,
+            $this->baseDir . '/absent',
+        );
+
+        // Not '0'. That is the answer for an extension whose schema is empty,
+        // and rollbackExtension() reads it as the point to unwind everything
+        // to, so a caller holding it would drop every table of an extension
+        // whose version it merely could not read.
+        self::assertNull($version);
     }
 
     public function testGetExtensionCurrentVersionReturnsVersionAfterMigration(): void

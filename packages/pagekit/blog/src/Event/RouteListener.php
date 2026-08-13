@@ -7,6 +7,7 @@ namespace Pagekit\Blog\Event;
 use Pagekit\Blog\UrlResolver;
 use Pagekit\Event\EventInterface;
 use Pagekit\Event\EventSubscriberInterface;
+use Pagekit\Module\Module;
 use Pagekit\Routing\Route;
 use Pagekit\Routing\Router;
 use Pagekit\Routing\Routes;
@@ -18,6 +19,7 @@ class RouteListener implements EventSubscriberInterface
         private readonly Router $router,
         private readonly Routes $routes,
         private readonly CacheItemPoolInterface $cache,
+        private readonly Module $module,
     ) {
     }
 
@@ -26,7 +28,7 @@ class RouteListener implements EventSubscriberInterface
      */
     public function onAppRequest(): void
     {
-        $this->router->setOption('blog.permalink', UrlResolver::getPermalink());
+        $this->router->setOption('blog.permalink', UrlResolver::permalinkFor($this->module));
     }
 
     /**
@@ -39,7 +41,7 @@ class RouteListener implements EventSubscriberInterface
             $route->setDefault('_resolver', 'Pagekit\Blog\UrlResolver');
 
             // Create alias route for custom permalink patterns
-            if ($permalink = UrlResolver::getPermalink()) {
+            if ($permalink = UrlResolver::permalinkFor($this->module)) {
                 $this->routes->alias(dirname($route->getPath()).'/'.ltrim($permalink, '/'), '@blog/id', ['_resolver' => 'Pagekit\Blog\UrlResolver']);
             }
         }

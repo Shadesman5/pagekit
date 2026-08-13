@@ -6,16 +6,29 @@ namespace Pagekit\Installer\Package;
 
 use Pagekit\Filesystem\Filesystem;
 use Pagekit\Installer\Helper\Composer;
+use Pagekit\Installer\Package\Lifecycle\LifecycleRunner;
+use Pagekit\Installer\Package\Lifecycle\MigrationSet;
+use Pagekit\Migration\MigrationService;
+use Pagekit\System\Extension\ExtensionFailureStore;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Output\StreamOutput;
 
+/**
+ * @phpstan-import-type ExtensionFailure from ExtensionFailureStore
+ */
 class PackageManager
 {
     protected OutputInterface $output;
 
     protected Composer $composer;
+
+    /**
+     * Where a package that failed to load is on record, or null in an
+     * environment that keeps no record.
+     */
+    private readonly ?ExtensionFailureStore $failures;
 
     public function __construct(
         private readonly ContainerInterface $app,
@@ -44,7 +57,7 @@ class PackageManager
             } else {
                 $config['path.temp'] = $path . '/tmp/temp';
                 $config['path.cache'] = $path . '/tmp/cache';
-                $config['path.vendor'] = $path . '/vendor';
+                $config['path.vendor'] = $path . '/app/vendor';
                 $config['path.artifact'] = $path . '/tmp/packages';
                 $config['path.packages'] = $path . '/packages';
                 $config['system.api'] = 'https://pagekit.com';
@@ -52,7 +65,7 @@ class PackageManager
         } catch (\Exception $e) {
             $config['path.temp'] = $path . '/tmp/temp';
             $config['path.cache'] = $path . '/tmp/cache';
-            $config['path.vendor'] = $path . '/vendor';
+            $config['path.vendor'] = $path . '/app/vendor';
             $config['path.artifact'] = $path . '/tmp/packages';
             $config['path.packages'] = $path . '/packages';
             $config['system.api'] = 'https://pagekit.com';
@@ -64,6 +77,12 @@ class PackageManager
         // expected type leaves the helper on its own defaults.
         $files = $this->app->has('file') ? $this->app->get('file') : null;
         $logger = $this->app->has('log') ? $this->app->get('log') : null;
+
+        // The failure record belongs to the system module, which the installer
+        // environment does not load. Without it there is nothing to read and
+        // nothing to clear; every other operation is unaffected.
+        $failures = $this->app->has('extension.failures') ? $this->app->get('extension.failures') : null;
+        $this->failures = $failures instanceof ExtensionFailureStore ? $failures : null;
 
         $this->composer = new Composer(
             $config,
@@ -110,10 +129,18 @@ class PackageManager
             }
 
             $this->disable($package);
-            $this->getScripts($package)->uninstall();
 
-            // After scripts, while the package folder still exists: site listeners
-            // soft-delete nodes for types declared in the extension's index.php.
+            $lifecycle = $this->getLifecycle($package);
+
+            try {
+                $lifecycle->uninstall();
+            } catch (\Throwable $e) {
+                $this->reportHookFailure($package, 'uninstall', $e);
+            }
+
+            // After the hook, while the package folder still exists: site
+            // listeners soft-delete nodes for types declared in the extension's
+            // index.php.
             if ($this->app->has('events')) {
                 $this->app->get('events')->trigger('package.uninstall', [$package]);
             }
@@ -131,6 +158,12 @@ class PackageManager
 
                 $this->app->get('file')->delete($path);
                 @rmdir(dirname($path));
+            }
+
+            // The package is gone, so a record of it would go on naming
+            // something that is no longer installed.
+            if (!$this->clearFailure($package)) {
+                $this->reportUnclearedFailure($package);
             }
         }
     }
@@ -151,6 +184,8 @@ class PackageManager
 
         foreach ($packages as $package) {
             $originalState = null;
+            $applied = null;
+            $cleared = null;
             $moduleName = $package->get('module');
 
             try {
@@ -163,8 +198,9 @@ class PackageManager
                     }
                 }
 
-                // Fire package.enable only after scripts succeed so node restore /
-                // type forget cannot leave partial state when enable scripts throw.
+                // Fire package.enable only after the hooks succeed so node
+                // restore / type forget cannot leave partial state when the
+                // enable hook throws.
                 if ($this->app->has('config')) {
                     $sysConfig = $this->app->get('config')('system');
 
@@ -175,15 +211,17 @@ class PackageManager
                     ];
 
                     if (!$current = $sysConfig->get('packages.' . $previousPackageConfig->get('module'))) {
-                        $current = $this->doInstall($package);
+                        $current = $this->doInstall($package, $applied);
                     }
 
-                    $scripts = $this->getScripts($package, $current);
-                    if ($scripts->hasUpdates()) {
-                        $scripts->update();
+                    $lifecycle = $this->getLifecycle($package, $current);
+                    $this->migrateSchema($package, $lifecycle, $applied);
+
+                    if ($lifecycle->hasUpdates()) {
+                        $lifecycle->update();
                     }
 
-                    $scripts->enable();
+                    $lifecycle->enable();
 
                     $version = $this->getVersion($package);
                     $sysConfig->set('packages.' . $moduleName, $version);
@@ -196,17 +234,60 @@ class PackageManager
                         }
                     }
                 } else {
-                    $current = $this->doInstall($package);
-                    $scripts = $this->getScripts($package, $current);
-                    $scripts->enable();
+                    $current = $this->doInstall($package, $applied);
+
+                    $lifecycle = $this->getLifecycle($package, $current);
+                    $this->migrateSchema($package, $lifecycle, $applied);
+                    $lifecycle->enable();
+                }
+
+                // The next boot reads the record before the configuration, so
+                // an extension that cannot be taken off it is one this enable
+                // cannot deliver - reporting success would put "enabled" in the
+                // panel for something no boot loads. A theme is executed
+                // whether or not it is on the record, and taken off it by the
+                // boot that loads it, so there the same failed write costs a
+                // notice that clears itself. Settled before the event either
+                // way, so that a refusal leaves nothing to unwind.
+                $recorded = $this->recordedFailure($package);
+
+                if ($this->clearFailure($package)) {
+                    // Held for the rollback: everything from here on can still
+                    // fail, and an enable that did not happen may not take the
+                    // record of the failure that came before it with it.
+                    $cleared = $recorded;
+                } elseif ($package->getType() === 'pagekit-extension') {
+                    throw new \RuntimeException(sprintf(
+                        'The failure record of "%s" could not be cleared, so the next boot would leave it disabled.',
+                        $moduleName
+                    ));
+                } else {
+                    $this->reportUnclearedFailure($package);
                 }
 
                 if ($this->app->has('events')) {
                     $this->app->get('events')->trigger('package.enable', [$package]);
                 }
             } catch (\Throwable $e) {
+                // The schema this attempt applied goes first, and the
+                // configuration rollback runs after it whatever it ran into:
+                // what is recorded as installed and enabled is what the next
+                // boot reads, so that is the step that may not be skipped.
+                if ($applied !== null) {
+                    $this->rollbackSchema($package, $applied, $e);
+                }
+
                 if ($originalState !== null) {
                     $this->rollbackEnable($package, $originalState);
+                }
+
+                // The configuration is back to a package that is not enabled,
+                // and the record is the other half of that state: it is what
+                // keeps the extension out of the next boot and the only thing
+                // that names it as broken in the panel. Dropping it here would
+                // leave a package switched off with nothing saying why.
+                if ($cleared !== null) {
+                    $this->restoreFailure($package, $cleared);
                 }
 
                 if ($this->app->has('log')) {
@@ -275,7 +356,13 @@ class PackageManager
         }
 
         foreach ($packages as $package) {
-            $this->getScripts($package)->disable();
+            $lifecycle = $this->getLifecycle($package);
+
+            try {
+                $lifecycle->disable();
+            } catch (\Throwable $e) {
+                $this->reportHookFailure($package, 'disable', $e);
+            }
 
             if ($this->app->has('events')) {
                 $this->app->get('events')->trigger('package.disable', [$package]);
@@ -284,25 +371,361 @@ class PackageManager
             if ($package->getType() == 'pagekit-extension') {
                 $this->app->get('config')('system')->pull('extensions', $package->get('module'));
             }
+
+            if (!$this->clearFailure($package)) {
+                $this->reportUnclearedFailure($package);
+            }
         }
     }
 
-    protected function getScripts(PackageInterface $package, ?string $current = null): PackageScripts
+    /**
+     * The modules on record as having failed to load.
+     *
+     * @return array<int, string> module names, in no particular order
+     */
+    public function getFailedModules(): array
+    {
+        return array_keys($this->failures?->all() ?? []);
+    }
+
+    /**
+     * Takes a package off the failure record.
+     *
+     * Enabling, disabling or uninstalling a package is an administrator acting
+     * on the failure, and the record is what keeps a failed extension out of
+     * the boot and named in the admin notice. Left behind, it would go on doing
+     * both against the decision that was just made.
+     *
+     * @return bool whether the package is off the record, which a package that
+     *              was never on one - or that runs where no record is kept -
+     *              already is
+     */
+    private function clearFailure(PackageInterface $package): bool
+    {
+        $module = $package->get('module');
+
+        if ($this->failures === null || !is_string($module) || $module === '') {
+            return true;
+        }
+
+        return $this->failures->clear($module);
+    }
+
+    /**
+     * What the record says about a package.
+     *
+     * @return ExtensionFailure|null null where the package is not on record, or
+     *                               where no record is kept
+     */
+    private function recordedFailure(PackageInterface $package): ?array
+    {
+        $module = $package->get('module');
+
+        if ($this->failures === null || !is_string($module) || $module === '') {
+            return null;
+        }
+
+        return $this->failures->all()[$module] ?? null;
+    }
+
+    /**
+     * Puts back a record that an operation cleared before it failed.
+     *
+     * A record that cannot be written back is a lost record, and for an
+     * extension it was doing two jobs: keeping the package out of the boot and
+     * naming it as broken in the panel. The configuration takes the first one
+     * over, so a package this attempt already watched fail is not handed back to
+     * the next boot. The second is gone with the file and is reported to the log
+     * and nothing more: raising a second failure from the recovery path would
+     * take the place of the one that made the rollback necessary.
+     *
+     * @param ExtensionFailure $entry
+     */
+    private function restoreFailure(PackageInterface $package, array $entry): void
+    {
+        if ($this->failures === null || $this->failures->restore($entry)) {
+            return;
+        }
+
+        $withheld = $this->withholdExtension($package);
+
+        try {
+            if ($this->app->has('log')) {
+                $this->app->get('log')->error(
+                    sprintf(
+                        'Failed to restore the failure record of "%s" after a failed enable: %s',
+                        $package->get('module'),
+                        $withheld
+                            ? 'it is switched off in the configuration instead, and nothing names it as broken any more.'
+                            : 'nothing names it as broken any more.'
+                    ),
+                    ['package' => $package->get('module')]
+                );
+            }
+        } catch (\Throwable) {
+            // A record that could neither be restored nor reported is not worth
+            // replacing the failure that made the rollback necessary.
+        }
+    }
+
+    /**
+     * Takes an extension out of the configured extensions.
+     *
+     * The boot reads the record before the configuration, so an extension the
+     * record was holding off is one the configuration may well still list - that
+     * is the state a load failure leaves behind when the database it tried to
+     * write to is what broke. With the record lost, that configuration is all
+     * the next boot has to go on, and it would execute the package again. So the
+     * configuration says what the record no longer can: the extension is off
+     * until an administrator turns it back on. A theme needs none of this, as it
+     * is executed whether or not it is on the record.
+     *
+     * Written to the database here rather than left to the terminate event that
+     * normally persists the configuration: a console run never fires one, and a
+     * request that got this far has already failed once. Off in memory is not
+     * off on the next boot, so the write goes out on both branches - the one
+     * where this takes the extension out of the enabled list and the one where
+     * the rollback already left it unlisted. Only a write that happened may
+     * report that the configuration is holding the extension off now.
+     *
+     * @return bool whether the configuration the next boot reads leaves the
+     *              extension out
+     */
+    private function withholdExtension(PackageInterface $package): bool
+    {
+        $module = $package->get('module');
+
+        if ($package->getType() !== 'pagekit-extension' || !is_string($module) || $module === '' || !$this->app->has('config')) {
+            return false;
+        }
+
+        try {
+            $configs = $this->app->get('config');
+            $config = $configs('system');
+
+            // Pulling a name the list does not carry is not a no-op but a type
+            // error: a site that never enabled an extension has no list at all.
+            if (in_array($module, (array) $config->get('extensions', []))) {
+                $config->pull('extensions', $module);
+            }
+
+            $configs->set('system', $config);
+
+            return true;
+        } catch (\Throwable) {
+            // Writing the configuration can fail for the same reason recording
+            // the failure did. There is nothing left to fall back on and nothing
+            // to report that the line about the lost record does not say.
+            return false;
+        }
+    }
+
+    /**
+     * Reports a record that stayed behind.
+     *
+     * Where the record does not decide whether the package runs, a file that
+     * could not be rewritten does not get to refuse the operation: disabling
+     * and uninstalling are how an administrator gets out from under a broken
+     * package, and a theme is loaded whether or not it is on the record. What
+     * it costs is a notice standing until someone reads this line.
+     */
+    private function reportUnclearedFailure(PackageInterface $package): void
+    {
+        try {
+            if ($this->app->has('log')) {
+                $this->app->get('log')->error(
+                    sprintf(
+                        'Failed to clear the failure record of "%s", which is therefore still named as broken.',
+                        $package->get('module')
+                    ),
+                    ['package' => $package->get('module')]
+                );
+            }
+        } catch (\Throwable) {
+            // A record that could neither be cleared nor reported is not worth
+            // failing the operation that was meant to clear it.
+        }
+    }
+
+    /**
+     * Reports a lifecycle hook that threw on the package's way out.
+     *
+     * Disabling and uninstalling are how an administrator gets out from under a
+     * broken package, so the package gets no say in whether they happen: its
+     * hook is given its chance, and a throw costs the hook rather than the
+     * operation. Enabling and installing keep propagating - there the failure
+     * means the package is not ready to run, which is the caller's business.
+     */
+    private function reportHookFailure(PackageInterface $package, string $hook, \Throwable $e): void
+    {
+        try {
+            if ($this->app->has('log')) {
+                $this->app->get('log')->error(
+                    sprintf(
+                        'The %s hook of package "%s" failed: %s',
+                        $hook,
+                        $package->get('name'),
+                        $e->getMessage()
+                    ),
+                    ['exception' => $e, 'package' => $package->get('module')]
+                );
+            }
+        } catch (\Throwable) {
+            // Nothing is left that could take the report, and the operation the
+            // barrier keeps alive still has to finish.
+        }
+    }
+
+    /**
+     * Brings a package's schema up to date, noting where it stood before.
+     *
+     * A package declares its migrations and the installation runs them, so an
+     * extension no longer needs a hook that reaches for the migration service -
+     * and what a run applied can be unwound by whoever failed halfway through
+     * it. The note is taken once per attempt: an attempt that installs and then
+     * enables migrates twice, and the second run starts from a schema the first
+     * one produced, so rolling back to that would leave the first run standing.
+     *
+     * Where the container has no migration service there is nothing to run
+     * against; a container that can reach a database has one.
+     *
+     * A note that could not be taken stops the run before it starts. The
+     * alternative is a run whose failure has nowhere to unwind to: an
+     * unreadable version is indistinguishable from an empty schema by value
+     * alone, and unwinding to an empty schema means dropping every table the
+     * package has in production. An attempt that never ran costs a retry.
+     *
+     * @param array{set: MigrationSet, version: string}|null $applied
+     *
+     * @param-out array{set: MigrationSet, version: string}|null $applied
+     *
+     * @throws \RuntimeException where a migration fails or cannot be unwound, so the caller unwinds the attempt
+     */
+    private function migrateSchema(PackageInterface $package, LifecycleRunner $lifecycle, ?array &$applied): void
+    {
+        $set = $lifecycle->migrations();
+
+        if ($set === null) {
+            return;
+        }
+
+        $migration = $this->app->has('migration') ? $this->app->get('migration') : null;
+
+        if (!$migration instanceof MigrationService) {
+            return;
+        }
+
+        if ($applied === null) {
+            $version = $migration->getExtensionCurrentVersion($set->namespace, $set->path);
+
+            if ($version === null) {
+                throw new \RuntimeException(sprintf(
+                    'Migrating "%s" was not attempted: the schema version it starts from could not be read, so a failed migration could not be rolled back.',
+                    $package->get('name')
+                ));
+            }
+
+            $applied = ['set' => $set, 'version' => $version];
+        }
+
+        $result = $migration->migrateExtension($set->namespace, $set->path);
+
+        if (empty($result['success'])) {
+            $error = $result['error'] ?? null;
+
+            throw new \RuntimeException(sprintf(
+                'Migrating "%s" failed: %s',
+                $package->get('name'),
+                is_string($error) ? $error : 'unknown error'
+            ));
+        }
+    }
+
+    /**
+     * Unwinds the migrations one failed attempt applied.
+     *
+     * Recovery may not throw. The failure that started it is the one the
+     * administrator has to hear about, and a second one raised here would take
+     * its place and leave the configuration unrolled as well. So both outcomes
+     * the rollback can have - the service reporting what it caught, and an
+     * Error out of a broken migration class passing through it - are reported
+     * together with the original failure and swallowed.
+     *
+     * @param array{set: MigrationSet, version: string} $applied
+     */
+    private function rollbackSchema(PackageInterface $package, array $applied, \Throwable $cause): void
+    {
+        $set = $applied['set'];
+        $error = null;
+        $thrown = null;
+
+        try {
+            $migration = $this->app->has('migration') ? $this->app->get('migration') : null;
+
+            if (!$migration instanceof MigrationService) {
+                return;
+            }
+
+            $result = $migration->rollbackExtension($set->namespace, $set->path, $applied['version']);
+
+            if (empty($result['success'])) {
+                $reported = $result['error'] ?? null;
+                $error = is_string($reported) ? $reported : 'unknown error';
+            }
+        } catch (\Throwable $e) {
+            $thrown = $e;
+            $error = $e->getMessage();
+        }
+
+        if ($error === null) {
+            return;
+        }
+
+        try {
+            if ($this->app->has('log')) {
+                $this->app->get('log')->error(
+                    sprintf(
+                        'Failed to roll the schema of package "%s" back to "%s" after a failed enable: %s',
+                        $package->get('name'),
+                        $applied['version'],
+                        $error
+                    ),
+                    ['exception' => $cause, 'rollback' => $thrown, 'package' => $package->get('module')]
+                );
+            }
+        } catch (\Throwable) {
+            // Nothing is left that could take the report, and the failure that
+            // started the recovery still has to reach the caller.
+        }
+    }
+
+    protected function getLifecycle(PackageInterface $package, ?string $current = null): LifecycleRunner
     {
         if (!$scripts = $package->get('extra.scripts')) {
-            return new PackageScripts(null, $current, $this->app);
+            return new LifecycleRunner(null, $current, $this->app);
         }
 
         if (!$path = $package->get('path')) {
             throw new \RuntimeException(__('Package path is missing.'));
         }
 
-        return new PackageScripts($path . '/' . $scripts, $current, $this->app);
+        return new LifecycleRunner($path . '/' . $scripts, $current, $this->app);
     }
 
-    protected function doInstall(PackageInterface $package): string
+    /**
+     * @param array{set: MigrationSet, version: string}|null $applied where the schema stood before this attempt, once it has migrated
+     *
+     * @param-out array{set: MigrationSet, version: string}|null $applied
+     */
+    protected function doInstall(PackageInterface $package, ?array &$applied = null): string
     {
-        $this->getScripts($package)->install();
+        $lifecycle = $this->getLifecycle($package);
+
+        // The schema before the hook: an install hook that seeds rows needs the
+        // tables it seeds them into.
+        $this->migrateSchema($package, $lifecycle, $applied);
+        $lifecycle->install();
+
         $version = $this->getVersion($package);
 
         if ($this->app->has('config')) {

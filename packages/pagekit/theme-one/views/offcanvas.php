@@ -37,9 +37,9 @@ if ($image) {
         $attrs_image['class'][] = 'uk-preserve';
         $attrs_image['uk-svg'] = true;
         $width = $height = '';
-        $logo = image($image, array_merge($attrs_image, ['width' => $width, 'height' => $height]));
+        $logo = image($view->url($image), array_merge($attrs_image, ['width' => $width, 'height' => $height]));
     } else {
-        $logo = image($config['image'], $attrs_image);
+        $logo = image($view->url($config['image']), $attrs_image);
     }
 }
 

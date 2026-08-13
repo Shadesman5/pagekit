@@ -2,30 +2,6 @@
 
 declare(strict_types=1);
 
-use Pagekit\Application\UrlProvider;
-
-// Static URL provider for template helper functions.
-// TODO: TEMPORARY BRIDGE - To be removed in Step 2.7 (Extension Safety & Fault Isolation) —
-// replace ThemeOneHelpers static UrlProvider (global state) with proper DI once template helper functions support injection.
-final class ThemeOneHelpers
-{
-    private static ?UrlProvider $url = null;
-
-    public static function setUrl(UrlProvider $url): void
-    {
-        self::$url = $url;
-    }
-
-    public static function getUrl(): UrlProvider
-    {
-        if (self::$url === null) {
-            throw new \RuntimeException('ThemeOneHelpers::setUrl() must be called before using template helpers.');
-        }
-
-        return self::$url;
-    }
-}
-
 function isHTML(string $string): bool
 {
     preg_match("/<\/?\w+((\s+\w+(\s*=\s*(?:\".*?\"|'.*?'|[^'\">\s]+))?)+\s*|\s*)\/?>/", $string, $matches);
@@ -114,17 +90,18 @@ function bgImage(string $url, array $options): array
 }
 
 /**
+ * Renders an image tag. The src must already be a resolved URL - templates
+ * resolve it with the view's url helper before calling this.
+ *
  * @param array<int|string, mixed> $attrs
  */
-function image(string $url, array $attrs = []): string
+function image(string $src, array $attrs = []): string
 {
-    $path = ThemeOneHelpers::getUrl()->get($url);
-
     if (empty($attrs['alt'])) {
         $attrs['alt'] = true;
     }
 
-    $attributes = attrs(['src' => $path], $attrs);
+    $attributes = attrs(['src' => $src], $attrs);
 
     return "<img".$attributes.">";
 }

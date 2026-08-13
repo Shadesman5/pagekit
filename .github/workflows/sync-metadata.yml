@@ -151,6 +151,8 @@ jobs:
               // Type labels (see .cursor/rules/github-labels.mdc)
               'migration', 'enhancement', 'bug', 'performance', 'security', 'documentation',
               'breaking-change',
+              // Automation
+              'v1-metrics',
               // Area labels
               'frontend', 'backend', 'database', 'module', 'theme',
               // NOT managed (applied by other systems, never touch):

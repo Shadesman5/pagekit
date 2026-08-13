@@ -1,5 +1,47 @@
 # Changelog
 
+## Pagekit 1.2.38 - Extension Safety & Fault Isolation (August 11, 2026)
+
+### 💥 Breaking Changes
+
+- **A package's lifecycle file must return a `PackageLifecycleInterface` implementation, not an array of closures** — `extra.scripts` still names the file, but `LifecycleRunner` rejects the previous `['install' => fn, ...]` shape with a `\RuntimeException` naming what it got instead. The two shipped lifecycle files (the system's own, the blog's) convert to the new contract in this same release.
+- **`MigrationService::getExtensionCurrentVersion()` now returns `?string` instead of always a `string`** — it used to report `'0'` (the value that means "nothing has run yet", and the one a rollback reads as "unwind everything") for a version it could not read at all, silently conflating the two. Code written against the old signature must now treat `null` (unreadable) as distinct from `'0'` (genuinely empty).
+
+### ✨ Added
+
+- **A durable, never-throws record of which extensions and themes have failed** — `ExtensionFailureStore` (`tmp/system/extension-failures.json`, denied over HTTP, written atomically) survives the request that hit the failure, keeps a recovered extension off the next boot even when the database write that would have disabled it also failed, and backs a standing admin notice plus a warning icon in the extension manager until the module is re-enabled or a theme recovers on its own load. (Closes #160)
+- **Fault isolation around every extension boot window** — module registration, the load/`main()` window (new `ExtensionLoader`), and a package's `disable`/`uninstall` lifecycle hooks each run behind their own `\Throwable` barrier, so one broken package can no longer take the whole boot, a sibling module's registration, or an administrator's way out of it down too. `public/index.php`'s last-resort exception handler is now registered unconditionally instead of only once a `tmp/logs/debug.log` already existed.
+- **`PackageLifecycleInterface` + `LifecycleRunner`**, replacing the array-of-closures `PackageScripts`; `PackageManager` now runs an extension's declared schema migrations itself, snapshotting the pre-attempt version so a failed enable rolls the schema back alongside the existing config rollback.
+- **`Router::addResolver()`** — a per-class factory seam for a route resolver that needs constructor dependencies (a metadata cache, an entity repository), replacing a resolver's own static-locator bridge.
+
+### ♻️ Changed
+
+- **The routing cache is data-only and content-addressed** — the two deprecated, hand-copied dumpers (`PhpMatcherDumper`, `UrlGeneratorDumper`) are replaced by Symfony's own `CompiledUrlMatcherDumper` and a new Pagekit-owned `CompiledUrlGenerator`, both dumping a plain `<?php return [...];` array instead of a generated PHP class per cache key. Cache freshness is now a content hash instead of a `filemtime()` comparison, which a deployment that resets file mtimes (or runs with `opcache.validate_timestamps=0`) could previously fool into serving a stale route set. A hash that cannot be computed at all — a route's controller is a closure, or a router option holds something unserializable — degrades the request to the uncached matcher/generator instead of throwing.
+- **Three static-locator bridges are gone** — the blog's `UrlResolver`, `theme-one`'s `ThemeOneHelpers`, and `UniqueValidator` all move to constructor injection (the last resolved through Symfony's `ContainerConstraintValidatorFactory`); nothing reaches a database connection, a cache pool or a URL provider through a static setter any more.
+
+### 🐛 Fixed
+
+- **A theme that recovered still read as broken in the admin notice** — until an unrelated package action happened to clear it. `ExtensionLoader` now clears a theme's failure record itself the moment it loads successfully again.
+- **A broken pending-update check could lock an administrator out of `/admin`** — the `auth.login` listener's migration-status check now has its own fault barrier: a failure is logged and flashed without repeating the throwable's own message, and the recorded version is left alone so the next login asks again instead of marking an unfinished upgrade as done.
+- **The debug bar's route list could go stale for an entire deployment's lifetime** — `RoutesDataCollector` keyed its cache on the routing generator's own file, which used to be regenerated per route set and is now one shared file; it keys on a signature built from each route's own name, path, methods and controller instead, so a route change invalidates the panel's cache again without throwing on a route whose controller is a closure.
+- **An extension could report "enabled" while staying excluded from every boot** — `PackageManager::enable()` cleared the durable failure record best-effort and moved on regardless of whether that succeeded, so a record that could not be rewritten stayed on disk while the panel and the configuration both called the module enabled. An extension enable that cannot clear its own record is now refused, through the same rollback an enable failure already triggers; a theme's enable still proceeds, since a theme is executed — and cleared — on its very next load regardless of the record.
+- **A rolled-back enable could erase its own failure record** — clearing the record above moved ahead of the `package.enable` event so a refusal would leave nothing to unwind, but that also put it ahead of the one call left in `enable()` that can still throw; a listener failing there rolled the enable back with the record already gone, so a package that never actually recovered read as never having failed. `PackageManager` now snapshots the entry before clearing it and restores that snapshot whenever the enable it belonged to does not go through.
+- **A fresh install's migration and database setup had several silent failure modes** — `MigrationService` no longer creates its metadata table merely by being resolved from the container (only `migrate()`, `rollback()` and `initialize()` do, so a locked or unwritable database no longer surfaces as a failure from a plain lookup); a nested install failure now shows every distinct message in its exception chain instead of just the outer wrapper; the installer persists the SQLite connection defaults it actually resolved — not only what the install form itself submitted — into `config.php`; a fresh or partial install with no `site.theme` yet now falls back to the blank layout instead of failing the boot; and `path.vendor` is corrected from `vendor/` to `app/vendor/` in both the installer and the front controller, matching where Composer actually installs it.
+- **A failed extension enable could roll its schema back to the wrong version** — `MigrationService::getExtensionCurrentVersion()` returned `'0'` (an empty schema) whenever the real version could not be read at all, so a pre-attempt snapshot taken under that condition could point a failed migration's rollback at dropping every table the extension already had in production; it now reports `null` for an unreadable version, and the enable/install refuses to run the migration rather than snapshot a rollback target it cannot trust.
+- **Restoring the branch a metrics push started from could discard commits that were never pushed** — the V1 Conductor metrics importer's git helper reset the caller's branch to its own remote tracking branch when putting it back after a push; it now checks the branch back out as it stands locally instead, keeping every commit ahead of `origin` intact.
+
+### ❌ Removed
+
+- **`PackageScripts`, `PhpMatcherDumper`, `UrlGeneratorDumper`**, and the three `UrlResolver`/`ThemeOneHelpers`/`UniqueValidator` static bridges above — all deleted outright, with no dual path kept alongside their replacements.
+
+### 🔒 Security
+
+- **The failure record is denied over HTTP and never carries a stack trace** — `tmp/system/.htaccess` adds `Require all denied` on top of a directory that already sits outside `public/`; the admin notice it backs names only the failing module, HTML-escaped, never the throwable's own message.
+- **A route cache can no longer be mistaken for executable code** — both the matcher and generator dumps are validated arrays now, never a `require`d PHP class; a half-written or tampered cache file degrades to the non-cached router instead of being instantiated.
+- **The metrics git helper no longer interpolates branch names into a shell** — `.github/conductor/metrics.mjs`'s standalone git helper (`syncMetricsFromRemote()`/`pushMetricsToRemote()`) now runs `git` via `execFileSync` with argv arrays (`shell: false`) instead of an interpolated command string, and validates every branch/ref name before use — closing a command-injection path through `pushMetricsToRemote()`'s `returnBranch`.
+
+---
+
 ## Pagekit 1.2.37 - Filesystem Write Resilience: Atomic Writes (August 10, 2026)
 
 ### ✨ Added

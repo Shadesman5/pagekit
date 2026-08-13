@@ -44,6 +44,7 @@ You review the **plan document + the requirement**, not the codebase.
 
 **DO NOT:**
 - Start implementing or write any code.
+- Run `git add` / `git commit` / `git push` — the Orchestrator owns commits.
 - Run PHPUnit, PHPStan, Playwright, `php pagekit ...`, linters, or any application command.
 - Rewrite the ticket yourself — on FAIL, the **Architect** re-plans with your feedback.
 

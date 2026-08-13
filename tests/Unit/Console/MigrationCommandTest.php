@@ -20,7 +20,7 @@ use Symfony\Component\Console\Tester\CommandTester;
  *
  * MigrationCommand drives the two-stage update pipeline the CLI exposes:
  *   1. Doctrine migrations — MigrationService::migrate() against the core paths;
- *   2. scripts.php `updates` — version-gated PackageScripts hooks.
+ *   2. the version-keyed updates the system's lifecycle file declares.
  * Only once BOTH stages succeed does it write the new version to config — the
  * "version-bump guard" introduced to stop silent version bumps on a failed
  * migration or a throwing update hook.
@@ -97,7 +97,7 @@ class MigrationCommandTest extends TestCase
             $this->connection->createSchemaManager()->tablesExist(['test_core_items']),
             'The pending Doctrine migration must be executed by the migrate command',
         );
-        // Stage 2: the version-gated scripts.php update hook fired.
+        // Stage 2: the version-gated lifecycle update fired.
         self::assertFileExists($this->systemDir . '/update-ran.marker');
         // Version is bumped to the app version only after both stages succeed.
         self::assertSame('2.0.0', $config->get('version'));
@@ -107,7 +107,7 @@ class MigrationCommandTest extends TestCase
     {
         $this->writeCoreMigration();
         // Update keyed BELOW the recorded version → the version-bump guard filters
-        // it out, so PackageScripts::hasUpdates() is false.
+        // it out, so the runner reports nothing to run.
         $this->writeSystemScripts($this->staleUpdateScript());
 
         $migration = $this->makeMigrationService();
@@ -266,53 +266,48 @@ class MigrationCommandTest extends TestCase
 
     private function markerUpdateScript(): string
     {
-        return <<<'PHP'
-            <?php
-
-            declare(strict_types=1);
-
-            return [
-                'updates' => [
-                    '2.0.0' => function ($app) {
-                        file_put_contents(__DIR__ . '/update-ran.marker', 'ok');
-                    },
-                ],
-            ];
-            PHP;
+        return $this->updateScript('2.0.0', "file_put_contents(__DIR__ . '/update-ran.marker', 'ok');");
     }
 
     private function throwingUpdateScript(): string
     {
-        return <<<'PHP'
-            <?php
-
-            declare(strict_types=1);
-
-            return [
-                'updates' => [
-                    '2.0.0' => function ($app) {
-                        throw new \RuntimeException('boom during script update');
-                    },
-                ],
-            ];
-            PHP;
+        return $this->updateScript('2.0.0', "throw new \\RuntimeException('boom during script update');");
     }
 
     private function staleUpdateScript(): string
     {
-        return <<<'PHP'
-            <?php
+        return $this->updateScript('1.0.0', "file_put_contents(__DIR__ . '/stale-update-ran.marker', 'should-not-run');");
+    }
 
-            declare(strict_types=1);
+    /**
+     * A lifecycle file declaring one update under the given version, which is
+     * what the command reads app/system/scripts.php as.
+     */
+    private function updateScript(string $version, string $body): string
+    {
+        return str_replace(
+            ['{VERSION}', '{BODY}'],
+            [$version, $body],
+            <<<'PHP'
+                <?php
 
-            return [
-                'updates' => [
-                    '1.0.0' => function ($app) {
-                        file_put_contents(__DIR__ . '/stale-update-ran.marker', 'should-not-run');
-                    },
-                ],
-            ];
-            PHP;
+                declare(strict_types=1);
+
+                use Pagekit\Installer\Package\Lifecycle\PackageLifecycle;
+                use Psr\Container\ContainerInterface;
+
+                return new class () extends PackageLifecycle {
+                    public function updates(): array
+                    {
+                        return [
+                            '{VERSION}' => function (ContainerInterface $app): void {
+                                {BODY}
+                            },
+                        ];
+                    }
+                };
+                PHP,
+        );
     }
 
     private function writeCoreMigration(): void

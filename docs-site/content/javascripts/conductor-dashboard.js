@@ -199,22 +199,79 @@
     return node;
   }
 
+  /**
+   * Escape a dynamic value for interpolation into an HTML string (element and
+   * quoted-attribute context). Metrics and the roadmap snapshot carry
+   * PR-authored strings (session title, branch, step names), so every string
+   * from those files passes through here before it reaches markup.
+   *
+   * Four kinds of interpolation skip it, and only these:
+   * - numbers rendered by `formatNumber`/`formatCompactNumber`/`formatDuration`,
+   *   which coerce through `numberOrNull` and can only emit digits, locale
+   *   separators and “—”;
+   * - counts derived in this file (array lengths, `Math.round`), which never see
+   *   a JSON value — `pct` also feeds a CSS width and an ARIA value, where
+   *   locale formatting would be wrong;
+   * - the literal-markup helpers `sourceBadge`, `tokensSourceMarker` and
+   *   `outcomeIcon`, which return fixed strings and interpolate nothing;
+   * - markup composed by the helpers here (`linkRef`, the row and table
+   *   fragments), which escape their own inputs before returning HTML.
+   */
+  function escapeHtml(value) {
+    if (value == null) return '';
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  /** Resolve a link target, keeping only http(s); `javascript:`/`data:` yield ''. */
+  function safeUrl(url) {
+    const raw = String(url ?? '').trim();
+    if (!raw) return '';
+    let parsed;
+    try {
+      parsed = new URL(raw, window.location.href);
+    } catch {
+      return '';
+    }
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.href : '';
+  }
+
+  /**
+   * Read a metrics field as a finite number, or `null` when it is absent or not
+   * numeric. A JSON number field can hold any JSON value, and neither
+   * `Number.isNaN` nor `String.prototype.toLocaleString` rejects a string — so
+   * this is what keeps a string out of the formatters and out of the markup.
+   */
+  function numberOrNull(value) {
+    if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+    if (typeof value !== 'string' || value.trim() === '') return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
   function formatNumber(n) {
-    if (n == null || Number.isNaN(n)) return '—';
-    return n.toLocaleString(NUMBER_LOCALE);
+    const num = numberOrNull(n);
+    if (num === null) return '—';
+    return num.toLocaleString(NUMBER_LOCALE);
   }
 
   function formatCompactNumber(n) {
-    if (n == null || Number.isNaN(n) || n === 0) return '—';
-    if (n >= 1_000_000)
-      return `${(n / 1_000_000).toLocaleString(NUMBER_LOCALE, { maximumFractionDigits: 1 })} M`;
-    if (n >= 10_000) return `${Math.round(n / 1000).toLocaleString(NUMBER_LOCALE)} k`;
-    return n.toLocaleString(NUMBER_LOCALE);
+    const num = numberOrNull(n);
+    if (num === null || num === 0) return '—';
+    if (num >= 1_000_000)
+      return `${(num / 1_000_000).toLocaleString(NUMBER_LOCALE, { maximumFractionDigits: 1 })} M`;
+    if (num >= 10_000) return `${Math.round(num / 1000).toLocaleString(NUMBER_LOCALE)} k`;
+    return num.toLocaleString(NUMBER_LOCALE);
   }
 
   function formatDuration(ms) {
-    if (!ms && ms !== 0) return '—';
-    const sec = Math.round(ms / 1000);
+    const total = numberOrNull(ms);
+    if (total === null) return '—';
+    const sec = Math.round(total / 1000);
     if (sec < 60) return `${sec}s`;
     const min = Math.floor(sec / 60);
     const rem = sec % 60;
@@ -224,13 +281,13 @@
   }
 
   function sessionDurationMs(session) {
-    const direct = session?.totals?.durationMs;
+    const direct = numberOrNull(session?.totals?.durationMs) ?? 0;
     if (direct > 0) return direct;
     if (session?.startedAt && session?.completedAt) {
       const span = Date.parse(session.completedAt) - Date.parse(session.startedAt);
       if (Number.isFinite(span) && span > 1000) return span;
     }
-    return direct || 0;
+    return direct;
   }
 
   function formatDate(iso) {
@@ -284,8 +341,10 @@
 
   function linkRef(label, url) {
     if (!label || label === '—') return '—';
-    if (url) return `<a href="${url}" target="_blank" rel="noopener">${label}</a>`;
-    return label;
+    const text = escapeHtml(label);
+    const href = safeUrl(url);
+    if (href) return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener">${text}</a>`;
+    return text;
   }
 
   function sessionsForEntry(entry, cache) {
@@ -359,9 +418,9 @@
       totals.cacheRead += tokenValue(t.cacheRead);
       totals.cacheWrite += tokenValue(t.cacheWrite);
       totals.total += tokenValue(t.total);
-      durationMs += s.totals?.durationMs || sessionDurationMs(s) || 0;
-      phases += s.totals?.phaseCount || s.phases?.length || 0;
-      escalations += s.totals?.escalations || 0;
+      durationMs += sessionDurationMs(s);
+      phases += tokenValue(s.totals?.phaseCount) || s.phases?.length || 0;
+      escalations += tokenValue(s.totals?.escalations);
     }
     return { tokens: totals, durationMs, phases, escalations, runCount: sessions.length };
   }
@@ -516,13 +575,13 @@
     const wrap = el('div', 'cm-progress-wrap');
     wrap.innerHTML = `
       <div class="cm-progress-meta">
-        <span><strong>${p.scopeLabel}</strong> · ${p.done}/${p.total} done (${p.pct}%)</span>
-        <span>Step <strong>${p.currentStep}</strong> · ${p.withMetrics} with metrics · ${p.metricLabel}</span>
+        <span><strong>${escapeHtml(p.scopeLabel)}</strong> · ${p.done}/${p.total} done (${p.pct}%)</span>
+        <span>Step <strong>${escapeHtml(p.currentStep)}</strong> · ${p.withMetrics} with metrics · ${escapeHtml(p.metricLabel)}</span>
       </div>
       <div class="cm-progress-bar" role="progressbar" aria-valuenow="${p.pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Roadmap progress">
         <div class="cm-progress-fill" style="width:${p.pct}%"></div>
       </div>
-      ${p.phaseDef.subtitle ? `<p class="cm-progress-phase-label cm-muted">${p.phaseDef.title} — ${p.phaseDef.subtitle}</p>` : ''}
+      ${p.phaseDef.subtitle ? `<p class="cm-progress-phase-label cm-muted">${escapeHtml(p.phaseDef.title)} — ${escapeHtml(p.phaseDef.subtitle)}</p>` : ''}
     `;
     return wrap;
   }
@@ -607,23 +666,25 @@
     host.appendChild(renderProgressBar(roadmap, ctx));
 
     if (!global.runCount) {
-      host.appendChild(el('p', 'cm-muted', `No metrics for “${overviewFilterLabel(ctx)}”.`));
+      host.appendChild(
+        el('p', 'cm-muted', `No metrics for “${escapeHtml(overviewFilterLabel(ctx))}”.`)
+      );
       return host;
     }
 
     const cards = el('div', 'cm-overview-cards');
     cards.innerHTML = `
-      <div class="cm-overview-card"><span>${filterMeta.runLabel}</span><strong>${global.runCount}</strong></div>
-      <div class="cm-overview-card"><span>Phases</span><strong>${global.phases}</strong></div>
-      <div class="cm-overview-card"><span>Escalations</span><strong>${global.escalations}</strong></div>
+      <div class="cm-overview-card"><span>${escapeHtml(filterMeta.runLabel)}</span><strong>${formatNumber(global.runCount)}</strong></div>
+      <div class="cm-overview-card"><span>Phases</span><strong>${formatNumber(global.phases)}</strong></div>
+      <div class="cm-overview-card"><span>Escalations</span><strong>${formatNumber(global.escalations)}</strong></div>
       <div class="cm-overview-card"><span>Total tokens</span><strong title="${formatNumber(global.tokens.total)}">${formatCompactNumber(global.tokens.total)}</strong></div>
       <div class="cm-overview-card"><span>Total duration</span><strong>${formatDuration(global.durationMs)}</strong></div>
-      <div class="cm-overview-card"><span>Steps with data</span><strong>${perStep.length}</strong></div>
+      <div class="cm-overview-card"><span>Steps with data</span><strong>${formatNumber(perStep.length)}</strong></div>
     `;
     host.appendChild(cards);
 
     const charts = el('div', 'cm-overview-charts');
-    const label = overviewFilterLabel(ctx);
+    const label = escapeHtml(overviewFilterLabel(ctx));
     const barWrap = el('div', 'cm-overview-chart-box');
     barWrap.appendChild(el('h3', 'cm-chart-title', `Tokens per step (${label})`));
     const barCanvas = el('canvas');
@@ -694,8 +755,10 @@
     name = '',
     status = '',
     audit = '',
-    issue = '—',
-    pr = '—',
+    issueLabel = '',
+    issueUrl = '',
+    prLabel = '',
+    prUrl = '',
     runs = '—',
     tokens = '—',
     runsTitle = '',
@@ -718,14 +781,14 @@
     }
 
     return `
-      <span class="cm-col-id">${id}</span>
-      <span class="cm-col-name" title="${name}">${name || '—'}</span>
-      <span class="cm-badge cm-badge-status" title="Status">${status || '—'}</span>
-      <span class="cm-badge cm-badge-audit" title="Audit">${audit || '—'}</span>
-      <span class="cm-badge cm-badge-issue" title="Issue">${issue}</span>
-      <span class="cm-badge cm-badge-pr" title="Pull request">${pr}</span>
-      <span class="cm-badge cm-badge-runs ${runsClass}" title="${runsTitle}">${runs}</span>
-      <span class="cm-badge cm-badge-tokens" title="${tokensTitle}">${tokens}</span>
+      <span class="cm-col-id">${escapeHtml(id)}</span>
+      <span class="cm-col-name" title="${escapeHtml(name)}">${escapeHtml(name) || '—'}</span>
+      <span class="cm-badge cm-badge-status" title="Status">${escapeHtml(status) || '—'}</span>
+      <span class="cm-badge cm-badge-audit" title="Audit">${escapeHtml(audit) || '—'}</span>
+      <span class="cm-badge cm-badge-issue" title="Issue">${linkRef(issueLabel || '—', issueUrl)}</span>
+      <span class="cm-badge cm-badge-pr" title="Pull request">${linkRef(prLabel || '—', prUrl)}</span>
+      <span class="cm-badge cm-badge-runs ${escapeHtml(runsClass)}" title="${escapeHtml(runsTitle)}">${escapeHtml(runs)}</span>
+      <span class="cm-badge cm-badge-tokens" title="${escapeHtml(tokensTitle)}">${escapeHtml(tokens)}</span>
       <span class="cm-chevron" aria-hidden="true">▶</span>
     `;
   }
@@ -848,10 +911,10 @@
 
     divider.innerHTML = `
       <div class="cm-phase-divider-inner">
-        <span class="cm-phase-badge">Phase ${phase}</span>
+        <span class="cm-phase-badge">Phase ${escapeHtml(phase)}</span>
         <div class="cm-phase-text">
-          <span class="cm-phase-title">${def.title}</span>
-          ${def.subtitle ? `<span class="cm-phase-subtitle">${def.subtitle}</span>` : ''}
+          <span class="cm-phase-title">${escapeHtml(def.title)}</span>
+          ${def.subtitle ? `<span class="cm-phase-subtitle">${escapeHtml(def.subtitle)}</span>` : ''}
         </div>
         <span class="cm-phase-stats">${stats.done}/${stats.total} done · ${stats.withMetrics} with metrics</span>
         <div class="cm-phase-actions">
@@ -923,8 +986,9 @@
     return section;
   }
 
+  /** Token/count field as a summable number; anything non-numeric counts as 0. */
   function tokenValue(n) {
-    return n == null || Number.isNaN(n) ? 0 : n;
+    return numberOrNull(n) ?? 0;
   }
 
   function renderTokenChart(canvas, tokens) {
@@ -953,11 +1017,11 @@
       .map(
         r => `
         <tr>
-          <td>Run ${r.index}</td>
-          <td><code title="${r.runId || ''}">${(r.runId || '—').slice(0, 12)}…</code></td>
+          <td>Run ${escapeHtml(r.index)}</td>
+          <td><code title="${escapeHtml(r.runId || '')}">${escapeHtml((r.runId || '—').slice(0, 12))}…</code></td>
           <td>${formatDuration(r.durationMs)}</td>
           <td title="${formatNumber(r.tokens?.total)}">${formatCompactNumber(r.tokens?.total)}</td>
-          <td class="cm-muted">${r.startedAt ? formatDate(r.startedAt) : '—'}</td>
+          <td class="cm-muted">${r.startedAt ? escapeHtml(formatDate(r.startedAt)) : '—'}</td>
         </tr>`
       )
       .join('');
@@ -1001,7 +1065,7 @@
       return ' <span class="cm-muted" title="Backfilled via Cursor API">↻</span>';
     }
     if (tokensSource === 'cursor-api-v1') {
-      return ' <span class="cm-muted" title="V1 UI usage delta (record-v1-phase)">◇</span>';
+      return ' <span class="cm-muted" title="V1 UI import (import-manual-agents)">◇</span>';
     }
     if (tokensSource === 'cursor-api-manual' || tokensSource === 'cursor-dashboard-manual') {
       return ' <span class="cm-muted" title="Manual import">⤴</span>';
@@ -1030,25 +1094,24 @@
       const tr = el('tr');
       const batch = p.batchSteps?.length ? p.batchSteps.join(', ') : '—';
       const links = [];
-      if (p.agent?.url)
-        links.push(`<a href="${p.agent.url}" target="_blank" rel="noopener">Agent</a>`);
-      if (p.github?.jobUrl)
-        links.push(
-          `<a href="${p.github.jobUrl}" target="_blank" rel="noopener">Job${p.github.runAttempt ? ` a${p.github.runAttempt}` : ''}</a>`
-        );
-      else if (p.github?.runUrl)
-        links.push(`<a href="${p.github.runUrl}" target="_blank" rel="noopener">GHA</a>`);
+      const agentUrl = safeUrl(p.agent?.url);
+      const jobUrl = safeUrl(p.github?.jobUrl);
+      const runUrl = safeUrl(p.github?.runUrl);
+      if (agentUrl) links.push(linkRef('Agent', agentUrl));
+      if (jobUrl)
+        links.push(linkRef(`Job${p.github.runAttempt ? ` a${p.github.runAttempt}` : ''}`, jobUrl));
+      else if (runUrl) links.push(linkRef('GHA', runUrl));
       const runCount = p.agent?.runs?.length || 0;
       const runBadge =
         runCount > 1
           ? ` <span class="cm-muted" title="${runCount} follow-up runs in this agent chat">· ${runCount} runs</span>`
           : '';
       tr.innerHTML = `
-        <td><strong>${p.type}</strong>${p.attempt ? ` <span class="cm-muted">retry ${p.attempt}</span>` : ''}${runBadge}${tokensSourceMarker(p.tokensSource)}</td>
-        <td>${batch}</td>
+        <td><strong>${escapeHtml(p.type)}</strong>${p.attempt ? ` <span class="cm-muted">retry ${escapeHtml(p.attempt)}</span>` : ''}${runBadge}${tokensSourceMarker(p.tokensSource)}</td>
+        <td>${escapeHtml(batch)}</td>
         <td>${formatDuration(p.durationMs)}</td>
-        <td title="${p.notes || ''}">${formatNumber(p.tokens?.total)}</td>
-        <td>${outcomeIcon(p.outcome)} ${p.outcome || '—'}</td>
+        <td title="${escapeHtml(p.notes || '')}">${formatNumber(p.tokens?.total)}</td>
+        <td>${outcomeIcon(p.outcome)} ${escapeHtml(p.outcome) || '—'}</td>
         <td class="cm-links">${links.join(' · ') || '—'}</td>
       `;
       tbody.appendChild(tr);
@@ -1075,15 +1138,15 @@
       el(
         'header',
         'cm-session-header cm-session-header-compact',
-        `<span><code>${session.sessionId.slice(0, 8)}…</code></span>
+        `<span><code>${escapeHtml(session.sessionId.slice(0, 8))}…</code></span>
          ${sourceBadge(session)}
-         <span>${statusBadge(session.status)}</span>
+         <span>${escapeHtml(statusBadge(session.status))}</span>
          <span title="${formatNumber(t.total)} tokens"><strong>${formatCompactNumber(t.total)}</strong> tokens</span>
          <span>${formatDuration(sessionDurationMs(session))}</span>
-         <span class="cm-session-header-dates">${formatDate(session.startedAt)}${session.completedAt ? ` → ${formatDate(session.completedAt)}` : ''}</span>
-         <span>Branch <code>${session.branch || '—'}</code></span>
-         <span>GHA ${session.totals?.ghaJobs ?? '—'}</span>
-         <span>Esc ${session.totals?.escalations ?? 0}</span>`
+         <span class="cm-session-header-dates">${escapeHtml(formatDate(session.startedAt))}${session.completedAt ? ` → ${escapeHtml(formatDate(session.completedAt))}` : ''}</span>
+         <span>Branch <code>${escapeHtml(session.branch) || '—'}</code></span>
+         <span>GHA ${formatNumber(session.totals?.ghaJobs)}</span>
+         <span>Esc ${formatNumber(tokenValue(session.totals?.escalations))}</span>`
       )
     );
 
@@ -1107,19 +1170,14 @@
     block.appendChild(el('h4', 'cm-subtitle', 'Phases'));
     block.appendChild(renderPhaseTable(session.phases));
     if (session.issue) {
-      block.appendChild(
-        el(
-          'p',
-          'cm-foot',
-          `Issue: <a href="https://github.com/Shadesman5/pagekit/issues/${session.issue}">#${session.issue}</a>`
-        )
-      );
+      const issueUrl = `https://github.com/Shadesman5/pagekit/issues/${encodeURIComponent(session.issue)}`;
+      block.appendChild(el('p', 'cm-foot', `Issue: ${linkRef(`#${session.issue}`, issueUrl)}`));
     } else if (session.backfill?.workflowRunId) {
       block.appendChild(
         el(
           'p',
           'cm-foot',
-          `Workflow run: <a href="${session.phases[0]?.github?.runUrl || '#'}">${session.backfill.workflowRunId}</a>`
+          `Workflow run: ${linkRef(session.backfill.workflowRunId, session.phases[0]?.github?.runUrl)}`
         )
       );
     }
@@ -1132,7 +1190,9 @@
     const grid = el('div', 'cm-overview-grid');
     const items = labels || [];
     grid.innerHTML = items
-      .map(l => `<div><span>${l.label}</span><strong>${l.value}</strong></div>`)
+      .map(
+        l => `<div><span>${escapeHtml(l.label)}</span><strong>${escapeHtml(l.value)}</strong></div>`
+      )
       .join('');
     overview.appendChild(grid);
     wrap.appendChild(overview);
@@ -1176,8 +1236,10 @@
       name: row.name || '—',
       status: row.status || '—',
       audit: row.audit || '—',
-      issue: linkRef(row.issueLabel, row.issueUrl),
-      pr: linkRef(row.prLabel, row.prUrl),
+      issueLabel: row.issueLabel,
+      issueUrl: row.issueUrl,
+      prLabel: row.prLabel,
+      prUrl: row.prUrl,
       runs: runCount ? `${runCount}×` : '—',
       tokens: runCount ? formatCompactNumber(agg.tokens.total) : '—',
       runsTitle: runsBadgeTitle(row.id, ctx),
@@ -1304,7 +1366,7 @@
     try {
       Chart = await loadChartJs();
     } catch (e) {
-      root.innerHTML = `<p class="cm-error">${e.message}</p>`;
+      root.innerHTML = `<p class="cm-error">${escapeHtml(e.message)}</p>`;
       return;
     }
 
@@ -1331,8 +1393,8 @@
       el(
         'p',
         'cm-meta',
-        `<strong>Roadmap:</strong> v${roadmap.version || '—'} · step ${roadmap.currentStep || '—'} · ` +
-          `<strong>Metrics:</strong> ${formatDate(index?.updatedAt)} · ` +
+        `<strong>Roadmap:</strong> v${escapeHtml(roadmap.version) || '—'} · step ${escapeHtml(roadmap.currentStep) || '—'} · ` +
+          `<strong>Metrics:</strong> ${escapeHtml(formatDate(index?.updatedAt))} · ` +
           `<strong>Steps with data:</strong> ${Object.keys(index?.steps || {}).length}`
       )
     );

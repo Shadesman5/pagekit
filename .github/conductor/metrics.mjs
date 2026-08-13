@@ -12,6 +12,7 @@ import {
   rmSync,
   mkdtempSync
 } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { basename, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
@@ -96,7 +97,6 @@ export async function resolveSelfCloudAgentId({
   let token;
   try {
     // Node has no built-in unix-socket fetch helper across all versions — curl is on the VM.
-    const { execFileSync } = await import('node:child_process');
     const raw = execFileSync(
       'curl',
       [
@@ -168,6 +168,108 @@ export async function listAgentRunsFromCursor(client, agentId, { limit = 100 } =
     cursor = page.nextCursor || null;
   } while (cursor);
   return items;
+}
+
+/**
+ * List cloud agents (newest first). Optional `prUrl` filters to agents linked to that PR.
+ * @see https://cursor.com/docs/cloud-agent/api/endpoints
+ */
+export async function listAgentsFromCursor(
+  client,
+  { limit = 20, cursor = null, prUrl = null, includeArchived = true } = {}
+) {
+  if (!client) return { items: [], nextCursor: null };
+  const qs = new URLSearchParams();
+  qs.set('limit', String(Math.min(100, Math.max(1, limit))));
+  if (cursor) qs.set('cursor', cursor);
+  if (prUrl) qs.set('prUrl', prUrl);
+  if (includeArchived === false) qs.set('includeArchived', 'false');
+  const page = await client('GET', `/v1/agents?${qs}`);
+  return {
+    items: Array.isArray(page?.items) ? page.items : Array.isArray(page?.agents) ? page.agents : [],
+    nextCursor: page?.nextCursor || null
+  };
+}
+
+export async function fetchAgentFromCursor(client, agentId) {
+  if (!client || !agentId) return null;
+  return client('GET', `/v1/agents/${agentId}`);
+}
+
+/**
+ * Resolve the best parent Orchestrator agent for a merged PR.
+ * Prefers `prUrl` filter; falls back to recent agents whose target branch matches.
+ * Skips agents with zero /usage (typical Task child agents).
+ */
+export async function resolveOrchestratorAgentForPr(
+  client,
+  { prUrl = null, branch = null, log = msg => console.log(msg) } = {}
+) {
+  if (!client) return null;
+
+  const candidates = [];
+  if (prUrl) {
+    const { items } = await listAgentsFromCursor(client, { limit: 50, prUrl });
+    candidates.push(...items);
+    log(`resolve-agent: prUrl match count=${items.length}`);
+  }
+
+  if (!candidates.length && branch) {
+    const branchNorm = String(branch)
+      .replace(/^refs\/heads\//, '')
+      .toLowerCase();
+    let cursor = null;
+    for (let page = 0; page < 5; page += 1) {
+      const res = await listAgentsFromCursor(client, { limit: 50, cursor });
+      for (const item of res.items) {
+        let detail = item;
+        try {
+          detail = (await fetchAgentFromCursor(client, item.id)) || item;
+        } catch {
+          /* list fields only */
+        }
+        const targetBranch = (
+          detail?.target?.branchName ||
+          detail?.branchName ||
+          detail?.source?.ref ||
+          ''
+        )
+          .replace(/^refs\/heads\//, '')
+          .toLowerCase();
+        const name = String(detail?.name || item.name || '').toLowerCase();
+        if (targetBranch === branchNorm || name.includes(branchNorm)) {
+          candidates.push(detail.id ? detail : item);
+        }
+      }
+      cursor = res.nextCursor;
+      if (!cursor) break;
+    }
+    log(`resolve-agent: branch=${branch} candidate count=${candidates.length}`);
+  }
+
+  if (!candidates.length) return null;
+
+  const scored = [];
+  for (const item of candidates) {
+    const id = String(item.id || '').toLowerCase();
+    if (!id.startsWith('bc-')) continue;
+    let total;
+    try {
+      const metrics = await fetchAgentMetricsFromCursor(client, id);
+      total = Number(metrics?.tokens?.total) || 0;
+    } catch {
+      total = 0;
+    }
+    if (total <= 0) {
+      log(`resolve-agent: skip ${id.slice(0, 12)}… (zero usage — likely child)`);
+      continue;
+    }
+    scored.push({ id, total, item });
+  }
+  scored.sort((a, b) => b.total - a.total);
+  if (!scored.length) return null;
+  log(`resolve-agent: picked ${scored[0].id} total=${scored[0].total}`);
+  return scored[0].id;
 }
 
 /** Timing + tokens + per-run breakdown for manual / backfilled sessions. */
@@ -801,7 +903,12 @@ export function resolveSessionId(raw) {
 
 export function parseRoadmapStepId(title, taskPrompt) {
   const t = (title || '').trim();
-  const fromTitle = t.match(/(?:step\s+)?(\d+\.\d+(?:\.\d+[a-z]?)?)/i);
+  // The title only counts when it says "Step X.Y", or when it is nothing but the
+  // id. A bare X.Y anywhere in the text also matches a release title ("Pagekit
+  // 1.2.38 — …"), which would file the run under an id the ROADMAP has no row
+  // for; the task prompt below is the better guess in that case.
+  const fromTitle =
+    t.match(/\bstep\s+(\d+\.\d+(?:\.\d+[a-z]?)?)\b/i) || t.match(/^(\d+\.\d+(?:\.\d+[a-z]?)?)$/);
   if (fromTitle) return fromTitle[1].toLowerCase();
 
   const base = basename(taskPrompt || '').replace(/\.md$/i, '');
@@ -845,4 +952,184 @@ function inferOutcome(result) {
   if (/^Plan ready:/i.test(text) || /^Finalized\b/i.test(text)) return 'success';
   if (/^Step \d+ done:/i.test(text)) return 'success';
   return 'success';
+}
+
+/**
+ * Standalone git helpers for CLI importers (import-manual-agents.mjs).
+ * Commits only to `conductor-metrics`, never to the feature branch tip.
+ *
+ * Branch names are untrusted input here — the importer reads the checked-out ref, and git
+ * allows shell metacharacters in it. Commands therefore run as argv without a shell, and
+ * every branch name passes `assertSafeBranch` first so it cannot arrive as a git option.
+ */
+const SAFE_BRANCH_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/;
+
+/** @returns {string} the branch name, or throws when git could read it as an option or path escape. */
+export function assertSafeBranch(label, branch) {
+  const name = String(branch ?? '');
+  if (!SAFE_BRANCH_RE.test(name) || name.includes('..') || name.endsWith('.lock')) {
+    throw new Error(`${label}: unsafe branch name ${JSON.stringify(name)}`);
+  }
+  return name;
+}
+
+function metricsRun(root, bin, args) {
+  return execFileSync(bin, args, {
+    cwd: root,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    encoding: 'utf8',
+    shell: false
+  }).trim();
+}
+
+function metricsGit(root, ...args) {
+  return metricsRun(root, 'git', args);
+}
+
+export function currentGitBranch(root = process.cwd()) {
+  try {
+    const branch = metricsGit(root, 'rev-parse', '--abbrev-ref', 'HEAD');
+    // A detached HEAD reports the literal "HEAD" — no branch to return to.
+    return branch && branch !== 'HEAD' ? branch : null;
+  } catch {
+    return null;
+  }
+}
+
+export function syncMetricsFromRemote({
+  root = process.cwd(),
+  metricsBranch = DEFAULT_METRICS_BRANCH,
+  log = msg => console.log(msg)
+} = {}) {
+  assertSafeBranch('metricsBranch', metricsBranch);
+
+  const remote = metricsGit(root, 'ls-remote', '--heads', 'origin', metricsBranch);
+  if (!remote) {
+    log(`metrics: creating origin/${metricsBranch} from origin/develop`);
+    metricsGit(root, 'fetch', 'origin', 'develop');
+    try {
+      metricsGit(root, 'branch', '-f', metricsBranch, 'origin/develop');
+    } catch {
+      metricsGit(root, 'branch', metricsBranch, 'origin/develop');
+    }
+    metricsGit(root, 'push', '-u', 'origin', metricsBranch);
+  }
+  metricsGit(root, 'fetch', 'origin', metricsBranch);
+  try {
+    metricsGit(root, 'checkout', `origin/${metricsBranch}`, '--', METRICS_DIR);
+  } catch (e) {
+    log(`metrics: no ${METRICS_DIR} on origin/${metricsBranch} yet (${e.message})`);
+    mkdirSync(join(root, SESSIONS_DIR), { recursive: true });
+  }
+}
+
+export function pushMetricsToRemote({
+  root = process.cwd(),
+  message,
+  metricsBranch = DEFAULT_METRICS_BRANCH,
+  returnBranch = null,
+  log = msg => console.log(msg)
+} = {}) {
+  if (!message) throw new Error('pushMetricsToRemote: message required');
+  assertSafeBranch('metricsBranch', metricsBranch);
+  if (returnBranch) assertSafeBranch('returnBranch', returnBranch);
+
+  const restoreReturnBranch = () => {
+    if (!returnBranch || returnBranch === metricsBranch) return;
+    // Nothing to put back while the tree is still where the caller left it: a
+    // failure before the metrics checkout never moved it.
+    if (currentGitBranch(root) === returnBranch) return;
+    // Switch back to the branch as it stands here. Leaving the metrics branch
+    // never touched it, so it still points at the caller's work - pointing it
+    // at origin instead would throw away every commit that has not been pushed
+    // yet, and every local branch that is ahead of its remote is exactly that.
+    metricsGit(root, 'checkout', returnBranch);
+  };
+
+  try {
+    metricsGit(root, 'config', 'user.email');
+  } catch {
+    metricsGit(
+      root,
+      'config',
+      'user.email',
+      '41898282+github-actions[bot]@users.noreply.github.com'
+    );
+    metricsGit(root, 'config', 'user.name', 'github-actions[bot]');
+  }
+
+  const absMetrics = join(root, METRICS_DIR);
+  if (!existsSync(absMetrics)) {
+    log('metrics: no metrics dir to commit');
+    return false;
+  }
+
+  const tmp = mkdtempSync(join(tmpdir(), 'pagekit-metrics-cli-'));
+  try {
+    cpSync(absMetrics, join(tmp, 'metrics'), { recursive: true });
+
+    try {
+      metricsGit(root, 'reset', 'HEAD', '--', METRICS_DIR);
+    } catch {
+      /* unstaged is fine */
+    }
+    try {
+      metricsGit(root, 'checkout', 'HEAD', '--', METRICS_DIR);
+    } catch {
+      /* may be absent on this branch */
+    }
+    try {
+      metricsGit(root, 'clean', '-fd', '--', METRICS_DIR);
+    } catch {
+      /* ok */
+    }
+
+    syncMetricsFromRemote({ root, metricsBranch, log });
+    metricsGit(root, 'checkout', '-B', metricsBranch, `origin/${metricsBranch}`);
+
+    rmSync(absMetrics, { recursive: true, force: true });
+    cpSync(join(tmp, 'metrics'), absMetrics, { recursive: true });
+
+    metricsGit(root, 'add', `${METRICS_DIR}/`);
+    try {
+      metricsGit(root, 'diff', '--cached', '--quiet');
+      log('metrics: no changes to commit');
+      return false;
+    } catch {
+      metricsGit(root, 'commit', '-m', message);
+      metricsGit(root, 'fetch', 'origin', metricsBranch);
+      try {
+        metricsGit(root, 'rebase', `origin/${metricsBranch}`);
+      } catch (e) {
+        try {
+          metricsGit(root, 'rebase', '--abort');
+        } catch {
+          /* clean */
+        }
+        throw new Error(`metrics rebase onto origin/${metricsBranch} failed: ${e.message}`, {
+          cause: e
+        });
+      }
+      metricsGit(root, 'push', 'origin', metricsBranch);
+      log(`metrics: pushed to ${metricsBranch}`);
+      try {
+        metricsRun(root, 'gh', ['workflow', 'run', 'pages-deploy.yml', '--ref', 'develop']);
+        log('metrics: dispatched pages-deploy.yml (ref=develop)');
+      } catch (e) {
+        log(`metrics: pages-deploy dispatch skipped (${e.message})`);
+      }
+      return true;
+    }
+  } finally {
+    // Whatever the commit, the rebase or the push did: a caller left standing on
+    // the metrics branch would commit its own work there. A return that fails is
+    // reported rather than thrown, so the failure that interrupted the push
+    // stays the one the caller hears about.
+    try {
+      restoreReturnBranch();
+    } catch (e) {
+      log(`metrics: could not return to ${returnBranch} (${e.message})`);
+    }
+    rmSync(tmp, { recursive: true, force: true });
+  }
 }

@@ -1,26 +1,35 @@
 #!/usr/bin/env node
-// Import pre-Conductor cloud agents into metrics (manual agent IDs → Cursor /usage API).
+// Import cursor.com/agents runs into conductor-metrics (post-hoc / Automations).
+//
+// Prefer the **parent** Orchestrator `bc-…` id. Task child agents expose a separate
+// `bc-…` in the UI (`?child-id=`), but GET /v1/agents/{child}/usage typically returns
+// zeros — usage rolls up on the parent.
 //
 // Usage:
 //   CURSOR_API_KEY=… node .github/conductor/import-manual-agents.mjs \
-//     --step 2.1.5 --agent bc-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx [--agent bc-…]
+//     --step 2.7 --agent bc-… [--push]
 //
 // Options:
-//   --step ID          ROADMAP step ID (required)
-//   --agent ID         Cloud agent ID (repeatable); also accepts cursor.com/agents/… URLs
-//   --label TEXT       Phase label (default: MANUAL)
-//   --title TEXT       Session title (default: from ROADMAP row)
+//   --step ID          ROADMAP step ID (required unless --title says "Step X.Y")
+//   --agent ID         Cloud agent ID (repeatable); accepts cursor.com/agents/… URLs
+//                      (path id = parent; ignore ?child-id= for usage)
+//   --pr-url URL       GitHub PR URL — resolve parent agent via Cursor API (prUrl, then branch)
+//   --label TEXT       Phase label (default: V1 for --v1-ui, else MANUAL)
+//   --title TEXT       Session title (default: from ROADMAP row); infers --step only when it
+//                      names one ("Step X.Y") — a release title ("Pagekit 1.2.38 - …") does not
+//   --branch NAME      Feature branch recorded on the session (+ agent resolve fallback)
+//   --issue N          GitHub issue number
+//   --task-slug SLUG   Task prompt slug (without .md)
 //   --session UUID     Append to existing session instead of creating one
+//   --v1-ui            (default) Tag session source=v1-ui (dashboard badge)
+//   --no-v1-ui         Legacy manualImport-only tagging (historical backfills)
+//   --push             Commit + push to conductor-metrics (+ pages-deploy dispatch)
 //   --dry-run          Fetch + print only, no writes
 //   --copy-local       Copy metrics → docs-site/data/conductor-metrics
 //   --tokens-total N   Skip API; use dashboard-copied token total (optional breakdown below)
-//   --tokens-input N   Optional manual input tokens (with --tokens-total)
-//   --tokens-output N  Optional manual output tokens
-//   --tokens-cache-read N
-//   --tokens-cache-write N
+//   --tokens-input N / --tokens-output N / --tokens-cache-read N / --tokens-cache-write N
 //
 // Note: /v1/agents/{id}/usage returns cumulative tokens for that agent (one cloud run).
-// Use one agent ID per distinct cloud-agent dispatch — do not reuse the same ID for multiple phases.
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, cpSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
@@ -32,11 +41,18 @@ import {
   SESSIONS_DIR,
   METRICS_DIR,
   SCHEMA_VERSION,
+  DEFAULT_METRICS_BRANCH,
   createCursorClient,
   fetchAgentMetricsFromCursor,
   applyAgentMetricsToPhase,
   recomputeSessionTotals,
-  applySessionTimestamps
+  applySessionTimestamps,
+  resolveSessionId,
+  currentGitBranch,
+  syncMetricsFromRemote,
+  pushMetricsToRemote,
+  resolveOrchestratorAgentForPr,
+  parseRoadmapStepId
 } from './metrics.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -44,6 +60,9 @@ const ROADMAP = join(ROOT, '.cursor/ROADMAP.md');
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const COPY_LOCAL = process.argv.includes('--copy-local');
+const DO_PUSH = process.argv.includes('--push');
+/** Default on: Automations / post-hoc V1 path. Pass --no-v1-ui for legacy historical imports. */
+const V1_UI = !process.argv.includes('--no-v1-ui');
 
 function getArg(name) {
   const i = process.argv.indexOf(name);
@@ -60,11 +79,11 @@ function getAllArgs(name) {
 
 function normalizeAgentId(raw) {
   const s = (raw || '').trim();
-  // Agent IDs are "bc-<uuid>" (39 chars), not a bare 36-char UUID. Capture the whole path segment
-  // after /agents/ (stops at the next /, ? or #) so the "bc-" prefix is never truncated.
+  // Path segment after /agents/ is the parent id. ?child-id= is a nested Task agent —
+  // usage API usually returns 0 for children; do not prefer child-id over the path id.
   const fromUrl = s.match(/agents\/([a-z0-9-]+)/i);
   if (fromUrl) return fromUrl[1].toLowerCase();
-  return s;
+  return s.toLowerCase();
 }
 
 function readJson(path, fallback = null) {
@@ -77,6 +96,7 @@ function writeJson(path, data) {
 }
 
 function lookupRoadmapRow(stepId) {
+  if (!existsSync(ROADMAP)) return null;
   const md = readFileSync(ROADMAP, 'utf8');
   const { rows } = parseRoadmapTable(md);
   return rows.find(r => r.id.toLowerCase() === stepId.toLowerCase()) || null;
@@ -96,6 +116,7 @@ function touchIndex(index, session) {
   entry.latestSessionId = session.sessionId;
   index.steps[stepId] = entry;
   index.updatedAt = new Date().toISOString();
+  index.schemaVersion = SCHEMA_VERSION;
 }
 
 function readManualTokens() {
@@ -137,18 +158,36 @@ function copyToLocalPreview() {
   console.log(`Copied ${METRICS_DIR}/ → docs-site/data/conductor-metrics/`);
 }
 
-async function main() {
-  const stepId = getArg('--step');
-  const agentIds = getAllArgs('--agent').map(normalizeAgentId).filter(Boolean);
-  const label = getArg('--label') || 'MANUAL';
-  const existingSessionId = getArg('--session');
+function phaseTypeFromLabel(label) {
+  const head = String(label || '')
+    .trim()
+    .split(/\s+/)[0]
+    .toUpperCase();
+  if (head === 'PLAN' || head === 'EXECUTE' || head === 'FINALIZE' || head === 'MANUAL')
+    return head;
+  if (V1_UI) return 'FINALIZE';
+  return 'MANUAL';
+}
 
-  if (!stepId) {
-    console.error('Missing --step (ROADMAP step ID, e.g. 2.1.5)');
-    process.exit(1);
+async function main() {
+  let stepId = getArg('--step');
+  let agentIds = getAllArgs('--agent').map(normalizeAgentId).filter(Boolean);
+  const prUrl = getArg('--pr-url');
+  const defaultLabel = V1_UI ? 'V1' : 'MANUAL';
+  const label = getArg('--label') || defaultLabel;
+  const existingSessionId = getArg('--session');
+  const branchArg = getArg('--branch');
+  const taskSlug = getArg('--task-slug') || null;
+  const issueArg = getArg('--issue');
+  const titleArg = getArg('--title');
+
+  if (!stepId && titleArg) {
+    stepId = parseRoadmapStepId(titleArg, taskSlug ? `${taskSlug}.md` : null);
   }
-  if (!agentIds.length) {
-    console.error('Missing --agent (one or more cloud agent IDs or cursor.com/agents/… URLs)');
+  if (!stepId) {
+    console.error(
+      'Missing --step (ROADMAP step ID, e.g. 2.7) — or pass --title containing Step X.Y'
+    );
     process.exit(1);
   }
 
@@ -159,13 +198,39 @@ async function main() {
     process.exit(1);
   }
 
-  const row = lookupRoadmapRow(stepId);
-  const title = getArg('--title') || (row ? row.name : `Step ${stepId}`);
   const client = manualTokensTemplate ? null : createCursorClient(apiKey);
 
+  if (!agentIds.length && (prUrl || branchArg) && client) {
+    const resolved = await resolveOrchestratorAgentForPr(client, {
+      prUrl,
+      branch: branchArg,
+      log: msg => console.log(msg)
+    });
+    if (resolved) agentIds = [resolved];
+  }
+
+  if (!agentIds.length) {
+    console.error(
+      'Missing --agent (or could not resolve via --pr-url / --branch). ' +
+        'Pass parent bc-… or a PR URL linked to the Orchestrator agent.'
+    );
+    process.exit(1);
+  }
+
+  const row = lookupRoadmapRow(stepId);
+  const title = titleArg || (row ? row.name : `Step ${stepId}`);
+  const issue = issueArg ? Number(issueArg) : (row?.issue ?? null);
+  const returnBranch = currentGitBranch(ROOT);
+
   console.log(
-    `Import ${agentIds.length} manual agent(s) → step ${stepId}${DRY_RUN ? ' [dry-run]' : ''}`
+    `Import ${agentIds.length} agent(s) → step ${stepId}` +
+      `${V1_UI ? ' [v1-ui]' : ''}${DO_PUSH ? ' [push]' : ''}${DRY_RUN ? ' [dry-run]' : ''}`
   );
+
+  if (!DRY_RUN && DO_PUSH) {
+    mkdirSync(join(ROOT, SESSIONS_DIR), { recursive: true });
+    syncMetricsFromRemote({ root: ROOT, log: msg => console.log(msg) });
+  }
 
   const phases = [];
   for (const agentId of agentIds) {
@@ -190,7 +255,7 @@ async function main() {
       console.log(`  ${agentId.slice(0, 12)}… → manual total=${tokens.total}`);
     } else {
       tokens = metrics.tokens;
-      tokensSource = 'cursor-api-manual';
+      tokensSource = V1_UI ? 'cursor-api-v1' : 'cursor-api-manual';
       console.log(
         `  ${agentId.slice(0, 12)}… → in=${tokens.input ?? '?'} out=${tokens.output ?? '?'} total=${tokens.total ?? '?'}`
       );
@@ -200,18 +265,18 @@ async function main() {
       }
       if (tokens.total === 0) {
         console.error(
-          `  ⚠ Agent ${agentId.slice(0, 12)}… has zero usage via API — use --tokens-total from Cursor Dashboard`
+          `  ⚠ Agent ${agentId.slice(0, 12)}… has zero usage via API — ` +
+            `if this is a Task child-id, use the parent /agents/bc-… id instead ` +
+            `(or --tokens-total from Cursor Dashboard)`
         );
         continue;
       }
     }
 
+    const type = phaseTypeFromLabel(label);
     const phase = {
       phaseKey: `manual-${agentId}-${label}`,
-      type:
-        label.startsWith('EXECUTE') || label === 'PLAN' || label === 'FINALIZE'
-          ? label.split(' ')[0]
-          : 'MANUAL',
+      type,
       attempt: 0,
       batchSteps: null,
       agent: {
@@ -223,12 +288,15 @@ async function main() {
       tokens,
       tokensSource,
       result: manualTokensTemplate
-        ? 'Imported manually from Cursor Dashboard (API usage unavailable)'
-        : 'Imported manually (pre-Conductor cloud agent)',
+        ? 'Imported from Cursor Dashboard (API usage unavailable)'
+        : V1_UI
+          ? 'Imported post-hoc (cursor.com/agents UI / Automations)'
+          : 'Imported manually (pre-Conductor cloud agent)',
       outcome: 'success',
       manualImport: true,
-      notes: 'Manual import via import-manual-agents.mjs'
+      notes: 'Import via import-manual-agents.mjs'
     };
+    if (V1_UI) phase.v1 = true;
     applyAgentMetricsToPhase(phase, metrics);
     phases.push(phase);
   }
@@ -252,25 +320,30 @@ async function main() {
 
   let session;
   if (existingSessionId) {
-    session = readJson(join(ROOT, SESSIONS_DIR, `${existingSessionId}.json`));
+    const sessionId = resolveSessionId(existingSessionId);
+    session = readJson(join(ROOT, SESSIONS_DIR, `${sessionId}.json`));
     if (!session) {
-      console.error(`Session not found: ${existingSessionId}`);
+      console.error(`Session not found: ${sessionId}`);
       process.exit(1);
     }
     for (const p of phases) {
       if (!session.phases.some(x => x.phaseKey === p.phaseKey)) session.phases.push(p);
     }
+    if (V1_UI && session.source !== 'v1-ui') session.v1Continued = true;
+    if (title && !session.title) session.title = title;
+    if (issue != null && session.issue == null) session.issue = issue;
+    if (branchArg && !session.branch) session.branch = branchArg;
+    if (taskSlug && !session.taskSlug) session.taskSlug = taskSlug;
   } else {
-    const sessionId = randomUUID();
     session = {
       schemaVersion: SCHEMA_VERSION,
-      sessionId,
+      sessionId: randomUUID(),
       roadmapStepId: stepId,
       title,
-      taskSlug: null,
+      taskSlug,
       taskPrompt: null,
-      issue: row?.issue ?? null,
-      branch: null,
+      issue,
+      branch: branchArg || null,
       model: null,
       status: 'completed',
       startedAt: null,
@@ -280,9 +353,12 @@ async function main() {
       manualImport: {
         at: new Date().toISOString(),
         source: 'import-manual-agents.mjs',
-        note: 'Pre-Conductor cloud agent run(s)'
+        note: V1_UI
+          ? 'Post-hoc V1 UI / Automations import (parent agent usage)'
+          : 'Pre-Conductor / historical cloud agent run(s)'
       }
     };
+    if (V1_UI) session.source = 'v1-ui';
   }
 
   recomputeSessionTotals(session);
@@ -296,10 +372,21 @@ async function main() {
   writeJson(join(ROOT, INDEX_PATH), index);
 
   console.log(
-    `\nWrote session ${session.sessionId.slice(0, 8)}… (${phases.length} phase(s), total=${session.totals.tokens.total})`
+    `\nWrote session ${session.sessionId} (${phases.length} phase(s), total=${session.totals.tokens.total})`
   );
+  console.log(`SESSION_ID=${session.sessionId}`);
 
   if (COPY_LOCAL) copyToLocalPreview();
+
+  if (DO_PUSH) {
+    pushMetricsToRemote({
+      root: ROOT,
+      message: `chore(metrics): import ${stepId} · ${session.sessionId.slice(0, 8)}`,
+      metricsBranch: DEFAULT_METRICS_BRANCH,
+      returnBranch: returnBranch && returnBranch !== DEFAULT_METRICS_BRANCH ? returnBranch : null,
+      log: msg => console.log(msg)
+    });
+  }
 }
 
 main().catch(e => {

@@ -24,9 +24,9 @@ use Symfony\Component\Console\Output\NullOutput;
 /**
  * Integration tests for PackageManager::enable()/disable()/uninstall() orchestration.
  *
- * An extension's schema lifecycle runs through its scripts.php hooks: the
- * `enable` hook calls MigrationService::migrateExtension(), the `uninstall` hook
- * calls rollbackExtension(). These tests exercise that orchestration end-to-end
+ * An extension's schema lifecycle runs through the hooks of the lifecycle its
+ * scripts.php returns: the `enable` hook calls MigrationService::migrateExtension(),
+ * the `uninstall` hook calls rollbackExtension(). These tests exercise that orchestration end-to-end
  * against a real in-memory-SQLite MigrationService, driving actual DDL so table
  * existence is the assertion — not a mocked call count.
  *
@@ -122,7 +122,7 @@ class PackageManagerMigrationTest extends TestCase
 
         self::assertTrue(
             $this->connection->createSchemaManager()->tablesExist(['test_ext_items']),
-            'enable() must auto-run the extension migration via the scripts.php enable hook',
+            'enable() must auto-run the extension migration via the lifecycle enable hook',
         );
         self::assertSame('1.0.0', $system->get('packages.test-ext'));
         self::assertContains('test-ext', (array) $system->get('extensions'));
@@ -158,7 +158,7 @@ class PackageManagerMigrationTest extends TestCase
         self::assertSame(
             ['script.enable', 'package.enable'],
             $events->fired,
-            'package.enable must fire only after scripts->enable() succeeds so listeners never see a half-enabled package',
+            'package.enable must fire only after the enable hook succeeds so listeners never see a half-enabled package',
         );
         self::assertContains('test-ext', (array) $system->get('extensions'));
     }
@@ -446,7 +446,7 @@ class PackageManagerMigrationTest extends TestCase
         self::assertNotContains(
             'package.enable',
             $events->fired,
-            'package.enable must not fire when scripts->enable() fails — node restore / type forget stay unrestored',
+            'package.enable must not fire when the enable hook fails — node restore / type forget stay unrestored',
         );
         self::assertSame([], (array) $system->get('extensions'));
     }
@@ -727,98 +727,89 @@ class PackageManagerMigrationTest extends TestCase
 
     private function enableMigrateScript(): string
     {
-        return <<<'PHP'
-            <?php
+        return $this->lifecycleScript('enable', <<<'PHP'
+            $result = $app->get('migration')->migrateExtension('{NS}', __DIR__ . '/src/Migrations');
 
-            declare(strict_types=1);
-
-            return [
-                'enable' => function ($app) {
-                    $result = $app->get('migration')->migrateExtension('{NS}', __DIR__ . '/src/Migrations');
-
-                    if (!$result['success']) {
-                        throw new \RuntimeException('Extension migration failed: ' . ($result['error'] ?? 'unknown error'));
-                    }
-                },
-            ];
-            PHP;
+            if (!$result['success']) {
+                throw new \RuntimeException('Extension migration failed: ' . ($result['error'] ?? 'unknown error'));
+            }
+            PHP);
     }
 
     /**
-     * A scripts.php whose hook announces itself on the event dispatcher, so the
+     * A lifecycle whose hook announces itself on the event dispatcher, so the
      * order of the extension's own hook and the manager's lifecycle event is
      * observable in one recorded sequence.
      */
     private function announcingScript(string $hook): string
     {
-        return str_replace('{HOOK}', $hook, <<<'PHP'
-            <?php
-
-            declare(strict_types=1);
-
-            return [
-                '{HOOK}' => function ($app) {
-                    $app->get('events')->trigger('script.{HOOK}', []);
-                },
-            ];
-            PHP);
+        return $this->lifecycleScript($hook, sprintf("\$app->get('events')->trigger('script.%s', []);", $hook));
     }
 
     private function throwingEnableScript(): string
     {
-        return <<<'PHP'
-            <?php
-
-            declare(strict_types=1);
-
-            return [
-                'enable' => function ($app) {
-                    throw new \RuntimeException('Simulated migration failure');
-                },
-            ];
-            PHP;
+        return $this->lifecycleScript('enable', "throw new \\RuntimeException('Simulated migration failure');");
     }
 
     private function fullRollbackUninstallScript(): string
     {
-        return <<<'PHP'
-            <?php
+        return $this->lifecycleScript('uninstall', <<<'PHP'
+            $result = $app->get('migration')->rollbackExtension('{NS}', __DIR__ . '/src/Migrations', '0');
 
-            declare(strict_types=1);
-
-            return [
-                'uninstall' => function ($app) {
-                    $result = $app->get('migration')->rollbackExtension('{NS}', __DIR__ . '/src/Migrations', '0');
-
-                    if (!$result['success']) {
-                        throw new \RuntimeException('Extension rollback failed: ' . ($result['error'] ?? 'unknown error'));
-                    }
-                },
-            ];
-            PHP;
+            if (!$result['success']) {
+                throw new \RuntimeException('Extension rollback failed: ' . ($result['error'] ?? 'unknown error'));
+            }
+            PHP);
     }
 
     private function partialRollbackUninstallScript(): string
     {
-        return <<<'PHP'
-            <?php
+        return $this->lifecycleScript('uninstall', <<<'PHP'
+            $result = $app->get('migration')->rollbackExtension(
+                '{NS}',
+                __DIR__ . '/src/Migrations',
+                '{NS}\\Version20250101000001_CreateExtTable'
+            );
 
-            declare(strict_types=1);
+            if (!$result['success']) {
+                throw new \RuntimeException('Extension rollback failed: ' . ($result['error'] ?? 'unknown error'));
+            }
+            PHP);
+    }
 
-            return [
-                'uninstall' => function ($app) {
-                    $result = $app->get('migration')->rollbackExtension(
-                        '{NS}',
-                        __DIR__ . '/src/Migrations',
-                        '{NS}\\Version20250101000001_CreateExtTable'
-                    );
+    /**
+     * A package's lifecycle file, implementing the one hook a test drives.
+     *
+     * The manager reads a package's scripts.php as a lifecycle object, so a hook
+     * is a method that overrides the no-op base rather than an array entry, and
+     * a name the interface does not declare no longer passes for a hook.
+     */
+    private function lifecycleScript(string $hook, string $body): string
+    {
+        $indented = implode("\n", array_map(
+            static fn (string $line): string => $line === '' ? '' : '        ' . $line,
+            explode("\n", $body),
+        ));
 
-                    if (!$result['success']) {
-                        throw new \RuntimeException('Extension rollback failed: ' . ($result['error'] ?? 'unknown error'));
+        return str_replace(
+            ['{HOOK}', '{BODY}'],
+            [$hook, $indented],
+            <<<'PHP'
+                <?php
+
+                declare(strict_types=1);
+
+                use Pagekit\Installer\Package\Lifecycle\PackageLifecycle;
+                use Psr\Container\ContainerInterface;
+
+                return new class () extends PackageLifecycle {
+                    public function {HOOK}(ContainerInterface $app): void
+                    {
+                {BODY}
                     }
-                },
-            ];
-            PHP;
+                };
+                PHP,
+        );
     }
 
     private function writeMigrationV1(): void

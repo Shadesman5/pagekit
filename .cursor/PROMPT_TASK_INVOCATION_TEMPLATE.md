@@ -10,5 +10,5 @@ If you have several task prompts to run one after another (e.g. Phase 1, then Ph
 2. Invoke second: follow the rule with `@PROMPT_Phase2.md` → wait for completion
 
 Each invocation runs the full Orchestrator workflow for that prompt. Commits happen per checklist
-step within each prompt. Cloud-UI metrics self-resolve the agent id on the VM; session UUIDs stay on
-the ticket under `## METRICS` (Orchestrator-owned).
+step within each prompt. V1 token/phase metrics are a **manual post-ticket** step (not Orchestrator) —
+see `.github/conductor/metrics/README.md` (`import-manual-agents.mjs`).

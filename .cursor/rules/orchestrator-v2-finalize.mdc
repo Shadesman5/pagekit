@@ -143,14 +143,15 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
 
 ## Sequence
 
-> **Bugbot / Security in Execute:** the mandatory last checklist step `(XL)` already ran Bugbot + Security
-> on the branch diff (`orchestrator-v2-step.mdc` § XL Review step). Patch-ID sync usually makes the
-> GitHub-App PR Bugbot **skip** a duplicate review. Steps 4–5 below remain as **safety nets** (explicit
-> `bugbot run` / `security run` if the check did not skip / findings appear). Review rules:
-> `.cursor/BUGBOT.md`.
+> **Finalize PR reviews:** judge **only** the newest matching `cursor[bot]` PR review text after
+> `bugbot run` / `security run`. Never use check rows, HEAD SHA, `commit_id`, XL Task reviews, or CI
+> `security-audit` as the verdict. Details: steps 4–5. Rules: `.cursor/BUGBOT.md`.
 
 1. **Push + PR** — `git push -u origin HEAD`; `gh pr create --base <base branch from your launch prompt>`
-   with the `<!-- metadata -->` block (labels, milestone, `Closes #XXX`). This triggers the PR CI checks.
+   with the `<!-- metadata -->` block (labels, milestone, `Closes #XXX`). For V1 UI Orchestrator
+   runs include `v1-metrics` in labels (merge → `import-v1-metrics.yml`) and the Roadmap step id as
+   `Step X.Y` in the PR title (or body) — the workflow reads it at merge time and has no recovery
+   path when it is missing. This triggers the PR CI checks.
 2. **CI quality gate** — wait on the PR's status checks for this branch yourself (a watch, not a test —
    no tester needed). `gh pr checks` covers every required gate (the PHP Tests jobs, `infection-diff`,
    `e2e-smoke`, `frontend`) rather than a single workflow:
@@ -158,6 +159,7 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
    gh pr checks <pr> --watch --fail-fast
    ```
    FAIL → fix-loop spawn order (production path above), commit, push, re-watch until green.
+   **Note:** CI job `security-audit` is Composer/CI only — it is **not** Cursor Security Review (step 5).
 3. **Coverage gap pass** (optional advisory; after CI green, before Bugbot) — Codecov posts a per-PR
    patch-coverage comment only after step 2 completes. Run this pass **only when all** apply:
    - Ticket `## TESTING STRATEGY` does **not** mark the ticket `test-writer: skip`, **and**
@@ -177,17 +179,25 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
    On PASS: `git commit` (`test(<scope>): close codecov patch gaps`), push, re-watch step 2 to green.
    **At most one** coverage-gap iteration per Finalize run (Stuck-breaker still applies). If test-writer
    returns `UNTESTABLE` for all gaps, skip the commit and proceed to step 4.
-4. **PR-Bugbot review** — CI is green, so trigger the review: `gh pr comment <pr> --body "bugbot run"`,
-   then wait for the `Cursor Bugbot` status check (e.g. `gh pr checks <pr> --watch`). Read findings via
-   `gh api repos/{owner}/{repo}/pulls/<pr>/comments` (or `gh pr view <pr> --comments`). Findings →
-   fix-loop spawn order → commit → push; a fix re-runs CI, so re-watch step 2 to green, then re-trigger
-   Bugbot if needed — repeat until Bugbot is clean **and** CI is green.
-5. **PR-Security review** — after Bugbot is clean, trigger Security: `gh pr comment <pr> --body "security run"`,
-   then wait for the Cursor Security Review automation to finish (new inline/review comments and/or a
-   status check, depending on the automation config). Read findings the same way as Bugbot. **Clean** →
-   proceed to step 6. **Findings** → fix-loop spawn order → commit → push → re-watch CI green →
-   **restart from step 4** (Bugbot again, then Security). Security fixes can introduce bugs; both PR
-   reviews must be clean in sequence before release docs.
+4. **PR-Bugbot (mandatory)** — sole source of truth: newest `cursor[bot]` PR **review** with
+   `<!-- BUGBOT_REVIEW -->`. Ignore checks, HEAD, `commit_id`.
+   1. `gh pr comment <pr> --body "bugbot run"`.
+   2. Poll with `gh` only. **No** homemade `node`/`[eval]` poll scripts, HEAD filters, or
+      `OPEN_BUG`/`CLEAN`/`DIRTY` state machines. Exit when a `<!-- BUGBOT_REVIEW -->` review has
+      `submitted_at` after the trigger (ceiling ~10 min).
+   3. **Stop polling** once that review exists. Body text only:
+      - **Dirty** (fix-loop now) if any leftover phrase:
+        `potential issue` / `remains unresolved` / `from previous review` / `total unresolved issues`
+        — even with `found no new issues` / `issues=0`.
+      - **Clean** only if `found no new issues` (typically ✅) and none of those phrases.
+      - Dirty → fix open Bugbot comments → push → re-CI → 4.1. Thread-resolve without a fix ≠ clean.
+      - Clean → step 5.
+   4. Forbidden limbo: `issues=0` + `unresolvedMention` = **Dirty**, not “wait more”.
+5. **PR-Security (mandatory)** — after Bugbot clean. Sole source of truth: newest `cursor[bot]`
+   review/comment with `CURSOR_AUTOMATION_ID` or `Agentic Security Review`. Not CI `security-audit`.
+   1. `gh pr comment <pr> --body "security run"`.
+   2. Poll with `gh` only until a **newer** such review/comment appears (ceiling ~15 min). Stop at once.
+   3. Findings → fix-loop → push → re-CI green → **restart step 4**; clean → step 6.
 6. **Finalize** (follow `push.mdc`, but delegate the writing) — in this order:
    1. **Version bump** (you) — run the `version-bump` skill → `app/system/config.php` (once per PR).
    2. Spawn **doc-writer** (Finalize docs template).
@@ -230,9 +240,9 @@ If a fix-loop hits the **same** FAIL **3×**, stop and report `ESCALATE: <reason
 
 ## Boundaries
 
-- Spawn only: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`. Primary Bugbot + Security
-  already ran in Execute `(XL)`; PR Bugbot (`bugbot run`) and PR Security (`security run`) here are the
-  GitHub-App / automation safety nets — see the Sequence note above.
+- Spawn only: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`. Finalize steps 4–5:
+  post `bugbot run` / `security run`, then judge **only** the newest matching `cursor[bot]` review
+  body. Do not spawn Task `bugbot` / `security-review` here.
 
 ## Report exactly one line
 

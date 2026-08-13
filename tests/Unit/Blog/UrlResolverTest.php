@@ -9,6 +9,7 @@ use Pagekit\Blog\Model\PostRepository;
 use Pagekit\Blog\UrlResolver;
 use Pagekit\Database\ORM\QueryBuilder;
 use Pagekit\Module\Module;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
@@ -17,45 +18,37 @@ use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 /**
  * Covers UrlResolver: match()/generate() resolve an unknown slug/id through the
- * {@see PostRepository} carried on the temporary static bridge
- * (`setPostRepository()`), guarded by a LogicException when the bridge was never
- * wired during blog boot.
+ * injected {@see PostRepository}, a cached entry answers without touching it,
+ * and permalinkFor() derives the pattern both this resolver and the blog's
+ * route listener build post URLs from.
  *
- * The Router instantiates resolvers via `new $class` with no DI, so the bridge is
- * a set of private statics; each test resets them via reflection (there is no
- * public setter that accepts null for the module) and configures the repository
- * with a mocked QueryBuilder, so the delegation is asserted with no database.
+ * The resolver takes its cache pool, blog module and repository through the
+ * constructor, so every test builds its own instance from mocks and the
+ * delegation is asserted with no database.
  */
 class UrlResolverTest extends TestCase
 {
     protected function setUp(): void
     {
         require_once __DIR__ . '/bootstrap.php';
-
-        $this->resetResolverStatics();
-    }
-
-    protected function tearDown(): void
-    {
-        $this->resetResolverStatics();
     }
 
     // -----------------------------------------------------------------------
-    // match(): slug -> id resolution through the bridged repository.
+    // match(): slug -> id resolution through the injected repository.
     // -----------------------------------------------------------------------
 
     public function testMatchReturnsParametersUnchangedWhenIdAlreadyPresent(): void
     {
         $parameters = ['id' => 5, 'extra' => 'kept'];
 
-        $this->assertSame($parameters, (new UrlResolver())->match($parameters));
+        $this->assertSame($parameters, $this->resolver()->match($parameters));
     }
 
     public function testMatchThrowsNotFoundWhenNeitherIdNorSlugGiven(): void
     {
         $this->expectException(NotFoundHttpException::class);
 
-        (new UrlResolver())->match([]);
+        $this->resolver()->match([]);
     }
 
     public function testMatchResolvesSlugThroughRepositoryAndReturnsItsId(): void
@@ -65,35 +58,24 @@ class UrlResolverTest extends TestCase
         $post->slug = 'hello';
         $post->date = new \DateTime('2024-01-02 03:04:05');
 
-        UrlResolver::setPostRepository($this->repositoryReturning(['slug' => 'hello'], $post));
-
-        $result = (new UrlResolver())->match(['slug' => 'hello']);
+        $result = $this->resolver(posts: $this->repositoryReturning(['slug' => 'hello'], $post))
+            ->match(['slug' => 'hello']);
 
         $this->assertSame(5, $result['id'], 'the slug must be resolved to the post id via the repository');
         $this->assertSame('hello', $result['slug']);
     }
 
-    public function testMatchThrowsLogicExceptionWhenRepositoryBridgeWasNeverSet(): void
-    {
-        // The 2.5 bridge was never wired during blog boot: the null-guard fires
-        // instead of a fatal on a null repository.
-        $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('UrlResolver post repository is not set');
-
-        (new UrlResolver())->match(['slug' => 'ghost']);
-    }
-
     public function testMatchThrowsNotFoundWhenNoPostMatchesTheSlug(): void
     {
-        UrlResolver::setPostRepository($this->repositoryReturning(['slug' => 'ghost'], null));
+        $resolver = $this->resolver(posts: $this->repositoryReturning(['slug' => 'ghost'], null));
 
         $this->expectException(NotFoundHttpException::class);
 
-        (new UrlResolver())->match(['slug' => 'ghost']);
+        $resolver->match(['slug' => 'ghost']);
     }
 
     // -----------------------------------------------------------------------
-    // generate(): id -> parameters resolution through the bridged repository.
+    // generate(): id -> parameters resolution through the injected repository.
     // -----------------------------------------------------------------------
 
     public function testGenerateResolvesIdThroughRepositoryWhenNotCached(): void
@@ -103,55 +85,98 @@ class UrlResolverTest extends TestCase
         $post->slug = 'world';
         $post->date = new \DateTime('2024-05-06 07:08:09');
 
-        UrlResolver::setPostRepository($this->repositoryReturning(['id' => 9], $post));
-
-        // No module configured -> empty permalink -> no attribute expansion, so
-        // the id survives; the point is that the repository loaded the post.
-        $result = (new UrlResolver())->generate(['id' => 9]);
+        // The default permalink type is empty -> no attribute expansion, so the
+        // id survives; the point is that the repository loaded the post.
+        $result = $this->resolver(posts: $this->repositoryReturning(['id' => 9], $post))
+            ->generate(['id' => 9]);
 
         $this->assertSame(9, $result['id']);
     }
 
-    public function testGenerateThrowsLogicExceptionWhenRepositoryBridgeWasNeverSet(): void
-    {
-        $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('UrlResolver post repository is not set');
-
-        (new UrlResolver())->generate(['id' => 9]);
-    }
-
     public function testGenerateThrowsRouteNotFoundWhenPostMissing(): void
     {
-        UrlResolver::setPostRepository($this->repositoryReturning(['id' => 404], null));
+        $resolver = $this->resolver(posts: $this->repositoryReturning(['id' => 404], null));
 
         $this->expectException(RouteNotFoundException::class);
 
-        (new UrlResolver())->generate(['id' => 404]);
+        $resolver->generate(['id' => 404]);
     }
 
     public function testGenerateExpandsPermalinkFromCacheWithoutQueryingRepository(): void
     {
         // A cached entry short-circuits the repository entirely; the custom
         // permalink then expands from the cached meta.
-        UrlResolver::setCache($this->cachePoolWithEntries([
-            9 => ['id' => 9, 'slug' => 'world', 'year' => '2024'],
-        ]));
-        UrlResolver::setModule($this->blogModuleWithPermalink('{slug}'));
-
         $repository = $this->createMock(PostRepository::class);
         $repository->expects($this->never())->method('where');
-        UrlResolver::setPostRepository($repository);
 
-        $result = (new UrlResolver())->generate(['id' => 9]);
+        $result = $this->resolver(
+            cache: $this->cachePoolWithEntries([
+                9 => ['id' => 9, 'slug' => 'world', 'year' => '2024'],
+            ]),
+            module: $this->blogModuleWithPermalink('{slug}'),
+            posts: $repository,
+        )->generate(['id' => 9]);
 
         $this->assertSame('world', $result['slug'], 'the {slug} permalink token is filled from the cached meta');
         $this->assertArrayNotHasKey('id', $result, 'a matched permalink drops the raw id parameter');
     }
 
+    // -----------------------------------------------------------------------
+    // permalinkFor(): the pattern the resolver and the route listener share.
+    // -----------------------------------------------------------------------
+
+    /**
+     * The URL a post is generated under and the alias path a post URL is matched
+     * on are built from the same pattern, which is derived here from the blog's
+     * own configuration and from nothing else. A derivation that read state
+     * would let the two sides disagree, leaving posts reachable under URLs the
+     * site does not link to (or the other way round).
+     *
+     * @param array<string, string> $permalink
+     */
+    #[DataProvider('providePermalinkConfigurations')]
+    public function testPermalinkForDerivesThePatternFromTheBlogConfiguration(array $permalink, string $expected): void
+    {
+        $this->assertSame($expected, UrlResolver::permalinkFor($this->blogModule($permalink)));
+    }
+
+    /**
+     * The permalink settings screen writes the pattern itself into `type` and
+     * only switches to `custom` for a hand-written one, so `type` is either a
+     * pattern, the literal `custom`, or empty for numeric post URLs. The last
+     * two cases are configuration that was never fully written, which reading a
+     * pattern out of must answer rather than fail: this runs on every request.
+     *
+     * @return array<string, array{0: array<string, string>, 1: string}>
+     */
+    public static function providePermalinkConfigurations(): array
+    {
+        return [
+            'numeric post URLs carry no pattern' => [['type' => '', 'custom' => '{slug}'], ''],
+            'a preset pattern is the pattern' => [['type' => '{year}/{month}/{slug}', 'custom' => '{slug}'], '{year}/{month}/{slug}'],
+            'the custom type hands over to the custom pattern' => [['type' => 'custom', 'custom' => '{year}/{slug}'], '{year}/{slug}'],
+            'a custom type with nothing written for it carries no pattern' => [['type' => 'custom'], ''],
+            'a blog without permalink configuration carries no pattern' => [[], ''],
+        ];
+    }
+
+    /**
+     * Builds the resolver with its three dependencies, defaulting to an empty
+     * cache, the shipped blog config and an unused repository.
+     */
+    private function resolver(?CacheItemPoolInterface $cache = null, ?Module $module = null, ?PostRepository $posts = null): UrlResolver
+    {
+        return new UrlResolver(
+            $cache ?? $this->cachePoolWithEntries([]),
+            $module ?? $this->blogModule(['type' => '', 'custom' => '{slug}']),
+            $posts ?? $this->createMock(PostRepository::class),
+        );
+    }
+
     /**
      * Builds a PostRepository mock whose where($condition)->first() answers with
-     * the given post (or null), mirroring the bridged `self::$posts->where(...)
-     * ->first()` chain.
+     * the given post (or null), mirroring the `$this->posts->where(...)->first()`
+     * chain.
      *
      * @param array<string, mixed> $condition
      */
@@ -186,23 +211,18 @@ class UrlResolverTest extends TestCase
 
     private function blogModuleWithPermalink(string $custom): Module
     {
-        return new Module([
-            'name' => 'blog',
-            'path' => '',
-            'config' => ['permalink' => ['type' => 'custom', 'custom' => $custom]],
-        ]);
+        return $this->blogModule(['type' => 'custom', 'custom' => $custom]);
     }
 
     /**
-     * Clears the temporary 2.5 bridge statics between tests. setModule() has no
-     * null-accepting signature, so the private statics are reset by reflection.
+     * @param array<string, string> $permalink
      */
-    private function resetResolverStatics(): void
+    private function blogModule(array $permalink): Module
     {
-        $reflection = new \ReflectionClass(UrlResolver::class);
-
-        foreach (['cache', 'module', 'posts'] as $name) {
-            $reflection->getProperty($name)->setValue(null, null);
-        }
+        return new Module([
+            'name' => 'blog',
+            'path' => '',
+            'config' => ['permalink' => $permalink],
+        ]);
     }
 }

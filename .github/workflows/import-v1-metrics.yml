@@ -1,0 +1,100 @@
+# Import V1 (cursor.com/agents UI) Orchestrator token metrics after a modernization PR merges.
+#
+# Gate: PR must carry label `v1-metrics` (see .cursor/rules/github-labels.mdc) and merge into develop.
+# The PR title or body must name the ROADMAP step (`Step X.Y`) — it is read at merge time and there
+# is no in-workflow recovery when it is missing, only a manual import-manual-agents.mjs run.
+# Resolves the parent Orchestrator `bc-…` via Cursor API (prUrl, then branch), then runs
+# import-manual-agents.mjs --push onto the conductor-metrics branch.
+#
+# Requires secret: CURSOR_API_KEY (same as Conductor).
+
+name: Import V1 Metrics
+
+run-name: "V1 metrics — PR #${{ github.event.pull_request.number }}"
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [develop]
+
+permissions:
+  contents: write # push to conductor-metrics
+  actions: write # dispatch pages-deploy after metrics push
+  pull-requests: read
+
+concurrency:
+  group: v1-metrics-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  import:
+    name: Import V1 metrics
+    if: >-
+      github.event.pull_request.merged == true &&
+      contains(github.event.pull_request.labels.*.name, 'v1-metrics')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Resolve step + import
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CURSOR_API_KEY:-}" ]; then
+            echo "::error::CURSOR_API_KEY secret is missing"
+            exit 1
+          fi
+
+          STEP=""
+          # Only an explicit "Step X.Y" / "close Step X.Y" in title or body counts. A bare
+          # semver-looking token is NOT accepted: release titles ("Pagekit 1.2.38 - …") would
+          # otherwise attach the metrics to a step id that does not exist in the ROADMAP.
+          for SRC in "$PR_TITLE" "$PR_BODY"; do
+            if [ -z "$STEP" ]; then
+              STEP=$(printf '%s' "$SRC" | grep -oE '[Ss]tep[[:space:]]+[0-9]+(\.[0-9]+[a-z]?){1,2}' | head -1 | grep -oE '[0-9]+(\.[0-9]+[a-z]?){1,2}' || true)
+            fi
+          done
+          if [ -z "$STEP" ]; then
+            # A re-run replays the stored merge payload (a title edited afterwards is never seen)
+            # and a merged PR cannot fire a second `closed` event, so the manual import is the only
+            # recovery. Print it filled in, to the log and to the run summary.
+            echo "::error::Could not infer ROADMAP step id: no \"Step X.Y\" in PR title or body. Re-running this workflow cannot recover it — import manually with the command printed below (also in the run summary)."
+            printf '%s\n' \
+              '### V1 metrics import failed — manual import required' \
+              '' \
+              'No `Step X.Y` in the PR title or body, so the ROADMAP step id is unknown.' \
+              'Editing the title and re-running this workflow does **not** help: the re-run replays' \
+              'the stored merge event, and a merged PR fires no second `closed` event. Import the' \
+              'parent Orchestrator run yourself:' \
+              '' \
+              '```bash' \
+              'CURSOR_API_KEY=… node .github/conductor/import-manual-agents.mjs \' \
+              '  --step <ROADMAP step id, e.g. 2.7> \' \
+              "  --pr-url ${PR_URL@Q} \\" \
+              "  --branch ${PR_BRANCH@Q} \\" \
+              "  --title ${PR_TITLE@Q} \\" \
+              '  --push' \
+              '```' \
+              | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
+            exit 1
+          fi
+          echo "Resolved step=$STEP branch=$PR_BRANCH pr=$PR_URL"
+
+          node .github/conductor/import-manual-agents.mjs \
+            --step "$STEP" \
+            --pr-url "$PR_URL" \
+            --branch "$PR_BRANCH" \
+            --title "$PR_TITLE" \
+            --push

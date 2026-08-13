@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Console\Commands;
 
 use Pagekit\Application\Console\Command;
-use Pagekit\Installer\Package\PackageScripts;
+use Pagekit\Installer\Package\Lifecycle\LifecycleRunner;
 use Symfony\Component\Console\Command\Command as SymfonyCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -52,16 +52,22 @@ class MigrationCommand extends Command
 
         $config = $this->container->get('config')('system');
 
-        $scripts = new PackageScripts($this->container->get('path').'/app/system/scripts.php', $config->get('version'), $this->container);
-        $hadScriptUpdates = $scripts->hasUpdates();
-        if ($hadScriptUpdates) {
-            try {
-                $scripts->update();
-            } catch (\Throwable $e) {
-                $this->line(sprintf('<error>Script update failed: %s</error>', $e->getMessage()));
+        $lifecycle = new LifecycleRunner($this->container->get('path').'/app/system/scripts.php', $config->get('version'), $this->container);
+        $hadScriptUpdates = false;
 
-                return SymfonyCommand::FAILURE;
+        // Reading the lifecycle file is part of running its updates: it is
+        // loaded on the first question asked of it, so a file that does not
+        // deliver a lifecycle fails here rather than in update().
+        try {
+            $hadScriptUpdates = $lifecycle->hasUpdates();
+
+            if ($hadScriptUpdates) {
+                $lifecycle->update();
             }
+        } catch (\Throwable $e) {
+            $this->line(sprintf('<error>Script update failed: %s</error>', $e->getMessage()));
+
+            return SymfonyCommand::FAILURE;
         }
 
         $config->set('version', $this->container->get('version'));

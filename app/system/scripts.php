@@ -2,25 +2,23 @@
 
 declare(strict_types=1);
 
+use Pagekit\Installer\Package\Lifecycle\PackageLifecycle;
+use Psr\Container\ContainerInterface;
+
 /**
- * System Installation & Update Scripts
+ * The system's own lifecycle.
  *
- * Modern Pagekit (2.0+) Architecture:
- * - Database schema: Handled by Doctrine Migrations (app/migrations/)
- * - Config initialization: Handled here (configurable user preferences)
- * - System updates: Execute migrations via 'updates' array
- *
- * Clean Separation:
- * Migrations: Structure (tables, columns, system roles)
- * scripts.php: Configuration (user preferences, dashboard settings)
- *
+ * Structure - tables, columns, system roles - belongs to the Doctrine
+ * migrations under app/migrations. What is left here is configuration: the
+ * preferences a fresh installation starts with, and the one-off data changes an
+ * update to a newer version needs.
  */
-return [
-
-    'install' => function ($app) {
-        // NOTE: Database tables are created by Doctrine Migrations.
-        // This hook is executed AFTER migrations for configuration setup.
-
+return new class () extends PackageLifecycle {
+    /**
+     * Runs after the migrations have created the schema.
+     */
+    public function install(ContainerInterface $app): void
+    {
         // Initialize default dashboard widgets configuration
         $app->get('config')->set('system/dashboard', [
             '55dda578e93b5' => ['type' => 'location', 'column' => 1, 'idx' => 0, 'units' => 'metric', 'id' => '55dda578e93b5', 'uid' => 2911298, 'city' => 'Hamburg', 'country' => 'DE', 'coords' => ['lon' => 10, 'lat' => 53.549999]],
@@ -32,17 +30,21 @@ return [
         $app->get('config')->set('system/site', [
             'menus' => ['main' => ['id' => 'main', 'label' => 'Main']],
         ]);
-    },
+    }
 
-    'updates' => [
-        // System updates execute new migrations automatically
-        // Example:
-        // '2.1.0' => function ($app) {
-        //     $result = $app->get('migration')->migrate();
-        //     if (!$result['success']) {
-        //         throw new \RuntimeException('Migration failed: ' . $result['error']);
-        //     }
-        // },
-    ],
-
-];
+    /*
+     * updates() - DATA changes only, keyed by the version that introduces them.
+     * New schema belongs in a migration, which the migration service runs on
+     * its own.
+     *
+     * Example:
+     * public function updates(): array
+     * {
+     *     return [
+     *         '2.1.0' => function (ContainerInterface $app): void {
+     *             $app->get('db')->executeStatement('UPDATE ...');
+     *         },
+     *     ];
+     * }
+     */
+};

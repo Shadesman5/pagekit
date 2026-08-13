@@ -62,13 +62,14 @@ class MigrationService
             );
         }
 
-        // Create dependency factory from configuration array
+        // Build the factory only. Creating the metadata table is initialize()'s
+        // job (and migrate() will ensure it as well): resolving the service from
+        // the container must not write to the database, or a transient SQLite
+        // lock / permission fault surfaces as "Error while retrieving migration".
         $this->dependencyFactory = DependencyFactory::fromConnection(
             new \Doctrine\Migrations\Configuration\Migration\ConfigurationArray($configArray),
             new ExistingConnection($this->connection)
         );
-
-        $this->dependencyFactory->getMetadataStorage()->ensureInitialized();
     }
 
     /**
@@ -116,22 +117,26 @@ class MigrationService
     /**
      * Get the current migration version for an extension.
      *
-     * Returns '0' if no migrations have been executed yet,
-     * or the fully qualified version class name of the last executed migration.
+     * '0' is the answer for an extension that has never migrated, and
+     * rollbackExtension() reads it as "unwind everything", so a lookup that
+     * failed may not answer the same thing: a caller holding it as the point to
+     * unwind to would drop tables it merely could not read the version of.
+     * An unreadable version is therefore reported as such and left for the
+     * caller to decide what an unknown schema is worth.
      *
      * @param string $namespace Extension migration namespace
      * @param string $path Absolute path to extension migrations directory
-     * @return string Current version string ('0' if none executed)
+     * @return string|null Last executed version, '0' where none ran, null where it could not be read
      */
-    public function getExtensionCurrentVersion(string $namespace, string $path): string
+    public function getExtensionCurrentVersion(string $namespace, string $path): ?string
     {
         try {
             $extensionFactory = $this->createExtensionDependencyFactory($namespace, $path);
             $aliasResolver = $extensionFactory->getVersionAliasResolver();
 
             return (string) $aliasResolver->resolveVersionAlias('current');
-        } catch (\Throwable $e) {
-            return '0';
+        } catch (\Throwable) {
+            return null;
         }
     }
 
@@ -144,11 +149,13 @@ class MigrationService
      */
     public function migrate(?string $version = null, bool $dryRun = false): array
     {
-        $migrator = $this->dependencyFactory->getMigrator();
-        $planCalculator = $this->dependencyFactory->getMigrationPlanCalculator();
-        $aliasResolver = $this->dependencyFactory->getVersionAliasResolver();
-
         try {
+            $this->ensureMetadataStorage();
+
+            $migrator = $this->dependencyFactory->getMigrator();
+            $planCalculator = $this->dependencyFactory->getMigrationPlanCalculator();
+            $aliasResolver = $this->dependencyFactory->getVersionAliasResolver();
+
             // Resolve target version
             if ($version) {
                 $targetVersion = new \Doctrine\Migrations\Version\Version($version);
@@ -211,12 +218,14 @@ class MigrationService
      */
     public function rollback(?string $version = null, bool $dryRun = false): array
     {
-        $migrator = $this->dependencyFactory->getMigrator();
-        $planCalculator = $this->dependencyFactory->getMigrationPlanCalculator();
-        $aliasResolver = $this->dependencyFactory->getVersionAliasResolver();
-        $metadataStorage = $this->dependencyFactory->getMetadataStorage();
-
         try {
+            $this->ensureMetadataStorage();
+
+            $migrator = $this->dependencyFactory->getMigrator();
+            $planCalculator = $this->dependencyFactory->getMigrationPlanCalculator();
+            $aliasResolver = $this->dependencyFactory->getVersionAliasResolver();
+            $metadataStorage = $this->dependencyFactory->getMetadataStorage();
+
             // Get executed migrations
             $executedMigrations = $metadataStorage->getExecutedMigrations();
 
@@ -451,8 +460,7 @@ class MigrationService
     public function initialize(): array
     {
         try {
-            $storage = $this->dependencyFactory->getMetadataStorage();
-            $storage->ensureInitialized();
+            $this->ensureMetadataStorage();
 
             return [
                 'success' => true,
@@ -465,6 +473,14 @@ class MigrationService
                 'error' => $e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * Creates the Doctrine migration versions table when it is still missing.
+     */
+    private function ensureMetadataStorage(): void
+    {
+        $this->dependencyFactory->getMetadataStorage()->ensureInitialized();
     }
 
     /**
@@ -567,6 +583,10 @@ class MigrationService
      *
      * This method allows extensions to rollback their own migrations.
      * Behavior is consistent with rollback() method.
+     *
+     * '0' names an empty schema, so it is only a safe target for a caller that
+     * knows the schema was empty - a version that could not be read is not '0',
+     * and passing it as one drops every table the extension has.
      *
      * @param string $namespace Extension migration namespace
      * @param string $path Absolute path to extension migrations directory

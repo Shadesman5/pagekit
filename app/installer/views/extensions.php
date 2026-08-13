@@ -47,6 +47,7 @@ $view->script('extensions', 'installer:app/bundle/extensions.js', ['vue']); ?>
                     </td>
                     <td class="uk-text-center">
                         <a class="pk-icon-circle-success" :title="'Enabled' | trans" v-if="pkg.enabled" @click="disable(pkg)"></a>
+                        <a class="uk-text-warning" uk-icon="warning" :uk-tooltip="'Disabled automatically after a failure. See the error log, then enable again.' | trans" v-else-if="pkg.failure" @click="enable(pkg)"></a>
                         <a class="pk-icon-circle-danger" :title="'Disabled' | trans" v-else @click="enable(pkg)"></a>
                     </td>
                     <td class="uk-text-center">{{ pkg.version }}</td>
