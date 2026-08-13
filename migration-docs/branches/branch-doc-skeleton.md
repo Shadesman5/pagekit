@@ -21,7 +21,15 @@ _TBD_
 
 ## ✅ What Changed
 
-### <Theme> (Checklist Steps N–M)
+### <Theme>
+
+| File | Change |
+|---|---|
+| `path/to/file.php` | _TBD_ |
+
+_TBD_
+
+#### Tests (only if added or changed)
 
 | File | Change |
 |---|---|
