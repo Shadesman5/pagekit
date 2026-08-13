@@ -1036,6 +1036,10 @@ export function pushMetricsToRemote({
 
   const restoreReturnBranch = () => {
     if (!returnBranch || returnBranch === metricsBranch) return;
+    // Nothing to put back while the tree is still where the caller left it: a
+    // failure before the metrics checkout never moved it, and resetting its
+    // branch to origin here would throw away commits it has not pushed yet.
+    if (currentGitBranch(root) === returnBranch) return;
     metricsGit(root, 'fetch', 'origin', returnBranch);
     metricsGit(root, 'checkout', '-B', returnBranch, `origin/${returnBranch}`);
   };
@@ -1088,7 +1092,6 @@ export function pushMetricsToRemote({
     try {
       metricsGit(root, 'diff', '--cached', '--quiet');
       log('metrics: no changes to commit');
-      restoreReturnBranch();
       return false;
     } catch {
       metricsGit(root, 'commit', '-m', message);
@@ -1113,10 +1116,18 @@ export function pushMetricsToRemote({
       } catch (e) {
         log(`metrics: pages-deploy dispatch skipped (${e.message})`);
       }
-      restoreReturnBranch();
       return true;
     }
   } finally {
+    // Whatever the commit, the rebase or the push did: a caller left standing on
+    // the metrics branch would commit its own work there. A return that fails is
+    // reported rather than thrown, so the failure that interrupted the push
+    // stays the one the caller hears about.
+    try {
+      restoreReturnBranch();
+    } catch (e) {
+      log(`metrics: could not return to ${returnBranch} (${e.message})`);
+    }
     rmSync(tmp, { recursive: true, force: true });
   }
 }

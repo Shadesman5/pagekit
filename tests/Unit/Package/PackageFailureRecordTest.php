@@ -42,6 +42,11 @@ use Symfony\Component\HttpFoundation\Request;
  * The theme is the exception on both counts: it is executed whether or not it
  * is on the record, and the boot that loads it takes it off.
  *
+ * An enable that fails after clearing it is the case where the record can go
+ * missing for good, and with it the one thing keeping a broken extension out of
+ * the next boot. The configuration takes that job over there, and has to be
+ * written back to the database to do it.
+ *
  * Until it is cleared, the manager screen is where the difference shows: an
  * extension a failure switched off and one an administrator switched off are
  * both simply not enabled, and only one of the two is waiting for someone to
@@ -61,6 +66,15 @@ final class PackageFailureRecordTest extends TestCase
      * The package on disk, which the manager reads the installed version from.
      */
     private string $packageDir;
+
+    /**
+     * The configurations written back to the database, each as it stood at the
+     * moment of the write. What is only in memory is left to the terminate
+     * event, which a failed request or a console run may never reach.
+     *
+     * @var array<int, array<int|string, mixed>>
+     */
+    private array $persisted = [];
 
     protected function setUp(): void
     {
@@ -359,6 +373,100 @@ final class PackageFailureRecordTest extends TestCase
 
         self::assertCount(1, $reported);
         self::assertStringContainsString('test-ext', $reported[0]);
+
+        // The rollback took the extension back out of the enabled list, and
+        // with the record gone that list is the only thing left keeping it out
+        // of the next boot. It counts once it is on disk: the request that
+        // would normally persist it at its end is the one that just failed.
+        self::assertCount(1, $this->persisted);
+        self::assertSame([], $this->persisted[0]['extensions'] ?? null);
+        self::assertStringContainsString('switched off in the configuration', $reported[0]);
+    }
+
+    public function testARecordThatCannotBePutBackSwitchesTheExtensionOffInstead(): void
+    {
+        $this->record('test-ext');
+
+        $log = $this->logService();
+
+        $system = new Config();
+        $system->set('packages.test-ext', '1.0.0');
+
+        // The state a load failure leaves behind when the database is what
+        // broke: the record kept the extension out of the boot, and the
+        // configuration write that would have switched it off never landed.
+        $system->set('extensions', ['test-ext']);
+
+        $app = $this->container(config: $system, writer: new RecordWriterThatStopsAfterTheFirstWrite());
+        $app->set('log', $log);
+        $app->set('events', $this->eventService(failOn: 'package.enable'));
+
+        $thrown = null;
+
+        try {
+            $this->manager($app)->enable($this->package());
+        } catch (\RuntimeException $e) {
+            $thrown = $e;
+        }
+
+        self::assertInstanceOf(\RuntimeException::class, $thrown);
+        self::assertStringContainsString('The listener failed', $thrown->getMessage());
+        self::assertFalse($this->store()->has('test-ext'));
+
+        // The rollback put the extension back to enabled and the record that
+        // was holding it off is gone, which between them would hand a package
+        // that already failed to the next boot. So the configuration says what
+        // the record no longer can - and it says it on disk, because a change
+        // left to the terminate event is one this request may never reach.
+        self::assertSame([], (array) $system->get('extensions'));
+        self::assertCount(1, $this->persisted, 'a configuration that stays in memory is one the next boot never reads');
+        self::assertSame([], $this->persisted[0]['extensions'] ?? null);
+
+        $reported = array_values(array_filter($log->errors, fn (string $line) => str_contains($line, 'restore the failure record')));
+
+        self::assertCount(1, $reported);
+        self::assertStringContainsString('test-ext', $reported[0]);
+        self::assertStringContainsString('switched off in the configuration', $reported[0]);
+    }
+
+    public function testAThemeWhoseRecordCannotBePutBackLeavesTheConfigurationAlone(): void
+    {
+        $this->record('test-theme', ExtensionFailureStore::TYPE_THEME);
+
+        $log = $this->logService();
+
+        $system = new Config();
+        $system->set('packages.test-theme', '1.0.0');
+        $system->set('extensions', ['test-ext']);
+
+        $app = $this->container(config: $system, writer: new RecordWriterThatStopsAfterTheFirstWrite());
+        $app->set('log', $log);
+        $app->set('events', $this->eventService(failOn: 'package.enable'));
+
+        try {
+            $this->manager($app)->enable($this->package([
+                'name' => 'pagekit/test-theme',
+                'type' => 'pagekit-theme',
+                'module' => 'test-theme',
+            ]));
+        } catch (\RuntimeException) {
+            // The configuration is what this asserts on, not the report of it.
+        }
+
+        // There is nothing to withhold a theme from: it is executed whether or
+        // not it is on the record, and falling back to a blank layout is the
+        // whole of its degradation. So a lost record costs the notice naming it
+        // and nothing else - the enabled extensions are another package's
+        // business, and which theme the site uses is the administrator's.
+        self::assertNotSame('test-theme', $system->get('site.theme'));
+        self::assertSame(['test-ext'], (array) $system->get('extensions'));
+        self::assertSame([], $this->persisted);
+
+        $reported = array_values(array_filter($log->errors, fn (string $line) => str_contains($line, 'restore the failure record')));
+
+        self::assertCount(1, $reported);
+        self::assertStringContainsString('test-theme', $reported[0]);
+        self::assertStringNotContainsString('switched off', $reported[0]);
     }
 
     public function testSelectingAThemeGoesThroughWhenTheRecordCannotBeCleared(): void
@@ -532,6 +640,11 @@ final class PackageFailureRecordTest extends TestCase
         if ($config !== null) {
             $manager = $this->createMock(ConfigManager::class);
             $manager->method('__invoke')->willReturn($config);
+            $manager->method('set')->willReturnCallback(
+                function (string $name, Config|array $values): void {
+                    $this->persisted[] = $values instanceof Config ? $values->toArray() : $values;
+                }
+            );
 
             $app->set('config', $manager);
         }

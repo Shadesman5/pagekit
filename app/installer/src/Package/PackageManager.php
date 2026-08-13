@@ -431,9 +431,13 @@ class PackageManager
     /**
      * Puts back a record that an operation cleared before it failed.
      *
-     * A record that cannot be written back is reported and nothing more: the
-     * failure the caller ran into is the one it has to hear about, and raising
-     * a second one from the recovery path would take its place.
+     * A record that cannot be written back is a lost record, and for an
+     * extension it was doing two jobs: keeping the package out of the boot and
+     * naming it as broken in the panel. The configuration takes the first one
+     * over, so a package this attempt already watched fail is not handed back to
+     * the next boot. The second is gone with the file and is reported to the log
+     * and nothing more: raising a second failure from the recovery path would
+     * take the place of the one that made the rollback necessary.
      *
      * @param ExtensionFailure $entry
      */
@@ -443,12 +447,17 @@ class PackageManager
             return;
         }
 
+        $withheld = $this->withholdExtension($package);
+
         try {
             if ($this->app->has('log')) {
                 $this->app->get('log')->error(
                     sprintf(
-                        'Failed to restore the failure record of "%s" after a failed enable, so nothing names it as broken any more.',
-                        $package->get('module')
+                        'Failed to restore the failure record of "%s" after a failed enable: %s',
+                        $package->get('module'),
+                        $withheld
+                            ? 'it is switched off in the configuration instead, and nothing names it as broken any more.'
+                            : 'nothing names it as broken any more.'
                     ),
                     ['package' => $package->get('module')]
                 );
@@ -456,6 +465,58 @@ class PackageManager
         } catch (\Throwable) {
             // A record that could neither be restored nor reported is not worth
             // replacing the failure that made the rollback necessary.
+        }
+    }
+
+    /**
+     * Takes an extension out of the configured extensions.
+     *
+     * The boot reads the record before the configuration, so an extension the
+     * record was holding off is one the configuration may well still list - that
+     * is the state a load failure leaves behind when the database it tried to
+     * write to is what broke. With the record lost, that configuration is all
+     * the next boot has to go on, and it would execute the package again. So the
+     * configuration says what the record no longer can: the extension is off
+     * until an administrator turns it back on. A theme needs none of this, as it
+     * is executed whether or not it is on the record.
+     *
+     * Written to the database here rather than left to the terminate event that
+     * normally persists the configuration: a console run never fires one, and a
+     * request that got this far has already failed once. Off in memory is not
+     * off on the next boot, so the write goes out on both branches - the one
+     * where this takes the extension out of the enabled list and the one where
+     * the rollback already left it unlisted. Only a write that happened may
+     * report that the configuration is holding the extension off now.
+     *
+     * @return bool whether the configuration the next boot reads leaves the
+     *              extension out
+     */
+    private function withholdExtension(PackageInterface $package): bool
+    {
+        $module = $package->get('module');
+
+        if ($package->getType() !== 'pagekit-extension' || !is_string($module) || $module === '' || !$this->app->has('config')) {
+            return false;
+        }
+
+        try {
+            $configs = $this->app->get('config');
+            $config = $configs('system');
+
+            // Pulling a name the list does not carry is not a no-op but a type
+            // error: a site that never enabled an extension has no list at all.
+            if (in_array($module, (array) $config->get('extensions', []))) {
+                $config->pull('extensions', $module);
+            }
+
+            $configs->set('system', $config);
+
+            return true;
+        } catch (\Throwable) {
+            // Writing the configuration can fail for the same reason recording
+            // the failure did. There is nothing left to fall back on and nothing
+            // to report that the line about the lost record does not say.
+            return false;
         }
     }
 
