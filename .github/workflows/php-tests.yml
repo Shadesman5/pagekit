@@ -97,7 +97,7 @@ jobs:
       # those fall back to the public-repo tokenless path or simply no-op (non-blocking).
       - name: Upload coverage to Codecov
         if: matrix.php == '8.5'
-        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           files: ./coverage.xml
           slug: Shadesman5/pagekit
