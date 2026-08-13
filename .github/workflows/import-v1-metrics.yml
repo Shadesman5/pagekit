@@ -4,7 +4,8 @@
 # The PR title or body must name the ROADMAP step (`Step X.Y`) — it is read at merge time and there
 # is no in-workflow recovery when it is missing, only a manual import-manual-agents.mjs run.
 # Resolves the parent Orchestrator `bc-…` via Cursor API (prUrl, then branch), then runs
-# import-manual-agents.mjs --push onto the conductor-metrics branch.
+# import-manual-agents.mjs --push onto the conductor-metrics branch. A session already
+# recorded for that parent agent on the same step is updated in place (not duplicated).
 #
 # Requires secret: CURSOR_API_KEY (same as Conductor).
 

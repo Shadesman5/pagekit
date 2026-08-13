@@ -413,6 +413,44 @@ export function applyAgentTimingToPhase(phase, timing) {
   return applyAgentMetricsToPhase(phase, timing);
 }
 
+/** Lowercased parent agent ids on a session (Cursor `bc-…`). */
+export function sessionAgentIds(session) {
+  return [
+    ...new Set(
+      (session?.phases || []).map(p => String(p.agent?.id || '').toLowerCase()).filter(Boolean)
+    )
+  ];
+}
+
+/**
+ * Reuse the session that already recorded this parent agent, so a second import
+ * of the same chat (manual pre-merge + post-merge workflow) does not double-count.
+ */
+export function findReusableSessionByAgent(sessions, agentIds) {
+  const want = new Set((agentIds || []).map(id => String(id || '').toLowerCase()).filter(Boolean));
+  if (!want.size) return null;
+  for (const session of sessions || []) {
+    if (sessionAgentIds(session).some(id => want.has(id))) return session;
+  }
+  return null;
+}
+
+/** Replace a phase that already belongs to the same agent / phaseKey; otherwise append. */
+export function mergeImportedPhases(session, phases) {
+  if (!session.phases) session.phases = [];
+  for (const phase of phases || []) {
+    const agentId = String(phase.agent?.id || '').toLowerCase();
+    const index = session.phases.findIndex(existing => {
+      if (phase.phaseKey && existing.phaseKey === phase.phaseKey) return true;
+      const existingId = String(existing.agent?.id || '').toLowerCase();
+      return Boolean(agentId && existingId && existingId === agentId);
+    });
+    if (index >= 0) session.phases[index] = phase;
+    else session.phases.push(phase);
+  }
+  return session;
+}
+
 /** Set session startedAt/completedAt from phase timing (after import or enrich). */
 export function applySessionTimestamps(session) {
   const starts = [];
