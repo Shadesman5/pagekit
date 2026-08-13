@@ -367,9 +367,26 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 ---
 
+## Step 2.7.4: Standard Composer Layout (`vendor/` at root)
+
+- **Depends on**: Step 2.4.1 (`public/` is already the document root, so Composer files no longer need to hide under `app/` for HTTP safety). Independent of 2.7.3 discovery.
+- **Goal**: Composer default layout — dependencies in `./vendor`, binaries in `./vendor/bin`, one `path.vendor`. Delete `config.vendor-dir` / `app/vendor`. No shim, no second path.
+- **Why**: The custom `app/vendor` dir is leftover from when the app root was the webroot. With `public/` as the only served tree, it is no longer a boundary — it is a dual path (`app/vendor` vs `/vendor`) that boot, CI, Docker, and docs already disagree on. Extension packaging (**2.8**) and release artefacts (**2.9**) would freeze `app/vendor` into zips, updater clean-passes, and author docs if this stays.
+- **What**:
+  1. Remove `"vendor-dir": "app/vendor"` from Composer config; `composer install` writes `./vendor`
+  2. Root autoloader, container `path.vendor`, installer / package-manager fallbacks, Docker image copies, and CI Composer caches all use that one directory
+  3. PHPUnit / PHPStan / CS-Fixer invocations and every documented binary path become `./vendor/bin/…`
+  4. Delete leftover `app/vendor`, symlinks, and dual-path fallbacks (including defaults that still point at a non-existent root `vendor/` while Composer writes `app/vendor`)
+  5. Any self-update / artefact path that currently assumes vendor lives under `app/` follows in this step, so an update after the move does not leave a stale `app/vendor` or skip `./vendor`
+- **Out of scope**: the installed-package Composer overlay (`packages/composer` + the root autoloader merge) — that is how uploaded extensions register PSR-4, and it stays until packaging / marketplace decide a Composer-native install; renaming `app/`; repo split (**4.13**); extension ZIP/JS contract (**2.8**); static module discovery (**2.7.3**)
+- **Sequencing**: after 2.7.3 (2.7 family stays contiguous), before **2.8** and **2.9**
+- **Risk**: Medium — mechanical path sweep with a wide blast radius (CI, Docker, docs, updater); no application behaviour change if the single path is consistent
+
+---
+
 ## Step 2.8: Extension Packaging & Prebuilt Assets
 
-- **Depends on**: Step 2.4 (static Vite entry manifest), Step 2.7 (fault isolation); absorb the manifest shape from Step **2.7.3** when that step has landed (do not freeze `index.php`-only discovery in the published contract if 2.7.3 replaces it).
+- **Depends on**: Step 2.4 (static Vite entry manifest), Step 2.7 (fault isolation); absorb the manifest shape from Step **2.7.3** when that step has landed (do not freeze `index.php`-only discovery in the published contract if 2.7.3 replaces it); absorb the Composer vendor layout from Step **2.7.4** (do not document or pack `app/vendor`).
 - **Goal**: One package shape for distributed extensions and themes — PHP/views plus **prebuilt** `app/bundle/*.js` and compiled CSS — valid for the admin upload today and for the marketplace later.
 - **Why**: Bundle entries live in the first-party-only core manifest `scripts/bundle-entries.mjs`; no core build step produces a third-party bundle. A package that ships sources only has no build path at all — `pnpm build` never sees it, and target hosts have no Node. The admin upload (`admin/system/package/upload` → `PackageManager`) installs and enables such a package today, silently without its JS.
 - **What**:
@@ -381,19 +398,20 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   6. Dependency declarations must agree: a package's Composer `require` (what must exist on disk, carrying the version constraints) and its module manifest `require` (what must be loaded first) may not contradict each other. Validate at packaging time, so an installed package cannot present a dependency graph the loader disagrees with.
   7. Webroot publication: only `public/` is served, and the core build publishes only in-repo packages — a runtime-installed/uploaded package has no publisher, so its bundles, CSS and icons are unreachable over HTTP. Package install/enable must copy the servable files (`app/bundle/*.js`, compiled CSS, icons/images) into the `public/` mirror and uninstall must remove them; `pagekit archive` must include built bundles from their `public/` location so a package ZIP is complete.
 - **Out of scope**: marketplace API, host, catalogue and package signing (Step 5.6); the build preset as a published, versioned npm package (Step 5.7); rewriting boot discovery itself (Step 2.7.3).
-- **Sequencing**: after 2.7 (and 2.7.3 when scheduled ahead of packaging), before 5.6 — the marketplace distributes against this contract.
+- **Sequencing**: after 2.7, **2.7.3** (static discovery), and **2.7.4** (root `vendor/`), before 5.6 — the marketplace distributes against this contract.
 - **Risk**: Low–Medium — contract, docs and author tooling; the only core code touch is the upload/install diagnostic.
 
 ---
 
 ## Step 2.9: Automated Update System — External & Background Updates
 
+- **Depends on**: Step 2.4.1 (identical `public/` webroot in both artefacts); Step 2.7.4 (Composer `vendor/` at the repository root — release zips and the updater clean-pass must not still assume `app/vendor`).
 - **Goal**: Modern, future-proof update infrastructure for Pagekit CMS.
 - **Why**: Long-term maintainability without manual release friction.
 - **Priority**: High
 - **Release automation (from Step 2.2)**: the CI side of the release — publish tags / GitHub releases and the machine-readable release metadata the updater consumes, so a version bump ends in a real release feed instead of a manual upload. Step 2.2 built quality gates only and left release hooks unrouted. The same release hook must also push **release-tagged container images** (semver + `latest`) to GHCR: the `docker-image` workflow publishes only moving `develop` / commit-SHA tags, so deployments have no stable image tag to pin until releases produce one.
 - **Two distribution artifacts, one build, one webroot layout (no forked app code)**: since Step 2.4.1, both artifacts ship the **identical `public/`-webroot layout** — (1) **classic tarball/zip**: `composer install --no-dev --optimize-autoloader` + Vite build (`pnpm build`, post-2.4) output, zipped as-is, ready to unzip onto any Apache/PHP-FPM shared host — document root pointed at `public/` (most modern panels, incl. IONOS) or the root-`.htaccess` rewrite fallback from 2.4.1 for hosts that lock the document root. This stays the **default, widest-reach** distribution — today it is still a manual, undocumented step; CI-building it and attaching it to GitHub Releases is core scope here. (2) **container image** (Step 2.5, later Step 4.12 for the runtime-engine swap): the identical build, with `public/` copied into the image the same way. Both come from the same source tree, the same build commands, and now the same webroot layout — packaging is the only difference.
-- **Webroot packaging details**: both artifacts must carry a complete `public/` tree — published assets plus the `public/storage` symlink. Plain zip extraction drops symlinks, so the classic artifact (or the installer/updater on first run) must recreate it; updates must also prune stale published files under `public/` (bundle and asset names change between releases, while the self-updater's clean pass covers only `app/`).
+- **Webroot packaging details**: both artifacts must carry a complete `public/` tree — published assets plus the `public/storage` symlink. Plain zip extraction drops symlinks, so the classic artifact (or the installer/updater on first run) must recreate it; updates must also prune stale published files under `public/` (bundle and asset names change between releases). The updater clean-pass must cover application code **and** root `vendor/` (Composer layout from **2.7.4**), not only `app/`.
 - **Atomic writes (from Step 2.6)**: reuse `Filesystem::dumpAtomic()` for PHP state the next boot `require`s (registry, manifests, dumped caches). If this step also writes non-PHP artefacts (zip payloads, checksums, JSON feeds, binary blobs), either keep those on a separate write path or extend `dumpAtomic()` so `opcache_invalidate()` runs only for `.php` targets — today every dumpAtomic write invalidates OPcache unconditionally because all current callers are PHP-only.
 - **Context**: `migration-docs/TODO/features/AUTOMATED_UPDATE_SYSTEM.md`
 
