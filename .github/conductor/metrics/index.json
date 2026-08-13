@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-08-11T16:41:14.308Z",
+  "updatedAt": "2026-08-13T20:26:37.013Z",
   "steps": {
     "unknown": {
       "title": "AGENT_PROMPT_AUDIT_TECH_DEBT_INVENTORY",
@@ -188,9 +188,10 @@
       ]
     },
     "2.7": {
-      "title": "Extension Safety System",
-      "latestSessionId": "5f44860b-2fc8-491e-91e0-064f9f489299",
+      "title": "feat(extension): extension safety and fault isolation (Step 2.7)",
+      "latestSessionId": "5e7a984a-3e2e-46f5-9f8d-9f9bd242d2dd",
       "sessionIds": [
+        "5e7a984a-3e2e-46f5-9f8d-9f9bd242d2dd",
         "5f44860b-2fc8-491e-91e0-064f9f489299"
       ]
     }
