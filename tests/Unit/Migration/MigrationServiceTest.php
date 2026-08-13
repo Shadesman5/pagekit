@@ -78,6 +78,43 @@ class MigrationServiceTest extends TestCase
         );
     }
 
+    public function testInitializeCreatesTheMetadataTable(): void
+    {
+        $result = $this->service->initialize();
+
+        self::assertTrue($result['success'], $result['error'] ?? '');
+        self::assertTrue($this->service->isInitialized());
+        self::assertTrue(
+            $this->connection->createSchemaManager()->tablesExist(['test_migration_versions']),
+        );
+
+        // Creating the versions table is not running the migrations: what was
+        // pending before is still pending afterwards.
+        $status = $this->service->status();
+
+        self::assertTrue($status['success'], $status['error'] ?? '');
+        self::assertTrue($status['has_pending']);
+    }
+
+    public function testInitializeLeavesAnAlreadyMigratedDatabaseAlone(): void
+    {
+        $migrate = $this->service->migrate();
+        self::assertTrue($migrate['success'], $migrate['error'] ?? '');
+
+        $result = $this->service->initialize();
+
+        self::assertTrue($result['success'], $result['error'] ?? '');
+
+        // The versions table is already there and keeps its rows. An
+        // installation that is initialized a second time must not forget which
+        // migrations have run, or it would run them again.
+        $status = $this->service->status();
+
+        self::assertTrue($status['success'], $status['error'] ?? '');
+        self::assertFalse($status['has_pending']);
+        self::assertCount(1, $status['executed']);
+    }
+
     public function testMigrateRunsPendingMigrations(): void
     {
         $result = $this->service->migrate();
