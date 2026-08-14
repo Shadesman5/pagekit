@@ -13,6 +13,9 @@ Do **not** read the task prompt yourself and do **not** write code — spawn wor
 
 - **Task prompt:** `migration-docs/TODO/agent_prompts/{file}.md` — pass the path to the Architect; do not open it.
 - **Branch:** the exact branch name the driver gives you (e.g. `feature/{slug}`); pushes go straight to it.
+- **Output ticket:** the exact path from the launch prompt. Copy it **verbatim** into every Architect /
+  plan-reviewer / doc-writer spawn. It is the task-prompt filename (including any `PROMPT_` prefix).
+  Do **not** strip `PROMPT_`, do **not** substitute a ROADMAP id or the feature-branch slug.
 
 ## First: verify the branch
 
@@ -48,14 +51,14 @@ workers.
 
 ```text
 Task prompt: <path from launch prompt>
-Output ticket: migration-docs/tickets/active/<task-slug>_plan.md
+Output ticket: <exact Output ticket path from launch prompt>
 ```
 
 **architect** (re-plan after FAIL) — `description`: `Plan architect retry`
 
 ```text
 Task prompt: <path from launch prompt>
-Output ticket: migration-docs/tickets/active/<task-slug>_plan.md
+Output ticket: <exact Output ticket path from launch prompt>
 Feedback (verbatim):
 <paste plan-reviewer FAIL output>
 ```
@@ -64,14 +67,14 @@ Feedback (verbatim):
 
 ```text
 Task prompt: <path from launch prompt>
-Ticket: migration-docs/tickets/active/<task-slug>_plan.md
+Ticket: <exact Output ticket path from launch prompt>
 ```
 
 **doc-writer** (initial branch doc on PASS) — `description`: `Plan branch doc`
 
 ```text
 Action: copy skeleton → branch doc; fill header from ticket
-Ticket: migration-docs/tickets/active/<task-slug>_plan.md
+Ticket: <exact Output ticket path from launch prompt>
 Notable from architect (verbatim, if any): <ROADMAP sub-step, PHASE amendment, etc. — or "none">
 ```
 
@@ -79,7 +82,7 @@ Notable from architect (verbatim, if any): <ROADMAP sub-step, PHASE amendment, e
 
 ```text
 Action: record Plan ESCALATE in branch doc
-Ticket: migration-docs/tickets/active/<task-slug>_plan.md
+Ticket: <exact Output ticket path from launch prompt>
 Branch doc: <path>
 Reason (verbatim):
 <paste stuck failure>
@@ -93,7 +96,7 @@ force a re-emit over harmless phrasing.
 
 | Subagent | Expected signal (canonical form) |
 | --- | --- |
-| **architect** | a written path — `Plan written to migration-docs/tickets/active/{task-slug}_plan.md` (audit/report tasks instead: `Report written to <report path>`) |
+| **architect** | a written path — `Plan written to <exact Output ticket path from launch prompt>` (audit/report tasks instead: `Report written to <report path>`) |
 | **plan-reviewer** | `PASS` — or `FAIL` + bullet list |
 | **doc-writer** | `Branch doc updated: <path> (Plan)` (Plan ESCALATE: `Branch doc: ESCALATE recorded …`) — or per `.cursor/agents/doc-writer.md` |
 
@@ -109,7 +112,7 @@ Re-emit is a last resort: ask again **only** when the signal itself is missing (
      branch doc, **and** any `migration-docs/TODO/PHASE_*_MODERNISING.md` the Architect amended for
      Deferred/Bridges (plus ROADMAP if a new sub-step was added), commit
      `docs(plan): add ticket + branch doc for <task-slug>`, `git push`, report
-     `Plan ready: <ticket path>` and stop.
+     `Plan ready: <exact Output ticket path from launch prompt>` and stop.
    - **FAIL** → spawn **architect** (retry template with verbatim feedback); go to 2.
 
 ## Audit / report tasks (deliverable is a report + PR, not a ticket)
@@ -145,4 +148,4 @@ the branch doc, commit `docs(branch): record ESCALATE (plan)`, `git push`, then 
 
 ## Report exactly one line
 
-`Plan ready: migration-docs/tickets/active/{task-slug}_plan.md` (audit/report tasks: `Plan ready: <report path> — PR #<n>`) — or `ESCALATE: <reason>`.
+`Plan ready: <exact Output ticket path from launch prompt>` (audit/report tasks: `Plan ready: <report path> — PR #<n>`) — or `ESCALATE: <reason>`.

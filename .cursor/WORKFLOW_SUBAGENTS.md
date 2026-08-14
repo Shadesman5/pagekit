@@ -124,7 +124,7 @@ Task Prompt + ROADMAP
 | Branch doc skeleton | `migration-docs/branches/branch-doc-skeleton.md` |
 | Feature branch | `feature/{task-slug}` (Conductor-owned) |
 
-`task-slug` = task prompt filename without path or `.md`.
+`task-slug` = task prompt filename without path or `.md`, including any `PROMPT_` prefix. Never a ROADMAP id or the feature-branch slug.
 
 ---
 

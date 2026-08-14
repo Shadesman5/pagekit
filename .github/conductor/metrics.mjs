@@ -768,6 +768,8 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
     }
   }
 
+  let cachedSession = null;
+
   function loadSession(id = sessionId) {
     return readJson(sessionPath(id), null);
   }
@@ -777,6 +779,7 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
     ensureDirs();
     let session = loadSession();
     if (session) {
+      cachedSession = session;
       log(`metrics: resume session ${sessionId} (${session.phases.length} phase(s) so far)`);
       discardMetricsWorkingTree();
       return sessionId;
@@ -805,6 +808,7 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
         cloudAgents: 0
       }
     };
+    cachedSession = session;
     writeJson(sessionPath(), session);
     touchIndex(session);
     commitMetrics(`chore(metrics): start conductor session ${sessionId.slice(0, 8)}`);
@@ -887,6 +891,7 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
     };
 
     session.phases.push(phase);
+    cachedSession = session;
     recomputeTotals(session);
     writeJson(sessionPath(), session);
     touchIndex(session);
@@ -910,6 +915,7 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
       session.completedAt = new Date().toISOString();
     }
     recomputeTotals(session);
+    cachedSession = session;
     writeJson(sessionPath(), session);
     touchIndex(session);
     commitMetrics(`chore(metrics): session ${sessionId.slice(0, 8)} ${status}`);
@@ -919,11 +925,16 @@ export function createMetricsCollector({ api, sh, log, env, branch, metricsBranc
     return sessionId;
   }
 
+  function getPhases() {
+    return Array.isArray(cachedSession?.phases) ? cachedSession.phases : [];
+  }
+
   return {
     initSession,
     recordPhase,
     setSessionStatus,
     getSessionId,
+    getPhases,
     sessionId: () => sessionId
   };
 }

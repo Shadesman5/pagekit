@@ -37,7 +37,7 @@ You are a **planner**, nothing else. Write ticket / PHASE / ROADMAP amendment fi
 
 Write the plan to a **ticket file** so the Orchestrator and other subagents use it without chat bloat.
 
-- **Path:** `migration-docs/tickets/active/{task-slug}_plan.md` where `{task-slug}` is the task prompt filename without path and without `.md` (e.g. `PSR-11-Container-DI-Infrastructure`). New tickets always go in `active/`; a completed ticket is moved to `done/` at Finalize (see `migration-docs/tickets/README.md`).
+- **Path:** `migration-docs/tickets/active/{task-slug}_plan.md` where `{task-slug}` is the task prompt filename without path and without `.md`, **including any `PROMPT_` prefix** (e.g. `PROMPT_2_7_1_Snapshot-Three-Stage-Uninstall`). Never strip `PROMPT_`, never substitute a ROADMAP id or the feature-branch slug. If the Orchestrator/Conductor launch prompt gives an **Output ticket** path, write exactly there. New tickets always go in `active/`; a completed ticket is moved to `done/` at Finalize (see `migration-docs/tickets/README.md`).
 - **Content:** Exactly this structure (no extra prose):
 
 ```markdown
@@ -70,7 +70,7 @@ Write the plan to a **ticket file** so the Orchestrator and other subagents use 
 - **Deferred / Out-of-Scope (optional):** future ROADMAP/PHASE work, non-goals, bridges only — never maintainer Manual Work
 ```
 
-- **Chat output:** One line only, e.g. `Plan written to migration-docs/tickets/active/PSR-11-Container-DI-Infrastructure_plan.md`.
+- **Chat output:** One line only, e.g. `Plan written to migration-docs/tickets/active/PROMPT_2_7_1_Snapshot-Three-Stage-Uninstall_plan.md`.
 
 ## Reference
 
@@ -108,5 +108,5 @@ spec** instead of the ticket format above:
 ## Output discipline (strict)
 
 - Write the plan to the ticket file; when Responsibility 6 applies, also amend the target `PHASE_*_MODERNISING.md` section(s) (and ROADMAP if adding a sub-step). Leave all writes **unstaged**. Do **not** `git add` / `git commit` / `git push` — the Orchestrator commits after plan-reviewer PASS.
-- In chat, output ONE line: `Plan written to migration-docs/tickets/active/{task-slug}_plan.md`. (Audit/report tasks: write the report per the task prompt and output `Report written to <report path>`.)
+- In chat, output ONE line: `Plan written to migration-docs/tickets/active/{task-slug}_plan.md` (the Orchestrator/Conductor Output ticket path when given — keep any `PROMPT_` prefix). (Audit/report tasks: write the report per the task prompt and output `Report written to <report path>`.)
 - No preamble, no "I will...", no step-by-step narration. Do not paste the full plan into chat.
