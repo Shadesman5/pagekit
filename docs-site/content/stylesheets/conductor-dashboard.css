@@ -434,6 +434,30 @@ html .md-typeset .cm-accordion-item > .cm-accordion-body:last-child {
   font-size: 0.76rem;
 }
 
+/* Consecutive same-phase jobs (e.g. 58× PLAN) — one disclosure row */
+.cm-phase-group {
+  margin: 0;
+}
+.cm-phase-group > summary {
+  cursor: pointer;
+  list-style-position: inside;
+}
+.cm-phase-group-row {
+  cursor: pointer;
+}
+.cm-phase-group-row td {
+  background: var(--md-default-fg-color--lightest, rgba(0, 0, 0, 0.03));
+}
+.cm-phase-group-runs .cm-table-scroll {
+  max-height: 24rem;
+  overflow: auto;
+  margin-top: 0;
+}
+.cm-phase-group-runs .cm-table {
+  min-width: 30rem;
+  font-size: 0.8rem;
+}
+
 /* Session source badges (Conductor / V1 UI / Manual) */
 .cm-session-header .cm-badge-v1,
 .cm-session-header .cm-badge-manual,

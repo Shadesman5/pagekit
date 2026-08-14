@@ -7,7 +7,7 @@
 ## Mandatory Rules (all agents)
 
 - **Language:** All code, commits, docs in **English**.
-- **Standards:** `.cursor/rules/pagekit-context.mdc` and `pagekit-standards.mdc` (NO compatibility layers, NO adapters, DELETE OVER WRAP, PHP 8.2+).
+- **Standards:** `.cursor/rules/pagekit.mdc` (No Mercy) and `php.mdc` (PHP 8.5+, PSR-12).
 - **Secrets:** NEVER commit passwords/tokens/API keys; use env vars.
 - **Tests:** PHPUnit path is `./app/vendor/bin/phpunit`. E2E: `npx playwright test tests/e2e/specs/01-setup/installation.spec.js` (+ feature-specific). Run after each step.
 - **Commits:** Conventional Commits per `.cursor/rules/conventional-commits.mdc`; commit **per completed step**, not in one batch.

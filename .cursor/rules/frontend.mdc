@@ -1,0 +1,16 @@
+---
+description: Vue 2.7 + UIkit 3.5 + Vite frontend. Use when editing JS, Vue, LESS/CSS, or package.json.
+globs: *.js,*.vue,*.less,*.css,package.json
+alwaysApply: false
+---
+
+# Frontend
+
+Vue **2.7** (legacy, pre-Phase-3) + UIkit **3.5**. Bundles: Vite, per-module IIFE.
+
+- No Vue 3 (`<script setup>`, Composition API) unless a Vue 2.7 bridge is already in that file.
+- Prefer props/events over mixins.
+- Keep logic out of templates.
+- LESS/CSS: UIkit naming; avoid `!important`.
+- Edit sources only (`.js` / `.vue` / `.less`). Never compiled `.bundle.js`.
+- After JS/Vue/LESS changes: `pnpm build` (or `pnpm watch`). `pnpm` only — no npm/yarn install.

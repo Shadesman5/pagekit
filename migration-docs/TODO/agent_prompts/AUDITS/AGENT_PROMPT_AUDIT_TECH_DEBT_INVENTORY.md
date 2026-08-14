@@ -15,8 +15,8 @@ This is a **read-only** audit: investigate and report only. Do **not** modify ap
 
 - **Read-only:** change no application code. The only file you create is the audit report.
 - **Language:** English.
-- **Standards (your yardstick):** `.cursor/rules/pagekit-context.mdc`, `.cursor/rules/pagekit-standards.mdc`,
-  `.cursor/ROADMAP.md` (THE 5 AGGRESSIVE RULES), `migration-docs/TODO/MODERNISATION_STRATEGY.md` (Pagekit DNA).
+- **Standards (your yardstick):** `.cursor/rules/pagekit.mdc`, `.cursor/rules/php.mdc`,
+  `.cursor/ROADMAP.md` (step IDs), `migration-docs/TODO/MODERNISATION_STRATEGY.md` (Pagekit DNA).
 - **Already-handled work:** cross-check `.cursor/ROADMAP.md` (steps marked `✅`/`🛡️`) and `CHANGELOG-NEW.md`;
   link to those instead of re-reporting solved items.
 - **Evidence:** every finding cites at least one `path:line` plus the search/observation that found it.

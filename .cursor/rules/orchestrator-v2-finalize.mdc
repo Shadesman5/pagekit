@@ -1,5 +1,5 @@
 ---
-description: 'Orchestrator V2 — Finalize phase. A cloud agent that runs the end-of-ticket sequence (PR -> CI gate -> coverage gap pass -> PR-Bugbot -> PR-Security -> version/CHANGELOG/ROADMAP -> archive ticket), then reports one line. Launched by the automated driver; do not merge.'
+description: 'Orchestrator V2 — Finalize phase. PR → CI → coverage → PR Bugbot/Security → version only if product → archive ticket. One-line result. Do not merge.'
 alwaysApply: false
 ---
 
@@ -148,10 +148,8 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
 > `security-audit` as the verdict. Details: steps 4–5. Rules: `.cursor/BUGBOT.md`.
 
 1. **Push + PR** — `git push -u origin HEAD`; `gh pr create --base <base branch from your launch prompt>`
-   with the `<!-- metadata -->` block (labels, milestone, `Closes #XXX`). For V1 UI Orchestrator
-   runs include `v1-metrics` in labels (merge → `import-v1-metrics.yml`) and the Roadmap step id as
-   `Step X.Y` in the PR title (or body) — the workflow reads it at merge time and has no recovery
-   path when it is missing. This triggers the PR CI checks.
+   with the `<!-- metadata -->` block (labels, milestone, `Closes #XXX`). V1 UI extra labels/title:
+   `orchestrator-subagent-workflow.mdc`. This triggers the PR CI checks.
 2. **CI quality gate** — wait on the PR's status checks for this branch yourself (a watch, not a test —
    no tester needed). `gh pr checks` covers every required gate (the PHP Tests jobs, `infection-diff`,
    `e2e-smoke`, `frontend`) rather than a single workflow:
@@ -198,20 +196,21 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
    1. `gh pr comment <pr> --body "security run"`.
    2. Poll with `gh` only until a **newer** such review/comment appears (ceiling ~15 min). Stop at once.
    3. Findings → fix-loop → push → re-CI green → **restart step 4**; clean → step 6.
-6. **Finalize** (follow `push.mdc`, but delegate the writing) — in this order:
-   1. **Version bump** (you) — run the `version-bump` skill → `app/system/config.php` (once per PR).
-   2. Spawn **doc-writer** (Finalize docs template).
+6. **Finalize** (follow `.cursor/skills/push/SKILL.md` + version-bump skill; delegate writing) — in this order:
+   1. **Version bump** (you) — version-bump skill. Product delivery → `app/system/config.php` once per PR.
+      Tooling-only / `NO BUMP` → skip config + CHANGELOG; still archive the ticket.
+   2. Spawn **doc-writer** (Finalize docs template). If `NO BUMP`, tell it to skip CHANGELOG.
    3. **PHASE Deferred sync (you)** — if the ticket / branch-doc `## Deferred` (or ticket Bridges) is
       non-empty, open each named future step in `migration-docs/TODO/PHASE_*_MODERNISING.md` and confirm
       the work item is present as **forward-only what + why** (no completed-step / ticket / PR narration).
       Missing → amend before the ROADMAP commit (same prose rules as Architect Responsibility 6). Unclear
       target step → `ESCALATE`. Skip when Deferred is empty / non-goal only. (Plan should have done this;
       this is the safety net.)
-   4. **ROADMAP closure** (you) — update `.cursor/ROADMAP.md` (header pointer, this step's row
-      Status/Audit/PR, Phase 1 audit closures per `push.mdc`).
-   5. **Commit + archive** (you) — commit per `push.mdc` (`chore(release): bump version to X.Y.Z` for
-      config + CHANGELOG + branch doc; `docs(roadmap): …` for the ROADMAP — include any PHASE amend from
-      step 3 in the docs commit), then archive the ticket:
+   4. **ROADMAP closure** (you) — this executed step's row (Status/Audit/PR), Phase 1 audit closures,
+      `Current Step` pointer; `Current Version` only if the skill bumped. See the push skill.
+   5. **Commit + archive** (you) — push skill commits (`chore(release): …` only when bumped;
+      `docs(roadmap): …` for the ROADMAP — include any PHASE amend from step 3 in the docs commit),
+      then archive the ticket:
       `git mv migration-docs/tickets/active/{task-slug}_plan.md migration-docs/tickets/done/`, and
       `git push` (second push). Do not merge.
 

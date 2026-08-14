@@ -15,7 +15,12 @@ run-name: "${{ inputs.title != '' && inputs.title || format('Conductor — {0}{1
 # loop overnight.
 # batch_budget still controls how many checklist steps
 # (by S/M/L/XL weight) fit into a single Execute cloud-agent run. XL (8) is the
-# mandatory last checklist step (Review + E2E) and runs alone when budget stays under 8.
+# mandatory last checklist step (Review + E2E). With handoff_xl=true (default) the
+# driver stops before launching XL — /review-bugbot and /review-security are not on
+# the Cloud Agents API yet (CLI coming soon). Run XL via cursor.com/agents, tick it,
+# then re-dispatch Conductor (same session_id) for FINALIZE. The XL tick commit imports
+# that V1 parent agent's tokens into the session (import-xl-handoff-metrics.yml).
+# handoff_xl=false forces a cloud XL batch. Alone when budget stays under 8.
 #
 # Security:
 #   - workflow_dispatch only -> only users with write access can start it (no public trigger).
@@ -56,6 +61,11 @@ on:
         required: false
         default: "6"
         type: string
+      handoff_xl:
+        description: "Stop before the XL Review+E2E step (default true). Cloud Agents API cannot run /review-bugbot or /review-security yet — run XL on cursor.com/agents, tick it, re-dispatch for FINALIZE. Set false to launch XL in the cloud."
+        required: false
+        default: true
+        type: boolean
       model:
         description: "Orchestrator model. Empty = account default (user/team/system). 'auto' or 'default' = Cursor's dynamic Auto model. Or an explicit id, e.g. claude-opus-4-8, composer-2.5, opus-latest."
         required: false
@@ -115,6 +125,7 @@ jobs:
           BASE: ${{ inputs.base }}
           BRANCH: ${{ inputs.branch }}
           BATCH_BUDGET: ${{ inputs.batch_budget }}
+          HANDOFF_XL: ${{ inputs.handoff_xl }}
           MODEL: ${{ inputs.model }}
           MODE: ${{ inputs.mode }}
           AUTO_CHAIN: ${{ inputs.auto_chain }}
