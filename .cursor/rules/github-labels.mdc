@@ -12,7 +12,7 @@ Use these when creating or updating issues and pull requests.
 
 ## Phase Labels (Modernization Roadmap)
 
-Track which modernization phase an issue/PR belongs to. See `.cursor\ROADMAP.md` for phase details.
+Track which modernization phase an issue/PR belongs to. See `.cursor/ROADMAP.md` for phase details.
 
 | Label     | Description                     | Color     |
 | --------- | ------------------------------- | --------- |
@@ -134,6 +134,9 @@ Labels: phase-2, migration, backend, v1-metrics
 Add `v1-metrics` in the `<!-- metadata -->` block when the PR was driven by a cursor.com/agents
 Orchestrator run. After merge, `.github/workflows/import-v1-metrics.yml` imports parent-agent
 usage into `conductor-metrics`.
+
+Do **not** add `v1-metrics` to a Conductor Finalize PR. The XL Review+E2E run is imported when
+that checkbox is ticked (`.github/workflows/import-xl-handoff-metrics.yml`), not at merge.
 
 The PR **title** (or, failing that, the body) must contain the ROADMAP step id as `Step X.Y` —
 that is where the workflow reads the step from, and it reads it from the merge event. A PR merged

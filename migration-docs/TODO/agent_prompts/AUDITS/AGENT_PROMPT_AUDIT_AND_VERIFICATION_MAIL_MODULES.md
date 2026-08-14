@@ -13,22 +13,7 @@ remaining compatibility layers, and ensure compliance with aggressive modernizat
 radical modernization rules. This prompt enables re-audit and cleanup.
 
 =================================================================================
-REFERENCE: Current Standards (from .cursor/rules/pagekit-context.mdc)
-=================================================================================
-
-## CRITICAL CONSTRAINTS (STRICT)
-1. NO WORDPRESS CODE – Never use WordPress functions or assume wp_* schema
-2. NO LARAVEL FACADES – Use Symfony Components, not dd(), collect(), Str::
-3. STRICT TYPING (PHP 8.2+) – Typed properties, return types, constructor promotion
-
-## AGGRESSIVE MODERNIZATION RULES
-1. **NO COMPATIBILITY LAYERS** – Do not keep old & new behavior in parallel
-2. **NO ADAPTERS** – Update all call sites instead of adding wrappers
-3. **BREAKING CHANGES ALLOWED INTERNALLY** – Public HTTP/API must stay same
-4. **DELETE OVER WRAP** – If old logic conflicts with security model, delete it
-5. **LEGACY HACKS MUST BE MARKED** – Use `// TODO: Must be refactored later`
-6. **HONEST COMMENTS** – Mark backward compatibility with:
-   `// TODO: BACKWARD COMPATIBILITY - Must be refactored later`
+REFERENCE: Current standards — `.cursor/rules/pagekit.mdc` (No Mercy) and `.cursor/rules/php.mdc` (PHP 8.5+, PSR-12). Do not paste those files here.
 
 =================================================================================
 TASK: Run Full Audit

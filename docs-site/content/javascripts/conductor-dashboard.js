@@ -1120,6 +1120,184 @@
     return '';
   }
 
+  /** Consecutive PLAN/FINALIZE (or same EXECUTE batch) collapse to one disclosure row.
+   * Keep in sync with `.github/conductor/phase-groups.mjs`. */
+  function phaseGroupKey(p) {
+    const type = String(p?.type || '');
+    const batch = Array.isArray(p?.batchSteps) ? p.batchSteps.join('\u001f') : '';
+    return `${type}\0${batch}`;
+  }
+
+  function groupConsecutivePhases(phases) {
+    const groups = [];
+    for (const p of phases || []) {
+      const key = phaseGroupKey(p);
+      const last = groups[groups.length - 1];
+      if (last && last.key === key) last.phases.push(p);
+      else groups.push({ key, phases: [p] });
+    }
+    return groups;
+  }
+
+  function aggregatePhaseGroup(phases) {
+    const tokens = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 };
+    let durationMs = 0;
+    const outcomes = new Map();
+    for (const p of phases) {
+      const t = p.tokens || {};
+      tokens.input += tokenValue(t.input);
+      tokens.output += tokenValue(t.output);
+      tokens.cacheRead += tokenValue(t.cacheRead);
+      tokens.cacheWrite += tokenValue(t.cacheWrite);
+      tokens.total += tokenValue(t.total);
+      durationMs += tokenValue(p.durationMs);
+      const outcome = p.outcome || '—';
+      outcomes.set(outcome, (outcomes.get(outcome) || 0) + 1);
+    }
+    return { tokens, durationMs, outcomes, count: phases.length };
+  }
+
+  function outcomeTallyHtml(outcomes) {
+    return [...outcomes.entries()]
+      .map(([outcome, n]) => `${outcomeIcon(outcome)} ${formatNumber(n)}× ${escapeHtml(outcome)}`)
+      .join(' · ');
+  }
+
+  function phaseBatchLabel(p) {
+    return p.batchSteps?.length ? p.batchSteps.join(', ') : '—';
+  }
+
+  function phaseLinksHtml(p) {
+    const links = [];
+    const agentUrl = safeUrl(p.agent?.url);
+    const jobUrl = safeUrl(p.github?.jobUrl);
+    const runUrl = safeUrl(p.github?.runUrl);
+    if (agentUrl) links.push(linkRef('Agent', agentUrl));
+    if (jobUrl) {
+      links.push(linkRef(`Job${p.github.runAttempt ? ` a${p.github.runAttempt}` : ''}`, jobUrl));
+    } else if (runUrl) {
+      links.push(linkRef('GHA', runUrl));
+    }
+    return links.join(' · ') || '—';
+  }
+
+  function tokensTitle(tokens, notes) {
+    const t = tokens || {};
+    const parts = [
+      `${formatNumber(t.total)} tokens`,
+      `in ${formatNumber(t.input)}`,
+      `out ${formatNumber(t.output)}`
+    ];
+    if (notes) parts.push(String(notes));
+    return parts.join(' · ');
+  }
+
+  function phaseRunBadge(p) {
+    const runCount = p.agent?.runs?.length || 0;
+    if (runCount <= 1) return '';
+    return ` <span class="cm-muted" title="${runCount} follow-up runs in this agent chat">· ${runCount} runs</span>`;
+  }
+
+  function phaseLabelHtml(p) {
+    const retry = p.attempt ? ` <span class="cm-muted">retry ${escapeHtml(p.attempt)}</span>` : '';
+    return `<strong>${escapeHtml(p.type)}</strong>${retry}${phaseRunBadge(p)}${tokensSourceMarker(p.tokensSource)}`;
+  }
+
+  function appendAgentRunsRow(tbody, p, colSpan) {
+    const runCount = p.agent?.runs?.length || 0;
+    if (runCount <= 1) return;
+    const detailTr = el('tr', 'cm-phase-runs-row');
+    const detailTd = el('td');
+    detailTd.colSpan = colSpan;
+    const details = el('details', 'cm-agent-runs');
+    details.innerHTML = `<summary>${runCount} agent runs (follow-up chat)</summary>${renderAgentRunsBreakdown(p.agent.runs)}`;
+    detailTd.appendChild(details);
+    detailTr.appendChild(detailTd);
+    tbody.appendChild(detailTr);
+  }
+
+  function appendPhaseRow(tbody, p) {
+    const tr = el('tr');
+    tr.innerHTML = `
+        <td>${phaseLabelHtml(p)}</td>
+        <td>${escapeHtml(phaseBatchLabel(p))}</td>
+        <td>${formatDuration(p.durationMs)}</td>
+        <td title="${escapeHtml(tokensTitle(p.tokens, p.notes))}">${formatNumber(p.tokens?.total)}</td>
+        <td>${outcomeIcon(p.outcome)} ${escapeHtml(p.outcome) || '—'}</td>
+        <td class="cm-links">${phaseLinksHtml(p)}</td>
+      `;
+    tbody.appendChild(tr);
+    appendAgentRunsRow(tbody, p, 6);
+  }
+
+  function appendPhaseGroup(tbody, phases) {
+    const first = phases[0];
+    const agg = aggregatePhaseGroup(phases);
+    const type = first?.type || '—';
+    const countLabel = `${agg.count} consecutive ${type} jobs`;
+    const tr = el('tr', 'cm-phase-group-row');
+    tr.innerHTML = `
+        <td>
+          <details class="cm-phase-group">
+            <summary title="${escapeHtml(countLabel)}"><strong>${escapeHtml(type)}</strong> <span class="cm-muted">× ${formatNumber(agg.count)}</span></summary>
+          </details>
+        </td>
+        <td>${escapeHtml(phaseBatchLabel(first))}</td>
+        <td>${formatDuration(agg.durationMs)}</td>
+        <td title="${escapeHtml(tokensTitle(agg.tokens))}">${formatNumber(agg.tokens.total)}</td>
+        <td>${outcomeTallyHtml(agg.outcomes)}</td>
+        <td class="cm-links"><span class="cm-muted">${formatNumber(agg.count)} jobs</span></td>
+      `;
+    tbody.appendChild(tr);
+
+    const extra = el('tr', 'cm-phase-runs-row cm-phase-group-runs');
+    extra.hidden = true;
+    const extraTd = el('td');
+    extraTd.colSpan = 6;
+    const nestedScroll = el('div', 'cm-table-scroll');
+    const nested = el('table', 'cm-table cm-agent-runs-table');
+    nested.innerHTML = `
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Phase</th>
+          <th>Duration</th>
+          <th>Tokens</th>
+          <th>Outcome</th>
+          <th>Links</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+    const nestedBody = nested.querySelector('tbody');
+    phases.forEach((p, i) => {
+      const row = el('tr');
+      row.innerHTML = `
+        <td>${formatNumber(i + 1)}</td>
+        <td>${phaseLabelHtml(p)}</td>
+        <td>${formatDuration(p.durationMs)}</td>
+        <td title="${escapeHtml(tokensTitle(p.tokens, p.notes))}">${formatNumber(p.tokens?.total)}</td>
+        <td>${outcomeIcon(p.outcome)} ${escapeHtml(p.outcome) || '—'}</td>
+        <td class="cm-links">${phaseLinksHtml(p)}</td>
+      `;
+      nestedBody.appendChild(row);
+      appendAgentRunsRow(nestedBody, p, 6);
+    });
+    nestedScroll.appendChild(nested);
+    extraTd.appendChild(nestedScroll);
+    extra.appendChild(extraTd);
+    tbody.appendChild(extra);
+
+    const details = tr.querySelector('details.cm-phase-group');
+    details.addEventListener('toggle', () => {
+      extra.hidden = !details.open;
+    });
+    tr.addEventListener('click', e => {
+      if (e.target.closest('a, summary, details')) return;
+      details.open = !details.open;
+    });
+  }
+
   function renderPhaseTable(phases) {
     const scroll = el('div', 'cm-table-scroll');
     const table = el('table', 'cm-table');
@@ -1137,42 +1315,9 @@
       <tbody></tbody>
     `;
     const tbody = table.querySelector('tbody');
-    (phases || []).forEach(p => {
-      const tr = el('tr');
-      const batch = p.batchSteps?.length ? p.batchSteps.join(', ') : '—';
-      const links = [];
-      const agentUrl = safeUrl(p.agent?.url);
-      const jobUrl = safeUrl(p.github?.jobUrl);
-      const runUrl = safeUrl(p.github?.runUrl);
-      if (agentUrl) links.push(linkRef('Agent', agentUrl));
-      if (jobUrl)
-        links.push(linkRef(`Job${p.github.runAttempt ? ` a${p.github.runAttempt}` : ''}`, jobUrl));
-      else if (runUrl) links.push(linkRef('GHA', runUrl));
-      const runCount = p.agent?.runs?.length || 0;
-      const runBadge =
-        runCount > 1
-          ? ` <span class="cm-muted" title="${runCount} follow-up runs in this agent chat">· ${runCount} runs</span>`
-          : '';
-      tr.innerHTML = `
-        <td><strong>${escapeHtml(p.type)}</strong>${p.attempt ? ` <span class="cm-muted">retry ${escapeHtml(p.attempt)}</span>` : ''}${runBadge}${tokensSourceMarker(p.tokensSource)}</td>
-        <td>${escapeHtml(batch)}</td>
-        <td>${formatDuration(p.durationMs)}</td>
-        <td title="${escapeHtml(p.notes || '')}">${formatNumber(p.tokens?.total)}</td>
-        <td>${outcomeIcon(p.outcome)} ${escapeHtml(p.outcome) || '—'}</td>
-        <td class="cm-links">${links.join(' · ') || '—'}</td>
-      `;
-      tbody.appendChild(tr);
-
-      if (runCount > 1) {
-        const detailTr = el('tr', 'cm-phase-runs-row');
-        const detailTd = el('td');
-        detailTd.colSpan = 6;
-        const details = el('details', 'cm-agent-runs');
-        details.innerHTML = `<summary>${runCount} agent runs (follow-up chat)</summary>${renderAgentRunsBreakdown(p.agent.runs)}`;
-        detailTd.appendChild(details);
-        detailTr.appendChild(detailTd);
-        tbody.appendChild(detailTr);
-      }
+    groupConsecutivePhases(phases).forEach(group => {
+      if (group.phases.length > 1) appendPhaseGroup(tbody, group.phases);
+      else appendPhaseRow(tbody, group.phases[0]);
     });
     scroll.appendChild(table);
     return scroll;

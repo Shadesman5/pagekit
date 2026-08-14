@@ -8,20 +8,25 @@
 // Chained runs (auto_chain=true, default): each GHA job runs at most ONE cloud-agent phase
 // (PLAN, or one EXECUTE batch sized by batch_budget, or FINALIZE), then dispatches a fresh
 // workflow run when more work remains. This keeps every job under GitHub's 360-minute hosted cap.
+// HANDOFF_XL (default true): do not launch the last (XL) Review+E2E batch — stop green, no chain;
+// run it on cursor.com/agents, tick the box, re-dispatch for FINALIZE.
 //
 // NOTE (verify on first real run): the v1 Cloud Agents API is in public beta. The field names
 // used below (`agent.id`, `run.id`, run `status`/`result`, `/usage`, `/runs/{id}/cancel`) follow
 // the documented surface; if a field name drifts, adjust the small `api()` call sites here.
 
 import { execSync, execFileSync } from 'node:child_process';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, appendFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import { createMetricsCollector, DEFAULT_METRICS_BRANCH } from './metrics.mjs';
 import {
   ticketPathFromPrompt,
   planExpectRegex,
   consecutiveJobCount,
-  DEFAULT_MAX_PHASE_REPEATS
+  DEFAULT_MAX_PHASE_REPEATS,
+  xlHandoffStep,
+  cloudExecuteSteps,
+  xlHandoffMessage
 } from './guards.mjs';
 
 // ---------------------------------------------------------------- config (from env)
@@ -40,7 +45,11 @@ const TICKET_SLUG = basename(TICKET).replace(/_plan\.md$/i, '');
 const BUDGET = Number(process.env.BATCH_BUDGET || 6);
 const MODEL = (process.env.MODEL || '').trim(); // empty -> omit `model` (account default); else passed as model.id (see runPhase)
 const MODE_INPUT = (process.env.MODE || 'auto').trim().toLowerCase(); // dispatch: auto|full|plan ("auto" = task prompt self-declares, see resolveMode)
-const AUTO_CHAIN = parseBool(process.env.AUTO_CHAIN, true); // when true, dispatch a fresh workflow run after each phase/batch
+const AUTO_CHAIN = parseBool(process.env.AUTO_CHAIN, true, 'AUTO_CHAIN'); // when true, dispatch a fresh workflow run after each phase/batch
+// XL Review+E2E needs /review-bugbot + /review-security, which the Cloud Agents API does not
+// expose yet (CLI coming soon). Default on: stop before launching XL; V1 on cursor.com/agents
+// ticks the box; re-dispatch Conductor with the same session_id for FINALIZE.
+const HANDOFF_XL = parseBool(process.env.HANDOFF_XL, true, 'HANDOFF_XL');
 const TITLE = (process.env.TITLE || '').trim(); // optional run display title (passed through on chain)
 const WORKFLOW_FILE = (process.env.WORKFLOW_FILE || 'conductor.yml').trim();
 const WORKFLOW_REF = (process.env.WORKFLOW_REF || BASE).trim();
@@ -53,7 +62,7 @@ const MAX_POLL_FAILS = Number(process.env.MAX_POLL_FAILS || 6); // consecutive p
 // After status=FINISHED the Cloud Agents API can lag a few seconds before `result` is set.
 // Without a grace window we treat "" as failure and relaunch PLAN/FINALIZE (seen on 2.1.12).
 const RESULT_GRACE_MS = Number(process.env.RESULT_GRACE_MS || 60000);
-const WEIGHTS = { S: 1, M: 2, L: 4, XL: 8 }; // XL = Review+E2E last step; alone when budget < 8
+const WEIGHTS = { S: 1, M: 2, L: 4, XL: 8 }; // XL = Review+E2E last step; skipped when HANDOFF_XL
 
 // Validate everything that flows into a shell command or a path (defense-in-depth; only
 // collaborators can dispatch this workflow, but never trust interpolation).
@@ -103,7 +112,7 @@ const metrics = createMetricsCollector({
   // branch (not just the base checkout) is honored.
   const { mode: MODE, audit: AUDIT } = resolveRun();
   log(
-    `Conductor start — slug=${SLUG} branch=${BRANCH} ticket=${TICKET} base=${BASE} budget=${BUDGET} model=${MODEL} mode=${MODE} auto_chain=${AUTO_CHAIN} phase_repeats=${MAX_PHASE_REPEATS}${AUDIT ? ' (audit/report)' : ''}`
+    `Conductor start — slug=${SLUG} branch=${BRANCH} ticket=${TICKET} base=${BASE} budget=${BUDGET} model=${MODEL} mode=${MODE} auto_chain=${AUTO_CHAIN} handoff_xl=${HANDOFF_XL} phase_repeats=${MAX_PHASE_REPEATS}${AUDIT ? ' (audit/report)' : ''}`
   );
   // Issue is mandatory for normal runs (PR Closes #N + stop/pause control labels); audits have none.
   if (!AUDIT && !ISSUE)
@@ -177,8 +186,15 @@ const metrics = createMetricsCollector({
 
     const open = steps.filter(s => !s.checked);
     if (open.length > 0) {
+      if (stopForXlHandoff(open)) return;
+
       const openBefore = open.length;
-      const batch = nextBatch(open);
+      const batch = nextBatch(cloudExecuteSteps(open, HANDOFF_XL));
+      if (batch.length === 0) {
+        fail(
+          `EXECUTE: no S/M/L steps to run but XL handoff did not fire (open ${open.length}/${steps.length})`
+        );
+      }
       log(`next batch: steps ${batch.join(',')}  (open ${open.length}/${steps.length})`);
 
       await runExecuteBatch(batch);
@@ -186,13 +202,15 @@ const metrics = createMetricsCollector({
       pullBranch();
       const stepsAfter = readSteps();
       if (!stepsAfter) fail(`ticket disappeared after EXECUTE batch: ${TICKET}`);
-      const openAfter = stepsAfter.filter(s => !s.checked).length;
+      const openAfterSteps = stepsAfter.filter(s => !s.checked);
+      const openAfter = openAfterSteps.length;
       if (openAfter >= openBefore) {
         fail(
           `EXECUTE stuck: no progress after batch steps ${batch.join(',')} (open ${openAfter}/${stepsAfter.length})`
         );
       }
       if (openAfter > 0) {
+        if (stopForXlHandoff(openAfterSteps)) return;
         finishJobAndMaybeChain(
           `EXECUTE batch ${batch.join(',')} done — ${openAfter} checklist step(s) remaining`
         );
@@ -528,6 +546,23 @@ function nextBatch(open) {
   return batch;
 }
 
+/** Green stop, no chain, session stays in_progress. True when the caller should return. */
+function stopForXlHandoff(openSteps) {
+  const step = xlHandoffStep(openSteps, HANDOFF_XL);
+  if (!step) return false;
+  const msg = xlHandoffMessage(step);
+  log(`⏸ ${msg}`);
+  const summary = process.env.GITHUB_STEP_SUMMARY;
+  if (summary) {
+    try {
+      appendFileSync(summary, `## XL handoff\n\n${msg}\n`);
+    } catch (e) {
+      log(`  could not write GITHUB_STEP_SUMMARY (${e.message})`);
+    }
+  }
+  return true;
+}
+
 // ---------------------------------------------------------------- control & lifecycle
 function controlSignal() {
   if (!ISSUE) return 'run';
@@ -696,6 +731,7 @@ function chainWorkflow(reason) {
   field('mode', MODE_INPUT);
   field('session_id', metrics.getSessionId());
   args.push('-f', `auto_chain=${AUTO_CHAIN ? 'true' : 'false'}`);
+  args.push('-f', `handoff_xl=${HANDOFF_XL ? 'true' : 'false'}`);
   try {
     execFileSync('gh', args, { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' });
     log('  next workflow run dispatched.');
@@ -765,12 +801,12 @@ function validate(name, val, re) {
     process.exit(1);
   }
 }
-function parseBool(raw, defaultValue) {
+function parseBool(raw, defaultValue, name = 'AUTO_CHAIN') {
   if (raw === undefined || raw === '') return defaultValue;
   const v = String(raw).trim().toLowerCase();
   if (v === 'true' || v === '1' || v === 'yes') return true;
   if (v === 'false' || v === '0' || v === 'no') return false;
-  fail(`Invalid AUTO_CHAIN: ${raw} (use true/false)`);
+  fail(`Invalid ${name}: ${raw} (use true/false)`);
 }
 function fail(msg) {
   log(`❌ ${msg}`);

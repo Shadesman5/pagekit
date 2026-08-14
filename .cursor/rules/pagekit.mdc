@@ -1,0 +1,44 @@
+---
+description: Pagekit DNA — No Mercy rules, stack constraints, comment/doc prose. Canonical copy of the 5 aggressive rules.
+alwaysApply: true
+---
+
+# Pagekit DNA
+
+This file is the **only** full copy of the product constraints. Other docs name the file; they do not restate it.
+
+## Forbidden
+
+- **No WordPress.** No `add_action`, `do_shortcode`, `WP_Query`, `get_post_meta`, `wp_*` tables.
+- **No Laravel facades.** No `dd()`, `collect()`, `Str::` unless polyfilled in `composer.json`. Use Symfony (`dump()`, Doctrine Collections).
+
+## PHP
+
+PHP **8.5+**, strict types, typed properties, return types, constructor promotion where readable. Details: `php.mdc`. Frontend: `frontend.mdc`.
+
+## The 5 aggressive rules (No Mercy)
+
+1. **NO COMPATIBILITY LAYERS** — do not keep old and new behaviour in parallel. No shim classes for old calling patterns.
+2. **NO ADAPTERS** — if a signature changes, update every call site. No wrapper to "bridge" old and new in the same scope.
+3. **BREAKING CHANGES ALLOWED INTERNALLY** — the app must stay functional (tests green). Internal `/api/...` may change when frontend and backend move together. Platform names (`__()`, `_i()`, `$date`, `$number`, `$http`) may stay as thin DI-backed helpers (stable extension/template DX, not legacy compat). Versioned public API is Step 4.4.
+4. **DELETE OVER WRAP** — delete conflicting legacy; do not comment it out.
+5. **FORWARD DEBT ONLY** — mark work that still **must** happen later. Completed work belongs in docs, never as Step/ROADMAP/ticket history in code or tests. Tags:
+   - `// TODO: Must be refactored in Step X.Y (Name)`
+   - `// TODO: TEMPORARY BRIDGE - To be removed in Step X.Y`
+   - `// AUDIT FIX Step X.Y`
+
+## DX
+
+Thin DI-backed helpers in views/mails/themes; DI in services. One glue point per concern. Tooling wraps the core, never bloats runtime.
+
+## Prose (code, tests, work docs)
+
+What and why only. No completed-step narration, no ticket/checklist/ROADMAP history in code or tests.
+
+- **ROADMAP** — table rows plus the fixed SSoT/legend. No renumbering notes or decision logs.
+- **PHASE_*** (open steps) — forward-only what remains + why. No completed steps, PR/issue numbers, or branch-doc paths.
+- **Branch docs / CHANGELOG** — the change and its impact. No self-referential doc revisions.
+
+## Unicode
+
+Clean UTF-8. No U+FFFD (`�`). ASCII keywords stay ASCII. Code fences stay intact. Emojis OK when they mark status or a heading.
