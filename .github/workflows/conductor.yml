@@ -6,8 +6,14 @@ run-name: "${{ inputs.title != '' && inputs.title || format('Conductor — {0}{1
 
 # Drives the V2 orchestrator pipeline: creates feature/<slug>, then launches ONE fresh cloud agent
 # per GitHub Actions job (Plan, or one Execute batch, or Finalize) via the Cloud Agents API.
+# `slug` / `branch` name the feature branch only. The ticket file is always
+# migration-docs/tickets/active/<task-prompt-basename>_plan.md (PROMPT_ prefix kept).
 # When auto_chain=true (default), each job dispatches the next run automatically so every job stays
-# under GitHub's 360-minute hosted-runner cap. batch_budget still controls how many checklist steps
+# under GitHub's 360-minute hosted-runner cap. A failed Plan (wrong/missing ticket, ESCALATE, error)
+# relaunches a fresh cloud agent in the same job up to 3 times, then escalates (no chain). Consecutive
+# PLAN/FINALIZE jobs in one session are also capped (MAX_PHASE_REPEATS, default 3) so auto_chain cannot
+# loop overnight.
+# batch_budget still controls how many checklist steps
 # (by S/M/L/XL weight) fit into a single Execute cloud-agent run. XL (8) is the
 # mandatory last checklist step (Review + E2E) and runs alone when budget stays under 8.
 #
@@ -33,7 +39,7 @@ on:
         required: false
         type: string
       slug:
-        description: "Ticket slug (default: task-prompt filename without .md)"
+        description: "Feature-branch slug only (default: task-prompt filename without .md → feature/<slug>). Does NOT name the ticket — that is always <prompt-basename>_plan.md, PROMPT_ prefix kept."
         required: false
         type: string
       base:
@@ -42,7 +48,7 @@ on:
         default: "develop"
         type: string
       branch:
-        description: "Feature branch (default: feature/<slug>)"
+        description: "Feature branch (default: feature/<slug>). Independent of the ticket filename."
         required: false
         type: string
       batch_budget:

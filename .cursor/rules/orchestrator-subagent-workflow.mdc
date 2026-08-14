@@ -87,6 +87,9 @@ they spawn the same Task types with the same prompt shape. Prefer `run_in_backgr
 
 ### Prompt templates (copy fields; substitute `<…>`)
 
+`{task-slug}` / `<task-slug>` is the task-prompt filename without `.md`, including any `PROMPT_`
+prefix. Do not strip `PROMPT_` or substitute a ROADMAP id / feature-branch slug.
+
 **architect** — `description`: `Plan architect`
 
 ```text

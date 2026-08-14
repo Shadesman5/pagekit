@@ -16,7 +16,7 @@ Subagent tasks are delegated via files in this folder. The Orchestrator only ass
 | **Test-writer** | Reads plan (testing notes) | Writes tests only; scope = Refactorer production files |
 | **Doc-writer** | Reads ticket (reference only) | **Writes** `migration-docs/branches/phase-<X>/step-*.md`; at Finalize also CHANGELOG/README — **never** the ticket |
 
-**Task-slug** = task prompt filename without path and without `.md` (e.g. `PSR-11-Container-DI-Infrastructure`).
+**Task-slug** = task prompt filename without path and without `.md`, including any `PROMPT_` prefix (e.g. `PROMPT_2_7_1_Snapshot-Three-Stage-Uninstall`). Never a ROADMAP id (`2_7_1_…`) and never the feature-branch slug.
 
 ## Ticket structure (Architect)
 

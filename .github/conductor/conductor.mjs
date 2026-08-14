@@ -17,6 +17,12 @@ import { execSync, execFileSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 import { basename } from 'node:path';
 import { createMetricsCollector, DEFAULT_METRICS_BRANCH } from './metrics.mjs';
+import {
+  ticketPathFromPrompt,
+  planExpectRegex,
+  consecutiveJobCount,
+  DEFAULT_MAX_PHASE_REPEATS
+} from './guards.mjs';
 
 // ---------------------------------------------------------------- config (from env)
 const API = 'https://api.cursor.com';
@@ -27,10 +33,10 @@ const ISSUE = (process.env.ISSUE || '').trim();
 const BASE = (process.env.BASE || 'develop').trim();
 const SLUG = (process.env.SLUG || basename(TASK_PROMPT).replace(/\.md$/i, '')).trim();
 const BRANCH = (process.env.BRANCH || `feature/${SLUG}`).trim();
-// Ticket filename ALWAYS derives from the task-prompt basename — the Architect derives it the same way,
-// so a custom slug/branch input (which only renames the branch) can never desync the ticket path.
-const TICKET_SLUG = basename(TASK_PROMPT).replace(/\.md$/i, '').trim();
-const TICKET = `migration-docs/tickets/active/${TICKET_SLUG}_plan.md`;
+// Ticket filename ALWAYS derives from the task-prompt basename (PROMPT_ prefix kept).
+// `slug` / `branch` only name the feature branch — they must never rename the ticket.
+const TICKET = ticketPathFromPrompt(TASK_PROMPT);
+const TICKET_SLUG = basename(TICKET).replace(/_plan\.md$/i, '');
 const BUDGET = Number(process.env.BATCH_BUDGET || 6);
 const MODEL = (process.env.MODEL || '').trim(); // empty -> omit `model` (account default); else passed as model.id (see runPhase)
 const MODE_INPUT = (process.env.MODE || 'auto').trim().toLowerCase(); // dispatch: auto|full|plan ("auto" = task prompt self-declares, see resolveMode)
@@ -38,7 +44,10 @@ const AUTO_CHAIN = parseBool(process.env.AUTO_CHAIN, true); // when true, dispat
 const TITLE = (process.env.TITLE || '').trim(); // optional run display title (passed through on chain)
 const WORKFLOW_FILE = (process.env.WORKFLOW_FILE || 'conductor.yml').trim();
 const WORKFLOW_REF = (process.env.WORKFLOW_REF || BASE).trim();
-const MAX_ESCALATIONS = Number(process.env.MAX_ESCALATIONS || 2);
+const MAX_ESCALATIONS = Number(process.env.MAX_ESCALATIONS || 2); // retries; +1 agents (default 3) then escalate
+// Cross-job cap: consecutive chained GHA jobs of the same phase (PLAN/FINALIZE) before we refuse
+// another launch. Backstop if a job still chains after an unsuccessful phase. Default 3.
+const MAX_PHASE_REPEATS = Number(process.env.MAX_PHASE_REPEATS || DEFAULT_MAX_PHASE_REPEATS);
 const POLL_MS = Number(process.env.POLL_MS || 15000);
 const MAX_POLL_FAILS = Number(process.env.MAX_POLL_FAILS || 6); // consecutive poll errors before a phase fails
 // After status=FINISHED the Cloud Agents API can lag a few seconds before `result` is set.
@@ -65,6 +74,8 @@ if (!Number.isInteger(BUDGET) || BUDGET < 1)
   fail(`Invalid BATCH_BUDGET: ${process.env.BATCH_BUDGET}`);
 if (!Number.isInteger(MAX_ESCALATIONS) || MAX_ESCALATIONS < 0)
   fail(`Invalid MAX_ESCALATIONS: ${process.env.MAX_ESCALATIONS}`);
+if (!Number.isInteger(MAX_PHASE_REPEATS) || MAX_PHASE_REPEATS < 1)
+  fail(`Invalid MAX_PHASE_REPEATS: ${process.env.MAX_PHASE_REPEATS}`);
 if (!Number.isInteger(MAX_POLL_FAILS) || MAX_POLL_FAILS < 1)
   fail(`Invalid MAX_POLL_FAILS: ${process.env.MAX_POLL_FAILS}`);
 if (!Number.isInteger(POLL_MS) || POLL_MS < 1) fail(`Invalid POLL_MS: ${process.env.POLL_MS}`);
@@ -92,7 +103,7 @@ const metrics = createMetricsCollector({
   // branch (not just the base checkout) is honored.
   const { mode: MODE, audit: AUDIT } = resolveRun();
   log(
-    `Conductor start — slug=${SLUG} branch=${BRANCH} base=${BASE} budget=${BUDGET} model=${MODEL} mode=${MODE} auto_chain=${AUTO_CHAIN}${AUDIT ? ' (audit/report)' : ''}`
+    `Conductor start — slug=${SLUG} branch=${BRANCH} ticket=${TICKET} base=${BASE} budget=${BUDGET} model=${MODEL} mode=${MODE} auto_chain=${AUTO_CHAIN} phase_repeats=${MAX_PHASE_REPEATS}${AUDIT ? ' (audit/report)' : ''}`
   );
   // Issue is mandatory for normal runs (PR Closes #N + stop/pause control labels); audits have none.
   if (!AUDIT && !ISSUE)
@@ -112,17 +123,20 @@ const metrics = createMetricsCollector({
     const planAlreadyDone = AUDIT ? donePrExists() : existsSync(TICKET);
     let planRan = false;
     if (!planAlreadyDone) {
+      assertNotLooping('PLAN');
+      const planLanded = () => {
+        pullBranch();
+        return AUDIT ? donePrExists() : existsSync(TICKET);
+      };
       await runPhaseWithEscalation(
         'PLAN',
         () => planPrompt(AUDIT),
-        /^Plan ready:/i,
-        // Side-effect recovery: agent may have pushed the ticket/PR before `result` was readable.
-        () => {
-          pullBranch();
-          return AUDIT ? donePrExists() : existsSync(TICKET);
-        }
+        planExpectRegex(TICKET, AUDIT),
+        // Unexpected one-liner, but the canonical ticket/PR is already on the branch.
+        planLanded,
+        // Matching one-liner is not enough: missing ticket → fresh agent, not an immediate fail.
+        planLanded
       );
-      pullBranch();
       planRan = true;
     } else {
       log(`plan already done (${AUDIT ? `open PR for ${BRANCH}` : TICKET}) — skipping PLAN`);
@@ -198,15 +212,17 @@ const metrics = createMetricsCollector({
 
   // FINALIZE phase — idempotent (safe to re-enter after a partial or complete prior run).
   await gate();
+  assertNotLooping('FINALIZE');
+  const finalizeLanded = () => {
+    pullBranch();
+    return existsSync(doneTicket) || donePrExists();
+  };
   await runPhaseWithEscalation(
     'FINALIZE',
     () => finalizePrompt(alreadyArchived ? doneTicket : TICKET),
     /^Finalized\b/i,
-    () => {
-      pullBranch();
-      // Finalize archives the ticket and/or opens the PR — either means the phase landed.
-      return existsSync(doneTicket) || donePrExists();
-    }
+    finalizeLanded,
+    finalizeLanded
   );
 
   metrics.setSessionStatus('completed');
@@ -292,12 +308,13 @@ async function runExecuteBatch(batch) {
   }
 }
 
-// PLAN / FINALIZE: fixed prompt, relaunch fresh on ESCALATE / run-error / unexpected result up to
-// MAX_ESCALATIONS. `expect` is the phase's success sentinel — a finished run whose one-liner does not
-// match it (empty/garbled result from the beta API) is retried, never accepted as success.
-// Optional `recoverIfDone()`: after an unexpected one-liner, check git side effects (ticket/PR) so a
-// successful agent push is not discarded when the API omitted/lagged `result`.
-async function runPhaseWithEscalation(label, makePrompt, expect, recoverIfDone) {
+// PLAN / FINALIZE: one fresh cloud agent per attempt. On ESCALATE / run-error / unexpected
+// one-liner / missing side effect, that agent is done (already terminal) and we launch another,
+// up to MAX_ESCALATIONS retries (MAX_ESCALATIONS+1 agents, default 3). Only then stop — no chain.
+// `expect` is the one-liner sentinel. `recoverIfDone()` accepts an unexpected one-liner when git
+// already has the ticket/PR (API omitted `result`). `landed()` is required even after a matching
+// one-liner (Plan ready with the wrong/missing file must retry, not chain).
+async function runPhaseWithEscalation(label, makePrompt, expect, recoverIfDone, landed) {
   for (let attempt = 0; ; attempt++) {
     await gate();
     let result;
@@ -305,7 +322,7 @@ async function runPhaseWithEscalation(label, makePrompt, expect, recoverIfDone) 
       result = await runPhase(attempt ? `${label} (retry ${attempt})` : label, makePrompt());
     } catch (e) {
       if (attempt >= MAX_ESCALATIONS)
-        fail(`${label} run error after ${attempt} retries: ${e.message}`);
+        fail(`${label} run error after ${attempt + 1} agents: ${e.message}`);
       log(`run error (${e.message}); relaunching fresh (${attempt + 1}/${MAX_ESCALATIONS})`);
       continue;
     }
@@ -314,38 +331,59 @@ async function runPhaseWithEscalation(label, makePrompt, expect, recoverIfDone) 
       log(`escalated (${result}); relaunching fresh (${attempt + 1}/${MAX_ESCALATIONS})`);
       continue;
     }
-    if (expect && !expect.test(result)) {
-      // Prefer a matching line if the API wraps the orchestrator one-liner in prose.
+
+    let accepted = !expect || expect.test(result);
+    let acceptedText = result;
+    if (!accepted) {
       const matchedLine = result
         .split(/\r?\n/)
         .map(l => l.trim())
         .find(l => expect.test(l));
       if (matchedLine) {
         log(`${label} result (extracted): ${matchedLine}`);
-        return matchedLine;
-      }
-      if (typeof recoverIfDone === 'function') {
+        accepted = true;
+        acceptedText = matchedLine;
+      } else if (typeof recoverIfDone === 'function') {
         try {
           if (recoverIfDone()) {
-            const recovered =
+            accepted = true;
+            acceptedText =
               result || `(recovered via side effect; API result was ${JSON.stringify(result)})`;
             log(
               `${label}: unexpected one-liner ${JSON.stringify(result)} but side effect present — accepting as success`
             );
-            return recovered;
           }
         } catch (e) {
           log(`${label}: side-effect recovery check failed (${e.message})`);
         }
       }
-      if (attempt >= MAX_ESCALATIONS)
-        fail(`${label} unexpected result after ${attempt} retries: "${result}"`);
-      log(`unexpected result ("${result}"); relaunching fresh (${attempt + 1}/${MAX_ESCALATIONS})`);
-      // Phase already recorded with outcome=success; next retry creates a new phase entry.
-      continue;
     }
-    log(`${label} result: ${result}`);
-    return result;
+
+    if (accepted && typeof landed === 'function') {
+      try {
+        if (!landed()) {
+          accepted = false;
+          log(
+            `${label}: one-liner ok but side effect missing — treating as unsuccessful (will retry)`
+          );
+        }
+      } catch (e) {
+        accepted = false;
+        log(`${label}: side-effect check failed (${e.message})`);
+      }
+    }
+
+    if (accepted) {
+      log(`${label} result: ${acceptedText}`);
+      return acceptedText;
+    }
+
+    if (attempt >= MAX_ESCALATIONS) {
+      fail(
+        `${label} escalated after ${attempt + 1} agents: "${result}" — not chaining. Inspect the last ${label} result or re-dispatch after fixing the cause.`
+      );
+    }
+    log(`unsuccessful ("${result}"); relaunching fresh (${attempt + 1}/${MAX_ESCALATIONS})`);
   }
 }
 
@@ -395,8 +433,13 @@ function planPrompt(audit) {
     ISSUE ? `GitHub issue: #${ISSUE}` : '',
     audit
       ? `This is an AUDIT/REPORT task (report deliverable, no executable ticket): follow the rule's "Audit / report tasks" section. After the plan-reviewer PASSes, push and open a PR against ${BASE} — docs only: NO version bump, NO CHANGELOG, NO ROADMAP edits; do not merge.`
-      : '',
-    'Report exactly one line as that rule specifies.'
+      : `Output ticket: ${TICKET}`,
+    audit
+      ? ''
+      : 'Copy Output ticket verbatim into every Architect / plan-reviewer / doc-writer spawn. It is the task-prompt basename including any PROMPT_ prefix. Do not strip PROMPT_, do not substitute a ROADMAP id or the feature-branch slug.',
+    audit
+      ? 'Report exactly one line as that rule specifies.'
+      : `Report exactly one line: Plan ready: ${TICKET}`
   ]
     .filter(Boolean)
     .join('\n');
@@ -502,7 +545,19 @@ function controlSignal() {
   return 'run';
 }
 
-// Called at every phase boundary: honor stop/pause labels on the tracking issue.
+// Consecutive chained jobs of the same phase (PLAN / FINALIZE) without progress → stop.
+// In-job retries share a GHA runId and are capped by MAX_ESCALATIONS, not this.
+function assertNotLooping(type) {
+  const n = consecutiveJobCount(metrics.getPhases(), type);
+  if (n > 0)
+    log(`${type}: ${n}/${MAX_PHASE_REPEATS} consecutive chained job(s) already in this session`);
+  if (n >= MAX_PHASE_REPEATS) {
+    fail(
+      `${type} already ran in ${n} consecutive chained job(s) this session (cap ${MAX_PHASE_REPEATS}). Refusing to loop. Inspect the last ${type} result, or re-dispatch with a new session_id after fixing the cause.`
+    );
+  }
+}
+
 async function recordInflightPhase(outcome, result) {
   if (!current) return;
   const snap = { ...current };
@@ -524,6 +579,7 @@ async function recordInflightPhase(outcome, result) {
   }
 }
 
+// Called at every phase boundary: honor stop/pause labels on the tracking issue.
 async function gate() {
   for (;;) {
     const s = controlSignal();
