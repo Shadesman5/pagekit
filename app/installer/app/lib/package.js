@@ -72,11 +72,13 @@ export default {
       return update.update(pkg, updates, onClose, packagist);
     },
 
-    // Opens the staged removal: what it does is confirmed there, not here.
+    // Opens the staged removal: what it does is confirmed there, not here. What
+    // it leaves behind is the installation's answer rather than the modal's, so
+    // it is handed over with the package.
     uninstall(pkg, packages) {
       const uninstall = new Uninstall({ parent: this });
 
-      return uninstall.uninstall(pkg, packages);
+      return uninstall.uninstall(pkg, packages, this.keepsSnapshots);
     },
 
     error(response) {

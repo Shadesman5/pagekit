@@ -9,6 +9,7 @@ use Pagekit\Application\UrlProvider;
 use Pagekit\Installer\Package\PackageFactory;
 use Pagekit\Installer\Package\PackageInterface;
 use Pagekit\Installer\Package\PackageManager;
+use Pagekit\Installer\Package\Snapshot\PackageSnapshotter;
 use Pagekit\Log\Logger;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Routing\Attribute\Request as RequestAttribute;
@@ -20,6 +21,11 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 #[Access('system: manage packages', admin: true)]
 class PackageController
 {
+    /**
+     * @param PackageSnapshotter|null $snapshotter what a removed package can be restored
+     *                                             from, and null in an installation that
+     *                                             keeps no snapshots at all
+     */
     public function __construct(
         protected PackageManager $manager,
         private readonly PackageFactory $package,
@@ -31,6 +37,7 @@ class PackageController
         private readonly bool $debug,
         private readonly Logger $log,
         private readonly string $systemApi = 'https://pagekit.com',
+        private readonly ?PackageSnapshotter $snapshotter = null,
     ) {
     }
 
@@ -62,6 +69,7 @@ class PackageController
             '$data' => [
                 'api' => $this->systemApi,
                 'packages' => $packages,
+                'keepsSnapshots' => $this->keepsSnapshots(),
             ],
         ];
     }
@@ -105,6 +113,7 @@ class PackageController
             '$data' => [
                 'api' => $this->systemApi,
                 'packages' => $packages,
+                'keepsSnapshots' => $this->keepsSnapshots(),
             ],
         ];
     }
@@ -242,7 +251,8 @@ class PackageController
     }
 
     /**
-     * Takes a package out of the installation, retaining it in a snapshot.
+     * Takes a package out of the installation, retaining it in a snapshot where
+     * this installation keeps them ({@see keepsSnapshots()}).
      *
      * What the administrator confirmed before this ran says what the removal
      * does to the package itself; it cannot yet say what else in the
@@ -255,32 +265,72 @@ class PackageController
     {
         return $this->response->stream(function () use ($name) {
 
+            $failure = null;
+
             try {
-
                 $this->manager->uninstall($name);
-
-                // The same clear enabling and disabling do: what the panel and
-                // the site load is cached, and the package is out of both.
-                $this->module->get('system/cache')->clearCache();
-
-                $this->streamHookWarnings();
-
-                echo "\nstatus=success";
-
             } catch (\Exception $e) {
+                $failure = $e;
 
                 echo $e->getMessage();
-
-                // A removal that broke off has usually run some of the package's
-                // own steps first, and the failure that stopped it says nothing
-                // about the ones that did not finish. Held back here, they would
-                // be lost with the manager at the end of the request.
-                $this->streamHookWarnings();
-
-                echo "\nstatus=error";
             }
 
+            // Either way, and before the outcome is reported. A removal breaks
+            // off in one of two places: before it has touched anything, where no
+            // snapshot could be taken and nothing was removed, or after the
+            // package was switched off and taken out of the system
+            // configuration, which is what the panel and the site are built from
+            // and cached. Nothing here tells those apart, and they are not the
+            // same mistake to make: rebuilding what the first one left alone
+            // costs a rebuild, while leaving the second is a panel that goes on
+            // offering a package the installation no longer has.
+            $this->clearCache();
+
+            // A removal that broke off has usually run some of the package's own
+            // steps first, and the failure that stopped it says nothing about the
+            // ones that did not finish. Held back here, they would be lost with
+            // the manager at the end of the request.
+            $this->streamHookWarnings();
+
+            echo $failure === null ? "\nstatus=success" : "\nstatus=error";
+
         });
+    }
+
+    /**
+     * Whether a removal from these pages can be undone.
+     *
+     * The page says what removing a package does before it does it, and in an
+     * installation with nowhere to keep a snapshot - or no database to dump into
+     * one - what it does is final. That is a promise the confirm has to get
+     * right, so it is answered by the same thing the removal itself asks:
+     * whether this installation has a snapshotter at all.
+     */
+    private function keepsSnapshots(): bool
+    {
+        return $this->snapshotter !== null;
+    }
+
+    /**
+     * Rebuilds what the installation had cached, the way enabling and disabling
+     * do.
+     *
+     * A clear that could not be asked for is not a removal that did not happen,
+     * so it does not get to be the answer: what the page is waiting to hear is
+     * whether the package is out of the installation. What it costs instead is a
+     * panel serving what it had cached until the next clear, which is worth the
+     * line in the log that says so.
+     */
+    private function clearCache(): void
+    {
+        try {
+            $this->module->get('system/cache')->clearCache();
+        } catch (\Throwable $e) {
+            $this->log->error(
+                sprintf('Failed to clear the cache after removing a package: %s', $e->getMessage()),
+                ['exception' => $e]
+            );
+        }
     }
 
     /**

@@ -12,7 +12,11 @@ export default {
         view: false,
         updates: null,
         search: this.$session.get(`${this.$options.name}.search`, ''),
-        status: ''
+        status: '',
+        // Whether a removal from this page can be undone. The server answers it
+        // per page; a page rendered without an answer is one whose removals are
+        // final, which is the reading that promises nothing.
+        keepsSnapshots: false
       },
       window.$data
     );

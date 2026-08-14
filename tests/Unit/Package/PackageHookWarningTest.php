@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\Tests\Unit\Package;
 
+use Monolog\Handler\TestHandler;
 use Pagekit\Application;
 use Pagekit\Application\Response as PagekitResponse;
 use Pagekit\Application\UrlProvider;
@@ -18,7 +19,6 @@ use Pagekit\Log\Logger;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\AbstractLogger;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -73,9 +73,15 @@ final class PackageHookWarningTest extends TestCase
     private RecordedCacheRebuilds $cache;
 
     /**
-     * What the administrator is not told, as the log receives it.
+     * The log of the installation, which both the manager and the controller
+     * report through - as they do in a boot, where it is one service.
      */
-    private HookWarningLog $log;
+    private Logger $log;
+
+    /**
+     * What the administrator is not told, as the log received it.
+     */
+    private TestHandler $records;
 
     protected function setUp(): void
     {
@@ -85,7 +91,8 @@ final class PackageHookWarningTest extends TestCase
         $this->broken = $this->workspace.'/packages/pagekit/test-ext';
         $this->quiet = $this->workspace.'/packages/pagekit/other-ext';
         $this->cache = new RecordedCacheRebuilds();
-        $this->log = new HookWarningLog();
+        $this->records = new TestHandler();
+        $this->log = new Logger('test', [$this->records]);
 
         mkdir($this->broken, 0755, true);
         mkdir($this->quiet, 0755, true);
@@ -223,7 +230,7 @@ final class PackageHookWarningTest extends TestCase
         self::assertStringContainsString('status=error', self::warnings($stream)[0]);
     }
 
-    public function testARemovalThatDidNotFinishEndsAsAnErrorAndLeavesWhatTheInstallationLoadsAlone(): void
+    public function testARemovalThatDidNotFinishEndsAsAnErrorAndStillRebuildsWhatTheInstallationLoads(): void
     {
         // Files that will not go: a folder held open, a permission the process
         // does not have. Everything else about the removal is done by then, and
@@ -232,10 +239,36 @@ final class PackageHookWarningTest extends TestCase
 
         self::assertSame('status=error', self::lastLine($stream));
 
-        // The clear comes after the removal, so an operation that raised is one
-        // that never asked for it. Rebuilding the cache here would be rebuilding
-        // it from a configuration the failure left half-written.
-        self::assertSame(0, $this->cache->rebuilds);
+        // The package is off, its hooks have run and the configuration no
+        // longer names it - all of that before the files it stopped at. What
+        // the panel and the site load is built from that configuration and
+        // cached, so leaving the cache alone here is the panel going on
+        // offering an extension the installation has already let go of.
+        self::assertSame(1, $this->cache->rebuilds);
+    }
+
+    public function testARemovalIsReportedAsItHappenedEvenWhereTheRebuildItAsksForCannotBeRun(): void
+    {
+        $this->writeLifecycle($this->broken, 'uninstall', sprintf("throw new \\RuntimeException('%s');", self::THROWN));
+
+        // A cache that cannot be rebuilt: a directory that went away under the
+        // installation, a disk with nothing left on it.
+        $this->cache = new ACacheThatWillNotRebuild();
+
+        $stream = $this->streamed($this->controller(), 'pagekit/test-ext');
+
+        // The package is out of the installation, which is what the page is
+        // waiting to hear. A rebuild that could not be run is not a removal
+        // that did not happen, and reporting it as one would send an
+        // administrator looking for an extension that is already gone - with
+        // the step of its own that did not finish lost along with it.
+        self::assertSame('status=success', self::lastLine($stream));
+        self::assertCount(1, self::warnings($stream));
+        self::assertSame(1, $this->cache->rebuilds);
+
+        // What it costs instead - a panel serving what it had cached until
+        // something clears it - is on the record for whoever has to.
+        self::assertTrue($this->reported('clear the cache', ACacheThatWillNotRebuild::REFUSED));
     }
 
     // ------------------------------------------------------------------
@@ -335,7 +368,7 @@ final class PackageHookWarningTest extends TestCase
             new PagekitResponse($url),
             $this->workspace,
             false,
-            new Logger('test'),
+            $this->log,
         );
     }
 
@@ -426,9 +459,9 @@ final class PackageHookWarningTest extends TestCase
      */
     private function reported(string $context, string $thrown): bool
     {
-        foreach ($this->log->records as $record) {
-            if (str_contains($record['message'], $context) && str_contains($record['message'], $thrown)) {
-                return ($record['context']['exception'] ?? null) instanceof \Throwable;
+        foreach ($this->records->getRecords() as $record) {
+            if (str_contains($record->message, $context) && str_contains($record->message, $thrown)) {
+                return ($record->context['exception'] ?? null) instanceof \Throwable;
             }
         }
 
@@ -518,9 +551,11 @@ final class PackageHookWarningTest extends TestCase
  *
  * A recorder rather than a mock: the operation under test runs inside a catch for
  * anything it raises, and a mock reporting a violated expectation would throw
- * where that catch reads it as the operation's own failure.
+ * where that catch reads it as the operation's own failure. Open to the one that
+ * refuses below, which is this same recorder plus what a cache that cannot be
+ * rebuilt does.
  */
-final class RecordedCacheRebuilds
+class RecordedCacheRebuilds
 {
     public int $rebuilds = 0;
 
@@ -534,20 +569,25 @@ final class RecordedCacheRebuilds
 }
 
 /**
- * What was reported, with the context that carries the throwable.
+ * A cache the installation cannot rebuild: a directory that went away under it,
+ * a disk with nothing left on it, a rebuild that ran into a package it can no
+ * longer read.
+ *
+ * It counts the attempt before it refuses, so a test can tell a rebuild that was
+ * asked for and failed from one that was never asked for.
  */
-final class HookWarningLog extends AbstractLogger
+final class ACacheThatWillNotRebuild extends RecordedCacheRebuilds
 {
-    /** @var array<int, array{level: string, message: string, context: array<string, mixed>}> */
-    public array $records = [];
+    public const REFUSED = 'The cache directory could not be written.';
 
     /**
-     * @param mixed                $level
-     * @param array<string, mixed> $context
+     * @param array<string, mixed> $options
      */
-    public function log($level, string|\Stringable $message, array $context = []): void
+    public function clearCache(array $options = []): void
     {
-        $this->records[] = ['level' => (string) $level, 'message' => (string) $message, 'context' => $context];
+        parent::clearCache($options);
+
+        throw new \RuntimeException(self::REFUSED);
     }
 }
 

@@ -5,7 +5,7 @@
     </div>
 
     <div v-if="stage == 'confirm'" class="uk-modal-body">
-      <p>
+      <p v-if="keepsSnapshots">
         {{
           'A snapshot is taken first: the files of %title% %version%, and the database as it stands now.'
             | trans({ title: pkg.title, version: pkg.version })
@@ -13,13 +13,19 @@
       </p>
       <p>
         {{
-          'The package is then taken out of this installation. It leaves this list, the site stops loading it, and its pages go to the trash. Its database tables are left as they are.'
+          'The package is taken out of this installation. It leaves this list, the site stops loading it, and its pages go to the trash. Its database tables are left as they are.'
             | trans
         }}
       </p>
-      <p>
+      <p v-if="keepsSnapshots">
         {{
           'All of that can be put back from the snapshot until the snapshot is purged, which happens when its retention window runs out or when you purge it by hand.'
+            | trans
+        }}
+      </p>
+      <p v-else class="uk-text-danger">
+        {{
+          'This installation keeps no snapshots, so nothing is put aside first and none of it can be undone.'
             | trans
         }}
       </p>
@@ -39,10 +45,18 @@
       </div>
 
       <div v-show="status == 'success'" class="uk-alert uk-alert-success uk-margin-remove">
-        {{
-          'Successfully removed. %title% is kept in a snapshot and can be restored from the snapshots page.'
-            | trans({ title: pkg.title })
-        }}
+        <span v-if="keepsSnapshots">
+          {{
+            'Successfully removed. %title% is kept in a snapshot and can be restored from the snapshots page.'
+              | trans({ title: pkg.title })
+          }}
+        </span>
+        <span v-else>
+          {{
+            'Successfully removed. This installation keeps no snapshots, so %title% was not kept anywhere and cannot be restored.'
+              | trans({ title: pkg.title })
+          }}
+        </span>
       </div>
       <div v-show="status == 'error'" class="uk-alert uk-alert-danger uk-margin-remove">
         {{ 'Error' | trans }}
@@ -67,7 +81,7 @@
         'Close' | trans
       }}</a>
       <a
-        v-show="status == 'success'"
+        v-show="status == 'success' && keepsSnapshots"
         class="uk-button uk-button-primary"
         :href="$url.route('admin/system/snapshot')"
         >{{ 'Snapshots' | trans }}</a
@@ -88,7 +102,11 @@ export default {
       // the removal does and what it leaves behind, and the second one is the
       // removal itself.
       stage: 'confirm',
-      packages: null
+      packages: null,
+      // Whether this installation puts a removed package aside. Both stages are
+      // about what is left afterwards, so both of them turn on it - and an
+      // installation that keeps no snapshots may not be told it can restore.
+      keepsSnapshots: false
     };
   },
 
@@ -104,9 +122,10 @@ export default {
 
   methods: {
     // Opens the confirm stage. Nothing is removed until it is confirmed.
-    uninstall(pkg, packages) {
+    uninstall(pkg, packages, keepsSnapshots) {
       this.$set(this, 'pkg', pkg);
       this.$set(this, 'packages', packages);
+      this.keepsSnapshots = Boolean(keepsSnapshots);
 
       this.open();
     },
