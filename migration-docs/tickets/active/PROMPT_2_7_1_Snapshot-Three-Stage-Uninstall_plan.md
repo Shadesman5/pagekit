@@ -59,7 +59,7 @@
      A step orchestrator flips its box to [x] in the SAME commit as that step's code + tests
      (after full step PASS incl. test-writer when applicable; for XL after reviews + E2E PASS) -->
 - [x] Step 1 (M) — Safety gates + snapshot store + `path.snapshots`
-- [ ] Step 2 (L) — DB dump + restore (SQLite + MySQL)
+- [x] Step 2 (L) — DB dump + restore (SQLite + MySQL)
 - [ ] Step 3 (M) — Snapshot-before-uninstall wiring + console fix
 - [ ] Step 4 (L) — Three-stage semantics: soft uninstall + restore + purge
 - [ ] Step 5 (S) — Retention window + storage-growth guards
