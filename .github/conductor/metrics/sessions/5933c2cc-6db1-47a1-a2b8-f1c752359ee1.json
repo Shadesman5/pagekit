@@ -10,7 +10,7 @@
   "model": "grok-4.6",
   "status": "in_progress",
   "startedAt": "2026-08-13T22:33:01.554Z",
-  "completedAt": "2026-08-14T00:56:13.601Z",
+  "completedAt": "2026-08-14T01:09:04.130Z",
   "phases": [
     {
       "phaseKey": "31750385717-1-PLAN",
@@ -567,13 +567,30 @@
       "type": "PLAN",
       "attempt": 0,
       "batchSteps": null,
-      "startedAt": "2026-08-14T00:56:46.737Z",
-      "durationMs": 746714,
+      "startedAt": "2026-08-14T00:56:48.782Z",
+      "durationMs": 734404,
       "agent": {
         "id": "bc-107d9a1e-c820-4845-a04e-368d764509ab",
         "runId": "run-66435e02-ddbb-4a8a-9875-5811ae6b1620",
         "url": "https://cursor.com/agents/bc-107d9a1e-c820-4845-a04e-368d764509ab",
-        "model": "grok-4.6"
+        "model": "grok-4.6",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-66435e02-ddbb-4a8a-9875-5811ae6b1620",
+            "index": 1,
+            "startedAt": "2026-08-14T00:56:48.782Z",
+            "completedAt": "2026-08-14T01:09:04.130Z",
+            "durationMs": 734404,
+            "tokens": {
+              "input": 99649,
+              "output": 46084,
+              "cacheRead": 2865399,
+              "cacheWrite": 254905,
+              "total": 3266037
+            }
+          }
+        ]
       },
       "github": {
         "runId": 31759021010,
@@ -591,7 +608,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "Plan ready: migration-docs/tickets/active/snapshot-three-stage-uninstall_plan.md",
-      "outcome": "success"
+      "outcome": "success",
+      "completedAt": "2026-08-14T01:09:04.130Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -602,7 +621,7 @@
       "cacheWrite": 3539086,
       "total": 55311566
     },
-    "durationMs": 9006131,
+    "durationMs": 8993821,
     "phaseCount": 12,
     "escalations": 0,
     "ghaJobs": 12,
