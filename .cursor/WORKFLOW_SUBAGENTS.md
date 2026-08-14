@@ -42,7 +42,11 @@ PLAN     architect → plan-reviewer ⇄ FAIL → architect
         ▼
 EXECUTE  per batch (Conductor) / all remaining steps (V1)
          S/M/L: refactorer → verifier → tester → [test-writer…] → doc-writer → tick
-         last (XL): Bugbot → Security → E2E → doc-writer → tick
+         last (XL): Conductor **stops** (`handoff_xl`, default on) — `/review-bugbot` /
+         `/review-security` are not on the Cloud Agents API yet (CLI coming soon).
+         Run XL on cursor.com/agents (V1): Bugbot → Security → E2E → doc-writer → tick.
+         Re-dispatch Conductor with the same `session_id` for FINALIZE.
+         (`handoff_xl=false` launches XL as a cloud batch.)
         │
         ▼
 FINALIZE PR → CI → [coverage] → PR Bugbot → PR Security

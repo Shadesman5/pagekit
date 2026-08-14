@@ -37,7 +37,10 @@ For each Step N in the batch, read its size hint from `## EXECUTION STATE` (`(S)
 | `XL` | **Review step** — section **XL** below (Bugbot → Security → E2E). Never run A/B on an XL step. |
 
 `XL` is always the ticket's last checklist step. Conductor weight is 8, so with default `batch_budget` 6 it
-runs alone in its batch.
+runs alone in its batch. While Conductor `handoff_xl` is on (default), the driver **does not** send an XL
+batch here — `/review-bugbot` / `/review-security` are not on the Cloud Agents API yet (CLI coming soon).
+Run XL on cursor.com/agents (V1), tick it, then re-dispatch Conductor for FINALIZE. This section still
+applies to V1 and to `handoff_xl=false`.
 
 ## Delegation protocol
 

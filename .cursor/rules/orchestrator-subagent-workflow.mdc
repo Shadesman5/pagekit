@@ -48,7 +48,7 @@ Before each phase, **Read** the file and follow it. Do not copy it into chat.
 | Phase | Read | V1 difference |
 |---|---|---|
 | **Plan** | `orchestrator-v2-plan.mdc` | You derive `Output ticket:` from the prompt basename (keep `PROMPT_`). Same session continues to Execute. |
-| **Execute** | `orchestrator-v2-step.mdc` | Run **every** remaining unticked checklist step in order (not one Conductor batch). No `/tmp/precompact-stop`. |
+| **Execute** | `orchestrator-v2-step.mdc` | Run **every** remaining unticked checklist step in order (not one Conductor batch). No `/tmp/precompact-stop`. After a Conductor XL handoff, that is only the last `(XL)` Review+E2E step — tick it and **stop**; do not Finalize (re-dispatch Conductor for that). |
 | **Finalize** | `orchestrator-v2-finalize.mdc` | PR labels include **`v1-metrics`**. Title or body **must** contain `Step X.Y`. Version/CHANGELOG/PR: `.cursor/skills/push/SKILL.md`. |
 
 Use the Task templates and return-contract tables **from those files**. For Plan, set `Output ticket:` / `Ticket:` to the derived path above.

@@ -74,3 +74,30 @@ export function consecutiveJobCount(phases, type) {
 export function phaseRepeatExceeded(phases, type, max = DEFAULT_MAX_PHASE_REPEATS) {
   return consecutiveJobCount(phases, type) >= max;
 }
+
+/**
+ * `/review-bugbot` and `/review-security` run in Cursor 3.7+ and on cursor.com/agents.
+ * CLI / Cloud Agents API support is documented as coming soon, so Conductor must not
+ * launch an XL Review+E2E batch while this handoff is on (default).
+ */
+export function xlHandoffStep(openSteps, enabled = true) {
+  if (!enabled) return null;
+  const first = (openSteps || [])[0];
+  return first?.size === 'XL' ? first : null;
+}
+
+/** S/M/L steps the cloud Execute agent may run; XL stays for the V1 handoff. */
+export function cloudExecuteSteps(openSteps, handoffXl = true) {
+  const open = openSteps || [];
+  return handoffXl ? open.filter(s => s.size !== 'XL') : open;
+}
+
+export function xlHandoffMessage(step) {
+  const n = step?.n ?? '?';
+  return (
+    `HANDOFF_XL: Checklist Step ${n} (XL) is the next open step. ` +
+    `Cloud Agents API cannot run /review-bugbot or /review-security (CLI coming soon). ` +
+    `Run Step ${n} via cursor.com/agents (V1 Orchestrator), tick the EXECUTION STATE box, ` +
+    `then re-dispatch Conductor with the same session_id — it will FINALIZE.`
+  );
+}
