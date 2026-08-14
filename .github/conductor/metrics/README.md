@@ -21,6 +21,7 @@ Token usage, run duration, and phase breakdown for **V2 Conductor** (GHA) and **
 |-------|--------|
 | Conductor start | Create session + index entry (`status: in_progress`) |
 | After each Conductor cloud-agent phase | Append `phases[]`, recompute `totals`, commit |
+| Conductor XL tick (`handoff_xl`) | `import-xl-handoff-metrics.yml` appends the V1 parent as `EXECUTE` (`v1Continued`) |
 | V1 UI **after** the Orchestrator ticket finishes | Maintainer or Automation runs `import-manual-agents.mjs --push` — Cursor usage settles only after the cloud agent ends |
 | FINALIZE / plan-only done | `status: completed` |
 | `fail()` / fatal error | `status: failed` |
@@ -56,6 +57,35 @@ CURSOR_API_KEY=… node .github/conductor/import-manual-agents.mjs \
 - `--push` syncs/commits to `conductor-metrics` and dispatches `pages-deploy.yml`.
 - A second import of the **same parent agent** on that step (manual `--push` before merge, then `import-v1-metrics.yml` after) **updates** the existing session instead of creating another card. Pass `--session` only to target a specific UUID.
 - Optional: `--issue`, `--task-slug`, `--title`, `--label`, `--session`, `--dry-run`, `--copy-local`.
+
+## Conductor + V1 XL mix
+
+While `handoff_xl` is on (default), Conductor stops before the last `(XL)` Review+E2E step.
+That step runs on cursor.com/agents; the commit that ticks `- [ ] Step N (XL)` → `- [x]` fires
+`.github/workflows/import-xl-handoff-metrics.yml`:
+
+1. Require both a removed unchecked XL line and an added checked XL line (same step number).
+2. Read the ROADMAP id from the ticket (`**Current Step (ROADMAP):**`).
+3. Attach to the latest `in_progress` Conductor session for that step (prefer matching `branch`).
+4. Resolve the V1 **parent** `bc-…` on that branch, skipping agents already in the session and
+   zero-usage Task children; retry usage for a few minutes if the agent is still finishing.
+5. `import-manual-agents.mjs --session <uuid> --label EXECUTE --push`.
+
+No `in_progress` Conductor session → the job exits 0. Full V1 tickets still use
+`import-v1-metrics.yml` at merge. Do **not** put `v1-metrics` on a Conductor Finalize PR
+(that would bind the import to the Finalize agent and open a second session card).
+
+A late retry after FINALIZE still lands the XL phase *before* FINALIZE (`mergeImportedPhases`).
+Manual recovery (parent id, not `?child-id=`):
+
+```bash
+CURSOR_API_KEY=… node .github/conductor/import-manual-agents.mjs \
+  --step 2.7.1 \
+  --session <conductor-session-uuid> \
+  --agent bc-… \
+  --label EXECUTE \
+  --push
+```
 
 When the Cursor API returns zero but the [Dashboard](https://cursor.com/dashboard) still shows usage, copy totals manually:
 

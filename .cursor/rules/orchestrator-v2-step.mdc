@@ -282,6 +282,8 @@ Project review rules: `.cursor/BUGBOT.md`. Compute `Full Repository Path` once v
 11. Commit + tick + push (**one commit for the tick + branch doc**; fix-loop commits already pushed):
     - Flip `- [ ] Step N` to `- [x] Step N` in `## EXECUTION STATE`.
     - `git add` the ticket + branch doc (+ any leftover fix files), commit, `git push`.
+    - On a Conductor XL handoff, that tick push is what attaches V1 tokens to the session
+      (`import-xl-handoff-metrics.yml`). Do not run `import-manual-agents.mjs` yourself.
 
 If `bugbot` or `security-review` Task spawn fails (unavailable in this environment), report
 `ESCALATE: Step N — review subagent unavailable: <error>` after one corrected retry — do not invent a

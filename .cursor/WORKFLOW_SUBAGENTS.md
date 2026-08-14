@@ -13,7 +13,7 @@ Index for Conductor V2 and the Orchestrator. Operative contracts live in the fil
 
 **Start:** Actions → **Conductor** → `workflow_dispatch` (task prompt, issue, `batch_budget`, optional `auto_chain`).
 
-**V1 (cursor.com/agents UI):** `.cursor/rules/orchestrator-subagent-workflow.mdc` — same subagents, one session. Metrics are **not** recorded mid-run; import later with `import-manual-agents.mjs` (`.github/conductor/metrics/README.md`).
+**V1 (cursor.com/agents UI):** `.cursor/rules/orchestrator-subagent-workflow.mdc` — same subagents, one session. Full-ticket V1 metrics import after merge (`v1-metrics`). A Conductor XL handoff imports on the tick commit — see `.github/conductor/metrics/README.md`.
 
 ## 2. Three names (do not mix)
 
@@ -45,8 +45,9 @@ EXECUTE  per batch (Conductor) / all remaining steps (V1)
          last (XL): Conductor **stops** (`handoff_xl`, default on) — `/review-bugbot` /
          `/review-security` are not on the Cloud Agents API yet (CLI coming soon).
          Run XL on cursor.com/agents (V1): Bugbot → Security → E2E → doc-writer → tick.
-         Re-dispatch Conductor with the same `session_id` for FINALIZE.
-         (`handoff_xl=false` launches XL as a cloud batch.)
+         The tick commit imports that V1 parent agent's tokens into the Conductor
+         session (`import-xl-handoff-metrics.yml`). Re-dispatch Conductor with the
+         same `session_id` for FINALIZE. (`handoff_xl=false` launches XL as a cloud batch.)
         │
         ▼
 FINALIZE PR → CI → [coverage] → PR Bugbot → PR Security

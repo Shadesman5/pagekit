@@ -18,8 +18,9 @@ run-name: "${{ inputs.title != '' && inputs.title || format('Conductor — {0}{1
 # mandatory last checklist step (Review + E2E). With handoff_xl=true (default) the
 # driver stops before launching XL — /review-bugbot and /review-security are not on
 # the Cloud Agents API yet (CLI coming soon). Run XL via cursor.com/agents, tick it,
-# then re-dispatch Conductor (same session_id) for FINALIZE. handoff_xl=false forces
-# a cloud XL batch. Alone when budget stays under 8.
+# then re-dispatch Conductor (same session_id) for FINALIZE. The XL tick commit imports
+# that V1 parent agent's tokens into the session (import-xl-handoff-metrics.yml).
+# handoff_xl=false forces a cloud XL batch. Alone when budget stays under 8.
 #
 # Security:
 #   - workflow_dispatch only -> only users with write access can start it (no public trigger).
