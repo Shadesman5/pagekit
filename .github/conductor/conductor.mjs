@@ -11,7 +11,8 @@
 // Each job merges origin/<base> into the feature branch (not rebase: the branch is shared and
 // already on origin) so the cloud agent's startingRef is not a days-old fork of develop.
 // HANDOFF_XL (default true): do not launch the last (XL) Review+E2E batch — stop green, no chain;
-// run it on cursor.com/agents, tick the box, re-dispatch for FINALIZE.
+// run it on cursor.com/agents, tick the box, re-dispatch for FINALIZE. That FINALIZE job imports
+// the V1 XL parent best-effort (never a feature-branch CI check).
 //
 // NOTE (verify on first real run): the v1 Cloud Agents API is in public beta. The field names
 // used below (`agent.id`, `run.id`, run `status`/`result`, `/usage`, `/runs/{id}/cancel`) follow
@@ -31,6 +32,7 @@ import {
   xlHandoffMessage
 } from './guards.mjs';
 import { gitAt, syncFeatureWithBase } from './sync-base.mjs';
+import { importXlHandoffForSession } from './xl-handoff-metrics.mjs';
 
 // ---------------------------------------------------------------- config (from env)
 const API = 'https://api.cursor.com';
@@ -230,6 +232,8 @@ const metrics = createMetricsCollector({
       'ticket already archived to done/ — skipping PLAN/EXECUTE; running idempotent FINALIZE to verify.'
     );
   }
+
+  await importXlMetricsBestEffort(existsSync(TICKET) ? TICKET : doneTicket);
 
   // FINALIZE phase — idempotent (safe to re-enter after a partial or complete prior run).
   await gate();
@@ -547,6 +551,29 @@ function nextBatch(open) {
     w += sw;
   }
   return batch;
+}
+
+/** Best-effort: attach the V1 XL parent to this session. Never fails the Conductor job. */
+async function importXlMetricsBestEffort(ticketPath) {
+  if (!HANDOFF_XL) return;
+  try {
+    const result = await importXlHandoffForSession({
+      sessionId: metrics.getSessionId(),
+      branch: BRANCH,
+      ticketPath,
+      push: true,
+      attempts: 2,
+      delayMs: 8000,
+      log
+    });
+    if (result.imported) {
+      log(`XL metrics: imported ${result.agentId} into ${result.sessionId}`);
+    } else {
+      log(`XL metrics: ${result.reason} — FINALIZE continues`);
+    }
+  } catch (e) {
+    log(`⚠ XL metrics import failed (${e.message}) — FINALIZE continues`);
+  }
 }
 
 /** Green stop, no chain, session stays in_progress. True when the caller should return. */

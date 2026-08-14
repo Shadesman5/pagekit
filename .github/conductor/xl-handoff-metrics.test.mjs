@@ -4,7 +4,8 @@ import {
   detectXlTicks,
   parseTicketRoadmapStepId,
   pickXlHandoffSession,
-  pickXlHandoffAgent
+  pickXlHandoffAgent,
+  listFieldsMatchBranch
 } from './xl-handoff-metrics.mjs';
 
 const TICK_DIFF = `diff --git a/migration-docs/tickets/active/PROMPT_2_7_1_Foo_plan.md b/migration-docs/tickets/active/PROMPT_2_7_1_Foo_plan.md
@@ -117,4 +118,22 @@ test('pickXlHandoffAgent skips Conductor ids and zero usage, then takes the newe
     ['bc-execute', 'bc-old']
   );
   assert.equal(id, 'bc-xl');
+});
+
+test('listFieldsMatchBranch skips other branches without a detail fetch', () => {
+  assert.equal(
+    listFieldsMatchBranch(
+      { target: { branchName: 'feature/other' }, name: 'EXECUTE' },
+      'feature/snapshot-three-stage-uninstall'
+    ),
+    'no'
+  );
+  assert.equal(
+    listFieldsMatchBranch(
+      { target: { branchName: 'feature/snapshot-three-stage-uninstall' } },
+      'feature/snapshot-three-stage-uninstall'
+    ),
+    'yes'
+  );
+  assert.equal(listFieldsMatchBranch({ id: 'bc-1' }, 'feature/foo'), 'unknown');
 });
