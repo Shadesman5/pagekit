@@ -62,10 +62,8 @@ Write the plan to a **ticket file** so the Orchestrator and other subagents use 
 - **Per step (production gate):** Refactorer → Verifier → Tester (PHPUnit + PHPStan) — production code must be green before any new tests are written
 - **Per step (coverage — inline light):** test-writer → Verifier (test files only) → Tester (PHPUnit + PHPStan) — **skip** when the step changes no production PHP under `app/` or `packages/` (docs/config/ROADMAP-only steps); mark those steps `test-writer: skip` here
 - **Per step notes:** [optional: target classes, edge cases, `test-writer: skip` per step number]
-- **Review + E2E (Execute — mandatory last `(XL)` step):** Orchestrator runs Bugbot → Security Review (fix-loops until both clean), then Tester `"final E2E run"` (3 Playwright specs). **Not** gated on PR/CI
-- **Finalize:** Orchestrator opens PR → CI (`gh pr checks`) → PR Bugbot (`bugbot run`, then newest
-  `<!-- BUGBOT_REVIEW -->` body only) → PR Security (`security run`, then newest Agentic Security
-  review body only; **not** CI `security-audit`) → version/CHANGELOG/ROADMAP.
+- **Review + E2E (Execute — mandatory last `(XL)` step):** Bugbot → Security → Tester `"final E2E run"`. Not gated on PR/CI. Details: `orchestrator-v2-step.mdc`.
+- **Finalize:** `orchestrator-v2-finalize.mdc` (PR → CI → optional coverage → PR Bugbot/Security → version only if product).
 - **Maintainer action (optional):** human-only follow-ups (real Docker/Apache, ruleset flips, …). In the branch doc these go under `## Maintainer action` — **not** under Deferred / Out-of-Scope
 - **Deferred / Out-of-Scope (optional):** future ROADMAP/PHASE work, non-goals, bridges only — never maintainer Manual Work
 ```
@@ -74,7 +72,7 @@ Write the plan to a **ticket file** so the Orchestrator and other subagents use 
 
 ## Reference
 
-- `.cursor/ROADMAP.md` for step IDs, tracking table, and the 5 aggressive rules.
+- `.cursor/rules/pagekit.mdc` for the 5 aggressive rules (always on). `.cursor/ROADMAP.md` for step IDs and the tracking table.
 - `migration-docs/TODO/PHASE_*_MODERNISING.md` for detailed step descriptions and **"Audit findings"** sections — these contain specific issues that must be addressed in the relevant step. **You own amendments** to future-step sections when this plan defers work there (see Responsibility 6).
 - If a sub-step is missing, add it (e.g. 2.0.5).
 - When creating the checklist, incorporate any "Audit findings" listed for the target step in the matching `PHASE_*_MODERNISING.md` as explicit checklist items.

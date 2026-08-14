@@ -1,0 +1,15 @@
+---
+description: PHP 8.5 coding standard (PSR-12 / Symfony). Use when editing PHP or composer.json.
+globs: *.php,composer.json
+alwaysApply: false
+---
+
+# PHP
+
+- **Standard:** PSR-12 / Symfony (PHP-CS-Fixer). Not PSR-2.
+- **Nullable:** `?Type $param = null`, never implicit `Type $param = null`.
+- **Properties:** declare them; no dynamic creation.
+- **Strings:** null-check before `strpos`, `strstr`, `ltrim`, `substr_count`.
+- **Reflection:** `getType()`, not `ReflectionParameter::getClass()`.
+- **Errors:** Symfony ErrorHandler, not `App::exception()`.
+- **Vendor dir:** `app/vendor/` (`composer.json` `vendor-dir`). PHPUnit: `./app/vendor/bin/phpunit`.

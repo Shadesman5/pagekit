@@ -48,7 +48,7 @@ change, or to understand an existing pattern — you **may delegate** read-only 
 
 ## Reference
 
-- pagekit-context, pagekit-standards (workspace rules apply automatically).
+- `.cursor/rules/pagekit.mdc` (always on). PHP/frontend: `php.mdc` / `frontend.mdc`.
 - The ticket file already contains ROADMAP IDs; do not re-read ROADMAP.md unless a TODO comment requires a new sub-step ID.
 
 ## Output discipline (strict)

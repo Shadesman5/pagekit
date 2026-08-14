@@ -12,7 +12,7 @@ Use these when creating or updating issues and pull requests.
 
 ## Phase Labels (Modernization Roadmap)
 
-Track which modernization phase an issue/PR belongs to. See `.cursor\ROADMAP.md` for phase details.
+Track which modernization phase an issue/PR belongs to. See `.cursor/ROADMAP.md` for phase details.
 
 | Label     | Description                     | Color     |
 | --------- | ------------------------------- | --------- |

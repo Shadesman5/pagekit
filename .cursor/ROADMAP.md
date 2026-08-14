@@ -5,37 +5,17 @@
 
 ## **💀 THE 5 AGGRESSIVE RULES (NO MERCY)**
 
+Canonical text (always applied to agents): [`.cursor/rules/pagekit.mdc`](rules/pagekit.mdc).
+
 1. **NO COMPATIBILITY LAYERS**
-   - Do not create "Shim" classes or wrappers to support old calling patterns.
-   - Break the internal API immediately if it conflicts with modern standards.
 2. **NO ADAPTERS**
-   - If a method signature changes, update all usages in the codebase.
-   - Never create intermediate adapters to "bridge" old and new code within the same scope.
 3. **BREAKING CHANGES ALLOWED INTERNALLY**
-   - Internal API breakage is encouraged for cleaner, stricter PHP 8.5+ code.
-   - Refactor over preserve.
-   - The system must remain **functional after each step** (all tests green).
-   - Internal API endpoints (`/api/...`) may change as long as both frontend and backend
-     are updated together in the same step (no external consumers exist yet).
-   - **Platform API names** (e.g. `__()`, `_i()`, `$date`, `$number`, `$http`) may be kept when they represent
-     a stable developer-facing API for extensions and templates — this is NOT a compatibility layer,
-     it's a clean modern reimplementation under the same function signature. See § DX & Lightweight Philosophy.
-   - The **real public API** (versioned, documented, JWT-authenticated) comes in Step 4.4.
 4. **DELETE OVER WRAP**
-   - Legacy code must be physically deleted from the file.
-   - Do not comment out old code; use Git history for reference.
-5. **MANDATORY FLAGGING & AUDIT DEBT (Scope Boundaries)**
-   Every legacy remnant must have a TODO with a ROADMAP step or a clear label. Tag formats:
-   - Out-of-scope legacy: `// TODO: Must be refactored in Step X.Y (Name)`
-   - Temporary bridge: `// TODO: TEMPORARY BRIDGE - To be removed in Step X.Y`
-   - Backward compatibility: `// TODO: BACKWARD COMPATIBILITY - Must be refactored later`
-   - Agents may add sub-steps (e.g. 2.0.5b) in ROADMAP if a step is missing for clean modernization.
+5. **MANDATORY FLAGGING & AUDIT DEBT** (forward debt only)
 
 ## **🎯 DX & LIGHTWEIGHT PHILOSOPHY**
 
-- **Platform APIs** — Template/theme helpers (`__()`, `$date`, …) are thin aliases over DI services, not legacy shims (Rule 3). New or modernized helpers welcome: stable extension signatures, one glue point per concern.
-- **Boundary** — DI in services/controllers/listeners; helpers in views/mails/themes. No DI-for-purity in templates.
-- **Lightweight core** — One minimal locator per concern, only where PHP has no constructor. Dev tooling (PHPStan, CI) wraps the core, never bloats runtime.
+Canonical: [`.cursor/rules/pagekit.mdc`](rules/pagekit.mdc) § DX. Thin DI-backed helpers in views; DI in services; tooling wraps the core.
 
 ## **📌 ROADMAP SSoT (how to read IDs)**
 

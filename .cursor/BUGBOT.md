@@ -1,8 +1,7 @@
 # Pagekit Bugbot Review Rules
 
-> **Canonical rules:** `.cursor/ROADMAP.md` (THE 5 AGGRESSIVE RULES).
-> Bugbot MUST read and enforce ROADMAP.md on every review. If a rule here
-> conflicts with ROADMAP.md, ROADMAP.md wins.
+> **Canonical rules:** `.cursor/rules/pagekit.mdc` (the 5 aggressive rules).
+> If a rule here conflicts with `pagekit.mdc`, `pagekit.mdc` wins.
 >
 > **Scope:** These rules apply to **both** the remote PR Bugbot **and** the
 > Execute `(XL)` `/review-bugbot` (Task `bugbot`) run — see
@@ -24,7 +23,7 @@ patterns appear without a proper tag:
 | `App::abort()`, `App::redirect()` | `// TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)` |
 | `App::on()`, `App::subscribe()`, `App::trigger()` | `// TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)` |
 | `$app['x'] = ...` (ArrayAccess WRITE) | `// TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)` |
-| Any other legacy workaround | `// TODO: BACKWARD COMPATIBILITY - Must be refactored later` |
+| Any other leftover that must change later | `// TODO: Must be refactored in Step X.Y (Name)` |
 
 If a tagged TODO references a ROADMAP step that is already marked ✅, flag it:
 the bridge should have been removed.

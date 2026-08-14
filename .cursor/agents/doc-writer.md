@@ -33,7 +33,7 @@ You are the Documentation Scribe for Pagekit modernization. You keep the **branc
 **Finalize** — Close the branch doc per its `Finalize` comments (replace `_TBD_`, fill remaining placeholders; `None` where a section does not apply). Section routing:
 - **`## Maintainer action`** — human-only follow-ups (ruleset flips, real Docker/Apache verification, secrets). Ticket "Manual Work" lists belong here.
 - **`## Deferred / Out-of-Scope`** — future ROADMAP/PHASE work, non-goals, bridges only. Never put maintainer Manual Work here.
-Then write the **`CHANGELOG-NEW.md`** section for the bumped version (see **CHANGELOG** below) and, if relevant files changed, the **README** per `readme-sync.mdc`. On re-entry, refine in place — do not duplicate.
+Then, **only if the Orchestrator handed over a bumped version**, write the **`CHANGELOG-NEW.md`** section (see **CHANGELOG** below). Update `README.md` when product surfaces changed (PHP/Node constraint, runtime deps, Docker/installer commands, badges). Skip CHANGELOG/README when the handover is `NO BUMP` or tooling-only. On re-entry, refine in place — do not duplicate.
 
 ## CHANGELOG (`CHANGELOG-NEW.md`)
 
