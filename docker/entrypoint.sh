@@ -91,7 +91,7 @@ cd "$app_dir"
 
 # A volume can be mounted empty and tmp/ is container-local, so the directories
 # the application writes to are recreated on every start.
-mkdir -p "$data_dir" storage tmp/cache tmp/logs tmp/packages tmp/sessions tmp/system tmp/temp
+mkdir -p "$data_dir" storage tmp/cache tmp/logs tmp/packages tmp/sessions tmp/snapshots tmp/system tmp/temp
 
 # config.php is written by the installer and rewritten whenever an administrator
 # saves settings, so it belongs on the volume rather than in the image, where a
