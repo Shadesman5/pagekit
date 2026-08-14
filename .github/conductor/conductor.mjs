@@ -8,6 +8,8 @@
 // Chained runs (auto_chain=true, default): each GHA job runs at most ONE cloud-agent phase
 // (PLAN, or one EXECUTE batch sized by batch_budget, or FINALIZE), then dispatches a fresh
 // workflow run when more work remains. This keeps every job under GitHub's 360-minute hosted cap.
+// Each job merges origin/<base> into the feature branch (not rebase: the branch is shared and
+// already on origin) so the cloud agent's startingRef is not a days-old fork of develop.
 // HANDOFF_XL (default true): do not launch the last (XL) Review+E2E batch — stop green, no chain;
 // run it on cursor.com/agents, tick the box, re-dispatch for FINALIZE.
 //
@@ -28,6 +30,7 @@ import {
   cloudExecuteSteps,
   xlHandoffMessage
 } from './guards.mjs';
+import { gitAt, syncFeatureWithBase } from './sync-base.mjs';
 
 // ---------------------------------------------------------------- config (from env)
 const API = 'https://api.cursor.com';
@@ -700,6 +703,20 @@ function ensureBranch() {
 function pullBranch() {
   sh(`git fetch origin ${BRANCH}`);
   sh(`git checkout -B ${BRANCH} origin/${BRANCH}`);
+  // Merge origin/BASE, not the local branch of that name: a Cloud Agent VM's local
+  // `develop` is the Cursor Build snapshot and can lag origin. Rebase is not used —
+  // this ref is already on origin and several agents push to it.
+  const synced = syncFeatureWithBase({
+    git: (...args) => gitAt(process.cwd(), args),
+    log,
+    branch: BRANCH,
+    base: BASE
+  });
+  if (synced.status === 'conflict') {
+    log(
+      `⚠ origin/${BASE} conflicts with ${BRANCH}; launch continues so the orchestrator can merge origin/${BASE} (never the local ${BASE} branch) and resolve`
+    );
+  }
 }
 
 // True if a PR for this feature branch is open OR already merged — makes audit runs resume-safe (audits

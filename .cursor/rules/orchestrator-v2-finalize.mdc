@@ -24,7 +24,13 @@ whitespace, shell metacharacters, newlines, `..`, leading `-`, or trailing `.loc
 ref` and do not run git.
 
 Then confirm you are on the validated branch: `git rev-parse --abbrev-ref HEAD`. If it differs,
-`git fetch origin` and `git checkout` with the validated name only. Then proceed.
+`git fetch origin` and `git checkout` with the validated name only.
+
+Then sync the Base: `git fetch origin <Base>` and `git merge origin/<Base> --no-edit` — the
+**remote-tracking** ref, never the local branch of that name (a Cloud Agent VM's local `develop`
+is the environment Build and can lag origin). Push before spawning workers. On conflict: resolve
+or `ESCALATE: merge origin/<Base> conflicted`. Do **not** rebase: the feature branch is shared and
+already on origin. Then proceed.
 
 ## Delegation protocol
 
