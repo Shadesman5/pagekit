@@ -349,18 +349,3 @@ final class SnapshotPurgeTest extends TestCase
         rmdir($path);
     }
 }
-
-/**
- * A store nothing can be taken out of: a file held open, a permission the
- * process does not have, a mount that has gone read-only.
- */
-final class ASnapshotThatWillNotGo extends Filesystem
-{
-    /**
-     * @param string|array<int, string> $files
-     */
-    public function delete($files): bool
-    {
-        return false;
-    }
-}

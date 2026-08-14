@@ -7,6 +7,7 @@ namespace Pagekit\Installer\Package\Snapshot;
 use Pagekit\Filesystem\Filesystem;
 use Pagekit\Installer\Package\PackageInterface;
 use Psr\Log\LoggerInterface;
+use Psr\Log\LogLevel;
 
 /**
  * The snapshots a package removal can be undone from, and the three things that
@@ -35,9 +36,10 @@ use Psr\Log\LoggerInterface;
  * Between them the three operations are what makes a removal reversible for as
  * long as it is: taking a snapshot is what a removal does before it destroys
  * anything, restoring one is what undoes that removal, and purging one is the
- * single point at which any of it becomes irreversible. All three leave a line
- * in the log, because all three are things an administrator will later need to
- * account for.
+ * single point at which any of it becomes irreversible - whether an
+ * administrator asks for that or the installation has simply kept the snapshot
+ * for as long as it keeps one. All three leave a line in the log, because all
+ * three are things an administrator will later need to account for.
  *
  * @phpstan-import-type Snapshot from SnapshotStore
  * @phpstan-import-type SnapshotDetails from SnapshotStore
@@ -72,6 +74,11 @@ final class PackageSnapshotter
     /**
      * Puts everything a removal is about to take away aside.
      *
+     * Taking one is also when the ones nobody needs any more go: the retention
+     * window is enforced here rather than by anything running on a timer
+     * ({@see purgeExpired()}), so the store is pruned by the same operation that
+     * makes it grow.
+     *
      * @param  string            $reason why the snapshot is being taken, {@see REASON_UNINSTALL}
      * @return string            the id the snapshot is addressed by from here on
      * @throws \RuntimeException where any part of the snapshot could not be written.
@@ -86,6 +93,12 @@ final class PackageSnapshotter
         // is still the live one.
         $composer = $this->composerInstalled($package->getName());
         $details = $this->details($package, $reason, $composer);
+
+        // There is a snapshot to write, so whatever the retention window has
+        // run out on goes before it does: snapshots nobody has reclaimed are
+        // the disk a new one needs, and reclaiming them afterwards would be
+        // reclaiming it too late.
+        $this->purgeExpired();
 
         $id = $this->store->create($details);
 
@@ -219,6 +232,76 @@ final class PackageSnapshotter
             sprintf('Snapshot "%s" of package "%s" purged on request: what it held is not recoverable.', $id, $snapshot['package']),
             ['snapshot' => $id, 'package' => $snapshot['module'], 'trigger' => 'request'],
         );
+    }
+
+    /**
+     * Destroys the snapshots that have been kept for as long as the
+     * installation keeps them.
+     *
+     * This is the whole of what stops a store of retained packages from growing
+     * until it fills the disk, and it is deliberately not a schedule: it runs
+     * when a snapshot is taken and when an administrator asks for it, so an
+     * installation that does neither keeps everything. For an operation nobody
+     * can undo, keeping too much is the direction to err in.
+     *
+     * As final as {@see purge()}, and on the record the same way, one line per
+     * snapshot. A snapshot that will not go is reported and left rather than
+     * raised: this runs while a new snapshot is being taken, and disk that could
+     * not be reclaimed may not cost the way back that is being written.
+     *
+     * @return list<string> the ids that are gone, in the order the store listed them
+     */
+    public function purgeExpired(): array
+    {
+        $purged = [];
+
+        foreach ($this->store->expired() as $id) {
+            $snapshot = $this->store->get($id);
+
+            // Gone between being listed and being read: another purge, or a
+            // hand on the store. Either way there is nothing left to destroy
+            // and nothing this call did.
+            if ($snapshot === null) {
+                continue;
+            }
+
+            if (!$this->store->delete($id)) {
+                $this->reportUnreclaimed($id);
+
+                continue;
+            }
+
+            $purged[] = $id;
+
+            $this->audit(
+                sprintf(
+                    'Snapshot "%s" of package "%s" purged after its retention window: what it held is not recoverable.',
+                    $id,
+                    $snapshot['package'],
+                ),
+                ['snapshot' => $id, 'package' => $snapshot['module'], 'trigger' => 'retention'],
+            );
+        }
+
+        return $purged;
+    }
+
+    /**
+     * Every snapshot there is, newest first.
+     *
+     * What each one says about itself, and what only the store can say: how much
+     * disk it is holding and when it may be reclaimed. That last pair is what an
+     * operator watching the store grow has to go on, since nothing here caps it.
+     *
+     * No part of the dump, ever. It is the site's whole database - every
+     * password hash on it included - and whoever is looking at a list of
+     * snapshots is choosing one, not reading one.
+     *
+     * @return array<string, Snapshot> keyed by id
+     */
+    public function list(): array
+    {
+        return $this->store->list();
     }
 
     /**
@@ -436,6 +519,24 @@ final class PackageSnapshotter
     }
 
     /**
+     * Reports a snapshot the retention window could not reclaim.
+     *
+     * Expired, still on the disk, and still restorable - so nothing is lost and
+     * nothing is wrong with the installation except the space. Which is exactly
+     * why it is a line rather than a failure: whatever asked for the prune has
+     * its own work to finish, and the store is where an operator goes to look
+     * once they have read this.
+     */
+    private function reportUnreclaimed(string $id): void
+    {
+        $this->audit(
+            sprintf('Snapshot "%s" is past its retention window but could not be removed, so the disk it holds is not reclaimed.', $id),
+            ['snapshot' => $id, 'trigger' => 'retention'],
+            LogLevel::WARNING,
+        );
+    }
+
+    /**
      * Records what happened to a snapshot, and to what.
      *
      * The trail of a destructive operation, for the administrator who comes
@@ -445,10 +546,10 @@ final class PackageSnapshotter
      *
      * @param array<string, mixed> $context
      */
-    private function audit(string $message, array $context): void
+    private function audit(string $message, array $context, string $level = LogLevel::NOTICE): void
     {
         try {
-            $this->log->notice($message, $context);
+            $this->log->log($level, $message, $context);
         } catch (\Throwable) {
             // Nothing is left that could take the line, and what it would have
             // described has happened regardless.

@@ -116,6 +116,29 @@ Uninstall is no longer a hard delete after a successful snapshot. The snapshot i
 
 Gates: Verifier (production) PASS; Tester FAIL once (`removeFiles` threw when the live tree remained after `delete`; existing unit fixtures such as `RecordedFiles` do not physically remove the folder) → refactorer retry → Verifier PASS, Tester PASS; test-writer done; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
 
+### Retention window + prune-on-create (Checklist Step 5)
+
+No scheduler, no panel action yet. The window is module config; it is enforced when the next snapshot is taken (`create()` prunes first) and when something calls `purgeExpired()` itself. An installation that does neither keeps every snapshot. Disk-full on a present store still aborts the removal.
+
+| File | Change |
+|---|---|
+| `app/installer/index.php` | Module config `snapshots.retention_days` ships `SnapshotStore::DEFAULT_RETENTION_DAYS` (30). The `snapshotter` factory reads `$config['snapshots']['retention_days']` through `SnapshotStore::retentionDays()` and constructs the store with that window. `$this->config` is captured once as `$config`. |
+| `app/installer/src/Package/Snapshot/SnapshotStore.php` | New static `retentionDays(mixed): int` — a numeric value is taken as it stands (zero and below included, which turns retention off); anything else is the shipped default. |
+| `app/installer/src/Package/Snapshot/PackageSnapshotter.php` | `create()` calls `purgeExpired()` before reserving the new directory. New `purgeExpired()`: destroy each expired id (skip if already gone between list and get; warn and leave if `delete()` is false; audit `trigger=retention` per success) and return the ids that went. New `list()`: the store inventory (size + expires, never dump contents). `audit()` takes an optional PSR log level so an unreclaimed snapshot is a warning rather than a notice. |
+
+### Tests (Checklist Step 5)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Snapshot/SnapshotRetentionTest.php` (new) | Real store + real database: taking a snapshot reclaims only what the window has run out on, before the new id is written; exactly-at-window is expired, a few minutes short is kept; `retentionDays <= 0` reclaims nothing (`expires` is null) and writes no retention line; `purgeExpired()` alone reclaims without a create; an empty install is left without a store directory; each reclaimed id is audited (`trigger=retention`, package, "not recoverable"); a `delete()` that returns false is a warning, the snapshot stays restorable, and the new snapshot still lands in full; a snapshot another purge already destroyed is not accounted for twice; `list()` is newest-first with size + expires and never contains dump contents. |
+| `tests/Unit/Snapshot/ASnapshotThatWillNotGo.php` (new) | Filesystem whose `delete()` is always false — shared by explicit purge and retention, because the disk that will not go is the same either way. |
+| `tests/Unit/Snapshot/SnapshotPurgeTest.php` | `ASnapshotThatWillNotGo` moved out of this file. |
+| `tests/Unit/Snapshot/SnapshotStoreTest.php` | `retentionDays()` takes a number (int, numeric string, truncated float, 0, negative) as-is and falls back to the default for null / empty / non-numeric text / bool / array. |
+| `tests/Unit/Snapshot/SnapshotServiceWiringTest.php` | The installer-built snapshotter honours a configured window (7 days → `expires = created + 7d`); missing / empty / non-numeric config keeps the shipped default; the module's shipped value is that same default. |
+| `tests/Unit/Package/PackageSnapshotGateTest.php` | End-to-end uninstall against a store directory chmod'd 0555: the removal is refused (`nothing was removed`), the package folder / version key / extensions list are untouched, and the store is left empty (no directory offered as restorable). Skips under root or a host that still writes into a read-only directory. TearDown restores 0755 so the workspace can be removed. |
+
+Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -139,6 +162,10 @@ Gates: Verifier (production) PASS; Tester FAIL once (`removeFiles` threw when th
 - **`installed.json` is captured, not restored.** Overwriting the live Composer record would take every package installed since off Composer's books. The copy stays in the snapshot for whoever reconciles the two.
 - **A restored snapshot is still a snapshot.** Nothing in `restore()` destroys it; the same id can be replayed until `purge()`.
 - **Purge is the only irreversible step.** Uninstall leaves DB tables in place (a package that wants its rows gone says so in its own hook). Purge deletes the snapshot directory; a `delete()` that returns false is reported rather than counted as gone, and can leave part of the directory destroyed.
+- **Prune-on-create, not a scheduler.** `create()` reclaims expired snapshots before it opens a new directory. `purgeExpired()` is also callable on its own (the admin action in the next step). An installation that never takes another snapshot and never asks keeps everything — for an irreversible delete, that is the direction to err in.
+- **Exactly-at-window is expired.** The store treats `created <= now - days` as reclaimable, so the expiry `list()` shows is the moment it can actually go, not the following day. Zero or less expires nothing (`expires` is `null`).
+- **A prune that cannot delete does not cost the new snapshot.** Explicit `purge(id)` still throws when `delete()` is false. Retention is different: it runs in the middle of writing a way back, so a stubborn expired directory is a warning (`trigger=retention`) and is left restorable. A snapshot already gone between `expired()` and `get()` is skipped, not double-accounted.
+- **Non-numeric retention is the default, not zero.** Module config is whatever the DB holds. `is_numeric` (including `"0"` and negatives) is the administrator's decision; text / empty / bool / array would otherwise read as 0 and turn retention off by accident.
 
 ---
 
@@ -154,21 +181,24 @@ _TBD / None_
 - **`docker/entrypoint.sh` `mkdir` is CI-exercised.** The VM has no Docker daemon; the `Docker Image` workflow is what actually recreates `tmp/snapshots` on start.
 - **MySQL restore that fails mid-apply leaves a partial replacement.** Documented, not papered over. Recovery is to run restore again from the dump still on disk. SQLite does roll back; do not assume the MySQL path does.
 - **MySQL dump/restore is the advisory `phpunit-mysql` leg.** Default PHPUnit is SQLite in memory via `SnapshotDatabase`. The same tests run against MySQL 8.4 when `DbUtil` globals name it; they skip-cleanly otherwise. A full uninstall → restore → purge on a real MySQL site is still maintainer work — the primitives exist; the panel does not call them yet.
-- **`php pagekit uninstall` now runs.** It used to TypeError before looking up a package. It now snapshots first (when the service exists) and then takes the live tree out of `packages/`. Restore and purge exist on `PackageSnapshotter`; nothing in the panel or the CLI calls them yet.
-- **Uninstall is the soft stage.** The live tree is gone; the snapshot is the retained copy; DB tables stay. A crash between snapshot and delete can leave both; a crash after delete leaves a restorable snapshot that no in-product caller invokes yet. Purge is the only destroy, and it is still a service method with no admin action.
+- **`php pagekit uninstall` now runs.** It used to TypeError before looking up a package. It now snapshots first (when the service exists) and then takes the live tree out of `packages/`. That create also prunes expired snapshots. Restore, purge, `list()`, and `purgeExpired()` exist on `PackageSnapshotter`; nothing in the panel or the CLI calls restore/purge/`list()`/`purgeExpired()` yet.
+- **Uninstall is the soft stage.** The live tree is gone; the snapshot is the retained copy; DB tables stay. A crash between snapshot and delete can leave both; a crash after delete leaves a restorable snapshot that no in-product caller invokes yet. Purge is the only destroy of a snapshot — on request, or when the next `create()` (or an explicit `purgeExpired()`) finds the window has run out. Neither path has an admin action yet.
 - **`removeFiles` does not re-stat a non-Composer tree after `delete()`.** Existing unit fixtures do not physically remove the folder. A `file->delete()` that returns true while the directory remains reports the uninstall as finished; the factory would still list the package. Composer-installed packages are still judged by what is on disk.
+- **No cron, no hard cap.** Retention is enforced only on the next `create()` or an explicit `purgeExpired()` call. Nothing in the panel calls that yet. An install that stops uninstalling sits on every snapshot it took until someone does. Size + expires on `list()` are the growth signal; there is no silent delete-oldest cap.
+- **An unreclaimed expired snapshot stays a snapshot.** A `delete()` that returns false during prune leaves dump and archive in place. Disk is not handed back; restore still works. The warning is the operator's cue.
+- **The 0555 disk-full abort skips as root.** Same as the store's permission tests: `posix_geteuid() === 0` (and hosts that ignore directory mode) cannot provoke a failed write. The gate is still a present store that will not accept a snapshot — uninstall refuses, package intact.
 
 ---
 
 ## 🔐 Security & Data Impact
 
-Uninstall now writes a dump, then takes the live tree away. A finished snapshot is owner-only (directory 0700, dump/metadata 0600) and holds every row the installation owns — password hashes and session data among them — plus the package tree and, for Composer packages, `installed.json`. The store is still not HTTP-reachable (`path.snapshots` outside DocRoot; `Require all denied` belt). Failure of any part of `create()` deletes the reserved directory; the removal does not start, so there is no half-removed package offered as restorable. Restore puts those files back and then replaces the whole database — everything written since the snapshot is gone — and does not write `installed.json` back. Purge destroys the dump. Neither restore nor purge is reachable over HTTP yet (no controller). Ids that name no snapshot, including traversal payloads, are refused without echoing the value. A tree that would not leave the live installation streams the package title and that the snapshot holds it; the path stays in the error log. The archive path (and the restore target) is taken from where the files are, not from the package name.
+Uninstall now writes a dump, then takes the live tree away. A finished snapshot is owner-only (directory 0700, dump/metadata 0600) and holds every row the installation owns — password hashes and session data among them — plus the package tree and, for Composer packages, `installed.json`. The store is still not HTTP-reachable (`path.snapshots` outside DocRoot; `Require all denied` belt). Failure of any part of `create()` deletes the reserved directory; the removal does not start, so there is no half-removed package offered as restorable. A store that is present but will not accept a write (disk full / unwritable root) is the same abort — no empty directory left behind as something to restore. Restore puts those files back and then replaces the whole database — everything written since the snapshot is gone — and does not write `installed.json` back. Purge (on request or after the retention window) destroys the dump. Neither restore nor purge is reachable over HTTP yet (no controller); `list()` is metadata + size + expires only, never dump contents. Ids that name no snapshot, including traversal payloads, are refused without echoing the value. A tree that would not leave the live installation streams the package title and that the snapshot holds it; the path stays in the error log. The archive path (and the restore target) is taken from where the files are, not from the package name. Retention lines name snapshot id + package + `trigger=retention`; they do not carry dump contents.
 
 ---
 
 ## 🛡️ No-Mercy Compliance
 
-One snapshotter, one `uninstall()` path, one `removeFiles()`. Call sites constructing `PackageSnapshotter` all pass the restorer — no optional collaborator, no "restore if the dumper is present". The old inline Composer-or-`file->delete` removal is deleted, not wrapped. The no-id escape hatch is still absence of the service. Dump/restore remains one format and one pair of classes. `create()` is all-or-nothing; `restore()` / `purge()` are real methods, not stubs. `list()` / `purgeExpired()` are still absent (retention is the next checklist step). No second node-trash mechanism — `PackageLifecycleWiringTest` is unmodified.
+One snapshotter, one `uninstall()` path, one `removeFiles()`. Call sites constructing `PackageSnapshotter` all pass the restorer — no optional collaborator, no "restore if the dumper is present". The old inline Composer-or-`file->delete` removal is deleted, not wrapped. The no-id escape hatch is still absence of the service. Dump/restore remains one format and one pair of classes. `create()` is all-or-nothing; `restore()` / `purge()` / `list()` / `purgeExpired()` are real methods, not stubs. One window, one parser (`SnapshotStore::retentionDays()`), one prune path — a failed prune does not wrap or skip `create()`. No second node-trash mechanism — `PackageLifecycleWiringTest` is unmodified. No HTTP surface for list/restore/purge yet (the next checklist step).
 
 ---
 
@@ -178,7 +208,7 @@ One snapshotter, one `uninstall()` path, one `removeFiles()`. Call sites constru
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: Checklist Step 2 production tester FAIL once (PHPStan `list<string>` vs `array` at `DatabaseRestorer::apply`) → refactorer retry → PASS. Checklist Step 4 production tester FAIL once (`removeFiles` threw when the live tree remained after `delete`; existing unit fixtures do not physically remove the folder) → refactorer retry (non-Composer path trusts `file->delete() === true` rather than `is_dir`) → PASS. Checklist Steps 1 and 3 gates all PASS. Step 3 deleted the `UninstallCommand` PHPStan baseline ignore rather than adding one.
+- Notable deviations: Checklist Step 2 production tester FAIL once (PHPStan `list<string>` vs `array` at `DatabaseRestorer::apply`) → refactorer retry → PASS. Checklist Step 4 production tester FAIL once (`removeFiles` threw when the live tree remained after `delete`; existing unit fixtures do not physically remove the folder) → refactorer retry (non-Composer path trusts `file->delete() === true` rather than `is_dir`) → PASS. Checklist Steps 1, 3, and 5 gates all PASS. Step 3 deleted the `UninstallCommand` PHPStan baseline ignore rather than adding one.
 
 ---
 

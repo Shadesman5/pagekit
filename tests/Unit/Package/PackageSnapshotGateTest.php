@@ -97,6 +97,13 @@ final class PackageSnapshotGateTest extends TestCase
     protected function tearDown(): void
     {
         $this->closeDatabases();
+
+        // A test that provoked a store nothing can be written to hands it back,
+        // so the workspace can be removed again.
+        if (is_dir($this->snapshots)) {
+            chmod($this->snapshots, 0755);
+        }
+
         $this->removeTree($this->workspace);
     }
 
@@ -192,6 +199,32 @@ final class PackageSnapshotGateTest extends TestCase
         // The message is streamed straight to a browser, so what refused the
         // write stays in the log rather than being read out to whoever asked.
         self::assertStringNotContainsString($this->workspace, $failure->getMessage());
+
+        self::assertFileExists($this->tree . '/composer.json');
+        self::assertSame('1.0.0', $this->system->get('packages.test-ext'));
+        self::assertSame(['test-ext'], (array) $this->system->get('extensions'));
+        self::assertSame([], $this->events->fired, 'Nothing was announced, because nothing was removed');
+    }
+
+    public function testAStoreWithNoRoomLeftInItLeavesThePackageExactlyWhereItWas(): void
+    {
+        // The store an installation has been keeping snapshots in all along,
+        // which has stopped accepting them: it is there, it is where the boot
+        // says it is, and a write into it no longer lands. The removal has to
+        // stop on that as squarely as on a store that was never there - and it
+        // may not leave a directory behind in a store an administrator reads,
+        // because every directory in one is offered as a package to restore.
+        mkdir($this->snapshots, 0755, true);
+        chmod($this->snapshots, 0555);
+
+        $this->requireUnwritable($this->snapshots);
+
+        $app = $this->container($this->snapshotter());
+
+        $failure = $this->refusal(fn () => $this->manager($app)->uninstall('pagekit/test-ext'));
+
+        self::assertStringContainsString('nothing was removed', $failure->getMessage());
+        self::assertSame([], $this->entries($this->snapshots));
 
         self::assertFileExists($this->tree . '/composer.json');
         self::assertSame('1.0.0', $this->system->get('packages.test-ext'));
@@ -410,6 +443,27 @@ final class PackageSnapshotGateTest extends TestCase
     private function file(string $id, string $name): string
     {
         return $this->snapshots . '/' . $id . '/' . $name;
+    }
+
+    /**
+     * Skips where a file can still be created in a directory whose permission
+     * bits refuse one: root ignores them, and a platform that answers a
+     * read-only directory with a flag rather than a refusal (Windows) lets the
+     * write happen as well.
+     */
+    private function requireUnwritable(string $dir): void
+    {
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            self::markTestSkipped('Root writes into a read-only directory regardless of its permission bits');
+        }
+
+        $probe = $dir . '/probe-writable';
+
+        if (@file_put_contents($probe, '') !== false) {
+            unlink($probe);
+
+            self::markTestSkipped('This host writes into a read-only directory, where a failed write cannot be provoked');
+        }
     }
 
     /**

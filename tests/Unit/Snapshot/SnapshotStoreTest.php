@@ -498,6 +498,39 @@ final class SnapshotStoreTest extends TestCase
         ];
     }
 
+    #[DataProvider('provideConfiguredWindows')]
+    public function testAConfiguredWindowIsTakenAsItStandsOnlyWhereItIsANumber(mixed $configured, int $days): void
+    {
+        // What an installation configures is whatever its database holds under
+        // that key: a settings form posts text, a row can be edited by hand, and
+        // an older release may have left nothing there at all. A value that is a
+        // number is the administrator's decision and is taken as it stands, zero
+        // and below included - that is retention deliberately turned off.
+        // Anything else says nothing about how long this installation wants a
+        // way back, and reading it as zero would turn retention off by accident.
+        self::assertSame($days, SnapshotStore::retentionDays($configured));
+    }
+
+    /**
+     * @return array<string, array{0: mixed, 1: int}>
+     */
+    public static function provideConfiguredWindows(): array
+    {
+        return [
+            'a number of days' => [14, 14],
+            'a number of days as text, which is how a form posts one' => ['14', 14],
+            'a number of days with a fraction, which is a whole day either way' => [14.9, 14],
+            'retention turned off' => [0, 0],
+            'retention turned off, as text' => ['0', 0],
+            'a window that is already over, which keeps every snapshot too' => [-1, -1],
+            'nothing configured' => [null, self::DEFAULT_DAYS],
+            'a setting left empty' => ['', self::DEFAULT_DAYS],
+            'text where a number belongs' => ['a fortnight', self::DEFAULT_DAYS],
+            'a setting that reads as on rather than as a number' => [true, self::DEFAULT_DAYS],
+            'a whole section where a number belongs' => [['days' => 14], self::DEFAULT_DAYS],
+        ];
+    }
+
     public function testTheWindowASnapshotIsKeptForIsCountedFromWhenItWasTaken(): void
     {
         $taken = time() - 3 * self::DAY;

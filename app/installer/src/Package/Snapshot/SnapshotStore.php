@@ -122,6 +122,22 @@ final class SnapshotStore
     }
 
     /**
+     * The window an installation has configured, as a number of days.
+     *
+     * Module configuration is whatever the database holds under that key, and a
+     * settings form, a hand-edited row or an older release may have left it as
+     * text, as empty or as something that is no number in any reading. What is
+     * one is taken as it stands - zero and below included, which is retention
+     * turned off on purpose - and everything else is the default: a value nobody
+     * can read says nothing about how long this installation wants to keep a way
+     * back, so it gets the window every installation ships with.
+     */
+    public static function retentionDays(mixed $configured): int
+    {
+        return is_numeric($configured) ? (int) $configured : self::DEFAULT_RETENTION_DAYS;
+    }
+
+    /**
      * Opens a snapshot: a directory of its own, with the description of what is
      * about to be put into it already in place.
      *

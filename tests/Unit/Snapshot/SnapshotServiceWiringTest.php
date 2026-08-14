@@ -34,6 +34,12 @@ use Psr\Log\NullLogger;
  * is only worth taking if it can be put back: the collaborator that reads the
  * database and the one that writes it are wired up separately, and one of them
  * missing would not be noticed until the day a package had to be restored.
+ *
+ * How long a removal stays undoable is decided here as well. It is the one thing
+ * about snapshots an installation configures, so the value the module ships and
+ * whatever the database has over the top of it are read where the service is
+ * built - and a value that is no number at all still has to leave the
+ * installation with the window it shipped with rather than with none.
  */
 final class SnapshotServiceWiringTest extends TestCase
 {
@@ -45,6 +51,8 @@ final class SnapshotServiceWiringTest extends TestCase
      * the directory the packages actually live in.
      */
     private const BOOKKEEPING = '[{"name":"pagekit/test-ext","version":"1.4.2","type":"pagekit-extension"}]';
+
+    private const DAY = 86400;
 
     private string $workspace;
 
@@ -142,6 +150,59 @@ final class SnapshotServiceWiringTest extends TestCase
         );
     }
 
+    public function testTheWindowAnInstallationConfiguresIsTheOneItsSnapshotsAreKeptFor(): void
+    {
+        // The configured window is read where the service is built and handed to
+        // the store, so a service built without it would keep every snapshot for
+        // the shipped window whatever the administrator asked for.
+        $snapshot = $this->takeOne($this->boot($this->services(), ['snapshots' => ['retention_days' => 7]]));
+
+        self::assertSame($snapshot['created'] + 7 * self::DAY, $snapshot['expires']);
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     */
+    #[DataProvider('provideInstallationsWithNoWindowOfTheirOwn')]
+    public function testAnInstallationWithNoWindowOfItsOwnKeepsItsSnapshotsForTheShippedOne(array $config): void
+    {
+        // Module configuration comes out of the database, so the key can be
+        // missing or hold something no number can be read out of. The window
+        // every installation ships with is the only safe reading of that: no
+        // window at all would keep every snapshot forever, and zero days would
+        // reclaim them at the next removal.
+        $snapshot = $this->takeOne($this->boot($this->services(), $config));
+
+        self::assertSame(
+            $snapshot['created'] + SnapshotStore::DEFAULT_RETENTION_DAYS * self::DAY,
+            $snapshot['expires'],
+        );
+    }
+
+    /**
+     * @return array<string, array{0: array<string, mixed>}>
+     */
+    public static function provideInstallationsWithNoWindowOfTheirOwn(): array
+    {
+        return [
+            'nothing configured about snapshots' => [[]],
+            'a section with no window in it' => [['snapshots' => []]],
+            'a window nothing can be read as a number' => [['snapshots' => ['retention_days' => 'a fortnight']]],
+        ];
+    }
+
+    public function testTheWindowTheModuleShipsIsTheOneAStoreFallsBackTo(): void
+    {
+        // The shipped value is what a settings screen starts from and what a
+        // database row is written over. A module shipping a different number
+        // from the one the store falls back to would make the window an
+        // installation is on depend on whether that row was ever written.
+        $config = self::definition()['config'];
+
+        self::assertIsArray($config);
+        self::assertSame(SnapshotStore::DEFAULT_RETENTION_DAYS, $config['snapshots']['retention_days'] ?? null);
+    }
+
     /**
      * @param array<int, string> $absent
      */
@@ -178,8 +239,12 @@ final class SnapshotServiceWiringTest extends TestCase
      * container holding the given services.
      *
      * @param array<string, mixed> $services
+     * @param array<string, mixed> $config   what this installation configures
+     *                                       about the module, which is what its
+     *                                       database holds over the shipped
+     *                                       defaults
      */
-    private function boot(array $services): Application
+    private function boot(array $services, array $config = []): Application
     {
         $app = new Application();
 
@@ -187,20 +252,53 @@ final class SnapshotServiceWiringTest extends TestCase
             $app->set($id, $service);
         }
 
-        $installer = strtr(dirname(__DIR__, 3), '\\', '/').'/app/installer';
-        $definition = require $installer.'/index.php';
-
         // Not enabled: what registers the snapshotter runs in every environment
         // the module is loaded in, and the installer's own routes and assets are
         // another concern entirely.
         (new Module([
             'name' => 'installer',
-            'path' => $installer,
-            'config' => ['enabled' => false],
-            'main' => $definition['main'],
+            'path' => self::installerPath(),
+            'config' => $config + ['enabled' => false],
+            'main' => self::definition()['main'],
         ]))->main($app);
 
         return $app;
+    }
+
+    /**
+     * The module as the installation ships it, read out of the definition every
+     * boot loads.
+     *
+     * @return array<string, mixed>
+     */
+    private static function definition(): array
+    {
+        return require self::installerPath().'/index.php';
+    }
+
+    private static function installerPath(): string
+    {
+        return strtr(dirname(__DIR__, 3), '\\', '/').'/app/installer';
+    }
+
+    /**
+     * Takes a snapshot through the service the installation built, and hands
+     * back what that snapshot says about itself.
+     *
+     * @return array<string, mixed>
+     */
+    private function takeOne(Application $app): array
+    {
+        $snapshotter = $app->get('snapshotter');
+
+        self::assertInstanceOf(PackageSnapshotter::class, $snapshotter);
+
+        $id = $snapshotter->create($this->package(), PackageSnapshotter::REASON_UNINSTALL);
+        $snapshots = $snapshotter->list();
+
+        self::assertArrayHasKey($id, $snapshots);
+
+        return $snapshots[$id];
     }
 
     /**
