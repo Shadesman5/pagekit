@@ -263,22 +263,38 @@ class PackageController
                 // the site load is cached, and the package is out of both.
                 $this->module->get('system/cache')->clearCache();
 
-                // One line per step of the package's own that did not finish,
-                // folded onto that line because the reader takes this stream
-                // apart by line. Written once nothing else can write after
-                // them but the status, so a warning arrives whole.
-                foreach ($this->manager->takeHookWarnings() as $warning) {
-                    printf("\nwarning=%s", str_replace(["\r\n", "\r", "\n"], ' ', $warning));
-                }
+                $this->streamHookWarnings();
 
                 echo "\nstatus=success";
 
             } catch (\Exception $e) {
 
-                printf("%s\nstatus=error", $e->getMessage());
+                echo $e->getMessage();
+
+                // A removal that broke off has usually run some of the package's
+                // own steps first, and the failure that stopped it says nothing
+                // about the ones that did not finish. Held back here, they would
+                // be lost with the manager at the end of the request.
+                $this->streamHookWarnings();
+
+                echo "\nstatus=error";
             }
 
         });
+    }
+
+    /**
+     * Writes the steps of the package's own that did not finish.
+     *
+     * One line each, folded onto that line because the reader takes this stream
+     * apart by line, and written where nothing but the status line can follow
+     * them, so a warning arrives whole.
+     */
+    private function streamHookWarnings(): void
+    {
+        foreach ($this->manager->takeHookWarnings() as $warning) {
+            printf("\nwarning=%s", str_replace(["\r\n", "\r", "\n"], ' ', $warning));
+        }
     }
 
     protected function loadPackage(string $file): PackageInterface

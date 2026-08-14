@@ -160,7 +160,7 @@ class PackageManager
             // Before the package is switched off and long before its folder is
             // touched: everything below this line is what the snapshot exists to
             // reverse.
-            $this->snapshot($package);
+            $snapshot = $this->snapshot($package);
 
             $this->disable($package);
 
@@ -181,7 +181,7 @@ class PackageManager
 
             $this->app->get('config')('system')->remove('packages.' . $package->get('module'));
 
-            $this->removeFiles($package);
+            $this->removeFiles($package, $snapshot !== null);
 
             // The package is gone, so a record of it would go on naming
             // something that is no longer installed.
@@ -453,14 +453,18 @@ class PackageManager
      * database that cannot be read, a snapshotter that is not one - aborts the
      * removal with nothing removed.
      *
+     * @return string|null the id the package is retained under, or null where
+     *                     the installation keeps no snapshots and the removal is
+     *                     therefore as final as it ever was
+     *
      * @throws \RuntimeException where a snapshot was to be taken and could not be
      */
-    private function snapshot(PackageInterface $package): void
+    private function snapshot(PackageInterface $package): ?string
     {
         if (!$this->app->has('snapshotter')) {
             $this->reportUnsnapshotted($package);
 
-            return;
+            return null;
         }
 
         try {
@@ -488,27 +492,33 @@ class PackageManager
         }
 
         $this->output->writeln(__('Snapshot %id% taken.', ['%id%' => $id]));
+
+        return $id;
     }
 
     /**
      * Takes the package's files out of the live tree.
      *
-     * The copy in the snapshot is what the package is retained as from here on,
-     * so this completes a move rather than deleting the last copy of anything -
-     * and it has to leave nothing behind. A tree still under packages/ is one the
-     * factory goes on globbing up and the panel goes on offering, as a package
-     * that merely is not installed, while its hooks have run and its nodes are in
-     * the trash. So the outcome is checked rather than assumed: files that will
-     * not go are a removal an administrator has to hear about, not one that can
-     * be reported as done.
+     * Where a snapshot was taken, the copy in it is what the package is retained
+     * as from here on, so this completes a move rather than deleting the last
+     * copy of anything; where the installation keeps none, it is the deletion it
+     * always was. Either way it has to leave nothing behind. A tree still under
+     * packages/ is one the factory goes on globbing up and the panel goes on
+     * offering, as a package that merely is not installed, while its hooks have
+     * run and its nodes are in the trash. So the outcome is checked rather than
+     * assumed: files that will not go are a removal an administrator has to hear
+     * about, not one that can be reported as done.
      *
      * Composer is told last, for a package it installed, so that what it takes
      * off the disk is the tree the snapshot was already archived from.
      *
+     * @param bool $snapshotted whether there is a copy of the package to point
+     *                          whoever has to finish the job at
+     *
      * @throws \RuntimeException where the package names no path, or its files
      *                          could not be taken out of the live tree
      */
-    private function removeFiles(PackageInterface $package): void
+    private function removeFiles(PackageInterface $package, bool $snapshotted): void
     {
         $path = $package->get('path');
 
@@ -542,13 +552,20 @@ class PackageManager
             return;
         }
 
-        $this->reportUnremovedFiles($package);
+        $this->reportUnremovedFiles($package, $snapshotted);
+
+        $name = $this->label($package);
 
         // Streamed to a browser, so the path that would not go stays in the log.
-        throw new \RuntimeException(__(
-            '"%name%" was removed, but its files could not be taken off the disk. The snapshot holds the whole package, so it can be restored, or the folder removed by hand.',
-            ['%name%' => $this->label($package)]
-        ));
+        throw new \RuntimeException($snapshotted
+            ? __(
+                '"%name%" was removed, but its files could not be taken off the disk. The snapshot holds the whole package, so it can be restored, or the folder removed by hand.',
+                ['%name%' => $name]
+            )
+            : __(
+                '"%name%" was removed, but its files could not be taken off the disk. This installation keeps no snapshots, so the folder has to be removed by hand.',
+                ['%name%' => $name]
+            ));
     }
 
     /**
@@ -785,14 +802,19 @@ class PackageManager
      * whoever finishes it needs, which is why it goes here rather than into the
      * message the caller streams back. What is left of the tree can be anything
      * from all of it to the entry the deletion stopped at.
+     *
+     * @param bool $snapshotted whether there is a copy of the package to point
+     *                          whoever has to finish the job at
      */
-    private function reportUnremovedFiles(PackageInterface $package): void
+    private function reportUnremovedFiles(PackageInterface $package, bool $snapshotted): void
     {
         try {
             if ($this->app->has('log')) {
                 $this->app->get('log')->error(
                     sprintf(
-                        'Package "%s" was removed, but its files at "%s" could not be: the snapshot holds the package, so it can be restored or the folder removed by hand.',
+                        $snapshotted
+                            ? 'Package "%s" was removed, but its files at "%s" could not be: the snapshot holds the package, so it can be restored or the folder removed by hand.'
+                            : 'Package "%s" was removed, but its files at "%s" could not be: this installation keeps no snapshots, so the folder has to be removed by hand.',
                         $package->get('name'),
                         $package->get('path')
                     ),
