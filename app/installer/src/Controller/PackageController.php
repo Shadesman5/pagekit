@@ -391,10 +391,10 @@ class PackageController
                     ob_get_clean();
                 }
 
-                $errorMessage = __('Unable to activate "%name%".<br>A fatal error occured.', ['%name%' => $name]);
+                $errorMessage = __('Unable to activate "%name%". A fatal error occurred.', ['%name%' => $name]);
 
                 if ($this->debug) {
-                    $errorMessage .= '<br><br>' . sprintf('%s in %s on line %d', $message, $file, $line);
+                    $errorMessage .= ' ' . sprintf('%s in %s on line %d', $message, $file, $line);
                 }
 
                 $this->response->json($errorMessage, 500)->send();
@@ -409,10 +409,10 @@ class PackageController
                 ob_get_clean();
             }
 
-            $message = __('Unable to activate "%name%".<br>A fatal error occured.', ['%name%' => $name]);
+            $message = __('Unable to activate "%name%". A fatal error occurred.', ['%name%' => $name]);
 
             if ($this->debug) {
-                $message .= '<br><br>' . $exception->getMessage();
+                $message .= ' ' . $exception->getMessage();
             }
 
             $this->response->json($message, 500)->send();
