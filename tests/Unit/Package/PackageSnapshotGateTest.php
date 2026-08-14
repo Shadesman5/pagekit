@@ -12,6 +12,7 @@ use Pagekit\Installer\Package\Package;
 use Pagekit\Installer\Package\PackageFactory;
 use Pagekit\Installer\Package\PackageManager;
 use Pagekit\Installer\Package\Snapshot\DatabaseDumper;
+use Pagekit\Installer\Package\Snapshot\DatabaseRestorer;
 use Pagekit\Installer\Package\Snapshot\PackageSnapshotter;
 use Pagekit\Installer\Package\Snapshot\SnapshotStore;
 use Pagekit\Tests\Unit\Snapshot\SnapshotDatabase;
@@ -331,10 +332,12 @@ final class PackageSnapshotGateTest extends TestCase
     private function snapshotter(?string $store = null): PackageSnapshotter
     {
         $files = new Filesystem();
+        $connection = $this->openDatabase();
 
         return new PackageSnapshotter(
             new SnapshotStore($store ?? $this->snapshots, $files),
-            new DatabaseDumper($this->openDatabase()),
+            new DatabaseDumper($connection),
+            new DatabaseRestorer($connection),
             $files,
             new NullLogger(),
             $this->packages,

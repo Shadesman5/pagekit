@@ -9,13 +9,14 @@ use Pagekit\Installer\Package\PackageInterface;
 use Psr\Log\LoggerInterface;
 
 /**
- * Takes the snapshot a package removal can be undone from.
+ * The snapshots a package removal can be undone from, and the three things that
+ * can be done with one.
  *
  * This is the one service the rest of the application talks to about snapshots.
  * The store, the dump and the archive are the parts it puts together; whoever is
- * about to remove a package needs none of them by name. What it promises is
- * all-or-nothing: a snapshot that could not be completed is taken off the disk
- * again and reported as no snapshot at all, because the caller is about to
+ * about to remove a package needs none of them by name. What taking one promises
+ * is all-or-nothing: a snapshot that could not be completed is taken off the
+ * disk again and reported as no snapshot at all, because the caller is about to
  * destroy the very thing it describes.
  *
  * A snapshot holds three things. What was removed - the package's name, module,
@@ -31,6 +32,14 @@ use Psr\Log\LoggerInterface;
  * returns every row to the moment before the removal, and anything written
  * since is not in it. Whoever offers that to an administrator has to say so.
  *
+ * Between them the three operations are what makes a removal reversible for as
+ * long as it is: taking a snapshot is what a removal does before it destroys
+ * anything, restoring one is what undoes that removal, and purging one is the
+ * single point at which any of it becomes irreversible. All three leave a line
+ * in the log, because all three are things an administrator will later need to
+ * account for.
+ *
+ * @phpstan-import-type Snapshot from SnapshotStore
  * @phpstan-import-type SnapshotDetails from SnapshotStore
  */
 final class PackageSnapshotter
@@ -53,6 +62,7 @@ final class PackageSnapshotter
     public function __construct(
         private readonly SnapshotStore $store,
         private readonly DatabaseDumper $dumper,
+        private readonly DatabaseRestorer $restorer,
         private readonly Filesystem $files,
         private readonly LoggerInterface $log,
         private readonly string $packages,
@@ -100,9 +110,199 @@ final class PackageSnapshotter
             );
         }
 
-        $this->audit($id, $package, $reason);
+        $this->audit(
+            sprintf('Snapshot "%s" of package "%s" taken for %s.', $id, $package->getName(), $reason),
+            ['snapshot' => $id, 'package' => $package->get('module'), 'reason' => $reason],
+        );
 
         return $id;
+    }
+
+    /**
+     * Puts the installation back the way the snapshot found it.
+     *
+     * Destructive, and destructive in a way the removal it undoes was not: the
+     * dump is of the whole database, so every row written since the snapshot was
+     * taken - a page, a comment, a user who signed up - is replaced by what was
+     * there before. Whoever offers this to an administrator has to say that in
+     * as many words.
+     *
+     * The files go back first and the database after them, because that is the
+     * order in which the installation is coherent at every point in between: a
+     * package tree nothing enables is a package the panel lists as not
+     * installed, while a database naming an enabled extension whose files are
+     * not there is a boot that fails. So a restore that puts the files back and
+     * then cannot apply the dump reports the failure and leaves the snapshot
+     * exactly where it is - running it again is what finishes the job.
+     *
+     * Composer's record of what it had installed is not written back. The
+     * captured copy describes the installation as it was and the live one
+     * describes it as it is, so overwriting the second with the first would take
+     * every package installed since off Composer's books. It stays in the
+     * snapshot for whoever reconciles the two.
+     *
+     * A restored snapshot is still a snapshot: nothing here destroys it, so the
+     * same one can be replayed again until it is purged.
+     *
+     * What the running process is holding is not restored with the database. The
+     * configuration it read at boot, the modules it loaded and any cache it
+     * built are all from before, so whoever calls this finishes by starting the
+     * installation over rather than by carrying on with it.
+     *
+     * @throws \InvalidArgumentException where no snapshot goes by this id
+     * @throws \RuntimeException         where the snapshot is not one anything can be
+     *                                  restored from, or the restore could not be applied
+     */
+    public function restore(string $id): void
+    {
+        $snapshot = $this->snapshot($id);
+        $dump = $this->store->dumpFile($id);
+
+        if (!is_file($dump)) {
+            throw new \RuntimeException(sprintf('Snapshot "%s" holds no database dump, so there is nothing in it to put back.', $id));
+        }
+
+        $trees = $this->archived($id);
+
+        if ($trees === []) {
+            throw new \RuntimeException(sprintf('Snapshot "%s" holds no package files, so there is nothing in it to put back.', $id));
+        }
+
+        foreach ($trees as $tree) {
+            $this->reinstate($id, $tree);
+        }
+
+        $summary = $this->restorer->restore($dump);
+
+        $this->audit(
+            sprintf(
+                'Snapshot "%s" of package "%s" restored: its files are back under packages/, and the database is as it was when the snapshot was taken (%d tables, %d rows).',
+                $id,
+                $snapshot['package'],
+                $summary['tables'],
+                $summary['rows'],
+            ),
+            [
+                'snapshot' => $id,
+                'package' => $snapshot['module'],
+                'tables' => $summary['tables'],
+                'rows' => $summary['rows'],
+            ],
+        );
+    }
+
+    /**
+     * Destroys a snapshot and everything in it.
+     *
+     * The one operation here that cannot be undone. Up to this point a removed
+     * package was only put aside; afterwards its files, the dump of the database
+     * it was removed from and the description of both are gone, and nobody can
+     * bring that package back. Which is why what was destroyed and what asked
+     * for it go on the record.
+     *
+     * @throws \InvalidArgumentException where no snapshot goes by this id
+     * @throws \RuntimeException         where the snapshot could not be removed, which
+     *                                  can leave part of it destroyed
+     */
+    public function purge(string $id): void
+    {
+        $snapshot = $this->snapshot($id);
+
+        if (!$this->store->delete($id)) {
+            throw new \RuntimeException(sprintf(
+                'Snapshot "%s" could not be removed, and what is left of it is no longer something a package can be restored from.',
+                $id,
+            ));
+        }
+
+        $this->audit(
+            sprintf('Snapshot "%s" of package "%s" purged on request: what it held is not recoverable.', $id, $snapshot['package']),
+            ['snapshot' => $id, 'package' => $snapshot['module'], 'trigger' => 'request'],
+        );
+    }
+
+    /**
+     * The snapshot an operation was asked to act on.
+     *
+     * @return Snapshot
+     * @throws \InvalidArgumentException where none goes by this id, an id that is
+     *                                  not one included. The value stays out of the
+     *                                  message: it comes from a request
+     */
+    private function snapshot(string $id): array
+    {
+        $snapshot = $this->store->get($id);
+
+        if ($snapshot === null) {
+            throw new \InvalidArgumentException('No snapshot goes by this id.');
+        }
+
+        return $snapshot;
+    }
+
+    /**
+     * The package trees a snapshot holds, as the vendor/name directories they go
+     * back into.
+     *
+     * Read off the archive rather than out of the metadata, for the same reason
+     * the archive was written that way: what can be restored is what was
+     * actually put aside, and a name a package gave itself has no business
+     * deciding where files land.
+     *
+     * @return list<string>
+     */
+    private function archived(string $id): array
+    {
+        $root = $this->store->filesDirectory($id);
+
+        if (!is_dir($root)) {
+            return [];
+        }
+
+        $trees = [];
+
+        foreach ($this->files->listDir($root) as $vendor) {
+            if (!is_dir($root.'/'.$vendor)) {
+                continue;
+            }
+
+            foreach ($this->files->listDir($root.'/'.$vendor) as $name) {
+                if (is_dir($root.'/'.$vendor.'/'.$name)) {
+                    $trees[] = $vendor.'/'.$name;
+                }
+            }
+        }
+
+        return $trees;
+    }
+
+    /**
+     * Puts one archived tree back where packages/ expects it.
+     *
+     * Whatever is at the target now is removed rather than copied over: a
+     * package reinstalled since the snapshot has files this one never had, and
+     * merging the two would leave a tree that is neither version. Where the
+     * removal succeeds and the copy does not, the archive is untouched in the
+     * snapshot, so the restore can be run again.
+     *
+     * @param  string            $tree the vendor/name directory, as the archive holds it
+     * @throws \RuntimeException where the tree could not be put back
+     */
+    private function reinstate(string $id, string $tree): void
+    {
+        $target = $this->livePath($tree);
+
+        if (is_dir($target) && !$this->files->delete($target)) {
+            throw new \RuntimeException(sprintf(
+                'The files of "%s" that are on disk now could not be removed, so the ones in snapshot "%s" were left where they are.',
+                $tree,
+                $id,
+            ));
+        }
+
+        if (!$this->files->copyDir($this->store->filesDirectory($id).'/'.$tree, $target)) {
+            throw new \RuntimeException(sprintf('Failed to put the files of "%s" back from snapshot "%s".', $tree, $id));
+        }
     }
 
     /**
@@ -223,27 +423,35 @@ final class PackageSnapshotter
 
     private function bookkeepingFile(): string
     {
-        return rtrim($this->packages, '/\\').'/'.self::BOOKKEEPING;
+        return $this->livePath(self::BOOKKEEPING);
     }
 
     /**
-     * Records that a snapshot was taken, of what, and what asked for it.
+     * Where something lives in the running installation, as opposed to in a
+     * snapshot of it.
+     */
+    private function livePath(string $relative): string
+    {
+        return rtrim($this->packages, '/\\').'/'.$relative;
+    }
+
+    /**
+     * Records what happened to a snapshot, and to what.
      *
      * The trail of a destructive operation, for the administrator who comes
      * looking weeks later. A log that cannot take the line does not cost the
-     * snapshot: the store's own inventory is what says the snapshot exists, and
-     * refusing here would refuse the removal it was taken for.
+     * operation: the store's own inventory is what says which snapshots exist,
+     * and refusing here would refuse a removal or a restore over a log entry.
+     *
+     * @param array<string, mixed> $context
      */
-    private function audit(string $id, PackageInterface $package, string $reason): void
+    private function audit(string $message, array $context): void
     {
         try {
-            $this->log->notice(
-                sprintf('Snapshot "%s" of package "%s" taken for %s.', $id, $package->getName(), $reason),
-                ['snapshot' => $id, 'package' => $package->get('module'), 'reason' => $reason],
-            );
+            $this->log->notice($message, $context);
         } catch (\Throwable) {
-            // Nothing is left that could take the line, and the snapshot it
-            // would have described is on disk regardless.
+            // Nothing is left that could take the line, and what it would have
+            // described has happened regardless.
         }
     }
 

@@ -12,6 +12,7 @@ use Pagekit\Filesystem\Filesystem;
 use Pagekit\Installer\Package\Package;
 use Pagekit\Installer\Package\PackageFactory;
 use Pagekit\Installer\Package\Snapshot\DatabaseDumper;
+use Pagekit\Installer\Package\Snapshot\DatabaseRestorer;
 use Pagekit\Installer\Package\Snapshot\PackageSnapshotter;
 use Pagekit\Installer\Package\Snapshot\SnapshotStore;
 use Pagekit\Tests\Unit\Snapshot\SnapshotDatabase;
@@ -173,10 +174,12 @@ final class UninstallCommandTest extends TestCase
 
         if ($snapshotted) {
             $files = new Filesystem();
+            $connection = $this->openDatabase();
 
             $app->set('snapshotter', new PackageSnapshotter(
                 new SnapshotStore($this->snapshots, $files),
-                new DatabaseDumper($this->openDatabase()),
+                new DatabaseDumper($connection),
+                new DatabaseRestorer($connection),
                 $files,
                 new NullLogger(),
                 $this->packages,

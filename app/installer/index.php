@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Pagekit\Installer\Package\PackageFactory;
 use Pagekit\Installer\Package\PackageManager;
 use Pagekit\Installer\Package\Snapshot\DatabaseDumper;
+use Pagekit\Installer\Package\Snapshot\DatabaseRestorer;
 use Pagekit\Installer\Package\Snapshot\PackageSnapshotter;
 use Pagekit\Installer\Package\Snapshot\SnapshotStore;
 use Pagekit\Kernel\Event\ExceptionListenerWrapper;
@@ -29,6 +30,7 @@ return [
             $app->set('snapshotter', fn ($app) => new PackageSnapshotter(
                 new SnapshotStore($app->get('path.snapshots'), $app->get('file')),
                 new DatabaseDumper($app->get('db')),
+                new DatabaseRestorer($app->get('db')),
                 $app->get('file'),
                 $app->get('log'),
                 $app->get('path.packages'),

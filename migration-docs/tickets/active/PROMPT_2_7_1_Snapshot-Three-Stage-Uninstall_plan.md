@@ -61,7 +61,7 @@
 - [x] Step 1 (M) — Safety gates + snapshot store + `path.snapshots`
 - [x] Step 2 (L) — DB dump + restore (SQLite + MySQL)
 - [x] Step 3 (M) — Snapshot-before-uninstall wiring + console fix
-- [ ] Step 4 (L) — Three-stage semantics: soft uninstall + restore + purge
+- [x] Step 4 (L) — Three-stage semantics: soft uninstall + restore + purge
 - [ ] Step 5 (S) — Retention window + storage-growth guards
 - [ ] Step 6 (L) — Admin API + UI + hook-failure visibility
 - [ ] Step 7 (L) — Theme circuit breaker + failure-store RMW locking

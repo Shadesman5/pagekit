@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Pagekit\Tests\Unit\Snapshot;
 
+use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\Types\Types;
 use Pagekit\Application;
+use Pagekit\Database\Connection;
 use Pagekit\Filesystem\Filesystem;
 use Pagekit\Installer\Package\Package;
 use Pagekit\Installer\Package\Snapshot\PackageSnapshotter;
@@ -26,6 +29,11 @@ use Psr\Log\NullLogger;
  * nothing put aside first. Both are decided here rather than by whoever removes
  * a package, so this is asserted against the module definition the installation
  * boots and not against a container assembled to suit.
+ *
+ * And the service it defines has to work in both directions, because a snapshot
+ * is only worth taking if it can be put back: the collaborator that reads the
+ * database and the one that writes it are wired up separately, and one of them
+ * missing would not be noticed until the day a package had to be restored.
  */
 final class SnapshotServiceWiringTest extends TestCase
 {
@@ -97,6 +105,41 @@ final class SnapshotServiceWiringTest extends TestCase
         self::assertFileExists($this->file($id, SnapshotStore::DUMP_FILE));
         self::assertFileExists($this->file($id, SnapshotStore::FILES_DIR).'/pagekit/test-ext/composer.json');
         self::assertSame(self::BOOKKEEPING, (string) file_get_contents($this->file($id, SnapshotStore::INSTALLED_FILE)));
+    }
+
+    public function testTheSnapshotterTheInstallationBuildsPutsASnapshotBackAsWell(): void
+    {
+        // Taking a snapshot and putting one back read and write the same database
+        // through two different collaborators, so a service built with only the
+        // first of them wired up would keep taking snapshots that nothing can be
+        // restored from - and it would go on doing that until the day one was
+        // needed.
+        $services = $this->services();
+        $connection = $services['db'];
+
+        self::assertInstanceOf(Connection::class, $connection);
+
+        $this->plantATable($connection);
+
+        $app = $this->boot($services);
+        $snapshotter = $app->get('snapshotter');
+
+        self::assertInstanceOf(PackageSnapshotter::class, $snapshotter);
+
+        $id = $snapshotter->create($this->package(), PackageSnapshotter::REASON_UNINSTALL);
+
+        // The removal the snapshot was taken for: the files are out of the live
+        // tree and the configuration no longer says the extension is installed.
+        (new Filesystem())->delete($this->tree);
+        $connection->update('pk_system_config', ['value' => '{"packages":{}}'], ['name' => 'system']);
+
+        $snapshotter->restore($id);
+
+        self::assertFileExists($this->tree.'/composer.json');
+        self::assertSame(
+            '{"packages":{"test-ext":"1.4.2"}}',
+            (string) $connection->fetchOne('SELECT value FROM pk_system_config WHERE name = ?', ['system']),
+        );
     }
 
     /**
@@ -174,6 +217,21 @@ final class SnapshotServiceWiringTest extends TestCase
             'log' => new NullLogger(),
             'db' => $this->openDatabase(),
         ];
+    }
+
+    /**
+     * A table with something in it worth getting back, so the dump the service
+     * writes is one a restore has something to put back out of.
+     */
+    private function plantATable(Connection $connection): void
+    {
+        $config = new Table('pk_system_config');
+        $config->addColumn('name', Types::STRING, ['length' => 64]);
+        $config->addColumn('value', Types::TEXT, ['notnull' => false]);
+        $config->setPrimaryKey(['name']);
+
+        $connection->createSchemaManager()->createTable($config);
+        $connection->insert('pk_system_config', ['name' => 'system', 'value' => '{"packages":{"test-ext":"1.4.2"}}']);
     }
 
     private function package(): Package

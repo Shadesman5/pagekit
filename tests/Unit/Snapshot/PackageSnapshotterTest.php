@@ -11,6 +11,7 @@ use Pagekit\Filesystem\Filesystem;
 use Pagekit\Installer\Helper\Composer;
 use Pagekit\Installer\Package\Package;
 use Pagekit\Installer\Package\Snapshot\DatabaseDumper;
+use Pagekit\Installer\Package\Snapshot\DatabaseRestorer;
 use Pagekit\Installer\Package\Snapshot\DumpFormat;
 use Pagekit\Installer\Package\Snapshot\PackageSnapshotter;
 use Pagekit\Installer\Package\Snapshot\SnapshotStore;
@@ -375,6 +376,7 @@ final class PackageSnapshotterTest extends TestCase
         return new PackageSnapshotter(
             new SnapshotStore($this->snapshots, $files),
             new DatabaseDumper($connection),
+            new DatabaseRestorer($connection),
             $files,
             $log ?? $this->log,
             $this->packages,
@@ -553,40 +555,6 @@ final class PackageSnapshotterTest extends TestCase
         }
 
         rmdir($path);
-    }
-}
-
-/**
- * The trail a snapshot leaves, as a test reads it back.
- */
-final class SnapshotAudit extends AbstractLogger
-{
-    /** @var array<int, array{level: string, message: string, context: array<string, mixed>}> */
-    public array $records = [];
-
-    /**
-     * @param mixed                $level
-     * @param array<string, mixed> $context
-     */
-    public function log($level, string|\Stringable $message, array $context = []): void
-    {
-        $this->records[] = ['level' => (string) $level, 'message' => (string) $message, 'context' => $context];
-    }
-}
-
-/**
- * A log that is itself broken, as one writing to a full disk or into a directory
- * that went away is.
- */
-final class AuditThatCannotBeWritten extends AbstractLogger
-{
-    /**
-     * @param mixed                $level
-     * @param array<string, mixed> $context
-     */
-    public function log($level, string|\Stringable $message, array $context = []): void
-    {
-        throw new \RuntimeException('The log could not be written.');
     }
 }
 

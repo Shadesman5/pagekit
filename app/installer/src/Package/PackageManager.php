@@ -118,7 +118,27 @@ class PackageManager
     }
 
     /**
+     * Takes a package out of the installation, retaining it in a snapshot.
+     *
+     * Removing a package is a move rather than a deletion: the snapshot is
+     * taken first, and what it holds - the package's files, a dump of the
+     * database and a description of both - is the package from then on. The
+     * live tree goes, so the factory stops globbing it up and the panel stops
+     * listing it, and the snapshot is what an administrator restores from until
+     * it is purged. Purging is the only step that destroys anything for good -
+     * except in an installation that keeps no snapshots at all, where the
+     * removal is exactly as final as it always was ({@see snapshot()}).
+     *
+     * The database keeps its tables. A package that wants its rows gone says so
+     * in its own uninstall hook; dropping them here would make the snapshot the
+     * only copy of content the site may well still want, and reinstalling the
+     * package would come back to an empty extension.
+     *
      * @param string|array<int, string> $uninstall
+     *
+     * @throws \RuntimeException where no snapshot could be taken, in which case
+     *                          nothing was removed, or where a package's files
+     *                          could not be taken out of the live tree
      */
     public function uninstall(string|array $uninstall): void
     {
@@ -153,18 +173,7 @@ class PackageManager
 
             $this->app->get('config')('system')->remove('packages.' . $package->get('module'));
 
-            if ($this->composer->isInstalled($package->getName())) {
-                $this->composer->uninstall($package->getName());
-            } else {
-                if (!$path = $package->get('path')) {
-                    throw new \RuntimeException(__('Package path is missing.'));
-                }
-
-                $this->output->writeln(__("Removing package folder."));
-
-                $this->app->get('file')->delete($path);
-                @rmdir(dirname($path));
-            }
+            $this->removeFiles($package);
 
             // The package is gone, so a record of it would go on naming
             // something that is no longer installed.
@@ -436,12 +445,10 @@ class PackageManager
             // What went wrong is in the log with the throwable that carries it.
             // This message is streamed to a browser, so it says what happened to
             // the operation rather than which path on the disk refused a write.
-            $title = $package->get('title');
-
             throw new \RuntimeException(
                 __(
                     'No snapshot of "%name%" could be taken, so nothing was removed. See error log for details.',
-                    ['%name%' => is_string($title) && $title !== '' ? $title : $package->getName()]
+                    ['%name%' => $this->label($package)]
                 ),
                 0,
                 $e
@@ -449,6 +456,80 @@ class PackageManager
         }
 
         $this->output->writeln(__('Snapshot %id% taken.', ['%id%' => $id]));
+    }
+
+    /**
+     * Takes the package's files out of the live tree.
+     *
+     * The copy in the snapshot is what the package is retained as from here on,
+     * so this completes a move rather than deleting the last copy of anything -
+     * and it has to leave nothing behind. A tree still under packages/ is one the
+     * factory goes on globbing up and the panel goes on offering, as a package
+     * that merely is not installed, while its hooks have run and its nodes are in
+     * the trash. So the outcome is checked rather than assumed: files that will
+     * not go are a removal an administrator has to hear about, not one that can
+     * be reported as done.
+     *
+     * Composer is told last, for a package it installed, so that what it takes
+     * off the disk is the tree the snapshot was already archived from.
+     *
+     * @throws \RuntimeException where the package names no path, or its files
+     *                          could not be taken out of the live tree
+     */
+    private function removeFiles(PackageInterface $package): void
+    {
+        $path = $package->get('path');
+
+        if (!is_string($path) || $path === '') {
+            throw new \RuntimeException(__('Package path is missing.'));
+        }
+
+        if ($this->composer->isInstalled($package->getName())) {
+            $this->composer->uninstall($package->getName());
+
+            // Composer takes the tree off the disk itself and reports nothing
+            // about it that can be read back, so the disk is all there is to
+            // go on for a package it installed.
+            $removed = !is_dir($path);
+        } else {
+            $this->output->writeln(__('Removing package folder.'));
+
+            // The file service both removes the tree and answers whether it
+            // could: it stops at the first entry that will not go. Stat'ing the
+            // path instead would take it for a plain local one, which the
+            // service does not promise - a path it maps through an adapter is
+            // wherever that adapter puts it.
+            $removed = $this->app->get('file')->delete($path) === true;
+        }
+
+        // The vendor directory goes too where this package was the last thing in
+        // it, and stays where it holds another.
+        @rmdir(dirname($path));
+
+        if ($removed) {
+            return;
+        }
+
+        $this->reportUnremovedFiles($package);
+
+        // Streamed to a browser, so the path that would not go stays in the log.
+        throw new \RuntimeException(__(
+            '"%name%" was removed, but its files could not be taken off the disk. The snapshot holds the whole package, so it can be restored, or the folder removed by hand.',
+            ['%name%' => $this->label($package)]
+        ));
+    }
+
+    /**
+     * What a package is called where an administrator is being told about it.
+     *
+     * The title an extension gives itself, which is what the panel lists it as,
+     * and its package name where it gives none.
+     */
+    private function label(PackageInterface $package): string
+    {
+        $title = $package->get('title');
+
+        return is_string($title) && $title !== '' ? $title : $package->getName();
     }
 
     /**
@@ -661,6 +742,34 @@ class PackageManager
         } catch (\Throwable) {
             // The failure still has to reach the caller, which is where the
             // administrator hears that the package is untouched.
+        }
+    }
+
+    /**
+     * Reports a package tree that stayed in the live installation.
+     *
+     * Everything else about the package is undone by then, so this is the half
+     * of a removal that has to be finished by hand - and the path is what
+     * whoever finishes it needs, which is why it goes here rather than into the
+     * message the caller streams back. What is left of the tree can be anything
+     * from all of it to the entry the deletion stopped at.
+     */
+    private function reportUnremovedFiles(PackageInterface $package): void
+    {
+        try {
+            if ($this->app->has('log')) {
+                $this->app->get('log')->error(
+                    sprintf(
+                        'Package "%s" was removed, but its files at "%s" could not be: the snapshot holds the package, so it can be restored or the folder removed by hand.',
+                        $package->get('name'),
+                        $package->get('path')
+                    ),
+                    ['package' => $package->get('module')]
+                );
+            }
+        } catch (\Throwable) {
+            // The refusal still has to reach the caller, which is where the
+            // administrator hears that the removal did not finish.
         }
     }
 
