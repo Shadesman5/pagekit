@@ -1761,20 +1761,51 @@
       "outcome": "success",
       "completedAt": "2026-08-14T05:45:10.622Z",
       "notes": "Timing from Cursor API (single agent run)"
+    },
+    {
+      "phaseKey": "31774013769-1-PLAN",
+      "type": "PLAN",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-08-14T05:45:41.285Z",
+      "durationMs": 852596,
+      "agent": {
+        "id": "bc-b8cb5dea-9fd0-48f5-9979-e7540dcf2b89",
+        "runId": "run-e3dc2449-1dda-4c9b-8f67-489d4dc36a0b",
+        "url": "https://cursor.com/agents/bc-b8cb5dea-9fd0-48f5-9979-e7540dcf2b89",
+        "model": "grok-4.6"
+      },
+      "github": {
+        "runId": 31774013769,
+        "runAttempt": 1,
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/31774013769",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 105815,
+        "output": 49985,
+        "cacheRead": 6391476,
+        "cacheWrite": 308686,
+        "total": 6855962
+      },
+      "tokensSource": "cursor-api",
+      "result": "Plan ready: migration-docs/tickets/active/2_7_1_Snapshot-Three-Stage-Uninstall_plan.md",
+      "outcome": "success"
     }
   ],
   "totals": {
     "tokens": {
-      "input": 4875776,
-      "output": 1583640,
-      "cacheRead": 144081233,
-      "cacheWrite": 10218742,
-      "total": 160759391
+      "input": 4981591,
+      "output": 1633625,
+      "cacheRead": 150472709,
+      "cacheWrite": 10527428,
+      "total": 167615353
     },
-    "durationMs": 24740979,
-    "phaseCount": 35,
+    "durationMs": 25593575,
+    "phaseCount": 36,
     "escalations": 0,
-    "ghaJobs": 35,
-    "cloudAgents": 35
+    "ghaJobs": 36,
+    "cloudAgents": 36
   }
 }
