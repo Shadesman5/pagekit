@@ -65,7 +65,7 @@
 - [x] Step 5 (S) — Retention window + storage-growth guards
 - [x] Step 6 (L) — Admin API + UI + hook-failure visibility
 - [x] Step 7 (L) — Theme circuit breaker + failure-store RMW locking
-- [ ] Step 8 (XL) — Review (Bugbot + Security) + E2E
+- [x] Step 8 (XL) — Review (Bugbot + Security) + E2E
 
 ## TESTING STRATEGY
 - **Per step (production gate):** Refactorer → Verifier → Tester (PHPUnit + PHPStan) — production code must be green before any new tests are written.
