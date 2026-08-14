@@ -17,8 +17,8 @@ the report**.
 
 - **Read-only:** change no application code and no tracked docs. The only file you create is the audit report.
 - **Language:** English.
-- **Standards (your yardstick):** `.cursor/rules/pagekit-context.mdc`, `.cursor/rules/pagekit-standards.mdc`,
-  `.cursor/ROADMAP.md` (THE 5 AGGRESSIVE RULES), `migration-docs/TODO/MODERNISATION_STRATEGY.md` (Pagekit DNA).
+- **Standards (your yardstick):** `.cursor/rules/pagekit.mdc`, `.cursor/rules/php.mdc`,
+  `.cursor/ROADMAP.md` (step IDs), `migration-docs/TODO/MODERNISATION_STRATEGY.md` (Pagekit DNA).
 - **Verify, don't trust:** treat every claim in `PHASE_2_MODERNISING.md`, the branch docs, the ROADMAP row,
   and Issue #147 as a **hypothesis** to confirm against the actual code/config on the current tree.
 - **Evidence:** every finding cites at least one `path:line` plus the search/observation that found it.

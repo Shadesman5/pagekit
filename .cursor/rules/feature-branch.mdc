@@ -1,4 +1,0 @@
----
-description: Feature Branch Workflow - Manages feature development. Steps: 1) When starting a new feature, create branch 'feature/[name]' from 'develop'; 2) Track all changes and categorize them (Breaking/Feature/Enhancement/Fix); 3) On feature completion: a) Generate CHANGELOG-NEW.md entry (shipped-only, headings per doc-writer.md); b) Update README.md if feature affects system requirements or major functionality; c) Follow push.mdc for version bump, push, and PR creation with metadata block.
-alwaysApply: false
----

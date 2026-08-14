@@ -223,7 +223,7 @@ Closes #42
 ```
 This auto-closes the issue when the PR merges and links it in the Development sidebar.
 
-The `push.mdc` workflow (Step 6) handles this automatically when creating PRs.
+The push skill handles this when creating PRs.
 
 ### Multiple PRs
 
@@ -360,7 +360,7 @@ Issue/PR body contains multi-line <!-- metadata --> block
 ```
 
 > **PRs also supported:** The same `<!-- metadata -->` block works in PR bodies.
-> Agents creating PRs (via `push.mdc`) should include the metadata block to get
+> Agents creating PRs (via the push skill) should include the metadata block to get
 > automatic labels and milestones. Add `closes: #42, #43` for issue references.
 
 ## Check Before Creating
