@@ -64,7 +64,7 @@
 - [x] Step 4 (L) — Three-stage semantics: soft uninstall + restore + purge
 - [x] Step 5 (S) — Retention window + storage-growth guards
 - [x] Step 6 (L) — Admin API + UI + hook-failure visibility
-- [ ] Step 7 (L) — Theme circuit breaker + failure-store RMW locking
+- [x] Step 7 (L) — Theme circuit breaker + failure-store RMW locking
 - [ ] Step 8 (XL) — Review (Bugbot + Security) + E2E
 
 ## TESTING STRATEGY
