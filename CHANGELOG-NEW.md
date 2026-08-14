@@ -1,5 +1,13 @@
 # Changelog
 
+## Pagekit 1.2.40 - Conductor PLAN loop guards (August 14, 2026)
+
+### 🐛 Fixed
+
+- **Conductor V2 no longer treats a matching `Plan ready:` one-liner as success when the ticket file is missing or named wrongly** — the driver now requires the canonical path `migration-docs/tickets/active/<task-prompt-basename>_plan.md` (including any `PROMPT_` prefix). A wrong or missing ticket relaunches a fresh cloud agent up to three times in the same job, then escalates without auto-chaining. Consecutive PLAN or FINALIZE jobs in one session are capped so a successful-looking job cannot loop overnight.
+
+---
+
 ## Pagekit 1.2.39 - Pages deploy queue & V1 metrics reuse (August 13, 2026)
 
 ### ♻️ Changed
