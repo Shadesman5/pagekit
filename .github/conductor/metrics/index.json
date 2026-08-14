@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-08-14T13:24:51.984Z",
+  "updatedAt": "2026-08-14T13:39:24.831Z",
   "steps": {
     "unknown": {
       "title": "AGENT_PROMPT_AUDIT_TECH_DEBT_INVENTORY",
@@ -196,8 +196,9 @@
     },
     "2.7.1": {
       "title": "Step 2.7.1: Snapshot & Three-Stage Uninstall",
-      "latestSessionId": "5933c2cc-6db1-47a1-a2b8-f1c752359ee1",
+      "latestSessionId": "436924f7-6018-420b-9f3f-639374a915ab",
       "sessionIds": [
+        "436924f7-6018-420b-9f3f-639374a915ab",
         "5933c2cc-6db1-47a1-a2b8-f1c752359ee1"
       ]
     }

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "436924f7-6018-420b-9f3f-639374a915ab",
+  "roadmapStepId": "2.7.1",
+  "title": "Step 2.7.1: Snapshot & Three-Stage Uninstall",
+  "taskSlug": "PROMPT_2_7_1_Snapshot-Three-Stage-Uninstall",
+  "taskPrompt": "migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_7_1_Snapshot-Three-Stage-Uninstall.md",
+  "issue": 267,
+  "branch": "feature/snapshot-three-stage-uninstall",
+  "model": "grok-4.6",
+  "status": "in_progress",
+  "startedAt": "2026-08-14T13:39:24.830Z",
+  "completedAt": null,
+  "phases": [],
+  "totals": {
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "total": 0
+    },
+    "durationMs": 0,
+    "phaseCount": 0,
+    "escalations": 0,
+    "ghaJobs": 0,
+    "cloudAgents": 0
+  }
+}
