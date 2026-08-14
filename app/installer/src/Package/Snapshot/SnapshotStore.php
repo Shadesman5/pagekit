@@ -345,6 +345,21 @@ final class SnapshotStore
      * Takes a directory for a snapshot that is about to be written, under an id
      * nothing in the store is using.
      *
+     * Creating the directory is what claims the id, because creating one is a
+     * single indivisible step that fails when the directory is already there:
+     * of two removals that arrive at the same id, exactly one gets it and the
+     * other tries the next. Asking beforehand whether the directory exists
+     * decides nothing - the answer is from before the other one created it, and
+     * both would go on to write their metadata, their dump and their files into
+     * the same snapshot. Which is also why the filesystem service does not make
+     * this directory: it reports one that is already there as made, the right
+     * answer wherever a directory only has to exist and the wrong one where
+     * making it is the claim.
+     *
+     * Recursive, so that the store's own directory comes into being with the
+     * first snapshot taken in it, and owner-only for the same reason everything
+     * else here is - the dump about to land in it holds the whole database.
+     *
      * @throws \RuntimeException where the directory could not be created, a
      *                          store whose own directory cannot be written included
      */
@@ -354,15 +369,17 @@ final class SnapshotStore
             $id = $this->id($slug);
             $directory = $this->pathFor($id);
 
-            if (file_exists($directory)) {
-                continue;
+            if (@mkdir($directory, self::DIRECTORY_MODE, true)) {
+                return $id;
             }
 
-            if (!$this->files->makeDir($directory, self::DIRECTORY_MODE)) {
+            // Nothing at the path afterwards either, so this is not an id that
+            // is taken but a store that cannot be written: a read-only mount, a
+            // full disk, a path occupied by a file. The removal this snapshot
+            // was for is called off.
+            if (!file_exists($directory)) {
                 throw new \RuntimeException(sprintf('Failed to create the snapshot directory "%s".', $directory));
             }
-
-            return $id;
         }
 
         throw new \RuntimeException('Failed to find a snapshot id that is not taken.');
