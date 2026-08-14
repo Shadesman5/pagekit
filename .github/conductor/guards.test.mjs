@@ -6,7 +6,10 @@ import {
   parsePlanReadyPath,
   planReadyMatchesTicket,
   consecutiveJobCount,
-  phaseRepeatExceeded
+  phaseRepeatExceeded,
+  xlHandoffStep,
+  cloudExecuteSteps,
+  xlHandoffMessage
 } from './guards.mjs';
 
 const PROMPT =
@@ -100,4 +103,43 @@ test('the 2.7.1 overnight PLAN chain trips the cap at 3 jobs', () => {
   assert.equal(phaseRepeatExceeded(phases.slice(0, 2), 'PLAN', 3), false);
   assert.equal(phaseRepeatExceeded(phases.slice(0, 3), 'PLAN', 3), true);
   assert.equal(phaseRepeatExceeded(phases, 'PLAN', 3), true);
+});
+
+test('xlHandoffStep fires only when the next open step is XL', () => {
+  assert.equal(xlHandoffStep([{ n: 5, size: 'XL' }])?.n, 5);
+  assert.equal(
+    xlHandoffStep([
+      { n: 3, size: 'M' },
+      { n: 5, size: 'XL' }
+    ]),
+    null
+  );
+  assert.equal(xlHandoffStep([{ n: 5, size: 'XL' }], false), null);
+  assert.equal(xlHandoffStep([]), null);
+  assert.equal(xlHandoffStep(null), null);
+});
+
+test('cloudExecuteSteps drops XL while handoff is on', () => {
+  const open = [
+    { n: 1, size: 'S' },
+    { n: 2, size: 'M' },
+    { n: 3, size: 'XL' }
+  ];
+  assert.deepEqual(
+    cloudExecuteSteps(open, true).map(s => s.n),
+    [1, 2]
+  );
+  assert.deepEqual(
+    cloudExecuteSteps(open, false).map(s => s.n),
+    [1, 2, 3]
+  );
+  assert.deepEqual(cloudExecuteSteps([{ n: 3, size: 'XL' }], true), []);
+});
+
+test('xlHandoffMessage names the step and the V1 resume', () => {
+  const msg = xlHandoffMessage({ n: 7, size: 'XL' });
+  assert.match(msg, /Step 7/);
+  assert.match(msg, /cursor\.com\/agents/);
+  assert.match(msg, /session_id/);
+  assert.match(msg, /FINALIZE/);
 });

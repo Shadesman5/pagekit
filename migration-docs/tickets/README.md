@@ -26,7 +26,7 @@ Pipeline index: [`.cursor/WORKFLOW_SUBAGENTS.md`](../../.cursor/WORKFLOW_SUBAGEN
 - `## EXECUTION STATE` — checkboxes 1:1 with the checklist, each `(S|M|L|XL)`; **last step must be `(XL) — Review (Bugbot + Security) + E2E`**
 - `## TESTING STRATEGY` — production gate, test-writer skip rules, XL Review + E2E
 
-The **Conductor** reads `## EXECUTION STATE` only. Step orchestrators flip `- [ ]` → `- [x]` in the **same commit** as that step's code.
+The **Conductor** reads `## EXECUTION STATE` only. Step orchestrators flip `- [ ]` → `- [x]` in the **same commit** as that step's code. While `handoff_xl` is on (default), Conductor stops before the last `(XL)` step — run that Review + E2E on cursor.com/agents, then re-dispatch Conductor for Finalize. Ticking `(XL)` on a Conductor branch auto-imports the V1 parent agent's tokens into that session (`import-xl-handoff-metrics.yml`); do not add `v1-metrics` to the Conductor Finalize PR.
 
 ## Folders
 

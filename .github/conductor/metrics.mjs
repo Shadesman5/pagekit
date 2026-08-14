@@ -435,7 +435,9 @@ export function findReusableSessionByAgent(sessions, agentIds) {
   return null;
 }
 
-/** Replace a phase that already belongs to the same agent / phaseKey; otherwise append. */
+/** Replace a phase that already belongs to the same agent / phaseKey; otherwise append.
+ * Non-FINALIZE imports into a session that already has FINALIZE land *before* that
+ * phase so a late XL handoff does not appear after Finalize. */
 export function mergeImportedPhases(session, phases) {
   if (!session.phases) session.phases = [];
   for (const phase of phases || []) {
@@ -445,8 +447,16 @@ export function mergeImportedPhases(session, phases) {
       const existingId = String(existing.agent?.id || '').toLowerCase();
       return Boolean(agentId && existingId && existingId === agentId);
     });
-    if (index >= 0) session.phases[index] = phase;
-    else session.phases.push(phase);
+    if (index >= 0) {
+      session.phases[index] = phase;
+      continue;
+    }
+    const finalizeIdx = session.phases.findIndex(p => p.type === 'FINALIZE');
+    if (phase.type !== 'FINALIZE' && finalizeIdx >= 0) {
+      session.phases.splice(finalizeIdx, 0, phase);
+    } else {
+      session.phases.push(phase);
+    }
   }
   return session;
 }

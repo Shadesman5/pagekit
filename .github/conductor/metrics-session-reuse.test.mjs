@@ -48,3 +48,61 @@ test('mergeImportedPhases still appends a different parent agent', () => {
   mergeImportedPhases(session, [{ phaseKey: 'manual-bc-2-V1', agent: { id: 'bc-2' } }]);
   assert.equal(session.phases.length, 2);
 });
+
+test('mergeImportedPhases inserts non-FINALIZE before an existing FINALIZE', () => {
+  const session = {
+    phases: [
+      { phaseKey: '1-PLAN', type: 'PLAN', agent: { id: 'bc-plan' } },
+      { phaseKey: '2-FINALIZE', type: 'FINALIZE', agent: { id: 'bc-fin' } }
+    ]
+  };
+  mergeImportedPhases(session, [
+    { phaseKey: 'manual-bc-xl-EXECUTE', type: 'EXECUTE', agent: { id: 'bc-xl' } }
+  ]);
+  assert.deepEqual(
+    session.phases.map(p => p.type),
+    ['PLAN', 'EXECUTE', 'FINALIZE']
+  );
+});
+
+test('mergeImportedPhases still appends FINALIZE imports', () => {
+  const session = {
+    phases: [{ phaseKey: '1-PLAN', type: 'PLAN', agent: { id: 'bc-plan' } }]
+  };
+  mergeImportedPhases(session, [
+    { phaseKey: 'manual-bc-v1-FINALIZE', type: 'FINALIZE', agent: { id: 'bc-v1' } }
+  ]);
+  assert.deepEqual(
+    session.phases.map(p => p.type),
+    ['PLAN', 'FINALIZE']
+  );
+});
+
+test('mergeImportedPhases replaces an existing XL in front of FINALIZE', () => {
+  const session = {
+    phases: [
+      { phaseKey: '1-PLAN', type: 'PLAN', agent: { id: 'bc-plan' } },
+      {
+        phaseKey: 'manual-bc-xl-EXECUTE',
+        type: 'EXECUTE',
+        agent: { id: 'bc-xl' },
+        tokens: { total: 1 }
+      },
+      { phaseKey: '2-FINALIZE', type: 'FINALIZE', agent: { id: 'bc-fin' } }
+    ]
+  };
+  mergeImportedPhases(session, [
+    {
+      phaseKey: 'manual-bc-xl-EXECUTE',
+      type: 'EXECUTE',
+      agent: { id: 'bc-xl' },
+      tokens: { total: 9 }
+    }
+  ]);
+  assert.equal(session.phases.length, 3);
+  assert.equal(session.phases[1].tokens.total, 9);
+  assert.deepEqual(
+    session.phases.map(p => p.type),
+    ['PLAN', 'EXECUTE', 'FINALIZE']
+  );
+});
