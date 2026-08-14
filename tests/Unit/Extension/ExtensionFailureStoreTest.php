@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Pagekit\Tests\Unit\Extension;
 
+use Pagekit\Filesystem\Adapter\StreamAdapter;
 use Pagekit\Filesystem\Filesystem;
+use Pagekit\Filesystem\StreamWrapper;
 use Pagekit\System\Extension\ExtensionFailureStore;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -55,6 +57,13 @@ final class ExtensionFailureStoreTest extends TestCase
      */
     private const FIELDS = ['name', 'type', 'class', 'message', 'file', 'line', 'time', 'count'];
 
+    /**
+     * The protocol the record is addressed under where it lives on a mount
+     * instead of on a plain path: the files it holds are then opened through a
+     * stream, which is where a refused lock can be arranged.
+     */
+    private const MOUNT = 'nolocks';
+
     private string $workspace;
 
     /**
@@ -74,6 +83,12 @@ final class ExtensionFailureStoreTest extends TestCase
 
     protected function tearDown(): void
     {
+        // A protocol stays registered for the whole process, so a test that
+        // addressed the record through one takes it back out again.
+        if (in_array(self::MOUNT, stream_get_wrappers(), true)) {
+            stream_wrapper_unregister(self::MOUNT);
+        }
+
         // A test that provoked a directory nobody can write has to hand it back
         // before the workspace can be removed.
         if (is_dir($this->path)) {
@@ -442,6 +457,39 @@ final class ExtensionFailureStoreTest extends TestCase
         self::assertSame(['blog', 'theme-one'], array_keys($this->store()->all()));
     }
 
+    public function testAWriteOnAFilesystemThatRefusesLocksIsMadeWithoutOne(): void
+    {
+        // The other half of that: the file opens and the lock is refused
+        // anyway, which is what a network share or a bind mount from a host
+        // that hands out no locks answers. A record can live on one, and being
+        // unable to lock it is not being unable to write it - so every change
+        // still lands, unserialized, and none of them is lost on the way.
+        $this->writeRecord($this->recordOf('blog'));
+
+        $store = $this->storeOnAMountWithoutLocks();
+
+        self::assertTrue($store->record('theme-one', ExtensionFailureStore::TYPE_THEME, new \RuntimeException('bang')));
+        self::assertTrue($store->record('theme-one', ExtensionFailureStore::TYPE_THEME, new \RuntimeException('bang')));
+
+        $entry = $store->all()['blog'];
+
+        self::assertTrue($store->clear('blog'));
+        self::assertTrue($store->restore($entry));
+
+        // Read back off the plain directory the mount leads to: what an
+        // administrator is told is what reached the disk.
+        $entries = $this->store()->all();
+
+        self::assertSame(['theme-one', 'blog'], array_keys($entries));
+        self::assertSame($entry, $entries['blog']);
+        self::assertSame(2, $entries['theme-one']['count'], 'A change made without the lock is still the whole read, change and replace');
+
+        // And the writers got as far as opening the lock file, which is what
+        // separates this from a lock that could not even be opened: what was
+        // refused here is the lock on a file that is there.
+        self::assertFileExists($this->path.'/'.self::LOCK);
+    }
+
     public function testTheRecordIsReadWithoutTakingTheLockAtAll(): void
     {
         // Every boot reads this file, and a read that queued behind a writer
@@ -663,6 +711,22 @@ final class ExtensionFailureStoreTest extends TestCase
     }
 
     /**
+     * The same store, with its record addressed through a mount whose files
+     * open and cannot be locked. The directory behind the mount is the one the
+     * plain store reads, so what a change made without the lock did to the
+     * record is readable off it.
+     */
+    private function storeOnAMountWithoutLocks(): ExtensionFailureStore
+    {
+        $files = new Filesystem();
+        $files->registerAdapter(self::MOUNT, new MountWithoutLocks($this->workspace, '', StreamWithoutLocks::class));
+
+        StreamWrapper::setFilesystem($files);
+
+        return new ExtensionFailureStore(self::MOUNT.'://'.basename($this->path), $files);
+    }
+
+    /**
      * Puts a record on disk that this store did not write, which is how a
      * damaged or foreign file reaches it.
      */
@@ -813,6 +877,47 @@ final class LockProbe extends Filesystem
         fclose($handle);
 
         return $taken;
+    }
+}
+
+/**
+ * A directory addressed as a mount rather than as a plain path, so that opening
+ * a file in it goes through a stream instead of straight to the disk.
+ *
+ * What is behind the mount is an ordinary directory, and the record is replaced
+ * in it exactly as it is replaced in any other: what this stands for is a
+ * filesystem that has no locks, not one that has no writes.
+ */
+final class MountWithoutLocks extends StreamAdapter
+{
+    /**
+     * @param  array<string, mixed> $info
+     * @return array<string, mixed>
+     */
+    public function getPathInfo(array $info): array
+    {
+        $info = parent::getPathInfo($info);
+
+        // The record is replaced by a rename onto the directory the mount leads
+        // to, which is where a real one performs it as well - a write is not
+        // what a mount without locks has no answer for.
+        $info['protocol'] = 'file';
+        $info['pathname'] = $info['localpath'];
+
+        return $info;
+    }
+}
+
+/**
+ * Files on that mount: they open, they are read and they are written, and a
+ * request to lock one is refused - the answer a share or a bind mount from a
+ * host with no locks to hand out gives.
+ */
+final class StreamWithoutLocks extends StreamWrapper
+{
+    public function stream_lock(int $operation): bool
+    {
+        return false;
     }
 }
 
