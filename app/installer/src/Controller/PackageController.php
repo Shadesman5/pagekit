@@ -172,7 +172,9 @@ class PackageController
 
         $this->module->get('system/cache')->clearCache();
 
-        return ['message' => 'success'];
+        // The package is off either way; a step of its own that did not finish
+        // is something the administrator hears about rather than a failure.
+        return ['message' => 'success', 'warnings' => $this->manager->takeHookWarnings()];
     }
 
     /**
@@ -239,6 +241,15 @@ class PackageController
         });
     }
 
+    /**
+     * Takes a package out of the installation, retaining it in a snapshot.
+     *
+     * What the administrator confirmed before this ran says what the removal
+     * does to the package itself; it cannot yet say what else in the
+     * installation was counting on it.
+     *
+     * TODO: Must be refactored in Step 2.7.2 (Module Dependency Integrity)
+     */
     #[RequestAttribute(['name' => 'string'], csrf: true)]
     public function uninstallAction(string $name): StreamedResponse
     {
@@ -247,6 +258,18 @@ class PackageController
             try {
 
                 $this->manager->uninstall($name);
+
+                // The same clear enabling and disabling do: what the panel and
+                // the site load is cached, and the package is out of both.
+                $this->module->get('system/cache')->clearCache();
+
+                // One line per step of the package's own that did not finish,
+                // folded onto that line because the reader takes this stream
+                // apart by line. Written once nothing else can write after
+                // them but the status, so a warning arrives whole.
+                foreach ($this->manager->takeHookWarnings() as $warning) {
+                    printf("\nwarning=%s", str_replace(["\r\n", "\r", "\n"], ' ', $warning));
+                }
 
                 echo "\nstatus=success";
 

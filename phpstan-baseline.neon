@@ -202,6 +202,12 @@ parameters:
 			message: '#^Variable \$view might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
+			path: app/installer/views/snapshots.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
 			path: app/installer/views/themes.php
 
 		-

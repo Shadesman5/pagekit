@@ -31,6 +31,14 @@ class PackageManager
      */
     private readonly ?ExtensionFailureStore $failures;
 
+    /**
+     * What went wrong on a package's way out without stopping it, waiting to be
+     * passed on.
+     *
+     * @var list<string>
+     */
+    private array $hookWarnings = [];
+
     public function __construct(
         private readonly ContainerInterface $app,
         ?OutputInterface $output = null,
@@ -401,6 +409,30 @@ class PackageManager
     public function getFailedModules(): array
     {
         return array_keys($this->failures?->all() ?? []);
+    }
+
+    /**
+     * What failed on the way out without failing the operation.
+     *
+     * A package has no say in whether it is switched off or removed, so a hook
+     * of its own that throws costs the hook and nothing else. What it used to
+     * cost as well was any word of it reaching the administrator: the operation
+     * reported plain success and the reason sat in a log nobody had been sent
+     * to. These lines are that word - which step of which package did not
+     * finish, and where the rest of it is. What the hook threw stays in the log,
+     * because it is a package's own text and this is read in a panel.
+     *
+     * Drained by the call: whoever asks has taken them on, and the next
+     * operation through this manager starts with none of its own.
+     *
+     * @return list<string> ready to be shown, in the order the hooks failed
+     */
+    public function takeHookWarnings(): array
+    {
+        $warnings = $this->hookWarnings;
+        $this->hookWarnings = [];
+
+        return $warnings;
     }
 
     /**
@@ -781,9 +813,18 @@ class PackageManager
      * hook is given its chance, and a throw costs the hook rather than the
      * operation. Enabling and installing keep propagating - there the failure
      * means the package is not ready to run, which is the caller's business.
+     *
+     * The line for the caller is taken first, so that a log this cannot be
+     * written to still leaves the administrator with something that says a step
+     * was skipped ({@see takeHookWarnings()}).
      */
     private function reportHookFailure(PackageInterface $package, string $hook, \Throwable $e): void
     {
+        $this->hookWarnings[] = __(
+            'The %hook% step of "%name%" did not finish. See the error log for details.',
+            ['%hook%' => $hook, '%name%' => $this->label($package)]
+        );
+
         try {
             if ($this->app->has('log')) {
                 $this->app->get('log')->error(

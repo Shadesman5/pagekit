@@ -100,6 +100,10 @@ return [
             'name' => '@system/update',
             'controller' => 'Pagekit\Installer\Controller\UpdateController',
         ],
+        '/system/snapshot' => [
+            'name' => '@system/snapshot',
+            'controller' => 'Pagekit\Installer\Controller\SnapshotController',
+        ],
 
     ],
 
@@ -160,6 +164,14 @@ return [
             'url' => '@system/package/themes',
             'access' => 'system: manage packages',
             'priority' => 10,
+        ],
+
+        'system: snapshots' => [
+            'label' => 'Snapshots',
+            'parent' => 'system: system',
+            'url' => '@system/snapshot',
+            'access' => 'system: manage packages',
+            'priority' => 15,
         ],
 
         'system: update' => [
