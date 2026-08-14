@@ -67,6 +67,15 @@ final class SnapshotStore
      */
     public const FILES_DIR = 'files';
 
+    /**
+     * Composer's record of what it had installed, captured for a package
+     * Composer manages. It sits beside the archived tree rather than in it,
+     * because it describes the whole installation and not the one package: a
+     * restore puts the package's own files back, and what to do with this is a
+     * decision somebody makes about Composer's bookkeeping.
+     */
+    public const INSTALLED_FILE = 'installed.json';
+
     private const SECONDS_PER_DAY = 86400;
 
     /**
@@ -289,6 +298,17 @@ final class SnapshotStore
     public function filesDirectory(string $id): string
     {
         return $this->directory($id).'/'.self::FILES_DIR;
+    }
+
+    /**
+     * The captured Composer bookkeeping of a snapshot, whether or not the
+     * package it was taken of was one Composer installed.
+     *
+     * @throws \InvalidArgumentException where the id is not one, or names no snapshot in this store
+     */
+    public function installedFile(string $id): string
+    {
+        return $this->directory($id).'/'.self::INSTALLED_FILE;
     }
 
     /**

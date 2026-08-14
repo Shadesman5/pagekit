@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 use Pagekit\Installer\Package\PackageFactory;
 use Pagekit\Installer\Package\PackageManager;
+use Pagekit\Installer\Package\Snapshot\DatabaseDumper;
+use Pagekit\Installer\Package\Snapshot\PackageSnapshotter;
+use Pagekit\Installer\Package\Snapshot\SnapshotStore;
 use Pagekit\Kernel\Event\ExceptionListenerWrapper;
 use Pagekit\Kernel\Exception\NotFoundException;
 
@@ -16,6 +19,21 @@ return [
         $app->set('package', fn ($app) => (new PackageFactory($app->get('url'), $app->get('path')))->addPath($app->get('path').'/packages/*/*/composer.json'));
         $app->set('manager', fn ($app) => new PackageManager($app));
         $app->set('systemApi', fn ($app) => $app->has('system.api') ? $app->get('system.api') : 'https://pagekit.com');
+
+        // What a removed package can be restored from. Defined only where there
+        // is somewhere to keep a snapshot and a database to dump into it, so
+        // that the one question a caller can ask the container - whether the id
+        // is there - is the same question as whether this installation has a
+        // way back to offer.
+        if ($app->has('path.snapshots') && $app->has('db')) {
+            $app->set('snapshotter', fn ($app) => new PackageSnapshotter(
+                new SnapshotStore($app->get('path.snapshots'), $app->get('file')),
+                new DatabaseDumper($app->get('db')),
+                $app->get('file'),
+                $app->get('log'),
+                $app->get('path.packages'),
+            ));
+        }
 
         if ($this->config['enabled']) {
 

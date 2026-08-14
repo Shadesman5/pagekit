@@ -8,6 +8,7 @@ use Pagekit\Filesystem\Filesystem;
 use Pagekit\Installer\Helper\Composer;
 use Pagekit\Installer\Package\Lifecycle\LifecycleRunner;
 use Pagekit\Installer\Package\Lifecycle\MigrationSet;
+use Pagekit\Installer\Package\Snapshot\PackageSnapshotter;
 use Pagekit\Migration\MigrationService;
 use Pagekit\System\Extension\ExtensionFailureStore;
 use Psr\Container\ContainerInterface;
@@ -127,6 +128,11 @@ class PackageManager
             if (!$package = $packageFactory->get($name)) {
                 throw new \RuntimeException(__('Unable to find "%name%".', ['%name%' => $name]));
             }
+
+            // Before the package is switched off and long before its folder is
+            // touched: everything below this line is what the snapshot exists to
+            // reverse.
+            $this->snapshot($package);
 
             $this->disable($package);
 
@@ -389,6 +395,63 @@ class PackageManager
     }
 
     /**
+     * Puts the installation aside before a package is taken out of it.
+     *
+     * A removal cannot be undone by running it again, so the snapshot is the
+     * whole of the way back: the package's files, the database as it stands, and
+     * a description of both. It is taken first, before anything is switched off,
+     * because a snapshot that could not be taken means an administrator would
+     * otherwise be told a package is restorable when it is not.
+     *
+     * One environment removes a package unsnapshotted: the one that has no
+     * snapshot store at all. The store is defined where there is somewhere to
+     * keep a snapshot and a database to dump into it, and a container with
+     * neither never had a way back to offer - refusing there would leave such an
+     * installation unable to remove a package at all. That costs a line in the
+     * log and nothing else. Everything else - a store that cannot be written, a
+     * database that cannot be read, a snapshotter that is not one - aborts the
+     * removal with nothing removed.
+     *
+     * @throws \RuntimeException where a snapshot was to be taken and could not be
+     */
+    private function snapshot(PackageInterface $package): void
+    {
+        if (!$this->app->has('snapshotter')) {
+            $this->reportUnsnapshotted($package);
+
+            return;
+        }
+
+        try {
+            $snapshotter = $this->app->get('snapshotter');
+
+            if (!$snapshotter instanceof PackageSnapshotter) {
+                throw new \RuntimeException('The registered snapshotter cannot take a snapshot.');
+            }
+
+            $id = $snapshotter->create($package, PackageSnapshotter::REASON_UNINSTALL);
+        } catch (\Throwable $e) {
+            $this->reportFailedSnapshot($package, $e);
+
+            // What went wrong is in the log with the throwable that carries it.
+            // This message is streamed to a browser, so it says what happened to
+            // the operation rather than which path on the disk refused a write.
+            $title = $package->get('title');
+
+            throw new \RuntimeException(
+                __(
+                    'No snapshot of "%name%" could be taken, so nothing was removed. See error log for details.',
+                    ['%name%' => is_string($title) && $title !== '' ? $title : $package->getName()]
+                ),
+                0,
+                $e
+            );
+        }
+
+        $this->output->writeln(__('Snapshot %id% taken.', ['%id%' => $id]));
+    }
+
+    /**
      * Takes a package off the failure record.
      *
      * Enabling, disabling or uninstalling a package is an administrator acting
@@ -544,6 +607,60 @@ class PackageManager
         } catch (\Throwable) {
             // A record that could neither be cleared nor reported is not worth
             // failing the operation that was meant to clear it.
+        }
+    }
+
+    /**
+     * Reports a removal that has nothing to fall back on.
+     *
+     * An environment without a snapshot store is one that never had a way back
+     * to offer - an installer run before there is a database, for one - and the
+     * removal goes ahead: refusing it would leave that installation unable to
+     * remove a package at all. This line is then the only thing that will later
+     * say the package was not put anywhere first.
+     */
+    private function reportUnsnapshotted(PackageInterface $package): void
+    {
+        try {
+            if ($this->app->has('log')) {
+                $this->app->get('log')->warning(
+                    sprintf(
+                        'Package "%s" is being removed without a snapshot: this installation keeps no snapshot store, so the removal cannot be undone.',
+                        $package->get('name')
+                    ),
+                    ['package' => $package->get('module')]
+                );
+            }
+        } catch (\Throwable) {
+            // Nothing is left that could take the report, and an administrator
+            // who asked for the package to go is not refused over the log.
+        }
+    }
+
+    /**
+     * Reports a snapshot that was not taken, which is a removal that did not
+     * happen.
+     *
+     * The full reason belongs here rather than in the exception: the caller
+     * streams that message straight to a browser, and what refused the snapshot
+     * is usually a path on the disk.
+     */
+    private function reportFailedSnapshot(PackageInterface $package, \Throwable $e): void
+    {
+        try {
+            if ($this->app->has('log')) {
+                $this->app->get('log')->error(
+                    sprintf(
+                        'No snapshot of package "%s" could be taken, so nothing was removed: %s',
+                        $package->get('name'),
+                        $e->getMessage()
+                    ),
+                    ['exception' => $e, 'package' => $package->get('module')]
+                );
+            }
+        } catch (\Throwable) {
+            // The failure still has to reach the caller, which is where the
+            // administrator hears that the package is untouched.
         }
     }
 

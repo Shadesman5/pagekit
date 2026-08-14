@@ -66,6 +66,30 @@ No uninstall consumer yet — the dumper and restorer are the primitive a later 
 
 Gates: Verifier (production) PASS; Tester FAIL once (PHPStan `list<string>` vs `array` at `DatabaseRestorer::apply`) → refactorer retry → PASS; test-writer done; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
 
+### Snapshot-before-uninstall + console fix (Checklist Step 3)
+
+Uninstall still hard-deletes after a successful snapshot — restore, purge, and the soft-uninstall stage are later steps. What this step adds is the gate: a snapshot is taken first, a failure aborts with the package untouched, and `php pagekit uninstall` actually constructs a manager.
+
+| File | Change |
+|---|---|
+| `app/installer/src/Package/Snapshot/PackageSnapshotter.php` (new) | New final `Pagekit\Installer\Package\Snapshot\PackageSnapshotter` — the one service a removal talks to. Constructor-injected store, dumper, `Filesystem`, logger, and `path.packages`. `create(package, reason): string` writes metadata, streams the dump, archives the package tree via `copyDir()`, and (when Composer installed the package) copies `packages/composer/installed.json` beside the archive. Any part that throws deletes the reserved directory before rethrowing a `\RuntimeException` that names the package, not the path. Archive layout is `files/<basename(dirname(path))>/<basename(path)>/` — the on-disk tree, never the manifest name. `REASON_UNINSTALL` is the only reason this step writes. No `restore()`/`purge()`/`list()` yet. A log that cannot take the audit line does not cost the snapshot. |
+| `app/installer/src/Package/Snapshot/SnapshotStore.php` | New `INSTALLED_FILE` (`installed.json`) and `installedFile(id)` path accessor, same id-guard as the dump/archive paths. The file sits at the snapshot root, not under `files/`: it describes the whole Composer installation, not the one package. |
+| `app/installer/index.php` | `snapshotter` registered only when both `path.snapshots` and `db` are present. Absence of the id is the whole answer a caller gets for "this environment never had a store". |
+| `app/installer/src/Package/PackageManager.php` | `uninstall()` calls `snapshot()` as its first action per package, before `disable()`. No `snapshotter` id → one warning log line and the removal proceeds. A present service that is not a `PackageSnapshotter`, fails to resolve, or whose `create()` throws → `\RuntimeException` streamed as "nothing was removed" (title, no disk path) with the cause chained for the log. Success writes `Snapshot %id% taken.` to the command output. |
+| `app/console/src/Commands/UninstallCommand.php` | `new PackageManager($output)` (TypeError: `OutputInterface` where `ContainerInterface` is required) becomes `new PackageManager($this->container, $output)`. Console uninstall now shares the same snapshot-first pipeline as the panel. |
+| `phpstan-baseline.neon` | The `UninstallCommand` `argument.type` ignore for that TypeError is deleted — the call site matches the constructor. No new baseline entries. |
+
+### Tests (Checklist Step 3)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Snapshot/PackageSnapshotterTest.php` (new) | Real store + real database: a snapshot holds metadata (package/module/title/type/version/reason/format/driver/platform/prefix) plus a complete dump (`header` … `end`, installation tables not package-only) plus the on-disk tree; a manifest name that is a traversal, an absolute path, or empty still archives under the real `vendor/name` and writes nothing beside the snapshot; Composer bookkeeping is captured iff `Composer::isInstalled()` would say so (named / other / empty / truncated / non-JSON / missing record); a failed copy of `installed.json`, a missing package path, an unsupported database, and a dump that stops mid-table each leave the store empty and write no audit line; a taken snapshot is logged with id + package + reason; a logger that throws does not cost the snapshot. |
+| `tests/Unit/Snapshot/SnapshotServiceWiringTest.php` (new) | Boots the installer module definition against a real container: `path.snapshots` + `db` register a `PackageSnapshotter` whose `create()` lands metadata, dump, archive, and captured bookkeeping under that path; missing `path.snapshots`, missing `db`, or both leave the id unregistered. |
+| `tests/Unit/Package/PackageSnapshotGateTest.php` (new) | End-to-end `PackageManager::uninstall()` over a real snapshotter: the snapshot is in place before `package.disable` / `package.uninstall` fire; each name in one call gets its own snapshot; an unwritable store, a non-snapshotter under the id, and a service that cannot be built each refuse with the package folder, version key, and extensions list untouched and no events fired; the streamed message names the title and "nothing was removed", not the workspace path, while the log carries the throwable; no `snapshotter` id removes the package, writes the one warning, and leaves the store empty; a log that throws on that warning still removes the package. |
+| `tests/Unit/Console/UninstallCommandTest.php` (new) | `CommandTester` against `UninstallCommand` built on the application container (the TypeError regression): a named package is removed; with a snapshotter the same dump + archive land and the id is printed; every name on the command line is removed with one snapshot each; an unknown name is reported rather than skipped, and the installed package is left alone. |
+
+Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -78,6 +102,10 @@ Gates: Verifier (production) PASS; Tester FAIL once (PHPStan `list<string>` vs `
 - **Family, not version, and the same family only.** DDL and FK handling agree at sqlite vs mysql (MariaDB included). A dump is a recovery artefact for this installation, not a cross-driver migration tool; mismatch is refused by name of both sides.
 - **Dump order is the dump's.** Introspection list order is the driver's; tables are sorted by name so two dumps of one unchanged database read the same.
 - **SQLite restore is transactional; MySQL restore is not.** SQLite keeps schema changes inside the transaction a restore opens, so a failed apply rolls back. MySQL commits on every schema statement — a failed apply leaves the database partly replaced. The snapshot stays on disk either way; running restore again is the recovery that works on both. Not worked around.
+- **The archive path is the on-disk tree, not the manifest name.** `files/<basename(dirname(path))>/<basename(path)>/` — a package that names itself `../../escaped` or `/etc/passwd` still archives where it actually lives. Text out of a package does not name a path inside the store.
+- **`installed.json` sits beside `files/`, not in it.** It is Composer's record of the whole installation. Copying the file itself (not a re-encoding) keeps the snapshot honest; what a restore does with it is a later-step decision.
+- **Presence of `snapshotter` is the escape hatch, nothing finer.** The service is defined only when `path.snapshots` and `db` are both there. A container without the id never had a store (installer-before-database) and may remove unsnapshotted, with one log line. A present id that is the wrong type, will not resolve, or whose `create()` throws always aborts. No second "skip snapshot" flag.
+- **The streamed abort names the package, not the path.** The exception an admin (or a browser stream) sees is "nothing was removed"; the throwable and the disk path stay in the error log. Same boundary as the 2.7 hook notices.
 
 ---
 
@@ -92,19 +120,21 @@ _TBD / None_
 - **0700 on a shared host.** Console and PHP-FPM as different users will make a console-taken snapshot unreadable to the panel. Containers share one user; a shared host may not.
 - **`docker/entrypoint.sh` `mkdir` is CI-exercised.** The VM has no Docker daemon; the `Docker Image` workflow is what actually recreates `tmp/snapshots` on start.
 - **MySQL restore that fails mid-apply leaves a partial replacement.** Documented, not papered over. Recovery is to run restore again from the dump still on disk. SQLite does roll back; do not assume the MySQL path does.
-- **MySQL dump/restore is the advisory `phpunit-mysql` leg.** Default PHPUnit is SQLite in memory via `SnapshotDatabase`. The same tests run against MySQL 8.4 when `DbUtil` globals name it; they skip-cleanly otherwise. A full uninstall → restore → purge on a real MySQL site is still maintainer work once the consumer exists.
+- **MySQL dump/restore is the advisory `phpunit-mysql` leg.** Default PHPUnit is SQLite in memory via `SnapshotDatabase`. The same tests run against MySQL 8.4 when `DbUtil` globals name it; they skip-cleanly otherwise. A full uninstall → restore → purge on a real MySQL site is still maintainer work once restore is wired.
+- **`php pagekit uninstall` now runs.** It used to TypeError before looking up a package. It now snapshots first (when the service exists) and then hard-deletes as today. There is still no product restore — a snapshot taken here is on disk under `tmp/snapshots/` and is not yet restorable from the panel or the CLI.
+- **Uninstall is still a hard delete after a successful snapshot.** The live tree is gone; the snapshot is the only copy. Soft-uninstall (move into the snapshot rather than copy-then-delete) is the next checklist step. A crash between snapshot and delete can leave both the live tree and a snapshot; a crash after delete leaves a snapshot that nothing in-product can restore yet.
 
 ---
 
 ## 🔐 Security & Data Impact
 
-The dump format now exists and a finished dump is 0600 — it holds every row the installation owns, password hashes and session data among them. Still no uninstall consumer, so nothing writes one into the store yet. Restore judges the file before any `DROP`: a dump from another driver family, one that names a table outside this installation's prefix, or one that is incomplete/wrong-version is refused while the live tables are still there. A dump cannot name a neighbour's table into being dropped.
+Uninstall now writes a dump. A finished snapshot is owner-only (directory 0700, dump/metadata 0600) and holds every row the installation owns — password hashes and session data among them — plus the package tree and, for Composer packages, `installed.json`. The store is still not HTTP-reachable (`path.snapshots` outside DocRoot; `Require all denied` belt). Failure of any part of `create()` deletes the reserved directory; the removal does not start, so there is no half-removed package offered as restorable. The abort that reaches a browser names the package title and "nothing was removed", never a filesystem path. The archive path is taken from where the files are, not from the package name, so a malicious manifest cannot write outside the snapshot directory.
 
 ---
 
 ## 🛡️ No-Mercy Compliance
 
-Primitive only — no dual store, no uninstall wrapper, no consumer. Call sites that need a snapshotter are later steps; this one does not keep a second path for "no snapshots yet". Dump/restore is one format and one pair of classes: no `mysqldump`/`sqlite3` fallback, no second SQL dialect beside the JSON-lines file, no adapter that pretends a failed MySQL restore rolled back.
+One snapshotter, one `uninstall()` path. Call sites were updated (manager + console); there is no wrapper that snapshots "if available" besides the documented no-id escape hatch, and that hatch is absence of the service — not a flag, not a try/catch around a missing method. The TypeError was fixed at the call site and the PHPStan baseline ignore deleted rather than kept as a typed lie. Dump/restore remains one format and one pair of classes. `create()` is all-or-nothing: no "metadata-only" snapshot that later steps would have to special-case. Restore/purge are not stubbed — they are absent until the step that implements them.
 
 ---
 
@@ -114,7 +144,7 @@ Primitive only — no dual store, no uninstall wrapper, no consumer. Call sites 
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: Checklist Step 2 production tester FAIL once (PHPStan `list<string>` vs `array` at `DatabaseRestorer::apply`) → refactorer retry → PASS. Checklist Step 1 gates all PASS.
+- Notable deviations: Checklist Step 2 production tester FAIL once (PHPStan `list<string>` vs `array` at `DatabaseRestorer::apply`) → refactorer retry → PASS. Checklist Steps 1 and 3 gates all PASS. Step 3 deleted the `UninstallCommand` PHPStan baseline ignore rather than adding one.
 
 ---
 

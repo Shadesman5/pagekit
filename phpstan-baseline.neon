@@ -13,12 +13,6 @@ parameters:
 			path: app/console/app.php
 
 		-
-			message: '#^Parameter \#1 \$app of class Pagekit\\Installer\\Package\\PackageManager constructor expects Psr\\Container\\ContainerInterface, Symfony\\Component\\Console\\Output\\OutputInterface given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/console/src/Commands/UninstallCommand.php
-
-		-
 			message: '#^Method Pagekit\\Console\\NodeVisitor\\NodeVisitor\:\:getEngine\(\) has invalid return type Symfony\\Component\\Templating\\EngineInterface\.$#'
 			identifier: class.notFound
 			count: 1
