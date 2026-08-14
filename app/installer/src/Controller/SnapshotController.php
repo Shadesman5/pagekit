@@ -91,10 +91,7 @@ class SnapshotController
             ));
         }
 
-        // The same clear enabling and disabling do, and for more reason than
-        // either: what the panel and the site load is cached, and this replaced
-        // the configuration both of them were built from.
-        $this->module->get('system/cache')->clearCache();
+        $this->clearCache();
 
         return ['message' => 'success'];
     }
@@ -202,14 +199,49 @@ class SnapshotController
      */
     private function failed(string $context, \Throwable $e, string $message): array
     {
+        $this->logError($context, $e);
+
+        return ['error' => true, 'message' => $message];
+    }
+
+    /**
+     * Rebuilds what the installation had cached, the way enabling and disabling
+     * do, and for more reason than either: what the panel and the site load is
+     * cached, and a restore replaced the configuration both of them were built
+     * from.
+     *
+     * A clear that could not be asked for is not a restore that did not happen,
+     * so it does not get to be the answer: the snapshot is back over the
+     * installation whether or not anything rebuilt afterwards, and a page told
+     * otherwise would leave the operation looking undone. What it costs instead
+     * is a panel serving what it had cached until the next clear, which is
+     * worth the line in the log that says so.
+     */
+    private function clearCache(): void
+    {
+        try {
+            $this->module->get('system/cache')->clearCache();
+        } catch (\Throwable $e) {
+            $this->logError('Failed to clear the cache after restoring a snapshot', $e);
+        }
+    }
+
+    /**
+     * Puts one line in the error log, where there is a log able to take it.
+     *
+     * Everything reported this way has already happened or already failed, and
+     * the answer the administrator gets is the same either way - so a log that
+     * cannot take the line does not get to change it.
+     *
+     * @param string $context what was being attempted, for the log
+     */
+    private function logError(string $context, \Throwable $e): void
+    {
         try {
             $this->log->error(sprintf('%s: %s', $context, $e->getMessage()), ['exception' => $e]);
         } catch (\Throwable) {
-            // The administrator still has to be told that it did not happen,
-            // which a log that cannot take the line does not get to prevent.
+            // Nothing left to report it to.
         }
-
-        return ['error' => true, 'message' => $message];
     }
 
     /**
