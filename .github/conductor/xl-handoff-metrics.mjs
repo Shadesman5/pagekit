@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Import V1 XL Review+E2E tokens into the in-progress Conductor session.
-// Called from Conductor FINALIZE (same workflow_dispatch job — not a feature-branch
-// CI check). Missing agent / missing session is a skip, never a failed check.
-// Full V1 tickets (no Conductor session) still use import-v1-metrics.yml at merge.
+// Trigger: the commit that ticks `- [ ] Step N (XL)` → `- [x]`. Runs before FINALIZE
+// so phases stay PLAN → EXECUTE… → XL → FINALIZE. Full V1 tickets (no Conductor
+// session) are skipped — import-v1-metrics.yml handles those at merge.
 
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname, basename, resolve } from 'node:path';
@@ -12,7 +12,8 @@ import {
   INDEX_PATH,
   SESSIONS_DIR,
   createCursorClient,
-  fetchAgentUsageFromCursor,
+  fetchAgentMetricsFromCursor,
+  fetchAgentFromCursor,
   listAgentsFromCursor,
   parseRoadmapStepId,
   sessionAgentIds,
@@ -25,7 +26,6 @@ const UNCHECKED_XL = /^-\s*-\s*\[\s\]\s*Step\s+(\d+)\s*\(XL\)/i;
 const CHECKED_XL = /^\+\s*-\s*\[x\]\s*Step\s+(\d+)\s*\(XL\)/i;
 const DIFF_FILE = /^\+\+\+\s+b\/(.+)$/;
 const ROADMAP_STEP = /\*\*Current Step \(ROADMAP\):\*\*\s*(\d+\.\d+(?:\.\d+[a-z]?)?)/i;
-const MAX_LIST_PAGES = 4;
 
 export function detectXlTicks(unifiedDiff) {
   const ticks = [];
@@ -76,32 +76,7 @@ export function pickXlHandoffSession(sessions, { branch } = {}) {
   )[0];
 }
 
-export function hyphenate(value) {
-  return String(value || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-}
-
-/** `feature/snapshot-three-stage-uninstall` → `snapshot-three-stage-uninstall` */
-export function branchSlug(branchNorm) {
-  return hyphenate(
-    String(branchNorm || '')
-      .replace(/^refs\/heads\//, '')
-      .replace(/^feature\//, '')
-  );
-}
-
-export function lastSessionPhaseAt(session) {
-  let max = 0;
-  for (const phase of session?.phases || []) {
-    const t = Date.parse(phase.completedAt || phase.startedAt || '') || 0;
-    if (t > max) max = t;
-  }
-  return max || null;
-}
-
-/** Newest unused parent with usage. Prefer a name/branch hit over a random newer agent. */
+/** Newest unused parent agent with usage. Conductor phases are already in excludeIds. */
 export function pickXlHandoffAgent(candidates, excludeIds = []) {
   const exclude = new Set((excludeIds || []).map(id => String(id || '').toLowerCase()));
   const eligible = (candidates || []).filter(c => {
@@ -109,15 +84,13 @@ export function pickXlHandoffAgent(candidates, excludeIds = []) {
     return id.startsWith('bc-') && !exclude.has(id) && (Number(c.total) || 0) > 0;
   });
   if (!eligible.length) return null;
-  const named = eligible.filter(c => c.nameHit || c.branchHit);
-  const pool = named.length ? named : eligible;
-  pool.sort((a, b) => {
+  eligible.sort((a, b) => {
     const ta = Date.parse(a.createdAt || a.startedAt || '') || 0;
     const tb = Date.parse(b.createdAt || b.startedAt || '') || 0;
     if (tb !== ta) return tb - ta;
     return (Number(b.total) || 0) - (Number(a.total) || 0);
   });
-  return pool[0].id.toLowerCase();
+  return eligible[0].id.toLowerCase();
 }
 
 function agentBranch(detail, fallback = {}) {
@@ -133,137 +106,52 @@ function agentBranch(detail, fallback = {}) {
     .toLowerCase();
 }
 
-/**
- * Whether a hyphenated agent name carries the branch slug. Exact first; a longer
- * name counts only where the slug sits on hyphen boundaries at one end of it
- * ("Snapshot three-stage uninstall — finalize"), and only for a slug of more than
- * one segment: a single word turning up somewhere inside a longer name is a
- * coincidence, not a ticket.
- */
-function nameCarriesSlug(nameHyph, slug) {
-  if (!nameHyph || !slug) return false;
-  if (nameHyph === slug) return true;
-  if (!slug.includes('-')) return false;
-  return nameHyph.startsWith(`${slug}-`) || nameHyph.endsWith(`-${slug}`);
-}
-
-/**
- * V1 UI agents often have no `target.branchName`. Their `name` is the ticket title
- * ("Snapshot three-stage uninstall"), not `feature/<slug>`.
- *
- * An agent that does name a branch has already answered the question, so the name
- * is only ever read for one that does not — otherwise a title that happens to read
- * like this ticket would pull in an agent that ran on another branch.
- */
-export function listFieldsMatchBranch(item, branchNorm) {
-  const norm = String(branchNorm || '')
-    .replace(/^refs\/heads\//, '')
-    .toLowerCase();
-  if (!norm) return 'no';
-  const slug = branchSlug(norm);
-  const b = agentBranch(item);
-  if (b) {
-    return b === norm || b === slug || (slug && b.endsWith(`/${slug}`)) ? 'yes' : 'no';
-  }
-  return nameCarriesSlug(hyphenate(item?.name), slug) ? 'yes' : 'unknown';
-}
-
 export async function resolveXlHandoffAgent(
   client,
-  { branch, excludeIds = [], after = null, log = () => {} } = {}
+  { branch, excludeIds = [], log = () => {} } = {}
 ) {
   const branchNorm = String(branch || '')
     .replace(/^refs\/heads\//, '')
     .toLowerCase();
-  if (!client) return null;
+  if (!client || !branchNorm) return null;
   const exclude = new Set((excludeIds || []).map(id => String(id || '').toLowerCase()));
-  const afterMs = after ? Date.parse(after) || Number(after) || 0 : 0;
-  const named = [];
-  const unknown = [];
+  const scored = [];
   let cursor = null;
-  for (let page = 0; page < MAX_LIST_PAGES; page += 1) {
+  for (let page = 0; page < 5; page += 1) {
     const res = await listAgentsFromCursor(client, { limit: 50, cursor });
     for (const item of res.items) {
       const id = String(item.id || '').toLowerCase();
       if (!id.startsWith('bc-') || exclude.has(id)) continue;
-      const createdAt = item.createdAt || item.created_at || null;
-      const createdMs = Date.parse(createdAt || '') || 0;
-      // The cutoff is the last Conductor phase, so what is being looked for is
-      // an agent that ran after it. One that does not say when it ran cannot be
-      // shown to have, and admitting it would be admitting every agent whose
-      // date could not be read.
-      if (afterMs && !(createdMs >= afterMs)) continue;
-      const listed = branchNorm ? listFieldsMatchBranch(item, branchNorm) : 'unknown';
-      if (listed === 'no') continue;
-      const row = { id, createdAt };
-      if (listed === 'yes') named.push(row);
-      else unknown.push(row);
+      let detail = item;
+      try {
+        detail = (await fetchAgentFromCursor(client, id)) || item;
+      } catch {
+        /* list fields only */
+      }
+      const name = String(detail?.name || item.name || '').toLowerCase();
+      if (agentBranch(detail, item) !== branchNorm && !name.includes(branchNorm)) continue;
+      let total = 0;
+      try {
+        const metrics = await fetchAgentMetricsFromCursor(client, id);
+        total = Number(metrics?.tokens?.total) || 0;
+      } catch {
+        /* keep 0 */
+      }
+      scored.push({
+        id,
+        total,
+        createdAt: detail?.createdAt || detail?.created_at || item.createdAt || null
+      });
+    }
+    const picked = pickXlHandoffAgent(scored, []);
+    if (picked) {
+      log(`resolve-xl: picked ${picked}`);
+      return picked;
     }
     cursor = res.nextCursor;
     if (!cursor) break;
   }
-
-  async function score(rows, nameHit) {
-    const scored = [];
-    for (const row of rows) {
-      let total = 0;
-      try {
-        const tokens = await fetchAgentUsageFromCursor(client, row.id);
-        total = Number(tokens?.total) || 0;
-      } catch {
-        /* keep 0 */
-      }
-      if (total <= 0) continue;
-      scored.push({
-        id: row.id,
-        total,
-        createdAt: row.createdAt,
-        nameHit,
-        branchHit: nameHit
-      });
-    }
-    return scored;
-  }
-
-  const namedScored = await score(named, true);
-  let picked = pickXlHandoffAgent(namedScored, []);
-  if (picked) {
-    log(`resolve-xl: picked ${picked} (name/branch match)`);
-    return picked;
-  }
-  const unknownScored = await score(unknown, false);
-  // Nothing about these says which branch they ran on, so the only one that can
-  // be taken for the XL parent is a single one: with two the newest is a guess,
-  // and a guess here attaches somebody else's tokens to this session.
-  if (unknownScored.length > 1) {
-    log(
-      `resolve-xl: ${unknownScored.length} agents with usage and no branch after the last Conductor phase — none names this branch, importing none`
-    );
-    return null;
-  }
-  picked = pickXlHandoffAgent(unknownScored, []);
-  if (picked) {
-    log(`resolve-xl: picked ${picked} (usage fallback)`);
-    return picked;
-  }
-  log('resolve-xl: no unused parent agent with usage after last Conductor phase');
-  return null;
-}
-
-async function resolveAgentById(client, agentId, log) {
-  const id = String(agentId || '').toLowerCase();
-  if (!id.startsWith('bc-')) return null;
-  try {
-    const tokens = await fetchAgentUsageFromCursor(client, id);
-    const total = Number(tokens?.total) || 0;
-    if (total > 0) {
-      log(`resolve-xl: using ${id} (usage=${total})`);
-      return id;
-    }
-    log(`resolve-xl: ${id} has zero usage`);
-  } catch (e) {
-    log(`resolve-xl: GET ${id} failed (${e.message})`);
-  }
+  log(`resolve-xl: no unused parent agent with usage on ${branchNorm}`);
   return null;
 }
 
@@ -287,9 +175,9 @@ function loadSessionsForStep(stepId) {
   return ids.map(id => readJson(join(ROOT, SESSIONS_DIR, `${id}.json`))).filter(Boolean);
 }
 
-async function waitForXlAgent(client, { branch, excludeIds, after, attempts, delayMs, log }) {
+async function waitForXlAgent(client, { branch, excludeIds, attempts, delayMs, log }) {
   for (let i = 1; i <= attempts; i += 1) {
-    const id = await resolveXlHandoffAgent(client, { branch, excludeIds, after, log });
+    const id = await resolveXlHandoffAgent(client, { branch, excludeIds, log });
     if (id) return id;
     log(`no unused XL parent agent with usage yet (attempt ${i}/${attempts})`);
     if (i < attempts) await sleep(delayMs);
@@ -297,7 +185,75 @@ async function waitForXlAgent(client, { branch, excludeIds, after, attempts, del
   return null;
 }
 
-function runImporter({ session, stepId, agentId, branch, doPush, dryRun, log }) {
+export async function main(argv = process.argv, env = process.env, io = console) {
+  const dryRun = argv.includes('--dry-run');
+  const doPush = argv.includes('--push');
+  const branch = (getArg('--branch', argv) || env.GITHUB_REF_NAME || '').replace(
+    /^refs\/heads\//,
+    ''
+  );
+  const diffPath = getArg('--diff', argv);
+  const attempts = Number(env.XL_IMPORT_ATTEMPTS || 10);
+  const delayMs = Number(env.XL_IMPORT_DELAY_MS || 20000);
+
+  if (!diffPath) {
+    io.error('Missing --diff <unified-diff-file>');
+    process.exit(1);
+  }
+  const diff = readFileSync(diffPath, 'utf8');
+  const ticks = detectXlTicks(diff);
+  if (!ticks.length) {
+    io.log('No XL checkbox tick in this diff — skip.');
+    return 0;
+  }
+
+  const tick = ticks[0];
+  const ticketAbs = join(ROOT, tick.file);
+  if (!existsSync(ticketAbs)) {
+    io.error(`Ticket not in checkout: ${tick.file}`);
+    process.exit(1);
+  }
+  const stepId = parseTicketRoadmapStepId(readFileSync(ticketAbs, 'utf8'), tick.file);
+  if (!stepId) {
+    io.error(`Could not read Current Step (ROADMAP) from ${tick.file}`);
+    process.exit(1);
+  }
+  io.log(`XL tick: checklist step ${tick.checklistStep} in ${tick.file} → ROADMAP ${stepId}`);
+
+  if (!dryRun) {
+    syncMetricsFromRemote({ root: ROOT, log: msg => io.log(msg) });
+  }
+  const session = pickXlHandoffSession(loadSessionsForStep(stepId), { branch });
+  if (!session) {
+    io.log(
+      `No in_progress Conductor session for ${stepId} — skip (full V1 tickets use import-v1-metrics.yml).`
+    );
+    return 0;
+  }
+  io.log(`Session ${session.sessionId} (${session.status}, branch=${session.branch || '—'})`);
+
+  const apiKey = (env.CURSOR_API_KEY || '').trim();
+  if (!apiKey) {
+    io.error('CURSOR_API_KEY is required');
+    process.exit(1);
+  }
+  const client = createCursorClient(apiKey);
+  const agentId = await waitForXlAgent(client, {
+    branch,
+    excludeIds: sessionAgentIds(session),
+    attempts,
+    delayMs,
+    log: msg => io.log(msg)
+  });
+  if (!agentId) {
+    io.error(
+      `Could not resolve a parent cloud agent on branch ${branch}. ` +
+        `Import manually: CURSOR_API_KEY=… node .github/conductor/import-manual-agents.mjs ` +
+        `--step ${stepId} --session ${session.sessionId} --branch ${branch} --label EXECUTE --agent bc-… --push`
+    );
+    process.exit(1);
+  }
+
   const args = [
     join(ROOT, '.github/conductor/import-manual-agents.mjs'),
     '--step',
@@ -316,133 +272,8 @@ function runImporter({ session, stepId, agentId, branch, doPush, dryRun, log }) 
   if (session.issue != null) args.push('--issue', String(session.issue));
   if (doPush) args.push('--push');
   if (dryRun) args.push('--dry-run');
-  log(`import-manual-agents ${args.slice(1).join(' ')}`);
+  io.log(`import-manual-agents ${args.slice(1).join(' ')}`);
   execFileSync(process.execPath, args, { cwd: ROOT, stdio: 'inherit' });
-}
-
-/**
- * Best-effort import. Never throws for "nothing to import".
- * @returns {Promise<{ imported: boolean, reason?: string, agentId?: string, sessionId?: string }>}
- */
-export async function importXlHandoffForSession({
-  sessionId = null,
-  branch,
-  ticketPath = '',
-  stepId: stepIdArg = null,
-  agentId: agentIdArg = null,
-  push = false,
-  dryRun = false,
-  attempts = 2,
-  delayMs = 8000,
-  env = process.env,
-  log = msg => console.log(msg)
-} = {}) {
-  let stepId = stepIdArg;
-  const ticketAbs = ticketPath ? join(ROOT, ticketPath) : '';
-  if (!stepId && ticketAbs && existsSync(ticketAbs)) {
-    stepId = parseTicketRoadmapStepId(readFileSync(ticketAbs, 'utf8'), ticketPath);
-  }
-  if (!stepId) return { imported: false, reason: 'no ROADMAP step id' };
-
-  if (!dryRun) {
-    syncMetricsFromRemote({ root: ROOT, log });
-  }
-
-  const session = sessionId
-    ? readJson(join(ROOT, SESSIONS_DIR, `${sessionId}.json`))
-    : pickXlHandoffSession(loadSessionsForStep(stepId), { branch });
-  if (!session) {
-    return { imported: false, reason: `no Conductor session for ${stepId}` };
-  }
-
-  const apiKey = (env.CURSOR_API_KEY || '').trim();
-  if (!apiKey) return { imported: false, reason: 'CURSOR_API_KEY missing' };
-
-  const client = createCursorClient(apiKey);
-  const after = lastSessionPhaseAt(session);
-  let agentId = null;
-  if (agentIdArg) {
-    agentId = await resolveAgentById(client, agentIdArg, log);
-  }
-  if (!agentId) {
-    agentId = await waitForXlAgent(client, {
-      branch,
-      excludeIds: sessionAgentIds(session),
-      after,
-      attempts,
-      delayMs,
-      log
-    });
-  }
-  if (!agentId) {
-    return {
-      imported: false,
-      sessionId: session.sessionId,
-      reason: `no unused V1 parent with usage after last Conductor phase on ${branch}`
-    };
-  }
-
-  runImporter({
-    session,
-    stepId,
-    agentId,
-    branch,
-    doPush: push,
-    dryRun,
-    log
-  });
-  return { imported: true, agentId, sessionId: session.sessionId };
-}
-
-export async function main(argv = process.argv, env = process.env, io = console) {
-  const dryRun = argv.includes('--dry-run');
-  const doPush = argv.includes('--push');
-  const branch = (getArg('--branch', argv) || env.GITHUB_REF_NAME || '').replace(
-    /^refs\/heads\//,
-    ''
-  );
-  const diffPath = getArg('--diff', argv);
-  const sessionId = getArg('--session', argv);
-  const ticketPath = getArg('--ticket', argv);
-  const stepId = getArg('--step', argv);
-  const agentId = getArg('--agent', argv);
-  const attempts = Number(env.XL_IMPORT_ATTEMPTS || 2);
-  const delayMs = Number(env.XL_IMPORT_DELAY_MS || 8000);
-
-  let resolvedTicket = ticketPath;
-  if (diffPath) {
-    const ticks = detectXlTicks(readFileSync(diffPath, 'utf8'));
-    if (!ticks.length) {
-      io.log('No XL checkbox tick in this diff — skip.');
-      return 0;
-    }
-    resolvedTicket = resolvedTicket || ticks[0].file;
-    io.log(`XL tick: checklist step ${ticks[0].checklistStep} in ${ticks[0].file}`);
-  }
-
-  if (!sessionId && !resolvedTicket && !stepId) {
-    io.log('Nothing to import (pass --session / --ticket / --diff) — skip.');
-    return 0;
-  }
-
-  const result = await importXlHandoffForSession({
-    sessionId,
-    branch,
-    ticketPath: resolvedTicket,
-    stepId,
-    agentId,
-    push: doPush,
-    dryRun,
-    attempts,
-    delayMs,
-    env,
-    log: msg => io.log(msg)
-  });
-  if (!result.imported) {
-    io.log(`XL metrics skip: ${result.reason}`);
-    return 0;
-  }
-  io.log(`XL metrics imported agent=${result.agentId} session=${result.sessionId}`);
   return 0;
 }
 
