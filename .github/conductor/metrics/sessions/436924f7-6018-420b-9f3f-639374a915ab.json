@@ -318,21 +318,52 @@
       "startedAt": "2026-08-14T21:53:39.793Z",
       "durationMs": 5175661,
       "completedAt": "2026-08-14T23:19:56.488Z"
+    },
+    {
+      "phaseKey": "31840368584-2-FINALIZE",
+      "type": "FINALIZE",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-08-14T23:27:17.128Z",
+      "durationMs": 7253230,
+      "agent": {
+        "id": "bc-60bb03fe-28f4-40ec-9e19-c8a05276f08d",
+        "runId": "run-778777ff-0e4b-4c37-9bbb-3a4007eb4be4",
+        "url": "https://cursor.com/agents/bc-60bb03fe-28f4-40ec-9e19-c8a05276f08d",
+        "model": "grok-4.6"
+      },
+      "github": {
+        "runId": 31840368584,
+        "runAttempt": 2,
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/31840368584",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 950595,
+        "output": 329721,
+        "cacheRead": 45918431,
+        "cacheWrite": 1897215,
+        "total": 49095962
+      },
+      "tokensSource": "cursor-api",
+      "result": "ESCALATE: Bugbot dirty (out-of-scope Conductor vs develop); later commits d4a78066/e0c1b8be/717deaf8 reintroduce it and verifier refuses develop-align.",
+      "outcome": "escalate"
     }
   ],
   "totals": {
     "tokens": {
-      "input": 5474840,
-      "output": 2220628,
-      "cacheRead": 299936545,
-      "cacheWrite": 9350241,
-      "total": 316982254
+      "input": 6425435,
+      "output": 2550349,
+      "cacheRead": 345854976,
+      "cacheWrite": 11247456,
+      "total": 366078216
     },
-    "durationMs": 34125324,
-    "phaseCount": 6,
-    "escalations": 0,
+    "durationMs": 41378554,
+    "phaseCount": 7,
+    "escalations": 1,
     "ghaJobs": 5,
-    "cloudAgents": 6
+    "cloudAgents": 7
   },
   "v1Continued": true,
   "manualImport": {
