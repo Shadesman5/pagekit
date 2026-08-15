@@ -8,9 +8,9 @@
   "issue": 267,
   "branch": "feature/snapshot-three-stage-uninstall",
   "model": "grok-4.6",
-  "status": "in_progress",
+  "status": "failed",
   "startedAt": "2026-08-14T13:39:30.460Z",
-  "completedAt": "2026-08-14T23:19:56.488Z",
+  "completedAt": "2026-08-15T02:44:15.744Z",
   "phases": [
     {
       "phaseKey": "31805719574-1-PLAN",
