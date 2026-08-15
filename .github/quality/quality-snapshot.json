@@ -1,7 +1,7 @@
 {
   "schemaVersion": 3,
   "source": "github-actions",
-  "updatedAt": "2026-08-14T13:23:57.504Z",
+  "updatedAt": "2026-08-15T02:51:31.936Z",
   "branch": "develop",
   "commit": "b2be58dab958eb7dc5423c0248cb56b3233f250b",
   "workflows": {
@@ -14,7 +14,7 @@
       "conclusion": "success"
     },
     "infectionFull": {
-      "runId": 31768615078,
+      "runId": 31860052784,
       "conclusion": "success",
       "scheduled": true
     }
@@ -59,7 +59,7 @@
       "errors": 1,
       "totalMutants": 372,
       "scope": "full",
-      "runAt": "2026-08-14T04:02:19Z"
+      "runAt": "2026-08-15T02:46:14Z"
     }
   },
   "e2e": {
