@@ -10,7 +10,7 @@
   "model": "grok-4.6",
   "status": "failed",
   "startedAt": "2026-08-14T13:39:30.460Z",
-  "completedAt": "2026-08-15T02:44:15.744Z",
+  "completedAt": "2026-08-15T02:43:57.913Z",
   "phases": [
     {
       "phaseKey": "31805719574-1-PLAN",
@@ -324,13 +324,30 @@
       "type": "FINALIZE",
       "attempt": 0,
       "batchSteps": null,
-      "startedAt": "2026-08-14T23:27:17.128Z",
-      "durationMs": 7253230,
+      "startedAt": "2026-08-14T23:27:22.284Z",
+      "durationMs": 7227960,
       "agent": {
         "id": "bc-60bb03fe-28f4-40ec-9e19-c8a05276f08d",
         "runId": "run-778777ff-0e4b-4c37-9bbb-3a4007eb4be4",
         "url": "https://cursor.com/agents/bc-60bb03fe-28f4-40ec-9e19-c8a05276f08d",
-        "model": "grok-4.6"
+        "model": "grok-4.6",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-778777ff-0e4b-4c37-9bbb-3a4007eb4be4",
+            "index": 1,
+            "startedAt": "2026-08-14T23:27:22.284Z",
+            "completedAt": "2026-08-15T01:27:52.425Z",
+            "durationMs": 7227960,
+            "tokens": {
+              "input": 950595,
+              "output": 329721,
+              "cacheRead": 45918431,
+              "cacheWrite": 1897215,
+              "total": 49095962
+            }
+          }
+        ]
       },
       "github": {
         "runId": 31840368584,
@@ -348,20 +365,39 @@
       },
       "tokensSource": "cursor-api",
       "result": "ESCALATE: Bugbot dirty (out-of-scope Conductor vs develop); later commits d4a78066/e0c1b8be/717deaf8 reintroduce it and verifier refuses develop-align.",
-      "outcome": "escalate"
+      "outcome": "escalate",
+      "completedAt": "2026-08-15T01:27:52.425Z",
+      "notes": "Timing from Cursor API (single agent run)"
     },
     {
       "phaseKey": "31840368584-2-FINALIZE (retry 1)",
       "type": "FINALIZE",
       "attempt": 1,
       "batchSteps": null,
-      "startedAt": "2026-08-15T01:28:14.269Z",
-      "durationMs": 3788546,
+      "startedAt": "2026-08-15T01:28:15.511Z",
+      "durationMs": 3772571,
       "agent": {
         "id": "bc-0666d369-2989-4f80-bc00-b134b5453294",
         "runId": "run-dda29f00-80d7-4fe2-935e-9e9aa77d118b",
         "url": "https://cursor.com/agents/bc-0666d369-2989-4f80-bc00-b134b5453294",
-        "model": "grok-4.6"
+        "model": "grok-4.6",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-dda29f00-80d7-4fe2-935e-9e9aa77d118b",
+            "index": 1,
+            "startedAt": "2026-08-15T01:28:15.511Z",
+            "completedAt": "2026-08-15T02:31:09.005Z",
+            "durationMs": 3772571,
+            "tokens": {
+              "input": 450479,
+              "output": 84121,
+              "cacheRead": 12929473,
+              "cacheWrite": 393067,
+              "total": 13857140
+            }
+          }
+        ]
       },
       "github": {
         "runId": 31840368584,
@@ -379,20 +415,39 @@
       },
       "tokensSource": "cursor-api",
       "result": "ESCALATE: PR Security review did not appear after security run (ceiling ~15 min).",
-      "outcome": "escalate"
+      "outcome": "escalate",
+      "completedAt": "2026-08-15T02:31:09.005Z",
+      "notes": "Timing from Cursor API (single agent run)"
     },
     {
       "phaseKey": "31840368584-2-FINALIZE (retry 2)",
       "type": "FINALIZE",
       "attempt": 2,
       "batchSteps": null,
-      "startedAt": "2026-08-15T02:31:27.601Z",
-      "durationMs": 764361,
+      "startedAt": "2026-08-15T02:31:29.147Z",
+      "durationMs": 747741,
       "agent": {
         "id": "bc-cae525bd-5be2-42ef-8c82-00c4de4f581f",
         "runId": "run-3419035c-ab9f-4d94-9321-de178ada5c7c",
         "url": "https://cursor.com/agents/bc-cae525bd-5be2-42ef-8c82-00c4de4f581f",
-        "model": "grok-4.6"
+        "model": "grok-4.6",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-3419035c-ab9f-4d94-9321-de178ada5c7c",
+            "index": 1,
+            "startedAt": "2026-08-15T02:31:29.147Z",
+            "completedAt": "2026-08-15T02:43:57.913Z",
+            "durationMs": 747741,
+            "tokens": {
+              "input": 79227,
+              "output": 7069,
+              "cacheRead": 1431360,
+              "cacheWrite": 0,
+              "total": 1517656
+            }
+          }
+        ]
       },
       "github": {
         "runId": 31840368584,
@@ -410,7 +465,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "ESCALATE: Bugbot usage limit reached; no BUGBOT_REVIEW after trigger.",
-      "outcome": "escalate"
+      "outcome": "escalate",
+      "completedAt": "2026-08-15T02:43:57.913Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -421,7 +478,7 @@
       "cacheWrite": 11640523,
       "total": 381453012
     },
-    "durationMs": 45931461,
+    "durationMs": 45873596,
     "phaseCount": 9,
     "escalations": 3,
     "ghaJobs": 5,
