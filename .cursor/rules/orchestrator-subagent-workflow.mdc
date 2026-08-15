@@ -31,7 +31,7 @@ Ticket path: `migration-docs/tickets/active/<prompt-basename>_plan.md`. Never st
 
 Validate **Branch** and **Base** before any git argv: `^[A-Za-z0-9][A-Za-z0-9._/-]*$`, no whitespace, shell metacharacters, newlines, `..`, leading `-`, or trailing `.lock`. Pass as a **single argv**. Invalid → `ESCALATE: invalid Branch/Base ref: <reason>`.
 
-Then `git rev-parse --abbrev-ref HEAD` must match. If not: `git fetch origin` and checkout the validated name (create from validated **Base** if missing). Then `git fetch origin <Base>` and `git merge origin/<Base> --no-edit` (the remote-tracking ref, never the local branch of that name — a Cloud Agent VM's local `develop` is the environment Build). Push before spawning workers. On conflict: resolve or `ESCALATE: merge origin/<Base> conflicted`. Do not rebase: the feature branch is shared and already on origin.
+Then `git rev-parse --abbrev-ref HEAD` must match. If not: `git fetch origin` and checkout the validated name (create from validated **Base** if missing).
 
 ## Thin coordinator
 

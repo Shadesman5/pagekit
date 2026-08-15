@@ -4,8 +4,7 @@ name: Conductor (V2)
 # message on the base branch (e.g. the previous merged PR), which is misleading for manual runs.
 run-name: "${{ inputs.title != '' && inputs.title || format('Conductor — {0}{1}', inputs.task_prompt, inputs.issue != '' && format(' (#{0})', inputs.issue) || '') }}"
 
-# Drives the V2 orchestrator pipeline: creates feature/<slug>, merges origin/<base> into it
-# (shared published branch — merge, not rebase), then launches ONE fresh cloud agent
+# Drives the V2 orchestrator pipeline: creates feature/<slug>, then launches ONE fresh cloud agent
 # per GitHub Actions job (Plan, or one Execute batch, or Finalize) via the Cloud Agents API.
 # `slug` / `branch` name the feature branch only. The ticket file is always
 # migration-docs/tickets/active/<task-prompt-basename>_plan.md (PROMPT_ prefix kept).
