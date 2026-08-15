@@ -6,10 +6,24 @@ import {
   pickXlHandoffSession,
   pickXlHandoffAgent,
   listFieldsMatchBranch,
+  resolveXlHandoffAgent,
   lastSessionPhaseAt,
   hyphenate,
   branchSlug
 } from './xl-handoff-metrics.mjs';
+
+/** Answers the two calls the resolver makes: one page of agents, then usage per id. */
+function fakeClient(items, usage = {}) {
+  return async (method, path) => {
+    if (path.startsWith('/v1/agents?')) return { items, nextCursor: null };
+    const hit = path.match(/^\/v1\/agents\/(.+)\/usage$/);
+    if (hit) return { totalUsage: { totalTokens: usage[hit[1]] || 0 } };
+    return {};
+  };
+}
+
+const BRANCH = 'feature/snapshot-three-stage-uninstall';
+const LAST_PHASE = '2026-08-14T21:44:57.731Z';
 
 const TICK_DIFF = `diff --git a/migration-docs/tickets/active/PROMPT_2_7_1_Foo_plan.md b/migration-docs/tickets/active/PROMPT_2_7_1_Foo_plan.md
 index 111..222 100644
@@ -179,6 +193,64 @@ test('pickXlHandoffAgent prefers a name hit over a newer unrelated agent', () =>
     }
   ]);
   assert.equal(id, 'bc-cd11ecab-5d76-46f6-86e9-8fea6a3f76ea');
+});
+
+test('listFieldsMatchBranch lets a named branch overrule a title that reads like the ticket', () => {
+  assert.equal(
+    listFieldsMatchBranch(
+      { target: { branchName: 'feature/other' }, name: 'Snapshot three-stage uninstall' },
+      BRANCH
+    ),
+    'no'
+  );
+});
+
+test('listFieldsMatchBranch does not read a one-word slug out of a longer title', () => {
+  assert.equal(
+    listFieldsMatchBranch({ name: 'Docker prod image hardening' }, 'feature/docker'),
+    'unknown'
+  );
+  assert.equal(
+    listFieldsMatchBranch({ name: 'Snapshot three-stage uninstall — finalize' }, BRANCH),
+    'yes'
+  );
+});
+
+test('resolveXlHandoffAgent will not take an agent that does not say when it ran', async () => {
+  const client = fakeClient([{ id: 'bc-undated', name: 'Snapshot three-stage uninstall' }], {
+    'bc-undated': 500
+  });
+  assert.equal(await resolveXlHandoffAgent(client, { branch: BRANCH, after: LAST_PHASE }), null);
+  assert.equal(await resolveXlHandoffAgent(client, { branch: BRANCH }), 'bc-undated');
+});
+
+test('resolveXlHandoffAgent imports nothing when two branchless agents could be the parent', async () => {
+  const client = fakeClient(
+    [
+      { id: 'bc-one', name: 'Post-phase cleanup', createdAt: '2026-08-14T22:00:00.000Z' },
+      { id: 'bc-two', name: 'Unrelated agent', createdAt: '2026-08-14T23:00:00.000Z' }
+    ],
+    { 'bc-one': 10, 'bc-two': 20 }
+  );
+  assert.equal(await resolveXlHandoffAgent(client, { branch: BRANCH, after: LAST_PHASE }), null);
+});
+
+test('resolveXlHandoffAgent still takes the one branchless agent after the cutoff', async () => {
+  const client = fakeClient(
+    [
+      { id: 'bc-only', name: 'Unrelated title', createdAt: '2026-08-14T22:00:00.000Z' },
+      {
+        id: 'bc-other-branch',
+        target: { branchName: 'feature/other' },
+        createdAt: '2026-08-14T23:00:00.000Z'
+      }
+    ],
+    { 'bc-only': 42, 'bc-other-branch': 999 }
+  );
+  assert.equal(
+    await resolveXlHandoffAgent(client, { branch: BRANCH, after: LAST_PHASE }),
+    'bc-only'
+  );
 });
 
 test('lastSessionPhaseAt is the latest completed Conductor phase', () => {

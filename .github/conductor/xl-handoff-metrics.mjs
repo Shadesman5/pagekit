@@ -134,8 +134,26 @@ function agentBranch(detail, fallback = {}) {
 }
 
 /**
+ * Whether a hyphenated agent name carries the branch slug. Exact first; a longer
+ * name counts only where the slug sits on hyphen boundaries at one end of it
+ * ("Snapshot three-stage uninstall — finalize"), and only for a slug of more than
+ * one segment: a single word turning up somewhere inside a longer name is a
+ * coincidence, not a ticket.
+ */
+function nameCarriesSlug(nameHyph, slug) {
+  if (!nameHyph || !slug) return false;
+  if (nameHyph === slug) return true;
+  if (!slug.includes('-')) return false;
+  return nameHyph.startsWith(`${slug}-`) || nameHyph.endsWith(`-${slug}`);
+}
+
+/**
  * V1 UI agents often have no `target.branchName`. Their `name` is the ticket title
  * ("Snapshot three-stage uninstall"), not `feature/<slug>`.
+ *
+ * An agent that does name a branch has already answered the question, so the name
+ * is only ever read for one that does not — otherwise a title that happens to read
+ * like this ticket would pull in an agent that ran on another branch.
  */
 export function listFieldsMatchBranch(item, branchNorm) {
   const norm = String(branchNorm || '')
@@ -144,11 +162,10 @@ export function listFieldsMatchBranch(item, branchNorm) {
   if (!norm) return 'no';
   const slug = branchSlug(norm);
   const b = agentBranch(item);
-  const nameHyph = hyphenate(item?.name);
-  if (b === norm || b === slug || (slug && b.endsWith(`/${slug}`))) return 'yes';
-  if (slug && nameHyph && (nameHyph === slug || nameHyph.includes(slug))) return 'yes';
-  if (!b) return 'unknown';
-  return 'no';
+  if (b) {
+    return b === norm || b === slug || (slug && b.endsWith(`/${slug}`)) ? 'yes' : 'no';
+  }
+  return nameCarriesSlug(hyphenate(item?.name), slug) ? 'yes' : 'unknown';
 }
 
 export async function resolveXlHandoffAgent(
@@ -171,7 +188,11 @@ export async function resolveXlHandoffAgent(
       if (!id.startsWith('bc-') || exclude.has(id)) continue;
       const createdAt = item.createdAt || item.created_at || null;
       const createdMs = Date.parse(createdAt || '') || 0;
-      if (afterMs && createdMs && createdMs < afterMs) continue;
+      // The cutoff is the last Conductor phase, so what is being looked for is
+      // an agent that ran after it. One that does not say when it ran cannot be
+      // shown to have, and admitting it would be admitting every agent whose
+      // date could not be read.
+      if (afterMs && !(createdMs >= afterMs)) continue;
       const listed = branchNorm ? listFieldsMatchBranch(item, branchNorm) : 'unknown';
       if (listed === 'no') continue;
       const row = { id, createdAt };
@@ -211,6 +232,15 @@ export async function resolveXlHandoffAgent(
     return picked;
   }
   const unknownScored = await score(unknown, false);
+  // Nothing about these says which branch they ran on, so the only one that can
+  // be taken for the XL parent is a single one: with two the newest is a guess,
+  // and a guess here attaches somebody else's tokens to this session.
+  if (unknownScored.length > 1) {
+    log(
+      `resolve-xl: ${unknownScored.length} agents with usage and no branch after the last Conductor phase — none names this branch, importing none`
+    );
+    return null;
+  }
   picked = pickXlHandoffAgent(unknownScored, []);
   if (picked) {
     log(`resolve-xl: picked ${picked} (usage fallback)`);
