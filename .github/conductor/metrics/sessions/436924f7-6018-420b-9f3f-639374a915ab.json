@@ -349,21 +349,52 @@
       "tokensSource": "cursor-api",
       "result": "ESCALATE: Bugbot dirty (out-of-scope Conductor vs develop); later commits d4a78066/e0c1b8be/717deaf8 reintroduce it and verifier refuses develop-align.",
       "outcome": "escalate"
+    },
+    {
+      "phaseKey": "31840368584-2-FINALIZE (retry 1)",
+      "type": "FINALIZE",
+      "attempt": 1,
+      "batchSteps": null,
+      "startedAt": "2026-08-15T01:28:14.269Z",
+      "durationMs": 3788546,
+      "agent": {
+        "id": "bc-0666d369-2989-4f80-bc00-b134b5453294",
+        "runId": "run-dda29f00-80d7-4fe2-935e-9e9aa77d118b",
+        "url": "https://cursor.com/agents/bc-0666d369-2989-4f80-bc00-b134b5453294",
+        "model": "grok-4.6"
+      },
+      "github": {
+        "runId": 31840368584,
+        "runAttempt": 2,
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/31840368584",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 450479,
+        "output": 84121,
+        "cacheRead": 12929473,
+        "cacheWrite": 393067,
+        "total": 13857140
+      },
+      "tokensSource": "cursor-api",
+      "result": "ESCALATE: PR Security review did not appear after security run (ceiling ~15 min).",
+      "outcome": "escalate"
     }
   ],
   "totals": {
     "tokens": {
-      "input": 6425435,
-      "output": 2550349,
-      "cacheRead": 345854976,
-      "cacheWrite": 11247456,
-      "total": 366078216
+      "input": 6875914,
+      "output": 2634470,
+      "cacheRead": 358784449,
+      "cacheWrite": 11640523,
+      "total": 379935356
     },
-    "durationMs": 41378554,
-    "phaseCount": 7,
-    "escalations": 1,
+    "durationMs": 45167100,
+    "phaseCount": 8,
+    "escalations": 2,
     "ghaJobs": 5,
-    "cloudAgents": 7
+    "cloudAgents": 8
   },
   "v1Continued": true,
   "manualImport": {
