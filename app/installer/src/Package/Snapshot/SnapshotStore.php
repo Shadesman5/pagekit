@@ -37,9 +37,18 @@ use Pagekit\Filesystem\Filesystem;
  * it. Whether a snapshot can still be restored is decided when it is restored,
  * against the dump and the driver it was taken from.
  *
+ * Being in the inventory is therefore not the same as being whole. Writing a
+ * snapshot takes as long as a database and a package tree take to copy, and
+ * whatever interrupts that - a full disk, a killed process, a removal that got
+ * halfway through taking one back off the disk - leaves a directory holding some
+ * of it. So a snapshot counts as a way back only while it is marked as one: the
+ * mark goes on once the last byte is written, and a removal either takes it off
+ * before it takes anything else or removes nothing at all. Everything else in
+ * the directory is there long before the snapshot is finished.
+ *
  * @phpstan-type SnapshotDatabase array{driver: string, platform: string, prefix: string}
  * @phpstan-type SnapshotDetails array{package: string, module: string, title: string, type: string, version: string, composer: bool, reason: string, format: int, database: SnapshotDatabase}
- * @phpstan-type Snapshot array{id: string, created: int, expires: int|null, size: int, package: string, module: string, title: string, type: string, version: string, composer: bool, reason: string, format: int, database: SnapshotDatabase}
+ * @phpstan-type Snapshot array{id: string, created: int, expires: int|null, size: int, complete: bool, package: string, module: string, title: string, type: string, version: string, composer: bool, reason: string, format: int, database: SnapshotDatabase}
  */
 final class SnapshotStore
 {
@@ -75,6 +84,19 @@ final class SnapshotStore
      * decision somebody makes about Composer's bookkeeping.
      */
     public const INSTALLED_FILE = 'installed.json';
+
+    /**
+     * The mark that says everything a restore needs is in the directory.
+     *
+     * Nothing else in a snapshot can say that. The metadata is written before
+     * any of what it describes, the dump lands before the package files are
+     * archived, and each of those is finished on its own well before the
+     * snapshot is - so this file is written last and taken off first, and it
+     * exists only while what is around it is whole. The time in it is for
+     * whoever reads the directory by hand; that there is a file at all is what
+     * the store goes by.
+     */
+    public const COMPLETE_FILE = 'complete';
 
     private const SECONDS_PER_DAY = 86400;
 
@@ -186,9 +208,37 @@ final class SnapshotStore
     }
 
     /**
+     * Closes a snapshot: everything a restore needs is in it, and from here on
+     * it is a way back.
+     *
+     * The one thing about a snapshot that cannot be read off the directory it
+     * is in. A dump and an archive that are both there say nothing about
+     * whether the second one is all of the package - which is exactly what an
+     * interrupted write leaves - so the whole of a snapshot is a fact only
+     * whoever wrote the last part of it has, and this is where that fact is put
+     * on the disk.
+     *
+     * @param  string                    $id as this store handed it out
+     * @throws \InvalidArgumentException where the id is not one, or names no snapshot in this store
+     * @throws \RuntimeException         where the mark could not be written. What is
+     *                                  left is then a directory nothing restores
+     *                                  from, which is what an unmarked snapshot is
+     */
+    public function complete(string $id): void
+    {
+        $directory = $this->directory($id);
+
+        try {
+            $this->files->dumpAtomic($directory.'/'.self::COMPLETE_FILE, gmdate('c')."\n", self::FILE_MODE);
+        } catch (\Throwable $e) {
+            throw new \RuntimeException(sprintf('Failed to mark the snapshot in "%s" as complete.', $directory), 0, $e);
+        }
+    }
+
+    /**
      * What a snapshot says about itself, plus what only the store can say: the
-     * id it is addressed by, when it was taken, when it may be purged and how
-     * much disk it is holding.
+     * id it is addressed by, when it was taken, when it may be purged, how much
+     * disk it is holding and whether it is whole.
      *
      * @param  string         $id as this store handed it out
      * @return Snapshot|null  null where no snapshot goes by that id, an id that
@@ -259,12 +309,22 @@ final class SnapshotStore
     /**
      * Removes a snapshot and everything in it.
      *
+     * The mark goes before what it stands for does, and a mark that will not go
+     * stops the removal where it is. Taking a directory tree apart is a walk
+     * that can fail anywhere in it, and what is left then is a snapshot missing
+     * whichever files the walk had already reached - so either the way back is
+     * given up first and the tree removed after, or nothing is touched at all.
+     * There is no order in which a half-removed directory is still marked as
+     * something a package can be restored from.
+     *
      * @param  string $id as this store handed it out
      * @return bool   whether the snapshot is gone from the store. False where
      *                there was none to remove, so that a purge cannot report
-     *                success for something it never had - and where the removal
-     *                got part of the way, which leaves a directory that is no
-     *                longer a snapshot anybody can restore from
+     *                success for something it never had; where the mark would
+     *                not come off, which leaves the snapshot exactly as it was;
+     *                and where the removal got part of the way, which leaves a
+     *                directory that is no longer a snapshot anybody can restore
+     *                from
      */
     public function delete(string $id): bool
     {
@@ -274,7 +334,15 @@ final class SnapshotStore
 
         $directory = $this->pathFor($id);
 
-        return is_dir($directory) && $this->files->delete($directory);
+        if (!is_dir($directory)) {
+            return false;
+        }
+
+        if (!$this->unmark($directory)) {
+            return false;
+        }
+
+        return $this->files->delete($directory);
     }
 
     /**
@@ -416,6 +484,30 @@ final class SnapshotStore
     }
 
     /**
+     * Takes the mark off a snapshot that is about to be removed.
+     *
+     * @return bool whether the directory is unmarked afterwards. A mark there
+     *              was none of counts: what the caller needs to know before it
+     *              starts removing files is that nothing is left claiming they
+     *              are all still there
+     */
+    private function unmark(string $directory): bool
+    {
+        $mark = $directory.'/'.self::COMPLETE_FILE;
+
+        if (@unlink($mark)) {
+            return true;
+        }
+
+        // There was nothing to take off, or somebody else took it off first.
+        // Asked of the disk rather than of the stat cache, which still holds
+        // whatever the last read of this snapshot put in it.
+        clearstatcache(true, $mark);
+
+        return !file_exists($mark);
+    }
+
+    /**
      * Where a snapshot with this id belongs, whether or not it is there.
      *
      * @throws \InvalidArgumentException where the id is not one. The rejected
@@ -473,6 +565,11 @@ final class SnapshotStore
             'created' => $created,
             'expires' => $this->retentionDays > 0 ? $created + $this->retentionDays * self::SECONDS_PER_DAY : null,
             'size' => $this->size($directory),
+            // Whether there is a way back in here, which is the one thing the
+            // metadata cannot say: it was written before the rest of the
+            // snapshot was, and the mark comes off again before a removal
+            // touches any of it.
+            'complete' => is_file($directory.'/'.self::COMPLETE_FILE),
             'package' => $this->text($data['package'] ?? null),
             'module' => $this->text($data['module'] ?? null),
             'title' => $this->text($data['title'] ?? null),

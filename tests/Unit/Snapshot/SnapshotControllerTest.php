@@ -542,8 +542,8 @@ final class SnapshotControllerTest extends TestCase
     }
 
     /**
-     * Puts a snapshot in the store that was taken at a given moment, the way one
-     * an administrator finds weeks later arrived.
+     * Puts a finished snapshot in the store that was taken at a given moment,
+     * the way one an administrator finds weeks later arrived.
      */
     private function place(string $id, int $taken, string $module): string
     {
@@ -566,6 +566,10 @@ final class SnapshotControllerTest extends TestCase
         ]));
 
         file_put_contents($directory.'/'.SnapshotStore::DUMP_FILE, str_repeat('x', 1024));
+
+        // The last thing the removal that took it wrote, and the whole of what
+        // says the rest of the directory is all there.
+        file_put_contents($directory.'/'.SnapshotStore::COMPLETE_FILE, gmdate('c')."\n");
 
         return $id;
     }

@@ -266,8 +266,10 @@ final class SnapshotRetentionTest extends TestCase
 
     public function testASnapshotThatWillNotGoIsReportedAndLeftWhereItIs(): void
     {
-        // Expired, still on the disk and still restorable, so nothing is lost
-        // and nothing is wrong except the space. An operator has to be told,
+        // Expired, still on the disk, and no longer a way back to anything: the
+        // mark comes off before the removal walks the tree, so a removal that
+        // failed after that leaves a directory nothing restores from. The disk
+        // it holds is not handed back either, and an operator has to be told -
         // because reclaiming it is now something only they can do.
         $id = '20260101-000000-old-ext-a1b2c3d4';
 
@@ -276,7 +278,11 @@ final class SnapshotRetentionTest extends TestCase
         $snapshotter = $this->snapshotter($this->installation(), 30, new ASnapshotThatWillNotGo());
 
         self::assertSame([], $snapshotter->purgeExpired(), 'Nothing was reclaimed, so nothing is reported as reclaimed');
-        self::assertArrayHasKey($id, $this->store()->list(), 'What is still there is still a way back');
+
+        $left = $this->store()->list();
+
+        self::assertArrayHasKey($id, $left, 'The disk it holds is still spent, so it is still on the inventory');
+        self::assertFalse($left[$id]['complete'], 'What a failed removal left is not offered as a package that can be brought back');
         self::assertFileExists($this->file($id, SnapshotStore::DUMP_FILE));
 
         self::assertCount(1, $this->log->records);
@@ -301,11 +307,12 @@ final class SnapshotRetentionTest extends TestCase
         $snapshotter = $this->snapshotter($this->installation(), 30, new ASnapshotThatWillNotGo());
         $id = $snapshotter->create($this->package(), PackageSnapshotter::REASON_UNINSTALL);
 
-        // The whole of the new way back, not a directory that was opened and
-        // then abandoned over the prune.
+        // The whole of the new way back, marked as one, rather than a directory
+        // that was opened and then abandoned over the prune.
         self::assertFileExists($this->file($id, SnapshotStore::METADATA_FILE));
         self::assertFileExists($this->file($id, SnapshotStore::DUMP_FILE));
         self::assertFileExists($this->file($id, SnapshotStore::FILES_DIR).'/pagekit/test-ext/composer.json');
+        self::assertFileExists($this->file($id, SnapshotStore::COMPLETE_FILE));
 
         self::assertDirectoryExists($this->snapshots.'/'.$stubborn);
         self::assertSame('warning', $this->log->records[0]['level']);
@@ -440,9 +447,10 @@ final class SnapshotRetentionTest extends TestCase
     }
 
     /**
-     * Puts a snapshot in the store that was taken at a given moment. Every
-     * snapshot a window acts on arrives that way: written by the removal that
-     * took it, read back by whatever reclaims it weeks later.
+     * Puts a finished snapshot in the store that was taken at a given moment.
+     * Every snapshot a window acts on arrives that way: written by the removal
+     * that took it, marked as a way back by the last step of that write, and
+     * read back by whatever reclaims it weeks later.
      */
     private function place(string $id, int $taken, string $module): void
     {
@@ -467,6 +475,11 @@ final class SnapshotRetentionTest extends TestCase
         // The disk the snapshot is holding, which is what a window exists to
         // hand back.
         file_put_contents($directory.'/'.SnapshotStore::DUMP_FILE, str_repeat('x', 1024));
+
+        // Written last by the removal that took it, which is what makes this a
+        // snapshot somebody could still restore rather than the leftovers of an
+        // interrupted write.
+        file_put_contents($directory.'/'.SnapshotStore::COMPLETE_FILE, gmdate('c')."\n");
     }
 
     private function store(int $days = SnapshotStore::DEFAULT_RETENTION_DAYS): SnapshotStore

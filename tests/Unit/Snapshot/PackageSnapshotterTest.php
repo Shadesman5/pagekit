@@ -193,6 +193,35 @@ final class PackageSnapshotterTest extends TestCase
         ];
     }
 
+    public function testASnapshotIsMarkedAsAWayBackOnlyOnceEverythingElseIsInIt(): void
+    {
+        // The mark is what a restore goes by and what an administrator is
+        // offered a package back from, and none of the parts beside it can say
+        // whether the ones after them ever arrived. So it is written last, and
+        // a directory that has it has all of them - which is only true while
+        // this is the final step rather than one of several.
+        $this->writeBookkeeping(self::BOOKKEEPING);
+
+        $write = new AWatchedSnapshotWrite();
+
+        $id = $this->snapshotter($this->installation(), $write)
+            ->create($this->package(), PackageSnapshotter::REASON_UNINSTALL);
+
+        $snapshot = $this->store()->get($id);
+
+        self::assertNotNull($snapshot);
+        self::assertTrue($snapshot['complete'], 'A snapshot that was taken in full is one a restore may read');
+
+        // What the directory already held at the moment the mark was written:
+        // the description, the dump, the archived tree and Composer's record.
+        self::assertSame([
+            SnapshotStore::DUMP_FILE,
+            SnapshotStore::FILES_DIR,
+            SnapshotStore::INSTALLED_FILE,
+            SnapshotStore::METADATA_FILE,
+        ], $write->beside);
+    }
+
     // ------------------------------------------------------------------
     // Composer's bookkeeping
     // ------------------------------------------------------------------
@@ -317,6 +346,37 @@ final class PackageSnapshotterTest extends TestCase
         self::assertNotNull($failure->getPrevious());
         self::assertSame([], $this->store()->list());
         self::assertSame([], $this->entries($this->snapshots));
+    }
+
+    public function testASnapshotThatCanBeNeitherFinishedNorRemovedIsLeftAsNoWayBack(): void
+    {
+        // The disk that refused the write refuses the deletion as well, so what
+        // the failed attempt made stays. It holds a dump of the whole database
+        // beside part of a package, which is exactly the pair that must never
+        // be replayed - and the mark was never written, so nothing offers it.
+        // Failing the removal a second time over those bytes would tell an
+        // administrator nothing they can act on, so it is a line instead.
+        $this->writeBookkeeping(self::BOOKKEEPING);
+
+        $snapshotter = $this->snapshotter($this->installation(), new ASnapshotThatCanBeNeitherFinishedNorRemoved());
+
+        $failure = $this->refusal(fn () => $snapshotter->create($this->package(), PackageSnapshotter::REASON_UNINSTALL));
+
+        self::assertStringContainsString('pagekit/test-ext', $failure->getMessage());
+
+        $left = $this->store()->list();
+
+        self::assertCount(1, $left, 'What could not be removed is still holding disk, so it is still on the inventory');
+
+        foreach ($left as $snapshot) {
+            self::assertFalse($snapshot['complete'], 'Nothing that was never finished may be offered as a package that can come back');
+        }
+
+        self::assertCount(1, $this->log->records);
+        self::assertSame('warning', $this->log->records[0]['level']);
+        self::assertStringContainsString('pagekit/test-ext', $this->log->records[0]['message']);
+        self::assertStringContainsString('Nothing can be restored from it', $this->log->records[0]['message']);
+        self::assertSame('create', $this->log->records[0]['context']['trigger'] ?? null);
     }
 
     public function testASnapshotThatWasNotTakenIsNotOnRecordAsTaken(): void
@@ -567,5 +627,47 @@ final class BookkeepingThatCannotBeCopied extends Filesystem
     public function copy(string $source, string $target): bool
     {
         return !str_ends_with($target, SnapshotStore::INSTALLED_FILE) && parent::copy($source, $target);
+    }
+}
+
+/**
+ * The same disk, once it has stopped taking anything at all: the record cannot
+ * be copied, and what was already written cannot be removed either.
+ */
+final class ASnapshotThatCanBeNeitherFinishedNorRemoved extends Filesystem
+{
+    public function copy(string $source, string $target): bool
+    {
+        return !str_ends_with($target, SnapshotStore::INSTALLED_FILE) && parent::copy($source, $target);
+    }
+
+    /**
+     * @param string|array<int, string> $files
+     */
+    public function delete($files): bool
+    {
+        return false;
+    }
+}
+
+/**
+ * Notes down what a snapshot directory held at the moment it was marked as
+ * whole - the one write whose entire meaning is that everything else is already
+ * there.
+ */
+final class AWatchedSnapshotWrite extends Filesystem
+{
+    /** @var array<int, string> */
+    public array $beside = [];
+
+    public function dumpAtomic(string $file, string $content, ?int $mode = null): void
+    {
+        if (basename($file) === SnapshotStore::COMPLETE_FILE) {
+            $this->beside = array_values(array_diff(scandir(dirname($file)) ?: [], ['.', '..']));
+
+            sort($this->beside);
+        }
+
+        parent::dumpAtomic($file, $content, $mode);
     }
 }

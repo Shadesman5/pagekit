@@ -106,7 +106,13 @@ export default {
       // Whether this installation puts a removed package aside. Both stages are
       // about what is left afterwards, so both of them turn on it - and an
       // installation that keeps no snapshots may not be told it can restore.
-      keepsSnapshots: false
+      keepsSnapshots: false,
+      // Whether the removal has been asked for. Leaving the confirm stage is
+      // what takes the button away, and the page it is on is only redrawn on
+      // the next tick, so without this a second click lands on a button that is
+      // already gone and starts the whole snapshot-and-remove pipeline a second
+      // time against a package the first one is halfway through removing.
+      removing: false
     };
   },
 
@@ -131,8 +137,13 @@ export default {
     },
 
     confirm() {
+      if (this.removing) {
+        return;
+      }
+
       const self = this;
 
+      this.removing = true;
       this.stage = 'progress';
 
       return this.$http

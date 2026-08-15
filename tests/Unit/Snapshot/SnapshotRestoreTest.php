@@ -311,6 +311,33 @@ final class SnapshotRestoreTest extends TestCase
         self::assertSame(self::INSTALLED, $this->configuration($connection));
     }
 
+    public function testASnapshotThatIsNotMarkedAsWholeIsRefusedBeforeAnythingIsPutBack(): void
+    {
+        // The mark is off both where a write was interrupted and where a removal
+        // was, and neither the dump nor the archive says how much of itself is
+        // still there. What is in the directory can therefore look like a whole
+        // snapshot and be a fraction of one - so this is refused on the mark
+        // alone, before a dump is replayed over the installation to reinstate
+        // files that may be half gone.
+        $connection = $this->installation();
+        $id = $this->take($connection);
+
+        $this->removePackage($connection);
+
+        unlink($this->file($id, SnapshotStore::COMPLETE_FILE));
+
+        $failure = $this->refusal(fn () => $this->snapshotter($connection)->restore($id));
+
+        self::assertStringContainsString($id, $failure->getMessage());
+        self::assertStringContainsString('not marked as whole', $failure->getMessage());
+
+        // Nothing was put back: not the files it still holds, and above all not
+        // the database, which is the half that replaces what is there now.
+        self::assertDirectoryDoesNotExist($this->tree);
+        self::assertSame(self::REMOVED, $this->configuration($connection));
+        self::assertSame([], $this->log->records);
+    }
+
     #[DataProvider('provideSnapshotsWithNothingToPutBack')]
     public function testASnapshotWithNothingInItToPutBackIsRefused(string $part, string $expected): void
     {

@@ -241,6 +241,28 @@ final class SnapshotAdminSurfaceTest extends TestCase
         ];
     }
 
+    public function testTheListingOffersARestoreOnlyForASnapshotThatIsAWayBack(): void
+    {
+        // A snapshot the store does not mark as whole is what an interrupted
+        // write or an interrupted removal left behind: a dump of the whole
+        // database beside however much of a package tree the interruption got
+        // to. The API refuses to replay that, and the page may not offer it
+        // either - a row whose only action would be refused is one an
+        // administrator is invited to lose data over.
+        $pattern = <<<'REGEX'
+            /<li\b([^>]*)>\s*<a\b[^>]*confirmRestore\(/
+            REGEX;
+
+        $found = preg_match_all(
+            $pattern,
+            (string) file_get_contents(self::installerPath().'/views/snapshots.php'),
+            $actions,
+        );
+
+        self::assertSame(1, $found, 'The page offers one way to put a snapshot back');
+        self::assertStringContainsString('snapshot.complete', $actions[1][0]);
+    }
+
     public function testTheMenuLeadsToTheListingUnderThePermissionThatOpensIt(): void
     {
         $definition = self::definition();

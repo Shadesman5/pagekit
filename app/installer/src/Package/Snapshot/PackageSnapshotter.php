@@ -18,7 +18,10 @@ use Psr\Log\LogLevel;
  * about to remove a package needs none of them by name. What taking one promises
  * is all-or-nothing: a snapshot that could not be completed is taken off the
  * disk again and reported as no snapshot at all, because the caller is about to
- * destroy the very thing it describes.
+ * destroy the very thing it describes. Where even that cannot be done - the disk
+ * that refused the write refusing the deletion as well - what is left is a
+ * directory that was never marked as whole, so nothing offers it as a way back
+ * and the retention window reclaims it.
  *
  * A snapshot holds three things. What was removed - the package's name, module,
  * version and type. The database it was removed from - every table the
@@ -82,8 +85,10 @@ final class PackageSnapshotter
      * @param  string            $reason why the snapshot is being taken, {@see REASON_UNINSTALL}
      * @return string            the id the snapshot is addressed by from here on
      * @throws \RuntimeException where any part of the snapshot could not be written.
-     *                          Nothing of it is left behind, and the caller may not
-     *                          remove what it asked to have put aside
+     *                          What was written is discarded, what cannot be
+     *                          discarded is nothing anybody can restore from
+     *                          ({@see discard()}), and the caller may not remove what
+     *                          it asked to have put aside
      */
     public function create(PackageInterface $package, string $reason): string
     {
@@ -109,12 +114,14 @@ final class PackageSnapshotter
             if ($composer) {
                 $this->bookkeeping($id);
             }
+
+            // Last, because this is the step that turns a directory of files
+            // into something a package can be brought back out of. Everything
+            // above it is there in some form from the moment it starts being
+            // written.
+            $this->store->complete($id);
         } catch (\Throwable $e) {
-            // Half a snapshot is worse than none: it would be listed as
-            // something a package can be restored from, and it is not. What is
-            // left where even this fails is a directory with no dump in it,
-            // which a restore refuses and retention reclaims.
-            $this->store->delete($id);
+            $this->discard($id, $package);
 
             throw new \RuntimeException(
                 sprintf('Failed to take a snapshot of package "%s".', $package->getName()),
@@ -157,6 +164,14 @@ final class PackageSnapshotter
      * A restored snapshot is still a snapshot: nothing here destroys it, so the
      * same one can be replayed again until it is purged.
      *
+     * What is refused outright is a snapshot the store does not mark as whole.
+     * One is in the inventory like any other and may well hold a dump and part
+     * of a package tree, which is precisely the danger: the mark is off both
+     * where a write was interrupted and where a removal was, so neither the
+     * dump nor the tree says how much of itself is still there. Applying that
+     * would write a whole database back over the installation to reinstate
+     * files that may be half gone.
+     *
      * What the running process is holding is not restored with the database. The
      * configuration it read at boot, the modules it loaded and any cache it
      * built are all from before, so whoever calls this finishes by starting the
@@ -169,6 +184,14 @@ final class PackageSnapshotter
     public function restore(string $id): void
     {
         $snapshot = $this->snapshot($id);
+
+        if (!$snapshot['complete']) {
+            throw new \RuntimeException(sprintf(
+                'Snapshot "%s" is not marked as whole, so what is in it is not the installation it describes.',
+                $id,
+            ));
+        }
+
         $dump = $this->store->dumpFile($id);
 
         if (!is_file($dump)) {
@@ -214,8 +237,10 @@ final class PackageSnapshotter
      * for it go on the record.
      *
      * @throws \InvalidArgumentException where no snapshot goes by this id
-     * @throws \RuntimeException         where the snapshot could not be removed, which
-     *                                  can leave part of it destroyed
+     * @throws \RuntimeException         where the snapshot could not be removed. The
+     *                                  store either left it untouched or got part of
+     *                                  the way through it, and only the first of
+     *                                  those is still a way back
      */
     public function purge(string $id): void
     {
@@ -223,7 +248,7 @@ final class PackageSnapshotter
 
         if (!$this->store->delete($id)) {
             throw new \RuntimeException(sprintf(
-                'Snapshot "%s" could not be removed, and what is left of it is no longer something a package can be restored from.',
+                'Snapshot "%s" could not be removed. Either none of it could be, or the removal stopped somewhere in the tree - and then what is left is no longer something a package can be restored from.',
                 $id,
             ));
         }
@@ -290,8 +315,11 @@ final class PackageSnapshotter
      * Every snapshot there is, newest first.
      *
      * What each one says about itself, and what only the store can say: how much
-     * disk it is holding and when it may be reclaimed. That last pair is what an
-     * operator watching the store grow has to go on, since nothing here caps it.
+     * disk it is holding, when it may be reclaimed, and whether it is a way back
+     * at all. The first two are what an operator watching the store grow has to
+     * go on, since nothing here caps it; the last is what keeps what an
+     * interrupted write or an interrupted removal left behind from being
+     * offered as a package that can be brought back.
      *
      * No part of the dump, ever. It is the site's whole database - every
      * password hash on it included - and whoever is looking at a list of
@@ -302,6 +330,39 @@ final class PackageSnapshotter
     public function list(): array
     {
         return $this->store->list();
+    }
+
+    /**
+     * Takes a snapshot that could not be finished back off the disk.
+     *
+     * Half a snapshot is worse than none while it is there: it holds a dump of
+     * the whole database beside whatever part of the package the write got to,
+     * and applying that pair would replace the installation to reinstate files
+     * that are not all there. So it goes, and the caller is told it has no
+     * snapshot.
+     *
+     * A directory that will not go is not that danger - it was never marked as
+     * whole, so no restore reads it and no operator is offered it - but it is
+     * disk nobody asked to spend, held until its retention window runs out.
+     * Which is the whole of what this line is for: the removal it was taken for
+     * is being called off in the same breath, and failing that a second time
+     * over bytes would tell an administrator nothing they can act on.
+     */
+    private function discard(string $id, PackageInterface $package): void
+    {
+        if ($this->store->delete($id)) {
+            return;
+        }
+
+        $this->audit(
+            sprintf(
+                'The snapshot "%s" of package "%s" could not be taken, and what had been written of it could not be removed either. Nothing can be restored from it; the disk it holds is reclaimed when its retention window runs out.',
+                $id,
+                $package->getName(),
+            ),
+            ['snapshot' => $id, 'package' => $package->get('module'), 'trigger' => 'create'],
+            LogLevel::WARNING,
+        );
     }
 
     /**
@@ -521,11 +582,14 @@ final class PackageSnapshotter
     /**
      * Reports a snapshot the retention window could not reclaim.
      *
-     * Expired, still on the disk, and still restorable - so nothing is lost and
-     * nothing is wrong with the installation except the space. Which is exactly
-     * why it is a line rather than a failure: whatever asked for the prune has
-     * its own work to finish, and the store is where an operator goes to look
-     * once they have read this.
+     * Expired and still on the disk. Either nothing of it could be removed, and
+     * then it is the way back it was, or the removal stopped somewhere in the
+     * tree - and then the store has already taken the mark off, so nothing
+     * offers what is left as one. Neither is a reason to fail: this runs while
+     * a new snapshot is being written, and disk that could not be handed back
+     * may not cost the way back being made in its place. What it is a reason
+     * for is a line an operator reads, because reclaiming those bytes is theirs
+     * to do from here.
      */
     private function reportUnreclaimed(string $id): void
     {

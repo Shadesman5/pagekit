@@ -35,9 +35,10 @@ $view->script('snapshots', 'installer:app/bundle/snapshots.js', ['vue']); ?>
             </thead>
             <tbody>
                 <tr class="uk-visible-toggle" v-for="snapshot in snapshots">
-                    <td class="pk-table-min-width-100 uk-text-nowrap">
-                        {{ title(snapshot) }}
-                        <div class="uk-text-muted">{{ snapshot.package }}</div>
+                    <td class="pk-table-min-width-100">
+                        <div class="uk-text-nowrap">{{ title(snapshot) }}</div>
+                        <div class="uk-text-muted uk-text-nowrap">{{ snapshot.package }}</div>
+                        <div class="uk-text-danger" v-if="!snapshot.complete">{{ 'Nothing can be restored from this snapshot: it was interrupted while it was taken, or while it was being removed. Purge it to reclaim the disk it holds.' | trans }}</div>
                     </td>
                     <td class="uk-text-center">{{ snapshot.version }}</td>
                     <td class="uk-text-nowrap">{{ taken(snapshot) }}</td>
@@ -45,7 +46,7 @@ $view->script('snapshots', 'installer:app/bundle/snapshots.js', ['vue']); ?>
                     <td class="uk-text-nowrap">{{ expires(snapshot) }}</td>
                     <td class="uk-preserve-width">
                         <ul class="uk-iconnav uk-flex-nowrap uk-invisible-hover">
-                            <li><a uk-icon="history" :uk-tooltip="'Restore' | trans" @click="confirmRestore(snapshot)"></a></li>
+                            <li v-if="snapshot.complete"><a uk-icon="history" :uk-tooltip="'Restore' | trans" @click="confirmRestore(snapshot)"></a></li>
                             <li><a uk-icon="trash" :uk-tooltip="'Purge' | trans" @click="purge(snapshot)" v-confirm="{ title: 'Purge this snapshot?', text: 'The package files and the database dump it holds are destroyed. This package cannot be restored afterwards.' }"></a></li>
                         </ul>
                     </td>

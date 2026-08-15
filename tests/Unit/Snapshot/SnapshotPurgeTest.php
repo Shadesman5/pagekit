@@ -201,6 +201,14 @@ final class SnapshotPurgeTest extends TestCase
         self::assertStringContainsString($id, $thrown->getMessage());
         self::assertStringContainsString('restored from', $thrown->getMessage());
         self::assertSame([], $this->log->records, 'A snapshot that is still there is not one that was destroyed');
+
+        // The mark came off before the removal started walking the directory,
+        // so what it did not finish taking apart is not offered as a package
+        // anybody can bring back.
+        $left = $this->store()->get($id);
+
+        self::assertNotNull($left);
+        self::assertFalse($left['complete']);
     }
 
     // ------------------------------------------------------------------

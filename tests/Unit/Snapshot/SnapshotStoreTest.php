@@ -34,13 +34,21 @@ final class SnapshotStoreTest extends TestCase
     private const METADATA = 'metadata.json';
 
     /**
+     * What says a snapshot is whole. The one file in a snapshot that is written
+     * after everything it stands for, and removed before any of it.
+     */
+    private const COMPLETE = 'complete';
+
+    /**
      * The shape a caller reads a snapshot in. The admin list renders every
-     * field, and a restore reads the database section to decide whether the
-     * dump can be replayed at all.
+     * field, a restore reads the database section to decide whether the dump
+     * can be replayed at all, and both of them read whether the snapshot is
+     * whole - which is what keeps what an interrupted write left behind from
+     * being offered as a way back.
      */
     private const FIELDS = [
-        'id', 'created', 'expires', 'size', 'package', 'module', 'title',
-        'type', 'version', 'composer', 'reason', 'format', 'database',
+        'id', 'created', 'expires', 'size', 'complete', 'package', 'module',
+        'title', 'type', 'version', 'composer', 'reason', 'format', 'database',
     ];
 
     private const DAY = 86400;
@@ -243,6 +251,56 @@ final class SnapshotStoreTest extends TestCase
         self::assertNotNull($snapshot);
         self::assertStringContainsString('Weird', $snapshot['title']);
         self::assertStringContainsString('Blog', $snapshot['title']);
+    }
+
+    public function testASnapshotIsAWayBackOnlyOnceItHasBeenMarkedAsOne(): void
+    {
+        // A directory that is being written into holds a description, then a
+        // dump, then part of a package tree - and at no point does any of that
+        // say whether the next part ever arrived. So the whole of a snapshot is
+        // a fact only whoever wrote its last byte has, and the mark is where
+        // that fact is put on the disk.
+        $store = $this->store();
+
+        $id = $store->create($this->details());
+        $opened = $store->get($id);
+
+        self::assertNotNull($opened);
+        self::assertFalse($opened['complete'], 'A snapshot that is still being written is not one anything restores from');
+
+        $store->complete($id);
+
+        $closed = $store->get($id);
+
+        self::assertNotNull($closed);
+        self::assertTrue($closed['complete']);
+        self::assertTrue($store->list()[$id]['complete'], 'The list an administrator chooses from says the same');
+        self::assertSame([self::COMPLETE, self::METADATA], $this->entries($store->directory($id)));
+    }
+
+    public function testASnapshotThatCouldNotBeMarkedIsReportedAndLeftUnmarked(): void
+    {
+        // The mark is the last write of a snapshot, so this is a full disk at
+        // the very end of one. Reporting it is what makes the removal it was
+        // taken for call itself off - and what stays behind must not read as a
+        // way back, because the last thing written before this may not have
+        // landed either.
+        $store = new SnapshotStore($this->path, new AMarkThatWillNotBeWritten());
+
+        $id = $store->create($this->details());
+
+        try {
+            $store->complete($id);
+
+            self::fail('A snapshot that could not be marked must not be reported as whole');
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString('as complete', $e->getMessage());
+        }
+
+        $snapshot = $store->get($id);
+
+        self::assertNotNull($snapshot, 'The directory is still on the inventory, so retention can reclaim it');
+        self::assertFalse($snapshot['complete']);
     }
 
     public function testASnapshotWhoseDescriptionCannotBeWrittenLeavesNothingBehind(): void
@@ -622,6 +680,7 @@ final class SnapshotStoreTest extends TestCase
         $id = $store->create($this->details());
         mkdir($store->filesDirectory($id), 0700, true);
         file_put_contents($store->filesDirectory($id).'/index.php', '<?php return [];');
+        $store->complete($id);
         chmod($store->filesDirectory($id), 0555);
 
         // Removing a file needs the same permission as creating one, so a
@@ -633,6 +692,41 @@ final class SnapshotStoreTest extends TestCase
         // that happened.
         self::assertFalse($store->delete($id));
         self::assertDirectoryExists($this->path.'/'.$id);
+
+        // The mark came off before the walk started, which is the only order in
+        // which a removal that stops halfway cannot leave a half-destroyed tree
+        // claiming a package can be brought back out of it.
+        $snapshot = $store->get($id);
+
+        self::assertNotNull($snapshot);
+        self::assertFalse($snapshot['complete']);
+        self::assertFileDoesNotExist($this->path.'/'.$id.'/'.self::COMPLETE);
+    }
+
+    public function testAMarkThatWillNotComeOffStopsThePurgeBeforeItRemovesAnything(): void
+    {
+        // The other end of that order. A mark nothing can remove - a file held
+        // open, a permission the directory does not give - would otherwise be
+        // walked past, and every file the walk did reach would be gone from a
+        // snapshot still offered as a way back. So the purge stops at the mark
+        // and the snapshot is exactly what it was.
+        $store = $this->store();
+
+        $id = $store->create($this->details());
+        file_put_contents($store->dumpFile($id), 'the database as it stood');
+        $store->complete($id);
+        chmod($store->directory($id), 0555);
+
+        $this->requireUnwritable($this->path.'/'.$id);
+
+        self::assertFalse($store->delete($id));
+
+        $snapshot = $store->get($id);
+
+        self::assertNotNull($snapshot);
+        self::assertTrue($snapshot['complete'], 'Nothing was removed, so the snapshot is the way back it was');
+        self::assertFileExists($this->path.'/'.$id.'/db.dump');
+        self::assertFileExists($this->path.'/'.$id.'/'.self::METADATA);
     }
 
     #[DataProvider('provideIdsThatAreNoIds')]
@@ -648,6 +742,7 @@ final class SnapshotStoreTest extends TestCase
         self::assertSame('Not a snapshot id.', $this->refusal(fn () => $store->directory($id))->getMessage());
         self::assertSame('Not a snapshot id.', $this->refusal(fn () => $store->dumpFile($id))->getMessage());
         self::assertSame('Not a snapshot id.', $this->refusal(fn () => $store->filesDirectory($id))->getMessage());
+        self::assertSame('Not a snapshot id.', $this->refusal(fn () => $store->complete($id))->getMessage());
     }
 
     /**
@@ -716,13 +811,16 @@ final class SnapshotStoreTest extends TestCase
     public function testTheDumpAndArchiveOfASnapshotThatIsNotThereAreRefusedRatherThanNamed(): void
     {
         // Handing back a path inside a directory that does not exist would let
-        // a dumper write a snapshot nothing opened and nothing inventoried.
+        // a dumper write a snapshot nothing opened and nothing inventoried -
+        // and marking one would leave a mark with no snapshot under it.
         $store = $this->store();
         $id = '20260101-000000-blog-a1b2c3d4';
 
         self::assertSame('No snapshot goes by this id.', $this->refusal(fn () => $store->directory($id))->getMessage());
         self::assertSame('No snapshot goes by this id.', $this->refusal(fn () => $store->dumpFile($id))->getMessage());
         self::assertSame('No snapshot goes by this id.', $this->refusal(fn () => $store->filesDirectory($id))->getMessage());
+        self::assertSame('No snapshot goes by this id.', $this->refusal(fn () => $store->complete($id))->getMessage());
+        self::assertSame([], $this->entries($this->path));
     }
 
     public function testHowMuchDiskASnapshotHoldsIsWhatIsInIt(): void
@@ -1006,5 +1104,21 @@ final class WriteThatNeverHappens extends Filesystem
     public function dumpAtomic(string $file, string $content, ?int $mode = null): void
     {
         throw $this->error;
+    }
+}
+
+/**
+ * A filesystem that takes every part of a snapshot except the one that says the
+ * snapshot is whole - a disk that fills up on the last write of a long one.
+ */
+final class AMarkThatWillNotBeWritten extends Filesystem
+{
+    public function dumpAtomic(string $file, string $content, ?int $mode = null): void
+    {
+        if (basename($file) === SnapshotStore::COMPLETE_FILE) {
+            throw new \RuntimeException('Failed to write file');
+        }
+
+        parent::dumpAtomic($file, $content, $mode);
     }
 }
