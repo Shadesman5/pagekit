@@ -380,21 +380,52 @@
       "tokensSource": "cursor-api",
       "result": "ESCALATE: PR Security review did not appear after security run (ceiling ~15 min).",
       "outcome": "escalate"
+    },
+    {
+      "phaseKey": "31840368584-2-FINALIZE (retry 2)",
+      "type": "FINALIZE",
+      "attempt": 2,
+      "batchSteps": null,
+      "startedAt": "2026-08-15T02:31:27.601Z",
+      "durationMs": 764361,
+      "agent": {
+        "id": "bc-cae525bd-5be2-42ef-8c82-00c4de4f581f",
+        "runId": "run-3419035c-ab9f-4d94-9321-de178ada5c7c",
+        "url": "https://cursor.com/agents/bc-cae525bd-5be2-42ef-8c82-00c4de4f581f",
+        "model": "grok-4.6"
+      },
+      "github": {
+        "runId": 31840368584,
+        "runAttempt": 2,
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/31840368584",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 79227,
+        "output": 7069,
+        "cacheRead": 1431360,
+        "cacheWrite": 0,
+        "total": 1517656
+      },
+      "tokensSource": "cursor-api",
+      "result": "ESCALATE: Bugbot usage limit reached; no BUGBOT_REVIEW after trigger.",
+      "outcome": "escalate"
     }
   ],
   "totals": {
     "tokens": {
-      "input": 6875914,
-      "output": 2634470,
-      "cacheRead": 358784449,
+      "input": 6955141,
+      "output": 2641539,
+      "cacheRead": 360215809,
       "cacheWrite": 11640523,
-      "total": 379935356
+      "total": 381453012
     },
-    "durationMs": 45167100,
-    "phaseCount": 8,
-    "escalations": 2,
+    "durationMs": 45931461,
+    "phaseCount": 9,
+    "escalations": 3,
     "ghaJobs": 5,
-    "cloudAgents": 8
+    "cloudAgents": 9
   },
   "v1Continued": true,
   "manualImport": {
