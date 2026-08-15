@@ -5,7 +5,10 @@ import {
   parseTicketRoadmapStepId,
   pickXlHandoffSession,
   pickXlHandoffAgent,
-  listFieldsMatchBranch
+  listFieldsMatchBranch,
+  lastSessionPhaseAt,
+  hyphenate,
+  branchSlug
 } from './xl-handoff-metrics.mjs';
 
 const TICK_DIFF = `diff --git a/migration-docs/tickets/active/PROMPT_2_7_1_Foo_plan.md b/migration-docs/tickets/active/PROMPT_2_7_1_Foo_plan.md
@@ -120,6 +123,28 @@ test('pickXlHandoffAgent skips Conductor ids and zero usage, then takes the newe
   assert.equal(id, 'bc-xl');
 });
 
+test('listFieldsMatchBranch matches a V1 UI name without feature/ prefix', () => {
+  assert.equal(
+    listFieldsMatchBranch(
+      { name: 'Snapshot three-stage uninstall' },
+      'feature/snapshot-three-stage-uninstall'
+    ),
+    'yes'
+  );
+  assert.equal(hyphenate('Snapshot three-stage uninstall'), 'snapshot-three-stage-uninstall');
+  assert.equal(
+    branchSlug('feature/snapshot-three-stage-uninstall'),
+    'snapshot-three-stage-uninstall'
+  );
+  assert.equal(
+    listFieldsMatchBranch(
+      { name: 'Snapshot uninstall orchestrator finalize' },
+      'feature/snapshot-three-stage-uninstall'
+    ),
+    'unknown'
+  );
+});
+
 test('listFieldsMatchBranch skips other branches without a detail fetch', () => {
   assert.equal(
     listFieldsMatchBranch(
@@ -136,4 +161,34 @@ test('listFieldsMatchBranch skips other branches without a detail fetch', () => 
     'yes'
   );
   assert.equal(listFieldsMatchBranch({ id: 'bc-1' }, 'feature/foo'), 'unknown');
+});
+
+test('pickXlHandoffAgent prefers a name hit over a newer unrelated agent', () => {
+  const id = pickXlHandoffAgent([
+    {
+      id: 'bc-finalize',
+      total: 10,
+      createdAt: '2026-08-14T23:27:00.000Z',
+      nameHit: false
+    },
+    {
+      id: 'bc-cd11ecab-5d76-46f6-86e9-8fea6a3f76ea',
+      total: 55,
+      createdAt: '2026-08-14T21:53:00.000Z',
+      nameHit: true
+    }
+  ]);
+  assert.equal(id, 'bc-cd11ecab-5d76-46f6-86e9-8fea6a3f76ea');
+});
+
+test('lastSessionPhaseAt is the latest completed Conductor phase', () => {
+  assert.equal(
+    lastSessionPhaseAt({
+      phases: [
+        { completedAt: '2026-08-14T13:57:38.423Z' },
+        { completedAt: '2026-08-14T21:44:57.731Z' }
+      ]
+    }),
+    Date.parse('2026-08-14T21:44:57.731Z')
+  );
 });

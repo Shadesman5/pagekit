@@ -61,10 +61,10 @@ CURSOR_API_KEY=… node .github/conductor/import-manual-agents.mjs \
 ## Conductor + V1 XL mix
 
 While `handoff_xl` is on (default), Conductor stops before the last `(XL)` Review+E2E step.
-That step runs on cursor.com/agents. Re-dispatch Conductor for FINALIZE: the existing
-Conductor job imports the V1 parent (`EXECUTE`, `v1Continued`) before launching Finalize.
-A miss is a log line, never a failed feature-branch check. Do **not** put `v1-metrics`
-on a Conductor Finalize PR.
+That step runs on cursor.com/agents. Re-dispatch Conductor for FINALIZE: the job matches
+the V1 parent by ticket-title slug (those agents often have no `target.branchName`) and
+imports it as `EXECUTE` (`v1Continued`) before launching Finalize. A miss is a log line,
+never a failed feature-branch check. Do **not** put `v1-metrics` on a Conductor Finalize PR.
 
 A late retry after FINALIZE still lands the XL phase *before* FINALIZE (`mergeImportedPhases`).
 Manual recovery (parent id, not `?child-id=`):

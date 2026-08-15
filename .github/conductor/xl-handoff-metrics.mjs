@@ -12,8 +12,7 @@ import {
   INDEX_PATH,
   SESSIONS_DIR,
   createCursorClient,
-  fetchAgentMetricsFromCursor,
-  fetchAgentFromCursor,
+  fetchAgentUsageFromCursor,
   listAgentsFromCursor,
   parseRoadmapStepId,
   sessionAgentIds,
@@ -26,8 +25,7 @@ const UNCHECKED_XL = /^-\s*-\s*\[\s\]\s*Step\s+(\d+)\s*\(XL\)/i;
 const CHECKED_XL = /^\+\s*-\s*\[x\]\s*Step\s+(\d+)\s*\(XL\)/i;
 const DIFF_FILE = /^\+\+\+\s+b\/(.+)$/;
 const ROADMAP_STEP = /\*\*Current Step \(ROADMAP\):\*\*\s*(\d+\.\d+(?:\.\d+[a-z]?)?)/i;
-const MAX_LIST_PAGES = 2;
-const MAX_DETAIL_FETCHES = 20;
+const MAX_LIST_PAGES = 4;
 
 export function detectXlTicks(unifiedDiff) {
   const ticks = [];
@@ -78,7 +76,32 @@ export function pickXlHandoffSession(sessions, { branch } = {}) {
   )[0];
 }
 
-/** Newest unused parent agent with usage. Conductor phases are already in excludeIds. */
+export function hyphenate(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+/** `feature/snapshot-three-stage-uninstall` → `snapshot-three-stage-uninstall` */
+export function branchSlug(branchNorm) {
+  return hyphenate(
+    String(branchNorm || '')
+      .replace(/^refs\/heads\//, '')
+      .replace(/^feature\//, '')
+  );
+}
+
+export function lastSessionPhaseAt(session) {
+  let max = 0;
+  for (const phase of session?.phases || []) {
+    const t = Date.parse(phase.completedAt || phase.startedAt || '') || 0;
+    if (t > max) max = t;
+  }
+  return max || null;
+}
+
+/** Newest unused parent with usage. Prefer a name/branch hit over a random newer agent. */
 export function pickXlHandoffAgent(candidates, excludeIds = []) {
   const exclude = new Set((excludeIds || []).map(id => String(id || '').toLowerCase()));
   const eligible = (candidates || []).filter(c => {
@@ -86,13 +109,15 @@ export function pickXlHandoffAgent(candidates, excludeIds = []) {
     return id.startsWith('bc-') && !exclude.has(id) && (Number(c.total) || 0) > 0;
   });
   if (!eligible.length) return null;
-  eligible.sort((a, b) => {
+  const named = eligible.filter(c => c.nameHit || c.branchHit);
+  const pool = named.length ? named : eligible;
+  pool.sort((a, b) => {
     const ta = Date.parse(a.createdAt || a.startedAt || '') || 0;
     const tb = Date.parse(b.createdAt || b.startedAt || '') || 0;
     if (tb !== ta) return tb - ta;
     return (Number(b.total) || 0) - (Number(a.total) || 0);
   });
-  return eligible[0].id.toLowerCase();
+  return pool[0].id.toLowerCase();
 }
 
 function agentBranch(detail, fallback = {}) {
@@ -108,71 +133,107 @@ function agentBranch(detail, fallback = {}) {
     .toLowerCase();
 }
 
-/** Skip GET /agents/{id} for list rows that already name a different branch. */
+/**
+ * V1 UI agents often have no `target.branchName`. Their `name` is the ticket title
+ * ("Snapshot three-stage uninstall"), not `feature/<slug>`.
+ */
 export function listFieldsMatchBranch(item, branchNorm) {
   const norm = String(branchNorm || '')
     .replace(/^refs\/heads\//, '')
     .toLowerCase();
   if (!norm) return 'no';
+  const slug = branchSlug(norm);
   const b = agentBranch(item);
-  const name = String(item?.name || '').toLowerCase();
-  if (b === norm || (name && name.includes(norm))) return 'yes';
-  if (!b && !name) return 'unknown';
+  const nameHyph = hyphenate(item?.name);
+  if (b === norm || b === slug || (slug && b.endsWith(`/${slug}`))) return 'yes';
+  if (slug && nameHyph && (nameHyph === slug || nameHyph.includes(slug))) return 'yes';
+  if (!b) return 'unknown';
   return 'no';
 }
 
 export async function resolveXlHandoffAgent(
   client,
-  { branch, excludeIds = [], log = () => {} } = {}
+  { branch, excludeIds = [], after = null, log = () => {} } = {}
 ) {
   const branchNorm = String(branch || '')
     .replace(/^refs\/heads\//, '')
     .toLowerCase();
-  if (!client || !branchNorm) return null;
+  if (!client) return null;
   const exclude = new Set((excludeIds || []).map(id => String(id || '').toLowerCase()));
-  const scored = [];
+  const afterMs = after ? Date.parse(after) || Number(after) || 0 : 0;
+  const named = [];
+  const unknown = [];
   let cursor = null;
-  let detailFetches = 0;
   for (let page = 0; page < MAX_LIST_PAGES; page += 1) {
     const res = await listAgentsFromCursor(client, { limit: 50, cursor });
     for (const item of res.items) {
       const id = String(item.id || '').toLowerCase();
       if (!id.startsWith('bc-') || exclude.has(id)) continue;
-      let detail = item;
-      const listed = listFieldsMatchBranch(item, branchNorm);
+      const createdAt = item.createdAt || item.created_at || null;
+      const createdMs = Date.parse(createdAt || '') || 0;
+      if (afterMs && createdMs && createdMs < afterMs) continue;
+      const listed = branchNorm ? listFieldsMatchBranch(item, branchNorm) : 'unknown';
       if (listed === 'no') continue;
-      if (listed === 'unknown') {
-        if (detailFetches >= MAX_DETAIL_FETCHES) continue;
-        detailFetches += 1;
-        try {
-          detail = (await fetchAgentFromCursor(client, id)) || item;
-        } catch {
-          /* list fields only */
-        }
-        if (listFieldsMatchBranch(detail, branchNorm) === 'no') continue;
-      }
-      let total = 0;
-      try {
-        const metrics = await fetchAgentMetricsFromCursor(client, id);
-        total = Number(metrics?.tokens?.total) || 0;
-      } catch {
-        /* keep 0 */
-      }
-      scored.push({
-        id,
-        total,
-        createdAt: detail?.createdAt || detail?.created_at || item.createdAt || null
-      });
-    }
-    const picked = pickXlHandoffAgent(scored, []);
-    if (picked) {
-      log(`resolve-xl: picked ${picked}`);
-      return picked;
+      const row = { id, createdAt };
+      if (listed === 'yes') named.push(row);
+      else unknown.push(row);
     }
     cursor = res.nextCursor;
     if (!cursor) break;
   }
-  log(`resolve-xl: no unused parent agent with usage on ${branchNorm}`);
+
+  async function score(rows, nameHit) {
+    const scored = [];
+    for (const row of rows) {
+      let total = 0;
+      try {
+        const tokens = await fetchAgentUsageFromCursor(client, row.id);
+        total = Number(tokens?.total) || 0;
+      } catch {
+        /* keep 0 */
+      }
+      if (total <= 0) continue;
+      scored.push({
+        id: row.id,
+        total,
+        createdAt: row.createdAt,
+        nameHit,
+        branchHit: nameHit
+      });
+    }
+    return scored;
+  }
+
+  const namedScored = await score(named, true);
+  let picked = pickXlHandoffAgent(namedScored, []);
+  if (picked) {
+    log(`resolve-xl: picked ${picked} (name/branch match)`);
+    return picked;
+  }
+  const unknownScored = await score(unknown, false);
+  picked = pickXlHandoffAgent(unknownScored, []);
+  if (picked) {
+    log(`resolve-xl: picked ${picked} (usage fallback)`);
+    return picked;
+  }
+  log('resolve-xl: no unused parent agent with usage after last Conductor phase');
+  return null;
+}
+
+async function resolveAgentById(client, agentId, log) {
+  const id = String(agentId || '').toLowerCase();
+  if (!id.startsWith('bc-')) return null;
+  try {
+    const tokens = await fetchAgentUsageFromCursor(client, id);
+    const total = Number(tokens?.total) || 0;
+    if (total > 0) {
+      log(`resolve-xl: using ${id} (usage=${total})`);
+      return id;
+    }
+    log(`resolve-xl: ${id} has zero usage`);
+  } catch (e) {
+    log(`resolve-xl: GET ${id} failed (${e.message})`);
+  }
   return null;
 }
 
@@ -196,9 +257,9 @@ function loadSessionsForStep(stepId) {
   return ids.map(id => readJson(join(ROOT, SESSIONS_DIR, `${id}.json`))).filter(Boolean);
 }
 
-async function waitForXlAgent(client, { branch, excludeIds, attempts, delayMs, log }) {
+async function waitForXlAgent(client, { branch, excludeIds, after, attempts, delayMs, log }) {
   for (let i = 1; i <= attempts; i += 1) {
-    const id = await resolveXlHandoffAgent(client, { branch, excludeIds, log });
+    const id = await resolveXlHandoffAgent(client, { branch, excludeIds, after, log });
     if (id) return id;
     log(`no unused XL parent agent with usage yet (attempt ${i}/${attempts})`);
     if (i < attempts) await sleep(delayMs);
@@ -238,6 +299,7 @@ export async function importXlHandoffForSession({
   branch,
   ticketPath = '',
   stepId: stepIdArg = null,
+  agentId: agentIdArg = null,
   push = false,
   dryRun = false,
   attempts = 2,
@@ -267,21 +329,26 @@ export async function importXlHandoffForSession({
   if (!apiKey) return { imported: false, reason: 'CURSOR_API_KEY missing' };
 
   const client = createCursorClient(apiKey);
-  const agentId = await waitForXlAgent(client, {
-    branch,
-    excludeIds: sessionAgentIds(session),
-    attempts,
-    delayMs,
-    log
-  });
+  const after = lastSessionPhaseAt(session);
+  let agentId = null;
+  if (agentIdArg) {
+    agentId = await resolveAgentById(client, agentIdArg, log);
+  }
+  if (!agentId) {
+    agentId = await waitForXlAgent(client, {
+      branch,
+      excludeIds: sessionAgentIds(session),
+      after,
+      attempts,
+      delayMs,
+      log
+    });
+  }
   if (!agentId) {
     return {
       imported: false,
       sessionId: session.sessionId,
-      reason:
-        `no unused parent agent with usage on ${branch}; import manually: ` +
-        `node .github/conductor/import-manual-agents.mjs --step ${stepId} ` +
-        `--session ${session.sessionId} --branch ${branch} --label EXECUTE --agent bc-… --push`
+      reason: `no unused V1 parent with usage after last Conductor phase on ${branch}`
     };
   }
 
@@ -308,6 +375,7 @@ export async function main(argv = process.argv, env = process.env, io = console)
   const sessionId = getArg('--session', argv);
   const ticketPath = getArg('--ticket', argv);
   const stepId = getArg('--step', argv);
+  const agentId = getArg('--agent', argv);
   const attempts = Number(env.XL_IMPORT_ATTEMPTS || 2);
   const delayMs = Number(env.XL_IMPORT_DELAY_MS || 8000);
 
@@ -332,6 +400,7 @@ export async function main(argv = process.argv, env = process.env, io = console)
     branch,
     ticketPath: resolvedTicket,
     stepId,
+    agentId,
     push: doPush,
     dryRun,
     attempts,
