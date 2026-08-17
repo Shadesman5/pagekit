@@ -31,7 +31,7 @@ Ticket path: `migration-docs/tickets/active/<prompt-basename>_plan.md`. Never st
 
 Validate **Branch** and **Base** before any git argv: `^[A-Za-z0-9][A-Za-z0-9._/-]*$`, no whitespace, shell metacharacters, newlines, `..`, leading `-`, or trailing `.lock`. Pass as a **single argv**. Invalid → `ESCALATE: invalid Branch/Base ref: <reason>`.
 
-Then `git rev-parse --abbrev-ref HEAD` must match. If not: `git fetch origin` and checkout the validated name (create from validated **Base** if missing).
+Then `git rev-parse --abbrev-ref HEAD` must match. If not: `git fetch origin` and checkout the validated name (create from validated **Base** if missing). Then `git fetch origin <Base>` and `git merge origin/<Base> --no-edit` (the remote-tracking ref, never the local branch of that name — a Cloud Agent VM's local `develop` is the environment Build). Push before spawning workers. On conflict: resolve or `ESCALATE: merge origin/<Base> conflicted`. Do not rebase: the feature branch is shared and already on origin.
 
 ## Thin coordinator
 
@@ -49,7 +49,7 @@ Before each phase, **Read** the file and follow it. Do not copy it into chat.
 |---|---|---|
 | **Plan** | `orchestrator-v2-plan.mdc` | You derive `Output ticket:` from the prompt basename (keep `PROMPT_`). Same session continues to Execute. |
 | **Execute** | `orchestrator-v2-step.mdc` | Run **every** remaining unticked checklist step in order (not one Conductor batch). No `/tmp/precompact-stop`. After a Conductor XL handoff, that is only the last `(XL)` Review+E2E step — tick it and **stop**; do not Finalize (re-dispatch Conductor for that). |
-| **Finalize** | `orchestrator-v2-finalize.mdc` | PR labels include **`v1-metrics`**. Title or body **must** contain `Step X.Y`. Version/CHANGELOG/PR: `.cursor/skills/push/SKILL.md`. |
+| **Finalize** | `orchestrator-v2-finalize.mdc` | PR labels include **`v1-metrics`**. Title: conventional subject + ` (Step X.Y)` (push skill) — never the issue title. Version/CHANGELOG/PR: `.cursor/skills/push/SKILL.md`. |
 
 Use the Task templates and return-contract tables **from those files**. For Plan, set `Output ticket:` / `Ticket:` to the derived path above.
 
@@ -60,7 +60,7 @@ Audit/report (`<!-- conductor-mode: plan -->`): follow the V2 Plan "Audit / repo
 1. One Checklist Step at a time; one commit per step (after gates + doc-writer).
 2. One version bump per PR — Finalize only, and only if the version-bump skill does not report `NO BUMP`.
 3. After plan-reviewer PASS, commit ticket + branch doc before Execute.
-4. Conventional Commits for commits you create.
+4. Conventional Commits for commits and PR titles you create (push skill).
 
 ## End
 
