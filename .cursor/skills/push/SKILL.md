@@ -48,7 +48,24 @@ Update `README.md` when **product** surfaces changed: PHP/Node constraint, Compo
 
 ## 7. PR
 
-`gh pr create --base develop` (or the given base). Body ends with:
+Title is a Conventional Commits subject (`.cursor/rules/conventional-commits.mdc`). Pass it
+explicitly:
+
+`gh pr create --base develop --title "<title>"` (or the given base).
+
+Do **not** omit `--title` (GitHub would use the latest commit, often a docs/chore line). Do
+**not** copy the GitHub issue title — `Step X.Y: Name` is for issues only.
+
+When this PR **closes a ROADMAP step**, append ` (Step X.Y)` so `import-v1-metrics.yml` can
+read the id from the title (title first, then body). The suffix is extra; it does not count
+against the 50-character description:
+
+`feat(extension): extension safety and fault isolation (Step 2.7)`
+
+Tooling / Conductor / Cursor-rules PRs that do **not** close a ROADMAP row: conventional
+title only — no ` (Step …)` and no `v1-metrics`.
+
+Body ends with:
 
 ```markdown
 <!-- metadata
@@ -60,6 +77,8 @@ closes: #42
 
 Labels: 1 phase + 1 type + 1–2 area (`.cursor/rules/github-labels.mdc`). Visible `Closes #X` when closing issues.
 
-**`v1-metrics` only** for cursor.com/agents Orchestrator PRs — then the title or body **must** contain `Step X.Y`. Conductor V2 and tooling PRs do **not** get `v1-metrics` or a fake Step id.
+**`v1-metrics` only** for cursor.com/agents Orchestrator PRs (full-ticket V1). Conductor V2
+Finalize still uses the ` (Step X.Y)` suffix when it closes a real ROADMAP row, but not the
+label — XL tokens import on the tick, not at merge. Never invent a Step id for tooling.
 
 ## 8. Do not merge

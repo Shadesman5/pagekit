@@ -62,7 +62,7 @@ Every issue should have as many of these as applicable:
 
 | Field | How to set | When |
 |-------|-----------|------|
-| **Title** | `--title` | Always |
+| **Title** | `--title` | Always — ROADMAP issues: `Step X.Y: Name`. That form is **not** a PR title (PRs: `.cursor/skills/push/SKILL.md`) |
 | **Body** | `--body-file` (with `<!-- metadata -->` block) | Always |
 | **Labels** | Automatic via `<!-- metadata -->` block in body | Always (see formula below) |
 | **Milestone** | Automatic via `<!-- metadata -->` block in body | Always for ROADMAP steps |
