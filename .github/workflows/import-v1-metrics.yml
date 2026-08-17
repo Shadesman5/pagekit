@@ -1,8 +1,8 @@
 # Import V1 (cursor.com/agents UI) Orchestrator token metrics after a modernization PR merges.
 #
 # Gate: PR must carry label `v1-metrics` (see .cursor/rules/github-labels.mdc) and merge into develop.
-# The PR title or body must name the ROADMAP step (`Step X.Y`) — it is read at merge time and there
-# is no in-workflow recovery when it is missing, only a manual import-manual-agents.mjs run.
+# Title: conventional subject with `(Step X.Y)` appended (title first, then body). Read at merge;
+# no in-workflow recovery when it is missing, only a manual import-manual-agents.mjs run.
 # Resolves the parent Orchestrator `bc-…` via Cursor API (prUrl, then branch), then runs
 # import-manual-agents.mjs --push onto the conductor-metrics branch. A session already
 # recorded for that parent agent on the same step is updated in place (not duplicated).

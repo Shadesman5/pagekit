@@ -64,7 +64,7 @@ Identify which part of the system is affected:
 
 | Label        | Description                                      | Color     | When to Use                                                                 |
 | ------------ | ------------------------------------------------ | --------- | --------------------------------------------------------------------------- |
-| `v1-metrics` | Import V1 UI Orchestrator metrics after PR merge | `#6F42C1` | V1 (`cursor.com/agents`) modernization PRs — triggers `import-v1-metrics.yml`; requires `Step X.Y` in the PR title or body |
+| `v1-metrics` | Import V1 UI Orchestrator metrics after PR merge | `#6F42C1` | V1 (`cursor.com/agents`) modernization PRs — triggers `import-v1-metrics.yml`; requires conventional title `type(scope): description (Step X.Y)` |
 
 ## Standard GitHub Labels
 
@@ -84,8 +84,9 @@ Default labels for general use:
 ### Label Combination Formula
 
 Every issue/PR should have: **1 phase label + 1 commit-type label + 1-2 area labels**.
-V1 UI Orchestrator PRs additionally add **`v1-metrics`** and name the ROADMAP step as
-**`Step X.Y`** in the PR title or body.
+V1 UI Orchestrator PRs additionally add **`v1-metrics`**. The PR title is a Conventional
+Commits subject with ` (Step X.Y)` appended (`.cursor/skills/push/SKILL.md`) — never the
+GitHub issue title.
 
 ### For Modernization Issues
 
@@ -118,6 +119,9 @@ Labels: dependencies, php
 feat(auth): add two-factor authentication
 Labels: phase-4, enhancement, security, backend
 
+feat(extension): extension safety and fault isolation (Step 2.7)
+Labels: phase-2, enhancement, migration, backend, v1-metrics
+
 fix(blog): sanitize user input in comments
 Labels: bug, security, frontend
 
@@ -128,6 +132,7 @@ Labels: phase-2, migration, backend
 **V1 UI Orchestrator PRs** (metrics import after merge into `develop`):
 
 ```yaml
+Title: feat(extension): extension safety and fault isolation (Step 2.7)
 Labels: phase-2, migration, backend, v1-metrics
 ```
 
@@ -137,10 +142,16 @@ usage into `conductor-metrics`.
 
 Do **not** add `v1-metrics` to a Conductor Finalize PR. The XL Review+E2E run is imported when
 that checkbox is ticked (`.github/workflows/import-xl-handoff-metrics.yml`), not at merge.
+The title still uses the conventional subject + ` (Step X.Y)` suffix when the PR closes a
+ROADMAP row.
 
-The PR **title** (or, failing that, the body) must contain the ROADMAP step id as `Step X.Y` —
-that is where the workflow reads the step from, and it reads it from the merge event. A PR merged
-without it fails the import with no in-workflow recovery: re-running replays the same payload and
+The PR **title** is a Conventional Commits subject. When the PR closes a ROADMAP step, append
+` (Step X.Y)` — that is the token `import-v1-metrics.yml` greps (title first, then body). Never
+use the GitHub issue title (`Step X.Y: Name`) as the PR title. Example:
+`feat(extension): extension safety and fault isolation (Step 2.7)`.
+
+The workflow reads the step from the merge event. A PR merged without `Step X.Y` in title or
+body fails the import with no in-workflow recovery: re-running replays the same payload and
 a merged PR fires no second `closed` event, so the metrics have to be imported manually with
 `node .github/conductor/import-manual-agents.mjs --step … --pr-url … --push`.
 
@@ -171,7 +182,7 @@ a merged PR fires no second `closed` event, so the metrics have to be imported m
 | Security patch                | `security`, `bug`, appropriate area    |
 | Breaking API change           | `breaking-change`, appropriate area    |
 | Documentation update          | `documentation`                        |
-| V1 UI Orchestrator modernization PR | phase + `migration` + area + `v1-metrics` (+ `Step X.Y` in title/body) |
+| V1 UI Orchestrator modernization PR | phase + `migration` + area + `v1-metrics` (`feat(scope): … (Step X.Y)` title) |
 
 ## Managing Labels via CLI
 

@@ -1,5 +1,5 @@
 ---
-description: Conventional Commits v1.0.0 for git messages. Use when committing. Version impact is the version-bump skill, not these type names.
+description: Conventional Commits v1.0.0 for git messages and PR titles. Use when committing or opening a PR. Version impact is the version-bump skill, not these type names.
 alwaysApply: false
 ---
 
@@ -35,3 +35,18 @@ chore(deps): update doctrine/dbal to 3.x
 ```
 
 PR labels from commit type: `.cursor/rules/github-labels.mdc`. Changelog text is written by the doc-writer / push skill — commits are not auto-parsed into `CHANGELOG-NEW.md`.
+
+## Pull requests
+
+PR titles use the same subject line. Pass `--title` to `gh pr create`; do not copy a GitHub
+issue title (`Step X.Y: Name` is for issues only). When the PR closes a ROADMAP step, append
+` (Step X.Y)` after the subject — the suffix is extra and does not count against the
+50-character description:
+
+```
+feat(extension): extension safety and fault isolation (Step 2.7)
+feat(installer): add snapshot three-stage uninstall (Step 2.7.1)
+```
+
+Tooling with no ROADMAP row: conventional title only, no Step suffix. Full title rules:
+`.cursor/skills/push/SKILL.md`.

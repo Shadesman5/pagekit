@@ -35,10 +35,13 @@ The Orchestrator rule does **not** record metrics mid-run. After a V1 modernizat
 `develop` with label **`v1-metrics`**, `.github/workflows/import-v1-metrics.yml` imports the parent
 Orchestrator agent automatically (`import-manual-agents.mjs --push`).
 
-Such a PR must also name its ROADMAP step as **`Step X.Y`** in the title or body — the workflow
-resolves the step id from the merge event. Without it the import fails and cannot be retried from
-GitHub (a re-run replays the same payload; a merged PR fires no second `closed` event), so the run
-has to be imported manually with the command the failing job prints in its summary.
+Such a PR must use a Conventional Commits title with **`(Step X.Y)`** appended, e.g.
+`feat(extension): extension safety and fault isolation (Step 2.7)` — the workflow
+resolves the step id from the merge event (title first, then body). Never copy the
+GitHub issue title (`Step X.Y: Name`). Without the token the import fails and cannot
+be retried from GitHub (a re-run replays the same payload; a merged PR fires no second
+`closed` event), so the run has to be imported manually with the command the failing
+job prints in its summary.
 
 Manual / local:
 

@@ -154,8 +154,10 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
 > `security-audit` as the verdict. Details: steps 4–5. Rules: `.cursor/BUGBOT.md`.
 
 1. **Push + PR** — `git push -u origin HEAD`; `gh pr create --base <base branch from your launch prompt>`
-   with the `<!-- metadata -->` block (labels, milestone, `Closes #XXX`). V1 UI extra labels/title:
-   `orchestrator-subagent-workflow.mdc`. This triggers the PR CI checks.
+   with `--title` from `.cursor/skills/push/SKILL.md` (conventional subject + ` (Step X.Y)` when
+   this ticket is a ROADMAP row). Never use the GitHub issue title (`Step X.Y: Name`) as the PR
+   title. Body: short summary + `<!-- metadata -->` (labels, milestone, `Closes #XXX`). V1 UI extra
+   labels: `orchestrator-subagent-workflow.mdc`. This triggers the PR CI checks.
 2. **CI quality gate** — wait on the PR's status checks for this branch yourself (a watch, not a test —
    no tester needed). `gh pr checks` covers every required gate (the PHP Tests jobs, `infection-diff`,
    `e2e-smoke`, `frontend`) rather than a single workflow:
