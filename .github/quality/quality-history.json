@@ -302,6 +302,36 @@
         "specsTotal": null,
         "scope": "smoke"
       }
+    },
+    {
+      "at": "2026-08-17T17:33:29.504Z",
+      "sha": "7c317c4b15aa4e5d123ce2a0d523e13e82186e52",
+      "coverage": {
+        "linePercent": 8.68,
+        "pinnedFloor": 7.1
+      },
+      "phpunit": {
+        "tests": 1124,
+        "failures": 0
+      },
+      "phpstan": {
+        "errors": 0,
+        "baselineBlocks": 349,
+        "suppressedErrors": 700
+      },
+      "infection": {
+        "msi": 98.92,
+        "coveredMsi": 98.92,
+        "killed": 365,
+        "escaped": 4,
+        "timedOut": 2,
+        "errors": 1
+      },
+      "e2e": {
+        "specsPassed": 25,
+        "specsTotal": 25,
+        "scope": "smoke"
+      }
     }
   ]
 }

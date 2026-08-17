@@ -1,16 +1,16 @@
 {
   "schemaVersion": 3,
   "source": "github-actions",
-  "updatedAt": "2026-08-17T17:31:58.456Z",
+  "updatedAt": "2026-08-17T17:33:29.504Z",
   "branch": "develop",
-  "commit": "b2be58dab958eb7dc5423c0248cb56b3233f250b",
+  "commit": "7c317c4b15aa4e5d123ce2a0d523e13e82186e52",
   "workflows": {
     "phpTests": {
-      "runId": 31804281654,
+      "runId": 32050638472,
       "conclusion": "success"
     },
     "e2eTests": {
-      "runId": 31804281660,
+      "runId": 32050638128,
       "conclusion": "success"
     },
     "infectionFull": {
@@ -23,8 +23,8 @@
     "8.5-sqlite": {
       "db": "sqlite",
       "required": true,
-      "tests": null,
-      "failures": null
+      "tests": 1124,
+      "failures": 0
     },
     "8.5-mysql": {
       "db": "mysql",
@@ -34,15 +34,15 @@
   },
   "phpstan": {
     "level": 8,
-    "errors": null,
+    "errors": 0,
     "baselineBlocks": 349,
     "suppressedErrors": 700
   },
   "coverage": {
-    "linePercent": null,
+    "linePercent": 8.68,
     "pinnedFloor": 7.1,
-    "statements": null,
-    "covered": null
+    "statements": 47802,
+    "covered": 4149
   },
   "infection": {
     "prDiff": {
@@ -51,23 +51,25 @@
       "scope": "diff"
     },
     "dailyFull": {
-      "msi": null,
-      "coveredMsi": null,
-      "killed": null,
-      "escaped": null,
-      "timedOut": null,
-      "errors": null,
-      "totalMutants": null,
+      "msi": 98.92,
+      "coveredMsi": 98.92,
+      "killed": 365,
+      "escaped": 4,
+      "timedOut": 2,
+      "errors": 1,
+      "totalMutants": 372,
       "scope": "full",
       "runAt": "2026-08-15T02:46:14Z"
     }
   },
   "e2e": {
     "scope": "smoke",
-    "viewports": [],
-    "specsTotal": null,
-    "specsPassed": null,
-    "durationMs": null
+    "viewports": [
+      "desktop"
+    ],
+    "specsTotal": 25,
+    "specsPassed": 25,
+    "durationMs": 112201
   },
   "gates": {
     "csFixer": "pass",
