@@ -22,8 +22,14 @@ FROM php:8.5-apache AS base
 # those in `prod` - but libraries the runtime links against, libexpat1 through
 # the XML extensions being the standing example, can only be answered by taking
 # Debian's fix for them.
+# APT_REFRESH is the cache key for that upgrade. CI passes the UTC date so a
+# day's builds share the layer and the next day fetches Debian's security
+# updates instead of reusing a GHA cache that predates them. A local build
+# that names nothing keeps the layer until this file changes.
+ARG APT_REFRESH=0
 # hadolint ignore=DL3005,DL3008
-RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
+RUN echo "APT_REFRESH=${APT_REFRESH}" \
+    && apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     # git: Composer VCS repositories and --prefer-source installs
     git \
     # curl: HTTP checks against the running app from inside the container

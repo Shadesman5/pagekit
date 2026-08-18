@@ -70,6 +70,12 @@ jobs:
       - name: Set up Buildx
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
+      # The apt upgrade in the Dockerfile is keyed on this date, so the GHA cache does not freeze
+      # Debian security updates for as long as the Dockerfile itself stays unchanged. Same-day
+      # runs still share the layer; a new day rebuilds it and picks up what Debian published.
+      - name: Set the apt refresh date
+        run: echo "APT_REFRESH=$(date -u +%Y-%m-%d)" >> "$GITHUB_ENV"
+
       # load: true keeps the result in the runner's daemon instead of sending it to a registry: the
       # smoke test and the scan below both need it locally, and the push at the end retags this
       # build rather than producing a second, unproven one. The cache export ignores its errors
@@ -85,6 +91,8 @@ jobs:
           tags: ${{ env.IMAGE }}
           cache-from: type=gha
           cache-to: type=gha,mode=max,ignore-error=true
+          build-args: |
+            APT_REFRESH=${{ env.APT_REFRESH }}
 
       # The example env file doubles as the fixture: interpolating it is what an operator's first
       # "copy it, fill it in, bring the stack up" actually does.
