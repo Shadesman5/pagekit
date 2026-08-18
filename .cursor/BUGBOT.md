@@ -9,6 +9,49 @@
 
 ---
 
+## 0. Review budget
+
+A follow-up `bugbot run` after a fix is expected (Finalize). Keep it on the
+delta: files changed since the previous Bugbot review, plus enough call-chain
+context to verify the fix. Do not re-read the whole PR, the test suite, or
+the documentation tree.
+
+Autofix is **off**. Findings are fixed by the refactorer. Do not spawn Autofix,
+do not run PHPUnit, PHPStan, Playwright, pnpm, or Composer.
+
+### 0.1 Always review (when in the PR)
+
+Production and the autonomous pipeline. A bug here burns budget on the next run.
+
+- `app/`, `packages/`, `public/` sources, `docker/`, `Dockerfile`
+- Frontend that still ships: `**/*.{vue,js}` under `app/` and `packages/` (Vue 2
+  until the Svelte cut — still review it; XSS and CSRF land here)
+- Conductor and V2 workflow: `.github/conductor/**` (code, tests, workflows it
+  calls), `.github/workflows/conductor.yml`, `.github/workflows/import-*.yml`,
+  `.cursor/rules/orchestrator-v2-*.mdc`, `.cursor/rules/orchestrator-subagent-workflow.mdc`,
+  `.cursor/WORKFLOW_SUBAGENTS.md`, `.cursor/agents/`, `.cursor/skills/`
+
+### 0.2 Do not open
+
+Use the PR file list for existence checks. Do not read file bodies, do not
+search these trees, do not quote them in findings.
+
+- Tests: `tests/`, `**/Tests/**`, `**/*Test.php`, `**/*.spec.js`, `phpunit*.xml*`,
+  `infection.json.dist` — Tester already ran the suite. Coverage: Rule 6.1 (path
+  names only).
+- Docs and planning: `migration-docs/`, `docs-site/`, `README.md`, `CHANGELOG.md`,
+  `CHANGELOG-NEW.md`, `AGENTS.md`, `.cursor/ROADMAP.md` except Rule 1.6
+- Metric dumps (not the collector): `.github/conductor/metrics/sessions/`,
+  `.github/conductor/metrics/*.json`, `.github/quality/quality-snapshot.json`,
+  `docs-site/data/`
+- Build output already in `.cursorignore`: `*.css`, `*.less`, `node_modules/`,
+  `app/vendor/`, `tmp/`
+
+`.github/conductor/metrics.mjs`, `import-*.mjs`, `conductor.mjs` and their
+`*.test.mjs` **are** in scope — those are the pipeline, not the dumps.
+
+---
+
 ## 1. ROADMAP Compliance
 
 ### 1.1 Mandatory TODO Tags (ROADMAP Rule 5)
@@ -54,9 +97,10 @@ Reference the correct step where this change belongs.
 
 ### 1.6 Deferred Pattern Awareness (CRITICAL)
 
-Before flagging any finding, cross-reference against the **ROADMAP tracking table**
-(`.cursor/ROADMAP.md`). If the finding falls under a later ROADMAP step that is
-already tracked with a GitHub Issue, **do NOT flag it as a Bug**. Instead:
+Before flagging any finding, cross-reference against the **tables in this file**
+(deferred + already resolved below). If the finding falls under a later ROADMAP
+step that is already tracked with a GitHub Issue, **do NOT flag it as a Bug**.
+Instead:
 
 - Skip silently if the pattern is a known deferred item.
 - If unsure, add a single **informational** comment (not a Bug) referencing the
@@ -92,7 +136,12 @@ already tracked with a GitHub Issue, **do NOT flag it as a Bug**. Instead:
 | Commented-out `rollbackExtension()` in blog `scripts.php` uninstall hook | PR #189 (Step 2.0.4b) | Intentional API usage example for extension developers, not commented-out legacy code. Rule 4 does not apply to documentation examples. |
 
 This table MUST be updated when new deferred items are added to the ROADMAP.
-Bugbot should re-read ROADMAP.md on every review to detect changes.
+
+**ROADMAP.md — once per PR.** Open `.cursor/ROADMAP.md` only on the **first**
+Bugbot review of a PR (no prior `<!-- BUGBOT_REVIEW -->` on the thread), and
+only to confirm a step's Status/Issue when a finding would depend on it.
+Follow-up runs: never open it; the tables above are enough. The file almost
+never changes while a PR is open.
 
 ---
 
@@ -253,6 +302,9 @@ For files matching `**/*.php` in `**/views/` or `**/widgets/`:
 If output is not escaped (e.g., `<?= $var ?>` without `htmlspecialchars` or `e()`),
 flag as **non-blocking Bug** titled "Unescaped output in view — potential XSS".
 
+Same class of bug in Vue/JS that still ships: `v-html` or `$notify(...)` with
+unescaped server text. Flag as **blocking Bug**. Do not skip `.vue` files.
+
 ### 5.3 CSRF Protection
 
 If a controller action that handles POST/PUT/DELETE does not have a `csrf: true`
@@ -265,9 +317,11 @@ attribute or equivalent CSRF check, flag as **non-blocking Bug** titled
 
 ### 6.1 Test Coverage for New Code
 
-If the PR adds or modifies files in `app/system/src/`, `app/installer/src/`,
-or `app/modules/*/src/` and there are no corresponding changes in
-`**/Tests/**` or `tests/`, flag as **non-blocking Bug** titled
+Do **not** open test files. Do **not** run the suite.
+
+If the PR file list adds or modifies paths under `app/system/src/`,
+`app/installer/src/`, or `app/modules/*/src/` and that same list has **no**
+path matching `**/Tests/**` or `tests/`, flag as **non-blocking Bug** titled
 "No tests for backend changes".
 
 **Exception:** For purely **mechanical refactors** (e.g., `$app['x']` → `$app->get('x')`,
@@ -308,17 +362,8 @@ titled "Commit message does not follow Conventional Commits".
 
 ---
 
-## 9. Autofix Guidance
+## 9. Autofix
 
-When Bugbot Autofix resolves issues, it MUST:
-
-1. Read `.cursor/ROADMAP.md` before making changes
-2. Stay within the scope of the PR's target ROADMAP step
-3. Add proper TODO tags per Rule 1.1 for any legacy patterns it cannot fully resolve
-4. Run `./app/vendor/bin/phpunit` to verify no test regressions
-5. Never introduce compatibility layers, adapters, or wrappers
-6. Use Conventional Commits format for fix commits
-
-If a fix would require changes outside the current ROADMAP step, Autofix should
-add a comment explaining the issue and reference the correct future step instead
-of making the change.
+Autofix is disabled for this repository. Do not apply patches, do not run
+tests, do not commit. Leave findings as review comments; the refactorer
+fixes them.
