@@ -352,7 +352,7 @@ _TBD / None_
 
 ## 📌 Follow-on (ROADMAP)
 
-- **Step 2.7.1a (Atomic MySQL Restore)** — MySQL/MariaDB restore loads the dump into shadow tables and cut-over with one `RENAME TABLE`, so a failed apply leaves live tables as they were. SQLite already has that promise through a transaction; this step's MySQL path does not (DDL auto-commits; recovery is retry from the dump still on disk). Identifier and constraint rewrite, leftover cleanup, dump-set-only swap, 2× peak disk. Not a container or `mysqldump` path. Lands after this PR, before 2.7.2. GitHub: [#281](https://github.com/Shadesman5/pagekit/issues/281).
+- **Step 2.7.1a (Atomic MySQL Restore)** — MySQL/MariaDB restore loads the dump into `_r_` shadow tables and cut-over with one `RENAME TABLE` (`_b_` backups), so a failed apply leaves live tables as they were. Constraint names are regenerated (not prefixed). Install-time prefix required (shape ends with `_`; empty prefix still boots; MySQL restore refuses it). `GET_LOCK` around restore; dumper skips reserved names; inbound FKs from tables outside the dump refuse; required CI job is `tests/Unit/Snapshot/` on MySQL 8.4, not a flip of advisory `phpunit-mysql`. SQLite already has the fail-safe promise through a transaction; this step's MySQL path does not (DDL auto-commits; recovery is retry from the dump still on disk). Not a container or `mysqldump` path. Lands after this PR, before 2.7.2. GitHub: [#281](https://github.com/Shadesman5/pagekit/issues/281). PHASE §2.7.1a.
 
 ---
 
