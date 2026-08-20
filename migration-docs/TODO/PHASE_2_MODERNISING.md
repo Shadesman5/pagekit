@@ -309,8 +309,8 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - **`theme-one` template-helper statics**: the helpers are plain functions in a required file, so their URL provider is parked in a static property (`ThemeOneHelpers::$url`) — a different blocker than UrlResolver's `new $resolver()`, and it needs an injectable seam for template-level helpers
   - **`UniqueValidator`**: container-aware `ConstraintValidatorFactory`; delete static `setDb()` + boot wiring
 - **Out of scope until a second caller**: extract `User::evaluateBooleanExpression()` only if another consumer appears
-- **Sequencing**: before Snapshot (**2.7.1**), Dependency Integrity (**2.7.2**), Static Module Registration (**2.7.3**), Extension Packaging (**2.8**) and Marketplace (**5.6**)
-- **Out of scope here**: full Snapshot/Backup UI and Three-Stage Uninstall retention — **Step 2.7.1**; module dependency graph fail-closed — **Step 2.7.2**; static discovery so inactive packages never execute PHP — **Step 2.7.3**
+- **Sequencing**: before Snapshot (**2.7.1**), Atomic MySQL Restore (**2.7.1a**), Dependency Integrity (**2.7.2**), Static Module Registration (**2.7.3**), Extension Packaging (**2.8**) and Marketplace (**5.6**)
+- **Out of scope here**: full Snapshot/Backup UI and Three-Stage Uninstall retention — **Step 2.7.1**; MySQL restore cut-over — **Step 2.7.1a**; module dependency graph fail-closed — **Step 2.7.2**; static discovery so inactive packages never execute PHP — **Step 2.7.3**
 
 ---
 
@@ -328,8 +328,32 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - Theme circuit breaker: a failing theme is retried on every request today (never auto-disabled — recovery + per-request fallback). After N consecutive load failures, stop executing that theme and serve `theme-default` (or the existing blank fallback) until an administrator clears the failure / re-selects the theme — otherwise an expensive theme bug (memory exhaustion, hanging query) is a visitor-facing DoS
   - Harden `ExtensionFailureStore` against concurrent read-modify-write: `dumpAtomic()` prevents torn reads, but two workers that each `all()` → mutate → `write()` can lose one entry; serialize the RMW cycle (e.g. `flock`) so parallel failures and clears do not overwrite each other
   - This path is the **only** route for a removal that no one explicitly requested: automatic dependency cleanup (**5.0**) may deactivate, but any deletion it triggers goes through disable → uninstall → purge with a snapshot first, so the data stays restorable
-- **Out of scope**: Marketplace signing; background update orchestration (**2.9**); process-level PHP sandboxing for enabled packages (Phase 5 §5.6 future candidate)
-- **Risk**: Medium — DB dump portability (SQLite/MySQL), storage growth; theme circuit-breaker threshold must not strand a site that is mid-fix without a clear admin reset path
+- **Out of scope**: Marketplace signing; background update orchestration (**2.9**); process-level PHP sandboxing for enabled packages (Phase 5 §5.6 future candidate); MySQL restore cut-over that leaves live tables untouched until a single rename (**2.7.1a**). SQLite restore is already transactional; a failed MySQL apply in this step is recovered by running restore again from the dump still on disk
+- **Risk**: Medium — DB dump portability (SQLite/MySQL), storage growth; theme circuit-breaker threshold must not strand a site that is mid-fix without a clear admin reset path; MySQL apply is not transactional (DDL auto-commits) until **2.7.1a**
+
+---
+
+## Step 2.7.1a: Atomic MySQL Restore (Shadow Cut-over)
+
+- **Depends on**: Step 2.7.1 (dump + restorer exist; SQLite apply is transactional; MySQL apply drops and recreates in place because DDL auto-commits).
+- **Goal**: A failed MySQL restore leaves the live installation's tables as they were — the same promise SQLite already has through a transaction.
+- **Why separate from 2.7.1**: The snapshot store, dump format, three-stage uninstall, and panel are a full step. MySQL cannot wrap DDL in a transaction. Closing that hole is a restorer rewrite (shadow tables, identifier and constraint rewrite, leftover cleanup, one `RENAME TABLE`), not a last pass on the snapshot PR. Shared-host installs have no volume snapshot and no required `mysqldump` on PATH — this is the recovery that works there.
+- **What**:
+  - MySQL/MariaDB only. SQLite stays on the existing transactional apply. One MySQL path: delete the drop-and-recreate-in-place apply; no fallback.
+  - Load the dump into shadow tables first. Live tables are not dropped until cut-over.
+  - Shadow DDL is the dump's DDL with table names, `REFERENCES`, and InnoDB constraint names rewritten (constraint names are unique per schema). Not `CREATE TABLE … LIKE` on live tables — live schema may have migrated since the snapshot. Identifiers rewritten as quoted tokens, not substrings.
+  - Refuse before the first `CREATE` if a rewritten name exceeds 64 characters, collides with an existing table, or leftover shadow/backup names from a previous attempt cannot be cleaned.
+  - On apply failure before cut-over: drop all shadow tables; live tables untouched.
+  - Cut-over is one `RENAME TABLE` listing every dump table (live → backup, shadow → live; missing live tables only rename shadow → live). `FOREIGN_KEY_CHECKS=0` around rename and backup drop.
+  - Only tables the dump names are swapped. Tables created after the snapshot, and anything outside the prefix, stay. Empty prefix: shadow/backup names must not be dumped as installation tables and must not collide with a neighbour in the same database.
+  - After a successful rename, drop backup tables. If that drop fails, the site is already restored; the next restore must clear leftover backup names first or the next rename cannot land.
+  - At the start of every MySQL restore, drop leftover shadow/backup tables this restorer would have created for this prefix.
+  - Document peak disk ≈ 2× the dumped tables until backups are dropped. Metadata locks during rename are a brief stall, not zero-downtime.
+  - Connection prefix replacement is `@name` only — shadow SQL uses quoted identifiers, never `@restore_…`.
+  - Round-trip tests that today skip or document MySQL non-rollback must assert live tables unchanged after a failed apply. The MySQL PHPUnit leg is a **required** gate for this ticket, not advisory.
+- **Out of scope**: dump format version bump; checksums; capturing views/triggers/routines (the dumper still does not); Vue/admin copy; updater orchestration (**2.9**); containers or host snapshots; a fallback drop-in-place apply.
+- **Sequencing**: immediately after 2.7.1, before 2.7.2 — same restorer, while the snapshot tests still describe the MySQL hole. 2.7.2 does not consume this. 2.9 rollback on MySQL should assume this has landed.
+- **Risk**: Medium — DDL rewrite, FK constraint-name uniqueness, leftover names, 2× disk, empty-prefix collision. A rename that is not a single statement remaps FKs onto backup tables.
 
 ---
 
@@ -344,7 +368,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - **Reverse index**: derive `requiredBy` from the registered manifests so "what depends on this module" is answerable without scanning at call time.
   - **The active theme counts as a dependent**: the activation registry is two keys — the `extensions` list and `site.theme` (`SystemModule` loads `array_merge($this->config['extensions'], (array) $theme)`). A check that reads only `extensions` will happily disable a module the active theme requires and break the frontend.
   - **Pre-flight for destructive operations**: before disable or uninstall, report what would happen — active dependents that block it, modules that would be left orphaned, and whether the module owns tables or settings of its own (data risk). One query that both the admin UI and the API consume.
-- **Out of scope**: Automatic removal of orphaned dependencies and the install-reason bookkeeping it needs (**5.0**); snapshots and retention for destructive operations (**2.7.1**); replacing PHP-executed package discovery (**2.7.3**).
+- **Out of scope**: Automatic removal of orphaned dependencies and the install-reason bookkeeping it needs (**5.0**); snapshots and retention for destructive operations (**2.7.1**); MySQL restore cut-over (**2.7.1a**); replacing PHP-executed package discovery (**2.7.3**).
 - **Sequencing**: before **5.0** — operator-managed activation of core modules must not ship while unsatisfied dependencies stay quiet. Prefer before **2.7.3** so the graph hardens against the current registration model first; **2.7.3** then re-homes discovery without reopening the fail-closed rules.
 - **Risk**: Low–Medium — one resolver behaviour change plus a read-only graph. The behaviour change can strand an installation whose manifests were already inconsistent, which is why the failure has to be explicit about the missing module.
 
@@ -413,7 +437,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Two distribution artifacts, one build, one webroot layout (no forked app code)**: since Step 2.4.1, both artifacts ship the **identical `public/`-webroot layout** — (1) **classic tarball/zip**: `composer install --no-dev --optimize-autoloader` + Vite build (`pnpm build`, post-2.4) output, zipped as-is, ready to unzip onto any Apache/PHP-FPM shared host — document root pointed at `public/` (most modern panels, incl. IONOS) or the root-`.htaccess` rewrite fallback from 2.4.1 for hosts that lock the document root. This stays the **default, widest-reach** distribution — today it is still a manual, undocumented step; CI-building it and attaching it to GitHub Releases is core scope here. (2) **container image** (Step 2.5, later Step 4.12 for the runtime-engine swap): the identical build, with `public/` copied into the image the same way. Both come from the same source tree, the same build commands, and now the same webroot layout — packaging is the only difference.
 - **Webroot packaging details**: both artifacts must carry a complete `public/` tree — published assets plus the `public/storage` symlink. Plain zip extraction drops symlinks, so the classic artifact (or the installer/updater on first run) must recreate it; updates must also prune stale published files under `public/` (bundle and asset names change between releases). The updater clean-pass must cover application code **and** root `vendor/` (Composer layout from **2.7.4**), not only `app/`.
 - **Atomic writes (from Step 2.6)**: reuse `Filesystem::dumpAtomic()` for PHP state the next boot `require`s (registry, manifests, dumped caches). If this step also writes non-PHP artefacts (zip payloads, checksums, JSON feeds, binary blobs), either keep those on a separate write path or extend `dumpAtomic()` so `opcache_invalidate()` runs only for `.php` targets — today every dumpAtomic write invalidates OPcache unconditionally because all current callers are PHP-only.
-- **Rollback via snapshots (from Step 2.7.1)**: before an update replaces application code, `vendor/`, or package trees — and before release migrations run — take a restorable snapshot (DB dump + affected files + metadata) through the package snapshot service under `tmp/snapshots/`, and restore it when the update fails mid-flight; a half-updated tree with no way back is the failure mode this step exists to remove. Surface the rollback and its outcome in the update UX, and keep update-time snapshots under the same retention/purge rules as package snapshots so failed-update artefacts do not accumulate unbounded.
+- **Rollback via snapshots (from Step 2.7.1 / 2.7.1a)**: before an update replaces application code, `vendor/`, or package trees — and before release migrations run — take a restorable snapshot (DB dump + affected files + metadata) through the package snapshot service under `tmp/snapshots/`, and restore it when the update fails mid-flight; a half-updated tree with no way back is the failure mode this step exists to remove. MySQL restore must be the 2.7.1a cut-over (a failed apply leaves live tables as they were); do not assume in-place drop-and-recreate is retry-safe during an automatic rollback. Surface the rollback and its outcome in the update UX, and keep update-time snapshots under the same retention/purge rules as package snapshots so failed-update artefacts do not accumulate unbounded.
 - **Context**: `migration-docs/TODO/features/AUTOMATED_UPDATE_SYSTEM.md`
 
 ---

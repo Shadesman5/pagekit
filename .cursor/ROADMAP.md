@@ -91,6 +91,7 @@ Canonical: [`.cursor/rules/pagekit.mdc`](rules/pagekit.mdc) § DX. Thin DI-backe
 | 2.6    | Filesystem Write Resilience           | ✅     | 🛡️    | #257  | #265    |
 | 2.7    | **Extension Safety System**           | ✅     | 🛡️    | #160  | #270    |
 | 2.7.1  | ↳ Snapshot & Three-Stage Uninstall    | ⏳     | ⏳    | #267  | -       |
+| 2.7.1a | ↳ Atomic MySQL Restore (Shadow Cut-over) | ⏳  | ⏳    | #281  | -       |
 | 2.7.2  | ↳ Module Dependency Integrity         | ⏳     | ⏳    | #268  | -       |
 | 2.7.3  | ↳ Static Module Registration          | ⏳     | ⏳    | #266  | -       |
 | 2.7.4  | ↳ Standard Composer Layout (vendor/)  | ⏳     | ⏳    | #271  | -       |

@@ -352,7 +352,7 @@ _TBD / None_
 
 ## 📌 Follow-on (ROADMAP)
 
-_TBD / None_
+- **Step 2.7.1a (Atomic MySQL Restore)** — MySQL/MariaDB restore loads the dump into shadow tables and cut-over with one `RENAME TABLE`, so a failed apply leaves live tables as they were. SQLite already has that promise through a transaction; this step's MySQL path does not (DDL auto-commits; recovery is retry from the dump still on disk). Identifier and constraint rewrite, leftover cleanup, dump-set-only swap, 2× peak disk. Not a container or `mysqldump` path. Lands after this PR, before 2.7.2. GitHub: [#281](https://github.com/Shadesman5/pagekit/issues/281).
 
 ---
 
@@ -391,7 +391,7 @@ _TBD / None_
 - Ticket: `migration-docs/tickets/active/PROMPT_2_7_1_Snapshot-Three-Stage-Uninstall_plan.md` (_TBD_ → move to `done/` after Finalize)
 - Task prompt: `migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_7_1_Snapshot-Three-Stage-Uninstall.md`
 - Predecessor: Step 2.7 — Extension Safety System
-- Successor: Step 2.7.2 — Module Dependency Integrity
+- Successor: Step 2.7.1a — Atomic MySQL Restore (Shadow Cut-over); then Step 2.7.2 — Module Dependency Integrity
 
 ---
 
