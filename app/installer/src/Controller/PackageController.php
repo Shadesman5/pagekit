@@ -267,12 +267,19 @@ class PackageController
 
             $failure = null;
 
+            // Every throwable, not only the ones the removal raises itself. An
+            // Error out of a package's own code, or out of the snapshot and file
+            // handling this goes through, is the one failure that may not skip
+            // what follows: the rebuild below, the warnings and the status line
+            // are what the page is waiting for, and without them the modal sits
+            // on a progress bar over an installation the removal had already
+            // changed.
             try {
                 $this->manager->uninstall($name);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $failure = $e;
 
-                echo $e->getMessage();
+                echo $this->removalFailure($name, $e);
             }
 
             // Either way, and before the outcome is reported. A removal breaks
@@ -312,6 +319,27 @@ class PackageController
     }
 
     /**
+     * What the page is told about a removal that broke off.
+     *
+     * A removal refuses in words written for an administrator - no snapshot
+     * could be taken, the files would not go - and those are passed on as they
+     * stand. An Error is none of that: it is a fault in the code that was
+     * running, its text names classes and paths that belong in a log rather than
+     * in a panel, and nothing has written it down yet. So it is written down
+     * here, and the page is told that much.
+     */
+    private function removalFailure(string $name, \Throwable $e): string
+    {
+        if ($e instanceof \Exception) {
+            return $e->getMessage();
+        }
+
+        $this->logError(sprintf('Failed to remove package "%s"', $name), $e);
+
+        return __('The removal could not be completed. See error log for details.');
+    }
+
+    /**
      * Rebuilds what the installation had cached, the way enabling and disabling
      * do.
      *
@@ -326,10 +354,25 @@ class PackageController
         try {
             $this->module->get('system/cache')->clearCache();
         } catch (\Throwable $e) {
-            $this->log->error(
-                sprintf('Failed to clear the cache after removing a package: %s', $e->getMessage()),
-                ['exception' => $e]
-            );
+            $this->logError('Failed to clear the cache after removing a package', $e);
+        }
+    }
+
+    /**
+     * Puts one line in the error log, where there is a log able to take it.
+     *
+     * Read from inside a streamed response, where the status line the page waits
+     * for is still to be written: a log that cannot take the line does not get
+     * to be the reason the page never hears how the removal ended.
+     *
+     * @param string $context what was being attempted, for the log
+     */
+    private function logError(string $context, \Throwable $e): void
+    {
+        try {
+            $this->log->error(sprintf('%s: %s', $context, $e->getMessage()), ['exception' => $e]);
+        } catch (\Throwable) {
+            // Nothing left to report it to.
         }
     }
 
