@@ -10,7 +10,7 @@
   "model": "grok-4.6",
   "status": "completed",
   "startedAt": "2026-08-14T13:39:30.460Z",
-  "completedAt": "2026-08-25T13:07:03.818Z",
+  "completedAt": "2026-08-25T18:43:43.750Z",
   "phases": [
     {
       "phaseKey": "31805719574-1-PLAN",
@@ -566,13 +566,128 @@
       "type": "FINALIZE",
       "attempt": 0,
       "batchSteps": null,
-      "startedAt": "2026-08-25T17:23:20.816Z",
-      "durationMs": 4838593,
+      "startedAt": "2026-08-25T17:23:22.621Z",
+      "durationMs": 9120333,
       "agent": {
         "id": "bc-9556d21c-c234-4942-b6b3-a23507447534",
         "runId": "run-003d2e15-bade-4ab3-9ec1-8f770e39de2b",
         "url": "https://cursor.com/agents/bc-9556d21c-c234-4942-b6b3-a23507447534",
-        "model": "grok-4.6"
+        "model": "grok-4.6",
+        "runCount": 8,
+        "runs": [
+          {
+            "runId": "run-6ab4693f-0c43-49c8-9f7e-6e03c39e55b1",
+            "index": 1,
+            "startedAt": "2026-08-25T17:23:22.621Z",
+            "completedAt": "2026-08-25T18:35:54.692Z",
+            "durationMs": 4351099,
+            "tokens": {
+              "input": 704398,
+              "output": 127243,
+              "cacheRead": 17357226,
+              "cacheWrite": 466056,
+              "total": 18654923
+            }
+          },
+          {
+            "runId": "run-ba15404f-3524-4b16-8db6-d3a92394edb2",
+            "index": 2,
+            "startedAt": "2026-08-25T17:24:21.355Z",
+            "completedAt": "2026-08-25T18:35:54.566Z",
+            "durationMs": 4293211,
+            "tokens": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          {
+            "runId": "run-d0c6d680-45f2-469f-b0f7-f7a262bcf771",
+            "index": 3,
+            "startedAt": "2026-08-25T17:31:57.831Z",
+            "completedAt": "2026-08-25T17:31:58.263Z",
+            "durationMs": 432,
+            "tokens": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          {
+            "runId": "run-60e43cb8-587e-48d1-a025-19905a3337fa",
+            "index": 4,
+            "startedAt": "2026-08-25T17:31:58.030Z",
+            "completedAt": "2026-08-25T17:31:58.526Z",
+            "durationMs": 496,
+            "tokens": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          {
+            "runId": "run-3f890cef-b584-4bbb-a5cd-ca597fce855f",
+            "index": 5,
+            "startedAt": "2026-08-25T17:31:58.637Z",
+            "completedAt": "2026-08-25T17:32:02.675Z",
+            "durationMs": 4038,
+            "tokens": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          {
+            "runId": "run-e2c56c44-cef1-401d-a5f7-4db320c986f0",
+            "index": 6,
+            "startedAt": "2026-08-25T17:56:40.009Z",
+            "completedAt": "2026-08-25T17:56:40.922Z",
+            "durationMs": 913,
+            "tokens": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          {
+            "runId": "run-d8f94ac5-e820-4c34-b5c6-da4c867e2c28",
+            "index": 7,
+            "startedAt": "2026-08-25T18:14:59.573Z",
+            "completedAt": "2026-08-25T18:15:00.705Z",
+            "durationMs": 1132,
+            "tokens": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          {
+            "runId": "run-003d2e15-bade-4ab3-9ec1-8f770e39de2b",
+            "index": 8,
+            "startedAt": "2026-08-25T18:35:50.745Z",
+            "completedAt": "2026-08-25T18:43:43.750Z",
+            "durationMs": 469012,
+            "tokens": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          }
+        ]
       },
       "github": {
         "runId": 31840368584,
@@ -590,7 +705,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "Finalized. PR: #277. Version: 1.2.40. Ticket archived to done/.",
-      "outcome": "success"
+      "outcome": "success",
+      "completedAt": "2026-08-25T18:43:43.750Z",
+      "notes": "Timing from Cursor API (8 agent runs aggregated)"
     }
   ],
   "totals": {
@@ -601,7 +718,7 @@
       "cacheWrite": 12106579,
       "total": 400528651
     },
-    "durationMs": 50764583,
+    "durationMs": 55046323,
     "phaseCount": 11,
     "escalations": 3,
     "ghaJobs": 5,
