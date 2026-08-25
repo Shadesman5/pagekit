@@ -91,7 +91,43 @@ cd "$app_dir"
 
 # A volume can be mounted empty and tmp/ is container-local, so the directories
 # the application writes to are recreated on every start.
-mkdir -p "$data_dir" storage tmp/cache tmp/logs tmp/packages tmp/sessions tmp/snapshots tmp/system tmp/temp
+mkdir -p "$data_dir" storage tmp/cache tmp/logs tmp/packages tmp/sessions tmp/system tmp/temp
+
+# The snapshots of removed packages are the one thing the application writes
+# under tmp/ that is not a cache: a snapshot holds the only copy of a package
+# the installation no longer has on disk, and restoring one is what the panel
+# offers instead of a removal nobody can take back. tmp/ lives and dies with the
+# container - a newer image, a down and an up - so the store goes on the data
+# volume beside config.php, and tmp/snapshots is the link the application
+# reaches it through.
+#
+# Made here rather than left to the first snapshot: through a link that points
+# nowhere, the application would create the name it holds instead of what it
+# points at, and land back in the container's own tmp/.
+snapshots_dir=$data_dir/snapshots
+snapshots_link=$app_dir/tmp/snapshots
+
+# Anything else at that name is somewhere snapshots are already being kept, or
+# would be. Replacing it with the link would hide whatever is in it, and writing
+# through it would fill a directory the container takes with it, so this is
+# somebody's decision to look at rather than one to make here.
+if [ -e "$snapshots_link" ] && [ ! -L "$snapshots_link" ]; then
+    echo "entrypoint: $snapshots_link is not the link into $snapshots_dir that the image makes it" >&2
+    echo "entrypoint: snapshots kept anywhere else under tmp/ are lost with the container" >&2
+    exit 1
+fi
+
+# The start ends here rather than carrying on, because carrying on is the
+# failure: the application keeps its snapshots wherever this link leads, takes
+# one before every removal and reports each removal as undoable. Led into the
+# container's own tmp/, it would go on saying so and lose the lot with the
+# container.
+if ! mkdir -p "$snapshots_dir" || ! ln -sfn "$snapshots_dir" "$snapshots_link"; then
+    echo "entrypoint: cannot keep the package snapshots in $snapshots_dir" >&2
+    echo "entrypoint: a snapshot is the only copy of a removed package, so it may not live in a directory the container takes with it" >&2
+    echo "entrypoint: mount the data volume at $data_dir and let the account the container serves as (uid 33) write it" >&2
+    exit 1
+fi
 
 # config.php is written by the installer and rewritten whenever an administrator
 # saves settings, so it belongs on the volume rather than in the image, where a

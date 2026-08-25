@@ -343,10 +343,10 @@ The startup script of the container reads a few more of its own: `PAGEKIT_DATA_D
 
 Two named volumes hold what has to outlive it:
 
--   `pagekit_data` → `/var/www/data`: `config.php` and, for an SQLite installation, the database file. The installer writes `config.php` and the settings screens rewrite it while the site runs, so the image ships it as a link into this directory rather than a file of its own.
+-   `pagekit_data` → `/var/www/data`: `config.php`, the snapshots removing a package leaves behind and, for an SQLite installation, the database file. The installer writes `config.php` and the settings screens rewrite it while the site runs, so the image ships it as a link into this directory rather than a file of its own. `tmp/snapshots` is a link into it for a related reason: a snapshot is the only copy of a package the installation no longer has, and a removal may not turn irreversible because a newer image replaced the container. A start that cannot make that link is refused rather than allowed to keep snapshots somewhere they will be lost.
 -   `pagekit_storage` → `/var/www/html/storage`: the media library.
 
-MySQL keeps its data in `mysql_data`. Everything else is disposable: `tmp/` is a cache the container recreates on each start, and the application comes from the image. A backup therefore covers the volumes, not the container.
+MySQL keeps its data in `mysql_data`. Everything else is disposable: what is left under `tmp/` is cache the container recreates on each start, and the application comes from the image. A backup therefore covers the volumes, not the container.
 
 #### TLS and reverse proxies
 
