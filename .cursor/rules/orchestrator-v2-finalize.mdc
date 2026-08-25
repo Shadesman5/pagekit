@@ -149,9 +149,11 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
 
 ## Sequence
 
-> **Finalize PR reviews:** judge **only** the newest matching `cursor[bot]` PR review text after
-> `bugbot run` / `security run`. Never use check rows, HEAD SHA, `commit_id`, XL Task reviews, or CI
-> `security-audit` as the verdict. Details: steps 4–5. Rules: `.cursor/BUGBOT.md`.
+> **Finalize PR reviews:** Bugbot's verdict is the newest `<!-- BUGBOT_REVIEW -->` review **body** —
+> never its check row, HEAD SHA, `commit_id`, an XL Task review, or CI `security-audit`. Security
+> posts **no** review body: its verdict is the `Cursor Security Agent: Security Reviewer` **check
+> run**. Both triggers must be posted by a human account (step 4.1). Details: steps 4–5.
+> Rules: `.cursor/BUGBOT.md`.
 
 1. **Push + PR** — `git push -u origin HEAD`; `gh pr create --base <base branch from your launch prompt>`
    with `--title` from `.cursor/skills/push/SKILL.md` (conventional subject + ` (Step X.Y)` when
@@ -187,7 +189,22 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
    returns `UNTESTABLE` for all gaps, skip the commit and proceed to step 4.
 4. **PR-Bugbot (mandatory)** — sole source of truth: newest `cursor[bot]` PR **review** with
    `<!-- BUGBOT_REVIEW -->`. Ignore checks, HEAD, `commit_id`.
-   1. `gh pr comment <pr> --body "bugbot run"`.
+   1. **Post as a human account, then prove it.** Bugbot and Security ignore comments authored by
+      `cursor[bot]`, so a trigger that leaves through the Cursor GitHub App is dropped without a
+      reply. `gh api user` is **not** proof — the agent VM holds both credentials, and that call can
+      answer with your login while the comment still goes out as the app. Post with the PAT
+      explicitly, and read the created comment back:
+      ```bash
+      id=$(curl -sS -X POST \
+        -H "Authorization: Bearer $PAGEKIT_BACKGROUND_AGENT" \
+        -H 'Accept: application/vnd.github+json' \
+        "https://api.github.com/repos/{owner}/{repo}/issues/{pr}/comments" \
+        -d '{"body":"bugbot run"}' | jq -r .id)
+      gh api "repos/{owner}/{repo}/issues/comments/$id" \
+        --jq '[.user.login, (.performed_via_github_app.slug // "none")] | @tsv'
+      ```
+      Anything but a human login with `none` → `ESCALATE: review trigger posted as <login> via
+      <app>` — never poll for a review that cannot come. Same procedure for `security run`.
    2. Poll with `gh` only. **No** homemade `node`/`[eval]` poll scripts, HEAD filters, or
       `OPEN_BUG`/`CLEAN`/`DIRTY` state machines. Exit when a `<!-- BUGBOT_REVIEW -->` review has
       `submitted_at` after the trigger (ceiling ~10 min).
@@ -199,11 +216,19 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
       - Dirty → fix open Bugbot comments → push → re-CI → 4.1. Thread-resolve without a fix ≠ clean.
       - Clean → step 5.
    4. Forbidden limbo: `issues=0` + `unresolvedMention` = **Dirty**, not “wait more”.
-5. **PR-Security (mandatory)** — after Bugbot clean. Sole source of truth: newest `cursor[bot]`
-   review/comment with `CURSOR_AUTOMATION_ID` or `Agentic Security Review`. Not CI `security-audit`.
-   1. `gh pr comment <pr> --body "security run"`.
-   2. Poll with `gh` only until a **newer** such review/comment appears (ceiling ~15 min). Stop at once.
-   3. Findings → fix-loop → push → re-CI green → **restart step 4**; clean → step 6.
+5. **PR-Security (mandatory)** — after Bugbot clean. Sole source of truth: the check run
+   `Cursor Security Agent: Security Reviewer` on the PR head. Security runs as its own cloud agent
+   and reports **only** through that check — there is no review body and no PR comment, so a
+   body-based wait never ends. Not CI `security-audit`.
+   1. Post `security run` and verify its author per 4.1 (same PAT path, same read-back).
+   2. Poll that check on the head SHA until `status == "completed"` (ceiling ~20 min):
+      ```bash
+      gh api "repos/{owner}/{repo}/commits/$(gh pr view <pr> --json headRefOid --jq .headRefOid)/check-runs" \
+        --jq '.check_runs[] | select(.name=="Cursor Security Agent: Security Reviewer")'
+      ```
+      No such check within the ceiling → `ESCALATE: no security check after security run`.
+   3. `conclusion == "success"` → clean → step 6. `neutral` / `failure` → findings: read them from
+      the agent behind `details_url`, fix-loop → push → re-CI green → **restart step 4**.
 6. **Finalize** (follow `.cursor/skills/push/SKILL.md` + version-bump skill; delegate writing) — in this order:
    1. **Version bump** (you) — version-bump skill. Product delivery → `app/system/config.php` once per PR.
       Tooling-only / `NO BUMP` → skip config + CHANGELOG; still archive the ticket.
@@ -248,8 +273,9 @@ If a fix-loop hits the **same** FAIL **3×**, stop and report `ESCALATE: <reason
 ## Boundaries
 
 - Spawn only: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`. Finalize steps 4–5:
-  post `bugbot run` / `security run`, then judge **only** the newest matching `cursor[bot]` review
-  body. Do not spawn Task `bugbot` / `security-review` here.
+  post `bugbot run` / `security run` from a human account, then judge only the verdict source each
+  step names — Bugbot's review body, Security's check run. Do not spawn Task `bugbot` /
+  `security-review` here.
 
 ## Report exactly one line
 

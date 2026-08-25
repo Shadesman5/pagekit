@@ -39,29 +39,32 @@ Run this **every time** before:
 
 PHPStan runs **against the committed baseline** (`phpstan-baseline.neon`). It catches type errors, missing return types, and other static analysis regressions that PHPUnit cannot detect.
 
-- **When to run:** After PHPUnit passes. PHPStan is installed since Step 2.1.1 and must always be executed.
+- **When to run:** After PHPUnit passes, **only** when the prompt is `Run: PHPUnit + PHPStan`. Do **not** run PHPStan (or PHPUnit) on `Run: final E2E run` — the Orchestrator already spawned that gate.
 - **How:** `./app/vendor/bin/phpstan analyse --no-progress --memory-limit=512M`
 - **Pass criteria:** Exit code 0 (no new errors beyond baseline). New errors = FAIL.
 - **Do NOT** regenerate the baseline (`--generate-baseline`). If the Refactorer's changes legitimately resolve baseline entries, those will simply disappear. New errors must be fixed by the Refactorer, not suppressed.
 
 ## Workflow
 
-### Per-step tests (run after EVERY Refactorer step)
+Follow the Orchestrator `Run:` line. Never combine both gates in one spawn.
 
-1. **Execute PHPUnit** – `./app/vendor/bin/phpunit` — mandatory minimum for every step.
-2. **Execute PHPStan** – `./app/vendor/bin/phpstan analyse --no-progress --memory-limit=512M` — mandatory for every step (installed since Step 2.1.1).
+### Per-step tests (`Run: PHPUnit + PHPStan`)
+
+PHPUnit, then PHPStan. No Playwright. No `php pagekit setup` unless a test requires a fresh install.
+
+1. **Execute PHPUnit** – `./app/vendor/bin/phpunit`
+2. **Execute PHPStan** – `./app/vendor/bin/phpstan analyse --no-progress --memory-limit=512M`
 3. **RCA on failure** – Root-Cause Analysis. Use `git diff` to identify what changed in this step. Pinpoint the failing test/analysis error and the likely cause (one line).
 
-### End-of-ticket E2E (`"final E2E run"`)
+### End-of-ticket E2E (`Run: final E2E run`)
 
-Run **after** per-step PHPUnit + PHPStan PASS when the Orchestrator delegates. Triggers:
+Playwright (+ install/console smoke) **only**. Do **not** re-run PHPUnit or PHPStan — the previous tester spawn already did.
 
-- **Execute `(XL)` Review step:** after Bugbot and Security Review are clean.
-- **Finalize fix-loop:** after a CI or Bugbot failure — same E2E commands as the XL step.
+Triggers: Execute `(XL)` after Bugbot and Security are clean; Finalize fix-loop after PHPUnit + PHPStan PASS.
 
 Do **not** wait on CI yourself; the Orchestrator owns `gh run watch`.
 
-4. **Run Playwright E2E (locally)**:
+1. **Run Playwright E2E (locally)**:
    - Clean state: `rm -f pagekit.db config.php`
    - Smoke tests: `php pagekit setup` (installation smoke) and `php pagekit list` (console smoke).
    - Clean state again: `rm -f pagekit.db config.php` — required because `php pagekit setup` creates a minimal instance that conflicts with Playwright's full installation test.
@@ -73,9 +76,9 @@ Do **not** wait on CI yourself; the Orchestrator owns `gh run watch`.
      ```
      If one fails, report which one and continue with the next for maximum diagnostic value.
 
-5. **PASS gate** – all 3 E2E specs pass. Any failure → FAIL.
+2. **PASS gate** – all 3 E2E specs pass. Any failure → FAIL.
 
-6. **RCA on failure** – Same as per-step. For E2E failures, include the Playwright error message and the last screenshot path if available.
+3. **RCA on failure** – Same as per-step. For E2E failures, include the Playwright error message and the last screenshot path if available.
 
 ## Output
 
