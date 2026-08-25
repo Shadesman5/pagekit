@@ -234,9 +234,12 @@ const metrics = createMetricsCollector({
   // FINALIZE phase — idempotent (safe to re-enter after a partial or complete prior run).
   await gate();
   assertNotLooping('FINALIZE');
+  // Finalize's last action is the `git mv` of the ticket into done/ — that archive is the only
+  // proof this phase ran. An open PR is not: it exists from the moment any earlier attempt opened
+  // it, so accepting it would read an empty result as success on every re-entry.
   const finalizeLanded = () => {
     pullBranch();
-    return existsSync(doneTicket) || donePrExists();
+    return AUDIT ? donePrExists() : existsSync(doneTicket);
   };
   await runPhaseWithEscalation(
     'FINALIZE',
@@ -283,6 +286,7 @@ async function runPhase(label, prompt, outcomeHint) {
   log(`  agent=${agentId} run=${runId} ${agentUrl ? `url=${agentUrl}` : ''}`);
 
   const text = await poll(agentId, runId);
+  const finalRunId = current?.runId ?? runId; // poll follows the agent; record the run that answered
   current = null;
   await logUsage(agentId);
   const outcome = outcomeHint || (text.startsWith('ESCALATE') ? 'escalate' : 'success');
@@ -292,7 +296,7 @@ async function runPhase(label, prompt, outcomeHint) {
       label,
       startedAt,
       agentId,
-      runId,
+      runId: finalRunId,
       agentUrl,
       result: text,
       outcome
@@ -408,10 +412,20 @@ async function runPhaseWithEscalation(label, makePrompt, expect, recoverIfDone, 
   }
 }
 
-async function poll(agentId, runId) {
+async function newestRunId(agentId) {
+  const agent = await api('GET', `/v1/agents/${agentId}`);
+  return agent.latestRunId ?? agent.agent?.latestRunId ?? null;
+}
+
+// A phase is not one run. An agent can continue in further runs — a message posted into it while
+// it works, or its own continuation — and only the run that ends the phase carries `result`. The
+// launch run then reports FINISHED with no result while the agent keeps going for another hour, so
+// watching that one id alone reads an unfinished phase as a silent answer. Follow the agent.
+async function poll(agentId, launchRunId) {
   const TERMINAL = new Set(['FINISHED', 'ERROR', 'CANCELLED', 'EXPIRED']);
   let fails = 0;
-  let finishedWithoutResultSince = null;
+  let runId = launchRunId;
+  let silentSince = null;
   for (;;) {
     await sleep(POLL_MS);
     let run;
@@ -426,19 +440,34 @@ async function poll(agentId, runId) {
     }
     const status = String(run.status ?? run.run?.status ?? '').toUpperCase();
     if (!TERMINAL.has(status)) {
-      finishedWithoutResultSince = null;
+      silentSince = null;
       continue;
     }
-    if (status !== 'FINISHED') throw new Error(`run ${status}`);
     const text = String(run.result ?? run.run?.result ?? '').trim();
     if (text) return text;
-    // Race: status can become FINISHED a poll or two before `result` is populated.
-    if (finishedWithoutResultSince == null) {
-      finishedWithoutResultSince = Date.now();
-      log(`  run FINISHED but result empty — waiting up to ${RESULT_GRACE_MS}ms for result`);
+
+    // Terminal without a result: the agent moved to a newer run, or the API has not populated
+    // `result` yet. Ask the agent which run is current before treating the silence as an answer.
+    let newest = null;
+    try {
+      newest = await newestRunId(agentId);
+    } catch (e) {
+      log(`  agent lookup failed (${e.message}) — keeping ${runId}`);
+    }
+    if (newest && newest !== runId) {
+      log(`  agent continued in ${newest} (was ${runId}) — following it`);
+      runId = newest;
+      if (current?.agentId === agentId) current.runId = runId; // keep cancellation on the live run
+      silentSince = null;
       continue;
     }
-    if (Date.now() - finishedWithoutResultSince < RESULT_GRACE_MS) continue;
+    if (silentSince == null) {
+      silentSince = Date.now();
+      log(`  run ${status} without result — waiting up to ${RESULT_GRACE_MS}ms for a result`);
+      continue;
+    }
+    if (Date.now() - silentSince < RESULT_GRACE_MS) continue;
+    if (status !== 'FINISHED') throw new Error(`run ${status}`);
     log(`  result still empty after ${RESULT_GRACE_MS}ms — returning empty`);
     return '';
   }
