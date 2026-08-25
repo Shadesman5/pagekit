@@ -1,324 +1,208 @@
 # Pagekit Bugbot Review Rules
 
-> **Canonical rules:** `.cursor/rules/pagekit.mdc` (the 5 aggressive rules).
-> If a rule here conflicts with `pagekit.mdc`, `pagekit.mdc` wins.
->
-> **Scope:** These rules apply to **both** the remote PR Bugbot **and** the
-> Execute `(XL)` `/review-bugbot` (Task `bugbot`) run — see
-> `orchestrator-v2-step.mdc` § XL Review step (V2).
+If a later section conflicts with §0, §0 wins.
+
+Canonical DNA: [pagekit.mdc](rules/pagekit.mdc). Cursor `*.mdc` rules are not auto-loaded — follow that file via the link. This file maps DNA onto flags.
+
+---
+
+## 0. Scope
+
+Same flag rules for both runs. The input differs:
+
+- **Local** (`/review-bugbot`, XL step, including fix-loop re-runs): always the **full** branch diff vs merge-base. There is no PR yet. Do not shrink to files changed since the last local review.
+- **Remote** (`bugbot run` on the PR): PR diff. Follow-up: only files changed since the last Bugbot review, plus the call chain needed to check a fix.
+
+Do not run PHPUnit, PHPStan, Playwright, pnpm, or Composer. Do not commit, patch, or spawn Autofix.
+
+### Review
+
+- `app/`, `packages/`, `public/` (except built CSS/LESS), `docker/`, `Dockerfile`
+- `docker-compose.yml`, `docker-compose.prod.yml`, `prod.env.example`, `composer.json`
+- `**/*.{vue,js}` under `app/` and `packages/`
+- `.github/conductor/*.mjs`, `.github/conductor/*.test.mjs`, `.github/workflows/conductor.yml`, `.github/workflows/import-*.yml`
+- `.cursor/rules/orchestrator-v2-*.mdc`, `.cursor/rules/orchestrator-subagent-workflow.mdc`, `.cursor/WORKFLOW_SUBAGENTS.md`, `.cursor/agents/`, `.cursor/skills/`
+
+Conductor `*.test.mjs` **are** in scope. PHPUnit and Playwright test bodies are not.
+
+### Do not open
+
+- `tests/`, `**/Tests/**`, `**/*Test.php`, `**/*.spec.js`, `phpunit*.xml*`, `infection.json.dist`
+- `migration-docs/`, `docs-site/`, `README.md`, `CHANGELOG.md`, `CHANGELOG-NEW.md`, `AGENTS.md`
+- `.github/conductor/metrics/`, `.github/quality/quality-snapshot.json`
+- `*.css`, `*.less`, `node_modules/`, `app/vendor/`, `tmp/`
+
+Coverage: §6, changed-file list of this diff only.
+
+`.cursor/ROADMAP.md`: open on the first review of this branch (local XL) or when the PR has no prior `<!-- BUGBOT_REVIEW -->`. Otherwise use §1.6.
 
 ---
 
 ## 1. ROADMAP Compliance
 
-### 1.1 Mandatory TODO Tags (ROADMAP Rule 5)
+### 1.1 Forbidden remnants and TODO tags
 
-Every legacy remnant introduced or touched in a PR MUST have a TODO comment
-referencing a ROADMAP step. Flag as **blocking Bug** if any of the following
-patterns appear without a proper tag:
+These patterns are forbidden. Reintroduction → **blocking Bug**. A TODO tag does not exempt them.
 
-| Pattern | Required Tag Format |
-|---------|---------------------|
-| `App::getInstance()` | `// TODO: TEMPORARY BRIDGE - To be removed in Step X.Y` |
-| `App::abort()`, `App::redirect()` | `// TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)` |
-| `App::on()`, `App::subscribe()`, `App::trigger()` | `// TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)` |
-| `$app['x'] = ...` (ArrayAccess WRITE) | `// TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)` |
-| Any other leftover that must change later | `// TODO: Must be refactored in Step X.Y (Name)` |
+| Pattern |
+|---------|
+| `App::getInstance()` |
+| `App::abort()`, `App::redirect()` |
+| `App::on()`, `App::subscribe()`, `App::trigger()` |
+| `$app['x'] = ...` (ArrayAccess WRITE) |
 
-If a tagged TODO references a ROADMAP step that is already marked ✅, flag it:
-the bridge should have been removed.
+Other leftover that must change later → `// TODO: Must be refactored in Step X.Y (Name)` or `// TODO: TEMPORARY BRIDGE - To be removed in Step X.Y` pointing at a **⏳** ROADMAP step. Missing tag → **blocking Bug**. Tag pointing at a ✅ step → **blocking Bug**.
 
-### 1.2 No Compatibility Layers (ROADMAP Rule 1)
+No completed-step, ticket, or ROADMAP history in code comments.
 
-If the PR introduces a "Shim", "Compat", "Legacy", or "Adapter" class that
-exists solely to support old calling patterns alongside new ones, flag as
-**blocking Bug** titled "Compatibility layer violates ROADMAP Rule 1".
+### 1.2 No Compatibility Layers
 
-### 1.3 No Wrapper Adapters (ROADMAP Rule 2)
+New Shim/Compat/Legacy/Adapter class that only preserves old calling patterns → **blocking Bug** "Compatibility layer violates ROADMAP Rule 1".
 
-If a method signature changes but old call sites are preserved via a wrapper
-method (e.g., `legacyFoo()` calling `foo()`), flag as **blocking Bug**.
-All call sites must be updated directly.
+### 1.3 No Wrapper Adapters
 
-### 1.4 Delete Over Wrap (ROADMAP Rule 4)
+Signature change with a wrapper for old call sites (`legacyFoo()` → `foo()`) → **blocking Bug**. Update call sites.
 
-If old code is commented out instead of deleted, flag as **non-blocking Bug**
-titled "Commented-out code — use git history instead (ROADMAP Rule 4)".
+### 1.4 Delete Over Wrap
+
+Commented-out old code → **non-blocking Bug** "Commented-out code — use git history instead (ROADMAP Rule 4)".
 
 ### 1.5 Scope Enforcement
 
-Check which ROADMAP step the PR branch targets (branch name or PR description).
-If changes modify files or patterns that belong to a different step, flag as
-**non-blocking Bug** titled "Out-of-scope change for Step X.Y".
-Reference the correct step where this change belongs.
+Changes that belong to a different ROADMAP step than the ticket/PR targets → **non-blocking Bug** "Out-of-scope change for Step X.Y".
 
-### 1.6 Deferred Pattern Awareness (CRITICAL)
+### 1.6 Deferred patterns
 
-Before flagging any finding, cross-reference against the **ROADMAP tracking table**
-(`.cursor/ROADMAP.md`). If the finding falls under a later ROADMAP step that is
-already tracked with a GitHub Issue, **do NOT flag it as a Bug**. Instead:
+**Do not flag** ⏳ leftovers that look like bugs. Never keep a ✅ row — after a step ships, reintroduction is in scope. Unsure (first review, ROADMAP ⏳) → one informational comment: "Tracked in Step X.Y (Issue #N) — not in scope for this change."
 
-- Skip silently if the pattern is a known deferred item.
-- If unsure, add a single **informational** comment (not a Bug) referencing the
-  step and issue: "Tracked in Step X.Y (Issue #N) — not in scope for this PR."
+No ⏳ leftover rows yet. Add a row when a later step tracks a leftover. Do not open ROADMAP.md on a follow-up review to discover new ones.
 
-**Known deferred patterns** (tracked for a later ROADMAP step — do NOT flag):
+**Do not re-flag** (intentional design still in the tree)
 
-| Pattern | Tracked In | Issue |
-|---------|-----------|-------|
-| `Connection::exec()` alias, `json_array` type, deprecated `getSchemaManager()` | Step 2.1.7 (QueryBuilder/DBAL) | #154 |
-| Missing test coverage for refactors; `MigrationCommand` integration test (Doctrine + scripts flow) | Step 2.1.9 (Test Coverage Expansion) | #156 |
-| `ModelServiceLocator` (static locator → DTO/presenter) | Step 2.1.10 (Entity Presentation Layer) | #204 |
-| `EntityManager` static singleton + `find(mixed $identifier)` | Step 2.1.11 (EntityManager DI) | #205 |
-
-> **Maintenance:** an entry is **removed** once its step ships — the pattern no longer exists in the
-> code, so there is nothing left to flag (history lives in `ROADMAP.md` / `CHANGELOG-NEW.md`).
-> **Resolved through Step 2.1.6** and therefore dropped from this table: all 2.0.x bridges
-> (`App::getInstance/abort/redirect`, `$app['x']=` writes, `SymfonyEventDispatcherBridge`,
-> `create_function()`, Cache `Psr6Adapter`, Composer/autoload + test-infra cleanups), `strict_types`
-> (2.1.3), and avoidable `mixed` + `IntlServiceLocator` + `#[AllowDynamicProperties]` (2.1.4–2.1.6).
-> Remaining **justified** `mixed` (PSR-11, magic methods, generic containers) is correct — see Rule 2.3.
-
-**Already resolved** (do NOT re-flag — these shipped intentionally):
-
-| Pattern | Resolved In | Notes |
-|---------|-------------|-------|
-| `.gitignore`: removed `/yarn.lock` + `/composer.lock` | PR #187 (Step 2.0.3) | Out-of-scope for 2.0.3 but shipped early; documented in Issue #182 comment |
-| `.cursor/install.sh` rewrite (`composer update` → `install`) | PR #187 (Step 2.0.3) | Same as above; reduces Step 2.0.5 remaining scope |
-| `MigrationCommand` two-phase model (migrations + scripts) | PR #189 (Step 2.0.4) | By design: migrations are idempotent (tracking table), scripts are version-gated. Retry on next run works correctly. |
-| `MigrationController` `has('migration')` guard | PR #189 (Step 2.0.4) | Both `indexAction()` and `migrateAction()` defensively check service availability, consistent with `index.php` login handler. |
-| `catch (\Throwable)` in `MigrationCommand::execute()` | PR #189 (Step 2.0.4) | Catches all PHP 8.2+ errors. "Non-\Throwable error" is impossible in modern PHP — see Rule 2.2. |
-| Auto-migration/rollback removed from PackageManager | PR #189 (Step 2.0.4b) | Extensions use explicit scripts.php hooks per original Pagekit design |
-| Commented-out `rollbackExtension()` in blog `scripts.php` uninstall hook | PR #189 (Step 2.0.4b) | Intentional API usage example for extension developers, not commented-out legacy code. Rule 4 does not apply to documentation examples. |
-
-This table MUST be updated when new deferred items are added to the ROADMAP.
-Bugbot should re-read ROADMAP.md on every review to detect changes.
+| Pattern |
+|---------|
+| `.cursor/install.sh` uses `composer install` (not `update`) |
+| `MigrationCommand` two-phase: Doctrine `migrate()` then `LifecycleRunner` scripts |
+| `has('migration')` guard in `MigrationCommand` / `MigrationController` |
 
 ---
 
-## 2. PHP Standards (PHP 8.2+ Strict)
+## 2. PHP
 
-### 2.1 Strict Types Declaration
+### 2.1 Strict types
 
-For files matching `**/*.php` in `app/`:
-If a changed PHP file does not contain `declare(strict_types=1);` as its
-second line (after `<?php`), flag as **non-blocking Bug** titled
-"Missing strict_types declaration".
+Changed `app/**/*.php` missing `declare(strict_types=1);` as the second line → **non-blocking Bug** "Missing strict_types declaration".
 
-**Note:** `strict_types` is enforced repo-wide since Step 2.1.3 (PR #201) by the
-`cs-fixer` CI gate (`declare_strict_types`), so a missing declaration normally fails
-CI before a review reaches Bugbot. Treat this rule as a non-blocking backstop.
+### 2.2 Errors
 
-### 2.2 PHP 8.2+ Error Model (CRITICAL)
+PHP 8.5+: `\Throwable` is the root. There is no catchable non-`\Throwable` error. Do not flag `catch (\Throwable)` as incomplete.
 
-This project requires **PHP 8.2+**. In modern PHP, `\Throwable` is the
-root of the entire error hierarchy: both `\Exception` and `\Error` extend it.
-There is **no such thing as a "non-\Throwable" catchable error** in PHP 8.2+.
+Do flag: swallowed errors; `\Throwable` when a specific type is required; continuing with corrupt state.
 
-Do NOT claim that `catch (\Throwable)` can "miss" errors or that
-"non-\Throwable errors" exist — this is impossible in PHP 8.2+.
-The only uncatchable conditions (OOM, segfault) terminate the process
-entirely — no code can guard against those.
+### 2.3 Typed properties
 
-**Still flag these legitimate catch-related issues:**
-- Silently swallowing errors (no logging, no re-throw, no return value)
-- Catching `\Throwable` when only a specific exception type is expected
-- Continuing execution with potentially corrupt state after catch
+New untyped property (`protected $foo`) → **non-blocking Bug**. `mixed` is a type. Do not flag justified `mixed` (PSR-11 `get()`, `__get`/`__set`/`__call`, generic containers).
 
-When reviewing error handling patterns, assume PHP 8.2+ semantics.
+### 2.4 Return types
 
-### 2.3 Typed Properties
+New public/protected method without a return type → **non-blocking Bug** "Missing return type".
 
-If a changed file introduces a property without a type declaration
-(e.g., `protected $foo` instead of `protected string $foo`), flag as
-**non-blocking Bug** titled "Untyped property — PHP 8.2+ requires types".
+### 2.5 Constructor promotion
 
-**Clarification:** `mixed` IS a valid PHP 8.0+ type declaration. The avoidable-`mixed`
-cleanup completed in Step 2.1.6 — do NOT flag **justified** `mixed` (PSR-11 `get()`, magic
-`__get`/`__set`/`__call`, generic value containers, event/config/template data). Only flag
-truly untyped properties (no type at all).
-
-### 2.4 Return Types
-
-If a changed file introduces a public/protected method without a return type
-declaration, flag as **non-blocking Bug** titled "Missing return type".
-
-### 2.5 Constructor Property Promotion
-
-If a constructor assigns parameters to properties that could use promotion
-(e.g., `$this->foo = $foo` in constructor body with matching parameter),
-flag as **non-blocking Bug** suggesting Constructor Property Promotion.
+Constructor body `$this->foo = $foo` that could be promoted → **non-blocking Bug**.
 
 ---
 
-## 3. Forbidden Patterns
+## 3. Forbidden patterns
 
-### 3.1 No WordPress Code
+### 3.1 WordPress
 
-If any changed file contains patterns matching:
-`/\b(add_action|do_shortcode|WP_Query|get_post_meta|wp_posts|wp_options|the_content|the_title)\b/`
+`/\b(add_action|do_shortcode|WP_Query|get_post_meta|wp_posts|wp_options|the_content|the_title)\b/` → **blocking Bug**.
 
-Flag as **blocking Bug** titled "WordPress code detected — this is Pagekit/Symfony".
+### 3.2 Laravel
 
-### 3.2 No Laravel Facades
+`/\b(dd\(|collect\(|Str::|Arr::|Route::|\bFacade\b|Illuminate\\)/` → **blocking Bug**.
+`dump()` from `symfony/var-dumper` is allowed. `dd()` is not.
 
-If any changed PHP file contains patterns matching:
-`/\b(dd\(|collect\(|Str::|Arr::|Route::|\bFacade\b|Illuminate\\)/`
+### 3.3 Secrets
 
-Flag as **blocking Bug** titled "Laravel pattern detected — use Symfony equivalents".
-Exception: `dd()` may pass if `symfony/var-dumper` is in `composer.json`.
+`/(password|secret|api_key|token|credential)\s*[:=]\s*['"][^'"]{8,}['"]/i` → **blocking Bug**.
+Exempt: `.env.example`, `prod.env.example`, `*.test.*`, `*Test.php`.
 
-### 3.3 No Hardcoded Secrets
+### 3.4 eval/exec
 
-If any changed file contains patterns matching:
-`/(password|secret|api_key|token|credential)\s*[:=]\s*['"][^'"]{8,}['"]/i`
-
-Flag as **blocking Bug** titled "Potential hardcoded secret".
-Files named `.env.example`, `*.test.*`, or `*Test.php` are exempt.
-
-### 3.4 No eval/exec
-
-If any changed PHP file contains `/\b(eval|exec|system|passthru|shell_exec|proc_open)\s*\(/`:
-
-Flag as **blocking Bug** titled "Dangerous dynamic execution detected".
+`/\b(eval|exec|system|passthru|shell_exec|proc_open)\s*\(/` in PHP → **blocking Bug**.
 
 ---
 
-## 4. Container & DI Patterns
+## 4. Container & DI
 
-### 4.1 Factory Service Reuse
+### 4.1 Factory capture
 
-If a service is registered via `$app->factory(...)` and is injected into a
-constructor as a stored property, flag as **blocking Bug** titled
-"Factory service captured via constructor injection".
-Factory services must be resolved fresh per use via `$container->get()` or
-direct instantiation (e.g., `Finder::create()`).
+`$app->factory(...)` stored on a constructor property → **blocking Bug**. Resolve via `$container->get()` or `Finder::create()`.
 
-### 4.2 Uninitialized Typed Properties
+### 4.2 Uninitialized typed properties
 
-If a Module class declares a non-nullable typed property (e.g., `protected App $app`)
-without a default value, and the property is assigned only in `main()`, flag as
-**blocking Bug** titled "Non-nullable property without default — risk of TypeError".
-The fix is `protected ?App $app = null` with a fallback like
-`$this->app ?? App::getInstance()`.
+Module `protected App $app` assigned only in `main()` → **blocking Bug**. Use `protected ?App $app = null`.
 
-### 4.3 ArrayAccess Read in New Code
+### 4.3 ArrayAccess reads
 
-If a PR introduces new `$app['x']` read patterns (not tagged as WRITE for Step 2.0.1d),
-flag as **blocking Bug** titled "New ArrayAccess read — use \$app->get('x') instead".
+New `$app['x']` reads → **blocking Bug**. Use `$app->get('x')`.
 
-### 4.4 Callable vs Method Equivalence
+### 4.4 `__invoke` vs `get`
 
-When a `StaticTrait` proxy call (e.g., `App::url($x)`) is migrated to a direct
-method call (e.g., `$this->url->get($x)`), **verify whether `__invoke()` and
-`get()` are actually different** before flagging. Many Pagekit service classes
-implement `__invoke()` as a one-line delegation to `get()`:
+Do not flag `App::url($x)` → `$this->url->get($x)` when `__invoke()` delegates to `get()`.
 
-```php
-public function __invoke($path = '') { return $this->get($path); }
-```
+Known: `UrlProvider`, `ConfigManager`.
 
-If `__invoke()` delegates to the same method being called, the migration is
-**semantically identical**. Do NOT flag as a bug. Check the actual source code.
+### 4.5 Install scripts
 
-Known equivalent pairs:
-- `UrlProvider::__invoke()` → `UrlProvider::get()`
-- `ConfigManager::__invoke()` → `ConfigManager::get()`
-
-### 4.5 Execution Context Verification
-
-Before flagging potential runtime errors (e.g., "database table may not exist"),
-**verify the execution order** by reading the calling context. For install scripts
-(`install.php`, `install-demo.php`):
-
-- These are loaded via `require_once` in `Installer::install()`.
-- `Installer::install()` calls `runMigrations()` BEFORE loading install scripts.
-- All database tables exist by the time install scripts execute.
-
-Do NOT flag speculative runtime errors without verifying the actual call chain.
+`install.php` / `install-demo.php` run after `Installer::install()` → `runMigrations()`. Tables exist. Do not flag missing tables without a call-chain check.
 
 ---
 
 ## 5. Security
 
-### 5.1 SQL Injection
+### 5.1 SQL injection
 
-If any changed file constructs SQL by concatenating user input
-(e.g., `"SELECT ... " . $request->get(...)` or `"WHERE id = $id"`),
-flag as **blocking Bug** titled "Potential SQL injection — use parameterized queries".
+SQL concatenated with request input → **blocking Bug**. Parameterized queries.
 
-### 5.2 XSS in Views
+### 5.2 XSS
 
-For files matching `**/*.php` in `**/views/` or `**/widgets/`:
-If output is not escaped (e.g., `<?= $var ?>` without `htmlspecialchars` or `e()`),
-flag as **non-blocking Bug** titled "Unescaped output in view — potential XSS".
+Unescaped `<?= $var ?>` in `**/views/` or `**/widgets/` → **non-blocking Bug**.
 
-### 5.3 CSRF Protection
+`v-html` or `$notify(...)` with unescaped request or API text → **blocking Bug**.
+Do not flag `v-html` of trusted local content (`marked()` of package metadata, installer command output) unless request input flows into it.
 
-If a controller action that handles POST/PUT/DELETE does not have a `csrf: true`
-attribute or equivalent CSRF check, flag as **non-blocking Bug** titled
-"Missing CSRF protection on state-changing endpoint".
+### 5.3 CSRF
+
+POST/PUT/DELETE action without `csrf: true` (or equivalent) → **non-blocking Bug**.
 
 ---
 
-## 6. Testing
+## 6. Coverage
 
-### 6.1 Test Coverage for New Code
+Do not open PHPUnit or Playwright test files. Do not run tests.
 
-If the PR adds or modifies files in `app/system/src/`, `app/installer/src/`,
-or `app/modules/*/src/` and there are no corresponding changes in
-`**/Tests/**` or `tests/`, flag as **non-blocking Bug** titled
-"No tests for backend changes".
+Changed-file list touches `app/system/src/`, `app/installer/src/`, or `app/modules/*/src/` and has no `**/Tests/**` or `tests/` path → **non-blocking Bug** "No tests for backend changes".
 
-**Exception:** For purely **mechanical refactors** (e.g., `$app['x']` → `$app->get('x')`,
-constructor injection, type-only changes), do not demand new tests — broader coverage
-expansion is tracked in Step 2.1.9 (Issue #156). Only flag if the PR introduces
-**new logic or behavioral changes** that are untested.
+Skip for mechanical refactors (`$app['x']` → `$app->get('x')`, constructor injection, types only).
 
 ---
 
-## 7. Frontend (Maintenance Mode)
+## 7. Frontend
 
-### 7.1 No Vue 3 Syntax
+Vue 2.7 Options API is current. New `<script setup>`, `defineProps`, `defineEmits`, or Composition-API `ref(` / `reactive(` / `computed(` → **non-blocking Bug**, unless that file already uses a Vue 2.7 Composition-API bridge.
 
-For files matching `**/*.{js,vue}`:
-If a changed file contains `<script setup>`, `defineProps`, `defineEmits`,
-`ref(`, `reactive(`, `computed(` (Composition API), flag as **non-blocking Bug**
-titled "Vue 3 syntax — frontend is Vue 2.6 until Step 3.4".
+Do not flag Options-API `computed:` or `$refs`.
 
-### 7.2 No New Mixins
-
-If a changed Vue file introduces a new `mixins: [...]` declaration, flag as
-**non-blocking Bug** titled "Avoid new mixins — hard to migrate to Vue 3".
+New `mixins: [...]` → **non-blocking Bug**.
 
 ---
 
-## 8. Commit Messages
+## 8. Commits
 
-### 8.1 Conventional Commits
+Branch/PR commit messages: `<type>[optional scope]: <description>`
+(`feat` `fix` `docs` `style` `refactor` `perf` `test` `build` `ci` `chore` `revert`).
 
-Commit messages in the PR must follow Conventional Commits v1.0.0:
-`<type>[optional scope]: <description>`
-
-Valid types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`,
-`build`, `ci`, `chore`, `revert`.
-
-If a commit message does not match this format, flag as **non-blocking Bug**
-titled "Commit message does not follow Conventional Commits".
-
----
-
-## 9. Autofix Guidance
-
-When Bugbot Autofix resolves issues, it MUST:
-
-1. Read `.cursor/ROADMAP.md` before making changes
-2. Stay within the scope of the PR's target ROADMAP step
-3. Add proper TODO tags per Rule 1.1 for any legacy patterns it cannot fully resolve
-4. Run `./app/vendor/bin/phpunit` to verify no test regressions
-5. Never introduce compatibility layers, adapters, or wrappers
-6. Use Conventional Commits format for fix commits
-
-If a fix would require changes outside the current ROADMAP step, Autofix should
-add a comment explaining the issue and reference the correct future step instead
-of making the change.
+Mismatch → **non-blocking Bug**.
