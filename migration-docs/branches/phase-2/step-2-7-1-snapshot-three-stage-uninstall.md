@@ -6,16 +6,20 @@
 **Branch:** `feature/snapshot-three-stage-uninstall`
 **ROADMAP Step:** 2.7.1 (Snapshot & Three-Stage Uninstall)
 **GitHub Issue:** [#267](https://github.com/Shadesman5/pagekit/issues/267)
-**Pull Request:** _TBD_
-**Status:** 🚧 In progress
+**Pull Request:** [#277](https://github.com/Shadesman5/pagekit/pull/277)
+**Status:** ✅ Complete
 **Started:** 2026-08-14 13:56
-**Completed:** _TBD_
+**Completed:** 2026-08-25 18:40
 
 ---
 
 ## 🎯 Overview
 
-_TBD_
+Uninstall is snapshot-first and three-stage. A dump of the prefix-scoped database plus the package tree (and Composer `installed.json` when that is how it was installed) lands under `path.snapshots` before anything is taken out of `packages/`; a failed snapshot aborts with the package untouched; purge — or the 30-day prune-on-create window — is the only destroy of that copy. Restore puts the archived tree back and then replaces the whole database: everything written since the snapshot is gone. The Snapshots page (`system: manage packages`, CSRF on restore / purge / purge-expired) is the HTTP surface; `php pagekit uninstall` shares the same pipeline (it used to TypeError on construction). Hook failures still cannot veto disable or uninstall; they surface as a `warnings` array (disable) and `warning=` lines (uninstall). A theme that fails `PAUSE_THRESHOLD` (3) times in a row is no longer executed; enable is the reset. `$notify` shows its message as text, not markup.
+
+Checklist Step 8 closed abort honesty on the branch diff: a snapshot is a way back only while it is marked `complete`; `mkdir` is the id reservation; `keepsSnapshots` is the same store presence the removal uses; a cache clear that throws is a log line, not the operation's answer. Finalize's PR-Bugbot round then found three more, all fixed: snapshots lived in container-local `tmp/` and vanished on an image roll; `uninstallAction` caught only `\Exception`, so an `\Error` skipped cache rebuild, hook warnings, and `status=`; `mkdir -p` on the store succeeded when uid 33 could not write it. `tmp/snapshots` is now a link into `$PAGEKIT_DATA_DIR/snapshots` (the container refuses to start if that name is not a link, the link cannot be made, or the store cannot be written through); the stream catches `\Throwable`; the entrypoint probes write access through the link.
+
+PR [#277](https://github.com/Shadesman5/pagekit/pull/277), version 1.2.40. CI green. Coverage-gap pass skipped (commit `374b1923` already on the branch). Bugbot findings fixed. Security clean. E2E PASS.
 
 ---
 
@@ -226,6 +230,22 @@ No greenfield work. Bugbot on the branch diff, then a Security medium XSS; the X
 
 Gates: Bugbot findings then clean after fix-loops (hook warnings dropped on uninstall error; false snapshot promise on file removal; snapshot ID reservation race; success text always claims snapshot; failed uninstall skips cache clear; restore succeeds but API errors). Security medium XSS via disable warnings into `$notify` → notify HTML escape; XSS restart from Bugbot then Security both clean in sequence. E2E PASS (Playwright `@ci`).
 
+### Finalize follow-up — snapshots on the data volume, uninstall stream catches `\Throwable` (PR-Bugbot)
+
+PR-Bugbot on #277 found three issues after the ticket's own review loop had closed. All three fixed on the branch before this close.
+
+| File | Change |
+|---|---|
+| `docker/entrypoint.sh` | `tmp/snapshots` is no longer one of the cache dirs `mkdir -p` recreates on every start. The store goes on the data volume (`$PAGEKIT_DATA_DIR/snapshots`); `tmp/snapshots` is the link the application already uses (`path.snapshots`). A start that finds anything but a link at that name exits: replacing it would hide whatever is in it, and writing through a real directory would fill container-local `tmp/`. `mkdir -p` of the volume directory, `ln -sfn`, and a write probe through the link (`can_write`: touch + unlink a probe file) all have to succeed; any failure refuses the start rather than let the panel promise a restore the next image roll would throw away, or present uninstall as reversible when uid 33 cannot write the store. |
+| `.github/workflows/docker-image.yml` | New smoke: `readlink` of `/var/www/html/tmp/snapshots` is `/var/www/data/snapshots`, that directory exists, and it is writable by the account the container serves as. |
+| `docker-compose.prod.yml` | Volume comment names snapshots on `pagekit_data` beside `config.php`; `tmp/` stays container-local; the store is reached through the link for that reason. |
+| `prod.env.example` | `PAGEKIT_DATA_DIR` comment names the snapshots a removal leaves behind, alongside `config.php` and the SQLite file. |
+| `README.md` | "What the container keeps" names snapshots on `pagekit_data` and that a start which cannot make the link — or cannot write through it — is refused. |
+| `AGENTS.md` | Prod-image caveat: `tmp/snapshots` is linked into `$PAGEKIT_DATA_DIR`; a start that cannot make that link is refused. |
+| `app/installer/src/Controller/PackageController.php` | `uninstallAction` catches `\Throwable`, not `\Exception`. Cache rebuild, hook-warning drain, and `status=` always run after the try. An `\Exception` still streams its administrator-facing message; an `\Error` is logged (`removalFailure()`) and the page is told the removal could not be completed and to see the error log — class names and paths stay out of the modal. |
+
+Gates: Bugbot findings fixed (snapshots vanish on container replace; uninstall stream skips `\Error`; snapshot store writability not checked) then Security clean; E2E PASS; CI green (`phpunit`, `phpstan`, `cs-fixer`, `frontend`, `infection-diff`, `docker-image`, `codecov/patch`; `e2e-smoke` skipped as opt-in). Coverage-gap pass skipped — commit `374b1923` (`test(system): close codecov patch gaps`) already on the branch.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -271,19 +291,24 @@ Gates: Bugbot findings then clean after fix-loops (hook warnings dropped on unin
 - **A cache clear that cannot run is not the operation's answer (Checklist Step 8).** Uninstall now clears after success *and* after a throw (the package is already off the config by then — Step 6 skipped the error-path clear). Restore still returns success after `restore()`. A throw from `clearCache()` is a log line; flipping the stream/API to error would send the administrator looking for a package that is already gone, or treating a finished revert as undone. Cost: a panel serving the pre-operation cache until the next clear.
 - **`$notify` is text (Checklist Step 8).** Disable warnings (and every other notification) are written into the panel as markup. Package titles and server strings are not HTML. One escape at `$notify`; the enable-fatal copy dropped its `<br>` tags rather than keep markup the helper would now show as text.
 - **A snapshot is a way back only while it is marked as one (Checklist Step 8).** Nothing else in the directory can say so: the metadata is written before what it describes, and a dump beside an archive says nothing about whether either is all there. `create()` writes `complete` last; `delete()` removes it first and removes nothing at all when it cannot (the walk it guards can stop anywhere in the tree). `restore()` refuses an unmarked snapshot and the page hides its Restore action, so what an interrupted write or an interrupted removal left — a whole-database dump beside part of a package tree — is never replayed over the installation.
+- **The snapshot store outlives the container (Finalize — PR-Bugbot).** `path.snapshots` is still `tmp/snapshots` for the application; that path is a cache only in name. A snapshot is the only copy of a package the installation no longer has, so it belongs next to `config.php` on `$PAGEKIT_DATA_DIR`. The entrypoint makes the link rather than leaving it to the first snapshot: through a dangling link the application would create the name it holds and land back in container-local `tmp/`. A real directory already at that name is somebody else's decision, not one to overwrite here — the start exits instead.
+- **Write access is probed through the link the application uses (Finalize — PR-Bugbot).** `mkdir -p` is content with a directory that is already there, whoever may write it, and `ln -sfn` only needs a writable `tmp/`. A store uid 33 cannot write is the same start as a missing link: the panel would still present uninstall as reversible, and the first removal would fail. `can_write` touches a probe file through the link and unlinks it.
+- **The uninstall stream catches every throwable (Finalize — PR-Bugbot).** An `\Error` from the snapshot or file-removal path is the one failure that may not skip what the page is waiting for. Cache rebuild, hook warnings, and `status=` run after the try either way. An `\Exception` is already written for an administrator; an `\Error` names classes and paths, so it is logged and the page is told to see the error log.
 
 ---
 
 ## 💥 Breaking Changes (Extensions)
 
-_TBD / None_
+- **Uninstall keeps a restorable snapshot instead of deleting the package with no way back.** A successful removal still takes the tree out of `packages/` (Composer-managed packages included), but only after the dump, the files, and (when Composer installed it) `installed.json` have landed. Purge, or the retention window, is what destroys that copy. An installation with no snapshot store still removes unsnapshotted; the confirm no longer claims a snapshot was taken.
+- **`$notify` shows its message as text, not markup.** Disable warnings, package titles, and server strings are HTML-escaped on the UIkit path and written with `textContent` on the DOM fallback. The enable-fatal copy dropped its `<br>` tags rather than keep markup the helper would now show as text. Until locales are regenerated, translations that still key the old msgid miss and fall through to English.
+- **A production container whose `tmp/snapshots` is not the image's link into `$PAGEKIT_DATA_DIR` will not start.** A real directory (or any other non-link) at that name, a link that cannot be made, or a store uid 33 cannot write through, stops the entrypoint instead of keeping snapshots in container-local `tmp/` that an image roll would throw away.
 
 ---
 
 ## ⚠️ Risks & Rollout Notes
 
 - **0700 on a shared host.** Console and PHP-FPM as different users will make a console-taken snapshot unreadable to the panel. Containers share one user; a shared host may not.
-- **`docker/entrypoint.sh` `mkdir` is CI-exercised.** The VM has no Docker daemon; the `Docker Image` workflow is what actually recreates `tmp/snapshots` on start.
+- **`docker/entrypoint.sh` snapshot link is CI-exercised.** The VM has no Docker daemon; the `Docker Image` workflow is what actually makes `tmp/snapshots` a link into `/var/www/data/snapshots` and probes that it exists and is writable. A local `docker compose down`/`up` or an image roll keeps the snapshots because they sit on the named volume, not because `tmp/` survived.
 - **MySQL restore that fails mid-apply leaves a partial replacement.** Documented, not papered over. Recovery is to run restore again from the dump still on disk. SQLite does roll back; do not assume the MySQL path does.
 - **MySQL dump/restore is the advisory `phpunit-mysql` leg.** Default PHPUnit is SQLite in memory via `SnapshotDatabase`. The same tests run against MySQL 8.4 when `DbUtil` globals name it; they skip-cleanly otherwise. A full uninstall → restore → purge on a real MySQL site is still maintainer work — the panel now drives those primitives; default PHPUnit is still in-memory SQLite.
 - **`php pagekit uninstall` now runs.** It used to TypeError before looking up a package. It now snapshots first (when the service exists) and then takes the live tree out of `packages/`. That create also prunes expired snapshots. The snapshots page is the HTTP caller for restore / purge / `list()` / `purgeExpired()`; the CLI still has no restore or purge command.
@@ -301,18 +326,20 @@ _TBD / None_
 - **A refused cache rebuild leaves a stale panel.** Uninstall and restore both log the throw and still report the operation as it happened. Until something else clears `system/cache`, the panel can still list a package that is already gone, or still show the pre-restore configuration. The log line is the operator's cue.
 - **A no-store uninstall is still allowed, and the copy now says so.** Installer-before-database (and any boot without `path.snapshots` + `db`) still removes unsnapshotted. Confirm, success, and the Snapshots link no longer claim a snapshot was taken. The streamed "files would not go" error is the same honesty.
 - **Translated enable-fatal strings still key the old `<br>` msgid.** The source string dropped the tags so `$notify` does not print markup. Until locales are regenerated, those translations miss and fall through to English.
+- **A production start that cannot keep snapshots on the data volume is a refused start, not a degraded one.** The panel's restore promise is not optional in that image: carrying on with a store in container-local `tmp/` — or with a directory uid 33 cannot write — is the failure the entrypoint exists to stop. A custom bind-mount that puts a real directory at `tmp/snapshots` will not boot until that name is the image's link.
+- **An `\Error` on the uninstall stream is a generic line, not the throwable.** Class names and paths stay in the log. The modal still leaves loading (`status=` is written); the administrator is pointed at the error log rather than shown the fault.
 
 ---
 
 ## 🔐 Security & Data Impact
 
-Uninstall now writes a dump, then takes the live tree away. A finished snapshot is owner-only (directory 0700, dump/metadata 0600) and holds every row the installation owns — password hashes and session data among them — plus the package tree and, for Composer packages, `installed.json`. The store is still not HTTP-reachable (`path.snapshots` outside DocRoot; `Require all denied` belt). Failure of any part of `create()` deletes the reserved directory; the removal does not start, so there is no half-removed package offered as restorable. A store that is present but will not accept a write (disk full / unwritable root) is the same abort — no empty directory left behind as something to restore. Two creates that draw the same id no longer share a directory: `mkdir` is the reservation, so the second retries rather than writing a second dump and archive into the first. Restore puts those files back and then replaces the whole database — everything written since the snapshot is gone — and does not write `installed.json` back. Purge (from the snapshots page, or after the retention window) destroys the dump. Restore / purge / purge-expired are admin-only (`system: manage packages`, `admin: true`), CSRF-checked, POST; the listing is the menu GET. Responses carry metadata + size + expires, never dump contents. Ids are looked up in `list()`; a traversal / absolute / null-byte / unknown id is `400` without echoing the value, and nothing beside the store is read. A failed restore/purge answers with the package title and the error log; the id and the throwable stay in the log. A restore that applied and then could not clear cache still answers success; the throw stays in the log. A hook warning names the hook and the package title, never the throwable, and is streamed on the uninstall error path as well as success. Newlines in a package title are folded onto the `warning=` line so a manifest cannot write `status=error` as the last line of the stream. A tree that would not leave the live installation streams the package title and — only when a snapshot was taken — that the snapshot holds it; a no-store removal says the folder has to be removed by hand. The path stays in the error log either way. The archive path (and the restore target) is taken from where the files are, not from the package name. Retention lines name snapshot id + package + `trigger=retention`; they do not carry dump contents. The failure-store lock lives under the same `path.system` directory as the JSON (private, never DocRoot); a lock that cannot be taken does not throw on the boot path. The paused-theme notice still names only the module and the error log, never the throwable; `site.theme` is not rewritten from a visitor-facing boot. `$notify` HTML-escapes its message (UIkit) or writes it with `textContent` (DOM fallback): disable warnings, package titles, and server strings are shown as text, not interpolated as markup.
+Uninstall now writes a dump, then takes the live tree away. A finished snapshot is owner-only (directory 0700, dump/metadata 0600) and holds every row the installation owns — password hashes and session data among them — plus the package tree and, for Composer packages, `installed.json`. In the production image that store sits on the named data volume (`$PAGEKIT_DATA_DIR/snapshots`, reached through `tmp/snapshots`); container-local `tmp/` is not allowed to hold it, and a start that cannot keep it there is refused. The store is still not HTTP-reachable (`path.snapshots` outside DocRoot; `Require all denied` belt). Failure of any part of `create()` deletes the reserved directory; the removal does not start, so there is no half-removed package offered as restorable. A store that is present but will not accept a write (disk full / unwritable root) is the same abort — no empty directory left behind as something to restore. Two creates that draw the same id no longer share a directory: `mkdir` is the reservation, so the second retries rather than writing a second dump and archive into the first. Restore puts those files back and then replaces the whole database — everything written since the snapshot is gone — and does not write `installed.json` back. Purge (from the snapshots page, or after the retention window) destroys the dump. Restore / purge / purge-expired are admin-only (`system: manage packages`, `admin: true`), CSRF-checked, POST; the listing is the menu GET. Responses carry metadata + size + expires, never dump contents. Ids are looked up in `list()`; a traversal / absolute / null-byte / unknown id is `400` without echoing the value, and nothing beside the store is read. A failed restore/purge answers with the package title and the error log; the id and the throwable stay in the log. A restore that applied and then could not clear cache still answers success; the throw stays in the log. A hook warning names the hook and the package title, never the throwable, and is streamed on the uninstall error path as well as success. Newlines in a package title are folded onto the `warning=` line so a manifest cannot write `status=error` as the last line of the stream. A tree that would not leave the live installation streams the package title and — only when a snapshot was taken — that the snapshot holds it; a no-store removal says the folder has to be removed by hand. The path stays in the error log either way. The archive path (and the restore target) is taken from where the files are, not from the package name. Retention lines name snapshot id + package + `trigger=retention`; they do not carry dump contents. The failure-store lock lives under the same `path.system` directory as the JSON (private, never DocRoot); a lock that cannot be taken does not throw on the boot path. The paused-theme notice still names only the module and the error log, never the throwable; `site.theme` is not rewritten from a visitor-facing boot. `$notify` HTML-escapes its message (UIkit) or writes it with `textContent` (DOM fallback): disable warnings, package titles, and server strings are shown as text, not interpolated as markup. An `\Error` on the uninstall stream is logged, not echoed: the page is told to see the error log.
 
 ---
 
 ## 🛡️ No-Mercy Compliance
 
-One snapshotter, one `uninstall()` path, one `removeFiles()`. Call sites constructing `PackageSnapshotter` all pass the restorer — no optional collaborator, no "restore if the dumper is present". The old inline Composer-or-`file->delete` removal is deleted, not wrapped. The no-id escape hatch is still absence of the service. Dump/restore remains one format and one pair of classes. `create()` is all-or-nothing; `restore()` / `purge()` / `list()` / `purgeExpired()` are real methods, not stubs. One window, one parser (`SnapshotStore::retentionDays()`), one prune path — a failed prune does not wrap or skip `create()`. No second node-trash mechanism — `PackageLifecycleWiringTest` is unmodified. One `SnapshotController` for list/restore/purge/purge-expired — no second admin API. One `takeHookWarnings()` drain, collected in `reportHookFailure` before the log write, streamed on both uninstall outcomes. The one-shot `v-confirm` on extensions/themes is deleted, not left beside the staged modal. The 2.7.2 forward-debt tag sits on `uninstallAction` only. One `PAUSE_THRESHOLD` on the store, one skip in `ExtensionLoader`, one sidecar lock wrapping `record`/`clear`/`restore` — no second breaker, no parallel unserialized write path left behind, no auto-rewrite of `site.theme`. Existing store tests were updated for the new shape rather than duplicated. `keepsSnapshots` is that same snapshotter presence, not a second flag. `reserve()` uses `mkdir` instead of wrapping `makeDir`. Uninstall/restore cache helpers log a throw rather than wrapping the operation's outcome. One `$notify` escape for every notification, not a disable-only sanitizer.
+One snapshotter, one `uninstall()` path, one `removeFiles()`. Call sites constructing `PackageSnapshotter` all pass the restorer — no optional collaborator, no "restore if the dumper is present". The old inline Composer-or-`file->delete` removal is deleted, not wrapped. The no-id escape hatch is still absence of the service. Dump/restore remains one format and one pair of classes. `create()` is all-or-nothing; `restore()` / `purge()` / `list()` / `purgeExpired()` are real methods, not stubs. One window, one parser (`SnapshotStore::retentionDays()`), one prune path — a failed prune does not wrap or skip `create()`. No second node-trash mechanism — `PackageLifecycleWiringTest` is unmodified. One `SnapshotController` for list/restore/purge/purge-expired — no second admin API. One `takeHookWarnings()` drain, collected in `reportHookFailure` before the log write, streamed on both uninstall outcomes. The one-shot `v-confirm` on extensions/themes is deleted, not left beside the staged modal. The 2.7.2 forward-debt tag sits on `uninstallAction` only. One `PAUSE_THRESHOLD` on the store, one skip in `ExtensionLoader`, one sidecar lock wrapping `record`/`clear`/`restore` — no second breaker, no parallel unserialized write path left behind, no auto-rewrite of `site.theme`. Existing store tests were updated for the new shape rather than duplicated. `keepsSnapshots` is that same snapshotter presence, not a second flag. `reserve()` uses `mkdir` instead of wrapping `makeDir`. Uninstall/restore cache helpers log a throw rather than wrapping the operation's outcome. One `$notify` escape for every notification, not a disable-only sanitizer. One data-volume link for the snapshot store, not a second path the application writes to; a start that cannot make that link (or cannot write through it) is refused rather than degraded to container-local `tmp/`. One `\Throwable` catch on the uninstall stream — no `\Exception`-only path left beside it.
 
 ---
 
@@ -321,14 +348,26 @@ One snapshotter, one `uninstall()` path, one `removeFiles()`. Call sites constru
 <!-- Links only. Quality metrics are CI-owned: link the PR sticky quality-report comment and the
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
-- CI run: _TBD_
-- Notable deviations: Checklist Step 2 production tester FAIL once (PHPStan `list<string>` vs `array` at `DatabaseRestorer::apply`) → refactorer retry → PASS. Checklist Step 4 production tester FAIL once (`removeFiles` threw when the live tree remained after `delete`; existing unit fixtures do not physically remove the folder) → refactorer retry (non-Composer path trusts `file->delete() === true` rather than `is_dir`) → PASS. Checklist Step 6 production verifier FAIL once (lint: `===` in `uninstall.vue` computed heading; `v-for` key on the hook-warning list) → retry → PASS; production tester FAIL once (PHPStan `$view` undefined on `snapshots.php`) → one baseline entry matching the other installer views → PASS. Checklist Step 7 production verifier FAIL once (existing store-shape / lock-file assertions: `FIELDS` without `count`; directory listing expected only the JSON) → refactorer retry updated those tests → PASS; remaining Step 7 gates PASS. `purgeAction` does not clear cache (decision 6 names restore; the checklist's "restore/purge" was over-specified). Checklist Steps 1, 3, and 5 gates all PASS. Step 3 deleted the `UninstallCommand` PHPStan baseline ignore rather than adding one. Checklist Step 8: Bugbot findings then clean after fix-loops (hook warnings dropped on uninstall error; false snapshot promise on file removal; snapshot ID reservation race; success text always claims snapshot; failed uninstall skips cache clear — reversing Step 6's error-path skip; restore succeeds but API errors). Security medium XSS via disable warnings into `$notify` then clean after notify HTML escape; XSS restart from Bugbot then Security both clean in sequence before E2E. E2E PASS (Playwright `@ci`).
+| Gate | Result |
+|---|---|
+| CI — PR checks | ✅ green — [run 32882469582](https://github.com/Shadesman5/pagekit/actions/runs/32882469582) + [run 32882469585](https://github.com/Shadesman5/pagekit/actions/runs/32882469585) (`phpunit`, `phpstan`, `cs-fixer`, `frontend`, `infection-diff`, `docker-image`, `codecov/patch` pass; `e2e-smoke` skipped as opt-in) |
+| Coverage gap pass | skipped — commit `374b1923` (`test(system): close codecov patch gaps`) already on the branch |
+| Cursor Bugbot (PR) | ✅ findings fixed — snapshots vanish on container replace (store linked onto the data volume; refuse start if the link cannot be made or is not a link); uninstall stream skips `\Error` (catch `\Throwable`, always emit status / warnings / cache rebuild); snapshot store writability not checked (write probe through the link at container start). See What Changed → Finalize follow-up |
+| Cursor Security Reviewer (PR) | ✅ clean |
+| E2E | ✅ PASS |
+| Finalize fix-loop | PR-Bugbot findings above, then Security clean and E2E PASS |
+
+**CI run:** https://github.com/Shadesman5/pagekit/actions/runs/32882469582 · https://github.com/Shadesman5/pagekit/actions/runs/32882469585
+
+**Metrics (CI-owned):** [PR #277 quality-report comment](https://github.com/Shadesman5/pagekit/pull/277#issuecomment-5299163830) · [Quality Dashboard](https://Shadesman5.github.io/pagekit/quality/)
+
+**Notable deviations:** Checklist Step 2 production tester FAIL once (PHPStan `list<string>` vs `array` at `DatabaseRestorer::apply`) → refactorer retry → PASS. Checklist Step 4 production tester FAIL once (`removeFiles` threw when the live tree remained after `delete`; existing unit fixtures do not physically remove the folder) → refactorer retry (non-Composer path trusts `file->delete() === true` rather than `is_dir`) → PASS. Checklist Step 6 production verifier FAIL once (lint: `===` in `uninstall.vue` computed heading; `v-for` key on the hook-warning list) → retry → PASS; production tester FAIL once (PHPStan `$view` undefined on `snapshots.php`) → one baseline entry matching the other installer views → PASS. Checklist Step 7 production verifier FAIL once (existing store-shape / lock-file assertions: `FIELDS` without `count`; directory listing expected only the JSON) → refactorer retry updated those tests → PASS; remaining Step 7 gates PASS. `purgeAction` does not clear cache (decision 6 names restore; the checklist's "restore/purge" was over-specified). Checklist Steps 1, 3, and 5 gates all PASS. Step 3 deleted the `UninstallCommand` PHPStan baseline ignore rather than adding one. Checklist Step 8: Bugbot findings then clean after fix-loops (hook warnings dropped on uninstall error; false snapshot promise on file removal; snapshot ID reservation race; success text always claims snapshot; failed uninstall skips cache clear — reversing Step 6's error-path skip; restore succeeds but API errors). Security medium XSS via disable warnings into `$notify` then clean after notify HTML escape; XSS restart from Bugbot then Security both clean in sequence before E2E. E2E PASS (Playwright `@ci`). Finalize PR-Bugbot: three findings (container-local snapshots; `\Exception`-only uninstall catch; `mkdir -p` without a write probe) fixed as above; Security clean; coverage-gap pass skipped (`374b1923` already on the branch).
 
 ---
 
 ## 📋 Phase 1 Audit Closure
 
-_TBD / None_
+None.
 
 ---
 
@@ -337,16 +376,22 @@ _TBD / None_
 <!-- Human-only follow-ups the maintainer must do (ruleset flips, real Docker/Apache
      verification, secrets, etc.). Not ROADMAP deferrals — those go under Deferred. -->
 
-_TBD / None_
+- **One full uninstall → restore → purge cycle against a real MySQL site** (Docker host, not the Cloud Agent VM). Default PHPUnit dumps and restores SQLite in memory via `SnapshotDatabase`; the same tests run against MySQL 8.4 only in the advisory `phpunit-mysql` CI leg. The `docker-image` workflow now proves the snapshot store is on the data volume and writable, but it does not drive the panel through a MySQL restore. Until that pass, do not treat MySQL restore as proven in production.
 
 ---
 
 ## 📚 Deferred / Out-of-Scope
 
 <!-- Future ROADMAP/PHASE work, explicit non-goals, bridges. Do NOT put maintainer
-   Manual Work here — that belongs under Maintainer action above. -->
+     Manual Work here — that belongs under Maintainer action above. -->
 
-_TBD / None_
+- **Step 2.7.1a (Atomic MySQL Restore)** — MySQL/MariaDB restore cut-over so a failed apply leaves live tables as they were. See Follow-on. GitHub: [#281](https://github.com/Shadesman5/pagekit/issues/281). PHASE §2.7.1a.
+- **Step 2.7.2 (Module Dependency Integrity)** — dependency pre-flight ("what would break") before disable/uninstall. The staged-uninstall entry point carries `// TODO: Must be refactored in Step 2.7.2 (Module Dependency Integrity)`. PHASE §2.7.2.
+- **Step 2.8 (Extension Packaging & Prebuilt Assets)** — `extra.scripts` → `extra.lifecycle` rename; webroot republication on restore (a package restored from a snapshot must get its servable files back into the `public/` mirror once 2.8 gives runtime-installed packages a publication path). PHASE §2.8.
+- **Step 2.9 (Update Orchestration)** — update-time rollback consuming `PackageSnapshotter` (snapshot before code/vendor replacement, restore on failed update, rollback UX). PHASE §2.9.
+- **Step 5.0 (Automatic Dependency Cleanup)** — every unrequested deletion routes through this pipeline. PHASE_5 §5.0.
+- **Non-goals:** Doctrine ORM swap; marketplace signing (5.6); process-level PHP sandboxing (Phase 5 candidate); scheduled/cron purge daemons (admin-triggered + prune-on-create is the v1 enforcement); snapshot capture of published `public/` assets (no runtime publisher exists until 2.8).
+- **Bridges:** none new. One forward-debt tag remains, on `PackageController::uninstallAction`: `// TODO: Must be refactored in Step 2.7.2 (Module Dependency Integrity)`.
 
 ---
 
@@ -358,46 +403,37 @@ _TBD / None_
 
 ## 🧊 Parked (unplanned)
 
-_TBD / None_
+None.
 
 ---
 
 ## 🧹 Cleanup
 
-_TBD / None_
+None beyond the one-shot `v-confirm` removal and the `UninstallCommand` PHPStan baseline ignore already covered under What Changed.
 
 ---
 
 ## 🛡️ Audit
 
-_TBD / None_
+None.
 
 ---
 
 ## 🎁 Bonus
 
-_TBD / None_
+None.
 
 ---
 
 ## 🔍 Research
 
-_TBD / None_
+None.
 
 ---
 
 ## 📎 Related Documents
 
-- Ticket: `migration-docs/tickets/active/PROMPT_2_7_1_Snapshot-Three-Stage-Uninstall_plan.md` (_TBD_ → move to `done/` after Finalize)
+- Ticket: `migration-docs/tickets/active/PROMPT_2_7_1_Snapshot-Three-Stage-Uninstall_plan.md` → moves to `migration-docs/tickets/done/` as part of this Finalize
 - Task prompt: `migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_7_1_Snapshot-Three-Stage-Uninstall.md`
 - Predecessor: Step 2.7 — Extension Safety System
 - Successor: Step 2.7.1a — Atomic MySQL Restore (Shadow Cut-over); then Step 2.7.2 — Module Dependency Integrity
-
----
-
-## 📊 <Step-specific appendix>
-
-<!-- Narrative/structural notes only. Never a metrics table (coverage %, MSI, test counts): quality
-     numbers are CI-owned — link the sticky quality-report comment + dashboard instead. -->
-
-_TBD — remove this section if not applicable._
