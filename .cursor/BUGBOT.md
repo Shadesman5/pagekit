@@ -2,20 +2,28 @@
 
 If a later section conflicts with §0, §0 wins.
 
+Canonical DNA: [pagekit.mdc](rules/pagekit.mdc). Cursor `*.mdc` rules are not auto-loaded — follow that file via the link. This file maps DNA onto flags.
+
 ---
 
 ## 0. Scope
 
-Review the PR diff. A follow-up review: only files changed since the last Bugbot review, plus the call chain needed to check a fix.
+Same flag rules for both runs. The input differs:
 
-Do not run PHPUnit, PHPStan, Playwright, pnpm, or Composer. Do not commit or patch.
+- **Local** (`/review-bugbot`, XL step, including fix-loop re-runs): always the **full** branch diff vs merge-base. There is no PR yet. Do not shrink to files changed since the last local review.
+- **Remote** (`bugbot run` on the PR): PR diff. Follow-up: only files changed since the last Bugbot review, plus the call chain needed to check a fix.
+
+Do not run PHPUnit, PHPStan, Playwright, pnpm, or Composer. Do not commit, patch, or spawn Autofix.
 
 ### Review
 
 - `app/`, `packages/`, `public/` (except built CSS/LESS), `docker/`, `Dockerfile`
+- `docker-compose.yml`, `docker-compose.prod.yml`, `prod.env.example`, `composer.json`
 - `**/*.{vue,js}` under `app/` and `packages/`
 - `.github/conductor/*.mjs`, `.github/conductor/*.test.mjs`, `.github/workflows/conductor.yml`, `.github/workflows/import-*.yml`
 - `.cursor/rules/orchestrator-v2-*.mdc`, `.cursor/rules/orchestrator-subagent-workflow.mdc`, `.cursor/WORKFLOW_SUBAGENTS.md`, `.cursor/agents/`, `.cursor/skills/`
+
+Conductor `*.test.mjs` **are** in scope. PHPUnit and Playwright test bodies are not.
 
 ### Do not open
 
@@ -24,27 +32,28 @@ Do not run PHPUnit, PHPStan, Playwright, pnpm, or Composer. Do not commit or pat
 - `.github/conductor/metrics/`, `.github/quality/quality-snapshot.json`
 - `*.css`, `*.less`, `node_modules/`, `app/vendor/`, `tmp/`
 
-Coverage: §6, PR file list only.
+Coverage: §6, changed-file list of this diff only.
 
-`.cursor/ROADMAP.md`: open only when this PR has no prior `<!-- BUGBOT_REVIEW -->`. Otherwise use §1.6 tables.
+`.cursor/ROADMAP.md`: open on the first review of this branch (local XL) or when the PR has no prior `<!-- BUGBOT_REVIEW -->`. Otherwise use §1.6.
 
 ---
 
 ## 1. ROADMAP Compliance
 
-### 1.1 Mandatory TODO Tags
+### 1.1 Forbidden remnants and TODO tags
 
-Legacy remnants in the PR without a tag → **blocking Bug**.
+These patterns are forbidden. Reintroduction → **blocking Bug**. A TODO tag does not exempt them.
 
-| Pattern | Required tag |
-|---------|----------------|
-| `App::getInstance()` | `// TODO: TEMPORARY BRIDGE - To be removed in Step X.Y` |
-| `App::abort()`, `App::redirect()` | `// TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)` |
-| `App::on()`, `App::subscribe()`, `App::trigger()` | `// TODO: Must be refactored in Step 2.0.1e (StaticTrait Removal)` |
-| `$app['x'] = ...` (ArrayAccess WRITE) | `// TODO: Must be refactored in Step 2.0.1d (Packages + ArrayAccess Removal)` |
-| Other leftover that must change later | `// TODO: Must be refactored in Step X.Y (Name)` |
+| Pattern |
+|---------|
+| `App::getInstance()` |
+| `App::abort()`, `App::redirect()` |
+| `App::on()`, `App::subscribe()`, `App::trigger()` |
+| `$app['x'] = ...` (ArrayAccess WRITE) |
 
-A tag pointing at a ROADMAP step already ✅ → **blocking Bug**.
+Other leftover that must change later → `// TODO: Must be refactored in Step X.Y (Name)` or `// TODO: TEMPORARY BRIDGE - To be removed in Step X.Y` pointing at a **⏳** ROADMAP step. Missing tag → **blocking Bug**. Tag pointing at a ✅ step → **blocking Bug**.
+
+No completed-step, ticket, or ROADMAP history in code comments.
 
 ### 1.2 No Compatibility Layers
 
@@ -60,34 +69,21 @@ Commented-out old code → **non-blocking Bug** "Commented-out code — use git 
 
 ### 1.5 Scope Enforcement
 
-Changes that belong to a different ROADMAP step than the PR targets → **non-blocking Bug** "Out-of-scope change for Step X.Y".
+Changes that belong to a different ROADMAP step than the ticket/PR targets → **non-blocking Bug** "Out-of-scope change for Step X.Y".
 
 ### 1.6 Deferred patterns
 
-Match findings against these tables. Known deferred → do not flag. Unsure → one informational comment: "Tracked in Step X.Y (Issue #N) — not in scope for this PR."
+**Do not flag** ⏳ leftovers that look like bugs. Never keep a ✅ row — after a step ships, reintroduction is in scope. Unsure (first review, ROADMAP ⏳) → one informational comment: "Tracked in Step X.Y (Issue #N) — not in scope for this change."
 
-**Do not flag**
+No ⏳ leftover rows yet. Add a row when a later step tracks a leftover. Do not open ROADMAP.md on a follow-up review to discover new ones.
 
-| Pattern | Step | Issue |
-|---------|------|-------|
-| `Connection::exec()` alias, `json_array` type, deprecated `getSchemaManager()` | 2.1.7 | #154 |
-| Missing test coverage for refactors; `MigrationCommand` integration test | 2.1.9 | #156 |
-| `ModelServiceLocator` | 2.1.10 | #204 |
-| `EntityManager` static singleton + `find(mixed $identifier)` | 2.1.11 | #205 |
+**Do not re-flag** (intentional design still in the tree)
 
-**Do not re-flag**
-
-| Pattern | PR |
-|---------|-----|
-| `.gitignore` dropped `/yarn.lock` + `/composer.lock` | #187 |
-| `.cursor/install.sh` uses `composer install` | #187 |
-| `MigrationCommand` two-phase (migrations + scripts) | #189 |
-| `MigrationController` `has('migration')` guard | #189 |
-| `catch (\Throwable)` in `MigrationCommand::execute()` | #189 |
-| Auto-migration/rollback removed from PackageManager | #189 |
-| Commented-out `rollbackExtension()` in blog `scripts.php` (API example) | #189 |
-
-Update these tables when ROADMAP deferred items change. Do not open ROADMAP.md to discover new ones on a follow-up review.
+| Pattern |
+|---------|
+| `.cursor/install.sh` uses `composer install` (not `update`) |
+| `MigrationCommand` two-phase: Doctrine `migrate()` then `LifecycleRunner` scripts |
+| `has('migration')` guard in `MigrationCommand` / `MigrationController` |
 
 ---
 
@@ -99,7 +95,7 @@ Changed `app/**/*.php` missing `declare(strict_types=1);` as the second line →
 
 ### 2.2 Errors
 
-PHP 8.2+: `\Throwable` is the root. There is no catchable non-`\Throwable` error. Do not flag `catch (\Throwable)` as incomplete.
+PHP 8.5+: `\Throwable` is the root. There is no catchable non-`\Throwable` error. Do not flag `catch (\Throwable)` as incomplete.
 
 Do flag: swallowed errors; `\Throwable` when a specific type is required; continuing with corrupt state.
 
@@ -126,12 +122,12 @@ Constructor body `$this->foo = $foo` that could be promoted → **non-blocking B
 ### 3.2 Laravel
 
 `/\b(dd\(|collect\(|Str::|Arr::|Route::|\bFacade\b|Illuminate\\)/` → **blocking Bug**.
-`dd()` allowed if `symfony/var-dumper` is in `composer.json`.
+`dump()` from `symfony/var-dumper` is allowed. `dd()` is not.
 
 ### 3.3 Secrets
 
 `/(password|secret|api_key|token|credential)\s*[:=]\s*['"][^'"]{8,}['"]/i` → **blocking Bug**.
-Exempt: `.env.example`, `*.test.*`, `*Test.php`.
+Exempt: `.env.example`, `prod.env.example`, `*.test.*`, `*Test.php`.
 
 ### 3.4 eval/exec
 
@@ -174,7 +170,9 @@ SQL concatenated with request input → **blocking Bug**. Parameterized queries.
 ### 5.2 XSS
 
 Unescaped `<?= $var ?>` in `**/views/` or `**/widgets/` → **non-blocking Bug**.
-`v-html` or `$notify(...)` with unescaped server text → **blocking Bug**.
+
+`v-html` or `$notify(...)` with unescaped request or API text → **blocking Bug**.
+Do not flag `v-html` of trusted local content (`marked()` of package metadata, installer command output) unless request input flows into it.
 
 ### 5.3 CSRF
 
@@ -184,17 +182,19 @@ POST/PUT/DELETE action without `csrf: true` (or equivalent) → **non-blocking B
 
 ## 6. Coverage
 
-Do not open test files. Do not run tests.
+Do not open PHPUnit or Playwright test files. Do not run tests.
 
-PR file list touches `app/system/src/`, `app/installer/src/`, or `app/modules/*/src/` and has no `**/Tests/**` or `tests/` path → **non-blocking Bug** "No tests for backend changes".
+Changed-file list touches `app/system/src/`, `app/installer/src/`, or `app/modules/*/src/` and has no `**/Tests/**` or `tests/` path → **non-blocking Bug** "No tests for backend changes".
 
-Skip for mechanical refactors (`$app['x']` → `$app->get('x')`, constructor injection, types only). Issue #156.
+Skip for mechanical refactors (`$app['x']` → `$app->get('x')`, constructor injection, types only).
 
 ---
 
 ## 7. Frontend
 
-Changed `**/*.{js,vue}` with `<script setup>`, `defineProps`, `defineEmits`, `ref(`, `reactive(`, Composition-API `computed(` → **non-blocking Bug** "Vue 3 syntax".
+Vue 2.7 Options API is current. New `<script setup>`, `defineProps`, `defineEmits`, or Composition-API `ref(` / `reactive(` / `computed(` → **non-blocking Bug**, unless that file already uses a Vue 2.7 Composition-API bridge.
+
+Do not flag Options-API `computed:` or `$refs`.
 
 New `mixins: [...]` → **non-blocking Bug**.
 
@@ -202,7 +202,7 @@ New `mixins: [...]` → **non-blocking Bug**.
 
 ## 8. Commits
 
-PR commit messages: `<type>[optional scope]: <description>`
+Branch/PR commit messages: `<type>[optional scope]: <description>`
 (`feat` `fix` `docs` `style` `refactor` `perf` `test` `build` `ci` `chore` `revert`).
 
 Mismatch → **non-blocking Bug**.
