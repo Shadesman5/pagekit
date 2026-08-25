@@ -468,21 +468,52 @@
       "outcome": "escalate",
       "completedAt": "2026-08-15T02:43:57.913Z",
       "notes": "Timing from Cursor API (single agent run)"
+    },
+    {
+      "phaseKey": "31840368584-3-FINALIZE",
+      "type": "FINALIZE",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-08-25T13:06:08.902Z",
+      "durationMs": 111923,
+      "agent": {
+        "id": "bc-f485428c-0864-4aee-bad4-dd4e4bebc691",
+        "runId": "run-cb873361-15a1-430d-9110-38a0677ad2f7",
+        "url": "https://cursor.com/agents/bc-f485428c-0864-4aee-bad4-dd4e4bebc691",
+        "model": "grok-4.6"
+      },
+      "github": {
+        "runId": 31840368584,
+        "runAttempt": 3,
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/31840368584",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 77398,
+        "output": 5718,
+        "cacheRead": 337600,
+        "cacheWrite": 0,
+        "total": 420716
+      },
+      "tokensSource": "cursor-api",
+      "result": "",
+      "outcome": "success"
     }
   ],
   "totals": {
     "tokens": {
-      "input": 6955141,
-      "output": 2641539,
-      "cacheRead": 360215809,
+      "input": 7032539,
+      "output": 2647257,
+      "cacheRead": 360553409,
       "cacheWrite": 11640523,
-      "total": 381453012
+      "total": 381873728
     },
-    "durationMs": 45873596,
-    "phaseCount": 9,
+    "durationMs": 45985519,
+    "phaseCount": 10,
     "escalations": 3,
     "ghaJobs": 5,
-    "cloudAgents": 9
+    "cloudAgents": 10
   },
   "v1Continued": true,
   "manualImport": {
