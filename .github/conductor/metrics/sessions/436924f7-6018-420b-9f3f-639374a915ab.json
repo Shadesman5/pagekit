@@ -10,7 +10,7 @@
   "model": "grok-4.6",
   "status": "completed",
   "startedAt": "2026-08-14T13:39:30.460Z",
-  "completedAt": "2026-08-25T13:08:08.661Z",
+  "completedAt": "2026-08-25T13:07:03.818Z",
   "phases": [
     {
       "phaseKey": "31805719574-1-PLAN",
@@ -474,13 +474,72 @@
       "type": "FINALIZE",
       "attempt": 0,
       "batchSteps": null,
-      "startedAt": "2026-08-25T13:06:08.902Z",
-      "durationMs": 111923,
+      "startedAt": "2026-08-25T13:06:11.342Z",
+      "durationMs": 52394,
       "agent": {
         "id": "bc-f485428c-0864-4aee-bad4-dd4e4bebc691",
-        "runId": "run-cb873361-15a1-430d-9110-38a0677ad2f7",
+        "runId": "run-c8f0ff84-4cb0-467a-a403-6261b4f1a286",
         "url": "https://cursor.com/agents/bc-f485428c-0864-4aee-bad4-dd4e4bebc691",
-        "model": "grok-4.6"
+        "model": "grok-4.6",
+        "runCount": 4,
+        "runs": [
+          {
+            "runId": "run-cb873361-15a1-430d-9110-38a0677ad2f7",
+            "index": 1,
+            "startedAt": "2026-08-25T13:06:11.342Z",
+            "completedAt": "2026-08-25T13:06:50.435Z",
+            "durationMs": 37982,
+            "tokens": {
+              "input": 79252,
+              "output": 7076,
+              "cacheRead": 465600,
+              "cacheWrite": 0,
+              "total": 551928
+            }
+          },
+          {
+            "runId": "run-3d2f9e71-f4fb-4000-82b9-a7be3d034a93",
+            "index": 2,
+            "startedAt": "2026-08-25T13:06:21.010Z",
+            "completedAt": "2026-08-25T13:06:51.918Z",
+            "durationMs": 1481,
+            "tokens": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          {
+            "runId": "run-579115df-b208-46b4-a421-91487d47af4c",
+            "index": 3,
+            "startedAt": "2026-08-25T13:06:48.841Z",
+            "completedAt": "2026-08-25T13:07:03.585Z",
+            "durationMs": 11666,
+            "tokens": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          {
+            "runId": "run-c8f0ff84-4cb0-467a-a403-6261b4f1a286",
+            "index": 4,
+            "startedAt": "2026-08-25T13:07:02.553Z",
+            "completedAt": "2026-08-25T13:07:03.818Z",
+            "durationMs": 1265,
+            "tokens": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          }
+        ]
       },
       "github": {
         "runId": 31840368584,
@@ -498,7 +557,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "",
-      "outcome": "success"
+      "outcome": "success",
+      "completedAt": "2026-08-25T13:07:03.818Z",
+      "notes": "Timing from Cursor API (4 agent runs aggregated)"
     }
   ],
   "totals": {
@@ -509,7 +570,7 @@
       "cacheWrite": 11640523,
       "total": 381873728
     },
-    "durationMs": 45985519,
+    "durationMs": 45925990,
     "phaseCount": 10,
     "escalations": 3,
     "ghaJobs": 5,
