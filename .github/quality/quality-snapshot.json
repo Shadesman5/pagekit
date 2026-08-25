@@ -1,16 +1,16 @@
 {
   "schemaVersion": 3,
   "source": "github-actions",
-  "updatedAt": "2026-08-25T12:39:15.137Z",
+  "updatedAt": "2026-08-25T12:41:02.083Z",
   "branch": "develop",
-  "commit": "a26cdb4822031c9fe441e5f108b752be1b4eebf8",
+  "commit": "bc447e01d471833f55fef40056da0823306690fc",
   "workflows": {
     "phpTests": {
-      "runId": 32124714086,
+      "runId": 32848657082,
       "conclusion": "success"
     },
     "e2eTests": {
-      "runId": 32124714085,
+      "runId": 32848657107,
       "conclusion": "success"
     },
     "infectionFull": {
@@ -69,7 +69,7 @@
     ],
     "specsTotal": 25,
     "specsPassed": 25,
-    "durationMs": 129304
+    "durationMs": 113152
   },
   "gates": {
     "csFixer": "pass",
