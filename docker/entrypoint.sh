@@ -27,6 +27,19 @@ names_a_proxy() {
     [ -n "$(printf '%s' "${1:-}" | tr -d '[:space:],')" ]
 }
 
+# Whether the account this runs as can write in a directory. Writing something is
+# the answer that covers every reason it could not - the owner, the mode, a
+# read-only mount - and it is what the application will be doing there.
+can_write() {
+    probe=$1/.write-probe.$$
+
+    if ! touch "$probe" 2>/dev/null; then
+        return 1
+    fi
+
+    rm -f "$probe"
+}
+
 # Installs Pagekit into the configured database. A flag is passed only for a
 # variable that is set, so the defaults stay in the setup command instead of being
 # repeated here. Every connection parameter gets a flag of its own, the port and
@@ -122,7 +135,15 @@ fi
 # one before every removal and reports each removal as undoable. Led into the
 # container's own tmp/, it would go on saying so and lose the lot with the
 # container.
-if ! mkdir -p "$snapshots_dir" || ! ln -sfn "$snapshots_dir" "$snapshots_link"; then
+#
+# Written through rather than only made, and through the link the application
+# uses: mkdir -p is content with a directory that is already there, whoever may
+# write it, and the link needs nothing but a writable tmp/. A store that cannot
+# be written is the same start, with a removal that promised a way back and has
+# none for the discovery.
+if ! mkdir -p "$snapshots_dir" ||
+    ! ln -sfn "$snapshots_dir" "$snapshots_link" ||
+    ! can_write "$snapshots_link"; then
     echo "entrypoint: cannot keep the package snapshots in $snapshots_dir" >&2
     echo "entrypoint: a snapshot is the only copy of a removed package, so it may not live in a directory the container takes with it" >&2
     echo "entrypoint: mount the data volume at $data_dir and let the account the container serves as (uid 33) write it" >&2
