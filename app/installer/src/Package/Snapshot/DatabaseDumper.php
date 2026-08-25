@@ -27,6 +27,19 @@ use Pagekit\Database\Connection;
  * the same database: a restore is meant to put this installation back, not to
  * reach into a neighbour's tables.
  *
+ * All of it is read as of one moment. The tables are read one after another and
+ * the site does not stop while that happens, so a dump that simply queried each
+ * of them in turn could hold a comment whose page is dumped as it was before the
+ * comment existed - a state the database was never in, put back by a restore as
+ * if it had been. The whole read runs inside one transaction instead, which is
+ * what makes the file a point in time rather than a walk through several. How far
+ * that reaches is the database engine's to say and not this class's to promise:
+ * SQLite holds the reader's view of the file for as long as the transaction is
+ * open, InnoDB keeps the version of every row that view started with, and neither
+ * covers a schema another session changes underneath - a table that has lost a
+ * column, or is gone, by the time its rows are asked for ends the dump rather
+ * than quietly shortening it.
+ *
  * Nothing here reports a partial dump as a dump. The file is written under a name
  * of its own and only renamed to the one a restore reads once the last record is
  * on disk, so a write that runs out of disk, or a database that stops answering
@@ -79,15 +92,15 @@ final class DatabaseDumper
      */
     public function dump(string $file): array
     {
-        // Both of these run before anything is opened: a platform that cannot be
-        // dumped, or a schema that cannot be read, leaves no file behind at all.
+        // First, and outside everything below: an installation on a database no
+        // dump fits is answered without a file being made or a transaction
+        // opened, and the answer is the same one the header will carry.
         $description = $this->describe();
-        $tables = $this->schema($description['prefix']);
 
         $staging = $file.self::STAGING_SUFFIX;
 
         try {
-            $summary = $this->stage($staging, $description, $tables);
+            $summary = $this->read($staging, $description);
 
             if (!@rename($staging, $file)) {
                 throw new \RuntimeException(sprintf('Failed to move the finished database dump into place ("%s").', $file));
@@ -99,6 +112,73 @@ final class DatabaseDumper
         }
 
         return $summary;
+    }
+
+    /**
+     * Writes the database to the working file as it stands at one moment.
+     *
+     * @param  string                        $file the name it is written under, which is not yet the one a restore reads
+     * @param  Description                   $description
+     * @return array{tables: int, rows: int}
+     */
+    private function read(string $file, array $description): array
+    {
+        $this->openReadView($description['platform']);
+
+        try {
+            // Introspected inside the read view too, and before the file is
+            // opened: the shape a row is written against has to be the shape it
+            // was read under, and a schema that cannot be read at all leaves no
+            // file behind to clean up.
+            $tables = $this->schema($description['prefix']);
+
+            return $this->stage($file, $description, $tables);
+        } finally {
+            $this->closeReadView();
+        }
+    }
+
+    /**
+     * Opens the one view of the database every table is then read through.
+     *
+     * @param  string            $platform which engine's rules that follows
+     * @throws \RuntimeException where the connection is already in a transaction,
+     *                          which is one whose view of the database, and whose
+     *                          end, belong to whoever opened it
+     */
+    private function openReadView(string $platform): void
+    {
+        if ($this->connection->getTransactionNestingLevel() !== 0) {
+            throw new \RuntimeException('The database is already in a transaction, so a dump cannot open the one it has to read every table through.');
+        }
+
+        // Under READ COMMITTED - which a site is free to be configured at, and
+        // which is what makes this worth stating rather than assuming - a MySQL
+        // transaction reads each statement afresh, so opening one would buy the
+        // dump nothing. Named for the transaction that follows and no more, so
+        // the session goes on at whatever level the installation runs at.
+        if ($platform === DumpFormat::MYSQL) {
+            $this->connection->executeStatement('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+        }
+
+        $this->connection->beginTransaction();
+    }
+
+    /**
+     * Closes the read view. Nothing was written under it, so there is nothing to
+     * keep: ending it is what lets the engine forget the row versions it was
+     * holding and, on SQLite, releases the reader's hold on the database file.
+     */
+    private function closeReadView(): void
+    {
+        try {
+            $this->connection->rollBack();
+        } catch (\Throwable) {
+            // Either the dump is whole on disk or it is already on its way to
+            // the caller as a failure. A connection that cannot close a
+            // transaction it wrote nothing in has no better answer to offer
+            // than the one that is already being given.
+        }
     }
 
     /**
