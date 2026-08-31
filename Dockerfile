@@ -123,7 +123,7 @@ RUN composer dump-autoload --no-dev --optimize
 
 # --- assets: the webroot the frontend build produces -------------------------
 
-FROM node:22-bookworm-slim AS assets
+FROM node:26-bookworm-slim AS assets
 
 # Debian rather than Alpine: the bundles are built by prebuilt platform binaries
 # (esbuild) that expect glibc, the same C library the runtime stage has.
