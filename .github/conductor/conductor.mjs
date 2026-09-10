@@ -28,7 +28,8 @@ import {
   DEFAULT_MAX_PHASE_REPEATS,
   xlHandoffStep,
   cloudExecuteSteps,
-  xlHandoffMessage
+  xlHandoffMessage,
+  isDecisionEscalate
 } from './guards.mjs';
 import { gitAt, syncFeatureWithBase } from './sync-base.mjs';
 
@@ -308,6 +309,7 @@ async function runPhase(label, prompt, outcomeHint) {
 }
 
 // EXECUTE: one batch with in-job retries on ESCALATE / run-error (no multi-batch loop in one GHA job).
+// `ESCALATE (decision)` is terminal: the agent stopped on a decision the plan has to make.
 async function runExecuteBatch(batch) {
   for (let attempt = 0; ; attempt++) {
     await gate();
@@ -324,6 +326,10 @@ async function runExecuteBatch(batch) {
       continue;
     }
     if (result.startsWith('ESCALATE')) {
+      if (isDecisionEscalate(result))
+        fail(
+          `EXECUTE needs a decision — not relaunching (a fresh agent reaches the same point): ${result}`
+        );
       if (attempt >= MAX_ESCALATIONS) fail(`EXECUTE escalated ${attempt + 1}x: ${result}`);
       log(`escalated (${result}); relaunching fresh (${attempt + 1}/${MAX_ESCALATIONS})`);
       continue;
@@ -352,6 +358,10 @@ async function runPhaseWithEscalation(label, makePrompt, expect, recoverIfDone, 
       continue;
     }
     if (result.startsWith('ESCALATE')) {
+      if (isDecisionEscalate(result))
+        fail(
+          `${label} needs a decision — not relaunching (a fresh agent reaches the same point): ${result}`
+        );
       if (attempt >= MAX_ESCALATIONS) fail(`${label} escalated ${attempt + 1}x: ${result}`);
       log(`escalated (${result}); relaunching fresh (${attempt + 1}/${MAX_ESCALATIONS})`);
       continue;
