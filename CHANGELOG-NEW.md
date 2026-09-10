@@ -36,6 +36,7 @@
 
 - **Dumps never leave the store** — restore/purge are admin-only and CSRF-checked; responses carry metadata + size + expires, never dump contents; traversal / unknown ids are `400` without echoing the value; hook warnings name the hook and the title, never the throwable. An `\Error` on the uninstall stream is logged, not echoed.
 - **`$notify` cannot interpolate markup** — disable warnings, package titles, and server strings are shown as text.
+- **`composer/composer` 2.10.2 → 2.10.3** — clears CVE-2026-84361 (command execution via a malicious package Perforce source URL). Constraint raised to `^2.10.3`.
 
 ---
 
