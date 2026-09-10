@@ -12,6 +12,7 @@ Orchestrator/Conductor passes:
 - The **task prompt / requirement** (e.g. `migration-docs/TODO/agent_prompts/{file}.md` or a `PROMPT_*.md`).
 - The **ticket** the Architect wrote (e.g. `migration-docs/tickets/active/{task-slug}_plan.md`).
 - Read `.cursor/ROADMAP.md` and `migration-docs/TODO/PHASE_*_MODERNISING.md` for the target step IDs and any "Audit findings".
+- Read `.cursor/ANOMALIES.md` for the patterns a plan must not prescribe and the decisions it must not leave open (item 11).
 
 ## Checklist
 
@@ -30,6 +31,7 @@ Orchestrator/Conductor passes:
    schema. Flag if the ROADMAP step is missing, ambiguous, or would collide with an existing branch doc
    for the same step.
 10. **Comment routing** – The plan must not instruct architecture, operator manuals, or design rationale in PHPDoc or test comments (`pagekit.mdc` § Prose). FAIL if Checklist / TODO-Spec / notes tell Refactorer or test-writer to "document why in the class docblock" or equivalent. Operator copy belongs in the UI; architecture in the branch doc.
+11. **Anomalies** – Against `.cursor/ANOMALIES.md`: FAIL if a checklist step, TODO-Spec or note prescribes an entry's pattern (a bridge, a baseline or ignore entry, a `has()` guard around a real dependency, a gate without a proven failure path). Every **Escalate** entry the Scope touches — a module boundary, a contract code outside this tree calls, a feature drop — is decided in the ticket with its reason; a plan that leaves it to the Refactorer is FAIL. Quote the entry ID.
 
 ## Audit / report tasks
 
