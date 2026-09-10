@@ -11,6 +11,7 @@ Vue **2.7** (legacy, pre-Phase-3) + UIkit **3.5**. Bundles: Vite, per-module IIF
 - No Vue 3 (`<script setup>`, Composition API) unless a Vue 2.7 bridge is already in that file.
 - Prefer props/events over mixins.
 - Keep logic out of templates.
+- Comments: `pagekit.mdc` § Prose — traps + contract only, not architecture essays.
 - LESS/CSS: UIkit naming; avoid `!important`.
 - Edit sources only (`.js` / `.vue` / `.less`). Never compiled `.bundle.js`.
 - After JS/Vue/LESS changes: `pnpm build` (or `pnpm watch`). `pnpm` only — no npm/yarn install.

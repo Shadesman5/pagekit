@@ -29,6 +29,7 @@ Orchestrator/Conductor passes:
    `.cursor/ROADMAP.md` for the step ID and `migration-docs/branches/branch-doc-skeleton.md` for the
    schema. Flag if the ROADMAP step is missing, ambiguous, or would collide with an existing branch doc
    for the same step.
+10. **Comment routing** – The plan must not instruct architecture, operator manuals, or design rationale in PHPDoc or test comments (`pagekit.mdc` § Prose). FAIL if Checklist / TODO-Spec / notes tell Refactorer or test-writer to "document why in the class docblock" or equivalent. Operator copy belongs in the UI; architecture in the branch doc.
 
 ## Audit / report tasks
 

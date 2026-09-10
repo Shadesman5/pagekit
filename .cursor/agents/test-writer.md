@@ -21,7 +21,7 @@ You write **test code only**. Production code is frozen unless the Orchestrator 
 - Regenerate `phpstan-baseline.neon` or change CI/config
 - Write tests that merely mirror implementation details without asserting behavior
 - Write `assertTrue(true)` or other vacuous assertions to greenwash gates
-- Narrate project history in test comments (docblocks or inline): no `Step X.Y`, ROADMAP, ticket, checklist or doc-path reference describing what a step already did — state what/why behaviorally. Only a forward `// TODO: ... Step X.Y` debt tag (Rule 5) may name a step, and only for work still to be done
+- Narrate project history in test comments (docblocks or inline): no `Step X.Y`, ROADMAP, ticket, checklist or doc-path reference describing what a step already did. Comments: a one-line why when the assertion is otherwise opaque — no section-banner essays, no class-level design narrative (`pagekit.mdc` § Prose). Only a forward `// TODO: ... Step X.Y` debt tag (Rule 5) may name a step, and only for work still to be done
 
 ## Input
 
