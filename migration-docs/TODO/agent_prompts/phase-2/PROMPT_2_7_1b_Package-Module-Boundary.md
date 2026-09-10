@@ -134,6 +134,7 @@ Sizing hints: (3) is the only design decision; (2), (4) and (5) are mechanical b
 - **Dividing `PackageManager`.** Its size is a separate problem and a relocation does not split a file. Do not take the opportunity.
 - **Marketplace client, update controller, self-updater.** They stay in `installer` untouched — they are on the removal path.
 - **Any behaviour change.** New guards, better errors, tightened validation: all out. This step moves code.
+- **Rewriting the comments in the files that move.** The snapshot and package docblocks predate the current comment-prose rule and do not satisfy it. Shortening them here would bury the move in a diff nobody can review, and the sweep is owned elsewhere.
 - **Static module manifests / discovery** → Step 2.7.3.
 - **Dependency-graph fail-closed rules and pre-flight** → Step 2.7.2.
 - **`vendor/` at the repo root** → Step 2.7.4.
@@ -174,5 +175,6 @@ Sizing hints: (3) is the only design decision; (2), (4) and (5) are mechanical b
 - **The Composer helper is the trap.** Leaving it in `installer` reverses the cycle instead of removing it.
 - **The admin surface travels with its manifest.** Splitting routes, menu and permissions across two modules costs more than it saves, and the Vue half is deleted by the admin rebuild anyway.
 - **Do not regenerate the PHPStan baseline.** Edit the 24 paths.
+- **The Verifier will meet essays it did not write.** `pagekit.mdc` § Prose fails three or more sentences of design rationale in one comment block, and the docblocks this step relocates are full of exactly that. They arrive unchanged and are not a finding against this step — state that in the ticket, so a pure move is not failed for prose it inherited.
 - **A green unit suite is not enough here.** The fresh-install boot is the check a namespace move most often fails.
 - One ticket / one PR; Conventional Commits; version bump once at Finalize — never inside checklist steps.
