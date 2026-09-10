@@ -57,6 +57,9 @@ node_modules
 # Ignore Cursor secret files
 .cursor/secrets.env
 
+# Draft, not yet published
+.cursor/ANOMALIES.md
+
 # PHPUnit cache
 .phpunit.cache/
 
