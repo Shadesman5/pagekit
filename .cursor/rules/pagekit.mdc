@@ -39,6 +39,7 @@ What and why only. No completed-step narration, no ticket/checklist/ROADMAP hist
 
 - Architecture, sequencing, design rationale → branch doc
 - Operator consequences (what an admin must confirm or know) → UI copy
+- Implementation decisions the ticket left open (chosen vs. rejected, why, the invariant a test must hold) → ticket `## IMPLEMENTATION NOTES`, one bullet per decision — not per file, not a docblock moved
 
 - **ROADMAP** — table rows plus the fixed SSoT/legend. No renumbering notes or decision logs.
 - **PHASE_*** (open steps) — forward-only what remains + why. No completed steps, PR/issue numbers, or branch-doc paths.

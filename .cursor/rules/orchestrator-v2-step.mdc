@@ -164,6 +164,7 @@ Ticket: <ticket path>
 Checklist Step: <N>
 Production files: <refactorer list, or "none" for XL with no fixes>
 Test files: <test-writer list, or "none">
+Implementation notes: ticket `## IMPLEMENTATION NOTES › Step <N>` (Refactorer's open decisions — condense, do not copy)
 Gate outcomes: <PASS/FAIL per gate; for XL: Bugbot/Security/E2E outcomes + fix-loop notes; one-line deviations only — no metric numbers>
 ```
 
