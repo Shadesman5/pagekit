@@ -8,6 +8,7 @@ use Pagekit\Filesystem\Filesystem;
 use Pagekit\Installer\Helper\Composer;
 use Pagekit\Installer\Package\Lifecycle\LifecycleRunner;
 use Pagekit\Installer\Package\Lifecycle\MigrationSet;
+use Pagekit\Installer\Package\Snapshot\PackageSnapshotter;
 use Pagekit\Migration\MigrationService;
 use Pagekit\System\Extension\ExtensionFailureStore;
 use Psr\Container\ContainerInterface;
@@ -29,6 +30,14 @@ class PackageManager
      * environment that keeps no record.
      */
     private readonly ?ExtensionFailureStore $failures;
+
+    /**
+     * What went wrong on a package's way out without stopping it, waiting to be
+     * passed on.
+     *
+     * @var list<string>
+     */
+    private array $hookWarnings = [];
 
     public function __construct(
         private readonly ContainerInterface $app,
@@ -117,7 +126,27 @@ class PackageManager
     }
 
     /**
+     * Takes a package out of the installation, retaining it in a snapshot.
+     *
+     * Removing a package is a move rather than a deletion: the snapshot is
+     * taken first, and what it holds - the package's files, a dump of the
+     * database and a description of both - is the package from then on. The
+     * live tree goes, so the factory stops globbing it up and the panel stops
+     * listing it, and the snapshot is what an administrator restores from until
+     * it is purged. Purging is the only step that destroys anything for good -
+     * except in an installation that keeps no snapshots at all, where the
+     * removal is exactly as final as it always was ({@see snapshot()}).
+     *
+     * The database keeps its tables. A package that wants its rows gone says so
+     * in its own uninstall hook; dropping them here would make the snapshot the
+     * only copy of content the site may well still want, and reinstalling the
+     * package would come back to an empty extension.
+     *
      * @param string|array<int, string> $uninstall
+     *
+     * @throws \RuntimeException where no snapshot could be taken, in which case
+     *                          nothing was removed, or where a package's files
+     *                          could not be taken out of the live tree
      */
     public function uninstall(string|array $uninstall): void
     {
@@ -127,6 +156,11 @@ class PackageManager
             if (!$package = $packageFactory->get($name)) {
                 throw new \RuntimeException(__('Unable to find "%name%".', ['%name%' => $name]));
             }
+
+            // Before the package is switched off and long before its folder is
+            // touched: everything below this line is what the snapshot exists to
+            // reverse.
+            $snapshot = $this->snapshot($package);
 
             $this->disable($package);
 
@@ -147,18 +181,7 @@ class PackageManager
 
             $this->app->get('config')('system')->remove('packages.' . $package->get('module'));
 
-            if ($this->composer->isInstalled($package->getName())) {
-                $this->composer->uninstall($package->getName());
-            } else {
-                if (!$path = $package->get('path')) {
-                    throw new \RuntimeException(__('Package path is missing.'));
-                }
-
-                $this->output->writeln(__("Removing package folder."));
-
-                $this->app->get('file')->delete($path);
-                @rmdir(dirname($path));
-            }
+            $this->removeFiles($package, $snapshot !== null);
 
             // The package is gone, so a record of it would go on naming
             // something that is no longer installed.
@@ -389,6 +412,176 @@ class PackageManager
     }
 
     /**
+     * What failed on the way out without failing the operation.
+     *
+     * A package has no say in whether it is switched off or removed, so a hook
+     * of its own that throws costs the hook and nothing else. What it used to
+     * cost as well was any word of it reaching the administrator: the operation
+     * reported plain success and the reason sat in a log nobody had been sent
+     * to. These lines are that word - which step of which package did not
+     * finish, and where the rest of it is. What the hook threw stays in the log,
+     * because it is a package's own text and this is read in a panel.
+     *
+     * Drained by the call: whoever asks has taken them on, and the next
+     * operation through this manager starts with none of its own.
+     *
+     * @return list<string> ready to be shown, in the order the hooks failed
+     */
+    public function takeHookWarnings(): array
+    {
+        $warnings = $this->hookWarnings;
+        $this->hookWarnings = [];
+
+        return $warnings;
+    }
+
+    /**
+     * Puts the installation aside before a package is taken out of it.
+     *
+     * A removal cannot be undone by running it again, so the snapshot is the
+     * whole of the way back: the package's files, the database as it stands, and
+     * a description of both. It is taken first, before anything is switched off,
+     * because a snapshot that could not be taken means an administrator would
+     * otherwise be told a package is restorable when it is not.
+     *
+     * One environment removes a package unsnapshotted: the one that has no
+     * snapshot store at all. The store is defined where there is somewhere to
+     * keep a snapshot and a database to dump into it, and a container with
+     * neither never had a way back to offer - refusing there would leave such an
+     * installation unable to remove a package at all. That costs a line in the
+     * log and nothing else. Everything else - a store that cannot be written, a
+     * database that cannot be read, a snapshotter that is not one - aborts the
+     * removal with nothing removed.
+     *
+     * @return string|null the id the package is retained under, or null where
+     *                     the installation keeps no snapshots and the removal is
+     *                     therefore as final as it ever was
+     *
+     * @throws \RuntimeException where a snapshot was to be taken and could not be
+     */
+    private function snapshot(PackageInterface $package): ?string
+    {
+        if (!$this->app->has('snapshotter')) {
+            $this->reportUnsnapshotted($package);
+
+            return null;
+        }
+
+        try {
+            $snapshotter = $this->app->get('snapshotter');
+
+            if (!$snapshotter instanceof PackageSnapshotter) {
+                throw new \RuntimeException('The registered snapshotter cannot take a snapshot.');
+            }
+
+            $id = $snapshotter->create($package, PackageSnapshotter::REASON_UNINSTALL);
+        } catch (\Throwable $e) {
+            $this->reportFailedSnapshot($package, $e);
+
+            // What went wrong is in the log with the throwable that carries it.
+            // This message is streamed to a browser, so it says what happened to
+            // the operation rather than which path on the disk refused a write.
+            throw new \RuntimeException(
+                __(
+                    'No snapshot of "%name%" could be taken, so nothing was removed. See error log for details.',
+                    ['%name%' => $this->label($package)]
+                ),
+                0,
+                $e
+            );
+        }
+
+        $this->output->writeln(__('Snapshot %id% taken.', ['%id%' => $id]));
+
+        return $id;
+    }
+
+    /**
+     * Takes the package's files out of the live tree.
+     *
+     * Where a snapshot was taken, the copy in it is what the package is retained
+     * as from here on, so this completes a move rather than deleting the last
+     * copy of anything; where the installation keeps none, it is the deletion it
+     * always was. Either way it has to leave nothing behind. A tree still under
+     * packages/ is one the factory goes on globbing up and the panel goes on
+     * offering, as a package that merely is not installed, while its hooks have
+     * run and its nodes are in the trash. So the outcome is checked rather than
+     * assumed: files that will not go are a removal an administrator has to hear
+     * about, not one that can be reported as done.
+     *
+     * Composer is told last, for a package it installed, so that what it takes
+     * off the disk is the tree the snapshot was already archived from.
+     *
+     * @param bool $snapshotted whether there is a copy of the package to point
+     *                          whoever has to finish the job at
+     *
+     * @throws \RuntimeException where the package names no path, or its files
+     *                          could not be taken out of the live tree
+     */
+    private function removeFiles(PackageInterface $package, bool $snapshotted): void
+    {
+        $path = $package->get('path');
+
+        if (!is_string($path) || $path === '') {
+            throw new \RuntimeException(__('Package path is missing.'));
+        }
+
+        if ($this->composer->isInstalled($package->getName())) {
+            $this->composer->uninstall($package->getName());
+
+            // Composer takes the tree off the disk itself and reports nothing
+            // about it that can be read back, so the disk is all there is to
+            // go on for a package it installed.
+            $removed = !is_dir($path);
+        } else {
+            $this->output->writeln(__('Removing package folder.'));
+
+            // The file service both removes the tree and answers whether it
+            // could: it stops at the first entry that will not go. Stat'ing the
+            // path instead would take it for a plain local one, which the
+            // service does not promise - a path it maps through an adapter is
+            // wherever that adapter puts it.
+            $removed = $this->app->get('file')->delete($path) === true;
+        }
+
+        // The vendor directory goes too where this package was the last thing in
+        // it, and stays where it holds another.
+        @rmdir(dirname($path));
+
+        if ($removed) {
+            return;
+        }
+
+        $this->reportUnremovedFiles($package, $snapshotted);
+
+        $name = $this->label($package);
+
+        // Streamed to a browser, so the path that would not go stays in the log.
+        throw new \RuntimeException($snapshotted
+            ? __(
+                '"%name%" was removed, but its files could not be taken off the disk. The snapshot holds the whole package, so it can be restored, or the folder removed by hand.',
+                ['%name%' => $name]
+            )
+            : __(
+                '"%name%" was removed, but its files could not be taken off the disk. This installation keeps no snapshots, so the folder has to be removed by hand.',
+                ['%name%' => $name]
+            ));
+    }
+
+    /**
+     * What a package is called where an administrator is being told about it.
+     *
+     * The title an extension gives itself, which is what the panel lists it as,
+     * and its package name where it gives none.
+     */
+    private function label(PackageInterface $package): string
+    {
+        $title = $package->get('title');
+
+        return is_string($title) && $title !== '' ? $title : $package->getName();
+    }
+
+    /**
      * Takes a package off the failure record.
      *
      * Enabling, disabling or uninstalling a package is an administrator acting
@@ -548,6 +741,93 @@ class PackageManager
     }
 
     /**
+     * Reports a removal that has nothing to fall back on.
+     *
+     * An environment without a snapshot store is one that never had a way back
+     * to offer - an installer run before there is a database, for one - and the
+     * removal goes ahead: refusing it would leave that installation unable to
+     * remove a package at all. This line is then the only thing that will later
+     * say the package was not put anywhere first.
+     */
+    private function reportUnsnapshotted(PackageInterface $package): void
+    {
+        try {
+            if ($this->app->has('log')) {
+                $this->app->get('log')->warning(
+                    sprintf(
+                        'Package "%s" is being removed without a snapshot: this installation keeps no snapshot store, so the removal cannot be undone.',
+                        $package->get('name')
+                    ),
+                    ['package' => $package->get('module')]
+                );
+            }
+        } catch (\Throwable) {
+            // Nothing is left that could take the report, and an administrator
+            // who asked for the package to go is not refused over the log.
+        }
+    }
+
+    /**
+     * Reports a snapshot that was not taken, which is a removal that did not
+     * happen.
+     *
+     * The full reason belongs here rather than in the exception: the caller
+     * streams that message straight to a browser, and what refused the snapshot
+     * is usually a path on the disk.
+     */
+    private function reportFailedSnapshot(PackageInterface $package, \Throwable $e): void
+    {
+        try {
+            if ($this->app->has('log')) {
+                $this->app->get('log')->error(
+                    sprintf(
+                        'No snapshot of package "%s" could be taken, so nothing was removed: %s',
+                        $package->get('name'),
+                        $e->getMessage()
+                    ),
+                    ['exception' => $e, 'package' => $package->get('module')]
+                );
+            }
+        } catch (\Throwable) {
+            // The failure still has to reach the caller, which is where the
+            // administrator hears that the package is untouched.
+        }
+    }
+
+    /**
+     * Reports a package tree that stayed in the live installation.
+     *
+     * Everything else about the package is undone by then, so this is the half
+     * of a removal that has to be finished by hand - and the path is what
+     * whoever finishes it needs, which is why it goes here rather than into the
+     * message the caller streams back. What is left of the tree can be anything
+     * from all of it to the entry the deletion stopped at.
+     *
+     * @param bool $snapshotted whether there is a copy of the package to point
+     *                          whoever has to finish the job at
+     */
+    private function reportUnremovedFiles(PackageInterface $package, bool $snapshotted): void
+    {
+        try {
+            if ($this->app->has('log')) {
+                $this->app->get('log')->error(
+                    sprintf(
+                        $snapshotted
+                            ? 'Package "%s" was removed, but its files at "%s" could not be: the snapshot holds the package, so it can be restored or the folder removed by hand.'
+                            : 'Package "%s" was removed, but its files at "%s" could not be: this installation keeps no snapshots, so the folder has to be removed by hand.',
+                        $package->get('name'),
+                        $package->get('path')
+                    ),
+                    ['package' => $package->get('module')]
+                );
+            }
+        } catch (\Throwable) {
+            // The refusal still has to reach the caller, which is where the
+            // administrator hears that the removal did not finish.
+        }
+    }
+
+    /**
      * Reports a lifecycle hook that threw on the package's way out.
      *
      * Disabling and uninstalling are how an administrator gets out from under a
@@ -555,9 +835,18 @@ class PackageManager
      * hook is given its chance, and a throw costs the hook rather than the
      * operation. Enabling and installing keep propagating - there the failure
      * means the package is not ready to run, which is the caller's business.
+     *
+     * The line for the caller is taken first, so that a log this cannot be
+     * written to still leaves the administrator with something that says a step
+     * was skipped ({@see takeHookWarnings()}).
      */
     private function reportHookFailure(PackageInterface $package, string $hook, \Throwable $e): void
     {
+        $this->hookWarnings[] = __(
+            'The %hook% step of "%name%" did not finish. See the error log for details.',
+            ['%hook%' => $hook, '%name%' => $this->label($package)]
+        );
+
         try {
             if ($this->app->has('log')) {
                 $this->app->get('log')->error(

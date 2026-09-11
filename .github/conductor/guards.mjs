@@ -76,6 +76,15 @@ export function phaseRepeatExceeded(phases, type, max = DEFAULT_MAX_PHASE_REPEAT
 }
 
 /**
+ * `ESCALATE (decision): …` — the orchestrator stopped on a plan or product decision it may not
+ * make (an Escalate entry from `.cursor/ANOMALIES.md`). A fresh agent would only reach the same
+ * bullet, so the driver stops instead of relaunching. Still an ESCALATE for every other reader.
+ */
+export function isDecisionEscalate(result) {
+  return /^ESCALATE\s*\(decision\)/i.test(String(result || ''));
+}
+
+/**
  * `/review-bugbot` and `/review-security` run in Cursor 3.7+ and on cursor.com/agents.
  * CLI / Cloud Agents API support is documented as coming soon, so Conductor must not
  * launch an XL Review+E2E batch while this handoff is on (default).

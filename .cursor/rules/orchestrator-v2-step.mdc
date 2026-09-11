@@ -164,6 +164,7 @@ Ticket: <ticket path>
 Checklist Step: <N>
 Production files: <refactorer list, or "none" for XL with no fixes>
 Test files: <test-writer list, or "none">
+Implementation notes: ticket `## IMPLEMENTATION NOTES › Step <N>` (Refactorer's open decisions — condense, do not copy)
 Gate outcomes: <PASS/FAIL per gate; for XL: Bugbot/Security/E2E outcomes + fix-loop notes; one-line deviations only — no metric numbers>
 ```
 
@@ -218,6 +219,7 @@ Then re-enter the review sequence at the point the rule says (see XL below).
 3. Spawn **tester** (PHPUnit + PHPStan template).
 
 On `FAIL` at 2 or 3: spawn **refactorer** (retry template), then re-run from step 2. Never self-fix.
+Exception: a Verifier `FAIL` with an `ESCALATE:` bullet is not retried — see Stuck-breaker.
 
 ### B — Coverage gate (inline light; skip when not applicable)
 
@@ -303,6 +305,12 @@ If the **same** FAIL / finding set recurs **3×** for a step, spawn **doc-writer
 `git add` the branch doc, commit `docs(branch): record ESCALATE for Step N`, `git push`, then stop and
 report `ESCALATE: Step N — <reason>`.
 
+Same procedure, without waiting for 3×, on the **first** Verifier `FAIL` that carries an `ESCALATE:`
+bullet (an Escalate entry from `.cursor/ANOMALIES.md`): the Refactorer cannot make that decision, so
+a retry only burns runs. The bullet is the reason, and the report line is
+`ESCALATE (decision): Step N — <bullet>` — the driver then stops instead of relaunching a fresh
+agent, which would only reach the same bullet.
+
 ## Context safety valve
 
 After completing a step (commit + tick + push), if the file `/tmp/precompact-stop` exists, do **not**
@@ -317,4 +325,4 @@ the rest with a fresh agent.
 
 ## Report exactly one line
 
-`Batch done. Steps: [list]. Last commit: <sha>.` — or `Batch stopped (preCompact) after Step N.` — or `ESCALATE: Step N — <reason>.`
+`Batch done. Steps: [list]. Last commit: <sha>.` — or `Batch stopped (preCompact) after Step N.` — or `ESCALATE: Step N — <reason>.` — or, for a Verifier `ESCALATE:` bullet only, `ESCALATE (decision): Step N — <bullet>.`

@@ -16,6 +16,8 @@ You are the Strategic Lead for Pagekit modernization. Your goal is to map the ta
    - `// TODO: TEMPORARY BRIDGE - To be removed in Step X.Y`
    - `// AUDIT FIX Step X.Y`
    - Use ROADMAP IDs only. Put bridges/deferred scope in the ticket (`Deferred`, `Bridges`) — **never** instruct Refactorer/test-writer to narrate completed checklist steps, migrations, or ticket history in code or test comments.
+   - **Comment / docs routing:** never instruct Refactorer or test-writer to put architecture, operator consequences, or design rationale in PHPDoc or test comments. Those go in the branch doc, CHANGELOG/README, or UI copy. Code comments are traps + contracts only (`pagekit.mdc` § Prose).
+   - **Implementation notes skeleton:** the ticket ends with `## IMPLEMENTATION NOTES` and one `### Step N` — `_none yet_` per Checklist Step. You create the headings only; the Refactorer fills them with the decisions your plan left to it ("at refactorer's discretion", format choices, deviations). Never pre-fill them.
 5. **Step Sizing (EXECUTION STATE)** – Tag each checklist step `S` / `M` / `L` / `XL` in the EXECUTION STATE block (`S` = small/atomic, `M` = medium, `L` = large or likely to need a fix-loop, `XL` = Review + E2E only — weight 8, always alone under default budget). Be honest — these hints drive how the V2 Conductor batches steps across cloud agents. Keep the EXECUTION STATE list in 1:1 sync with the Checklist (same numbers + titles).
    - **Mandatory last step:** every normal (non-audit) ticket ends with exactly one `(XL)` step titled like `Review (Bugbot + Security) + E2E`. No production refactor work in that step — only reviews, fix-loops, and E2E.
 6. **PHASE amendment (Deferred routing)** – When **Deferred** or **Bridges** target a future ROADMAP step, amend that step's section in `migration-docs/TODO/PHASE_<N>_MODERNISING.md` in the **same Plan** (leave files unstaged — they land in the **Orchestrator's** Plan commit after plan-reviewer PASS). If the target step is missing, add a ROADMAP step (e.g. 2.5), sub-step (e.g. 2.1.5) or sub-sub-step (e.g. 2.0.1e) and create its PHASE section. Skip when Deferred is empty / non-goal only (e.g. "Doctrine ORM swap").
@@ -66,6 +68,15 @@ Write the plan to a **ticket file** so the Orchestrator and other subagents use 
 - **Finalize:** `orchestrator-v2-finalize.mdc` (PR → CI → optional coverage → PR Bugbot/Security → version only if product).
 - **Maintainer action (optional):** human-only follow-ups (real Docker/Apache, ruleset flips, …). In the branch doc these go under `## Maintainer action` — **not** under Deferred / Out-of-Scope
 - **Deferred / Out-of-Scope (optional):** future ROADMAP/PHASE work, non-goals, bridges only — never maintainer Manual Work
+
+## IMPLEMENTATION NOTES
+<!-- Refactorer-owned. One bullet per decision the plan left open or the Refactorer deviated from:
+     `File::symbol` — chosen vs. rejected, why, the invariant a test must hold. Files that follow the
+     plan get no line; a step with no open decision gets `none`. Architect leaves every step `_none yet_`. -->
+### Step 1
+_none yet_
+### Step N
+_none yet_
 ```
 
 - **Chat output:** One line only, e.g. `Plan written to migration-docs/tickets/active/PROMPT_2_7_1_Snapshot-Three-Stage-Uninstall_plan.md`.

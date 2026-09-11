@@ -169,6 +169,32 @@ jobs:
 
           echo "ok: the installation put its database on the data volume without being told where"
 
+      # Snapshots are what makes removing a package undoable, and the application looks for them
+      # under tmp/, which is thrown away with the container. So the store belongs on the data
+      # volume: otherwise an image roll or a down and up takes every way back with it while the
+      # panel goes on offering a restore. The link is what puts it there, and a start that cannot
+      # make it is refused - which is also why this checks the target rather than only the link.
+      - name: Check the snapshot store is on the data volume
+        run: |
+          target="$(docker exec "$CONTAINER" readlink /var/www/html/tmp/snapshots || true)"
+
+          if [ "$target" != /var/www/data/snapshots ]; then
+            echo "::error::tmp/snapshots leads to '$target' instead of the data volume"
+            exit 1
+          fi
+
+          if ! docker exec "$CONTAINER" test -d /var/www/data/snapshots; then
+            echo "::error::the snapshot store on the data volume does not exist"
+            exit 1
+          fi
+
+          if ! docker exec "$CONTAINER" test -w /var/www/html/tmp/snapshots; then
+            echo "::error::the snapshot store is not writable by the account the container serves as"
+            exit 1
+          fi
+
+          echo "ok: the snapshots of removed packages are kept on the data volume"
+
       - name: Smoke-test the running container
         env:
           BASE_URL: http://127.0.0.1:8080

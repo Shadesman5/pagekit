@@ -268,7 +268,10 @@ timeout, manual cancel) that already opened the PR or bumped the version but nev
 
 ## Stuck-breaker
 
-If a fix-loop hits the **same** FAIL **3×**, stop and report `ESCALATE: <reason>`.
+If a fix-loop hits the **same** FAIL **3×**, stop and report `ESCALATE: <reason>`. On the **first**
+Verifier `FAIL` that carries an `ESCALATE:` bullet (an Escalate entry from `.cursor/ANOMALIES.md`), stop
+at once and report `ESCALATE (decision): <bullet>` — the Refactorer cannot make that decision, and the
+driver does not relaunch on that form.
 
 ## Boundaries
 
@@ -279,4 +282,4 @@ If a fix-loop hits the **same** FAIL **3×**, stop and report `ESCALATE: <reason
 
 ## Report exactly one line
 
-`Finalized. PR: #YYY. Version: X.Y.Z. Ticket archived to done/.` — or `ESCALATE: <reason>.`
+`Finalized. PR: #YYY. Version: X.Y.Z. Ticket archived to done/.` — or `ESCALATE: <reason>.` — or, for a Verifier `ESCALATE:` bullet only, `ESCALATE (decision): <bullet>.`

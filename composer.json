@@ -16,7 +16,7 @@
   ],
   "require": {
     "php": "^8.5",
-    "composer/composer": "^2.10.2",
+    "composer/composer": "^2.10.3",
     "doctrine/dbal": "^3.8",
     "php-debugbar/php-debugbar": "^1.23.3",
     "monolog/monolog": "^3.7",

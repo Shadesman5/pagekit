@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Pagekit\Tests\Unit\Extension;
 
+use Pagekit\Filesystem\Adapter\StreamAdapter;
 use Pagekit\Filesystem\Filesystem;
+use Pagekit\Filesystem\StreamWrapper;
 use Pagekit\System\Extension\ExtensionFailureStore;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -23,6 +25,14 @@ use PHPUnit\Framework\TestCase;
  * And a record it cannot read has to read as no failures. Anything else would
  * turn one unreadable file into a boot that fails for every request, which is
  * the outcome this whole mechanism is there to prevent.
+ *
+ * The third demand comes from what an entry now carries. A count of the failures
+ * a module had in a row is what decides whether it is executed again, and every
+ * change to the record is a read, a change and a replace: two requests running
+ * that sequence at once would drop one another's entries and merge two failures
+ * into one count. So the sequence is serialized - and a lock that cannot be
+ * taken still costs nothing but the serialization, because this is the recovery
+ * path of a failure that is already under way.
  */
 final class ExtensionFailureStoreTest extends TestCase
 {
@@ -33,10 +43,26 @@ final class ExtensionFailureStoreTest extends TestCase
     private const FILE = 'extension-failures.json';
 
     /**
-     * The shape callers read an entry in. The notice names the module and points
-     * at the log, so the origin of the failure is kept here and its trace is not.
+     * The name of the file a writer holds while it replaces the record. It sits
+     * beside the record and outlives the write, so a directory the store has
+     * written in holds it as well as the record itself.
      */
-    private const FIELDS = ['name', 'type', 'class', 'message', 'file', 'line', 'time'];
+    private const LOCK = 'extension-failures.lock';
+
+    /**
+     * The shape callers read an entry in. The notice names the module and points
+     * at the log, so the origin of the failure is kept here and its trace is
+     * not; and it says how often the module failed in a row, which is what
+     * separates a module that broke once from one that breaks every time.
+     */
+    private const FIELDS = ['name', 'type', 'class', 'message', 'file', 'line', 'time', 'count'];
+
+    /**
+     * The protocol the record is addressed under where it lives on a mount
+     * instead of on a plain path: the files it holds are then opened through a
+     * stream, which is where a refused lock can be arranged.
+     */
+    private const MOUNT = 'nolocks';
 
     private string $workspace;
 
@@ -57,6 +83,12 @@ final class ExtensionFailureStoreTest extends TestCase
 
     protected function tearDown(): void
     {
+        // A protocol stays registered for the whole process, so a test that
+        // addressed the record through one takes it back out again.
+        if (in_array(self::MOUNT, stream_get_wrappers(), true)) {
+            stream_wrapper_unregister(self::MOUNT);
+        }
+
         // A test that provoked a directory nobody can write has to hand it back
         // before the workspace can be removed.
         if (is_dir($this->path)) {
@@ -135,6 +167,86 @@ final class ExtensionFailureStoreTest extends TestCase
         self::assertSame(['blog'], array_keys($entries));
         self::assertSame(\LogicException::class, $entries['blog']['class']);
         self::assertSame('the fault it fails with now', $entries['blog']['message']);
+    }
+
+    public function testEveryFailureOfAModuleInARowIsCountedOnItsEntry(): void
+    {
+        $store = $this->store();
+
+        $store->record('blog', ExtensionFailureStore::TYPE_EXTENSION, new \RuntimeException('boom'));
+
+        self::assertSame(1, $this->store()->all()['blog']['count']);
+
+        $store->record('blog', ExtensionFailureStore::TYPE_EXTENSION, new \RuntimeException('boom'));
+        $store->record('theme-one', ExtensionFailureStore::TYPE_THEME, new \RuntimeException('bang'));
+
+        $entries = $this->store()->all();
+
+        // A module on its first failure may work again on the next request, and
+        // one that has failed on every request since is not going to. The
+        // difference is only readable if the entry that keeps the current
+        // failure also keeps how many came before it - per module, because a
+        // failure of one is not a failure of the other.
+        self::assertSame(2, $entries['blog']['count']);
+        self::assertSame(1, $entries['theme-one']['count']);
+    }
+
+    public function testAModuleTakenOffTheRecordIsCountedFromTheStartAgain(): void
+    {
+        $store = $this->store();
+
+        $store->record('blog', ExtensionFailureStore::TYPE_EXTENSION, new \RuntimeException('boom'));
+        $store->record('blog', ExtensionFailureStore::TYPE_EXTENSION, new \RuntimeException('boom'));
+
+        self::assertTrue($store->clear('blog'));
+
+        $store->record('blog', ExtensionFailureStore::TYPE_EXTENSION, new \RuntimeException('boom'));
+
+        // What the count stands for is failures in a row. Being taken off the
+        // record is what an administrator acting on the package does, and it
+        // ends the row: whatever happens next is a module failing again, not a
+        // module that never stopped.
+        self::assertSame(1, $this->store()->all()['blog']['count']);
+    }
+
+    public function testAnEntryFromBeforeTheCountExistedStandsForOneFailure(): void
+    {
+        // An installation upgrading into the count has entries on record that
+        // never carried one, and each of them was written by a module that
+        // failed. Reading them as no failures at all is the one wrong answer.
+        $this->writeRecord('{"blog": {"name": "blog", "type": "extension", "message": "boom"}}');
+
+        self::assertSame(1, $this->store()->all()['blog']['count']);
+
+        $this->store()->record('blog', ExtensionFailureStore::TYPE_EXTENSION, new \RuntimeException('boom'));
+
+        self::assertSame(2, $this->store()->all()['blog']['count']);
+    }
+
+    #[DataProvider('provideCountsThatAreNoCount')]
+    public function testAnEntryWhoseCountIsNoCountStandsForOneFailure(string $count): void
+    {
+        // Callers read the count to decide whether a module is tried again, so
+        // a damaged or foreign entry has to arrive as the failure it is rather
+        // than as a number that means nothing.
+        $this->writeRecord(sprintf('{"blog": {"name": "blog", "type": "extension", "count": %s}}', $count));
+
+        self::assertSame(1, $this->store()->all()['blog']['count']);
+    }
+
+    /**
+     * @return array<string, array{0: string}>
+     */
+    public static function provideCountsThatAreNoCount(): array
+    {
+        return [
+            'no failures, which no entry on the record stands for' => ['0'],
+            'a count below zero' => ['-3'],
+            'a count as text' => ['"2"'],
+            'a count with a fraction' => ['1.5'],
+            'a count that is null' => ['null'],
+            'something that is no count at all' => ['{"failures": 2}'],
+        ];
     }
 
     public function testEveryFailedModuleIsOnRecordBesideTheOthers(): void
@@ -241,6 +353,25 @@ final class ExtensionFailureStoreTest extends TestCase
         self::assertSame('the fault it had', $this->store()->all()['blog']['message']);
     }
 
+    public function testACountPutBackOnTheRecordIsTheOneThatWasTakenOff(): void
+    {
+        $store = $this->store();
+
+        $store->record('blog', ExtensionFailureStore::TYPE_EXTENSION, new \RuntimeException('boom'));
+        $store->record('blog', ExtensionFailureStore::TYPE_EXTENSION, new \RuntimeException('boom'));
+
+        $entry = $store->all()['blog'];
+
+        self::assertTrue($store->clear('blog'));
+        self::assertTrue($store->restore($entry));
+
+        // The operation that cleared the record did not happen, so neither did
+        // the fresh start it would have been: a module that had failed twice is
+        // two failures in, not one attempt away from being given up on and not
+        // back at the beginning either.
+        self::assertSame(2, $this->store()->all()['blog']['count']);
+    }
+
     public function testAnEntryWithoutAModuleNameIsRefusedInsteadOfFiledUnderNothing(): void
     {
         $entry = [
@@ -251,6 +382,7 @@ final class ExtensionFailureStoreTest extends TestCase
             'file' => '/app/packages/pagekit/blog/index.php',
             'line' => 7,
             'time' => 1700000000,
+            'count' => 1,
         ];
 
         self::assertFalse($this->store()->restore($entry));
@@ -273,7 +405,107 @@ final class ExtensionFailureStoreTest extends TestCase
         $file = $this->path.'/'.self::FILE;
 
         self::assertSame([$file, $file, $file], $writer->written);
-        self::assertSame([self::FILE], $this->entries($this->path), 'A file staged for the record is moved into place, never left beside it');
+
+        // The record and the lock the writers took, and nothing besides: a file
+        // staged for a write and left behind would be a third entry here.
+        self::assertSame([self::FILE, self::LOCK], $this->entries($this->path), 'A file staged for the record is moved into place, never left beside it');
+    }
+
+    public function testEveryChangeToTheRecordIsMadeWhereNoOtherWriterCanBe(): void
+    {
+        // Reading the record, changing it and replacing it is one sequence, and
+        // the atomic replace at the end of it only keeps a reader from seeing a
+        // torn file. Two workers running the sequence at once both read the same
+        // entries, and the one that writes second writes over what the first
+        // recorded: a failure nobody is told about, or two failures that arrive
+        // as one count and leave a module short of being given up on.
+        $this->writeRecord($this->recordOf('blog'));
+
+        $writer = new LockProbe($this->path.'/'.self::LOCK);
+        $store = new ExtensionFailureStore($this->path, $writer);
+
+        $store->record('theme-one', ExtensionFailureStore::TYPE_THEME, new \RuntimeException('bang'));
+        $store->restore($store->all()['blog']);
+        $store->clear('theme-one');
+
+        // Asked from the write itself, which is inside the sequence: a second
+        // worker could not have taken the lock there, so it could not have been
+        // between this one's read and its replace.
+        self::assertSame([false, false, false], $writer->free, 'Every write that changes the record holds the lock while it does');
+
+        // And it is handed back afterwards. A lock held past the write would
+        // leave the next failure of the next request waiting on a boot that is
+        // over, which is the one thing worse than a lost entry.
+        self::assertTrue(LockProbe::canLock($this->path.'/'.self::LOCK), 'The lock is released when the change is done');
+    }
+
+    public function testAWriteThatCannotTakeTheLockIsMadeWithoutOne(): void
+    {
+        // Taking the lock can fail on its own - an open file limit, a filesystem
+        // that has no locks, a path something else occupies. This is the
+        // recovery path of a fault already in progress, so losing the failure
+        // over the lock meant to protect it would be the worst of both: writes
+        // go unserialized here, exactly as every write did before there was a
+        // lock at all.
+        $this->writeRecord($this->recordOf('blog'));
+
+        mkdir($this->path.'/'.self::LOCK);
+
+        $store = $this->store();
+
+        self::assertTrue($store->record('theme-one', ExtensionFailureStore::TYPE_THEME, new \RuntimeException('bang')));
+        self::assertSame(['blog', 'theme-one'], array_keys($this->store()->all()));
+    }
+
+    public function testAWriteOnAFilesystemThatRefusesLocksIsMadeWithoutOne(): void
+    {
+        // The other half of that: the file opens and the lock is refused
+        // anyway, which is what a network share or a bind mount from a host
+        // that hands out no locks answers. A record can live on one, and being
+        // unable to lock it is not being unable to write it - so every change
+        // still lands, unserialized, and none of them is lost on the way.
+        $this->writeRecord($this->recordOf('blog'));
+
+        $store = $this->storeOnAMountWithoutLocks();
+
+        self::assertTrue($store->record('theme-one', ExtensionFailureStore::TYPE_THEME, new \RuntimeException('bang')));
+        self::assertTrue($store->record('theme-one', ExtensionFailureStore::TYPE_THEME, new \RuntimeException('bang')));
+
+        $entry = $store->all()['blog'];
+
+        self::assertTrue($store->clear('blog'));
+        self::assertTrue($store->restore($entry));
+
+        // Read back off the plain directory the mount leads to: what an
+        // administrator is told is what reached the disk.
+        $entries = $this->store()->all();
+
+        self::assertSame(['theme-one', 'blog'], array_keys($entries));
+        self::assertSame($entry, $entries['blog']);
+        self::assertSame(2, $entries['theme-one']['count'], 'A change made without the lock is still the whole read, change and replace');
+
+        // And the writers got as far as opening the lock file, which is what
+        // separates this from a lock that could not even be opened: what was
+        // refused here is the lock on a file that is there.
+        self::assertFileExists($this->path.'/'.self::LOCK);
+    }
+
+    public function testTheRecordIsReadWithoutTakingTheLockAtAll(): void
+    {
+        // Every boot reads this file, and a read that queued behind a writer
+        // would put the boot path behind whatever a failing request is doing.
+        // It does not have to: the record is replaced in one step, so a reader
+        // sees the failures from before the write or the ones after it.
+        $this->writeRecord($this->recordOf('blog'));
+
+        $store = $this->store();
+
+        self::assertSame(['blog'], array_keys($store->all()));
+        self::assertTrue($store->has('blog'));
+
+        // The lock is taken by opening the file, so a read that took one would
+        // have left it here.
+        self::assertSame([self::FILE], $this->entries($this->path), 'A read neither takes the lock nor creates it');
     }
 
     #[DataProvider('provideUnusableRecords')]
@@ -479,6 +711,22 @@ final class ExtensionFailureStoreTest extends TestCase
     }
 
     /**
+     * The same store, with its record addressed through a mount whose files
+     * open and cannot be locked. The directory behind the mount is the one the
+     * plain store reads, so what a change made without the lock did to the
+     * record is readable off it.
+     */
+    private function storeOnAMountWithoutLocks(): ExtensionFailureStore
+    {
+        $files = new Filesystem();
+        $files->registerAdapter(self::MOUNT, new MountWithoutLocks($this->workspace, '', StreamWithoutLocks::class));
+
+        StreamWrapper::setFilesystem($files);
+
+        return new ExtensionFailureStore(self::MOUNT.'://'.basename($this->path), $files);
+    }
+
+    /**
      * Puts a record on disk that this store did not write, which is how a
      * damaged or foreign file reaches it.
      */
@@ -505,6 +753,7 @@ final class ExtensionFailureStoreTest extends TestCase
                 'file' => '/app/packages/pagekit/blog/index.php',
                 'line' => 7,
                 'time' => 1700000000,
+                'count' => 1,
             ],
         ], JSON_FORCE_OBJECT);
     }
@@ -578,6 +827,97 @@ final class AtomicWriteRecorder extends Filesystem
         $this->written[] = $file;
 
         parent::dumpAtomic($file, $content, $mode);
+    }
+}
+
+/**
+ * Asks from inside the write whether anybody else could be changing the record
+ * at the same moment, and then performs the write.
+ */
+final class LockProbe extends Filesystem
+{
+    /**
+     * Whether the lock was there to be taken during each write, in the order
+     * the writes happened.
+     *
+     * @var array<int, bool>
+     */
+    public array $free = [];
+
+    public function __construct(private readonly string $lock)
+    {
+    }
+
+    public function dumpAtomic(string $file, string $content, ?int $mode = null): void
+    {
+        $this->free[] = self::canLock($this->lock);
+
+        parent::dumpAtomic($file, $content, $mode);
+    }
+
+    /**
+     * Whether a writer could start its own read-change-replace here, asked
+     * without waiting for one that is under way: a test that waited would be
+     * this process waiting for itself.
+     */
+    public static function canLock(string $file): bool
+    {
+        $handle = fopen($file, 'c');
+
+        if ($handle === false) {
+            return false;
+        }
+
+        $taken = flock($handle, LOCK_EX | LOCK_NB);
+
+        if ($taken) {
+            flock($handle, LOCK_UN);
+        }
+
+        fclose($handle);
+
+        return $taken;
+    }
+}
+
+/**
+ * A directory addressed as a mount rather than as a plain path, so that opening
+ * a file in it goes through a stream instead of straight to the disk.
+ *
+ * What is behind the mount is an ordinary directory, and the record is replaced
+ * in it exactly as it is replaced in any other: what this stands for is a
+ * filesystem that has no locks, not one that has no writes.
+ */
+final class MountWithoutLocks extends StreamAdapter
+{
+    /**
+     * @param  array<string, mixed> $info
+     * @return array<string, mixed>
+     */
+    public function getPathInfo(array $info): array
+    {
+        $info = parent::getPathInfo($info);
+
+        // The record is replaced by a rename onto the directory the mount leads
+        // to, which is where a real one performs it as well - a write is not
+        // what a mount without locks has no answer for.
+        $info['protocol'] = 'file';
+        $info['pathname'] = $info['localpath'];
+
+        return $info;
+    }
+}
+
+/**
+ * Files on that mount: they open, they are read and they are written, and a
+ * request to lock one is refused - the answer a share or a bind mount from a
+ * host with no locks to hand out gives.
+ */
+final class StreamWithoutLocks extends StreamWrapper
+{
+    public function stream_lock(int $operation): bool
+    {
+        return false;
     }
 }
 

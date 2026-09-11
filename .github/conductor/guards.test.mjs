@@ -9,7 +9,8 @@ import {
   phaseRepeatExceeded,
   xlHandoffStep,
   cloudExecuteSteps,
-  xlHandoffMessage
+  xlHandoffMessage,
+  isDecisionEscalate
 } from './guards.mjs';
 
 const PROMPT =
@@ -134,6 +135,22 @@ test('cloudExecuteSteps drops XL while handoff is on', () => {
     [1, 2, 3]
   );
   assert.deepEqual(cloudExecuteSteps([{ n: 3, size: 'XL' }], true), []);
+});
+
+test('isDecisionEscalate separates a decision from a retryable ESCALATE', () => {
+  assert.equal(
+    isDecisionEscalate(
+      'ESCALATE (decision): Step 3 — ESCALATE: AP-04 — DatabaseRestorer under Installer\\Package\\Snapshot.'
+    ),
+    true
+  );
+  assert.equal(isDecisionEscalate('ESCALATE(Decision): AP-10 — dropping the weather widget'), true);
+  assert.equal(isDecisionEscalate('ESCALATE: Step 3 — Tester FAIL recurred 3× (PHPStan).'), false);
+  assert.equal(isDecisionEscalate('ESCALATE: merge origin/develop conflicted'), false);
+  assert.equal(isDecisionEscalate('Batch done. Steps: [3]. Last commit: abc1234.'), false);
+  assert.equal(isDecisionEscalate('Step 3 — (decision) pending ESCALATE'), false);
+  assert.equal(isDecisionEscalate(''), false);
+  assert.equal(isDecisionEscalate(null), false);
 });
 
 test('xlHandoffMessage names the step and the V1 resume', () => {

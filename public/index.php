@@ -59,6 +59,10 @@ $config = [
     // temp and cache directories because clearing the cache empties those - and
     // outside storage/, which the webroot links to.
     'path.system' => $path.'/tmp/system',
+    // What a removed package can be restored from. Same posture as the state
+    // above and for a stronger reason: a snapshot has to survive weeks of cache
+    // clears, and it carries a database dump that may not be reachable over HTTP.
+    'path.snapshots' => $path.'/tmp/snapshots',
     'path.vendor' => $path.'/app/vendor',
     'path.artifact' => $path.'/tmp/packages',
     'config.file' => realpath($path.'/config.php'),

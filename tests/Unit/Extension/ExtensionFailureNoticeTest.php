@@ -27,6 +27,11 @@ use PHPUnit\Framework\TestCase;
  * extension to have taken down, and that question is therefore both asked last
  * and allowed to fail.
  *
+ * What the notice says also has to match what the site is doing about the
+ * failure. A theme is tried again on every request until it has failed too often
+ * in a row, and from then on it is left unexecuted - which nothing else can
+ * report, and which nothing but an administrator enabling it undoes.
+ *
  * The handler lives in the system module's index.php, which is a module
  * definition rather than an autoloaded class: it is pulled in below so its
  * closure binds to the container built in the same scope.
@@ -97,6 +102,44 @@ final class ExtensionFailureNoticeTest extends TestCase
             .'</div></div>',
             $this->render(),
         );
+    }
+
+    public function testAThemeThatWasGivenUpOnSaysWhatToDoAboutIt(): void
+    {
+        $this->record('theme-one', ExtensionFailureStore::TYPE_THEME, failures: ExtensionFailureStore::PAUSE_THRESHOLD);
+
+        // A theme that is still tried on every request and one that has been
+        // left unexecuted after failing too often look the same from a page -
+        // the site is on a blank layout either way - and only one of them is
+        // waiting for somebody to do something. So this notice says what that
+        // something is: nothing will try the theme again by itself.
+        self::assertSame(
+            '<div class="pk-system-messages">'
+            .'<div class="uk-alert uk-alert-warning" data-status="warning">'
+            .'The theme "theme-one" failed repeatedly and is paused. Enable it again to retry. See the error log for details.'
+            .'</div></div>',
+            $this->render(),
+        );
+    }
+
+    public function testAThemeThatIsStillBeingTriedIsNotReportedAsPaused(): void
+    {
+        $this->record('theme-one', ExtensionFailureStore::TYPE_THEME, failures: ExtensionFailureStore::PAUSE_THRESHOLD - 1);
+
+        // Up to the threshold the next request tries the theme again, so asking
+        // the administrator to enable it would be asking them to do by hand
+        // what the site is already doing on its own.
+        self::assertStringContainsString('The theme "theme-one" could not be loaded.', $this->render());
+    }
+
+    public function testAnExtensionIsNeverReportedAsPaused(): void
+    {
+        // An extension is out of the enabled list after its first failure and
+        // is not executed again at all, so however often it is on record as
+        // having failed, what an administrator has to do about it is the same.
+        $this->record('blog', ExtensionFailureStore::TYPE_EXTENSION, failures: ExtensionFailureStore::PAUSE_THRESHOLD + 1);
+
+        self::assertStringContainsString('The extension "blog" failed and was disabled.', $this->render());
     }
 
     public function testTheNoticeNamesTheExtensionWithoutRepeatingWhatItFailedWith(): void
@@ -300,14 +343,17 @@ final class ExtensionFailureNoticeTest extends TestCase
     }
 
     /**
-     * Puts a failure on record, the way the boot that ran into it does.
+     * Puts a failure on record, the way the boot that ran into it does, as many
+     * times over as the module failed in a row.
      */
-    private function record(string $name, string $type, ?\Throwable $failure = null): void
+    private function record(string $name, string $type, ?\Throwable $failure = null, int $failures = 1): void
     {
-        self::assertTrue(
-            $this->store()->record($name, $type, $failure ?? new \RuntimeException('The module could not be loaded')),
-            'The notice is derived from the record, so the record has to be on disk before the render',
-        );
+        for ($attempt = 1; $attempt <= $failures; $attempt++) {
+            self::assertTrue(
+                $this->store()->record($name, $type, $failure ?? new \RuntimeException('The module could not be loaded')),
+                'The notice is derived from the record, so the record has to be on disk before the render',
+            );
+        }
     }
 
     private function store(): ExtensionFailureStore

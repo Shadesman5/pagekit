@@ -1,0 +1,5 @@
+# Ignore the snapshots the application writes here
+*
+# But keep .htaccess and .gitignore
+!.htaccess
+!.gitignore

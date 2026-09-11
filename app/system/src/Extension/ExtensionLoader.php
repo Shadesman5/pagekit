@@ -39,6 +39,15 @@ use Psr\Log\LoggerInterface;
  * recorded; it is never switched off, and it is tried again on the next request.
  * Being tried again is also how it gets off the record: a theme that loads is a
  * theme that is no longer broken, and here is the only place that can tell.
+ *
+ * It is not tried again forever, though. A theme fails the way it was written to
+ * work - on a query, a remote call, a file it parses - so one that keeps failing
+ * charges the site for the attempt on every request, from whoever happens to be
+ * asking, for as long as nobody notices. After enough failures in a row it is
+ * left unexecuted: the site falls back to the same blank layout it falls back to
+ * now, without paying for the attempt first. The setting stays the
+ * administrator's throughout - nothing rewrites it, the panel names the theme as
+ * paused, and enabling it again clears the record and with it the count.
  */
 final class ExtensionLoader
 {
@@ -75,6 +84,15 @@ final class ExtensionLoader
         }
 
         if ($theme === null) {
+            return;
+        }
+
+        // The one module that is executed while on the record is also the one
+        // that has to stop being executed at some point. Nothing is logged
+        // here: the failures that opened the breaker are in the log already,
+        // and a line per request from the mechanism that exists to stop work
+        // happening per request would be the same waste in a cheaper form.
+        if (($recorded[$theme]['count'] ?? 0) >= ExtensionFailureStore::PAUSE_THRESHOLD) {
             return;
         }
 
