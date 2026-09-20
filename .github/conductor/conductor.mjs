@@ -29,7 +29,8 @@ import {
   xlHandoffStep,
   cloudExecuteSteps,
   xlHandoffMessage,
-  isDecisionEscalate
+  isDecisionEscalate,
+  implementationNotesProblems
 } from './guards.mjs';
 import { gitAt, syncFeatureWithBase } from './sync-base.mjs';
 
@@ -151,6 +152,7 @@ const metrics = createMetricsCollector({
         planLanded
       );
       planRan = true;
+      if (!AUDIT) assertTicketSkeleton();
     } else {
       log(`plan already done (${AUDIT ? `open PR for ${BRANCH}` : TICKET}) — skipping PLAN`);
     }
@@ -187,6 +189,7 @@ const metrics = createMetricsCollector({
       fail(
         `no parseable "## EXECUTION STATE" steps in ${TICKET} (audit/report task? use MODE=plan)`
       );
+    assertTicketSkeleton(steps);
 
     const open = steps.filter(s => !s.checked);
     if (open.length > 0) {
@@ -574,6 +577,21 @@ function readSteps() {
     steps.push({ n, size: (step[2] || 'M').toUpperCase(), checked: box[1].toLowerCase() === 'x' });
   }
   return steps.sort((a, b) => a.n - b.n); // ascending step order — never trust the ticket's line order
+}
+
+// Deterministic backstop for the plan-reviewer's skeleton criterion: a ticket that reaches Execute
+// without `## IMPLEMENTATION NOTES › ### Step N` loses the Refactorer's decision record for every
+// step, and no later phase can recover it. Fails loudly so the skeleton is added before any agent
+// launches — like the malformed EXECUTION STATE line above, never a silent skip.
+function assertTicketSkeleton(steps = readSteps() || []) {
+  const problems = implementationNotesProblems(
+    readFileSync(TICKET, 'utf8'),
+    steps.map(s => s.n)
+  );
+  if (problems.length === 0) return;
+  fail(
+    `${TICKET}: ${problems.join('; ')} — add the "## IMPLEMENTATION NOTES" skeleton (one "### Step N" with "_none yet_" per EXECUTION STATE step, see .cursor/agents/architect.md), push, then re-dispatch with the same session_id.`
+  );
 }
 
 function nextBatch(open) {

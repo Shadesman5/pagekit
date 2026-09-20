@@ -10,7 +10,8 @@ import {
   xlHandoffStep,
   cloudExecuteSteps,
   xlHandoffMessage,
-  isDecisionEscalate
+  isDecisionEscalate,
+  implementationNotesProblems
 } from './guards.mjs';
 
 const PROMPT =
@@ -159,4 +160,55 @@ test('xlHandoffMessage names the step and the V1 resume', () => {
   assert.match(msg, /cursor\.com\/agents/);
   assert.match(msg, /session_id/);
   assert.match(msg, /FINALIZE/);
+});
+
+const TICKET_HEAD = [
+  '# Ticket: Step 2.7.1a — Example',
+  '',
+  '## ARCHITECT OUTPUT',
+  '- **Checklist:** 1. …, 2. …',
+  '',
+  '## EXECUTION STATE',
+  '- [x] Step 1 (M) — first',
+  '- [ ] Step 2 (XL) — Review (Bugbot + Security) + E2E',
+  '',
+  '## TESTING STRATEGY',
+  '- **Per step:** Refactorer → Verifier → Tester',
+  '### Step 2',
+  '- a heading outside the notes section must not satisfy the skeleton'
+].join('\n');
+
+test('implementationNotesProblems passes a complete skeleton', () => {
+  const ticket = `${TICKET_HEAD}\n\n## IMPLEMENTATION NOTES\n### Step 1\n_none yet_\n### Step 2\n_none yet_\n`;
+  assert.deepEqual(implementationNotesProblems(ticket, [1, 2]), []);
+});
+
+test('implementationNotesProblems flags the missing section', () => {
+  const problems = implementationNotesProblems(TICKET_HEAD, [1, 2]);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /missing "## IMPLEMENTATION NOTES"/);
+});
+
+test('implementationNotesProblems names the steps without a heading', () => {
+  const ticket = `${TICKET_HEAD}\n\n## IMPLEMENTATION NOTES\n### Step 1\n_none yet_\n`;
+  const problems = implementationNotesProblems(ticket, [1, 2]);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /step\(s\) 2$/);
+});
+
+test('implementationNotesProblems only counts headings inside the notes section', () => {
+  // `### Step 2` under TESTING STRATEGY (above) is not a notes heading; a later section ends the notes.
+  const ticket = `${TICKET_HEAD}\n\n## IMPLEMENTATION NOTES\n### Step 1\n_none yet_\n\n## PARKED\n### Step 2\n`;
+  assert.match(implementationNotesProblems(ticket, [1, 2])[0], /step\(s\) 2$/);
+});
+
+test('implementationNotesProblems tolerates heading spacing and case', () => {
+  const ticket = `${TICKET_HEAD}\n\n## IMPLEMENTATION NOTES\n###   step 1\n_none yet_\n### Step 2 — Review\n_none yet_\n`;
+  assert.deepEqual(implementationNotesProblems(ticket, [1, 2]), []);
+});
+
+test('implementationNotesProblems needs only the section when no steps parsed', () => {
+  assert.deepEqual(implementationNotesProblems('## IMPLEMENTATION NOTES\n', []), []);
+  assert.equal(implementationNotesProblems('', []).length, 1);
+  assert.equal(implementationNotesProblems(null, [1]).length, 1);
 });
