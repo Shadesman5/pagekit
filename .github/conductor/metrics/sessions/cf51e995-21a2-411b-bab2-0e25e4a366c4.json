@@ -11,19 +11,51 @@
   "status": "in_progress",
   "startedAt": "2026-09-20T21:26:11.656Z",
   "completedAt": null,
-  "phases": [],
+  "phases": [
+    {
+      "phaseKey": "35538678988-1-PLAN",
+      "type": "PLAN",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-09-20T21:26:16.540Z",
+      "durationMs": 1156343,
+      "agent": {
+        "id": "bc-b9943977-9657-46fc-84d9-90bd9e1c5f2b",
+        "runId": "run-55289975-8ba9-4c64-884a-66471cd36ea6",
+        "url": "https://cursor.com/agents/bc-b9943977-9657-46fc-84d9-90bd9e1c5f2b",
+        "model": "grok-4.6"
+      },
+      "github": {
+        "runId": 35538678988,
+        "runAttempt": 1,
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/35538678988",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 42193,
+        "output": 4021,
+        "cacheRead": 401472,
+        "cacheWrite": 0,
+        "total": 447686
+      },
+      "tokensSource": "cursor-api",
+      "result": "Plan ready: migration-docs/tickets/active/PROMPT_2_7_1a_Atomic-MySQL-Restore_plan.md",
+      "outcome": "success"
+    }
+  ],
   "totals": {
     "tokens": {
-      "input": 0,
-      "output": 0,
-      "cacheRead": 0,
+      "input": 42193,
+      "output": 4021,
+      "cacheRead": 401472,
       "cacheWrite": 0,
-      "total": 0
+      "total": 447686
     },
-    "durationMs": 0,
-    "phaseCount": 0,
+    "durationMs": 1156343,
+    "phaseCount": 1,
     "escalations": 0,
-    "ghaJobs": 0,
-    "cloudAgents": 0
+    "ghaJobs": 1,
+    "cloudAgents": 1
   }
 }
