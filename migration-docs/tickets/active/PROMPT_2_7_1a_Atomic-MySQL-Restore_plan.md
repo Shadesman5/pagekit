@@ -52,7 +52,7 @@
      L = large or loop-risk, XL = Review (Bugbot + Security) + E2E (mandatory last step, weight 8).
      A step orchestrator flips its box to [x] in the SAME commit as that step's code + tests
      (after full step PASS incl. test-writer when applicable; for XL after reviews + E2E PASS) -->
-- [ ] Step 1 (M) — Safety gates + prefix invariant at install
+- [x] Step 1 (M) — Safety gates + prefix invariant at install
 - [ ] Step 2 (S) — Reserved names + dumper guard
 - [ ] Step 3 (L) — Preflight refusals before the first CREATE
 - [ ] Step 4 (L) — Shadow DDL rewriter + fill machinery

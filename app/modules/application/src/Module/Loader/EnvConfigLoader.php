@@ -14,22 +14,22 @@ namespace Pagekit\Module\Loader;
  *
  * Values are read with getenv(), not from $_ENV, which is only populated when
  * the variables_order INI setting includes "E". A variable that is set but
- * empty counts as set and overrides with the empty value - the database driver
- * and port aside, which have no empty value to be given and are read as unset
- * when they arrive blank.
+ * empty counts as set and overrides with the empty value - the database driver,
+ * port and table prefix aside, which have no empty value to be given and are
+ * read as unset when they arrive blank.
  */
 final class EnvConfigLoader extends ConfigLoader
 {
     /**
      * MySQL connection parameters, keyed by the variable that supplies them.
-     * The port is handled apart from these because it needs an integer.
+     * The port and the table prefix are handled apart from these: the one needs
+     * an integer, the other has no empty value to be given.
      */
     private const MYSQL_PARAMS = [
         'PAGEKIT_DB_HOST' => 'host',
         'PAGEKIT_DB_NAME' => 'dbname',
         'PAGEKIT_DB_USER' => 'user',
         'PAGEKIT_DB_PASSWORD' => 'password',
-        'PAGEKIT_DB_PREFIX' => 'prefix',
     ];
 
     /**
@@ -92,6 +92,15 @@ final class EnvConfigLoader extends ConfigLoader
         // default stays in place instead of a cast of nothing over it.
         if (($port = self::env('PAGEKIT_DB_PORT')) !== null && $port !== '') {
             $mysql['port'] = (int) $port;
+        }
+
+        // Blank again reads as unset. The prefix is what tells this
+        // installation's tables from everything else in the database, and a
+        // line carrying no value is not a request to give that up. A value of
+        // an odd shape is still overlaid: the installer refuses those where a
+        // prefix is chosen, and a boot is the wrong place to end over one.
+        if (($prefix = self::env('PAGEKIT_DB_PREFIX')) !== null && $prefix !== '') {
+            $mysql['prefix'] = $prefix;
         }
 
         if ($mysql !== []) {
