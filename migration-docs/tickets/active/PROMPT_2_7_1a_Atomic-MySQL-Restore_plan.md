@@ -53,7 +53,7 @@
      A step orchestrator flips its box to [x] in the SAME commit as that step's code + tests
      (after full step PASS incl. test-writer when applicable; for XL after reviews + E2E PASS) -->
 - [x] Step 1 (M) — Safety gates + prefix invariant at install
-- [ ] Step 2 (S) — Reserved names + dumper guard
+- [x] Step 2 (S) — Reserved names + dumper guard
 - [ ] Step 3 (L) — Preflight refusals before the first CREATE
 - [ ] Step 4 (L) — Shadow DDL rewriter + fill machinery
 - [ ] Step 5 (L) — Cut-over + delete the in-place MySQL apply
