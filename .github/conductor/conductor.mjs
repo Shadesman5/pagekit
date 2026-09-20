@@ -29,7 +29,8 @@ import {
   xlHandoffStep,
   cloudExecuteSteps,
   xlHandoffMessage,
-  isDecisionEscalate
+  isDecisionEscalate,
+  implementationNotesProblems
 } from './guards.mjs';
 import { gitAt, syncFeatureWithBase } from './sync-base.mjs';
 
@@ -151,6 +152,7 @@ const metrics = createMetricsCollector({
         planLanded
       );
       planRan = true;
+      if (!AUDIT) assertTicketSkeleton();
     } else {
       log(`plan already done (${AUDIT ? `open PR for ${BRANCH}` : TICKET}) — skipping PLAN`);
     }
@@ -187,6 +189,7 @@ const metrics = createMetricsCollector({
       fail(
         `no parseable "## EXECUTION STATE" steps in ${TICKET} (audit/report task? use MODE=plan)`
       );
+    warnTicketSkeleton(steps);
 
     const open = steps.filter(s => !s.checked);
     if (open.length > 0) {
@@ -574,6 +577,35 @@ function readSteps() {
     steps.push({ n, size: (step[2] || 'M').toUpperCase(), checked: box[1].toLowerCase() === 'x' });
   }
   return steps.sort((a, b) => a.n - b.n); // ascending step order — never trust the ticket's line order
+}
+
+function ticketSkeletonProblems(steps = readSteps() || []) {
+  return implementationNotesProblems(
+    readFileSync(TICKET, 'utf8'),
+    steps.map(s => s.n)
+  );
+}
+
+// Deterministic backstop for the plan-reviewer's skeleton criterion, applied where the defect is
+// made: a ticket without `## IMPLEMENTATION NOTES › ### Step N` gives the Refactorer nowhere to
+// record its decisions, and no later phase adds the headings. Fails loudly right after Plan lands
+// — like the malformed EXECUTION STATE line above, never a silent skip.
+function assertTicketSkeleton() {
+  const problems = ticketSkeletonProblems();
+  if (problems.length === 0) return;
+  fail(
+    `${TICKET}: ${problems.join('; ')} — add the "## IMPLEMENTATION NOTES" skeleton (one "### Step N" with "_none yet_" per EXECUTION STATE step, see .cursor/agents/architect.md), push, then re-dispatch with the same session_id.`
+  );
+}
+
+// Execute only reports: a ticket planned before the gate existed must keep running, but the
+// missing record should be visible in the job log while the maintainer can still add it between
+// batches.
+function warnTicketSkeleton(steps) {
+  for (const problem of ticketSkeletonProblems(steps))
+    log(
+      `⚠️ ${TICKET}: ${problem} — Refactorer decisions for these steps have nowhere to go; add the skeleton between batches.`
+    );
 }
 
 function nextBatch(open) {

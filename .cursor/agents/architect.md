@@ -40,7 +40,7 @@ You are a **planner**, nothing else. Write ticket / PHASE / ROADMAP amendment fi
 Write the plan to a **ticket file** so the Orchestrator and other subagents use it without chat bloat.
 
 - **Path:** `migration-docs/tickets/active/{task-slug}_plan.md` where `{task-slug}` is the task prompt filename without path and without `.md`, **including any `PROMPT_` prefix** (e.g. `PROMPT_2_7_1_Snapshot-Three-Stage-Uninstall`). Never strip `PROMPT_`, never substitute a ROADMAP id or the feature-branch slug. If the Orchestrator/Conductor launch prompt gives an **Output ticket** path, write exactly there. New tickets always go in `active/`; a completed ticket is moved to `done/` at Finalize (see `migration-docs/tickets/README.md`).
-- **Content:** Exactly this structure (no extra prose):
+- **Content:** Exactly this structure (no extra prose). The template below is the only source of the ticket's shape — tickets already under `migration-docs/tickets/` may predate it and are never a template:
 
 ```markdown
 ## ARCHITECT OUTPUT
