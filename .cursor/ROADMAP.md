@@ -93,9 +93,11 @@ Canonical: [`.cursor/rules/pagekit.mdc`](rules/pagekit.mdc) § DX. Thin DI-backe
 | 2.7.1  | ↳ Snapshot & Three-Stage Uninstall    | ✅     | 🛡️    | #267  | #277    |
 | 2.7.1a | ↳ Atomic MySQL Restore (Shadow Cut-over) | ⏳  | ⏳    | #281  | -       |
 | 2.7.1b | ↳ Package Module Boundary             | ⏳     | ⏳    | #287  | -       |
+| 2.7.1c | ↳ Runtime Composer Removal            | ⏳     | ⏳    | -     | -       |
 | 2.7.2  | ↳ Module Dependency Integrity         | ⏳     | ⏳    | #268  | -       |
 | 2.7.3  | ↳ Static Module Registration          | ⏳     | ⏳    | #266  | -       |
 | 2.7.4  | ↳ Standard Composer Layout (vendor/)  | ⏳     | ⏳    | #271  | -       |
+| 2.7.5  | ↳ Data Directory (data/)              | ⏳     | ⏳    | -     | -       |
 | 2.8    | Extension Packaging & Prebuilt Assets | ⏳     | ⏳    | -     | -       |
 | 2.9    | Automated Update System               | ⏳     | ⏳    | -     | -       |
 | 2.10   | **PHP 8.4+ Language & DX Hardening**  | ⏳     | ⏳    | -     | -       |

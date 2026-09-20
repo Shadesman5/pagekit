@@ -403,7 +403,15 @@ None.
 
 ## 🧊 Parked (unplanned)
 
-None.
+Found in the post-close review of this doc against the code. None of these was in the ticket; each is recorded with the ROADMAP step whose area it belongs to.
+
+- **Restore does not reconcile Composer's record.** Every package installed through the panel is a Composer package — the upload path installs the ZIP through the `artifact` repository on `tmp/packages` (`Helper\Composer`), not only the marketplace path — so a soft uninstall runs `composer->uninstall()` and Composer rewrites `packages/composer/installed.json` and the `autoload_*.php` maps without it. `restore()` puts the tree back and applies the dump but writes neither (decision: "`installed.json` is captured, not restored"). Convention packages still autoload through the module manifest (`'autoload'` in `index.php`); what is lost is Composer's bookkeeping: `Composer::isInstalled()` is false for the restored package, a later removal goes the plain-delete path, and a later install of the same name meets a directory Composer does not own. Not fixable by copying the captured file back (that would drop every package installed since). Resolved by removing Composer from the runtime altogether — packages arrive built and are registered from their manifest — so the capture, the `composer` flag and `INSTALLED_FILE` go with it → **2.7.1c**.
+- **Restore across a version boundary is unguarded.** Metadata records the package version, not the running application version (`PackageSnapshotter::details()`). The dump is a whole-database revert with DDL recreate: a core or extension updated between snapshot and restore gets its schema and `packages.*` version key reverted while its code stays new. Core re-migrates on the next admin request (`app/system/index.php` version check); extensions only migrate on `enable()`. → **2.7.2** pre-flight before restore + the metadata field.
+- **No console path to list / restore / purge.** `php pagekit uninstall` shares the pipeline; the recovery direction has no command, so a site whose panel is down has no way to a snapshot. Belongs with the step that moves the admin JSON endpoints onto the versioned API (**4.4**): snapshot resources plus `snapshot:*` console commands over the same `PackageSnapshotter`, so console and API share one surface.
+- **Whole-database dump per package removal; tables of a purged package stay for good.** Purge deletes the snapshot directory only; PHASE's "code/data soft-removed → purge" was redefined here to "tables stay, the package's own hook decides". Package-scoped dump/restore and purge-with-tables both need "which tables does this module own" — the 2.7.2 data-risk output. → information in **2.7.2**, decision with the platform that owns module data lifecycle (**5.0**).
+- **Retention window has no UI.** `snapshots.retention_days` is module config; the snapshots page shows it and offers no input, so an administrator changes it only through the database. Belongs with the settings surface of the versioned API (**4.4**).
+- **An update must not sweep the store.** `tmp/snapshots` and `tmp/system` sit under `tmp/`, which only the production image protects (data-volume link); the classic ZIP distribution has no volume. The update path (**2.9**) — the updater's clean-pass and the manual unzip instructions alike — must name `tmp/snapshots`, `tmp/system`, `storage/`, `config.php` as data that is never overwritten or removed. The rollback contract already deferred to §2.9 above adds: `REASON_UPDATE` is reserved and does not exist yet; MySQL restore is the 2.7.1a cut-over; update-time snapshots fall under the same retention.
+- **Locale catalogues** still key the pre-`<br>` msgids and lack the new strings; translations for those fall through to English until the catalogues are regenerated (**3.3.6**).
 
 ---
 
@@ -433,7 +441,7 @@ None.
 
 ## 📎 Related Documents
 
-- Ticket: `migration-docs/tickets/active/PROMPT_2_7_1_Snapshot-Three-Stage-Uninstall_plan.md` → moves to `migration-docs/tickets/done/` as part of this Finalize
+- Ticket: `migration-docs/tickets/done/PROMPT_2_7_1_Snapshot-Three-Stage-Uninstall_plan.md`
 - Task prompt: `migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_7_1_Snapshot-Three-Stage-Uninstall.md`
 - Predecessor: Step 2.7 — Extension Safety System
 - Successor: Step 2.7.1a — Atomic MySQL Restore (Shadow Cut-over); then Step 2.7.2 — Module Dependency Integrity

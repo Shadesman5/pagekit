@@ -9,7 +9,7 @@
 ## CONTEXT
 
 - **Land after:** Step 2.7.1a (#281) — it rewrites `DatabaseRestorer`, one of the files this step relocates. Moving a file mid-rewrite buys nothing and costs a merge. If 2.7.1a has not merged, STOP and sequence correctly.
-- **Land before:** Step 2.7.2 (#268) and Step 2.7.3 (#266). A dependency graph cannot honestly fail closed while `system` and the package code need each other in code and may not say so in the manifest; and static manifests should not be written for a module whose boundary is about to move.
+- **Land before:** Step 2.7.1c (it deletes the Composer helper and the marketplace package surface in the module this step creates — a behaviour change that must not ride on a relocation), Step 2.7.2 (#268) and Step 2.7.3 (#266). A dependency graph cannot honestly fail closed while `system` and the package code need each other in code and may not say so in the manifest; and static manifests should not be written for a module whose boundary is about to move.
 - **Provides:** an extension contract under a namespace that names it, a module dependency graph with one direction, and an `installer` module that is the installer.
 - **Risk:** Medium — wide mechanical blast radius (imports across the tree plus tooling config), but no logic change. The only design decision is where the extension failure record lands.
 - **Goal:** The package registry, the lifecycle contract, `PackageManager`, the snapshot engine and the Composer helper live in a module of their own. `installer` shrinks to the setup wizard plus the marketplace / self-update clients. No import below the new module points back at `Pagekit\System\`.
@@ -133,6 +133,7 @@ Sizing hints: (3) is the only design decision; (2), (4) and (5) are mechanical b
 
 - **Dividing `PackageManager`.** Its size is a separate problem and a relocation does not split a file. Do not take the opportunity.
 - **Marketplace client, update controller, self-updater.** They stay in `installer` untouched — they are on the removal path.
+- **Removing the runtime Composer path and the marketplace package surface** → Step 2.7.1c. The helper moves here and is deleted there.
 - **Any behaviour change.** New guards, better errors, tightened validation: all out. This step moves code.
 - **Rewriting the comments in the files that move.** The snapshot and package docblocks predate the current comment-prose rule and do not satisfy it. Shortening them here would bury the move in a diff nobody can review, and the sweep is owned elsewhere.
 - **Static module manifests / discovery** → Step 2.7.3.
@@ -172,7 +173,7 @@ Sizing hints: (3) is the only design decision; (2), (4) and (5) are mechanical b
 
 - **This is a boundary, not a refactor.** The temptation to fix things while the files are open is the main risk to the step. Everything that is not "same code, new home" is out.
 - **The one-way grep is the design.** If the plan cannot state a check that proves the direction, the plan has not decided where the failure record goes.
-- **The Composer helper is the trap.** Leaving it in `installer` reverses the cycle instead of removing it.
+- **The Composer helper is the trap.** Leaving it in `installer` reverses the cycle instead of removing it. Move it; do not delete it here — 2.7.1c deletes it in the module it lands in.
 - **The admin surface travels with its manifest.** Splitting routes, menu and permissions across two modules costs more than it saves, and the Vue half is deleted by the admin rebuild anyway.
 - **Do not regenerate the PHPStan baseline.** Edit the 24 paths.
 - **The Verifier will meet essays it did not write.** `pagekit.mdc` § Prose fails three or more sentences of design rationale in one comment block, and the docblocks this step relocates are full of exactly that. They arrive unchanged and are not a finding against this step — state that in the ticket, so a pure move is not failed for prose it inherited.
