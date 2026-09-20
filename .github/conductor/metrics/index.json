@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-08-25T18:44:08.138Z",
+  "updatedAt": "2026-09-20T21:26:11.657Z",
   "steps": {
     "unknown": {
       "title": "AGENT_PROMPT_AUDIT_TECH_DEBT_INVENTORY",
@@ -200,6 +200,13 @@
       "sessionIds": [
         "436924f7-6018-420b-9f3f-639374a915ab",
         "5933c2cc-6db1-47a1-a2b8-f1c752359ee1"
+      ]
+    },
+    "2.7.1a": {
+      "title": "Step 2.7.1a: Atomic MySQL Restore",
+      "latestSessionId": "cf51e995-21a2-411b-bab2-0e25e4a366c4",
+      "sessionIds": [
+        "cf51e995-21a2-411b-bab2-0e25e4a366c4"
       ]
     }
   },
