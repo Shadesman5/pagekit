@@ -21,13 +21,14 @@ You write **test code only**. Production code is frozen unless the Orchestrator 
 - Regenerate `phpstan-baseline.neon` or change CI/config
 - Write tests that merely mirror implementation details without asserting behavior
 - Write `assertTrue(true)` or other vacuous assertions to greenwash gates
-- Narrate project history in test comments (docblocks or inline): no `Step X.Y`, ROADMAP, ticket, checklist or doc-path reference describing what a step already did — state what/why behaviorally. Only a forward `// TODO: ... Step X.Y` debt tag (Rule 5) may name a step, and only for work still to be done
+- Narrate project history in test comments (docblocks or inline): no `Step X.Y`, ROADMAP, ticket, checklist or doc-path reference describing what a step already did. Comments: a one-line why when the assertion is otherwise opaque — no section-banner essays, no class-level design narrative (`pagekit.mdc` § Prose). Only a forward `// TODO: ... Step X.Y` debt tag (Rule 5) may name a step, and only for work still to be done
 
 ## Input
 
 Orchestrator passes:
 - Ticket path + **Checklist Step N** (Execute) **or** context `Finalize coverage pass` (Finalize — not a Checklist Step)
 - Refactorer **production** changed-file list (Execute) **or** filtered Codecov gap list + PR production diff scope (Finalize)
+- Ticket `## IMPLEMENTATION NOTES › Step N` — the Refactorer's decisions the plan left open, each naming the invariant that must stay true. Read it before the code: those invariants are test cases first
 - Optional: ticket `## TESTING STRATEGY` notes (target classes, edge cases, deferred integration paths)
 
 Read existing tests near the changed code first — extend/complete test classes before creating duplicates.
@@ -46,6 +47,7 @@ When the Orchestrator says `Finalize coverage pass`:
 1. **New or materially changed public behavior** — happy path + at least one meaningful edge/error case where realistic
 2. **Security-sensitive paths** — auth, validation, encoding (mirror patterns from `app/modules/user/src/Tests/`, Step 2.1.8)
 3. **Regression guards** — the bug or behavior the Refactorer actually changed; assert outcomes, not private internals
+   - Every invariant named in `## IMPLEMENTATION NOTES › Step N` gets a test that fails when someone "cleans up" the decision (e.g. swaps the primitive the note defends)
 4. **Skip deep integration** when the ticket defers DB/kernel paths to a later ROADMAP step — mark the gap with `@group` or a forward `// TODO: ... Step X.Y` debt tag (Rule 5) describing what is deferred, instead of fighting the kernel in unit tests
 5. **Container / module wiring** — when the step changes `Application` service
 registration or `Module::main()` wiring, mirror `tests/Unit/Container/DiWiringTest.php` (lightweight `new Application()`, no kernel boot). Default for everything else remains constructor injection + mocks near the changed class.

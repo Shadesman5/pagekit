@@ -1,0 +1,5 @@
+# Deny access to the snapshots kept here. Each one holds a dump of the whole
+# database, so this directory lies outside the webroot and nothing in it is
+# reachable to begin with; the denial holds for an installation whose document
+# root was pointed at the application instead.
+Require all denied

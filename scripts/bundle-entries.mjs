@@ -30,6 +30,7 @@ const groups = [
       installer: 'app/views/installer.vue',
       extensions: 'app/views/extensions.js',
       marketplace: 'app/views/marketplace.js',
+      snapshots: 'app/views/snapshots.js',
       themes: 'app/views/themes.js',
       update: 'app/views/update.js'
     }

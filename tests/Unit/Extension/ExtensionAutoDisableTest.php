@@ -32,7 +32,10 @@ use PHPUnit\Framework\TestCase;
  *
  * The theme keeps its own posture throughout. It is recorded like anything else
  * and the site falls back to a blank layout, but the enabled extensions are none
- * of a theme failure's business.
+ * of a theme failure's business. Once it has failed on enough requests in a row
+ * the boot stops executing it, and what the site serves is that same fallback -
+ * reached without running the theme into its failure first. The setting stays as
+ * the administrator left it either way.
  */
 final class ExtensionAutoDisableTest extends TestCase
 {
@@ -151,6 +154,44 @@ final class ExtensionAutoDisableTest extends TestCase
         self::assertInstanceOf(Module::class, $theme);
         self::assertSame('theme-default', $theme->name);
         self::assertSame('views:system/blank.php', $theme->get('layout'));
+    }
+
+    public function testAThemeThatFailedTooOftenIsNotExecutedByTheBootAtAll(): void
+    {
+        $store = new ExtensionFailureStore($this->path, new Filesystem());
+
+        for ($failure = 1; $failure <= ExtensionFailureStore::PAUSE_THRESHOLD; $failure++) {
+            self::assertTrue($store->record('fixture-main-throwing', ExtensionFailureStore::TYPE_THEME, new \RuntimeException('The module could not be loaded')));
+        }
+
+        $config = new ConfigManagerThatRecords(['fixture-healthy']);
+
+        $app = $this->boot(
+            extensions: ['fixture-healthy'],
+            theme: 'fixture-main-throwing',
+            config: $config,
+            systemPath: $this->path,
+        );
+
+        // What the site serves is what it serves after any failed theme: the
+        // blank layout, with the admin panel's own theme untouched and the rest
+        // of the installation up. What it no longer does is run the theme into
+        // its failure first, on this request and on every request after it.
+        $theme = $app->get('theme');
+
+        self::assertInstanceOf(Module::class, $theme);
+        self::assertSame('theme-default', $theme->name);
+        self::assertSame('views:system/blank.php', $theme->get('layout'));
+
+        self::assertSame([], $this->log->getRecords());
+        self::assertSame(ExtensionFailureStore::PAUSE_THRESHOLD, $store->all()['fixture-main-throwing']['count']);
+        self::assertInstanceOf(Module::class, $app->get('module')->get('fixture-healthy'));
+
+        // The theme is still the one the administrator selected. Writing a
+        // different one into the configuration would be this boot overruling a
+        // deliberate choice on a visitor-facing request, and it is also what
+        // would leave nothing to enable again.
+        self::assertSame([], $config->persisted);
     }
 
     public function testASiteThatCannotWriteItsConfigurationStillFinishesBooting(): void

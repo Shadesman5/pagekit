@@ -7,6 +7,7 @@ export default {
       updatePkg: {},
       output: '',
       status: 'loading',
+      warnings: [],
       options: () => ({
         bgClose: false,
         escClose: false
@@ -36,11 +37,28 @@ export default {
 
       if (match) {
         this.status = match[1];
-        delete lines[lines.length - 1];
-        this.output = lines.join('\n');
-      } else {
-        this.output = output;
+        lines.pop();
       }
+
+      // A step that failed without failing the operation says so on a line of
+      // its own. It is shown as what it is instead of being left in the log,
+      // and the whole response is re-read on every progress event, so the set
+      // is rebuilt rather than added to.
+      const warnings = [];
+
+      this.output = lines
+        .filter(line => {
+          const warning = line.match(/^warning=(.+)$/);
+
+          if (warning) {
+            warnings.push(warning[1]);
+          }
+
+          return !warning;
+        })
+        .join('\n');
+
+      this.warnings = warnings;
     },
 
     open() {

@@ -111,11 +111,17 @@ _TBD / None_
 
 ## 🧊 Parked (unplanned)
 
+<!-- Filled by the post-close review after Finalize: what the finished work left unowned,
+     one bullet per finding with the ROADMAP step whose area it belongs to. Doc-writer leaves None. -->
+
 _TBD / None_
 
 ---
 
 ## 🧹 Cleanup
+
+<!-- Removed in passing (deleted files, dropped baseline/ignore entries, dead code). Doc-writer from
+     the handover; the post-close review adds what the diff shows and the handover missed. -->
 
 _TBD / None_
 
@@ -123,17 +129,26 @@ _TBD / None_
 
 ## 🛡️ Audit
 
+<!-- No-Mercy leftovers of the shipped diff that have no owner (forward-debt tags, added baseline
+     entries, ANOMALIES patterns), each with the ROADMAP step that resolves it. Post-close review. -->
+
 _TBD / None_
 
 ---
 
 ## 🎁 Bonus
 
+<!-- Work delivered beyond the ticket. Doc-writer from the handover; the post-close review adds
+     what the diff shows and the handover missed. -->
+
 _TBD / None_
 
 ---
 
 ## 🔍 Research
+
+<!-- The verified facts behind each DECISION the post-close review raised — symbols, call chain,
+     what each exit deletes or adds — so the maintainer can decide without re-reading the tree. -->
 
 _TBD / None_
 

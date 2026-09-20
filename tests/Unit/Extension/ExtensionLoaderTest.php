@@ -36,9 +36,30 @@ use Psr\Log\LoggerInterface;
  * administrator's setting, so a failing one is logged and recorded but never
  * switched off, and it is tried again on the request after it - which is also
  * how it comes off the record once it works again.
+ *
+ * Tried again, not tried forever. A theme that fails the way it was written to
+ * work - on a query, a remote call, a file it parses - charges every request for
+ * the attempt, from whoever happens to be asking, for as long as nobody notices.
+ * After enough failures in a row it is left unexecuted, which costs the site the
+ * same blank layout a failed load costs it and nothing else. What gets it tried
+ * again is an administrator enabling it, which takes it off the record.
  */
 final class ExtensionLoaderTest extends TestCase
 {
+    /**
+     * The name the record has on disk, which a test putting an entry on it that
+     * the store did not write has to write itself.
+     */
+    private const FILE = 'extension-failures.json';
+
+    /**
+     * Where the counting fixture leaves how often it was executed. It writes it
+     * into the container the boot hands to a module's own code.
+     */
+    private const EXECUTIONS = 'fixture-main-counting.executions';
+
+    private Application $app;
+
     private ModuleManager $modules;
 
     private Logger $logger;
@@ -63,8 +84,7 @@ final class ExtensionLoaderTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->modules = new ModuleManager(new Application());
-        $this->modules->register($this->fixtures('healthy', 'second', 'main-throwing', 'main-erroring'));
+        $this->registerModules('healthy', 'second', 'main-throwing', 'main-erroring');
 
         $this->log = new TestHandler();
         $this->logger = new Logger('log');
@@ -243,6 +263,120 @@ final class ExtensionLoaderTest extends TestCase
         self::assertStringContainsString('could not be taken off the failure record', $messages[0]);
     }
 
+    public function testAThemeThatFailsOnEveryRequestIsTriedAFewTimesAndThenLeftAlone(): void
+    {
+        $store = $this->store();
+        $this->modules->register($this->fixture('main-counting'));
+
+        // A module that fails is never registered as loaded, so the manager
+        // executes it again on every call exactly as the next request's manager
+        // would. What carries across those requests is the record on disk,
+        // which is the only thing that can decide when to stop.
+        for ($request = 1; $request <= ExtensionFailureStore::PAUSE_THRESHOLD + 3; $request++) {
+            $this->loader($store)->load([], 'fixture-main-counting');
+        }
+
+        // A theme fails the way it was written to work - on a query, a remote
+        // call, a file it parses - and that is what stops being paid for. The
+        // requests after the last attempt still get their answer: the same
+        // blank layout a failed load leaves behind, without the failure.
+        self::assertSame(ExtensionFailureStore::PAUSE_THRESHOLD, $this->executions());
+        self::assertCount(ExtensionFailureStore::PAUSE_THRESHOLD, $this->log->getRecords());
+        self::assertSame(ExtensionFailureStore::PAUSE_THRESHOLD, $store->all()['fixture-main-counting']['count']);
+    }
+
+    public function testAThemeThatIsPausedIsNotExecutedEvenThoughItWouldLoadNow(): void
+    {
+        $store = $this->store();
+        $this->recordFailures($store, 'fixture-healthy', ExtensionFailureStore::TYPE_THEME, ExtensionFailureStore::PAUSE_THRESHOLD);
+
+        $this->loader($store)->load([], 'fixture-healthy');
+
+        // Whether a theme works again is established by loading it, and this
+        // barrier is the only place that ever does. A paused one is therefore
+        // not asked - finding out is exactly what costs the request - and an
+        // intact theme left unexecuted is what that looks like from here.
+        self::assertSame([], $this->loaded());
+        self::assertSame([], $this->log->getRecords());
+
+        // Nothing was tried, so there is nothing new to record either: a
+        // request that did no work does not walk the count further up.
+        self::assertSame(ExtensionFailureStore::PAUSE_THRESHOLD, $store->all()['fixture-healthy']['count']);
+    }
+
+    public function testAThemeThatLoadsOneFailureShortOfThePauseComesOffTheRecord(): void
+    {
+        $store = $this->store();
+        $this->recordFailures($store, 'fixture-healthy', ExtensionFailureStore::TYPE_THEME, ExtensionFailureStore::PAUSE_THRESHOLD - 1);
+
+        $this->loader($store)->load([], 'fixture-healthy');
+
+        // Up to the threshold the theme is tried as it always was, and a theme
+        // that loads is a theme that is no longer broken. Its record goes, and
+        // with it the count - so a failure after this one is a first failure
+        // rather than the one that pauses the theme.
+        self::assertSame(['fixture-healthy'], $this->loaded());
+        self::assertSame([], $store->all());
+    }
+
+    public function testAThemeTakenOffTheRecordIsTriedAgainRatherThanStayingPaused(): void
+    {
+        $store = $this->store();
+        $this->recordFailures($store, 'fixture-healthy', ExtensionFailureStore::TYPE_THEME, ExtensionFailureStore::PAUSE_THRESHOLD);
+
+        $this->loader($store)->load([], 'fixture-healthy');
+
+        self::assertSame([], $this->loaded());
+
+        // Enabling the theme again is the way back, and clearing the record is
+        // what that does. Without it an administrator who fixed the cause would
+        // have no way to find out that they had - the site would stay on the
+        // blank layout with the theme still selected.
+        self::assertTrue($store->clear('fixture-healthy'));
+
+        $this->loader($store)->load([], 'fixture-healthy');
+
+        self::assertSame(['fixture-healthy'], $this->loaded());
+        self::assertSame([], $this->log->getRecords());
+    }
+
+    public function testAThemeRecordedBeforeTheCountExistedIsTriedRatherThanPaused(): void
+    {
+        // An installation upgrading into the count has entries on record that
+        // never carried one. Reading them as enough failures to pause would
+        // pause a site's theme over the upgrade itself.
+        $this->recordWithoutACount('fixture-main-throwing', ExtensionFailureStore::TYPE_THEME);
+
+        $store = $this->store();
+
+        $this->loader($store)->load([], 'fixture-main-throwing');
+
+        self::assertCount(1, $this->log->getRecords());
+
+        // One failure is what such an entry stands for - it was written by a
+        // module that failed - so this request is the second, and the theme is
+        // that much closer to being left alone rather than back at the start.
+        self::assertSame(2, $store->all()['fixture-main-throwing']['count']);
+    }
+
+    public function testAnExtensionIsNotGivenTheAttemptsAThemeGets(): void
+    {
+        $store = $this->store();
+
+        $store->record('fixture-main-throwing', ExtensionFailureStore::TYPE_EXTENSION, new \RuntimeException('the fault of the request before'));
+        $store->record('fixture-healthy', ExtensionFailureStore::TYPE_THEME, new \RuntimeException('the fault of the request before'));
+
+        $this->loader($store)->load(['fixture-main-throwing'], 'fixture-healthy');
+
+        // One failure is the end of it for an extension: it was taken out of
+        // the enabled list, and an extension on the record is not executed at
+        // all. The threshold belongs to the theme alone, which is the one
+        // module executed while it is on the record.
+        self::assertSame(['fixture-healthy'], $this->loaded());
+        self::assertSame([], $this->log->getRecords());
+        self::assertSame(['fixture-main-throwing'], array_keys($store->all()));
+    }
+
     public function testAFailureIsRecordedEvenWhenTheExtensionCouldNotBeDisabled(): void
     {
         $store = $this->store();
@@ -275,8 +409,7 @@ final class ExtensionLoaderTest extends TestCase
         // the same one. A fresh manager stands in for that request: what it is
         // asked to execute is what reached the disk, not what the request before
         // it held.
-        $this->modules = new ModuleManager(new Application());
-        $this->modules->register($this->fixtures('healthy', 'main-throwing'));
+        $this->registerModules('healthy', 'main-throwing');
         $this->log->clear();
 
         $this->loader($this->store())->load($enabled, null);
@@ -401,6 +534,68 @@ final class ExtensionLoaderTest extends TestCase
     private function store(): ExtensionFailureStore
     {
         return new ExtensionFailureStore($this->path, new Filesystem());
+    }
+
+    /**
+     * Puts a module on the record as many times as it failed, the way one
+     * request after another does.
+     *
+     * @param ExtensionFailureStore::TYPE_* $type
+     */
+    private function recordFailures(ExtensionFailureStore $store, string $name, string $type, int $failures): void
+    {
+        for ($failure = 1; $failure <= $failures; $failure++) {
+            self::assertTrue(
+                $store->record($name, $type, new \RuntimeException('the fault of the request before')),
+                'The record is what the next boot reads, so it has to be on disk before the load',
+            );
+        }
+    }
+
+    /**
+     * Puts an entry on the record that carries no count, as every entry written
+     * before there was one does.
+     *
+     * @param ExtensionFailureStore::TYPE_* $type
+     */
+    private function recordWithoutACount(string $name, string $type): void
+    {
+        if (!is_dir($this->path)) {
+            mkdir($this->path, 0755, true);
+        }
+
+        file_put_contents($this->path.'/'.self::FILE, (string) json_encode([
+            $name => [
+                'name' => $name,
+                'type' => $type,
+                'class' => \RuntimeException::class,
+                'message' => 'the fault of the request before',
+                'file' => '/app/packages/pagekit/blog/index.php',
+                'line' => 7,
+                'time' => 1700000000,
+            ],
+        ], JSON_FORCE_OBJECT));
+    }
+
+    /**
+     * How often the counting fixture ran its own code, which is what every
+     * request pays for as long as a broken theme keeps being tried.
+     */
+    private function executions(): int
+    {
+        return $this->app->has(self::EXECUTIONS) ? (int) $this->app->get(self::EXECUTIONS) : 0;
+    }
+
+    /**
+     * The module manager of one request, over a container of its own: what a
+     * boot loaded and what a module left behind stay in both, so a request
+     * standing in for the next one needs new ones.
+     */
+    private function registerModules(string ...$fixtures): void
+    {
+        $this->app = new Application();
+        $this->modules = new ModuleManager($this->app);
+        $this->modules->register($this->fixtures(...$fixtures));
     }
 
     /**

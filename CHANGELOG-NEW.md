@@ -1,5 +1,45 @@
 # Changelog
 
+## Pagekit 1.2.40 - Snapshot & Three-Stage Uninstall (August 25, 2026)
+
+### 💥 Breaking Changes
+
+- **Uninstall keeps a restorable snapshot instead of deleting the package with no way back** — a successful removal still takes the tree out of `packages/` (Composer-managed packages included), but only after a dump of the database, the package files, and (when Composer installed it) `installed.json` has landed. Purge, or the retention window, is what destroys that copy. An installation with no snapshot store still removes unsnapshotted; the confirm no longer claims a snapshot was taken. (Closes #267)
+- **`$notify` shows its message as text, not markup** — disable warnings, package titles, and server strings are HTML-escaped on the UIkit path and written with `textContent` on the DOM fallback. The enable-fatal copy dropped its `<br>` tags rather than keep markup the helper would now show as text.
+- **A production container whose `tmp/snapshots` is not the image's link into `$PAGEKIT_DATA_DIR` will not start** — a real directory (or any other non-link) at that name, a link that cannot be made, or a store uid 33 cannot write through, stops the entrypoint instead of keeping snapshots in container-local `tmp/` that an image roll would throw away.
+
+### ✨ Added
+
+- **Snapshot store under `path.snapshots` (`tmp/snapshots/`)** — owner-only directories, JSON metadata via `dumpAtomic()`, id allowlist, completeness mark, list/get/delete/expiry. Never DocRoot, never swept by cache/temp clear.
+- **Pure-PHP database dump and restore** — versioned JSON-lines of prefix-scoped tables, SQLite and MySQL (MariaDB counted as MySQL). SQLite restore is transactional; MySQL restore is not (retry from the dump still on disk). Same driver family only.
+- **`PackageSnapshotter`** — `create` / `restore` / `purge` / `purgeExpired` / `list`. Snapshot-before-uninstall: a failed snapshot aborts with the package untouched.
+- **Snapshots admin page** — System → Snapshots (`system: manage packages`, CSRF on restore/purge/purge-expired). Restore is a whole-database revert with an explicit confirm; purge is irreversible.
+- **Staged uninstall modal** — names the snapshot first, then runs the existing streamed endpoint; hook-failure warnings surface as `warning=` lines (uninstall) and a `warnings` array (disable).
+- **Theme circuit breaker** — after 3 consecutive recorded failures the loader skips the theme; `theme-default` / blank layout still serves; enable is the reset. Failure-store `record`/`clear`/`restore` hold a sidecar lock for the whole read-modify-write.
+
+### ♻️ Changed
+
+- **`php pagekit uninstall` shares the panel's snapshot-first pipeline** — it used to TypeError on construction (`OutputInterface` where `ContainerInterface` is required).
+- **Retention is prune-on-create** — default 30 days (`snapshots.retention_days`); `create()` reclaims expired snapshots first; the snapshots page can also purge expired. No scheduler, no silent size cap.
+- **Production snapshots live on the data volume** — `tmp/snapshots` is a link into `$PAGEKIT_DATA_DIR/snapshots`, so an image roll or `compose down`/`up` does not delete the only copy of a removed package.
+
+### 🐛 Fixed
+
+- **An `\Error` from snapshot or file-removal no longer leaves the uninstall modal spinning** — `uninstallAction` catches `\Throwable`, still rebuilds cache and streams hook warnings, and always writes `status=`. An `\Error` is logged and the page is told to see the error log; an `\Exception` still streams its administrator-facing message.
+- **A snapshot store that exists but cannot be written no longer looks ready** — the entrypoint probes write access through the link (not only `mkdir -p` / `ln -sfn`) and refuses to start when uid 33 cannot write it.
+
+### ❌ Removed
+
+- **One-shot `v-confirm` uninstall on extensions and themes** — the staged modal owns the confirmation.
+
+### 🔒 Security
+
+- **Dumps never leave the store** — restore/purge are admin-only and CSRF-checked; responses carry metadata + size + expires, never dump contents; traversal / unknown ids are `400` without echoing the value; hook warnings name the hook and the title, never the throwable. An `\Error` on the uninstall stream is logged, not echoed.
+- **`$notify` cannot interpolate markup** — disable warnings, package titles, and server strings are shown as text.
+- **`composer/composer` 2.10.2 → 2.10.3** — clears CVE-2026-84361 (command execution via a malicious package Perforce source URL). Constraint raised to `^2.10.3`.
+
+---
+
 ## Pagekit 1.2.39 - Pages deploy queue & V1 metrics reuse (August 13, 2026)
 
 ### ♻️ Changed

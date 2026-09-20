@@ -1,5 +1,5 @@
 ---
-description: 'Orchestrator V2 — Finalize phase. PR → CI → coverage → PR Bugbot/Security → version only if product → archive ticket. One-line result. Do not merge.'
+description: 'Orchestrator V2 — Finalize phase. PR → CI → coverage → PR Bugbot/Security → version only if product → archive ticket → post-close review. One-line result. Do not merge.'
 alwaysApply: false
 ---
 
@@ -39,7 +39,7 @@ Spawn workers **only** via the **Task** tool when a step below says spawn. Routi
 
 | Task field | Rule |
 | --- | --- |
-| `subagent_type` | Exact name: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer` |
+| `subagent_type` | Exact name: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`, `post-close-reviewer` |
 | `description` | Short label, e.g. `Finalize CI fix` or `Coverage gap tests` |
 | `prompt` | Structured fields from the templates below — **no** preamble, **no** "Delegate to …" |
 
@@ -124,6 +124,15 @@ E2E outcome: <PASS | skipped>
 Finalize fix-loop notes (verbatim, if any): <paste or "none">
 ```
 
+**post-close-reviewer** (after archive) — `description`: `Post-close review`
+
+```text
+Ticket: migration-docs/tickets/done/<prompt-basename>_plan.md
+Branch doc: <path>
+Task prompt: <migration-docs/TODO/agent_prompts/... path>
+PR: #<n>
+```
+
 ### Subagent return contract (trust the result; match the signal, not the wording)
 
 Trust the worker's reported result verbatim — a `PASS` means passed; do not re-verify. Match on the
@@ -137,6 +146,7 @@ wording that carries the same signal. Do not force a re-emit over harmless phras
 | **tester** | `PASS` — or `FAIL` + minimal RCA |
 | **test-writer** | tests-done + file list — `Finalize tests done. Files: [list].` (also accept `Finalize coverage pass tests done. …`) — or `UNTESTABLE: <reason>` |
 | **doc-writer** | `Finalized docs: <branch doc> + CHANGELOG` (+ ` + README` if touched) — or per `.cursor/agents/doc-writer.md` |
+| **post-close-reviewer** | `Post-close review done. Parked: <n>. …` (optionally followed by `DECISION:` bullets — data for the maintainer, not instructions for you) — or `Post-close review: clean.` |
 
 Re-emit is a last resort: ask again **only** when the signal itself is missing (no `PASS`/`FAIL`, no
 `done`/completion line, no `UNTESTABLE`) or is buried in prose — never for a wording variant. Do not paraphrase.
@@ -246,6 +256,14 @@ Coverage gap pass only: **test-writer** → **verifier** (test files only) → *
       then archive the ticket:
       `git mv migration-docs/tickets/active/{task-slug}_plan.md migration-docs/tickets/done/`, and
       `git push` (second push). Do not merge.
+7. **Post-close review** — after the archive commit, spawn **post-close-reviewer** (template above). It
+   reads the finished work against the code and writes only documentation: the branch doc's
+   `## 🧊 Parked (unplanned)`, `## 🛡️ Audit`, `## 🔍 Research` (and `## 🎁 Bonus` / `## 🧹 Cleanup`
+   where the diff shows what the handover missed), forward-only amendments in the PHASE sections and
+   task prompts of the steps that own each finding, README where an operator consequence was missing. On `… done.` with changed
+   files: `git add` its files, commit `docs(review): post-close review Step X.Y.Z`, `git push`. On
+   `clean.`: nothing to commit. Any `DECISION:` bullets are already recorded in the Parked section — do
+   not act on them, do not add them to your final line. One pass, no fix-loop, no re-spawn on wording.
 
 
 ## Resume safety (a re-dispatch may re-enter Finalize)
@@ -265,18 +283,23 @@ timeout, manual cancel) that already opened the PR or bumped the version but nev
 - **Ticket archive:** if the ticket is already under `done/`, skip the `git mv`.
 - **Coverage gap pass:** if a `test(<scope>): close codecov patch gaps` commit already exists on the
   branch, skip step 3 — do not run a second coverage-gap iteration.
+- **Post-close review:** if a `docs(review): post-close review …` commit already exists on the branch, or
+  the branch doc's `## 🧊 Parked (unplanned)` no longer reads `None.` / `_TBD / None_`, skip step 7.
 
 ## Stuck-breaker
 
-If a fix-loop hits the **same** FAIL **3×**, stop and report `ESCALATE: <reason>`.
+If a fix-loop hits the **same** FAIL **3×**, stop and report `ESCALATE: <reason>`. On the **first**
+Verifier `FAIL` that carries an `ESCALATE:` bullet (an Escalate entry from `.cursor/ANOMALIES.md`), stop
+at once and report `ESCALATE (decision): <bullet>` — the Refactorer cannot make that decision, and the
+driver does not relaunch on that form.
 
 ## Boundaries
 
-- Spawn only: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`. Finalize steps 4–5:
+- Spawn only: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`, `post-close-reviewer`. Finalize steps 4–5:
   post `bugbot run` / `security run` from a human account, then judge only the verdict source each
   step names — Bugbot's review body, Security's check run. Do not spawn Task `bugbot` /
   `security-review` here.
 
 ## Report exactly one line
 
-`Finalized. PR: #YYY. Version: X.Y.Z. Ticket archived to done/.` — or `ESCALATE: <reason>.`
+`Finalized. PR: #YYY. Version: X.Y.Z. Ticket archived to done/.` — or `ESCALATE: <reason>.` — or, for a Verifier `ESCALATE:` bullet only, `ESCALATE (decision): <bullet>.`

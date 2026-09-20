@@ -38,8 +38,8 @@ class UninstallCommand extends Command
         $packages = (array) $this->argument('packages');
         $packages = array_values(array_filter($packages, 'is_string'));
 
-        $updater = new PackageManager($output);
-        $updater->uninstall($packages);
+        $manager = new PackageManager($this->container, $output);
+        $manager->uninstall($packages);
 
         return Command::SUCCESS;
     }

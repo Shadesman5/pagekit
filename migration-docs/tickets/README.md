@@ -14,19 +14,20 @@ Pipeline index: [`.cursor/WORKFLOW_SUBAGENTS.md`](../../.cursor/WORKFLOW_SUBAGEN
 |---|---|
 | **Architect** | Writes `active/{prompt-basename}_plan.md` |
 | **Plan-reviewer** | Reads task prompt + ticket |
-| **Refactorer** | Reads ticket + Checklist Step N |
-| **Verifier** | Ticket + changed files (production or `scope: test files only`) |
+| **Refactorer** | Reads ticket + Checklist Step N; writes `## IMPLEMENTATION NOTES › Step N` (nothing else in the ticket) |
+| **Verifier** | Ticket + changed files (production or `scope: test files only`); checks the step's implementation notes |
 | **Tester** | No ticket; runs tests |
-| **Test-writer** | Reads testing notes; writes tests for Refactorer production files |
-| **Doc-writer** | Writes branch docs; at Finalize CHANGELOG/README — **never** the ticket |
+| **Test-writer** | Reads implementation notes + testing notes; writes tests for Refactorer production files |
+| **Doc-writer** | Writes branch docs (condensing the implementation notes); at Finalize CHANGELOG/README — **never** the ticket |
 
 ## Ticket structure (Architect)
 
 - `## ARCHITECT OUTPUT` — scope, checklist, deferred, bridges
 - `## EXECUTION STATE` — checkboxes 1:1 with the checklist, each `(S|M|L|XL)`; **last step must be `(XL) — Review (Bugbot + Security) + E2E`**
 - `## TESTING STRATEGY` — production gate, test-writer skip rules, XL Review + E2E
+- `## IMPLEMENTATION NOTES` — one `### Step N` per step, `_none yet_` from the Architect. The Refactorer fills it: one bullet per decision the plan left open (`File::symbol` — chosen vs. rejected, why, invariant to test) or `none`. The channel from Refactorer to test-writer and doc-writer — code comments stay traps + contracts
 
-The **Conductor** reads `## EXECUTION STATE` only. Step orchestrators flip `- [ ]` → `- [x]` in the **same commit** as that step's code. While `handoff_xl` is on (default), Conductor stops before the last `(XL)` step — run that Review + E2E on cursor.com/agents, then re-dispatch Conductor for Finalize. Ticking `(XL)` on a Conductor branch auto-imports the V1 parent agent's tokens into that session (`import-xl-handoff-metrics.yml`); do not add `v1-metrics` to the Conductor Finalize PR.
+The **Conductor** reads `## EXECUTION STATE` only. Step orchestrators flip `- [ ]` → `- [x]` in the **same commit** as that step's code. While `handoff_xl` is on (default), Conductor stops before the last `(XL)` step — run that Review + E2E on cursor.com/agents, then re-dispatch Conductor for Finalize. That Finalize job imports the V1 parent into the session (best-effort); do not add `v1-metrics` to the Conductor Finalize PR.
 
 ## Folders
 

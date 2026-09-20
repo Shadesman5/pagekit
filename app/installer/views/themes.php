@@ -42,7 +42,7 @@ $view->script('themes', 'installer:app/bundle/themes.js', ['vue', 'editor']); ?>
                 <div class="uk-invisible-hover uk-position-top-right pk-panel-badge" v-if="!pkg.enabled">
                     <ul class="uk-iconnav">
                         <li><a uk-icon="star" :uk-tooltip="'Enable' | trans" @click="enable(pkg)"></a></li>
-                        <li><a uk-icon="trash" :uk-tooltip="'Delete' | trans" @click="uninstall(pkg, packages)" v-confirm="'Uninstall theme?'"></a></li>
+                        <li><a uk-icon="trash" :uk-tooltip="'Delete' | trans" @click="uninstall(pkg, packages)"></a></li>
                     </ul>
                 </div>
             </div>

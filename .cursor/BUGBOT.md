@@ -55,6 +55,8 @@ Other leftover that must change later → `// TODO: Must be refactored in Step X
 
 No completed-step, ticket, or ROADMAP history in code comments.
 
+Long design PHPDoc (architecture / operator manuals in comments) is a **Verifier** concern (`pagekit.mdc` § Prose), not a Bugbot flag. Do not open review threads for comment length.
+
 ### 1.2 No Compatibility Layers
 
 New Shim/Compat/Legacy/Adapter class that only preserves old calling patterns → **blocking Bug** "Compatibility layer violates ROADMAP Rule 1".

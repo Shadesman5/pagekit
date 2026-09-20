@@ -194,9 +194,18 @@ return [
                     foreach ($failures as $failure) {
                         $name = htmlspecialchars($failure['name'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
-                        $notice = $failure['type'] === ExtensionFailureStore::TYPE_THEME
-                            ? __('The theme "%name%" could not be loaded. See the error log for details.', ['%name%' => $name])
-                            : __('The extension "%name%" failed and was disabled. See the error log for details.', ['%name%' => $name]);
+                        // A theme that is still tried on every request and one
+                        // that has been left alone after failing too often are
+                        // the same broken theme to look at, and only one of
+                        // them is waiting for something to be done. Which is
+                        // why the second notice says what that something is.
+                        $isTheme = $failure['type'] === ExtensionFailureStore::TYPE_THEME;
+
+                        $notice = match (true) {
+                            $isTheme && $failure['count'] >= ExtensionFailureStore::PAUSE_THRESHOLD => __('The theme "%name%" failed repeatedly and is paused. Enable it again to retry. See the error log for details.', ['%name%' => $name]),
+                            $isTheme => __('The theme "%name%" could not be loaded. See the error log for details.', ['%name%' => $name]),
+                            default => __('The extension "%name%" failed and was disabled. See the error log for details.', ['%name%' => $name]),
+                        };
 
                         $result .= sprintf('<div class="uk-alert uk-alert-warning" data-status="warning">%s</div>', $notice);
                     }

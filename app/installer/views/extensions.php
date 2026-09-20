@@ -56,7 +56,7 @@ $view->script('extensions', 'installer:app/bundle/extensions.js', ['vue']); ?>
                         <ul class="uk-iconnav uk-flex-nowrap uk-invisible-hover">
                             <li><a uk-icon="info" :uk-tooltip="'View Details' | trans" @click.prevent="details(pkg)"></a></li>
                             <li v-show="pkg.enabled && pkg.permissions"><a uk-icon="lock" :uk-tooltip="'View Permissions' | trans" :href="$url.route('admin/user/permissions#{name}', {name:pkg.module})"></a></li>
-                            <li v-show="!pkg.enabled"><a uk-icon="trash" :uk-tooltip="'Delete' | trans" @click="uninstall(pkg, packages)" v-confirm="'Uninstall extension?'"></a></li>
+                            <li v-show="!pkg.enabled"><a uk-icon="trash" :uk-tooltip="'Delete' | trans" @click="uninstall(pkg, packages)"></a></li>
                         </ul>
                     </td>
                 </tr>

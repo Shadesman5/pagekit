@@ -61,10 +61,13 @@ services:
       - PAGEKIT_SITE_TITLE
       - PAGEKIT_LOCALE
       - PAGEKIT_AUTO_MIGRATE
-    # config.php and, on SQLite, the database file; and the media library. Named
-    # volumes rather than host directories: they are created from what the image
-    # has at that path, ownership included, and www-data can therefore write them.
-    # tmp/ stays inside the container, where a cache belongs.
+    # config.php, the snapshots removing a package leaves behind and, on SQLite,
+    # the database file; and the media library. Named volumes rather than host
+    # directories: they are created from what the image has at that path,
+    # ownership included, and www-data can therefore write them. tmp/ stays
+    # inside the container, where a cache belongs - and the snapshot store is
+    # reached through a link into the data volume for that very reason, since a
+    # snapshot is the only copy of a package the installation no longer has.
     volumes:
       - pagekit_data:/var/www/data
       - pagekit_storage:/var/www/html/storage

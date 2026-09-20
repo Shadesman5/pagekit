@@ -13,3 +13,4 @@ alwaysApply: false
 - **Reflection:** `getType()`, not `ReflectionParameter::getClass()`.
 - **Errors:** Symfony ErrorHandler, not `App::exception()`.
 - **Vendor dir:** `app/vendor/` (`composer.json` `vendor-dir`). PHPUnit: `./app/vendor/bin/phpunit`.
+- **Comments:** `pagekit.mdc` § Prose — traps + contract only, not architecture essays.

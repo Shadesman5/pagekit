@@ -8,7 +8,7 @@
 
 ## CONTEXT
 
-- **Land after:** Step 2.7 (#160) — fail-closed activation and disable/uninstall pre-flight reuse the auto-disable / admin-notice seam. If 2.7 has not merged, STOP and sequence correctly.
+- **Land after:** Step 2.7 (#160) — fail-closed activation and disable/uninstall pre-flight reuse the auto-disable / admin-notice seam — and Step 2.7.1b (#287), so the declared graph and the code graph agree before anything fails closed on them. Step 2.7.1 (#267) has landed: uninstall is snapshot-first and `PackageController::uninstallAction` carries the forward-debt tag for this step. If 2.7.1b has not merged, STOP and sequence correctly.
 - **Provides:** an honest bidirectional dependency graph and a pre-flight answer for destructive package ops. Sub-Extension operator activation (5.0) must not ship while unsatisfied requirements can still be skipped silently. Prefer landing **before** Static Module Registration (2.7.3) so the graph hardens against today's registration model first.
 - **Risk:** Low–Medium. One resolver behaviour change plus a read-only graph. Fail-closed can strand an installation whose manifests were already inconsistent — failures must name the missing module.
 - **Goal:** Activation never leaves a half-wired application because a `require` was skipped; disable/uninstall never run blind; "what depends on this?" is answerable without scanning ad hoc at call time.
@@ -110,7 +110,8 @@ Resolve before writing code:
 - **Circular detection at validation time** — keep boot detection; add the same check when enabling / validating a package so operators see it before activation.
 - **Data-risk signal** — minimal honest heuristic (has migrations? has config rows? has node types?) without a full ownership schema if that would bloat the step.
 - **UI/API shape** — one pre-flight DTO/array for disable and uninstall; where the extensions Vue surfaces blockers.
-- **Interaction with 2.7.1** — if snapshots land first or later: pre-flight should still run before destructive stages; do not own snapshot creation here.
+- **Interaction with 2.7.1 (landed)** — pre-flight runs before the snapshot-first uninstall and before **restore**: a restore is a whole-database revert with DDL recreate, so compare the snapshot's recorded application version and the dump's `packages.*` version keys against the running installation and warn or refuse by name (core re-migrates on the next admin request, extensions only on `enable()`). `PackageSnapshotter::details()` must record the application version for that — metadata only, no dump-format change. Do not own snapshot creation here.
+- **Ownership answer is for later consumers** — report which tables a module owns; package-scoped restore and purge-with-tables consume it under 5.0. Do not build either.
 
 ---
 
@@ -122,7 +123,7 @@ Architect: decompose into ordered, individually-green checklist steps. Suggested
 2. **Activation-time validation** — enable / validate refuses unsatisfied or circular requirements with the same naming.
 3. **Reverse index `requiredBy`** — derived API used by PackageManager and controllers.
 4. **Theme-as-dependent** — disable/uninstall of anything `site.theme` requires is blocked or warned per the chosen policy (block is safer for "must not break frontend").
-5. **Pre-flight for disable/uninstall** — single query: active dependents (blockers), would-be orphans, data-risk hints; wire into `PackageManager` + controller before mutation.
+5. **Pre-flight for disable/uninstall/restore** — single query: active dependents (blockers), would-be orphans, data-risk hints; for restore, the version comparison against the snapshot metadata; wire into `PackageManager` / `PackageSnapshotter` + controllers before mutation.
 6. **Admin UX** — show blockers in the extensions/themes UI; disable/uninstall cannot ignore a blocking dependent without an explicit, tested escape hatch (prefer no escape hatch).
 7. **Mandatory final `(XL)` step** — Review (Bugbot + Security) + E2E.
 
@@ -164,6 +165,7 @@ Sizing hints: (1) and (5) carry behaviour risk; (6) is the UX fix-loop; (2)–(4
 - Enable/validate surfaces circular and unsatisfied requirements before activation completes.
 - `requiredBy` answers "what depends on this?" from registered manifests.
 - Disable/uninstall pre-flight reports blockers (including `site.theme`), orphans, and a data-risk hint; blocking dependents prevent the mutation.
+- Restore pre-flight names every core/extension whose version differs from what the snapshot recorded; snapshot metadata carries the application version from now on.
 - Admin UI shows the pre-flight result; no silent disable of a module the active theme requires.
 - Reuses the Step 2.7 admin notice / auto-disable seam for boot-time fail-closed cases — no second messaging system.
 - No `Step 2.7.2` references in code or tests; PHPUnit + PHPStan green with no new baseline entries.

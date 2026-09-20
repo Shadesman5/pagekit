@@ -171,6 +171,32 @@ final class PackageFailureRecordTest extends TestCase
         self::assertSame('test-theme', $system->get('site.theme'));
     }
 
+    public function testSelectingAThemeThatFailedTooOftenTakesItsCountOffWithIt(): void
+    {
+        // A theme that failed on every request is left unexecuted by the boot,
+        // and the count on its entry is what says so. Selecting it again is the
+        // only way back: the boot reads the record before it reads anything
+        // else, so a count left behind here would keep the theme paused with
+        // nothing an administrator could do about it.
+        for ($failure = 1; $failure <= ExtensionFailureStore::PAUSE_THRESHOLD; $failure++) {
+            $this->record('test-theme', ExtensionFailureStore::TYPE_THEME);
+        }
+
+        self::assertSame(ExtensionFailureStore::PAUSE_THRESHOLD, $this->store()->all()['test-theme']['count']);
+
+        $system = new Config();
+        $system->set('packages.test-theme', '1.0.0');
+
+        $this->manager($this->container(config: $system))->enable($this->package([
+            'name' => 'pagekit/test-theme',
+            'type' => 'pagekit-theme',
+            'module' => 'test-theme',
+        ]));
+
+        self::assertSame([], $this->store()->all());
+        self::assertSame('test-theme', $system->get('site.theme'));
+    }
+
     public function testAnEnableThatFailsAgainLeavesTheRecordWhereItWas(): void
     {
         $this->record('test-ext');

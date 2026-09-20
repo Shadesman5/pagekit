@@ -40,9 +40,22 @@ export default {
     },
 
     disable(pkg) {
-      return this.$http.post('admin/system/package/disable', { name: pkg.name }).then(() => {
+      return this.$http.post('admin/system/package/disable', { name: pkg.name }).then(response => {
+        const warnings = (response.data && response.data.warnings) || [];
+
         this.$notify(this.$trans('"%title%" disabled.', { title: pkg.title }));
         Vue.set(pkg, 'enabled', false);
+
+        // A step of the package's own that did not finish. The page is not
+        // reloaded over it: what the reload is for - the menu the extension is
+        // out of - is worth less than the line telling the administrator there
+        // is something in the log to look at, which a reload would discard.
+        if (warnings.length) {
+          warnings.forEach(warning => this.$notify(warning, 'warning'));
+
+          return;
+        }
+
         document.location.reload();
       }, this.error);
     },
@@ -59,10 +72,13 @@ export default {
       return update.update(pkg, updates, onClose, packagist);
     },
 
+    // Opens the staged removal: what it does is confirmed there, not here. What
+    // it leaves behind is the installation's answer rather than the modal's, so
+    // it is handed over with the package.
     uninstall(pkg, packages) {
       const uninstall = new Uninstall({ parent: this });
 
-      return uninstall.uninstall(pkg, packages);
+      return uninstall.uninstall(pkg, packages, this.keepsSnapshots);
     },
 
     error(response) {
