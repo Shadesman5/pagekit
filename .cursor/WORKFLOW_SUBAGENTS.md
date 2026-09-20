@@ -1,6 +1,6 @@
 # Pagekit Modernization: Subagent Workflow
 
-**Last updated:** 2026-08-14
+**Last updated:** 2026-09-14
 
 Index for Conductor V2 and the Orchestrator. Operative contracts live in the files this page names — do not copy them here.
 
@@ -52,6 +52,7 @@ EXECUTE  per batch (Conductor) / all remaining steps (V1)
         ▼
 FINALIZE PR → CI → [coverage] → PR Bugbot → PR Security
          → version (product only) → CHANGELOG/ROADMAP → archive ticket
+         → post-close-reviewer (docs only: Parked + PHASE/prompt amendments) → commit
 ```
 
 Weights: `S=1` `M=2` `L=4` `XL=8`. Last checklist step is always `(XL)` Review + E2E; alone when `batch_budget` < 8 (default 6).
@@ -88,10 +89,11 @@ Edit models in `.cursor/agents/<name>.md`; keep this table in sync.
 
 | Agent | Model (frontmatter) |
 |---|---|
-| `architect` | claude-fable-5 (Max thinking) |
+| `architect` | claude-fable-5-1 (Max thinking) |
 | `refactorer` | claude-opus-5 (Max thinking) |
 | `doc-writer` | grok-4.6 |
-| `plan-reviewer` | claude-fable-5 (Max thinking) |
+| `plan-reviewer` | claude-fable-5-1 (Max thinking) |
 | `verifier` | claude-opus-5 (Max thinking) |
 | `tester` | grok-4.6 |
 | `test-writer` | claude-opus-5 (Max thinking) |
+| `post-close-reviewer` | claude-fable-5-1 (Max thinking) |

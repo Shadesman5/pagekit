@@ -1,6 +1,6 @@
 ---
 name: plan-reviewer
-model: claude-fable-5[thinking=true,context=1m,effort=max]
+model: claude-fable-5-1[thinking=true,context=1m,effort=max]
 description: Plan Auditor for Pagekit modernization. Audits the Architect's ticket plan against the original task prompt/requirement and ROADMAP before any code is written. Use proactively after the Architect writes a ticket (V2 Step 0 gate).
 ---
 

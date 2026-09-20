@@ -265,3 +265,23 @@ if ($post->comments) {
 **Rule:** When logic moves into a presenter, repository or validator, diff the observable output against what it replaced: every key, every empty/zero/null case, every normalisation step. A truthiness check is not a null check.
 
 **Fix:** In scope — restore the contract and pin the empty case with a test.
+
+---
+
+## AP-17 — The observer reports the record as handled
+
+```php
+// debug-bar collector pushed onto the logger after the file handler, so it is asked first
+public function handle(LogRecord $record): bool
+{
+    $this->records[] = ['message' => $record->message, 'level' => $record->level->value];
+
+    return true; // "handled, do not bubble" — the file handler never sees the record
+}
+```
+
+**Developer:** „[…] das sollte die fehler, die zum developer gehen auch nicht verhindern, eigentlich, debugbar sollte eigentlich fehler anzeigen, aber nicht abfangen, so weit ich weiß.“
+
+**Rule:** A collector, profiler, debug bar or tracer reads the stream; it never answers for it. In a handler chain the return value is the routing decision, so an observer reports the record as not handled and the sink still receives it. A message that sends the reader to the error log is a promise only the sink can keep, and the observer being switched on is exactly the case in which nobody checks the file.
+
+**Fix:** In scope — the observer passes the record on; pin it with a test that registers observer and sink together and asserts the sink received the record.
