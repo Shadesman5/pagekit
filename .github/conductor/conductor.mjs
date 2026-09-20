@@ -189,7 +189,7 @@ const metrics = createMetricsCollector({
       fail(
         `no parseable "## EXECUTION STATE" steps in ${TICKET} (audit/report task? use MODE=plan)`
       );
-    assertTicketSkeleton(steps);
+    warnTicketSkeleton(steps);
 
     const open = steps.filter(s => !s.checked);
     if (open.length > 0) {
@@ -579,19 +579,33 @@ function readSteps() {
   return steps.sort((a, b) => a.n - b.n); // ascending step order — never trust the ticket's line order
 }
 
-// Deterministic backstop for the plan-reviewer's skeleton criterion: a ticket that reaches Execute
-// without `## IMPLEMENTATION NOTES › ### Step N` loses the Refactorer's decision record for every
-// step, and no later phase can recover it. Fails loudly so the skeleton is added before any agent
-// launches — like the malformed EXECUTION STATE line above, never a silent skip.
-function assertTicketSkeleton(steps = readSteps() || []) {
-  const problems = implementationNotesProblems(
+function ticketSkeletonProblems(steps = readSteps() || []) {
+  return implementationNotesProblems(
     readFileSync(TICKET, 'utf8'),
     steps.map(s => s.n)
   );
+}
+
+// Deterministic backstop for the plan-reviewer's skeleton criterion, applied where the defect is
+// made: a ticket without `## IMPLEMENTATION NOTES › ### Step N` gives the Refactorer nowhere to
+// record its decisions, and no later phase adds the headings. Fails loudly right after Plan lands
+// — like the malformed EXECUTION STATE line above, never a silent skip.
+function assertTicketSkeleton() {
+  const problems = ticketSkeletonProblems();
   if (problems.length === 0) return;
   fail(
     `${TICKET}: ${problems.join('; ')} — add the "## IMPLEMENTATION NOTES" skeleton (one "### Step N" with "_none yet_" per EXECUTION STATE step, see .cursor/agents/architect.md), push, then re-dispatch with the same session_id.`
   );
+}
+
+// Execute only reports: a ticket planned before the gate existed must keep running, but the
+// missing record should be visible in the job log while the maintainer can still add it between
+// batches.
+function warnTicketSkeleton(steps) {
+  for (const problem of ticketSkeletonProblems(steps))
+    log(
+      `⚠️ ${TICKET}: ${problem} — Refactorer decisions for these steps have nowhere to go; add the skeleton between batches.`
+    );
 }
 
 function nextBatch(open) {
