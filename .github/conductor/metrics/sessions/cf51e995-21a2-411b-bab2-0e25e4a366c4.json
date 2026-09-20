@@ -9,21 +9,38 @@
   "branch": "feature/atomic-mysql-restore",
   "model": "grok-4.6",
   "status": "in_progress",
-  "startedAt": "2026-09-20T21:26:11.656Z",
-  "completedAt": null,
+  "startedAt": "2026-09-20T21:26:18.682Z",
+  "completedAt": "2026-09-20T21:45:16.152Z",
   "phases": [
     {
       "phaseKey": "35538678988-1-PLAN",
       "type": "PLAN",
       "attempt": 0,
       "batchSteps": null,
-      "startedAt": "2026-09-20T21:26:16.540Z",
-      "durationMs": 1156343,
+      "startedAt": "2026-09-20T21:26:18.682Z",
+      "durationMs": 1136956,
       "agent": {
         "id": "bc-b9943977-9657-46fc-84d9-90bd9e1c5f2b",
         "runId": "run-55289975-8ba9-4c64-884a-66471cd36ea6",
         "url": "https://cursor.com/agents/bc-b9943977-9657-46fc-84d9-90bd9e1c5f2b",
-        "model": "grok-4.6"
+        "model": "grok-4.6",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-55289975-8ba9-4c64-884a-66471cd36ea6",
+            "index": 1,
+            "startedAt": "2026-09-20T21:26:18.682Z",
+            "completedAt": "2026-09-20T21:45:16.152Z",
+            "durationMs": 1136956,
+            "tokens": {
+              "input": 42193,
+              "output": 4021,
+              "cacheRead": 401472,
+              "cacheWrite": 0,
+              "total": 447686
+            }
+          }
+        ]
       },
       "github": {
         "runId": 35538678988,
@@ -41,7 +58,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "Plan ready: migration-docs/tickets/active/PROMPT_2_7_1a_Atomic-MySQL-Restore_plan.md",
-      "outcome": "success"
+      "outcome": "success",
+      "completedAt": "2026-09-20T21:45:16.152Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -52,7 +71,7 @@
       "cacheWrite": 0,
       "total": 447686
     },
-    "durationMs": 1156343,
+    "durationMs": 1136956,
     "phaseCount": 1,
     "escalations": 0,
     "ghaJobs": 1,
