@@ -58,6 +58,38 @@ export function normalizeTokensNullable(raw = {}) {
   };
 }
 
+function normalizeGitRef(value) {
+  return String(value || '')
+    .replace(/^refs\/heads\//, '')
+    .trim()
+    .toLowerCase();
+}
+
+/** Branch names the Cloud Agents API actually returns for one agent. */
+export function agentBranchNames(detail) {
+  const names = [];
+  const add = value => {
+    const name = normalizeGitRef(value);
+    if (name && !names.includes(name)) names.push(name);
+  };
+  add(detail?.target?.branchName);
+  add(detail?.branchName);
+  add(detail?.source?.ref);
+  for (const repo of detail?.repos || []) add(repo?.startingRef);
+  for (const row of detail?.git?.branches || []) add(typeof row === 'string' ? row : row?.branch);
+  return names;
+}
+
+/** True when the agent was started on `branch`, or its display name contains that ref. */
+export function agentMatchesBranch(detail, branch) {
+  const want = normalizeGitRef(branch);
+  if (!want) return false;
+  if (agentBranchNames(detail).includes(want)) return true;
+  return String(detail?.name || '')
+    .toLowerCase()
+    .includes(want);
+}
+
 export function createCursorClient(apiKey) {
   const key = (apiKey || '').trim();
   if (!key) return null;
@@ -65,7 +97,8 @@ export function createCursorClient(apiKey) {
     const res = await fetch(`${CURSOR_API}${path}`, {
       method,
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: body ? JSON.stringify(body) : undefined
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(30_000)
     });
     const text = await res.text();
     let json;
@@ -228,16 +261,8 @@ export async function resolveOrchestratorAgentForPr(
         } catch {
           /* list fields only */
         }
-        const targetBranch = (
-          detail?.target?.branchName ||
-          detail?.branchName ||
-          detail?.source?.ref ||
-          ''
-        )
-          .replace(/^refs\/heads\//, '')
-          .toLowerCase();
-        const name = String(detail?.name || item.name || '').toLowerCase();
-        if (targetBranch === branchNorm || name.includes(branchNorm)) {
+        const named = detail?.name ? detail : { ...detail, name: item.name };
+        if (agentMatchesBranch(named, branchNorm)) {
           candidates.push(detail.id ? detail : item);
         }
       }
