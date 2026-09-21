@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-21T21:02:41.148Z",
+  "updatedAt": "2026-09-21T22:46:51.252Z",
   "steps": {
     "unknown": {
       "title": "AGENT_PROMPT_AUDIT_TECH_DEBT_INVENTORY",
@@ -221,8 +221,8 @@
     "sessionsTouched": 1
   },
   "csvImport": {
-    "at": "2026-09-21T20:06:51.719Z",
-    "phasesUpdated": 1,
+    "at": "2026-09-21T22:46:51.252Z",
+    "phasesUpdated": 6,
     "sessionsTouched": 1
   }
 }

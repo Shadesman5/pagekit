@@ -745,26 +745,88 @@
         "repository": "Shadesman5/pagekit"
       },
       "tokens": {
+        "input": 1246637,
+        "output": 155574,
+        "cacheRead": 16841722,
+        "cacheWrite": 264965,
+        "total": 18508898
+      },
+      "tokensSource": "cursor-dashboard-csv",
+      "result": "Finalized. PR: #291. Version: 1.2.41. Ticket archived to done/.",
+      "outcome": "success",
+      "completedAt": "2026-09-21T21:02:14.312Z",
+      "notes": "Timing from Cursor API (single agent run) · Tokens from Cursor dashboard CSV (orchestrator + subagents)",
+      "orchestratorTokens": {
         "input": 254031,
         "output": 20057,
         "cacheRead": 3439616,
         "cacheWrite": 0,
         "total": 3713704
       },
-      "tokensSource": "cursor-api",
-      "result": "Finalized. PR: #291. Version: 1.2.41. Ticket archived to done/.",
-      "outcome": "success",
-      "completedAt": "2026-09-21T21:02:14.312Z",
-      "notes": "Timing from Cursor API (single agent run)"
+      "subagents": [
+        {
+          "role": "orchestrator",
+          "label": "Orchestrator",
+          "model": "grok-4.7-high-fast",
+          "events": 1,
+          "tokens": {
+            "input": 254031,
+            "output": 20057,
+            "cacheRead": 3439616,
+            "cacheWrite": 0,
+            "total": 3713704
+          }
+        },
+        {
+          "role": "subagent",
+          "label": "Claude Fable 5.1",
+          "model": "claude-fable-5-1-thinking-max",
+          "events": 1,
+          "tokens": {
+            "input": 102,
+            "output": 66020,
+            "cacheRead": 10356885,
+            "cacheWrite": 264965,
+            "total": 10687972
+          }
+        },
+        {
+          "role": "subagent",
+          "label": "Grok 4.6",
+          "model": "cursor-grok-4.6-xhigh",
+          "events": 1,
+          "tokens": {
+            "input": 167502,
+            "output": 14210,
+            "cacheRead": 684288,
+            "cacheWrite": 0,
+            "total": 866000
+          }
+        },
+        {
+          "role": "subagent",
+          "label": "Grok 4.6",
+          "model": "cursor-grok-4.6-medium",
+          "events": 11,
+          "tokens": {
+            "input": 825002,
+            "output": 55287,
+            "cacheRead": 2360933,
+            "cacheWrite": 0,
+            "total": 3241222
+          },
+          "agentId": "bc-1d7962ec-36bf-40fe-a3ce-404c0ae4a7c5"
+        }
+      ]
     }
   ],
   "totals": {
     "tokens": {
-      "input": 3367714,
-      "output": 1922281,
-      "cacheRead": 152249831,
-      "cacheWrite": 6630677,
-      "total": 164170503
+      "input": 4360320,
+      "output": 2057798,
+      "cacheRead": 165651937,
+      "cacheWrite": 6895642,
+      "total": 178965697
     },
     "durationMs": 31902253,
     "phaseCount": 8,
@@ -773,10 +835,9 @@
     "cloudAgents": 8
   },
   "csvImport": {
-    "at": "2026-09-21T20:06:51.709Z",
-    "source": "dashboard-csv",
-    "events": 55,
-    "phasesUpdated": 1,
-    "note": "XL parent bc-c39a68da appended. Earlier phases kept: this export truncates Execute 3."
+    "at": "2026-09-21T22:46:51.250Z",
+    "source": "import-usage-csv.mjs",
+    "events": 69,
+    "phasesUpdated": 6
   }
 }
