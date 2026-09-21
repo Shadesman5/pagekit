@@ -322,6 +322,8 @@ The production runtime is the last stage of the same `Dockerfile`, so a plain bu
 
     `PAGEKIT_AUTO_SETUP=1`, together with `PAGEKIT_ADMIN_PASSWORD` and the other administrator variables, installs the site on the first start without a browser. That is the way in while nothing terminates TLS yet — the web installer is a page like any other and is redirected to HTTPS along with them — and the way to install a stack that is deployed rather than clicked through. With the proxy in place, opening the site walks through the web installer instead. A start that finds an existing installation leaves it untouched, so the switch can stay on.
 
+    `PAGEKIT_DB_PREFIX` is the prefix that first install creates the tables with, and the setup command holds it to the same shape as `php pagekit setup --db-prefix`: a letter first, `_` last, letters, digits and underscores between — `pk_` as `prod.env.example` ships it. A value of another shape is refused and the start ends there, the entrypoint stopping on a failed setup; a blank value installs with `pk_`. A restore from the snapshots panel costs the same on this stack as on a plain host: the MySQL service holds the dumped tables twice over until the restore has swapped its copies in and dropped the tables they replaced.
+
     `PAGEKIT_AUTO_MIGRATE=1` additionally applies pending migrations on every start; leaving it off keeps the moment the schema of a live site changes a decision of yours. It suits a single container. Replicas start together and would each migrate the same database, so a stack that runs more than one wants the migration as a job of its own before the new build comes up:
 
     ```bash
