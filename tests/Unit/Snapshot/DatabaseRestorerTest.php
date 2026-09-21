@@ -600,23 +600,23 @@ final class DatabaseRestorerTest extends TestCase
     {
         // 64 characters is what MySQL takes. The platform's own answer is 63, and
         // a restore measuring by that would turn away a table the server holds
-        // quite happily - so what stops this one is the leftover copy in the
-        // database, which is the next refusal along.
+        // quite happily - so this one goes on as far as the lock, and what stops
+        // it there has nothing to say about any name.
         $connection = $this->mysqlInstallation();
+        $connection->locked = true;
 
         $table = 'pk_'.str_repeat('a', 58);
 
         self::assertSame(64, strlen(RestoreTableNames::shadow($table)), 'The copy of this table is exactly as long as MySQL allows');
 
-        $this->tableNamed($connection, RestoreTableNames::backup('pk_meta'));
         $this->dumpNaming($connection, [$table]);
 
         try {
             (new DatabaseRestorer($connection))->restore($this->dump());
 
-            self::fail('A restore must be refused while a copy of one of these tables is still in the database');
+            self::fail('A restore must be refused while another restore of the installation is running');
         } catch (\RuntimeException $e) {
-            self::assertStringContainsString(RestoreTableNames::backup('pk_meta'), $e->getMessage());
+            self::assertStringContainsString('already running', $e->getMessage());
             self::assertStringNotContainsString($table, $e->getMessage());
         }
 
@@ -630,72 +630,63 @@ final class DatabaseRestorerTest extends TestCase
         // every restore refused if the copy were measured in bytes - and this
         // name is not near the limit in characters at all.
         $connection = $this->mysqlInstallation();
+        $connection->locked = true;
 
         $table = 'pk_'.str_repeat('ü', 40);
 
-        $this->tableNamed($connection, RestoreTableNames::backup('pk_meta'));
         $this->dumpNaming($connection, [$table]);
 
         try {
             (new DatabaseRestorer($connection))->restore($this->dump());
 
-            self::fail('A restore must be refused while a copy of one of these tables is still in the database');
+            self::fail('A restore must be refused while another restore of the installation is running');
         } catch (\RuntimeException $e) {
-            self::assertStringContainsString(RestoreTableNames::backup('pk_meta'), $e->getMessage());
+            self::assertStringContainsString('already running', $e->getMessage());
             self::assertStringNotContainsString($table, $e->getMessage());
         }
 
         self::assertSame(2, $this->countItems($connection));
     }
 
-    public function testCopiesLeftBehindByARestoreThatDidNotFinishAreRefusedRatherThanWrittenOver(): void
+    public function testCopiesLeftBehindByARestoreThatDidNotFinishAreClearedAwayByTheNextOne(): void
     {
-        // They are the only record of how far the last restore got, and filling
-        // them again would write over it. Named rather than counted, and in an
-        // order of the restore's own, because working through them by hand is
-        // what an operator does next.
-        $connection = $this->mysqlInstallation();
+        // Nothing reads them: a copy a fill never got to the end of holds part of
+        // a dump, and a table a swap set aside holds what the installation has
+        // already replaced. They are also the names this restore gives its own
+        // tables, so leaving them for an operator to remove with a database client
+        // is what a server going away mid-restore would otherwise cost one.
+        $connection = $this->mysqlInstallationThatWillNotSwap();
 
         $this->tableNamed($connection, RestoreTableNames::shadow('pk_items'));
         $this->tableNamed($connection, RestoreTableNames::backup('pk_meta'));
 
         $this->dumpNaming($connection, ['pk_items', 'pk_meta']);
 
-        try {
-            (new DatabaseRestorer($connection))->restore($this->dump());
+        $this->refusedSwap($connection);
 
-            self::fail('A restore must be refused while copies of its tables are still in the database');
-        } catch (\RuntimeException $e) {
-            self::assertStringContainsString('_b_pk_meta, _r_pk_items', $e->getMessage());
-        }
-
-        // Refused, not cleared away: what the last restore left is still there
-        // for an operator to look at, and the installation still holds its rows.
-        self::assertSame(['_b_pk_meta', '_r_pk_items'], $this->copiesIn($connection));
+        // Nothing under a name a restore gives itself is left: what the last one
+        // left behind went before this one filled its own copy of pk_items, and
+        // those went with the swap that would not go through.
+        self::assertSame([], $this->copiesIn($connection));
         self::assertSame(2, $this->countItems($connection));
         self::assertSame(1, $this->countMeta($connection));
     }
 
-    public function testACopyLeftBehindIsRefusedEvenWhereThisDumpHasNoUseForItsName(): void
+    public function testACopyLeftBehindIsClearedAwayEvenWhereThisDumpHasNoUseForItsName(): void
     {
         // The name being free is not the point. The table is one nobody asked
         // for, holding as much of a table as a restore had written when it
         // stopped, and the installation it was made for is this one - so it is
-        // this installation's problem whether or not this dump wants the name.
-        $connection = $this->mysqlInstallation();
+        // this installation's to clear whether or not this dump wants the name.
+        $connection = $this->mysqlInstallationThatWillNotSwap();
 
         $this->tableNamed($connection, RestoreTableNames::shadow('pk_gone'));
 
         $this->dumpNaming($connection, ['pk_items']);
 
-        try {
-            (new DatabaseRestorer($connection))->restore($this->dump());
+        $this->refusedSwap($connection);
 
-            self::fail('A restore must be refused while a copy of one of this installation\'s tables is still in the database');
-        } catch (\RuntimeException $e) {
-            self::assertStringContainsString('_r_pk_gone', $e->getMessage());
-        }
-
+        self::assertSame([], $this->copiesIn($connection));
         self::assertSame(2, $this->countItems($connection));
     }
 
@@ -718,9 +709,9 @@ final class DatabaseRestorerTest extends TestCase
         // A database is a place installations share, so a name that reads as a
         // copy is not necessarily a copy of anything here: the table it was made
         // for says whose it is. One made for a table this installation does not
-        // own is a table like any other - not this restore's to drop, and not its
-        // business to refuse over either, however the server matches names.
-        $connection = $this->mysqlInstallation();
+        // own is a table like any other - not this restore's to clear away,
+        // however the server matches names.
+        $connection = $this->mysqlInstallationThatWillNotSwap();
         $connection->folding = $folding;
 
         $this->tableNamed($connection, RestoreTableNames::shadow('wp_items'));
@@ -728,40 +719,39 @@ final class DatabaseRestorerTest extends TestCase
 
         $this->dumpNaming($connection, ['pk_items', 'pk_meta']);
 
-        try {
-            (new DatabaseRestorer($connection))->restore($this->dump());
+        $this->refusedSwap($connection);
 
-            self::fail('A restore must be refused while a copy of one of this installation\'s tables is still in the database');
-        } catch (\RuntimeException $e) {
-            self::assertStringContainsString('_b_pk_meta', $e->getMessage());
-            self::assertStringNotContainsString('_r_wp_items', $e->getMessage());
-        }
-
-        self::assertContains('_r_wp_items', $this->copiesIn($connection));
+        // The one made for a table of this installation's went with everything
+        // else the restore gave a name of its own; the neighbour's is where it
+        // was.
+        self::assertSame(['_r_wp_items'], $this->copiesIn($connection));
     }
 
     public function testAMarkerInACaseNoRestoreWritesIsAnotherTableWhereTheServerMatchesNamesAsTheyAreWritten(): void
     {
         // A restore writes its markers in one case, so on a server that hands
         // names back as they were given, a marker in another case was written by
-        // something else and names a table of its own.
-        $connection = $this->mysqlInstallation();
+        // something else and names a table of its own - left where it is while
+        // the copy spelled the way a restore spells it is cleared away.
+        $connection = $this->mysqlInstallationThatWillNotSwap();
 
         $this->tableNamed($connection, '_R_pk_items');
         $this->tableNamed($connection, RestoreTableNames::backup('pk_meta'));
 
         $this->requireNamesKeptAsGiven($connection, '_R_pk_items');
 
-        $this->dumpNaming($connection, ['pk_items', 'pk_meta']);
+        // The dump names pk_meta alone. A copy of pk_items would be the planted
+        // table's name over again in the other case, and whether one database
+        // holds both at once is the engine's own rule - which is the one thing a
+        // stand-in for a server cannot answer in its place.
+        $this->dumpNaming($connection, ['pk_meta']);
 
-        try {
-            (new DatabaseRestorer($connection))->restore($this->dump());
+        $this->refusedSwap($connection);
 
-            self::fail('A restore must be refused while a copy of one of this installation\'s tables is still in the database');
-        } catch (\RuntimeException $e) {
-            self::assertStringContainsString('_b_pk_meta', $e->getMessage());
-            self::assertStringNotContainsStringIgnoringCase('_r_pk_items', $e->getMessage());
-        }
+        // Still there, while every name spelled the way a restore spells one is
+        // gone - the planted table read as a marker only to a reading that folds.
+        self::assertContains('_R_pk_items', $connection->createSchemaManager()->listTableNames());
+        self::assertSame([], $this->copiesIn($connection));
     }
 
     /**
@@ -781,23 +771,30 @@ final class DatabaseRestorerTest extends TestCase
         // Whether two names are one table is the server's rule rather than PHP's.
         // Asked to match names folded, it hands back the table that is there for
         // any spelling of it - so a restore comparing as written would look
-        // straight past the copy it was checking for, and then make, and later
-        // drop, a table it never accounted for.
-        $connection = $this->mysqlInstallation();
+        // straight past the copy it was checking for and leave it standing: a
+        // table nobody reads, and one more name the next restore has no room
+        // around.
+        $connection = $this->mysqlInstallationThatWillNotSwap();
         $connection->folding = $folding;
 
         $this->tableNamed($connection, '_R_pk_items');
+        $this->tableNamed($connection, RestoreTableNames::backup('pk_meta'));
 
-        $this->dumpNaming($connection, ['pk_items']);
+        $this->requireNamesKeptAsGiven($connection, '_R_pk_items');
 
-        try {
-            (new DatabaseRestorer($connection))->restore($this->dump());
+        // As in the reading beside this one, the dump names pk_meta alone: a copy
+        // of pk_items would be the planted table's name over again to a server
+        // that folds, and whether one database holds both at once is the engine's
+        // own rule rather than the stand-in's.
+        $this->dumpNaming($connection, ['pk_meta']);
 
-            self::fail('A restore must be refused while a copy of one of its tables is still in the database');
-        } catch (\RuntimeException $e) {
-            self::assertStringContainsStringIgnoringCase('_r_pk_items', $e->getMessage());
-        }
+        $this->refusedSwap($connection);
 
+        // Gone with every other name a restore gives its own tables: read folded,
+        // the planted table is this installation's own copy of pk_items - while
+        // the table it was a copy of is where it was.
+        self::assertNotContains('_R_pk_items', $connection->createSchemaManager()->listTableNames());
+        self::assertSame([], $this->copiesIn($connection));
         self::assertSame(2, $this->countItems($connection));
     }
 
@@ -891,13 +888,14 @@ final class DatabaseRestorerTest extends TestCase
 
     public function testCopiesARestoreLeftBehindAreNoObstacleToASqliteRestore(): void
     {
-        // What they stand in the way of is a swap, and SQLite makes none. Refusing
-        // over them there would leave an installation that can no longer be
-        // restored at all over tables no restore of its own would ever have made.
+        // What they stand in the way of is a swap, and SQLite makes none - so a
+        // restore there has no name of theirs to free and no reason to touch a
+        // table no restore of its own would ever have made. It is left exactly
+        // where it was found.
         $connection = $this->installation();
 
         if (!$this->isSqlite($connection)) {
-            self::markTestSkipped('A MySQL restore is refused while copies of its tables are still in the database');
+            self::markTestSkipped('A MySQL restore clears copies of its tables away rather than leaving them standing');
         }
 
         $this->tableNamed($connection, RestoreTableNames::shadow('pk_items'));
@@ -911,6 +909,465 @@ final class DatabaseRestorerTest extends TestCase
         self::assertSame(['tables' => 2, 'rows' => 3], $summary);
         self::assertSame(2, $this->countItems($connection));
         self::assertSame(['_r_pk_items'], $this->copiesIn($connection));
+    }
+
+    // ------------------------------------------------------------------
+    // One restore of an installation at a time
+    // ------------------------------------------------------------------
+
+    public function testARestoreAskedForWhileOneIsRunningIsRefusedRatherThanMadeToWait(): void
+    {
+        // Whoever asked is waiting on a page rather than on a job somebody reads the
+        // outcome of later, so the answer is no and not a wait of unknown length. It
+        // is also an answer they can act on: the restore that is running will finish,
+        // and asking again afterwards is all it takes.
+        $connection = $this->mysqlInstallation();
+        $connection->locked = true;
+
+        $this->dumpNaming($connection, ['pk_items', 'pk_meta']);
+
+        $refusal = $this->refusedRestore($connection, 'already running');
+
+        self::assertStringContainsString('ask for this one again', $refusal->getMessage());
+        self::assertSame([0], $connection->waitsAskedFor, 'The restore said it would wait no time at all');
+
+        // Nothing was read, nothing was written, and nothing was given up that was
+        // never had: a restore that did not start is one the installation and the
+        // server both end as they were.
+        self::assertSame(['GET_LOCK'], $this->whatTheServerWasAsked($connection));
+        self::assertSame([], $connection->locksGivenUp);
+        self::assertSame(2, $this->countItems($connection));
+        self::assertSame([], $this->copiesIn($connection));
+    }
+
+    /**
+     * @return array<string, array{0: mixed}>
+     */
+    public static function provideWhatAServerSaysInsteadOfHandingOverTheLock(): array
+    {
+        return [
+            'a server that answered nothing' => [null],
+            'a server that answered no row at all' => [false],
+            'a driver that hands numbers back as text' => ['0'],
+        ];
+    }
+
+    #[DataProvider('provideWhatAServerSaysInsteadOfHandingOverTheLock')]
+    public function testAServerThatDoesNotSayTheLockWasGivenIsReadAsNotHavingGivenIt(mixed $answer): void
+    {
+        // A lock is one answer and one answer only, however the driver spells it. A
+        // server out of memory, or one whose waiting session was killed, says nothing
+        // at all - and a restore that took that for a lock would be the second one
+        // running, which is the single thing this may never let happen.
+        $connection = $this->installationThatWillNotSayWhoHoldsTheLock();
+        $connection->answer = $answer;
+
+        $this->dumpNaming($connection, ['pk_items']);
+
+        $this->refusedRestore($connection, 'was not started');
+
+        self::assertSame(['GET_LOCK'], $this->whatTheServerWasAsked($connection));
+        self::assertSame([], $connection->locksGivenUp);
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testALockADriverHandsBackAsTextIsTheLockAllTheSame(): void
+    {
+        // The other half of reading that answer: a driver preparing its statements
+        // on the server hands the lock over as a number and one emulating prepares
+        // hands the same answer over as text, neither of which the server knows
+        // anything about. Read as a lock only in the first spelling, every restore
+        // of every installation behind the second driver would be refused as the
+        // second one running.
+        $connection = $this->mysqlInstallation();
+        $connection->handsNumbersBackAsText = true;
+        $connection->references = [
+            ['name' => 'fk_from_a_neighbour', 'child' => 'other_items', 'parent' => 'pk_items'],
+        ];
+
+        $this->dumpNaming($connection, ['pk_items']);
+
+        // Turned away over what the database holds rather than over the lock, which
+        // is a restore that had one and went on to read the database under it.
+        $this->refusedRestore($connection, 'fk_from_a_neighbour');
+
+        // And gave it up on the way out: a lock a restore never took is one it has
+        // nothing to give up.
+        self::assertCount(1, $connection->locksGivenUp);
+        self::assertSame($connection->locksAskedFor, $connection->locksGivenUp);
+    }
+
+    public function testARefusalTheServerIsNotNeededForComesBeforeTheLockIsAskedFor(): void
+    {
+        // What the file says is wrong with it is wrong with it whatever the server is
+        // busy with, and an operator meets these while a restore of their own is
+        // running: a dump naming a copy of a table rather than a table, a table whose
+        // copy will not fit, an installation whose tables carry no prefix at all.
+        $connection = $this->mysqlInstallation();
+
+        $this->dumpNaming($connection, [RestoreTableNames::shadow('pk_items')]);
+
+        $this->refusedRestore($connection, 'that a restore makes for itself');
+
+        self::assertSame([], $this->whatTheServerWasAsked($connection));
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testTheLockIsHeldWhileTheDatabaseIsReadAndGivenUpWhenTheRestoreIsRefused(): void
+    {
+        // Every refusal past the lock is decided on what the database holds, and what
+        // it holds is read once and acted on afterwards - so the lock comes before the
+        // first of those readings, a second restore creating or dropping tables
+        // between the reading and the acting on it being what it is there to prevent.
+        // On the way out it is given up, a refused restore being a restore that is
+        // over.
+        $connection = $this->mysqlInstallation();
+        $connection->references = [
+            ['name' => 'fk_from_a_neighbour', 'child' => 'other_items', 'parent' => 'pk_items'],
+        ];
+
+        $this->dumpNaming($connection, ['pk_items']);
+
+        $this->refusedRestore($connection, 'fk_from_a_neighbour');
+
+        self::assertSame(
+            ['GET_LOCK', 'lower_case_table_names', 'REFERENTIAL_CONSTRAINTS', 'RELEASE_LOCK'],
+            $this->whatTheServerWasAsked($connection),
+        );
+
+        self::assertSame($connection->locksAskedFor, $connection->locksGivenUp);
+    }
+
+    public function testTheLockIsGivenUpWhenTheRestoreItselfCouldNotBeCarriedThrough(): void
+    {
+        // A lock held past the request that took it leaves every later restore of the
+        // installation refused, up to whenever the connection behind it goes away. So
+        // it is given up on the way out of a failure as readily as on the way out of a
+        // restore that worked.
+        $connection = $this->mysqlInstallationThatWillNotSwap();
+
+        $this->dumpNaming($connection, ['pk_items']);
+
+        $this->refusedSwap($connection);
+
+        self::assertNotSame([], $connection->locksAskedFor);
+        self::assertSame($connection->locksAskedFor, $connection->locksGivenUp);
+    }
+
+    public function testAnInstallationLocksOnANameOfItsOwnRatherThanOneASiteBesideItShares(): void
+    {
+        // A server keeps one of these names for the whole of itself, so the name has
+        // to say which installation is being restored: two of them in one database
+        // under different prefixes hold different tables, and one of them restoring is
+        // nothing the other waits on.
+        $first = $this->lockAskedFor('pk_', ['pk_items']);
+        $again = $this->lockAskedFor('pk_', ['pk_items']);
+        $beside = $this->lockAskedFor('wp_', ['wp_items']);
+
+        self::assertSame($first, $again, 'Two restores of one installation wait on each other');
+        self::assertNotSame($first, $beside, 'A site sharing the database restores independently');
+
+        // Inside what a server takes for a lock, which is the 64 characters a table
+        // name gets - and not made out of the schema and the prefix, a schema name
+        // being able to take up most of those on its own.
+        self::assertLessThanOrEqual(64, strlen($first));
+        self::assertStringNotContainsString('pk_', $first);
+    }
+
+    public function testTwoSchemasOfOneServerRestoreIndependentlyOfEachOtherUnderTheSamePrefix(): void
+    {
+        // The other half of what an installation is. Two of them on one server can
+        // carry the same prefix as readily as two in one database can carry
+        // different ones, and neither can see the other's tables - so a name made
+        // out of the prefix alone would have a site waiting on a restore of a
+        // database it has nothing to do with.
+        $first = $this->lockOfAnInstallationOn('a_schema');
+        $again = $this->lockOfAnInstallationOn('a_schema');
+        $beside = $this->lockOfAnInstallationOn('another_schema_on_the_same_server');
+
+        self::assertSame($first, $again, 'Two restores of one installation wait on each other');
+        self::assertNotSame($first, $beside, 'A site on another schema of the server restores independently');
+
+        self::assertLessThanOrEqual(64, strlen($beside));
+        self::assertStringNotContainsString('another_schema_on_the_same_server', $beside);
+    }
+
+    public function testTheLockIsNamedToTheServerAsAValueRatherThanInTheStatementAskingForIt(): void
+    {
+        // The connection substitutes this installation's table prefix for an @-led
+        // name anywhere in a statement outside quotes, so a lock named in the text of
+        // one could arrive at the server as another name again - and two restores
+        // holding two names apiece are two restores running.
+        $connection = $this->mysqlInstallation();
+        $connection->locked = true;
+
+        $this->dumpNaming($connection, ['pk_items']);
+
+        $this->refusedRestore($connection, 'already running');
+
+        $name = $connection->locksAskedFor[0] ?? '';
+
+        self::assertNotSame('', $name, 'The server was told which lock it was being asked for');
+
+        foreach ($connection->asked as $statement) {
+            self::assertStringNotContainsString($name, $statement);
+            self::assertStringNotContainsString('@', $statement);
+        }
+    }
+
+    public function testALockTheServerWouldNotTakeBackIsNotWhatTheOperatorIsToldAbout(): void
+    {
+        // Giving it up is the last thing a restore does, by which point what somebody
+        // has to act on has been decided. A session that has lost the server cannot
+        // hand anything back to it, and raised from the way out that would arrive in
+        // place of the sentence saying what to do next - over a lock the server drops
+        // as soon as the session goes.
+        $connection = $this->installationThatWillNotTakeTheLockBack();
+        $connection->references = [
+            ['name' => 'fk_from_a_neighbour', 'child' => 'other_items', 'parent' => 'pk_items'],
+        ];
+
+        $this->dumpNaming($connection, ['pk_items']);
+
+        $refusal = $this->refusedRestore($connection, 'fk_from_a_neighbour');
+
+        self::assertStringNotContainsString('could not be given up', $refusal->getMessage());
+
+        // And it was asked for all the same: a lock nobody tried to give back is a
+        // lock held until the connection goes, which is every later restore refused.
+        self::assertSame($connection->locksAskedFor, $connection->locksGivenUp);
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testASecondRestoreAskedForWhileOneIsRunningIsTurnedAwayByTheServerItself(): void
+    {
+        // Two requests are two processes, and what one of them is doing to the
+        // database is nothing the other can see. Which restore is running is therefore
+        // the server's to answer, and the run with a server behind it is the only one
+        // that can be asked: a second session, a lock nobody wrote, and an answer
+        // arrived at while the first restore is halfway through filling its copies.
+        $connection = $this->installationRestoredTwiceAtOnce();
+
+        $this->requireALockFromTheServer($connection);
+
+        (new DatabaseDumper($connection))->dump($this->dump());
+
+        $connection->executeStatement('DELETE FROM pk_items');
+
+        $connection->second = new DatabaseRestorer($this->openAnotherSession());
+        $connection->dump = $this->dump();
+
+        $summary = (new DatabaseRestorer($connection))->restore($this->dump());
+
+        self::assertInstanceOf(\RuntimeException::class, $connection->refusal, 'The second restore was answered rather than left waiting');
+        self::assertStringContainsString('already running', $connection->refusal->getMessage());
+
+        // And the one that was running came through with the whole of the snapshot,
+        // which is the other half of refusing the second: a lock that turned both away
+        // would be a site that can no longer be restored at all.
+        self::assertSame(['tables' => 2, 'rows' => 3], $summary);
+        self::assertSame(2, $this->countItems($connection));
+        self::assertSame([], $this->copiesIn($connection));
+    }
+
+    public function testARestoreThatWentThroughLeavesTheNextOneFreeToRun(): void
+    {
+        // Asked on the session that is holding it, a server hands the same lock over
+        // again - so whether a restore gave its own up is a question only somebody
+        // else can put, and a lock left held is every restore of the installation
+        // refused until that request's connection goes away.
+        $connection = $this->installation();
+
+        $this->requireALockFromTheServer($connection);
+
+        (new DatabaseDumper($connection))->dump($this->dump());
+
+        self::assertSame(['tables' => 2, 'rows' => 3], (new DatabaseRestorer($connection))->restore($this->dump()));
+
+        $next = new DatabaseRestorer($this->openAnotherSession());
+
+        self::assertSame(['tables' => 2, 'rows' => 3], $next->restore($this->dump()));
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    // ------------------------------------------------------------------
+    // What a restore that did not finish left behind
+    // ------------------------------------------------------------------
+
+    public function testACopyLeftBehindPointingIntoTheDumpIsClearedAwayRatherThanRefusedOver(): void
+    {
+        // A copy a dead restore left can hold a reference into a table the dump
+        // carries, and unlike a neighbour's it is no obstacle: the copy comes off
+        // before this restore has made anything, so nothing holds the table when the
+        // swap comes. Refused over instead, it would leave the one restore that
+        // clears it away unable to run - a site whose every snapshot has become
+        // unusable over a table nobody asked for.
+        $connection = $this->mysqlInstallationThatWillNotSwap();
+        $connection->references = [
+            ['name' => 'fk_left_behind', 'child' => RestoreTableNames::backup('pk_items'), 'parent' => 'pk_items'],
+        ];
+
+        $this->tableNamed($connection, RestoreTableNames::backup('pk_items'));
+
+        $this->dumpNaming($connection, ['pk_items']);
+
+        // Refused at the swap, which is past every refusal there is: the reference was
+        // no reason to turn the restore away.
+        $failure = $this->refusedSwap($connection);
+
+        self::assertStringContainsString('Failed to restore the database from', $failure->getMessage());
+        self::assertSame([], $this->copiesIn($connection));
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testAReferenceFromWhatWasLeftBehindIsNoRefusalWhileOneFromANeighbourStillIs(): void
+    {
+        // The two are told apart by the table holding the reference, not by the
+        // reference: one of them is coming off in a moment and the other is a table
+        // somebody else's application reads. And a restore refused leaves even what
+        // was left behind where it was, clearing it away being the one thing a
+        // restore's preparation writes to the database.
+        $connection = $this->mysqlInstallation();
+        $connection->references = [
+            ['name' => 'fk_left_behind', 'child' => RestoreTableNames::backup('pk_items'), 'parent' => 'pk_items'],
+            ['name' => 'fk_from_a_neighbour', 'child' => 'other_items', 'parent' => 'pk_items'],
+        ];
+
+        $this->tableNamed($connection, RestoreTableNames::backup('pk_items'));
+
+        $this->dumpNaming($connection, ['pk_items']);
+
+        $refusal = $this->refusedRestore($connection, 'fk_from_a_neighbour');
+
+        self::assertStringNotContainsString('fk_left_behind', $refusal->getMessage());
+        self::assertSame(['_b_pk_items'], $this->copiesIn($connection));
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testALeftoverThatWillNotComeOffIsPutToAnOperatorRatherThanWorkedAround(): void
+    {
+        // Where the database will not let one of them go there is no room for the copy
+        // this restore has to make, and nothing else it can do about that. So the
+        // restore does not start, and what somebody has to remove by hand is in the
+        // sentence they are shown - in an order they can work through, and apart from
+        // the ones that came off.
+        $connection = $this->mysqlInstallationThatWillNotSwap();
+        $connection->keeps = RestoreTableNames::shadow('pk_gone');
+
+        $this->tableNamed($connection, RestoreTableNames::shadow('pk_gone'));
+        $this->tableNamed($connection, RestoreTableNames::backup('pk_meta'));
+
+        $this->dumpNaming($connection, ['pk_items']);
+
+        $refusal = $this->refusedRestore($connection, '_b_pk_meta, _r_pk_gone');
+        $cause = $refusal->getPrevious();
+
+        self::assertStringContainsString('could not be dropped', $refusal->getMessage());
+        self::assertStringContainsString('have to be removed', $refusal->getMessage());
+
+        self::assertInstanceOf(\RuntimeException::class, $cause);
+        self::assertStringContainsString('_r_pk_gone', $cause->getMessage());
+        self::assertStringNotContainsString('_b_pk_meta', $cause->getMessage());
+
+        // The one that would not go is still there and the other came off regardless:
+        // every one is tried before anything is reported, a table left standing being
+        // one more the next restore has no room around.
+        self::assertSame(['_r_pk_gone'], $this->copiesIn($connection));
+        self::assertSame(2, $this->countItems($connection));
+        self::assertSame($connection->locksAskedFor, $connection->locksGivenUp);
+    }
+
+    public function testCopiesLeftBehindThatPointAtEachOtherAreClearedAwayAllTheSame(): void
+    {
+        // What a restore leaves behind is a set of tables pointing at each other - the
+        // copies at each other's copies, the tables a swap set aside at each other -
+        // so no order of their names is one they can be dropped in while references are
+        // enforced. Which is why they come off with enforcement suspended, and why the
+        // connection is put back on what it was afterwards.
+        $connection = $this->relatedWithoutAnIndexOfItsOwn();
+
+        if ($this->isSqlite($connection)) {
+            // SQLite replaces the tables where they stand, so it makes no copies and
+            // has none to find left behind either.
+            self::markTestSkipped('Only a MySQL restore clears away what an earlier one left behind');
+        }
+
+        $this->enforceReferences($connection, true);
+
+        (new DatabaseDumper($connection))->dump($this->dump());
+
+        // Named so that the one being pointed at is the one dropped first, that being
+        // the drop a server enforcing references refuses.
+        $connection->executeStatement('CREATE TABLE _b_pk_b_parent (id INTEGER NOT NULL, PRIMARY KEY(id))');
+        $connection->executeStatement(
+            'CREATE TABLE _r_pk_a_child (id INTEGER NOT NULL, parent_id INTEGER NOT NULL, PRIMARY KEY(id),'
+            .' CONSTRAINT fk_left_behind FOREIGN KEY (parent_id) REFERENCES _b_pk_b_parent (id))',
+        );
+
+        $summary = (new DatabaseRestorer($connection))->restore($this->dump());
+
+        self::assertSame(['tables' => 2, 'rows' => 2], $summary);
+        self::assertSame([], $this->copiesIn($connection));
+
+        // And references are enforced again, exactly as they were before a restore
+        // that had to suspend them twice.
+        $this->expectException(ForeignKeyConstraintViolationException::class);
+
+        $connection->insert('pk_a_child', ['id' => 2, 'parent_id' => 99]);
+    }
+
+    public function testADatabaseThatDidNotEnforceReferencesIsNotLeftEnforcingThemByAClearingAway(): void
+    {
+        // Clearing what an earlier restore left behind opens a window of its own,
+        // and it closes on whatever the connection was found on rather than on the
+        // setting MySQL starts out on. Left enforcing references it would be what
+        // the rest of the request runs under: the restore reads the setting again
+        // once the clearing away is over, and that reading is what it ends on.
+        $connection = $this->relatedWithoutAnIndexOfItsOwn();
+
+        if ($this->isSqlite($connection)) {
+            self::markTestSkipped('Only a MySQL restore clears away what an earlier one left behind');
+        }
+
+        $this->enforceReferences($connection, false);
+
+        (new DatabaseDumper($connection))->dump($this->dump());
+
+        $connection->executeStatement('CREATE TABLE _b_pk_b_parent (id INTEGER NOT NULL, PRIMARY KEY(id))');
+
+        self::assertSame(['tables' => 2, 'rows' => 2], (new DatabaseRestorer($connection))->restore($this->dump()));
+        self::assertSame([], $this->copiesIn($connection));
+
+        // A row pointing at a parent that is not there, which is what a connection
+        // left enforcing references would refuse.
+        $connection->insert('pk_a_child', ['id' => 2, 'parent_id' => 99]);
+
+        self::assertSame([['id' => 2, 'parent_id' => 99]], $connection->fetchAllAssociative('SELECT id, parent_id FROM pk_a_child WHERE id = 2'));
+    }
+
+    public function testACopyOfATableAnotherInstallationOwnsIsStillThereAfterARestoreThatWentThrough(): void
+    {
+        // A restore drops tables under two names it makes up for itself, and nothing
+        // but the table each was made for says whose they are. One made for a table
+        // this installation does not own belongs to whatever else shares the
+        // database, so it is no part of what the copies are cleared up with nor of
+        // what the tables set aside go with - it is where it was once the restore
+        // that went straight past it is over.
+        $connection = $this->installation();
+
+        $this->requireTablesSetAside($connection);
+
+        $this->tableNamed($connection, RestoreTableNames::shadow('wp_items'));
+
+        (new DatabaseDumper($connection))->dump($this->dump());
+
+        $connection->executeStatement('DELETE FROM pk_items');
+
+        $summary = (new DatabaseRestorer($connection))->restore($this->dump());
+
+        self::assertSame(['tables' => 2, 'rows' => 3], $summary);
+        self::assertSame(2, $this->countItems($connection));
+        self::assertSame(['_r_wp_items'], $this->copiesIn($connection));
     }
 
     // ------------------------------------------------------------------
@@ -1071,10 +1528,11 @@ final class DatabaseRestorerTest extends TestCase
     public function testAFillThatCannotCreateOneCopyLeavesNoneOfThemBehind(): void
     {
         // A copy left standing is a table nobody declared, holding as much of a
-        // table as the fill had written - and the next restore refuses while it is
-        // there. So a fill that cannot be carried through costs the copies and
-        // nothing else: the installation is the one it was before the dump was
-        // opened.
+        // table as the fill had written - and clearing it away is then the next
+        // restore's work, which turns that restore away where the database will
+        // not let the name go. So a fill that cannot be carried through costs the
+        // copies and nothing else: the installation is the one it was before the
+        // dump was opened.
         $connection = $this->installation();
 
         try {
@@ -1178,8 +1636,9 @@ final class DatabaseRestorerTest extends TestCase
     {
         // Every copy is tried before anything is reported. Given up at the first
         // one that will not go, the rest would be left behind as well - tables
-        // nobody declared, and every one of them a refusal the next restore raises
-        // and somebody has to clear by hand.
+        // nobody declared, and every one of them a name the next restore has to
+        // clear before it can start, which turns that restore away where the
+        // database will not let the name go.
         $connection = $this->installationThatWillNotDrop();
         $connection->keeps = RestoreTableNames::shadow('pk_items');
 
@@ -1312,9 +1771,9 @@ final class DatabaseRestorerTest extends TestCase
     public function testACopyTheDatabaseWillNotGiveUpDoesNotStandInFrontOfTheSwapThatFailed(): void
     {
         // Clearing the copies away is what a refused swap does next, and that can
-        // fail as well. The failure to act on is still the swap: the copy left
-        // behind is a name the next restore refuses over, which is where an operator
-        // meets it.
+        // fail as well. Reported instead, it would stand in front of the failure
+        // that actually has to be acted on: what the caller is told is the swap's
+        // own, and the copy this database will not give up is left where it is.
         $connection = $this->mysqlInstallationThatWillNotSwap();
         $connection->keeps = RestoreTableNames::shadow('pk_items');
 
@@ -1337,20 +1796,22 @@ final class DatabaseRestorerTest extends TestCase
     public function testWhatARestoreRefusesIsPutToAnOperatorInItsOwnWords(): void
     {
         // A refusal names something somebody has to decide about - a table to
-        // rename, a copy to clear away - and it reaches them through the snapshots
+        // rename, a reference to drop - and it reaches them through the snapshots
         // panel. Reported as a restore that failed, the sentence saying what to do
         // next would be the one thing the panel does not show.
         $connection = $this->mysqlInstallation();
+        $connection->references = [
+            ['name' => 'fk_from_a_neighbour', 'child' => 'other_items', 'parent' => 'pk_items'],
+        ];
 
-        $this->tableNamed($connection, RestoreTableNames::shadow('pk_items'));
         $this->dumpNaming($connection, ['pk_items']);
 
         try {
             (new DatabaseRestorer($connection))->restore($this->dump());
 
-            self::fail('A restore must be refused while a copy of one of its tables is still in the database');
+            self::fail('A restore must be refused while a table outside the dump points into it');
         } catch (\RuntimeException $e) {
-            self::assertStringContainsString('Drop them and run the restore again', $e->getMessage());
+            self::assertStringContainsString('they have to be dropped before a restore can run', $e->getMessage());
             self::assertStringNotContainsString('Failed to restore the database', $e->getMessage());
         }
     }
@@ -1524,6 +1985,33 @@ final class DatabaseRestorerTest extends TestCase
     }
 
     /**
+     * The same installation on a server that will not say whether the lock a
+     * restore runs under is to be had, which is as much of an answer as a lock
+     * another session is holding.
+     */
+    private function installationThatWillNotSayWhoHoldsTheLock(): ConnectionThatWillNotSayWhoHoldsTheLock
+    {
+        $connection = $this->installation('pk_', ConnectionThatWillNotSayWhoHoldsTheLock::class);
+
+        self::assertInstanceOf(ConnectionThatWillNotSayWhoHoldsTheLock::class, $connection);
+
+        return $connection;
+    }
+
+    /**
+     * The same installation on a server that will not take the lock back, a
+     * restore giving one up being the last thing it does either way.
+     */
+    private function installationThatWillNotTakeTheLockBack(): ConnectionThatWillNotTakeTheLockBack
+    {
+        $connection = $this->installation('pk_', ConnectionThatWillNotTakeTheLockBack::class);
+
+        self::assertInstanceOf(ConnectionThatWillNotTakeTheLockBack::class, $connection);
+
+        return $connection;
+    }
+
+    /**
      * The same installation on a database that will not let a table go, which is
      * the one failure a fill has to clear up around rather than report.
      */
@@ -1564,6 +2052,20 @@ final class DatabaseRestorerTest extends TestCase
     }
 
     /**
+     * The same installation on a database that has a second restore asked of it
+     * while it is running one, which is what one restore at a time is worth
+     * anything against.
+     */
+    private function installationRestoredTwiceAtOnce(): ConnectionThatIsRestoredTwiceAtOnce
+    {
+        $connection = $this->installation('pk_', ConnectionThatIsRestoredTwiceAtOnce::class);
+
+        self::assertInstanceOf(ConnectionThatIsRestoredTwiceAtOnce::class, $connection);
+
+        return $connection;
+    }
+
+    /**
      * A restore of the dump the test wrote, into a database that will not swap the
      * copies in, and what it was reported as.
      */
@@ -1579,6 +2081,101 @@ final class DatabaseRestorerTest extends TestCase
     }
 
     /**
+     * A restore the installation turns away, and the words it was turned away in.
+     *
+     * Never the words of a restore that failed: a refusal names something somebody
+     * has to decide about, and it reaches them through the snapshots panel, which
+     * shows the message it was given and nothing that wrapped it.
+     *
+     * @param string $because what the refusal has to name
+     */
+    private function refusedRestore(Connection $connection, string $because): \RuntimeException
+    {
+        try {
+            (new DatabaseRestorer($connection))->restore($this->dump());
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString($because, $e->getMessage());
+            self::assertStringNotContainsString('Failed to restore the database', $e->getMessage());
+
+            return $e;
+        }
+
+        self::fail(sprintf('A restore must be refused, in words naming "%s"', $because));
+    }
+
+    /**
+     * The lock a restore of one installation asks the server for, read off the one
+     * question a restore refused at the lock ever puts.
+     *
+     * @param  array<int, string> $tables the dump's tables, which have to be the
+     *                                    installation's own for the restore to
+     *                                    reach the lock at all
+     * @return string             the name it named
+     */
+    private function lockAskedFor(string $prefix, array $tables): string
+    {
+        $connection = $this->openDatabase($prefix, ConnectionThatAnswersForAMysqlServer::class);
+
+        self::assertInstanceOf(ConnectionThatAnswersForAMysqlServer::class, $connection);
+
+        $connection->locked = true;
+
+        $this->dumpNaming($connection, $tables);
+
+        $this->refusedRestore($connection, 'already running');
+
+        self::assertSame(['GET_LOCK'], $this->whatTheServerWasAsked($connection));
+
+        return $connection->locksAskedFor[0];
+    }
+
+    /**
+     * The same reading for an installation the server says is on a schema of its
+     * own, the schema being the half of the name a single database cannot vary.
+     */
+    private function lockOfAnInstallationOn(string $schema): string
+    {
+        $connection = $this->openDatabase('pk_', ConnectionOnASchemaOfItsOwn::class);
+
+        self::assertInstanceOf(ConnectionOnASchemaOfItsOwn::class, $connection);
+
+        $connection->schema = $schema;
+        $connection->locked = true;
+
+        $this->dumpNaming($connection, ['pk_items']);
+
+        $this->refusedRestore($connection, 'already running');
+
+        return $connection->locksAskedFor[0];
+    }
+
+    /**
+     * What the restore asked the server, in the order it asked - each question by
+     * the thing only a server can say about it.
+     *
+     * Which is how a refusal that needed nothing of the server is told from one
+     * decided on what the server said, and how the order the two are asked in is
+     * read: the lock before the first reading of what the database holds.
+     *
+     * @return array<int, string>
+     */
+    private function whatTheServerWasAsked(ConnectionThatAnswersForAMysqlServer $connection): array
+    {
+        return array_map(self::whatItAskedAbout(...), $connection->asked);
+    }
+
+    private static function whatItAskedAbout(string $query): string
+    {
+        foreach (['GET_LOCK', 'RELEASE_LOCK', 'lower_case_table_names', 'REFERENTIAL_CONSTRAINTS'] as $subject) {
+            if (str_contains($query, $subject)) {
+                return $subject;
+            }
+        }
+
+        return $query;
+    }
+
+    /**
      * Skips where the run is on SQLite, which replaces the tables where they stand
      * and sets none of them aside - so what a restore does with the table it
      * replaced is a question only a MySQL run answers.
@@ -1587,6 +2184,18 @@ final class DatabaseRestorerTest extends TestCase
     {
         if ($this->isSqlite($connection)) {
             self::markTestSkipped('Only a MySQL restore sets the tables it replaces aside');
+        }
+    }
+
+    /**
+     * Skips where the run has no server behind it, a lock being the server's to
+     * hand out: SQLite has none, and an in-memory database has no second session
+     * for one to be held against either.
+     */
+    private function requireALockFromTheServer(Connection $connection): void
+    {
+        if ($this->isSqlite($connection)) {
+            self::markTestSkipped('Only a MySQL server hands out the lock one restore of an installation runs under');
         }
     }
 

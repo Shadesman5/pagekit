@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\Installer\Package\Snapshot;
 
+use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Statement;
 use Pagekit\Database\Connection;
 use Psr\Log\LoggerInterface;
@@ -33,6 +34,11 @@ use Psr\Log\NullLogger;
  * statement costs the copies and nothing else. What could not be swapped is refused
  * before the first copy is created rather than found out halfway through.
  *
+ * One restore of an installation runs at a time, and the server is asked to hold
+ * that rather than the application: the copies are named after the tables they are
+ * going to replace, so two restores at once would be filling the same tables as
+ * each other, and two requests are two processes that know nothing of one another.
+ *
  * Foreign keys are not enforced while a restore runs. The tables arrive one at a
  * time and each is briefly missing the ones it points at.
  *
@@ -51,11 +57,31 @@ final class DatabaseRestorer
     private const MYSQL_NAME_LIMIT = 64;
 
     /**
+     * In front of what says which installation the lock belongs to. A server keeps
+     * one of these names for the whole of itself, so two sites sharing one would
+     * wait on each other's restores under a name that said no more than this.
+     */
+    private const LOCK = 'pagekit.restore.';
+
+    /**
+     * How long a restore waits for one that is already running: not at all. The
+     * second one is answered instead of queued, because whoever asked for it is
+     * waiting on a page rather than on a job somebody reads the outcome of later.
+     */
+    private const LOCK_TIMEOUT = 0;
+
+    /**
      * Whether the server matches table names without regard to case, once it has
      * been asked. Fixed when the server starts, so it cannot change under a
      * restore that is already running.
      */
     private ?bool $folds = null;
+
+    /**
+     * The lock this restore is holding, or nothing where it holds none - which is
+     * every restore on SQLite, and any refused before it got that far.
+     */
+    private ?string $lock = null;
 
     /**
      * Where a restore that worked but left something behind says so.
@@ -74,7 +100,8 @@ final class DatabaseRestorer
      * @return array{tables: int, rows: int} what was put back
      * @throws \RuntimeException             where the dump cannot be read, does not belong to
      *                                      this installation, could not be carried through on
-     *                                      it, or could not be applied
+     *                                      it, is asked for while another restore of it is
+     *                                      running, or could not be applied
      */
     public function restore(string $file): array
     {
@@ -88,27 +115,36 @@ final class DatabaseRestorer
 
         $dump = $this->inspect($file);
 
-        if ($mysql) {
-            $this->preflight($dump['names']);
-        }
-
-        $enforced = $this->foreignKeys();
-
-        // SQLite ignores this inside a transaction, so it is turned off before
-        // one is opened and put back after it has closed.
-        $this->setForeignKeys(false);
-
         try {
-            $this->replace($file, $dump['names']);
-        } catch (\Throwable $e) {
-            throw new \RuntimeException(sprintf('Failed to restore the database from "%s".', $file), 0, $e);
-        } finally {
-            try {
-                $this->setForeignKeys($enforced);
-            } catch (\Throwable) {
-                // Whatever went wrong restoring the setting, the restore itself
-                // is the outcome the caller has to act on.
+            if ($mysql) {
+                $leftovers = $this->preflight($dump['names']);
+
+                // After every refusal, being the one thing a restore does to the
+                // database before it is committed to going through with it: one
+                // that is turned away leaves even these where they were.
+                $this->clear($leftovers);
             }
+
+            $enforced = $this->foreignKeys();
+
+            // SQLite ignores this inside a transaction, so it is turned off before
+            // one is opened and put back after it has closed.
+            $this->setForeignKeys(false);
+
+            try {
+                $this->replace($file, $dump['names']);
+            } catch (\Throwable $e) {
+                throw new \RuntimeException(sprintf('Failed to restore the database from "%s".', $file), 0, $e);
+            } finally {
+                try {
+                    $this->setForeignKeys($enforced);
+                } catch (\Throwable) {
+                    // Whatever went wrong restoring the setting, the restore itself
+                    // is the outcome the caller has to act on.
+                }
+            }
+        } finally {
+            $this->release();
         }
 
         return ['tables' => $dump['tables'], 'rows' => $dump['rows']];
@@ -140,13 +176,89 @@ final class DatabaseRestorer
      * states.
      *
      * @param  list<string>      $dumped every table the dump carries
+     * @return list<string>      what an earlier restore left behind under names
+     *                          this one gives its own tables, for {@see self::clear()}
      * @throws \RuntimeException naming what has to change before a restore can run
      */
-    private function preflight(array $dumped): void
+    private function preflight(array $dumped): array
     {
+        // Asked of the dump's names alone, so a table nothing can be done about is
+        // turned away without a statement run or a lock taken.
         $this->refuseNamesThatWillNotFit($dumped);
-        $this->refuseNamesAlreadyInUse($dumped);
-        $this->refuseInboundReferences($dumped);
+
+        // Held from here to the end of the restore. What the database holds is read
+        // once and acted on afterwards, so no second restore may be creating or
+        // dropping the tables this one has just looked at.
+        $this->acquire();
+
+        $leftovers = $this->refuseNamesAlreadyInUse($dumped);
+
+        $this->refuseInboundReferences($dumped, $leftovers);
+
+        return $leftovers;
+    }
+
+    /**
+     * Takes the lock a restore of this installation runs under.
+     *
+     * @throws \RuntimeException where another restore of this installation holds it
+     */
+    private function acquire(): void
+    {
+        $name = $this->lockName();
+
+        $taken = $this->connection->fetchOne(
+            'SELECT GET_LOCK(?, ?)',
+            [$name, self::LOCK_TIMEOUT],
+            [ParameterType::STRING, ParameterType::INTEGER],
+        );
+
+        // One is the lock. Nought is another session holding it, and no answer at
+        // all is a server that will not say - neither of which is a lock, and a
+        // restore that went ahead on either would be the second one running.
+        if ($taken === 1 || $taken === '1') {
+            $this->lock = $name;
+
+            return;
+        }
+
+        throw new \RuntimeException('Another restore of this installation is already running, so this one was not started: only one at a time can put the tables back. Wait for the one that is running to finish, then ask for this one again.');
+    }
+
+    /**
+     * Gives the lock up, where this restore took one.
+     */
+    private function release(): void
+    {
+        $name = $this->lock;
+        $this->lock = null;
+
+        if ($name === null) {
+            return;
+        }
+
+        try {
+            $this->connection->fetchOne('SELECT RELEASE_LOCK(?)', [$name], [ParameterType::STRING]);
+        } catch (\Throwable) {
+            // A server gives up a session's locks when the session goes, so one
+            // that could not be given up here is not one the next restore waits on.
+        }
+    }
+
+    /**
+     * What a restore of this installation locks on.
+     *
+     * The schema and the prefix together, those being what an installation is: two
+     * of them in one database under different prefixes hold different tables and
+     * restore independently of each other. Hashed because the name is capped at
+     * the same 64 characters a table name is, and a schema name can be most of
+     * them on its own.
+     */
+    private function lockName(): string
+    {
+        $schema = $this->connection->getDatabase() ?? '';
+
+        return self::LOCK.substr(hash('sha256', $schema."\0".$this->prefix()), 0, 32);
     }
 
     /**
@@ -180,20 +292,29 @@ final class DatabaseRestorer
 
     /**
      * Refuses where the database already holds a table under a name the restore
-     * has to make for itself.
+     * has to make for itself, and reports the ones it may take over.
      *
-     * Copies from a restore that did not finish are refused whether or not this
-     * dump needs their names: they are tables nobody asked for, and a restore
-     * that wrote over them would lose the one thing that says how far the last
-     * one got. A reserved name whose remainder is not this installation's was
-     * written by something else, so it is refused where the restore needs that
-     * very name and otherwise left alone like any other table that is not this
-     * installation's.
+     * A reserved name whose remainder is one of this installation's tables is a
+     * copy left by a restore that did not finish. It stands in this restore's way
+     * whether or not this dump needs that very name, and it is this installation's
+     * own to clear away ({@see self::clear()}). A reserved name whose remainder is
+     * not was written by something else, so it is refused where the restore needs
+     * that very name and otherwise left alone like any other table that is not
+     * this installation's. Which of the two a collision is follows from the
+     * prefix, and a name this restore needs is one of the dump's tables behind a
+     * marker - so while a dump only names tables under this installation's prefix
+     * ({@see self::name()}), the refusal is what answers a reserved name that
+     * prefix does not account for rather than one an operator meets.
      *
      * @param  list<string>      $dumped
-     * @throws \RuntimeException naming the tables in the way
+     * @return list<string>      what an earlier restore left behind, in an order of
+     *                          its own: what the server lists them in is the
+     *                          server's business, and this reads as a list an
+     *                          operator can work through
+     * @throws \RuntimeException naming a table in the way that is no part of this
+     *                          installation
      */
-    private function refuseNamesAlreadyInUse(array $dumped): void
+    private function refuseNamesAlreadyInUse(array $dumped): array
     {
         /** @var array<string, array{0: string, 1: string}> $needed the copy as the server would match it => the table and the copy's name */
         $needed = [];
@@ -233,18 +354,9 @@ final class DatabaseRestorer
             }
         }
 
-        if ($leftovers === []) {
-            return;
-        }
-
-        // In an order of its own: what the server lists them in is the server's
-        // business, and this reads as a list an operator can work through.
         sort($leftovers);
 
-        throw new \RuntimeException(sprintf(
-            'A restore that did not finish left copies of this installation\'s tables in the database (%s). Drop them and run the restore again.',
-            implode(', ', $leftovers),
-        ));
+        return $leftovers;
     }
 
     /**
@@ -256,12 +368,16 @@ final class DatabaseRestorer
      * its way out, which leaves the restore unable to remove that copy and the
      * table holding the reference pointing at something nothing maintains.
      * References from tables the dump does carry are no trouble - they are
-     * swapped in the same statement.
+     * swapped in the same statement. Nor are references from what an earlier
+     * restore left behind: those tables come off before the first copy is
+     * created, and refusing over one would leave the very restore that clears
+     * them away unable to run.
      *
      * @param  list<string>      $dumped
+     * @param  list<string>      $leftovers as {@see self::refuseNamesAlreadyInUse()} found them
      * @throws \RuntimeException naming each reference into the dump
      */
-    private function refuseInboundReferences(array $dumped): void
+    private function refuseInboundReferences(array $dumped, array $leftovers): void
     {
         $carried = [];
 
@@ -269,10 +385,18 @@ final class DatabaseRestorer
             $carried[$this->comparable($name)] = true;
         }
 
+        $going = [];
+
+        foreach ($leftovers as $name) {
+            $going[$this->comparable($name)] = true;
+        }
+
         $inbound = [];
 
         foreach ($this->references() as $reference) {
-            if (!isset($carried[$this->comparable($reference['parent'])]) || isset($carried[$this->comparable($reference['child'])])) {
+            $child = $this->comparable($reference['child']);
+
+            if (!isset($carried[$this->comparable($reference['parent'])]) || isset($carried[$child]) || isset($going[$child])) {
                 continue;
             }
 
@@ -328,6 +452,53 @@ final class DatabaseRestorer
         }
 
         return $references;
+    }
+
+    /**
+     * Clears away what a restore that did not finish left behind under the names
+     * this one gives its own tables.
+     *
+     * Nothing reads them: a copy a fill never got to the end of holds part of a
+     * dump, and a table a swap set aside holds what the installation has already
+     * replaced. So they are dropped rather than left for an operator to remove
+     * with a database client, which is what a server going away mid-restore would
+     * otherwise cost one. The lock is what makes that safe: while it is held, a
+     * table under one of these names is from a restore that is no longer running.
+     *
+     * References are not enforced while they come off, and the connection is put
+     * back on whatever it was afterwards. The copies of a set of tables point at
+     * each other's copies and the tables a swap set aside at each other, so which
+     * of them can be dropped before which is not something their names say.
+     *
+     * @param  list<string>      $leftovers as {@see self::refuseNamesAlreadyInUse()} found them
+     * @throws \RuntimeException naming the copies that are still there, a restore
+     *                          having no room to make its own while they are
+     */
+    private function clear(array $leftovers): void
+    {
+        if ($leftovers === []) {
+            return;
+        }
+
+        $enforced = $this->foreignKeys();
+
+        $this->setForeignKeys(false);
+
+        try {
+            $this->drop($leftovers);
+        } catch (\Throwable $e) {
+            throw new \RuntimeException(sprintf(
+                'A restore that did not finish left copies of this installation\'s tables in the database (%s), and they could not be dropped to make room for this one. They have to be removed before a restore can be run again.',
+                implode(', ', $leftovers),
+            ), 0, $e);
+        } finally {
+            try {
+                $this->setForeignKeys($enforced);
+            } catch (\Throwable) {
+                // Whether the tables came off is what the caller has to act on,
+                // rather than what putting the setting back then ran into.
+            }
+        }
     }
 
     /**
@@ -387,8 +558,8 @@ final class DatabaseRestorer
                 $this->drop($copies);
             } catch (\Throwable) {
                 // The swap not going through is what the caller has to act on; a
-                // copy that will not drop is named to whoever runs the next
-                // restore, which refuses while it is there.
+                // copy that will not drop is left to the next restore, which
+                // clears it away before it makes its own.
             }
 
             throw $e;
@@ -517,7 +688,8 @@ final class DatabaseRestorer
      * taken. A failure anywhere in it - a dump that stops halfway, a disk that
      * fills, a server that goes away - costs the copies and nothing else, and they
      * are dropped before the failure is passed on: a copy left behind is a table
-     * nobody declared, and the next restore refuses while it is there.
+     * nobody declared, and clearing one away is work the next restore has to do
+     * before it can make its own.
      *
      * @param  string            $file   a dump as {@see DatabaseDumper} wrote it
      * @param  list<string>      $dumped every table the dump carries, which is what
@@ -569,8 +741,8 @@ final class DatabaseRestorer
             try {
                 $this->drop($shadows);
             } catch (\Throwable) {
-                // A copy that will not drop is named to whoever runs the next
-                // restore, which refuses while it is there. What the caller has to
+                // A copy that will not drop is left to the next restore, which
+                // clears it away before it makes its own. What the caller has to
                 // act on is the failure that led here.
             }
 
