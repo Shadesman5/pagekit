@@ -378,6 +378,111 @@ final class DatabaseRestorer
     }
 
     /**
+     * Fills a copy of every table the dump names, leaving the live tables as they
+     * are.
+     *
+     * This is the half of a MySQL restore that can be thrown away. Nothing the
+     * installation is serving from is written to: the dump goes into copies
+     * ({@see RestoreTableNames}), created out of the dump's own schema rather than
+     * out of the live tables, whose shape may have moved on since the dump was
+     * taken. A failure anywhere in it - a dump that stops halfway, a disk that
+     * fills, a server that goes away - costs the copies and nothing else, and they
+     * are dropped before the failure is passed on: a copy left behind is a table
+     * nobody declared, and the next restore refuses while it is there.
+     *
+     * @param  string            $file   a dump as {@see DatabaseDumper} wrote it
+     * @param  list<string>      $dumped every table the dump carries, which is what
+     *                                   says whether a foreign key points at a table
+     *                                   being swapped or at one that stays where it is
+     * @return list<string>      the copies that are now filled, in the order the dump holds them
+     * @throws \RuntimeException where a copy could not be created or filled
+     */
+    public function fill(string $file, array $dumped): array
+    {
+        $schema = new ShadowSchema($dumped);
+        $shadows = [];
+        $statement = null;
+
+        try {
+            foreach ($this->read($file) as $record) {
+
+                if ($record['type'] === DumpFormat::TABLE) {
+                    $shadow = RestoreTableNames::shadow($record['name']);
+
+                    // Noted as a copy to clean up before it is created: a CREATE
+                    // that got halfway, or a constraint that would not go on after
+                    // it, leaves a table behind just as a filled one does.
+                    $shadows[] = $shadow;
+
+                    foreach ($schema->rewrite($record['name'], $record['ddl']) as $sql) {
+                        $this->connection->executeStatement($sql);
+                    }
+
+                    // Prepared once per table and given a row at a time, because a
+                    // table's rows are the same statement over and over.
+                    $statement = $this->connection->prepare($this->insert($shadow, $record['columns']));
+
+                    continue;
+                }
+
+                if (!$statement instanceof Statement) {
+                    throw new \RuntimeException('The database dump holds a row before the table it belongs to.');
+                }
+
+                foreach ($record['values'] as $position => [$value, $type]) {
+                    $statement->bindValue($position + 1, $value, $type);
+                }
+
+                $statement->executeStatement();
+            }
+        } catch (\Throwable $e) {
+            try {
+                $this->drop($shadows);
+            } catch (\Throwable) {
+                // A copy that will not drop is named to whoever runs the next
+                // restore, which refuses while it is there. What the caller has to
+                // act on is the failure that led here.
+            }
+
+            throw $e;
+        }
+
+        return $shadows;
+    }
+
+    /**
+     * Drops tables a restore made for itself.
+     *
+     * Every one is tried before anything is reported, so that a single table that
+     * will not go does not leave the rest standing.
+     *
+     * @param  list<string>      $tables
+     * @throws \RuntimeException naming the ones that are still there
+     */
+    private function drop(array $tables): void
+    {
+        $platform = $this->connection->getDatabasePlatform();
+        $left = [];
+
+        foreach ($tables as $table) {
+            try {
+                $this->connection->executeStatement(sprintf('DROP TABLE IF EXISTS %s', $platform->quoteIdentifier($table)));
+            } catch (\Throwable) {
+                $left[] = $table;
+            }
+        }
+
+        if ($left === []) {
+            return;
+        }
+
+        throw new \RuntimeException(sprintf(
+            'Copies of this installation\'s tables that a restore made for itself could not be dropped (%s).',
+            implode(', ', $left),
+        ));
+    }
+
+    /**
      * Reads the dump through without touching the database, which is how it is
      * judged before anything is destroyed on the strength of it.
      *

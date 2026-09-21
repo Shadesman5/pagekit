@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Pagekit\Tests\Unit\Snapshot;
 
+use Doctrine\DBAL\Exception as DatabaseFailure;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\DBAL\ParameterType;
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Pagekit\Database\Connection;
@@ -982,6 +985,221 @@ final class DatabaseRestorerTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // The copies a restore fills before it touches anything live
+    // ------------------------------------------------------------------
+
+    public function testACopyHoldsWhatTheDumpHeldWhileTheTableItWasMadeFromGoesOnBeingRead(): void
+    {
+        // This is the half of a restore that can be thrown away. The dump goes into
+        // copies of the tables, and until those are swapped in the installation is
+        // still serving out of the tables it was serving out of - rows written
+        // since the snapshot was taken included.
+        $connection = $this->installation();
+        $snapshotted = $this->items($connection);
+
+        (new DatabaseDumper($connection))->dump($this->dump());
+
+        $connection->insert('pk_items', ['title' => 'written after the snapshot', 'status' => 0]);
+        $live = $this->items($connection);
+
+        $copies = (new DatabaseRestorer($connection))->fill($this->dump(), ['pk_items', 'pk_meta']);
+
+        // One copy per table the dump holds, named after the table it was made
+        // for, and left standing for whoever swaps them in.
+        self::assertSame(['_r_pk_items', '_r_pk_meta'], $copies);
+        self::assertSame($copies, $this->copiesIn($connection));
+
+        // Every value of every row, read the way the round trip above reads it:
+        // what a copy is worth is that it holds the database the dump holds.
+        self::assertSame($snapshotted, $this->itemsIn($connection, '_r_pk_items'));
+        self::assertSame(1, $this->countIn($connection, '_r_pk_meta'));
+
+        self::assertSame($live, $this->items($connection));
+    }
+
+    public function testACopyIsMadeOutOfTheSchemaTheDumpHoldsRatherThanOutOfTheTableAsItStandsNow(): void
+    {
+        // What the live table looks like now is not what the snapshot holds - an
+        // update since has added a column, a removal has dropped one - so a copy
+        // made in the shape of the live table is one the dumped rows do not fit.
+        $connection = $this->installation();
+
+        $this->writeDump($connection, [
+            self::header(),
+            ['type' => DumpFormat::TABLE, 'name' => 'pk_meta', 'ddl' => ['CREATE TABLE pk_meta (name VARCHAR(64) NOT NULL, PRIMARY KEY(name))'], 'columns' => ['name']],
+            ['type' => DumpFormat::ROW, 'values' => ['version']],
+            ['type' => DumpFormat::END, 'tables' => 1, 'rows' => 1],
+        ]);
+
+        (new DatabaseRestorer($connection))->fill($this->dump(), ['pk_meta']);
+
+        self::assertSame(['name'], $this->columnsOf($connection, '_r_pk_meta'));
+        self::assertSame(1, $this->countIn($connection, '_r_pk_meta'));
+
+        // And the table it was made from is the one the site is still reading.
+        self::assertSame(['name', 'value'], $this->columnsOf($connection, 'pk_meta'));
+    }
+
+    public function testAReferenceInACopyPointsAtTheCopyOfWhatItPointedAt(): void
+    {
+        // The copies are swapped in together, so among them the references have to
+        // point at copies as well: one left pointing at a live table is a restored
+        // table tied to the table it replaced. Which tables are being swapped is
+        // told to the fill rather than read out of the dump, because the dump is
+        // walked a record at a time and the table a reference names can lie further
+        // along it - as it does here, where the copy holding the reference is
+        // created before the copy it points at exists. Which is also why a fill
+        // belongs inside the window where references are not enforced.
+        $connection = $this->relatedWithoutAnIndexOfItsOwn();
+        $this->enforceReferences($connection, false);
+
+        (new DatabaseDumper($connection))->dump($this->dump());
+
+        (new DatabaseRestorer($connection))->fill($this->dump(), ['pk_a_child', 'pk_b_parent']);
+
+        self::assertSame(['_r_pk_b_parent'], $this->referencesOf($connection, '_r_pk_a_child'));
+        self::assertSame(1, $this->countIn($connection, '_r_pk_a_child'));
+
+        self::assertSame(['pk_b_parent'], $this->referencesOf($connection, 'pk_a_child'));
+    }
+
+    public function testAFillThatCannotCreateOneCopyLeavesNoneOfThemBehind(): void
+    {
+        // A copy left standing is a table nobody declared, holding as much of a
+        // table as the fill had written - and the next restore refuses while it is
+        // there. So a fill that cannot be carried through costs the copies and
+        // nothing else: the installation is the one it was before the dump was
+        // opened.
+        $connection = $this->installation();
+
+        try {
+            (new DatabaseRestorer($connection))->fill($this->brokenDump($connection), ['pk_items', 'pk_meta']);
+
+            self::fail('A fill that could not create a copy must not be reported as done');
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString('"pk_meta"', $e->getMessage());
+        }
+
+        self::assertSame([], $this->copiesIn($connection));
+
+        // The first table's copy had already been filled when the second table's
+        // schema was refused, and the table it was a copy of never heard about any
+        // of it.
+        self::assertSame(2, $this->countItems($connection));
+        self::assertSame(self::TITLE, $this->readColumn($connection, 'title'));
+        self::assertSame(1, $this->countMeta($connection));
+    }
+
+    public function testACopyThatWasOnlyPartlyCreatedIsDroppedWithTheRest(): void
+    {
+        // A copy is a copy from the first statement of its schema onwards: the
+        // table is created and then the index belonging to it will not go on. What
+        // is cleaned up is therefore every copy the fill began rather than every
+        // copy it finished.
+        $connection = $this->installation();
+
+        $this->writeDump($connection, [
+            self::header(),
+            ['type' => DumpFormat::TABLE, 'name' => 'pk_items', 'ddl' => [
+                'CREATE TABLE pk_items (id INTEGER NOT NULL, PRIMARY KEY(id))',
+                'CREATE INDEX IDX_NOTHING ON pk_items (a_column_no_table_has)',
+            ], 'columns' => ['id']],
+            ['type' => DumpFormat::END, 'tables' => 1, 'rows' => 0],
+        ]);
+
+        try {
+            (new DatabaseRestorer($connection))->fill($this->dump(), ['pk_items']);
+
+            self::fail('A fill whose copy could not be finished must not be reported as done');
+        } catch (DatabaseFailure) {
+            // Which statement the server refused is the server's business; what
+            // was left behind is this test's.
+        }
+
+        self::assertSame([], $this->copiesIn($connection));
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testARowThatWillNotGoIntoACopyTakesEveryCopyWithIt(): void
+    {
+        // A disk that fills, a connection that goes away and a row that does not
+        // fit come to the same thing as far as the installation is concerned: the
+        // copies go, the tables stay, and the snapshot is still on disk to try
+        // again from.
+        $connection = $this->installation();
+
+        $this->writeDump($connection, [
+            self::header(),
+            ['type' => DumpFormat::TABLE, 'name' => 'pk_meta', 'ddl' => ['CREATE TABLE pk_meta (name VARCHAR(64) NOT NULL, PRIMARY KEY(name))'], 'columns' => ['name']],
+            ['type' => DumpFormat::ROW, 'values' => ['version']],
+            ['type' => DumpFormat::ROW, 'values' => ['version']],
+            ['type' => DumpFormat::END, 'tables' => 1, 'rows' => 2],
+        ]);
+
+        try {
+            (new DatabaseRestorer($connection))->fill($this->dump(), ['pk_meta']);
+
+            self::fail('A fill that could not write a row must not be reported as done');
+        } catch (DatabaseFailure) {
+            // As above: the row the server would not take is its to name.
+        }
+
+        self::assertSame([], $this->copiesIn($connection));
+        self::assertSame(1, $this->countMeta($connection));
+    }
+
+    public function testAFillThatCannotCleanUpAfterItselfReportsTheFailureThatCausedIt(): void
+    {
+        // A copy that will not drop is a refusal for whoever runs the next restore,
+        // which is where it stands in the way. Reported here it would stand in
+        // front of the failure that actually has to be acted on - and the copy is
+        // named to an operator either way.
+        $connection = $this->installationThatWillNotDrop();
+
+        try {
+            (new DatabaseRestorer($connection))->fill($this->brokenDump($connection), ['pk_items', 'pk_meta']);
+
+            self::fail('A fill that could not create a copy must not be reported as done');
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString('"pk_meta"', $e->getMessage());
+            self::assertStringNotContainsString('could not be dropped', $e->getMessage());
+        }
+
+        self::assertSame(['_r_pk_items'], $this->copiesIn($connection));
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testACopyThatWillNotDropDoesNotLeaveTheOtherCopiesStanding(): void
+    {
+        // Every copy is tried before anything is reported. Given up at the first
+        // one that will not go, the rest would be left behind as well - tables
+        // nobody declared, and every one of them a refusal the next restore raises
+        // and somebody has to clear by hand.
+        $connection = $this->installationThatWillNotDrop();
+        $connection->keeps = RestoreTableNames::shadow('pk_items');
+
+        $this->writeDump($connection, [
+            self::header(),
+            ['type' => DumpFormat::TABLE, 'name' => 'pk_items', 'ddl' => ['CREATE TABLE pk_items (id INTEGER NOT NULL, PRIMARY KEY(id))'], 'columns' => ['id']],
+            ['type' => DumpFormat::TABLE, 'name' => 'pk_meta', 'ddl' => ['CREATE TABLE pk_meta (name VARCHAR(64) NOT NULL, PRIMARY KEY(name))'], 'columns' => ['name']],
+            ['type' => DumpFormat::TABLE, 'name' => 'pk_later', 'ddl' => ['NOT A STATEMENT ANY DATABASE RUNS'], 'columns' => ['id']],
+            ['type' => DumpFormat::END, 'tables' => 3, 'rows' => 0],
+        ]);
+
+        try {
+            (new DatabaseRestorer($connection))->fill($this->dump(), ['pk_items', 'pk_meta', 'pk_later']);
+
+            self::fail('A fill that could not create a copy must not be reported as done');
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString('"pk_later"', $e->getMessage());
+        }
+
+        // The copy of the first table is the one that would not go, and the copy of
+        // the second was tried after it all the same.
+        self::assertSame(['_r_pk_items'], $this->copiesIn($connection));
+    }
+
+    // ------------------------------------------------------------------
     // The installation a dump is replayed into
     // ------------------------------------------------------------------
 
@@ -1064,6 +1282,19 @@ final class DatabaseRestorerTest extends TestCase
     }
 
     /**
+     * The same installation on a database that will not let a table go, which is
+     * the one failure a fill has to clear up around rather than report.
+     */
+    private function installationThatWillNotDrop(): ConnectionThatWillNotDropATable
+    {
+        $connection = $this->installation('pk_', ConnectionThatWillNotDropATable::class);
+
+        self::assertInstanceOf(ConnectionThatWillNotDropATable::class, $connection);
+
+        return $connection;
+    }
+
+    /**
      * One more table in the database, under a name the test chooses - a copy a
      * restore left behind, or a neighbour's table that only reads like one.
      */
@@ -1136,6 +1367,32 @@ final class DatabaseRestorerTest extends TestCase
     }
 
     /**
+     * The same two tables, created as SQL rather than through the schema tools.
+     *
+     * The tools put an index of their own beside every foreign key, and SQLite
+     * keeps index names per database where MySQL keeps them per table - so a copy
+     * created out of a dump holding one would be asking SQLite for the name the
+     * live table's index already has. That is a property of the fixture and not of
+     * a restore: the copies are what a restore fills on MySQL, where an index name
+     * is the table's own.
+     */
+    private function relatedWithoutAnIndexOfItsOwn(): Connection
+    {
+        $connection = $this->openDatabase();
+
+        $connection->executeStatement('CREATE TABLE pk_b_parent (id INTEGER NOT NULL, title VARCHAR(64) NOT NULL, PRIMARY KEY(id))');
+        $connection->executeStatement(
+            'CREATE TABLE pk_a_child (id INTEGER NOT NULL, parent_id INTEGER NOT NULL, PRIMARY KEY(id),'
+            .' CONSTRAINT fk_a_child_parent FOREIGN KEY (parent_id) REFERENCES pk_b_parent (id))',
+        );
+
+        $connection->insert('pk_b_parent', ['id' => 1, 'title' => 'the one pointed at']);
+        $connection->insert('pk_a_child', ['id' => 1, 'parent_id' => 1]);
+
+        return $connection;
+    }
+
+    /**
      * Puts the connection on one side of the disagreement between the engines
      * about whether references are enforced, so that what a restore leaves it on
      * can be read off behaviour rather than off a setting.
@@ -1170,7 +1427,55 @@ final class DatabaseRestorerTest extends TestCase
      */
     private function items(Connection $connection): array
     {
-        return $connection->fetchAllAssociative('SELECT id, title, body, status, created, score, thumb FROM pk_items ORDER BY id');
+        return $this->itemsIn($connection, 'pk_items');
+    }
+
+    /**
+     * The same reading against a table under a name of the test's own - a copy a
+     * fill made - so that what a copy holds is compared with what the table it was
+     * made from held rather than with a count of its rows.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function itemsIn(Connection $connection, string $table): array
+    {
+        return $connection->fetchAllAssociative(sprintf(
+            'SELECT id, title, body, status, created, score, thumb FROM %s ORDER BY id',
+            $connection->getDatabasePlatform()->quoteIdentifier($table),
+        ));
+    }
+
+    /**
+     * The columns one table was created with, as the server reports them - which
+     * is how the shape of a copy is compared with the shape of the table beside
+     * it.
+     *
+     * @return array<int, string>
+     */
+    private function columnsOf(Connection $connection, string $table): array
+    {
+        return array_map(
+            static fn (Column $column): string => $column->getName(),
+            array_values($connection->createSchemaManager()->introspectTable($table)->getColumns()),
+        );
+    }
+
+    /**
+     * Which tables one table's foreign keys point at, in an order of the test's
+     * own.
+     *
+     * @return array<int, string>
+     */
+    private function referencesOf(Connection $connection, string $table): array
+    {
+        $targets = array_map(
+            static fn (ForeignKeyConstraint $key): string => $key->getForeignTableName(),
+            array_values($connection->createSchemaManager()->introspectTable($table)->getForeignKeys()),
+        );
+
+        sort($targets);
+
+        return $targets;
     }
 
     /**
@@ -1187,12 +1492,23 @@ final class DatabaseRestorerTest extends TestCase
 
     private function countItems(Connection $connection): int
     {
-        return (int) $connection->fetchOne('SELECT COUNT(*) FROM pk_items');
+        return $this->countIn($connection, 'pk_items');
     }
 
     private function countMeta(Connection $connection): int
     {
-        return (int) $connection->fetchOne('SELECT COUNT(*) FROM pk_meta');
+        return $this->countIn($connection, 'pk_meta');
+    }
+
+    /**
+     * How many rows one table holds, under whatever name the test asks about.
+     */
+    private function countIn(Connection $connection, string $table): int
+    {
+        return (int) $connection->fetchOne(sprintf(
+            'SELECT COUNT(*) FROM %s',
+            $connection->getDatabasePlatform()->quoteIdentifier($table),
+        ));
     }
 
     // ------------------------------------------------------------------

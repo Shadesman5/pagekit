@@ -15,7 +15,7 @@
 
 ## 🎯 Overview
 
-A fresh install can no longer be created with an empty or ill-shaped table prefix. The mysql module default is `pk_`, matching sqlite. Existing installations — empty prefix included — keep booting; only a new install is measured. A dump skips leftover `_r_`/`_b_` tables (empty prefix included) so a half-written restore copy cannot be snapshotted back over live data. A MySQL restore now refuses before it creates anything (empty prefix, a copy name past 64 characters, leftover or colliding `_r_`/`_b_` tables, inbound foreign keys from outside the dump); a dump that names a reserved table is refused on both platforms. The in-place MySQL apply still runs after those refusals; the shadow cut-over is later checklist steps.
+A fresh install can no longer be created with an empty or ill-shaped table prefix. The mysql module default is `pk_`, matching sqlite. Existing installations — empty prefix included — keep booting; only a new install is measured. A dump skips leftover `_r_`/`_b_` tables (empty prefix included) so a half-written restore copy cannot be snapshotted back over live data. A MySQL restore now refuses before it creates anything (empty prefix, a copy name past 64 characters, leftover or colliding `_r_`/`_b_` tables, inbound foreign keys from outside the dump); a dump that names a reserved table is refused on both platforms. Shadow fill can write `_r_` copies from dump DDL and drops them on failure; `restore()` does not call it yet. The in-place MySQL apply still runs after those refusals; the cut-over is the next step.
 
 ---
 
@@ -83,6 +83,25 @@ MySQL restore now fails closed while the installation is still whole. The in-pla
 
 Gates: Verifier (production) FAIL once (`preflight` docblock restated call order and named a future swap path) → retry → PASS; Tester PHPUnit+PHPStan PASS; test-writer done; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
 
+### Shadow DDL rewriter + fill machinery (Checklist Step 4)
+
+Copies can be filled; `restore()` still applies MySQL in place. Cut-over is the next step.
+
+| File | Change |
+|---|---|
+| `app/installer/src/Package/Snapshot/ShadowSchema.php` (new) | Final `Pagekit\Installer\Package\Snapshot\ShadowSchema`. Tokenises dump DDL (words, backticks, quoted values, comments) and splices only three things: the table the statement works on becomes the `_r_` copy; a `REFERENCES` target the dump names becomes that table's copy (schema-qualified or outside the dump stay); a `CONSTRAINT … FOREIGN`/`CHECK` name is regenerated (`_r_` + 24 hex of sha256 over a per-instance run token, the table, and the dumped name). Every other byte is copied through. A statement that is not `CREATE [TEMPORARY] TABLE [IF NOT EXISTS] <this table> (`, `ALTER TABLE <this table> ADD …`, or `CREATE [UNIQUE\|FULLTEXT\|SPATIAL] INDEX … ON <this table> (` — or that stacks a second statement, is schema-qualified, or has an unterminated quote or comment — is refused. Rewritten names are always backtick-quoted. |
+| `app/installer/src/Package/Snapshot/DatabaseRestorer.php` | `fill(file, dumped): list<string>` creates the `_r_` copies in dump order (rewritten DDL, then a prepared `INSERT` with quoted identifiers and bound values), lists each copy for cleanup before its first statement, and on any failure `drop()`s every copy it began. `drop()` tries every name then refuses naming the ones still there; `fill()` swallows that so the failure that caused cleanup is what the caller sees. `fill` is public (`restore()` does not call it; PHPStan 8 would flag an unused private). `apply()` / `recreate()` / `replace()` unchanged. |
+
+#### Tests (Checklist Step 4)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Snapshot/ShadowSchemaTest.php` (new) | Byte-for-byte: every statement of a table's schema works on the copy and is otherwise as dumped (quoted and unquoted, `TEMPORARY` / `IF NOT EXISTS` / `UNIQUE`\|`FULLTEXT`\|`SPATIAL` INDEX, backticks escaped); a value / `DEFAULT` that spells a table name is left; comments and quoted keywords are read past; dump-internal `REFERENCES` retargeted, outside-dump and schema-qualified left; FOREIGN/CHECK names regenerated (same instance deterministic, two instances distinct, unique per (table, constraint), ≤ 64, `_r_`-led); UNIQUE / PRIMARY / index names stay; `LIKE` / `RENAME` / `DROP` / `INSERT` / stacked / other-schema / other-table / unterminated quote or comment / nameless `REFERENCES` refused, naming the table and an excerpt. |
+| `tests/Unit/Snapshot/DatabaseRestorerTest.php` | Fill: copies hold dumped rows while live tables (post-snapshot writes included) stay; schema comes from the dump, not the live table; dump-internal FKs point at copies. Failure (unusable DDL, half-created copy, row that will not insert) leaves no `_r_` table and live tables untouched; a drop that also fails still reports the fill failure and tries every copy. Fill fixtures omit named secondary indexes (SQLite keeps those per schema). |
+| `tests/Unit/Snapshot/ConnectionThatWillNotDropATable.php` (new) | Connection that throws on `DROP TABLE` (all, or one named table) so cleanup-on-failure can be asserted without a server that actually refuses the drop. |
+
+Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. No deviations.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -101,6 +120,12 @@ Gates: Verifier (production) FAIL once (`preflight` docblock restated call order
 - **Remainder, not a second spelling.** `RestoreTableNames::live()` is the counterpart of `shadow()`/`backup()`; `isReserved()` delegates. Folding stays the restorer's.
 - **`inspect` lists names; `restore` still answers tables/rows.** The refusals measure against the dumped names; the caller's summary is unchanged.
 - **Reserved-in-dump before the prefix check.** A dump naming `_r_`/`_b_` is refused on both platforms and on an empty prefix, where `str_starts_with($name, '')` would otherwise pass the name through.
+- **Whitelist, not rewrite-what-you-recognise.** A statement must be `CREATE [TEMPORARY] TABLE [IF NOT EXISTS] <this table> (`, `ALTER TABLE <this table> ADD …`, or `CREATE [UNIQUE|FULLTEXT|SPATIAL] INDEX … ON <this table> (`. Passing unrecognised SQL through would let `executeStatement()` run a second statement behind a `;` as readily as the first. `CREATE TABLE … LIKE`, `ALTER TABLE … RENAME`, a schema-qualified name, and a stacked statement all refuse before anything runs.
+- **Run token in constraint names.** Regenerating from table + dumped name alone collides on the ordinary case of restoring one snapshot twice: the first restore left its regenerated name on the live table, and MySQL keeps FK/CHECK names per schema with no way to rename them. `_r_` + 24 hex of sha256 over a per-instance random run token, the table, and the dumped name (27 characters). One instance is deterministic; two instances never share a name.
+- **FOREIGN/CHECK only.** `CONSTRAINT … UNIQUE`, `PRIMARY KEY`, and every index name stay as dumped — those are per-table in MySQL. SQLite keeps index names per schema, so a SQLite-leg fill of a dump carrying a named secondary index collides with the live index; fill fixtures omit them. DBAL's MySQL platform writes indexes inline in `CREATE TABLE` and emits no `CREATE INDEX`.
+- **Comments as well as quotes.** The tokenizer reads past `--`, `#`, and `/* */`; an unterminated quote or comment refuses rather than being read to the end. Handling quotes only leaves a desynced reader that can miss a `REFERENCES` and leave a copy's foreign key pointing at a live table. Every byte outside a rewritten token comes through unchanged, `DEFAULT 'pk_users'` included.
+- **`fill` is public and handed the dumped names.** `restore()` does not call it yet; PHPStan 8 would flag an unused private method. The dump is a generator, so a foreign key can name a table that comes later in the file — the caller passes the names `inspect()` already collected. A copy is listed for cleanup before its DDL runs, so one that got halfway is dropped too. A failure leaves no `_r_` table; a success leaves the copies standing for whoever swaps them in.
+- **`drop` tries every table, then reports.** One name that will not go does not leave the rest standing. `fill()` swallows that refusal so the failure that caused cleanup is the one the caller acts on. The row-binding loop is repeated from `apply()` rather than shared — `apply()`/`recreate()` stay the SQLite apply and are not unified with the shadow path.
 
 ---
 
@@ -112,19 +137,19 @@ A fresh MySQL install that does not name a prefix is created with `pk_`, not an 
 
 ## ⚠️ Risks & Rollout Notes
 
-A hand-written `config.php` that omitted `prefix` on mysql now reads `pk_` and will not find unprefixed tables. Sites the installer wrote are unaffected (`persistableDatabaseConfig()` stores the resolved prefix). Empty-prefix MySQL restore is refused (the message names reinstalling with a prefix; `pk_` is the default). Owned leftover `_r_`/`_b_` copies refuse the restore until they are dropped; dropping them automatically is later leftover cleanup. Inbound foreign keys from tables outside the dump have to be dropped before a restore. A dump omits leftover `_r_`/`_b_` tables rather than carrying them; uninstall still has a dump. The in-place MySQL apply still runs after a passing preflight.
+A hand-written `config.php` that omitted `prefix` on mysql now reads `pk_` and will not find unprefixed tables. Sites the installer wrote are unaffected (`persistableDatabaseConfig()` stores the resolved prefix). Empty-prefix MySQL restore is refused (the message names reinstalling with a prefix; `pk_` is the default). Owned leftover `_r_`/`_b_` copies refuse the restore until they are dropped; dropping them automatically is later leftover cleanup. Inbound foreign keys from tables outside the dump have to be dropped before a restore. A dump omits leftover `_r_`/`_b_` tables rather than carrying them; uninstall still has a dump. The in-place MySQL apply still runs after a passing preflight. `fill()` is reachable only from tests: a dump whose DDL is not one of the three recognised statement shapes is refused there, not on `restore()`. A SQLite-leg fill of a dump that carries a named secondary index collides with the live index of that name (MySQL restore does not meet this; DBAL emits those indexes inline).
 
 ---
 
 ## 🔐 Security & Data Impact
 
-Shape rule: leading letter keeps the `_`-led namespace out of new installs; no `.` / `-` / quotes in unquoted identifiers. Fresh-install refusal happens before a connection is opened. No schema migration; no existing table is renamed. A dump no longer carries leftover restore copies, so an uninstall cannot replay a half-written `_r_`/`_b_` table over the live one. The reserved-name reading is prefix-only and case-exact, so `_migrations` and `a_b_*` tables stay in the dump. MySQL restore refusals run after the dump is read and before the first CREATE (empty prefix before the dump is opened). Ownership is the remainder after the marker plus this installation's prefix, compared the way the server folds names. A reserved table that is neither owned nor needed is left alone. Inbound FKs are read from `information_schema` in the current schema only.
+Shape rule: leading letter keeps the `_`-led namespace out of new installs; no `.` / `-` / quotes in unquoted identifiers. Fresh-install refusal happens before a connection is opened. No schema migration; no existing table is renamed. A dump no longer carries leftover restore copies, so an uninstall cannot replay a half-written `_r_`/`_b_` table over the live one. The reserved-name reading is prefix-only and case-exact, so `_migrations` and `a_b_*` tables stay in the dump. MySQL restore refusals run after the dump is read and before the first CREATE (empty prefix before the dump is opened). Ownership is the remainder after the marker plus this installation's prefix, compared the way the server folds names. A reserved table that is neither owned nor needed is left alone. Inbound FKs are read from `information_schema` in the current schema only. Shadow DDL is a whitelist: the only table names fill SQL can name are `_r_` plus a table the dump declared; string literals are never rewritten; stacked statements, `CREATE TABLE … LIKE`, and schema-qualified names refuse. Rewritten identifiers are backtick-quoted (no `@`-placeholder for `Connection::replacePrefix` to rewrite). Rows go in through bound values. A copy is listed for drop before its first statement; a failed fill tries every copy before reporting, and still surfaces the failure that caused cleanup.
 
 ---
 
 ## 🛡️ No-Mercy Compliance
 
-One validator, both entries. No shim for the old empty mysql default. Existing empty-prefix installs are not revalidated (not a compatibility layer — they already have tables of that name); MySQL restore refuses them instead of inventing a second apply. One naming class; `live()` is the remainder, not a second marker spelling in the restorer. Empty-prefix dump still runs. Preflight is in the restorer, not a wrapper around in-place apply. Identifier cap is literal 64, not a DBAL adapter. Leftover presence-refusal is the later cleanup's predecessor, not a dual path.
+One validator, both entries. No shim for the old empty mysql default. Existing empty-prefix installs are not revalidated (not a compatibility layer — they already have tables of that name); MySQL restore refuses them instead of inventing a second apply. One naming class; `live()` is the remainder, not a second marker spelling in the restorer. Empty-prefix dump still runs. Preflight is in the restorer, not a wrapper around in-place apply. Identifier cap is literal 64, not a DBAL adapter. Leftover presence-refusal is the later cleanup's predecessor, not a dual path. Fill is uncalled internals, not a second MySQL apply; making `fill()` public is the PHPStan-clean way to land it, not a bridge. `apply()`/`recreate()` stay the SQLite apply and are not unified with the shadow path. Unrecognised dump DDL is refused, not wrapped and passed through.
 
 ---
 
@@ -134,7 +159,7 @@ One validator, both entries. No shim for the old empty mysql default. Existing e
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: Step 1 — EnvConfigLoader overlay assertion changed from `pk_` to `site_` after the mysql default flip — asserting the default no longer proved the environment arrived. Step 2 — none. Step 3 — first Verifier pass failed on the `preflight` docblock restating call order and naming a future swap path; rewritten to say what the refusals do, not the order or the cut-over that is not wired yet.
+- Notable deviations: Step 1 — EnvConfigLoader overlay assertion changed from `pk_` to `site_` after the mysql default flip — asserting the default no longer proved the environment arrived. Step 2 — none. Step 3 — first Verifier pass failed on the `preflight` docblock restating call order and naming a future swap path; rewritten to say what the refusals do, not the order or the cut-over that is not wired yet. Step 4 — none.
 
 ---
 
