@@ -6,6 +6,7 @@ import {
   buildSubagents,
   applyCsvUsageToPhase,
   applyCsvUsageToSession,
+  csvWouldShrinkPhase,
   prettyModelName
 } from './usage-csv.mjs';
 
@@ -69,6 +70,47 @@ test('applyCsvUsageToSession updates only phases whose parent id is in the CSV',
   assert.equal(n, 1);
   assert.equal(session.phases[0].tokens.total, 1184);
   assert.equal(session.phases[1].tokens.total, 9);
+});
+
+test('applyCsvUsageToSession keeps a fuller total when the CSV window is shorter', () => {
+  const session = {
+    phases: [
+      {
+        type: 'EXECUTE',
+        agent: { id: 'bc-parent-1' },
+        tokens: { input: 1, output: 1, cacheRead: 1, cacheWrite: 1, total: 5000 },
+        tokensSource: 'cursor-dashboard-csv'
+      }
+    ]
+  };
+  const n = applyCsvUsageToSession(session, parseDashboardUsageCsv(CSV));
+  assert.equal(n, 0);
+  assert.equal(session.phases[0].tokens.total, 5000);
+  assert.equal(csvWouldShrinkPhase(session.phases[0], parseDashboardUsageCsv(CSV)), true);
+});
+
+test('applyCsvUsageToSession folds a nested agent that sits inside one phase', () => {
+  const nested = `Date,Cloud Agent ID,Automation ID,Kind,Model,Max Mode,Input (w/ Cache Write),Input (w/o Cache Write),Cache Read,Output Tokens,Total Tokens,Cost
+"2026-09-21T04:23:46.134Z","bc-parent-1","","Included","cursor-grok-4.6-high-fast","No","0","100","200","10","310","Included"
+"2026-09-21T04:24:00.000Z","bc-nested","","Included","grok-4.6-medium","No","0","5","15","5","25","Included"
+`;
+  const session = {
+    phases: [
+      {
+        type: 'FINALIZE',
+        agent: { id: 'bc-parent-1' },
+        startedAt: '2026-09-21T04:23:00.000Z',
+        completedAt: '2026-09-21T04:30:00.000Z',
+        tokens: { total: 310 },
+        tokensSource: 'cursor-api'
+      }
+    ]
+  };
+  const n = applyCsvUsageToSession(session, parseDashboardUsageCsv(nested));
+  assert.equal(n, 2);
+  assert.equal(session.phases[0].tokens.total, 335);
+  assert.equal(session.phases[0].subagents.at(-1).agentId, 'bc-nested');
+  assert.equal(session.phases[0].subagents.at(-1).role, 'subagent');
 });
 
 test('re-import matches orchestrator via orchestratorTokens, not the already-summed total', () => {

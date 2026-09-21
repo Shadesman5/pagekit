@@ -3,10 +3,13 @@
 // Parent /usage is orchestrator-only; CSV rows on the same bc-… include Task children.
 //
 // Usage:
-//   node .github/conductor/import-usage-csv.mjs --csv usage-events.csv --session UUID [--push] [--copy-local]
-//   node .github/conductor/import-usage-csv.mjs --csv usage-events.csv --step 2.7.1a [--push]
+//   node .github/conductor/import-usage-csv.mjs usage-events.csv
+//   node .github/conductor/import-usage-csv.mjs --csv usage-events.csv [--step 2.7.1a] [--dry-run]
+//
+// A bare path is enough: sessions are chosen by the Cloud Agent IDs in the file.
+// Writes and pushes to conductor-metrics. --dry-run prints the match and changes nothing.
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, cpSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, cpSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -16,6 +19,7 @@ import {
   DEFAULT_METRICS_BRANCH,
   recomputeSessionTotals,
   applySessionTimestamps,
+  sessionIdsForStep,
   currentGitBranch,
   syncMetricsFromRemote,
   pushMetricsToRemote
@@ -25,11 +29,27 @@ import { parseDashboardUsageCsv, applyCsvUsageToSession } from './usage-csv.mjs'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const DRY_RUN = process.argv.includes('--dry-run');
 const COPY_LOCAL = process.argv.includes('--copy-local');
-const DO_PUSH = process.argv.includes('--push');
+const DO_PUSH = !DRY_RUN && !process.argv.includes('--no-push');
 
 function getArg(name) {
   const i = process.argv.indexOf(name);
   return i >= 0 ? process.argv[i + 1] : null;
+}
+
+/** First path that is not a flag or a flag's value. */
+function positionalCsv() {
+  const skipValue = new Set(['--csv', '--session', '--step']);
+  const args = process.argv.slice(2);
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (skipValue.has(arg)) {
+      i += 1;
+      continue;
+    }
+    if (arg.startsWith('-')) continue;
+    return arg;
+  }
+  return null;
 }
 
 function readJson(path, fallback = null) {
@@ -48,35 +68,37 @@ function copyToLocalPreview() {
   console.log(`Copied ${METRICS_DIR}/ → docs-site/data/conductor-metrics/`);
 }
 
-function listSessionIds(index, sessionFilter, stepFilter) {
-  if (sessionFilter) return [sessionFilter];
-  const ids = [];
-  for (const [stepId, entry] of Object.entries(index?.steps || {})) {
-    if (stepFilter && stepId.toLowerCase() !== stepFilter) continue;
-    for (const id of entry.sessionIds || []) ids.push(id);
-  }
-  if (!ids.length && existsSync(join(ROOT, SESSIONS_DIR))) {
-    for (const name of readdirSync(join(ROOT, SESSIONS_DIR))) {
-      if (name.endsWith('.json')) ids.push(name.replace(/\.json$/, ''));
+function sessionsForAgents(index, agentIds) {
+  const want = new Set(agentIds);
+  const hits = [];
+  const seen = new Set();
+  for (const entry of Object.values(index?.steps || {})) {
+    for (const sessionId of entry?.sessionIds || []) {
+      if (!sessionId || seen.has(sessionId)) continue;
+      seen.add(sessionId);
+      const session = readJson(join(ROOT, SESSIONS_DIR, `${sessionId}.json`));
+      if (!session) continue;
+      const known = (session.phases || []).some(phase =>
+        want.has(String(phase.agent?.id || '').toLowerCase())
+      );
+      if (known) hits.push(session);
     }
   }
-  return [...new Set(ids)];
+  return hits;
 }
 
 function main() {
-  const csvPath = getArg('--csv');
+  const csvPath = getArg('--csv') || positionalCsv();
   const sessionFilter = (getArg('--session') || '').trim().toLowerCase() || null;
   const stepFilter = (getArg('--step') || '').trim().toLowerCase() || null;
   if (!csvPath) {
-    console.error('Missing --csv (Cursor dashboard usage-events export)');
+    console.error(
+      'Pass the CSV path: node .github/conductor/import-usage-csv.mjs usage-events.csv'
+    );
     process.exit(1);
   }
   if (!existsSync(csvPath)) {
     console.error(`CSV not found: ${csvPath}`);
-    process.exit(1);
-  }
-  if (!sessionFilter && !stepFilter) {
-    console.error('Pass --session UUID or --step X.Y so only the intended ticket is updated');
     process.exit(1);
   }
 
@@ -96,10 +118,22 @@ function main() {
   syncMetricsFromRemote({ root: ROOT, log: msg => console.log(msg) });
 
   const index = readJson(join(ROOT, INDEX_PATH), { schemaVersion: 1, updatedAt: null, steps: {} });
-  const sessionIds = listSessionIds(index, sessionFilter, stepFilter);
-  if (!sessionIds.length) {
-    console.error('No matching session on conductor-metrics');
-    process.exit(1);
+  let sessionIds;
+  if (sessionFilter) {
+    sessionIds = [sessionFilter];
+  } else if (stepFilter) {
+    sessionIds = sessionIdsForStep(index, stepFilter);
+    if (!sessionIds.length) {
+      console.error(`No session recorded for step ${stepFilter} in ${INDEX_PATH}`);
+      process.exit(1);
+    }
+  } else {
+    sessionIds = sessionsForAgents(index, [...agents]).map(session => session.sessionId);
+    if (!sessionIds.length) {
+      console.error('No session phase matches a Cloud Agent ID in this CSV');
+      process.exit(1);
+    }
+    console.log(`Matched ${sessionIds.length} session(s) from the CSV agent ids`);
   }
 
   let sessionsTouched = 0;
