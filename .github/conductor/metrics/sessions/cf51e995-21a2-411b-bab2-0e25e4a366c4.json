@@ -50,17 +50,65 @@
         "repository": "Shadesman5/pagekit"
       },
       "tokens": {
+        "input": 156644,
+        "output": 64616,
+        "cacheRead": 2623825,
+        "cacheWrite": 238255,
+        "total": 3083340
+      },
+      "tokensSource": "cursor-dashboard-csv",
+      "result": "Plan ready: migration-docs/tickets/active/PROMPT_2_7_1a_Atomic-MySQL-Restore_plan.md",
+      "outcome": "success",
+      "completedAt": "2026-09-20T21:45:16.152Z",
+      "notes": "Timing from Cursor API (single agent run) · Tokens from Cursor dashboard CSV (orchestrator + subagents)",
+      "orchestratorTokens": {
         "input": 42193,
         "output": 4021,
         "cacheRead": 401472,
         "cacheWrite": 0,
         "total": 447686
       },
-      "tokensSource": "cursor-api",
-      "result": "Plan ready: migration-docs/tickets/active/PROMPT_2_7_1a_Atomic-MySQL-Restore_plan.md",
-      "outcome": "success",
-      "completedAt": "2026-09-20T21:45:16.152Z",
-      "notes": "Timing from Cursor API (single agent run)"
+      "subagents": [
+        {
+          "role": "orchestrator",
+          "label": "Orchestrator",
+          "model": "cursor-grok-4.6-high-fast",
+          "events": 1,
+          "tokens": {
+            "input": 42193,
+            "output": 4021,
+            "cacheRead": 401472,
+            "cacheWrite": 0,
+            "total": 447686
+          }
+        },
+        {
+          "role": "subagent",
+          "label": "Claude Fable 5",
+          "model": "claude-fable-5-thinking-max",
+          "events": 2,
+          "tokens": {
+            "input": 58,
+            "output": 56039,
+            "cacheRead": 2157713,
+            "cacheWrite": 238255,
+            "total": 2452065
+          }
+        },
+        {
+          "role": "subagent",
+          "label": "Grok 4.6",
+          "model": "cursor-grok-4.6-xhigh",
+          "events": 1,
+          "tokens": {
+            "input": 114393,
+            "output": 4556,
+            "cacheRead": 64640,
+            "cacheWrite": 0,
+            "total": 183589
+          }
+        }
+      ]
     },
     {
       "phaseKey": "35539667927-1-EXECUTE 1,2",
@@ -103,17 +151,65 @@
         "repository": "Shadesman5/pagekit"
       },
       "tokens": {
+        "input": 422658,
+        "output": 256914,
+        "cacheRead": 22875000,
+        "cacheWrite": 1065441,
+        "total": 24620013
+      },
+      "tokensSource": "cursor-dashboard-csv",
+      "result": "Batch done. Steps: [1, 2]. Last commit: 7526bb32.",
+      "outcome": "success",
+      "completedAt": "2026-09-20T22:53:49.223Z",
+      "notes": "Timing from Cursor API (single agent run) · Tokens from Cursor dashboard CSV (orchestrator + subagents)",
+      "orchestratorTokens": {
         "input": 101565,
         "output": 10562,
         "cacheRead": 1304960,
         "cacheWrite": 0,
         "total": 1417087
       },
-      "tokensSource": "cursor-api",
-      "result": "Batch done. Steps: [1, 2]. Last commit: 7526bb32.",
-      "outcome": "success",
-      "completedAt": "2026-09-20T22:53:49.223Z",
-      "notes": "Timing from Cursor API (single agent run)"
+      "subagents": [
+        {
+          "role": "orchestrator",
+          "label": "Orchestrator",
+          "model": "cursor-grok-4.6-high-fast",
+          "events": 1,
+          "tokens": {
+            "input": 101565,
+            "output": 10562,
+            "cacheRead": 1304960,
+            "cacheWrite": 0,
+            "total": 1417087
+          }
+        },
+        {
+          "role": "subagent",
+          "label": "Claude Opus 5",
+          "model": "claude-opus-5-thinking-max",
+          "events": 10,
+          "tokens": {
+            "input": 450,
+            "output": 229200,
+            "cacheRead": 20501880,
+            "cacheWrite": 1065441,
+            "total": 21796971
+          }
+        },
+        {
+          "role": "subagent",
+          "label": "Grok 4.6",
+          "model": "cursor-grok-4.6-xhigh",
+          "events": 6,
+          "tokens": {
+            "input": 320643,
+            "output": 17152,
+            "cacheRead": 1068160,
+            "cacheWrite": 0,
+            "total": 1405955
+          }
+        }
+      ]
     },
     {
       "phaseKey": "35543039422-1-EXECUTE 3",
@@ -155,17 +251,65 @@
         "repository": "Shadesman5/pagekit"
       },
       "tokens": {
+        "input": 273103,
+        "output": 267979,
+        "cacheRead": 21776078,
+        "cacheWrite": 829143,
+        "total": 23146303
+      },
+      "tokensSource": "cursor-dashboard-csv",
+      "result": "Batch done. Steps: [3]. Last commit: 5f0d91949eee1609a1b1ddd40af7b9025a2dc110.",
+      "outcome": "success",
+      "completedAt": "2026-09-21T00:08:33.282Z",
+      "notes": "Timing from Cursor API (single agent run) · Tokens from Cursor dashboard CSV (orchestrator + subagents)",
+      "orchestratorTokens": {
         "input": 148096,
         "output": 7963,
         "cacheRead": 960640,
         "cacheWrite": 0,
         "total": 1116699
       },
-      "tokensSource": "cursor-api",
-      "result": "Batch done. Steps: [3]. Last commit: 5f0d91949eee1609a1b1ddd40af7b9025a2dc110.",
-      "outcome": "success",
-      "completedAt": "2026-09-21T00:08:33.282Z",
-      "notes": "Timing from Cursor API (single agent run)"
+      "subagents": [
+        {
+          "role": "orchestrator",
+          "label": "Orchestrator",
+          "model": "cursor-grok-4.6-high-fast",
+          "events": 1,
+          "tokens": {
+            "input": 148096,
+            "output": 7963,
+            "cacheRead": 960640,
+            "cacheWrite": 0,
+            "total": 1116699
+          }
+        },
+        {
+          "role": "subagent",
+          "label": "Claude Opus 5",
+          "model": "claude-opus-5-thinking-max",
+          "events": 6,
+          "tokens": {
+            "input": 310,
+            "output": 250181,
+            "cacheRead": 20343502,
+            "cacheWrite": 829143,
+            "total": 21423136
+          }
+        },
+        {
+          "role": "subagent",
+          "label": "Grok 4.6",
+          "model": "cursor-grok-4.6-xhigh",
+          "events": 3,
+          "tokens": {
+            "input": 124697,
+            "output": 9835,
+            "cacheRead": 471936,
+            "cacheWrite": 0,
+            "total": 606468
+          }
+        }
+      ]
     },
     {
       "phaseKey": "35546729818-1-EXECUTE 4",
@@ -207,17 +351,65 @@
         "repository": "Shadesman5/pagekit"
       },
       "tokens": {
+        "input": 423364,
+        "output": 355037,
+        "cacheRead": 21530174,
+        "cacheWrite": 807615,
+        "total": 23116190
+      },
+      "tokensSource": "cursor-dashboard-csv",
+      "result": "Batch done. Steps: [4]. Last commit: a1ac3db86d9589d12334a3969edd17d019e53259.",
+      "outcome": "success",
+      "completedAt": "2026-09-21T01:31:08.543Z",
+      "notes": "Timing from Cursor API (single agent run) · Tokens from Cursor dashboard CSV (orchestrator + subagents)",
+      "orchestratorTokens": {
         "input": 148090,
         "output": 8585,
         "cacheRead": 938176,
         "cacheWrite": 0,
         "total": 1094851
       },
-      "tokensSource": "cursor-api",
-      "result": "Batch done. Steps: [4]. Last commit: a1ac3db86d9589d12334a3969edd17d019e53259.",
-      "outcome": "success",
-      "completedAt": "2026-09-21T01:31:08.543Z",
-      "notes": "Timing from Cursor API (single agent run)"
+      "subagents": [
+        {
+          "role": "orchestrator",
+          "label": "Orchestrator",
+          "model": "cursor-grok-4.6-high-fast",
+          "events": 1,
+          "tokens": {
+            "input": 148090,
+            "output": 8585,
+            "cacheRead": 938176,
+            "cacheWrite": 0,
+            "total": 1094851
+          }
+        },
+        {
+          "role": "subagent",
+          "label": "Claude Opus 5",
+          "model": "claude-opus-5-thinking-max",
+          "events": 4,
+          "tokens": {
+            "input": 122274,
+            "output": 337122,
+            "cacheRead": 20172158,
+            "cacheWrite": 807615,
+            "total": 21439169
+          }
+        },
+        {
+          "role": "subagent",
+          "label": "Grok 4.6",
+          "model": "cursor-grok-4.6-xhigh",
+          "events": 3,
+          "tokens": {
+            "input": 153000,
+            "output": 9330,
+            "cacheRead": 419840,
+            "cacheWrite": 0,
+            "total": 582170
+          }
+        }
+      ]
     },
     {
       "phaseKey": "35551170139-1-EXECUTE 5,6",
@@ -260,17 +452,65 @@
         "repository": "Shadesman5/pagekit"
       },
       "tokens": {
+        "input": 621845,
+        "output": 683376,
+        "cacheRead": 53782234,
+        "cacheWrite": 2743184,
+        "total": 57830639
+      },
+      "tokensSource": "cursor-dashboard-csv",
+      "result": "Batch done. Steps: [5, 6]. Last commit: 69f9a8e92b9d6a3116ce6cc5a76d8051efd8f725.",
+      "outcome": "success",
+      "completedAt": "2026-09-21T04:23:05.747Z",
+      "notes": "Timing from Cursor API (single agent run) · Tokens from Cursor dashboard CSV (orchestrator + subagents)",
+      "orchestratorTokens": {
         "input": 171765,
         "output": 14028,
         "cacheRead": 2066816,
         "cacheWrite": 0,
         "total": 2252609
       },
-      "tokensSource": "cursor-api",
-      "result": "Batch done. Steps: [5, 6]. Last commit: 69f9a8e92b9d6a3116ce6cc5a76d8051efd8f725.",
-      "outcome": "success",
-      "completedAt": "2026-09-21T04:23:05.747Z",
-      "notes": "Timing from Cursor API (single agent run)"
+      "subagents": [
+        {
+          "role": "orchestrator",
+          "label": "Orchestrator",
+          "model": "cursor-grok-4.6-high-fast",
+          "events": 1,
+          "tokens": {
+            "input": 171765,
+            "output": 14028,
+            "cacheRead": 2066816,
+            "cacheWrite": 0,
+            "total": 2252609
+          }
+        },
+        {
+          "role": "subagent",
+          "label": "Claude Opus 5",
+          "model": "claude-opus-5-thinking-max",
+          "events": 19,
+          "tokens": {
+            "input": 904,
+            "output": 643768,
+            "cacheRead": 50595738,
+            "cacheWrite": 2743184,
+            "total": 53983594
+          }
+        },
+        {
+          "role": "subagent",
+          "label": "Grok 4.6",
+          "model": "cursor-grok-4.6-xhigh",
+          "events": 7,
+          "tokens": {
+            "input": 449176,
+            "output": 25580,
+            "cacheRead": 1119680,
+            "cacheWrite": 0,
+            "total": 1594436
+          }
+        }
+      ]
     },
     {
       "phaseKey": "35560781221-1-EXECUTE 7",
@@ -312,31 +552,85 @@
         "repository": "Shadesman5/pagekit"
       },
       "tokens": {
+        "input": 197757,
+        "output": 40193,
+        "cacheRead": 3454359,
+        "cacheWrite": 184948,
+        "total": 3877257
+      },
+      "tokensSource": "cursor-dashboard-csv",
+      "result": "Batch done. Steps: [7]. Last commit: d11aa79d.",
+      "outcome": "success",
+      "completedAt": "2026-09-21T04:35:17.375Z",
+      "notes": "Timing from Cursor API (single agent run) · Tokens from Cursor dashboard CSV (orchestrator + subagents)",
+      "orchestratorTokens": {
         "input": 64040,
         "output": 6789,
         "cacheRead": 824832,
         "cacheWrite": 0,
         "total": 895661
       },
-      "tokensSource": "cursor-api",
-      "result": "Batch done. Steps: [7]. Last commit: d11aa79d.",
-      "outcome": "success",
-      "completedAt": "2026-09-21T04:35:17.375Z",
-      "notes": "Timing from Cursor API (single agent run)"
+      "subagents": [
+        {
+          "role": "orchestrator",
+          "label": "Orchestrator",
+          "model": "cursor-grok-4.6-high-fast",
+          "events": 1,
+          "tokens": {
+            "input": 64040,
+            "output": 6789,
+            "cacheRead": 824832,
+            "cacheWrite": 0,
+            "total": 895661
+          }
+        },
+        {
+          "role": "subagent",
+          "label": "Claude Opus 5",
+          "model": "claude-opus-5-thinking-max",
+          "events": 2,
+          "tokens": {
+            "input": 68,
+            "output": 27266,
+            "cacheRead": 2434711,
+            "cacheWrite": 184948,
+            "total": 2646993
+          }
+        },
+        {
+          "role": "subagent",
+          "label": "Grok 4.6",
+          "model": "cursor-grok-4.6-xhigh",
+          "events": 2,
+          "tokens": {
+            "input": 133649,
+            "output": 6138,
+            "cacheRead": 194816,
+            "cacheWrite": 0,
+            "total": 334603
+          }
+        }
+      ]
     }
   ],
   "totals": {
     "tokens": {
-      "input": 675749,
-      "output": 51948,
-      "cacheRead": 6496896,
-      "cacheWrite": 0,
-      "total": 7224593
+      "input": 2095371,
+      "output": 1668115,
+      "cacheRead": 126041670,
+      "cacheWrite": 5868586,
+      "total": 135673742
     },
     "durationMs": 25557320,
     "phaseCount": 6,
     "escalations": 0,
     "ghaJobs": 6,
     "cloudAgents": 6
+  },
+  "csvImport": {
+    "at": "2026-09-21T17:46:59.293Z",
+    "source": "import-usage-csv.mjs",
+    "events": 71,
+    "phasesUpdated": 6
   }
 }
