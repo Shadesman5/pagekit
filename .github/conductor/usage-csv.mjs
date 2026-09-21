@@ -13,6 +13,8 @@ const MODEL_LABELS = {
   'claude-opus-5-thinking-max': 'Claude Opus 5',
   'claude-fable-5-thinking-max': 'Claude Fable 5',
   'claude-fable-5-1-thinking-max': 'Claude Fable 5.1',
+  'grok-4.6-medium': 'Grok 4.6',
+  'cursor-grok-4.6-medium': 'Grok 4.6',
   github_bugbot: 'Bugbot'
 };
 
@@ -179,6 +181,33 @@ export function applyCsvUsageToPhase(phase, events) {
   return true;
 }
 
+export function sumEventTokens(events) {
+  return (events || []).reduce((acc, event) => addTokens(acc, event.tokens), emptyTokens());
+}
+
+function phaseWindow(phase) {
+  const start = Date.parse(phase?.startedAt || '');
+  const end = Date.parse(phase?.completedAt || '');
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return null;
+  return { start, end };
+}
+
+function eventWindow(events) {
+  const times = (events || []).map(event => Date.parse(event.at || '')).filter(Number.isFinite);
+  if (!times.length) return null;
+  return { start: Math.min(...times), end: Math.max(...times) };
+}
+
+/**
+ * A CSV export often starts mid-history. Replacing a phase with that slice
+ * would throw away tokens already stored from an earlier, fuller export.
+ */
+export function csvWouldShrinkPhase(phase, events) {
+  const have = Number(phase?.tokens?.total);
+  if (!Number.isFinite(have) || have <= 0) return false;
+  return sumEventTokens(events).total < have;
+}
+
 export function applyCsvUsageToSession(session, events, { log = () => {} } = {}) {
   const byAgent = groupEventsByAgent(events);
   let updated = 0;
@@ -186,6 +215,12 @@ export function applyCsvUsageToSession(session, events, { log = () => {} } = {})
     const id = String(phase.agent?.id || '').toLowerCase();
     const rows = byAgent.get(id);
     if (!rows?.length) continue;
+    if (csvWouldShrinkPhase(phase, rows)) {
+      log(
+        `  skip ${id.slice(0, 12)}… ${phase.type}: csv ${sumEventTokens(rows).total} < stored ${phase.tokens.total}`
+      );
+      continue;
+    }
     if (applyCsvUsageToPhase(phase, rows)) {
       updated += 1;
       log(
@@ -194,5 +229,45 @@ export function applyCsvUsageToSession(session, events, { log = () => {} } = {})
       );
     }
   }
+  updated += foldAgentsInsidePhases(session, events, { log });
   return updated;
+}
+
+/**
+ * Some billed calls show up under their own bc-… instead of the parent.
+ * When that whole span sits inside exactly one phase, add the rows there.
+ */
+export function foldAgentsInsidePhases(session, events, { log = () => {} } = {}) {
+  const phaseIds = new Set(
+    (session?.phases || [])
+      .map(phase => String(phase.agent?.id || '').toLowerCase())
+      .filter(Boolean)
+  );
+  let folded = 0;
+  for (const [agentId, rows] of groupEventsByAgent(events)) {
+    if (phaseIds.has(agentId)) continue;
+    const span = eventWindow(rows);
+    if (!span) continue;
+    const hosts = (session.phases || []).filter(phase => {
+      const window = phaseWindow(phase);
+      return window && span.start >= window.start && span.end <= window.end;
+    });
+    if (hosts.length !== 1) {
+      log(`  unmatched ${agentId.slice(0, 12)}… (${hosts.length} host phases)`);
+      continue;
+    }
+    const phase = hosts[0];
+    const extra = buildSubagents(rows, null).map(row => ({
+      ...row,
+      role: 'subagent',
+      agentId
+    }));
+    phase.subagents = [...(phase.subagents || []), ...extra];
+    phase.tokens = addTokens(phase.tokens || emptyTokens(), sumEventTokens(rows));
+    folded += 1;
+    log(
+      `  folded ${agentId.slice(0, 12)}… into ${phase.type} (+${sumEventTokens(rows).total} tokens)`
+    );
+  }
+  return folded;
 }

@@ -96,13 +96,12 @@ Cursor Ultra usage CSV bills those children on the **parent** Cloud Agent ID, on
 row per model. Overlay that onto a session:
 
 ```bash
-node .github/conductor/import-usage-csv.mjs \
-  --csv usage-events-2026-09-21.csv \
-  --session <uuid> \
-  --push
+node .github/conductor/import-usage-csv.mjs usage-events.csv
 ```
 
-`--step 2.7.1a` selects every session for that ROADMAP id. Each phase keeps its
+That is the whole command. It matches sessions by the Cloud Agent IDs in the file, fills each phase (and a nested `bc-…` whose timestamps sit inside one phase), and pushes to `conductor-metrics`. A shorter export does not replace a phase that already holds more tokens. `--dry-run` prints the match and writes nothing. `--step` / `--session` still narrow the target.
+
+Each phase keeps its
 PLAN/EXECUTE/FINALIZE row; the dashboard expands **Orchestrator + subagents**
 (grouped by model) under that row. `tokensSource` becomes `cursor-dashboard-csv`.
 
