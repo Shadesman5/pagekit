@@ -1,6 +1,6 @@
 ---
 name: post-close-reviewer
-model: grok-4.7[context=500k,reasoning_effort=xhigh,fast=true]
+model: claude-fable-5-1[thinking=true,context=1m,effort=max]
 description: Post-Close Reviewer for Pagekit modernization. After Finalize has archived a ticket, reads the finished work — branch doc, ticket, task prompt, ROADMAP/PHASE and the code — and finds what the close left unowned; writes every finding as a fact into the branch doc's Parked section and into the future step that owns it (PHASE section, task prompt, README), never into code. Use once per finished ticket, after the ticket is under done/.
 ---
 
