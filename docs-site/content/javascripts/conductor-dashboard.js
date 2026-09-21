@@ -1117,6 +1117,9 @@
     if (tokensSource === 'cursor-api-manual' || tokensSource === 'cursor-dashboard-manual') {
       return ' <span class="cm-muted" title="Manual import">⤴</span>';
     }
+    if (tokensSource === 'cursor-dashboard-csv') {
+      return ' <span class="cm-muted" title="Cursor dashboard CSV (orchestrator + subagents)">▦</span>';
+    }
     return '';
   }
 
@@ -1198,6 +1201,52 @@
     return ` <span class="cm-muted" title="${runCount} follow-up runs in this agent chat">· ${runCount} runs</span>`;
   }
 
+  function phaseSubagents(p) {
+    return Array.isArray(p?.subagents) ? p.subagents : [];
+  }
+
+  function phaseHasSubagentDropdown(p) {
+    const subs = phaseSubagents(p);
+    return subs.length > 1 || subs.some(s => s.role === 'subagent');
+  }
+
+  function subagentCountLabel(subs) {
+    const n = subs.filter(s => s.role === 'subagent').length;
+    if (n === 1) return '1 subagent';
+    if (n > 1) return `${formatNumber(n)} subagents`;
+    return `${formatNumber(subs.length)} agents`;
+  }
+
+  function renderSubagentsBreakdown(subs) {
+    const rows = (subs || [])
+      .map(s => {
+        const role = s.role === 'orchestrator' ? 'Orchestrator' : 'Subagent';
+        const calls = tokenValue(s.events) === 1 ? '1 call' : `${formatNumber(s.events)} calls`;
+        return `
+        <tr>
+          <td>${escapeHtml(role)}</td>
+          <td>${escapeHtml(s.label || s.model || '—')}</td>
+          <td class="cm-muted">${escapeHtml(s.model || '—')}</td>
+          <td>${escapeHtml(calls)}</td>
+          <td title="${escapeHtml(tokensTitle(s.tokens))}">${formatNumber(s.tokens?.total)}</td>
+        </tr>`;
+      })
+      .join('');
+    return `
+      <table class="cm-table cm-agent-runs-table cm-subagent-table">
+        <thead>
+          <tr>
+            <th>Agent</th>
+            <th>Name</th>
+            <th>Model</th>
+            <th>Calls</th>
+            <th>Tokens</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
   function phaseLabelHtml(p) {
     const retry = p.attempt ? ` <span class="cm-muted">retry ${escapeHtml(p.attempt)}</span>` : '';
     return `<strong>${escapeHtml(p.type)}</strong>${retry}${phaseRunBadge(p)}${tokensSourceMarker(p.tokensSource)}`;
@@ -1217,8 +1266,9 @@
   }
 
   function appendPhaseRow(tbody, p) {
-    const tr = el('tr');
-    tr.innerHTML = `
+    if (!phaseHasSubagentDropdown(p)) {
+      const tr = el('tr');
+      tr.innerHTML = `
         <td>${phaseLabelHtml(p)}</td>
         <td>${escapeHtml(phaseBatchLabel(p))}</td>
         <td>${formatDuration(p.durationMs)}</td>
@@ -1226,7 +1276,44 @@
         <td>${outcomeIcon(p.outcome)} ${escapeHtml(p.outcome) || '—'}</td>
         <td class="cm-links">${phaseLinksHtml(p)}</td>
       `;
+      tbody.appendChild(tr);
+      appendAgentRunsRow(tbody, p, 6);
+      return;
+    }
+
+    const subs = phaseSubagents(p);
+    const countLabel = subagentCountLabel(subs);
+    const tr = el('tr', 'cm-phase-group-row cm-subagent-row');
+    tr.innerHTML = `
+        <td>
+          <details class="cm-phase-group cm-subagent-group">
+            <summary title="${escapeHtml(countLabel)}">${phaseLabelHtml(p)} <span class="cm-muted">· ${escapeHtml(countLabel)}</span></summary>
+          </details>
+        </td>
+        <td>${escapeHtml(phaseBatchLabel(p))}</td>
+        <td>${formatDuration(p.durationMs)}</td>
+        <td title="${escapeHtml(tokensTitle(p.tokens, p.notes))}">${formatNumber(p.tokens?.total)}</td>
+        <td>${outcomeIcon(p.outcome)} ${escapeHtml(p.outcome) || '—'}</td>
+        <td class="cm-links">${phaseLinksHtml(p)}</td>
+      `;
     tbody.appendChild(tr);
+
+    const extra = el('tr', 'cm-phase-runs-row cm-subagent-runs');
+    extra.hidden = true;
+    const extraTd = el('td');
+    extraTd.colSpan = 6;
+    extraTd.innerHTML = renderSubagentsBreakdown(subs);
+    extra.appendChild(extraTd);
+    tbody.appendChild(extra);
+
+    const details = tr.querySelector('details.cm-subagent-group');
+    details.addEventListener('toggle', () => {
+      extra.hidden = !details.open;
+    });
+    tr.addEventListener('click', e => {
+      if (e.target.closest('a, summary, details')) return;
+      details.open = !details.open;
+    });
     appendAgentRunsRow(tbody, p, 6);
   }
 
@@ -1271,10 +1358,14 @@
     `;
     const nestedBody = nested.querySelector('tbody');
     phases.forEach((p, i) => {
+      const subs = phaseSubagents(p);
       const row = el('tr');
+      const phaseCell = phaseHasSubagentDropdown(p)
+        ? `<details class="cm-subagent-group"><summary>${phaseLabelHtml(p)} <span class="cm-muted">· ${escapeHtml(subagentCountLabel(subs))}</span></summary>${renderSubagentsBreakdown(subs)}</details>`
+        : phaseLabelHtml(p);
       row.innerHTML = `
         <td>${formatNumber(i + 1)}</td>
-        <td>${phaseLabelHtml(p)}</td>
+        <td>${phaseCell}</td>
         <td>${formatDuration(p.durationMs)}</td>
         <td title="${escapeHtml(tokensTitle(p.tokens, p.notes))}">${formatNumber(p.tokens?.total)}</td>
         <td>${outcomeIcon(p.outcome)} ${escapeHtml(p.outcome) || '—'}</td>
