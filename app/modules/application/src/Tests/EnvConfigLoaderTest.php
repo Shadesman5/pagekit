@@ -193,7 +193,10 @@ final class EnvConfigLoaderTest extends TestCase
         putenv('PAGEKIT_DB_NAME=pagekit_live');
         putenv('PAGEKIT_DB_USER=pagekit');
         putenv('PAGEKIT_DB_PASSWORD=not-a-real-password');
-        putenv('PAGEKIT_DB_PREFIX=pk_');
+
+        // Every value here differs from what the module ships, the prefix
+        // included, so each one has to have arrived from the environment.
+        putenv('PAGEKIT_DB_PREFIX=site_');
 
         $database = $this->configure('database', self::databaseDefaults());
 
@@ -202,7 +205,7 @@ final class EnvConfigLoaderTest extends TestCase
         self::assertSame('pagekit_live', $database->config('connections.mysql.dbname'));
         self::assertSame('pagekit', $database->config('connections.mysql.user'));
         self::assertSame('not-a-real-password', $database->config('connections.mysql.password'));
-        self::assertSame('pk_', $database->config('connections.mysql.prefix'));
+        self::assertSame('site_', $database->config('connections.mysql.prefix'));
 
         // The one parameter that is not handed on as the string it arrived as.
         self::assertSame(3307, $database->config('connections.mysql.port'));
@@ -273,6 +276,44 @@ final class EnvConfigLoaderTest extends TestCase
             $database->config('connections.mysql.host'),
             'the rest of the environment still arrives',
         );
+    }
+
+    /**
+     * The prefix is what tells this installation's tables from everything else
+     * in the database, and a line carrying no value is not a request to give
+     * that up. Overlaid as the empty string it would leave a container
+     * installing over tables nothing can tell apart afterwards, so blank reads
+     * as unset here and the module's own prefix stays.
+     */
+    public function testABlankPrefixIsNoPrefixAtAll(): void
+    {
+        putenv('PAGEKIT_DB_PREFIX=');
+        putenv('PAGEKIT_DB_HOST=db.internal');
+
+        $database = $this->configure('database', self::databaseDefaults());
+
+        self::assertSame('pk_', $database->config('connections.mysql.prefix'));
+
+        self::assertSame(
+            'db.internal',
+            $database->config('connections.mysql.host'),
+            'the rest of the environment still arrives',
+        );
+    }
+
+    /**
+     * A prefix of a shape no installation could be created with is still
+     * overlaid. Which prefixes may be chosen is settled where one is chosen; an
+     * installation whose tables really are called this has to keep booting, and
+     * a boot ending over the name of its own tables leaves no way to reach them.
+     */
+    public function testAPrefixNoInstallationCouldBeCreatedWithStillReachesTheConnection(): void
+    {
+        putenv('PAGEKIT_DB_PREFIX=legacy');
+
+        $database = $this->configure('database', self::databaseDefaults());
+
+        self::assertSame('legacy', $database->config('connections.mysql.prefix'));
     }
 
     /**

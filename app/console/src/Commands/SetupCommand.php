@@ -33,7 +33,7 @@ class SetupCommand extends Command
         $this->addOption('title', 't', InputOption::VALUE_OPTIONAL, 'Site title', 'Pagekit');
         $this->addOption('mail', 'm', InputOption::VALUE_OPTIONAL, 'Admin account email', 'admin@example.com');
         $this->addOption('db-driver', 'd', InputOption::VALUE_REQUIRED, 'DB driver (\'sqlite\' or \'mysql\')', 'sqlite');
-        $this->addOption('db-prefix', null, InputOption::VALUE_OPTIONAL, 'DB prefix', 'pk_');
+        $this->addOption('db-prefix', null, InputOption::VALUE_OPTIONAL, 'DB table prefix, starting with a letter and ending in an underscore', 'pk_');
         $this->addOption('db-host', 'H', InputOption::VALUE_OPTIONAL, 'MySQL host');
         $this->addOption('db-port', null, InputOption::VALUE_OPTIONAL, 'MySQL port');
         $this->addOption('db-name', 'N', InputOption::VALUE_OPTIONAL, 'MySQL database name');
@@ -77,8 +77,16 @@ class SetupCommand extends Command
             'host' => $this->option('db-host'),
             'user' => $this->option('db-user'),
             'password' => $this->option('db-pass'),
-            'prefix' => $this->option('db-prefix'),
         ];
+
+        // The flag written without a value names no prefix, so the module
+        // default stays. Written as "--db-prefix=" it names the empty one,
+        // which is handed on rather than quietly corrected: the installer
+        // answers it with the shape a prefix has to have.
+        $dbPrefix = $this->option('db-prefix');
+        if ($dbPrefix !== null) {
+            $connection['prefix'] = $dbPrefix;
+        }
 
         // Whichever of the two belongs to the chosen driver, and only when it was
         // given: an absent key leaves the module default in place, where an empty

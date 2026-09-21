@@ -10,6 +10,7 @@ use Doctrine\DBAL\Types\Types;
 use Pagekit\Database\Connection;
 use Pagekit\Installer\Package\Snapshot\DatabaseDumper;
 use Pagekit\Installer\Package\Snapshot\DumpFormat;
+use Pagekit\Installer\Package\Snapshot\RestoreTableNames;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -18,7 +19,10 @@ use PHPUnit\Framework\TestCase;
  *
  * Two properties carry the weight here. The dump is scoped: it holds the tables
  * the installation's prefix names and nothing else, because a database is a place
- * other installations share and a restore drops every table its dump lists. And
+ * other installations share and a restore drops every table its dump lists. That
+ * cuts the other way too - the copies a restore makes of those tables are no part
+ * of the installation whatever its prefix says, and a dump carrying one would
+ * replay a half-written table over the one the site actually has. And
  * the file at the name a restore reads is either a whole dump or absent - a dump
  * broken off by a full disk or a server that stopped answering must not be left
  * somewhere it can be found and replayed, since by then it is the only copy of a
@@ -51,6 +55,12 @@ final class DatabaseDumperTest extends TestCase
      * and not something a test may read as a position.
      */
     private const TITLE = 'Überschrift ’zwei’';
+
+    /**
+     * What is in a table a restore was filling when it stopped. A dump that
+     * carried it would put it back over the row the site actually has.
+     */
+    private const HALF_WRITTEN = 'a row no restore finished writing';
 
     private string $workspace;
 
@@ -221,6 +231,82 @@ final class DatabaseDumperTest extends TestCase
         self::assertSame(DumpFormat::END, $end['type']);
         self::assertSame($summary['tables'], $end['tables']);
         self::assertSame($summary['rows'], $end['rows']);
+    }
+
+    // ------------------------------------------------------------------
+    // Tables a restore left behind
+    // ------------------------------------------------------------------
+
+    public function testACopyARestoreLeftBehindIsNoPartOfTheDumpOfAnInstallationThatOwnsEveryTable(): void
+    {
+        // Where there is no prefix, every name in the database reads as this
+        // installation's - the copies of its tables a restore that stopped
+        // halfway left behind among them. In the dump they would be a second,
+        // half-written version of a table it already holds, under a name the
+        // next restore writes over as its own.
+        $connection = $this->installation('');
+
+        $this->leftoverFromARestoreThatStopped($connection, 'items');
+
+        $summary = (new DatabaseDumper($connection))->dump($this->target());
+
+        // And the dump is still taken: an installation with no prefix is one a
+        // package can still be removed from, so refusing here rather than
+        // skipping would stand between it and every uninstall.
+        self::assertSame(['items', 'meta', 'other_items'], $this->tablesIn($this->target()));
+        self::assertSame(['tables' => 3, 'rows' => 4], $summary);
+        self::assertStringNotContainsString(self::HALF_WRITTEN, $this->contents($this->target()));
+    }
+
+    public function testACopyARestoreLeftBehindIsNoPartOfAPrefixedInstallationsDumpEither(): void
+    {
+        // A copy carries its marker in front of the whole live name, so on a site
+        // with a prefix it lies outside that prefix too. Either reading keeps it
+        // out, and neither may cost the installation a table of its own on the
+        // way - what an uninstall puts back is this list and these rows.
+        $connection = $this->installation();
+
+        $this->leftoverFromARestoreThatStopped($connection, 'pk_items');
+
+        $summary = (new DatabaseDumper($connection))->dump($this->target());
+
+        self::assertSame(['pk_items', 'pk_meta'], $this->tablesIn($this->target()));
+        self::assertSame(['tables' => 2, 'rows' => 3], $summary);
+        self::assertStringNotContainsString(self::HALF_WRITTEN, $this->contents($this->target()));
+    }
+
+    public function testATableThatOnlyBeginsLikeACopyIsStillTheInstallationsToDump(): void
+    {
+        // An installation with no prefix owns tables whose names lead with an
+        // underscore as readily as any other, and the dump is what an uninstall
+        // puts the installation back out of. Skipping the underscore-led
+        // namespace wholesale would quietly leave one of them out of it.
+        $connection = $this->installation('');
+
+        $this->tableNamed($connection, '_migrations');
+
+        (new DatabaseDumper($connection))->dump($this->target());
+
+        self::assertSame(['_migrations', 'items', 'meta', 'other_items'], $this->tablesIn($this->target()));
+    }
+
+    public function testAnInstallationWhosePrefixCarriesAMarkerInsideItKeepsEveryTableOfItsOwn(): void
+    {
+        // "a_b_" is a prefix a site can be created with, so every table it owns
+        // carries the spelling of a backup's marker in the middle of its name.
+        // Where the marker sits is the whole of the reading: in front of the name
+        // it is a copy a restore made, anywhere else the name is the site's own -
+        // and a dump that went looking for the spelling alone would hold nothing
+        // of this installation at all.
+        $connection = $this->installation('a_b_');
+
+        $this->leftoverFromARestoreThatStopped($connection, 'a_b_items');
+
+        $summary = (new DatabaseDumper($connection))->dump($this->target());
+
+        self::assertSame(['a_b_items', 'a_b_meta'], $this->tablesIn($this->target()));
+        self::assertSame(['tables' => 2, 'rows' => 3], $summary);
+        self::assertStringNotContainsString(self::HALF_WRITTEN, $this->contents($this->target()));
     }
 
     // ------------------------------------------------------------------
@@ -448,6 +534,36 @@ final class DatabaseDumperTest extends TestCase
         $connection->insert('other_items', ['title' => 'not this installation to lose']);
 
         return $connection;
+    }
+
+    /**
+     * What a restore that stopped partway through leaves in the database: the
+     * copy it was filling under a name of its own, and - had it got as far as
+     * the swap - the table that was live kept beside it. Both hold a version of
+     * a table the installation still has, which is what makes carrying one into
+     * a dump a way of losing the version that counts.
+     */
+    private function leftoverFromARestoreThatStopped(Connection $connection, string $table): void
+    {
+        foreach ([RestoreTableNames::shadow($table), RestoreTableNames::backup($table)] as $name) {
+            $this->tableNamed($connection, $name);
+
+            $connection->insert($name, ['title' => self::HALF_WRITTEN]);
+        }
+    }
+
+    /**
+     * One more table in the database, under a name the test chooses because the
+     * name is what is being asserted about.
+     */
+    private function tableNamed(Connection $connection, string $name): void
+    {
+        $table = new Table($name);
+        $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
+        $table->addColumn('title', Types::STRING, ['length' => 191]);
+        $table->setPrimaryKey(['id']);
+
+        $connection->createSchemaManager()->createTable($table);
     }
 
     /**

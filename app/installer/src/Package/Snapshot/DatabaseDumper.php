@@ -25,7 +25,8 @@ use Pagekit\Database\Connection;
  * names, or every table where it is configured without one. Views, triggers and
  * stored routines are not, and neither is anything under another prefix sharing
  * the same database: a restore is meant to put this installation back, not to
- * reach into a neighbour's tables.
+ * reach into a neighbour's tables. Nor are the tables a restore names for itself
+ * ({@see RestoreTableNames}), which hold a copy of tables the dump carries anyway.
  *
  * All of it is read as of one moment. The tables are read one after another and
  * the site does not stop while that happens, so a dump that simply queried each
@@ -261,6 +262,16 @@ final class DatabaseDumper
         $names = [];
 
         foreach ($manager->listTableNames() as $name) {
+            // A restore left unfinished leaves tables under names of its own,
+            // and they are not part of the installation whatever the prefix
+            // says: without one, every name in the database reads as this
+            // installation's, and a dump would carry a half-filled copy of a
+            // table it already holds - under a name the next restore takes as
+            // its own to write over.
+            if (RestoreTableNames::isReserved($name)) {
+                continue;
+            }
+
             if (str_starts_with($name, $prefix)) {
                 $names[] = $name;
             }

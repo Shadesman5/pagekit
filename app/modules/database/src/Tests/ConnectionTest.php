@@ -65,6 +65,45 @@ class ConnectionTest extends TestCase
     }
 
     /**
+     * An installation created before a prefix was asked for has tables named
+     * without one, and its config.php says so by naming the empty prefix. The
+     * placeholder has to keep resolving to the bare table name there: the
+     * connections the module ships default to pk_, and a site whose own tables
+     * suddenly became unreachable would be down rather than merely old.
+     */
+    public function testAConnectionWithAnEmptyPrefixStillReachesItsTables(): void
+    {
+        $handle = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true]);
+
+        $connection = new Connection(
+            ['driver' => 'pdo_sqlite', 'memory' => true, 'prefix' => ''],
+            $handle->getDriver(),
+            $handle->getConfiguration()
+        );
+
+        $this->assertSame(
+            '',
+            $connection->getPrefix(),
+            'The empty prefix was given, which is not the same as none having been given'
+        );
+        $this->assertSame(
+            'SELECT * FROM system_config',
+            $connection->replacePrefix('SELECT * FROM @system_config')
+        );
+
+        $connection->executeStatement('CREATE TABLE system_config (name TEXT PRIMARY KEY, value TEXT)');
+        $connection->executeStatement("INSERT INTO @system_config (name, value) VALUES ('locale', 'en_GB')");
+
+        $this->assertSame(
+            'en_GB',
+            $connection->executeQuery('SELECT value FROM @system_config WHERE name = ?', ['locale'])->fetchOne()
+        );
+
+        $connection->close();
+        $handle->close();
+    }
+
+    /**
      * Test replace prefix in query
      */
     public function testReplacePrefix(): void

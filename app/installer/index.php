@@ -36,7 +36,7 @@ return [
             $app->set('snapshotter', fn ($app) => new PackageSnapshotter(
                 new SnapshotStore($app->get('path.snapshots'), $app->get('file'), $retention),
                 new DatabaseDumper($app->get('db')),
-                new DatabaseRestorer($app->get('db')),
+                new DatabaseRestorer($app->get('db'), $app->get('log')),
                 $app->get('file'),
                 $app->get('log'),
                 $app->get('path.packages'),

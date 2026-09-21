@@ -173,7 +173,7 @@ $config = [
                 'engine' => 'InnoDB',
                 'charset' => 'utf8',
                 'collate' => 'utf8_unicode_ci',
-                'prefix' => '',
+                'prefix' => 'pk_',
 
             ],
 

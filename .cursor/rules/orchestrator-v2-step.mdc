@@ -55,7 +55,7 @@ Spawn workers **only** via the **Task** tool. Routing uses `subagent_type` — *
 | Task field | Rule |
 | --- | --- |
 | `subagent_type` | Exact name: `refactorer`, `verifier`, `tester`, `test-writer`, `doc-writer`, `bugbot`, `security-review` |
-| `description` | Short label, e.g. `Step 5 production` or `Step 6 Bugbot` |
+| `description` | Short label, e.g. `Step 5 production`. `bugbot` and `security-review` are the exceptions below: their titles are fixed platform strings |
 | `prompt` | Structured fields from the templates below — **no** preamble, **no** "Delegate to …" |
 
 **On FAIL:** paste the worker's full output under `Feedback (verbatim):` in the retry spawn. Never
@@ -140,7 +140,9 @@ Feedback (verbatim):
 <paste verifier or tester FAIL output>
 ```
 
-**bugbot** — `description`: `Step <N> Bugbot` — `subagent_type`: `bugbot` — `run_in_background`: false
+**bugbot** — `description`: `Bugbot` — `subagent_type`: `bugbot` — `run_in_background`: false
+
+The title is exactly `Bugbot`. Any other title (including `Step <N> Bugbot`) is rejected by the platform. Checklist Step N stays with the parent; do not add fields to this prompt.
 
 ```text
 Full Repository Path: <absolute path from git rev-parse --show-toplevel>
@@ -148,7 +150,9 @@ Diff: branch changes
 Base Branch: <Base from launch prompt>
 ```
 
-**security-review** — `description`: `Step <N> Security` — `subagent_type`: `security-review` — `run_in_background`: false
+**security-review** — `description`: `Security Review` — `subagent_type`: `security-review` — `run_in_background`: false
+
+The title is exactly `Security Review`. Any other title (including `Step <N> Security`) is rejected by the platform. Checklist Step N stays with the parent; do not add fields to this prompt.
 
 ```text
 Full Repository Path: <absolute path from git rev-parse --show-toplevel>
