@@ -55,7 +55,7 @@ CURSOR_API_KEY=… node .github/conductor/import-manual-agents.mjs \
 
 - Accepts a full `https://cursor.com/agents/bc-…` URL via `--agent` (path id = parent).
 - **`--pr-url`** resolves the parent agent (Cursor `prUrl` filter, then branch match); skips zero-usage child agents.
-- **Task child agents** (`?child-id=bc-…`) usually report **zero** usage via `/v1/agents/{id}/usage` — tokens roll up on the parent.
+- **Task child agents** (`?child-id=bc-…`) report **zero** via `/v1/agents/{id}/usage`; parent `/usage` is orchestrator-only. Overlay the dashboard CSV (`import-usage-csv.mjs`) for billed parent + children.
 - Default tagging: `source: "v1-ui"`, phase `tokensSource: "cursor-api-v1"` (dashboard V1 badge). Use `--no-v1-ui` only for legacy historical imports.
 - `--push` syncs/commits to `conductor-metrics` and dispatches `pages-deploy.yml`.
 - A second import of the **same parent agent** on that step (manual `--push` before merge, then `import-v1-metrics.yml` after) **updates** the existing session instead of creating another card. Pass `--session` only to target a specific UUID.
@@ -89,6 +89,22 @@ CURSOR_API_KEY=… node .github/conductor/import-manual-agents.mjs \
   --label EXECUTE \
   --push
 ```
+
+`GET /v1/agents/{id}/usage` is **orchestrator-only** (the parent that launches Task
+subagents). Task children (`?child-id=bc-…`) still report zero on `/usage`. The
+Cursor Ultra usage CSV bills those children on the **parent** Cloud Agent ID, one
+row per model. Overlay that onto a session:
+
+```bash
+node .github/conductor/import-usage-csv.mjs \
+  --csv usage-events-2026-09-21.csv \
+  --session <uuid> \
+  --push
+```
+
+`--step 2.7.1a` selects every session for that ROADMAP id. Each phase keeps its
+PLAN/EXECUTE/FINALIZE row; the dashboard expands **Orchestrator + subagents**
+(grouped by model) under that row. `tokensSource` becomes `cursor-dashboard-csv`.
 
 When the Cursor API returns zero but the [Dashboard](https://cursor.com/dashboard) still shows usage, copy totals manually:
 
@@ -148,3 +164,4 @@ Options: `--dry-run`, `--skip-gha-backfill`, `--skip-cursor`, `--status all`.
 
 See demo sessions in `docs-site/data/conductor-metrics/sessions/`.
 V1 sessions set `source: "v1-ui"` (or `v1Continued: true` when appending to a Conductor session) and phase `tokensSource: "cursor-api-v1"`.
+Dashboard CSV overlays set `tokensSource: "cursor-dashboard-csv"` and `subagents[]` (orchestrator + per-model Task children).
