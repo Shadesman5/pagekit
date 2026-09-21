@@ -494,3 +494,15 @@ html .md-typeset .cm-accordion-item > .cm-accordion-body:last-child {
   background: rgba(92, 107, 192, 0.28);
   color: #9fa8da;
 }
+
+/* Phase row expands to orchestrator + billed Task subagents (dashboard CSV). */
+.cm-subagent-group > summary {
+  cursor: pointer;
+  list-style-position: inside;
+}
+.cm-subagent-table {
+  margin-left: 0.75rem;
+}
+.cm-subagent-runs td {
+  padding-top: 0.15rem;
+}

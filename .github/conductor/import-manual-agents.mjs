@@ -2,8 +2,9 @@
 // Import cursor.com/agents runs into conductor-metrics (post-hoc / Automations).
 //
 // Prefer the **parent** Orchestrator `bc-…` id. Task child agents expose a separate
-// `bc-…` in the UI (`?child-id=`), but GET /v1/agents/{child}/usage typically returns
-// zeros — usage rolls up on the parent.
+// `bc-…` in the UI (`?child-id=`), but GET /v1/agents/{child}/usage returns
+// zeros and parent /usage is orchestrator-only. Full billed tokens (parent +
+// Task children) come from the dashboard CSV — see import-usage-csv.mjs.
 //
 // Usage:
 //   CURSOR_API_KEY=… node .github/conductor/import-manual-agents.mjs \
