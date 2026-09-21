@@ -59,7 +59,7 @@
 - [x] Step 5 (L) — Cut-over + delete the in-place MySQL apply
 - [x] Step 6 (M) — Serialization + leftover cleanup
 - [x] Step 7 (S) — CI leg (required Snapshot job on MySQL 8.4)
-- [ ] Step 8 (XL) — Review (Bugbot + Security) + E2E
+- [x] Step 8 (XL) — Review (Bugbot + Security) + E2E
 
 ## TESTING STRATEGY
 - **Per step (production gate):** Refactorer → Verifier → Tester (PHPUnit + PHPStan) — production code must be green before any new tests are written. The default suite runs on SQLite; MySQL-leg tests must skip cleanly there (existing `SnapshotDatabase::namesARealDatabase()` pattern) and never fake a MySQL result.
