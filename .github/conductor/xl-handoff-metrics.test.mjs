@@ -1,10 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { agentBranchNames, agentMatchesBranch } from './metrics.mjs';
 import {
   detectXlTicks,
   parseTicketRoadmapStepId,
   pickXlHandoffSession,
-  pickXlHandoffAgent
+  pickXlHandoffAgent,
+  resolveXlHandoffAgent
 } from './xl-handoff-metrics.mjs';
 
 const TICK_DIFF = `diff --git a/migration-docs/tickets/active/PROMPT_2_7_1_Foo_plan.md b/migration-docs/tickets/active/PROMPT_2_7_1_Foo_plan.md
@@ -104,6 +106,69 @@ test('pickXlHandoffSession falls back to any in_progress session', () => {
     pickXlHandoffSession([{ sessionId: 'done', status: 'completed' }], { branch: 'feature/foo' }),
     null
   );
+});
+
+test('agentMatchesBranch reads repos.startingRef, the field the API returns', () => {
+  const detail = {
+    name: 'Atomic mysql restore',
+    repos: [
+      { url: 'https://github.com/Shadesman5/pagekit', startingRef: 'feature/atomic-mysql-restore' }
+    ]
+  };
+  assert.deepEqual(agentBranchNames(detail), ['feature/atomic-mysql-restore']);
+  assert.equal(agentMatchesBranch(detail, 'feature/atomic-mysql-restore'), true);
+  assert.equal(agentMatchesBranch(detail, 'refs/heads/feature/atomic-mysql-restore'), true);
+  assert.equal(agentMatchesBranch(detail, 'feature/other'), false);
+});
+
+test('agentMatchesBranch also accepts a pushed git.branches entry', () => {
+  const detail = { git: { branches: [{ branch: 'feature/foo' }] } };
+  assert.equal(agentMatchesBranch(detail, 'feature/foo'), true);
+});
+
+test('resolveXlHandoffAgent stops once the branch agent is found', async () => {
+  const fetched = [];
+  const client = async (_method, path) => {
+    fetched.push(path);
+    if (path.startsWith('/v1/agents?')) {
+      return {
+        items: [{ id: 'bc-other' }, { id: 'bc-xl' }, { id: 'bc-later' }],
+        nextCursor: 'page-2'
+      };
+    }
+    if (path === '/v1/agents/bc-other') {
+      return { id: 'bc-other', name: 'Elsewhere', repos: [{ startingRef: 'feature/else' }] };
+    }
+    if (path === '/v1/agents/bc-xl') {
+      return {
+        id: 'bc-xl',
+        name: 'Atomic mysql restore',
+        repos: [{ startingRef: 'feature/atomic-mysql-restore' }],
+        createdAt: '2026-09-21T18:44:41.755Z'
+      };
+    }
+    if (path === '/v1/agents/bc-xl/usage') {
+      return {
+        totalUsage: {
+          inputTokens: 10,
+          outputTokens: 2,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 12
+        }
+      };
+    }
+    if (path.startsWith('/v1/agents/bc-xl/runs')) return { items: [] };
+    throw new Error(`unexpected ${path}`);
+  };
+
+  const id = await resolveXlHandoffAgent(client, { branch: 'feature/atomic-mysql-restore' });
+  assert.equal(id, 'bc-xl');
+  assert.equal(
+    fetched.some(p => p.includes('bc-later')),
+    false
+  );
+  assert.equal(fetched.filter(p => p.startsWith('/v1/agents?')).length, 1);
 });
 
 test('pickXlHandoffAgent skips Conductor ids and zero usage, then takes the newest', () => {

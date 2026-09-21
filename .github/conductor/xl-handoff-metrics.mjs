@@ -15,6 +15,7 @@ import {
   fetchAgentMetricsFromCursor,
   fetchAgentFromCursor,
   listAgentsFromCursor,
+  agentMatchesBranch,
   parseRoadmapStepId,
   sessionAgentIds,
   syncMetricsFromRemote
@@ -93,19 +94,6 @@ export function pickXlHandoffAgent(candidates, excludeIds = []) {
   return eligible[0].id.toLowerCase();
 }
 
-function agentBranch(detail, fallback = {}) {
-  return String(
-    detail?.target?.branchName ||
-      detail?.branchName ||
-      detail?.source?.ref ||
-      fallback?.target?.branchName ||
-      fallback?.branchName ||
-      ''
-  )
-    .replace(/^refs\/heads\//, '')
-    .toLowerCase();
-}
-
 export async function resolveXlHandoffAgent(
   client,
   { branch, excludeIds = [], log = () => {} } = {}
@@ -115,10 +103,13 @@ export async function resolveXlHandoffAgent(
     .toLowerCase();
   if (!client || !branchNorm) return null;
   const exclude = new Set((excludeIds || []).map(id => String(id || '').toLowerCase()));
-  const scored = [];
+  // The list is newest first. Once this branch has an agent, older pages cannot
+  // be a newer XL parent — and walking them is what blew the 20-minute job cap.
+  let sawBranch = false;
   let cursor = null;
-  for (let page = 0; page < 5; page += 1) {
+  for (let page = 0; page < 5 && !sawBranch; page += 1) {
     const res = await listAgentsFromCursor(client, { limit: 50, cursor });
+    log(`resolve-xl: page ${page + 1} (${res.items.length} agents)`);
     for (const item of res.items) {
       const id = String(item.id || '').toLowerCase();
       if (!id.startsWith('bc-') || exclude.has(id)) continue;
@@ -128,8 +119,9 @@ export async function resolveXlHandoffAgent(
       } catch {
         /* list fields only */
       }
-      const name = String(detail?.name || item.name || '').toLowerCase();
-      if (agentBranch(detail, item) !== branchNorm && !name.includes(branchNorm)) continue;
+      if (!detail.name && item.name) detail = { ...detail, name: item.name };
+      if (!agentMatchesBranch(detail, branchNorm)) continue;
+      sawBranch = true;
       let total = 0;
       try {
         const metrics = await fetchAgentMetricsFromCursor(client, id);
@@ -137,16 +129,11 @@ export async function resolveXlHandoffAgent(
       } catch {
         /* keep 0 */
       }
-      scored.push({
-        id,
-        total,
-        createdAt: detail?.createdAt || detail?.created_at || item.createdAt || null
-      });
-    }
-    const picked = pickXlHandoffAgent(scored, []);
-    if (picked) {
-      log(`resolve-xl: picked ${picked}`);
-      return picked;
+      if (total > 0) {
+        log(`resolve-xl: picked ${id} total=${total}`);
+        return id;
+      }
+      log(`resolve-xl: ${id.slice(0, 12)}… is on ${branchNorm} but usage is still 0`);
     }
     cursor = res.nextCursor;
     if (!cursor) break;
