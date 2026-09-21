@@ -8,7 +8,7 @@
 
 ## CONTEXT
 
-- **Land after:** Step 2.7.1a (#281) — it rewrites `DatabaseRestorer`, one of the files this step relocates. Moving a file mid-rewrite buys nothing and costs a merge. If 2.7.1a has not merged, STOP and sequence correctly.
+- **Land after:** Step 2.7.1a (#281) — it rewrites `DatabaseRestorer`, one of the files this step relocates, adds `ShadowSchema` and `RestoreTableNames` beside it under `Package\Snapshot\` (they move too), and adds `TablePrefix` beside `Installer` (wizard-side; it stays). Moving a file mid-rewrite buys nothing and costs a merge. If 2.7.1a has not merged, STOP and sequence correctly.
 - **Land before:** Step 2.7.1c (it deletes the Composer helper and the marketplace package surface in the module this step creates — a behaviour change that must not ride on a relocation), Step 2.7.2 (#268) and Step 2.7.3 (#266). A dependency graph cannot honestly fail closed while `system` and the package code need each other in code and may not say so in the manifest; and static manifests should not be written for a module whose boundary is about to move.
 - **Provides:** an extension contract under a namespace that names it, a module dependency graph with one direction, and an `installer` module that is the installer.
 - **Risk:** Medium — wide mechanical blast radius (imports across the tree plus tooling config), but no logic change. The only design decision is where the extension failure record lands.
@@ -100,6 +100,7 @@ Resolve before writing code:
 - **Where the module lives and what it is called.** A directory beside `app/installer/`, `app/system/` and `app/console/` mirrors the existing layout and sidesteps the tier question: `app/modules/*` holds no views, and `app/system/modules/*` is the tier Step 5.0 wants operator-deactivatable — package management may never be. State the choice and the namespace that follows from it.
 - **Where the failure record lands.** It has to be readable by the boot barrier in `system` and by the package manager without an import pointing back at `system`. Moving it into the new module is the obvious answer; if Discovery finds a better one, say why.
 - **Whether the setup wizard needs anything from the new module.** If it does, that dependency has to be declared, and it decides the `require` direction between the two.
+- **What of the snapshot machinery is wizard-side.** `TablePrefix` is read by `Installer::check()` alone and stays in `installer`; `RestoreTableNames` cites it in a docblock only. `tests/Unit/Snapshot/RestoreTableNamesTest.php` asserts the reserved `_r_`/`_b_` markers fail `TablePrefix::refusal()` — the one place the invariant the restore's names rest on is held once the two classes are in two modules. The test crosses the boundary and stays.
 - **Service registration order.** `system` requires the new module, so its `main()` runs first — confirm that `extension.failures` is available where `SystemModule` and `PackageManager` expect it, and that `path.system` (or its successor) is still the guard.
 - **What the module manifest declares.** `require` list, routes, menu, permissions, resources, config defaults (snapshot retention lives there today) — all of it moves; check nothing is left orphaned in `installer`.
 - **Bundle entries and asset paths.** `scripts/bundle-entries.mjs` groups Vue entries per module; the group key and its source paths follow the move, and `pnpm build` output names change with it.
@@ -160,7 +161,7 @@ Sizing hints: (3) is the only design decision; (2), (4) and (5) are mechanical b
 
 - The package registry, contract, lifecycle, manager, snapshot engine and Composer helper live in one module under a namespace that names them.
 - No file below that module imports `Pagekit\System\`; the declared `require` graph matches the imports.
-- `app/installer/` holds the setup wizard plus the marketplace / self-update clients and nothing else.
+- `app/installer/` holds the setup wizard (`TablePrefix` included) plus the marketplace / self-update clients and nothing else; `RestoreTableNamesTest` still binds the reserved markers to `TablePrefix::refusal()` across the new boundary.
 - The contract a shipped extension implements no longer names the installer, and `packages/pagekit/blog` proves it.
 - No `class_alias`, no old namespace, no duplicated service id anywhere in the tree.
 - A fresh SQLite installation completes and boots; enable, disable, uninstall, snapshot restore and snapshot purge behave exactly as before.

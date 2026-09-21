@@ -172,6 +172,7 @@
   - Custom directives API changes (`bind/update` → `mounted/updated`)
   - `Vue.ready()` custom helper → standard `createApp()` + `app.mount()`
   - Systematically resolve migration build warnings
+  - Installer form (`app/installer/app/views/installer.vue`): the two table-prefix fields validate with a rule of their own (`^[a-zA-Z][a-zA-Z0-9._\-]*$`, under a hint that names a third) which passes `.`, `-` and a missing trailing `_` — all of which the server's `TablePrefix` shape (`^[A-Za-z][A-Za-z0-9_]*_$`) refuses, so the form's answer is the server's alert. One rule: mirror the server shape in the field and say it in the hint
   - After 0 warnings: remove `@vue/compat` → pure Vue 3
 
 ---
@@ -262,6 +263,7 @@
   - **ICU Frontend Support:**
     - Implement Vue equivalent `$transICU()` in `app/system/app/lib/trans.js` (PHP-side `_i()` already exists)
   - **Translation-key extraction (optional, low priority):**
+    - Regenerate `app/system/languages/messages.pot` and the locale catalogues from the current sources: the catalogue predates most of the tree, so every `__()` msgid without an entry — the installer's table-prefix refusals in `TablePrefix` among them — falls through to English in every locale until the catalogue is regenerated
     - Extend `app/console/src/NodeVisitor/PhpNodeVisitor.php` to also extract message keys from PHP 8 `#[Assert\...]` attributes (the visitor currently only handles `__`, `_c`, `trans`, `transChoice` function calls). Feeds the `ExtensionTranslateCommand` extraction pipeline. (Routed from repo TODO inventory §2; carries a canonical `Step 3.3.6` TODO comment in the source.)
     - Extend the JS/Vue extraction in `app/console/src/Commands/ExtensionTranslateCommand.php` to honour the optional **domain** argument of `$trans()/$transChoice()` calls. The current regex only captures the message id and hardcodes the `'messages'` domain, so custom-domain strings in `.js` files (where the `| trans` filter is unavailable) are extracted into the wrong `.pot`. Best solved with a JS AST (mirroring `PhpNodeVisitor` on the PHP side). (Routed from repo TODO inventory §3; carries a canonical `Step 3.3.6` TODO comment in the source.)
   - **Replace forked Intl loaders with Symfony built-ins:**

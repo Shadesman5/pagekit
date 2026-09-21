@@ -64,14 +64,41 @@ trait SnapshotDatabase
 
         $this->emptyTheTestDatabase();
 
-        return $this->open($params + [
+        return $this->open($params + self::serverParams());
+    }
+
+    /**
+     * Another connection to the database a test is already on, for the one question
+     * it takes two sessions to put: whether the restore running is the only one.
+     *
+     * Skips where the run has no server behind it. An in-memory database belongs to
+     * the connection that opened it, so there is no second session of it to be had -
+     * and no lock to be waiting on either, that being the server's to hand out.
+     */
+    protected function openAnotherSession(string $prefix = 'pk_'): Connection
+    {
+        if (!self::namesARealDatabase()) {
+            self::markTestSkipped('One database with two sessions on it is something only a run with a server behind it has');
+        }
+
+        return $this->open(['prefix' => $prefix, 'wrapperClass' => Connection::class] + self::serverParams());
+    }
+
+    /**
+     * The server the connection globals name, which every session opened here is on.
+     *
+     * @return array<string, mixed>
+     */
+    private static function serverParams(): array
+    {
+        return [
             'driver' => $GLOBALS['db_type'],
             'user' => $GLOBALS['db_username'],
             'password' => $GLOBALS['db_password'],
             'host' => $GLOBALS['db_host'],
             'dbname' => $GLOBALS['db_name'],
             'port' => $GLOBALS['db_port'],
-        ]);
+        ];
     }
 
     /**
@@ -92,10 +119,10 @@ trait SnapshotDatabase
     }
 
     /**
-     * Whether the database under test is the one that keeps schema changes
-     * inside a transaction. The two the installation supports differ on it, and
-     * what a half-applied restore leaves behind follows from that rather than
-     * from anything the restore does.
+     * Which of the two engines the installation supports the run is against. A
+     * dump is named after it, the statement that enforces references is spelled
+     * differently on each, and it decides whether a restore replaces the tables
+     * where they stand or fills copies and sets aside the tables they replace.
      */
     protected function isSqlite(Connection $connection): bool
     {

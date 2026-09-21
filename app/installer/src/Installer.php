@@ -50,6 +50,15 @@ class Installer
         $status = 'no-connection';
         $message = '';
 
+        // Creating the installation is the one moment the prefix is still being
+        // chosen and refusing it costs nothing but a retyped field. An
+        // installation that already exists is never measured against the shape:
+        // whatever it was created with is what its tables are called, empty
+        // included, and it has to keep booting.
+        if (!$this->config && ($refusal = $this->tablePrefixRefusal($config)) !== null) {
+            return ['status' => 'invalid-prefix', 'message' => $refusal];
+        }
+
         try {
 
             try {
@@ -95,6 +104,39 @@ class Installer
     }
 
     /**
+     * Why the submitted connections cannot be installed into, or null when
+     * every prefix they name has the shape TablePrefix requires.
+     *
+     * A connection that names no prefix at all is not refused: the module
+     * default applies to it, and that one is installable by definition.
+     *
+     * @param array<string, mixed> $config
+     */
+    private function tablePrefixRefusal(array $config): ?string
+    {
+        $database = $config['database'] ?? null;
+
+        if (!is_array($database) || !isset($database['connections']) || !is_array($database['connections'])) {
+            return null;
+        }
+
+        foreach ($database['connections'] as $params) {
+            if (!is_array($params) || !array_key_exists('prefix', $params)) {
+                continue;
+            }
+
+            $prefix = $params['prefix'];
+            $refusal = TablePrefix::refusal(is_scalar($prefix) ? (string) $prefix : '');
+
+            if ($refusal !== null) {
+                return $refusal;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @param  array<string, mixed> $config
      * @param  array<string, mixed> $option
      * @param  array<string, mixed> $user
@@ -113,6 +155,10 @@ class Installer
         }
 
         try {
+
+            if ('invalid-prefix' === $status) {
+                throw new BadRequestHttpException($message);
+            }
 
             if ('no-connection' == $status) {
                 // Whatever check() has to say about it is the whole of what there

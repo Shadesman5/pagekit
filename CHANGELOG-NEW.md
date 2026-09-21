@@ -1,5 +1,31 @@
 # Changelog
 
+## Pagekit 1.2.41 - Atomic MySQL Restore (September 21, 2026)
+
+### 💥 Breaking Changes
+
+- **A fresh MySQL install that does not name a table prefix is created with `pk_`, not an empty one** — sqlite already shipped `pk_`; mysql now matches. `--db-prefix=` is refused instead of installing empty. Blank `PAGEKIT_DB_PREFIX` no longer overlays `''` (it reads as unset, like driver and port). Existing `config.php` values, empty included, are unchanged. A hand-written file that omitted `prefix` and relied on implicit `''` now reads `pk_` and will not find unprefixed tables. (Closes #281)
+- **MySQL restore is copies then one rename, not an in-place drop-and-recreate** — a failure before the rename leaves live tables as they were. An empty-prefix installation is refused. A dump that names a `_r_`/`_b_` table is refused on both platforms. A restore whose copy names would exceed 64 characters, that finds a reserved name this installation does not own that this dump needs, or that would take inbound foreign keys from tables outside the dump (leftovers excepted), is refused with the installation left as it was. A second MySQL restore of the same installation while one is running is refused rather than queued. Foreign-key and CHECK names on restored tables are regenerated tokens.
+
+### ✨ Added
+
+- **Install-time table-prefix shape** — one rule `^[A-Za-z][A-Za-z0-9_]*_$` in `TablePrefix`, enforced on a fresh install only (web installer and `php pagekit setup`). Empty names `pk_`; a letter-led name missing the trailing `_` is answered with `"name_"`; anything else names the refused value and the shape.
+- **Required Snapshot-on-MySQL CI job** — `phpunit-mysql-snapshot` runs `tests/Unit/Snapshot` against MySQL 8.4 with no `continue-on-error`. The full-suite `phpunit-mysql` job stays advisory.
+
+### ♻️ Changed
+
+- **MySQL restore fills `_r_` copies and swaps them in with one `RENAME TABLE`** — SQLite still applies in place inside a transaction. A dump skips leftover `_r_`/`_b_` tables so a half-written restore copy cannot be snapshotted back over live data. One restore of an installation runs at a time. Owned leftover `_r_`/`_b_` tables are dropped after the refusals, under the lock; a leftover that will not drop is the refusal. A failed backup drop after a successful rename is a warning; the restore stands.
+
+### ❌ Removed
+
+- **The in-place MySQL drop-and-recreate apply** — `apply()` / `recreate()` stay as the SQLite apply.
+
+### 🔒 Security
+
+- **Restore fails closed before it creates anything** — empty prefix, copy name past 64 characters, reserved name this installation does not own that this dump needs, inbound foreign keys from tables outside the dump. Shadow DDL is a whitelist of three statement shapes; rewritten identifiers are backtick-quoted; rows go in through bound values. The restore lock is a bound `GET_LOCK` over a hashed schema+prefix name. Cleanup drops only owned leftovers.
+
+---
+
 ## Pagekit 1.2.40 - Snapshot & Three-Stage Uninstall (August 25, 2026)
 
 ### 💥 Breaking Changes

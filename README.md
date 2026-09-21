@@ -254,6 +254,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
     - **Nginx**: `root /path/to/pagekit/public;` and route unknown paths to the front controller: `try_files $uri /index.php$is_args$args;` — also deny `*.db` (e.g. `location ~* \.db$ { deny all; }`) since `.htaccess` does not apply.
     - **Permissions**: `tmp/` and `storage/` must be writable by the web server user
     - **Two directories under `tmp/` are data, not cache**: `tmp/snapshots` holds the only copy of every package removed through the panel or `php pagekit uninstall` — it is what a restore reads — and `tmp/system` holds the record of extensions that failed and were switched off. Include both in backups alongside `storage/`, the database and `config.php`, and keep them out of any routine that empties `tmp/`. Snapshots are written owner-only, so a console-taken snapshot is readable by the panel only when the console and the web server run as the same user.
+    - **What a restore costs on MySQL**: it writes the snapshot into copies of the tables and swaps the copies in with a single rename, so the database holds the dumped tables twice over while it runs — expect roughly twice their disk until the tables they replaced are dropped at the end of it. The rename takes a metadata lock on every table in it, and anything reading them waits: a stall of a moment on an ordinary installation, not zero downtime. Foreign-key and CHECK constraints on the restored tables come back under generated names, MySQL having no way to rename a constraint in place — nothing in Pagekit reads those names, but a script of your own that does will not find the old ones. An installation whose tables have no prefix cannot be restored on MySQL — reinstall with a prefix (`pk_` is the default).
 
     **Shared hosting with a fixed document root**: leave it on the project directory. The root `.htaccess` rewrites every request into `public/`, so files beside it — `config.php`, `app/`, `tmp/` — resolve to nothing there and end up on the 404 page. This needs `mod_rewrite` and `AllowOverride All`, and it is the fallback: a document root on `public/` is the safer setup.
 
@@ -273,6 +274,8 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
     php pagekit setup -u admin -p '<password>' \
         -t "Pagekit" -m admin@example.com -d sqlite --no-interaction
     ```
+
+    A new install that does not name a table prefix is created with `pk_`. `--db-prefix=` (empty) is refused; omit the flag, or pass a name that starts with a letter and ends with `_`. Existing installations keep the prefix they already have.
 
     Without a web server, PHP's built-in server is enough for local use:
 
@@ -319,6 +322,8 @@ The production runtime is the last stage of the same `Dockerfile`, so a plain bu
 
     `PAGEKIT_AUTO_SETUP=1`, together with `PAGEKIT_ADMIN_PASSWORD` and the other administrator variables, installs the site on the first start without a browser. That is the way in while nothing terminates TLS yet — the web installer is a page like any other and is redirected to HTTPS along with them — and the way to install a stack that is deployed rather than clicked through. With the proxy in place, opening the site walks through the web installer instead. A start that finds an existing installation leaves it untouched, so the switch can stay on.
 
+    `PAGEKIT_DB_PREFIX` is the prefix that first install creates the tables with, and the setup command holds it to the same shape as `php pagekit setup --db-prefix`: a letter first, `_` last, letters, digits and underscores between — `pk_` as `prod.env.example` ships it. A value of another shape is refused and the start ends there, the entrypoint stopping on a failed setup; a blank value installs with `pk_`. A restore from the snapshots panel costs the same on this stack as on a plain host: the MySQL service holds the dumped tables twice over until the restore has swapped its copies in and dropped the tables they replaced.
+
     `PAGEKIT_AUTO_MIGRATE=1` additionally applies pending migrations on every start; leaving it off keeps the moment the schema of a live site changes a decision of yours. It suits a single container. Replicas start together and would each migrate the same database, so a stack that runs more than one wants the migration as a job of its own before the new build comes up:
 
     ```bash
@@ -327,7 +332,7 @@ The production runtime is the last stage of the same `Dockerfile`, so a plain bu
 
 #### Configuration through the environment
 
-Every `PAGEKIT_*` variable overrides the module defaults and `config.php` alike. One that is not set changes nothing, which is why an installation outside a container behaves exactly as it did before; one that is set to an empty string still counts as a value and overrides with it. The database driver and port are the exception, having no empty value to name: a blank `PAGEKIT_DB_DRIVER` selects no connection rather than ending the boot over a name nobody gave, and a blank `PAGEKIT_DB_PORT` leaves MySQL's default in place rather than a cast of nothing over it. Both arrive that way from an env file carrying the line without a value, or a compose file passing an unset one through.
+Every `PAGEKIT_*` variable overrides the module defaults and `config.php` alike. One that is not set changes nothing, which is why an installation outside a container behaves exactly as it did before; one that is set to an empty string still counts as a value and overrides with it. The database driver, port and prefix are the exception, having no empty value to name: a blank `PAGEKIT_DB_DRIVER` selects no connection rather than ending the boot over a name nobody gave, a blank `PAGEKIT_DB_PORT` leaves MySQL's default in place rather than a cast of nothing over it, and a blank `PAGEKIT_DB_PREFIX` leaves the module's `pk_` rather than overlaying tables nothing can tell apart. Those arrive that way from an env file carrying the line without a value, or a compose file passing an unset one through.
 
 | Variable                                                             | Purpose                                                                                                     |
 | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
