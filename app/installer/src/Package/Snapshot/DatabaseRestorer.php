@@ -33,9 +33,24 @@ use Pagekit\Database\Connection;
  * @phpstan-import-type Description from DumpFormat
  * @phpstan-type Value array{0: mixed, 1: int}
  * @phpstan-type Record array{type: DumpFormat::TABLE, name: string, ddl: list<string>, columns: list<string>}|array{type: DumpFormat::ROW, values: list<Value>}
+ * @phpstan-type Inspection array{tables: int, rows: int, names: list<string>}
  */
 final class DatabaseRestorer
 {
+    /**
+     * How long a table name MySQL allows. The number rather than the platform's
+     * own answer, which is the 63 characters DBAL reports for every platform
+     * that does not say otherwise and would refuse names MySQL takes.
+     */
+    private const MYSQL_NAME_LIMIT = 64;
+
+    /**
+     * Whether the server matches table names without regard to case, once it has
+     * been asked. Fixed when the server starts, so it cannot change under a
+     * restore that is already running.
+     */
+    private ?bool $folds = null;
+
     public function __construct(private readonly Connection $connection)
     {
     }
@@ -45,12 +60,25 @@ final class DatabaseRestorer
      *
      * @param  string                        $file a dump as {@see DatabaseDumper} wrote it
      * @return array{tables: int, rows: int} what was put back
-     * @throws \RuntimeException             where the dump cannot be read, does not belong
-     *                                      to this installation, or could not be applied
+     * @throws \RuntimeException             where the dump cannot be read, does not belong to
+     *                                      this installation, could not be carried through on
+     *                                      it, or could not be applied
      */
     public function restore(string $file): array
     {
-        $summary = $this->inspect($file);
+        $mysql = $this->platform() === DumpFormat::MYSQL;
+
+        // Before the dump is opened, because this one is about the installation
+        // rather than the file, and no dump changes the answer.
+        if ($mysql) {
+            $this->refuseWithoutPrefix();
+        }
+
+        $dump = $this->inspect($file);
+
+        if ($mysql) {
+            $this->preflight($dump['names']);
+        }
 
         $enforced = $this->foreignKeys();
 
@@ -71,7 +99,223 @@ final class DatabaseRestorer
             }
         }
 
-        return $summary;
+        return ['tables' => $dump['tables'], 'rows' => $dump['rows']];
+    }
+
+    /**
+     * Refuses a MySQL restore of an installation whose tables carry no prefix.
+     *
+     * A restore there fills copies of the tables and swaps them in, and both
+     * halves of that have to know which tables are the installation's. Without a
+     * prefix every table in the database reads as one, whatever else shares it
+     * included, so there is no swap to make that is only this installation's.
+     */
+    private function refuseWithoutPrefix(): void
+    {
+        if ($this->prefix() !== '') {
+            return;
+        }
+
+        throw new \RuntimeException('The tables of this installation carry no name prefix, so a restore cannot tell them from the rest of the database while it swaps them. Reinstalling with a table prefix - "pk_" is the default - is what makes a restore possible.');
+    }
+
+    /**
+     * Refuses a MySQL restore that could not be carried through to the end.
+     *
+     * Every one of these is asked after the dump has been read and before
+     * anything is created, so what cannot finish comes back as a refusal with
+     * the installation exactly as it was and not as a database left between two
+     * states.
+     *
+     * @param  list<string>      $dumped every table the dump carries
+     * @throws \RuntimeException naming what has to change before a restore can run
+     */
+    private function preflight(array $dumped): void
+    {
+        $this->refuseNamesThatWillNotFit($dumped);
+        $this->refuseNamesAlreadyInUse($dumped);
+        $this->refuseInboundReferences($dumped);
+    }
+
+    /**
+     * Refuses a table whose name leaves no room for the copies a restore makes
+     * of it.
+     *
+     * Both copies are the live name behind a marker of the same length
+     * ({@see RestoreTableNames}), so measuring one of them answers for both.
+     *
+     * @param list<string> $dumped
+     */
+    private function refuseNamesThatWillNotFit(array $dumped): void
+    {
+        foreach ($dumped as $name) {
+            $copy = RestoreTableNames::shadow($name);
+            $length = mb_strlen($copy, 'UTF-8');
+
+            if ($length <= self::MYSQL_NAME_LIMIT) {
+                continue;
+            }
+
+            throw new \RuntimeException(sprintf(
+                'The table "%s" cannot be restored on MySQL: the copy a restore fills first would be called "%s", which is %d characters where MySQL allows %d. The table has to be named something shorter before a snapshot holding it can be put back.',
+                $name,
+                $copy,
+                $length,
+                self::MYSQL_NAME_LIMIT,
+            ));
+        }
+    }
+
+    /**
+     * Refuses where the database already holds a table under a name the restore
+     * has to make for itself.
+     *
+     * Copies from a restore that did not finish are refused whether or not this
+     * dump needs their names: they are tables nobody asked for, and a restore
+     * that wrote over them would lose the one thing that says how far the last
+     * one got. A reserved name whose remainder is not this installation's was
+     * written by something else, so it is refused where the restore needs that
+     * very name and otherwise left alone like any other table that is not this
+     * installation's.
+     *
+     * @param  list<string>      $dumped
+     * @throws \RuntimeException naming the tables in the way
+     */
+    private function refuseNamesAlreadyInUse(array $dumped): void
+    {
+        /** @var array<string, array{0: string, 1: string}> $needed the copy as the server would match it => the table and the copy's name */
+        $needed = [];
+
+        foreach ($dumped as $name) {
+            foreach ([RestoreTableNames::shadow($name), RestoreTableNames::backup($name)] as $copy) {
+                $needed[$this->comparable($copy)] = [$name, $copy];
+            }
+        }
+
+        $prefix = $this->comparable($this->prefix());
+        $leftovers = [];
+
+        foreach ($this->connection->createSchemaManager()->listTableNames() as $held) {
+            $comparable = $this->comparable($held);
+            $live = RestoreTableNames::live($comparable);
+
+            if ($live === null) {
+                continue;
+            }
+
+            if (str_starts_with($live, $prefix)) {
+                $leftovers[] = $held;
+
+                continue;
+            }
+
+            if (isset($needed[$comparable])) {
+                [$table, $copy] = $needed[$comparable];
+
+                throw new \RuntimeException(sprintf(
+                    'A restore of the table "%s" fills a copy called "%s" first, and the database already holds a table of that name that is no part of this installation. Rename or drop "%s" and run the restore again.',
+                    $table,
+                    $copy,
+                    $held,
+                ));
+            }
+        }
+
+        if ($leftovers === []) {
+            return;
+        }
+
+        // In an order of its own: what the server lists them in is the server's
+        // business, and this reads as a list an operator can work through.
+        sort($leftovers);
+
+        throw new \RuntimeException(sprintf(
+            'A restore that did not finish left copies of this installation\'s tables in the database (%s). Drop them and run the restore again.',
+            implode(', ', $leftovers),
+        ));
+    }
+
+    /**
+     * Refuses where a table the dump does not carry points at one it does.
+     *
+     * The swap a restore ends with renames the live table aside, and MySQL takes
+     * a foreign key with the table it points at rather than leaving it on the
+     * name: a reference from outside the dump would end up on the copy that is on
+     * its way out, which leaves the restore unable to remove that copy and the
+     * table holding the reference pointing at something nothing maintains.
+     * References from tables the dump does carry are no trouble - they are
+     * swapped in the same statement.
+     *
+     * @param  list<string>      $dumped
+     * @throws \RuntimeException naming each reference into the dump
+     */
+    private function refuseInboundReferences(array $dumped): void
+    {
+        $carried = [];
+
+        foreach ($dumped as $name) {
+            $carried[$this->comparable($name)] = true;
+        }
+
+        $inbound = [];
+
+        foreach ($this->references() as $reference) {
+            if (!isset($carried[$this->comparable($reference['parent'])]) || isset($carried[$this->comparable($reference['child'])])) {
+                continue;
+            }
+
+            $inbound[] = sprintf('"%s" points at "%s" (%s)', $reference['child'], $reference['parent'], $reference['constraint']);
+        }
+
+        if ($inbound === []) {
+            return;
+        }
+
+        sort($inbound);
+
+        throw new \RuntimeException(sprintf(
+            'Tables the database dump does not hold point at tables it does: %s. A restore swaps the tables it holds for copies of them and MySQL would take those references along to the ones being set aside, so they have to be dropped before a restore can run.',
+            implode('; ', $inbound),
+        ));
+    }
+
+    /**
+     * Every foreign key in this database, as the constraint and the two tables it
+     * ties together.
+     *
+     * Read out of information_schema rather than through the schema manager,
+     * which would introspect every table in the database to arrive at the same
+     * list. Both ends are held to the schema the installation is in: a referenced
+     * name on its own does not say which schema it is in, and a reference from
+     * another one is not something a rename here moves.
+     *
+     * @return list<array{constraint: string, child: string, parent: string}>
+     */
+    private function references(): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT DISTINCT r.CONSTRAINT_NAME AS name, r.TABLE_NAME AS child, k.REFERENCED_TABLE_NAME AS parent'
+            .' FROM information_schema.REFERENTIAL_CONSTRAINTS r'
+            .' INNER JOIN information_schema.KEY_COLUMN_USAGE k'
+            .' ON k.CONSTRAINT_SCHEMA = r.CONSTRAINT_SCHEMA AND k.CONSTRAINT_NAME = r.CONSTRAINT_NAME AND k.TABLE_NAME = r.TABLE_NAME'
+            .' WHERE r.CONSTRAINT_SCHEMA = DATABASE() AND k.REFERENCED_TABLE_SCHEMA = DATABASE()',
+        );
+
+        $references = [];
+
+        foreach ($rows as $row) {
+            $constraint = $row['name'] ?? null;
+            $child = $row['child'] ?? null;
+            $parent = $row['parent'] ?? null;
+
+            if (!is_string($constraint) || !is_string($child) || !is_string($parent)) {
+                continue;
+            }
+
+            $references[] = ['constraint' => $constraint, 'child' => $child, 'parent' => $parent];
+        }
+
+        return $references;
     }
 
     /**
@@ -137,20 +381,26 @@ final class DatabaseRestorer
      * Reads the dump through without touching the database, which is how it is
      * judged before anything is destroyed on the strength of it.
      *
-     * @return array{tables: int, rows: int} what the dump holds
-     * @throws \RuntimeException             where the dump is unreadable, incomplete,
-     *                                      or not this installation's
+     * @return Inspection        what the dump holds, and which tables it names -
+     *                          the list every refusal that follows is measured against
+     * @throws \RuntimeException where the dump is unreadable, incomplete,
+     *                          or not this installation's
      */
     private function inspect(string $file): array
     {
         $records = $this->read($file);
+        $names = [];
 
-        // Reading it is the checking; taking the records and doing nothing with
-        // them is what makes this the pass that only judges the file.
-        foreach ($records as $ignored) {
+        // Reading it is the checking; the names are the one thing kept, because
+        // what a restore can and cannot do to this database follows from which
+        // tables the dump carries.
+        foreach ($records as $record) {
+            if ($record['type'] === DumpFormat::TABLE) {
+                $names[] = $record['name'];
+            }
         }
 
-        return $records->getReturn();
+        return $records->getReturn() + ['names' => $names];
     }
 
     /**
@@ -360,6 +610,14 @@ final class DatabaseRestorer
             throw new \RuntimeException('A table in the database dump carries no name.');
         }
 
+        // A name a restore makes for itself is never a table an installation
+        // holds, so a dump carrying one is a dump of a restore that was
+        // interrupted rather than of an installation - and replaying it would
+        // have this restore make a copy of a copy.
+        if (RestoreTableNames::isReserved($name)) {
+            throw new \RuntimeException(sprintf('The database dump names a table ("%s") that a restore makes for itself rather than one this installation holds.', $name));
+        }
+
         // A restore drops every table the dump names, so the dump does not get
         // to name one outside what the installation owns.
         if (!str_starts_with($name, $prefix)) {
@@ -492,5 +750,47 @@ final class DatabaseRestorer
     private function platform(): string
     {
         return DumpFormat::platform($this->connection->getDatabasePlatform());
+    }
+
+    /**
+     * What this installation's tables are named with.
+     */
+    private function prefix(): string
+    {
+        return $this->connection->getPrefix() ?? '';
+    }
+
+    /**
+     * A table name as a comparison against another one has to read it.
+     *
+     * Whether two names are the same table is the server's rule and not PHP's:
+     * asked to fold them, MySQL matches names without regard to case, and a
+     * comparison that did not fold would look straight past the table it was
+     * checking for - and then create, or drop, the wrong one.
+     */
+    private function comparable(string $name): string
+    {
+        return $this->foldsNames() ? mb_strtolower($name, 'UTF-8') : $name;
+    }
+
+    /**
+     * Whether the server matches table names without regard to case.
+     */
+    private function foldsNames(): bool
+    {
+        if ($this->folds === null) {
+            // Globally, because the variable has no session value, and through
+            // SHOW rather than as @@lower_case_table_names: the connection
+            // substitutes its table prefix for an @-led name outside quotes.
+            $row = $this->connection->fetchAssociative("SHOW GLOBAL VARIABLES LIKE 'lower_case_table_names'");
+            $value = $row === false ? null : ($row['Value'] ?? null);
+
+            // 1 stores names folded and 2 stores them as given but matches them
+            // folded. 0 - and a server that does not say - is a name matched as
+            // it is written.
+            $this->folds = in_array($value, ['1', '2', 1, 2], true);
+        }
+
+        return $this->folds;
     }
 }

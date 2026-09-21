@@ -97,6 +97,16 @@ final class RestoreTableNamesTest extends TestCase
             RestoreTableNames::isReserved($table),
             sprintf('"%s" is a name a restore gave itself, not a table an installation owns', $table),
         );
+
+        // The two readings are one reading. A dump decides what to leave out
+        // from whether the name is invented at all, and a restorer decides what
+        // it may clear away from the table the name was invented for - so a name
+        // only one of them recognised would be dropped as a leftover by the one
+        // while the other carried it into a dump as a table.
+        self::assertNotNull(
+            RestoreTableNames::live($table),
+            sprintf('"%s" was invented for a table, and which one has to be readable off it', $table),
+        );
     }
 
     /**
@@ -132,6 +142,29 @@ final class RestoreTableNamesTest extends TestCase
         self::assertFalse(
             RestoreTableNames::isReserved($table),
             sprintf('"%s" is a table name of somebody\'s own, and a restore may neither skip nor drop it', $table),
+        );
+        self::assertNull(
+            RestoreTableNames::live($table),
+            sprintf('"%s" was invented for nothing, so there is no table to read off it', $table),
+        );
+    }
+
+    public function testWhichTableACopyWasMadeForIsReadOffWhatIsLeftWhenTheMarkerComesOff(): void
+    {
+        // Whose copy a leftover is decides what may be done about it: a copy of
+        // one of this installation's tables is its own to clear away, and a copy
+        // of a table it does not own is one it may not touch. That is read off
+        // the remainder, so the remainder has to be the live name and nothing
+        // near it.
+        self::assertSame(self::LIVE, RestoreTableNames::live(RestoreTableNames::shadow(self::LIVE)));
+        self::assertSame(self::LIVE, RestoreTableNames::live(RestoreTableNames::backup(self::LIVE)));
+
+        // One marker off, not every marker: a copy of a copy is left saying it
+        // was made for a table no installation owns, which is what keeps it out
+        // of the set a restore treats as its own.
+        self::assertSame(
+            RestoreTableNames::backup(self::LIVE),
+            RestoreTableNames::live(RestoreTableNames::shadow(RestoreTableNames::backup(self::LIVE))),
         );
     }
 

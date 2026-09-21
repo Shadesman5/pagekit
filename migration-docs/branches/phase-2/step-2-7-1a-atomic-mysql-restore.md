@@ -15,7 +15,7 @@
 
 ## 🎯 Overview
 
-A fresh install can no longer be created with an empty or ill-shaped table prefix. The mysql module default is `pk_`, matching sqlite. Existing installations — empty prefix included — keep booting; only a new install is measured. A dump skips leftover `_r_`/`_b_` tables (empty prefix included) so a half-written restore copy cannot be snapshotted back over live data. The shadow-cut-over restorer is later checklist steps.
+A fresh install can no longer be created with an empty or ill-shaped table prefix. The mysql module default is `pk_`, matching sqlite. Existing installations — empty prefix included — keep booting; only a new install is measured. A dump skips leftover `_r_`/`_b_` tables (empty prefix included) so a half-written restore copy cannot be snapshotted back over live data. A MySQL restore now refuses before it creates anything (empty prefix, a copy name past 64 characters, leftover or colliding `_r_`/`_b_` tables, inbound foreign keys from outside the dump); a dump that names a reserved table is refused on both platforms. The in-place MySQL apply still runs after those refusals; the shadow cut-over is later checklist steps.
 
 ---
 
@@ -64,6 +64,25 @@ No restorer change. The names a later restore invents now have one home, and a d
 
 Gates: Verifier (production) PASS; Tester PASS; test-writer done; Verifier (test files) PASS; Tester PASS. No deviations.
 
+### Preflight refusals before the first CREATE (Checklist Step 3)
+
+MySQL restore now fails closed while the installation is still whole. The in-place apply is unchanged; shadow fill and cut-over are later steps.
+
+| File | Change |
+|---|---|
+| `app/installer/src/Package/Snapshot/DatabaseRestorer.php` | Empty-prefix refusal before the dump is opened. After `inspect()`, `preflight()` cheapest-first: copy name over 64 characters (`mb_strlen` on the shadow; `MYSQL_NAME_LIMIT` is literal 64), then one walk of `listTableNames` for owned leftovers and non-owned collisions, then inbound FKs from `information_schema` in the current schema. Folding from `SHOW GLOBAL VARIABLES LIKE 'lower_case_table_names'` (1 and 2 fold). Reserved name in the dump refused in `name()` before the prefix check. `inspect()` also returns dumped names; `restore()` still answers `tables`/`rows`. |
+| `app/installer/src/Package/Snapshot/RestoreTableNames.php` | `live()` is the remainder after the marker (`null` if none). `isReserved()` delegates, so ownership is not a second spelling of the markers in the restorer. |
+
+#### Tests (Checklist Step 3)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Snapshot/DatabaseRestorerTest.php` | Empty-prefix MySQL restore refused before the dump is opened (test double); SQLite empty-prefix still restores. Copy name over 64 refused, 64 allowed, non-ASCII counted as MySQL counts. Owned leftovers refused whether or not this dump needs the name (sorted); a reserved name that is neither owned nor needed is left alone; folding 1/2 recognises the leftover, a different-case marker is another table when the server does not fold. Inbound FK from outside the dump refused naming child, parent, and constraint. Reserved name in the dump refused on both platforms, empty prefix included. Leftover copies are no obstacle on SQLite. Every refusal leaves live tables and creates no reserved names. |
+| `tests/Unit/Snapshot/RestoreTableNamesTest.php` | `live()` is the remainder after one marker (a copy of a copy is not this installation's); `isReserved()` is that remainder not being null. |
+| `tests/Unit/Snapshot/ConnectionThatAnswersForAMysqlServer.php` (new) | Connection that reports MySQL and answers folding plus inbound FKs; records what was asked so a refusal that needed no MySQL-only SQL is distinguished from one that did. Tables are still listed from the real database. |
+
+Gates: Verifier (production) FAIL once (`preflight` docblock restated call order and named a future swap path) → retry → PASS; Tester PHPUnit+PHPStan PASS; test-writer done; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -72,33 +91,40 @@ Gates: Verifier (production) PASS; Tester PASS; test-writer done; Verifier (test
 - **Missing key ≠ empty string.** Installer skips connections with no `prefix` key. SetupCommand writes the key only when the option is not null. EnvConfigLoader treats blank as unset. The three agree: "not given" is the module default; "given as empty" is a refusal at install / a no-op overlay at boot.
 - **Boot is not the validator.** An odd `PAGEKIT_DB_PREFIX` still overlays so an existing site whose tables are called that keeps booting.
 - **Mysql default flip.** sqlite already shipped `pk_`. The disagreement was the bug. Installed sites carry `prefix` in `config.php`; a hand-written file that omitted it and relied on implicit `''` is the one edge the flip moves.
-- **One naming class.** Markers, name builders, and the reserved-name reading live in `RestoreTableNames` next to the dumper. The restorer is not a consumer yet; a second spelling later would be the bug.
+- **One naming class.** Markers, name builders, and the reserved-name reading live in `RestoreTableNames`. The restorer consumes `live()` rather than restating the markers; a second spelling would be the bug.
 - **Skip, do not refuse.** An empty-prefix dump with leftovers still writes. Refusing would block uninstall on the installations that most need the skip (`str_starts_with($name, '')` is every table).
-- **Front of the name, exact case.** `isReserved` is `str_starts_with` on the lowercase markers. A marker in the middle (`a_b_users`) or a different case (`_R_`) is someone else's table. Server `lower_case_table_names` folding is later restorer ownership/collision work — the dumper only has to recognise names it itself would have written.
+- **Front of the name, exact case.** `isReserved` is `str_starts_with` on the lowercase markers. A marker in the middle (`a_b_users`) or a different case (`_R_`) is someone else's table. Folding is the restorer's: `live()` stays byte-exact; `comparable()` applies the server's rule.
+- **One walk for collision and leftover.** A reserved remainder that starts with this prefix is a leftover — refused even if this dump does not need the name. A reserved remainder that does not is refused only when this restore needs that exact name, otherwise left alone. Two scans were rejected: every name the restore needs is owned by construction; the non-owned branch is the fail-closed backstop.
+- **Cheapest first.** Length (no SQL), then the table listing, then `information_schema`. Empty prefix, name length, and reserved-in-dump therefore throw on a connection that only *reports* MySQL.
+- **64, not 63.** `MYSQL_NAME_LIMIT` is literal 64. DBAL's MySQL max is the un-overridden 63 and would refuse names MySQL takes. One `mb_strlen` of the shadow name answers for both copies (markers are equal length).
+- **SHOW, not `@@`.** Folding is `SHOW GLOBAL VARIABLES LIKE 'lower_case_table_names'` — the variable has no session value, and `@@…` would be rewritten by `Connection::replacePrefix`. 1 and 2 fold; anything else, a missing row included, compares as written.
+- **Remainder, not a second spelling.** `RestoreTableNames::live()` is the counterpart of `shadow()`/`backup()`; `isReserved()` delegates. Folding stays the restorer's.
+- **`inspect` lists names; `restore` still answers tables/rows.** The refusals measure against the dumped names; the caller's summary is unchanged.
+- **Reserved-in-dump before the prefix check.** A dump naming `_r_`/`_b_` is refused on both platforms and on an empty prefix, where `str_starts_with($name, '')` would otherwise pass the name through.
 
 ---
 
 ## 💥 Breaking Changes (Extensions)
 
-A fresh MySQL install that does not name a prefix is created with `pk_`, not an empty one. `--db-prefix=` is refused instead of installing empty. Blank `PAGEKIT_DB_PREFIX` no longer overlays `''`. Existing `config.php` values, empty included, are unchanged.
+A fresh MySQL install that does not name a prefix is created with `pk_`, not an empty one. `--db-prefix=` is refused instead of installing empty. Blank `PAGEKIT_DB_PREFIX` no longer overlays `''`. Existing `config.php` values, empty included, are unchanged. A MySQL restore of an empty-prefix installation is refused. A dump that names a `_r_`/`_b_` table is refused on both platforms. A restore whose copy names would exceed 64 characters, that finds owned leftover copies, or that would take inbound foreign keys from tables outside the dump with it, is refused with the installation left as it was.
 
 ---
 
 ## ⚠️ Risks & Rollout Notes
 
-A hand-written `config.php` that omitted `prefix` on mysql now reads `pk_` and will not find unprefixed tables. Sites the installer wrote are unaffected (`persistableDatabaseConfig()` stores the resolved prefix). Empty-prefix MySQL restore refusal is later checklist steps. A dump now omits leftover `_r_`/`_b_` tables rather than carrying them; uninstall still has a dump.
+A hand-written `config.php` that omitted `prefix` on mysql now reads `pk_` and will not find unprefixed tables. Sites the installer wrote are unaffected (`persistableDatabaseConfig()` stores the resolved prefix). Empty-prefix MySQL restore is refused (the message names reinstalling with a prefix; `pk_` is the default). Owned leftover `_r_`/`_b_` copies refuse the restore until they are dropped; dropping them automatically is later leftover cleanup. Inbound foreign keys from tables outside the dump have to be dropped before a restore. A dump omits leftover `_r_`/`_b_` tables rather than carrying them; uninstall still has a dump. The in-place MySQL apply still runs after a passing preflight.
 
 ---
 
 ## 🔐 Security & Data Impact
 
-Shape rule: leading letter keeps the `_`-led namespace out of new installs; no `.` / `-` / quotes in unquoted identifiers. Fresh-install refusal happens before a connection is opened. No schema migration; no existing table is renamed. A dump no longer carries leftover restore copies, so an uninstall cannot replay a half-written `_r_`/`_b_` table over the live one. The reserved-name reading is prefix-only and case-exact, so `_migrations` and `a_b_*` tables stay in the dump.
+Shape rule: leading letter keeps the `_`-led namespace out of new installs; no `.` / `-` / quotes in unquoted identifiers. Fresh-install refusal happens before a connection is opened. No schema migration; no existing table is renamed. A dump no longer carries leftover restore copies, so an uninstall cannot replay a half-written `_r_`/`_b_` table over the live one. The reserved-name reading is prefix-only and case-exact, so `_migrations` and `a_b_*` tables stay in the dump. MySQL restore refusals run after the dump is read and before the first CREATE (empty prefix before the dump is opened). Ownership is the remainder after the marker plus this installation's prefix, compared the way the server folds names. A reserved table that is neither owned nor needed is left alone. Inbound FKs are read from `information_schema` in the current schema only.
 
 ---
 
 ## 🛡️ No-Mercy Compliance
 
-One validator, both entries. No shim for the old empty mysql default. Existing empty-prefix installs are not revalidated (not a compatibility layer — they already have tables of that name). One naming class; the dumper calls it directly. Empty-prefix dump still runs (those installs already have tables of that name). No restorer change this step.
+One validator, both entries. No shim for the old empty mysql default. Existing empty-prefix installs are not revalidated (not a compatibility layer — they already have tables of that name); MySQL restore refuses them instead of inventing a second apply. One naming class; `live()` is the remainder, not a second marker spelling in the restorer. Empty-prefix dump still runs. Preflight is in the restorer, not a wrapper around in-place apply. Identifier cap is literal 64, not a DBAL adapter. Leftover presence-refusal is the later cleanup's predecessor, not a dual path.
 
 ---
 
@@ -108,7 +134,7 @@ One validator, both entries. No shim for the old empty mysql default. Existing e
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: Step 1 — EnvConfigLoader overlay assertion changed from `pk_` to `site_` after the mysql default flip — asserting the default no longer proved the environment arrived. Step 2 — none.
+- Notable deviations: Step 1 — EnvConfigLoader overlay assertion changed from `pk_` to `site_` after the mysql default flip — asserting the default no longer proved the environment arrived. Step 2 — none. Step 3 — first Verifier pass failed on the `preflight` docblock restating call order and naming a future swap path; rewritten to say what the refusals do, not the order or the cut-over that is not wired yet.
 
 ---
 

@@ -65,6 +65,26 @@ final class RestoreTableNames
      */
     public static function isReserved(string $table): bool
     {
-        return str_starts_with($table, self::SHADOW) || str_starts_with($table, self::BACKUP);
+        return self::live($table) !== null;
+    }
+
+    /**
+     * The name of the table one of these was made for, or null where the name is
+     * not one of these at all. The marker is matched exactly, for the reason
+     * {@see self::isReserved()} gives.
+     *
+     * What is left once the marker is off says whose copy it is: a restore only
+     * makes these for tables of its own installation, so a remainder that is not
+     * one of that installation's names is a table nothing here wrote.
+     */
+    public static function live(string $table): ?string
+    {
+        foreach ([self::SHADOW, self::BACKUP] as $marker) {
+            if (str_starts_with($table, $marker)) {
+                return substr($table, strlen($marker));
+            }
+        }
+
+        return null;
     }
 }

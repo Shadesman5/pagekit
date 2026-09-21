@@ -54,7 +54,7 @@
      (after full step PASS incl. test-writer when applicable; for XL after reviews + E2E PASS) -->
 - [x] Step 1 (M) — Safety gates + prefix invariant at install
 - [x] Step 2 (S) — Reserved names + dumper guard
-- [ ] Step 3 (L) — Preflight refusals before the first CREATE
+- [x] Step 3 (L) — Preflight refusals before the first CREATE
 - [ ] Step 4 (L) — Shadow DDL rewriter + fill machinery
 - [ ] Step 5 (L) — Cut-over + delete the in-place MySQL apply
 - [ ] Step 6 (M) — Serialization + leftover cleanup
@@ -78,3 +78,15 @@
 - **Finalize:** `orchestrator-v2-finalize.mdc` (PR → CI incl. the new `phpunit-mysql-snapshot` job → optional coverage → PR Bugbot/Security → version bump: product runtime changed, so expect a bump unless the skill says NO BUMP).
 - **Maintainer action (optional):** add `phpunit-mysql-snapshot` to the protected-branch required status checks (GitHub settings — the workflow file alone cannot mark a check required); one manual end-to-end MySQL restore on a real Docker host (dev stack) before relying on it in production.
 - **Deferred / Out-of-Scope (optional):** see ARCHITECT OUTPUT → Deferred (2.7.1b relocation; 2.9 updater consumption; 2.11 full-suite MySQL flip — all already scoped in PHASE_2, no amendments; rejected non-goals listed there). Bridges: none.
+
+## IMPLEMENTATION NOTES
+
+### Step 3
+
+- `DatabaseRestorer::refuseNamesAlreadyInUse` — decision 7(c) and 7(e) are one walk over `listTableNames()`: a reserved name whose remainder starts with this installation's prefix is collected as a leftover (presence-refusal, message lists them sorted), a reserved name that is **not** owned refuses only where the restore needs that exact name. Rejected two separate scans, because with prefix-based ownership every name the restore needs is owned by construction — the non-owned branch is the fail-closed backstop for a reserved name this installation's prefix does not account for. Invariants: an owned `_r_`/`_b_` leftover refuses whether or not this dump needs its name; a reserved table that is neither owned nor needed is left alone.
+- `DatabaseRestorer::preflight` — ordered cheapest first: name length (no SQL), then the table listing, then `information_schema`. Invariant a test must hold: every refusal that needs no MySQL-only statement (empty prefix, name length, reserved name in the dump) throws before one runs, so a connection that merely *reports* MySQL reaches them on the SQLite leg.
+- `DatabaseRestorer::MYSQL_NAME_LIMIT` — literal 64, not `AbstractPlatform::getMaxIdentifierLength()`, which is the un-overridden 63 for MySQL in DBAL 3.10 and would refuse names MySQL takes. Measured with `mb_strlen` over the shadow name only; both markers are three characters, so one measurement answers for both.
+- `DatabaseRestorer::foldsNames` — read once per restorer from `SHOW GLOBAL VARIABLES LIKE 'lower_case_table_names'` (global because the variable has no session value; through `SHOW` because `@@…` would be rewritten by `Connection::replacePrefix`). Values 1 and 2 fold, anything else — a row that does not say included — compares as written. A test double that wants the collision or inbound-FK path without a server has to answer that query.
+- `RestoreTableNames::live()` — added as the counterpart of `shadow()`/`backup()` so ownership is read off the remainder instead of a second spelling of the markers inside the restorer; `isReserved()` delegates to it, keeping both readings byte-exact and leaving folding the restorer's business.
+- `DatabaseRestorer::inspect` — now also returns the dumped table names (`Inspection`), which is what the refusals are measured against; `restore()` narrows its own answer back to `tables`/`rows`, so the summary a caller gets is unchanged.
+- `DatabaseRestorer::name` — the reserved-name-in-dump refusal (7f) sits in the dump reading before the prefix check, so it fires on both platforms and on an empty-prefix installation, where the prefix check alone would pass the name through.

@@ -12,6 +12,7 @@ use Pagekit\Database\Connection;
 use Pagekit\Installer\Package\Snapshot\DatabaseDumper;
 use Pagekit\Installer\Package\Snapshot\DatabaseRestorer;
 use Pagekit\Installer\Package\Snapshot\DumpFormat;
+use Pagekit\Installer\Package\Snapshot\RestoreTableNames;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -308,6 +309,55 @@ final class DatabaseRestorerTest extends TestCase
         self::assertCount(1, $connection->fetchAllAssociative('SELECT id FROM other_items'));
     }
 
+    public function testADumpNamingACopyARestoreMakesForItselfIsRefusedRatherThanCopiedAgain(): void
+    {
+        // A dump holding one of those names was taken while a restore was stuck
+        // partway - nothing else ever makes such a table - so replaying it would
+        // have this restore fill a copy of a copy, under a name it then reads as
+        // a leftover of its own.
+        $connection = $this->installation();
+
+        $this->dumpNaming($connection, [RestoreTableNames::shadow('pk_items')]);
+
+        try {
+            (new DatabaseRestorer($connection))->restore($this->dump());
+
+            self::fail('A dump naming a table a restore makes for itself must not be replayed');
+        } catch (\RuntimeException $e) {
+            // The name lies outside the prefix as well, and it is this reading
+            // that has to answer first: where an installation has no prefix, the
+            // other one has nothing to say about any name at all.
+            self::assertStringContainsString('that a restore makes for itself', $e->getMessage());
+            self::assertStringNotContainsString('not part of this installation', $e->getMessage());
+        }
+
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testADumpNamingACopyIsRefusedEvenWhereTheInstallationOwnsEveryTableInTheDatabase(): void
+    {
+        $connection = $this->installation('');
+
+        if (!$this->isSqlite($connection)) {
+            // A MySQL restore of an installation whose tables carry no prefix is
+            // refused before the dump is opened at all, which is asserted where
+            // that refusal is.
+            self::markTestSkipped('Only SQLite restores an installation whose tables carry no prefix');
+        }
+
+        $this->dumpNaming($connection, [RestoreTableNames::shadow('pk_items')]);
+
+        try {
+            (new DatabaseRestorer($connection))->restore($this->dump());
+
+            self::fail('A dump naming a table a restore makes for itself must not be replayed');
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString('that a restore makes for itself', $e->getMessage());
+        }
+
+        self::assertSame(2, $this->countItems($connection));
+    }
+
     public function testAFileThatIsNotThereIsRefusedRatherThanReadAsAnEmptyDatabase(): void
     {
         $connection = $this->installation();
@@ -463,6 +513,401 @@ final class DatabaseRestorerTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // What a MySQL restore refuses while the installation is still whole
+    // ------------------------------------------------------------------
+
+    public function testARestoreOfAnInstallationWhoseTablesCarryNoPrefixIsRefusedBeforeTheDumpIsEvenOpened(): void
+    {
+        // A MySQL restore fills copies of the tables and swaps them in, and both
+        // halves of that have to know which tables are this installation's.
+        // Without a prefix every table in the database reads as one. That is a
+        // fact about the installation rather than about any file, so the file is
+        // not so much as looked for.
+        $connection = $this->mysqlInstallation('');
+
+        try {
+            (new DatabaseRestorer($connection))->restore($this->workspace.'/never-written.dump');
+
+            self::fail('A MySQL restore of an installation whose tables carry no prefix must be refused');
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString('carry no name prefix', $e->getMessage());
+            self::assertStringNotContainsString('Failed to open the database dump', $e->getMessage());
+
+            // And what to do about it: this reaches an operator through the
+            // snapshots panel, where the only way on is a decision of theirs.
+            self::assertStringContainsString('"pk_"', $e->getMessage());
+        }
+
+        self::assertSame([], $connection->asked, 'The refusal came before the server was asked anything');
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testAnInstallationWhoseTablesCarryNoPrefixIsStillRestoredOnSqlite(): void
+    {
+        // The refusal above is MySQL's alone, because copies are what needs
+        // telling apart from the tables they were made of. SQLite replaces the
+        // tables where they stand, inside a transaction, so the installation
+        // nobody gave a prefix is one it still puts back - and there the dump is
+        // the whole database, the table a neighbour would have owned included.
+        $connection = $this->installation('');
+
+        if (!$this->isSqlite($connection)) {
+            self::markTestSkipped('A MySQL restore of an installation whose tables carry no prefix is refused rather than run');
+        }
+
+        (new DatabaseDumper($connection))->dump($this->dump());
+
+        $connection->insert('other_items', ['title' => 'written after the snapshot']);
+
+        $summary = (new DatabaseRestorer($connection))->restore($this->dump());
+
+        self::assertSame(['tables' => 3, 'rows' => 4], $summary);
+        self::assertCount(1, $connection->fetchAllAssociative('SELECT id FROM other_items'));
+    }
+
+    public function testATableWhoseCopyWouldBeTooLongForMysqlIsRefusedRatherThanRenamedIntoOne(): void
+    {
+        // A copy is the live name behind a marker, so a table named nearly as
+        // long as MySQL allows is one no copy can be made for. Nothing has to be
+        // dropped to find that out, and the name of the table that has to change
+        // is no use to an operator without the two lengths beside it.
+        $connection = $this->mysqlInstallation();
+
+        $table = 'pk_'.str_repeat('a', 59);
+
+        $this->dumpNaming($connection, [$table]);
+
+        try {
+            (new DatabaseRestorer($connection))->restore($this->dump());
+
+            self::fail('A table whose copy would be longer than MySQL allows must be refused');
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString(RestoreTableNames::shadow($table), $e->getMessage());
+            self::assertMatchesRegularExpression('/65.+64/', $e->getMessage());
+        }
+
+        self::assertSame([], $connection->asked, 'The refusal came before the server was asked anything');
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testATableWhoseCopyIsExactlyAsLongAsMysqlAllowsIsNotTurnedAwayForItsLength(): void
+    {
+        // 64 characters is what MySQL takes. The platform's own answer is 63, and
+        // a restore measuring by that would turn away a table the server holds
+        // quite happily - so what stops this one is the leftover copy in the
+        // database, which is the next refusal along.
+        $connection = $this->mysqlInstallation();
+
+        $table = 'pk_'.str_repeat('a', 58);
+
+        self::assertSame(64, strlen(RestoreTableNames::shadow($table)), 'The copy of this table is exactly as long as MySQL allows');
+
+        $this->tableNamed($connection, RestoreTableNames::backup('pk_meta'));
+        $this->dumpNaming($connection, [$table]);
+
+        try {
+            (new DatabaseRestorer($connection))->restore($this->dump());
+
+            self::fail('A restore must be refused while a copy of one of these tables is still in the database');
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString(RestoreTableNames::backup('pk_meta'), $e->getMessage());
+            self::assertStringNotContainsString($table, $e->getMessage());
+        }
+
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testATableNamedInMoreThanAsciiIsMeasuredInTheCharactersMysqlCounts(): void
+    {
+        // What MySQL allows 64 of is characters, so a site whose tables are named
+        // in a script that takes more than one byte to a character would have
+        // every restore refused if the copy were measured in bytes - and this
+        // name is not near the limit in characters at all.
+        $connection = $this->mysqlInstallation();
+
+        $table = 'pk_'.str_repeat('ü', 40);
+
+        $this->tableNamed($connection, RestoreTableNames::backup('pk_meta'));
+        $this->dumpNaming($connection, [$table]);
+
+        try {
+            (new DatabaseRestorer($connection))->restore($this->dump());
+
+            self::fail('A restore must be refused while a copy of one of these tables is still in the database');
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString(RestoreTableNames::backup('pk_meta'), $e->getMessage());
+            self::assertStringNotContainsString($table, $e->getMessage());
+        }
+
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testCopiesLeftBehindByARestoreThatDidNotFinishAreRefusedRatherThanWrittenOver(): void
+    {
+        // They are the only record of how far the last restore got, and filling
+        // them again would write over it. Named rather than counted, and in an
+        // order of the restore's own, because working through them by hand is
+        // what an operator does next.
+        $connection = $this->mysqlInstallation();
+
+        $this->tableNamed($connection, RestoreTableNames::shadow('pk_items'));
+        $this->tableNamed($connection, RestoreTableNames::backup('pk_meta'));
+
+        $this->dumpNaming($connection, ['pk_items', 'pk_meta']);
+
+        try {
+            (new DatabaseRestorer($connection))->restore($this->dump());
+
+            self::fail('A restore must be refused while copies of its tables are still in the database');
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString('_b_pk_meta, _r_pk_items', $e->getMessage());
+        }
+
+        // Refused, not cleared away: what the last restore left is still there
+        // for an operator to look at, and the installation still holds its rows.
+        self::assertSame(['_b_pk_meta', '_r_pk_items'], $this->copiesIn($connection));
+        self::assertSame(2, $this->countItems($connection));
+        self::assertSame(1, $this->countMeta($connection));
+    }
+
+    public function testACopyLeftBehindIsRefusedEvenWhereThisDumpHasNoUseForItsName(): void
+    {
+        // The name being free is not the point. The table is one nobody asked
+        // for, holding as much of a table as a restore had written when it
+        // stopped, and the installation it was made for is this one - so it is
+        // this installation's problem whether or not this dump wants the name.
+        $connection = $this->mysqlInstallation();
+
+        $this->tableNamed($connection, RestoreTableNames::shadow('pk_gone'));
+
+        $this->dumpNaming($connection, ['pk_items']);
+
+        try {
+            (new DatabaseRestorer($connection))->restore($this->dump());
+
+            self::fail('A restore must be refused while a copy of one of this installation\'s tables is still in the database');
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString('_r_pk_gone', $e->getMessage());
+        }
+
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    /**
+     * @return array<string, array{0: string|null}>
+     */
+    public static function provideWhatAServerSaysAboutFoldingNames(): array
+    {
+        return [
+            'a server that matches names as they are written' => ['0'],
+            'a server that stores them folded' => ['1'],
+            'a server that stores them as given and matches them folded' => ['2'],
+            'a server that does not say' => [null],
+        ];
+    }
+
+    #[DataProvider('provideWhatAServerSaysAboutFoldingNames')]
+    public function testACopyOfATableThisInstallationDoesNotOwnIsLeftToWhoeverMadeIt(?string $folding): void
+    {
+        // A database is a place installations share, so a name that reads as a
+        // copy is not necessarily a copy of anything here: the table it was made
+        // for says whose it is. One made for a table this installation does not
+        // own is a table like any other - not this restore's to drop, and not its
+        // business to refuse over either, however the server matches names.
+        $connection = $this->mysqlInstallation();
+        $connection->folding = $folding;
+
+        $this->tableNamed($connection, RestoreTableNames::shadow('wp_items'));
+        $this->tableNamed($connection, RestoreTableNames::backup('pk_meta'));
+
+        $this->dumpNaming($connection, ['pk_items', 'pk_meta']);
+
+        try {
+            (new DatabaseRestorer($connection))->restore($this->dump());
+
+            self::fail('A restore must be refused while a copy of one of this installation\'s tables is still in the database');
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString('_b_pk_meta', $e->getMessage());
+            self::assertStringNotContainsString('_r_wp_items', $e->getMessage());
+        }
+
+        self::assertContains('_r_wp_items', $this->copiesIn($connection));
+    }
+
+    public function testAMarkerInACaseNoRestoreWritesIsAnotherTableWhereTheServerMatchesNamesAsTheyAreWritten(): void
+    {
+        // A restore writes its markers in one case, so on a server that hands
+        // names back as they were given, a marker in another case was written by
+        // something else and names a table of its own.
+        $connection = $this->mysqlInstallation();
+
+        $this->tableNamed($connection, '_R_pk_items');
+        $this->tableNamed($connection, RestoreTableNames::backup('pk_meta'));
+
+        $this->requireNamesKeptAsGiven($connection, '_R_pk_items');
+
+        $this->dumpNaming($connection, ['pk_items', 'pk_meta']);
+
+        try {
+            (new DatabaseRestorer($connection))->restore($this->dump());
+
+            self::fail('A restore must be refused while a copy of one of this installation\'s tables is still in the database');
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString('_b_pk_meta', $e->getMessage());
+            self::assertStringNotContainsStringIgnoringCase('_r_pk_items', $e->getMessage());
+        }
+    }
+
+    /**
+     * @return array<string, array{0: string}>
+     */
+    public static function provideServersThatMatchNamesFolded(): array
+    {
+        return [
+            'a server that stores names folded' => ['1'],
+            'a server that stores them as given and matches them folded' => ['2'],
+        ];
+    }
+
+    #[DataProvider('provideServersThatMatchNamesFolded')]
+    public function testACopyIsRecognisedThroughItsCaseWhereTheServerMatchesNamesFolded(string $folding): void
+    {
+        // Whether two names are one table is the server's rule rather than PHP's.
+        // Asked to match names folded, it hands back the table that is there for
+        // any spelling of it - so a restore comparing as written would look
+        // straight past the copy it was checking for, and then make, and later
+        // drop, a table it never accounted for.
+        $connection = $this->mysqlInstallation();
+        $connection->folding = $folding;
+
+        $this->tableNamed($connection, '_R_pk_items');
+
+        $this->dumpNaming($connection, ['pk_items']);
+
+        try {
+            (new DatabaseRestorer($connection))->restore($this->dump());
+
+            self::fail('A restore must be refused while a copy of one of its tables is still in the database');
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsStringIgnoringCase('_r_pk_items', $e->getMessage());
+        }
+
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testATableTheDumpDoesNotHoldThatPointsAtOneItDoesIsRefusedByName(): void
+    {
+        // The swap a restore ends with renames the live table aside, and MySQL
+        // takes a foreign key along to the table it points at rather than leaving
+        // it on the name: a reference from outside the dump would end up on the
+        // copy that is on its way out, which the restore then cannot remove.
+        // References between tables the dump holds are swapped in the same
+        // statement, and one pointing out of the dump is not moved at all.
+        $connection = $this->mysqlInstallation();
+        $connection->references = [
+            ['name' => 'fk_from_a_neighbour', 'child' => 'other_items', 'parent' => 'pk_items'],
+            ['name' => 'fk_between_two_dumped_tables', 'child' => 'pk_meta', 'parent' => 'pk_items'],
+            ['name' => 'fk_out_of_the_dump', 'child' => 'pk_items', 'parent' => 'other_items'],
+        ];
+
+        $this->dumpNaming($connection, ['pk_items', 'pk_meta']);
+
+        try {
+            (new DatabaseRestorer($connection))->restore($this->dump());
+
+            self::fail('A table outside the dump pointing at one inside it must be refused');
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString('fk_from_a_neighbour', $e->getMessage());
+            self::assertStringContainsString('other_items', $e->getMessage());
+            self::assertStringNotContainsString('fk_between_two_dumped_tables', $e->getMessage());
+            self::assertStringNotContainsString('fk_out_of_the_dump', $e->getMessage());
+        }
+
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testAReferenceIsReadAgainstTheDumpTheWayTheServerMatchesNames(): void
+    {
+        // Which end of a reference is in the dump is the same question as which
+        // table a copy was made for, and it is answered the same way: where names
+        // are matched folded, a catalogue naming the table in another case is
+        // naming one of the tables about to be swapped.
+        $connection = $this->mysqlInstallation();
+        $connection->folding = '1';
+        $connection->references = [
+            ['name' => 'fk_from_a_neighbour', 'child' => 'OTHER_ITEMS', 'parent' => 'PK_ITEMS'],
+        ];
+
+        $this->dumpNaming($connection, ['pk_items']);
+
+        try {
+            (new DatabaseRestorer($connection))->restore($this->dump());
+
+            self::fail('A table outside the dump pointing at one inside it must be refused');
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString('fk_from_a_neighbour', $e->getMessage());
+        }
+
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testATableOutsideTheDumpPointingIntoItIsRefusedByWhatTheServerItselfReports(): void
+    {
+        $connection = $this->installation();
+
+        if ($this->isSqlite($connection)) {
+            // The catalogue the references are read out of is MySQL's, and so is
+            // the swap that would take them along.
+            self::markTestSkipped('Only a MySQL restore has references to be refused over');
+        }
+
+        (new DatabaseDumper($connection))->dump($this->dump());
+
+        $neighbour = new Table('other_links');
+        $neighbour->addColumn('id', Types::INTEGER, ['notnull' => true]);
+        $neighbour->addColumn('item_id', Types::INTEGER, ['notnull' => true]);
+        $neighbour->setPrimaryKey(['id']);
+        $neighbour->addForeignKeyConstraint('pk_items', ['item_id'], ['id'], [], 'fk_other_links_pk_items');
+        $connection->createSchemaManager()->createTable($neighbour);
+
+        try {
+            (new DatabaseRestorer($connection))->restore($this->dump());
+
+            self::fail('A table outside the dump pointing at one inside it must be refused');
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString('other_links', $e->getMessage());
+            self::assertStringContainsString('pk_items', $e->getMessage());
+            self::assertStringContainsString('fk_other_links_pk_items', $e->getMessage());
+        }
+
+        self::assertSame(2, $this->countItems($connection));
+    }
+
+    public function testCopiesARestoreLeftBehindAreNoObstacleToASqliteRestore(): void
+    {
+        // What they stand in the way of is a swap, and SQLite makes none. Refusing
+        // over them there would leave an installation that can no longer be
+        // restored at all over tables no restore of its own would ever have made.
+        $connection = $this->installation();
+
+        if (!$this->isSqlite($connection)) {
+            self::markTestSkipped('A MySQL restore is refused while copies of its tables are still in the database');
+        }
+
+        $this->tableNamed($connection, RestoreTableNames::shadow('pk_items'));
+
+        (new DatabaseDumper($connection))->dump($this->dump());
+
+        $connection->executeStatement('DELETE FROM pk_items');
+
+        $summary = (new DatabaseRestorer($connection))->restore($this->dump());
+
+        self::assertSame(['tables' => 2, 'rows' => 3], $summary);
+        self::assertSame(2, $this->countItems($connection));
+        self::assertSame(['_r_pk_items'], $this->copiesIn($connection));
+    }
+
+    // ------------------------------------------------------------------
     // A restore that fails while it is running
     // ------------------------------------------------------------------
 
@@ -544,10 +989,17 @@ final class DatabaseRestorerTest extends TestCase
      * A database holding what an installation holds: two tables of its own with
      * values of every kind in them, and one table belonging to whatever else
      * shares the database.
+     *
+     * The prefix is the connection's - what the installation claims as its own -
+     * and the three tables are the same either way: given no prefix, the table a
+     * neighbour would have owned is the installation's too.
+     *
+     * @param class-string<Connection> $wrapper the connection as the test needs it
+     *                                         to answer
      */
-    private function installation(): Connection
+    private function installation(string $prefix = 'pk_', string $wrapper = Connection::class): Connection
     {
-        $connection = $this->openDatabase();
+        $connection = $this->openDatabase($prefix, $wrapper);
         $manager = $connection->createSchemaManager();
 
         $items = new Table('pk_items');
@@ -595,6 +1047,63 @@ final class DatabaseRestorerTest extends TestCase
         $connection->insert('other_items', ['title' => 'not this installation to lose']);
 
         return $connection;
+    }
+
+    /**
+     * The same installation, reading as one on MySQL: what a restore refuses
+     * there it refuses before it has made anything, and a run with no MySQL
+     * server can still be asked all of it.
+     */
+    private function mysqlInstallation(string $prefix = 'pk_'): ConnectionThatAnswersForAMysqlServer
+    {
+        $connection = $this->installation($prefix, ConnectionThatAnswersForAMysqlServer::class);
+
+        self::assertInstanceOf(ConnectionThatAnswersForAMysqlServer::class, $connection);
+
+        return $connection;
+    }
+
+    /**
+     * One more table in the database, under a name the test chooses - a copy a
+     * restore left behind, or a neighbour's table that only reads like one.
+     */
+    private function tableNamed(Connection $connection, string $name): void
+    {
+        $table = new Table($name);
+        $table->addColumn('id', Types::INTEGER, ['notnull' => true]);
+        $table->setPrimaryKey(['id']);
+
+        $connection->createSchemaManager()->createTable($table);
+    }
+
+    /**
+     * Skips where the server cannot hold the name at all, which is the one thing
+     * a test about how a name is read cannot work around: a server that stores
+     * table names folded has no way to be handed one in another case.
+     */
+    private function requireNamesKeptAsGiven(Connection $connection, string $name): void
+    {
+        if (!in_array($name, $connection->createSchemaManager()->listTableNames(), true)) {
+            self::markTestSkipped(sprintf('This server stores table names folded, so it cannot hold a table called "%s"', $name));
+        }
+    }
+
+    /**
+     * Every table in the database that reads as a copy a restore made, in an
+     * order of the test's own.
+     *
+     * @return array<int, string>
+     */
+    private function copiesIn(Connection $connection): array
+    {
+        $copies = array_values(array_filter(
+            $connection->createSchemaManager()->listTableNames(),
+            static fn (string $name): bool => RestoreTableNames::isReserved($name),
+        ));
+
+        sort($copies);
+
+        return $copies;
     }
 
     /**
@@ -693,6 +1202,31 @@ final class DatabaseRestorerTest extends TestCase
     private function dump(): string
     {
         return $this->workspace.'/db.dump';
+    }
+
+    /**
+     * A dump this installation accepts, holding the tables it names and no rows.
+     * Which tables a dump names is what every refusal that comes before the first
+     * statement is measured against, and none of them reads any further into it.
+     *
+     * @param array<int, string> $tables
+     */
+    private function dumpNaming(Connection $connection, array $tables): void
+    {
+        $records = [self::header(['prefix' => $connection->getPrefix() ?? ''])];
+
+        foreach ($tables as $table) {
+            $records[] = [
+                'type' => DumpFormat::TABLE,
+                'name' => $table,
+                'ddl' => [sprintf('CREATE TABLE %s (id INTEGER)', $table)],
+                'columns' => ['id'],
+            ];
+        }
+
+        $records[] = ['type' => DumpFormat::END, 'tables' => count($tables), 'rows' => 0];
+
+        $this->writeDump($connection, $records);
     }
 
     /**
