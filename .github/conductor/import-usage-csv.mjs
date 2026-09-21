@@ -6,7 +6,7 @@
 //   node .github/conductor/import-usage-csv.mjs --csv usage-events.csv --session UUID [--push] [--copy-local]
 //   node .github/conductor/import-usage-csv.mjs --csv usage-events.csv --step 2.7.1a [--push]
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, cpSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, cpSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -16,6 +16,7 @@ import {
   DEFAULT_METRICS_BRANCH,
   recomputeSessionTotals,
   applySessionTimestamps,
+  sessionIdsForStep,
   currentGitBranch,
   syncMetricsFromRemote,
   pushMetricsToRemote
@@ -46,21 +47,6 @@ function copyToLocalPreview() {
   mkdirSync(dest, { recursive: true });
   cpSync(join(ROOT, METRICS_DIR), dest, { recursive: true, force: true });
   console.log(`Copied ${METRICS_DIR}/ → docs-site/data/conductor-metrics/`);
-}
-
-function listSessionIds(index, sessionFilter, stepFilter) {
-  if (sessionFilter) return [sessionFilter];
-  const ids = [];
-  for (const [stepId, entry] of Object.entries(index?.steps || {})) {
-    if (stepFilter && stepId.toLowerCase() !== stepFilter) continue;
-    for (const id of entry.sessionIds || []) ids.push(id);
-  }
-  if (!ids.length && existsSync(join(ROOT, SESSIONS_DIR))) {
-    for (const name of readdirSync(join(ROOT, SESSIONS_DIR))) {
-      if (name.endsWith('.json')) ids.push(name.replace(/\.json$/, ''));
-    }
-  }
-  return [...new Set(ids)];
 }
 
 function main() {
@@ -96,9 +82,10 @@ function main() {
   syncMetricsFromRemote({ root: ROOT, log: msg => console.log(msg) });
 
   const index = readJson(join(ROOT, INDEX_PATH), { schemaVersion: 1, updatedAt: null, steps: {} });
-  const sessionIds = listSessionIds(index, sessionFilter, stepFilter);
+  // --session names its one session outright, so an empty list is always the step arm.
+  const sessionIds = sessionFilter ? [sessionFilter] : sessionIdsForStep(index, stepFilter);
   if (!sessionIds.length) {
-    console.error('No matching session on conductor-metrics');
+    console.error(`No session recorded for step ${stepFilter} in ${INDEX_PATH}`);
     process.exit(1);
   }
 

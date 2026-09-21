@@ -413,6 +413,26 @@ export function applyAgentTimingToPhase(phase, timing) {
   return applyAgentMetricsToPhase(phase, timing);
 }
 
+/**
+ * Session ids the index recorded under one ROADMAP step id, empty when it knows none.
+ * Empty may never widen to every session: overlaying the wrong ones rewrites token
+ * totals on steps the caller never named.
+ */
+export function sessionIdsForStep(index, stepId) {
+  const want = String(stepId || '')
+    .trim()
+    .toLowerCase();
+  if (!want) return [];
+  const ids = [];
+  for (const [id, entry] of Object.entries(index?.steps || {})) {
+    if (id.trim().toLowerCase() !== want) continue;
+    for (const sessionId of entry?.sessionIds || []) {
+      if (sessionId) ids.push(sessionId);
+    }
+  }
+  return [...new Set(ids)];
+}
+
 /** Lowercased parent agent ids on a session (Cursor `bc-…`). */
 export function sessionAgentIds(session) {
   return [
