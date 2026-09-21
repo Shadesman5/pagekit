@@ -10,7 +10,7 @@
   "model": "grok-4.6",
   "status": "in_progress",
   "startedAt": "2026-09-20T21:26:18.682Z",
-  "completedAt": "2026-09-21T04:35:17.375Z",
+  "completedAt": "2026-09-21T19:43:28.221Z",
   "phases": [
     {
       "phaseKey": "35538678988-1-PLAN",
@@ -611,26 +611,104 @@
           }
         }
       ]
+    },
+    {
+      "phaseKey": "manual-bc-c39a68da-ff79-4cb3-a49f-57ae45bbff5d-EXECUTE",
+      "type": "EXECUTE",
+      "attempt": 0,
+      "batchSteps": [
+        8
+      ],
+      "startedAt": "2026-09-21T18:44:41.755Z",
+      "completedAt": "2026-09-21T19:43:28.221Z",
+      "durationMs": 3526466,
+      "agent": {
+        "id": "bc-c39a68da-ff79-4cb3-a49f-57ae45bbff5d",
+        "url": "https://cursor.com/agents/bc-c39a68da-ff79-4cb3-a49f-57ae45bbff5d",
+        "model": "grok-4.7"
+      },
+      "github": null,
+      "tokens": {
+        "input": 1018312,
+        "output": 234109,
+        "cacheRead": 22768545,
+        "cacheWrite": 762091,
+        "total": 24783057
+      },
+      "orchestratorTokens": {
+        "input": 858963,
+        "output": 79555,
+        "cacheRead": 11024000,
+        "cacheWrite": 0,
+        "total": 11962518
+      },
+      "subagents": [
+        {
+          "role": "orchestrator",
+          "label": "Orchestrator",
+          "model": "grok-4.7-xhigh-fast",
+          "events": 1,
+          "tokens": {
+            "input": 858963,
+            "output": 79555,
+            "cacheRead": 11024000,
+            "cacheWrite": 0,
+            "total": 11962518
+          }
+        },
+        {
+          "role": "subagent",
+          "label": "Claude Opus 5",
+          "model": "claude-opus-5-thinking-max",
+          "events": 8,
+          "tokens": {
+            "input": 284,
+            "output": 144518,
+            "cacheRead": 10931233,
+            "cacheWrite": 762091,
+            "total": 11838126
+          }
+        },
+        {
+          "role": "subagent",
+          "label": "Grok 4.6",
+          "model": "cursor-grok-4.6-xhigh",
+          "events": 4,
+          "tokens": {
+            "input": 159065,
+            "output": 10036,
+            "cacheRead": 813312,
+            "cacheWrite": 0,
+            "total": 982413
+          }
+        }
+      ],
+      "tokensSource": "cursor-dashboard-csv",
+      "result": "XL Review + E2E (Step 8). Tokens from the dashboard CSV.",
+      "outcome": "success",
+      "manualImport": true,
+      "notes": "Tokens from Cursor dashboard CSV (orchestrator + subagents)"
     }
   ],
   "totals": {
     "tokens": {
-      "input": 2095371,
-      "output": 1668115,
-      "cacheRead": 126041670,
-      "cacheWrite": 5868586,
-      "total": 135673742
+      "input": 3113683,
+      "output": 1902224,
+      "cacheRead": 148810215,
+      "cacheWrite": 6630677,
+      "total": 160456799
     },
-    "durationMs": 25557320,
-    "phaseCount": 6,
+    "durationMs": 29083786,
+    "phaseCount": 7,
     "escalations": 0,
     "ghaJobs": 6,
-    "cloudAgents": 6
+    "cloudAgents": 7
   },
   "csvImport": {
-    "at": "2026-09-21T17:46:59.293Z",
-    "source": "import-usage-csv.mjs",
-    "events": 71,
-    "phasesUpdated": 6
+    "at": "2026-09-21T20:06:51.709Z",
+    "source": "dashboard-csv",
+    "events": 55,
+    "phasesUpdated": 1,
+    "note": "XL parent bc-c39a68da appended. Earlier phases kept: this export truncates Execute 3."
   }
 }
