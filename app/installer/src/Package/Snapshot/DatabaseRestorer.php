@@ -6,29 +6,35 @@ namespace Pagekit\Installer\Package\Snapshot;
 
 use Doctrine\DBAL\Statement;
 use Pagekit\Database\Connection;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 /**
  * Puts a database back the way a dump found it.
  *
- * This is the destructive half of a snapshot. Every table the dump names is
- * dropped and written again from what the dump holds, so the database ends up at
- * the moment the dump was taken and everything written to those tables since is
- * gone. Tables that came into existence after the dump are not in it and are left
- * alone - the restore reaches exactly as far as the dump does, and no further.
+ * This is the destructive half of a snapshot. Every table the dump names ends up
+ * holding what the dump holds for it, so the database is back at the moment the
+ * dump was taken and everything written to those tables since is gone. Tables that
+ * came into existence after the dump are not in it and are left alone - the restore
+ * reaches exactly as far as the dump does, and no further.
  *
  * The dump is read end to end before a single statement runs. It is the only copy
- * of what is about to be dropped, so a file that was truncated by a full disk, a
+ * of what is about to be replaced, so a file that was truncated by a full disk, a
  * dump from another installation, or one written in a layout this version does not
  * know has to be refused while the database it would have replaced is still there.
  *
- * Foreign keys are not enforced while the tables are being replaced, because they
- * are dropped and recreated one at a time and each is briefly missing the ones it
- * points at. How much of the rest is undoable is a property of the platform, not a
- * promise this class can make: SQLite keeps schema changes inside the transaction,
- * so a restore that fails there leaves the database as it was, while MySQL commits
- * on every schema statement, so a restore that fails there leaves it partly
- * replaced. The snapshot is still on disk either way, and running the restore
- * again is what puts it right.
+ * Whichever platform it runs on, a restore either happened or it did not: there is
+ * no point at which half the installation is the snapshot and half of it is what
+ * the site had. SQLite keeps schema changes inside a transaction, so the tables are
+ * replaced where they stand and a failure takes all of it back. MySQL commits every
+ * schema statement as it runs it, so nothing live is written there at all - the dump
+ * goes into copies of the tables ({@see RestoreTableNames}), one statement swaps
+ * those copies for the tables that were live, and a failure anywhere before that
+ * statement costs the copies and nothing else. What could not be swapped is refused
+ * before the first copy is created rather than found out halfway through.
+ *
+ * Foreign keys are not enforced while a restore runs. The tables arrive one at a
+ * time and each is briefly missing the ones it points at.
  *
  * @phpstan-import-type Description from DumpFormat
  * @phpstan-type Value array{0: mixed, 1: int}
@@ -51,8 +57,14 @@ final class DatabaseRestorer
      */
     private ?bool $folds = null;
 
-    public function __construct(private readonly Connection $connection)
+    /**
+     * Where a restore that worked but left something behind says so.
+     */
+    private readonly LoggerInterface $log;
+
+    public function __construct(private readonly Connection $connection, ?LoggerInterface $log = null)
     {
+        $this->log = $log ?? new NullLogger();
     }
 
     /**
@@ -87,7 +99,7 @@ final class DatabaseRestorer
         $this->setForeignKeys(false);
 
         try {
-            $this->replace($file);
+            $this->replace($file, $dump['names']);
         } catch (\Throwable $e) {
             throw new \RuntimeException(sprintf('Failed to restore the database from "%s".', $file), 0, $e);
         } finally {
@@ -319,12 +331,19 @@ final class DatabaseRestorer
     }
 
     /**
-     * Applies the dump, as far as the platform lets that be one step.
+     * Applies the dump in the way the platform can be held to.
+     *
+     * Copies and a swap on MySQL; the tables themselves, inside a transaction, on
+     * SQLite - which is the only other platform a dump goes back into.
+     *
+     * @param list<string> $dumped every table the dump carries
      */
-    private function replace(string $file): void
+    private function replace(string $file, array $dumped): void
     {
-        if ($this->platform() !== DumpFormat::SQLITE) {
-            $this->apply($file);
+        if ($this->platform() === DumpFormat::MYSQL) {
+            $copies = $this->fill($file, $dumped);
+
+            $this->swap($copies);
 
             return;
         }
@@ -347,7 +366,117 @@ final class DatabaseRestorer
     }
 
     /**
-     * Drops and rewrites every table the dump names.
+     * Takes the copies a fill left standing into service, and the tables they were
+     * made from out of it.
+     *
+     * The one point of a MySQL restore where what the site reads changes, and it is
+     * a single statement. Up to it the installation is untouched and the copies can
+     * simply be thrown away; past it the restore has happened, and the tables that
+     * were live hold nothing anybody reads any more.
+     *
+     * @param  list<string>      $copies as {@see self::fill()} left them
+     * @throws \RuntimeException where the swap did not go through, the tables that
+     *                          were live being exactly as they were then
+     */
+    private function swap(array $copies): void
+    {
+        try {
+            $superseded = $this->cutOver($copies);
+        } catch (\Throwable $e) {
+            try {
+                $this->drop($copies);
+            } catch (\Throwable) {
+                // The swap not going through is what the caller has to act on; a
+                // copy that will not drop is named to whoever runs the next
+                // restore, which refuses while it is there.
+            }
+
+            throw $e;
+        }
+
+        try {
+            $this->drop($superseded);
+        } catch (\Throwable $e) {
+            $this->reportUndropped($e);
+        }
+    }
+
+    /**
+     * Swaps every copy for the table it was made from, in one statement.
+     *
+     * MySQL carries out a rename of several tables as one: either every name in it
+     * moves or none of them does, and no session reads the database between two of
+     * them. Which is why this may never be split into a statement per table - a
+     * table renamed aside on its own takes along the foreign keys of the tables not
+     * yet renamed with it, InnoDB following a table rather than the name it went
+     * under, and the installation ends up pointing at the copies on their way out.
+     *
+     * @param  list<string>      $copies
+     * @return list<string>      the tables that were live, under the names they were set aside under
+     * @throws \RuntimeException where a name to swap cannot be read off a copy
+     */
+    private function cutOver(array $copies): array
+    {
+        $held = [];
+
+        foreach ($this->connection->createSchemaManager()->listTableNames() as $name) {
+            $held[$this->comparable($name)] = true;
+        }
+
+        $platform = $this->connection->getDatabasePlatform();
+        $renames = [];
+        $superseded = [];
+
+        foreach ($copies as $copy) {
+            $live = RestoreTableNames::live($copy)
+                ?? throw new \RuntimeException(sprintf('The table "%s" is not a copy a restore made, so there is no table of this installation it can be swapped for.', $copy));
+
+            // A dump can carry a table the installation no longer has - the
+            // snapshot was taken before something dropped it - and then there is
+            // nothing to set aside, only a name standing free for the copy.
+            if (isset($held[$this->comparable($live)])) {
+                $aside = RestoreTableNames::backup($live);
+
+                // Before the copy that takes the name, so that the name it is going
+                // into is free by the time it gets there.
+                $renames[] = sprintf('%s TO %s', $platform->quoteIdentifier($live), $platform->quoteIdentifier($aside));
+                $superseded[] = $aside;
+            }
+
+            $renames[] = sprintf('%s TO %s', $platform->quoteIdentifier($copy), $platform->quoteIdentifier($live));
+        }
+
+        $this->connection->executeStatement('RENAME TABLE '.implode(', ', $renames));
+
+        return $superseded;
+    }
+
+    /**
+     * Records that a restore that worked left the tables it replaced behind.
+     *
+     * Not a failure: the site is reading what the dump held, and these are the
+     * tables it was reading before, which nothing reaches any more. They cost the
+     * disk they sit on until the next restore clears them away, and an operator
+     * looking at a database with them in it has a line saying where they came from.
+     */
+    private function reportUndropped(\Throwable $failure): void
+    {
+        try {
+            $this->log->warning(sprintf(
+                '%s The database was restored regardless - these are the tables it replaced, and nothing reads them now.',
+                $failure->getMessage(),
+            ));
+        } catch (\Throwable) {
+            // A log that could not take the line does not turn a restore that
+            // worked into one that failed.
+        }
+    }
+
+    /**
+     * Drops and rewrites every table the dump names, where they stand.
+     *
+     * The SQLite half of a restore, which is undone by the transaction it runs in
+     * rather than by there being something else to fall back on.
      */
     private function apply(string $file): void
     {
@@ -394,7 +523,8 @@ final class DatabaseRestorer
      * @param  list<string>      $dumped every table the dump carries, which is what
      *                                   says whether a foreign key points at a table
      *                                   being swapped or at one that stays where it is
-     * @return list<string>      the copies that are now filled, in the order the dump holds them
+     * @return list<string>      the copies that are now filled, in the order the dump holds
+     *                          them, which is what {@see self::swap()} takes into service
      * @throws \RuntimeException where a copy could not be created or filled
      */
     public function fill(string $file, array $dumped): array
@@ -451,7 +581,8 @@ final class DatabaseRestorer
     }
 
     /**
-     * Drops tables a restore made for itself.
+     * Drops tables a restore gave names of its own: the copies it filled and the
+     * tables it set aside once they had taken over.
      *
      * Every one is tried before anything is reported, so that a single table that
      * will not go does not leave the rest standing.
@@ -477,7 +608,7 @@ final class DatabaseRestorer
         }
 
         throw new \RuntimeException(sprintf(
-            'Copies of this installation\'s tables that a restore made for itself could not be dropped (%s).',
+            'Tables of this installation that a restore gave names of its own could not be dropped (%s).',
             implode(', ', $left),
         ));
     }

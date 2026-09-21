@@ -29,8 +29,11 @@ use Pagekit\Database\Connection;
  * recording. Each answer is noted down as it is asked for, which is how a test
  * tells a refusal that came before the server was ever reached from one that
  * needed it.
+ *
+ * A restore that comes through the refusals asks a server more than this, which is
+ * what {@see ConnectionThatWillNotSwapTables} answers.
  */
-final class ConnectionThatAnswersForAMysqlServer extends Connection
+class ConnectionThatAnswersForAMysqlServer extends Connection
 {
     /**
      * What a restore is told when it asks the server for anything past the
@@ -73,7 +76,7 @@ final class ConnectionThatAnswersForAMysqlServer extends Connection
      */
     public function createSchemaManager(): AbstractSchemaManager
     {
-        return parent::getDatabasePlatform()->createSchemaManager($this);
+        return $this->platformUnderneath()->createSchemaManager($this);
     }
 
     /**
@@ -83,10 +86,20 @@ final class ConnectionThatAnswersForAMysqlServer extends Connection
      */
     public function getDatabase(): ?string
     {
-        $platform = parent::getDatabasePlatform();
-        $database = $this->fetchOne('SELECT '.$platform->getCurrentDatabaseExpression());
+        $database = $this->fetchOne('SELECT '.$this->platformUnderneath()->getCurrentDatabaseExpression());
 
         return is_string($database) ? $database : null;
+    }
+
+    /**
+     * The platform of the database that is really there: MySQL itself on a run
+     * with a server behind it, and SQLite on one without. What is answered as a
+     * server's is answered above; what is carried out has to be carried out by
+     * whichever of the two is under the connection.
+     */
+    protected function platformUnderneath(): AbstractPlatform
+    {
+        return parent::getDatabasePlatform();
     }
 
     /**

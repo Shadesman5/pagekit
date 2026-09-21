@@ -23,19 +23,22 @@ use PHPUnit\Framework\TestCase;
  * Putting a database back the way a dump found it, which is the half of a
  * snapshot that destroys something.
  *
- * Every table the dump names is dropped and written again, so what was in those
- * tables since the dump was taken is gone. That is the point - the state of the
- * installation before a package was removed is what is being asked for - and it
- * is also why the dump has to be judged before a single statement runs. It is the
- * only copy of what is about to be dropped: a file a full disk cut short, one
- * from another installation, or one written in a layout this version does not
- * know has to be refused while the database it would have replaced is still
- * there.
+ * Every table the dump names ends up holding what the dump holds for it, so what
+ * was written to those tables since it was taken is gone. That is the point - the
+ * state of the installation before a package was removed is what is being asked
+ * for - and it is also why the dump has to be judged before a single statement
+ * runs. It is the only copy of what is about to be replaced: a file a full disk
+ * cut short, one from another installation, or one written in a layout this
+ * version does not know has to be refused while the database it would have
+ * replaced is still there.
  *
- * How much of a failed restore is undone is a property of the database and not a
- * promise this class can make, so the two engines are asserted separately where
- * they genuinely differ, and the recovery that works on both - running the
- * restore again - is asserted for both.
+ * A restore that failed leaves the installation it found, on either engine and by
+ * two routes: SQLite replaces the tables where they stand and takes the whole of a
+ * failure back with the transaction it ran in, while MySQL writes nothing live at
+ * all - the dump goes into copies of the tables, and one statement swaps those in.
+ * What only a server can say, how it matches names and which table points at
+ * which, is answered by a stand-in on a run with no server behind it and by the
+ * server itself on a run with one.
  */
 final class DatabaseRestorerTest extends TestCase
 {
@@ -916,9 +919,9 @@ final class DatabaseRestorerTest extends TestCase
 
     public function testARestoreThatFailedPartwayIsPutRightByRunningItAgain(): void
     {
-        // How much of a half-applied restore is undone depends on the engine, so
-        // what is promised on both is this: the snapshot is still on disk, and
-        // replaying it is what finishes the job.
+        // A restore that could not be carried through is one that did not happen,
+        // and the snapshot it was reading is still on disk: replaying it is what
+        // finishes the job.
         $connection = $this->installation();
 
         (new DatabaseDumper($connection))->dump($this->dump());
@@ -938,17 +941,14 @@ final class DatabaseRestorerTest extends TestCase
         self::assertSame(self::TITLE, $this->readColumn($connection, 'title'));
     }
 
-    public function testOnSqliteARestoreThatFailedPartwayLeavesTheDatabaseAsItWas(): void
+    public function testARestoreThatFailedPartwayLeavesTheInstallationTheWayItFoundIt(): void
     {
+        // Neither engine leaves half of an installation the snapshot and the other
+        // half what the site had. SQLite replaces the tables where they stand and
+        // the transaction takes the whole of a failure back; on MySQL the dump had
+        // gone into copies, so nothing the site reads was written at all and what
+        // the failure costs is the copies.
         $connection = $this->installation();
-
-        if (!$this->isSqlite($connection)) {
-            // MySQL commits on every schema statement, so a restore that fails
-            // there leaves the database partly replaced. That is documented
-            // rather than worked around, and asserting it as recovery is the
-            // test above.
-            self::markTestSkipped('Only SQLite keeps schema changes inside the transaction a restore opens');
-        }
 
         $connection->executeStatement('DELETE FROM pk_items');
         $connection->insert('pk_items', ['title' => 'written after the snapshot', 'status' => 0]);
@@ -961,11 +961,16 @@ final class DatabaseRestorerTest extends TestCase
             // The state left behind is what this is about.
         }
 
-        // The dump had replaced the first table before it failed on the second,
-        // and none of that is left: the row written after the snapshot is still
-        // the only one there.
+        // The dump names two tables and failed on the second: the row written
+        // after the snapshot is still the only one in the first, and the second is
+        // as it was as well.
         self::assertSame(1, $this->countItems($connection));
         self::assertSame('written after the snapshot', $connection->fetchOne('SELECT title FROM pk_items'));
+        self::assertSame(1, $this->countMeta($connection));
+
+        // And nothing a restore gave a name of its own is standing in the database
+        // for somebody to work out what it was.
+        self::assertSame([], $this->copiesIn($connection));
     }
 
     public function testAnInstallationOnADatabaseNoDumpFitsIsRefusedBeforeAnythingIsDropped(): void
@@ -1200,6 +1205,243 @@ final class DatabaseRestorerTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // The one statement the copies are swapped in with
+    // ------------------------------------------------------------------
+
+    public function testEveryCopyIsSwappedInByOneStatementThatSetsTheTableItReplacesAsideFirst(): void
+    {
+        // The whole of a restore is spent beside the installation so that this is
+        // the only moment what the site reads changes, and a rename of several
+        // tables either moves every name in it or none of them. A statement per
+        // table would undo that: MySQL takes a foreign key along with the table it
+        // points at, so a table renamed aside on its own leaves the tables not yet
+        // renamed pointing at the copies on their way out. Every name in it is
+        // written out quoted, and none in the @-led spelling the connection
+        // substitutes a table prefix for, which would arrive as another name again.
+        $connection = $this->mysqlInstallationThatWillNotSwap();
+
+        $this->dumpNaming($connection, ['pk_items', 'pk_meta']);
+
+        $this->refusedSwap($connection);
+
+        self::assertSame(
+            ['RENAME TABLE `pk_items` TO `_b_pk_items`, `_r_pk_items` TO `pk_items`, `pk_meta` TO `_b_pk_meta`, `_r_pk_meta` TO `pk_meta`'],
+            $connection->swaps,
+        );
+    }
+
+    public function testATableTheInstallationNoLongerHoldsIsSwappedInWithNothingSetAside(): void
+    {
+        // A dump can hold a table the installation has since lost - the snapshot was
+        // taken before something dropped it - and then there is nothing to set
+        // aside, only a name standing free for the copy to move into.
+        $connection = $this->mysqlInstallationThatWillNotSwap();
+
+        $this->dumpNaming($connection, ['pk_items', 'pk_gone']);
+
+        $this->refusedSwap($connection);
+
+        self::assertSame(
+            ['RENAME TABLE `pk_items` TO `_b_pk_items`, `_r_pk_items` TO `pk_items`, `_r_pk_gone` TO `pk_gone`'],
+            $connection->swaps,
+        );
+    }
+
+    /**
+     * @return array<string, array{0: string|null, 1: string}>
+     */
+    public static function provideHowAServerReadsTheNameOfTheTableToSetAside(): array
+    {
+        $aside = 'RENAME TABLE `pk_items` TO `_b_pk_items`, `_r_pk_items` TO `pk_items`';
+        $free = 'RENAME TABLE `_r_pk_items` TO `pk_items`';
+
+        return [
+            'a server that matches names as they are written' => ['0', $free],
+            'a server that does not say' => [null, $free],
+            'a server that stores names folded' => ['1', $aside],
+            'a server that stores them as given and matches them folded' => ['2', $aside],
+        ];
+    }
+
+    #[DataProvider('provideHowAServerReadsTheNameOfTheTableToSetAside')]
+    public function testWhetherThereIsATableToSetAsideIsReadTheWayTheServerMatchesNames(?string $folding, string $swap): void
+    {
+        // Whether the installation still holds the table a copy was made for is the
+        // same question as whether two names are one table, and that is the server's
+        // rule rather than PHP's. Where names are matched folded, the table spelled
+        // in another case is the one the copy replaces and it has to be moved out of
+        // the way first; where they are not, it is a table of its own and the name
+        // the copy wants is free.
+        $connection = $this->databaseThatWillNotSwap();
+        $connection->folding = $folding;
+
+        $this->tableNamed($connection, 'PK_ITEMS');
+        $this->requireNamesKeptAsGiven($connection, 'PK_ITEMS');
+
+        $this->dumpNaming($connection, ['pk_items']);
+
+        $this->refusedSwap($connection);
+
+        self::assertSame([$swap], $connection->swaps);
+    }
+
+    public function testASwapThatDidNotGoThroughLeavesTheInstallationTheWayItFoundIt(): void
+    {
+        // Up to the swap a restore has written nothing the site reads, so a swap the
+        // server would not carry out costs the copies and nothing else. What the
+        // caller is told is the server's own failure, as a restore that did not
+        // happen - the snapshot is still on disk and running it again is what
+        // finishes the job.
+        $connection = $this->mysqlInstallationThatWillNotSwap();
+        $live = $this->items($connection);
+
+        $this->dumpNaming($connection, ['pk_items', 'pk_meta']);
+
+        $failure = $this->refusedSwap($connection);
+        $cause = $failure->getPrevious();
+
+        self::assertStringContainsString('Failed to restore the database from', $failure->getMessage());
+        self::assertInstanceOf(\RuntimeException::class, $cause);
+        self::assertSame('The tables could not be swapped.', $cause->getMessage());
+
+        self::assertSame([], $this->copiesIn($connection));
+        self::assertSame($live, $this->items($connection));
+        self::assertSame(1, $this->countMeta($connection));
+    }
+
+    public function testACopyTheDatabaseWillNotGiveUpDoesNotStandInFrontOfTheSwapThatFailed(): void
+    {
+        // Clearing the copies away is what a refused swap does next, and that can
+        // fail as well. The failure to act on is still the swap: the copy left
+        // behind is a name the next restore refuses over, which is where an operator
+        // meets it.
+        $connection = $this->mysqlInstallationThatWillNotSwap();
+        $connection->keeps = RestoreTableNames::shadow('pk_items');
+
+        $this->dumpNaming($connection, ['pk_items', 'pk_meta']);
+
+        $failure = $this->refusedSwap($connection);
+        $cause = $failure->getPrevious();
+
+        self::assertInstanceOf(\RuntimeException::class, $cause);
+        self::assertSame('The tables could not be swapped.', $cause->getMessage());
+
+        // The copy that would not go is still there and the other one was cleared
+        // away regardless, while the tables the site reads never heard about any of
+        // it.
+        self::assertSame(['_r_pk_items'], $this->copiesIn($connection));
+        self::assertSame(2, $this->countItems($connection));
+        self::assertSame(1, $this->countMeta($connection));
+    }
+
+    public function testWhatARestoreRefusesIsPutToAnOperatorInItsOwnWords(): void
+    {
+        // A refusal names something somebody has to decide about - a table to
+        // rename, a copy to clear away - and it reaches them through the snapshots
+        // panel. Reported as a restore that failed, the sentence saying what to do
+        // next would be the one thing the panel does not show.
+        $connection = $this->mysqlInstallation();
+
+        $this->tableNamed($connection, RestoreTableNames::shadow('pk_items'));
+        $this->dumpNaming($connection, ['pk_items']);
+
+        try {
+            (new DatabaseRestorer($connection))->restore($this->dump());
+
+            self::fail('A restore must be refused while a copy of one of its tables is still in the database');
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString('Drop them and run the restore again', $e->getMessage());
+            self::assertStringNotContainsString('Failed to restore the database', $e->getMessage());
+        }
+    }
+
+    public function testARestoreThatWentThroughIsLeftWithNoTablesOfItsOwn(): void
+    {
+        // The tables a restore sets aside hold what the site was reading until the
+        // swap, and nothing reaches them afterwards - so they go in the same window,
+        // and a database somebody looks at later holds the installation and nothing a
+        // restore invented. What is put back reaches exactly as far as the dump: a
+        // table it holds that the installation has since lost comes back, and one
+        // that arrived after it is left where it is.
+        $connection = $this->installation();
+        $snapshotted = $this->items($connection);
+
+        (new DatabaseDumper($connection))->dump($this->dump());
+
+        $connection->executeStatement('DELETE FROM pk_items');
+        $connection->executeStatement('DROP TABLE pk_meta');
+
+        $this->tableNamed($connection, 'pk_later');
+        $connection->insert('pk_later', ['id' => 7]);
+
+        $summary = (new DatabaseRestorer($connection))->restore($this->dump());
+
+        self::assertSame(['tables' => 2, 'rows' => 3], $summary);
+        self::assertSame([], $this->copiesIn($connection));
+        self::assertSame($snapshotted, $this->items($connection));
+        self::assertSame([['name' => 'version', 'value' => '1.4.2']], $connection->fetchAllAssociative('SELECT name, value FROM pk_meta'));
+        self::assertSame([['id' => 7]], $connection->fetchAllAssociative('SELECT id FROM pk_later'));
+    }
+
+    public function testATableThatCouldNotBeSetAsideDoesNotUndoARestoreThatWentThrough(): void
+    {
+        // Past the swap the site is reading what the dump held, and the table it
+        // replaced is one nothing reaches. A database that will not let that table go
+        // has cost the disk it sits on and no more than that, so the restore stands
+        // and an operator gets a line saying where the table came from; the next
+        // restore is what clears the name away.
+        $connection = $this->installationThatWillNotDrop();
+
+        $this->requireTablesSetAside($connection);
+
+        $connection->keeps = RestoreTableNames::backup('pk_items');
+
+        $snapshotted = $this->items($connection);
+        $audit = new SnapshotAudit();
+
+        (new DatabaseDumper($connection))->dump($this->dump());
+
+        $connection->executeStatement('DELETE FROM pk_items');
+
+        $summary = (new DatabaseRestorer($connection, $audit))->restore($this->dump());
+
+        self::assertSame(['tables' => 2, 'rows' => 3], $summary);
+        self::assertSame($snapshotted, $this->items($connection));
+
+        // The one table that would not go, and the line about it: what it is called,
+        // that it could not be dropped, and that the restore happened regardless.
+        self::assertSame(['_b_pk_items'], $this->copiesIn($connection));
+        self::assertCount(1, $audit->records);
+        self::assertSame('warning', $audit->records[0]['level']);
+        self::assertStringContainsString('_b_pk_items', $audit->records[0]['message']);
+        self::assertStringContainsString('could not be dropped', $audit->records[0]['message']);
+        self::assertStringContainsString('was restored', $audit->records[0]['message']);
+    }
+
+    public function testALogThatCannotTakeTheLineDoesNotUndoARestoreThatWentThrough(): void
+    {
+        // The line is how an operator finds out about a table nothing reads any
+        // more, and a log on a full disk is one more thing to look into - not a
+        // reason to report a site that is serving the snapshot as a site that is not.
+        $connection = $this->installationThatWillNotDrop();
+
+        $this->requireTablesSetAside($connection);
+
+        $connection->keeps = RestoreTableNames::backup('pk_items');
+
+        $snapshotted = $this->items($connection);
+
+        (new DatabaseDumper($connection))->dump($this->dump());
+
+        $connection->executeStatement('DELETE FROM pk_items');
+
+        $summary = (new DatabaseRestorer($connection, new AuditThatCannotBeWritten()))->restore($this->dump());
+
+        self::assertSame(['tables' => 2, 'rows' => 3], $summary);
+        self::assertSame($snapshotted, $this->items($connection));
+    }
+
+    // ------------------------------------------------------------------
     // The installation a dump is replayed into
     // ------------------------------------------------------------------
 
@@ -1292,6 +1534,60 @@ final class DatabaseRestorerTest extends TestCase
         self::assertInstanceOf(ConnectionThatWillNotDropATable::class, $connection);
 
         return $connection;
+    }
+
+    /**
+     * The same installation on a MySQL server that will not carry out the statement
+     * its copies are swapped in with, which is where that statement can be read off
+     * on a run with no server behind it.
+     */
+    private function mysqlInstallationThatWillNotSwap(): ConnectionThatWillNotSwapTables
+    {
+        $connection = $this->installation('pk_', ConnectionThatWillNotSwapTables::class);
+
+        self::assertInstanceOf(ConnectionThatWillNotSwapTables::class, $connection);
+
+        return $connection;
+    }
+
+    /**
+     * The same server on a database holding nothing yet, for the cases where which
+     * tables the installation still holds is what the swap turns on.
+     */
+    private function databaseThatWillNotSwap(): ConnectionThatWillNotSwapTables
+    {
+        $connection = $this->openDatabase('pk_', ConnectionThatWillNotSwapTables::class);
+
+        self::assertInstanceOf(ConnectionThatWillNotSwapTables::class, $connection);
+
+        return $connection;
+    }
+
+    /**
+     * A restore of the dump the test wrote, into a database that will not swap the
+     * copies in, and what it was reported as.
+     */
+    private function refusedSwap(ConnectionThatWillNotSwapTables $connection): \RuntimeException
+    {
+        try {
+            (new DatabaseRestorer($connection))->restore($this->dump());
+        } catch (\RuntimeException $e) {
+            return $e;
+        }
+
+        self::fail('A restore whose swap the server would not carry out must not be reported as done');
+    }
+
+    /**
+     * Skips where the run is on SQLite, which replaces the tables where they stand
+     * and sets none of them aside - so what a restore does with the table it
+     * replaced is a question only a MySQL run answers.
+     */
+    private function requireTablesSetAside(Connection $connection): void
+    {
+        if ($this->isSqlite($connection)) {
+            self::markTestSkipped('Only a MySQL restore sets the tables it replaces aside');
+        }
     }
 
     /**

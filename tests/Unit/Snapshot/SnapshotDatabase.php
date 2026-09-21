@@ -92,10 +92,10 @@ trait SnapshotDatabase
     }
 
     /**
-     * Whether the database under test is the one that keeps schema changes
-     * inside a transaction. The two the installation supports differ on it, and
-     * what a half-applied restore leaves behind follows from that rather than
-     * from anything the restore does.
+     * Which of the two engines the installation supports the run is against. A
+     * dump is named after it, the statement that enforces references is spelled
+     * differently on each, and it decides whether a restore replaces the tables
+     * where they stand or fills copies and sets aside the tables they replace.
      */
     protected function isSqlite(Connection $connection): bool
     {
