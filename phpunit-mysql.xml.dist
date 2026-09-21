@@ -2,10 +2,13 @@
 <!--
     MySQL variant of phpunit.xml.dist. Identical suite/source/gate configuration,
     plus a <php><var> block that populates the $GLOBALS entries DbUtil reads to open
-    a REAL database connection instead of the in-memory SQLite fallback. Only the
-    DbTestCase/DbUtil consumers (ConfigManagerTest, EntityManagerTest) honor these
-    globals; the rest of the suite still runs on SQLite, so this config exercises the
-    DbUtil paths against MySQL rather than making the whole suite DB-portable.
+    a REAL database connection instead of the in-memory SQLite fallback. The
+    DbTestCase/DbUtil consumers (ConfigManagerTest, EntityManagerTest) and the
+    Snapshot suite (through SnapshotDatabase) honor these globals; the rest of the
+    suite still runs on SQLite, so this config exercises the real-database paths
+    against MySQL rather than making the whole suite DB-portable. CI runs it twice:
+    narrowed to tests/Unit/Snapshot as the required phpunit-mysql-snapshot job, and
+    whole as the advisory phpunit-mysql one.
 
     Deprecation/notice gates (failOnDeprecation, failOnPhpunitDeprecation,
     failOnNotice) are pinned to "false": a few pre-existing PHPUnit-internal
@@ -83,7 +86,7 @@
             tmpdb_* is the maintenance connection that performs that DROP/CREATE.
             tmpdb_name points at the always-present "mysql" system database because the
             test database does not exist until DbUtil creates it. Credentials match the
-            root account of the mysql service in the phpunit-mysql CI job.
+            root account of the mysql service both MySQL CI jobs start.
         -->
         <var name="db_type" value="pdo_mysql"/>
         <var name="db_username" value="root"/>

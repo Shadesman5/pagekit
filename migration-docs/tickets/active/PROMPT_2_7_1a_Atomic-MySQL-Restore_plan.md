@@ -58,7 +58,7 @@
 - [x] Step 4 (L) — Shadow DDL rewriter + fill machinery
 - [x] Step 5 (L) — Cut-over + delete the in-place MySQL apply
 - [x] Step 6 (M) — Serialization + leftover cleanup
-- [ ] Step 7 (S) — CI leg (required Snapshot job on MySQL 8.4)
+- [x] Step 7 (S) — CI leg (required Snapshot job on MySQL 8.4)
 - [ ] Step 8 (XL) — Review (Bugbot + Security) + E2E
 
 ## TESTING STRATEGY
@@ -121,3 +121,10 @@
 - `DatabaseRestorer::refuseInboundReferences` — a reference whose child is one of those leftovers is not a refusal: the leftover comes off in `clear()` before the first copy exists, so nothing holds it at the swap, and refusing would leave the one restore that would have removed it unable to run at all. Rejected moving `clear()` ahead of the refusals for the same effect, which would have a restore refused for something else drop tables on its way out. Invariant a test must hold: an owned `_r_`/`_b_` leftover with a foreign key into a dumped table is cleared away, while the same reference from a table that is no leftover still refuses.
 - `ConnectionThatAnswersForAMysqlServer` — answers `GET_LOCK`/`RELEASE_LOCK` through `fetchOne` and records both in `asked`, `$locked` standing for a second session already holding it. The lock is the third thing only a server can say, beside folding and the reference catalogue, and without it no MySQL-double case reaches past the name-length refusal on the SQLite leg.
 - Step 3 cases that read the presence-refusal as a stopping point are rewritten rather than deferred: the two length cases stop on the lock, whose message names no table, so "the refusal did not name this one" still means what it did; the leftover and ownership cases run through to the refused swap on `ConnectionThatWillNotSwapTables` and assert what the database holds afterwards; `testWhatARestoreRefusesIsPutToAnOperatorInItsOwnWords` reads the inbound-reference refusal instead. The marker-in-another-case test narrows its dump to one table — a copy of `pk_items` would be the planted `_R_pk_items` over again in the other case, and whether one database holds both is the engine's rule rather than the stand-in's.
+
+### Step 7
+
+- `php-tests.yml` — `phpunit-mysql-snapshot` is a job of its own, written out beside the advisory one rather than a second leg of a matrix over `phpunit-mysql`: a matrix would give the two legs one name with the leg in parentheses (renaming the existing required-check context) and one `continue-on-error` for both, which is the whole difference between them. Placed above the advisory job so the blocking leg reads first; nothing inside `phpunit-mysql` is touched, its 2.11 tag included.
+- `php-tests.yml` — the suite is narrowed with a path argument (`-c phpunit-mysql.xml.dist tests/Unit/Snapshot`), not a `<testsuite name="Snapshot">` added to the config or a third config file. The config's job is the connection globals, and one spelling of the suite means the local check decision 12 describes is the same command the gate runs.
+- `php-tests.yml` — the Composer cache key is the one every other PHP 8.5 job in the workflow uses, so the two MySQL legs and `phpstan` race to save the same entry and the losers log a warning. Rejected a job-unique key, which would buy a second copy of the same `app/vendor` per run for nothing.
+- `.github/scripts/quality-snapshot.mjs` — left alone: it matches a job by exact name, so `phpunit-mysql-snapshot` does not answer for `phpunit-mysql`, and the leg the snapshot records as `required: false` is still the advisory full-suite one. The new job is a required check on the branch, which the dashboard reads off the workflow run's own conclusion.
