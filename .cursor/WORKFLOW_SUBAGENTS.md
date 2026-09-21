@@ -89,11 +89,11 @@ Edit models in `.cursor/agents/<name>.md`; keep this table in sync.
 
 | Agent | Model (frontmatter) |
 |---|---|
-| `architect` | claude-fable-5-1 (Max thinking) |
-| `refactorer` | claude-opus-5 (Max thinking) |
-| `doc-writer` | grok-4.6 |
-| `plan-reviewer` | claude-fable-5-1 (Max thinking) |
-| `verifier` | claude-opus-5 (Max thinking) |
-| `tester` | grok-4.6 |
-| `test-writer` | claude-opus-5 (Max thinking) |
-| `post-close-reviewer` | claude-fable-5-1 (Max thinking) |
+| `architect` | `claude-fable-5-1[thinking=true,context=1m,effort=max]` |
+| `refactorer` | `claude-opus-5[thinking=true,context=1m,effort=max,fast=false]` |
+| `doc-writer` | `grok-4.7[context=500k,reasoning_effort=xhigh,fast=true]` |
+| `plan-reviewer` | `claude-fable-5-1[thinking=true,context=1m,effort=max]` |
+| `verifier` | `grok-4.7[context=500k,reasoning_effort=xhigh,fast=true]` |
+| `tester` | `grok-4.7[context=500k,reasoning_effort=xhigh,fast=true]` |
+| `test-writer` | `grok-4.7[context=500k,reasoning_effort=xhigh,fast=true]` |
+| `post-close-reviewer` | `grok-4.7[context=500k,reasoning_effort=xhigh,fast=true]` |

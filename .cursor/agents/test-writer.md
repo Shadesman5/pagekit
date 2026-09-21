@@ -1,6 +1,6 @@
 ---
 name: test-writer
-model: claude-opus-5[thinking=true,context=1m,effort=max,fast=false]
+model: grok-4.7[context=500k,reasoning_effort=xhigh,fast=true]
 description: Test Author for Pagekit modernization. Writes PHPUnit tests for production code changed in the current Checklist Step (Execute) or for Codecov patch gaps (Finalize coverage pass) — after production code passes Verifier and Tester. Does not run tests or edit production code. Use after Tester PASS on production changes.
 ---
 
