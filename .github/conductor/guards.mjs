@@ -76,6 +76,30 @@ export function phaseRepeatExceeded(phases, type, max = DEFAULT_MAX_PHASE_REPEAT
 }
 
 /**
+ * Problems with the ticket's `## IMPLEMENTATION NOTES` skeleton, empty when it is sound.
+ * The Refactorer may only write its open decisions under an existing `### Step N` heading,
+ * so a ticket without the skeleton silently strips test-writer and doc-writer of that record
+ * for every step. The plan-reviewer is asked to FAIL such a ticket; this is the deterministic
+ * backstop for when it does not. Only headings inside the section count.
+ * @param {string} markdown ticket contents
+ * @param {number[]} stepNumbers steps parsed from `## EXECUTION STATE`
+ * @returns {string[]}
+ */
+export function implementationNotesProblems(markdown, stepNumbers) {
+  const md = String(markdown || '');
+  const idx = md.indexOf('## IMPLEMENTATION NOTES');
+  if (idx < 0) return ['missing "## IMPLEMENTATION NOTES" section'];
+  const section = md.slice(idx).split(/\n## /)[0];
+  const found = new Set();
+  for (const m of section.matchAll(/^###\s+Step\s+(\d+)\b/gim)) found.add(Number(m[1]));
+  const missing = (stepNumbers || []).filter(n => !found.has(n));
+  if (missing.length === 0) return [];
+  return [
+    `"## IMPLEMENTATION NOTES" has no "### Step N" heading for step(s) ${missing.join(', ')}`
+  ];
+}
+
+/**
  * `ESCALATE (decision): …` — the orchestrator stopped on a plan or product decision it may not
  * make (an Escalate entry from `.cursor/ANOMALIES.md`). A fresh agent would only reach the same
  * bullet, so the driver stops instead of relaunching. Still an ESCALATE for every other reader.
