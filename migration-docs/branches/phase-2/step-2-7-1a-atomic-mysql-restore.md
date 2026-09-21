@@ -6,16 +6,18 @@
 **Branch:** `feature/atomic-mysql-restore`
 **ROADMAP Step:** 2.7.1a (Atomic MySQL Restore (Shadow Cut-over))
 **GitHub Issue:** [#281](https://github.com/Shadesman5/pagekit/issues/281)
-**Pull Request:** _TBD_
-**Status:** 🚧 In progress
+**Pull Request:** [#291](https://github.com/Shadesman5/pagekit/pull/291)
+**Status:** ✅ Complete
 **Started:** 2026-09-20 21:43
-**Completed:** _TBD_
+**Completed:** 2026-09-21 20:40
 
 ---
 
 ## 🎯 Overview
 
 A fresh install can no longer be created with an empty or ill-shaped table prefix. The mysql module default is `pk_`, matching sqlite. Existing installations — empty prefix included — keep booting; only a new install is measured. A dump skips leftover `_r_`/`_b_` tables (empty prefix included) so a half-written restore copy cannot be snapshotted back over live data. A MySQL restore refuses before it creates anything (empty prefix, a copy name past 64 characters, a reserved name this installation does not own that this dump needs, inbound foreign keys from tables outside the dump that are not leftovers); a dump that names a reserved table is refused on both platforms. One restore of an installation runs at a time — a second is refused, not queued. Owned leftover `_r_`/`_b_` tables are dropped after those refusals, under the lock; a leftover that will not drop is the refusal. What passes is filled into `_r_` copies and swapped in with one `RENAME TABLE`; a failure before the rename costs the copies and nothing live. SQLite still applies in place inside a transaction. The Snapshot suite is a required MySQL 8.4 CI job (`phpunit-mysql-snapshot`); the full-suite MySQL run stays advisory.
+
+PR [#291](https://github.com/Shadesman5/pagekit/pull/291), version 1.2.41. CI green. Coverage-gap pass skipped (Codecov reported all modified and coverable lines covered). Bugbot and Security clean. Execute E2E PASS; Finalize `e2e-smoke` skipped as opt-in.
 
 ---
 
@@ -241,14 +243,26 @@ One validator, both entries. No shim for the old empty mysql default. Existing e
 <!-- Links only. Quality metrics are CI-owned: link the PR sticky quality-report comment and the
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
-- CI run: _TBD_
-- Notable deviations: Step 1 — EnvConfigLoader overlay assertion changed from `pk_` to `site_` after the mysql default flip — asserting the default no longer proved the environment arrived. Step 2 — none. Step 3 — first Verifier pass failed on the `preflight` docblock restating call order and naming a future swap path; rewritten to say what the refusals do, not the order or the cut-over that is not wired yet. Step 4 — none. Step 5 — first test-files Verifier pass failed on the stale `isSqlite()` rationale in `SnapshotDatabase.php`, which still described a half-applied restore as a platform property; rewritten to name which engine the run is against. Step 6 — production Verifier FAIL once (`GET_LOCK` unhandled on MySQL doubles; leftover inbound FK could block cleanup; presence-refusal tests leftover) then PASS; test-files Verifier FAIL (folding assertion could not fail; `GET_LOCK` string `'1'` arm unpinned) then FAIL (stale presence-refusal wording; non-owned collision UNTESTABLE) — unreachable collision kept as fail-closed backstop, leftover invariant restated, production docblocks updated; test-writer added schema/lock doubles; then PASS. Step 7 — none. Step 8 — Bugbot FAIL once (unmatched `--step` selected every session); first fix withdrawn, second landed (fallback deleted); then Bugbot clean. Security clean. E2E PASS. No test-writer.
+| Gate | Result |
+|---|---|
+| CI — PR checks | ✅ green — [run 35650201368](https://github.com/Shadesman5/pagekit/actions/runs/35650201368) (`phpunit`, `phpstan`, `phpunit-mysql`, `phpunit-mysql-snapshot`, `cs-fixer`, `security-audit`, `version-ssot`) + [run 35650201148](https://github.com/Shadesman5/pagekit/actions/runs/35650201148) (`frontend`) + [run 35650201166](https://github.com/Shadesman5/pagekit/actions/runs/35650201166) (`infection-diff`); `e2e-smoke` skipped as opt-in (not a Dependabot PR) |
+| Coverage gap pass | skipped — Codecov reported all modified and coverable lines covered |
+| Cursor Bugbot (PR) | ✅ clean |
+| Cursor Security Reviewer (PR) | ✅ clean |
+| E2E | Execute PASS (Playwright `@ci`); Finalize `e2e-smoke` skipped as opt-in |
+| Finalize fix-loop | none |
+
+**CI run:** https://github.com/Shadesman5/pagekit/actions/runs/35650201368 · https://github.com/Shadesman5/pagekit/actions/runs/35650201148 · https://github.com/Shadesman5/pagekit/actions/runs/35650201166
+
+**Metrics (CI-owned):** [PR #291 quality-report comment](https://github.com/Shadesman5/pagekit/pull/291#issuecomment-5766942099) · [Quality Dashboard](https://Shadesman5.github.io/pagekit/quality/)
+
+**Notable deviations:** Step 1 — EnvConfigLoader overlay assertion changed from `pk_` to `site_` after the mysql default flip — asserting the default no longer proved the environment arrived. Step 2 — none. Step 3 — first Verifier pass failed on the `preflight` docblock restating call order and naming a future swap path; rewritten to say what the refusals do, not the order or the cut-over that is not wired yet. Step 4 — none. Step 5 — first test-files Verifier pass failed on the stale `isSqlite()` rationale in `SnapshotDatabase.php`, which still described a half-applied restore as a platform property; rewritten to name which engine the run is against. Step 6 — production Verifier FAIL once (`GET_LOCK` unhandled on MySQL doubles; leftover inbound FK could block cleanup; presence-refusal tests leftover) then PASS; test-files Verifier FAIL (folding assertion could not fail; `GET_LOCK` string `'1'` arm unpinned) then FAIL (stale presence-refusal wording; non-owned collision UNTESTABLE) — unreachable collision kept as fail-closed backstop, leftover invariant restated, production docblocks updated; test-writer added schema/lock doubles; then PASS. Step 7 — none. Step 8 — Bugbot FAIL once (unmatched `--step` selected every session); first fix withdrawn, second landed (fallback deleted); then Bugbot clean. Security clean. E2E PASS. No test-writer. Finalize — none.
 
 ---
 
 ## 📋 Phase 1 Audit Closure
 
-_TBD / None_
+None.
 
 ---
 
@@ -257,7 +271,8 @@ _TBD / None_
 <!-- Human-only follow-ups the maintainer must do (ruleset flips, real Docker/Apache
      verification, secrets, etc.). Not ROADMAP deferrals — those go under Deferred. -->
 
-_TBD / None_
+- **Mark `phpunit-mysql-snapshot` a GitHub required status check** on the protected branch. The workflow YAML is blocking (`continue-on-error` absent); the ruleset flip is a GitHub settings change the YAML cannot make.
+- **One MySQL restore on a real Docker host** (dev stack) before relying on it in production. The required CI job proves the Snapshot suite against MySQL 8.4; it does not drive the panel through a restore on a live site.
 
 ---
 
@@ -266,13 +281,17 @@ _TBD / None_
 <!-- Future ROADMAP/PHASE work, explicit non-goals, bridges. Do NOT put maintainer
      Manual Work here — that belongs under Maintainer action above. -->
 
-_TBD / None_
+- **Step 2.7.1b (Package Module Boundary)** — relocating the rewritten restorer and the rest of the Snapshot/package machinery into a package module of its own. See Follow-on. GitHub: [#287](https://github.com/Shadesman5/pagekit/issues/287). PHASE §2.7.1b.
+- **Step 2.9 (Automated Update System)** — updater orchestration and update-time rollback consuming the now fail-safe MySQL restore. PHASE §2.9.
+- **Step 2.11 (Phase 2 Closeout)** — flipping the advisory full-suite `phpunit-mysql` job to required once the whole suite is DB-portable. The Snapshot-only required job added here does not satisfy it; the existing 2.11 tag at the advisory job stays. PHASE §2.11.
+- **Non-goals:** a fallback in-place MySQL apply; hashed live table names; `AUTO_INCREMENT` values in dump DDL; a MariaDB CI leg; dump-format version bump / checksums / views-triggers-routines; container or host-level snapshots; changing `PackageSnapshotter` restore order; Vue/admin copy changes; a repo-wide comment-prose sweep of existing Snapshot/Extension Safety docblocks.
+- **Bridges:** none.
 
 ---
 
 ## 📌 Follow-on (ROADMAP)
 
-_TBD / None_
+- **Step 2.7.1b (Package Module Boundary)** — the restorer and the rest of Snapshot/package machinery relocate as one unit. Lands after this PR. GitHub: [#287](https://github.com/Shadesman5/pagekit/issues/287). PHASE §2.7.1b.
 
 ---
 
@@ -281,7 +300,7 @@ _TBD / None_
 <!-- Filled by the post-close review after Finalize: what the finished work left unowned,
      one bullet per finding with the ROADMAP step whose area it belongs to. Doc-writer leaves None. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -290,7 +309,7 @@ _TBD / None_
 <!-- Removed in passing (deleted files, dropped baseline/ignore entries, dead code). Doc-writer from
      the handover; the post-close review adds what the diff shows and the handover missed. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -299,7 +318,7 @@ _TBD / None_
 <!-- No-Mercy leftovers of the shipped diff that have no owner (forward-debt tags, added baseline
      entries, ANOMALIES patterns), each with the ROADMAP step that resolves it. Post-close review. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -308,7 +327,7 @@ _TBD / None_
 <!-- Work delivered beyond the ticket. Doc-writer from the handover; the post-close review adds
      what the diff shows and the handover missed. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -317,22 +336,13 @@ _TBD / None_
 <!-- The verified facts behind each DECISION the post-close review raised — symbols, call chain,
      what each exit deletes or adds — so the maintainer can decide without re-reading the tree. -->
 
-_TBD / None_
+None.
 
 ---
 
 ## 📎 Related Documents
 
-- Ticket: `migration-docs/tickets/active/PROMPT_2_7_1a_Atomic-MySQL-Restore_plan.md` (_TBD_ → move to `done/` after Finalize)
+- Ticket: `migration-docs/tickets/done/PROMPT_2_7_1a_Atomic-MySQL-Restore_plan.md`
 - Task prompt: `migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_7_1a_Atomic-MySQL-Restore.md`
 - Predecessor: Step 2.7.1 — Snapshot & Three-Stage Uninstall
 - Successor: Step 2.7.1b — Package Module Boundary
-
----
-
-## 📊 <Step-specific appendix>
-
-<!-- Narrative/structural notes only. Never a metrics table (coverage %, MSI, test counts): quality
-     numbers are CI-owned — link the sticky quality-report comment + dashboard instead. -->
-
-_TBD — remove this section if not applicable._
