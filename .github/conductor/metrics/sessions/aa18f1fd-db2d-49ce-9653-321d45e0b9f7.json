@@ -273,20 +273,51 @@
       "outcome": "success",
       "completedAt": "2026-09-22T18:48:39.922Z",
       "notes": "Timing from Cursor API (single agent run)"
+    },
+    {
+      "phaseKey": "35783202048-1-FINALIZE",
+      "type": "FINALIZE",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-09-22T20:53:48.403Z",
+      "durationMs": 126762,
+      "agent": {
+        "id": "bc-73c9d01a-f4d1-408b-8e2a-598ea8c7293d",
+        "runId": "run-c1582582-e8a9-406b-ab1a-628073c2e134",
+        "url": "https://cursor.com/agents/bc-73c9d01a-f4d1-408b-8e2a-598ea8c7293d",
+        "model": "grok-4.7"
+      },
+      "github": {
+        "runId": 35783202048,
+        "runAttempt": 1,
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/35783202048",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 76660,
+        "output": 9156,
+        "cacheRead": 455296,
+        "cacheWrite": 0,
+        "total": 541112
+      },
+      "tokensSource": "cursor-api",
+      "result": "ESCALATE: ManagePullRequest did not open the PR (registered for user approval).",
+      "outcome": "escalate"
     }
   ],
   "totals": {
     "tokens": {
-      "input": 1617089,
-      "output": 59950,
-      "cacheRead": 5926528,
+      "input": 1693749,
+      "output": 69106,
+      "cacheRead": 6381824,
       "cacheWrite": 0,
-      "total": 7603567
+      "total": 8144679
     },
-    "durationMs": 18452744,
-    "phaseCount": 5,
-    "escalations": 1,
-    "ghaJobs": 4,
-    "cloudAgents": 5
+    "durationMs": 18579506,
+    "phaseCount": 6,
+    "escalations": 2,
+    "ghaJobs": 5,
+    "cloudAgents": 6
   }
 }
