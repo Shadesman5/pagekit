@@ -75,7 +75,7 @@ _TBD_
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: _TBD / None_
+- Notable deviations: **Checklist Step 1 — ESCALATE.** Tester FAIL, third recurrence of the same set. `./app/vendor/bin/phpunit` did not run: the tester session is in Ask mode, so the shell is blocked. PHPStan was not started (`./app/vendor/bin/phpstan analyse --no-progress --memory-limit=512M`). Re-run this tester in Agent mode.
 
 ---
 
