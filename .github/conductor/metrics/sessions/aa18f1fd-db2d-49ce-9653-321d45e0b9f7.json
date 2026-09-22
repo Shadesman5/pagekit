@@ -11,19 +11,51 @@
   "status": "in_progress",
   "startedAt": "2026-09-21T23:50:52.079Z",
   "completedAt": null,
-  "phases": [],
+  "phases": [
+    {
+      "phaseKey": "35669379137-1-PLAN",
+      "type": "PLAN",
+      "attempt": 0,
+      "batchSteps": null,
+      "startedAt": "2026-09-21T23:50:58.061Z",
+      "durationMs": 2997503,
+      "agent": {
+        "id": "bc-33a0f297-3c41-43ab-8f9f-78f5c5d5cd12",
+        "runId": "run-9778446d-c151-415e-9ec8-c679376c6fd8",
+        "url": "https://cursor.com/agents/bc-33a0f297-3c41-43ab-8f9f-78f5c5d5cd12",
+        "model": "grok-4.7"
+      },
+      "github": {
+        "runId": 35669379137,
+        "runAttempt": 1,
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/35669379137",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 47284,
+        "output": 5668,
+        "cacheRead": 511232,
+        "cacheWrite": 0,
+        "total": 564184
+      },
+      "tokensSource": "cursor-api",
+      "result": "Plan ready: migration-docs/tickets/active/PROMPT_2_7_1b_Package-Module-Boundary_plan.md",
+      "outcome": "success"
+    }
+  ],
   "totals": {
     "tokens": {
-      "input": 0,
-      "output": 0,
-      "cacheRead": 0,
+      "input": 47284,
+      "output": 5668,
+      "cacheRead": 511232,
       "cacheWrite": 0,
-      "total": 0
+      "total": 564184
     },
-    "durationMs": 0,
-    "phaseCount": 0,
+    "durationMs": 2997503,
+    "phaseCount": 1,
     "escalations": 0,
-    "ghaJobs": 0,
-    "cloudAgents": 0
+    "ghaJobs": 1,
+    "cloudAgents": 1
   }
 }
