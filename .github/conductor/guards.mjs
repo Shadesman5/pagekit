@@ -109,6 +109,17 @@ export function isDecisionEscalate(result) {
 }
 
 /**
+ * `ESCALATE (snapshot): …` — the environment Build the agent booted from does not contain
+ * `origin/<Base>` yet. Subagent cards were loaded from that older tree. The driver waits
+ * and relaunches; a fresh agent on the same Build would only report the same line.
+ */
+export function isSnapshotEscalate(result) {
+  return String(result || '')
+    .split(/\r?\n/)
+    .some(entry => /^ESCALATE\s*\(snapshot\)/i.test(entry.trim()));
+}
+
+/**
  * `/review-bugbot` and `/review-security` run in Cursor 3.7+ and on cursor.com/agents.
  * CLI / Cloud Agents API support is documented as coming soon, so Conductor must not
  * launch an XL Review+E2E batch while this handoff is on (default).

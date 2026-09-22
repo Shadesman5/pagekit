@@ -3,7 +3,8 @@
 // Zero npm dependencies on purpose: Node 20 (global fetch) + git + gh (preinstalled on
 // ubuntu-latest). It launches ONE fresh cloud agent per GitHub Actions job via the Cloud Agents
 // REST API (api.cursor.com/v1), reads progress from the ticket's `## EXECUTION STATE` checkboxes,
-// and reacts only to ESCALATE / fatal results. It holds no LLM context itself.
+// and reacts only to ESCALATE / fatal results. `ESCALATE (snapshot)` waits for a newer
+// environment Build instead of relaunching immediately. It holds no LLM context itself.
 //
 // Chained runs (auto_chain=true, default): each GHA job runs at most ONE cloud-agent phase
 // (PLAN, or one EXECUTE batch sized by batch_budget, or FINALIZE), then dispatches a fresh
@@ -30,6 +31,7 @@ import {
   cloudExecuteSteps,
   xlHandoffMessage,
   isDecisionEscalate,
+  isSnapshotEscalate,
   implementationNotesProblems
 } from './guards.mjs';
 import { gitAt, syncFeatureWithBase } from './sync-base.mjs';
@@ -59,6 +61,11 @@ const TITLE = (process.env.TITLE || '').trim(); // optional run display title (p
 const WORKFLOW_FILE = (process.env.WORKFLOW_FILE || 'conductor.yml').trim();
 const WORKFLOW_REF = (process.env.WORKFLOW_REF || BASE).trim();
 const MAX_ESCALATIONS = Number(process.env.MAX_ESCALATIONS || 2); // retries; +1 agents (default 3) then escalate
+// ESCALATE (snapshot): the environment Build does not contain origin/<Base> yet.
+// Relaunching immediately forks that same Build, so the driver waits, then starts a fresh agent.
+// A develop push starts a Build; install has to finish before that Build is active.
+const SNAPSHOT_WAIT_SECONDS = Number(process.env.SNAPSHOT_WAIT_SECONDS || 180);
+const MAX_SNAPSHOT_WAITS = Number(process.env.MAX_SNAPSHOT_WAITS || 8);
 // Cross-job cap: consecutive chained GHA jobs of the same phase (PLAN/FINALIZE) before we refuse
 // another launch. Backstop if a job still chains after an unsuccessful phase. Default 3.
 const MAX_PHASE_REPEATS = Number(process.env.MAX_PHASE_REPEATS || DEFAULT_MAX_PHASE_REPEATS);
@@ -88,6 +95,10 @@ if (!Number.isInteger(BUDGET) || BUDGET < 1)
   fail(`Invalid BATCH_BUDGET: ${process.env.BATCH_BUDGET}`);
 if (!Number.isInteger(MAX_ESCALATIONS) || MAX_ESCALATIONS < 0)
   fail(`Invalid MAX_ESCALATIONS: ${process.env.MAX_ESCALATIONS}`);
+if (!Number.isInteger(SNAPSHOT_WAIT_SECONDS) || SNAPSHOT_WAIT_SECONDS < 1)
+  fail(`Invalid SNAPSHOT_WAIT_SECONDS: ${process.env.SNAPSHOT_WAIT_SECONDS}`);
+if (!Number.isInteger(MAX_SNAPSHOT_WAITS) || MAX_SNAPSHOT_WAITS < 0)
+  fail(`Invalid MAX_SNAPSHOT_WAITS: ${process.env.MAX_SNAPSHOT_WAITS}`);
 if (!Number.isInteger(MAX_PHASE_REPEATS) || MAX_PHASE_REPEATS < 1)
   fail(`Invalid MAX_PHASE_REPEATS: ${process.env.MAX_PHASE_REPEATS}`);
 if (!Number.isInteger(MAX_POLL_FAILS) || MAX_POLL_FAILS < 1)
@@ -293,7 +304,13 @@ async function runPhase(label, prompt, outcomeHint) {
   const finalRunId = current?.runId ?? runId; // poll follows the agent; record the run that answered
   current = null;
   await logUsage(agentId);
-  const outcome = outcomeHint || (text.startsWith('ESCALATE') ? 'escalate' : 'success');
+  const outcome =
+    outcomeHint ||
+    (isSnapshotEscalate(text)
+      ? 'snapshot-wait'
+      : text.startsWith('ESCALATE')
+        ? 'escalate'
+        : 'success');
   // Metrics push must not invalidate a finished agent run (would relaunch PLAN/EXECUTE).
   try {
     await metrics.recordPhase({
@@ -314,6 +331,7 @@ async function runPhase(label, prompt, outcomeHint) {
 // EXECUTE: one batch with in-job retries on ESCALATE / run-error (no multi-batch loop in one GHA job).
 // `ESCALATE (decision)` is terminal: the agent stopped on a decision the plan has to make.
 async function runExecuteBatch(batch) {
+  let snapshotWaits = 0;
   for (let attempt = 0; ; attempt++) {
     await gate();
     let result;
@@ -326,6 +344,12 @@ async function runExecuteBatch(batch) {
       if (attempt >= MAX_ESCALATIONS)
         fail(`EXECUTE run error after ${attempt} retries: ${e.message}`);
       log(`run error (${e.message}); relaunching fresh (${attempt + 1}/${MAX_ESCALATIONS})`);
+      continue;
+    }
+    const waitsAfterSnapshot = await pauseIfSnapshotBehind(result, snapshotWaits);
+    if (waitsAfterSnapshot !== snapshotWaits) {
+      snapshotWaits = waitsAfterSnapshot;
+      attempt -= 1; // a snapshot wait is not a product retry
       continue;
     }
     if (result.startsWith('ESCALATE')) {
@@ -349,6 +373,7 @@ async function runExecuteBatch(batch) {
 // already has the ticket/PR (API omitted `result`). `landed()` is required even after a matching
 // one-liner (Plan ready with the wrong/missing file must retry, not chain).
 async function runPhaseWithEscalation(label, makePrompt, expect, recoverIfDone, landed) {
+  let snapshotWaits = 0;
   for (let attempt = 0; ; attempt++) {
     await gate();
     let result;
@@ -358,6 +383,12 @@ async function runPhaseWithEscalation(label, makePrompt, expect, recoverIfDone, 
       if (attempt >= MAX_ESCALATIONS)
         fail(`${label} run error after ${attempt + 1} agents: ${e.message}`);
       log(`run error (${e.message}); relaunching fresh (${attempt + 1}/${MAX_ESCALATIONS})`);
+      continue;
+    }
+    const waitsAfterSnapshot = await pauseIfSnapshotBehind(result, snapshotWaits);
+    if (waitsAfterSnapshot !== snapshotWaits) {
+      snapshotWaits = waitsAfterSnapshot;
+      attempt -= 1; // a snapshot wait is not a product retry
       continue;
     }
     if (result.startsWith('ESCALATE')) {
@@ -487,8 +518,21 @@ async function poll(agentId, launchRunId) {
 }
 
 // ---------------------------------------------------------------- prompts
+function snapshotGatePrompt() {
+  return [
+    'Snapshot gate — do this before any other git command, checkout, merge, or Task spawn.',
+    `The local branch ${BASE} is the environment Build commit. Subagent cards and rules were loaded from that tree.`,
+    `1. git rev-parse --verify refs/heads/${BASE} — remember this full SHA as BUILD. Do not fetch before this. If the ref is missing, report exactly: ESCALATE: local ${BASE} ref missing`,
+    `2. git fetch origin ${BASE} — this updates origin/${BASE} only. Do not merge and do not move the local branch.`,
+    `3. git rev-parse origin/${BASE} — remember this full SHA as ORIGIN.`,
+    `4. git merge-base --is-ancestor origin/${BASE} BUILD. If this command fails, report exactly one line and stop: ESCALATE (snapshot): environment build BUILD does not contain origin/${BASE} ORIGIN`,
+    'Substitute the real SHAs for BUILD and ORIGIN. On that line do not spawn workers, merge, or push. If the check passes, continue with the phase rule below.'
+  ].join('\n');
+}
+
 function planPrompt(audit) {
   return [
+    snapshotGatePrompt(),
     'You are the Orchestrator for the PLAN phase. Follow the rule .cursor/rules/orchestrator-v2-plan.mdc exactly.',
     `Task prompt: ${TASK_PROMPT}`,
     `Branch: ${BRANCH} (verify you are on it first; checkout/create if needed).`,
@@ -509,6 +553,7 @@ function planPrompt(audit) {
 }
 function stepPrompt(batch) {
   return [
+    snapshotGatePrompt(),
     'You are the Orchestrator for the EXECUTE phase. Follow the rule .cursor/rules/orchestrator-v2-step.mdc exactly.',
     `Ticket: ${TICKET}`,
     `Steps: ${batch.join(',')}`,
@@ -519,6 +564,7 @@ function stepPrompt(batch) {
 }
 function finalizePrompt(ticketPath) {
   return [
+    snapshotGatePrompt(),
     'You are the Orchestrator for the FINALIZE phase. Follow the rule .cursor/rules/orchestrator-v2-finalize.mdc exactly.',
     `Ticket: ${ticketPath}`,
     `Branch: ${BRANCH} (verify you are on it first).`,
@@ -896,6 +942,24 @@ function parseBool(raw, defaultValue, name = 'AUTO_CHAIN') {
   if (v === 'false' || v === '0' || v === 'no') return false;
   fail(`Invalid ${name}: ${raw} (use true/false)`);
 }
+
+// A snapshot miss is not a product failure: the next agent would fork the same Build.
+// Sleep, then let the caller relaunch. `fail()` exits, so the cap does not return.
+async function pauseIfSnapshotBehind(result, waitsSoFar) {
+  if (!isSnapshotEscalate(result)) return waitsSoFar;
+  if (waitsSoFar >= MAX_SNAPSHOT_WAITS) {
+    fail(
+      `environment build still behind origin/${BASE} after ${waitsSoFar} wait(s) (${SNAPSHOT_WAIT_SECONDS}s each): ${result}`
+    );
+  }
+  const next = waitsSoFar + 1;
+  log(
+    `snapshot behind (${result}); waiting ${SNAPSHOT_WAIT_SECONDS}s before relaunch (${next}/${MAX_SNAPSHOT_WAITS})`
+  );
+  await sleep(SNAPSHOT_WAIT_SECONDS * 1000);
+  return next;
+}
+
 function fail(msg) {
   log(`❌ ${msg}`);
   try {
