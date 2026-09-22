@@ -10,7 +10,7 @@
   "model": "grok-4.7",
   "status": "completed",
   "startedAt": "2026-09-21T23:50:59.759Z",
-  "completedAt": "2026-09-22T21:53:11.401Z",
+  "completedAt": "2026-09-22T21:52:47.143Z",
   "phases": [
     {
       "phaseKey": "35669379137-1-PLAN",
@@ -279,13 +279,30 @@
       "type": "FINALIZE",
       "attempt": 0,
       "batchSteps": null,
-      "startedAt": "2026-09-22T20:53:48.403Z",
-      "durationMs": 126762,
+      "startedAt": "2026-09-22T20:53:50.154Z",
+      "durationMs": 112628,
       "agent": {
         "id": "bc-73c9d01a-f4d1-408b-8e2a-598ea8c7293d",
         "runId": "run-c1582582-e8a9-406b-ab1a-628073c2e134",
         "url": "https://cursor.com/agents/bc-73c9d01a-f4d1-408b-8e2a-598ea8c7293d",
-        "model": "grok-4.7"
+        "model": "grok-4.7",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-c1582582-e8a9-406b-ab1a-628073c2e134",
+            "index": 1,
+            "startedAt": "2026-09-22T20:53:50.154Z",
+            "completedAt": "2026-09-22T20:55:43.418Z",
+            "durationMs": 112628,
+            "tokens": {
+              "input": 76660,
+              "output": 9156,
+              "cacheRead": 455296,
+              "cacheWrite": 0,
+              "total": 541112
+            }
+          }
+        ]
       },
       "github": {
         "runId": 35783202048,
@@ -303,20 +320,39 @@
       },
       "tokensSource": "cursor-api",
       "result": "ESCALATE: ManagePullRequest did not open the PR (registered for user approval).",
-      "outcome": "escalate"
+      "outcome": "escalate",
+      "completedAt": "2026-09-22T20:55:43.418Z",
+      "notes": "Timing from Cursor API (single agent run)"
     },
     {
       "phaseKey": "35783202048-1-FINALIZE (retry 1)",
       "type": "FINALIZE",
       "attempt": 1,
       "batchSteps": null,
-      "startedAt": "2026-09-22T20:56:01.534Z",
-      "durationMs": 3422895,
+      "startedAt": "2026-09-22T20:56:03.869Z",
+      "durationMs": 3402758,
       "agent": {
         "id": "bc-c33da453-42c8-4e0d-8f6c-6cc339873510",
         "runId": "run-f1f88c3d-55bf-4028-846a-37d3a5d76eea",
         "url": "https://cursor.com/agents/bc-c33da453-42c8-4e0d-8f6c-6cc339873510",
-        "model": "grok-4.7"
+        "model": "grok-4.7",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-f1f88c3d-55bf-4028-846a-37d3a5d76eea",
+            "index": 1,
+            "startedAt": "2026-09-22T20:56:03.869Z",
+            "completedAt": "2026-09-22T21:52:47.143Z",
+            "durationMs": 3402758,
+            "tokens": {
+              "input": 487933,
+              "output": 23022,
+              "cacheRead": 4885760,
+              "cacheWrite": 0,
+              "total": 5396715
+            }
+          }
+        ]
       },
       "github": {
         "runId": 35783202048,
@@ -334,7 +370,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "Finalized. PR: #296. Version: 1.2.42. Ticket archived to done/.",
-      "outcome": "success"
+      "outcome": "success",
+      "completedAt": "2026-09-22T21:52:47.143Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -345,7 +383,7 @@
       "cacheWrite": 0,
       "total": 13541394
     },
-    "durationMs": 22002401,
+    "durationMs": 21968130,
     "phaseCount": 7,
     "escalations": 2,
     "ghaJobs": 5,
