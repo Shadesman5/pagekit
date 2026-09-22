@@ -1,5 +1,19 @@
 # Changelog
 
+## Pagekit 1.2.42 - Package Module Boundary (September 22, 2026)
+
+### 💥 Breaking Changes
+
+- **Package management left `Pagekit\Installer` for `Pagekit\Package`** — the registry (`Package`, `PackageInterface`, `PackageFactory`), the lifecycle contract (`Lifecycle\`), `PackageManager`, the Composer helper (`Helper\`), the snapshot engine (`Snapshot\`), `ExtensionFailureStore` (`Extension\`, from `Pagekit\System\Extension`), and `PackageController` / `SnapshotController` (`Controller\`) moved with that rename. An extension that implements the lifecycle, or names `MigrationSet`, `Package`, `PackageInterface`, or `PackageFactory`, uses `Pagekit\Package\…`. The shipped blog lifecycle is that rename. Marketplace and update controllers stay `Pagekit\Installer\…`. The `@installer` import prefix is gone; clients import `@package`. `system` and `installer` require the `package` module, and all three boots register `app/package/index.php`. (Closes #287)
+- **A retention window stored on the installer module is no longer read** — `snapshots.retention_days` belongs to the `package` module. An installation that has not set one keeps the 30-day default.
+
+### ♻️ Changed
+
+- **Extensions, themes, and snapshots are the `package` module's admin surface** — routes `/system/package` and `/system/snapshot`, permission `system: manage packages`, and those three menu entries are declared there. The permissions screen lists Manage extensions and themes under `package`; a role that already holds `system: manage packages` still holds it. The marketplace menu still names that permission as access. Marketplace and update stay on `installer`.
+- **The failure record follows `path.system`** — `extension.failures` is registered on every boot that names the directory, including the installer wizard, so the manager keeps a real store there. A container that does not set the path still has no id. `snapshotter` is registered only when the container has both `path.snapshots` and `db`.
+
+---
+
 ## Pagekit 1.2.41 - Atomic MySQL Restore (September 21, 2026)
 
 ### 💥 Breaking Changes
