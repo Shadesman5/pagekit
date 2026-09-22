@@ -24,6 +24,21 @@ whitespace, shell metacharacters, newlines, `..`, leading `-`, or trailing `.loc
 **single argv** to `git` (no shell-string interpolation). If invalid → `ESCALATE: invalid Branch/Base
 ref` and do not run git.
 
+Then, before any fetch, checkout, merge, or Task spawn, confirm the environment Build contains
+**Base**. The local branch of that name is the commit the Build cloned; subagent cards and rules
+were loaded from that tree. A newer `origin/<Base>` is not in that tree until a Build that contains
+it has finished and is active.
+
+1. `git rev-parse --verify refs/heads/<Base>` — this SHA is the build commit. Do this before any
+   fetch. If the ref is missing → `ESCALATE: local <Base> ref missing` and stop.
+2. `git fetch origin <Base>` — updates the remote-tracking ref only. Do not merge and do not move
+   the local branch.
+3. `git merge-base --is-ancestor origin/<Base> <build-sha>`. Exit 0 means `origin/<Base>` is
+   contained in the build. On failure, stop with exactly this line and do nothing else:
+   `ESCALATE (snapshot): environment build <build-sha> does not contain origin/<Base> <origin-sha>`
+
+The driver waits for the newer Build and relaunches. Do not spawn workers, merge, or push on that line.
+
 Then confirm you are on the validated branch: `git rev-parse --abbrev-ref HEAD`. If it differs,
 `git fetch origin` and `git checkout` with the validated name only.
 
@@ -329,4 +344,4 @@ the rest with a fresh agent.
 
 ## Report exactly one line
 
-`Batch done. Steps: [list]. Last commit: <sha>.` — or `Batch stopped (preCompact) after Step N.` — or `ESCALATE: Step N — <reason>.` — or, for a Verifier `ESCALATE:` bullet only, `ESCALATE (decision): Step N — <bullet>.`
+`Batch done. Steps: [list]. Last commit: <sha>.` — or `Batch stopped (preCompact) after Step N.` — or `ESCALATE (snapshot): environment build <sha> does not contain origin/<Base> <sha>.` — or `ESCALATE: Step N — <reason>.` — or, for a Verifier `ESCALATE:` bullet only, `ESCALATE (decision): Step N — <bullet>.`

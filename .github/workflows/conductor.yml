@@ -13,7 +13,10 @@ run-name: "${{ inputs.title != '' && inputs.title || format('Conductor — {0}{1
 # under GitHub's 360-minute hosted-runner cap. A failed Plan (wrong/missing ticket, ESCALATE, error)
 # relaunches a fresh cloud agent in the same job up to 3 times, then escalates (no chain). An
 # `ESCALATE (decision)` (the agent stopped on a plan/product decision it may not make) fails at once —
-# a fresh agent would only reach the same point. Consecutive PLAN/FINALIZE jobs in one session are
+# a fresh agent would only reach the same point. `ESCALATE (snapshot)` means the environment Build
+# does not contain origin/<base> yet; the job waits (SNAPSHOT_WAIT_SECONDS, default 180, up to
+# MAX_SNAPSHOT_WAITS, default 8) and relaunches instead of spending a product retry. Consecutive
+# PLAN/FINALIZE jobs in one session are
 # also capped (MAX_PHASE_REPEATS, default 3) so auto_chain cannot loop overnight.
 # batch_budget still controls how many checklist steps
 # (by S/M/L/XL weight) fit into a single Execute cloud-agent run. XL (8) is the

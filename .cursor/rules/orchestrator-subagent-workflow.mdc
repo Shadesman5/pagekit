@@ -31,6 +31,8 @@ Ticket path: `migration-docs/tickets/active/<prompt-basename>_plan.md`. Never st
 
 Validate **Branch** and **Base** before any git argv: `^[A-Za-z0-9][A-Za-z0-9._/-]*$`, no whitespace, shell metacharacters, newlines, `..`, leading `-`, or trailing `.lock`. Pass as a **single argv**. Invalid → `ESCALATE: invalid Branch/Base ref: <reason>`.
 
+Before any fetch, checkout, merge, or Task spawn, confirm the environment Build contains **Base**. The local branch of that name is the commit the Build cloned; subagent cards and rules were loaded from that tree. `git rev-parse --verify refs/heads/<Base>` (before any fetch) is the build commit. Missing ref → `ESCALATE: local <Base> ref missing` and stop. Then `git fetch origin <Base>` without moving the local branch. If `git merge-base --is-ancestor origin/<Base> <build-sha>` fails, stop with exactly `ESCALATE (snapshot): environment build <build-sha> does not contain origin/<Base> <origin-sha>` and do not spawn workers. Conductor waits on that line; a manual session stops here until a newer Build is active.
+
 Then `git rev-parse --abbrev-ref HEAD` must match. If not: `git fetch origin` and checkout the validated name (create from validated **Base** if missing). Then `git fetch origin <Base>` and `git merge origin/<Base> --no-edit` (the remote-tracking ref, never the local branch of that name — a Cloud Agent VM's local `develop` is the environment Build). Push before spawning workers. On conflict: resolve or `ESCALATE: merge origin/<Base> conflicted`. Do not rebase: the feature branch is shared and already on origin.
 
 ## Thin coordinator
