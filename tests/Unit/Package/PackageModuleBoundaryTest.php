@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\Tests\Unit\Package;
 
+use Composer\Autoload\ClassLoader;
 use FilesystemIterator;
 use Monolog\Handler\TestHandler;
 use Pagekit\Application;
@@ -11,6 +12,7 @@ use Pagekit\Filesystem\Filesystem;
 use Pagekit\Filesystem\Locator;
 use Pagekit\Log\Logger;
 use Pagekit\Module\Module;
+use Pagekit\Module\ModuleManager;
 use Pagekit\Package\Controller\PackageController;
 use Pagekit\Package\Controller\SnapshotController;
 use Pagekit\Package\Extension\ExtensionFailureStore;
@@ -80,6 +82,19 @@ final class PackageModuleBoundaryTest extends TestCase
         'app/console/app.php',
         'app/installer/app.php',
     ];
+
+    /**
+     * Returned in place of Composer's loader so the statement after register()
+     * cannot construct AutoLoader. The modules are already stored by then.
+     */
+    private const STAND_IN_AUTOLOAD = <<<'PHP'
+        <?php
+
+        declare(strict_types=1);
+
+        return new stdClass();
+
+        PHP;
 
     public function testThePackageManifestDeclaresTheModuleAndItsSnapshotWindow(): void
     {
@@ -277,6 +292,27 @@ final class PackageModuleBoundaryTest extends TestCase
 
             // Listed with the other manifests; which slot it occupies does not change discovery.
             self::assertSame(1, count(array_keys($manifests, 'app/package/index.php', true)), $file);
+        }
+    }
+
+    public function testExecutingEachBootFileRegistersThePackageModule(): void
+    {
+        $path = $this->registrationRoot();
+
+        try {
+            foreach (self::BOOT_FILES as $file) {
+                $module = $this->packageRegisteredBy($path, $this->root().'/'.$file);
+
+                self::assertSame('package', $module['name'], $file);
+                self::assertIsString($module['path'] ?? null, $file);
+
+                $resolved = realpath($module['path']);
+                self::assertNotFalse($resolved, $file);
+                // Discovery stores the directory it read. The list slot is not part of that.
+                self::assertSame($this->root().'/app/package', strtr($resolved, '\\', '/'), $file);
+            }
+        } finally {
+            $this->removeTree($path);
         }
     }
 
@@ -1085,6 +1121,86 @@ final class PackageModuleBoundaryTest extends TestCase
         }
 
         return $entries[2];
+    }
+
+    /**
+     * A tree the boot can register from, with an autoload.php that stops the file
+     * on the statement after register().
+     */
+    private function registrationRoot(): string
+    {
+        $path = $this->temporaryDirectory();
+
+        try {
+            $linked = @symlink($this->root().'/app', $path.'/app')
+                && @symlink($this->root().'/packages', $path.'/packages')
+                && is_link($path.'/app')
+                && is_link($path.'/packages');
+
+            if (!$linked) {
+                self::markTestSkipped('symlink() is unavailable on this host');
+            }
+
+            foreach (['tmp/cache', 'tmp/logs', 'tmp/sessions'] as $directory) {
+                self::assertTrue(mkdir($path.'/'.$directory, 0755, true), $directory);
+            }
+
+            // The wizard boot exits when this tree fails its requirement check.
+            self::assertNotFalse(file_put_contents($path.'/.htaccess', ''));
+            self::assertNotFalse(file_put_contents($path.'/autoload.php', self::STAND_IN_AUTOLOAD));
+
+            return $path;
+        } catch (\Throwable $error) {
+            $this->removeTree($path);
+
+            throw $error;
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function packageRegisteredBy(string $base, string $bootFile): array
+    {
+        // Included boot files read these two names from the including scope.
+        $path = $base;
+        $config = ['path' => $path, 'config.file' => false];
+        $app = null;
+
+        try {
+            include $bootFile;
+
+            self::fail($bootFile.' continued past registration.');
+        } catch (\TypeError $error) {
+            self::assertStringContainsString(ClassLoader::class, $error->getMessage(), $bootFile);
+            self::assertStringContainsString($bootFile, strtr($error->getMessage(), '\\', '/'), $bootFile);
+        }
+
+        self::assertInstanceOf(Application::class, $app, $bootFile);
+
+        $manager = $app->get('module');
+        self::assertInstanceOf(ModuleManager::class, $manager, $bootFile);
+
+        // load() would run every main(). The registry is what register() stored.
+        $registered = (new \ReflectionProperty(ModuleManager::class, 'registered'))->getValue($manager);
+        self::assertIsArray($registered, $bootFile);
+        self::assertArrayHasKey('package', $registered, $bootFile."\n".$this->failureSummary($manager));
+
+        $module = $registered['package'];
+        self::assertIsArray($module, $bootFile);
+
+        return $module;
+    }
+
+    private function failureSummary(ModuleManager $manager): string
+    {
+        $messages = [];
+
+        foreach ($manager->getRegistrationFailures() as $file => $error) {
+            $messages[] = $file.': '.$error->getMessage();
+        }
+
+        return $messages === [] ? 'none' : implode('; ', $messages);
     }
 
     /**
