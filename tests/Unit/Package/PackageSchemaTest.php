@@ -9,9 +9,9 @@ use Doctrine\DBAL\DriverManager;
 use Pagekit\Application;
 use Pagekit\Config\Config;
 use Pagekit\Config\ConfigManager;
-use Pagekit\Installer\Package\Package;
 use Pagekit\Installer\Package\PackageManager;
 use Pagekit\Migration\MigrationService;
+use Pagekit\Package\Package;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Output\NullOutput;
 
@@ -489,8 +489,8 @@ final class PackageSchemaTest extends TestCase
 
                     declare(strict_types=1);
 
-                    use Pagekit\Installer\Package\Lifecycle\MigrationSet;
-                    use Pagekit\Installer\Package\Lifecycle\PackageLifecycle;
+                    use Pagekit\Package\Lifecycle\MigrationSet;
+                    use Pagekit\Package\Lifecycle\PackageLifecycle;
                     use Psr\Container\ContainerInterface;
 
                     return new class () extends PackageLifecycle {

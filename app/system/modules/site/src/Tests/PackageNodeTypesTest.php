@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Pagekit\Site\Tests;
 
 use Pagekit\Config\Config;
-use Pagekit\Installer\Package\Package;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
+use Pagekit\Package\Package;
 use Pagekit\Site\PackageNodeTypes;
 use PHPUnit\Framework\TestCase;
 use stdClass;

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Pagekit\Blog;
 
-use Pagekit\Installer\Package\Lifecycle\MigrationSet;
-use Pagekit\Installer\Package\Lifecycle\PackageLifecycle;
+use Pagekit\Package\Lifecycle\MigrationSet;
+use Pagekit\Package\Lifecycle\PackageLifecycle;
 use Psr\Container\ContainerInterface;
 
 /**

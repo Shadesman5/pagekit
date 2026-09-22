@@ -8,6 +8,7 @@ use FilesystemIterator;
 use Pagekit\Application;
 use Pagekit\Package\PackageModule;
 use PHPUnit\Framework\TestCase;
+use RecursiveCallbackFilterIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SimpleXMLElement;
@@ -19,6 +20,21 @@ use SplFileInfo;
 final class PackageModuleBoundaryTest extends TestCase
 {
     private const SYSTEM_NAMESPACE = 'Pagekit\\System\\';
+
+    /**
+     * Retired registry and lifecycle names. PackageManager and TablePrefix still
+     * live under Installer, so the pattern stops at those three classes and the
+     * lifecycle segment.
+     */
+    private const RETIRED_REGISTRY = '/Installer\\\\Package\\\\(?:Package\\b|PackageInterface|PackageFactory|Lifecycle)/';
+
+    /**
+     * @var list<string>
+     */
+    private const SOURCE_EXTENSIONS = [
+        'php', 'inc', 'js', 'mjs', 'vue', 'json', 'neon', 'xml', 'yml', 'yaml',
+        'md', 'less', 'css', 'html', 'twig', 'svg', 'txt', 'dist',
+    ];
 
     /**
      * @var list<string>
@@ -108,6 +124,140 @@ final class PackageModuleBoundaryTest extends TestCase
         self::assertSame([], $this->hitsIn('fixture.php', $contents, self::SYSTEM_NAMESPACE));
     }
 
+    public function testTheRetiredRegistryAndLifecycleNamesAreGone(): void
+    {
+        $roots = [
+            'app' => self::SOURCE_EXTENSIONS,
+            'packages' => self::SOURCE_EXTENSIONS,
+            'tests' => self::SOURCE_EXTENSIONS,
+        ];
+
+        // Each root has to contribute a real file, or an empty result would only mean nothing was read.
+        self::assertNotEmpty($this->under($this->patternHits($roots, '/namespace Pagekit\\\\Package;/'), 'app/package/'));
+        self::assertNotEmpty($this->under($this->patternHits($roots, '/namespace Pagekit\\\\Blog;/'), 'packages/'));
+        self::assertNotEmpty($this->under($this->patternHits($roots, '/namespace Pagekit\\\\Tests\\\\Unit\\\\Package;/'), 'tests/'));
+
+        self::assertSame([], $this->patternHits($roots, self::RETIRED_REGISTRY));
+    }
+
+    public function testTheDetectorReportsARetiredRegistryName(): void
+    {
+        // Double-quoted on purpose: a nowdoc would store these names in this file and the tree scan would report them.
+        $contents = "<?php\n"
+            ."use Pagekit\\Installer\\Package\\PackageManager;\n"
+            ."use Pagekit\\Installer\\Package\\Package;\n"
+            ."use Pagekit\\Installer\\Package\\PackageInterface;\n"
+            ."use Pagekit\\Installer\\Package\\PackageFactory;\n"
+            ."use Pagekit\\Installer\\Package\\Lifecycle\\PackageLifecycle;\n"
+            ."use Pagekit\\Package\\Package;\n"
+            ."use Pagekit\\Installer\\TablePrefix;\n";
+
+        self::assertSame(
+            [
+                'fixture.php:3:use Pagekit\\Installer\\Package\\Package;',
+                'fixture.php:4:use Pagekit\\Installer\\Package\\PackageInterface;',
+                'fixture.php:5:use Pagekit\\Installer\\Package\\PackageFactory;',
+                'fixture.php:6:use Pagekit\\Installer\\Package\\Lifecycle\\PackageLifecycle;',
+            ],
+            $this->patternHitsIn('fixture.php', $contents, self::RETIRED_REGISTRY),
+        );
+    }
+
+    public function testTheRegistryAndLifecycleFilesLeftTheInstallerTree(): void
+    {
+        foreach ([
+            'app/package/src/Package.php',
+            'app/package/src/PackageInterface.php',
+            'app/package/src/PackageFactory.php',
+            'app/package/src/Lifecycle/LifecycleRunner.php',
+            'app/package/src/Lifecycle/MigrationSet.php',
+            'app/package/src/Lifecycle/PackageLifecycle.php',
+            'app/package/src/Lifecycle/PackageLifecycleInterface.php',
+        ] as $file) {
+            self::assertFileExists($this->root().'/'.$file);
+        }
+
+        foreach ([
+            'app/installer/src/Package/Package.php',
+            'app/installer/src/Package/PackageInterface.php',
+            'app/installer/src/Package/PackageFactory.php',
+            'app/installer/src/Package/Lifecycle',
+        ] as $file) {
+            self::assertFileDoesNotExist($this->root().'/'.$file);
+        }
+    }
+
+    public function testTheManagerImportsOnlyTheRegistryInterface(): void
+    {
+        $source = file_get_contents($this->root().'/app/installer/src/Package/PackageManager.php');
+        self::assertIsString($source);
+
+        $packageImports = array_values(array_filter(
+            $this->importedClasses($source),
+            static fn (string $class): bool => str_starts_with($class, 'Pagekit\\Package\\'),
+        ));
+
+        // The factory is the container id `package`; parameters are typed on the interface.
+        self::assertEqualsCanonicalizing(
+            [
+                'Pagekit\\Package\\Lifecycle\\LifecycleRunner',
+                'Pagekit\\Package\\Lifecycle\\MigrationSet',
+                'Pagekit\\Package\\PackageInterface',
+            ],
+            $packageImports,
+        );
+    }
+
+    public function testTheMarketplaceControllerImportsTheMovedFactory(): void
+    {
+        $source = file_get_contents($this->root().'/app/installer/src/Controller/MarketplaceController.php');
+        self::assertIsString($source);
+
+        // The action type-hints the factory, so the import has to name the class that moved.
+        self::assertContains('Pagekit\\Package\\PackageFactory', $this->importedClasses($source));
+    }
+
+    public function testTheTranslationStubLivesInTheManagersNamespace(): void
+    {
+        $manager = file_get_contents($this->root().'/app/installer/src/Package/PackageManager.php');
+        $bootstrap = file_get_contents($this->root().'/tests/Unit/Package/bootstrap.php');
+        self::assertIsString($manager);
+        self::assertIsString($bootstrap);
+
+        self::assertSame(1, preg_match('/^namespace (Pagekit\\\\Installer\\\\Package);/m', $manager, $namespace));
+
+        // Unqualified __() resolves in the manager's namespace before the global helper.
+        self::assertStringContainsString('namespace '.$namespace[1].';', $bootstrap);
+        self::assertStringContainsString("function_exists('".$namespace[1]."\\__')", $bootstrap);
+        self::assertDoesNotMatchRegularExpression('/^namespace Pagekit\\\\Package;/m', $bootstrap);
+    }
+
+    public function testThePackageFactoryBaselineEntryKeepsItsFindingInPathOrder(): void
+    {
+        $entries = $this->baselineEntries();
+        $factory = array_values(array_filter(
+            $entries,
+            static fn (array $entry): bool => ($entry['path'] ?? '') === 'app/package/src/PackageFactory.php',
+        ));
+
+        self::assertCount(1, $factory);
+        self::assertSame('#^Possibly invalid array key type string\|null\.$#', $factory[0]['message']);
+        self::assertSame('offsetAccess.invalidOffset', $factory[0]['identifier']);
+        self::assertSame('1', $factory[0]['count']);
+
+        $paths = array_column($entries, 'path');
+        self::assertNotContains('app/installer/src/Package/PackageFactory.php', $paths);
+
+        $index = array_search('app/package/src/PackageFactory.php', $paths, true);
+        self::assertIsInt($index);
+        self::assertGreaterThan(0, $index);
+        self::assertLessThan(count($paths) - 1, $index);
+
+        // The file is path-sorted, so the entry's neighbors have to sort around it.
+        self::assertLessThan(0, strcmp($paths[$index - 1], $paths[$index]));
+        self::assertLessThan(0, strcmp($paths[$index], $paths[$index + 1]));
+    }
+
     public function testMainReturnsWithoutRegisteringServices(): void
     {
         $app = new Application();
@@ -186,39 +336,83 @@ final class PackageModuleBoundaryTest extends TestCase
      */
     private function hits(array $roots, string $needle): array
     {
+        return $this->scan($roots, fn (string $contents): array => $this->matchingLines($contents, $needle));
+    }
+
+    /**
+     * @param array<string, list<string>> $roots
+     * @return list<string>
+     */
+    private function patternHits(array $roots, string $pattern): array
+    {
+        return $this->scan($roots, fn (string $contents): array => $this->matchingPatternLines($contents, $pattern));
+    }
+
+    /**
+     * @param array<string, list<string>> $roots
+     * @param callable(string): list<string> $lines
+     * @return list<string>
+     */
+    private function scan(array $roots, callable $lines): array
+    {
         $matches = [];
 
         foreach ($roots as $root => $extensions) {
-            $directory = $this->root().'/'.$root;
-            self::assertDirectoryExists($directory);
-
-            $iterator = new RecursiveIteratorIterator(
-                new RecursiveDirectoryIterator(
-                    $directory,
-                    FilesystemIterator::SKIP_DOTS | FilesystemIterator::UNIX_PATHS,
-                ),
-            );
-
-            foreach ($iterator as $file) {
-                if (!$file instanceof SplFileInfo || !$file->isFile()) {
-                    continue;
-                }
-
-                if (!in_array(strtolower($file->getExtension()), $extensions, true)) {
-                    continue;
-                }
-
+            foreach ($this->filesUnder($root, $extensions) as $file) {
                 $contents = file_get_contents($file->getPathname());
 
                 if ($contents === false) {
                     self::fail($file->getPathname().' is not readable');
                 }
 
-                $matches = array_merge($matches, $this->hitsIn($this->relative($file->getPathname()), $contents, $needle));
+                foreach ($lines($contents) as $line) {
+                    $matches[] = $this->relative($file->getPathname()).':'.$line;
+                }
             }
         }
 
         return $matches;
+    }
+
+    /**
+     * @param list<string> $extensions
+     * @return \Generator<int, SplFileInfo>
+     */
+    private function filesUnder(string $root, array $extensions): \Generator
+    {
+        $directory = $this->root().'/'.$root;
+        self::assertDirectoryExists($directory);
+
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveCallbackFilterIterator(
+                new RecursiveDirectoryIterator(
+                    $directory,
+                    FilesystemIterator::SKIP_DOTS | FilesystemIterator::UNIX_PATHS,
+                ),
+                static function (SplFileInfo $file): bool {
+                    return !$file->isDir()
+                        || ($file->getFilename() !== 'vendor' && $file->getFilename() !== 'node_modules');
+                },
+            ),
+        );
+
+        foreach ($iterator as $file) {
+            if (!$file instanceof SplFileInfo || !$file->isFile()) {
+                continue;
+            }
+
+            if (!in_array(strtolower($file->getExtension()), $extensions, true)) {
+                continue;
+            }
+
+            $relative = $this->relative($file->getPathname());
+
+            if (preg_match('#(^|/)vendor/#', $relative) === 1 || preg_match('#(^|/)node_modules/#', $relative) === 1) {
+                continue;
+            }
+
+            yield $file;
+        }
     }
 
     /**
@@ -229,6 +423,20 @@ final class PackageModuleBoundaryTest extends TestCase
         $matches = [];
 
         foreach ($this->matchingLines($contents, $needle) as $line) {
+            $matches[] = $path.':'.$line;
+        }
+
+        return $matches;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function patternHitsIn(string $path, string $contents, string $pattern): array
+    {
+        $matches = [];
+
+        foreach ($this->matchingPatternLines($contents, $pattern) as $line) {
             $matches[] = $path.':'.$line;
         }
 
@@ -249,6 +457,87 @@ final class PackageModuleBoundaryTest extends TestCase
         }
 
         return $matches;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function matchingPatternLines(string $contents, string $pattern): array
+    {
+        $matches = [];
+
+        foreach (preg_split('/\R/', $contents) ?: [] as $index => $line) {
+            $result = preg_match($pattern, $line);
+
+            if ($result === false) {
+                self::fail('Registry pattern did not compile.');
+            }
+
+            if ($result === 1) {
+                $matches[] = ($index + 1).':'.$line;
+            }
+        }
+
+        return $matches;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function importedClasses(string $source): array
+    {
+        if (preg_match_all('/^\s*use\s+([^;]+);/m', $source, $matches) < 1) {
+            return [];
+        }
+
+        $classes = [];
+
+        foreach ($matches[1] as $clause) {
+            $clause = trim($clause);
+
+            if (str_contains($clause, '{') || str_starts_with($clause, 'function ') || str_starts_with($clause, 'const ')) {
+                continue;
+            }
+
+            $classes[] = trim((string) preg_replace('/\s+as\s+\S+$/', '', $clause));
+        }
+
+        return $classes;
+    }
+
+    /**
+     * @return list<array{message: string, identifier: string, count: string, path: string}>
+     */
+    private function baselineEntries(): array
+    {
+        $lines = file($this->root().'/phpstan-baseline.neon', FILE_IGNORE_NEW_LINES);
+        self::assertIsArray($lines);
+
+        $entries = [];
+        $current = [];
+
+        foreach ($lines as $line) {
+            if (preg_match('/^\s+-\s*$/', $line) === 1) {
+                if ($current !== []) {
+                    $entries[] = $current;
+                    $current = [];
+                }
+
+                continue;
+            }
+
+            if (preg_match('/^\s+(message|identifier|count|path):\s*(.*)$/', $line, $matches) !== 1) {
+                continue;
+            }
+
+            $current[$matches[1]] = trim($matches[2], " \t'\"");
+        }
+
+        if ($current !== []) {
+            $entries[] = $current;
+        }
+
+        return $entries;
     }
 
     /**

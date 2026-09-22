@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Pagekit\Site;
 
 use Pagekit\Config\Config;
-use Pagekit\Installer\Package\PackageInterface;
 use Pagekit\Module\ModuleInterface;
 use Pagekit\Module\ModuleManager;
+use Pagekit\Package\PackageInterface;
 
 /**
  * Resolves site node type ids declared by an extension package.

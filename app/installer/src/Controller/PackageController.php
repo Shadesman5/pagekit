@@ -6,12 +6,12 @@ namespace Pagekit\Installer\Controller;
 
 use Pagekit\Application\Response as PagekitResponse;
 use Pagekit\Application\UrlProvider;
-use Pagekit\Installer\Package\PackageFactory;
-use Pagekit\Installer\Package\PackageInterface;
 use Pagekit\Installer\Package\PackageManager;
 use Pagekit\Installer\Package\Snapshot\PackageSnapshotter;
 use Pagekit\Log\Logger;
 use Pagekit\Module\ModuleManager;
+use Pagekit\Package\PackageFactory;
+use Pagekit\Package\PackageInterface;
 use Pagekit\Routing\Attribute\Request as RequestAttribute;
 use Pagekit\User\Attribute\Access;
 use Symfony\Component\HttpFoundation\Request;

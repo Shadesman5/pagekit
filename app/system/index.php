@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Pagekit\Installer\Package\Lifecycle\LifecycleRunner;
 use Pagekit\Kernel\Event\ExceptionListener;
+use Pagekit\Package\Lifecycle\LifecycleRunner;
 use Pagekit\System\Extension\ExtensionFailureStore;
 
 return [

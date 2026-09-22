@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pagekit\Installer\Controller;
 
-use Pagekit\Installer\Package\PackageFactory;
+use Pagekit\Package\PackageFactory;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\User\Attribute\Access;
 use Psr\Container\ContainerInterface;

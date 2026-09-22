@@ -15,7 +15,7 @@
 
 ## 🎯 Overview
 
-The `package` module exists as an empty skeleton beside `installer`. All three boots register `app/package/index.php`. `system` and `installer` require `package`. `PackageModule::main()` registers no services. Package classes, routes, and the admin surface still live in `installer`.
+The `package` module sits beside `installer`. All three boots register `app/package/index.php`. `system` and `installer` require `package`. `PackageModule::main()` still registers no services — the `package` factory registration stays on the installer manifest. The registry (`Package`, `PackageInterface`, `PackageFactory`) and the lifecycle contract live in `Pagekit\Package`. `PackageManager`, the snapshot engine, routes, and the admin surface still live in `installer`.
 
 ---
 
@@ -44,23 +44,67 @@ Nothing moved. The directory, the class main, and the tooling that has to see th
 
 Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done after one retry (first Tester FAIL: including `app/system/index.php` tripped `failOnWarning` on unbound `$app`) → Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
 
+### Registry and lifecycle contract (Checklist Step 2)
+
+`git mv` of the registry and the lifecycle types. Namespace only. The `package` service stays registered in `app/installer/index.php`. `PackageManager` stays in `app/installer/src/Package/`.
+
+| File | Change |
+|---|---|
+| `app/package/src/Package.php`, `PackageInterface.php`, `PackageFactory.php` | From `app/installer/src/Package/`. Namespace `Pagekit\Package`. |
+| `app/package/src/Lifecycle/{LifecycleRunner,MigrationSet,PackageLifecycle,PackageLifecycleInterface}.php` | From `app/installer/src/Package/Lifecycle/`. Namespace `Pagekit\Package\Lifecycle`. |
+| `app/installer/index.php` | Import is `Pagekit\Package\PackageFactory`. The `package` registration stays in this manifest. |
+| `app/installer/src/Package/PackageManager.php` | `use` of `PackageInterface`, `Lifecycle\LifecycleRunner`, `Lifecycle\MigrationSet` only. |
+| `app/installer/src/Installer.php` | `LifecycleRunner` import. |
+| `app/installer/src/Controller/PackageController.php` | `PackageFactory` and `PackageInterface` imports, re-sorted. |
+| `app/installer/src/Controller/MarketplaceController.php` | `PackageFactory` import. The action type-hints the factory. |
+| `app/installer/src/Package/Snapshot/PackageSnapshotter.php` | `PackageInterface` import. |
+| `app/system/index.php`, `app/system/src/Controller/MigrationController.php`, `app/console/src/Commands/MigrationCommand.php` | `LifecycleRunner` import. |
+| `app/system/scripts.php` | `PackageLifecycle` import. The system lifecycle file is this script. |
+| `app/system/modules/site/src/PackageNodeTypes.php` | `PackageInterface` import. |
+| `packages/pagekit/blog/src/BlogLifecycle.php` | `PackageLifecycle` and `MigrationSet` imports. |
+| `phpstan-baseline.neon` | `PackageFactory.php` finding moved to `app/package/src/PackageFactory.php`, path-sorted between `app/modules/view/src/View.php` and `app/system/app.php`. Message, identifier, and count unchanged. The installer path is gone. |
+
+#### Existing tests (follow the move)
+
+Imports re-pointed to `Pagekit\Package\…` and re-sorted (`Pagekit\Package\` after `Pagekit\Module\` / `Pagekit\Migration\`, before `Pagekit\Site\` / `Pagekit\System\` / `Pagekit\Tests\`). Generated lifecycle sources inside the tests name the new class. No assertion changed. `tests/Unit/Package/bootstrap.php` still declares its `__()` stub in `Pagekit\Installer\Package`, where `PackageManager` still lives.
+
+| File | Change |
+|---|---|
+| `tests/Unit/Package/{LifecycleRunnerTest,PackageFactoryTest,PackageFailureRecordTest,PackageHookBarrierTest,PackageHookWarningTest,PackageManagerMigrationTest,PackageSchemaTest,PackageSnapshotGateTest,PackageTreeRemovalTest,ShippedLifecycleTest}.php` | Imports (and inlined `use` lines in generated lifecycles). |
+| `tests/Unit/Snapshot/{PackageSnapshotterTest,RemovalPromiseTest,SnapshotControllerTest,SnapshotPurgeTest,SnapshotRestoreTest,SnapshotRetentionTest,SnapshotServiceWiringTest}.php` | Imports. |
+| `tests/Unit/Console/{MigrationCommandTest,UninstallCommandTest}.php`, `tests/Unit/System/MigrationControllerTest.php` | Imports (and inlined `use` lines). |
+| `app/system/modules/site/src/Tests/{PackageLifecycleWiringTest,PackageNodeTypesTest}.php` | `Package` import. |
+
+#### Tests (Checklist Step 2)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Package/PackageModuleBoundaryTest.php` | Retired names `Pagekit\Installer\Package\{Package,PackageInterface,PackageFactory}` and `…\Lifecycle\` are absent under `app/`, `packages/`, and `tests/` (vendor and `node_modules` skipped). The pattern stops at those three classes and the lifecycle segment, so `PackageManager` and `TablePrefix` stay legal. A double-quoted fixture proves the detector reports the retired names and ignores `PackageManager`, the new namespace, and `TablePrefix`. The seven files exist under `app/package/` and are gone from `app/installer/`. `PackageManager`'s `Pagekit\Package\` imports are exactly the three above. `MarketplaceController` imports `PackageFactory`. The `__()` stub's namespace is the manager's, and the bootstrap does not declare `namespace Pagekit\Package`. The baseline entry is the one `PackageFactory` finding, neighbors path-sorted around it. |
+| `tests/Unit/Package/ShippedLifecycleTest.php` | Blog lifecycle is `Pagekit\Blog\BlogLifecycle` and an instance of `Pagekit\Package\Lifecycle\PackageLifecycle`; the system script's lifecycle is an instance of the same contract. |
+
+Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done after one retry (Verifier FAIL: `PackageModuleBoundaryTest` baseline assertion expected a literal trailing `$`, which in the neon entry is the pattern's end anchor inside `#^…$#`) → Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
 
 - **List position is not the contract.** `app/package/index.php` is registered ahead of `app/installer/index.php`, and `'package'` sits after `'migration'` in both `require` arrays. `ModuleManager::register()` only discovers manifests; `resolveModules()` walks requirements by name. `PackageModuleBoundaryTest` asserts those arrays contain the entry, never an index or a relative order.
+- **The manager's compile-time tie is the interface.** `PackageManager` imports `PackageInterface`, `Lifecycle\LifecycleRunner`, and `Lifecycle\MigrationSet`. `Package`, `PackageFactory`, and `PackageLifecycleInterface` never appear in the body — the factory is the container id `package`, and parameters are typed on the interface. `no_unused_imports` would strip the others. The boundary test pins those three imports.
+- **The marketplace action type-hints the factory.** `MarketplaceController` imports `Pagekit\Package\PackageFactory`. The boundary test asserts that import.
+- **The baseline entry moved in path order.** Same message, identifier, and count. It sits between `View.php` and `app/system/app.php`, not inside the installer block.
+- **The translation stub stays with the manager.** `tests/Unit/Package/bootstrap.php` still declares `__()` in `Pagekit\Installer\Package`. Existing tests re-sorted imports and did not change assertions.
 
 ---
 
 ## 💥 Breaking Changes (Extensions)
 
-None. The module is an empty skeleton; no package class, route, or permission has moved.
+The registry and lifecycle contract left `Pagekit\Installer\Package`. An extension that implements the lifecycle, or names `MigrationSet`, `Package`, `PackageInterface`, or `PackageFactory`, uses `Pagekit\Package\…` (`Lifecycle\` for the lifecycle types). The shipped blog lifecycle is that rename. `PackageManager`, the snapshot types, routes, and the admin surface are still `Pagekit\Installer\…`.
 
 ---
 
 ## ⚠️ Risks & Rollout Notes
 
-`system` and `installer` fail module resolution if `app/package/index.php` is absent. `main()` registers no services.
+`system` and `installer` fail module resolution if `app/package/index.php` is absent. `main()` registers no services. A caller that still names `Pagekit\Installer\Package\{Package,PackageInterface,PackageFactory}` or `Pagekit\Installer\Package\Lifecycle\` does not resolve.
 
 ---
 
@@ -72,7 +116,7 @@ None.
 
 ## 🛡️ No-Mercy Compliance
 
-The stale `Pagekit\Package\` mapping to a directory that does not exist was deleted, not left beside the new PSR-4 path. The main is the class, with an empty `main()` — no closure and no service registration until the registrations move. No alias.
+The stale `Pagekit\Package\` mapping to a directory that does not exist was deleted, not left beside the new PSR-4 path. The main is the class, with an empty `main()` — no closure and no service registration until the registrations move. No alias. The registry and lifecycle types changed namespace at every call site; `PackageManager` did not keep imports for classes its body never names.
 
 ---
 
@@ -82,7 +126,7 @@ The stale `Pagekit\Package\` mapping to a directory that does not exist was dele
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: Step 1 — production Verifier PASS; Tester PHPUnit+PHPStan PASS. test-writer: first Tester FAIL (`PackageModuleBoundaryTest` included `app/system/index.php` and tripped `failOnWarning` on unbound `$app`). Retry binds `$app` before the include. Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
+- Notable deviations: Step 1 — production Verifier PASS; Tester PHPUnit+PHPStan PASS. test-writer: first Tester FAIL (`PackageModuleBoundaryTest` included `app/system/index.php` and tripped `failOnWarning` on unbound `$app`). Retry binds `$app` before the include. Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 2 — production Verifier PASS; Tester PHPUnit+PHPStan PASS. test-writer: first Verifier FAIL (`PackageModuleBoundaryTest` baseline assertion expected a literal trailing `$`; in the neon entry that `$` is the pattern's end anchor inside `#^…$#`). Retry asserts the stored message. Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
 
 ---
 

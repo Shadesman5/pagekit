@@ -8,7 +8,7 @@ use Pagekit\Application\UrlProvider;
 use Pagekit\Filesystem\Adapter\FileAdapter;
 use Pagekit\Filesystem\Filesystem;
 use Pagekit\Filesystem\Locator;
-use Pagekit\Installer\Package\PackageFactory;
+use Pagekit\Package\PackageFactory;
 use Pagekit\Routing\Router;
 use PHPUnit\Framework\TestCase;
 

@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Pagekit\Installer\Package\PackageFactory;
 use Pagekit\Installer\Package\PackageManager;
 use Pagekit\Installer\Package\Snapshot\DatabaseDumper;
 use Pagekit\Installer\Package\Snapshot\DatabaseRestorer;
@@ -10,6 +9,7 @@ use Pagekit\Installer\Package\Snapshot\PackageSnapshotter;
 use Pagekit\Installer\Package\Snapshot\SnapshotStore;
 use Pagekit\Kernel\Event\ExceptionListenerWrapper;
 use Pagekit\Kernel\Exception\NotFoundException;
+use Pagekit\Package\PackageFactory;
 
 return [
 

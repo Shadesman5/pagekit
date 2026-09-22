@@ -8,12 +8,12 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Pagekit\Database\Connection;
 use Pagekit\Filesystem\Filesystem;
-use Pagekit\Installer\Package\Package;
 use Pagekit\Installer\Package\Snapshot\DatabaseDumper;
 use Pagekit\Installer\Package\Snapshot\DatabaseRestorer;
 use Pagekit\Installer\Package\Snapshot\DumpFormat;
 use Pagekit\Installer\Package\Snapshot\PackageSnapshotter;
 use Pagekit\Installer\Package\Snapshot\SnapshotStore;
+use Pagekit\Package\Package;
 use PHPUnit\Framework\TestCase;
 
 /**

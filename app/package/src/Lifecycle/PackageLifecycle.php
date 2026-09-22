@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pagekit\Installer\Package\Lifecycle;
+namespace Pagekit\Package\Lifecycle;
 
 use Psr\Container\ContainerInterface;
 

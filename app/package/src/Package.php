@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pagekit\Installer\Package;
+namespace Pagekit\Package;
 
 use Pagekit\Util\Arr;
 

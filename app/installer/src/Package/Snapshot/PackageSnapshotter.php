@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Installer\Package\Snapshot;
 
 use Pagekit\Filesystem\Filesystem;
-use Pagekit\Installer\Package\PackageInterface;
+use Pagekit\Package\PackageInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 

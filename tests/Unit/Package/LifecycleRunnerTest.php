@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Pagekit\Tests\Unit\Package;
 
-use Pagekit\Installer\Package\Lifecycle\LifecycleRunner;
-use Pagekit\Installer\Package\Lifecycle\MigrationSet;
-use Pagekit\Installer\Package\Lifecycle\PackageLifecycle;
-use Pagekit\Installer\Package\Lifecycle\PackageLifecycleInterface;
+use Pagekit\Package\Lifecycle\LifecycleRunner;
+use Pagekit\Package\Lifecycle\MigrationSet;
+use Pagekit\Package\Lifecycle\PackageLifecycle;
+use Pagekit\Package\Lifecycle\PackageLifecycleInterface;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
@@ -103,7 +103,7 @@ final class LifecycleRunnerTest extends TestCase
 
             declare(strict_types=1);
 
-            use Pagekit\Installer\Package\Lifecycle\PackageLifecycle;
+            use Pagekit\Package\Lifecycle\PackageLifecycle;
 
             return new class () extends PackageLifecycle {};
             PHP);
@@ -374,8 +374,8 @@ final class LifecycleRunnerTest extends TestCase
 
             declare(strict_types=1);
 
-            use Pagekit\Installer\Package\Lifecycle\MigrationSet;
-            use Pagekit\Installer\Package\Lifecycle\PackageLifecycle;
+            use Pagekit\Package\Lifecycle\MigrationSet;
+            use Pagekit\Package\Lifecycle\PackageLifecycle;
 
             return new class () extends PackageLifecycle {
                 public function migrations(): ?MigrationSet
@@ -469,7 +469,7 @@ final class LifecycleRunnerTest extends TestCase
 
             declare(strict_types=1);
 
-            use Pagekit\Installer\Package\Lifecycle\PackageLifecycle;
+            use Pagekit\Package\Lifecycle\PackageLifecycle;
             use Psr\Container\ContainerInterface;
 
             // One line per evaluation, which is how often the file was read.

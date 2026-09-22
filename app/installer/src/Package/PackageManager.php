@@ -6,10 +6,11 @@ namespace Pagekit\Installer\Package;
 
 use Pagekit\Filesystem\Filesystem;
 use Pagekit\Installer\Helper\Composer;
-use Pagekit\Installer\Package\Lifecycle\LifecycleRunner;
-use Pagekit\Installer\Package\Lifecycle\MigrationSet;
 use Pagekit\Installer\Package\Snapshot\PackageSnapshotter;
 use Pagekit\Migration\MigrationService;
+use Pagekit\Package\Lifecycle\LifecycleRunner;
+use Pagekit\Package\Lifecycle\MigrationSet;
+use Pagekit\Package\PackageInterface;
 use Pagekit\System\Extension\ExtensionFailureStore;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;

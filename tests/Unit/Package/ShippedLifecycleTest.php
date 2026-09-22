@@ -9,12 +9,12 @@ use Doctrine\DBAL\DriverManager;
 use Pagekit\Application;
 use Pagekit\Config\Config;
 use Pagekit\Config\ConfigManager;
-use Pagekit\Installer\Package\Lifecycle\LifecycleRunner;
-use Pagekit\Installer\Package\Lifecycle\MigrationSet;
-use Pagekit\Installer\Package\Package;
-use Pagekit\Installer\Package\PackageFactory;
 use Pagekit\Installer\Package\PackageManager;
 use Pagekit\Migration\MigrationService;
+use Pagekit\Package\Lifecycle\LifecycleRunner;
+use Pagekit\Package\Lifecycle\MigrationSet;
+use Pagekit\Package\Package;
+use Pagekit\Package\PackageFactory;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Output\NullOutput;
 
@@ -54,6 +54,23 @@ final class ShippedLifecycleTest extends TestCase
                 sprintf('%s has to deliver a lifecycle that can be asked what it schedules', $file),
             );
         }
+    }
+
+    public function testTheBlogImplementsThePackageLifecycleContract(): void
+    {
+        $blog = $this->path(self::BLOG);
+        $system = $this->path(self::SYSTEM);
+        self::assertFileExists($blog);
+        self::assertFileExists($system);
+
+        $lifecycle = require $blog;
+
+        // The parent is named in full, so the contract stays this class.
+        self::assertInstanceOf('Pagekit\\Package\\Lifecycle\\PackageLifecycle', $lifecycle);
+        self::assertSame('Pagekit\\Blog\\BlogLifecycle', $lifecycle::class);
+
+        $systemLifecycle = require $system;
+        self::assertInstanceOf('Pagekit\\Package\\Lifecycle\\PackageLifecycle', $systemLifecycle);
     }
 
     // ------------------------------------------------------------------

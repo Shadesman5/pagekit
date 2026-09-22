@@ -66,7 +66,7 @@
      A step orchestrator flips its box to [x] in the SAME commit as that step's code + tests
      (after full step PASS incl. test-writer when applicable; for XL after reviews + E2E PASS) -->
 - [x] Step 1 (M) — Safety gates + module skeleton + tooling that must know the directory
-- [ ] Step 2 (L) — Package registry and lifecycle contract
+- [x] Step 2 (L) — Package registry and lifecycle contract
 - [ ] Step 3 (M) — Failure record
 - [ ] Step 4 (L) — Manager, Composer helper and snapshot engine
 - [ ] Step 5 (L) — Admin surface, undivided
@@ -97,7 +97,10 @@
 ### Step 1
 - `app/{system,console,installer}/app.php` and `app/{system,installer}/index.php` — `app/package/index.php` is registered ahead of `app/installer/index.php`, and `'package'` is listed after `'migration'` in both `require` arrays. The position is cosmetic: `ModuleManager::register()` only discovers manifests and `resolveModules()` resolves requirements depth-first by name, so the boundary test must assert membership of those arrays, never an index or a relative order.
 ### Step 2
-_none yet_
+- `PackageManager` — gained only `use Pagekit\Package\PackageInterface;`, not the five imports the checklist lists: the class names `Package`, `PackageFactory` and `PackageLifecycleInterface` appear nowhere in its body (it reaches the factory as the container id `package` and types every parameter on the interface), and `no_unused_imports` in `.php-cs-fixer.php` would strip unused ones. Invariant: the manager's only compile-time tie to the registry is `PackageInterface`; a test that pins its imports must pin that one, plus `Lifecycle\LifecycleRunner` and `Lifecycle\MigrationSet`.
+- `app/installer/src/Controller/MarketplaceController.php` — re-pointed its `PackageFactory` import even though the checklist's call-site list omits it. Non-goals allow "one import line each" for the marketplace/update surface, and the file does not compile otherwise.
+- `phpstan-baseline.neon` — the relocated `PackageFactory.php` entry was moved to its sorted position between `app/modules/view/src/View.php` and `app/system/app.php`, not left inside the `app/installer` block. The file is path-sorted, so an in-place edit would be the one out-of-order entry and the next surgical edit would have to hunt for it. Count and message are untouched.
+- Existing test files — imports were re-sorted where the new prefix changes their alphabetical position (`Pagekit\Package\…` sorts after `Pagekit\Module\…`/`Pagekit\Migration\…` and before `Pagekit\Site\…`/`Pagekit\System\…`/`Pagekit\Tests\…`), so `ordered_imports` stays satisfied. No assertion changed; `tests/Unit/Package/bootstrap.php` still declares its `__()` stub in `Pagekit\Installer\Package`, which is where `PackageManager` still lives.
 ### Step 3
 _none yet_
 ### Step 4
