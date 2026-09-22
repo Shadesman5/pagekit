@@ -21,6 +21,7 @@ return [
         'markdown',
         'installer',
         'migration',
+        'package',
         'system/captcha',
         'system/view',
         'system/widget',

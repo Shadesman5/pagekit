@@ -80,6 +80,7 @@ return [
 
         'application',
         'migration',
+        'package',
         'system/cache',
         'system/intl',
         'system/view',

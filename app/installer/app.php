@@ -20,6 +20,7 @@ $app->set('autoloader', $loader);
 
 $app->get('module')->register([
     'app/modules/*/index.php',
+    'app/package/index.php',
     'app/installer/index.php',
     'app/system/index.php',
 ], $path);

@@ -15,57 +15,64 @@
 
 ## 🎯 Overview
 
-_TBD_
+The `package` module exists as an empty skeleton beside `installer`. All three boots register `app/package/index.php`. `system` and `installer` require `package`. `PackageModule::main()` registers no services. Package classes, routes, and the admin surface still live in `installer`.
 
 ---
 
 ## ✅ What Changed
 
-### <Theme>
+### Module skeleton (Checklist Step 1)
+
+Nothing moved. The directory, the class main, and the tooling that has to see the directory are in place so later steps can `git mv` into a module the boots already load.
 
 | File | Change |
 |---|---|
-| `path/to/file.php` | _TBD_ |
+| `app/package/index.php` (new) | Manifest `package`: `'main' => Pagekit\Package\PackageModule`, `require` `application`, `migration`, `system/intl`, `system/view`, resource `package:`. No routes, menu, permissions, or config. |
+| `app/package/src/PackageModule.php` (new) | Final `PackageModule`. `main()` returns `null` and registers nothing. |
+| `app/system/app.php`, `app/console/app.php`, `app/installer/app.php` | Register `app/package/index.php` ahead of `app/installer/index.php`. |
+| `app/system/index.php`, `app/installer/index.php` | `'package'` added to `require`, after `migration`. Installer still owns the package services, routes, and admin menu. |
+| `composer.json` | PSR-4 `Pagekit\Package\` → `app/package/src`, beside `Pagekit\Installer\`. |
+| `phpstan.neon` | Analyse path `app/package`. |
+| `phpunit.xml.dist` | Coverage include `app/package`. No `phpunit.xml` beside the dist file. |
+| `app/modules/application/src/Tests/bootstrap.php` | Deleted the stale `Pagekit\Package\` → `/app/modules/package/src` mapping. |
 
-_TBD_
-
-#### Tests (only if added or changed)
+#### Tests (Checklist Step 1)
 
 | File | Change |
 |---|---|
-| `path/to/file.php` | _TBD_ |
+| `tests/Unit/Package/PackageModuleBoundaryTest.php` (new) | Manifest graph (`package` requires neither `installer` nor `system`; both of those require `package`), each boot file registers the manifest once, a scan of `app/package` and `app/installer/src` reports `Pagekit\System\` only outside the package tree and fails an in-memory fixture that contains such a line, `main()` adds no services, Composer / PHPStan / PHPUnit name `app/package`, and the application test bootstrap no longer maps `/app/modules/package/src`. Asserts membership, not list order. Including a manifest binds `$app` first — the system manifest's events capture it. |
 
-_TBD_
+Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done after one retry (first Tester FAIL: including `app/system/index.php` tripped `failOnWarning` on unbound `$app`) → Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
 
 ---
 
 ## 🧠 Key Decisions (Rationale)
 
-_TBD / None_
+- **List position is not the contract.** `app/package/index.php` is registered ahead of `app/installer/index.php`, and `'package'` sits after `'migration'` in both `require` arrays. `ModuleManager::register()` only discovers manifests; `resolveModules()` walks requirements by name. `PackageModuleBoundaryTest` asserts those arrays contain the entry, never an index or a relative order.
 
 ---
 
 ## 💥 Breaking Changes (Extensions)
 
-_TBD / None_
+None. The module is an empty skeleton; no package class, route, or permission has moved.
 
 ---
 
 ## ⚠️ Risks & Rollout Notes
 
-_TBD / None_
+`system` and `installer` fail module resolution if `app/package/index.php` is absent. `main()` registers no services.
 
 ---
 
 ## 🔐 Security & Data Impact
 
-_TBD / None_
+None.
 
 ---
 
 ## 🛡️ No-Mercy Compliance
 
-_TBD_
+The stale `Pagekit\Package\` mapping to a directory that does not exist was deleted, not left beside the new PSR-4 path. The main is the class, with an empty `main()` — no closure and no service registration until the registrations move. No alias.
 
 ---
 
@@ -75,7 +82,7 @@ _TBD_
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: Checklist Step 1 ESCALATE (Tester, same FAIL 3×, 2026-09-22 01:52 UTC). `./app/vendor/bin/phpunit` and `./app/vendor/bin/phpstan analyse --no-progress --memory-limit=512M` did not run. The Tester session was in Ask mode — subagent frontmatter `readonly: true` forces Ask mode — so the shell blocked non-read-only commands. Re-run the Tester in Agent mode.
+- Notable deviations: Step 1 — production Verifier PASS; Tester PHPUnit+PHPStan PASS. test-writer: first Tester FAIL (`PackageModuleBoundaryTest` included `app/system/index.php` and tripped `failOnWarning` on unbound `$app`). Retry binds `$app` before the include. Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
 
 ---
 

@@ -10,7 +10,6 @@ $autoload = [
     'Pagekit\\Filesystem\\' => '/app/modules/filesystem/src',
     'Pagekit\\Filter\\' => '/app/modules/filter/src',
     'Pagekit\\Migration\\' => '/app/modules/migration/src',
-    'Pagekit\\Package\\' => '/app/modules/package/src',
     'Pagekit\\Routing\\' => '/app/modules/routing/src',
     'Pagekit\\Session\\' => '/app/modules/session/src',
     'Pagekit\\Tree\\' => '/app/modules/tree/src',

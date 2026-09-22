@@ -54,6 +54,7 @@
             <directory suffix=".php">app/modules</directory>
             <directory suffix=".php">app/system</directory>
             <directory suffix=".php">app/console</directory>
+            <directory suffix=".php">app/package</directory>
         </include>
         <exclude>
             <directory>app/modules/*/src/Tests</directory>

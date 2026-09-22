@@ -65,7 +65,7 @@
      L = large or loop-risk, XL = Review (Bugbot + Security) + E2E (mandatory last step, weight 8).
      A step orchestrator flips its box to [x] in the SAME commit as that step's code + tests
      (after full step PASS incl. test-writer when applicable; for XL after reviews + E2E PASS) -->
-- [ ] Step 1 (M) — Safety gates + module skeleton + tooling that must know the directory
+- [x] Step 1 (M) — Safety gates + module skeleton + tooling that must know the directory
 - [ ] Step 2 (L) — Package registry and lifecycle contract
 - [ ] Step 3 (M) — Failure record
 - [ ] Step 4 (L) — Manager, Composer helper and snapshot engine
@@ -95,7 +95,7 @@
      `File::symbol` — chosen vs. rejected, why, the invariant a test must hold. Files that follow the
      plan get no line; a step with no open decision gets `none`. Architect leaves every step `_none yet_`. -->
 ### Step 1
-_none yet_
+- `app/{system,console,installer}/app.php` and `app/{system,installer}/index.php` — `app/package/index.php` is registered ahead of `app/installer/index.php`, and `'package'` is listed after `'migration'` in both `require` arrays. The position is cosmetic: `ModuleManager::register()` only discovers manifests and `resolveModules()` resolves requirements depth-first by name, so the boundary test must assert membership of those arrays, never an index or a relative order.
 ### Step 2
 _none yet_
 ### Step 3

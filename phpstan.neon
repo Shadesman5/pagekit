@@ -23,6 +23,7 @@ parameters:
         - app/modules
         - app/system
         - app/installer
+        - app/package
         - app/console
         - packages
 
