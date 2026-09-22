@@ -10,7 +10,7 @@
   "model": "grok-4.7",
   "status": "in_progress",
   "startedAt": "2026-09-21T23:50:59.759Z",
-  "completedAt": "2026-09-22T00:40:42.574Z",
+  "completedAt": "2026-09-22T01:43:55.282Z",
   "phases": [
     {
       "phaseKey": "35669379137-1-PLAN",
@@ -70,13 +70,30 @@
         1,
         2
       ],
-      "startedAt": "2026-09-22T01:16:00.911Z",
-      "durationMs": 1682069,
+      "startedAt": "2026-09-22T01:16:02.739Z",
+      "durationMs": 1671960,
       "agent": {
         "id": "bc-43d2511f-cbb5-4f08-976c-6d21cb8a586a",
         "runId": "run-c2e54ccd-5062-44a4-a9f9-6b415c51eb74",
         "url": "https://cursor.com/agents/bc-43d2511f-cbb5-4f08-976c-6d21cb8a586a",
-        "model": "grok-4.7"
+        "model": "grok-4.7",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-c2e54ccd-5062-44a4-a9f9-6b415c51eb74",
+            "index": 1,
+            "startedAt": "2026-09-22T01:16:02.739Z",
+            "completedAt": "2026-09-22T01:43:55.282Z",
+            "durationMs": 1671960,
+            "tokens": {
+              "input": 445796,
+              "output": 8184,
+              "cacheRead": 473216,
+              "cacheWrite": 0,
+              "total": 927196
+            }
+          }
+        ]
       },
       "github": {
         "runId": 35672958853,
@@ -94,7 +111,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "ESCALATE: Step 1 — Tester FAIL ×3: PHPUnit and PHPStan never ran because Ask mode blocked the shell.",
-      "outcome": "escalate"
+      "outcome": "escalate",
+      "completedAt": "2026-09-22T01:43:55.282Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -105,7 +124,7 @@
       "cacheWrite": 0,
       "total": 1491380
     },
-    "durationMs": 4664426,
+    "durationMs": 4654317,
     "phaseCount": 2,
     "escalations": 1,
     "ghaJobs": 2,
