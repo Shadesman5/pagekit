@@ -304,20 +304,51 @@
       "tokensSource": "cursor-api",
       "result": "ESCALATE: ManagePullRequest did not open the PR (registered for user approval).",
       "outcome": "escalate"
+    },
+    {
+      "phaseKey": "35783202048-1-FINALIZE (retry 1)",
+      "type": "FINALIZE",
+      "attempt": 1,
+      "batchSteps": null,
+      "startedAt": "2026-09-22T20:56:01.534Z",
+      "durationMs": 3422895,
+      "agent": {
+        "id": "bc-c33da453-42c8-4e0d-8f6c-6cc339873510",
+        "runId": "run-f1f88c3d-55bf-4028-846a-37d3a5d76eea",
+        "url": "https://cursor.com/agents/bc-c33da453-42c8-4e0d-8f6c-6cc339873510",
+        "model": "grok-4.7"
+      },
+      "github": {
+        "runId": 35783202048,
+        "runAttempt": 1,
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/35783202048",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 487933,
+        "output": 23022,
+        "cacheRead": 4885760,
+        "cacheWrite": 0,
+        "total": 5396715
+      },
+      "tokensSource": "cursor-api",
+      "result": "Finalized. PR: #296. Version: 1.2.42. Ticket archived to done/.",
+      "outcome": "success"
     }
   ],
   "totals": {
     "tokens": {
-      "input": 1693749,
-      "output": 69106,
-      "cacheRead": 6381824,
+      "input": 2181682,
+      "output": 92128,
+      "cacheRead": 11267584,
       "cacheWrite": 0,
-      "total": 8144679
+      "total": 13541394
     },
-    "durationMs": 18579506,
-    "phaseCount": 6,
+    "durationMs": 22002401,
+    "phaseCount": 7,
     "escalations": 2,
     "ghaJobs": 5,
-    "cloudAgents": 6
+    "cloudAgents": 7
   }
 }
