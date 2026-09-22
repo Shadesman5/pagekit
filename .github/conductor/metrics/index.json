@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-22T18:48:55.576Z",
+  "updatedAt": "2026-09-22T18:49:01.326Z",
   "steps": {
     "unknown": {
       "title": "AGENT_PROMPT_AUDIT_TECH_DEBT_INVENTORY",
@@ -223,7 +223,7 @@
     "note": "Historical data from GHA logs (all job attempts merged per workflow run)"
   },
   "cursorEnrich": {
-    "at": "2026-09-22T17:50:15.347Z",
+    "at": "2026-09-22T18:49:01.326Z",
     "phasesEnriched": 1,
     "sessionsTouched": 1
   },
