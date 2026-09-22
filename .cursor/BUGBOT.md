@@ -186,7 +186,7 @@ POST/PUT/DELETE action without `csrf: true` (or equivalent) → **non-blocking B
 
 Do not open PHPUnit or Playwright test files. Do not run tests.
 
-Changed-file list touches `app/system/src/`, `app/installer/src/`, or `app/modules/*/src/` and has no `**/Tests/**` or `tests/` path → **non-blocking Bug** "No tests for backend changes".
+Changed-file list touches `app/system/src/`, `app/installer/src/`, `app/package/src/`, or `app/modules/*/src/` and has no `**/Tests/**` or `tests/` path → **non-blocking Bug** "No tests for backend changes".
 
 Skip for mechanical refactors (`$app['x']` → `$app->get('x')`, constructor injection, types only).
 

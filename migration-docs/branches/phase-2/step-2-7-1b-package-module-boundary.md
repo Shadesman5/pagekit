@@ -187,6 +187,18 @@ Gates: Verifier (production) FAIL once (retention config merge; `RETIRED_REGISTR
 
 Gates: Verifier (production) PASS; Tester PASS (PHPUnit + PHPStan, `pnpm build`, `pnpm lint`, `pnpm exec prettier --check .`, authenticated smoke of the extensions, themes, and snapshots pages). Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
 
+### Tooling and installer cleanup (Checklist Step 6)
+
+The no-change list was re-checked and left. `composer.json`, `phpstan.neon`, `phpunit.xml.dist`, and `scripts/bundle-entries.mjs` already name the directory. No test files. test-writer skipped.
+
+| File | Change |
+|---|---|
+| `scripts/publish.mjs` | `trees()` includes `app/package`, between `app/installer` and `app/system`. |
+| `.cursor/BUGBOT.md` | §6 path list includes `app/package/src/`. |
+| `app/installer/app/lib/` | Empty directory removed. The removal has no diff. |
+
+Gates: Verifier (production) FAIL once (empty `app/installer/app/lib` left on disk) then PASS after removal; Tester PASS (PHPUnit + PHPStan, fresh SQLite install, `/installer` without `config.php`, `pnpm build`, `pnpm lint`, `pnpm exec prettier --check .`); test-writer skipped.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -206,6 +218,9 @@ Gates: Verifier (production) PASS; Tester PASS (PHPUnit + PHPStan, `pnpm build`,
 - **The permission is declared once and shown under `package`.** The permissions screen groups by the declaring module's name, so Manage extensions and themes sits under `package` and Apply system updates stays under `installer`. Roles store the permission name, so nothing stored moves. The marketplace menu still names `system: manage packages` as access. Both moved controllers still gate on that name.
 - **`RemovalPromiseTest` dropped `installerPath()`.** Step 4 kept the helper because `package-manager.js`, `uninstall.vue`, and `package.js` had not moved. `source()` now reads `packagePath()`. The file was not on this step's list.
 - **The manifest-key list is not the surface.** The boundary test's edit with the move only added `routes`, `permissions`, and `menu` to the canonical keys. What those keys hold, and that the installer manifest declares none of them, is the coverage added after.
+- **`trees()` copies scripts; Vite serves the three pages.** `'app/package'` sits between `app/installer` and `app/system`. Both consumers `flatMap` the list. The entry copies the `.js` under `app/package/app/{components,lib,views}` into the webroot, and `pnpm watch` watches `app/package/app`. The pages are Vite output at `package:app/bundle/<name>.js`, written straight into `public/`.
+- **The no-change list stayed no-change.** `check-version-ssot.php` still reads `app/installer/requirements.php`. `scripts/styles.mjs` and the CSS ignore still name the wizard theme; `app/package` ships no LESS. `.php-cs-fixer.php` names `app/installer/config.php` only in the comment on its anchored `notPath`. `AGENTS.md` still names `app/installer/app.php` as a boot file. `infection.json.dist` still scopes mutation to the auth and user sources. `tests/Unit/Installer/*` still imports only `Installer`, `TablePrefix`, and `StorageLink`.
+- **Git does not record an empty directory.** Step 5's `git mv` left `app/installer/app/lib/` on disk. Removing it produces no diff, and checking out an earlier commit leaves it behind again. Only `servedDirs()` in `scripts/publish.mjs` reads it, so a leftover is still a watched directory. The installer inventory is the working tree: `app/installer` carries no empty directory.
 
 ---
 
@@ -229,7 +244,7 @@ None.
 
 ## 🛡️ No-Mercy Compliance
 
-The stale `Pagekit\Package\` mapping to a directory that does not exist was deleted, not left beside the new PSR-4 path. The main is the class. No alias. The registry, the lifecycle types, the failure store, the manager, the helper, and the snapshot engine changed namespace at every call site. `PackageManager` does not import `PackageInterface` from its own namespace. `SystemModule` dropped the failure registration; the `has()` read stayed, because a container without `path.system` still has no id. The four service registrations and the snapshot window left the installer manifest; it does not keep a second copy. The dashboard's `systemApi` registration was already there and was left. `__DIR__` was rewritten so the no-container fallback still names `app/`. The admin surface changed namespace and locator at every call site. The installer manifest does not declare the moved routes, the permission, or the three menu entries again. `@installer` was deleted with its last importer.
+The stale `Pagekit\Package\` mapping to a directory that does not exist was deleted, not left beside the new PSR-4 path. The main is the class. No alias. The registry, the lifecycle types, the failure store, the manager, the helper, and the snapshot engine changed namespace at every call site. `PackageManager` does not import `PackageInterface` from its own namespace. `SystemModule` dropped the failure registration; the `has()` read stayed, because a container without `path.system` still has no id. The four service registrations and the snapshot window left the installer manifest; it does not keep a second copy. The dashboard's `systemApi` registration was already there and was left. `__DIR__` was rewritten so the no-container fallback still names `app/`. The admin surface changed namespace and locator at every call site. The installer manifest does not declare the moved routes, the permission, or the three menu entries again. `@installer` was deleted with its last importer. The empty `app/installer/app/lib/` the move left on disk was removed.
 
 ---
 
@@ -239,7 +254,7 @@ The stale `Pagekit\Package\` mapping to a directory that does not exist was dele
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: Step 1 — production Verifier PASS; Tester PHPUnit+PHPStan PASS. test-writer: first Tester FAIL (`PackageModuleBoundaryTest` included `app/system/index.php` and tripped `failOnWarning` on unbound `$app`). Retry binds `$app` before the include. Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 2 — production Verifier PASS; Tester PHPUnit+PHPStan PASS. test-writer: first Verifier FAIL (`PackageModuleBoundaryTest` baseline assertion expected a literal trailing `$`; in the neon entry that `$` is the pattern's end anchor inside `#^…$#`). Retry asserts the stored message. Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 3 — production Verifier PASS. Tester PHPUnit+PHPStan FAIL once (`PackageModuleBoundaryTest` import allow-list) then PASS after a production retry. test-writer PASS; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 4 — production Verifier FAIL once (retention config merge; `RETIRED_REGISTRY` comment) then PASS; Tester PHPUnit+PHPStan PASS. test-writer PASS. Verifier (test files) FAIL once (retired-namespace patterns; `SnapshotServiceWiringTest` docblock) then PASS; Tester PHPUnit+PHPStan PASS. Step 5 — production Verifier PASS; Tester PASS (PHPUnit + PHPStan, `pnpm build`, `pnpm lint`, `pnpm exec prettier --check .`, authenticated smoke of the extensions, themes, and snapshots pages). Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
+- Notable deviations: Step 1 — production Verifier PASS; Tester PHPUnit+PHPStan PASS. test-writer: first Tester FAIL (`PackageModuleBoundaryTest` included `app/system/index.php` and tripped `failOnWarning` on unbound `$app`). Retry binds `$app` before the include. Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 2 — production Verifier PASS; Tester PHPUnit+PHPStan PASS. test-writer: first Verifier FAIL (`PackageModuleBoundaryTest` baseline assertion expected a literal trailing `$`; in the neon entry that `$` is the pattern's end anchor inside `#^…$#`). Retry asserts the stored message. Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 3 — production Verifier PASS. Tester PHPUnit+PHPStan FAIL once (`PackageModuleBoundaryTest` import allow-list) then PASS after a production retry. test-writer PASS; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 4 — production Verifier FAIL once (retention config merge; `RETIRED_REGISTRY` comment) then PASS; Tester PHPUnit+PHPStan PASS. test-writer PASS. Verifier (test files) FAIL once (retired-namespace patterns; `SnapshotServiceWiringTest` docblock) then PASS; Tester PHPUnit+PHPStan PASS. Step 5 — production Verifier PASS; Tester PASS (PHPUnit + PHPStan, `pnpm build`, `pnpm lint`, `pnpm exec prettier --check .`, authenticated smoke of the extensions, themes, and snapshots pages). Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 6 — production Verifier FAIL once (empty `app/installer/app/lib` left on disk) then PASS after removal; Tester PASS (PHPUnit + PHPStan, fresh SQLite install, `/installer` without `config.php`, `pnpm build`, `pnpm lint`, `pnpm exec prettier --check .`); test-writer skipped.
 
 ---
 

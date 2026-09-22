@@ -70,7 +70,7 @@
 - [x] Step 3 (M) — Failure record
 - [x] Step 4 (L) — Manager, Composer helper and snapshot engine
 - [x] Step 5 (L) — Admin surface, undivided
-- [ ] Step 6 (M) — Tooling and `installer` cleanup
+- [x] Step 6 (M) — Tooling and `installer` cleanup
 - [ ] Step 7 (XL) — Review (Bugbot + Security) + E2E
 
 ## TESTING STRATEGY
@@ -119,6 +119,8 @@
 - `tests/Unit/Snapshot/RemovalPromiseTest::source` — re-pointed at the existing `packagePath()` and `installerPath()` deleted, rather than kept for a tree that no longer holds `app/components/package-manager.js`, `app/lib/uninstall.vue` or `app/lib/package.js`. The Step 4 note parked that helper for this step; the file is not on the plan's Step 5 list, but its three sources are.
 - `PackageModuleBoundaryTest::testThePackageManifestDeclaresTheModuleAndItsSnapshotWindow` — only the canonical key list gained `routes`, `permissions` and `menu`; what those keys hold, and that `installer` declares none of it, is the new coverage this step's notes leave to the test-writer.
 ### Step 6
-_none yet_
+- No-change list (Scope › "Verified no-change") — re-checked on this tree, nothing edited: `.github/scripts/check-version-ssot.php` reads `app/installer/requirements.php`, which never moved; `scripts/styles.mjs` and the `/app/installer/assets/css/*` ignore name the wizard theme, the only LESS tree (`app/package` ships none); `.php-cs-fixer.php` names `app/installer/config.php` only in the comment explaining its anchored `notPath`; `AGENTS.md` names `app/installer/app.php` as a boot file; `infection.json.dist` scopes mutation to the auth/user sources; `tests/Unit/Installer/*` imports only `Installer`, `TablePrefix` and `StorageLink`. The tooling that did need the new directory was already edited in the earlier steps (`composer.json`, `phpstan.neon`, `phpunit.xml.dist`, `scripts/bundle-entries.mjs`).
+- `scripts/publish.mjs::trees` — `'app/package'` sits between the installer and the core; both consumers `flatMap` the list, so the position is cosmetic. What the entry restores is what the installer tree did before the admin surface moved: the `.js` under `app/package/app/{components,lib,views}` is copied into the webroot and `pnpm watch` watches `app/package/app` for republication. It is not what serves the three pages — `package:app/bundle/<name>.js` is Vite output written straight into `public/`.
+- `app/installer/app/lib/` — deleted the directory Step 5's `git mv` emptied. It produces no diff (git tracks files, not directories), so a checkout of any earlier commit leaves it behind again and only `servedDirs()` in `scripts/publish.mjs` ever reads it. Invariant: the inventory holds against the working tree, not just a fresh clone — `app/installer` carries no empty directory.
 ### Step 7
 _none yet_
