@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pagekit\Installer\Package\Snapshot;
+namespace Pagekit\Package\Snapshot;
 
 use Pagekit\Filesystem\Filesystem;
 use Pagekit\Package\PackageInterface;

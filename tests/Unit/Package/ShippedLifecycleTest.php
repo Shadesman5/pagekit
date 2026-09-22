@@ -9,12 +9,12 @@ use Doctrine\DBAL\DriverManager;
 use Pagekit\Application;
 use Pagekit\Config\Config;
 use Pagekit\Config\ConfigManager;
-use Pagekit\Installer\Package\PackageManager;
 use Pagekit\Migration\MigrationService;
 use Pagekit\Package\Lifecycle\LifecycleRunner;
 use Pagekit\Package\Lifecycle\MigrationSet;
 use Pagekit\Package\Package;
 use Pagekit\Package\PackageFactory;
+use Pagekit\Package\PackageManager;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Output\NullOutput;
 

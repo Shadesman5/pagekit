@@ -2,14 +2,8 @@
 
 declare(strict_types=1);
 
-use Pagekit\Installer\Package\PackageManager;
-use Pagekit\Installer\Package\Snapshot\DatabaseDumper;
-use Pagekit\Installer\Package\Snapshot\DatabaseRestorer;
-use Pagekit\Installer\Package\Snapshot\PackageSnapshotter;
-use Pagekit\Installer\Package\Snapshot\SnapshotStore;
 use Pagekit\Kernel\Event\ExceptionListenerWrapper;
 use Pagekit\Kernel\Exception\NotFoundException;
-use Pagekit\Package\PackageFactory;
 
 return [
 
@@ -18,30 +12,6 @@ return [
     'main' => function ($app) {
 
         $config = $this->config;
-
-        $app->set('package', fn ($app) => (new PackageFactory($app->get('url'), $app->get('path')))->addPath($app->get('path').'/packages/*/*/composer.json'));
-        $app->set('manager', fn ($app) => new PackageManager($app));
-        $app->set('systemApi', fn ($app) => $app->has('system.api') ? $app->get('system.api') : 'https://pagekit.com');
-
-        // What a removed package can be restored from. Defined only where there
-        // is somewhere to keep a snapshot and a database to dump into it, so
-        // that the one question a caller can ask the container - whether the id
-        // is there - is the same question as whether this installation has a
-        // way back to offer.
-        if ($app->has('path.snapshots') && $app->has('db')) {
-            // How long a removal stays undoable, which is the one thing about
-            // snapshots an installation gets to decide.
-            $retention = SnapshotStore::retentionDays($config['snapshots']['retention_days'] ?? null);
-
-            $app->set('snapshotter', fn ($app) => new PackageSnapshotter(
-                new SnapshotStore($app->get('path.snapshots'), $app->get('file'), $retention),
-                new DatabaseDumper($app->get('db')),
-                new DatabaseRestorer($app->get('db'), $app->get('log')),
-                $app->get('file'),
-                $app->get('log'),
-                $app->get('path.packages'),
-            ));
-        }
 
         if ($config['enabled']) {
 
@@ -188,17 +158,6 @@ return [
 
         'enabled' => false,
         'release_channel' => 'stable',
-
-        'snapshots' => [
-
-            // Days a snapshot of a removed package is kept, after which a purge
-            // may reclaim the disk it holds. Nothing runs on a timer: the window
-            // is enforced when the next snapshot is taken and when an
-            // administrator asks for it. Zero or less keeps every snapshot until
-            // somebody purges it by hand.
-            'retention_days' => SnapshotStore::DEFAULT_RETENTION_DAYS,
-
-        ],
 
     ],
 

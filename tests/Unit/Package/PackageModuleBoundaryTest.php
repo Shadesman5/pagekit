@@ -12,7 +12,12 @@ use Pagekit\Filesystem\Locator;
 use Pagekit\Log\Logger;
 use Pagekit\Module\Module;
 use Pagekit\Package\Extension\ExtensionFailureStore;
+use Pagekit\Package\Helper\Composer;
+use Pagekit\Package\Package;
+use Pagekit\Package\PackageFactory;
+use Pagekit\Package\PackageManager;
 use Pagekit\Package\PackageModule;
+use Pagekit\Package\Snapshot\SnapshotStore;
 use Pagekit\System\SystemModule;
 use PHPUnit\Framework\TestCase;
 use RecursiveCallbackFilterIterator;
@@ -29,11 +34,16 @@ final class PackageModuleBoundaryTest extends TestCase
     private const SYSTEM_NAMESPACE = 'Pagekit\\System\\';
 
     /**
-     * Retired registry and lifecycle names. PackageManager and TablePrefix still
-     * live under Installer, so the pattern stops at those three classes and the
-     * lifecycle segment.
+     * The segment the package module was cut out of, closed by a semicolon or a
+     * backslash. TablePrefix stays in the wizard, so the pattern stops here.
      */
-    private const RETIRED_REGISTRY = '/Installer\\\\Package\\\\(?:Package\\b|PackageInterface|PackageFactory|Lifecycle)/';
+    private const RETIRED_PACKAGE_NAMESPACE = '/Installer\\\\Package(\\\\|;)/';
+
+    /**
+     * The helper segment that moved with the manager, closed by a semicolon or a
+     * backslash. The wizard's own classes stay past this segment.
+     */
+    private const RETIRED_HELPER_NAMESPACE = '/Installer\\\\Helper(\\\\|;)/';
 
     /**
      * @var list<string>
@@ -52,16 +62,32 @@ final class PackageModuleBoundaryTest extends TestCase
         'app/installer/app.php',
     ];
 
-    public function testThePackageManifestIsOnlyTheModuleSkeleton(): void
+    public function testThePackageManifestDeclaresTheModuleAndItsSnapshotWindow(): void
     {
         $manifest = $this->manifest('app/package/index.php');
 
-        self::assertEqualsCanonicalizing(['name', 'main', 'require', 'resources'], array_keys($manifest));
+        self::assertEqualsCanonicalizing(['name', 'main', 'require', 'resources', 'config'], array_keys($manifest));
         self::assertSame('package', $manifest['name']);
         self::assertIsString($manifest['main']);
         self::assertTrue(class_exists($manifest['main']));
         self::assertSame(PackageModule::class, $manifest['main']);
         self::assertSame(['package:' => ''], $manifest['resources']);
+        self::assertSame(
+            ['snapshots' => ['retention_days' => SnapshotStore::DEFAULT_RETENTION_DAYS]],
+            $manifest['config'],
+        );
+    }
+
+    public function testTheInstallerKeepsTheWizardConfigAndNotTheSnapshotWindow(): void
+    {
+        $manifest = $this->manifest('app/installer/index.php');
+
+        // The window belongs to the module that builds the snapshotter. The wizard
+        // keeps only what gates its own screens.
+        self::assertSame(
+            ['enabled' => false, 'release_channel' => 'stable'],
+            $manifest['config'],
+        );
     }
 
     public function testThePackageModuleRequiresNeitherInstallerNorSystem(): void
@@ -130,7 +156,7 @@ final class PackageModuleBoundaryTest extends TestCase
         self::assertSame([], $this->hitsIn('fixture.php', $contents, self::SYSTEM_NAMESPACE));
     }
 
-    public function testTheRetiredRegistryAndLifecycleNamesAreGone(): void
+    public function testTheRetiredPackageNamespaceIsGone(): void
     {
         $roots = [
             'app' => self::SOURCE_EXTENSIONS,
@@ -143,30 +169,107 @@ final class PackageModuleBoundaryTest extends TestCase
         self::assertNotEmpty($this->under($this->patternHits($roots, '/namespace Pagekit\\\\Blog;/'), 'packages/'));
         self::assertNotEmpty($this->under($this->patternHits($roots, '/namespace Pagekit\\\\Tests\\\\Unit\\\\Package;/'), 'tests/'));
 
-        self::assertSame([], $this->patternHits($roots, self::RETIRED_REGISTRY));
+        self::assertSame([], $this->patternHits($roots, self::RETIRED_PACKAGE_NAMESPACE));
     }
 
-    public function testTheDetectorReportsARetiredRegistryName(): void
+    public function testTheDetectorReportsALineInTheRetiredPackageNamespace(): void
     {
         // Double-quoted on purpose: a nowdoc would store these names in this file and the tree scan would report them.
         $contents = "<?php\n"
+            ."namespace Pagekit\\Installer\\Package;\n"
             ."use Pagekit\\Installer\\Package\\PackageManager;\n"
             ."use Pagekit\\Installer\\Package\\Package;\n"
             ."use Pagekit\\Installer\\Package\\PackageInterface;\n"
             ."use Pagekit\\Installer\\Package\\PackageFactory;\n"
             ."use Pagekit\\Installer\\Package\\Lifecycle\\PackageLifecycle;\n"
+            ."use Pagekit\\Installer\\Package\\Snapshot\\SnapshotStore;\n"
+            ."namespace Pagekit\\Package;\n"
             ."use Pagekit\\Package\\Package;\n"
             ."use Pagekit\\Installer\\TablePrefix;\n";
 
+        // A declaration closes the segment with a semicolon, a child name with a
+        // backslash. The last three lines stay legal: the namespace the classes
+        // moved to, and the wizard class that stays.
         self::assertSame(
             [
-                'fixture.php:3:use Pagekit\\Installer\\Package\\Package;',
-                'fixture.php:4:use Pagekit\\Installer\\Package\\PackageInterface;',
-                'fixture.php:5:use Pagekit\\Installer\\Package\\PackageFactory;',
-                'fixture.php:6:use Pagekit\\Installer\\Package\\Lifecycle\\PackageLifecycle;',
+                'fixture.php:2:namespace Pagekit\\Installer\\Package;',
+                'fixture.php:3:use Pagekit\\Installer\\Package\\PackageManager;',
+                'fixture.php:4:use Pagekit\\Installer\\Package\\Package;',
+                'fixture.php:5:use Pagekit\\Installer\\Package\\PackageInterface;',
+                'fixture.php:6:use Pagekit\\Installer\\Package\\PackageFactory;',
+                'fixture.php:7:use Pagekit\\Installer\\Package\\Lifecycle\\PackageLifecycle;',
+                'fixture.php:8:use Pagekit\\Installer\\Package\\Snapshot\\SnapshotStore;',
             ],
-            $this->patternHitsIn('fixture.php', $contents, self::RETIRED_REGISTRY),
+            $this->patternHitsIn('fixture.php', $contents, self::RETIRED_PACKAGE_NAMESPACE),
         );
+    }
+
+    public function testTheRetiredHelperNamespaceIsGone(): void
+    {
+        $roots = [
+            'app' => self::SOURCE_EXTENSIONS,
+            'packages' => self::SOURCE_EXTENSIONS,
+            'tests' => self::SOURCE_EXTENSIONS,
+        ];
+
+        // Each root has to contribute a real file, or an empty result would only mean nothing was read.
+        self::assertNotEmpty($this->under($this->patternHits($roots, '/namespace Pagekit\\\\Package;/'), 'app/package/'));
+        self::assertNotEmpty($this->under($this->patternHits($roots, '/namespace Pagekit\\\\Blog;/'), 'packages/'));
+        self::assertNotEmpty($this->under($this->patternHits($roots, '/namespace Pagekit\\\\Tests\\\\Unit\\\\Package;/'), 'tests/'));
+
+        self::assertSame([], $this->patternHits($roots, self::RETIRED_HELPER_NAMESPACE));
+    }
+
+    public function testTheDetectorReportsALineInTheRetiredHelperNamespace(): void
+    {
+        // Double-quoted on purpose: a nowdoc would store these names in this file and the tree scan would report them.
+        $contents = "<?php\n"
+            ."namespace Pagekit\\Installer\\Helper;\n"
+            ."use Pagekit\\Installer\\Helper\\Composer;\n"
+            ."use Pagekit\\Installer\\Helper\\Factory;\n"
+            ."use Pagekit\\Installer\\Helper\\InstallerIO;\n"
+            ."namespace Pagekit\\Package\\Helper;\n"
+            ."use Pagekit\\Package\\Helper\\Composer;\n"
+            ."use Pagekit\\Installer\\TablePrefix;\n"
+            ." * {@see \\Pagekit\\Installer\\TablePrefix}\n";
+
+        // A declaration closes the segment with a semicolon, a child name with a
+        // backslash. The last four lines stay legal: the namespace the helper
+        // moved to, and the wizard class that stays, citation included.
+        self::assertSame(
+            [
+                'fixture.php:2:namespace Pagekit\\Installer\\Helper;',
+                'fixture.php:3:use Pagekit\\Installer\\Helper\\Composer;',
+                'fixture.php:4:use Pagekit\\Installer\\Helper\\Factory;',
+                'fixture.php:5:use Pagekit\\Installer\\Helper\\InstallerIO;',
+            ],
+            $this->patternHitsIn('fixture.php', $contents, self::RETIRED_HELPER_NAMESPACE),
+        );
+    }
+
+    public function testTheReservedMarkersStayBoundToTheWizardPrefix(): void
+    {
+        $source = file_get_contents($this->root().'/tests/Unit/Snapshot/RestoreTableNamesTest.php');
+        self::assertIsString($source);
+
+        $imports = $this->importedClasses($source);
+
+        // The markers are reserved only because a prefix an installation can be
+        // created with refuses them. That reading lives in the wizard, so this
+        // one test is where the two modules stay bound.
+        self::assertContains('Pagekit\\Package\\Snapshot\\RestoreTableNames', $imports);
+        self::assertContains('Pagekit\\Installer\\TablePrefix', $imports);
+        self::assertSame(3, preg_match_all('/TablePrefix::refusal\\(/', $source));
+
+        $installable = $this->methodSource($source, 'testNoTableOfAnInstallationThatCouldBeCreatedReadsAsANameARestoreInvented');
+        self::assertStringContainsString('assertNull', $installable);
+        self::assertStringContainsString('RestoreTableNames::isReserved', $installable);
+        self::assertSame(1, preg_match_all('/TablePrefix::refusal\\(/', $installable));
+
+        $markers = $this->methodSource($source, 'testAMarkerARestoreNamesItsOwnTablesWithIsNoPrefixAnInstallationCanBeCreatedWith');
+        self::assertStringContainsString('RestoreTableNames::SHADOW', $markers);
+        self::assertStringContainsString('RestoreTableNames::BACKUP', $markers);
+        self::assertSame(2, preg_match_all('/TablePrefix::refusal\\(/', $markers));
     }
 
     public function testTheRegistryAndLifecycleFilesLeftTheInstallerTree(): void
@@ -199,27 +302,28 @@ final class PackageModuleBoundaryTest extends TestCase
         self::assertFileDoesNotExist($this->root().'/app/system/src/Extension/ExtensionFailureStore.php');
     }
 
-    public function testTheManagerImportsOnlyTheRegistryInterfaceAndTheFailureStore(): void
+    public function testTheManagerHelperAndSnapshotEngineLeftTheInstallerTree(): void
     {
-        $source = file_get_contents($this->root().'/app/installer/src/Package/PackageManager.php');
-        self::assertIsString($source);
+        foreach ([
+            'app/package/src/PackageManager.php',
+            'app/package/src/Helper/Composer.php',
+            'app/package/src/Helper/Factory.php',
+            'app/package/src/Helper/InstallerIO.php',
+            'app/package/src/Snapshot/DatabaseDumper.php',
+            'app/package/src/Snapshot/DatabaseRestorer.php',
+            'app/package/src/Snapshot/DumpFormat.php',
+            'app/package/src/Snapshot/PackageSnapshotter.php',
+            'app/package/src/Snapshot/RestoreTableNames.php',
+            'app/package/src/Snapshot/ShadowSchema.php',
+            'app/package/src/Snapshot/SnapshotStore.php',
+        ] as $file) {
+            $source = file_get_contents($this->root().'/'.$file);
+            self::assertIsString($source, $file);
+            self::assertSame(1, preg_match('/^namespace Pagekit\\\\Package(\\\\|;)/m', $source), $file);
+        }
 
-        $packageImports = array_values(array_filter(
-            $this->importedClasses($source),
-            static fn (string $class): bool => str_starts_with($class, 'Pagekit\\Package\\'),
-        ));
-
-        // The factory is the container id `package`, parameters are typed on the interface,
-        // and the store is the type the optional failure record is narrowed to.
-        self::assertEqualsCanonicalizing(
-            [
-                'Pagekit\\Package\\Extension\\ExtensionFailureStore',
-                'Pagekit\\Package\\Lifecycle\\LifecycleRunner',
-                'Pagekit\\Package\\Lifecycle\\MigrationSet',
-                'Pagekit\\Package\\PackageInterface',
-            ],
-            $packageImports,
-        );
+        self::assertDirectoryDoesNotExist($this->root().'/app/installer/src/Package');
+        self::assertDirectoryDoesNotExist($this->root().'/app/installer/src/Helper');
     }
 
     public function testTheMarketplaceControllerImportsTheMovedFactory(): void
@@ -233,17 +337,16 @@ final class PackageModuleBoundaryTest extends TestCase
 
     public function testTheTranslationStubLivesInTheManagersNamespace(): void
     {
-        $manager = file_get_contents($this->root().'/app/installer/src/Package/PackageManager.php');
+        $manager = file_get_contents($this->root().'/app/package/src/PackageManager.php');
         $bootstrap = file_get_contents($this->root().'/tests/Unit/Package/bootstrap.php');
         self::assertIsString($manager);
         self::assertIsString($bootstrap);
 
-        self::assertSame(1, preg_match('/^namespace (Pagekit\\\\Installer\\\\Package);/m', $manager, $namespace));
+        self::assertSame(1, preg_match('/^namespace (Pagekit\\\\Package);/m', $manager, $namespace));
 
         // Unqualified __() resolves in the manager's namespace before the global helper.
         self::assertStringContainsString('namespace '.$namespace[1].';', $bootstrap);
         self::assertStringContainsString("function_exists('".$namespace[1]."\\__')", $bootstrap);
-        self::assertDoesNotMatchRegularExpression('/^namespace Pagekit\\\\Package;/m', $bootstrap);
     }
 
     public function testThePackageFactoryBaselineEntryKeepsItsFindingInPathOrder(): void
@@ -272,7 +375,97 @@ final class PackageModuleBoundaryTest extends TestCase
         self::assertLessThan(0, strcmp($paths[$index], $paths[$index + 1]));
     }
 
-    public function testMainReturnsWithoutRegisteringServices(): void
+    public function testTheComposerBaselineEntriesKeptTheirFindingsInPathOrder(): void
+    {
+        $entries = $this->baselineEntries();
+        $composer = array_values(array_filter(
+            $entries,
+            static fn (array $entry): bool => ($entry['path'] ?? '') === 'app/package/src/Helper/Composer.php',
+        ));
+
+        self::assertSame([
+            [
+                'message' => '#^Call to an undefined method Composer\\\\Downloader\\\\DownloadManager\\:\\:setOutputProgress\\(\\)\\.$#',
+                'identifier' => 'method.notFound',
+                'count' => '1',
+                'path' => 'app/package/src/Helper/Composer.php',
+            ],
+            [
+                'message' => '#^Call to an undefined method Composer\\\\Installer\\:\\:setAdditionalInstalledRepository\\(\\)\\.$#',
+                'identifier' => 'method.notFound',
+                'count' => '1',
+                'path' => 'app/package/src/Helper/Composer.php',
+            ],
+            [
+                'message' => '#^PHPDoc tag @return with type null is incompatible with native type Composer\\\\Composer\\.$#',
+                'identifier' => 'return.phpDocType',
+                'count' => '1',
+                'path' => 'app/package/src/Helper/Composer.php',
+            ],
+            [
+                'message' => '#^Parameter \\#3 \\$installationManager of class Composer\\\\Package\\\\Locker constructor expects Composer\\\\Installer\\\\InstallationManager, Composer\\\\Repository\\\\RepositoryManager given\\.$#',
+                'identifier' => 'argument.type',
+                'count' => '1',
+                'path' => 'app/package/src/Helper/Composer.php',
+            ],
+            [
+                'message' => '#^Parameter \\#4 \\$composerFileContents of class Composer\\\\Package\\\\Locker constructor expects string, Composer\\\\Installer\\\\InstallationManager given\\.$#',
+                'identifier' => 'argument.type',
+                'count' => '1',
+                'path' => 'app/package/src/Helper/Composer.php',
+            ],
+            [
+                'message' => '#^Parameter \\#5 \\$process of class Composer\\\\Package\\\\Locker constructor expects Composer\\\\Util\\\\ProcessExecutor\\|null, string\\|false given\\.$#',
+                'identifier' => 'argument.type',
+                'count' => '1',
+                'path' => 'app/package/src/Helper/Composer.php',
+            ],
+        ], $composer);
+
+        $paths = array_column($entries, 'path');
+        self::assertNotContains('app/installer/src/Helper/Composer.php', $paths);
+
+        foreach ($paths as $path) {
+            self::assertDoesNotMatchRegularExpression('#^app/installer/src/(Package|Helper)/#', $path);
+        }
+
+        $indexes = array_keys($paths, 'app/package/src/Helper/Composer.php', true);
+        self::assertCount(6, $indexes);
+
+        $first = $indexes[0];
+        $last = $indexes[5];
+        self::assertIsInt($first);
+        self::assertIsInt($last);
+        self::assertSame(range($first, $last), $indexes);
+        self::assertGreaterThan(0, $first);
+        self::assertLessThan(count($paths) - 1, $last);
+
+        // The file is path-sorted, so the block's neighbors have to sort around it.
+        self::assertLessThan(0, strcmp($paths[$first - 1], $paths[$first]));
+        self::assertLessThan(0, strcmp($paths[$last], $paths[$last + 1]));
+    }
+
+    public function testTheInstallerIndexBaselineStaysTheClosureBinding(): void
+    {
+        $entries = array_values(array_filter(
+            $this->baselineEntries(),
+            static fn (array $entry): bool => ($entry['path'] ?? '') === 'app/installer/index.php',
+        ));
+
+        self::assertCount(1, $entries);
+        self::assertSame('#^Undefined variable\\: \\$this$#', $entries[0]['message']);
+        self::assertSame('variable.undefined', $entries[0]['identifier']);
+        self::assertSame('1', $entries[0]['count']);
+
+        // A class reads its own config, so the manifest itself adds no baseline entry.
+        $packageIndex = array_values(array_filter(
+            $this->baselineEntries(),
+            static fn (array $entry): bool => ($entry['path'] ?? '') === 'app/package/index.php',
+        ));
+        self::assertSame([], $packageIndex);
+    }
+
+    public function testMainRegistersTheRegistryWhateverTheContainerHolds(): void
     {
         $app = new Application();
         self::assertFalse($app->has('path.system'));
@@ -287,7 +480,184 @@ final class PackageModuleBoundaryTest extends TestCase
         ]);
 
         self::assertNull($module->main($app));
-        self::assertEqualsCanonicalizing($registered, $app->keys());
+
+        // Everything the guards leave out: the record has no directory, and
+        // there is neither somewhere to keep a snapshot nor a database to dump.
+        self::assertEqualsCanonicalizing(
+            ['package', 'manager', 'systemApi'],
+            array_values(array_diff($app->keys(), $registered)),
+        );
+    }
+
+    public function testTheMovedServicesAreRegisteredInThePackageModuleAlone(): void
+    {
+        $roots = ['app' => ['php']];
+
+        foreach (['package', 'manager', 'snapshotter'] as $id) {
+            $hits = $this->hits($roots, "set('".$id."'");
+
+            self::assertCount(1, $hits, $id);
+            self::assertStringStartsWith('app/package/src/PackageModule.php:', $hits[0]);
+        }
+
+        // The dashboard registers the same endpoint for its own widgets. That
+        // second registration is the one this module does not own.
+        $endpoint = $this->hits($roots, "set('systemApi'");
+
+        self::assertCount(2, $endpoint);
+        self::assertEqualsCanonicalizing(
+            [
+                'app/package/src/PackageModule.php',
+                'app/system/modules/dashboard/src/DashboardModule.php',
+            ],
+            $this->filesOf($endpoint),
+        );
+    }
+
+    public function testTheRegistryReadsThePackagesDirectoryTwoLevelsDown(): void
+    {
+        $root = $this->temporaryDirectory();
+
+        try {
+            $this->writeComposer($root.'/packages/pagekit/blog', 'pagekit/blog');
+            $this->writeComposer($root.'/packages/pagekit/theme', 'pagekit/theme');
+            $this->writeComposer($root.'/packages/pagekit', 'pagekit/too-shallow');
+            $this->writeComposer($root.'/packages/pagekit/blog/src', 'pagekit/too-deep');
+            $this->writeComposer($root.'/elsewhere/pagekit/blog', 'pagekit/elsewhere');
+
+            $app = new Application();
+            $app->set('path', $root);
+            $app->set('url', null);
+
+            self::assertNull($this->packageModule()->main($app));
+
+            $packages = $app->get('package');
+            self::assertInstanceOf(PackageFactory::class, $packages);
+
+            $found = array_keys($packages->all());
+            sort($found);
+
+            // Two levels under packages/: a shallower file, a deeper one and a
+            // tree beside packages/ are all real composer.json files, and none
+            // of them is a package this installation installed.
+            self::assertSame(['pagekit/blog', 'pagekit/theme'], $found);
+            self::assertSame($root.'/packages/pagekit/blog', $packages->get('pagekit/blog')?->get('path'));
+        } finally {
+            $this->removeTree($root);
+        }
+    }
+
+    public function testSystemApiIsTheEndpointTheContainerNames(): void
+    {
+        $plain = new Application();
+        self::assertNull($this->packageModule()->main($plain));
+        self::assertSame('https://pagekit.com', $plain->get('systemApi'));
+
+        $configured = new Application();
+        $configured->set('system.api', 'https://updates.example');
+        self::assertNull($this->packageModule()->main($configured));
+        self::assertSame('https://updates.example', $configured->get('systemApi'));
+    }
+
+    public function testAManagerWithoutAContainerStillLooksBesideTheApplication(): void
+    {
+        $application = realpath($this->root().'/app');
+        self::assertIsString($application);
+        $application = strtr($application, '\\', '/');
+
+        $app = new Application();
+        self::assertFalse($app->has('path.temp'));
+        self::assertNull($this->packageModule()->main($app));
+
+        $manager = $app->get('manager');
+        self::assertInstanceOf(PackageManager::class, $manager);
+
+        // Two levels up from this class is the application directory. One more
+        // level is the repository, and that packages tree is the live one.
+        $paths = array_map(
+            static fn (string $path): string => strtr($path, '\\', '/'),
+            $this->composerPaths($manager),
+        );
+
+        self::assertSame([
+            'path.temp' => $application.'/tmp/temp',
+            'path.cache' => $application.'/tmp/cache',
+            'path.vendor' => $application.'/app/vendor',
+            'path.artifact' => $application.'/tmp/packages',
+            'path.packages' => $application.'/packages',
+            'system.api' => 'https://pagekit.com',
+        ], $paths);
+
+        $probe = $application.'/packages';
+        $tree = $this->temporaryDirectory();
+        $createdProbe = false;
+
+        try {
+            self::assertDirectoryDoesNotExist($probe);
+            $this->writeComposer($tree.'/fallback-probe', 'pagekit/fallback-probe');
+            self::assertTrue(mkdir($probe.'/composer', 0755, true));
+            $createdProbe = true;
+            self::assertNotFalse(file_put_contents(
+                $probe.'/composer/installed.json',
+                (string) json_encode([['name' => 'pagekit/fallback-probe', 'version' => '9.9.9']]),
+            ));
+
+            $version = new \ReflectionMethod(PackageManager::class, 'getVersion')->invoke(
+                $manager,
+                new Package([
+                    'name' => 'pagekit/fallback-probe',
+                    'type' => 'pagekit-extension',
+                    'path' => $tree.'/fallback-probe',
+                ]),
+            );
+
+            self::assertSame('9.9.9', $version);
+        } finally {
+            if ($createdProbe) {
+                $this->removeTree($probe);
+            }
+
+            $this->removeTree($tree);
+        }
+    }
+
+    public function testTheManagerUsesThePathsTheContainerNames(): void
+    {
+        $app = new Application();
+        $app->set('path.temp', '/given/temp');
+        $app->set('path.cache', '/given/cache');
+        $app->set('path.vendor', '/given/vendor');
+        $app->set('path.artifact', '/given/artifact');
+        $app->set('path.packages', '/given/packages');
+        $app->set('system.api', 'https://updates.example');
+
+        self::assertNull($this->packageModule()->main($app));
+
+        self::assertSame([
+            'path.temp' => '/given/temp',
+            'path.cache' => '/given/cache',
+            'path.vendor' => '/given/vendor',
+            'path.artifact' => '/given/artifact',
+            'path.packages' => '/given/packages',
+            'system.api' => 'https://updates.example',
+        ], $this->composerPaths($app->get('manager')));
+    }
+
+    public function testTheManagerWithoutAnEndpointKeepsTheShippedOne(): void
+    {
+        $app = new Application();
+        $app->set('path.temp', '/given/temp');
+        $app->set('path.cache', '/given/cache');
+        $app->set('path.vendor', '/given/vendor');
+        $app->set('path.artifact', '/given/artifact');
+        $app->set('path.packages', '/given/packages');
+
+        self::assertNull($this->packageModule()->main($app));
+
+        $paths = $this->composerPaths($app->get('manager'));
+
+        self::assertSame('/given/packages', $paths['path.packages']);
+        self::assertSame('https://pagekit.com', $paths['system.api']);
     }
 
     public function testTheFailureRecordIsRegisteredExactlyWhereADirectoryIsNamed(): void
@@ -551,7 +921,7 @@ final class PackageModuleBoundaryTest extends TestCase
             $result = preg_match($pattern, $line);
 
             if ($result === false) {
-                self::fail('Registry pattern did not compile.');
+                self::fail('Scan pattern did not compile.');
             }
 
             if ($result === 1) {
@@ -707,6 +1077,63 @@ final class PackageModuleBoundaryTest extends TestCase
             'path' => '',
             'config' => [],
         ]);
+    }
+
+    /**
+     * @param list<string> $hits
+     * @return list<string>
+     */
+    private function filesOf(array $hits): array
+    {
+        $files = [];
+
+        foreach ($hits as $hit) {
+            self::assertSame(1, preg_match('/^(.*):\d+:/', $hit, $matches));
+            $files[$matches[1]] = $matches[1];
+        }
+
+        $files = array_values($files);
+        sort($files);
+
+        return $files;
+    }
+
+    private function methodSource(string $source, string $method): string
+    {
+        $matched = preg_match(
+            '/^    public function '.preg_quote($method, '/').'\b.*?^    \}$/ms',
+            $source,
+            $matches,
+        );
+
+        self::assertSame(1, $matched, $method);
+
+        return $matches[0];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function composerPaths(mixed $manager): array
+    {
+        self::assertInstanceOf(PackageManager::class, $manager);
+
+        $composer = new \ReflectionProperty(PackageManager::class, 'composer')->getValue($manager);
+        self::assertInstanceOf(Composer::class, $composer);
+
+        return $composer->paths;
+    }
+
+    private function writeComposer(string $directory, string $name): void
+    {
+        if (!is_dir($directory)) {
+            self::assertTrue(mkdir($directory, 0755, true));
+        }
+
+        self::assertNotFalse(file_put_contents(
+            $directory.'/composer.json',
+            (string) json_encode(['name' => $name, 'type' => 'pagekit-extension']),
+        ));
     }
 
     private function applicationWithAFilesystem(): Application

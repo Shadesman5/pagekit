@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pagekit\Installer\Package\Snapshot;
+namespace Pagekit\Package\Snapshot;
 
 /**
  * The names a restore invents for itself, and what keeps them from ever being a

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pagekit\Installer\Helper;
+namespace Pagekit\Package\Helper;
 
 use Composer\Installer;
 use Composer\Json\JsonFile;

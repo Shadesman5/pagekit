@@ -15,7 +15,7 @@
 
 ## 🎯 Overview
 
-The `package` module sits beside `installer`. All three boots register `app/package/index.php`. `system` and `installer` require `package`. `PackageModule::main()` registers `extension.failures` when the container names `path.system`; the `package` factory registration stays on the installer manifest. The registry (`Package`, `PackageInterface`, `PackageFactory`), the lifecycle contract, and `ExtensionFailureStore` live in `Pagekit\Package`. `PackageManager`, the snapshot engine, routes, and the admin surface still live in `installer`.
+The `package` module sits beside `installer`. All three boots register `app/package/index.php`. `system` and `installer` require `package`. `PackageModule::main()` registers `extension.failures` when the container names `path.system`, and registers `package`, `manager`, and `systemApi` on every boot. `snapshotter` is registered when the container names both `path.snapshots` and `db`. The registry, the lifecycle contract, `ExtensionFailureStore`, `PackageManager`, the Composer helper, and the snapshot engine live in `Pagekit\Package`. The package manifest holds `snapshots.retention_days`. Routes and the admin surface still live in `installer`.
 
 ---
 
@@ -109,30 +109,74 @@ Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done
 
 Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan FAIL once (`PackageModuleBoundaryTest` import allow-list) then PASS after a production retry; test-writer PASS; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
 
+### Manager, Composer helper and snapshot engine (Checklist Step 4)
+
+`git mv` of the manager, the Composer helper with its two internals, and the snapshot engine. Namespace only, apart from the two `__DIR__` fallbacks in `PackageManager`, which lost one `..` so they still resolve to `app/`. The four registrations and the `snapshots.retention_days` default left the installer manifest. `app/installer/src/Package/` and `app/installer/src/Helper/` are gone. Routes and the admin surface stay where they are.
+
+| File | Change |
+|---|---|
+| `app/package/src/PackageManager.php` | From `app/installer/src/Package/`. Namespace `Pagekit\Package`. Both no-container fallbacks are `realpath(__DIR__ . '/../..')`. |
+| `app/package/src/Helper/{Composer,Factory,InstallerIO}.php` | From `app/installer/src/Helper/`. Namespace `Pagekit\Package\Helper`. |
+| `app/package/src/Snapshot/{DatabaseDumper,DatabaseRestorer,DumpFormat,PackageSnapshotter,RestoreTableNames,ShadowSchema,SnapshotStore}.php` | From `app/installer/src/Package/Snapshot/`. Namespace `Pagekit\Package\Snapshot`. The `{@see \Pagekit\Installer\TablePrefix}` citation in `RestoreTableNames` is unchanged. |
+| `app/package/src/PackageModule.php` | Registers `package`, `manager`, and `systemApi` on every boot. `snapshotter` only when the container has `path.snapshots` and `db`. The window is `SnapshotStore::retentionDays($this->config('snapshots.retention_days'))`. |
+| `app/package/index.php` | `config.snapshots.retention_days` is `SnapshotStore::DEFAULT_RETENTION_DAYS`, comment included. |
+| `app/installer/index.php` | The four registrations, the `Package`/`Snapshot` imports, and the `snapshots` config are gone. The `enabled`-gated block, `release_channel`, routes, and menu stay. |
+| `app/installer/src/Installer.php` | `PackageManager` import. |
+| `app/installer/src/Controller/PackageController.php` | `PackageManager` and `PackageSnapshotter` imports. |
+| `app/installer/src/Controller/SnapshotController.php` | `PackageSnapshotter` and `SnapshotStore` imports. `retentionDays()` reads `get('package')`. |
+| `app/console/src/Commands/{BuildCommand,UpdateCommand}.php` | `Helper\Composer` import. |
+| `app/console/src/Commands/{InstallCommand,UninstallCommand}.php` | `PackageManager` import. |
+| `phpstan-baseline.neon` | The six `Composer.php` findings moved to `app/package/src/Helper/Composer.php`, path-sorted between `View.php` and `PackageFactory.php`. Message, identifier, and count unchanged. The `app/installer/index.php` entry stays the `$this` closure at count 1. `app/package/index.php` has none. |
+
+#### Existing tests (follow the move)
+
+Imports re-pointed to `Pagekit\Package\…`. `RestoreTableNamesTest` changes only the `RestoreTableNames` import; `use Pagekit\Installer\TablePrefix;` and the `TablePrefix::refusal()` assertions stay.
+
+| File | Change |
+|---|---|
+| `tests/Unit/Package/bootstrap.php` | The `__()` stub's namespace is `Pagekit\Package`. |
+| `tests/Unit/Package/{PackageFailureRecordTest,PackageHookBarrierTest,PackageHookWarningTest,PackageInstallConstraintTest,PackageManagerMigrationTest,PackageRegistryWriteTest,PackageSchemaTest,PackageSnapshotGateTest,PackageTreeRemovalTest,ShippedLifecycleTest}.php` | Imports. The comments that still place the failure record in the system module were left. |
+| `tests/Unit/Snapshot/{ConnectionThatIsRestoredTwiceAtOnce,DatabaseDumperTest,DatabaseRestorerTest,DumpFormatTest,PackageSnapshotterTest,RestoreTableNamesTest,ShadowSchemaTest,SnapshotPurgeTest,SnapshotRestoreTest,SnapshotRetentionTest,SnapshotStoreTest}.php` | Imports. |
+| `tests/Unit/Snapshot/SnapshotControllerTest.php` | Imports. The retention fixture's module name is `package`. |
+| `tests/Unit/Snapshot/SnapshotServiceWiringTest.php` | Boots `PackageModule` on the case's own config. A window of 7 keeps a snapshot for 7 days. An empty config, a `snapshots` section with no key, a section that is not an array, and a value no number can be read from all leave the store on `SnapshotStore::DEFAULT_RETENTION_DAYS`. |
+| `tests/Unit/Snapshot/RemovalPromiseTest.php` | Boots `PackageModule` with `config` `[]`. The manifest `main` is `PackageModule::class`. `installerPath()` still reads the page scripts from `app/installer`. |
+| `tests/Unit/Console/UninstallCommandTest.php` | Imports. |
+
+#### Tests (Checklist Step 4)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Package/PackageModuleBoundaryTest.php` | `Pagekit\Installer\Package\` and `Pagekit\Installer\Helper\` are absent under `app/`, `packages/`, and `tests/`. The package pattern is the whole segment, closed by a semicolon or a backslash, so `TablePrefix` and the `{@see}` citation stay legal. Fixtures prove each detector reports a line in the retired segment. `RestoreTableNamesTest` imports both `Pagekit\Package\Snapshot\RestoreTableNames` and `Pagekit\Installer\TablePrefix`, and still calls `TablePrefix::refusal()` three times. The eleven moved files exist under `app/package/` and both installer directories are gone. A bare container gains `package`, `manager`, and `systemApi`. The manifest assertion includes `config`. The per-file import allow-list on the manager was deleted. The six Composer baseline findings sit at the new path; the installer-index entry is unchanged; the package manifest has none. `systemApi` is set in `PackageModule` and in `DashboardModule`. |
+
+Gates: Verifier (production) FAIL once (retention config merge; `RETIRED_REGISTRY` comment) then PASS; Tester PHPUnit+PHPStan PASS; test-writer PASS; Verifier (test files) FAIL once (retired-namespace patterns; `SnapshotServiceWiringTest` docblock) then PASS; Tester PHPUnit+PHPStan PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
 
 - **List position is not the contract.** `app/package/index.php` is registered ahead of `app/installer/index.php`, and `'package'` sits after `'migration'` in both `require` arrays. `ModuleManager::register()` only discovers manifests; `resolveModules()` walks requirements by name. `PackageModuleBoundaryTest` asserts those arrays contain the entry, never an index or a relative order.
-- **The manager's compile-time tie is four names.** `PackageManager` imports `PackageInterface`, `Lifecycle\LifecycleRunner`, `Lifecycle\MigrationSet`, and `Extension\ExtensionFailureStore`. `Package`, `PackageFactory`, and `PackageLifecycleInterface` never appear in the body — the factory is the container id `package`, parameters are typed on the interface, and the store is the type the optional record is narrowed to. `no_unused_imports` would strip anything else. The boundary test pins those four.
+- **The manager's compile-time tie is five sub-namespace names.** `PackageManager` lives in `Pagekit\Package`, so `PackageInterface` needs no import. What it imports from this module is `Extension\ExtensionFailureStore`, `Helper\Composer`, `Lifecycle\LifecycleRunner`, `Lifecycle\MigrationSet`, and `Snapshot\PackageSnapshotter`. The per-file allow-list that pinned the old four was deleted: inside the module that list only restates the manager's own imports. The tree-wide scan is what still has to hold.
 - **The marketplace action type-hints the factory.** `MarketplaceController` imports `Pagekit\Package\PackageFactory`. The boundary test asserts that import.
-- **The baseline entry moved in path order.** Same message, identifier, and count. It sits between `View.php` and `app/system/app.php`, not inside the installer block.
-- **The translation stub stays with the manager.** `tests/Unit/Package/bootstrap.php` still declares `__()` in `Pagekit\Installer\Package`. Existing tests re-sorted imports and did not change assertions.
+- **Baseline entries stay path-sorted.** The `PackageFactory` finding kept its message, identifier, and count, and still sits ahead of `app/system/app.php`. The six `Composer.php` findings moved with the file and sit between `View.php` and that entry. The installer manifest's `$this` closure stays at count 1. The package manifest added none.
+- **The translation stub moved with the manager.** `tests/Unit/Package/bootstrap.php` declares `__()` in `Pagekit\Package`, the namespace an unqualified `__()` resolves in before the global helper.
 - **The failure id follows `path.system`.** The guard moved verbatim. It is not "wherever the system module ran": every boot names the path, so the wizard resolves `extension.failures`. Both branches are driven off that path alone. `ExtensionAutoDisableTest::boot()` runs `PackageModule` even when no directory is passed — a conditional boot would make the missing-id assertion pass because the module never ran.
-- **Two comments still place the record in the system module.** `PackageFailureRecordTest` (the `$path` docblock and `testAnEnvironmentThatKeepsNoRecordReportsNoFailures`) and `PackageHookBarrierTest` (the `$path` docblock) still say the installer does not load that module. Only the `PackageManager` comment was in scope to rewrite, so only the imports changed. Those sentences are false as of this step.
+- **Two comments still place the record in the system module.** `PackageFailureRecordTest` (the `$path` docblock and `testAnEnvironmentThatKeepsNoRecordReportsNoFailures`) and `PackageHookBarrierTest` (the `$path` docblock) still say the installer does not load that module. Step 4 re-pointed their imports and left the sentences. They are false.
 - **The system-namespace walk asserts both roots.** It used to keep only `app/package/` hits, because the installer tree imported the store. That import is gone, so an empty result over `app/package` and `app/installer/src` is the assertion.
+- **The retention window is read through `Module::config()`.** `PackageModule` passes `$this->config('snapshots.retention_days')` to `SnapshotStore::retentionDays()`. A nested subscript on `Module::$config` is an offset on `mixed` and fails when the section is not an array; the accessor returns the default there, and it is the same lookup `SnapshotController::retentionDays()` does. An absent section, an absent key, a section that is not an array, and a value no number can be read from all resolve to `SnapshotStore::DEFAULT_RETENTION_DAYS`.
+- **A boot passes the installation's own config.** `SnapshotServiceWiringTest` and `RemovalPromiseTest` hand `PackageModule` the case's config (`[]` where the case only asks whether `snapshotter` exists). Array union with the shipped manifest is not recursive: the shipped `snapshots` section would win whole and a configured window would never arrive. The framework merge is the same shape — `app/modules/config/index.php` puts stored values over the manifest with a top-level `array_replace`, so a stored section replaces the shipped one. The package module has no `enabled` gate. `RemovalPromiseTest` still reads the page scripts from `app/installer`; those files stay with the admin surface.
+- **The retired-namespace scan is the whole `Installer\Package\` segment.** The class alternation that spared `PackageManager` went with the manager. The pattern stops at that segment, and at `Installer\Helper\`, so `RestoreTableNamesTest`'s `TablePrefix` import and the `{@see}` citation in `RestoreTableNames` stay legal. Nothing under `app/`, `packages/`, or `tests/` names either segment.
 
 ---
 
 ## 💥 Breaking Changes (Extensions)
 
-The registry and lifecycle contract left `Pagekit\Installer\Package`. An extension that implements the lifecycle, or names `MigrationSet`, `Package`, `PackageInterface`, or `PackageFactory`, uses `Pagekit\Package\…` (`Lifecycle\` for the lifecycle types). The shipped blog lifecycle is that rename. `ExtensionFailureStore` left `Pagekit\System\Extension` for `Pagekit\Package\Extension`. `PackageManager`, the snapshot types, routes, and the admin surface are still `Pagekit\Installer\…`.
+The registry and lifecycle contract left `Pagekit\Installer\Package`. An extension that implements the lifecycle, or names `MigrationSet`, `Package`, `PackageInterface`, or `PackageFactory`, uses `Pagekit\Package\…` (`Lifecycle\` for the lifecycle types). The shipped blog lifecycle is that rename. `ExtensionFailureStore` left `Pagekit\System\Extension` for `Pagekit\Package\Extension`. `PackageManager`, `Pagekit\Installer\Helper\{Composer,Factory,InstallerIO}`, and the snapshot types left for `Pagekit\Package\…` (`Helper\` and `Snapshot\`). The controllers, routes, and the admin surface are still `Pagekit\Installer\…`.
 
 ---
 
 ## ⚠️ Risks & Rollout Notes
 
-`system` and `installer` fail module resolution if `app/package/index.php` is absent. The wizard resolves `extension.failures`: `path.system` is set on every boot, and `installer` requires `package`, so `PackageManager::$failures` is a real store there. A container that does not set `path.system` still has no id. A caller that still names `Pagekit\Installer\Package\{Package,PackageInterface,PackageFactory}`, `Pagekit\Installer\Package\Lifecycle\`, or `Pagekit\System\Extension\ExtensionFailureStore` does not resolve.
+`system` and `installer` fail module resolution if `app/package/index.php` is absent. The wizard resolves `extension.failures`: `path.system` is set on every boot, and `installer` requires `package`, so `PackageManager::$failures` is a real store there. A container that does not set `path.system` still has no id. `snapshotter` is absent unless the container has both `path.snapshots` and `db`. A caller that still names `Pagekit\Installer\Package\`, `Pagekit\Installer\Helper\`, or `Pagekit\System\Extension\ExtensionFailureStore` does not resolve. A retention window stored on the installer module is not read: stored config is keyed by module name, and the window is the package module's `snapshots.retention_days`. An installation that has not set one keeps `SnapshotStore::DEFAULT_RETENTION_DAYS`. A stored `snapshots` section replaces the shipped one whole.
 
 ---
 
@@ -144,7 +188,7 @@ None.
 
 ## 🛡️ No-Mercy Compliance
 
-The stale `Pagekit\Package\` mapping to a directory that does not exist was deleted, not left beside the new PSR-4 path. The main is the class. No alias. The registry, the lifecycle types, and the failure store changed namespace at every call site; `PackageManager` did not keep imports for classes its body never names. `SystemModule` dropped the registration; the `has()` read stayed, because a container without `path.system` still has no id.
+The stale `Pagekit\Package\` mapping to a directory that does not exist was deleted, not left beside the new PSR-4 path. The main is the class. No alias. The registry, the lifecycle types, the failure store, the manager, the helper, and the snapshot engine changed namespace at every call site. `PackageManager` does not import `PackageInterface` from its own namespace. `SystemModule` dropped the failure registration; the `has()` read stayed, because a container without `path.system` still has no id. The four service registrations and the snapshot window left the installer manifest; it does not keep a second copy. The dashboard's `systemApi` registration was already there and was left. `__DIR__` was rewritten so the no-container fallback still names `app/`.
 
 ---
 
@@ -154,7 +198,7 @@ The stale `Pagekit\Package\` mapping to a directory that does not exist was dele
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: Step 1 — production Verifier PASS; Tester PHPUnit+PHPStan PASS. test-writer: first Tester FAIL (`PackageModuleBoundaryTest` included `app/system/index.php` and tripped `failOnWarning` on unbound `$app`). Retry binds `$app` before the include. Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 2 — production Verifier PASS; Tester PHPUnit+PHPStan PASS. test-writer: first Verifier FAIL (`PackageModuleBoundaryTest` baseline assertion expected a literal trailing `$`; in the neon entry that `$` is the pattern's end anchor inside `#^…$#`). Retry asserts the stored message. Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 3 — production Verifier PASS. Tester PHPUnit+PHPStan FAIL once (`PackageModuleBoundaryTest` import allow-list) then PASS after a production retry. test-writer PASS; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
+- Notable deviations: Step 1 — production Verifier PASS; Tester PHPUnit+PHPStan PASS. test-writer: first Tester FAIL (`PackageModuleBoundaryTest` included `app/system/index.php` and tripped `failOnWarning` on unbound `$app`). Retry binds `$app` before the include. Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 2 — production Verifier PASS; Tester PHPUnit+PHPStan PASS. test-writer: first Verifier FAIL (`PackageModuleBoundaryTest` baseline assertion expected a literal trailing `$`; in the neon entry that `$` is the pattern's end anchor inside `#^…$#`). Retry asserts the stored message. Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 3 — production Verifier PASS. Tester PHPUnit+PHPStan FAIL once (`PackageModuleBoundaryTest` import allow-list) then PASS after a production retry. test-writer PASS; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 4 — production Verifier FAIL once (retention config merge; `RETIRED_REGISTRY` comment) then PASS; Tester PHPUnit+PHPStan PASS. test-writer PASS. Verifier (test files) FAIL once (retired-namespace patterns; `SnapshotServiceWiringTest` docblock) then PASS; Tester PHPUnit+PHPStan PASS.
 
 ---
 

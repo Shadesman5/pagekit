@@ -12,12 +12,12 @@ use Pagekit\Config\Config;
 use Pagekit\Config\ConfigManager;
 use Pagekit\Filesystem\Filesystem;
 use Pagekit\Installer\Controller\PackageController;
-use Pagekit\Installer\Package\PackageManager;
 use Pagekit\Log\Logger;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
 use Pagekit\Package\Package;
 use Pagekit\Package\PackageFactory;
+use Pagekit\Package\PackageManager;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 

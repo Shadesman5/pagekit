@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pagekit\Installer\Package\Snapshot;
+namespace Pagekit\Package\Snapshot;
 
 /**
  * Turns the schema a dump holds for a table into the schema that creates the copy

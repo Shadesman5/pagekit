@@ -8,10 +8,10 @@ use Pagekit\Application;
 use Pagekit\Config\Config;
 use Pagekit\Config\ConfigManager;
 use Pagekit\Filesystem\Filesystem;
-use Pagekit\Installer\Package\PackageManager;
 use Pagekit\Package\Extension\ExtensionFailureStore;
 use Pagekit\Package\Package;
 use Pagekit\Package\PackageFactory;
+use Pagekit\Package\PackageManager;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Output\NullOutput;
 

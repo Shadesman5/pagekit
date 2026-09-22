@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Tests\Unit\Snapshot;
 
 use Pagekit\Database\Connection;
-use Pagekit\Installer\Package\Snapshot\DatabaseRestorer;
+use Pagekit\Package\Snapshot\DatabaseRestorer;
 
 /**
  * A database that has a second restore asked of it while it is running one.

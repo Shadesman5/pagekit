@@ -12,10 +12,10 @@ use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Pagekit\Database\Connection;
-use Pagekit\Installer\Package\Snapshot\DatabaseDumper;
-use Pagekit\Installer\Package\Snapshot\DatabaseRestorer;
-use Pagekit\Installer\Package\Snapshot\DumpFormat;
-use Pagekit\Installer\Package\Snapshot\RestoreTableNames;
+use Pagekit\Package\Snapshot\DatabaseDumper;
+use Pagekit\Package\Snapshot\DatabaseRestorer;
+use Pagekit\Package\Snapshot\DumpFormat;
+use Pagekit\Package\Snapshot\RestoreTableNames;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

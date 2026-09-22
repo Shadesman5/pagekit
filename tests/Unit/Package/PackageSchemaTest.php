@@ -9,9 +9,9 @@ use Doctrine\DBAL\DriverManager;
 use Pagekit\Application;
 use Pagekit\Config\Config;
 use Pagekit\Config\ConfigManager;
-use Pagekit\Installer\Package\PackageManager;
 use Pagekit\Migration\MigrationService;
 use Pagekit\Package\Package;
+use Pagekit\Package\PackageManager;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Output\NullOutput;
 

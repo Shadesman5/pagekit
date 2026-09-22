@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pagekit\Installer\Helper;
+namespace Pagekit\Package\Helper;
 
 use Composer\IO\ConsoleIO;
 use Symfony\Component\Console\Helper\HelperSet;

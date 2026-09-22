@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Pagekit\Installer\Controller;
 
-use Pagekit\Installer\Package\Snapshot\PackageSnapshotter;
-use Pagekit\Installer\Package\Snapshot\SnapshotStore;
 use Pagekit\Log\Logger;
 use Pagekit\Module\ModuleInterface;
 use Pagekit\Module\ModuleManager;
+use Pagekit\Package\Snapshot\PackageSnapshotter;
+use Pagekit\Package\Snapshot\SnapshotStore;
 use Pagekit\Routing\Attribute\Request;
 use Pagekit\Routing\Attribute\Route;
 use Pagekit\User\Attribute\Access;
@@ -250,10 +250,10 @@ class SnapshotController
      */
     private function retentionDays(): int
     {
-        $installer = $this->module->get('installer');
+        $package = $this->module->get('package');
 
-        return $installer instanceof ModuleInterface
-            ? SnapshotStore::retentionDays($installer->config('snapshots.retention_days'))
+        return $package instanceof ModuleInterface
+            ? SnapshotStore::retentionDays($package->config('snapshots.retention_days'))
             : SnapshotStore::DEFAULT_RETENTION_DAYS;
     }
 

@@ -2,16 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Pagekit\Installer\Package;
+namespace Pagekit\Package;
 
 use Pagekit\Filesystem\Filesystem;
-use Pagekit\Installer\Helper\Composer;
-use Pagekit\Installer\Package\Snapshot\PackageSnapshotter;
 use Pagekit\Migration\MigrationService;
 use Pagekit\Package\Extension\ExtensionFailureStore;
+use Pagekit\Package\Helper\Composer;
 use Pagekit\Package\Lifecycle\LifecycleRunner;
 use Pagekit\Package\Lifecycle\MigrationSet;
-use Pagekit\Package\PackageInterface;
+use Pagekit\Package\Snapshot\PackageSnapshotter;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -53,7 +52,7 @@ class PackageManager
         }
         $this->output = $output;
 
-        $path = realpath(__DIR__ . '/../../..');
+        $path = realpath(__DIR__ . '/../..');
         $config = [];
 
         try {
@@ -1050,7 +1049,7 @@ class PackageManager
 
         $packagesPath = $this->app->has('path.packages')
             ? $this->app->get('path.packages')
-            : realpath(__DIR__ . '/../../..') . '/packages';
+            : realpath(__DIR__ . '/../..') . '/packages';
         $installedFile = $packagesPath . '/composer/installed.json';
         if (file_exists($installedFile)) {
             $installedContents = file_get_contents($installedFile);

@@ -17,7 +17,7 @@ use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Platforms\SqlitePlatform;
 use Doctrine\DBAL\Platforms\SQLServerPlatform;
 use Pagekit\Database\Connection;
-use Pagekit\Installer\Package\Snapshot\DumpFormat;
+use Pagekit\Package\Snapshot\DumpFormat;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
