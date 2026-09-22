@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pagekit\Installer\Controller;
+namespace Pagekit\Package\Controller;
 
 use Pagekit\Log\Logger;
 use Pagekit\Module\ModuleInterface;
@@ -54,7 +54,7 @@ class SnapshotController
         return [
             '$view' => [
                 'title' => __('Snapshots'),
-                'name' => 'installer:views/snapshots.php',
+                'name' => 'package:views/snapshots.php',
             ],
             '$data' => [
                 // A list rather than the map the store keys by id: the order is

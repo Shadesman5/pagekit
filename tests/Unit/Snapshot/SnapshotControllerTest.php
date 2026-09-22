@@ -11,10 +11,10 @@ use Monolog\JsonSerializableDateTimeImmutable;
 use Monolog\Level;
 use Pagekit\Database\Connection;
 use Pagekit\Filesystem\Filesystem;
-use Pagekit\Installer\Controller\SnapshotController;
 use Pagekit\Log\Logger;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
+use Pagekit\Package\Controller\SnapshotController;
 use Pagekit\Package\Package;
 use Pagekit\Package\Snapshot\DatabaseDumper;
 use Pagekit\Package\Snapshot\DatabaseRestorer;
@@ -208,8 +208,8 @@ final class SnapshotControllerTest extends TestCase
         $view = $this->controller($this->snapshotter($this->installation()))->indexAction()['$view'];
 
         self::assertIsArray($view);
-        self::assertSame('installer:views/snapshots.php', $view['name']);
-        self::assertFileExists(strtr(dirname(__DIR__, 3), '\\', '/').'/app/installer/views/snapshots.php');
+        self::assertSame('package:views/snapshots.php', $view['name']);
+        self::assertFileExists(strtr(dirname(__DIR__, 3), '\\', '/').'/app/package/views/snapshots.php');
     }
 
     // ------------------------------------------------------------------

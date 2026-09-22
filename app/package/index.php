@@ -19,9 +19,59 @@ return [
 
     ],
 
+    'routes' => [
+
+        '/system/package' => [
+            'name' => '@system/package',
+            'controller' => 'Pagekit\Package\Controller\PackageController',
+        ],
+        '/system/snapshot' => [
+            'name' => '@system/snapshot',
+            'controller' => 'Pagekit\Package\Controller\SnapshotController',
+        ],
+
+    ],
+
     'resources' => [
 
         'package:' => '',
+
+    ],
+
+    'permissions' => [
+
+        'system: manage packages' => [
+            'title' => 'Manage extensions and themes',
+            'description' => 'Manage extensions and themes',
+        ],
+
+    ],
+
+    'menu' => [
+
+        'system: extensions' => [
+            'label' => 'Extensions',
+            'parent' => 'system: system',
+            'url' => '@system/package/extensions',
+            'access' => 'system: manage packages',
+            'priority' => 5,
+        ],
+
+        'system: themes' => [
+            'label' => 'Themes',
+            'parent' => 'system: system',
+            'url' => '@system/package/themes',
+            'access' => 'system: manage packages',
+            'priority' => 10,
+        ],
+
+        'system: snapshots' => [
+            'label' => 'Snapshots',
+            'parent' => 'system: system',
+            'url' => '@system/snapshot',
+            'access' => 'system: manage packages',
+            'priority' => 15,
+        ],
 
     ],
 

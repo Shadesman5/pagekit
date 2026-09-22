@@ -19,7 +19,7 @@ export const externals = {
 
 /** Import prefixes shared by app and package sources. */
 export const aliases = {
-  '@installer': 'app/installer',
+  '@package': 'app/package',
   '@system': 'app/system'
 };
 
@@ -28,10 +28,7 @@ const groups = [
     dir: 'app/installer',
     entries: {
       installer: 'app/views/installer.vue',
-      extensions: 'app/views/extensions.js',
       marketplace: 'app/views/marketplace.js',
-      snapshots: 'app/views/snapshots.js',
-      themes: 'app/views/themes.js',
       update: 'app/views/update.js'
     }
   },
@@ -40,6 +37,14 @@ const groups = [
     global: 'Debugbar',
     entries: {
       debugbar: 'app/debugbar.js'
+    }
+  },
+  {
+    dir: 'app/package',
+    entries: {
+      extensions: 'app/views/extensions.js',
+      snapshots: 'app/views/snapshots.js',
+      themes: 'app/views/themes.js'
     }
   },
   {

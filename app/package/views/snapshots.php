@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-$view->script('snapshots', 'installer:app/bundle/snapshots.js', ['vue']); ?>
+$view->script('snapshots', 'package:app/bundle/snapshots.js', ['vue']); ?>
 
 <div id="snapshots" v-cloak>
 

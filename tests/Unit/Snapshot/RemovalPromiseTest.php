@@ -8,9 +8,9 @@ use Pagekit\Application;
 use Pagekit\Application\Response as PagekitResponse;
 use Pagekit\Application\UrlProvider;
 use Pagekit\Filesystem\Filesystem;
-use Pagekit\Installer\Controller\PackageController;
 use Pagekit\Log\Logger;
 use Pagekit\Module\ModuleManager;
+use Pagekit\Package\Controller\PackageController;
 use Pagekit\Package\PackageFactory;
 use Pagekit\Package\PackageManager;
 use Pagekit\Package\PackageModule;
@@ -274,12 +274,7 @@ final class RemovalPromiseTest extends TestCase
      */
     private function source(string $path): string
     {
-        return (string) file_get_contents(self::installerPath().'/'.$path);
-    }
-
-    private static function installerPath(): string
-    {
-        return strtr(dirname(__DIR__, 3), '\\', '/').'/app/installer';
+        return (string) file_get_contents(self::packagePath().'/'.$path);
     }
 
     private function removeTree(string $path): void

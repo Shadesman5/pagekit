@@ -11,10 +11,10 @@ use Pagekit\Application\UrlProvider;
 use Pagekit\Config\Config;
 use Pagekit\Config\ConfigManager;
 use Pagekit\Filesystem\Filesystem;
-use Pagekit\Installer\Controller\PackageController;
 use Pagekit\Log\Logger;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
+use Pagekit\Package\Controller\PackageController;
 use Pagekit\Package\Package;
 use Pagekit\Package\PackageFactory;
 use Pagekit\Package\PackageManager;
@@ -309,7 +309,7 @@ final class PackageHookWarningTest extends TestCase
         self::assertArrayHasKey('warnings', $answer);
         self::assertStringContainsString(
             'data.warnings',
-            (string) file_get_contents(self::installerPath().'/app/lib/package.js'),
+            (string) file_get_contents(self::packagePath().'/app/lib/package.js'),
             'The page reads the warnings out of the answer',
         );
     }
@@ -486,7 +486,7 @@ final class PackageHookWarningTest extends TestCase
      */
     private static function patternsThePageReadsWith(): array
     {
-        $reader = (string) file_get_contents(self::installerPath().'/app/lib/output.js');
+        $reader = (string) file_get_contents(self::packagePath().'/app/lib/output.js');
         $patterns = [];
 
         foreach (['status', 'warning'] as $marker) {
@@ -502,9 +502,9 @@ final class PackageHookWarningTest extends TestCase
         return $patterns;
     }
 
-    private static function installerPath(): string
+    private static function packagePath(): string
     {
-        return strtr(dirname(__DIR__, 3), '\\', '/').'/app/installer';
+        return strtr(dirname(__DIR__, 3), '\\', '/').'/app/package';
     }
 
     /**

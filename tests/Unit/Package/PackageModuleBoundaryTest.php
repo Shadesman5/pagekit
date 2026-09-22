@@ -11,6 +11,8 @@ use Pagekit\Filesystem\Filesystem;
 use Pagekit\Filesystem\Locator;
 use Pagekit\Log\Logger;
 use Pagekit\Module\Module;
+use Pagekit\Package\Controller\PackageController;
+use Pagekit\Package\Controller\SnapshotController;
 use Pagekit\Package\Extension\ExtensionFailureStore;
 use Pagekit\Package\Helper\Composer;
 use Pagekit\Package\Package;
@@ -19,6 +21,7 @@ use Pagekit\Package\PackageManager;
 use Pagekit\Package\PackageModule;
 use Pagekit\Package\Snapshot\SnapshotStore;
 use Pagekit\System\SystemModule;
+use Pagekit\User\Attribute\Access;
 use PHPUnit\Framework\TestCase;
 use RecursiveCallbackFilterIterator;
 use RecursiveDirectoryIterator;
@@ -46,6 +49,22 @@ final class PackageModuleBoundaryTest extends TestCase
     private const RETIRED_HELPER_NAMESPACE = '/Installer\\\\Helper(\\\\|;)/';
 
     /**
+     * Locator, alias and path the package tree must not use for the wizard.
+     *
+     * @var list<string>
+     */
+    private const INSTALLER_NAMES = [
+        'installer:',
+        '@installer',
+        'app/installer',
+    ];
+
+    /**
+     * A permission declared as a manifest key. A menu that only names it as access is a consumer.
+     */
+    private const MANAGE_PACKAGES_DECLARATION = '/[\'"]system: manage packages[\'"]\s*=>/';
+
+    /**
      * @var list<string>
      */
     private const SOURCE_EXTENSIONS = [
@@ -66,7 +85,10 @@ final class PackageModuleBoundaryTest extends TestCase
     {
         $manifest = $this->manifest('app/package/index.php');
 
-        self::assertEqualsCanonicalizing(['name', 'main', 'require', 'resources', 'config'], array_keys($manifest));
+        self::assertEqualsCanonicalizing(
+            ['name', 'main', 'require', 'routes', 'resources', 'permissions', 'menu', 'config'],
+            array_keys($manifest),
+        );
         self::assertSame('package', $manifest['name']);
         self::assertIsString($manifest['main']);
         self::assertTrue(class_exists($manifest['main']));
@@ -88,6 +110,139 @@ final class PackageModuleBoundaryTest extends TestCase
             ['enabled' => false, 'release_channel' => 'stable'],
             $manifest['config'],
         );
+    }
+
+    public function testThePackageManifestOwnsTheAdminSurface(): void
+    {
+        $package = $this->manifest('app/package/index.php');
+        $installer = $this->manifest('app/installer/index.php');
+
+        self::assertSame([
+            '/system/package' => [
+                'name' => '@system/package',
+                'controller' => PackageController::class,
+            ],
+            '/system/snapshot' => [
+                'name' => '@system/snapshot',
+                'controller' => SnapshotController::class,
+            ],
+        ], $package['routes']);
+
+        self::assertSame([
+            'system: manage packages' => [
+                'title' => 'Manage extensions and themes',
+                'description' => 'Manage extensions and themes',
+            ],
+        ], $package['permissions']);
+
+        self::assertSame([
+            'system: extensions' => [
+                'label' => 'Extensions',
+                'parent' => 'system: system',
+                'url' => '@system/package/extensions',
+                'access' => 'system: manage packages',
+                'priority' => 5,
+            ],
+            'system: themes' => [
+                'label' => 'Themes',
+                'parent' => 'system: system',
+                'url' => '@system/package/themes',
+                'access' => 'system: manage packages',
+                'priority' => 10,
+            ],
+            'system: snapshots' => [
+                'label' => 'Snapshots',
+                'parent' => 'system: system',
+                'url' => '@system/snapshot',
+                'access' => 'system: manage packages',
+                'priority' => 15,
+            ],
+        ], $package['menu']);
+
+        self::assertIsArray($installer['routes']);
+        self::assertIsArray($installer['permissions']);
+        self::assertIsArray($installer['menu']);
+
+        // One declaration. The wizard keeps its own routes and still consumes this permission.
+        foreach (array_keys($package['routes']) as $path) {
+            self::assertArrayNotHasKey($path, $installer['routes']);
+        }
+
+        foreach (array_keys($package['permissions']) as $permission) {
+            self::assertArrayNotHasKey($permission, $installer['permissions']);
+        }
+
+        foreach (array_keys($package['menu']) as $entry) {
+            self::assertArrayNotHasKey($entry, $installer['menu']);
+        }
+
+        foreach ($installer['routes'] as $route) {
+            self::assertIsArray($route);
+            self::assertNotContains(
+                $route['controller'] ?? null,
+                [PackageController::class, SnapshotController::class],
+            );
+        }
+
+        self::assertArrayHasKey('system: marketplace', $installer['menu']);
+        self::assertSame('system: manage packages', $installer['menu']['system: marketplace']['access']);
+    }
+
+    public function testThePermissionToManagePackagesIsDeclaredByThePackageModuleAlone(): void
+    {
+        $roots = [
+            'app' => ['php'],
+            'packages' => ['php'],
+        ];
+
+        self::assertNotEmpty($this->under($this->patternHits($roots, '/namespace Pagekit\\\\Package;/'), 'app/package/'));
+        self::assertNotEmpty($this->under($this->patternHits($roots, '/namespace Pagekit\\\\Blog;/'), 'packages/'));
+
+        $declarations = $this->patternHits($roots, self::MANAGE_PACKAGES_DECLARATION);
+
+        self::assertCount(1, $declarations);
+        self::assertStringStartsWith('app/package/index.php:', $declarations[0]);
+
+        $installer = file_get_contents($this->root().'/app/installer/index.php');
+        self::assertIsString($installer);
+        self::assertStringContainsString("'access' => 'system: manage packages'", $installer);
+        self::assertSame([], $this->patternHitsIn('app/installer/index.php', $installer, self::MANAGE_PACKAGES_DECLARATION));
+    }
+
+    public function testTheDetectorReportsAPermissionDeclaration(): void
+    {
+        // A consumer names the permission as a value. A declaration names it as a key.
+        $contents = "<?php\n"
+            ."'access' => 'system: manage packages',\n"
+            ."\$user->hasAccess('system: manage packages');\n"
+            ."'system: manage packages' => [\n";
+
+        self::assertSame(
+            ["fixture.php:4:'system: manage packages' => ["],
+            $this->patternHitsIn('fixture.php', $contents, self::MANAGE_PACKAGES_DECLARATION),
+        );
+    }
+
+    public function testBothControllersGateOnThePermissionThisModuleDeclares(): void
+    {
+        foreach ([PackageController::class, SnapshotController::class] as $class) {
+            $reflection = new \ReflectionClass($class);
+
+            self::assertSame('Pagekit\\Package\\Controller', $reflection->getNamespaceName(), $class);
+            self::assertSame([['system: manage packages', true]], $this->accessGates($class), $class);
+
+            $actions = array_values(array_filter(
+                $reflection->getMethods(\ReflectionMethod::IS_PUBLIC),
+                static fn (\ReflectionMethod $method): bool => str_ends_with($method->getName(), 'Action'),
+            ));
+
+            self::assertNotEmpty($actions, $class);
+
+            // The class gate covers every action. A method gate would be a second permission.
+            foreach ($actions as $method) {
+                self::assertSame([], $method->getAttributes(Access::class), $class.'::'.$method->getName());
+            }
+        }
     }
 
     public function testThePackageModuleRequiresNeitherInstallerNorSystem(): void
@@ -154,6 +309,51 @@ final class PackageModuleBoundaryTest extends TestCase
         $contents = "<?php\n// Pagekit\\System stays above this module.\nuse Pagekit\\Installer\\TablePrefix;\n";
 
         self::assertSame([], $this->hitsIn('fixture.php', $contents, self::SYSTEM_NAMESPACE));
+    }
+
+    public function testThePackageTreeDoesNotNameTheInstaller(): void
+    {
+        $roots = ['app/package' => ['php', 'js', 'vue']];
+
+        // An empty result has to mean the names are absent, so the walk has to open real files first.
+        self::assertNotEmpty($this->hits($roots, 'namespace Pagekit\\Package'));
+        self::assertNotEmpty($this->hits($roots, 'package:'));
+
+        foreach (self::INSTALLER_NAMES as $name) {
+            self::assertSame([], $this->hits($roots, $name), $name);
+        }
+    }
+
+    public function testTheDetectorReportsAnInstallerName(): void
+    {
+        // The package locator, the wizard class and the citation of it stay legal.
+        $legal = "<?php\n"
+            ."\$view->script('extensions', 'package:app/bundle/extensions.js', ['vue']);\n"
+            ."use Pagekit\\Installer\\TablePrefix;\n"
+            ." * {@see \\Pagekit\\Installer\\TablePrefix}\n"
+            ."import Package from '@package/app/lib/package';\n";
+
+        $contents = $legal
+            ."\$view->script('extensions', 'installer:app/bundle/extensions.js', ['vue']);\n"
+            ."import Version from '@installer/app/lib/version';\n"
+            ."\$path = 'app/installer/index.php';\n";
+
+        foreach (self::INSTALLER_NAMES as $name) {
+            self::assertSame([], $this->hitsIn('fixture.php', $legal, $name), $name);
+        }
+
+        self::assertSame(
+            ['fixture.php:6:$view->script(\'extensions\', \'installer:app/bundle/extensions.js\', [\'vue\']);'],
+            $this->hitsIn('fixture.php', $contents, 'installer:'),
+        );
+        self::assertSame(
+            ['fixture.php:7:import Version from \'@installer/app/lib/version\';'],
+            $this->hitsIn('fixture.php', $contents, '@installer'),
+        );
+        self::assertSame(
+            ['fixture.php:8:$path = \'app/installer/index.php\';'],
+            $this->hitsIn('fixture.php', $contents, 'app/installer'),
+        );
     }
 
     public function testTheRetiredPackageNamespaceIsGone(): void
@@ -324,6 +524,112 @@ final class PackageModuleBoundaryTest extends TestCase
 
         self::assertDirectoryDoesNotExist($this->root().'/app/installer/src/Package');
         self::assertDirectoryDoesNotExist($this->root().'/app/installer/src/Helper');
+    }
+
+    public function testTheAdminSurfaceLeftTheInstallerTree(): void
+    {
+        foreach ([
+            'app/package/src/Controller/PackageController.php',
+            'app/package/src/Controller/SnapshotController.php',
+            'app/package/views/extensions.php',
+            'app/package/views/themes.php',
+            'app/package/views/snapshots.php',
+            'app/package/app/views/extensions.js',
+            'app/package/app/views/snapshots.js',
+            'app/package/app/views/themes.js',
+            'app/package/app/components/package-details.vue',
+            'app/package/app/components/package-manager.js',
+            'app/package/app/components/package-upload.vue',
+            'app/package/app/lib/install.vue',
+            'app/package/app/lib/output.js',
+            'app/package/app/lib/package.js',
+            'app/package/app/lib/uninstall.vue',
+            'app/package/app/lib/update.vue',
+            'app/package/app/lib/version.js',
+        ] as $file) {
+            self::assertFileExists($this->root().'/'.$file);
+        }
+
+        foreach ([
+            'app/installer/src/Controller/PackageController.php',
+            'app/installer/src/Controller/SnapshotController.php',
+            'app/installer/views/extensions.php',
+            'app/installer/views/themes.php',
+            'app/installer/views/snapshots.php',
+            'app/installer/app/views/extensions.js',
+            'app/installer/app/views/snapshots.js',
+            'app/installer/app/views/themes.js',
+            'app/installer/app/components/package-details.vue',
+            'app/installer/app/components/package-manager.js',
+            'app/installer/app/components/package-upload.vue',
+            'app/installer/app/lib/install.vue',
+            'app/installer/app/lib/output.js',
+            'app/installer/app/lib/package.js',
+            'app/installer/app/lib/uninstall.vue',
+            'app/installer/app/lib/update.vue',
+            'app/installer/app/lib/version.js',
+        ] as $file) {
+            self::assertFileDoesNotExist($this->root().'/'.$file);
+        }
+
+        foreach ([
+            'extensions' => 'app/package/views/extensions.php',
+            'themes' => 'app/package/views/themes.php',
+            'snapshots' => 'app/package/views/snapshots.php',
+        ] as $page => $file) {
+            $source = file_get_contents($this->root().'/'.$file);
+            self::assertIsString($source, $file);
+            self::assertSame(1, preg_match(
+                '/\$view->script\(\s*\''.preg_quote($page, '/').'\'\s*,\s*\'package:app\/bundle\/'.preg_quote($page, '/').'\.js\'/',
+                $source,
+            ), $file);
+        }
+
+        $packages = file_get_contents($this->root().'/app/package/src/Controller/PackageController.php');
+        $snapshots = file_get_contents($this->root().'/app/package/src/Controller/SnapshotController.php');
+        self::assertIsString($packages);
+        self::assertIsString($snapshots);
+        self::assertStringContainsString("'name' => 'package:views/extensions.php'", $packages);
+        self::assertStringContainsString("'name' => 'package:views/themes.php'", $packages);
+        self::assertStringContainsString("'name' => 'package:views/snapshots.php'", $snapshots);
+    }
+
+    public function testTheBundleManifestBuildsThePackagePagesAndNotFromTheInstallerAlias(): void
+    {
+        $source = file_get_contents($this->root().'/scripts/bundle-entries.mjs');
+        self::assertIsString($source);
+
+        self::assertSame(1, preg_match('/\'@package\'\s*:\s*\'app\/package\'/', $source));
+        self::assertStringNotContainsString('@installer', $source);
+
+        $package = $this->bundleEntries($source, 'app/package');
+        $installer = $this->bundleEntries($source, 'app/installer');
+
+        foreach (['extensions', 'snapshots', 'themes'] as $entry) {
+            self::assertSame(1, preg_match(
+                '/\b'.preg_quote($entry, '/').':\s*\'app\/views\/'.preg_quote($entry, '/').'\.js\'/',
+                $package,
+            ), $entry);
+            self::assertDoesNotMatchRegularExpression('/\b'.preg_quote($entry, '/').'\s*:/', $installer, $entry);
+        }
+
+        foreach (['installer', 'marketplace', 'update'] as $entry) {
+            self::assertMatchesRegularExpression('/\b'.preg_quote($entry, '/').'\s*:/', $installer, $entry);
+        }
+    }
+
+    public function testTheMarketplaceUpdateAndDashboardImportThePackageClient(): void
+    {
+        foreach ([
+            'app/installer/app/components/marketplace.vue' => '@package/app/lib/package',
+            'app/installer/app/views/update.js' => '@package/app/lib/version',
+            'app/system/modules/dashboard/app/views/index.js' => '@package/app/lib/version',
+        ] as $file => $import) {
+            $source = file_get_contents($this->root().'/'.$file);
+            self::assertIsString($source, $file);
+            self::assertStringContainsString($import, $source, $file);
+            self::assertStringNotContainsString('@installer', $source, $file);
+        }
     }
 
     public function testTheMarketplaceControllerImportsTheMovedFactory(): void
@@ -1077,6 +1383,34 @@ final class PackageModuleBoundaryTest extends TestCase
             'path' => '',
             'config' => [],
         ]);
+    }
+
+    /**
+     * @return list<array{0: ?string, 1: ?bool}>
+     */
+    private function accessGates(string $class): array
+    {
+        $gates = [];
+
+        foreach ((new \ReflectionClass($class))->getAttributes(Access::class) as $attribute) {
+            $access = $attribute->newInstance();
+            $gates[] = [$access->getExpression(), $access->getAdmin()];
+        }
+
+        return $gates;
+    }
+
+    private function bundleEntries(string $source, string $dir): string
+    {
+        $matched = preg_match(
+            '/dir:\s*\''.preg_quote($dir, '/').'\',\s*(?:global:\s*[^,]*,\s*)?entries:\s*\{(?<entries>[^}]*)\}/s',
+            $source,
+            $matches,
+        );
+
+        self::assertSame(1, $matched, $dir);
+
+        return $matches['entries'];
     }
 
     /**

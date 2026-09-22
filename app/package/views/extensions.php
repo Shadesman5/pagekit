@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-$view->script('extensions', 'installer:app/bundle/extensions.js', ['vue']); ?>
+$view->script('extensions', 'package:app/bundle/extensions.js', ['vue']); ?>
 
 <div id="extensions" v-cloak>
 

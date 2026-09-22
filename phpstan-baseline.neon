@@ -135,12 +135,6 @@ parameters:
 		-
 			message: '#^Variable \$view might not be defined\.$#'
 			identifier: variable.undefined
-			count: 1
-			path: app/installer/views/extensions.php
-
-		-
-			message: '#^Variable \$view might not be defined\.$#'
-			identifier: variable.undefined
 			count: 3
 			path: app/installer/views/installer.php
 
@@ -155,18 +149,6 @@ parameters:
 			identifier: variable.undefined
 			count: 2
 			path: app/installer/views/requirements.php
-
-		-
-			message: '#^Variable \$view might not be defined\.$#'
-			identifier: variable.undefined
-			count: 1
-			path: app/installer/views/snapshots.php
-
-		-
-			message: '#^Variable \$view might not be defined\.$#'
-			identifier: variable.undefined
-			count: 1
-			path: app/installer/views/themes.php
 
 		-
 			message: '#^Variable \$view might not be defined\.$#'
@@ -863,6 +845,24 @@ parameters:
 			identifier: offsetAccess.invalidOffset
 			count: 1
 			path: app/package/src/PackageFactory.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/package/views/extensions.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/package/views/snapshots.php
+
+		-
+			message: '#^Variable \$view might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/package/views/themes.php
 
 		-
 			message: '#^Variable \$config might not be defined\.$#'

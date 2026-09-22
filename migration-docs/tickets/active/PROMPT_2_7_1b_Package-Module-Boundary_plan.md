@@ -69,7 +69,7 @@
 - [x] Step 2 (L) — Package registry and lifecycle contract
 - [x] Step 3 (M) — Failure record
 - [x] Step 4 (L) — Manager, Composer helper and snapshot engine
-- [ ] Step 5 (L) — Admin surface, undivided
+- [x] Step 5 (L) — Admin surface, undivided
 - [ ] Step 6 (M) — Tooling and `installer` cleanup
 - [ ] Step 7 (XL) — Review (Bugbot + Security) + E2E
 
@@ -114,7 +114,10 @@
 - `PackageModuleBoundaryTest::RETIRED_PACKAGE_NAMESPACE` — the scan is the whole `Installer\Package\` segment now; the class alternation that spared `PackageManager` went with the manager itself, and leaving it would have let a stray reference to the one class this step moves pass the scan. It still stops at that segment rather than at `Pagekit\Installer\`, which the intended `TablePrefix` import in `RestoreTableNamesTest` and the `{@see}` citation in `RestoreTableNames.php` would both trip. Invariant: nothing under `app/`, `packages/` or `tests/` names the retired segment, and those two stay legal.
 - `SnapshotServiceWiringTest::boot` / `RemovalPromiseTest::installation` — the module is booted on the installation's own config (`$config`, and `[]` where the case only asks whether `snapshotter` exists), not on the checklist's `$definition['config'] + …`. Rejected because array union is not recursive: the shipped `snapshots` section would win whole and a configured window would never reach the module. It is also not how the framework merges — `app/modules/config/index.php` puts the stored values over the manifest with a top-level `array_replace`, so a stored section replaces the shipped one rather than filling in under it. `['enabled' => false]` and the comment explaining it went with the merge; the package module has no `enabled` gate to stay out of. Invariant: a configured `retention_days` of 7 keeps a snapshot for 7 days, while a missing `snapshots` section, a missing `retention_days` and a window no number can be read from all leave the store on `SnapshotStore::DEFAULT_RETENTION_DAYS`. `RemovalPromiseTest` keeps `installerPath()` beside the new `packagePath()`: the three JS files it reads do not move before Step 5.
 ### Step 5
-_none yet_
+- `ExtensionTranslateCommand::getFiles()` — the `system` extraction now walks `app/package` beside `app/installer`. The command is on neither the scope list nor the no-change list, but it is the reason the wizard tree is read at all: these pages keep their strings in `app/system/languages`, and the three views plus their JS would have dropped out of the system catalogue the moment they left `app/installer`. Rejected leaving it for Step 6 — the pot would be short for a commit. Invariant: whichever tree holds the extensions/themes/snapshots pages, their strings extract into the system catalogue.
+- `app/package/index.php` — the permission moves whole, and the permissions screen groups by the declaring module's name (`UserModule::getPermissions()` keys by it, `permission-index.php` prints the key), so `Manage extensions and themes` now sits under a `package` heading while `Apply system updates` stays under `installer`. Nothing stored moves with it: roles hold permission names. Invariant: `system: manage packages` is declared exactly once, by this module, and both moved controllers still gate on that name.
+- `tests/Unit/Snapshot/RemovalPromiseTest::source` — re-pointed at the existing `packagePath()` and `installerPath()` deleted, rather than kept for a tree that no longer holds `app/components/package-manager.js`, `app/lib/uninstall.vue` or `app/lib/package.js`. The Step 4 note parked that helper for this step; the file is not on the plan's Step 5 list, but its three sources are.
+- `PackageModuleBoundaryTest::testThePackageManifestDeclaresTheModuleAndItsSnapshotWindow` — only the canonical key list gained `routes`, `permissions` and `menu`; what those keys hold, and that `installer` declares none of it, is the new coverage this step's notes leave to the test-writer.
 ### Step 6
 _none yet_
 ### Step 7

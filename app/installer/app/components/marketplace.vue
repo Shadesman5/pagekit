@@ -134,7 +134,7 @@
 </template>
 
 <script>
-import Package from '../lib/package';
+import Package from '@package/app/lib/package';
 
 export default {
   mixins: [Package, Theme.Mixins.Helper],

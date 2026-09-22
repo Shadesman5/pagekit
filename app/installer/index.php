@@ -59,10 +59,6 @@ return [
 
     'routes' => [
 
-        '/system/package' => [
-            'name' => '@system/package',
-            'controller' => 'Pagekit\Installer\Controller\PackageController',
-        ],
         '/system/marketplace' => [
             'name' => '@system/marketplace',
             'controller' => 'Pagekit\Installer\Controller\MarketplaceController',
@@ -70,10 +66,6 @@ return [
         '/system/update' => [
             'name' => '@system/update',
             'controller' => 'Pagekit\Installer\Controller\UpdateController',
-        ],
-        '/system/snapshot' => [
-            'name' => '@system/snapshot',
-            'controller' => 'Pagekit\Installer\Controller\SnapshotController',
         ],
 
     ],
@@ -88,10 +80,6 @@ return [
 
     'permissions' => [
 
-        'system: manage packages' => [
-            'title' => 'Manage extensions and themes',
-            'description' => 'Manage extensions and themes',
-        ],
         'system: software updates' => [
             'title' => 'Apply system updates',
             'trusted' => true,
@@ -119,30 +107,6 @@ return [
             'label' => 'Themes',
             'parent' => 'system: marketplace',
             'url' => '@system/marketplace/themes',
-        ],
-
-        'system: extensions' => [
-            'label' => 'Extensions',
-            'parent' => 'system: system',
-            'url' => '@system/package/extensions',
-            'access' => 'system: manage packages',
-            'priority' => 5,
-        ],
-
-        'system: themes' => [
-            'label' => 'Themes',
-            'parent' => 'system: system',
-            'url' => '@system/package/themes',
-            'access' => 'system: manage packages',
-            'priority' => 10,
-        ],
-
-        'system: snapshots' => [
-            'label' => 'Snapshots',
-            'parent' => 'system: system',
-            'url' => '@system/snapshot',
-            'access' => 'system: manage packages',
-            'priority' => 15,
         ],
 
         'system: update' => [

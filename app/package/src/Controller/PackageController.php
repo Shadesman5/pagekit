@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pagekit\Installer\Controller;
+namespace Pagekit\Package\Controller;
 
 use Pagekit\Application\Response as PagekitResponse;
 use Pagekit\Application\UrlProvider;
@@ -64,7 +64,7 @@ class PackageController
         return [
             '$view' => [
                 'title' => __('Themes'),
-                'name' => 'installer:views/themes.php',
+                'name' => 'package:views/themes.php',
             ],
             '$data' => [
                 'api' => $this->systemApi,
@@ -108,7 +108,7 @@ class PackageController
         return [
             '$view' => [
                 'title' => __('Extensions'),
-                'name' => 'installer:views/extensions.php',
+                'name' => 'package:views/extensions.php',
             ],
             '$data' => [
                 'api' => $this->systemApi,
