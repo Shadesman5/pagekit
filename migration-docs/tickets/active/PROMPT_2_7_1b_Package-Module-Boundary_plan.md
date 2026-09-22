@@ -71,7 +71,7 @@
 - [x] Step 4 (L) — Manager, Composer helper and snapshot engine
 - [x] Step 5 (L) — Admin surface, undivided
 - [x] Step 6 (M) — Tooling and `installer` cleanup
-- [ ] Step 7 (XL) — Review (Bugbot + Security) + E2E
+- [x] Step 7 (XL) — Review (Bugbot + Security) + E2E
 
 ## TESTING STRATEGY
 - **Per step (production gate):** Refactorer → Verifier → Tester (PHPUnit + PHPStan) — production code must be green before any new tests are written. **Existing tests are call sites of the moved code:** the Refactorer updates their `use` imports, hard-coded `app/installer` paths, the `installer` module name in fixtures, the manifest boot (`new PackageModule([...])->main($app)`) and the `tests/Unit/Package/bootstrap.php` namespace stub in the same step — mechanical follow-the-move edits with no assertion-logic change beyond what the move dictates; the Verifier reviews them with the production files. The test-writer adds new coverage only.
