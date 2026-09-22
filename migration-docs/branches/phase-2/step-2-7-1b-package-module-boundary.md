@@ -6,16 +6,18 @@
 **Branch:** `feature/package-module-boundary`
 **ROADMAP Step:** 2.7.1b (Package Module Boundary)
 **GitHub Issue:** [#287](https://github.com/Shadesman5/pagekit/issues/287)
-**Pull Request:** _TBD_
-**Status:** 🚧 In progress
+**Pull Request:** [#296](https://github.com/Shadesman5/pagekit/pull/296)
+**Status:** ✅ Complete
 **Started:** 2026-09-22 00:39
-**Completed:** _TBD_
+**Completed:** 2026-09-22 21:35
 
 ---
 
 ## 🎯 Overview
 
 The `package` module sits beside `installer`. All three boots register `app/package/index.php`. `system` and `installer` require `package`. `PackageModule::main()` registers `extension.failures` when the container names `path.system`, and registers `package`, `manager`, and `systemApi` on every boot. `snapshotter` is registered when the container names both `path.snapshots` and `db`. The registry, the lifecycle contract, `ExtensionFailureStore`, `PackageManager`, the Composer helper, the snapshot engine, and the extensions, themes, and snapshots admin surface live in `Pagekit\Package`. The package manifest holds `snapshots.retention_days`, routes `/system/package` and `/system/snapshot`, permission `system: manage packages`, and menu `system: extensions`, `system: themes`, `system: snapshots`. The marketplace and the update surface stay in `installer`.
+
+PR [#296](https://github.com/Shadesman5/pagekit/pull/296), version 1.2.42. CI green. Coverage-gap pass ran (`PackageModuleBoundaryTest` executes each boot file; views were filtered out). Bugbot and Security clean. Execute E2E PASS; Finalize `e2e-smoke` skipped as opt-in.
 
 ---
 
@@ -205,6 +207,14 @@ No production or test files changed. Bugbot and the Security review found nothin
 
 Gates: Bugbot clean (no bugs); Security clean (no medium, high, or critical issues); Tester final E2E PASS. No fix-loop.
 
+### Coverage gap (Finalize)
+
+Views were filtered out of the Codecov list. The boot files were not: including one stores the module and then constructs Composer's loader, so a source assertion never executed those lines.
+
+| File | Change |
+|---|---|
+| `tests/Unit/Package/PackageModuleBoundaryTest.php` | Executes each boot file. A temporary tree symlinks `app/` and `packages/`; its `autoload.php` returns a stand-in, so `register()` stores `package` and the file stops before the loader is constructed. The registered path is `app/package`. |
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -259,14 +269,26 @@ The stale `Pagekit\Package\` mapping to a directory that does not exist was dele
 <!-- Links only. Quality metrics are CI-owned: link the PR sticky quality-report comment and the
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
-- CI run: _TBD_
-- Notable deviations: Step 1 — production Verifier PASS; Tester PHPUnit+PHPStan PASS. test-writer: first Tester FAIL (`PackageModuleBoundaryTest` included `app/system/index.php` and tripped `failOnWarning` on unbound `$app`). Retry binds `$app` before the include. Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 2 — production Verifier PASS; Tester PHPUnit+PHPStan PASS. test-writer: first Verifier FAIL (`PackageModuleBoundaryTest` baseline assertion expected a literal trailing `$`; in the neon entry that `$` is the pattern's end anchor inside `#^…$#`). Retry asserts the stored message. Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 3 — production Verifier PASS. Tester PHPUnit+PHPStan FAIL once (`PackageModuleBoundaryTest` import allow-list) then PASS after a production retry. test-writer PASS; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 4 — production Verifier FAIL once (retention config merge; `RETIRED_REGISTRY` comment) then PASS; Tester PHPUnit+PHPStan PASS. test-writer PASS. Verifier (test files) FAIL once (retired-namespace patterns; `SnapshotServiceWiringTest` docblock) then PASS; Tester PHPUnit+PHPStan PASS. Step 5 — production Verifier PASS; Tester PASS (PHPUnit + PHPStan, `pnpm build`, `pnpm lint`, `pnpm exec prettier --check .`, authenticated smoke of the extensions, themes, and snapshots pages). Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 6 — production Verifier FAIL once (empty `app/installer/app/lib` left on disk) then PASS after removal; Tester PASS (PHPUnit + PHPStan, fresh SQLite install, `/installer` without `config.php`, `pnpm build`, `pnpm lint`, `pnpm exec prettier --check .`); test-writer skipped. Step 7 — Bugbot clean (no bugs); Security clean (no medium, high, or critical issues); E2E PASS. No fix-loop. No production or test files.
+| Gate | Result |
+|---|---|
+| CI — PR checks | ✅ green — [run 35786239785](https://github.com/Shadesman5/pagekit/actions/runs/35786239785) (`phpunit`, `phpstan`, `phpunit-mysql`, `phpunit-mysql-snapshot`, `cs-fixer`, `security-audit`, `version-ssot`) + [run 35786239673](https://github.com/Shadesman5/pagekit/actions/runs/35786239673) (`frontend`) + [run 35786239741](https://github.com/Shadesman5/pagekit/actions/runs/35786239741) (`infection-diff`); `e2e-smoke` skipped as opt-in (not a Dependabot PR) |
+| Coverage gap pass | ran — `tests/Unit/Package/PackageModuleBoundaryTest.php` executes each boot file so the registration lines are covered; views were filtered out |
+| Cursor Bugbot (PR) | ✅ clean |
+| Cursor Security Reviewer (PR) | ✅ clean |
+| E2E | Execute PASS; Finalize `e2e-smoke` skipped as opt-in |
+| Finalize fix-loop | none |
+
+**CI run:** https://github.com/Shadesman5/pagekit/actions/runs/35786239785 · https://github.com/Shadesman5/pagekit/actions/runs/35786239673 · https://github.com/Shadesman5/pagekit/actions/runs/35786239741
+
+**Metrics (CI-owned):** [PR #296 quality-report comment](https://github.com/Shadesman5/pagekit/pull/296#issuecomment-5784063260) · [Quality Dashboard](https://Shadesman5.github.io/pagekit/quality/)
+
+**Notable deviations:** Step 1 — production Verifier PASS; Tester PHPUnit+PHPStan PASS. test-writer: first Tester FAIL (`PackageModuleBoundaryTest` included `app/system/index.php` and tripped `failOnWarning` on unbound `$app`). Retry binds `$app` before the include. Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 2 — production Verifier PASS; Tester PHPUnit+PHPStan PASS. test-writer: first Verifier FAIL (`PackageModuleBoundaryTest` baseline assertion expected a literal trailing `$`; in the neon entry that `$` is the pattern's end anchor inside `#^…$#`). Retry asserts the stored message. Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 3 — production Verifier PASS. Tester PHPUnit+PHPStan FAIL once (`PackageModuleBoundaryTest` import allow-list) then PASS after a production retry. test-writer PASS; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 4 — production Verifier FAIL once (retention config merge; `RETIRED_REGISTRY` comment) then PASS; Tester PHPUnit+PHPStan PASS. test-writer PASS. Verifier (test files) FAIL once (retired-namespace patterns; `SnapshotServiceWiringTest` docblock) then PASS; Tester PHPUnit+PHPStan PASS. Step 5 — production Verifier PASS; Tester PASS (PHPUnit + PHPStan, `pnpm build`, `pnpm lint`, `pnpm exec prettier --check .`, authenticated smoke of the extensions, themes, and snapshots pages). Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 6 — production Verifier FAIL once (empty `app/installer/app/lib` left on disk) then PASS after removal; Tester PASS (PHPUnit + PHPStan, fresh SQLite install, `/installer` without `config.php`, `pnpm build`, `pnpm lint`, `pnpm exec prettier --check .`); test-writer skipped. Step 7 — Bugbot clean (no bugs); Security clean (no medium, high, or critical issues); E2E PASS. No fix-loop. No production or test files. Finalize — coverage-gap pass ran (boot-file registration); views filtered out. Bugbot clean. Security clean. No fix-loop.
 
 ---
 
 ## 📋 Phase 1 Audit Closure
 
-_TBD / None_
+None.
 
 ---
 
@@ -275,7 +297,7 @@ _TBD / None_
 <!-- Human-only follow-ups the maintainer must do (ruleset flips, real Docker/Apache
      verification, secrets, etc.). Not ROADMAP deferrals — those go under Deferred. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -284,13 +306,17 @@ _TBD / None_
 <!-- Future ROADMAP/PHASE work, explicit non-goals, bridges. Do NOT put maintainer
      Manual Work here — that belongs under Maintainer action above. -->
 
-_TBD / None_
+- **Step 2.7.1c (Runtime Composer Removal)** — deletes the Composer helper and `Helper\Factory` / `Helper\InstallerIO` from `Pagekit\Package`, and with them `PackageManager`'s path-fallback block and `packagePath()`'s `installed.json` fallback. `systemApi` stays registered twice (this module, for the `api` prop the package views pass, and `DashboardModule`); the package module's registration goes with the marketplace surface. PHASE §2.7.1c.
+- **Step 2.7.2 (Module Dependency Integrity)** — declared `require` edges beyond the two this step creates. Both moved controllers import `Pagekit\User\Attribute\Access`, and no manifest names `system/user`. GitHub: [#268](https://github.com/Shadesman5/pagekit/issues/268). PHASE §2.7.2.
+- **Step 2.11 (Phase 2 Closeout)** — comment-prose sweep of the Snapshot, Package, and Extension Safety docblocks this step relocated unchanged. PHASE §2.11.
+- **Non-goals:** dividing `PackageManager`; changing marketplace, update, or self-update behaviour beyond the import each needed; moving this admin surface into `system` or a separate admin tree; static manifests (2.7.3); `vendor/` at the repo root (2.7.4); the vendor-prefix rebrand (4.7).
+- **Bridges:** none.
 
 ---
 
 ## 📌 Follow-on (ROADMAP)
 
-_TBD / None_
+- **Step 2.7.1c (Runtime Composer Removal)** — the helper, its two internals, the manager's path fallbacks, and the package module's `systemApi` registration are deleted in the namespace this step created. Lands after this PR. PHASE §2.7.1c.
 
 ---
 
@@ -299,7 +325,7 @@ _TBD / None_
 <!-- Filled by the post-close review after Finalize: what the finished work left unowned,
      one bullet per finding with the ROADMAP step whose area it belongs to. Doc-writer leaves None. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -308,7 +334,7 @@ _TBD / None_
 <!-- Removed in passing (deleted files, dropped baseline/ignore entries, dead code). Doc-writer from
      the handover; the post-close review adds what the diff shows and the handover missed. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -317,7 +343,7 @@ _TBD / None_
 <!-- No-Mercy leftovers of the shipped diff that have no owner (forward-debt tags, added baseline
      entries, ANOMALIES patterns), each with the ROADMAP step that resolves it. Post-close review. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -326,7 +352,7 @@ _TBD / None_
 <!-- Work delivered beyond the ticket. Doc-writer from the handover; the post-close review adds
      what the diff shows and the handover missed. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -335,22 +361,13 @@ _TBD / None_
 <!-- The verified facts behind each DECISION the post-close review raised — symbols, call chain,
      what each exit deletes or adds — so the maintainer can decide without re-reading the tree. -->
 
-_TBD / None_
+None.
 
 ---
 
 ## 📎 Related Documents
 
-- Ticket: `migration-docs/tickets/active/PROMPT_2_7_1b_Package-Module-Boundary_plan.md` (_TBD_ → move to `done/` after Finalize)
+- Ticket: `migration-docs/tickets/done/PROMPT_2_7_1b_Package-Module-Boundary_plan.md`
 - Task prompt: `migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_7_1b_Package-Module-Boundary.md`
 - Predecessor: Step 2.7.1a — Atomic MySQL Restore (Shadow Cut-over)
 - Successor: Step 2.7.1c — Runtime Composer Removal
-
----
-
-## 📊 <Step-specific appendix>
-
-<!-- Narrative/structural notes only. Never a metrics table (coverage %, MSI, test counts): quality
-     numbers are CI-owned — link the sticky quality-report comment + dashboard instead. -->
-
-_TBD — remove this section if not applicable._
