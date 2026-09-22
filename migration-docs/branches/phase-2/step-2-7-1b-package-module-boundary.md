@@ -75,7 +75,7 @@ _TBD_
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: _TBD / None_
+- Notable deviations: Checklist Step 1 ESCALATE (Tester, same FAIL 3×, 2026-09-22 01:52 UTC). `./app/vendor/bin/phpunit` and `./app/vendor/bin/phpstan analyse --no-progress --memory-limit=512M` did not run. The Tester session was in Ask mode — subagent frontmatter `readonly: true` forces Ask mode — so the shell blocked non-read-only commands. Re-run the Tester in Agent mode.
 
 ---
 
