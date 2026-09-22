@@ -16,6 +16,7 @@ import { execFileSync } from 'node:child_process';
 import { basename, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
+import { isSnapshotEscalate } from './guards.mjs';
 
 export const METRICS_DIR = '.github/conductor/metrics';
 export const SESSIONS_DIR = `${METRICS_DIR}/sessions`;
@@ -1052,6 +1053,7 @@ export function parsePhaseLabel(label) {
 
 function inferOutcome(result) {
   const text = String(result || '');
+  if (isSnapshotEscalate(text)) return 'snapshot-wait';
   if (text.startsWith('ESCALATE')) return 'escalate';
   if (/^Plan ready:/i.test(text) || /^Finalized\b/i.test(text)) return 'success';
   if (/^Step \d+ done:/i.test(text)) return 'success';

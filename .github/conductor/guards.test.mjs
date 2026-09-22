@@ -11,6 +11,7 @@ import {
   cloudExecuteSteps,
   xlHandoffMessage,
   isDecisionEscalate,
+  isSnapshotEscalate,
   implementationNotesProblems
 } from './guards.mjs';
 
@@ -152,6 +153,37 @@ test('isDecisionEscalate separates a decision from a retryable ESCALATE', () => 
   assert.equal(isDecisionEscalate('Step 3 — (decision) pending ESCALATE'), false);
   assert.equal(isDecisionEscalate(''), false);
   assert.equal(isDecisionEscalate(null), false);
+  assert.equal(
+    isDecisionEscalate(
+      'ESCALATE (snapshot): environment build abc does not contain origin/develop def'
+    ),
+    false
+  );
+});
+
+test('isSnapshotEscalate is a wait, not a decision or a product ESCALATE', () => {
+  assert.equal(
+    isSnapshotEscalate(
+      'ESCALATE (snapshot): environment build abc123 does not contain origin/develop def456'
+    ),
+    true
+  );
+  assert.equal(
+    isSnapshotEscalate(
+      'note\nESCALATE (snapshot): environment build abc does not contain origin/develop def'
+    ),
+    true
+  );
+  assert.equal(isSnapshotEscalate('ESCALATE(Snapshot): build behind'), true);
+  assert.equal(isDecisionEscalate('ESCALATE(Snapshot): build behind'), false);
+  assert.equal(
+    isSnapshotEscalate('ESCALATE (decision): AP-10 — dropping the weather widget'),
+    false
+  );
+  assert.equal(isSnapshotEscalate('ESCALATE: Step 3 — Tester FAIL recurred 3× (PHPStan).'), false);
+  assert.equal(isSnapshotEscalate('Batch done. Steps: [3]. Last commit: abc1234.'), false);
+  assert.equal(isSnapshotEscalate(''), false);
+  assert.equal(isSnapshotEscalate(null), false);
 });
 
 test('xlHandoffMessage names the step and the V1 resume', () => {

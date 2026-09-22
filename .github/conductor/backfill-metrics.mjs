@@ -10,6 +10,7 @@
 import { execFileSync } from 'node:child_process';
 import { writeFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { isSnapshotEscalate } from './guards.mjs';
 import {
   INDEX_PATH,
   SESSIONS_DIR,
@@ -171,7 +172,11 @@ function parseLogLines(logText, ctx) {
       const rm = content.match(RE_RESULT) || content.match(RE_EXECUTE_RESULT);
       if (rm) {
         current.result = rm[1].slice(0, 500);
-        current.outcome = current.result.startsWith('ESCALATE') ? 'escalate' : 'success';
+        current.outcome = isSnapshotEscalate(current.result)
+          ? 'snapshot-wait'
+          : current.result.startsWith('ESCALATE')
+            ? 'escalate'
+            : 'success';
       }
     }
   }
