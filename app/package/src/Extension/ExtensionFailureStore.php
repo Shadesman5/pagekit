@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pagekit\System\Extension;
+namespace Pagekit\Package\Extension;
 
 use Pagekit\Filesystem\Filesystem;
 

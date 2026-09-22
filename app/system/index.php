@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use Pagekit\Kernel\Event\ExceptionListener;
+use Pagekit\Package\Extension\ExtensionFailureStore;
 use Pagekit\Package\Lifecycle\LifecycleRunner;
-use Pagekit\System\Extension\ExtensionFailureStore;
 
 return [
 

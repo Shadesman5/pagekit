@@ -13,7 +13,8 @@ use Pagekit\Filesystem\Filesystem;
 use Pagekit\Filesystem\Locator;
 use Pagekit\Log\Logger;
 use Pagekit\Module\Module;
-use Pagekit\System\Extension\ExtensionFailureStore;
+use Pagekit\Package\Extension\ExtensionFailureStore;
+use Pagekit\Package\PackageModule;
 use Pagekit\System\SystemModule;
 use PHPUnit\Framework\TestCase;
 
@@ -286,6 +287,14 @@ final class ExtensionAutoDisableTest extends TestCase
         }
 
         $app->get('module')->register($this->fixtures('healthy', 'second', 'main-throwing'));
+
+        // `system` requires `package`, so the record service is defined before the
+        // barrier looks for it.
+        (new PackageModule([
+            'name' => 'package',
+            'path' => '',
+            'config' => [],
+        ]))->main($app);
 
         $system = new SystemModule([
             'name' => 'system',

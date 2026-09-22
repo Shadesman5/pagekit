@@ -5,8 +5,15 @@ declare(strict_types=1);
 namespace Pagekit\Tests\Unit\Package;
 
 use FilesystemIterator;
+use Monolog\Handler\TestHandler;
 use Pagekit\Application;
+use Pagekit\Filesystem\Filesystem;
+use Pagekit\Filesystem\Locator;
+use Pagekit\Log\Logger;
+use Pagekit\Module\Module;
+use Pagekit\Package\Extension\ExtensionFailureStore;
 use Pagekit\Package\PackageModule;
+use Pagekit\System\SystemModule;
 use PHPUnit\Framework\TestCase;
 use RecursiveCallbackFilterIterator;
 use RecursiveDirectoryIterator;
@@ -92,7 +99,7 @@ final class PackageModuleBoundaryTest extends TestCase
         }
     }
 
-    public function testThePackageTreeDoesNotNameTheSystemNamespace(): void
+    public function testThePackageAndInstallerTreesDoNotNameTheSystemNamespace(): void
     {
         $roots = [
             'app/package' => ['php', 'js', 'vue'],
@@ -103,8 +110,7 @@ final class PackageModuleBoundaryTest extends TestCase
         self::assertNotEmpty($this->under($this->hits($roots, 'namespace Pagekit\\Package'), 'app/package/'));
         self::assertNotEmpty($this->under($this->hits($roots, 'namespace Pagekit\\Installer'), 'app/installer/src/'));
 
-        // The installer tree still imports the failure store; only the package tree is required to be clear of it.
-        self::assertSame([], $this->under($this->hits($roots, self::SYSTEM_NAMESPACE), 'app/package/'));
+        self::assertSame([], $this->hits($roots, self::SYSTEM_NAMESPACE));
     }
 
     public function testTheDetectorReportsASystemNamespaceLine(): void
@@ -187,7 +193,13 @@ final class PackageModuleBoundaryTest extends TestCase
         }
     }
 
-    public function testTheManagerImportsOnlyTheRegistryInterface(): void
+    public function testTheFailureStoreLeftTheSystemTree(): void
+    {
+        self::assertFileExists($this->root().'/app/package/src/Extension/ExtensionFailureStore.php');
+        self::assertFileDoesNotExist($this->root().'/app/system/src/Extension/ExtensionFailureStore.php');
+    }
+
+    public function testTheManagerImportsOnlyTheRegistryInterfaceAndTheFailureStore(): void
     {
         $source = file_get_contents($this->root().'/app/installer/src/Package/PackageManager.php');
         self::assertIsString($source);
@@ -197,9 +209,11 @@ final class PackageModuleBoundaryTest extends TestCase
             static fn (string $class): bool => str_starts_with($class, 'Pagekit\\Package\\'),
         ));
 
-        // The factory is the container id `package`; parameters are typed on the interface.
+        // The factory is the container id `package`, parameters are typed on the interface,
+        // and the store is the type the optional failure record is narrowed to.
         self::assertEqualsCanonicalizing(
             [
+                'Pagekit\\Package\\Extension\\ExtensionFailureStore',
                 'Pagekit\\Package\\Lifecycle\\LifecycleRunner',
                 'Pagekit\\Package\\Lifecycle\\MigrationSet',
                 'Pagekit\\Package\\PackageInterface',
@@ -274,6 +288,73 @@ final class PackageModuleBoundaryTest extends TestCase
 
         self::assertNull($module->main($app));
         self::assertEqualsCanonicalizing($registered, $app->keys());
+    }
+
+    public function testTheFailureRecordIsRegisteredExactlyWhereADirectoryIsNamed(): void
+    {
+        $without = $this->applicationWithAFilesystem();
+
+        self::assertNull($this->packageModule()->main($without));
+        self::assertFalse($without->has('extension.failures'));
+
+        $root = $this->temporaryDirectory();
+
+        try {
+            $directory = $root.'/system';
+            $with = $this->applicationWithAFilesystem();
+            $with->set('path.system', $directory);
+
+            self::assertNull($this->packageModule()->main($with));
+            self::assertTrue($with->has('extension.failures'));
+
+            $store = $with->get('extension.failures');
+            self::assertInstanceOf(ExtensionFailureStore::class, $store);
+            self::assertTrue($store->record('blog', ExtensionFailureStore::TYPE_EXTENSION, new \RuntimeException('boom')));
+
+            // The next boot opens a file in the directory the container named.
+            self::assertFileExists($directory.'/extension-failures.json');
+            self::assertSame(
+                ExtensionFailureStore::TYPE_EXTENSION,
+                (new ExtensionFailureStore($directory, new Filesystem()))->all()['blog']['type'],
+            );
+        } finally {
+            $this->removeTree($root);
+        }
+    }
+
+    public function testTheSystemModuleDoesNotRegisterTheFailureRecord(): void
+    {
+        $root = $this->temporaryDirectory();
+
+        try {
+            $log = new TestHandler();
+            $logger = new Logger('log');
+            $logger->pushHandler($log);
+
+            $app = new Application();
+            $app->set('log', $logger);
+            $app->set('locator', new Locator($this->root()));
+            $app->set('assets', fn () => new \stdClass());
+            $app->set('file', fn () => new Filesystem());
+            // Named, so a registration that followed the system module would have a directory.
+            $app->set('path.system', $root.'/system');
+
+            $system = new SystemModule([
+                'name' => 'system',
+                'path' => '',
+                'config' => [
+                    'extensions' => [],
+                ],
+            ]);
+
+            self::assertNull($system->main($app));
+            self::assertFalse($app->has('extension.failures'));
+            self::assertInstanceOf(Module::class, $app->get('theme'));
+            self::assertSame([], $log->getRecords());
+            self::assertDirectoryDoesNotExist($root.'/system');
+        } finally {
+            $this->removeTree($root);
+        }
     }
 
     public function testComposerPhpstanAndPhpunitKnowThePackageDirectory(): void
@@ -617,5 +698,49 @@ final class PackageModuleBoundaryTest extends TestCase
     private function root(): string
     {
         return strtr(dirname(__DIR__, 3), '\\', '/');
+    }
+
+    private function packageModule(): PackageModule
+    {
+        return new PackageModule([
+            'name' => 'package',
+            'path' => '',
+            'config' => [],
+        ]);
+    }
+
+    private function applicationWithAFilesystem(): Application
+    {
+        $app = new Application();
+        $app->set('file', fn () => new Filesystem());
+
+        return $app;
+    }
+
+    private function temporaryDirectory(): string
+    {
+        $directory = strtr(sys_get_temp_dir(), '\\', '/').'/pk_package_boundary_'.getmypid().'_'.uniqid();
+        self::assertTrue(mkdir($directory, 0755, true));
+
+        return $directory;
+    }
+
+    private function removeTree(string $path): void
+    {
+        if (is_link($path) || is_file($path)) {
+            unlink($path);
+
+            return;
+        }
+
+        if (!is_dir($path)) {
+            return;
+        }
+
+        foreach (array_diff((array) scandir($path), ['.', '..']) as $entry) {
+            $this->removeTree($path.'/'.$entry);
+        }
+
+        rmdir($path);
     }
 }

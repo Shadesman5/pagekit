@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\System\Extension;
 
 use Pagekit\Module\ModuleManager;
+use Pagekit\Package\Extension\ExtensionFailureStore;
 use Psr\Log\LoggerInterface;
 
 /**

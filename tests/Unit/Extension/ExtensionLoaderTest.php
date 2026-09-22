@@ -12,7 +12,7 @@ use Pagekit\Filesystem\Filesystem;
 use Pagekit\Log\Logger;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
-use Pagekit\System\Extension\ExtensionFailureStore;
+use Pagekit\Package\Extension\ExtensionFailureStore;
 use Pagekit\System\Extension\ExtensionLoader;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;

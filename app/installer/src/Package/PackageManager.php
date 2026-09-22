@@ -8,10 +8,10 @@ use Pagekit\Filesystem\Filesystem;
 use Pagekit\Installer\Helper\Composer;
 use Pagekit\Installer\Package\Snapshot\PackageSnapshotter;
 use Pagekit\Migration\MigrationService;
+use Pagekit\Package\Extension\ExtensionFailureStore;
 use Pagekit\Package\Lifecycle\LifecycleRunner;
 use Pagekit\Package\Lifecycle\MigrationSet;
 use Pagekit\Package\PackageInterface;
-use Pagekit\System\Extension\ExtensionFailureStore;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -88,9 +88,9 @@ class PackageManager
         $files = $this->app->has('file') ? $this->app->get('file') : null;
         $logger = $this->app->has('log') ? $this->app->get('log') : null;
 
-        // The failure record belongs to the system module, which the installer
-        // environment does not load. Without it there is nothing to read and
-        // nothing to clear; every other operation is unaffected.
+        // The record is only kept where the container names a directory for it.
+        // Without one there is nothing to read and nothing to clear; every other
+        // operation is unaffected.
         $failures = $this->app->has('extension.failures') ? $this->app->get('extension.failures') : null;
         $this->failures = $failures instanceof ExtensionFailureStore ? $failures : null;
 

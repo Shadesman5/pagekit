@@ -67,7 +67,7 @@
      (after full step PASS incl. test-writer when applicable; for XL after reviews + E2E PASS) -->
 - [x] Step 1 (M) — Safety gates + module skeleton + tooling that must know the directory
 - [x] Step 2 (L) — Package registry and lifecycle contract
-- [ ] Step 3 (M) — Failure record
+- [x] Step 3 (M) — Failure record
 - [ ] Step 4 (L) — Manager, Composer helper and snapshot engine
 - [ ] Step 5 (L) — Admin surface, undivided
 - [ ] Step 6 (M) — Tooling and `installer` cleanup
@@ -102,7 +102,10 @@
 - `phpstan-baseline.neon` — the relocated `PackageFactory.php` entry was moved to its sorted position between `app/modules/view/src/View.php` and `app/system/app.php`, not left inside the `app/installer` block. The file is path-sorted, so an in-place edit would be the one out-of-order entry and the next surgical edit would have to hunt for it. Count and message are untouched.
 - Existing test files — imports were re-sorted where the new prefix changes their alphabetical position (`Pagekit\Package\…` sorts after `Pagekit\Module\…`/`Pagekit\Migration\…` and before `Pagekit\Site\…`/`Pagekit\System\…`/`Pagekit\Tests\…`), so `ordered_imports` stays satisfied. No assertion changed; `tests/Unit/Package/bootstrap.php` still declares its `__()` stub in `Pagekit\Installer\Package`, which is where `PackageManager` still lives.
 ### Step 3
-_none yet_
+- `PackageModule::main()` — the guard moved verbatim, but its reach did not: `public/index.php` names `path.system` for all three boots and `installer` requires `package`, so the wizard environment now resolves `extension.failures` where it previously had none and `PackageManager::$failures` is a real store there. Invariant: the id is registered exactly where `path.system` is set, never "wherever the system module ran" — a test must drive both branches off that path alone.
+- `ExtensionAutoDisableTest::boot()` — `PackageModule` is booted on every call, including the one that passes no `systemPath`, rather than only where the directory exists. Rejected the conditional boot: it would make `assertFalse($app->has('extension.failures'))` pass because the module never ran, which is not the guard the case is named after. Invariant: after both modules have run, absence of the id follows from the missing path.
+- `tests/Unit/Package/{PackageFailureRecordTest,PackageHookBarrierTest}.php` — the docblocks and the `testAnEnvironmentThatKeepsNoRecordReportsNoFailures` comment still place the record in the system module "which the installer does not load". Decision 12 permits no comment edit beyond decision 4's, so only the imports changed; the statements are false as of this step and belong to whoever next owns those files.
+- `PackageModuleBoundaryTest` — the manager's `Pagekit\Package\` allow-list gained `Extension\ExtensionFailureStore` and the method was renamed rather than keep a name claiming the interface is the only import; the invariant is that those four names are the manager's whole compile-time tie to this module. Its `Pagekit\System\` walk still filters the result to `app/package/`, but the reason for the narrowing (the installer tree imported the store) ends with this step, so both roots the walk opens are clear and the whole result can be asserted.
 ### Step 4
 _none yet_
 ### Step 5

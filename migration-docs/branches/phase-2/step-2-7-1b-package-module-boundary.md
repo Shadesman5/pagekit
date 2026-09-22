@@ -15,7 +15,7 @@
 
 ## 🎯 Overview
 
-The `package` module sits beside `installer`. All three boots register `app/package/index.php`. `system` and `installer` require `package`. `PackageModule::main()` still registers no services — the `package` factory registration stays on the installer manifest. The registry (`Package`, `PackageInterface`, `PackageFactory`) and the lifecycle contract live in `Pagekit\Package`. `PackageManager`, the snapshot engine, routes, and the admin surface still live in `installer`.
+The `package` module sits beside `installer`. All three boots register `app/package/index.php`. `system` and `installer` require `package`. `PackageModule::main()` registers `extension.failures` when the container names `path.system`; the `package` factory registration stays on the installer manifest. The registry (`Package`, `PackageInterface`, `PackageFactory`), the lifecycle contract, and `ExtensionFailureStore` live in `Pagekit\Package`. `PackageManager`, the snapshot engine, routes, and the admin surface still live in `installer`.
 
 ---
 
@@ -84,27 +84,55 @@ Imports re-pointed to `Pagekit\Package\…` and re-sorted (`Pagekit\Package\` af
 
 Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan PASS; test-writer done after one retry (Verifier FAIL: `PackageModuleBoundaryTest` baseline assertion expected a literal trailing `$`, which in the neon entry is the pattern's end anchor inside `#^…$#`) → Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
 
+### Failure record (Checklist Step 3)
+
+`git mv` of the store. Namespace only. The `extension.failures` registration, its `path.system` guard, and its comment moved from `SystemModule::main()` into `PackageModule::main()`. The guard is unchanged; its reach is not. `public/index.php` sets `path.system` on every boot and `installer` requires `package`, so the wizard now resolves the id and `PackageManager::$failures` is a real store there. The id exists exactly where `path.system` is set.
+
+| File | Change |
+|---|---|
+| `app/package/src/Extension/ExtensionFailureStore.php` | From `app/system/src/Extension/`. Namespace `Pagekit\Package\Extension`. |
+| `app/package/src/PackageModule.php` | Registers `extension.failures` under `if ($app->has('path.system'))`, comment included. |
+| `app/system/src/SystemModule.php` | Registration and store import dropped. The `has()` read, the loader, and the "container that names no place" comment stay. |
+| `app/system/src/Extension/ExtensionLoader.php` | `use Pagekit\Package\Extension\ExtensionFailureStore`. The class left this namespace. |
+| `app/system/index.php` | Same import. |
+| `app/installer/src/Package/PackageManager.php` | Same import. The comment now says the record is kept only where the container names a directory. |
+
+#### Tests (Checklist Step 3)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Extension/ExtensionAutoDisableTest.php` | Import. `boot()` runs `PackageModule::main()` on every call, including the one that passes no `systemPath`. |
+| `tests/Unit/Extension/{ExtensionFailureNoticeTest,ExtensionFailureStoreTest,ExtensionLoaderTest}.php` | Import. |
+| `tests/Unit/Package/PackageHookBarrierTest.php` | Import. The `$path` docblock still calls the directory one of the system module. |
+| `tests/Unit/Package/PackageFailureRecordTest.php` | Import. `testAFailureTheBarrierRecordedIsWhatTheManagerReportsAndClears`: the barrier writes through the registered service, `getFailedModules()` reports it, `enable()` clears it. The `$path` docblock and `testAnEnvironmentThatKeepsNoRecordReportsNoFailures` still say the installer does not load the system module. |
+| `tests/Unit/Package/PackageModuleBoundaryTest.php` | The store file is under `app/package/` and gone from `app/system/`. The `Pagekit\System\` walk asserts both `app/package` and `app/installer/src`, with no filter. The manager's `Pagekit\Package\` imports are the previous three plus `Extension\ExtensionFailureStore` (method renamed). `extension.failures` is registered iff `path.system`, and the store writes under that directory. `SystemModule::main()` does not register the id even when the path is set. |
+
+Gates: Verifier (production) PASS; Tester PHPUnit+PHPStan FAIL once (`PackageModuleBoundaryTest` import allow-list) then PASS after a production retry; test-writer PASS; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
 
 - **List position is not the contract.** `app/package/index.php` is registered ahead of `app/installer/index.php`, and `'package'` sits after `'migration'` in both `require` arrays. `ModuleManager::register()` only discovers manifests; `resolveModules()` walks requirements by name. `PackageModuleBoundaryTest` asserts those arrays contain the entry, never an index or a relative order.
-- **The manager's compile-time tie is the interface.** `PackageManager` imports `PackageInterface`, `Lifecycle\LifecycleRunner`, and `Lifecycle\MigrationSet`. `Package`, `PackageFactory`, and `PackageLifecycleInterface` never appear in the body — the factory is the container id `package`, and parameters are typed on the interface. `no_unused_imports` would strip the others. The boundary test pins those three imports.
+- **The manager's compile-time tie is four names.** `PackageManager` imports `PackageInterface`, `Lifecycle\LifecycleRunner`, `Lifecycle\MigrationSet`, and `Extension\ExtensionFailureStore`. `Package`, `PackageFactory`, and `PackageLifecycleInterface` never appear in the body — the factory is the container id `package`, parameters are typed on the interface, and the store is the type the optional record is narrowed to. `no_unused_imports` would strip anything else. The boundary test pins those four.
 - **The marketplace action type-hints the factory.** `MarketplaceController` imports `Pagekit\Package\PackageFactory`. The boundary test asserts that import.
 - **The baseline entry moved in path order.** Same message, identifier, and count. It sits between `View.php` and `app/system/app.php`, not inside the installer block.
 - **The translation stub stays with the manager.** `tests/Unit/Package/bootstrap.php` still declares `__()` in `Pagekit\Installer\Package`. Existing tests re-sorted imports and did not change assertions.
+- **The failure id follows `path.system`.** The guard moved verbatim. It is not "wherever the system module ran": every boot names the path, so the wizard resolves `extension.failures`. Both branches are driven off that path alone. `ExtensionAutoDisableTest::boot()` runs `PackageModule` even when no directory is passed — a conditional boot would make the missing-id assertion pass because the module never ran.
+- **Two comments still place the record in the system module.** `PackageFailureRecordTest` (the `$path` docblock and `testAnEnvironmentThatKeepsNoRecordReportsNoFailures`) and `PackageHookBarrierTest` (the `$path` docblock) still say the installer does not load that module. Only the `PackageManager` comment was in scope to rewrite, so only the imports changed. Those sentences are false as of this step.
+- **The system-namespace walk asserts both roots.** It used to keep only `app/package/` hits, because the installer tree imported the store. That import is gone, so an empty result over `app/package` and `app/installer/src` is the assertion.
 
 ---
 
 ## 💥 Breaking Changes (Extensions)
 
-The registry and lifecycle contract left `Pagekit\Installer\Package`. An extension that implements the lifecycle, or names `MigrationSet`, `Package`, `PackageInterface`, or `PackageFactory`, uses `Pagekit\Package\…` (`Lifecycle\` for the lifecycle types). The shipped blog lifecycle is that rename. `PackageManager`, the snapshot types, routes, and the admin surface are still `Pagekit\Installer\…`.
+The registry and lifecycle contract left `Pagekit\Installer\Package`. An extension that implements the lifecycle, or names `MigrationSet`, `Package`, `PackageInterface`, or `PackageFactory`, uses `Pagekit\Package\…` (`Lifecycle\` for the lifecycle types). The shipped blog lifecycle is that rename. `ExtensionFailureStore` left `Pagekit\System\Extension` for `Pagekit\Package\Extension`. `PackageManager`, the snapshot types, routes, and the admin surface are still `Pagekit\Installer\…`.
 
 ---
 
 ## ⚠️ Risks & Rollout Notes
 
-`system` and `installer` fail module resolution if `app/package/index.php` is absent. `main()` registers no services. A caller that still names `Pagekit\Installer\Package\{Package,PackageInterface,PackageFactory}` or `Pagekit\Installer\Package\Lifecycle\` does not resolve.
+`system` and `installer` fail module resolution if `app/package/index.php` is absent. The wizard resolves `extension.failures`: `path.system` is set on every boot, and `installer` requires `package`, so `PackageManager::$failures` is a real store there. A container that does not set `path.system` still has no id. A caller that still names `Pagekit\Installer\Package\{Package,PackageInterface,PackageFactory}`, `Pagekit\Installer\Package\Lifecycle\`, or `Pagekit\System\Extension\ExtensionFailureStore` does not resolve.
 
 ---
 
@@ -116,7 +144,7 @@ None.
 
 ## 🛡️ No-Mercy Compliance
 
-The stale `Pagekit\Package\` mapping to a directory that does not exist was deleted, not left beside the new PSR-4 path. The main is the class, with an empty `main()` — no closure and no service registration until the registrations move. No alias. The registry and lifecycle types changed namespace at every call site; `PackageManager` did not keep imports for classes its body never names.
+The stale `Pagekit\Package\` mapping to a directory that does not exist was deleted, not left beside the new PSR-4 path. The main is the class. No alias. The registry, the lifecycle types, and the failure store changed namespace at every call site; `PackageManager` did not keep imports for classes its body never names. `SystemModule` dropped the registration; the `has()` read stayed, because a container without `path.system` still has no id.
 
 ---
 
@@ -126,7 +154,7 @@ The stale `Pagekit\Package\` mapping to a directory that does not exist was dele
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: Step 1 — production Verifier PASS; Tester PHPUnit+PHPStan PASS. test-writer: first Tester FAIL (`PackageModuleBoundaryTest` included `app/system/index.php` and tripped `failOnWarning` on unbound `$app`). Retry binds `$app` before the include. Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 2 — production Verifier PASS; Tester PHPUnit+PHPStan PASS. test-writer: first Verifier FAIL (`PackageModuleBoundaryTest` baseline assertion expected a literal trailing `$`; in the neon entry that `$` is the pattern's end anchor inside `#^…$#`). Retry asserts the stored message. Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
+- Notable deviations: Step 1 — production Verifier PASS; Tester PHPUnit+PHPStan PASS. test-writer: first Tester FAIL (`PackageModuleBoundaryTest` included `app/system/index.php` and tripped `failOnWarning` on unbound `$app`). Retry binds `$app` before the include. Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 2 — production Verifier PASS; Tester PHPUnit+PHPStan PASS. test-writer: first Verifier FAIL (`PackageModuleBoundaryTest` baseline assertion expected a literal trailing `$`; in the neon entry that `$` is the pattern's end anchor inside `#^…$#`). Retry asserts the stored message. Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS. Step 3 — production Verifier PASS. Tester PHPUnit+PHPStan FAIL once (`PackageModuleBoundaryTest` import allow-list) then PASS after a production retry. test-writer PASS; Verifier (test files) PASS; Tester PHPUnit+PHPStan PASS.
 
 ---
 

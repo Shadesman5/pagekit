@@ -6,8 +6,8 @@ namespace Pagekit\Tests\Unit\Extension;
 
 use Pagekit\Application;
 use Pagekit\Filesystem\Filesystem;
+use Pagekit\Package\Extension\ExtensionFailureStore;
 use Pagekit\Session\MessageBag;
-use Pagekit\System\Extension\ExtensionFailureStore;
 use Pagekit\View\Event\ViewEvent;
 use PHPUnit\Framework\TestCase;
 
