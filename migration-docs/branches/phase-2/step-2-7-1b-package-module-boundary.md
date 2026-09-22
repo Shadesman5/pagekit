@@ -325,7 +325,8 @@ None.
 <!-- Filled by the post-close review after Finalize: what the finished work left unowned,
      one bullet per finding with the ROADMAP step whose area it belongs to. Doc-writer leaves None. -->
 
-None.
+- **A retention window stored under `installer` is dead data, and the window has no surface but the database.** `app/modules/config/index.php` overlays a module's `@system_config` row onto its manifest `config` by module name (`array_replace`), and `PackageModule::main()` reads `snapshots.retention_days` from the `package` module alone. A `snapshots` section an administrator stored under `installer` — the only way to set the window before this release, and still the only way now — is read by nothing and removed by nothing; the snapshots page shows the `package` value and offers no input, and no console command writes it. Recorded default: the row stays and the value is re-set by hand on the `package` row (see Research). → **4.4**
+- **Three test comments place the failure record in the system module.** `tests/Unit/Package/PackageFailureRecordTest.php` (the `$path` docblock and the comment in `testAnEnvironmentThatKeepsNoRecordReportsNoFailures`) and `tests/Unit/Package/PackageHookBarrierTest.php` (the `$path` docblock) say the record is a directory of the system module that the installer environment does not load. The store is `Pagekit\Package\Extension\ExtensionFailureStore`, registered by `PackageModule::main()` wherever `path.system` is set — every boot, the wizard included. → **2.11**
 
 ---
 
@@ -361,7 +362,7 @@ None.
 <!-- The verified facts behind each DECISION the post-close review raised — symbols, call chain,
      what each exit deletes or adds — so the maintainer can decide without re-reading the tree. -->
 
-None.
+- **Orphaned `installer.snapshots` row.** Storage: `app/modules/config/index.php` `main` builds `ConfigManager` over `@system_config` and adds a module loader that `array_replace`s the stored row of `$module['name']` onto the manifest `config`; a stored section replaces the shipped one whole. Reader: `PackageModule::main()` → `$this->config('snapshots.retention_days')` → `SnapshotStore::retentionDays()`; `SnapshotController::retentionDays()` → `ModuleManager::get('package')->config(...)` for the page. Writers of that key in `app/` and `packages/`: none — no settings screen, no `php pagekit` command; the value reaches the row only by hand. The `installer` row keeps `enabled`, `release_channel` and whatever `snapshots` section a hand edit left; that section is merged into the installer module's config and consulted by nothing. Exit A (recorded): leave the row; the CHANGELOG line is the instruction, and the administrator re-sets the value on the `package` row. Exit B: a one-off data re-key (`installer.snapshots.retention_days` → `package.snapshots.retention_days`, then unset on `installer`) as an `updates()` entry of the system lifecycle in `app/system/scripts.php`, keyed by the version that moved the key — the hook exists and is documented there, no entry uses it yet. Exit B adds a versioned data step to a relocation; Exit A leaves a window set before this release silently back on the 30-day default.
 
 ---
 

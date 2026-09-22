@@ -272,7 +272,9 @@ foundation (clean `PackageManager` API: `install()`, `update()`, `uninstall()`, 
   - ZIP dist route, e.g. `GET /package/{vendor}/{name}/{version}.zip`
 - Composer integration already supports two repositories — keep both:
   `['type' => 'artifact', 'url' => path.artifact]` and `['type' => 'composer', 'url' => system.api]`
-  (see `app/installer/src/Helper/Composer.php`).
+  (see `app/package/src/Helper/Composer.php` — the helper and both repositories are deleted with the
+  runtime Composer path in **2.7.1c**, whose install path takes a ready-to-run archive and resolves
+  nothing).
 
 **2. Archive / build pipeline (centralise the "create ZIP" logic)**
 
@@ -316,11 +318,11 @@ foundation (clean `PackageManager` API: `install()`, `update()`, `uninstall()`, 
 - CLI build side: `app/console/src/Commands/ArchiveCommand.php`, `app/console/src/Commands/BuildCommand.php`
 - CLI install/update side (disabled stubs since 2020 — the marketplace-client half):
   `app/console/src/Commands/InstallCommand.php`, `app/console/src/Commands/UpdateCommand.php`
-- Install side (already modern): `app/installer/src/Package/PackageManager.php`,
-  `app/installer/src/Helper/Composer.php`, `app/installer/src/Controller/PackageController.php`
+- Install side (already modern, `Pagekit\Package`): `app/package/src/PackageManager.php`,
+  `app/package/src/Helper/Composer.php` (deleted in **2.7.1c**), `app/package/src/Controller/PackageController.php`
 - Marketplace UI/API consumers: `app/installer/src/Controller/MarketplaceController.php`,
   `app/installer/src/Controller/UpdateController.php`, `app/installer/app/components/marketplace.vue`,
-  `app/installer/app/lib/package.js`
+  `app/package/app/lib/package.js`
 - Self-update: `app/console/src/Commands/SelfupdateCommand.php`, `app/installer/src/SelfUpdater.php`
 
 ### Notes & provenance
