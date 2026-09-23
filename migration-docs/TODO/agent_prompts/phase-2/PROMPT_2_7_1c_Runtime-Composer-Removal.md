@@ -2,7 +2,7 @@
 
 <!-- conductor-mode: full -->
 
-**ROADMAP:** 2.7.1c. GitHub Issue: _create with `github-issue-creator` before dispatch_. Reference: `@ROADMAP.md`, `PHASE_2_MODERNISING.md` §2.7.1c.
+**ROADMAP:** 2.7.1c. GitHub Issue: [#297](https://github.com/Shadesman5/pagekit/issues/297). Reference: `@ROADMAP.md`, `PHASE_2_MODERNISING.md` §2.7.1c.
 
 ---
 
@@ -111,7 +111,7 @@ Resolve before writing code:
 - **Path safety.** Extraction target is `packages/<vendor>/<name>/` derived from the **manifest name**, validated against the same allowlist the snapshot store uses for ids; entries that escape (`..`, absolute, symlinks) refuse the whole archive before a byte is written.
 - **Update-by-upload.** Confirm today's `install()` branch (`enable($package, $previousConfig)` when the module existed) and reproduce it after extraction. Decide what happens to the replaced tree (delete in place — a snapshot before it is the update step's contract, not this one's).
 - **`installed.json` readers.** The version fallback in `PackageManager`, `isInstalled()` callers, the snapshotter's capture and its tests, the `composer` metadata flag in snapshot `metadata.json` (drop the field; existing snapshots with the field still read — the store sanitizes unknown/typed fields).
-- **`InstallCommand`.** Becomes `php pagekit install <archive>` over the same service, or is deleted — a container or headless installation has no panel, so keeping it is the useful answer; either way the marketplace stub and its `Step 5.6` note go.
+- **`InstallCommand`.** `php pagekit install <archive>`: one local archive path, the same service the upload calls. A container or headless installation has no panel, so the command stays. The marketplace signature (`name:constraint`, `--prefer-source`) and the `Step 5.6` note go with the stub. A later marketplace may add a name form; it does not keep a disabled command. This is not `php pagekit setup`.
 - **What `system.api` still serves.** Only the core self-update path reads it afterwards; leave those reads and their default alone.
 - **Bundle entries.** `scripts/bundle-entries.mjs` lists the marketplace Vue entry in the installer (or package module) group; removing it changes `pnpm build` output.
 
@@ -121,9 +121,9 @@ Resolve before writing code:
 
 Architect: decompose into ordered, individually-green checklist steps. Suggested order:
 
-1. **Archive install service.** Validate → extract → register → lifecycle `install()`; update branch via `enable($package, $previousConfig)`. `installAction` (without `packagist`) and `php pagekit install <archive>` call it. The Composer helper still exists but the install path no longer touches it. Tests for the refusals (no autoload, path escape, `type` mismatch, malformed manifest) and the round-trip.
+1. **Archive install service.** Validate → extract → register → lifecycle `install()`; update branch via `enable($package, $previousConfig)`. `installAction` (without `packagist`) and `php pagekit install <archive>` call it. The command's argument is that one path; `name:constraint` and `--prefer-source` are deleted with the stub. The Composer helper still exists but the install path no longer touches it. Tests for the refusals (no autoload, path escape, `type` mismatch, malformed manifest) and the round-trip.
 2. **Delete the Composer runtime.** Helper, `composer/composer` in `require` (+ `composer.lock`), `autoload.php` overlay, `path.artifact` (or its rename), the `removeFiles()` Composer branch, the version fallback, the dead console imports. `packages/composer/` in `.gitignore` and anywhere else it is named.
-3. **Snapshot engine.** Delete bookkeeping capture, `INSTALLED_FILE`, the `composer` metadata flag and their tests; the restore round-trip test now covers an uploaded package end to end (upload → enable → uninstall → restore → the package boots).
+3. **Snapshot engine.** Delete bookkeeping capture, `INSTALLED_FILE`, the `composer` metadata flag and their tests; the restore round-trip test now covers an uploaded package end to end (upload → enable → uninstall → restore → the package boots and its manifest routes are registered again).
 4. **Marketplace surface.** Controller, route, menu, view, Vue component and entry, icon, `packagist` in `installAction` / `install.vue` / `update.vue` / `package.js`; components left without a caller. `pnpm build` / `pnpm lint` / `prettier --check` green.
 5. **Guards and docs.** A test or CI grep that `app/vendor` after `composer install --no-dev` holds no `composer/composer`, that `autoload.php` has no overlay branch and that `packages/composer/` is never created; README / AGENTS where they describe upload or `packages/composer`.
 6. **Mandatory final `(XL)` step** — Review (Bugbot + Security) + E2E.
@@ -134,7 +134,7 @@ Sizing hints: (1) carries the design and the security surface — `L`; (2) and (
 
 - **(1)** The refusal tests are the feature. An install path that accepts an archive it cannot place safely is worse than the Composer one it replaces.
 - **(2)** `composer.lock` changes; run `composer install` afterwards and check the tree, not the diff.
-- **(3)** Existing snapshots in the field carry `composer: bool` in `metadata.json`. `SnapshotStore` sanitizes typed fields — confirm an old snapshot still lists and restores.
+- **(3)** Existing snapshots in the field carry `composer: bool` in `metadata.json`. `SnapshotStore` sanitizes typed fields — confirm an old snapshot still lists and restores. Uninstall clears the route cache, because a removed package's routes must not stay cached; the restore assertion fails if that cache still describes a tree without the package. The oracle is the fixture's manifest routes.
 - **(4)** Vue is deleted, not edited. Do not "clean up" `install.vue` beyond removing the flag.
 
 ---
@@ -156,8 +156,8 @@ Sizing hints: (1) carries the design and the security surface — `L`; (2) and (
 
 - **Per checklist step (Conductor Tester):** PHPUnit + PHPStan PASS/FAIL.
 - **`test-writer` applies** — the archive service is new code; the deletions change what existing tests may assume (fixtures that wrote `installed.json`, snapshot tests that plant it).
-- **Minimum coverage:** upload → install → enable → uninstall (snapshot) → restore round-trip for a fixture package with manifest autoload, and the restored package boots; upload of a newer version runs `enable()` with the previous config; an archive without manifest autoload, with a path escape, with a mismatched `type` or a malformed manifest is refused before anything is written; `packages/composer/` is never created; `autoload.php` has no overlay branch; `composer install --no-dev` yields no `composer/composer`.
-- **Fresh install:** `php pagekit setup … -d sqlite` from nothing, then upload the Blog package as an archive and enable it — the first-party package is the proof that manifest autoload carries a real extension.
+- **Minimum coverage:** upload → install → enable → uninstall (snapshot) → restore round-trip for a fixture package with manifest autoload; after install and after restore the fixture's manifest routes are registered (the package boots, and a route cache cleared on uninstall does not come back describing a tree without it); upload of a newer version runs `enable()` with the previous config; an archive without manifest autoload, with a path escape, with a mismatched `type` or a malformed manifest is refused before anything is written; `packages/composer/` is never created; `autoload.php` has no overlay branch; `composer install --no-dev` yields no `composer/composer`.
+- **Fresh install:** `php pagekit setup … -d sqlite` from nothing, then upload the Blog package as an archive and enable it — the first-party package is the proof that manifest autoload carries a real extension. Its permalink aliases are not the oracle for route registration.
 - **Frontend:** `pnpm build` without the marketplace entry; `pnpm lint` and `pnpm exec prettier --check .` exit 0.
 - **E2E (final `(XL)`):** 3 `@ci` specs; extensions and themes pages load and act without the marketplace menu entry.
 
@@ -169,9 +169,9 @@ Sizing hints: (1) carries the design and the security surface — `L`; (2) and (
 - `autoload.php` merges nothing from `packages/`; `packages/composer/` does not exist after an install and nothing writes it.
 - Upload validates, extracts to `packages/<vendor>/<name>/` from the manifest name, registers, runs `install()`; a newer version of an installed package runs `enable()` with the previous config.
 - Refusals are tested: missing manifest autoload, path escape, `type` mismatch, malformed manifest — none writes a byte.
-- The snapshot engine has no `installed.json` capture, no `composer` flag, no `INSTALLED_FILE`; a snapshot of an uploaded package restores and the package boots.
+- The snapshot engine has no `installed.json` capture, no `composer` flag, no `INSTALLED_FILE`; a snapshot of an uploaded package restores, the package boots, and its manifest routes are registered again.
 - The marketplace package surface is gone (controller, route, menu, view, Vue, `packagist`); core self-update is byte-for-byte untouched.
-- `php pagekit install <archive>` installs from the console (or the command is gone — no disabled stub remains).
+- `php pagekit install <archive>` installs a local archive from the console over the same service. The marketplace stub, its `name:constraint` signature, `--prefer-source` and the `Step 5.6` note are gone.
 - No `Step 2.7.1c` references in code or tests; PHPUnit + PHPStan green with no new baseline entries.
 
 ---
