@@ -1,6 +1,6 @@
 ---
 name: architect
-model: claude-fable-5-1[thinking=true,context=1m,effort=max]
+model: grok-4.7[context=500k,reasoning_effort=xhigh,fast=true]
 description: Strategic Lead for Pagekit modernization. Maps task prompts to ROADMAP.md, defines scope, checklist, TODO-Spec. Use proactively when executing agent_prompts or task prompts from the modernization plan.
 ---
 
