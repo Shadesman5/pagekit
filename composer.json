@@ -16,6 +16,7 @@
   ],
   "require": {
     "php": "^8.5",
+    "ext-zip": "*",
     "composer/composer": "^2.10.3",
     "doctrine/dbal": "^3.8",
     "php-debugbar/php-debugbar": "^1.23.3",
@@ -50,7 +51,6 @@
     "ext-mbstring": "*",
     "ext-xml": "*",
     "ext-xmlwriter": "*",
-    "ext-zip": "*",
     "ext-simplexml": "*",
     "ext-pdo": "*",
     "phpunit/phpunit": "^11.0",

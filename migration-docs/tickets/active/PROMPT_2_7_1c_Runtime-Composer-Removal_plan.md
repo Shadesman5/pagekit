@@ -65,7 +65,7 @@
      L = large or loop-risk, XL = Review (Bugbot + Security) + E2E (mandatory last step, weight 8).
      A step orchestrator flips its box to [x] in the SAME commit as that step's code + tests
      (after full step PASS incl. test-writer when applicable; for XL after reviews + E2E PASS) -->
-- [ ] Step 1 (M) — Safety gates + the archive seam
+- [x] Step 1 (M) — Safety gates + the archive seam
 - [ ] Step 2 (L) — Install path on the seam
 - [ ] Step 3 (L) — Other Composer-library consumers
 - [ ] Step 4 (M) — Snapshot engine
@@ -104,7 +104,14 @@
      `File::symbol` — chosen vs. rejected, why, the invariant a test must hold. Files that follow the
      plan get no line; a step with no open decision gets `none`. Architect leaves every step `_none yet_`. -->
 ### Step 1
-_none yet_
+- `PackageArchive::entries()` — beyond 1(b): two entries equal after dropping the trailing `/` and ASCII lower-casing refuse ("more than once"), and so does a file that is another entry's folder ("both as a file and as a folder") — the manifest read takes the first match while extraction writes every entry, case-insensitive filesystems included. Empty segments (`a//b`) refuse instead of collapsing. The backslash check runs first, so `C:\win.php` refuses on the backslash (the drive branch needs `C:/win.php`); the symlink check reads `attributes >> 16` whatever the host byte. Invariant: `index.php` twice, `Index.php` + `index.php`, `a` + `a/b` → refused, nothing written.
+- `PackageArchive::open()` — a missing, 0-byte or non-ZIP file → "not a readable ZIP archive"; an entry-less archive → "The archive is empty." (`ZipArchive` writes no file without entries — that fixture is the 22-byte end record `"PK\x05\x06" . str_repeat("\0", 18)`).
+- `PackageArchive::read()` — `composer.json`/`index.php` declared above 1 MiB (`MANIFEST_MAX_BYTES`) refuse ("is too large"): both are read into memory whole, which the 512 MiB total does not bound.
+- `PackageArchive::extractTo()` — streams entry by entry; rejected `ZipArchive::extractTo()`, which overwrites existing paths and cannot hold a file to its listing. Re-opens the file (no handle kept after `open()`) and throws if the count or any index's name/size/CRC changed; `fopen('xb')`, so an existing path fails; never writes past the declared size and checks size + CRC itself ("is damaged"), because PHP's zip stream reports an end-of-entry CRC error as plain EOF; modes `0666`/`0777` under the umask. A failure leaves what was written — cleanup is `replaceTree()`'s — so a test asserts the exception, not an empty directory.
+- `PackageArchive::manifest()` — the manifest is the file's only `return` outside function and class bodies (closure, method and anonymous-class returns do not count): a second one refuses, because a condition or a `goto` picks which one PHP takes; that one must be top-level, under `namespace X;` too (whether the node holds the code after it, as `parse()` yields, or has null `stmts` with that code as siblings) — one only inside `if`/`declare`/`try` refuses. Keys resolve last-wins, and a spread or a computed (non-string, non-integer-literal) key clears the literal keys before it: `['name' => 'blog', 'autoload' => [], $k => 1]` and `[…, ...$x]` refuse, `[$k => 1, 'name' => 'blog', 'autoload' => []]` passes. Every `autoload` item is folder-checked, an overridden duplicate too. Invariant: each (d) refusal is an `ArchiveRefusedException`, never an `Error`/`TypeError`.
+- `PackageArchive::relative()` — `extra.scripts` and `autoload` values drop empty and `.` segments; `''`, a leading `/`, a drive prefix or any `..` refuses; autoload `.` is the package root. Autoload values get `\` → `/` first (as `AutoLoader` does), scripts do not. Scripts count only when non-empty (the runner's `!$scripts`); a non-string value refuses.
+- `PackageArchive::printable()` — archive-supplied strings quoted in a message get control characters and invalid UTF-8 replaced by `?`.
+- Safety gates — branch contains `origin/develop`, `composer install` a no-op, `pnpm install --frozen-lockfile && pnpm build` exit 0 before any edit; the PHPUnit/PHPStan baseline is left to the Tester (the refactorer runs no suite).
 ### Step 2
 _none yet_
 ### Step 3
