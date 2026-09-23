@@ -33,7 +33,7 @@
         "lodash": "^4.17.20",
         "marked": "^18.0.7",
         "uikit": "~3.5.8",
-        "vee-validate": "~3.3.11",
+        "vee-validate": "~4.15.1",
         "vue": "~2.7.16",
         "vue-event-manager": "~2.1.3",
         "vue-intl": "github:uatrend/vue-intl#master",
