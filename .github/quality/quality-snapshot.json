@@ -1,7 +1,7 @@
 {
   "schemaVersion": 3,
   "source": "github-actions",
-  "updatedAt": "2026-09-22T09:41:24.127Z",
+  "updatedAt": "2026-09-23T00:22:07.946Z",
   "branch": "develop",
   "commit": "48c99e1e89b2c63720dcfbb6b16ec14f41562265",
   "workflows": {
@@ -40,7 +40,7 @@
   },
   "coverage": {
     "linePercent": 9.19,
-    "pinnedFloor": 7.1,
+    "pinnedFloor": 13.3,
     "statements": 47835,
     "covered": 4394
   },
