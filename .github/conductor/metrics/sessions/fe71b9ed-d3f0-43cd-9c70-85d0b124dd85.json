@@ -61,20 +61,54 @@
       "outcome": "success",
       "completedAt": "2026-09-23T19:02:59.701Z",
       "notes": "Timing from Cursor API (single agent run)"
+    },
+    {
+      "phaseKey": "35906715400-1-EXECUTE 1,2",
+      "type": "EXECUTE",
+      "attempt": 0,
+      "batchSteps": [
+        1,
+        2
+      ],
+      "startedAt": "2026-09-23T19:03:31.574Z",
+      "durationMs": 12719714,
+      "agent": {
+        "id": "bc-1761e0e3-a5dc-4333-9635-e95cbc1adf22",
+        "runId": "run-90b2d787-fd99-44f4-8bfc-ff72a4785bfc",
+        "url": "https://cursor.com/agents/bc-1761e0e3-a5dc-4333-9635-e95cbc1adf22",
+        "model": "grok-4.7"
+      },
+      "github": {
+        "runId": 35906715400,
+        "runAttempt": 1,
+        "workflow": "Conductor (V2)",
+        "runUrl": "https://github.com/Shadesman5/pagekit/actions/runs/35906715400",
+        "repository": "Shadesman5/pagekit"
+      },
+      "tokens": {
+        "input": 610177,
+        "output": 13014,
+        "cacheRead": 2028544,
+        "cacheWrite": 0,
+        "total": 2651735
+      },
+      "tokensSource": "cursor-api",
+      "result": "Batch done. Steps: [1, 2]. Last commit: 41b02d0f277089134bcc952df732e80f399e9281.",
+      "outcome": "success"
     }
   ],
   "totals": {
     "tokens": {
-      "input": 189213,
-      "output": 7001,
-      "cacheRead": 606336,
+      "input": 799390,
+      "output": 20015,
+      "cacheRead": 2634880,
       "cacheWrite": 0,
-      "total": 802550
+      "total": 3454285
     },
-    "durationMs": 6002706,
-    "phaseCount": 1,
+    "durationMs": 18722420,
+    "phaseCount": 2,
     "escalations": 0,
-    "ghaJobs": 1,
-    "cloudAgents": 1
+    "ghaJobs": 2,
+    "cloudAgents": 2
   }
 }
