@@ -15,7 +15,7 @@
 
 ## 🎯 Overview
 
-A package zip can be refused, read, and extracted without Composer, and that is how a package is installed. The panel upload and `php pagekit install <archive>` replace the package tree through the seam. Uninstall still goes through the Composer helper. `ext-zip` is a runtime requirement, and the shipped One theme declares an empty autoload map so the seam accepts it.
+A package zip can be refused, read, and extracted without Composer, and that is how a package is installed. The panel upload and `php pagekit install <archive>` replace the package tree through the seam. `php pagekit archive` builds that zip with Finder and `\ZipArchive`. `php pagekit update` is gone, and the web self-update log is plain text. Uninstall still goes through the Composer helper. `ext-zip` is a runtime requirement, and the shipped One theme declares an empty autoload map so the seam accepts it.
 
 ---
 
@@ -70,6 +70,25 @@ Gates: production verifier PASS; production tester PASS; test-file verifier PASS
 
 Gates: production verifier PASS; production tester PASS; frontend, fresh install, and install-over PASS; test-file verifier PASS; tester PASS after one test-defect retry.
 
+### Console consumers (Checklist Step 3)
+
+`php pagekit archive <name>` writes `<vendor>-<name>.zip` with Finder and `\ZipArchive`. Rules are the package `.gitignore`, then each `archive.exclude` string, one rule per `Gitignore::toRegex()` call; the last match decides. `archive.scripts` is not run. `php pagekit update` is deleted. The release zip no longer reserves `tmp/packages/`. The web self-update log is plain text.
+
+| File | Change |
+|---|---|
+| `app/console/src/Commands/ArchiveCommand.php` | Validates the name before any path is read, lists files, and writes the zip. `.gitignore` then `archive.exclude`; the last matching rule keeps or drops. |
+| `app/console/src/Commands/BuildCommand.php` | The Composer import, the path-config loop, the commented install, and `addEmptyDir('tmp/packages/')` are gone. |
+| `app/console/src/Commands/UpdateCommand.php` (deleted) | `php pagekit update` is gone. Registration was a `glob()`. |
+| `app/installer/src/SelfUpdater.php` | The `HtmlOutputFormatter` import and `setFormatter()` call are gone. The web update log is plain text. |
+
+#### Tests (Checklist Step 3)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Console/ArchiveCommandTest.php` (new) | The fixture's sorted entry list pins rule order, the `!` split, and last-match-wins in both directions; an `archive.scripts` marker is never created. A refusal exits failure and writes no zip; a rule that cannot be matched leaves the earlier archive. A link outside the tree is absent. The shipped theme drops `app/assets` and `node_modules` and keeps its sources; the blog keeps its PHP sources. |
+
+Gates: production verifier FAIL once (`archive.exclude` typing), retry then PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -92,12 +111,16 @@ Safety gates before any edit: the branch contained `origin/develop`, `composer i
 - **Install and uninstall share `failure()`.** `removalFailure()` became `failure(string $context, \Throwable $e, string $generic)`. The uninstall call keeps its log context and its generic line. The cache-clear log line reads "after installing or removing a package".
 - **The console command catches `\RuntimeException`.** That covers `ArchiveRefusedException`. Success goes through `info()`. A non-string `archive` argument is a `LogicException`: unreachable for the required argument, and present so the type narrows.
 - **`update()` still posts `packagist`.** `app/package/app/lib/update.vue` still requests `admin/system/package/install` with that flag. The endpoint does not read it, and with nothing staged the stream ends `status=error`. That surface goes in Step 6.
+- **Each rule source is one rule per line.** The `.gitignore` text, then each `archive.exclude` string, is split on line breaks; blanks and `#` lines are skipped, so `Gitignore::toRegex()` never receives two rules, including from a multi-line string. A package with no `composer.json` is archived. An unreadable `.gitignore` or `composer.json`, invalid JSON, a `composer.json` that is not an object (a list included), an `archive.exclude` that is present but not a list of strings (`null` included), or a package with no file left exits `FAILURE` and writes no zip. A non-object `archive` adds no exclude rules; `"exclude": {}` is no rules. The name is checked before `path.packages` or the output path is read, and that refusal echoes nothing.
+- **A link outside the package is omitted.** Its real path is skipped, so a link cannot carry `config.php` into the zip. A link inside is stored as the file it points to.
+- **The zip replaces the previous one only after it is complete.** It is written at `<target>.<hex>` and renamed over `<target>` after every `addFile()` and `close()`. A failure unlinks that file, so an earlier archive survives. `--dir` is created only once there is something to write. Entries are files only, in name order.
+- **A rule the matcher cannot apply fails the command.** `preg_match()` that cannot apply names the rule and exits `FAILURE`. Skipping it would archive the files the rule was meant to drop. The library compiles `[]]`, `[!]` and `[z-a]` to invalid regexes. `archive.exclude: ["[]]"]` writes no zip.
 
 ---
 
 ## 💥 Breaking Changes (Extensions)
 
-`php pagekit install <archive>` installs one zip and prints `Installed <name> <version>.` The command previously took a package list and `--prefer-source` and always failed. `PackageManager::install()` takes a `PackageArchive`. A package's own manifest is unchanged.
+`php pagekit install <archive>` installs one zip and prints `Installed <name> <version>.` The command previously took a package list and `--prefer-source` and always failed. `PackageManager::install()` takes a `PackageArchive`. A package's own manifest is unchanged. `php pagekit update` is gone. The web self-update log is plain text: the default formatter strips the console tags.
 
 ---
 
@@ -106,6 +129,9 @@ Safety gates before any edit: the branch contained `origin/develop`, `composer i
 - `composer install` now requires the zip extension, including on a host that previously needed it only for dev.
 - `replaceTree()` deletes the staged sibling when extraction or the swap fails. A delete that fails is an error-log line and the sibling stays. A retired tree that will not delete is one streamed line plus that log, and the install still succeeds.
 - The package update UI still posts `packagist` to the install endpoint. With nothing staged the stream ends `status=error`. That surface goes in Step 6.
+- A failed `php pagekit archive` leaves the previous zip. The new file is renamed into place only after `close()`.
+- An `archive.exclude` rule the matcher cannot apply fails the command and writes no zip.
+- A symlink whose target lies outside the package is omitted from the zip. The web self-update log no longer wraps console tags in markup.
 
 ---
 
@@ -115,11 +141,13 @@ Safety gates before any edit: the branch contained `origin/develop`, `composer i
 
 Install calls that boundary. The target is `<path.packages>/<validated name>`. Upload opens the PHP temp file and stages only after the archive, the page type, and `PackageFactory::load()` pass. Install reads `name` and `version` only, refuses a value that fails the patterns without echoing it, re-opens the staged file, and refuses it when that archive's own name or version differs. The staged path is unlinked afterwards and never walked. A retired tree that `Filesystem::delete()` cannot remove stays as a hidden sibling and the install still succeeds. That delete follows a symlinked directory inside the retired tree: an archive cannot plant one, and a link placed by hand in an installed tree is followed, the same as `removeFiles()`.
 
+`php pagekit archive` runs no package-supplied command. The name is checked before a path is read, and a traversing name is refused without being echoed. `Gitignore::toRegex()` receives one rule at a time. A link whose real path leaves the package is omitted.
+
 ---
 
 ## 🛡️ No-Mercy Compliance
 
-The install path is `PackageArchive` only. `removeFiles()` still calls the Composer helper; that is the uninstall sequence, and it is not a second install path. No stub body, no `packagist` branch, no `class_alias`. The theme's `'autoload' => []` is the declaration the seam requires.
+The install path is `PackageArchive` only. `removeFiles()` still calls the Composer helper; that is the uninstall sequence, and it is not a second install path. No stub body, no `packagist` branch, no `class_alias`. The theme's `'autoload' => []` is the declaration the seam requires. `ArchiveCommand` no longer imports Composer. `UpdateCommand` is deleted. `SelfUpdater` no longer sets `HtmlOutputFormatter`. `BuildCommand`'s commented Composer install is deleted.
 
 ---
 
@@ -129,7 +157,7 @@ The install path is `PackageArchive` only. `removeFiles()` still calls the Compo
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: Step 1 — none. Step 2 — tester PASS after one test-defect retry. Production verifier PASS; production tester PASS; frontend, fresh install, and install-over PASS; test-file verifier PASS.
+- Notable deviations: Step 1 — none. Step 2 — tester PASS after one test-defect retry. Production verifier PASS; production tester PASS; frontend, fresh install, and install-over PASS; test-file verifier PASS. Step 3 — production verifier FAIL once (`archive.exclude` typing), retry then PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS.
 
 ---
 

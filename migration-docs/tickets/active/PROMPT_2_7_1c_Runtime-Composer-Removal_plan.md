@@ -67,7 +67,7 @@
      (after full step PASS incl. test-writer when applicable; for XL after reviews + E2E PASS) -->
 - [x] Step 1 (M) — Safety gates + the archive seam
 - [x] Step 2 (L) — Install path on the seam
-- [ ] Step 3 (L) — Other Composer-library consumers
+- [x] Step 3 (L) — Other Composer-library consumers
 - [ ] Step 4 (M) — Snapshot engine
 - [ ] Step 5 (L) — Delete the Composer runtime
 - [ ] Step 6 (M) — Marketplace surface
@@ -124,7 +124,10 @@
 - `InstallCommand::execute()` — one `\RuntimeException` catch covers `ArchiveRefusedException`; the success line goes through `info()`; a non-string argument is a `LogicException` (type narrowing, unreachable for a required argument).
 - `PackageModuleBoundaryTest::testMainRegistersTheRegistryWhateverTheContainerHolds` — the bare-container key list gained `packageStaging`; the only existing test this step touched. `update.vue` / `package.js` `update()` still send `packagist` to the install endpoint until Step 6 deletes them; the endpoint no longer maps it and, with nothing staged, answers `status=error`.
 ### Step 3
-_none yet_
+- `ArchiveCommand::execute()` — every rule source (the `.gitignore` text, then each `archive.exclude` string) is split on line breaks with blanks and `#` lines skipped, so `toRegex()` never receives two rules, not even from a multi-line string. `composer.json` stays optional, as before. An unreadable `.gitignore`/`composer.json`, invalid JSON, a `composer.json` that is not a JSON object (a list included, as in `PackageArchive::metadata()`), an `archive.exclude` that is present but not a list of strings (`null` included), or a package with no file left after the rules → `error()` + `FAILURE`. A non-object `archive` reads as no `archive.exclude`, as `metadata()` reads a non-object `extra`; `"exclude": {}` decodes as `[]`, no rules. The name is checked before `path.packages` or `path` is read, and that refusal echoes nothing. Invariant: each refusal exits `FAILURE` and no zip appears.
+- `ArchiveCommand::execute()` — a link whose real path lies outside the package is skipped (Composer's finder did the same; otherwise a link could carry `config.php` into a distributable zip); a link inside is archived as the file it points to. Invariant: a link to a file outside the fixture tree is absent from the zip.
+- `ArchiveCommand::execute()` — the zip is built at `<target>.<hex>` and renamed over `<target>` only after every `addFile()` and `close()` succeeded; any failure unlinks it, so an earlier archive survives a failed run. `--dir` is created only once there is something to write. Entries are files only (no directory entries), added in name order.
+- `ArchiveCommand::keeps()` — a rule `preg_match()` cannot apply fails the command naming the rule instead of being skipped, since skipping archives what the rule meant to drop; the library compiles `[]]`, `[!]` and `[z-a]` to invalid regexes. Invariant: `archive.exclude: ["[]]"]` → `FAILURE`, no zip.
 ### Step 4
 _none yet_
 ### Step 5
