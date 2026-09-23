@@ -9,21 +9,38 @@
   "branch": "feature/runtime-composer-removal",
   "model": "grok-4.7",
   "status": "in_progress",
-  "startedAt": "2026-09-23T17:16:40.088Z",
-  "completedAt": null,
+  "startedAt": "2026-09-23T17:16:46.861Z",
+  "completedAt": "2026-09-23T17:17:43.384Z",
   "phases": [
     {
       "phaseKey": "35894470882-1-PLAN",
       "type": "PLAN",
       "attempt": 0,
       "batchSteps": null,
-      "startedAt": "2026-09-23T17:16:44.993Z",
-      "durationMs": 65549,
+      "startedAt": "2026-09-23T17:16:46.861Z",
+      "durationMs": 54364,
       "agent": {
         "id": "bc-59f28083-9901-4d0c-83c8-f475723fff2e",
         "runId": "run-848fdd30-01fc-449d-995e-7d91516e839d",
         "url": "https://cursor.com/agents/bc-59f28083-9901-4d0c-83c8-f475723fff2e",
-        "model": "grok-4.7"
+        "model": "grok-4.7",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-848fdd30-01fc-449d-995e-7d91516e839d",
+            "index": 1,
+            "startedAt": "2026-09-23T17:16:46.861Z",
+            "completedAt": "2026-09-23T17:17:43.384Z",
+            "durationMs": 54364,
+            "tokens": {
+              "input": 34759,
+              "output": 1941,
+              "cacheRead": 111616,
+              "cacheWrite": 0,
+              "total": 148316
+            }
+          }
+        ]
       },
       "github": {
         "runId": 35894470882,
@@ -41,7 +58,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "ESCALATE (snapshot): environment build 70a4777be38aa73fd03487dbe3c589c7dd13b14f does not contain origin/develop 7110583f2da6035cb78fee8341a330eb594c7861",
-      "outcome": "snapshot-wait"
+      "outcome": "snapshot-wait",
+      "completedAt": "2026-09-23T17:17:43.384Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -52,7 +71,7 @@
       "cacheWrite": 0,
       "total": 148316
     },
-    "durationMs": 65549,
+    "durationMs": 54364,
     "phaseCount": 1,
     "escalations": 0,
     "ghaJobs": 1,
