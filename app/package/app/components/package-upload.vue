@@ -154,18 +154,13 @@ export default {
     doInstall() {
       this.$refs.modal.close();
 
-      this.install(
-        this.upload.package,
-        this.packages,
-        output => {
-          if (output.status === 'success') {
-            setTimeout(() => {
-              location.reload();
-            }, 300);
-          }
-        },
-        true
-      );
+      this.install(this.upload.package, this.packages, output => {
+        if (output.status === 'success') {
+          setTimeout(() => {
+            location.reload();
+          }, 300);
+        }
+      });
     }
   }
 };

@@ -60,10 +60,10 @@ export default {
       }, this.error);
     },
 
-    install(pkg, packages, onClose, packagist) {
+    install(pkg, packages, onClose) {
       const install = new Install({ parent: this });
 
-      return install.install(pkg, packages, onClose, packagist);
+      return install.install(pkg, packages, onClose);
     },
 
     update(pkg, updates, onClose, packagist) {

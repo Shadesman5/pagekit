@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Pagekit\Package;
 
 use Pagekit\Filesystem\Filesystem;
+use Pagekit\Filesystem\Path;
 use Pagekit\Migration\MigrationService;
+use Pagekit\Package\Archive\PackageArchive;
 use Pagekit\Package\Extension\ExtensionFailureStore;
 use Pagekit\Package\Helper\Composer;
 use Pagekit\Package\Lifecycle\LifecycleRunner;
@@ -102,27 +104,129 @@ class PackageManager
     }
 
     /**
-     * @param array<string, string> $install
+     * Puts an archive's package in place and installs it, or updates the package already there.
+     *
+     * @throws \RuntimeException where the package cannot take the place its name gives it, or a step of the install fails
      */
-    public function install(array $install = [], bool $packagist = false, bool $preferSource = false): void
+    public function install(PackageArchive $archive): void
     {
         $packageFactory = $this->app->get('package');
+        $name = $archive->name();
+        $target = $this->app->get('path.packages') . '/' . $name;
 
-        $previousPackageConfigs = $packageFactory->all(null, true);
+        $previous = $packageFactory->get($name, true);
 
-        $this->composer->install($install, $packagist, $preferSource);
+        if ($previous !== null) {
+            $path = $previous->get('path');
 
-        $packages = $packageFactory->all(null, true);
-        foreach (array_keys($install) as $name) {
-            $moduleAlreadyExisted = isset($previousPackageConfigs[$name]) && $this->app->get('module')->get($previousPackageConfigs[$name]->get('module'));
+            if (!is_string($path) || Path::directory($path) !== Path::directory($target)) {
+                throw new \RuntimeException(__('"%name%" is already installed in another folder.', ['%name%' => $name]));
+            }
 
-            if ($moduleAlreadyExisted == true) {
-                $previousPackageConfig = isset($previousPackageConfigs[$name]) ? $previousPackageConfigs[$name] : null;
-                $this->enable($packages[$name], $previousPackageConfig);
-            } elseif (isset($packages[$name])) {
-                $this->doInstall($packages[$name]);
+            if ($previous->getType() !== $archive->type()) {
+                throw new \RuntimeException(__('"%name%" is already installed as another type of package.', ['%name%' => $name]));
             }
         }
+
+        if (is_link($target)) {
+            throw new \RuntimeException(__('The folder of "%name%" is a symbolic link, which an archive does not replace.', ['%name%' => $name]));
+        }
+
+        // Read before the tree moves: whether the installed version was running is what
+        // decides between updating it and installing afresh.
+        $module = $previous?->get('module');
+        $moduleLoaded = is_string($module) && $this->app->get('module')->get($module) !== null;
+
+        $this->replaceTree($archive, $target);
+
+        $package = $packageFactory->get($name, true);
+
+        if ($package === null) {
+            throw new \RuntimeException(__('"%name%" was unpacked, but the installation does not find it.', ['%name%' => $name]));
+        }
+
+        if ($moduleLoaded) {
+            $this->enable($package, $previous);
+        } else {
+            $this->doInstall($package);
+        }
+    }
+
+    /**
+     * Unpacks the archive beside $target and swaps it in with one rename, deleting what stood there.
+     *
+     * @throws \RuntimeException where the tree could not be unpacked or moved into place
+     */
+    private function replaceTree(PackageArchive $archive, string $target): void
+    {
+        $files = $this->app->get('file');
+        $name = $archive->name();
+
+        if (!$files->makeDir(dirname($target))) {
+            throw new \RuntimeException(__('The folder for "%name%" could not be created.', ['%name%' => $name]));
+        }
+
+        // A sibling, because rename() is atomic only within one filesystem, and a dot-name, because
+        // the package and module globs skip those: no request sees a half-written or a retired tree.
+        $staged = $this->hiddenSibling($target);
+        $retired = null;
+
+        try {
+            $archive->extractTo($staged);
+
+            if (file_exists($target)) {
+                $retired = $this->hiddenSibling($target);
+
+                if (!@rename($target, $retired)) {
+                    throw new \RuntimeException(__('The installed files of "%name%" could not be moved aside.', ['%name%' => $name]));
+                }
+            }
+
+            if (!@rename($staged, $target)) {
+                if ($retired !== null && !@rename($retired, $target)) {
+                    $this->reportLeftover(sprintf('The installed files of package "%s" could not be put back from "%s".', $name, $retired));
+
+                    throw new \RuntimeException(__('The files of "%name%" could not be moved into place, nor the installed ones put back. See error log for details.', ['%name%' => $name]));
+                }
+
+                throw new \RuntimeException(__('The files of "%name%" could not be moved into place.', ['%name%' => $name]));
+            }
+        } catch (\Throwable $e) {
+            if (file_exists($staged) && $files->delete($staged) !== true) {
+                $this->reportLeftover(sprintf('The unpacked files of package "%s" could not be deleted from "%s".', $name, $staged));
+            }
+
+            // The vendor folder goes again where this install was the first thing in it.
+            @rmdir(dirname($target));
+
+            throw $e;
+        }
+
+        // Out of every glob already, so files that will not go cost disk space and not the install.
+        if ($retired !== null && $files->delete($retired) !== true) {
+            $this->output->writeln(__('The replaced files of "%name%" could not all be deleted. See error log for details.', ['%name%' => $name]));
+            $this->reportLeftover(sprintf('The replaced files of package "%s" could not be deleted from "%s".', $name, $retired));
+        }
+
+        // The lifecycle runs in this request, sooner than opcache re-checks a file it compiled,
+        // so the replaced files would run from their old compiled code.
+        if (function_exists('opcache_invalidate')) {
+            $tree = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($target, \FilesystemIterator::SKIP_DOTS));
+
+            foreach ($tree as $file) {
+                if ($file instanceof \SplFileInfo && $file->isFile() && $file->getExtension() === 'php') {
+                    opcache_invalidate($file->getPathname(), true);
+                }
+            }
+        }
+    }
+
+    /**
+     * A path beside $target that no other operation will pick, hidden from the globs by its leading dot.
+     */
+    private function hiddenSibling(string $target): string
+    {
+        return dirname($target) . '/.' . basename($target) . '-' . bin2hex(random_bytes(4));
     }
 
     /**
@@ -824,6 +928,20 @@ class PackageManager
         } catch (\Throwable) {
             // The refusal still has to reach the caller, which is where the
             // administrator hears that the removal did not finish.
+        }
+    }
+
+    /**
+     * Logs files an install left under a hidden name, where no panel will ever show them.
+     */
+    private function reportLeftover(string $message): void
+    {
+        try {
+            if ($this->app->has('log')) {
+                $this->app->get('log')->error($message);
+            }
+        } catch (\Throwable) {
+            // The install's own outcome still has to reach the caller.
         }
     }
 

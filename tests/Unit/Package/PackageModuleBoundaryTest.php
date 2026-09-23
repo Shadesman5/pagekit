@@ -826,7 +826,7 @@ final class PackageModuleBoundaryTest extends TestCase
         // Everything the guards leave out: the record has no directory, and
         // there is neither somewhere to keep a snapshot nor a database to dump.
         self::assertEqualsCanonicalizing(
-            ['package', 'manager', 'systemApi'],
+            ['package', 'manager', 'systemApi', 'packageStaging'],
             array_values(array_diff($app->keys(), $registered)),
         );
     }

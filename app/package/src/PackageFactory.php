@@ -73,7 +73,7 @@ class PackageFactory implements \ArrayAccess, \IteratorAggregate
     /**
      * Loads a package from data.
      *
-     * @param string|array<string, mixed> $data
+     * @param string|array<array-key, mixed> $data
      */
     public function load(string|array $data): ?Package
     {

@@ -15,7 +15,7 @@
 
 ## 🎯 Overview
 
-A package zip can be refused, read, and extracted without Composer. Nothing installs through that seam yet. `ext-zip` is a runtime requirement, and the shipped One theme declares an empty autoload map so the seam accepts it.
+A package zip can be refused, read, and extracted without Composer, and that is how a package is installed. The panel upload and `php pagekit install <archive>` replace the package tree through the seam. Uninstall still goes through the Composer helper. `ext-zip` is a runtime requirement, and the shipped One theme declares an empty autoload map so the seam accepts it.
 
 ---
 
@@ -41,6 +41,35 @@ A package zip can be refused, read, and extracted without Composer. Nothing inst
 
 Gates: production verifier PASS; production tester PASS; test-file verifier PASS; tester PASS. No deviations.
 
+### Install path (Checklist Step 2)
+
+`PackageManager::install(PackageArchive)` replaces the package tree and then enables or installs it. The panel stages an upload under `packageStaging` and installs that file. `php pagekit install <archive>` does the same from a path and does not enable.
+
+| File | Change |
+|---|---|
+| `app/package/src/PackageManager.php` | `install(PackageArchive)` refuses another folder, another type, or a link, then `replaceTree()` swaps a hidden sibling into place and `enable()` or `doInstall()` runs. |
+| `app/package/src/PackageModule.php` | Registers `packageStaging` as `<path.temp>/packages`. |
+| `app/package/src/PackageFactory.php` | `load()` phpdoc is `string\|array<array-key, mixed>`. The signature is unchanged. |
+| `app/package/src/Controller/PackageController.php` | Upload opens the archive and builds the payload before staging. Install re-opens the staged file, streams the result, and unlinks that path afterwards. |
+| `app/console/src/Commands/InstallCommand.php` | `php pagekit install <archive>` opens the zip and installs it. The package list, `--prefer-source`, and the disabled-command body are gone. |
+| `app/package/app/lib/install.vue` | `install()` sends `{ package: pkg }` and no `packagist` flag. |
+| `app/package/app/lib/package.js` | `install()` drops its fourth argument. `update()` is unchanged. |
+| `app/package/app/components/package-upload.vue` | The upload panel calls `install()` without the trailing `true`. |
+| `tests/Unit/Package/PackageModuleBoundaryTest.php` | The bare-container key list includes `packageStaging`. |
+
+#### Tests (Checklist Step 2)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Package/PackageInstallFromArchiveTest.php` (new) | Fresh install records the version; an update of a loaded module replaces the tree and enables from the recorded version; a disabled package or a non-string `module` installs again; another folder, another type, or a link writes nothing; a failed extraction leaves the packages directory unchanged; a retired tree that cannot be put back is kept and the install fails; one that will not delete does not fail the install. |
+| `tests/Unit/Console/InstallCommandTest.php` (new) | A fixture zip installs and is not enabled. A refused archive exits failure and writes nothing. A link target stays a link. A non-string argument is refused before the path is read. |
+| `tests/Unit/Package/PackageUploadBoundaryTest.php` (new) | Every upload refusal is a 400 and stages nothing. A request that fails the patterns, a missing file, a refused file, or a staged archive for a different package ends `status=error` and does not install. Success, a streamed exception, and an `Error` all remove the staged file. A staged directory is not walked; a staged link is unlinked. Uninstall failure wording is unchanged. |
+| `tests/Unit/Package/PackageZip.php` (new) | Writes a zip the archive checks accept. |
+| `tests/Unit/Package/bootstrap.php` | `Pagekit\Package\__()` plus probes for `rename`, `random_bytes`, and `opcache_invalidate`. |
+| `tests/bootstrap.php` | Defines `opcache_invalidate` when the extension is absent, then loads the package bootstrap so unqualified calls in that namespace bind. |
+
+Gates: production verifier PASS; production tester PASS; frontend, fresh install, and install-over PASS; test-file verifier PASS; tester PASS after one test-defect retry.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -55,30 +84,42 @@ Gates: production verifier PASS; production tester PASS; test-file verifier PASS
 
 Safety gates before any edit: the branch contained `origin/develop`, `composer install` was a no-op, and `pnpm install --frozen-lockfile && pnpm build` exited 0. The suite was left to the tester.
 
+- **Reinstalling in the package's own folder is an update.** The same-path check compares `Path::directory()` of both sides, because factory paths are forward-slashed and `path.packages` need not be. The loaded-module check also requires the previous `module` to be a string. Streamed messages quote the validated composer name, never the title: the panel renders them with `v-html`. The manager writes no progress lines of its own.
+- **A failed install leaves the packages directory as it was found.** Each hidden sibling has its own name. Failure also `@rmdir`s the vendor folder, so a first install that fails leaves neither a sibling nor an empty vendor directory. When the retired tree cannot be put back, that sibling is kept — it is the only copy — its path is logged, and the message is the distinct "nor the installed ones put back" line.
+- **A retired tree that will not delete does not fail the install.** One streamed line and an error log name its path. Opcache invalidation then walks the new tree only. `Filesystem::delete()` follows a symlinked directory inside that retired tree: an archive cannot contain a link, and a link placed by hand in an installed tree is followed, the same hazard as `removeFiles()`.
+- **Nothing is staged until the payload can be built.** `PackageFactory::load()` and the `extra.icon` / `extra.image` strip run before `move()`. A composer document the factory cannot load is a 400 and `packageStaging` stays empty. The upload is accepted with `instanceof UploadedFile`. The `load()` phpdoc is `string|array<array-key, mixed>` so integer keys from `PackageArchive::composer()` type-check.
+- **The staged file must be the package the request names.** `a-b/c` and `a/b-c`, and versions that contain `-`, share one filename, so `install()` runs only when the opened archive's `name()` and `version()` equal the request. A value that fails the patterns gets a fixed line and is not echoed. A missing file names the validated name and version. `discardStaged()` unlinks a file or a link and does not recurse; a directory, or anything else it cannot remove, is an error-log line only.
+- **Install and uninstall share `failure()`.** `removalFailure()` became `failure(string $context, \Throwable $e, string $generic)`. The uninstall call keeps its log context and its generic line. The cache-clear log line reads "after installing or removing a package".
+- **The console command catches `\RuntimeException`.** That covers `ArchiveRefusedException`. Success goes through `info()`. A non-string `archive` argument is a `LogicException`: unreachable for the required argument, and present so the type narrows.
+- **`update()` still posts `packagist`.** `app/package/app/lib/update.vue` still requests `admin/system/package/install` with that flag. The endpoint does not read it, and with nothing staged the stream ends `status=error`. That surface goes in Step 6.
+
 ---
 
 ## 💥 Breaking Changes (Extensions)
 
-None. The install path is unchanged; the seam has no caller.
+`php pagekit install <archive>` installs one zip and prints `Installed <name> <version>.` The command previously took a package list and `--prefer-source` and always failed. `PackageManager::install()` takes a `PackageArchive`. A package's own manifest is unchanged.
 
 ---
 
 ## ⚠️ Risks & Rollout Notes
 
 - `composer install` now requires the zip extension, including on a host that previously needed it only for dev.
-- A failed `extractTo()` leaves the files it already wrote. The caller that deletes that tree does not exist yet.
+- `replaceTree()` deletes the staged sibling when extraction or the swap fails. A delete that fails is an error-log line and the sibling stays. A retired tree that will not delete is one streamed line plus that log, and the install still succeeds.
+- The package update UI still posts `packagist` to the install endpoint. With nothing staged the stream ends `status=error`. That surface goes in Step 6.
 
 ---
 
 ## 🔐 Security & Data Impact
 
-`open()` is the trust boundary for an untrusted zip and writes nothing. Refused before a byte is written: a path that leaves the package, a `\`, a NUL, an absolute or drive path, a symlink entry, an uncompressed total above 512 MiB, a name that collides after case-folding, and a file that is also a folder. The PHP manifest is parsed, not executed, and must be one static top-level return. `extractTo()` will not overwrite a path, will not follow a link planted at the target, and does not trust the zip stream for size or CRC. Nothing calls the seam yet, so this boundary is not on the install path.
+`open()` is the trust boundary for an untrusted zip and writes nothing. Refused before a byte is written: a path that leaves the package, a `\`, a NUL, an absolute or drive path, a symlink entry, an uncompressed total above 512 MiB, a name that collides after case-folding, and a file that is also a folder. The PHP manifest is parsed, not executed, and must be one static top-level return. `extractTo()` will not overwrite a path, will not follow a link planted at the target, and does not trust the zip stream for size or CRC.
+
+Install calls that boundary. The target is `<path.packages>/<validated name>`. Upload opens the PHP temp file and stages only after the archive, the page type, and `PackageFactory::load()` pass. Install reads `name` and `version` only, refuses a value that fails the patterns without echoing it, re-opens the staged file, and refuses it when that archive's own name or version differs. The staged path is unlinked afterwards and never walked. A retired tree that `Filesystem::delete()` cannot remove stays as a hidden sibling and the install still succeeds. That delete follows a symlinked directory inside the retired tree: an archive cannot plant one, and a link placed by hand in an installed tree is followed, the same as `removeFiles()`.
 
 ---
 
 ## 🛡️ No-Mercy Compliance
 
-The seam is a finished class with no caller. No stub body, no fallback, no `class_alias`, no second install path. The theme's `'autoload' => []` is the declaration the seam requires.
+The install path is `PackageArchive` only. `removeFiles()` still calls the Composer helper; that is the uninstall sequence, and it is not a second install path. No stub body, no `packagist` branch, no `class_alias`. The theme's `'autoload' => []` is the declaration the seam requires.
 
 ---
 
@@ -88,7 +129,7 @@ The seam is a finished class with no caller. No stub body, no fallback, no `clas
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: None. Production verifier PASS; production tester PASS; test-file verifier PASS; tester PASS.
+- Notable deviations: Step 1 — none. Step 2 — tester PASS after one test-defect retry. Production verifier PASS; production tester PASS; frontend, fresh install, and install-over PASS; test-file verifier PASS.
 
 ---
 

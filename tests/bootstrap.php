@@ -39,3 +39,15 @@ function pagekit_phpunit_install_intl_locator(): void
 }
 
 pagekit_phpunit_install_intl_locator();
+
+// PackageManager invalidates opcache only when this function exists. A stand-in
+// keeps that branch observable where the extension is not loaded.
+if (!function_exists('opcache_invalidate')) {
+    function opcache_invalidate(string $filename, bool $force = false): bool
+    {
+        return true;
+    }
+}
+
+// Unqualified calls inside Pagekit\Package bind when that file is first compiled.
+require_once __DIR__.'/Unit/Package/bootstrap.php';

@@ -45,7 +45,7 @@ export default {
   mixins: [Output],
 
   methods: {
-    install(pkg, packages, onClose, packagist) {
+    install(pkg, packages, onClose) {
       const self = this;
 
       this.$set(this, 'pkg', pkg);
@@ -53,7 +53,7 @@ export default {
 
       return this.$http
         .get('admin/system/package/install', {
-          params: { package: pkg, packagist: Boolean(packagist) },
+          params: { package: pkg },
           progress() {
             self.init(this);
           }

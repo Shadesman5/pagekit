@@ -66,7 +66,7 @@
      A step orchestrator flips its box to [x] in the SAME commit as that step's code + tests
      (after full step PASS incl. test-writer when applicable; for XL after reviews + E2E PASS) -->
 - [x] Step 1 (M) — Safety gates + the archive seam
-- [ ] Step 2 (L) — Install path on the seam
+- [x] Step 2 (L) — Install path on the seam
 - [ ] Step 3 (L) — Other Composer-library consumers
 - [ ] Step 4 (M) — Snapshot engine
 - [ ] Step 5 (L) — Delete the Composer runtime
@@ -113,7 +113,16 @@
 - `PackageArchive::printable()` — archive-supplied strings quoted in a message get control characters and invalid UTF-8 replaced by `?`.
 - Safety gates — branch contains `origin/develop`, `composer install` a no-op, `pnpm install --frozen-lockfile && pnpm build` exit 0 before any edit; the PHPUnit/PHPStan baseline is left to the Tester (the refactorer runs no suite).
 ### Step 2
-_none yet_
+- `PackageManager::install()` — the same-path check compares `Path::directory()` of both sides (factory paths are forward-slashed, `path.packages` need not be), and `$moduleLoaded` also requires the previous `module` to be a string. Its messages quote the validated composer name, never the archive's title: the panel renders the stream with `v-html`. It prints no progress lines of its own. Invariant: reinstalling at the package's own path is an update, never "installed in another folder".
+- `PackageManager::replaceTree()` — the retired tree gets its own hidden sibling name; a failed run also `@rmdir`s `<vendor>/`, so a first install that fails leaves no sibling and no empty vendor folder. A put-back that fails keeps the retired sibling (the only copy), logs its path and throws a distinct "nor the installed ones put back" message. Invariant: after a failed extraction `<packages>` lists exactly what it listed before.
+- `PackageManager::replaceTree()` — a retired tree that will not delete costs one streamed line and an error log naming its path; the install carries on, and opcache invalidation then runs over the new tree only. Invariant: install succeeds, the target holds the new tree, the retired sibling is the only extra entry. Flag for Security: `Filesystem::delete()` follows a symlinked directory inside the retired tree — archives carry no links, a hand-placed one in an installed tree does (same hazard as `removeFiles()`).
+- `PackageController::uploadAction()` — the payload (`load()` + `extra.icon`/`extra.image` strip) is built before `move()`, not after, so a composer the factory cannot load is a 400 with nothing staged; `instanceof UploadedFile` replaces `=== null` (the bag returns mixed). Invariant: every 400 leaves `packageStaging` empty.
+- `PackageController::installAction()` — beyond decision 6, a staged archive whose own `name()`/`version()` differ from the request's is refused ("is not <name> <version>"): staged names are not injective (`a-b/c` and `a/b-c`, or versions containing `-`, share a file). A request failing the patterns gets a fixed line that echoes no request value (`v-html`); a missing file names the validated name and version. Invariant: `install()` only ever receives an archive whose `name()`/`version()` equal the request's.
+- `PackageController::discardStaged()` — `unlink()`s a file or link at the staged path and never recurses; whatever it cannot remove (a directory included) is an error log line, not stream output.
+- `PackageController::failure()` — `removalFailure()` generalised to `failure(string $context, \Throwable $e, string $generic)`; the uninstall call keeps its log context and generic line word for word. `clearCache()`'s log line now reads "…after installing or removing a package".
+- `PackageFactory::load()` — `@param` widened to `string|array<array-key, mixed>` (docblock only): `PackageArchive::composer()` is `array<array-key, mixed>`, since a decoded JSON object can carry integer keys.
+- `InstallCommand::execute()` — one `\RuntimeException` catch covers `ArchiveRefusedException`; the success line goes through `info()`; a non-string argument is a `LogicException` (type narrowing, unreachable for a required argument).
+- `PackageModuleBoundaryTest::testMainRegistersTheRegistryWhateverTheContainerHolds` — the bare-container key list gained `packageStaging`; the only existing test this step touched. `update.vue` / `package.js` `update()` still send `packagist` to the install endpoint until Step 6 deletes them; the endpoint no longer maps it and, with nothing staged, answers `status=error`.
 ### Step 3
 _none yet_
 ### Step 4
