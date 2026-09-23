@@ -243,38 +243,47 @@ Pagekit already has a single module model: an uploaded package and a core system
 ### Context
 
 The original Pagekit marketplace relied on an external API at `system.api` (default
-`https://pagekit.com`) that served package metadata and `.zip` distributables (see the historic
-`dist.url` entries in `packages/composer/installed.json`). That API was **shut down by the original
-maintainers**, so the discovery/download half of the ecosystem is currently non-functional.
+`https://pagekit.com`) that served package metadata and `.zip` distributables. That API was **shut
+down by the original maintainers**; the CMS has no marketplace surface of its own — no search page,
+no update check for packages, no client command — until this step builds one against a server this
+step provides.
 
-The package lifecycle has **two sides**, and they are at different maturity levels:
+The package lifecycle has **two sides**, and only one of them is settled:
 
-| Side                          | What                                                     | Where      | Status                                               |
-| ----------------------------- | -------------------------------------------------------- | ---------- | ---------------------------------------------------- |
-| **Install / Upload** (zip in) | `PackageManager`, `Composer` helper, backend ZIP upload  | Step 2.0.4 | ✅ Modernised (clean API + "marketplace foundation") |
-| **Build / Publish** (zip out) | `ArchiveCommand`, `composer archive`, packaging workflow | Step 5.6   | ⏳ Open — this step                                  |
+| Side                         | What                                                                                                  | Status                                                                                                     |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Install** (archive in)     | `PackageManager::install(PackageArchive)` behind the panel upload and `php pagekit install <archive>` | In place — a ready-to-run archive is validated, extracted and registered; nothing is resolved or downloaded |
+| **Distribute** (archive out) | package index, download, verification, and the client that asks for them                              | ⏳ Open — this step                                                                                        |
 
-Step 2.0.4 explicitly deferred the marketplace **API integration** to this step and only laid the
-foundation (clean `PackageManager` API: `install()`, `update()`, `uninstall()`, `enable()`,
-`disable()`; modernised ZIP upload; per-package versioning in config).
+The install side is the contract this step builds towards: whatever a marketplace client fetches
+ends as a local archive handed to that one install path — `Pagekit\Package\Archive\PackageArchive::open()`
+validates it, `PackageManager::install()` writes it, an installed package is updated by installing
+the newer archive (`enable()` then runs its migrations from the recorded version), and
+`uninstall()` / `enable()` / `disable()` with the per-package version in config stay as they are.
+No second install path, no resolver, no Composer at runtime.
 
 ### Tasks
 
 **1. Package distribution server (replaces `system.api`)**
 
-- Make `system.api` fully configurable — **never** hardcode `pagekit.com` (it is currently a
-  fallback in `MarketplaceController`, `PackageController`, `UpdateController`, `DashboardModule`,
-  `PackageManager`, `Composer` helper, `SelfupdateCommand`).
-- Provide a self-hostable endpoint set consumed by the existing frontend:
-  - `POST /api/package/search` (used by `marketplace.vue`)
-  - `POST /api/package/update` (used by `package.js` `queryUpdates`)
-  - `GET  /api/update` (used by `SelfupdateCommand`)
+- Make `system.api` fully configurable — **never** hardcode `pagekit.com`. The default lives in
+  `public/index.php`; the readers are core self-update (`UpdateController`, `SelfupdateCommand`) and
+  the dashboard's `systemApi` service (`DashboardModule`, its own definition). A marketplace client
+  reads the same key — one endpoint setting, not a second one for packages.
+- Provide a self-hostable endpoint set and the client that consumes it — the client is new work,
+  nothing in the tree calls these routes today:
+  - package search and package details (the search page and the details pane are new UI on the
+    package pages, `app/package/views/extensions.php` / `themes.php` and
+    `app/package/app/components/*`)
+  - an update check for installed packages (installed name + version in, newer versions out)
+  - `GET  /api/update` (used by `SelfupdateCommand` and `UpdateController` for core self-update —
+    the one consumer that exists)
   - ZIP dist route, e.g. `GET /package/{vendor}/{name}/{version}.zip`
-- Composer integration already supports two repositories — keep both:
-  `['type' => 'artifact', 'url' => path.artifact]` and `['type' => 'composer', 'url' => system.api]`
-  (see `app/package/src/Helper/Composer.php` — the helper and both repositories are deleted with the
-  runtime Composer path in **2.7.1c**, whose install path takes a ready-to-run archive and resolves
-  nothing).
+- Distribution ends in a local archive: the client downloads the ZIP into the upload staging
+  (`packageStaging`), verifies it (Task 3) and hands it to `PackageManager::install()` — the same
+  path the panel upload and `php pagekit install <archive>` use. There is no resolver to configure
+  and no repository type to choose; a package's dependencies are whatever the archive contract
+  (**2.8**) lets it declare and the dependency graph (**2.7.2**) enforces at install.
 
 **2. Archive / build pipeline (centralise the "create ZIP" logic)**
 
@@ -283,80 +292,68 @@ foundation (clean `PackageManager` API: `install()`, `update()`, `uninstall()`, 
   the resulting ZIP path** at the service layer (the proper place for a return value — the old
   `return $target` from `execute()` was incompatible with Symfony's `execute(): int`).
 - `ArchiveCommand` and `BuildCommand` become thin CLI wrappers (output + exit code).
-- Standardise on a single archive format and share the exclude rules already declared in each
-  package's `composer.json` `archive.exclude`. Align the CLI (`php pagekit archive`) with the
-  Composer-native `composer archive --format=zip` workflow that `packages/*/package.json` scripts
-  already use, so external developers can package without a full Pagekit install.
-- Filename scheme should match the upload side: `vendor-package-version.zip`
-  (see `PackageController::uploadAction`).
-- Derive the package name from `composer.json` (`name` + `version`) instead of the raw CLI
-  argument, and reject path-traversal sequences (`..`, absolute paths) in `$name` before building
-  `$sourcePath`. The current `getPackageFilename()` only sanitises the **output** filename; the
-  **input** path is still used verbatim.
+- `php pagekit archive <vendor/name>` is the one archive format: `\ZipArchive` over the installed
+  tree, the package's root `.gitignore` and `composer.json` `archive.exclude` applied as one
+  gitignore-semantics matcher, no script execution. A server-side build shares that matcher and
+  that writer through the service — it does not grow a second exclude syntax. The filename scheme
+  is whatever the archive contract (**2.8**) fixes; the dist route serves the archive by
+  `vendor/name/version`, so the name on disk is the index's business, not the client's.
+- The command validates the package name (`PackageArchive::NAME_PATTERN`) before it touches a path
+  and derives the output name from the validated name. A server-side build must keep that check in
+  front of every path it builds from a request field — the source directory, the output file, the
+  dist route.
 
 **3. Validation & security**
 
-- Validate uploaded/published packages: required `composer.json` fields (`name`, `type`,
-  `version`), `type` must be `pagekit-extension` or `pagekit-theme`, checksum verification
-  (`shasum`, as the legacy `installed.json` carried).
-- ⚠️ **Security**: `ArchiveCommand` runs `system($jsonData['archive']['scripts'], $return)` — it
-  executes an arbitrary shell command taken from a package's `composer.json` at archive time. This
-  is acceptable when a developer packages their **own** code locally, but is **dangerous** if the
-  marketplace ever builds **untrusted third-party** packages server-side. Before any server-side
-  build of external packages: sandbox, whitelist, or remove this hook.
+- The archive check (`Pagekit\Package\Archive\PackageArchive::open()`) refuses a malformed manifest
+  (missing or invalid `name` / `type` / `version` / `title`, a module manifest without a literal
+  `autoload` map) and an unsafe archive (absolute or traversing entry names, symlink entries,
+  oversize declared content) before anything is written; a published package meets the same check
+  at install. What this step adds is **provenance**: a checksum the index publishes and the client
+  verifies before the archive reaches the install, and a signature over it once the trust model
+  (signing keys, who may publish under a vendor name) exists — the download is untrusted input until
+  both hold.
+- ⚠️ **Security**: `php pagekit archive` executes nothing a package supplies — `composer.json` is data
+  (excludes) to it, never a command. A server-side build of **untrusted third-party** packages must
+  keep it that way: any build hook the marketplace offers runs sandboxed with an allow-list of
+  commands, never a shell line read out of a package field.
 - Note: this is a **build-time** execution concern and is distinct from Step 2.7 (Extension Safety),
   which covers **runtime/boot-time** fault isolation.
 
 **4. Developer experience**
 
 - Document the extension/theme packaging workflow (required `composer.json` shape, asset build
-  order, `extra.scripts`, `archive.exclude`).
+  order, the lifecycle key, `archive.exclude`) on top of the archive contract (**2.8**) — the
+  marketplace-facing half (publishing, versioning against the index) is what this step adds.
 - Provide a package template/skeleton so third-party developers have a known-good starting point.
 
 ### Affected / relevant files
 
 - CLI build side: `app/console/src/Commands/ArchiveCommand.php`, `app/console/src/Commands/BuildCommand.php`
-- CLI install/update side (disabled stubs since 2020 — the marketplace-client half):
-  `app/console/src/Commands/InstallCommand.php`, `app/console/src/Commands/UpdateCommand.php`
-- Install side (already modern, `Pagekit\Package`): `app/package/src/PackageManager.php`,
-  `app/package/src/Helper/Composer.php` (deleted in **2.7.1c**), `app/package/src/Controller/PackageController.php`
-- Marketplace UI/API consumers: `app/installer/src/Controller/MarketplaceController.php`,
-  `app/installer/src/Controller/UpdateController.php`, `app/installer/app/components/marketplace.vue`,
-  `app/package/app/lib/package.js`
-- Self-update: `app/console/src/Commands/SelfupdateCommand.php`, `app/installer/src/SelfUpdater.php`
+- CLI install side: `app/console/src/Commands/InstallCommand.php` installs one local archive
+  (`php pagekit install <archive>`) and stays that way. A client command that resolves a name
+  against the index, downloads and verifies before handing the archive over is new work beside it,
+  not a stub to re-enable — there is none.
+- Install side (`Pagekit\Package`): `app/package/src/PackageManager.php`,
+  `app/package/src/Archive/PackageArchive.php`, `app/package/src/Controller/PackageController.php`
+- Marketplace UI: new — nothing of a former marketplace surface exists under `app/installer/`; the
+  package pages (`app/package/views/extensions.php`, `themes.php`, `app/package/app/components/*`,
+  `app/package/app/lib/package.js`) are where search, details and the update check hook in.
+- Core self-update (`GET /api/update`): `app/console/src/Commands/SelfupdateCommand.php`,
+  `app/installer/src/SelfUpdater.php`, `app/installer/src/Controller/UpdateController.php`
 
 ### Notes & provenance
 
-- The CLI commands (`archive`, `build`, `setup`, `start`, `uninstall`) are **functional today**.
-  During TODO triage their obsolete `// TODO: Callback` markers (a leftover from a pre-Symfony,
-  Laravel-style "command returns data / invokes a callback" idea with no consumer) were removed, and
-  `BuildCommand` was corrected from `return (int) $this->line(...)` to
-  `$this->line(...); return Command::SUCCESS;`. These TODOs were **not** related to the marketplace
-  feature.
-- **Disabled marketplace-client commands (2020) — precised & tagged to this step (2026-06-18):**
-  Distinct from the Callback cleanup above, five entry points are the *client* half of the
-  marketplace and were stubbed out when the `pagekit.com` backend was shut down. They cannot be
-  re-enabled before Task 1 (package-distribution server) exists:
-  `InstallCommand` (`pagekit install`), `UpdateCommand` (`pagekit update`),
-  `SelfupdateCommand` (`pagekit self-update`, needs `GET /api/update`),
-  `SelfUpdater::setUpdateMode()` (empty maintenance-mode toggle), and the commented-out
-  `Composer::install()` block in `BuildCommand` (optional release bundling of published package
-  versions). Their vague TODOs (`// TODO`, `// TODO: Implement this.`,
-  `// TODO: Don't install packages from repo during development.`) were rewritten to
-  `// TODO: Step 5.6 (Marketplace & Extensions) — …`. They do **not** block 2.0: the bundled
-  `pagekit/blog` + `pagekit/theme-one` ship as in-repo sources and are activated by the web installer.
-  The three disabled CLI commands also returned a misleading exit code
-  (`return (int) $this->error(...)`, and `error()` is `void` → `0`/SUCCESS despite the error);
-  corrected to a clear message plus `return Command::FAILURE;` so automated callers (CI, cloud
-  agents) detect the disabled state.
-- During the same triage the vague `// TODO: Make this more robust.` in
-  `ArchiveCommand::getPackageFilename()` (a 2019 upload leftover) was closed with minimal output
-  sanitisation (collapse duplicate hyphens, trim surrounding hyphens, empty-string fallback). The
-  fuller robustness work — composer-name-based filenames, the `vendor-package-version.zip` scheme,
-  and input path-traversal validation — belongs to Tasks 2–3 above.
+- **Forward-debt tags that belong to this step:** `SelfupdateCommand` (`pagekit self-update` refuses
+  with `Command::FAILURE` until a server answers `GET /api/update`) and
+  `SelfUpdater::setUpdateMode()` (the maintenance-mode toggle is empty). Both are core self-update;
+  the package half of this step has no disabled entry point waiting anywhere in the tree.
+- The bundled `pagekit/blog` and `pagekit/theme-one` ship as in-repo sources and are activated by
+  the web installer; nothing here blocks an installation without a marketplace.
 - **Aggressive Rules note**: do **not** pre-build `ArchiveService` or the package server before this
   step is active. `ArchiveCommand` works as-is; centralising it earlier would be speculative work
-  without a consumer (the same reasoning that moved the marketplace API from Step 2.0.4 to here).
+  without a consumer (the same reasoning that keeps every marketplace API out of the package module
+  until this step has a server for it to talk to).
 - The **public, versioned, JWT-authenticated** API patterns are defined in Step 4.4 (REST API v2);
   the marketplace API should follow those conventions rather than reviving the legacy ad-hoc
   `emulateJSON` endpoints.
@@ -371,8 +368,8 @@ foundation (clean `PackageManager` API: `install()`, `update()`, `uninstall()`, 
 - **When to reconsider**: only after **5.6** has a working marketplace **and** a trust model
   (signing / integrity / review). Until then, trust is distribution-side, not execution-side.
 - **Placement if pursued**: Extension or Sub-Extension (builds on **5.0**), never a Core
-  requirement — same DNA as Multi-Tenancy (**5.5.1**). Distinct from the **build-time**
-  `archive.scripts` sandbox note in Task 3 above.
+  requirement — same DNA as Multi-Tenancy (**5.5.1**). Distinct from the **build-time** sandbox
+  note in Task 3 above.
 - **Not a ROADMAP row yet**: community / threat-model demand decides; do not invent a step ID
   before that.
 
