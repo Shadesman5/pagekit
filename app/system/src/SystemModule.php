@@ -6,7 +6,6 @@ namespace Pagekit\System;
 
 use Pagekit\Application as App;
 use Pagekit\Module\Module;
-use Pagekit\System\Extension\ExtensionFailureStore;
 use Pagekit\System\Extension\ExtensionLoader;
 use Symfony\Component\Finder\Finder;
 
@@ -51,15 +50,6 @@ class SystemModule extends Module
 
             return $module;
         });
-
-        // Where a failure outlives the request that hit it: the next boot and the
-        // extension manager both read which packages are broken from here. The
-        // service is defined only where the record has a directory to live in, so
-        // that the one question a caller can ask the container - whether the id is
-        // there - is the same question as whether it resolves.
-        if ($app->has('path.system')) {
-            $app->set('extension.failures', fn () => new ExtensionFailureStore($app->get('path.system'), $app->get('file')));
-        }
 
         // A container that names no place for the record still gets the barrier;
         // what it loses is what the next boot would otherwise have known.

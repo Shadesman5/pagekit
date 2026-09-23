@@ -57,14 +57,16 @@ function subdirectories(dir) {
 }
 
 /**
- * The trees that ship servable files: the installer and the core, the
- * framework and system modules, and the packages below their vendor.
+ * The trees that ship servable files: the installer, the package module and
+ * the core, the framework and system modules, and the packages below their
+ * vendor.
  *
  * @returns {string[]} paths relative to the repository root
  */
 function trees() {
   return [
     'app/installer',
+    'app/package',
     'app/system',
     ...subdirectories('app/modules'),
     ...subdirectories('app/system/modules'),

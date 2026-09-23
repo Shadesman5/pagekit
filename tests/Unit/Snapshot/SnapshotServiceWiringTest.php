@@ -9,37 +9,16 @@ use Doctrine\DBAL\Types\Types;
 use Pagekit\Application;
 use Pagekit\Database\Connection;
 use Pagekit\Filesystem\Filesystem;
-use Pagekit\Installer\Package\Package;
-use Pagekit\Installer\Package\Snapshot\PackageSnapshotter;
-use Pagekit\Installer\Package\Snapshot\SnapshotStore;
-use Pagekit\Module\Module;
+use Pagekit\Package\Package;
+use Pagekit\Package\PackageModule;
+use Pagekit\Package\Snapshot\PackageSnapshotter;
+use Pagekit\Package\Snapshot\SnapshotStore;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 
 /**
- * Whether an installation has a way back to offer is a question about its
- * container: the snapshotter is defined where there is somewhere to keep a
- * snapshot and a database to dump into it, and nowhere else.
- *
- * That makes the presence of the service the whole of the answer a removal gets.
- * A service defined against an installation that cannot actually produce a
- * snapshot would turn every removal in it into a refusal; one left undefined
- * where a snapshot could have been taken would let a package be destroyed with
- * nothing put aside first. Both are decided here rather than by whoever removes
- * a package, so this is asserted against the module definition the installation
- * boots and not against a container assembled to suit.
- *
- * And the service it defines has to work in both directions, because a snapshot
- * is only worth taking if it can be put back: the collaborator that reads the
- * database and the one that writes it are wired up separately, and one of them
- * missing would not be noticed until the day a package had to be restored.
- *
- * How long a removal stays undoable is decided here as well. It is the one thing
- * about snapshots an installation configures, so the value the module ships and
- * whatever the database has over the top of it are read where the service is
- * built - and a value that is no number at all still has to leave the
- * installation with the window it shipped with rather than with none.
+ * The snapshotter the package module registers, and the window it keeps snapshots for.
  */
 final class SnapshotServiceWiringTest extends TestCase
 {
@@ -166,11 +145,11 @@ final class SnapshotServiceWiringTest extends TestCase
     #[DataProvider('provideInstallationsWithNoWindowOfTheirOwn')]
     public function testAnInstallationWithNoWindowOfItsOwnKeepsItsSnapshotsForTheShippedOne(array $config): void
     {
-        // Module configuration comes out of the database, so the key can be
-        // missing or hold something no number can be read out of. The window
-        // every installation ships with is the only safe reading of that: no
-        // window at all would keep every snapshot forever, and zero days would
-        // reclaim them at the next removal.
+        // Module configuration comes out of the database, so the section can be
+        // missing, not an array, or hold something no number can be read out of.
+        // The window every installation ships with is the only safe reading of
+        // that: no window at all would keep every snapshot forever, and zero
+        // days would reclaim them at the next removal.
         $snapshot = $this->takeOne($this->boot($this->services(), $config));
 
         self::assertSame(
@@ -187,6 +166,7 @@ final class SnapshotServiceWiringTest extends TestCase
         return [
             'nothing configured about snapshots' => [[]],
             'a section with no window in it' => [['snapshots' => []]],
+            'a section that is not a list of settings' => [['snapshots' => 'kept forever']],
             'a window nothing can be read as a number' => [['snapshots' => ['retention_days' => 'a fortnight']]],
         ];
     }
@@ -235,7 +215,7 @@ final class SnapshotServiceWiringTest extends TestCase
     }
 
     /**
-     * Boots the installer module the way the framework boots it, against a
+     * Boots the package module the way the framework boots it, against a
      * container holding the given services.
      *
      * @param array<string, mixed> $services
@@ -252,14 +232,10 @@ final class SnapshotServiceWiringTest extends TestCase
             $app->set($id, $service);
         }
 
-        // Not enabled: what registers the snapshotter runs in every environment
-        // the module is loaded in, and the installer's own routes and assets are
-        // another concern entirely.
-        (new Module([
-            'name' => 'installer',
-            'path' => self::installerPath(),
-            'config' => $config + ['enabled' => false],
-            'main' => self::definition()['main'],
+        (new PackageModule([
+            'name' => 'package',
+            'path' => self::packagePath(),
+            'config' => $config,
         ]))->main($app);
 
         return $app;
@@ -273,12 +249,12 @@ final class SnapshotServiceWiringTest extends TestCase
      */
     private static function definition(): array
     {
-        return require self::installerPath().'/index.php';
+        return require self::packagePath().'/index.php';
     }
 
-    private static function installerPath(): string
+    private static function packagePath(): string
     {
-        return strtr(dirname(__DIR__, 3), '\\', '/').'/app/installer';
+        return strtr(dirname(__DIR__, 3), '\\', '/').'/app/package';
     }
 
     /**

@@ -518,21 +518,11 @@ async function poll(agentId, launchRunId) {
 }
 
 // ---------------------------------------------------------------- prompts
-function snapshotGatePrompt() {
-  return [
-    'Snapshot gate — do this before any other git command, checkout, merge, or Task spawn.',
-    `The local branch ${BASE} is the environment Build commit. Subagent cards and rules were loaded from that tree.`,
-    `1. git rev-parse --verify refs/heads/${BASE} — remember this full SHA as BUILD. Do not fetch before this. If the ref is missing, report exactly: ESCALATE: local ${BASE} ref missing`,
-    `2. git fetch origin ${BASE} — this updates origin/${BASE} only. Do not merge and do not move the local branch.`,
-    `3. git rev-parse origin/${BASE} — remember this full SHA as ORIGIN.`,
-    `4. git merge-base --is-ancestor origin/${BASE} BUILD. If this command fails, report exactly one line and stop: ESCALATE (snapshot): environment build BUILD does not contain origin/${BASE} ORIGIN`,
-    'Substitute the real SHAs for BUILD and ORIGIN. On that line do not spawn workers, merge, or push. If the check passes, continue with the phase rule below.'
-  ].join('\n');
-}
-
+// The snapshot gate lives in the phase rule (orchestrator-v2-*.mdc). The launch
+// prompt only names the phase, ticket, and branch — repeating the gate here makes
+// the agent treat the prompt as a second procedure.
 function planPrompt(audit) {
   return [
-    snapshotGatePrompt(),
     'You are the Orchestrator for the PLAN phase. Follow the rule .cursor/rules/orchestrator-v2-plan.mdc exactly.',
     `Task prompt: ${TASK_PROMPT}`,
     `Branch: ${BRANCH} (verify you are on it first; checkout/create if needed).`,
@@ -553,7 +543,6 @@ function planPrompt(audit) {
 }
 function stepPrompt(batch) {
   return [
-    snapshotGatePrompt(),
     'You are the Orchestrator for the EXECUTE phase. Follow the rule .cursor/rules/orchestrator-v2-step.mdc exactly.',
     `Ticket: ${TICKET}`,
     `Steps: ${batch.join(',')}`,
@@ -564,7 +553,6 @@ function stepPrompt(batch) {
 }
 function finalizePrompt(ticketPath) {
   return [
-    snapshotGatePrompt(),
     'You are the Orchestrator for the FINALIZE phase. Follow the rule .cursor/rules/orchestrator-v2-finalize.mdc exactly.',
     `Ticket: ${ticketPath}`,
     `Branch: ${BRANCH} (verify you are on it first).`,

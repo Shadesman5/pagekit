@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Pagekit\Tests\Unit\Snapshot;
 
-use Pagekit\Installer\Package\Snapshot\RestoreTableNames;
 use Pagekit\Installer\TablePrefix;
+use Pagekit\Package\Snapshot\RestoreTableNames;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

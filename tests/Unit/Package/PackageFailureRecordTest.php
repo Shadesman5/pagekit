@@ -4,18 +4,22 @@ declare(strict_types=1);
 
 namespace Pagekit\Tests\Unit\Package;
 
+use Monolog\Handler\TestHandler;
 use Pagekit\Application;
 use Pagekit\Application\Response as PagekitResponse;
 use Pagekit\Application\UrlProvider;
 use Pagekit\Config\Config;
 use Pagekit\Config\ConfigManager;
 use Pagekit\Filesystem\Filesystem;
-use Pagekit\Installer\Controller\PackageController;
-use Pagekit\Installer\Package\Package;
-use Pagekit\Installer\Package\PackageFactory;
-use Pagekit\Installer\Package\PackageManager;
 use Pagekit\Log\Logger;
-use Pagekit\System\Extension\ExtensionFailureStore;
+use Pagekit\Module\ModuleManager;
+use Pagekit\Package\Controller\PackageController;
+use Pagekit\Package\Extension\ExtensionFailureStore;
+use Pagekit\Package\Package;
+use Pagekit\Package\PackageFactory;
+use Pagekit\Package\PackageManager;
+use Pagekit\Package\PackageModule;
+use Pagekit\System\Extension\ExtensionLoader;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\HttpFoundation\Request;
@@ -129,6 +133,72 @@ final class PackageFailureRecordTest extends TestCase
         // The container answers what is registered, not what the manager hoped
         // for, and an extension may register anything under any name.
         self::assertSame([], $this->manager($app)->getFailedModules());
+    }
+
+    public function testAFailureTheBarrierRecordedIsWhatTheManagerReportsAndClears(): void
+    {
+        $app = new Application();
+        $app->set('path.system', $this->path);
+        $app->set('file', fn () => new Filesystem());
+
+        (new PackageModule([
+            'name' => 'package',
+            'path' => '',
+            'config' => [],
+        ]))->main($app);
+
+        $modules = $app->get('module');
+        self::assertInstanceOf(ModuleManager::class, $modules);
+
+        $fixture = $this->fixture('main-throwing');
+        self::assertFileExists($fixture);
+        $modules->register([$fixture]);
+
+        $log = new TestHandler();
+        $logger = new Logger('log');
+        $logger->pushHandler($log);
+
+        $failures = $app->get('extension.failures');
+        self::assertInstanceOf(ExtensionFailureStore::class, $failures);
+
+        $disabled = [];
+
+        (new ExtensionLoader(
+            $modules,
+            $logger,
+            $failures,
+            function (string $name) use (&$disabled): void {
+                $disabled[] = $name;
+            },
+        ))->load(['fixture-main-throwing'], null);
+
+        self::assertSame(['fixture-main-throwing'], $disabled);
+        self::assertNull($modules->get('fixture-main-throwing'));
+
+        $records = $log->getRecords();
+        self::assertCount(1, $records);
+        self::assertStringContainsString('fixture-main-throwing', $records[0]->message);
+        self::assertSame(ExtensionFailureStore::TYPE_EXTENSION, $failures->all()['fixture-main-throwing']['type']);
+        self::assertFileExists($this->path . '/extension-failures.json');
+
+        $system = new Config();
+        $system->set('extensions', []);
+        $system->set('packages.fixture-main-throwing', '1.0.0');
+
+        $config = $this->createMock(ConfigManager::class);
+        $config->method('__invoke')->willReturn($system);
+        $app->set('config', $config);
+
+        // The manager meets the loader only through the registered service.
+        $manager = $this->manager($app);
+
+        self::assertSame(['fixture-main-throwing'], $manager->getFailedModules());
+
+        $manager->enable($this->package(['module' => 'fixture-main-throwing']));
+
+        self::assertSame([], $manager->getFailedModules());
+        self::assertFalse((new ExtensionFailureStore($this->path, new Filesystem()))->has('fixture-main-throwing'));
+        self::assertContains('fixture-main-throwing', (array) $system->get('extensions'));
     }
 
     // ------------------------------------------------------------------
@@ -788,7 +858,7 @@ final class PackageFailureRecordTest extends TestCase
 
                 declare(strict_types=1);
 
-                use Pagekit\Installer\Package\Lifecycle\PackageLifecycle;
+                use Pagekit\Package\Lifecycle\PackageLifecycle;
                 use Psr\Container\ContainerInterface;
 
                 return new class () extends PackageLifecycle {

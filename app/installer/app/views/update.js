@@ -1,4 +1,4 @@
-import Version from '../lib/version';
+import Version from '@package/app/lib/version';
 
 const Update = {
   name: 'update',

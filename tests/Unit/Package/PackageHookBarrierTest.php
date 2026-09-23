@@ -8,10 +8,10 @@ use Pagekit\Application;
 use Pagekit\Config\Config;
 use Pagekit\Config\ConfigManager;
 use Pagekit\Filesystem\Filesystem;
-use Pagekit\Installer\Package\Package;
-use Pagekit\Installer\Package\PackageFactory;
-use Pagekit\Installer\Package\PackageManager;
-use Pagekit\System\Extension\ExtensionFailureStore;
+use Pagekit\Package\Extension\ExtensionFailureStore;
+use Pagekit\Package\Package;
+use Pagekit\Package\PackageFactory;
+use Pagekit\Package\PackageManager;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Output\NullOutput;
 
@@ -324,7 +324,7 @@ final class PackageHookBarrierTest extends TestCase
 
                 declare(strict_types=1);
 
-                use Pagekit\Installer\Package\Lifecycle\PackageLifecycle;
+                use Pagekit\Package\Lifecycle\PackageLifecycle;
                 use Psr\Container\ContainerInterface;
 
                 return new class () extends PackageLifecycle {

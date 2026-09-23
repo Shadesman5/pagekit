@@ -8,13 +8,13 @@ use Pagekit\Application;
 use Pagekit\Application\Response as PagekitResponse;
 use Pagekit\Application\UrlProvider;
 use Pagekit\Filesystem\Filesystem;
-use Pagekit\Installer\Controller\PackageController;
-use Pagekit\Installer\Package\PackageFactory;
-use Pagekit\Installer\Package\PackageManager;
-use Pagekit\Installer\Package\Snapshot\PackageSnapshotter;
 use Pagekit\Log\Logger;
-use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
+use Pagekit\Package\Controller\PackageController;
+use Pagekit\Package\PackageFactory;
+use Pagekit\Package\PackageManager;
+use Pagekit\Package\PackageModule;
+use Pagekit\Package\Snapshot\PackageSnapshotter;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -240,18 +240,14 @@ final class RemovalPromiseTest extends TestCase
             $app->set('db', $this->openDatabase());
         }
 
-        $main = self::definition()['main'];
+        $definition = self::definition();
 
-        self::assertInstanceOf(\Closure::class, $main);
+        self::assertSame(PackageModule::class, $definition['main']);
 
-        // Not enabled: what registers the packages and the snapshotter runs in
-        // every environment the module is loaded in, and the installer's own
-        // routes and assets are another concern entirely.
-        (new Module([
-            'name' => 'installer',
-            'path' => self::installerPath(),
-            'config' => ['enabled' => false],
-            'main' => $main,
+        (new PackageModule([
+            'name' => 'package',
+            'path' => self::packagePath(),
+            'config' => [],
         ]))->main($app);
 
         return $app;
@@ -265,7 +261,12 @@ final class RemovalPromiseTest extends TestCase
      */
     private static function definition(): array
     {
-        return require self::installerPath().'/index.php';
+        return require self::packagePath().'/index.php';
+    }
+
+    private static function packagePath(): string
+    {
+        return strtr(dirname(__DIR__, 3), '\\', '/').'/app/package';
     }
 
     /**
@@ -273,12 +274,7 @@ final class RemovalPromiseTest extends TestCase
      */
     private function source(string $path): string
     {
-        return (string) file_get_contents(self::installerPath().'/'.$path);
-    }
-
-    private static function installerPath(): string
-    {
-        return strtr(dirname(__DIR__, 3), '\\', '/').'/app/installer';
+        return (string) file_get_contents(self::packagePath().'/'.$path);
     }
 
     private function removeTree(string $path): void

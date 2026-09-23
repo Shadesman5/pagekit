@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Console\Commands;
 
 use Pagekit\Application\Console\Command;
-use Pagekit\Installer\Package\Lifecycle\LifecycleRunner;
+use Pagekit\Package\Lifecycle\LifecycleRunner;
 use Symfony\Component\Console\Command\Command as SymfonyCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;

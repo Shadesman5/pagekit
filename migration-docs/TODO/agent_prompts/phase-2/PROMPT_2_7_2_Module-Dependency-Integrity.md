@@ -36,8 +36,12 @@
 
 **PackageManager::disable() — no graph check.**
 
-- `app/installer/src/Package/PackageManager.php:271-288` — scripts → event → pull from `extensions`. Zero dependency validation.
+- `app/package/src/PackageManager.php:375` `disable()` — scripts → event → pull from `extensions`. Zero dependency validation.
 - `PackageController::disableAction()` / uninstall UI likewise have no pre-flight.
+
+**Declared edges and imports disagree in one place.**
+
+- `app/package/index.php` `require` names `application`, `migration`, `system/intl`, `system/view`. Every other `Pagekit\` namespace the module imports is `application`'s own (`Pagekit\Application`, `Pagekit\Module`, `Pagekit\Util` — the root PSR-4 entry), directly declared (`Pagekit\Migration`) or reached through `application`'s own `require` (`filesystem`, `routing`, `database`, `log`) — except `Pagekit\User\Attribute\Access` on `app/package/src/Controller/{PackageController,SnapshotController}.php`: no edge, direct or transitive, reaches `system/user`. The attribute resolves lazily at dispatch, so load order never fails on it and nothing but a test that reads imports and manifests together can see it.
 
 **Manifest `require` examples.**
 
@@ -97,8 +101,9 @@ pnpm install --frozen-lockfile && pnpm build
 ```bash
 rg -n 'resolveModules|Circular requirement|Undefined module' app/modules/application/src/Module/ --glob '!app/vendor/**'
 rg -n "'require'" app/modules/*/index.php app/system/index.php packages/pagekit/*/index.php
-rg -n 'function disable|pull\('\''extensions|site\.theme' app/installer/src/Package/ app/system/src/ --glob '!app/vendor/**'
-rg -n 'extensions\.php|disableAction|uninstallAction|package-manager' app/installer/ --glob '!app/vendor/**'
+rg -n 'function disable|pull\('\''extensions|site\.theme' app/package/src/ app/system/src/ --glob '!app/vendor/**'
+rg -n 'extensions\.php|disableAction|uninstallAction|package-manager' app/package/ --glob '!app/vendor/**'
+rg -n "'require'" -A 12 app/package/index.php; rg -n '^use Pagekit\\' app/package/src/ app/system/src/ app/installer/src/ --glob '!app/vendor/**'
 rg -n 'MessageBag|auto-disable|view\.messages' app/system/ app/modules/session/ --glob '!app/vendor/**'
 ```
 
@@ -107,6 +112,7 @@ Resolve before writing code:
 - **Fail-closed policy on boot vs. on enable.** When an already-enabled module has an unsatisfied `require` after upgrade: refuse boot of that module + auto-disable via 2.7, or hard-fail the request? Prefer surviving admin (2.7 principle) — state the choice.
 - **Inactive vs. unregistered.** A `require` on a registered-but-disabled module is different from a missing package — both must be explicit in errors.
 - **`requiredBy` derivation** — computed from registered manifests at boot or on demand; caching rules; invalidation when packages are enabled/disabled.
+- **Declared edges match imports** — a graph that fails closed is only worth having when it is complete, and an edge nobody declared is a dependency the rules cannot see. Decide whether an edge reached through another module's `require` (the package module reaches `filesystem`, `routing`, `database` and `log` through `application`) counts as declared, and how the test reads a module's `use Pagekit\…` imports and its manifest together; attribute classes count, because they resolve lazily and never fail at load time. The `package` module's `Pagekit\User\Attribute\Access` import with no `system/user` edge is the first case it closes — declare the edge or re-home the attribute, but state which.
 - **Circular detection at validation time** — keep boot detection; add the same check when enabling / validating a package so operators see it before activation.
 - **Data-risk signal** — minimal honest heuristic (has migrations? has config rows? has node types?) without a full ownership schema if that would bloat the step.
 - **UI/API shape** — one pre-flight DTO/array for disable and uninstall; where the extensions Vue surfaces blockers.
@@ -124,6 +130,7 @@ Architect: decompose into ordered, individually-green checklist steps. Suggested
 1. **Fail closed in `resolveModules()`** — unregistered / unresolvable `require` throws (or returns a structured failure the loader handles) naming the missing module; no silent skip. Boot path stays admin-safe via 2.7 barrier.
 2. **Activation-time validation** — enable / validate refuses unsatisfied or circular requirements with the same naming.
 3. **Reverse index `requiredBy`** — derived API used by PackageManager and controllers.
+   - **Declared edges match imports** — a test reads every core module's `use Pagekit\…` imports and its manifest `require` together and fails on an import no declared edge reaches; attribute classes included. It closes the `package` module's undeclared `system/user` edge (`Pagekit\User\Attribute\Access` on both of its controllers) and then holds for every module the graph is about to fail closed on.
 4. **Theme-as-dependent** — disable/uninstall of anything `site.theme` requires is blocked or warned per the chosen policy (block is safer for "must not break frontend").
 5. **Pre-flight for disable/uninstall/restore** — single query: active dependents (blockers), would-be orphans, data-risk hints; for restore, the version comparison against the snapshot metadata and what the MySQL restorer would refuse, answered before `PackageSnapshotter::restore()` puts any file back; wire into `PackageManager` / `PackageSnapshotter` + controllers before mutation. The dumper's and restorer's prefix comparison folds like the collision checks, and a dump that selected no table is refused when taken.
 6. **Admin UX** — show blockers in the extensions/themes UI; disable/uninstall cannot ignore a blocking dependent without an explicit, tested escape hatch (prefer no escape hatch).
@@ -166,6 +173,7 @@ Sizing hints: (1) and (5) carry behaviour risk; (6) is the UX fix-loop; (2)–(4
 - `resolveModules()` no longer skips unregistered `require` entries; failures name the missing module.
 - Enable/validate surfaces circular and unsatisfied requirements before activation completes.
 - `requiredBy` answers "what depends on this?" from registered manifests.
+- Every core module's `require` names the modules whose classes its code imports, attribute classes included, held by a test that reads imports and manifests together; the `package` module's `Pagekit\User\Attribute\Access` import has a declared edge.
 - Disable/uninstall pre-flight reports blockers (including `site.theme`), orphans, and a data-risk hint; blocking dependents prevent the mutation.
 - Restore pre-flight names every core/extension whose version differs from what the snapshot recorded; snapshot metadata carries the application version from now on.
 - Restore pre-flight reports every MySQL refusal (no prefix, over-long copy name, foreign reserved name, inbound foreign key, lock held) before a package file is reinstated; a refused restore leaves `packages/` as it found it. The dumper's table selection folds per `lower_case_table_names`, and a dump holding no tables is refused at dump time rather than marked whole.

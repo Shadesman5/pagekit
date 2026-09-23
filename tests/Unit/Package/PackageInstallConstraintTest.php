@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Tests\Unit\Package;
 
 use Composer\Package\Package;
-use Pagekit\Installer\Helper\Composer;
+use Pagekit\Package\Helper\Composer;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;
 use Psr\Log\LogLevel;

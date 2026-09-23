@@ -293,7 +293,7 @@ class MigrationCommandTest extends TestCase
 
                 declare(strict_types=1);
 
-                use Pagekit\Installer\Package\Lifecycle\PackageLifecycle;
+                use Pagekit\Package\Lifecycle\PackageLifecycle;
                 use Psr\Container\ContainerInterface;
 
                 return new class () extends PackageLifecycle {

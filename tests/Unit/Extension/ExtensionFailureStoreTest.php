@@ -7,7 +7,7 @@ namespace Pagekit\Tests\Unit\Extension;
 use Pagekit\Filesystem\Adapter\StreamAdapter;
 use Pagekit\Filesystem\Filesystem;
 use Pagekit\Filesystem\StreamWrapper;
-use Pagekit\System\Extension\ExtensionFailureStore;
+use Pagekit\Package\Extension\ExtensionFailureStore;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

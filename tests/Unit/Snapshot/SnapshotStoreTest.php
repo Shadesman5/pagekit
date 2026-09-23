@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Tests\Unit\Snapshot;
 
 use Pagekit\Filesystem\Filesystem;
-use Pagekit\Installer\Package\Snapshot\SnapshotStore;
+use Pagekit\Package\Snapshot\SnapshotStore;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

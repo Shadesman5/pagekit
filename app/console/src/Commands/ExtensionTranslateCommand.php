@@ -192,8 +192,9 @@ class ExtensionTranslateCommand extends Command
         $files = Finder::create()->files()->in($path);
 
         if ($extension == "system") {
-            // add installer files
+            // The wizard and the package module keep their strings in the system catalogue.
             $files->in($this->container->get('path').'/app/installer');
+            $files->in($this->container->get('path').'/app/package');
         }
 
         return $files->name('*.{php,vue,js,html,twig}');

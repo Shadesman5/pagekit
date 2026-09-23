@@ -11,16 +11,16 @@ use Monolog\JsonSerializableDateTimeImmutable;
 use Monolog\Level;
 use Pagekit\Database\Connection;
 use Pagekit\Filesystem\Filesystem;
-use Pagekit\Installer\Controller\SnapshotController;
-use Pagekit\Installer\Package\Package;
-use Pagekit\Installer\Package\Snapshot\DatabaseDumper;
-use Pagekit\Installer\Package\Snapshot\DatabaseRestorer;
-use Pagekit\Installer\Package\Snapshot\DumpFormat;
-use Pagekit\Installer\Package\Snapshot\PackageSnapshotter;
-use Pagekit\Installer\Package\Snapshot\SnapshotStore;
 use Pagekit\Log\Logger;
 use Pagekit\Module\Module;
 use Pagekit\Module\ModuleManager;
+use Pagekit\Package\Controller\SnapshotController;
+use Pagekit\Package\Package;
+use Pagekit\Package\Snapshot\DatabaseDumper;
+use Pagekit\Package\Snapshot\DatabaseRestorer;
+use Pagekit\Package\Snapshot\DumpFormat;
+use Pagekit\Package\Snapshot\PackageSnapshotter;
+use Pagekit\Package\Snapshot\SnapshotStore;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
@@ -182,7 +182,7 @@ final class SnapshotControllerTest extends TestCase
 
     public function testThePageOfAnInstallationWithNoWindowOfItsOwnSaysTheShippedOne(): void
     {
-        // Module configuration comes out of the database, and the installer
+        // Module configuration comes out of the database, and the package
         // module is not loaded in every environment that can render this page.
         // Either way the window is the one the installation ships with rather
         // than none at all.
@@ -208,8 +208,8 @@ final class SnapshotControllerTest extends TestCase
         $view = $this->controller($this->snapshotter($this->installation()))->indexAction()['$view'];
 
         self::assertIsArray($view);
-        self::assertSame('installer:views/snapshots.php', $view['name']);
-        self::assertFileExists(strtr(dirname(__DIR__, 3), '\\', '/').'/app/installer/views/snapshots.php');
+        self::assertSame('package:views/snapshots.php', $view['name']);
+        self::assertFileExists(strtr(dirname(__DIR__, 3), '\\', '/').'/app/package/views/snapshots.php');
     }
 
     // ------------------------------------------------------------------
@@ -461,7 +461,7 @@ final class SnapshotControllerTest extends TestCase
      * The controller as the panel builds it.
      *
      * @param int|null $retention the window this installation configures, or null
-     *                            where the installer module is not one this
+     *                            where the package module is not one this
      *                            environment loaded
      */
     private function controller(?PackageSnapshotter $snapshotter, ?int $retention = null): SnapshotController
@@ -496,8 +496,8 @@ final class SnapshotControllerTest extends TestCase
      */
     private function modules(?int $retention = null): ModuleManager
     {
-        $installer = $retention === null ? null : new Module([
-            'name' => 'installer',
+        $package = $retention === null ? null : new Module([
+            'name' => 'package',
             'path' => $this->workspace,
             'config' => ['snapshots' => ['retention_days' => $retention]],
         ]);
@@ -505,7 +505,7 @@ final class SnapshotControllerTest extends TestCase
         $modules = $this->createMock(ModuleManager::class);
         $modules->method('get')->willReturnCallback(fn (string $name): mixed => match ($name) {
             'system/cache' => $this->cache,
-            'installer' => $installer,
+            'package' => $package,
             default => null,
         });
 
@@ -513,8 +513,8 @@ final class SnapshotControllerTest extends TestCase
     }
 
     /**
-     * The snapshotter as the installer builds it, over a real store and a real
-     * database.
+     * The snapshotter as the package module builds it, over a real store and a
+     * real database.
      *
      * @param Filesystem|null $files the filesystem as the test needs it to
      *                               behave, where that is what is under test

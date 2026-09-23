@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pagekit\Console\Commands;
 
 use Pagekit\Application\Console\Command;
-use Pagekit\Installer\Helper\Composer;
+use Pagekit\Package\Helper\Composer;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;

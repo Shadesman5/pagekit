@@ -9,7 +9,7 @@ use Pagekit\Application\Response as PagekitResponse;
 use Pagekit\Application\UrlProvider;
 use Pagekit\Auth\Auth;
 use Pagekit\Event\Event;
-use Pagekit\Installer\Controller\SnapshotController;
+use Pagekit\Package\Controller\SnapshotController;
 use Pagekit\Routing\Event\ConfigureRouteListener;
 use Pagekit\Routing\Loader\RoutesLoader;
 use Pagekit\Routing\Route;
@@ -199,7 +199,7 @@ final class SnapshotAdminSurfaceTest extends TestCase
             /\$url\.route\(\s*'([^']+)'\s*\)/
             REGEX;
 
-        preg_match_all($pattern, (string) file_get_contents(self::installerPath().'/app/lib/uninstall.vue'), $matches);
+        preg_match_all($pattern, (string) file_get_contents(self::packagePath().'/app/lib/uninstall.vue'), $matches);
 
         self::assertContains(
             ltrim($this->snapshotRoutes()[self::LISTING]->getPath(), '/'),
@@ -217,7 +217,7 @@ final class SnapshotAdminSurfaceTest extends TestCase
 
         $found = preg_match_all(
             $pattern,
-            (string) file_get_contents(self::installerPath().'/views/'.$view),
+            (string) file_get_contents(self::packagePath().'/views/'.$view),
             $triggers,
         );
 
@@ -255,7 +255,7 @@ final class SnapshotAdminSurfaceTest extends TestCase
 
         $found = preg_match_all(
             $pattern,
-            (string) file_get_contents(self::installerPath().'/views/snapshots.php'),
+            (string) file_get_contents(self::packagePath().'/views/snapshots.php'),
             $actions,
         );
 
@@ -289,13 +289,13 @@ final class SnapshotAdminSurfaceTest extends TestCase
 
     public function testThePageTheListingRendersComesWithTheBundleItRegisters(): void
     {
-        $installer = self::installerPath();
+        $package = self::packagePath();
 
         // The prefix the view is named by resolves to the module itself, which
         // is what makes both files below the ones this page is rendered from.
-        self::assertSame('', self::definition()['resources']['installer:'] ?? null);
+        self::assertSame('', self::definition()['resources']['package:'] ?? null);
 
-        $view = $installer.'/views/snapshots.php';
+        $view = $package.'/views/snapshots.php';
 
         self::assertFileExists($view);
 
@@ -303,9 +303,9 @@ final class SnapshotAdminSurfaceTest extends TestCase
         // is asserted is that the build knows about it: a script the manifest
         // does not name is a file nothing ever writes, which leaves this page an
         // empty element and no way to purge anything.
-        $entry = self::declaredEntry('app/installer', self::bundleThePageRegisters($view));
+        $entry = self::declaredEntry('app/package', self::bundleThePageRegisters($view));
 
-        self::assertFileExists($installer.'/'.$entry, 'The bundle is built from a source that is there');
+        self::assertFileExists($package.'/'.$entry, 'The bundle is built from a source that is there');
     }
 
     // ------------------------------------------------------------------
@@ -420,7 +420,7 @@ final class SnapshotAdminSurfaceTest extends TestCase
     private static function bundleThePageRegisters(string $view): string
     {
         $pattern = <<<'REGEX'
-            /\$view->script\(\s*'[^']+'\s*,\s*'installer:app\/bundle\/([A-Za-z0-9._-]+)\.js'/
+            /\$view->script\(\s*'[^']+'\s*,\s*'package:app\/bundle\/([A-Za-z0-9._-]+)\.js'/
             REGEX;
 
         self::assertSame(1, preg_match($pattern, (string) file_get_contents($view), $match), 'The page registers one bundle');
@@ -470,7 +470,7 @@ final class SnapshotAdminSurfaceTest extends TestCase
             /\$http\.post\(\s*'([^']+)'/
             REGEX;
 
-        preg_match_all($pattern, (string) file_get_contents(self::installerPath().'/app/views/snapshots.js'), $matches);
+        preg_match_all($pattern, (string) file_get_contents(self::packagePath().'/app/views/snapshots.js'), $matches);
 
         return array_values(array_unique($matches[1]));
     }
@@ -483,12 +483,12 @@ final class SnapshotAdminSurfaceTest extends TestCase
      */
     private static function definition(): array
     {
-        return require self::installerPath().'/index.php';
+        return require self::packagePath().'/index.php';
     }
 
-    private static function installerPath(): string
+    private static function packagePath(): string
     {
-        return self::rootPath().'/app/installer';
+        return self::rootPath().'/app/package';
     }
 
     private static function rootPath(): string
