@@ -9,21 +9,38 @@
   "branch": "feature/runtime-composer-removal",
   "model": "grok-4.7",
   "status": "in_progress",
-  "startedAt": "2026-09-23T17:22:33.873Z",
-  "completedAt": null,
+  "startedAt": "2026-09-23T17:22:55.628Z",
+  "completedAt": "2026-09-23T19:02:59.701Z",
   "phases": [
     {
       "phaseKey": "35894470882-2-PLAN",
       "type": "PLAN",
       "attempt": 0,
       "batchSteps": null,
-      "startedAt": "2026-09-23T17:22:41.004Z",
-      "durationMs": 6033244,
+      "startedAt": "2026-09-23T17:22:55.628Z",
+      "durationMs": 6002706,
       "agent": {
         "id": "bc-be92bec0-2e36-41f5-b02e-c7ac868551bb",
         "runId": "run-d94e8336-d3b8-4984-bb34-7bc4b494f5f6",
         "url": "https://cursor.com/agents/bc-be92bec0-2e36-41f5-b02e-c7ac868551bb",
-        "model": "grok-4.7"
+        "model": "grok-4.7",
+        "runCount": 1,
+        "runs": [
+          {
+            "runId": "run-d94e8336-d3b8-4984-bb34-7bc4b494f5f6",
+            "index": 1,
+            "startedAt": "2026-09-23T17:22:55.628Z",
+            "completedAt": "2026-09-23T19:02:59.701Z",
+            "durationMs": 6002706,
+            "tokens": {
+              "input": 189213,
+              "output": 7001,
+              "cacheRead": 606336,
+              "cacheWrite": 0,
+              "total": 802550
+            }
+          }
+        ]
       },
       "github": {
         "runId": 35894470882,
@@ -41,7 +58,9 @@
       },
       "tokensSource": "cursor-api",
       "result": "Plan ready: migration-docs/tickets/active/PROMPT_2_7_1c_Runtime-Composer-Removal_plan.md",
-      "outcome": "success"
+      "outcome": "success",
+      "completedAt": "2026-09-23T19:02:59.701Z",
+      "notes": "Timing from Cursor API (single agent run)"
     }
   ],
   "totals": {
@@ -52,7 +71,7 @@
       "cacheWrite": 0,
       "total": 802550
     },
-    "durationMs": 6033244,
+    "durationMs": 6002706,
     "phaseCount": 1,
     "escalations": 0,
     "ghaJobs": 1,
