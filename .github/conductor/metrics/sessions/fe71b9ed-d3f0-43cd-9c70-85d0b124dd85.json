@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "fe71b9ed-d3f0-43cd-9c70-85d0b124dd85",
+  "roadmapStepId": "2.7.1c",
+  "title": "Step 2.7.1c: Runtime Composer Removal",
+  "taskSlug": "PROMPT_2_7_1c_Runtime-Composer-Removal",
+  "taskPrompt": "migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_7_1c_Runtime-Composer-Removal.md",
+  "issue": 297,
+  "branch": "feature/runtime-composer-removal",
+  "model": "grok-4.7",
+  "status": "in_progress",
+  "startedAt": "2026-09-23T17:22:33.873Z",
+  "completedAt": null,
+  "phases": [],
+  "totals": {
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "total": 0
+    },
+    "durationMs": 0,
+    "phaseCount": 0,
+    "escalations": 0,
+    "ghaJobs": 0,
+    "cloudAgents": 0
+  }
+}
