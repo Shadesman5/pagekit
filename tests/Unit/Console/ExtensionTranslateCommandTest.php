@@ -51,7 +51,7 @@ final class ExtensionTranslateCommandTest extends TestCase
 
         // The system walk still starts at the system tree and still includes the wizard.
         self::assertContains($this->real($this->root().'/app/system/index.php'), $system);
-        self::assertContains($this->real($this->root().'/app/installer/views/marketplace.php'), $system);
+        self::assertContains($this->real($this->root().'/app/installer/views/update.php'), $system);
         self::assertContains($this->real($blog.'/index.php'), $extension);
 
         foreach ($extension as $file) {

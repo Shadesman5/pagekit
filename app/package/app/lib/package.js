@@ -1,26 +1,11 @@
 import InstallInstance from './install.vue';
 import UninstallInstance from './uninstall.vue';
-import UpdateInstance from './update.vue';
 
 const Install = Vue.extend(InstallInstance);
 const Uninstall = Vue.extend(UninstallInstance);
-const Update = Vue.extend(UpdateInstance);
 
 export default {
   methods: {
-    queryUpdates(packages, success) {
-      const pkgs = {};
-      const options = { emulateJSON: true };
-
-      _.each(packages, pkg => {
-        pkgs[pkg.name] = pkg.version;
-      });
-
-      return this.$http
-        .post(`${this.api}/api/package/update`, { packages: JSON.stringify(pkgs) }, options)
-        .then(success, this.error);
-    },
-
     enable(pkg) {
       return this.$http.post('admin/system/package/enable', { name: pkg.name }).then(response => {
         // Check if response contains an error (even with 200 status)
@@ -64,12 +49,6 @@ export default {
       const install = new Install({ parent: this });
 
       return install.install(pkg, packages, onClose);
-    },
-
-    update(pkg, updates, onClose, packagist) {
-      const update = new Update({ parent: this });
-
-      return update.update(pkg, updates, onClose, packagist);
     },
 
     // Opens the staged removal: what it does is confirmed there, not here. What

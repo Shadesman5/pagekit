@@ -593,7 +593,7 @@ test.describe('Pagekit Dashboard', { tag: '@ci' }, () => {
       { name: 'System', selector: 'a[href*="/admin/system/settings"]', icon: '⚙️' },
       {
         name: 'Extensions',
-        selector: 'a[href*="/admin/system/marketplace/extensions"]',
+        selector: 'a[href*="/admin/system/package/extensions"]',
         icon: '🔌'
       }
     ];

@@ -139,12 +139,6 @@ parameters:
 			path: app/installer/views/installer.php
 
 		-
-			message: '#^Variable \$view might not be defined\.$#'
-			identifier: variable.undefined
-			count: 1
-			path: app/installer/views/marketplace.php
-
-		-
 			message: '#^Variable \$failed might not be defined\.$#'
 			identifier: variable.undefined
 			count: 2

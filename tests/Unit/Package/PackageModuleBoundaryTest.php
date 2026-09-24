@@ -196,7 +196,7 @@ final class PackageModuleBoundaryTest extends TestCase
         self::assertIsArray($installer['permissions']);
         self::assertIsArray($installer['menu']);
 
-        // One declaration. The wizard keeps its own routes and still consumes this permission.
+        // One declaration. The wizard keeps its own routes.
         foreach (array_keys($package['routes']) as $path) {
             self::assertArrayNotHasKey($path, $installer['routes']);
         }
@@ -217,8 +217,11 @@ final class PackageModuleBoundaryTest extends TestCase
             );
         }
 
-        self::assertArrayHasKey('system: marketplace', $installer['menu']);
-        self::assertSame('system: manage packages', $installer['menu']['system: marketplace']['access']);
+        foreach (array_keys($installer['menu']) as $entry) {
+            self::assertStringNotContainsString('system: marketplace', (string) $entry);
+        }
+
+        self::assertArrayNotHasKey('/system/marketplace', $installer['routes']);
     }
 
     public function testThePermissionToManagePackagesIsDeclaredByThePackageModuleAlone(): void
@@ -238,7 +241,6 @@ final class PackageModuleBoundaryTest extends TestCase
 
         $installer = file_get_contents($this->root().'/app/installer/index.php');
         self::assertIsString($installer);
-        self::assertStringContainsString("'access' => 'system: manage packages'", $installer);
         self::assertSame([], $this->patternHitsIn('app/installer/index.php', $installer, self::MANAGE_PACKAGES_DECLARATION));
     }
 
@@ -595,7 +597,6 @@ final class PackageModuleBoundaryTest extends TestCase
             'app/package/app/lib/output.js',
             'app/package/app/lib/package.js',
             'app/package/app/lib/uninstall.vue',
-            'app/package/app/lib/update.vue',
             'app/package/app/lib/version.js',
         ] as $file) {
             self::assertFileExists($this->root().'/'.$file);
@@ -664,15 +665,18 @@ final class PackageModuleBoundaryTest extends TestCase
             self::assertDoesNotMatchRegularExpression('/\b'.preg_quote($entry, '/').'\s*:/', $installer, $entry);
         }
 
-        foreach (['installer', 'marketplace', 'update'] as $entry) {
+        foreach (['installer', 'update'] as $entry) {
             self::assertMatchesRegularExpression('/\b'.preg_quote($entry, '/').'\s*:/', $installer, $entry);
         }
+
+        // The installer group is those two entries. A marketplace bundle is not one of them.
+        self::assertDoesNotMatchRegularExpression('/\bmarketplace\b/', $source);
+        self::assertDoesNotMatchRegularExpression('/\bmarketplace\b/', $installer);
     }
 
-    public function testTheMarketplaceUpdateAndDashboardImportThePackageClient(): void
+    public function testTheUpdateAndDashboardImportThePackageClient(): void
     {
         foreach ([
-            'app/installer/app/components/marketplace.vue' => '@package/app/lib/package',
             'app/installer/app/views/update.js' => '@package/app/lib/version',
             'app/system/modules/dashboard/app/views/index.js' => '@package/app/lib/version',
         ] as $file => $import) {
@@ -681,15 +685,6 @@ final class PackageModuleBoundaryTest extends TestCase
             self::assertStringContainsString($import, $source, $file);
             self::assertStringNotContainsString('@installer', $source, $file);
         }
-    }
-
-    public function testTheMarketplaceControllerImportsTheMovedFactory(): void
-    {
-        $source = file_get_contents($this->root().'/app/installer/src/Controller/MarketplaceController.php');
-        self::assertIsString($source);
-
-        // The action type-hints the factory, so the import has to name the class that moved.
-        self::assertContains('Pagekit\\Package\\PackageFactory', $this->importedClasses($source));
     }
 
     public function testTheTranslationStubLivesInTheManagersNamespace(): void
@@ -771,9 +766,10 @@ final class PackageModuleBoundaryTest extends TestCase
         // Everything the guards leave out: the record has no directory, and
         // there is neither somewhere to keep a snapshot nor a database to dump.
         self::assertEqualsCanonicalizing(
-            ['package', 'manager', 'systemApi', 'packageStaging'],
+            ['package', 'manager', 'packageStaging'],
             array_values(array_diff($app->keys(), $registered)),
         );
+        self::assertFalse($app->has('systemApi'));
     }
 
     public function testTheMovedServicesAreRegisteredInThePackageModuleAlone(): void
@@ -787,14 +783,12 @@ final class PackageModuleBoundaryTest extends TestCase
             self::assertStringStartsWith('app/package/src/PackageModule.php:', $hits[0]);
         }
 
-        // The dashboard registers the same endpoint for its own widgets. That
-        // second registration is the one this module does not own.
+        // The endpoint is the dashboard's, for its own widgets.
         $endpoint = $this->hits($roots, "set('systemApi'");
 
-        self::assertCount(2, $endpoint);
+        self::assertCount(1, $endpoint);
         self::assertEqualsCanonicalizing(
             [
-                'app/package/src/PackageModule.php',
                 'app/system/modules/dashboard/src/DashboardModule.php',
             ],
             $this->filesOf($endpoint),
@@ -832,18 +826,6 @@ final class PackageModuleBoundaryTest extends TestCase
         } finally {
             $this->removeTree($root);
         }
-    }
-
-    public function testSystemApiIsTheEndpointTheContainerNames(): void
-    {
-        $plain = new Application();
-        self::assertNull($this->packageModule()->main($plain));
-        self::assertSame('https://pagekit.com', $plain->get('systemApi'));
-
-        $configured = new Application();
-        $configured->set('system.api', 'https://updates.example');
-        self::assertNull($this->packageModule()->main($configured));
-        self::assertSame('https://updates.example', $configured->get('systemApi'));
     }
 
     public function testTheFailureRecordIsRegisteredExactlyWhereADirectoryIsNamed(): void
@@ -1066,7 +1048,148 @@ final class PackageModuleBoundaryTest extends TestCase
         self::assertTrue($app->has('package'));
         self::assertTrue($app->has('manager'));
         self::assertTrue($app->has('packageStaging'));
+        self::assertFalse($app->has('systemApi'));
         self::assertSame('/var/tmp/pagekit/packages', $app->get('packageStaging'));
+    }
+
+    public function testMarketplaceAndPackagistStayInTheLanguageCatalogues(): void
+    {
+        $roots = ['app' => self::SOURCE_EXTENSIONS];
+
+        // Each root has to contribute a real file, or an empty result would only mean nothing was read.
+        self::assertNotEmpty($this->hits($roots, 'namespace Pagekit\\Package'));
+
+        $marketplace = $this->hits($roots, 'marketplace');
+        $outside = array_values(array_filter(
+            $marketplace,
+            static fn (string $hit): bool => !str_starts_with($hit, 'app/system/languages/'),
+        ));
+
+        self::assertSame([], $outside);
+        self::assertNotEmpty($this->under($marketplace, 'app/system/languages/'));
+
+        // A capital M in a later title is a different word, so these two files do not count.
+        foreach ([
+            'app/console/src/Commands/SelfupdateCommand.php',
+            'app/installer/src/SelfUpdater.php',
+        ] as $file) {
+            self::assertSame([], $this->under($marketplace, $file), $file);
+        }
+
+        self::assertSame([], $this->hits($roots, 'packagist'));
+
+        foreach (['queryUpdates', 'queryPackage', 'updatePkg'] as $name) {
+            self::assertSame([], $this->hits($roots, $name), $name);
+        }
+
+        // This file spells the names. The walk has to leave it unread.
+        self::assertSame([], $this->hits(['tests' => ['php']], 'packagist'));
+
+        // The webroot rules are not a scanned extension. The comment lost the word; the host stayed.
+        $htaccess = file_get_contents($this->root().'/public/.htaccess');
+        self::assertIsString($htaccess);
+        self::assertStringNotContainsString('marketplace', $htaccess);
+        self::assertStringContainsString('https://pagekit.com', $htaccess);
+
+        self::assertNotContains(
+            'app/installer/views/marketplace.php',
+            array_column($this->baselineEntries(), 'path'),
+        );
+
+        foreach ([
+            'app/installer/src/Controller/MarketplaceController.php',
+            'app/installer/views/marketplace.php',
+            'app/installer/app/components/marketplace.vue',
+            'app/installer/app/views/marketplace.js',
+            'app/installer/assets/images/icon-marketplace.svg',
+            'app/package/app/lib/update.vue',
+        ] as $file) {
+            self::assertFileDoesNotExist($this->root().'/'.$file);
+        }
+    }
+
+    public function testTheDetectorReportsTheLowercaseMarketplaceNames(): void
+    {
+        $contents = <<<'PHP'
+        <?php
+        // Marketplace & Extensions is a later title, and Packagist is not this word.
+        $catalogue = 'marketplace';
+        $flag = 'packagist';
+        $endpoint = 'systemApi';
+        PHP;
+
+        self::assertSame(
+            ['fixture.php:3:$catalogue = \'marketplace\';'],
+            $this->hitsIn('fixture.php', $contents, 'marketplace'),
+        );
+        self::assertSame(
+            ['fixture.php:4:$flag = \'packagist\';'],
+            $this->hitsIn('fixture.php', $contents, 'packagist'),
+        );
+        self::assertSame(
+            ['fixture.php:5:$endpoint = \'systemApi\';'],
+            $this->hitsIn('fixture.php', $contents, 'systemApi'),
+        );
+    }
+
+    public function testSystemApiStaysOnTheDashboardAndTheUpdatePage(): void
+    {
+        $roots = ['app' => self::SOURCE_EXTENSIONS];
+
+        self::assertNotEmpty($this->hits($roots, 'namespace Pagekit\\Dashboard'));
+
+        $hits = $this->hits($roots, 'systemApi');
+        $elsewhere = [];
+
+        foreach ($this->filesOf($hits) as $file) {
+            if (
+                str_starts_with($file, 'app/system/modules/dashboard/')
+                || $file === 'app/installer/src/Controller/UpdateController.php'
+            ) {
+                continue;
+            }
+
+            $elsewhere[] = $file;
+        }
+
+        self::assertSame([], $elsewhere);
+        self::assertNotEmpty($this->under($hits, 'app/system/modules/dashboard/src/DashboardModule.php'));
+        self::assertNotEmpty($this->under($hits, 'app/installer/src/Controller/UpdateController.php'));
+
+        // Registered once, for the dashboard's own widgets. The update page only reads system.api.
+        $registered = $this->hits($roots, "set('systemApi'");
+
+        self::assertCount(1, $registered);
+        self::assertStringStartsWith('app/system/modules/dashboard/src/DashboardModule.php:', $registered[0]);
+    }
+
+    public function testThePackagePagesDoNotHandTheUploadOrTheDetailsAnApi(): void
+    {
+        foreach ([
+            'app/package/views/extensions.php',
+            'app/package/views/themes.php',
+        ] as $file) {
+            $source = file_get_contents($this->root().'/'.$file);
+            self::assertIsString($source, $file);
+
+            $tags = [];
+            $matched = preg_match_all('/<package-(?:upload|details)\b[^>]*>/', $source, $tags);
+
+            self::assertSame(2, $matched, $file);
+
+            foreach ($tags[0] as $tag) {
+                self::assertDoesNotMatchRegularExpression('/\bapi\b/', $tag, $file."\n".$tag);
+            }
+        }
+
+        foreach ([
+            'app/package/app/components/package-upload.vue',
+            'app/package/app/components/package-details.vue',
+        ] as $file) {
+            $source = file_get_contents($this->root().'/'.$file);
+            self::assertIsString($source, $file);
+            self::assertDoesNotMatchRegularExpression('/\bapi\b/', $source, $file);
+        }
     }
 
     /**

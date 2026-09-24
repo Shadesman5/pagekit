@@ -30,7 +30,6 @@ final class PackageModule extends Module
 
         $app->set('package', fn ($app) => (new PackageFactory($app->get('url'), $app->get('path')))->addPath($app->get('path').'/packages/*/*/composer.json'));
         $app->set('manager', fn ($app) => new PackageManager($app));
-        $app->set('systemApi', fn ($app) => $app->has('system.api') ? $app->get('system.api') : 'https://pagekit.com');
 
         // Where an uploaded archive waits for the request that installs it. No dot in the id:
         // the controller's constructor is filled by parameter name.

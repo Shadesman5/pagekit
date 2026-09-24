@@ -12,7 +12,7 @@ $view->script('extensions', 'package:app/bundle/extensions.js', ['vue']); ?>
             </div>
         </div>
         <div class="uk-hidden@m">
-            <package-upload :api="api" :packages="packages" type="extension"></package-upload>
+            <package-upload :packages="packages" type="extension"></package-upload>
         </div>
     </div>
 
@@ -21,7 +21,6 @@ $view->script('extensions', 'package:app/bundle/extensions.js', ['vue']); ?>
             <thead>
                 <tr>
                     <th colspan="2">{{ 'Name' | trans }}</th>
-                    <th class="uk-table-shrink"></th>
                     <th class="uk-table-shrink uk-text-center">{{ 'Status' | trans }}</th>
                     <th class="pk-table-width-100 uk-text-center">{{ 'Version' | trans }}</th>
                     <th class="pk-table-width-100">{{ 'Folder' | trans }}</th>
@@ -41,9 +40,6 @@ $view->script('extensions', 'package:app/bundle/extensions.js', ['vue']); ?>
                         <a @click="settings(pkg)" v-if="pkg.enabled && pkg.settings">{{ pkg.title }}</a>
                         <span v-else>{{ pkg.title }}</span>
                         <div class="uk-text-muted">{{ pkg.authors[0].name }}</div>
-                    </td>
-                    <td>
-                        <a class="uk-button tm-button-success uk-button-small" @click="update(pkg, updates)" v-show="updates && updates[pkg.name]">{{ 'Update' | trans }}</a>
                     </td>
                     <td class="uk-text-center">
                         <a class="pk-icon-circle-success" :title="'Enabled' | trans" v-if="pkg.enabled" @click="disable(pkg)"></a>
@@ -67,7 +63,7 @@ $view->script('extensions', 'package:app/bundle/extensions.js', ['vue']); ?>
     <h3 class="uk-h2 uk-text-muted uk-text-center" v-show="empty(packages)">{{ 'No extension found.' | trans }}</h3>
 
     <v-modal ref="details">
-        <package-details :api="api" :package="package"></package-details>
+        <package-details :package="package"></package-details>
     </v-modal>
 
     <v-modal ref="settings">

@@ -15,7 +15,7 @@
 
 ## 🎯 Overview
 
-A package zip can be refused, read, and extracted without Composer, and that is how a package is installed. The panel upload and `php pagekit install <archive>` replace the package tree through the seam. `php pagekit archive` builds that zip with Finder and `\ZipArchive`. `php pagekit update` is gone, and the web self-update log is plain text. Uninstall deletes the package folder through the file service. A removal snapshot is the package tree, a database dump, and a description: it does not copy Composer's installed record, and `read()` omits a `composer` key an earlier release stored. `composer/composer` is not a runtime dependency, and `autoload.php` loads only `app/vendor/autoload.php`. `ext-zip` is a runtime requirement, and the shipped One theme declares an empty autoload map so the seam accepts it.
+A package zip can be refused, read, and extracted without Composer, and that is how a package is installed. The panel upload and `php pagekit install <archive>` replace the package tree through the seam. `php pagekit archive` builds that zip with Finder and `\ZipArchive`. `php pagekit update` is gone, and the web self-update log is plain text. Uninstall deletes the package folder through the file service. A removal snapshot is the package tree, a database dump, and a description: it does not copy Composer's installed record, and `read()` omits a `composer` key an earlier release stored. `composer/composer` is not a runtime dependency, and `autoload.php` loads only `app/vendor/autoload.php`. `ext-zip` is a runtime requirement, and the shipped One theme declares an empty autoload map so the seam accepts it. The marketplace route, menu, and package-update client are gone. Extensions and themes install from an archive. `systemApi` is the dashboard's registration; the update page still reads `system.api`.
 
 ---
 
@@ -156,6 +156,44 @@ Uninstall deletes the package folder through the file service. `composer/compose
 
 Gates: production verifier PASS; production tester PASS; test verifier PASS; coverage tester PASS. No deviations.
 
+### Marketplace surface (Checklist Step 6)
+
+The installer marketplace route, menu, page, and bundle are gone. Extensions and themes no longer ask pagekit.com whether an update exists. Upload still installs a zip. The core update page stays.
+
+| File | Change |
+|---|---|
+| `app/installer/src/Controller/MarketplaceController.php` (deleted) | The marketplace controller. |
+| `app/installer/views/marketplace.php` (deleted) | The marketplace page. |
+| `app/installer/app/components/marketplace.vue` (deleted) | The marketplace component. |
+| `app/installer/app/views/marketplace.js` (deleted) | The marketplace view. |
+| `app/installer/assets/images/icon-marketplace.svg` (deleted) | The marketplace menu icon. |
+| `app/package/app/lib/update.vue` (deleted) | The package-update client. |
+| `app/installer/index.php` | The `/system/marketplace` route and the three marketplace menu entries are gone. `system: update` stays. |
+| `scripts/bundle-entries.mjs` | The installer group is `installer` and `update`. |
+| `app/package/app/lib/package.js` | `queryUpdates()`, `update()`, and the `UpdateInstance` import are gone. |
+| `app/package/app/lib/output.js` | `updatePkg` is gone. `update.vue` was its only reader. |
+| `app/package/app/components/package-manager.js` | `updates`, `status`, `load()`, and `mounted()` are gone. |
+| `app/package/app/components/package-details.vue` | The `api` prop, both alerts, `queryPackage()`, and the `Version` import are gone. The modal shows the package it was given. |
+| `app/package/app/components/package-upload.vue` | The `api` prop and the live `:api="api"` binding are gone. |
+| `app/package/views/extensions.php` | Both components are used without `api`. The Update column and its header cell are gone. |
+| `app/package/views/themes.php` | Both components are used without `api`. The Update button is gone. |
+| `app/package/src/Controller/PackageController.php` | `$systemApi` and both `'api'` payload keys are gone. |
+| `app/package/src/PackageModule.php` | `main()` does not register `systemApi`. |
+| `app/system/modules/theme/assets/less/theme.less` | The `[class*="system-marketplace-"]` selector is gone. |
+| `public/.htaccess` | The CSP comment no longer says marketplace. The `connect-src` line is unchanged. |
+| `phpstan-baseline.neon` | The `app/installer/views/marketplace.php` entry is gone. |
+| `README.md` | Extensions & Themes describes installing and building an archive. Nothing is resolved or downloaded. |
+
+#### Tests (Checklist Step 6)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Package/PackageModuleBoundaryTest.php` | Case-sensitive `marketplace` and `packagist` under `app/` are the language catalogues. `systemApi` is the dashboard and `UpdateController`; `set('systemApi'` is `DashboardModule` only. `main()` registers no `systemApi`. `bundle-entries.mjs` has no `marketplace` entry. Both package views hand `package-upload` and `package-details` no `api`. The installer manifest has no `system: marketplace*` menu and no `/system/marketplace` route. The installer bundle group is `installer` and `update`. The import test keeps `update.js` and the dashboard. The permission test no longer expects the installer to name `system: manage packages` as access. `update.vue` left the must-exist list. |
+| `tests/Unit/Console/ExtensionTranslateCommandTest.php` | The system walk asserts `app/installer/views/update.php`. |
+| `tests/e2e/specs/02-core/dashboard.spec.js` | The Extensions link is `a[href*="/admin/system/package/extensions"]`. |
+
+Gates: production verifier PASS; production tester PASS; test verifier PASS; coverage tester PASS. No deviations.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -177,7 +215,7 @@ Safety gates before any edit: the branch contained `origin/develop`, `composer i
 - **The staged file must be the package the request names.** `a-b/c` and `a/b-c`, and versions that contain `-`, share one filename, so `install()` runs only when the opened archive's `name()` and `version()` equal the request. A value that fails the patterns gets a fixed line and is not echoed. A missing file names the validated name and version. `discardStaged()` unlinks a file or a link and does not recurse; a directory, or anything else it cannot remove, is an error-log line only.
 - **Install and uninstall share `failure()`.** `removalFailure()` became `failure(string $context, \Throwable $e, string $generic)`. The uninstall call keeps its log context and its generic line. The cache-clear log line reads "after installing or removing a package".
 - **The console command catches `\RuntimeException`.** That covers `ArchiveRefusedException`. Success goes through `info()`. A non-string `archive` argument is a `LogicException`: unreachable for the required argument, and present so the type narrows.
-- **`update()` still posts `packagist`.** `app/package/app/lib/update.vue` still requests `admin/system/package/install` with that flag. The endpoint does not read it, and with nothing staged the stream ends `status=error`. That surface goes in Step 6.
+- **`update()` posted `packagist` until Step 6.** At Step 2, `update.vue` and `package.js` `update()` still requested `admin/system/package/install` with that flag. The endpoint did not read it, and with nothing staged the stream ended `status=error`. Step 6 deleted that client.
 - **Each rule source is one rule per line.** The `.gitignore` text, then each `archive.exclude` string, is split on line breaks; blanks and `#` lines are skipped, so `Gitignore::toRegex()` never receives two rules, including from a multi-line string. A package with no `composer.json` is archived. An unreadable `.gitignore` or `composer.json`, invalid JSON, a `composer.json` that is not an object (a list included), an `archive.exclude` that is present but not a list of strings (`null` included), or a package with no file left exits `FAILURE` and writes no zip. A non-object `archive` adds no exclude rules; `"exclude": {}` is no rules. The name is checked before `path.packages` or the output path is read, and that refusal echoes nothing.
 - **A link outside the package is omitted.** Its real path is skipped, so a link cannot carry `config.php` into the zip. A link inside is stored as the file it points to.
 - **The zip replaces the previous one only after it is complete.** It is written at `<target>.<hex>` and renamed over `<target>` after every `addFile()` and `close()`. A failure unlinks that file, so an earlier archive survives. `--dir` is created only once there is something to write. Entries are files only, in name order.
@@ -189,12 +227,18 @@ Safety gates before any edit: the branch contained `origin/develop`, `composer i
 - **`path.artifact` also left the four tests written after the plan.** `PackageUploadBoundaryTest`, `PackageInstallFromArchiveTest`, `InstallCommandTest`, and `UploadedPackageRoundTripTest`. The sibling `path.temp`, `path.cache`, `path.vendor`, and `system.api` fixture lines stay. The manager no longer reads them. `plant()` in the removal, snapshot-gate, and uninstall tests no longer says an install leaves `installed.json` behind.
 - **`public/.htaccess` still denies `installed.json` by name.** The rule sits beside `bower.json`. It is not a reader, and the path scan does not open `.htaccess` (`SOURCE_EXTENSIONS` has no `htaccess`). One assertion allows exactly that line.
 - **The lock diff is a section move.** `composer remove composer/composer` listed no update on its dry run. Nine packages left the lock. Ten moved from `packages` to `packages-dev`: `composer/semver`, `composer/xdebug-handler`, `symfony/process`, `justinrainbow/json-schema`, `react/promise`, `marc-mabe/php-enum`, `composer/pcre`, and the `symfony/polyfill-php80`, `php81`, and `php84` packages. No version changed. `packages[*].name` holds no `composer/composer`. `platform` keeps `ext-zip`.
+- **Two remnants of the deleted page went with it.** `theme.less` dropped `[class*="system-marketplace-"] .tm-content`: the body class is the request path, so the selector matched that page alone. `output.js` dropped `updatePkg`, which only `update.vue` read. `package-upload.vue` dropped the live `:api="api"` binding as well as the commented one. Case-sensitive `marketplace` and `packagist` have no hit under `app/` outside `app/system/languages`.
+- **`systemApi` is the dashboard's registration.** `PackageModule` no longer sets it. `UpdateController` still reads its own `system.api` for `update.js`. A case-insensitive scan also still lists the two `TODO: Step 5.6 (Marketplace & Extensions)` titles (`SelfupdateCommand.php`, `SelfUpdater.php`) — capital M, so the case-sensitive scan is empty — and `tests/e2e/TEST_PLAN_ANALYSIS_2025.md` plus `tests/e2e/COMPLETE_TEST_PLAN.md`. `systemApi` under `app/` is `app/system/modules/dashboard/**` and `UpdateController.php`. `set('systemApi'` is `DashboardModule.php` only.
+- **The installer no longer names `system: manage packages`.** The marketplace menu was that permission's only consumer there. The boundary test no longer expects the access line; it still expects the installer not to declare the permission. `update.vue` left the must-exist list. The import test is `testTheUpdateAndDashboardImportThePackageClient`.
+- **A `public/` built before this step keeps the marketplace bundle.** `scripts/bundles.mjs` builds with `emptyOutDir: false`, and `publishStatics()` deletes nothing, so `public/app/installer/app/bundle/marketplace.js` and `public/app/installer/assets/images/icon-marketplace.svg` stay on an in-place upgrade as unreferenced files. Both were removed from this environment's gitignored `public/`. A fresh checkout and the production image never have them.
+- **README describes the archive install.** Installing over an existing package replaces its folder and keeps an enabled package enabled. `php pagekit archive` writes `<vendor>-<name>.zip` into the installation root when `--dir` is omitted. An archive holds sources only; built bundles stay under `public/` until Step 2.8. `index.php` spells `name` and `autoload` as literals because the seam reads the file without running it. The E2E Testing bullet left the shipped list. The note that a marketplace has to be built from scratch is gone.
+- **The 1.2.42 changelog sentence is now false.** It still says the marketplace menu names `system: manage packages` as access, and that marketplace and update stay on `installer`. From this step only update stays, and the installer manifest does not name that permission. The sentence stays until Finalize.
 
 ---
 
 ## 💥 Breaking Changes (Extensions)
 
-`php pagekit install <archive>` installs one zip and prints `Installed <name> <version>.` The command previously took a package list and `--prefer-source` and always failed. `PackageManager::install()` takes a `PackageArchive`. A package's own manifest is unchanged. `php pagekit update` is gone. The web self-update log is plain text: the default formatter strips the console tags. A snapshot listing no longer includes `composer`. `read()` omits the key on a file an earlier release wrote; that file is not rewritten, and restore does not write `installed.json` back. `composer/composer` is not a runtime dependency. `autoload.php` loads only `app/vendor/autoload.php`. Uninstall deletes the package folder through the file service. `path.artifact` is not registered. `getVersion()` reads the package `composer.json` and returns `0.0.0` when that file names no version.
+`php pagekit install <archive>` installs one zip and prints `Installed <name> <version>.` The command previously took a package list and `--prefer-source` and always failed. `PackageManager::install()` takes a `PackageArchive`. A package's own manifest is unchanged. `php pagekit update` is gone. The web self-update log is plain text: the default formatter strips the console tags. A snapshot listing no longer includes `composer`. `read()` omits the key on a file an earlier release wrote; that file is not rewritten, and restore does not write `installed.json` back. `composer/composer` is not a runtime dependency. `autoload.php` loads only `app/vendor/autoload.php`. Uninstall deletes the package folder through the file service. `path.artifact` is not registered. `getVersion()` reads the package `composer.json` and returns `0.0.0` when that file names no version. The marketplace route, its three menu entries, and the package-update client are gone. Extensions and themes receive no API URL and show no Update button. `PackageModule` does not register `systemApi`. The dashboard still does. The core update page still reads `system.api`. `connect-src` still allows `https://pagekit.com`.
 
 ---
 
@@ -202,7 +246,7 @@ Safety gates before any edit: the branch contained `origin/develop`, `composer i
 
 - `composer install` now requires the zip extension, including on a host that previously needed it only for dev.
 - `replaceTree()` deletes the staged sibling when extraction or the swap fails. A delete that fails is an error-log line and the sibling stays. A retired tree that will not delete is one streamed line plus that log, and the install still succeeds.
-- The package update UI still posts `packagist` to the install endpoint. With nothing staged the stream ends `status=error`. That surface goes in Step 6.
+- An installation whose `public/` was built before this step can still hold `app/installer/app/bundle/marketplace.js` and `app/installer/assets/images/icon-marketplace.svg`. Nothing references them. A fresh checkout and the production image do not.
 - A failed `php pagekit archive` leaves the previous zip. The new file is renamed into place only after `close()`.
 - An `archive.exclude` rule the matcher cannot apply fails the command and writes no zip.
 - A symlink whose target lies outside the package is omitted from the zip. The web self-update log no longer wraps console tags in markup.
@@ -225,11 +269,13 @@ A snapshot no longer copies `packages/composer/installed.json`. Restore does not
 
 Uninstall does not ask Composer whether the package is installed. `removeFiles()` deletes the tree through the file service. `getVersion()` reads the package `composer.json` only. `autoload.php` does not load `packages/`. `public/.htaccess` still denies `installed.json` by name; that rule is not a reader.
 
+The marketplace client is gone. Extensions and themes receive no API URL and do not call pagekit.com. `connect-src` still allows `https://pagekit.com`: the dashboard update check and the core update page use it. The comment no longer says marketplace.
+
 ---
 
 ## 🛡️ No-Mercy Compliance
 
-The install path is `PackageArchive` only. `removeFiles()` deletes the tree through the file service. The Composer helper, its factory, and its IO adapter are deleted. `composer/composer` is not in `require`. No stub body, no `packagist` branch, no `class_alias`. The theme's `'autoload' => []` is the declaration the seam requires. `ArchiveCommand` no longer imports Composer. `UpdateCommand` is deleted. `SelfUpdater` no longer sets `HtmlOutputFormatter`. `BuildCommand`'s commented Composer install is deleted. The snapshot path no longer reads or writes Composer's record, and the `composer` key is not kept for old snapshots.
+The install path is `PackageArchive` only. `removeFiles()` deletes the tree through the file service. The Composer helper, its factory, and its IO adapter are deleted. `composer/composer` is not in `require`. No stub body, no `packagist` branch, no `class_alias`. The theme's `'autoload' => []` is the declaration the seam requires. `ArchiveCommand` no longer imports Composer. `UpdateCommand` is deleted. `SelfUpdater` no longer sets `HtmlOutputFormatter`. `BuildCommand`'s commented Composer install is deleted. The snapshot path no longer reads or writes Composer's record, and the `composer` key is not kept for old snapshots. The marketplace controller, page, bundle, and `update.vue` are deleted. `PackageModule` does not register `systemApi`. No stub client is kept for Step 5.6.
 
 ---
 
@@ -239,7 +285,7 @@ The install path is `PackageArchive` only. `removeFiles()` deletes the tree thro
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: Step 1 — none. Step 2 — tester PASS after one test-defect retry. Production verifier PASS; production tester PASS; frontend, fresh install, and install-over PASS; test-file verifier PASS. Step 3 — production verifier FAIL once (`archive.exclude` typing), retry then PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS. Step 4 — production verifier PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS. `rg` for `INSTALLED_FILE|composerInstalled|BOOKKEEPING|bookkeeping` under `app` and `tests` still lists `PackageTreeRemovalTest` (Step 5's inventory) and the word in `PackageManagerMigrationTest` and `PackageSchemaTest`. `app/package/src/Snapshot` and `tests/Unit/Snapshot` have no hit. Step 5 — production verifier PASS; production tester PASS; test verifier PASS; coverage tester PASS. No deviations.
+- Notable deviations: Step 1 — none. Step 2 — tester PASS after one test-defect retry. Production verifier PASS; production tester PASS; frontend, fresh install, and install-over PASS; test-file verifier PASS. Step 3 — production verifier FAIL once (`archive.exclude` typing), retry then PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS. Step 4 — production verifier PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS. `rg` for `INSTALLED_FILE|composerInstalled|BOOKKEEPING|bookkeeping` under `app` and `tests` still lists `PackageTreeRemovalTest` (Step 5's inventory) and the word in `PackageManagerMigrationTest` and `PackageSchemaTest`. `app/package/src/Snapshot` and `tests/Unit/Snapshot` have no hit. Step 5 — production verifier PASS; production tester PASS; test verifier PASS; coverage tester PASS. No deviations. Step 6 — production verifier PASS; production tester PASS; test verifier PASS; coverage tester PASS. No deviations.
 
 ---
 

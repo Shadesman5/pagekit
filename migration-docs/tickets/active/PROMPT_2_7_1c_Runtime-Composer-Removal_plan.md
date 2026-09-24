@@ -70,7 +70,7 @@
 - [x] Step 3 (L) — Other Composer-library consumers
 - [x] Step 4 (M) — Snapshot engine
 - [x] Step 5 (L) — Delete the Composer runtime
-- [ ] Step 6 (M) — Marketplace surface
+- [x] Step 6 (M) — Marketplace surface
 - [ ] Step 7 (S) — Docs and closing gates
 - [ ] Step 8 (XL) — Review (Bugbot + Security) + E2E
 
@@ -140,7 +140,12 @@
 - `public/.htaccess:3` — the `FilesMatch` deny list keeps `installed.json`: a deny-by-name webroot rule beside `bower.json`, not a reader, outside this step's inventory, and invisible to the `rg` gate (dotfiles are skipped). Invariant for test (d): the `public/` scan does not read `.htaccess` (`SOURCE_EXTENSIONS` has no `htaccess`) or allows exactly that line.
 - `composer.lock` — plain `composer remove composer/composer` (its dry run listed no update): nine packages leave the lock, ten move from `packages` to `packages-dev` (decision 13's four plus `react/promise`, `marc-mabe/php-enum`, `composer/pcre`, `symfony/polyfill-php80/81/84`), no version changes — hence the size of the lock diff. Invariant: `packages[*].name` holds no `composer/composer`; `platform` keeps `ext-zip`.
 ### Step 6
-_none yet_
+- `theme.less` / `output.js` — two remnants outside the Scope list went with the surface they served: the `[class*="system-marketplace-"] .tm-content` selector (the body class is the request path, `theme/index.php` `pageClass`, so it matched the deleted page alone; the Step 6 `rg` gate lists it) and the mixin's `updatePkg: {}` (read by `update.vue` alone). `package-upload.vue` also loses its live `:api="api"` binding, not only the commented one — the prop is gone from both components. Invariant: case-sensitive `marketplace` and `packagist` have no hit under `app/` outside `app/system/languages`.
+- Step 6 `rg -i` gate — besides the dashboard's `systemApi` it still lists, as expected: `UpdateController::$systemApi` (its own `system.api` read for `update.js`; verified no-change), the step title in the two `TODO: Step 5.6 (Marketplace & Extensions)` tags (`SelfupdateCommand.php:38`, `SelfUpdater.php:250`; verified no-change — capital `M`, so the case-sensitive scan above stays empty) and `tests/e2e/{TEST_PLAN_ANALYSIS_2025,COMPLETE_TEST_PLAN}.md` (test-plan prose, outside the inventory). Invariant for the planned scan: `systemApi` under `app/` → `app/system/modules/dashboard/**` and `app/installer/src/Controller/UpdateController.php` only; `set('systemApi'` → `DashboardModule.php` only.
+- `PackageModuleBoundaryTest` — call sites beyond the inventory: `testThePermissionToManagePackagesIsDeclaredByThePackageModuleAlone` drops the check that the installer manifest names `system: manage packages` as access (the marketplace menu was its only consumer; the no-declaration check stays) and the admin-surface comment drops "still consumes this permission"; `testTheAdminSurfaceLeftTheInstallerTree` drops `app/package/app/lib/update.vue` from the must-exist list (the must-not-exist installer path stays); `testTheMovedServicesAreRegisteredInThePackageModuleAlone` expects the one dashboard registration; the import test is renamed `testTheUpdateAndDashboardImportThePackageClient`.
+- `public/` — `scripts/bundles.mjs` builds with `emptyOutDir: false` and `publishStatics()` deletes nothing, so a `public/` built before keeps `app/installer/app/bundle/marketplace.js` and `app/installer/assets/images/icon-marketplace.svg`. Both were removed from this VM's gitignored `public/`, so the "no `marketplace.js`" gate reads what `pnpm build` writes; an in-place upgrade keeps them as unreferenced files, a fresh checkout and the prod image never have them.
+- `README.md` — beyond the listed points: an install over an existing package replaces its folder and keeps an enabled package enabled; `archive` writes to the installation root without `--dir`; an archive holds no built bundles (Step 2.8); `index.php` spells `name`/`autoload` as literals because it is read without being run. The "E2E Testing" bullet left the shipped list (not a package); the Extension Development list stays.
+- `CHANGELOG-NEW.md:12` — left for Finalize (CHANGELOG at Finalize), but its "The marketplace menu still names that permission as access. Marketplace and update stay on `installer`." is false from this step on: only update stays on `installer`, and the installer manifest no longer names `system: manage packages`.
 ### Step 7
 _none yet_
 ### Step 8

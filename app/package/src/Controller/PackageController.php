@@ -40,7 +40,6 @@ class PackageController
         private readonly string $packageStaging,
         private readonly bool $debug,
         private readonly Logger $log,
-        private readonly string $systemApi = 'https://pagekit.com',
         private readonly ?PackageSnapshotter $snapshotter = null,
     ) {
     }
@@ -71,7 +70,6 @@ class PackageController
                 'name' => 'package:views/themes.php',
             ],
             '$data' => [
-                'api' => $this->systemApi,
                 'packages' => $packages,
                 'keepsSnapshots' => $this->keepsSnapshots(),
             ],
@@ -115,7 +113,6 @@ class PackageController
                 'name' => 'package:views/extensions.php',
             ],
             '$data' => [
-                'api' => $this->systemApi,
                 'packages' => $packages,
                 'keepsSnapshots' => $this->keepsSnapshots(),
             ],

@@ -603,13 +603,28 @@ docker compose exec web chown -R www-data:www-data /var/www/html
 
 ## Extensions & Themes
 
-**Important**: The original Pagekit marketplace is no longer functional as the API was deactivated. This modernized version currently includes:
+An extension or a theme is installed from its ZIP archive. Nothing is resolved or downloaded: there is no marketplace (ROADMAP Step 5.6), so an archive has to carry everything its package needs. The installation ships with:
 
--   **Built-in Blog Extension**: Full-featured blogging system
--   **Modern Admin Theme**: UIkit 3 based administration interface
--   **Theme One**: Responsive frontend theme
--   **Demo Content**: Sample data for testing
--   **E2E Testing**: Comprehensive Playwright-based testing framework
+-   **Blog** (`pagekit/blog`): full-featured blogging extension
+-   **Theme One** (`pagekit/theme-one`): responsive frontend theme
+-   **Admin Theme**: UIkit 3 based administration interface
+-   **Demo Content**: sample data for testing
+
+### Installing a Package
+
+-   **In the admin panel**: _System → Extensions_ (or _Themes_) → _Upload_. The archive is checked on upload and its details are shown; _Install_ puts the package under `packages/<vendor>/<name>`, and it is enabled from the same page.
+-   **From the command line**: `php pagekit install <archive.zip>` installs it the same way. It does not enable the package — do that in the admin panel.
+
+Installing a package that is already there updates it: its folder is replaced as a whole, and an enabled package stays enabled.
+
+### Building an Archive
+
+`php pagekit archive <vendor/name> [--dir <directory>]` writes `<vendor>-<name>.zip` from `packages/<vendor>/<name>` into the installation root, or into the directory `--dir` names. It leaves out what the package's `.gitignore` and the `archive.exclude` list of its `composer.json` name. The archive holds the package sources only; its built bundles live under `public/` and are not part of it yet (ROADMAP Step 2.8).
+
+An archive is refused unless it carries, at its root rather than inside a wrapping folder:
+
+-   `composer.json` with `name` (`vendor/name`), `type` (`pagekit-extension` or `pagekit-theme`), `version` and `title`
+-   the module's `index.php`, returning an array whose `name` is the part of the package name after the slash and whose `autoload` map names the folders its classes are loaded from (`'autoload' => []` when there are none). The file is read without being run, so both are written out as plain strings and arrays.
 
 ### Extension Development
 
@@ -617,8 +632,6 @@ docker compose exec web chown -R www-data:www-data /var/www/html
 -   **Modern Architecture**: Extensions must be built from scratch using current PHP 8.5+ standards
 -   **Theme System**: Full theming support with modern tooling and developer APIs
 -   **Hooks & Filters**: Extensive customization capabilities for developers
-
-**Note**: A new marketplace system needs to be developed from the ground up to replace the original functionality.
 
 ## Security Best Practices
 

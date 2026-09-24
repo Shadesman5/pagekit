@@ -12,7 +12,7 @@ $view->script('themes', 'package:app/bundle/themes.js', ['vue', 'editor']); ?>
             </div>
         </div>
         <div>
-            <package-upload :api="api" :packages="packages" type="theme"></package-upload>
+            <package-upload :packages="packages" type="theme"></package-upload>
         </div>
     </div>
 
@@ -36,7 +36,6 @@ $view->script('themes', 'package:app/bundle/themes.js', ['vue', 'editor']); ?>
 
                     <div class="uk-position-center-right uk-position-small">
                         <button class="uk-button uk-button-primary uk-button-small" v-show="pkg.enabled && pkg.settings" @click="settings(pkg)">{{ 'Customize' | trans }}</button>
-                        <button class="uk-button tm-button-success uk-button-small" @click="update(pkg, updates)" v-show="updates && updates[pkg.name]">{{ 'Update' | trans }}</button>
                     </div>
                 </div>
                 <div class="uk-invisible-hover uk-position-top-right pk-panel-badge" v-if="!pkg.enabled">
@@ -52,7 +51,7 @@ $view->script('themes', 'package:app/bundle/themes.js', ['vue', 'editor']); ?>
     <h3 class="uk-h2 uk-text-muted uk-text-center" v-show="packages | empty">{{ 'No theme found.' | trans }}</h3>
 
     <v-modal ref="details">
-        <package-details :api="api" :package="package"></package-details>
+        <package-details :package="package"></package-details>
     </v-modal>
 
     <v-modal ref="settings">

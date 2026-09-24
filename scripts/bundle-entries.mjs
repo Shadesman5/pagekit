@@ -28,7 +28,6 @@ const groups = [
     dir: 'app/installer',
     entries: {
       installer: 'app/views/installer.vue',
-      marketplace: 'app/views/marketplace.js',
       update: 'app/views/update.js'
     }
   },
