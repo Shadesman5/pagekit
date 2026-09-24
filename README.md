@@ -153,6 +153,7 @@ This is a modernized version of Pagekit CMS, extensively updated for contemporar
 ### Minimum Requirements
 
 -   **PHP**: 8.5 or higher
+-   **zip**: the PHP zip extension. Installing a package and building its archive both use it, and `composer install` requires it
 -   **MySQL**: 8.4+ or **SQLite**: 3.x (selectable during installation)
 -   **Node.js**: `^20.19.0 || >=22.12.0` (Node 22 LTS recommended; pinned via `.nvmrc` and `package.json` `engines`)
 -   **Composer**: 2.0+
