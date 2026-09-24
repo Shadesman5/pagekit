@@ -200,6 +200,12 @@ No file changed. `AGENTS.md` and `.cursor/BUGBOT.md` already omit the deleted pa
 
 Gates: Verifier PASS; Tester PASS (PHPUnit + PHPStan); test-writer skipped. Deviation: the `use Composer\` and `Composer\[A-Z]` gates also list `tests/Unit/Snapshot/UploadedPackageRoundTripTest.php:7`, which imports the one allowed name `Composer\Autoload\ClassLoader`.
 
+### Review (Bugbot + Security) + E2E (Checklist Step 8)
+
+No production or test files changed. Bugbot and the Security review found nothing to correct, so the review pass closed with no corrective work. Step 8 left no open decision.
+
+Gates: Bugbot clean (no bugs). Security clean (no medium, high, or critical issues). E2E PASS (setup, console list, three `@ci` Playwright specs). No fix-loop.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -294,7 +300,7 @@ The install path is `PackageArchive` only. `removeFiles()` deletes the tree thro
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: Step 1 — none. Step 2 — tester PASS after one test-defect retry. Production verifier PASS; production tester PASS; frontend, fresh install, and install-over PASS; test-file verifier PASS. Step 3 — production verifier FAIL once (`archive.exclude` typing), retry then PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS. Step 4 — production verifier PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS. `rg` for `INSTALLED_FILE|composerInstalled|BOOKKEEPING|bookkeeping` under `app` and `tests` still lists `PackageTreeRemovalTest` (Step 5's inventory) and the word in `PackageManagerMigrationTest` and `PackageSchemaTest`. `app/package/src/Snapshot` and `tests/Unit/Snapshot` have no hit. Step 5 — production verifier PASS; production tester PASS; test verifier PASS; coverage tester PASS. No deviations. Step 6 — production verifier PASS; production tester PASS; test verifier PASS; coverage tester PASS. No deviations. Step 7 — Verifier PASS; Tester PASS (PHPUnit + PHPStan); test-writer skipped. The `use Composer\` and `Composer\[A-Z]` gates also list `tests/Unit/Snapshot/UploadedPackageRoundTripTest.php:7`, which imports the one allowed name `Composer\Autoload\ClassLoader`.
+- Notable deviations: Step 1 — none. Step 2 — tester PASS after one test-defect retry. Production verifier PASS; production tester PASS; frontend, fresh install, and install-over PASS; test-file verifier PASS. Step 3 — production verifier FAIL once (`archive.exclude` typing), retry then PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS. Step 4 — production verifier PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS. `rg` for `INSTALLED_FILE|composerInstalled|BOOKKEEPING|bookkeeping` under `app` and `tests` still lists `PackageTreeRemovalTest` (Step 5's inventory) and the word in `PackageManagerMigrationTest` and `PackageSchemaTest`. `app/package/src/Snapshot` and `tests/Unit/Snapshot` have no hit. Step 5 — production verifier PASS; production tester PASS; test verifier PASS; coverage tester PASS. No deviations. Step 6 — production verifier PASS; production tester PASS; test verifier PASS; coverage tester PASS. No deviations. Step 7 — Verifier PASS; Tester PASS (PHPUnit + PHPStan); test-writer skipped. The `use Composer\` and `Composer\[A-Z]` gates also list `tests/Unit/Snapshot/UploadedPackageRoundTripTest.php:7`, which imports the one allowed name `Composer\Autoload\ClassLoader`. Step 8 — Bugbot clean (no bugs); Security clean (no medium, high, or critical issues); E2E PASS (setup, console list, three `@ci` Playwright specs). No fix-loop. No production or test files.
 
 ---
 

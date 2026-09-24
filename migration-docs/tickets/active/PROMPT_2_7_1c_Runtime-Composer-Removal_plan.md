@@ -72,7 +72,7 @@
 - [x] Step 5 (L) — Delete the Composer runtime
 - [x] Step 6 (M) — Marketplace surface
 - [x] Step 7 (S) — Docs and closing gates
-- [ ] Step 8 (XL) — Review (Bugbot + Security) + E2E
+- [x] Step 8 (XL) — Review (Bugbot + Security) + E2E
 
 ## TESTING STRATEGY
 - **Per step (production gate):** Refactorer → Verifier → Tester (PHPUnit + PHPStan) — production code must be green before any new tests are written. **Existing tests are call sites of the deleted code:** the Refactorer deletes or adjusts them in the same step (the lists in the Checklist are the inventory — cases that test deleted behaviour go, fixtures that plant `installed.json`/`path.artifact` for it go, assertions that name a deleted symbol go; no assertion logic changes beyond what the deletion dictates); the Verifier reviews them with the production files. The test-writer adds new coverage only.
