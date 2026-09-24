@@ -71,7 +71,7 @@
 - [x] Step 4 (M) — Snapshot engine
 - [x] Step 5 (L) — Delete the Composer runtime
 - [x] Step 6 (M) — Marketplace surface
-- [ ] Step 7 (S) — Docs and closing gates
+- [x] Step 7 (S) — Docs and closing gates
 - [ ] Step 8 (XL) — Review (Bugbot + Security) + E2E
 
 ## TESTING STRATEGY
@@ -147,6 +147,8 @@
 - `README.md` — beyond the listed points: an install over an existing package replaces its folder and keeps an enabled package enabled; `archive` writes to the installation root without `--dir`; an archive holds no built bundles (Step 2.8); `index.php` spells `name`/`autoload` as literals because it is read without being run. The "E2E Testing" bullet left the shipped list (not a package); the Extension Development list stays.
 - `CHANGELOG-NEW.md:12` — left for Finalize (CHANGELOG at Finalize), but its "The marketplace menu still names that permission as access. Marketplace and update stay on `installer`." is false from this step on: only update stays on `installer`, and the installer manifest no longer names `system: manage packages`.
 ### Step 7
-_none yet_
+- Verified no-change (Scope) — against the merge base with `origin/develop` (`7110583f`): no diff in `UpdateController.php`, `SelfupdateCommand.php`, `update.js`, `update.php`, `DashboardModule.php` (still the one `set('systemApi'`), `AutoLoader.php`, `ModuleManager.php`, `.gitignore` (names no deleted path), `phpunit.xml.dist`. `public/index.php` differs by the `path.artifact` line alone (`system.api` → `https://pagekit.com` unchanged); `SnapshotStore` keeps `ID_PATTERN` and `METADATA_FILE`/`DUMP_FILE`/`FILES_DIR`/`COMPLETE_FILE`, losing only what Scope names; both `TODO: Step 5.6 (Marketplace & Extensions)` notes remain (`SelfupdateCommand.php:38`, `SelfUpdater.php:250`, three lines up after decision 9).
+- Docs — `AGENTS.md` (line 31 included) and `.cursor/BUGBOT.md` name no deleted path, command or symbol, and neither do `README.md` outside the rewritten section, `docs-site/`, `.github/`, `.cursor/install.sh`, `scripts/`; nothing edited. Left alone: `Dockerfile:33` (`git` for Composer's own `--prefer-source` dependency installs, not the removed option), `.cursor/ANOMALIES.md` AP-06 (hand-maintained example naming the pre-2.7.1b `InstallerIO` path; agents never write the file), `public/.htaccess:3` (Step 5 note), `CHANGELOG-NEW.md` (Finalize, Step 6 note).
+- Gates `use Composer\\` and `Composer\\[A-Z]` — both also list `tests/Unit/Snapshot/UploadedPackageRoundTripTest.php:7` (`use Composer\Autoload\ClassLoader;`), a Step 4 test written after the plan that imports the one allowed name (decision 17), which the boundary scan admits. Rejected: turning the import into an inline FQCN to match the planned file list, which would be a test-writer edit that changes nothing the criterion checks. Invariant: `PackageModuleBoundaryTest`'s allow-list stays exactly `Composer\Autoload\ClassLoader`.
 ### Step 8
 _none yet_

@@ -194,6 +194,12 @@ The installer marketplace route, menu, page, and bundle are gone. Extensions and
 
 Gates: production verifier PASS; production tester PASS; test verifier PASS; coverage tester PASS. No deviations.
 
+### Docs and closing gates (Checklist Step 7)
+
+No file changed. `AGENTS.md` and `.cursor/BUGBOT.md` already omit the deleted paths, commands, and symbols, and so do `README.md` outside the rewritten section, `docs-site/`, `.github/`, `.cursor/install.sh`, and `scripts/`.
+
+Gates: Verifier PASS; Tester PASS (PHPUnit + PHPStan); test-writer skipped. Deviation: the `use Composer\` and `Composer\[A-Z]` gates also list `tests/Unit/Snapshot/UploadedPackageRoundTripTest.php:7`, which imports the one allowed name `Composer\Autoload\ClassLoader`.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -233,6 +239,9 @@ Safety gates before any edit: the branch contained `origin/develop`, `composer i
 - **A `public/` built before this step keeps the marketplace bundle.** `scripts/bundles.mjs` builds with `emptyOutDir: false`, and `publishStatics()` deletes nothing, so `public/app/installer/app/bundle/marketplace.js` and `public/app/installer/assets/images/icon-marketplace.svg` stay on an in-place upgrade as unreferenced files. Both were removed from this environment's gitignored `public/`. A fresh checkout and the production image never have them.
 - **README describes the archive install.** Installing over an existing package replaces its folder and keeps an enabled package enabled. `php pagekit archive` writes `<vendor>-<name>.zip` into the installation root when `--dir` is omitted. An archive holds sources only; built bundles stay under `public/` until Step 2.8. `index.php` spells `name` and `autoload` as literals because the seam reads the file without running it. The E2E Testing bullet left the shipped list. The note that a marketplace has to be built from scratch is gone.
 - **The 1.2.42 changelog sentence is now false.** It still says the marketplace menu names `system: manage packages` as access, and that marketplace and update stay on `installer`. From this step only update stays, and the installer manifest does not name that permission. The sentence stays until Finalize.
+- **The core update path and the autoloader are unchanged.** Against `origin/develop` (`7110583f`) there is no diff in `UpdateController.php`, `SelfupdateCommand.php`, `update.js`, `update.php`, `DashboardModule.php` (still the one `set('systemApi'`), `AutoLoader.php`, `ModuleManager.php`, `.gitignore`, or `phpunit.xml.dist`. `public/index.php` differs by the `path.artifact` line alone; `system.api` is still `https://pagekit.com`. `SnapshotStore` keeps `ID_PATTERN`, `METADATA_FILE`, `DUMP_FILE`, `FILES_DIR`, and `COMPLETE_FILE`. Both `TODO: Step 5.6 (Marketplace & Extensions)` notes remain.
+- **`git` stays in the image, and AP-06 still names the old helper.** `Dockerfile` installs `git` for Composer's own `--prefer-source` dependency installs, which is separate from the removed install option. `.cursor/ANOMALIES.md` AP-06 is hand-maintained and still shows the pre-2.7.1b `InstallerIO` path; agents do not write that file.
+- **The Composer gates also name the round-trip import.** Both `use Composer\` and `Composer\[A-Z]` list `tests/Unit/Snapshot/UploadedPackageRoundTripTest.php:7` (`use Composer\Autoload\ClassLoader;`). The boundary scan already allows that one name. Rewriting the import as an inline class name was rejected: it would change nothing the criterion checks. The allow-list stays exactly `Composer\Autoload\ClassLoader`.
 
 ---
 
@@ -285,7 +294,7 @@ The install path is `PackageArchive` only. `removeFiles()` deletes the tree thro
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: Step 1 — none. Step 2 — tester PASS after one test-defect retry. Production verifier PASS; production tester PASS; frontend, fresh install, and install-over PASS; test-file verifier PASS. Step 3 — production verifier FAIL once (`archive.exclude` typing), retry then PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS. Step 4 — production verifier PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS. `rg` for `INSTALLED_FILE|composerInstalled|BOOKKEEPING|bookkeeping` under `app` and `tests` still lists `PackageTreeRemovalTest` (Step 5's inventory) and the word in `PackageManagerMigrationTest` and `PackageSchemaTest`. `app/package/src/Snapshot` and `tests/Unit/Snapshot` have no hit. Step 5 — production verifier PASS; production tester PASS; test verifier PASS; coverage tester PASS. No deviations. Step 6 — production verifier PASS; production tester PASS; test verifier PASS; coverage tester PASS. No deviations.
+- Notable deviations: Step 1 — none. Step 2 — tester PASS after one test-defect retry. Production verifier PASS; production tester PASS; frontend, fresh install, and install-over PASS; test-file verifier PASS. Step 3 — production verifier FAIL once (`archive.exclude` typing), retry then PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS. Step 4 — production verifier PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS. `rg` for `INSTALLED_FILE|composerInstalled|BOOKKEEPING|bookkeeping` under `app` and `tests` still lists `PackageTreeRemovalTest` (Step 5's inventory) and the word in `PackageManagerMigrationTest` and `PackageSchemaTest`. `app/package/src/Snapshot` and `tests/Unit/Snapshot` have no hit. Step 5 — production verifier PASS; production tester PASS; test verifier PASS; coverage tester PASS. No deviations. Step 6 — production verifier PASS; production tester PASS; test verifier PASS; coverage tester PASS. No deviations. Step 7 — Verifier PASS; Tester PASS (PHPUnit + PHPStan); test-writer skipped. The `use Composer\` and `Composer\[A-Z]` gates also list `tests/Unit/Snapshot/UploadedPackageRoundTripTest.php:7`, which imports the one allowed name `Composer\Autoload\ClassLoader`.
 
 ---
 
