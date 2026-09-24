@@ -31,7 +31,7 @@ Orchestrator passes:
 - Ticket `## IMPLEMENTATION NOTES › Step N` — the Refactorer's decisions the plan left open, each naming the invariant that must stay true. Read it before the code: those invariants are test cases first
 - Optional: ticket `## TESTING STRATEGY` notes (target classes, edge cases, deferred integration paths)
 
-Read existing tests near the changed code first — extend/complete test classes before creating duplicates.
+Read existing tests near the changed code first. Extend the class that already covers that behavior. A different behavior gets its own class in the same directory. Share setup through one non-test class there.
 
 ## Codecov / Finalize coverage pass
 
