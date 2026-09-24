@@ -6,16 +6,18 @@
 **Branch:** `feature/runtime-composer-removal`
 **ROADMAP Step:** 2.7.1c (Runtime Composer Removal)
 **GitHub Issue:** [#297](https://github.com/Shadesman5/pagekit/issues/297)
-**Pull Request:** _TBD_
-**Status:** 🚧 In progress
+**Pull Request:** [#301](https://github.com/Shadesman5/pagekit/pull/301)
+**Status:** ✅ Complete
 **Started:** 2026-09-23 19:01
-**Completed:** _TBD_
+**Completed:** 2026-09-24 19:28
 
 ---
 
 ## 🎯 Overview
 
 A package zip can be refused, read, and extracted without Composer, and that is how a package is installed. The panel upload and `php pagekit install <archive>` replace the package tree through the seam. `php pagekit archive` builds that zip with Finder and `\ZipArchive`. `php pagekit update` is gone, and the web self-update log is plain text. Uninstall deletes the package folder through the file service. A removal snapshot is the package tree, a database dump, and a description: it does not copy Composer's installed record, and `read()` omits a `composer` key an earlier release stored. `composer/composer` is not a runtime dependency, and `autoload.php` loads only `app/vendor/autoload.php`. `ext-zip` is a runtime requirement, and the shipped One theme declares an empty autoload map so the seam accepts it. The marketplace route, menu, and package-update client are gone. Extensions and themes install from an archive. `systemApi` is the dashboard's registration; the update page still reads `system.api`.
+
+PR [#301](https://github.com/Shadesman5/pagekit/pull/301), version 1.2.43. CI green ([run 36046428356](https://github.com/Shadesman5/pagekit/actions/runs/36046428356)). Coverage-gap pass ran. Bugbot and Security clean. Execute E2E PASS; Finalize `e2e-smoke` skipped as opt-in. PHP CS Fixer failed once on an anonymous class in `InstallCommandTest.php`; that spacing change is the only Finalize edit.
 
 ---
 
@@ -206,6 +208,25 @@ No production or test files changed. Bugbot and the Security review found nothin
 
 Gates: Bugbot clean (no bugs). Security clean (no medium, high, or critical issues). E2E PASS (setup, console list, three `@ci` Playwright specs). No fix-loop.
 
+### Coverage gaps (Finalize)
+
+Tests only. Each case is a line the patch left uncovered.
+
+| File | Change |
+|---|---|
+| `tests/Unit/Package/PackageArchiveTest.php` | An entry the listing names but the archive cannot read is refused. `extractTo()` does not write past the declared size, and fails when the destination accepts none of the bytes. |
+| `tests/Unit/Package/PackageInstallFromArchiveTest.php` | An install fails when the package cannot be found after the tree is in place, when the installed tree cannot be moved aside, and when the unpacked tree cannot be deleted. A leftover that cannot be logged still fails with the install error. |
+| `tests/Unit/Console/ArchiveCommandTest.php` | A zip that cannot be opened leaves the earlier archive. |
+| `tests/Unit/Package/PackageUploadBoundaryTest.php` | A staged archive that cannot be removed still ends the request when the log cannot take the line. |
+
+### CS Fixer (Finalize)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Console/InstallCommandTest.php` | `new class {` is `new class () {`. That file only. |
+
+Gates: Verifier PASS. Tester PHPUnit + PHPStan PASS. Tester final E2E PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -244,7 +265,7 @@ Safety gates before any edit: the branch contained `origin/develop`, `composer i
 - **The installer no longer names `system: manage packages`.** The marketplace menu was that permission's only consumer there. The boundary test no longer expects the access line; it still expects the installer not to declare the permission. `update.vue` left the must-exist list. The import test is `testTheUpdateAndDashboardImportThePackageClient`.
 - **A `public/` built before this step keeps the marketplace bundle.** `scripts/bundles.mjs` builds with `emptyOutDir: false`, and `publishStatics()` deletes nothing, so `public/app/installer/app/bundle/marketplace.js` and `public/app/installer/assets/images/icon-marketplace.svg` stay on an in-place upgrade as unreferenced files. Both were removed from this environment's gitignored `public/`. A fresh checkout and the production image never have them.
 - **README describes the archive install.** Installing over an existing package replaces its folder and keeps an enabled package enabled. `php pagekit archive` writes `<vendor>-<name>.zip` into the installation root when `--dir` is omitted. An archive holds sources only; built bundles stay under `public/` until Step 2.8. `index.php` spells `name` and `autoload` as literals because the seam reads the file without running it. The E2E Testing bullet left the shipped list. The note that a marketplace has to be built from scratch is gone.
-- **The 1.2.42 changelog sentence is now false.** It still says the marketplace menu names `system: manage packages` as access, and that marketplace and update stay on `installer`. From this step only update stays, and the installer manifest does not name that permission. The sentence stays until Finalize.
+- **The 1.2.42 changelog sentence stays as that release's record.** It says the marketplace menu names `system: manage packages` as access, and that marketplace and update stay on `installer`, which was true of 1.2.42. 1.2.43 records that only update stays on `installer` and that the installer manifest does not name that permission.
 - **The core update path and the autoloader are unchanged.** Against `origin/develop` (`7110583f`) there is no diff in `UpdateController.php`, `SelfupdateCommand.php`, `update.js`, `update.php`, `DashboardModule.php` (still the one `set('systemApi'`), `AutoLoader.php`, `ModuleManager.php`, `.gitignore`, or `phpunit.xml.dist`. `public/index.php` differs by the `path.artifact` line alone; `system.api` is still `https://pagekit.com`. `SnapshotStore` keeps `ID_PATTERN`, `METADATA_FILE`, `DUMP_FILE`, `FILES_DIR`, and `COMPLETE_FILE`. Both `TODO: Step 5.6 (Marketplace & Extensions)` notes remain.
 - **`git` stays in the image, and AP-06 still names the old helper.** `Dockerfile` installs `git` for Composer's own `--prefer-source` dependency installs, which is separate from the removed install option. `.cursor/ANOMALIES.md` AP-06 is hand-maintained and still shows the pre-2.7.1b `InstallerIO` path; agents do not write that file.
 - **The Composer gates also name the round-trip import.** Both `use Composer\` and `Composer\[A-Z]` list `tests/Unit/Snapshot/UploadedPackageRoundTripTest.php:7` (`use Composer\Autoload\ClassLoader;`). The boundary scan already allows that one name. Rewriting the import as an inline class name was rejected: it would change nothing the criterion checks. The allow-list stays exactly `Composer\Autoload\ClassLoader`.
@@ -299,14 +320,26 @@ The install path is `PackageArchive` only. `removeFiles()` deletes the tree thro
 <!-- Links only. Quality metrics are CI-owned: link the PR sticky quality-report comment and the
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
-- CI run: _TBD_
-- Notable deviations: Step 1 — none. Step 2 — tester PASS after one test-defect retry. Production verifier PASS; production tester PASS; frontend, fresh install, and install-over PASS; test-file verifier PASS. Step 3 — production verifier FAIL once (`archive.exclude` typing), retry then PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS. Step 4 — production verifier PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS. `rg` for `INSTALLED_FILE|composerInstalled|BOOKKEEPING|bookkeeping` under `app` and `tests` still lists `PackageTreeRemovalTest` (Step 5's inventory) and the word in `PackageManagerMigrationTest` and `PackageSchemaTest`. `app/package/src/Snapshot` and `tests/Unit/Snapshot` have no hit. Step 5 — production verifier PASS; production tester PASS; test verifier PASS; coverage tester PASS. No deviations. Step 6 — production verifier PASS; production tester PASS; test verifier PASS; coverage tester PASS. No deviations. Step 7 — Verifier PASS; Tester PASS (PHPUnit + PHPStan); test-writer skipped. The `use Composer\` and `Composer\[A-Z]` gates also list `tests/Unit/Snapshot/UploadedPackageRoundTripTest.php:7`, which imports the one allowed name `Composer\Autoload\ClassLoader`. Step 8 — Bugbot clean (no bugs); Security clean (no medium, high, or critical issues); E2E PASS (setup, console list, three `@ci` Playwright specs). No fix-loop. No production or test files.
+| Gate | Result |
+|---|---|
+| CI — PR checks | ✅ green — [run 36046428356](https://github.com/Shadesman5/pagekit/actions/runs/36046428356) (`phpunit`, `phpstan`, `cs-fixer`, `infection-diff`, `frontend`, `docker-image`, `security-audit`, `version-ssot`; `codecov/patch` pass). `e2e-smoke` skipped as opt-in (not a Dependabot PR) |
+| Coverage gap pass | ran — `PackageArchiveTest`, `PackageInstallFromArchiveTest`, `ArchiveCommandTest`, `PackageUploadBoundaryTest` |
+| Cursor Bugbot (PR) | ✅ clean |
+| Cursor Security Reviewer (PR) | ✅ clean |
+| E2E | Execute PASS; Finalize final E2E PASS; Finalize `e2e-smoke` skipped as opt-in |
+| Finalize fix-loop | PHP CS Fixer dry-run exit 8 on `tests/Unit/Console/InstallCommandTest.php` (`new class {` → `new class () {`). That file only. Verifier PASS. Tester PHPUnit + PHPStan PASS. Tester final E2E PASS |
+
+**CI run:** https://github.com/Shadesman5/pagekit/actions/runs/36046428356
+
+**Metrics (CI-owned):** [PR #301 quality-report comment](https://github.com/Shadesman5/pagekit/pull/301#issuecomment-5819937368) · [Quality Dashboard](https://Shadesman5.github.io/pagekit/quality/)
+
+**Notable deviations:** Step 1 — none. Step 2 — tester PASS after one test-defect retry. Production verifier PASS; production tester PASS; frontend, fresh install, and install-over PASS; test-file verifier PASS. Step 3 — production verifier FAIL once (`archive.exclude` typing), retry then PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS. Step 4 — production verifier PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS. `rg` for `INSTALLED_FILE|composerInstalled|BOOKKEEPING|bookkeeping` under `app` and `tests` still lists `PackageTreeRemovalTest` (Step 5's inventory) and the word in `PackageManagerMigrationTest` and `PackageSchemaTest`. `app/package/src/Snapshot` and `tests/Unit/Snapshot` have no hit. Step 5 — production verifier PASS; production tester PASS; test verifier PASS; coverage tester PASS. No deviations. Step 6 — production verifier PASS; production tester PASS; test verifier PASS; coverage tester PASS. No deviations. Step 7 — Verifier PASS; Tester PASS (PHPUnit + PHPStan); test-writer skipped. The `use Composer\` and `Composer\[A-Z]` gates also list `tests/Unit/Snapshot/UploadedPackageRoundTripTest.php:7`, which imports the one allowed name `Composer\Autoload\ClassLoader`. Step 8 — Bugbot clean (no bugs); Security clean (no medium, high, or critical issues); E2E PASS (setup, console list, three `@ci` Playwright specs). No fix-loop. No production or test files. Finalize — coverage-gap pass ran. PHP CS Fixer failed once on `InstallCommandTest.php`; Verifier PASS; Tester PHPUnit + PHPStan PASS; Tester final E2E PASS. The `docker-image` job on the run above booted the production image.
 
 ---
 
 ## 📋 Phase 1 Audit Closure
 
-_TBD / None_
+None.
 
 ---
 
@@ -315,7 +348,7 @@ _TBD / None_
 <!-- Human-only follow-ups the maintainer must do (ruleset flips, real Docker/Apache
      verification, secrets, etc.). Not ROADMAP deferrals — those go under Deferred. -->
 
-`Dockerfile` and `docker/entrypoint.sh` no longer create `tmp/packages`. Those files were linted in this environment. A boot of the production image — the `Docker Image` workflow, or `docker build .` on a Docker host — is what shows the image still starts.
+None.
 
 ---
 
@@ -324,13 +357,21 @@ _TBD / None_
 <!-- Future ROADMAP/PHASE work, explicit non-goals, bridges. Do NOT put maintainer
      Manual Work here — that belongs under Maintainer action above. -->
 
-_TBD / None_
+- **Step 2.7.2 (Module Dependency Integrity)** — an archive whose manifest `require` names a module the installation does not have is installed, and fails closed at boot. The refusal belongs on the archive check. GitHub: [#268](https://github.com/Shadesman5/pagekit/issues/268). PHASE §2.7.2.
+- **Step 2.7.3** — one static manifest replaces `index.php` as the file `PackageArchive` parses. PHASE §2.7.3.
+- **Step 2.7.5** — `packageStaging` (`path.temp/packages`) is the upload directory the `tmp/` posture has to name. PHASE §2.7.5.
+- **Step 2.8** — the archive contract this step enforces, `archive.exclude`, the filename scheme, and how third-party libraries are bundled. PHASE §2.8.
+- **Step 2.9** — a snapshot before an update-by-upload, in front of `PackageManager::replaceTree()`. The web update log is already plain text. PHASE §2.9.
+- **Step 5.6** — a marketplace client, a package index, and download provenance. Nothing of the deleted surface was kept for it. `php pagekit install` installs an archive. PHASE §5.6.
+- **Step 2.11** — the comment-prose sweep already listed there covers the Snapshot and Package docblocks this step left in place. PHASE §2.11.
+- **Non-goals:** porting the helper to the Composer 2 API; a Composer-if-present branch; a disabled install or update command; `php pagekit install` taking `name:constraint`; a marketplace stub; static manifests here; a dependency graph; `vendor/` at the repo root; splitting `PackageManager`; a console enable command; an `ArchiveService`; a hand-written gitignore compiler; reading `.gitattributes` `export-ignore`; rewriting inherited docblocks beyond sentences that became false.
+- **Bridges:** none.
 
 ---
 
 ## 📌 Follow-on (ROADMAP)
 
-_TBD / None_
+None — no new ROADMAP sub-step. Every item above already has a PHASE home.
 
 ---
 
@@ -339,7 +380,7 @@ _TBD / None_
 <!-- Filled by the post-close review after Finalize: what the finished work left unowned,
      one bullet per finding with the ROADMAP step whose area it belongs to. Doc-writer leaves None. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -348,7 +389,7 @@ _TBD / None_
 <!-- Removed in passing (deleted files, dropped baseline/ignore entries, dead code). Doc-writer from
      the handover; the post-close review adds what the diff shows and the handover missed. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -357,7 +398,7 @@ _TBD / None_
 <!-- No-Mercy leftovers of the shipped diff that have no owner (forward-debt tags, added baseline
      entries, ANOMALIES patterns), each with the ROADMAP step that resolves it. Post-close review. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -366,7 +407,7 @@ _TBD / None_
 <!-- Work delivered beyond the ticket. Doc-writer from the handover; the post-close review adds
      what the diff shows and the handover missed. -->
 
-_TBD / None_
+None.
 
 ---
 
@@ -375,22 +416,13 @@ _TBD / None_
 <!-- The verified facts behind each DECISION the post-close review raised — symbols, call chain,
      what each exit deletes or adds — so the maintainer can decide without re-reading the tree. -->
 
-_TBD / None_
+None.
 
 ---
 
 ## 📎 Related Documents
 
-- Ticket: `migration-docs/tickets/active/PROMPT_2_7_1c_Runtime-Composer-Removal_plan.md` (_TBD_ → move to `done/` after Finalize)
+- Ticket: `migration-docs/tickets/done/PROMPT_2_7_1c_Runtime-Composer-Removal_plan.md`
 - Task prompt: `migration-docs/TODO/agent_prompts/phase-2/PROMPT_2_7_1c_Runtime-Composer-Removal.md`
 - Predecessor: Step 2.7.1b — Package Module Boundary
 - Successor: Step 2.7.2 — Module Dependency Integrity
-
----
-
-## 📊 <Step-specific appendix>
-
-<!-- Narrative/structural notes only. Never a metrics table (coverage %, MSI, test counts): quality
-     numbers are CI-owned — link the sticky quality-report comment + dashboard instead. -->
-
-_TBD — remove this section if not applicable._
