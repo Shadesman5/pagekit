@@ -1411,6 +1411,49 @@ final class PackageArchiveTest extends TestCase
         self::assertSame($files['index.php'], file_get_contents($destination.'/index.php'));
     }
 
+    public function testAnEntryTheListingNamesButTheArchiveCannotReadIsRefused(): void
+    {
+        $path = $this->archive($this->package([], self::BARE_INDEX));
+        $this->declareLocalHeaderUnreachable($path, 0);
+
+        $this->assertRefused($path, 'not a readable ZIP archive');
+    }
+
+    public function testExtractToDoesNotWriteBytesPastTheDeclaredSize(): void
+    {
+        $files = $this->package([], self::BARE_INDEX, ['readme.txt' => 'hello-world']);
+        $path = $this->archive($files);
+        $this->declareUncompressedSize($path, 2, 1);
+        $archive = PackageArchive::open($path);
+        $destination = $this->workspace.'/out';
+
+        $message = $this->assertUnpackFailed($archive, $destination, 'is damaged');
+        self::assertStringContainsString('readme.txt', $message);
+        self::assertSame($files['composer.json'], file_get_contents($destination.'/composer.json'));
+        self::assertSame($files['index.php'], file_get_contents($destination.'/index.php'));
+        self::assertSame('', file_get_contents($destination.'/readme.txt'));
+    }
+
+    public function testExtractToFailsWhenTheDestinationAcceptsNoneOfTheBytes(): void
+    {
+        $path = $this->archive($this->package([], self::BARE_INDEX));
+        $archive = PackageArchive::open($path);
+        ArchiveSinkThatStopsWriting::reset();
+        self::assertTrue(stream_wrapper_register('pkunpack', ArchiveSinkThatStopsWriting::class));
+
+        try {
+            $message = $this->assertUnpackFailed($archive, 'pkunpack://out', 'could not be unpacked');
+        } finally {
+            stream_wrapper_unregister('pkunpack');
+        }
+
+        self::assertStringContainsString('composer.json', $message);
+        self::assertSame(['pkunpack://out/composer.json'], array_keys(ArchiveSinkThatStopsWriting::$files));
+        self::assertSame('', ArchiveSinkThatStopsWriting::$files['pkunpack://out/composer.json']);
+        self::assertNotSame('', ArchiveSinkThatStopsWriting::$offered);
+        $this->assertWorkspaceHoldsOnly($path);
+    }
+
     /**
      * @param array<string, mixed>  $composer
      * @param array<string, string> $files
@@ -1614,6 +1657,37 @@ final class PackageArchiveTest extends TestCase
         self::assertNotFalse(file_put_contents($path, $file));
 
         return $path;
+    }
+
+    /**
+     * The central directory still names the entry; the local header it points at is not in the file.
+     */
+    private function declareLocalHeaderUnreachable(string $path, int $entryIndex): void
+    {
+        $bytes = file_get_contents($path);
+        self::assertIsString($bytes);
+
+        $eocd = strrpos($bytes, "PK\x05\x06");
+        self::assertNotFalse($eocd);
+
+        $count = $this->leShort($bytes, $eocd + 10);
+        $cursor = $this->leLong($bytes, $eocd + 16);
+
+        for ($index = 0; $index < $count; ++$index) {
+            self::assertSame("PK\x01\x02", substr($bytes, $cursor, 4));
+
+            $nameLength = $this->leShort($bytes, $cursor + 28);
+            $extraLength = $this->leShort($bytes, $cursor + 30);
+            $commentLength = $this->leShort($bytes, $cursor + 32);
+
+            if ($index === $entryIndex) {
+                $bytes = substr_replace($bytes, pack('V', 0x7FFFFFFF), $cursor + 42, 4);
+            }
+
+            $cursor += 46 + $nameLength + $extraLength + $commentLength;
+        }
+
+        self::assertNotFalse(file_put_contents($path, $bytes));
     }
 
     /**
@@ -1833,5 +1907,114 @@ final class PackageArchiveTest extends TestCase
         }
 
         rmdir($path);
+    }
+}
+
+/**
+ * Accepts an unpacked file, then accepts none of the bytes written to it.
+ */
+final class ArchiveSinkThatStopsWriting
+{
+    /** @var array<string, true> */
+    public static array $dirs = [];
+
+    /** @var array<string, string> */
+    public static array $files = [];
+
+    public static string $offered = '';
+
+    public mixed $context = null;
+
+    public static function reset(): void
+    {
+        self::$dirs = [];
+        self::$files = [];
+        self::$offered = '';
+    }
+
+    public function mkdir(string $path, int $mode, int $options): bool
+    {
+        self::$dirs[$path] = true;
+
+        return true;
+    }
+
+    public function url_stat(string $path, int $flags): array|false
+    {
+        if (isset(self::$dirs[$path])) {
+            return $this->stat(040755);
+        }
+
+        if (isset(self::$files[$path])) {
+            return $this->stat(0100644);
+        }
+
+        return false;
+    }
+
+    public function stream_open(string $path, string $mode, int $options, ?string &$opened_path): bool
+    {
+        if (str_contains($mode, 'x') && isset(self::$files[$path])) {
+            return false;
+        }
+
+        self::$files[$path] = '';
+
+        return true;
+    }
+
+    public function stream_write(string $data): int
+    {
+        self::$offered .= $data;
+
+        return 0;
+    }
+
+    public function stream_read(int $count): string
+    {
+        return '';
+    }
+
+    public function stream_eof(): bool
+    {
+        return true;
+    }
+
+    public function stream_flush(): bool
+    {
+        return true;
+    }
+
+    public function stream_close(): void
+    {
+    }
+
+    public function stream_stat(): array
+    {
+        return $this->stat(0100644);
+    }
+
+    /**
+     * @return array<int|string, int>
+     */
+    private function stat(int $mode): array
+    {
+        $stat = [
+            'dev' => 0,
+            'ino' => 0,
+            'mode' => $mode,
+            'nlink' => 1,
+            'uid' => 0,
+            'gid' => 0,
+            'rdev' => 0,
+            'size' => 0,
+            'atime' => 0,
+            'mtime' => 0,
+            'ctime' => 0,
+            'blksize' => 0,
+            'blocks' => 0,
+        ];
+
+        return array_merge(array_values($stat), $stat);
     }
 }

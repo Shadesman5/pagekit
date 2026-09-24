@@ -320,6 +320,92 @@ final class PackageInstallFromArchiveTest extends TestCase
         }
     }
 
+    public function testAnUnpackedPackageTheInstallationDoesNotFindFailsAfterTheTreeIsInPlace(): void
+    {
+        $exception = $this->refusal($this->archive(), null, new FactoryThatCannotSeeTheUnpackedPackage());
+
+        self::assertStringContainsString('does not find it', $exception->getMessage());
+        $this->assertNamesThePackageNotItsTitle($exception->getMessage());
+        self::assertSame('new', file_get_contents($this->packages.'/pagekit/demo/fresh.txt'));
+        self::assertSame(['demo'], $this->entries($this->packages.'/pagekit'));
+        self::assertSame(['canary.txt', 'pagekit'], $this->entries($this->packages));
+        self::assertSame('', $this->witness());
+        self::assertSame('', $this->output->fetch());
+        self::assertSame([], $this->records->getRecords());
+    }
+
+    public function testAnInstalledTreeThatCannotBeMovedAsideStaysAndNothingIsLeftUnpacked(): void
+    {
+        $this->plant('pagekit', 'demo', [], ['marker.txt' => 'old']);
+        $before = $this->entries($this->packages.'/pagekit');
+        InstallProbes::$rename = static function (string $from, string $to): bool {
+            if (str_starts_with(basename(strtr($to, '\\', '/')), '.')) {
+                return false;
+            }
+
+            return \rename($from, $to);
+        };
+
+        $exception = $this->refusal($this->archive());
+
+        self::assertStringContainsString('moved aside', $exception->getMessage());
+        $this->assertNamesThePackageNotItsTitle($exception->getMessage());
+        self::assertSame($before, $this->entries($this->packages.'/pagekit'));
+        self::assertSame('old', file_get_contents($this->packages.'/pagekit/demo/marker.txt'));
+        self::assertFileDoesNotExist($this->packages.'/pagekit/demo/fresh.txt');
+        self::assertSame([], $this->hidden($this->packages.'/pagekit'));
+        self::assertSame('', $this->witness());
+        self::assertSame('', $this->output->fetch());
+        self::assertSame([], $this->records->getRecords());
+    }
+
+    public function testAnUnpackedTreeThatCannotBeDeletedIsLoggedAndTheInstallStillFails(): void
+    {
+        $bytes = hex2bin('deadbeef');
+        self::assertIsString($bytes);
+        InstallProbes::$nextRandom = [$bytes];
+        mkdir($this->packages.'/pagekit', 0777, true);
+        $staged = $this->packages.'/pagekit/.demo-deadbeef';
+        file_put_contents($staged, 'blocked');
+
+        $exception = $this->refusal($this->archive(), new FilesystemThatKeepsRetiredTrees());
+
+        self::assertStringContainsString('folder to unpack', $exception->getMessage());
+        self::assertSame('blocked', file_get_contents($staged));
+        self::assertSame(['.demo-deadbeef'], $this->entries($this->packages.'/pagekit'));
+        self::assertSame(['canary.txt', 'pagekit'], $this->entries($this->packages));
+        self::assertSame('', $this->witness());
+        self::assertSame('', $this->output->fetch());
+        self::assertCount(1, $this->records->getRecords());
+        $record = $this->records->getRecords()[0];
+        self::assertStringContainsString('could not be deleted from', $record->message);
+        self::assertStringContainsString('pagekit/demo', $record->message);
+        self::assertStringContainsString($staged, $record->message);
+    }
+
+    public function testALeftoverThatCannotBeLoggedStillFailsWithTheInstallError(): void
+    {
+        $this->plant('pagekit', 'demo', [], ['marker.txt' => 'old']);
+        InstallProbes::$rename = static function (string $from, string $to): bool {
+            if (!str_starts_with(basename(strtr($to, '\\', '/')), '.')) {
+                return false;
+            }
+
+            return \rename($from, $to);
+        };
+
+        $exception = $this->refusal($this->archive(), null, null, null, new LogThatCannotTakeAnError());
+
+        self::assertStringContainsString('nor the installed ones put back', $exception->getMessage());
+        $this->assertNamesThePackageNotItsTitle($exception->getMessage());
+        self::assertStringNotContainsString('log down', $exception->getMessage());
+        self::assertDirectoryDoesNotExist($this->packages.'/pagekit/demo');
+        self::assertCount(1, $this->hidden($this->packages.'/pagekit'));
+        self::assertSame('old', file_get_contents($this->packages.'/pagekit/'.$this->hidden($this->packages.'/pagekit')[0].'/marker.txt'));
+        self::assertSame('', $this->witness());
+        self::assertSame('', $this->output->fetch());
+    }
+
     private function replaceLoaded(?PackageFactory $factory = null): void
     {
         $this->plant('pagekit', 'demo', [], ['marker.txt' => 'old']);
@@ -448,12 +534,12 @@ final class PackageInstallFromArchiveTest extends TestCase
         return $tree;
     }
 
-    private function manager(?Filesystem $files = null, ?PackageFactory $factory = null, ?ModuleList $modules = null): PackageManager
+    private function manager(?Filesystem $files = null, ?PackageFactory $factory = null, ?ModuleList $modules = null, ?object $log = null): PackageManager
     {
-        return new PackageManager($this->container($files, $factory, $modules), $this->output);
+        return new PackageManager($this->container($files, $factory, $modules, $log), $this->output);
     }
 
-    private function container(?Filesystem $files = null, ?PackageFactory $factory = null, ?ModuleList $modules = null): Application
+    private function container(?Filesystem $files = null, ?PackageFactory $factory = null, ?ModuleList $modules = null, ?object $log = null): Application
     {
         $app = new Application();
 
@@ -468,7 +554,7 @@ final class PackageInstallFromArchiveTest extends TestCase
         $app->set('config', $config);
         $app->set('package', $factory);
         $app->set('file', $files ?? new Filesystem());
-        $app->set('log', $this->log);
+        $app->set('log', $log ?? $this->log);
         $app->set('module', $modules ?? new ModuleList());
         $app->set('path.temp', $this->workspace.'/tmp/temp');
         $app->set('path.cache', $this->workspace.'/tmp/cache');
@@ -479,10 +565,10 @@ final class PackageInstallFromArchiveTest extends TestCase
         return $app;
     }
 
-    private function refusal(PackageArchive $archive, ?Filesystem $files = null, ?PackageFactory $factory = null, ?ModuleList $modules = null): \RuntimeException
+    private function refusal(PackageArchive $archive, ?Filesystem $files = null, ?PackageFactory $factory = null, ?ModuleList $modules = null, ?object $log = null): \RuntimeException
     {
         try {
-            $this->manager($files, $factory, $modules)->install($archive);
+            $this->manager($files, $factory, $modules, $log)->install($archive);
         } catch (\RuntimeException $exception) {
             return $exception;
         }
@@ -573,6 +659,36 @@ final class FactorySpellingTheInstalledPathWithBackslashes extends PackageFactor
         }
 
         return $package;
+    }
+}
+
+/**
+ * The package is on disk after it is unpacked, and the factory still does not return it.
+ */
+final class FactoryThatCannotSeeTheUnpackedPackage extends PackageFactory
+{
+    private int $reads = 0;
+
+    public function get(string $name, bool $force = false): ?Package
+    {
+        ++$this->reads;
+
+        if ($this->reads > 1) {
+            return null;
+        }
+
+        return parent::get($name, $force);
+    }
+}
+
+/**
+ * The error log refuses the line a leftover would have been reported with.
+ */
+final class LogThatCannotTakeAnError
+{
+    public function error(string $message): void
+    {
+        throw new \RuntimeException('log down');
     }
 }
 

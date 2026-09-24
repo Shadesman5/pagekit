@@ -414,6 +414,24 @@ final class PackageUploadBoundaryTest extends TestCase
         self::assertStringContainsString($staged, $this->records->getRecords()[0]->message);
     }
 
+    public function testAStagedArchiveThatCannotBeRemovedStillEndsWhenTheLogCannotTakeTheLine(): void
+    {
+        $staged = $this->staging.'/pagekit-demo-1.2.3.zip';
+        mkdir($staged);
+        file_put_contents($staged.'/kept.txt', 'stay');
+
+        $stream = $this->stream(fn () => $this->controller(new Request(), null, new LogThatRefusesTheLine())->installAction([
+            'name' => 'pagekit/demo',
+            'version' => '1.2.3',
+        ]));
+
+        self::assertSame("The uploaded archive of pagekit/demo 1.2.3 is gone. Upload it again.\nstatus=error", $stream);
+        self::assertStringNotContainsString('log down', $stream);
+        self::assertSame(0, $this->manager->installs);
+        self::assertSame('stay', file_get_contents($staged.'/kept.txt'));
+        self::assertSame([], $this->records->getRecords());
+    }
+
     public function testAStagedLinkIsRemovedWithoutDeletingTheArchiveItNames(): void
     {
         $real = $this->workspace.'/real.zip';
@@ -503,7 +521,7 @@ final class PackageUploadBoundaryTest extends TestCase
         self::fail('The upload was expected to be refused.');
     }
 
-    private function controller(Request $request, ?PackageFactory $factory = null): PackageController
+    private function controller(Request $request, ?PackageFactory $factory = null, ?Logger $log = null): PackageController
     {
         $modules = $this->createMock(ModuleManager::class);
         $modules->method('get')->willReturnCallback(fn (string $name): mixed => $name === 'system/cache' ? $this->cache : null);
@@ -518,7 +536,7 @@ final class PackageUploadBoundaryTest extends TestCase
             new PagekitResponse($url),
             $this->staging,
             false,
-            $this->log,
+            $log ?? $this->log,
         );
     }
 
@@ -656,5 +674,21 @@ final class CacheDouble
         if ($this->failure !== null) {
             throw $this->failure;
         }
+    }
+}
+
+/**
+ * The error log refuses the line about a staged archive that stayed behind.
+ */
+final class LogThatRefusesTheLine extends Logger
+{
+    public function __construct()
+    {
+        parent::__construct('test');
+    }
+
+    public function error(string|\Stringable $message, array $context = []): void
+    {
+        throw new \RuntimeException('log down');
     }
 }

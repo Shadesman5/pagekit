@@ -30,6 +30,8 @@ final class ArchiveCommandTest extends TestCase
 
     protected function tearDown(): void
     {
+        ArchiveRandom::$bytes = null;
+
         if ($this->workspace !== '') {
             $this->removeTree($this->workspace);
         }
@@ -377,6 +379,34 @@ final class ArchiveCommandTest extends TestCase
         self::assertSame([], $this->zipFiles($this->workspace));
     }
 
+    public function testAnArchiveThatCannotBeOpenedLeavesTheEarlierZipUntouched(): void
+    {
+        $this->plant('pagekit/demo', [
+            'index.php' => "<?php\n",
+        ]);
+        $dir = $this->workspace . '/out';
+        $first = $this->archive(['name' => 'pagekit/demo', '--dir' => $dir]);
+        $target = $dir . '/pagekit-demo.zip';
+        $bytes = file_get_contents($target);
+
+        self::assertSame(SymfonyCommand::SUCCESS, $first->getStatusCode(), $first->getDisplay(true));
+        self::assertIsString($bytes);
+
+        $suffix = "\x00\x00\x00\x00";
+        ArchiveRandom::$bytes = $suffix;
+        $temp = $target . '.' . bin2hex($suffix);
+        file_put_contents($temp, 'sentinel');
+
+        $second = $this->archive(['name' => 'pagekit/demo', '--dir' => $dir]);
+
+        self::assertSame(SymfonyCommand::FAILURE, $second->getStatusCode());
+        self::assertStringContainsString('cannot be written', $second->getDisplay(true));
+        self::assertStringContainsString($target, $second->getDisplay(true));
+        self::assertSame($bytes, file_get_contents($target));
+        self::assertSame('sentinel', file_get_contents($temp));
+        self::assertSame(['pagekit-demo.zip', 'pagekit-demo.zip.00000000'], $this->directoryEntries($dir));
+    }
+
     public function testAWriteFailureRemovesTheTemporaryZipAndLeavesTheTarget(): void
     {
         $this->plant('pagekit/demo', [
@@ -684,4 +714,31 @@ final class ArchiveCommandWithANonStringDir extends ArchiveCommand
 
         return parent::option($key);
     }
+}
+
+/**
+ * Pins the suffix of the temporary archive when a test sets $bytes.
+ */
+final class ArchiveRandom
+{
+    public static ?string $bytes = null;
+}
+
+namespace Pagekit\Console\Commands;
+
+function random_bytes(int $length): string
+{
+    $bytes = \Pagekit\Tests\Unit\Console\ArchiveRandom::$bytes;
+
+    if ($bytes !== null) {
+        \Pagekit\Tests\Unit\Console\ArchiveRandom::$bytes = null;
+
+        if (strlen($bytes) !== $length) {
+            throw new \LengthException('The archive probe was given the wrong number of bytes.');
+        }
+
+        return $bytes;
+    }
+
+    return \random_bytes($length);
 }
