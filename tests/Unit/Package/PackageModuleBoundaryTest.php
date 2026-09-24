@@ -16,10 +16,7 @@ use Pagekit\Module\ModuleManager;
 use Pagekit\Package\Controller\PackageController;
 use Pagekit\Package\Controller\SnapshotController;
 use Pagekit\Package\Extension\ExtensionFailureStore;
-use Pagekit\Package\Helper\Composer;
-use Pagekit\Package\Package;
 use Pagekit\Package\PackageFactory;
-use Pagekit\Package\PackageManager;
 use Pagekit\Package\PackageModule;
 use Pagekit\Package\Snapshot\SnapshotStore;
 use Pagekit\System\SystemModule;
@@ -72,6 +69,27 @@ final class PackageModuleBoundaryTest extends TestCase
     private const SOURCE_EXTENSIONS = [
         'php', 'inc', 'js', 'mjs', 'vue', 'json', 'neon', 'xml', 'yml', 'yaml',
         'md', 'less', 'css', 'html', 'twig', 'svg', 'txt', 'dist',
+    ];
+
+    /**
+     * A namespace: Composer\ and an uppercase letter. An apostrophe, as in a sentence, is not one.
+     */
+    private const COMPOSER_NAMESPACE = '/Composer\\\\[A-Z]/';
+
+    /**
+     * The one Composer name the autoloader runtime still uses.
+     */
+    private const AUTOLOADER = 'Composer\\Autoload\\ClassLoader';
+
+    /**
+     * @var list<string>
+     */
+    private const DELETED_RUNTIME_NAMES = [
+        'path.artifact',
+        'packages/composer',
+        'packages/autoload',
+        'installed.json',
+        'tmp/packages',
     ];
 
     /**
@@ -542,9 +560,6 @@ final class PackageModuleBoundaryTest extends TestCase
     {
         foreach ([
             'app/package/src/PackageManager.php',
-            'app/package/src/Helper/Composer.php',
-            'app/package/src/Helper/Factory.php',
-            'app/package/src/Helper/InstallerIO.php',
             'app/package/src/Snapshot/DatabaseDumper.php',
             'app/package/src/Snapshot/DatabaseRestorer.php',
             'app/package/src/Snapshot/DumpFormat.php',
@@ -717,76 +732,6 @@ final class PackageModuleBoundaryTest extends TestCase
         self::assertLessThan(0, strcmp($paths[$index], $paths[$index + 1]));
     }
 
-    public function testTheComposerBaselineEntriesKeptTheirFindingsInPathOrder(): void
-    {
-        $entries = $this->baselineEntries();
-        $composer = array_values(array_filter(
-            $entries,
-            static fn (array $entry): bool => ($entry['path'] ?? '') === 'app/package/src/Helper/Composer.php',
-        ));
-
-        self::assertSame([
-            [
-                'message' => '#^Call to an undefined method Composer\\\\Downloader\\\\DownloadManager\\:\\:setOutputProgress\\(\\)\\.$#',
-                'identifier' => 'method.notFound',
-                'count' => '1',
-                'path' => 'app/package/src/Helper/Composer.php',
-            ],
-            [
-                'message' => '#^Call to an undefined method Composer\\\\Installer\\:\\:setAdditionalInstalledRepository\\(\\)\\.$#',
-                'identifier' => 'method.notFound',
-                'count' => '1',
-                'path' => 'app/package/src/Helper/Composer.php',
-            ],
-            [
-                'message' => '#^PHPDoc tag @return with type null is incompatible with native type Composer\\\\Composer\\.$#',
-                'identifier' => 'return.phpDocType',
-                'count' => '1',
-                'path' => 'app/package/src/Helper/Composer.php',
-            ],
-            [
-                'message' => '#^Parameter \\#3 \\$installationManager of class Composer\\\\Package\\\\Locker constructor expects Composer\\\\Installer\\\\InstallationManager, Composer\\\\Repository\\\\RepositoryManager given\\.$#',
-                'identifier' => 'argument.type',
-                'count' => '1',
-                'path' => 'app/package/src/Helper/Composer.php',
-            ],
-            [
-                'message' => '#^Parameter \\#4 \\$composerFileContents of class Composer\\\\Package\\\\Locker constructor expects string, Composer\\\\Installer\\\\InstallationManager given\\.$#',
-                'identifier' => 'argument.type',
-                'count' => '1',
-                'path' => 'app/package/src/Helper/Composer.php',
-            ],
-            [
-                'message' => '#^Parameter \\#5 \\$process of class Composer\\\\Package\\\\Locker constructor expects Composer\\\\Util\\\\ProcessExecutor\\|null, string\\|false given\\.$#',
-                'identifier' => 'argument.type',
-                'count' => '1',
-                'path' => 'app/package/src/Helper/Composer.php',
-            ],
-        ], $composer);
-
-        $paths = array_column($entries, 'path');
-        self::assertNotContains('app/installer/src/Helper/Composer.php', $paths);
-
-        foreach ($paths as $path) {
-            self::assertDoesNotMatchRegularExpression('#^app/installer/src/(Package|Helper)/#', $path);
-        }
-
-        $indexes = array_keys($paths, 'app/package/src/Helper/Composer.php', true);
-        self::assertCount(6, $indexes);
-
-        $first = $indexes[0];
-        $last = $indexes[5];
-        self::assertIsInt($first);
-        self::assertIsInt($last);
-        self::assertSame(range($first, $last), $indexes);
-        self::assertGreaterThan(0, $first);
-        self::assertLessThan(count($paths) - 1, $last);
-
-        // The file is path-sorted, so the block's neighbors have to sort around it.
-        self::assertLessThan(0, strcmp($paths[$first - 1], $paths[$first]));
-        self::assertLessThan(0, strcmp($paths[$last], $paths[$last + 1]));
-    }
-
     public function testTheInstallerIndexBaselineStaysTheClosureBinding(): void
     {
         $entries = array_values(array_filter(
@@ -901,107 +846,6 @@ final class PackageModuleBoundaryTest extends TestCase
         self::assertSame('https://updates.example', $configured->get('systemApi'));
     }
 
-    public function testAManagerWithoutAContainerStillLooksBesideTheApplication(): void
-    {
-        $application = realpath($this->root().'/app');
-        self::assertIsString($application);
-        $application = strtr($application, '\\', '/');
-
-        $app = new Application();
-        self::assertFalse($app->has('path.temp'));
-        self::assertNull($this->packageModule()->main($app));
-
-        $manager = $app->get('manager');
-        self::assertInstanceOf(PackageManager::class, $manager);
-
-        // Two levels up from this class is the application directory. One more
-        // level is the repository, and that packages tree is the live one.
-        $paths = array_map(
-            static fn (string $path): string => strtr($path, '\\', '/'),
-            $this->composerPaths($manager),
-        );
-
-        self::assertSame([
-            'path.temp' => $application.'/tmp/temp',
-            'path.cache' => $application.'/tmp/cache',
-            'path.vendor' => $application.'/app/vendor',
-            'path.artifact' => $application.'/tmp/packages',
-            'path.packages' => $application.'/packages',
-            'system.api' => 'https://pagekit.com',
-        ], $paths);
-
-        $probe = $application.'/packages';
-        $tree = $this->temporaryDirectory();
-        $createdProbe = false;
-
-        try {
-            self::assertDirectoryDoesNotExist($probe);
-            $this->writeComposer($tree.'/fallback-probe', 'pagekit/fallback-probe');
-            self::assertTrue(mkdir($probe.'/composer', 0755, true));
-            $createdProbe = true;
-            self::assertNotFalse(file_put_contents(
-                $probe.'/composer/installed.json',
-                (string) json_encode([['name' => 'pagekit/fallback-probe', 'version' => '9.9.9']]),
-            ));
-
-            $version = new \ReflectionMethod(PackageManager::class, 'getVersion')->invoke(
-                $manager,
-                new Package([
-                    'name' => 'pagekit/fallback-probe',
-                    'type' => 'pagekit-extension',
-                    'path' => $tree.'/fallback-probe',
-                ]),
-            );
-
-            self::assertSame('9.9.9', $version);
-        } finally {
-            if ($createdProbe) {
-                $this->removeTree($probe);
-            }
-
-            $this->removeTree($tree);
-        }
-    }
-
-    public function testTheManagerUsesThePathsTheContainerNames(): void
-    {
-        $app = new Application();
-        $app->set('path.temp', '/given/temp');
-        $app->set('path.cache', '/given/cache');
-        $app->set('path.vendor', '/given/vendor');
-        $app->set('path.artifact', '/given/artifact');
-        $app->set('path.packages', '/given/packages');
-        $app->set('system.api', 'https://updates.example');
-
-        self::assertNull($this->packageModule()->main($app));
-
-        self::assertSame([
-            'path.temp' => '/given/temp',
-            'path.cache' => '/given/cache',
-            'path.vendor' => '/given/vendor',
-            'path.artifact' => '/given/artifact',
-            'path.packages' => '/given/packages',
-            'system.api' => 'https://updates.example',
-        ], $this->composerPaths($app->get('manager')));
-    }
-
-    public function testTheManagerWithoutAnEndpointKeepsTheShippedOne(): void
-    {
-        $app = new Application();
-        $app->set('path.temp', '/given/temp');
-        $app->set('path.cache', '/given/cache');
-        $app->set('path.vendor', '/given/vendor');
-        $app->set('path.artifact', '/given/artifact');
-        $app->set('path.packages', '/given/packages');
-
-        self::assertNull($this->packageModule()->main($app));
-
-        $paths = $this->composerPaths($app->get('manager'));
-
-        self::assertSame('/given/packages', $paths['path.packages']);
-        self::assertSame('https://pagekit.com', $paths['system.api']);
-    }
-
     public function testTheFailureRecordIsRegisteredExactlyWhereADirectoryIsNamed(): void
     {
         $without = $this->applicationWithAFilesystem();
@@ -1087,6 +931,142 @@ final class PackageModuleBoundaryTest extends TestCase
         $bootstrap = file_get_contents($this->root().'/app/modules/application/src/Tests/bootstrap.php');
         self::assertIsString($bootstrap);
         self::assertStringNotContainsString('/app/modules/package/src', $bootstrap);
+    }
+
+    public function testTheComposerNamespaceIsTheAutoloaderAlone(): void
+    {
+        $roots = [
+            'app' => self::SOURCE_EXTENSIONS,
+            'packages' => self::SOURCE_EXTENSIONS,
+            'tests' => self::SOURCE_EXTENSIONS,
+        ];
+
+        // Each root has to contribute a real file, or an empty result would only mean nothing was read.
+        self::assertNotEmpty($this->under($this->patternHits($roots, '/namespace Pagekit\\\\Package;/'), 'app/package/'));
+        self::assertNotEmpty($this->under($this->patternHits($roots, '/namespace Pagekit\\\\Blog;/'), 'packages/'));
+        self::assertNotEmpty($this->under($this->patternHits($roots, '/namespace Pagekit\\\\Tests\\\\Unit\\\\Package;/'), 'tests/'));
+
+        $hits = $this->patternHits($roots, self::COMPOSER_NAMESPACE);
+
+        self::assertSame([], $this->besidesTheAutoloader($hits));
+        self::assertNotEmpty($this->under($hits, 'app/modules/application/src/Module/Loader/AutoLoader.php'));
+        self::assertNotEmpty($this->under($hits, 'app/system/modules/cache/src/Tests/bootstrap.php'));
+
+        // This file spells a forbidden name. The walk has to leave it unread.
+        self::assertSame([], $this->hits(['tests' => ['php']], 'Composer\\Console\\HtmlOutputFormatter'));
+    }
+
+    public function testTheDetectorReportsAComposerNamespaceBesidesTheAutoloader(): void
+    {
+        $contents = <<<'PHP'
+        <?php
+        // Composer's record stays prose.
+        $note = 'Composer\'s';
+        use Composer\Autoload\ClassLoader;
+        $loader = new \Composer\Autoload\ClassLoader();
+        use Composer\Console\HtmlOutputFormatter;
+        use Composer\Autoload\ClassLoader, Composer\Util\Filesystem;
+        PHP;
+
+        $hits = $this->patternHitsIn('fixture.php', $contents, self::COMPOSER_NAMESPACE);
+
+        self::assertSame(
+            [
+                'fixture.php:4:use Composer\\Autoload\\ClassLoader;',
+                'fixture.php:5:$loader = new \\Composer\\Autoload\\ClassLoader();',
+                'fixture.php:6:use Composer\\Console\\HtmlOutputFormatter;',
+                'fixture.php:7:use Composer\\Autoload\\ClassLoader, Composer\\Util\\Filesystem;',
+            ],
+            $hits,
+        );
+        self::assertSame(
+            [
+                'fixture.php:6:use Composer\\Console\\HtmlOutputFormatter;',
+                'fixture.php:7:use Composer\\Autoload\\ClassLoader, Composer\\Util\\Filesystem;',
+            ],
+            $this->besidesTheAutoloader($hits),
+        );
+    }
+
+    public function testTheApplicationAutoloadNamesNoPackagesDirectory(): void
+    {
+        $autoload = file_get_contents($this->root().'/autoload.php');
+        self::assertIsString($autoload);
+        self::assertStringNotContainsString('packages/', $autoload);
+        self::assertStringContainsString("return require __DIR__ . '/app/vendor/autoload.php';", $autoload);
+    }
+
+    public function testTheRuntimeLockDoesNotInstallComposer(): void
+    {
+        $lock = json_decode((string) file_get_contents($this->root().'/composer.lock'), true, 512, JSON_THROW_ON_ERROR);
+        self::assertIsArray($lock);
+        self::assertIsArray($lock['packages'] ?? null);
+
+        $names = [];
+
+        foreach ($lock['packages'] as $package) {
+            self::assertIsArray($package);
+            $name = $package['name'] ?? null;
+            self::assertIsString($name);
+            $names[] = $name;
+        }
+
+        // packages[] is what a production install resolves. require cannot show a transitive re-entry.
+        self::assertNotEmpty($names);
+        self::assertNotContains('composer/composer', $names);
+        self::assertSame('*', $lock['platform']['ext-zip'] ?? null);
+
+        $composer = json_decode((string) file_get_contents($this->root().'/composer.json'), true, 512, JSON_THROW_ON_ERROR);
+        self::assertIsArray($composer);
+        self::assertIsArray($composer['require'] ?? null);
+        self::assertArrayHasKey('ext-zip', $composer['require']);
+        self::assertArrayNotHasKey('ext-zip', $composer['require-dev'] ?? []);
+    }
+
+    public function testNothingNamesTheDeletedComposerPaths(): void
+    {
+        $roots = [
+            'app' => self::SOURCE_EXTENSIONS,
+            'public' => self::SOURCE_EXTENSIONS,
+            'tests' => self::SOURCE_EXTENSIONS,
+            'scripts' => self::SOURCE_EXTENSIONS,
+        ];
+
+        // Each root has to contribute a real file, or an empty result would only mean nothing was read.
+        self::assertNotEmpty($this->under($this->hits($roots, 'namespace Pagekit\\Package'), 'app/'));
+        self::assertNotEmpty($this->hits(['public' => ['php']], 'Pagekit'));
+        self::assertNotEmpty($this->under($this->hits($roots, 'namespace Pagekit\\Tests\\Unit\\Package'), 'tests/'));
+        self::assertNotEmpty($this->hits(['scripts' => ['mjs']], 'export const'));
+
+        foreach (self::DELETED_RUNTIME_NAMES as $name) {
+            self::assertSame([], $this->hits($roots, $name), $name);
+        }
+
+        // The webroot deny list names installed.json. It is not a scanned extension.
+        self::assertNotContains('htaccess', self::SOURCE_EXTENSIONS);
+
+        $deny = $this->hits(['public' => ['htaccess']], 'installed.json');
+        self::assertCount(1, $deny);
+        self::assertStringStartsWith('public/.htaccess:', $deny[0]);
+    }
+
+    public function testThePackagesDirectoryHoldsNoComposerRuntime(): void
+    {
+        self::assertDirectoryExists($this->root().'/packages/pagekit');
+        self::assertDirectoryDoesNotExist($this->root().'/packages/composer');
+        self::assertFileDoesNotExist($this->root().'/packages/autoload.php');
+    }
+
+    public function testMainStagesAnUploadUnderTheTempPackagesDirectory(): void
+    {
+        $app = new Application();
+        $app->set('path.temp', '/var/tmp/pagekit');
+
+        self::assertNull($this->packageModule()->main($app));
+        self::assertTrue($app->has('package'));
+        self::assertTrue($app->has('manager'));
+        self::assertTrue($app->has('packageStaging'));
+        self::assertSame('/var/tmp/pagekit/packages', $app->get('packageStaging'));
     }
 
     /**
@@ -1271,6 +1251,14 @@ final class PackageModuleBoundaryTest extends TestCase
 
         foreach ($iterator as $file) {
             if (!$file instanceof SplFileInfo || !$file->isFile()) {
+                continue;
+            }
+
+            // This file spells the names the scan forbids, so it is not one of the files read.
+            $own = realpath(__FILE__);
+            $listed = $file->getRealPath();
+
+            if (is_string($own) && $listed === $own) {
                 continue;
             }
 
@@ -1562,16 +1550,37 @@ final class PackageModuleBoundaryTest extends TestCase
     }
 
     /**
-     * @return array<string, string>
+     * @param list<string> $hits
+     * @return list<string>
      */
-    private function composerPaths(mixed $manager): array
+    private function besidesTheAutoloader(array $hits): array
     {
-        self::assertInstanceOf(PackageManager::class, $manager);
+        $forbidden = [];
+        $allowed = '/'.preg_quote(self::AUTOLOADER, '/').'(?![A-Za-z0-9_\\\\])/';
 
-        $composer = new \ReflectionProperty(PackageManager::class, 'composer')->getValue($manager);
-        self::assertInstanceOf(Composer::class, $composer);
+        foreach ($hits as $hit) {
+            $remainder = preg_replace($allowed, '', $this->hitLine($hit));
+            self::assertIsString($remainder);
 
-        return $composer->paths;
+            $result = preg_match(self::COMPOSER_NAMESPACE, $remainder);
+
+            if ($result === false) {
+                self::fail('Scan pattern did not compile.');
+            }
+
+            if ($result === 1) {
+                $forbidden[] = $hit;
+            }
+        }
+
+        return $forbidden;
+    }
+
+    private function hitLine(string $hit): string
+    {
+        self::assertSame(1, preg_match('/^(.*):\d+:(.*)$/', $hit, $matches));
+
+        return $matches[2];
     }
 
     private function writeComposer(string $directory, string $name): void

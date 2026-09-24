@@ -8,9 +8,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Pagekit\Config\Config;
 use Pagekit\Config\ConfigManager;
-use Pagekit\Filesystem\Filesystem;
 use Pagekit\Migration\MigrationService;
-use Pagekit\Package\Helper\Composer;
 use Pagekit\Package\Package;
 use Pagekit\Package\PackageFactory;
 use Pagekit\Package\PackageInterface;
@@ -18,7 +16,6 @@ use Pagekit\Package\PackageManager;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Output\NullOutput;
 
 /**
@@ -38,19 +35,9 @@ use Symfony\Component\Console\Output\NullOutput;
  * module or remembered system config, never from requiring index.php).
  *
  * Container availability is covered by running enable() with a minimal container
- * (no config/events/log) and by building the manager both with and without the
- * container-provided path.* services, so both constructor branches are asserted
- * behaviourally. The same constructor builds the Composer helper that keeps the
- * package registry, passing on the container's filesystem service and logger; the
- * stubs most tests below register are of neither type, and the manager has to
- * build a working helper from them all the same.
+ * (no config/events/log).
  *
- * NOT covered here (needs a booted kernel + real Composer/network):
- * PackageManager::install() and the Composer download/update pipeline
- * (Composer::composerUpdate()). This suite targets the enable()/disable()/
- * uninstall() orchestration, not the Composer transport. The registry write is
- * reached only through that transport, so the constructor-wiring test drives it
- * on the helper the manager built instead of through install()/uninstall().
+ * This suite targets the enable()/disable()/uninstall() orchestration, not install().
  */
 class PackageManagerMigrationTest extends TestCase
 {
@@ -487,120 +474,8 @@ class PackageManagerMigrationTest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // Constructor DI-wiring — container paths, registry writer, logger
-    // ------------------------------------------------------------------
-
-    public function testConstructorResolvesPathsWithAndWithoutContainer(): void
-    {
-        $this->writeComposerJson('1.0.0');
-        $this->writeMigrationV1();
-        $this->writeScripts($this->enableMigrateScript());
-
-        // (a) Container WITHOUT path.temp → constructor computes default paths.
-        $withoutPaths = $this->makeContainer(['migration' => $this->migration]);
-        $this->makeManager($withoutPaths)->enable($this->makePackage());
-        self::assertTrue(
-            $this->connection->createSchemaManager()->tablesExist(['test_ext_items']),
-            'Manager built on the default-path branch must still orchestrate enable()',
-        );
-
-        // (b) Container WITH path.* → constructor consumes the injected paths.
-        $system = new Config();
-        $withPaths = $this->makeContainer(array_merge($this->pathServices(), [
-            'migration' => $this->migration,
-            'config' => $this->configService($system),
-        ]));
-        $this->makeManager($withPaths)->enable($this->makePackage());
-        self::assertSame(
-            '1.0.0',
-            $system->get('packages.test-ext'),
-            'Manager built from container-provided paths must orchestrate enable() + config bookkeeping',
-        );
-    }
-
-    /**
-     * The registry the Composer helper keeps is read back with require, so the
-     * write has to be the one the application's own filesystem service performs:
-     * that is what replaces the file in one move and drops the compiled copy of
-     * the previous list out of the opcode cache. A helper writing through a
-     * filesystem of its own making would produce the same bytes and neither.
-     *
-     * The write is driven on the helper the manager built, because install() and
-     * uninstall() reach it only behind a Composer run (see the class note).
-     */
-    public function testConstructorGivesTheRegistryHelperTheContainersFilesystemAndLogger(): void
-    {
-        $file = new class () extends Filesystem {
-            /** @var array<int, string> */
-            public array $written = [];
-
-            public function dumpAtomic(string $file, string $content, ?int $mode = null): void
-            {
-                $this->written[] = $file;
-
-                parent::dumpAtomic($file, $content, $mode);
-            }
-        };
-        $log = $this->createMock(LoggerInterface::class);
-
-        $paths = $this->pathServices();
-        mkdir($paths['path.packages'], 0755, true);
-
-        $helper = $this->registryHelperOf($this->makeContainer(array_merge($paths, [
-            'file' => $file,
-            'log' => $log,
-        ])));
-
-        // The two steps install() takes around the Composer run: the requested
-        // package joins the list, then the list is written back.
-        (new \ReflectionMethod(Composer::class, 'addPackages'))->invoke($helper, ['pagekit/test-ext' => '1.0.0']);
-        (new \ReflectionMethod(Composer::class, 'writeConfig'))->invoke($helper);
-
-        $registry = $paths['path.packages'] . '/packages.php';
-
-        self::assertSame(
-            [$registry],
-            $file->written,
-            'The package registry must be written through the filesystem service the container holds',
-        );
-
-        $written = require $registry;
-
-        self::assertSame(
-            ['pagekit/test-ext' => '1.0.0'],
-            $written,
-            'The service the write goes through is the one that puts the list on disk',
-        );
-
-        // Nothing on the registry path reports anything yet, so which logger the
-        // helper was given is all that a lost wiring would show here.
-        self::assertSame(
-            $log,
-            (new \ReflectionProperty(Composer::class, 'logger'))->getValue($helper),
-            'The helper must report to the logger the container holds, not to a discarding default',
-        );
-    }
-
-    // ------------------------------------------------------------------
     // helpers
     // ------------------------------------------------------------------
-
-    /**
-     * The Composer helper a manager built for itself. Which collaborators it was
-     * given is only visible from inside the manager, so the helper is taken off
-     * one rather than constructed here.
-     */
-    private function registryHelperOf(ContainerInterface $app): Composer
-    {
-        $manager = new class ($app, new NullOutput()) extends PackageManager {
-            public function registryHelper(): Composer
-            {
-                return $this->composer;
-            }
-        };
-
-        return $manager->registryHelper();
-    }
 
     private function makeMigrationService(): MigrationService
     {
@@ -686,8 +561,7 @@ class PackageManagerMigrationTest extends TestCase
     }
 
     /**
-     * Temp path.* services so Composer::isInstalled() reads a clean (missing)
-     * installed.json and the uninstall folder-removal branch runs deterministically.
+     * Temp path.* services for the manager.
      *
      * @return array<string, string>
      */
@@ -699,7 +573,6 @@ class PackageManagerMigrationTest extends TestCase
             'path.temp' => $root . '/temp',
             'path.cache' => $root . '/cache',
             'path.vendor' => $root . '/vendor',
-            'path.artifact' => $root . '/artifact',
             'path.packages' => $root . '/packages',
             'system.api' => 'https://example.test',
         ];

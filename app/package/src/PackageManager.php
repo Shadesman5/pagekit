@@ -4,17 +4,14 @@ declare(strict_types=1);
 
 namespace Pagekit\Package;
 
-use Pagekit\Filesystem\Filesystem;
 use Pagekit\Filesystem\Path;
 use Pagekit\Migration\MigrationService;
 use Pagekit\Package\Archive\PackageArchive;
 use Pagekit\Package\Extension\ExtensionFailureStore;
-use Pagekit\Package\Helper\Composer;
 use Pagekit\Package\Lifecycle\LifecycleRunner;
 use Pagekit\Package\Lifecycle\MigrationSet;
 use Pagekit\Package\Snapshot\PackageSnapshotter;
 use Psr\Container\ContainerInterface;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Output\StreamOutput;
 
@@ -24,8 +21,6 @@ use Symfony\Component\Console\Output\StreamOutput;
 class PackageManager
 {
     protected OutputInterface $output;
-
-    protected Composer $composer;
 
     /**
      * Where a package that failed to load is on record, or null in an
@@ -54,53 +49,11 @@ class PackageManager
         }
         $this->output = $output;
 
-        $path = realpath(__DIR__ . '/../..');
-        $config = [];
-
-        try {
-            if ($this->app->has('path.temp')) {
-                $config['path.temp'] = $this->app->get('path.temp');
-                $config['path.cache'] = $this->app->get('path.cache');
-                $config['path.vendor'] = $this->app->get('path.vendor');
-                $config['path.artifact'] = $this->app->get('path.artifact');
-                $config['path.packages'] = $this->app->get('path.packages');
-                $config['system.api'] = $this->app->has('system.api') ? $this->app->get('system.api') : 'https://pagekit.com';
-            } else {
-                $config['path.temp'] = $path . '/tmp/temp';
-                $config['path.cache'] = $path . '/tmp/cache';
-                $config['path.vendor'] = $path . '/app/vendor';
-                $config['path.artifact'] = $path . '/tmp/packages';
-                $config['path.packages'] = $path . '/packages';
-                $config['system.api'] = 'https://pagekit.com';
-            }
-        } catch (\Exception $e) {
-            $config['path.temp'] = $path . '/tmp/temp';
-            $config['path.cache'] = $path . '/tmp/cache';
-            $config['path.vendor'] = $path . '/app/vendor';
-            $config['path.artifact'] = $path . '/tmp/packages';
-            $config['path.packages'] = $path . '/packages';
-            $config['system.api'] = 'https://pagekit.com';
-        }
-
-        // ContainerInterface guarantees neither that these ids are registered nor
-        // what they resolve to — has() answers presence, get() returns mixed. Both
-        // collaborators therefore stay optional, and anything that is not the
-        // expected type leaves the helper on its own defaults.
-        $files = $this->app->has('file') ? $this->app->get('file') : null;
-        $logger = $this->app->has('log') ? $this->app->get('log') : null;
-
         // The record is only kept where the container names a directory for it.
         // Without one there is nothing to read and nothing to clear; every other
         // operation is unaffected.
         $failures = $this->app->has('extension.failures') ? $this->app->get('extension.failures') : null;
         $this->failures = $failures instanceof ExtensionFailureStore ? $failures : null;
-
-        $this->composer = new Composer(
-            $config,
-            $output,
-            $files instanceof Filesystem ? $files : null,
-            $logger instanceof LoggerInterface ? $logger : null
-        );
     }
 
     /**
@@ -613,9 +566,6 @@ class PackageManager
      * assumed: files that will not go are a removal an administrator has to hear
      * about, not one that can be reported as done.
      *
-     * Composer is told last, for a package it installed, so that what it takes
-     * off the disk is the tree the snapshot was already archived from.
-     *
      * @param bool $snapshotted whether there is a copy of the package to point
      *                          whoever has to finish the job at
      *
@@ -630,23 +580,14 @@ class PackageManager
             throw new \RuntimeException(__('Package path is missing.'));
         }
 
-        if ($this->composer->isInstalled($package->getName())) {
-            $this->composer->uninstall($package->getName());
+        $this->output->writeln(__('Removing package folder.'));
 
-            // Composer takes the tree off the disk itself and reports nothing
-            // about it that can be read back, so the disk is all there is to
-            // go on for a package it installed.
-            $removed = !is_dir($path);
-        } else {
-            $this->output->writeln(__('Removing package folder.'));
-
-            // The file service both removes the tree and answers whether it
-            // could: it stops at the first entry that will not go. Stat'ing the
-            // path instead would take it for a plain local one, which the
-            // service does not promise - a path it maps through an adapter is
-            // wherever that adapter puts it.
-            $removed = $this->app->get('file')->delete($path) === true;
-        }
+        // The file service both removes the tree and answers whether it
+        // could: it stops at the first entry that will not go. Stat'ing the
+        // path instead would take it for a plain local one, which the
+        // service does not promise - a path it maps through an adapter is
+        // wherever that adapter puts it.
+        $removed = $this->app->get('file')->delete($path) === true;
 
         // The vendor directory goes too where this package was the last thing in
         // it, and stays where it holds another.
@@ -1143,7 +1084,7 @@ class PackageManager
     }
 
     /**
-     * Tries to obtain package version from 'composer.json' or installation log.
+     * The version the package's 'composer.json' names, '0.0.0' where it names none.
      */
     protected function getVersion(PackageInterface $package): string
     {
@@ -1163,26 +1104,6 @@ class PackageManager
         $composerData = json_decode($contents, true);
         if (is_array($composerData) && isset($composerData['version']) && is_string($composerData['version'])) {
             return $composerData['version'];
-        }
-
-        $packagesPath = $this->app->has('path.packages')
-            ? $this->app->get('path.packages')
-            : realpath(__DIR__ . '/../..') . '/packages';
-        $installedFile = $packagesPath . '/composer/installed.json';
-        if (file_exists($installedFile)) {
-            $installedContents = file_get_contents($installedFile);
-            if ($installedContents !== false) {
-                $installed = json_decode($installedContents, true);
-                $packageName = $package->getName();
-
-                if (is_array($installed)) {
-                    foreach ($installed as $entry) {
-                        if (is_array($entry) && ($entry['name'] ?? null) === $packageName && isset($entry['version']) && is_string($entry['version'])) {
-                            return $entry['version'];
-                        }
-                    }
-                }
-            }
         }
 
         return '0.0.0';

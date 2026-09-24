@@ -755,7 +755,6 @@ final class PackageFailureRecordTest extends TestCase
             $app->set('path.temp', $root . '/temp');
             $app->set('path.cache', $root . '/cache');
             $app->set('path.vendor', $root . '/vendor');
-            $app->set('path.artifact', $root . '/artifact');
             $app->set('path.packages', $root . '/packages');
             $app->set('system.api', 'https://example.test');
         }

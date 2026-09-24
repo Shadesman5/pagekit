@@ -64,7 +64,6 @@ $config = [
     // clears, and it carries a database dump that may not be reachable over HTTP.
     'path.snapshots' => $path.'/tmp/snapshots',
     'path.vendor' => $path.'/app/vendor',
-    'path.artifact' => $path.'/tmp/packages',
     'config.file' => realpath($path.'/config.php'),
     'system.api' => 'https://pagekit.com',
 ];

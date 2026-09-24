@@ -209,7 +209,6 @@ final class UploadedPackageRoundTripTest extends TestCase
         $app->set('path.temp', $this->workspace.'/tmp/temp');
         $app->set('path.cache', $this->workspace.'/tmp/cache');
         $app->set('path.vendor', $this->workspace.'/vendor');
-        $app->set('path.artifact', $this->workspace.'/artifact');
         $app->set('path.packages', $this->packages);
         $app->set('system.api', 'https://example.test');
         $app->set('db', $this->connection);

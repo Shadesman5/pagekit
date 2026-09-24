@@ -69,7 +69,7 @@
 - [x] Step 2 (L) — Install path on the seam
 - [x] Step 3 (L) — Other Composer-library consumers
 - [x] Step 4 (M) — Snapshot engine
-- [ ] Step 5 (L) — Delete the Composer runtime
+- [x] Step 5 (L) — Delete the Composer runtime
 - [ ] Step 6 (M) — Marketplace surface
 - [ ] Step 7 (S) — Docs and closing gates
 - [ ] Step 8 (XL) — Review (Bugbot + Security) + E2E
@@ -134,7 +134,11 @@
 - `SnapshotControllerTest::place()` / `SnapshotRetentionTest::place()` — outside the inventory, left as they are: the `'composer' => false` they plant is metadata an earlier release wrote, which `read()` now ignores (decision 11's test pins that).
 - Step 4 `rg` gate — still lists `PackageTreeRemovalTest:59,462` (`BOOKKEEPING`, Step 5's inventory per decision 14) and two unrelated uses of the word, `PackageManagerMigrationTest:517` (config) and `PackageSchemaTest:425` (a migration service); none was touched. `app/package/src/Snapshot` and `tests/Unit/Snapshot` have no hit.
 ### Step 5
-_none yet_
+- `PackageManagerMigrationTest::testConstructorResolvesPathsWithAndWithoutContainer` — deleted with the registry test and `registryHelperOf()`: it asserted the two constructor path branches, which are gone, and its halves remain as `testEnableWithoutContainerConfigStillRunsMigration` (only `migration`) and `testEnableRunsExtensionMigrationAndRecordsVersion` (no `path.*`). Rejected: keeping it renamed, where it would assert nothing those two do not. The class docblock loses its constructor-branch, registry and Composer-transport sentences. Invariant: the manager builds and enables on a container that names no `path.*` service.
+- `PackageModuleBoundaryTest::testTheManagerHelperAndSnapshotEngineLeftTheInstallerTree` — outside the inventory: the test reads every listed file, so the three `Helper/*.php` entries went; the `app/installer/src/Helper` absence check stays. The `…\Helper\…` names in `testTheDetectorReportsALineInTheRetiredHelperNamespace` are in-memory detector fixtures and stay.
+- `path.artifact` — also dropped from the four files written after the plan (`PackageUploadBoundaryTest`, `PackageInstallFromArchiveTest`, `InstallCommandTest`, `UploadedPackageRoundTripTest`). The sibling `path.temp`/`path.cache`/`path.vendor`/`system.api` fixture lines stay although the manager no longer reads them (not inventory). Decision 15 in touched tests: `PackageHookBarrierTest::container()` `@param $paths` drops "which the removal path reads to find what is installed"; `plant()` in `PackageTreeRemovalTest`, `PackageSnapshotGateTest` and `UninstallCommandTest` reads "the way an install leaves one behind" — the marketplace no longer leaves one.
+- `public/.htaccess:3` — the `FilesMatch` deny list keeps `installed.json`: a deny-by-name webroot rule beside `bower.json`, not a reader, outside this step's inventory, and invisible to the `rg` gate (dotfiles are skipped). Invariant for test (d): the `public/` scan does not read `.htaccess` (`SOURCE_EXTENSIONS` has no `htaccess`) or allows exactly that line.
+- `composer.lock` — plain `composer remove composer/composer` (its dry run listed no update): nine packages leave the lock, ten move from `packages` to `packages-dev` (decision 13's four plus `react/promise`, `marc-mabe/php-enum`, `composer/pcre`, `symfony/polyfill-php80/81/84`), no version changes — hence the size of the lock diff. Invariant: `packages[*].name` holds no `composer/composer`; `platform` keeps `ext-zip`.
 ### Step 6
 _none yet_
 ### Step 7

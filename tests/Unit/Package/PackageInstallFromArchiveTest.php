@@ -473,7 +473,6 @@ final class PackageInstallFromArchiveTest extends TestCase
         $app->set('path.temp', $this->workspace.'/tmp/temp');
         $app->set('path.cache', $this->workspace.'/tmp/cache');
         $app->set('path.vendor', $this->workspace.'/app/vendor');
-        $app->set('path.artifact', $this->workspace.'/tmp/packages');
         $app->set('path.packages', $this->packages);
         $app->set('system.api', 'https://example.test');
 

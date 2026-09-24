@@ -15,7 +15,7 @@
 
 ## 🎯 Overview
 
-A package zip can be refused, read, and extracted without Composer, and that is how a package is installed. The panel upload and `php pagekit install <archive>` replace the package tree through the seam. `php pagekit archive` builds that zip with Finder and `\ZipArchive`. `php pagekit update` is gone, and the web self-update log is plain text. Uninstall still goes through the Composer helper. A removal snapshot is the package tree, a database dump, and a description: it does not copy Composer's installed record, and `read()` omits a `composer` key an earlier release stored. `ext-zip` is a runtime requirement, and the shipped One theme declares an empty autoload map so the seam accepts it.
+A package zip can be refused, read, and extracted without Composer, and that is how a package is installed. The panel upload and `php pagekit install <archive>` replace the package tree through the seam. `php pagekit archive` builds that zip with Finder and `\ZipArchive`. `php pagekit update` is gone, and the web self-update log is plain text. Uninstall deletes the package folder through the file service. A removal snapshot is the package tree, a database dump, and a description: it does not copy Composer's installed record, and `read()` omits a `composer` key an earlier release stored. `composer/composer` is not a runtime dependency, and `autoload.php` loads only `app/vendor/autoload.php`. `ext-zip` is a runtime requirement, and the shipped One theme declares an empty autoload map so the seam accepts it.
 
 ---
 
@@ -110,6 +110,52 @@ A snapshot no longer records whether Composer installed the package. `create()` 
 
 Gates: production verifier PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS.
 
+### Composer runtime (Checklist Step 5)
+
+Uninstall deletes the package folder through the file service. `composer/composer` is not a runtime dependency. `autoload.php` loads only the application vendor autoload. `path.artifact` and the tracked Composer package tree are gone.
+
+| File | Change |
+|---|---|
+| `app/package/src/PackageManager.php` | The constructor keeps the output setup and the `extension.failures` read. `removeFiles()` deletes through the file service. `getVersion()` returns the `composer.json` version, or `0.0.0` when that file names none. |
+| `app/package/src/Helper/Composer.php` (deleted) | The Composer install helper. |
+| `app/package/src/Helper/Factory.php` (deleted) | The Composer factory beside it. |
+| `app/package/src/Helper/InstallerIO.php` (deleted) | The console IO adapter beside it. |
+| `autoload.php` | Returns `require __DIR__ . '/app/vendor/autoload.php'`. Nothing under `packages/` is loaded. |
+| `public/index.php` | `path.artifact` is not registered. |
+| `composer.json` | `composer/composer` left `require`. `ext-zip` stays in `require`. |
+| `composer.lock` | `composer remove composer/composer`. Nine packages left the lock. Ten moved from `packages` to `packages-dev`. No version changed. `packages[*].name` has no `composer/composer`. `platform` keeps `ext-zip`. |
+| `phpstan.neon` | `excludePaths` no longer names `packages/autoload.php` or `packages/composer`. |
+| `phpstan-baseline.neon` | The six `Helper/Composer.php` entries are gone. |
+| `.prettierignore` | The `packages/composer/` entry is gone. |
+| `packages/autoload.php`, `packages/packages.php`, `packages/packages.lock`, `packages/composer/` (deleted) | The tracked Composer package tree. |
+| `tmp/packages/.gitignore`, `tmp/packages/.htaccess` (deleted) | The tracked artifact directory. |
+| `Dockerfile` | The image `mkdir` no longer creates `tmp/packages`. |
+| `docker/entrypoint.sh` | The entrypoint `mkdir` no longer creates `tmp/packages`. |
+| `.cursor/install.sh` | The install `mkdir` no longer creates `tmp/packages`. |
+| `.github/workflows/{php-tests,infection,nightly,e2e-weekly,e2e}.yml` | The nine `mkdir` lines no longer create `tmp/packages`. |
+| `AGENTS.md` | The writable-directory line no longer names `tmp/packages`. |
+
+#### Tests (Checklist Step 5)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Package/PackageInstallConstraintTest.php` (deleted) | Tested the helper. |
+| `tests/Unit/Package/PackageRegistryWriteTest.php` (deleted) | Tested the helper. `registryHelperOf()` went with it. |
+| `tests/Unit/Package/PackageTreeRemovalTest.php` | The Composer cases, doubles, bookkeeping helpers, and the `$composer` argument of `manager()` are gone. `plant()` no longer says an install leaves `installed.json` behind. |
+| `tests/Unit/Package/PackageManagerMigrationTest.php` | `testConstructorResolvesPathsWithAndWithoutContainer` is deleted. Its halves stay as `testEnableWithoutContainerConfigStillRunsMigration` and `testEnableRunsExtensionMigrationAndRecordsVersion`. The class docblock drops the constructor-branch, registry, and Composer-transport sentences. |
+| `tests/Unit/Package/PackageModuleBoundaryTest.php` | The four path-and-baseline cases, `composerPaths()`, and the `Helper\Composer` import are gone. `writeComposer()` stays. The installer-tree list no longer names the three helper files; the `app/installer/src/Helper` absence check stays. New cases: the `Composer\` namespace scan allows only `Composer\Autoload\ClassLoader` and fails on a fixture that names anything else; `autoload.php` names no `packages/`; the lock's non-dev set has no `composer/composer` and `require` names `ext-zip`; nothing under `app/`, `public/`, `tests/`, or `scripts/` names the deleted paths, while `public/.htaccess` is the one `installed.json` deny; `packages/` holds no Composer runtime; `main()` resolves `packageStaging` to `<path.temp>/packages`. The walk skips this file. |
+| `tests/Unit/Package/PackageHookBarrierTest.php` | The `path.artifact` fixture is gone. The `container()` paths parameter no longer says the removal path reads it. |
+| `tests/Unit/Package/PackageHookWarningTest.php` | The `path.artifact` fixture is gone. |
+| `tests/Unit/Package/PackageFailureRecordTest.php` | The `path.artifact` fixture is gone. |
+| `tests/Unit/Package/PackageSnapshotGateTest.php` | The `path.artifact` fixture is gone. `plant()` no longer says an install leaves `installed.json` behind. |
+| `tests/Unit/Package/PackageUploadBoundaryTest.php` | The `path.artifact` fixture is gone. |
+| `tests/Unit/Package/PackageInstallFromArchiveTest.php` | The `path.artifact` fixture is gone. |
+| `tests/Unit/Console/InstallCommandTest.php` | The `path.artifact` fixture is gone. |
+| `tests/Unit/Console/UninstallCommandTest.php` | The `path.artifact` fixture is gone. `plant()` no longer says an install leaves `installed.json` behind. |
+| `tests/Unit/Snapshot/UploadedPackageRoundTripTest.php` | The `path.artifact` fixture is gone. |
+
+Gates: production verifier PASS; production tester PASS; test verifier PASS; coverage tester PASS. No deviations.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -138,12 +184,17 @@ Safety gates before any edit: the branch contained `origin/develop`, `composer i
 - **A rule the matcher cannot apply fails the command.** `preg_match()` that cannot apply names the rule and exits `FAILURE`. Skipping it would archive the files the rule was meant to drop. The library compiles `[]]`, `[!]` and `[z-a]` to invalid regexes. `archive.exclude: ["[]]"]` writes no zip.
 - **An unfinished snapshot still stops inside the package tree.** The double that used to refuse copying `installed.json` now refuses `views/extension.php`, so the archive breaks off after `composer.json` and the assertions stay. Refusing the `complete` mark was rejected: that leaves a whole tree. `create()` throws, one unmarked snapshot stays listed, and one `warning` carries `trigger=create`.
 - **A `composer` key already on disk is not migrated.** `read()` builds its result from the keys it still has, so the field is ignored and the file is left as stored. `SnapshotControllerTest::place()` and `SnapshotRetentionTest::place()` still plant `'composer' => false`; those tests were left outside this step. The store test writes the key onto a finished snapshot and asserts the file keeps it through a restore.
+- **The constructor-path case is deleted.** It asserted the two path branches, which are gone. Keeping it under another name would assert nothing `testEnableWithoutContainerConfigStillRunsMigration` (only `migration`) and `testEnableRunsExtensionMigrationAndRecordsVersion` (no `path.*`) do not already hold. The manager builds and enables when the container names no `path.*` service.
+- **The installer-tree list dropped the three helpers.** `testTheManagerHelperAndSnapshotEngineLeftTheInstallerTree` reads every path it lists, so the `Helper/*.php` entries went. The check that `app/installer/src/Helper` is absent stays. The retired-helper names in `testTheDetectorReportsALineInTheRetiredHelperNamespace` are in-memory fixtures and stay.
+- **`path.artifact` also left the four tests written after the plan.** `PackageUploadBoundaryTest`, `PackageInstallFromArchiveTest`, `InstallCommandTest`, and `UploadedPackageRoundTripTest`. The sibling `path.temp`, `path.cache`, `path.vendor`, and `system.api` fixture lines stay. The manager no longer reads them. `plant()` in the removal, snapshot-gate, and uninstall tests no longer says an install leaves `installed.json` behind.
+- **`public/.htaccess` still denies `installed.json` by name.** The rule sits beside `bower.json`. It is not a reader, and the path scan does not open `.htaccess` (`SOURCE_EXTENSIONS` has no `htaccess`). One assertion allows exactly that line.
+- **The lock diff is a section move.** `composer remove composer/composer` listed no update on its dry run. Nine packages left the lock. Ten moved from `packages` to `packages-dev`: `composer/semver`, `composer/xdebug-handler`, `symfony/process`, `justinrainbow/json-schema`, `react/promise`, `marc-mabe/php-enum`, `composer/pcre`, and the `symfony/polyfill-php80`, `php81`, and `php84` packages. No version changed. `packages[*].name` holds no `composer/composer`. `platform` keeps `ext-zip`.
 
 ---
 
 ## 💥 Breaking Changes (Extensions)
 
-`php pagekit install <archive>` installs one zip and prints `Installed <name> <version>.` The command previously took a package list and `--prefer-source` and always failed. `PackageManager::install()` takes a `PackageArchive`. A package's own manifest is unchanged. `php pagekit update` is gone. The web self-update log is plain text: the default formatter strips the console tags. A snapshot listing no longer includes `composer`. `read()` omits the key on a file an earlier release wrote; that file is not rewritten, and restore does not write `installed.json` back.
+`php pagekit install <archive>` installs one zip and prints `Installed <name> <version>.` The command previously took a package list and `--prefer-source` and always failed. `PackageManager::install()` takes a `PackageArchive`. A package's own manifest is unchanged. `php pagekit update` is gone. The web self-update log is plain text: the default formatter strips the console tags. A snapshot listing no longer includes `composer`. `read()` omits the key on a file an earlier release wrote; that file is not rewritten, and restore does not write `installed.json` back. `composer/composer` is not a runtime dependency. `autoload.php` loads only `app/vendor/autoload.php`. Uninstall deletes the package folder through the file service. `path.artifact` is not registered. `getVersion()` reads the package `composer.json` and returns `0.0.0` when that file names no version.
 
 ---
 
@@ -156,6 +207,9 @@ Safety gates before any edit: the branch contained `origin/develop`, `composer i
 - An `archive.exclude` rule the matcher cannot apply fails the command and writes no zip.
 - A symlink whose target lies outside the package is omitted from the zip. The web self-update log no longer wraps console tags in markup.
 - A snapshot taken earlier may still contain `installed.json` and a `composer` key in `metadata.json`. Restore leaves both files alone. `read()` does not return the key.
+- A production install no longer contains `composer/composer`. Ten of its former dependencies sit in `packages-dev`, with no version change.
+- Images, the entrypoint, the install script, and CI no longer create `tmp/packages`. An upload is staged under `path.temp/packages`.
+- `public/.htaccess` still denies a file named `installed.json`. Nothing in the application reads that file.
 
 ---
 
@@ -169,11 +223,13 @@ Install calls that boundary. The target is `<path.packages>/<validated name>`. U
 
 A snapshot no longer copies `packages/composer/installed.json`. Restore does not write that file back. `read()` omits `composer` and does not rewrite `metadata.json`.
 
+Uninstall does not ask Composer whether the package is installed. `removeFiles()` deletes the tree through the file service. `getVersion()` reads the package `composer.json` only. `autoload.php` does not load `packages/`. `public/.htaccess` still denies `installed.json` by name; that rule is not a reader.
+
 ---
 
 ## 🛡️ No-Mercy Compliance
 
-The install path is `PackageArchive` only. `removeFiles()` still calls the Composer helper; that is the uninstall sequence, and it is not a second install path. No stub body, no `packagist` branch, no `class_alias`. The theme's `'autoload' => []` is the declaration the seam requires. `ArchiveCommand` no longer imports Composer. `UpdateCommand` is deleted. `SelfUpdater` no longer sets `HtmlOutputFormatter`. `BuildCommand`'s commented Composer install is deleted. The snapshot path no longer reads or writes Composer's record, and the `composer` key is not kept for old snapshots.
+The install path is `PackageArchive` only. `removeFiles()` deletes the tree through the file service. The Composer helper, its factory, and its IO adapter are deleted. `composer/composer` is not in `require`. No stub body, no `packagist` branch, no `class_alias`. The theme's `'autoload' => []` is the declaration the seam requires. `ArchiveCommand` no longer imports Composer. `UpdateCommand` is deleted. `SelfUpdater` no longer sets `HtmlOutputFormatter`. `BuildCommand`'s commented Composer install is deleted. The snapshot path no longer reads or writes Composer's record, and the `composer` key is not kept for old snapshots.
 
 ---
 
@@ -183,7 +239,7 @@ The install path is `PackageArchive` only. `removeFiles()` still calls the Compo
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: Step 1 — none. Step 2 — tester PASS after one test-defect retry. Production verifier PASS; production tester PASS; frontend, fresh install, and install-over PASS; test-file verifier PASS. Step 3 — production verifier FAIL once (`archive.exclude` typing), retry then PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS. Step 4 — production verifier PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS. `rg` for `INSTALLED_FILE|composerInstalled|BOOKKEEPING|bookkeeping` under `app` and `tests` still lists `PackageTreeRemovalTest` (Step 5's inventory) and the word in `PackageManagerMigrationTest` and `PackageSchemaTest`. `app/package/src/Snapshot` and `tests/Unit/Snapshot` have no hit.
+- Notable deviations: Step 1 — none. Step 2 — tester PASS after one test-defect retry. Production verifier PASS; production tester PASS; frontend, fresh install, and install-over PASS; test-file verifier PASS. Step 3 — production verifier FAIL once (`archive.exclude` typing), retry then PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS. Step 4 — production verifier PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS. `rg` for `INSTALLED_FILE|composerInstalled|BOOKKEEPING|bookkeeping` under `app` and `tests` still lists `PackageTreeRemovalTest` (Step 5's inventory) and the word in `PackageManagerMigrationTest` and `PackageSchemaTest`. `app/package/src/Snapshot` and `tests/Unit/Snapshot` have no hit. Step 5 — production verifier PASS; production tester PASS; test verifier PASS; coverage tester PASS. No deviations.
 
 ---
 
@@ -198,7 +254,7 @@ _TBD / None_
 <!-- Human-only follow-ups the maintainer must do (ruleset flips, real Docker/Apache
      verification, secrets, etc.). Not ROADMAP deferrals — those go under Deferred. -->
 
-_TBD / None_
+`Dockerfile` and `docker/entrypoint.sh` no longer create `tmp/packages`. Those files were linted in this environment. A boot of the production image — the `Docker Image` workflow, or `docker build .` on a Docker host — is what shows the image still starts.
 
 ---
 
