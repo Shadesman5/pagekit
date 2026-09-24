@@ -104,7 +104,9 @@ Canonical: [`.cursor/rules/pagekit.mdc`](rules/pagekit.mdc) § DX. Thin DI-backe
 | 2.10.1 | ↳ Property Hooks vs PropertyTrait     | ⏳     | ⏳    | -     | -       |
 | 2.10.2 | ↳ Controller FQCN Autowiring          | ⏳     | ⏳    | -     | -       |
 | 2.10.3 | ↳ Fail-Fast / control-flow hygiene    | ⏳     | ⏳    | -     | -       |
-| 2.11   | Phase 2 Closeout (Coverage/Mutation)  | ⏳     | ⏳    | -     | -       |
+| 2.11   | **Phase 2 Closeout**                  | ⏳     | ⏳    | -     | -       |
+| 2.11.1 | ↳ Modular test classes                | ⏳     | ⏳    | -     | -       |
+| 2.11.2 | ↳ Coverage & mutation                 | ⏳     | ⏳    | -     | -       |
 | 3.1    | UIkit Update                          | ⏳     | ⏳    | -     | -       |
 | 3.2    | **Vue 2.7 Bridge**                    | ⏳     | ⏳    | -     | -       |
 | 3.2.1  | ↳ Template Pre-compilation (CSP)      | ⏳ 20% | ⏳    | -     | -       |

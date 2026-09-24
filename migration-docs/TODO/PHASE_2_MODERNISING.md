@@ -151,7 +151,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 - **Goal**: Mutation testing for the security-critical auth + user classes (80%+ MSI / Covered MSI).
 - **Docs**: `migration-docs/branches/phase-2/step-2-1-8-infection-mutation-testing.md`
-- **Forward**: Infection CI wiring → Step 2.2; MSI ratchet / wider scope → Step 2.11
+- **Forward**: Infection CI wiring → Step 2.2; MSI ratchet / wider scope → Step 2.11.2
 
 ---
 
@@ -159,7 +159,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 - **Goal**: Raise coverage (CI floor, Codecov, security/ORM edge cases) and grow it with every change.
 - **Docs**: `migration-docs/branches/phase-2/step-2-1-9-test-coverage-expansion.md`
-- **Forward**: Breadth targets, packages coverage, remaining DB/kernel gaps, Infection widen → Step 2.11; full E2E rework → Step 3.6.1
+- **Forward**: Breadth targets, packages coverage, remaining DB/kernel gaps, Infection widen → Step 2.11.2; full E2E rework → Step 3.6.1
 
 ---
 
@@ -202,7 +202,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Goal**: Raise minimum PHP from 8.2 to **8.5** with a full compatibility audit across Composer, CI, Docker, and runtime guards.
 - **Why**: CI/Docker (2.2/2.3/2.5) and Closeout (2.11) must build on the final runtime once — avoid double-touch. Enables Step 2.10 language features.
 - **Docs**: `migration-docs/branches/phase-2/step-2-1-14-php-version-upgrade.md`
-- **Forward**: Symfony 7 / DBAL 4 → Steps 4.2/4.3; Property Hooks / Autowiring → Step 2.10.x; coverage ratchet → Step 2.11
+- **Forward**: Symfony 7 / DBAL 4 → Steps 4.2/4.3; Property Hooks / Autowiring → Step 2.10.x; coverage ratchet → Step 2.11.2
 
 ---
 
@@ -211,7 +211,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Goal**: Fast required gates on every PR, heavier jobs on merge/schedule, and quality numbers owned by CI (sticky PR comment + live snapshot + dashboard) instead of agent-written metric tables.
 - **Result**: `php-tests.yml` (required PHPUnit/PHPStan/CS-Fixer/security + coverage ratchet, advisory `phpunit-mysql`, PR-only `version-ssot`), `infection.yml` diff gate, `frontend.yml` build gate, `e2e.yml` (PR smoke opt-in via `E2E_SMOKE_PR_ENABLED`, merge run feeding the snapshot), `nightly.yml`, `e2e-weekly.yml`, plus `quality-report.yml` + `quality-collect.yml` writing to the unprotected `quality-data` branch. Playwright selection is `@ci` tags + env-composed projects; agent handoffs and branch docs stay PASS/FAIL.
 - **Docs**: `migration-docs/branches/phase-2/step-2-2-ci-cd-pipeline.md`
-- **Forward**: MySQL leg to a required gate → Step 2.11; E2E quarantine lift, viewport-robust `@ci` specs and PR-smoke activation → Step 3.6.1; final Prettier/formatting policy → Step 2.4; image build/scan/push in CI → Step 2.5
+- **Forward**: MySQL leg to a required gate → Step 2.11.2; E2E quarantine lift, viewport-robust `@ci` specs and PR-smoke activation → Step 3.6.1; final Prettier/formatting policy → Step 2.4; image build/scan/push in CI → Step 2.5
 
 ---
 
@@ -516,7 +516,7 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 - **Status**: 📝 Draft — refine at ticket planning.
 - **Prerequisite**: Step 2.1.14 (PHP 8.5). Prefer after 2.7 (routing/DI bridges clearer for Autowiring).
 - **Goal**: Adopt useful PHP 8.4/8.5 language features and small DX hardenings **without** bloating the core — DNA gate on every sub-step.
-- **Why here (not Phase 3/4):** Backend language/DI work belongs in Phase 2, on Symfony 6.4, **before** Vue (Phase 3) and before Symfony 7 / DBAL 4 (4.2/4.3). Closeout (2.11) then measures the hardened code.
+- **Why here (not Phase 3/4):** Backend language/DI work belongs in Phase 2, on Symfony 6.4, **before** Vue (Phase 3) and before Symfony 7 / DBAL 4 (4.2/4.3). Closeout (**2.11.2**) then measures the hardened code.
 - **Out of scope**: “Eliminate all `mixed`” mega-rewrite (legitimate `mixed` stays); Symfony/DBAL majors; new product features.
 - **Risk**: Medium (2.10.1 may No-Go)
 
@@ -545,9 +545,29 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
 
 ---
 
-## Step 2.11: Phase 2 Closeout — Test Coverage & Mutation Consolidation
+## Step 2.11: Phase 2 Closeout
 
 - **Status**: 📝 Draft — refine at ticket planning.
+- **Goal**: Close Phase 2 on a suite whose classes match the operations they cover, then raise coverage and mutation on that shape.
+- **Why**: A class that holds unrelated questions has no neighbour for the next case, so the coverage work would extend the mix. The layout pass comes first.
+- **What**: The closeout is **2.11.1**, then **2.11.2**. This row is the frame, not a third ticket.
+- **Note**: Closeout consolidates ongoing coverage work — not a replacement for per-branch tests. **Not a hard Phase-2 end:** if new Phase-2 steps are discovered, insert them *before* 2.11 (ROADMAP SSoT) and keep Closeout last among Phase 2.
+
+### Step 2.11.1: Modular test classes
+
+- **Goal**: One test class per production type and public operation. Setup that more than one of those classes uses lives in one non-test class in the same directory.
+- **Why**: `tests/Unit/Package/PackageModuleBoundaryTest.php` answers unrelated questions in one class: manifest ownership, the manage-packages permission, boot registration, namespace and retired-path scans, which files left which tree, the bundle entries, the PHPStan baseline shape, service registration, the absence of a Composer runtime, upload staging, and where `systemApi` is registered. A new case has nowhere to go but the bottom of that class.
+- **What**:
+  1. Split that class along those questions. Each question becomes its own class in `tests/Unit/Package/`. Move the methods and the private helpers they alone use. The assertions stay the ones the class holds.
+  2. `tests/Unit/Package/PackageArchiveTest.php` stays one class. It is `PackageArchive::open()` and `extractTo()`: many refusals of one operation, one contract.
+  3. Apply the same cut to a class in that directory that mixes a second production type or a second public operation. A class whose cases are one operation stays whole.
+  4. Setup used by more than one of the resulting classes lives in one non-test class in the directory. `PackageZip` is already that class for archive fixtures. A walk or detector shared by the scan classes is one helper. Do not copy it into each class, and do not add a second helper for a fixture that already has one.
+- **Out of scope**: new cases; production code; rewriting an assertion while moving it; the comment-prose sweep and the coverage extension (**2.11.2**).
+- **Sequencing**: first substep of closeout, before **2.11.2**, so coverage lands in the class that owns the operation.
+- **Risk**: Low — a move of tests. The suite's outcomes stay.
+
+### Step 2.11.2: Coverage & mutation
+
 - **Goal**: Phase 2 quality push — breadth coverage, wider Infection scope, data-driven MSI gates.
 - **Why**: Per-branch coverage and auth/user mutation testing already exist; closeout raises the bar on the final PHP version (after 2.1.14) and after Language/DX work (2.10) when those land.
 - **What**:
@@ -560,4 +580,4 @@ Apply the aggressive modernization rules (defined during Phase 1 execution) retr
   - Make the PHPUnit suite DB-portable: most DB tests hardcode in-memory-SQLite connections instead of honoring the `$GLOBALS['db_*']` parameters that `DbUtil::getConnection()` already supports — route them through the shared helper so the whole suite genuinely runs against MySQL, then flip the non-blocking `phpunit-mysql` CI leg to a required gate (drop its `continue-on-error`). A required Snapshot-only MySQL job from **2.7.1a** does not satisfy this — that job gates the restorer, not the suite. Why: a MySQL gate that exercises only a handful of tests gives false cross-DB confidence
   - Widen `infection.json.dist` past auth + user (data-integrity first); ratchet `minMsi` / `minCoveredMsi` from measured values
   - Remaining hygiene if still open: `assertEquals`→`assertSame` where strictness matters; controller DI-wiring / factory-service integration tests; `MigrationCommand` CLI pipeline coverage; a comment-prose sweep of the Snapshot, Package and Extension Safety docblocks, whose class-level design essays belong in branch docs under the comment rule — one pass, so no relocation or feature step has to carry it. The same pass corrects the placement statements in `tests/Unit/Package/PackageFailureRecordTest.php` (the `$path` docblock and the comment in `testAnEnvironmentThatKeepsNoRecordReportsNoFailures`) and `tests/Unit/Package/PackageHookBarrierTest.php` (the `$path` docblock), which still put the failure record in a system-module directory the installer environment does not load: the store is the package module's, registered wherever `path.system` is set, the wizard included. The same pass drops the `'composer' => false` line from the metadata fixtures in `tests/Unit/Snapshot/SnapshotControllerTest.php` and `tests/Unit/Snapshot/SnapshotRetentionTest.php` (`place()`): no snapshot records that flag any more, and a fixture that plants it describes a snapshot nothing writes
-- **Note**: Closeout consolidates ongoing coverage work — not a replacement for per-branch tests. **Not a hard Phase-2 end:** if new Phase-2 steps are discovered, insert them *before* 2.11 (ROADMAP SSoT) and keep Closeout last among Phase 2.
+- **Sequencing**: after **2.11.1**.
