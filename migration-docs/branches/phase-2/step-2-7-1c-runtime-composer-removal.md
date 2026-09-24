@@ -380,7 +380,13 @@ None — no new ROADMAP sub-step. Every item above already has a PHASE home.
 <!-- Filled by the post-close review after Finalize: what the finished work left unowned,
      one bullet per finding with the ROADMAP step whose area it belongs to. Doc-writer leaves None. -->
 
-None.
+- **Runtime-installed packages have no writable home in the production image.** `path.packages` is `<root>/packages`; the `prod` stage of `Dockerfile` copies it root-owned and serves as `www-data` (only `tmp`, `storage` and `$PAGEKIT_DATA_DIR` are chowned), so `PackageManager::replaceTree()` cannot create its hidden sibling under `packages/<vendor>/` (`PackageArchive::extractTo()` fails at the first `mkdir`), `removeFiles()` cannot delete a tree and `PackageSnapshotter::reinstate()` cannot put one back: the panel upload, `php pagekit install <archive>`, the file half of a removal and the file half of a restore are all refused in the container and succeed on a plain host — the removal after its snapshot, `disable()`, the uninstall hook and the `packages.<module>` config removal have run, so the package's data is gone and its tree is globbed up again on the next request as installed and off. The image's `opcache.validate_timestamps = 0` (`docker/php/php-prod.ini`) rests on that same never-written tree, and `replaceTree()` invalidates the compiled files only in the process that ran the install — for the console command, not the web server. Recorded default: the container installs no package at runtime and the README says so; where a package installed at runtime lives in a container is the layout decision (see Research). → **2.7.5**
+- **Web server and console have to be one user for a package installed from the console.** `php pagekit install` writes `packages/<vendor>/<name>` as the user running it; the panel's later replacement (`rename()` beside it, then `Filesystem::delete()` of the retired tree) and its removal (`removeFiles()`) need write access inside that tree. With two users the update succeeds and leaves the retired tree behind — or, where the console created `packages/<vendor>/` as well, cannot stage the replacement at all (`extractTo()` fails at its first `mkdir`) — and the removal ends with "files could not be taken off the disk". `packages/` is not on the README's writable list for the web server user; the snapshot store carries the same one-user note already. README states both. → **2.7.5**
+- **The panel is the only way to switch a package on.** `php pagekit install <archive>` places the tree and runs `doInstall()` (or `enable()` for a package that was already loaded); there is no console `enable` or `disable`, so a first-time install on a host without panel access stays installed and off. → **2.7.2**
+- **A hidden sibling that will not delete stays for good.** `replaceTree()` retires the replaced tree as `packages/<vendor>/.<name>-<hex>` and deletes it; a delete that fails, or a staged tree that cannot be removed after a failed extraction, costs one error-log line (and one streamed line) and nothing sweeps it later — the package and module globs skip dot-names, so the panel never shows it and only the log names the path. → **2.9**
+- **An in-place update leaves the Composer package tree behind.** Nothing reads `packages/composer/`, `packages/autoload.php`, `packages/packages.php`, `packages/packages.lock` or `tmp/packages/` any more, and nothing removes them from an installation updated by copying a release over the previous one (a `git` checkout drops them; a zip overlay does not) — the same class of leftover as the marketplace bundle and icon under `public/`. → **2.9**
+- **Boot discovery has to keep skipping dot-named package directories.** `PackageFactory::loadPackages()`, `Installer::install()` and `ModuleManager::register()` find packages through `glob('packages/*/*/…')`, which is what hides the install's staging and retired siblings; a discovery that lists directories another way would register `.<name>-<hex>` as a second copy of the package and make `install()` refuse the next archive as "already installed in another folder". → **2.7.3**
+- **New and stale msgids.** `PackageArchive`, `PackageManager::install()` / `replaceTree()` and `PackageController::installAction()` add some forty `__()`-keyed strings that no catalogue under `app/system/languages/` carries, while `en_US/messages.php` still keys `Marketplace` and `Cannot connect to the marketplace. Please try again later.` for a page that no longer exists; every locale falls through to English for the new refusals until the catalogues are regenerated. → **3.3.6**
 
 ---
 
@@ -398,7 +404,8 @@ None.
 <!-- No-Mercy leftovers of the shipped diff that have no owner (forward-debt tags, added baseline
      entries, ANOMALIES patterns), each with the ROADMAP step that resolves it. Post-close review. -->
 
-None.
+- `tests/Unit/Snapshot/SnapshotControllerTest.php` and `tests/Unit/Snapshot/SnapshotRetentionTest.php` plant `'composer' => false` in the snapshot metadata their `place()` writes — a key `SnapshotStore::read()` no longer reads, so the fixture line asserts nothing. → **2.11**
+- `tests/e2e/TEST_PLAN_ANALYSIS_2025.md` and `tests/e2e/COMPLETE_TEST_PLAN.md` still describe a marketplace and call an extension install through the panel "manual only"; no Playwright spec covers the upload → install → enable path the package pages now offer, whose only end-to-end proof is a console-driven run. → **3.6.1**
 
 ---
 
@@ -407,7 +414,7 @@ None.
 <!-- Work delivered beyond the ticket. Doc-writer from the handover; the post-close review adds
      what the diff shows and the handover missed. -->
 
-None.
+- `README.md` Minimum Requirements names the PHP zip extension: installing a package, building its archive and `composer install` need it now that `ext-zip` is in `require`.
 
 ---
 
@@ -416,7 +423,12 @@ None.
 <!-- The verified facts behind each DECISION the post-close review raised — symbols, call chain,
      what each exit deletes or adds — so the maintainer can decide without re-reading the tree. -->
 
-None.
+**Where a package installed at runtime lives in a container.**
+
+- Every write under `packages/` goes through one of three methods. `PackageManager::replaceTree()` (`app/package/src/PackageManager.php`): `Filesystem::makeDir(dirname($target))` → `PackageArchive::extractTo(<packages>/<vendor>/.<name>-<hex>)` → `rename($target, <retired sibling>)` → `rename($staged, $target)` → `Filesystem::delete(<retired>)`. `PackageManager::removeFiles()`: `Filesystem::delete($path)` then `@rmdir(dirname($path))`. `PackageSnapshotter::reinstate()` (`app/package/src/Snapshot/PackageSnapshotter.php`): `Filesystem::delete($target)` where the tree exists, then `Filesystem::copyDir(<snapshot>/files/<vendor>/<name>, $target)`.
+- In the `prod` stage (`Dockerfile`): `COPY packages ./packages` under root, `chown -R www-data:www-data tmp storage "$PAGEKIT_DATA_DIR"` only, `USER 33:33`. The first `mkdir` of `extractTo()` under a root-owned `packages/<vendor>/` fails with EACCES, so `replaceTree()` throws "The folder to unpack the archive into could not be created." before any rename; `removeFiles()` reaches its throw after the snapshot, `disable()` and the `packages.<module>` config removal have run; `reinstate()` throws at its first delete. `docker-image.yml` probes none of the three.
+- `docker/php/php-prod.ini` sets `opcache.validate_timestamps = 0` with the stated premise that `packages/` is never written after the build. `opcache_invalidate($file, true)` in `replaceTree()` clears the shared cache of the Apache workers when the install ran in one of them; the console command runs in a separate process whose cache is not the server's, so on such a host a console install of an already-installed package would leave the server on the replaced code until it restarts. The same holds for `reinstate()`, which invalidates nothing.
+- Exit A — a writable package root on the data volume beside the image's own `packages/`: `PackageFactory::addPath()` takes any number of globs and `app/system/app.php` registers modules from a list of globs, so a second root is a second entry in both; `path.packages` then names the writable root for `PackageManager::install()`, and the image's opcache setting has to move to timestamp validation or the CLI has to be kept off that host. Exit B — the container installs no package at runtime: `packages/` stays image-only, the panel's Upload and `php pagekit install` are refused in the image with a message that says so rather than one about a folder, and a package a container serves is one its image was built with. Exit C — chown `packages/` to `www-data` in the image: gives a compromised request a code directory it can rewrite, which the root-owned tree exists to deny (the `RUN` comment in `Dockerfile`), and drops the opcache premise with it. Recorded default: B as the documented state until the layout decision.
 
 ---
 
