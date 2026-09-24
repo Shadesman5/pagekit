@@ -3,6 +3,10 @@
 // Trigger: the commit that ticks `- [ ] Step N (XL)` → `- [x]`. Runs before FINALIZE
 // so phases stay PLAN → EXECUTE… → XL → FINALIZE. Full V1 tickets (no Conductor
 // session) are skipped — import-v1-metrics.yml handles those at merge.
+//
+// Current agent payloads omit repos[].startingRef, and a run's git.branches entry
+// may omit the branch name. The orchestrator one-liner still names the commit
+// (`Last commit: <sha>`), so GITHUB_SHA picks the parent.
 
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname, basename, resolve } from 'node:path';
@@ -15,6 +19,7 @@ import {
   fetchAgentMetricsFromCursor,
   fetchAgentFromCursor,
   listAgentsFromCursor,
+  agentBranchNames,
   agentMatchesBranch,
   parseRoadmapStepId,
   sessionAgentIds,
@@ -94,15 +99,158 @@ export function pickXlHandoffAgent(candidates, excludeIds = []) {
   return eligible[0].id.toLowerCase();
 }
 
+const COMMIT_LOOKUPS = 40;
+const RESULT_LAG_MS = 15 * 60 * 1000;
+
+/** True when `text` contains `sha` as its own hex token (the orchestrator one-liner). */
+export function textHasCommitSha(text, sha) {
+  const want = String(sha || '')
+    .trim()
+    .toLowerCase();
+  if (!/^[0-9a-f]{7,40}$/.test(want)) return false;
+  return new RegExp(`(?:^|[^0-9a-f])${want}(?:[^0-9a-f]|$)`, 'i').test(String(text || ''));
+}
+
+/** True when the agent was started in this GitHub repo. An empty repository matches every agent. */
+export function agentInRepository(detail, repository) {
+  const want = String(repository || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\.git$/, '');
+  if (!want) return true;
+  const names = [];
+  if (detail?.env?.name) names.push(String(detail.env.name).toLowerCase());
+  for (const repo of detail?.repos || []) {
+    const url = String(repo?.url || '')
+      .toLowerCase()
+      .replace(/\.git$/, '')
+      .replace(/\/$/, '');
+    if (url) names.push(url);
+  }
+  return names.some(
+    name => name === want || name.endsWith(`/${want}`) || name.endsWith(`:${want}`)
+  );
+}
+
+async function usageTotal(client, agentId) {
+  try {
+    const metrics = await fetchAgentMetricsFromCursor(client, agentId);
+    return Number(metrics?.tokens?.total) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+async function commitOnAgent(client, agentId, sha, now) {
+  let page;
+  try {
+    page = await client('GET', `/v1/agents/${agentId}/runs?limit=2`);
+  } catch {
+    return { hit: false, pending: false };
+  }
+  const runs = (page?.items || page?.runs || []).slice(0, 2);
+  let pending = false;
+  for (const run of runs) {
+    let result = run?.result;
+    let status = String(run?.status || '').toUpperCase();
+    let updatedAt = run?.updatedAt;
+    if (!result && run?.id) {
+      try {
+        const full = await client('GET', `/v1/agents/${agentId}/runs/${run.id}`);
+        result = full?.result;
+        status = String(full?.status || status).toUpperCase();
+        updatedAt = full?.updatedAt || updatedAt;
+      } catch {
+        continue;
+      }
+    }
+    if (textHasCommitSha(result, sha)) return { hit: true, pending: false };
+    if (!result && status === 'FINISHED') {
+      const updated = Date.parse(updatedAt || '');
+      if (Number.isFinite(updated) && now - updated < RESULT_LAG_MS) pending = true;
+    }
+  }
+  return { hit: false, pending };
+}
+
+/**
+ * Pick the parent whose run result names this push.
+ * List order is not newest-first, and walking every agent is what blew the job cap,
+ * so only the most recently updated candidates are read.
+ */
+async function resolveXlAgentByCommit(
+  client,
+  { branchNorm, exclude, sha, repository, state, log, now = Date.now() }
+) {
+  const candidates = [];
+  let cursor = null;
+  for (let page = 0; page < 4; page += 1) {
+    const res = await listAgentsFromCursor(client, { limit: 50, cursor });
+    log(`resolve-xl: page ${page + 1} (${res.items.length} agents, commit)`);
+    for (const item of res.items) {
+      const id = String(item.id || '').toLowerCase();
+      if (!id.startsWith('bc-') || exclude.has(id)) continue;
+      if (!agentInRepository(item, repository)) continue;
+      const known = agentBranchNames(item);
+      if (branchNorm && known.length && !known.includes(branchNorm)) continue;
+      candidates.push(item);
+    }
+    cursor = res.nextCursor;
+    if (!cursor) break;
+  }
+  candidates.sort(
+    (a, b) => (Date.parse(b.updatedAt || '') || 0) - (Date.parse(a.updatedAt || '') || 0)
+  );
+  const pool = candidates.slice(0, COMMIT_LOOKUPS);
+  log(`resolve-xl: ${pool.length} commit candidate(s)`);
+  for (const item of pool) {
+    const id = String(item.id || '').toLowerCase();
+    const found = await commitOnAgent(client, id, sha, now);
+    if (found.pending && state) state.pendingResult = true;
+    if (!found.hit) continue;
+    const total = await usageTotal(client, id);
+    if (total > 0) {
+      log(`resolve-xl: picked ${id} total=${total} via commit`);
+      return id;
+    }
+    if (state) state.pendingResult = true;
+    log(`resolve-xl: ${id.slice(0, 12)}… names the commit but usage is still 0`);
+  }
+  log(`resolve-xl: no unused parent run names commit ${sha.slice(0, 12)}…`);
+  return null;
+}
+
 export async function resolveXlHandoffAgent(
   client,
-  { branch, excludeIds = [], log = () => {} } = {}
+  {
+    branch,
+    excludeIds = [],
+    commitSha = '',
+    repository = '',
+    state = null,
+    now = Date.now(),
+    log = () => {}
+  } = {}
 ) {
   const branchNorm = String(branch || '')
     .replace(/^refs\/heads\//, '')
     .toLowerCase();
-  if (!client || !branchNorm) return null;
+  const sha = String(commitSha || '')
+    .trim()
+    .toLowerCase();
+  if (!client || (!branchNorm && !sha)) return null;
   const exclude = new Set((excludeIds || []).map(id => String(id || '').toLowerCase()));
+  if (sha) {
+    return resolveXlAgentByCommit(client, {
+      branchNorm,
+      exclude,
+      sha,
+      repository,
+      state,
+      log,
+      now
+    });
+  }
   // The list is newest first. Once this branch has an agent, older pages cannot
   // be a newer XL parent — and walking them is what blew the 20-minute job cap.
   let sawBranch = false;
@@ -162,10 +310,25 @@ function loadSessionsForStep(stepId) {
   return ids.map(id => readJson(join(ROOT, SESSIONS_DIR, `${id}.json`))).filter(Boolean);
 }
 
-async function waitForXlAgent(client, { branch, excludeIds, attempts, delayMs, log }) {
+async function waitForXlAgent(
+  client,
+  { branch, excludeIds, commitSha, repository, attempts, delayMs, log }
+) {
   for (let i = 1; i <= attempts; i += 1) {
-    const id = await resolveXlHandoffAgent(client, { branch, excludeIds, log });
+    const state = { pendingResult: false };
+    const id = await resolveXlHandoffAgent(client, {
+      branch,
+      excludeIds,
+      commitSha,
+      repository,
+      state,
+      log
+    });
     if (id) return id;
+    if (commitSha && !state.pendingResult) {
+      log('no agent run names this commit');
+      return null;
+    }
     log(`no unused XL parent agent with usage yet (attempt ${i}/${attempts})`);
     if (i < attempts) await sleep(delayMs);
   }
@@ -180,6 +343,8 @@ export async function main(argv = process.argv, env = process.env, io = console)
     ''
   );
   const diffPath = getArg('--diff', argv);
+  const commitSha = (getArg('--sha', argv) || env.GITHUB_SHA || '').trim();
+  const repository = (getArg('--repo', argv) || env.GITHUB_REPOSITORY || '').trim();
   const attempts = Number(env.XL_IMPORT_ATTEMPTS || 10);
   const delayMs = Number(env.XL_IMPORT_DELAY_MS || 20000);
 
@@ -225,9 +390,12 @@ export async function main(argv = process.argv, env = process.env, io = console)
     process.exit(1);
   }
   const client = createCursorClient(apiKey);
+  if (commitSha) io.log(`XL parent lookup by commit ${commitSha.slice(0, 12)}…`);
   const agentId = await waitForXlAgent(client, {
     branch,
     excludeIds: sessionAgentIds(session),
+    commitSha,
+    repository,
     attempts,
     delayMs,
     log: msg => io.log(msg)

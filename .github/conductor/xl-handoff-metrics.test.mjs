@@ -6,7 +6,9 @@ import {
   parseTicketRoadmapStepId,
   pickXlHandoffSession,
   pickXlHandoffAgent,
-  resolveXlHandoffAgent
+  resolveXlHandoffAgent,
+  textHasCommitSha,
+  agentInRepository
 } from './xl-handoff-metrics.mjs';
 
 const TICK_DIFF = `diff --git a/migration-docs/tickets/active/PROMPT_2_7_1_Foo_plan.md b/migration-docs/tickets/active/PROMPT_2_7_1_Foo_plan.md
@@ -182,4 +184,146 @@ test('pickXlHandoffAgent skips Conductor ids and zero usage, then takes the newe
     ['bc-execute', 'bc-old']
   );
   assert.equal(id, 'bc-xl');
+});
+
+test('textHasCommitSha matches the one-liner and ignores a longer hash', () => {
+  const sha = '68193562c69ff9502f34a8bcc3bf536dc2e38393';
+  assert.equal(textHasCommitSha(`Batch done. Steps: [8]. Last commit: ${sha}.`, sha), true);
+  assert.equal(textHasCommitSha(`Last commit: ${sha}a.`, sha), false);
+  assert.equal(textHasCommitSha('Batch done. Last commit: abcdef.', sha), false);
+});
+
+test('agentInRepository matches env.name and the repo url', () => {
+  const detail = {
+    env: { name: 'Shadesman5/pagekit' },
+    repos: [{ url: 'https://github.com/Shadesman5/pagekit' }]
+  };
+  assert.equal(agentInRepository(detail, 'Shadesman5/pagekit'), true);
+  assert.equal(agentInRepository(detail, 'Other/pagekit'), false);
+  assert.equal(agentInRepository(detail, ''), true);
+});
+
+test('resolveXlHandoffAgent picks the run that names the tick commit', async () => {
+  const sha = '68193562c69ff9502f34a8bcc3bf536dc2e38393';
+  const fetched = [];
+  const client = async (_method, path) => {
+    fetched.push(path);
+    if (path.startsWith('/v1/agents?')) {
+      return {
+        items: [
+          {
+            id: 'bc-old',
+            updatedAt: '2026-04-01T00:00:00.000Z',
+            env: { name: 'Shadesman5/pagekit' },
+            repos: [{ url: 'https://github.com/Shadesman5/pagekit', startingRef: 'develop' }]
+          },
+          {
+            id: 'bc-finalize',
+            updatedAt: '2026-09-24T18:45:35.292Z',
+            env: { name: 'Shadesman5/pagekit' },
+            repos: [{ url: 'https://github.com/Shadesman5/pagekit' }]
+          },
+          {
+            id: 'bc-xl',
+            updatedAt: '2026-09-24T17:05:09.855Z',
+            env: { name: 'Shadesman5/pagekit' },
+            repos: [{ url: 'https://github.com/Shadesman5/pagekit' }]
+          },
+          {
+            id: 'bc-other-repo',
+            updatedAt: '2026-09-24T18:50:00.000Z',
+            env: { name: 'Other/app' },
+            repos: [{ url: 'https://github.com/Other/app' }]
+          }
+        ],
+        nextCursor: null
+      };
+    }
+    if (path === '/v1/agents/bc-finalize/runs?limit=2') {
+      return { items: [{ id: 'run-fin', status: 'FINISHED' }] };
+    }
+    if (path === '/v1/agents/bc-finalize/runs/run-fin') {
+      return {
+        status: 'FINISHED',
+        result: 'Batch done. Last commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.'
+      };
+    }
+    if (path === '/v1/agents/bc-xl/runs?limit=2') {
+      return {
+        items: [
+          {
+            id: 'run-xl',
+            status: 'FINISHED',
+            git: { branches: [{ repoUrl: 'github.com/Shadesman5/pagekit' }] }
+          }
+        ]
+      };
+    }
+    if (path === '/v1/agents/bc-xl/runs/run-xl') {
+      return { status: 'FINISHED', result: `Batch done. Steps: [8]. Last commit: ${sha}.` };
+    }
+    if (path === '/v1/agents/bc-xl') return { id: 'bc-xl', createdAt: '2026-09-24T16:51:59.137Z' };
+    if (path === '/v1/agents/bc-xl/usage') {
+      return { totalUsage: { totalTokens: 12, inputTokens: 10, outputTokens: 2 } };
+    }
+    if (path === '/v1/agents/bc-xl/runs?limit=100') return { items: [] };
+    throw new Error(`unexpected ${path}`);
+  };
+
+  const id = await resolveXlHandoffAgent(client, {
+    branch: 'feature/runtime-composer-removal',
+    commitSha: sha,
+    repository: 'Shadesman5/pagekit'
+  });
+  assert.equal(id, 'bc-xl');
+  assert.equal(
+    fetched.some(p => p.includes('bc-old')),
+    false
+  );
+  assert.equal(
+    fetched.some(p => p.includes('bc-other-repo')),
+    false
+  );
+  assert.equal(
+    fetched.some(p => p.includes('bc-finalize')),
+    true
+  );
+});
+
+test('resolveXlHandoffAgent retries only while a finished run has no result yet', async () => {
+  const now = Date.parse('2026-09-24T17:10:00.000Z');
+  const client = async (_method, path) => {
+    if (path.startsWith('/v1/agents?')) {
+      return {
+        items: [
+          {
+            id: 'bc-xl',
+            updatedAt: '2026-09-24T17:05:09.855Z',
+            env: { name: 'Shadesman5/pagekit' },
+            repos: [{ url: 'https://github.com/Shadesman5/pagekit' }]
+          }
+        ],
+        nextCursor: null
+      };
+    }
+    if (path === '/v1/agents/bc-xl/runs?limit=2') {
+      return {
+        items: [{ id: 'run-xl', status: 'FINISHED', updatedAt: '2026-09-24T17:05:09.855Z' }]
+      };
+    }
+    if (path === '/v1/agents/bc-xl/runs/run-xl') {
+      return { status: 'FINISHED', updatedAt: '2026-09-24T17:05:09.855Z', result: '' };
+    }
+    throw new Error(`unexpected ${path}`);
+  };
+  const state = { pendingResult: false };
+  const id = await resolveXlHandoffAgent(client, {
+    branch: 'feature/runtime-composer-removal',
+    commitSha: '68193562c69ff9502f34a8bcc3bf536dc2e38393',
+    repository: 'Shadesman5/pagekit',
+    state,
+    now
+  });
+  assert.equal(id, null);
+  assert.equal(state.pendingResult, true);
 });
