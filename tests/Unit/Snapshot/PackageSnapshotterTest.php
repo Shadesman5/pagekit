@@ -8,7 +8,6 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Pagekit\Database\Connection;
 use Pagekit\Filesystem\Filesystem;
-use Pagekit\Package\Helper\Composer;
 use Pagekit\Package\Package;
 use Pagekit\Package\Snapshot\DatabaseDumper;
 use Pagekit\Package\Snapshot\DatabaseRestorer;
@@ -31,8 +30,7 @@ use Psr\Log\AbstractLogger;
  *
  * What that whole is: the package's own files in the shape they have on disk, a
  * complete dump of the database they were installed in, and a description of
- * both - plus Composer's record of what it had installed, where Composer is what
- * installed the package.
+ * both.
  *
  * The database is a real one and the files are real files, so what lands in the
  * snapshot is what a driver and a filesystem actually produce.
@@ -49,12 +47,6 @@ final class PackageSnapshotterTest extends TestCase
      */
     private const TRIPWIRE = 'tripwire';
 
-    /**
-     * Composer's record as it lies under packages/, naming the package that is
-     * about to be removed.
-     */
-    private const BOOKKEEPING = '[{"name":"pagekit/test-ext","version":"1.4.2","type":"pagekit-extension"}]';
-
     private string $workspace;
 
     /**
@@ -65,8 +57,7 @@ final class PackageSnapshotterTest extends TestCase
     private string $snapshots;
 
     /**
-     * Where runtime-installed packages live, which is also where Composer keeps
-     * its record of them.
+     * Where runtime-installed packages live.
      */
     private string $packages;
 
@@ -200,8 +191,6 @@ final class PackageSnapshotterTest extends TestCase
         // whether the ones after them ever arrived. So it is written last, and
         // a directory that has it has all of them - which is only true while
         // this is the final step rather than one of several.
-        $this->writeBookkeeping(self::BOOKKEEPING);
-
         $write = new AWatchedSnapshotWrite();
 
         $id = $this->snapshotter($this->installation(), $write)
@@ -213,85 +202,12 @@ final class PackageSnapshotterTest extends TestCase
         self::assertTrue($snapshot['complete'], 'A snapshot that was taken in full is one a restore may read');
 
         // What the directory already held at the moment the mark was written:
-        // the description, the dump, the archived tree and Composer's record.
+        // the description, the dump and the archived tree.
         self::assertSame([
             SnapshotStore::DUMP_FILE,
             SnapshotStore::FILES_DIR,
-            SnapshotStore::INSTALLED_FILE,
             SnapshotStore::METADATA_FILE,
         ], $write->beside);
-    }
-
-    // ------------------------------------------------------------------
-    // Composer's bookkeeping
-    // ------------------------------------------------------------------
-
-    #[DataProvider('provideComposerRecords')]
-    public function testWhetherComposerInstalledThePackageIsReadTheWayTheRemovalReadsIt(?string $record, bool $composer): void
-    {
-        // The removal asks Composer's record whether Composer has to be told
-        // about the package it is taking away, and the snapshot asks it whether
-        // there is bookkeeping to capture. Two answers about one package would
-        // leave a snapshot that is missing half of what putting it back needs.
-        if ($record !== null) {
-            $this->writeBookkeeping($record);
-        }
-
-        $id = $this->snapshotter($this->installation())->create($this->package(), PackageSnapshotter::REASON_UNINSTALL);
-
-        $snapshot = $this->store()->get($id);
-
-        self::assertNotNull($snapshot);
-        self::assertSame($composer, $snapshot['composer']);
-        self::assertSame($composer, $this->composer()->isInstalled('pagekit/test-ext'));
-        self::assertSame($composer, is_file($this->file($id, SnapshotStore::INSTALLED_FILE)));
-    }
-
-    /**
-     * @return array<string, array{0: string|null, 1: bool}>
-     */
-    public static function provideComposerRecords(): array
-    {
-        return [
-            'a record naming the package' => [self::BOOKKEEPING, true],
-            'a record naming another package' => ['[{"name":"pagekit/other","version":"1.0.0"}]', false],
-            'an empty record' => ['[]', false],
-            'a record cut off mid-write' => ['[{"name":"pagekit/test-e', false],
-            'a record that is no record' => ['not json at all', false],
-            'no record at all' => [null, false],
-        ];
-    }
-
-    public function testTheCapturedBookkeepingIsComposersOwnFileRatherThanAReadingOfIt(): void
-    {
-        $this->writeBookkeeping(self::BOOKKEEPING);
-
-        $id = $this->snapshotter($this->installation())->create($this->package(), PackageSnapshotter::REASON_UNINSTALL);
-
-        // Kept beside the archived tree rather than in it: it describes the
-        // whole installation, and what to do with it on a restore is a decision
-        // somebody makes about Composer's bookkeeping.
-        self::assertSame(self::BOOKKEEPING, (string) file_get_contents($this->file($id, SnapshotStore::INSTALLED_FILE)));
-    }
-
-    public function testBookkeepingThatCannotBeCapturedCostsTheWholeSnapshot(): void
-    {
-        // Without it a Composer-installed package comes back with its files and
-        // without Composer knowing it is there, which is a restore that reports
-        // success and leaves the installation inconsistent.
-        $this->writeBookkeeping(self::BOOKKEEPING);
-
-        $snapshotter = $this->snapshotter($this->installation(), new BookkeepingThatCannotBeCopied());
-
-        $failure = $this->refusal(fn () => $snapshotter->create($this->package(), PackageSnapshotter::REASON_UNINSTALL));
-
-        self::assertStringContainsString('pagekit/test-ext', $failure->getMessage());
-        self::assertStringContainsString(
-            'Composer\'s record',
-            (string) $failure->getPrevious()?->getMessage(),
-            'The caller logs what actually went wrong',
-        );
-        self::assertSame([], $this->store()->list());
     }
 
     // ------------------------------------------------------------------
@@ -356,8 +272,6 @@ final class PackageSnapshotterTest extends TestCase
         // be replayed - and the mark was never written, so nothing offers it.
         // Failing the removal a second time over those bytes would tell an
         // administrator nothing they can act on, so it is a line instead.
-        $this->writeBookkeeping(self::BOOKKEEPING);
-
         $snapshotter = $this->snapshotter($this->installation(), new ASnapshotThatCanBeNeitherFinishedNorRemoved());
 
         $failure = $this->refusal(fn () => $snapshotter->create($this->package(), PackageSnapshotter::REASON_UNINSTALL));
@@ -458,25 +372,6 @@ final class PackageSnapshotterTest extends TestCase
             'version' => '1.4.2',
             'path' => $this->tree,
         ]);
-    }
-
-    /**
-     * The reader the removal path asks whether Composer installed a package,
-     * which the snapshot has to agree with about one package.
-     */
-    private function composer(): Composer
-    {
-        return new Composer([
-            'path.packages' => $this->packages,
-            'path.artifact' => $this->workspace.'/artifact',
-            'system.api' => 'https://example.test',
-        ]);
-    }
-
-    private function writeBookkeeping(string $record): void
-    {
-        mkdir($this->packages.'/composer', 0755, true);
-        file_put_contents($this->packages.'/composer/installed.json', $record);
     }
 
     /**
@@ -619,26 +514,15 @@ final class PackageSnapshotterTest extends TestCase
 }
 
 /**
- * A filesystem that copies the package tree and then loses Composer's record of
- * it - a disk that fills up between the two, as far as the caller can tell.
- */
-final class BookkeepingThatCannotBeCopied extends Filesystem
-{
-    public function copy(string $source, string $target): bool
-    {
-        return !str_ends_with($target, SnapshotStore::INSTALLED_FILE) && parent::copy($source, $target);
-    }
-}
-
-/**
- * The same disk, once it has stopped taking anything at all: the record cannot
- * be copied, and what was already written cannot be removed either.
+ * A disk that stops taking anything part-way through the package tree: the
+ * rest of it cannot be copied, and what was already written cannot be removed
+ * either.
  */
 final class ASnapshotThatCanBeNeitherFinishedNorRemoved extends Filesystem
 {
     public function copy(string $source, string $target): bool
     {
-        return !str_ends_with($target, SnapshotStore::INSTALLED_FILE) && parent::copy($source, $target);
+        return !str_ends_with($target, '/views/extension.php') && parent::copy($source, $target);
     }
 
     /**

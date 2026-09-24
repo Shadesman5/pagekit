@@ -15,7 +15,7 @@
 
 ## 🎯 Overview
 
-A package zip can be refused, read, and extracted without Composer, and that is how a package is installed. The panel upload and `php pagekit install <archive>` replace the package tree through the seam. `php pagekit archive` builds that zip with Finder and `\ZipArchive`. `php pagekit update` is gone, and the web self-update log is plain text. Uninstall still goes through the Composer helper. `ext-zip` is a runtime requirement, and the shipped One theme declares an empty autoload map so the seam accepts it.
+A package zip can be refused, read, and extracted without Composer, and that is how a package is installed. The panel upload and `php pagekit install <archive>` replace the package tree through the seam. `php pagekit archive` builds that zip with Finder and `\ZipArchive`. `php pagekit update` is gone, and the web self-update log is plain text. Uninstall still goes through the Composer helper. A removal snapshot is the package tree, a database dump, and a description: it does not copy Composer's installed record, and `read()` omits a `composer` key an earlier release stored. `ext-zip` is a runtime requirement, and the shipped One theme declares an empty autoload map so the seam accepts it.
 
 ---
 
@@ -89,6 +89,27 @@ Gates: production verifier PASS; production tester PASS; frontend, fresh install
 
 Gates: production verifier FAIL once (`archive.exclude` typing), retry then PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS.
 
+### Snapshot engine (Checklist Step 4)
+
+A snapshot no longer records whether Composer installed the package. `create()` writes the description, the dump, and the archived tree. `read()` ignores a `composer` key already stored in `metadata.json` and does not rewrite the file. Restore does not write `installed.json` back.
+
+| File | Change |
+|---|---|
+| `app/package/src/Snapshot/PackageSnapshotter.php` | `BOOKKEEPING`, `composerInstalled()`, `bookkeeping()`, `bookkeepingFile()`, the `composer` argument of `details()`, and the capture inside `create()` are gone. The restore docblock no longer describes keeping Composer's record. The `$packages` argument stays: restore still resolves the live tree through it. |
+| `app/package/src/Snapshot/SnapshotStore.php` | `INSTALLED_FILE` and `installedFile()` are gone. Both phpstan shapes and `read()` drop `composer`. |
+
+#### Tests (Checklist Step 4)
+
+| File | Change |
+|---|---|
+| `tests/Unit/Snapshot/PackageSnapshotterTest.php` | The three bookkeeping cases, `provideComposerRecords()`, `composer()`, `writeBookkeeping()`, `BOOKKEEPING`, and `BookkeepingThatCannotBeCopied` are gone. The "beside the tree" list no longer includes `installed.json`. The unfinished-write double refuses `views/extension.php`. |
+| `tests/Unit/Snapshot/SnapshotStoreTest.php` | `testASnapshotCountsAsComposerInstalledOnlyWhereItSaysSoOutright` and the `composer` field are gone. `description()` no longer takes that flag. `testASnapshotWhoseDescriptionStillNamesComposerListsAsWholeAndRestoresWithoutThatKey` plants the key, restores, and asserts `list()` and `get()` omit it while the file still holds it. |
+| `tests/Unit/Snapshot/SnapshotRestoreTest.php` | `testComposersRecordOfWhatItHadInstalledIsNotWrittenBack`, `writeBookkeeping()`, and `BOOKKEEPING` are gone. |
+| `tests/Unit/Snapshot/SnapshotServiceWiringTest.php` | The `packages/composer` directory, the `installed.json` plant, and the assertion that the snapshot holds that file are gone. |
+| `tests/Unit/Snapshot/UploadedPackageRoundTripTest.php` (new) | A fixture zip installs and enables; the module's `routes` register and its class autoloads. Uninstall removes the tree and leaves one snapshot. Restore puts the vendor directory back, and a fresh module manager resolves the same routes and class file. The packages directory lists only that vendor, then nothing, then only that vendor. |
+
+Gates: production verifier PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS.
+
 ---
 
 ## 🧠 Key Decisions (Rationale)
@@ -115,12 +136,14 @@ Safety gates before any edit: the branch contained `origin/develop`, `composer i
 - **A link outside the package is omitted.** Its real path is skipped, so a link cannot carry `config.php` into the zip. A link inside is stored as the file it points to.
 - **The zip replaces the previous one only after it is complete.** It is written at `<target>.<hex>` and renamed over `<target>` after every `addFile()` and `close()`. A failure unlinks that file, so an earlier archive survives. `--dir` is created only once there is something to write. Entries are files only, in name order.
 - **A rule the matcher cannot apply fails the command.** `preg_match()` that cannot apply names the rule and exits `FAILURE`. Skipping it would archive the files the rule was meant to drop. The library compiles `[]]`, `[!]` and `[z-a]` to invalid regexes. `archive.exclude: ["[]]"]` writes no zip.
+- **An unfinished snapshot still stops inside the package tree.** The double that used to refuse copying `installed.json` now refuses `views/extension.php`, so the archive breaks off after `composer.json` and the assertions stay. Refusing the `complete` mark was rejected: that leaves a whole tree. `create()` throws, one unmarked snapshot stays listed, and one `warning` carries `trigger=create`.
+- **A `composer` key already on disk is not migrated.** `read()` builds its result from the keys it still has, so the field is ignored and the file is left as stored. `SnapshotControllerTest::place()` and `SnapshotRetentionTest::place()` still plant `'composer' => false`; those tests were left outside this step. The store test writes the key onto a finished snapshot and asserts the file keeps it through a restore.
 
 ---
 
 ## 💥 Breaking Changes (Extensions)
 
-`php pagekit install <archive>` installs one zip and prints `Installed <name> <version>.` The command previously took a package list and `--prefer-source` and always failed. `PackageManager::install()` takes a `PackageArchive`. A package's own manifest is unchanged. `php pagekit update` is gone. The web self-update log is plain text: the default formatter strips the console tags.
+`php pagekit install <archive>` installs one zip and prints `Installed <name> <version>.` The command previously took a package list and `--prefer-source` and always failed. `PackageManager::install()` takes a `PackageArchive`. A package's own manifest is unchanged. `php pagekit update` is gone. The web self-update log is plain text: the default formatter strips the console tags. A snapshot listing no longer includes `composer`. `read()` omits the key on a file an earlier release wrote; that file is not rewritten, and restore does not write `installed.json` back.
 
 ---
 
@@ -132,6 +155,7 @@ Safety gates before any edit: the branch contained `origin/develop`, `composer i
 - A failed `php pagekit archive` leaves the previous zip. The new file is renamed into place only after `close()`.
 - An `archive.exclude` rule the matcher cannot apply fails the command and writes no zip.
 - A symlink whose target lies outside the package is omitted from the zip. The web self-update log no longer wraps console tags in markup.
+- A snapshot taken earlier may still contain `installed.json` and a `composer` key in `metadata.json`. Restore leaves both files alone. `read()` does not return the key.
 
 ---
 
@@ -143,11 +167,13 @@ Install calls that boundary. The target is `<path.packages>/<validated name>`. U
 
 `php pagekit archive` runs no package-supplied command. The name is checked before a path is read, and a traversing name is refused without being echoed. `Gitignore::toRegex()` receives one rule at a time. A link whose real path leaves the package is omitted.
 
+A snapshot no longer copies `packages/composer/installed.json`. Restore does not write that file back. `read()` omits `composer` and does not rewrite `metadata.json`.
+
 ---
 
 ## 🛡️ No-Mercy Compliance
 
-The install path is `PackageArchive` only. `removeFiles()` still calls the Composer helper; that is the uninstall sequence, and it is not a second install path. No stub body, no `packagist` branch, no `class_alias`. The theme's `'autoload' => []` is the declaration the seam requires. `ArchiveCommand` no longer imports Composer. `UpdateCommand` is deleted. `SelfUpdater` no longer sets `HtmlOutputFormatter`. `BuildCommand`'s commented Composer install is deleted.
+The install path is `PackageArchive` only. `removeFiles()` still calls the Composer helper; that is the uninstall sequence, and it is not a second install path. No stub body, no `packagist` branch, no `class_alias`. The theme's `'autoload' => []` is the declaration the seam requires. `ArchiveCommand` no longer imports Composer. `UpdateCommand` is deleted. `SelfUpdater` no longer sets `HtmlOutputFormatter`. `BuildCommand`'s commented Composer install is deleted. The snapshot path no longer reads or writes Composer's record, and the `composer` key is not kept for old snapshots.
 
 ---
 
@@ -157,7 +183,7 @@ The install path is `PackageArchive` only. `removeFiles()` still calls the Compo
      quality dashboard. Never paste metric numbers (coverage %, MSI, test counts) or build a table here. -->
 
 - CI run: _TBD_
-- Notable deviations: Step 1 — none. Step 2 — tester PASS after one test-defect retry. Production verifier PASS; production tester PASS; frontend, fresh install, and install-over PASS; test-file verifier PASS. Step 3 — production verifier FAIL once (`archive.exclude` typing), retry then PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS.
+- Notable deviations: Step 1 — none. Step 2 — tester PASS after one test-defect retry. Production verifier PASS; production tester PASS; frontend, fresh install, and install-over PASS; test-file verifier PASS. Step 3 — production verifier FAIL once (`archive.exclude` typing), retry then PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS. Step 4 — production verifier PASS; PHPUnit + PHPStan PASS; test verifier PASS; PHPUnit + PHPStan PASS. `rg` for `INSTALLED_FILE|composerInstalled|BOOKKEEPING|bookkeeping` under `app` and `tests` still lists `PackageTreeRemovalTest` (Step 5's inventory) and the word in `PackageManagerMigrationTest` and `PackageSchemaTest`. `app/package/src/Snapshot` and `tests/Unit/Snapshot` have no hit.
 
 ---
 

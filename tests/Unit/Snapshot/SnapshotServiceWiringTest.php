@@ -24,13 +24,6 @@ final class SnapshotServiceWiringTest extends TestCase
 {
     use SnapshotDatabase;
 
-    /**
-     * Composer's record as it lies under packages/. Captured into a snapshot for
-     * a package Composer installed, which is what says the service was handed
-     * the directory the packages actually live in.
-     */
-    private const BOOKKEEPING = '[{"name":"pagekit/test-ext","version":"1.4.2","type":"pagekit-extension"}]';
-
     private const DAY = 86400;
 
     private string $workspace;
@@ -49,14 +42,12 @@ final class SnapshotServiceWiringTest extends TestCase
         $this->tree = $this->packages.'/pagekit/test-ext';
 
         mkdir($this->tree, 0755, true);
-        mkdir($this->packages.'/composer', 0755, true);
 
         file_put_contents($this->tree.'/composer.json', (string) json_encode([
             'name' => 'pagekit/test-ext',
             'type' => 'pagekit-extension',
             'version' => '1.4.2',
         ]));
-        file_put_contents($this->packages.'/composer/installed.json', self::BOOKKEEPING);
     }
 
     protected function tearDown(): void
@@ -85,13 +76,11 @@ final class SnapshotServiceWiringTest extends TestCase
 
         // Every collaborator the service is built from shows up here: the
         // directory the snapshots are kept in, the database that was dumped into
-        // this one, the filesystem that archived the package tree, and the
-        // packages directory Composer's record was read out of.
+        // this one and the filesystem that archived the package tree.
         self::assertSame([$id], $this->entries($this->snapshots));
         self::assertFileExists($this->file($id, SnapshotStore::METADATA_FILE));
         self::assertFileExists($this->file($id, SnapshotStore::DUMP_FILE));
         self::assertFileExists($this->file($id, SnapshotStore::FILES_DIR).'/pagekit/test-ext/composer.json');
-        self::assertSame(self::BOOKKEEPING, (string) file_get_contents($this->file($id, SnapshotStore::INSTALLED_FILE)));
     }
 
     public function testTheSnapshotterTheInstallationBuildsPutsASnapshotBackAsWell(): void

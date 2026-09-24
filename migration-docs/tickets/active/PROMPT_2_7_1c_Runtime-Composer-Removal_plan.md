@@ -68,7 +68,7 @@
 - [x] Step 1 (M) — Safety gates + the archive seam
 - [x] Step 2 (L) — Install path on the seam
 - [x] Step 3 (L) — Other Composer-library consumers
-- [ ] Step 4 (M) — Snapshot engine
+- [x] Step 4 (M) — Snapshot engine
 - [ ] Step 5 (L) — Delete the Composer runtime
 - [ ] Step 6 (M) — Marketplace surface
 - [ ] Step 7 (S) — Docs and closing gates
@@ -129,7 +129,10 @@
 - `ArchiveCommand::execute()` — the zip is built at `<target>.<hex>` and renamed over `<target>` only after every `addFile()` and `close()` succeeded; any failure unlinks it, so an earlier archive survives a failed run. `--dir` is created only once there is something to write. Entries are files only (no directory entries), added in name order.
 - `ArchiveCommand::keeps()` — a rule `preg_match()` cannot apply fails the command naming the rule instead of being skipped, since skipping archives what the rule meant to drop; the library compiles `[]]`, `[!]` and `[z-a]` to invalid regexes. Invariant: `archive.exclude: ["[]]"]` → `FAILURE`, no zip.
 ### Step 4
-_none yet_
+- `PackageSnapshotterTest::ASnapshotThatCanBeNeitherFinishedNorRemoved` — its `copy()` refused the `installed.json` capture, which no longer happens; it now refuses the fixture's `views/extension.php`, so the archive breaks off after `composer.json` (the test's own "dump beside part of a package") and the assertions stay as they were. Rejected: refusing the `complete` mark, which leaves a whole tree. Invariant: `create()` throws, one unmarked snapshot stays listed, one `warning` with `trigger=create`.
+- `SnapshotServiceWiringTest::setUp()` — the `mkdir(<packages>/composer)` goes with the `installed.json` plant it existed for.
+- `SnapshotControllerTest::place()` / `SnapshotRetentionTest::place()` — outside the inventory, left as they are: the `'composer' => false` they plant is metadata an earlier release wrote, which `read()` now ignores (decision 11's test pins that).
+- Step 4 `rg` gate — still lists `PackageTreeRemovalTest:59,462` (`BOOKKEEPING`, Step 5's inventory per decision 14) and two unrelated uses of the word, `PackageManagerMigrationTest:517` (config) and `PackageSchemaTest:425` (a migration service); none was touched. `app/package/src/Snapshot` and `tests/Unit/Snapshot` have no hit.
 ### Step 5
 _none yet_
 ### Step 6

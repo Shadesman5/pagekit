@@ -62,12 +62,6 @@ final class SnapshotRestoreTest extends TestCase
      */
     private const REMOVED = '{"packages":{},"extensions":[]}';
 
-    /**
-     * Composer's record as it lies under packages/, naming the package that was
-     * removed.
-     */
-    private const BOOKKEEPING = '[{"name":"pagekit/test-ext","version":"1.4.2","type":"pagekit-extension"}]';
-
     private string $workspace;
 
     private string $snapshots;
@@ -186,31 +180,6 @@ final class SnapshotRestoreTest extends TestCase
         self::assertFileExists($this->tree.'/composer.json');
         self::assertSame(['pagekit'], $this->entries($this->packages));
         self::assertSame(['packages', 'snapshots'], $this->entries($this->workspace));
-    }
-
-    public function testComposersRecordOfWhatItHadInstalledIsNotWrittenBack(): void
-    {
-        // The captured copy describes the installation as it was and the live one
-        // describes it as it is. Overwriting the second with the first would take
-        // every package installed since the snapshot off Composer's books.
-        $this->writeBookkeeping(self::BOOKKEEPING);
-
-        $connection = $this->installation();
-        $id = $this->take($connection);
-
-        $this->removePackage($connection);
-
-        $since = '[{"name":"pagekit/installed-since","version":"1.0.0"}]';
-        $this->writeBookkeeping($since);
-
-        $this->snapshotter($connection)->restore($id);
-
-        self::assertSame($since, (string) file_get_contents($this->packages.'/composer/installed.json'));
-        self::assertSame(
-            self::BOOKKEEPING,
-            (string) file_get_contents($this->file($id, SnapshotStore::INSTALLED_FILE)),
-            'The captured record stays in the snapshot for whoever reconciles the two',
-        );
     }
 
     public function testASnapshotThatWasRestoredIsStillOneAndCanBeRestoredAgain(): void
@@ -537,15 +506,6 @@ final class SnapshotRestoreTest extends TestCase
             'version' => '1.4.2',
             'path' => $this->tree,
         ]);
-    }
-
-    private function writeBookkeeping(string $record): void
-    {
-        if (!is_dir($this->packages.'/composer')) {
-            mkdir($this->packages.'/composer', 0755, true);
-        }
-
-        file_put_contents($this->packages.'/composer/installed.json', $record);
     }
 
     /**
