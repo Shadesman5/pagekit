@@ -56,11 +56,33 @@
         "cacheWrite": 0,
         "total": 148316
       },
-      "tokensSource": "cursor-api",
+      "tokensSource": "cursor-dashboard-csv",
       "result": "ESCALATE (snapshot): environment build 70a4777be38aa73fd03487dbe3c589c7dd13b14f does not contain origin/develop 7110583f2da6035cb78fee8341a330eb594c7861",
       "outcome": "snapshot-wait",
       "completedAt": "2026-09-23T17:17:43.384Z",
-      "notes": "Timing from Cursor API (single agent run)"
+      "notes": "Timing from Cursor API (single agent run) · Tokens from Cursor dashboard CSV (orchestrator + subagents)",
+      "orchestratorTokens": {
+        "input": 34759,
+        "output": 1941,
+        "cacheRead": 111616,
+        "cacheWrite": 0,
+        "total": 148316
+      },
+      "subagents": [
+        {
+          "role": "orchestrator",
+          "label": "Orchestrator",
+          "model": "grok-4.7-high-fast",
+          "events": 1,
+          "tokens": {
+            "input": 34759,
+            "output": 1941,
+            "cacheRead": 111616,
+            "cacheWrite": 0,
+            "total": 148316
+          }
+        }
+      ]
     }
   ],
   "totals": {
@@ -76,5 +98,11 @@
     "escalations": 0,
     "ghaJobs": 1,
     "cloudAgents": 1
+  },
+  "csvImport": {
+    "at": "2026-09-24T22:11:02.114Z",
+    "source": "import-usage-csv.mjs",
+    "events": 101,
+    "phasesUpdated": 1
   }
 }
