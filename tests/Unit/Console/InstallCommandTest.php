@@ -146,7 +146,7 @@ final class InstallCommandTest extends TestCase
         $app->set('package', $factory);
         $app->set('file', new Filesystem());
         $app->set('log', new Logger('test', [new NullHandler()]));
-        $app->set('module', new class {
+        $app->set('module', new class () {
             public function get(string $name): null
             {
                 return null;
