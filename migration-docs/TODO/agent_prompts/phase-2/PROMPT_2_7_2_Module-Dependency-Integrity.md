@@ -14,6 +14,10 @@ The module dependency graph is honest in both directions, and disable, uninstall
 
 An unsatisfied `require` refuses, and the message names the missing module. Logging it and continuing is the same defect. A module that is already enabled and whose requirement is unsatisfied does not take the request down: the existing auto-disable and admin notice carry that failure. A registered-but-disabled module and a module that is not registered are different failures, and each message says which.
 
+A manifest `require` that names a module this installation does not have is refused before any package file is written, and the message names the missing module. The panel upload and `php pagekit install <archive>` share that check.
+
+`enable()` and `disable()` are reached from the panel alone. `php pagekit install <archive>` places the tree and runs the install lifecycle, and no console command switches a package on or off, so a host without the panel can install a package and cannot activate it. Either the console gets enable and disable through the same pre-flight, or the panel stays the only activation surface and the install command's help says so.
+
 `requiredBy` is derived from the registered manifests. Destructive operations ask it who still needs the target. The active theme (`site.theme`) counts as enabled, the same as an entry in `extensions`. A blocking dependent stops disable and uninstall. There is no override.
 
 The admin UI and the API read one pre-flight: blockers, modules that would keep a requirement nobody satisfies, and a data-risk hint. The hint comes from what already exists (migrations, config rows, node types). No new metadata field on the manifest.
@@ -38,6 +42,10 @@ The integrity API talks about modules that are registered and modules that are e
 
 **Notice.** A boot-time refusal uses the durable failure record and the admin notice that already exist.
 
+**Archive.** `PackageArchive::open()` refuses an archive before anything is written: manifest shape, entry names, autoload directories. `PackageManager::install()` checks the target. A `require` naming a module the installation does not have is on neither list, so the tree lands and the failure shows up at activation or on the next boot. The module `index.php` `require` is readable without running the file, the same way `autoload` already is.
+
+**Callers.** `enable()` and `disable()` are reached from the panel alone. The install command places the tree and does not enable the package.
+
 **Uninstall.** `PackageController::uninstallAction` takes the snapshot first. It carries `TODO: Must be refactored in Step 2.7.2 (Module Dependency Integrity)`. The pre-flight belongs in front of that snapshot.
 
 **Restore.** `PackageSnapshotter::restore()` puts the package files back (`reinstate()`), then restores the database. `details()` records the package's identity, its version, the reason and a database description. It does not record the running application version. `SnapshotController::failed()` returns one fixed line for every failure.
@@ -57,6 +65,8 @@ The integrity API talks about modules that are registered and modules that are e
 ## Done when
 
 - An unregistered or inactive `require` does not load the depender. The failure names the module and the missing requirement. A cycle is still detected, including when a package is enabled or validated.
+- An archive whose `require` names a module the installation does not have is refused before anything is written. The missing module is named. The panel upload and `php pagekit install <archive>` both hit that refusal.
+- Enable and disable from the console are settled: the same pre-flight as the panel, or the panel stays the only activation surface and the install command's help says so.
 - `requiredBy` answers who depends on a module, from the registered manifests, including the active theme.
 - A test reads every core module's `use Pagekit\…` imports, attribute classes included, against its manifest `require`, and fails when no declared edge reaches the import. `package` requires `system/user`.
 - Disable and uninstall pre-flight reports blockers, orphans and a data-risk hint. A blocking dependent prevents the change. The extensions and themes UI shows that result.
