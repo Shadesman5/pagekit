@@ -87,7 +87,10 @@ jobs:
         if: steps.scope.outputs.in_scope == 'true'
         # --git-diff-lines mutates only lines changed vs the base; --min-covered-msi=80 matches
         # infection.json.dist; --logger-github annotates escaped mutants inline on the PR.
-        run: ./app/vendor/bin/infection --threads=max --git-diff-lines --git-diff-base="origin/${GITHUB_BASE_REF}" --logger-github --min-covered-msi=80
+        # Imports, attributes, and interface signatures produce no mutants, so covered MSI
+        # is 0% and the gate fails; --ignore-msi-with-no-mutations skips that check only
+        # then. The nightly full run does not pass the flag.
+        run: ./app/vendor/bin/infection --threads=max --git-diff-lines --git-diff-base="origin/${GITHUB_BASE_REF}" --logger-github --min-covered-msi=80 --ignore-msi-with-no-mutations
 
       - name: Upload Infection logs
         if: always() && steps.scope.outputs.in_scope == 'true'
